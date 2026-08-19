@@ -1829,7 +1829,7 @@ def _ramp_prototype_inner(im, tint, surface, item_id=None):
 # rather than killing it. Reviving it is: flip this to True, re-bake, and re-run the four gates.
 # The selftest pins are written to survive that flip (they assert the two signature defaults
 # TRACK this constant, and only ONE pin asserts today's value), so a revival goes green rather
-# than fighting the gate. See docs/TODO.md LW-287.
+# than fighting the gate. See docs/TODO.md LW-295 (the parked revival story).
 #
 # Read at import time, since it is a default-argument value: a caller that wants a rim passes
 # glow=True explicitly rather than reassigning this name.

@@ -352,15 +352,17 @@ Added mid cut after the owner looked at all 150 pictures with the halo on and of
 painting a coloured halo of its own around every weapon, shield and helm picture. It comes off; the
 vanilla artist's own soft haze stays. This was OUT of scope this morning and the reversal is
 recorded in the OUT section rather than edited away.
-- [ ] **Remove the halo and re bake (LW-287)**: one named switch, then all 468 files re baked. All
+- [x] **Remove the halo and re bake (LW-287)**: DONE 6541892 2026-08-19. One named switch, then
+      all 468 files re baked. All
       150 ramp items move, in exactly one respect, which is what the amended no drift check in
       section 6 now says.
-- [ ] **The gate that graded the halo has to be rebuilt in the same commit**: the old palette
+- [x] **The gate that graded the halo has to be rebuilt in the same commit**: DONE 6541892
+      2026-08-19. The old palette
       separation rule let a distinct halo RESCUE two items whose colours were too close, and
       judged a vanilla named item on its halo alone. With no halo shipped, both halves graded a
       layer nobody paints. Successor: vanilla named items are exempt and judged on their own art
       instead, and the exemption is proved against the pixels rather than asserted.
-- [ ] **Owner gallery pass on the de haloed set**: done 2026-08-19 ahead of the bake, all 150 at
+- [x] **Owner gallery pass on the de haloed set**: done 2026-08-19 ahead of the bake, all 150 at
       list size with a halo on and off toggle. This box is the record that it happened before the
       bake rather than after it.
 
@@ -408,12 +410,13 @@ recorded in the OUT section rather than edited away.
 
 ## 2.4.0 OUT of scope (explicit, so nothing drifts back in)
 
-- **Bringing the glow rim BACK, or redesigning it (LW-287).** Superseded 2026-08-19 by a second
+- **Bringing the glow rim BACK, or redesigning it (LW-295).** Superseded 2026-08-19 by a second
   owner call the same day, and the change of direction is recorded here rather than edited away.
   The morning call was hold off. The afternoon call, after the owner looked at all 150 pictures
   with the halo on and off, was REMOVE it, which is now IN scope, see section 5. What stays out
   is every OTHER idea for the rim: reviving it, restyling it, or making it mean something. Those
-  keep LW-287 alive as a story after this cut ships.
+  live on as LW-295, opened for exactly that, because a shipped id must not be the handle for
+  work still to come.
   Why removal was cheap enough to change our minds mid cut: the rim is a separate layer that adds
   or removes without touching a body pixel, so this reverses in minutes if the owner wants it
   back. One thing the removal turned out to FIX rather than cost, which is what settled it: the

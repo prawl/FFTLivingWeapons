@@ -273,6 +273,24 @@ the technical detail lives in the indented lines under it.
   modloader installs its FFTPack hook, which is why a file override never reaches it; ledger row
   [weapon-palette-assignment-walled] carries the four negatives and their controls.)
 
+- [LW-295] 2026-08-19: The coloured halo we used to draw around every item picture is off, and
+  the owner has other ideas for what a glow could mean rather than just being decoration. This
+  row holds that idea now that the removal has shipped. Nothing waits on it and nothing is broken
+  without it: a halo is a layer that sits outside the artwork and adds or removes in minutes
+  without touching a pixel underneath, so this can be picked up whenever there is an idea worth
+  testing. Worth knowing before anyone starts: the old halo was not free. It painted over between
+  one hundred and two hundred and seventy pixels of the vanilla artist's own soft haze on every
+  item that had one, so any revival should decide on purpose whether it is allowed to do that
+  again. (Tech: successor to the shipped LW-287, opened because a retired id must not be the
+  handle for future work. Reviving is SHIP_GLOW_RIM = True in tools/recolor_icons.py, re-bake,
+  re-run the four icon gates; the machinery is deliberately kept live and pinned, ramp_glow,
+  ramp_rim_color, data/icon_ramp/rims.json, and selftest pins 1, 2, 3b. Two things a revival
+  must expect: selftest pin ramp pin14b names the current value and its message is the recipe,
+  and ANCHOR_RULINGS[116] returns to reporting the Fallingstar Bag sixty degrees off its own art,
+  which the removal had closed. Inherits the four candidate treatments and their costs from
+  decision brief artifact f9835932, and the owner gallery of all 150 items with the halo on and
+  off is artifact 1b130ff7.)
+
 - [LW-292] 2026-08-19: Settle whether changing a weapon's battle colours needs the game restarted
   or just a new battle, because it decides whether the sibling mod's colour slider has to tell
   players to relaunch. Half of it is already answered from the modloader's own source: it re-opens
