@@ -1,0 +1,1344 @@
+{
+ "summary": {
+  "total": 300,
+  "fresh": 250,
+  "recon_only": 49,
+  "neither": 1,
+  "neither_list": [
+   "ei_116_uitx"
+  ],
+  "imgconv": {
+   "ei_001_uitx": {
+    "stable": true,
+    "matches_banked_tex": true
+   },
+   "ei_s_050_uitx": {
+    "stable": true,
+    "matches_banked_tex": true
+   },
+   "ei_099_uitx": {
+    "stable": true,
+    "matches_banked_tex": true
+   },
+   "ei_128_uitx": {
+    "stable": true,
+    "matches_banked_tex": true
+   },
+   "ei_s_144_uitx": {
+    "stable": true,
+    "matches_banked_tex": true
+   },
+   "ei_116_uitx": {
+    "stable": true,
+    "matches_banked_tex": true
+   }
+  },
+  "vanilla_cache": {
+   "ei_001_uitx": true,
+   "ei_s_128_uitx": true,
+   "ei_150_uitx": true
+  }
+ },
+ "files": {
+  "ei_s_128_uitx": {
+   "fresh": false,
+   "fresh_note": "deploy_shields config",
+   "recon": true,
+   "recon_note": "rim (242, 109, 0) a=(170,80,0)"
+  },
+  "ei_128_uitx": {
+   "fresh": false,
+   "fresh_note": "deploy_shields config",
+   "recon": true,
+   "recon_note": "rim (242, 109, 0) a=(170,80,0)"
+  },
+  "ei_s_129_uitx": {
+   "fresh": false,
+   "fresh_note": "deploy_shields config",
+   "recon": true,
+   "recon_note": "rim (48, 242, 0) a=(170,80,0)"
+  },
+  "ei_129_uitx": {
+   "fresh": false,
+   "fresh_note": "deploy_shields config",
+   "recon": true,
+   "recon_note": "rim (48, 242, 0) a=(170,80,0)"
+  },
+  "ei_s_130_uitx": {
+   "fresh": false,
+   "fresh_note": "deploy_shields config",
+   "recon": true,
+   "recon_note": "rim (121, 0, 242) a=(170,80,0)"
+  },
+  "ei_130_uitx": {
+   "fresh": false,
+   "fresh_note": "deploy_shields config",
+   "recon": true,
+   "recon_note": "rim (121, 0, 242) a=(170,80,0)"
+  },
+  "ei_s_131_uitx": {
+   "fresh": false,
+   "fresh_note": "deploy_shields config",
+   "recon": true,
+   "recon_note": "rim (242, 225, 0) a=(170,80,0)"
+  },
+  "ei_131_uitx": {
+   "fresh": false,
+   "fresh_note": "deploy_shields config",
+   "recon": true,
+   "recon_note": "rim (242, 225, 0) a=(170,80,0)"
+  },
+  "ei_s_132_uitx": {
+   "fresh": false,
+   "fresh_note": "deploy_shields config",
+   "recon": true,
+   "recon_note": "rim (242, 225, 0) a=(170,80,0)"
+  },
+  "ei_132_uitx": {
+   "fresh": false,
+   "fresh_note": "deploy_shields config",
+   "recon": true,
+   "recon_note": "rim (242, 225, 0) a=(170,80,0)"
+  },
+  "ei_s_133_uitx": {
+   "fresh": false,
+   "fresh_note": "deploy_shields config",
+   "recon": true,
+   "recon_note": "rim (5, 242, 0) a=(170,80,0)"
+  },
+  "ei_133_uitx": {
+   "fresh": false,
+   "fresh_note": "deploy_shields config",
+   "recon": true,
+   "recon_note": "rim (5, 242, 0) a=(170,80,0)"
+  },
+  "ei_s_134_uitx": {
+   "fresh": false,
+   "fresh_note": "deploy_shields config",
+   "recon": true,
+   "recon_note": "rim (242, 65, 0) a=(170,80,0)"
+  },
+  "ei_134_uitx": {
+   "fresh": false,
+   "fresh_note": "deploy_shields config",
+   "recon": true,
+   "recon_note": "rim (242, 65, 0) a=(170,80,0)"
+  },
+  "ei_s_135_uitx": {
+   "fresh": false,
+   "fresh_note": "deploy_shields config",
+   "recon": true,
+   "recon_note": "rim (0, 97, 242) a=(170,80,0)"
+  },
+  "ei_135_uitx": {
+   "fresh": false,
+   "fresh_note": "deploy_shields config",
+   "recon": true,
+   "recon_note": "rim (0, 97, 242) a=(170,80,0)"
+  },
+  "ei_s_136_uitx": {
+   "fresh": false,
+   "fresh_note": "deploy_shields config",
+   "recon": true,
+   "recon_note": "rim (0, 97, 242) a=(170,80,0)"
+  },
+  "ei_136_uitx": {
+   "fresh": false,
+   "fresh_note": "deploy_shields config",
+   "recon": true,
+   "recon_note": "rim (0, 97, 242) a=(170,80,0)"
+  },
+  "ei_s_137_uitx": {
+   "fresh": false,
+   "fresh_note": "deploy_shields config",
+   "recon": true,
+   "recon_note": "rim (242, 0, 145) a=(170,80,0)"
+  },
+  "ei_137_uitx": {
+   "fresh": false,
+   "fresh_note": "deploy_shields config",
+   "recon": true,
+   "recon_note": "rim (242, 0, 145) a=(170,80,0)"
+  },
+  "ei_s_138_uitx": {
+   "fresh": false,
+   "fresh_note": "deploy_shields config",
+   "recon": true,
+   "recon_note": "rim (5, 242, 0) a=(170,80,0)"
+  },
+  "ei_138_uitx": {
+   "fresh": false,
+   "fresh_note": "deploy_shields config",
+   "recon": true,
+   "recon_note": "rim (5, 242, 0) a=(170,80,0)"
+  },
+  "ei_s_139_uitx": {
+   "fresh": false,
+   "fresh_note": "deploy_shields config",
+   "recon": true,
+   "recon_note": "rim (242, 225, 0) a=(170,80,0)"
+  },
+  "ei_139_uitx": {
+   "fresh": false,
+   "fresh_note": "deploy_shields config",
+   "recon": true,
+   "recon_note": "rim (242, 225, 0) a=(170,80,0)"
+  },
+  "ei_s_140_uitx": {
+   "fresh": false,
+   "fresh_note": "deploy_shields config",
+   "recon": true,
+   "recon_note": "rim (242, 109, 0) a=(170,80,0)"
+  },
+  "ei_140_uitx": {
+   "fresh": false,
+   "fresh_note": "deploy_shields config",
+   "recon": true,
+   "recon_note": "rim (242, 109, 0) a=(170,80,0)"
+  },
+  "ei_s_141_uitx": {
+   "fresh": false,
+   "fresh_note": "deploy_shields config",
+   "recon": true,
+   "recon_note": "rim (0, 97, 242) a=(170,80,0)"
+  },
+  "ei_141_uitx": {
+   "fresh": false,
+   "fresh_note": "deploy_shields config",
+   "recon": true,
+   "recon_note": "rim (0, 97, 242) a=(170,80,0)"
+  },
+  "ei_s_142_uitx": {
+   "fresh": false,
+   "fresh_note": "deploy_shields config",
+   "recon": true,
+   "recon_note": "rim (242, 109, 0) a=(170,80,0)"
+  },
+  "ei_142_uitx": {
+   "fresh": false,
+   "fresh_note": "deploy_shields config",
+   "recon": true,
+   "recon_note": "rim (242, 109, 0) a=(170,80,0)"
+  },
+  "ei_s_143_uitx": {
+   "fresh": false,
+   "fresh_note": "deploy_shields config",
+   "recon": true,
+   "recon_note": "rim (242, 109, 0) a=(170,80,0)"
+  },
+  "ei_143_uitx": {
+   "fresh": false,
+   "fresh_note": "deploy_shields config",
+   "recon": true,
+   "recon_note": "rim (242, 109, 0) a=(170,80,0)"
+  },
+  "ei_s_144_uitx": {
+   "fresh": true,
+   "fresh_note": "deploy_shields config"
+  },
+  "ei_144_uitx": {
+   "fresh": true,
+   "fresh_note": "deploy_shields config"
+  },
+  "ei_s_145_uitx": {
+   "fresh": true,
+   "fresh_note": "deploy_shields config"
+  },
+  "ei_145_uitx": {
+   "fresh": false,
+   "fresh_note": "deploy_shields config",
+   "recon": true,
+   "recon_note": "rim (163, 242, 96) a=(170,80,0)"
+  },
+  "ei_s_146_uitx": {
+   "fresh": true,
+   "fresh_note": "deploy_shields config"
+  },
+  "ei_146_uitx": {
+   "fresh": true,
+   "fresh_note": "deploy_shields config"
+  },
+  "ei_s_147_uitx": {
+   "fresh": true,
+   "fresh_note": "deploy_shields config"
+  },
+  "ei_147_uitx": {
+   "fresh": true,
+   "fresh_note": "deploy_shields config"
+  },
+  "ei_s_148_uitx": {
+   "fresh": true,
+   "fresh_note": "deploy_shields config"
+  },
+  "ei_148_uitx": {
+   "fresh": true,
+   "fresh_note": "deploy_shields config"
+  },
+  "ei_s_149_uitx": {
+   "fresh": true,
+   "fresh_note": "deploy_shields config"
+  },
+  "ei_149_uitx": {
+   "fresh": false,
+   "fresh_note": "deploy_shields config",
+   "recon": true,
+   "recon_note": "rim (242, 186, 16) a=(170,80,0)"
+  },
+  "ei_s_150_uitx": {
+   "fresh": false,
+   "fresh_note": "deploy_shields config",
+   "recon": true,
+   "recon_note": "rim (82, 118, 242) a=(170,80,0)"
+  },
+  "ei_150_uitx": {
+   "fresh": false,
+   "fresh_note": "deploy_shields config",
+   "recon": true,
+   "recon_note": "rim (82, 118, 242) a=(170,80,0)"
+  },
+  "ei_s_151_uitx": {
+   "fresh": false,
+   "fresh_note": "deploy_shields config",
+   "recon": true,
+   "recon_note": "rim (242, 218, 130) a=(170,80,0)"
+  },
+  "ei_151_uitx": {
+   "fresh": false,
+   "fresh_note": "deploy_shields config",
+   "recon": true,
+   "recon_note": "rim (242, 218, 130) a=(170,80,0)"
+  },
+  "ei_s_152_uitx": {
+   "fresh": false,
+   "fresh_note": "deploy_shields config",
+   "recon": true,
+   "recon_note": "rim (56, 242, 242) a=(170,80,0)"
+  },
+  "ei_152_uitx": {
+   "fresh": false,
+   "fresh_note": "deploy_shields config",
+   "recon": true,
+   "recon_note": "rim (56, 242, 242) a=(170,80,0)"
+  },
+  "ei_s_153_uitx": {
+   "fresh": true,
+   "fresh_note": "deploy_shields config"
+  },
+  "ei_153_uitx": {
+   "fresh": true,
+   "fresh_note": "deploy_shields config"
+  },
+  "ei_s_154_uitx": {
+   "fresh": false,
+   "fresh_note": "deploy_shields config",
+   "recon": true,
+   "recon_note": "rim (219, 125, 242) a=(170,80,0)"
+  },
+  "ei_154_uitx": {
+   "fresh": false,
+   "fresh_note": "deploy_shields config",
+   "recon": true,
+   "recon_note": "rim (219, 125, 242) a=(170,80,0)"
+  },
+  "ei_s_155_uitx": {
+   "fresh": true,
+   "fresh_note": "deploy_shields config"
+  },
+  "ei_155_uitx": {
+   "fresh": true,
+   "fresh_note": "deploy_shields config"
+  },
+  "ei_s_156_uitx": {
+   "fresh": true,
+   "fresh_note": "deploy_shields config"
+  },
+  "ei_156_uitx": {
+   "fresh": true,
+   "fresh_note": "deploy_shields config"
+  },
+  "ei_s_001_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_001_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_002_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_002_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_003_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_003_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_004_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_004_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_005_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_005_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_006_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_006_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_007_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_007_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_008_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_008_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_009_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_009_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_010_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_010_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_011_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_011_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_012_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_012_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_013_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_013_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_014_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_014_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_015_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_015_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_016_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_016_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_017_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_017_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_018_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_018_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_019_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_019_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_020_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_020_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_021_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_021_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_022_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_022_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_023_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_023_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_024_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_024_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_025_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_025_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_026_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_026_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_027_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_027_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_028_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_028_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_029_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_029_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_030_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_030_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_031_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_031_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_032_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_032_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_033_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_033_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_034_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_034_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_035_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_035_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_036_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_036_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_037_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_037_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_038_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_038_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_039_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_039_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_040_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_040_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_041_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_041_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_042_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_042_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_043_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_043_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_044_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_044_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_045_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_045_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_046_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_046_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_047_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_047_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_048_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_048_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_049_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_049_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_050_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_050_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_051_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_051_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_052_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_052_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_053_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_053_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_054_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_054_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_055_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_055_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_056_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_056_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_057_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_057_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_058_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_058_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_059_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_059_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_060_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_060_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_061_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_061_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_062_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_062_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_063_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_063_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_064_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_064_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_065_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_065_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_066_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_066_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_067_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_067_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_068_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_068_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_069_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_069_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_070_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_070_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_071_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_071_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_072_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_072_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_073_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_073_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_074_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_074_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_075_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_075_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_076_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_076_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_077_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_077_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_078_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_078_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_079_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_079_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_080_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_080_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_081_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_081_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_082_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_082_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_083_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_083_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_084_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_084_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_085_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_085_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_086_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_086_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_087_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_087_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_088_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_088_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_089_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_089_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_090_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_090_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_091_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_091_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_092_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_092_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_093_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_093_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_094_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_094_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_095_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_095_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_096_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_096_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_097_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_097_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_098_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_098_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_099_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_099_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_100_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_100_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_101_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_101_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_102_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_102_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_103_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_103_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_104_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_104_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_105_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_105_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_106_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_106_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_107_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_107_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_108_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_108_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_109_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_109_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_110_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_110_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_111_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_111_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_112_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_112_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_113_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_113_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_114_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_114_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_119_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_119_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_120_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_120_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_121_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_121_uitx": {
+   "fresh": true,
+   "fresh_note": "wow_render config"
+  },
+  "ei_s_115_uitx": {
+   "fresh": false,
+   "fresh_note": "crisp config not attempted fresh",
+   "recon": true,
+   "recon_note": "rim (242, 109, 0) a=(235,80,0)"
+  },
+  "ei_115_uitx": {
+   "fresh": false,
+   "fresh_note": "crisp config not attempted fresh",
+   "recon": true,
+   "recon_note": "rim (242, 109, 0) a=(235,80,0)"
+  },
+  "ei_s_116_uitx": {
+   "fresh": false,
+   "fresh_note": "crisp config not attempted fresh",
+   "recon": true,
+   "recon_note": "rim (97, 172, 242) a=(235,80,0)"
+  },
+  "ei_116_uitx": {
+   "fresh": false,
+   "fresh_note": "crisp config not attempted fresh",
+   "recon": false,
+   "recon_note": "glow-over-reconstruction differs"
+  },
+  "ei_s_117_uitx": {
+   "fresh": false,
+   "fresh_note": "crisp config not attempted fresh",
+   "recon": true,
+   "recon_note": "rim (242, 0, 0) a=(235,80,0)"
+  },
+  "ei_117_uitx": {
+   "fresh": false,
+   "fresh_note": "crisp config not attempted fresh",
+   "recon": true,
+   "recon_note": "rim (242, 0, 0) a=(235,80,0)"
+  },
+  "ei_s_118_uitx": {
+   "fresh": false,
+   "fresh_note": "crisp config not attempted fresh",
+   "recon": true,
+   "recon_note": "rim (242, 109, 0) a=(235,80,0)"
+  },
+  "ei_118_uitx": {
+   "fresh": false,
+   "fresh_note": "crisp config not attempted fresh",
+   "recon": true,
+   "recon_note": "rim (242, 109, 0) a=(235,80,0)"
+  }
+ }
+}

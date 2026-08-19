@@ -1,0 +1,652 @@
+{
+ "ei_s_128_uitx": {
+  "gen_body": true,
+  "rim": [
+   242,
+   109,
+   0
+  ],
+  "alphas": [
+   170,
+   80,
+   0
+  ]
+ },
+ "ei_128_uitx": {
+  "gen_body": true,
+  "rim": [
+   242,
+   109,
+   0
+  ],
+  "alphas": [
+   170,
+   80,
+   0
+  ]
+ },
+ "ei_s_129_uitx": {
+  "gen_body": true,
+  "rim": [
+   48,
+   242,
+   0
+  ],
+  "alphas": [
+   170,
+   80,
+   0
+  ]
+ },
+ "ei_129_uitx": {
+  "gen_body": true,
+  "rim": [
+   48,
+   242,
+   0
+  ],
+  "alphas": [
+   170,
+   80,
+   0
+  ]
+ },
+ "ei_s_130_uitx": {
+  "gen_body": true,
+  "rim": [
+   121,
+   0,
+   242
+  ],
+  "alphas": [
+   170,
+   80,
+   0
+  ]
+ },
+ "ei_130_uitx": {
+  "gen_body": false,
+  "rim": [
+   121,
+   0,
+   242
+  ],
+  "alphas": [
+   170,
+   80,
+   0
+  ]
+ },
+ "ei_s_131_uitx": {
+  "gen_body": true,
+  "rim": [
+   242,
+   225,
+   0
+  ],
+  "alphas": [
+   170,
+   80,
+   0
+  ]
+ },
+ "ei_131_uitx": {
+  "gen_body": true,
+  "rim": [
+   242,
+   225,
+   0
+  ],
+  "alphas": [
+   170,
+   80,
+   0
+  ]
+ },
+ "ei_s_132_uitx": {
+  "gen_body": true,
+  "rim": [
+   242,
+   225,
+   0
+  ],
+  "alphas": [
+   170,
+   80,
+   0
+  ]
+ },
+ "ei_132_uitx": {
+  "gen_body": false,
+  "rim": [
+   242,
+   225,
+   0
+  ],
+  "alphas": [
+   170,
+   80,
+   0
+  ]
+ },
+ "ei_s_133_uitx": {
+  "gen_body": true,
+  "rim": [
+   5,
+   242,
+   0
+  ],
+  "alphas": [
+   170,
+   80,
+   0
+  ]
+ },
+ "ei_133_uitx": {
+  "gen_body": true,
+  "rim": [
+   5,
+   242,
+   0
+  ],
+  "alphas": [
+   170,
+   80,
+   0
+  ]
+ },
+ "ei_s_134_uitx": {
+  "gen_body": true,
+  "rim": [
+   242,
+   65,
+   0
+  ],
+  "alphas": [
+   170,
+   80,
+   0
+  ]
+ },
+ "ei_134_uitx": {
+  "gen_body": false,
+  "rim": [
+   242,
+   65,
+   0
+  ],
+  "alphas": [
+   170,
+   80,
+   0
+  ]
+ },
+ "ei_s_135_uitx": {
+  "gen_body": true,
+  "rim": [
+   0,
+   97,
+   242
+  ],
+  "alphas": [
+   170,
+   80,
+   0
+  ]
+ },
+ "ei_135_uitx": {
+  "gen_body": true,
+  "rim": [
+   0,
+   97,
+   242
+  ],
+  "alphas": [
+   170,
+   80,
+   0
+  ]
+ },
+ "ei_s_136_uitx": {
+  "gen_body": true,
+  "rim": [
+   0,
+   97,
+   242
+  ],
+  "alphas": [
+   170,
+   80,
+   0
+  ]
+ },
+ "ei_136_uitx": {
+  "gen_body": false,
+  "rim": [
+   0,
+   97,
+   242
+  ],
+  "alphas": [
+   170,
+   80,
+   0
+  ]
+ },
+ "ei_s_137_uitx": {
+  "gen_body": true,
+  "rim": [
+   242,
+   0,
+   145
+  ],
+  "alphas": [
+   170,
+   80,
+   0
+  ]
+ },
+ "ei_137_uitx": {
+  "gen_body": true,
+  "rim": [
+   242,
+   0,
+   145
+  ],
+  "alphas": [
+   170,
+   80,
+   0
+  ]
+ },
+ "ei_s_138_uitx": {
+  "gen_body": true,
+  "rim": [
+   5,
+   242,
+   0
+  ],
+  "alphas": [
+   170,
+   80,
+   0
+  ]
+ },
+ "ei_138_uitx": {
+  "gen_body": false,
+  "rim": [
+   5,
+   242,
+   0
+  ],
+  "alphas": [
+   170,
+   80,
+   0
+  ]
+ },
+ "ei_s_139_uitx": {
+  "gen_body": true,
+  "rim": [
+   242,
+   225,
+   0
+  ],
+  "alphas": [
+   170,
+   80,
+   0
+  ]
+ },
+ "ei_139_uitx": {
+  "gen_body": true,
+  "rim": [
+   242,
+   225,
+   0
+  ],
+  "alphas": [
+   170,
+   80,
+   0
+  ]
+ },
+ "ei_s_140_uitx": {
+  "gen_body": true,
+  "rim": [
+   242,
+   109,
+   0
+  ],
+  "alphas": [
+   170,
+   80,
+   0
+  ]
+ },
+ "ei_140_uitx": {
+  "gen_body": false,
+  "rim": [
+   242,
+   109,
+   0
+  ],
+  "alphas": [
+   170,
+   80,
+   0
+  ]
+ },
+ "ei_s_141_uitx": {
+  "gen_body": true,
+  "rim": [
+   0,
+   97,
+   242
+  ],
+  "alphas": [
+   170,
+   80,
+   0
+  ]
+ },
+ "ei_141_uitx": {
+  "gen_body": true,
+  "rim": [
+   0,
+   97,
+   242
+  ],
+  "alphas": [
+   170,
+   80,
+   0
+  ]
+ },
+ "ei_s_142_uitx": {
+  "gen_body": true,
+  "rim": [
+   242,
+   109,
+   0
+  ],
+  "alphas": [
+   170,
+   80,
+   0
+  ]
+ },
+ "ei_142_uitx": {
+  "gen_body": true,
+  "rim": [
+   242,
+   109,
+   0
+  ],
+  "alphas": [
+   170,
+   80,
+   0
+  ]
+ },
+ "ei_s_143_uitx": {
+  "gen_body": true,
+  "rim": [
+   242,
+   109,
+   0
+  ],
+  "alphas": [
+   170,
+   80,
+   0
+  ]
+ },
+ "ei_143_uitx": {
+  "gen_body": true,
+  "rim": [
+   242,
+   109,
+   0
+  ],
+  "alphas": [
+   170,
+   80,
+   0
+  ]
+ },
+ "ei_145_uitx": {
+  "gen_body": false,
+  "rim": [
+   163,
+   242,
+   96
+  ],
+  "alphas": [
+   170,
+   80,
+   0
+  ]
+ },
+ "ei_149_uitx": {
+  "gen_body": false,
+  "rim": [
+   242,
+   186,
+   16
+  ],
+  "alphas": [
+   170,
+   80,
+   0
+  ]
+ },
+ "ei_150_uitx": {
+  "gen_body": false,
+  "rim": [
+   82,
+   118,
+   242
+  ],
+  "alphas": [
+   170,
+   80,
+   0
+  ]
+ },
+ "ei_s_150_uitx": {
+  "gen_body": false,
+  "rim": [
+   82,
+   118,
+   242
+  ],
+  "alphas": [
+   170,
+   80,
+   0
+  ]
+ },
+ "ei_151_uitx": {
+  "gen_body": false,
+  "rim": [
+   242,
+   218,
+   130
+  ],
+  "alphas": [
+   170,
+   80,
+   0
+  ]
+ },
+ "ei_s_151_uitx": {
+  "gen_body": false,
+  "rim": [
+   242,
+   218,
+   130
+  ],
+  "alphas": [
+   170,
+   80,
+   0
+  ]
+ },
+ "ei_152_uitx": {
+  "gen_body": false,
+  "rim": [
+   56,
+   242,
+   242
+  ],
+  "alphas": [
+   170,
+   80,
+   0
+  ]
+ },
+ "ei_s_152_uitx": {
+  "gen_body": false,
+  "rim": [
+   56,
+   242,
+   242
+  ],
+  "alphas": [
+   170,
+   80,
+   0
+  ]
+ },
+ "ei_154_uitx": {
+  "gen_body": false,
+  "rim": [
+   219,
+   125,
+   242
+  ],
+  "alphas": [
+   170,
+   80,
+   0
+  ]
+ },
+ "ei_s_154_uitx": {
+  "gen_body": false,
+  "rim": [
+   219,
+   125,
+   242
+  ],
+  "alphas": [
+   170,
+   80,
+   0
+  ]
+ },
+ "ei_s_115_uitx": {
+  "gen_body": true,
+  "rim": [
+   242,
+   109,
+   0
+  ],
+  "alphas": [
+   235,
+   80,
+   0
+  ]
+ },
+ "ei_115_uitx": {
+  "gen_body": true,
+  "rim": [
+   242,
+   109,
+   0
+  ],
+  "alphas": [
+   235,
+   80,
+   0
+  ]
+ },
+ "ei_s_116_uitx": {
+  "gen_body": true,
+  "rim": [
+   97,
+   172,
+   242
+  ],
+  "alphas": [
+   235,
+   80,
+   0
+  ]
+ },
+ "ei_116_uitx": {
+  "gen_body": true,
+  "rim": [
+   97,
+   172,
+   242
+  ],
+  "alphas": [
+   235,
+   80,
+   0
+  ]
+ },
+ "ei_s_117_uitx": {
+  "gen_body": true,
+  "rim": [
+   242,
+   0,
+   0
+  ],
+  "alphas": [
+   235,
+   80,
+   0
+  ]
+ },
+ "ei_117_uitx": {
+  "gen_body": true,
+  "rim": [
+   242,
+   0,
+   0
+  ],
+  "alphas": [
+   235,
+   80,
+   0
+  ]
+ },
+ "ei_s_118_uitx": {
+  "gen_body": true,
+  "rim": [
+   242,
+   109,
+   0
+  ],
+  "alphas": [
+   235,
+   80,
+   0
+  ]
+ },
+ "ei_118_uitx": {
+  "gen_body": true,
+  "rim": [
+   242,
+   109,
+   0
+  ],
+  "alphas": [
+   235,
+   80,
+   0
+  ]
+ }
+}
