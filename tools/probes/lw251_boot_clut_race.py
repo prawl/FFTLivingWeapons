@@ -1,6 +1,15 @@
 #!/usr/bin/env python
 """LW-251 round 7: race the boot. Sign the exe-image CLUT tables BEFORE consumption.
 
+CAVEAT ADDED 2026-08-19 (READ BEFORE RUNNING): this probe hunts battle_wep_spr palette
+rows. Offline decode of the container the game actually loads (modded.pac g2d) then
+showed the HD weapon sheet (entry 161) takes its colours from g2d ENTRY 156, a CLUT bank
+with ZERO byte overlap with battle_wep_spr. So this probe as written targets the CLASSIC
+palette, not the HD colour the owner sees, and a "vanilla bow" result would be a false
+negative. Run tools/probes/lw251_hd_clut_scan.py FIRST (read-only) to locate the entry-156
+palettes in memory, then retarget this race at those addresses/format. See memory
+lw251-hd-clut-is-g2d-entry-156.
+
 Rounds 2-6 (ledger [g2d-equipment-sheet-override]) proved battle weapon colours resolve
 ONCE at process start from binary-baked data: every post-boot lever is dead (live pokes
 of the image tables self-heal; the loaded battle_wep_spr.bin block gets copied into a
