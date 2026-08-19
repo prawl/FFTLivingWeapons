@@ -92,14 +92,28 @@ REPO_ICONS = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__)))), "mod", "FFTIVC", "data", "enhanced", "ui", "ffto",
     "icon", "equip_item", "texture")
 
-# 16 max-distinct vivid BGR555 colours (low 5 bits red). Every palette gets one, so a weapon
-# renders as a flat blob whose colour NAMES the palette index it drew from.
-PALETTE_CODES = [
-    (0x001F, "RED"), (0x00FF, "ORANGE"), (0x03FF, "YELLOW"), (0x03EF, "LIME"),
-    (0x03E0, "GREEN"), (0x2BE0, "SPRING"), (0x7FE0, "CYAN"), (0x7E00, "AZURE"),
-    (0x7C00, "BLUE"), (0x7C0F, "VIOLET"), (0x7C1F, "MAGENTA"), (0x501F, "PINK"),
-    (0x35AD, "GREY"), (0x7FFF, "WHITE"), (0x029F, "AMBER"), (0x7D5F, "ORCHID"),
-]
+def _codes():
+    """16 census colours: 8 hues 45 degrees apart, each at full and at 55% value. Generated
+    rather than hand-listed for two reasons found the hard way. NO GREY AND NO WHITE: a flat
+    grey or white blade at sprite scale reads as an unchanged STEEL weapon, so a working probe
+    would be reported as 'no change' (this is a live suspect for the 2026-06-01 negative). And
+    no near-duplicate pairs: an earlier hand-list had red beside orange-red and magenta beside
+    orchid, fine for a yes/no read but unreliable for NAMING which palette a weapon uses,
+    which is the census this instrument exists for."""
+    import colorsys
+    out = []
+    for i in range(16):
+        hue, val = (i % 8) * 45 / 360.0, (1.0, 0.55)[i // 8]
+        r, g, b = colorsys.hsv_to_rgb(hue, 1.0, val)
+        r5, g5, b5 = (max(1, int(c * 31)) for c in (r, g, b))
+        name = ["RED", "ORANGE", "YELLOW", "GREEN", "CYAN", "AZURE", "VIOLET", "MAGENTA"][i % 8]
+        out.append((r5 | (g5 << 5) | (b5 << 10), name if i < 8 else "DARK " + name))
+    return out
+
+
+# Every palette gets one, so a weapon renders as a flat blob whose colour NAMES the palette
+# index it drew from. That is how the Flamberge was identified as palette 15.
+PALETTE_CODES = _codes()
 
 
 def load_vanilla(work_dir):

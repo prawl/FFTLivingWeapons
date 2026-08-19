@@ -136,8 +136,16 @@ byte was separately shown inert in 2026-06. The flat forge is the instrument for
 weapon per look. Sharing grain unmeasured (which items share a palette). Not yet known whether a
 swap needs a restart: the file is read once per BATTLE LOAD (2 reads in one launch), not once per
 process like the g2d channel, so a mid-session change may take on the next battle; UNTESTED.
-Palettes 1 and 2 hold only 5 non-zero colours, so weapons indexing them have a shorter ramp.
-Slot-0 and bit-15 semantics untested (both preserved by the forge).
+Palettes 1 and 2 hold only 5 non-zero colours, at the BRIGHT slots 11-15, with 1-10 fully
+transparent: they are effect palettes for the slash arcs and sparkles, so a weapon assigned to
+one would render as a half-invisible ghost, not a recolour. Slot-0 and bit-15 semantics
+untested (both preserved by the forge). AND THE SHEET IS NOT ONLY WEAPONS: about 60% of its
+664 rows are weapon art, the rest are swing/slash arcs, sparkles and smoke puffs which draw
+through these same 16 palettes. So repainting a weapon's palette may also retint any effect
+that shares it, which has to be checked before this ships as a feature. That shared use also
+gives a free second signal during a census: if the slash ARCS go flat but the BLADE stays
+vanilla, the sheet is rendering and the weapon simply does not index that palette, which is a
+far sharper negative than "nothing happened".
 
 </details>
 
