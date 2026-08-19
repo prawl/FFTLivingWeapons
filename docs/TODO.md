@@ -110,6 +110,22 @@ the technical detail lives in the indented lines under it.
     ignored Dec-2025 leftover; the modloader serves the tex_N.bin channel from a per index
     cache read once per process; prior verdicts and the decision brief are in
     docs/research/WEAPON_VISUALS_SCOPING.md and the battle sprite scoping notes.)
+  - ROUND 13, 2026-08-19, and it answers the rest of Done except one five minute check:
+    we now know WHICH of the sixteen colour sets every single weapon uses, for all one
+    hundred and twenty seven of them, without swinging any of them. The answer was in the
+    old PlayStation data all along, and the remaster never moved it. Four swords were swung
+    to check it and all four matched. The sharing grain is therefore settled and it is
+    coarser than hoped: thirteen colour sets serve a hundred and twenty seven weapons, so
+    weapons share, and the biggest set carries twenty of them. The one genuinely good
+    surprise is that weapons and effects never share a set, so recolouring a weapon can
+    never accidentally repaint a slash arc. What is NOT possible is moving a weapon onto a
+    different set: four separate ways of trying that were each tested live and each failed,
+    which is now its own wall row and closes off per weapon colour until someone hooks the
+    drawing code. Still open for Done: whether a colour swap needs the game restarted or
+    just a new battle. (Tech: BATTLE.BIN item graphics record at 0x02D3E6 + (id-1)*2, high
+    nibble weapon palette, low nibble effect palette; map dumped to
+    tools/probes/lw289_weapon_palette_map.json; ledger rows [wep-spr-palette-block] updated
+    and [weapon-palette-assignment-walled] added.)
   - Done means: a live proven mechanism that changes an in battle weapon sprite's colours
     on purpose, one weapon end to end, with the sharing grain (per weapon, per class, or
     per sheet) and the restart requirement named; or, if it truly cannot be done, a wall
@@ -221,33 +237,61 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
-- [LW-289] 2026-08-19: A weapon now wears its icon's colours in battle, proven by hand on
-  one sword, and the next step is doing it for all of them from the pipeline instead of by
-  hand. The colours a weapon swings with come from a small colour table at the head of the
-  classic weapon sheet, and the mod can ship its own copy of that sheet (ledger row
-  [wep-spr-palette-block], PROVEN 2026-08-19). The catch that shapes the whole job: there
-  are sixteen colour sets for a hundred and twenty eight weapons, and two of the sixteen are
-  effect only, so weapons MUST share. The promise is therefore not that every weapon matches
-  its own card, it is that every weapon GRAPHIC wears its card's identity colour, with fewer
-  shades than the card has. The escape hatch that makes even that possible is that the
-  original artists already fit two or three separate colour runs inside a single set, and the
-  picture half of the sheet is ours to rewrite, so we can hand each graphic its own slice.
-  FIRST STEP IS A MEASUREMENT, not code: nothing can be assigned until we know which colour
-  set each weapon draws from, and the item table's own palette number is a decoy (the
-  Flamberge's says four, it uses fifteen). The instrument already exists and is already
-  installed: with all sixteen sets painted a different loud colour, every weapon announces
-  its own set the moment it is swung, so one session of swinging one weapon per type and per
-  tier reads the map straight off the screen. (Tech: FFTPack file 71 unit/battle_wep_spr.bin,
-  512 byte block of 16 BGR555 palettes then 4bpp 256x664 pixels, low nibble first, shipped at
-  FFTIVC/data/enhanced/fftpack/unit/; probe tools/probes/lw251_wep_spr_forge.py with
-  --icon <palette>:<itemId> for the paint and --checklog for the serve proof; measured tile
-  usage is 3 to 11 slots, median 8, and vanilla tiles already index disjoint ranges, e.g. one
-  tile uses slots 1 to 4 plus 11 to 14 while its neighbour uses 2 to 7; capacity estimate is
-  28 to 42 distinct schemes over roughly 40 to 60 graphics; the baked sheet becomes a
-  GENERATED artifact and must never be hand edited; audit needed because about two fifths of
-  the sheet is swing arcs, sparkles and smoke drawing through the same sets, so a weapon
-  repaint may retint effects; also untested whether a change needs a restart or just a new
-  battle, since the file is read per battle load rather than per launch.)
+- [LW-289] 2026-08-19: Give every weapon a battle colour taken from its own menu icon, now
+  that we know exactly which colour set each weapon uses and have proved we can repaint those
+  sets. The promise has to shrink to match what the game allows: there are thirteen usable
+  colour sets and a hundred and twenty seven weapons, so weapons share, and the honest wording
+  is that every weapon GROUP wears a chosen identity colour rather than every weapon matching
+  its own card. Reassigning a weapon to a different set is walled (see the ledger row), so the
+  grouping is the game's, not ours. Two things make this better than it sounds: weapons and
+  effects never share a set, so nothing can accidentally retint a slash arc, and the thirteen
+  living weapons land on only six sets. Four of them collide on one set though (Zwill
+  Straightblade, Lightbringer, Materia Blade and Defender all share it), so those four must
+  agree on a colour or the design has to accept one of them driving it. Expect some weapons to
+  look deliberate rather than right: the best single colour for a group still leaves its worst
+  member about a hundred and ten degrees of hue away. (Tech: bake all sixteen palettes of
+  FFTPack file 71 unit/battle_wep_spr.bin from data/items.json plus the shipped ei_NNN_uitx.tex
+  icons; the file is THREE (palette, page) pairs, palA+page1 rows 0-255 weapons, palB+page2 rows
+  256-511 arcs, palC+page3 rows 512-655 impacts, total exactly 85504 bytes and it must stay
+  exactly that length; weapon palettes are 3-15 and effect palettes 0-2 with zero overlap; the
+  map is tools/probes/lw289_weapon_palette_map.json; the existing icon_ramp painter in
+  lw251_wep_spr_forge.py is structurally wrong because it sorts all fifteen slots into one
+  luminance ramp and shuffles colour across the four independent zone ramps, so the bake needs a
+  zone aware painter; the baked sheet becomes a GENERATED artifact and must never be hand edited.)
+
+- [LW-291] 2026-08-19: Find where the game actually decides which colour set a weapon uses, so
+  that weapons can be moved between sets instead of being stuck with the grouping the original
+  designers picked. Everything cheaper has been tried and failed: the two obvious fields in the
+  item table, shipping our own copy of the old data file, and writing the copy of that data
+  sitting in the running game's memory. The sibling mod searched every file the game ships, 14.35
+  GB of it, and found only one copy of the table anywhere. So the game works the answer out once
+  when it starts and keeps it somewhere else in a different shape. The only instrument left is to
+  watch the drawing code use the value rather than guess where it is stored. This is a research
+  arc with a real chance of walling, and it must not hold up the shipping work in [LW-289].
+  (Tech: hook the weapon sprite draw in process and read the palette index at the point of use;
+  the resident vanilla battle_bin image sits at heap base 0x416DC768C0 and is loaded BEFORE the
+  modloader installs its FFTPack hook, which is why a file override never reaches it; ledger row
+  [weapon-palette-assignment-walled] carries the four negatives and their controls.)
+
+- [LW-292] 2026-08-19: Settle whether changing a weapon's battle colours needs the game restarted
+  or just a new battle, because it decides whether the sibling mod's colour slider has to tell
+  players to relaunch. Half of it is already answered from the modloader's own source: it re-opens
+  the mod file on every single request with no caching at all, and the game asks for the weapon
+  sheet once per battle load. What is untested is whether the GAME holds a decoded copy in video
+  memory across battles. Five minutes: swap the deployed sheet mid session, start another battle,
+  look. (Tech: FFTPackFileOverrideStrategy.OnRequestRead does File.OpenRead per call; file 71 read
+  once per battle load, observed eight times in one session at gaps from 17 seconds to nine
+  minutes; the swap tool is tools/probes/lw289_palette_selector.py --deploy --hot.)
+
+- [LW-293] 2026-08-19: Fix a comment in the build tooling that tells the next reader something we
+  have now proved is false, before it costs someone a session. The comment says the item table's
+  sprite field picks which weapon graphic gets drawn in battle, and it is the stated reason the
+  tooling repoints sprites when an item changes category. It is wrong for battle art: the field
+  was rewritten live from a sword to an axe, the write is in the loader log, and the weapon never
+  changed shape. It is the menu icon graphic. (Tech: tools/generate.py itemdata_entry comment
+  about SpriteID being ItemData byte 0x01 driving the drawn weapon; evidence in ledger row
+  [weapon-palette-assignment-walled] lever 2; check whether any spriteIdOverride in data/items.json
+  was added on the strength of that belief.)
 
 - [LW-290] 2026-08-19: Once weapons are painted from their icons, nothing stops the two
   drifting apart again, because a recoloured icon and a stale weapon sheet both look fine on

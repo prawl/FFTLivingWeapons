@@ -1,0 +1,1145 @@
+[
+ {
+  "id": 1,
+  "name": "Dagger",
+  "category": "Knife",
+  "offset": 185318,
+  "weaponPalette": 14,
+  "effectPalette": 0,
+  "graphic": 0
+ },
+ {
+  "id": 2,
+  "name": "Mythril Knife",
+  "category": "Knife",
+  "offset": 185320,
+  "weaponPalette": 15,
+  "effectPalette": 0,
+  "graphic": 2
+ },
+ {
+  "id": 3,
+  "name": "Blind Knife",
+  "category": "Knife",
+  "offset": 185322,
+  "weaponPalette": 14,
+  "effectPalette": 0,
+  "graphic": 4
+ },
+ {
+  "id": 4,
+  "name": "Mage Masher",
+  "category": "Knife",
+  "offset": 185324,
+  "weaponPalette": 3,
+  "effectPalette": 0,
+  "graphic": 6
+ },
+ {
+  "id": 5,
+  "name": "Platinum Dagger",
+  "category": "Knife",
+  "offset": 185326,
+  "weaponPalette": 13,
+  "effectPalette": 0,
+  "graphic": 0
+ },
+ {
+  "id": 6,
+  "name": "Main Gauche",
+  "category": "Knife",
+  "offset": 185328,
+  "weaponPalette": 3,
+  "effectPalette": 0,
+  "graphic": 2
+ },
+ {
+  "id": 7,
+  "name": "Orichalcum Dirk",
+  "category": "Knife",
+  "offset": 185330,
+  "weaponPalette": 5,
+  "effectPalette": 1,
+  "graphic": 4
+ },
+ {
+  "id": 8,
+  "name": "Assassin's Dagger",
+  "category": "Knife",
+  "offset": 185332,
+  "weaponPalette": 4,
+  "effectPalette": 0,
+  "graphic": 6
+ },
+ {
+  "id": 9,
+  "name": "Air Knife",
+  "category": "Knife",
+  "offset": 185334,
+  "weaponPalette": 4,
+  "effectPalette": 0,
+  "graphic": 2
+ },
+ {
+  "id": 10,
+  "name": "Zwill Straightblade",
+  "category": "Knife",
+  "offset": 185336,
+  "weaponPalette": 8,
+  "effectPalette": 2,
+  "graphic": 4
+ },
+ {
+  "id": 11,
+  "name": "Ninja Blade",
+  "category": "NinjaBlade",
+  "offset": 185338,
+  "weaponPalette": 14,
+  "effectPalette": 0,
+  "graphic": 8
+ },
+ {
+  "id": 12,
+  "name": "Kunai",
+  "category": "NinjaBlade",
+  "offset": 185340,
+  "weaponPalette": 14,
+  "effectPalette": 0,
+  "graphic": 10
+ },
+ {
+  "id": 13,
+  "name": "Kodachi",
+  "category": "NinjaBlade",
+  "offset": 185342,
+  "weaponPalette": 15,
+  "effectPalette": 0,
+  "graphic": 8
+ },
+ {
+  "id": 14,
+  "name": "Ninja Longblade",
+  "category": "NinjaBlade",
+  "offset": 185344,
+  "weaponPalette": 3,
+  "effectPalette": 0,
+  "graphic": 8
+ },
+ {
+  "id": 15,
+  "name": "Spellbinder",
+  "category": "NinjaBlade",
+  "offset": 185346,
+  "weaponPalette": 4,
+  "effectPalette": 0,
+  "graphic": 10
+ },
+ {
+  "id": 16,
+  "name": "Sasuke's Blade",
+  "category": "NinjaBlade",
+  "offset": 185348,
+  "weaponPalette": 13,
+  "effectPalette": 0,
+  "graphic": 8
+ },
+ {
+  "id": 17,
+  "name": "Iga Blade",
+  "category": "NinjaBlade",
+  "offset": 185350,
+  "weaponPalette": 6,
+  "effectPalette": 0,
+  "graphic": 10
+ },
+ {
+  "id": 18,
+  "name": "Koga Blade",
+  "category": "NinjaBlade",
+  "offset": 185352,
+  "weaponPalette": 5,
+  "effectPalette": 2,
+  "graphic": 10
+ },
+ {
+  "id": 19,
+  "name": "Broadsword",
+  "category": "Sword",
+  "offset": 185354,
+  "weaponPalette": 14,
+  "effectPalette": 0,
+  "graphic": 0
+ },
+ {
+  "id": 20,
+  "name": "Longsword",
+  "category": "Sword",
+  "offset": 185356,
+  "weaponPalette": 14,
+  "effectPalette": 0,
+  "graphic": 2
+ },
+ {
+  "id": 21,
+  "name": "Iron Sword",
+  "category": "Sword",
+  "offset": 185358,
+  "weaponPalette": 3,
+  "effectPalette": 0,
+  "graphic": 4
+ },
+ {
+  "id": 22,
+  "name": "Mythril Sword",
+  "category": "Sword",
+  "offset": 185360,
+  "weaponPalette": 15,
+  "effectPalette": 0,
+  "graphic": 6
+ },
+ {
+  "id": 23,
+  "name": "Blood Sword",
+  "category": "Sword",
+  "offset": 185362,
+  "weaponPalette": 6,
+  "effectPalette": 0,
+  "graphic": 4
+ },
+ {
+  "id": 24,
+  "name": "Coral Sword",
+  "category": "Sword",
+  "offset": 185364,
+  "weaponPalette": 7,
+  "effectPalette": 0,
+  "graphic": 2
+ },
+ {
+  "id": 25,
+  "name": "Ancient Sword",
+  "category": "Sword",
+  "offset": 185366,
+  "weaponPalette": 8,
+  "effectPalette": 0,
+  "graphic": 6
+ },
+ {
+  "id": 26,
+  "name": "Sleep Blade",
+  "category": "Sword",
+  "offset": 185368,
+  "weaponPalette": 15,
+  "effectPalette": 0,
+  "graphic": 0
+ },
+ {
+  "id": 27,
+  "name": "Platinum Sword",
+  "category": "Sword",
+  "offset": 185370,
+  "weaponPalette": 13,
+  "effectPalette": 0,
+  "graphic": 6
+ },
+ {
+  "id": 28,
+  "name": "Diamond Sword",
+  "category": "Sword",
+  "offset": 185372,
+  "weaponPalette": 4,
+  "effectPalette": 0,
+  "graphic": 4
+ },
+ {
+  "id": 29,
+  "name": "Icebrand",
+  "category": "Sword",
+  "offset": 185374,
+  "weaponPalette": 7,
+  "effectPalette": 0,
+  "graphic": 2
+ },
+ {
+  "id": 30,
+  "name": "Runeblade",
+  "category": "Sword",
+  "offset": 185376,
+  "weaponPalette": 5,
+  "effectPalette": 0,
+  "graphic": 0
+ },
+ {
+  "id": 31,
+  "name": "Nagnarok",
+  "category": "Sword",
+  "offset": 185378,
+  "weaponPalette": 8,
+  "effectPalette": 1,
+  "graphic": 2
+ },
+ {
+  "id": 32,
+  "name": "Materia Blade",
+  "category": "Sword",
+  "offset": 185380,
+  "weaponPalette": 8,
+  "effectPalette": 1,
+  "graphic": 2
+ },
+ {
+  "id": 33,
+  "name": "Defender",
+  "category": "KnightSword",
+  "offset": 185382,
+  "weaponPalette": 8,
+  "effectPalette": 0,
+  "graphic": 12
+ },
+ {
+  "id": 34,
+  "name": "Save the Queen",
+  "category": "KnightSword",
+  "offset": 185384,
+  "weaponPalette": 15,
+  "effectPalette": 0,
+  "graphic": 12
+ },
+ {
+  "id": 35,
+  "name": "Excalibur",
+  "category": "KnightSword",
+  "offset": 185386,
+  "weaponPalette": 8,
+  "effectPalette": 0,
+  "graphic": 14
+ },
+ {
+  "id": 36,
+  "name": "Ragnarok",
+  "category": "KnightSword",
+  "offset": 185388,
+  "weaponPalette": 14,
+  "effectPalette": 0,
+  "graphic": 14
+ },
+ {
+  "id": 37,
+  "name": "Chaos Blade",
+  "category": "KnightSword",
+  "offset": 185390,
+  "weaponPalette": 5,
+  "effectPalette": 0,
+  "graphic": 12
+ },
+ {
+  "id": 38,
+  "name": "Ashura",
+  "category": "Katana",
+  "offset": 185392,
+  "weaponPalette": 13,
+  "effectPalette": 0,
+  "graphic": 16
+ },
+ {
+  "id": 39,
+  "name": "Kotetsu",
+  "category": "Katana",
+  "offset": 185394,
+  "weaponPalette": 13,
+  "effectPalette": 0,
+  "graphic": 18
+ },
+ {
+  "id": 40,
+  "name": "Bizen Osafune",
+  "category": "Katana",
+  "offset": 185396,
+  "weaponPalette": 13,
+  "effectPalette": 0,
+  "graphic": 20
+ },
+ {
+  "id": 41,
+  "name": "Murasame",
+  "category": "Katana",
+  "offset": 185398,
+  "weaponPalette": 5,
+  "effectPalette": 0,
+  "graphic": 16
+ },
+ {
+  "id": 42,
+  "name": "Ame-no-Murakumo",
+  "category": "Katana",
+  "offset": 185400,
+  "weaponPalette": 4,
+  "effectPalette": 0,
+  "graphic": 18
+ },
+ {
+  "id": 43,
+  "name": "Kiyomori",
+  "category": "Katana",
+  "offset": 185402,
+  "weaponPalette": 3,
+  "effectPalette": 0,
+  "graphic": 20
+ },
+ {
+  "id": 44,
+  "name": "Muramasa",
+  "category": "Katana",
+  "offset": 185404,
+  "weaponPalette": 6,
+  "effectPalette": 0,
+  "graphic": 16
+ },
+ {
+  "id": 45,
+  "name": "Kiku-ichimonji",
+  "category": "Katana",
+  "offset": 185406,
+  "weaponPalette": 14,
+  "effectPalette": 0,
+  "graphic": 18
+ },
+ {
+  "id": 46,
+  "name": "Masamune",
+  "category": "Katana",
+  "offset": 185408,
+  "weaponPalette": 15,
+  "effectPalette": 0,
+  "graphic": 20
+ },
+ {
+  "id": 47,
+  "name": "Chirijiraden",
+  "category": "Katana",
+  "offset": 185410,
+  "weaponPalette": 8,
+  "effectPalette": 0,
+  "graphic": 16
+ },
+ {
+  "id": 48,
+  "name": "Battle Axe",
+  "category": "Axe",
+  "offset": 185412,
+  "weaponPalette": 13,
+  "effectPalette": 0,
+  "graphic": 0
+ },
+ {
+  "id": 49,
+  "name": "Giant's Axe",
+  "category": "Axe",
+  "offset": 185414,
+  "weaponPalette": 11,
+  "effectPalette": 0,
+  "graphic": 0
+ },
+ {
+  "id": 50,
+  "name": "Slasher",
+  "category": "Axe",
+  "offset": 185416,
+  "weaponPalette": 14,
+  "effectPalette": 0,
+  "graphic": 0
+ },
+ {
+  "id": 51,
+  "name": "Rod",
+  "category": "Rod",
+  "offset": 185418,
+  "weaponPalette": 14,
+  "effectPalette": 0,
+  "graphic": 22
+ },
+ {
+  "id": 52,
+  "name": "Thunder Rod",
+  "category": "Rod",
+  "offset": 185420,
+  "weaponPalette": 9,
+  "effectPalette": 2,
+  "graphic": 24
+ },
+ {
+  "id": 53,
+  "name": "Flame Rod",
+  "category": "Rod",
+  "offset": 185422,
+  "weaponPalette": 9,
+  "effectPalette": 1,
+  "graphic": 22
+ },
+ {
+  "id": 54,
+  "name": "Ice Rod",
+  "category": "Rod",
+  "offset": 185424,
+  "weaponPalette": 12,
+  "effectPalette": 0,
+  "graphic": 24
+ },
+ {
+  "id": 55,
+  "name": "Poison Rod",
+  "category": "Rod",
+  "offset": 185426,
+  "weaponPalette": 9,
+  "effectPalette": 0,
+  "graphic": 22
+ },
+ {
+  "id": 56,
+  "name": "Wizard's Rod",
+  "category": "Rod",
+  "offset": 185428,
+  "weaponPalette": 15,
+  "effectPalette": 0,
+  "graphic": 24
+ },
+ {
+  "id": 57,
+  "name": "Dragon Rod",
+  "category": "Rod",
+  "offset": 185430,
+  "weaponPalette": 10,
+  "effectPalette": 0,
+  "graphic": 22
+ },
+ {
+  "id": 58,
+  "name": "Rod of Faith",
+  "category": "Rod",
+  "offset": 185432,
+  "weaponPalette": 11,
+  "effectPalette": 0,
+  "graphic": 24
+ },
+ {
+  "id": 59,
+  "name": "Oak Staff",
+  "category": "Staff",
+  "offset": 185434,
+  "weaponPalette": 13,
+  "effectPalette": 0,
+  "graphic": 26
+ },
+ {
+  "id": 60,
+  "name": "White Staff",
+  "category": "Staff",
+  "offset": 185436,
+  "weaponPalette": 7,
+  "effectPalette": 0,
+  "graphic": 26
+ },
+ {
+  "id": 61,
+  "name": "Healing Staff",
+  "category": "Staff",
+  "offset": 185438,
+  "weaponPalette": 4,
+  "effectPalette": 0,
+  "graphic": 26
+ },
+ {
+  "id": 62,
+  "name": "Serpent Staff",
+  "category": "Staff",
+  "offset": 185440,
+  "weaponPalette": 14,
+  "effectPalette": 0,
+  "graphic": 26
+ },
+ {
+  "id": 63,
+  "name": "Mage's Staff",
+  "category": "Staff",
+  "offset": 185442,
+  "weaponPalette": 13,
+  "effectPalette": 0,
+  "graphic": 28
+ },
+ {
+  "id": 64,
+  "name": "Golden Staff",
+  "category": "Staff",
+  "offset": 185444,
+  "weaponPalette": 4,
+  "effectPalette": 0,
+  "graphic": 28
+ },
+ {
+  "id": 65,
+  "name": "Zeus Mace",
+  "category": "Staff",
+  "offset": 185446,
+  "weaponPalette": 5,
+  "effectPalette": 0,
+  "graphic": 28
+ },
+ {
+  "id": 66,
+  "name": "Staff of the Magi",
+  "category": "Staff",
+  "offset": 185448,
+  "weaponPalette": 7,
+  "effectPalette": 0,
+  "graphic": 28
+ },
+ {
+  "id": 67,
+  "name": "Iron Flail",
+  "category": "Flail",
+  "offset": 185450,
+  "weaponPalette": 15,
+  "effectPalette": 0,
+  "graphic": 3
+ },
+ {
+  "id": 68,
+  "name": "Flail of Flame",
+  "category": "Flail",
+  "offset": 185452,
+  "weaponPalette": 9,
+  "effectPalette": 0,
+  "graphic": 3
+ },
+ {
+  "id": 69,
+  "name": "Morning Star",
+  "category": "Flail",
+  "offset": 185454,
+  "weaponPalette": 10,
+  "effectPalette": 0,
+  "graphic": 3
+ },
+ {
+  "id": 70,
+  "name": "Scorpion Tail",
+  "category": "Flail",
+  "offset": 185456,
+  "weaponPalette": 13,
+  "effectPalette": 0,
+  "graphic": 3
+ },
+ {
+  "id": 71,
+  "name": "Romandan Pistol",
+  "category": "Gun",
+  "offset": 185458,
+  "weaponPalette": 13,
+  "effectPalette": 1,
+  "graphic": 0
+ },
+ {
+  "id": 72,
+  "name": "Mythril Gun",
+  "category": "Gun",
+  "offset": 185460,
+  "weaponPalette": 10,
+  "effectPalette": 1,
+  "graphic": 0
+ },
+ {
+  "id": 73,
+  "name": "Stoneshooter",
+  "category": "Gun",
+  "offset": 185462,
+  "weaponPalette": 14,
+  "effectPalette": 1,
+  "graphic": 0
+ },
+ {
+  "id": 74,
+  "name": "Glacial Gun",
+  "category": "Gun",
+  "offset": 185464,
+  "weaponPalette": 13,
+  "effectPalette": 1,
+  "graphic": 2
+ },
+ {
+  "id": 75,
+  "name": "Blaze Gun",
+  "category": "Gun",
+  "offset": 185466,
+  "weaponPalette": 14,
+  "effectPalette": 1,
+  "graphic": 2
+ },
+ {
+  "id": 76,
+  "name": "Blaster",
+  "category": "Gun",
+  "offset": 185468,
+  "weaponPalette": 11,
+  "effectPalette": 1,
+  "graphic": 2
+ },
+ {
+  "id": 77,
+  "name": "Bowgun",
+  "category": "Crossbow",
+  "offset": 185470,
+  "weaponPalette": 14,
+  "effectPalette": 0,
+  "graphic": 0
+ },
+ {
+  "id": 78,
+  "name": "Knightslayer",
+  "category": "Crossbow",
+  "offset": 185472,
+  "weaponPalette": 15,
+  "effectPalette": 0,
+  "graphic": 0
+ },
+ {
+  "id": 79,
+  "name": "Crossbow",
+  "category": "Crossbow",
+  "offset": 185474,
+  "weaponPalette": 10,
+  "effectPalette": 0,
+  "graphic": 0
+ },
+ {
+  "id": 80,
+  "name": "Poison Crossbow",
+  "category": "Crossbow",
+  "offset": 185476,
+  "weaponPalette": 11,
+  "effectPalette": 0,
+  "graphic": 3
+ },
+ {
+  "id": 81,
+  "name": "Hunting Crossbow",
+  "category": "Crossbow",
+  "offset": 185478,
+  "weaponPalette": 3,
+  "effectPalette": 0,
+  "graphic": 3
+ },
+ {
+  "id": 82,
+  "name": "Gastrophetes",
+  "category": "Crossbow",
+  "offset": 185480,
+  "weaponPalette": 15,
+  "effectPalette": 0,
+  "graphic": 3
+ },
+ {
+  "id": 83,
+  "name": "Longbow",
+  "category": "Bow",
+  "offset": 185482,
+  "weaponPalette": 13,
+  "effectPalette": 0,
+  "graphic": 0
+ },
+ {
+  "id": 84,
+  "name": "Silver Bow",
+  "category": "Bow",
+  "offset": 185484,
+  "weaponPalette": 7,
+  "effectPalette": 0,
+  "graphic": 0
+ },
+ {
+  "id": 85,
+  "name": "Ice Bow",
+  "category": "Bow",
+  "offset": 185486,
+  "weaponPalette": 14,
+  "effectPalette": 0,
+  "graphic": 0
+ },
+ {
+  "id": 86,
+  "name": "Lightning Bow",
+  "category": "Bow",
+  "offset": 185488,
+  "weaponPalette": 15,
+  "effectPalette": 0,
+  "graphic": 0
+ },
+ {
+  "id": 87,
+  "name": "Windslash Bow",
+  "category": "Bow",
+  "offset": 185490,
+  "weaponPalette": 3,
+  "effectPalette": 0,
+  "graphic": 0
+ },
+ {
+  "id": 88,
+  "name": "Mythril Bow",
+  "category": "Bow",
+  "offset": 185492,
+  "weaponPalette": 14,
+  "effectPalette": 0,
+  "graphic": 3
+ },
+ {
+  "id": 89,
+  "name": "Artemis Bow",
+  "category": "Bow",
+  "offset": 185494,
+  "weaponPalette": 12,
+  "effectPalette": 0,
+  "graphic": 3
+ },
+ {
+  "id": 90,
+  "name": "Yoichi Bow",
+  "category": "Bow",
+  "offset": 185496,
+  "weaponPalette": 11,
+  "effectPalette": 0,
+  "graphic": 3
+ },
+ {
+  "id": 91,
+  "name": "Perseus Bow",
+  "category": "Bow",
+  "offset": 185498,
+  "weaponPalette": 15,
+  "effectPalette": 0,
+  "graphic": 3
+ },
+ {
+  "id": 92,
+  "name": "Lamia's Harp",
+  "category": "Instrument",
+  "offset": 185500,
+  "weaponPalette": 8,
+  "effectPalette": 0,
+  "graphic": 0
+ },
+ {
+  "id": 93,
+  "name": "Bloodstring Harp",
+  "category": "Instrument",
+  "offset": 185502,
+  "weaponPalette": 6,
+  "effectPalette": 0,
+  "graphic": 0
+ },
+ {
+  "id": 94,
+  "name": "Faerie Harp",
+  "category": "Instrument",
+  "offset": 185504,
+  "weaponPalette": 15,
+  "effectPalette": 0,
+  "graphic": 0
+ },
+ {
+  "id": 95,
+  "name": "Battle Folio",
+  "category": "Book",
+  "offset": 185506,
+  "weaponPalette": 13,
+  "effectPalette": 0,
+  "graphic": 0
+ },
+ {
+  "id": 96,
+  "name": "Bestiary",
+  "category": "Book",
+  "offset": 185508,
+  "weaponPalette": 14,
+  "effectPalette": 0,
+  "graphic": 0
+ },
+ {
+  "id": 97,
+  "name": "Papyrus Codex",
+  "category": "Book",
+  "offset": 185510,
+  "weaponPalette": 10,
+  "effectPalette": 0,
+  "graphic": 0
+ },
+ {
+  "id": 98,
+  "name": "Omnilex",
+  "category": "Book",
+  "offset": 185512,
+  "weaponPalette": 11,
+  "effectPalette": 0,
+  "graphic": 0
+ },
+ {
+  "id": 99,
+  "name": "Javelin",
+  "category": "Polearm",
+  "offset": 185514,
+  "weaponPalette": 13,
+  "effectPalette": 0,
+  "graphic": 0
+ },
+ {
+  "id": 100,
+  "name": "Spear",
+  "category": "Polearm",
+  "offset": 185516,
+  "weaponPalette": 13,
+  "effectPalette": 0,
+  "graphic": 2
+ },
+ {
+  "id": 101,
+  "name": "Mythril Spear",
+  "category": "Polearm",
+  "offset": 185518,
+  "weaponPalette": 15,
+  "effectPalette": 0,
+  "graphic": 0
+ },
+ {
+  "id": 102,
+  "name": "Partisan",
+  "category": "Polearm",
+  "offset": 185520,
+  "weaponPalette": 10,
+  "effectPalette": 0,
+  "graphic": 2
+ },
+ {
+  "id": 103,
+  "name": "Obelisk",
+  "category": "Polearm",
+  "offset": 185522,
+  "weaponPalette": 4,
+  "effectPalette": 0,
+  "graphic": 0
+ },
+ {
+  "id": 104,
+  "name": "Holy Lance",
+  "category": "Polearm",
+  "offset": 185524,
+  "weaponPalette": 15,
+  "effectPalette": 0,
+  "graphic": 2
+ },
+ {
+  "id": 105,
+  "name": "Dragon Whisker",
+  "category": "Polearm",
+  "offset": 185526,
+  "weaponPalette": 12,
+  "effectPalette": 0,
+  "graphic": 0
+ },
+ {
+  "id": 106,
+  "name": "Javelin",
+  "category": "Polearm",
+  "offset": 185528,
+  "weaponPalette": 8,
+  "effectPalette": 0,
+  "graphic": 2
+ },
+ {
+  "id": 107,
+  "name": "Cypress Pole",
+  "category": "Pole",
+  "offset": 185530,
+  "weaponPalette": 12,
+  "effectPalette": 0,
+  "graphic": 4
+ },
+ {
+  "id": 108,
+  "name": "Battle Bamboo",
+  "category": "Pole",
+  "offset": 185532,
+  "weaponPalette": 10,
+  "effectPalette": 0,
+  "graphic": 6
+ },
+ {
+  "id": 109,
+  "name": "Musk Pole",
+  "category": "Pole",
+  "offset": 185534,
+  "weaponPalette": 15,
+  "effectPalette": 0,
+  "graphic": 4
+ },
+ {
+  "id": 110,
+  "name": "Iron Fan",
+  "category": "Pole",
+  "offset": 185536,
+  "weaponPalette": 3,
+  "effectPalette": 0,
+  "graphic": 6
+ },
+ {
+  "id": 111,
+  "name": "Gokuu's Pole",
+  "category": "Pole",
+  "offset": 185538,
+  "weaponPalette": 6,
+  "effectPalette": 0,
+  "graphic": 4
+ },
+ {
+  "id": 112,
+  "name": "Ivory Pole",
+  "category": "Pole",
+  "offset": 185540,
+  "weaponPalette": 12,
+  "effectPalette": 0,
+  "graphic": 6
+ },
+ {
+  "id": 113,
+  "name": "Eight-fluted Pole",
+  "category": "Pole",
+  "offset": 185542,
+  "weaponPalette": 14,
+  "effectPalette": 0,
+  "graphic": 4
+ },
+ {
+  "id": 114,
+  "name": "Whale Whisker",
+  "category": "Pole",
+  "offset": 185544,
+  "weaponPalette": 11,
+  "effectPalette": 0,
+  "graphic": 6
+ },
+ {
+  "id": 115,
+  "name": "Catskin Bag",
+  "category": "Bag",
+  "offset": 185546,
+  "weaponPalette": 14,
+  "effectPalette": 2,
+  "graphic": 0
+ },
+ {
+  "id": 116,
+  "name": "Fallingstar Bag",
+  "category": "Bag",
+  "offset": 185548,
+  "weaponPalette": 10,
+  "effectPalette": 2,
+  "graphic": 0
+ },
+ {
+  "id": 117,
+  "name": "Proudhide Bag",
+  "category": "Bag",
+  "offset": 185550,
+  "weaponPalette": 13,
+  "effectPalette": 2,
+  "graphic": 0
+ },
+ {
+  "id": 118,
+  "name": "Hardscale Bag",
+  "category": "Bag",
+  "offset": 185552,
+  "weaponPalette": 13,
+  "effectPalette": 2,
+  "graphic": 0
+ },
+ {
+  "id": 119,
+  "name": "Damask Cloth",
+  "category": "Cloth",
+  "offset": 185554,
+  "weaponPalette": 15,
+  "effectPalette": 2,
+  "graphic": 0
+ },
+ {
+  "id": 120,
+  "name": "Cashmere",
+  "category": "Cloth",
+  "offset": 185556,
+  "weaponPalette": 10,
+  "effectPalette": 2,
+  "graphic": 0
+ },
+ {
+  "id": 121,
+  "name": "Wyrmweave Silk",
+  "category": "Cloth",
+  "offset": 185558,
+  "weaponPalette": 9,
+  "effectPalette": 2,
+  "graphic": 0
+ },
+ {
+  "id": 122,
+  "name": "Shuriken",
+  "category": "Throwing",
+  "offset": 185560,
+  "weaponPalette": 14,
+  "effectPalette": 0,
+  "graphic": 0
+ },
+ {
+  "id": 123,
+  "name": "Fuma Shuriken",
+  "category": "Throwing",
+  "offset": 185562,
+  "weaponPalette": 6,
+  "effectPalette": 0,
+  "graphic": 0
+ },
+ {
+  "id": 124,
+  "name": "Yagyu Darkrood",
+  "category": "Throwing",
+  "offset": 185564,
+  "weaponPalette": 4,
+  "effectPalette": 0,
+  "graphic": 0
+ },
+ {
+  "id": 125,
+  "name": "Flameburst Bomb",
+  "category": "Bomb",
+  "offset": 185566,
+  "weaponPalette": 6,
+  "effectPalette": 0,
+  "graphic": 0
+ },
+ {
+  "id": 126,
+  "name": "Snowmelt Bomb",
+  "category": "Bomb",
+  "offset": 185568,
+  "weaponPalette": 7,
+  "effectPalette": 0,
+  "graphic": 0
+ },
+ {
+  "id": 127,
+  "name": "Spark Bomb",
+  "category": "Bomb",
+  "offset": 185570,
+  "weaponPalette": 8,
+  "effectPalette": 0,
+  "graphic": 0
+ }
+]

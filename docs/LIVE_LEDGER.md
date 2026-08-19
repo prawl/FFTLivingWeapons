@@ -100,7 +100,12 @@ The colour a weapon wears when a unit swings it in battle comes from the 512-byt
 at the head of FFTPack file 71, `unit/battle_wep_spr.bin` (16 palettes x 16 BGR555, colour 0
 transparent), and a mod-shipped copy of that file at
 `<mod>/FFTIVC/data/enhanced/fftpack/unit/battle_wep_spr.bin` repaints it. TRUE HUE control:
-colour values, not an index shuffle. PROVEN, owner live-verified 2026-08-19.
+colour values, not an index shuffle. PROVEN, owner live-verified 2026-08-19. The same day settled
+WHICH palette each weapon uses: it is the X nibble of the classic BATTLE.BIN item-graphics record
+at `0x02D3E6 + (itemId - 1) * 2`, confirmed four for four against owner captures, giving the full
+127-weapon map offline with no census. Weapons draw from palettes 3-15 and effects from 0-2, with
+ZERO overlap, so repainting a weapon palette can never retint a swing arc. Which palette a weapon
+uses cannot be CHANGED by any known data channel: see [weapon-palette-assignment-walled].
 
 <details><summary>How we got here</summary>
 
@@ -146,6 +151,46 @@ that shares it, which has to be checked before this ships as a feature. That sha
 gives a free second signal during a census: if the slash ARCS go flat but the BLADE stays
 vanilla, the sheet is rendering and the weapon simply does not index that palette, which is a
 far sharper negative than "nothing happened".
+
+**2026-08-19, THE MAP, and two corrections to the text above.** The weapon-to-palette map is no
+longer unmeasured. It is the classic PSX BATTLE.BIN item-graphics record, published by FFHacktics
+and unmoved by the remaster: `offset(itemId) = 0x02D3E6 + (itemId - 1) * 2`, byte 0 high nibble X
+= the weapon's palette, low nibble Y = the swing-arc palette, byte 1 = the graphic, interpreted
+relative to the item's category. `battle_bin` is not in any `data/enhanced` pac; it lives at
+`data/classic/0002.en.pac` as `fftpack/battle_bin.en.bin`, 1397096 bytes, FFTPack file index 0.
+Probe: `tools/probes/lw289_battle_bin_palette_map.py`, map dumped to
+`tools/probes/lw289_weapon_palette_map.json`.
+
+Confirmed twice, by methods sharing no assumptions. LIVE: with all sixteen palettes forged to
+distinct generated label hues and the serve proven from the loader log, the owner swung four
+swords and every measured palette matched the file (Broadsword 14, Iron Sword 3, Mythril Sword 15,
+Sleep Blade 15; all four Y=0 and all four frames carried a palette-0 red arc). OFFLINE: a
+connected-component pass had already found that palettes 1 and 2 hold only five non-zero colours
+each, at slots 11-15, so no weapon tile on the sheet can be drawn with them; BATTLE.BIN agrees,
+with palettes 1 and 2 appearing as an effect palette Y twenty times and as a weapon palette X
+zero times. Fifteen published PSX records match the shipped file byte for byte, which is the gate
+the probe re-runs every time.
+
+Distribution, which is the product constraint: X in use is 3(8) 4(9) 5(6) 6(7) 7(6) 8(10) 9(5)
+10(9) 11(7) 12(5) 13(18) 14(20) 15(17); Y in use is 0(107) 1(10) 2(10). Thirteen palettes for one
+hundred and twenty seven weapons.
+
+CORRECTION 1, the file is THREE pages, not one image. palA at 0x0000 (512 B), page 1 at 0x0200
+(32768 B, rows 0-255, weapons), palB at 0x8200 (512 B, byte-identical to palA), page 2 at 0x8400
+(32768 B, rows 256-511, arcs and sparkles), palC at 0x10400 (512 B, a different bank of near-black
+additive fades), page 3 at 0x10600 (18432 B, rows 512-655, impacts). Sums to exactly 85504.
+Reading the pixel block as one 256x664 image is WRONG: it splices palB and palC into the picture
+as 4-row junk bands at y 256-259 and y 516-519 and mislocates every row above 255. Page 2 uses
+slots 11-15 and nothing else, 0 ink in slots 1-10, which is exactly why palettes 1 and 2 serve it.
+
+CORRECTION 2, index-zone addressing does not exist in vanilla. An earlier reading of this sheet
+claimed the artists packed several weapons into disjoint index zones of one palette; that was the
+three-page layout being misread as repeated art. The zone structure itself is real (every full
+palette is four short ramps plus a shared specular at slot 15, derived independently from the
+palette bytes and from the pixel data), but of the 681 within-palette pairs of distinct weapon
+graphics, ZERO are index-disjoint: minimum overlap 3 indices, median 7, and all 681 collide inside
+the base zone {1,2,3,4}. So the grain today is one palette equals one colour. Re-indexing the
+pixel block remains an untested escape hatch, worth roughly a factor of two, not ten.
 
 </details>
 
@@ -2360,3 +2405,82 @@ Finding the enemy ENTD blueprint in live 1.5 memory is Walled as of the 2026-06-
 
 </details>
 
+### [weapon-palette-assignment-walled] WHICH palette a weapon uses cannot be changed by any known data channel
+
+Repainting the sixteen palettes of FFTPack file 71 works and is PROVEN ([wep-spr-palette-block]).
+Changing WHICH of them a given weapon draws from does not: the ItemData `<Palette>` byte, the
+ItemData `<SpriteID>` byte, a mod-shipped `battle_bin.bin`, and a direct write to the resident
+in-memory copy of that table were each tested live with untouched controls in the same battle and
+with the serve or the write independently verified, and none moved a single pixel. Disk is
+exhausted too: across 14.35 GB of install and 11.6 GB of extraction only one copy of the table
+exists. The assignment is resolved once at startup into a render-side structure nobody has found.
+WALLED 2026-08-19; reopen only with a hook on the weapon draw path. Owner to confirm the status
+per this ledger's flip rule.
+
+<details><summary>How we got here</summary>
+
+**Claim:** a mod can assign a chosen palette to a chosen weapon, which is what an icon-matched
+per-weapon recolour needs. Vanilla gives thirteen palettes to a hundred and twenty seven weapons,
+so without reassignment the honest grain is per palette group, not per weapon.
+
+**Four levers, four negatives, every one with a control.**
+
+1. **ItemData `<Palette>`.** Three launches, twelve battle loads, four swords. Bytes moved 2 to 8,
+   4 to 0 to 8; palettes did not move. The write reached game memory, logged at cell level:
+   `[ItemData] prawl.fft.livingweapons changed ID 19 (Palette, value: 8)` and
+   `Applying ItemData with 94 change(s)`. That byte instead keys the MENU ICON clut
+   (`fftpack/tex/item/item_01.clut`), which scores z = +5.27 in a within-SpriteID permutation test
+   against +1.21 for the weapon sheet bank; ice-named weapons name a palette holding a blue ramp
+   6 of 6 times in the icon bank and 0 of 6 in the weapon bank. It coincides with the real battle
+   nibble for only 6 of 127 weapons.
+2. **ItemData `<SpriteID>`.** Rewritten from 14 to 33 (a sword to an axe), write in the log, the
+   weapon never changed shape. SpriteID runs 0-178 and allocates blocks to rings, perfumes, shoes
+   and armour, none of which has a battle sprite: it is the menu icon graphic. NOTE this
+   contradicts a doc comment in `tools/generate.py` claiming SpriteID picks the drawn weapon
+   graphic; that comment has no ledger row behind it and is wrong for battle art.
+3. **A mod-shipped `battle_bin.bin`** (FFTPack file 0). Served from our copy five times with zero
+   reads of the game's own, deployed bytes verified at the correct offsets, exactly two bytes
+   different in a 1.4 MB file, only one copy of the table in the file. Nothing moved.
+4. **A direct write to the resident copy.** A memory scan found four full-length copies of the
+   254-byte record block: three matching our shipped file, and one still vanilla at
+   `0x416DCA3CA6`, inside a COMPLETE vanilla `battle_bin` image at base `0x416DC768C0` (matches the
+   file at +0x000000, +0x02D000, +0x100000 and +0x150000). That image cannot have come through the
+   hooked path, because the FFTPack hook only ever serves 1 MB and the match extends well past it,
+   so it is loaded before the modloader installs its sig-scanned hook. Poking item 22 there from
+   0xF0 to 0x80 verified on readback, verified again AFTER a battle load, and the weapon still
+   rendered palette 15. The table was not rebuilt; the renderer simply does not read it.
+
+**The order-free sweep, which closes the "maybe it is just sorted differently" escape.** A multiset
+is order independent, so a re-sorted table cannot hide. Scanned 4109 MB of committed memory for any
+127-element window at strides 1, 2, 4, 8, 16 whose value multiset equals
+{3:8, 4:9, 5:6, 6:7, 7:6, 8:10, 9:5, 10:9, 11:7, 12:5, 13:18, 14:20, 15:17}. Zero matches. Two
+controls make that admissible: a shuffled copy planted at an unaligned offset inside a real 32 MB
+game memory chunk was found, adding exactly one hit and no false positives; and the prefilter
+examined 250,482 real candidate windows with a longest in-band run of 20,721 bytes, so it had
+plenty to reject rather than rejecting everything trivially. Probe:
+`tools/probes/lw289_order_free_scan.py`. Its histogram step is memory-bounded by SLICE after an
+unbounded version drove three scan processes to about 10 GB each.
+
+**The disk half, run independently in the sibling ColorCustomizer session and recorded in
+the sibling repo's WEAPON_COLOR_CC_FINDINGS journal (Dev/FFTColorCustomizer) (committed 7d7cb104).** `FFT_enhanced.exe`
+362 MB including the 349 MB Denuvo-wrapped `.xdata`, strides 1-64, six variants, both directions,
+both nibble orders, plus the order-free multiset at strides 1/2/4/8/16: clean. All 192 nxd tables:
+clean, and there is no item or weapon nxd at all. The extracted tree, 14,816 files and 11.60 GB:
+exactly one table, the PSX one. The full install, all 66 pacs, 3,017 files and 14.35 GB: one hit,
+and it was OUR deployed test copy, identified by a ZZ-only match whose missing XY half decoded to
+precisely the two items we had altered. Three positive controls fired unprompted in the wild.
+
+**Joint verdict.** The poke says the byte table is not read at draw time; the disk sweep says no
+other copy exists to be read. Together those select transformed-at-startup: the assignment is
+resolved once into a render-side structure and the byte table is vestigial thereafter.
+
+**What would refute this.** The values stored transformed rather than reordered (arithmetic, an
+offset, sub-byte packing, or welded into a shared byte with other fields), or never materialised as
+a table and computed per draw. A multiset search sees through reordering and through none of those.
+
+**Reopen with.** A hook on the weapon draw path in-process, which is the only instrument that can
+watch the value being consumed rather than guessing where it is stored. Unpacking Denuvo to keep
+searching statically was considered and rejected as expensive and likely to surface something the
+renderer does not read anyway.
+
+</details>
