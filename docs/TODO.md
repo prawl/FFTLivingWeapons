@@ -13,6 +13,49 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.3.3)
 
+- **[LW-278] A real system for making new icon art that looks professional and fits the game** (opened 2026-08-18) [QUEUED]
+  - Owner directive 2026-08-18. Asking the model to draw pixels freehand is proven to fail
+    here, so the system channels it into the jobs it is good at (choosing palettes,
+    parameters and donor art, and judging pictures) while the vanilla artist's work stays
+    the substrate every change is built from. Three pieces, in order: a style bible that
+    codifies the owner's taste and the full failure taxonomy mined from the banked verdict
+    history (roughly sixty review rounds and twenty five documented rejections with stated
+    reasons); a judge harness (rubric plus pairwise tournament over 1x row composites)
+    calibrated against those past verdicts BEFORE it is trusted as a pre-filter, with a
+    measured agreement rate as its go or no go; and the repeatable per family loop (read
+    the art, palette plan on a shelf render, engine variants, machine gates, judge prune,
+    owner gallery, verdict banked back into the corpus). The owner gallery pass stays the
+    final gate no matter how well the judge scores.
+  - Done means: the style bible and verdict corpus are committed and the owner has read the
+    bible; the judge calibration experiment reports its agreement rate against held out
+    owner verdicts with a written go or no go; the per family loop is documented end to end
+    and has carried ONE family from palette plan to owner gallery using the system.
+  - Verify: calibration numbers recorded against held out hard negatives; the owner signs
+    the style bible as actually being his taste; the pilot family's gallery round reaches
+    him through the loop with the judge's pruning visible in the round notes.
+
+- **[LW-251] The weapon a unit swings in battle still wears vanilla colours while its icon wears ours** (opened 2026-08-16) [QUEUED]
+  - Promoted 2026-08-18, owner directive: crack this now, and no is not an acceptable
+    answer; the next work is a probe. History to respect going in: the two easy colour
+    levers were already tested in game and both failed, the art channel is cached for the
+    whole session so battle art can never update live the way icons now can, and the art is
+    likely shared per weapon class, which would mean every sword recolours together. The
+    work is to find the weapon sheet inside the battle art container and repaint it with
+    the same engine the icons use.
+  - (Tech: container FFTIVC/data/enhanced/system/ffto/g2d.dat, magic YOX, header suggests
+    0x592 entries; find the sheet by decoding entries or by shipping garish overrides and
+    bisecting; the modloader serves this channel from a per index cache read once per
+    process; prior verdicts and the decision brief are in
+    docs/research/WEAPON_VISUALS_SCOPING.md and the battle sprite scoping notes.)
+  - Done means: a live proven mechanism that changes an in battle weapon sprite's colours
+    on purpose, one weapon end to end, with the sharing grain (per weapon, per class, or
+    per sheet) and the restart requirement named; or, if it truly cannot be done, a wall
+    row in the live ledger naming exactly which step resists and why, with probe evidence.
+  - Verify: the owner sees a deliberately recoloured weapon sprite in a real battle, and
+    the grain claim is demonstrated by a second weapon of the same class shown either
+    changed or unchanged to match the claim; the mechanism lands as a LIVE_LEDGER row that
+    only the owner flips.
+
 - **[LW-198] The eleven knives all had a white blade, so their colour lived in a handle a few pixels across** (opened 2026-08-13) [AWAITING-LIVE]
   - BUILT and gated 2026-08-16, owner gallery pass outstanding. Coverage was never this family's
     problem, at a CARD median of 41.2 percent, the healthiest of any family in the programme.
@@ -1404,19 +1447,6 @@ the technical detail lives in the indented lines under it.
   Kobu, holding the CURRENT copy at combat +0x2B. Guns are held back because WP lives in the
   item table, so growing it would buff every copy in the game including enemy-held ones, and a
   per-wielder hold would need its own probe.)
-
-- [LW-251] 2026-08-16: The weapon a unit swings in battle still wears its vanilla colours, so a
-  recoloured icon and the sprite on the field disagree. The art is a 2D texture inside an
-  eleven megabyte container of roughly fourteen hundred images, and the two easy colour levers
-  were already tested in game and both failed, so the work is to find the right image in that
-  container and repaint it with the same engine the icons use. Two limits to plan around before
-  promising players anything: that channel is cached for the whole session, so battle art can
-  never update live the way icons now can, and the art is likely shared per weapon class, which
-  would mean every sword recolours together rather than one at a time. (Tech: the container is
-  FFTIVC/data/enhanced/system/ffto/g2d.dat, magic YOX, header suggests 0x592 entries. Find the
-  weapon sheet by decoding entries or by shipping garish overrides and bisecting. The modloader
-  serves this channel from a per-index cache read once per process.)
-
 
 - [LW-273] 2026-08-18: When a unit falls in the game's very first battle, the game draws NO
   three hearts countdown at all, the corpse just lies there with no permadeath clock, which
