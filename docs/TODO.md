@@ -180,6 +180,71 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
+- [LW-286] 2026-08-19: Three separate checks are all sitting and waiting for whichever
+  deploy happens next, and that waiting list exists only as prose scattered across the
+  changelog and old session notes, so the next deploy can quietly drop one and nobody
+  finds out. Write the list down in one place the owner already reads at deploy time.
+  (Tech: the three riders today are LW-247's pre registered confirmation, meaning the next
+  owner approved BuildLinked runs with no icon snapshot dance and the installed icon bytes
+  must not move, 468 of 468; LW-259's eviction reserve fix, which needs a deploy plus a
+  flight tape; and LW-262's combined live pass for the cache partition. Add a deploy rider
+  checklist section to docs/VERIFY_LIVE.md, and make adding a rider part of any change
+  that pre registers a live confirmation.)
+
+- [LW-285] 2026-08-19: An old leftover copy of the game's art container sits in the game
+  folder looking exactly like the real one, and it already cost one session a detour down
+  the wrong path before anyone spotted the difference. (Tech: the loose
+  data/enhanced/system/ffto/g2d.dat is a December 2025 leftover, 11.2MB and 1426 entries,
+  whose offset table carries a 16 per index drift; the file the game actually reads is
+  0007.pac, 13.59MB and 2450 entries, with no drift. It is a game owned file, so the fix
+  is a loud warning at the top of every probe that touches the container plus an owner
+  decision about renaming it locally; never silently change a file the game installer
+  owns.)
+
+- [LW-284] 2026-08-19: One of the mod's running behaviours is trusted every day but was
+  never written into the official record of proven behaviours, so a future session could
+  rebuild around it with nothing to check against. (Tech: the Puppeteer release rule, that
+  a puppet is freed after taking its OWN turn, has no docs/LIVE_LEDGER.md row despite
+  being live verified during 2.3.0 as LW-5, commit e882799, and re confirmed in that
+  release's smoke pass rows 3.1 to 3.3; write the claim, mechanism, evidence and date as a
+  row, then the owner flips it.)
+
+- [LW-283] 2026-08-19: Several finished features passed the owner's own in game checks,
+  but the official record still lists them as unproven because the paperwork was deferred
+  every time and now survives only in scattered session notes. One sitting with the owner
+  clears the whole backlog. (Tech: at least four arcs carry deferred LIVE_LEDGER flips,
+  namely Provoke (LW-123, passed 2026-07-28), Bulwark (d4c3744), the twin grant consent
+  rewrite (LW-193 and LW-194, three flips), and the restart rewind pair (LW-233, two
+  flips); collect every pending claim into one list carrying its mechanism, evidence and
+  date so the owner can flip them in a single pass. Flips stay owner only.)
+
+- [LW-282] 2026-08-19: A file everyone was told to treat as disposable scratch has quietly
+  become load bearing, so deleting it would make the next probe slower and dumber instead
+  of failing loudly. (Tech: tools/probes/lw251_clut_hits.json holds the 64 known in image
+  palette row addresses that the new lw251_boot_clut_race.py polls on its fast discovery
+  path; commit it alongside that probe, correct the handoff line calling it safe to delete,
+  and have the probe log a loud line when the file is absent rather than silently falling
+  back to span hunts only.)
+
+- [LW-281] 2026-08-19: The picture on the mod's download page still shows the old icon
+  colours, so anyone browsing sees art the mod no longer ships. (Tech: the banner is
+  rendered by tools/make_banner.py from the installed icon cache and nobody re rendered it
+  after the LW-247 ramp port rebaked roughly 300 icons; rerun it after any bake that
+  changes icon art and make that rerun a step of the icon pass itself rather than a
+  separate chore anyone can forget. Nexus draws the title text, so the image carries art
+  only.)
+
+- [LW-280] 2026-08-19: A typo in one of our hand edited .json data files fails silently
+  today: nothing checks the files are even well formed, let alone the right shape, so a
+  bad edit only surfaces later as a confusing build error or a wrong table. Add a
+  validation gate that reads every hand edited .json and fails loudly at the file and
+  line when something is off. (Tech: candidates = data/items.json,
+  data/additional_data_ids.json, data/vanilla_equipbonus.json, data/vanilla_shop.json;
+  generate.py already implies a schema for items.json, so extract its expectations into
+  an explicit check that runs in the shared pipeline prefix alongside analyze.py;
+  generated jsons like meta.json are covered by their generators; probe scratch jsons in
+  tools/probes/ stay exempt.)
+
 - [LW-279] 2026-08-18: When a unit steps on a Move-Find tile and finds an item, the game
   briefly shows that item held above their head, and that held-up art still wears vanilla
   colours while the item's own icon wears ours. Owner noticed 2026-08-18 during the LW-251
