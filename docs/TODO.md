@@ -90,6 +90,18 @@ the technical detail lives in the indented lines under it.
     and the loader demonstrably serves modded files through that same FFTPack channel. The
     picture container we spent the night on is read once per launch at the menu, which fits
     menu art, not battle art. Next probe belongs on FFTPack file 71.
+  - ROUND 12 CRACKED IT, 2026-08-19, owner live verified: the colours a weapon wears in
+    battle come from the colour block at the head of that classic sprite file, and a copy
+    shipped by the mod repaints them. Ramza swung a FLAT MAGENTA sword, measured at exactly
+    the hue the forge painted, while the grass and his armour in the same picture kept their
+    normal shading. The loader log confirmed the game read OUR file and never its own, which
+    is what makes the picture admissible after the night's false alarm. This also retires the
+    June verdict that said this file was a dead end: that test repainted two of the sixteen
+    colour sets and the sword proven here uses the fifteenth. Ledger row
+    [wep-spr-palette-block] PROVEN. What remains for Done: which weapon uses which of the
+    sixteen colour sets (the flat forge is the measuring stick), how many weapons share a
+    set, whether a change needs a restart (the file is read per battle, not per launch), and
+    then the deliberate icon matched recolour of one weapon end to end.
     (Tech: probe tools/probes/lw251_g2d_clut_forge.py, forge + selftest + deploy;
     overrides sit in the install's FFTIVC/data/enhanced/system/ffto/g2d/, wiped by the
     next BuildLinked.)

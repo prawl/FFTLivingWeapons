@@ -94,6 +94,53 @@ between the loose leftover container and the modded.pac copy.
 
 </details>
 
+### [wep-spr-palette-block] Battle weapon colour lives in the classic sprite sheet's palette block
+
+The colour a weapon wears when a unit swings it in battle comes from the 512-byte palette block
+at the head of FFTPack file 71, `unit/battle_wep_spr.bin` (16 palettes x 16 BGR555, colour 0
+transparent), and a mod-shipped copy of that file at
+`<mod>/FFTIVC/data/enhanced/fftpack/unit/battle_wep_spr.bin` repaints it. TRUE HUE control:
+colour values, not an index shuffle. PROVEN, owner live-verified 2026-08-19.
+
+<details><summary>How we got here</summary>
+
+**Claim:** the classic 2D weapon sheet's own palette block, not any g2d asset, colours the
+in-battle weapon, and the FFTPack override channel reaches it.
+
+**Mechanism:** round 12 shipped that file with ALL SIXTEEN palettes flattened (every non-zero
+slot 1-15 of palette N set to one vivid colour unique to N, 0x0000 slots and slot 0 untouched,
+bit 15 preserved) and the 4bpp pixel block left BYTE-IDENTICAL. One variable: colour, sourced
+only from that block. Probe: tools/probes/lw251_wep_spr_forge.py.
+
+**Evidence, machine-verified before it was eyeballed.** The loader distinguishes serving the
+game's own copy (`[FFTPack] Accessing file 71 -> unit/battle_wep_spr.bin`) from serving a mod's
+(`Accessing MODDED file 71`). The launch log reports 2 modded reads and 0 game-copy reads, so
+the game demonstrably consumed our bytes; this pre-registered check is what makes the visual
+read admissible at all. On screen, Ramza's swung sword rendered FLAT MAGENTA. Measured on the
+capture: 738 magenta-family pixels in the whole frame, forming one diagonal blade band at
+x 230-291, y 282-315, hue median 300.0 degrees with a 10-90 spread of 1.7 degrees. The forged
+palette-15 code is hue 300.0 exactly. Same-frame vanilla controls calibrate the instrument:
+grass spreads 14 degrees, the unit's armour 37, the tree 120. Nothing else in the frame is
+magenta. Owner flip: in-session, 2026-08-19 ("That was it").
+
+**What this also settles.** The 2026-06-01 Ask B negative (docs/research/WEAPON_VISUALS_SCOPING.md,
+"the HD weapon render does NOT index this 2D bin palette") is WRONG and is retired. Its two
+holes: it painted only palettes 0 and 1 of 16, so any weapon indexing 2..15 rendered vanilla and
+read as a negative (the sword proven here uses palette 15, which that test never touched), and it
+never established that its file was served, the same gap that produced the retracted
+[g2d-clut-bank-override]. The HD layer upscales the classic 2D art and does index this palette.
+
+**Limits and opens.** The weapon-to-palette mapping is UNMEASURED: the ItemData `<Palette>` byte
+is a poor candidate since the values seen there run 0-7 while the proven sword uses 15, and that
+byte was separately shown inert in 2026-06. The flat forge is the instrument for mapping it, one
+weapon per look. Sharing grain unmeasured (which items share a palette). Not yet known whether a
+swap needs a restart: the file is read once per BATTLE LOAD (2 reads in one launch), not once per
+process like the g2d channel, so a mid-session change may take on the next battle; UNTESTED.
+Palettes 1 and 2 hold only 5 non-zero colours, so weapons indexing them have a shorter ramp.
+Slot-0 and bit-15 semantics untested (both preserved by the forge).
+
+</details>
+
 ### [g2d-clut-bank-override] RETRACTED: g2d entry 156 is not a weapon palette bank and the game never reads it
 
 RETRACTED 2026-08-19, hours after it was written, by four independent adversarial checks.
