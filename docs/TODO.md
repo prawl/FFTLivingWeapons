@@ -64,10 +64,29 @@ the technical detail lives in the indented lines under it.
     and rewrites the colour tables before they are consumed, a build arc with a deploy,
     not a poke round. The proven index-sheet lever stays available as the fallback
     (limited to shuffling each palette's own sixteen colours).
-  - (Tech: container FFTIVC/data/enhanced/system/ffto/g2d.dat, magic YOX, header suggests
-    0x592 entries; find the sheet by decoding entries or by shipping garish overrides and
-    bisecting; the modloader serves this channel from a per index cache read once per
-    process; prior verdicts and the decision brief are in
+  - CORRECTION 2026-08-19 (adversarial review of the retry probe): two of those banked
+    negatives were weaker than recorded. The round 5 full container test shipped a file
+    byte-identical to vanilla, so it tested nothing, and that launch's own Reloaded log
+    shows the modloader hooking and serving a mod supplied g2d.dat, so the full container
+    route EXISTS and is still untested. Round 2 ran with no positive control in frame, so
+    a dead serve path that launch reads the same as a real negative. The ledger row
+    carries the full correction with the evidence.
+  - ROUNDS 7 TO 9, 2026-08-19: a full memory scan for the HD palette bank found ZERO
+    copies in the running game (at a menu and mid battle both), and a living wielder's
+    combat struct holds only the weapon id, no colour or render pointer, so the colour
+    lives GPU side and the RAM write plan is retired. Round 9 is DEPLOYED and awaiting
+    the owner's launch: the real palette bank (g2d entry 156, the bank that provably
+    colours the weapon sheet offline) forged to flat per row colours, plus the proven
+    scrambled sheet as an in frame control, shipped through the file channel. Flat bow =
+    colour lever found; shaded scrambled bow = the file channel cannot reach the palette
+    and the next probe is the full container ship; vanilla bow = dead launch, retry.
+    (Tech: probe tools/probes/lw251_g2d_clut_forge.py, forge + selftest + deploy;
+    overrides sit in the install's FFTIVC/data/enhanced/system/ffto/g2d/, wiped by the
+    next BuildLinked.)
+  - (Tech: container system/ffto/g2d.dat inside data/enhanced/modded.pac, magic YOX, 2450
+    entries, no offset drift; the loose FFTIVC/data/enhanced copy with 0x592 entries is an
+    ignored Dec-2025 leftover; the modloader serves the tex_N.bin channel from a per index
+    cache read once per process; prior verdicts and the decision brief are in
     docs/research/WEAPON_VISUALS_SCOPING.md and the battle sprite scoping notes.)
   - Done means: a live proven mechanism that changes an in battle weapon sprite's colours
     on purpose, one weapon end to end, with the sharing grain (per weapon, per class, or

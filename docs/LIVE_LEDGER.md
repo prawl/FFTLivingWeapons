@@ -71,6 +71,27 @@ SpriteID. Conclusion: colours are resolved ONCE at process start from binary-bak
 any true hue mechanism must act at launch, in-process (the DLL boards before the game
 wakes), or repaint indices within the sheet (the proven lever above).
 
+**CORRECTION 2026-08-19 (adversarial review before the round-9 retry; leave the bullets
+above as written, they record what was believed that night, but do not build on rounds 2
+or 5):** two of the negatives are weaker than recorded. Round 5's "full container with
+hue-coded palettes" was in fact byte-identical to the vanilla copy (sha256 match across
+all 2450 entries of the shipped g2d_huecoded.dat), so that round tested NOTHING, and the
+recorded mechanism ("no merge channel for system files; the game reads the pac directly")
+is contradicted by that same launch's own Reloaded log, which shows
+prawl.fft.livingweapons adding system/ffto/g2d.dat, the loader hooking CFILE_DAT::Load and
+CFILE_DAT::Decode for it, and 0xCF6120 bytes served from the mod file. A mod-supplied
+FULL-CONTAINER route exists and has never been validly tested. Round 2 ran with NO
+positive control in the same frame (that launch mapped only the palette entries, no
+tex_161), and the loader's "mapping" log lines are registration-side, not serve-side, with
+a known dead-detour-launch precedent; so round 2's negative is real but uncontrolled.
+Round 9 (2026-08-19, tools/probes/lw251_g2d_clut_forge.py) re-runs the entry-156 file
+override, forged FLAT per-row from the modded.pac copy, with the proven deranged tex_161
+in frame as the control; its three pre-registered readings are in the probe header.
+Sibling finds from the same review: the entry table's third word is 6 (not 0) on every
+entry, each payload carries 16 unknown trailing bytes inside payload_len (load-bearing
+only if the container is ever repacked), and entries 154-162 except 158 are byte-identical
+between the loose leftover container and the modded.pac copy.
+
 </details>
 
 ### [live-icon-repaint] Equip icons repaint LIVE, no game restart
