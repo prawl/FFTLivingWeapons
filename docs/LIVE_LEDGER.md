@@ -20,6 +20,42 @@ isolated live) · **CONTRADICTED** (evidence points both ways — probe before b
 
 ## Proven
 
+### [g2d-equipment-sheet-override] The in-battle HD equipment art is g2d tex_161 and a mod override repaints it
+
+The weapon a unit swings in battle draws from g2d container entry 161, a 512x512 sixteen-colour
+indexed sheet (the PSX WEP art at exactly 2x), and a mod-shipped `system/ffto/g2d/tex_161.bin`
+holding raw decompressed bytes replaces it: restart-gated, shared per graphic (every weapon
+using a tile changes together). PROVEN, owner live-verified 2026-08-18.
+
+<details><summary>How we got here</summary>
+
+**Claim:** battle weapon art can be repainted by a mod, which the 2026-06-01 levers could not do.
+
+**Mechanism:** `g2d.dat` (magic YOX, 1426 entries, offset table at 0xaa4800 whose offsets
+drift +16 per index; per-entry YOX header + zlib) holds the HD 2D art. The modloader's G2D
+hook serves loose `tex_N.bin` files INSTEAD of container entries for enabled mods, at launch,
+cached per process. Entry 161 is the equipment sheet: bows, guns, shields, helmets, harps,
+maces, blades, spears, shuriken, cloths; four bits per pixel, palette applied at display
+time (the PSX CLUT model, per FFHacktics' load routine), index 0 transparent, layout
+identical to the classic `battle_wep_spr.bin` sheet's first 256 rows at double size.
+
+**Evidence:** whole-sheet index derangement (every visible pixel's palette index shifted,
+transparency preserved) shipped as tex_161.bin on 2026-08-18. The owner observed an Archer's
+bow render deep blue with a WHITE EDGE (no vanilla CLUT white-edges a bow; outlines are dark
+in every palette) while the nocked ARROW in the same frame rendered normal vanilla art (the
+arrow lives on untouched tex_158): a same-frame internal control ruling out global rendering
+causes. The crossbow was ALSO unaffected, and the owner identified that the crossbow is not
+on tex_161 at all (its sheet is still unlocated). Probe: tools/probes/lw251_g2d_extract.py
+(container format, findings, and the owner observation in its docstring). Owner flip:
+in-session, 2026-08-18.
+
+**Limits:** restart-gated (per-process cache, same constraint the scoping predicted); the
+sheet carries palette INDICES, not colours, so an index remap can only shuffle a weapon's
+existing sixteen colours: true hue control lives in the palette asset, which is NOT
+`battle_wep_spr.bin`'s palette block (2026-06-01 magenta test) and is still unlocated.
+
+</details>
+
 ### [live-icon-repaint] Equip icons repaint LIVE, no game restart
 
 An equip icon's bytes can be overwritten in place inside `<game>/data/enhanced/modded.pac` while the game is running, and the new art appears the next time that inventory list is loaded (leave the list and come back); no restart, both the 48px row icon and the 100px detail card. Proven, owner live-verified 2026-08-16. This RETIRES the long-standing "icon changes are restart-only" belief: that was true of editing our loose `.tex` files, because those are only a merge input.

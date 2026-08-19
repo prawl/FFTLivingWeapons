@@ -30,6 +30,13 @@ The RGB555 decode below renders 4bpp entries as garish doubled noise; that signa
 how the indexed sheets were found. A mod override for an entry ships the RAW DECOMPRESSED
 bytes as system/ffto/g2d/tex_N.bin (proven by FFTColorCustomizer's shipped bins matching
 decompressed sizes exactly).
+
+OWNER OBSERVATION (2026-08-18, first live round): the CROSSBOW is NOT on tex_161 (the
+owner checked the labeled grid map against the crossbow he saw in game). tex_161 holds
+bows, guns, shields, helmets, harps, maces, blades, spears, shuriken, arrows and cloths;
+the crossbow's HD art lives on some other entry, still unlocated. The first live look at
+a crossbow (reddish stock, pale bow) is therefore NOT evidence about the override either
+way; the clean live test is a weapon that IS on the sheet, e.g. a bow.
 """
 import os
 import struct

@@ -48,6 +48,13 @@ the technical detail lives in the indented lines under it.
     hand repaint but a parameterised recolour (a hue knob over the found sheet) whose core
     is portable to the sibling mod, and the session long cache means any slider applies on
     the next launch, never live.
+  - ROUND 1 PROVEN 2026-08-18 (owner flip, ledger [g2d-equipment-sheet-override]): the
+    battle equipment sheet is g2d entry 161 and a mod override repaints it, demonstrated
+    by a deranged sheet turning an Archer's bow white edged blue while the arrow beside it
+    stayed vanilla. What remains for Done: the palette asset (true hue control; the sheet
+    stores indices, not colours), the crossbow's sheet, and the deliberate icon matched
+    recolour. Next probe: derange the CLUT bank suspects (entries 154 to 157, 159, 162)
+    the same way to find where the colours live.
   - (Tech: container FFTIVC/data/enhanced/system/ffto/g2d.dat, magic YOX, header suggests
     0x592 entries; find the sheet by decoding entries or by shipping garish overrides and
     bisecting; the modloader serves this channel from a per index cache read once per
@@ -163,6 +170,16 @@ the technical detail lives in the indented lines under it.
 
 
 ## Backlog
+
+- [LW-279] 2026-08-18: When a unit steps on a Move-Find tile and finds an item, the game
+  briefly shows that item held above their head, and that held-up art still wears vanilla
+  colours while the item's own icon wears ours. Owner noticed 2026-08-18 during the LW-251
+  battle art rounds. The held-up graphic almost certainly lives in the same battle art
+  container the LW-251 probe cracked, so finding and recolouring it rides whatever
+  mechanism that arc lands. (Tech: candidate sheets include g2d tex_160, the
+  crystal/treasure-chest sheet, and tex_161's unidentified tiles; probe =
+  tools/probes/lw251_g2d_extract.py; confirm by finding the item-hold frame's source
+  entry, then route it through the same recolour pass.)
 
 - [LW-277] 2026-08-18: Two items that kept their vanilla name now render noticeably off their
   own artwork, and only the owner can say whether that is fine or needs a re-tint. The LW-247
