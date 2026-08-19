@@ -1,0 +1,2677 @@
+{
+ "1": {
+  "kind": "weapon",
+  "tint": [
+   0.405,
+   0.6,
+   0.9
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Cutpurse: tint chosen from ['Galewind', 'Sanguine Sword', 'Tanglethorn']",
+  "donor": {
+   "card": 51,
+   "small": 79
+  }
+ },
+ "2": {
+  "kind": "weapon",
+  "tint": [
+   0.23,
+   0.6,
+   1.12
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": true,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Quicksilver: tint chosen from [\"Siren's Lyre\"]",
+  "donor": {
+   "card": 203,
+   "small": null
+  }
+ },
+ "3": {
+  "kind": "weapon",
+  "tint": [
+   0.498,
+   0.6,
+   0.9
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Gloomfang: tint chosen from ['Crystalward Helm']",
+  "donor": {
+   "card": 140,
+   "small": 27
+  }
+ },
+ "4": {
+  "kind": "weapon",
+  "tint": [
+   0.624,
+   0.6,
+   0.95
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Hushblade: tint chosen from ['Quicksilver', \"Sasuke's Blade\", 'Claymore']",
+  "donor": {
+   "card": 119,
+   "small": null
+  }
+ },
+ "5": {
+  "kind": "weapon",
+  "tint": [
+   0.687,
+   0.6,
+   1.22
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Argent Dirk: tint chosen from ['Stormbrand', 'Frostarc', 'Faerie Harp']",
+  "donor": {
+   "card": 126,
+   "small": 43
+  }
+ },
+ "6": {
+  "kind": "weapon",
+  "tint": [
+   0.75,
+   0.6,
+   0.9
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": true,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Sanguine Gauche: tint chosen from ['Hushward Mail']"
+ },
+ "7": {
+  "kind": "weapon",
+  "tint": [
+   0.816,
+   0.6,
+   0.9
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": true,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Adamant Fang: tint chosen from ['Eight-Fluted Pole']",
+  "donor": {
+   "card": 126,
+   "small": null
+  }
+ },
+ "8": {
+  "kind": "weapon",
+  "tint": [
+   0.957,
+   0.6,
+   0.9
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Mortal Coil: tint chosen from ['Koga Blade', 'Venombolt', 'Duskstring Harp']",
+  "donor": {
+   "card": 53,
+   "small": 204
+  }
+ },
+ "9": {
+  "kind": "weapon",
+  "tint": [
+   0.041,
+   0.6,
+   1.05
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Galewind: tint chosen from ['Spellbane', 'Tempo Vest']",
+  "donor": {
+   "card": 23,
+   "small": null
+  }
+ },
+ "10": {
+  "kind": "weapon",
+  "tint": [
+   0.125,
+   0.55,
+   1.0
+  ],
+  "reserved": true,
+  "punch": false,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Zwill Straightblade: tint chosen from ['Cutpurse', 'Sanguine Gauche', 'Zwill Straightblade']"
+ },
+ "11": {
+  "kind": "weapon",
+  "tint": [
+   0.707,
+   0.6,
+   0.95
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Swiftfang: tint chosen from [\"Siren's Lyre\"]",
+  "donor": {
+   "card": 126,
+   "small": 43
+  }
+ },
+ "12": {
+  "kind": "weapon",
+  "tint": [
+   0.791,
+   0.6,
+   0.9
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Mistedge: tint chosen from ['Crystalward Helm']",
+  "donor": {
+   "card": 126,
+   "small": 93
+  }
+ },
+ "13": {
+  "kind": "weapon",
+  "tint": [
+   0.272,
+   0.6,
+   1.1
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Frost Kodachi: tint chosen from ['Stormbrand', 'Frostarc', 'Faerie Harp']",
+  "donor": {
+   "card": 171,
+   "small": 72
+  }
+ },
+ "14": {
+  "kind": "weapon",
+  "tint": [
+   0.899,
+   0.6,
+   0.9
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": true,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Raijin Longblade: tint chosen from ['Eight-Fluted Pole']",
+  "donor": {
+   "card": 53,
+   "small": null
+  }
+ },
+ "15": {
+  "kind": "weapon",
+  "tint": [
+   0.999,
+   0.6,
+   0.9
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Silentfang: tint chosen from ['Duskstring Harp', 'Gravesilk Veil']",
+  "donor": {
+   "card": 233,
+   "small": 204
+  }
+ },
+ "16": {
+  "kind": "weapon",
+  "tint": [
+   0.627,
+   0.55,
+   1.0
+  ],
+  "reserved": true,
+  "punch": false,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Sasuke's Blade: tint chosen from ['Skypiercer', 'Genji Armor']"
+ },
+ "17": {
+  "kind": "weapon",
+  "tint": [
+   0.111,
+   0.55,
+   1.0
+  ],
+  "reserved": true,
+  "punch": false,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Iga Blade: tint chosen from ['Galewind', 'Sanguine Sword', 'Tanglethorn']"
+ },
+ "18": {
+  "kind": "weapon",
+  "tint": [
+   0.186,
+   0.55,
+   1.0
+  ],
+  "reserved": true,
+  "punch": false,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Koga Blade: tint chosen from ['Hushblade', 'Birchwood Staff', 'Zeus Mace']"
+ },
+ "19": {
+  "kind": "weapon",
+  "tint": [
+   0.85,
+   0.6,
+   0.9
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Vagabond: tint chosen from ['Cutpurse', 'Sanguine Gauche', 'Zwill Straightblade']",
+  "donor": {
+   "card": 53,
+   "small": 93
+  }
+ },
+ "20": {
+  "kind": "weapon",
+  "tint": [
+   0.624,
+   0.6,
+   0.9
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Cleaver: tint chosen from ['Quicksilver', \"Sasuke's Blade\", 'Claymore']",
+  "donor": {
+   "card": 119,
+   "small": 74
+  }
+ },
+ "21": {
+  "kind": "weapon",
+  "tint": [
+   0.46,
+   0.6,
+   1.08
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Riposte: tint chosen from ['Spellbane', 'Tempo Vest']",
+  "donor": {
+   "card": 140,
+   "small": null
+  }
+ },
+ "22": {
+  "kind": "weapon",
+  "tint": [
+   0.291,
+   0.6,
+   0.9
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Claymore: tint chosen from ['Studded Mail']",
+  "donor": {
+   "card": 171,
+   "small": null
+  }
+ },
+ "23": {
+  "kind": "weapon",
+  "tint": [
+   0.397,
+   0.6,
+   0.9
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Sanguine Sword: tint chosen from ['Hushward Mail']"
+ },
+ "24": {
+  "kind": "weapon",
+  "tint": [
+   0.189,
+   0.6,
+   0.9
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": true,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Stormbrand: tint chosen from ['Eight-Fluted Pole']",
+  "donor": {
+   "card": 191,
+   "small": null
+  }
+ },
+ "25": {
+  "kind": "weapon",
+  "tint": [
+   0.75,
+   0.6,
+   0.9
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Tanglethorn: tint chosen from ['Dragon Rod', 'Ironclad Repeater', 'Arbalest']"
+ },
+ "26": {
+  "kind": "weapon",
+  "tint": [
+   0.985,
+   0.7,
+   1.05
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Flamberge: tint chosen from ['Galewind', 'Sanguine Sword', 'Tanglethorn'] (Flamberge: the name is a flame; the sword now agrees)",
+  "donor": {
+   "card": 195,
+   "small": 204
+  }
+ },
+ "27": {
+  "kind": "weapon",
+  "tint": [
+   0.045,
+   0.6,
+   0.9
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Wrathblade: tint chosen from ['Grand Helm']",
+  "donor": {
+   "card": 135,
+   "small": 214
+  }
+ },
+ "28": {
+  "kind": "weapon",
+  "tint": [
+   0.982,
+   0.6,
+   0.98
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Swiftedge: tint chosen from [\"Siren's Lyre\"]",
+  "donor": {
+   "card": 53,
+   "small": null
+  }
+ },
+ "29": {
+  "kind": "weapon",
+  "tint": [
+   0.72,
+   0.65,
+   1.0
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": true,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Graviton: tint chosen from ['Crystalward Helm'] (Graviton: gravity wears deep violet, not olive)"
+ },
+ "30": {
+  "kind": "weapon",
+  "tint": [
+   0.913,
+   0.6,
+   0.9
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": true,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Arcanum: tint chosen from ['Duskstring Harp', 'Gravesilk Veil']",
+  "donor": {
+   "card": 53,
+   "small": null
+  }
+ },
+ "31": {
+  "kind": "weapon",
+  "tint": [
+   0.704,
+   0.6,
+   0.98
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Lightbringer: tint chosen from ['Hushblade', 'Birchwood Staff', 'Zeus Mace']"
+ },
+ "32": {
+  "kind": "weapon",
+  "tint": [
+   0.114,
+   0.58,
+   1.0
+  ],
+  "reserved": true,
+  "punch": false,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Materia Blade: tint chosen from ['Stormbrand', 'Frostarc', 'Faerie Harp']"
+ },
+ "33": {
+  "kind": "weapon",
+  "tint": [
+   0.097,
+   0.55,
+   1.0
+  ],
+  "reserved": true,
+  "punch": false,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Defender: tint chosen from ['Cutpurse', 'Sanguine Gauche', 'Zwill Straightblade']"
+ },
+ "34": {
+  "kind": "weapon",
+  "tint": [
+   0.637,
+   0.55,
+   1.0
+  ],
+  "reserved": true,
+  "punch": false,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Save the Queen: tint chosen from ['Stormbrand', 'Frostarc', 'Faerie Harp']"
+ },
+ "35": {
+  "kind": "weapon",
+  "tint": [
+   0.178,
+   0.55,
+   1.0
+  ],
+  "reserved": true,
+  "punch": false,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Excalibur: tint chosen from ['Hushblade', 'Birchwood Staff', 'Zeus Mace']"
+ },
+ "36": {
+  "kind": "weapon",
+  "tint": [
+   0.248,
+   0.55,
+   1.0
+  ],
+  "reserved": true,
+  "punch": false,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Ragnarok: tint chosen from ['Eight-Fluted Pole']"
+ },
+ "37": {
+  "kind": "weapon",
+  "tint": [
+   0.337,
+   0.55,
+   1.0
+  ],
+  "reserved": true,
+  "punch": false,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Chaos Blade: tint chosen from ['Grand Helm']"
+ },
+ "38": {
+  "kind": "weapon",
+  "tint": [
+   0.616,
+   0.55,
+   1.0
+  ],
+  "reserved": true,
+  "punch": false,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Ashura: tint chosen from ['Stormbrand', 'Frostarc', 'Faerie Harp']"
+ },
+ "39": {
+  "kind": "weapon",
+  "tint": [
+   0.707,
+   0.55,
+   1.0
+  ],
+  "reserved": true,
+  "punch": false,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Kotetsu: tint chosen from ['Crystalward Helm']"
+ },
+ "40": {
+  "kind": "weapon",
+  "tint": [
+   0.796,
+   0.55,
+   1.0
+  ],
+  "reserved": true,
+  "punch": false,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Bizen Osafune: tint chosen from ['Duskstring Harp', 'Gravesilk Veil']"
+ },
+ "41": {
+  "kind": "weapon",
+  "tint": [
+   0.083,
+   0.55,
+   1.0
+  ],
+  "reserved": true,
+  "punch": false,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Murasame: tint chosen from ['Spellbane', 'Tempo Vest']"
+ },
+ "42": {
+  "kind": "weapon",
+  "tint": [
+   0.156,
+   0.55,
+   1.0
+  ],
+  "reserved": true,
+  "punch": false,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Ame-no-Murakumo: tint chosen from ['Eight-Fluted Pole']"
+ },
+ "43": {
+  "kind": "weapon",
+  "tint": [
+   0.917,
+   0.55,
+   1.0
+  ],
+  "reserved": true,
+  "punch": false,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Kiyomori: tint chosen from [\"Siren's Lyre\"]"
+ },
+ "44": {
+  "kind": "weapon",
+  "tint": [
+   0.299,
+   0.58,
+   1.0
+  ],
+  "reserved": true,
+  "punch": false,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Muramasa: tint chosen from ['Galewind', 'Sanguine Sword', 'Tanglethorn']"
+ },
+ "45": {
+  "kind": "weapon",
+  "tint": [
+   0.234,
+   0.55,
+   1.0
+  ],
+  "reserved": true,
+  "punch": false,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Kiku-ichimonji: tint chosen from ['Hushblade', 'Birchwood Staff', 'Zeus Mace']"
+ },
+ "46": {
+  "kind": "weapon",
+  "tint": [
+   0.415,
+   0.55,
+   1.0
+  ],
+  "reserved": true,
+  "punch": false,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Masamune: tint chosen from ['Quicksilver', \"Sasuke's Blade\", 'Claymore']"
+ },
+ "47": {
+  "kind": "weapon",
+  "tint": [
+   0.546,
+   0.55,
+   1.0
+  ],
+  "reserved": true,
+  "punch": false,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Chirijiraden: tint chosen from ['Cutpurse', 'Sanguine Gauche', 'Zwill Straightblade']"
+ },
+ "48": {
+  "kind": "weapon",
+  "tint": [
+   0.624,
+   0.6,
+   0.9
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Terrastaff: tint chosen from ['Hushblade', 'Birchwood Staff', 'Zeus Mace']"
+ },
+ "49": {
+  "kind": "weapon",
+  "tint": [
+   0.975,
+   0.6,
+   0.9
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Ravager: tint chosen from ['Hushward Mail']"
+ },
+ "50": {
+  "kind": "weapon",
+  "tint": [
+   0.479,
+   0.6,
+   0.9
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Sunderer: tint chosen from ['Spellbane', 'Tempo Vest']",
+  "donor": {
+   "card": 140,
+   "small": 27
+  }
+ },
+ "51": {
+  "kind": "weapon",
+  "tint": [
+   0.584,
+   0.6,
+   0.9
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": true,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Wellspring Rod: tint chosen from ['Hushblade', 'Birchwood Staff', 'Zeus Mace']"
+ },
+ "52": {
+  "kind": "weapon",
+  "tint": [
+   0.65,
+   0.6,
+   0.9
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": true,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Spark Rod: tint chosen from ['Eight-Fluted Pole']"
+ },
+ "53": {
+  "kind": "weapon",
+  "tint": [
+   0.79,
+   0.6,
+   1.02
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Ember Rod: tint chosen from ['Galewind', 'Sanguine Sword', 'Tanglethorn']"
+ },
+ "54": {
+  "kind": "weapon",
+  "tint": [
+   0.498,
+   0.6,
+   1.05
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": true,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Frost Rod: tint chosen from [\"Siren's Lyre\"]"
+ },
+ "55": {
+  "kind": "weapon",
+  "tint": [
+   0.418,
+   0.6,
+   0.9
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": true,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Hushward Rod: tint chosen from ['Studded Mail']",
+  "donor": {
+   "card": 51,
+   "small": null
+  }
+ },
+ "56": {
+  "kind": "weapon",
+  "tint": [
+   0.147,
+   0.6,
+   0.9
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Umbral Rod: tint chosen from ['Duskstring Harp', 'Gravesilk Veil']",
+  "donor": {
+   "card": 149,
+   "small": 147
+  }
+ },
+ "57": {
+  "kind": "weapon",
+  "tint": [
+   0.33,
+   0.55,
+   1.0
+  ],
+  "reserved": true,
+  "punch": false,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Dragon Rod: tint chosen from ['Skypiercer', 'Genji Armor']"
+ },
+ "58": {
+  "kind": "weapon",
+  "tint": [
+   0.073,
+   0.55,
+   1.0
+  ],
+  "reserved": true,
+  "punch": false,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Rod of Faith: tint chosen from ['Cutpurse', 'Sanguine Gauche', 'Zwill Straightblade']"
+ },
+ "59": {
+  "kind": "weapon",
+  "tint": [
+   0.498,
+   0.6,
+   0.9
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Birchwood Staff: tint chosen from ['Cutpurse', 'Sanguine Gauche', 'Zwill Straightblade']"
+ },
+ "60": {
+  "kind": "weapon",
+  "tint": [
+   0.85,
+   0.6,
+   0.9
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Warlock's Staff: tint chosen from ['Duskstring Harp', 'Gravesilk Veil']"
+ },
+ "61": {
+  "kind": "weapon",
+  "tint": [
+   0.405,
+   0.6,
+   1.0
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Mending Staff: tint chosen from ['Skypiercer', 'Genji Armor']"
+ },
+ "62": {
+  "kind": "weapon",
+  "tint": [
+   0.106,
+   0.6,
+   0.95
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Warding Staff: tint chosen from ['Stormbrand', 'Frostarc', 'Faerie Harp']",
+  "donor": {
+   "card": 212,
+   "small": null
+  }
+ },
+ "63": {
+  "kind": "weapon",
+  "tint": [
+   0.584,
+   0.6,
+   0.95
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Blazing Staff: tint chosen from ['Galewind', 'Sanguine Sword', 'Tanglethorn']"
+ },
+ "64": {
+  "kind": "weapon",
+  "tint": [
+   0.708,
+   0.6,
+   1.25
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Sanctus Staff: tint chosen from ['Hushblade', 'Birchwood Staff', 'Zeus Mace']"
+ },
+ "65": {
+  "kind": "weapon",
+  "tint": [
+   0.166,
+   0.55,
+   1.0
+  ],
+  "reserved": true,
+  "punch": false,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Zeus Mace: tint chosen from ['Eight-Fluted Pole']"
+ },
+ "66": {
+  "kind": "weapon",
+  "tint": [
+   0.301,
+   0.55,
+   1.0
+  ],
+  "reserved": true,
+  "punch": false,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Staff of the Magi: tint chosen from ['Quicksilver', \"Sasuke's Blade\", 'Claymore']"
+ },
+ "67": {
+  "kind": "weapon",
+  "tint": [
+   0.401,
+   0.6,
+   0.9
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Warbrand: tint chosen from ['Skypiercer', 'Genji Armor']",
+  "donor": {
+   "card": 51,
+   "small": 79
+  }
+ },
+ "68": {
+  "kind": "weapon",
+  "tint": [
+   0.335,
+   0.6,
+   0.9
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Bloodlash: tint chosen from ['Dragon Rod', 'Ironclad Repeater', 'Arbalest']",
+  "donor": {
+   "card": 51,
+   "small": 57
+  }
+ },
+ "69": {
+  "kind": "weapon",
+  "tint": [
+   0.405,
+   0.6,
+   0.9
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Climhazzard: tint chosen from ['Hushward Mail']",
+  "donor": {
+   "card": 51,
+   "small": 79
+  }
+ },
+ "70": {
+  "kind": "weapon",
+  "tint": [
+   0.287,
+   0.6,
+   0.9
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": true,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Sasori: tint chosen from ['Studded Mail']",
+  "donor": {
+   "card": 171,
+   "small": null
+  }
+ },
+ "71": {
+  "kind": "weapon",
+  "tint": [
+   0.355,
+   0.6,
+   0.9
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Outrider Pistol: tint chosen from ['Hushward Mail']",
+  "donor": {
+   "card": 51,
+   "small": 131
+  }
+ },
+ "72": {
+  "kind": "weapon",
+  "tint": [
+   0.708,
+   0.6,
+   0.9
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": true,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Ironclad Repeater: tint chosen from ['Stormbrand', 'Frostarc', 'Faerie Harp']",
+  "donor": {
+   "card": 126,
+   "small": null
+  }
+ },
+ "73": {
+  "kind": "weapon",
+  "tint": [
+   0.092,
+   0.55,
+   1.0
+  ],
+  "reserved": true,
+  "punch": false,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Stoneshooter: tint chosen from ['Cutpurse', 'Sanguine Gauche', 'Zwill Straightblade']"
+ },
+ "74": {
+  "kind": "weapon",
+  "tint": [
+   0.624,
+   0.55,
+   1.0
+  ],
+  "reserved": true,
+  "punch": false,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Glacial Gun: tint chosen from [\"Siren's Lyre\"]"
+ },
+ "75": {
+  "kind": "weapon",
+  "tint": [
+   0.238,
+   0.55,
+   1.0
+  ],
+  "reserved": true,
+  "punch": false,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Blaze Gun: tint chosen from ['Galewind', 'Sanguine Sword', 'Tanglethorn']"
+ },
+ "76": {
+  "kind": "weapon",
+  "tint": [
+   0.17,
+   0.55,
+   1.0
+  ],
+  "reserved": true,
+  "punch": false,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Blaster: tint chosen from ['Hushblade', 'Birchwood Staff', 'Zeus Mace']"
+ },
+ "77": {
+  "kind": "weapon",
+  "tint": [
+   0.624,
+   0.6,
+   1.12
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Scoutbolt: tint chosen from ['Galewind', 'Sanguine Sword', 'Tanglethorn']"
+ },
+ "78": {
+  "kind": "weapon",
+  "tint": [
+   0.106,
+   0.6,
+   1.02
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": true,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Eclipsebolt: tint chosen from ['Hushward Mail']",
+  "donor": {
+   "card": 212,
+   "small": null
+  }
+ },
+ "79": {
+  "kind": "weapon",
+  "tint": [
+   0.75,
+   0.6,
+   1.05
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": true,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Arbalest: tint chosen from ['Stormbrand', 'Frostarc', 'Faerie Harp']",
+  "donor": {
+   "card": 126,
+   "small": null
+  }
+ },
+ "80": {
+  "kind": "weapon",
+  "tint": [
+   0.816,
+   0.6,
+   1.05
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": true,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Venombolt: tint chosen from ['Warded Circlet', \"Adept's Hood\", 'Hierophant Miter']",
+  "donor": {
+   "card": 126,
+   "small": null
+  }
+ },
+ "81": {
+  "kind": "weapon",
+  "tint": [
+   0.933,
+   0.6,
+   1.02
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": true,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Pitchbolt: tint chosen from ['Duskstring Harp', 'Gravesilk Veil']",
+  "donor": {
+   "card": 53,
+   "small": null
+  }
+ },
+ "82": {
+  "kind": "weapon",
+  "tint": [
+   0.04,
+   0.6,
+   0.98
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": true,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Siegebolt: tint chosen from ['Crystalward Helm']",
+  "donor": {
+   "card": 23,
+   "small": null
+  }
+ },
+ "83": {
+  "kind": "weapon",
+  "tint": [
+   0.75,
+   0.6,
+   0.95
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": true,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Skirmisher: tint chosen from ['Hushward Mail']"
+ },
+ "84": {
+  "kind": "weapon",
+  "tint": [
+   0.874,
+   0.6,
+   1.16
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": true,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Windrunner: tint chosen from ['Crystalward Helm']"
+ },
+ "85": {
+  "kind": "weapon",
+  "tint": [
+   0.2,
+   0.6,
+   1.05
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": true,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Frostarc: tint chosen from [\"Siren's Lyre\"]"
+ },
+ "86": {
+  "kind": "weapon",
+  "tint": [
+   0.982,
+   0.6,
+   1.0
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Stormarc: tint chosen from ['Hushblade', 'Birchwood Staff', 'Zeus Mace']"
+ },
+ "87": {
+  "kind": "weapon",
+  "tint": [
+   0.265,
+   0.6,
+   1.0
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": true,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Skypiercer: tint chosen from ['Skypiercer', 'Genji Armor']",
+  "donor": {
+   "card": 171,
+   "small": null
+  }
+ },
+ "88": {
+  "kind": "weapon",
+  "tint": [
+   0.371,
+   0.6,
+   0.9
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": true,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Tidecaller: tint chosen from ['Quicksilver', \"Sasuke's Blade\", 'Claymore']"
+ },
+ "89": {
+  "kind": "weapon",
+  "tint": [
+   0.501,
+   0.6,
+   0.9
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": true,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Huntress: tint chosen from ['Dragon Rod', 'Ironclad Repeater', 'Arbalest']",
+  "donor": {
+   "card": 140,
+   "small": null
+  }
+ },
+ "90": {
+  "kind": "weapon",
+  "tint": [
+   0.084,
+   0.6,
+   1.0
+  ],
+  "reserved": true,
+  "punch": false,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Yoichi Bow: tint chosen from ['Galewind', 'Sanguine Sword', 'Tanglethorn']"
+ },
+ "91": {
+  "kind": "weapon",
+  "tint": [
+   0.614,
+   0.55,
+   1.0
+  ],
+  "reserved": true,
+  "punch": false,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Perseus Bow: tint chosen from ['Cutpurse', 'Sanguine Gauche', 'Zwill Straightblade']"
+ },
+ "92": {
+  "kind": "weapon",
+  "tint": [
+   0.46,
+   0.6,
+   0.95
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": true,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Siren's Lyre: tint chosen from ['Spellbane', 'Tempo Vest']"
+ },
+ "93": {
+  "kind": "weapon",
+  "tint": [
+   0.335,
+   0.6,
+   0.9
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": true,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Duskstring Harp: tint chosen from ['Crystalward Helm']"
+ },
+ "94": {
+  "kind": "weapon",
+  "tint": [
+   0.126,
+   0.55,
+   1.0
+  ],
+  "reserved": true,
+  "punch": false,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Faerie Harp: tint chosen from ['Hushblade', 'Birchwood Staff', 'Zeus Mace']"
+ },
+ "95": {
+  "kind": "weapon",
+  "tint": [
+   0.65,
+   0.6,
+   1.05
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": true,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Glarebound Tome: tint chosen from ['Cutpurse', 'Sanguine Gauche', 'Zwill Straightblade']"
+ },
+ "96": {
+  "kind": "weapon",
+  "tint": [
+   0.791,
+   0.6,
+   0.9
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Knell Codex: tint chosen from ['Crystalward Helm']",
+  "donor": {
+   "card": 126,
+   "small": null
+  }
+ },
+ "97": {
+  "kind": "weapon",
+  "tint": [
+   0.106,
+   0.6,
+   0.9
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Binding Codex: tint chosen from ['Quicksilver', \"Sasuke's Blade\", 'Claymore']",
+  "donor": {
+   "card": 212,
+   "small": null
+  }
+ },
+ "98": {
+  "kind": "weapon",
+  "tint": [
+   0.027,
+   0.68,
+   1.0
+  ],
+  "reserved": true,
+  "punch": false,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Omnilex: tint chosen from ['Galewind', 'Sanguine Sword', 'Tanglethorn']"
+ },
+ "99": {
+  "kind": "weapon",
+  "tint": [
+   0.79,
+   0.6,
+   0.98
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Skewer: tint chosen from ['Cutpurse', 'Sanguine Gauche', 'Zwill Straightblade']",
+  "donor": {
+   "card": 126,
+   "small": 93
+  }
+ },
+ "100": {
+  "kind": "weapon",
+  "tint": [
+   0.106,
+   0.6,
+   0.9
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Footman's Spear: tint chosen from ['Stormbrand', 'Frostarc', 'Faerie Harp']",
+  "donor": {
+   "card": 212,
+   "small": 12
+  }
+ },
+ "101": {
+  "kind": "weapon",
+  "tint": [
+   0.899,
+   0.6,
+   1.05
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Frostpoint: tint chosen from [\"Siren's Lyre\"]",
+  "donor": {
+   "card": 53,
+   "small": 93
+  }
+ },
+ "102": {
+  "kind": "weapon",
+  "tint": [
+   0.04,
+   0.6,
+   0.9
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": true,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Stormpike: tint chosen from ['Crystalward Helm']",
+  "donor": {
+   "card": 23,
+   "small": null
+  }
+ },
+ "103": {
+  "kind": "weapon",
+  "tint": [
+   0.248,
+   0.6,
+   0.9
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Tombspire: tint chosen from ['Zephyr Beret']",
+  "donor": {
+   "card": 171,
+   "small": 232
+  }
+ },
+ "104": {
+  "kind": "weapon",
+  "tint": [
+   0.625,
+   0.55,
+   1.0
+  ],
+  "reserved": true,
+  "punch": false,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Holy Lance: tint chosen from ['Quicksilver', \"Sasuke's Blade\", 'Claymore']"
+ },
+ "105": {
+  "kind": "weapon",
+  "tint": [
+   0.694,
+   0.55,
+   1.0
+  ],
+  "reserved": true,
+  "punch": false,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Dragon Whisker: tint chosen from ['Hushward Mail']"
+ },
+ "106": {
+  "kind": "weapon",
+  "tint": [
+   0.335,
+   0.6,
+   0.9
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Wyrmpike: tint chosen from ['Dragon Rod', 'Ironclad Repeater', 'Arbalest']"
+ },
+ "107": {
+  "kind": "weapon",
+  "tint": [
+   0.335,
+   0.6,
+   0.9
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Greenwood Pole: tint chosen from ['Dragon Rod', 'Ironclad Repeater', 'Arbalest']"
+ },
+ "108": {
+  "kind": "weapon",
+  "tint": [
+   0.75,
+   0.6,
+   0.9
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": true,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Ironreed Pole: tint chosen from ['Stormbrand', 'Frostarc', 'Faerie Harp']"
+ },
+ "109": {
+  "kind": "weapon",
+  "tint": [
+   0.23,
+   0.6,
+   0.95
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Slumber Rod: tint chosen from ['Crystalward Helm']",
+  "donor": {
+   "card": 203,
+   "small": null
+  }
+ },
+ "110": {
+  "kind": "weapon",
+  "tint": [
+   0.46,
+   0.6,
+   0.9
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": true,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Hushfan: tint chosen from ['Grand Helm']",
+  "donor": {
+   "card": 140,
+   "small": null
+  }
+ },
+ "111": {
+  "kind": "weapon",
+  "tint": [
+   0.543,
+   0.6,
+   1.02
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Sage's Pole: tint chosen from ['Galewind', 'Sanguine Sword', 'Tanglethorn']"
+ },
+ "112": {
+  "kind": "weapon",
+  "tint": [
+   0.099,
+   0.55,
+   1.0
+  ],
+  "reserved": true,
+  "punch": false,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Ivory Pole: tint chosen from ['Cutpurse', 'Sanguine Gauche', 'Zwill Straightblade']"
+ },
+ "113": {
+  "kind": "weapon",
+  "tint": [
+   0.687,
+   0.6,
+   0.9
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Eight-Fluted Pole: tint chosen from ['Eight-Fluted Pole'] NIT (LW-247 census, carried forward): kept its vanilla name but is absent from reserved_weapons.json; harmless, its art chroma sits below the anchors gate's floor.",
+  "donor": {
+   "card": 126,
+   "small": 43
+  }
+ },
+ "114": {
+  "kind": "weapon",
+  "tint": [
+   0.161,
+   0.55,
+   1.0
+  ],
+  "reserved": true,
+  "punch": false,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Whale Whisker: tint chosen from [\"Siren's Lyre\"]"
+ },
+ "115": {
+  "kind": "weapon",
+  "tint": [
+   0.739,
+   0.35,
+   1.18
+  ],
+  "reserved": false,
+  "punch": false,
+  "rotate": true,
+  "forceb": false,
+  "muted": true,
+  "white_spec": false,
+  "soft_spec": true,
+  "outline_black": true,
+  "deep_damp": true,
+  "vscale_override": 1.18,
+  "note": "Sandman Satchel: tint chosen from ['Crystalward Helm'] (bag: shipped violet lifted (vm 1.18) so the vanilla shading reads)"
+ },
+ "116": {
+  "kind": "weapon",
+  "tint": [
+   0.323,
+   0.35,
+   1.15
+  ],
+  "reserved": false,
+  "punch": false,
+  "rotate": false,
+  "forceb": false,
+  "muted": true,
+  "white_spec": false,
+  "soft_spec": true,
+  "outline_black": true,
+  "deep_damp": true,
+  "vscale_override": 1.15,
+  "note": "Fallingstar Bag: tint chosen from ['Studded Mail'] (bag: own vanilla green through the engine at sibling brightness; gold star preserved (rule 1: similar, popped))",
+  "donor": {
+   "card": 51,
+   "small": null
+  }
+ },
+ "117": {
+  "kind": "weapon",
+  "tint": [
+   0.089,
+   0.35,
+   1.0
+  ],
+  "reserved": false,
+  "punch": false,
+  "rotate": true,
+  "forceb": false,
+  "muted": true,
+  "white_spec": false,
+  "soft_spec": true,
+  "outline_black": true,
+  "deep_damp": true,
+  "vscale_override": null,
+  "note": "Hornet Pouch: tint chosen from ['Cutpurse', 'Sanguine Gauche', 'Zwill Straightblade'] (bag: VANILLA body (correct highlights) wearing the shipped body colour)"
+ },
+ "118": {
+  "kind": "weapon",
+  "tint": [
+   0.567,
+   0.35,
+   1.0
+  ],
+  "reserved": false,
+  "punch": false,
+  "rotate": true,
+  "forceb": false,
+  "muted": true,
+  "white_spec": false,
+  "soft_spec": true,
+  "outline_black": true,
+  "deep_damp": true,
+  "vscale_override": null,
+  "note": "Hexweave Bag: tint chosen from ['Stormbrand', 'Frostarc', 'Faerie Harp'] (bag: VANILLA body (correct highlights) wearing the shipped body colour)",
+  "donor": {
+   "card": 85,
+   "small": null
+  }
+ },
+ "119": {
+  "kind": "weapon",
+  "tint": [
+   0.106,
+   0.6,
+   0.9
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": false,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Tarsilk Veil: tint chosen from [\"Siren's Lyre\"]",
+  "donor": {
+   "card": null,
+   "small": 12
+  }
+ },
+ "120": {
+  "kind": "weapon",
+  "tint": [
+   0.584,
+   0.6,
+   0.9
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": true,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Bindsilk Veil: tint chosen from ['Dragon Rod', 'Ironclad Repeater', 'Arbalest']"
+ },
+ "121": {
+  "kind": "weapon",
+  "tint": [
+   0.707,
+   0.6,
+   0.9
+  ],
+  "reserved": false,
+  "punch": true,
+  "rotate": true,
+  "forceb": false,
+  "muted": false,
+  "white_spec": false,
+  "soft_spec": false,
+  "outline_black": false,
+  "deep_damp": false,
+  "vscale_override": null,
+  "note": "Gravesilk Veil: tint chosen from ['Crystalward Helm']",
+  "donor": {
+   "card": 126,
+   "small": null
+  }
+ },
+ "128": {
+  "kind": "shield",
+  "note": "Tideward: fixed module-level shield config (no punch/pop)"
+ },
+ "129": {
+  "kind": "shield",
+  "note": "Galewall: fixed module-level shield config (no punch/pop)"
+ },
+ "130": {
+  "kind": "shield",
+  "note": "Stormwall: fixed module-level shield config (PUNCH base (module default))",
+  "donor": {
+   "card": 149,
+   "small": null
+  }
+ },
+ "131": {
+  "kind": "shield",
+  "note": "Swiftguard: fixed module-level shield config (no punch/pop)"
+ },
+ "132": {
+  "kind": "shield",
+  "note": "Wardstone: fixed module-level shield config (no punch/pop)",
+  "donor": {
+   "card": 126,
+   "small": null
+  }
+ },
+ "133": {
+  "kind": "shield",
+  "note": "Sanctguard: fixed module-level shield config (no punch/pop)"
+ },
+ "134": {
+  "kind": "shield",
+  "note": "Rimeward: fixed module-level shield config (PUNCH base (module default), POP (module default))",
+  "donor": {
+   "card": 140,
+   "small": null
+  }
+ },
+ "135": {
+  "kind": "shield",
+  "note": "Emberward: fixed module-level shield config (no punch/pop)"
+ },
+ "136": {
+  "kind": "shield",
+  "note": "Spellbane: fixed module-level shield config (PUNCH base (module default), POP (module default))"
+ },
+ "137": {
+  "kind": "shield",
+  "note": "Trailblazer: fixed module-level shield config (no punch/pop)"
+ },
+ "138": {
+  "kind": "shield",
+  "note": "Vanguard: fixed module-level shield config (PUNCH base (module default), POP (module default))",
+  "donor": {
+   "card": 53,
+   "small": null
+  }
+ },
+ "139": {
+  "kind": "shield",
+  "note": "Nightward: fixed module-level shield config (no punch/pop)",
+  "donor": {
+   "card": 126,
+   "small": null
+  }
+ },
+ "140": {
+  "kind": "shield",
+  "note": "Genji Shield: fixed module-level shield config (PUNCH base (module default))",
+  "donor": {
+   "card": 119,
+   "small": null
+  }
+ },
+ "141": {
+  "kind": "shield",
+  "note": "Kaiser Shield: fixed module-level shield config (no punch/pop)"
+ },
+ "142": {
+  "kind": "shield",
+  "note": "Venetian Shield: fixed module-level shield config (PUNCH base (module default))"
+ },
+ "143": {
+  "kind": "shield",
+  "note": "Aegis Prime: fixed module-level shield config (no punch/pop)"
+ },
+ "144": {
+  "kind": "helm",
+  "note": "Padded Coif: fixed module-level helm config (144 coif map: old-engine render, never a mod-tree read (B1 fix))"
+ },
+ "145": {
+  "kind": "helm",
+  "note": "Mendsteel Helm: fixed module-level helm config (ROTATE_ALL, WARM_TRIM_VANILLA)",
+  "donor": {
+   "card": 171,
+   "small": null
+  }
+ },
+ "146": {
+  "kind": "helm",
+  "note": "Aegis Helm: fixed module-level helm config (ROTATE_ALL)",
+  "donor": {
+   "card": 54,
+   "small": null
+  }
+ },
+ "147": {
+  "kind": "helm",
+  "note": "Storm Barbut: fixed module-level helm config (PUNCH addition, KEEP_SHIPPED: old-engine body kept, rendered outside the ramp dispatch)"
+ },
+ "148": {
+  "kind": "helm",
+  "note": "Clarion Helm: fixed module-level helm config (PUNCH addition, KEEP_SHIPPED: old-engine body kept, rendered outside the ramp dispatch)"
+ },
+ "149": {
+  "kind": "helm",
+  "note": "Sunsteel Helm: fixed module-level helm config (PUNCH addition, ROTATE_ALL)"
+ },
+ "150": {
+  "kind": "helm",
+  "note": "Sealed Visor: fixed module-level helm config (PUNCH addition, ROTATE_ALL)",
+  "donor": {
+   "card": 119,
+   "small": null
+  }
+ },
+ "151": {
+  "kind": "helm",
+  "note": "Timeward Helm: fixed module-level helm config (PUNCH addition, ROTATE_ALL)",
+  "donor": {
+   "card": 133,
+   "small": 86
+  }
+ },
+ "152": {
+  "kind": "helm",
+  "note": "Wardsteel Helm: fixed module-level helm config (PUNCH addition, ROTATE_ALL)",
+  "donor": {
+   "card": 140,
+   "small": null
+  }
+ },
+ "153": {
+  "kind": "helm",
+  "note": "Warded Circlet: fixed module-level helm config (pure ramp render)"
+ },
+ "154": {
+  "kind": "helm",
+  "note": "Crystalward Helm: fixed module-level helm config (PUNCH addition, ROTATE_ALL)",
+  "donor": {
+   "card": 126,
+   "small": null
+  }
+ },
+ "155": {
+  "kind": "helm",
+  "note": "Genji Helm: fixed module-level helm config (KEEP_SHIPPED: old-engine body kept, rendered outside the ramp dispatch)"
+ },
+ "156": {
+  "kind": "helm",
+  "note": "Grand Helm: fixed module-level helm config (KEEP_SHIPPED: old-engine body kept, rendered outside the ramp dispatch)"
+ }
+}

@@ -1,0 +1,233 @@
+{
+ "115": {
+  "rgb": [
+   242,
+   109,
+   0
+  ],
+  "inner_a": 235,
+  "outer_a": 80,
+  "third_a": 0,
+  "note": "Sandman Satchel: bag rim, extracted from census2 (GEN+RIM verdict)"
+ },
+ "116": {
+  "rgb": [
+   97,
+   172,
+   242
+  ],
+  "inner_a": 235,
+  "outer_a": 80,
+  "third_a": 0,
+  "note": "Fallingstar Bag: bag rim, extracted from census2 (GEN+RIM verdict)"
+ },
+ "117": {
+  "rgb": [
+   242,
+   0,
+   0
+  ],
+  "inner_a": 235,
+  "outer_a": 80,
+  "third_a": 0,
+  "note": "Hornet Pouch: bag rim, extracted from census2 (GEN+RIM verdict)"
+ },
+ "118": {
+  "rgb": [
+   242,
+   109,
+   0
+  ],
+  "inner_a": 235,
+  "outer_a": 80,
+  "third_a": 0,
+  "note": "Hexweave Bag: bag rim, extracted from census2 (GEN+RIM verdict)"
+ },
+ "128": {
+  "rgb": [
+   242,
+   109,
+   0
+  ],
+  "inner_a": 170,
+  "outer_a": 80,
+  "third_a": 0,
+  "note": "Tideward: shield rim, extracted from census2 (GEN+RIM verdict)"
+ },
+ "129": {
+  "rgb": [
+   48,
+   242,
+   0
+  ],
+  "inner_a": 170,
+  "outer_a": 80,
+  "third_a": 0,
+  "note": "Galewall: shield rim, extracted from census2 (GEN+RIM verdict)"
+ },
+ "130": {
+  "rgb": [
+   121,
+   0,
+   242
+  ],
+  "inner_a": 170,
+  "outer_a": 80,
+  "third_a": 0,
+  "note": "Stormwall: shield rim, extracted from census2 (GEN+RIM verdict)"
+ },
+ "131": {
+  "rgb": [
+   242,
+   225,
+   0
+  ],
+  "inner_a": 170,
+  "outer_a": 80,
+  "third_a": 0,
+  "note": "Swiftguard: shield rim, extracted from census2 (GEN+RIM verdict)"
+ },
+ "132": {
+  "rgb": [
+   242,
+   225,
+   0
+  ],
+  "inner_a": 170,
+  "outer_a": 80,
+  "third_a": 0,
+  "note": "Wardstone: shield rim, extracted from census2 (GEN+RIM verdict)"
+ },
+ "133": {
+  "rgb": [
+   5,
+   242,
+   0
+  ],
+  "inner_a": 170,
+  "outer_a": 80,
+  "third_a": 0,
+  "note": "Sanctguard: shield rim, extracted from census2 (GEN+RIM verdict)"
+ },
+ "134": {
+  "rgb": [
+   242,
+   65,
+   0
+  ],
+  "inner_a": 170,
+  "outer_a": 80,
+  "third_a": 0,
+  "note": "Rimeward: shield rim, extracted from census2 (GEN+RIM verdict)"
+ },
+ "135": {
+  "rgb": [
+   0,
+   97,
+   242
+  ],
+  "inner_a": 170,
+  "outer_a": 80,
+  "third_a": 0,
+  "note": "Emberward: shield rim, extracted from census2 (GEN+RIM verdict)"
+ },
+ "136": {
+  "rgb": [
+   0,
+   97,
+   242
+  ],
+  "inner_a": 170,
+  "outer_a": 80,
+  "third_a": 0,
+  "note": "Spellbane: shield rim, extracted from census2 (GEN+RIM verdict)"
+ },
+ "137": {
+  "rgb": [
+   242,
+   0,
+   145
+  ],
+  "inner_a": 170,
+  "outer_a": 80,
+  "third_a": 0,
+  "note": "Trailblazer: shield rim, extracted from census2 (GEN+RIM verdict)"
+ },
+ "138": {
+  "rgb": [
+   5,
+   242,
+   0
+  ],
+  "inner_a": 170,
+  "outer_a": 80,
+  "third_a": 0,
+  "note": "Vanguard: shield rim, extracted from census2 (GEN+RIM verdict)"
+ },
+ "139": {
+  "rgb": [
+   242,
+   225,
+   0
+  ],
+  "inner_a": 170,
+  "outer_a": 80,
+  "third_a": 0,
+  "note": "Nightward: shield rim, extracted from census2 (GEN+RIM verdict)"
+ },
+ "140": {
+  "rgb": [
+   242,
+   109,
+   0
+  ],
+  "inner_a": 170,
+  "outer_a": 80,
+  "third_a": 0,
+  "note": "Genji Shield: shield rim, extracted from census2 (GEN+RIM verdict)"
+ },
+ "141": {
+  "rgb": [
+   0,
+   97,
+   242
+  ],
+  "inner_a": 170,
+  "outer_a": 80,
+  "third_a": 0,
+  "note": "Kaiser Shield: shield rim, extracted from census2 (GEN+RIM verdict)"
+ },
+ "142": {
+  "rgb": [
+   242,
+   109,
+   0
+  ],
+  "inner_a": 170,
+  "outer_a": 80,
+  "third_a": 0,
+  "note": "Venetian Shield: shield rim, extracted from census2 (GEN+RIM verdict)"
+ },
+ "143": {
+  "rgb": [
+   242,
+   109,
+   0
+  ],
+  "inner_a": 170,
+  "outer_a": 80,
+  "third_a": 0,
+  "note": "Aegis Prime: shield rim, extracted from census2 (GEN+RIM verdict)"
+ },
+ "148": {
+  "rgb": [
+   242,
+   117,
+   56
+  ],
+  "inner_a": 170,
+  "outer_a": 80,
+  "third_a": 0,
+  "note": "Clarion Helm: KEEP_SHIPPED body kept at its current items.json tint (D3 exception); only the glow rim moves, to the retuned identity rim_color(0.055, 0.70)."
+ }
+}
