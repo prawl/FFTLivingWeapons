@@ -10,6 +10,26 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.3 cycle
 
+- [LW-294] SHIPPED 7eff74c 2026-08-19: A probe file described the battle weapon sprite sheet
+  the wrong way, and the sibling colour mod had already published a feature proposal built on
+  that description. The sheet was written up as one tall picture with its colours at the front.
+  It is really three separate pictures, each with its own colour block, and two of those colour
+  blocks sit in the middle of what the old text calls picture data. Anyone trusting it drew
+  garbage stripes into their preview, and would have written straight through two colour blocks
+  the moment they touched the picture data. The wrong text is corrected in place and labelled,
+  not deleted, because it is the record of how a published proposal went wrong. The same commit
+  closes a gap in the ledger row that owns this mechanism: it had been carrying a standing worry
+  that recolouring a weapon might also retint the slash arcs, and that worry is now measured dead.
+  (Tech: tools/probes/lw251_wep_spr_forge.py FILE FORMAT docstring. Truth: palA 0x00000 512 B +
+  page1 0x00200 32768 B rows 0-255 weapons; palB 0x08200 512 B equal to palA in vanilla + page2
+  0x08400 32768 B rows 256-511 arcs; palC 0x10400 512 B + page3 0x10600 18432 B rows 512-655
+  impacts, summing to exactly 85504. Weapons draw from palA/page1, proven by the probe's own
+  deployment flattening palA alone. Writable pixel extents 0x00200..0x081FF, 0x08400..0x103FF,
+  0x10600..0x14DFF with two 512-byte holes; ship exactly 85504 bytes since the loader copies the
+  full 0x15000 request out of an uncleared ArrayPool rental. docs/LIVE_LEDGER.md
+  [wep-spr-palette-block] CORRECTION 3 carries the effect-overlap retirement. Relayed to the
+  sibling session as mailbox MSG 3, which they accepted and republished against.)
+
 - [LW-247] SHIPPED 69e9607 2026-08-18: The icon colors players see in game lived only in a
   probe script, so any normal deploy would have silently reverted every approved icon to the
   look players rejected, and every deploy needed a manual snapshot dance to avoid that. The
