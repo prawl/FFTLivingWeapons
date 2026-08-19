@@ -42,6 +42,12 @@ the technical detail lives in the indented lines under it.
     likely shared per weapon class, which would mean every sword recolours together. The
     work is to find the weapon sheet inside the battle art container and repaint it with
     the same engine the icons use.
+  - Crossover noted the same day: this is FFTColorCustomizer territory, and cracking it
+    feeds that mod directly, because the owner wants a user facing slider there so players
+    can tint their own weapon colours. That raises the bar on the mechanism: not a one off
+    hand repaint but a parameterised recolour (a hue knob over the found sheet) whose core
+    is portable to the sibling mod, and the session long cache means any slider applies on
+    the next launch, never live.
   - (Tech: container FFTIVC/data/enhanced/system/ffto/g2d.dat, magic YOX, header suggests
     0x592 entries; find the sheet by decoding entries or by shipping garish overrides and
     bisecting; the modloader serves this channel from a per index cache read once per
