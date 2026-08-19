@@ -50,6 +50,13 @@ the technical detail lives in the indented lines under it.
     MEASUREMENT rather than by the ledger, lowest true CARD median first; eleven families have
     been through it as of 2026-08-16, and what remains after the knives is ninja blades (63.2
     percent), books (67.0) and bags (72.1).
+  - LW-247 update (2026-08-18): knives now render through the new ramp engine, which is what
+    actually reached the live install and already passed the owner's in-game look on 2026-08-16.
+    The old zone recipe (hilt/edge percentiles) this row's Tech bullet describes was deleted from
+    tools/recolor_icons.py once every weapon moved to ramp; it lives on only in git history. The
+    Zwill Straightblade's anchor call this row records still holds under the new engine (still
+    anchored, still gold, measured gap 0 degrees); nothing about this row's Done means or Verify
+    changes, only which engine produced the pixels the owner will eventually gallery-judge.
 - **[LW-205] Four of the nine ninja blades were a pale blade with the whole identity in a small coloured guard** (opened 2026-08-13) [AWAITING-LIVE]
   - BUILT and gated 2026-08-16, owner gallery pass outstanding. Like the knives before them these
     were picked for what a player sees rather than for a coverage number, which was already a
@@ -73,6 +80,12 @@ the technical detail lives in the indented lines under it.
   - Verify: all four gates green with the family inside every owner-rule pin and three mutations
     proving those pins bite; each blade's second material measured on the real art; the bake
     matching a FULL preview manifest pixel for pixel; and the owner's gallery pass.
+  - LW-247 update (2026-08-18): ninja blades, like every other weapon, now render through the
+    new ramp engine, which is what actually reached the live install and already passed the
+    owner's in-game look on 2026-08-16. The old zone recipe this row's Tech bullet describes
+    (hilt/edge percentiles) was deleted from tools/recolor_icons.py once every weapon moved to
+    ramp; it lives on only in git history. Whether that already-approved look also satisfies
+    this row's own gallery-pass wait clause is the owner's call, not this arc's.
 
 - **[LW-212] The four bags, the last weapon family in the game to have its colour looked at** (opened 2026-08-13) [AWAITING-LIVE]
   - BUILT and gated 2026-08-16, owner gallery pass outstanding; seat returned 2026-08-18 after its
@@ -88,6 +101,12 @@ the technical detail lives in the indented lines under it.
     separate second material, no two alike, and the Fallingstar Bag matches its own artwork.
   - Verify: the four icon gates green with the pins proven by mutation, the bake matching the FULL
     preview manifest, reserved-name anchoring recorded, and the owner's gallery pass.
+  - LW-247 update (2026-08-18): bags now render through the ramp engine too, and the Fallingstar
+    Bag's anchor problem is NOT resolved by the switch, just changed shape: its ramp render sits
+    60 degrees from its own icon art, a new open reserved-name ruling (docs/TODO.md LW-277), not
+    the same gold-over-green mismatch this row first described but the same family of problem.
+    The old zone recipe this row's Tech bullet describes was deleted; the bright-v2/
+    CARD_OVERRIDES/SMALL_TWO_ZONE dormancy this row notes stands on its own, unaffected.
 
 - **[LW-247] The icon look players see today lives only in a probe script; the repo's own bake would put the rejected look back** (opened 2026-08-16) [BUILDING]
   - Promoted from Backlog 2026-08-18. Plain: after players rejected the old recolours, a replacement engine was built in a probe
@@ -118,6 +137,16 @@ the technical detail lives in the indented lines under it.
 
 
 ## Backlog
+
+- [LW-277] 2026-08-18: Two items that kept their vanilla name now render noticeably off their
+  own artwork, and only the owner can say whether that is fine or needs a re-tint. The LW-247
+  ramp arc's pre-commit-3 anchors run measured both for the first time (neither had been
+  checked under any engine before): the Venetian Shield reads a warm gilt hue on its own icon
+  but renders icy platinum, a 161-degree move, and the Fallingstar Bag renders 60 degrees from
+  its own icon hue. Both are recorded as OPEN rows in recolor_icons.ANCHOR_RULINGS so the
+  anchors gate reports them instead of failing; this ticket collects the two owner calls in one
+  place rather than losing them in the gate's own printout. (Tech: ids 142 and 116; measured via
+  `python tools/icon_preview.py anchors`; art hue/chroma and rendered hue are printed per row.)
 
 - [LW-276] 2026-08-18: Three more comments quote their own file's line count in prose, the
   exact rot LW-263 just cleaned out of the pool search files, found by the LW-263 verify round
@@ -327,6 +356,13 @@ the technical detail lives in the indented lines under it.
   coloured cover and a pale page block the brightness key finds on all four), and the Omnilex,
   the game's most strongly coloured sprite at icon chroma 0.388 deep vermilion, keeps its
   vermilion cover with the holy in gilt-edged pages (the Holy Lance's resolution, fifth use).
+  LW-247 update (2026-08-18): books now render through the new ramp engine, which is what
+  actually reached the live install and already passed the owner's in-game look on 2026-08-16.
+  The old zone recipe (one brightness zone, cover/page split) this row describes was deleted
+  from tools/recolor_icons.py once every weapon moved to ramp; it lives on only in git history.
+  The Omnilex's vermilion-cover-plus-gilt-pages call this row records still holds under the new
+  engine (measured gap 0 degrees); nothing about this row's own wait clause changes, only which
+  engine produced the pixels.
   Promote it back when the owner gallery pass is on the table; the Done means and Verify are
   the standard art-row set (identity colour with a visibly separate second material, no two
   alike at list size, reserved-name anchoring recorded, four gates green with pins proven by

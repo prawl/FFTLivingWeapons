@@ -1,12 +1,20 @@
-# The ramp recolour engine (banked 2026-08-16, NOT yet wired into the pipeline)
+# The ramp recolour engine (banked 2026-08-16, PORTED by LW-247 2026-08-18)
 
-This folder is the REAL source of the icon art currently deployed to the live install. It is
-banked here so the work cannot be lost with a temp folder or a Downloads sweep. It is a PROBE
-bank, not a pipeline: nothing in `BuildLinked.ps1` or `Publish.ps1` calls any of it yet. Wiring
-it in, and regenerating all 300 textures through the real pipeline, is LW-247.
+This folder is the ORIGINAL source of the icon art deployed to the live install on 2026-08-16.
+It is banked here for provenance so the work cannot be lost with a temp folder or a Downloads
+sweep. LW-247 (2026-08-18) ported this engine into `tools/recolor_icons.py` (function names
+prefixed `ramp_`/`_ramp_`) and wired it into the real pipeline: `python tools/recolor_icons.py`
+now rebakes the mod tree to the SAME 468/468 bytes as the live install, arc-gate verified twice
+(the double run catches any hidden read of the mod tree, the failure class LW-247's B1 fix
+closed). This folder is now READ-ONLY history: nothing in `BuildLinked.ps1`, `Publish.ps1`, or
+`tools/recolor_icons.py` imports or runs anything in this folder any more.
 
-**Do not run `tools/recolor_icons.py` for a deploy until LW-247 lands.** That file still holds the
-engine players rejected; running it would clobber every deployed texture back to the old look.
+**Re-running the census probes (`tools/probes/lw247_repro_census.py` / `lw247_repro_census2.py`)
+requires the PRE-PORT revision** of this file: they import `ramp_engine.py` and self-parse
+shield tints out of `tools/recolor_icons.py`'s old `ICON_TINTS` table, which commit 3 of LW-247
+deleted (those tints now live in `data/items.json`). Check out the repo as of LW-247's commit 2
+(the port, not yet routed) to re-run them; they will not import cleanly against the current
+`tools/recolor_icons.py`.
 
 ## What each file is
 

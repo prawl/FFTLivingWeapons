@@ -1,0 +1,71 @@
+LW-247 THE ARC GATE (commit 3): recorded 2026-08-18, working tree pre-commit.
+
+All runs below are against the same rebaked working tree (`python tools/recolor_icons.py`,
+full scope, no ids -- rebakes all 234 tinted items, 300 of which change bytes, matching P1).
+No deploy, no push; the live install (read-only) is compared against but never written.
+
+=== 1. SHA-256 compare: repo mod tree vs live install (RUN 1, post first rebake) ===
+468 / 468 matched
+(script: scratchpad arc_gate_468.py, walks equip_item/texture + equip_item_s/texture *.tex,
+sha256 each, compares byte for byte against
+Reloaded/Mods/prawl.fft.livingweapons/FFTIVC/data/enhanced/ui/ffto/icon)
+
+=== 2. Double-run idempotence: rebake AGAIN from the already-rebaked tree, re-compare ===
+Second `python tools/recolor_icons.py` run: 0 WARN, 0 MISSING, exit 0.
+SHA-256 compare (RUN 2): 468 / 468 matched
+This is the check that catches a hidden mod-tree read (B1's failure class): if any ramp
+branch still read the mod tree as an input, the SECOND run would bake against its own
+first-run output and silently diverge from the true target. It did not.
+
+=== 3. icon_preview.py compare --expect <the 150 ramp ids> (vs HEAD, i.e. vs the pre-arc
+commit, since nothing has been committed yet this session) ===
+468 surfaces over 234 items compared against HEAD.
+Per-engine summary: legacy 144 items / 0 moved, ramp 300 items / 184303 of 197074 solid px
+moved (expected -- every ramp id's engine changed), three-zone 24 items / 0 moved.
+RESULT: "OK: nothing moved outside the 150 item(s) named by --expect, across 234 items and
+468 surfaces." Confirms the ramp arc's blast radius is EXACTLY the 150 named ids, nothing
+else in the game's 234 tinted items moved a single pixel.
+
+=== 4. anchors gate ===
+python tools/icon_preview.py anchors -> exit 0.
+43 reserved-name items measured under a reviewed engine (all "ramp" now). Two NEW OPEN
+rulings surfaced, neither measured before the ramp arc (both grandfathered in
+recolor_icons.ANCHOR_RULINGS, Backlog ticket LW-277 collects the owner calls):
+  - id 142 Venetian Shield: art hue 37.1 deg, rendered hue 198.2 deg, gap 161 (OFF ITS ART)
+  - id 116 Fallingstar Bag: art hue 111.3 deg, rendered hue 171.0 deg, gap 60 (OFF ITS ART)
+Everything else: anchored, free (near-neutral), or already-ruled (ids 36, 91, 114).
+RESULT: "OK: every reserved name is within 40 degrees of its own art, near-neutral, or
+ruled."
+
+=== 5. silhouettes gate ===
+python tools/icon_preview.py silhouettes -> exit 0.
+39 groups of items share one 48px silhouette; 62 pairs judged (up from a pre-ramp baseline
+of 0, since body_is_whole_signal is now permanently False and ramp_separation_signal is the
+new judging rule for RAMP_IDS). Zero collisions.
+RESULT: "OK: 62 judged pair(s) sharing a picture are far enough apart in hue or saturation."
+Non-vacuity floor (icon_preview.py JUDGED_FLOOR = 40) comfortably cleared.
+
+=== 6. --no-glow smoke render (LW-248's own ship decision; NOT committed) ===
+Six samples across every ramp_render branch (regular weapon, regular shield, vendored-body
+shield, 144's old-engine coif blend, a KEEP_SHIPPED helm, a reserved/pop_filter weapon), all
+rendered glow=True and glow=False via `recolor_icons.route(dummy, item_id, tint, surface,
+glow=<bool>)`:
+  id1 card, id128 card, id130 card, id144 card, id148 small, id10 card: glow_on == glow_off?
+  False (want False) for all six.
+RESULT: "ALL 6 samples render a DIFFERENT image with glow=False: True". Output written only
+to %TEMP%\lw247_noglow_smoke, never the mod tree; `git status --short mod/` confirmed 300
+files changed both before and after this step (no new changes from the smoke render).
+
+=== 7. Final re-verify (post smoke-render) ===
+SHA-256 compare (RUN 3, after the no-glow smoke render): 468 / 468 matched.
+
+=== 8. Full preview + verify manifest (docs/DEV_TEST_RECIPES.md steps 2 and 6) ===
+python tools/icon_preview.py preview (no ids, full scope): 234 items -> manifest.json.
+python tools/icon_preview.py verify: 468 comparisons, 0 mismatched, 0 missing.
+
+=== Repo gates (same working tree) ===
+python tools/recolor_icons.py --selftest: "recolor_icons selftest: all cases passed."
+python tools/analyze.py: exit 0, all sections PASS.
+dotnet test LivingWeapon.Tests/LivingWeapon.Tests.csproj: Passed! Failed: 0, Passed: 3183,
+Skipped: 0, Total: 3183 (includes TodoContractTests and DocsContractTests, both green after
+the docs edits).

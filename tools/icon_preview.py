@@ -241,7 +241,18 @@ def load_engine(rev, out):
     import load_items` binds the attribute at import time, which is why patching the package
     before exec_module reaches the copy; and doing it here rather than after the fact restores
     everything else items.json feeds the engine (iconSource, category, name) to the same
-    revision, not just the tints."""
+    revision, not just the tints.
+
+    LW-247 S9: the same class of bug exists for data/icon_ramp/*.json -- the ramp engine's
+    treatments.json/rims.json are also read from DISK at import time, so an "old" engine
+    revision comes up reading TODAY'S ramp tables unless those are re-anchored too. Fixed for
+    the two JSON tables (cheap, re-fetched via `git show` and the derived config sets rebuilt
+    from them); the DOCUMENTED LIMITATION is data/icon_ramp/bodies/ (16 vendored PNGs): a full
+    binary-tree checkout per revision was judged invasive for a diagnostic verb, so the bodies
+    stay at their CURRENT committed content and a loud warning prints when they might matter
+    (comparing against a revision before LW-247, or after a body PNG itself changed). A compare
+    across the arc's own commits (2 vs 3, or 3 vs a later re-pass) is unaffected: the bodies
+    are the same bytes on both sides of any revision pair that has them at all."""
     src = out / f"_engine_{rev.replace('/', '_')}.py"
     src.write_bytes(subprocess.run(["git", "show", f"{rev}:tools/recolor_icons.py"],
                                    cwd=str(ROOT), capture_output=True, check=True).stdout)
@@ -256,7 +267,33 @@ def load_engine(rev, out):
         spec.loader.exec_module(mod)
     finally:
         lib_items.load_items = live_loader
+    _reanchor_ramp_tables(mod, rev)
     return mod
+
+
+def _reanchor_ramp_tables(mod, rev):
+    """S9: re-fetch data/icon_ramp/{treatments,rims}.json from `rev` and rebuild the module's
+    derived config sets from them, so an "old" engine's ramp branch judges Mode-B/reserved/
+    punch membership the way IT shipped, not the way today's tables say. Absent at `rev`
+    (anything before LW-247) -> loud warning, module keeps reading today's tables."""
+    if not hasattr(mod, "RAMP_TREATMENTS"):
+        return   # a pre-LW-247 revision has no ramp engine at all; nothing to re-anchor
+    for name, attr in (("treatments.json", "RAMP_TREATMENTS"), ("rims.json", "RAMP_RIMS")):
+        r = subprocess.run(["git", "show", f"{rev}:data/icon_ramp/{name}"],
+                           cwd=str(ROOT), capture_output=True)
+        if r.returncode != 0:
+            print(f"WARNING: data/icon_ramp/{name} does not exist at {rev}; load_engine keeps "
+                 f"reading TODAY'S copy for this revision, which may misrepresent it "
+                 f"(tools/icon_preview.py load_engine, LW-247 S9 documented limitation).")
+            continue
+        setattr(mod, attr, json.loads(r.stdout.decode("utf-8")))
+    print(f"NOTE: data/icon_ramp/bodies/ (vendored body PNGs) is NOT re-anchored per revision "
+         f"(LW-247 S9 documented limitation) -- {rev}'s ramp render may differ from what it "
+         f"actually shipped if a vendored body changed since.")
+    (mod.RAMP_PUNCH, mod.RAMP_ROTATE_ALL, mod.RAMP_FORCE_MODE_B, mod.RAMP_MUTED,
+     mod.RAMP_WHITE_SPEC, mod.RAMP_SOFT_SPEC, mod.RAMP_OUTLINE_BLACK, mod.RAMP_DEEP_DAMP,
+     mod.RAMP_RESERVED_POP, mod.RAMP_VSCALE_OVERRIDE) = mod._ramp_weapon_config()
+    mod.RAMP_IDS = frozenset(int(k) for k in mod.RAMP_TREATMENTS)
 
 
 def band_census(van, old, new):
@@ -441,7 +478,11 @@ def cmd_anchors(out):
     established). Rulings live in recolor_icons.ANCHOR_RULINGS with a reason each."""
     out.mkdir(parents=True, exist_ok=True)
     items = {it["id"]: it for it in load_items()["items"]}
-    reviewed = {"three-zone", "shield-bright", "helm-two-tone"}
+    # LW-247 (2026-08-18): shield-bright and helm-two-tone are DORMANT in the router now (every
+    # shield/helm id is a ramp id, so RAMP_IDS wins before either category rule is reached);
+    # "ramp" replaces them here so reserved-name shields, helms and every weapon family the ramp
+    # arc covers stay under this gate instead of silently dropping out of it.
+    reviewed = {"three-zone", "ramp"}
     rows, bad = [], []
     for iid in sorted(ri.ICON_TINTS):
         it = items.get(iid)
@@ -498,7 +539,13 @@ def cmd_silhouettes(out):
 
     Judged items are those whose body tint IS their colour signal (recolor_icons'
     body_is_whole_signal), which drops hats, helmets and legacy for the documented reason: an
-    item wearing three identity colours is told apart by more than its body."""
+    item wearing three identity colours is told apart by more than its body. LW-247 (2026-08-18)
+    extended judgment to every RAMP id, on the ramp engine's own successor rule
+    (recolor_icons.ramp_separation_signal / ramp_separation_collides): a non-reserved id's
+    signal is its body tint escaped by a distinct rim, a reserved id's is its rim alone.
+    body_is_whole_signal itself is permanently False now (ZONE_OVERRIDES holds only hats, whose
+    tones are never in its named vocabulary), so it drops out of judgment cleanly rather than
+    needing its own carve-out here."""
     out.mkdir(parents=True, exist_ok=True)
     MIN_HUE, MIN_SAT = 0.05, 0.20
     groups = {}
@@ -514,18 +561,34 @@ def cmd_silhouettes(out):
     judged = bad = 0
     print(f"{len(shared)} groups of items share one 48px silhouette\n")
     for cat, ids in shared:
-        keep = [i for i in ids if ri.body_is_whole_signal(i)]
+        keep = [i for i in ids if ri.body_is_whole_signal(i) or i in ri.RAMP_IDS]
         note = "" if len(keep) == len(ids) else f"  (judging {keep} of {ids})"
         print(f"  {str(cat):<12} {ids}{note}")
         for n, a in enumerate(keep):
             for b in keep[n + 1:]:
                 judged += 1
-                dh = abs(ri.arc(ri.ICON_TINTS[a][0], ri.ICON_TINTS[b][0]))
-                ds = abs(ri.ICON_TINTS[a][1] - ri.ICON_TINTS[b][1])
-                if dh < MIN_HUE and ds < MIN_SAT:
+                if a in ri.RAMP_IDS and b in ri.RAMP_IDS:
+                    sig_a, sig_b = ri.ramp_separation_signal(a), ri.ramp_separation_signal(b)
+                    collide = bool(sig_a and sig_b
+                                  and ri.ramp_separation_collides(sig_a, sig_b, MIN_HUE, MIN_SAT))
+                    reason = "ramp signal (body tint escaped by rim, or rim alone if reserved)"
+                else:
+                    dh = abs(ri.arc(ri.ICON_TINTS[a][0], ri.ICON_TINTS[b][0]))
+                    ds = abs(ri.ICON_TINTS[a][1] - ri.ICON_TINTS[b][1])
+                    collide = dh < MIN_HUE and ds < MIN_SAT
+                    reason = f"hue {dh:.3f} and saturation {ds:.3f} are both inside the floor"
+                if collide:
                     bad += 1
-                    print(f"      FAIL {a} vs {b}: hue {dh:.3f} and saturation {ds:.3f} are both "
-                          f"inside the floor")
+                    print(f"      FAIL {a} vs {b}: {reason}")
+    # Non-vacuity floor (S3): the judged-set size is asserted so a future change (an id quietly
+    # losing its rim, or a category leaving RAMP_IDS) cannot silently shrink coverage back to
+    # zero with this gate still printing OK.
+    JUDGED_FLOOR = 40   # measured 62 at implement time (2026-08-18); a regression that drops
+                        # ramp-id judgment entirely falls to single digits, not just below 62
+    if judged < JUDGED_FLOOR:
+        print(f"\nFAIL: only {judged} pair(s) were judged (floor {JUDGED_FLOOR}); the judged "
+              f"set shrank, which is exactly what this gate exists to catch.")
+        return 1
     if bad:
         print(f"\nFAIL: {bad} pair(s) drawn with one picture are too close in colour.")
         return 1

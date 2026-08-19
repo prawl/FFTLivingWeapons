@@ -6,11 +6,27 @@ Pipeline per item (both the 100x100 card image and the 48x48 list icon):
   vanilla BC7 .tex (Pac Files/0008) -> FF16Tools tex-conv -> DDS -> Pillow recolor
   -> img-conv --no-chunk-compression -> .tex placed in the mod tree.
 
-FOUR recolor engines, routed per item by engine_for() (owner-directed; docs/TODO.md LW-189,
-LW-190, LW-215 and LW-216 carry the decision trails):
+FIVE recolor engines, routed per item by engine_for() (owner-directed; docs/TODO.md LW-189,
+LW-190, LW-215, LW-216 and LW-247 carry the decision trails):
+
+  THE 150 RAMP IDS (weapons 1-121, shields 128-143, helms 144-156) get the LW-247 RAMP
+  treatment, ported from tools/probes/ramp/ramp_engine.py (the engine that actually produced
+  the owner-approved live install look): the body carries the identity -- a neutral steel body
+  takes a 5-step donor ramp sampled from a real vanilla sprite in the identity's hue family
+  (Mode B), a chromatic body has its dominant material rotated toward the identity hue (Mode
+  A) -- and an identity-coloured GLOW rim is painted in the halo band outside the body as an
+  ADDED layer, honoring data/icon_ramp/rims.json where a row exists. Reserved-name items keep
+  the artist's own colours, gently popped. Every id's tint lives in items.json iconTint (the
+  single hand-edited source, D3); the engine's per-id treatment flags (punch/rotate/reserved/
+  Mode-B donor pins/etc.) live in data/icon_ramp/treatments.json, emitted once by
+  tools/probes/lw247_emit_tables.py rather than hand-authored. engine_for() checks RAMP_IDS
+  BEFORE any other rule, so a ramp id can never fall through to a category default.
 
   UNREVIEWED WEAPONS (category in lib.categories.WEAPON_CATS, minus the families that have had
-  their own re-pass and appear in ZONE_OVERRIDES below) get the LW-189 BRIGHT v2 treatment:
+  their own re-pass and appear in ZONE_OVERRIDES below) get the LW-189 BRIGHT v2 treatment.
+  DORMANT since LW-247: every weapon category has both a ramp treatment AND a ZONE_OVERRIDES
+  entry from its own earlier pass, so RAMP_IDS or ZONE_OVERRIDES always wins first; the engine
+  stays in the file for a hypothetical new weapon category with neither.
     - card image: TWO-ZONE k-means segmentation of the VANILLA art (the identity tint goes on
       the metal/blade zone, hilt and trim keep their vanilla colors), shaded on a hue-graded
       ramp: shadows lean cool and gain saturation, highlights lean gently warm (clamped so
@@ -19,41 +35,49 @@ LW-190, LW-215 and LW-216 carry the decision trails):
       invented split reads muddy), except SMALL_TWO_ZONE ids which use the card treatment.
     - per-item overrides in CARD_OVERRIDES / SMALL_TWO_ZONE (owner review rounds).
 
-  SHIELDS (category in WHOLE_BRIGHT_CATS) get the LW-190 two-tone treatment: the identity
+  SHIELDS (category in WHOLE_BRIGHT_CATS) got the LW-190 two-tone treatment: the identity
   colour on the shield body (BRIGHT shading under a tanh shoulder), a distinct trim tone on
   the metal fittings found by trim_mask, per-item modes in SHIELD_OVERRIDES (gold or vanilla
-  trim, inverted tint-on-fittings, forced mask cover). k-means was tried and rejected here:
-  a shield is one convex plate, so it clusters the lighting, not the materials.
+  trim, inverted tint-on-fittings, forced mask cover). DORMANT since LW-247 (every Shield id is
+  a ramp id, so RAMP_IDS wins before this category rule is ever reached); shield_two_tone
+  stays live because ramp_render's KEEP_SHIPPED branch calls it directly for two kept helm rows.
 
-  HELMETS (HELM_OVERRIDES) get the LW-215 two-tone helm treatment: helm_recolor's body tint
+  HELMETS (HELM_OVERRIDES) got the LW-215 two-tone helm treatment: helm_recolor's body tint
   under a contrast S-curve and a sheen, with the recipe's second colour blended across ONE
-  feathered organic mask (cover = the bright fittings, shade = the recesses).
+  feathered organic mask (cover = the bright fittings, shade = the recesses). DORMANT since
+  LW-247 for the same reason as shields; HELM_OVERRIDES keeps only the five rows (144, 147,
+  148, 155, 156) ramp_render's own old-engine branches still call live.
 
-  HATS, CROSSBOWS and SWORDS (ZONE_OVERRIDES) get the LW-216 THREE-ZONE treatment: zone_recolor
-  lays N feathered zones over the body in list order, because a hat is cloth plus a brim or
-  lining plus a plume or a painted emblem, and two zones cannot say that. THIS TABLE IS THE
-  ENGINE MAP for reviewed families: engine_for consults it BEFORE any category rule, so a family
-  named here has left the category default above whatever its category says. Keep this paragraph
-  in step with it; the tint rows below are machine-checked against items.json for exactly this
-  kind of rot (tint_comment_names) and a prose engine map has no such guard.
+  HATS (ZONE_OVERRIDES) get the LW-216 THREE-ZONE treatment: zone_recolor lays N feathered
+  zones over the body in list order, because a hat is cloth plus a brim or lining plus a plume
+  or a painted emblem, and two zones cannot say that. Hats are the ONLY family left in this
+  table (LW-247 moved crossbows, swords and every other weapon category to the ramp engine):
+  engine_for consults RAMP_IDS first, then this table, then category defaults. The tint rows
+  below are machine-checked against items.json for the same kind of name-rot recipe_comment_
+  names was written to catch.
 
   EVERYTHING ELSE (armor, accessories, hair adornments) keeps the ORIGINAL whole-icon tint: not
   yet reviewed under the new rules, so their shipped look must not change until an owner pass
   covers them.
 
-TWO LATE FIXES cut across those engines (owner scope call 2026-08-14, docs/TODO.md LW-230 and
-LW-231). The HALO RAMP runs in every engine that paints reviewed art (all but legacy): the tint
-only fully owns genuinely solid pixels, so an item stops fuming coloured smoke into the neutral
-haze the artist drew around it. The SMOOTH-FIELD CONTRAST runs in the two engines that carry a
-per-pixel contrast expansion (helm and zone), so the art's own compression grain stops being
-multiplied into blotchy speckle. Both shipped in zone_recolor first and reached the rest once
-the owner agreed to re-bake art he had already approved; legacy is excluded on purpose, since
-its families are unreviewed and their shipped look must not move before their own pass.
+TWO LATE FIXES cut across the four non-ramp engines (owner scope call 2026-08-14, docs/TODO.md
+LW-230 and LW-231; the ramp engine carries its own halo floor at HALO_HI and its own glow-band
+contract, not these two). The HALO RAMP runs in every engine that paints reviewed art (all but
+legacy): the tint only fully owns genuinely solid pixels, so an item stops fuming coloured
+smoke into the neutral haze the artist drew around it. The SMOOTH-FIELD CONTRAST runs in the
+two engines that carry a per-pixel contrast expansion (helm and zone), so the art's own
+compression grain stops being multiplied into blotchy speckle. Both shipped in zone_recolor
+first and reached the rest once the owner agreed to re-bake art he had already approved;
+legacy is excluded on purpose, since its families are unreviewed and their shipped look must
+not move before their own pass.
 
-ICON_TINTS = {id: (hue, sat, value_mult)}; hue/sat in 0..1, value_mult scales brightness.
+ICON_TINTS = {id: (hue, sat, value_mult)}; hue/sat in 0..1, value_mult scales brightness. Empty
+by hand now (LW-247): every id that used to live here as a literal row gets its tint from
+items.json instead, merged in below.
 Run: python tools/recolor_icons.py [ids...]   |   python tools/recolor_icons.py --selftest
 """
 import colorsys
+import json
 import math
 import random
 import shutil
@@ -74,187 +98,14 @@ WORK = ROOT / "working" / "icons"
 MOD = ROOT / "mod" / "FFTIVC" / "data" / "enhanced" / "ui" / "ffto" / "icon"
 
 # id -> (hue, saturation, value_mult). Chosen to match each knife's identity.
-ICON_TINTS = {
-    # --- Knives (ids 1-10, plus id 68 which rides id 1's art; that one's tint is in items.json) ---
-    # LW-198, 2026-08-16. The pre-pass palette is kept in the trailing comments as the diagnosis.
-    # This family's problem was never coverage, which was already a CARD median of 41.2 percent.
-    # It was that four of the eleven read as the same pale sliver in a list, because the artist
-    # drew every knife with a white blade and only the small grip in colour, and a timid tint left
-    # the blade white. Every one now has a coloured BLADE, which is what a player actually sees.
-    #
-    # Two things forced specific colours. The Zwill Straightblade kept its vanilla name and was
-    # painted dream lavender over art that measures a warm 46 degrees at chroma 0.178, so it was
-    # 141 degrees from its own picture: the anchors gate reported it on sight and it is gold now.
-    # And the Mortal Coil and the Bloodlash were the SAME necrotic green (0.27 both, 0.05 apart in
-    # value), which the palette tripwire could not see while the family was on bright-v2; Doom
-    # goes to a darker olive and the poison knife keeps the brighter venom green.
-    1:  (0.070, 0.65, 0.68),  # Cutpurse        tarnished bronze  (was 0.09/0.50/0.92)
-    2:  (0.520, 0.62, 1.12),  # Quicksilver     mercury cyan; the pale silver-blue it wore
-                              #                 (0.52/0.20/1.12) was one of the four whites
-    3:  (0.760, 0.75, 0.55),  # Gloomfang       gloom violet, deepened (was 0.79/0.72/0.80)
-    4:  (0.605, 0.78, 0.95),  # Hushblade       silence blue (was 0.60/0.58/0.95)
-    5:  (0.585, 0.15, 1.22),  # Argent Dirk     platinum, and deliberately still the family's
-                              #                 near-white: argent IS silver, so this one keeps
-                              #                 its identity in a gold fuller and a night-iron
-                              #                 grip rather than in its blade
-    6:  (0.985, 0.88, 0.85),  # Sanguine Gauche blood crimson (was 0.985/0.72/1.00)
-    7:  (0.650, 0.40, 0.42),  # Adamant Fang    gunmetal, darkened and given a hue so its brass
-                              #                 guard is a material and not a highlight
-                              #                 (was 0.60/0.12/0.76)
-    8:  (0.215, 0.75, 0.58),  # Mortal Coil     necrotic olive (Doom); was 0.27/0.60/0.90, which
-                              #                 is the Bloodlash's green in another value
-    9:  (0.455, 0.75, 1.05),  # Galewind        storm teal (Wind) (was 0.46/0.66/1.05)
-    10: (0.125, 0.80, 1.08),  # Zwill Straightblade RESERVED NAME, anchored to its own art: the
-                              #                 icon reads hue 46 degrees at chroma 0.178 and it
-                              #                 wore dream lavender (0.72/0.42/1.10), 141 degrees
-                              #                 away. Sleep is the rider, gold is the item
-    # --- Swords (ids 19-32, plus id 67 which rides id 19's art; tint in data/items.json) ---
-    # LW-199, 2026-08-14. The pre-pass palette is kept in the trailing comments as the diagnosis,
-    # same as the crossbows above. Two of the fifteen were provably WRONG about their item rather
-    # than merely timid: Lightbringer is the line's only Holy sword and wore the toad green picked
-    # for a Toad sword that was renamed away, and Graviton wore an ice cyan picked for an Ice
-    # sword when it carries no element at all. The rest were the family's real problem, which is
-    # that eleven of them sat under saturation 0.6 on near-white blade art, so whatever the engine
-    # did the answer came back grey.
-    #
-    # Hues are spread so the fifteen stay nameable in one list, and the spread is pinned in
-    # selftest (SWORD_MIN_HUE_GAP and its saturation/value escapes). Read the pairs that sit
-    # close in hue by their WEIGHT: 67 near-black against 26 molten, 19 dull tan against 31
-    # blazing gold, 32 near-neutral white against 21 saturated blue.
-    19: (0.085, 0.72, 0.82),  # Vagabond        weathered bronze, bright steel furniture
-                              #                 (was 0.08/0.14/0.90, "worn warm steel")
-    20: (0.615, 0.52, 0.52),  # Cleaver         deep blued iron, raw copper
-                              #                 (was 0.60/0.10/0.70, dark heavy steel)
-    21: (0.570, 0.62, 1.08),  # Riposte         duelist's azure, brass guard and edge
-                              #                 (was 0.55/0.08/1.15, bright silver)
-    22: (0.440, 0.78, 0.88),  # Claymore        jade mythril, copper (the reach sword)
-                              #                 (was 0.48/0.24/1.08)
-    23: (0.985, 0.98, 0.82),  # Sanguine Sword  blood crimson, bone furniture (Absorb HP)
-                              #                 (was 0.99/0.78/0.92)
-    24: (0.655, 0.78, 0.82),  # Stormbrand      storm indigo under a levin edge (Lightning)
-                              #                 (was 0.14/0.82/1.10, electric yellow: it collided
-                              #                 with Lightbringer's Holy gold, so the yellow moved
-                              #                 to the edge and hilt where it reads hotter anyway)
-    25: (0.335, 0.95, 0.46),  # Tanglethorn     deep forest green, gold (Immobilize)
-                              #                 (was 0.10/0.45/0.78, earthy brown)
-    26: (0.045, 0.98, 0.82),  # Flamberge       fire orange, white-hot edge (Fire)
-                              #                 (was 0.05/0.85/1.05)
-    27: (0.925, 0.95, 0.40),  # Wrathblade      garnet wine, bone furniture (damage = missing HP)
-                              #                 (was 0.60/0.05/1.18, stark white: nothing on a
-                              #                 near-white sprite, and the rack has white already)
-    28: (0.505, 0.90, 0.98),  # Swiftedge       diamond cyan, white edge over a dark guard (Speed x WP)
-                              #                 (was 0.58/0.32/1.12)
-    29: (0.700, 0.58, 0.17),  # Graviton        near-black under a collapsing pale rim; casts
-                              #                 Gravity and carries no element, so the old ice
-                              #                 cyan (0.50/0.58/1.08) was a colour for a sword
-                              #                 that no longer exists (LW-199)
-    30: (0.780, 0.95, 0.88),  # Arcanum         amethyst, gold runework (arcane buff-thief)
-                              #                 (was 0.74/0.55/0.95)
-    31: (0.135, 0.90, 0.98),  # Lightbringer    molten gold, white radiance over dark furniture.
-                              #                 The line's ONLY Holy sword, corrected off the toad
-                              #                 green (0.27/0.65/0.88) picked for a renamed Toad
-                              #                 sword.
-                              #                 Compare id91, also Holy, also gold (LW-199)
-    32: (0.585, 0.07, 1.20),  # Materia Blade   cool silver-white with gold furniture. RESERVED
-                              #                 NAME: it kept its vanilla name, so it is anchored
-                              #                 to the vanilla look and only enhanced (owner rule
-                              #                 2026-08-14) rather than recoloured to the dark
-                              #                 violet it wore (0.78/0.50/0.62)
-    # --- Crossbows (ids 77-82) ---
-    # LW-202, 2026-08-14. The pre-pass palette is kept in the trailing comments because it is
-    # the diagnosis: three of the six sat at saturation 0.15 or below and two more below 0.55,
-    # so the family rendered as brown and grey sticks whatever engine ran over it. Every one is
-    # now a saturated identity colour carried on the limb and frame, with a bright metal on the
-    # stock (see ZONE_OVERRIDES). Hues are spread so the six stay nameable in one list.
-    77: (0.075, 0.85, 1.12),  # Scoutbolt       honey amber wood      (was 0.08/0.40/0.85)
-    78: (0.985, 0.92, 1.02),  # Eclipsebolt     blood crimson (Doom)  (was 0.99/0.55/0.55)
-    79: (0.565, 0.82, 1.05),  # Arbalest        blued steel           (was 0.60/0.12/0.85)
-    80: (0.265, 0.92, 1.05),  # Venombolt       venom green (Poison)  (was 0.25/0.70/0.85)
-    81: (0.815, 0.88, 1.02),  # Pitchbolt       plum (Oil)            (was 0.09/0.55/0.88)
-    82: (0.695, 0.88, 0.98),  # Siegebolt       deep indigo (capstone)(was 0.60/0.15/0.68)
-    # --- Bows (ids 83-91) ---
-    # LW-201, 2026-08-14. The family the LW-232 glow defect hit hardest: measured, the pre-pass
-    # bake reached 0.0% of the Skypiercer and the Perseus Bow and 0.2% of the Windrunner, so
-    # five of the nine were the artist's vanilla sprite under a coloured haze. The pre-pass
-    # palette is kept in the trailing comments as the diagnosis.
-    83: (0.085, 0.42, 0.95),  # Skirmisher      honey wood, bone string (was 0.10/0.30/0.95)
-    84: (0.740, 0.25, 1.16),  # Windrunner      pale lavender, silver string. Sage green was
-                              #                 tried and made three green bows of nine. A silver BODY was
-                              #                 tried first and the no-single-colour gate
-                              #                 refused it: a silver bow strung with steel
-                              #                 is one colour (was 0.45/0.18/1.05)
-    85: (0.520, 0.78, 1.05),  # Frostarc        ice cyan, white string (Ice)
-                              #                 (was 0.50/0.55/1.08)
-    86: (0.150, 0.95, 1.00),  # Stormarc        electric yellow, levin string (Lightning). It
-                              #                 sits one and a half hundredths off the Perseus
-                              #                 Bow's Holy gold and separates on SATURATION, the
-                              #                 same collision the swords hit between Stormbrand
-                              #                 and Lightbringer (was 0.14/0.80/1.10)
-    87: (0.420, 0.72, 1.00),  # Skypiercer      sky teal, white string (Wind)
-                              #                 (was 0.42/0.52/1.05, and 0.0% covered)
-    88: (0.620, 0.80, 0.85),  # Tidecaller      deep ocean blue, silver string (Water)
-                              #                 (was 0.64/0.42/0.92)
-    89: (0.330, 0.80, 0.72),  # Huntress        forest green, brass string (was 0.30/0.55/0.88)
-    90: (0.030, 0.70, 0.68),  # Yoichi Bow      RESERVED NAME, anchored to its own art: measured
-                              #                 vanilla hue 0.051, a warm lacquered wood, so it
-                              #                 stays warm and only deepens toward lacquer red
-                              #                 (was 0.58/0.42/0.95, a storm grey-blue that
-                              #                 fought the art it sits on)
-    91: (0.135, 0.55, 1.25),  # Perseus Bow     RESERVED NAME, kept GOLD on an owner ruling
-                              #                 2026-08-14, and the reasoning is corrected here
-                              #                 because the original was wrong. This was
-                              #                 anchored as "vanilla chroma 0.031, near enough
-                              #                 to colourless that hue is free", measured on the
-                              #                 CARD. An audit the same day found the card
-                              #                 understates chroma by a mean 2.4x against the
-                              #                 item's own list icon, and this bow's ICON reads
-                              #                 chroma 0.120 at hue 229 degrees: a visibly BLUE
-                              #                 bow. So gold is a ~180 degree move away from its
-                              #                 own art, not a free choice. The owner reviewed
-                              #                 that and kept gold, on the convention that Holy
-                              #                 is gold everywhere in this mod (Excalibur,
-                              #                 Lightbringer). Measure BOTH surfaces before
-                              #                 calling an anchor colourless
-                              #                 (was 0.13/0.45/1.18, and 0.0% covered)
-    # --- Shields (ids 128-143) ---
-    # Hues are DELIBERATELY SPACED, and SHIELD_MIN_HUE_GAP in selftest() enforces it. Under the
-    # whole-glyph engine below the tint is the item's entire colour signal, so two shields whose
-    # tints sit close become the same object on screen. The pre-pass palette had seven such pairs
-    # (140 vs 142 were 0.02 hue and 0.02 saturation apart, i.e. one shield in two names); the
-    # LW-190 review round measured them as hard collisions and this layout is the fix.
-    # Owner review rounds two and three, 2026-08-13, applied per shield by name. Round three's
-    # standing rule: "I like the original better" means build FROM the vanilla art, not revert,
-    # so those shields (Emberward, Spellbane, Conduit) take a tint MEASURED from their own
-    # vanilla body hue (chroma-weighted mean of the non-trim pixels), enriched, with the artist's
-    # fittings kept via the vanilla-trim override. Sanctguard keeps its red body but the inner
-    # emblem stays vanilla gold ("leave the inner shield color the same"). Aegis Prime keeps the
-    # dark blue and drops the light powder blue (vmult down). Trailblazer read as Galewall's twin
-    # and moves toward forest green. Vanguard passed and keeps its crimson, which is why
-    # Sanctguard's red sits hotter and brighter (their tripwire separation is saturation).
-    135: (0.05, 0.80, 0.68),  # Emberward       burnt ember over gilt, darker so the gilt cross
-                              #                 defines and it splits from Sanctguard's bright red
-    136: (0.05, 0.55, 0.72),  # Spellbane       burnished mahogany, vanilla cross (anti-mage)
-    141: (0.06, 0.72, 1.02),  # Kaiser Shield   BRIGHT copper cross on a BRIGHT blue field
-                              #                 (NAME CORRECTED post-ship, was labeled "Conduit")
-    130: (0.15, 0.92, 1.18),  # Stormwall       bright golden yellow (round seven: hue 0.17 read
-                              #                 GREEN once the cool-shadow ramp pulled its darks)
-    137: (0.23, 0.62, 0.92),  # Trailblazer     forest green (Move)
-    129: (0.88, 0.62, 1.02),  # Galewall        fuchsia (owner round eight: instead of green)
-    131: (0.45, 0.30, 1.18),  # Swiftguard      frost-white mint fittings, vanilla plate (Speed)
-    134: (0.51, 0.42, 1.08),  # Rimeward        white ice (owner round six: more white)
-    142: (0.55, 0.14, 1.16),  # Venetian Shield icy platinum, gilt trim
-                              #                 (NAME CORRECTED post-ship, was labeled "Bastion")
-    128: (0.58, 0.66, 0.96),  # Tideward        deep ocean blue
-    140: (0.62, 0.26, 0.70),  # Genji Shield    cold steel-blue (rare; NAME CORRECTED post-ship,
-                              #                 the table said "Ronin Wall" but items.json keeps
-                              #                 the vanilla name; see LW-197 for the set-colour question)
-    143: (0.60, 0.85, 1.10),  # Aegis Prime     sapphire; gold on edges and gem only (capstone)
-    132: (0.71, 0.48, 0.95),  # Wardstone       purple inner under a thin white geometric rim
-                              #                 (settled round twelve, picker variant A)
-    139: (0.78, 0.34, 0.55),  # Nightward       near-black, faint violet cast (Dark)
-    138: (0.96, 0.50, 0.84),  # Vanguard        crimson (PA)
-    133: (0.995, 0.85, 1.00), # Sanctguard      bright red, vanilla gold emblem (Holy)
-}
+ICON_TINTS = {}
+# LW-247 (2026-08-18): this table used to hand-carry the knife (1-10), sword (19-32),
+# crossbow (77-82) and shield (128-143) tints -- 55 rows -- because those families had no
+# items.json iconTint of their own yet. All four now route through the ramp engine, whose
+# single tint source is items.json iconTint (data/icon_ramp/README.md), so the hardcoded
+# rows are DELETED rather than left to silently disagree with the migrated data (git
+# history is the archive, per LW-247 D5). The merge loop below still runs unconditionally:
+# it is what makes items.json the tint source for every engine, ramp included.
 
 # Merge per-item tints from data/items.json (source for the new categories).
 SRC = {}  # item id -> vanilla icon id to source from, for repurposed weapons that need a different shape
@@ -267,30 +118,6 @@ for _it in load_items()["items"]:
         SRC[_it["id"]] = _it["iconSource"]
     _CATEGORY[_it["id"]] = _it.get("category")
     _NAME[_it["id"]] = _it.get("name")
-
-
-def tint_comment_names():
-    """Every ICON_TINTS row's trailing comment, read back out of this file's own source.
-
-    The table above is hand-written and each row names the item it colours, because a bare hue
-    triple is unreviewable: the NAME is what says whether "toad green" was a good call. Those
-    names are copies, so they rot when an item is renamed in data/items.json, and they rot
-    silently because nothing executes a comment. It has bitten twice: three shields carried dead
-    names into their whole recolor pass (dbb7f1f), and on 2026-08-14 a scan found thirteen more,
-    including a Holy sword still wearing the hue picked for a Toad sword that no longer exists.
-
-    So the comments get read back and checked like data. Parsing our own source is the same
-    idiom analyze.py already uses on Offsets.cs and Tuning.cs; the alternative, moving the names
-    into the table as strings, would duplicate items.json instead of citing it."""
-    import re
-    src = Path(__file__).read_text(encoding="utf-8")
-    body = src[src.index("ICON_TINTS = {"):]
-    body = body[:body.index("\n}\n")]
-    out = {}
-    for iid, tail in re.findall(r"^\s*(\d+):\s*\([^)]*\),(.*)$", body, re.M):
-        if "#" in tail:
-            out[int(iid)] = tail.split("#", 1)[1].strip()
-    return out
 
 
 def recipe_comment_names():
@@ -340,7 +167,9 @@ CARD_OVERRIDES = {}
     # took id 117 (Hornet Pouch, whose k-means fragmented into camo blobs) with them. id 9
     # (Galewind) went with the knives and the dead-config pin caught it the same run; ids 33
     # (Defender) and 37 (Chaos Blade) were here until LW-200 routed the knight swords to
-    # the zone engine, which made both rows unreachable: route() consults ZONE_OVERRIDES first.
+    # the zone engine, which made both rows unreachable: route() consults ZONE_OVERRIDES
+    # ahead of the bright-v2 category default (RAMP_IDS goes first of all since LW-247,
+    # but 33/37 are weapon ids and every weapon is a ramp id now regardless).
     # 37's row also still described a vmult_floor of 0.85 against a shipped value of 0.24, so it
     # was dead config that ALSO lied. Same defect the sword pass fixed by deleting SMALL_TWO_ZONE
     # id 24, found again by audit 2026-08-14; a selftest pin now refuses the whole class.
@@ -645,36 +474,14 @@ def trim_tone(h_t, s_t, v0, mode="silver"):
     return tuple(c + (1.0 - c) * 0.25 for c in (r, g, b))
 
 
-# Per-shield trim overrides from the owner's review round (2026-08-13). "vanilla" keeps the
-# artist's own trim colour instead of recolouring it, which is the answer whenever the vanilla
-# fitting is gold and the recolour was turning it white: Emberward's inner trim (asked for
-# directly), Bastion (platinum body plus silver trim was still one colour, gold fixes it) and
-# Aegis Prime (white trim rejected; its gold filigree is the capstone's whole character).
-SHIELD_OVERRIDES = {
-    # Swiftguard: owner keeps the vanilla inner plate, so the identity tint moves ONTO the bright
-    # fittings. Covers tuned per surface by A/B (the card and the list icon are separate art):
-    # wider grabs the plate's sheen and reads half-painted, narrower loses the identity.
-    131: {"invert": True, "cover": 0.32, "cover_small": 0.22},
-    133: {"trim": "vanilla"},              # Sanctguard: red body, the inner emblem stays the
-                                           # artist's gold ("leave the inner shield color the same")
-    135: {"trim": "gold"},                 # Emberward: dark ember body, gilt fittings (round five:
-                                           # the measured-from-vanilla copper read as no change)
-    136: {"trim": "vanilla"},              # Spellbane: burnished dark, the silver cross stays
-    141: {"trim_tint": (0.58, 0.66, 1.12), "split": "sat", "split_p": 56},  # Kaiser Shield rounds
-                                           # seven and eight: copper strictly the cross, blue
-                                           # strictly the background (plain sat-split matches on
-                                           # both surfaces); split_p 56 hands the boundary a
-                                           # tiny bit more blue, as asked
-    142: {"trim": "gold"},                 # Venetian Shield: platinum body needs gilt to stop
-                                           # reading monochrome
-    132: {"ring": 6},                      # Wardstone settled round twelve, picker variant A
-                                           # ("outer rim white, inner purple"): the thin
-                                           # geometric ring, rich purple beneath
-    143: {"trim_tint": (0.13, 0.80, 1.20), "cover": 0.22, "cover_small": 0.18},  # Aegis Prime
-                                           # settled round eleven, picker variant C ("hands down
-                                           # my favorite"): bright sapphire, gold kept to the
-                                           # edges and gem
-}
+# Per-shield trim overrides from the owner's review round (2026-08-13) that shield_two_tone
+# read while shields were still routed through the shield-bright engine. LW-247 (2026-08-18)
+# moved every shield to the ramp engine (route() consults RAMP_IDS before this table's category
+# can ever be reached), so shield-bright is now DORMANT for shields; its rows are deleted here
+# (git history is the archive, per LW-247 D5) and the function stays live only for the two
+# HELM_OVERRIDES ids (147, 155) whose "style": "shield" row calls it directly with its OWN
+# inline config, never this table.
+SHIELD_OVERRIDES = {}
 
 
 def shield_two_tone(im, tint, override=None, surface="card"):
@@ -928,44 +735,26 @@ def helm_recolor(im, tint, opts, surface="card"):
 # style "shield" = the recipe is a plain shield-engine override and bakes via shield_two_tone;
 # style "helm" = it bakes via helm_recolor above. Body tints live in data/items.json iconTint
 # (single source), same split as the shields' SHIELD_OVERRIDES.
+# LW-247 (2026-08-18): every helmet routes through the ramp engine now (route() consults
+# RAMP_IDS before this table's "Helmet" category rule can ever be reached), so this table's
+# job changed from "the helmet family's own recipe book" to "the five OLD-ENGINE recipes ramp
+# still calls live" -- the four ids whose shipped art the owner chose to KEEP rather than
+# re-render (147, 148, 155, 156: ramp_render's RAMP_KEEP_SHIPPED branch) plus 144's colour map
+# (ramp_render's own id==144 branch, blended toward this same render per _ramp_coif_light_
+# middle). The other eight rows (145, 146, 149, 150, 151, 152, 153, 154) are DELETED: those
+# ids now render purely through the ramp engine and this recipe was never read for them again
+# once route() stopped calling helm-two-tone for a helmet at all (git history is the archive,
+# per LW-247 D5).
 HELM_OVERRIDES = {
     147: {"style": "shield", "trim_tint": (0.13, 0.86, 1.0), "split": "sat", "split_p": 44},
-    153: {"style": "shield", "trim_tint": (0.12, 0.72, 1.16), "cover_small": 0.24},
-    154: {"style": "shield", "trim": "vanilla", "cover_small": 0.18},
     155: {"style": "shield", "trim_tint": (0.11, 0.60, 1.02), "split": "sat", "split_p": 50},
     144: {"style": "helm", "mode": "cover", "pct": 22, "trim": (0.115, 0.85, 1.10),
           "feather": 1.2, "min_blob": 5, "contrast": 0.45, "sheen": 0.45},
-    146: {"style": "helm", "mode": "cover", "pct": 20, "trim": (0.118, 0.80, 1.10),
-          "trim_floor": 0.35, "trim_gleam": 0.3, "feather": 1.2, "min_blob": 5,
-          "contrast": 0.5, "sheen": 0.45},
     148: {"style": "helm", "mode": "cover", "pct": 20, "trim": (0.10, 0.10, 1.18),
           "feather": 1.2, "min_blob": 5, "contrast": 0.5, "sheen": 0.5},
-    149: {"style": "helm", "mode": "shade", "pct": 24, "trim": (0.995, 0.85, 0.95),
-          "trim_floor": 0.5, "feather": 1.2, "min_blob": 5, "contrast": 0.5, "sheen": 0.45},
-    150: {"style": "helm", "mode": "cover", "pct": 20, "trim": (0.58, 0.05, 1.20),
-          "trim_sheen": 0.75, "gleam": 0.3, "feather": 1.2, "min_blob": 5,
-          "contrast": 0.5, "sheen": 0.35},
-    152: {"style": "helm", "mode": "shade", "pct": 22, "trim": (0.045, 0.75, 1.10),
-          "trim_floor": 0.5, "feather": 1.1, "min_blob": 5, "contrast": 0.45, "sheen": 0.4},
     156: {"style": "helm", "mode": "cover", "pct": 28, "trim": (0.58, 0.03, 1.30),
           "trim_sheen": 0.8, "gleam": 0.15, "feather": 1.2, "min_blob": 5,
           "contrast": 0.45, "sheen": 0.4},
-    # The last two, 2026-08-14. These close the helmet family: they were the only ones left on
-    # the legacy one-hue stamp, and both of their old tints collided with a sibling anyway (145
-    # sat 0.005 from the Clarion Helm's amber, 151 exactly on the Wardsteel Helm's teal).
-    # 145 Mendsteel, Regen and Poison immunity: the one green helmet, with the gold landing on
-    # the inset panel the artist painted across the brow, so the emblem stays an emblem.
-    145: {"style": "helm", "mode": "cover", "pct": 22, "trim": (0.125, 0.90, 1.15),
-          "trim_floor": 0.45, "trim_gleam": 0.30, "feather": 1.2, "min_blob": 5,
-          "contrast": 0.50, "sheen": 0.45},
-    # 151 Timeward, Stop immunity: the head slot's one bright metal, which is the honest answer
-    # to a shelf with no hue left on it. The accent is on SHADE and not on cover: this helm's
-    # bright pixels are scattered highlights along a horn, so a cover mask returns confetti,
-    # while the recesses take brass cleanly and the whole thing reads as chrono-metal. An ice
-    # blue version was tried and dropped, since four helmets are already blue.
-    151: {"style": "helm", "mode": "shade", "pct": 26, "trim": (0.105, 0.92, 1.15),
-          "trim_floor": 0.45, "trim_gleam": 0.30, "gleam": 0.30, "feather": 1.2, "min_blob": 6,
-          "contrast": 0.55, "sheen": 0.45},
 }
 
 
@@ -1349,658 +1138,13 @@ BAG_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Bag")
 HARP_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Instrument")
 
 ZONE_OVERRIDES = {
-    # --- Swords (LW-199, 2026-08-14) ------------------------------------------------------
-    # The rack the owner asked for by name, and the family LW-232 was worst on: measured, the
-    # shipping bake reached a MEDIAN 34% of each sword's solid art and as little as 14% (id 31),
-    # which on screen is the artist's grey sword wearing a coloured stripe down one edge. The
-    # body tint now owns every solid pixel, and TWO zones bring the metal back: the hilt on the
-    # art's dark share (see _hilt for why darkness is the key that finds furniture on all
-    # fifteen) and the blade's lit ridge on its bright share (see _edge, which exists because
-    # the hilt alone was not enough and the owner said so).
-    #
-    # ROUND ONE WAS REJECTED and the reason is the useful part. Body plus hilt IS two materials
-    # and measures as two materials, and he still called a handful of them one colour. The hilt
-    # is 10-27% of the sprite and sits at one END, so the blade, which is most of what the eye
-    # gets, stayed flat. The ridge runs the blade's whole length, and that is what turns the
-    # measurement and the picture into the same answer.
-    #
-    # THE PALETTE RULE, owner brief 2026-08-14: "make them pop... use multiple colors, try and
-    # make no two swords look similar in color", and "if you send me a updated weapon that's a
-    # single color I'm going to immediately reject it". Both halves are pinned in selftest
-    # rather than trusted: hue/saturation/value separation across the rack, and a floor on how
-    # far each second material sits from its own body. Where two swords sit close in hue they
-    # separate by WEIGHT instead (Warbrand is near-black where Flamberge is molten), which is
-    # the same escape the shield palette uses and the only one available on a wheel this full.
-    #
-    # gleam is the knob that decides whether a hot colour lands at all. These blades are bright
-    # near-white art, so the preserve fires on most of the sprite and pulls a saturated tint back
-    # toward white, and the whole rack therefore runs it well below the engine's 0.80 default.
-    # Read the column as one rule with two exceptions: thirteen swords sit between 0.15 and 0.30,
-    # scaled by how hard their colour has to fight the art's own white, while the Claymore (0.55)
-    # and the Materia Blade (0.85) keep a high preserve on purpose, because those two are PALE by
-    # design and the artist's white is doing the work rather than getting in its way.
-    19: {"zones": [_hilt(STEEL, pct=28, floor=0.46),
-                   _edge(STEEL, pct=22)], "gleam": 0.30},                   # Vagabond
-    20: {"zones": [_hilt(COPPER, pct=22, floor=0.52),
-                   _edge(COPPER, pct=20, floor=0.55)],
-         "gleam": 0.25, "contrast": 0.55},                                  # Cleaver
-    21: {"zones": [_hilt(BRASS, pct=24),
-                   _edge(BRASS, pct=22)], "gleam": 0.30},                   # Riposte
-    22: {"zones": [_hilt(COPPER, pct=26, floor=0.46),
-                   _edge(COPPER, pct=24)], "gleam": 0.40},                  # Claymore
-    # Bone is the loudest second colour in the rack against a dark body, so both of the swords
-    # that wear it (this and the Wrathblade) take a NARROWER ridge than the metals do: at the
-    # rack's usual 22 the white had eaten half the blade and the sword stopped being red.
-    23: {"zones": [_hilt(BONE, pct=24, floor=0.46),
-                   _edge(BONE, pct=17, floor=0.55)], "gleam": 0.22},        # Sanguine Sword
-    # Lightning is the one identity that cannot live in the body alone: a yellow blade collides
-    # with Lightbringer's gold four hundredths away. So the storm is the body and the levin is
-    # the furniture AND the ridge, which is also the rack's hottest pairing.
-    24: {"zones": [_hilt(LEVIN, pct=22, floor=0.55), _edge(LEVIN, pct=20, floor=0.62)],
-         "gleam": 0.22, "contrast": 0.60},                                  # Stormbrand
-    25: {"zones": [_hilt(GOLD, pct=22, floor=0.48),
-                   _edge(GOLD, pct=22, floor=0.52)], "gleam": 0.22},        # Tanglethorn
-    26: {"zones": [_hilt(BLACK_IRON, pct=24, floor=0.34), _edge(WHITE, pct=22, floor=0.68)],
-         "gleam": 0.22, "contrast": 0.55},                                  # Flamberge
-    27: {"zones": [_hilt(BONE, pct=22, floor=0.50),
-                   _edge(BONE, pct=18, floor=0.55)], "gleam": 0.25},        # Wrathblade
-    28: {"zones": [_hilt(BLACK_IRON, pct=22, floor=0.30),
-                   _edge(WHITE, pct=22, floor=0.62)], "gleam": 0.30},       # Swiftedge
-    # The only body dark enough that its own furniture would vanish into it, so the second
-    # colour is light instead of metal and the ridge carries the same tone: a black blade with a
-    # collapsing rim, which is what a Gravity proc looks like if it looks like anything.
-    # EXOTIC PASS (owner round five). A black blade with a white rim is a dark sword; these two
-    # are supposed to look like objects rather than equipment, so both take a LIGHT as their
-    # second colour instead of a metal. The Graviton's is cold: void-black under the cyan bleed
-    # of something falling into a hole, which is also the only place in the rack where the
-    # second colour is more saturated than the body it sits on.
-    29: {"zones": [_hilt(PLASMA, pct=13, floor=0.42), _edge(PLASMA, pct=15, floor=0.90)],
-         "gleam": 0.05, "contrast": 0.85},                                  # Graviton
-    30: {"zones": [_hilt(GOLD, pct=22),
-                   _edge(GOLD, pct=22)], "gleam": 0.25},                    # Arcanum
-    # Holy, and the rack's inverse pair with the Materia Blade below: gold blade with white
-    # furniture against white blade with gold furniture. They read apart because the blade is
-    # ~70% of the pixels, so the body decides the item's colour at a glance.
-    31: {"zones": [_hilt(BLACK_IRON, pct=22, floor=0.28), _edge(WHITE, pct=22, floor=0.72)],
-         "gleam": 0.25, "contrast": 0.60},                                  # Lightbringer
-    # RESERVED NAME (owner rule, 2026-08-14: an item that kept its vanilla name kept it because
-    # players know it, so it is anchored to the vanilla look and only enhanced). The vanilla
-    # Materia Blade is a white blade with gold furniture; this is that, with the white cooled
-    # and the gold brought up, and nothing invented. Its ridge is the rack's narrowest for the
-    # same reason: enough to tie the gold cross into the blade, not enough to restyle the item.
-    32: {"zones": [_hilt(GOLD, pct=24, floor=0.48),
-                   _edge(GOLD, pct=12, floor=0.55)], "gleam": 0.85},        # Materia Blade
-    # Two things about this one are the shared sprite's fault. It is a WIDE flat blade, so a
-    # ridge percentage that reads as a line on a tapered sword reads as half the blade here, and
-    # it keeps the rack's narrowest metal because of it. And its body had to go COLD: a warm
-    # near-black under a warm brass ridge is brown with a tan stripe down it, which the owner
-    # correctly called a hotdog. Black steel with gold is the same idea with the bun removed.
-    # And the Warbrand's is hot: meteoric iron with the forge heat still in its edge. Brass stays
-    # on the furniture so the sword keeps one honest metal, and the ember line is deliberately
-    # the rack's narrowest zone, because heat reads as a line and never as a surface.
-    # pct 22 rather than the 10 a heat line wants: measured on THIS sprite the cover mask claims
-    # 1% of the solid art at pct 10 and 1% again at 14, because the brightest pixels on a wide
-    # flat blade scatter into blobs the despeckle pass then eats. It reaches 12% at 22, which is
-    # the first setting where the ember survives as a line instead of a speck.
-    67: {"zones": [_hilt(BRASS, pct=14, floor=0.55),
-                   _edge(EMBER, pct=22, floor=0.50, sheen=0.10, gleam=0.0,
-                         min_blob=2, feather=0.6)], "gleam": 0.06,
-         "contrast": 0.85},                                                 # Warbrand
-    # --- Knight Swords (LW-200, 2026-08-14) -----------------------------------------------
-    # The sword vocabulary, unchanged, on the swords' direct siblings in art: measured on all
-    # five distinct sprites, the dark share is guard/grip/pommel (8.8 to 16.7 percent) and the
-    # bright share is the fuller running the blade's whole length (9.4 to 18.8 percent).
-    33: {"zones": [_hilt(BLACK_IRON, pct=24, floor=0.34),
-                   _edge(STEEL, pct=22)], "gleam": 0.25},                   # Defender
-    34: {"zones": [_hilt(STEEL, pct=24, floor=0.50),
-                   _edge(WHITE, pct=22, floor=0.62)], "gleam": 0.45},       # Save the Queen
-    35: {"zones": [_hilt(BLACK_IRON, pct=24, floor=0.32),
-                   _edge(WHITE, pct=22, floor=0.68)], "gleam": 0.25,
-         "contrast": 0.55},                                                 # Excalibur
-    # Owner picker, 2026-08-14: variant B, "spectral ice, violet flame". Its art is cold and PALE
-    # (measured hue 0.587) while the item carries the Dark element, and B is the answer that
-    # sides with the ART: the artist's icy blade kept, with the darkness arriving as a violet
-    # flame down the fuller and violet-black furniture under it.
-    36: {"zones": [_hilt(NIGHT_IRON, pct=22, floor=0.30),
-                   _edge(VIOLET_FLAME, pct=22, floor=0.55)], "gleam": 0.45,
-         "contrast": 0.55},                                                 # Ragnarok
-    # Chaos Blade's cover mask claims 3.9% at the family default, the same fragmentation the
-    # Warbrand hit: its brightest pixels scatter across a wide ornate blade and the despeckle
-    # pass eats them. 26 is where the BONE edge survives as a line. (This comment described a
-    # crimson edge until 2026-08-14; crimson was an earlier candidate the owner rejected, and
-    # the note outlived it by one round.)
-    # Owner picker, round three, 2026-08-14: "blood-black, bone edge". Three rounds and nine
-    # candidates went into this one, and the finding that settled it was about the FAMILY rather
-    # than the item: all six of its settled siblings are bright saturated blades, so there is no
-    # dark sword on the shelf, and the Chaos Blade's colourless vanilla art (chroma 0.041) was
-    # already asking to be the dark one. That made the 48px icon the real test, and of nine
-    # candidates this was the only one still unmistakably dark at that size without tuning.
-    # Its one risk is the Ravager, also red: they separate on WEIGHT and on FURNITURE (a
-    # luminous red blade with gold fittings against near-black plum with black ones), which are
-    # the two differences that survive being shrunk to a list glyph. An acid-green version and a
-    # molten-crimson one were rejected by the owner before this.
-    37: {"zones": [_hilt(BLACK_IRON, pct=22, floor=0.30),
-                   _edge(BONE, pct=26, floor=0.66)], "gleam": 0.12,
-         "contrast": 0.78},                                                 # Chaos Blade
-    49: {"zones": [_hilt(BRASS, pct=24, floor=0.50),
-                   _edge(BRASS, pct=22, floor=0.56)], "gleam": 0.15,
-         "contrast": 0.60},                                                 # Ravager
-    # Free name, and the one that had to move: with the Defender on brass and the Ravager on
-    # blood, a copper Sunderer made three warm blades out of seven. Patinated bronze is what
-    # copper BECOMES, so gold fittings still belong on it, and a cold body is also the furthest
-    # thing from Save the Queen, whose sprite it borrows.
-    50: {"zones": [_hilt(GOLD, pct=24, floor=0.48),
-                   _edge(GOLD, pct=22)], "gleam": 0.20, "contrast": 0.60},  # Sunderer
-    # --- Poles (LW-206, 2026-08-14) -------------------------------------------------------
-    # CARD median 4.7% of the solid art before this pass, with the Slumber Rod, the Sage's Pole
-    # and the Ivory Pole all at 0.0 percent. The surface matters and was missing from the first
-    # writing of this line (audit 2026-08-14): the list ICON was already at 98-100% under the old
-    # whole-glyph path, just in a colour nobody had chosen for it, so it is the card that was
-    # shipping the artist's own picture.
-    #
-    # A pole is the FIFTH art shape to need no new engine, and it goes back to the crossbow's
-    # split: a long shaft with metal ferrules at each end, wood against metal, which saturation
-    # separates in one pass. Measured on the nine CARDS at the helper's defaults, the desat key
-    # claims 10.1 to 19.1 percent and lands on the caps every time (10.5 to 23.4 at the shipped
-    # per-item knobs below), while DARKNESS returns 0.0 percent on FIVE of them, because a pole
-    # has no dark furniture anywhere on it. That is the whole reason this family takes _material
-    # and not the rods' _hilt, even though a rod and a pole are both a stick.
-    # Both ranges above were overstated when first written (13.4 to 27.1, and four rather than
-    # five) and are corrected here rather than left to be copied forward. Four is right only if
-    # "them" means distinct SPRITES, since ids 48 and 107 share one picture; the sentence counts
-    # items, so it says five. Reproduce with zone_weight over pixels at alpha >= HALO_HI,
-    # counting weight >= 0.5, which is the method that returns the rods' figures below exactly.
-    #
-    # The Terrastaff draws itself with the Greenwood Pole's sprite (SRC), the FOURTH such pair in
-    # the program (the derived scan finds 19/67, 33/49, 34/50 and 107/48, and the selftest's own
-    # note in the same commit said four while this line said three), so those two are chosen to
-    # be far apart in BODY: earth against living green.
-    # Their METALS are cold silver and bone, which are near neighbours by design and NOT a second
-    # axis of separation; an earlier version of this line claimed brass here, which the next line
-    # refuses and the code never shipped.
-    # Brass caps were refused: on an earth-brown shaft they are the same colour with a highlight
-    # on it. Cold metal against warm wood is the pairing that reads.
-    48:  {"zones": [_material(SILVER, sat_p=30, min_blob=2)], "gleam": 0.22},  # Terrastaff
-    107: {"zones": [_material(BONE, sat_p=30, min_blob=2)], "gleam": 0.25},    # Greenwood Pole
-    108: {"zones": [_material(BRASS, sat_p=30, min_blob=2)], "gleam": 0.25},   # Ironreed Pole
-    109: {"zones": [_material(SILVER, sat_p=32, min_blob=2)], "gleam": 0.30},  # Slumber Rod
-    110: {"zones": [_material(GOLD, sat_p=30, min_blob=2)], "gleam": 0.25},    # Hushfan
-    # Gokuu's Pole under its new name, and the one item here whose vanilla art is strongly
-    # chromatic already (icon chroma 0.272, TWICE its siblings' mean of 0.135; "three times" was
-    # the first writing and only holds against the single least chromatic sibling): vermilion
-    # with gold caps is what the Ruyi Jingu Bang is, so the anchor and the reference agree.
-    111: {"zones": [_material(GOLD, sat_p=30, min_blob=2)], "gleam": 0.22},    # Sage's Pole
-    # THE RESERVED NAMES OF THIS FAMILY, measured after the fact (audit 2026-08-14: the pass
-    # shipped without recording a single anchor here, one commit after the rods' block made
-    # measuring both surfaces the rule). Chroma-weighted circular mean hue over solid pixels,
-    # the same metric that reproduces the Perseus Bow's figures at id 91 exactly:
-    #   112 Ivory Pole      icon 359.2 deg at chroma 0.071, card 331.3 at 0.046. Below the
-    #                       Perseus icon's 0.120, so this is the documented near-neutral case
-    #                       and hue is genuinely free; painted 37.8 deg, an enriched ivory.
-    #   113 Eight-Fluted    icon 221.5 deg at chroma 0.112, painted 237.6. Sits WITH its art.
-    #                       Note it is a reserved name that an exact name == vanillaName test
-    #                       does NOT catch: the rename changed only a capital F.
-    #   114 Whale Whisker   icon 1.7 deg at chroma 0.148, a visibly RED pole, painted 196.2 deg.
-    #                       That is a ~165 degree move away from its own art, on art MORE
-    #                       chromatic than the Perseus Bow's, and unlike that bow it carries no
-    #                       measurement, no note and no owner ruling. The defence is real (this
-    #                       is the family's only Water pole and cyan says water) but it is a
-    #                       ruling only the owner can make, so it is docs/TODO.md LW-238 rather
-    #                       than a quiet re-tint here.
-    112: {"zones": [_material(BRASS, sat_p=30, min_blob=2)], "gleam": 0.45},   # Ivory Pole
-    113: {"zones": [_material(SILVER, sat_p=30, min_blob=2)], "gleam": 0.25},  # Eight-Fluted Pole
-    114: {"zones": [_material(SILVER, sat_p=32, min_blob=2)], "gleam": 0.35},  # Whale Whisker
-    # --- Books and bags (LW-210 and LW-212, 2026-08-16) -----------------------------------
-    # The last two weapon families, and the two healthiest by coverage the programme ever met, at
-    # CARD medians of 67.0 and 72.1 percent. They are here to finish the set rather than to fix a
-    # number, and the fix they did need is the one the anchors gate now catches: the Fallingstar
-    # Bag kept its vanilla name and was painted gold over art that is green.
-    #
-    # ONE ZONE EACH, not two, because neither shape has furniture. A book is a coloured COVER and
-    # a pale PAGE BLOCK, which is a second material the artist already drew and which the
-    # brightness key finds on all four. A bag is one piece of leather, so its bright zone is a
-    # sheen in the veils' sense rather than a fitting, and the tone is a pale neutral for the same
-    # reason: a chromatic tone on a pouch reads as a stain.
-    #
-    # Two colour conflicts take the resolution the Holy Lance established. The Omnilex is the
-    # Book line's Holy capstone and its art is the most strongly coloured sprite in the game at
-    # icon chroma 0.388, a deep vermilion, so the vermilion stays on the cover and the holy goes
-    # into gilt-edged pages. The Fallingstar Bag is anchored green and its falling STAR is the
-    # gold clasp.
-    95:  {"zones": [_edge(BONE, pct=22)], "gleam": 0.25},        # Glarebound Tome
-    96:  {"zones": [_edge(BONE, pct=22)], "gleam": 0.25},        # Knell Codex
-    97:  {"zones": [_edge(BONE, pct=22)], "gleam": 0.25},        # Binding Codex
-    98:  {"zones": [_edge(GOLD, pct=22)], "gleam": 0.25},        # Omnilex
-    115: {"zones": [_edge(SILVER, pct=22)], "gleam": 0.25},      # Sandman Satchel
-    116: {"zones": [_edge(GOLD, pct=22)], "gleam": 0.25},        # Fallingstar Bag
-    117: {"zones": [_edge(BONE, pct=22)], "gleam": 0.25},        # Hornet Pouch
-    118: {"zones": [_edge(BONE, pct=22)], "gleam": 0.25},        # Hexweave Bag
-    # --- Ninja blades (LW-205, 2026-08-16) ------------------------------------------------
-    # CARD median 63.2 percent of the solid art before this pass, so like the knives this family
-    # was picked for what a player sees rather than for a coverage number: four of the nine were
-    # a pale blade with a small coloured guard, and the guard is where the whole identity lived.
-    #
-    # Same recipe as the knives and the katanas, because a ninja blade is a sword too: the hilt
-    # key finds the guard and the edge key finds the blade on all nine.
-    #
-    # THREE ITEMS KEPT THEIR VANILLA NAMES and they split two ways under the anchors gate. The
-    # Sasuke's Blade (icon chroma 0.085) and the Iga Blade (0.095) are inside the near-neutral
-    # case and their hue is free, though the Iga is kept WARM because its art is warm and there
-    # was no reason to fight it. The Koga Blade is not: at chroma 0.232 it is emphatically a gold
-    # blade with a green guard, and it was wearing flat green. It keeps its gold, and its Dark
-    # element and Poison rider go where the artist already put green, into the hilt, which is the
-    # Holy Lance's resolution for the fourth time.
-    #
-    # Three percentiles moved per sprite rather than per family. The Mistedge's guard is barely
-    # darker than its blade (24 gives 2.9 percent of the card, 34 gives 9.9). The Silentfang's is
-    # the same shape of problem. And the Raijin Longblade is the family's awkward one: its CARD
-    # carries a large dark region that the hilt key claims 42.5 percent of at the family default,
-    # while its ICON's guard is small, so the two surfaces want opposite settings; 18 is the
-    # compromise, with the levin fuller widened to 34 to keep the lightning visible on the card
-    # (1.2 percent at 22).
-    11: {"zones": [_hilt(BRASS, pct=24), _edge(WHITE, pct=22)], "gleam": 0.25},      # Swiftfang
-    12: {"zones": [_hilt(BONE, pct=34), _edge(WHITE, pct=22)], "gleam": 0.25},       # Mistedge
-    13: {"zones": [_hilt(STEEL, pct=24), _edge(WHITE, pct=22)], "gleam": 0.25},  # Frost Kodachi
-    14: {"zones": [_hilt(BRASS, pct=18), _edge(LEVIN, pct=34)],
-         "gleam": 0.25},                                                     # Raijin Longblade
-    15: {"zones": [_hilt(SILVER, pct=30), _edge(WHITE, pct=22)], "gleam": 0.25},    # Silentfang
-    16: {"zones": [_hilt(GOLD, pct=24), _edge(BONE, pct=22)], "gleam": 0.25},  # Sasuke's Blade
-    17: {"zones": [_hilt(BLACK_IRON, pct=24), _edge(STEEL, pct=22)], "gleam": 0.25},  # Iga Blade
-    18: {"zones": [_hilt(VERDANT, pct=24), _edge(BONE, pct=22)], "gleam": 0.25},    # Koga Blade
-    69: {"zones": [_hilt(BLACK_IRON, pct=24), _edge(BONE, pct=22)], "gleam": 0.25},  # Climhazzard
-    # --- Knives (LW-198, 2026-08-16) ------------------------------------------------------
-    # CARD median 41.2 percent of the solid art before this pass, the healthiest of any family
-    # that has been through the programme, and it needed doing anyway: four of the eleven read as
-    # the same pale sliver in a list, because the artist drew every knife with a white blade and
-    # only the small grip in colour. The tints then left the blade white, so the item's whole
-    # colour lived in a handle a few pixels across.
-    #
-    # A knife is a SWORD in miniature and takes the sword recipe unchanged, which the CARD art
-    # makes obvious: a dark braided grip, a bright fuller down the blade, and the two sword keys
-    # landing on exactly those. The icons are less clean (at 48px the darkness key finds as much
-    # blade outline as grip) and that is fine, because what the icons need is the coloured blade,
-    # which the body tint gives them.
-    #
-    # THE SHARED SPRITE forced one setting. The Bloodlash draws itself with the Cutpurse's
-    # picture, the sixth such pair in the programme, and on that one sprite the grip zone claims
-    # only 2.8 percent of the icon at the family's pct 24; 30 puts it at 15.2 on both surfaces.
-    # The two are 0.25 of hue apart, tarnished bronze against venom green.
-    # Shipped zone share: grip card 6.5 to 22.3 percent and icon 6.2 to 15.2, fuller card 12.2 to
-    # 25.4 and icon 14.5 to 21.0.
-    1:  {"zones": [_hilt(BONE, pct=30), _edge(STEEL, pct=22)], "gleam": 0.25},        # Cutpurse
-    2:  {"zones": [_hilt(STEEL, pct=24), _edge(WHITE, pct=22)], "gleam": 0.25},       # Quicksilver
-    3:  {"zones": [_hilt(BONE, pct=24), _edge(SILVER, pct=22)], "gleam": 0.25},       # Gloomfang
-    4:  {"zones": [_hilt(BRASS, pct=24), _edge(WHITE, pct=22)], "gleam": 0.25},       # Hushblade
-    # The one knife whose blade is SUPPOSED to stay near-white, since argent is silver. Its
-    # identity lives in a gold fuller over a night-iron grip instead, and NIGHT_IRON is the right
-    # furniture for exactly this case: a plain black iron on a near-neutral body differs in value
-    # alone, which the no-single-colour gate refuses and is correct to refuse.
-    5:  {"zones": [_hilt(NIGHT_IRON, pct=24), _edge(GOLD, pct=22)], "gleam": 0.25},   # Argent Dirk
-    6:  {"zones": [_hilt(BONE, pct=24), _edge(SILVER, pct=22)], "gleam": 0.25},  # Sanguine Gauche
-    7:  {"zones": [_hilt(BRASS, pct=24), _edge(WHITE, pct=22)], "gleam": 0.25},     # Adamant Fang
-    8:  {"zones": [_hilt(BONE, pct=24), _edge(WHITE, pct=22)], "gleam": 0.25},       # Mortal Coil
-    9:  {"zones": [_hilt(BRASS, pct=24), _edge(SILVER, pct=22)], "gleam": 0.25},        # Galewind
-    10: {"zones": [_hilt(BLACK_IRON, pct=24), _edge(WHITE, pct=22)],
-         "gleam": 0.25},                                                    # Zwill Straightblade
-    68: {"zones": [_hilt(BLACK_IRON, pct=30), _edge(BONE, pct=22)], "gleam": 0.25},   # Bloodlash
-    # --- Katanas (LW-204, 2026-08-14) -----------------------------------------------------
-    # CARD median 33.3% of the solid art before this pass. The number is not why this family
-    # needed doing: TEN OF THE ELEVEN KEPT THEIR VANILLA NAMES, which by the owner's rule means
-    # each is anchored to its own art, and five of them were painted 88 to 179 degrees away from
-    # it. The Masamune's art is blue and it wore gold; the Chirijiraden's is amber and it wore
-    # blue; the Muramasa's is the second most chromatic sprite in the game and it wore violet.
-    # That is the Whale Whisker defect (LW-238) five times over, in one family.
-    #
-    # Measured on the 48px icons, chroma-weighted, the same metric that returns the Perseus Bow's
-    # published figures: six sit at or above the 0.120 line and are genuinely coloured art, so
-    # they keep what they have. 38 Ashura 213 deg / 0.137, 43 Kiyomori 185 / 0.132, 44 Muramasa
-    # 23 / 0.251, 46 Masamune 228 / 0.147, 47 Chirijiraden 36 / 0.261, and 70 rides 38's sprite.
-    # Five measure 0.079 to 0.114, inside the near-neutral case the Ivory Pole established, so
-    # their hue is free: 39 Kotetsu, 40 Bizen Osafune, 41 Murasame, 42 Ame-no-Murakumo and
-    # 45 Kiku-ichimonji.
-    #
-    # TWO anchors collide with a convention and take the Holy Lance's resolution rather than
-    # choosing. The Masamune is the line's Holy blade and its art is blue, so the blue stays on
-    # the body and the holy goes into a gold fuller. The Kiyomori poisons on hit and its art is
-    # cyan, so the venom goes into the edge.
-    #
-    # The recipe is the SWORD's, unchanged, because a katana is a sword: a tsuka the artist drew
-    # darker than the blade and a fuller he drew brighter. Both keys land where their docstrings
-    # say. Three items needed their percentile moved and the reason is per sprite rather than per
-    # family: the Murasame's hilt is barely darker than its blade (24 gives 3.1 percent of the
-    # card, 34 gives 11.0), the Muramasa's fuller is wide (28), the Masamune's tsuka is small
-    # (30).
-    # THE AME-NO-MURAKUMO'S FULLER CANNOT BE REACHED ON ITS CARD and that is left as it is. The
-    # artist drew the gathering-storm blade as a wisp: 213 solid pixels against 433 in the halo
-    # band, with 68 percent of the solid art in the hilt third, so the brightest-share key finds
-    # nothing solid to sit on at any percentile worth having (0.0 percent until pct 46, where the
-    # icon has gone to 46). Its card carries a 23.5 percent brass tsuka instead, which is a real
-    # second material, so this is the harp's finding on one item rather than the Wellspring Rod's
-    # defect (LW-237): a zone that is empty on one surface while the ITEM still reads two-tone on
-    # both.
-    38: {"zones": [_hilt(BRASS, pct=24), _edge(WHITE, pct=22)], "gleam": 0.25},   # Ashura
-    39: {"zones": [_hilt(BONE, pct=24), _edge(STEEL, pct=22)], "gleam": 0.25},    # Kotetsu
-    40: {"zones": [_hilt(GOLD, pct=24), _edge(SILVER, pct=22)], "gleam": 0.25},   # Bizen Osafune
-    41: {"zones": [_hilt(BONE, pct=34), _edge(WHITE, pct=22)], "gleam": 0.25},    # Murasame
-    42: {"zones": [_hilt(BRASS, pct=24), _edge(LEVIN, pct=22)], "gleam": 0.25},   # Ame-no-Murakumo
-    43: {"zones": [_hilt(BRASS, pct=24), _edge(VERDANT, pct=22)], "gleam": 0.25},  # Kiyomori
-    44: {"zones": [_hilt(BLACK_IRON, pct=24), _edge(BONE, pct=28)], "gleam": 0.25},  # Muramasa
-    45: {"zones": [_hilt(STEEL, pct=24), _edge(WHITE, pct=22)], "gleam": 0.25},   # Kiku-ichimonji
-    46: {"zones": [_hilt(SILVER, pct=30), _edge(GOLD, pct=22)], "gleam": 0.25},   # Masamune
-    47: {"zones": [_hilt(BLACK_IRON, pct=24), _edge(WHITE, pct=22)], "gleam": 0.25},  # Chirijiraden
-    # The Sasori draws itself with the Ashura's sprite, the fifth such pair in the programme, so
-    # colour is the only thing telling them apart: venom green under bone against steel blue
-    # under brass, 0.29 of hue apart.
-    70: {"zones": [_hilt(BLACK_IRON, pct=24), _edge(BONE, pct=22)], "gleam": 0.25},  # Sasori
-    # --- Cloths (LW-213, 2026-08-14) ------------------------------------------------------
-    # CARD median 32.0% of the solid art before this pass, the healthiest starting point of any
-    # family so far, and the reason this one came next anyway is that the dancer's three veils
-    # were the drabbest thing left on the shelf: a washed brown, a pale steel and a mauve grey.
-    #
-    # A bolt of cloth is the FIRST family whose sprite already carries two zones the artist drew
-    # on purpose: an upper roll and a lower one, in different colours on all three (grey over
-    # blue, orange over green, tan over violet). What the brightness key does here is take
-    # whichever of the two the artist lit, which is the lower roll on the Tarsilk and the upper
-    # on the other two. That is a spatial split arriving through a tonal key, so it is worth
-    # saying out loud that it works by luck of the art rather than by design, the way the
-    # Wyrmpike's haft does.
-    #
-    # ALL THREE SECOND TONES ARE PALE NEUTRALS, which is a deliberate break from the metal-on-
-    # colour pairing every weapon family uses. Silk's own second material IS its sheen; a
-    # chromatic tone here reads as a stain rather than as a fitting, which is exactly how a brass
-    # first attempt rendered on the Tarsilk's card. The three pales are kept distinct anyway
-    # (cream, white, cold silver) so the family does not become one recipe in three hues.
-    # pct 24, lower than the staves' 32 because these sprites are broad and their lit share is a
-    # real surface rather than a ridge: card 15 to 26 percent, icon 18 to 24.
-    119: {"zones": [_edge(BONE, pct=24)], "gleam": 0.25},       # Tarsilk Veil
-    120: {"zones": [_edge(WHITE, pct=24)], "gleam": 0.25},      # Bindsilk Veil
-    121: {"zones": [_edge(SILVER, pct=24)], "gleam": 0.25},     # Gravesilk Veil
-    # --- Staves (LW-209, 2026-08-14) ------------------------------------------------------
-    # CARD median 14.2% of the solid art before this pass, with the Warding Staff, the Zeus Mace
-    # and the Staff of the Magi all at 0.0 percent. Two of the eight also read as each other:
-    # the Mending and Warding Staves shipped as the same green (0.03 apart in hue and exactly at
-    # the saturation floor, so the palette tripwire allowed it by a hair) and the Warlock's and
-    # the Magi as the same purple. Both pairs are visible side by side in the pre-pass list row.
-    #
-    # A staff is a HEAD and a SHAFT and, unlike every family before it, the artist drew them as
-    # ONE material: the four hooked staves are a single piece of wood and the four spiral ones a
-    # single piece of metal with a gem set in the head. So there is no second material to find,
-    # and this family is the crossbow's case rather than the sword's: the second material has to
-    # be invented, and the only honest place to put it is where the light already falls.
-    # The brightness key is what does that here, and its answer is unusually good: it lands on
-    # the staff's LIT RIDGE, which runs the whole length of the object, head to ferrule. That is
-    # the sword pass's own test for a second material, that it cross the object's largest shape
-    # rather than sit at one end, and a ridge passes it in a way a head ornament would not.
-    # Saturation was measured and refused: it claims 9 to 20 percent of these cards and lands on
-    # scattered edge pixels rather than on any part a player could name. Darkness returns 0.0 to
-    # 2.7 percent, the lowest of any family met so far, because a staff has no dark furniture.
-    #
-    # pct is 32 across the family, higher than the swords' 18-24 for the harps' reason (half of
-    # each card's ranked population is haze) and uniform because these eight sprites are four
-    # pairs of one drawing. Measured at the shipped setting: card 8 to 25 percent, icon 28 to 33.
-    #
-    # THE TWO RESERVED NAMES sit on opposite sides of the anchor rule, which is why both are
-    # written down. The Zeus Mace measures icon chroma 0.050 and card 0.030, the least chromatic
-    # art this programme has met and well inside the near-neutral case the Ivory Pole established,
-    # so its hue is free and it takes storm indigo under a levin ridge, the same answer the
-    # Stormbrand and the Stormpike took. The Staff of the Magi measures icon chroma 0.167 at hue
-    # 43 degrees, ABOVE the Perseus Bow's 0.120, so it is genuinely a gold-headed staff and it
-    # keeps that: the gold stays on the head where the artist put it and the shaft keeps its dark.
-    # The first attempt inverted that (gold body, dark ridge) and rendered a grey head on a gold
-    # shaft, which is its own art backwards.
-    59: {"zones": [_edge(BONE, pct=32)], "gleam": 0.25},        # Birchwood Staff
-    60: {"zones": [_edge(SILVER, pct=32)], "gleam": 0.25},      # Warlock's Staff
-    61: {"zones": [_edge(WHITE, pct=32)], "gleam": 0.25},       # Mending Staff
-    62: {"zones": [_edge(BRASS, pct=32)], "gleam": 0.25},       # Warding Staff
-    63: {"zones": [_edge(WHITE, pct=32)], "gleam": 0.25},       # Blazing Staff
-    # The Sanctus Staff moves its holy INTO the accent rather than onto the body, the Holy
-    # Lance's resolution one commit earlier: a radiant white staff with a gold ridge, which also
-    # leaves the family's gold to the item whose own art earned it.
-    64: {"zones": [_edge(GOLD, pct=32)], "gleam": 0.25},        # Sanctus Staff
-    65: {"zones": [_edge(LEVIN, pct=32)], "gleam": 0.25},       # Zeus Mace
-    66: {"zones": [_edge(GOLD, pct=32)], "gleam": 0.25},        # Staff of the Magi
-    # --- Polearms (LW-207, 2026-08-14) ----------------------------------------------------
-    # CARD median 10.4% of the solid art before this pass, with the Tombspire at 0.3 and the
-    # Skewer at 1.1.
-    #
-    # A spear is a BLADE and a SHAFT, which is the crossbow's split for the sixth time, and
-    # saturation separates them in one pass: the artist drew these heads in near-neutral steel
-    # and the hafts in wood or lacquer, so the desat key lands on the head.
-    #
-    # IT DOES NOT ALWAYS LAND THERE, and the correction is worth more than the original claim.
-    # This block first said the key finds whichever part the artist left GREY and named the
-    # Wyrmpike, whose head is painted gold, as the item where it therefore finds the SHAFT. That
-    # is true of the 48px ICON and false of the card, so it is a SURFACE split written up as an
-    # item split, which is the exact defect the commit before this one went and corrected in two
-    # other blocks (audit 2026-08-14). Measured in fifths along each sprite's long axis: the
-    # Wyrmpike's CARD art is flat, chroma 0.045 to 0.085 with no gold head anywhere, and its mask
-    # sits 64 percent in the two head-most fifths like its seven siblings; its ICON art peaks at
-    # chroma 0.288 on the head and the mask moves 77 percent onto the shaft. The Tombspire does
-    # the same thing with the ends swapped. So the honest statement is: on the CARDS the artist
-    # left every spear near-neutral and the key finds the head on all eight; on the ICONS he
-    # painted some heads and some butt caps, and the key finds whichever END he left grey.
-    #
-    # sat_p is per item for a measured reason, though not the reason first written here. At the
-    # helper's 30 four of the eight give a card share of 4 to 11 percent AND, on the Skewer, that
-    # share lands on the OUTLINE between head and haft rather than on the head's face: rendered,
-    # the steel head came back orange and the spear read as one colour. 40 to 42 puts the face
-    # inside the window on those four. The haze explanation this block used to give was borrowed
-    # from the harps and does not hold here: these cards are 15 to 35 percent haze, mean 27, and
-    # the item with the LOWEST share at 30 (the Tombspire, 4.4) has among the LOWEST haze (21),
-    # while the highest share (the Dragon Whisker, 26.1) has the highest haze (35). The
-    # observation stands; the mechanism was another family's.
-    # Measured at the shipped settings, zone share of solid art: card 13.1 to 26.1 percent,
-    # icon 16.9 to 39.1. The icon range was published as 23.2 to 36.4 and was wrong at both ends,
-    # because it was measured before the final sat_p change and never re-taken: 36.4 is the
-    # Skewer at 40 rather than the 42 it ships, and 23.2 is the Tombspire at 30 rather than 40.
-    # That is this file's own lesson landing on its own author, one commit after writing it down.
-    #
-    # THE HOLY LANCE (104) IS THE FAMILY'S RESERVED-NAME CASE and it resolves the way the
-    # Stormbrand did rather than the way the Perseus Bow did. Its list icon reads hue 222 degrees
-    # at chroma 0.186, which is strongly coloured art but NOT the record this block first claimed
-    # (the Yoichi Bow is 0.245 and the Faerie Harp 0.215, both reserved-name anchors this
-    # programme measured earlier, and the Sage's Pole's 0.272 is recorded a few lines below); it
-    # is emphatically a BLUE lance; the mod's other convention is that Holy is gold everywhere (Excalibur,
-    # Lightbringer, the Perseus Bow). Instead of choosing, the blue stays on the body where the
-    # art put it and the Holy goes into the accent, which is exactly the answer the Stormbrand
-    # and Stormarc took when lightning collided with holy gold.
-    # The Dragon Whisker (105) is reserved too and measures the OTHER way: icon chroma 0.070,
-    # card 0.032, below the Perseus icon's 0.120 and level with the Ivory Pole's 0.071 that was
-    # ruled near-neutral, so hue is free by the documented rule and the capstone takes dragon
-    # crimson under a gold head. Recorded rather than assumed, since not recording it is the
-    # defect the poles shipped (LW-238).
-    99:  {"zones": [_material(STEEL, sat_p=42, min_blob=2)], "gleam": 0.25},   # Skewer
-    100: {"zones": [_material(SILVER, sat_p=40, min_blob=2)], "gleam": 0.25},  # Footman's Spear
-    101: {"zones": [_material(WHITE, sat_p=40, min_blob=2)], "gleam": 0.25},   # Frostpoint
-    102: {"zones": [_material(LEVIN, sat_p=30, min_blob=2)], "gleam": 0.25},   # Stormpike
-    103: {"zones": [_material(BONE, sat_p=40, min_blob=2)], "gleam": 0.25},    # Tombspire
-    104: {"zones": [_material(GOLD, sat_p=30, min_blob=2)], "gleam": 0.25},    # Holy Lance
-    105: {"zones": [_material(GOLD, sat_p=30, min_blob=2)], "gleam": 0.25},    # Dragon Whisker
-    106: {"zones": [_material(BLACK_IRON, sat_p=30, min_blob=2)], "gleam": 0.25},  # Wyrmpike
-    # --- Instruments (LW-211, 2026-08-14) -------------------------------------------------
-    # The least-coloured family left after the guns, rods and poles: measured, the shipping bake
-    # reached a CARD median 3.4% of each harp's solid art, and 0.7% of the Siren's Lyre's card.
-    # The surface belongs in that sentence for the same reason it belongs in the rod and pole
-    # blocks below: the list icons were already at 99.6 to 100 percent under the old whole-glyph
-    # path, so the family median across all six surfaces is 52.3 and it is the CARD that was
-    # shipping the artist's own picture. (First written without the surface, one line above the
-    # two blocks corrected for exactly that; caught by verify 2026-08-14.)
-    #
-    # A harp is a FRAME and a set of STRINGS, and its two surfaces disagree about what the
-    # strings are. On the 48px list icon they are solid bright bars and the brightness key finds
-    # them on all three (13.8 to 15.3 percent of the solid art at pct 20). On the 100px card the
-    # artist drew them SEMI-TRANSPARENT: not one interior pixel of any of the three reaches
-    # HALO_HI, so the card's solid art IS the frame and the halo ramp leaves the strings near the
-    # artist's own colour, which leaves the zone to light the top rail and the tuning pegs.
-    # HOW MUCH that ramp is worth is per item, and the id-94 pct below turns on it. Measured on
-    # the shipped cards, the strings come out this far from their own frame: id 92 at 0.305 of
-    # saturation, id 93 at 0.209, and id 94 at 0.097, which is not a second colour at all. So
-    # two of the three cards do get a pale-strung frame for free and the Faerie Harp does not,
-    # its body hue being close enough to a metal that its strings simply read as more gold. That
-    # is the other half of why 94 carries the family's widest rail zone (13.8 percent of the card
-    # against 7.2 and 8.8): on that harp the zone is not an accent, it is the whole second
-    # material. (First written as though the free reading held on all three; verify 2026-08-14.)
-    # The first writing of that said "alpha 48-159, below the mask code's ranking floor, so no
-    # key can reach them", and the ranking half is false: interior pixels run to alpha 219-223
-    # and 71 to 105 of them per card sit at or above HELM_SOLID, so a key CAN rank them and the
-    # shipped mask does select a handful. What is true, and is what the recipe rests on, is the
-    # HALO_HI line: a string pixel never owns the identity colour, so it cannot be the card's
-    # second material no matter which key is chosen.
-    #
-    # Darkness was measured and refused, and this is the one family where the swords' hilt key is
-    # actively wrong: a harp's darkest share is its KEYLINE and the void between its strings, so a
-    # bright metal there dissolves the glyph's outline at list size. Saturation was refused too,
-    # because it is not one answer across the three: measured on the list icons the Siren's Lyre's
-    # strings are amber (mean RGB 231,147,76), the Duskstring's are a pale mauve-white and the
-    # Faerie Harp's are the family's only lit blue (45 pixels, mean 162,203,236). Three different
-    # colours, so a saturation window that finds one misses the others.
-    #
-    # THE HAZE TAX, and why these percentiles look high next to the swords' 18-24. Every mask key
-    # ranks pixels at alpha >= HELM_SOLID, and on these cards HALF that population is the haze the
-    # artist drew around the harp (447 haze-band pixels against 444 solid on id 92). So a given
-    # percentile buys about half as much SOLID art on the card as it does on the icon, and 28 is
-    # what it takes to reach the rail. Measured at the shipped settings: card 7.2 / 8.8 / 13.8
-    # percent, icon 22.8 / 21.5 / 16.2 percent.
-    #
-    # Tints live in data/items.json for this family, so the reasoning lives here beside the
-    # recipes. Two of the three are free names and were simply wrong for the item they now name:
-    # id 93 wore the blood red picked for a Bloodstring Harp that was renamed to the Duskstring,
-    # and id 92 had the right hue at saturation 0.55, which is the family's real problem rather
-    # than a wrong colour. The third is a RESERVED NAME and is anchored to its own art on BOTH
-    # surfaces: the Faerie Harp's icon reads hue 0.132 at chroma 0.215 and its card 0.105, a gold
-    # harp, so gold is what it keeps, against the violet (0.83) it wore.
-    92: {"zones": [_edge(BRASS, pct=28)], "gleam": 0.25},   # Siren's Lyre
-    93: {"zones": [_edge(BONE, pct=28)], "gleam": 0.25},    # Duskstring Harp
-    # The reserved name, and the one that takes a COOL metal: brass on a gold body was tried
-    # first and is a single colour with a highlight on it, exactly what the no-single-colour rule
-    # refuses. Steel is also what the artist drew, since this harp's vanilla strings are pale
-    # blue, the only lit blue in the family. Its pct is SIX LOWER than its siblings' for a measured
-    # reason rather than taste: its haze is 40% of the ranking where theirs is 50%, and its top
-    # rail is broad and lit, so the same coverage arrives at a lower percentile (at 28 it would
-    # take 20.0% of the card and the gold stops being the item's colour).
-    94: {"zones": [_edge(STEEL, pct=22)], "gleam": 0.25},   # Faerie Harp
-    # --- Rods (LW-208, 2026-08-14) --------------------------------------------------------
-    # The worst family left before this pass: a TRUE CARD median of 1.8% of the solid art, with
-    # the Ember Rod and the Rod of Faith at 0.0. As with the poles above, the surface belongs in
-    # the sentence: the list icon was already fully covered by the old whole-glyph path.
-    #
-    # A rod is the fourth art shape to need no new engine, and the neatest fit yet. It is a
-    # SHAFT, an ORB and a ferrule, and the two sword keys land close enough to those: measured on
-    # the eight cards, darkness claims 3.3 to 17.6 percent and brightness 0.3 to 14.3. So these
-    # are the swords' recipes with the meanings swapped, _hilt taking the shaft and _edge the
-    # orb, which is also why the orb tone is a LIGHT on the elemental rods rather than a metal:
-    # the orb is where the magic is.
-    # "EVERY TIME" WAS TOO STRONG on both halves, corrected 2026-08-14 after the audit projected
-    # each zone onto the sprite's own long axis (0 is the orb end, 1 the butt). Brightness does
-    # find the orb, on seven of eight, centroid 0.04 to 0.20; the exception is the Wellspring
-    # Rod, whose orb zone is one pixel at 0.69 (LW-237). Darkness finds the shaft on five,
-    # centroid 0.47 to 0.61, and on the Ember Rod and the Wellspring it finds the BUTT FERRULE
-    # instead, centroid 0.94 spanning 0.91 to 1.00, with the Rod of Faith smeared between the two
-    # at 0.80. A ferrule is still furniture and still the right colour, so the recipes stand;
-    # what does not stand is a sentence claiming a key lands in one place on a family where it
-    # measurably lands in two.
-    # TWO CORRECTIONS from the audit of 2026-08-14, and the second is a live defect rather than a
-    # typo. There are EIGHT distinct rod sprites, not the six first written: no rod carries an
-    # iconSource and every decoded card is unique, so a reader hunting the twin pair finds none.
-    # And the brightness range was written as 4.0 to 21.9 when it is 0.3 to 14.3; the floor is
-    # the number that matters, because 0.3% is the Wellspring Rod, whose orb zone survives the
-    # chain as a SINGLE solid pixel on the card, and that pixel is not even on the orb: it sits
-    # mid-shaft at 0.68 along the sprite's long axis, while the orb's own surviving mask pixels
-    # all fall below HALO_HI and so own nothing. That rod therefore ships with one visible
-    # material where this comment promises two, which is docs/TODO.md LW-237 and needs the
-    # owner's eye on a before-and-after, not a quiet re-tune of art he has already passed.
-    #
-    # Tints live in data/items.json for this family. Reserved names are anchored against BOTH
-    # surfaces, not just the card: the Dragon Rod's icon reads hue 153 degrees, a jade teal, and
-    # the tint follows it; the Rod of Faith's icon reads a warm 18 degrees, so Holy gold sits
-    # with its art rather than against it. Measuring the card alone is what put the Perseus Bow
-    # 180 degrees from its own colour (see id 91).
-    51: {"zones": [_hilt(BLACK_IRON, pct=22, floor=0.34),
-                   _edge(VERDANT, pct=18, floor=0.60)], "gleam": 0.25},      # Wellspring Rod
-    52: {"zones": [_hilt(STEEL, pct=22, floor=0.48),
-                   _edge(LEVIN, pct=20, floor=0.62)], "gleam": 0.22,
-         "contrast": 0.60},                                                  # Spark Rod
-    53: {"zones": [_hilt(BLACK_IRON, pct=24, floor=0.34),
-                   _edge(WHITE, pct=18, floor=0.68)], "gleam": 0.22},        # Ember Rod
-    54: {"zones": [_hilt(SILVER, pct=22, floor=0.50),
-                   _edge(WHITE, pct=18, floor=0.66)], "gleam": 0.30},        # Frost Rod
-    55: {"zones": [_hilt(BRASS, pct=22, floor=0.48),
-                   _edge(BONE, pct=18, floor=0.62)], "gleam": 0.25},         # Hushward Rod
-    56: {"zones": [_hilt(SILVER, pct=22, floor=0.48),
-                   _edge(PLASMA, pct=18, floor=0.62)], "gleam": 0.20,
-         "contrast": 0.65},                                                  # Umbral Rod
-    57: {"zones": [_hilt(STEEL, pct=22, floor=0.48),
-                   _edge(GOLD, pct=18, floor=0.58)], "gleam": 0.25},         # Dragon Rod
-    58: {"zones": [_hilt(BLACK_IRON, pct=22, floor=0.36),
-                   _edge(WHITE, pct=20, floor=0.70)], "gleam": 0.25},        # Rod of Faith
-    # --- Guns (LW-203, 2026-08-14) --------------------------------------------------------
-    # The least-coloured family in the game before this pass: measured, the shipping bake reached
-    # a MEDIAN 1.7% of each gun's solid art and 0.0% of the Ironclad Repeater's, which is last of
-    # the twelve families still on bright-v2.
-    #
-    # A gun is the crossbow's split again, and the third art shape to need no new engine: a
-    # wooden STOCK against a metal BARREL, which saturation separates in one pass. Measured, the
-    # desat key claims 12 to 21 percent on all six and lands on the barrel every time, so the
-    # identity colour lives on the stock and frame where a player reads it.
-    #
-    # Tints for this family live in data/items.json, not in the table above, so the reasoning
-    # lives here beside the recipes. Four of the six kept their vanilla names and are anchored to
-    # their own measured hue: Stoneshooter 0.075 (warm earth), Glacial Gun 0.574 (cool),
-    # Blaze Gun 0.033 at chroma 0.143 (the most chromatic anchor met so far, and it wanted little
-    # more than saturating), Blaster 0.184 at chroma 0.032 (near colourless, so value is what its
-    # anchor constrains, the Chaos Blade's case).
-    # A walnut stock was tried first and put two BROWN guns in a six-gun list beside the
-    # Stoneshooter, which is anchored to its own earth hue and cannot move. This one is the
-    # free name, so it takes the burgundy lacquer a duelling pistol would wear.
-    71: {"zones": [_material(STEEL, sat_p=32)], "gleam": 0.25},              # Outrider Pistol
-    72: {"zones": [_material(BRASS, sat_p=30)], "gleam": 0.25},              # Ironclad Repeater
-    73: {"zones": [_material(SILVER, sat_p=32)], "gleam": 0.22},             # Stoneshooter
-    74: {"zones": [_material(WHITE, sat_p=30)], "gleam": 0.35},              # Glacial Gun
-    75: {"zones": [_material(BLACK_IRON, sat_p=32)], "gleam": 0.20},         # Blaze Gun
-    76: {"zones": [_material(STEEL, sat_p=30)], "gleam": 0.22},              # Blaster
-    # --- Bows (LW-201, 2026-08-14) --------------------------------------------------------
-    # Bows reuse the CROSSBOW helper, not the sword one, because a bow is a crossbow's relative
-    # and not a blade's: it has no hilt to find. Measured over the nine, the darkness key that
-    # finds a hilt on 15 of 15 swords claims 0.7 to 12.4 percent here and lands on scattered
-    # limb tips, while the saturation key finds the STRING on 10 to 24 percent. The string is
-    # also the right shape for a second material by the sword pass's own lesson, since it
-    # crosses the sprite's longest dimension instead of sitting at one end.
-    #
-    # min_blob is 2 across the family rather than the helper's 4. These sprites are TINY: the
-    # Tidecaller card carries 113 solid pixels against a sword's 400 to 1100, so a despeckle
-    # floor authored for a blade eats a bow's string whole.
-    83: {"zones": [_material(STEEL, sat_p=34, min_blob=2)], "gleam": 0.25},  # Skirmisher
-    84: {"zones": [_material(SILVER, sat_p=30, min_blob=2)], "gleam": 0.45}, # Windrunner
-    # The one bow whose STRING the key cannot find, because the artist drew it almost
-    # invisibly. At this window the mask lands on patches along the limb instead, which on an
-    # ICE bow reads as rime and is the right answer for the wrong reason; taken deliberately
-    # rather than left at a setting that returned 3% of the card.
-    85: {"zones": [_material(WHITE, sat_p=48, min_blob=2)], "gleam": 0.30},  # Frostarc
-    # A levin string on a levin bow is one colour, which the gate said out loud. Black iron on
-    # a hot yellow limb is the Flamberge's pairing and the contrast is chroma, not weight.
-    86: {"zones": [_material(BLACK_IRON, sat_p=32, min_blob=2)], "gleam": 0.22},  # Stormarc
-    87: {"zones": [_material(WHITE, sat_p=30, min_blob=2)], "gleam": 0.30},  # Skypiercer
-    88: {"zones": [_material(SILVER, sat_p=30, min_blob=2)], "gleam": 0.25}, # Tidecaller
-    89: {"zones": [_material(BRASS, sat_p=30, min_blob=2)], "gleam": 0.22},  # Huntress
-    90: {"zones": [_material(GOLD, sat_p=30, min_blob=2)], "gleam": 0.20},   # Yoichi Bow
-    91: {"zones": [_material(WHITE, sat_p=30, min_blob=2)], "gleam": 0.40},  # Perseus Bow
-    # --- Crossbows (LW-202, 2026-08-14) ---------------------------------------------------
-    # The owner's word for the family was dull, and it was true twice over. The tints were
-    # timid, three of the six at saturation 0.15 or below, so the render came back looking like
-    # the vanilla sprite with a wash over it. And the engine was wrong for the art: bright-v2
-    # splits a picture into two clusters, which is right for a sword (blade against hilt) and
-    # meaningless on line art with no second cluster in it.
-    #
-    # So every crossbow now runs one hot identity colour over the limb, frame and string, with a
-    # bright METAL on the stock found by saturation. That is the owner's own taste rule from the
-    # helmet rounds, a rich saturated body plus one bright metallic accent and two instantly
-    # nameable materials, applied to a family that never had a second material before.
-    77: {"zones": [_material(STEEL)]},                     # Scoutbolt   honey wood, steel stock
-    78: {"zones": [_material(BONE)]},                      # Eclipsebolt blood and bone (Doom)
-    79: {"zones": [_material(BRASS)]},                     # Arbalest    blued steel and brass
-    80: {"zones": [_material(GOLD)]},                      # Venombolt   venom green, gilt stock
-    81: {"zones": [_material(SILVER)]},                    # Pitchbolt   plum, cold silver
-    82: {"zones": [_material(GOLD, sat_p=36)]},            # Siegebolt   the capstone, gold-heavy
+    # LW-247 (2026-08-18): every weapon family this table used to carry (swords, knight
+    # swords, crossbows, bows, guns, rods, poles, harps, polearms, staves, cloths, katanas,
+    # knives, ninja blades, books, bags -- ~121 rows) now routes through the ramp engine
+    # (route() consults RAMP_IDS before this table can ever be reached for a weapon id), so
+    # those rows are DELETED here rather than left dead (git history is the archive, per
+    # LW-247 D5). Only the twelve HATS remain: hats were never touched by the ramp arc (they
+    # are not in RAMP_IDS), so their own LW-216 recipes stay exactly as the owner approved.
     # --- Hats (LW-216) ----------------------------------------------------------------------
     # Round four, 2026-08-14: the four the owner never lettered, decided on the rule above.
     157: {"zones": [_lining(22, (0.690, 0.92, 1.05)), _crest(WHITE)]},           # Roughspun Cap
@@ -2045,6 +1189,731 @@ ZONE_OVERRIDES = {
 }
 
 
+# --- LW-247 ramp engine (weapons 1-121, shields 128-143, helms 144-156) ---------------------
+# Ported from tools/probes/ramp/ramp_engine.py (banked 2026-08-16), the engine that actually
+# produced the owner-approved live install look for these 150 ids. D1: engines live in ONE
+# file, route() the single routing rule; the probe bank stays for provenance. D2: engine
+# functions port VERBATIM (same arithmetic, same iteration order) -- the only changes allowed
+# are imports, config sourced from the committed tables below instead of a %TEMP% scan or a
+# mod-tree read (B1/B7), and naming (RAMP_-prefixed constants so this section cannot collide
+# with the file's other three engines). WIRED INTO route()/engine_for(): RAMP_IDS is checked
+# before any other routing rule, and every id's tint is items.json iconTint (the migration D3
+# describes). The ramp selftest pins live further down, inside selftest().
+#
+# B1 fix: the probe read the mod tree in four places (docs/TODO.md LW-247 P8). Two are
+# structurally BYPASSED rather than fixed -- 150's visor trim is vendored on BOTH surfaces
+# (data/icon_ramp/bodies/), so ramp_render's vendored-PNG check intercepts it before the code
+# path that would have read a shipped texture is ever reached at all; and the KEEP_SHIPPED
+# weapon branch at the probe's own prototype dispatch was dead code even in the probe (it can
+# only fire for a WEAPON id and KEEP_SHIPPED has never held one) and is simply not ported. The
+# other two are genuinely fixed to render LIVE instead of reading a shipped texture: 144's
+# coif blend (ramp_render's own id==144 branch below) and the build() helm branch (P6
+# generative; the four KEEP_SHIPPED helms 147/148/155/156 render their kept HELM_OVERRIDES
+# rows live too) -- both using the ALREADY-SHIPPED HELM_OVERRIDES recipe those five ids never
+# left.
+# B7 fix: Mode-B donor ramps no longer scan %TEMP%\vanilla_cache for a matching sprite --
+# tools/probes/lw247_emit_tables.py did that scan ONCE, offline, and committed the winning
+# donor id per (item, surface) to data/icon_ramp/treatments.json; _ramp_donor_ramp below
+# samples that ONE pinned id through the pipeline's own vanilla decode.
+
+_ICON_RAMP_DIR = ROOT / "data" / "icon_ramp"
+
+
+def _load_ramp_json(name):
+    p = _ICON_RAMP_DIR / name
+    if not p.exists():
+        return {}
+    return json.loads(p.read_text(encoding="utf-8"))
+
+
+RAMP_TREATMENTS = _load_ramp_json("treatments.json")
+RAMP_RIMS = _load_ramp_json("rims.json")
+RAMP_IDS = frozenset(int(k) for k in RAMP_TREATMENTS)
+
+RAMP_SHIELDS = frozenset(range(128, 144))
+RAMP_HELMS = frozenset(range(144, 157))
+# Old-engine-body-kept helms (D5): their shipped art IS a live helm_recolor/shield_two_tone
+# render via their own (kept) HELM_OVERRIDES row, with the ramp identity glow added on top.
+RAMP_KEEP_SHIPPED = frozenset({147, 148, 155, 156})
+
+# Fixed module-level config, verbatim from tools/probes/ramp/ramp_engine.py's own defaults.
+# These are NOT emitted into treatments.json (D4): they never came from a census replay, they
+# are code the probe always ran with, so they stay code here too.
+_RAMP_SHIELD_PUNCH_BASE = {130, 134, 136, 138, 140, 142}
+_RAMP_HELM_PUNCH_ADD = {147, 148, 149, 150, 151, 152, 154}
+RAMP_POP = frozenset({134, 136, 138})
+_RAMP_ROTATE_ALL_BASE = {145, 146, 149, 150, 151, 152, 154}
+RAMP_WARM_TRIM_VANILLA = frozenset({145})
+RAMP_TWIN_GROUPS = [
+    {129, 131, 133, 135, 139, 143},   # the kite shield family
+    {130, 134, 136, 138, 140, 142},   # the round shield family
+]
+RAMP_TWIN_VSCALE = {}
+RAMP_TWIN_INVERT = set()
+RAMP_NEUTRAL_SAT = 0.18          # below this a pixel reads as unpainted metal/neutral
+RAMP_CHROMATIC_MIN_FRAC = 0.08   # unused by the engine math -- ported for parity; the probe
+                                 # never wired it in either (tools/probes/ramp/ramp_engine.py)
+
+
+def _ramp_weapon_config():
+    """Per-id weapon flags, replayed ONCE by tools/probes/lw247_emit_tables.py against the
+    exact census mutation order and committed to data/icon_ramp/treatments.json (B6 fix: NOT
+    read from weapon_treatments.json, whose own "punch" field disagrees with the deployed
+    config on 40 ids and whose "tint" field disagrees on 119 -- see the emitter's docstring).
+    Shield/helm membership is the fixed module config above, unioned in here so every caller
+    checks ONE set regardless of family."""
+    punch = set(_RAMP_SHIELD_PUNCH_BASE) | set(_RAMP_HELM_PUNCH_ADD)
+    rotate = set(_RAMP_ROTATE_ALL_BASE)
+    forceb, muted, white_spec = set(), set(), set()
+    soft_spec, outline_black, deep_damp = set(), set(), set()
+    reserved_pop, vscale_override = set(), {}
+    for k, row in RAMP_TREATMENTS.items():
+        if row.get("kind") != "weapon":
+            continue
+        i = int(k)
+        if row.get("reserved"):
+            reserved_pop.add(i)
+        if row.get("punch"):
+            punch.add(i)
+        if row.get("rotate"):
+            rotate.add(i)
+        if row.get("forceb"):
+            forceb.add(i)
+        if row.get("muted"):
+            muted.add(i)
+        if row.get("white_spec"):
+            white_spec.add(i)
+        if row.get("soft_spec"):
+            soft_spec.add(i)
+        if row.get("outline_black"):
+            outline_black.add(i)
+        if row.get("deep_damp"):
+            deep_damp.add(i)
+        if row.get("vscale_override") is not None:
+            vscale_override[i] = row["vscale_override"]
+    return (frozenset(punch), frozenset(rotate), frozenset(forceb), frozenset(muted),
+            frozenset(white_spec), frozenset(soft_spec), frozenset(outline_black),
+            frozenset(deep_damp), frozenset(reserved_pop), dict(vscale_override))
+
+
+(RAMP_PUNCH, RAMP_ROTATE_ALL, RAMP_FORCE_MODE_B, RAMP_MUTED, RAMP_WHITE_SPEC, RAMP_SOFT_SPEC,
+ RAMP_OUTLINE_BLACK, RAMP_DEEP_DAMP, RAMP_RESERVED_POP, RAMP_VSCALE_OVERRIDE) = _ramp_weapon_config()
+
+
+def _ramp_circ_mean(hues, weights):
+    x = sum(w * math.cos(2 * math.pi * h) for h, w in zip(hues, weights))
+    y = sum(w * math.sin(2 * math.pi * h) for h, w in zip(hues, weights))
+    return (math.atan2(y, x) / (2 * math.pi)) % 1.0
+
+
+def _ramp_hdist(a, b):
+    d = abs(a - b) % 1.0
+    return min(d, 1.0 - d)
+
+
+def _ramp_load_vanilla(icon_id, surface):
+    """Vanilla decode through the pipeline's OWN path (D2): VANILLA tex -> WORK dir -> FF16
+    tex-conv -> DDS, the same route process() uses for every other engine. Never %TEMP%\\
+    vanilla_cache, which stays a probe-only convenience (B7's other half: no environment
+    input at production time)."""
+    sub, pfx = ("equip_item", "ei") if surface == "card" else ("equip_item_s", "ei_s")
+    stem = f"{pfx}_{icon_id:03d}_uitx"
+    WORK.mkdir(parents=True, exist_ok=True)
+    work_tex = WORK / f"{stem}.tex"
+    shutil.copy(VANILLA / sub / "texture" / f"{stem}.tex", work_tex)
+    subprocess.run([str(FF16), "tex-conv", "-i", str(work_tex)], capture_output=True)
+    im = Image.open(WORK / f"{stem}.dds").convert("RGBA")
+    work_tex.unlink(missing_ok=True)
+    return im
+
+
+def _ramp_game_files_available():
+    """True when the game's vanilla texture tree AND the FF16Tools CLI are both present on
+    disk. False in CI (the GitHub runner ships neither -- only Pillow), which is exactly what
+    every selftest check that needs a REAL vanilla decode (as opposed to a synthetic fixture)
+    must skip loudly rather than crash on. Computed fresh each call (not cached) so a dev box
+    that mounts/unmounts the game drive mid-session is read correctly, and because selftest()
+    calls it at most a handful of times -- not a hot path."""
+    return VANILLA.is_dir() and FF16.exists()
+
+
+_RAMP_BODIES_DIR = _ICON_RAMP_DIR / "bodies"
+
+
+def _ramp_vendored_body(item_id, surface):
+    """One of the 16 census2 BODY-VEND (id, surface) pairs whose body the engine cannot
+    re-render from vanilla + tables; see data/icon_ramp/bodies/README.md."""
+    stem = f"ei_{item_id:03d}_uitx" if surface == "card" else f"ei_s_{item_id:03d}_uitx"
+    p = _RAMP_BODIES_DIR / f"{stem}.png"
+    if not p.exists():
+        return None
+    return Image.open(p).convert("RGBA")
+
+
+def _ramp_analyze(im):
+    """Classify pixels; return dict with per-pixel HSV, masks, cluster stats."""
+    w, h = im.size
+    px = im.load()
+    hsv = {}
+    solid, ring, spec = set(), set(), set()
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = px[x, y]
+            if a < HALO_HI:
+                continue
+            hh, ss, vv = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
+            hsv[(x, y)] = (hh, ss, vv)
+            solid.add((x, y))
+    for (x, y) in solid:
+        for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            nx, ny = x + dx, y + dy
+            if not (0 <= nx < w and 0 <= ny < h) or px[nx, ny][3] < HALO_HI:
+                ring.add((x, y)); break
+    for p, (hh, ss, vv) in hsv.items():
+        if ss < 0.15 and vv > 0.85:
+            spec.add(p)
+    chrom = [p for p in solid if hsv[p][1] >= RAMP_NEUTRAL_SAT and p not in ring]
+    return {"hsv": hsv, "solid": solid, "ring": ring, "spec": spec, "chrom": chrom, "size": (w, h)}
+
+
+def _ramp_hue_clusters(points, hsv, k_max=4):
+    """Circular k-means on hue, sat-weighted; k picked by hue spread. Returns
+    list of (member_set, mean_hue) sorted by size desc."""
+    if not points:
+        return []
+    hues = [hsv[p][0] for p in points]
+    sats = [hsv[p][1] for p in points]
+    mean = _ramp_circ_mean(hues, sats)
+    spread = sum(s * _ramp_hdist(hh, mean) for hh, s in zip(hues, sats)) / max(1e-9, sum(sats))
+    k = 1 if spread < 0.03 else (2 if spread < 0.07 else (3 if spread < 0.12 else 4))
+    k = min(k, k_max)
+    ordered = sorted(points, key=lambda p: hsv[p][0])
+    centers = [hsv[ordered[int((i + 0.5) * len(ordered) / k)]][0] for i in range(k)]
+    members = None
+    for _ in range(12):
+        members = [[] for _ in range(k)]
+        for p in points:
+            j = min(range(k), key=lambda c: _ramp_hdist(hsv[p][0], centers[c]))
+            members[j].append(p)
+        new = [_ramp_circ_mean([hsv[p][0] for p in ms], [hsv[p][1] for p in ms]) if ms else centers[j]
+               for j, ms in enumerate(members)]
+        if all(_ramp_hdist(a, b) < 1e-4 for a, b in zip(new, centers)):
+            centers = new; break
+        centers = new
+    out = [(set(ms), c) for ms, c in zip(members, centers) if ms]
+    merged = []
+    for ms, c in out:
+        for i, (m2, c2) in enumerate(merged):
+            if _ramp_hdist(c, c2) < 0.06:
+                u = m2 | ms
+                merged[i] = (u, _ramp_circ_mean([hsv[p][0] for p in u], [hsv[p][1] for p in u]))
+                break
+        else:
+            merged.append((ms, c))
+    merged.sort(key=lambda t: -len(t[0]))
+    return merged
+
+
+def _ramp_donor_for(item_id, surface):
+    """The ONE pinned Mode-B donor icon id for (item_id, surface), committed by the emitter.
+    Raises loudly rather than guessing: if the ported dispatch reaches Mode B for an id the
+    emitter's identical replay did not, a config or tint edit has drifted the two apart and
+    the fix is to re-run tools/probes/lw247_emit_tables.py, not to fall back silently."""
+    row = RAMP_TREATMENTS.get(str(item_id), {})
+    donor = row.get("donor")
+    did = donor.get(surface) if donor else None
+    if did is None:
+        raise RuntimeError(
+            f"ramp id{item_id} {surface}: entered Mode B but data/icon_ramp/treatments.json "
+            f"has no pinned donor for it. Re-run tools/probes/lw247_emit_tables.py.")
+    return did
+
+
+def _ramp_donor_ramp(target_hue, item_id, surface):
+    """5-step (h,s,v) ramp from ONE pinned donor icon (B7 fix -- see _ramp_donor_for). Math
+    past the donor's own analysis is verbatim tools/probes/ramp/ramp_engine.py's donor_ramp."""
+    donor_id = _ramp_donor_for(item_id, surface)
+    im = _ramp_load_vanilla(donor_id, surface)
+    a = _ramp_analyze(im)
+    cl = _ramp_hue_clusters(a["chrom"], a["hsv"], k_max=2)
+    mem, _ch = cl[0]
+    hsv = a["hsv"]
+    pts = sorted(mem, key=lambda p: hsv[p][2])
+    steps = []
+    n = len(pts)
+    for i in range(5):
+        seg = pts[int(i * n / 5):int((i + 1) * n / 5)]
+        hs = _ramp_circ_mean([hsv[p][0] for p in seg], [max(0.05, hsv[p][1]) for p in seg])
+        ss = sum(hsv[p][1] for p in seg) / len(seg)
+        vs = sum(hsv[p][2] for p in seg) / len(seg)
+        steps.append((hs, ss, vs))
+    centre = _ramp_circ_mean([h for h, _, _ in steps], [max(0.05, s) for _, s, _ in steps])
+    disciplined = []
+    for hs, ss, vs in steps:
+        off = ((hs - centre + 0.5) % 1.0) - 0.5
+        off = max(-0.06, min(0.06, off))
+        disciplined.append(((target_hue + off) % 1.0, ss, vs))
+    return disciplined
+
+
+def _ramp_feather_weights(target, size, protected):
+    """1.0 inside target, 0 elsewhere/protected; 3x3 box-blurred once."""
+    w, h = size
+    raw = {p: 1.0 for p in target if p not in protected}
+    out = {}
+    for y in range(h):
+        for x in range(w):
+            if (x, y) in protected:
+                continue
+            acc = cnt = 0
+            for dy in (-1, 0, 1):
+                for dx in (-1, 0, 1):
+                    acc += raw.get((x + dx, y + dy), 0.0); cnt += 1
+            if acc:
+                out[(x, y)] = acc / cnt
+    return out
+
+
+RAMP_PANEL = (255, 255, 255)  # the game's inventory AND shop rows, measured 2026-08-16
+
+
+def _ramp_lab(rgb):
+    def f(c):
+        c = c / 255
+        return c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4
+    r, g, b = (f(c) for c in rgb)
+    X = (0.4124 * r + 0.3576 * g + 0.1805 * b) / 0.95047
+    Y = 0.2126 * r + 0.7152 * g + 0.0722 * b
+    Z = (0.0193 * r + 0.1192 * g + 0.9505 * b) / 1.08883
+    g2 = lambda t: t ** (1 / 3) if t > 0.008856 else 7.787 * t + 16 / 116
+    fx, fy, fz = g2(X), g2(Y), g2(Z)
+    return (116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz))
+
+
+def _ramp_dE(a, b):
+    la, lb = _ramp_lab(a), _ramp_lab(b)
+    return sum((x - y) ** 2 for x, y in zip(la, lb)) ** 0.5
+
+
+def ramp_rim_color(t_hue, t_sat, min_de=30.0, alpha=170):
+    """The glow rim must PROVE its contrast against the real menu ground before it may exist:
+    composite at rim alpha over PANEL and walk sat up / value down until dE clears. Vivid
+    identities pass unchanged; pale ones deepen instead of ghosting."""
+    s0 = max(min(1.0, t_sat * 1.1), 0.45)
+    for v in (0.95, 0.90, 0.85, 0.80, 0.75, 0.70, 0.65, 0.60, 0.55):
+        for s in (s0, min(1.0, s0 + 0.15), min(1.0, s0 + 0.30), 1.0):
+            rgb = tuple(int(round(c * 255)) for c in colorsys.hsv_to_rgb(t_hue, s, v))
+            a = alpha / 255
+            eff = tuple(round(rgb[k] * a + RAMP_PANEL[k] * (1 - a)) for k in range(3))
+            if _ramp_dE(eff, RAMP_PANEL) >= min_de:
+                return rgb
+    return tuple(int(round(c * 255)) for c in colorsys.hsv_to_rgb(t_hue, 1.0, 0.55))
+
+
+def _ramp_dilate(points, solid, r=2):
+    """Grow a pixel set by r (chebyshev), clipped to solid pixels."""
+    out = set()
+    for (x, y) in points:
+        for dy in range(-r, r + 1):
+            for dx in range(-r, r + 1):
+                q = (x + dx, y + dy)
+                if q in solid:
+                    out.add(q)
+    return out
+
+
+def _ramp_paint(po, hsv, p, nh, ns, wt, vs=1.0):
+    """Blend toward (nh, ns, source-v) in HSV space so a feather seam can never dim value the
+    way an RGB lerp between distant hues does."""
+    hh, ss, vv = hsv[p]
+    dh = ((nh - hh + 0.5) % 1.0) - 0.5
+    if abs(dh) > 0.15:
+        bh, bs = nh, ss + (ns - ss) * wt
+    else:
+        bh, bs = (hh + dh * wt) % 1.0, ss + (ns - ss) * wt
+    bv = vv + (min(1.0, vv * vs) - vv) * wt
+    r, g, b = (int(round(c * 255)) for c in colorsys.hsv_to_rgb(bh, min(1.0, bs), bv))
+    a0 = po[p][3]
+    po[p] = (r, g, b, a0)
+
+
+_ramp_twin_ref_cache = {}
+
+
+def _ramp_twin_reference(gi):
+    """The variant with the cleanest neutral face donates the material MAP: which pixels are
+    frame, which are face, and the silver ramp the face should wear."""
+    if gi in _ramp_twin_ref_cache:
+        return _ramp_twin_ref_cache[gi]
+    best, chroms = None, []
+    for i in sorted(RAMP_TWIN_GROUPS[gi]):
+        im = _ramp_load_vanilla(i, "small")
+        a = _ramp_analyze(im)
+        inner = {p for p in a["solid"] if p not in a["ring"]}
+        neutral = [p for p in inner if a["hsv"][p][1] < RAMP_NEUTRAL_SAT]
+        frac = len(neutral) / max(1, len(inner))
+        if best is None or frac > best[0]:
+            best = (frac, i, a, inner)
+        chroms.append(set(a["chrom"]))
+    _, ref_id, a, inner = best
+    chroms.sort(key=len)
+    inter = chroms[0] & chroms[1]
+    seed = (inter if len(inter) >= 0.5 * len(chroms[0]) else set(a["chrom"])) & inner
+    frame = _ramp_dilate(seed, a["solid"], r=1) & inner
+    face = inner - frame
+    pts = sorted(face, key=lambda p: a["hsv"][p][2])
+    steps = []
+    n = len(pts)
+    for i in range(5):
+        seg = pts[int(i * n / 5):int((i + 1) * n / 5)]
+        hs = _ramp_circ_mean([a["hsv"][p][0] for p in seg], [max(0.05, a["hsv"][p][1]) for p in seg])
+        ss = sum(a["hsv"][p][1] for p in seg) / len(seg)
+        steps.append((hs, ss, 0.0))
+    _ramp_twin_ref_cache[gi] = (frame, face, steps, ref_id, seed)
+    return _ramp_twin_ref_cache[gi]
+
+
+def _ramp_twin_prototype(im, tint, gi, punch=False, item_id=None):
+    """Nightward-style split imposed on every variant of the shared drawing: frame carries the
+    identity, face wears the reference's silver."""
+    t_hue, t_sat, _ = tint
+    if punch:
+        t_sat = max(t_sat, 0.32)
+    frame, face, ramp, _, seed = _ramp_twin_reference(gi)
+    inverted = item_id in RAMP_TWIN_INVERT
+    if inverted:
+        frame, face, seed = face, frame, set(face)
+    a = _ramp_analyze(im)
+    hsv, solid = a["hsv"], a["solid"]
+    ink = {p for p in a["ring"] if hsv[p][2] < 0.45 or hsv[p][1] < 0.20}
+    released = a["ring"] - ink
+    near_frame = _ramp_dilate(seed, solid, r=1)
+    frame = frame | {p for p in released if p in near_frame}
+    face = face | {p for p in released if p not in near_frame}
+    protected = ink | a["spec"]
+    out = im.copy(); po = out.load()
+    import bisect
+    fr0 = [p for p in frame if p in hsv and p not in protected]
+    core = [p for p in seed if p in hsv and hsv[p][1] >= 0.10]
+    cmean0 = _ramp_circ_mean([hsv[p][0] for p in core], [hsv[p][1] for p in core]) if core else t_hue
+    outliers = set() if inverted else {p for p in fr0 if p not in seed and hsv[p][1] >= 0.10
+                and abs(((hsv[p][0] - cmean0 + 0.5) % 1.0) - 0.5) > 0.07}
+    frame = frame - outliers
+    face = face | outliers
+    body = [p for p in face if p in hsv and p not in protected]
+    vs = sorted(hsv[p][2] for p in body)
+    wts = _ramp_feather_weights(set(body), a["size"], protected | frame)
+    for p, wt in wts.items():
+        if p not in hsv or wt <= 0:
+            continue
+        pos = min(0.9999, bisect.bisect_left(vs, hsv[p][2]) / max(1, len(vs) - 1)) * 4
+        i0, frac = int(pos), pos - int(pos)
+        h0, s0, _ = ramp[i0]; h1, s1, _ = ramp[min(4, i0 + 1)]
+        dh = ((h1 - h0 + 0.5) % 1.0) - 0.5
+        _ramp_paint(po, hsv, p, (h0 + dh * frac) % 1.0, s0 + (s1 - s0) * frac, wt)
+    fr_protect = (protected - a["spec"]) if inverted else protected
+    fr = [p for p in frame if p in hsv and p not in fr_protect]
+    chrom_fr = [p for p in fr if hsv[p][1] >= 0.10]
+    cmean = _ramp_circ_mean([hsv[p][0] for p in chrom_fr], [hsv[p][1] for p in chrom_fr]) if chrom_fr else t_hue
+    sats = [hsv[p][1] for p in chrom_fr] or [t_sat]
+    hi = 3.0 if punch else 1.3
+    lo = 0.7 if t_sat >= 0.25 else 0.15
+    g = max(lo, min(hi, t_sat / max(1e-9, sum(sats) / len(sats))))
+    wts = _ramp_feather_weights(set(fr), a["size"], fr_protect | face)
+    for p, wt in wts.items():
+        if p not in hsv or wt <= 0:
+            continue
+        hh, ss, vv = hsv[p]
+        trust = min(1.0, ss / 0.35)
+        off = ((hh - cmean + 0.5) % 1.0) - 0.5
+        off = max(-0.08, min(0.08, off * trust))
+        damp = 0.55 + 0.45 * vv
+        ns = ss * g
+        if punch or inverted:
+            ns = max(ns, t_sat * 0.85)
+        ns = min(ns * damp, 0.30 + 0.55 * vv)
+        if p in a["spec"]:
+            ns = min(ns, 0.22)
+        _ramp_paint(po, hsv, p, (t_hue + off) % 1.0, ns, wt, vs=RAMP_TWIN_VSCALE.get(item_id, 1.0))
+    for p in protected:
+        if p in hsv and p not in a["spec"] and hsv[p][1] > 0.25:
+            hh, ss, vv = hsv[p]
+            _ramp_paint(po, hsv, p, hh, 0.15, 1.0)
+    return out
+
+
+def _ramp_whiten_highlights(out, im):
+    """WHITE_SPEC post-pass: the sheen band drains to true white."""
+    a = _ramp_analyze(im)
+    po = out.load()
+    vals = sorted(t[2] for t in a["hsv"].values())
+    if not vals:
+        return out
+    v_bar = max(0.62, vals[int(len(vals) * 0.80)])
+    for p, (hh, ss, vv) in a["hsv"].items():
+        if vv >= v_bar and ss <= 0.55:
+            _ramp_paint(po, a["hsv"], p, hh, min(ss * 0.2, 0.10), 1.0, vs=1.0)
+    return out
+
+
+def _ramp_blacken_outline(out, im):
+    a = _ramp_analyze(im)
+    po = out.load()
+    for p in a["ring"]:
+        r, g, b, al = po[p]
+        po[p] = (int(r * 0.35), int(g * 0.35), int(b * 0.35), al)
+    return out
+
+
+def _ramp_soften_sheen(out, im):
+    """SOFT_SPEC post-pass: the lightest-fifth band keeps its colour, sheds half its sat."""
+    a = _ramp_analyze(im)
+    po = out.load()
+    vals = sorted(t[2] for t in a["hsv"].values())
+    if not vals:
+        return out
+    v_bar = max(0.62, vals[int(len(vals) * 0.80)])
+    for p, (hh, ss, vv) in a["hsv"].items():
+        if vv >= v_bar and ss <= 0.55:
+            r, g, b, al = po[p]
+            h2, s2, v2 = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
+            r2, g2, b2 = colorsys.hsv_to_rgb(h2, s2 * 0.5, v2)
+            po[p] = (round(r2 * 255), round(g2 * 255), round(b2 * 255), al)
+    return out
+
+
+def ramp_pop_filter(im, factor=1.6):
+    """Post-pass: crank chroma on the rendered sprite. Ink and speculars stay quiet."""
+    out = im.copy(); po = out.load()
+    w, h = out.size
+    for y in range(h):
+        for x in range(w):
+            r, g, b, al = po[x, y]
+            if al < HALO_HI:
+                continue
+            hh, ss, vv = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
+            if ss < 0.12 or vv < 0.30:
+                continue
+            ns = min(1.0, ss * factor)
+            nv = min(1.0, max(0.0, 0.5 + (vv - 0.5) * 1.08))
+            nr, ng, nb = (int(round(c * 255)) for c in colorsys.hsv_to_rgb(hh, ns, nv))
+            po[x, y] = (nr, ng, nb, al)
+    return out
+
+
+def ramp_prototype(im, tint, surface, item_id=None):
+    base = _ramp_prototype_dispatch(im, tint, surface, item_id)
+    if item_id in RAMP_WHITE_SPEC:
+        base = _ramp_whiten_highlights(base, im)
+    if item_id in RAMP_SOFT_SPEC:
+        base = _ramp_soften_sheen(base, im)
+    if item_id in RAMP_OUTLINE_BLACK:
+        base = _ramp_blacken_outline(base, im)
+    return base
+
+
+def _ramp_prototype_dispatch(im, tint, surface, item_id=None):
+    """B1/B7 fix: the probe's KEEP_SHIPPED-weapon / id==144 / id==150 branches (each a
+    mod-tree read) are gone -- ramp_render dispatches those THREE cases (vendored PNG, or an
+    old-engine live render) before ever calling here (D5), so this function never runs for
+    them at all."""
+    if item_id in RAMP_RESERVED_POP:
+        return ramp_pop_filter(im, factor=1.35)
+    return _ramp_prototype_inner(im, tint, surface, item_id)
+
+
+def _ramp_prototype_inner(im, tint, surface, item_id=None):
+    """v2 placement rule: the BODY carries the identity. Neutral steel bodies get a donor ramp
+    in the identity family; chromatic bodies get rotated."""
+    if surface == "small":
+        for gi, grp in enumerate(RAMP_TWIN_GROUPS):
+            if item_id in grp:
+                return _ramp_twin_prototype(im, tint, gi, punch=item_id in RAMP_PUNCH, item_id=item_id)
+    t_hue, t_sat, t_vm = tint
+    punch = item_id in RAMP_PUNCH
+    vscale = max(0.8, min(1.25, t_vm)) if punch else 1.0
+    vscale = RAMP_VSCALE_OVERRIDE.get(item_id, vscale)
+    if punch:
+        t_sat = max(t_sat, 0.32)
+    a = _ramp_analyze(im)
+    hsv, solid, ring, spec = a["hsv"], a["solid"], a["ring"], a["spec"]
+    out = im.copy(); po = out.load()
+    protected = ring | spec
+    inner = [p for p in solid if p not in ring]
+    if len(inner) < 0.6 * len(solid):
+        ink = {p for p in ring if hsv[p][2] < 0.45 or hsv[p][1] < 0.20}
+        protected = ink | spec
+        inner = [p for p in solid if p not in ink]
+        a = dict(a)
+        a["chrom"] = [p for p in inner if hsv[p][1] >= RAMP_NEUTRAL_SAT]
+    neutral = [p for p in inner if hsv[p][1] < RAMP_NEUTRAL_SAT]
+    neutral_frac = len(neutral) / max(1, len(inner))
+    if neutral_frac > 0.5 or item_id in RAMP_FORCE_MODE_B:
+        acc_protected = protected | _ramp_dilate(set(a["chrom"]), solid, r=2)
+        probe_body = [p for p in inner if hsv[p][1] < RAMP_NEUTRAL_SAT and p not in acc_protected]
+        if len(probe_body) >= 0.15 * max(1, len(inner)):
+            protected = acc_protected
+        ramp = _ramp_donor_ramp(t_hue, item_id, surface)
+        r_sat = sum(s for _, s, _ in ramp) / len(ramp)
+        lo, hi = (1.0, 1.8) if punch else (0.3, 1.5)
+        sat_g = max(lo, min(hi, t_sat / max(1e-9, r_sat)))
+        body = [p for p in neutral if p not in protected]
+        vs = sorted(hsv[p][2] for p in body)
+        import bisect
+        def q(v):
+            return bisect.bisect_left(vs, v) / max(1, len(vs) - 1)
+        if punch and item_id not in RAMP_WHITE_SPEC:
+            body = body + [p for p in a["spec"] if p in hsv]
+        wts = _ramp_feather_weights(set(body), a["size"], protected - (a["spec"] if punch else set()))
+        for p, wt in wts.items():
+            if p not in hsv or wt <= 0:
+                continue
+            pos = min(0.9999, q(hsv[p][2])) * 4
+            i0, frac = int(pos), pos - int(pos)
+            h0, s0, _ = ramp[i0]; h1, s1, _ = ramp[min(4, i0 + 1)]
+            dh = ((h1 - h0 + 0.5) % 1.0) - 0.5
+            ns = (s0 + (s1 - s0) * frac) * sat_g
+            if p in a["spec"]:
+                ns = max(min(ns, 0.35), 0.20)
+            _ramp_paint(po, hsv, p, (h0 + dh * frac) % 1.0, ns, wt, vs=vscale)
+    else:
+        clusters = _ramp_hue_clusters(a["chrom"], hsv)
+        if item_id in RAMP_ROTATE_ALL:
+            keep_warm = item_id in RAMP_WARM_TRIM_VANILLA
+            rot = [(ms, c) for ms, c in clusters if not (keep_warm and _ramp_hdist(c, 0.11) < 0.08)]
+            kept = [(ms, c) for ms, c in clusters if (keep_warm and _ramp_hdist(c, 0.11) < 0.08)]
+            mem = set().union(*(ms for ms, _ in rot)) if rot else set()
+            cmean = _ramp_circ_mean([hsv[p][0] for p in mem], [hsv[p][1] for p in mem]) if mem else t_hue
+            others = set().union(*(ms for ms, _ in kept)) if kept else set()
+            if others:
+                protected = protected | (_ramp_dilate(others, solid, r=2) - mem)
+        else:
+            near = [cl for cl in clusters if _ramp_hdist(cl[1], t_hue) < 0.10]
+            chosen = near[0] if near else clusters[0]
+            mem, cmean = chosen
+            others = set().union(*(ms for ms, c in clusters if (ms, c) != chosen)) or set()
+        if others:
+            protected = protected | (_ramp_dilate(others, solid, r=2) - mem)
+        delta = (t_hue - cmean) % 1.0   # unused past this point in the probe too; kept for
+                                        # verbatim parity (D2) rather than trimmed as dead code
+        sats = [hsv[p][1] for p in mem]
+        lo, hi = (0.55, 1.0) if item_id in RAMP_MUTED else ((0.9, 1.8) if punch else (0.7, 1.3))
+        g = max(lo, min(hi, t_sat / max(1e-9, sum(sats) / len(sats))))
+        region = _ramp_dilate(mem, solid, r=1)
+        mem2 = mem | {p for p in region if p not in protected and hsv[p][1] >= 0.08}
+        if punch and item_id not in RAMP_WHITE_SPEC:
+            mem2 = mem2 | {p for p in a["spec"] if p in hsv}
+        wts = _ramp_feather_weights(mem2, a["size"], protected - (a["spec"] if punch else set()))
+        for p, wt in wts.items():
+            if p not in hsv or wt <= 0:
+                continue
+            hh, ss, vv = hsv[p]
+            trust = min(1.0, ss / 0.35)
+            off = ((hh - cmean + 0.5) % 1.0) - 0.5
+            lim = 0.04 if item_id in RAMP_ROTATE_ALL else 0.08
+            off = max(-lim, min(lim, off * trust))
+            damp = (0.7 + 0.3 * vv) if punch else (0.55 + 0.45 * vv)
+            ns = min(ss * g * damp, 0.30 + 0.55 * vv)
+            if item_id in RAMP_DEEP_DAMP:
+                ns *= 0.8
+            if p in a["spec"]:
+                ns = max(min(ns, 0.35), 0.20)
+            _ramp_paint(po, hsv, p, (t_hue + off) % 1.0, ns, wt, vs=vscale)
+    return out
+
+
+def ramp_glow(im, tint, inner_a=170, outer_a=80, third_a=0, min_de=30.0, rim_sat=None,
+             rim_rgb=None):
+    """Identity rim as an ADDED layer outside the body. The body contour uses a looser alpha
+    threshold plus a majority smooth, so the rim follows the SHAPE the eye sees."""
+    t_hue, t_sat, _ = tint
+    w, h = im.size
+    out = im.copy(); po = out.load(); px = im.load()
+    if rim_rgb is None:
+        rim_rgb = ramp_rim_color(t_hue, rim_sat if rim_sat is not None else t_sat,
+                                 min_de=min_de, alpha=inner_a)
+    body = {(x, y) for y in range(h) for x in range(w) if px[x, y][3] >= 160}
+    smoothed = set()
+    for y in range(h):
+        for x in range(w):
+            n = sum((x + dx, y + dy) in body for dy in (-1, 0, 1) for dx in (-1, 0, 1)
+                    if (dx, dy) != (0, 0))
+            if ((x, y) in body and n >= 3) or ((x, y) not in body and n >= 5):
+                smoothed.add((x, y))
+    r_ = 3 if third_a else 2
+    for y in range(h):
+        for x in range(w):
+            if (x, y) in smoothed:
+                continue
+            d = min((max(abs(dx), abs(dy)) for dx in range(-r_, r_ + 1) for dy in range(-r_, r_ + 1)
+                     if (x + dx, y + dy) in smoothed), default=99)
+            if d == 1:
+                po[x, y] = rim_rgb + (inner_a,)
+            elif d == 2:
+                po[x, y] = rim_rgb + (outer_a,)
+            elif d == 3 and third_a:
+                po[x, y] = rim_rgb + (third_a,)
+    return out
+
+
+def _ramp_coif_light_middle(out, a, ship_live):
+    """coif_light_middle, B1-fixed: `ship_live` is a LIVE render (helm_recolor via the kept
+    HELM_OVERRIDES[144] row) that reproduces the mod-tree bytes pixel-exact (proven,
+    tools/probes/lw247_keepship_check.py), never a mod-tree file read. Math unchanged."""
+    sp = ship_live.load()
+    po = out.load()
+    for p in a["solid"]:
+        r, g, b, al = sp[p]
+        if al < HALO_HI:
+            continue
+        _, _, vv = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
+        if vv >= 0.55:
+            r0, g0, b0, a0 = po[p]
+            po[p] = (round(r0 + (r - r0) * 0.75), round(g0 + (g - g0) * 0.75),
+                     round(b0 + (b - b0) * 0.75), a0)
+    return out
+
+
+def ramp_render(item_id, tint, surface, glow=True):
+    """THE ramp branch route() dispatches to for the 150 ramp ids (D5): a vendored body PNG
+    if this (id, surface) is one of the 16 census2 BODY-VEND pairs; else, for the five ids
+    whose shipped art IS the old engine's own render
+    (RAMP_KEEP_SHIPPED helms 147/148/155/156 plus 144's colour map), that old-engine render --
+    called LIVE via helm_recolor/shield_two_tone, never a mod-tree read (B1 fix); else the
+    ramp engine's own prototype render. Glow (the identity rim) runs last unless the caller
+    passes glow=False (the explicit knob the arc gate's --no-glow smoke render exercises),
+    honoring data/icon_ramp/rims.json where a row exists and the default rim_color(tint)
+    otherwise."""
+    body = _ramp_vendored_body(item_id, surface)
+    if body is None:
+        if item_id in RAMP_KEEP_SHIPPED:
+            van = _ramp_load_vanilla(item_id, surface)
+            ov = dict(HELM_OVERRIDES[item_id])
+            style = ov.pop("style")
+            body = (shield_two_tone(van, tint, ov, surface) if style == "shield"
+                    else helm_recolor(van, tint, ov, surface))
+        elif item_id == 144:
+            van = _ramp_load_vanilla(144, surface)
+            ramp_base = _ramp_prototype_inner(van, tint, surface, item_id=144)
+            ov = dict(HELM_OVERRIDES[144])
+            ov.pop("style")
+            ship_live = helm_recolor(van, tint, ov, surface)
+            body = _ramp_coif_light_middle(ramp_base, _ramp_analyze(van), ship_live)
+        else:
+            src_id = SRC.get(item_id, item_id)
+            van = _ramp_load_vanilla(src_id, surface)
+            body = ramp_prototype(van, tint, surface, item_id=item_id)
+            if item_id in RAMP_POP:
+                body = ramp_pop_filter(body)
+    if not glow:
+        return body
+    rim = RAMP_RIMS.get(str(item_id))
+    if rim:
+        return ramp_glow(body, tint, inner_a=rim["inner_a"], outer_a=rim["outer_a"],
+                         third_a=rim["third_a"], rim_rgb=tuple(rim["rgb"]))
+    return ramp_glow(body, tint)
+
+
 def recolor(im, hue, sat, val_mult):
     """LEGACY whole-icon tint: armor, accessories, and the hair adornments whose own re-pass has
     not run yet (their look must not change until it does); everything else predates LW-189
@@ -2076,12 +1945,19 @@ WHOLE_BRIGHT_CATS = {"Shield"}   # families reviewed under LW-190
 
 
 def engine_for(item_id):
-    """Per-ITEM opt-in beats per-category default, which is why ZONE_OVERRIDES is consulted
-    first: the zone engine is not tied to a family, and the re-pass reaches items whose category
-    already has an engine. Crossbows are the case that forced the order. They are weapons, so
-    the category rule sends them to bright-v2, but bright-v2 splits a picture into two clusters
-    and a crossbow is line art with no second cluster in it, so it came back looking like the
-    vanilla sprite with a wash over it."""
+    """RAMP_IDS beats everything (LW-247, checked first below): the 150 ramp ids (weapons
+    1-121, shields 128-143, helms 144-156) always win, including over ZONE_OVERRIDES -- a hat
+    id could never collide (RAMP_IDS holds no Hat), but the order itself is the contract
+    (selftest's routing-order pin injects a ramp id into ZONE_OVERRIDES and asserts RAMP_IDS
+    still wins). Past that, per-ITEM opt-in beats per-category default, which is why
+    ZONE_OVERRIDES is consulted next: the zone engine is not tied to a family, and a re-pass
+    can reach items whose category already has an engine. Crossbows were the case that forced
+    THAT order, back when they were zone-engine items rather than ramp ids: they are weapons,
+    so the category rule alone would send them to bright-v2, but bright-v2 splits a picture
+    into two clusters and a crossbow is line art with no second cluster in it, so it came back
+    looking like the vanilla sprite with a wash over it."""
+    if item_id in RAMP_IDS:
+        return "ramp"
     if item_id in ZONE_OVERRIDES:
         return "three-zone"
     cat = _CATEGORY.get(item_id)
@@ -2094,11 +1970,14 @@ def engine_for(item_id):
     return "legacy"
 
 
-def route(im, item_id, tint, surface):
+def route(im, item_id, tint, surface, glow=True):
     """THE single routing rule, returning a NEW image so callers keep their vanilla copy.
     process() and tools/icon_preview.py both call this and neither owns a second copy of the
-    branch, so the reviewed gallery cannot drift from the production bake."""
+    branch, so the reviewed gallery cannot drift from the production bake. `glow` is the ramp
+    engine's explicit knob (LW-247/LW-248): every other engine ignores it."""
     engine = engine_for(item_id)
+    if engine == "ramp":
+        return ramp_render(item_id, tint, surface, glow=glow)
     if engine == "bright-v2":
         return apply_weapon(im, item_id, tint, surface)
     if engine == "shield-bright":
@@ -2134,6 +2013,37 @@ def body_is_whole_signal(i):
     return bool(o) and all(tuple(z["tone"]) in VOCABULARY for z in o["zones"])
 
 
+def ramp_separation_signal(i):
+    """LW-247 delta NEW-4: the palette-separation successor for ramp ids, module level for the
+    same reason body_is_whole_signal is (tools/icon_preview.py's silhouettes gate needs the
+    identical rule, and two copies of a rule this load-bearing would drift). A NON-RESERVED
+    id's signal is its body tint (hue, sat) plus its resolved rim's OWN (hue, sat) -- the rim
+    is compared by hue-or-sat gap, not raw RGB equality, because rim_color's output is
+    sensitive to tiny hue differences (byte equality almost never rescues two DEFAULT rims and
+    almost always rescues two genuinely different ones). A RESERVED id's body is vanilla-popped
+    (pop_filter touches sat/value only), so its body tint carries no signal of its own and it
+    is judged on its rim alone. Returns None for an id with no tint at all (mid-edit)."""
+    tint = ICON_TINTS.get(i)
+    if tint is None:
+        return None
+    rim = RAMP_RIMS.get(str(i))
+    rim_rgb = tuple(rim["rgb"]) if rim else ramp_rim_color(tint[0], tint[1])
+    rim_h, rim_s, _ = colorsys.rgb_to_hsv(*[c / 255 for c in rim_rgb])
+    if i in RAMP_RESERVED_POP:
+        return (None, None, rim_h, rim_s)
+    return (tint[0], tint[1], rim_h, rim_s)
+
+
+def ramp_separation_collides(sig_a, sig_b, hue_gap, sat_gap):
+    ha, sa, rha, rsa = sig_a
+    hb, sb, rhb, rsb = sig_b
+    rim_distinct = abs(arc(rha, rhb)) >= hue_gap or abs(rsa - rsb) >= sat_gap
+    if ha is None or hb is None:
+        return not rim_distinct   # reserved: rim-only judgment
+    body_close = abs(arc(ha, hb)) < hue_gap and abs(sa - sb) < sat_gap
+    return body_close and not rim_distinct
+
+
 # RESERVED-NAME RULINGS. The owner's rule is that an item which kept its vanilla name is built
 # from its own art; these are the items where he (or the evidence) settled on something else, so
 # the anchors gate reports them instead of failing. An id may only sit here with a reason, and
@@ -2148,6 +2058,51 @@ ANCHOR_RULINGS = {
     36: "OPEN, docs/TODO.md LW-244: Ragnarok's icon is warm at chroma 0.138 and it renders lilac "
         "under a violet-flame fuller, 115 degrees away. The violet was chosen as the dark "
         "arriving as fire; it was never measured against the art. Awaiting the owner.",
+    # New reports surfaced by the LW-247 pre-commit-3 anchors run (2026-08-18), both new
+    # relative to the pre-ramp-arc engine: neither item moved category, both simply render 40+
+    # degrees from their own icon art under the ramp engine for the first time it was measured.
+    # docs/TODO.md LW-277 collects both owner calls.
+    142: "OPEN, docs/TODO.md LW-277: the Venetian Shield's icon reads hue 37 degrees (a warm "
+         "gilt plate) and the ramp render is icy platinum at hue 198, a 161-degree move. "
+         "Surfaced by the pre-commit-3 anchors run, not measured before the ramp arc. Awaiting "
+         "the owner; listed here so the gate reports it rather than blocking on it.",
+    116: "OPEN, docs/TODO.md LW-277: the Fallingstar Bag's icon reads hue 111 degrees and the "
+         "ramp render (the deep-mute bag round's own config) is hue 171, a 60-degree move. "
+         "Surfaced by the pre-commit-3 anchors run, not measured before the ramp arc. Awaiting "
+         "the owner; listed here so the gate reports it rather than blocking on it.",
+}
+
+# LW-247 delta NEW-4: the ramp engine's palette-separation successor (selftest, near the end
+# of this function) judges every non-hat, non-reserved ramp id on its body tint escaped by a
+# distinct rim, and every reserved id on its rim alone. Ten pairs still collide under that
+# rule with the owner's 2026-08-16 in-game pass already approved, so they are grandfathered
+# here rather than re-litigated -- the reports-not-blocks pattern ANCHOR_RULINGS established.
+# Four shield pairs share an IDENTICAL rim (the complement-rim recipe puts several shields on
+# the same six-ish rim families), so the distinct-rim escape saves none of them; the sword and
+# katana pairs separate by WEIGHT (value), which this gate does not measure.
+RAMP_SEPARATION_RULINGS = {
+    (128, 143): "OWNER PASS 2026-08-16: Tideward and Aegis Prime share a complement rim "
+                "(242,109,0) and sit within the hue/sat floor on body tint too; the owner's "
+                "in-game round approved both as shipped.",
+    (131, 132): "OWNER PASS 2026-08-16: Swiftguard (orchid retune) and Wardstone share a "
+                "complement rim (242,225,0); approved as shipped.",
+    (135, 141): "OWNER PASS 2026-08-16: Emberward and Kaiser Shield share a complement rim "
+                "(0,97,242); approved as shipped.",
+    (136, 141): "OWNER PASS 2026-08-16: Spellbane and Kaiser Shield share a complement rim "
+                "(0,97,242); approved as shipped.",
+    (25, 29): "OWNER PASS 2026-08-16: Tanglethorn and Graviton separate by WEIGHT (Graviton "
+              "is near-black under a collapsing pale rim), not by hue/sat; approved as shipped.",
+    (25, 31): "OWNER PASS 2026-08-16: Tanglethorn and Lightbringer separate by WEIGHT "
+              "(Lightbringer is molten gold over dark furniture); approved as shipped.",
+    (29, 31): "OWNER PASS 2026-08-16: Graviton and Lightbringer separate by WEIGHT; approved "
+              "as shipped.",
+    (26, 28): "OWNER PASS 2026-08-16: Flamberge and Swiftedge separate by WEIGHT (a molten "
+              "blade against a diamond-cyan one at very different value); approved as shipped.",
+    (23, 67): "OWNER PASS 2026-08-16: Sanguine Sword and the Warbrand (which rides the "
+              "Vagabond's sprite, not the Sanguine Sword's) separate by WEIGHT and by which "
+              "sprite they wear; approved as shipped.",
+    (44, 70): "OWNER PASS 2026-08-16: Muramasa (RESERVED, judged on rim alone) and the Sasori "
+              "(rides the Ashura's sprite) share a rim family; approved as shipped.",
 }
 
 SOLID_TINT_FLOOR = 0.02    # below this an item ships as vanilla art wearing a coloured glow
@@ -2190,9 +2145,16 @@ def process(item_id, tint, src_id=None):
         im = route(van, item_id, tint, surface)
         share = solid_tint_share(van, im)
         if share < SOLID_TINT_FLOOR:
-            print(f"  WARN {out_name}: the tint reaches {share * 100:.1f}% of the solid art, so"
-                  f" this ships as the vanilla sprite. Its family needs its engine chosen from"
-                  f" the art (docs/TODO.md LW-232) before the bake means anything.")
+            if item_id in RAMP_RESERVED_POP:
+                print(f"  WARN {out_name}: the tint reaches {share * 100:.1f}% of the solid art. "
+                      f"This id is RESERVED (kept name, vanilla-popped body): a low share is the "
+                      f"intended look, not the LW-232 defect (an engine painting only the haze) "
+                      f"this warning was written for. Non-fatal; check ANCHOR_RULINGS instead of "
+                      f"re-choosing an engine.")
+            else:
+                print(f"  WARN {out_name}: the tint reaches {share * 100:.1f}% of the solid art, so"
+                      f" this ships as the vanilla sprite. Its family needs its engine chosen from"
+                      f" the art (docs/TODO.md LW-232) before the bake means anything.")
         png = WORK / f"{out_name}.png"
         im.save(png)
         work_tex.unlink(missing_ok=True)
@@ -2205,12 +2167,24 @@ def process(item_id, tint, src_id=None):
 
 
 def selftest():
-    """Pure-math regression cases for the BRIGHT v2 engine (repo idiom: no pytest)."""
+    """Pure-math regression cases for the BRIGHT v2 engine (repo idiom: no pytest).
+
+    A handful of ramp pins need a REAL vanilla decode (VANILLA tex tree + the FF16Tools CLI),
+    which CI does not have (the GitHub runner ships only Pillow); those are guarded behind
+    _ramp_game_files_available() and SKIPPED loudly rather than crashing. Every other check
+    here, including every non-ramp check, runs unconditionally in CI same as always."""
     failures = []
+    skipped = []
 
     def check(name, cond):
         if not cond:
             failures.append(name)
+
+    def skip(name):
+        skipped.append(name)
+        print(f"SELFTEST SKIP (game files absent): {name}")
+
+    _game_files = _ramp_game_files_available()
 
     check("arc wraps shortest path", abs(arc(0.9, 0.1) - 0.2) < 1e-9)
     check("arc negative direction", abs(arc(0.1, 0.9) + 0.2) < 1e-9)
@@ -2626,10 +2600,17 @@ def selftest():
     # weapon in the game is through the re-pass. The engine stays in the file and is exercised on
     # the fixture below instead of being deleted, because the categories that would still route
     # to it (Axe, Flail) simply have no items today and a future one would land there.
-    halo_sample = {"shield-bright": 128, "helm-two-tone": 156,
-                   "three-zone": 157, "legacy": 169}
-    check("the halo sample names every engine the router can return",
-          set(halo_sample) == {engine_for(i) for i in ICON_TINTS})
+    # LW-247 (2026-08-18): shield-bright and helm-two-tone are DORMANT in the router now (every
+    # shield and helm routes to "ramp" before either category rule is reached), so the covered
+    # set drops to the three engines route() can still actually return for a real item, and
+    # ramp gets its OWN sample id (19, a sword) rather than joining this loop: the loop's
+    # contract ("leaves the artist's haze at its own colour") is the OPPOSITE of glow's contract
+    # (repaint the halo band at the configured alpha), so folding ramp in here would build a
+    # pin that contradicts the feature. Ramp's haze contract is pin 2 (glow geometry) plus the
+    # dedicated check right after this loop.
+    halo_sample = {"three-zone": 157, "legacy": 169}
+    check("the halo sample names every non-ramp engine the router can return",
+          set(halo_sample) | {"ramp"} == {engine_for(i) for i in ICON_TINTS})
     check("every halo sample id really routes to the engine it is filed under",
           all(engine_for(i) == e for e, i in halo_sample.items()))
     for eng, iid in sorted(halo_sample.items()):
@@ -2644,19 +2625,40 @@ def selftest():
             check(f"{eng}/{surf} never rewrites alpha",
                   all(painted.getpixel(c)[3] == hazed.getpixel(c)[3]
                       for c in (hazed_haze, hazed_ramp) + hazed_solid))
-    # The branches the one-id-per-engine sample cannot reach: a helmet that bakes through the
-    # SHIELD engine (style "shield"), and a weapon small that takes the card's two-zone split
-    # instead of the whole-glyph ramp. A fixer who patches helm_recolor and stops would leave
-    # id147 smoking, and it is filed under helmets.
-    # The two-zone weapon SMALL branch used to be checked here through id 13, and cannot be any
-    # more: SMALL_TWO_ZONE emptied when the ninja blades left bright-v2 (LW-205), so no real item
-    # reaches that branch. It is exercised on the fixture below instead, through a hand-made id,
-    # so the branch stays covered rather than quietly untested while it waits for a family that
-    # needs it again.
-    check("both helmet styles keep the haze too",
-          all(route(hazed, i, ICON_TINTS[i], s).getpixel(hazed_haze)
-              == hazed.getpixel(hazed_haze)
-              for i, s in ((147, "card"), (147, "small"), (156, "card"))))
+    # Ramp's own haze contract is DIFFERENT from every other engine's, on purpose (delta
+    # NEW-1/NEW-2): the body step still respects the same alpha >= HALO_HI floor as every other
+    # engine (so it never paints this fixture's d=0..3 rings, all below HALO_HI=224), but glow's
+    # OWN body/rim contour keys on alpha >= 160, not the 48..224 halo ramp -- this fixture's
+    # d=3 ring (alpha 176) crosses THAT threshold and glow legitimately claims it, which is
+    # exactly why ramp gets its own contract instead of reusing this fixture's haze coordinate.
+    # That contract (d>3 from glow's own silhouette untouched, banded alpha only inside, third
+    # band gated on third_a) is pin 2, tested on a fixture glow's threshold cannot cross by
+    # construction (_ramp_glow_fixture: solid alpha 255 body, alpha 0 background, no ambiguous
+    # middle band). What THIS fixture still proves for ramp is that the solid art gets painted:
+    if _game_files:
+        for surf in ("card", "small"):
+            ramp_painted = route(hazed, 19, ICON_TINTS[19], surf)
+            check(f"ramp/{surf} still paints the solid art",
+                  any(ramp_painted.getpixel(c)[:3] != hazed.getpixel(c)[:3] for c in hazed_solid))
+    else:
+        skip("ramp/card+small still paints the solid art (needs a real vanilla decode: id19 "
+             "is a ramp id and ramp_render always sources its own vanilla/vendored input, "
+             "ignoring the synthetic fixture route() was handed)")
+    # The kept-row engines (147 shield-style, 156 helm-style) still preserve the artist's haze
+    # -- but ONLY checked by DIRECT CALL now (delta: "helmet-styles haze site"), because
+    # route(147/156, ...) goes through ramp_render, whose OWN contract is the opposite (it
+    # repaints the halo band on purpose). helm_recolor/shield_two_tone stay live exactly so
+    # ramp_render's KEEP_SHIPPED branch can call them, and this is where THEIR haze contract is
+    # pinned now that route() can no longer exercise it for these ids.
+    _ov147 = {k: v for k, v in HELM_OVERRIDES[147].items() if k != "style"}
+    _ov156 = {k: v for k, v in HELM_OVERRIDES[156].items() if k != "style"}
+    check("kept-row engines (direct call) still keep the haze",
+          shield_two_tone(hazed, ICON_TINTS[147], _ov147, "card")
+              .getpixel(hazed_haze) == hazed.getpixel(hazed_haze)
+          and shield_two_tone(hazed, ICON_TINTS[147], _ov147, "small")
+              .getpixel(hazed_haze) == hazed.getpixel(hazed_haze)
+          and helm_recolor(hazed, ICON_TINTS[156], _ov156, "card")
+              .getpixel(hazed_haze) == hazed.getpixel(hazed_haze))
     # BOTH dormant bright-v2 branches, exercised on the fixture through apply_weapon directly,
     # since no item routes to that engine any more: the whole-glyph small and the two-zone small.
     # Deleting them would be the other option and is worse, because Axe and Flail are weapon
@@ -2680,23 +2682,26 @@ def selftest():
                     p[x, y] = (r, g, b, 255)
         return out
 
-    # Byte identity with no magic constant in it. bright-v2, shield-bright and legacy rank their
-    # masks on COLOUR alone over an alpha>=8 pool, so erasing the haze must not move one solid
-    # pixel. This is what goes red the moment someone "fixes" a mask pool to skip the haze,
-    # which is the natural next thought and measures as flipping 28% of solid weapon pixels into
-    # the other zone, on 115 of 115 sprites. Excluded on purpose: the helm and hat engines rank
-    # over alpha>=HELM_SOLID (so an opaque twin legitimately re-ranks), and the ring shield
-    # (id132) keys its BFS on alpha>=160 for the same reason.
+    # Byte identity with no magic constant in it. legacy ranks its mask on COLOUR alone over an
+    # alpha>=8 pool, so erasing the haze must not move one solid pixel. shield-bright is DORMANT
+    # in the router now (delta NEW-3): every shield routes to ramp, whose alpha>=224 pool
+    # legitimately re-ranks under an opaque twin (analyze()'s "solid" set widens), so offering
+    # this invariant to a ramp id would build a FALSE pin. shield_two_tone itself still carries
+    # the invariant -- pinned here by DIRECT CALL instead, on the two shield-shaped ids the
+    # function is still live for (147's own row, and the ring-BFS case 132 exercised through
+    # the raw function with a synthetic override, since no real ramp id calls shield_two_tone's
+    # ring path any more).
     twin = opaque_twin(hazed)
-    # The bright-v2 entry is gone from this list for the same reason as above: no item routes
-    # there any more. What remains is one item per COLOUR-ranked engine that still has users,
-    # shield-bright and legacy, plus id 143 for the shield ring case.
-    for iid in (128, 143, 169):
-        for surf in ("card", "small"):
-            with_haze = route(hazed, iid, ICON_TINTS[iid], surf)
-            without = route(twin, iid, ICON_TINTS[iid], surf)
-            check(f"id{iid}/{surf} ({engine_for(iid)}): the haze cannot move a solid pixel",
-                  all(with_haze.getpixel(c) == without.getpixel(c) for c in hazed_solid))
+    for surf in ("card", "small"):
+        with_haze = shield_two_tone(hazed, ICON_TINTS[147], _ov147, surf)
+        without = shield_two_tone(twin, ICON_TINTS[147], _ov147, surf)
+        check(f"shield_two_tone/{surf} (direct call, 147's row): the haze cannot move a solid "
+              f"pixel", all(with_haze.getpixel(c) == without.getpixel(c) for c in hazed_solid))
+    for surf in ("card", "small"):
+        with_haze = route(hazed, 169, ICON_TINTS[169], surf)
+        without = route(twin, 169, ICON_TINTS[169], surf)
+        check(f"id169/{surf} (legacy): the haze cannot move a solid pixel",
+              all(with_haze.getpixel(c) == without.getpixel(c) for c in hazed_solid))
     # No hard ring at the cutoff. One flat colour whose alpha ramps across the strip, through a
     # mask-free configuration of every engine: the distance from the artist's own pixel must
     # climb gradually, never in one step. A cliff here is exactly the artefact the long 48->224
@@ -2795,13 +2800,11 @@ def selftest():
     _ZONED_CATS = {"Hat", "Crossbow", "Sword", "KnightSword", "Bow", "Gun", "Rod",
                    "Pole", "Instrument", "Polearm", "Staff", "Cloth", "Katana", "Knife",
                    "NinjaBlade", "Book", "Bag"}
-    # The tint table's own comments, checked like data. See tint_comment_names for why: a hue
-    # triple is unreviewable without the item name beside it, and those names rot silently.
-    drifted = sorted(i for i, c in tint_comment_names().items()
-                     if i in _NAME and not c.startswith(_NAME[i]))
-    check(f"every tint row names its real item (drifted: {drifted})", not drifted)
-    check("the tint comment scan actually finds rows, so the check above cannot pass by parsing "
-          "nothing", len(tint_comment_names()) >= 50)
+    # ICON_TINTS's own name-rot pin RETIRED (LW-247, 2026-08-18): the table lost every ramp id
+    # (it is empty now, see its own header comment), so tint_comment_names() no longer has
+    # anything to name-check. Its successor is the ramp engine's own pin 7 (table integrity,
+    # near the end of this function): every data/icon_ramp/treatments.json row carries a
+    # non-empty note, floor >= 120, mutation-tested by blanking one note.
     # The same read-back over the RECIPE table. Five families keep their colours in items.json
     # and so have no ICON_TINTS row at all, which left 46 recipes outside the scan above until
     # an audit found rot inside the gap (2026-08-14).
@@ -2834,9 +2837,27 @@ def selftest():
           f"{sorted(set(ZONE_OVERRIDES) - set(ICON_TINTS))})",
           all(i in ICON_TINTS for i in ZONE_OVERRIDES))
 
-    # routing: shields take the shield engine, unreviewed weapons keep bright-v2, picked helmets
-    # the helm engine, anything in the zone table the three-zone engine, everything else legacy
-    check("shield routes to shield-bright", engine_for(128) == "shield-bright")
+    # routing (LW-247, 2026-08-18): the 150 ramp ids beat everything, including the category
+    # rules that used to send a shield to shield-bright or a picked helmet to helm-two-tone;
+    # unreviewed weapons keep bright-v2 (dormant); anything left in the zone table (hats only
+    # now) takes three-zone; everything else legacy.
+    check("shield routes to ramp", engine_for(128) == "ramp")
+    check("a reviewed sword routes to ramp", engine_for(19) == "ramp")
+    check("a picked crossbow routes to ramp", engine_for(77) == "ramp")
+    check("picked helmets route to ramp", engine_for(156) == "ramp" and engine_for(145) == "ramp")
+    check("the last-joined helmet (151) routes to ramp", engine_for(151) == "ramp")
+    check("a KEEP_SHIPPED helm routes to ramp (its old-engine body renders INSIDE ramp_render, "
+          "not via a separate engine_for branch)", engine_for(147) == "ramp")
+    check("picked hat still routes to three-zone (hats are not ramp ids)",
+          engine_for(157) == "three-zone")
+    check("an armor id stays legacy", engine_for(next(i for i, c in _CATEGORY.items()
+                                                      if c == "Armor")) == "legacy")
+    # shield-bright and helm-two-tone are DORMANT: no id can reach either branch of engine_for
+    # any more, because every shield and helmet id is in RAMP_IDS.
+    check("shield-bright routes zero items (dormant since LW-247)",
+          not [i for i in ICON_TINTS if engine_for(i) == "shield-bright"])
+    check("helm-two-tone routes zero items (dormant since LW-247)",
+          not [i for i in ICON_TINTS if engine_for(i) == "helm-two-tone"])
     # Every weapon family has now been through the re-pass, so no ITEM routes to bright-v2 and
     # the old "an unreviewed weapon still takes the category default" pin has nothing to name.
     # What replaces it is the two halves that still matter: the router would still send a weapon
@@ -2846,70 +2867,65 @@ def selftest():
     check("the dormant bright-v2 branch is still reachable and still runs",
           engine_for(-1) == "legacy"
           and apply_weapon(hazed_sprite(28), 157, ICON_TINTS[157], "card") is not None)
-    check("a reviewed sword beats its category's engine", engine_for(19) == "three-zone")
-    check("picked helmet routes to helm-two-tone", engine_for(156) == "helm-two-tone")
-    check("the last two helmets joined the helm engine",
-          engine_for(145) == "helm-two-tone" and engine_for(151) == "helm-two-tone")
-    check("picked hat routes to three-zone", engine_for(157) == "three-zone")
-    # The crossbows are the pin that the per-item table BEATS the per-category rule: they are
-    # weapons, so a category-first engine_for would send them to bright-v2 and quietly ignore
-    # their recipes.
-    check("a picked crossbow beats its category's engine", engine_for(77) == "three-zone")
-    _reviewed = sorted({i for i, c in _CATEGORY.items()
-                        if c in ("Hat", "Crossbow", "Bow", "Gun", "Rod", "Pole", "Instrument",
-                                 "Polearm", "Staff", "Cloth", "Katana", "Knife",
-                                 "NinjaBlade", "Book", "Bag")}
-                       | SWORD_RACK | KNIGHT_RACK)
-    _no_recipe = sorted(set(_reviewed) - set(ZONE_OVERRIDES))
-    _extra = sorted(set(ZONE_OVERRIDES) - set(_reviewed))
-    # Named, not just counted. The guard added on 2026-08-14 stopped a half-added family killing
-    # the run with a KeyError, but the checks it left standing were static strings, so the output
-    # was strictly LESS specific than the traceback it replaced: the id went missing from the
-    # message entirely. These say which.
-    check(f"every reviewed family is picked, whole (no recipe: {_no_recipe}; "
-          f"not a reviewed family: {_extra})", not _no_recipe and not _extra)
+    # Routing-order pin (delta nit, pin 9): with the weapon/shield rows gone from
+    # ZONE_OVERRIDES, "ramp beats ZONE_OVERRIDES" cannot be exercised with a real id any more --
+    # temporarily inject one and prove RAMP_IDS still wins.
+    ZONE_OVERRIDES[128] = {"zones": []}
+    try:
+        check("ramp pin9: ramp beats ZONE_OVERRIDES even when a ramp id gets a stray row",
+              engine_for(128) == "ramp")
+    finally:
+        del ZONE_OVERRIDES[128]
+    # The previously-zoned weapon families no longer have a ZONE_OVERRIDES row (that table holds
+    # only hats now); they have a data/icon_ramp/treatments.json row instead. This is the
+    # positive replacement for the old "every reviewed family is picked, whole" pin, whose own
+    # premise (a ZONE_OVERRIDES row per reviewed weapon) LW-247 retired on purpose.
+    _migrated_weapon_ids = sorted(SWORD_RACK | KNIGHT_RACK | BOW_RACK | GUN_RACK | ROD_RACK
+                                  | POLE_RACK | HARP_RACK | SPEAR_RACK | STAFF_RACK | CLOTH_RACK
+                                  | KATANA_RACK | KNIFE_RACK | NINJA_RACK | BOOK_RACK | BAG_RACK
+                                  | {i for i, c in _CATEGORY.items() if c == "Crossbow"})
+    check("every formerly-zoned weapon family now has a ramp treatments row instead",
+          all(str(i) in RAMP_TREATMENTS for i in _migrated_weapon_ids))
+    check("every reviewed hat still has its own ZONE_OVERRIDES recipe (hats untouched by LW-247)",
+          set(ZONE_OVERRIDES) == {i for i, c in _CATEGORY.items() if c == "Hat"})
     # hair adornments share the slot but ship under their own row (LW-217), so they must NOT
     # have quietly ridden along on this pass
     check("hair adornments stay legacy until their own pass",
           all(engine_for(i) == "legacy" for i, c in _CATEGORY.items() if c == "HairAdornment"))
-    # PALETTE SEPARATION. Under whole-glyph coverage the tint is the item's entire colour signal,
-    # so two close tints are one shield in two names. The pre-LW-190 palette had seven such pairs
-    # (140 vs 142 were 0.02 hue and 0.02 saturation apart). This is the tripwire that keeps a
-    # later tint tweak from quietly recreating one.
-    SHIELD_MIN_HUE_GAP, SHIELD_MIN_SAT_GAP = 0.05, 0.25
-    shields = sorted(i for i, c in _CATEGORY.items() if c in WHOLE_BRIGHT_CATS and i in ICON_TINTS)
+    # PALETTE SEPARATION (LW-247 delta NEW-4, 2026-08-18). The old pin was keyed on
+    # ZONE_OVERRIDES/SHIELD_OVERRIDES membership, which went vacuous the moment those tables
+    # lost their weapon/shield rows to the ramp engine (body_is_whole_signal(i) now returns
+    # False for every id, since ZONE_OVERRIDES holds only hats). Successor rule: a NON-RESERVED
+    # ramp id's signal is its body tint (hue, sat), escaped by a DISTINCT resolved rim -- two
+    # tints that collide may still separate by wearing different rims; a RESERVED id's body is
+    # vanilla-popped (pop_filter touches sat/value only, ramp pin4), so its body tint carries no
+    # signal of its own and it is judged on its rim alone. Known collisions the owner's
+    # 2026-08-16 in-game pass already approved are grandfathered in RAMP_SEPARATION_RULINGS
+    # (the reports-not-blocks pattern ANCHOR_RULINGS established) rather than re-litigated here.
+    SEP_HUE_GAP, SEP_SAT_GAP = 0.05, 0.20
+    SHIELD_SEP_HUE_GAP, SHIELD_SEP_SAT_GAP = 0.05, 0.25
 
-    def tint_is_whole_signal(i):
-        # The tripwire guards shields whose tint IS their entire colour signal. A shield on the
-        # invert or vanilla-trim override keeps a large slab of its own vanilla art on screen
-        # (owner round three anchored four shields to their vanilla look on purpose), so its
-        # distinguishability rides the art, and its measured-from-vanilla tint may legitimately
-        # sit near a sibling's.
-        ov = SHIELD_OVERRIDES.get(i, {})
-        # trim_tint shields are exempt too: they wear TWO identity colours, so the pair is the
-        # signal and the body tint alone no longer decides distinguishability.
-        return not (ov.get("invert") or ov.get("trim") == "vanilla" or "trim_tint" in ov)
+    ramp_signal = ramp_separation_signal
+    ramp_collides = ramp_separation_collides
 
-    guarded = [i for i in shields if tint_is_whole_signal(i)]
-    collisions = [(a, b) for n, a in enumerate(guarded) for b in guarded[n + 1:]
-                  if abs(arc(ICON_TINTS[a][0], ICON_TINTS[b][0])) < SHIELD_MIN_HUE_GAP
-                  and abs(ICON_TINTS[a][1] - ICON_TINTS[b][1]) < SHIELD_MIN_SAT_GAP]
-    check(f"shield tints stay distinguishable (collisions: {collisions})", not collisions)
+    def ruled(a, b):
+        return (a, b) in RAMP_SEPARATION_RULINGS or (b, a) in RAMP_SEPARATION_RULINGS
+
+    shields = sorted(RAMP_SHIELDS)
+    shield_sigs = {i: ramp_signal(i) for i in shields if ramp_signal(i) is not None}
+    shield_collisions = [(a, b) for n, a in enumerate(shields) for b in shields[n + 1:]
+                         if a in shield_sigs and b in shield_sigs
+                         and ramp_collides(shield_sigs[a], shield_sigs[b],
+                                           SHIELD_SEP_HUE_GAP, SHIELD_SEP_SAT_GAP)]
+    shield_unruled = [(a, b) for a, b in shield_collisions if not ruled(a, b)]
+    check(f"shield tints stay distinguishable, or are grandfathered by an explicit ruling "
+          f"(unruled collisions: {shield_unruled})", not shield_unruled)
     check("shield palette covers all 16", len(shields) == 16)
-    check("the tripwire still guards most of the set", len(guarded) >= 10)
+    check("every shield is judged", len(shield_sigs) == 16)
 
-    # THE BLADE RACKS (LW-199 swords, LW-200 knight swords). The same tripwire as the shields
-    # above, for the same reason and one more. Under the zone engine the body tint owns every
-    # solid pixel, so a blade's tint IS its colour signal; and the owner's brief for these passes
-    # was explicit ("try and make no two swords look similar in color"), which is a claim a
-    # person cannot keep by eye across a family and a later tweak can silently break. Sat gap
-    # 0.20 rather than the shields' 0.25: these racks deliberately carry near-neighbours in hue
-    # that separate by weight instead (Warbrand is a near-black iron two hundredths off
-    # Flamberge's fire orange), so the pair check leans on the value term the shields' pin has
-    # no need for. Each rack is checked WITHIN itself: two families are never on screen in the
-    # same list, and holding one rack's palette away from another's would spend hue the wheel
-    # does not have.
-    RACK_MIN_HUE_GAP, RACK_MIN_SAT_GAP, RACK_MIN_VAL_GAP = 0.05, 0.20, 0.28
+    # THE BLADE RACKS + every other ramp weapon rack. Each rack is checked WITHIN itself: two
+    # families are never on screen in the same list, and holding one rack's palette away from
+    # another's would spend hue the wheel does not have.
     swords = sorted(SWORD_RACK)
     knights = sorted(KNIGHT_RACK)
     bows = sorted(BOW_RACK)
@@ -2925,60 +2941,53 @@ def selftest():
     ninjas = sorted(NINJA_RACK)
     books = sorted(BOOK_RACK)
     bags = sorted(BAG_RACK)
+    xbows = sorted(i for i, c in _CATEGORY.items() if c == "Crossbow")
     hats = sorted(i for i, c in _CATEGORY.items() if c == "Hat" and i in ZONE_OVERRIDES)
-    xbows = sorted(i for i, c in _CATEGORY.items() if c == "Crossbow" and i in ZONE_OVERRIDES)
 
-    # Which items this tripwire may judge, on the SHIELDS' rule (tint_is_whole_signal above): a
-    # body tint may only stand in for an item's whole colour signal when the item's other tones
-    # are FITTINGS. The metal vocabulary is listed here rather than guessed from saturation,
-    # because brass and gold are as saturated as any identity colour.
-    #
-    # This exemption is not a convenience. Run without it, the check calls four HAT pairs
-    # collisions (157/167, 158/161, 160/163, 164/165) and every one is a false alarm: their
-    # bodies do sit close, and their second colours are a violet lining against a teal one, a
-    # magenta against a gold. A hat wears three identity colours over 18 to 38 percent of the
-    # sprite and the owner passed all twelve by eye across four review rounds. A blade wears one
-    # identity colour and a metal, so its body really is the signal.
-    # METALS, LIGHTS, VOCABULARY and body_is_whole_signal are MODULE level (defined above
-    # SOLID_TINT_FLOOR) because tools/icon_preview.py's silhouettes gate applies the same
-    # exemption to the same items, and two copies of a rule this load-bearing would drift.
-    # The exemption is about NAMED versus INVENTED tones, and keying it on metals alone was too
-    # narrow: an audit on 2026-08-14 showed the tripwire silently stops judging any item whose
-    # accent is one of the file's LIGHTS, then proved it by giving two rods byte-identical tints
-    # with the selftest green. A light (levin on the Spark Rod, plasma on the Umbral, verdant on
-    # the Wellspring) is a FITTING in exactly the sense that matters: a small accent laid on a
-    # body that still carries the item's whole colour signal. What genuinely escapes is an item
-    # wearing a second IDENTITY colour, written here as an inline triple rather than a name from
-    # the vocabulary: every hat has one and nothing else does.
-
+    judged_racks = 0
+    judged_nonreserved = 0
     for rack_name, rack in (("sword", swords), ("knight sword", knights),
                             ("bow", bows), ("gun", guns), ("rod", rods), ("pole", poles),
-                            ("harp", harps), ("spear", spears), ("staff", staves),
+                            ("harp", harps), ("polearm", spears), ("staff", staves),
                             ("cloth", cloths), ("katana", katanas),
                             ("knife", knives), ("ninja blade", ninjas),
-                            ("book", books), ("bag", bags),
-                            ("hat", hats), ("crossbow", xbows)):
-        # `i in ICON_TINTS` for the same reason body_is_whole_signal uses .get: the racks come
-        # from the item data and the tints from a second source, so an id can legitimately be
-        # mid-edit. Judging it here raised a KeyError that killed the run and swallowed the
-        # failure list, including the check that names the missing tint (audit 2026-08-14).
-        rack = [i for i in rack if i in ICON_TINTS and body_is_whole_signal(i)]
-        rack_collisions = [
-            (a, b) for n, a in enumerate(rack) for b in rack[n + 1:]
-            if abs(arc(ICON_TINTS[a][0], ICON_TINTS[b][0])) < RACK_MIN_HUE_GAP
-            and abs(ICON_TINTS[a][1] - ICON_TINTS[b][1]) < RACK_MIN_SAT_GAP
-            and abs(ICON_TINTS[a][2] - ICON_TINTS[b][2]) < RACK_MIN_VAL_GAP]
-        check(f"{rack_name} tints stay distinguishable (collisions: {rack_collisions})",
-              not rack_collisions)
-    guarded_total = sum(1 for i in ZONE_OVERRIDES if body_is_whole_signal(i))
-    check(f"the collision tripwire still guards most of the zone engine ({guarded_total}/"
-          f"{len(ZONE_OVERRIDES)})", guarded_total >= 35)
-    # The exemption may only ever cover HATS. Stated as a floor on the guarded count it drifts
-    # quietly downward as families arrive; stated this way, any future recipe that buys its way
-    # out of the palette tripwire with an invented tone has to say so out loud.
-    escaped = sorted(i for i in ZONE_OVERRIDES
-                     if not body_is_whole_signal(i) and _CATEGORY.get(i) != "Hat")
-    check(f"only hats escape the collision tripwire (escaped: {escaped})", not escaped)
+                            ("book", books), ("bag", bags), ("crossbow", xbows)):
+        sigs = {i: ramp_signal(i) for i in rack if ramp_signal(i) is not None}
+        if len(sigs) >= 2:
+            judged_racks += 1
+        judged_nonreserved += sum(1 for i in sigs if i not in RAMP_RESERVED_POP)
+        ordered = sorted(sigs)
+        rack_collisions = [(a, b) for n, a in enumerate(ordered) for b in ordered[n + 1:]
+                           if ramp_collides(sigs[a], sigs[b], SEP_HUE_GAP, SEP_SAT_GAP)]
+        rack_unruled = [(a, b) for a, b in rack_collisions if not ruled(a, b)]
+        check(f"{rack_name} tints stay distinguishable, or are grandfathered by an explicit "
+              f"ruling (unruled collisions: {rack_unruled})", not rack_unruled)
+    check(f"the palette-separation tripwire covers most racks ({judged_racks}/16 racks judged)",
+          judged_racks >= 15)
+    check(f"the palette-separation tripwire judges most non-reserved weapons "
+          f"({judged_nonreserved} judged, floor 80)", judged_nonreserved >= 80)
+    # Hats are untouched by the ramp arc (not in RAMP_IDS) and keep their OWN three-zone
+    # collision pin, which was never broken by this migration (it never used
+    # body_is_whole_signal's now-vacuous ZONE_OVERRIDES filter in the first place -- see the
+    # zone-engine collision block below this one, still scoped to ZONE_OVERRIDES == hats).
+    check("hats are still all twelve on the zone engine", len(hats) == 12)
+    # RAMP_SEPARATION_RULINGS non-vacuity: dropping a ruling must un-grandfather its pair and
+    # the pair must fail the collision check again (mutation that must go red).
+    _rp_a, _rp_b = next(iter(RAMP_SEPARATION_RULINGS))
+    _pruned = {k: v for k, v in RAMP_SEPARATION_RULINGS.items() if k != (_rp_a, _rp_b)}
+    _fam_hue, _fam_sat = ((SHIELD_SEP_HUE_GAP, SHIELD_SEP_SAT_GAP) if _rp_a in RAMP_SHIELDS
+                          else (SEP_HUE_GAP, SEP_SAT_GAP))
+    _sig_a, _sig_b = ramp_signal(_rp_a), ramp_signal(_rp_b)
+    check(f"ramp pin6 mutation guard: removing the ({_rp_a}, {_rp_b}) ruling would fail the "
+          f"pair again (RAMP_SEPARATION_RULINGS is load-bearing, not decorative)",
+          ramp_collides(_sig_a, _sig_b, _fam_hue, _fam_sat)
+          and (_rp_a, _rp_b) not in _pruned and (_rp_b, _rp_a) not in _pruned)
+    check("every RAMP_SEPARATION_RULINGS pair actually collides under the rule (else it is "
+          "not grandfathering anything)",
+          all(ramp_collides(ramp_signal(a), ramp_signal(b),
+                            *((SHIELD_SEP_HUE_GAP, SHIELD_SEP_SAT_GAP) if a in RAMP_SHIELDS
+                              else (SEP_HUE_GAP, SEP_SAT_GAP)))
+              for a, b in RAMP_SEPARATION_RULINGS if ramp_signal(a) and ramp_signal(b)))
     # ANCHOR_RULINGS is read by tools/icon_preview.py's anchors gate, which cannot run in CI
     # (it needs the game files and the texture tool), so what CAN be checked here is that the
     # table is honest: every id in it is a real reserved name carrying a real reason. Without
@@ -3052,21 +3061,25 @@ def selftest():
     # the auditor turned all six crossbows one colour with the gate still green. A list of racks
     # is a list someone forgets to extend; the table cannot be forgotten, because being in it is
     # what puts an item under this engine in the first place.
-    bladed = (swords + knights + bows + guns + rods + poles + harps + spears + staves
-              + cloths + katanas + knives + ninjas + books + bags)
+    # LW-247 (2026-08-18): every weapon rack this table used to name now renders through the
+    # ramp engine (data/icon_ramp/treatments.json, not a "zones" recipe), so ZONE_OVERRIDES'
+    # remaining membership -- and therefore this whole no-single-colour apparatus below -- is
+    # HATS ONLY. `bladed` keeps its name (git-blame continuity) but its content shrank to match.
+    bladed = sorted(i for i, c in _CATEGORY.items() if c == "Hat")
     zone_ids = sorted(ZONE_OVERRIDES)
     # Dead per-item config for the OLD engine. Both tables below are read only inside the
-    # bright-v2 branch of route(), and engine_for consults ZONE_OVERRIDES first, so any id in
+    # bright-v2 branch of route(), and engine_for consults ZONE_OVERRIDES ahead of the
+    # bright-v2 category default (RAMP_IDS goes first of all since LW-247), so any id in
     # both is unreachable configuration that still reads as live. This has now bitten twice
     # (SMALL_TWO_ZONE id 24, then CARD_OVERRIDES ids 33 and 37), so it gets a pin rather than a
     # third discovery.
     stale_bright = sorted((set(CARD_OVERRIDES) | set(SMALL_TWO_ZONE)) & set(ZONE_OVERRIDES))
     check(f"no bright-v2 override survives for an item that left that engine ({stale_bright})",
           not stale_bright)
-    check(f"every reviewed weapon has a recipe at all (missing: "
+    check(f"every reviewed hat has a recipe at all (missing: "
           f"{sorted(set(bladed) - set(ZONE_OVERRIDES))})",
           all(i in ZONE_OVERRIDES for i in bladed))
-    check("every sword carries a second material",
+    check("every hat carries a second material",
           all(ZONE_OVERRIDES[i]["zones"] for i in zone_ids))
     # COVERAGE, asserted from what the two loops below ACTUALLY VISIT. The previous wording was
     # `len(zone_ids) == len(ZONE_OVERRIDES) and len(zone_ids) >= len(bladed) + 18`, whose first
@@ -3173,10 +3186,195 @@ def selftest():
     check(f"the no-single-colour render check judged every item under the zone engine "
           f"(missed: {missed_silent})", not missed_silent)
 
+    # === LW-247 ramp engine pins. Pins 1-5, 7, 8 exercise ramp_render/ramp_prototype/
+    # ramp_glow directly and need no game files beyond the two guarded sites above (pin 3's
+    # fresh-render comparison and its pin 3b wiring extension). Pin 6 (palette separation) is
+    # the big rack-collision block further down, keyed on the migrated items.json tints. Pin 9
+    # (routing order) is the ZONE_OVERRIDES-injection check in the "routing" block above. ====
+    def _ramp_glow_fixture(w=20):
+        im = Image.new("RGBA", (w, w), (0, 0, 0, 0))
+        for y in range(6, 14):
+            for x in range(6, 14):
+                im.putpixel((x, y), (90, 90, 90, 255))
+        return im
+
+    _gf = _ramp_glow_fixture()
+
+    # Pin 1, LOAD-BEARING: rims.json beats the default rim_color(tint) path.
+    _row148 = RAMP_RIMS["148"]
+    _tint148 = tuple(ICON_TINTS.get(148, (0.085, 0.65, 0.75)))
+    _via_row = ramp_glow(_gf, _tint148, inner_a=_row148["inner_a"], outer_a=_row148["outer_a"],
+                         third_a=_row148["third_a"], rim_rgb=tuple(_row148["rgb"]))
+    _via_default = ramp_glow(_gf, _tint148)
+    check("ramp pin1: rims.json id148's rim differs from the default rim_color path "
+          "(mutation that must go red: bypass the rims lookup)",
+          not images_equal(_via_row, _via_default))
+    check("ramp pin1: the rims-row render carries EXACTLY its committed rgb+alpha in the "
+          "inner band",
+          _via_row.getpixel((5, 10))[:3] == tuple(_row148["rgb"])
+          and _via_row.getpixel((5, 10))[3] == _row148["inner_a"])
+
+    # Pin 2: glow geometry -- d>3 untouched, alpha rewritten only inside bands, third band
+    # gated on third_a>0.
+    _g2 = ramp_glow(_gf, (0.5, 0.8, 1.0), inner_a=170, outer_a=80, third_a=0)
+    check("ramp pin2: Chebyshev d>3 stays fully untouched", _g2.getpixel((0, 10))[3] == 0)
+    check("ramp pin2: d=1 carries inner_a", _g2.getpixel((5, 10))[3] == 170)
+    check("ramp pin2: d=2 carries outer_a", _g2.getpixel((4, 10))[3] == 80)
+    check("ramp pin2: no third band when third_a=0", _g2.getpixel((3, 10))[3] == 0)
+    _g2b = ramp_glow(_gf, (0.5, 0.8, 1.0), inner_a=170, outer_a=80, third_a=40)
+    check("ramp pin2: third band appears only when third_a>0", _g2b.getpixel((3, 10))[3] == 40)
+    _g2c = ramp_glow(_gf, (0.5, 0.8, 1.0), inner_a=80, outer_a=170, third_a=0)
+    check("ramp pin2 mutation guard: swapping inner/outer alphas changes the inner band",
+          _g2c.getpixel((5, 10))[3] != _g2.getpixel((5, 10))[3])
+
+    # Pin 3: a vendored id's body pixels come from the PNG, not a fresh engine render.
+    _vend130 = _ramp_vendored_body(130, "card")
+    check("ramp pin3: id130 card has a vendored body PNG on disk", _vend130 is not None)
+    if _vend130 is not None and _game_files:
+        _van130 = _ramp_load_vanilla(130, "card")
+        _fresh130 = ramp_prototype(_van130, tuple(ICON_TINTS.get(130, (0.15, 0.92, 1.18))),
+                                   "card", item_id=130)
+        check("ramp pin3: id130's vendored body differs from a fresh engine render "
+              "(census2 BODY-VEND verdict; mutation that must go red: skip the vendored "
+              "branch)", not images_equal(_vend130, _fresh130))
+
+        # Pin 3b (end-to-end WIRING, not just the helper): pins 1 and 3 prove the RIMS lookup
+        # and the vendored-body branch work as standalone functions, but neither proves
+        # route()/ramp_render actually WIRES them together -- an adversarial mutation that
+        # bypasses the rims lookup inside ramp_render, or skips its vendored-body branch,
+        # left both of the pins above green (they never call route()). This one does.
+        def _ramp_test_smoothed_mask(im):
+            # Same contour rule as ramp_glow's own body/rim boundary (alpha>=160, one
+            # majority smooth); duplicated here on purpose rather than refactoring ramp_glow
+            # itself, the same "small verbatim copy" idiom tools/probes/lw247_extract_bodies.py
+            # already uses for the identical computation.
+            _w, _h = im.size
+            _px = im.load()
+            _body = {(x, y) for y in range(_h) for x in range(_w) if _px[x, y][3] >= 160}
+            _sm = set()
+            for y in range(_h):
+                for x in range(_w):
+                    n = sum((x + dx, y + dy) in _body for dy in (-1, 0, 1) for dx in (-1, 0, 1)
+                            if (dx, dy) != (0, 0))
+                    if ((x, y) in _body and n >= 3) or ((x, y) not in _body and n >= 5):
+                        _sm.add((x, y))
+            return _sm
+
+        _dummy130 = Image.new("RGBA", (1, 1), (0, 0, 0, 0))
+        _tint130 = tuple(ICON_TINTS.get(130, (0.15, 0.92, 1.18)))
+        _wired130 = route(_dummy130, 130, _tint130, "card")
+        _mask130 = _ramp_test_smoothed_mask(_vend130)
+        check("ramp pin3b (wiring): route()'s body-interior pixels equal the vendored PNG "
+              "exactly (mutation that must go red: skip ramp_render's vendored-body branch)",
+              len(_mask130) > 0
+              and all(_wired130.getpixel(p) == _vend130.getpixel(p) for p in _mask130))
+        _w130, _h130 = _vend130.size
+        _d1_130 = set()
+        for _y in range(_h130):
+            for _x in range(_w130):
+                if (_x, _y) in _mask130:
+                    continue
+                _d = min((max(abs(_dx), abs(_dy))
+                         for _dx in range(-3, 4) for _dy in range(-3, 4)
+                         if (_x + _dx, _y + _dy) in _mask130), default=99)
+                if _d == 1:
+                    _d1_130.add((_x, _y))
+        _row130 = RAMP_RIMS["130"]
+        check("ramp pin3b (wiring): route()'s inner glow band (Chebyshev d==1 outside the "
+              "smoothed silhouette) carries EXACTLY rims.json[\"130\"]'s rgb (mutation that "
+              "must go red: bypass the rims lookup in ramp_render, which falls back to "
+              "rim_color(tint) -- a different colour on this id)",
+              len(_d1_130) > 0
+              and all(_wired130.getpixel(p)[:3] == tuple(_row130["rgb"]) for p in _d1_130))
+    elif _vend130 is not None:
+        skip("ramp pin3 + pin3b (wiring): id130 fresh-render/route() checks (need a real "
+             "vanilla decode)")
+
+    # Pin 4: a reserved id's hue is byte-preserved (pop_filter touches sat/value only).
+    _rf = Image.new("RGBA", (10, 10), (0, 0, 0, 0))
+    for _y in range(2, 8):
+        for _x in range(2, 8):
+            _rf.putpixel((_x, _y), (60, 140, 90, 255))
+    _popped = ramp_pop_filter(_rf, factor=1.6)
+    _h0, _s0, _v0 = colorsys.rgb_to_hsv(60 / 255, 140 / 255, 90 / 255)
+    _h1, _s1, _v1 = colorsys.rgb_to_hsv(*[c / 255 for c in _popped.getpixel((4, 4))[:3]])
+    check("ramp pin4: pop_filter preserves hue (up to 8-bit RGB quantization)",
+          abs(_h0 - _h1) < 0.01)
+    check("ramp pin4: pop_filter actually moves saturation/value",
+          abs(_s0 - _s1) > 1e-6 or abs(_v0 - _v1) > 1e-6)
+    check("ramp pin4 mutation guard: id10 (a real reserved weapon) is dispatched to "
+          "pop_filter, i.e. really is in RAMP_RESERVED_POP", 10 in RAMP_RESERVED_POP)
+
+    # Pin 5: value preservation SCOPED (S8) -- paint() at vs=1.0 never changes a pixel's value.
+    _hsv_fix = {(0, 0): (0.3, 0.5, 0.62)}
+    _po_fix = {(0, 0): (0, 0, 0, 255)}
+    _ramp_paint(_po_fix, _hsv_fix, (0, 0), 0.7, 0.9, 1.0, vs=1.0)
+    _, _, _v_after = colorsys.rgb_to_hsv(*[c / 255 for c in _po_fix[(0, 0)][:3]])
+    check("ramp pin5: paint() at vs=1.0 leaves the pixel's value unchanged",
+          abs(_v_after - 0.62) < 1 / 255 + 1e-6)
+    _po_fix2 = {(0, 0): (0, 0, 0, 255)}
+    _ramp_paint(_po_fix2, _hsv_fix, (0, 0), 0.7, 0.9, 1.0, vs=1.1)
+    _, _, _v_after2 = colorsys.rgb_to_hsv(*[c / 255 for c in _po_fix2[(0, 0)][:3]])
+    check("ramp pin5 mutation guard: vs=1.1 DOES move the value (the pin is not vacuous)",
+          _v_after2 > _v_after)
+
+    # Pin 6 (palette separation): see the RAMP_SEPARATION_RULINGS block below, which carries
+    # its own non-vacuity floors and mutation guard.
+
+    # Pin 7: table integrity.
+    check("ramp pin7: treatments.json covers exactly the 150 ramp ids",
+          len(RAMP_TREATMENTS) == 150 and RAMP_IDS == {int(k) for k in RAMP_TREATMENTS})
+    _rim_strays = sorted(int(k) for k in RAMP_RIMS if int(k) not in RAMP_IDS)
+    check(f"ramp pin7: every rims.json id is a ramp id (stray: {_rim_strays})", not _rim_strays)
+    _vend_dir = _ICON_RAMP_DIR / "bodies"
+    _vend_files = sorted(p.name for p in _vend_dir.glob("*.png")) if _vend_dir.exists() else []
+    check("ramp pin7: sixteen vendored body PNGs are committed", len(_vend_files) == 16)
+    # Every vendored PNG must map to a BODY-VEND verdict (gen_body: false) in the committed
+    # census2 json -- pure file/json reading, no game files, so this runs in CI same as the
+    # rest of pin 7. A stray PNG with no matching verdict (wrong name, or a verdict that says
+    # the body was actually generative) means the vendoring itself is unproven.
+    _census2_path = ROOT / "tools" / "probes" / "lw247_census2_result.json"
+    _census2 = (json.loads(_census2_path.read_text(encoding="utf-8"))
+               if _census2_path.exists() else {})
+    _vend_unproven = sorted(
+        name for name in _vend_files
+        if not (Path(name).stem in _census2
+               and _census2[Path(name).stem].get("gen_body") is False))
+    check(f"ramp pin7: every vendored PNG maps to a BODY-VEND verdict in the committed "
+          f"census2 json (unproven: {_vend_unproven})", not _vend_unproven)
+    check("ramp pin7: every treatments.json row carries a non-empty note",
+          all(isinstance(v.get("note"), str) and v["note"] for v in RAMP_TREATMENTS.values()))
+    check("ramp pin7: the note floor clears the S1-style non-vacuity bar (>= 120)",
+          len(RAMP_TREATMENTS) >= 120)
+    _blanked = dict(RAMP_TREATMENTS)
+    _blanked["1"] = {**_blanked["1"], "note": ""}
+    check("ramp pin7 mutation guard: blanking one note is caught",
+          not all(isinstance(v.get("note"), str) and v["note"] for v in _blanked.values()))
+
+    # Pin 8: old-engine-source pins -- 144's map and 147/148/155/156's bodies come from live
+    # engine renders, never a mod-tree read. Asserted at the code level (no literal reference
+    # to the MOD tree path inside the ramp render/render-adjacent functions); the behavioural
+    # catch is the double-run arc gate (commit 3).
+    import inspect as _inspect
+    _ramp_src = (_inspect.getsource(ramp_render) + _inspect.getsource(_ramp_coif_light_middle)
+                + _inspect.getsource(_ramp_prototype_dispatch))
+    check("ramp pin8: no old-engine ramp code path references the MOD tree path (positive "
+          "control: the source really was inspected, it just names VANILLA instead)",
+          "MOD /" not in _ramp_src and "MOD/" not in _ramp_src and "_ramp_load_vanilla" in _ramp_src)
+    _shipped_fn_name = "load_" + "shipped"
+    check("ramp pin8: the probe's mod-tree reader is not defined in this file (never ported, "
+          "per B1/B7)",
+          ("def " + _shipped_fn_name) not in Path(__file__).read_text(encoding="utf-8"))
+
+    # Pin 9 (routing order): see the "routing (LW-247, 2026-08-18)" block above, which injects
+    # a stray ZONE_OVERRIDES row for a ramp id and asserts RAMP_IDS still wins.
+
+    if skipped:
+        print(f"SELFTEST: {len(skipped)} check(s) skipped (game files absent).")
     if failures:
         print("SELFTEST FAILURES:", "; ".join(failures))
         return 1
-    print("recolor_icons selftest: all cases passed.")
+    print(f"recolor_icons selftest: all cases passed. {len(skipped)} skipped.")
     return 0
 
 
