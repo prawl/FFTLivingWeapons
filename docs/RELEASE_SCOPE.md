@@ -1,7 +1,7 @@
 # Release Scope -- next release (consolidation)
 
 STATUS: CONTRACT (locked scope for the 2.3.0 consolidation release, the 2.3.1 patch cut, the
-2.3.2 game-compatibility cut, and the 2.3.3 feature cut)
+2.3.2 game-compatibility cut, the 2.3.3 feature cut, and the 2.4.0 art cut)
 
 Locked 2026-07-04. Current shipped version 2.2.2; proposed next **2.3.0** (owner confirms the bump).
 2.3.0 shipped 2026-07-16 (tag v2.3.0). The **2.3.1** patch cut (section at the bottom) followed on
@@ -285,6 +285,121 @@ or the owner's call to accept it as a standing watch.
       packaged.
 - [x] Tag v2.3.3 cut at the release commit b7104c0 and pushed (2026-08-12, owner word in
       session).
+
+## 2.4.0 art cut (scoped 2026-08-19) -- every icon reworked
+
+Owner scope call 2026-08-19, in session: every icon reworked for the next deploy. Plain version
+of what that means: today a player opening the equip menu sees two different eras of artwork
+sitting side by side. Roughly two thirds of the items wear the new colouring and look like a set;
+the rest still wear a flat one colour stamp applied back in May, and six items were never
+coloured at all. This cut finishes the job so the whole catalogue reads as one wardrobe, and it
+hardens the checks that prove a rebake of that size did not quietly damage anything.
+
+Grounded 2026-08-19 by a full inventory of all 240 item rows against the shipped art and the
+engine each one routes to: 150 on the current ramp engine, 12 on the superseded three zone
+engine, 72 on the legacy stamp, 6 with no art at all. The numbers below come from that inventory
+rather than from the ticket prose, which had drifted in several places.
+
+**Identity: finish the wardrobe, and make the machine prove it.** 90 items get new art, the four
+already built families get their owner look, and the checks that catch collateral damage stop
+being things a person has to remember.
+
+### 1. The 90 remaining items (BLOCKER, the release's whole point)
+- [ ] **The 12 hats (LW-288)**: the only family still on the superseded three zone engine. The
+      owner did pass them in game, but under the older method, so they will drift visibly from
+      their neighbours once the rest of the wardrobe is redone. This ticket did not exist before
+      2026-08-19; the inventory found the gap between LW-248's own sentence naming hats as
+      remaining colour work and the ledger.
+- [ ] **The 72 legacy one hue items (LW-217, LW-218, LW-219, LW-220, LW-221, LW-222, LW-223,
+      LW-224, LW-225, LW-226)**: hair adornments 3, armour 14, clothing 14, robes 8, shoes 7,
+      armguards 4, rings 6, armlets 5, cloaks 7, perfumes 4. Art untouched since ac756d1 on
+      2026-05-30.
+- [ ] **The 6 never coloured throwing weapons and bombs (LW-214)**: a first colouring, not a re
+      pass, and the only item in this cut that ADDS files. The deploy ships 480 .tex, not 468, so
+      every count based check and the required file manifest must be updated in the same commit,
+      or they go red for the right reason at the worst possible moment.
+
+### 2. Gate hardening BEFORE the bake (BLOCKER, and the reason this is not just art work)
+The audit that scoped this cut found the weakest link is not the art, it is the proof. Only one
+of the four icon gates runs automatically, and both deploy verifiers accept a SINGLE icon file as
+evidence the icon tree shipped, so a deploy that silently dropped 400 of 468 icons would go
+green. On a cut that rebakes everything, that stops being tidy up and becomes the safety net.
+- [ ] **Wire the three hand run gates (LW-241, LW-245)**: compare with an expected movers list,
+      the reserved name anchors check, and the shared silhouette check. The expected movers list
+      is the piece that makes automation possible: during a pass the family being worked moves ON
+      PURPOSE, so the gate needs a declared list of who is allowed to move.
+- [ ] **Replace the one file deploy proof (LW-241)**: BuildLinked and Publish must verify the
+      whole icon manifest, by count and by identity, not one representative file.
+- [ ] **Run the full arc gate on the final bake (LW-245)**: full bake, then a repo versus install
+      comparison over every file, run twice from the already rebaked tree so a hidden read of the
+      mod tree cannot hide inside a passing run.
+
+### 3. The four already built families need the owner's eye, not new art (SHOULD)
+One sitting clears all four. Their art is already in the live install and already survived the
+2026-08-16 whole catalogue look; what is missing is the formal gallery verdict.
+- [ ] **Knives (LW-198), ninja blades (LW-205), books (LW-210), bags (LW-212)**: 28 items. Three
+      of these hold Now seats purely on a pending owner pass, so clearing them also unblocks the
+      in flight ledger.
+
+### 4. Four items that render off their own artwork (SHOULD, owner rulings)
+Each needs a keep or re tint call, and a keep the art verdict means a re tint baked before the cut.
+- [ ] **Venetian Shield and Fallingstar Bag (LW-277), Ragnarok (LW-244), Whale Whisker
+      (LW-238)**: measured 161, 60 and 115 degrees off their own art respectively, and cyan over
+      red for the last.
+
+### 5. The system that makes it repeatable (SHOULD)
+- [ ] **Icon art framework (LW-278)**: the style bible and verdict corpus, then the judge harness
+      calibrated against held out owner verdicts BEFORE it prefilters anything, then the per
+      family loop. The owner gallery stays the final gate no matter how the judge scores. This is
+      the top of Now and is what carries sections 1 and 3 without burning the owner's time on
+      rounds a machine could have pruned.
+
+### 6. Deploy riders (BLOCKER, they only get one chance)
+- [ ] **The rider checklist itself (LW-286)**: three checks have been waiting for whichever
+      deploy happens next, recorded only as scattered prose. They get a home in
+      docs/VERIFY_LIVE.md before the deploy, not after it.
+- [ ] **No drift check, restated (LW-286, confirms LW-247)**: the original pre registration said
+      the installed icon bytes must not move at all, 468 of 468. That was written before this cut
+      existed and it collides with a deploy whose entire purpose is to move icon bytes. The
+      honest restatement, which preserves the intent: the 150 already final ramp items must not
+      move, and only the newly reworked items plus the 12 new files may. Deferring glow, see OUT
+      below, is what keeps that half of the check meaningful, because the ramp art then has no
+      reason to move at all.
+- [ ] **Flight recorder eviction fix (LW-286, confirms LW-259)**: the one undeployed runtime
+      change in the tree; needs a deploy plus a tape read after a long battle.
+- [ ] **Cache partition combined pass (LW-286, confirms LW-262)**.
+- [ ] **Deploy flavour**: the install is DEV flavoured, which seeds every weapon's kill tally.
+      Fine for judging art, wrong for anything read as release ready, so any pass meant to stand
+      as a release check runs a prod flavoured build.
+
+### 7. Shop front (NICE)
+- [ ] **Re render the download page banner (LW-281)**: it is drawn from the installed icon cache
+      and still shows pre ramp colours. It must be regenerated AFTER the final bake, and the
+      rerun becomes a step of the icon pass rather than a separate chore anyone can forget.
+
+### 8. Release gates (existing GO/NO-GO)
+- [ ] analyze.py exit 0, no dominated item.
+- [ ] dotnet test green.
+- [ ] Publish.ps1 clean, PROD thresholds, no LWDEV and no seeding.
+- [ ] Bump ModVersion to 2.4.0 and cut the matching tag.
+
+---
+
+## 2.4.0 OUT of scope (explicit, so nothing drifts back in)
+
+- **The glow rim (LW-287). Owner call 2026-08-19: hold off, there are other ideas for it.**
+  Carved out of LW-248 into its own story and deliberately outside this cut. It costs nothing to
+  defer, because the rim is a separate layer that adds or removes without touching a body pixel.
+  Note for whoever picks it up: the deployed install DOES currently carry a rim on shields,
+  helms, weapons and bags, so the shipped state is glow present, and any later decision moves
+  from that baseline in one direction or the other.
+- **Battle sprite colours (LW-251)**: a live reverse engineering arc on its own clock, currently
+  waiting on a one shot boot race probe. It shares the word colour with this cut and nothing else.
+- **Three rows whose premises are stale and must be re measured rather than trusted (LW-232,
+  LW-237, LW-242)**: all three describe recipes that LW-247 deleted from the recolour tool, so
+  they no longer describe the shipped art.
+
+---
 
 ## DEFERRED (post-release backlog)
 - **Remove Treasure Master** -- L, works + tested, no user benefit this cycle; do as a dedicated

@@ -11,7 +11,7 @@ is the in-flight subset, not a mirror of that checklist.
 Entries are written ELI5-first: the opening sentence is plain language anyone can follow, and
 the technical detail lives in the indented lines under it.
 
-## Now (release: 2.3.3)
+## Now (release: 2.4.0)
 
 - **[LW-278] A real system for making new icon art that looks professional and fits the game** (opened 2026-08-18) [QUEUED]
   - Owner directive 2026-08-18. Asking the model to draw pixels freehand is proven to fail
@@ -587,6 +587,20 @@ the technical detail lives in the indented lines under it.
   from Display's own first Tick, which Engine only starts after the guard arms. The deeper lever
   is read only pre locating before arming, which touches the born disarmed principle and would
   need its own arc.)
+- [LW-288] 2026-08-19: The twelve hats are the one family everybody thinks is finished but is
+  not, and until now no row said so. The owner did look at them in game and pass them, so they
+  are not broken, but that pass judged art made by an older recolouring method that every other
+  family has since moved off. They are the last family still wearing it, which means a set that
+  reads as done today will visibly drift from its neighbours the moment the rest of the
+  wardrobe is redone. Re-pass them on the current method and put them back in front of the
+  owner. Found 2026-08-19 by an inventory of every family against the shipped art. (Tech: hats
+  are ids 157 to 168 and the ONLY family still routed to the three zone engine, per engine_for
+  in tools/recolor_icons.py; LW-247's ramp port rebaked exactly 300 surfaces, the 150 ramp ids
+  times two, and moved zero pixels on the 24 hat surfaces, per section 3 of
+  tools/probes/lw247_arc_gate_result.txt. Their last art commit is fb02f80. The owner's own
+  scope line in LW-248 already names hats as remaining colour work, so this row closes a gap
+  between that sentence and the ledger. Process per LW-198.)
+
 - [LW-217] 2026-08-13: Hair Adornments re-pass: the 3 hair adornment icons still wear the legacy one-hue stamp; process per LW-198.
 
 - [LW-218] 2026-08-13: Heavy Armor re-pass: the 14 armor icons still wear the legacy one-hue stamp; process per LW-198.
@@ -1504,18 +1518,31 @@ the technical detail lives in the indented lines under it.
   must write whole coherent records, paused, likely with the record count; treat it as a
   small arc now, not a one-poke test.
 
-- [LW-248] 2026-08-16: The mod's shipping look is DECIDED for colour and OPEN for glow: every
-  item gets the new recolour, and no item gets a glow rim unless a later decision adds one.
-  The owner settled the colour half on 2026-08-16 after seeing the whole catalogue in game;
-  the glow half stays open because it is a separate layer that can be added or removed later
-  without touching a single body pixel, which was proven repeatedly the same day by re-rimming
-  the sixteen shields four times in seconds. Remaining colour work is hats, armour and
-  accessories, on the same set by set rhythm the weapons and shields used. Anything that
-  depends on the glow decision waits for the owner, and nothing about that decision blocks the
-  colour pass from shipping. (Tech: the four glow candidates and their prices are laid out in
-  the decision brief artifact f9835932; the deployed install currently DOES carry glow on
-  shields, helms, weapons and bags, so shipping colour-only means a final de-glow bake, not a
-  revert of anything the owner approved.)
+- [LW-248] 2026-08-16: The mod's shipping look is DECIDED for colour: every item gets the new
+  recolour. The owner settled that half on 2026-08-16 after seeing the whole catalogue in game.
+  Remaining colour work is hats, armour and accessories, on the same set by set rhythm the
+  weapons and shields used. UPDATED 2026-08-19, owner call: the glow half is no longer part of
+  this row and is no longer part of the next release. It moved to its own story, LW-287,
+  because the owner has other ideas for it that deserve their own thinking rather than a yes or
+  no tacked onto the colour pass. This row is therefore now purely the colour decision and it
+  blocks nothing. (Tech: glow is a separate layer that adds or removes without touching a body
+  pixel, proven by re-rimming the sixteen shields four times in seconds on 2026-08-16, which is
+  exactly why deferring it costs nothing; the four candidates and their prices are in the
+  decision brief artifact f9835932, now inherited by LW-287.)
+
+- [LW-287] 2026-08-19: The glowing rim around an item's picture is its own idea now, deliberately
+  held back from the next release because the owner has other directions he wants to explore for
+  it. Nothing waits on it and nothing breaks without it: the colour pass ships on its own, and a
+  rim can be added or taken away later without disturbing a single pixel of the artwork
+  underneath. This row exists so the idea is parked somewhere real instead of riding along
+  half decided inside the colour work. (Tech: carved out of LW-248 by owner call 2026-08-19 and
+  explicitly OUT of the next release scope. Inherits the four candidate treatments and their
+  costs from decision brief artifact f9835932. Load bearing consequence for whoever picks this
+  up: the currently deployed install DOES carry a glow rim on shields, helms, weapons and bags,
+  so the shipped state is glow present, not glow absent, and any future decision is a change
+  from that baseline in either direction. Because the glow layer is not being touched in the
+  next release, the already final ramp art does not move for glow reasons, which keeps LW-247's
+  no drift deploy check meaningful over those items.)
 
 - [LW-249] 2026-08-16: Nine poles grow the wrong stat, so a mage who levels a Whale Whisker
   gets thirty percent more muscle and not one point of extra spell power. Their damage runs on
