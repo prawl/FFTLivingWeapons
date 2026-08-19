@@ -192,6 +192,18 @@ graphics, ZERO are index-disjoint: minimum overlap 3 indices, median 7, and all 
 the base zone {1,2,3,4}. So the grain today is one palette equals one colour. Re-indexing the
 pixel block remains an untested escape hatch, worth roughly a factor of two, not ten.
 
+CORRECTION 3, the effect-overlap worry above is DEAD, and this is the best news in the row. The
+"Limits and opens" paragraph warned that "repainting a weapon's palette may also retint any effect
+that shares it, which has to be checked before this ships as a feature". It has now been checked
+and it CANNOT happen, for any weapon, ever. BATTLE.BIN's own distribution settles it: weapons take
+X from 3 to 15 only, effects take Y from 0 to 2 only, and across all 127 weapons the two sets never
+intersect. Palettes 1 and 2 additionally hold ink at slots 11-15 only, so no weapon tile could be
+drawn with them even if one were assigned. The same paragraph's estimate that "about 60% of its 664
+rows are weapon art" is superseded by CORRECTION 1: weapon art is page 1, rows 0-255, a clean third
+of the file rather than a 60% share of a mis-measured 664. The free-second-signal trick that
+paragraph describes (arcs go flat while the blade stays vanilla) still works and is still worth
+using, since arcs and weapons draw from disjoint palettes by construction.
+
 </details>
 
 ### [g2d-clut-bank-override] RETRACTED: g2d entry 156 is not a weapon palette bank and the game never reads it

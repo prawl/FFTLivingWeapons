@@ -283,6 +283,23 @@ the technical detail lives in the indented lines under it.
   once per battle load, observed eight times in one session at gaps from 17 seconds to nine
   minutes; the swap tool is tools/probes/lw289_palette_selector.py --deploy --hot.)
 
+- [LW-294] 2026-08-19: A probe file still describes the weapon sprite sheet the wrong way, and
+  the sibling mod already built a feature proposal on that wrong description. The sheet was
+  read as one tall picture with its colours at the front. It is really three separate pictures,
+  each with its own colour block, and the two later colour blocks sit in the middle of what the
+  old description calls picture data. Anyone who trusts the old text draws garbage stripes into
+  their preview and, if they ever rewrite the picture data, writes straight through two colour
+  blocks. The correct layout is already recorded; this row is only about the copy that still
+  lies. (Tech: tools/probes/lw251_wep_spr_forge.py docstring at "FILE FORMAT", which claims
+  85504 bytes = one 512-byte palette block plus 84992 bytes of 4bpp pixels at 256x664. Truth,
+  verified again on the deployed sheet 2026-08-19: palA 0x00000 512 B, page1 0x00200 32768 B
+  rows 0-255 weapons; palB 0x08200 512 B equal to palA in vanilla, page2 0x08400 32768 B rows
+  256-511 arcs; palC 0x10400 512 B different, page3 0x10600 18432 B rows 512-655 impacts.
+  Ledger row [wep-spr-palette-block] and the memory note carry the corrected layout already.
+  Sent to the sibling session as mailbox MSG 3 on 2026-08-19; grep the LW tree for 664 while
+  fixing, and ship the file at exactly 85504 bytes since the loader copies 0x15000 out of an
+  uncleared ArrayPool rental.)
+
 - [LW-293] 2026-08-19: Fix a comment in the build tooling that tells the next reader something we
   have now proved is false, before it costs someone a session. The comment says the item table's
   sprite field picks which weapon graphic gets drawn in battle, and it is the stated reason the

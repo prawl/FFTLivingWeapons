@@ -21,10 +21,32 @@ deploy/channel fault"), a control it never ran:
      index is 2..15 would render vanilla and read as a negative. This forge flattens ALL
      SIXTEEN, so no weapon can escape it.
 
-FILE FORMAT (classic FFT WEP.SPR, verified against the live file 2026-08-19): 85504 bytes =
-a 512-byte palette block (16 palettes x 16 BGR555 u16, colour 0 transparent) followed by
-84992 bytes of 4bpp pixels, low nibble first, 256 px wide x 664 rows. Rendering it at those
-dimensions yields clean weapon art, which is the format check this probe repeats every run.
+FILE FORMAT (classic FFT WEP.SPR, verified against the live file 2026-08-19, CORRECTED
+2026-08-19 later the same day): 85504 bytes = THREE (palette, page) PAIRS, not one palette
+block followed by one image.
+
+    palA  @0x00000   512 B                    page1 @0x00200  32768 B  rows   0-255  WEAPONS
+    palB  @0x08200   512 B (== palA vanilla)  page2 @0x08400  32768 B  rows 256-511  arcs
+    palC  @0x10400   512 B (a different bank) page3 @0x10600  18432 B  rows 512-655  impacts
+
+Each palette block is 16 palettes x 16 BGR555 u16, colour 0 transparent; pixels are 4bpp, low
+nibble first, 256 px wide. WEAPONS DRAW FROM palA/page1, proven by this probe's own deployment:
+flattening palA alone turned every weapon in game flat. Page 2 inks only slots 11-15.
+
+THE EARLIER TEXT HERE SAID "a 512-byte palette block followed by 84992 bytes of 4bpp pixels,
+256 px wide x 664 rows" AND THAT IS WRONG. It is recorded rather than deleted because the
+sibling ColorCustomizer session read this docstring and built a published feature proposal on
+it before the error was caught (docs/TODO.md LW-294). Reading the pixel block as one 256x664
+image splices palB and palC in as 4-row junk bands at y 256-259 and y 516-519 and mislocates
+every row above 255. Decode page 1 alone for a weapon preview.
+
+TWO THINGS THAT BITE WHOEVER WRITES THIS FILE NEXT. The writable pixel extents are
+0x00200..0x081FF, 0x08400..0x103FF and 0x10600..0x14DFF, with two 512-byte palette holes
+between them, so a naive "rewrite the pixels after the header" pass writes straight through
+palB and palC. And the file must be EXACTLY 85504 bytes: the loader copies the full 0x15000
+request out of an UNCLEARED ArrayPool rental, so a short file leaks pool garbage into the tail
+instead of failing loudly. Authority for all of the above is the [wep-spr-palette-block] row in
+docs/LIVE_LEDGER.md, CORRECTION 1.
 
 THE EXPERIMENT (single variable, machine-verified liveness, no in-game control needed):
   SHIP     the palette block flattened, one distinct vivid colour per palette; the PIXEL
