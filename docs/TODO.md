@@ -221,6 +221,52 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
+- [LW-289] 2026-08-19: A weapon now wears its icon's colours in battle, proven by hand on
+  one sword, and the next step is doing it for all of them from the pipeline instead of by
+  hand. The colours a weapon swings with come from a small colour table at the head of the
+  classic weapon sheet, and the mod can ship its own copy of that sheet (ledger row
+  [wep-spr-palette-block], PROVEN 2026-08-19). The catch that shapes the whole job: there
+  are sixteen colour sets for a hundred and twenty eight weapons, and two of the sixteen are
+  effect only, so weapons MUST share. The promise is therefore not that every weapon matches
+  its own card, it is that every weapon GRAPHIC wears its card's identity colour, with fewer
+  shades than the card has. The escape hatch that makes even that possible is that the
+  original artists already fit two or three separate colour runs inside a single set, and the
+  picture half of the sheet is ours to rewrite, so we can hand each graphic its own slice.
+  FIRST STEP IS A MEASUREMENT, not code: nothing can be assigned until we know which colour
+  set each weapon draws from, and the item table's own palette number is a decoy (the
+  Flamberge's says four, it uses fifteen). The instrument already exists and is already
+  installed: with all sixteen sets painted a different loud colour, every weapon announces
+  its own set the moment it is swung, so one session of swinging one weapon per type and per
+  tier reads the map straight off the screen. (Tech: FFTPack file 71 unit/battle_wep_spr.bin,
+  512 byte block of 16 BGR555 palettes then 4bpp 256x664 pixels, low nibble first, shipped at
+  FFTIVC/data/enhanced/fftpack/unit/; probe tools/probes/lw251_wep_spr_forge.py with
+  --icon <palette>:<itemId> for the paint and --checklog for the serve proof; measured tile
+  usage is 3 to 11 slots, median 8, and vanilla tiles already index disjoint ranges, e.g. one
+  tile uses slots 1 to 4 plus 11 to 14 while its neighbour uses 2 to 7; capacity estimate is
+  28 to 42 distinct schemes over roughly 40 to 60 graphics; the baked sheet becomes a
+  GENERATED artifact and must never be hand edited; audit needed because about two fifths of
+  the sheet is swing arcs, sparkles and smoke drawing through the same sets, so a weapon
+  repaint may retint effects; also untested whether a change needs a restart or just a new
+  battle, since the file is read per battle load rather than per launch.)
+
+- [LW-290] 2026-08-19: Once weapons are painted from their icons, nothing stops the two
+  drifting apart again, because a recoloured icon and a stale weapon sheet both look fine on
+  their own and only disagree in a battle nobody runs before shipping. Add a gate that fails
+  the build when a weapon's battle colours no longer match the icon it is supposed to wear,
+  the same way the item gate already refuses to ship a dominated item. Be honest about what
+  such a gate can and cannot see: it can prove the shipped sheet contains the colours taken
+  from the icons, in the right slots, with no two graphics writing over each other's slice,
+  and that every weapon's picture data stays inside the slice it was given, all of which is
+  cheap and repeatable. It cannot prove the game DISPLAYS the result, because that half is
+  the game choosing a colour set, which only the owner can confirm in a battle, once, after
+  which it stays put. Depends on [LW-289]. (Tech: CI has no FF16Tools so icon decode cannot
+  run there; use the pattern already in this repo and commit a derived manifest of item to
+  ramp colours built on a dev box, then have CI compare manifest against the baked sheet
+  while the dev box additionally compares manifest against the icons and skips loudly when
+  the game tree is absent, as the ramp engine already does; wire it into tools/pipeline.ps1
+  so BuildLinked and Publish both refuse on red, matching analyze.py; the gate must also
+  cover the slice partition and the effect rows that share the sets.)
+
 - [LW-286] 2026-08-19: Three separate checks are all sitting and waiting for whichever
   deploy happens next, and that waiting list exists only as prose scattered across the
   changelog and old session notes, so the next deploy can quietly drop one and nobody
