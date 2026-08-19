@@ -42,7 +42,9 @@ import json, os, struct, sys
 PROC = "fft_enhanced.exe"
 HERE = os.path.dirname(os.path.abspath(__file__))
 NEEDLES = os.path.join(HERE, "lw251_hd_clut_needles.json")
+NEEDLES_TOP = os.path.join(HERE, "lw251_hd_clut_needles_top.json")
 OUT = os.path.join(HERE, "lw251_hd_clut_hits.json")
+USE_TOP = False
 
 k32 = C.WinDLL("kernel32", use_last_error=True)
 PROCESS_QUERY_VM = 0x0400 | 0x0010  # QUERY_INFORMATION | VM_READ
@@ -88,13 +90,14 @@ def rpm(h, addr, size):
 
 def build_needles(fmts):
     """One needle per HD palette per requested format. 555 = raw BGR555 u16 (as stored);
-    rgba/bgra = 8-bit expansions the engine might hold after unpacking."""
-    spec = json.load(open(NEEDLES))
-    out = []
+    rgba/bgra = 8-bit expansions the engine might hold after unpacking. Returns a dict
+    {needle_bytes: (fmt, bank_row)} so a single multi-pattern pass can map a match back."""
+    spec = json.load(open(NEEDLES_TOP if USE_TOP else NEEDLES))
+    out = {}
     for pe in spec["palettes"]:
         p = pe["bgr555"]; row = pe["bank_row"]
         if "555" in fmts:
-            out.append(("555", row, struct.pack("<16H", *p)))
+            out[struct.pack("<16H", *p)] = ("555", row)
         for tag in ("rgba", "bgra"):
             if tag not in fmts:
                 continue
@@ -104,7 +107,7 @@ def build_needles(fmts):
                 px = [r, g, bl] if tag == "rgba" else [bl, g, r]
                 a = 0 if v == 0 else 0xFF
                 b += bytes([px[0], px[1], px[2], a])
-            out.append((tag, row, bytes(b)))
+            out[bytes(b)] = (tag, row)
     return out
 
 
@@ -115,9 +118,13 @@ def scan(fmts):
     h = k32.OpenProcess(PROCESS_QUERY_VM, False, pid)
     if not h:
         sys.exit(f"OpenProcess failed {C.get_last_error()}")
-    needles = build_needles(fmts)
-    print(f"pid {pid}; {len(needles)} needles across {sorted(fmts)}; scanning...")
+    needles = build_needles(fmts)  # {needle_bytes: (fmt, row)}
+    items = list(needles.items())   # per-needle bytes.find is memchr-fast; a big regex
+                                    # alternation backtracks and is far slower here.
+    longest = max(len(n) for n, _ in items)
+    print(f"pid {pid}; {len(items)} needles across {sorted(fmts)}; scanning...", flush=True)
     hits = []
+    scanned = 0
     addr = 0
     while addr < 0x7FFFFFFFFFFF:
         mbi = MBI()
@@ -136,16 +143,20 @@ def scan(fmts):
                 if chunk is None:
                     break
                 hay = tail + chunk
-                for tag, row, needle in needles:
+                for needle, (fmt, row) in items:
                     o = hay.find(needle)
                     while o != -1:
                         va = pos - len(tail) + o
-                        hits.append({"addr": va, "fmt": tag, "bank_row": row,
+                        hits.append({"addr": va, "fmt": fmt, "bank_row": row,
                                      "region": hex(base), "prot": mbi.Protect,
                                      "type": mbi.Type})
                         o = hay.find(needle, o + 1)
-                tail = chunk[-64:]
+                tail = chunk[-(longest - 1):]
                 pos += len(chunk)
+                scanned += len(chunk)
+                if scanned >= (512 << 20):
+                    print(f"  ...scanned past {hex(pos)}, {len(hits)} hits so far", flush=True)
+                    scanned = 0
         addr = nxt
     k32.CloseHandle(h)
     json.dump({"hits": hits}, open(OUT, "w"), indent=1)
@@ -164,4 +175,6 @@ if __name__ == "__main__":
     fmts = {"555", "rgba", "bgra"}
     if "--fmt" in sys.argv:
         fmts = {sys.argv[sys.argv.index("--fmt") + 1]}
+    if "--top" in sys.argv:
+        USE_TOP = True
     scan(fmts)
