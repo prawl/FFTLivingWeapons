@@ -10,6 +10,24 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.3 cycle
 
+- [LW-247] SHIPPED 69e9607 2026-08-18: The icon colors players see in game lived only in a
+  probe script, so any normal deploy would have silently reverted every approved icon to the
+  look players rejected, and every deploy needed a manual snapshot dance to avoid that. The
+  pipeline now knows the recipe: a repo bake reproduces the live install byte for byte across
+  all 468 textures, proven twice in a row so nothing secretly reads its own output, and the
+  dance is retired. The approved colors ride as data with the owner's review notes attached,
+  sixteen finished bodies the engine can no longer regrow are carried as pictures with their
+  provenance, and the glow rides as a switch because the glow shipping decision stays open
+  (LW-248). Live confirmation is pre-registered: the next owner approved BuildLinked runs
+  WITHOUT the snapshot dance and the install's icon bytes must not move at all, 468 of 468.
+  (Tech: ramp engine ported verbatim into tools/recolor_icons.py, 22 functions with zero
+  arithmetic drift confirmed by two independent verify rounds; data/icon_ramp/ treatments,
+  rims, bodies; census probes lw247_repro_census.py/census2 map all 300 files; arc gate
+  SHA-256 468/468 vs the live install run twice, recorded in
+  tools/probes/lw247_arc_gate_result.txt; verify scores 7/10 FIX then 9/10 SHIP; the selftest
+  skips its two game file checks loudly on the game free CI runner, proven by simulation;
+  suite 3183.)
+
 - [LW-272] SHIPPED b991071 2026-08-18: A dual wielder's kill credits BOTH weapons and nothing a
   player could read said so, a gap the owner proved by being surprised by his own mod when
   Ramza's two knives each claimed the same undead. The mechanics ledger now carries the full

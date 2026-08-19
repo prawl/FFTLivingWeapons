@@ -108,29 +108,6 @@ the technical detail lives in the indented lines under it.
     The old zone recipe this row's Tech bullet describes was deleted; the bright-v2/
     CARD_OVERRIDES/SMALL_TWO_ZONE dormancy this row notes stands on its own, unaffected.
 
-- **[LW-247] The icon look players see today lives only in a probe script; the repo's own bake would put the rejected look back** (opened 2026-08-16) [BUILDING]
-  - Promoted from Backlog 2026-08-18. Plain: after players rejected the old recolours, a replacement engine was built in a probe
-    and its output was painted straight into the live install, where the owner passed it in
-    game on 2026-08-16 ("fits the game perfectly"). The repo pipeline never learned the new
-    recipe, so today a normal deploy would silently clobber every approved icon back to the
-    rejected look, and every deploy needs a manual snapshot and restore dance to avoid that.
-    This ticket teaches the real pipeline the new recipe so the repo can rebuild exactly what
-    is deployed, and the dance retires. The wait clause on this row (the owner's in game pass
-    of the deployed shields) was satisfied 2026-08-16.
-  - (Tech: port tools/probes/ramp/ramp_engine.py and its four json tables into
-    tools/recolor_icons.py routing for the 121 weapons, 16 shields and 13 helmets, both
-    surfaces, 300 textures; donor ramps read the vanilla cache, re-extractable from the Pac
-    Files source; glow rims ride as an explicit knob because LW-248's glow half is still open
-    while the install carries glow today; every approved round's bytes are banked in
-    Downloads\fft_ref and the live install is the ground truth.)
-  - Done means: running the repo's icon bake reproduces the live install's textures byte for
-    byte for all 300 ramp-covered files with zero differences, the remaining 168 already-agreed
-    files stay untouched, the probe bank stays as history, and BuildLinked can deploy without
-    the manual snapshot dance.
-  - Verify: a byte compare of the repo bake against the live install passes 468 of 468 with any
-    exception named and owner-visible; the four icon gates green with the ramp engine inside
-    them and mutations proving the new pins bite; both glow flavors render from the knob.
-
 
 
 
