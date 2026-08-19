@@ -88,6 +88,9 @@ PAL_BYTES = 16 * 16 * 2       # 16 palettes x 16 BGR555
 TOTAL_BYTES = 85504
 SHEET_W = 256
 LOGS = os.path.join(os.environ.get("APPDATA", ""), "Reloaded-Mod-Loader-II", "Logs")
+REPO_ICONS = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__)))), "mod", "FFTIVC", "data", "enhanced", "ui", "ffto",
+    "icon", "equip_item", "texture")
 
 # 16 max-distinct vivid BGR555 colours (low 5 bits red). Every palette gets one, so a weapon
 # renders as a flat blob whose colour NAMES the palette index it drew from.
@@ -135,6 +138,53 @@ def forge_palettes(raw):
             pal[k] = (pal[k] & 0x8000) | PALETTE_CODES[p][0]
             changed += 1
     return struct.pack(f"<{PAL_BYTES // 2}H", *pal) + raw[PAL_BYTES:], changed
+
+
+def icon_ramp(item_id, slots):
+    """Build a `slots`-long dark-to-light BGR555 ramp from an item's SHIPPED menu icon, so a
+    battle weapon can be painted in the colours players already see on its card. Samples the
+    icon's opaque pixels by luminance percentile, which keeps the art's own hue at each
+    tone (a red-rimmed steel blade stays red-rimmed steel) instead of inventing a flat tint."""
+    from PIL import Image
+    stem = f"ei_{item_id:03d}_uitx"
+    work = os.path.join(os.environ["TEMP"], "lw251_icon")
+    os.makedirs(work, exist_ok=True)
+    src = os.path.join(REPO_ICONS, f"{stem}.tex")
+    if not os.path.isfile(src):
+        sys.exit(f"no shipped icon for item {item_id}: {src}")
+    shutil.copy2(src, os.path.join(work, f"{stem}.tex"))
+    subprocess.run([FF16TOOLS, "tex-conv", "-i", os.path.join(work, f"{stem}.tex")],
+                   capture_output=True)
+    im = Image.open(os.path.join(work, f"{stem}.dds")).convert("RGBA")
+    px = [im.getpixel((x, y))[:3] for y in range(im.height) for x in range(im.width)
+          if im.getpixel((x, y))[3] > 128]
+    if len(px) < slots:
+        sys.exit(f"icon for item {item_id} has too few opaque pixels ({len(px)})")
+    px.sort(key=lambda c: 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2])
+    ramp = []
+    for i in range(slots):
+        r, g, b = px[min(len(px) - 1, (i * len(px)) // slots + len(px) // (2 * slots))]
+        ramp.append((r >> 3) | ((g >> 3) << 5) | ((b >> 3) << 10) or 1)  # never 0 (=transparent)
+    return ramp
+
+
+def paint_palette(raw, index, ramp, order_src):
+    """Write `ramp` into one palette, preserving its transparent slots and its dark-to-light
+    ORDER (slot k keeps its luminance rank), so the artist's shading survives the re-hue.
+    order_src MUST be the VANILLA file: ranking by luminance only means something before the
+    flattening pass, since after it every slot in a palette holds the same colour and the
+    sort order is arbitrary."""
+    pal = list(struct.unpack_from(f"<{PAL_BYTES // 2}H", raw, 0))
+    van = struct.unpack_from(f"<{PAL_BYTES // 2}H", order_src, 0)
+    slots = [s for s in range(1, 16) if pal[index * 16 + s]]
+    order = sorted(slots, key=lambda s: _lum(van[index * 16 + s]))
+    for rank, s in enumerate(order):
+        pal[index * 16 + s] = (pal[index * 16 + s] & 0x8000) | ramp[rank]
+    return struct.pack(f"<{PAL_BYTES // 2}H", *pal) + raw[PAL_BYTES:], len(order)
+
+
+def _lum(v):
+    return 0.299 * (v & 0x1F) + 0.587 * ((v >> 5) & 0x1F) + 0.114 * ((v >> 10) & 0x1F)
 
 
 def _dn(n):
@@ -247,6 +297,19 @@ def main():
           f"{out[PAL_BYTES:] == raw[PAL_BYTES:]}")
     for i, (_, name) in enumerate(PALETTE_CODES):
         print(f"  palette {i:2} -> {name}")
+    # --icon <palette>:<itemId> paints ONE palette in that item's shipped menu-icon colours
+    # while the other fifteen keep their flat codes. Two answers from one launch: the target
+    # weapon either wears its icon (that palette is its palette) or wears a flat code colour,
+    # and THAT colour names the palette it really uses.
+    if "--icon" in sys.argv:
+        spec = sys.argv[sys.argv.index("--icon") + 1]
+        idx, item = (int(v) for v in spec.split(":"))
+        ramp = icon_ramp(item, 15)
+        out, painted = paint_palette(out, idx, ramp, raw)
+        print(f"painted palette {idx} with item {item}'s icon ramp ({painted} slots, "
+              f"dark to light; the other palettes keep their flat code colours)")
+        print("  ramp:", " ".join(f"({(v & 31) * 8},{((v >> 5) & 31) * 8},{((v >> 10) & 31) * 8})"
+                                  for v in ramp))
     if "--derange" in sys.argv:
         out = derange_pixels(out)
         print("ALSO deranged the pixel block (two variables; only for the follow-up question)")
