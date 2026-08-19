@@ -94,6 +94,44 @@ between the loose leftover container and the modded.pac copy.
 
 </details>
 
+### [g2d-clut-bank-override] The battle weapon palette bank is g2d entry 156 and a mod override recolours it
+
+The colours a weapon wears in battle come from g2d container entry 156, a bank of 144
+sixteen-colour BGR555 palettes, and a mod-shipped `system/ffto/g2d/tex_156.bin` holding raw
+decompressed bytes replaces it: restart-gated, TRUE HUE control (colour values, not an index
+shuffle). PROVEN, owner live-verified 2026-08-19. This OVERTURNS the round-2 negative
+recorded under [g2d-equipment-sheet-override]: that round ran with no positive control in
+frame (see the CORRECTION in that row's fold).
+
+<details><summary>How we got here</summary>
+
+**Claim:** the palette bank the weapon sheet provably consumes offline can be replaced
+through the same per-entry file channel that repaints the sheet itself.
+
+**Mechanism:** round 9 (2026-08-19): tools/probes/lw251_g2d_clut_forge.py extracted entry
+156 from the modded.pac container (4608 bytes, 144 rows of 16 BGR555 colours), forged every
+colour except slot 0 and 0x0000 slots to ONE flat saturated colour per row (hue spread
+across the bank so every row is self-identifying by colour; zeros and bit 15 preserved),
+and deployed it beside the proven deranged tex_161 as the in-frame control.
+
+**Evidence:** owner observation in session, same launch: an Archer's bow rendered FLAT
+gold, shading gone, where round 1's derangement-only look on the same weapon class was
+deep blue with a white edge. A shadeless flat is the pre-registered tell no index scramble
+of a vanilla shaded ramp can produce, so the forged colours themselves are on screen.
+The nocked arrow ALSO changed (a blue outline, owner-confirmed not a normal colour), which
+means the projectile art consumes bank rows too, so entry 158's earlier "direct RGB555"
+classification is wrong or incomplete. Under a flat palette a deranged index sheet is
+indistinguishable from an intact one, so the tex_161 control is unreadable in this
+outcome, exactly as pre-registered.
+
+**Limits and opens:** restart-gated (same per-process cache as the sheet lever). The
+weapon-to-row mapping is unmeasured; the flat hue wheel doubles as the census instrument
+(a weapon's flat colour names its row: hue sector x row order, 144 rows over the wheel).
+Sharing grain unmeasured (which items share a row). Slot-0 and bit-15 semantics untested
+(both preserved in the forge). Owner flip: in-session, 2026-08-19.
+
+</details>
+
 ### [live-icon-repaint] Equip icons repaint LIVE, no game restart
 
 An equip icon's bytes can be overwritten in place inside `<game>/data/enhanced/modded.pac` while the game is running, and the new art appears the next time that inventory list is loaded (leave the list and come back); no restart, both the 48px row icon and the 100px detail card. Proven, owner live-verified 2026-08-16. This RETIRES the long-standing "icon changes are restart-only" belief: that was true of editing our loose `.tex` files, because those are only a merge input.

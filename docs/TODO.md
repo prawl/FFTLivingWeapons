@@ -74,12 +74,16 @@ the technical detail lives in the indented lines under it.
   - ROUNDS 7 TO 9, 2026-08-19: a full memory scan for the HD palette bank found ZERO
     copies in the running game (at a menu and mid battle both), and a living wielder's
     combat struct holds only the weapon id, no colour or render pointer, so the colour
-    lives GPU side and the RAM write plan is retired. Round 9 is DEPLOYED and awaiting
-    the owner's launch: the real palette bank (g2d entry 156, the bank that provably
-    colours the weapon sheet offline) forged to flat per row colours, plus the proven
-    scrambled sheet as an in frame control, shipped through the file channel. Flat bow =
-    colour lever found; shaded scrambled bow = the file channel cannot reach the palette
-    and the next probe is the full container ship; vanilla bow = dead launch, retry.
+    lives GPU side and the RAM write plan is retired. Round 9 (the retry of the palette
+    file override, this time with the proven scrambled sheet in frame as a control) hit
+    GOLD: the owner watched an Archer's bow render flat shadeless gold, a look no shuffle
+    of the game's own colours can produce, so the palette bank IS replaceable through the
+    file channel and TRUE HUE control is won. The arrow changed too (blue outline, owner
+    confirmed not a normal colour), so projectile art drinks from the same bank. Ledger
+    row [g2d-clut-bank-override] PROVEN, owner flip in session. What remains for Done:
+    the weapon to palette row mapping (the flat hue wheel makes every row self identifying
+    by colour, so reading gear colours in battle IS the census), the sharing grain, and
+    the deliberate icon matched recolour of one weapon end to end.
     (Tech: probe tools/probes/lw251_g2d_clut_forge.py, forge + selftest + deploy;
     overrides sit in the install's FFTIVC/data/enhanced/system/ffto/g2d/, wiped by the
     next BuildLinked.)
