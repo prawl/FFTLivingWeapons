@@ -117,16 +117,53 @@ def decompress_entry(data, off, plen):
 
 
 def flat15(row, nrows):
-    """One flat saturated low-15 BGR555 colour for palette `row`: hue by row, full value.
-    Flat (same colour in every slot 1..15) is deliberate: a consumed forge renders weapons
-    as shadeless colour blobs, which no index scramble of a vanilla ramp can imitate."""
-    h = (row / max(nrows, 1)) * 6.0        # hue sector 0..6
-    i = int(h) % 6
-    f = h - int(h)
-    p, q, t = 0.0, 1.0 - f, f
-    r, g, b = [(1, t, p), (q, 1, p), (p, 1, t), (p, q, 1), (t, p, 1), (1, p, q)][i]
+    """One flat COORDINATE-CODED low-15 BGR555 colour for palette `row`. Flat (same colour
+    in every slot 1..15) is deliberate: a consumed forge renders items as shadeless colour
+    blobs, which no index scramble of a vanilla ramp can imitate. Round 10 upgrade: the
+    colour is a machine-decodable row code (hue = (row%36)*10 degrees, two value bands by
+    (row//36)%2, two saturation bands by row//72; 144 distinct never-zero colours, min RGB
+    pair distance 8), so a screenshot of ANY item in battle names its palette row via
+    --decode. Confusable near-neighbours share a hue family, so a mis-decode is off by a
+    band, not off by a random row."""
+    import colorsys
+    h = (row % 36) * 10 / 360.0
+    v = (1.0, 0.62)[(row // 36) % 2]
+    s = (1.0, 0.5)[min(row, nrows - 1) // 72]
+    r, g, b = colorsys.hsv_to_rgb(h, s, v)
     r5, g5, b5 = (max(1, int(c * 31)) for c in (r, g, b))
     return r5 | (g5 << 5) | (b5 << 10)     # low bits = red (scan probe's proven layout)
+
+
+def code_rgb(row, nrows=144):
+    v = flat15(row, nrows)
+    return ((v & 0x1F) << 3, ((v >> 5) & 0x1F) << 3, ((v >> 10) & 0x1F) << 3)
+
+
+def decode_image(path, nrows=144, tol=26, min_pixels=12):
+    """Read a battle screenshot and report which coded rows appear. Nearest-code match
+    within `tol` RGB distance per pixel; rows under `min_pixels` matched pixels are noise.
+    Daylight battles decode far better than night (night haze shifted a green flat ~40
+    degrees blue in the round-9 read). Returns [(row, pixel_count, (cx, cy))...]."""
+    from PIL import Image
+    import math
+    im = Image.open(path).convert("RGB")
+    w, h = im.size
+    codes = [code_rgb(r, nrows) for r in range(nrows)]
+    hits = {}
+    for y in range(h):
+        for x in range(w):
+            p = im.getpixel((x, y))
+            best, bd = None, tol * tol
+            for r, c in enumerate(codes):
+                d = (p[0] - c[0]) ** 2 + (p[1] - c[1]) ** 2 + (p[2] - c[2]) ** 2
+                if d < bd:
+                    best, bd = r, d
+            if best is not None:
+                e = hits.setdefault(best, [0, 0, 0])
+                e[0] += 1; e[1] += x; e[2] += y
+    out = [(r, n, (sx // n, sy // n)) for r, (n, sx, sy) in hits.items() if n >= min_pixels]
+    out.sort(key=lambda t: -t[1])
+    return out
 
 
 def forge_clut(raw):
@@ -191,15 +228,25 @@ def selftest():
     for row in (0, 1):
         low15 = {v & 0x7FFF for v in got[row * 16:(row + 1) * 16] if v}
         assert len(low15) == 1, "a forged row is not flat"
-    assert (got[1] & 0x7FFF) != (got[17] & 0x7FFF), "adjacent rows share a hue"
-    for row in range(200):
-        assert 1 <= flat15(row, 200) <= 0x7FFF
+    assert (got[1] & 0x7FFF) != (got[17] & 0x7FFF), "adjacent rows share a colour"
+    codes = [flat15(r, 144) for r in range(144)]
+    assert len(set(codes)) == 144, "row codes are not distinct"
+    assert all(1 <= c <= 0x7FFF for c in codes), "a row code is zero or has the top bit"
+    rgbs = [code_rgb(r) for r in range(144)]
+    for i, p in enumerate(rgbs):
+        near = min(range(144), key=lambda j: sum((a - b) ** 2 for a, b in zip(rgbs[j], p)))
+        assert near == i, "the code table does not self-decode"
     print("selftest OK")
 
 
 def main():
     if "--selftest" in sys.argv:
         selftest()
+        return
+    if "--decode" in sys.argv:
+        shot = sys.argv[sys.argv.index("--decode") + 1]
+        for row, n, (cx, cy) in decode_image(shot):
+            print(f"row {row:3}: {n:5} px  around ({cx},{cy})")
         return
     selftest()
     work_dir = sys.argv[1]
