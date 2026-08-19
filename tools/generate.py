@@ -142,11 +142,22 @@ def extra_itemdata_entry(iid, fields):
 def itemdata_entry(it):
     s = it["proposed"]
     body = ""
-    # SpriteID (ItemData byte 0x01) picks the drawn weapon graphic, independent of
-    # ItemCategory (byte 0x05, which drives equip class + attack animation). A
-    # categoryOverride that crosses graphic families (e.g. Iron Flail's flail art
-    # forced into a Sword animation) renders the weapon offset mid-swing unless the
-    # sprite is repointed to match. 0 is a valid id (Nothing Equipped) -> test "is not None".
+    # SpriteID (ItemData byte 0x01) is the MENU ICON graphic. It does NOT pick the weapon
+    # a unit swings in battle, and an earlier version of this comment said it did.
+    # Disproven twice, independently:
+    #   2026-06-26, spriteIdOverride on the retyped weapons was a confirmed live no-op.
+    #   2026-08-19, the field was rewritten live from a sword to an axe with the write
+    #   visible in the loader log, and the swung weapon never changed shape (ledger row
+    #   [weapon-palette-assignment-walled], lever 2).
+    # The battle swing model is welded to the ITEM ID through the live combat struct
+    # (CWeapon +0x20), which is the same field that drives the damage maths, so there is no
+    # art-only data lever. Consequence for the seven retyped weapons (48/49/50 axes and
+    # 67/68/69/70 flails, the only categoryOverride rows in items.json): they keep swinging
+    # their vanilla axe and flail art despite equipping and fighting as swords, knives,
+    # katana and poles. That is ACCEPTED and harmless, not a bug to fix here, and it is NOT
+    # fixable by setting SpriteID. Do not re-add spriteIdOverride to chase it; zero rows use
+    # it today and that is deliberate.
+    # 0 is a valid id (Nothing Equipped) -> test "is not None".
     if s.get("spriteIdOverride") is not None:
         body += f"      <SpriteID>{s['spriteIdOverride']}</SpriteID>\n"
     if "equipBonusId" in s:
