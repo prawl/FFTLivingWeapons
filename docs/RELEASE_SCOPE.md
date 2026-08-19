@@ -347,6 +347,23 @@ Each needs a keep or re tint call, and a keep the art verdict means a re tint ba
       (LW-238)**: measured 161, 60 and 115 degrees off their own art respectively, and cyan over
       red for the last.
 
+### 4b. Take the halo off every item picture (BLOCKER, owner call 2026-08-19, LW-287)
+Added mid cut after the owner looked at all 150 pictures with the halo on and off. The mod has been
+painting a coloured halo of its own around every weapon, shield and helm picture. It comes off; the
+vanilla artist's own soft haze stays. This was OUT of scope this morning and the reversal is
+recorded in the OUT section rather than edited away.
+- [ ] **Remove the halo and re bake (LW-287)**: one named switch, then all 468 files re baked. All
+      150 ramp items move, in exactly one respect, which is what the amended no drift check in
+      section 6 now says.
+- [ ] **The gate that graded the halo has to be rebuilt in the same commit**: the old palette
+      separation rule let a distinct halo RESCUE two items whose colours were too close, and
+      judged a vanilla named item on its halo alone. With no halo shipped, both halves graded a
+      layer nobody paints. Successor: vanilla named items are exempt and judged on their own art
+      instead, and the exemption is proved against the pixels rather than asserted.
+- [ ] **Owner gallery pass on the de haloed set**: done 2026-08-19 ahead of the bake, all 150 at
+      list size with a halo on and off toggle. This box is the record that it happened before the
+      bake rather than after it.
+
 ### 5. The system that makes it repeatable (SHOULD)
 - [ ] **Icon art framework (LW-278)**: the style bible and verdict corpus, then the judge harness
       calibrated against held out owner verdicts BEFORE it prefilters anything, then the per
@@ -358,13 +375,17 @@ Each needs a keep or re tint call, and a keep the art verdict means a re tint ba
 - [ ] **The rider checklist itself (LW-286)**: three checks have been waiting for whichever
       deploy happens next, recorded only as scattered prose. They get a home in
       docs/VERIFY_LIVE.md before the deploy, not after it.
-- [ ] **No drift check, restated (LW-286, confirms LW-247)**: the original pre registration said
-      the installed icon bytes must not move at all, 468 of 468. That was written before this cut
-      existed and it collides with a deploy whose entire purpose is to move icon bytes. The
-      honest restatement, which preserves the intent: the 150 already final ramp items must not
-      move, and only the newly reworked items plus the 12 new files may. Deferring glow, see OUT
-      below, is what keeps that half of the check meaningful, because the ramp art then has no
-      reason to move at all.
+- [ ] **No drift check, restated TWICE (LW-286, confirms LW-247, amended 2026-08-19 by LW-287)**:
+      the original pre registration said the installed icon bytes must not move at all, 468 of
+      468. That was written before this cut existed and it collides with a deploy whose entire
+      purpose is to move icon bytes. The first restatement said the 150 already final ramp items
+      must not move either, on the reasoning that deferring the glow left them no reason to.
+      That reasoning is now dead: the owner's second call on 2026-08-19 REMOVES the glow, which
+      moves all 150 on purpose. The honest check for this cut, which keeps the intent that
+      nothing changes by accident: the 150 ramp items move in EXACTLY ONE respect, the halo
+      layer, and nothing else in their pictures changes; every non ramp item outside the newly
+      reworked set stays byte identical. The first half is what the halo on versus halo off
+      render proves item by item; the second is what compare --expect proves.
 - [ ] **Flight recorder eviction fix (LW-286, confirms LW-259)**: the one undeployed runtime
       change in the tree; needs a deploy plus a tape read after a long battle.
 - [ ] **Cache partition combined pass (LW-286, confirms LW-262)**.
@@ -387,12 +408,18 @@ Each needs a keep or re tint call, and a keep the art verdict means a re tint ba
 
 ## 2.4.0 OUT of scope (explicit, so nothing drifts back in)
 
-- **The glow rim (LW-287). Owner call 2026-08-19: hold off, there are other ideas for it.**
-  Carved out of LW-248 into its own story and deliberately outside this cut. It costs nothing to
-  defer, because the rim is a separate layer that adds or removes without touching a body pixel.
-  Note for whoever picks it up: the deployed install DOES currently carry a rim on shields,
-  helms, weapons and bags, so the shipped state is glow present, and any later decision moves
-  from that baseline in one direction or the other.
+- **Bringing the glow rim BACK, or redesigning it (LW-287).** Superseded 2026-08-19 by a second
+  owner call the same day, and the change of direction is recorded here rather than edited away.
+  The morning call was hold off. The afternoon call, after the owner looked at all 150 pictures
+  with the halo on and off, was REMOVE it, which is now IN scope, see section 5. What stays out
+  is every OTHER idea for the rim: reviving it, restyling it, or making it mean something. Those
+  keep LW-287 alive as a story after this cut ships.
+  Why removal was cheap enough to change our minds mid cut: the rim is a separate layer that adds
+  or removes without touching a body pixel, so this reverses in minutes if the owner wants it
+  back. One thing the removal turned out to FIX rather than cost, which is what settled it: the
+  rim had been painted straight over the vanilla artist's own haze, wiping out between 100 and
+  270 pixels of it on every one of the 150 items. Taking it off hands all of that back exactly as
+  drawn.
 - **Battle sprite colours (LW-251)**: a live reverse engineering arc on its own clock, currently
   waiting on a one shot boot race probe. It shares the word colour with this cut and nothing else.
 - **Three rows whose premises are stale and must be re measured rather than trusted (LW-232,

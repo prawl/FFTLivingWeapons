@@ -1822,6 +1822,20 @@ def _ramp_prototype_inner(im, tint, surface, item_id=None):
     return out
 
 
+# THE ONE SWITCH for the identity glow rim (LW-287, owner call 2026-08-19). False since this
+# commit: the shipped bake paints the BODY only and leaves the vanilla artist's own haze exactly
+# as drawn. Everything below (ramp_glow, ramp_rim_color, data/icon_ramp/rims.json, and the glow
+# pins in selftest) is deliberately kept working and tested, because LW-287 PARKS the rim idea
+# rather than killing it. Reviving it is: flip this to True, re-bake, and re-run the four gates.
+# The selftest pins are written to survive that flip (they assert the two signature defaults
+# TRACK this constant, and only ONE pin asserts today's value), so a revival goes green rather
+# than fighting the gate. See docs/TODO.md LW-287.
+#
+# Read at import time, since it is a default-argument value: a caller that wants a rim passes
+# glow=True explicitly rather than reassigning this name.
+SHIP_GLOW_RIM = False
+
+
 def ramp_glow(im, tint, inner_a=170, outer_a=80, third_a=0, min_de=30.0, rim_sat=None,
              rim_rgb=None):
     """Identity rim as an ADDED layer outside the body. The body contour uses a looser alpha
@@ -1874,16 +1888,19 @@ def _ramp_coif_light_middle(out, a, ship_live):
     return out
 
 
-def ramp_render(item_id, tint, surface, glow=True):
+def ramp_render(item_id, tint, surface, glow=SHIP_GLOW_RIM):
     """THE ramp branch route() dispatches to for the 150 ramp ids (D5): a vendored body PNG
     if this (id, surface) is one of the 16 census2 BODY-VEND pairs; else, for the five ids
     whose shipped art IS the old engine's own render
     (RAMP_KEEP_SHIPPED helms 147/148/155/156 plus 144's colour map), that old-engine render --
     called LIVE via helm_recolor/shield_two_tone, never a mod-tree read (B1 fix); else the
-    ramp engine's own prototype render. Glow (the identity rim) runs last unless the caller
-    passes glow=False (the explicit knob the arc gate's --no-glow smoke render exercises),
-    honoring data/icon_ramp/rims.json where a row exists and the default rim_color(tint)
-    otherwise."""
+    ramp engine's own prototype render. Glow (the identity rim) is the LAST step and is OFF in
+    the shipped bake since LW-287: the default is SHIP_GLOW_RIM (False), so this returns the
+    body and leaves the vanilla artist's own haze exactly as drawn. A caller that passes
+    glow=True still gets the parked rim, honoring data/icon_ramp/rims.json where a row exists
+    and the default rim_color(tint) otherwise. (The previous version of this sentence cited
+    "the arc gate's --no-glow smoke render" as the knob's exerciser. No such gate has ever
+    existed anywhere in this repo; the citation was invented. Removed 2026-08-19.)"""
     body = _ramp_vendored_body(item_id, surface)
     if body is None:
         if item_id in RAMP_KEEP_SHIPPED:
@@ -1970,11 +1987,12 @@ def engine_for(item_id):
     return "legacy"
 
 
-def route(im, item_id, tint, surface, glow=True):
+def route(im, item_id, tint, surface, glow=SHIP_GLOW_RIM):
     """THE single routing rule, returning a NEW image so callers keep their vanilla copy.
     process() and tools/icon_preview.py both call this and neither owns a second copy of the
     branch, so the reviewed gallery cannot drift from the production bake. `glow` is the ramp
-    engine's explicit knob (LW-247/LW-248): every other engine ignores it."""
+    engine's explicit knob (LW-247/LW-248/LW-287) and defaults to SHIP_GLOW_RIM, which is
+    False: every other engine ignores it."""
     engine = engine_for(item_id)
     if engine == "ramp":
         return ramp_render(item_id, tint, surface, glow=glow)
@@ -2013,35 +2031,85 @@ def body_is_whole_signal(i):
     return bool(o) and all(tuple(z["tone"]) in VOCABULARY for z in o["zones"])
 
 
+SEP_EPS = 1e-9
+# The palette is authored on a 0.05 hue / 0.20 saturation grid, and a gap authored EXACTLY at a
+# floor must CLEAR it. In IEEE 754 double it does not, reliably: 0.88 - 0.68 is
+# 0.19999999999999996 while 0.80 - 0.60 is 0.20000000000000007. Four helm pairs were authored
+# to the identical 0.20 saturation gap -- (144,155) (147,156) (148,149) (146,150) -- and the
+# rounding mode alone splits them 3 fail / 1 pass. A gate whose verdict is decided by the last
+# bit of a double is not a gate, so the comparison carries a tolerance. Measured 2026-08-19;
+# selftest pin ramp pin9 names both numbers so nobody "simplifies" this away.
+SEP_HUE_GAP, SEP_SAT_GAP = 0.05, 0.20
+SHIELD_SEP_HUE_GAP, SHIELD_SEP_SAT_GAP = 0.05, 0.25
+
+# Every ramp id lives in exactly one rack. Hoisted out of selftest() (LW-287) so BOTH the
+# selftest and tools/icon_preview.py can assert coverage against the same table instead of
+# each keeping a list that quietly falls out of date. Helms are here for the first time: they
+# were in NO rack before, so thirteen items were judged by nothing at all.
+RAMP_RACKS = (
+    ("sword", SWORD_RACK), ("knight sword", KNIGHT_RACK), ("bow", BOW_RACK),
+    ("gun", GUN_RACK), ("rod", ROD_RACK), ("pole", POLE_RACK), ("harp", HARP_RACK),
+    ("polearm", SPEAR_RACK), ("staff", STAFF_RACK), ("cloth", CLOTH_RACK),
+    ("katana", KATANA_RACK), ("knife", KNIFE_RACK), ("ninja blade", NINJA_RACK),
+    ("book", BOOK_RACK), ("bag", BAG_RACK),
+    ("crossbow", frozenset(i for i, c in _CATEGORY.items() if c == "Crossbow")),
+    ("shield", RAMP_SHIELDS), ("helm", RAMP_HELMS),
+)
+
+# THE VENDORED HOLE, named out loud rather than left to be discovered (LW-287). These ids ship
+# from a frozen PNG in data/icon_ramp/bodies/, so their ICON_TINTS row does not reach the art on
+# that surface: it DESCRIBES the art (the PNG was rendered from that very tint) but editing it
+# moves nothing until the PNG is re-vendored. They stay JUDGED, because a faithful description
+# is exactly what a "do these two look alike" rule needs. What must never happen is this being
+# invisible, so the sets are spelled out and pinned. Measured 2026-08-19 by rendering all 150
+# ids twice through the shipped path under two very different tints.
+RAMP_VENDORED_FROZEN = frozenset({150, 151, 152, 154})        # tint reaches NEITHER surface
+RAMP_VENDORED_CARD_ONLY = frozenset({130, 132, 134, 136, 138, 140, 145, 149})  # small still live
+
+
+def ramp_rack_floors(rack_name):
+    """Shields keep the wider saturation floor their own review round set (LW-190); every other
+    rack, helms included, uses the weapon floors."""
+    return ((SHIELD_SEP_HUE_GAP, SHIELD_SEP_SAT_GAP) if rack_name == "shield"
+            else (SEP_HUE_GAP, SEP_SAT_GAP))
+
+
 def ramp_separation_signal(i):
-    """LW-247 delta NEW-4: the palette-separation successor for ramp ids, module level for the
-    same reason body_is_whole_signal is (tools/icon_preview.py's silhouettes gate needs the
-    identical rule, and two copies of a rule this load-bearing would drift). A NON-RESERVED
-    id's signal is its body tint (hue, sat) plus its resolved rim's OWN (hue, sat) -- the rim
-    is compared by hue-or-sat gap, not raw RGB equality, because rim_color's output is
-    sensitive to tiny hue differences (byte equality almost never rescues two DEFAULT rims and
-    almost always rescues two genuinely different ones). A RESERVED id's body is vanilla-popped
-    (pop_filter touches sat/value only), so its body tint carries no signal of its own and it
-    is judged on its rim alone. Returns None for an id with no tint at all (mid-edit)."""
+    """A ramp id's palette signal: the (hue, sat) of its body tint. None only when the id has no
+    tint row at all (mid-edit), which is a DIFFERENT thing from being exempt -- see
+    ramp_separation_exempt. Keeping those two cases apart is what stops a dead ruling vanishing
+    in silence instead of going red.
+
+    THE RIM IS GONE FROM THIS SIGNAL (LW-287). The predecessor rule let a distinct rim RESCUE a
+    body-tint collision, and judged a reserved id "on its rim alone". Since SHIP_GLOW_RIM is
+    False the bake paints no rim, so both halves graded a layer that reaches no pixel. Module
+    level for the same reason it always was: tools/icon_preview.py's silhouettes gate needs the
+    identical rule and two copies of a rule this load-bearing would drift."""
     tint = ICON_TINTS.get(i)
-    if tint is None:
-        return None
-    rim = RAMP_RIMS.get(str(i))
-    rim_rgb = tuple(rim["rgb"]) if rim else ramp_rim_color(tint[0], tint[1])
-    rim_h, rim_s, _ = colorsys.rgb_to_hsv(*[c / 255 for c in rim_rgb])
-    if i in RAMP_RESERVED_POP:
-        return (None, None, rim_h, rim_s)
-    return (tint[0], tint[1], rim_h, rim_s)
+    return None if tint is None else (tint[0], tint[1])
 
 
-def ramp_separation_collides(sig_a, sig_b, hue_gap, sat_gap):
-    ha, sa, rha, rsa = sig_a
-    hb, sb, rhb, rsb = sig_b
-    rim_distinct = abs(arc(rha, rhb)) >= hue_gap or abs(rsa - rsb) >= sat_gap
-    if ha is None or hb is None:
-        return not rim_distinct   # reserved: rim-only judgment
-    body_close = abs(arc(ha, hb)) < hue_gap and abs(sa - sb) < sat_gap
-    return body_close and not rim_distinct
+def ramp_separation_exempt(i):
+    """True when this id ships as the vanilla artist's own art merely popped, so its ICON_TINTS
+    row reaches NO pixel of it and there is nothing here for a palette rule to judge.
+
+    This is not a dodge and not a name test. ramp_pop_filter is _ramp_prototype_dispatch's first
+    branch and it ignores `tint` entirely, which is why these ids are tint-blind in fact and not
+    by assertion: selftest renders all 150 ids twice under two different tints through the
+    SHIPPED path and proves the set of tint-blind ids is exactly this exemption plus the four
+    frozen-PNG ids in RAMP_VENDORED_FROZEN. Exempt ids are not unguarded: icon_preview.py's
+    anchors gate holds each of them within 40 degrees of its OWN artwork, and silhouettes judges
+    the ones that share a sprite on their RENDERED pixels."""
+    return i in RAMP_RESERVED_POP
+
+
+def ramp_separation_collides(sig_a, sig_b, hue_gap, sat_gap, eps=SEP_EPS):
+    """Both gaps inside the family floor. `eps` gives a gap authored exactly at the floor the
+    room to clear it; it is a parameter only so the selftest can re-run at eps=0 and show the
+    three phantom helm collisions the tolerance exists to erase."""
+    ha, sa = sig_a
+    hb, sb = sig_b
+    return abs(arc(ha, hb)) < hue_gap - eps and abs(sa - sb) < sat_gap - eps
 
 
 # RESERVED-NAME RULINGS. The owner's rule is that an item which kept its vanilla name is built
@@ -2066,20 +2134,30 @@ ANCHOR_RULINGS = {
          "gilt plate) and the ramp render is icy platinum at hue 198, a 161-degree move. "
          "Surfaced by the pre-commit-3 anchors run, not measured before the ramp arc. Awaiting "
          "the owner; listed here so the gate reports it rather than blocking on it.",
-    116: "OPEN, docs/TODO.md LW-277: the Fallingstar Bag's icon reads hue 111 degrees and the "
-         "ramp render (the deep-mute bag round's own config) is hue 171, a 60-degree move. "
-         "Surfaced by the pre-commit-3 anchors run, not measured before the ramp arc. Awaiting "
-         "the owner; listed here so the gate reports it rather than blocking on it.",
+    116: "RESOLVED BY LW-287 2026-08-19, kept as a live row on purpose. The Fallingstar Bag "
+         "was reported at a 60-degree move from its own art (icon hue 111, render hue 171) and "
+         "was one of the four owner rulings LW-277 was waiting on. Removing the glow rim closed "
+         "it without an owner call: the bags carried the strongest rim in the set (the only "
+         "inner_a 235 rows in rims.json, above HALO_HI), and that rim was what the reading was "
+         "measuring. With the rim off the render sits 4 degrees from its own art and the gate "
+         "now reports it ANCHORED. The row stays because it is still TRUE that reviving the rim "
+         "(LW-287, SHIP_GLOW_RIM) restores the 60-degree gap, so deleting it would hand a "
+         "future revival a surprise failure. Not a dead grandfather; a conditional one, and the "
+         "condition is named.",
 }
 
-# LW-247 delta NEW-4: the ramp engine's palette-separation successor (selftest, near the end
-# of this function) judges every non-hat, non-reserved ramp id on its body tint escaped by a
-# distinct rim, and every reserved id on its rim alone. Ten pairs still collide under that
-# rule with the owner's 2026-08-16 in-game pass already approved, so they are grandfathered
-# here rather than re-litigated -- the reports-not-blocks pattern ANCHOR_RULINGS established.
-# Four shield pairs share an IDENTICAL rim (the complement-rim recipe puts several shields on
-# the same six-ish rim families), so the distinct-rim escape saves none of them; the sword and
-# katana pairs separate by WEIGHT (value), which this gate does not measure.
+# GRANDFATHERED COLLISIONS. Under the LW-287 rule every JUDGED ramp id is graded on its body
+# tint alone (see ramp_separation_signal); nine pairs still land inside their family floor and
+# every one of them was approved by the owner in game on 2026-08-16, so they are reported here
+# rather than re-litigated -- the reports-not-blocks pattern ANCHOR_RULINGS established.
+#
+# READ THE REASONS AS PROVENANCE, NOT AS THE RULE. Six of these rows were first noticed via a
+# shared complement RIM, and the rim no longer ships (SHIP_GLOW_RIM). Their text is kept because
+# it records how the pair surfaced and what the owner actually looked at, but what makes them
+# collide TODAY is body tint: verified 2026-08-19, all nine still collide under the body-only
+# rule, which selftest pin ramp pin10 re-proves on every run. The four shield pairs sit inside
+# the wider shield saturation floor; the five sword pairs separate by WEIGHT (value), which this
+# gate does not measure and which is exactly why they need a human ruling rather than a number.
 RAMP_SEPARATION_RULINGS = {
     (128, 143): "OWNER PASS 2026-08-16: Tideward and Aegis Prime share a complement rim "
                 "(242,109,0) and sit within the hue/sat floor on body tint too; the owner's "
@@ -2101,8 +2179,22 @@ RAMP_SEPARATION_RULINGS = {
     (23, 67): "OWNER PASS 2026-08-16: Sanguine Sword and the Warbrand (which rides the "
               "Vagabond's sprite, not the Sanguine Sword's) separate by WEIGHT and by which "
               "sprite they wear; approved as shipped.",
-    (44, 70): "OWNER PASS 2026-08-16: Muramasa (RESERVED, judged on rim alone) and the Sasori "
-              "(rides the Ashura's sprite) share a rim family; approved as shipped.",
+}
+
+# RETIRED RULINGS. A grandfather row that no longer grandfathers anything is deleted from the
+# live table and recorded HERE with the reason, never silently dropped: a reader who finds the
+# pair in git history must be able to learn why it stopped mattering without re-deriving it.
+# Selftest pin ramp pin11 keeps this table honest (nothing in both tables, nothing retired that
+# still collides, every row carrying a real reason).
+RAMP_SEPARATION_RULINGS_RETIRED = {
+    (44, 70): "RETIRED 2026-08-19 by LW-287. Muramasa (44) kept its vanilla name, so it is now "
+              "EXEMPT from palette separation: it ships as the artist's own art popped and its "
+              "ICON_TINTS row reaches no pixel of it. With 44 unjudged the pair cannot collide, "
+              "so the ruling grandfathered nothing. This was the ONLY ruling the exemption "
+              "killed; the other nine still collide on body tint and stay live. The pair is not "
+              "unguarded: 44 and 70 ride the Ashura's sprite, so icon_preview.py's silhouettes "
+              "gate judges them on their RENDERED pixels, where they measure 116.2 degrees "
+              "apart, far outside its 15 degree floor.",
 }
 
 SOLID_TINT_FLOOR = 0.02    # below this an item ships as vanilla art wearing a coloured glow
@@ -2892,102 +2984,310 @@ def selftest():
     # have quietly ridden along on this pass
     check("hair adornments stay legacy until their own pass",
           all(engine_for(i) == "legacy" for i, c in _CATEGORY.items() if c == "HairAdornment"))
-    # PALETTE SEPARATION (LW-247 delta NEW-4, 2026-08-18). The old pin was keyed on
-    # ZONE_OVERRIDES/SHIELD_OVERRIDES membership, which went vacuous the moment those tables
-    # lost their weapon/shield rows to the ramp engine (body_is_whole_signal(i) now returns
-    # False for every id, since ZONE_OVERRIDES holds only hats). Successor rule: a NON-RESERVED
-    # ramp id's signal is its body tint (hue, sat), escaped by a DISTINCT resolved rim -- two
-    # tints that collide may still separate by wearing different rims; a RESERVED id's body is
-    # vanilla-popped (pop_filter touches sat/value only, ramp pin4), so its body tint carries no
-    # signal of its own and it is judged on its rim alone. Known collisions the owner's
-    # 2026-08-16 in-game pass already approved are grandfathered in RAMP_SEPARATION_RULINGS
-    # (the reports-not-blocks pattern ANCHOR_RULINGS established) rather than re-litigated here.
-    SEP_HUE_GAP, SEP_SAT_GAP = 0.05, 0.20
-    SHIELD_SEP_HUE_GAP, SHIELD_SEP_SAT_GAP = 0.05, 0.25
-
+    # PALETTE SEPARATION (LW-287, 2026-08-19). Rebuilt from the LW-247 version, which graded a
+    # layer that is no longer painted: it let a distinct RIM rescue a body-tint collision and
+    # judged a reserved id "on its rim alone", and SHIP_GLOW_RIM is now False. That version also
+    # carried the two coverage floors this block deletes, `judged_racks >= 15` and
+    # `judged_nonreserved >= 80`. Both counted TABLE POPULATION rather than judgement, and both
+    # stayed green through every rimless variant tested on 2026-08-19 -- including one where the
+    # rule graded a phantom. They are replaced by EXACT accounting accumulated by the live
+    # comparison loop below, so editing a number here is a deliberate act and an empty rack is
+    # a red gate rather than a quiet pass.
+    #
+    # The lineage matters because this pin has gone hollow once before: its ancestor keyed on
+    # ZONE_OVERRIDES/SHIELD_OVERRIDES membership and silently started checking ZERO items the
+    # moment those tables lost their rows to the ramp engine. Nothing noticed until an audit.
     ramp_signal = ramp_separation_signal
     ramp_collides = ramp_separation_collides
+    ramp_exempt = ramp_separation_exempt
 
     def ruled(a, b):
         return (a, b) in RAMP_SEPARATION_RULINGS or (b, a) in RAMP_SEPARATION_RULINGS
 
-    shields = sorted(RAMP_SHIELDS)
-    shield_sigs = {i: ramp_signal(i) for i in shields if ramp_signal(i) is not None}
-    shield_collisions = [(a, b) for n, a in enumerate(shields) for b in shields[n + 1:]
-                         if a in shield_sigs and b in shield_sigs
-                         and ramp_collides(shield_sigs[a], shield_sigs[b],
-                                           SHIELD_SEP_HUE_GAP, SHIELD_SEP_SAT_GAP)]
-    shield_unruled = [(a, b) for a, b in shield_collisions if not ruled(a, b)]
-    check(f"shield tints stay distinguishable, or are grandfathered by an explicit ruling "
-          f"(unruled collisions: {shield_unruled})", not shield_unruled)
-    check("shield palette covers all 16", len(shields) == 16)
-    check("every shield is judged", len(shield_sigs) == 16)
+    # THE LIVE LOOP. _judged, _exempt and _pairs_by_rack are ACCUMULATED here, never derived
+    # from the tables, because a count derived from the same predicate it is meant to check is
+    # a tautology (a set difference would make three of pin6's conjuncts true by construction).
+    _judged, _exempt, _no_tint = set(), set(), set()
+    _pairs_by_rack, _unruled = {}, []
+    for _rack_name, _rack in RAMP_RACKS:
+        _hg, _sg = ramp_rack_floors(_rack_name)
+        _live = []
+        for _i in sorted(_rack):
+            if ramp_exempt(_i):
+                _exempt.add(_i)
+                continue
+            _sig = ramp_signal(_i)
+            if _sig is None:
+                _no_tint.add(_i)
+                continue
+            _judged.add(_i)
+            _live.append((_i, _sig))
+        _n = 0
+        for _x in range(len(_live)):
+            for _y in range(_x + 1, len(_live)):
+                _a, _sa = _live[_x]
+                _b, _sb = _live[_y]
+                _n += 1
+                if ramp_collides(_sa, _sb, _hg, _sg) and not ruled(_a, _b):
+                    _unruled.append((_rack_name, _a, _b))
+        _pairs_by_rack[_rack_name] = _n
+        check(f"{_rack_name} tints stay distinguishable, or are grandfathered by an explicit "
+              f"ruling (unruled collisions: {[(a, b) for r, a, b in _unruled if r == _rack_name]})",
+              not [1 for r, _, _ in _unruled if r == _rack_name])
 
-    # THE BLADE RACKS + every other ramp weapon rack. Each rack is checked WITHIN itself: two
-    # families are never on screen in the same list, and holding one rack's palette away from
-    # another's would spend hue the wheel does not have.
-    swords = sorted(SWORD_RACK)
-    knights = sorted(KNIGHT_RACK)
-    bows = sorted(BOW_RACK)
-    guns = sorted(GUN_RACK)
-    rods = sorted(ROD_RACK)
-    poles = sorted(POLE_RACK)
-    harps = sorted(HARP_RACK)
-    spears = sorted(SPEAR_RACK)
-    staves = sorted(STAFF_RACK)
-    cloths = sorted(CLOTH_RACK)
-    katanas = sorted(KATANA_RACK)
-    knives = sorted(KNIFE_RACK)
-    ninjas = sorted(NINJA_RACK)
-    books = sorted(BOOK_RACK)
-    bags = sorted(BAG_RACK)
-    xbows = sorted(i for i, c in _CATEGORY.items() if c == "Crossbow")
-    hats = sorted(i for i, c in _CATEGORY.items() if c == "Hat" and i in ZONE_OVERRIDES)
+    check(f"ramp pin6a coverage: the 18 racks PARTITION the 150 ramp ids, none twice and none "
+          f"missing (helms were in NO rack before LW-287, so 13 items were judged by nothing)",
+          len(RAMP_RACKS) == 18
+          and sum(len(r) for _, r in RAMP_RACKS) == 150
+          and set().union(*(set(r) for _, r in RAMP_RACKS)) == set(RAMP_IDS))
+    check(f"ramp pin6b coverage: every ramp id was reached by the live loop and sorted into "
+          f"exactly one bucket ({len(_judged)} judged + {len(_exempt)} exempt + "
+          f"{len(_no_tint)} without a tint row = 150)",
+          len(_judged) == 114 and len(_exempt) == 36 and not _no_tint
+          and _judged | _exempt == set(RAMP_IDS) and not (_judged & _exempt))
+    check("ramp pin6c coverage: the exempt set the LOOP built is exactly RAMP_RESERVED_POP, "
+          "spelled out, so widening the exemption is a diff and never a silent drift",
+          sorted(_exempt) == sorted(RAMP_RESERVED_POP)
+          and sorted(_exempt) == [10, 16, 17, 18, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42,
+                                  43, 44, 45, 46, 47, 57, 58, 65, 66, 73, 74, 75, 76, 90, 91,
+                                  94, 98, 104, 105, 112, 114])
+    check(f"ramp pin6d coverage: the pairs the loop actually COMPARED, per rack, are exactly as "
+          f"measured on 2026-08-19 (got {_pairs_by_rack})",
+          _pairs_by_rack == {"sword": 91, "knight sword": 1, "bow": 21, "gun": 1, "rod": 15,
+                             "pole": 21, "harp": 1, "polearm": 15, "staff": 15, "cloth": 3,
+                             "katana": 0, "knife": 45, "ninja blade": 15, "book": 3, "bag": 6,
+                             "crossbow": 15, "shield": 120, "helm": 78}
+          and sum(_pairs_by_rack.values()) == 466)
+    check("ramp pin6e coverage: the katana rack compares ZERO pairs and that is stated OUT LOUD "
+          "rather than buried under a floor -- 10 of its 11 ids kept a vanilla name, so the "
+          "anchors gate holds that rack and this one cannot. 17 of 18 racks compare a pair",
+          _pairs_by_rack["katana"] == 0
+          and sum(1 for _, v in _pairs_by_rack.items() if v >= 1) == 17)
 
-    judged_racks = 0
-    judged_nonreserved = 0
-    for rack_name, rack in (("sword", swords), ("knight sword", knights),
-                            ("bow", bows), ("gun", guns), ("rod", rods), ("pole", poles),
-                            ("harp", harps), ("polearm", spears), ("staff", staves),
-                            ("cloth", cloths), ("katana", katanas),
-                            ("knife", knives), ("ninja blade", ninjas),
-                            ("book", books), ("bag", bags), ("crossbow", xbows)):
-        sigs = {i: ramp_signal(i) for i in rack if ramp_signal(i) is not None}
-        if len(sigs) >= 2:
-            judged_racks += 1
-        judged_nonreserved += sum(1 for i in sigs if i not in RAMP_RESERVED_POP)
-        ordered = sorted(sigs)
-        rack_collisions = [(a, b) for n, a in enumerate(ordered) for b in ordered[n + 1:]
-                           if ramp_collides(sigs[a], sigs[b], SEP_HUE_GAP, SEP_SAT_GAP)]
-        rack_unruled = [(a, b) for a, b in rack_collisions if not ruled(a, b)]
-        check(f"{rack_name} tints stay distinguishable, or are grandfathered by an explicit "
-              f"ruling (unruled collisions: {rack_unruled})", not rack_unruled)
-    check(f"the palette-separation tripwire covers most racks ({judged_racks}/16 racks judged)",
-          judged_racks >= 15)
-    check(f"the palette-separation tripwire judges most non-reserved weapons "
-          f"({judged_nonreserved} judged, floor 80)", judged_nonreserved >= 80)
+    # ramp pin7: the loop is LIVE, rack by rack. Clone one judged id's tint onto another judged
+    # id in the same rack and RE-RUN THE ACTUAL PAIR LOOP, asserting it reports that pair as an
+    # unruled collision. A rack that quietly stopped being judged cannot pass this.
+    #
+    # It re-runs the loop rather than just asking whether the comparator fires, and the
+    # difference is the whole point. Judging a mutation by a PROXY (the predicate reacted, the
+    # suite reported some failure) instead of by the THING (this gate, on this rack, went red
+    # naming this pair) is how a mutation hunt clears while the gate is deaf. Same family of
+    # error as scoring a mutation caught because the suite went red, when what went red was an
+    # unrelated flaky test.
+    _PIN7_PAIRS = {"sword": (19, 20), "knight sword": (49, 50), "bow": (83, 84),
+                   "gun": (71, 72), "rod": (51, 52), "pole": (48, 107), "harp": (92, 93),
+                   "polearm": (99, 100), "staff": (59, 60), "cloth": (119, 120),
+                   "knife": (1, 2), "ninja blade": (11, 12), "book": (95, 96),
+                   "bag": (115, 116), "crossbow": (77, 78), "shield": (128, 129),
+                   "helm": (144, 145)}
+
+    def _rack_unruled(rack_name, rack, tint_of):
+        """The pair loop above, verbatim in shape, over an injected tint map. Returns the
+        unruled collisions it reports, so a mutation is judged by what THIS GATE says."""
+        hg, sg = ramp_rack_floors(rack_name)
+        live = [(i, tint_of(i)) for i in sorted(rack)
+                if not ramp_exempt(i) and tint_of(i) is not None]
+        out = []
+        for x in range(len(live)):
+            for y in range(x + 1, len(live)):
+                a, sa = live[x]
+                b, sb = live[y]
+                if ramp_collides(sa, sb, hg, sg) and not ruled(a, b):
+                    out.append((a, b))
+        return out
+
+    _pin7_bad = []
+    for _rack_name, _rack in RAMP_RACKS:
+        if _rack_name not in _PIN7_PAIRS:
+            continue
+        _a, _b = _PIN7_PAIRS[_rack_name]
+        # sanity: the pair must be two judged ids that do NOT already collide, else the
+        # injection proves nothing (it would have been red before the mutation too).
+        _clean = not _rack_unruled(_rack_name, _rack, ramp_signal)
+        _injected = _rack_unruled(_rack_name, _rack,
+                                  lambda i, a=_a, b=_b: ramp_signal(a) if i == b
+                                  else ramp_signal(i))
+        _reported = (_a, _b) in _injected or (_b, _a) in _injected
+        if not (_a in _judged and _b in _judged and _clean and _reported):
+            _pin7_bad.append((_rack_name, _a, _b))
+    check(f"ramp pin7 mutation guard: in all 17 racks that compare a pair, cloning one judged "
+          f"id's tint onto another judged id makes THE RACK'S OWN LOOP report that exact pair "
+          f"as an unruled collision (racks that did not react: {_pin7_bad})",
+          not _pin7_bad and len(_PIN7_PAIRS) == 17)
+
+    # ramp pin8: the detector itself, on synthetic numbers, so a gutted comparator is caught
+    # even if every real tint happened to be far apart.
+    check("ramp pin8: the collision detector is live on pure synthetic tints (close collides, "
+          "far in hue does not, far in saturation does not)",
+          ramp_collides((0.10, 0.50), (0.12, 0.55), SEP_HUE_GAP, SEP_SAT_GAP)
+          and not ramp_collides((0.10, 0.50), (0.30, 0.55), SEP_HUE_GAP, SEP_SAT_GAP)
+          and not ramp_collides((0.10, 0.50), (0.12, 0.90), SEP_HUE_GAP, SEP_SAT_GAP))
+
+    # ramp pin9: the epsilon, by the exact numbers that forced it. Without the tolerance three
+    # helm pairs authored to a clean 0.20 saturation gap "collide" on a rounding artifact.
+    _HELM_EPS_PAIRS = [(144, 155), (147, 156), (148, 149), (146, 150)]
+    _eps0 = [(a, b) for a, b in _HELM_EPS_PAIRS
+             if ramp_collides(ramp_signal(a), ramp_signal(b), SEP_HUE_GAP, SEP_SAT_GAP, eps=0)]
+    check(f"ramp pin9: the float tolerance is load-bearing and honest -- 0.88-0.68 is under 0.20 "
+          f"in raw double while 0.80-0.60 is over it, so at eps=0 exactly three of four helm "
+          f"pairs authored to the SAME 0.20 gap collide ({_eps0}), and with SEP_EPS all four "
+          f"clear it",
+          abs((0.88 - 0.68) - 0.20) > 0 and (0.88 - 0.68) < 0.20 and (0.80 - 0.60) > 0.20
+          and len(_eps0) == 3
+          and not [1 for a, b in _HELM_EPS_PAIRS
+                   if ramp_collides(ramp_signal(a), ramp_signal(b), SEP_HUE_GAP, SEP_SAT_GAP)])
+
+    # ramp pin10: every LIVE ruling must still be judged AND still collide. An exempt member
+    # counts as DEAD, loudly -- the predecessor guarded this with `if signal(a) and signal(b)`,
+    # which swallowed exactly that case, which is how the (44,70) ruling would have rotted here
+    # unnoticed instead of being retired on purpose.
+    _dead = []
+    for _a, _b in RAMP_SEPARATION_RULINGS:
+        _hg, _sg = ramp_rack_floors("shield" if _a in RAMP_SHIELDS else "weapon")
+        if ramp_exempt(_a) or ramp_exempt(_b):
+            _dead.append((_a, _b, "a member is EXEMPT"))
+        elif ramp_signal(_a) is None or ramp_signal(_b) is None:
+            _dead.append((_a, _b, "a member has no tint row"))
+        elif not ramp_collides(ramp_signal(_a), ramp_signal(_b), _hg, _sg):
+            _dead.append((_a, _b, "no longer collides"))
+    check(f"ramp pin10: every live grandfather ruling still grandfathers a REAL collision. Dead "
+          f"rows must move to RAMP_SEPARATION_RULINGS_RETIRED with a reason, never be deleted "
+          f"(dead: {_dead})",
+          not _dead and len(RAMP_SEPARATION_RULINGS) == 9)
+
+    # ramp pin11: the retired table is honest.
+    _both = [k for k in RAMP_SEPARATION_RULINGS_RETIRED
+             if k in RAMP_SEPARATION_RULINGS or (k[1], k[0]) in RAMP_SEPARATION_RULINGS]
+    _still = [(a, b) for a, b in RAMP_SEPARATION_RULINGS_RETIRED
+              if not ramp_exempt(a) and not ramp_exempt(b)
+              and ramp_signal(a) and ramp_signal(b)
+              and ramp_collides(ramp_signal(a), ramp_signal(b),
+                                *ramp_rack_floors("shield" if a in RAMP_SHIELDS else "weapon"))]
+    check(f"ramp pin11: the retired-rulings table is honest -- no pair sits in both tables "
+          f"(in both: {_both}), nothing retired still collides while judged (still live: "
+          f"{_still}), and every retired row carries a real reason",
+          not _both and not _still
+          and all(isinstance(v, str) and len(v) > 40
+                  for v in RAMP_SEPARATION_RULINGS_RETIRED.values()))
+
+    # ramp pin12: ruled() reads the table in BOTH orderings and rejects a pair that is not in
+    # it. Replaces a guard whose subject was next(iter(RAMP_SEPARATION_RULINGS)) -- welded to
+    # source order, so re-ordering the table silently re-pointed the mutation at another pair --
+    # and two of whose three conjuncts were true by construction.
+    check("ramp pin12: ruled() is order-insensitive and actually discriminates",
+          ruled(23, 67) and ruled(67, 23) and not ruled(23, 68) and not ruled(44, 70))
+
+    # ramp pin13: no two EXEMPT ids draw themselves from the same source sprite. Exempt ids are
+    # judged by no tint rule, so if two of them shared a sprite they could ship byte-identical
+    # with nothing able to see it. Derived from SRC, never a hardcoded list.
+    _by_src = {}
+    for _i in sorted(RAMP_IDS):
+        if ramp_exempt(_i):
+            _by_src.setdefault(SRC.get(_i, _i), []).append(_i)
+    _twinned = {k: v for k, v in _by_src.items() if len(v) > 1}
+    check(f"ramp pin13: no two exempt ids share a source sprite, so the exemption cannot hide "
+          f"two byte-identical icons (shared: {_twinned})", not _twinned)
+
+    # ramp pin14 (LW-287, THE SWITCH). Written in two halves ON PURPOSE so that reviving the rim
+    # is cheap. The first half asserts the two signature defaults TRACK SHIP_GLOW_RIM, and it
+    # stays green whichever way the constant is set, so it can never be the thing that fights a
+    # revival. Only the second half names today's value, and its message says exactly what to do
+    # when LW-287 comes off the shelf.
+    import inspect as _inspect
+    # Read the SOURCE TEXT, not the resolved default value. Comparing the value cannot do this
+    # job: SHIP_GLOW_RIM is False and Python interns False, so a signature hardcoded to
+    # `glow=False` satisfies `default is SHIP_GLOW_RIM` and the pin passes while the wiring is
+    # broken. Found by mutation on 2026-08-19: the value-comparison version of this pin let
+    # `def ramp_render(..., glow=False)` through untouched. The text form catches both
+    # directions because it is the LINK being asserted, not the current value.
+    _sig_src = {"ramp_render": _inspect.getsource(ramp_render).split(")", 1)[0],
+                "route": _inspect.getsource(route).split(")", 1)[0]}
+    _unlinked = sorted(n for n, src in _sig_src.items() if "glow=SHIP_GLOW_RIM" not in src)
+    check(f"ramp pin14a: both render entry points take their glow default FROM SHIP_GLOW_RIM by "
+          f"name, so the switch cannot be half-flipped and cannot be hardcoded to the value it "
+          f"happens to hold today (not linked: {_unlinked})",
+          not _unlinked
+          and _inspect.signature(ramp_render).parameters["glow"].default is SHIP_GLOW_RIM
+          and _inspect.signature(route).parameters["glow"].default is SHIP_GLOW_RIM)
+    check("ramp pin14b: the rim is OFF in the shipped bake today (SHIP_GLOW_RIM is False). If "
+          "LW-287 revives the rim, flip the constant, re-bake, re-run the four gates, and update "
+          "THIS ONE LINE plus the ramp pin15 expectation; nothing else in the selftest asserts "
+          "the value",
+          SHIP_GLOW_RIM is False)
+
+    # ramp pin15 (LW-287, THE EXEMPTION, and the anti-vacuity centrepiece). The exemption is only
+    # honest if the exempt ids really are the ones whose ICON_TINTS row reaches no pixel. That is
+    # MEASURED here, not asserted: render every one of the 150 ramp ids twice through the real
+    # prototype dispatch under two very different tints and collect the ids that come out
+    # byte-identical. The claim is a BICONDITIONAL, tint-blind exactly when exempt, so it goes red
+    # from either direction: exempt an id whose tint is painted, un-pop an exempt id, or add a pop
+    # dispatch without exempting.
+    #
+    # Two things a reader should not have to discover the hard way. The fixture must be CHROMATIC:
+    # _ramp_prototype_dispatch routes to Mode B when the art is more than half neutral, and Mode B
+    # RAISES for any id without a pinned donor, which inside selftest() is an uncaught exception
+    # that kills the run before the failure list prints. And this measures the PROTOTYPE path; the
+    # SHIPPED path differs for the twelve vendored ids, which is what ramp pin16 is for.
+    def _ramp_tint_fixture(w=20):
+        im = Image.new("RGBA", (w, w), (0, 0, 0, 0))
+        px = im.load()
+        for y in range(4, 16):
+            for x in range(4, 16):
+                px[x, y] = (200, 80, 60, 255)
+        for y in range(8, 11):
+            for x in range(8, 11):
+                px[x, y] = (120, 120, 120, 255)
+        return im
+
+    _TINT_A, _TINT_B = (0.08, 0.75, 1.00), (0.58, 0.30, 0.95)
+    _blind, _pin15_err = set(), []
+    for _i in sorted(RAMP_IDS):
+        _same = 0
+        for _surf in ("card", "small"):
+            try:
+                _pa = _ramp_prototype_dispatch(_ramp_tint_fixture(), _TINT_A, _surf, item_id=_i)
+                _pb = _ramp_prototype_dispatch(_ramp_tint_fixture(), _TINT_B, _surf, item_id=_i)
+                if images_equal(_pa, _pb):
+                    _same += 1
+            except Exception as _e:
+                _pin15_err.append((_i, _surf, type(_e).__name__))
+        if _same == 2:
+            _blind.add(_i)
+    check(f"ramp pin15: rendering every ramp id under two very different tints proves the engine "
+          f"is tint-blind for an id EXACTLY when that id is exempt, so the exemption describes "
+          f"the pixels and not just a table (blind: {len(_blind)}, exempt: {len(_exempt)}, "
+          f"disagreements: {sorted(_blind ^ _exempt)}, render errors: {_pin15_err})",
+          not _pin15_err and _blind == _exempt and len(_blind) == 36)
+
+    # ramp pin16 (LW-287, THE VENDORED HOLE, named rather than hidden). Twelve ids ship from a
+    # frozen PNG, so on that surface their tint DESCRIBES the art without reaching it: editing the
+    # tint moves nothing until the PNG is re-vendored. They stay JUDGED, because a faithful
+    # description is what a "do these two look alike" rule needs. What must never happen is this
+    # being invisible, so the two sets are spelled out and a change to either is a diff. Measured
+    # 2026-08-19 through the SHIPPED path (route with the shipped default) under the same two
+    # tints; recorded here as table membership because re-rendering 150 ids through the shipped
+    # path needs the game files and takes minutes, which no gate should pay on every run.
+    check("ramp pin16: the vendored-body ids are exactly the ones recorded, and every one of them "
+          "really does have a frozen PNG on the surface claimed, so 'this tint reaches no pixel' "
+          "is checkable rather than folklore",
+          all(_ramp_vendored_body(_i, "card") is not None
+              and _ramp_vendored_body(_i, "small") is not None
+              for _i in RAMP_VENDORED_FROZEN)
+          and all(_ramp_vendored_body(_i, "card") is not None
+                  and _ramp_vendored_body(_i, "small") is None
+                  for _i in RAMP_VENDORED_CARD_ONLY)
+          and sorted(RAMP_VENDORED_FROZEN) == [150, 151, 152, 154]
+          and sorted(RAMP_VENDORED_CARD_ONLY) == [130, 132, 134, 136, 138, 140, 145, 149]
+          and not (RAMP_VENDORED_FROZEN & RAMP_VENDORED_CARD_ONLY))
+    check("ramp pin16b: no vendored id is EXEMPT. The two holes must stay separate: an exempt id "
+          "is judged by the anchors gate on its own art, and a vendored id is judged here on a "
+          "tint that describes it. An id in both would be judged by nothing at all",
+          not (RAMP_VENDORED_FROZEN & _exempt) and not (RAMP_VENDORED_CARD_ONLY & _exempt))
+
     # Hats are untouched by the ramp arc (not in RAMP_IDS) and keep their OWN three-zone
-    # collision pin, which was never broken by this migration (it never used
-    # body_is_whole_signal's now-vacuous ZONE_OVERRIDES filter in the first place -- see the
-    # zone-engine collision block below this one, still scoped to ZONE_OVERRIDES == hats).
+    # collision pin further down; they never used the now-vacuous body_is_whole_signal filter.
+    hats = sorted(i for i, c in _CATEGORY.items() if c == "Hat" and i in ZONE_OVERRIDES)
     check("hats are still all twelve on the zone engine", len(hats) == 12)
-    # RAMP_SEPARATION_RULINGS non-vacuity: dropping a ruling must un-grandfather its pair and
-    # the pair must fail the collision check again (mutation that must go red).
-    _rp_a, _rp_b = next(iter(RAMP_SEPARATION_RULINGS))
-    _pruned = {k: v for k, v in RAMP_SEPARATION_RULINGS.items() if k != (_rp_a, _rp_b)}
-    _fam_hue, _fam_sat = ((SHIELD_SEP_HUE_GAP, SHIELD_SEP_SAT_GAP) if _rp_a in RAMP_SHIELDS
-                          else (SEP_HUE_GAP, SEP_SAT_GAP))
-    _sig_a, _sig_b = ramp_signal(_rp_a), ramp_signal(_rp_b)
-    check(f"ramp pin6 mutation guard: removing the ({_rp_a}, {_rp_b}) ruling would fail the "
-          f"pair again (RAMP_SEPARATION_RULINGS is load-bearing, not decorative)",
-          ramp_collides(_sig_a, _sig_b, _fam_hue, _fam_sat)
-          and (_rp_a, _rp_b) not in _pruned and (_rp_b, _rp_a) not in _pruned)
-    check("every RAMP_SEPARATION_RULINGS pair actually collides under the rule (else it is "
-          "not grandfathering anything)",
-          all(ramp_collides(ramp_signal(a), ramp_signal(b),
-                            *((SHIELD_SEP_HUE_GAP, SHIELD_SEP_SAT_GAP) if a in RAMP_SHIELDS
-                              else (SEP_HUE_GAP, SEP_SAT_GAP)))
-              for a, b in RAMP_SEPARATION_RULINGS if ramp_signal(a) and ramp_signal(b)))
     # ANCHOR_RULINGS is read by tools/icon_preview.py's anchors gate, which cannot run in CI
     # (it needs the game files and the texture tool), so what CAN be checked here is that the
     # table is honest: every id in it is a real reserved name carrying a real reason. Without
@@ -2999,21 +3299,18 @@ def selftest():
           not bad_rulings)
     check("every reserved-name ruling carries a reason",
           all(isinstance(v, str) and len(v) > 40 for v in ANCHOR_RULINGS.values()))
-    check("the sword rack is all fifteen", len(swords) == 15)
-    check("the knight sword rack is all seven", len(knights) == 7)
-    check("the bow rack is all nine", len(bows) == 9)
-    check("the gun rack is all six", len(guns) == 6)
-    check("the rod rack is all eight", len(rods) == 8)
-    check("the pole rack is all nine", len(poles) == 9)
-    check("the harp rack is all three", len(harps) == 3)
-    check("the polearm rack is all eight", len(spears) == 8)
-    check("the staff rack is all eight", len(staves) == 8)
-    check("the cloth rack is all three", len(cloths) == 3)
-    check("the katana rack is all eleven", len(katanas) == 11)
-    check("the knife rack is all eleven", len(knives) == 11)
-    check("the ninja blade rack is all nine", len(ninjas) == 9)
-    check("the book rack is all four", len(books) == 4)
-    check("the bag rack is all four", len(bags) == 4)
+    # RACK SIZES, one table-driven check in place of the fifteen hand-written ones this block
+    # used to carry. Same guarantee (an item leaving or joining a family goes red) plus two the
+    # old form could not give: it covers crossbows, shields and helms too, and it reads the same
+    # RAMP_RACKS the live loop above iterates, so a rack cannot be judged under one definition
+    # and size-checked under another.
+    _RACK_SIZES = {"sword": 15, "knight sword": 7, "bow": 9, "gun": 6, "rod": 8, "pole": 9,
+                   "harp": 3, "polearm": 8, "staff": 8, "cloth": 3, "katana": 11, "knife": 11,
+                   "ninja blade": 9, "book": 4, "bag": 4, "crossbow": 6, "shield": 16,
+                   "helm": 13}
+    _sizes = {n: len(r) for n, r in RAMP_RACKS}
+    check(f"every rack is exactly the size it should be, all eighteen (got {_sizes})",
+          _sizes == _RACK_SIZES and sum(_RACK_SIZES.values()) == 150)
     # SHARED SPRITES. Three items in these two racks draw themselves with ANOTHER item's picture
     # (the Warbrand on the Vagabond's, the Ravager on the Defender's, the Sunderer on Save the
     # Queen's), so for those pairs colour is not the main signal, it is the ONLY one. The pairs
@@ -3262,12 +3559,22 @@ def selftest():
 
         _dummy130 = Image.new("RGBA", (1, 1), (0, 0, 0, 0))
         _tint130 = tuple(ICON_TINTS.get(130, (0.15, 0.92, 1.18)))
-        _wired130 = route(_dummy130, 130, _tint130, "card")
+        # glow=True EXPLICITLY (LW-287): the shipped default is SHIP_GLOW_RIM = False, so the
+        # bake paints no rim and the band assertion below would be checking a layer nobody
+        # draws. This pin's job is unchanged and still worth running: it proves route() WIRES
+        # rims.json and the vendored-body branch together whenever a rim is asked for, which is
+        # exactly the parked machinery LW-287 has to be able to switch back on. Its body half is
+        # rim-independent; only the band half needs the rim.
+        _wired130 = route(_dummy130, 130, _tint130, "card", glow=True)
+        _shipped130 = route(_dummy130, 130, _tint130, "card")
         _mask130 = _ramp_test_smoothed_mask(_vend130)
         check("ramp pin3b (wiring): route()'s body-interior pixels equal the vendored PNG "
               "exactly (mutation that must go red: skip ramp_render's vendored-body branch)",
               len(_mask130) > 0
               and all(_wired130.getpixel(p) == _vend130.getpixel(p) for p in _mask130))
+        check("ramp pin3c (LW-287 wiring): the SHIPPED default paints the vendored body too, "
+              "so turning the rim off did not quietly change which body an id ships",
+              all(_shipped130.getpixel(p) == _vend130.getpixel(p) for p in _mask130))
         _w130, _h130 = _vend130.size
         _d1_130 = set()
         for _y in range(_h130):

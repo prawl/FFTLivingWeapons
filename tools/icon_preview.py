@@ -535,20 +535,27 @@ def cmd_silhouettes(out):
     sprite: 7 pairs. The artist also drew plain glyphs that repeat, and at 48px those are just as
     indistinguishable, which an audit measured at 15 of 16 byte-identical outlines unguarded.
     This groups every tinted item by category and by the exact solid-alpha mask of its list icon,
-    then holds each group to the same hue-or-saturation floor.
+    then holds each group to the same floor recolor_icons uses, imported rather than re-declared.
 
-    Judged items are those whose body tint IS their colour signal (recolor_icons'
-    body_is_whole_signal), which drops hats, helmets and legacy for the documented reason: an
-    item wearing three identity colours is told apart by more than its body. LW-247 (2026-08-18)
-    extended judgment to every RAMP id, on the ramp engine's own successor rule
-    (recolor_icons.ramp_separation_signal / ramp_separation_collides): a non-reserved id's
-    signal is its body tint escaped by a distinct rim, a reserved id's is its rim alone.
-    body_is_whole_signal itself is permanently False now (ZONE_OVERRIDES holds only hats, whose
-    tones are never in its named vocabulary), so it drops out of judgment cleanly rather than
-    needing its own carve-out here."""
+    LW-287 (2026-08-19) rewrote what "judged" means here, because the previous rule graded a layer
+    that is no longer painted. It said a ramp id's signal was "its body tint escaped by a distinct
+    rim, or its rim alone if reserved"; the shipped bake now paints no rim at all
+    (recolor_icons.SHIP_GLOW_RIM), so both halves of that sentence were dead. The rule now:
+
+      * both ids JUDGED (neither exempt)  -> compare body tints, recolor_icons' own signal.
+      * either id EXEMPT                  -> the tint says nothing about an exempt id, since it
+        ships as the artist's own art popped. These pairs are the ones where colour is the ONLY
+        signal, so they are judged on the RENDERED PIXELS instead: the chroma-weighted hue of each
+        icon as actually drawn, held to ART_HUE_FLOOR. This is the honest completion of the
+        exemption rather than a hole left behind it.
+      * either side too near neutral      -> named and skipped, on the same convention cmd_anchors
+        already uses (near-neutral art has no colour to compare).
+
+    Every pair lands in exactly one of those three buckets and the three are asserted to sum to
+    the total considered, which is what stops this gate quietly judging fewer things over time."""
     out.mkdir(parents=True, exist_ok=True)
-    MIN_HUE, MIN_SAT = 0.05, 0.20
     groups = {}
+    rendered = {}
     for iid in sorted(ri.ICON_TINTS):
         van = decode_vanilla("equip_item_s", "ei_s", ri.SRC.get(iid, iid), out)
         if van is None:
@@ -557,43 +564,77 @@ def cmd_silhouettes(out):
         mask = bytes(1 if px[x, y][3] >= ri.HALO_HI else 0
                      for y in range(van.height) for x in range(van.width))
         groups.setdefault((ri._CATEGORY.get(iid), hashlib.md5(mask).hexdigest()), []).append(iid)
+        rendered[iid] = ri.route(van.copy(), iid, ri.ICON_TINTS[iid], "small")
     shared = sorted((c, v) for (c, h), v in groups.items() if len(v) > 1)
-    judged = bad = 0
+
+    ART_HUE_FLOOR = 15.0   # degrees between two rendered icons; measured tightest real pair is
+                           # (34, 50) Save the Queen / Sunderer at 18.3 deg on 2026-08-19
+    on_tint = on_art = near_neutral = considered = bad = 0
     print(f"{len(shared)} groups of items share one 48px silhouette\n")
     for cat, ids in shared:
         keep = [i for i in ids if ri.body_is_whole_signal(i) or i in ri.RAMP_IDS]
         note = "" if len(keep) == len(ids) else f"  (judging {keep} of {ids})"
         print(f"  {str(cat):<12} {ids}{note}")
+        hg, sg = ri.ramp_rack_floors("shield" if cat == "Shield" else cat)
         for n, a in enumerate(keep):
             for b in keep[n + 1:]:
-                judged += 1
-                if a in ri.RAMP_IDS and b in ri.RAMP_IDS:
+                considered += 1
+                a_ramp, b_ramp = a in ri.RAMP_IDS, b in ri.RAMP_IDS
+                exempt = (a_ramp and ri.ramp_separation_exempt(a)) or \
+                         (b_ramp and ri.ramp_separation_exempt(b))
+                if a_ramp and b_ramp and exempt:
+                    ha, ca = art_reading(rendered[a])
+                    hb, cb = art_reading(rendered[b])
+                    if ca < ANCHOR_CHROMA or cb < ANCHOR_CHROMA:
+                        near_neutral += 1
+                        print(f"      skip {a} vs {b}: near-neutral art "
+                              f"(chroma {ca:.3f} / {cb:.3f}), no colour to compare")
+                        continue
+                    on_art += 1
+                    gap = abs(ri.arc(ha / 360.0, hb / 360.0)) * 360.0
+                    if gap < ART_HUE_FLOOR:
+                        bad += 1
+                        print(f"      FAIL {a} vs {b}: rendered art only {gap:.1f} deg apart "
+                              f"(floor {ART_HUE_FLOOR:.0f}); one of them is exempt from the tint "
+                              f"rule, so this is the only thing holding them apart")
+                    else:
+                        print(f"      ok   {a} vs {b}: rendered art {gap:.1f} deg apart "
+                              f"(exempt pair, judged on pixels)")
+                    continue
+                on_tint += 1
+                if a_ramp and b_ramp:
                     sig_a, sig_b = ri.ramp_separation_signal(a), ri.ramp_separation_signal(b)
                     collide = bool(sig_a and sig_b
-                                  and ri.ramp_separation_collides(sig_a, sig_b, MIN_HUE, MIN_SAT))
-                    reason = "ramp signal (body tint escaped by rim, or rim alone if reserved)"
+                                   and ri.ramp_separation_collides(sig_a, sig_b, hg, sg))
+                    reason = "body tints are both inside the floor"
                 else:
                     dh = abs(ri.arc(ri.ICON_TINTS[a][0], ri.ICON_TINTS[b][0]))
                     ds = abs(ri.ICON_TINTS[a][1] - ri.ICON_TINTS[b][1])
-                    collide = dh < MIN_HUE and ds < MIN_SAT
+                    collide = dh < hg and ds < sg
                     reason = f"hue {dh:.3f} and saturation {ds:.3f} are both inside the floor"
                 if collide:
                     bad += 1
                     print(f"      FAIL {a} vs {b}: {reason}")
-    # Non-vacuity floor (S3): the judged-set size is asserted so a future change (an id quietly
-    # losing its rim, or a category leaving RAMP_IDS) cannot silently shrink coverage back to
-    # zero with this gate still printing OK.
-    JUDGED_FLOOR = 40   # measured 62 at implement time (2026-08-18); a regression that drops
-                        # ramp-id judgment entirely falls to single digits, not just below 62
-    if judged < JUDGED_FLOOR:
-        print(f"\nFAIL: only {judged} pair(s) were judged (floor {JUDGED_FLOOR}); the judged "
-              f"set shrank, which is exactly what this gate exists to catch.")
+
+    # THE ACCOUNTING, which is this gate's anti-vacuity device. Every pair considered must land
+    # in exactly one bucket, and the buckets are printed. The predecessor counted `judged += 1`
+    # BEFORE deciding anything, so it reported pairs CONSIDERED as pairs JUDGED and its floor of
+    # 40 could be satisfied by pairs nothing actually looked at.
+    print(f"\n{considered} pair(s) considered: {on_tint} judged on body tint, {on_art} judged "
+          f"on rendered pixels (exempt pairs), {near_neutral} skipped as near-neutral")
+    if on_tint + on_art + near_neutral != considered:
+        print(f"\nFAIL: the buckets do not sum to the pairs considered "
+              f"({on_tint} + {on_art} + {near_neutral} != {considered}); a pair fell through "
+              f"this gate without being judged or explicitly excused.")
+        return 1
+    if on_tint + on_art < 40:
+        print(f"\nFAIL: only {on_tint + on_art} pair(s) were actually JUDGED (floor 40); the "
+              f"judged set shrank, which is exactly what this gate exists to catch.")
         return 1
     if bad:
         print(f"\nFAIL: {bad} pair(s) drawn with one picture are too close in colour.")
         return 1
-    print(f"\nOK: {judged} judged pair(s) sharing a picture are far enough apart in hue or "
-          f"saturation.")
+    print(f"OK: {on_tint + on_art} judged pair(s) sharing a picture are far enough apart.")
     return 0
 
 
