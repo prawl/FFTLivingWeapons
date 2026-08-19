@@ -54,6 +54,23 @@ sheet carries palette INDICES, not colours, so an index remap can only shuffle a
 existing sixteen colours: true hue control lives in the palette asset, which is NOT
 `battle_wep_spr.bin`'s palette block (2026-06-01 magenta test) and is still unlocated.
 
+**Rounds 2-6 (2026-08-18, all owner-observed negatives, banked so nobody re-walks them):**
+the colour source resists every post-boot lever. (2) The six palette-shaped container
+entries beside the sheets: file overrides mapped by the hook, no effect anywhere. (3) Live
+nudges of every classic-palette copy findable in the running game, including the loaded
+`battle_wep_spr.bin` block and the binary's own tables: no effect; the binary tables
+self-heal, and a poked bin block was even observed being copied into a working table
+without the weapons caring. (4) All 1008 palette entries in the container tail overridden
+per-file: mapped by the hook, never consumed; those tail palettes turn out to be ONE
+duplicated five-colour placeholder anyway, vestigial like the dummy sheets. (5) A full
+13.6MB container with hue-coded palettes shipped as a mod file: ignored; the modloader has
+no merge channel for system files (only fftpack.txt exists) and the game reads the pac
+directly. (6) The ItemData per-item palette byte written live (the same table where byte
+0x05 provably lands): no effect on battle art even across battle reloads, vestigial like
+SpriteID. Conclusion: colours are resolved ONCE at process start from binary-baked data;
+any true hue mechanism must act at launch, in-process (the DLL boards before the game
+wakes), or repaint indices within the sheet (the proven lever above).
+
 </details>
 
 ### [live-icon-repaint] Equip icons repaint LIVE, no game restart

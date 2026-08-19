@@ -53,8 +53,17 @@ the technical detail lives in the indented lines under it.
     by a deranged sheet turning an Archer's bow white edged blue while the arrow beside it
     stayed vanilla. What remains for Done: the palette asset (true hue control; the sheet
     stores indices, not colours), the crossbow's sheet, and the deliberate icon matched
-    recolour. Next probe: derange the CLUT bank suspects (entries 154 to 157, 159, 162)
-    the same way to find where the colours live.
+    recolour.
+  - ROUNDS 2 TO 6 same day, all negative, banked in the ledger row so nobody re-walks
+    them: the colour source ignores every post-boot lever (palette-shaped container
+    entries, live nudges of every findable classic palette copy, all 1008 container tail
+    palettes which turn out to be one duplicated placeholder, a full replacement container
+    which no modloader channel serves, and the per-item palette byte which is vestigial
+    like SpriteID). Colours resolve ONCE at process start from binary baked data. The next
+    arc is therefore in-process at launch: the DLL boards the game before the art loads
+    and rewrites the colour tables before they are consumed, a build arc with a deploy,
+    not a poke round. The proven index-sheet lever stays available as the fallback
+    (limited to shuffling each palette's own sixteen colours).
   - (Tech: container FFTIVC/data/enhanced/system/ffto/g2d.dat, magic YOX, header suggests
     0x592 entries; find the sheet by decoding entries or by shipping garish overrides and
     bisecting; the modloader serves this channel from a per index cache read once per
