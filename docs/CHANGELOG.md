@@ -31,6 +31,38 @@ before 2026-07-21 keep their original prose.
   69 Climhazzard, 70 Sasori from vanilla flails at graphic 3. Gates: analyze.py exit 0 and
   generate.py reproduces the tables byte for byte.)
 
+- [LW-287] SHIPPED 6541892 2026-08-19: The mod was painting its own coloured halo around every
+  weapon, shield and helm picture, and it is gone. The vanilla artist's own soft haze stays
+  exactly as drawn. The owner looked at all one hundred and fifty pictures with the halo on and
+  off, at the size the game really draws them, and made the call from the pictures rather than
+  from a description. This row started the day parked and explicitly out of the next release and
+  reversed the same afternoon, which is recorded rather than tidied away. Putting a halo back
+  later is still minutes of work, because it was only ever a layer sitting outside the artwork.
+  One thing the removal turned out to FIX rather than cost: our halo had been painted straight
+  over the artist's haze, wiping out between one hundred and two hundred and seventy pixels of it
+  on every one of those items, so keeping the artist's haze was not something the pictures
+  actually did until now. It also closed one of the four open art rulings for free, the
+  Fallingstar Bag, which was reported sixty degrees off its own artwork and turned out to be
+  sixty degrees off its own halo; with the halo gone it sits four degrees off.
+  (Tech: the real work was the gate, not the switch. The old palette separation rule let a
+  distinct rim RESCUE two body tints inside the floor and judged a reserved-name id on its rim
+  alone, so with SHIP_GLOW_RIM False both halves graded a layer nobody paints. Successor:
+  ramp_separation_signal is body tint only, ramp_separation_exempt exempts vanilla-popped ids,
+  ramp_separation_collides carries SEP_EPS 1e-9 because four helm pairs authored to an identical
+  0.20 saturation gap were split three fail one pass by IEEE 754 alone. Both coverage floors
+  deleted (judged_racks >= 15, judged_nonreserved >= 80): each counted table population rather
+  than judgement and each stayed green through a rule that graded a phantom. Replaced by exact
+  accounting accumulated by the live loop. RAMP_RACKS hoisted to module level and helms judged
+  for the first time, having sat in no rack at all. RAMP_SEPARATION_RULINGS_RETIRED records the
+  one ruling the exemption killed, 44 and 70. silhouettes judges exempt pairs on rendered pixels,
+  62 considered = 44 tint + 11 art + 7 near neutral, buckets asserted to sum. Both render entry
+  points take their glow default from SHIP_GLOW_RIM BY NAME, asserted on signature source text
+  because asserting the resolved value is vacuous while the constant is False. Gates: selftest
+  green, analyze exit 0, anchors OK, silhouettes OK, compare --expect OK with nothing moved
+  outside the 150 named across 234 items and 468 surfaces; bake changed exactly 300 files, the
+  150 ramp ids on both surfaces and nothing else. Every new assertion mutation-proved to bite and
+  to be reported BY NAME.)
+
 - [LW-294] SHIPPED 7eff74c 2026-08-19: A probe file described the battle weapon sprite sheet
   the wrong way, and the sibling colour mod had already published a feature proposal built on
   that description. The sheet was written up as one tall picture with its colours at the front.

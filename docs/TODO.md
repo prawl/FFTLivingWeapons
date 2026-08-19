@@ -1652,45 +1652,6 @@ the technical detail lives in the indented lines under it.
   exactly why deferring it costs nothing; the four candidates and their prices are in the
   decision brief artifact f9835932, now inherited by LW-287.)
 
-- [LW-287] 2026-08-19: The mod was painting its own coloured halo around every weapon, shield
-  and helm picture, and it comes off. The owner looked at all one hundred and fifty pictures with
-  the halo on and off, at the size the game actually draws them, and called it: remove it. The
-  vanilla artist's own soft haze stays exactly as drawn. This started the day parked and out of
-  the next release, and reversed the same afternoon once there were pictures to look at rather
-  than a description. Putting a halo back later is still minutes of work, because it was only
-  ever a layer sitting outside the artwork, so nothing here closes that door.
-  One thing the removal turned out to FIX rather than cost, and it is the part worth remembering:
-  our halo had been painted straight over the artist's own haze, wiping out between one hundred
-  and two hundred and seventy pixels of it on every single one of those one hundred and fifty
-  items. So "keep the artist's haze, drop the glow we added" was not something the pictures did.
-  Taking the halo off is what makes it true.
-  - The gate that graded the halo had to be rebuilt in the same breath, and that was the real
-    work. The old rule let a distinct halo RESCUE two items whose colours were too close, and
-    judged a vanilla named item on its halo alone. With no halo shipped, both halves were
-    grading a layer nobody paints. The successor exempts vanilla named items, because their
-    colour is the artist's and not ours, and proves the exemption against the actual pixels
-    rather than asserting it.
-  - Done means: the shipped bake paints no halo on any of the one hundred and fifty items; the
-    artist's own haze is untouched, shown by measurement and not by claim; the separation gate
-    no longer mentions a halo anywhere and cannot quietly stop checking; and every item outside
-    those one hundred and fifty is byte identical.
-  - Verify: all four icon gates green; every new gate assertion proved to bite by breaking the
-    thing it guards and confirming the failure is reported BY NAME; the owner's gallery pass on
-    the de haloed set, which happened before the bake rather than after it.
-  - (Tech: SHIP_GLOW_RIM in tools/recolor_icons.py is the one greppable switch and both render
-    entry points take their glow default from it by NAME, asserted on the source text because
-    comparing the default's VALUE is vacuous while the constant is False. ramp_separation_signal
-    is body tint only; ramp_separation_exempt is the new predicate; ramp_separation_collides
-    carries SEP_EPS 1e-9 because four helm pairs authored to an identical 0.20 saturation gap
-    were split three fail one pass by IEEE 754 alone. RAMP_RACKS hoisted to module level and
-    helms judged for the first time, having previously sat in no rack at all. The two coverage
-    floors judged_racks >= 15 and judged_nonreserved >= 80 are deleted: both counted table
-    population rather than judgement and both stayed green through a rule that graded a phantom.
-    Replaced by exact accounting accumulated by the live loop. RAMP_SEPARATION_RULINGS_RETIRED
-    records the one ruling the exemption killed, 44 and 70, with its reason. icon_preview
-    silhouettes now judges exempt pairs on rendered pixels, 62 considered = 44 tint + 11 art +
-    7 near neutral, and asserts the buckets sum.)
-
 - [LW-249] 2026-08-16: Nine poles grow the wrong stat, so a mage who levels a Whale Whisker
   gets thirty percent more muscle and not one point of extra spell power. Their damage runs on
   Magick Attack, but the growth code only recognises rods and staves as caster gear, so every
