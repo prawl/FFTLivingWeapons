@@ -1,61 +1,51 @@
 #!/usr/bin/env python
-"""LW-251 round 9: forge the entry-156 CLUT-bank file override + entry-161 positive control.
+"""LW-251: does the g2d file channel reach the battle-weapon PALETTE bank (entry 156)?
 
-PREMISE (falsifiable): shipping the real container's entry 156 (the HD weapon CLUT bank,
-per lw251_hd_clut_scan.py's header), forged to FLAT per-row colours, as a modloader g2d
-override (FFTIVC/data/enhanced/system/ffto/g2d/tex_156.bin) changes battle weapon colours
-after a game restart.
+WHAT THIS SHIPS. Entries 161 and 158 are both 512x512 4bpp INDEXED equipment sheets
+(161: bows, guns, harps, knives, cloths; 158: swords, shields, helmets). Their colours come
+from a bank of 144 sixteen-colour BGR555 palettes in entry 156. The modloader serves a
+mod-shipped raw decompressed system/ffto/g2d/tex_N.bin in place of container entry N, at
+launch, cached per process. Replacing a SHEET is PROVEN (ledger
+[g2d-equipment-sheet-override], owner flip 2026-08-18): it shuffles which of a weapon's own
+16 colours each pixel uses. Replacing the PALETTE BANK would be TRUE HUE control, and is
+what this probe tests.
 
-WHY RETRY (corrected 2026-08-19 after adversarial review; an earlier draft blamed the
-wrong container, which is FALSE, entries 154-162 are byte-identical between the loose
-Dec-2025 leftover and the modded.pac copy except 158): round 2's negative was REAL BUT
-UNCONTROLLED. Its launch mapped ONLY the palette entries (154/155/156/157/159/162), with
-NO tex_161 positive control in the same frame, and the modloader's "mapping G2D file"
-log lines are registration-side, not serve-side, with a known precedent of detours being
-dead for a whole launch (memory: denuvo-hook-launch-fragility). So a dead serve path that
-launch would read identically to "156 not consumed". This round re-runs the test WITH the
-proven tex_161 control in frame. EXPECTED outcome is reading 2 (confirming round 2);
-reading 1 would overturn it.
+THE ROUND 9/10 DESIGN ERROR, and the fix. Those rounds shipped a forged entry 156 AND a
+deranged entry 161 together, so a wrong-looking bow had TWO possible authors and neither
+reading was clean. Round 11 separates them:
+  TEST     entry 156 forged to FLAT per-row colours; the bow's own sheet (161) stays
+           VANILLA, so ANY colour change on the bow can only come from the palette bank.
+  CONTROL  entry 158 (swords/shields/helmets) deranged, so a SWORD attack in the same
+           battle proves the file channel is alive without touching the bow's sheet.
+Read it in ONE daylight battle; weapons only render during an attack animation:
+  sword scrambled + bow FLAT   -> palette bank consumed: true hue control. --decode names
+                                  the bow's palette row from the screenshot.
+  sword scrambled + bow normal -> CLEAN NEGATIVE: channel alive, entry 156 not consumed as
+                                  a file. Next lever is the full-container ship (the
+                                  2026-08-18 round-5 attempt was VACUOUS, it shipped a
+                                  byte-identical vanilla container, and that launch's log
+                                  shows the loader DOES hook and serve a mod g2d.dat).
+  sword normal                 -> dead serve path this launch; conclude NOTHING, relaunch.
 
-DESIGN: three-way discrimination in one launch, read on an Archer's bow (proven ON
-tex_161; the crossbow is NOT on the sheet and proves nothing):
-  bow FLAT single-colour       -> entry-156 file override IS consumed: true-hue lever
-    (shading gone entirely)       found, portable to the ColorCustomizer slider. Flat is
-                                  the tell an index scramble cannot fake: any derangement
-                                  of a vanilla ramp still shows multiple shades.
-  bow scrambled-but-shaded     -> control fired, 156 NOT consumed via the tex-file
-    (round 1's deep blue look)    channel (that precise claim, nothing stronger). Next
-                                  probe = ship the FULL g2d.dat with a genuinely forged
-                                  entry 156: the 2026-08-18 round-5 full-container test
-                                  was VACUOUS (the shipped file was byte-identical
-                                  vanilla), and that launch's own Reloaded log shows the
-                                  modloader DID hook and serve a mod g2d.dat, so the
-                                  bulk-load route exists and is untested.
-  bow fully vanilla            -> serve path dead this launch; do NOT conclude anything,
-                                  check the log (below), relaunch and retry.
-INSTRUMENTED READ: after the launch, grep the newest Reloaded-II launcher log for the
-"mapping G2D file" lines for 156 and 161. Lines present + vanilla bow = dead serve path
-this launch (registration fired, serving did not). Lines absent = deploy bug.
-
-FORGE RULES (both preserve exact decompressed size):
-  tex_156: per 16-colour palette row, colour 0 and any 0x0000 slot stay untouched
-    (0 = transparent); every other colour keeps its top bit (unknown semantics, possibly
-    the PSX STP/alpha bit) and gets ONE FLAT saturated colour shared by the whole row,
-    hue spread across the bank by row so different weapons wearing different palettes go
-    visibly DIFFERENT flat colours.
-  tex_161: nibble derangement, 0 -> 0, n -> (n % 15) + 1 (round 1's proven control class:
-    every visible pixel's index shifts, transparency preserved).
+FORGE RULES (every output preserves its entry's exact decompressed size):
+  tex_156 census mode: per palette row, slot 0 and any 0x0000 colour stay untouched
+    (0 = transparent); every other colour keeps bit 15 and takes ONE flat coordinate-coded
+    colour naming its row (see flat15). Flat is the tell no index scramble can fake.
+  tex_156 --pin R[,R..]: forge ONLY those rows, each a vivid alphabet colour, everything
+    else byte-identical vanilla. The surgical mode for a single-weapon recolour.
+  tex_N --derange N: sheet indices shifted 0 -> 0, n -> (n % 15) + 1 (the proven control
+    class; transparency preserved).
 
 USAGE:
-  python lw251_g2d_clut_forge.py <work_dir>            # extract + verify + forge + previews
-  python lw251_g2d_clut_forge.py <work_dir> --deploy   # ...then copy both bins into the
-                                                       #    livingweapons install (refuses
-                                                       #    if the game is running)
-  python lw251_g2d_clut_forge.py --selftest            # pure checks, no game files touched
-Undo: delete <mods>/prawl.fft.livingweapons/FFTIVC/data/enhanced/system/ffto/g2d/
-(the next BuildLinked deploy also wipes it; the folder is not in the mod's manifest, so
-deploy the bins AFTER any BuildLinked run, never before).
+  python lw251_g2d_clut_forge.py <work_dir> [--pin R,R] [--derange N,N] [--deploy]
+  python lw251_g2d_clut_forge.py --decode <screenshot.png>   # name the coded rows on screen
+  python lw251_g2d_clut_forge.py --selftest                  # pure checks, touches nothing
+Round 11 line:  <work_dir> --derange 158 --deploy
+--deploy CLEARS the install's g2d folder first, so a previous round's sheet cannot linger.
+Undo: delete <mods>/prawl.fft.livingweapons/FFTIVC/data/enhanced/system/ffto/g2d/ (the next
+BuildLinked wipes it too, so deploy AFTER any BuildLinked run, never before).
 """
+import colorsys
 import os
 import shutil
 import struct
@@ -63,34 +53,50 @@ import subprocess
 import sys
 import zlib
 
-MODDED_PAC = (r"c:\program files (x86)\steam\steamapps\common"
-              r"\FINAL FANTASY TACTICS - The Ivalice Chronicles"
-              r"\data\enhanced\modded.pac")
+GAME_DATA = (r"c:\program files (x86)\steam\steamapps\common"
+             r"\FINAL FANTASY TACTICS - The Ivalice Chronicles\data\enhanced")
+# 0007.pac is the BASE container and always holds system/ffto/g2d.dat. modded.pac is the
+# modloader's per-launch merge output and holds g2d.dat only while some mod ships a whole
+# container: the 2026-08-19 03:26 rebuild dropped it (the pac shrank by exactly 0xCF6120)
+# once no mod supplied one, and an extract from it then fails outright. Verified 2026-08-19:
+# the two copies' 2450 decompressed entries are IDENTICAL (they differ only in one 48-byte
+# version-0 padding record at 0x0A50BD0), so the base pac is the stable, correct source.
+SOURCE_PACS = (os.path.join(GAME_DATA, "0007.pac"), os.path.join(GAME_DATA, "modded.pac"))
 FF16TOOLS = r"C:\Users\ptyRa\Downloads\FF16Tools.CLI-1.13.2-win-x64\win-x64\FF16Tools.CLI.exe"
 G2D_INNER = "system/ffto/g2d.dat"
 MODS_ENV = "RELOADEDIIMODS"
 DEPLOY_SUB = os.path.join("prawl.fft.livingweapons", "FFTIVC", "data", "enhanced",
                           "system", "ffto", "g2d")
-ENTRY_CLUT, ENTRY_SHEET = 156, 161
+ENTRY_CLUT = 156
 SHEET_BYTES = 512 * 512 // 2  # 4bpp
+CLUT_BYTES = 144 * 32         # 144 palettes x 16 BGR555 colours
+
+PIN_ALPHABET = [  # max-distinct vivid BGR555, reused cyclically; position disambiguates
+    (0x001F, "RED"), (0x03FF, "YELLOW"), (0x03E0, "GREEN"),
+    (0x7FE0, "CYAN"), (0x7C00, "BLUE"), (0x7C1F, "MAGENTA"),
+]
 
 
 def extract_g2d(work_dir):
-    """Unpack the g2d container out of modded.pac via FF16Tools (-g fft; base pacs are
-    encrypted, and modded.pac's offsets move every icon deploy, so never hardcode them)."""
+    """Unpack the g2d container via FF16Tools (-g fft; the pacs are encrypted and their
+    offsets move on every deploy, so never hardcode them). Tries SOURCE_PACS in order."""
     out = os.path.join(work_dir, "pac_unpack")
-    subprocess.run([FF16TOOLS, "unpack", "-i", MODDED_PAC, "-f", G2D_INNER,
-                    "-o", out, "-g", "fft"], check=True, capture_output=True)
     path = os.path.join(out, *G2D_INNER.split("/"))
-    if not os.path.isfile(path):
-        sys.exit(f"unpack produced no {path}")
-    return path
+    for pac in SOURCE_PACS:
+        if os.path.isfile(path):
+            os.remove(path)
+        subprocess.run([FF16TOOLS, "unpack", "-i", pac, "-f", G2D_INNER,
+                        "-o", out, "-g", "fft"], capture_output=True)
+        if os.path.isfile(path):
+            print(f"g2d source: {os.path.basename(pac)}")
+            return path
+    sys.exit(f"no pac in {SOURCE_PACS} yielded {G2D_INNER}")
 
 
 def parse_entries(data):
     """YOX container -> {index: (true_offset, payload_len)}. Auto-detects the +16*i table
-    drift (the loose Dec-2025 file has it, the modded.pac copy does not) by requiring every
-    entry's payload to open with the per-entry YOX magic."""
+    drift (the loose Dec-2025 leftover has it, the modded.pac copy does not) by requiring
+    every entry's payload to open with the per-entry YOX magic."""
     magic, _, tbl, n = struct.unpack_from("<4sIII", data, 0)
     if magic != b"YOX\x00":
         sys.exit("not a YOX container")
@@ -117,15 +123,14 @@ def decompress_entry(data, off, plen):
 
 
 def flat15(row, nrows):
-    """One flat COORDINATE-CODED low-15 BGR555 colour for palette `row`. Flat (same colour
-    in every slot 1..15) is deliberate: a consumed forge renders items as shadeless colour
-    blobs, which no index scramble of a vanilla ramp can imitate. Round 10 upgrade: the
-    colour is a machine-decodable row code (hue = (row%36)*10 degrees, two value bands by
-    (row//36)%2, two saturation bands by row//72; 144 distinct never-zero colours, min RGB
-    pair distance 8), so a screenshot of ANY item in battle names its palette row via
-    --decode. Confusable near-neighbours share a hue family, so a mis-decode is off by a
-    band, not off by a random row."""
-    import colorsys
+    """One flat COORDINATE-CODED low-15 BGR555 colour for palette `row`. Flat (the same
+    colour in every slot 1..15) is deliberate: a consumed forge renders items as shadeless
+    colour blobs, which no index scramble of a vanilla ramp can imitate. The colour is a
+    machine-decodable row code (hue = (row%36)*10 degrees, two value bands by (row//36)%2,
+    two saturation bands by row//72; 144 distinct never-zero colours, min RGB pair distance
+    8), so a screenshot of any item in battle names its palette row via --decode.
+    Confusable near-neighbours share a hue family, so a mis-decode is off by a band, not by
+    a random row."""
     h = (row % 36) * 10 / 360.0
     v = (1.0, 0.62)[(row // 36) % 2]
     s = (1.0, 0.5)[min(row, nrows - 1) // 72]
@@ -142,10 +147,11 @@ def code_rgb(row, nrows=144):
 def decode_image(path, nrows=144, tol=26, min_pixels=12):
     """Read a battle screenshot and report which coded rows appear. Nearest-code match
     within `tol` RGB distance per pixel; rows under `min_pixels` matched pixels are noise.
-    Daylight battles decode far better than night (night haze shifted a green flat ~40
-    degrees blue in the round-9 read). Returns [(row, pixel_count, (cx, cy))...]."""
+    Daylight battles decode far better than night. Returns [(row, pixels, (cx, cy))...].
+    TRAP: natural scene colours (hair, grass, sky) land within tol of SOME code, so treat a
+    hit as real only when its pixels sit on the weapon; the caller is expected to eyeball
+    the region, not to trust the list blind."""
     from PIL import Image
-    import math
     im = Image.open(path).convert("RGB")
     w, h = im.size
     codes = [code_rgb(r, nrows) for r in range(nrows)]
@@ -160,35 +166,53 @@ def decode_image(path, nrows=144, tol=26, min_pixels=12):
                     best, bd = r, d
             if best is not None:
                 e = hits.setdefault(best, [0, 0, 0])
-                e[0] += 1; e[1] += x; e[2] += y
+                e[0] += 1
+                e[1] += x
+                e[2] += y
     out = [(r, n, (sx // n, sy // n)) for r, (n, sx, sy) in hits.items() if n >= min_pixels]
     out.sort(key=lambda t: -t[1])
     return out
 
 
-def forge_clut(raw):
+def forge_clut(raw, pinned=None):
+    """pinned=None: code every row (census mode). pinned=iterable of row indices: forge ONLY
+    those rows, each a vivid alphabet colour; every other row stays byte-identical vanilla,
+    which is the surgical mode for a single-weapon recolour."""
     if len(raw) % 32:
         sys.exit(f"entry {ENTRY_CLUT} size {len(raw)} is not 16-colour rows")
     nrows = len(raw) // 32
     pal = list(struct.unpack(f"<{nrows * 16}H", raw))
     changed = 0
-    for row in range(nrows):
+    rows = range(nrows) if pinned is None else sorted(set(pinned))
+    for i, row in enumerate(rows):
+        colour = flat15(row, nrows) if pinned is None else PIN_ALPHABET[i % 6][0]
         for slot in range(1, 16):
             k = row * 16 + slot
             if pal[k] == 0:
                 continue
-            pal[k] = (pal[k] & 0x8000) | flat15(row, nrows)
+            pal[k] = (pal[k] & 0x8000) | colour
             changed += 1
     return struct.pack(f"<{nrows * 16}H", *pal), nrows, changed
+
+
+def parse_list(spec):
+    out = []
+    for part in spec.split(","):
+        if "-" in part:
+            a, b = part.split("-")
+            out.extend(range(int(a), int(b) + 1))
+        else:
+            out.append(int(part))
+    return out
+
+
+def _dn(n):
+    return 0 if n == 0 else (n % 15) + 1
 
 
 def derange_sheet(raw):
     lut = bytes((_dn(b & 0xF) | (_dn(b >> 4) << 4)) for b in range(256))
     return raw.translate(lut)
-
-
-def _dn(n):
-    return 0 if n == 0 else (n % 15) + 1
 
 
 def preview(work_dir, clut_raw, tag):
@@ -229,6 +253,10 @@ def selftest():
         low15 = {v & 0x7FFF for v in got[row * 16:(row + 1) * 16] if v}
         assert len(low15) == 1, "a forged row is not flat"
     assert (got[1] & 0x7FFF) != (got[17] & 0x7FFF), "adjacent rows share a colour"
+    pin, _, pin_changed = forge_clut(raw, [1])
+    pin_u = struct.unpack("<32H", pin)
+    assert pin_u[:16] == struct.unpack("<32H", raw)[:16], "pin mode touched an unpinned row"
+    assert pin_changed == 14 and pin_u[17] & 0x7FFF == PIN_ALPHABET[0][0], "pin mode wrong"
     codes = [flat15(r, 144) for r in range(144)]
     assert len(set(codes)) == 144, "row codes are not distinct"
     assert all(1 <= c <= 0x7FFF for c in codes), "a row code is zero or has the top bit"
@@ -236,6 +264,7 @@ def selftest():
     for i, p in enumerate(rgbs):
         near = min(range(144), key=lambda j: sum((a - b) ** 2 for a, b in zip(rgbs[j], p)))
         assert near == i, "the code table does not self-decode"
+    assert parse_list("158") == [158] and parse_list("1,3-5") == [1, 3, 4, 5]
     print("selftest OK")
 
 
@@ -244,8 +273,7 @@ def main():
         selftest()
         return
     if "--decode" in sys.argv:
-        shot = sys.argv[sys.argv.index("--decode") + 1]
-        for row, n, (cx, cy) in decode_image(shot):
+        for row, n, (cx, cy) in decode_image(sys.argv[sys.argv.index("--decode") + 1]):
             print(f"row {row:3}: {n:5} px  around ({cx},{cy})")
         return
     selftest()
@@ -255,18 +283,33 @@ def main():
     entries, n, drift = parse_entries(data)
     print(f"container: {len(data)} bytes, {n} entries, drift {drift}")
     clut = decompress_entry(data, *entries[ENTRY_CLUT])
-    sheet = decompress_entry(data, *entries[ENTRY_SHEET])
-    print(f"entry {ENTRY_CLUT}: {len(clut)} bytes ({len(clut) // 32} palette rows), "
-          f"entry {ENTRY_SHEET}: {len(sheet)} bytes (expect {SHEET_BYTES})")
-    if len(sheet) != SHEET_BYTES:
-        sys.exit("entry 161 is not the 512x512 4bpp sheet; container layout changed, STOP")
-    forged, nrows, changed = forge_clut(clut)
-    deranged = derange_sheet(sheet)
-    for name, blob in ((f"tex_{ENTRY_CLUT}.bin", forged), (f"tex_{ENTRY_SHEET}.bin", deranged)):
-        open(os.path.join(work_dir, name), "wb").write(blob)
+    if len(clut) != CLUT_BYTES:
+        sys.exit(f"entry {ENTRY_CLUT} is {len(clut)} bytes, expected {CLUT_BYTES}; STOP")
+    pinned = parse_list(sys.argv[sys.argv.index("--pin") + 1]) if "--pin" in sys.argv else None
+    if pinned:
+        for i, row in enumerate(sorted(set(pinned))):
+            print(f"  pin row {row:3} = {PIN_ALPHABET[i % 6][1]}")
+    forged, nrows, changed = forge_clut(clut, pinned)
+    ship = {ENTRY_CLUT: forged}
+    print(f"TEST  tex_{ENTRY_CLUT}.bin: {changed} colours forged across {nrows} rows")
+
+    # Controls ship whole sheets with their palette INDICES shifted. Round 11 uses 158
+    # (swords/shields/helmets) so a sword attack proves the channel is alive in the same
+    # battle, while the bow's own sheet (161) stays vanilla and any bow colour change can
+    # only come from the palette bank.
+    ctrl = parse_list(sys.argv[sys.argv.index("--derange") + 1]) if "--derange" in sys.argv else []
+    for idx in ctrl:
+        raw = decompress_entry(data, *entries[idx])
+        if len(raw) != SHEET_BYTES:
+            sys.exit(f"entry {idx} is {len(raw)} bytes, not a {SHEET_BYTES}-byte sheet; STOP")
+        ship[idx] = derange_sheet(raw)
+        print(f"CTRL  tex_{idx}.bin: sheet indices deranged")
+
+    for idx, blob in ship.items():
+        open(os.path.join(work_dir, f"tex_{idx}.bin"), "wb").write(blob)
     preview(work_dir, clut, "vanilla")
     preview(work_dir, forged, "forged")
-    print(f"forged {changed} colours across {nrows} rows; bins + previews in {work_dir}")
+    print(f"bins + previews in {work_dir}")
     if "--deploy" not in sys.argv:
         print("dry run only; rerun with --deploy to install")
         return
@@ -274,13 +317,19 @@ def main():
         sys.exit("fft_enhanced.exe is RUNNING; close it, then rerun with --deploy")
     mods = os.environ.get(MODS_ENV) or sys.exit(f"{MODS_ENV} not set")
     dst = os.path.join(mods, DEPLOY_SUB)
+    if os.path.isdir(dst):                 # never leave a previous round's sheet behind
+        for stale in os.listdir(dst):
+            os.remove(os.path.join(dst, stale))
+            print(f"cleared stale {stale}")
     os.makedirs(dst, exist_ok=True)
-    for name in (f"tex_{ENTRY_CLUT}.bin", f"tex_{ENTRY_SHEET}.bin"):
+    for idx in ship:
+        name = f"tex_{idx}.bin"
         shutil.copy2(os.path.join(work_dir, name), os.path.join(dst, name))
         print(f"deployed {name} -> {dst}")
-    print("restart the game, enter a battle with an Archer, read the bow "
-          "(flat = 156 consumed; scrambled-but-shaded = 156 dead via this channel; "
-          "vanilla = serve path dead, check the Reloaded log and retry)")
+    print("restart, then in ONE daylight battle attack with a SWORD unit (control) and the "
+          "BOW unit (test). Sword scrambled = channel alive. Bow flat = the palette bank is "
+          "consumed (run --decode to name its row). Bow normal while the sword scrambled = "
+          "palette bank NOT consumed, a clean negative.")
 
 
 if __name__ == "__main__":

@@ -76,14 +76,20 @@ the technical detail lives in the indented lines under it.
     combat struct holds only the weapon id, no colour or render pointer, so the colour
     lives GPU side and the RAM write plan is retired. Round 9 (the retry of the palette
     file override, this time with the proven scrambled sheet in frame as a control) hit
-    GOLD: the owner watched an Archer's bow render flat shadeless gold, a look no shuffle
-    of the game's own colours can produce, so the palette bank IS replaceable through the
-    file channel and TRUE HUE control is won. The arrow changed too (blue outline, owner
-    confirmed not a normal colour), so projectile art drinks from the same bank. Ledger
-    row [g2d-clut-bank-override] PROVEN, owner flip in session. What remains for Done:
-    the weapon to palette row mapping (the flat hue wheel makes every row self identifying
-    by colour, so reading gear colours in battle IS the census), the sharing grain, and
-    the deliberate icon matched recolour of one weapon end to end.
+    NOTHING: the round 9 result was called a win too fast and is now RETRACTED. Four
+    independent checks agree, and the game's own loader log settles it: the mod can offer
+    the game a replacement for that palette file, but the game has NEVER ONCE READ IT, in
+    any of the eighteen launch logs on disk, while its same sized neighbours are read all
+    the time. The two screenshots that looked like a change are the same weapon under the
+    same shading, once at night and once by day. There was no gold in the night picture at
+    all, and at night this game rotates every colour so far that no colour word spoken
+    about a night shot means anything. Round 11 confirmed it live: with the sword sheet
+    scrambled as a control, two swords looked normal, because that sheet went unread too.
+    THE REAL LEAD, from the same logs: in battle the game reads the CLASSIC sprite files,
+    unit/battle_wep_spr.bin as FFTPack file 71 plus the wep1/wep2 shape and sequence files,
+    and the loader demonstrably serves modded files through that same FFTPack channel. The
+    picture container we spent the night on is read once per launch at the menu, which fits
+    menu art, not battle art. Next probe belongs on FFTPack file 71.
     (Tech: probe tools/probes/lw251_g2d_clut_forge.py, forge + selftest + deploy;
     overrides sit in the install's FFTIVC/data/enhanced/system/ffto/g2d/, wiped by the
     next BuildLinked.)

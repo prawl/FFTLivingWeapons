@@ -94,18 +94,61 @@ between the loose leftover container and the modded.pac copy.
 
 </details>
 
-### [g2d-clut-bank-override] The battle weapon palette bank is g2d entry 156 and a mod override recolours it
+### [g2d-clut-bank-override] RETRACTED: g2d entry 156 is not a weapon palette bank and the game never reads it
 
-The colours a weapon wears in battle come from g2d container entry 156, a bank of 144
-sixteen-colour BGR555 palettes, and a mod-shipped `system/ffto/g2d/tex_156.bin` holding raw
-decompressed bytes replaces it: restart-gated, TRUE HUE control (colour values, not an index
-shuffle). PROVEN, owner live-verified 2026-08-19. This OVERTURNS the round-2 negative
-recorded under [g2d-equipment-sheet-override]: that round ran with no positive control in
-frame (see the CORRECTION in that row's fold).
+RETRACTED 2026-08-19, hours after it was written, by four independent adversarial checks.
+The claim was that battle weapon colours live in g2d entry 156 and that a shipped
+`tex_156.bin` repaints them. Every load-bearing part of it is false: the game has NEVER read
+entry 156 (zero serve lines across all 18 Reloaded logs on disk, while its same-sized
+neighbours 154 and 155 are served routinely), the two live screenshots show the SAME shaded
+weapon under two structurally different flat forges, and entry 156 is not a palette bank at
+all. NOTHING may be built on this row. It is kept, struck through, as the record of how the
+mistake was made.
 
 <details><summary>How we got here</summary>
 
-**Claim:** the palette bank the weapon sheet provably consumes offline can be replaced
+**How the false PROVEN happened (the lesson, worth more than the claim):** a 4608-byte blob
+divides evenly into 144 rows of 16 u16 values, so it *can* be read as a palette bank; that
+arithmetic works on any 4608-byte blob. Rendering the weapon sheet under those "palettes"
+produced recognisable coloured weapons, which felt like confirmation, but the recognisable
+part was the SHAPE, which comes from the sheet alone; the colours were arbitrary bytes read
+as BGR555. Then a single owner sentence about a NIGHT screenshot ("gold for the base") was
+taken as the live proof and written up as an owner flip. Measurement afterwards found ZERO
+gold pixels anywhere in that frame, and that at night the engine rotates hue by ~135 degrees,
+so no colour word spoken about a night capture is evidence at all. The unit was very likely
+not even mid-attack, and battle weapons are only drawn during an attack animation.
+
+**What the evidence actually says (all four lenses independently NOT_CONSUMED):**
+- LOG (decisive): the modloader emits two distinct messages, `mapping G2D file N` at mod
+  load (registration) and `[G2D] Accessing file N` from the CFILE_DAT hook (a true serve
+  trace, not mapping-gated). Entry 156 is mapped every launch and `Accessing file 156` never
+  appears in ANY log. Entry 161 is served exactly once per launch. Entries 154 and 155, the
+  same class and same 4608-byte size, are served repeatedly, which kills the "this entry
+  class is not logged" escape.
+- CROSS-SHOT: the 03:00 and 03:29 launches shipped structurally different flat forges (a
+  full-saturation hue wheel, then the coded forge). A single per-channel lighting transform
+  maps one shot's weapon onto the other with ~14 RGB units of residual across a 93-unit
+  ramp. Same weapon, same colours, twice.
+- FLATNESS: the on-screen bow is a sculpted 5-step ramp (dark edge, mid, bright core), 22
+  distinct colours, saturation 0.13-0.47. Every forged colour is saturation 0.5 or 1.0 and
+  flat by construction. Calibration in the same frame: a genuinely flat patch of grass gives
+  1 distinct colour, vanilla armour gives 20, the bow sits with the vanilla controls.
+- ASSET IDENTITY: entry 156 is a 96x96 4bpp SPRITE, not colour data (68.5% of adjacent
+  nibbles are identical, the locality signature of art). Its same-sized neighbours 154, 159,
+  162 and 163 all render as an intact chocobo egg at 96x96 and 155 as the cracked egg; 156 is
+  the hatch swirl in that animation family. The deployed forge merely smeared that swirl.
+
+**Where battle weapon colour actually lives (found while retracting this, 2026-08-19):** the
+game reads `unit/battle_wep_spr.bin` as FFTPack file 71 during battle, alongside file 63/64
+(`battle_wep1/2_shp.bin`) and 65/66 (the seq files), and the unit sprites as
+`unit/battle_*_spr.bin`. That is the CLASSIC sprite pipeline, and the modloader demonstrably
+serves modded files through it (`[FFTPack] Accessing modded file 159 -> unit/battle_ramuza2_spr.bin`).
+The g2d equipment sheet (entry 161) is served ONCE per launch during the menu/formation
+screen, which fits menu/UI equipment art rather than battle art, so
+[g2d-equipment-sheet-override] deserves its own re-examination before anything is built on it
+(see the caveat added there).
+
+**Superseded claim:** the palette bank the weapon sheet consumes offline can be replaced
 through the same per-entry file channel that repaints the sheet itself.
 
 **Mechanism:** round 9 (2026-08-19): tools/probes/lw251_g2d_clut_forge.py extracted entry
@@ -114,21 +157,22 @@ colour except slot 0 and 0x0000 slots to ONE flat saturated colour per row (hue 
 across the bank so every row is self-identifying by colour; zeros and bit 15 preserved),
 and deployed it beside the proven deranged tex_161 as the in-frame control.
 
-**Evidence:** owner observation in session, same launch: an Archer's bow rendered FLAT
-gold, shading gone, where round 1's derangement-only look on the same weapon class was
-deep blue with a white edge. A shadeless flat is the pre-registered tell no index scramble
-of a vanilla shaded ramp can produce, so the forged colours themselves are on screen.
-The nocked arrow ALSO changed (a blue outline, owner-confirmed not a normal colour), which
-means the projectile art consumes bank rows too, so entry 158's earlier "direct RGB555"
-classification is wrong or incomplete. Under a flat palette a deranged index sheet is
-indistinguishable from an intact one, so the tex_161 control is unreadable in this
-outcome, exactly as pre-registered.
+**Evidence, ALL OF IT WITHDRAWN:** the "flat gold bow" was an unmeasured reading of a night
+screenshot containing zero gold pixels. The "arrow changed colour" claim is worse than
+unsupported, it is self-contradictory: entry 158 was never overridden in either round, and
+the same arrow is cited in OPPOSITE directions by the two rows here, as the untouched control
+that proves the sheet lever fired, and as the changed art that proves the bank lever fired.
+At night 1222 of 1253 saturated pixels in the whole frame are blue, and a night capture from
+2026-08-18 23:28, before any palette forge existed, shows the same blue dominance. Separately,
+entry 158 is not the arrow sheet at all: rendered as 4bpp it is a second 512x512 equipment
+sheet holding swords, shields and helmets.
 
-**Limits and opens:** restart-gated (same per-process cache as the sheet lever). The
-weapon-to-row mapping is unmeasured; the flat hue wheel doubles as the census instrument
-(a weapon's flat colour names its row: hue sector x row order, 144 rows over the wheel).
-Sharing grain unmeasured (which items share a row). Slot-0 and bit-15 semantics untested
-(both preserved in the forge). Owner flip: in-session, 2026-08-19.
+**Live re-test, for completeness:** round 11 (2026-08-19 03:55 launch) shipped the coded
+tex_156 with the bow's own sheet left VANILLA and entry 158 deranged as a same-frame control.
+The owner swung two swords (Warbrand, Flamberge) and both looked normal. The log explains
+why without ambiguity: that launch mapped 156 and 158 and the game accessed NEITHER. So the
+control could not fire either, and the g2d file channel reaches only entries the game
+actually reads.
 
 </details>
 
