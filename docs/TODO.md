@@ -249,19 +249,24 @@ the technical detail lives in the indented lines under it.
 ## Backlog
 
 - [LW-298] 2026-08-21: Change an icon's colour, forget to re-bake, and every gate still passes,
-  because nothing compares the committed pictures against the colours they are supposed to have
-  been made from. LW-297 closed the gap between the repo and the installed game, so a stale
-  install is now caught; this is the gap one step earlier, between the colour chosen in the
-  source and the picture actually committed to the repo. The recolor engine has exactly two
-  modes, selftest and bake, and bake writes; there is no mode that asks "would this engine, with
-  these tints, produce the file already sitting here?". That matters most for the LW-278 design
-  framework, whose whole loop is choose tints, re-bake, judge, so a silent stale bake there means
-  the owner reviews a picture that no longer matches the numbers under it. The likely shape is a
-  --verify mode that renders to a temp dir and hash-compares against the committed tree, reusing
-  LW-297's comparison. Known constraint before promoting: twelve twin-group shields derive their
-  small surface from a real vanilla decode, which a machine without the game files cannot do, so
-  a full verify cannot run in CI as-is and must either skip those ids through the announced
-  skip path or be a local-only gate.
+  because nothing a build runs compares the committed pictures against the colours they were
+  supposed to be made from. LW-297 closed the gap between the repo and the installed game, so a
+  stale install is now caught; this is the gap one step earlier, between the colour chosen in the
+  source and the picture actually committed. The fix is mostly WIRING, not new tooling, and the
+  first draft of this row said otherwise: tools/icon_preview.py already carries four checks
+  (verify, anchors, silhouettes, and compare --expect, the engine-drift gate), and NONE of them is
+  referenced by tools/pipeline.ps1, BuildLinked.ps1, Publish.ps1 or the CI workflow, so all four
+  run only when a human remembers. Read that list before building anything new here. The one that
+  looks closest, verify, still cannot answer this question as written: its reference side is
+  working/icons, which is gitignored with zero files committed, so it compares a fresh render
+  against a local cache that a clean checkout does not have and CI can never have. So the shape is
+  wire the existing checks into a gate and give verify a committed reference, rather than write a
+  fifth check. This matters most for the LW-278 design framework, whose loop is choose tints,
+  re-bake, judge: a silent stale bake there means the owner reviews a picture that no longer
+  matches the numbers under it. Known constraint before promoting: twelve twin-group shields
+  derive their small surface from a real vanilla decode, which a machine without the game files
+  cannot do, so a full render-and-compare cannot run in CI as-is and must either skip those ids
+  through the announced skip path or stay a local-only gate.
 
 - [LW-296] 2026-08-21: When another mod replaces the game's item text, the kill counter quietly
   stops appearing on weapon cards and the player is never told why, so tell them. The counter
