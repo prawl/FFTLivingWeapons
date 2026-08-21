@@ -291,8 +291,8 @@ the technical detail lives in the indented lines under it.
   inks. The diagnosis was funded by a natural experiment inside the failing run: the handful of
   weapons whose icons offered a single material skipped the zone code and every one scored within
   3 degrees.)
-  - Left open for the owner: eight weapons still sit over 25 degrees out, led by Swiftfang at 64
-    and Kiyomori at 56, both icons that genuinely carry two strong colours; whether that is worth
+  - Left open for the owner: a handful of weapons still sit over 25 degrees out, led by Ragnarok
+    at 60 and Flamberge at 54, both icons that genuinely carry two strong colours; whether that is worth
     chasing is his call and the sheet shows them. The number cannot see mud, plastic or a lost
     outline, so it is a floor and not a verdict.
   - ADVERSARIAL REVIEW the same day, and it found four things worth fixing rather than arguing
@@ -319,6 +319,24 @@ the technical detail lives in the indented lines under it.
     ramp takes the dominant material" costs only 1 degree of median but drops within-20 from 110
     to 98, so the bulk of the repair is the hue grouping and the saturation rebase, not the budget
     rule that the first draft of the docstring took credit for.)
+  - OWNER LOOKED AGAIN and said to note the two toned areas, and he was right a second time. The
+    colours were landing on the wrong PARTS of the weapon. A sword came back striped down its
+    blade instead of a coloured blade with a differently coloured grip, which is the exact thing
+    he asked for in the first place. The cause is that the artist shades ONE object with more than
+    one family of colour, so grouping by colour splits a blade from its own shading and then hands
+    the two halves different paint. Measuring where each group actually sits on the drawing says
+    it plainly: on the sword the two halves of the blade sit 2 percent of the picture apart and
+    the two halves of the grip sit 14 percent apart, while blade and grip sit 49 percent apart.
+    So groups that cover the same place are now merged back into one part before any colour is
+    chosen, and the biggest part is pinned to the colour a person would actually name the weapon.
+    Every weapon now reads as two or three solid regions a person can name rather than stripes.
+    (Tech: weapon_parts merges palette_ramps by centroid distance under PART_MERGE_FRACTION of the
+    tile diagonal, then assign_ramps pins the largest part to the material nearest the rendered
+    icon hue. Costs 7 weapons at the 20 degree line, 110 to 103, and improves the worst case from
+    64 to 60, a trade taken deliberately because the score was always a floor and right colours in
+    wrong places still look wrong. New instrument lw303_zonemap.py paints one flat colour per
+    material so the split can be READ; the score cannot see this failure at all, which is why it
+    passed a striped sword.)
 
 - [LW-303] 2026-08-21: We now know which drawing in the game's art sheet each kind of weapon
   actually uses in battle, all twenty kinds, which we did not know before. This matters because

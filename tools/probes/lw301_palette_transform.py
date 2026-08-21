@@ -16,8 +16,9 @@ icon work, where the same mistake was the root of the "highlights look nonsensic
 THE RULE, per RAMP (rewritten 2026-08-21 after measuring every weapon, see below):
     1. read the icon's MATERIALS: hue, saturation and what share of the icon each covers
     2. split the vanilla palette into RAMPS, hue grouped runs of shades, one per substance
-    3. give each ramp a material so the painted pixel shares match the icon's colour shares
-    4. per slot: hue = the material's, saturation = REBASED on it, value = untouched
+    3. merge ramps that cover the same PLACE on the drawing, which recovers the weapon's PARTS
+    4. give the biggest part the icon's own colour, then spend the rest by share
+    5. per slot: hue = its part's material, saturation = REBASED on it, value = untouched
 Value is never rewritten, only carried, which is what preserves the light to dark ordering that
 makes a blade read as lit metal.
 
@@ -30,7 +31,14 @@ with only 17 weapons within 20 degrees and 48 more than 90 degrees out, orange i
 The natural experiment sitting inside that run is what settled the diagnosis: the six weapons whose
 icons happened to offer a single material skipped the zone code entirely and every one of them
 landed within 3 degrees. The zoning was the whole fault, not the colour maths. The rewritten rule
-measures 5 degrees median, 110 of 118 within 20, and no weapon worse than 64.
+measures 5 degrees median, 103 of 118 within 20, and no weapon worse than 60.
+
+THEN THE OWNER LOOKED AGAIN and said to note the two toned areas, which is step 3 above and the
+reason the score went from 110 within 20 down to 103. Grouping by hue alone splits a blade from
+its own shading, so weapons came back striped across one surface instead of split between blade
+and grip. Merging ramps by WHERE they sit fixes what he saw, and costs seven weapons at the 20
+degree line while improving the worst case. That trade is deliberate: the score was only ever a
+floor, and a weapon that is the right colour in the wrong places still looks wrong.
 
 WHAT THE SCORE DOES NOT COVER, from the adversarial review of this rewrite. The score reads HUE
 only, so it is blind to the flatten failure this transform exists to prevent: a deliberately
@@ -76,6 +84,7 @@ RAMP_MERGE_DEG = 40.0       # palette slots this close in hue belong to one ramp
 NEUTRAL_SATURATION = 0.15   # below this a slot is grey steel, and all such slots form ONE ramp
 OUTLINE_VALUE = 0.15        # below this a slot is the drawing's outline and is never recoloured
 SAT_FLOOR = 0.55            # the least of a material's chroma any slot in its ramp may carry
+PART_MERGE_FRACTION = 0.15  # ramps whose pixels sit this close together are one part of the weapon
 
 # Which sprite each weapon CATEGORY draws in battle, read from the owner's identification of the
 # numbered tile chart (lw301_sprite_labels.json, LW-303, 2026-08-21). This used to be a hand-written
@@ -339,20 +348,26 @@ def icon_materials(item_id, ff16, tmp):
     return mats
 
 
-def slot_usage(box):
-    """How many pixels of one tile use each palette slot.
+def slot_pixels(box):
+    """Where in one tile each palette slot is drawn: {slot -> [(x, y), ...]}.
 
-    The correction that made the rest of the transform work. A slot's importance is not how the
-    slot LOOKS, it is how much of the drawing it covers, and only the tile can say that.
+    Both of the corrections that made this transform work come out of this one measurement. How
+    MANY pixels a slot covers says how much it matters; WHERE they sit says which part of the
+    weapon it belongs to, and neither can be read off the palette alone.
     """
     grid = sheet_index_grid()
-    used = {}
+    at = {}
     for yy in range(box["h"]):
         for xx in range(box["w"]):
             v = grid[box["y"] + yy][box["x"] + xx]
             if v:
-                used[v] = used.get(v, 0) + 1
-    return used
+                at.setdefault(v, []).append((xx, yy))
+    return at
+
+
+def slot_usage(box):
+    """How many pixels of one tile use each palette slot."""
+    return {k: len(v) for k, v in slot_pixels(box).items()}
 
 
 def palette_ramps(van, usage):
@@ -402,7 +417,59 @@ def palette_ramps(van, usage):
     return sorted(groups, key=lambda g: -g["w"])
 
 
-def assign_ramps(ramps, mats):
+def weapon_parts(van, box):
+    """The weapon's PARTS: hue ramps merged again when they cover the same place on the drawing.
+
+    A ramp is a substance as the PALETTE sees it. It is not a part of the weapon, and treating the
+    two as the same thing is what the owner caught on sight: the sprites came back "two toned" in
+    the wrong places, striped across a blade rather than split between blade and grip.
+
+    Measured on the sword tile, which says it plainly. Its four ramps are a neutral run and a
+    180 degree run whose pixels sit 2 percent of the tile apart, and a 240 degree run and a 120
+    degree run sitting 14 percent apart, with 49 percent between the two groups. So the blade is
+    TWO ramps and the hilt is TWO ramps: the artist shaded one object with two hue families, and
+    handing those families different colours paints a stripe down the middle of the blade. Merging
+    by position recovers what a person sees, blade and hilt, and then the colours land where the
+    eye expects them.
+
+    PART_MERGE_FRACTION is a share of the tile's diagonal, so it scales with the drawing rather
+    than assuming every weapon is the same size. Ramps that ink nothing in this tile keep to
+    themselves; they cannot be placed, and inventing a position for them would merge them at
+    random.
+    """
+    at = slot_pixels(box)
+    ramps = palette_ramps(van, {k: len(v) for k, v in at.items()})
+    diagonal = math.hypot(box["w"], box["h"]) or 1.0
+    centre = []
+    for g in ramps:
+        pts = [pt for x in g["slots"] for pt in at.get(x["i"], [])]
+        centre.append((sum(pt[0] for pt in pts) / len(pts),
+                       sum(pt[1] for pt in pts) / len(pts)) if pts else None)
+    parent = list(range(len(ramps)))
+
+    def root(a):
+        while parent[a] != a:
+            parent[a] = parent[parent[a]]
+            a = parent[a]
+        return a
+
+    for i in range(len(ramps)):
+        for j in range(i + 1, len(ramps)):
+            if centre[i] is None or centre[j] is None:
+                continue
+            near = math.hypot(centre[i][0] - centre[j][0], centre[i][1] - centre[j][1]) / diagonal
+            if near <= PART_MERGE_FRACTION:
+                parent[root(i)] = root(j)
+    merged = {}
+    for i, g in enumerate(ramps):
+        key = root(i) if centre[i] is not None else ("unplaced", i)
+        part = merged.setdefault(key, {"slots": [], "w": 0})
+        part["slots"] += g["slots"]
+        part["w"] += g["w"]
+    return sorted(merged.values(), key=lambda part: -part["w"])
+
+
+def assign_ramps(ramps, mats, icon_hue=None):
     """Hand each ramp a material so the PAINTED PIXELS mirror the icon's own colour proportions.
 
     Spending each material a pixel budget equal to its share of the icon makes the sprite's colour
@@ -418,21 +485,30 @@ def assign_ramps(ramps, mats):
     change: budgets start unspent and the ramps arrive heaviest first, so the largest ramp still
     always takes the dominant material. The difference from the old rule is what happens to every
     ramp after that one, and that the ramps are now whole substances rather than brightness bands.
+
+    THE LARGEST PART IS PINNED to the material nearest the icon's own overall colour, rather than
+    to whichever material happens to hold the most chroma. Those two usually agree. When they do
+    not, the difference is stark: Flamberge's icon splits 39 percent red against 40 percent blue,
+    and on that one point of chroma the whole blade used to flip to blue while a person looking at
+    the icon would call the weapon red. Pinning the biggest part to the colour a person would name
+    took the worst weapon in the set from 118 degrees out to 60.
     """
     total = sum(g["w"] for g in ramps) or 1
+    lead = 0 if icon_hue is None else min(range(len(mats)),
+                                          key=lambda j: hue_distance(mats[j]["h"], icon_hue))
     budget = [m["share"] * total for m in mats]
     spent = [0.0] * len(mats)
     out = []
-    for g in ramps:
-        k = max(range(len(mats)), key=lambda j: budget[j] - spent[j])
-        if budget[k] - spent[k] <= 0:
-            k = 0                       # budgets all spent: the dominant material takes the rest
+    for n, g in enumerate(ramps):
+        k = lead if n == 0 else max(range(len(mats)), key=lambda j: budget[j] - spent[j])
+        if n and budget[k] - spent[k] <= 0:
+            k = lead                    # budgets all spent: the weapon's own colour takes the rest
         spent[k] += g["w"]
         out.append((g, mats[k]))
     return out
 
 
-def paint_by_ramp(van, mats, usage):
+def paint_by_part(van, mats, box, icon_hue=None):
     """The transform: every ramp takes a material's hue and keeps its own light to dark shape.
 
     Saturation is REBASED on the material rather than multiplied by the vanilla slot's own.
@@ -444,10 +520,16 @@ def paint_by_ramp(van, mats, usage):
 
     VALUE IS NEVER TOUCHED. That is what preserves the light to dark ordering that makes the sprite
     read as a lit object instead of the painted plastic the Phase 0 flatten produced.
+
+    Without a tile there is no way to tell a weapon's parts apart, so this falls back to painting
+    per RAMP with every slot counted equally. That is the old behaviour and it is worse; pass the
+    box.
     """
     import colorsys
     out = list(van)
-    for ramp, mat in assign_ramps(palette_ramps(van, usage), mats):
+    groups = (weapon_parts(van, box) if box
+              else palette_ramps(van, {i: 1 for i in range(1, PAL_SLOTS)}))
+    for ramp, mat in assign_ramps(groups, mats, icon_hue):
         top = max([x["s"] for x in ramp["slots"]] + [0.0])
         for x in ramp["slots"]:
             rel = (x["s"] / top) if top > 0.05 else 1.0
@@ -565,9 +647,11 @@ def recolour_for_item(it, van, ff16, tmp, box=None):
     if not mats:
         return {"codes": list(van), "mode": "no colour in icon", "hue": tint[0],
                 "authored": authored, "drift": drift}
-    usage = slot_usage(box) if box else {i: 1 for i in range(1, PAL_SLOTS)}
     label = "1 material" if len(mats) == 1 else "%d materials" % len(mats)
-    return {"codes": paint_by_ramp(van, mats, usage), "mode": label, "hue": tint[0],
+    parts = len(weapon_parts(van, box)) if box else 0
+    if parts:
+        label += ", %d part%s" % (parts, "" if parts == 1 else "s")
+    return {"codes": paint_by_part(van, mats, box, tint[0]), "mode": label, "hue": tint[0],
             "authored": authored, "drift": drift}
 
 
