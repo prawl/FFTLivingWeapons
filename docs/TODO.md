@@ -270,6 +270,25 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
+- [LW-301] 2026-08-21: Give every weapon its own colour when it is swung in battle, which we spent
+  two days believing was impossible. The game only has thirteen colour sets for a hundred and
+  twenty seven weapons and it decides which weapon uses which, and that decision really is
+  unchangeable. It also turns out not to matter. The colours themselves can be changed while the
+  game is running and the change shows up immediately, and only one weapon is ever on screen at a
+  time because a weapon is only drawn while its owner is swinging it. So the mod can set the
+  colours for whoever is about to attack, and every weapon can look like its own icon. Shown live
+  twice with the owner watching: one knife turned cyan while another kept its steel, then the two
+  were driven to yellow and magenta at the same time in the same battle. (Tech: write the static
+  1024 byte workspace at 0x140d35750, both 512 byte banks, palette N at +N*32, BGR555, preserve
+  slot 0 and bit 15. Ledger [per-weapon-colour-by-turn-repaint]. Reads per draw, so no reload is
+  needed and no hook is involved; this routes around [weapon-palette-assignment-walled] rather
+  than breaking it. Three things to settle before building: whether the palette is latched at
+  animation start or sampled continuously, which decides how early the repaint must land; what
+  happens when two weapons sharing one palette are drawn together, as in a counter-attack; and
+  re-applying after a battle load, since the load copies the file over the workspace. Colour
+  source is items.json iconTint, which makes this the first surface where the icon and the battle
+  sprite can actually agree.)
+
 - [LW-300] 2026-08-21: The seventy two items nobody has re-passed yet, the armour, clothing, robes,
   shoes, rings and the rest, are all still painted by the oldest and worst method we have, and it
   does exactly one thing: it floods the whole picture with a single colour. Measured, not guessed.

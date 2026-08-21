@@ -2486,6 +2486,32 @@ Two genuine RIP-relative instructions in `.code` reference the static weapon-pal
 
 </details>
 
+### [per-weapon-colour-by-turn-repaint] Per-weapon battle colour IS achievable: the palette is read PER DRAW and can be repainted live
+
+Writing the static 1024-byte workspace at `0x140d35750` changes a weapon's colour IMMEDIATELY, mid-battle, with no reload, and two palettes can be driven to different colours in the same battle at the same time. Because the game is turn-based and a weapon sprite only renders during its own attack animation, repainting that weapon's palette on its turn gives every weapon its own colour. This ROUTES AROUND [weapon-palette-assignment-walled] rather than breaking it. OBSERVED live 2026-08-21, owner read the screen twice with screenshots; AWAITING OWNER FLIP.
+
+<details><summary>How we got here</summary>
+
+**Claim:** the 127-weapons-share-13-palettes limit does NOT prevent per-weapon battle colour.
+
+**Why this was missed for two days.** [resident-weapon-palette-buffer] established that the static workspace is the DESTINATION of a copy performed at battle load, and a test writing it came back "normal steel", which was recorded as the workspace being unusable. That test wrote the workspace and then RELOADED the battle, so the reload's copy destroyed the write before anything was drawn. The reload was the confound, not the mechanism. Writing the workspace and drawing WITHOUT a reload was never tried until now.
+
+**Evidence, two rounds, each with a same-frame control.**
+
+Round 1: palette 14 set to cyan `0x7FE0` in both workspace banks mid-battle, loaded file left pristine so it could not be the source of anything seen. No reload. The Cutpurse (palette 14) swung CYAN; the Galewind (palette 4) swung normal steel in the same battle. Control holds and the loaded file was vanilla throughout, so the workspace alone drove the render.
+
+Round 2, to show independent simultaneous control rather than a single global tint: palette 14 to yellow `0x03FF` and palette 4 to magenta `0x7C1F`, written together, still no reload. Cutpurse rendered YELLOW (owner screenshot, bright yellow blade mid-swing with a "Parried!" callout) and Galewind rendered MAGENTA. Two palettes, two colours, one battle.
+
+**So the palette is sampled per draw, not uploaded once at battle load.** That is the fact everything else rests on.
+
+**Why this yields PER-WEAPON colour.** The game is turn-based and the weapon sprite is drawn during its wielder's attack animation; idle units on the field show no weapon, visible in both screenshots. So at most one weapon is on screen at a time, and the mod already knows whose turn it is and what they are holding. Repaint that weapon's palette at its turn, and the shared-palette collision never materialises because the other members of that palette are not being drawn.
+
+**Known limits, none of them tested yet:** two weapons of the SAME palette visible simultaneously would still collide, which counter-attacks, reactions and any dual-render case could produce; whether the palette is sampled continuously or latched at animation start is UNKNOWN and decides whether the repaint must land before the animation begins; and a battle reload restores the workspace from the loaded file, so the mod must re-apply after each load. None of these threaten the mechanism, they shape the implementation.
+
+**Date:** 2026-08-21
+
+</details>
+
 ### [resident-weapon-palette-buffer] The weapon palettes are writable in MEMORY and take effect on the next battle load
 
 The 16 palettes of FFTPack file 71 sit in process memory in four copies, two heap and two inside the game image; writing one of them repaints every weapon drawn from that palette from the NEXT battle load onward, with no file override, no relaunch, and no draw hook. OBSERVED live 2026-08-21, owner read the screen; AWAITING OWNER FLIP.
