@@ -30,8 +30,40 @@ WHAT IS NOT IN HERE, stated so nobody reads silence as coverage:
   sampling bias: we know far more about what fails than about what passes.
 - The 150 rows in `data/icon_ramp/treatments.json` are machine-emitted from a census replay, not
   hand-authored. They record WHAT was decided, never WHY. They are not verdicts.
-- Round-by-round picker deliberations (the ten-variant pages, the nine Chaos Blade candidates)
-  survive only as their outcomes. The losing variants are gone.
+- ~~Round-by-round picker deliberations survive only as their outcomes; the losing variants are
+  gone.~~ **WRONG, corrected 2026-08-21.** They survive in full. About thirty published review
+  artifacts hold the actual gallery pages the owner judged from, losing candidates included, each
+  with its lettered label, its rationale text and its rendered card and list icon embedded as
+  base64 PNGs. See "The picker archive" below. This was a real gap in the first draft of this
+  file and it mattered: it is the difference between a corpus that records outcomes and one that
+  records CHOICES, and only the second can calibrate a judge.
+
+## The picker archive (the calibration set)
+
+Roughly thirty published review artifacts hold the gallery pages the owner actually judged from.
+They are the highest-value source in this file, because each one is a CHOICE rather than an
+outcome: the losing candidates are still there beside the winner.
+
+Shape of a picker page, confirmed by parsing one: a vanilla reference pair at the top, then a grid
+of lettered candidates, each carrying a one-line rationale and its rendered 100px card plus 48px
+list icon embedded as base64 PNGs. Aegis Prime offers ten (A to J); the changelog records the
+winner as "bright sapphire with gold kept to the edges and gem", which is its candidate C.
+
+How to read them without burning a session's context: fetch the artifact URL once (it saves the
+whole page to a local file), then parse that file offline. Candidates come out of
+`<section class="v" id="v(\w)">` with the tag and rationale, images out of
+`<img class="(art|ico)" src="data:image/png;base64,...">`. Never paste a page into context whole;
+they run to 350KB or more.
+
+Pages with a winner recorded in `docs/CHANGELOG.md`, so they are usable as answered questions
+today: Aegis Prime (10 candidates, C), Wardstone rim, Chaos Blade round three (9 candidates
+across 3 rounds, blood and bone), Ragnarok (the variant siding with its ART over its element),
+The Handbag Court (A/B/C, deep mute C), plus the four helmet picker pages, the hats pages, the
+head slot rounds, and the glow on/off page for all 150.
+
+**Do not treat a page's own text as the verdict.** The rationale lines are the options as OFFERED,
+written before the owner chose. The verdict lives in the changelog row or the memory note that
+followed. Confusing the two would train a judge on our own sales pitch rather than on his taste.
 
 ## Part A: the failure taxonomy
 
