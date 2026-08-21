@@ -270,6 +270,56 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
+- [LW-304] 2026-08-21: The colours we were about to put on weapons in battle were wrong for most
+  of them, and looking at eight at a time is what hid it. Put all 118 side by side with their own
+  icons and the picture is plain: orange icons were arriving blue. Measured properly, the old
+  recolour missed the icon's colour by 76 degrees in the middle of the pack, and only 17 of 118
+  weapons landed anywhere near their icon. The cause was not the colour maths, it was how the
+  weapon was carved into parts: it split each weapon by BRIGHTNESS into "blade" and "everything
+  else", which cuts across the artist's own shading, so the icon's main colour often landed on
+  the few pale pixels while its accent colour took the whole body. Two smaller faults rode along:
+  a single stray pixel in an icon could be promoted to "second material" and painted over half
+  the weapon, and colour was applied by multiplying what was already there, so anything drawn in
+  grey steel (books, guns, silver blades) could never take colour at all. Rewritten to carve the
+  weapon along the artist's own shading runs instead, hand each run one of the icon's real
+  materials, and give each material a share of the weapon matching its share of the icon. The
+  same measurement now reads 5 degrees in the middle, 110 of 118 within 20, nothing worse than 64,
+  and the light to dark shading is untouched so blades still read as lit metal rather than
+  plastic. (Tech: lw301_palette_transform.py, two_zone deleted in favour of palette_ramps plus
+  assign_ramps plus paint_by_ramp; the measuring instrument is lw303_grade.py, which compares the
+  icon's chroma weighted hue against the hue delivered over the pixels that weapon's own tile
+  inks. The diagnosis was funded by a natural experiment inside the failing run: the handful of
+  weapons whose icons offered a single material skipped the zone code and every one scored within
+  3 degrees.)
+  - Left open for the owner: eight weapons still sit over 25 degrees out, led by Swiftfang at 64
+    and Kiyomori at 56, both icons that genuinely carry two strong colours; whether that is worth
+    chasing is his call and the sheet shows them. The number cannot see mud, plastic or a lost
+    outline, so it is a floor and not a verdict.
+  - ADVERSARIAL REVIEW the same day, and it found four things worth fixing rather than arguing
+    with. FIRST and worst: the measurement was blind to the very failure this work exists to
+    prevent. Deliberately flattening every weapon to one brightness, which is the painted plastic
+    look, SCORED BETTER than the real thing, because the score only ever read colour and never
+    shading. It now checks both, and re-running that same sabotage makes it fail loudly instead of
+    passing. SECOND: the code claimed it never repaints a drawing's outline, and that was simply
+    untrue; the safety line it used sits below the darkest colour any of the thirteen weapon sets
+    contains, so it has never once fired and every edge does get repainted. That is actually what
+    we want, since a blue sword should have a dark blue edge and not the old brown one, so the
+    behaviour stays and the false claim goes, with the cost of it now measured and printed.
+    THIRD: one sentence of the write up blamed a pixel count for a bug, and counting the pixels
+    disproves it; the real cause was a single stray pixel being promoted to a whole material. The
+    wrong sentence is struck in place rather than quietly deleted. FOURTH: the old recolour had
+    been deleted, which made the before and after impossible for anyone else to re-run, so it now
+    lives inside the measuring tool where it can never paint a real pixel, and re-running it
+    reproduces the 76 degrees exactly. Also fixed: the picture sheet the owner actually looks at
+    was hiding ninja blades, which is where the single worst scoring weapon lives.
+    (Tech: `python lw303_grade.py --baseline` prints both transforms over the same 118 weapons,
+    76 median against 5, improved on 107 of them; the structure section asserts HSV value is
+    carried per slot, worst change 0.0000, and reports the worst perceived edge shift, 0.266 on
+    Yoichi Bow. Ablation recorded in assign_ramps: replacing the proportional budget with "biggest
+    ramp takes the dominant material" costs only 1 degree of median but drops within-20 from 110
+    to 98, so the bulk of the repair is the hue grouping and the saturation rebase, not the budget
+    rule that the first draft of the docstring took credit for.)
+
 - [LW-303] 2026-08-21: We now know which drawing in the game's art sheet each kind of weapon
   actually uses in battle, all twenty kinds, which we did not know before. This matters because
   the review sheet that shows a weapon's new colour was printing a made up shape next to five of
@@ -288,6 +338,17 @@ the technical detail lives in the indented lines under it.
   Polearm and Staff, from two independent sources, which is the first real evidence FOR the
   category relative reading of the byte that [weapon-graphic-byte-not-sprite] retracted in its
   absolute form. That row deserves a follow up, owner flip only.)
+  PROGRESS 2026-08-21: the map is now WIRED, so the review sheet draws each weapon's real
+  drawing instead of a hand typed guess, and there is a page that puts all 121 weapons' menu
+  icons beside the battle sprites they will actually swing, which nobody had ever seen side by
+  side. The tool reads the labels file rather than holding its own copy, so an owner correction
+  reaches the pictures the moment it is made. Picking which of a kind's several drawings to show
+  needed one rule beyond confidence: an edge on view inks MORE pixels than the same weapon seen
+  across, so a pole seen end on used to win and showed nothing recognisable. (Tech: labels drive
+  CATEGORY_LABEL_ALIAS plus tiles_for_category in lw301_palette_transform.py; the only category
+  with no identified tile is Cloth, named in CATEGORY_NO_SPRITE with the reason, because the
+  nine tile Scroll pile is a candidate that was never confirmed and a wrong silhouette is worse
+  than none. Page builder is lw303_icon_vs_sprite_page.py with its template beside it.)
 
 - [LW-302] 2026-08-21: Shields are visible in battle too and they stay their original colour while
   the weapons change, which will look odd once weapons match their icons. Owner spotted it during
