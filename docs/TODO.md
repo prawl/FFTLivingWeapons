@@ -311,10 +311,13 @@ the technical detail lives in the indented lines under it.
   and we found it: the first battle switches the timer OFF entirely rather than holding it high,
   and the switch is one value written once. Rebuild the staff's power on that instead. It is the
   same promise to the player and a much quieter mechanism, and it stops us wrestling the game
-  every tick for something the game already knows how to do. Verified live with the owner
-  watching the screen: hearts vanish the instant the off value is written, the game does not put
-  it back, and writing a real number returns the hearts exactly as they were, which is what lets
-  the protection lift the moment the bearer dies or unequips. (Tech: the countdown is combat slot
+  every tick for something the game already knows how to do. OBSERVED live 2026-08-21 with the
+  owner reading the screen, and the ledger row is AWAITING HIS FLIP rather than proven: hearts
+  vanish the instant the off value is written, the game does not put it back, and writing a real
+  number returns the hearts exactly as they were, which is what lets the protection lift the
+  moment the bearer dies or unequips. Two things stay untested and both could still sink it,
+  whether the suppression survives to the moment a body would actually crystallize, and how a
+  suppressed unit behaves through revival and battle exit. (Tech: the countdown is combat slot
   base +0x07, band entry -0x15. 0xFF is the off state, observed on EVERY unit of the no-crystal
   first battle against 3 on every unit of a normal one, and confirmed by write both directions on
   a guest mid-countdown 255 -> hearts gone -> 2 -> two hearts back. Replaces Sanctuary's per-tick
