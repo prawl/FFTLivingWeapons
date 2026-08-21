@@ -2455,6 +2455,37 @@ Finding the enemy ENTD blueprint in live 1.5 memory is Walled as of the 2026-06-
 
 </details>
 
+### [palette-code-sites] First code addresses that touch the weapon palette region
+
+Two genuine RIP-relative instructions in `.code` reference the static weapon-palette region: `0x1401d462d` loads the whole 1024-byte region for what decodes as a memset, and `0x1401d50e1` loads the address of ONE palette (index 12). These are the first code addresses anyone has had for this mechanism. OBSERVED 2026-08-21 by displacement scan; NOT yet traced to the draw path; AWAITING OWNER FLIP.
+
+<details><summary>How we got here</summary>
+
+**Claim:** the code that handles the weapon palette is locatable by static analysis, without a debugger.
+
+**Mechanism:** [resident-weapon-palette-buffer] gave two IMAGE-relative palette addresses (`0x140d35750`, `0x140d35950`), and the image base is fixed with no ASLR. x64 reaches static data by RIP-relative displacement, so a 4-byte scan of the executable sections for `target - rip_after` finds referencing code. NOTE the binary is Denuvo-protected and has NO `.text`: code lives in `.code` (0x140001000, 0x610000), `.xcode`, `.ecode`, `.xtext`, and the palette statics sit in `.xpdata`. A probe looking for `.text` reports a false dead end.
+
+**Evidence, decoded by hand from the captured bytes:**
+
+    0x1401d462b  33 d2                    xor  edx, edx
+    0x1401d462d  48 8d 0d 1c 11 b6 00     lea  rcx, [rip+0xb6111c]   -> 0x140D35750
+    0x1401d4634  41 b8 00 04 00 00        mov  r8d, 0x400
+    0x1401d463a  e8 ..                    call
+
+`0x1401d4634 + 0xb6111c = 0x140D35750` exactly, and 0x400 = 1024 covers BOTH static copies, which sit 0x200 apart. Shape is `memset(region, 0, 1024)`. Second site:
+
+    0x1401d50e1  48 8d 0d e8 07 b6 00     lea  rcx, [rip+0xb607e8]   -> 0x140D358D0
+
+`0x140D358D0 = 0x140d35750 + 12*32`, i.e. palette index 12 specifically, in the same function neighbourhood about 2.7 KB away. Loading ONE palette's address is the shape a per-palette selection would have.
+
+**Not established, and this is the important part:** neither site is shown to be on the DRAW path. A memset is initialisation, not rendering. The palette-12 reference could equally be an unrelated struct offset that happens to land there. Nothing has been hooked, traced, or stepped. Two of the four raw scan hits were rejected as noise because their bytes do not form valid instructions at the matched position; that rejection was by hand, not by a decoder.
+
+**Next cheapest steps:** find the callers of the function containing `0x1401d462d`; scan the DATA sections for an 8-byte pointer equal to either heap palette address, which is how a heap buffer is normally reached; and check whether `0x1401d50e1`'s palette-12 reference is data-driven or a constant. Denuvo makes any actual hook fragile, see the `denuvo-hook-launch-fragility` note.
+
+**Date:** 2026-08-21
+
+</details>
+
 ### [resident-weapon-palette-buffer] The weapon palettes are writable in MEMORY and take effect on the next battle load
 
 The 16 palettes of FFTPack file 71 sit in process memory in four copies, two heap and two inside the game image; writing one of them repaints every weapon drawn from that palette from the NEXT battle load onward, with no file override, no relaunch, and no draw hook. OBSERVED live 2026-08-21, owner read the screen; AWAITING OWNER FLIP.
