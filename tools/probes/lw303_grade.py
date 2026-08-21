@@ -7,10 +7,16 @@ checkable without opinion and without the game running, so it should not be sett
 eight weapons and forming an impression. It was, twice, and both times the impression was wrong.
 
 THE SCORE, per weapon: take the hue the shipped 48px icon actually renders (chroma weighted over
-its opaque pixels) and the hue the recoloured sprite actually delivers (chroma weighted over the
-pixels that weapon's own tile inks), and report the angle between them. Weighting both ends the
-same way is the point: a palette slot that colours two pixels must not count as much as one that
-colours forty, which is exactly the mistake the first transform made.
+its opaque pixels) and the hue the sprite delivers over its MAIN PART, and report the angle between
+them. Weighting both ends by chroma is the point: a palette slot that colours two pixels must not
+count as much as one that colours forty, which is exactly the mistake the first transform made.
+
+WHY THE MAIN PART AND NOT THE WHOLE WEAPON. It was the whole weapon until the owner asked for these
+sprites to be two toned, with white bowstrings and a grip that differs from its blade. Scored whole,
+that request reads as error: a deliberately contrasting grip drags the average off the icon, and
+Hushblade jumped from 6 degrees to 76 by doing exactly what was asked. So fidelity is now judged on
+the part that carries the weapon's identity, and the second tone is reported separately below as a
+count of how many colours a viewer would name. Both numbers are needed; either alone can be gamed.
 
 WHY IT EXISTS. Reviewed by eye, eight at a time, the first transform read as "right except for the
 bow". Run over all 118 palette mapped weapons it measured a MEDIAN ERROR OF 76 DEGREES, with only
@@ -75,8 +81,12 @@ def luma(r, g, b):
     return 0.2126 * r + 0.7152 * g + 0.0722 * b
 
 
-def delivered(codes, box):
-    """The hue and mean saturation the tile actually shows, weighted by inked pixels."""
+def delivered(codes, box, only=None):
+    """The hue and mean saturation the tile actually shows, weighted by inked pixels.
+
+    `only` restricts the reading to one set of palette slots, which is how the main part of a
+    two toned weapon gets scored without its contrasting grip dragging the average.
+    """
     grid = T.sheet_index_grid()
     X = Y = 0.0
     sat = 0.0
@@ -84,7 +94,7 @@ def delivered(codes, box):
     for yy in range(box["h"]):
         for xx in range(box["w"]):
             v = grid[box["y"] + yy][box["x"] + xx]
-            if not v:
+            if not v or (only is not None and v not in only):
                 continue
             h, s, val = colorsys.rgb_to_hsv(*T.bgr555_to_rgb(codes[v] & 0x7FFF))
             if val < 0.12:
@@ -96,6 +106,38 @@ def delivered(codes, box):
     if not n:
         return None, 0.0
     return (math.atan2(Y, X) / (2 * math.pi)) % 1.0, sat / n
+
+
+def tone_count(codes, box):
+    """How many colours a viewer would actually name on this weapon.
+
+    A tone counts when it holds at least a tenth of the drawn pixels and sits at least 40 degrees
+    from every tone already counted. Near grey pixels are pooled as one tone, because a white
+    bowstring and a steel grip are one answer to "what colour", not two.
+    """
+    grid = T.sheet_index_grid()
+    seen = []
+    total = 0
+    for yy in range(box["h"]):
+        for xx in range(box["w"]):
+            v = grid[box["y"] + yy][box["x"] + xx]
+            if not v:
+                continue
+            h, sat, val = colorsys.rgb_to_hsv(*T.bgr555_to_rgb(codes[v] & 0x7FFF))
+            if val < 0.12:
+                continue
+            total += 1
+            key = None if sat < 0.15 else h
+            for entry in seen:
+                if entry[0] is None and key is None:
+                    entry[1] += 1
+                    break
+                if entry[0] is not None and key is not None and T.hue_distance(entry[0], key) < 40:
+                    entry[1] += 1
+                    break
+            else:
+                seen.append([key, 1])
+    return sum(1 for _, n in seen if total and n / total >= 0.10)
 
 
 def edge_slots(box):
@@ -123,25 +165,42 @@ def edge_slots(box):
     return out
 
 
-def structure(van, new, box):
+def structure(van, new, box, category=""):
     """Did the recolour keep the drawing's light to dark shape, and what did it do to the edges?
 
     This is the half the hue score cannot see. Value must match vanilla EXACTLY on every slot the
     transform writes; anything else means a ramp was flattened, rescaled or reordered.
+
+    ONE EXCEPTION IS ALLOWED AND IS CHECKED SEPARATELY. A named part rule may rewrite brightness on
+    the slots it owns, which today is bow and crossbow strings: the owner asked for white strings
+    and vanilla draws them dark grey, so draining the colour alone cannot produce white. Those
+    slots are excluded from the exact check and get their own weaker one, that their light to dark
+    ORDER survives. Excluding them without checking anything would be exactly the hole this whole
+    section exists to close, since a part rule could then flatten a ramp unnoticed.
     """
+    role_slots = set()
+    for slots in T.PART_ROLES.get(category, {}).values():
+        role_slots |= slots
     worst_value = 0.0
     worst_edge = 0.0
     edges = edge_slots(box)
+    ordering = []
     for i, (a, b) in enumerate(zip(van, new)):
         if i == 0 or a == 0:
             continue
         ar, ag, ab = T.bgr555_to_rgb(a & 0x7FFF)
         br, bg, bb = T.bgr555_to_rgb(b & 0x7FFF)
-        worst_value = max(worst_value, abs(colorsys.rgb_to_hsv(ar, ag, ab)[2]
-                                           - colorsys.rgb_to_hsv(br, bg, bb)[2]))
+        av = colorsys.rgb_to_hsv(ar, ag, ab)[2]
+        bv = colorsys.rgb_to_hsv(br, bg, bb)[2]
+        if i in role_slots:
+            ordering.append((av, bv))
+        else:
+            worst_value = max(worst_value, abs(av - bv))
         if i in edges:
             worst_edge = max(worst_edge, abs(luma(ar, ag, ab) - luma(br, bg, bb)))
-    return worst_value, worst_edge, len(edges)
+    kept_order = all((x[0] - y[0]) * (x[1] - y[1]) >= 0
+                     for n, x in enumerate(ordering) for y in ordering[n + 1:])
+    return worst_value, worst_edge, len(edges), len(ordering), kept_order
 
 
 # ----------------------------------------------------------------------------------------------
@@ -259,17 +318,21 @@ def grade(baseline=False):
         van = T.palette_of(raw, pmap[it["id"]]["weaponPalette"])
         got = T.recolour_for_item(it, van, FF16, tmp, box)
         want = got["hue"]
-        new_h, new_s = delivered(got["codes"], box)
-        van_h, van_s = delivered(van, box)
+        main = {x["i"] for x in T.weapon_parts(van, box)[0]["slots"]}
+        new_h, new_s = delivered(got["codes"], box, main)
+        van_h, van_s = delivered(van, box, main)
         if new_h is None:
             continue
-        worst_value, worst_edge, n_edges = structure(van, got["codes"], box)
+        worst_value, worst_edge, n_edges, n_role, kept_order = structure(
+            van, got["codes"], box, it.get("category", ""))
         row = {
             "err": T.hue_distance(want, new_h),
             "name": it["name"], "cat": it.get("category", "?"),
             "want": round(want * 360), "got": round(new_h * 360), "van": round(van_h * 360),
             "sat": new_s, "vsat": van_s, "mode": got["mode"],
             "dvalue": worst_value, "dedge": worst_edge, "edges": n_edges,
+            "role": n_role, "order": kept_order,
+            "tones": tone_count(got["codes"], box),
         }
         if baseline:
             old = legacy_codes(it, van, FF16, tmp, want)
@@ -297,7 +360,7 @@ def main():
             print(f'{r["err"]:4.0f}  {r["name"]:<22}{r["cat"]:<12}{r["want"]:>5}{r["got"]:>7}'
                   f'{r["van"]:>8}{r["sat"]:>6.2f}{r["vsat"]:>6.2f}  {r["mode"]}')
 
-    spread(errs, f'{len(rows)} weapons, HUE against the icon')
+    spread(errs, f'{len(rows)} weapons, MAIN PART hue against the icon')
     print(f'  median saturation {statistics.median([r["sat"] for r in rows]):.2f}'
           f' (vanilla {statistics.median([r["vsat"] for r in rows]):.2f})')
 
@@ -309,6 +372,18 @@ def main():
           f'   {"PASS, the ramp is untouched" if worst_value < 1e-9 else "FAIL, a ramp was rescaled or flattened"}')
     print(f'  tile edge slots recoloured: yes, by design; worst perceived shift {worst_edge:.3f}'
           f' ({hot["name"]}, {hot["edges"]} edge slots)')
+    two = [r for r in rows if r["tones"] >= 2]
+    print(f'  weapons a viewer would call two toned: {len(two)} / {len(rows)}')
+    for cat in sorted({r["cat"] for r in rows if r["cat"] in T.PART_ROLES}):
+        got = [r for r in rows if r["cat"] == cat]
+        print(f'    {cat:<12} {sum(1 for r in got if r["tones"] >= 2)} / {len(got)}')
+    ruled = [r for r in rows if r["role"]]
+    if ruled:
+        bad_order = [r["name"] for r in ruled if not r["order"]]
+        print(f'  named part rules rewrote brightness on {len(ruled)} weapons '
+              f'({ruled[0]["role"]} slots each): '
+              + ('PASS, every one kept its light to dark order' if not bad_order
+                 else 'FAIL, order broken on ' + ', '.join(bad_order)))
 
     if baseline:
         old = [r["old"] for r in rows if r.get("old") is not None]

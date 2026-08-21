@@ -86,6 +86,31 @@ OUTLINE_VALUE = 0.15        # below this a slot is the drawing's outline and is 
 SAT_FLOOR = 0.55            # the least of a material's chroma any slot in its ramp may carry
 PART_MERGE_FRACTION = 0.15  # ramps whose pixels sit this close together are one part of the weapon
 
+# NAMED PARTS, and the palette slots that draw them. Measured, not guessed: every frame of each
+# category was dumped slot by slot and the same slots draw the same part in all of them. Bows use
+# slots 2, 3 and 4 for the string across all EIGHT of their frames, crossbows across all TWELVE,
+# and knives and knight swords draw the blade with 1, 2, 3, 4, 15 and the grip with 5, 6, 7 across
+# every frame of both. Reproduce the dump with lw303_zonemap.py plus the tile listing in
+# lw301_sprite_boxes.json if these ever need re-checking after a game patch.
+#
+# WHY NAMED PARTS EXIST AT ALL. The owner asked for these four families to be two toned, with bow
+# strings white and a grip that differs from its blade. The icons cannot supply that: measured
+# along their own long axis, the two ends of a weapon icon sit 0 to 10 degrees apart for almost
+# every one of them (Defender 10, Excalibur 9, Ravager 9, every bow within 5). The icons are single
+# colour objects, so a second tone has to be a deliberate rule about the WEAPON rather than
+# something read out of the picture.
+PART_ROLES = {
+    "Bow": {"string": {2, 3, 4}},
+    "Crossbow": {"string": {2, 3, 4}},
+    "Knife": {"grip": {5, 6, 7}},
+    "KnightSword": {"grip": {5, 6, 7}},
+}
+STRING_SATURATION = 0.06    # a bowstring is white, not tinted
+STRING_VALUE_FLOOR = 0.70   # vanilla strings run dark; lift the ramp so white reads as white
+GRIP_CONTRAST_DEG = 40.0    # closer than this to the blade and the grip is not a second tone
+LEATHER_HUE = 28 / 360.0    # a warm grip for a cool blade
+STEEL_HUE = 215 / 360.0     # a cool grip for a warm blade
+
 # Which sprite each weapon CATEGORY draws in battle, read from the owner's identification of the
 # numbered tile chart (lw301_sprite_labels.json, LW-303, 2026-08-21). This used to be a hand-written
 # dict that went stale the moment the owner corrected a call, so it now READS the labels file: the
@@ -508,6 +533,67 @@ def assign_ramps(ramps, mats, icon_hue=None):
     return out
 
 
+def contrast_hue(blade_hue, mats):
+    """A grip colour that cannot be mistaken for the blade.
+
+    First choice is the icon's own second material, because a real second colour in the picture
+    beats anything invented. Most of these icons do not have one, so the fallback follows the
+    game's own convention rather than a colour wheel: warm blades get a steel grip and cool blades
+    get a leather one, which is how the vanilla artist drew them.
+    """
+    second = next((m for m in mats[1:] if hue_distance(m["h"], blade_hue) >= GRIP_CONTRAST_DEG), None)
+    if second is not None:
+        return second["h"], second["s"]
+    warm = hue_distance(blade_hue, 40 / 360.0) < 70
+    hue = STEEL_HUE if warm else LEATHER_HUE
+    if hue_distance(hue, blade_hue) < GRIP_CONTRAST_DEG:
+        hue = LEATHER_HUE if warm else STEEL_HUE
+    return hue, 0.60
+
+
+def apply_part_roles(codes, van, category, mats, blade_hue):
+    """Force the two tones the owner asked for onto parts the icon cannot describe.
+
+    Runs AFTER the normal painting, and touches only the slots named in PART_ROLES, so every other
+    weapon and every other slot is untouched by it.
+
+    The string is the ONE place this file rewrites brightness. A vanilla bowstring's three slots sit
+    at values 0.32, 0.52 and 0.71, which is a dark grey rope: draining its colour alone leaves a
+    grey string, not a white one. So the string's ramp is lifted into the top of the range with its
+    ORDER preserved, brightest staying brightest. Everywhere else value is still carried untouched,
+    and lw303_grade.py checks that separately so this exception cannot hide a flattened ramp.
+    """
+    import colorsys
+    roles = PART_ROLES.get(category)
+    if not roles:
+        return codes
+    out = list(codes)
+    for role, slots in roles.items():
+        live = [i for i in slots if i < len(van) and van[i] != 0]
+        if not live:
+            continue
+        if role == "string":
+            vals = sorted({colorsys.rgb_to_hsv(*bgr555_to_rgb(van[i] & 0x7FFF))[2] for i in live})
+            for i in live:
+                v = colorsys.rgb_to_hsv(*bgr555_to_rgb(van[i] & 0x7FFF))[2]
+                rank = vals.index(v) / max(1, len(vals) - 1)
+                lifted = STRING_VALUE_FLOOR + (1.0 - STRING_VALUE_FLOOR) * rank
+                out[i] = (van[i] & 0x8000) | rgb_to_bgr555(
+                    *colorsys.hsv_to_rgb(0.0, STRING_SATURATION, lifted))
+        elif role == "grip":
+            painted = colorsys.rgb_to_hsv(*bgr555_to_rgb(out[live[0]] & 0x7FFF))[0]
+            if hue_distance(painted, blade_hue) >= GRIP_CONTRAST_DEG:
+                continue                      # the grip already differs; leave the icon's answer
+            hue, sat = contrast_hue(blade_hue, mats)
+            top = max(colorsys.rgb_to_hsv(*bgr555_to_rgb(van[i] & 0x7FFF))[1] for i in live)
+            for i in live:
+                h, sv, v = colorsys.rgb_to_hsv(*bgr555_to_rgb(van[i] & 0x7FFF))
+                rel = (sv / top) if top > 0.05 else 1.0
+                out[i] = (van[i] & 0x8000) | rgb_to_bgr555(
+                    *colorsys.hsv_to_rgb(hue, min(1.0, sat * (SAT_FLOOR + (1 - SAT_FLOOR) * rel)), v))
+    return out
+
+
 def paint_by_part(van, mats, box, icon_hue=None):
     """The transform: every ramp takes a material's hue and keeps its own light to dark shape.
 
@@ -651,7 +737,12 @@ def recolour_for_item(it, van, ff16, tmp, box=None):
     parts = len(weapon_parts(van, box)) if box else 0
     if parts:
         label += ", %d part%s" % (parts, "" if parts == 1 else "s")
-    return {"codes": paint_by_part(van, mats, box, tint[0]), "mode": label, "hue": tint[0],
+    codes = paint_by_part(van, mats, box, tint[0])
+    category = it.get("category", "")
+    if category in PART_ROLES:
+        codes = apply_part_roles(codes, van, category, mats, mats[0]["h"])
+        label += ", " + "/".join(sorted(PART_ROLES[category]))
+    return {"codes": codes, "mode": label, "hue": tint[0],
             "authored": authored, "drift": drift}
 
 

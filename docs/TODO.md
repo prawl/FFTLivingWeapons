@@ -291,10 +291,11 @@ the technical detail lives in the indented lines under it.
   inks. The diagnosis was funded by a natural experiment inside the failing run: the handful of
   weapons whose icons offered a single material skipped the zone code and every one scored within
   3 degrees.)
-  - Left open for the owner: a handful of weapons still sit over 25 degrees out, led by Ragnarok
-    at 60 and Flamberge at 54, both icons that genuinely carry two strong colours; whether that is worth
-    chasing is his call and the sheet shows them. The number cannot see mud, plastic or a lost
-    outline, so it is a floor and not a verdict.
+  - Left open for the owner: forty eight weapons outside the four named families are still single
+    toned, because only those four were asked for; the same part rules would extend to them and
+    that is his call, not an assumption. A handful still sit over 25 degrees from their icon, led
+    by Flamberge at 54, whose icon genuinely carries two strong colours. The number cannot see mud,
+    plastic or a lost outline, so it is a floor and not a verdict.
   - ADVERSARIAL REVIEW the same day, and it found four things worth fixing rather than arguing
     with. FIRST and worst: the measurement was blind to the very failure this work exists to
     prevent. Deliberately flattening every weapon to one brightness, which is the painted plastic
@@ -337,6 +338,31 @@ the technical detail lives in the indented lines under it.
     wrong places still look wrong. New instrument lw303_zonemap.py paints one flat colour per
     material so the split can be READ; the score cannot see this failure at all, which is why it
     passed a striped sword.)
+  - OWNER PASS THREE, and this one named the families: bows, crossbows, knives and knight swords
+    still were not two toned, bow strings should be white, and a blade and its grip should never be
+    the same colour. Checking first showed why no amount of cleverness with the pictures would have
+    worked: the icons themselves are single colour objects. Measured along each icon's own long
+    axis, its two ends sit within ten degrees of each other for almost every weapon in those four
+    families, so there is no second colour in the picture to find. A second tone therefore has to
+    be a deliberate rule about the WEAPON, and that is what was built. Bows and crossbows now get a
+    white string, knives and knight swords a grip that is forced away from the blade colour, and
+    all thirty three of them now read as two toned where none reliably did before. Which slots draw
+    which part was measured rather than guessed: every frame of every one of the four families was
+    dumped slot by slot, and the same slots draw the same part in all of them, eight bow frames,
+    twelve crossbow frames and every knife and knight sword frame.
+    (Tech: PART_ROLES in lw301_palette_transform.py, applied by apply_part_roles after the normal
+    paint so no other weapon is touched. Bow and crossbow strings are slots 2, 3, 4; knife and
+    knight sword grips are 5, 6, 7. The string is the ONE place brightness is rewritten, because
+    vanilla draws strings dark grey and draining the colour alone gives a grey string, so its ramp
+    is lifted with its order preserved and lw303_grade.py checks that order separately rather than
+    just excusing it. Grip colour prefers a genuine second material from the icon and otherwise
+    follows the vanilla artist's convention, steel for a warm blade and leather for a cool one.)
+  - The score had to be rescoped in the same pass, and the reason is worth keeping. Scoring the
+    WHOLE weapon against its icon turns the owner's own request into an error: a deliberately
+    contrasting grip drags the average off the icon, and Hushblade went from 6 degrees to 76 by
+    doing exactly what was asked. Fidelity is now read on the weapon's MAIN part, and being two
+    toned is counted separately, because either number alone can be satisfied by something ugly.
+    Reads 6 degrees median, 102 of 118 within 20, and 70 of 118 two toned overall.
 
 - [LW-303] 2026-08-21: We now know which drawing in the game's art sheet each kind of weapon
   actually uses in battle, all twenty kinds, which we did not know before. This matters because
