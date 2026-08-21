@@ -1,0 +1,1356 @@
+{
+ "_note": "Owner visual identification of page-1 weapon-sheet tiles. Never overwrite a past call to fit a later theory; append a revision instead.",
+ "labels": {
+  "149": {
+   "name": "Staff",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "148": {
+   "name": "Arrow",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "different falling positions"
+  },
+  "147": {
+   "name": "Arrow",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "different falling positions"
+  },
+  "146": {
+   "name": "Arrow",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "different falling positions"
+  },
+  "145": {
+   "name": "Arrow",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "different falling positions"
+  },
+  "144": {
+   "name": "Staff",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "same as 149, different angle"
+  },
+  "143": {
+   "name": "Shield",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "142": {
+   "name": "Shield",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "141": {
+   "name": "Shield",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "140": {
+   "name": "?",
+   "conf": 0.2,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "owner unsure; maybe a book page"
+  },
+  "137": {
+   "name": "Staff",
+   "conf": 0.85,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "same family as 149"
+  },
+  "136": {
+   "name": "Staff",
+   "conf": 0.85,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "same family as 149"
+  },
+  "135": {
+   "name": "Arrow",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "same family as 145-148"
+  },
+  "134": {
+   "name": "Arrow",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "same family as 145-148"
+  },
+  "133": {
+   "name": "Arrow",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "same family as 145-148"
+  },
+  "132": {
+   "name": "Arrow",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "same family as 145-148"
+  },
+  "131": {
+   "name": "Scroll",
+   "conf": 0.8,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "different angles"
+  },
+  "130": {
+   "name": "Scroll",
+   "conf": 0.8,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "different angles"
+  },
+  "129": {
+   "name": "Scroll",
+   "conf": 0.8,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "128": {
+   "name": "Shield",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "127": {
+   "name": "Shield",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "126": {
+   "name": "Shield",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "125": {
+   "name": "Scroll",
+   "conf": 0.8,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "124": {
+   "name": "Rod",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "",
+   "revisions": [
+    {
+     "was": "Rod",
+     "now": "Pole",
+     "date": "2026-08-21",
+     "why": "owner: all eight read as poles under the slot ramp"
+    },
+    {
+     "was": "Pole",
+     "now": "Rod",
+     "date": "2026-08-21",
+     "why": "owner matched his rod swing to tile 124 stripe-for-stripe under the 15-slot ramp"
+    }
+   ]
+  },
+  "123": {
+   "name": "Flail",
+   "conf": 0.8,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "owner: 118 same family as 122/123",
+   "revisions": [
+    {
+     "was": "?",
+     "now": "Flail",
+     "date": "2026-08-21"
+    }
+   ]
+  },
+  "122": {
+   "name": "Flail",
+   "conf": 0.8,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "owner: 118 same family as 122/123",
+   "revisions": [
+    {
+     "was": "?",
+     "now": "Flail",
+     "date": "2026-08-21"
+    }
+   ]
+  },
+  "121": {
+   "name": "Pole",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "CONFIRMED: owner's pole swing matches stripe-for-stripe (green caps, red-outlined yellow shaft)",
+   "revisions": [
+    {
+     "was": "Rod",
+     "now": "Pole",
+     "date": "2026-08-21",
+     "why": "owner: all eight read as poles under the slot ramp"
+    }
+   ]
+  },
+  "120": {
+   "name": "Pole",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "CONFIRMED: owner's pole swing matches stripe-for-stripe (green caps, red-outlined yellow shaft)",
+   "revisions": [
+    {
+     "was": "Rod",
+     "now": "Pole",
+     "date": "2026-08-21",
+     "why": "owner: all eight read as poles under the slot ramp"
+    }
+   ]
+  },
+  "119": {
+   "name": "Rod",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "",
+   "revisions": [
+    {
+     "was": "Rod",
+     "now": "Pole",
+     "date": "2026-08-21",
+     "why": "owner: all eight read as poles under the slot ramp"
+    },
+    {
+     "was": "Pole",
+     "now": "Rod",
+     "date": "2026-08-21",
+     "why": "owner matched his rod swing to tile 124 stripe-for-stripe under the 15-slot ramp"
+    }
+   ]
+  },
+  "118": {
+   "name": "Flail",
+   "conf": 0.8,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "owner: 118 same family as 122/123",
+   "revisions": [
+    {
+     "was": "?",
+     "now": "Flail",
+     "date": "2026-08-21"
+    }
+   ]
+  },
+  "117": {
+   "name": "Shield",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "116": {
+   "name": "Shield",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "115": {
+   "name": "Shield",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "114": {
+   "name": "Polearm",
+   "conf": 0.85,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "owner: 'looks like a candle'",
+   "revisions": [
+    {
+     "was": "Spear",
+     "now": "Polearm",
+     "date": "2026-08-21",
+     "why": "owner confirmed his spear swing against these four tiles in slot colours"
+    }
+   ]
+  },
+  "113": {
+   "name": "Polearm",
+   "conf": 0.85,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "owner: 'looks like a candle'",
+   "revisions": [
+    {
+     "was": "Spear",
+     "now": "Polearm",
+     "date": "2026-08-21",
+     "why": "owner confirmed his spear swing against these four tiles in slot colours"
+    }
+   ]
+  },
+  "112": {
+   "name": "Rod",
+   "conf": 0.75,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "",
+   "revisions": [
+    {
+     "was": "Rod",
+     "now": "Pole",
+     "date": "2026-08-21",
+     "why": "owner: all eight read as poles under the slot ramp"
+    },
+    {
+     "was": "Pole",
+     "now": "Rod",
+     "date": "2026-08-21",
+     "why": "owner call; his pole swing matched 120/121 instead, freeing these for Rod"
+    }
+   ]
+  },
+  "111": {
+   "name": "Rod",
+   "conf": 0.75,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "",
+   "revisions": [
+    {
+     "was": "Rod",
+     "now": "Pole",
+     "date": "2026-08-21",
+     "why": "owner: all eight read as poles under the slot ramp"
+    },
+    {
+     "was": "Pole",
+     "now": "Rod",
+     "date": "2026-08-21",
+     "why": "owner call; his pole swing matched 120/121 instead, freeing these for Rod"
+    }
+   ]
+  },
+  "110": {
+   "name": "Axe",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "109": {
+   "name": "Axe",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "108": {
+   "name": "Axe",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "16": {
+   "name": "Sword",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "53": {
+   "name": "Knife",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "50": {
+   "name": "NinjaBlade",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "74": {
+   "name": "KnightSword",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "62": {
+   "name": "Katana",
+   "conf": 0.85,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "44": {
+   "name": "Gun",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "21": {
+   "name": "Crossbow",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "",
+   "revisions": [
+    {
+     "was": "Bow",
+     "now": "Crossbow",
+     "date": "2026-08-21",
+     "why": "owner split the bow pile under the 15-colour slot ramp, which makes the stock visible"
+    }
+   ]
+  },
+  "14": {
+   "name": "Arrow",
+   "conf": 0.85,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "earlier chart reading | falling arrow",
+   "revisions": [
+    {
+     "was": "Polearm",
+     "now": "Arrow",
+     "date": "2026-08-21"
+    }
+   ]
+  },
+  "86": {
+   "name": "Book",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "60": {
+   "name": "Bag",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "54": {
+   "name": "Scroll",
+   "conf": 0.8,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "earlier chart reading",
+   "revisions": [
+    {
+     "was": "Cloth",
+     "now": "Scroll",
+     "date": "2026-08-21"
+    }
+   ]
+  },
+  "91": {
+   "name": "Throwing",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "ninja star"
+  },
+  "90": {
+   "name": "Bomb",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "139": {
+   "name": "Harp",
+   "conf": 0.95,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "Instrument, ZZ 0 -- closes the Instrument row"
+  },
+  "138": {
+   "name": "Harp",
+   "conf": 0.95,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "Instrument, ZZ 0 -- closes the Instrument row"
+  },
+  "2": {
+   "name": "Crossbow",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "owner: '2 7 bow'",
+   "revisions": [
+    {
+     "was": "Bow",
+     "now": "Crossbow",
+     "date": "2026-08-21",
+     "why": "owner split the bow pile under the 15-colour slot ramp, which makes the stock visible"
+    }
+   ]
+  },
+  "3": {
+   "name": "Crossbow",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "owner: '2 7 bow'",
+   "revisions": [
+    {
+     "was": "Bow",
+     "now": "Crossbow",
+     "date": "2026-08-21",
+     "why": "owner split the bow pile under the 15-colour slot ramp, which makes the stock visible"
+    }
+   ]
+  },
+  "4": {
+   "name": "Crossbow",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "owner: '2 7 bow'",
+   "revisions": [
+    {
+     "was": "Bow",
+     "now": "Crossbow",
+     "date": "2026-08-21",
+     "why": "owner split the bow pile under the 15-colour slot ramp, which makes the stock visible"
+    }
+   ]
+  },
+  "5": {
+   "name": "Crossbow",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "owner: '2 7 bow'",
+   "revisions": [
+    {
+     "was": "Bow",
+     "now": "Crossbow",
+     "date": "2026-08-21",
+     "why": "owner split the bow pile under the 15-colour slot ramp, which makes the stock visible"
+    }
+   ]
+  },
+  "6": {
+   "name": "Crossbow",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "owner: '2 7 bow'",
+   "revisions": [
+    {
+     "was": "Bow",
+     "now": "Crossbow",
+     "date": "2026-08-21",
+     "why": "owner split the bow pile under the 15-colour slot ramp, which makes the stock visible"
+    }
+   ]
+  },
+  "7": {
+   "name": "Crossbow",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "owner: '2 7 bow'",
+   "revisions": [
+    {
+     "was": "Bow",
+     "now": "Crossbow",
+     "date": "2026-08-21",
+     "why": "owner split the bow pile under the 15-colour slot ramp, which makes the stock visible"
+    }
+   ]
+  },
+  "8": {
+   "name": "Arrow",
+   "conf": 0.85,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "falling arrow"
+  },
+  "9": {
+   "name": "Arrow",
+   "conf": 0.85,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "falling arrow"
+  },
+  "10": {
+   "name": "Sword",
+   "conf": 0.85,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "11": {
+   "name": "Sword",
+   "conf": 0.85,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "12": {
+   "name": "Arrow",
+   "conf": 0.85,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "falling arrow"
+  },
+  "13": {
+   "name": "Arrow",
+   "conf": 0.85,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "falling arrow"
+  },
+  "15": {
+   "name": "Sword",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "19": {
+   "name": "Crossbow",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "",
+   "revisions": [
+    {
+     "was": "Bow",
+     "now": "Crossbow",
+     "date": "2026-08-21",
+     "why": "owner split the bow pile under the 15-colour slot ramp, which makes the stock visible"
+    }
+   ]
+  },
+  "20": {
+   "name": "Crossbow",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "",
+   "revisions": [
+    {
+     "was": "Bow",
+     "now": "Crossbow",
+     "date": "2026-08-21",
+     "why": "owner split the bow pile under the 15-colour slot ramp, which makes the stock visible"
+    }
+   ]
+  },
+  "22": {
+   "name": "Crossbow",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "",
+   "revisions": [
+    {
+     "was": "Bow",
+     "now": "Crossbow",
+     "date": "2026-08-21",
+     "why": "owner split the bow pile under the 15-colour slot ramp, which makes the stock visible"
+    }
+   ]
+  },
+  "23": {
+   "name": "Crossbow",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "",
+   "revisions": [
+    {
+     "was": "Bow",
+     "now": "Crossbow",
+     "date": "2026-08-21",
+     "why": "owner split the bow pile under the 15-colour slot ramp, which makes the stock visible"
+    }
+   ]
+  },
+  "24": {
+   "name": "Crossbow",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "",
+   "revisions": [
+    {
+     "was": "Bow",
+     "now": "Crossbow",
+     "date": "2026-08-21",
+     "why": "owner split the bow pile under the 15-colour slot ramp, which makes the stock visible"
+    }
+   ]
+  },
+  "25": {
+   "name": "Arrow",
+   "conf": 0.85,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "falling arrow"
+  },
+  "26": {
+   "name": "Arrow",
+   "conf": 0.85,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "falling arrow"
+  },
+  "27": {
+   "name": "Sword",
+   "conf": 0.85,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "28": {
+   "name": "Arrow",
+   "conf": 0.85,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "falling arrow"
+  },
+  "29": {
+   "name": "Arrow",
+   "conf": 0.85,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "falling arrow"
+  },
+  "30": {
+   "name": "Arrow",
+   "conf": 0.85,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "falling arrow"
+  },
+  "31": {
+   "name": "Sword",
+   "conf": 0.85,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "34": {
+   "name": "Scroll",
+   "conf": 0.8,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "35": {
+   "name": "Gun",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "36": {
+   "name": "Gun",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "37": {
+   "name": "Gun",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "38": {
+   "name": "Gun",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "39": {
+   "name": "Gun",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "40": {
+   "name": "Gun",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "41": {
+   "name": "Sword",
+   "conf": 0.85,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "42": {
+   "name": "Sword",
+   "conf": 0.85,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "43": {
+   "name": "?",
+   "conf": 0.3,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "owner: odd, maybe an attack animation, gun?"
+  },
+  "45": {
+   "name": "Gun",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "46": {
+   "name": "Gun",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "47": {
+   "name": "Gun",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "48": {
+   "name": "Gun",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "49": {
+   "name": "Gun",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "0": {
+   "name": "?humanoid",
+   "conf": 0.0,
+   "by": "analysis",
+   "date": "2026-08-21",
+   "note": "NOT a weapon: humanoid proportions, 11 palette slots (weapons use 4-6), head recolours per palette like hair. Identity unknown and deliberately not guessed."
+  },
+  "1": {
+   "name": "?humanoid",
+   "conf": 0.0,
+   "by": "analysis",
+   "date": "2026-08-21",
+   "note": "NOT a weapon: humanoid proportions, 11 palette slots (weapons use 4-6), head recolours per palette like hair. Identity unknown and deliberately not guessed."
+  },
+  "17": {
+   "name": "?humanoid",
+   "conf": 0.0,
+   "by": "analysis",
+   "date": "2026-08-21",
+   "note": "NOT a weapon: humanoid proportions, 11 palette slots (weapons use 4-6), head recolours per palette like hair. Identity unknown and deliberately not guessed."
+  },
+  "18": {
+   "name": "?humanoid",
+   "conf": 0.0,
+   "by": "analysis",
+   "date": "2026-08-21",
+   "note": "NOT a weapon: humanoid proportions, 11 palette slots (weapons use 4-6), head recolours per palette like hair. Identity unknown and deliberately not guessed."
+  },
+  "32": {
+   "name": "?humanoid",
+   "conf": 0.0,
+   "by": "analysis",
+   "date": "2026-08-21",
+   "note": "NOT a weapon: humanoid proportions, 11 palette slots (weapons use 4-6), head recolours per palette like hair. Identity unknown and deliberately not guessed."
+  },
+  "33": {
+   "name": "?humanoid",
+   "conf": 0.0,
+   "by": "analysis",
+   "date": "2026-08-21",
+   "note": "NOT a weapon: humanoid proportions, 11 palette slots (weapons use 4-6), head recolours per palette like hair. Identity unknown and deliberately not guessed."
+  },
+  "51": {
+   "name": "NinjaBlade",
+   "conf": 0.85,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "",
+   "revisions": [
+    {
+     "was": "NinjaBlade",
+     "now": "Katana",
+     "date": "2026-08-21",
+     "why": "owner re-read the blade pile under the 15-slot ramp"
+    },
+    {
+     "was": "Katana",
+     "now": "NinjaBlade",
+     "date": "2026-08-21",
+     "why": "owner correction immediately after the katana batch"
+    }
+   ]
+  },
+  "52": {
+   "name": "Knife",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "55": {
+   "name": "?",
+   "conf": 0.2,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "owner unsure"
+  },
+  "56": {
+   "name": "Scroll",
+   "conf": 0.8,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "57": {
+   "name": "Scroll",
+   "conf": 0.8,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "58": {
+   "name": "?",
+   "conf": 0.2,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "owner: no clue"
+  },
+  "59": {
+   "name": "Bag",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "61": {
+   "name": "Bag",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "63": {
+   "name": "Knife",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "64": {
+   "name": "Knife",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "65": {
+   "name": "Katana",
+   "conf": 0.85,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "",
+   "revisions": [
+    {
+     "was": "NinjaBlade",
+     "now": "Katana",
+     "date": "2026-08-21",
+     "why": "owner re-read the blade pile under the 15-slot ramp"
+    }
+   ]
+  },
+  "66": {
+   "name": "Knife",
+   "conf": 0.85,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "67": {
+   "name": "Scroll",
+   "conf": 0.8,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "68": {
+   "name": "?",
+   "conf": 0.1,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "owner: no clue"
+  },
+  "69": {
+   "name": "?",
+   "conf": 0.1,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "owner: no clue, same family as 68"
+  },
+  "70": {
+   "name": "Bag",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "71": {
+   "name": "Bag",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "72": {
+   "name": "Bag",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "73": {
+   "name": "KnightSword",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "75": {
+   "name": "Knife",
+   "conf": 0.85,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "76": {
+   "name": "Bow",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "77": {
+   "name": "Bow",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "78": {
+   "name": "Bow",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "79": {
+   "name": "Bow",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "80": {
+   "name": "KnightSword",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "81": {
+   "name": "KnightSword",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "82": {
+   "name": "Knife",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "83": {
+   "name": "Knife",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "84": {
+   "name": "Throwing",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "ninja star"
+  },
+  "85": {
+   "name": "Book",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "87": {
+   "name": "?",
+   "conf": 0.2,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "owner: book hitting frame?"
+  },
+  "88": {
+   "name": "Arrow",
+   "conf": 0.85,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "89": {
+   "name": "Katana",
+   "conf": 0.85,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "",
+   "revisions": [
+    {
+     "was": "NinjaBlade",
+     "now": "Katana",
+     "date": "2026-08-21",
+     "why": "owner re-read the blade pile under the 15-slot ramp"
+    }
+   ]
+  },
+  "92": {
+   "name": "Throwing",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "ninja star"
+  },
+  "93": {
+   "name": "Book",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "94": {
+   "name": "Book",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "95": {
+   "name": "Bow",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "96": {
+   "name": "Bow",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "97": {
+   "name": "Bow",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "98": {
+   "name": "Bow",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "99": {
+   "name": "Katana",
+   "conf": 0.85,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "",
+   "revisions": [
+    {
+     "was": "NinjaBlade",
+     "now": "Katana",
+     "date": "2026-08-21",
+     "why": "owner re-read the blade pile under the 15-slot ramp"
+    }
+   ]
+  },
+  "100": {
+   "name": "Polearm",
+   "conf": 0.85,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "",
+   "revisions": [
+    {
+     "was": "Spear",
+     "now": "Polearm",
+     "date": "2026-08-21",
+     "why": "owner confirmed his spear swing against these four tiles in slot colours"
+    }
+   ]
+  },
+  "101": {
+   "name": "Polearm",
+   "conf": 0.85,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "",
+   "revisions": [
+    {
+     "was": "Spear",
+     "now": "Polearm",
+     "date": "2026-08-21",
+     "why": "owner confirmed his spear swing against these four tiles in slot colours"
+    }
+   ]
+  },
+  "102": {
+   "name": "Shield",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "103": {
+   "name": "Shield",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "104": {
+   "name": "Shield",
+   "conf": 0.9,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "105": {
+   "name": "Arrow",
+   "conf": 0.85,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": ""
+  },
+  "106": {
+   "name": "Rod",
+   "conf": 0.75,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "owner 'maybe a rod'",
+   "revisions": [
+    {
+     "was": "Rod",
+     "now": "Pole",
+     "date": "2026-08-21",
+     "why": "owner: all eight read as poles under the slot ramp"
+    },
+    {
+     "was": "Pole",
+     "now": "Rod",
+     "date": "2026-08-21",
+     "why": "owner call; his pole swing matched 120/121 instead, freeing these for Rod"
+    }
+   ]
+  },
+  "107": {
+   "name": "Rod",
+   "conf": 0.75,
+   "by": "owner",
+   "date": "2026-08-21",
+   "note": "owner 'maybe a rod'",
+   "revisions": [
+    {
+     "was": "Rod",
+     "now": "Pole",
+     "date": "2026-08-21",
+     "why": "owner: all eight read as poles under the slot ramp"
+    },
+    {
+     "was": "Pole",
+     "now": "Rod",
+     "date": "2026-08-21",
+     "why": "owner call; his pole swing matched 120/121 instead, freeing these for Rod"
+    }
+   ]
+  }
+ }
+}

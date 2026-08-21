@@ -270,6 +270,25 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
+- [LW-303] 2026-08-21: We now know which drawing in the game's art sheet each kind of weapon
+  actually uses in battle, all twenty kinds, which we did not know before. This matters because
+  the review sheet that shows a weapon's new colour was printing a made up shape next to five of
+  them, and a wrong picture invites the owner to pass judgement on something that is not the
+  weapon. The method that worked was to paint the fifteen shades of every weapon colour set
+  fifteen loud different colours, so a weapon on screen wears a stripe pattern that names its
+  drawing, and then let the owner match that against a numbered chart of all 150 drawings. Two
+  earlier attempts at matching by outline alone failed, twice, because at twenty pixels a
+  crossbow limb and a bow limb are the same curve. Left open on purpose: three kinds still have
+  fewer drawings than the byte table says they need (Katana, Pole, NinjaBlade), thirteen drawings
+  are still unidentified including six that are people rather than weapons, and the arrow and
+  scroll piles hold far more art than their categories call for. (Tech: labels and full revision
+  history in tools/probes/lw301_sprite_labels.json; instruments are lw301_sprite_chart.py and
+  lw301_slotmap_probe.py. Cross checking the owner's labels against the per category graphic byte
+  at 0x02D3E6 + (id-1)*2 gives exactly 2.0 tiles per shape class for Knife, Sword, KnightSword,
+  Polearm and Staff, from two independent sources, which is the first real evidence FOR the
+  category relative reading of the byte that [weapon-graphic-byte-not-sprite] retracted in its
+  absolute form. That row deserves a follow up, owner flip only.)
+
 - [LW-302] 2026-08-21: Shields are visible in battle too and they stay their original colour while
   the weapons change, which will look odd once weapons match their icons. Owner spotted it during
   the LW-301 testing. They are not part of the weapon work and cannot be reached the same way: the
