@@ -35,6 +35,19 @@ the technical detail lives in the indented lines under it.
     words, so the corpus knows far more about failure than about success. Next is the style
     bible, which is this corpus organised and checked for self contradiction, then the judge
     calibration against the corpus as held out verdicts.
+  - PROGRESS 2026-08-21 (second): the style bible is COMMITTED as docs/ICON_STYLE_BIBLE.md, the
+    second of the three pieces, and it is UNSIGNED until the owner reads it. Every rule cites the
+    verdict that funds it, so a rule with no citation is one somebody invented. It states four
+    contradictions between the owner's own rules rather than hiding them, and it names the biggest
+    open debt plainly: every engine throws away the artist's per pixel hue, which is the single
+    root cause a real spriter identified. NEW SCOPE, owner directive the same day: a colour
+    decision covers three surfaces, the menu icon, the menu art and the battle sprite, and they
+    should move together. Part 0 measures why per item lockstep is impossible on the battle
+    surface: 127 weapons share 13 palettes, the largest group is 20 weapons across 15 categories,
+    group members sit a mean 137 degrees apart in hue, and choosing which palette a weapon uses is
+    already walled. Three candidate rules are listed for the owner to choose between; none was
+    chosen here. Remaining: the judge calibration, and the per family loop carrying one family
+    end to end.
   - Done means: the style bible and verdict corpus are committed and the owner has read the
     bible; the judge calibration experiment reports its agreement rate against held out
     owner verdicts with a written go or no go; the per family loop is documented end to end

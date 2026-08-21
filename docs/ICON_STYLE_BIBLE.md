@@ -1,0 +1,230 @@
+# Icon Style Bible
+
+STATUS: CONTRACT (doctrine for making icon art; owner signature pending, see Part 7)
+
+What to DO when recolouring equipment art, across all three surfaces a weapon's colour lives on
+(menu icon, menu art, battle sprite; see Part 0). Its companion `docs/ICON_VERDICTS.md` is the evidence, one
+row per recorded verdict; this file is the doctrine derived from it. Every rule here cites the
+corpus row that funds it, so a rule can always be traced back to a moment somebody looked at a
+picture and said yes or no. A rule with no citation is a rule somebody invented, and it does not
+belong here.
+
+READ THIS BEFORE ANY ICON WORK. Then append your round's verdicts to the corpus, and if a round
+teaches something this file does not say, change this file in the same commit.
+
+## The thesis, in one sentence
+
+**The vanilla artist's work is the substrate; we recolour it, we do not redraw it.** Every rule
+below is a consequence of that sentence. The model is bad at drawing pixels and good at choosing
+palettes, parameters and donor art, and at judging pictures, so the system channels it into the
+second list and keeps the artist's drawing underneath.
+
+## Part 0: Three surfaces, one colour decision
+
+**Owner directive 2026-08-21: a colour decision is not about the menu icon alone. Change one
+surface and the others move with it.** A weapon's colour lives in three places, and a player who
+sees a violet sword in the menu and a steel one in battle has been told two different things.
+
+| Surface | Where it lives | Granularity | Refresh |
+|---|---|---|---|
+| **Menu icons** | `.tex` in `equip_item` (100px card) and `equip_item_s` (48px list) | **per item**, all 234 | live, repaint in place |
+| **Menu art** | the g2d container | per entry | read once per launch |
+| **Battle sprite** (the weapon a unit swings) | palette block of FFTPack file 71 | **per PALETTE, not per item** | re-read every battle load, no restart needed |
+
+Assumption flagged rather than buried: I have read "icons, art, sprites" as those three. If the
+middle row is something else, correct it and this table moves.
+
+### Lockstep is impossible at per-item granularity, and here is the measurement
+
+**127 weapons share 13 battle palettes.** The largest group is 20 weapons spanning 15 categories:
+palette 14 carries knives, a gun, a bow, a bag, a staff and a katana together. Change one member's
+colour and you change all twenty.
+
+Worse, the groups do not agree about what colour they want. Measuring each palette group's member
+`iconTint` hues as a circular mean:
+
+- coherence runs **0.13 to 0.78** across the 13 groups (1.0 would be perfect agreement)
+- the worst member of a group sits a mean of **137 degrees** from its group's mean hue, and in
+  three groups a full **180 degrees**, exactly opposite
+
+So there is no single hue a group can wear that serves its members. This is why the parked weapon
+sheet baker turns the sheet violet and pink when it paints each palette with its group's design
+hue: at coherence 0.13 a circular mean is not a meaningful summary of anything.
+
+**And we cannot regroup them.** Choosing which palette a weapon uses is WALLED, ledger row
+`[weapon-palette-assignment-walled]`: four levers tried, four live negatives, each with an
+untouched control. Reopening needs a draw-path hook (LW-291).
+
+### What lockstep can therefore actually mean
+
+`data/items.json` `iconTint` stays the single source of colour truth and drives every surface, but
+the surfaces resolve it at different granularity, and the sprite surface needs a stated rule for
+what a group wears when its members disagree by up to 180 degrees. **That rule is an owner
+decision and is not made here.** The candidates on the table:
+
+1. **Accent zones only** on the six palettes that carry a living weapon, leaving the body ramp
+   (slots 1 to 4) vanilla. This is the only candidate that has survived a look.
+2. **Dominant member wins**: the group takes the hue of its most prominent weapon and the rest
+   ride it. Honest about the collision instead of averaging it away.
+3. **Leave battle sprites vanilla** and accept that lockstep covers menu surfaces only, stating
+   it as a deliberate scope rather than a gap.
+
+Until that call is made, treat any rule below as governing the MENU surfaces, and treat the
+battle sprite as pending. Do not bake the weapon sheet before the tints are final: the bake reads
+those tints, so baking early guarantees rework (LW-289, LW-290).
+
+## Part 1: The prime directive, and the largest open debt
+
+**Preserve the artist's per-pixel hue.** Shading must keep the hue RELATIONSHIP the artist drew,
+not just the brightness.
+
+Why: real sprite ramps shift hue warm into the light and cool into the shadow, and that shift is
+much of what makes a highlight read as light falling on a form. Every recolour read site in the
+engine currently destructures the pixel as `_, s0, v0`, throwing the artist's hue away, then
+imposes ONE hue and varies only saturation and value. One cause, both of the complaints a real
+spriter made: a one-hue ramp IS bland, and brightness kept without its colour information stops
+describing a light source. [B-14, taxonomy A1]
+
+**Status: NOT IMPLEMENTED.** This is the single largest design debt in the icon programme. Every
+other rule in this file is a refinement inside a system that still has this flaw at its centre.
+A five-lens diagnostic to prove or kill it was written and has never been run. Do not treat the
+existing engines' output as the ceiling of what is possible here; treat it as the best that was
+achievable while discarding hue.
+
+Caveat, so nobody over-promises: the player who diagnosed this also suggested "adhering to
+vanilla's palette". FFT:IC icons are BC7 TRUECOLOUR, not indexed like the PSX art they were
+describing, so palette discipline here is a self-imposed quantisation choice we would have to
+build, not a file format we can lean on. [B-14]
+
+## Part 2: The hard floors
+
+Numbers already enforced in code. They are not style opinions and are not negotiable inside a
+normal pass; changing one is its own ledger row with its own gallery round.
+
+| Floor | Value | Means |
+|---|---|---|
+| `SOLID_TINT_FLOOR` | 0.02 | below this the item ships as vanilla art wearing a coloured glow, which is the A2 coverage failure |
+| `ANCHOR_CHROMA` | 0.120 | below this an item's own art has no colour to be anchored to, so it is free |
+| `ART_HUE_FLOOR` | 15.0 degrees | minimum separation between two RENDERED icons that share a picture |
+| `HALO_LO` / `HALO_HI` | 48 / 224 | the artist's neutral haze band. Never own it; the tint only fully owns genuinely solid pixels |
+| `SHIP_GLOW_RIM` | False | we paint no rim. Reviving it restores several anchor violations that removing it closed |
+| `DETAIL_GAIN` | 0.30 | how much fine grain survives contrast expansion |
+
+## Part 3: Choosing a colour, in order
+
+Work down this list and stop at the first rule that answers. The order IS the doctrine: it exists
+because these authorities genuinely disagree with each other, and without an order every pass
+re-argues them.
+
+1. **Does the item keep its vanilla name?** Then it must still look like itself. Judge the
+   RENDERED icon against the vanilla icon, never the tint against the vanilla, because a recipe
+   can legitimately keep an item's colour by moving it into a zone. [Part C rule 1, the anchors
+   gate]
+2. **Is its own art below `ANCHOR_CHROMA`?** Then it is free. Near-neutral art has no colour to
+   betray. [B-15, the Ivory Pole precedent]
+3. **Does the item's own description prose state a colour?** Prose wins, including over set
+   harmony. The Genji Shield keeps cold steel-blue on the strength of "pitch-black shield forged
+   from iron", and the crimson that would have matched Genji Helm, Armor and Gloves was
+   considered and rejected against that prose. [B-04]
+4. **Does a mod convention apply?** Holy is gold everywhere (Excalibur, Lightbringer). When the
+   convention and the art disagree, **the art keeps the BODY and the convention takes a ZONE**:
+   the Masamune is the Holy blade and its picture is blue, so the holy went into a gold fuller;
+   the Kiyomori poisons and its picture is cyan, so the venom went into the edge. [B-15] See
+   Part 5.3 for the case that contradicts this.
+5. **Still silent?** The shelf decides. Fill the empty slot: the Chaos Blade took blood and bone
+   because all six siblings are bright saturated blades and the dark slot was open; the Timeward
+   Helm took bright metal as "the honest answer to a shelf that has no unclaimed colour left on
+   it". [B-11, B-20]
+6. **Never inherit.** A colour picked for a name the item no longer carries is not a reason. The
+   Lightbringer wore a toad green chosen for a renamed Toad sword while being the line's only
+   Holy sword. [B-09]
+
+Two further constraints that apply throughout:
+
+- **Make it nameable.** "Dull" is a rejection. Three of six crossbows sat at saturation 0.15 or
+  below and the family read as the drab corner of the list. [B-17, taxonomy A10]
+- **A comment is not a naming source.** Three shields were reviewed under names that do not exist
+  in the game. Read `data/items.json`, which is the naming authority. [B-03]
+
+## Part 4: Choosing an engine, by the shape of the art
+
+**Which mask key finds a family's second material is a property of the ART, and it flips between
+families and sometimes between items.** This is the most reliably forgotten rule in the
+programme, so it gets a table rather than a sentence.
+
+| Art shape | Key that works | Trap |
+|---|---|---|
+| Convex plate (shield) | saturation finds the fittings | colour clustering follows the LIGHTING, not the materials. The weapons card rule was tried and produced half-painted shields and camouflage speckle [B-05] |
+| Blade plus furniture (sword) | **darkness** finds guard, grip and pommel on 15 of 15 | saturation lands on the blade here, the opposite of the crossbow |
+| Line art (crossbow) | saturation, on limb and frame against a bright stock | a two-cluster split finds no second cluster and hands back vanilla plus a wash [B-17] |
+| Bow | saturation finds the string at 10 to 24 percent | the sword's furniture key claims under 12 percent and lands on scattered limb tips [B-12] |
+| Cloth (hat) | three or more zones, in order, last wins on overlap | two zones cannot say cloth plus brim plus crest, and a flat stamp erases the feature the hat is named for [B-18] |
+| Engraved metal (helm) | two zones, body plus one accent | **never** apply smooth-field contrast; a blur cannot tell a drawn one-pixel line from compression grain [B-22] |
+| Fabric (bag) | muted, no punch | the shields and helms metal treatment reads harsh on cloth; cloth wants the artist's own chroma ceiling [B-24] |
+
+**A second material must cross the object's LARGEST shape, not merely exist on it.** Body plus
+hilt measured as two materials and still looked like one colour until the metal ran the blade's
+ridge. [B-08]
+
+**A per-item opt-in must be able to beat a family default.** `engine_for` consults the override
+table before any category rule precisely so one odd item does not force a family-wide compromise.
+[B-17]
+
+## Part 5: Contradictions this bible does NOT resolve
+
+Stated openly, because a doctrine that hides its own inconsistencies teaches people to ignore it.
+Each of these is a live owner call.
+
+**5.1 Vanilla palette adherence versus nameable colour.** "Adhere to vanilla's palette" [B-14]
+and "dull is a rejection" [B-17] pull in opposite directions. Restraint reads as bland, and the
+bland complaint and the too-harsh complaint have both been made about our work within two months.
+No rule currently says where the line is.
+
+**5.2 Reserved names versus twin separation.** An item that kept its vanilla name must look like
+itself [rule 3.1], and two items drawn with the same picture must separate by at least
+`ART_HUE_FLOOR` [Part 2]. Two RESERVED items sharing one sprite cannot satisfy both. The
+silhouettes gate currently judges exempt pairs on rendered pixels, which is the honest completion
+of the exemption, but it does not say which rule yields when they collide.
+
+**5.3 Holy is gold versus the art keeps the body.** Rule 3.4 says the art keeps the body and the
+convention takes a zone, funded by the Masamune and the Kiyomori. The Perseus Bow went the other
+way: a blue bow at chroma 0.120 KEEPS gold, on the convention. That is exactly on the anchor
+floor, so it may be rule 3.2 firing rather than a genuine exception, but it has never been
+stated which. Until it is, cite the Masamune for zones and the Perseus for bodies and expect an
+argument.
+
+**5.4 The corpus is failure-biased.** It records far more about rejections than approvals,
+because sign-offs arrive as three or four words. Any rule inferred from it is better evidenced
+on what to avoid than on what to aim for.
+
+## Part 6: How to present work for review
+
+- **Judge at real draw size, as a 1x row.** The glow removal was decided by looking at all 150
+  pictures at the size the game actually draws them. [B-23]
+- **For any claim about fine detail, render a hard zoom (5x nearest neighbour, light and dark
+  ground) and LOOK.** Every aggregate metric passed while the smooth-field fix smeared the
+  helmets' engraving, because blur-then-compare and neighbour-swing integrate over exactly the
+  scale the defect lives at and cannot see it by construction. Say "no aggregate metric can see
+  this" out loud and build a fixture that isolates it. [B-22]
+- **Decide rather than lettering options when the answer is obvious.** Being asked for a picker
+  you did not need is itself a cost. [B-19]
+- **Run the pixel check over EVERY item, not the family being worked.** Fifty-eight icons shipped
+  the smoking version of themselves because a shared-shader fix never reached their pictures.
+  [corpus Part E, LW-236]
+- **Preview must equal production by construction.** `icon_preview.py` imports the engine's
+  `route()` rather than copying it, so a gallery cannot show something the bake will not ship.
+
+## Part 7: What is owed before this file is trusted
+
+- **Owner signature.** This bible claims to describe Patrick's taste. Until he has read it and
+  said so, it is one reader's inference from the record. That sign-off is half of LW-278's
+  Done means.
+- **The Part 5 contradictions** need rulings, or an explicit "leave them open" decision.
+- **The Part 1 debt** needs the five-lens diagnostic run. Every rule here is provisional under a
+  system that still discards hue.
+- **Nothing here has been calibrated.** The judge harness is graded against the corpus, not
+  against this file; a rule can be well cited and still be wrong about what he would pick next.
+- **The Part 0 lockstep rule.** Which of the three candidates governs the battle sprite when a
+  palette group's members disagree. Every rule in Parts 1 to 6 was written from menu-icon
+  verdicts, because that is the only surface with a review history; none of them has been tested
+  against how a colour reads on a swung sprite at battle scale.

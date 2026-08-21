@@ -45,9 +45,16 @@ public class DocsContractTests
     private static readonly HashSet<string> AllowedTopLevelDocs = new(StringComparer.OrdinalIgnoreCase)
     {
         "BULWARK_AC.md", "CHANGELOG.md", "COMPATIBILITY.md", "DESIGN.md", "DEV_TEST_RECIPES.md",
-        // LW-278: the icon verdict corpus. A living contract rather than a docs/research journal
-        // because it is APPENDED to by every future art pass and is the calibration set the judge
-        // harness is graded against; a closed journal is exactly what it must not become.
+        // LW-278: the icon design framework's two committed halves. ICON_VERDICTS.md is the
+        // EVIDENCE (one row per recorded owner/player verdict, appended to after every review
+        // round); ICON_STYLE_BIBLE.md is the DOCTRINE derived from it (what to do, every rule
+        // citing the verdict that funds it). Living contracts rather than docs/research journals
+        // because both are appended to by every future art pass and the corpus is the calibration
+        // set the judge harness is graded against; a closed journal is what they must not become.
+        // Kept as two files on purpose: they have different lifecycles, the corpus growing every
+        // round while the doctrine changes rarely, and merging them would let doctrine be edited
+        // under cover of adding evidence.
+        "ICON_STYLE_BIBLE.md",
         "ICON_VERDICTS.md",
         "LIVE_LEDGER.md", "LOGGING.md",
         "MECHANICS.md", "PATCH_REANCHOR.md", "PROVOKE_AC.md", "RELEASE_SCOPE.md", "RELIQUARY_AC.md",
