@@ -10,6 +10,30 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.3 cycle
 
+- [LW-297] SHIPPED f393d76 2026-08-21: Deploying the mod used to report success by counting
+  files, so it could tell you 468 pictures were installed without knowing whether they were the
+  pictures sitting in this repo. A confident green line sat for three days over an install still
+  wearing the old artwork, and the only way to find out was to hash the folder by hand, which
+  meant "the install is out of date" survived as a sentence in a session note rather than as
+  something a command could answer. The deploy now compares every installed file against the one
+  it was built from and refuses, loudly and by name, if any of them differ. A new read only switch
+  asks the same question without installing anything, so "is the game running my current art?" is
+  answerable at any time, even with the game open. Dates cannot answer it: copying preserves each
+  file's date, so freshly installed pictures still read as old, and a good install looks exactly
+  like a failed one. (Tech: Test-DeployParity, Write-DeployParityReport and Get-TreeHashMap in
+  tools/pipeline.ps1, MD5 per file, relative paths compared case-insensitively; wired into
+  BuildLinked stage 5 and into a new -VerifyOnly switch that runs before the flavor guard and the
+  log scan so a read only audit never refuses to run and never consumes the one shot outgoing log.
+  Differing and missing are fatal, extras are named as a warning because deploying probe files onto
+  a finished build is a normal workflow here. The source side filters the parked artifact pattern
+  and the deployed side deliberately does not, so a parked file leaking into a live install
+  surfaces; that asymmetry has its own pinned selftest case. Invoke-DeployParitySelfTest is a build
+  gate beside the python selftests, pure %TEMP% filesystem work needing neither python nor the game
+  files, and its drift pair is built to share size AND mtime with an assertion that the collision
+  still holds, since a pair differing in either would also fail a stat check and prove nothing about
+  hashing. Proven non-vacuous against the live install: one flipped byte with size and date
+  preserved was named exactly, an injected extra file was reported, both restored.)
+
 - [LW-292] SHIPPED 5883716 2026-08-21: Changing the colours a weapon wears in battle turns out
   to need no game restart, which was the last thing nobody knew about the mechanism. The owner
   settled it in one sitting: a battle with the test sheet gave a flat magenta sword, the file was
