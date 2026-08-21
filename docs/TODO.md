@@ -26,6 +26,15 @@ the technical detail lives in the indented lines under it.
     the art, palette plan on a shelf render, engine variants, machine gates, judge prune,
     owner gallery, verdict banked back into the corpus). The owner gallery pass stays the
     final gate no matter how well the judge scores.
+  - PROGRESS 2026-08-21: the verdict corpus is COMMITTED as docs/ICON_VERDICTS.md, the first
+    of the three pieces. It holds 24 verdicts mined from 23 shipped ledger rows, the engine's
+    own gate rulings and the session memory, a twelve class failure taxonomy derived from
+    them, ten standing rules with the verdict that funds each, and the open rulings. Two
+    honest gaps are written into the file rather than left to be discovered: the player
+    feedback ledger holds ZERO icon verdicts, and most in game sign offs survive as a few
+    words, so the corpus knows far more about failure than about success. Next is the style
+    bible, which is this corpus organised and checked for self contradiction, then the judge
+    calibration against the corpus as held out verdicts.
   - Done means: the style bible and verdict corpus are committed and the owner has read the
     bible; the judge calibration experiment reports its agreement rate against held out
     owner verdicts with a written go or no go; the per family loop is documented end to end

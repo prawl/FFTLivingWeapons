@@ -44,7 +44,12 @@ public class DocsContractTests
 
     private static readonly HashSet<string> AllowedTopLevelDocs = new(StringComparer.OrdinalIgnoreCase)
     {
-        "BULWARK_AC.md", "CHANGELOG.md", "COMPATIBILITY.md", "DESIGN.md", "DEV_TEST_RECIPES.md", "LIVE_LEDGER.md", "LOGGING.md",
+        "BULWARK_AC.md", "CHANGELOG.md", "COMPATIBILITY.md", "DESIGN.md", "DEV_TEST_RECIPES.md",
+        // LW-278: the icon verdict corpus. A living contract rather than a docs/research journal
+        // because it is APPENDED to by every future art pass and is the calibration set the judge
+        // harness is graded against; a closed journal is exactly what it must not become.
+        "ICON_VERDICTS.md",
+        "LIVE_LEDGER.md", "LOGGING.md",
         "MECHANICS.md", "PATCH_REANCHOR.md", "PROVOKE_AC.md", "RELEASE_SCOPE.md", "RELIQUARY_AC.md",
         "RELIQUARY_DESIGN.md", "TODO.md", "USER_FEEDBACK.md",
         "VERIFY_LIVE.md",
