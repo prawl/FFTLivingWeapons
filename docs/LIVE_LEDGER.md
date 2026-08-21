@@ -2486,6 +2486,26 @@ Two genuine RIP-relative instructions in `.code` reference the static weapon-pal
 
 </details>
 
+### [weapon-graphic-byte-not-sprite] RETRACTED: byte 1 of the item-graphics record is NOT the drawn weapon sprite
+
+Byte 1 of the classic item-graphics record was written up as "the graphic", meaning the weapon sprite drawn in battle, and several claims were built on it. It cannot be that: its 16 distinct values put 43 weapons into a single value spanning 14 categories including daggers, bows, harps, bags and bombs, which visibly differ on screen. RETRACTED 2026-08-21. The PALETTE half of the same record is unaffected and remains proven.
+
+<details><summary>How we got here</summary>
+
+**The claim being retracted:** that byte 1 of the record at `0x02D3E6 + (itemId-1)*2` selects the weapon sprite, so a weapon's battle appearance is the pair (graphic, palette).
+
+**Why it is false, from our own data.** Grouping the 127 mapped weapons by that byte gives 16 values. Value 0 alone holds 43 weapons spanning Knife, Sword, Pole, KnightSword, Gun, Crossbow, Bow, Instrument, Book, Polearm, Bag, Cloth, Throwing and Bomb: Dagger, Broadsword, Battle Axe, Bowgun, Bestiary, Catskin Bag, Shuriken and 36 others. A dagger, a harp and a handbag do not render as the same sprite in battle, and the owner has watched all three. Value 3 similarly mixes a flail, a katana, crossbows and bows.
+
+**What this invalidates.** Three statements made earlier the same day, all resting on this byte: that 127 weapons render as 84 distinct (art, palette) appearances; that 43 of 127 are visually identical to another weapon; and specifically that Cutpurse and Vagabond are pixel-identical because both are "art 0, palette 14". None of those are supported. The true number of weapons sharing a sprite is UNKNOWN and nobody has established it.
+
+**What survives, and why the build is unaffected.** The PALETTE half of the record decode is proven live and independently: palette 14 was written and the owner's Cutpurse (palette 14) changed colour while Galewind (palette 4) in the same battle did not, twice, with screenshots. LW-301 chooses colour per palette and never consults the sprite identity, so this retraction does not touch it. The sprite map was only ever wanted for an offline preview.
+
+**Left open deliberately:** what byte 1 actually is. It was not needed for the colour work and guessing produced a confident wrong answer once already. A sprite map, if one is ever wanted, should be built from observation rather than from this field.
+
+**Date:** 2026-08-21
+
+</details>
+
 ### [per-weapon-colour-by-turn-repaint] Per-weapon battle colour IS achievable: the palette is read PER DRAW and can be repainted live
 
 Writing the static 1024-byte workspace at `0x140d35750` changes a weapon's colour IMMEDIATELY, mid-battle, with no reload, and two palettes can be driven to different colours in the same battle at the same time. Because the game is turn-based and a weapon sprite only renders during its own attack animation, repainting that weapon's palette on its turn gives every weapon its own colour. This ROUTES AROUND [weapon-palette-assignment-walled] rather than breaking it. OBSERVED live 2026-08-21, owner read the screen twice with screenshots; AWAITING OWNER FLIP.
