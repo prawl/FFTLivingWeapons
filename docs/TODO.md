@@ -270,6 +270,30 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
+- [LW-300] 2026-08-21: The seventy two items nobody has re-passed yet, the armour, clothing, robes,
+  shoes, rings and the rest, are all still painted by the oldest and worst method we have, and it
+  does exactly one thing: it floods the whole picture with a single colour. Measured, not guessed.
+  Every one of those items ends up with zero colour variety left in it, so a steel cuff and a
+  leather glove come out as the same flat purple. The weapons were rescued from a different defect,
+  where the colour never reached the art at all; this is the opposite, the colour reaches
+  everything and erases the material. A second measurement found the likely reason the results
+  look loud: the colours we authored for these items are far stronger than the art they sit on,
+  a median of 0.45 against the art's own 0.16, and thirty one of the seventy one are more than
+  three times their own artwork, one of them nearly twelve times. A first attempt on the four
+  gauntlets is banked and NOT shipped: turning the colour down recovers the cuff and the fingers
+  on two of them and turns the other two into grey shapes with a white blob where the metal should
+  be, and flattening every item to the same strength makes two of the four look like each other.
+  That is the owner's other standing complaint, so the honest state is that turning the colour down
+  is necessary and nowhere near sufficient. (Tech: 72 ids on `legacy` per engine_for; circular hue
+  spread over solid pixels falls to 0.000 for all ten families, worst average loss Armguard 0.221,
+  worst single id 217 Runecast Gloves 0.778 -> 0.000. solid_tint_share is the WRONG instrument here
+  and reads 96 to 100 percent, because a whole-icon stamp is full coverage by construction. Tint
+  saturation vs own-art median saturation: 0.45 vs 0.16, 31 of 71 above 3x, 210 Roamer's Boots
+  11.7x. Zone route via ZONE_OVERRIDES per the LW-202 crossbow precedent gets the desat mask
+  landing as blobs on 216 and 218. Needs a per-item mask key chosen from the art per the bible's
+  Part 4, not one recipe for the family, and a saturation rule relative to each item's own art
+  rather than a flat cap. Renders in the session scratchpad.)
+
 - [LW-299] 2026-08-21: The Staff of the Magi keeps a fallen ally out of a crystal by pushing the
   death timer back to three hearts over and over, every fraction of a second, for as long as the
   body lies there. The game itself has a far simpler way of saying "this one never crystallizes",
