@@ -162,9 +162,21 @@ programme, so it gets a table rather than a sentence.
 | Engraved metal (helm) | two zones, body plus one accent | **never** apply smooth-field contrast; a blur cannot tell a drawn one-pixel line from compression grain [B-22] |
 | Fabric (bag) | muted, no punch | the shields and helms metal treatment reads harsh on cloth; cloth wants the artist's own chroma ceiling [B-24] |
 
-**A second material must cross the object's LARGEST shape, not merely exist on it.** Body plus
-hilt measured as two materials and still looked like one colour until the metal ran the blade's
-ridge. [B-08]
+**A second material must cross the object's LARGEST shape, not merely exist on it. WEAPONS AND
+LINE ART ONLY.** Body plus hilt measured as two materials and still looked like one colour until
+the metal ran the blade's ridge. [B-08]
+
+**It does NOT hold for shields, and stating it globally was a real defect in the first draft of
+this file.** Both shield winners put their accent at the RIM: Aegis Prime landed on bright
+sapphire with "gold kept to the edges and gem", Wardstone on "a thin white geometric rim over
+rich purple" [LW-190]. The same ledger row records that the weapons card rule was tried on
+shields first and rejected on evidence, because a shield is one convex plate whose clustering
+follows the lighting rather than the materials [B-05]. So the rule was over-generalised from
+swords and bows to everything, in a file whose own Part 4 says the key is a property of the ART.
+Caught 2026-08-21 by the judge calibration: a blind judge applied the rule exactly as written,
+rejected the owner's actual pick as "a timid wash", and chose a candidate whose gold "genuinely
+crosses the largest shape". The rule did the misleading, not the judge. Treat this as the
+standing warning against promoting any family's lesson to a universal one.
 
 **A per-item opt-in must be able to beat a family default.** `engine_for` consults the override
 table before any category rule precisely so one odd item does not force a family-wide compromise.

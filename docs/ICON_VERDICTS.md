@@ -239,6 +239,24 @@ stated. Ledger ids in brackets point at the full row in `docs/CHANGELOG.md` or `
   floors, hot damp, true-white glint band); cloth wants the artist's own chroma ceiling. Owner
   then picked candidate C, deep mute, from a three-candidate page.
 
+- **B-25** | 2026-08-21 | judge calibration, first run | BLIND AGENT JUDGES | 1 of 2, and the
+  miss was the useful half | two items, each judged by an agent forbidden from reading this repo,
+  shown shuffled and relabelled candidates with the pitch text withheld. NEGATIVE CONTROL PASSED:
+  on the LW-231 helmet pair it chose the shipped grainy render over the smoothed one and gave the
+  right reason unprompted, "on engraved metal the grain IS the drawing", correctly ruling that
+  preserving the artist's line work beats removing speckle FOR THIS ART, which is the call the
+  owner made on sight and every aggregate metric got wrong. AEGIS PRIME 10-WAY MISSED: it chose
+  the owner's candidate A over his actual pick C, and its stated reasoning shows why. It applied
+  the style bible's "second material must cross the largest shape" rule faithfully, dismissed the
+  winner as "a timid wash", and preferred a candidate whose gold "genuinely crosses the largest
+  shape" | THE RULE WAS WRONG, NOT THE JUDGE. That rule came from the sword and bow passes and had
+  been written down as universal; both shield winners put their accent at the rim, and LW-190
+  explicitly records the weapons rule being tried on shields and rejected. Corrected in Part C
+  rule 3 and in the bible the same day. First real output of the calibration was a defect in our
+  own doctrine rather than a score, which is worth more than the score. Caveats on the numbers:
+  n=2, both agents self-reported MEDIUM confidence, and the control judge was handed the rule that
+  decided it, so a harder version withholds the tie-breaker.
+
 ## Part C: standing rules the corpus supports
 
 Rules the owner has stated or that a verdict established, with the row that funds each. These are
@@ -251,7 +269,11 @@ organised or checked against each other for contradiction.
    it into a zone. Funded by B-15, and by the gate's own history.
 2. **No-single-colour rule.** Render check with a floor and a ceiling, never a config check.
    B-07.
-3. **A second material must cross the object's largest shape.** B-08, B-12.
+3. **A second material must cross the object's largest shape. WEAPONS AND LINE ART ONLY.** B-08,
+   B-12, both weapon passes. It is FALSE for shields, whose two recorded winners both put the
+   accent at the rim (Aegis Prime "gold kept to the edges and gem", Wardstone "a thin white
+   geometric rim over rich purple", LW-190). Stated globally in the first draft of the style
+   bible and corrected 2026-08-21 after B-25 demonstrated the cost.
 4. **Holy is gold everywhere in this mod** (Excalibur, Lightbringer, and the Perseus Bow ruling
    that keeps gold over a blue bow at chroma 0.120).
 5. **The item's own description prose outranks set harmony.** B-04.
