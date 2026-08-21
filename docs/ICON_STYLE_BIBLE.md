@@ -44,8 +44,13 @@ Worse, the groups do not agree about what colour they want. Measuring each palet
 `iconTint` hues as a circular mean:
 
 - coherence runs **0.13 to 0.78** across the 13 groups (1.0 would be perfect agreement)
-- the worst member of a group sits a mean of **137 degrees** from its group's mean hue, and in
-  three groups a full **180 degrees**, exactly opposite
+- **13 groups, mean worst-member deviation 137 degrees, 3 of 13 at the 180 ceiling.** Method,
+  because a bare 137 is unattackable-looking and therefore untrustworthy: per group take the
+  circular mean of member `iconTint` hues, find the member furthest from it, then average those 13
+  worst-member deviations. 180 is the MAXIMUM possible circular distance, so the three groups
+  sitting there are off the end of the instrument, not merely bad. A mean containing saturated
+  values is a FLOOR on the true badness, not an estimate of it, which makes this stronger evidence
+  against a per-group compromise colour than the number alone suggests.
 
 So there is no single hue a group can wear that serves its members. This is why the parked weapon
 sheet baker turns the sheet violet and pink when it paints each palette with its group's design
@@ -62,8 +67,14 @@ the surfaces resolve it at different granularity, and the sprite surface needs a
 what a group wears when its members disagree by up to 180 degrees. **That rule is an owner
 decision and is not made here.** The candidates on the table:
 
-1. **Accent zones only** on the six palettes that carry a living weapon, leaving the body ramp
-   (slots 1 to 4) vanilla. This is the only candidate that has survived a look.
+1. ~~**Accent zones only** on the six palettes that carry a living weapon.~~ **DEAD, measured
+   2026-08-21.** Its whole premise was containment, and there is none: `meta.json` joined to the
+   palette map shows 30 weapons carry a signature and they span **12 of the 13 palettes** (only
+   palette 9 is clear). The "six palettes" figure appears in LW-289 and in the sibling repo's
+   findings and reproduces from neither. Coverage sinks it independently: on the real weapons
+   page, slots 1 to 4 are 51.3 percent of ink and slot 15 is 3.6 percent, so "accent only" moves
+   almost nothing on a sprite that is on screen only during an attack animation, which is taxonomy
+   A2 coverage failure by our own rules.
 2. **Dominant member wins**: the group takes the hue of its most prominent weapon and the rest
    ride it. Honest about the collision instead of averaging it away.
 3. **Leave battle sprites vanilla** and accept that lockstep covers menu surfaces only, stating
@@ -163,8 +174,29 @@ re-argues them.
 
 Two further constraints that apply throughout:
 
-- **Make it nameable.** "Dull" is a rejection. Three of six crossbows sat at saturation 0.15 or
-  below and the family read as the drab corner of the list. [B-17, taxonomy A10]
+- **Make it nameable, judged on the RENDERED ITEM, never on a saturation floor.** "Dull" is a
+  rejection: three of six crossbows sat at saturation 0.15 or below and the family read as the drab
+  corner of the list. [B-17, taxonomy A10]
+
+  **RESCOPED 2026-08-21, and this was a contradiction rather than a tidy-up.** As previously
+  written this rule penalised low-coverage, low-saturation results in general. Both recorded
+  shield winners ARE low-coverage accents: Aegis Prime's "gold kept to the edges and gem",
+  Wardstone's "thin white geometric rim over rich purple" [LW-190]. So the bible's stated rule
+  and the bible's own exemplars disagreed, and any judge built from this text would disagree with
+  the owner's own picks by construction. That is exactly what happened: the blind judge of
+  2026-08-21 cited rule 2 AND rule 3 together, calling the owner's actual Aegis pick "a timid
+  wash". Patching the composition rule alone (2fbea67) left the other half of the same defect live.
+
+  A global saturation floor cannot tell a deliberate white, silver or steel garment from a timid
+  tint, so it measures the wrong thing. Supporting evidence from the sibling ColorCustomizer
+  corpus, offered as a falsifier rather than as proof: across 51 human-chosen, owner-approved NPC
+  section colours, the median saturation is 0.282, 17 of 51 sit at or below 0.15, and nine are at
+  exactly zero. Those are approvals, not rejections. **Their metric and ours are NOT comparable**
+  (HLS over stored hex on a 16-colour indexed palette, versus whatever our icon tooling computed
+  over BC7 truecolour), so the direction transfers and the threshold does not.
+
+  What survives: an item must read as a colour you can name AT DRAW SIZE. Judge the rendered
+  picture. Do not gate on a saturation number, and never infer "timid" from where an accent sits.
 - **A comment is not a naming source.** Three shields were reviewed under names that do not exist
   in the game. Read `data/items.json`, which is the naming authority. [B-03]
 
