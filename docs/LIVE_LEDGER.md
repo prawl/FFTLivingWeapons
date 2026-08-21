@@ -2455,6 +2455,26 @@ Finding the enemy ENTD blueprint in live 1.5 memory is Walled as of the 2026-06-
 
 </details>
 
+### [resident-weapon-palette-buffer] The weapon palettes are writable in MEMORY and take effect on the next battle load
+
+The 16 palettes of FFTPack file 71 sit in process memory in four copies, two heap and two inside the game image; writing one of them repaints every weapon drawn from that palette from the NEXT battle load onward, with no file override, no relaunch, and no draw hook. OBSERVED live 2026-08-21, owner read the screen; AWAITING OWNER FLIP.
+
+<details><summary>How we got here</summary>
+
+**Claim:** weapon battle colour is controllable by a guarded memory write, not only by shipping a modified FFTPack file.
+
+**Mechanism:** the pristine 512-byte palette block (palA, `0x00000..0x001FF` of `unit/battle_wep_spr.bin`, 16 palettes x 16 BGR555) was extracted from `0002.pac` under the existing md5 gate and used as a search needle. A scan of committed readable memory (1983 MB) found the whole block at four addresses: heap `0x416ee6e0c0` and `0x416ee762c0`, and in-image `0x140d35750` and `0x140d35950` (image base 0x140000000, so the in-image pair are static-relative and expected stable; the heap pair are NOT and must be re-found per launch). Palette 14's 15 non-zero slots were flattened to BGR555 `0x7C1F` in the TWO HEAP copies only, preserving slot 0 and bit 15.
+
+**Evidence.** Immediately after the write, in the battle already running, a swung Dagger (palette 14) was UNCHANGED, which places the GPU upload before the write. The owner then reloaded the battle from the world map; the Cutpurse (palette 14, art 0) rendered a vivid magenta blade in the owner's screenshot, while Galewind (palette 4) in the same frame was unchanged, which is the control. Re-reading all four addresses afterwards showed magenta in ALL FOUR, including the two in-image copies never written by us, so the game propagates the heap copy into its working copy at battle load rather than re-reading the file into them.
+
+**What this does and does NOT buy.** It buys per-palette colour from an in-process guarded write, which is the mechanism a runtime signature can use, and it removes the file-staging timing race entirely. It does NOT buy per-weapon colour: WHICH palette a weapon draws from is still [weapon-palette-assignment-walled], so 127 weapons still share 13 palettes. Per-weapon needs that wall broken or a draw-path hook.
+
+**Not yet established:** whether the heap addresses are findable by a stable signature rather than a full-memory needle scan; whether the buffers are refreshed on a fresh launch or a save load; whether writing the in-image pair alone suffices; and the interaction with a shipped FFTPack override, ABSENT during this test since BuildLinked had wiped the deployed fftpack tree.
+
+**Date:** 2026-08-21
+
+</details>
+
 ### [weapon-palette-assignment-walled] WHICH palette a weapon uses cannot be changed by any known data channel
 
 Repainting the sixteen palettes of FFTPack file 71 works and is PROVEN ([wep-spr-palette-block]).
