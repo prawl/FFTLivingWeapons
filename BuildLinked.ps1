@@ -16,10 +16,13 @@
 #           (omits -p:LwDev=true) -- for release-testing on a real save.
 #   -Force  let a plain DEV deploy overwrite a prod-flavored install (see the
 #           guard below for why that needs an explicit opt-in).
+#   -VerifyOnly  deploy NOTHING; hash the installed data tree against this repo's and
+#           report whether the install is current. Read-only, safe with the game running.
 
 param(
     [switch]$Prod,
-    [switch]$Force
+    [switch]$Force,
+    [switch]$VerifyOnly
 )
 
 $ErrorActionPreference = "Stop"
@@ -52,6 +55,32 @@ try {
     # Defined here -- before the backup step runs -- so the catch path below can always
     # Test-Path it, even if the failure happens before stage [3/5] backs anything up.
     $preserveDir = Join-Path $env:TEMP "livingweapon_preserve"
+
+    # --- -VerifyOnly: audit the install, deploy nothing (LW-297) ---
+    # ELI5: answers "is the mod folder actually running the art and tables sitting in this repo
+    # right now?" without touching anything. Before this existed the only honest answer came from
+    # hand-hashing the tree, so "the install is stale" travelled as a sentence in a handoff note
+    # and went out of date silently. Placed FIRST on purpose: a read-only audit must never refuse
+    # to run behind the flavor guard, and must never consume the outgoing session's log (the
+    # [3/5] wipe is what makes that log a one-shot read).
+    if ($VerifyOnly) {
+        Write-Host "`nVERIFY ONLY: comparing the install against this repo. Nothing will be deployed." -ForegroundColor Cyan
+        if (-not (Test-Path $dest)) {
+            Write-Host "  No install found at $dest" -ForegroundColor Red
+            exit 1
+        }
+        $vParity = Test-DeployParity -SourceTree "$root\mod\FFTIVC" -DeployedTree "$dest\FFTIVC" -ExcludeFilter $ParkedArtifactFilter
+        $vErrs = @(Write-DeployParityReport -Report $vParity)
+        Write-Host "  installed flavor: $(if (Test-Path $marker) { (Get-Content $marker -Raw).Trim() } else { 'unknown (no build_flavor.txt)' })" -ForegroundColor Gray
+        if ($vErrs.Count -gt 0) {
+            Write-Host "`nINSTALL IS OUT OF DATE:" -ForegroundColor Red
+            $vErrs | ForEach-Object { Write-Host "  X $_" -ForegroundColor Red }
+            Write-Host "`nRun .\BuildLinked.ps1 (close the game first) to bring it up to date." -ForegroundColor Red
+            exit 1
+        }
+        Write-Host "`nInstall matches the repo. Data tree is current." -ForegroundColor Green
+        exit 0
+    }
 
     # --- Pre-deploy: scan the OUTGOING session's log (LW-54, docs/VERIFY_LIVE.md) ---
     # This is the one moment in the dev loop where livingweapon.log is both COMPLETE (you killed
@@ -177,6 +206,14 @@ try {
     $xmls = @(Get-ChildItem "$dest\FFTIVC\tables\enhanced\*.xml" -ErrorAction SilentlyContinue)
     $tex  = @(Get-ChildItem "$dest\FFTIVC\data\enhanced\ui\ffto\icon" -Filter *.tex -Recurse -ErrorAction SilentlyContinue)
     if ($tex.Count -lt 1) { $errs += "no .tex icon files deployed" }
+
+    # CONTENT parity, not just presence (LW-297). Every check above this line answers
+    # "does a file exist here", which is how a green "Deployed 468 icons" line came to sit
+    # over a three-day-stale install. Hash the deployed data tree against the repo tree it
+    # was staged from: any missing or byte-differing file fails the deploy RED. Files
+    # present only in the install (probe drops) are named as a warning, never fatal.
+    $parity = Test-DeployParity -SourceTree "$root\mod\FFTIVC" -DeployedTree "$dest\FFTIVC" -ExcludeFilter $ParkedArtifactFilter
+    $errs += @(Write-DeployParityReport -Report $parity)
 
     if ($errs.Count -gt 0) {
         Write-Host "`nDEPLOY VERIFICATION FAILED:" -ForegroundColor Red

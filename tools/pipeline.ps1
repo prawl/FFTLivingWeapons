@@ -178,6 +178,189 @@ function Resolve-DeployedFlavor([string]$markerPath, [string]$stampPath, [string
 # both verification steps fail red if one slips through, so the exclusion cannot drift.
 $ParkedArtifactFilter = "*.bloodpact_parked"
 
+# --- Deploy content parity (LW-297) ---------------------------------------------
+# WHY THIS EXISTS. BuildLinked's [5/5] used to verify the deployed data tree by
+# COUNTING files ("$tex.Count -lt 1") and by Test-Path'ing a required-file manifest.
+# Both answer "does something exist here", neither answers "is it the CURRENT bake",
+# so a green "Deployed 468 icons" line sat over a three-day-stale install (the Aug-18
+# pre-deglow art) and nothing in the toolchain could contradict it. The staleness had
+# to be carried as PROSE in the session handoff, which is how facts rot.
+#
+# Timestamps cannot fill that gap: Copy-Item preserves LastWriteTime, so every freshly
+# deployed icon still reads as its REPO write date. Checking mtime after a good deploy
+# reports "0 files written today" and looks exactly like a failed deploy. Hash, do not
+# stat; that trap cost a confused verification round on 2026-08-21.
+#
+# The source tree (mod/FFTIVC) is copied wholesale by BuildLinked, so the relationship
+# is a clean 1:1 minus the parked artifacts the deploy deliberately prunes. That makes
+# exact content parity the honest check.
+
+function Get-TreeHashMap {
+    # relative-path (forward-slashed) -> MD5, for every file under $Root except
+    # $ExcludeFilter. Keys are case-insensitive because Windows paths are, and a
+    # case-only difference between the two trees is not a real deploy defect.
+    param([string]$Root, [string]$ExcludeFilter)
+
+    $map = New-Object 'System.Collections.Hashtable' ([StringComparer]::OrdinalIgnoreCase)
+    if (-not (Test-Path $Root)) { return $map }
+    $prefix = (Resolve-Path $Root).Path.TrimEnd('\') + '\'
+    foreach ($f in Get-ChildItem $Root -Recurse -File -ErrorAction SilentlyContinue) {
+        if ($ExcludeFilter -and ($f.Name -like $ExcludeFilter)) { continue }
+        $rel = $f.FullName.Substring($prefix.Length) -replace '\\', '/'
+        $map[$rel] = (Get-FileHash $f.FullName -Algorithm MD5).Hash
+    }
+    return $map
+}
+
+function Test-DeployParity {
+    # Compares a deployed tree against the repo tree it was staged from and returns a
+    # report object. Pure comparison: it never writes, never throws on a mismatch, and
+    # never decides policy. Callers choose what is fatal, because BuildLinked fails red
+    # on Differing/Missing but only WARNS on Extra: deploying probe files on top of a
+    # finished build is a legitimate, documented workflow in this repo.
+    param([string]$SourceTree, [string]$DeployedTree, [string]$ExcludeFilter)
+
+    $src = Get-TreeHashMap -Root $SourceTree   -ExcludeFilter $ExcludeFilter
+    $dep = Get-TreeHashMap -Root $DeployedTree -ExcludeFilter $null
+
+    $differing = New-Object System.Collections.ArrayList
+    $missing   = New-Object System.Collections.ArrayList
+    $extra     = New-Object System.Collections.ArrayList
+    $identical = 0
+
+    foreach ($rel in $src.Keys) {
+        if (-not $dep.ContainsKey($rel)) { [void]$missing.Add($rel); continue }
+        if ($dep[$rel] -eq $src[$rel]) { $identical++ } else { [void]$differing.Add($rel) }
+    }
+    foreach ($rel in $dep.Keys) {
+        if (-not $src.ContainsKey($rel)) { [void]$extra.Add($rel) }
+    }
+
+    return [PSCustomObject]@{
+        SourceCount = $src.Count
+        Identical   = $identical
+        Differing   = @($differing | Sort-Object)
+        Missing     = @($missing   | Sort-Object)
+        Extra       = @($extra     | Sort-Object)
+    }
+}
+
+function Write-DeployParityReport {
+    # Renders a Test-DeployParity result and RETURNS the list of fatal problems
+    # (differing + missing). Extras are named, never fatal. $MaxNamed caps the printed
+    # names so a wholly-stale tree does not scroll hundreds of lines off the screen; the
+    # count stays exact and every elision is announced (no silent truncation).
+    param([PSCustomObject]$Report, [int]$MaxNamed = 12)
+
+    $errs = @()
+    foreach ($rel in $Report.Missing)   { $errs += "MISSING from deploy: $rel" }
+    foreach ($rel in $Report.Differing) { $errs += "STALE (content differs from repo): $rel" }
+
+    Write-Host ("  content parity: {0}/{1} files byte-identical to the repo tree" -f $Report.Identical, $Report.SourceCount) -ForegroundColor Gray
+
+    if ($Report.Extra.Count -gt 0) {
+        Write-Host "  $($Report.Extra.Count) file(s) present in the install but NOT in the repo tree:" -ForegroundColor Yellow
+        $shown = 0
+        foreach ($rel in $Report.Extra) {
+            if ($shown -ge $MaxNamed) {
+                Write-Host "    ... and $($Report.Extra.Count - $MaxNamed) more (not listed)" -ForegroundColor Yellow
+                break
+            }
+            Write-Host "    + $rel" -ForegroundColor Yellow
+            $shown++
+        }
+        Write-Host "  Probe files deployed after a build look exactly like this and are fine; anything you do not recognize is not." -ForegroundColor Yellow
+    }
+
+    if ($errs.Count -gt $MaxNamed) {
+        $kept = @($errs[0..($MaxNamed - 1)])
+        $kept += "... and $($errs.Count - $MaxNamed) more parity failure(s) (not listed)"
+        return $kept
+    }
+    return $errs
+}
+
+function Invoke-DeployParitySelfTest {
+    # Regression cases for the parity checker, run as a build gate alongside the python
+    # --selftest gates. An instrument that silently stopped detecting staleness would
+    # re-open exactly the hole this was written to close, so it is mutation-checked here
+    # rather than trusted.
+    #
+    # The drift pair is the load-bearing case: two files with IDENTICAL SIZE and
+    # IDENTICAL mtime but different bytes. A length check and a timestamp check both PASS
+    # that pair; only hashing fails it. The assertion below re-reads both files' size and
+    # mtime and fails the selftest if they ever stop colliding, because a drift pair that
+    # differs in size or date would also fail a stat check and would therefore prove
+    # nothing about hashing (an inert mutation that looks green).
+    $tmp = Join-Path $env:TEMP ("lw_parity_selftest_" + [Guid]::NewGuid().ToString("N"))
+    try {
+        $src = Join-Path $tmp "src"
+        $dep = Join-Path $tmp "dep"
+        New-Item -ItemType Directory -Force -Path (Join-Path $src "sub") | Out-Null
+        New-Item -ItemType Directory -Force -Path (Join-Path $dep "sub") | Out-Null
+
+        Set-Content -Path (Join-Path $src "same.txt")      -Value "alpha"  -Encoding Ascii -NoNewline
+        Set-Content -Path (Join-Path $dep "same.txt")      -Value "alpha"  -Encoding Ascii -NoNewline
+        Set-Content -Path (Join-Path $src "sub\gone.txt")  -Value "beta"   -Encoding Ascii -NoNewline
+        Set-Content -Path (Join-Path $src "sub\drift.txt") -Value "AAAAA"  -Encoding Ascii -NoNewline
+        Set-Content -Path (Join-Path $dep "sub\drift.txt") -Value "BBBBB"  -Encoding Ascii -NoNewline
+        Set-Content -Path (Join-Path $dep "probe.bin")     -Value "extra"  -Encoding Ascii -NoNewline
+        Set-Content -Path (Join-Path $src "parked.bloodpact_parked") -Value "parked" -Encoding Ascii -NoNewline
+
+        # Force the size+mtime collision the real deploy exhibits (Copy-Item preserves mtime).
+        $stamp = Get-Date "2020-01-01T00:00:00"
+        (Get-Item (Join-Path $src "sub\drift.txt")).LastWriteTime = $stamp
+        (Get-Item (Join-Path $dep "sub\drift.txt")).LastWriteTime = $stamp
+
+        $r = Test-DeployParity -SourceTree $src -DeployedTree $dep -ExcludeFilter "*.bloodpact_parked"
+
+        $fail = @()
+        if ($r.SourceCount -ne 3) { $fail += "excluded parked artifact was counted (SourceCount=$($r.SourceCount), expected 3)" }
+        if ($r.Identical -ne 1)   { $fail += "identical=$($r.Identical), expected 1" }
+
+        $gotDiff    = (@($r.Differing) -join ',')
+        $gotMissing = (@($r.Missing)   -join ',')
+        $gotExtra   = (@($r.Extra)     -join ',')
+        if ($gotDiff    -ne 'sub/drift.txt') { $fail += "differing=[$gotDiff], expected [sub/drift.txt]" }
+        if ($gotMissing -ne 'sub/gone.txt')  { $fail += "missing=[$gotMissing], expected [sub/gone.txt]" }
+        if ($gotExtra   -ne 'probe.bin')     { $fail += "extra=[$gotExtra], expected [probe.bin]" }
+
+        $a = Get-Item (Join-Path $src "sub\drift.txt")
+        $b = Get-Item (Join-Path $dep "sub\drift.txt")
+        if ($a.Length -ne $b.Length -or $a.LastWriteTime -ne $b.LastWriteTime) {
+            $fail += "SELFTEST IS INERT: the drift pair no longer shares size+mtime, so a stat check would also catch it and the case proves nothing about hashing."
+        }
+
+        # A tree compared against itself must report perfectly clean; guards against a
+        # checker that always finds fault (which would pass every case above by accident).
+        # Uses $dep, the tree with no parked artifact in it, so the deliberate filter
+        # asymmetry pinned below cannot muddy this case.
+        $r2 = Test-DeployParity -SourceTree $dep -DeployedTree $dep -ExcludeFilter "*.bloodpact_parked"
+        if ($r2.Differing.Count -ne 0 -or $r2.Missing.Count -ne 0 -or $r2.Extra.Count -ne 0 -or $r2.Identical -ne 3) {
+            $fail += "a tree compared against ITSELF reported problems (identical=$($r2.Identical), diff=$($r2.Differing.Count), missing=$($r2.Missing.Count), extra=$($r2.Extra.Count))"
+        }
+
+        # The filter asymmetry is DELIBERATE and is pinned here so nobody "tidies" it away:
+        # the SOURCE side skips parked artifacts (the deploy prunes them on purpose, so they
+        # must not read as missing), while the DEPLOYED side is scanned unfiltered (a parked
+        # file that leaks into a live install is exactly the thing worth naming). Comparing
+        # the parked-bearing tree to itself therefore reports it as one extra, not as clean.
+        $r3 = Test-DeployParity -SourceTree $src -DeployedTree $src -ExcludeFilter "*.bloodpact_parked"
+        if ((@($r3.Extra) -join ',') -ne 'parked.bloodpact_parked' -or $r3.Differing.Count -ne 0 -or $r3.Missing.Count -ne 0) {
+            $fail += "the source/deploy filter asymmetry changed: expected the parked artifact to surface as the only extra, got extra=[$(@($r3.Extra) -join ',')], diff=$($r3.Differing.Count), missing=$($r3.Missing.Count)"
+        }
+
+        if ($fail.Count -gt 0) {
+            $joined = $fail -join "`n  - "
+            throw "deploy-parity selftest FAILED:`n  - $joined"
+        }
+        Write-Host "  -> deploy-parity selftest: all cases passed." -ForegroundColor Gray
+    }
+    finally {
+        Remove-Item $tmp -Recurse -Force -ErrorAction SilentlyContinue
+    }
+}
+
 function Invoke-TablePipeline {
     # generate -> dominance gate -> meta, with uniform exit-code checks. Throws
     # on any red step; the caller's catch turns that into a nonzero exit.
@@ -237,6 +420,13 @@ function Invoke-TablePipeline {
     if ($LASTEXITCODE -ne 0) {
         throw "REFUSING TO ${FailVerb}: recolor_icons.py --selftest failed (exit $LASTEXITCODE)."
     }
+
+    # And the deploy-parity checker itself (LW-297). It is the instrument that decides
+    # whether an install is stale, so an instrument regression would silently restore the
+    # exact blind spot it was written to close. Pure filesystem work in %TEMP%; no python,
+    # so it runs even on a box without Pillow or the game files.
+    Write-Host "  -> deploy-parity checker regression cases..."
+    Invoke-DeployParitySelfTest
 
     Write-Host "  -> Generated + gated + meta baked OK." -ForegroundColor Green
 }
