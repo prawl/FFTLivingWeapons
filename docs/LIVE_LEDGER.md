@@ -2506,7 +2506,17 @@ Round 2, to show independent simultaneous control rather than a single global ti
 
 **Why this yields PER-WEAPON colour.** The game is turn-based and the weapon sprite is drawn during its wielder's attack animation; idle units on the field show no weapon, visible in both screenshots. So at most one weapon is on screen at a time, and the mod already knows whose turn it is and what they are holding. Repaint that weapon's palette at its turn, and the shared-palette collision never materialises because the other members of that palette are not being drawn.
 
-**Known limits, none of them tested yet:** two weapons of the SAME palette visible simultaneously would still collide, which counter-attacks, reactions and any dual-render case could produce; whether the palette is sampled continuously or latched at animation start is UNKNOWN and decides whether the repaint must land before the animation begins; and a battle reload restores the workspace from the loaded file, so the mod must re-apply after each load. None of these threaten the mechanism, they shape the implementation.
+**CORRECTED 2026-08-21 by a deliberate disconfirming test. The "one weapon at a time" claim above is FALSE.**
+
+The original wording said a weapon renders only during its wielder's attack animation, so at most one is on screen at any instant. A PARRY falsifies it: with all 13 weapon palettes painted distinct colours, an owner screenshot shows the attacking ninja's blade and Ramza's raised parrying blade in the SAME frame, in two different colours, with the "Weapon parry!" callout between them. Both read vanilla steel immediately before the repaint, so the colours are demonstrably ours. Credit where due: the owner proposed the parry case himself after the first pass found nothing, and it is the one scenario the earlier session never provoked.
+
+**The design survives, with a bounded and now-measured caveat.** The fix is to repaint the ATTACKER's and the TARGET's palettes rather than only the acting unit's, which works because simultaneous multi-palette control is already proven (round 2 above). It fails only when those two weapons share one of the 13 palettes. Measured over the 121 tinted weapons: 9.1 percent of attacker/defender pairs share a palette, and of those pairs 87.5 percent carry icon hues more than 20 degrees apart and would therefore look visibly wrong, so roughly 8 percent of PARRY exchanges would show a clash. Parries are themselves a fraction of exchanges, so the visible-defect rate across normal play is well under that. The three largest groups (palettes 14, 13 and 15, holding 19, 18 and 17 weapons) account for over half the collision mass.
+
+**Two further scope limits found in the same pass, both outside the mechanism:** a THROWN weapon (ninja throw, Gloomfang) rendered normal steel with all 13 palettes painted, and the Move-Find treasure staff likewise, so both draw from a source these palettes do not reach. Samurai ability animations DO render the weapon with its palette, so coverage extends past basic attacks.
+
+**Still untested:** whether the palette is sampled continuously or latched at animation start. This is deliberately NOT load-bearing, because repainting at turn start is correct under either answer.
+
+**Also proven this pass:** the workspace address survives a relaunch. Across two separate game restarts, `0x140d35750` and `0x140d35950` were both readable at the same addresses holding byte-identical pristine palettes, which is expected for a MEM_IMAGE region with no ASLR but is now observed rather than inferred.
 
 **Date:** 2026-08-21
 

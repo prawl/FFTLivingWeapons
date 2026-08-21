@@ -270,6 +270,18 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
+- [LW-302] 2026-08-21: Shields are visible in battle too and they stay their original colour while
+  the weapons change, which will look odd once weapons match their icons. Owner spotted it during
+  the LW-301 testing. They are not part of the weapon work and cannot be reached the same way: the
+  table that says which colour set a weapon uses covers only the 127 weapons, ids 1 to 127, and
+  holds no entry for any of the 16 shields, so a shield draws from some other source entirely.
+  Confirmed by the same test that coloured every weapon on the field: with all 13 weapon colour
+  sets painted, shields stayed ordinary. Finding that source is its own hunt and should reuse the
+  method that worked for weapons, which was to take the untouched art from the game files and
+  search the running game's memory for it. Deliberately deferred so the weapon work can land
+  first. (Tech: lw289_weapon_palette_map.json is ids 1..127 with zero Shield category entries;
+  shields are items 128..143. Ledger [per-weapon-colour-by-turn-repaint] covers weapons only.)
+
 - [LW-301] 2026-08-21: Give every weapon its own colour when it is swung in battle, which we spent
   two days believing was impossible. The game only has thirteen colour sets for a hundred and
   twenty seven weapons and it decides which weapon uses which, and that decision really is
