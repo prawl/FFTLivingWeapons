@@ -237,6 +237,22 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
+- [LW-296] 2026-08-21: When another mod replaces the game's item text, the kill counter quietly
+  stops appearing on weapon cards and the player is never told why, so tell them. The counter
+  is not broken and counting never stops; the number simply has nowhere to be drawn, and today
+  that looks identical to the mod being dead. The fix is the calm notice we already use when a
+  job mod takes the weapon commands away: notice it, stay on, say exactly what is hidden and
+  exactly what still works.
+  This got more likely on 2026-08-21, when a full graphical mod editor shipped on the Nexus
+  (The Ivalice Chronicles Mod Studio, mod 111) that puts item and ability text editing behind a
+  checkbox. Text mods used to require running conversion tools by hand; now they do not, so the
+  collision goes from rare to ordinary. See docs/COMPATIBILITY.md.
+  (Tech: our painted counter anchors to the flavor line of an item's description, and an
+  item.en.nxd override is a full-table replace, so a winning text mod removes every anchor.
+  LivingWeapon/Display/ currently has no detection for a session-long zero-hit sweep and nothing
+  user-facing fires. Model the notice on LaunchGuard.KitLane.cs: a truthful WARN plus a
+  once-per-session calm box, mod stays armed, nothing else disabled.)
+
 - [LW-289] 2026-08-19: Give every weapon a battle colour taken from its own menu icon, now
   that we know exactly which colour set each weapon uses and have proved we can repaint those
   sets. The promise has to shrink to match what the game allows: there are thirteen usable

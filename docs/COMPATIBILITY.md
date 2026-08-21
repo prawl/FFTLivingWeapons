@@ -17,6 +17,8 @@ Living Weapons, please open a GitHub issue on this repository.
   non-English game language hides the kill counter on weapon cards.
 - **Everything else coexists cleanly** (roughly two-thirds of the catalog surveyed clean
   with no caveat at all).
+- **Mod-making tools are always safe**, because a tool is never loaded by the game. Only the
+  mods people build with one can conflict, and those land in the classes above.
 
 ## Incompatible (do not run together)
 
@@ -59,6 +61,33 @@ These classes coexist with Living Weapons at one specific, known cost:
 | [Super and Ultrawide Resolutions](https://www.nexusmods.com/finalfantasytacticstheivalicechronicles/mods/11) | 11 | Ships only resolution configuration tables; nothing shared with this mod |
 | [Deep Brave Story (base + add-on files)](https://www.nexusmods.com/finalfantasytacticstheivalicechronicles/mods/83) | 83 | Payload-verified on three of its eight files: the base ships encounter data and character/place names (none of the files we touch), and the Sage Elder and Dark Gaffgarion add-ons edit only story-job rows (17, 19, 23) and story command records (32, 39, 82), none of the rows or records this mod ships or guards. The other boss add-ons (Dark Witch, Witch Assassin, Divine Alma, Elmdor Enhanced, Delita QoL) ship the same file classes aimed at other story jobs and are expected clean the same way; in the worst case one rewrites the two command records we guard, and then the mod says so in game and costs only the three weapon-granted commands. No item tables anywhere in the family |
 
+## Mod-making tools
+
+Not every mod page is a mod. A tool is a program you run on your own computer to build a
+mod; it never gets installed into the game, so it cannot fight with Living Weapons at all.
+What it can do is make it much easier for other people to build mods that do.
+
+| Tool | Nexus # | Verdict |
+|---|---|---|
+| [The Ivalice Chronicles Mod Studio](https://www.nexusmods.com/finalfantasytacticstheivalicechronicles/mods/111) | 111 | Compatible, because it is a mod editor rather than a mod: nothing from it is ever loaded by the game. Mods somebody builds with it land in the classes already on this page. Read the note below before pairing one with Living Weapons |
+
+**Mods built with it.** Mod Studio can edit every kind of file this mod ships, so anything
+made with it falls into a class already described above, and there is no new kind of
+conflict to learn:
+
+| If the mod was built to edit... | Class it lands in |
+|---|---|
+| Item stats, shops, or equip bonuses | Incompatible. Both sides ship whole item rows and one side's rows are dropped |
+| Item or ability names and descriptions | Text caveat. Those files are replaced whole rather than merged, so whichever mod loads last supplies all of that text, and the painted kill counter can lose its anchor |
+| Equipment menu icons | Whichever mod loads last supplies the picture. Nothing mechanical breaks |
+| Jobs or job commands | Job caveat. Worst case is the three weapon-granted commands switching off, with an in-game notice |
+| Encounters, poaching, traps, sounds, other textures | Coexists cleanly. Living Weapons ships nothing in those lanes |
+
+The practical advice is unchanged: load Living Weapons after a text mod to keep our item
+names and the kill counter, and do not pair it with an item rebalance at all. What is new
+is how ordinary those pairings are about to get, because building one no longer takes any
+modding knowledge.
+
 ## Not yet checked
 
 Nothing at the moment: every mod flagged by the survey now has a verdict above. New mods
@@ -80,4 +109,7 @@ formerly unchecked mods were classified by enumerating their archive contents th
 Nexus file-preview metadata (no downloads), and Deep Brave Story's verdict was upgraded by
 reading three of its downloaded payloads row by row against this mod's shipped tables, and
 Ramza Overhaul was settled last the same way from a downloaded payload. Every survey-flagged
-mod now carries a verdict. Page last updated: 2026-08-12.
+mod now carries a verdict. Updated 2026-08-21: The Ivalice Chronicles Mod Studio (111)
+added after reading its shipped source in full; it emits mod folders in the same formats
+this mod ships, which is where the classes in its section come from. Page last updated:
+2026-08-21.
