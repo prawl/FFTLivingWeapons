@@ -126,6 +126,17 @@ the technical detail lives in the indented lines under it.
     nibble weapon palette, low nibble effect palette; map dumped to
     tools/probes/lw289_weapon_palette_map.json; ledger rows [wep-spr-palette-block] updated
     and [weapon-palette-assignment-walled] added.)
+  - ROUND 14, 2026-08-21, and it closes the last open question: changing a weapon's battle
+    colours does NOT need the game restarted. The owner swapped the shipped colour file between
+    two battles of one sitting and the second battle came up with the new colours, so the game
+    reads the file fresh every battle and uses what it reads rather than keeping a copy in the
+    graphics card for the session. That also retires the belief this row opened with, that
+    battle art is cached for the whole session and can never update the way icons now do. What
+    is left for Done is only the deliberate icon matched recolour of one weapon end to end,
+    which is [LW-289]. (Tech: proven with the loader log in frame, 3 reads in one launch all
+    from our override and none from the game copy; ledger row [wep-spr-palette-block] carries
+    the md5s and timings. Scope is FFTPack file 71 only; menu art is a different container read
+    once per launch and stays untested.)
   - Done means: a live proven mechanism that changes an in battle weapon sprite's colours
     on purpose, one weapon end to end, with the sharing grain (per weapon, per class, or
     per sheet) and the restart requirement named; or, if it truly cannot be done, a wall

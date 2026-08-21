@@ -106,6 +106,8 @@ at `0x02D3E6 + (itemId - 1) * 2`, confirmed four for four against owner captures
 127-weapon map offline with no census. Weapons draw from palettes 3-15 and effects from 0-2, with
 ZERO overlap, so repainting a weapon palette can never retint a swing arc. Which palette a weapon
 uses cannot be CHANGED by any known data channel: see [weapon-palette-assignment-walled].
+A colour change needs NO game restart: swapping the shipped file between two battles of one
+session repaints the next battle, owner live-verified 2026-08-21.
 
 <details><summary>How we got here</summary>
 
@@ -127,6 +129,24 @@ x 230-291, y 282-315, hue median 300.0 degrees with a 10-90 spread of 1.7 degree
 palette-15 code is hue 300.0 exactly. Same-frame vanilla controls calibrate the instrument:
 grass spreads 14 degrees, the unit's armour 37, the tree 120. Nothing else in the frame is
 magenta. Owner flip: in-session, 2026-08-19 ("That was it").
+
+**Round 14, 2026-08-21: the restart question, answered NO.** The open half of this claim was
+whether the GAME holds a decoded copy across battles, which would make any change relaunch-only.
+The modloader half was already settled from source (`FFTPackFileOverrideStrategy.OnRequestRead`
+does `File.OpenRead` per call and caches nothing). Sequence, run by the owner in one session:
+the launch log first showed file 71 never read, which matters because the FIRST battle of a
+launch reads from disk either way and would have proved nothing; battle 1 with the flat census
+sheet deployed rendered a FLAT MAGENTA sword; out to the world map with the game still running,
+the deployed file was swapped on disk to a pristine vanilla-content copy (md5
+`78fa510234f9d5214527e958fc79f6dc` -> `cf6ad45e04fef2b1795dfff5b8e54c21`, both 85504 bytes,
+the replacement md5-gated out of `0002.en.pac`); battle 2 in the SAME session, no relaunch,
+rendered a normal steel sword. Final log state for the launch: 3 reads, all `Accessing MODDED
+file 71`, 0 from the game's own copy, at 07:59:35, 08:02:04 and 08:02:41. So the game re-reads
+per battle load AND re-uses what it read; there is no session-long VRAM copy. This retires the
+"the art channel is cached for the whole session" belief that opened LW-251, for this file.
+Scope: file 71 only. Menu art comes from the g2d container, read once per launch, and is
+untested here. Probe: tools/probes/lw289_palette_selector.py --checklog. Owner flip: in-session,
+2026-08-21 ("Back to vanilla colors").
 
 **What this also settles.** The 2026-06-01 Ask B negative (docs/research/WEAPON_VISUALS_SCOPING.md,
 "the HD weapon render does NOT index this 2D bin palette") is WRONG and is retired. Its two
