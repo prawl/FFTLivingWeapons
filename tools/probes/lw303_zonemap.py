@@ -21,6 +21,7 @@ the object.
 
 USAGE:
   python lw303_zonemap.py                       # a spread of one weapon per category
+  python lw303_zonemap.py Knife                 # a whole category, for a review round
   python lw303_zonemap.py Claymore "Yoichi Bow" # named weapons
   python lw303_zonemap.py --all                 # every weapon, several pages
 """
@@ -108,10 +109,19 @@ def main():
     pool = [it for it in items if it["id"] in pmap and it.get("iconTint")]
     if args:
         want = {a.lower() for a in args}
-        chosen = [it for it in pool if it["name"].lower() in want]
-        missing = want - {it["name"].lower() for it in chosen}
+        # a category name selects the whole family, which is the unit the owner reviews in
+        cats = {c.lower(): c for c in {it.get("category", "") for it in pool}}
+        chosen, named = [], set()
+        for a in list(want):
+            if a in cats:
+                chosen += [it for it in pool if it.get("category") == cats[a]]
+                named.add(a)
+        rest = want - named
+        chosen += [it for it in pool if it["name"].lower() in rest]
+        missing = rest - {it["name"].lower() for it in chosen}
         if missing:
-            sys.exit(f"not a tinted, palette mapped weapon: {', '.join(sorted(missing))}")
+            sys.exit(f"not a weapon or category here: {', '.join(sorted(missing))}")
+        chosen.sort(key=lambda it: (it.get("category", ""), it["id"]))
         render(chosen, HERE / "lw303_zones.png")
     elif "--all" in sys.argv:
         pool.sort(key=lambda it: (it.get("category", ""), it["id"]))

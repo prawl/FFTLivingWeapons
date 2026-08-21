@@ -257,6 +257,35 @@ stated. Ledger ids in brackets point at the full row in `docs/CHANGELOG.md` or `
   n=2, both agents self-reported MEDIUM confidence, and the control judge was handed the rule that
   decided it, so a harder version withholds the tie-breaker.
 
+- **B-26** | 2026-08-21 | the whole battle-sprite recolour, first look, 8 weapons | OWNER |
+  REJECTED for most of them | shown the recoloured battle sprites eight at a time, the verdict was
+  "they look right except for the bow", and that read held until all 118 were put beside their own
+  icons at once. Then it was plainly wrong: orange icons were arriving blue. Measured, the first
+  transform missed each icon's hue by 76 degrees in the middle of the pack with only 17 of 118
+  within 20 | THE SAMPLE SIZE WAS THE DEFECT, not the eye. Eight at a time cannot show a systematic
+  failure, because each individual sprite looks like a plausible weapon. Bought the whole-catalogue
+  review page and the measuring instrument (lw303_grade.py) in one go [LW-304].
+- **B-27** | 2026-08-21 | rebuilt transform, all 118 | OWNER | "You're getting closer but note the
+  two-toned areas" | the colours were right and the PLACES were wrong: a sword came back striped
+  down its blade instead of a coloured blade with a differently coloured grip. Cause measured after
+  the fact: the artist shades ONE object with more than one hue family, so grouping the palette by
+  hue splits a blade from its own shading | grouping by hue alone is not a decomposition into
+  PARTS. Merging by where the pixels sit fixed it. Note the score PASSED the striped sword at 5
+  degrees, which is the cleanest evidence in this corpus that a colour metric cannot see a
+  composition failure [LW-304].
+- **B-28** | 2026-08-21 | bows, crossbows, knives, knight swords | OWNER | NOT TWO TONED ENOUGH,
+  with the fix specified | "for the bows make the strings white, change the icons if needed. Same
+  with the swords, the hilt and blade should be different" | checked the icons before touching
+  them and they CANNOT supply a second tone: measured along each icon's own long axis, the two ends
+  sit within 10 degrees of each other for almost every weapon in the four families. So the second
+  tone became a rule about the WEAPON (PART_ROLES) and no icon was changed. Standing preference
+  recorded: two tones are wanted per weapon, and the owner will name the second colour's job (white
+  string, contrasting grip) rather than leave it to the picture [LW-304].
+- **B-29** | 2026-08-21 | battle sprites, category walkthrough | OWNER | BAGS PASSED, BOOKS PASSED |
+  "Much better", said while starting a category by category walk of all 121 | first two families
+  signed off on the third pass of the battle-sprite transform. Recorded per category as he goes so
+  the sign-offs survive the session; families not yet named are NOT covered by this row.
+
 ## Part C: standing rules the corpus supports
 
 Rules the owner has stated or that a verdict established, with the row that funds each. These are
