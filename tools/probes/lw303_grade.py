@@ -178,13 +178,16 @@ def structure(van, new, box, category=""):
     ORDER survives. Excluding them without checking anything would be exactly the hole this whole
     section exists to close, since a part rule could then flatten a ramp unnoticed.
     """
-    role_slots = set()
-    for slots in T.PART_ROLES.get(category, {}).values():
-        role_slots |= slots
+    # Grouped BY ROLE, never pooled. A bow now carries two rules at once, a string lifted into the
+    # whites and a handle left at its vanilla brightness, and comparing a slot from one against a
+    # slot from the other says nothing: pooling them reported every bow as order-broken when each
+    # rule was in fact perfectly ordered inside itself.
+    by_role = {r: set(sl) for r, sl in T.PART_ROLES.get(category, {}).items()}
+    role_slots = set().union(*by_role.values()) if by_role else set()
     worst_value = 0.0
     worst_edge = 0.0
     edges = edge_slots(box)
-    ordering = []
+    ordering = {r: [] for r in by_role}
     for i, (a, b) in enumerate(zip(van, new)):
         if i == 0 or a == 0:
             continue
@@ -193,14 +196,18 @@ def structure(van, new, box, category=""):
         av = colorsys.rgb_to_hsv(ar, ag, ab)[2]
         bv = colorsys.rgb_to_hsv(br, bg, bb)[2]
         if i in role_slots:
-            ordering.append((av, bv))
+            for r, sl in by_role.items():
+                if i in sl:
+                    ordering[r].append((av, bv))
         else:
             worst_value = max(worst_value, abs(av - bv))
         if i in edges:
             worst_edge = max(worst_edge, abs(luma(ar, ag, ab) - luma(br, bg, bb)))
     kept_order = all((x[0] - y[0]) * (x[1] - y[1]) >= 0
-                     for n, x in enumerate(ordering) for y in ordering[n + 1:])
-    return worst_value, worst_edge, len(edges), len(ordering), kept_order
+                     for pairs in ordering.values()
+                     for n, x in enumerate(pairs) for y in pairs[n + 1:])
+    touched = sum(len(v) for v in ordering.values())
+    return worst_value, worst_edge, len(edges), touched, kept_order
 
 
 # ----------------------------------------------------------------------------------------------

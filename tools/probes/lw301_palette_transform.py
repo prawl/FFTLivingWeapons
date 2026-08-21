@@ -99,12 +99,29 @@ PART_MERGE_FRACTION = 0.15  # ramps whose pixels sit this close together are one
 # every one of them (Defender 10, Excalibur 9, Ravager 9, every bow within 5). The icons are single
 # colour objects, so a second tone has to be a deliberate rule about the WEAPON rather than
 # something read out of the picture.
+#
+# THE BOW HANDLE IS A THIRD TONE AND IT IS NOT INVENTED, it is the vanilla artist's own. Owner call
+# 2026-08-21 looking at Skirmisher: "use the blue from the vanilla handle so it is tri-toned. Blue
+# handle, purple sides, and white string." Slots 5, 6 and 7 draw the grip wrap, and the handle role
+# simply LEAVES THEM ALONE, so whatever the artist painted there survives the recolour. Worth
+# knowing before promising blue everywhere: that wrap is only blue in four of the thirteen weapon
+# palettes (0, 3, 13 and 15). On the rest it is brown, olive, green or magenta, so this rule
+# guarantees a third TONE, not a blue one. Of the seven bows that are recoloured at all,
+# Skirmisher, Skypiercer and Stormarc get blue; the other four get their own earth tones.
+# Also worth knowing: only four of the eight bow frames use these slots at all. The other four
+# (tiles 76, 77, 78, 79) are a second bow drawing with no separate grip, so they stay two toned no
+# matter what is done here.
 PART_ROLES = {
-    "Bow": {"string": {2, 3, 4}},
+    "Bow": {"string": {2, 3, 4}, "handle": {5, 6, 7}},
     "Crossbow": {"string": {2, 3, 4}},
     "Knife": {"grip": {5, 6, 7}},
     "KnightSword": {"grip": {5, 6, 7}},
 }
+
+# Weapons whose battle sprite is left exactly as the vanilla artist drew it. Owner call
+# 2026-08-21 while reviewing the bows: these two keep their vanilla colours and are not
+# recoloured at all.
+KEEP_VANILLA = {90, 91}     # Yoichi Bow, Perseus Bow
 STRING_SATURATION = 0.06    # a bowstring is white, not tinted
 STRING_VALUE_FLOOR = 0.70   # vanilla strings run dark; lift the ramp so white reads as white
 GRIP_CONTRAST_DEG = 40.0    # closer than this to the blade and the grip is not a second tone
@@ -580,6 +597,9 @@ def apply_part_roles(codes, van, category, mats, blade_hue):
                 lifted = STRING_VALUE_FLOOR + (1.0 - STRING_VALUE_FLOOR) * rank
                 out[i] = (van[i] & 0x8000) | rgb_to_bgr555(
                     *colorsys.hsv_to_rgb(0.0, STRING_SATURATION, lifted))
+        elif role == "handle":
+            for i in live:
+                out[i] = van[i]               # the vanilla grip colour is the third tone
         elif role == "grip":
             painted = colorsys.rgb_to_hsv(*bgr555_to_rgb(out[live[0]] & 0x7FFF))[0]
             if hue_distance(painted, blade_hue) >= GRIP_CONTRAST_DEG:
@@ -732,6 +752,9 @@ def recolour_for_item(it, van, ff16, tmp, box=None):
     mats = icon_materials(it["id"], ff16, tmp)
     if not mats:
         return {"codes": list(van), "mode": "no colour in icon", "hue": tint[0],
+                "authored": authored, "drift": drift}
+    if it["id"] in KEEP_VANILLA:
+        return {"codes": list(van), "mode": "vanilla, owner call", "hue": tint[0],
                 "authored": authored, "drift": drift}
     label = "1 material" if len(mats) == 1 else "%d materials" % len(mats)
     parts = len(weapon_parts(van, box)) if box else 0

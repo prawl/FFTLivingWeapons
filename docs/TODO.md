@@ -357,6 +357,26 @@ the technical detail lives in the indented lines under it.
     is lifted with its order preserved and lw303_grade.py checks that order separately rather than
     just excusing it. Grip colour prefers a genuine second material from the icon and otherwise
     follows the vanilla artist's convention, steel for a warm blade and leather for a cool one.)
+  - BOW ROUND, owner call 2026-08-21: the vanilla bow is TRI toned and ours was not. Vanilla
+    draws a grey string, a blue grip wrap and a wood limb, and our recolour was flooding the grip
+    with the limb colour. The grip is now simply LEFT ALONE, so the artist's own third colour
+    survives, and Skirmisher reads as the owner asked: blue handle, purple sides, white string.
+    Two bows are now excluded from recolouring entirely by owner call and stay exactly vanilla,
+    Yoichi Bow and Perseus Bow. Honest limit on the word blue: that grip wrap is only blue in four
+    of the thirteen weapon colour sets, so of the seven bows still recoloured, three get blue and
+    four keep their own earth tone. It is a third TONE everywhere, a blue one only sometimes, and
+    which the owner wants is his call.
+  - The icon half of that request is NOT done and needs him, because the icon is a different
+    drawing from the battle sprite and has no blue grip to carry over. Marking every blue pixel in
+    all nine vanilla bow icons shows what the blue actually is: outline and shading on Skirmisher
+    and Stormarc, and on Huntress, Perseus and Frostarc the whole limb. The icons do carry a
+    distinct grip blob in the middle, but its colour is gold, not blue, and it is not reliably
+    separable on all nine. Giving the icon a blue handle therefore means DECIDING which pixels are
+    the handle, which is an art call and not a measurement.
+    (Tech: PART_ROLES gains a Bow handle role on slots 5, 6, 7 which restores vanilla; KEEP_VANILLA
+    holds ids 90 and 91. Only four of the eight bow frames use those slots, the other four are a
+    second bow drawing with no separate grip. Evidence render lw303_bow_icon_blue.png.)
+
   - The score had to be rescoped in the same pass, and the reason is worth keeping. Scoring the
     WHOLE weapon against its icon turns the owner's own request into an error: a deliberately
     contrasting grip drags the average off the icon, and Hushblade went from 6 degrees to 76 by
