@@ -3240,7 +3240,21 @@ def selftest():
         return im
 
     _TINT_A, _TINT_B = (0.08, 0.75, 1.00), (0.58, 0.30, 0.95)
-    _blind, _pin15_err = set(), []
+    # The twelve twin-group ids cannot be measured on their SMALL surface without a real
+    # vanilla decode: _ramp_twin_prototype derives its material map from _ramp_twin_reference,
+    # which reads the vanilla art off disk. That is the same class the checks above skip(), so
+    # here it EXCLUDES the id from the biconditional and is announced; it never counts as a
+    # pass. Three rules keep the exclusion from becoming a hole. A missing file while the game
+    # tree IS present is a hard error, not an exclusion (the escape hatch is inert on a dev box,
+    # where this gate is authoritative). Any other exception stays a hard error everywhere. And
+    # no EXEMPT id may ever be excluded: policing the exemption is the whole job of this pin, so
+    # an exemption that becomes unmeasurable goes red rather than quiet. That last rule is
+    # enforced by the COUNT, len(_claimed) == 36, which drops to 35 the moment an exempt id
+    # stops being measurable; the explicit `not (_exempt & _unmeasured)` clause beside it is
+    # redundant and earns its place only by naming the cause in the failure text. Mutation-
+    # proved 2026-08-21: forcing an exempt id into _unmeasured still goes red with that clause
+    # deleted, so do not read it as the thing protecting the exemption.
+    _blind, _pin15_err, _unmeasured = set(), [], set()
     for _i in sorted(RAMP_IDS):
         _same = 0
         for _surf in ("card", "small"):
@@ -3249,15 +3263,26 @@ def selftest():
                 _pb = _ramp_prototype_dispatch(_ramp_tint_fixture(), _TINT_B, _surf, item_id=_i)
                 if images_equal(_pa, _pb):
                     _same += 1
+            except FileNotFoundError:
+                if _game_files:
+                    _pin15_err.append((_i, _surf, "FileNotFoundError"))
+                else:
+                    _unmeasured.add(_i)
             except Exception as _e:
                 _pin15_err.append((_i, _surf, type(_e).__name__))
         if _same == 2:
             _blind.add(_i)
+    if _unmeasured:
+        skip(f"ramp pin15: {len(_unmeasured)} non-exempt id(s) excluded from the biconditional, "
+             f"unmeasurable without a real vanilla decode: {sorted(_unmeasured)}")
+    _claimed = _exempt & (set(RAMP_IDS) - _unmeasured)
     check(f"ramp pin15: rendering every ramp id under two very different tints proves the engine "
           f"is tint-blind for an id EXACTLY when that id is exempt, so the exemption describes "
           f"the pixels and not just a table (blind: {len(_blind)}, exempt: {len(_exempt)}, "
-          f"disagreements: {sorted(_blind ^ _exempt)}, render errors: {_pin15_err})",
-          not _pin15_err and _blind == _exempt and len(_blind) == 36)
+          f"exempt and measurable: {len(_claimed)}, disagreements: {sorted(_blind ^ _claimed)}, "
+          f"excluded but exempt: {sorted(_exempt & _unmeasured)}, render errors: {_pin15_err})",
+          not _pin15_err and not (_exempt & _unmeasured)
+          and _blind == _claimed and len(_claimed) == 36)
 
     # ramp pin16 (LW-287, THE VENDORED HOLE, named rather than hidden). Twelve ids ship from a
     # frozen PNG, so on that surface their tint DESCRIBES the art without reaching it: editing the
