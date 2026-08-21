@@ -10,6 +10,22 @@ before 2026-07-21 keep their original prose.
 
 ## 2.3.3 cycle
 
+- [LW-292] SHIPPED 5883716 2026-08-21: Changing the colours a weapon wears in battle turns out
+  to need no game restart, which was the last thing nobody knew about the mechanism. The owner
+  settled it in one sitting: a battle with the test sheet gave a flat magenta sword, the file was
+  swapped for the game's own original with the game still running, and the very next battle gave a
+  normal steel sword. The game asks for that file fresh every battle and uses what it gets. This
+  retires the belief the whole colour arc opened with, that battle art is frozen for a session, and
+  it lets the sibling mod's colour slider promise "next battle" instead of asking players to
+  relaunch. (Tech: evidence in ledger row [wep-spr-palette-block]. The launch log showed FFTPack
+  file 71 unread before battle 1, which is what makes the rest admissible, since the first battle
+  of a launch reads from disk either way; final state 3 reads, all Accessing MODDED file 71, none
+  from the game copy, at 07:59:35, 08:02:04, 08:02:41. Swap md5 78fa5102 to cf6ad45e, both 85504
+  bytes, replacement md5-gated out of 0002.en.pac. The loader half was already settled from source,
+  FFTPackFileOverrideStrategy.OnRequestRead does File.OpenRead per call with no cache. Scope is
+  file 71 only; menu art is the g2d container, read once per launch, and stays untested. Probe
+  tools/probes/lw289_palette_selector.py --checklog.)
+
 - [LW-293] SHIPPED f8b1a0b 2026-08-19: A comment in the table generator told the next reader
   that the item table's sprite field chooses which weapon a unit swings, and that a weapon moved
   between families has to have that field repointed or it will render wrong mid swing. Both halves

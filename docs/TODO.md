@@ -318,17 +318,6 @@ the technical detail lives in the indented lines under it.
   decision brief artifact f9835932, and the owner gallery of all 150 items with the halo on and
   off is artifact 1b130ff7.)
 
-- [LW-292] 2026-08-19: Settle whether changing a weapon's battle colours needs the game restarted
-  or just a new battle, because it decides whether the sibling mod's colour slider has to tell
-  players to relaunch. Half of it is already answered from the modloader's own source: it re-opens
-  the mod file on every single request with no caching at all, and the game asks for the weapon
-  sheet once per battle load. What is untested is whether the GAME holds a decoded copy in video
-  memory across battles. Five minutes: swap the deployed sheet mid session, start another battle,
-  look. (Tech: FFTPackFileOverrideStrategy.OnRequestRead does File.OpenRead per call; file 71 read
-  once per battle load, observed eight times in one session at gaps from 17 seconds to nine
-  minutes; the swap tool is tools/probes/lw289_palette_selector.py --deploy --hot.)
-
-
 - [LW-290] 2026-08-19: Once weapons are painted from their icons, nothing stops the two
   drifting apart again, because a recoloured icon and a stale weapon sheet both look fine on
   their own and only disagree in a battle nobody runs before shipping. Add a gate that fails
