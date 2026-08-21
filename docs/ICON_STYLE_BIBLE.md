@@ -85,11 +85,33 @@ imposes ONE hue and varies only saturation and value. One cause, both of the com
 spriter made: a one-hue ramp IS bland, and brightness kept without its colour information stops
 describing a light source. [B-14, taxonomy A1]
 
-**Status: NOT IMPLEMENTED.** This is the single largest design debt in the icon programme. Every
-other rule in this file is a refinement inside a system that still has this flaw at its centre.
-A five-lens diagnostic to prove or kill it was written and has never been run. Do not treat the
-existing engines' output as the ceiling of what is possible here; treat it as the best that was
-achievable while discarding hue.
+**Status: PARTLY IMPLEMENTED. The paragraph above overstated the defect, and the correction was
+bought by the sibling ColorCustomizer session reading our live code on 2026-08-21; every claim
+below was then re-verified in this repo rather than taken on trust.**
+
+The live RAMP engine, which paints all 150 reviewed items, does NOT discard the artist's hue. Its
+chromatic branch takes the source pixel's offset from its cluster's circular mean and adds that to
+the target hue (tools/recolor_icons.py:1811-1814): `off = ((hh - cmean + 0.5) % 1.0) - 0.5`,
+scaled by `trust = min(1, s/0.35)`, hard-clamped to +/-0.04 turn (14.4 degrees) for ROTATE_ALL ids
+and +/-0.08 (28.8 degrees) otherwise. That is ROTATE WITH A CAP. The cap is a real constraint and
+nobody has measured it, but the hue is not thrown away. The neutral branch does take hue and
+saturation from a 5-step donor ramp, but only on pixels below saturation 0.18, where there is
+almost no artist hue left to preserve; that scoping is a deliberate defence and belongs in the
+record.
+
+The `_, s0, v0` sites that genuinely do discard hue all sit in engines the router no longer
+reaches. Worse for the old story: those dormant engines do not scale saturation multiplicatively
+either, they replace it with a per-item constant, so the repair there is not "uncross the axes",
+it is that no per-pixel saturation relationship exists to repair.
+
+**And B-14, the verdict funding this entire section, condemns a SUPERSEDED engine.** B-14 is dated
+2026-08-16. `RAMP_IDS` does not exist at 4b4a74e (2026-08-16); the ramp engine landed in 02f8629
+on 2026-08-17, the day after. Both re-checked here. The shields the spriter called nonsensical and
+bland were painted by `shield_two_tone`, and no shield has been painted by that function since.
+**So the largest stated debt in this file rests on a complaint about art we no longer produce.**
+Nobody has re-rendered that sheet under today's engine and looked. Until someone does, this
+section is an open question and not a known defect, and that re-render is the cheapest decisive
+experiment in the whole programme: one bake, one look, no agents.
 
 Caveat, so nobody over-promises: the player who diagnosed this also suggested "adhering to
 vanilla's palette". FFT:IC icons are BC7 TRUECOLOUR, not indexed like the PSX art they were
@@ -181,6 +203,24 @@ standing warning against promoting any family's lesson to a universal one.
 **A per-item opt-in must be able to beat a family default.** `engine_for` consults the override
 table before any category rule precisely so one odd item does not force a family-wide compromise.
 [B-17]
+
+## Part 4b: THIS FILE LEAKS ANSWERS. Do not paste it into a judge.
+
+**Verified in this repo 2026-08-21.** The shield counter-example in Part 4 names Aegis Prime and
+Wardstone, quotes a winning design verbatim ("gold kept to the edges and gem"), carries the blind
+judge's own rejection phrase ("a timid wash"), and describes the losing candidate's identifying
+feature. That is an answer key plus a distractor key, sitting in exactly the text a "judge with
+the house rules" arm would paste.
+
+The 2026-08-21 two-by-two experiment was designed to hand this file to a judge on two answered
+picker rounds. The rules arm would have won by construction and the result would have meant
+nothing. It was caught before it ran, by the sibling session reading this file instead of
+trusting it, and confirmed here by grep.
+
+**Standing constraint on the whole judge programme: any text in this file that names an item and
+its verdict contaminates every future trial on that item.** Shuffling the candidate letters does
+not help, because the candidates are identified here by description rather than by position.
+Redact before use, or test only on items this file never names.
 
 ## Part 5: Contradictions this bible does NOT resolve
 
