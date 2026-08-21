@@ -360,6 +360,24 @@ in this install calls it, and it is registration-time, so it is not an alternati
 
 </details>
 
+### [crystal-countdown-off-switch] 0xFF in the crystal countdown byte switches crystallization OFF
+
+Writing 0xFF to combat-slot base +0x07 removes a KO'd unit's death/crystal countdown entirely rather than setting it to 255, the game does not overwrite it, and writing a small value back restores the countdown unchanged; AWAITING OWNER FLIP, observed live 2026-08-21 with the owner reading the screen.
+
+<details><summary>How we got here</summary>
+
+**Claim (original wording):** 0xFF in the crystal countdown byte switches crystallization OFF
+
+**Mechanism:** combat-slot base `+0x07` (== band entry `-0x15`) is the 3-hearts countdown, and it carries a distinguished OFF value. The game uses it itself: a battle where a KO'd unit never crystallizes reads `255` on EVERY unit on the field, where a normal battle reads `3` on every unit. The byte tracks the on-screen hearts exactly (3 hearts = 3, 2 hearts = 2). Writing `0xFF` to a unit mid-countdown makes the hearts VANISH, not read as 255, and the engine does not re-write the byte afterwards. Writing `2` back restores two hearts.
+
+**Evidence:** owner live-verified 2026-08-21 on a dead guest unit mid-countdown, both directions, screen read by the owner each time. Dumps `crystal_dump_normal` / `crystal_dump_firstbattle` (all-3 versus all-255 across the whole field), `crystal_dump_guest_2hearts` (byte 2 while screen showed 2), `crystal_dump_guest_after_write` (255 held, no engine rewrite). Probe `tools/probes/crystal_counter_probe.py` verbs `dump` / `suppress` / `set`. Same session, separately: petrify does NOT arm the counter (a petrified unit held full HP, dead bit clear, counter 3, and zero bytes changed across combat `+0x00..0x17`).
+
+**Not yet established:** whether `0xFF` is a true sentinel or merely any value greater than 3 (one write of `0x7F` settles it), and revive / battle-exit behaviour on a unit suppressed then restored. Supersedes the per-tick counter-pin for the purpose of DISABLING; the pin itself remains proven and shipped. Consumer: docs/TODO.md LW-299.
+
+**Date:** 2026-08-21
+
+</details>
+
 ### [turn-moved-acted-flags] Per-unit turn/moved/acted flags (the full-wait read)
 
 The game exposes each unit's menu-open, moved, and acted flags at band +0x19C/+0x19D/+0x19E, with the falling edge of +0x19C as the turn-end decision point; Proven, owner live-verified 2026-07-09.

@@ -270,6 +270,27 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
+- [LW-299] 2026-08-21: The Staff of the Magi keeps a fallen ally out of a crystal by pushing the
+  death timer back to three hearts over and over, every fraction of a second, for as long as the
+  body lies there. The game itself has a far simpler way of saying "this one never crystallizes",
+  and we found it: the first battle switches the timer OFF entirely rather than holding it high,
+  and the switch is one value written once. Rebuild the staff's power on that instead. It is the
+  same promise to the player and a much quieter mechanism, and it stops us wrestling the game
+  every tick for something the game already knows how to do. Verified live with the owner
+  watching the screen: hearts vanish the instant the off value is written, the game does not put
+  it back, and writing a real number returns the hearts exactly as they were, which is what lets
+  the protection lift the moment the bearer dies or unequips. (Tech: the countdown is combat slot
+  base +0x07, band entry -0x15. 0xFF is the off state, observed on EVERY unit of the no-crystal
+  first battle against 3 on every unit of a normal one, and confirmed by write both directions on
+  a guest mid-countdown 255 -> hearts gone -> 2 -> two hearts back. Replaces Sanctuary's per-tick
+  re-pin, and with it the dead-streak guard, the write budget and the fight with the countdown;
+  the ally filter and the lift-on-bearer-loss rule stay. Petrify never arms the counter at all, so
+  stone units need no handling. Two open questions before building: whether 0xFF is a true
+  sentinel or merely greater than 3, testable with one write of 0x7F, and revive plus battle exit
+  behaviour on a unit that was suppressed then restored. Instrument:
+  tools/probes/crystal_counter_probe.py, verbs dump/diff/suppress/set. Ledger row
+  [crystal-countdown-off-switch].)
+
 - [LW-298] 2026-08-21: Change an icon's colour, forget to re-bake, and every gate still passes,
   because nothing a build runs compares the committed pictures against the colours they were
   supposed to be made from. LW-297 closed the gap between the repo and the installed game, so a

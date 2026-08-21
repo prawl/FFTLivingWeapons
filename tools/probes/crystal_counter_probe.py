@@ -1,49 +1,60 @@
 #!/usr/bin/env python
 """
-CRYSTAL COUNTER PROBE -- find the "3 hearts" death/crystal countdown byte by diffing across its ticks.
+CRYSTAL COUNTER PROBE -- the "3 hearts" death/crystal countdown byte, and how to switch it OFF.
 
-Patrick's approach (2026-06-16): rather than hunt the post-battle membership structure, watch a KO'd
-unit's LIVE slot while its on-screen heart counter ticks 3->2->1->0, and find the byte that steps with
-it. That byte IS the crystallization countdown -- the offset docs/research/NOT_LOSE_WEAPON.md called "unmapped".
-If found + pinnable, holding it at 3 is the on-field "never crystallizes" Divine Intervention.
+The counter is combat-slot base +0x07 (== band entry -0x15). Found 2026-06-16 by watching a KO'd
+unit's slot while its on-screen hearts ticked 3->2->1->0 and finding the byte that stepped with it.
 
-We watch the AUTHORITATIVE band family (0x14184C8AC, stride 0x200) -- the static array 0x140893C00
-freezes on restart (LIVE_LEDGER), so a live countdown updates in the band. READ-ONLY (no writes).
+2026-08-21, THE BIG ONE: the game has its OWN "no crystallization" state and it is 0xFF in this
+same byte. Owner noticed a KO'd Ramza shows no hearts at all in the first battle; a dump there
+read 255 on EVERY unit on the field, against 3 on every unit of a normal battle. Verified live,
+both directions, on a guest unit mid-countdown:
 
-The signal vs the noise: a dead unit's CT (+0x09 / +0x25) still cycles fast (0..100) as its "turns"
-pass -- that's noise. The heart counter changes SLOWLY (once per its turn) and only ever DECREASES,
-ending low. So we flag countdown steps live AND, on exit, print every offset whose value-history is
-monotonically non-increasing and bottoms out <=3 -- the crystal counter stands out cleanly there.
+    byte tracks the display exactly   3 hearts -> 3, 2 hearts -> 2
+    write 0xFF  -> hearts VANISH outright (not "255 hearts"), and the game does NOT re-write it
+    write 2     -> hearts come straight back, two of them
+
+So suppression is a single write and it is REVERSIBLE, which is what a signature needs in order to
+lift when its bearer dies or unequips. This supersedes the per-tick counter-pin Sanctuary ships
+today (docs/TODO.md LW-299).
+
+Petrify is NOT death for this purpose: a petrified unit keeps full HP, keeps the dead bit clear,
+and its counter is never armed (measured same session, zero bytes changed in combat +0x00..0x17).
+
+NOT read-only any more. list/watch/dump/diff read; pin/suppress/set WRITE to the live game.
 
 USAGE (game running, in a live battle):
-  python crystal_counter_probe.py list
-      # show every KO'd / dead band unit (slot, br, fa, hp, dead-bit) so you can pick a target.
+  list                          every KO'd / dead band unit, so you can pick a target
+  watch <br> <fa> [secs]        watch a dead unit's slot; ">>> COUNTDOWN" = a byte stepping down
+  dump <tag>                    snapshot +0x07 (and combat +0x00..0x17) for EVERY unit -> json
+  diff <tagA> <tagB>            compare two dumps, keyed by SLOT (see cmd_diff for why not stats)
+  pin <br> <fa> [floor] [secs]  hold the counter at >= floor (the OLD mechanism)
+  suppress <br> <fa> [secs]     write 0xFF and watch whether the game claws it back
+  set <br> <fa> <value>         write any value; use to restore, or to test 0x7F vs 0xFF
 
-  python crystal_counter_probe.py watch <br> <fa> [seconds=180]
-      # watch that dead unit's 0x200 slot. Let the battle run so its hearts tick 3->2->1. Each
-      # ">>> COUNTDOWN" line is a byte that decremented to a small value -- correlate with the
-      # on-screen heart drop. Ctrl-C (or timeout) prints the monotonic-decrease summary = the byte.
-
-  python crystal_counter_probe.py pin <br> <fa> [floor=3] [seconds=180]
-      # PROVE the pin works: hold the counter (combat +0x07) at >= floor while the unit is dead.
-      # GREEN = hearts never reach 0, unit stays a revivable corpse the whole window. WALLED = it
-      # crystallizes anyway (the event reads other state -> counter-pin is a dead end).
-
-If NOTHING in the slot steps 3->2->1->0 in sync with the hearts, the counter lives in a SEPARATE
-per-unit array (the PSX layout the doc warned about) -> escalate to a wide before/after diff.
-
-FOUND 2026-06-16: the counter IS in the slot, at combat-slot base +0x07 (band entry -0x15).
+STILL OPEN: whether 0xFF is a true sentinel or merely "greater than 3" (write 0x7F to find out),
+and revive / battle-exit behaviour on a unit that was suppressed and restored.
 """
+import json
 import pathlib
 import struct
 import sys
 import time
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from treasure_flags import rpm, ru8, wpm, _require_game
+# Was treasure_flags, which went with the Treasure Master module (LW-10, 2026-08-14). This probe
+# has been un-runnable since that removal; battle_cheats carries the same four helpers with the
+# same signatures, so this is a repoint and not a rewrite.
+from battle_cheats import rpm, ru8, wpm, _require_game
 
-BAND, BSTRIDE, BSLOTS = 0x14184C8AC, 0x200, 49
+BSLOTS = 49
 BAND_ENTRY_OFF = 0x1C
+# BAND was hardcoded 0x14184C8AC, a PRE-1.5 address, and stayed stale through the 1.5 re-anchor
+# (+0x6450). The probe therefore read 49 empty slots and reported "0 band unit(s)" while sitting in
+# a perfectly good battle: a silent wrong answer, not an error. Derive it instead, from the same
+# Offsets.cs the runtime uses, so a future re-anchor moves this with it. This mirrors
+# Offsets.BandReadBase (CombatAnchor + BandEntry - 24*CombatStride); that constant is an expression
+# and lib.offsets only parses literals, so the arithmetic is repeated here rather than read.
 # Combat-slot base +0x07 (== band entry -0x15): the death/crystal "3 hearts" countdown.
 # Found live 2026-06-16 -- stepped 3->2->1->0 in sync with the on-screen hearts (crystal_counter watch).
 COUNTER_OFF = 0x07
@@ -53,7 +64,9 @@ AGX, AGY = 0x33, 0x34
 ADEAD, DEAD_BIT = 0x45, 0x20
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 from lib import offsets as _offsets
-BATTLE_MODE, SLOT9 = _offsets.require(["BattleMode", "Slot9"])   # LW-41: from Offsets.cs, not stale copies
+BATTLE_MODE, SLOT9, _CANCHOR, _CSTRIDE, _BENTRY = _offsets.require(
+    ["BattleMode", "Slot9", "CombatAnchor", "CombatStride", "BandEntry"])   # LW-41: from Offsets.cs, not stale copies
+BAND, BSTRIDE = _CANCHOR + _BENTRY - 24 * _CSTRIDE, _CSTRIDE
 TICK, LOG_EVERY = 0.05, 0.0
 
 
@@ -114,6 +127,170 @@ def cmd_list():
               f"hp={u['hp']:>3} ({u['gx']},{u['gy']}) {flag}")
     print("\nPick one whose HEARTS are visibly counting down, then:")
     print("  python crystal_counter_probe.py watch <br> <fa>")
+
+
+def cmd_dump(tag):
+    """Snapshot the countdown byte for EVERY band unit, alive or dead, and save it for diffing.
+
+    WHY (owner observation 2026-08-21): in the first battle a KO'd Ramza shows NO hearts at all,
+    where a normal battle shows three. If the game already has a "no countdown" state, we would
+    rather write THAT than keep re-pinning the counter to 3 every tick the way Sanctuary does.
+
+    Two hypotheses this separates, and they need different fixes:
+      H1 PER-UNIT SENTINEL. +0x07 holds a distinguished value (0, 0xFF, something >3) meaning
+         "this unit never crystallizes". If so the fix is one write per protected unit and the
+         tick-by-tick pin can retire.
+      H2 PER-BATTLE SUPPRESSION. +0x07 looks identical in both battles and the countdown is
+         gated somewhere else entirely (encounter data, a story-battle flag, the UI layer).
+         Then the counter is a red herring for "disable" and only the pin works on the field.
+
+    Dump in BOTH places, then diff the two json files. The neighbour bytes are carried because if
+    H1 is false the flag is plausibly next door, and re-walking the owner through a second capture
+    costs far more than reading 16 extra bytes now. READ-ONLY.
+    """
+    gate()
+    rows = []
+    for s in range(BSLOTS):
+        u = read_unit(s)
+        if not u:
+            continue
+        base = u["base"]
+        nb = rpm(base, 0x18)
+        rows.append({
+            "slot": u["slot"], "br": u["br"], "fa": u["fa"], "lvl": u["lvl"],
+            "hp": u["hp"], "mhp": u16(u["addr"] + AMHP), "dead": u["dead"],
+            "gx": u["gx"], "gy": u["gy"],
+            "counter_0x07": ru8(base + COUNTER_OFF),
+            "base_0x00_0x17": list(nb) if nb else None,
+        })
+    print(f"=== {len(rows)} band unit(s), countdown byte at combat +0x07 ===")
+    print(f"{'slot':>4} {'br':>3} {'fa':>3} {'lvl':>3} {'hp':>4}/{'mhp':<4} {'dead':>5} {'+0x07':>6}")
+    for r in rows:
+        print(f"{r['slot']:>4} {r['br']:>3} {r['fa']:>3} {r['lvl']:>3} "
+              f"{r['hp']:>4}/{str(r['mhp']):<4} {str(r['dead']):>5} {str(r['counter_0x07']):>6}")
+    out = pathlib.Path(__file__).resolve().parent / f"crystal_dump_{tag}.json"
+    out.write_text(json.dumps(rows, indent=1), encoding="utf-8")
+    print(f"\nsaved -> {out}")
+    print("Capture the OTHER battle too, then: python crystal_counter_probe.py diff <tagA> <tagB>")
+
+
+def cmd_diff(a, b):
+    """Diff two dumps on the countdown byte, matching units by brave+faith+level.
+
+    Prints only what DIFFERS, because the whole question is whether the suppressed battle holds a
+    different value. A clean "no unit differs on +0x07" is a real result: it kills H1 and sends the
+    hunt to the neighbour bytes, then off-slot entirely.
+    """
+    d = pathlib.Path(__file__).resolve().parent
+    ra = json.loads((d / f"crystal_dump_{a}.json").read_text(encoding="utf-8"))
+    rb = json.loads((d / f"crystal_dump_{b}.json").read_text(encoding="utf-8"))
+    # Key by SLOT, not by br+fa+lvl. The band carries MIRROR seats that clone a real unit's
+    # stats exactly (band-mirror-frame note), so a stat key collides and the mirror silently
+    # overwrites the real seat in the lookup. That produced a confident FALSE reading on
+    # 2026-08-21 ("petrify moved +0x07 from 3 to 0") that the raw table flatly contradicted.
+    # Slots are stable within a battle, which is the only case where a per-unit diff is meaningful.
+    key = lambda r: r["slot"]
+    mb = {key(r): r for r in rb}
+    print(f"=== +0x07 diff: {a} vs {b} ===")
+    shared = 0
+    for r in ra:
+        o = mb.get(key(r))
+        if not o:
+            continue
+        shared += 1
+        if r["counter_0x07"] != o["counter_0x07"]:
+            print(f"  br={r['br']} fa={r['fa']} lvl={r['lvl']}: "
+                  f"{a}={r['counter_0x07']} {b}={o['counter_0x07']}  "
+                  f"(dead {r['dead']} vs {o['dead']})")
+    print(f"{shared} unit(s) matched across both dumps.")
+    print("\nNeighbour bytes that differ on a unit present in both (H1 fallback):")
+    for r in ra:
+        o = mb.get(key(r))
+        if not o or not r["base_0x00_0x17"] or not o["base_0x00_0x17"]:
+            continue
+        d2 = [i for i in range(0x18) if r["base_0x00_0x17"][i] != o["base_0x00_0x17"][i]]
+        if d2:
+            print(f"  br={r['br']} fa={r['fa']}: offsets {[hex(i) for i in d2]}")
+
+
+def cmd_suppress(br, fa, seconds=60.0):
+    """THE DECISIVE WRITE: put 0xFF in a KO'd unit's +0x07 and see if the hearts vanish.
+
+    Reading established (2026-08-21) that a battle where nobody crystallizes carries +0x07 == 255
+    on EVERY unit, while a normal battle carries 3. That is correlation only. Two readings still
+    fit and they are different mechanisms:
+      A. 0xFF is a real sentinel the countdown checks  -> writing it here KILLS the hearts outright.
+      B. 0xFF is merely "uninitialised" and that battle suppresses crystallization elsewhere
+         -> writing it here reads as 255 HEARTS, so the display shows a count that simply never
+         runs out, or shows something nonsensical.
+    Both leave us a working weapon; only A is a mechanism worth putting in the ledger, and only A
+    lets Sanctuary retire its per-tick pin for a single write.
+
+    The screen is the instrument here, not this script. The script reports whether the value STICKS
+    (a game that rewrites it every turn tells us the countdown owns the byte) and the owner reports
+    what the hearts actually did. Writes 0xFF once, then only re-writes if the game clobbers it.
+    """
+    gate()
+    u = _locate(br, fa)
+    if u is None:
+        print(f"no band unit with brave={br} faith={fa}. Run `list` or `dump`.")
+        sys.exit(1)
+    base = u["base"]
+    pre = ru8(base + COUNTER_OFF)
+    print(f"=== SUPPRESS s{u['slot']} br={br} fa={fa} lvl={u['lvl']} hp={u['hp']} @ {base:#014x} ===")
+    print(f"  +0x07 before write: {pre}   (expect 3 in a normal battle)")
+    if not wpm(base + COUNTER_OFF, bytes([0xFF])):
+        print("  WRITE FAILED (guarded refusal). Nothing changed.")
+        sys.exit(1)
+    print(f"  wrote 0xFF, reads back: {ru8(base + COUNTER_OFF)}")
+    print("\n  >>> LOOK AT THE SCREEN NOW. Which is it?")
+    print("      (a) hearts GONE entirely            -> 0xFF is a real suppress sentinel")
+    print("      (b) hearts still there, not ticking -> 0xFF is just a big number")
+    print("      (c) something else / garbled        -> say exactly what\n")
+    rewrites, last = 0, 0xFF
+    t0 = time.time()
+    while time.time() - t0 < seconds:
+        v = ru8(base + COUNTER_OFF)
+        if v is None:
+            print("  slot went unreadable (battle ended?)")
+            break
+        if v != last:
+            print(f"  [{time.time()-t0:6.1f}s] value changed {last} -> {v}"
+                  + ("   <-- THE GAME IS WRITING THIS BYTE" if v != 0xFF else ""))
+            if v != 0xFF:
+                rewrites += 1
+                wpm(base + COUNTER_OFF, bytes([0xFF]))
+            last = v
+        time.sleep(0.25)
+    print(f"\n  done. game overwrote our value {rewrites} time(s).")
+    print("  0 rewrites = the byte is ours to set. Many = the countdown owns it and re-pins.")
+
+
+def cmd_set(br, fa, value):
+    """Write an arbitrary value to a unit's +0x07 and report the before/after.
+
+    Exists for the REVERSE direction. Suppressing hearts with 0xFF is only half a shippable
+    mechanism: Sanctuary must LIFT the moment its bearer dies or unequips, so putting a real
+    countdown BACK has to work as reliably as taking it away. If 0xFF is a one-way door the
+    feature cannot honour its own contract and the per-tick pin has to stay.
+
+    Also the cheap way to test whether 0xFF is a genuine sentinel or merely "greater than 3":
+    write 0x7F and see whether the hearts stay gone or come back as some large count.
+    """
+    gate()
+    u = _locate(br, fa)
+    if u is None:
+        print(f"no band unit with brave={br} faith={fa}. Run `list` or `dump`.")
+        sys.exit(1)
+    base = u["base"]
+    pre = ru8(base + COUNTER_OFF)
+    if not wpm(base + COUNTER_OFF, bytes([value & 0xFF])):
+        print("  WRITE FAILED (guarded refusal). Nothing changed.")
+        sys.exit(1)
+    post = ru8(base + COUNTER_OFF)
+    print(f"=== SET s{u['slot']} br={br} fa={fa} dead={u['dead']} hp={u['hp']} ===")
+    print(f"  +0x07: {pre} -> {post}")
+    print("\n  >>> LOOK AT THE SCREEN. Did the hearts come back, and how many?")
 
 
 def _locate(br, fa):
@@ -226,6 +403,14 @@ def main():
     nums = [int(x) for x in rest if x.lstrip("-").isdigit()]
     if mode == "list":
         cmd_list()
+    elif mode == "set" and len(nums) >= 3:
+        cmd_set(nums[0], nums[1], nums[2])
+    elif mode == "suppress" and len(nums) >= 2:
+        cmd_suppress(nums[0], nums[1], float(nums[2]) if len(nums) >= 3 else 60.0)
+    elif mode == "dump":
+        cmd_dump(rest[0] if rest else "x")
+    elif mode == "diff" and len(rest) >= 2:
+        cmd_diff(rest[0], rest[1])
     elif mode == "watch" and len(nums) >= 2:
         cmd_watch(nums[0], nums[1], float(nums[2]) if len(nums) >= 3 else 180.0)
     elif mode == "pin" and len(nums) >= 2:
