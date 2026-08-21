@@ -293,6 +293,17 @@ the technical detail lives in the indented lines under it.
   landing as blobs on 216 and 218. Needs a per-item mask key chosen from the art per the bible's
   Part 4, not one recipe for the family, and a saturation rule relative to each item's own art
   rather than a flat cap. Renders in the session scratchpad.)
+  - OWNER DIRECTIVE 2026-08-21, and it found the actual rule: do the big picture and the little
+    picture together. They are NOT the same drawing. The 100px card is a detailed near grey object;
+    the 48px list icon is a chunky simplified shape the artist already coloured. Measured over all
+    71: the card art sits at 0.164 saturation, the list art at 0.333, and we paint BOTH with one
+    authored 0.450. So the same number is nearly three times too strong on the card and about right
+    on the list, and 60 of the 71 have a more colourful list icon than card icon. That is why one
+    flat cap fixed a surface and broke the other, and it is a rule rather than a hand tune: keep
+    ONE identity hue per item so the two surfaces agree, and scale the STRENGTH per surface
+    against the art actually underneath it. Also confirms the corpus line that an invented split
+    reads muddy at 48px, since the desat zone that recovered a cuff on the card put white blobs on
+    the mitten.)
 
 - [LW-299] 2026-08-21: The Staff of the Magi keeps a fallen ally out of a crystal by pushing the
   death timer back to three hearts over and over, every fraction of a second, for as long as the
