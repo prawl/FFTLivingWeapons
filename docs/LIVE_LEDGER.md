@@ -2509,7 +2509,15 @@ The 16 palettes of FFTPack file 71 sit in process memory in four copies, two hea
 
 **Not yet established:** whether writing the STATIC working buffer alone is enough, which is the question that decides whether this needs any per-launch search at all; where the loaded file sits relative to a stable anchor, since nothing in 2 GB holds a pointer to it or to anything within 128 KB before it, so the game reaches it by a computed offset or a register-held pointer rather than a stored address; whether the buffers survive a fresh launch or a save load; and the interaction with a shipped FFTPack override, ABSENT during this test since BuildLinked had wiped the deployed fftpack tree.
 
-**Shipping consequence, worth stating plainly:** the fixed address `0x140d35750` is the attractive target precisely because it needs no search, but it is the DESTINATION of a copy performed at battle load, so a write to it lands only if it happens after that copy and before the GPU upload. The loaded-file copy has the opposite trade: writing it is durable across the load, but its address moves every launch and no pointer to it exists to follow.
+**Shipping target SETTLED 2026-08-21 by direct test: write the LOADED FILE, not the static buffer.**
+
+The test was built so the two candidates could not be confused. The loaded file was first restored to pristine on both banks, so it could not be the cause of anything seen; then palette 14 was set to a NEW colour (cyan `0x7FE0`, deliberately different from the magenta already in play) in the static buffer's bank A ONLY, leaving bank B holding the older magenta as a second control. The owner reloaded the battle and swung two palette-14 knives: both rendered NORMAL STEEL, neither cyan nor magenta.
+
+The follow-up read is what makes this conclusive rather than merely negative, because "the write was overwritten" and "that buffer is not the render source" look identical on screen. Both static banks read VANILLA afterwards, so our cyan was demonstrably destroyed rather than ignored: the game performs a file to buffer copy at battle load, and the static buffer is its DESTINATION.
+
+So the two candidates resolve as: the static buffer at `0x140d35750` is refreshed every battle load and a write there is transient, surviving only if it lands between the copy and the GPU upload; the loaded file persists across a battle load and is where a durable write belongs, which is consistent with the original magenta observation where the file was what got written.
+
+**The remaining engineering problem is therefore locating the loaded file each launch**, since its address moves and nothing in 2 GB points to it or to within 128 KB before it. The workable route is a signature scan for content the file uniquely contains: palC at file `+0x10400` is a visibly distinct bank (`9c83 9863 9463 9042 ...`) and unlike palA it is not duplicated within the file, which makes it a better needle than the palette block that found this in the first place. Scoping such a scan to MEM_PRIVATE regions is the obvious cost reduction.
 
 **Date:** 2026-08-21
 
