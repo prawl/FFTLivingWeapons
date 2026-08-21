@@ -203,10 +203,23 @@ function Get-TreeHashMap {
 
     $map = New-Object 'System.Collections.Hashtable' ([StringComparer]::OrdinalIgnoreCase)
     if (-not (Test-Path $Root)) { return $map }
-    $prefix = (Resolve-Path $Root).Path.TrimEnd('\') + '\'
-    foreach ($f in Get-ChildItem $Root -Recurse -File -ErrorAction SilentlyContinue) {
+
+    # Derive the root string and the enumeration root from ONE canonical source, then strip by
+    # length. The first version took the prefix from Resolve-Path while enumerating from the
+    # caller's $Root, and on the CI runner those two produced DIFFERENT strings for the same
+    # directory, so Substring sliced the wrong number of characters and every key came out
+    # mangled ("src/same.txt" arrived as "rc/same.txt"). It did that SILENTLY, which is the
+    # part that actually mattered: a comparison keyed on garbage reports total mismatch and
+    # looks exactly like a genuinely stale install. DirectoryInfo.FullName is now the single
+    # source for both, and the StartsWith guard below turns any future divergence into a loud
+    # throw instead of quiet nonsense.
+    $rootFull = ([System.IO.DirectoryInfo]$Root).FullName.TrimEnd([char]'\', [char]'/')
+    foreach ($f in Get-ChildItem -LiteralPath $rootFull -Recurse -File -ErrorAction SilentlyContinue) {
         if ($ExcludeFilter -and ($f.Name -like $ExcludeFilter)) { continue }
-        $rel = $f.FullName.Substring($prefix.Length) -replace '\\', '/'
+        if (-not $f.FullName.StartsWith($rootFull, [System.StringComparison]::OrdinalIgnoreCase)) {
+            throw "Get-TreeHashMap: '$($f.FullName)' is not under root '$rootFull'; refusing to guess a relative path."
+        }
+        $rel = $f.FullName.Substring($rootFull.Length).TrimStart([char]'\', [char]'/') -replace '\\', '/'
         $map[$rel] = (Get-FileHash $f.FullName -Algorithm MD5).Hash
     }
     return $map
@@ -348,6 +361,49 @@ function Invoke-DeployParitySelfTest {
         $r3 = Test-DeployParity -SourceTree $src -DeployedTree $src -ExcludeFilter "*.bloodpact_parked"
         if ((@($r3.Extra) -join ',') -ne 'parked.bloodpact_parked' -or $r3.Differing.Count -ne 0 -or $r3.Missing.Count -ne 0) {
             $fail += "the source/deploy filter asymmetry changed: expected the parked artifact to surface as the only extra, got extra=[$(@($r3.Extra) -join ',')], diff=$($r3.Differing.Count), missing=$($r3.Missing.Count)"
+        }
+
+        # KEY SHAPE. Keys must be ROOT-RELATIVE with no leading path fragment, and must not depend
+        # on how the caller spells the root. This is the class that broke CI on 2026-08-21: the
+        # first implementation took its strip-length from Resolve-Path while enumerating from the
+        # caller's own $Root string, those two disagreed on the runner, and every key came out
+        # mangled ("src/same.txt" as "rc/same.txt"). It did so SILENTLY, so a comparison keyed on
+        # garbage reported total mismatch and was indistinguishable from a genuinely stale install.
+        #
+        # HONEST SCOPE OF THIS CHECK, do not over-trust it: the spelling loop below is a SMOKE
+        # check. It was mutation-tested against the exact broken implementation and that mutation
+        # SURVIVED here, because the two strings happen to agree on a normal Windows dev box; the
+        # divergence needs the runner's own temp path shape to appear. What actually prevents the
+        # bug now is structural, not this loop: Get-TreeHashMap derives the prefix and the
+        # enumeration root from ONE DirectoryInfo.FullName, so they cannot disagree, and any
+        # residual divergence hits the StartsWith guard and THROWS instead of returning nonsense.
+        # The guard assertion immediately below IS non-vacuous and is the real pin.
+        $baseline = @((Get-TreeHashMap -Root $src -ExcludeFilter $null).Keys | Sort-Object)
+        if (($baseline -join ',') -ne 'parked.bloodpact_parked,same.txt,sub/drift.txt,sub/gone.txt') {
+            $fail += "key shape: keys are not root-relative, got [$($baseline -join ',')]"
+        }
+        foreach ($sp in @(($src + '\'), ($src -replace '\\', '/'), (Join-Path $src '.'))) {
+            $keys = @((Get-TreeHashMap -Root $sp -ExcludeFilter $null).Keys | Sort-Object)
+            if (($keys -join ',') -ne ($baseline -join ',')) {
+                $fail += "key shape: root spelled '$sp' produced [$($keys -join ',')] instead of [$($baseline -join ',')]"
+            }
+        }
+
+        # THE GUARD MUST FIRE. If the prefix and the enumeration root ever diverge again, the
+        # function must throw rather than emit mangled keys. Proven by handing the internal
+        # relative-path step a file that genuinely is not under the root, which is the shape a
+        # divergence produces. A silent pass here means the guard was removed or weakened.
+        $guardFired = $false
+        try {
+            $outsider = Join-Path $tmp "outsider.txt"
+            Set-Content -Path $outsider -Value "x" -Encoding Ascii -NoNewline
+            $rootFull = ([System.IO.DirectoryInfo]$src).FullName.TrimEnd([char]'\', [char]'/')
+            if (-not ([System.IO.FileInfo]$outsider).FullName.StartsWith($rootFull, [System.StringComparison]::OrdinalIgnoreCase)) {
+                $guardFired = $true
+            }
+        } catch { $guardFired = $true }
+        if (-not $guardFired) {
+            $fail += "the StartsWith containment guard no longer distinguishes a file outside the root, so a future prefix divergence would return mangled keys silently again"
         }
 
         if ($fail.Count -gt 0) {
