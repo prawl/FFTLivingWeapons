@@ -170,6 +170,22 @@ belongs rather than at the bottom.
   lw251_warbrand_probe1/2.png, decoded contact sheets lw251_wep1/wep2_zeroframes.png,
   zero frame parser cross checked against TacticsTemplateG's Shp.gd; resolver chain notes
   in the weapon-blade-art-walled memory, prototype branch ledger only.)
+  - OFFLINE GEOMETRY ROUND 2026-08-24, and its verdict REFRAMES the hunt: the garbage is not
+    classic sprite data at all. All 871 frames of both shape files were decoded and rendered
+    (parser validated by the frame count matching exactly), all three pixel pages of the
+    sprite file were dumped and searched, and the garbage chunks appear in none of them. The
+    chunks themselves, cropped and enlarged, are SMOOTH high fidelity art (a golden quill
+    feather with a metal nib, and a glossy cyan sliver that closely resembles the swing arc
+    art in HD form) while the unit beside them renders as chunky classic pixels, so the
+    garbage is drawn by the HD layer, not the classic frame path. The gold also matches no
+    entry of Warbrand's authored palette, so the draw is not even wearing the acting weapon's
+    paint. Stop editing the classic shape files; the next instruments are the HD equipment
+    sheet rendered with a REAL colour table (the garbage may be its art sampled at overrun
+    coordinates; tex_161 is the classic page's HD twin at the same 256x256 coordinates) and
+    the June in process resolver chain. (Tech: renderer tools/probes/lw312_frame_atlas.py,
+    format from TacticsTemplateG Shp.gd; crops lw312_crop_plume/sliver in the session
+    scratchpad; silhouette IoU over all frames peaked at 0.64 on generic blobs, no true
+    match; g2d BGRA scan found no gold feather blob but is blind to paletted entries.)
 
 - [LW-302] 2026-08-21: Shields are visible in battle too and they stay their original colour while
   the weapons change, which will look odd once weapons match their icons. Owner spotted it during
