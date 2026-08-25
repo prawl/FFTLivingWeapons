@@ -107,7 +107,7 @@ the technical detail lives in the indented lines under it.
     the same gold-over-green mismatch this row first described but the same family of problem.
     The old zone recipe this row's Tech bullet describes was deleted; the bright-v2/
     CARD_OVERRIDES/SMALL_TWO_ZONE dormancy this row notes stands on its own, unaffected.
-- **[LW-322] Every weapon's description says in plain words what it grows** (opened 2026-08-25) [QUEUED]
+- **[LW-322] Every weapon's description says in plain words what it grows** (opened 2026-08-25) [AWAITING-LIVE]
   - "Grows: Speed" or "Grows: PA, MA and Brave" joins each living weapon's card text,
     because the glow colors alone tell a player THAT a weapon grew, not WHAT it grows,
     and text works for everyone including colorblind players. Ships as ONE description
@@ -119,6 +119,18 @@ the technical detail lives in the indented lines under it.
     flavor anchor line the in-card counter latches onto; one item.en.nxd rebake via
     tools/patch_names.py, restart-only, plus the description-uniqueness and desc-budget
     gates re-run. Owner proposed 2026-08-25.)
+  - BUILT and verified 2026-08-25 (commit 5dbc7ff), owner live pass outstanding. Mid-build
+    the owner widened the seat: the kept-vanilla-name text rule is SCRAPPED ("the effects it
+    produces is more important than the flavor text"), so all 36 famous-name weapons moved
+    onto the generated path with authored flavor lines and their hidden effects now print
+    (LW-328 exits absorbed). One clause of this seat was superseded by that ruling: the
+    flavor anchor line is NOT byte-identical for the rewritten cards; the anchor mechanism
+    stays safe because meta.json and the nxd rebake together, the same co-move the Huntress
+    fix proved live earlier today. (Tech: lite pipeline, two adversarial verify rounds,
+    final scores code 9 spec 8 SHIP; a new pinned-table GROWS PHRASE gate in analyze.py,
+    mutation-proven non-vacuous; Kiku fits at 201/205 via a Draw Out label and a Mushin
+    p3Desc compression in grid lockstep; Materia Blade keeps a custom desc so its Ultima
+    scaling numbers survive.)
   - Done means: every living weapon's shipped description carries a Grows phrase naming
     exactly its baked lanes, no phrase on non-growing items, the Kills scaffold and the
     flavor anchor line byte-identical to before, and the assembled text still inside the
@@ -194,17 +206,6 @@ belongs rather than at the bottom.
   CHp 0x30, delta = target - natural max; attribution is safe per
   [maxhp-hold-attribution-safe] and the LW-317 pass; needs its own failing test first
   and one owner reading, a knight opening a battle at 883/883.)
-
-- [LW-328] 2026-08-25: Eighteen weapons hide a real on-hit power because their card shows
-  untouched vanilla text: weapons that kept their vanilla name deliberately keep their
-  vanilla description (the 2026-06-07 rewrite's rule, 65b2a88), so Masamune never mentions
-  its Sleep, Koga Blade its Poison, Kiku-ichimonji and Dragon Whisker their may-casts, and
-  fourteen more. Surfaced by the LW-320 ghost-proc ruling, where five of the seven procs
-  could be re-advertised but Kiku and Dragon Whisker could not without breaking this rule.
-  Owner decision needed: keep iconic text pure, or append just the mechanics line under
-  the vanilla prose (would ride LW-322's single bake). (Tech: scan recipe in the LW-320
-  session notes; the class = kept-name items where lib/flavor.mechanics() is non-empty
-  but assemble_desc() returns verbatim vanilla.)
 
 - [LW-318] 2026-08-25: The weapon power curve gets a fairness pass: every weapon strong
   enough to matter, none so strong the rest become vendor trash. The owner replayed the mod

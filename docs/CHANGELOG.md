@@ -10,6 +10,15 @@ before 2026-07-21 keep their original prose.
 
 ## 2.4.0 cycle
 
+- [LW-328] SHIPPED 5dbc7ff 2026-08-25: The famous weapons stopped hiding their powers. The
+  question this row asked (may cards add text under a famous weapon's untouched original
+  description) was answered by the owner the same day it was asked, and more broadly than
+  asked: the untouched-text rule itself was scrapped ("the effects it produces is more
+  important than the flavor text"), so all 36 kept-name living weapons moved onto the
+  generated description path inside LW-322's bake and every hidden effect now shows on its
+  card. (Tech: absorbed into the LW-322 change, commit 5dbc7ff; the desc fields were
+  deleted from items.json and the Materia Blade alone keeps a custom desc for its
+  runtime-only Ultima scaling numbers.)
 - [LW-317] SHIPPED e02f1a7 2026-08-25: Weapons now grow two or three stats at once, the
   multi-lane engine the whole redesign was building toward. Poles and the Materia Blade
   grow PA and MA together, katanas add flat Brave capped at 97, Knight Swords raise max
