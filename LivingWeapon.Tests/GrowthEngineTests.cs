@@ -306,6 +306,58 @@ public class GrowthEngineTests
         Assert.False(GrowthEngine.MatchesEntry(mem, s, level: 30, brave: 65, faith: 58, MakeHands(10), nameId: 298));
     }
 
+    // ---- Route: the stat-lane decision table (LW-249; previously unpinned, which is where
+    //      the pole mis-route hid). The damage-scaling authority is docs/living_weapon_grid.csv's
+    //      dmgScaling column: all nine poles are MA x WP, so Pole routes to the MA lane with
+    //      Rod/Staff. The items.json per-item `formula` int is the engine HANDLER id, NOT the
+    //      damage math (29 weapons incl. plain swords carry formula 2) -- pinned below so no
+    //      future session re-derives routing from that field. ----
+
+    private static WeaponMeta RouteMeta(string cat, int formula) =>
+        new() { Name = "T", Wp = 5, Cat = cat, Formula = formula, Flavor = "f" };
+
+    [Theory]
+    [InlineData("Pole", 1)]   // LW-249: every pole is MA x WP per the grid (ids 48, 107-114)
+    [InlineData("Pole", 2)]
+    [InlineData("Rod", 1)]    // current caster categories, unchanged
+    [InlineData("Staff", 1)]
+    [InlineData("Gun", 4)]    // Faith-spell formula routes MA regardless of category
+    public void Route_ma_lane(string cat, int formula)
+    {
+        long s = 0x4000;
+        Assert.True(GrowthEngine.Route(s, RouteMeta(cat, formula), tier: 1, out long addr, out _, out var lane));
+        Assert.Equal(s + Offsets.CMa, addr);
+        Assert.Equal(StatLane.Ma, lane);
+    }
+
+    [Theory]
+    [InlineData("Sword", 1)]
+    [InlineData("Sword", 2)]  // formula 2 is a handler id, not "MA-scaled": a sword on it stays PA
+    [InlineData("Knife", 1)]
+    public void Route_pa_default(string cat, int formula)
+    {
+        long s = 0x4000;
+        Assert.True(GrowthEngine.Route(s, RouteMeta(cat, formula), tier: 1, out long addr, out _, out var lane));
+        Assert.Equal(s + Offsets.CPa, addr);
+        Assert.Equal(StatLane.Pa, lane);
+    }
+
+    [Fact]
+    public void Route_speed_formula_routes_speed()
+    {
+        long s = 0x4000;
+        Assert.True(GrowthEngine.Route(s, RouteMeta("Sword", 99), tier: 1, out long addr, out double f, out var lane));
+        Assert.Equal(s + Offsets.CSpeed, addr);
+        Assert.Equal(StatLane.Speed, lane);
+        Assert.Equal(Tuning.SpeedFactor[1], f);
+    }
+
+    [Theory]
+    [InlineData(67)]
+    [InlineData(69)]
+    public void Route_missing_hp_formulas_skip(int formula)
+        => Assert.False(GrowthEngine.Route(0x4000, RouteMeta("Sword", formula), tier: 1, out _, out _, out _));
+
     // ---- ScanEntries: tier-1 disambiguation + player-first order ----
 
     [Fact]

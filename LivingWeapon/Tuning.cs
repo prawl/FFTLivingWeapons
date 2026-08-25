@@ -311,7 +311,12 @@ internal static class Tuning
     public const int PuppeteerWielderlessFallbackTurns = 12;
 
     /// <summary>Caster gear grows Magick Attack instead of Physical (a mage kills with spells).</summary>
-    public static bool IsCaster(string category) => category == "Rod" || category == "Staff";
+    /// <summary>Categories whose growth feeds Magick Attack. Pole joined 2026-08-24 (LW-249):
+    /// every pole's damage is MA x WP per docs/living_weapon_grid.csv's dmgScaling column (ids
+    /// 48, 107-114), so PA growth was a stat their swings could never cash. Rod stays here even
+    /// though five rods scale PA x WP in that grid: demoting rods is part of the parked LW-250
+    /// formula-lane redesign, an owner decision, not a bug fix.</summary>
+    public static bool IsCaster(string category) => category == "Rod" || category == "Staff" || category == "Pole";
 
     // ── Toasts ────────────────────────────────────────────────────────
 

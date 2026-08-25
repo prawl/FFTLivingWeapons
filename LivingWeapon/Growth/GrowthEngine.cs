@@ -154,8 +154,10 @@ internal sealed partial class GrowthEngine
         return list;
     }
 
-    /// <summary>Pick the stat address + factor + ledger lane for a weapon, or false to skip.</summary>
-    private bool Route(long s, WeaponMeta m, int tier, out long addr, out double factor, out StatLane lane)
+    /// <summary>Pick the stat address + factor + ledger lane for a weapon, or false to skip.
+    /// Internal static (LW-249): the decision depends only on the meta and Tuning, and the
+    /// table was previously unpinned, which is exactly where the pole mis-route hid.</summary>
+    internal static bool Route(long s, WeaponMeta m, int tier, out long addr, out double factor, out StatLane lane)
     {
         lane = StatLane.Pa;
         if (Tuning.SkipFormula(m.Formula)) { addr = 0; factor = 0; return false; }
