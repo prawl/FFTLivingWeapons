@@ -1,0 +1,98 @@
+{
+ "hp": {
+  "contrast_ok": true,
+  "hex": "#FFB15E",
+  "id": 33,
+  "panel_dE": 39.3,
+  "poster": "Defender",
+  "rgb": [
+   255,
+   177,
+   94
+  ]
+ },
+ "ma": {
+  "contrast_ok": true,
+  "hex": "#6A89FF",
+  "id": 52,
+  "panel_dE": 50.7,
+  "poster": "Spark Rod",
+  "rgb": [
+   106,
+   137,
+   255
+  ]
+ },
+ "pa": {
+  "contrast_ok": true,
+  "hex": "#C16E6A",
+  "id": 22,
+  "panel_dE": 37.3,
+  "poster": "Claymore",
+  "rgb": [
+   193,
+   110,
+   106
+  ]
+ },
+ "pa+ma": {
+  "contrast_ok": true,
+  "hex": "#7962B9",
+  "id": 107,
+  "panel_dE": 47.7,
+  "poster": "Greenwood Pole",
+  "rgb": [
+   121,
+   98,
+   185
+  ]
+ },
+ "pa+ma+brave": {
+  "contrast_ok": true,
+  "hex": "#607FBC",
+  "id": 43,
+  "panel_dE": 38.2,
+  "poster": "Kiyomori",
+  "rgb": [
+   96,
+   127,
+   188
+  ]
+ },
+ "speed": {
+  "contrast_ok": true,
+  "hex": "#8DA371",
+  "id": 2,
+  "panel_dE": 30.3,
+  "poster": "Quicksilver",
+  "rgb": [
+   141,
+   163,
+   113
+  ]
+ },
+ "wp": {
+  "contrast_ok": true,
+  "hex": "#6BFAFF",
+  "id": 71,
+  "panel_dE": 30.2,
+  "poster": "Outrider Pistol",
+  "rgb": [
+   107,
+   250,
+   255
+  ]
+ },
+ "wp+faith": {
+  "contrast_ok": true,
+  "hex": "#DDB852",
+  "id": 75,
+  "panel_dE": 40.1,
+  "poster": "Blaze Gun",
+  "rgb": [
+   221,
+   184,
+   82
+  ]
+ }
+}
