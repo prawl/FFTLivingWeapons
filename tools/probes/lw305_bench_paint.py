@@ -36,6 +36,9 @@ USAGE:
   python lw305_bench_paint.py saw "Dagger" cyan     # record what a swing actually looked like
   python lw305_bench_paint.py tally                 # every observation, disagreements first
   python lw305_bench_paint.py render "Materia Blade"  # offline: what the bench SHOULD look like
+  python lw305_bench_paint.py glow "Materia Blade" 2  # LIVE: authored colours brightened to kill tier +2 (LW-295 look test)
+  python lw305_bench_paint.py glow "Materia Blade" 3 0.9  # same, but with an explicit brighten factor
+  python lw305_bench_paint.py glowrender "Materia Blade"  # offline: the authored paint beside all three glow tiers
   python lw305_bench_paint.py restore               # LIVE: re-read banks from... see note below
 
 There is no `restore`: nothing on disk holds the pre-write bytes, and a battle load restores the
@@ -71,6 +74,22 @@ def e5(v5):
 def code_of(rgb):
     r, g, b = (q5(c) for c in rgb)
     return r | (g << 5) | (b << 10)
+
+
+# LW-295: the glow look test. A grown weapon's authored palette is brightened toward white, one
+# step per kill tier (+1/+2/+3). These factors are LOOK-TEST KNOBS, not shipped tuning: the owner
+# judges a live swing at each step and the runtime build inherits whatever he approves.
+GLOW_TIER = {1: 0.25, 2: 0.50, 3: 0.75}
+
+
+def brighten(code, f):
+    """Scale each 5-bit channel of a BGR555 code toward 31 by fraction f (0 = unchanged, 1 =
+    white). Works on the low 15 bits only; bit 15 is carried from the live slot at write time,
+    the same rule every other verb follows."""
+    r, g, b = code & 31, (code >> 5) & 31, (code >> 10) & 31
+    return (min(31, int(round(r + (31 - r) * f)))
+            | (min(31, int(round(g + (31 - g) * f))) << 5)
+            | (min(31, int(round(b + (31 - b) * f))) << 10))
 
 
 def load():
@@ -195,17 +214,9 @@ def cmd_slots(pal):
         print(f"   slot {i:>2}  rgb{(r << 3, g << 3, b << 3)}")
 
 
-def cmd_render(key, out="lw305_render.png"):
-    """Render this weapon's own tile twice: under the VANILLA palette and under the bench's.
-
-    This is the offline half of the loop and it answers the question a screenshot cannot ask on
-    its own: what SHOULD the paint have looked like. If the vanilla and bench panels are near
-    identical, "no change on screen" is not evidence the write failed.
-    """
-    from PIL import Image
+def _tile_grid():
+    """The classic sheet decoded to a 256x256 4-bit index grid, plus its tile boxes."""
     import lw301_palette_transform as tf
-    doc = load()
-    w = find(doc, key)
     raw = tf.load_sheet()
     pix = raw[512:512 + 32768]
     W = 256
@@ -214,33 +225,78 @@ def cmd_render(key, out="lw305_render.png"):
         byte = pix[i // 2]
         idx[i // W][i % W] = (byte & 0x0F) if i % 2 == 0 else (byte >> 4)
     boxes = {b["i"]: b for b in json.loads((HERE / "lw301_sprite_boxes.json").read_text(encoding="utf8"))}
-    box = boxes[w["tile"]]
-    bench = [0] + [c for _i, c, _rgb, _s in codes_for(w)]
-    Z = 8
-    panels = []
-    for pal, codes in (("vanilla", tf.palette_of(raw, w["pal"])), ("bench", bench)):
-        im = Image.new("RGB", (box["w"] * Z, box["h"] * Z), (40, 44, 50))
-        for yy in range(box["h"]):
-            for xx in range(box["w"]):
-                v = idx[box["y"] + yy][box["x"] + xx]
-                if not v:
-                    continue
-                # tf.bgr555_to_rgb returns 0..1 floats; expand with the bench's own floor rule
-                # so this render and the slider agree on what a code looks like.
-                code = codes[v] & 0x7FFF
-                r, g, b = (e5(code & 31), e5((code >> 5) & 31), e5((code >> 10) & 31))
-                for dy in range(Z):
-                    for dx in range(Z):
-                        im.putpixel((xx * Z + dx, yy * Z + dy), (r, g, b))
-        panels.append((pal, im))
+    return raw, idx, boxes
+
+
+def _panel(idx, box, codes, Z=8):
+    """One tile rendered under a 16-code palette list (index 0 = transparent, never sampled)."""
+    from PIL import Image
+    im = Image.new("RGB", (box["w"] * Z, box["h"] * Z), (40, 44, 50))
+    for yy in range(box["h"]):
+        for xx in range(box["w"]):
+            v = idx[box["y"] + yy][box["x"] + xx]
+            if not v:
+                continue
+            # tf.bgr555_to_rgb returns 0..1 floats; expand with the bench's own floor rule
+            # so this render and the slider agree on what a code looks like.
+            code = codes[v] & 0x7FFF
+            r, g, b = (e5(code & 31), e5((code >> 5) & 31), e5((code >> 10) & 31))
+            for dy in range(Z):
+                for dx in range(Z):
+                    im.putpixel((xx * Z + dx, yy * Z + dy), (r, g, b))
+    return im
+
+
+def _save_sheet(panels, out):
+    from PIL import Image
     gap = 24
-    sheet = Image.new("RGB", (sum(p.width for _n, p in panels) + gap, panels[0][1].height), (40, 44, 50))
+    sheet = Image.new("RGB", (sum(p.width for _n, p in panels) + gap * (len(panels) - 1),
+                              max(p.height for _n, p in panels)), (40, 44, 50))
     x = 0
     for _n, im in panels:
         sheet.paste(im, (x, 0))
         x += im.width + gap
     sheet.save(out)
+
+
+def cmd_render(key, out="lw305_render.png"):
+    """Render this weapon's own tile twice: under the VANILLA palette and under the bench's.
+
+    This is the offline half of the loop and it answers the question a screenshot cannot ask on
+    its own: what SHOULD the paint have looked like. If the vanilla and bench panels are near
+    identical, "no change on screen" is not evidence the write failed.
+    """
+    import lw301_palette_transform as tf
+    doc = load()
+    w = find(doc, key)
+    raw, idx, boxes = _tile_grid()
+    box = boxes[w["tile"]]
+    bench = [0] + [c for _i, c, _rgb, _s in codes_for(w)]
+    panels = [(name, _panel(idx, box, codes))
+              for name, codes in (("vanilla", tf.palette_of(raw, w["pal"])), ("bench", bench))]
+    _save_sheet(panels, out)
     print(f"{w['name']}  tile {w['tile']}  palette {w['pal']}  ->  {out}  (left vanilla, right bench)")
+
+
+def cmd_glowrender(key, out="lw305_glowrender.png"):
+    """Offline preview of the LW-295 glow ladder: the authored paint beside all three tiers.
+
+    Same caveat as render: the live renderer tints and smooths, so this shows the ladder's SHAPE
+    (does +1 read as a hint and +3 as radiant while the identity colour survives), not the exact
+    pixels a swing will show. The live judgement stays with the glow verb.
+    """
+    doc = load()
+    w = find(doc, key)
+    _raw, idx, boxes = _tile_grid()
+    box = boxes[w["tile"]]
+    bench = [0] + [c for _i, c, _rgb, _s in codes_for(w)]
+    panels = [("authored", _panel(idx, box, bench))]
+    for tier, f in sorted(GLOW_TIER.items()):
+        panels.append((f"+{tier}", _panel(idx, box, [0] + [brighten(c, f) for c in bench[1:]])))
+    _save_sheet(panels, out)
+    print(f"{w['name']}  tile {w['tile']}  palette {true_palette(w)[0]}  ->  {out}")
+    print("panels left to right: authored, then " +
+          ", ".join(f"+{t} (factor {f:.2f})" for t, f in sorted(GLOW_TIER.items())))
 
 
 # Sixteen flat colours, one per palette: sixteen evenly spaced HUES, never a light/dark pair.
@@ -364,16 +420,11 @@ def cmd_flat(pal, r5, g5, b5):
     print(f"palette {pal} flattened to rgb5({r5},{g5},{b5})")
 
 
-def cmd_paint(key):
+def write_codes(pal, entries):
+    """Write (index, code) pairs into palette `pal` of BOTH banks, carrying bit 15 from whatever
+    each slot currently holds. Returns how many banks took the write. Extracted from cmd_paint
+    when the LW-295 glow verb arrived so both paint the same way."""
     import battle_cheats as bc
-    bc._require_game()
-    doc = load()
-    w = find(doc, key)
-    entries = codes_for(w)
-    pal, ov = true_palette(w)
-    if ov:
-        print(f"OVERRIDE: the map says palette {ov['mapSays']} but a live swing says {pal}")
-    print(f"painting {w['name']} into palette {pal}, both banks")
     wrote = 0
     for base in BANKS:
         tgt = base + pal * PAL_STRIDE
@@ -383,7 +434,7 @@ def cmd_paint(key):
             continue
         cur = list(struct.unpack("<16H", raw))
         new = list(cur)
-        for i, c, _rgb, _semi in entries:
+        for i, c in entries:
             new[i] = (cur[i] & 0x8000) | c      # carry the flag bit, never invent it
         if bc.wpm(tgt, struct.pack("<16H", *new)):
             wrote += 1
@@ -392,11 +443,56 @@ def cmd_paint(key):
             print(f"  bank {base:#x} written, read-back {'matches' if same else 'DIFFERS'}")
         else:
             print(f"  bank {base:#x} WRITE FAILED")
+    return wrote
+
+
+def cmd_paint(key):
+    import battle_cheats as bc
+    bc._require_game()
+    doc = load()
+    w = find(doc, key)
+    pal, ov = true_palette(w)
+    if ov:
+        print(f"OVERRIDE: the map says palette {ov['mapSays']} but a live swing says {pal}")
+    print(f"painting {w['name']} into palette {pal}, both banks")
+    wrote = write_codes(pal, [(i, c) for i, c, _rgb, _semi in codes_for(w)])
     print(f"{wrote}/{len(BANKS)} banks")
     share = [x["name"] for x in doc["weapons"]
              if true_palette(x)[0] == pal and x["id"] != w["id"]]
     if share:
         print(f"also repainted (same palette): {', '.join(share)}")
+    print("a battle load reverts this; re-run after every load")
+
+
+def cmd_glow(key, tier, factor=None):
+    """LW-295 look test: this weapon's authored colours brightened one kill tier, written live.
+
+    Tier 0 is the authored paint untouched (the A in the A/B); an explicit factor overrides the
+    tier table so the owner can bracket a look without editing the file. The player-only rule is
+    a RUNTIME concern and deliberately absent here: the probe paints the palette, and whoever
+    draws from it next wears the glow, enemies included. The look question does not need the
+    ownership rule; the build does.
+    """
+    import battle_cheats as bc
+    bc._require_game()
+    tier = int(tier)
+    if tier not in (0, 1, 2, 3):
+        sys.exit("tier must be 0 (authored, no glow), 1, 2 or 3")
+    f = float(factor) if factor is not None else (0.0 if tier == 0 else GLOW_TIER[tier])
+    if not 0.0 <= f <= 1.0:
+        sys.exit("factor must be within 0..1")
+    doc = load()
+    w = find(doc, key)
+    pal, ov = true_palette(w)
+    if ov:
+        print(f"OVERRIDE: the map says palette {ov['mapSays']} but a live swing says {pal}")
+    print(f"glow tier +{tier} (factor {f:.2f}): {w['name']} into palette {pal}, both banks")
+    wrote = write_codes(pal, [(i, brighten(c, f)) for i, c, _rgb, _semi in codes_for(w)])
+    print(f"{wrote}/{len(BANKS)} banks")
+    share = [x["name"] for x in doc["weapons"]
+             if true_palette(x)[0] == pal and x["id"] != w["id"]]
+    if share:
+        print(f"same palette, so also glowing if drawn: {', '.join(share)}")
     print("a battle load reverts this; re-run after every load")
 
 
@@ -416,6 +512,10 @@ if __name__ == "__main__":
         cmd_keychart()
     elif mode == "render" and len(sys.argv) > 2:
         cmd_render(*sys.argv[2:4])
+    elif mode == "glow" and len(sys.argv) > 3:
+        cmd_glow(*sys.argv[2:5])
+    elif mode == "glowrender" and len(sys.argv) > 2:
+        cmd_glowrender(*sys.argv[2:4])
     elif mode == "flat" and len(sys.argv) > 5:
         cmd_flat(*sys.argv[2:6])
     elif mode == "slots" and len(sys.argv) > 2:

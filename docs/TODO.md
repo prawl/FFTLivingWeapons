@@ -107,6 +107,40 @@ the technical detail lives in the indented lines under it.
     the same gold-over-green mismatch this row first described but the same family of problem.
     The old zone recipe this row's Tech bullet describes was deleted; the bright-v2/
     CARD_OVERRIDES/SMALL_TWO_ZONE dormancy this row notes stands on its own, unaffected.
+- **[LW-295] A weapon that has grown starts to glow, on its menu picture and in its wielder's hand** (opened 2026-08-19) [BUILDING]
+  - The owner decided the glow's meaning on 2026-08-24: it shows a weapon's kill tier. A weapon
+    that reaches +1 begins to glow, gets brighter at +2, and reaches full radiance at +3, both on
+    the item picture in menus and on the weapon sprite during a battle swing. Four calls banked
+    the same sitting: revive the parked icon rim machinery at three intensities; the glow wears
+    the weapon's own identity colour; the battle sprite half is the authored palette brightened
+    per tier through the shipped WeaponPalette painter; and only PLAYER wielders glow, an enemy
+    carrying the same weapon id stays plain. Only the weapon glows, never the character holding it.
+  - FIRST STEP before any build: a live look test, so the owner can watch a brightened swing and
+    judge whether a glowing weapon looks right at all. He expects yes but wants to see it. The
+    look-test instrument is a glow verb on tools/probes/lw305_bench_paint.py that paints a
+    tier-bright variant of a weapon's authored colours into the resident palette banks mid
+    battle; a battle load reverts it.
+  - (Tech: brighten = scale each 5-bit BGR555 channel toward 31, three steps for the three tiers.
+    Mechanism is the proven [resident-weapon-palette-buffer] lane: banks 0x140D35750 and
+    0x140D35950, palette N at +N*32, entry 0 never written, bit 15 carried. Colour source
+    data/weapon_colors.json via true_palette and its override file. The icon half revives
+    SHIP_GLOW_RIM in tools/recolor_icons.py at three intensities but CANNOT ship baked, because
+    tier is per-save state; it rides the proven [live-icon-repaint] lane, patching the served
+    modded.pac in place, keyed off KillTally. Two pins will move with the rim revival: ramp
+    pin14b, whose message is the recipe, and ANCHOR_RULINGS[116], which returns to reporting the
+    Fallingstar Bag sixty degrees off its own art. The old halo painted over 100 to 270 pixels
+    of the vanilla artist's own soft haze on items that had one; the revival must decide on
+    purpose whether that is allowed again. Candidate treatments and costs: decision brief
+    artifact f9835932; the halo on/off gallery of all 150 items: artifact 1b130ff7.)
+  - Done means: a weapon at tier +1, +2, +3 visibly glows at three growing intensities in its own
+    identity colour, on its icon and on the swinging battle sprite, for player wielders only; an
+    enemy holding the same weapon id stays plain; a tier 0 weapon is untouched; only the weapon
+    glows, never the wielder; and the owner approved the look via the live look test before any
+    runtime code shipped.
+  - Verify: the owner judges the look-test swing first; then both gates green with the
+    tier-brighten maths and the player-only rule pinned by unit tests; then the owner's live
+    pass: grow a weapon a tier, see the glow appear on icon and swing, confirm an enemy copy of
+    the same weapon stays plain and a battle reload keeps the glow correct.
 
 
 
@@ -1572,35 +1606,6 @@ belongs rather than at the bottom.
   crystal/treasure-chest sheet, and tex_161's unidentified tiles; probe =
   tools/probes/lw251_g2d_extract.py; confirm by finding the item-hold frame's source
   entry, then route it through the same recolour pass.)
-
-- [LW-295] 2026-08-19: The coloured halo we used to draw around every item picture is off, and
-  the owner has other ideas for what a glow could mean rather than just being decoration. This
-  row holds that idea now that the removal has shipped. Nothing waits on it and nothing is broken
-  without it: a halo is a layer that sits outside the artwork and adds or removes in minutes
-  without touching a pixel underneath, so this can be picked up whenever there is an idea worth
-  testing. Worth knowing before anyone starts: the old halo was not free. It painted over between
-  one hundred and two hundred and seventy pixels of the vanilla artist's own soft haze on every
-  item that had one, so any revival should decide on purpose whether it is allowed to do that
-  again. (Tech: successor to the shipped LW-287, opened because a retired id must not be the
-  handle for future work. Reviving is SHIP_GLOW_RIM = True in tools/recolor_icons.py, re-bake,
-  re-run the four icon gates; the machinery is deliberately kept live and pinned, ramp_glow,
-  ramp_rim_color, data/icon_ramp/rims.json, and selftest pins 1, 2, 3b. Two things a revival
-  must expect: selftest pin ramp pin14b names the current value and its message is the recipe,
-  and ANCHOR_RULINGS[116] returns to reporting the Fallingstar Bag sixty degrees off its own art,
-  which the removal had closed. Inherits the four candidate treatments and their costs from
-  decision brief artifact f9835932, and the owner gallery of all 150 items with the halo on and
-  off is artifact 1b130ff7.)
-  - THE GLOW'S MEANING IS DECIDED, owner directive 2026-08-24: it is the weapon's kill tier.
-    Icons and battle sprites glow when a weapon reaches +1, brighter at +2, full at +3. Owner
-    calls from the same sitting: revive the rim machinery at three intensities for the icons;
-    the glow wears the weapon's own identity colour; the battle sprite half is the authored
-    palette brightened per tier through the shipped WeaponPalette painter; and only player
-    wielders glow, an enemy copy of the same weapon id stays plain. FIRST STEP before any
-    build: a live look test of a brightened swing (bench paint a tier bright variant into the
-    resident banks mid battle) so the owner can judge whether the swinging weapon should glow
-    at all; he expects yes. Per save icon state rides the proven live pac repaint lane and
-    the KillTally tier; the rim revival steps and the two pins that will move (ramp pin14b,
-    the Fallingstar anchor ruling) are already listed in this row above.
 
 - [LW-248] 2026-08-16: The mod's shipping look is DECIDED for colour: every item gets the new
   recolour. The owner settled that half on 2026-08-16 after seeing the whole catalogue in game.
