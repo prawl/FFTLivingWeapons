@@ -158,6 +158,22 @@ the technical detail lives in the indented lines under it.
 
 ## Backlog
 
+- [LW-312] 2026-08-24: Warbrand and the other three ex flails still draw broken garbage
+  chunks when they swing, the last visible scar of retyping flails into swords, and two cheap
+  fixes were tried live tonight and both died honestly. The battle frame geometry files
+  (FFTPack 63/64) were decoded end to end, the game provably read our patched copies both
+  rounds (the loader log said modded file 63/64 while the garbage persisted unchanged), so
+  the community's PSX model of how a weapon picks its frames does not hold in the remaster:
+  neither the type indexed nor the graphic indexed zero frame edit changed a single pixel.
+  This rejoins the June finding that the swing model resolves through an unlocated in
+  process resolver. Next instruments, in order of cheapness: match the garbage chunks'
+  geometry offline against all 871 decoded frames to reverse the actual frame selection
+  arithmetic (no game time needed); then single step the June resolver chain on a swing.
+  (Tech: probe tools/probes/lw251_wep_shape_probe.py rounds 1 and 2, screenshots
+  lw251_warbrand_probe1/2.png, decoded contact sheets lw251_wep1/wep2_zeroframes.png,
+  zero frame parser cross checked against TacticsTemplateG's Shp.gd; resolver chain notes
+  in the weapon-blade-art-walled memory, prototype branch ledger only.)
+
 - [LW-311] 2026-08-24: For the first seconds after a cold boot every weapon card claims zero
   kills, because the baked card text carries a literal "Kills: 0/5" that the runtime later
   paints over with the real count, and on a cold boot that paint takes five to ten seconds to
