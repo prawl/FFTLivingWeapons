@@ -74,25 +74,27 @@ internal static class ByteScan
     }
 
     /// <summary>Slot validator for the equip card's tier-progress METER body ("0/5 to +   ",
-    /// "14/15 to +3", "55         ", width chars wide, Signatures.KillsMeterSlotChars in
-    /// production). Char 0 must be an ASCII digit (the count always leads, same rule as
-    /// KillsDigits); every char across the WHOLE width is restricted to the meter's own
-    /// alphabet (digits, '/', ' ', '+', and the two letters of "to") so a stale unrelated buffer
-    /// past a short literal never misreads as valid. enc-aware: UTF-16 high byte must be 0x00 for
-    /// every char. Bounds-safe: false if [pos, pos + width*enc) does not fit in buf. Additive:
-    /// KillsDigits above is untouched (stays test-only after CardScanner/CardSites move to this
-    /// wider validator).</summary>
+    /// "14/15 to +3", "55         ", and the LW-311 baked placeholder "-/- to +   ", width chars
+    /// wide, Signatures.KillsMeterSlotChars in production). Char 0 must be an ASCII digit or '-'
+    /// (a painted meter's count always leads with a digit; an UNPAINTED card leads with the baked
+    /// dash, which this validator must admit or a cold-boot card is never found); every char
+    /// across the WHOLE width is restricted to the meter's own alphabet (digits, '-', '/', ' ',
+    /// '+', and the two letters of "to") so a stale unrelated buffer past a short literal never
+    /// misreads as valid. enc-aware: UTF-16 high byte must be 0x00 for every char. Bounds-safe:
+    /// false if [pos, pos + width*enc) does not fit in buf. Additive: KillsDigits above is
+    /// untouched (stays test-only after CardScanner/CardSites move to this wider
+    /// validator).</summary>
     public static bool MeterSlotDigits(byte[] buf, int pos, int enc, int width)
     {
         if (pos < 0 || pos + width * enc > buf.Length) return false;
-        if (buf[pos] is < (byte)'0' or > (byte)'9') return false;
+        if (buf[pos] is (< (byte)'0' or > (byte)'9') and not (byte)'-') return false;
         for (int i = 0; i < width; i++)
         {
             byte b = buf[pos + i * enc];
             if (enc == 2 && buf[pos + i * enc + 1] != 0) return false;
             bool ok = (b is >= (byte)'0' and <= (byte)'9')
                       || b == (byte)'/' || b == (byte)' ' || b == (byte)'+'
-                      || b == (byte)'t' || b == (byte)'o';
+                      || b == (byte)'t' || b == (byte)'o' || b == (byte)'-';
             if (!ok) return false;
         }
         return true;

@@ -204,6 +204,26 @@ public class CardScannerFindKillsTests
         }
     }
 
+    [Fact]
+    public void FindKills_slot_validation_accepts_the_dash_scaffold()
+    {
+        // LW-311: the baked placeholder is neutral dashes, not "0/5", so an unpainted card's
+        // slot must still pass admission or the counter never paints after a cold boot.
+        var meta = CardScannerFixtures.BuildMetaMap((1, "Sword", "Sharp"));
+        var pats = new CardPatterns(meta);
+
+        var parts = new List<byte>();
+        parts.AddRange(ByteScan.Enc("Sharp", 1));
+        parts.AddRange(ByteScan.Enc("Kills: ", 1));
+        parts.AddRange(ByteScan.Enc("-/- to +   ", 1));
+        byte[] buf = parts.ToArray();
+
+        var hits = new List<CardScanner.KillsHit>();
+        CardScanner.FindKills(buf, 0, buf.Length, pats, hits);
+
+        Assert.NotEmpty(hits);
+    }
+
     // ─── Bidirectional forward attribution (Reliquary equip-meter layout: Kills line FIRST,
     //     flavor below), the KEY DESIGN CHANGE (plan v2). The owner's flavor is never
     //     allocated far from its OWN "Kills: " hit (fixed slot + "\n\n"), whether it sits above

@@ -47,4 +47,31 @@ public class KillsSlotWidthContractTests
 
         Assert.Equal(Signatures.KillsMeterSlotChars, pythonValue);
     }
+
+    /// <summary>LW-311: the BAKED scaffold body must pass the C# site-admission validator, or the
+    /// painter can never find an unpainted card and the counter silently dies for everyone. This
+    /// is the drift the dash rebake makes possible (a Python-side scaffold tweak with no C#-side
+    /// validator move), so the pin crosses languages the same way the width pin above does.</summary>
+    [Fact]
+    public void Python_KILLS_SCAFFOLD_body_passes_the_CSharp_meter_slot_validator()
+    {
+        string flavorPath = Path.Combine(RepoRoot(), "tools", "lib", "flavor.py");
+        string text = File.ReadAllText(flavorPath);
+
+        var match = Regex.Match(text, "^KILLS_SCAFFOLD = \"(.*)\"\\s*$", RegexOptions.Multiline);
+        Assert.True(match.Success, "KILLS_SCAFFOLD = \"...\" not found in tools/lib/flavor.py "
+            + "(vacuous-pass guard: this test never silently passes without reading the constant)");
+
+        string scaffold = match.Groups[1].Value;
+        Assert.StartsWith("Kills: ", scaffold);
+        string body = scaffold.Substring("Kills: ".Length);
+        Assert.Equal(Signatures.KillsMeterSlotChars, body.Length);
+
+        foreach (int enc in new[] { 1, 2 })
+        {
+            byte[] buf = ByteScan.Enc(body, enc);
+            Assert.True(ByteScan.MeterSlotDigits(buf, 0, enc, Signatures.KillsMeterSlotChars),
+                $"baked scaffold body '{body}' must pass the site-admission validator (enc {enc})");
+        }
+    }
 }

@@ -93,10 +93,18 @@ public class ByteScanTests
     [InlineData("49/50 to +3")]    // two-digit count body, no padding needed (11 chars); the
                                     // production widest sub-max is now "14/15 to +3" under {5,10,15}
     [InlineData("55         ")]    // max-tier bare count, padded (11 chars)
+    [InlineData("-/- to +   ")]    // LW-311: the baked neutral scaffold (dashes, runtime absent/not yet painted)
     public void MeterSlotDigits_ascii_accepts_valid(string slot)
     {
         byte[] buf = Encoding.ASCII.GetBytes(slot);
         Assert.True(ByteScan.MeterSlotDigits(buf, 0, 1, MeterWidth), $"expected accept for '{slot}'");
+    }
+
+    [Fact]
+    public void MeterSlotDigits_utf16_accepts_the_dash_scaffold()
+    {
+        byte[] buf = Utf16Slot("-/- to +   ");
+        Assert.True(ByteScan.MeterSlotDigits(buf, 0, 2, MeterWidth));
     }
 
     [Fact]

@@ -225,11 +225,18 @@ def is_living(it):
 KILLS_SLOT_BODY_CHARS = 11
 
 #: The unpainted equip-card Kills line, baked as the FIRST line of every living weapon's
-#: description: "Kills: " + the tier-0 meter body ("0/5 to +", 8 chars) padded to
-#: KILLS_SLOT_BODY_CHARS (11) with 3 trailing spaces = 18 chars total. The DLL repaints this
-#: slot in place (CardSites.PaintSiteWithResult) with the real tier-progress meter, VERBATIM
-#: the same format AttackCardTail.ComposeHead renders on the Attack card.
-KILLS_SCAFFOLD = "Kills: 0/5 to +   "
+#: description: "Kills: " + a NEUTRAL dashed body ("-/- to +", 8 chars, LW-311) padded to
+#: KILLS_SLOT_BODY_CHARS (11) with 3 trailing spaces = 18 chars total. Dashes, not "0/5",
+#: because the baked text is also what shows FOREVER when the runtime is absent or stood down,
+#: and for the first seconds after a cold boot before the paint lands: a literal zero there is
+#: a lie about a player's real count, while a dash is honest in every state. (A "loading"
+#: notice was considered and rejected: it lies harder when the runtime is absent, and angle
+#: brackets are live markup in this engine's text renderer.) The DLL repaints this slot in
+#: place (CardSites.PaintSiteWithResult) with the real tier-progress meter, VERBATIM the same
+#: format AttackCardTail.ComposeHead renders on the Attack card; ByteScan.MeterSlotDigits
+#: admits the leading dash by name, and KillsSlotWidthContractTests pins this literal against
+#: that validator cross-language.
+KILLS_SCAFFOLD = "Kills: -/- to +   "
 
 
 #: LW-166: the game's Poach support ability is only wired into the vanilla damage-formula
