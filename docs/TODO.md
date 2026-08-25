@@ -125,6 +125,27 @@ the technical detail lives in the indented lines under it.
     205-char card budget for all 121 weapons.
   - Verify: analyze.py green (uniqueness, budget, scaffold lockstep), the nxd bake audit
     clean, and the owner reads the Grows line on a handful of cards live after a restart.
+- **[LW-320] Every weapon's power audited against how it is obtained** (opened 2026-08-25) [QUEUED]
+  - A weapon's price should include the effort of getting it. The grid's obtain column
+    splits the catalog 88 shop weapons versus 33 earned ones (Midlight's Deep treasure
+    hunts, rare poaches, story steals, character joins), and the first look already found
+    the disease: of the twelve highest-WP weapons, ten are earned and TWO are shop stock,
+    the Warbrand (WP 15, tier 5) and the Ravager (WP 15, tier 4), a shop shelf selling
+    treasure-grade power, exactly the owner's "steady then boom" playthrough moment.
+    Feeds LW-318's fairness formula directly and sits before it on purpose. Owner moved
+    it ahead of LW-322 in the working order, 2026-08-25.
+  - (Tech: authority is docs/living_weapon_grid.csv's obtain column; cross with WP, tier,
+    riders and the new baked grows lanes; candidate output is an obtain-vs-power chart
+    plus per-weapon rulings recorded in the grid, enforced the way the grows column is,
+    an analyze.py lockstep check once the rulings are locked.)
+  - Done means: every earned weapon is worth its hunt (a rare poach beats its shop peer
+    on some axis), no shop weapon spikes into treasure territory, each violation gets an
+    owner ruling recorded in the grid, and any resulting number changes pass the
+    dominance gate.
+  - Verify: the obtain-vs-power chart reviewed by the owner, every ruling signed off by
+    the owner in the grid, analyze.py green after any retunes, and the changed weapons
+    spot-read live if stats moved.
+
 ## Backlog
 
 Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner directed).
@@ -141,20 +162,6 @@ belongs rather than at the bottom.
   CHp 0x30, delta = target - natural max; attribution is safe per
   [maxhp-hold-attribution-safe] and the LW-317 pass; needs its own failing test first
   and one owner reading, a knight opening a battle at 883/883.)
-
-- [LW-320] 2026-08-25: Audit every weapon's power against how it is obtained, because a
-  weapon's price should include the effort of getting it. The grid's obtain column splits
-  the catalog 88 from shops versus 33 earned (Midlight's Deep treasure hunts, rare poaches,
-  story steals, character joins), and the first look already found the disease: of the
-  twelve highest-WP weapons, ten are earned and TWO are shop stock, the Warbrand (WP 15,
-  tier 5) and the Ravager (WP 15, tier 4), which is exactly the owner's "steady then boom"
-  playthrough moment, a shop shelf selling treasure-grade power. Done means every earned
-  weapon is worth its hunt (a rare poach must beat its shop peer somehow) and no shop
-  weapon spikes into treasure territory. Feeds LW-318's fairness formula directly and sits
-  before it on purpose; owner proposed 2026-08-25. (Tech: authority is
-  docs/living_weapon_grid.csv's obtain column; cross with WP, tier, riders and the new
-  grows lanes; candidate output is an obtain-vs-power chart plus per-weapon rulings in the
-  grid, enforced the same way the grows column will be.)
 
 - [LW-318] 2026-08-25: The weapon power curve gets a fairness pass: every weapon strong
   enough to matter, none so strong the rest become vendor trash. The owner replayed the mod
