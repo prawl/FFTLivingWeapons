@@ -78,6 +78,7 @@ GROUPS = {
         "menu_region.py", "menu_strings.py", "ui_menu_probe.py", "ui_contention_probe.py",
         "callout_show_probe.py", "callout_life_probe.py", "callout_timer_probe.py",
         "numeral_probe.py", "heal_number_probe.py", "feign_probe.py",
+        "lw307_card_markup_probe.py", "lw329_palette_cycler.py",
     ],
     "Icons, art, and sprites": [
         "ramp_engine_prototype.py", "palette_experiment.py", "vanilla_palette_sample.py",

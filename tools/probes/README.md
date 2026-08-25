@@ -185,6 +185,8 @@ Ground rules before running anything here:
 - `feign_probe.py` FEIGN DEATH probe -- deliberately reproduce the "corpse that still takes turns".
 - `heal_number_probe.py` HEAL-NUMBER PROBE -- can we make a silent band-HP write surface the GREEN floating heal numeral?
 - `item_text_census.py` LW-37 feasibility recon: does the EQUIP-CARD item-description text have a REDIRECTABLE record
+- `lw307_card_markup_probe.py` LW-307: does the weapon description CARD consume inline color markup?
+- `lw329_palette_cycler.py` LW-329: map the card's numeric color slots to hues, one owner sitting.
 - `menu_cursor.py` Dump the region around the action-menu cursor byte 0x1407FC620 (FFTHandsFree
 - `menu_diff.py` Find the LIVE battle-menu command block by diffing menu-closed vs menu-open scans.
 - `menu_region.py` Snapshot / diff the live battle menu entry region around 0x14077D010.
@@ -264,7 +266,6 @@ Ground rules before running anything here:
 - `lw303_icon_vs_sprite_page.py` LW-303: put every weapon's menu ICON beside the BATTLE SPRITE it will actually wear, in one page.
 - `lw303_zonemap.py` LW-303: show WHERE each of an icon's colours lands on the weapon, not just which colours it gets.
 - `lw305_bench_paint.py` LW-305: paint a Weapon Colour Bench export straight into the running game.
-- `lw307_card_markup_probe.py` LW-307: does the weapon description CARD consume inline color markup?
 - `lw312_frame_atlas.py` LW-312: render EVERY frame of battle_wep1/2_shp.bin as labeled contact sheets.
 - `lw316_lane_probes.py` LW-316 lane probes: the Faith and MaxHP halves of the three growth-lane questions.
 - `vq_walk_cost.py` Measure the real wall-clock cost of one full VirtualQueryEx address-space walk against the
