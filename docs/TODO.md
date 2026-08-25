@@ -236,7 +236,9 @@ belongs rather than at the bottom.
   game. (Tech: GrowthEngine holds ONE lane per weapon today (StatLane, one addr+factor);
   this seat makes it N lanes per weapon, baked from the grid like LW-250's. Also the HP
   hold for Knight Swords (owner call 2026-08-25): a u16 MaxHP hold, new width for the
-  hold machinery, gated on LW-316's fingerprint probe. The WP and Faith halves are gated
+  hold machinery, CLAMPED AT 999 (the engine's HP ceiling, owner confirmed 2026-08-25;
+  a 700 HP knight at tier 3 must land on 999, never wrap or overflow), gated on LW-316's
+  fingerprint probe. The WP and Faith halves are gated
   on LW-316's probe verdicts.)
 
 - [LW-320] 2026-08-25: Audit every weapon's power against how it is obtained, because a
