@@ -169,9 +169,9 @@ public class MetaSchemaTests : IDisposable
     // Muramasa, Climhazzard, Tombspire) previously grew NOTHING under the formula-driven
     // Route (Tuning.SkipFormula) -- they must now carry the baked "speed" lane. Arcanum (the
     // rider-rule MA exception) and Holy Lance (the plain-Polearm PA regression guard) pin the
-    // opposite corners of the same table. LATE OWNER AMENDMENT 2026-08-25: Defender (id 33,
-    // Knight Sword) pins the new "HP" grows token's interim bake -- Knight Swords stay on the
-    // "pa" lane (today's behavior, unchanged) until LW-317's real MaxHP hold.
+    // opposite corners of the same table. LW-317 (2026-08-25): the multi-lane tokens now bake
+    // to their OWN real lane -- Defender (id 33, Knight Sword) pins the real "hp" token
+    // GrowthEngine.Routes' u16 MaxHp hold reads, replacing the LW-250 interim "pa" collapse.
     [Fact]
     public void RepoMeta_LanesMatchTheLockedTable()
     {
@@ -190,6 +190,6 @@ public class MetaSchemaTests : IDisposable
         Assert.Equal("pa", holyLance.Lane);
 
         Assert.True(map.TryGetValue(33, out var defender), "id33 (Defender) missing from meta.json");
-        Assert.Equal("pa", defender.Lane);
+        Assert.Equal("hp", defender.Lane);
     }
 }

@@ -219,42 +219,72 @@ def attach_weapon_palettes(meta, colours_doc, overrides_doc):
     return errors
 
 
+_LANE_MAP = {
+    "PA": "pa", "MA": "ma", "Speed": "speed", "HP": "hp",
+    "PA+MA": "pa+ma", "PA+MA+Brave": "pa+ma+brave",
+    "WP": "wp", "WP+Faith": "wp+faith",
+}
+
+
 def lane_of(grows_token, cat):
-    """Pure INTERIM mapping (LW-250): docs/living_weapon_grid.csv's locked `grows` design
-    token -> the runtime's baked growth-lane key GrowthEngine.Route switches on ("pa"/"ma"/
-    "speed"). Multi-lane tokens (PA+MA, PA+MA+Brave, WP, WP+Faith) collapse to whichever
-    single lane the CURRENT runtime already holds for that weapon family -- their real
-    multi-stat behavior is deferred to LW-317 (gated on LW-316's WP/Faith probe), so this
-    mapping keeps live behavior UNCHANGED this chunk; only the routing MECHANISM moves off
-    Cat/Formula inference onto this baked lane. No file I/O (selftest-drivable directly).
-    RAISES on an unknown token: a bad grows value must fail the bake loudly, never route
-    silently to nothing.
+    """Pure mapping (LW-317): docs/living_weapon_grid.csv's locked `grows` design token -> the
+    runtime's baked growth-lane key GrowthEngine.Routes switches on. The LW-250 interim
+    single-lane collapse (every multi-lane token folding onto whichever single stat the OLD
+    runtime already grew) is RETIRED -- every token now keeps its own real shape: PA/MA/Speed/
+    HP pass straight through lowercased; PA+MA -> "pa+ma"; PA+MA+Brave -> "pa+ma+brave";
+    WP -> "wp"; WP+Faith -> "wp+faith". `cat` is kept only for the error message (no per-
+    category branching survives the collapse's retirement -- Materia Blade's PA lane is
+    Ultima-owned at the RUNTIME layer, GrowthEngine.Routes' per-component ownership bail, not
+    baked away here). No file I/O (selftest-drivable directly). RAISES on an unknown token: a
+    bad grows value must fail the bake loudly, never route silently to nothing.
     """
-    if grows_token == "PA":
-        return "pa"
-    if grows_token == "MA":
-        return "ma"
-    if grows_token == "Speed":
-        return "speed"
-    if grows_token == "HP":
-        # LATE OWNER AMENDMENT 2026-08-25: all Knight Swords. Tanky-knight design intent, but
-        # the runtime has no MaxHP-scaled growth lane yet -- interim-mapped to "pa" (today's
-        # behavior, unchanged) until LW-317 builds the real u16 MaxHP hold (clamp 999);
-        # LW-316 probes the attribution-fingerprint hazard first.
-        return "pa"
-    if grows_token == "PA+MA":
-        # id 32 Materia Blade is the only non-Pole PA+MA weapon; its PA lane is Ultima-owned
-        # anyway (Route declines an Ultima-signature weapon before ever reading Lane), so
-        # mapping it to "pa" here is inert for Materia Blade and correct for the nine Poles'
-        # real MA x WP damage math.
-        return "ma" if cat == "Pole" else "pa"
-    if grows_token == "PA+MA+Brave":
-        return "pa"
-    if grows_token == "WP":
-        return "pa"
-    if grows_token == "WP+Faith":
-        return "ma"
-    raise ValueError(f"lane_of: unknown grows token {grows_token!r} (cat={cat!r})")
+    if grows_token not in _LANE_MAP:
+        raise ValueError(f"lane_of: unknown grows token {grows_token!r} (cat={cat!r})")
+    return _LANE_MAP[grows_token]
+
+
+def check_wp_sid_identity(meta, add_data_id):
+    """LW-317 bake-time pin: WpTableHold's turn-scoped WP write assumes the resident item-stats
+    table row for a weapon lives at the SAME index as its items.json id (sid == id) -- proven
+    live only for the guns actually probed (id 73, ledger [wp-table-write-live-damage]). This
+    makes that assumption mechanical for every weapon whose baked lane is "wp"/"wp+faith"
+    instead of trusting it silently: a missing additional_data_ids.json row, or one that maps
+    the id to anything but itself, fails the bake loudly rather than shipping a wrong-row
+    write. Pure over its two inputs (no file I/O), mirroring attach_weapon_palettes' own shape
+    so `--selftest` can drive it directly.
+    """
+    errors = []
+    for wid_str, entry in meta.items():
+        if entry.get("lane") not in ("wp", "wp+faith"):
+            continue
+        wid = int(wid_str)
+        sid = add_data_id.get(wid)
+        if sid is None:
+            errors.append(f"id {wid} ({entry['name']}) lane {entry['lane']!r} has no "
+                           f"additional_data_ids.json row; WpTableHold needs sid == id")
+        elif sid != wid:
+            errors.append(f"id {wid} ({entry['name']}) lane {entry['lane']!r} resolves to sid "
+                           f"{sid}, not itself; WpTableHold assumes sid == id")
+    return errors
+
+
+_ADD_DATA_IDS_FILE = ROOT / "data" / "additional_data_ids.json"
+
+
+def load_additional_data_ids(path=None):
+    """Parse data/additional_data_ids.json (or an explicit override path, for --selftest-style
+    isolation) into its int-keyed id -> sid map. Missing file -> empty map, which fails every
+    wp/wp+faith weapon's identity check loudly (check_wp_sid_identity) rather than silently
+    skipping it -- mirrors generate.py's own fallback for the same file, duplicated here rather
+    than imported (that script's loader is a module-level side effect at import time, not a
+    function; this pipeline script stays self-contained the same way attach_weapon_palettes'
+    own constants duplicate the probe's, per this repo's convention for small pipeline-local
+    loaders).
+    """
+    p = Path(path) if path is not None else _ADD_DATA_IDS_FILE
+    if not p.exists():
+        return {}
+    return {int(k): v for k, v in json.loads(p.read_text(encoding="utf-8")).items()}
 
 
 def main():
@@ -278,10 +308,10 @@ def main():
         entry = {
             "name": name, "wp": int(wp), "cat": cat, "formula": int(formula),
             "flavor": flavor_anchor(it),
-            # LW-250: the baked growth lane GrowthEngine.Route switches on, from items.json's
-            # top-level `grows` (docs/living_weapon_grid.csv's locked design) via the interim
-            # lane_of mapping above. Retired once LW-317 (gated on LW-316) gives multi-lane
-            # weapons their real N-stat behavior.
+            # LW-317: the baked growth lane GrowthEngine.Routes switches on, from items.json's
+            # top-level `grows` (docs/living_weapon_grid.csv's locked design) via lane_of above --
+            # every multi-lane token now keeps its own real shape (the LW-250 interim collapse
+            # is retired).
             "lane": lane_of(it.get("grows"), cat),
         }
         sig = it.get("signature")
@@ -319,6 +349,11 @@ def main():
     if errors:
         sys.exit("FAIL: weapon palette bake found " + str(len(errors)) + " problem(s):\n  "
                   + "\n  ".join(errors))
+
+    sid_errors = check_wp_sid_identity(meta, load_additional_data_ids())
+    if sid_errors:
+        sys.exit("FAIL: gun WP-table sid identity check found " + str(len(sid_errors)) + " problem(s):\n  "
+                  + "\n  ".join(sid_errors))
 
     # write_bytes, not write_text: Path.write_text applies the platform's newline
     # translation on write, which silently turns this LF-only tracked file to CRLF on every
@@ -406,31 +441,45 @@ def selftest():
         except Exception:
             check(f"lane7 {label}: listed as an error (CRASHED instead)", False)
 
-    # LW-250: lane_of, the pure grows-token -> baked-lane mapping (no file I/O, no fixtures).
+    # LW-317: lane_of, the pure grows-token -> baked-lane mapping (no file I/O, no fixtures).
+    # The LW-250 interim single-lane collapse is retired -- every multi-lane token now bakes
+    # to its OWN real lane.
     check("lane_of PA -> pa", lane_of("PA", "Sword") == "pa")
     check("lane_of MA -> ma", lane_of("MA", "Rod") == "ma")
     check("lane_of Speed -> speed", lane_of("Speed", "Knife") == "speed")
-    # LATE OWNER AMENDMENT 2026-08-25: HP (all Knight Swords) interim-maps to "pa" -- tanky-
-    # knight design intent, but the real MaxHP-scaled hold is LW-317 (gated on LW-316).
-    check("lane_of HP -> pa (Knight Sword interim)", lane_of("HP", "KnightSword") == "pa")
-    # The Pole vs Materia Blade split: PA+MA collapses to "ma" for the nine Poles (real MA x
-    # WP damage math) but "pa" for every other PA+MA weapon (id 32 Materia Blade, whose PA is
-    # Ultima-owned anyway).
-    check("lane_of PA+MA on a Pole -> ma", lane_of("PA+MA", "Pole") == "ma")
-    check("lane_of PA+MA on Materia Blade's Sword category -> pa", lane_of("PA+MA", "Sword") == "pa")
-    check("lane_of PA+MA+Brave -> pa", lane_of("PA+MA+Brave", "Katana") == "pa")
-    check("lane_of WP -> pa", lane_of("WP", "Gun") == "pa")
-    check("lane_of WP+Faith -> ma", lane_of("WP+Faith", "Gun") == "ma")
+    check("lane_of HP -> hp", lane_of("HP", "KnightSword") == "hp")
+    check("lane_of PA+MA -> pa+ma (Pole)", lane_of("PA+MA", "Pole") == "pa+ma")
+    check("lane_of PA+MA -> pa+ma (Sword, Materia Blade)", lane_of("PA+MA", "Sword") == "pa+ma")
+    check("lane_of PA+MA+Brave -> pa+ma+brave", lane_of("PA+MA+Brave", "Katana") == "pa+ma+brave")
+    check("lane_of WP -> wp", lane_of("WP", "Gun") == "wp")
+    check("lane_of WP+Faith -> wp+faith", lane_of("WP+Faith", "Gun") == "wp+faith")
     try:
         lane_of("SPD", "Knife")
         check("lane_of unknown token raises", False)
     except ValueError:
         check("lane_of unknown token raises", True)
-    # Every grows token in the locked vocabulary resolves to one of the three real runtime
-    # lanes GrowthEngine.Route switches on -- no token is left mapping to nothing.
+    # Every grows token in the locked vocabulary resolves to its OWN real lane -- no two tokens
+    # collapse onto the same baked value any more.
     all_tokens = ["PA", "MA", "Speed", "HP", "PA+MA", "PA+MA+Brave", "WP", "WP+Faith"]
-    lanes = {lane_of(tok, "Sword") for tok in all_tokens} | {lane_of("PA+MA", "Pole")}
-    check("every grows token maps to a real lane", lanes <= {"pa", "ma", "speed"})
+    lanes = {lane_of(tok, "Sword") for tok in all_tokens}
+    check("every grows token maps to its own real lane",
+          lanes == {"pa", "ma", "speed", "hp", "pa+ma", "pa+ma+brave", "wp", "wp+faith"})
+
+    # LW-317: check_wp_sid_identity, the bake-time sid==id pin every "wp"/"wp+faith" weapon
+    # must clear before WpTableHold's write address can be trusted.
+    clean_meta = {
+        "71": {"name": "Outrider Pistol", "lane": "wp"},
+        "74": {"name": "Glacial Gun", "lane": "wp+faith"},
+        "9": {"name": "Galewind", "lane": "pa"},   # a non-wp lane: never checked
+    }
+    check("sid identity: sid == id for every wp/wp+faith row passes",
+          check_wp_sid_identity(clean_meta, {71: 71, 74: 74, 9: 999}) == [])
+    check("sid identity: a wp weapon mapped to a DIFFERENT sid fails",
+          len(check_wp_sid_identity(clean_meta, {71: 72, 74: 74})) > 0)
+    check("sid identity: a wp weapon missing from additional_data_ids.json fails",
+          len(check_wp_sid_identity(clean_meta, {74: 74})) > 0)
+    check("sid identity: a non-wp/wp+faith lane is never checked",
+          check_wp_sid_identity({"9": {"name": "Galewind", "lane": "pa"}}, {}) == [])
 
     passed = sum(1 for _, ok in cases if ok)
     for name, ok in cases:

@@ -877,7 +877,7 @@
     "cat": "Sword",
     "formula": 1,
     "flavor": "Cloud's sword, made for SOLDIER's elite to fight to their full potential.",
-    "lane": "pa",
+    "lane": "pa+ma",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -910,7 +910,7 @@
     "cat": "KnightSword",
     "formula": 1,
     "flavor": "A broad-bladed knight's sword with jewels embedded in its pommel.",
-    "lane": "pa",
+    "lane": "hp",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -943,7 +943,7 @@
     "cat": "KnightSword",
     "formula": 1,
     "flavor": "A knight's sword given as a symbol of an oath of fealty. It has been blessed with a ward of protection.",
-    "lane": "pa",
+    "lane": "hp",
     "palette": 15,
     "colors": [
       4194,
@@ -969,7 +969,7 @@
     "cat": "KnightSword",
     "formula": 1,
     "flavor": "Only the true heir may wield this legendary sword, granted fleetness of foot and divine might.",
-    "lane": "pa",
+    "lane": "hp",
     "palette": 8,
     "colors": [
       367,
@@ -995,7 +995,7 @@
     "cat": "KnightSword",
     "formula": 1,
     "flavor": "A knight's sword named in tales of the world's end. It wards against spellcraft.",
-    "lane": "pa",
+    "lane": "hp",
     "palette": 14,
     "colors": [
       2148,
@@ -1021,7 +1021,7 @@
     "cat": "KnightSword",
     "formula": 1,
     "flavor": "This holy knight's sword is said to have been a gift from the gods themselves, and possesses mystical powers.",
-    "lane": "pa",
+    "lane": "hp",
     "palette": 5,
     "colors": [
       4164,
@@ -1047,7 +1047,7 @@
     "cat": "Katana",
     "formula": 2,
     "flavor": "A katana with a brilliant white blade.",
-    "lane": "pa",
+    "lane": "pa+ma+brave",
     "palette": 13,
     "colors": [
       4162,
@@ -1073,7 +1073,7 @@
     "cat": "Katana",
     "formula": 1,
     "flavor": "A katana whose blade is adorned with a breathtaking carving of a tiger.",
-    "lane": "pa",
+    "lane": "pa+ma+brave",
     "palette": 13,
     "colors": [
       4162,
@@ -1099,7 +1099,7 @@
     "cat": "Katana",
     "formula": 47,
     "flavor": "A katana with a blade forged of the finest iron sand by master swordsmith Nagamitsu Osafune, of the eastern land of Bizen.",
-    "lane": "pa",
+    "lane": "pa+ma+brave",
     "palette": 13,
     "colors": [
       4162,
@@ -1125,7 +1125,7 @@
     "cat": "Katana",
     "formula": 1,
     "flavor": "Referred to as a demon sword, this katana's keen blade showers blood upon the battlefield.",
-    "lane": "pa",
+    "lane": "pa+ma+brave",
     "palette": 5,
     "colors": [
       2116,
@@ -1151,7 +1151,7 @@
     "cat": "Katana",
     "formula": 1,
     "flavor": "This katana echoes a legendary blade plucked from the tail of a marauding eastern dragon.",
-    "lane": "pa",
+    "lane": "pa+ma+brave",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -1184,7 +1184,7 @@
     "cat": "Katana",
     "formula": 1,
     "flavor": "This exquisitely crafted katana has a beautifully patterned blade and an incredible cutting edge.",
-    "lane": "pa",
+    "lane": "pa+ma+brave",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -1243,7 +1243,7 @@
     "cat": "Katana",
     "formula": 2,
     "flavor": "A katana with a hilt in the shape of a chrysanthemum.",
-    "lane": "pa",
+    "lane": "pa+ma+brave",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -1276,7 +1276,7 @@
     "cat": "Katana",
     "formula": 1,
     "flavor": "This katana was forged by a master swordsmith, and its sheath is inlaid with beautiful patterns.",
-    "lane": "pa",
+    "lane": "pa+ma+brave",
     "palette": 15,
     "colors": [
       4194,
@@ -1302,7 +1302,7 @@
     "cat": "Katana",
     "formula": 1,
     "flavor": "This katana is decorated with intricate designs and boasts a wickedly sharp edge.",
-    "lane": "pa",
+    "lane": "pa+ma+brave",
     "palette": 8,
     "colors": [
       102,
@@ -1328,7 +1328,7 @@
     "cat": "Pole",
     "formula": 1,
     "flavor": "Quarried from old bedrock, it strikes with the slow patience of shifting earth.",
-    "lane": "ma",
+    "lane": "pa+ma",
     "palette": 13,
     "colors": [
       4161,
@@ -1354,7 +1354,7 @@
     "cat": "KnightSword",
     "formula": 1,
     "flavor": "A savage cleaving thing that pours its own blind frenzy into every wound it tears open.",
-    "lane": "pa",
+    "lane": "hp",
     "palette": 14,
     "colors": [
       2118,
@@ -1380,7 +1380,7 @@
     "cat": "KnightSword",
     "formula": 46,
     "flavor": "A spiteful edge made less to slay than to ruin; it shatters what it meets.",
-    "lane": "pa",
+    "lane": "hp",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -1949,7 +1949,7 @@
     "cat": "Katana",
     "formula": 1,
     "flavor": "A barbed, scorpion-named katana whose every sting marks a foe for a slow, certain death.",
-    "lane": "pa",
+    "lane": "pa+ma+brave",
     "palette": 13,
     "colors": [
       3428,
@@ -1975,7 +1975,7 @@
     "cat": "Gun",
     "formula": 3,
     "flavor": "A wheel-lock that throws its shot farthest.",
-    "lane": "pa",
+    "lane": "wp",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -2008,7 +2008,7 @@
     "cat": "Gun",
     "formula": 3,
     "flavor": "An iron-framed repeater for the long road; it hits harder than the pistol and never jams.",
-    "lane": "pa",
+    "lane": "wp",
     "palette": 10,
     "colors": [
       3138,
@@ -2034,7 +2034,7 @@
     "cat": "Gun",
     "formula": 3,
     "flavor": "A heavy gun bored to spit earthen shards; each shot lands like a sliding mountain.",
-    "lane": "pa",
+    "lane": "wp",
     "palette": 14,
     "colors": [
       1125,
@@ -2060,7 +2060,7 @@
     "cat": "Gun",
     "formula": 4,
     "flavor": "A magickal firearm that shoots freezing bullets.",
-    "lane": "ma",
+    "lane": "wp+faith",
     "palette": 13,
     "colors": [
       5185,
@@ -2086,7 +2086,7 @@
     "cat": "Gun",
     "formula": 4,
     "flavor": "A magickal firearm that shoots flaming bullets.",
-    "lane": "ma",
+    "lane": "wp+faith",
     "palette": 14,
     "colors": [
       1093,
@@ -2112,7 +2112,7 @@
     "cat": "Gun",
     "formula": 4,
     "flavor": "A magickal firearm that shoots electrically charged bullets.",
-    "lane": "ma",
+    "lane": "wp+faith",
     "palette": 11,
     "colors": [
       2178,
@@ -2969,7 +2969,7 @@
     "cat": "Pole",
     "formula": 2,
     "flavor": "Cut from green wood for the unblooded; a focused blow flings martial spirit a pace off.",
-    "lane": "ma",
+    "lane": "pa+ma",
     "palette": 12,
     "colors": [
       2177,
@@ -2995,7 +2995,7 @@
     "cat": "Pole",
     "formula": 1,
     "flavor": "Reed banded with iron, springy and swift, suited to a hand that prizes speed over weight.",
-    "lane": "ma",
+    "lane": "pa+ma",
     "palette": 10,
     "colors": [
       3139,
@@ -3021,7 +3021,7 @@
     "cat": "Pole",
     "formula": 1,
     "flavor": "Wax-scented, slow to swing; its measured taps coax the watchful into heavy-lidded sleep.",
-    "lane": "ma",
+    "lane": "pa+ma",
     "palette": 15,
     "colors": [
       4358,
@@ -3047,7 +3047,7 @@
     "cat": "Pole",
     "formula": 1,
     "flavor": "A folded-iron war-fan that beats the air shut round a chanting mouth, stealing its spell.",
-    "lane": "ma",
+    "lane": "pa+ma",
     "palette": 3,
     "colors": [
       3170,
@@ -3073,7 +3073,7 @@
     "cat": "Pole",
     "formula": 1,
     "flavor": "Worn smooth by a sage's grip; no trick to it, only the weight of a practiced strike.",
-    "lane": "ma",
+    "lane": "pa+ma",
     "palette": 6,
     "colors": [
       4295,
@@ -3099,7 +3099,7 @@
     "cat": "Pole",
     "formula": 1,
     "flavor": "A pole made from ivory that has been specially treated for improved durability.",
-    "lane": "ma",
+    "lane": "pa+ma",
     "palette": 12,
     "colors": [
       3139,
@@ -3125,7 +3125,7 @@
     "cat": "Pole",
     "formula": 1,
     "flavor": "Eight grooves channel a slow venom, so one clean rap festers long after the bout is won.",
-    "lane": "ma",
+    "lane": "pa+ma",
     "palette": 14,
     "colors": [
       9347,
@@ -3151,7 +3151,7 @@
     "cat": "Pole",
     "formula": 2,
     "flavor": "A pole made from an unidentified material that some say is a whale's whisker.",
-    "lane": "ma",
+    "lane": "pa+ma",
     "palette": 11,
     "colors": [
       2116,
