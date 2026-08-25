@@ -71,6 +71,7 @@ public class EngineTickTableTests
             "kit-provoke",      // KitLane gate: same lane as kit-barrage
             "gunslinger",       // Always gate: writes roster equipment, not battle memory; snapshot/restore self-gates on s.NowIn
             "display-out",      // OutOfBattle gate: paints the equip card into menu buffers, not battle memory
+            "icon-glow",        // OutOfBattle gate: LW-295 cycle B, plain file I/O against modded.pac, no memory touched at all
             "pool-locate",      // Always gate: reads heap memory only (finding pool regions); the paint that consumes the result stays InBattle/OutOfBattle-gated separately
         };
 

@@ -107,7 +107,19 @@ the technical detail lives in the indented lines under it.
     the same gold-over-green mismatch this row first described but the same family of problem.
     The old zone recipe this row's Tech bullet describes was deleted; the bright-v2/
     CARD_OVERRIDES/SMALL_TWO_ZONE dormancy this row notes stands on its own, unaffected.
-- **[LW-295] A weapon that has grown starts to glow, on its menu picture and in its wielder's hand** (opened 2026-08-19) [BUILDING]
+- **[LW-295] A weapon that has grown starts to glow, on its menu picture and in its wielder's hand** (opened 2026-08-19) [AWAITING-LIVE]
+  - BUILT 2026-08-25, owner live pass outstanding. Both halves are in: a player's tiered
+    weapon swings with its authored colours brightened toward white, one step per kill tier,
+    while an enemy holding the same weapon id stays plain; and every weapon's two menu icons
+    gain a rim in the weapon's own colour at three strengths, patched into the game's merged
+    icon file while it runs, weapons only, out of battle, with every failure lane degrading
+    to plain art with one honest warning. The look test the owner deferred is now folded
+    into his live pass. (Tech: sprite half commit 9f6b820; icon half = tools/
+    bake_glow_icons.py + 726 baked variants in LivingWeapon/glow_icons/ + the IconGlow
+    subsystem on the [live-icon-repaint] lane. Adversarially verified: sprite half three
+    rounds to code 9 / spec 9, icon half code 8 / spec 8, suite 3263 green. Live pass MUST
+    use BuildLinked -Prod with a staged kills.json, a dev build floors every tally to
+    tier 3.)
   - The owner decided the glow's meaning on 2026-08-24: it shows a weapon's kill tier. A weapon
     that reaches +1 begins to glow, gets brighter at +2, and reaches full radiance at +3, both on
     the item picture in menus and on the weapon sprite during a battle swing. Four calls banked

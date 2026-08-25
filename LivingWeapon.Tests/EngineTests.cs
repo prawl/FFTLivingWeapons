@@ -215,6 +215,7 @@ public class EngineTests
                 ("kit-provoke", TickGates.KitLane, 1, false, new[] { "kit-barrage", "kit-shadowblade" }),
                 ("gunslinger", TickGates.Always, 30, false, Array.Empty<string>()),
                 ("display-out", TickGates.OutOfBattle, 1, false, Array.Empty<string>()),
+                ("icon-glow", TickGates.OutOfBattle, 30, false, Array.Empty<string>()),
                 ("pool-locate", TickGates.Always, 1, false, Array.Empty<string>()),
                 ("kill-poll", TickGates.InBattle, 1, false, Array.Empty<string>()),
                 ("turn-poll", TickGates.InBattle, 1, false, Array.Empty<string>()),
@@ -291,6 +292,8 @@ public class EngineTests
             // (kit-lane trio, gunslinger, display-out), none of which ever
             // reference it. A region-level presence check, not an exact count, so this survives an
             // unrelated reshuffle of exactly which in-battle row reads it first.
+            // (icon-glow also joined this OutOfBattle group in LW-295 cycle B -- pure file I/O
+            // against modded.pac, no memory read of any kind.)
             Assert.True(memIn.ReadCount.ContainsKey(Offsets.ActorPtr),
                 "in-battle regime: Offsets.ActorPtr was never read -- the in-battle fan-out did not run");
             Assert.False(memOut.ReadCount.ContainsKey(Offsets.ActorPtr),

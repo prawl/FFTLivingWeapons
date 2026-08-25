@@ -38,6 +38,7 @@ internal sealed class Engine
     private readonly Display _display;
     private readonly AttackCard _attackCard;   // LW-31 stage 2: the Attack-menu desc dossier painter
     private readonly WeaponPalette _weaponPalette;   // LW-251: the per-turn weapon-sprite palette repaint
+    private readonly IconGlow _iconGlow;   // LW-295 cycle B: out-of-battle equip-icon glow-rim splice into modded.pac
     private readonly BattleState _battle = new();      // debounced in/out edges (slot9 sticks; mode flickers)
     private CancellationTokenSource? _cts;
     private DateTime _lastField = DateTime.MinValue;   // last tick we were on the live battlefield
@@ -245,6 +246,11 @@ internal sealed class Engine
         // LW-295: also takes the shared kill tally, so a player wielder's authored colours glow
         // brighter at each kill tier.
         _weaponPalette = new WeaponPalette(meta, live, _kills);
+        // LW-295 cycle B: keeps every weapon's equip icon spliced to its current kill tier
+        // (glow rim) inside modded.pac. Reads the shared kill tally + the known weapon id set
+        // (meta.Keys, so a stale bake's ids never get managed); all file/pac I/O goes through
+        // the FileIconGlowStore seam, never Mem.
+        _iconGlow = new IconGlow(modDir, _kills, meta.Keys, new FileIconGlowStore(modDir));
 #if LWDEV
         // Shares the SAME register KillerStamp/AttackCard already trust (see TurnOwnerSpike.cs's
         // class doc for why a second register is deliberately avoided).
@@ -300,6 +306,11 @@ internal sealed class Engine
             // Out of battle (slot9 cleared): keep the equip card painted.
             new TickPhase("display-out", TickGates.OutOfBattle, 1, false, Array.Empty<string>(),
                 _ => e!._display.Tick(false)),
+            // LW-295 cycle B: out-of-battle equip-icon glow-rim splice (IconGlow.cs). Cadence 30
+            // mirrors "gunslinger"'s own re-assert throttle -- kills only change in battle, and a
+            // slow disk read must not run every 33ms.
+            new TickPhase("icon-glow", TickGates.OutOfBattle, 30, false, Array.Empty<string>(),
+                _ => e!._iconGlow.Tick()),
             // LW-261: the resumable pool-region locate's own lane, every tick, in AND out of
             // battle -- independent of whether the card happens to be paintable this tick
             // (display-out above only runs OutOfBattle; the "paint" row further down only reaches
