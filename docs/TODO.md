@@ -207,6 +207,30 @@ belongs rather than at the bottom.
   [maxhp-hold-attribution-safe] and the LW-317 pass; needs its own failing test first
   and one owner reading, a knight opening a battle at 883/883.)
 
+- [LW-329] 2026-08-25: The Grows line on every weapon card gets painted in its weapon's
+  glow color, whole line, one hue per weapon (owner ruling 2026-08-25: single-lane cards
+  wear the lane hue, PA red and MA blue and Speed green per LW-319's vocabulary, and
+  multi-lane cards wear their blend hue like the poles' purple; the words carry the
+  decomposition, the color carries the identity; the Kills line stays first and plain).
+  Blocked on two live facts from one sitting: the card palette map (only color 80 =
+  yellow is proven on the card surface; a cycler probe built from
+  tools/probes/lw307_card_markup_probe.py steps NN values while the owner calls hues)
+  and the owner's nine hue picks (PA, MA, Speed seeded; HP, WP, Faith, and the three
+  blends need calls). (Tech: wrap each baked Grows line in <color=NN>...</color> keyed
+  by meta.json's lane; the desc-budget gate must strip tags before counting since tags
+  are bytes, not glyphs; ships as its own bake after the LW-322 live pass.)
+
+- [LW-329] 2026-08-25: The enemy AI cures Venombolt's poison, so the always-Poison
+  crossbow's identity needs a look: the owner watched an enemy NPC spend its turn using a
+  Remedy to cleanse the poison a Venombolt bolt had just applied (the bolt came from an
+  owner-side unit under auto-control). Two readings and the row exists to decide between
+  them with more observation: the poison is still paying (it taxed the enemy a full turn
+  and an item, which is action denial even when it never ticks), or the DoT identity is
+  hollow against item-carrying humans and the weapon only truly bites monsters and
+  item-less foes. Watch a few more fights before any tuning; if the turn-tax reading
+  wins, the card text and identity prose could even advertise it. (Tech: Venombolt id 80,
+  formula 45 always-Poison; observed 2026-08-25 in a live battle.)
+
 - [LW-318] 2026-08-25: The weapon power curve gets a fairness pass: every weapon strong
   enough to matter, none so strong the rest become vendor trash. The owner replayed the mod
   a few weeks before 2026-08-25 and the balance felt steady until the Warbrand appeared and
