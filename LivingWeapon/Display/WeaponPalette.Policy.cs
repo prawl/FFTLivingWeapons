@@ -43,4 +43,22 @@ internal static class WeaponPalettePolicy
 
         return paintedPal != desiredPal ? WeaponPaletteAction.RestoreThenPaint : WeaponPaletteAction.Paint;
     }
+
+    /// <summary>LW-308: true when a bank's CURRENT entries (1..15) match neither the first-look
+    /// vanilla snapshot nor what this runtime last wrote there -- a foreign writer, or a bad
+    /// first look. Advisory only: the caller logs and keeps painting; it never re-memorizes,
+    /// because if the first look WAS wrong, adopting the current bytes would launder that error
+    /// into the snapshot every restore then repeats.</summary>
+    public static bool SnapshotSuspect(ushort[] current, ushort[] vanilla, ushort[]? lastWritten)
+    {
+        return !Matches(vanilla) && (lastWritten is null || !Matches(lastWritten));
+
+        bool Matches(ushort[] reference)
+        {
+            if (reference.Length != current.Length) return false;
+            for (int i = 0; i < current.Length; i++)
+                if (current[i] != reference[i]) return false;
+            return true;
+        }
+    }
 }

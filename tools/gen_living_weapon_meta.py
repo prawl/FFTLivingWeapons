@@ -137,6 +137,11 @@ def attach_weapon_palettes(meta, colours_doc, overrides_doc):
          must be in 0..15.
       5. every override id must exist in the colour file (an orphan override is dead weight that
          silently stops applying the moment its evidence is forgotten).
+      6. (LW-308) an id appearing on more than one weapons row is an error, never last-win: two
+         rows for one weapon means a hand-merge went wrong, and whichever row silently won would
+         look exactly like the owner's choice.
+      7. (LW-308) a malformed rgb (missing, not a 3-list, non-int, out of 0..255) reports through
+         this error list like every other lane instead of crashing the bake with a raw traceback.
     A `semiTransparent` flag on any colour entry is deliberately IGNORED here (dropped, not an
     error): bit 15 is always carried from whatever is currently in the palette slot at write
     time, per the runtime's own paint design -- never invented from the export, semiTransparent
@@ -145,7 +150,14 @@ def attach_weapon_palettes(meta, colours_doc, overrides_doc):
     """
     errors = []
     overrides = overrides_doc.get("overrides", {}) or {}
-    colours_by_id = {int(w["id"]): w for w in colours_doc.get("weapons", []) or []}
+    colours_by_id = {}
+    for w in colours_doc.get("weapons", []) or []:
+        wid = int(w["id"])
+        if wid in colours_by_id:
+            errors.append(f"weapon_colors.json id {wid} ({w.get('name')}) appears more than once; "
+                           f"resolve the duplicate by hand (last-win would silently discard a row)")
+            continue
+        colours_by_id[wid] = w
 
     for wid, w in colours_by_id.items():
         entry = meta.get(str(wid))
@@ -166,7 +178,14 @@ def attach_weapon_palettes(meta, colours_doc, overrides_doc):
                 errors.append(f"weapon_colors.json id {wid} ({w['name']}) is missing colour entry {i}")
                 bad = True
                 continue
-            rgb = ent["rgb"]
+            rgb = ent.get("rgb") if isinstance(ent, dict) else None
+            if (not isinstance(rgb, (list, tuple)) or len(rgb) != 3
+                    or not all(isinstance(c, int) and not isinstance(c, bool) and 0 <= c <= 255
+                               for c in rgb)):
+                errors.append(f"weapon_colors.json id {wid} ({w['name']}) entry {i} rgb is "
+                               f"malformed: {rgb!r} (need three ints 0..255)")
+                bad = True
+                continue
             roundtrip = [e5(q5(c)) for c in rgb]
             if roundtrip != list(rgb):
                 errors.append(f"weapon_colors.json id {wid} ({w['name']}) entry {i} is not "
@@ -318,6 +337,27 @@ def selftest():
     # Lane 5: an override id with no matching weapon_colors.json row.
     errors = attach_weapon_palettes(fake_meta(), fake_colours(), {"overrides": {"999": {"trulyUses": 0}}})
     check("lane5 orphan override: fails", len(errors) > 0)
+
+    # Lane 6 (LW-308): two rows sharing one id are rejected loudly, never resolved by last-win.
+    dup = fake_colours()
+    dup["weapons"].append(dict(dup["weapons"][0]))
+    errors = attach_weapon_palettes(fake_meta(), dup, {"overrides": {}})
+    check("lane6 duplicate id: fails naming the duplicate",
+          any("more than once" in e for e in errors))
+
+    # Lane 7 (LW-308): a malformed rgb entry reports through the error list, never a raw crash.
+    for label, ent in (("missing rgb key", {"hex": "#000000"}),
+                       ("rgb not a list", {"hex": "#000000", "rgb": 7}),
+                       ("rgb wrong length", {"hex": "#000000", "rgb": [8, 16]}),
+                       ("rgb non-int member", {"hex": "#000000", "rgb": [8, "x", 16]}),
+                       ("rgb out of range", {"hex": "#000000", "rgb": [8, 300, 16]})):
+        malformed = fake_colours()
+        malformed["weapons"][0]["colours"]["3"] = ent
+        try:
+            errors = attach_weapon_palettes(fake_meta(), malformed, {"overrides": {}})
+            check(f"lane7 {label}: listed as an error", len(errors) > 0)
+        except Exception:
+            check(f"lane7 {label}: listed as an error (CRASHED instead)", False)
 
     passed = sum(1 for _, ok in cases if ok)
     for name, ok in cases:

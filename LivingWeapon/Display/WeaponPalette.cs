@@ -41,6 +41,17 @@ internal sealed class WeaponPalette
     /// the first time that pair is ever painted this session, before the write.</summary>
     private readonly Dictionary<(long bank, int pal), ushort[]> _vanilla = new();
 
+    /// <summary>LW-308: what this runtime last actually wrote per (bank, palette) -- entries
+    /// 1..15 with their carried bit 15s -- so a later paint can tell "still our colours" from
+    /// "someone else's bytes". Session lifetime like _vanilla (after a battle load the banks read
+    /// as vanilla, which the suspect check accepts on its own).</summary>
+    private readonly Dictionary<(long bank, int pal), ushort[]> _lastWritten = new();
+
+    /// <summary>LW-308: (bank, palette) pairs already warned about this battle, so a foreign
+    /// writer produces ONE loud line per surface per battle instead of a re-assert-cadence
+    /// spam.</summary>
+    private readonly HashSet<(long bank, int pal)> _suspectWarned = new();
+
     private int _paintedPal = -1;
     private int _paintedWeapon = -1;
     private int _ticksUnchanged;
@@ -99,6 +110,7 @@ internal sealed class WeaponPalette
         _paintedPal = -1;
         _paintedWeapon = -1;
         _ticksUnchanged = 0;
+        _suspectWarned.Clear();   // LW-308: a new battle earns a fresh (single) warning per surface
     }
 
     /// <summary>Writes <paramref name="codes"/> (entries 1..15) into both banks at
@@ -123,15 +135,35 @@ internal sealed class WeaponPalette
                 for (int i = 1; i <= 15; i++) snap[i - 1] = cur[i];
                 _vanilla[key] = snap;
             }
+            else
+            {
+                // LW-308: on every later paint, sanity-check the bank against the snapshot and
+                // our own last write. A mismatch with BOTH means a foreign writer or a bad first
+                // look; say so loudly (once per battle per surface) and keep the ORIGINAL
+                // snapshot -- re-memorizing would launder the wrong bytes into every restore.
+                var now = new ushort[15];
+                for (int i = 1; i <= 15; i++) now[i - 1] = cur[i];
+                _lastWritten.TryGetValue(key, out var last);
+                if (WeaponPalettePolicy.SnapshotSuspect(now, _vanilla[key], last) && _suspectWarned.Add(key))
+                    ModLogger.Warn(LogVerb.Display, $"Palette {pal} bank 0x{bank:X} holds bytes matching " +
+                        "neither vanilla nor our last paint; another writer touched it (or the first look " +
+                        "was bad). Keeping the original snapshot.");
+            }
 
             var outBytes = new byte[30];
+            var written = new ushort[15];
             for (int i = 1; i <= 15; i++)
             {
-                ushort code = (ushort)((cur[i] & 0x8000) | codes[i - 1]);   // carry bit 15, never invent it
+                // Carry bit 15 from the bank, never invent it -- and strip it from the baked code
+                // (LW-308): the bank is the ONLY legitimate source of that bit, so a corrupt baked
+                // value cannot smuggle it in.
+                ushort code = (ushort)((cur[i] & 0x8000) | (codes[i - 1] & 0x7FFF));
+                written[i - 1] = code;
                 outBytes[(i - 1) * 2] = (byte)(code & 0xFF);
                 outBytes[(i - 1) * 2 + 1] = (byte)(code >> 8);
             }
             _mem.WriteBytes(tgt + 2, outBytes);
+            _lastWritten[key] = written;
         }
         ModLogger.Debug(LogVerb.Display, $"Painted weapon {weaponId} into palette {pal}.");
     }

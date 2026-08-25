@@ -707,4 +707,105 @@ public class WeaponPaletteTests
             for (int i = 1; i <= 15; i++) Assert.Equal(seed7[i], after[i]);   // still the ORIGINAL vanilla, no drift
         }
     }
+
+    // ================= 3. LW-308 hardening =================
+
+    // ---- Bit 15 in a baked code is stripped before the carry: the bank is the ONLY bit-15 source ----
+
+    [Fact]
+    public void Paint_BakedCodeWithBit15_StrippedBeforeCarry()
+    {
+        var codes = Codes();
+        codes[0] = 0x8001;   // an (illegal) authored code carrying bit 15, targeting entry 1
+        var mem = new FakeSparseMemory();
+        SeatOwner(mem, Slot, weaponId: 9);
+        foreach (long bank in Banks) StageBank(mem, bank, 4, SeedBank());   // seed has NO bit 15 anywhere
+        var wp = new WeaponPalette(Meta(9, 4, codes), mem);
+
+        wp.Tick(true);
+
+        foreach (long bank in Banks)
+        {
+            var e = ReadBank(mem, bank, 4);
+            Assert.Equal(0, e[1] & 0x8000);        // bit 15 must come from the bank alone, and the seed had none
+            Assert.Equal(0x0001, e[1] & 0x7FFF);   // the colour half of the code still lands
+        }
+    }
+
+    // ---- SnapshotSuspect: pure verdict on a bank whose bytes match neither snapshot nor last paint ----
+
+    private static ushort[] Fifteen(int seed) => Enumerable.Range(0, 15).Select(i => (ushort)(seed + i)).ToArray();
+
+    [Fact]
+    public void SnapshotSuspect_CurrentMatchesVanilla_False()
+        => Assert.False(WeaponPalettePolicy.SnapshotSuspect(Fifteen(0x100), Fifteen(0x100), Fifteen(0x200)));
+
+    [Fact]
+    public void SnapshotSuspect_CurrentMatchesLastWritten_False()
+        => Assert.False(WeaponPalettePolicy.SnapshotSuspect(Fifteen(0x200), Fifteen(0x100), Fifteen(0x200)));
+
+    [Fact]
+    public void SnapshotSuspect_CurrentMatchesNeither_True()
+        => Assert.True(WeaponPalettePolicy.SnapshotSuspect(Fifteen(0x300), Fifteen(0x100), Fifteen(0x200)));
+
+    [Fact]
+    public void SnapshotSuspect_NoLastWritten_ComparesVanillaOnly()
+    {
+        Assert.False(WeaponPalettePolicy.SnapshotSuspect(Fifteen(0x100), Fifteen(0x100), null));
+        Assert.True(WeaponPalettePolicy.SnapshotSuspect(Fifteen(0x300), Fifteen(0x100), null));
+    }
+
+    // ---- The stateful half warns LOUDLY (once per battle per bank+palette) on foreign bank bytes ----
+
+    [Fact]
+    public void Paint_ForeignBankBytes_WarnsOnce_AndNeverRememorizes()
+    {
+        var (mem, wp) = Build(9, 4, SeedBank());
+        wp.Tick(true);   // first paint: snapshot captured, codes written
+
+        // A foreign writer stomps BOTH banks with bytes matching neither vanilla nor our paint.
+        foreach (long bank in Banks)
+            StageBank(mem, bank, 4, SeedBank().Select(v => (ushort)(v ^ 0x1234)).ToArray());
+
+        using var cap = LogCapture.Start();
+        for (int i = 0; i <= ReassertTicks; i++) wp.Tick(true);   // ride to the re-assert paint
+
+        int warns = cap.File.Count(l => l.Contains("neither vanilla nor our last paint"));
+        Assert.Equal(2, warns);   // one per bank, same palette, same battle
+
+        // Stomp again: the per-battle guard holds, no second warn for the same (bank, palette).
+        foreach (long bank in Banks)
+            StageBank(mem, bank, 4, SeedBank().Select(v => (ushort)(v ^ 0x4321)).ToArray());
+        for (int i = 0; i <= ReassertTicks; i++) wp.Tick(true);
+        Assert.Equal(2, cap.File.Count(l => l.Contains("neither vanilla nor our last paint")));
+
+        // The suspicion never re-memorizes: a restore still writes the ORIGINAL first-look snapshot.
+        var seed = SeedBank();
+        mem.U16s[Band.Entry(Slot) + Offsets.AWeapon] = 999999 & 0xFFFF;   // unauthored -> Restore
+        wp.Tick(true);
+        foreach (long bank in Banks)
+        {
+            var after = ReadBank(mem, bank, 4);
+            for (int i = 1; i <= 15; i++) Assert.Equal(seed[i], after[i]);
+        }
+    }
+
+    [Fact]
+    public void Paint_ForeignBankBytes_WarnGuardClearsOnResetBattle()
+    {
+        var (mem, wp) = Build(9, 4, SeedBank());
+        wp.Tick(true);
+        foreach (long bank in Banks)
+            StageBank(mem, bank, 4, SeedBank().Select(v => (ushort)(v ^ 0x1234)).ToArray());
+
+        using var cap = LogCapture.Start();
+        for (int i = 0; i <= ReassertTicks; i++) wp.Tick(true);
+        Assert.Equal(2, cap.File.Count(l => l.Contains("neither vanilla nor our last paint")));
+
+        wp.ResetBattle();   // new battle: the guard re-arms
+        foreach (long bank in Banks)
+            StageBank(mem, bank, 4, SeedBank().Select(v => (ushort)(v ^ 0x4321)).ToArray());
+        wp.Tick(true);      // fresh paint in the "new" battle sees foreign bytes again
+        Assert.Equal(4, cap.File.Count(l => l.Contains("neither vanilla nor our last paint")));
+    }
 }
