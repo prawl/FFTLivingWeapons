@@ -423,8 +423,12 @@ recorded in the OUT section rather than edited away.
   rim had been painted straight over the vanilla artist's own haze, wiping out between 100 and
   270 pixels of it on every one of the 150 items. Taking it off hands all of that back exactly as
   drawn.
-- **Battle sprite colours (LW-251)**: a live reverse engineering arc on its own clock, currently
-  waiting on a one shot boot race probe. It shares the word colour with this cut and nothing else.
+- **Battle sprite colours (LW-251)**: written here when it was a live reverse engineering arc on
+  its own clock, and OVERTAKEN mid cut rather than edited away: the arc landed and shipped into
+  this very cycle on 2026-08-24 (owner live pass; changelog LW-251, commits d10a312 and b38160a).
+  What remains of it in the ledger is its residue, the ex flail garbage sprite (LW-312) and the
+  palette map audit (LW-305), which stay backlog work on their own clocks, still outside this
+  cut's gate.
 - **Three rows whose premises are stale and must be re measured rather than trusted (LW-232,
   LW-237, LW-242)**: all three describe recipes that LW-247 deleted from the recolour tool, so
   they no longer describe the shipped art.

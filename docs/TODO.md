@@ -467,6 +467,16 @@ belongs rather than at the bottom.
   generated jsons like meta.json are covered by their generators; probe scratch jsons in
   tools/probes/ stay exempt.)
 
+- [LW-315] 2026-08-24: The release scope gate reads more of the scope file than it should, so a
+  bullet in the OUT of scope list can be policed as if it were a ship gate checkbox. Found when
+  LW-251's ship turned an OUT bullet red in the R1 check. The IN region is defined as everything
+  between the "## IN" header and the next "## DEFERRED" header, and the per cycle cut
+  sections plus the OUT list all sit between those two, so they are silently swallowed into the
+  IN scan. The 2026-08-24 fix reworded the bullet honestly rather than narrowing the parser;
+  the parser half is this row. (Tech: ReleaseScopeContractTests.ExtractInSectionLines; either
+  bound the region at the next "## " header of any kind, or give each cut its own IN header,
+  and add a pin proving an OUT bullet is not an IN box.)
+
 - [LW-281] 2026-08-19: The picture on the mod's download page still shows the old icon
   colours, so anyone browsing sees art the mod no longer ships. (Tech: the banner is
   rendered by tools/make_banner.py from the installed icon cache and nobody re rendered it
