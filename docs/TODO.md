@@ -227,6 +227,20 @@ belongs rather than at the bottom.
   this seat makes it N lanes per weapon, baked from the grid like LW-250's. The WP and Faith
   halves are gated on LW-316's probe verdicts.)
 
+- [LW-320] 2026-08-25: Audit every weapon's power against how it is obtained, because a
+  weapon's price should include the effort of getting it. The grid's obtain column splits
+  the catalog 88 from shops versus 33 earned (Midlight's Deep treasure hunts, rare poaches,
+  story steals, character joins), and the first look already found the disease: of the
+  twelve highest-WP weapons, ten are earned and TWO are shop stock, the Warbrand (WP 15,
+  tier 5) and the Ravager (WP 15, tier 4), which is exactly the owner's "steady then boom"
+  playthrough moment, a shop shelf selling treasure-grade power. Done means every earned
+  weapon is worth its hunt (a rare poach must beat its shop peer somehow) and no shop
+  weapon spikes into treasure territory. Feeds LW-318's fairness formula directly and sits
+  before it on purpose; owner proposed 2026-08-25. (Tech: authority is
+  docs/living_weapon_grid.csv's obtain column; cross with WP, tier, riders and the new
+  grows lanes; candidate output is an obtain-vs-power chart plus per-weapon rulings in the
+  grid, enforced the same way the grows column will be.)
+
 - [LW-318] 2026-08-25: The weapon power curve gets a fairness pass: every weapon strong
   enough to matter, none so strong the rest become vendor trash. The owner replayed the mod
   a few weeks before 2026-08-25 and the balance felt steady until the Warbrand appeared and
