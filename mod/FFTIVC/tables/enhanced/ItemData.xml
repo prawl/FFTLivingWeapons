@@ -27,6 +27,7 @@
     <Item>
       <Id>49</Id> <!-- Ravager (was Giant's Axe) -->
       <ItemCategory>KnightSword</ItemCategory>
+      <ShopAvailability>Chapter4_Start</ShopAvailability>
     </Item>
     <Item>
       <Id>50</Id> <!-- Sunderer (was Slasher) -->
@@ -87,7 +88,7 @@
     <Item>
       <Id>67</Id> <!-- Warbrand (was Iron Flail) -->
       <ItemCategory>Sword</ItemCategory>
-      <ShopAvailability>Chapter3_Start</ShopAvailability>
+      <ShopAvailability>Chapter4_KillElmdor</ShopAvailability>
     </Item>
     <Item>
       <Id>68</Id> <!-- Bloodlash (was Flail of Flame) -->

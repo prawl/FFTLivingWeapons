@@ -125,7 +125,7 @@ the technical detail lives in the indented lines under it.
     205-char card budget for all 121 weapons.
   - Verify: analyze.py green (uniqueness, budget, scaffold lockstep), the nxd bake audit
     clean, and the owner reads the Grows line on a handful of cards live after a restart.
-- **[LW-320] Every weapon's power audited against how it is obtained** (opened 2026-08-25) [BUILDING]
+- **[LW-320] Every weapon's power audited against how it is obtained** (opened 2026-08-25) [AWAITING-LIVE]
   - A weapon's price should include the effort of getting it. The grid's obtain column
     splits the catalog 88 shop weapons versus 33 earned ones (Midlight's Deep treasure
     hunts, rare poaches, story steals, character joins), and the first look already found
@@ -157,6 +157,19 @@ the technical detail lives in the indented lines under it.
     Scoutbolt, Huntress, Greenwood Pole); Kiku-ichimonji and Dragon Whisker cannot
     without breaking the kept-vanilla-name text rule, spun off as LW-328. Restart-only;
     the owner still owes one live read confirming a proc fires (a Riposte swing).
+  - All remaining rulings executed 2026-08-25 (owner agreed to the chart's suggestions
+    in chat): the Warbrand keeps its crown but gets it LAST (tier 6, shelf moved to the
+    final shop unlock; the owner picked this variant after the WP cut to 14 proved
+    impossible, the gate showed Arcanum would strictly dominate a riderless zero-evade
+    14); the Ravager's shelf moves off its Chapter 2 debut to Chapter 4 (tier 5, power
+    kept); the Materia Blade, the three shelf-matchers, and the two riderless capstone
+    hunts are accepted with reasons; nine stale identity claims fixed; the grid's onHit
+    column synced to every real proc (18 cells, including the Huntress cell that said
+    Arm Shot while the data ships Leg Shot) and a new ruling column records every call.
+    (Tech: items.json shopOverride Chapter4_KillElmdor / Chapter4_Start; grid tier
+    cells moved in lockstep; dominance + grid-sync gates green; the rulings lockstep
+    gate waits until rulings lock after LW-318. Owner still owes: the live spot-reads,
+    both shelves stocking at their new chapters, and the Riposte proc firing.)
   - Done means: every earned weapon is worth its hunt (a rare poach beats its shop peer
     on some axis), no shop weapon spikes into treasure territory, each violation gets an
     owner ruling recorded in the grid, and any resulting number changes pass the

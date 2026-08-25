@@ -1333,7 +1333,7 @@
    "name": "Ravager",
    "vanilla": "Giant's Axe",
    "cat": "Knight Sword",
-   "tier": 4,
+   "tier": 5,
    "wp": 15,
    "evade": 5,
    "range": 1,
@@ -1819,7 +1819,7 @@
    "name": "Warbrand",
    "vanilla": "Iron Flail",
    "cat": "Sword",
-   "tier": 5,
+   "tier": 6,
    "wp": 15,
    "evade": 0,
    "range": 1,
@@ -3449,7 +3449,7 @@
    "name": "Warbrand",
    "cat": "Sword",
    "wp": 15,
-   "tier": 5,
+   "tier": 6,
    "severity": "OUTGUNS ALL HUNTS",
    "meets_or_beats": [
     "Sanguine Sword",
@@ -3763,6 +3763,7 @@
    "worst_peer_wins": [
     "wp",
     "evade",
+    "tier",
     "plus3"
    ]
   },

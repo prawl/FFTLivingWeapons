@@ -1028,7 +1028,7 @@
       "vanillaName": "Icebrand",
       "name": "Graviton",
       "tier": 5,
-      "identity": "Giant-slayer sword: on hit, a chance to cast Gravity, shearing off a share of the target's CURRENT HP regardless of defense — the melee counter to high-HP tanks and bosses. Trades raw WP for top-of-line evade and the %-HP proc; the swing is just the delivery. (Repurposed from the retired Living Blade+.)",
+      "identity": "Giant-slayer sword: on hit, a chance to cast Gravity, shearing off a share of the target's CURRENT HP regardless of defense — the melee counter to high-HP tanks and bosses. Trades raw WP for near-top evade (14, behind the Riposte's 16) and the %-HP proc; the swing is just the delivery. (Repurposed from the retired Living Blade+.)",
       "flavorOverride": "A dull, leaden edge that calls down a crushing weight, dragging the proudest foe down.",
       "baseline": {
         "wp": 18,
@@ -1370,7 +1370,7 @@
       "vanillaName": "Kotetsu",
       "name": "Kotetsu",
       "tier": 1,
-      "identity": "Cheap anti-bruiser — one swing Blinds an enemy melee threat for the fight (only early Blind katana). Pays -7 evade vs Asura for +1 WP and the rider.",
+      "identity": "Cheap anti-bruiser — one swing Blinds an enemy melee threat for the fight (only early Blind katana). Pays -7 evade vs Asura for +2 WP and the rider.",
       "desc": "A katana whose blade is adorned with a breathtaking carving of a tiger.",
       "baseline": {
         "wp": 8,
@@ -1702,8 +1702,8 @@
       "grows": "HP",
       "vanillaName": "Giant's Axe",
       "name": "Ravager",
-      "tier": 4,
-      "identity": "Frenzy-cleaver — a high-WP KnightSword with a chance to Confuse on hit: a savage blow that scrambles the struck foe into lashing out at random, the chaos of the old Berserk gambit without its always-on self-harm. Repurposed Giant's Axe slot, relabeled KnightSword (UiItemCategoryId + icon) so the card reads right.",
+      "tier": 5,
+      "identity": "Frenzy-cleaver — a high-WP KnightSword with a chance to Confuse on hit: a savage blow that scrambles the struck foe into lashing out at random, the chaos of the old Berserk gambit without its always-on self-harm. Repurposed Giant's Axe slot, relabeled KnightSword (UiItemCategoryId + icon) so the card reads right. Shelf moved off vanilla Chapter2_MeetDraclau to Chapter4_Start (tier 5; LW-320 owner ruling 2026-08-25): the power stays, the boom arrives with the late game.",
       "flavorOverride": "A savage cleaving thing that pours its own blind frenzy into every wound it tears open.",
       "baseline": {
         "wp": 12,
@@ -1719,7 +1719,8 @@
         "onHit": "May inflict Confuse",
         "onHitAbilityId": 23,
         "formula": 1,
-        "categoryOverride": "KnightSword"
+        "categoryOverride": "KnightSword",
+        "shopOverride": "Chapter4_Start"
       },
       "iconTint": [
         0.975,
@@ -2347,8 +2348,8 @@
       "grows": "PA",
       "vanillaName": "Iron Flail",
       "name": "Warbrand",
-      "tier": 5,
-      "identity": "Pure-power brute — the highest weapon power of any sword, bought with zero evade AND zero utility. A back-half pick (Ch3-gated, tier 5) so the raw-damage king doesn't eclipse the early game; the brute alternative to the utility blades (Arcanum/Rimebrand/Materia). (was Ironlash)",
+      "tier": 6,
+      "identity": "Pure-power brute — the highest weapon power of any sword, bought with zero evade AND zero utility. The crown arrives LAST: final shop unlock (tier 6, Chapter4_KillElmdor; LW-320 owner ruling 2026-08-25, replacing the Ch3 shelf) so the raw-damage king caps the catalog instead of ambushing the mid-game; the brute alternative to the utility blades (Arcanum/Graviton/Materia). (was Ironlash)",
       "flavorOverride": "A graceless slab of war-iron with no guile to it, only a weight that breaks what it meets.",
       "baseline": {
         "wp": 9,
@@ -2365,7 +2366,7 @@
         "onHitAbilityId": 0,
         "formula": 1,
         "categoryOverride": "Sword",
-        "shopOverride": "Chapter3_Start"
+        "shopOverride": "Chapter4_KillElmdor"
       },
       "iconTint": [
         0.401,
@@ -2748,7 +2749,7 @@
       "vanillaName": "Crossbow",
       "name": "Arbalest",
       "tier": 3,
-      "identity": "Raw stringless workhorse and the ONLY Range-5 crossbow. Best rider-free WP of its era + unique reach; the clean PA*WP sniper.",
+      "identity": "Raw stringless workhorse and the longest-reaching crossbow (Range 6; the Venombolt holds Range 5). Best rider-free WP of its era + unique reach; the clean PA*WP sniper.",
       "flavorOverride": "A steel arbalest cranked taut as a war-engine.",
       "baseline": {
         "wp": 4,
@@ -2965,7 +2966,7 @@
       "vanillaName": "Ice Bow",
       "name": "Frostarc",
       "tier": 2,
-      "identity": "T2 first elemental — attacks deal Ice (anti-Fire-creature; Ice-absorbers heal it). Trades Windrunner's evade for element at equal WP5.",
+      "identity": "T2 first elemental — attacks deal Ice (anti-Fire-creature; Ice-absorbers heal it). Trades Windrunner's evade and a point of WP (4 vs 5) for the element.",
       "flavorOverride": "Carved from rimed wood that never thaws; its arrows carry the chill of a frozen lake.",
       "baseline": {
         "wp": 5,
@@ -3076,7 +3077,7 @@
       "vanillaName": "Mythril Bow",
       "name": "Tidecaller",
       "tier": 3,
-      "identity": "T3 caster-lock / control bow — Silence on hit shuts enemy mages at range. WP7 + 10 evade. Renamed from filler Mythril Bow. Inflicts Silence (proc 10).",
+      "identity": "T3 tide bow — attacks deal Water and may cast Torrent (ability 127, Formula 2). WP6. Renamed from filler Mythril Bow.",
       "flavorOverride": "A bow that hisses like surf and stills the throat it finds.",
       "baseline": {
         "wp": 7,
@@ -3641,7 +3642,7 @@
       "vanillaName": "Dragon Whisker",
       "name": "Dragon Whisker",
       "tier": 6,
-      "identity": "ICONIC capstone. T6 riderless raw apex — strictly-highest spear WP (16), the ultimate Jump platform. Pure PA*WP ceiling; pays with the lowest 10% evade and zero utility. Red-Dragon poach.",
+      "identity": "ICONIC capstone. T6 raw apex — strictly-highest spear WP (15), the ultimate Jump platform, openly carrying its Fire Breath may-cast (LW-320 ghost-proc ruling 2026-08-25). Pays with the lowest 10% evade. Red-Dragon poach.",
       "desc": "A spear made from a mysterious material that some say is the whisker of a dragon.",
       "baseline": {
         "wp": 17,
@@ -3890,7 +3891,7 @@
       "vanillaName": "Eight-fluted Pole",
       "name": "Eight-Fluted Pole",
       "tier": 6,
-      "identity": "ICONIC. T6 attrition pole — highest physical-pole WP (14) + only Poison rider (22). Chips high-HP targets over a long fight. Out-WPs Gokuu's but pays via tier + DoT-vs-burst tradeoff.",
+      "identity": "ICONIC. T6 attrition pole — tied-highest pole WP (14, with Whale Whisker) + only Poison rider (22). Chips high-HP targets over a long fight. Out-WPs Gokuu's but pays via tier + DoT-vs-burst tradeoff.",
       "flavorOverride": "Eight grooves channel a slow venom, so one clean rap festers long after the bout is won.",
       "baseline": {
         "wp": 12,
@@ -3921,7 +3922,7 @@
       "vanillaName": "Whale Whisker",
       "name": "Whale Whisker",
       "tier": 6,
-      "identity": "ICONIC capstone. THE caster pole — highest pole WP (15) + only Water element; MA*WP comes free from the Pole weapon type (Formula 1, no risk). Best-in-slot for a high-MA front-liner. Tiamat-poach.",
+      "identity": "ICONIC capstone. THE caster pole — tied-highest pole WP (14, with the Eight-Fluted) + only Water element with a Torrent may-cast (Formula 2). MA*WP comes free from the Pole weapon type. Best-in-slot for a high-MA front-liner. Tiamat-poach.",
       "desc": "A pole made from an unidentified material that some say is a whale's whisker.",
       "baseline": {
         "wp": 16,
