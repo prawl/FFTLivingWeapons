@@ -7,43 +7,7 @@
   "3": "Hunt",
   "4": "Rare hunt"
  },
- "silent_procs": [
-  {
-   "id": 21,
-   "name": "Riposte",
-   "abilityId": 141
-  },
-  {
-   "id": 22,
-   "name": "Claymore",
-   "abilityId": 139
-  },
-  {
-   "id": 45,
-   "name": "Kiku-ichimonji",
-   "abilityId": 83
-  },
-  {
-   "id": 77,
-   "name": "Scoutbolt",
-   "abilityId": 213
-  },
-  {
-   "id": 89,
-   "name": "Huntress",
-   "abilityId": 213
-  },
-  {
-   "id": 105,
-   "name": "Dragon Whisker",
-   "abilityId": 249
-  },
-  {
-   "id": 107,
-   "name": "Greenwood Pole",
-   "abilityId": 102
-  }
- ],
+ "silent_procs": [],
  "weapons": [
   {
    "id": 1,
@@ -595,8 +559,8 @@
    "evade": 16,
    "range": 1,
    "element": "None",
-   "onHit": "None",
-   "silentProcId": 141,
+   "onHit": "May cast Rend Weapon",
+   "silentProcId": 0,
    "rider": "None",
    "formula": 2,
    "abnormalFormula": true,
@@ -622,8 +586,8 @@
    "evade": 0,
    "range": 2,
    "element": "None",
-   "onHit": "None",
-   "silentProcId": 139,
+   "onHit": "May cast Rend Armor",
+   "silentProcId": 0,
    "rider": "None",
    "formula": 2,
    "abnormalFormula": true,
@@ -1259,8 +1223,8 @@
    "evade": 10,
    "range": 2,
    "element": "None",
-   "onHit": "None",
-   "silentProcId": 83,
+   "onHit": "May cast Draw Out: Kiku-ichimonji",
+   "silentProcId": 0,
    "rider": "None",
    "formula": 2,
    "abnormalFormula": true,
@@ -2138,8 +2102,8 @@
    "evade": 10,
    "range": 4,
    "element": "None",
-   "onHit": "None",
-   "silentProcId": 213,
+   "onHit": "May cast Leg Shot",
+   "silentProcId": 0,
    "rider": "None",
    "formula": 2,
    "abnormalFormula": true,
@@ -2462,8 +2426,8 @@
    "evade": 10,
    "range": 6,
    "element": "None",
-   "onHit": "None",
-   "silentProcId": 213,
+   "onHit": "May cast Leg Shot",
+   "silentProcId": 0,
    "rider": "None",
    "formula": 2,
    "abnormalFormula": true,
@@ -2894,8 +2858,8 @@
    "evade": 10,
    "range": 2,
    "element": "None",
-   "onHit": "None",
-   "silentProcId": 249,
+   "onHit": "May cast Fire Breath",
+   "silentProcId": 0,
    "rider": "None",
    "formula": 2,
    "abnormalFormula": true,
@@ -2948,8 +2912,8 @@
    "evade": 20,
    "range": 2,
    "element": "None",
-   "onHit": "None",
-   "silentProcId": 102,
+   "onHit": "May cast Aurablast",
+   "silentProcId": 0,
    "rider": "None",
    "formula": 2,
    "abnormalFormula": true,
@@ -3895,7 +3859,8 @@
    "gate_dominated_by": [],
    "worst_peer": "Frostpoint",
    "worst_peer_wins": [
-    "wp"
+    "wp",
+    "onhit:May cast Fire Breath"
    ]
   },
   {

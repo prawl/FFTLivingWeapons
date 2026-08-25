@@ -27,7 +27,19 @@ PROC = {9: "Blind", 10: "Silence", 11: "Doom", 12: "Sleep", 13: "Don't Act", 14:
         101: "Oil"}  # Formula-1 status procs (ItemOptions ids; in Formula 2/4 the same ids mean spells)
 CAST = {42: "Gravity (damaging a share of the target's current HP)",
         45: "Sanguine Sword (draining the target's HP)",
-        76: "Draw Out: Ashura"}  # Formula-2 NON-elemental ability casts by opt id (elemental casts handled separately)
+        76: "Draw Out: Ashura",
+        # The 2026-06-02 thematic may-cast pass (9433f22) gave seven bland weapons these
+        # procs WITH hand-written card text; the 2026-06-07 generated-desc rewrite
+        # (65b2a88) dropped the prose because this map never learned the ids, so the
+        # procs shipped silently for eleven weeks (LW-320 audit find, owner-ruled
+        # re-advertised 2026-08-25). Names from the vanilla ability table
+        # (working/nxd_ability/ability.sqlite).
+        83: "Draw Out: Kiku-ichimonji",
+        102: "Aurablast",
+        139: "Rend Armor (breaking the target's armor)",
+        141: "Rend Weapon (breaking the target's weapon)",
+        213: "Leg Shot (immobilizing the target)",
+        249: "Fire Breath"}  # Formula-2 NON-elemental ability casts by opt id (elemental casts handled separately)
 
 # thematic flavor clauses keyed by the item's defining trait (element > proc > rider > role)
 ELEM_FLAVOR = {

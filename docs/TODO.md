@@ -149,6 +149,14 @@ the technical detail lives in the indented lines under it.
     analyze.py's dominance vocabulary and mirrors lib/flavor.mechanics() for on-hit
     labels; dataset tools/probes/lw320_obtain_power.json; the grid rulings column and
     its lockstep gate land after the owner rules.)
+  - First owner ruling executed 2026-08-25: the seven ghost procs are re-advertised on
+    the cards now rather than riding LW-322. Git archaeology proved them deliberate
+    (thematic may-cast pass 9433f22, 2026-06-02) and silently un-advertised five days
+    later by the generated-description rewrite (65b2a88) whose proc-name map never
+    learned the ids. Five of seven cards now say their cast (Riposte, Claymore,
+    Scoutbolt, Huntress, Greenwood Pole); Kiku-ichimonji and Dragon Whisker cannot
+    without breaking the kept-vanilla-name text rule, spun off as LW-328. Restart-only;
+    the owner still owes one live read confirming a proc fires (a Riposte swing).
   - Done means: every earned weapon is worth its hunt (a rare poach beats its shop peer
     on some axis), no shop weapon spikes into treasure territory, each violation gets an
     owner ruling recorded in the grid, and any resulting number changes pass the
@@ -173,6 +181,17 @@ belongs rather than at the bottom.
   CHp 0x30, delta = target - natural max; attribution is safe per
   [maxhp-hold-attribution-safe] and the LW-317 pass; needs its own failing test first
   and one owner reading, a knight opening a battle at 883/883.)
+
+- [LW-328] 2026-08-25: Eighteen weapons hide a real on-hit power because their card shows
+  untouched vanilla text: weapons that kept their vanilla name deliberately keep their
+  vanilla description (the 2026-06-07 rewrite's rule, 65b2a88), so Masamune never mentions
+  its Sleep, Koga Blade its Poison, Kiku-ichimonji and Dragon Whisker their may-casts, and
+  fourteen more. Surfaced by the LW-320 ghost-proc ruling, where five of the seven procs
+  could be re-advertised but Kiku and Dragon Whisker could not without breaking this rule.
+  Owner decision needed: keep iconic text pure, or append just the mechanics line under
+  the vanilla prose (would ride LW-322's single bake). (Tech: scan recipe in the LW-320
+  session notes; the class = kept-name items where lib/flavor.mechanics() is non-empty
+  but assemble_desc() returns verbatim vanilla.)
 
 - [LW-318] 2026-08-25: The weapon power curve gets a fairness pass: every weapon strong
   enough to matter, none so strong the rest become vendor trash. The owner replayed the mod
