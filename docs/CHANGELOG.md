@@ -13,11 +13,11 @@ before 2026-07-21 keep their original prose.
 - [LW-278] WONTFIX 2026-08-24: The plan to build a whole system for making new icon art,
   a style bible plus a machine judge plus a per family assembly line, is cancelled: the
   owner has found a different path to the same goal and directed that the system be
-  dropped. Two of its three pieces were already built and stay in the repo as records
-  rather than being torn out: docs/ICON_VERDICTS.md keeps every recorded yes and no with
-  the reason given, and docs/ICON_STYLE_BIBLE.md keeps the owner's taste written down
-  (still unsigned). The judge harness and the pilot family loop were never built and will
-  not be. The queued per family art rows stay open in the backlog under the new seat row
+  dropped and its files deleted, not kept as records. The two pieces that had been built,
+  the verdict corpus (ICON_VERDICTS.md) and the unsigned style bible (ICON_STYLE_BIBLE.md),
+  are removed from the doc tree in this same commit; git history before it still holds
+  them if a fact from them is ever wanted. The judge harness and the pilot family loop
+  were never built and will not be. The queued per family art rows stay open in the backlog under the new seat row
   LW-313; whatever shape the new path takes, they are the work it must cover.
 
 - [LW-251] SHIPPED b38160a 2026-08-24: The weapon a unit swings in battle finally wears the
