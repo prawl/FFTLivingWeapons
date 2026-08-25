@@ -1,0 +1,15 @@
+{"run": "2026-08-24 20:19:59"}
+{"t": 0.0, "verdict": "RESOLVE slot 26 nameId 1 weapon 49", "flags": [{"slot": 26, "t": 1, "gx": 10, "gy": 5, "nameId": 1, "lvl": 99, "weapon": 49}, {"slot": 43, "t": 50, "gx": 255, "gy": 129, "nameId": 37900, "lvl": 63, "weapon": 46080}]}
+{"t": 97.04, "verdict": "REFUSE: no t=1", "flags": [{"slot": 43, "t": 50, "gx": 255, "gy": 129, "nameId": 37900, "lvl": 63, "weapon": 46080}]}
+{"t": 98.75, "verdict": "RESOLVE slot 8 nameId 1010 weapon 0", "flags": [{"slot": 8, "t": 1, "gx": 4, "gy": 3, "nameId": 1010, "lvl": 92, "weapon": 0}, {"slot": 43, "t": 50, "gx": 255, "gy": 129, "nameId": 37900, "lvl": 63, "weapon": 46080}]}
+{"t": 100.86, "verdict": "RESOLVE slot 8 nameId 1010 weapon 0", "flags": [{"slot": 8, "t": 1, "gx": 6, "gy": 4, "nameId": 1010, "lvl": 92, "weapon": 0}, {"slot": 43, "t": 50, "gx": 255, "gy": 129, "nameId": 37900, "lvl": 63, "weapon": 46080}]}
+{"t": 101.57, "verdict": "REFUSE: no t=1", "flags": [{"slot": 43, "t": 50, "gx": 255, "gy": 129, "nameId": 37900, "lvl": 63, "weapon": 46080}]}
+{"t": 102.37, "verdict": "RESOLVE slot 13 nameId 795 weapon 0", "flags": [{"slot": 13, "t": 1, "gx": 0, "gy": 8, "nameId": 795, "lvl": 98, "weapon": 0}, {"slot": 43, "t": 50, "gx": 255, "gy": 129, "nameId": 37900, "lvl": 63, "weapon": 46080}]}
+{"t": 105.79, "verdict": "RESOLVE slot 13 nameId 795 weapon 0", "flags": [{"slot": 13, "t": 1, "gx": 5, "gy": 9, "nameId": 795, "lvl": 98, "weapon": 0}, {"slot": 43, "t": 50, "gx": 255, "gy": 129, "nameId": 37900, "lvl": 63, "weapon": 46080}]}
+{"t": 106.59, "verdict": "REFUSE: no t=1", "flags": [{"slot": 43, "t": 50, "gx": 255, "gy": 129, "nameId": 37900, "lvl": 63, "weapon": 46080}]}
+{"t": 107.3, "verdict": "RESOLVE slot 25 nameId 271 weapon 7", "flags": [{"slot": 25, "t": 1, "gx": 10, "gy": 6, "nameId": 271, "lvl": 99, "weapon": 7}, {"slot": 43, "t": 50, "gx": 255, "gy": 129, "nameId": 37900, "lvl": 63, "weapon": 46080}]}
+{"run": "2026-08-24 20:22:22"}
+{"t": 0.0, "verdict": "RESOLVE slot 25 nameId 271 weapon 7", "flags": [{"slot": 25, "t": 1, "gx": 10, "gy": 6, "nameId": 271, "lvl": 99, "weapon": 7}, {"slot": 43, "t": 50, "gx": 255, "gy": 129, "nameId": 37900, "lvl": 63, "weapon": 46080}]}
+{"t": 142.91, "verdict": "REFUSE: no t=1", "flags": [{"slot": 43, "t": 50, "gx": 255, "gy": 129, "nameId": 37900, "lvl": 63, "weapon": 46080}]}
+{"t": 176.6, "verdict": "RESOLVE slot 25 nameId 298 weapon 7", "flags": [{"slot": 25, "t": 1, "gx": 10, "gy": 7, "nameId": 298, "lvl": 99, "weapon": 7}, {"slot": 43, "t": 50, "gx": 255, "gy": 129, "nameId": 37900, "lvl": 63, "weapon": 46080}]}
+{"t": 294.02, "verdict": "REFUSE: no t=1", "flags": [{"slot": 43, "t": 50, "gx": 255, "gy": 129, "nameId": 37900, "lvl": 63, "weapon": 46080}]}

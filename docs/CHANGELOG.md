@@ -8,6 +8,25 @@ with a date and no hash. New entries are written ELI5-first (a plain-language op
 can follow, technical detail after), per the Format rules in docs/TODO.md; rows written
 before 2026-07-21 keep their original prose.
 
+## 2.4.0 cycle
+
+- [LW-251] SHIPPED b38160a 2026-08-24: The weapon a unit swings in battle finally wears the
+  owner's colours instead of vanilla's. This row opened as "find the battle art and repaint
+  it" and closed as something better: the owner hand coloured all 118 weapons with known
+  sprites in his own slider bench, and a new runtime paints the acting unit's weapon with
+  those colours the moment its turn opens, restoring the originals when an uncoloured weapon
+  acts, for enemies and players alike. Fourteen investigation rounds along the way overturned
+  three false verdicts, found the real colour source (the classic sprite file's palette
+  block), proved the per draw repaint that routes around the thirteen colour set sharing
+  wall, and caught two weapons whose colour set assignment the game data lies about (Materia
+  Blade and Ravager, shipped as evidence backed overrides). Owner live passed the full
+  checklist across two evenings, including enemy swings and a staged counter attack showing
+  the one accepted vanilla residual, now banked as its own backlog row. (Tech: bake commit
+  d10a312 plus runtime commit b38160a; mechanism rows [per-weapon-colour-by-turn-repaint]
+  and [resident-weapon-palette-buffer] flipped PROVEN on the pass; probes and screenshots in
+  tools/probes/lw251_* and lw305_*; residuals and follow ups are LW-305, LW-308, LW-310,
+  LW-311.)
+
 ## 2.3.3 cycle
 
 - [LW-297] SHIPPED f393d76 2026-08-21: Deploying the mod used to report success by counting

@@ -1,0 +1,83 @@
+{
+ "10": {
+  "cat": "Knife",
+  "graphic": 4,
+  "mapEffectPalette": 2,
+  "mapWeaponPalette": 8,
+  "name": "Zwill Straightblade",
+  "observedColour": "cyan",
+  "observedPalette": 8
+ },
+ "106": {
+  "cat": "Polearm",
+  "graphic": 2,
+  "mapEffectPalette": 0,
+  "mapWeaponPalette": 8,
+  "name": "Wyrmpike",
+  "observedColour": "cyan",
+  "observedPalette": 8
+ },
+ "111": {
+  "cat": "Pole",
+  "graphic": 4,
+  "mapEffectPalette": 0,
+  "mapWeaponPalette": 6,
+  "name": "Sage's Pole",
+  "observedColour": "green",
+  "observedPalette": 6
+ },
+ "19": {
+  "cat": "Sword",
+  "graphic": 0,
+  "mapEffectPalette": 0,
+  "mapWeaponPalette": 14,
+  "name": "Vagabond",
+  "observedColour": "magenta",
+  "observedPalette": 14
+ },
+ "31": {
+  "cat": "Sword",
+  "graphic": 2,
+  "mapEffectPalette": 1,
+  "mapWeaponPalette": 8,
+  "name": "Lightbringer",
+  "observedColour": "cyan",
+  "observedPalette": 8
+ },
+ "32": {
+  "cat": "Sword",
+  "graphic": 2,
+  "mapEffectPalette": 1,
+  "mapWeaponPalette": 8,
+  "name": "Materia Blade",
+  "observedColour": "red",
+  "observedPalette": 0
+ },
+ "47": {
+  "cat": "Katana",
+  "graphic": 16,
+  "mapEffectPalette": 0,
+  "mapWeaponPalette": 8,
+  "name": "Chirijiraden",
+  "observedColour": "cyan",
+  "observedPalette": 8
+ },
+ "49": {
+  "cat": "KnightSword",
+  "graphic": 0,
+  "mapEffectPalette": 0,
+  "mapWeaponPalette": 11,
+  "name": "Ravager",
+  "observedColour": "magenta",
+  "observedPalette": 14
+ },
+ "7": {
+  "cat": "Knife",
+  "graphic": 4,
+  "mapEffectPalette": 1,
+  "mapWeaponPalette": 5,
+  "name": "Adamant Fang",
+  "observedColour": "chartreuse",
+  "observedPalette": 5
+ }
+}

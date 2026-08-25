@@ -56,118 +56,6 @@ the technical detail lives in the indented lines under it.
     the style bible as actually being his taste; the pilot family's gallery round reaches
     him through the loop with the judge's pruning visible in the round notes.
 
-- **[LW-251] The weapon a unit swings in battle still wears vanilla colours while its icon wears ours** (opened 2026-08-16) [QUEUED]
-  - Promoted 2026-08-18, owner directive: crack this now, and no is not an acceptable
-    answer; the next work is a probe. History to respect going in: the two easy colour
-    levers were already tested in game and both failed, the art channel is cached for the
-    whole session so battle art can never update live the way icons now can, and the art is
-    likely shared per weapon class, which would mean every sword recolours together. The
-    work is to find the weapon sheet inside the battle art container and repaint it with
-    the same engine the icons use.
-  - Crossover noted the same day: this is FFTColorCustomizer territory, and cracking it
-    feeds that mod directly, because the owner wants a user facing slider there so players
-    can tint their own weapon colours. That raises the bar on the mechanism: not a one off
-    hand repaint but a parameterised recolour (a hue knob over the found sheet) whose core
-    is portable to the sibling mod, and the session long cache means any slider applies on
-    the next launch, never live.
-  - ROUND 1 PROVEN 2026-08-18 (owner flip, ledger [g2d-equipment-sheet-override]): the
-    battle equipment sheet is g2d entry 161 and a mod override repaints it, demonstrated
-    by a deranged sheet turning an Archer's bow white edged blue while the arrow beside it
-    stayed vanilla. What remains for Done: the palette asset (true hue control; the sheet
-    stores indices, not colours), the crossbow's sheet, and the deliberate icon matched
-    recolour.
-  - ROUNDS 2 TO 6 same day, all negative, banked in the ledger row so nobody re-walks
-    them: the colour source ignores every post-boot lever (palette-shaped container
-    entries, live nudges of every findable classic palette copy, all 1008 container tail
-    palettes which turn out to be one duplicated placeholder, a full replacement container
-    which no modloader channel serves, and the per-item palette byte which is vestigial
-    like SpriteID). Colours resolve ONCE at process start from binary baked data. The next
-    arc is therefore in-process at launch: the DLL boards the game before the art loads
-    and rewrites the colour tables before they are consumed, a build arc with a deploy,
-    not a poke round. The proven index-sheet lever stays available as the fallback
-    (limited to shuffling each palette's own sixteen colours).
-  - CORRECTION 2026-08-19 (adversarial review of the retry probe): two of those banked
-    negatives were weaker than recorded. The round 5 full container test shipped a file
-    byte-identical to vanilla, so it tested nothing, and that launch's own Reloaded log
-    shows the modloader hooking and serving a mod supplied g2d.dat, so the full container
-    route EXISTS and is still untested. Round 2 ran with no positive control in frame, so
-    a dead serve path that launch reads the same as a real negative. The ledger row
-    carries the full correction with the evidence.
-  - ROUNDS 7 TO 9, 2026-08-19: a full memory scan for the HD palette bank found ZERO
-    copies in the running game (at a menu and mid battle both), and a living wielder's
-    combat struct holds only the weapon id, no colour or render pointer, so the colour
-    lives GPU side and the RAM write plan is retired. Round 9 (the retry of the palette
-    file override, this time with the proven scrambled sheet in frame as a control) hit
-    NOTHING: the round 9 result was called a win too fast and is now RETRACTED. Four
-    independent checks agree, and the game's own loader log settles it: the mod can offer
-    the game a replacement for that palette file, but the game has NEVER ONCE READ IT, in
-    any of the eighteen launch logs on disk, while its same sized neighbours are read all
-    the time. The two screenshots that looked like a change are the same weapon under the
-    same shading, once at night and once by day. There was no gold in the night picture at
-    all, and at night this game rotates every colour so far that no colour word spoken
-    about a night shot means anything. Round 11 confirmed it live: with the sword sheet
-    scrambled as a control, two swords looked normal, because that sheet went unread too.
-    THE REAL LEAD, from the same logs: in battle the game reads the CLASSIC sprite files,
-    unit/battle_wep_spr.bin as FFTPack file 71 plus the wep1/wep2 shape and sequence files,
-    and the loader demonstrably serves modded files through that same FFTPack channel. The
-    picture container we spent the night on is read once per launch at the menu, which fits
-    menu art, not battle art. Next probe belongs on FFTPack file 71.
-  - ROUND 12 CRACKED IT, 2026-08-19, owner live verified: the colours a weapon wears in
-    battle come from the colour block at the head of that classic sprite file, and a copy
-    shipped by the mod repaints them. Ramza swung a FLAT MAGENTA sword, measured at exactly
-    the hue the forge painted, while the grass and his armour in the same picture kept their
-    normal shading. The loader log confirmed the game read OUR file and never its own, which
-    is what makes the picture admissible after the night's false alarm. This also retires the
-    June verdict that said this file was a dead end: that test repainted two of the sixteen
-    colour sets and the sword proven here uses the fifteenth. Ledger row
-    [wep-spr-palette-block] PROVEN. What remains for Done: which weapon uses which of the
-    sixteen colour sets (the flat forge is the measuring stick), how many weapons share a
-    set, whether a change needs a restart (the file is read per battle, not per launch), and
-    then the deliberate icon matched recolour of one weapon end to end.
-    (Tech: probe tools/probes/lw251_g2d_clut_forge.py, forge + selftest + deploy;
-    overrides sit in the install's FFTIVC/data/enhanced/system/ffto/g2d/, wiped by the
-    next BuildLinked.)
-  - (Tech: container system/ffto/g2d.dat inside data/enhanced/modded.pac, magic YOX, 2450
-    entries, no offset drift; the loose FFTIVC/data/enhanced copy with 0x592 entries is an
-    ignored Dec-2025 leftover; the modloader serves the tex_N.bin channel from a per index
-    cache read once per process; prior verdicts and the decision brief are in
-    docs/research/WEAPON_VISUALS_SCOPING.md and the battle sprite scoping notes.)
-  - ROUND 13, 2026-08-19, and it answers the rest of Done except one five minute check:
-    we now know WHICH of the sixteen colour sets every single weapon uses, for all one
-    hundred and twenty seven of them, without swinging any of them. The answer was in the
-    old PlayStation data all along, and the remaster never moved it. Four swords were swung
-    to check it and all four matched. The sharing grain is therefore settled and it is
-    coarser than hoped: thirteen colour sets serve a hundred and twenty seven weapons, so
-    weapons share, and the biggest set carries twenty of them. The one genuinely good
-    surprise is that weapons and effects never share a set, so recolouring a weapon can
-    never accidentally repaint a slash arc. What is NOT possible is moving a weapon onto a
-    different set: four separate ways of trying that were each tested live and each failed,
-    which is now its own wall row and closes off per weapon colour until someone hooks the
-    drawing code. Still open for Done: whether a colour swap needs the game restarted or
-    just a new battle. (Tech: BATTLE.BIN item graphics record at 0x02D3E6 + (id-1)*2, high
-    nibble weapon palette, low nibble effect palette; map dumped to
-    tools/probes/lw289_weapon_palette_map.json; ledger rows [wep-spr-palette-block] updated
-    and [weapon-palette-assignment-walled] added.)
-  - ROUND 14, 2026-08-21, and it closes the last open question: changing a weapon's battle
-    colours does NOT need the game restarted. The owner swapped the shipped colour file between
-    two battles of one sitting and the second battle came up with the new colours, so the game
-    reads the file fresh every battle and uses what it reads rather than keeping a copy in the
-    graphics card for the session. That also retires the belief this row opened with, that
-    battle art is cached for the whole session and can never update the way icons now do. What
-    is left for Done is only the deliberate icon matched recolour of one weapon end to end,
-    which is [LW-289]. (Tech: proven with the loader log in frame, 3 reads in one launch all
-    from our override and none from the game copy; ledger row [wep-spr-palette-block] carries
-    the md5s and timings. Scope is FFTPack file 71 only; menu art is a different container read
-    once per launch and stays untested.)
-  - Done means: a live proven mechanism that changes an in battle weapon sprite's colours
-    on purpose, one weapon end to end, with the sharing grain (per weapon, per class, or
-    per sheet) and the restart requirement named; or, if it truly cannot be done, a wall
-    row in the live ledger naming exactly which step resists and why, with probe evidence.
-  - Verify: the owner sees a deliberately recoloured weapon sprite in a real battle, and
-    the grain claim is demonstrated by a second weapon of the same class shown either
-    changed or unchanged to match the claim; the mechanism lands as a LIVE_LEDGER row that
-    only the owner flips.
-
 - **[LW-198] The eleven knives all had a white blade, so their colour lived in a handle a few pixels across** (opened 2026-08-13) [AWAITING-LIVE]
   - BUILT and gated 2026-08-16, owner gallery pass outstanding. Coverage was never this family's
     problem, at a CARD median of 41.2 percent, the healthiest of any family in the programme.
@@ -269,6 +157,70 @@ the technical detail lives in the indented lines under it.
 
 
 ## Backlog
+
+- [LW-311] 2026-08-24: For the first seconds after a cold boot every weapon card claims zero
+  kills, because the baked card text carries a literal "Kills: 0/5" that the runtime later
+  paints over with the real count, and on a cold boot that paint takes five to ten seconds to
+  arrive. A player with a high count briefly sees a wrong number. Owner proposed a loading
+  notice; decided against because the baked text is also what shows FOREVER when the runtime
+  is absent or deliberately stood down, where "loading" reads as broken, and because angle
+  brackets are live markup in this engine's text renderer. Instead: bake a neutral non number
+  (dashes) in the same slot, honest whether or not the runtime is present. (Tech:
+  lib/flavor.py KILLS_SCAFFOLD, same length so the in place paint and its anchors hold;
+  touches the XML description bake AND the item.en.nxd manual rebuild; the scaffold lockstep
+  gates in analyze.py pin it and must move in the same commit.)
+
+- [LW-310] 2026-08-24: Counter attacks still swing in vanilla colours, and the owner wants them
+  painted too. Confirmed live with a staged test: an unauthored attacker swung at Ramza, his
+  Materia Blade counter came out vanilla, exactly the accepted limit the turn based painter
+  ships with. The candidate mechanism is already proven for a different purpose: the engine's
+  actor pointer parks on struck victims (documented as a kill credit trap), and the struck
+  victim is exactly the unit about to counter, so a paint keyed on that parking lands in the
+  window between the hit and the counter swing. Design sketch: a second painted slot for the
+  reaction unit, painted when the pointer parks on an authored wielder who is not the turn
+  owner, restored on the next turn edge. Attacker and victim sharing one palette stays a
+  residual. Needs a live probe of the parking to counter swing timing before any build.
+  (Tech: ActorPtr dwell semantics per [actorptr-dwell-semantics]; WeaponPalette.Policy gains a
+  reaction lane; the ~170ms effective tick must beat the counter animation start, measure
+  first.)
+
+- [LW-309] 2026-08-24: The ability data channel we parked after it corrupted the game in June
+  is safe to reopen, and a stranger proved it. The Knight Overhaul mod on Nexus ships the exact
+  same override file we abandoned, and inspection shows why theirs works: their table is the
+  current vanilla table with exactly five rows changed, nothing stale. Ours corrupted because
+  our build drifted from vanilla in cells we never meant to touch, which is a build discipline
+  problem we already solved for ability names (patch_ability_names.py rebuilds from pristine
+  vanilla and refuses to deploy unless exactly the intended cells differ). Port that discipline
+  to overrideabilityactiondata.nxd and the parked ideas wake up: MP costs on weapon granted
+  commands, custom damage formulas, self inflicted statuses as costs, new abilities minted in
+  unused slots instead of hijacked. (Tech: their file = base + rows 138-142 only, verified by
+  cell diff against working/base_action.sqlite; formulas 67/69/80/104 and per-ability MPCost/
+  CT/InflictStatus all set through the override table; unused ability slots 219/220/357 and
+  RSM slots 484/485 filled with new named abilities; see bloodpact-ability-corruption memory
+  for the June failure this supersedes.)
+
+- [LW-308] 2026-08-24: Harden the weapon colour painter against a bad first look. The painter
+  memorises each colour set's original colours the first time it paints them and trusts that
+  memory for the whole session; if that one first look ever caught bytes that were not the real
+  originals, every restore afterwards would write the wrong colours until the game restarts,
+  and colour set 0 (Materia Blade plus most swing arcs) is where that would show. An
+  adversarial review found no way to trigger it today but no defence either. Add a check on
+  later paints: when the current bytes match neither the memory nor what we last wrote, log
+  loudly (and consider re-memorising). Same batch: the colour bake should reject duplicate
+  weapon ids instead of quietly keeping the last one, report a malformed rgb entry through its
+  error list instead of a raw crash, and the runtime should strip bit 15 from baked codes
+  before writing. (Tech: WeaponPalette.cs _vanilla capture, gen_living_weapon_meta.py
+  colours_by_id last-win, PaintBanks code clamp to 0x7FFF; from the 2026-08-24 bug-hunt
+  review, no blocker, all four items are hardening.)
+
+- [LW-307] 2026-08-24: The game can colour its own text. The owner edited the world map's
+  Camera Controls help text and proved the strings carry colour tags the renderer obeys: a
+  well formed tag recoloured his inserted "Modded by prawl" text, a broken one printed the
+  tag characters on screen. We have wanted coloured text on the weapon description cards
+  since the Kills counter first landed and never knew how. Try the same tags on the card
+  text the runtime already paints. (Tech: inline markup, observed form color=80 in angle
+  brackets with a bare closing color tag; ledger row [inline-color-markup-in-ui-text],
+  PROVEN on the world map surface only; the card's draw path is the untested half.)
 
 - [LW-304] 2026-08-21: The colours we were about to put on weapons in battle were wrong for most
   of them, and looking at eight at a time is what hid it. Put all 118 side by side with their own
@@ -2004,6 +1956,28 @@ the technical detail lives in the indented lines under it.
   of 3, idempotent; LivingPoach.Despawn.cs shares the same field; candidate levers are a
   sentinel value in that byte, a nearby render gate byte, or an ENTD per unit flag, none
   verified; check LIVE_LEDGER.md before building on any of them.)
+
+- [LW-305] 2026-08-22: The colour bench can now paint a weapon in the running game, but the list
+  saying which weapon owns which colour set has at least one wrong entry, so some weapons would be
+  painted in someone else's colours. Audit that list weapon by weapon and correct it. Materia Blade
+  is the known liar: the list says it uses colour set 8, the screen says it does not, and a second
+  weapon on set 8 changed colour in the same battle while Materia Blade did not. (Tech:
+  tools/probes/lw305_bench_paint.py keychart paints all 16 palettes one distinct hue each in both
+  resident banks at 0x140d35750/0x140d35950, so a swing names its own palette; `saw <weapon>
+  <colour>` banks the observation into lw305_observed_palettes.json and diffs it against
+  lw289_weapon_palette_map.json's X nibble. Confirmed agreeing so far: Javelin/Wyrmpike X=8,
+  Gokuu's/Sage's Pole X=6 Y=0, Broadsword/Vagabond X=14 Y=0, Romandan/Outrider Pistol Y=1.
+  Materia Blade reads palette 0 against a mapped X=8 Y=1. Note every probe before this one skipped
+  palettes 0-2 as effects-only, which is how the miss survived.)
+
+- [LW-306] 2026-08-22: Write one guide, shared with the ColorCustomizer mod, covering how a
+  weapon's colours get changed end to end: the menu icon and the battle sprite, offline bake and
+  live repaint, and which knobs belong to which repo. Owner asked for it to be written jointly with
+  that repo's session rather than assembled from one side. Start it only once the battle repaint is
+  actually working in game. (Tech: LivingWeapons owns the battle_wep_spr palette path, the FFTPack
+  file 71 block, the two resident banks and the per swing repaint plan; ColorCustomizer owns the
+  icon ramp engine and RelativeShadeGenerator Preserve mode, which this repo's transform was
+  derived from. Peer session at the time of writing: fftcolorcustomizer-8c.)
 
 ## Walled (blocked by engine / Denuvo / modloader)
 

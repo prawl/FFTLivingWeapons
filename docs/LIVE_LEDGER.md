@@ -20,6 +20,118 @@ isolated live) · **CONTRADICTED** (evidence points both ways — probe before b
 
 ## Proven
 
+### [per-weapon-colour-by-turn-repaint] Per-weapon battle colour IS achievable: the palette is read PER DRAW and can be repainted live
+
+Writing the static 1024-byte workspace at `0x140d35750` changes a weapon's colour IMMEDIATELY, mid-battle, with no reload, and two palettes can be driven to different colours in the same battle at the same time. Because the game is turn-based and a weapon sprite only renders during its own attack animation, repainting that weapon's palette on its turn gives every weapon its own colour. This ROUTES AROUND [weapon-palette-assignment-walled] rather than breaking it. PROVEN: owner live passed the shipped WeaponPalette runtime built on this row, 2026-08-24 (the LW-251 pass; runtime commit b38160a).
+
+<details><summary>How we got here</summary>
+
+**Claim:** the 127-weapons-share-13-palettes limit does NOT prevent per-weapon battle colour.
+
+**Why this was missed for two days.** [resident-weapon-palette-buffer] established that the static workspace is the DESTINATION of a copy performed at battle load, and a test writing it came back "normal steel", which was recorded as the workspace being unusable. That test wrote the workspace and then RELOADED the battle, so the reload's copy destroyed the write before anything was drawn. The reload was the confound, not the mechanism. Writing the workspace and drawing WITHOUT a reload was never tried until now.
+
+**Evidence, two rounds, each with a same-frame control.**
+
+Round 1: palette 14 set to cyan `0x7FE0` in both workspace banks mid-battle, loaded file left pristine so it could not be the source of anything seen. No reload. The Cutpurse (palette 14) swung CYAN; the Galewind (palette 4) swung normal steel in the same battle. Control holds and the loaded file was vanilla throughout, so the workspace alone drove the render.
+
+Round 2, to show independent simultaneous control rather than a single global tint: palette 14 to yellow `0x03FF` and palette 4 to magenta `0x7C1F`, written together, still no reload. Cutpurse rendered YELLOW (owner screenshot, bright yellow blade mid-swing with a "Parried!" callout) and Galewind rendered MAGENTA. Two palettes, two colours, one battle.
+
+**So the palette is sampled per draw, not uploaded once at battle load.** That is the fact everything else rests on.
+
+**Why this yields PER-WEAPON colour.** The game is turn-based and the weapon sprite is drawn during its wielder's attack animation; idle units on the field show no weapon, visible in both screenshots. So at most one weapon is on screen at a time, and the mod already knows whose turn it is and what they are holding. Repaint that weapon's palette at its turn, and the shared-palette collision never materialises because the other members of that palette are not being drawn.
+
+**CORRECTED 2026-08-21 by a deliberate disconfirming test. The "one weapon at a time" claim above is FALSE.**
+
+The original wording said a weapon renders only during its wielder's attack animation, so at most one is on screen at any instant. A PARRY falsifies it: with all 13 weapon palettes painted distinct colours, an owner screenshot shows the attacking ninja's blade and Ramza's raised parrying blade in the SAME frame, in two different colours, with the "Weapon parry!" callout between them. Both read vanilla steel immediately before the repaint, so the colours are demonstrably ours. Credit where due: the owner proposed the parry case himself after the first pass found nothing, and it is the one scenario the earlier session never provoked.
+
+**The design survives, with a bounded and now-measured caveat.** The fix is to repaint the ATTACKER's and the TARGET's palettes rather than only the acting unit's, which works because simultaneous multi-palette control is already proven (round 2 above). It fails only when those two weapons share one of the 13 palettes. Measured over the 121 tinted weapons: 9.1 percent of attacker/defender pairs share a palette, and of those pairs 87.5 percent carry icon hues more than 20 degrees apart and would therefore look visibly wrong, so roughly 8 percent of PARRY exchanges would show a clash. Parries are themselves a fraction of exchanges, so the visible-defect rate across normal play is well under that. The three largest groups (palettes 14, 13 and 15, holding 19, 18 and 17 weapons) account for over half the collision mass.
+
+**Two further scope limits found in the same pass, both outside the mechanism:** a THROWN weapon (ninja throw, Gloomfang) rendered normal steel with all 13 palettes painted, and the Move-Find treasure staff likewise, so both draw from a source these palettes do not reach. Samurai ability animations DO render the weapon with its palette, so coverage extends past basic attacks.
+
+**Still untested:** whether the palette is sampled continuously or latched at animation start. This is deliberately NOT load-bearing, because repainting at turn start is correct under either answer.
+
+**Also proven this pass:** the workspace address survives a relaunch. Across two separate game restarts, `0x140d35750` and `0x140d35950` were both readable at the same addresses holding byte-identical pristine palettes, which is expected for a MEM_IMAGE region with no ASLR but is now observed rather than inferred.
+
+**Date:** 2026-08-21
+
+</details>
+
+### [resident-weapon-palette-buffer] The weapon palettes are writable in MEMORY and take effect on the next battle load
+
+The 16 palettes of FFTPack file 71 sit in process memory in four copies, two heap and two inside the game image; writing one of them repaints every weapon drawn from that palette from the NEXT battle load onward, with no file override, no relaunch, and no draw hook. PROVEN: owner live passed the shipped WeaponPalette runtime built on this row, 2026-08-24 (the LW-251 pass; runtime commit b38160a).
+
+<details><summary>How we got here</summary>
+
+**Claim:** weapon battle colour is controllable by a guarded memory write, not only by shipping a modified FFTPack file.
+
+**Mechanism:** the pristine 512-byte palette block (palA, `0x00000..0x001FF` of `unit/battle_wep_spr.bin`, 16 palettes x 16 BGR555) was extracted from `0002.pac` under the existing md5 gate and used as a search needle. A scan of committed readable memory (1983 MB) found it at four addresses. Palette 14's 15 non-zero slots were flattened to BGR555 `0x7C1F` in the two heap addresses only, preserving slot 0 and bit 15.
+
+**CORRECTED 2026-08-21, same session: those are NOT four copies.** The first wording said "four copies, two heap and two in-image" and that is wrong in a way that changes what a fix would target. Region classification and a landmark check show two distinct objects:
+
+- **The LOADED FILE**, one copy, MEM_PRIVATE, inside a single large arena (allocation base `0x4158d80000`, the file at `+0x160ee0c0` on this launch). The two "heap hits" were `palA` at file `+0x00000` and `palB` at file `+0x08200`, which are byte-identical in vanilla, so one needle matched twice inside ONE file. Confirmed by reading all three format landmarks at that base: palA matches vanilla, palB matches palA, and palC at `+0x10400` is a visibly different bank (`9c83 9863 9463 ...`), exactly as `tools/probes/lw251_wep_spr_forge.py` documents the format. Its address is per-launch.
+- **A STATIC 1024-byte WORKING BUFFER** at `0x140d35750`, MEM_IMAGE, therefore at a FIXED address with no ASLR. The two "in-image hits" are its two 512-byte banks, `0x200` apart. `[palette-code-sites]` finds a `memset(0x140d35750, 0, 0x400)` that clears exactly this whole region, which is what confirms the two banks are one object.
+
+**Independence proven, not assumed.** Writing palette 3 green at the loaded-file address alone left the other three addresses untouched in the same instant, so these are genuinely separate memory and not one physical page aliased at several virtual addresses. That test was run specifically to try to break this row's original claim, because aliasing would have produced the identical all-four-changed observation by a completely different mechanism.
+
+**Evidence.** Immediately after the write, in the battle already running, a swung Dagger (palette 14) was UNCHANGED, which places the GPU upload before the write. The owner then reloaded the battle from the world map; the Cutpurse (palette 14, art 0) rendered a vivid magenta blade in the owner's screenshot, while Galewind (palette 4) in the same frame was unchanged, which is the control. Re-reading all four addresses afterwards showed magenta in ALL FOUR, including the static working buffer never written by us, so the game copies the LOADED FILE into that working buffer at battle load rather than re-reading the file from disk into it.
+
+**What this does and does NOT buy.** It buys per-palette colour from an in-process guarded write, which is the mechanism a runtime signature can use, and it removes the file-staging timing race entirely. It does NOT buy per-weapon colour: WHICH palette a weapon draws from is still [weapon-palette-assignment-walled], so 127 weapons still share 13 palettes. Per-weapon needs that wall broken or a draw-path hook.
+
+**Not yet established:** whether writing the STATIC working buffer alone is enough, which is the question that decides whether this needs any per-launch search at all; where the loaded file sits relative to a stable anchor, since nothing in 2 GB holds a pointer to it or to anything within 128 KB before it, so the game reaches it by a computed offset or a register-held pointer rather than a stored address; whether the buffers survive a fresh launch or a save load; and the interaction with a shipped FFTPack override, ABSENT during this test since BuildLinked had wiped the deployed fftpack tree.
+
+**Shipping target SETTLED 2026-08-21 by direct test: write the LOADED FILE, not the static buffer.**
+
+The test was built so the two candidates could not be confused. The loaded file was first restored to pristine on both banks, so it could not be the cause of anything seen; then palette 14 was set to a NEW colour (cyan `0x7FE0`, deliberately different from the magenta already in play) in the static buffer's bank A ONLY, leaving bank B holding the older magenta as a second control. The owner reloaded the battle and swung two palette-14 knives: both rendered NORMAL STEEL, neither cyan nor magenta.
+
+The follow-up read is what makes this conclusive rather than merely negative, because "the write was overwritten" and "that buffer is not the render source" look identical on screen. Both static banks read VANILLA afterwards, so our cyan was demonstrably destroyed rather than ignored: the game performs a file to buffer copy at battle load, and the static buffer is its DESTINATION.
+
+So the two candidates resolve as: the static buffer at `0x140d35750` is refreshed every battle load and a write there is transient, surviving only if it lands between the copy and the GPU upload; the loaded file persists across a battle load and is where a durable write belongs, which is consistent with the original magenta observation where the file was what got written.
+
+**The remaining engineering problem is therefore locating the loaded file each launch**, since its address moves and nothing in 2 GB points to it or to within 128 KB before it. The workable route is a signature scan for content the file uniquely contains: palC at file `+0x10400` is a visibly distinct bank (`9c83 9863 9463 9042 ...`) and unlike palA it is not duplicated within the file, which makes it a better needle than the palette block that found this in the first place. Scoping such a scan to MEM_PRIVATE regions is the obvious cost reduction.
+
+**Date:** 2026-08-21
+
+</details>
+
+### [inline-color-markup-in-ui-text] The UI text renderer parses inline color markup, so text can recolour itself
+
+UI strings carry inline `<color=NN>` tags as DATA, and the renderer consumes them at draw
+time: a well-formed tag changes the colour of the text that follows, and a malformed or
+orphaned tag renders as literal characters on screen. PROVEN, owner live-verified, reported
+2026-08-24, on the world-map Camera Controls help text. Whether the weapon description
+card's text path runs the same markup parser is the open follow-up (LW-307) and is NOT
+covered by this row.
+
+<details><summary>How we got here</summary>
+
+**Claim:** in-game text colour is controllable from inside the string itself, no draw-code
+hook needed.
+
+**Mechanism:** inline markup of the form `<color=NN>` (observed value 80) embedded in the
+UI string, with a bare `<color>` observed acting as the boundary/reset in the working edit.
+Parsed at draw time by the text renderer, so a live string edit is enough to change colour.
+
+**Evidence (owner, two edits on the world-map Camera Controls help text):** first edit
+inserted the plain text "Modded by prawl" into the string and the screen came back showing
+the literal characters `<color=80>` before "Modded by Prawl", proving the tag lives in the
+string as data and stops being consumed when the insertion breaks its form. Second edit
+placed the text with the tag well-formed (`Modded by prawl<color>`) and the game consumed
+the markup and rendered the inserted text in a changed colour.
+
+**Why it matters here:** the runtime already paints text into the weapon description cards
+(the Kills counter and name suffixes) and colour was never achievable on that surface
+because the markup grammar was unknown. This row supplies the grammar to try there. The
+card surface itself stays untested until probed: its copies may be consumed by a different
+draw path than the world-map help text.
+
+**Corroboration (2026-08-24, offline):** the third-party Knight Overhaul mod
+(fftivc.jepoy.jobs.knight 1.0.1) ships uijobabilityhelp.en.nxd strings full of the same
+markup in richer forms: NAMED colour tokens (`<color=abilityhint_cap_01>`) and inline
+icons (`<icon=104>`), closed with `</color>`. So the grammar supports named palette
+tokens and icon glyphs, not just numeric colours, in at least the help-panel surface.
+
+</details>
+
 ### [g2d-equipment-sheet-override] The in-battle HD equipment art is g2d tex_161 and a mod override repaints it
 
 The weapon a unit swings in battle draws from g2d container entry 161, a 512x512 sixteen-colour
@@ -2506,78 +2618,7 @@ Byte 1 of the classic item-graphics record was written up as "the graphic", mean
 
 </details>
 
-### [per-weapon-colour-by-turn-repaint] Per-weapon battle colour IS achievable: the palette is read PER DRAW and can be repainted live
 
-Writing the static 1024-byte workspace at `0x140d35750` changes a weapon's colour IMMEDIATELY, mid-battle, with no reload, and two palettes can be driven to different colours in the same battle at the same time. Because the game is turn-based and a weapon sprite only renders during its own attack animation, repainting that weapon's palette on its turn gives every weapon its own colour. This ROUTES AROUND [weapon-palette-assignment-walled] rather than breaking it. OBSERVED live 2026-08-21, owner read the screen twice with screenshots; AWAITING OWNER FLIP.
-
-<details><summary>How we got here</summary>
-
-**Claim:** the 127-weapons-share-13-palettes limit does NOT prevent per-weapon battle colour.
-
-**Why this was missed for two days.** [resident-weapon-palette-buffer] established that the static workspace is the DESTINATION of a copy performed at battle load, and a test writing it came back "normal steel", which was recorded as the workspace being unusable. That test wrote the workspace and then RELOADED the battle, so the reload's copy destroyed the write before anything was drawn. The reload was the confound, not the mechanism. Writing the workspace and drawing WITHOUT a reload was never tried until now.
-
-**Evidence, two rounds, each with a same-frame control.**
-
-Round 1: palette 14 set to cyan `0x7FE0` in both workspace banks mid-battle, loaded file left pristine so it could not be the source of anything seen. No reload. The Cutpurse (palette 14) swung CYAN; the Galewind (palette 4) swung normal steel in the same battle. Control holds and the loaded file was vanilla throughout, so the workspace alone drove the render.
-
-Round 2, to show independent simultaneous control rather than a single global tint: palette 14 to yellow `0x03FF` and palette 4 to magenta `0x7C1F`, written together, still no reload. Cutpurse rendered YELLOW (owner screenshot, bright yellow blade mid-swing with a "Parried!" callout) and Galewind rendered MAGENTA. Two palettes, two colours, one battle.
-
-**So the palette is sampled per draw, not uploaded once at battle load.** That is the fact everything else rests on.
-
-**Why this yields PER-WEAPON colour.** The game is turn-based and the weapon sprite is drawn during its wielder's attack animation; idle units on the field show no weapon, visible in both screenshots. So at most one weapon is on screen at a time, and the mod already knows whose turn it is and what they are holding. Repaint that weapon's palette at its turn, and the shared-palette collision never materialises because the other members of that palette are not being drawn.
-
-**CORRECTED 2026-08-21 by a deliberate disconfirming test. The "one weapon at a time" claim above is FALSE.**
-
-The original wording said a weapon renders only during its wielder's attack animation, so at most one is on screen at any instant. A PARRY falsifies it: with all 13 weapon palettes painted distinct colours, an owner screenshot shows the attacking ninja's blade and Ramza's raised parrying blade in the SAME frame, in two different colours, with the "Weapon parry!" callout between them. Both read vanilla steel immediately before the repaint, so the colours are demonstrably ours. Credit where due: the owner proposed the parry case himself after the first pass found nothing, and it is the one scenario the earlier session never provoked.
-
-**The design survives, with a bounded and now-measured caveat.** The fix is to repaint the ATTACKER's and the TARGET's palettes rather than only the acting unit's, which works because simultaneous multi-palette control is already proven (round 2 above). It fails only when those two weapons share one of the 13 palettes. Measured over the 121 tinted weapons: 9.1 percent of attacker/defender pairs share a palette, and of those pairs 87.5 percent carry icon hues more than 20 degrees apart and would therefore look visibly wrong, so roughly 8 percent of PARRY exchanges would show a clash. Parries are themselves a fraction of exchanges, so the visible-defect rate across normal play is well under that. The three largest groups (palettes 14, 13 and 15, holding 19, 18 and 17 weapons) account for over half the collision mass.
-
-**Two further scope limits found in the same pass, both outside the mechanism:** a THROWN weapon (ninja throw, Gloomfang) rendered normal steel with all 13 palettes painted, and the Move-Find treasure staff likewise, so both draw from a source these palettes do not reach. Samurai ability animations DO render the weapon with its palette, so coverage extends past basic attacks.
-
-**Still untested:** whether the palette is sampled continuously or latched at animation start. This is deliberately NOT load-bearing, because repainting at turn start is correct under either answer.
-
-**Also proven this pass:** the workspace address survives a relaunch. Across two separate game restarts, `0x140d35750` and `0x140d35950` were both readable at the same addresses holding byte-identical pristine palettes, which is expected for a MEM_IMAGE region with no ASLR but is now observed rather than inferred.
-
-**Date:** 2026-08-21
-
-</details>
-
-### [resident-weapon-palette-buffer] The weapon palettes are writable in MEMORY and take effect on the next battle load
-
-The 16 palettes of FFTPack file 71 sit in process memory in four copies, two heap and two inside the game image; writing one of them repaints every weapon drawn from that palette from the NEXT battle load onward, with no file override, no relaunch, and no draw hook. OBSERVED live 2026-08-21, owner read the screen; AWAITING OWNER FLIP.
-
-<details><summary>How we got here</summary>
-
-**Claim:** weapon battle colour is controllable by a guarded memory write, not only by shipping a modified FFTPack file.
-
-**Mechanism:** the pristine 512-byte palette block (palA, `0x00000..0x001FF` of `unit/battle_wep_spr.bin`, 16 palettes x 16 BGR555) was extracted from `0002.pac` under the existing md5 gate and used as a search needle. A scan of committed readable memory (1983 MB) found it at four addresses. Palette 14's 15 non-zero slots were flattened to BGR555 `0x7C1F` in the two heap addresses only, preserving slot 0 and bit 15.
-
-**CORRECTED 2026-08-21, same session: those are NOT four copies.** The first wording said "four copies, two heap and two in-image" and that is wrong in a way that changes what a fix would target. Region classification and a landmark check show two distinct objects:
-
-- **The LOADED FILE**, one copy, MEM_PRIVATE, inside a single large arena (allocation base `0x4158d80000`, the file at `+0x160ee0c0` on this launch). The two "heap hits" were `palA` at file `+0x00000` and `palB` at file `+0x08200`, which are byte-identical in vanilla, so one needle matched twice inside ONE file. Confirmed by reading all three format landmarks at that base: palA matches vanilla, palB matches palA, and palC at `+0x10400` is a visibly different bank (`9c83 9863 9463 ...`), exactly as `tools/probes/lw251_wep_spr_forge.py` documents the format. Its address is per-launch.
-- **A STATIC 1024-byte WORKING BUFFER** at `0x140d35750`, MEM_IMAGE, therefore at a FIXED address with no ASLR. The two "in-image hits" are its two 512-byte banks, `0x200` apart. `[palette-code-sites]` finds a `memset(0x140d35750, 0, 0x400)` that clears exactly this whole region, which is what confirms the two banks are one object.
-
-**Independence proven, not assumed.** Writing palette 3 green at the loaded-file address alone left the other three addresses untouched in the same instant, so these are genuinely separate memory and not one physical page aliased at several virtual addresses. That test was run specifically to try to break this row's original claim, because aliasing would have produced the identical all-four-changed observation by a completely different mechanism.
-
-**Evidence.** Immediately after the write, in the battle already running, a swung Dagger (palette 14) was UNCHANGED, which places the GPU upload before the write. The owner then reloaded the battle from the world map; the Cutpurse (palette 14, art 0) rendered a vivid magenta blade in the owner's screenshot, while Galewind (palette 4) in the same frame was unchanged, which is the control. Re-reading all four addresses afterwards showed magenta in ALL FOUR, including the static working buffer never written by us, so the game copies the LOADED FILE into that working buffer at battle load rather than re-reading the file from disk into it.
-
-**What this does and does NOT buy.** It buys per-palette colour from an in-process guarded write, which is the mechanism a runtime signature can use, and it removes the file-staging timing race entirely. It does NOT buy per-weapon colour: WHICH palette a weapon draws from is still [weapon-palette-assignment-walled], so 127 weapons still share 13 palettes. Per-weapon needs that wall broken or a draw-path hook.
-
-**Not yet established:** whether writing the STATIC working buffer alone is enough, which is the question that decides whether this needs any per-launch search at all; where the loaded file sits relative to a stable anchor, since nothing in 2 GB holds a pointer to it or to anything within 128 KB before it, so the game reaches it by a computed offset or a register-held pointer rather than a stored address; whether the buffers survive a fresh launch or a save load; and the interaction with a shipped FFTPack override, ABSENT during this test since BuildLinked had wiped the deployed fftpack tree.
-
-**Shipping target SETTLED 2026-08-21 by direct test: write the LOADED FILE, not the static buffer.**
-
-The test was built so the two candidates could not be confused. The loaded file was first restored to pristine on both banks, so it could not be the cause of anything seen; then palette 14 was set to a NEW colour (cyan `0x7FE0`, deliberately different from the magenta already in play) in the static buffer's bank A ONLY, leaving bank B holding the older magenta as a second control. The owner reloaded the battle and swung two palette-14 knives: both rendered NORMAL STEEL, neither cyan nor magenta.
-
-The follow-up read is what makes this conclusive rather than merely negative, because "the write was overwritten" and "that buffer is not the render source" look identical on screen. Both static banks read VANILLA afterwards, so our cyan was demonstrably destroyed rather than ignored: the game performs a file to buffer copy at battle load, and the static buffer is its DESTINATION.
-
-So the two candidates resolve as: the static buffer at `0x140d35750` is refreshed every battle load and a write there is transient, surviving only if it lands between the copy and the GPU upload; the loaded file persists across a battle load and is where a durable write belongs, which is consistent with the original magenta observation where the file was what got written.
-
-**The remaining engineering problem is therefore locating the loaded file each launch**, since its address moves and nothing in 2 GB points to it or to within 128 KB before it. The workable route is a signature scan for content the file uniquely contains: palC at file `+0x10400` is a visibly distinct bank (`9c83 9863 9463 9042 ...`) and unlike palA it is not duplicated within the file, which makes it a better needle than the palette block that found this in the first place. Scoping such a scan to MEM_PRIVATE regions is the obvious cost reduction.
-
-**Date:** 2026-08-21
-
-</details>
 
 ### [weapon-palette-assignment-walled] WHICH palette a weapon uses cannot be changed by any known data channel
 
