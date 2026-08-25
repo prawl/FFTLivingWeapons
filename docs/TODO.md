@@ -212,11 +212,16 @@ belongs rather than at the bottom.
   wear the lane hue, PA red and MA blue and Speed green per LW-319's vocabulary, and
   multi-lane cards wear their blend hue like the poles' purple; the words carry the
   decomposition, the color carries the identity; the Kills line stays first and plain).
-  Blocked on two live facts from one sitting: the card palette map (only color 80 =
-  yellow is proven on the card surface; a cycler probe built from
-  tools/probes/lw307_card_markup_probe.py steps NN values while the owner calls hues)
-  and the owner's nine hue picks (PA, MA, Speed seeded; HP, WP, Faith, and the three
-  blends need calls). (Tech: wrap each baked Grows line in <color=NN>...</color> keyed
+  The full color dictionary was RULED 2026-08-25 in chat: Speed green, PA red, MA blue,
+  HP orange, WP cyan (the three physical guns), WP+Faith gold outright (Faith never
+  stands alone, and gold dodges the white-on-white card trap), PA+MA purple (poles),
+  PA+MA+Brave magenta with shared purple as the fallback (katanas). Color follows the
+  LANE, not the family: Wrathblade and Swiftedge glow green among red swords, Arcanum
+  blue, and that is the dictionary working. The line text is also final: "Grows:" label,
+  short stat names, ampersand lists ("PA, MA & Brave", baked 50c2505). Still blocked on
+  ONE live sitting: the card palette map (only color 80 = yellow is proven; the cycler
+  probe built from tools/probes/lw307_card_markup_probe.py steps NN values while the
+  owner matches each ruled hue to a real slot and judges legibility). (Tech: wrap each baked Grows line in <color=NN>...</color> keyed
   by meta.json's lane; the desc-budget gate must strip tags before counting since tags
   are bytes, not glyphs; ships as its own bake after the LW-322 live pass.)
 
@@ -243,8 +248,9 @@ belongs rather than at the bottom.
   so the colors land on a curve worth showing.
 
 - [LW-319] 2026-08-25: The glow's colors become the stat story, the arc's finale: hue names
-  what the weapon grows (PA red, MA blue, Speed green; Faith, WP and the multi-lane blends
-  like the poles' purple need color calls), intensity stays the kill tier. Replaces the
+  what the weapon grows, intensity stays the kill tier. The hue calls are all MADE as of
+  2026-08-25 (the full lane dictionary lives in LW-329's row and is shared by the card
+  text and this sprite arc); the Glow Ladder gallery confirms exact shades. Replaces the
   toward-white sprite transform and the identity-colored icon rims that LW-295 shipped
   (whose mechanism live pass stays owed and still counts: paint, splice and tier plumbing
   are unchanged). (Tech: swap the runtime brighten for the outline-glow transform already
