@@ -10,6 +10,20 @@ before 2026-07-21 keep their original prose.
 
 ## 2.4.0 cycle
 
+- [LW-316] SHIPPED 0a654cc 2026-08-25: The three questions gating the new growth lanes all
+  came back yes in one live battle, owner at the keyboard reading damage numbers. Writing a
+  gun's weapon power in the game's own stats table changed the very next shot with no
+  restart (291 to 16 to 291, byte-exact revert); holding Faith higher scaled a magic gun's
+  spell damage linearly in both directions with the game's own forecast tracking the held
+  value (45 at 75 Faith, 55 at 90, floor-exact on the way back); and raising one unit's
+  max HP left kill crediting intact while current HP stayed put, the unit simply reading
+  hurt until healed. All three ledger rows owner-flipped PROVEN, un-gating every LW-317
+  lane. (Tech: rows [wp-table-write-live-damage], [current-faith-write-scales-magic-gun],
+  [maxhp-hold-attribution-safe]; instruments warbrand_damage_probe.py --hold 4=N (stats
+  table re-verified 127/127 vs the shipped XML) and the new lw316_lane_probes.py
+  faith_hold/maxhp_hold, d1771b7; verdict rows 0a654cc; the late tier toast seen during
+  the run is LW-323.)
+
 - [LW-250] SHIPPED 20c1f40 2026-08-25: Growth stopped being a wall of Physical Attack. The
   measured field was 87 weapons growing PA, 28 Magick, 2 Speed and 4 nothing; the owner
   locked a full lane redesign the same day a color question exposed the imbalance, and the

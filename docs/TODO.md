@@ -107,45 +107,39 @@ the technical detail lives in the indented lines under it.
     the same gold-over-green mismatch this row first described but the same family of problem.
     The old zone recipe this row's Tech bullet describes was deleted; the bright-v2/
     CARD_OVERRIDES/SMALL_TWO_ZONE dormancy this row notes stands on its own, unaffected.
-- **[LW-316] Prove live that weapon power, held Faith and held max HP can grow safely** (opened 2026-08-25) [QUEUED]
-  grow, which is the gate on both gun lanes. Two questions, one battle: does writing a gun's
-  WP in the resident item table mid battle change the damage of the next shot with no restart,
-  and does a held Faith bump change a magic gun's spell damage. (Tech: WP lives in the shared
-  item table, so the write must be turn-scoped like WeaponPalette's paint, applied on the
-  wielder's turn and restored after, or every enemy copy grows too; Faith rides the proven
-  combat-struct hold lane (brave/faith bytes, status-byte-recipes). Ledger rows either way;
-  a CONTRADICTED WP row demotes physical guns to Speed and magic guns to Faith only.
-  Third question added 2026-08-25 with the Knight Sword HP lane: does a held MaxHP
-  disturb the kill-attribution fingerprint (HP + MaxHP + level keys the actor resolver),
-  and does current HP follow the raised max or leave the unit reading hurt. A
-  CONTRADICTED HP row keeps Knight Swords on PA.)
-  - Done means: three probe verdicts in docs/LIVE_LEDGER.md, PROVEN or CONTRADICTED each:
-    a turn-scoped WP table write changes the next shot's damage with no restart and reverts
-    clean; a held Faith bump changes a magic gun's spell damage; a held max HP neither
-    breaks kill attribution nor leaves the unit reading hurt. Contradictions demote the
-    affected lanes exactly as the row's fallbacks say.
-  - Verify: the probes run in a real battle with the owner reading damage numbers, each
-    with a pre-registered pass and fail signature; ledger rows written either way; the
-    owner flips PROVEN.
+- **[LW-317] Weapons that grow two or three stats at once: the multi-lane growth engine** (opened 2026-08-25) [QUEUED]
+  - All three LW-316 gates came back PROVEN 2026-08-25, so every lane in the design grid
+    is now buildable. Poles and the Materia Blade grow PA and MA; Katanas grow PA, MA and
+    flat Brave (+4/8/12 points, capped at 97, battle-held only so no permanent desertion
+    or chicken risk); Knight Swords raise max HP; physical guns grow WP and magic guns WP
+    plus Faith (Faith held and capped near 85, because high Faith also makes enemy magic
+    hurt more, and the proven scaling is linear both ways). Multi-lane factors run reduced
+    (roughly two thirds of the single-lane curve per stat) so a katana is not simply the
+    best weapon in the game.
+  - (Tech: GrowthEngine holds ONE lane per weapon today (StatLane, one addr+factor); this
+    seat makes it N lanes per weapon, baked from the grid like LW-250's. New machinery per
+    the LW-316 proofs: the WP write is TURN-SCOPED in the resident stats table
+    (0x14080F690 + id*8, byte 4; applied on the wielder's turn and restored after, or
+    every same-id copy including enemies grows too; ledger [wp-table-write-live-damage]);
+    Faith rides the CURRENT-copy hold, band +0x11
+    ([current-faith-write-scales-magic-gun]); the Knight Sword hold is a u16 MaxHP write,
+    new width for the hold machinery, CLAMPED AT 999 (the engine's HP ceiling, owner
+    confirmed 2026-08-25; a 700 HP knight at tier 3 must land on 999, never wrap or
+    overflow), current HP deliberately left to healing ([maxhp-hold-attribution-safe]);
+    Brave rides the proven one-shot current-brave lane, [current-brave-write-sticks].)
+  - Done means: every multi-lane weapon in the grid grows every listed stat at the reduced
+    factors routed from the baked lanes; the gun WP write is turn-scoped and reverts each
+    turn; held stats respect their caps (Faith near 85, Brave 97, HP 999, never wrap); and
+    the shipped single-lane weapons are untouched.
+  - Verify: the analyze lockstep gate and the full suite green with new lane-table pins
+    covering every lane kind; then the owner reads at least one live stat move per new
+    lane kind (a pole PA+MA, a katana Brave, a Knight Sword max HP, one physical and one
+    magic gun) and flips the pass.
 ## Backlog
 
 Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner directed).
 A new row still lands here in the session it surfaces; slot it where its urgency
 belongs rather than at the bottom.
-
-- [LW-317] 2026-08-25: Weapons that grow two or three stats at once: the multi-lane growth
-  engine. Poles and the Materia Blade grow PA and MA; Katanas grow PA, MA and flat Brave
-  (+4/8/12 points, capped at 97, battle-held only so no permanent desertion or chicken risk);
-  physical guns grow WP and magic guns WP plus Faith (Faith held and capped near 85, because
-  high Faith also makes enemy magic hurt more). Multi-lane factors run reduced (roughly two
-  thirds of the single-lane curve per stat) so a katana is not simply the best weapon in the
-  game. (Tech: GrowthEngine holds ONE lane per weapon today (StatLane, one addr+factor);
-  this seat makes it N lanes per weapon, baked from the grid like LW-250's. Also the HP
-  hold for Knight Swords (owner call 2026-08-25): a u16 MaxHP hold, new width for the
-  hold machinery, CLAMPED AT 999 (the engine's HP ceiling, owner confirmed 2026-08-25;
-  a 700 HP knight at tier 3 must land on 999, never wrap or overflow), gated on LW-316's
-  fingerprint probe. The WP and Faith halves are gated
-  on LW-316's probe verdicts.)
 
 - [LW-322] 2026-08-25: Every weapon's description says what it grows in plain words, e.g.
   "Grows: Speed" or "Grows: PA, MA and Brave", because the glow colors alone tell a player

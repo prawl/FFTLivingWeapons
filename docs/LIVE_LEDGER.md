@@ -1652,11 +1652,9 @@ The Gun Slinger / Crossfire twin grant (the [gunslinger-roster-offhand-support-w
 
 </details>
 
-## Uncertain — observed live, not yet isolated / built on
-
 ### [wp-table-write-live-damage] Writing a weapon's WP in the resident stats table changes the next shot's damage mid-battle, no restart, and reverts clean
 
-A weapon's power lives in one shared table the game re-reads on every shot, so raising a number there makes the very next attack hit harder with no reload, and putting the number back restores the old damage exactly. Owner ran the LW-316 probe live 2026-08-25: Stoneshooter (id 73, WP16, formula 3 = WP squared) read 291 on the baseline shot (owner had ~125 percent zodiac advantage on the target), held WP=4 read EXACTLY 16 (4 squared, unambiguous, no crit or variance can produce a teens number from 291), and the post-restore shot read 291 again, byte-exact revert. Ready for the owner's PROVEN flip. This un-gates the physical-gun WP growth lane (LW-317), with the engine write TURN-SCOPED like WeaponPalette's repaint because the table is shared: while held, every wielder of that id (enemies included) gets the changed damage.
+A weapon's power lives in one shared table the game re-reads on every shot, so raising a number there makes the very next attack hit harder with no reload, and putting the number back restores the old damage exactly. Owner ran the LW-316 probe live 2026-08-25: Stoneshooter (id 73, WP16, formula 3 = WP squared) read 291 on the baseline shot (owner had ~125 percent zodiac advantage on the target), held WP=4 read EXACTLY 16 (4 squared, unambiguous, no crit or variance can produce a teens number from 291), and the post-restore shot read 291 again, byte-exact revert. PROVEN, owner-flipped 2026-08-25 (the LW-316 live run). This un-gates the physical-gun WP growth lane (LW-317), with the engine write TURN-SCOPED like WeaponPalette's repaint because the table is shared: while held, every wielder of that id (enemies included) gets the changed damage.
 
 <details><summary>How we got here</summary>
 
@@ -1672,7 +1670,7 @@ A weapon's power lives in one shared table the game re-reads on every shot, so r
 
 ### [current-faith-write-scales-magic-gun] A held CURRENT-faith write scales a magic gun's spell damage linearly, both directions, and the forecast tracks it
 
-Holding a unit's live Faith higher makes their magic gun's spells hit harder in exact proportion, and dropping it back drops the damage back, with the game's own damage forecast following the held value. Owner ran the LW-316 probe live 2026-08-25 with Ramza + Blaze Gun (id 75, formula 4, random-tier elemental cast): Faith 75 baseline 45 twice; held Faith 90 vs a time mage read forecast 55 and dealt 55; restored to 75 the same target read 45 = floor(55 * 75/90), the exact linear caster-side model. Ready for the owner's PROVEN flip. This un-gates the magic-gun Faith lane (LW-317) and confirms the design's cap-near-85 instinct: the same linearity raises damage TAKEN from enemy magic.
+Holding a unit's live Faith higher makes their magic gun's spells hit harder in exact proportion, and dropping it back drops the damage back, with the game's own damage forecast following the held value. Owner ran the LW-316 probe live 2026-08-25 with Ramza + Blaze Gun (id 75, formula 4, random-tier elemental cast): Faith 75 baseline 45 twice; held Faith 90 vs a time mage read forecast 55 and dealt 55; restored to 75 the same target read 45 = floor(55 * 75/90), the exact linear caster-side model. PROVEN, owner-flipped 2026-08-25 (the LW-316 live run). This un-gates the magic-gun Faith lane (LW-317) and confirms the design's cap-near-85 instinct: the same linearity raises damage TAKEN from enemy magic.
 
 <details><summary>How we got here</summary>
 
@@ -1688,7 +1686,7 @@ Holding a unit's live Faith higher makes their magic gun's spells hit harder in 
 
 ### [maxhp-hold-attribution-safe] A held raised MaxHP does NOT break kill attribution; current HP stays put, so the unit reads hurt until healed
 
-Raising one unit's Max HP mid-battle leaves the mod's kill bookkeeping intact: with the hold live the unit's kill credited its own weapon cleanly, and the battle saved normally. Current HP does not follow the raised max, so the unit shows e.g. 624/724 (reads hurt, heals can top up to the new max); the bar renders sanely. Owner ran the LW-316 probe live 2026-08-25 on Ramza (624 -> held 724): kill number 11 credited to Chaos Blade at the credit edge with zero ambiguity, battle-end save clean. Ready for the owner's PROVEN flip. This un-gates the Knight Sword HP lane (LW-317: u16 hold, clamped 999); the lane ships with the reads-hurt behavior as designed-in (growth raises the ceiling, healing fills it).
+Raising one unit's Max HP mid-battle leaves the mod's kill bookkeeping intact: with the hold live the unit's kill credited its own weapon cleanly, and the battle saved normally. Current HP does not follow the raised max, so the unit shows e.g. 624/724 (reads hurt, heals can top up to the new max); the bar renders sanely. Owner ran the LW-316 probe live 2026-08-25 on Ramza (624 -> held 724): kill number 11 credited to Chaos Blade at the credit edge with zero ambiguity, battle-end save clean. PROVEN, owner-flipped 2026-08-25 (the LW-316 live run). This un-gates the Knight Sword HP lane (LW-317: u16 hold, clamped 999); the lane ships with the reads-hurt behavior as designed-in (growth raises the ceiling, healing fills it).
 
 <details><summary>How we got here</summary>
 
@@ -1701,6 +1699,8 @@ Raising one unit's Max HP mid-battle leaves the mod's kill bookkeeping intact: w
 **Date:** 2026-08-25
 
 </details>
+
+## Uncertain — observed live, not yet isolated / built on
 
 ### [auto-battle-mode-byte] Per-unit auto-battle byte at combat+0x1EC drives the behaviour AND the overhead Auto tag, and a write forces the tag to re-render
 
