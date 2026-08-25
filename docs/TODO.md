@@ -340,7 +340,14 @@ belongs rather than at the bottom.
   since the Kills counter first landed and never knew how. Try the same tags on the card
   text the runtime already paints. (Tech: inline markup, observed form color=80 in angle
   brackets with a bare closing color tag; ledger row [inline-color-markup-in-ui-text],
-  PROVEN on the world map surface only; the card's draw path is the untested half.)
+  PROVEN on the world map surface only at capture time; the card's draw path was the
+  untested half.)
+  CARD PROVEN 2026-08-25, owner screenshot: the description card consumed a well formed
+  color 80 tag poked into Warbrand's flavor line and rendered the span bright yellow,
+  with the Kills counter surviving beside it. Probe tools/probes/lw307_card_markup_probe.py
+  (scan/poke/restore, length neutral pool rewrite). This row is now the WIRING seat:
+  ship colored card text through the runtime's existing paints, with LW-322's Grows text
+  and LW-319's tier colors as the first customers.
 
 - [LW-312] 2026-08-24: Warbrand and the other three ex flails still draw broken garbage
   chunks when they swing, the last visible scar of retyping flails into swords, and two cheap

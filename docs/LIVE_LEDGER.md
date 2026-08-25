@@ -98,9 +98,15 @@ So the two candidates resolve as: the static buffer at `0x140d35750` is refreshe
 UI strings carry inline `<color=NN>` tags as DATA, and the renderer consumes them at draw
 time: a well-formed tag changes the colour of the text that follows, and a malformed or
 orphaned tag renders as literal characters on screen. PROVEN, owner live-verified, reported
-2026-08-24, on the world-map Camera Controls help text. Whether the weapon description
-card's text path runs the same markup parser is the open follow-up (LW-307) and is NOT
-covered by this row.
+2026-08-24, on the world-map Camera Controls help text.
+CARD SURFACE PROVEN 2026-08-25 (the LW-307 follow-up, owner screenshot): the weapon
+description card's text path runs the SAME parser. tools/probes/lw307_card_markup_probe.py
+rewrote Warbrand's flavor line in the heap pool at identical byte length with
+<color=80>...</color>; the card rendered the tagged span in bright yellow with zero
+literal tag characters, and the runtime's own Kills counter paint ("Kills: 9/10 to +2")
+survived beside it, so the flavor-anchor tolerated a 24-character intact prefix. Color 80
+reads YELLOW on the card surface. This clears colored card text for the Kills meter, the
+"Grows:" lane text (LW-322) and the name suffix.
 
 <details><summary>How we got here</summary>
 
