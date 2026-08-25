@@ -220,7 +220,7 @@ belongs rather than at the bottom.
   by meta.json's lane; the desc-budget gate must strip tags before counting since tags
   are bytes, not glyphs; ships as its own bake after the LW-322 live pass.)
 
-- [LW-329] 2026-08-25: The enemy AI cures Venombolt's poison, so the always-Poison
+- [LW-330] 2026-08-25: The enemy AI cures Venombolt's poison, so the always-Poison
   crossbow's identity needs a look: the owner watched an enemy NPC spend its turn using a
   Remedy to cleanse the poison a Venombolt bolt had just applied (the bolt came from an
   owner-side unit under auto-control). Two readings and the row exists to decide between
