@@ -107,50 +107,40 @@ the technical detail lives in the indented lines under it.
     the same gold-over-green mismatch this row first described but the same family of problem.
     The old zone recipe this row's Tech bullet describes was deleted; the bright-v2/
     CARD_OVERRIDES/SMALL_TWO_ZONE dormancy this row notes stands on its own, unaffected.
-- **[LW-317] Weapons that grow two or three stats at once: the multi-lane growth engine** (opened 2026-08-25) [QUEUED]
-  - All three LW-316 gates came back PROVEN 2026-08-25, so every lane in the design grid
-    is now buildable. Poles and the Materia Blade grow PA and MA; Katanas grow PA, MA and
-    flat Brave (+4/8/12 points, capped at 97, battle-held only so no permanent desertion
-    or chicken risk); Knight Swords raise max HP; physical guns grow WP and magic guns WP
-    plus Faith (Faith held and capped near 85, because high Faith also makes enemy magic
-    hurt more, and the proven scaling is linear both ways). Multi-lane factors run reduced
-    (roughly two thirds of the single-lane curve per stat) so a katana is not simply the
-    best weapon in the game.
-  - (Tech: GrowthEngine holds ONE lane per weapon today (StatLane, one addr+factor); this
-    seat makes it N lanes per weapon, baked from the grid like LW-250's. New machinery per
-    the LW-316 proofs: the WP write is TURN-SCOPED in the resident stats table
-    (0x14080F690 + id*8, byte 4; applied on the wielder's turn and restored after, or
-    every same-id copy including enemies grows too; ledger [wp-table-write-live-damage]);
-    Faith rides the CURRENT-copy hold, band +0x11
-    ([current-faith-write-scales-magic-gun]); the Knight Sword hold is a u16 MaxHP write,
-    new width for the hold machinery, CLAMPED AT 999 (the engine's HP ceiling, owner
-    confirmed 2026-08-25; a 700 HP knight at tier 3 must land on 999, never wrap or
-    overflow), current HP deliberately left to healing ([maxhp-hold-attribution-safe]);
-    Brave rides the proven one-shot current-brave lane, [current-brave-write-sticks].)
-  - Done means: every multi-lane weapon in the grid grows every listed stat at the reduced
-    factors routed from the baked lanes; the gun WP write is turn-scoped and reverts each
-    turn; held stats respect their caps (Faith near 85, Brave 97, HP 999, never wrap); and
-    the shipped single-lane weapons are untouched.
-  - Verify: the analyze lockstep gate and the full suite green with new lane-table pins
-    covering every lane kind; then the owner reads at least one live stat move per new
-    lane kind (a pole PA+MA, a katana Brave, a Knight Sword max HP, one physical and one
-    magic gun) and flips the pass.
+- **[LW-322] Every weapon's description says in plain words what it grows** (opened 2026-08-25) [QUEUED]
+  - "Grows: Speed" or "Grows: PA, MA and Brave" joins each living weapon's card text,
+    because the glow colors alone tell a player THAT a weapon grew, not WHAT it grows,
+    and text works for everyone including colorblind players. Ships as ONE description
+    bake now that LW-317 has landed the final lanes, so the words never state an interim
+    lie, and lands before the LW-319 colors so text leads and color confirms.
+  - (Tech: the phrase joins the rider tail of the generated descriptions, sourced from
+    the same baked grows tokens the LW-250 gate enforces (now the real multi-lane tokens,
+    8b8dfad); the two load-bearing lines stay untouched, the Kills meter scaffold and the
+    flavor anchor line the in-card counter latches onto; one item.en.nxd rebake via
+    tools/patch_names.py, restart-only, plus the description-uniqueness and desc-budget
+    gates re-run. Owner proposed 2026-08-25.)
+  - Done means: every living weapon's shipped description carries a Grows phrase naming
+    exactly its baked lanes, no phrase on non-growing items, the Kills scaffold and the
+    flavor anchor line byte-identical to before, and the assembled text still inside the
+    205-char card budget for all 121 weapons.
+  - Verify: analyze.py green (uniqueness, budget, scaffold lockstep), the nxd bake audit
+    clean, and the owner reads the Grows line on a handful of cards live after a restart.
 ## Backlog
 
 Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner directed).
 A new row still lands here in the session it surfaces; slot it where its urgency
 belongs rather than at the bottom.
 
-- [LW-322] 2026-08-25: Every weapon's description says what it grows in plain words, e.g.
-  "Grows: Speed" or "Grows: PA, MA and Brave", because the glow colors alone tell a player
-  THAT a weapon grew, not WHAT it grows, and text works for everyone including colorblind
-  players. Ships as ONE description bake right after LW-317 so the words state the final
-  lanes and never an interim lie, and lands before the LW-319 colors so text leads and
-  color confirms. (Tech: the phrase joins the rider tail of the generated descriptions,
-  sourced from the same grows tokens the LW-250 gate enforces; the two load-bearing lines
-  stay untouched, the Kills meter scaffold and the flavor anchor line the in-card counter
-  latches onto; one item.en.nxd rebake via tools/patch_names.py, restart-only, plus the
-  description-uniqueness gate re-run. Owner proposed 2026-08-25.)
+- [LW-327] 2026-08-25: A grown Knight Sword's bonus HP should be REAL at battle start:
+  today the raised maximum shows 679/883 and the knight begins every battle reading hurt
+  until healed, and the owner wants the bar to start full. Ships IN 2.4.0 (owner call
+  2026-08-25, made during the LW-317 live pass). One-time top-up at the hold's first
+  apply: raise current HP by the same amount the max rose, preserving any damage the
+  unit genuinely carried into battle, never past the new max. (Tech: extend
+  GrowthEngine.Lanes' HoldU16 capture branch with a guarded u16 current-HP write at
+  CHp 0x30, delta = target - natural max; attribution is safe per
+  [maxhp-hold-attribution-safe] and the LW-317 pass; needs its own failing test first
+  and one owner reading, a knight opening a battle at 883/883.)
 
 - [LW-320] 2026-08-25: Audit every weapon's power against how it is obtained, because a
   weapon's price should include the effort of getting it. The grid's obtain column splits
@@ -217,6 +207,39 @@ belongs rather than at the bottom.
   the same day, so this is the missed-window path: delivery rides the Wait facing-prompt
   swap, and a toast that misses every prompt window queues across the battle edge instead
   of being flushed with it.)
+
+- [LW-325] 2026-08-25: Regression test every one of the 30 signature abilities, owner
+  directed after Puppeteer needed retries during demo recording. The natural vehicle is
+  the owner's gif tour (media/signatures/): every ability gets demonstrated on camera
+  anyway, so each recording doubles as a live check, and any ability that needs a retry,
+  a specific target kind, or special timing gets a note in this row as the tour reaches
+  it. Runs AFTER the current arc queue per the owner's slotting call. (Tech: the list is
+  the 30 signature blocks in data/items.json; verdicts land here as sub-notes and any
+  real defect gets its own row, LW-326 being the first.)
+
+- [LW-326] 2026-08-25: Puppeteer works but is unreliable: quick attacks fail to dominate
+  and the owner needed retries to record a clean demo. The log tape shows the arm's two
+  signal design running on one leg: the actor-pointer half read pointerMatch=False on
+  every line of the whole session, and the main-hand latch it falls back on flickers off
+  right at the strike edge, so a hit confirmed within about half a second of arming
+  misses while a slow three-count before confirming lands every time. Also on the tape:
+  a dominated MONSTER (job 100) shows nothing visible, reading as a silent failure.
+  (Tech: livingweapon.log 14:38-14:42 2026-08-25; failures show latchMainHand=False
+  actedByte=1 at the hit tick, both successes had 4+ seconds between ACTIVE and the
+  strike. Diagnose why Band.ActorEntry pointerMatch never fires (ActorPtr semantics vs
+  the D1 OR gate, Puppeteer.Policy.cs) and harden the latch across the strike edge;
+  consider a target-kind note or refusal for monsters whose domination has no visible
+  menu effect. Owner workaround documented in-session: wait a beat before confirming.)
+
+- [LW-324] 2026-08-25: The kill counters take too long to appear on the equip cards after a
+  cold boot, and the owner dislikes the wait (his words, "expressing my displeasure"). The
+  counters live in heap string pools the mod has to re-find every launch, and the search is
+  deliberately budgeted so it never hitches a frame, which is why the numbers dribble in.
+  Candidate lever: persist the located pool sites across launches and re-verify instead of
+  re-hunting from scratch. (Tech: Display's budgeted DisplaySweep/PoolPaint census; the
+  pool addresses are heap allocations so a blind replay is unsafe, but a verify-then-adopt
+  warm-start against the LW-257 anchor checks could cut the cold-boot window. Owner filed
+  it as a someday row, not urgent.)
 
 - [LW-305] 2026-08-22: The colour bench can now paint a weapon in the running game, but the list
   saying which weapon owns which colour set has at least one wrong entry, so some weapons would be

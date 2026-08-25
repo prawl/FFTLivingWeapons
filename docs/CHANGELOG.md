@@ -10,6 +10,23 @@ before 2026-07-21 keep their original prose.
 
 ## 2.4.0 cycle
 
+- [LW-317] SHIPPED e02f1a7 2026-08-25: Weapons now grow two or three stats at once, the
+  multi-lane engine the whole redesign was building toward. Poles and the Materia Blade
+  grow PA and MA together, katanas add flat Brave capped at 97, Knight Swords raise max
+  HP toward the 999 ceiling with current HP left to healing, physical guns grow their own
+  weapon power through a turn-scoped write into the game's item table that restores
+  itself the instant the wielder's turn ends, and magic guns grow weapon power plus Faith
+  capped at 85. Multi-lane weapons run a reduced curve, roughly two thirds of single-lane
+  rates, so a three-lane katana is not simply the best weapon in the game. Owner live
+  pass same day, every reading exact: pole 11/17 to 13/20, katana 28/16 with Brave held
+  at its cap, knight 679/883, Stoneshooter 16 to 19 with verified restores across turn
+  end, weapon swap and battle exit, Blaze Gun Faith 75 to 85, and the permanent roster
+  confirmed untouched afterward, settling the one unproven premise (no stat banking).
+  (Tech: runtime e02f1a7, bake 8b8dfad; Routes per-lane ownership bails, HoldFlatCapped
+  on the CURRENT brave/faith copies, HoldU16 clamped 999, WpTableHold with the
+  foreign-writer drop rule; two adversarial verify rounds, final scores code 9 spec 9;
+  suite 3290. The follow-up start-battle-at-full-HP amendment is LW-327.)
+
 - [LW-316] SHIPPED 0a654cc 2026-08-25: The three questions gating the new growth lanes all
   came back yes in one live battle, owner at the keyboard reading damage numbers. Writing a
   gun's weapon power in the game's own stats table changed the very next shot with no

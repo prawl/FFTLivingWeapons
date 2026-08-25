@@ -415,8 +415,8 @@ recorded in the OUT section rather than edited away.
   The morning call was hold off. The afternoon call, after the owner looked at all 150 pictures
   with the halo on and off, was REMOVE it, which is now IN scope, see section 5. What stays out
   is every OTHER idea for the rim: reviving it, restyling it, or making it mean something. Those
-  live on as LW-295, opened for exactly that, because a shipped id must not be the handle for
-  work still to come.
+  live on as LW-319 (the stat colored glow finale seat, opened 2026-08-25 for exactly that),
+  because a shipped id like LW-295 must not be the handle for work still to come.
   Why removal was cheap enough to change our minds mid cut: the rim is a separate layer that adds
   or removes without touching a body pixel, so this reverses in minutes if the owner wants it
   back. One thing the removal turned out to FIX rather than cost, which is what settled it: the
