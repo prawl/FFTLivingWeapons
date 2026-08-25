@@ -1590,6 +1590,17 @@ belongs rather than at the bottom.
   which the removal had closed. Inherits the four candidate treatments and their costs from
   decision brief artifact f9835932, and the owner gallery of all 150 items with the halo on and
   off is artifact 1b130ff7.)
+  - THE GLOW'S MEANING IS DECIDED, owner directive 2026-08-24: it is the weapon's kill tier.
+    Icons and battle sprites glow when a weapon reaches +1, brighter at +2, full at +3. Owner
+    calls from the same sitting: revive the rim machinery at three intensities for the icons;
+    the glow wears the weapon's own identity colour; the battle sprite half is the authored
+    palette brightened per tier through the shipped WeaponPalette painter; and only player
+    wielders glow, an enemy copy of the same weapon id stays plain. FIRST STEP before any
+    build: a live look test of a brightened swing (bench paint a tier bright variant into the
+    resident banks mid battle) so the owner can judge whether the swinging weapon should glow
+    at all; he expects yes. Per save icon state rides the proven live pac repaint lane and
+    the KillTally tier; the rim revival steps and the two pins that will move (ramp pin14b,
+    the Fallingstar anchor ruling) are already listed in this row above.
 
 - [LW-248] 2026-08-16: The mod's shipping look is DECIDED for colour: every item gets the new
   recolour. The owner settled that half on 2026-08-16 after seeing the whole catalogue in game.
