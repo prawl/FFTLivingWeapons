@@ -275,6 +275,11 @@ belongs rather than at the bottom.
   levers. Boundary, on purpose: no job-table or skillset edits; job internals are
   Denuvo-walled, other mods' legitimate turf (the kit-lane guard's whole premise), and
   outside this mod's identity. Owner proposed 2026-08-25 from tier-video observations.
+  The same lens must look DOWN as well as up, owner FYI 2026-08-25: the Monk is considered
+  overpowered in every regard, which puts the planned monks-get-poles access grant (the
+  entire justification for the poles' dormant PA half in LW-250's table) under scrutiny
+  here rather than assumed; handing the strongest class a PA and MA growing weapon family
+  needs a deliberate ruling, and the pole lane itself loses nothing while that waits.
 
 - [LW-305] 2026-08-22: The colour bench can now paint a weapon in the running game, but the list
   saying which weapon owns which colour set has at least one wrong entry, so some weapons would be
