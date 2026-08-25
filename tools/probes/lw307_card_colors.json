@@ -1,0 +1,21 @@
+{
+  "surface": "weapon description card (equip menu)",
+  "probe": "lw307_card_markup_probe.py poke all NN, owner-read 2026-08-25",
+  "hypothesis": "NN = ramp x step: first digit picks a color ramp, second digit walks it toward washed/dark (falsified if a mid-row value is saturated); X0 heads are the usable saturated colors",
+  "observed": {
+    "10": "ugly yellow orange (near unreadable)",
+    "19": "bolded black",
+    "20": "white",
+    "21": "ugly gray (unreadable)",
+    "68": "white",
+    "69": "off white",
+    "77": "ugly white",
+    "80": "yellow",
+    "88": "lighter gray",
+    "90": "red",
+    "91": "lighter gray",
+    "99": "light gray"
+  },
+  "unswept_ramp_heads": ["30", "40", "50", "60", "70"],
+  "wanted_for": "LW-322 Grows text + LW-319 lane hues: red=90 found; blue and green still unmapped"
+}
