@@ -1,21 +1,33 @@
 {
-  "surface": "weapon description card (equip menu)",
-  "probe": "lw307_card_markup_probe.py poke all NN, owner-read 2026-08-25",
-  "hypothesis": "NN = ramp x step: first digit picks a color ramp, second digit walks it toward washed/dark (falsified if a mid-row value is saturated); X0 heads are the usable saturated colors",
-  "observed": {
-    "10": "ugly yellow orange (near unreadable)",
-    "19": "bolded black",
-    "20": "white",
-    "21": "ugly gray (unreadable)",
-    "68": "white",
-    "69": "off white",
-    "77": "ugly white",
-    "80": "yellow",
-    "88": "lighter gray",
-    "90": "red",
-    "91": "lighter gray",
-    "99": "light gray"
-  },
-  "unswept_ramp_heads": ["30", "40", "50", "60", "70"],
-  "wanted_for": "LW-322 Grows text + LW-319 lane hues: red=90 found; blue and green still unmapped"
+ "surface": "weapon description card (equip menu)",
+ "probe": "lw307_card_markup_probe.py poke all NN, owner-read 2026-08-25",
+ "hypothesis": "CONFIRMED for heads 2026-08-25: every X0 ramp head is a saturated color; second digit washes the ramp toward pale/dark (mid values muddy, never for body text)",
+ "observed": {
+  "10": "ugly yellow orange (near unreadable)",
+  "19": "bolded black",
+  "20": "white",
+  "21": "ugly gray (unreadable)",
+  "68": "white",
+  "69": "off white",
+  "77": "ugly white",
+  "80": "bright yellow (readable in the first sitting's screenshot, read unreadable on second look; context dependent)",
+  "88": "lighter gray",
+  "90": "red",
+  "91": "lighter gray",
+  "99": "light gray",
+  "30": "light red",
+  "40": "green",
+  "50": "blue",
+  "60": "yellow",
+  "70": "white (unreadable on the card ground)"
+ },
+ "unswept_ramp_heads": [],
+ "wanted_for": "LW-322 Grows text + LW-319 lane hues: red=90 found; blue and green still unmapped",
+ "lane_palette_proposal": {
+  "PA": "90 (red; 30 light red as the softer alternate)",
+  "MA": "50 (blue)",
+  "Speed": "40 (green)",
+  "HP": "60 (yellow)",
+  "note": "owner-read on the equip card 2026-08-25; the exact numbers LW-322 Grows text and LW-319 card hues should use"
+ }
 }
