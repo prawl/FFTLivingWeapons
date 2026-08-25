@@ -165,6 +165,34 @@ DESC_MAX = 205  # TOTAL assembled card description budget (chars). RECALIBRATED 
 
 COLOR_TAG_RE = re.compile(r"<color=\d{2}>|</color>")
 
+#: The equip card's box clips by RENDERED LINES, not characters: long lines WRAP. Calibrated
+#: 2026-08-25 from owner screenshots: cards modeling 10+ wrapped lines bleed into the UI
+#: (Warlock's Staff, Sanctus Staff, Mending Staff, Sunderer, Venombolt, Eclipsebolt all
+#: owner-reported). The font is proportional, so the char-per-line wrap here is CONSERVATIVE
+#: (33; the widest observed clean wrap was ~37).
+CARD_WRAP_CHARS = 33
+CARD_MAX_LINES = 9
+
+
+def check_card_height(items):
+    """Every assembled card must render inside the box: at most CARD_MAX_LINES wrapped lines
+    at CARD_WRAP_CHARS chars per line, color tags stripped first (the renderer consumes
+    them). The 205-char DESC BUDGET above stays as a raw-size backstop, but THIS is the
+    gate that models what the owner actually saw bleed."""
+    import math
+    bad = []
+    for it in items:
+        if not it.get("name") or it.get("name") == "TBD":
+            continue
+        d = COLOR_TAG_RE.sub("", assemble_desc(it))
+        n = sum(max(1, math.ceil(len(line) / CARD_WRAP_CHARS)) for line in d.split("\n"))
+        if n > CARD_MAX_LINES:
+            bad.append((it, n))
+    return bad
+
+
+
+
 
 def check_desc_budget(items):
     """The FULL assembled card description (Kills scaffold + flavor + mechanics + range line +
@@ -274,14 +302,14 @@ def check_kills_scaffold_lockstep(items):
     KillsMeterSlotChars (11, the single source of truth for the width: see that constant's
     derivation comment). KILLS_SCAFFOLD's own body must be exactly KILLS_SLOT_BODY_CHARS chars,
     and every living weapon's baked description must actually lead with
-    "KILLS_SCAFFOLD\\n\\n" (Kills line first, blank line after, body order preserved): a
+    "KILLS_SCAFFOLD\\n" (Kills line first; its blank line was removed 2026-08-25 for card height, LW-333): a
     C#-side width change (or a baker regression that drops the prepend) shows up here instead of
     drifting silently out of sync with the shipped nxd."""
     bad = []
     scaffold_body_len = len(KILLS_SCAFFOLD) - len("Kills: ")
     if scaffold_body_len != KILLS_SLOT_BODY_CHARS:
         bad.append(("<KILLS_SCAFFOLD constant>", f"body is {scaffold_body_len} chars, expected {KILLS_SLOT_BODY_CHARS}"))
-    prefix = KILLS_SCAFFOLD + "\n\n"
+    prefix = KILLS_SCAFFOLD + "\n"
     for it in items:
         if not it.get("name") or it.get("name") == "TBD":
             continue
@@ -829,6 +857,11 @@ def main():
              check_fn=lambda: check_p3desc(items),
              pass_msg="PASS: every p3Desc is valid.",
              format_failure=_fmt_p3desc, sets_rc=True),
+        dict(header=f"CARD HEIGHT (<= {CARD_MAX_LINES} wrapped lines at {CARD_WRAP_CHARS} chars; taller bleeds into the UI)",
+             check_fn=lambda: check_card_height(items),
+             pass_msg="PASS: every card renders inside the box.",
+             format_failure=lambda v: [f"  OVERFLOW id{it['id']} {it.get('name')} ({n} wrapped lines, cap {CARD_MAX_LINES})"
+                                       for it, n in v], sets_rc=True),
         dict(header=f"DESC BUDGET (assembled card text <= {DESC_MAX} chars; overflow clips the box)",
              check_fn=lambda: check_desc_budget(items),
              pass_msg="PASS: every assembled description fits the card.",

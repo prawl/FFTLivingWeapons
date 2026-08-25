@@ -357,7 +357,7 @@
       "name": "Galewind",
       "tier": 5,
       "identity": "Elemental main-hand — top flat damage with a Wind exploit (x2 vs Wind-weak). Double-edged: Wind-absorbers heal.",
-      "flavorOverride": "A coiled gust, loosed with every keening stroke.",
+      "flavorOverride": "A coiled gust in steel.",
       "baseline": {
         "wp": 10,
         "evade": 5,
@@ -397,7 +397,7 @@
       "name": "Zwill Straightblade",
       "tier": 6,
       "identity": "Endgame capstone + burst-setup — Sleep a target, team deletes it at +50%. Top WP but poach-gated and the Sleep self-removes, so a setup tool not a universal best.",
-      "flavorOverride": "A duelist's masterwork honed until the blade forgets to make a sound.",
+      "flavorOverride": "A duelist's silent masterwork.",
       "baseline": {
         "wp": 12,
         "evade": 10,
@@ -813,7 +813,7 @@
       "name": "Sanguine Sword",
       "tier": 3,
       "identity": "Rare one-handed Sword (not sold, shield-friendly): every hit drains HP, vanilla Blood Sword style (innate absorb formula 6, no proc) — the life-drain of a fell mercenary knight, echoing Gaffgarion. A may-cast variant (formula 2 + proc 45) shipped briefly but read as broken next to the card's Absorbs-HP badge; reverted to the innate drain 2026-06-10, WP trimmed 14->10 since the drain came back. Lives on the NATIVE Blood Sword slot so the card correctly reads Sword (relocated off the Giant's Axe slot, which read Axe).",
-      "flavorOverride": "A sellsword who drank the fallen.",
+      "flavorOverride": "A sellsword that drinks deep.",
       "baseline": {
         "wp": 8,
         "evade": 5,
@@ -839,7 +839,7 @@
         "displayLabel": "Shadow Blade",
         "sigName": "Shadow Blade (Knight jobs only)",
         "note": "Shadow Blade -- grant the real ability (id 165, Gaffgarion's HP-draining dark sword strike) into the wielder's JobCommand menu via the proven Barrage injection (ShadowBlade.cs reuses Barrage's primitives; the shipped Barrage module is untouched). WHITELISTED to the Squire/Knight sword skill-sets (records 5/7), reached via the primary job OR a mounted secondary command (ShadowBladePolicy.TryResolveGrant) -- e.g. a Dragoon with Knight's Battle Skill as secondary lands it there; keeps Barrage's secondary fallback but only into a sword set. Samurai dropped (can't equip swords in IC). PLUS Ramza's story-unique sword forms (Gallant Knight job-byte 3 -> Mettle rec 27; Squire variants 1/2/4 -> 25/26/28) mapped via ShadowBladePolicy.RamzaSwordJobs -- authoritative JobData.JobCommandId, criterion = a Mettle command (Mettle is Ramza-only), all learned-index 0. VERIFIED LIVE 2026-06-15: renders with its real menu name and casts from Ramza's Mettle command.",
-        "p3Desc": "Grants Shadow Blade: drains a distant unit's HP with dark power. Knight jobs only."
+        "p3Desc": "Grants Shadow Blade: a ranged dark drain. Knight jobs only."
       },
       "iconTint": [
         0.397,
@@ -990,7 +990,7 @@
       "name": "Swiftedge",
       "tier": 4,
       "identity": "Speed-Knight blade (unique): damage = Speed x WP, not Physical Attack. Mediocre at base, devastating if you stack Speed.",
-      "flavorOverride": "Bites harder the faster you strike.",
+      "flavorOverride": "Bites harder the faster you go.",
       "baseline": {
         "wp": 10,
         "evade": 10,
@@ -1464,7 +1464,7 @@
       "name": "Ame-no-Murakumo",
       "tier": 3,
       "identity": "The gathering-storm blade — only Wind katana (x2 vs Wind-weak) AND Silences on hit, choking an enemy mage's spellbook. The anti-caster capstone of the mid line (Heaven's Cloud lore). Trades evade for the storm package.",
-      "flavorOverride": "A gathering-clouds blade, wind-swift.",
+      "flavorOverride": "The gathering-clouds blade.",
       "baseline": {
         "wp": 11,
         "evade": 15,
@@ -1599,7 +1599,7 @@
         "mushin": true,
         "displayLabel": "Mushin",
         "note": "Mushin (no-mind): a full WAIT turn (no move, no act) arms one PA-boosted hit; the wielder's next own action spends it (band +0x3E, the same CPa byte katana damage already scales from), then the charge clears. One wait equals one charged hit, no stacking (a single armed bool, not a counter). LIVE-MAPPED 2026-07-09 (tools/probes/mushin_wait_probe.py, scratchpad/psxflags_watch.log): the engine already tracks this on the acting unit's own per-turn bookkeeping, ported from the PSX struct (FFHacktics offsets 0x186/0x187/0x188) at frame offset PSX+0x32, band offset frame-0x1C. TURN FLAG (band +0x19C) reads 1 while the unit's move/act/wait menu is open, 0 otherwise; MOVED (band +0x19D) and ACTED (band +0x19E) each latch 0 to 1 the instant that action happens and are reset by the engine at the NEXT turn's open. Detection watches the TURN FLAG's own falling edge (1 to 0, the turn closing) per wielder: acted true consumes any armed charge; acted false and moved false is a genuine full wait, arms one charge; acted false and moved true (a move-only turn) changes nothing, an armed charge survives untouched. Earlier live attempts that same day (now retired) rebuilt the trigger on other units' scheduler-CT cycling and on KillTracker's action-latch machinery because the wait moment looked invisible; the literal per-unit flags close that gap directly, so none of that apparatus is read anymore. Owns the PA lane at every tier (GrowthEngine.Mushin.cs, OwnsMushin) so growth stays byte-identical to the plain Factor[tier] formula below tier 3 or between charges. Does NOT touch formula 2 / onHitAbilityId 83.",
-        "p3Desc": "Stillness empties the mind; the next strike falls devastatingly hard."
+        "p3Desc": "Stillness empties the mind; the next strike falls terribly hard."
       }
     },
     {
@@ -1737,7 +1737,7 @@
       "name": "Sunderer",
       "tier": 5,
       "identity": "Sunder bruiser — normal KnightSword damage PLUS every hit shatters a random piece of the foe's gear (formula 46). The break is the whole point, so it pays the LOWEST WP in the category (13) = a sidegrade, not an upgrade; whiffs on the unequipped and on monsters.",
-      "flavorOverride": "A spiteful edge made less to slay than to ruin; it shatters what it meets.",
+      "flavorOverride": "A spiteful edge made to ruin, not to slay.",
       "baseline": {
         "wp": 16,
         "evade": 0,
@@ -2017,7 +2017,7 @@
       "name": "Rod of Faith",
       "tier": 5,
       "identity": "Faith-zealot rod — InnateStatus: Faith pins the wielder at max Faith, so every spell cast (and cast AT them) lands at peak potency: a glass-cannon nuker. Holy element on the Attack smites undead. Only innate-Faith weapon.",
-      "flavorOverride": "A rod alight with borrowed conviction.",
+      "flavorOverride": "A rod of borrowed conviction.",
       "baseline": {
         "wp": 5,
         "evade": 20,
@@ -2090,7 +2090,7 @@
       "name": "Warlock's Staff",
       "tier": 2,
       "identity": "WARLOCK staff — innate Reflect turns enemy single-target spells back on their caster, the spell-eater build's anchor. The cost is real (your own single-target cures bounce off you too), which keeps it a build choice, not a free win. Earliest rider staff (T2).",
-      "flavorOverride": "Bound with a warlock's hex, it turns hostile spells back upon the throats that spoke them.",
+      "flavorOverride": "Bound with a warlock's hex.",
       "baseline": {
         "wp": 3,
         "evade": 15,
@@ -2130,7 +2130,7 @@
       "name": "Mending Staff",
       "tier": 3,
       "identity": "HEALER staff — the only heal-on-attack weapon (formula 7): spend the free Attack command to top up an ally at melee range, or smite Undead with that same heal. WP kept low (4) so the heal identity stays the draw, not raw damage.",
-      "flavorOverride": "White-lacquered and consecrated, its touch knits living flesh and withers the dead.",
+      "flavorOverride": "A staff that knits living flesh.",
       "baseline": {
         "wp": 4,
         "evade": 15,
@@ -2234,7 +2234,7 @@
       "name": "Sanctus Staff",
       "tier": 4,
       "identity": "STRONGELEMENTS specialist staff — the +25%-Holy-spell line: a white/holy mage's nuke amplifier (boosts Holy, Holy Explosion, etc.), plus Holy element on the swing for anti-Undead matchups. At +3 the Benediction aura boosts the wielder's healing by 30% (runtime HP-rise detect on allies during the wielder's action window), making the healer-nuke hybrid a literal force multiplier.",
-      "flavorOverride": "A gilded stave that gathers sacred light and gives it back tenfold.",
+      "flavorOverride": "A stave of gathered holy light.",
       "baseline": {
         "wp": 6,
         "evade": 15,
@@ -2309,7 +2309,7 @@
       "name": "Staff of the Magi",
       "tier": 6,
       "identity": "MA-BOOST 'bigger-heals' capstone — top MA+2 rider drives both offense and, because Cure spells scale off Magick Attack, the strongest heals in the line. Highest staff WP (7) and the endgame (T6) gate earn the rider; the pure spell-power pick. (Dropped the old Stop proc so its identity is cleanly MA, not a gimmick.)",
-      "flavorOverride": "The magi's own staff, steeped in old lore.",
+      "flavorOverride": "The magi's time-stilling staff.",
       "baseline": {
         "wp": 7,
         "evade": 15,
@@ -2708,7 +2708,7 @@
       "name": "Eclipsebolt",
       "tier": 2,
       "identity": "Assassin's bolt — marks an elite for death. Proc 21 is Blind, not Death, so it uses Doom (id 11) instead — a countdown to a certain KO. Only Doom crossbow. Applies Doom at ~25% (formula 1); when the mark lands, the +3 Eagle Eye signature makes it resolve in 1 turn — a gamble with a lethal payoff.",
-      "flavorOverride": "Its quarrel marks a foe who sees no dusk.",
+      "flavorOverride": "Its quarrel marks final dusk.",
       "baseline": {
         "wp": 4,
         "evade": 5,
@@ -2790,7 +2790,7 @@
       "name": "Venombolt",
       "tier": 3,
       "identity": "Attrition tool — only Poison crossbow. WP undercuts Arbalest and gives up Range-5, so the DoT IS the value; best vs high-HP/fleeing targets. Inflicts Poison at 100% (formula 2D, like Bloodlash).",
-      "flavorOverride": "Its quarrels creep with a slow, festering venom.",
+      "flavorOverride": "Quarrels of festering venom.",
       "baseline": {
         "wp": 4,
         "evade": 5,
@@ -3112,7 +3112,7 @@
       "name": "Huntress",
       "tier": 5,
       "identity": "T5 marksman / mid-evade owner — WP8 + 10 evade + Leg Shot may-cast (Disable), earlier than the capstones. Out-dodges Tempest, out-shoots the mids. Fixes vanilla \"Yoichi dominates Artemis\".",
-      "flavorOverride": "Hand and mark fly as one when she is drawn.",
+      "flavorOverride": "Hand and mark fly as one.",
       "baseline": {
         "wp": 10,
         "evade": 0,
@@ -3154,7 +3154,7 @@
       "name": "Yoichi Bow",
       "tier": 6,
       "identity": "T6 AGILE capstone — top sustained WP (12) that STILL keeps 5 evade: heavy damage on light feet. The speed-build DPS capstone vs Seraph's glass cannon.",
-      "flavorOverride": "The legend-archer's bow; each arrow finds its mark.",
+      "flavorOverride": "The legend-archer's bow.",
       "baseline": {
         "wp": 12,
         "evade": 0,

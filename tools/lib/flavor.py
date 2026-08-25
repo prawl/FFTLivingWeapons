@@ -123,7 +123,8 @@ def mechanics(it):
         elif el not in ("None", None, ""):
             parts.append(f"Deals {el} damage.")
         if f == 99:
-            parts.append("Damage scales with Speed, not Attack.")
+            # short form: the ", not Attack" clarifier cost Swiftedge a card line (LW-333)
+            parts.append("Damage scales with Speed.")
         if f not in (2, 4):  # Formula 2/4 read the opt id as a spell cast, not a status
             if f == 45 and p in PROC:  # formula 0x2D = 100% status (confirmed in-game): always lands
                 parts.append(f"Always inflicts {PROC[p]} on hit.")
@@ -347,7 +348,10 @@ def assemble_desc(it, scaffold=True):
         # Kills line FIRST, blank line after, then the rest of the body. The DLL paints the
         # tier-progress meter into the KILLS_SLOT_BODY_CHARS-wide body slot in place; the
         # literal prefix MUST stay in lockstep with ByteScan.MeterSlotDigits.
-        desc = KILLS_SCAFFOLD + "\n\n" + desc.lstrip("\n")
+        # Blank line after Kills removed 2026-08-25 (LW-333): the box clips by wrapped
+        # LINES and the blank cost every card one of nine; density matches the owner's
+        # own layout sketch. Bonus: the Kills-to-flavor anchor gap shrinks by a byte.
+        desc = KILLS_SCAFFOLD + "\n" + desc.lstrip("\n")
     return desc
 
 
