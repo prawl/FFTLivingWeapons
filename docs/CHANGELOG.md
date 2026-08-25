@@ -10,6 +10,15 @@ before 2026-07-21 keep their original prose.
 
 ## 2.4.0 cycle
 
+- [LW-333] SHIPPED 9e66f97 2026-08-25: Six weapon cards stopped spilling their text over
+  the game's UI. The owner caught them live the night the Grows line shipped: the card
+  box clips by WRAPPED LINES, not characters, and the old 205 character gate never knew,
+  so the one line every card gained tipped the tallest ones over the bottom edge. Fixed
+  by removing the blank line under the Kills meter, shortening nine flavor lines and two
+  signature texts under the owner's stated latitude, and adding a CARD HEIGHT gate that
+  models the real constraint (nine wrapped lines at a conservative 33 characters,
+  calibrated from the owner's screenshots) so a too-tall card can never ship silently
+  again. Captured and shipped the same night it was found.
 - [LW-328] SHIPPED 5dbc7ff 2026-08-25: The famous weapons stopped hiding their powers. The
   question this row asked (may cards add text under a famous weapon's untouched original
   description) was answered by the owner the same day it was asked, and more broadly than
