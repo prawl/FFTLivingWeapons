@@ -108,6 +108,12 @@ the technical detail lives in the indented lines under it.
     The old zone recipe this row's Tech bullet describes was deleted; the bright-v2/
     CARD_OVERRIDES/SMALL_TWO_ZONE dormancy this row notes stands on its own, unaffected.
 - **[LW-295] A weapon that has grown starts to glow, on its menu picture and in its wielder's hand** (opened 2026-08-19) [AWAITING-LIVE]
+  - COLOR SYSTEM REDIRECTED 2026-08-25, owner directive, mid live pass: the toward-white
+    sprite brighten reads as plain white; the owner wants the weapon SURROUNDED by a glow
+    color instead. The bench probe's outlineglow verb and the Glow Ladder gallery hold the
+    approved outline treatment; the final colors become stat-coded and ship under LW-319.
+    This row's live pass still verifies the MECHANISM (tier plumbing, player-only paint,
+    icon splice), which the redirect does not touch.
   - BUILT 2026-08-25, owner live pass outstanding. Both halves are in: a player's tiered
     weapon swings with its authored colours brightened toward white, one step per kill tier,
     while an enemy holding the same weapon id stays plain; and every weapon's two menu icons
@@ -153,6 +159,33 @@ the technical detail lives in the indented lines under it.
     tier-brighten maths and the player-only rule pinned by unit tests; then the owner's live
     pass: grow a weapon a tier, see the glow appear on icon and swing, confirm an enemy copy of
     the same weapon stays plain and a battle reload keeps the glow correct.
+- **[LW-250] Every weapon grows the stat its own attack actually uses, so growth is never wasted** (opened 2026-08-16) [QUEUED]
+  - The owner LOCKED the full lane table on 2026-08-25, after the measured distribution came
+    out 87 weapons growing Physical Attack, 28 Magick, 2 Speed and 4 nothing. The principle is
+    LW-249's, generalized: grow what your own attack cashes. The locked table: PA for Swords,
+    Knight Swords, Crossbows, Bags and Polearms. Speed for Knives, Bows and Ninja Blades
+    (their formula averages PA and Speed; per hit slightly softer than the old PA lane, about
+    even per battle through extra turns) and for the four missing-HP weapons (Wrathblade,
+    Muramasa, Climhazzard, Tombspire), whose formula reads no stat at all, so extra turns are
+    the one buff that lands. MA for Rods, Staves, Books, Cloths and Instruments. PA and MA for
+    Poles (monks will one day equip poles; the PA half waits for that) and the Materia Blade
+    (swings cash PA and the Ultima curve, Cloud's Limits cash MA). PA, MA and flat Brave for
+    Katanas. WP for physical guns and WP plus Faith for magic guns (their damage is WP squared
+    times Faith and the rebalance cut their WP from 20-22 to 12-15, so growth resurrects them
+    toward, never past, former glory). Multi-lane weapons run reduced per-stat factors.
+  - THIS seat ships only what the single-lane engine already does: the grid's grows column
+    becomes the single authority (fixing the rows LW-249 left stale), the lane bakes through
+    items.json into meta.json, the runtime routes from the baked lane instead of category
+    guesses, and the simple re-lanes land (the Speed and MA groups). Multi-stat and the
+    exotic lanes are LW-317, gated on LW-316's probe.
+  - Done means: docs/living_weapon_grid.csv's grows column matches the locked table exactly;
+    every single-lane weapon grows its decided stat in the runtime, baked from the same
+    source the tests pin; the four missing-HP weapons grow Speed instead of nothing; and no
+    multi-lane weapon changes behavior yet.
+  - Verify: both gates green with new pins covering the lane table (bake matches grid,
+    routing matches bake, plus a mutation proving the pins bite); then the owner's live
+    pass: a knife wielder visibly gains Speed at a tier, a book wielder gains MA, a sword
+    wielder still gains PA.
 
 
 
@@ -164,6 +197,46 @@ the technical detail lives in the indented lines under it.
 Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner directed).
 A new row still lands here in the session it surfaces; slot it where its urgency
 belongs rather than at the bottom.
+
+- [LW-316] 2026-08-25: Prove live that a weapon's own power and its wielder's held Faith can
+  grow, which is the gate on both gun lanes. Two questions, one battle: does writing a gun's
+  WP in the resident item table mid battle change the damage of the next shot with no restart,
+  and does a held Faith bump change a magic gun's spell damage. (Tech: WP lives in the shared
+  item table, so the write must be turn-scoped like WeaponPalette's paint, applied on the
+  wielder's turn and restored after, or every enemy copy grows too; Faith rides the proven
+  combat-struct hold lane (brave/faith bytes, status-byte-recipes). Ledger rows either way;
+  a CONTRADICTED WP row demotes physical guns to Speed and magic guns to Faith only.)
+
+- [LW-317] 2026-08-25: Weapons that grow two or three stats at once: the multi-lane growth
+  engine. Poles and the Materia Blade grow PA and MA; Katanas grow PA, MA and flat Brave
+  (+4/8/12 points, capped at 97, battle-held only so no permanent desertion or chicken risk);
+  physical guns grow WP and magic guns WP plus Faith (Faith held and capped near 85, because
+  high Faith also makes enemy magic hurt more). Multi-lane factors run reduced (roughly two
+  thirds of the single-lane curve per stat) so a katana is not simply the best weapon in the
+  game. (Tech: GrowthEngine holds ONE lane per weapon today (StatLane, one addr+factor);
+  this seat makes it N lanes per weapon, baked from the grid like LW-250's. The WP and Faith
+  halves are gated on LW-316's probe verdicts.)
+
+- [LW-318] 2026-08-25: The weapon power curve gets a fairness pass: every weapon strong
+  enough to matter, none so strong the rest become vendor trash. The owner replayed the mod
+  a few weeks before 2026-08-25 and the balance felt steady until the Warbrand appeared and
+  dominated everything after. The likely shape: the rebalance raised Warbrand to WP 15, the
+  highest sword WP in the game, priced only in zero evade and zero utility, and the
+  build-diversity gate is structurally blind to this (analyze.py forbids strict dominance
+  but cannot see a power SPIKE: a weapon can dominate the game while dominating no single
+  item row). Revisit the pricing formula so tiers climb without a boom moment, and consider
+  a curve check the gate can actually enforce. Owner-placed DIRECTLY before the glow task,
+  so the colors land on a curve worth showing.
+
+- [LW-319] 2026-08-25: The glow's colors become the stat story, the arc's finale: hue names
+  what the weapon grows (PA red, MA blue, Speed green; Faith, WP and the multi-lane blends
+  like the poles' purple need color calls), intensity stays the kill tier. Replaces the
+  toward-white sprite transform and the identity-colored icon rims that LW-295 shipped
+  (whose mechanism live pass stays owed and still counts: paint, splice and tier plumbing
+  are unchanged). (Tech: swap the runtime brighten for the outline-glow transform already
+  proven in the bench probe's outlineglow verb (fce8ad3), re-bake the 726 icon rims in lane
+  hues, meta.json carries each weapon's lane for both the engine and the display, Glow
+  Ladder gallery preview before the build, owner picks the exact hues there.)
 
 - [LW-305] 2026-08-22: The colour bench can now paint a weapon in the running game, but the list
   saying which weapon owns which colour set has at least one wrong entry, so some weapons would be
@@ -562,22 +635,6 @@ belongs rather than at the bottom.
   of 3, idempotent; LivingPoach.Despawn.cs shares the same field; candidate levers are a
   sentinel value in that byte, a nearby render gate byte, or an ENTD per unit flag, none
   verified; check LIVE_LEDGER.md before building on any of them.)
-
-- [LW-250] 2026-08-16: An idea worth keeping: let each weapon grow the stat its own damage
-  actually uses, which fixes several families being under rewarded and, as a side effect, makes
-  a colour coded glow possible later. Today seventy eight percent of weapons grow Physical
-  Attack, so growth feels the same on nearly everything and a colour coded rim would be almost
-  entirely one colour. Tying growth to the weapon's own formula gives knives speed, katanas and
-  knight swords courage, books and instruments and veils both attack stats, and leaves the
-  stat-independent guns honestly ungrown. Books, instruments and veils are the clearest fix:
-  their damage averages the two attack stats, so growing only one of them hands them half the
-  reward a sword gets for the same kills. NOT DECIDED, and deliberately parked until the owner
-  is ready. (Tech: proposed lanes by damage formula, with counts, are in the
-  growth-stat-recolour-design memory. Brave is capped at 97 so high-Brave wielders gain less
-  than the full thirty percent, and the Brave write mechanism is already proven in production by
-  Kobu, holding the CURRENT copy at combat +0x2B. Guns are held back because WP lives in the
-  item table, so growing it would buff every copy in the game including enemy-held ones, and a
-  per-wielder hold would need its own probe.)
 
 - [LW-6] 2026-07-04: Slayer's Reliquary, the post-release headline bet: weapons remember WHO
   they killed.
