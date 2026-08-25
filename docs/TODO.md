@@ -262,6 +262,20 @@ belongs rather than at the bottom.
   hues, meta.json carries each weapon's lane for both the engine and the display, Glow
   Ladder gallery preview before the build, owner picks the exact hues there.)
 
+- [LW-321] 2026-08-25: Weak classes get a design pass through the weapon lens: Thief,
+  Archer, Orator and Mystic sit low on community tier lists, and this mod's proven lever
+  for that is their TOOLS, not their job tables. The owner already ran the template on the
+  Thief (knives made powerful with great abilities, plus bow and crossbow access), and the
+  growth-lane arc quietly extends it: Speed-growing knives and bows serve Thief and Archer,
+  the resurrected guns serve the Orator, and the pole, rod, staff and book MA lanes serve
+  the Mystic. This row is IDEATION, may produce no single actionable: audit each weak
+  class's full kit (weapon access, whether a signature weapon exists worth growing,
+  whether any growth lane feeds the class's own skillset scaling, e.g. verify whether held
+  Faith moves Orator talk success), and propose per-class packages using only weapon-side
+  levers. Boundary, on purpose: no job-table or skillset edits; job internals are
+  Denuvo-walled, other mods' legitimate turf (the kit-lane guard's whole premise), and
+  outside this mod's identity. Owner proposed 2026-08-25 from tier-video observations.
+
 - [LW-305] 2026-08-22: The colour bench can now paint a weapon in the running game, but the list
   saying which weapon owns which colour set has at least one wrong entry, so some weapons would be
   painted in someone else's colours. Audit that list weapon by weapon and correct it. Materia Blade
