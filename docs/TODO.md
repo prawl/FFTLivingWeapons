@@ -87,26 +87,30 @@ the technical detail lives in the indented lines under it.
     ramp; it lives on only in git history. Whether that already-approved look also satisfies
     this row's own gallery-pass wait clause is the owner's call, not this arc's.
 
-- **[LW-212] The four bags, the last weapon family in the game to have its colour looked at** (opened 2026-08-13) [AWAITING-LIVE]
-  - BUILT and gated 2026-08-16, owner gallery pass outstanding; seat returned 2026-08-18 after its
-    loan to LW-262, which shipped. A CARD median of 72.1 percent, the highest of any family, and
-    the one real fix is the one the new anchoring gate catches: the Fallingstar Bag kept its
-    vanilla name and was painted gold over artwork that is green. A bag is one piece of leather
-    with no furniture, so its second tone is a SHEEN in the veils' sense and a pale neutral for
-    the same reason: a coloured tone on a pouch reads as a stain. The falling star is its gold
-    clasp. With this family every weapon in the game has been through the re-pass: the old
-    bright-v2 engine has no items left, so it is retired to a dormant branch rather than deleted,
-    and CARD_OVERRIDES and SMALL_TWO_ZONE are now empty tables for the same reason.
-  - Done means: each bag reads as its own item at list size with an identity colour and a visibly
-    separate second material, no two alike, and the Fallingstar Bag matches its own artwork.
-  - Verify: the four icon gates green with the pins proven by mutation, the bake matching the FULL
-    preview manifest, reserved-name anchoring recorded, and the owner's gallery pass.
-  - LW-247 update (2026-08-18): bags now render through the ramp engine too, and the Fallingstar
-    Bag's anchor problem is NOT resolved by the switch, just changed shape: its ramp render sits
-    60 degrees from its own icon art, a new open reserved-name ruling (docs/TODO.md LW-277), not
-    the same gold-over-green mismatch this row first described but the same family of problem.
-    The old zone recipe this row's Tech bullet describes was deleted; the bright-v2/
-    CARD_OVERRIDES/SMALL_TWO_ZONE dormancy this row notes stands on its own, unaffected.
+- **[LW-332] The Grows line moves up to sit directly under the Kills line** (opened 2026-08-25) [QUEUED]
+  - The progression header the owner asked for on his color live read: kills and growth
+    together at the top of the card, prose below. Promoted from Backlog 2026-08-25 on
+    the owner's word ("queue up moving the growth to under Kills"). It needs a matched
+    DLL change to be safe: the card painter pairs each Kills slot with the NEAREST
+    flavor text and relies on only two fixed bytes between them, so inserting the Grows
+    line stretches that gap to about 50 bytes and a neighboring card ending in its own
+    flavor line could pair closer and paint the wrong weapon's counter.
+  - (Tech: extend Display/CardScanner's anchor candidates with each weapon's Grows line,
+    derived from meta.json's lane via the same pinned phrase and color tables the gate
+    carries, restoring a small fixed Kills-to-anchor gap; then move the line in
+    lib/flavor.assemble_desc and flip analyze.py's GROWS PHRASE gate to demand line-two
+    placement. FindNearestFlavor and the 2026-07-06 bidirectional design note are the
+    load-bearing read.)
+  - Done means: every living weapon's card shows the colored Grows line as the SECOND
+    line, directly under the Kills line; the painter still paints the right weapon's
+    counter every time because the anchor extension keeps the pairing gap small and
+    fixed; the GROWS PHRASE gate enforces line-two placement; nothing else about the
+    card layout moves.
+  - Verify: the full suite green including new CardScanner tests for the moved layout
+    (with a packed-pool mispaint regression case where a neighbor card ends in its own
+    flavor line); analyze.py green with the tightened gate; and the owner live-reads
+    the moved line plus a battle where the Kills counter paints correctly on at least
+    two different weapons.
 - **[LW-322] Every weapon's description says in plain words what it grows** (opened 2026-08-25) [AWAITING-LIVE]
   - "Grows: Speed" or "Grows: PA, MA and Brave" joins each living weapon's card text,
     because the glow colors alone tell a player THAT a weapon grew, not WHAT it grows,
@@ -196,6 +200,13 @@ Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner dire
 A new row still lands here in the session it surfaces; slot it where its urgency
 belongs rather than at the bottom.
 
+- [LW-212] 2026-08-13: The four bags' recolor seat, BUILT and gated 2026-08-16 and
+  AWAITING the owner's gallery pass ever since; demoted from Now 2026-08-25 only to
+  free the seat for LW-332 (the owner queued the Grows-line move). Nothing about the
+  work changed: the art is live in the current install, and the full Done means and
+  Verify text lives in this file's history (75f0c7f and earlier). Re-promote for the
+  gallery pass whenever the owner sits down for icons.
+
 - [LW-327] 2026-08-25: A grown Knight Sword's bonus HP should be REAL at battle start:
   today the raised maximum shows 679/883 and the knight begins every battle reading hurt
   until healed, and the owner wants the bar to start full. Ships IN 2.4.0 (owner call
@@ -247,18 +258,6 @@ belongs rather than at the bottom.
   then extend the CAST map (and the grid onHit cells) so the cards confess. (Tech: found
   2026-08-25 rendering the per-type card examples; formula-2 elemless weapons with an oai
   outside lib/flavor.py's CAST dict print nothing; check 92, 93, 94 first.)
-
-- [LW-332] 2026-08-25: The Grows line moves up to sit directly under the Kills line, the
-  progression header the owner asked for on his live read, and it needs a matched DLL
-  change to be safe: the card painter pairs each Kills slot with the NEAREST flavor text
-  and relies on only two fixed bytes sitting between them, so inserting the Grows line
-  stretches that gap to about 50 bytes and a neighboring card ending in its own flavor
-  line could pair closer, painting the wrong weapon's counter. Ship the move together
-  with a CardScanner anchor extension (derive each weapon's Grows line from meta's lane
-  and admit it as an anchor candidate, restoring a small fixed gap) plus tests, then
-  flip the GROWS PHRASE gate to demand line-two placement. (Tech: FindNearestFlavor and
-  the 2026-07-06 bidirectional design note in Display/CardScanner.cs are the
-  load-bearing read; the gate already carries the pinned color and phrase tables.)
 
 - [LW-330] 2026-08-25: The enemy AI cures Venombolt's poison, so the always-Poison
   crossbow's identity needs a look: the owner watched an enemy NPC spend its turn using a
