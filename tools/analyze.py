@@ -478,6 +478,54 @@ def check_grid_sync(items):
     return violations
 
 
+#: LW-250: the growth-lane token vocabulary docs/living_weapon_grid.csv's 'grows' column
+#: (and items.json's top-level `grows` key) is pinned to. tools/gen_living_weapon_meta.py's
+#: lane_of(token, cat) is the ONLY place that maps these into the runtime's baked "lane" --
+#: a token outside this set has nowhere to route and must fail here, at data-authoring time,
+#: not as a loud bake-time RAISE discovered much later. HP (LATE OWNER AMENDMENT
+#: 2026-08-25): all Knight Swords, interim-mapped to "pa" until LW-317's u16 MaxHP hold.
+GROWS_VOCAB = {"PA", "MA", "Speed", "HP", "PA+MA", "PA+MA+Brave", "WP", "WP+Faith"}
+
+
+def check_grows_lockstep(items):
+    """docs/living_weapon_grid.csv's 'grows' column is the growth-lane DESIGN SOURCE OF TRUTH
+    (LW-250, the owner-locked full lane table): every living weapon (weapon category, not
+    noGrowth -- same predicate as check_grid_sync) must carry a top-level items.json `grows`
+    key that (1) matches the grid's 'grows' cell for that id byte-for-byte (stripped), and
+    (2) is drawn from the locked GROWS_VOCAB -- gen_living_weapon_meta.py's lane_of raises
+    loudly on anything else, so a bad token must never reach the bake. Every non-weapon item
+    (and every noGrowth weapon) must carry NO grows key at all: a stray key there would
+    silently do nothing at the bake (lane_of is only ever called for emitted weapons), which
+    is exactly the kind of drift this gate exists to catch instead of letting it rot."""
+    rows = load_grid_rows()
+    if rows is None:
+        return [({"id": 0, "name": "living_weapon_grid.csv"}, ["grid file missing"])]
+    lw = {it["id"]: it for it in items
+          if it.get("category") in WEAPON_CATS and not it.get("noGrowth")}
+    violations = []
+    for it in items:
+        iid = it["id"]
+        grows = it.get("grows")
+        if iid not in lw:
+            if grows:
+                violations.append((it, [f"grows: {grows!r} set on a non-living-weapon item "
+                                         f"(non-weapon category or noGrowth)"]))
+            continue
+        if not grows:
+            violations.append((it, ["grows: missing (every living weapon needs exactly one lane token)"]))
+            continue
+        if grows not in GROWS_VOCAB:
+            violations.append((it, [f"grows: {grows!r} is not in the locked vocabulary "
+                                     f"({'/'.join(sorted(GROWS_VOCAB))})"]))
+        row = rows.get(iid)
+        if row is None:
+            continue   # check_grid_sync already reports the missing-grid-row case
+        cell = (row.get("grows") or "").strip()
+        if cell != grows:
+            violations.append((it, [f"grows: items.json {grows!r} != grid {cell!r}"]))
+    return violations
+
+
 def check_p3_grid_lockstep(items):
     """docs/living_weapon_grid.csv's '+3 ability' column must never drift from items.json's
     signature.p3Desc (owner requirement, LW-36 part 3): the CSV is the design source of truth
@@ -745,6 +793,10 @@ def main():
         dict(header="GRID SYNC (docs/living_weapon_grid.csv matches items.json on id/name/tier/WP/parry)",
              check_fn=lambda: check_grid_sync(items),
              pass_msg="PASS: the living weapon grid matches items.json.",
+             format_failure=_fmt_drift_probs, sets_rc=True),
+        dict(header="GROWS LOCKSTEP (LW-250: items.json grows == grid CSV 'grows', vocabulary + presence)",
+             check_fn=lambda: check_grows_lockstep(items),
+             pass_msg="PASS: every living weapon's growth lane matches the grid and the locked vocabulary.",
              format_failure=_fmt_drift_probs, sets_rc=True),
         dict(header="P3 ABILITY GRID LOCKSTEP (items.json p3Desc == grid CSV '+3 ability')",
              check_fn=lambda: check_p3_grid_lockstep(items),
