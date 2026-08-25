@@ -3112,7 +3112,7 @@
       "name": "Huntress",
       "tier": 5,
       "identity": "T5 marksman / mid-evade owner — WP8 + 10 evade + Leg Shot may-cast (Disable), earlier than the capstones. Out-dodges Tempest, out-shoots the mids. Fixes vanilla \"Yoichi dominates Artemis\".",
-      "flavorOverride": "Balanced so fine that hand and target seem joined in flight.",
+      "flavorOverride": "Balanced so fine that hand and target fly as one.",
       "baseline": {
         "wp": 10,
         "evade": 0,

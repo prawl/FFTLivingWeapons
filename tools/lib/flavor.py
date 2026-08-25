@@ -38,7 +38,7 @@ CAST = {42: "Gravity (damaging a share of the target's current HP)",
         102: "Aurablast",
         139: "Rend Armor (breaking the target's armor)",
         141: "Rend Weapon (breaking the target's weapon)",
-        213: "Leg Shot (immobilizing the target)",
+        213: "Leg Shot (Immobilize)",  # short form: the long clause blew Huntress's 205-char card budget
         249: "Fire Breath"}  # Formula-2 NON-elemental ability casts by opt id (elemental casts handled separately)
 
 # thematic flavor clauses keyed by the item's defining trait (element > proc > rider > role)
