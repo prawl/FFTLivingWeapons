@@ -10,6 +10,20 @@ before 2026-07-21 keep their original prose.
 
 ## 2.4.0 cycle
 
+- [LW-311] SHIPPED 1deb650 2026-08-24: For the first seconds after a cold boot, and forever
+  when the mod is absent or stood down, every weapon card claimed "Kills: 0/5" with total
+  confidence, a literal zero baked into the card text that the runtime only later paints over,
+  so a player with a high count briefly read a lie. The baked line now shows neutral dashes
+  ("Kills: -/- to +") in the same slot: honest in every state, and the live paint lands over
+  it exactly as before. The site finder was taught to admit the dashed card (it previously
+  demanded a leading digit, which would have made the counter never paint again), and a new
+  cross language pin proves the baked text always passes that finder so the two can never
+  drift apart. (Tech: KILLS_SCAFFOLD in tools/lib/flavor.py; ByteScan.MeterSlotDigits admits
+  a leading '-' plus '-' in the slot alphabet, tests red first; KillsSlotWidthContractTests
+  gains the scaffold-vs-validator pin, mutation proven; item.en.nxd rebaked via patch_names.py
+  with verify PASS, 1130 intended cells, 0 drift; suite 3220 green. The new bake and the
+  runtime half both reach the game on the next deploy and show after a restart.)
+
 - [LW-308] SHIPPED fda4f83 2026-08-24: The weapon colour painter now defends itself against
   the quiet failure modes a post ship review named, none ever seen live. On every repaint it
   checks the paint tin against its own memory: bytes that are neither the original colours nor

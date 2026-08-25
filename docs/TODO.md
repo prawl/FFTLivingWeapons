@@ -132,6 +132,20 @@ belongs rather than at the bottom.
   Materia Blade reads palette 0 against a mapped X=8 Y=1. Note every probe before this one skipped
   palettes 0-2 as effects-only, which is how the miss survived.)
 
+- [LW-310] 2026-08-24: Counter attacks still swing in vanilla colours, and the owner wants them
+  painted too. Confirmed live with a staged test: an unauthored attacker swung at Ramza, his
+  Materia Blade counter came out vanilla, exactly the accepted limit the turn based painter
+  ships with. The candidate mechanism is already proven for a different purpose: the engine's
+  actor pointer parks on struck victims (documented as a kill credit trap), and the struck
+  victim is exactly the unit about to counter, so a paint keyed on that parking lands in the
+  window between the hit and the counter swing. Design sketch: a second painted slot for the
+  reaction unit, painted when the pointer parks on an authored wielder who is not the turn
+  owner, restored on the next turn edge. Attacker and victim sharing one palette stays a
+  residual. Needs a live probe of the parking to counter swing timing before any build.
+  (Tech: ActorPtr dwell semantics per [actorptr-dwell-semantics]; WeaponPalette.Policy gains a
+  reaction lane; the ~170ms effective tick must beat the counter animation start, measure
+  first.)
+
 - [LW-307] 2026-08-24: The game can colour its own text. The owner edited the world map's
   Camera Controls help text and proved the strings carry colour tags the renderer obeys: a
   well formed tag recoloured his inserted "Modded by prawl" text, a broken one printed the
