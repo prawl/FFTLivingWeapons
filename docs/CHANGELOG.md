@@ -10,6 +10,35 @@ before 2026-07-21 keep their original prose.
 
 ## 2.4.0 cycle
 
+- [LW-250] SHIPPED 20c1f40 2026-08-25: Growth stopped being a wall of Physical Attack. The
+  measured field was 87 weapons growing PA, 28 Magick, 2 Speed and 4 nothing; the owner
+  locked a full lane redesign the same day a color question exposed the imbalance, and the
+  single-lane half shipped: knives, bows and ninja blades grow Speed, books, cloths,
+  instruments and the Arcanum grow Magick, and the four missing-HP weapons that grew
+  NOTHING now grow Speed, the one stat their statless formula can cash. The design grid's
+  grows column became the machine-enforced single authority (a new analyze gate proves
+  items.json in lockstep, bitten by six deliberate mutations), the lane bakes into
+  meta.json, and the runtime routes purely from the baked lane with the category guessing
+  deleted. Owner live pass 2026-08-25: six stat readings, every one landing on the exact
+  predicted rounding, including the Wrathblade's first Speed gain in the mod's history and
+  the Knight Sword interim holding PA with HP untouched. Multi-lane weapons, knight sword
+  HP, and both gun lanes ride LW-316/LW-317. (Tech: grid+items+gate 910605c, runtime
+  20c1f40; census PA 28, Speed 33, MA 27, HP 7, PA+MA 10, PA+MA+Brave 10, WP 3, WP+Faith
+  3; suite 3272 green; verified SHIP code 9 spec 9.)
+
+- [LW-295] SHIPPED 69717b3 2026-08-25: A weapon that has grown now glows. The kill tier
+  paints both surfaces: the battle swing brightens through the shipped palette painter for
+  player wielders only (an enemy with the same weapon id swings plain), and every weapon's
+  two menu icons wear a rim at three strengths, live-spliced into the game's merged icon
+  file out of battle with every failure lane degrading to plain art with one warning.
+  Owner live pass 2026-08-25: icons rimmed at three strengths, enemy bow plain, and the
+  Chaos Blade crossing a tier mid-battle with a visibly stronger glow, proving the whole
+  kill-to-paint pipeline live. The color LOOK was redirected mid-pass and ships under
+  LW-319 (outline glow in stat lane hues); this exit covers the proven mechanism. (Tech:
+  sprite 9f6b820, icon bake dbe4b74, IconGlow runtime 69717b3; probe outlineglow verb
+  fce8ad3 for the look bench; verified SHIP over three rating rounds to code 9 spec 9;
+  suite 3263 green at ship.)
+
 - [LW-249] SHIPPED 678e4d2 2026-08-24: Poles grew muscle their own swings could never use.
   Every pole's damage runs on spell power (the design grid's dmgScaling column, the CSV that
   outranks every other description: ids 48 and 107 through 114, all MA x WP), but the growth

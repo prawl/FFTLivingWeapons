@@ -107,128 +107,7 @@ the technical detail lives in the indented lines under it.
     the same gold-over-green mismatch this row first described but the same family of problem.
     The old zone recipe this row's Tech bullet describes was deleted; the bright-v2/
     CARD_OVERRIDES/SMALL_TWO_ZONE dormancy this row notes stands on its own, unaffected.
-- **[LW-295] A weapon that has grown starts to glow, on its menu picture and in its wielder's hand** (opened 2026-08-19) [AWAITING-LIVE]
-  - COLOR SYSTEM REDIRECTED 2026-08-25, owner directive, mid live pass: the toward-white
-    sprite brighten reads as plain white; the owner wants the weapon SURROUNDED by a glow
-    color instead. The bench probe's outlineglow verb and the Glow Ladder gallery hold the
-    approved outline treatment; the final colors become stat-coded and ship under LW-319.
-    This row's live pass still verifies the MECHANISM (tier plumbing, player-only paint,
-    icon splice), which the redirect does not touch.
-  - BUILT 2026-08-25, owner live pass outstanding. Both halves are in: a player's tiered
-    weapon swings with its authored colours brightened toward white, one step per kill tier,
-    while an enemy holding the same weapon id stays plain; and every weapon's two menu icons
-    gain a rim in the weapon's own colour at three strengths, patched into the game's merged
-    icon file while it runs, weapons only, out of battle, with every failure lane degrading
-    to plain art with one honest warning. The look test the owner deferred is now folded
-    into his live pass. (Tech: sprite half commit 9f6b820; icon half = tools/
-    bake_glow_icons.py + 726 baked variants in LivingWeapon/glow_icons/ + the IconGlow
-    subsystem on the [live-icon-repaint] lane. Adversarially verified: sprite half three
-    rounds to code 9 / spec 9, icon half code 8 / spec 8, suite 3263 green. Live pass MUST
-    use BuildLinked -Prod with a staged kills.json, a dev build floors every tally to
-    tier 3.)
-  - The owner decided the glow's meaning on 2026-08-24: it shows a weapon's kill tier. A weapon
-    that reaches +1 begins to glow, gets brighter at +2, and reaches full radiance at +3, both on
-    the item picture in menus and on the weapon sprite during a battle swing. Four calls banked
-    the same sitting: revive the parked icon rim machinery at three intensities; the glow wears
-    the weapon's own identity colour; the battle sprite half is the authored palette brightened
-    per tier through the shipped WeaponPalette painter; and only PLAYER wielders glow, an enemy
-    carrying the same weapon id stays plain. Only the weapon glows, never the character holding it.
-  - FIRST STEP before any build: a live look test, so the owner can watch a brightened swing and
-    judge whether a glowing weapon looks right at all. He expects yes but wants to see it. The
-    look-test instrument is a glow verb on tools/probes/lw305_bench_paint.py that paints a
-    tier-bright variant of a weapon's authored colours into the resident palette banks mid
-    battle; a battle load reverts it.
-  - (Tech: brighten = scale each 5-bit BGR555 channel toward 31, three steps for the three tiers.
-    Mechanism is the proven [resident-weapon-palette-buffer] lane: banks 0x140D35750 and
-    0x140D35950, palette N at +N*32, entry 0 never written, bit 15 carried. Colour source
-    data/weapon_colors.json via true_palette and its override file. The icon half revives
-    SHIP_GLOW_RIM in tools/recolor_icons.py at three intensities but CANNOT ship baked, because
-    tier is per-save state; it rides the proven [live-icon-repaint] lane, patching the served
-    modded.pac in place, keyed off KillTally. Two pins will move with the rim revival: ramp
-    pin14b, whose message is the recipe, and ANCHOR_RULINGS[116], which returns to reporting the
-    Fallingstar Bag sixty degrees off its own art. The old halo painted over 100 to 270 pixels
-    of the vanilla artist's own soft haze on items that had one; the revival must decide on
-    purpose whether that is allowed again. Candidate treatments and costs: decision brief
-    artifact f9835932; the halo on/off gallery of all 150 items: artifact 1b130ff7.)
-  - Done means: a weapon at tier +1, +2, +3 visibly glows at three growing intensities in its own
-    identity colour, on its icon and on the swinging battle sprite, for player wielders only; an
-    enemy holding the same weapon id stays plain; a tier 0 weapon is untouched; only the weapon
-    glows, never the wielder; and the owner approved the look via the live look test before any
-    runtime code shipped.
-  - Verify: the owner judges the look-test swing first; then both gates green with the
-    tier-brighten maths and the player-only rule pinned by unit tests; then the owner's live
-    pass: grow a weapon a tier, see the glow appear on icon and swing, confirm an enemy copy of
-    the same weapon stays plain and a battle reload keeps the glow correct.
-- **[LW-250] Every weapon grows the stat its own attack actually uses, so growth is never wasted** (opened 2026-08-16) [AWAITING-LIVE]
-  - BUILT 2026-08-25, owner live pass outstanding. The grid's grows column now holds the
-    full locked design and a new analyze gate keeps items.json in lockstep with it (proven
-    biting by five separate mutations); the lane bakes into meta.json and the runtime
-    routes purely from the baked lane, with the old category and formula guessing deleted.
-    Census on the grid: PA 28, Speed 33, MA 27, HP 7, PA+MA 10, PA+MA+Brave 10, WP 3,
-    WP+Faith 3. Adversarially verified SHIP, code 9 spec 9, suite 3270 green.
-  - LIVE PASS (prod build, staged kills.json at 5 kills each): a Knife wielder's Speed
-    rises, a Book wielder's MA rises, the WRATHBLADE wielder's Speed rises where it
-    previously grew nothing (the visible flip of the whole seat), a plain Sword wielder's
-    PA rises, and a Knight Sword wielder still gains PA (the interim) with HP untouched.
-    ROUNDING TRAP, pre-registered: tier 1 Speed is a 5 percent hold, so natural Speed
-    below 10 rounds back to itself and LOOKS like a failure; use a Speed 10+ wielder or
-    stage 15 kills (tier 3). A wrong-stat hold shows as the NEIGHBOR stat rising (MA and
-    Speed are adjacent bytes).
-  - The owner LOCKED the full lane table on 2026-08-25, after the measured distribution came
-    out 87 weapons growing Physical Attack, 28 Magick, 2 Speed and 4 nothing. The principle is
-    LW-249's, generalized: grow what your own attack cashes. The locked table: PA for Swords,
-    Knight Swords, Crossbows, Bags and Polearms. Speed for Knives, Bows and Ninja Blades
-    (their formula averages PA and Speed; per hit slightly softer than the old PA lane, about
-    even per battle through extra turns) and for the four missing-HP weapons (Wrathblade,
-    Muramasa, Climhazzard, Tombspire), whose formula reads no stat at all, so extra turns are
-    the one buff that lands. MA for Rods, Staves, Books, Cloths and Instruments. PA and MA for
-    Poles (monks will one day equip poles; the PA half waits for that) and the Materia Blade
-    (swings cash PA and the Ultima curve, Cloud's Limits cash MA). PA, MA and flat Brave for
-    Katanas. WP for physical guns and WP plus Faith for magic guns (their damage is WP squared
-    times Faith and the rebalance cut their WP from 20-22 to 12-15, so growth resurrects them
-    toward, never past, former glory). Multi-lane weapons run reduced per-stat factors.
-    AMENDED 2026-08-25 (late owner call): Knight Swords grow HP instead of PA, making
-    Knights tanky; they already carry the game's highest WP and Brave-scaled damage, so
-    growth buys bulk instead of stacking punch. HP is a NEW hold lane (u16 MaxHP, and
-    MaxHP is part of the kill-attribution fingerprint), so the grid records HP now while
-    the bake maps it to the old PA behavior until LW-316 probes it safe and LW-317 builds
-    the hold, the same interim pattern as the gun lanes.
-    RIDER RULE added 2026-08-25, owner call: a weapon carrying an explicit off-lane stat
-    rider grows THAT stat instead of its category lane, because the rider names the
-    weapon's true identity. Applied today it moves exactly one weapon: the Arcanum (the
-    vanilla Runeblade, MA+2 rider, arcane buff-thief) grows MA, the game's only MA sword.
-    The other stat riders all sit on rods and staves already growing MA. Rod of Faith's
-    innate Faith is a STATUS, not a stat rider, so it stays MA; it is the natural Faith-rod
-    candidate under LW-317 if gun Faith plays well. Two closing rulings 2026-08-25: the
-    Holy Lance's mounted Speed signature is a conditional grant, not a permanent rider, so
-    it stays PA; and the Arcanum's MA swap is CONFIRMED after a second look (a lone blue
-    sword is the color system carrying information, not a bug).
-  - THIS seat ships only what the single-lane engine already does: the grid's grows column
-    becomes the single authority (fixing the rows LW-249 left stale), the lane bakes through
-    items.json into meta.json, the runtime routes from the baked lane instead of category
-    guesses, and the simple re-lanes land (the Speed and MA groups). Multi-stat and the
-    exotic lanes are LW-317, gated on LW-316's probe.
-  - Done means: docs/living_weapon_grid.csv's grows column matches the locked table exactly;
-    every single-lane weapon grows its decided stat in the runtime, baked from the same
-    source the tests pin; the four missing-HP weapons grow Speed instead of nothing; and no
-    multi-lane weapon changes behavior yet.
-  - Verify: both gates green with new pins covering the lane table (bake matches grid,
-    routing matches bake, plus a mutation proving the pins bite); then the owner's live
-    pass: a knife wielder visibly gains Speed at a tier, a book wielder gains MA, a sword
-    wielder still gains PA.
-
-
-
-
-
-
-## Backlog
-
-Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner directed).
-A new row still lands here in the session it surfaces; slot it where its urgency
-belongs rather than at the bottom.
-
-- [LW-316] 2026-08-25: Prove live that a weapon's own power and its wielder's held Faith can
+- **[LW-316] Prove live that weapon power, held Faith and held max HP can grow safely** (opened 2026-08-25) [QUEUED]
   grow, which is the gate on both gun lanes. Two questions, one battle: does writing a gun's
   WP in the resident item table mid battle change the damage of the next shot with no restart,
   and does a held Faith bump change a magic gun's spell damage. (Tech: WP lives in the shared
@@ -240,6 +119,19 @@ belongs rather than at the bottom.
   disturb the kill-attribution fingerprint (HP + MaxHP + level keys the actor resolver),
   and does current HP follow the raised max or leave the unit reading hurt. A
   CONTRADICTED HP row keeps Knight Swords on PA.)
+  - Done means: three probe verdicts in docs/LIVE_LEDGER.md, PROVEN or CONTRADICTED each:
+    a turn-scoped WP table write changes the next shot's damage with no restart and reverts
+    clean; a held Faith bump changes a magic gun's spell damage; a held max HP neither
+    breaks kill attribution nor leaves the unit reading hurt. Contradictions demote the
+    affected lanes exactly as the row's fallbacks say.
+  - Verify: the probes run in a real battle with the owner reading damage numbers, each
+    with a pre-registered pass and fail signature; ledger rows written either way; the
+    owner flips PROVEN.
+## Backlog
+
+Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner directed).
+A new row still lands here in the session it surfaces; slot it where its urgency
+belongs rather than at the bottom.
 
 - [LW-317] 2026-08-25: Weapons that grow two or three stats at once: the multi-lane growth
   engine. Poles and the Materia Blade grow PA and MA; Katanas grow PA, MA and flat Brave
