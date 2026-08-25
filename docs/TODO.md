@@ -125,7 +125,7 @@ the technical detail lives in the indented lines under it.
     205-char card budget for all 121 weapons.
   - Verify: analyze.py green (uniqueness, budget, scaffold lockstep), the nxd bake audit
     clean, and the owner reads the Grows line on a handful of cards live after a restart.
-- **[LW-320] Every weapon's power audited against how it is obtained** (opened 2026-08-25) [QUEUED]
+- **[LW-320] Every weapon's power audited against how it is obtained** (opened 2026-08-25) [BUILDING]
   - A weapon's price should include the effort of getting it. The grid's obtain column
     splits the catalog 88 shop weapons versus 33 earned ones (Midlight's Deep treasure
     hunts, rare poaches, story steals, character joins), and the first look already found
@@ -138,6 +138,17 @@ the technical detail lives in the indented lines under it.
     riders and the new baked grows lanes; candidate output is an obtain-vs-power chart
     plus per-weapon rulings recorded in the grid, enforced the way the grows column is,
     an analyze.py lockstep check once the rulings are locked.)
+  - Audit built and adversarially verified 2026-08-25; the chart is in front of the owner
+    and every ruling is still his. The full 121-weapon cross confirmed both named spikes:
+    the Warbrand is the ONLY shop weapon that strictly outguns every hunt in its class,
+    and three more shelves tie their best hunt. One new violation surfaced (the shop
+    Graviton beats the Materia Blade on every gate axis; its Limit role and MA lane are
+    the counterweight) plus three hygiene piles: nine stale identity claims, seven ghost
+    on-hit ability ids no card text mentions, and grid onHit cells missing the may-casts
+    the cards advertise. (Tech: instrument tools/probes/lw320_obtain_power.py reuses
+    analyze.py's dominance vocabulary and mirrors lib/flavor.mechanics() for on-hit
+    labels; dataset tools/probes/lw320_obtain_power.json; the grid rulings column and
+    its lockstep gate land after the owner rules.)
   - Done means: every earned weapon is worth its hunt (a rare poach beats its shop peer
     on some axis), no shop weapon spikes into treasure territory, each violation gets an
     owner ruling recorded in the grid, and any resulting number changes pass the

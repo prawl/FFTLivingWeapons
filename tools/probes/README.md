@@ -217,10 +217,11 @@ Ground rules before running anything here:
 ## Data and doc one-shots (no game process needed)
 
 - `add_dmg_col.py` Add a dmgScaling column to docs/living_weapon_grid.csv from data/items.json truth.
-- `crystal_counter_probe.py` CRYSTAL COUNTER PROBE -- find the "3 hearts" death/crystal countdown byte by diffing across its ticks.
+- `crystal_counter_probe.py` CRYSTAL COUNTER PROBE -- the "3 hearts" death/crystal countdown byte, and how to switch it OFF.
 - `find_counter.py` (no docstring)
 - `fix_mojibake.py` Repair UTF-8-read-as-cp1252 mojibake in the docs: for each line, if the reverse
 - `larceny_locate_probe.py` Diagnose Larceny's wielder-locate miss (wielderLocated=False while the kill-tracker sees mainHand
+- `lw320_obtain_power.py` LW-320: audit every living weapon's power against how it is obtained.
 - `merge_grid.py` Merge living_weapon_knives.csv back into living_weapon_grid.csv under the knives schema:
 - `merge_rods.py` Fold docs/living_weapon_rods.csv back into docs/living_weapon_grid.csv:
 - `poach_diff.py` LW-167 premise probe: find the Poacher's Den carcass-store write by diffing the save
@@ -229,6 +230,44 @@ Ground rules before running anything here:
 - `roster_read.py` Read-only dump of the pre-battle SOURCE record(s) the engine hands to
 - `verify_descs.py` Print baked descriptions for spot-check: a signature knife, the Zwill, a non-signature weapon.
 - `verify_grant_slot.py` Assert every signature weapon's baked Grant line carries its 16-space slot.
+
+## Ungrouped (add these to _index.py's GROUPS)
+
+- `auto_text_probe.py` Find which resident copy of the "Auto" tag the renderer actually reads.
+- `lw247_emit_tables.py` LW-247 D4 emitter: replays the exact census configuration passes against the TRACKED probe
+- `lw247_extract_bodies.py` LW-247 D4: extracts the 16 vendored body PNGs data/icon_ramp/bodies/ needs -- the (id,
+- `lw247_keepship_check.py` LW-247 Phase 0 premise P6 (KEEP_SHIPPED circularity check), promoted from the session
+- `lw247_repro_census.py` LW-247 Phase 0 census: can the TRACKED ramp engine reproduce the live install?
+- `lw247_repro_census2.py` LW-247 census pass 2: for every file census pass 1 marked RECON-only, split BODY
+- `lw251_boot_clut_race.py` LW-251 round 7: race the boot. Sign the exe-image CLUT tables BEFORE consumption.
+- `lw251_boot_clut_race_selftest.py` Offline self-test for lw251_boot_clut_race.py: proves the race probe's guarantees
+- `lw251_clut_ram_hunt.py` LW-251 round 3: hunt the live weapon CLUT in the running game's memory.
+- `lw251_g2d_clut_forge.py` LW-251: does the g2d file channel reach the battle-weapon PALETTE bank (entry 156)?
+- `lw251_g2d_extract.py` LW-251 probe: extract and decode every entry of the game's HD 2D art container.
+- `lw251_hd_clut_scan.py` LW-251 round 8 (read-only): locate the HD weapon CLUT in the running game's memory.
+- `lw251_openturn_probe.py` LW-251: watch the band's turn flags through a battle's OPENING minutes, live.
+- `lw251_wep_shape_probe.py` LW-251: make the ex-flail weapons draw SWORD frames, by two u16 edits in the shape files.
+- `lw251_wep_spr_forge.py` LW-251 round 12: does the CLASSIC weapon sprite palette drive battle weapon colour?
+- `lw289_battle_bin_palette_map.py` LW-289: the weapon-to-palette map, read straight out of BATTLE.BIN. SOLVED, no census needed.
+- `lw289_battle_bin_write.py` LW-289 round 4: can a mod ASSIGN a weapon's battle palette by shipping its own BATTLE.BIN?
+- `lw289_order_free_scan.py` LW-289 round 7 (READ-ONLY): find the palette table WITHOUT assuming item-id order or a stride.
+- `lw289_palette_selector.py` LW-289 step 1: WHAT picks which of the 16 palettes a battle weapon renders with?
+- `lw289_palette_table_poke.py` LW-289 round 6: WRITE the in-memory weapon palette table and see if the colour follows.
+- `lw289_palette_table_scan.py` LW-289 round 5 (READ-ONLY): where does the running game keep the weapon palette table?
+- `lw291_palette_index_hunt.py` LW-291 PROBE: is the weapon's PALETTE INDEX resolved per-unit into the combat struct?
+- `lw291_palette_xref.py` LW-291 PROBE: find every instruction that references the resident weapon-palette working copy.
+- `lw301_palette_transform.py` LW-301: turn a weapon's ICON colour into its BATTLE SPRITE palette.
+- `lw301_rainbow_probe.py` LW-301 PHASE 0 PROBE: can two weapons ever be on screen at once?
+- `lw301_slotmap_probe.py` LW-301: identify WHICH sprite tile a weapon draws, by painting its 15 palette SLOTS apart.
+- `lw301_sprite_chart.py` LW-301: render every weapon-sheet tile as a NUMBERED chart, so shapes can be named by eye.
+- `lw303_grade.py` LW-303: score the battle-sprite transform against the promise it makes.
+- `lw303_icon_vs_sprite_page.py` LW-303: put every weapon's menu ICON beside the BATTLE SPRITE it will actually wear, in one page.
+- `lw303_zonemap.py` LW-303: show WHERE each of an icon's colours lands on the weapon, not just which colours it gets.
+- `lw305_bench_paint.py` LW-305: paint a Weapon Colour Bench export straight into the running game.
+- `lw307_card_markup_probe.py` LW-307: does the weapon description CARD consume inline color markup?
+- `lw312_frame_atlas.py` LW-312: render EVERY frame of battle_wep1/2_shp.bin as labeled contact sheets.
+- `lw316_lane_probes.py` LW-316 lane probes: the Faith and MaxHP halves of the three growth-lane questions.
+- `vq_walk_cost.py` Measure the real wall-clock cost of one full VirtualQueryEx address-space walk against the
 
 ## tapes/
 

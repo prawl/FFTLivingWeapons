@@ -1,0 +1,4058 @@
+{
+ "generated_for": "LW-320",
+ "effort_scale": {
+  "0": "Shop",
+  "1": "Join",
+  "2": "Steal",
+  "3": "Hunt",
+  "4": "Rare hunt"
+ },
+ "silent_procs": [
+  {
+   "id": 21,
+   "name": "Riposte",
+   "abilityId": 141
+  },
+  {
+   "id": 22,
+   "name": "Claymore",
+   "abilityId": 139
+  },
+  {
+   "id": 45,
+   "name": "Kiku-ichimonji",
+   "abilityId": 83
+  },
+  {
+   "id": 77,
+   "name": "Scoutbolt",
+   "abilityId": 213
+  },
+  {
+   "id": 89,
+   "name": "Huntress",
+   "abilityId": 213
+  },
+  {
+   "id": 105,
+   "name": "Dragon Whisker",
+   "abilityId": 249
+  },
+  {
+   "id": 107,
+   "name": "Greenwood Pole",
+   "abilityId": 102
+  }
+ ],
+ "weapons": [
+  {
+   "id": 1,
+   "name": "Cutpurse",
+   "vanilla": "Dagger",
+   "cat": "Knife",
+   "tier": 1,
+   "wp": 5,
+   "evade": 10,
+   "range": 1,
+   "element": "None",
+   "onHit": "None",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "speed"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 2,
+   "name": "Quicksilver",
+   "vanilla": "Mythril Knife",
+   "cat": "Knife",
+   "tier": 2,
+   "wp": 6,
+   "evade": 25,
+   "range": 1,
+   "element": "None",
+   "onHit": "None",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "speed"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 3,
+   "name": "Gloomfang",
+   "vanilla": "Blind Knife",
+   "cat": "Knife",
+   "tier": 2,
+   "wp": 5,
+   "evade": 15,
+   "range": 1,
+   "element": "None",
+   "onHit": "Blind",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 45,
+   "abnormalFormula": true,
+   "lanes": [
+    "speed"
+   ],
+   "plus3": "Makes the wielder's attacks impossible to evade.",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 4,
+   "name": "Hushblade",
+   "vanilla": "Mage Masher",
+   "cat": "Knife",
+   "tier": 2,
+   "wp": 6,
+   "evade": 15,
+   "range": 1,
+   "element": "None",
+   "onHit": "Silence",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 45,
+   "abnormalFormula": true,
+   "lanes": [
+    "speed"
+   ],
+   "plus3": "Reduces magick damage taken.",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 5,
+   "name": "Argent Dirk",
+   "vanilla": "Platinum Dagger",
+   "cat": "Knife",
+   "tier": 3,
+   "wp": 7,
+   "evade": 16,
+   "range": 1,
+   "element": "None",
+   "onHit": "None",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "speed"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 6,
+   "name": "Sanguine Gauche",
+   "vanilla": "Main Gauche",
+   "cat": "Knife",
+   "tier": 3,
+   "wp": 6,
+   "evade": 50,
+   "range": 1,
+   "element": "None",
+   "onHit": "Absorb HP",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 48,
+   "abnormalFormula": true,
+   "lanes": [
+    "speed"
+   ],
+   "plus3": "Reduces physical damage taken.",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 7,
+   "name": "Adamant Fang",
+   "vanilla": "Orichalcum Dirk",
+   "cat": "Knife",
+   "tier": 4,
+   "wp": 12,
+   "evade": 5,
+   "range": 1,
+   "element": "None",
+   "onHit": "None",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "speed"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 8,
+   "name": "Mortal Coil",
+   "vanilla": "Assassin's Dagger",
+   "cat": "Knife",
+   "tier": 4,
+   "wp": 8,
+   "evade": 15,
+   "range": 1,
+   "element": "None",
+   "onHit": "Doom",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "speed"
+   ],
+   "plus3": "Raises physical attack while the wielder is below half HP.",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 9,
+   "name": "Galewind",
+   "vanilla": "Air Knife",
+   "cat": "Knife",
+   "tier": 5,
+   "wp": 10,
+   "evade": 5,
+   "range": 1,
+   "element": "Wind",
+   "onHit": "None",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "speed"
+   ],
+   "plus3": "Turns a struck enemy into your puppet for its full turn. 3-turn cooldown.",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 10,
+   "name": "Zwill Straightblade",
+   "vanilla": "Zwill Straightblade",
+   "cat": "Knife",
+   "tier": 6,
+   "wp": 12,
+   "evade": 10,
+   "range": 1,
+   "element": "None",
+   "onHit": "May inflict Sleep",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "speed"
+   ],
+   "plus3": "Grants another turn whenever the wielder scores a kill.",
+   "obtain": "Poach (Plague Horror)",
+   "methods": [
+    "Poach"
+   ],
+   "rare": false,
+   "shop": false,
+   "effort": 3
+  },
+  {
+   "id": 11,
+   "name": "Swiftfang",
+   "vanilla": "Ninja Blade",
+   "cat": "Ninja Blade",
+   "tier": 2,
+   "wp": 4,
+   "evade": 15,
+   "range": 1,
+   "element": "None",
+   "onHit": "None",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 99,
+   "abnormalFormula": true,
+   "lanes": [
+    "speed"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 12,
+   "name": "Mistedge",
+   "vanilla": "Kunai",
+   "cat": "Ninja Blade",
+   "tier": 3,
+   "wp": 9,
+   "evade": 10,
+   "range": 1,
+   "element": "None",
+   "onHit": "May inflict Blind",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "speed"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 13,
+   "name": "Frost Kodachi",
+   "vanilla": "Kodachi",
+   "cat": "Ninja Blade",
+   "tier": 3,
+   "wp": 10,
+   "evade": 10,
+   "range": 1,
+   "element": "Ice",
+   "onHit": "May cast Blizzard",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 2,
+   "abnormalFormula": true,
+   "lanes": [
+    "speed"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 14,
+   "name": "Raijin Longblade",
+   "vanilla": "Ninja Longblade",
+   "cat": "Ninja Blade",
+   "tier": 4,
+   "wp": 11,
+   "evade": 20,
+   "range": 1,
+   "element": "Lightning",
+   "onHit": "May cast Thunder",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 2,
+   "abnormalFormula": true,
+   "lanes": [
+    "speed"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 15,
+   "name": "Silentfang",
+   "vanilla": "Spellbinder",
+   "cat": "Ninja Blade",
+   "tier": 4,
+   "wp": 11,
+   "evade": 10,
+   "range": 1,
+   "element": "None",
+   "onHit": "May inflict Silence",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "speed"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 16,
+   "name": "Sasuke's Blade",
+   "vanilla": "Sasuke's Blade",
+   "cat": "Ninja Blade",
+   "tier": 6,
+   "wp": 13,
+   "evade": 20,
+   "range": 1,
+   "element": "None",
+   "onHit": "May inflict Sleep",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "speed"
+   ],
+   "plus3": "",
+   "obtain": "Move-Find (Nelveska Temple)",
+   "methods": [
+    "Move-Find"
+   ],
+   "rare": false,
+   "shop": false,
+   "effort": 3
+  },
+  {
+   "id": 17,
+   "name": "Iga Blade",
+   "vanilla": "Iga Blade",
+   "cat": "Ninja Blade",
+   "tier": 6,
+   "wp": 14,
+   "evade": 15,
+   "range": 1,
+   "element": "None",
+   "onHit": "None",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "speed"
+   ],
+   "plus3": "",
+   "obtain": "Move-Find (Midlight's Deep)",
+   "methods": [
+    "Move-Find"
+   ],
+   "rare": false,
+   "shop": false,
+   "effort": 3
+  },
+  {
+   "id": 18,
+   "name": "Koga Blade",
+   "vanilla": "Koga Blade",
+   "cat": "Ninja Blade",
+   "tier": 6,
+   "wp": 13,
+   "evade": 5,
+   "range": 1,
+   "element": "Dark",
+   "onHit": "May inflict Poison",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "speed"
+   ],
+   "plus3": "",
+   "obtain": "Move-Find (Midlight's Deep)",
+   "methods": [
+    "Move-Find"
+   ],
+   "rare": false,
+   "shop": false,
+   "effort": 3
+  },
+  {
+   "id": 19,
+   "name": "Vagabond",
+   "vanilla": "Broadsword",
+   "cat": "Sword",
+   "tier": 1,
+   "wp": 4,
+   "evade": 12,
+   "range": 1,
+   "element": "None",
+   "onHit": "None",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "pa"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 20,
+   "name": "Cleaver",
+   "vanilla": "Longsword",
+   "cat": "Sword",
+   "tier": 1,
+   "wp": 6,
+   "evade": 5,
+   "range": 1,
+   "element": "None",
+   "onHit": "Knockback (Rush)",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 2,
+   "abnormalFormula": true,
+   "lanes": [
+    "pa"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 21,
+   "name": "Riposte",
+   "vanilla": "Iron Sword",
+   "cat": "Sword",
+   "tier": 2,
+   "wp": 6,
+   "evade": 16,
+   "range": 1,
+   "element": "None",
+   "onHit": "None",
+   "silentProcId": 141,
+   "rider": "None",
+   "formula": 2,
+   "abnormalFormula": true,
+   "lanes": [
+    "pa"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 22,
+   "name": "Claymore",
+   "vanilla": "Mythril Sword",
+   "cat": "Sword",
+   "tier": 2,
+   "wp": 7,
+   "evade": 0,
+   "range": 2,
+   "element": "None",
+   "onHit": "None",
+   "silentProcId": 139,
+   "rider": "None",
+   "formula": 2,
+   "abnormalFormula": true,
+   "lanes": [
+    "pa"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 23,
+   "name": "Sanguine Sword",
+   "vanilla": "Blood Sword",
+   "cat": "Sword",
+   "tier": 3,
+   "wp": 10,
+   "evade": 12,
+   "range": 1,
+   "element": "None",
+   "onHit": "Absorb HP",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 6,
+   "abnormalFormula": true,
+   "lanes": [
+    "pa"
+   ],
+   "plus3": "Grants Shadow Blade: drains a distant unit's HP with dark power. Knight jobs only.",
+   "obtain": "Steal (Gaffgarion)/Move-Find",
+   "methods": [
+    "Steal",
+    "Move-Find"
+   ],
+   "rare": false,
+   "shop": false,
+   "effort": 2
+  },
+  {
+   "id": 24,
+   "name": "Stormbrand",
+   "vanilla": "Coral Sword",
+   "cat": "Sword",
+   "tier": 3,
+   "wp": 8,
+   "evade": 5,
+   "range": 1,
+   "element": "Lightning",
+   "onHit": "Casts Thunder on hit",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 2,
+   "abnormalFormula": true,
+   "lanes": [
+    "pa"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 25,
+   "name": "Tanglethorn",
+   "vanilla": "Ancient Sword",
+   "cat": "Sword",
+   "tier": 3,
+   "wp": 7,
+   "evade": 5,
+   "range": 1,
+   "element": "None",
+   "onHit": "Immobilize",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "pa"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 26,
+   "name": "Flamberge",
+   "vanilla": "Sleep Blade",
+   "cat": "Sword",
+   "tier": 3,
+   "wp": 8,
+   "evade": 5,
+   "range": 1,
+   "element": "Fire",
+   "onHit": "May cast Fire",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 2,
+   "abnormalFormula": true,
+   "lanes": [
+    "pa"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 27,
+   "name": "Wrathblade",
+   "vanilla": "Platinum Sword",
+   "cat": "Sword",
+   "tier": 4,
+   "wp": 12,
+   "evade": 4,
+   "range": 1,
+   "element": "None",
+   "onHit": "None",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 67,
+   "abnormalFormula": true,
+   "lanes": [
+    "speed"
+   ],
+   "plus3": "Cheats death once per battle, rising unseen at low HP.",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 28,
+   "name": "Swiftedge",
+   "vanilla": "Diamond Sword",
+   "cat": "Sword",
+   "tier": 4,
+   "wp": 8,
+   "evade": 10,
+   "range": 1,
+   "element": "None",
+   "onHit": "Damage scales with Speed",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 99,
+   "abnormalFormula": true,
+   "lanes": [
+    "speed"
+   ],
+   "plus3": "Builds Speed +1 each turn the wielder acts, up to +5. A hit resets it.",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 29,
+   "name": "Graviton",
+   "vanilla": "Icebrand",
+   "cat": "Sword",
+   "tier": 5,
+   "wp": 12,
+   "evade": 14,
+   "range": 1,
+   "element": "None",
+   "onHit": "Casts Gravity on hit",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 2,
+   "abnormalFormula": true,
+   "lanes": [
+    "pa"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 30,
+   "name": "Arcanum",
+   "vanilla": "Runeblade",
+   "cat": "Sword",
+   "tier": 5,
+   "wp": 14,
+   "evade": 8,
+   "range": 1,
+   "element": "None",
+   "onHit": "None",
+   "silentProcId": 0,
+   "rider": "MA+2",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "ma"
+   ],
+   "plus3": "Steals one buff from a struck foe for the wielder to wear 3 turns.",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 31,
+   "name": "Lightbringer",
+   "vanilla": "Nagrarok",
+   "cat": "Sword",
+   "tier": 5,
+   "wp": 14,
+   "evade": 12,
+   "range": 1,
+   "element": "Holy",
+   "onHit": "None",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 2,
+   "abnormalFormula": true,
+   "lanes": [
+    "pa"
+   ],
+   "plus3": "",
+   "obtain": "Poach (Swine)",
+   "methods": [
+    "Poach"
+   ],
+   "rare": false,
+   "shop": false,
+   "effort": 3
+  },
+  {
+   "id": 32,
+   "name": "Materia Blade",
+   "vanilla": "Materia Blade",
+   "cat": "Sword",
+   "tier": 6,
+   "wp": 11,
+   "evade": 12,
+   "range": 1,
+   "element": "None",
+   "onHit": "None",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "ma",
+    "pa"
+   ],
+   "plus3": "",
+   "obtain": "Join (Cloud, with it equipped)",
+   "methods": [
+    "Join"
+   ],
+   "rare": false,
+   "shop": false,
+   "effort": 1
+  },
+  {
+   "id": 33,
+   "name": "Defender",
+   "vanilla": "Defender",
+   "cat": "Knight Sword",
+   "tier": 4,
+   "wp": 16,
+   "evade": 60,
+   "range": 1,
+   "element": "None",
+   "onHit": "None",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "hp"
+   ],
+   "plus3": "Threatens a foe, drawing enemy attacks onto the bearer until that foe takes its turn.",
+   "obtain": "Poach (Elder Treant)",
+   "methods": [
+    "Poach"
+   ],
+   "rare": false,
+   "shop": false,
+   "effort": 3
+  },
+  {
+   "id": 34,
+   "name": "Save the Queen",
+   "vanilla": "Save the Queen",
+   "cat": "Knight Sword",
+   "tier": 5,
+   "wp": 18,
+   "evade": 45,
+   "range": 1,
+   "element": "None",
+   "onHit": "None",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "hp"
+   ],
+   "plus3": "",
+   "obtain": "Move-Find (Midlight's Deep)/Join (Meliadoul)",
+   "methods": [
+    "Move-Find",
+    "Join"
+   ],
+   "rare": false,
+   "shop": false,
+   "effort": 1
+  },
+  {
+   "id": 35,
+   "name": "Excalibur",
+   "vanilla": "Excalibur",
+   "cat": "Knight Sword",
+   "tier": 6,
+   "wp": 21,
+   "evade": 35,
+   "range": 1,
+   "element": "Holy",
+   "onHit": "None",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "hp"
+   ],
+   "plus3": "",
+   "obtain": "Move-Find (Midlight's Deep)/Join (Orlandeau)",
+   "methods": [
+    "Move-Find",
+    "Join"
+   ],
+   "rare": false,
+   "shop": false,
+   "effort": 1
+  },
+  {
+   "id": 36,
+   "name": "Ragnarok",
+   "vanilla": "Ragnarok",
+   "cat": "Knight Sword",
+   "tier": 6,
+   "wp": 24,
+   "evade": 25,
+   "range": 1,
+   "element": "Dark",
+   "onHit": "Silence",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "hp"
+   ],
+   "plus3": "",
+   "obtain": "Move-Find (Midlight's Deep, rare)",
+   "methods": [
+    "Move-Find"
+   ],
+   "rare": true,
+   "shop": false,
+   "effort": 4
+  },
+  {
+   "id": 37,
+   "name": "Chaos Blade",
+   "vanilla": "Chaos Blade",
+   "cat": "Knight Sword",
+   "tier": 6,
+   "wp": 28,
+   "evade": 15,
+   "range": 1,
+   "element": "None",
+   "onHit": "May petrify",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "hp"
+   ],
+   "plus3": "",
+   "obtain": "Move-Find (Midlight's Deep)",
+   "methods": [
+    "Move-Find"
+   ],
+   "rare": false,
+   "shop": false,
+   "effort": 3
+  },
+  {
+   "id": 38,
+   "name": "Ashura",
+   "vanilla": "Ashura",
+   "cat": "Katana",
+   "tier": 1,
+   "wp": 6,
+   "evade": 25,
+   "range": 1,
+   "element": "None",
+   "onHit": "May cast Draw Out: Ashura",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 2,
+   "abnormalFormula": true,
+   "lanes": [
+    "brave",
+    "ma",
+    "pa"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 39,
+   "name": "Kotetsu",
+   "vanilla": "Kotetsu",
+   "cat": "Katana",
+   "tier": 1,
+   "wp": 8,
+   "evade": 18,
+   "range": 1,
+   "element": "None",
+   "onHit": "Blind",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "brave",
+    "ma",
+    "pa"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 40,
+   "name": "Bizen Osafune",
+   "vanilla": "Bizen Osafune",
+   "cat": "Katana",
+   "tier": 2,
+   "wp": 9,
+   "evade": 12,
+   "range": 1,
+   "element": "None",
+   "onHit": "Absorb MP",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 47,
+   "abnormalFormula": true,
+   "lanes": [
+    "brave",
+    "ma",
+    "pa"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 41,
+   "name": "Murasame",
+   "vanilla": "Murasame",
+   "cat": "Katana",
+   "tier": 2,
+   "wp": 9,
+   "evade": 15,
+   "range": 1,
+   "element": "None",
+   "onHit": "Slow",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "brave",
+    "ma",
+    "pa"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 42,
+   "name": "Ame-no-Murakumo",
+   "vanilla": "Ame-no-Murakumo",
+   "cat": "Katana",
+   "tier": 3,
+   "wp": 10,
+   "evade": 10,
+   "range": 1,
+   "element": "Wind",
+   "onHit": "Silence",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "brave",
+    "ma",
+    "pa"
+   ],
+   "plus3": "Makes the wielder act first at battle start (the quick draw).",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 43,
+   "name": "Kiyomori",
+   "vanilla": "Kiyomori",
+   "cat": "Katana",
+   "tier": 3,
+   "wp": 11,
+   "evade": 20,
+   "range": 1,
+   "element": "None",
+   "onHit": "Poison",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "brave",
+    "ma",
+    "pa"
+   ],
+   "plus3": "Steals Brave from a struck foe braver than the wielder.",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 44,
+   "name": "Muramasa",
+   "vanilla": "Muramasa",
+   "cat": "Katana",
+   "tier": 4,
+   "wp": 13,
+   "evade": 8,
+   "range": 1,
+   "element": "None",
+   "onHit": "None",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 67,
+   "abnormalFormula": true,
+   "lanes": [
+    "speed"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 45,
+   "name": "Kiku-ichimonji",
+   "vanilla": "Kiku-ichimonji",
+   "cat": "Katana",
+   "tier": 4,
+   "wp": 13,
+   "evade": 10,
+   "range": 2,
+   "element": "None",
+   "onHit": "None",
+   "silentProcId": 83,
+   "rider": "None",
+   "formula": 2,
+   "abnormalFormula": true,
+   "lanes": [
+    "brave",
+    "ma",
+    "pa"
+   ],
+   "plus3": "A turn of perfect stillness empties the mind; the next strike falls devastatingly hard.",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 46,
+   "name": "Masamune",
+   "vanilla": "Masamune",
+   "cat": "Katana",
+   "tier": 5,
+   "wp": 16,
+   "evade": 18,
+   "range": 1,
+   "element": "Holy",
+   "onHit": "Sleep",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "brave",
+    "ma",
+    "pa"
+   ],
+   "plus3": "",
+   "obtain": "Steal (Elmdore, Ch.4)",
+   "methods": [
+    "Steal"
+   ],
+   "rare": false,
+   "shop": false,
+   "effort": 2
+  },
+  {
+   "id": 47,
+   "name": "Chirijiraden",
+   "vanilla": "Chirijiraden",
+   "cat": "Katana",
+   "tier": 6,
+   "wp": 20,
+   "evade": 12,
+   "range": 1,
+   "element": "None",
+   "onHit": "Immobilize",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "brave",
+    "ma",
+    "pa"
+   ],
+   "plus3": "",
+   "obtain": "Move-Find (Midlight's Deep)",
+   "methods": [
+    "Move-Find"
+   ],
+   "rare": false,
+   "shop": false,
+   "effort": 3
+  },
+  {
+   "id": 48,
+   "name": "Terrastaff",
+   "vanilla": "Battle Axe",
+   "cat": "Pole",
+   "tier": 1,
+   "wp": 9,
+   "evade": 20,
+   "range": 1,
+   "element": "Earth",
+   "onHit": "None",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "ma",
+    "pa"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 49,
+   "name": "Ravager",
+   "vanilla": "Giant's Axe",
+   "cat": "Knight Sword",
+   "tier": 4,
+   "wp": 15,
+   "evade": 5,
+   "range": 1,
+   "element": "None",
+   "onHit": "May inflict Confuse",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "hp"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 50,
+   "name": "Sunderer",
+   "vanilla": "Slasher",
+   "cat": "Knight Sword",
+   "tier": 5,
+   "wp": 13,
+   "evade": 10,
+   "range": 1,
+   "element": "None",
+   "onHit": "None",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 46,
+   "abnormalFormula": true,
+   "lanes": [
+    "hp"
+   ],
+   "plus3": "A full wait plants the blade; none may take the ground at the wielder's back.",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 51,
+   "name": "Wellspring Rod",
+   "vanilla": "Rod",
+   "cat": "Rod",
+   "tier": 1,
+   "wp": 5,
+   "evade": 18,
+   "range": 4,
+   "element": "None",
+   "onHit": "Absorb MP",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 47,
+   "abnormalFormula": true,
+   "lanes": [
+    "ma"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 52,
+   "name": "Spark Rod",
+   "vanilla": "Thunder Rod",
+   "cat": "Rod",
+   "tier": 2,
+   "wp": 5,
+   "evade": 20,
+   "range": 4,
+   "element": "Lightning",
+   "onHit": "Attack casts Thunder (Magick Attack)",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 4,
+   "abnormalFormula": true,
+   "lanes": [
+    "ma"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 53,
+   "name": "Ember Rod",
+   "vanilla": "Flame Rod",
+   "cat": "Rod",
+   "tier": 2,
+   "wp": 5,
+   "evade": 20,
+   "range": 4,
+   "element": "Fire",
+   "onHit": "Attack casts Fire (Magick Attack)",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 4,
+   "abnormalFormula": true,
+   "lanes": [
+    "ma"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 54,
+   "name": "Frost Rod",
+   "vanilla": "Ice Rod",
+   "cat": "Rod",
+   "tier": 2,
+   "wp": 5,
+   "evade": 20,
+   "range": 4,
+   "element": "Ice",
+   "onHit": "Attack casts Blizzard (Magick Attack)",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 4,
+   "abnormalFormula": true,
+   "lanes": [
+    "ma"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 55,
+   "name": "Hushward Rod",
+   "vanilla": "Poison Rod",
+   "cat": "Rod",
+   "tier": 2,
+   "wp": 6,
+   "evade": 15,
+   "range": 4,
+   "element": "None",
+   "onHit": "None",
+   "silentProcId": 0,
+   "rider": "immune Silence",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "ma"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 56,
+   "name": "Umbral Rod",
+   "vanilla": "Wizard's Rod",
+   "cat": "Rod",
+   "tier": 3,
+   "wp": 4,
+   "evade": 20,
+   "range": 4,
+   "element": "Dark",
+   "onHit": "None",
+   "silentProcId": 0,
+   "rider": "MA+2, boost Dark",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "ma"
+   ],
+   "plus3": "Restores HP and MP on each move.",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 57,
+   "name": "Dragon Rod",
+   "vanilla": "Dragon Rod",
+   "cat": "Rod",
+   "tier": 4,
+   "wp": 7,
+   "evade": 10,
+   "range": 4,
+   "element": "None",
+   "onHit": "Silence",
+   "silentProcId": 0,
+   "rider": "start Reraise",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "ma"
+   ],
+   "plus3": "",
+   "obtain": "Steal (Cletienne; Mullonde summoners)",
+   "methods": [
+    "Steal"
+   ],
+   "rare": false,
+   "shop": false,
+   "effort": 2
+  },
+  {
+   "id": 58,
+   "name": "Rod of Faith",
+   "vanilla": "Rod of Faith",
+   "cat": "Rod",
+   "tier": 5,
+   "wp": 7,
+   "evade": 15,
+   "range": 4,
+   "element": "Holy",
+   "onHit": "None",
+   "silentProcId": 0,
+   "rider": "innate Faith",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "ma"
+   ],
+   "plus3": "Grants Master Teleportation while the wielder is below a third HP.",
+   "obtain": "Move-Find (Midlight's Deep VALKYRIES, rare)",
+   "methods": [
+    "Move-Find"
+   ],
+   "rare": true,
+   "shop": false,
+   "effort": 4
+  },
+  {
+   "id": 59,
+   "name": "Birchwood Staff",
+   "vanilla": "Oak Staff",
+   "cat": "Staff",
+   "tier": 1,
+   "wp": 3,
+   "evade": 20,
+   "range": 1,
+   "element": "None",
+   "onHit": "None",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "ma"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 60,
+   "name": "Warlock's Staff",
+   "vanilla": "White Staff",
+   "cat": "Staff",
+   "tier": 2,
+   "wp": 3,
+   "evade": 15,
+   "range": 1,
+   "element": "None",
+   "onHit": "May inflict Sleep",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "ma"
+   ],
+   "plus3": "Casts magick instantly, with no charge time.",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 61,
+   "name": "Mending Staff",
+   "vanilla": "Healing Staff",
+   "cat": "Staff",
+   "tier": 3,
+   "wp": 4,
+   "evade": 15,
+   "range": 1,
+   "element": "None",
+   "onHit": "Attack heals target's HP (damages Undead)",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 7,
+   "abnormalFormula": true,
+   "lanes": [
+    "ma"
+   ],
+   "plus3": "Mends the bearer and adjacent allies for a tenth of max HP each turn.",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 62,
+   "name": "Warding Staff",
+   "vanilla": "Serpent Staff",
+   "cat": "Staff",
+   "tier": 3,
+   "wp": 4,
+   "evade": 15,
+   "range": 1,
+   "element": "None",
+   "onHit": "May inflict Immobilize",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "ma"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 63,
+   "name": "Blazing Staff",
+   "vanilla": "Mage's Staff",
+   "cat": "Staff",
+   "tier": 3,
+   "wp": 6,
+   "evade": 12,
+   "range": 1,
+   "element": "Fire",
+   "onHit": "None",
+   "silentProcId": 0,
+   "rider": "Move+1",
+   "formula": 4,
+   "abnormalFormula": true,
+   "lanes": [
+    "ma"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 64,
+   "name": "Sanctus Staff",
+   "vanilla": "Golden Staff",
+   "cat": "Staff",
+   "tier": 4,
+   "wp": 5,
+   "evade": 15,
+   "range": 1,
+   "element": "Holy",
+   "onHit": "None",
+   "silentProcId": 0,
+   "rider": "boost Holy",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "ma"
+   ],
+   "plus3": "Boosts the wielder's healing by 30%.",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 65,
+   "name": "Zeus Mace",
+   "vanilla": "Zeus Mace",
+   "cat": "Staff",
+   "tier": 5,
+   "wp": 6,
+   "evade": 15,
+   "range": 1,
+   "element": "Lightning",
+   "onHit": "None",
+   "silentProcId": 0,
+   "rider": "MA+1",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "ma"
+   ],
+   "plus3": "",
+   "obtain": "Move-Find (Midlight's Deep DELTA)",
+   "methods": [
+    "Move-Find"
+   ],
+   "rare": false,
+   "shop": false,
+   "effort": 3
+  },
+  {
+   "id": 66,
+   "name": "Staff of the Magi",
+   "vanilla": "Staff of the Magi",
+   "cat": "Staff",
+   "tier": 6,
+   "wp": 7,
+   "evade": 15,
+   "range": 1,
+   "element": "None",
+   "onHit": "May Stop",
+   "silentProcId": 0,
+   "rider": "MA+2",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "ma"
+   ],
+   "plus3": "Stops any fallen ally from crystallizing while the bearer lives.",
+   "obtain": "Move-Find (Midlight's Deep BRIDGE)",
+   "methods": [
+    "Move-Find"
+   ],
+   "rare": false,
+   "shop": false,
+   "effort": 3
+  },
+  {
+   "id": 67,
+   "name": "Warbrand",
+   "vanilla": "Iron Flail",
+   "cat": "Sword",
+   "tier": 5,
+   "wp": 15,
+   "evade": 0,
+   "range": 1,
+   "element": "None",
+   "onHit": "None",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "pa"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 68,
+   "name": "Bloodlash",
+   "vanilla": "Flail of Flame",
+   "cat": "Knife",
+   "tier": 3,
+   "wp": 8,
+   "evade": 15,
+   "range": 1,
+   "element": "None",
+   "onHit": "Poison (100% via formula 2D)",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 45,
+   "abnormalFormula": true,
+   "lanes": [
+    "speed"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 69,
+   "name": "Climhazzard",
+   "vanilla": "Morning Star",
+   "cat": "Ninja Blade",
+   "tier": 4,
+   "wp": 5,
+   "evade": 20,
+   "range": 1,
+   "element": "None",
+   "onHit": "None",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 69,
+   "abnormalFormula": true,
+   "lanes": [
+    "speed"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 70,
+   "name": "Sasori",
+   "vanilla": "Scorpion Tail",
+   "cat": "Katana",
+   "tier": 5,
+   "wp": 11,
+   "evade": 10,
+   "range": 1,
+   "element": "None",
+   "onHit": "May inflict Doom",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "brave",
+    "ma",
+    "pa"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 71,
+   "name": "Outrider Pistol",
+   "vanilla": "Romandan Pistol",
+   "cat": "Gun",
+   "tier": 1,
+   "wp": 7,
+   "evade": 5,
+   "range": 9,
+   "element": "None",
+   "onHit": "None",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 3,
+   "abnormalFormula": true,
+   "lanes": [
+    "wp"
+   ],
+   "plus3": "Loads a second pistol into the off-hand, granting dual-wield. Must equip out of battle.",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 72,
+   "name": "Ironclad Repeater",
+   "vanilla": "Mythril Gun",
+   "cat": "Gun",
+   "tier": 2,
+   "wp": 9,
+   "evade": 5,
+   "range": 8,
+   "element": "None",
+   "onHit": "None",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 3,
+   "abnormalFormula": true,
+   "lanes": [
+    "wp"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 73,
+   "name": "Stoneshooter",
+   "vanilla": "Stoneshooter",
+   "cat": "Gun",
+   "tier": 4,
+   "wp": 16,
+   "evade": 5,
+   "range": 9,
+   "element": "Earth",
+   "onHit": "None",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 3,
+   "abnormalFormula": true,
+   "lanes": [
+    "wp"
+   ],
+   "plus3": "",
+   "obtain": "Poach (Dark Behemoth, rare 1/8)",
+   "methods": [
+    "Poach"
+   ],
+   "rare": true,
+   "shop": false,
+   "effort": 4
+  },
+  {
+   "id": 74,
+   "name": "Glacial Gun",
+   "vanilla": "Glacial Gun",
+   "cat": "Gun",
+   "tier": 3,
+   "wp": 12,
+   "evade": 5,
+   "range": 8,
+   "element": "Ice",
+   "onHit": "None",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 4,
+   "abnormalFormula": true,
+   "lanes": [
+    "faith",
+    "wp"
+   ],
+   "plus3": "",
+   "obtain": "Move-Find (Midlight's Deep NOISSIM, rare)/Steal",
+   "methods": [
+    "Move-Find",
+    "Steal"
+   ],
+   "rare": true,
+   "shop": false,
+   "effort": 2
+  },
+  {
+   "id": 75,
+   "name": "Blaze Gun",
+   "vanilla": "Blaze Gun",
+   "cat": "Gun",
+   "tier": 3,
+   "wp": 12,
+   "evade": 5,
+   "range": 8,
+   "element": "Fire",
+   "onHit": "None",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 4,
+   "abnormalFormula": true,
+   "lanes": [
+    "faith",
+    "wp"
+   ],
+   "plus3": "",
+   "obtain": "Move-Find (Midlight's Deep, rare)/Steal",
+   "methods": [
+    "Move-Find",
+    "Steal"
+   ],
+   "rare": true,
+   "shop": false,
+   "effort": 2
+  },
+  {
+   "id": 76,
+   "name": "Blaster",
+   "vanilla": "Blaster",
+   "cat": "Gun",
+   "tier": 6,
+   "wp": 15,
+   "evade": 5,
+   "range": 7,
+   "element": "Lightning",
+   "onHit": "None",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 4,
+   "abnormalFormula": true,
+   "lanes": [
+    "faith",
+    "wp"
+   ],
+   "plus3": "",
+   "obtain": "Move-Find (Midlight's Deep, rare)/Steal",
+   "methods": [
+    "Move-Find",
+    "Steal"
+   ],
+   "rare": true,
+   "shop": false,
+   "effort": 2
+  },
+  {
+   "id": 77,
+   "name": "Scoutbolt",
+   "vanilla": "Bowgun",
+   "cat": "Crossbow",
+   "tier": 1,
+   "wp": 4,
+   "evade": 10,
+   "range": 4,
+   "element": "None",
+   "onHit": "None",
+   "silentProcId": 213,
+   "rider": "None",
+   "formula": 2,
+   "abnormalFormula": true,
+   "lanes": [
+    "pa"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 78,
+   "name": "Eclipsebolt",
+   "vanilla": "Knightslayer",
+   "cat": "Crossbow",
+   "tier": 2,
+   "wp": 5,
+   "evade": 5,
+   "range": 4,
+   "element": "None",
+   "onHit": "Doom",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "pa"
+   ],
+   "plus3": "Shortens Doom's countdown to 1 turn instead of 3.",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 79,
+   "name": "Arbalest",
+   "vanilla": "Crossbow",
+   "cat": "Crossbow",
+   "tier": 3,
+   "wp": 7,
+   "evade": 5,
+   "range": 6,
+   "element": "None",
+   "onHit": "None",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "pa"
+   ],
+   "plus3": "Loads a second arbalest into the off-hand, granting dual-wield. Must equip out of battle.",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 80,
+   "name": "Venombolt",
+   "vanilla": "Poison Crossbow",
+   "cat": "Crossbow",
+   "tier": 3,
+   "wp": 6,
+   "evade": 5,
+   "range": 5,
+   "element": "None",
+   "onHit": "Poison (100% via formula 2D)",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 45,
+   "abnormalFormula": true,
+   "lanes": [
+    "pa"
+   ],
+   "plus3": "Strengthens poison and stops it from ever fading.",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 81,
+   "name": "Pitchbolt",
+   "vanilla": "Hunting Crossbow",
+   "cat": "Crossbow",
+   "tier": 4,
+   "wp": 8,
+   "evade": 8,
+   "range": 7,
+   "element": "None",
+   "onHit": "Oil (100% via formula 2D)",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 45,
+   "abnormalFormula": true,
+   "lanes": [
+    "pa"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 82,
+   "name": "Siegebolt",
+   "vanilla": "Gastrophetes",
+   "cat": "Crossbow",
+   "tier": 6,
+   "wp": 11,
+   "evade": 5,
+   "range": 8,
+   "element": "None",
+   "onHit": "None",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "pa"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 83,
+   "name": "Skirmisher",
+   "vanilla": "Longbow",
+   "cat": "Bow",
+   "tier": 1,
+   "wp": 4,
+   "evade": 20,
+   "range": 5,
+   "element": "None",
+   "onHit": "None",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "speed"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 84,
+   "name": "Windrunner",
+   "vanilla": "Silver Bow",
+   "cat": "Bow",
+   "tier": 2,
+   "wp": 5,
+   "evade": 15,
+   "range": 6,
+   "element": "None",
+   "onHit": "None",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "speed"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 85,
+   "name": "Frostarc",
+   "vanilla": "Ice Bow",
+   "cat": "Bow",
+   "tier": 2,
+   "wp": 4,
+   "evade": 5,
+   "range": 4,
+   "element": "Ice",
+   "onHit": "May cast Blizzard",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 2,
+   "abnormalFormula": true,
+   "lanes": [
+    "speed"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 86,
+   "name": "Stormarc",
+   "vanilla": "Lightning Bow",
+   "cat": "Bow",
+   "tier": 3,
+   "wp": 5,
+   "evade": 5,
+   "range": 6,
+   "element": "Lightning",
+   "onHit": "May cast Thunder",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 2,
+   "abnormalFormula": true,
+   "lanes": [
+    "speed"
+   ],
+   "plus3": "Arcs to three nearby foes at decaying damage.",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 87,
+   "name": "Skypiercer",
+   "vanilla": "Windslash Bow",
+   "cat": "Bow",
+   "tier": 4,
+   "wp": 7,
+   "evade": 0,
+   "range": 7,
+   "element": "Wind",
+   "onHit": "May cast Wind",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 2,
+   "abnormalFormula": true,
+   "lanes": [
+    "speed"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 88,
+   "name": "Tidecaller",
+   "vanilla": "Mythril Bow",
+   "cat": "Bow",
+   "tier": 3,
+   "wp": 6,
+   "evade": 10,
+   "range": 5,
+   "element": "Water",
+   "onHit": "May cast Water",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 2,
+   "abnormalFormula": true,
+   "lanes": [
+    "speed"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 89,
+   "name": "Huntress",
+   "vanilla": "Artemis Bow",
+   "cat": "Bow",
+   "tier": 5,
+   "wp": 8,
+   "evade": 10,
+   "range": 6,
+   "element": "None",
+   "onHit": "None",
+   "silentProcId": 213,
+   "rider": "None",
+   "formula": 2,
+   "abnormalFormula": true,
+   "lanes": [
+    "speed"
+   ],
+   "plus3": "Strips reactions like Counter from struck foes for 3 turns.",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 90,
+   "name": "Yoichi Bow",
+   "vanilla": "Yoichi Bow",
+   "cat": "Bow",
+   "tier": 6,
+   "wp": 12,
+   "evade": 5,
+   "range": 6,
+   "element": "None",
+   "onHit": "None",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "speed"
+   ],
+   "plus3": "Grants Barrage: four swift attacks, each at half damage. Thief only.",
+   "obtain": "Move-Find (Midlight's Deep DELTA)",
+   "methods": [
+    "Move-Find"
+   ],
+   "rare": false,
+   "shop": false,
+   "effort": 3
+  },
+  {
+   "id": 91,
+   "name": "Perseus Bow",
+   "vanilla": "Perseus Bow",
+   "cat": "Bow",
+   "tier": 6,
+   "wp": 16,
+   "evade": 0,
+   "range": 7,
+   "element": "Holy",
+   "onHit": "May disable",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "speed"
+   ],
+   "plus3": "",
+   "obtain": "Move-Find (Midlight's Deep VOYAGE, rare, trap tile)",
+   "methods": [
+    "Move-Find"
+   ],
+   "rare": true,
+   "shop": false,
+   "effort": 4
+  },
+  {
+   "id": 92,
+   "name": "Siren's Lyre",
+   "vanilla": "Lamia's Harp",
+   "cat": "Instrument",
+   "tier": 2,
+   "wp": 6,
+   "evade": 10,
+   "range": 3,
+   "element": "None",
+   "onHit": "Confuses the target on hit",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 2,
+   "abnormalFormula": true,
+   "lanes": [
+    "ma"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 93,
+   "name": "Duskstring Harp",
+   "vanilla": "Bloodstring Harp",
+   "cat": "Instrument",
+   "tier": 3,
+   "wp": 7,
+   "evade": 10,
+   "range": 3,
+   "element": "None",
+   "onHit": "Blind",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 2,
+   "abnormalFormula": true,
+   "lanes": [
+    "ma"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 94,
+   "name": "Faerie Harp",
+   "vanilla": "Faerie Harp",
+   "cat": "Instrument",
+   "tier": 5,
+   "wp": 8,
+   "evade": 10,
+   "range": 3,
+   "element": "None",
+   "onHit": "Casts Sleep on the target on hit",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 2,
+   "abnormalFormula": true,
+   "lanes": [
+    "ma"
+   ],
+   "plus3": "",
+   "obtain": "Move-Find (Midlight's Deep VALKYRIES)",
+   "methods": [
+    "Move-Find"
+   ],
+   "rare": false,
+   "shop": false,
+   "effort": 3
+  },
+  {
+   "id": 95,
+   "name": "Glarebound Tome",
+   "vanilla": "Battle Folio",
+   "cat": "Book",
+   "tier": 1,
+   "wp": 5,
+   "evade": 15,
+   "range": 3,
+   "element": "None",
+   "onHit": "May inflict Blind",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 2,
+   "abnormalFormula": true,
+   "lanes": [
+    "ma"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 96,
+   "name": "Knell Codex",
+   "vanilla": "Bestiary",
+   "cat": "Book",
+   "tier": 4,
+   "wp": 7,
+   "evade": 15,
+   "range": 3,
+   "element": "None",
+   "onHit": "May inflict Doom",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "ma"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 97,
+   "name": "Binding Codex",
+   "vanilla": "Papyrus Codex",
+   "cat": "Book",
+   "tier": 4,
+   "wp": 7,
+   "evade": 15,
+   "range": 3,
+   "element": "None",
+   "onHit": "May inflict Immobilize",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 2,
+   "abnormalFormula": true,
+   "lanes": [
+    "ma"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 98,
+   "name": "Omnilex",
+   "vanilla": "Omnilex",
+   "cat": "Book",
+   "tier": 6,
+   "wp": 10,
+   "evade": 15,
+   "range": 3,
+   "element": "Holy",
+   "onHit": "Strips the target buffs",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "ma"
+   ],
+   "plus3": "",
+   "obtain": "Poach (Great Malboro)",
+   "methods": [
+    "Poach"
+   ],
+   "rare": false,
+   "shop": false,
+   "effort": 3
+  },
+  {
+   "id": 99,
+   "name": "Skewer",
+   "vanilla": "Javelin",
+   "cat": "Polearm",
+   "tier": 1,
+   "wp": 7,
+   "evade": 15,
+   "range": 2,
+   "element": "None",
+   "onHit": "None",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "pa"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 100,
+   "name": "Footman's Spear",
+   "vanilla": "Spear",
+   "cat": "Polearm",
+   "tier": 2,
+   "wp": 9,
+   "evade": 10,
+   "range": 2,
+   "element": "None",
+   "onHit": "None",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "pa"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 101,
+   "name": "Frostpoint",
+   "vanilla": "Mythril Spear",
+   "cat": "Polearm",
+   "tier": 3,
+   "wp": 8,
+   "evade": 10,
+   "range": 2,
+   "element": "Ice",
+   "onHit": "May cast Blizzard",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 2,
+   "abnormalFormula": true,
+   "lanes": [
+    "pa"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 102,
+   "name": "Stormpike",
+   "vanilla": "Partisan",
+   "cat": "Polearm",
+   "tier": 3,
+   "wp": 9,
+   "evade": 10,
+   "range": 2,
+   "element": "Lightning",
+   "onHit": "May cast Thunder",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 2,
+   "abnormalFormula": true,
+   "lanes": [
+    "pa"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 103,
+   "name": "Tombspire",
+   "vanilla": "Obelisk",
+   "cat": "Polearm",
+   "tier": 4,
+   "wp": 11,
+   "evade": 10,
+   "range": 2,
+   "element": "Earth",
+   "onHit": "May inflict Immobilize",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 69,
+   "abnormalFormula": true,
+   "lanes": [
+    "speed"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 104,
+   "name": "Holy Lance",
+   "vanilla": "Holy Lance",
+   "cat": "Polearm",
+   "tier": 5,
+   "wp": 12,
+   "evade": 10,
+   "range": 2,
+   "element": "Holy",
+   "onHit": "May cast Holy",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 2,
+   "abnormalFormula": true,
+   "lanes": [
+    "pa"
+   ],
+   "plus3": "Adds Speed +3 while the wielder rides a chocobo.",
+   "obtain": "Poach (Sekhret)",
+   "methods": [
+    "Poach"
+   ],
+   "rare": false,
+   "shop": false,
+   "effort": 3
+  },
+  {
+   "id": 105,
+   "name": "Dragon Whisker",
+   "vanilla": "Dragon Whisker",
+   "cat": "Polearm",
+   "tier": 6,
+   "wp": 15,
+   "evade": 10,
+   "range": 2,
+   "element": "None",
+   "onHit": "None",
+   "silentProcId": 249,
+   "rider": "None",
+   "formula": 2,
+   "abnormalFormula": true,
+   "lanes": [
+    "pa"
+   ],
+   "plus3": "",
+   "obtain": "Poach (Red Dragon, rare 1/8)",
+   "methods": [
+    "Poach"
+   ],
+   "rare": true,
+   "shop": false,
+   "effort": 4
+  },
+  {
+   "id": 106,
+   "name": "Wyrmpike",
+   "vanilla": "Javelin II",
+   "cat": "Polearm",
+   "tier": 6,
+   "wp": 13,
+   "evade": 10,
+   "range": 2,
+   "element": "Wind",
+   "onHit": "May inflict Doom",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "pa"
+   ],
+   "plus3": "",
+   "obtain": "Move-Find (Nelveska Temple, rare)",
+   "methods": [
+    "Move-Find"
+   ],
+   "rare": true,
+   "shop": false,
+   "effort": 4
+  },
+  {
+   "id": 107,
+   "name": "Greenwood Pole",
+   "vanilla": "Cypress Pole",
+   "cat": "Pole",
+   "tier": 1,
+   "wp": 6,
+   "evade": 20,
+   "range": 2,
+   "element": "None",
+   "onHit": "None",
+   "silentProcId": 102,
+   "rider": "None",
+   "formula": 2,
+   "abnormalFormula": true,
+   "lanes": [
+    "ma",
+    "pa"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 108,
+   "name": "Ironreed Pole",
+   "vanilla": "Battle Bamboo",
+   "cat": "Pole",
+   "tier": 2,
+   "wp": 8,
+   "evade": 20,
+   "range": 2,
+   "element": "None",
+   "onHit": "None",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "ma",
+    "pa"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 109,
+   "name": "Slumber Rod",
+   "vanilla": "Musk Pole",
+   "cat": "Pole",
+   "tier": 3,
+   "wp": 8,
+   "evade": 20,
+   "range": 2,
+   "element": "None",
+   "onHit": "Sleep",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "ma",
+    "pa"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 110,
+   "name": "Hushfan",
+   "vanilla": "Iron Fan",
+   "cat": "Pole",
+   "tier": 3,
+   "wp": 9,
+   "evade": 25,
+   "range": 2,
+   "element": "None",
+   "onHit": "Silence",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "ma",
+    "pa"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 111,
+   "name": "Sage's Pole",
+   "vanilla": "Gokuu's Pole",
+   "cat": "Pole",
+   "tier": 5,
+   "wp": 12,
+   "evade": 20,
+   "range": 2,
+   "element": "None",
+   "onHit": "May slow",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "ma",
+    "pa"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 112,
+   "name": "Ivory Pole",
+   "vanilla": "Ivory Pole",
+   "cat": "Pole",
+   "tier": 4,
+   "wp": 10,
+   "evade": 20,
+   "range": 2,
+   "element": "None",
+   "onHit": "Blind",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "ma",
+    "pa"
+   ],
+   "plus3": "",
+   "obtain": "Poach (Sekhret, rare)",
+   "methods": [
+    "Poach"
+   ],
+   "rare": true,
+   "shop": false,
+   "effort": 4
+  },
+  {
+   "id": 113,
+   "name": "Eight-Fluted Pole",
+   "vanilla": "Eight-fluted Pole",
+   "cat": "Pole",
+   "tier": 6,
+   "wp": 14,
+   "evade": 20,
+   "range": 2,
+   "element": "None",
+   "onHit": "Poison",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "ma",
+    "pa"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 114,
+   "name": "Whale Whisker",
+   "vanilla": "Whale Whisker",
+   "cat": "Pole",
+   "tier": 6,
+   "wp": 14,
+   "evade": 20,
+   "range": 2,
+   "element": "Water",
+   "onHit": "May cast Water",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 2,
+   "abnormalFormula": true,
+   "lanes": [
+    "ma",
+    "pa"
+   ],
+   "plus3": "",
+   "obtain": "Poach (Tiamat)",
+   "methods": [
+    "Poach"
+   ],
+   "rare": false,
+   "shop": false,
+   "effort": 3
+  },
+  {
+   "id": 115,
+   "name": "Sandman Satchel",
+   "vanilla": "Catskin Bag",
+   "cat": "Bag",
+   "tier": 2,
+   "wp": 10,
+   "evade": 0,
+   "range": 1,
+   "element": "None",
+   "onHit": "Add: Sleep",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "pa"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 116,
+   "name": "Fallingstar Bag",
+   "vanilla": "Fallingstar Bag",
+   "cat": "Bag",
+   "tier": 5,
+   "wp": 18,
+   "evade": 0,
+   "range": 1,
+   "element": "None",
+   "onHit": "None",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "pa"
+   ],
+   "plus3": "",
+   "obtain": "Poach (Wild Boar, rare 1/8)",
+   "methods": [
+    "Poach"
+   ],
+   "rare": true,
+   "shop": false,
+   "effort": 4
+  },
+  {
+   "id": 117,
+   "name": "Hornet Pouch",
+   "vanilla": "Proudhide Bag",
+   "cat": "Bag",
+   "tier": 3,
+   "wp": 12,
+   "evade": 0,
+   "range": 1,
+   "element": "None",
+   "onHit": "Add: Poison",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "pa"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 118,
+   "name": "Hexweave Bag",
+   "vanilla": "Hardscale Bag",
+   "cat": "Bag",
+   "tier": 4,
+   "wp": 14,
+   "evade": 0,
+   "range": 1,
+   "element": "None",
+   "onHit": "Add: Silence",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "pa"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 119,
+   "name": "Tarsilk Veil",
+   "vanilla": "Damask Cloth",
+   "cat": "Cloth",
+   "tier": 3,
+   "wp": 7,
+   "evade": 50,
+   "range": 2,
+   "element": "None",
+   "onHit": "Oil",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "ma"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 120,
+   "name": "Bindsilk Veil",
+   "vanilla": "Cashmere",
+   "cat": "Cloth",
+   "tier": 4,
+   "wp": 8,
+   "evade": 50,
+   "range": 2,
+   "element": "None",
+   "onHit": "Immobilize",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 1,
+   "abnormalFormula": false,
+   "lanes": [
+    "ma"
+   ],
+   "plus3": "",
+   "obtain": "Shop",
+   "methods": [
+    "Shop"
+   ],
+   "rare": false,
+   "shop": true,
+   "effort": 0
+  },
+  {
+   "id": 121,
+   "name": "Gravesilk Veil",
+   "vanilla": "Wyrmweave Silk",
+   "cat": "Cloth",
+   "tier": 6,
+   "wp": 9,
+   "evade": 50,
+   "range": 2,
+   "element": "None",
+   "onHit": "May cast Gravity",
+   "silentProcId": 0,
+   "rider": "None",
+   "formula": 2,
+   "abnormalFormula": true,
+   "lanes": [
+    "ma"
+   ],
+   "plus3": "",
+   "obtain": "Poach (Tiamat, common)",
+   "methods": [
+    "Poach"
+   ],
+   "rare": false,
+   "shop": false,
+   "effort": 3
+  }
+ ],
+ "lens_a_band_cut": 15,
+ "lens_a": [
+  37,
+  36,
+  35,
+  47,
+  34,
+  116,
+  33,
+  46,
+  73,
+  91,
+  49,
+  67,
+  76,
+  105
+ ],
+ "lens_b": [
+  {
+   "id": 7,
+   "name": "Adamant Fang",
+   "cat": "Knife",
+   "wp": 12,
+   "tier": 4,
+   "severity": "MATCHES TOP HUNT",
+   "meets_or_beats": [
+    "Zwill Straightblade"
+   ],
+   "earned_band": [
+    12,
+    12
+   ]
+  },
+  {
+   "id": 111,
+   "name": "Sage's Pole",
+   "cat": "Pole",
+   "wp": 12,
+   "tier": 5,
+   "severity": "inside hunt band",
+   "meets_or_beats": [
+    "Ivory Pole"
+   ],
+   "earned_band": [
+    10,
+    14
+   ]
+  },
+  {
+   "id": 113,
+   "name": "Eight-Fluted Pole",
+   "cat": "Pole",
+   "wp": 14,
+   "tier": 6,
+   "severity": "MATCHES TOP HUNT",
+   "meets_or_beats": [
+    "Ivory Pole",
+    "Whale Whisker"
+   ],
+   "earned_band": [
+    10,
+    14
+   ]
+  },
+  {
+   "id": 63,
+   "name": "Blazing Staff",
+   "cat": "Staff",
+   "wp": 6,
+   "tier": 3,
+   "severity": "inside hunt band",
+   "meets_or_beats": [
+    "Zeus Mace"
+   ],
+   "earned_band": [
+    6,
+    7
+   ]
+  },
+  {
+   "id": 27,
+   "name": "Wrathblade",
+   "cat": "Sword",
+   "wp": 12,
+   "tier": 4,
+   "severity": "inside hunt band",
+   "meets_or_beats": [
+    "Sanguine Sword",
+    "Materia Blade"
+   ],
+   "earned_band": [
+    10,
+    14
+   ]
+  },
+  {
+   "id": 29,
+   "name": "Graviton",
+   "cat": "Sword",
+   "wp": 12,
+   "tier": 5,
+   "severity": "inside hunt band",
+   "meets_or_beats": [
+    "Sanguine Sword",
+    "Materia Blade"
+   ],
+   "earned_band": [
+    10,
+    14
+   ]
+  },
+  {
+   "id": 30,
+   "name": "Arcanum",
+   "cat": "Sword",
+   "wp": 14,
+   "tier": 5,
+   "severity": "MATCHES TOP HUNT",
+   "meets_or_beats": [
+    "Sanguine Sword",
+    "Lightbringer",
+    "Materia Blade"
+   ],
+   "earned_band": [
+    10,
+    14
+   ]
+  },
+  {
+   "id": 67,
+   "name": "Warbrand",
+   "cat": "Sword",
+   "wp": 15,
+   "tier": 5,
+   "severity": "OUTGUNS ALL HUNTS",
+   "meets_or_beats": [
+    "Sanguine Sword",
+    "Lightbringer",
+    "Materia Blade"
+   ],
+   "earned_band": [
+    10,
+    14
+   ]
+  }
+ ],
+ "lens_c": [
+  {
+   "id": 116,
+   "name": "Fallingstar Bag",
+   "cat": "Bag",
+   "wp": 18,
+   "tier": 5,
+   "obtain": "Poach (Wild Boar, rare 1/8)",
+   "effort": 4,
+   "zero_axis_vs": [],
+   "gate_dominated_by": [],
+   "worst_peer": "Sandman Satchel",
+   "worst_peer_wins": [
+    "wp"
+   ]
+  },
+  {
+   "id": 98,
+   "name": "Omnilex",
+   "cat": "Book",
+   "wp": 10,
+   "tier": 6,
+   "obtain": "Poach (Great Malboro)",
+   "effort": 3,
+   "zero_axis_vs": [],
+   "gate_dominated_by": [],
+   "worst_peer": "Glarebound Tome",
+   "worst_peer_wins": [
+    "wp",
+    "elem:Holy",
+    "onhit:Strips the target buffs"
+   ]
+  },
+  {
+   "id": 91,
+   "name": "Perseus Bow",
+   "cat": "Bow",
+   "wp": 16,
+   "tier": 6,
+   "obtain": "Move-Find (Midlight's Deep VOYAGE, rare, trap tile)",
+   "effort": 4,
+   "zero_axis_vs": [],
+   "gate_dominated_by": [],
+   "worst_peer": "Skypiercer",
+   "worst_peer_wins": [
+    "wp",
+    "elem:Holy",
+    "onhit:May disable"
+   ]
+  },
+  {
+   "id": 90,
+   "name": "Yoichi Bow",
+   "cat": "Bow",
+   "wp": 12,
+   "tier": 6,
+   "obtain": "Move-Find (Midlight's Deep DELTA)",
+   "effort": 3,
+   "zero_axis_vs": [],
+   "gate_dominated_by": [],
+   "worst_peer": "Windrunner",
+   "worst_peer_wins": [
+    "wp",
+    "plus3"
+   ]
+  },
+  {
+   "id": 121,
+   "name": "Gravesilk Veil",
+   "cat": "Cloth",
+   "wp": 9,
+   "tier": 6,
+   "obtain": "Poach (Tiamat, common)",
+   "effort": 3,
+   "zero_axis_vs": [],
+   "gate_dominated_by": [],
+   "worst_peer": "Tarsilk Veil",
+   "worst_peer_wins": [
+    "wp",
+    "onhit:May cast Gravity",
+    "formula:2"
+   ]
+  },
+  {
+   "id": 73,
+   "name": "Stoneshooter",
+   "cat": "Gun",
+   "wp": 16,
+   "tier": 4,
+   "obtain": "Poach (Dark Behemoth, rare 1/8)",
+   "effort": 4,
+   "zero_axis_vs": [],
+   "gate_dominated_by": [],
+   "worst_peer": "Outrider Pistol",
+   "worst_peer_wins": [
+    "wp",
+    "elem:Earth"
+   ]
+  },
+  {
+   "id": 76,
+   "name": "Blaster",
+   "cat": "Gun",
+   "wp": 15,
+   "tier": 6,
+   "obtain": "Move-Find (Midlight's Deep, rare)/Steal",
+   "effort": 2,
+   "zero_axis_vs": [],
+   "gate_dominated_by": [],
+   "worst_peer": "Outrider Pistol",
+   "worst_peer_wins": [
+    "wp",
+    "elem:Lightning",
+    "formula:4",
+    "lane:faith"
+   ]
+  },
+  {
+   "id": 74,
+   "name": "Glacial Gun",
+   "cat": "Gun",
+   "wp": 12,
+   "tier": 3,
+   "obtain": "Move-Find (Midlight's Deep NOISSIM, rare)/Steal",
+   "effort": 2,
+   "zero_axis_vs": [],
+   "gate_dominated_by": [],
+   "worst_peer": "Outrider Pistol",
+   "worst_peer_wins": [
+    "wp",
+    "elem:Ice",
+    "formula:4",
+    "lane:faith"
+   ]
+  },
+  {
+   "id": 75,
+   "name": "Blaze Gun",
+   "cat": "Gun",
+   "wp": 12,
+   "tier": 3,
+   "obtain": "Move-Find (Midlight's Deep, rare)/Steal",
+   "effort": 2,
+   "zero_axis_vs": [],
+   "gate_dominated_by": [],
+   "worst_peer": "Outrider Pistol",
+   "worst_peer_wins": [
+    "wp",
+    "elem:Fire",
+    "formula:4",
+    "lane:faith"
+   ]
+  },
+  {
+   "id": 94,
+   "name": "Faerie Harp",
+   "cat": "Instrument",
+   "wp": 8,
+   "tier": 5,
+   "obtain": "Move-Find (Midlight's Deep VALKYRIES)",
+   "effort": 3,
+   "zero_axis_vs": [],
+   "gate_dominated_by": [],
+   "worst_peer": "Siren's Lyre",
+   "worst_peer_wins": [
+    "wp",
+    "onhit:Casts Sleep on the target on hit"
+   ]
+  },
+  {
+   "id": 47,
+   "name": "Chirijiraden",
+   "cat": "Katana",
+   "wp": 20,
+   "tier": 6,
+   "obtain": "Move-Find (Midlight's Deep)",
+   "effort": 3,
+   "zero_axis_vs": [],
+   "gate_dominated_by": [],
+   "worst_peer": "Ashura",
+   "worst_peer_wins": [
+    "wp",
+    "onhit:Immobilize"
+   ]
+  },
+  {
+   "id": 46,
+   "name": "Masamune",
+   "cat": "Katana",
+   "wp": 16,
+   "tier": 5,
+   "obtain": "Steal (Elmdore, Ch.4)",
+   "effort": 2,
+   "zero_axis_vs": [],
+   "gate_dominated_by": [],
+   "worst_peer": "Ashura",
+   "worst_peer_wins": [
+    "wp",
+    "elem:Holy",
+    "onhit:Sleep"
+   ]
+  },
+  {
+   "id": 10,
+   "name": "Zwill Straightblade",
+   "cat": "Knife",
+   "wp": 12,
+   "tier": 6,
+   "obtain": "Poach (Plague Horror)",
+   "effort": 3,
+   "zero_axis_vs": [],
+   "gate_dominated_by": [],
+   "worst_peer": "Cutpurse",
+   "worst_peer_wins": [
+    "wp",
+    "onhit:May inflict Sleep",
+    "plus3"
+   ]
+  },
+  {
+   "id": 37,
+   "name": "Chaos Blade",
+   "cat": "Knight Sword",
+   "wp": 28,
+   "tier": 6,
+   "obtain": "Move-Find (Midlight's Deep)",
+   "effort": 3,
+   "zero_axis_vs": [],
+   "gate_dominated_by": [],
+   "worst_peer": "Ravager",
+   "worst_peer_wins": [
+    "wp",
+    "evade",
+    "onhit:May petrify"
+   ]
+  },
+  {
+   "id": 36,
+   "name": "Ragnarok",
+   "cat": "Knight Sword",
+   "wp": 24,
+   "tier": 6,
+   "obtain": "Move-Find (Midlight's Deep, rare)",
+   "effort": 4,
+   "zero_axis_vs": [],
+   "gate_dominated_by": [],
+   "worst_peer": "Ravager",
+   "worst_peer_wins": [
+    "wp",
+    "evade",
+    "elem:Dark",
+    "onhit:Silence"
+   ]
+  },
+  {
+   "id": 35,
+   "name": "Excalibur",
+   "cat": "Knight Sword",
+   "wp": 21,
+   "tier": 6,
+   "obtain": "Move-Find (Midlight's Deep)/Join (Orlandeau)",
+   "effort": 1,
+   "zero_axis_vs": [],
+   "gate_dominated_by": [],
+   "worst_peer": "Ravager",
+   "worst_peer_wins": [
+    "wp",
+    "evade",
+    "elem:Holy"
+   ]
+  },
+  {
+   "id": 34,
+   "name": "Save the Queen",
+   "cat": "Knight Sword",
+   "wp": 18,
+   "tier": 5,
+   "obtain": "Move-Find (Midlight's Deep)/Join (Meliadoul)",
+   "effort": 1,
+   "zero_axis_vs": [],
+   "gate_dominated_by": [],
+   "worst_peer": "Ravager",
+   "worst_peer_wins": [
+    "wp",
+    "evade"
+   ]
+  },
+  {
+   "id": 33,
+   "name": "Defender",
+   "cat": "Knight Sword",
+   "wp": 16,
+   "tier": 4,
+   "obtain": "Poach (Elder Treant)",
+   "effort": 3,
+   "zero_axis_vs": [],
+   "gate_dominated_by": [],
+   "worst_peer": "Ravager",
+   "worst_peer_wins": [
+    "wp",
+    "evade",
+    "plus3"
+   ]
+  },
+  {
+   "id": 17,
+   "name": "Iga Blade",
+   "cat": "Ninja Blade",
+   "wp": 14,
+   "tier": 6,
+   "obtain": "Move-Find (Midlight's Deep)",
+   "effort": 3,
+   "zero_axis_vs": [],
+   "gate_dominated_by": [],
+   "worst_peer": "Swiftfang",
+   "worst_peer_wins": [
+    "wp"
+   ]
+  },
+  {
+   "id": 16,
+   "name": "Sasuke's Blade",
+   "cat": "Ninja Blade",
+   "wp": 13,
+   "tier": 6,
+   "obtain": "Move-Find (Nelveska Temple)",
+   "effort": 3,
+   "zero_axis_vs": [],
+   "gate_dominated_by": [],
+   "worst_peer": "Raijin Longblade",
+   "worst_peer_wins": [
+    "wp",
+    "onhit:May inflict Sleep"
+   ]
+  },
+  {
+   "id": 18,
+   "name": "Koga Blade",
+   "cat": "Ninja Blade",
+   "wp": 13,
+   "tier": 6,
+   "obtain": "Move-Find (Midlight's Deep)",
+   "effort": 3,
+   "zero_axis_vs": [],
+   "gate_dominated_by": [],
+   "worst_peer": "Swiftfang",
+   "worst_peer_wins": [
+    "wp",
+    "elem:Dark",
+    "onhit:May inflict Poison"
+   ]
+  },
+  {
+   "id": 114,
+   "name": "Whale Whisker",
+   "cat": "Pole",
+   "wp": 14,
+   "tier": 6,
+   "obtain": "Poach (Tiamat)",
+   "effort": 3,
+   "zero_axis_vs": [],
+   "gate_dominated_by": [],
+   "worst_peer": "Greenwood Pole",
+   "worst_peer_wins": [
+    "wp",
+    "elem:Water",
+    "onhit:May cast Water"
+   ]
+  },
+  {
+   "id": 112,
+   "name": "Ivory Pole",
+   "cat": "Pole",
+   "wp": 10,
+   "tier": 4,
+   "obtain": "Poach (Sekhret, rare)",
+   "effort": 4,
+   "zero_axis_vs": [],
+   "gate_dominated_by": [],
+   "worst_peer": "Greenwood Pole",
+   "worst_peer_wins": [
+    "wp",
+    "onhit:Blind"
+   ]
+  },
+  {
+   "id": 105,
+   "name": "Dragon Whisker",
+   "cat": "Polearm",
+   "wp": 15,
+   "tier": 6,
+   "obtain": "Poach (Red Dragon, rare 1/8)",
+   "effort": 4,
+   "zero_axis_vs": [],
+   "gate_dominated_by": [],
+   "worst_peer": "Frostpoint",
+   "worst_peer_wins": [
+    "wp"
+   ]
+  },
+  {
+   "id": 106,
+   "name": "Wyrmpike",
+   "cat": "Polearm",
+   "wp": 13,
+   "tier": 6,
+   "obtain": "Move-Find (Nelveska Temple, rare)",
+   "effort": 4,
+   "zero_axis_vs": [],
+   "gate_dominated_by": [],
+   "worst_peer": "Skewer",
+   "worst_peer_wins": [
+    "wp",
+    "elem:Wind",
+    "onhit:May inflict Doom"
+   ]
+  },
+  {
+   "id": 104,
+   "name": "Holy Lance",
+   "cat": "Polearm",
+   "wp": 12,
+   "tier": 5,
+   "obtain": "Poach (Sekhret)",
+   "effort": 3,
+   "zero_axis_vs": [],
+   "gate_dominated_by": [],
+   "worst_peer": "Frostpoint",
+   "worst_peer_wins": [
+    "wp",
+    "elem:Holy",
+    "onhit:May cast Holy",
+    "plus3"
+   ]
+  },
+  {
+   "id": 57,
+   "name": "Dragon Rod",
+   "cat": "Rod",
+   "wp": 7,
+   "tier": 4,
+   "obtain": "Steal (Cletienne; Mullonde summoners)",
+   "effort": 2,
+   "zero_axis_vs": [],
+   "gate_dominated_by": [],
+   "worst_peer": "Wellspring Rod",
+   "worst_peer_wins": [
+    "wp",
+    "onhit:Silence",
+    "rider:start Reraise"
+   ]
+  },
+  {
+   "id": 58,
+   "name": "Rod of Faith",
+   "cat": "Rod",
+   "wp": 7,
+   "tier": 5,
+   "obtain": "Move-Find (Midlight's Deep VALKYRIES, rare)",
+   "effort": 4,
+   "zero_axis_vs": [],
+   "gate_dominated_by": [],
+   "worst_peer": "Wellspring Rod",
+   "worst_peer_wins": [
+    "wp",
+    "elem:Holy",
+    "rider:innate Faith",
+    "plus3"
+   ]
+  },
+  {
+   "id": 66,
+   "name": "Staff of the Magi",
+   "cat": "Staff",
+   "wp": 7,
+   "tier": 6,
+   "obtain": "Move-Find (Midlight's Deep BRIDGE)",
+   "effort": 3,
+   "zero_axis_vs": [],
+   "gate_dominated_by": [],
+   "worst_peer": "Birchwood Staff",
+   "worst_peer_wins": [
+    "wp",
+    "onhit:May Stop",
+    "rider:MA+2",
+    "plus3"
+   ]
+  },
+  {
+   "id": 65,
+   "name": "Zeus Mace",
+   "cat": "Staff",
+   "wp": 6,
+   "tier": 5,
+   "obtain": "Move-Find (Midlight's Deep DELTA)",
+   "effort": 3,
+   "zero_axis_vs": [],
+   "gate_dominated_by": [],
+   "worst_peer": "Birchwood Staff",
+   "worst_peer_wins": [
+    "wp",
+    "elem:Lightning",
+    "rider:MA+1"
+   ]
+  },
+  {
+   "id": 31,
+   "name": "Lightbringer",
+   "cat": "Sword",
+   "wp": 14,
+   "tier": 5,
+   "obtain": "Poach (Swine)",
+   "effort": 3,
+   "zero_axis_vs": [],
+   "gate_dominated_by": [],
+   "worst_peer": "Riposte",
+   "worst_peer_wins": [
+    "wp",
+    "elem:Holy"
+   ]
+  },
+  {
+   "id": 32,
+   "name": "Materia Blade",
+   "cat": "Sword",
+   "wp": 11,
+   "tier": 6,
+   "obtain": "Join (Cloud, with it equipped)",
+   "effort": 1,
+   "zero_axis_vs": [],
+   "gate_dominated_by": [
+    "Graviton"
+   ],
+   "worst_peer": "Graviton",
+   "worst_peer_wins": [
+    "lane:ma"
+   ]
+  },
+  {
+   "id": 23,
+   "name": "Sanguine Sword",
+   "cat": "Sword",
+   "wp": 10,
+   "tier": 3,
+   "obtain": "Steal (Gaffgarion)/Move-Find",
+   "effort": 2,
+   "zero_axis_vs": [],
+   "gate_dominated_by": [],
+   "worst_peer": "Vagabond",
+   "worst_peer_wins": [
+    "wp",
+    "onhit:Absorb HP",
+    "formula:6",
+    "plus3"
+   ]
+  }
+ ]
+}

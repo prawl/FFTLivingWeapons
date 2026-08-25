@@ -91,6 +91,7 @@ GROUPS = {
     ],
     "Data and doc one-shots (no game process needed)": [
         "add_dmg_col.py", "merge_grid.py", "merge_rods.py", "verify_descs.py",
+        "lw320_obtain_power.py",
         "verify_grant_slot.py", "fix_mojibake.py", "poach_diff.py", "read_state.py",
         "larceny_locate_probe.py", "find_counter.py", "rawrec.py", "roster_read.py",
         "crystal_counter_probe.py",
