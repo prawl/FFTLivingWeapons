@@ -10,6 +10,19 @@ before 2026-07-21 keep their original prose.
 
 ## 2.4.0 cycle
 
+- [LW-308] SHIPPED fda4f83 2026-08-24: The weapon colour painter now defends itself against
+  the quiet failure modes a post ship review named, none ever seen live. On every repaint it
+  checks the paint tin against its own memory: bytes that are neither the original colours nor
+  its own last work earn one loud log line per battle, and the painter keeps its first snapshot
+  rather than adopting a stranger's bytes. The colour bake refuses a file listing the same
+  weapon twice instead of letting the last row silently win, reports a garbled colour entry
+  like any other validation error instead of crashing, and the runtime strips the transparency
+  flag bit from baked codes so a corrupt bake cannot smuggle it into the game's palette. (Tech:
+  WeaponPalettePolicy.SnapshotSuspect plus a per battle warn guard and last-written tracking in
+  WeaponPalette.cs; bit 15 clamp to 0x7FFF in PaintBanks; attach_weapon_palettes lanes 6 and 7
+  with red first selftest cases in gen_living_weapon_meta.py; three C# mutations proven to
+  bite; full suite 3216 green.)
+
 - [LW-278] WONTFIX 2026-08-24: The plan to build a whole system for making new icon art,
   a style bible plus a machine judge plus a per family assembly line, is cancelled: the
   owner has found a different path to the same goal and directed that the system be

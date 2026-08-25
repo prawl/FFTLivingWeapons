@@ -132,46 +132,6 @@ belongs rather than at the bottom.
   Materia Blade reads palette 0 against a mapped X=8 Y=1. Note every probe before this one skipped
   palettes 0-2 as effects-only, which is how the miss survived.)
 
-- [LW-308] 2026-08-24: Harden the weapon colour painter against a bad first look. The painter
-  memorises each colour set's original colours the first time it paints them and trusts that
-  memory for the whole session; if that one first look ever caught bytes that were not the real
-  originals, every restore afterwards would write the wrong colours until the game restarts,
-  and colour set 0 (Materia Blade plus most swing arcs) is where that would show. An
-  adversarial review found no way to trigger it today but no defence either. Add a check on
-  later paints: when the current bytes match neither the memory nor what we last wrote, log
-  loudly (and consider re-memorising). Same batch: the colour bake should reject duplicate
-  weapon ids instead of quietly keeping the last one, report a malformed rgb entry through its
-  error list instead of a raw crash, and the runtime should strip bit 15 from baked codes
-  before writing. (Tech: WeaponPalette.cs _vanilla capture, gen_living_weapon_meta.py
-  colours_by_id last-win, PaintBanks code clamp to 0x7FFF; from the 2026-08-24 bug-hunt
-  review, no blocker, all four items are hardening.)
-
-- [LW-311] 2026-08-24: For the first seconds after a cold boot every weapon card claims zero
-  kills, because the baked card text carries a literal "Kills: 0/5" that the runtime later
-  paints over with the real count, and on a cold boot that paint takes five to ten seconds to
-  arrive. A player with a high count briefly sees a wrong number. Owner proposed a loading
-  notice; decided against because the baked text is also what shows FOREVER when the runtime
-  is absent or deliberately stood down, where "loading" reads as broken, and because angle
-  brackets are live markup in this engine's text renderer. Instead: bake a neutral non number
-  (dashes) in the same slot, honest whether or not the runtime is present. (Tech:
-  lib/flavor.py KILLS_SCAFFOLD, same length so the in place paint and its anchors hold;
-  touches the XML description bake AND the item.en.nxd manual rebuild; the scaffold lockstep
-  gates in analyze.py pin it and must move in the same commit.)
-
-- [LW-310] 2026-08-24: Counter attacks still swing in vanilla colours, and the owner wants them
-  painted too. Confirmed live with a staged test: an unauthored attacker swung at Ramza, his
-  Materia Blade counter came out vanilla, exactly the accepted limit the turn based painter
-  ships with. The candidate mechanism is already proven for a different purpose: the engine's
-  actor pointer parks on struck victims (documented as a kill credit trap), and the struck
-  victim is exactly the unit about to counter, so a paint keyed on that parking lands in the
-  window between the hit and the counter swing. Design sketch: a second painted slot for the
-  reaction unit, painted when the pointer parks on an authored wielder who is not the turn
-  owner, restored on the next turn edge. Attacker and victim sharing one palette stays a
-  residual. Needs a live probe of the parking to counter swing timing before any build.
-  (Tech: ActorPtr dwell semantics per [actorptr-dwell-semantics]; WeaponPalette.Policy gains a
-  reaction lane; the ~170ms effective tick must beat the counter animation start, measure
-  first.)
-
 - [LW-307] 2026-08-24: The game can colour its own text. The owner edited the world map's
   Camera Controls help text and proved the strings carry colour tags the renderer obeys: a
   well formed tag recoloured his inserted "Modded by prawl" text, a broken one printed the
