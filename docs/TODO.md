@@ -225,6 +225,17 @@ belongs rather than at the bottom.
   by meta.json's lane; the desc-budget gate must strip tags before counting since tags
   are bytes, not glyphs; ships as its own bake after the LW-322 live pass.)
 
+- [LW-331] 2026-08-25: A few weapons' cards still keep their proc a secret, the last
+  silent-power pocket: Faerie Harp's card never says it casts Sleep (only its flavor line
+  hints), and Siren's Lyre and Duskstring Harp are suspected of the same. Their procs are
+  recorded as PROSE in items.json's onHit field, but the mechanics generator only names
+  procs by ability ID, and these ids are not in its name maps, so no May-cast line prints.
+  Same disease the LW-320 ghost-proc ruling cured for seven other weapons; sweep every
+  weapon whose onHit prose is non-empty while its generated mechanics line says nothing,
+  then extend the CAST map (and the grid onHit cells) so the cards confess. (Tech: found
+  2026-08-25 rendering the per-type card examples; formula-2 elemless weapons with an oai
+  outside lib/flavor.py's CAST dict print nothing; check 92, 93, 94 first.)
+
 - [LW-330] 2026-08-25: The enemy AI cures Venombolt's poison, so the always-Poison
   crossbow's identity needs a look: the owner watched an enemy NPC spend its turn using a
   Remedy to cleanse the poison a Venombolt bolt had just applied (the bolt came from an
