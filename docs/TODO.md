@@ -215,6 +215,34 @@ belongs rather than at the bottom.
   the seat: capture the method here the moment the owner spells it out, and only then
   decide what happens to the queued per family art rows further down.
 
+- [LW-314] 2026-08-24: The last planned feature: units earn TITLES from how they behave
+  (kill many mages and the tag over your head reads Mage Slayer), delivered on the game's
+  own overhead plate. Tonight's CE session cracked the display path: every unit has one
+  auto battle byte that starts auto battle AND shows the Auto tag, and writing it forces
+  the tag to re render, the missing trigger for swapping the text. The tag's text is
+  COPIED from a source string into a per widget holder at show time and rendered to glyphs
+  once, so poking the holder alone shows nothing until the next re set; finding the source
+  is the next step, and the unbounded lane is the mod's existing render time text swap
+  hook. The plate also carries sibling text nodes (name, guest, special), so per unit text
+  is structurally supported. (Tech: auto byte = combat +0x1EC per unit, owner driven both
+  directions at FFT_enhanced.exe+1855ECC, band slot 0; 0 = manual, 12 decimal = 0x0C =
+  auto on, instruction mode encoding unchecked; manual control flag = combat +0x05 bit
+  0x08 with roster mirror partyUnit +0x04, from decompiling Dicene's fftivc.handsfree,
+  which hooks CopyUnitToBattleUnit, CopyJobEffectsToUnit and set_status_all to keep it
+  cleared; tag anim routine UpdateTagAnimFromBattleUnit reads the unit via anim +0x148;
+  widget states ShowAuto and HideAuto, text nodes TextAuto, TextName, TextGuest,
+  TextSpecial; probe tools/probes/auto_text_probe.py; ledger row [auto-battle-mode-byte].)
+  - HUNT PARKED 2026-08-24, owner call (juice not worth the squeeze): the tag's TEXT source
+    was not found, and the negatives are the valuable part. It is NOT any live string: the
+    owner rewrote every ASCII and wide "Auto" in memory and the tag still rendered, and a
+    poke of the one standalone message table entry (beside an <if template, the likely
+    earlier crash cause) changed nothing after a battle restart. The plate board
+    (ffto_battle_main_fieldunit.uib) holds only node and state names, no words. Best
+    remaining hypotheses: the word is baked ART in an undecoded battle atlas (ui_battle_05
+    held the command icons, not words), or glyphs are baked at boot from a source that
+    only reads once. Instruments: auto_text_probe.py verbs scan/classify/pokeall/check/
+    hold/autoflag/snap/flagdiff; FF16Tools unpack recipe proven on 0008.pac.
+
 - [LW-249] 2026-08-16: Nine poles grow the wrong stat, so a mage who levels a Whale Whisker
   gets thirty percent more muscle and not one point of extra spell power. Their damage runs on
   Magick Attack, but the growth code only recognises rods and staves as caster gear, so every

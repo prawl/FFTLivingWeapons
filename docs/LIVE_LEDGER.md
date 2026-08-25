@@ -1648,6 +1648,22 @@ The Gun Slinger / Crossfire twin grant (the [gunslinger-roster-offhand-support-w
 
 ## Uncertain — observed live, not yet isolated / built on
 
+### [auto-battle-mode-byte] Per-unit auto-battle byte at combat+0x1EC drives the behaviour AND the overhead Auto tag, and a write forces the tag to re-render
+
+Uncertain as of 2026-08-24: the owner isolated the byte in CE and drove it both directions live (0 = auto off, tag gone; 12 decimal = 0x0C = auto on, tag shown, AI acts), but the value's encoding (whether instruction modes change it) and the game's re-stamp behaviour are unprobed, and nothing is built on it yet.
+
+<details><summary>How we got here</summary>
+
+**Claim (original wording):** one byte per unit at combat+0x1EC turns vanilla auto-battle on and off; the overhead "Auto" tag follows the write, which also forces the tag's text to be re-set and re-rendered.
+
+**Mechanism:** the tag widget re-derives its state from the unit: Dicene's fftivc.handsfree decompile names UpdateTagAnimFromBattleUnit (unit ptr at anim+0x148) and the manual-control flag combat+0x05 bit 0x08 (roster mirror partyUnit+0x04) that his mod clears in CopyUnitToBattleUnit / CopyJobEffectsToUnit / set_status_all hooks, those three being the game's re-stamp points. The tag TEXT is copied from a source string into a per-widget heap holder at show time and rendered to glyphs ONCE: thirteen bare "Auto" holders were marker-poked live and none changed on screen, then an owner auto toggle rewrote exactly two of them back to "Auto" (the live overhead + timeline holders) while eleven spares kept their markers.
+
+**Evidence:** owner CE session 2026-08-24: FFT_enhanced.exe+1855ECC (= band slot 0 combat+0x1EC) written 0 and 12 both directions live, CE screenshot 21.42 (Found: 1, Previous 0, Value 12); tag and behaviour both followed. Probe rounds pre-crash: tools/probes/auto_text_probe.py classify (279 CE hits bucketed; the mass-poke crash class was node-name tables like TextAuto/ShowAuto), pokeall (13 holders marked, 11+ bytes slack each), check (exactly 2 rewritten on toggle). Decompile: ilspycmd over fftivc.handsfree.dll, session scratch only.
+
+**Date:** 2026-08-24
+
+</details>
+
 ### [card-materializes-from-named-pool] The equip card rebuilds its description text from the name-gated string pool at open, so painting the pool before the draw is what reaches the screen
 
 The claim that the specific NAME-GATED pool copy (the one `PoolLocatorPolicy`'s NameWindow gate keeps, as against the ~26 name-less transient render copies it deliberately drops) is the copy the equip card materialises from is Uncertain as of 2026-08-17: it is the premise the entire LW-37 pool-paint design rests on and it has never had a ledger row of its own. Everything supporting it is one grade below ledger-PROVEN, and the nearest PROVEN row, [flavor-line-overwrite-displays], cannot discriminate: that probe wrote EVERY site the whole-heap sweep had discovered, pool copies and render copies alike, so it proves the card renders from paintable heap buffers without naming WHICH.
