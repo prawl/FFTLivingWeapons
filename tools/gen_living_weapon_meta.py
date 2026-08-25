@@ -219,6 +219,44 @@ def attach_weapon_palettes(meta, colours_doc, overrides_doc):
     return errors
 
 
+def lane_of(grows_token, cat):
+    """Pure INTERIM mapping (LW-250): docs/living_weapon_grid.csv's locked `grows` design
+    token -> the runtime's baked growth-lane key GrowthEngine.Route switches on ("pa"/"ma"/
+    "speed"). Multi-lane tokens (PA+MA, PA+MA+Brave, WP, WP+Faith) collapse to whichever
+    single lane the CURRENT runtime already holds for that weapon family -- their real
+    multi-stat behavior is deferred to LW-317 (gated on LW-316's WP/Faith probe), so this
+    mapping keeps live behavior UNCHANGED this chunk; only the routing MECHANISM moves off
+    Cat/Formula inference onto this baked lane. No file I/O (selftest-drivable directly).
+    RAISES on an unknown token: a bad grows value must fail the bake loudly, never route
+    silently to nothing.
+    """
+    if grows_token == "PA":
+        return "pa"
+    if grows_token == "MA":
+        return "ma"
+    if grows_token == "Speed":
+        return "speed"
+    if grows_token == "HP":
+        # LATE OWNER AMENDMENT 2026-08-25: all Knight Swords. Tanky-knight design intent, but
+        # the runtime has no MaxHP-scaled growth lane yet -- interim-mapped to "pa" (today's
+        # behavior, unchanged) until LW-317 builds the real u16 MaxHP hold (clamp 999);
+        # LW-316 probes the attribution-fingerprint hazard first.
+        return "pa"
+    if grows_token == "PA+MA":
+        # id 32 Materia Blade is the only non-Pole PA+MA weapon; its PA lane is Ultima-owned
+        # anyway (Route declines an Ultima-signature weapon before ever reading Lane), so
+        # mapping it to "pa" here is inert for Materia Blade and correct for the nine Poles'
+        # real MA x WP damage math.
+        return "ma" if cat == "Pole" else "pa"
+    if grows_token == "PA+MA+Brave":
+        return "pa"
+    if grows_token == "WP":
+        return "pa"
+    if grows_token == "WP+Faith":
+        return "ma"
+    raise ValueError(f"lane_of: unknown grows token {grows_token!r} (cat={cat!r})")
+
+
 def main():
     doc = load_items()
     meta = {}
@@ -240,6 +278,11 @@ def main():
         entry = {
             "name": name, "wp": int(wp), "cat": cat, "formula": int(formula),
             "flavor": flavor_anchor(it),
+            # LW-250: the baked growth lane GrowthEngine.Route switches on, from items.json's
+            # top-level `grows` (docs/living_weapon_grid.csv's locked design) via the interim
+            # lane_of mapping above. Retired once LW-317 (gated on LW-316) gives multi-lane
+            # weapons their real N-stat behavior.
+            "lane": lane_of(it.get("grows"), cat),
         }
         sig = it.get("signature")
         if sig:   # iconic tier-grant; emit only the fields the runtime uses (drop curator notes).
@@ -277,7 +320,11 @@ def main():
         sys.exit("FAIL: weapon palette bake found " + str(len(errors)) + " problem(s):\n  "
                   + "\n  ".join(errors))
 
-    OUT.write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
+    # write_bytes, not write_text: Path.write_text applies the platform's newline
+    # translation on write, which silently turns this LF-only tracked file to CRLF on every
+    # Windows regen. json.dumps always emits plain newlines itself, so encoding straight to
+    # bytes keeps the bake byte-stable cross-platform.
+    OUT.write_bytes(json.dumps(meta, indent=2, ensure_ascii=False).encode("utf-8"))
     print(f"wrote {OUT} ({len(meta)} weapons)")
 
 
@@ -358,6 +405,32 @@ def selftest():
             check(f"lane7 {label}: listed as an error", len(errors) > 0)
         except Exception:
             check(f"lane7 {label}: listed as an error (CRASHED instead)", False)
+
+    # LW-250: lane_of, the pure grows-token -> baked-lane mapping (no file I/O, no fixtures).
+    check("lane_of PA -> pa", lane_of("PA", "Sword") == "pa")
+    check("lane_of MA -> ma", lane_of("MA", "Rod") == "ma")
+    check("lane_of Speed -> speed", lane_of("Speed", "Knife") == "speed")
+    # LATE OWNER AMENDMENT 2026-08-25: HP (all Knight Swords) interim-maps to "pa" -- tanky-
+    # knight design intent, but the real MaxHP-scaled hold is LW-317 (gated on LW-316).
+    check("lane_of HP -> pa (Knight Sword interim)", lane_of("HP", "KnightSword") == "pa")
+    # The Pole vs Materia Blade split: PA+MA collapses to "ma" for the nine Poles (real MA x
+    # WP damage math) but "pa" for every other PA+MA weapon (id 32 Materia Blade, whose PA is
+    # Ultima-owned anyway).
+    check("lane_of PA+MA on a Pole -> ma", lane_of("PA+MA", "Pole") == "ma")
+    check("lane_of PA+MA on Materia Blade's Sword category -> pa", lane_of("PA+MA", "Sword") == "pa")
+    check("lane_of PA+MA+Brave -> pa", lane_of("PA+MA+Brave", "Katana") == "pa")
+    check("lane_of WP -> pa", lane_of("WP", "Gun") == "pa")
+    check("lane_of WP+Faith -> ma", lane_of("WP+Faith", "Gun") == "ma")
+    try:
+        lane_of("SPD", "Knife")
+        check("lane_of unknown token raises", False)
+    except ValueError:
+        check("lane_of unknown token raises", True)
+    # Every grows token in the locked vocabulary resolves to one of the three real runtime
+    # lanes GrowthEngine.Route switches on -- no token is left mapping to nothing.
+    all_tokens = ["PA", "MA", "Speed", "HP", "PA+MA", "PA+MA+Brave", "WP", "WP+Faith"]
+    lanes = {lane_of(tok, "Sword") for tok in all_tokens} | {lane_of("PA+MA", "Pole")}
+    check("every grows token maps to a real lane", lanes <= {"pa", "ma", "speed"})
 
     passed = sum(1 for _, ok in cases if ok)
     for name, ok in cases:

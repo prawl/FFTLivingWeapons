@@ -163,4 +163,33 @@ public class MetaSchemaTests : IDisposable
         Assert.NotNull(galewind.Colors);
         Assert.Equal(15, galewind.Colors!.Length);
     }
+
+    // LW-250: pins the committed bake's growth-lane keys, the "routing matches bake" half of
+    // the ledger's Verify bullet made mechanical. The four missing-HP weapons (Wrathblade,
+    // Muramasa, Climhazzard, Tombspire) previously grew NOTHING under the formula-driven
+    // Route (Tuning.SkipFormula) -- they must now carry the baked "speed" lane. Arcanum (the
+    // rider-rule MA exception) and Holy Lance (the plain-Polearm PA regression guard) pin the
+    // opposite corners of the same table. LATE OWNER AMENDMENT 2026-08-25: Defender (id 33,
+    // Knight Sword) pins the new "HP" grows token's interim bake -- Knight Swords stay on the
+    // "pa" lane (today's behavior, unchanged) until LW-317's real MaxHP hold.
+    [Fact]
+    public void RepoMeta_LanesMatchTheLockedTable()
+    {
+        var map = MetaLoader.Load(Path.GetDirectoryName(RepoMetaPath())!);
+
+        foreach (int id in new[] { 27, 44, 69, 103 })
+        {
+            Assert.True(map.TryGetValue(id, out var m), $"id{id} missing from meta.json");
+            Assert.Equal("speed", m.Lane);
+        }
+
+        Assert.True(map.TryGetValue(30, out var arcanum), "id30 (Arcanum) missing from meta.json");
+        Assert.Equal("ma", arcanum.Lane);
+
+        Assert.True(map.TryGetValue(104, out var holyLance), "id104 (Holy Lance) missing from meta.json");
+        Assert.Equal("pa", holyLance.Lane);
+
+        Assert.True(map.TryGetValue(33, out var defender), "id33 (Defender) missing from meta.json");
+        Assert.Equal("pa", defender.Lane);
+    }
 }

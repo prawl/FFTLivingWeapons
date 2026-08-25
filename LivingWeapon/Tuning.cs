@@ -318,14 +318,6 @@ internal static class Tuning
     /// (~one full round). Bounds the possession safely without a per-unit clock.</summary>
     public const int PuppeteerWielderlessFallbackTurns = 12;
 
-    /// <summary>Caster gear grows Magick Attack instead of Physical (a mage kills with spells).</summary>
-    /// <summary>Categories whose growth feeds Magick Attack. Pole joined 2026-08-24 (LW-249):
-    /// every pole's damage is MA x WP per docs/living_weapon_grid.csv's dmgScaling column (ids
-    /// 48, 107-114), so PA growth was a stat their swings could never cash. Rod stays here even
-    /// though five rods scale PA x WP in that grid: demoting rods is part of the parked LW-250
-    /// formula-lane redesign, an owner decision, not a bug fix.</summary>
-    public static bool IsCaster(string category) => category == "Rod" || category == "Staff" || category == "Pole";
-
     // ── Toasts ────────────────────────────────────────────────────────
 
     /// <summary>Compiled BannerToasts default, now the SOLE source since LW-52 removed the launcher
@@ -344,15 +336,6 @@ internal static class Tuning
         new[] { 125, 116, 86, 76, 56 },  // +2  (10-14)
         new[] { 130, 120, 90, 80, 60 },  // +3  (15+)
     };
-
-    /// <summary>Missing-HP formulas ignore every stat -> no growth lever.</summary>
-    public static bool SkipFormula(int formula) => formula == 67 || formula == 69;
-
-    /// <summary>Speed-scaling weapons (Swiftfang / Swiftedge).</summary>
-    public static bool IsSpeedFormula(int formula) => formula == 99;
-
-    /// <summary>Magic-cast weapons (magic guns) scale off Magick Attack.</summary>
-    public static bool IsMagicCastFormula(int formula) => formula == 4;
 
     /// <summary>Plague (Venombolt +3): engine deals mhp/8 per-poison-tick; the runtime adds
     /// mhp*<see cref="PlagueExtraDamageNum"/>/<see cref="PlagueExtraDamageDen"/> on each

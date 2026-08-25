@@ -156,17 +156,29 @@ internal sealed partial class GrowthEngine
 
     /// <summary>Pick the stat address + factor + ledger lane for a weapon, or false to skip.
     /// Internal static (LW-249): the decision depends only on the meta and Tuning, and the
-    /// table was previously unpinned, which is exactly where the pole mis-route hid.</summary>
+    /// table was previously unpinned, which is exactly where the pole mis-route hid.
+    /// LW-250: ownership bails still come FIRST (Afterimage/Ultima/Mushin each own a stat
+    /// outright); past that, a straight switch on the BAKED WeaponMeta.Lane (the grid's
+    /// locked `grows` design, interim-mapped by gen_living_weapon_meta.py's lane_of)
+    /// replaces the old Cat/Formula inference. Empty/unknown lane = no growth, never a
+    /// guess -- a missing lane must never silently write a stat.</summary>
     internal static bool Route(long s, WeaponMeta m, int tier, out long addr, out double factor, out StatLane lane)
     {
         lane = StatLane.Pa;
-        if (Tuning.SkipFormula(m.Formula)) { addr = 0; factor = 0; return false; }
         if (OwnsSpeed(m)) { addr = 0; factor = 0; return false; }   // Afterimage owns Speed (HoldAfterimage)
         if (OwnsPa(m)) { addr = 0; factor = 0; return false; }     // Ultima owns PA (HoldUltima)
         if (OwnsMushin(m)) { addr = 0; factor = 0; return false; } // Mushin owns PA (HoldMushin)
-        if (Tuning.IsSpeedFormula(m.Formula)) { addr = s + Offsets.CSpeed; factor = Tuning.SpeedFactor[tier]; lane = StatLane.Speed; return true; }
-        if (Tuning.IsCaster(m.Cat) || Tuning.IsMagicCastFormula(m.Formula)) { addr = s + Offsets.CMa; factor = Tuning.Factor[tier]; lane = StatLane.Ma; return true; }
-        addr = s + Offsets.CPa; factor = Tuning.Factor[tier]; return true;
+        switch (m.Lane)
+        {
+            case "speed":
+                addr = s + Offsets.CSpeed; factor = Tuning.SpeedFactor[tier]; lane = StatLane.Speed; return true;
+            case "ma":
+                addr = s + Offsets.CMa; factor = Tuning.Factor[tier]; lane = StatLane.Ma; return true;
+            case "pa":
+                addr = s + Offsets.CPa; factor = Tuning.Factor[tier]; return true;
+            default:
+                addr = 0; factor = 0; return false;   // stale/missing lane: no growth, never a guess
+        }
     }
 
     /// <summary>Hold the stat at target, surviving the per-battle reset. Re-application keys off the

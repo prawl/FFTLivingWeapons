@@ -5,6 +5,7 @@
     "cat": "Knife",
     "formula": 1,
     "flavor": "First steel of a guttersnipe's trade, light to palm and cheap to abandon in flight.",
+    "lane": "speed",
     "palette": 14,
     "colors": [
       7459,
@@ -30,6 +31,7 @@
     "cat": "Knife",
     "formula": 1,
     "flavor": "Quenched to a liquid sheen, it slips aside as readily as it slips between ribs.",
+    "lane": "speed",
     "palette": 15,
     "colors": [
       3660,
@@ -55,6 +57,7 @@
     "cat": "Knife",
     "formula": 45,
     "flavor": "Its edge swims with gloom; each wound steals a foe's daylight.",
+    "lane": "speed",
     "signature": {
       "abilityId": 213,
       "slot": "support",
@@ -86,6 +89,7 @@
     "cat": "Knife",
     "formula": 45,
     "flavor": "Smith-wrought to throttle the throat; a chant dies unspoken the instant it draws blood.",
+    "lane": "speed",
     "signature": {
       "abilityId": 212,
       "slot": "support",
@@ -117,6 +121,7 @@
     "cat": "Knife",
     "formula": 1,
     "flavor": "Balanced to the grain and burnished bright, the dirk a silversmith sets aside for himself.",
+    "lane": "speed",
     "palette": 13,
     "colors": [
       11394,
@@ -142,6 +147,7 @@
     "cat": "Knife",
     "formula": 48,
     "flavor": "A duelist's parrying knife that drinks the blood it turns aside to mend its own bearer.",
+    "lane": "speed",
     "signature": {
       "abilityId": 210,
       "slot": "support",
@@ -173,6 +179,7 @@
     "cat": "Knife",
     "formula": 1,
     "flavor": "Honed past sense into a tooth of cold adamant: it bites to the bone and shields nothing.",
+    "lane": "speed",
     "palette": 5,
     "colors": [
       4164,
@@ -198,6 +205,7 @@
     "cat": "Knife",
     "formula": 1,
     "flavor": "One graze starts a quiet count that death collects.",
+    "lane": "speed",
     "signature": {
       "abilityId": 209,
       "slot": "support",
@@ -230,6 +238,7 @@
     "cat": "Knife",
     "formula": 1,
     "flavor": "A coiled gust, loosed with every keening stroke.",
+    "lane": "speed",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -262,6 +271,7 @@
     "cat": "Knife",
     "formula": 1,
     "flavor": "A knife manufactured in a region renowned for its blades.",
+    "lane": "speed",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -293,6 +303,7 @@
     "cat": "NinjaBlade",
     "formula": 99,
     "flavor": "So weightless it leads the hand rather than follows; swifter the wielder, crueler the cut.",
+    "lane": "speed",
     "palette": 14,
     "colors": [
       2148,
@@ -318,6 +329,7 @@
     "cat": "NinjaBlade",
     "formula": 1,
     "flavor": "A blade veiled in cold mist that stings the eyes of all it cuts.",
+    "lane": "speed",
     "palette": 14,
     "colors": [
       7237,
@@ -343,6 +355,7 @@
     "cat": "NinjaBlade",
     "formula": 2,
     "flavor": "Tempered in winter's heart, its kiss leaves frost, and a deeper cold where it sinks.",
+    "lane": "speed",
     "palette": 15,
     "colors": [
       2178,
@@ -368,6 +381,7 @@
     "cat": "NinjaBlade",
     "formula": 2,
     "flavor": "Christened for the thunder god, it carries his storm and looses it at the touch of flesh.",
+    "lane": "speed",
     "palette": 3,
     "colors": [
       6216,
@@ -393,6 +407,7 @@
     "cat": "NinjaBlade",
     "formula": 1,
     "flavor": "Drawn against the spellbound, it stops a chant mid-breath; the silence finishes the deed.",
+    "lane": "speed",
     "palette": 4,
     "colors": [
       2115,
@@ -418,6 +433,7 @@
     "cat": "NinjaBlade",
     "formula": 1,
     "flavor": "A legendary ninja's sword.",
+    "lane": "speed",
     "palette": 13,
     "colors": [
       5219,
@@ -443,6 +459,7 @@
     "cat": "NinjaBlade",
     "formula": 1,
     "flavor": "An exquisitely crafted ninja sword that was once used by a secret society.",
+    "lane": "speed",
     "palette": 6,
     "colors": [
       6342,
@@ -468,6 +485,7 @@
     "cat": "NinjaBlade",
     "formula": 1,
     "flavor": "A powerful ninja sword that was once used by a secret society.",
+    "lane": "speed",
     "palette": 5,
     "colors": [
       2148,
@@ -493,6 +511,7 @@
     "cat": "Sword",
     "formula": 1,
     "flavor": "A wanderer's blade worn smooth by the road, slim enough to slip a blow before it falls.",
+    "lane": "pa",
     "palette": 14,
     "colors": [
       2148,
@@ -518,6 +537,7 @@
     "cat": "Sword",
     "formula": 2,
     "flavor": "Broad and heavy at the edge, it parries nothing; it drives a foe back off their feet.",
+    "lane": "pa",
     "palette": 14,
     "colors": [
       5218,
@@ -543,6 +563,7 @@
     "cat": "Sword",
     "formula": 2,
     "flavor": "A duelist's sword balanced to catch an incoming stroke and return it in the same breath.",
+    "lane": "pa",
     "palette": 3,
     "colors": [
       3170,
@@ -568,6 +589,7 @@
     "cat": "Sword",
     "formula": 2,
     "flavor": "A heavy greatsword whose reach lets its bearer cut a pace beyond the foe's swing.",
+    "lane": "pa",
     "palette": 15,
     "colors": [
       2179,
@@ -593,6 +615,7 @@
     "cat": "Sword",
     "formula": 6,
     "flavor": "A sellsword who drank the fallen.",
+    "lane": "pa",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -625,6 +648,7 @@
     "cat": "Sword",
     "formula": 2,
     "flavor": "Drawn from coral and storm alike, its edge mutters with thunder waiting to leap free.",
+    "lane": "pa",
     "palette": 7,
     "colors": [
       3171,
@@ -650,6 +674,7 @@
     "cat": "Sword",
     "formula": 1,
     "flavor": "A briar-marked blade said to send roots through any it strikes, fixing them to the earth.",
+    "lane": "pa",
     "palette": 8,
     "colors": [
       5155,
@@ -675,6 +700,7 @@
     "cat": "Sword",
     "formula": 2,
     "flavor": "A waving, flame-shaped edge that kindles where it lands, leaving the unclean to smolder.",
+    "lane": "pa",
     "palette": 15,
     "colors": [
       2116,
@@ -700,6 +726,7 @@
     "cat": "Sword",
     "formula": 67,
     "flavor": "Ruin feeds it.",
+    "lane": "speed",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -732,6 +759,7 @@
     "cat": "Sword",
     "formula": 99,
     "flavor": "Bites harder the faster you strike.",
+    "lane": "speed",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -764,6 +792,7 @@
     "cat": "Sword",
     "formula": 2,
     "flavor": "A dull, leaden edge that calls down a crushing weight, dragging the proudest foe down.",
+    "lane": "pa",
     "palette": 7,
     "colors": [
       3171,
@@ -789,6 +818,7 @@
     "cat": "Sword",
     "formula": 1,
     "flavor": "Runes crawl its fuller, and at a touch unwind whatever wards a foe wraps about itself.",
+    "lane": "ma",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -821,6 +851,7 @@
     "cat": "Sword",
     "formula": 2,
     "flavor": "Hallowed steel that wakes with a dawn-white glow, scouring shadow and dead flesh away.",
+    "lane": "pa",
     "palette": 8,
     "colors": [
       7170,
@@ -846,6 +877,7 @@
     "cat": "Sword",
     "formula": 1,
     "flavor": "Cloud's sword, made for SOLDIER's elite to fight to their full potential.",
+    "lane": "pa",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -878,6 +910,7 @@
     "cat": "KnightSword",
     "formula": 1,
     "flavor": "A broad-bladed knight's sword with jewels embedded in its pommel.",
+    "lane": "pa",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -910,6 +943,7 @@
     "cat": "KnightSword",
     "formula": 1,
     "flavor": "A knight's sword given as a symbol of an oath of fealty. It has been blessed with a ward of protection.",
+    "lane": "pa",
     "palette": 15,
     "colors": [
       4194,
@@ -935,6 +969,7 @@
     "cat": "KnightSword",
     "formula": 1,
     "flavor": "Only the true heir may wield this legendary sword, granted fleetness of foot and divine might.",
+    "lane": "pa",
     "palette": 8,
     "colors": [
       367,
@@ -960,6 +995,7 @@
     "cat": "KnightSword",
     "formula": 1,
     "flavor": "A knight's sword named in tales of the world's end. It wards against spellcraft.",
+    "lane": "pa",
     "palette": 14,
     "colors": [
       2148,
@@ -985,6 +1021,7 @@
     "cat": "KnightSword",
     "formula": 1,
     "flavor": "This holy knight's sword is said to have been a gift from the gods themselves, and possesses mystical powers.",
+    "lane": "pa",
     "palette": 5,
     "colors": [
       4164,
@@ -1010,6 +1047,7 @@
     "cat": "Katana",
     "formula": 2,
     "flavor": "A katana with a brilliant white blade.",
+    "lane": "pa",
     "palette": 13,
     "colors": [
       4162,
@@ -1035,6 +1073,7 @@
     "cat": "Katana",
     "formula": 1,
     "flavor": "A katana whose blade is adorned with a breathtaking carving of a tiger.",
+    "lane": "pa",
     "palette": 13,
     "colors": [
       4162,
@@ -1060,6 +1099,7 @@
     "cat": "Katana",
     "formula": 47,
     "flavor": "A katana with a blade forged of the finest iron sand by master swordsmith Nagamitsu Osafune, of the eastern land of Bizen.",
+    "lane": "pa",
     "palette": 13,
     "colors": [
       4162,
@@ -1085,6 +1125,7 @@
     "cat": "Katana",
     "formula": 1,
     "flavor": "Referred to as a demon sword, this katana's keen blade showers blood upon the battlefield.",
+    "lane": "pa",
     "palette": 5,
     "colors": [
       2116,
@@ -1110,6 +1151,7 @@
     "cat": "Katana",
     "formula": 1,
     "flavor": "This katana echoes a legendary blade plucked from the tail of a marauding eastern dragon.",
+    "lane": "pa",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -1142,6 +1184,7 @@
     "cat": "Katana",
     "formula": 1,
     "flavor": "This exquisitely crafted katana has a beautifully patterned blade and an incredible cutting edge.",
+    "lane": "pa",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -1174,6 +1217,7 @@
     "cat": "Katana",
     "formula": 67,
     "flavor": "This katana is said to have drunk the blood of countless enemies.",
+    "lane": "speed",
     "palette": 6,
     "colors": [
       1092,
@@ -1199,6 +1243,7 @@
     "cat": "Katana",
     "formula": 2,
     "flavor": "A katana with a hilt in the shape of a chrysanthemum.",
+    "lane": "pa",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -1231,6 +1276,7 @@
     "cat": "Katana",
     "formula": 1,
     "flavor": "This katana was forged by a master swordsmith, and its sheath is inlaid with beautiful patterns.",
+    "lane": "pa",
     "palette": 15,
     "colors": [
       4194,
@@ -1256,6 +1302,7 @@
     "cat": "Katana",
     "formula": 1,
     "flavor": "This katana is decorated with intricate designs and boasts a wickedly sharp edge.",
+    "lane": "pa",
     "palette": 8,
     "colors": [
       102,
@@ -1281,6 +1328,7 @@
     "cat": "Pole",
     "formula": 1,
     "flavor": "Quarried from old bedrock, it strikes with the slow patience of shifting earth.",
+    "lane": "ma",
     "palette": 13,
     "colors": [
       4161,
@@ -1306,6 +1354,7 @@
     "cat": "KnightSword",
     "formula": 1,
     "flavor": "A savage cleaving thing that pours its own blind frenzy into every wound it tears open.",
+    "lane": "pa",
     "palette": 14,
     "colors": [
       2118,
@@ -1331,6 +1380,7 @@
     "cat": "KnightSword",
     "formula": 46,
     "flavor": "A spiteful edge made less to slay than to ruin; it shatters what it meets.",
+    "lane": "pa",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -1363,6 +1413,7 @@
     "cat": "Rod",
     "formula": 47,
     "flavor": "An apprentice's rod that drinks a foe's magic dry at every tap, never wanting for power.",
+    "lane": "ma",
     "palette": 14,
     "colors": [
       4194,
@@ -1388,6 +1439,7 @@
     "cat": "Rod",
     "formula": 4,
     "flavor": "Caged storm; each blow lets the thunder out.",
+    "lane": "ma",
     "palette": 9,
     "colors": [
       4162,
@@ -1413,6 +1465,7 @@
     "cat": "Rod",
     "formula": 4,
     "flavor": "Embers smolder in its heart, eager to set a foe ablaze.",
+    "lane": "ma",
     "palette": 9,
     "colors": [
       4163,
@@ -1438,6 +1491,7 @@
     "cat": "Rod",
     "formula": 4,
     "flavor": "Where it points, the air turns to killing winter.",
+    "lane": "ma",
     "palette": 12,
     "colors": [
       3170,
@@ -1463,6 +1517,7 @@
     "cat": "Rod",
     "formula": 1,
     "flavor": "A warded rod that keeps its bearer's voice when every other throat in the field is hushed.",
+    "lane": "ma",
     "palette": 9,
     "colors": [
       3202,
@@ -1488,6 +1543,7 @@
     "cat": "Rod",
     "formula": 1,
     "flavor": "Dark answers its bearer.",
+    "lane": "ma",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -1520,6 +1576,7 @@
     "cat": "Rod",
     "formula": 1,
     "flavor": "A rod wielded by a dragon master. Its tip is made from carved dragon bone.",
+    "lane": "ma",
     "palette": 10,
     "colors": [
       2146,
@@ -1545,6 +1602,7 @@
     "cat": "Rod",
     "formula": 1,
     "flavor": "It purges doubt, leaving only faith.",
+    "lane": "ma",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -1577,6 +1635,7 @@
     "cat": "Staff",
     "formula": 1,
     "flavor": "A plain length of green birch, the first staff pressed into any apprentice's hands.",
+    "lane": "ma",
     "palette": 13,
     "colors": [
       4226,
@@ -1602,6 +1661,7 @@
     "cat": "Staff",
     "formula": 1,
     "flavor": "Bound with a warlock's hex, it turns hostile spells back upon the throats that spoke them.",
+    "lane": "ma",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -1634,6 +1694,7 @@
     "cat": "Staff",
     "formula": 7,
     "flavor": "White-lacquered and consecrated, its touch knits living flesh and withers the dead.",
+    "lane": "ma",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -1666,6 +1727,7 @@
     "cat": "Staff",
     "formula": 1,
     "flavor": "A consecrated stave that lets no enchantment seal its bearer's lips, however loud the din.",
+    "lane": "ma",
     "palette": 14,
     "colors": [
       2148,
@@ -1691,6 +1753,7 @@
     "cat": "Staff",
     "formula": 4,
     "flavor": "Its crown smolders with caged flame; the warmth keeps restless feet quick afield.",
+    "lane": "ma",
     "palette": 13,
     "colors": [
       4194,
@@ -1716,6 +1779,7 @@
     "cat": "Staff",
     "formula": 1,
     "flavor": "A gilded stave that gathers sacred light and gives it back tenfold.",
+    "lane": "ma",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -1748,6 +1812,7 @@
     "cat": "Staff",
     "formula": 1,
     "flavor": "A staff that increases the might of its user.",
+    "lane": "ma",
     "palette": 5,
     "colors": [
       1156,
@@ -1773,6 +1838,7 @@
     "cat": "Staff",
     "formula": 1,
     "flavor": "An ordinary-looking wooden stick with a curious stone embedded in its tip.",
+    "lane": "ma",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -1805,6 +1871,7 @@
     "cat": "Sword",
     "formula": 1,
     "flavor": "A graceless slab of war-iron with no guile to it, only a weight that breaks what it meets.",
+    "lane": "pa",
     "palette": 15,
     "colors": [
       2148,
@@ -1830,6 +1897,7 @@
     "cat": "Knife",
     "formula": 45,
     "flavor": "Cruelly serrated and slick with venom; it leaves no clean cut, only a wound that festers.",
+    "lane": "speed",
     "palette": 9,
     "colors": [
       4514,
@@ -1855,6 +1923,7 @@
     "cat": "NinjaBlade",
     "formula": 69,
     "flavor": "A mercy for the dying: it glances off the hale, guts the bleeding.",
+    "lane": "speed",
     "palette": 10,
     "colors": [
       2147,
@@ -1880,6 +1949,7 @@
     "cat": "Katana",
     "formula": 1,
     "flavor": "A barbed, scorpion-named katana whose every sting marks a foe for a slow, certain death.",
+    "lane": "pa",
     "palette": 13,
     "colors": [
       3428,
@@ -1905,6 +1975,7 @@
     "cat": "Gun",
     "formula": 3,
     "flavor": "A wheel-lock that throws its shot farthest.",
+    "lane": "pa",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -1937,6 +2008,7 @@
     "cat": "Gun",
     "formula": 3,
     "flavor": "An iron-framed repeater for the long road; it hits harder than the pistol and never jams.",
+    "lane": "pa",
     "palette": 10,
     "colors": [
       3138,
@@ -1962,6 +2034,7 @@
     "cat": "Gun",
     "formula": 3,
     "flavor": "A heavy gun bored to spit earthen shards; each shot lands like a sliding mountain.",
+    "lane": "pa",
     "palette": 14,
     "colors": [
       1125,
@@ -1987,6 +2060,7 @@
     "cat": "Gun",
     "formula": 4,
     "flavor": "A magickal firearm that shoots freezing bullets.",
+    "lane": "ma",
     "palette": 13,
     "colors": [
       5185,
@@ -2012,6 +2086,7 @@
     "cat": "Gun",
     "formula": 4,
     "flavor": "A magickal firearm that shoots flaming bullets.",
+    "lane": "ma",
     "palette": 14,
     "colors": [
       1093,
@@ -2037,6 +2112,7 @@
     "cat": "Gun",
     "formula": 4,
     "flavor": "A magickal firearm that shoots electrically charged bullets.",
+    "lane": "ma",
     "palette": 11,
     "colors": [
       2178,
@@ -2062,6 +2138,7 @@
     "cat": "Crossbow",
     "formula": 2,
     "flavor": "A featherlight crossbow a scout slings on one shoulder, drawn quick and loosed quicker.",
+    "lane": "pa",
     "palette": 14,
     "colors": [
       4162,
@@ -2087,6 +2164,7 @@
     "cat": "Crossbow",
     "formula": 1,
     "flavor": "Its quarrel marks a foe who sees no dusk.",
+    "lane": "pa",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -2119,6 +2197,7 @@
     "cat": "Crossbow",
     "formula": 1,
     "flavor": "A steel arbalest cranked taut as a war-engine.",
+    "lane": "pa",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -2151,6 +2230,7 @@
     "cat": "Crossbow",
     "formula": 45,
     "flavor": "Its quarrels creep with a slow, festering venom.",
+    "lane": "pa",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -2182,6 +2262,7 @@
     "cat": "Crossbow",
     "formula": 45,
     "flavor": "A crossbow whose bolts burst with clinging pitch, leaving the quarry slick for the spark.",
+    "lane": "pa",
     "palette": 3,
     "colors": [
       3175,
@@ -2207,6 +2288,7 @@
     "cat": "Crossbow",
     "formula": 1,
     "flavor": "A siege-grade crossbow scaled for a strong back, driving a quarrel to crack a shield wall.",
+    "lane": "pa",
     "palette": 15,
     "colors": [
       2148,
@@ -2232,6 +2314,7 @@
     "cat": "Bow",
     "formula": 1,
     "flavor": "A slender hunting bow that prizes the quick step; loosed and gone before the answer comes.",
+    "lane": "speed",
     "palette": 13,
     "colors": [
       5154,
@@ -2257,6 +2340,7 @@
     "cat": "Bow",
     "formula": 1,
     "flavor": "Worked from pale silver, light as nothing, it dances clear of every blow without a trick.",
+    "lane": "speed",
     "palette": 7,
     "colors": [
       3140,
@@ -2282,6 +2366,7 @@
     "cat": "Bow",
     "formula": 2,
     "flavor": "Carved from rimed wood that never thaws; its arrows carry the chill of a frozen lake.",
+    "lane": "speed",
     "palette": 14,
     "colors": [
       2179,
@@ -2307,6 +2392,7 @@
     "cat": "Bow",
     "formula": 2,
     "flavor": "Storm-wired.",
+    "lane": "speed",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -2340,6 +2426,7 @@
     "cat": "Bow",
     "formula": 2,
     "flavor": "A tall bow that lofts arrows on the wind, arcing over crag to pluck a foe from any perch.",
+    "lane": "speed",
     "palette": 3,
     "colors": [
       1187,
@@ -2365,6 +2452,7 @@
     "cat": "Bow",
     "formula": 2,
     "flavor": "A bow that hisses like surf and stills the throat it finds.",
+    "lane": "speed",
     "palette": 14,
     "colors": [
       3202,
@@ -2390,6 +2478,7 @@
     "cat": "Bow",
     "formula": 2,
     "flavor": "Balanced so fine that hand and target seem joined in flight.",
+    "lane": "speed",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -2422,6 +2511,7 @@
     "cat": "Bow",
     "formula": 1,
     "flavor": "The bow of a legendary archer, drawn for great power.",
+    "lane": "speed",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -2454,6 +2544,7 @@
     "cat": "Bow",
     "formula": 1,
     "flavor": "The bow of a mythical hero. It is constructed entirely of metal and requires great strength to draw.",
+    "lane": "speed",
     "palette": 15,
     "colors": [
       14593,
@@ -2479,6 +2570,7 @@
     "cat": "Instrument",
     "formula": 2,
     "flavor": "A harp whose airs ride the gathering wind, luring the unwary into a fog of confusion.",
+    "lane": "ma",
     "palette": 8,
     "colors": [
       3200,
@@ -2504,6 +2596,7 @@
     "cat": "Instrument",
     "formula": 2,
     "flavor": "Strung for twilight songs that smear a listener's sight to dusk as they stand entranced.",
+    "lane": "ma",
     "palette": 6,
     "colors": [
       7431,
@@ -2529,6 +2622,7 @@
     "cat": "Instrument",
     "formula": 2,
     "flavor": "The pure sound of this harp can charm those who hear it played.",
+    "lane": "ma",
     "palette": 15,
     "colors": [
       2148,
@@ -2554,6 +2648,7 @@
     "cat": "Book",
     "formula": 2,
     "flavor": "A street orator's folio, its arguments so dazzling they leave the heckler blinking, lost.",
+    "lane": "ma",
     "palette": 13,
     "colors": [
       10338,
@@ -2579,6 +2674,7 @@
     "cat": "Book",
     "formula": 1,
     "flavor": "A codex of beasts and their endings; to be named in its pages is to be promised the grave.",
+    "lane": "ma",
     "palette": 14,
     "colors": [
       4163,
@@ -2604,6 +2700,7 @@
     "cat": "Book",
     "formula": 2,
     "flavor": "A codex of binding sigils that fix a reader's feet fast, rooted by the words' own weight.",
+    "lane": "ma",
     "palette": 10,
     "colors": [
       2182,
@@ -2629,6 +2726,7 @@
     "cat": "Book",
     "formula": 1,
     "flavor": "A book said to contain every word of every known language.",
+    "lane": "ma",
     "palette": 11,
     "colors": [
       37,
@@ -2654,6 +2752,7 @@
     "cat": "Polearm",
     "formula": 1,
     "flavor": "A plain ash spear cut to reach a foe a pace beyond a sword's swing, and nothing more.",
+    "lane": "pa",
     "palette": 13,
     "colors": [
       4163,
@@ -2679,6 +2778,7 @@
     "cat": "Polearm",
     "formula": 1,
     "flavor": "Issued to every footsoldier; it thrusts clean from the second rank, out of the press.",
+    "lane": "pa",
     "palette": 13,
     "colors": [
       1124,
@@ -2704,6 +2804,7 @@
     "cat": "Polearm",
     "formula": 2,
     "flavor": "Ice clings to its head; a deep thrust leaves frost in the wound.",
+    "lane": "pa",
     "palette": 15,
     "colors": [
       5191,
@@ -2729,6 +2830,7 @@
     "cat": "Polearm",
     "formula": 2,
     "flavor": "A charged partisan that calls a bolt down as steel meets flesh.",
+    "lane": "pa",
     "palette": 10,
     "colors": [
       2115,
@@ -2754,6 +2856,7 @@
     "cat": "Polearm",
     "formula": 69,
     "flavor": "Spares the hale; pins the bleeding.",
+    "lane": "speed",
     "palette": 4,
     "colors": [
       2147,
@@ -2779,6 +2882,7 @@
     "cat": "Polearm",
     "formula": 2,
     "flavor": "A sacred lance clad in light.",
+    "lane": "pa",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -2813,6 +2917,7 @@
     "cat": "Polearm",
     "formula": 2,
     "flavor": "A spear made from a mysterious material that some say is the whisker of a dragon.",
+    "lane": "pa",
     "palette": 12,
     "colors": [
       6275,
@@ -2838,6 +2943,7 @@
     "cat": "Polearm",
     "formula": 1,
     "flavor": "A far-tagging pike, light as a squall; then doom gathers.",
+    "lane": "pa",
     "palette": 8,
     "colors": [
       2209,
@@ -2863,6 +2969,7 @@
     "cat": "Pole",
     "formula": 2,
     "flavor": "Cut from green wood for the unblooded; a focused blow flings martial spirit a pace off.",
+    "lane": "ma",
     "palette": 12,
     "colors": [
       2177,
@@ -2888,6 +2995,7 @@
     "cat": "Pole",
     "formula": 1,
     "flavor": "Reed banded with iron, springy and swift, suited to a hand that prizes speed over weight.",
+    "lane": "ma",
     "palette": 10,
     "colors": [
       3139,
@@ -2913,6 +3021,7 @@
     "cat": "Pole",
     "formula": 1,
     "flavor": "Wax-scented, slow to swing; its measured taps coax the watchful into heavy-lidded sleep.",
+    "lane": "ma",
     "palette": 15,
     "colors": [
       4358,
@@ -2938,6 +3047,7 @@
     "cat": "Pole",
     "formula": 1,
     "flavor": "A folded-iron war-fan that beats the air shut round a chanting mouth, stealing its spell.",
+    "lane": "ma",
     "palette": 3,
     "colors": [
       3170,
@@ -2963,6 +3073,7 @@
     "cat": "Pole",
     "formula": 1,
     "flavor": "Worn smooth by a sage's grip; no trick to it, only the weight of a practiced strike.",
+    "lane": "ma",
     "palette": 6,
     "colors": [
       4295,
@@ -2988,6 +3099,7 @@
     "cat": "Pole",
     "formula": 1,
     "flavor": "A pole made from ivory that has been specially treated for improved durability.",
+    "lane": "ma",
     "palette": 12,
     "colors": [
       3139,
@@ -3013,6 +3125,7 @@
     "cat": "Pole",
     "formula": 1,
     "flavor": "Eight grooves channel a slow venom, so one clean rap festers long after the bout is won.",
+    "lane": "ma",
     "palette": 14,
     "colors": [
       9347,
@@ -3038,6 +3151,7 @@
     "cat": "Pole",
     "formula": 2,
     "flavor": "A pole made from an unidentified material that some say is a whale's whisker.",
+    "lane": "ma",
     "palette": 11,
     "colors": [
       2116,
@@ -3063,6 +3177,7 @@
     "cat": "Bag",
     "formula": 1,
     "flavor": "A conjurer's satchel that breathes slumberdust, sinking the wakeful into untroubled dream.",
+    "lane": "pa",
     "palette": 14,
     "colors": [
       4163,
@@ -3088,6 +3203,7 @@
     "cat": "Bag",
     "formula": 1,
     "flavor": "A custom-made handbag designed for battle.",
+    "lane": "pa",
     "palette": 10,
     "colors": [
       6629,
@@ -3113,6 +3229,7 @@
     "cat": "Bag",
     "formula": 1,
     "flavor": "A pouch that looses a sting at the lash, festering in the wound long after the blow.",
+    "lane": "pa",
     "palette": 13,
     "colors": [
       2148,
@@ -3138,6 +3255,7 @@
     "cat": "Bag",
     "formula": 1,
     "flavor": "Woven with binding hexes; one swing snares a voice and strangles the spell mid-word.",
+    "lane": "pa",
     "palette": 13,
     "colors": [
       16740,
@@ -3162,20 +3280,23 @@
     "wp": 7,
     "cat": "Cloth",
     "formula": 1,
-    "flavor": "Tarred silk that clings where it lands, leaving the mark slick and waiting for a spark."
+    "flavor": "Tarred silk that clings where it lands, leaving the mark slick and waiting for a spark.",
+    "lane": "ma"
   },
   "120": {
     "name": "Bindsilk Veil",
     "wp": 8,
     "cat": "Cloth",
     "formula": 1,
-    "flavor": "Gossamer veil snapping taut round a quarry's limbs, rooting it as its dancer slips aside."
+    "flavor": "Gossamer veil snapping taut round a quarry's limbs, rooting it as its dancer slips aside.",
+    "lane": "ma"
   },
   "121": {
     "name": "Gravesilk Veil",
     "wp": 9,
     "cat": "Cloth",
     "formula": 2,
-    "flavor": "Funeral silk heavy as a tomb; beneath it the mighty sag."
+    "flavor": "Funeral silk heavy as a tomb; beneath it the mighty sag.",
+    "lane": "ma"
   }
 }

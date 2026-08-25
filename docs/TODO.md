@@ -159,7 +159,21 @@ the technical detail lives in the indented lines under it.
     tier-brighten maths and the player-only rule pinned by unit tests; then the owner's live
     pass: grow a weapon a tier, see the glow appear on icon and swing, confirm an enemy copy of
     the same weapon stays plain and a battle reload keeps the glow correct.
-- **[LW-250] Every weapon grows the stat its own attack actually uses, so growth is never wasted** (opened 2026-08-16) [QUEUED]
+- **[LW-250] Every weapon grows the stat its own attack actually uses, so growth is never wasted** (opened 2026-08-16) [AWAITING-LIVE]
+  - BUILT 2026-08-25, owner live pass outstanding. The grid's grows column now holds the
+    full locked design and a new analyze gate keeps items.json in lockstep with it (proven
+    biting by five separate mutations); the lane bakes into meta.json and the runtime
+    routes purely from the baked lane, with the old category and formula guessing deleted.
+    Census on the grid: PA 28, Speed 33, MA 27, HP 7, PA+MA 10, PA+MA+Brave 10, WP 3,
+    WP+Faith 3. Adversarially verified SHIP, code 9 spec 9, suite 3270 green.
+  - LIVE PASS (prod build, staged kills.json at 5 kills each): a Knife wielder's Speed
+    rises, a Book wielder's MA rises, the WRATHBLADE wielder's Speed rises where it
+    previously grew nothing (the visible flip of the whole seat), a plain Sword wielder's
+    PA rises, and a Knight Sword wielder still gains PA (the interim) with HP untouched.
+    ROUNDING TRAP, pre-registered: tier 1 Speed is a 5 percent hold, so natural Speed
+    below 10 rounds back to itself and LOOKS like a failure; use a Speed 10+ wielder or
+    stage 15 kills (tier 3). A wrong-stat hold shows as the NEIGHBOR stat rising (MA and
+    Speed are adjacent bytes).
   - The owner LOCKED the full lane table on 2026-08-25, after the measured distribution came
     out 87 weapons growing Physical Attack, 28 Magick, 2 Speed and 4 nothing. The principle is
     LW-249's, generalized: grow what your own attack cashes. The locked table: PA for Swords,
