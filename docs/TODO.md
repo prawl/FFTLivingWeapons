@@ -173,6 +173,12 @@ the technical detail lives in the indented lines under it.
     Katanas. WP for physical guns and WP plus Faith for magic guns (their damage is WP squared
     times Faith and the rebalance cut their WP from 20-22 to 12-15, so growth resurrects them
     toward, never past, former glory). Multi-lane weapons run reduced per-stat factors.
+    AMENDED 2026-08-25 (late owner call): Knight Swords grow HP instead of PA, making
+    Knights tanky; they already carry the game's highest WP and Brave-scaled damage, so
+    growth buys bulk instead of stacking punch. HP is a NEW hold lane (u16 MaxHP, and
+    MaxHP is part of the kill-attribution fingerprint), so the grid records HP now while
+    the bake maps it to the old PA behavior until LW-316 probes it safe and LW-317 builds
+    the hold, the same interim pattern as the gun lanes.
     RIDER RULE added 2026-08-25, owner call: a weapon carrying an explicit off-lane stat
     rider grows THAT stat instead of its category lane, because the rider names the
     weapon's true identity. Applied today it moves exactly one weapon: the Arcanum (the
@@ -215,7 +221,11 @@ belongs rather than at the bottom.
   item table, so the write must be turn-scoped like WeaponPalette's paint, applied on the
   wielder's turn and restored after, or every enemy copy grows too; Faith rides the proven
   combat-struct hold lane (brave/faith bytes, status-byte-recipes). Ledger rows either way;
-  a CONTRADICTED WP row demotes physical guns to Speed and magic guns to Faith only.)
+  a CONTRADICTED WP row demotes physical guns to Speed and magic guns to Faith only.
+  Third question added 2026-08-25 with the Knight Sword HP lane: does a held MaxHP
+  disturb the kill-attribution fingerprint (HP + MaxHP + level keys the actor resolver),
+  and does current HP follow the raised max or leave the unit reading hurt. A
+  CONTRADICTED HP row keeps Knight Swords on PA.)
 
 - [LW-317] 2026-08-25: Weapons that grow two or three stats at once: the multi-lane growth
   engine. Poles and the Materia Blade grow PA and MA; Katanas grow PA, MA and flat Brave
@@ -224,8 +234,10 @@ belongs rather than at the bottom.
   high Faith also makes enemy magic hurt more). Multi-lane factors run reduced (roughly two
   thirds of the single-lane curve per stat) so a katana is not simply the best weapon in the
   game. (Tech: GrowthEngine holds ONE lane per weapon today (StatLane, one addr+factor);
-  this seat makes it N lanes per weapon, baked from the grid like LW-250's. The WP and Faith
-  halves are gated on LW-316's probe verdicts.)
+  this seat makes it N lanes per weapon, baked from the grid like LW-250's. Also the HP
+  hold for Knight Swords (owner call 2026-08-25): a u16 MaxHP hold, new width for the
+  hold machinery, gated on LW-316's fingerprint probe. The WP and Faith halves are gated
+  on LW-316's probe verdicts.)
 
 - [LW-320] 2026-08-25: Audit every weapon's power against how it is obtained, because a
   weapon's price should include the effort of getting it. The grid's obtain column splits
