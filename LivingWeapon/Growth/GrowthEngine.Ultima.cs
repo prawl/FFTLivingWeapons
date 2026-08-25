@@ -4,7 +4,7 @@ namespace LivingWeapon;
 
 /// <summary>
 /// The Ultima half of GrowthEngine: the Materia Blade's HP%-scaled PA hold. For an Ultima
-/// weapon, <see cref="GrowthEngine.Route"/> yields the PA lane entirely to this method, so a
+/// weapon, <see cref="GrowthEngine.Routes"/> yields the PA lane entirely to this method, so a
 /// single writer owns the byte (no fight with the multiplicative growth hold). It holds PA at
 /// round(naturalPA × UltimaMul[tier][hpBand]) -- high at full health, lower when hurt.
 ///

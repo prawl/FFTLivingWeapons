@@ -85,6 +85,8 @@ internal sealed partial class GrowthEngine
         _heldSupports.Clear();   // no writes: the per-battle struct is gone/rebuilding
         _ambiguousLogged.Clear();
         _fallbackLogged.Clear();
+        _appliedFlat.Clear();    // LW-317: the flat-capped Brave/Faith lanes (GrowthEngine.Lanes.cs)
+        _appliedU16.Clear();     // LW-317: the u16 MaxHp lane (GrowthEngine.Lanes.cs)
         _logged = false;
     }
 
@@ -119,7 +121,7 @@ internal sealed partial class GrowthEngine
             // ONE RRHand snapshot per slot: re-reading per hand could let a mid-battle gear
             // mutation land between the reads and treat both hands as main-hand for a tick.
             int mainHandId = _mem.U16(rb + Offsets.RRHand);
-            var plan = new Dictionary<long, (double factor, StatLane lane)>();
+            var plan = new Dictionary<long, LaneRoute>();
             foreach (var (weapon, m) in hands)
             {
                 int tier = Tuning.TierOf(_kills, weapon);
@@ -136,10 +138,19 @@ internal sealed partial class GrowthEngine
                     HoldUltima(s, m, tier, level, brave, faith, rosterNameId);       // Materia Blade: HP%-scaled PA hold (owns PA lane)
                     HoldMushin(s, m, tier, level, brave, faith, rosterNameId);       // Kiku-ichimonji: one-hit charged-PA hold (owns PA lane)
                 }
-                if (Route(s, m, tier, out long addr, out double factor, out StatLane lane))
-                    if (!plan.TryGetValue(addr, out var ex) || factor > ex.factor) plan[addr] = (factor, lane);
+                // LW-317: Routes/MergeRoute (GrowthEngine.Lanes.cs) replace the single-lane
+                // Route -- a weapon may want several combat-struct bytes at once now, so two
+                // hands sharing one address merge to the STRONGER effect, not just a higher factor.
+                foreach (var route in Routes(s, m, tier))
+                    plan[route.Addr] = plan.TryGetValue(route.Addr, out var ex) ? MergeRoute(ex, route) : route;
             }
-            foreach (var kv in plan) Hold(kv.Key, kv.Value.factor, kv.Value.lane, rosterNameId, level);
+            foreach (var kv in plan)
+            {
+                var route = kv.Value;
+                if (route.U16) HoldU16(kv.Key, route.Factor, route.Cap, route.Lane, rosterNameId, level);
+                else if (route.Cap > 0) HoldFlatCapped(kv.Key, route.Flat, route.Cap, route.Lane, rosterNameId, level);
+                else Hold(kv.Key, route.Factor, route.Lane, rosterNameId, level);
+            }
         }
         ReleaseUnequipped();   // strip support grants whose weapon left its wielder's hands
     }
@@ -152,33 +163,6 @@ internal sealed partial class GrowthEngine
             if (_meta.TryGetValue(hw, out var hm) && !list.Exists(x => x.Item1 == hw))
                 list.Add((hw, hm));
         return list;
-    }
-
-    /// <summary>Pick the stat address + factor + ledger lane for a weapon, or false to skip.
-    /// Internal static (LW-249): the decision depends only on the meta and Tuning, and the
-    /// table was previously unpinned, which is exactly where the pole mis-route hid.
-    /// LW-250: ownership bails still come FIRST (Afterimage/Ultima/Mushin each own a stat
-    /// outright); past that, a straight switch on the BAKED WeaponMeta.Lane (the grid's
-    /// locked `grows` design, interim-mapped by gen_living_weapon_meta.py's lane_of)
-    /// replaces the old Cat/Formula inference. Empty/unknown lane = no growth, never a
-    /// guess -- a missing lane must never silently write a stat.</summary>
-    internal static bool Route(long s, WeaponMeta m, int tier, out long addr, out double factor, out StatLane lane)
-    {
-        lane = StatLane.Pa;
-        if (OwnsSpeed(m)) { addr = 0; factor = 0; return false; }   // Afterimage owns Speed (HoldAfterimage)
-        if (OwnsPa(m)) { addr = 0; factor = 0; return false; }     // Ultima owns PA (HoldUltima)
-        if (OwnsMushin(m)) { addr = 0; factor = 0; return false; } // Mushin owns PA (HoldMushin)
-        switch (m.Lane)
-        {
-            case "speed":
-                addr = s + Offsets.CSpeed; factor = Tuning.SpeedFactor[tier]; lane = StatLane.Speed; return true;
-            case "ma":
-                addr = s + Offsets.CMa; factor = Tuning.Factor[tier]; lane = StatLane.Ma; return true;
-            case "pa":
-                addr = s + Offsets.CPa; factor = Tuning.Factor[tier]; return true;
-            default:
-                addr = 0; factor = 0; return false;   // stale/missing lane: no growth, never a guess
-        }
     }
 
     /// <summary>Hold the stat at target, surviving the per-battle reset. Re-application keys off the

@@ -4,7 +4,7 @@ namespace LivingWeapon;
 
 /// <summary>
 /// The Mushin half of GrowthEngine: Kiku-ichimonji's STACKING PA boost hold. For a Mushin
-/// weapon, GrowthEngine.Route yields the PA lane entirely to this method (same idiom as
+/// weapon, GrowthEngine.Routes yields the PA lane entirely to this method (same idiom as
 /// HoldUltima), so a single writer owns the byte at every tier. OwnsMushin is tier-independent,
 /// exactly like OwnsPa, so a below-tier Kiku-ichimonji's PA growth is still written HERE
 /// (transparently, at the plain Tuning.Factor[tier] rate: MushinPolicy.PaHeld's zero-stack case

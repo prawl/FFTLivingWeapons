@@ -208,6 +208,49 @@ internal static class Tuning
     /// <summary>Speed grows gentler still -- it double-dips (damage AND turn frequency).</summary>
     public static readonly double[] SpeedFactor = { 0.00, 0.05, 0.10, 0.15 };
 
+    /// <summary>LW-317: tier -> multiplicative bonus for the "pa+ma"/"pa+ma+brave" multi-lane
+    /// weapons (the nine Poles, Materia Blade, Terrastaff, the ten Katanas, Sasori). Owner-locked
+    /// as its OWN curve rather than a reuse of <see cref="Factor"/> -- a two/three-stat weapon
+    /// earning the single-stat rate on each stat would out-grow the single-lane design.</summary>
+    public static readonly double[] MultiFactor = { 0.00, 0.07, 0.13, 0.20 };
+
+    /// <summary>LW-317: tier -> flat CURRENT-brave bonus the "pa+ma+brave" katana lane holds at
+    /// Offsets.CBraveCurrent (min(natural + bonus, <see cref="BraveLaneCap"/>), never below
+    /// natural).</summary>
+    public static readonly int[] BraveBonus = { 0, 4, 8, 12 };
+
+    /// <summary>LW-317: ceiling for the katana lane's held CURRENT brave. A DISTINCT constant
+    /// from <see cref="KobuBraveCap"/> even though both currently read 97 -- Kobu's cap belongs
+    /// to Kiyomori's one-shot compose-driven raise (KobuPolicy), this one to the flat-bonus hold
+    /// every "pa+ma+brave" katana carries regardless of signature; do not collapse them into one
+    /// shared const.</summary>
+    public const int BraveLaneCap = 97;
+
+    /// <summary>LW-317: tier -> flat CURRENT-faith bonus the "wp+faith" magic-gun lane holds at
+    /// Offsets.CFaithCurrent (min(natural + bonus, <see cref="FaithLaneCap"/>), never below
+    /// natural).</summary>
+    public static readonly int[] FaithBonus = { 0, 4, 8, 12 };
+
+    /// <summary>LW-317: ceiling for the magic-gun lane's held CURRENT faith.</summary>
+    public const int FaithLaneCap = 85;
+
+    /// <summary>LW-317: ceiling for the "hp" lane's held u16 MaxHp (Offsets.CMaxHp). HP grows on
+    /// the existing <see cref="Factor"/> array (the same curve PA/MA use) -- this only caps the
+    /// result, since a Knight Sword's target can otherwise land well past what the u16 field
+    /// should ever realistically carry.</summary>
+    public const int HpCeiling = 999;
+
+    /// <summary>LW-317: tier -> flat WP bonus WpTableHold writes into the resident item-stats
+    /// table (Offsets.ItemStatsBase) for the turn-scoped "wp"/"wp+faith" gun lanes -- restored to
+    /// the baked WP the instant the wielder's turn is no longer active.</summary>
+    public static readonly int[] WpBonus = { 0, 1, 2, 3 };
+
+    /// <summary>LW-317: consecutive Band.FlagOwner-unresolved ticks (a transient band-scan gap,
+    /// not a clean "someone else's turn" signal) a live WpTableHold bump may survive before the
+    /// hold concludes the gap is real and restores the baked WP -- the same "one missed tick is
+    /// not a pattern" precedent as BulwarkUnresolvedTicks / ProvokeMarkedMissTicks.</summary>
+    internal const int WpUnresolvedRestoreTicks = 3;
+
     /// <summary>tier -> the 2-char name suffix painted on the card ("  " renders as nothing).</summary>
     public static readonly string[] Suffix = { "  ", "+ ", "+2", "+3" };
 

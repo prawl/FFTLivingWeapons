@@ -14,10 +14,11 @@ public sealed class WeaponMeta
     [JsonProperty("wp")] public int Wp { get; set; }
     [JsonProperty("cat")] public string Cat { get; set; } = "";
     [JsonProperty("formula")] public int Formula { get; set; }
-    // LW-250: the baked growth-lane token ("pa"/"ma"/"speed"), the INTERIM mapping from
-    // docs/living_weapon_grid.csv's locked `grows` design (tools/gen_living_weapon_meta.py's
-    // lane_of). GrowthEngine.Route reads this directly instead of inferring a lane from
-    // Cat/Formula. "" (absent/stale meta) is a defense, not a real lane -- Route treats it as
+    // LW-317: the baked growth-lane token ("pa"/"ma"/"speed"/"hp"/"pa+ma"/"pa+ma+brave"/"wp"/
+    // "wp+faith"), mapped from docs/living_weapon_grid.csv's locked `grows` design
+    // (tools/gen_living_weapon_meta.py's lane_of; the LW-250 interim single-lane collapse is
+    // retired). GrowthEngine.Routes reads this directly instead of inferring a lane from
+    // Cat/Formula. "" (absent/stale meta) is a defense, not a real lane -- Routes treats it as
     // no-growth rather than guessing.
     [JsonProperty("lane")] public string Lane { get; set; } = "";
     // The weapon's flavor line -- the stable lead of its description. The in-card Kills

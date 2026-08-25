@@ -5,7 +5,7 @@ namespace LivingWeapon;
 
 /// <summary>
 /// The Afterimage half of GrowthEngine: Swiftedge's COMPLETE Speed system. For an afterimage
-/// weapon, <see cref="GrowthEngine.Route"/> yields the Speed lane entirely to this method, so a
+/// weapon, <see cref="GrowthEngine.Routes"/> yields the Speed lane entirely to this method, so a
 /// single writer owns the byte (no fight with the multiplicative growth hold). It holds Speed at
 /// the normal per-tier growth at EVERY tier, plus -- once +3 is earned -- a ramp that adds
 /// <see cref="Tuning.AfterimageSpeedPerTurn"/> per completed wielder turn (capped at

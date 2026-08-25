@@ -306,165 +306,263 @@ public class GrowthEngineTests
         Assert.False(GrowthEngine.MatchesEntry(mem, s, level: 30, brave: 65, faith: 58, MakeHands(10), nameId: 298));
     }
 
-    // ---- Route: the LANE-DRIVEN decision table (LW-250; supersedes the LW-249 Cat/Formula
-    //      chain, which is exactly where the pole mis-route and the four missing-HP weapons'
-    //      dead growth both hid). WeaponMeta.Lane -- baked from docs/living_weapon_grid.csv's
-    //      locked `grows` design via gen_living_weapon_meta.py's lane_of -- is now the ONLY
-    //      routing input past the ownership bails (Afterimage/Ultima/Mushin). Cat and Formula
-    //      are routing-DEAD (Route_LaneBeatsCategoryAndFormula pins this directly); the old
-    //      Tuning.SkipFormula/IsSpeedFormula/IsCaster/IsMagicCastFormula helpers are deleted.
-    //
-    //      HONEST-RED SEQUENCE this seat was built under (LW-250 build plan): step 1 added
-    //      WeaponMeta.Lane + this RouteMeta helper's optional `lane` param with Route
-    //      unchanged (full suite green, the property inert); step 2 wrote
-    //      Route_MissingHpWeapon_NowGrowsSpeed and Route_EmptyOrUnknownLane_NoGrowth against
-    //      the OLD Route and captured two real failures (formula-67's SkipFormula bail beat
-    //      the lane; an empty-lane Sword fell through to PA); step 3 swapped Route to the lane
-    //      switch below, deleted the four Tuning helpers, and rewrote every pin here. ----
+    // ---- Routes: the LANE-DRIVEN decision table, now MULTI-lane (LW-317; supersedes LW-250's
+    //      single-lane Route, which supersedes LW-249's Cat/Formula chain -- exactly where the
+    //      pole mis-route and the four missing-HP weapons' dead growth both hid). WeaponMeta.Lane
+    //      -- baked from docs/living_weapon_grid.csv's locked `grows` design via
+    //      gen_living_weapon_meta.py's lane_of -- is still the ONLY routing input past the
+    //      ownership bails (Afterimage/Ultima/Mushin), but those bails now apply PER-COMPONENT
+    //      of a multi-lane token, not per-weapon (Routes_MateriaBlade_UltimaOwnsPa_MaStillRoutes
+    //      is the non-vacuous proof). Cat and Formula remain routing-DEAD
+    //      (Routes_LaneBeatsCategoryAndFormula pins this directly). ----
 
     private static WeaponMeta RouteMeta(string cat, int formula, string lane = "") =>
         new() { Name = "T", Wp = 5, Cat = cat, Formula = formula, Flavor = "f", Lane = lane };
 
+    private static GrowthEngine.LaneRoute Single(long s, WeaponMeta m, int tier)
+        => Assert.Single(GrowthEngine.Routes(s, m, tier));
+
     [Fact]
-    public void Route_LaneSpeed_HoldsSpeedAtSpeedFactor()
+    public void Routes_LaneSpeed_HoldsSpeedAtSpeedFactor()
     {
         long s = 0x4000;
-        Assert.True(GrowthEngine.Route(s, RouteMeta("Sword", 1, lane: "speed"), tier: 2,
-            out long addr, out double factor, out var lane));
-        Assert.Equal(s + Offsets.CSpeed, addr);
-        Assert.Equal(Tuning.SpeedFactor[2], factor);
-        Assert.Equal(StatLane.Speed, lane);
+        var r = Single(s, RouteMeta("Sword", 1, lane: "speed"), tier: 2);
+        Assert.Equal(s + Offsets.CSpeed, r.Addr);
+        Assert.Equal(Tuning.SpeedFactor[2], r.Factor);
+        Assert.Equal(StatLane.Speed, r.Lane);
+        Assert.False(r.U16);
     }
 
     [Fact]
-    public void Route_MissingHpWeapon_NowGrowsSpeed()
+    public void Routes_MissingHpWeapon_NowGrowsSpeed()
     {
-        // THE LOAD-BEARING TEST (LW-250): formula 67 is missing-HP -- Wrathblade's own damage
-        // formula -- and the OLD Route hard-skipped every missing-HP formula (Tuning.
-        // SkipFormula) with no way for the grid's locked "Speed" lane to override it. Once
-        // Route reads WeaponMeta.Lane instead, a lane of "speed" must win regardless of the
-        // formula id. Route_missing_hp_formulas_skip (the old pin for that skip) is RETIRED:
-        // after this swap it would pass for the WRONG reason (the empty-lane fail-safe), under
-        // a name claiming missing-HP formulas skip growth, which they no longer do.
+        // THE LOAD-BEARING TEST (LW-250, ported): formula 67 is missing-HP -- Wrathblade's own
+        // damage formula -- and the pre-LW-250 Route hard-skipped every missing-HP formula
+        // (Tuning.SkipFormula) with no way for the grid's locked "Speed" lane to override it.
+        // Routes reads WeaponMeta.Lane instead, so a lane of "speed" must win regardless of the
+        // formula id.
         long s = 0x4000;
-        Assert.True(GrowthEngine.Route(s, RouteMeta("Sword", 67, lane: "speed"), tier: 1,
-            out long addr, out double factor, out var lane));
-        Assert.Equal(s + Offsets.CSpeed, addr);
-        Assert.Equal(Tuning.SpeedFactor[1], factor);
-        Assert.Equal(StatLane.Speed, lane);
+        var r = Single(s, RouteMeta("Sword", 67, lane: "speed"), tier: 1);
+        Assert.Equal(s + Offsets.CSpeed, r.Addr);
+        Assert.Equal(Tuning.SpeedFactor[1], r.Factor);
+        Assert.Equal(StatLane.Speed, r.Lane);
     }
 
     [Fact]
-    public void Route_LaneMa_HoldsMa()
+    public void Routes_LaneMa_HoldsMa()
     {
         long s = 0x4000;
-        Assert.True(GrowthEngine.Route(s, RouteMeta("Rod", 1, lane: "ma"), tier: 1,
-            out long addr, out double factor, out var lane));
-        Assert.Equal(s + Offsets.CMa, addr);
-        Assert.Equal(Tuning.Factor[1], factor);
-        Assert.Equal(StatLane.Ma, lane);
+        var r = Single(s, RouteMeta("Rod", 1, lane: "ma"), tier: 1);
+        Assert.Equal(s + Offsets.CMa, r.Addr);
+        Assert.Equal(Tuning.Factor[1], r.Factor);
+        Assert.Equal(StatLane.Ma, r.Lane);
     }
 
     [Fact]
-    public void Route_LanePa_HoldsPa()
+    public void Routes_LanePa_HoldsPa()
     {
         long s = 0x4000;
-        Assert.True(GrowthEngine.Route(s, RouteMeta("Sword", 1, lane: "pa"), tier: 1,
-            out long addr, out double factor, out var lane));
-        Assert.Equal(s + Offsets.CPa, addr);
-        Assert.Equal(Tuning.Factor[1], factor);
-        Assert.Equal(StatLane.Pa, lane);
+        var r = Single(s, RouteMeta("Sword", 1, lane: "pa"), tier: 1);
+        Assert.Equal(s + Offsets.CPa, r.Addr);
+        Assert.Equal(Tuning.Factor[1], r.Factor);
+        Assert.Equal(StatLane.Pa, r.Lane);
     }
 
     [Theory]
-    [InlineData("")]     // stale-meta defense: an old meta.json / a future bake gap, no lane at all
-    [InlineData("hp")]   // a plausible-but-unbaked token: lane_of interim-maps the grid's "HP" token
-                          // to "pa" at BAKE time, so Route must never see a raw grows token, and
-                          // must fail closed even if one somehow reached it uncased/unmapped
-    [InlineData("SPD")]  // garbage: anything outside {"speed","ma","pa"} must fail closed
-    public void Route_EmptyOrUnknownLane_NoGrowth(string lane)
+    [InlineData("")]        // stale-meta defense: an old meta.json / a future bake gap, no lane at all
+    [InlineData("SPD")]     // garbage: anything outside the locked lane vocabulary must fail closed
+    [InlineData("PA+MA")]   // wrong case: the real token is lowercase "pa+ma" -- must not fuzzy-match
+    public void Routes_EmptyOrUnknownLane_NoGrowth(string lane)
     {
         // The stale-meta defense: a PA-category, ordinary-formula weapon with NO real lane
         // baked must NOT fall back to growing PA by category/formula inference. Missing/unknown
-        // lane -> no growth, full stop -- covers empty, a plausible-but-unbaked token, and
-        // garbage alike, and pins that the out-params are left at their no-write defaults too.
-        Assert.False(GrowthEngine.Route(0x4000, RouteMeta("Sword", 1, lane: lane), tier: 1,
-            out long addr, out double factor, out _));
-        Assert.Equal(0, addr);
-        Assert.Equal(0, factor);
+        // lane -> empty list, full stop -- never a guess.
+        Assert.Empty(GrowthEngine.Routes(0x4000, RouteMeta("Sword", 1, lane: lane), tier: 1));
     }
 
     [Theory]
     [InlineData(true, false, false)]   // Afterimage owns Speed (HoldAfterimage)
     [InlineData(false, true, false)]   // Ultima owns PA (HoldUltima)
     [InlineData(false, false, true)]   // Mushin owns PA (HoldMushin)
-    public void Route_OwnershipBailsPrecedeLane(bool afterimage, bool ultima, bool mushin)
+    public void Routes_OwnershipBailsPrecedeLane_SingleLane(bool afterimage, bool ultima, bool mushin)
     {
-        // Ordering pin, not red-first (T2/T4 above already carry this seat's red): an owner
-        // module's bail must win even when a real lane is baked and ready to route -- Route
-        // must never fight HoldAfterimage/HoldUltima/HoldMushin for the same byte.
+        // Ordering pin: an owner module's bail must win even when a real single-stat lane is
+        // baked and ready to route -- Routes must never fight HoldAfterimage/HoldUltima/
+        // HoldMushin for the same byte. (The MULTI-lane version of this bail --
+        // one component skipped, the others still routing -- is
+        // Routes_MateriaBlade_UltimaOwnsPa_MaStillRoutes / Routes_Kiku_MushinOwnsPa_MaBraveStillRoute
+        // below.)
         var m = RouteMeta("Sword", 1, lane: afterimage ? "speed" : "pa");
         m.Signature = new WeaponSignature { Afterimage = afterimage, Ultima = ultima, Mushin = mushin };
-        Assert.False(GrowthEngine.Route(0x4000, m, tier: 1, out _, out _, out _));
+        Assert.Empty(GrowthEngine.Routes(0x4000, m, tier: 1));
     }
 
     // ---- The following three pins are the LW-249 originals, updated to LANE inputs: the
     //      verdict for each real, unchanged-lane weapon shape (a plain Sword/KnightSword/
     //      Crossbow still PA, a Rod/Staff still MA, an f99 Speed-scaler still Speed) is
-    //      preserved -- proving the LW-250 swap changed HOW the verdict is reached, not the
-    //      verdict itself for weapons the grid didn't re-lane. ----
+    //      preserved -- proving the routing MECHANISM changed, not the verdict itself for
+    //      weapons whose lane is still single-stat. ----
 
     [Theory]
-    [InlineData("Pole", 1)]   // LW-250: Poles are PA+MA, interim-mapped to "ma" by lane_of
-    [InlineData("Rod", 1)]    // unchanged caster category
-    [InlineData("Staff", 1)]  // unchanged caster category
-    [InlineData("Gun", 4)]    // LW-250: magic guns are WP+Faith, interim-mapped to "ma"
-    public void Route_ma_lane(string cat, int formula)
+    [InlineData("Rod", 1)]    // caster category
+    [InlineData("Staff", 1)]  // caster category
+    public void Routes_ma_lane(string cat, int formula)
     {
         long s = 0x4000;
-        Assert.True(GrowthEngine.Route(s, RouteMeta(cat, formula, lane: "ma"), tier: 1, out long addr, out _, out var lane));
-        Assert.Equal(s + Offsets.CMa, addr);
-        Assert.Equal(StatLane.Ma, lane);
+        var r = Single(s, RouteMeta(cat, formula, lane: "ma"), tier: 1);
+        Assert.Equal(s + Offsets.CMa, r.Addr);
+        Assert.Equal(StatLane.Ma, r.Lane);
     }
 
     [Theory]
     [InlineData("Sword", 1)]
     [InlineData("KnightSword", 1)]
     [InlineData("Crossbow", 1)]
-    public void Route_pa_default(string cat, int formula)
+    public void Routes_pa_default(string cat, int formula)
     {
         long s = 0x4000;
-        Assert.True(GrowthEngine.Route(s, RouteMeta(cat, formula, lane: "pa"), tier: 1, out long addr, out _, out var lane));
-        Assert.Equal(s + Offsets.CPa, addr);
-        Assert.Equal(StatLane.Pa, lane);
+        var r = Single(s, RouteMeta(cat, formula, lane: "pa"), tier: 1);
+        Assert.Equal(s + Offsets.CPa, r.Addr);
+        Assert.Equal(StatLane.Pa, r.Lane);
     }
 
     [Fact]
-    public void Route_speed_formula_routes_speed()
+    public void Routes_speed_formula_routes_speed()
     {
         long s = 0x4000;
-        Assert.True(GrowthEngine.Route(s, RouteMeta("Sword", 99, lane: "speed"), tier: 1, out long addr, out double f, out var lane));
-        Assert.Equal(s + Offsets.CSpeed, addr);
-        Assert.Equal(StatLane.Speed, lane);
-        Assert.Equal(Tuning.SpeedFactor[1], f);
+        var r = Single(s, RouteMeta("Sword", 99, lane: "speed"), tier: 1);
+        Assert.Equal(s + Offsets.CSpeed, r.Addr);
+        Assert.Equal(StatLane.Speed, r.Lane);
+        Assert.Equal(Tuning.SpeedFactor[1], r.Factor);
     }
 
     [Fact]
-    public void Route_LaneBeatsCategoryAndFormula()
+    public void Routes_LaneBeatsCategoryAndFormula()
     {
-        // THE SEAT'S ACTUAL THESIS: Cat/Formula are routing-dead. A Staff/formula-1 meta would
-        // have been the MA-caster default under the old chain -- Lane "speed" wins outright.
-        // A Knife/formula-99 meta would have been the speed-formula default -- Lane "pa" wins.
+        // THE SEAT'S ACTUAL THESIS (LW-250, ported): Cat/Formula are routing-dead. A Staff/
+        // formula-1 meta would have been the MA-caster default under the pre-LW-250 chain --
+        // Lane "speed" wins outright. A Knife/formula-99 meta would have been the speed-formula
+        // default -- Lane "pa" wins.
         long s = 0x4000;
-        Assert.True(GrowthEngine.Route(s, RouteMeta("Staff", 1, lane: "speed"), tier: 1,
-            out long addr1, out _, out var lane1));
-        Assert.Equal(s + Offsets.CSpeed, addr1);
-        Assert.Equal(StatLane.Speed, lane1);
+        var r1 = Single(s, RouteMeta("Staff", 1, lane: "speed"), tier: 1);
+        Assert.Equal(s + Offsets.CSpeed, r1.Addr);
+        Assert.Equal(StatLane.Speed, r1.Lane);
 
-        Assert.True(GrowthEngine.Route(s, RouteMeta("Knife", 99, lane: "pa"), tier: 1,
-            out long addr2, out _, out var lane2));
-        Assert.Equal(s + Offsets.CPa, addr2);
-        Assert.Equal(StatLane.Pa, lane2);
+        var r2 = Single(s, RouteMeta("Knife", 99, lane: "pa"), tier: 1);
+        Assert.Equal(s + Offsets.CPa, r2.Addr);
+        Assert.Equal(StatLane.Pa, r2.Lane);
+    }
+
+    // ---- LW-317: the real multi-lane tokens ("pa+ma", "pa+ma+brave", "hp", "wp", "wp+faith")
+    //      the LW-250 interim collapse used to hide behind a single-lane token. ----
+
+    [Fact]
+    public void Routes_PaMa_ReturnsBothLanesAtMultiFactor()
+    {
+        // A Pole (id 107-114 shape): tier 2 -> exactly (CPa, MultiFactor[2]), (CMa, MultiFactor[2]).
+        long s = 0x4000;
+        var routes = GrowthEngine.Routes(s, RouteMeta("Pole", 1, lane: "pa+ma"), tier: 2);
+        Assert.Equal(2, routes.Count);
+        var pa = Assert.Single(routes, x => x.Lane == StatLane.Pa);
+        var ma = Assert.Single(routes, x => x.Lane == StatLane.Ma);
+        Assert.Equal(s + Offsets.CPa, pa.Addr);
+        Assert.Equal(Tuning.MultiFactor[2], pa.Factor);
+        Assert.Equal(s + Offsets.CMa, ma.Addr);
+        Assert.Equal(Tuning.MultiFactor[2], ma.Factor);
+    }
+
+    [Fact]
+    public void Routes_MateriaBlade_UltimaOwnsPa_MaStillRoutes()
+    {
+        // THE LOAD-BEARING NON-VACUOUS TEST: Materia Blade's baked lane is "pa+ma" (its Sword
+        // category collapses PA+MA that way, gen_living_weapon_meta.py's lane_of), but its
+        // Ultima signature owns the PA half outright (HoldUltima) -- Routes must yield EXACTLY
+        // ONE entry (MA), never a PA entry fighting HoldUltima for the same byte. A Phase-4
+        // regression that restored whole-weapon ownership bails (skipping BOTH halves) makes
+        // this fail (routes.Count == 0 instead of 1, or the surviving entry missing).
+        long s = 0x4000;
+        var m = RouteMeta("Sword", 1, lane: "pa+ma");
+        m.Signature = new WeaponSignature { Ultima = true };
+        var routes = GrowthEngine.Routes(s, m, tier: 2);
+        var r = Assert.Single(routes);
+        Assert.Equal(s + Offsets.CMa, r.Addr);
+        Assert.Equal(StatLane.Ma, r.Lane);
+        Assert.Equal(Tuning.MultiFactor[2], r.Factor);
+    }
+
+    [Fact]
+    public void Routes_Katana_PaMaPlusBraveFlat()
+    {
+        // A plain katana (id 38-43/45-47/70 shape, no PA/Speed-owning signature): tier 3 ->
+        // (CPa, .20), (CMa, .20), (CBraveCurrent, flat BraveBonus[3]=12, cap 97).
+        long s = 0x4000;
+        var routes = GrowthEngine.Routes(s, RouteMeta("Katana", 1, lane: "pa+ma+brave"), tier: 3);
+        Assert.Equal(3, routes.Count);
+        var pa = Assert.Single(routes, x => x.Lane == StatLane.Pa);
+        var ma = Assert.Single(routes, x => x.Lane == StatLane.Ma);
+        var brave = Assert.Single(routes, x => x.Lane == StatLane.Brave);
+        Assert.Equal(s + Offsets.CPa, pa.Addr);
+        Assert.Equal(Tuning.MultiFactor[3], pa.Factor);
+        Assert.Equal(s + Offsets.CMa, ma.Addr);
+        Assert.Equal(Tuning.MultiFactor[3], ma.Factor);
+        Assert.Equal(s + Offsets.CBraveCurrent, brave.Addr);
+        Assert.Equal(Tuning.BraveBonus[3], brave.Flat);
+        Assert.Equal(Tuning.BraveLaneCap, brave.Cap);
+    }
+
+    [Fact]
+    public void Routes_Kiku_MushinOwnsPa_MaBraveStillRoute()
+    {
+        // Kiku-ichimonji: baked lane "pa+ma+brave", but its Mushin signature owns the PA half
+        // (HoldMushin) -- MA and Brave must still route.
+        long s = 0x4000;
+        var m = RouteMeta("Katana", 1, lane: "pa+ma+brave");
+        m.Signature = new WeaponSignature { Mushin = true };
+        var routes = GrowthEngine.Routes(s, m, tier: 3);
+        Assert.Equal(2, routes.Count);
+        Assert.DoesNotContain(routes, x => x.Lane == StatLane.Pa);
+        Assert.Single(routes, x => x.Lane == StatLane.Ma);
+        Assert.Single(routes, x => x.Lane == StatLane.Brave);
+    }
+
+    [Fact]
+    public void Routes_Hp_ReturnsSingleU16MaxHpLane()
+    {
+        long s = 0x4000;
+        var r = Single(s, RouteMeta("KnightSword", 1, lane: "hp"), tier: 3);
+        Assert.Equal(s + Offsets.CMaxHp, r.Addr);
+        Assert.Equal(StatLane.MaxHp, r.Lane);
+        Assert.Equal(Tuning.Factor[3], r.Factor);
+        Assert.Equal(Tuning.HpCeiling, r.Cap);
+        Assert.True(r.U16);
+    }
+
+    [Fact]
+    public void Routes_Wp_ReturnsNoCombatLanes()
+        => Assert.Empty(GrowthEngine.Routes(0x4000, RouteMeta("Gun", 1, lane: "wp"), tier: 3));
+
+    [Fact]
+    public void Routes_WpFaith_FaithOnly()
+    {
+        long s = 0x4000;
+        var r = Single(s, RouteMeta("Gun", 1, lane: "wp+faith"), tier: 3);
+        Assert.Equal(s + Offsets.CFaithCurrent, r.Addr);
+        Assert.Equal(StatLane.Faith, r.Lane);
+        Assert.Equal(Tuning.FaithBonus[3], r.Flat);
+        Assert.Equal(Tuning.FaithLaneCap, r.Cap);
+        Assert.False(r.U16);
+    }
+
+    // ---- LW-317: Apply's per-address merge, when two hands route the same combat-struct byte ----
+
+    [Fact]
+    public void MergeRoute_DualWieldSharingCPa_HigherFactorWins()
+    {
+        long addr = 0x4000 + Offsets.CPa;
+        var weak = new GrowthEngine.LaneRoute(addr, Tuning.MultiFactor[1], 0, 0, StatLane.Pa, false);
+        var strong = new GrowthEngine.LaneRoute(addr, Tuning.MultiFactor[3], 0, 0, StatLane.Pa, false);
+        Assert.Equal(strong, GrowthEngine.MergeRoute(weak, strong));
+        Assert.Equal(strong, GrowthEngine.MergeRoute(strong, weak));
     }
 
     // ---- ScanEntries: tier-1 disambiguation + player-first order ----

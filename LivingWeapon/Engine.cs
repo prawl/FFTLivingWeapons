@@ -38,6 +38,7 @@ internal sealed class Engine
     private readonly Display _display;
     private readonly AttackCard _attackCard;   // LW-31 stage 2: the Attack-menu desc dossier painter
     private readonly WeaponPalette _weaponPalette;   // LW-251: the per-turn weapon-sprite palette repaint
+    private readonly WpTableHold _wpTableHold;   // LW-317: the turn-scoped resident-stats WP write for the "wp"/"wp+faith" gun lanes
     private readonly IconGlow _iconGlow;   // LW-295 cycle B: out-of-battle equip-icon glow-rim splice into modded.pac
     private readonly BattleState _battle = new();      // debounced in/out edges (slot9 sticks; mode flickers)
     private CancellationTokenSource? _cts;
@@ -246,6 +247,10 @@ internal sealed class Engine
         // LW-295: also takes the shared kill tally, so a player wielder's authored colours glow
         // brighter at each kill tier.
         _weaponPalette = new WeaponPalette(meta, live, _kills);
+        // LW-317: the turn-scoped resident-stats WP write for the "wp"/"wp+faith" gun lanes --
+        // Routes (GrowthEngine.Lanes.cs) contributes no combat-struct lane for those, so this is
+        // their whole growth mechanism.
+        _wpTableHold = new WpTableHold(meta, _kills, live);
         // LW-295 cycle B: keeps every weapon's equip icon spliced to its current kill tier
         // (glow rim) inside modded.pac. Reads the shared kill tally + the known weapon id set
         // (meta.Keys, so a stale bake's ids never get managed); all file/pac I/O goes through
@@ -354,6 +359,9 @@ internal sealed class Engine
             // LW-251: the per-turn weapon-sprite palette repaint (WeaponPalette.cs).
             new TickPhase("weapon-palette", TickGates.InBattle, 1, false, Array.Empty<string>(),
                 s => e!._weaponPalette.Tick(s.InLive)),
+            // LW-317: the turn-scoped WP write for the "wp"/"wp+faith" gun lanes (WpTableHold.cs).
+            new TickPhase("wp-table-hold", TickGates.InBattle, 1, false, Array.Empty<string>(),
+                s => e!._wpTableHold.Tick(s.InLive)),
         };
 #if LWDEV
         // Dev-only passive/cold-call research instruments, in-battle only (see each Spike class's
@@ -466,6 +474,7 @@ internal sealed class Engine
         _naturalLedger.OnBattleReset();
         _attackCard.ResetBattle();   // LW-31 stage 2: restore vanilla to any live Attack-menu copies; the cache stays warm for the next battle's re-verify
         _weaponPalette.ResetBattle();   // LW-251: the banks were just refreshed from file; the paint latch is stale by definition
+        _wpTableHold.ResetBattle();     // LW-317: the resident stats table gets NO battle-load refresh -- a physical restore is mandatory
 #if LWDEV
         _bodyDoubleSpike.ResetBattle();   // LW-58: the bind + decoy CT-hold never survive a battle edge
 #endif

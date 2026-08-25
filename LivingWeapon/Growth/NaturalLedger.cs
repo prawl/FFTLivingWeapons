@@ -2,8 +2,13 @@ using System.Collections.Generic;
 
 namespace LivingWeapon;
 
-/// <summary>The three combat stat bytes the capture-natural holds own (CSpeed/CPa/CMa).</summary>
-internal enum StatLane { Speed, Pa, Ma }
+/// <summary>The combat stat bytes the capture-natural holds own. Speed/Pa/Ma are the original
+/// single-lane trio (CSpeed/CPa/CMa); Brave/Faith are LW-317's flat-capped CURRENT holds
+/// (CBraveCurrent/CFaithCurrent, threaded through this same ledger like every other u8 lane);
+/// MaxHp is LW-317's u16 hold (CMaxHp) -- named here for a consistent lane vocabulary across the
+/// codebase, but it does NOT thread NaturalLedger (see GrowthEngine.Lanes.cs's HoldU16 doc for
+/// why the u8-shaped capture/target bounds below make that the wrong seam for it).</summary>
+internal enum StatLane { Speed, Pa, Ma, Brave, Faith, MaxHp }
 
 /// <summary>
 /// LW-90: the cross-battle written-target memory that keeps a battle RESTART from turning the

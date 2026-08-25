@@ -588,4 +588,37 @@ internal static class Offsets
     public const long WeaponPaletteBankA = 0x140D35750;
     public const long WeaponPaletteBankB = 0x140D35950;
     public const int WeaponPaletteStride = 32;   // bytes per palette (16 u16 entries)
+
+    // --- LW-317 multi-lane growth: the CURRENT-brave/CURRENT-faith flat holds, the u16 MaxHp
+    // hold, and the turn-scoped resident item-stats WP write. CMaxHp/CBraveCurrent/CFaithCurrent
+    // are additive combat-struct offsets (independently re-derived from this file's own
+    // algebra: CMaxHp = AMaxHp 0x16 + BandEntry 0x1C); ItemStatsBase/Stride/WpOff anchor a
+    // SEPARATE resident table, not the combat struct. sid == id (the row-index identity
+    // WpTableHold's write address assumes) is additionally pinned at BAKE TIME by
+    // tools/gen_living_weapon_meta.py's check_wp_sid_identity for every "wp"/"wp+faith" weapon,
+    // not just asserted here.
+    /// <summary>u16 combat-struct MaxHp (== AMaxHp 0x16 + BandEntry 0x1C; distinct from CHp
+    /// 0x30, current HP -- HoldU16 never touches current HP, only this MAX field). PROVEN
+    /// 2026-08-25, ledger [maxhp-hold-attribution-safe]: a raised MaxHp hold does not break
+    /// kill attribution and current HP stays put.</summary>
+    public const int CMaxHp = 0x32;   // u16
+    /// <summary>u8 combat-struct CURRENT brave (orig is <see cref="CBrave"/>, 0x2A -- never
+    /// written by this lane). PROVEN 2026-07-02 (Kobu ships on it), ledger
+    /// [current-brave-write-sticks]: a one-shot write at this offset sticks and the orig byte
+    /// stays untouched.</summary>
+    public const int CBraveCurrent = 0x2B;   // u8
+    /// <summary>u8 combat-struct CURRENT faith (orig is <see cref="CFaith"/>, 0x2C -- never
+    /// written by this lane). PROVEN 2026-08-25, ledger
+    /// [current-faith-write-scales-magic-gun]: a held write here scales magic-gun damage
+    /// linearly both directions and the forecast panel tracks it.</summary>
+    public const int CFaithCurrent = 0x2D;   // u8
+    /// <summary>Base of the resident item-stats table WpTableHold's turn-scoped WP write
+    /// targets: row stride <see cref="ItemStatsStride"/> bytes, WP at row +<see
+    /// cref="ItemStatsWpOff"/>. Row index is the item's own sid (== items.json id, corroborated
+    /// by the live probe against id 73 AND additional_data_ids.json identity for every id
+    /// &lt;= 127). PROVEN 2026-08-25, ledger [wp-table-write-live-damage]: this byte is re-read
+    /// PER SHOT, so writing it moves live damage and reverts clean.</summary>
+    public const long ItemStatsBase = 0x14080F690L;
+    public const int ItemStatsStride = 8;
+    public const int ItemStatsWpOff = 4;
 }
