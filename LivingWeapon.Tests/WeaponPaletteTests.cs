@@ -8,7 +8,7 @@ namespace LivingWeapon.Tests;
 /// <summary>
 /// LW-251: the WeaponPalette runtime -- the per-turn weapon-sprite palette repaint (see
 /// LivingWeapon/Display/WeaponPalette.cs's class doc for the mechanism, and
-/// WeaponPalette.Policy.cs for the pure six-row decision table this suite's first section
+/// WeaponPalette.Policy.cs for the pure seven-row decision table this suite's first section
 /// exercises directly). Module-level coverage (this file's remainder) drives WeaponPalette.Tick
 /// against FakeSparseMemory band seats, mirroring BulwarkTests.cs's shape: a builder that seeds a
 /// FlagOwner-satisfying band entry, then per-test Tick sequences asserting on
@@ -24,44 +24,115 @@ public class WeaponPaletteTests
     [Fact]
     public void Decide_NothingPaintedNothingDesired_Nothing()
         => Assert.Equal(WeaponPaletteAction.Nothing,
-            WeaponPalettePolicy.Decide(paintedPal: -1, paintedWeapon: -1, desiredPal: -1, desiredWeapon: -1,
+            WeaponPalettePolicy.Decide(paintedPal: -1, paintedWeapon: -1, paintedGlow: 0,
+                desiredPal: -1, desiredWeapon: -1, desiredGlow: 0,
                 ticksUnchanged: 0, reassertTicks: ReassertTicks));
 
     [Fact]
     public void Decide_PaintedNothingDesired_Restore()
         => Assert.Equal(WeaponPaletteAction.Restore,
-            WeaponPalettePolicy.Decide(paintedPal: 3, paintedWeapon: 9, desiredPal: -1, desiredWeapon: -1,
+            WeaponPalettePolicy.Decide(paintedPal: 3, paintedWeapon: 9, paintedGlow: 0,
+                desiredPal: -1, desiredWeapon: -1, desiredGlow: 0,
                 ticksUnchanged: 0, reassertTicks: ReassertTicks));
 
     [Fact]
     public void Decide_NothingPaintedSomethingDesired_Paint()
         => Assert.Equal(WeaponPaletteAction.Paint,
-            WeaponPalettePolicy.Decide(paintedPal: -1, paintedWeapon: -1, desiredPal: 4, desiredWeapon: 9,
+            WeaponPalettePolicy.Decide(paintedPal: -1, paintedWeapon: -1, paintedGlow: 0,
+                desiredPal: 4, desiredWeapon: 9, desiredGlow: 0,
                 ticksUnchanged: 0, reassertTicks: ReassertTicks));
 
     [Fact]
     public void Decide_SamePaintedAndDesired_BelowReassert_Nothing()
         => Assert.Equal(WeaponPaletteAction.Nothing,
-            WeaponPalettePolicy.Decide(paintedPal: 4, paintedWeapon: 9, desiredPal: 4, desiredWeapon: 9,
+            WeaponPalettePolicy.Decide(paintedPal: 4, paintedWeapon: 9, paintedGlow: 0,
+                desiredPal: 4, desiredWeapon: 9, desiredGlow: 0,
                 ticksUnchanged: ReassertTicks - 1, reassertTicks: ReassertTicks));
 
     [Fact]
     public void Decide_SamePaintedAndDesired_AtReassertThreshold_Paint()
         => Assert.Equal(WeaponPaletteAction.Paint,
-            WeaponPalettePolicy.Decide(paintedPal: 4, paintedWeapon: 9, desiredPal: 4, desiredWeapon: 9,
+            WeaponPalettePolicy.Decide(paintedPal: 4, paintedWeapon: 9, paintedGlow: 0,
+                desiredPal: 4, desiredWeapon: 9, desiredGlow: 0,
                 ticksUnchanged: ReassertTicks, reassertTicks: ReassertTicks));
 
     [Fact]
     public void Decide_DifferentPalette_RestoreThenPaint()
         => Assert.Equal(WeaponPaletteAction.RestoreThenPaint,
-            WeaponPalettePolicy.Decide(paintedPal: 3, paintedWeapon: 9, desiredPal: 4, desiredWeapon: 22,
+            WeaponPalettePolicy.Decide(paintedPal: 3, paintedWeapon: 9, paintedGlow: 0,
+                desiredPal: 4, desiredWeapon: 22, desiredGlow: 0,
                 ticksUnchanged: 0, reassertTicks: ReassertTicks));
 
     [Fact]
     public void Decide_SamePaletteDifferentWeapon_PaintOnly_NoRestore()
         => Assert.Equal(WeaponPaletteAction.Paint,
-            WeaponPalettePolicy.Decide(paintedPal: 4, paintedWeapon: 9, desiredPal: 4, desiredWeapon: 22,
+            WeaponPalettePolicy.Decide(paintedPal: 4, paintedWeapon: 9, paintedGlow: 0,
+                desiredPal: 4, desiredWeapon: 22, desiredGlow: 0,
                 ticksUnchanged: 0, reassertTicks: ReassertTicks));
+
+    // ---- LW-295 TDD item 1: the seventh row -- same (pal, weapon), glow changed -> Paint,
+    //      regardless of ticksUnchanged (a tier bump/drop repaints right away, not on the
+    //      reassert cadence). Both directions: a glow INCREASE (the only one that happens in
+    //      play) and a glow DROP (the row itself is direction-agnostic). ----
+
+    [Fact]
+    public void Decide_SamePalWeapon_GlowRose_Paint()
+    {
+        Assert.Equal(WeaponPaletteAction.Paint,
+            WeaponPalettePolicy.Decide(paintedPal: 4, paintedWeapon: 9, paintedGlow: 0,
+                desiredPal: 4, desiredWeapon: 9, desiredGlow: 1,
+                ticksUnchanged: 0, reassertTicks: ReassertTicks));
+    }
+
+    [Fact]
+    public void Decide_SamePalWeapon_GlowDropped_Paint()
+    {
+        Assert.Equal(WeaponPaletteAction.Paint,
+            WeaponPalettePolicy.Decide(paintedPal: 4, paintedWeapon: 9, paintedGlow: 2,
+                desiredPal: 4, desiredWeapon: 9, desiredGlow: 0,
+                ticksUnchanged: 0, reassertTicks: ReassertTicks));
+    }
+
+    // ================= 1b. WeaponPalettePolicy.Brighten/BrightenAll -- pure (TDD items 3-5) ======
+
+    // ---- LW-295 TDD item 3 (THE LOAD-BEARING TEST): the exact ladder from the committed
+    //      look-test probe (tools/probes/lw305_bench_paint.py, commit 2dbab25) for its own sample
+    //      code 0x14B8 (r=24, g=5, b=5) at all three shipped tier factors. The f=0.75 row is the
+    //      one that pins the rounding mode: g and b both land on the 24.5 half-case, and only
+    //      MidpointRounding.ToEven (Math.Round's default, matching Python's round()) reproduces
+    //      0x631D -- AwayFromZero would produce 0x673D instead. ----
+
+    [Fact]
+    public void Brighten_MatchesProbeLadder()
+    {
+        const int code = 0x14B8;
+        Assert.Equal(0x319A, WeaponPalettePolicy.Brighten(code, 0.25));
+        Assert.Equal(0x4A5C, WeaponPalettePolicy.Brighten(code, 0.50));
+        Assert.Equal(0x631D, WeaponPalettePolicy.Brighten(code, 0.75));
+    }
+
+    // ---- LW-295 TDD item 4: every channel clamps at 31 (never overflows into the next channel's
+    //      bits or into bit 15), and bit 15 is ALWAYS stripped from the result -- PaintBanks is
+    //      the only legitimate source of that bit (the LW-308 rule). ----
+
+    [Fact]
+    public void Brighten_Clamps31_AndStripsBit15()
+    {
+        Assert.Equal(0x7FFF, WeaponPalettePolicy.Brighten(0x7FFF, 0.75));   // already maxed: unchanged
+        Assert.Equal(0x7FFF, WeaponPalettePolicy.Brighten(0xFFFF, 0.75));   // bit 15 set on input: stripped
+        Assert.Equal(0x7FFF, WeaponPalettePolicy.Brighten(0x0000, 1.0));    // black, full factor -> white
+    }
+
+    // ---- LW-295 TDD item 5: the f == 0.0 (tier 0, no glow) fast path returns the INPUT array
+    //      reference itself, not a freshly built copy -- no allocation on the common
+    //      untiered/plain-wielder path. ----
+
+    [Fact]
+    public void BrightenAll_FactorZero_ReturnsSameReference()
+    {
+        var codes = Codes();
+        Assert.Same(codes, WeaponPalettePolicy.BrightenAll(codes, 0.0));
+    }
 
     // ================= 2. Module-level: WeaponPalette.Tick against FakeSparseMemory =================
 
@@ -127,6 +198,14 @@ public class WeaponPaletteTests
         return entry;
     }
 
+    /// <summary>LW-295: seeds a roster row wielding <paramref name="weaponId"/> in its main hand,
+    /// at the EXACT (level,brave,faith) fingerprint <see cref="SeatOwner"/> stages on the band
+    /// side (lvl 30, br 50, fa 50) -- so DesiredGlow's roster read finds this row as a match for
+    /// whatever band owner SeatOwner seated. RNameId stays 0 (default): DesiredGlow's gate is
+    /// judged on matchCount, never the roster nameId.</summary>
+    private static void SeatMatchingRoster(FakeSparseMemory mem, int rosterSlot, int weaponId)
+        => MemSeats.SeatRoster(mem, rosterSlot, lvl: 30, br: 50, fa: 50, rh: weaponId);
+
     private static Dictionary<int, WeaponMeta> Meta(int weaponId, int palette, int[]? colors = null)
         => new()
         {
@@ -145,7 +224,7 @@ public class WeaponPaletteTests
         var mem = new FakeSparseMemory();
         SeatOwner(mem, Slot, weaponId);
         foreach (long bank in Banks) StageBank(mem, bank, pal, seed);
-        var wp = new WeaponPalette(Meta(weaponId, pal), mem);
+        var wp = new WeaponPalette(Meta(weaponId, pal), mem, new Dictionary<int, int>());
         return (mem, wp);
     }
 
@@ -250,7 +329,7 @@ public class WeaponPaletteTests
         var mem = new FakeSparseMemory();
         SeatOwner(mem, Slot, 9);
         StageBank(mem, BankA, 4, SeedBank());   // BankB deliberately left unstaged -- TryReadBytes fails there
-        var wp = new WeaponPalette(Meta(9, 4), mem);
+        var wp = new WeaponPalette(Meta(9, 4), mem, new Dictionary<int, int>());
 
         wp.Tick(true);
 
@@ -282,7 +361,7 @@ public class WeaponPaletteTests
         MemSeats.SeatBand(mem, Slot, weapon: 9, lvl: 30, br: 50, fa: 50, gx: 5, gy: 5);
         StageBank(mem, BankA, 4, SeedBank());
         StageBank(mem, BankB, 4, SeedBank());
-        var wp = new WeaponPalette(Meta(9, 4), mem);
+        var wp = new WeaponPalette(Meta(9, 4), mem, new Dictionary<int, int>());
 
         wp.Tick(true);
 
@@ -391,7 +470,7 @@ public class WeaponPaletteTests
         StageBank(mem, BankB, 7, SeedBank(3));
         var meta = Meta(9, 4);
         meta[22] = new WeaponMeta { Name = "Other", Wp = 5, Cat = "Sword", Formula = 1, Flavor = "g", Palette = 7, Colors = Codes() };
-        var wp = new WeaponPalette(meta, mem);
+        var wp = new WeaponPalette(meta, mem, new Dictionary<int, int>());
 
         wp.Tick(true);   // paint owner A's weapon 9 into palette 4
 
@@ -431,7 +510,7 @@ public class WeaponPaletteTests
         StageBank(mem, BankB, 4, seed);
         var meta = Meta(9, 4);   // owner A: weapon 9 -> palette 4
         meta[22] = new WeaponMeta { Name = "Other", Wp = 5, Cat = "Sword", Formula = 1, Flavor = "g", Palette = 4, Colors = AltCodes() };   // owner B: weapon 22 -> SAME palette 4
-        var wp = new WeaponPalette(meta, mem);
+        var wp = new WeaponPalette(meta, mem, new Dictionary<int, int>());
 
         long entryA = SeatOwner(mem, Slot, weaponId: 9);
         wp.Tick(true);   // owner A paints; captures the palette-4 snapshot from `seed`
@@ -484,7 +563,7 @@ public class WeaponPaletteTests
         StageBank(mem, BankB, 7, seed7);
         var meta = Meta(9, 4);
         meta[22] = new WeaponMeta { Name = "Other", Wp = 5, Cat = "Sword", Formula = 1, Flavor = "g", Palette = 7, Colors = AltCodes() };
-        var wp = new WeaponPalette(meta, mem);
+        var wp = new WeaponPalette(meta, mem, new Dictionary<int, int>());
 
         wp.Tick(true);   // paint weapon 9 into palette 4
 
@@ -528,7 +607,7 @@ public class WeaponPaletteTests
         StageBank(mem, BankB, 4, seed);
         var meta = Meta(9, 4);
         meta[22] = new WeaponMeta { Name = "Other", Wp = 5, Cat = "Sword", Formula = 1, Flavor = "g", Palette = 4, Colors = AltCodes() };
-        var wp = new WeaponPalette(meta, mem);
+        var wp = new WeaponPalette(meta, mem, new Dictionary<int, int>());
 
         wp.Tick(true);   // paint weapon 9's codes into palette 4; captures the snapshot from `seed`
         int writesAfterFirstPaint = mem.WrittenBytes.Count;
@@ -618,7 +697,7 @@ public class WeaponPaletteTests
         long entry = SeatOwner(mem, Slot, weaponId: 9);
         var seedA = SeedBank(2, 10);
         StageBank(mem, BankA, 4, seedA);   // BankB deliberately left unstaged for the whole test
-        var wp = new WeaponPalette(Meta(9, 4), mem);
+        var wp = new WeaponPalette(Meta(9, 4), mem, new Dictionary<int, int>());
 
         wp.Tick(true);   // paint attempt 1 (the initial paint)
 
@@ -671,7 +750,7 @@ public class WeaponPaletteTests
         StageBank(mem, BankB, 7, seed7);
         var meta = Meta(9, 4);   // owner A (slot 20): weapon 9 -> palette 4
         meta[22] = new WeaponMeta { Name = "Other", Wp = 5, Cat = "Sword", Formula = 1, Flavor = "g", Palette = 7, Colors = AltCodes() };   // owner B (slot 21): weapon 22 -> palette 7
-        var wp = new WeaponPalette(meta, mem);
+        var wp = new WeaponPalette(meta, mem, new Dictionary<int, int>());
 
         SeatOwner(mem, Slot, weaponId: 9);
         wp.Tick(true);   // paint palette 4
@@ -720,7 +799,7 @@ public class WeaponPaletteTests
         var mem = new FakeSparseMemory();
         SeatOwner(mem, Slot, weaponId: 9);
         foreach (long bank in Banks) StageBank(mem, bank, 4, SeedBank());   // seed has NO bit 15 anywhere
-        var wp = new WeaponPalette(Meta(9, 4, codes), mem);
+        var wp = new WeaponPalette(Meta(9, 4, codes), mem, new Dictionary<int, int>());
 
         wp.Tick(true);
 
@@ -807,5 +886,222 @@ public class WeaponPaletteTests
             StageBank(mem, bank, 4, SeedBank().Select(v => (ushort)(v ^ 0x4321)).ToArray());
         wp.Tick(true);      // fresh paint in the "new" battle sees foreign bytes again
         Assert.Equal(4, cap.File.Count(l => l.Contains("neither vanilla nor our last paint")));
+    }
+
+    // ================= 4. LW-295 kill-tier glow (Tick-level) =================
+    // DesiredGlow's memory-reading half (WeaponPalette.Desire.cs) exercised only through Tick --
+    // it is private, the same "public surface only" discipline section 2/3 already follow.
+
+    // ---- TDD item 6: a PLAYER wielder (roster row matches the acting unit's own weapon+fp) at a
+    //      non-zero kill tier paints the BRIGHTENED codes, not the plain authored ones. ----
+
+    [Fact]
+    public void Tick_PlayerWielderAtTier_PaintsBrightenedCodes()
+    {
+        var seed = SeedBank();
+        var mem = new FakeSparseMemory();
+        SeatOwner(mem, Slot, weaponId: 9);
+        SeatMatchingRoster(mem, rosterSlot: 0, weaponId: 9);
+        foreach (long bank in Banks) StageBank(mem, bank, 4, seed);
+        var kills = new Dictionary<int, int> { [9] = 10 };   // prod tier 2 (>= 10, < 15)
+        var wp = new WeaponPalette(Meta(9, 4), mem, kills);
+
+        wp.Tick(true);
+
+        var expected = WeaponPalettePolicy.BrightenAll(Codes(), Tuning.GlowFactors[2]);
+        foreach (long bank in Banks)
+        {
+            var after = ReadBank(mem, bank, 4);
+            for (int i = 1; i <= 15; i++) Assert.Equal(expected[i - 1], after[i] & 0x7FFF);
+        }
+    }
+
+    // ---- LW-295 verify-round item: the tier-glow paint path carries bit 15 too -- item 6 above
+    //      masks every written entry with & 0x7FFF and so never proves it. This pins the SAME
+    //      staging as Paint_CarriesBit15FromCurrentBytes_NeverInventsIt (bit 15 set on entries 2,
+    //      6, 15) through a glowing (tier 2, factor 0.50) wielder and asserts the UNMASKED
+    //      ushort: the bank's own bit 15 OR'd onto the brightened code, never the plain code and
+    //      never a dropped bit 15. This is a pin on already-correct behaviour (PaintBanks already
+    //      carries bit 15 the same way regardless of glow) -- it goes green immediately, so
+    //      non-vacuity comes from the exact hand-computed values below, not from a red-first run.
+    //
+    //      By hand: Codes() = 1..15. Brighten operates on ALL THREE channels every time, not just
+    //      the ones a code happens to set -- so even though every one of these codes is < 32 (a
+    //      bare r channel, g=b=0), the g and b channels still brighten FROM 0 toward white:
+    //      round(0 + (31-0)*0.50) = round(15.5) = 16 (Math.Round's default MidpointRounding.ToEven,
+    //      the same banker's-rounding half-case rule the class doc cites), for BOTH g and b, on
+    //      every entry. That constant contributes (16<<5)|(16<<10) = 0x4200 to every entry; only
+    //      the r channel (= round(c + (31-c)*0.50)) varies per entry:
+    //        c= 1 -> 1+15.0=16.0  -> 16      c= 9 -> 9+11.0=20.0  -> 20
+    //        c= 2 -> 2+14.5=16.5  -> 16      c=10 -> 10+10.5=20.5 -> 20
+    //        c= 3 -> 3+14.0=17.0  -> 17      c=11 -> 11+10.0=21.0 -> 21
+    //        c= 4 -> 4+13.5=17.5  -> 18      c=12 -> 12+ 9.5=21.5 -> 22
+    //        c= 5 -> 5+13.0=18.0  -> 18      c=13 -> 13+ 9.0=22.0 -> 22
+    //        c= 6 -> 6+12.5=18.5  -> 18      c=14 -> 14+ 8.5=22.5 -> 22
+    //        c= 7 -> 7+12.0=19.0  -> 19      c=15 -> 15+ 8.0=23.0 -> 23
+    //        c= 8 -> 8+11.5=19.5  -> 20
+    //      So brightened(c) = 0x4200 | r, e.g. c=1 -> 0x4200|16 = 0x4210. Entries 2, 6, 15 carry
+    //      bit 15 (0x8000) from SeedBank(2, 6, 15); every other entry does not. Combined (entry
+    //      index i, 1-based, value = brightened(Codes()[i-1]) | carriedBit15):
+    //        1:0x4210  2:0xC210  3:0x4211  4:0x4212  5:0x4212  6:0xC212  7:0x4213  8:0x4214
+    //        9:0x4214 10:0x4214 11:0x4215 12:0x4216 13:0x4216 14:0x4216 15:0xC217 ----
+
+    [Fact]
+    public void Tick_PlayerWielderAtTier_CarriesBankBit15s()
+    {
+        var seed = SeedBank(2, 6, 15);   // same subset as Paint_CarriesBit15FromCurrentBytes_NeverInventsIt
+        var mem = new FakeSparseMemory();
+        SeatOwner(mem, Slot, weaponId: 9);
+        SeatMatchingRoster(mem, rosterSlot: 0, weaponId: 9);
+        foreach (long bank in Banks) StageBank(mem, bank, 4, seed);
+        var kills = new Dictionary<int, int> { [9] = 10 };   // prod tier 2 (>= 10, < 15) -> factor 0.50
+        var wp = new WeaponPalette(Meta(9, 4), mem, kills);
+
+        wp.Tick(true);
+
+        ushort[] expected =
+        {
+            0x4210, 0xC210, 0x4211, 0x4212, 0x4212, 0xC212, 0x4213, 0x4214,
+            0x4214, 0x4214, 0x4215, 0x4216, 0x4216, 0x4216, 0xC217,
+        };
+        foreach (long bank in Banks)
+        {
+            var after = ReadBank(mem, bank, 4);
+            for (int i = 1; i <= 15; i++) Assert.Equal(expected[i - 1], after[i]);   // UNMASKED
+        }
+    }
+
+    // ---- TDD item 7: the SAME weapon id, tallied to the SAME tier, but with NO roster row
+    //      matching the acting unit (an enemy wielding an identical weapon) paints PLAIN --
+    //      the enemy's own turn never glows. ----
+
+    [Fact]
+    public void Tick_NoRosterMatch_SameWeapon_PaintsPlainAuthored()
+    {
+        var seed = SeedBank();
+        var mem = new FakeSparseMemory();
+        SeatOwner(mem, Slot, weaponId: 9);   // the acting unit -- no roster row staged at all
+        foreach (long bank in Banks) StageBank(mem, bank, 4, seed);
+        var kills = new Dictionary<int, int> { [9] = 10 };   // tier 2 -- but no player match
+        var wp = new WeaponPalette(Meta(9, 4), mem, kills);
+
+        wp.Tick(true);
+
+        foreach (long bank in Banks)
+        {
+            var after = ReadBank(mem, bank, 4);
+            for (int i = 1; i <= 15; i++) Assert.Equal(Codes()[i - 1], after[i] & 0x7FFF);   // plain
+        }
+    }
+
+    // ---- TDD item 8: a kill tally that crosses a tier boundary MID-BATTLE (no ResetBattle)
+    //      repaints brighter on the very next tick -- the new Decide row (item 1) firing through
+    //      the full Tick pipeline, not just the pure policy call. ----
+
+    [Fact]
+    public void Tick_TierBumpMidBattle_RepaintsBrighter()
+    {
+        var seed = SeedBank();
+        var mem = new FakeSparseMemory();
+        SeatOwner(mem, Slot, weaponId: 9);
+        SeatMatchingRoster(mem, rosterSlot: 0, weaponId: 9);
+        foreach (long bank in Banks) StageBank(mem, bank, 4, seed);
+        var kills = new Dictionary<int, int> { [9] = 9 };   // prod tier 1 (>= 5, < 10)
+        var wp = new WeaponPalette(Meta(9, 4), mem, kills);
+
+        wp.Tick(true);
+        var tier1 = WeaponPalettePolicy.BrightenAll(Codes(), Tuning.GlowFactors[1]);
+        foreach (long bank in Banks)
+        {
+            var after = ReadBank(mem, bank, 4);
+            for (int i = 1; i <= 15; i++) Assert.Equal(tier1[i - 1], after[i] & 0x7FFF);
+        }
+
+        kills[9] = 10;   // crosses into tier 2 mid-battle -- no ResetBattle call
+        wp.Tick(true);
+
+        var tier2 = WeaponPalettePolicy.BrightenAll(Codes(), Tuning.GlowFactors[2]);
+        foreach (long bank in Banks)
+        {
+            var after = ReadBank(mem, bank, 4);
+            for (int i = 1; i <= 15; i++) Assert.Equal(tier2[i - 1], after[i] & 0x7FFF);
+        }
+    }
+
+    // ---- TDD item 9: a player wielder below the first kill threshold paints PLAIN (tier 0, no
+    //      glow -- the shared kills dict is wired in but the wielder hasn't earned anything yet). ----
+
+    [Fact]
+    public void Tick_TierZeroPlayer_PaintsPlainAuthored()
+    {
+        var seed = SeedBank();
+        var mem = new FakeSparseMemory();
+        SeatOwner(mem, Slot, weaponId: 9);
+        SeatMatchingRoster(mem, rosterSlot: 0, weaponId: 9);
+        foreach (long bank in Banks) StageBank(mem, bank, 4, seed);
+        var kills = new Dictionary<int, int> { [9] = 4 };   // below prod tier 1 (5)
+        var wp = new WeaponPalette(Meta(9, 4), mem, kills);
+
+        wp.Tick(true);
+
+        foreach (long bank in Banks)
+        {
+            var after = ReadBank(mem, bank, 4);
+            for (int i = 1; i <= 15; i++) Assert.Equal(Codes()[i - 1], after[i] & 0x7FFF);
+        }
+    }
+
+    // ---- TDD item 10: restore is unaffected by glow -- a palette painted BRIGHTENED still
+    //      restores the pre-first-paint snapshot verbatim (bit 15 included) once the owner's
+    //      weapon becomes unauthored. ----
+
+    [Fact]
+    public void Restore_AfterBrightenedPaint_RestoresPreFirstPaintSnapshotVerbatim()
+    {
+        var seed = SeedBank(3, 9);   // entries 3 and 9 start with bit 15 set
+        var mem = new FakeSparseMemory();
+        SeatOwner(mem, Slot, weaponId: 9);
+        SeatMatchingRoster(mem, rosterSlot: 0, weaponId: 9);
+        foreach (long bank in Banks) StageBank(mem, bank, 4, seed);
+        var kills = new Dictionary<int, int> { [9] = 10 };   // tier 2 -- painted brightened
+        var wp = new WeaponPalette(Meta(9, 4), mem, kills);
+
+        wp.Tick(true);   // paints tier-2 brightened codes; captures the snapshot from `seed`
+
+        mem.U16s[Band.Entry(Slot) + Offsets.AWeapon] = 12345;   // unauthored -> Restore
+        wp.Tick(true);
+
+        foreach (long bank in Banks)
+        {
+            var after = ReadBank(mem, bank, 4);
+            for (int i = 1; i <= 15; i++) Assert.Equal(seed[i], after[i]);   // vanilla, bit 15 included
+        }
+    }
+
+    // ---- TDD item 11: TWO roster rows share the acting unit's weapon+fingerprint (matchCount 2)
+    //      -- Wielder.ResolveAnyHandNameId's 4-arg overload returns -1 for this (the historic
+    //      zero-vs-ambiguous conflation), but DesiredGlow must judge on matchCount >= 1, NEVER on
+    //      that -1 return, so the wielder still glows. ----
+
+    [Fact]
+    public void Tick_TwoRosterTwins_SameWeaponFp_StillGlows()
+    {
+        var seed = SeedBank();
+        var mem = new FakeSparseMemory();
+        SeatOwner(mem, Slot, weaponId: 9);
+        SeatMatchingRoster(mem, rosterSlot: 0, weaponId: 9);
+        SeatMatchingRoster(mem, rosterSlot: 1, weaponId: 9);   // a twin: same weapon, same fp
+        foreach (long bank in Banks) StageBank(mem, bank, 4, seed);
+        var kills = new Dictionary<int, int> { [9] = 10 };   // tier 2
+        var wp = new WeaponPalette(Meta(9, 4), mem, kills);
+
+        wp.Tick(true);
+
+        var expected = WeaponPalettePolicy.BrightenAll(Codes(), Tuning.GlowFactors[2]);
+        foreach (long bank in Banks)
+        {
+            var after = ReadBank(mem, bank, 4);
+            for (int i = 1; i <= 15; i++) Assert.Equal(expected[i - 1], after[i] & 0x7FFF);
+        }
     }
 }

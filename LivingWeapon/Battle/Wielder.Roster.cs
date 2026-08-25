@@ -241,10 +241,14 @@ internal static partial class Wielder
     /// <paramref name="matchCount"/> from <see cref="ScanNameIdMatches"/> so a caller can tell
     /// "zero roster rows hold this weapon+fp" apart from "2+ roster rows hold it" -- both
     /// collapsed onto the same -1 return above. Locate/LocateAll's public (implicit-resolve)
-    /// overloads are the only callers: matchCount &gt;= 2 routes to the per-row ambiguous branch
+    /// overloads were the FIRST callers: matchCount &gt;= 2 routes to the per-row ambiguous branch
     /// (Wielder.cs's LocateAmbiguous/LocateAllAmbiguous) instead of falling straight to tier 2
-    /// with the veto disarmed. Separate arity rather than an optional out param so the existing
-    /// 3-arg call sites (and the tests pinning its exact return value) stay byte-identical.</summary>
+    /// with the veto disarmed. LW-295's WeaponPalette.Desire.cs (DesiredGlow) is a second caller,
+    /// with its OWN policy on the same matchCount: a player wielder glows whenever
+    /// matchCount &gt;= 1, ambiguity included -- unlike Locate, it never needs to pick between the
+    /// candidates, only to know a roster row (any roster row) holds this weapon+fp. Separate
+    /// arity rather than an optional out param so the existing 3-arg call sites (and the tests
+    /// pinning its exact return value) stay byte-identical.</summary>
     internal static int ResolveAnyHandNameId(IGameMemory mem, int weaponId, (int lvl, int br, int fa) fp,
         out int matchCount)
     {

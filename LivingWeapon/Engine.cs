@@ -242,7 +242,9 @@ internal sealed class Engine
                                       _tracker.SpriteOf, meta, _kills, Flight.Record);
         // LW-251: the per-turn weapon-sprite palette repaint, wired last of the display
         // subsystems -- it only reads meta + the live band, no dependency on any of the above.
-        _weaponPalette = new WeaponPalette(meta, live);
+        // LW-295: also takes the shared kill tally, so a player wielder's authored colours glow
+        // brighter at each kill tier.
+        _weaponPalette = new WeaponPalette(meta, live, _kills);
 #if LWDEV
         // Shares the SAME register KillerStamp/AttackCard already trust (see TurnOwnerSpike.cs's
         // class doc for why a second register is deliberately avoided).

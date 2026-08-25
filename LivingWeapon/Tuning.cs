@@ -57,6 +57,14 @@ internal static class Tuning
     public const bool FontDevPulse = false;
 #endif
 
+    /// <summary>LW-295: the kill-tier glow look test. A grown weapon's authored palette is
+    /// brightened toward white in WeaponPalette, one step per kill tier (indexed 0..3). LOOK-TEST
+    /// KNOBS, not a tuned production curve -- these are the probe's committed defaults, carried
+    /// over unchanged pending the owner's live look-test pass (deferred by explicit owner call,
+    /// 2026-08-24); same in both build flavors. Mirrors tools/probes/lw305_bench_paint.py's
+    /// GLOW_TIER (commit 2dbab25).</summary>
+    public static readonly double[] GlowFactors = { 0.0, 0.25, 0.50, 0.75 };
+
     /// <summary>DEV seed floor: every weapon starts at least this many kills. 3 (== P3 under the dev
     /// thresholds) so every +3 signature is live the moment the weapon is equipped.</summary>
     public const int DevKillSeed = 3;
