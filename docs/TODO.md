@@ -87,30 +87,32 @@ the technical detail lives in the indented lines under it.
     ramp; it lives on only in git history. Whether that already-approved look also satisfies
     this row's own gallery-pass wait clause is the owner's call, not this arc's.
 
-- **[LW-319] The weapon glow matches the card text's colors, hue names the stat** (opened 2026-08-25) [QUEUED]
-  - The color arc's finale, queued by the owner ahead of the Grows-line move ("make the
-    glow match the color we've set for the text"): a grown weapon glows in the same
-    lane hue its Grows line is painted in, so the card and the battlefield speak one
-    color language. Intensity stays the kill tier. Replaces the toward-white sprite
-    transform and the identity-colored icon rims LW-295 shipped (whose mechanism live
-    pass stays owed and still counts: paint, splice and tier plumbing are unchanged).
-  - The hue DICTIONARY is already ruled and live on the cards (LW-329, 2026-08-25):
-    Speed green, PA red, MA blue, HP orange, WP cyan, magic guns gold, poles purple,
-    katanas periwinkle. The gallery's job shrinks to confirming exact shades on the
-    icon art rather than choosing hues.
-  - (Tech: swap the runtime brighten for the outline-glow transform proven in the bench
-    probe's outlineglow verb (fce8ad3); re-bake the 726 icon rims in lane hues keyed by
-    meta.json's lane; Glow Ladder gallery preview before the build for the owner's
-    shade confirmation. Note the card palette slots are TEXT renderer indices; the
-    sprite side picks matching RGB shades of the same named hues.)
-  - Done means: a grown weapon's glow hue names its lane exactly per the LW-329
-    dictionary, intensity still tracks the kill tier, multi-lane weapons wear their
-    blend hue (poles purple, katanas periwinkle), and the old toward-white transform
-    and identity-colored rims are fully replaced with no icon left on the old look.
-  - Verify: the icon gates green (recolor_icons selftest, preview manifest identity),
-    the Glow Ladder gallery approved by the owner before the bake, the full suite
-    green for the runtime transform swap, and the owner's live pass: tiered weapons
-    glowing their lane hues in the equip list and in battle.
+- **[LW-332] The Grows line moves up to sit directly under the Kills line** (opened 2026-08-25) [BUILDING]
+  - The progression header the owner asked for on his color live read: kills and growth
+    together at the top of the card, prose below. The owner delegated the next-task pick
+    2026-08-25 late and this won over starting the glow arc: it is small, fully
+    specified, and finishes the card surface, while the glow needs a gallery sitting
+    with the owner before anything bakes. It needs a matched DLL change to be safe: the
+    card painter pairs each Kills slot with the NEAREST flavor text and relies on only
+    one fixed byte between them, so inserting the Grows line stretches that gap and a
+    neighboring card ending in its own flavor line could pair closer and paint the
+    wrong weapon's counter.
+  - (Tech: extend Display/CardScanner's anchor candidates with each weapon's Grows line,
+    derived from meta.json's lane via the same pinned phrase and color tables the gate
+    carries, restoring a small fixed Kills-to-anchor gap; then move the line in
+    lib/flavor.assemble_desc and flip analyze.py's GROWS PHRASE gate to demand line-two
+    placement. FindNearestFlavor and the 2026-07-06 bidirectional design note are the
+    load-bearing read.)
+  - Done means: every living weapon's card shows the colored Grows line as the SECOND
+    line, directly under the Kills line; the painter still paints the right weapon's
+    counter every time because the anchor extension keeps the pairing gap small and
+    fixed; the GROWS PHRASE gate enforces line-two placement; nothing else about the
+    card layout moves.
+  - Verify: the full suite green including new CardScanner tests for the moved layout
+    (with a packed-pool mispaint regression case where a neighbor card ends in its own
+    flavor line); analyze.py green with the tightened gate; and the owner live-reads
+    the moved line plus a battle where the Kills counter paints correctly on at least
+    two different weapons.
 - **[LW-322] Every weapon's description says in plain words what it grows** (opened 2026-08-25) [AWAITING-LIVE]
   - "Grows: Speed" or "Grows: PA, MA and Brave" joins each living weapon's card text,
     because the glow colors alone tell a player THAT a weapon grew, not WHAT it grows,
@@ -200,16 +202,33 @@ Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner dire
 A new row still lands here in the session it surfaces; slot it where its urgency
 belongs rather than at the bottom.
 
-- [LW-332] 2026-08-25: The Grows line moves up to sit directly under the Kills line,
-  the progression header the owner asked for; queued to Now briefly 2026-08-25 and then
-  stepped back down the same night when the owner queued the glow match (LW-319) ahead
-  of it. The full seat contract is written and ready: the move is only safe with a
-  CardScanner anchor extension (admit each weapon's Grows line, derived from meta's
-  lane via the pinned tables, as an anchor candidate so the Kills-to-anchor pairing
-  gap stays small and fixed), then the GROWS PHRASE gate flips to demand line-two
-  placement, with new painter tests including a packed-pool mispaint regression case
-  and an owner battle read proving the counter still paints the right weapon.
-
+- [LW-319] 2026-08-25: The weapon glow matches the card text's colors, hue names the
+  stat; slotted behind LW-332 on the 2026-08-25 late working-order call (the glow's
+  Glow Ladder gallery needs an owner sitting before any bake, so the small finishable
+  card work goes first). Seat contract below, ready to re-promote:
+  - The color arc's finale, queued by the owner ahead of the Grows-line move ("make the
+    glow match the color we've set for the text"): a grown weapon glows in the same
+    lane hue its Grows line is painted in, so the card and the battlefield speak one
+    color language. Intensity stays the kill tier. Replaces the toward-white sprite
+    transform and the identity-colored icon rims LW-295 shipped (whose mechanism live
+    pass stays owed and still counts: paint, splice and tier plumbing are unchanged).
+  - The hue DICTIONARY is already ruled and live on the cards (LW-329, 2026-08-25):
+    Speed green, PA red, MA blue, HP orange, WP cyan, magic guns gold, poles purple,
+    katanas periwinkle. The gallery's job shrinks to confirming exact shades on the
+    icon art rather than choosing hues.
+  - (Tech: swap the runtime brighten for the outline-glow transform proven in the bench
+    probe's outlineglow verb (fce8ad3); re-bake the 726 icon rims in lane hues keyed by
+    meta.json's lane; Glow Ladder gallery preview before the build for the owner's
+    shade confirmation. Note the card palette slots are TEXT renderer indices; the
+    sprite side picks matching RGB shades of the same named hues.)
+  - Done means: a grown weapon's glow hue names its lane exactly per the LW-329
+    dictionary, intensity still tracks the kill tier, multi-lane weapons wear their
+    blend hue (poles purple, katanas periwinkle), and the old toward-white transform
+    and identity-colored rims are fully replaced with no icon left on the old look.
+  - Verify: the icon gates green (recolor_icons selftest, preview manifest identity),
+    the Glow Ladder gallery approved by the owner before the bake, the full suite
+    green for the runtime transform swap, and the owner's live pass: tiered weapons
+    glowing their lane hues in the equip list and in battle.
 - [LW-212] 2026-08-13: The four bags' recolor seat, BUILT and gated 2026-08-16 and
   AWAITING the owner's gallery pass ever since; demoted from Now 2026-08-25 only to
   free the seat for LW-332 (the owner queued the Grows-line move). Nothing about the
