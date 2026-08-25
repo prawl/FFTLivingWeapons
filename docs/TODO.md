@@ -218,10 +218,16 @@ belongs rather than at the bottom.
   PA+MA+Brave magenta with shared purple as the fallback (katanas). Color follows the
   LANE, not the family: Wrathblade and Swiftedge glow green among red swords, Arcanum
   blue, and that is the dictionary working. The line text is also final: "Grows:" label,
-  short stat names, ampersand lists ("PA, MA & Brave", baked 50c2505). Still blocked on
-  ONE live sitting: the card palette map (only color 80 = yellow is proven; the cycler
-  probe built from tools/probes/lw307_card_markup_probe.py steps NN values while the
-  owner matches each ruled hue to a real slot and judges legibility). (Tech: wrap each baked Grows line in <color=NN>...</color> keyed
+  short stat names, ampersand lists ("PA, MA & Brave", baked 50c2505). The palette sitting
+  RAN 2026-08-25 (owner-read, 32 slots banked in tools/probes/lw329_palette_map.json)
+  and every ruled hue found a real readable slot: Speed green 40, PA red 30, MA blue 50,
+  HP orange 81, WP cyan 83, poles purple 95; the magic guns' gold is mustard 60 (the
+  table's only gold, semi-readable, upgradeable if a later fine pass finds better); the
+  katana blend awaits one owner pick, periwinkle 94 (readable, distinct) versus sharing
+  purple 95. Sitting lessons for the bake arc: the heap copy population GROWS mid-sitting
+  and a killed probe strands tagged copies (recovered live by scanning for the tag prefix;
+  harden the cycler with a stuck-state check before its next run). Unblocked: the color
+  bake needs only the katana pick and the tag-stripping desc-budget gate. (Tech: wrap each baked Grows line in <color=NN>...</color> keyed
   by meta.json's lane; the desc-budget gate must strip tags before counting since tags
   are bytes, not glyphs; ships as its own bake after the LW-322 live pass.)
 
