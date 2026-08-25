@@ -41,6 +41,10 @@
     <!-- LW-167: poach.json (species to carcass key/name map) rides the same build-output copy as
          meta.json/treasure.json; PoachMap.cs loads it from modDir at runtime. -->
     <None Include="poach.json"     CopyToOutputDirectory="PreserveNewest" Condition="Exists('poach.json')" />
+    <!-- LW-295: baked glow-rim icon variants (tools/bake_glow_icons.py) + their manifest.json,
+         read at runtime by Display/IconGlow.cs. Committed like the other 468 shipped tex files;
+         the glob covers every ei_*_uitx_tN.tex plus manifest.json in one entry. -->
+    <None Include="glow_icons\**\*" CopyToOutputDirectory="PreserveNewest" Condition="Exists('glow_icons')" />
   </ItemGroup>
 
 </Project>

@@ -37,6 +37,12 @@ $RequiredModFiles = @(
     "meta.json",
     # LW-167: Living Poach's species -> carcass key/name map (PoachMap.cs loads it from modDir).
     "poach.json",
+    # LW-295: the glow-rim icon manifest (Display/IconGlow.cs reads it lazily on first armed
+    # tick) plus one spot-check tex, standing in for all 726 baked variants under glow_icons/
+    # (tools/bake_glow_icons.py; the same one-row-stands-for-many treatment the sparse tables
+    # below get -- this list checks presence, not every shipped file).
+    "glow_icons/manifest.json",
+    "glow_icons/ei_001_uitx_t1.tex",
     "FFTIVC/tables/enhanced/ItemData.xml",
     "FFTIVC/tables/enhanced/ItemWeaponData.xml",
     "FFTIVC/tables/enhanced/ItemArmorData.xml",

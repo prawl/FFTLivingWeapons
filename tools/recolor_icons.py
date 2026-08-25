@@ -1837,9 +1837,20 @@ SHIP_GLOW_RIM = False
 
 
 def ramp_glow(im, tint, inner_a=170, outer_a=80, third_a=0, min_de=30.0, rim_sat=None,
-             rim_rgb=None):
+             rim_rgb=None, rim_scale: float = 1.0):
     """Identity rim as an ADDED layer outside the body. The body contour uses a looser alpha
-    threshold plus a majority smooth, so the rim follows the SHAPE the eye sees."""
+    threshold plus a majority smooth, so the rim follows the SHAPE the eye sees.
+
+    rim_scale (LW-295, tools/bake_glow_icons.py's tier intensities) multiplies every RESOLVED
+    rim alpha -- inner_a, outer_a, and a rims.json row's own nonzero third_a -- each
+    int(round(...)) then clamped 0..255, applied before any pixel work and before rim_rgb's own
+    contrast resolution (so a scaled rim still proves its contrast at the alpha it will actually
+    paint, not the caller's nominal one). rim_scale=1.0 is an EXACT identity:
+    int(round(x * 1.0)) clamped 0..255 reproduces x for every x already in 0..255, so every
+    existing call site (all of which omit this kwarg) is byte-for-byte unaffected."""
+    inner_a = max(0, min(255, int(round(inner_a * rim_scale))))
+    outer_a = max(0, min(255, int(round(outer_a * rim_scale))))
+    third_a = max(0, min(255, int(round(third_a * rim_scale))))
     t_hue, t_sat, _ = tint
     w, h = im.size
     out = im.copy(); po = out.load(); px = im.load()
@@ -1888,7 +1899,7 @@ def _ramp_coif_light_middle(out, a, ship_live):
     return out
 
 
-def ramp_render(item_id, tint, surface, glow=SHIP_GLOW_RIM):
+def ramp_render(item_id, tint, surface, glow=SHIP_GLOW_RIM, rim_scale: float = 1.0):
     """THE ramp branch route() dispatches to for the 150 ramp ids (D5): a vendored body PNG
     if this (id, surface) is one of the 16 census2 BODY-VEND pairs; else, for the five ids
     whose shipped art IS the old engine's own render
@@ -1900,7 +1911,11 @@ def ramp_render(item_id, tint, surface, glow=SHIP_GLOW_RIM):
     glow=True still gets the parked rim, honoring data/icon_ramp/rims.json where a row exists
     and the default rim_color(tint) otherwise. (The previous version of this sentence cited
     "the arc gate's --no-glow smoke render" as the knob's exerciser. No such gate has ever
-    existed anywhere in this repo; the citation was invented. Removed 2026-08-19.)"""
+    existed anywhere in this repo; the citation was invented. Removed 2026-08-19.)
+
+    rim_scale (LW-295) forwards straight to ramp_glow, whichever rim path fires below; see its
+    doc comment for the exact alpha-scaling rule. Default 1.0 is an exact identity, so this
+    param is invisible to every existing caller (all of which omit it)."""
     body = _ramp_vendored_body(item_id, surface)
     if body is None:
         if item_id in RAMP_KEEP_SHIPPED:
@@ -1927,8 +1942,9 @@ def ramp_render(item_id, tint, surface, glow=SHIP_GLOW_RIM):
     rim = RAMP_RIMS.get(str(item_id))
     if rim:
         return ramp_glow(body, tint, inner_a=rim["inner_a"], outer_a=rim["outer_a"],
-                         third_a=rim["third_a"], rim_rgb=tuple(rim["rgb"]))
-    return ramp_glow(body, tint)
+                         third_a=rim["third_a"], rim_rgb=tuple(rim["rgb"]),
+                         rim_scale=rim_scale)
+    return ramp_glow(body, tint, rim_scale=rim_scale)
 
 
 def recolor(im, hue, sat, val_mult):
