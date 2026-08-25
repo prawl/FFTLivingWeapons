@@ -4,14 +4,50 @@
     "wp": 5,
     "cat": "Knife",
     "formula": 1,
-    "flavor": "First steel of a guttersnipe's trade, light to palm and cheap to abandon in flight."
+    "flavor": "First steel of a guttersnipe's trade, light to palm and cheap to abandon in flight.",
+    "palette": 14,
+    "colors": [
+      7459,
+      13862,
+      20202,
+      25457,
+      3170,
+      7429,
+      12712,
+      4358,
+      6535,
+      6664,
+      7396,
+      14693,
+      21961,
+      25194,
+      5381
+    ]
   },
   "2": {
     "name": "Quicksilver",
     "wp": 6,
     "cat": "Knife",
     "formula": 1,
-    "flavor": "Quenched to a liquid sheen, it slips aside as readily as it slips between ribs."
+    "flavor": "Quenched to a liquid sheen, it slips aside as readily as it slips between ribs.",
+    "palette": 15,
+    "colors": [
+      3660,
+      3889,
+      14230,
+      25564,
+      7497,
+      9644,
+      12912,
+      5318,
+      7465,
+      10636,
+      1257,
+      8592,
+      8791,
+      14140,
+      4294
+    ]
   },
   "3": {
     "name": "Gloomfang",
@@ -24,7 +60,25 @@
       "slot": "support",
       "atTier": 3,
       "displayLabel": "Concentration"
-    }
+    },
+    "palette": 14,
+    "colors": [
+      12580,
+      20999,
+      25261,
+      29491,
+      8452,
+      12679,
+      19018,
+      4358,
+      6535,
+      6664,
+      7396,
+      14693,
+      21961,
+      25194,
+      7364
+    ]
   },
   "4": {
     "name": "Hushblade",
@@ -37,14 +91,50 @@
       "slot": "support",
       "atTier": 3,
       "displayLabel": "Magick Def Boost"
-    }
+    },
+    "palette": 3,
+    "colors": [
+      16547,
+      20675,
+      27050,
+      31378,
+      4195,
+      9414,
+      11561,
+      4266,
+      4337,
+      5464,
+      4357,
+      6535,
+      6731,
+      6764,
+      17799
+    ]
   },
   "5": {
     "name": "Argent Dirk",
     "wp": 7,
     "cat": "Knife",
     "formula": 1,
-    "flavor": "Balanced to the grain and burnished bright, the dirk a silversmith sets aside for himself."
+    "flavor": "Balanced to the grain and burnished bright, the dirk a silversmith sets aside for himself.",
+    "palette": 13,
+    "colors": [
+      11394,
+      18661,
+      26025,
+      30421,
+      3170,
+      14665,
+      20874,
+      4363,
+      4531,
+      4728,
+      3273,
+      4332,
+      4433,
+      4599,
+      5319
+    ]
   },
   "6": {
     "name": "Sanguine Gauche",
@@ -57,14 +147,50 @@
       "slot": "support",
       "atTier": 3,
       "displayLabel": "Defense Boost"
-    }
+    },
+    "palette": 3,
+    "colors": [
+      3139,
+      6245,
+      14636,
+      24946,
+      16555,
+      23792,
+      24946,
+      4266,
+      4337,
+      5464,
+      4357,
+      6535,
+      6731,
+      6764,
+      4295
+    ]
   },
   "7": {
     "name": "Adamant Fang",
     "wp": 12,
     "cat": "Knife",
     "formula": 1,
-    "flavor": "Honed past sense into a tooth of cold adamant: it bites to the bone and shields nothing."
+    "flavor": "Honed past sense into a tooth of cold adamant: it bites to the bone and shields nothing.",
+    "palette": 5,
+    "colors": [
+      4164,
+      8360,
+      18833,
+      25144,
+      11499,
+      18705,
+      23927,
+      3269,
+      5446,
+      6536,
+      5318,
+      8489,
+      12717,
+      19059,
+      24085
+    ]
   },
   "8": {
     "name": "Mortal Coil",
@@ -78,7 +204,25 @@
       "atTier": 3,
       "displayLabel": "Attack Boost",
       "hpBelow": 50
-    }
+    },
+    "palette": 4,
+    "colors": [
+      2115,
+      4232,
+      10542,
+      15798,
+      14711,
+      18971,
+      24284,
+      4266,
+      4337,
+      5464,
+      1257,
+      8592,
+      8791,
+      14140,
+      7636
+    ]
   },
   "9": {
     "name": "Galewind",
@@ -92,7 +236,25 @@
       "atTier": 3,
       "displayLabel": "Puppeteer",
       "puppeteerTurns": 1
-    }
+    },
+    "palette": 4,
+    "colors": [
+      2115,
+      4264,
+      9550,
+      13814,
+      6449,
+      7545,
+      14906,
+      4266,
+      4337,
+      5464,
+      1257,
+      8592,
+      8791,
+      14140,
+      8558
+    ]
   },
   "10": {
     "name": "Zwill Straightblade",
@@ -105,91 +267,325 @@
       "slot": "",
       "atTier": 3,
       "displayLabel": "Extra Turn"
-    }
+    },
+    "palette": 8,
+    "colors": [
+      1157,
+      9546,
+      11760,
+      14008,
+      3505,
+      4630,
+      6810,
+      4358,
+      6535,
+      6664,
+      4264,
+      5328,
+      5463,
+      6589,
+      6541
+    ]
   },
   "11": {
     "name": "Swiftfang",
     "wp": 4,
     "cat": "NinjaBlade",
     "formula": 99,
-    "flavor": "So weightless it leads the hand rather than follows; swifter the wielder, crueler the cut."
+    "flavor": "So weightless it leads the hand rather than follows; swifter the wielder, crueler the cut.",
+    "palette": 14,
+    "colors": [
+      2148,
+      6442,
+      11728,
+      15991,
+      5454,
+      7634,
+      11864,
+      4358,
+      6535,
+      6664,
+      7396,
+      14693,
+      21961,
+      25194,
+      28208
+    ]
   },
   "12": {
     "name": "Mistedge",
     "wp": 9,
     "cat": "NinjaBlade",
     "formula": 1,
-    "flavor": "A blade veiled in cold mist that stings the eyes of all it cuts."
+    "flavor": "A blade veiled in cold mist that stings the eyes of all it cuts.",
+    "palette": 14,
+    "colors": [
+      7237,
+      15532,
+      22834,
+      27095,
+      3139,
+      8359,
+      13580,
+      4358,
+      6535,
+      6664,
+      7396,
+      14693,
+      21961,
+      25194,
+      6612
+    ]
   },
   "13": {
     "name": "Frost Kodachi",
     "wp": 10,
     "cat": "NinjaBlade",
     "formula": 2,
-    "flavor": "Tempered in winter's heart, its kiss leaves frost, and a deeper cold where it sinks."
+    "flavor": "Tempered in winter's heart, its kiss leaves frost, and a deeper cold where it sinks.",
+    "palette": 15,
+    "colors": [
+      2178,
+      5381,
+      10730,
+      18129,
+      8937,
+      12108,
+      18322,
+      5318,
+      7465,
+      10636,
+      1257,
+      8592,
+      8791,
+      14140,
+      10766
+    ]
   },
   "14": {
     "name": "Raijin Longblade",
     "wp": 11,
     "cat": "NinjaBlade",
     "formula": 2,
-    "flavor": "Christened for the thunder god, it carries his storm and looses it at the touch of flesh."
+    "flavor": "Christened for the thunder god, it carries his storm and looses it at the touch of flesh.",
+    "palette": 3,
+    "colors": [
+      6216,
+      8300,
+      15605,
+      22940,
+      6278,
+      10475,
+      12654,
+      4266,
+      4337,
+      5464,
+      4357,
+      6535,
+      6731,
+      6764,
+      15796
+    ]
   },
   "15": {
     "name": "Silentfang",
     "wp": 11,
     "cat": "NinjaBlade",
     "formula": 1,
-    "flavor": "Drawn against the spellbound, it stops a chant mid-breath; the silence finishes the deed."
+    "flavor": "Drawn against the spellbound, it stops a chant mid-breath; the silence finishes the deed.",
+    "palette": 4,
+    "colors": [
+      2115,
+      4232,
+      9518,
+      13782,
+      6381,
+      7445,
+      12728,
+      4266,
+      4337,
+      5464,
+      1257,
+      8592,
+      8791,
+      14140,
+      4327
+    ]
   },
   "16": {
     "name": "Sasuke's Blade",
     "wp": 13,
     "cat": "NinjaBlade",
     "formula": 1,
-    "flavor": "A legendary ninja's sword."
+    "flavor": "A legendary ninja's sword.",
+    "palette": 13,
+    "colors": [
+      5219,
+      10471,
+      18860,
+      25268,
+      5185,
+      19684,
+      26883,
+      4363,
+      4531,
+      4728,
+      3273,
+      4332,
+      4433,
+      4599,
+      5351
+    ]
   },
   "17": {
     "name": "Iga Blade",
     "wp": 14,
     "cat": "NinjaBlade",
     "formula": 1,
-    "flavor": "An exquisitely crafted ninja sword that was once used by a secret society."
+    "flavor": "An exquisitely crafted ninja sword that was once used by a secret society.",
+    "palette": 6,
+    "colors": [
+      6342,
+      9581,
+      12786,
+      14932,
+      3272,
+      4396,
+      6544,
+      3269,
+      5446,
+      6536,
+      7303,
+      11467,
+      17745,
+      25144,
+      5483
+    ]
   },
   "18": {
     "name": "Koga Blade",
     "wp": 13,
     "cat": "NinjaBlade",
     "formula": 1,
-    "flavor": "A powerful ninja sword that was once used by a secret society."
+    "flavor": "A powerful ninja sword that was once used by a secret society.",
+    "palette": 5,
+    "colors": [
+      2148,
+      5352,
+      12786,
+      18104,
+      3339,
+      3474,
+      4634,
+      3269,
+      5446,
+      6536,
+      5318,
+      8489,
+      12717,
+      19059,
+      3594
+    ]
   },
   "19": {
     "name": "Vagabond",
     "wp": 4,
     "cat": "Sword",
     "formula": 1,
-    "flavor": "A wanderer's blade worn smooth by the road, slim enough to slip a blow before it falls."
+    "flavor": "A wanderer's blade worn smooth by the road, slim enough to slip a blow before it falls.",
+    "palette": 14,
+    "colors": [
+      2148,
+      6442,
+      11728,
+      16023,
+      5520,
+      7701,
+      12953,
+      4358,
+      6535,
+      6664,
+      7396,
+      14693,
+      21961,
+      25194,
+      26073
+    ]
   },
   "20": {
     "name": "Cleaver",
     "wp": 6,
     "cat": "Sword",
     "formula": 2,
-    "flavor": "Broad and heavy at the edge, it parries nothing; it drives a foe back off their feet."
+    "flavor": "Broad and heavy at the edge, it parries nothing; it drives a foe back off their feet.",
+    "palette": 14,
+    "colors": [
+      5218,
+      13541,
+      20840,
+      27149,
+      3138,
+      8389,
+      13640,
+      4358,
+      6535,
+      6664,
+      7396,
+      14693,
+      21961,
+      25194,
+      6444
+    ]
   },
   "21": {
     "name": "Riposte",
     "wp": 6,
     "cat": "Sword",
     "formula": 2,
-    "flavor": "A duelist's sword balanced to catch an incoming stroke and return it in the same breath."
+    "flavor": "A duelist's sword balanced to catch an incoming stroke and return it in the same breath.",
+    "palette": 3,
+    "colors": [
+      3170,
+      5315,
+      12745,
+      21259,
+      14917,
+      21286,
+      22315,
+      4266,
+      4337,
+      5464,
+      4357,
+      6535,
+      6731,
+      6764,
+      27531
+    ]
   },
   "22": {
     "name": "Claymore",
     "wp": 7,
     "cat": "Sword",
     "formula": 2,
-    "flavor": "A heavy greatsword whose reach lets its bearer cut a pace beyond the foe's swing."
+    "flavor": "A heavy greatsword whose reach lets its bearer cut a pace beyond the foe's swing.",
+    "palette": 15,
+    "colors": [
+      2179,
+      5382,
+      10731,
+      18130,
+      9932,
+      13071,
+      18292,
+      5318,
+      7465,
+      10636,
+      1257,
+      8592,
+      8791,
+      14140,
+      5453
+    ]
   },
   "23": {
     "name": "Sanguine Sword",
@@ -203,28 +599,100 @@
       "atTier": 3,
       "displayLabel": "Shadow Blade",
       "grantCommandAbilityId": 165
-    }
+    },
+    "palette": 6,
+    "colors": [
+      3171,
+      7462,
+      11689,
+      13867,
+      11782,
+      13991,
+      17130,
+      3269,
+      5446,
+      6536,
+      7303,
+      11467,
+      17745,
+      25144,
+      10791
+    ]
   },
   "24": {
     "name": "Stormbrand",
     "wp": 8,
     "cat": "Sword",
     "formula": 2,
-    "flavor": "Drawn from coral and storm alike, its edge mutters with thunder waiting to leap free."
+    "flavor": "Drawn from coral and storm alike, its edge mutters with thunder waiting to leap free.",
+    "palette": 7,
+    "colors": [
+      3171,
+      7432,
+      12880,
+      14067,
+      7758,
+      9970,
+      17206,
+      3206,
+      5454,
+      10773,
+      5384,
+      8621,
+      12817,
+      19158,
+      7697
+    ]
   },
   "25": {
     "name": "Tanglethorn",
     "wp": 7,
     "cat": "Sword",
     "formula": 1,
-    "flavor": "A briar-marked blade said to send roots through any it strikes, fixing them to the earth."
+    "flavor": "A briar-marked blade said to send roots through any it strikes, fixing them to the earth.",
+    "palette": 8,
+    "colors": [
+      5155,
+      10538,
+      16750,
+      25012,
+      13514,
+      16621,
+      20816,
+      4358,
+      6535,
+      6664,
+      4264,
+      5328,
+      5463,
+      6589,
+      6710
+    ]
   },
   "26": {
     "name": "Flamberge",
     "wp": 8,
     "cat": "Sword",
     "formula": 2,
-    "flavor": "A waving, flame-shaped edge that kindles where it lands, leaving the unclean to smolder."
+    "flavor": "A waving, flame-shaped edge that kindles where it lands, leaving the unclean to smolder.",
+    "palette": 15,
+    "colors": [
+      2116,
+      5288,
+      10575,
+      17974,
+      11611,
+      14813,
+      22206,
+      5318,
+      7465,
+      10636,
+      1257,
+      8592,
+      8791,
+      14140,
+      21864
+    ]
   },
   "27": {
     "name": "Wrathblade",
@@ -238,7 +706,25 @@
       "atTier": 3,
       "displayLabel": "Feign Death",
       "feignDeath": true
-    }
+    },
+    "palette": 13,
+    "colors": [
+      2116,
+      6377,
+      11664,
+      20119,
+      5357,
+      11769,
+      14940,
+      4363,
+      4531,
+      4728,
+      3273,
+      4332,
+      4433,
+      4599,
+      7501
+    ]
   },
   "28": {
     "name": "Swiftedge",
@@ -252,14 +738,50 @@
       "atTier": 3,
       "displayLabel": "Afterimage",
       "afterimage": true
-    }
+    },
+    "palette": 4,
+    "colors": [
+      2115,
+      4232,
+      9550,
+      13814,
+      7475,
+      8569,
+      15931,
+      4266,
+      4337,
+      5464,
+      1257,
+      8592,
+      8791,
+      14140,
+      7762
+    ]
   },
   "29": {
     "name": "Graviton",
     "wp": 12,
     "cat": "Sword",
     "formula": 2,
-    "flavor": "A dull, leaden edge that calls down a crushing weight, dragging the proudest foe down."
+    "flavor": "A dull, leaden edge that calls down a crushing weight, dragging the proudest foe down.",
+    "palette": 7,
+    "colors": [
+      3171,
+      8424,
+      18831,
+      23986,
+      10376,
+      16588,
+      21840,
+      3206,
+      5454,
+      10773,
+      5384,
+      8621,
+      12817,
+      19158,
+      20712
+    ]
   },
   "30": {
     "name": "Arcanum",
@@ -273,14 +795,50 @@
       "atTier": 3,
       "displayLabel": "Larceny",
       "larcenyTurns": 3
-    }
+    },
+    "palette": 5,
+    "colors": [
+      3140,
+      7336,
+      15762,
+      22072,
+      14672,
+      18807,
+      23066,
+      3269,
+      5446,
+      6536,
+      5318,
+      8489,
+      12717,
+      19059,
+      8429
+    ]
   },
   "31": {
     "name": "Lightbringer",
     "wp": 14,
     "cat": "Sword",
     "formula": 2,
-    "flavor": "Hallowed steel that wakes with a dawn-white glow, scouring shadow and dead flesh away."
+    "flavor": "Hallowed steel that wakes with a dawn-white glow, scouring shadow and dead flesh away.",
+    "palette": 8,
+    "colors": [
+      7170,
+      15592,
+      23754,
+      30063,
+      4163,
+      7301,
+      10472,
+      4358,
+      6535,
+      6664,
+      4264,
+      5328,
+      5463,
+      6589,
+      5351
+    ]
   },
   "32": {
     "name": "Materia Blade",
@@ -294,7 +852,25 @@
       "atTier": 0,
       "displayLabel": "Ultima",
       "ultima": true
-    }
+    },
+    "palette": 0,
+    "colors": [
+      1125,
+      9546,
+      11728,
+      13976,
+      2450,
+      3574,
+      5723,
+      4358,
+      6535,
+      6664,
+      4264,
+      5328,
+      5463,
+      6589,
+      19783
+    ]
   },
   "33": {
     "name": "Defender",
@@ -308,63 +884,225 @@
       "atTier": 3,
       "displayLabel": "Provoke",
       "grantCommandAbilityId": 189
-    }
+    },
+    "palette": 8,
+    "colors": [
+      135,
+      4497,
+      3609,
+      7871,
+      2147,
+      4294,
+      7466,
+      4358,
+      6535,
+      6664,
+      4264,
+      5328,
+      5463,
+      6589,
+      13213
+    ]
   },
   "34": {
     "name": "Save the Queen",
     "wp": 18,
     "cat": "KnightSword",
     "formula": 1,
-    "flavor": "A knight's sword given as a symbol of an oath of fealty. It has been blessed with a ward of protection."
+    "flavor": "A knight's sword given as a symbol of an oath of fealty. It has been blessed with a ward of protection.",
+    "palette": 15,
+    "colors": [
+      4194,
+      9413,
+      16746,
+      23121,
+      22822,
+      26950,
+      29197,
+      5318,
+      7465,
+      10636,
+      1257,
+      8592,
+      8791,
+      14140,
+      4327
+    ]
   },
   "35": {
     "name": "Excalibur",
     "wp": 21,
     "cat": "KnightSword",
     "formula": 1,
-    "flavor": "Only the true heir may wield this legendary sword, granted fleetness of foot and divine might."
+    "flavor": "Only the true heir may wield this legendary sword, granted fleetness of foot and divine might.",
+    "palette": 8,
+    "colors": [
+      367,
+      7765,
+      10970,
+      17278,
+      4398,
+      5522,
+      7671,
+      4358,
+      6535,
+      6664,
+      4264,
+      5328,
+      5463,
+      6589,
+      4376
+    ]
   },
   "36": {
     "name": "Ragnarok",
     "wp": 24,
     "cat": "KnightSword",
     "formula": 1,
-    "flavor": "A knight's sword named in tales of the world's end. It wards against spellcraft."
+    "flavor": "A knight's sword named in tales of the world's end. It wards against spellcraft.",
+    "palette": 14,
+    "colors": [
+      2148,
+      6410,
+      11664,
+      15927,
+      1198,
+      3348,
+      4476,
+      4358,
+      6535,
+      6664,
+      7396,
+      14693,
+      21961,
+      25194,
+      6443
+    ]
   },
   "37": {
     "name": "Chaos Blade",
     "wp": 28,
     "cat": "KnightSword",
     "formula": 1,
-    "flavor": "This holy knight's sword is said to have been a gift from the gods themselves, and possesses mystical powers."
+    "flavor": "This holy knight's sword is said to have been a gift from the gods themselves, and possesses mystical powers.",
+    "palette": 5,
+    "colors": [
+      4164,
+      8360,
+      17810,
+      25144,
+      22069,
+      26234,
+      29501,
+      3269,
+      5446,
+      6536,
+      5318,
+      8489,
+      12717,
+      19059,
+      2291
+    ]
   },
   "38": {
     "name": "Ashura",
     "wp": 6,
     "cat": "Katana",
     "formula": 2,
-    "flavor": "A katana with a brilliant white blade."
+    "flavor": "A katana with a brilliant white blade.",
+    "palette": 13,
+    "colors": [
+      4162,
+      9414,
+      16779,
+      24179,
+      9314,
+      24837,
+      28999,
+      4363,
+      4531,
+      4728,
+      3273,
+      4332,
+      4433,
+      4599,
+      30643
+    ]
   },
   "39": {
     "name": "Kotetsu",
     "wp": 8,
     "cat": "Katana",
     "formula": 1,
-    "flavor": "A katana whose blade is adorned with a breathtaking carving of a tiger."
+    "flavor": "A katana whose blade is adorned with a breathtaking carving of a tiger.",
+    "palette": 13,
+    "colors": [
+      4162,
+      9446,
+      16779,
+      24211,
+      4162,
+      16712,
+      22919,
+      4363,
+      4531,
+      4728,
+      3273,
+      4332,
+      4433,
+      4599,
+      5516
+    ]
   },
   "40": {
     "name": "Bizen Osafune",
     "wp": 9,
     "cat": "Katana",
     "formula": 47,
-    "flavor": "A katana with a blade forged of the finest iron sand by master swordsmith Nagamitsu Osafune, of the eastern land of Bizen."
+    "flavor": "A katana with a blade forged of the finest iron sand by master swordsmith Nagamitsu Osafune, of the eastern land of Bizen.",
+    "palette": 13,
+    "colors": [
+      4162,
+      9446,
+      16779,
+      24211,
+      4194,
+      16712,
+      22920,
+      4363,
+      4531,
+      4728,
+      3273,
+      4332,
+      4433,
+      4599,
+      4363
+    ]
   },
   "41": {
     "name": "Murasame",
     "wp": 9,
     "cat": "Katana",
     "formula": 1,
-    "flavor": "Referred to as a demon sword, this katana's keen blade showers blood upon the battlefield."
+    "flavor": "Referred to as a demon sword, this katana's keen blade showers blood upon the battlefield.",
+    "palette": 5,
+    "colors": [
+      2116,
+      5320,
+      12722,
+      18040,
+      2218,
+      2289,
+      3417,
+      3269,
+      5446,
+      6536,
+      5318,
+      8489,
+      12717,
+      19059,
+      25144
+    ]
   },
   "42": {
     "name": "Ame-no-Murakumo",
@@ -378,7 +1116,25 @@
       "atTier": 3,
       "displayLabel": "Iai",
       "iai": true
-    }
+    },
+    "palette": 4,
+    "colors": [
+      2115,
+      4264,
+      9550,
+      13846,
+      2183,
+      3311,
+      5461,
+      4266,
+      4337,
+      5464,
+      1257,
+      8592,
+      8791,
+      14140,
+      3273
+    ]
   },
   "43": {
     "name": "Kiyomori",
@@ -392,14 +1148,50 @@
       "atTier": 3,
       "displayLabel": "Kobu",
       "braveOneUp": true
-    }
+    },
+    "palette": 3,
+    "colors": [
+      2180,
+      4327,
+      10702,
+      13080,
+      2180,
+      5417,
+      7564,
+      4266,
+      4337,
+      5464,
+      4357,
+      6535,
+      6731,
+      6764,
+      22853
+    ]
   },
   "44": {
     "name": "Muramasa",
     "wp": 13,
     "cat": "Katana",
     "formula": 67,
-    "flavor": "This katana is said to have drunk the blood of countless enemies."
+    "flavor": "This katana is said to have drunk the blood of countless enemies.",
+    "palette": 6,
+    "colors": [
+      1092,
+      2221,
+      3315,
+      3352,
+      3172,
+      5287,
+      7435,
+      3269,
+      5446,
+      6536,
+      7303,
+      11467,
+      17745,
+      25144,
+      4466
+    ]
   },
   "45": {
     "name": "Kiku-ichimonji",
@@ -413,35 +1205,125 @@
       "atTier": 3,
       "displayLabel": "Mushin",
       "mushin": true
-    }
+    },
+    "palette": 14,
+    "colors": [
+      2148,
+      6442,
+      11728,
+      15991,
+      1124,
+      4297,
+      7535,
+      4358,
+      6535,
+      6664,
+      7396,
+      14693,
+      21961,
+      25194,
+      2323
+    ]
   },
   "46": {
     "name": "Masamune",
     "wp": 16,
     "cat": "Katana",
     "formula": 1,
-    "flavor": "This katana was forged by a master swordsmith, and its sheath is inlaid with beautiful patterns."
+    "flavor": "This katana was forged by a master swordsmith, and its sheath is inlaid with beautiful patterns.",
+    "palette": 15,
+    "colors": [
+      4194,
+      8389,
+      15722,
+      23121,
+      15588,
+      20740,
+      26981,
+      5318,
+      7465,
+      10636,
+      1257,
+      8592,
+      8791,
+      14140,
+      4295
+    ]
   },
   "47": {
     "name": "Chirijiraden",
     "wp": 20,
     "cat": "Katana",
     "formula": 1,
-    "flavor": "This katana is decorated with intricate designs and boasts a wickedly sharp edge."
+    "flavor": "This katana is decorated with intricate designs and boasts a wickedly sharp edge.",
+    "palette": 8,
+    "colors": [
+      102,
+      4464,
+      4599,
+      7870,
+      3172,
+      5319,
+      8491,
+      4358,
+      6535,
+      6664,
+      4264,
+      5328,
+      5463,
+      6589,
+      5355
+    ]
   },
   "48": {
     "name": "Terrastaff",
     "wp": 9,
     "cat": "Pole",
     "formula": 1,
-    "flavor": "Quarried from old bedrock, it strikes with the slow patience of shifting earth."
+    "flavor": "Quarried from old bedrock, it strikes with the slow patience of shifting earth.",
+    "palette": 13,
+    "colors": [
+      4161,
+      10436,
+      19816,
+      26225,
+      3170,
+      14665,
+      20874,
+      4363,
+      4531,
+      4728,
+      3273,
+      4332,
+      4433,
+      4599,
+      28606
+    ]
   },
   "49": {
     "name": "Ravager",
     "wp": 15,
     "cat": "KnightSword",
     "formula": 1,
-    "flavor": "A savage cleaving thing that pours its own blind frenzy into every wound it tears open."
+    "flavor": "A savage cleaving thing that pours its own blind frenzy into every wound it tears open.",
+    "palette": 14,
+    "colors": [
+      2118,
+      6287,
+      10487,
+      15803,
+      7439,
+      8503,
+      14841,
+      4266,
+      4337,
+      5464,
+      7303,
+      11467,
+      17745,
+      25144,
+      4230
+    ]
   },
   "50": {
     "name": "Sunderer",
@@ -455,42 +1337,150 @@
       "atTier": 3,
       "displayLabel": "Bulwark",
       "bulwark": true
-    }
+    },
+    "palette": 14,
+    "colors": [
+      4162,
+      10470,
+      16779,
+      24079,
+      22822,
+      26026,
+      28273,
+      4358,
+      6535,
+      6664,
+      7396,
+      14693,
+      21961,
+      25194,
+      26318
+    ]
   },
   "51": {
     "name": "Wellspring Rod",
     "wp": 5,
     "cat": "Rod",
     "formula": 47,
-    "flavor": "An apprentice's rod that drinks a foe's magic dry at every tap, never wanting for power."
+    "flavor": "An apprentice's rod that drinks a foe's magic dry at every tap, never wanting for power.",
+    "palette": 14,
+    "colors": [
+      4194,
+      10534,
+      16875,
+      24207,
+      10500,
+      14726,
+      22057,
+      15622,
+      20840,
+      24968,
+      7396,
+      14693,
+      21961,
+      25194,
+      28606
+    ]
   },
   "52": {
     "name": "Spark Rod",
     "wp": 5,
     "cat": "Rod",
     "formula": 4,
-    "flavor": "Caged storm; each blow lets the thunder out."
+    "flavor": "Caged storm; each blow lets the thunder out.",
+    "palette": 9,
+    "colors": [
+      4162,
+      7299,
+      15722,
+      24078,
+      12484,
+      17670,
+      23978,
+      13675,
+      20844,
+      25302,
+      7396,
+      14693,
+      21961,
+      25194,
+      26425
+    ]
   },
   "53": {
     "name": "Ember Rod",
     "wp": 5,
     "cat": "Rod",
     "formula": 4,
-    "flavor": "Embers smolder in its heart, eager to set a foe ablaze."
+    "flavor": "Embers smolder in its heart, eager to set a foe ablaze.",
+    "palette": 9,
+    "colors": [
+      4163,
+      7270,
+      15693,
+      24020,
+      14539,
+      19695,
+      23988,
+      13580,
+      20755,
+      25175,
+      7396,
+      14693,
+      21961,
+      25194,
+      26425
+    ]
   },
   "54": {
     "name": "Frost Rod",
     "wp": 5,
     "cat": "Rod",
     "formula": 4,
-    "flavor": "Where it points, the air turns to killing winter."
+    "flavor": "Where it points, the air turns to killing winter.",
+    "palette": 12,
+    "colors": [
+      3170,
+      6339,
+      13769,
+      22283,
+      9541,
+      13800,
+      19083,
+      8450,
+      23269,
+      28550,
+      7396,
+      14693,
+      21961,
+      25194,
+      26425
+    ]
   },
   "55": {
     "name": "Hushward Rod",
     "wp": 6,
     "cat": "Rod",
     "formula": 1,
-    "flavor": "A warded rod that keeps its bearer's voice when every other throat in the field is hushed."
+    "flavor": "A warded rod that keeps its bearer's voice when every other throat in the field is hushed.",
+    "palette": 9,
+    "colors": [
+      3202,
+      6371,
+      14826,
+      21230,
+      15914,
+      19116,
+      23315,
+      8456,
+      10697,
+      19090,
+      7396,
+      14693,
+      21961,
+      25194,
+      26425
+    ]
   },
   "56": {
     "name": "Umbral Rod",
@@ -504,14 +1494,50 @@
       "atTier": 3,
       "displayLabel": "Spiritual Font",
       "fontOnMove": true
-    }
+    },
+    "palette": 15,
+    "colors": [
+      2148,
+      5384,
+      10735,
+      18102,
+      6507,
+      7631,
+      10901,
+      6410,
+      8557,
+      10705,
+      1257,
+      8592,
+      8791,
+      14140,
+      28606
+    ]
   },
   "57": {
     "name": "Dragon Rod",
     "wp": 7,
     "cat": "Rod",
     "formula": 1,
-    "flavor": "A rod wielded by a dragon master. Its tip is made from carved dragon bone."
+    "flavor": "A rod wielded by a dragon master. Its tip is made from carved dragon bone.",
+    "palette": 10,
+    "colors": [
+      2146,
+      3267,
+      9673,
+      13067,
+      3363,
+      5572,
+      6661,
+      15753,
+      20970,
+      24175,
+      5318,
+      8489,
+      12717,
+      19059,
+      28606
+    ]
   },
   "58": {
     "name": "Rod of Faith",
@@ -525,14 +1551,50 @@
       "atTier": 3,
       "displayLabel": "Rapture",
       "raptureMove": true
-    }
+    },
+    "palette": 11,
+    "colors": [
+      2116,
+      6378,
+      11664,
+      15927,
+      3245,
+      3317,
+      5467,
+      3171,
+      5384,
+      8621,
+      7303,
+      11467,
+      17745,
+      25144,
+      28606
+    ]
   },
   "59": {
     "name": "Birchwood Staff",
     "wp": 3,
     "cat": "Staff",
     "formula": 1,
-    "flavor": "A plain length of green birch, the first staff pressed into any apprentice's hands."
+    "flavor": "A plain length of green birch, the first staff pressed into any apprentice's hands.",
+    "palette": 13,
+    "colors": [
+      4226,
+      9510,
+      16907,
+      24307,
+      7364,
+      19817,
+      25098,
+      4363,
+      4531,
+      4728,
+      13734,
+      16903,
+      22183,
+      26410,
+      28606
+    ]
   },
   "60": {
     "name": "Warlock's Staff",
@@ -546,7 +1608,25 @@
       "atTier": 3,
       "displayLabel": "Choir",
       "instantCastRadius": 1
-    }
+    },
+    "palette": 7,
+    "colors": [
+      3171,
+      8424,
+      18834,
+      22967,
+      5384,
+      8621,
+      12817,
+      3206,
+      5454,
+      10773,
+      10346,
+      16529,
+      21750,
+      26106,
+      31608
+    ]
   },
   "61": {
     "name": "Mending Staff",
@@ -560,21 +1640,75 @@
       "atTier": 3,
       "displayLabel": "Renewal",
       "regenAuraRadius": 1
-    }
+    },
+    "palette": 4,
+    "colors": [
+      3170,
+      6404,
+      11721,
+      19149,
+      3272,
+      4431,
+      6613,
+      4266,
+      4337,
+      5464,
+      7616,
+      15015,
+      19304,
+      24527,
+      28606
+    ]
   },
   "62": {
     "name": "Warding Staff",
     "wp": 4,
     "cat": "Staff",
     "formula": 1,
-    "flavor": "A consecrated stave that lets no enchantment seal its bearer's lips, however loud the din."
+    "flavor": "A consecrated stave that lets no enchantment seal its bearer's lips, however loud the din.",
+    "palette": 14,
+    "colors": [
+      2148,
+      6442,
+      11728,
+      16023,
+      3273,
+      5422,
+      7637,
+      4358,
+      6535,
+      6664,
+      2148,
+      3339,
+      7634,
+      7734,
+      28606
+    ]
   },
   "63": {
     "name": "Blazing Staff",
     "wp": 6,
     "cat": "Staff",
     "formula": 4,
-    "flavor": "Its crown smolders with caged flame; the warmth keeps restless feet quick afield."
+    "flavor": "Its crown smolders with caged flame; the warmth keeps restless feet quick afield.",
+    "palette": 13,
+    "colors": [
+      4194,
+      9478,
+      16843,
+      24243,
+      7364,
+      19817,
+      25098,
+      4363,
+      4531,
+      4728,
+      12581,
+      15719,
+      20935,
+      26184,
+      28606
+    ]
   },
   "64": {
     "name": "Sanctus Staff",
@@ -588,14 +1722,50 @@
       "atTier": 3,
       "displayLabel": "Benediction",
       "healBoostPct": 30
-    }
+    },
+    "palette": 4,
+    "colors": [
+      3138,
+      8325,
+      14634,
+      22959,
+      3272,
+      4431,
+      6613,
+      4266,
+      4337,
+      5464,
+      11266,
+      18665,
+      25835,
+      31152,
+      28606
+    ]
   },
   "65": {
     "name": "Zeus Mace",
     "wp": 6,
     "cat": "Staff",
     "formula": 1,
-    "flavor": "A staff that increases the might of its user."
+    "flavor": "A staff that increases the might of its user.",
+    "palette": 5,
+    "colors": [
+      1156,
+      5417,
+      11858,
+      18201,
+      4266,
+      4337,
+      5464,
+      3269,
+      5446,
+      6536,
+      3270,
+      6441,
+      9678,
+      16021,
+      28606
+    ]
   },
   "66": {
     "name": "Staff of the Magi",
@@ -609,35 +1779,125 @@
       "atTier": 3,
       "displayLabel": "Sanctuary",
       "antiCrystallize": true
-    }
+    },
+    "palette": 7,
+    "colors": [
+      1124,
+      4395,
+      6744,
+      8924,
+      5384,
+      8621,
+      12817,
+      3206,
+      5454,
+      10773,
+      2148,
+      5385,
+      9613,
+      14932,
+      31608
+    ]
   },
   "67": {
     "name": "Warbrand",
     "wp": 15,
     "cat": "Sword",
     "formula": 1,
-    "flavor": "A graceless slab of war-iron with no guile to it, only a weight that breaks what it meets."
+    "flavor": "A graceless slab of war-iron with no guile to it, only a weight that breaks what it meets.",
+    "palette": 15,
+    "colors": [
+      2148,
+      5352,
+      10671,
+      18070,
+      6576,
+      7701,
+      11929,
+      5318,
+      7465,
+      10636,
+      1257,
+      8592,
+      8791,
+      14140,
+      23375
+    ]
   },
   "68": {
     "name": "Bloodlash",
     "wp": 8,
     "cat": "Knife",
     "formula": 45,
-    "flavor": "Cruelly serrated and slick with venom; it leaves no clean cut, only a wound that festers."
+    "flavor": "Cruelly serrated and slick with venom; it leaves no clean cut, only a wound that festers.",
+    "palette": 9,
+    "colors": [
+      4514,
+      5667,
+      13067,
+      20370,
+      2146,
+      5349,
+      10665,
+      3272,
+      3503,
+      8920,
+      7396,
+      14693,
+      21961,
+      25194,
+      5413
+    ]
   },
   "69": {
     "name": "Climhazzard",
     "wp": 5,
     "cat": "NinjaBlade",
     "formula": 69,
-    "flavor": "A mercy for the dying: it glances off the hale, guts the bleeding."
+    "flavor": "A mercy for the dying: it glances off the hale, guts the bleeding.",
+    "palette": 10,
+    "colors": [
+      2147,
+      3238,
+      9614,
+      11864,
+      6478,
+      7634,
+      8693,
+      10405,
+      14598,
+      20872,
+      5318,
+      8489,
+      12717,
+      19059,
+      23342
+    ]
   },
   "70": {
     "name": "Sasori",
     "wp": 11,
     "cat": "Katana",
     "formula": 1,
-    "flavor": "A barbed, scorpion-named katana whose every sting marks a foe for a slow, certain death."
+    "flavor": "A barbed, scorpion-named katana whose every sting marks a foe for a slow, certain death.",
+    "palette": 13,
+    "colors": [
+      3428,
+      6696,
+      12045,
+      22423,
+      2147,
+      9674,
+      10891,
+      4363,
+      4531,
+      4728,
+      3273,
+      4332,
+      4433,
+      4599,
+      15123
+    ]
   },
   "71": {
     "name": "Outrider Pistol",
@@ -651,49 +1911,175 @@
       "atTier": 3,
       "displayLabel": "Gun Slinger",
       "gunSlinger": true
-    }
+    },
+    "palette": 13,
+    "colors": [
+      2177,
+      5445,
+      10857,
+      19249,
+      7364,
+      19817,
+      25098,
+      3171,
+      6405,
+      8583,
+      3273,
+      4332,
+      4433,
+      4599,
+      28606
+    ]
   },
   "72": {
     "name": "Ironclad Repeater",
     "wp": 9,
     "cat": "Gun",
     "formula": 3,
-    "flavor": "An iron-framed repeater for the long road; it hits harder than the pistol and never jams."
+    "flavor": "An iron-framed repeater for the long road; it hits harder than the pistol and never jams.",
+    "palette": 10,
+    "colors": [
+      3138,
+      6244,
+      14634,
+      24941,
+      3269,
+      5446,
+      6536,
+      14568,
+      18698,
+      23950,
+      5318,
+      8489,
+      12717,
+      19059,
+      28606
+    ]
   },
   "73": {
     "name": "Stoneshooter",
     "wp": 16,
     "cat": "Gun",
     "formula": 3,
-    "flavor": "A heavy gun bored to spit earthen shards; each shot lands like a sliding mountain."
+    "flavor": "A heavy gun bored to spit earthen shards; each shot lands like a sliding mountain.",
+    "palette": 14,
+    "colors": [
+      1125,
+      4397,
+      6613,
+      10907,
+      3273,
+      5422,
+      7637,
+      5320,
+      7499,
+      8591,
+      7396,
+      14693,
+      21961,
+      25194,
+      28606
+    ]
   },
   "74": {
     "name": "Glacial Gun",
     "wp": 12,
     "cat": "Gun",
     "formula": 4,
-    "flavor": "A magickal firearm that shoots freezing bullets."
+    "flavor": "A magickal firearm that shoots freezing bullets.",
+    "palette": 13,
+    "colors": [
+      5185,
+      12451,
+      22822,
+      28239,
+      7364,
+      19817,
+      25098,
+      3171,
+      8389,
+      12551,
+      3273,
+      4332,
+      4433,
+      4599,
+      28606
+    ]
   },
   "75": {
     "name": "Blaze Gun",
     "wp": 12,
     "cat": "Gun",
     "formula": 4,
-    "flavor": "A magickal firearm that shoots flaming bullets."
+    "flavor": "A magickal firearm that shoots flaming bullets.",
+    "palette": 14,
+    "colors": [
+      1093,
+      4301,
+      7541,
+      11771,
+      3273,
+      5422,
+      7637,
+      2148,
+      5320,
+      5355,
+      7396,
+      14693,
+      21961,
+      25194,
+      28606
+    ]
   },
   "76": {
     "name": "Blaster",
     "wp": 15,
     "cat": "Gun",
     "formula": 4,
-    "flavor": "A magickal firearm that shoots electrically charged bullets."
+    "flavor": "A magickal firearm that shoots electrically charged bullets.",
+    "palette": 11,
+    "colors": [
+      2178,
+      7494,
+      12811,
+      17135,
+      3272,
+      4431,
+      6613,
+      6500,
+      7748,
+      11046,
+      7303,
+      11467,
+      17745,
+      25144,
+      28606
+    ]
   },
   "77": {
     "name": "Scoutbolt",
     "wp": 4,
     "cat": "Crossbow",
     "formula": 2,
-    "flavor": "A featherlight crossbow a scout slings on one shoulder, drawn quick and loosed quicker."
+    "flavor": "A featherlight crossbow a scout slings on one shoulder, drawn quick and loosed quicker.",
+    "palette": 14,
+    "colors": [
+      4162,
+      10470,
+      16779,
+      24111,
+      3273,
+      5422,
+      7637,
+      4358,
+      6535,
+      6664,
+      10403,
+      19683,
+      26983,
+      29097,
+      28606
+    ]
   },
   "78": {
     "name": "Eclipsebolt",
@@ -707,7 +2093,25 @@
       "atTier": 3,
       "displayLabel": "Eagle Eye",
       "doomCountdownTo": 1
-    }
+    },
+    "palette": 15,
+    "colors": [
+      2180,
+      4361,
+      8721,
+      17111,
+      10405,
+      14598,
+      20872,
+      5318,
+      7465,
+      10636,
+      1157,
+      9546,
+      11792,
+      14072,
+      28606
+    ]
   },
   "79": {
     "name": "Arbalest",
@@ -721,7 +2125,25 @@
       "atTier": 3,
       "displayLabel": "Crossfire",
       "gunSlinger": true
-    }
+    },
+    "palette": 10,
+    "colors": [
+      3139,
+      6245,
+      14636,
+      24948,
+      3269,
+      5446,
+      6536,
+      10405,
+      14598,
+      20872,
+      9319,
+      13482,
+      18703,
+      25077,
+      28606
+    ]
   },
   "80": {
     "name": "Venombolt",
@@ -734,42 +2156,150 @@
       "slot": "",
       "atTier": 3,
       "displayLabel": "Plague"
-    }
+    },
+    "palette": 11,
+    "colors": [
+      5189,
+      12493,
+      19795,
+      26105,
+      3272,
+      4431,
+      6613,
+      4266,
+      4337,
+      5464,
+      3140,
+      7303,
+      13613,
+      23030,
+      28606
+    ]
   },
   "81": {
     "name": "Pitchbolt",
     "wp": 8,
     "cat": "Crossbow",
     "formula": 45,
-    "flavor": "A crossbow whose bolts burst with clinging pitch, leaving the quarry slick for the spark."
+    "flavor": "A crossbow whose bolts burst with clinging pitch, leaving the quarry slick for the spark.",
+    "palette": 3,
+    "colors": [
+      3175,
+      5227,
+      10515,
+      15803,
+      7365,
+      12584,
+      14731,
+      4266,
+      4337,
+      5464,
+      3171,
+      6342,
+      8427,
+      8428,
+      21373
+    ]
   },
   "82": {
     "name": "Siegebolt",
     "wp": 11,
     "cat": "Crossbow",
     "formula": 1,
-    "flavor": "A siege-grade crossbow scaled for a strong back, driving a quarrel to crack a shield wall."
+    "flavor": "A siege-grade crossbow scaled for a strong back, driving a quarrel to crack a shield wall.",
+    "palette": 15,
+    "colors": [
+      2148,
+      5320,
+      10671,
+      18038,
+      10405,
+      14598,
+      20872,
+      5318,
+      7465,
+      10636,
+      1193,
+      8591,
+      8727,
+      14012,
+      28606
+    ]
   },
   "83": {
     "name": "Skirmisher",
     "wp": 4,
     "cat": "Bow",
     "formula": 1,
-    "flavor": "A slender hunting bow that prizes the quick step; loosed and gone before the answer comes."
+    "flavor": "A slender hunting bow that prizes the quick step; loosed and gone before the answer comes.",
+    "palette": 13,
+    "colors": [
+      5154,
+      11398,
+      20715,
+      27155,
+      3139,
+      14636,
+      20816,
+      12489,
+      19663,
+      24786,
+      3273,
+      4332,
+      4433,
+      4599,
+      28606
+    ]
   },
   "84": {
     "name": "Windrunner",
     "wp": 5,
     "cat": "Bow",
     "formula": 1,
-    "flavor": "Worked from pale silver, light as nothing, it dances clear of every blow without a trick."
+    "flavor": "Worked from pale silver, light as nothing, it dances clear of every blow without a trick.",
+    "palette": 7,
+    "colors": [
+      3140,
+      10411,
+      22775,
+      26939,
+      4197,
+      9418,
+      13678,
+      14547,
+      19738,
+      25212,
+      5384,
+      8621,
+      12817,
+      19158,
+      31608
+    ]
   },
   "85": {
     "name": "Frostarc",
     "wp": 4,
     "cat": "Bow",
     "formula": 2,
-    "flavor": "Carved from rimed wood that never thaws; its arrows carry the chill of a frozen lake."
+    "flavor": "Carved from rimed wood that never thaws; its arrows carry the chill of a frozen lake.",
+    "palette": 14,
+    "colors": [
+      2179,
+      6505,
+      11822,
+      15092,
+      4294,
+      7498,
+      10768,
+      5780,
+      6969,
+      9083,
+      7396,
+      14693,
+      21961,
+      25194,
+      28606
+    ]
   },
   "86": {
     "name": "Stormarc",
@@ -784,21 +2314,75 @@
       "displayLabel": "Chain Lightning",
       "ricochetRadius": 3,
       "ricochetPct": 60
-    }
+    },
+    "palette": 15,
+    "colors": [
+      2152,
+      4302,
+      7542,
+      18042,
+      5319,
+      7466,
+      10704,
+      6543,
+      7699,
+      10871,
+      1257,
+      8592,
+      8791,
+      14140,
+      28606
+    ]
   },
   "87": {
     "name": "Skypiercer",
     "wp": 7,
     "cat": "Bow",
     "formula": 2,
-    "flavor": "A tall bow that lofts arrows on the wind, arcing over crag to pluck a foe from any perch."
+    "flavor": "A tall bow that lofts arrows on the wind, arcing over crag to pluck a foe from any perch.",
+    "palette": 3,
+    "colors": [
+      1187,
+      2309,
+      6699,
+      10098,
+      4292,
+      7528,
+      10667,
+      7560,
+      7786,
+      11022,
+      4357,
+      6535,
+      6731,
+      6764,
+      21373
+    ]
   },
   "88": {
     "name": "Tidecaller",
     "wp": 6,
     "cat": "Bow",
     "formula": 2,
-    "flavor": "A bow that hisses like surf and stills the throat it finds."
+    "flavor": "A bow that hisses like surf and stills the throat it finds.",
+    "palette": 14,
+    "colors": [
+      3202,
+      8581,
+      13897,
+      19245,
+      4324,
+      7527,
+      10794,
+      5637,
+      6790,
+      5926,
+      7396,
+      14693,
+      21961,
+      25194,
+      28606
+    ]
   },
   "89": {
     "name": "Huntress",
@@ -812,7 +2396,25 @@
       "atTier": 3,
       "displayLabel": "Maim",
       "crippleTurns": 3
-    }
+    },
+    "palette": 12,
+    "colors": [
+      4258,
+      7427,
+      14857,
+      23340,
+      6340,
+      11623,
+      15852,
+      8451,
+      23239,
+      27464,
+      7396,
+      14693,
+      21961,
+      25194,
+      26425
+    ]
   },
   "90": {
     "name": "Yoichi Bow",
@@ -826,98 +2428,350 @@
       "atTier": 3,
       "displayLabel": "Barrage",
       "grantCommandAbilityId": 358
-    }
+    },
+    "palette": 11,
+    "colors": [
+      13673,
+      20015,
+      24277,
+      29562,
+      4300,
+      4372,
+      8601,
+      6609,
+      5785,
+      12027,
+      7303,
+      11467,
+      17745,
+      25144,
+      28606
+    ]
   },
   "91": {
     "name": "Perseus Bow",
     "wp": 16,
     "cat": "Bow",
     "formula": 1,
-    "flavor": "The bow of a mythical hero. It is constructed entirely of metal and requires great strength to draw."
+    "flavor": "The bow of a mythical hero. It is constructed entirely of metal and requires great strength to draw.",
+    "palette": 15,
+    "colors": [
+      14593,
+      21858,
+      29223,
+      31507,
+      8422,
+      12584,
+      17803,
+      14565,
+      18694,
+      22888,
+      1257,
+      8592,
+      8791,
+      14140,
+      28606
+    ]
   },
   "92": {
     "name": "Siren's Lyre",
     "wp": 6,
     "cat": "Instrument",
     "formula": 2,
-    "flavor": "A harp whose airs ride the gathering wind, luring the unwary into a fog of confusion."
+    "flavor": "A harp whose airs ride the gathering wind, luring the unwary into a fog of confusion.",
+    "palette": 8,
+    "colors": [
+      3200,
+      10631,
+      14920,
+      21322,
+      4261,
+      6408,
+      9579,
+      4358,
+      6535,
+      6664,
+      6340,
+      12711,
+      18055,
+      24392,
+      22396
+    ]
   },
   "93": {
     "name": "Duskstring Harp",
     "wp": 7,
     "cat": "Instrument",
     "formula": 2,
-    "flavor": "Strung for twilight songs that smear a listener's sight to dusk as they stand entranced."
+    "flavor": "Strung for twilight songs that smear a listener's sight to dusk as they stand entranced.",
+    "palette": 6,
+    "colors": [
+      7431,
+      10761,
+      12971,
+      16110,
+      5318,
+      7465,
+      10636,
+      3269,
+      5446,
+      6536,
+      2178,
+      4357,
+      8649,
+      15088,
+      6438
+    ]
   },
   "94": {
     "name": "Faerie Harp",
     "wp": 8,
     "cat": "Instrument",
     "formula": 2,
-    "flavor": "The pure sound of this harp can charm those who hear it played."
+    "flavor": "The pure sound of this harp can charm those who hear it played.",
+    "palette": 15,
+    "colors": [
+      2148,
+      5352,
+      10703,
+      18070,
+      10405,
+      14598,
+      20872,
+      5318,
+      7465,
+      10636,
+      134,
+      4495,
+      4663,
+      7934,
+      5847
+    ]
   },
   "95": {
     "name": "Glarebound Tome",
     "wp": 5,
     "cat": "Book",
     "formula": 2,
-    "flavor": "A street orator's folio, its arguments so dazzling they leave the heckler blinking, lost."
+    "flavor": "A street orator's folio, its arguments so dazzling they leave the heckler blinking, lost.",
+    "palette": 13,
+    "colors": [
+      10338,
+      17604,
+      25928,
+      29363,
+      7364,
+      19817,
+      25098,
+      4363,
+      4531,
+      4728,
+      3273,
+      4332,
+      4433,
+      4599,
+      28606
+    ]
   },
   "96": {
     "name": "Knell Codex",
     "wp": 7,
     "cat": "Book",
     "formula": 1,
-    "flavor": "A codex of beasts and their endings; to be named in its pages is to be promised the grave."
+    "flavor": "A codex of beasts and their endings; to be named in its pages is to be promised the grave.",
+    "palette": 14,
+    "colors": [
+      4163,
+      10441,
+      16751,
+      24052,
+      3273,
+      5422,
+      7637,
+      4358,
+      6535,
+      6664,
+      7396,
+      14693,
+      21961,
+      25194,
+      28606
+    ]
   },
   "97": {
     "name": "Binding Codex",
     "wp": 7,
     "cat": "Book",
     "formula": 2,
-    "flavor": "A codex of binding sigils that fix a reader's feet fast, rooted by the words' own weight."
+    "flavor": "A codex of binding sigils that fix a reader's feet fast, rooted by the words' own weight.",
+    "palette": 10,
+    "colors": [
+      2182,
+      2249,
+      7634,
+      10907,
+      3269,
+      5446,
+      6536,
+      10405,
+      14598,
+      20872,
+      5318,
+      8489,
+      12717,
+      19059,
+      28606
+    ]
   },
   "98": {
     "name": "Omnilex",
     "wp": 10,
     "cat": "Book",
     "formula": 1,
-    "flavor": "A book said to contain every word of every known language."
+    "flavor": "A book said to contain every word of every known language.",
+    "palette": 11,
+    "colors": [
+      37,
+      2191,
+      3320,
+      8606,
+      3272,
+      4431,
+      6613,
+      4266,
+      4337,
+      5464,
+      7303,
+      11467,
+      17745,
+      25144,
+      28606
+    ]
   },
   "99": {
     "name": "Skewer",
     "wp": 7,
     "cat": "Polearm",
     "formula": 1,
-    "flavor": "A plain ash spear cut to reach a foe a pace beyond a sword's swing, and nothing more."
+    "flavor": "A plain ash spear cut to reach a foe a pace beyond a sword's swing, and nothing more.",
+    "palette": 13,
+    "colors": [
+      4163,
+      9416,
+      16751,
+      24182,
+      7364,
+      19817,
+      25098,
+      13611,
+      20785,
+      23955,
+      3273,
+      4332,
+      4433,
+      4599,
+      7535
+    ]
   },
   "100": {
     "name": "Footman's Spear",
     "wp": 9,
     "cat": "Polearm",
     "formula": 1,
-    "flavor": "Issued to every footsoldier; it thrusts clean from the second rank, out of the press."
+    "flavor": "Issued to every footsoldier; it thrusts clean from the second rank, out of the press.",
+    "palette": 13,
+    "colors": [
+      1124,
+      4363,
+      8659,
+      18105,
+      7364,
+      19817,
+      25098,
+      3171,
+      6409,
+      7501,
+      3273,
+      4332,
+      4433,
+      4599,
+      4294
+    ]
   },
   "101": {
     "name": "Frostpoint",
     "wp": 8,
     "cat": "Polearm",
     "formula": 2,
-    "flavor": "Ice clings to its head; a deep thrust leaves frost in the wound."
+    "flavor": "Ice clings to its head; a deep thrust leaves frost in the wound.",
+    "palette": 15,
+    "colors": [
+      5191,
+      9356,
+      16661,
+      23065,
+      10405,
+      14598,
+      20872,
+      7336,
+      10475,
+      13646,
+      1257,
+      8592,
+      8791,
+      14140,
+      4294
+    ]
   },
   "102": {
     "name": "Stormpike",
     "wp": 9,
     "cat": "Polearm",
     "formula": 2,
-    "flavor": "A charged partisan that calls a bolt down as steel meets flesh."
+    "flavor": "A charged partisan that calls a bolt down as steel meets flesh.",
+    "palette": 10,
+    "colors": [
+      2115,
+      3206,
+      9550,
+      11704,
+      3269,
+      5446,
+      6536,
+      5322,
+      7406,
+      9556,
+      5318,
+      8489,
+      12717,
+      19059,
+      9616
+    ]
   },
   "103": {
     "name": "Tombspire",
     "wp": 11,
     "cat": "Polearm",
     "formula": 69,
-    "flavor": "Spares the hale; pins the bleeding."
+    "flavor": "Spares the hale; pins the bleeding.",
+    "palette": 4,
+    "colors": [
+      2147,
+      4358,
+      9676,
+      14034,
+      3272,
+      4431,
+      6613,
+      9741,
+      9969,
+      16213,
+      1257,
+      8592,
+      8791,
+      14140,
+      6449
+    ]
   },
   "104": {
     "name": "Holy Lance",
@@ -933,105 +2787,375 @@
       "stat": "Speed",
       "statBonus": 3,
       "mounted": true
-    }
+    },
+    "palette": 15,
+    "colors": [
+      12418,
+      19651,
+      28007,
+      30354,
+      10405,
+      14598,
+      20872,
+      7365,
+      11527,
+      14698,
+      1257,
+      8592,
+      8791,
+      14140,
+      28332
+    ]
   },
   "105": {
     "name": "Dragon Whisker",
     "wp": 15,
     "cat": "Polearm",
     "formula": 2,
-    "flavor": "A spear made from a mysterious material that some say is the whisker of a dragon."
+    "flavor": "A spear made from a mysterious material that some say is the whisker of a dragon.",
+    "palette": 12,
+    "colors": [
+      6275,
+      9412,
+      16779,
+      26158,
+      5384,
+      8621,
+      12817,
+      4161,
+      18725,
+      25957,
+      7396,
+      14693,
+      21961,
+      25194,
+      17733
+    ]
   },
   "106": {
     "name": "Wyrmpike",
     "wp": 13,
     "cat": "Polearm",
     "formula": 1,
-    "flavor": "A far-tagging pike, light as a squall; then doom gathers."
+    "flavor": "A far-tagging pike, light as a squall; then doom gathers.",
+    "palette": 8,
+    "colors": [
+      2209,
+      10569,
+      12811,
+      16141,
+      4261,
+      6408,
+      9579,
+      8838,
+      12040,
+      13162,
+      4264,
+      5328,
+      5463,
+      6589,
+      7687
+    ]
   },
   "107": {
     "name": "Greenwood Pole",
     "wp": 6,
     "cat": "Pole",
     "formula": 2,
-    "flavor": "Cut from green wood for the unblooded; a focused blow flings martial spirit a pace off."
+    "flavor": "Cut from green wood for the unblooded; a focused blow flings martial spirit a pace off.",
+    "palette": 12,
+    "colors": [
+      2177,
+      3298,
+      8679,
+      12105,
+      3235,
+      7494,
+      11722,
+      7364,
+      19817,
+      25098,
+      7396,
+      14693,
+      21961,
+      25194,
+      26425
+    ]
   },
   "108": {
     "name": "Ironreed Pole",
     "wp": 8,
     "cat": "Pole",
     "formula": 1,
-    "flavor": "Reed banded with iron, springy and swift, suited to a hand that prizes speed over weight."
+    "flavor": "Reed banded with iron, springy and swift, suited to a hand that prizes speed over weight.",
+    "palette": 10,
+    "colors": [
+      3139,
+      6245,
+      14636,
+      24948,
+      4163,
+      8327,
+      10408,
+      10405,
+      14598,
+      20872,
+      5318,
+      8489,
+      12717,
+      19059,
+      28606
+    ]
   },
   "109": {
     "name": "Slumber Rod",
     "wp": 8,
     "cat": "Pole",
     "formula": 1,
-    "flavor": "Wax-scented, slow to swing; its measured taps coax the watchful into heavy-lidded sleep."
+    "flavor": "Wax-scented, slow to swing; its measured taps coax the watchful into heavy-lidded sleep.",
+    "palette": 15,
+    "colors": [
+      4358,
+      6570,
+      10929,
+      20279,
+      6375,
+      7530,
+      10766,
+      5318,
+      7465,
+      10636,
+      1257,
+      8592,
+      8791,
+      14140,
+      28606
+    ]
   },
   "110": {
     "name": "Hushfan",
     "wp": 9,
     "cat": "Pole",
     "formula": 1,
-    "flavor": "A folded-iron war-fan that beats the air shut round a chanting mouth, stealing its spell."
+    "flavor": "A folded-iron war-fan that beats the air shut round a chanting mouth, stealing its spell.",
+    "palette": 3,
+    "colors": [
+      3170,
+      5315,
+      12745,
+      19211,
+      5316,
+      9574,
+      12713,
+      4266,
+      4337,
+      5464,
+      4357,
+      6535,
+      6731,
+      6764,
+      21373
+    ]
   },
   "111": {
     "name": "Sage's Pole",
     "wp": 12,
     "cat": "Pole",
     "formula": 1,
-    "flavor": "Worn smooth by a sage's grip; no trick to it, only the weight of a practiced strike."
+    "flavor": "Worn smooth by a sage's grip; no trick to it, only the weight of a practiced strike.",
+    "palette": 6,
+    "colors": [
+      4295,
+      6511,
+      7669,
+      9784,
+      16806,
+      22023,
+      24171,
+      3269,
+      5446,
+      6536,
+      7303,
+      11467,
+      17745,
+      25144,
+      15198
+    ]
   },
   "112": {
     "name": "Ivory Pole",
     "wp": 10,
     "cat": "Pole",
     "formula": 1,
-    "flavor": "A pole made from ivory that has been specially treated for improved durability."
+    "flavor": "A pole made from ivory that has been specially treated for improved durability.",
+    "palette": 12,
+    "colors": [
+      3139,
+      6246,
+      13614,
+      23928,
+      20821,
+      24088,
+      27354,
+      7364,
+      19817,
+      25098,
+      7396,
+      14693,
+      21961,
+      25194,
+      26425
+    ]
   },
   "113": {
     "name": "Eight-Fluted Pole",
     "wp": 14,
     "cat": "Pole",
     "formula": 1,
-    "flavor": "Eight grooves channel a slow venom, so one clean rap festers long after the bout is won."
+    "flavor": "Eight grooves channel a slow venom, so one clean rap festers long after the bout is won.",
+    "palette": 14,
+    "colors": [
+      9347,
+      17670,
+      23978,
+      28273,
+      7300,
+      11527,
+      17770,
+      4358,
+      6535,
+      6664,
+      7396,
+      14693,
+      21961,
+      25194,
+      28606
+    ]
   },
   "114": {
     "name": "Whale Whisker",
     "wp": 14,
     "cat": "Pole",
     "formula": 2,
-    "flavor": "A pole made from an unidentified material that some say is a whale's whisker."
+    "flavor": "A pole made from an unidentified material that some say is a whale's whisker.",
+    "palette": 11,
+    "colors": [
+      2116,
+      6378,
+      11664,
+      15895,
+      2185,
+      3249,
+      4376,
+      4266,
+      4337,
+      5464,
+      7303,
+      11467,
+      17745,
+      25144,
+      28606
+    ]
   },
   "115": {
     "name": "Sandman Satchel",
     "wp": 10,
     "cat": "Bag",
     "formula": 1,
-    "flavor": "A conjurer's satchel that breathes slumberdust, sinking the wakeful into untroubled dream."
+    "flavor": "A conjurer's satchel that breathes slumberdust, sinking the wakeful into untroubled dream.",
+    "palette": 14,
+    "colors": [
+      4163,
+      10440,
+      16749,
+      24050,
+      26960,
+      28180,
+      30458,
+      4358,
+      6535,
+      6664,
+      7396,
+      14693,
+      21961,
+      25194,
+      28606
+    ]
   },
   "116": {
     "name": "Fallingstar Bag",
     "wp": 18,
     "cat": "Bag",
     "formula": 1,
-    "flavor": "A custom-made handbag designed for battle."
+    "flavor": "A custom-made handbag designed for battle.",
+    "palette": 10,
+    "colors": [
+      6629,
+      7782,
+      16142,
+      23477,
+      6470,
+      9641,
+      10730,
+      10405,
+      14598,
+      20872,
+      5318,
+      8489,
+      12717,
+      19059,
+      28606
+    ]
   },
   "117": {
     "name": "Hornet Pouch",
     "wp": 12,
     "cat": "Bag",
     "formula": 1,
-    "flavor": "A pouch that looses a sting at the lash, festering in the wound long after the blow."
+    "flavor": "A pouch that looses a sting at the lash, festering in the wound long after the blow.",
+    "palette": 13,
+    "colors": [
+      2148,
+      6409,
+      11728,
+      20151,
+      6409,
+      13876,
+      16024,
+      4363,
+      4531,
+      4728,
+      3273,
+      4332,
+      4433,
+      4599,
+      28606
+    ]
   },
   "118": {
     "name": "Hexweave Bag",
     "wp": 14,
     "cat": "Bag",
     "formula": 1,
-    "flavor": "Woven with binding hexes; one swing snares a voice and strangles the spell mid-word."
+    "flavor": "Woven with binding hexes; one swing snares a voice and strangles the spell mid-word.",
+    "palette": 13,
+    "colors": [
+      16740,
+      23016,
+      27312,
+      31643,
+      3170,
+      14729,
+      20970,
+      4363,
+      4531,
+      4728,
+      3273,
+      4332,
+      4433,
+      4599,
+      28606
+    ]
   },
   "119": {
     "name": "Tarsilk Veil",

@@ -12,6 +12,12 @@ blade levels up); the description block now leads with the Kills tier-progress m
 weapon's own counter by the nearest flavor on EITHER side of a "Kills: " hit --
 reliable per-weapon, unlike anchoring to the name (which lives in a separate UI buffer
 far from the description copy).
+
+LW-251: also folds in data/weapon_colors.json (the Weapon Colour Bench export) and
+data/weapon_palette_overrides.json (hand-verified per-weapon palette corrections) into
+each emitted entry's "palette"/"colors" keys, for the WeaponPalette runtime's live
+per-turn repaint. See attach_weapon_palettes' own doc for the validation rules; run
+`python gen_living_weapon_meta.py --selftest` to exercise them without a real bake.
 """
 import json
 import sys
@@ -24,6 +30,8 @@ from lib.items import load_items
 from lib.paths import ROOT
 
 OUT = ROOT / "LivingWeapon" / "meta.json"
+WEAPON_COLORS = ROOT / "data" / "weapon_colors.json"
+WEAPON_PALETTE_OVERRIDES = ROOT / "data" / "weapon_palette_overrides.json"
 
 # LW-156: the signature passthrough, table-driven. One row per uniform runtime key: (key, kind)
 # where kind "int" emits int(sig[key]) and "flag" emits literal True. Gating is TRUTHINESS
@@ -65,6 +73,133 @@ _SIG_HANDLED_ELSEWHERE = {
 }
 
 
+# --- LW-251: WeaponPalette runtime -- data/weapon_colors.json + data/weapon_palette_overrides.json
+# fold into each emitted entry's "palette"/"colors" keys. q5/e5/_code_of mirror
+# tools/probes/lw305_bench_paint.py's own (independently re-derived here, same reason
+# Offsets.WeaponPaletteBankA/B duplicate the probe's BANKS constant rather than import it: the
+# probe is a throwaway script, not a pipeline dependency).
+
+def q5(v8):
+    """8-bit channel -> 5-bit, using the bench's own rounding."""
+    return max(0, min(31, int(round(v8 * 31 / 255))))
+
+
+def e5(v5):
+    """5-bit -> 8-bit the way the bench does it. FLOOR, not round -- see lw305_bench_paint.py's
+    own e5 for why getting this backwards makes every colour look off by one."""
+    return (v5 * 255) // 31
+
+
+def _code_of(rgb):
+    r, g, b = (q5(c) for c in rgb)
+    return r | (g << 5) | (b << 10)
+
+
+def load_weapon_colours(path=None):
+    """Parse data/weapon_colors.json (or an explicit override path, for --selftest-style
+    isolation) into its full doc dict. Missing file -> no authored weapons (an empty bake stays
+    valid; nothing in main() requires this file to exist)."""
+    p = Path(path) if path is not None else WEAPON_COLORS
+    if not p.exists():
+        return {"weapons": []}
+    return json.loads(p.read_text(encoding="utf-8"))
+
+
+def load_weapon_palette_overrides(path=None):
+    """Parse data/weapon_palette_overrides.json (or an explicit override path). Missing file ->
+    no overrides (every weapon just uses its own export "pal")."""
+    p = Path(path) if path is not None else WEAPON_PALETTE_OVERRIDES
+    if not p.exists():
+        return {"overrides": {}}
+    return json.loads(p.read_text(encoding="utf-8"))
+
+
+def attach_weapon_palettes(meta, colours_doc, overrides_doc):
+    """Validate data/weapon_colors.json (+ overrides) against the already-built `meta` dict, then
+    append "palette"/"colors" to each entry with authored colours -- AT THE END of the entry
+    dict (LW-156's byte-identity rule: new keys append, they never insert), so a regenerate with
+    no real colour change stays byte-identical.
+
+    Returns a list of human-readable error strings; empty means clean. On ANY error, `meta` may
+    be PARTIALLY mutated (a later weapon's failure does not undo an earlier weapon's successful
+    attach) -- main() never writes OUT when this list is non-empty, so a partial mutation never
+    reaches disk. Pure over its three inputs (no filesystem, no sys.exit) so `--selftest` can
+    drive it directly against small in-memory fixtures.
+
+    Validation lanes (main()'s sys.exit fires loud on any of these, LW-156 gate style):
+      1. every colour-file id must be an EMITTED meta entry (a future noGrowth exclusion, or a
+         stale id, would otherwise silently drop a coloured weapon), with a case-insensitive name
+         match against meta's own name (items.json's name, one hop removed).
+      2. every entry 1..15 must be present.
+      3. every channel must round-trip through 5 bits (q5/e5), i.e. the export is BGR555-clean --
+         mirrors lw305_bench_paint.py's own `check` command.
+      4. the final palette (the override's trulyUses if one exists, else the export's own "pal")
+         must be in 0..15.
+      5. every override id must exist in the colour file (an orphan override is dead weight that
+         silently stops applying the moment its evidence is forgotten).
+    A `semiTransparent` flag on any colour entry is deliberately IGNORED here (dropped, not an
+    error): bit 15 is always carried from whatever is currently in the palette slot at write
+    time, per the runtime's own paint design -- never invented from the export, semiTransparent
+    included. See LivingWeapon/Display/WeaponPalette.cs's paint routine for where that bit really
+    comes from.
+    """
+    errors = []
+    overrides = overrides_doc.get("overrides", {}) or {}
+    colours_by_id = {int(w["id"]): w for w in colours_doc.get("weapons", []) or []}
+
+    for wid, w in colours_by_id.items():
+        entry = meta.get(str(wid))
+        if entry is None:
+            errors.append(f"weapon_colors.json id {wid} ({w['name']}) is not an emitted meta "
+                           f"entry (a noGrowth exclusion, or a stale id?)")
+            continue
+        if entry["name"].strip().lower() != w["name"].strip().lower():
+            errors.append(f"weapon_colors.json id {wid} name {w['name']!r} does not match "
+                           f"meta's {entry['name']!r} for the same id")
+            continue
+
+        codes = []
+        bad = False
+        for i in range(1, 16):
+            ent = (w.get("colours") or {}).get(str(i))
+            if ent is None:
+                errors.append(f"weapon_colors.json id {wid} ({w['name']}) is missing colour entry {i}")
+                bad = True
+                continue
+            rgb = ent["rgb"]
+            roundtrip = [e5(q5(c)) for c in rgb]
+            if roundtrip != list(rgb):
+                errors.append(f"weapon_colors.json id {wid} ({w['name']}) entry {i} is not "
+                               f"5-bit clean: {rgb} -> {roundtrip}")
+                bad = True
+                continue
+            codes.append(_code_of(rgb))
+        if bad:
+            continue
+
+        ov = overrides.get(str(wid))
+        pal = ov["trulyUses"] if ov else w["pal"]
+        if not isinstance(pal, int) or not (0 <= pal <= 15):
+            errors.append(f"weapon_colors.json id {wid} ({w['name']}) resolves to out-of-range "
+                           f"palette {pal!r} (must be 0..15)")
+            continue
+
+        entry["palette"] = int(pal)
+        entry["colors"] = codes
+
+    for key in overrides:
+        try:
+            oid = int(key)
+        except (TypeError, ValueError):
+            errors.append(f"weapon_palette_overrides.json key {key!r} is not an integer item id")
+            continue
+        if oid not in colours_by_id:
+            errors.append(f"weapon_palette_overrides.json id {key} has no matching "
+                           f"weapon_colors.json row")
+
+    return errors
+
+
 def main():
     doc = load_items()
     meta = {}
@@ -73,8 +208,11 @@ def main():
         cat = p.get("categoryOverride") or it.get("category")
         if cat not in WEAPON_CATS:
             continue
+        # Excludes an item from the Living Weapon system entirely. Currently excludes NOTHING
+        # (no item.json row carries noGrowth today) -- id 32 Materia Blade IS baked here, despite
+        # this branch's old example comment naming it as the excluded case.
         if it.get("noGrowth"):
-            continue   # excluded from the Living Weapon + system (e.g. Materia Blade)
+            continue
         name = it.get("name")
         if not name or name == "TBD":
             continue
@@ -114,9 +252,82 @@ def main():
                          f"{sorted(unknown)}: not in _SIG_PASSTHROUGH, not allowlisted in "
                          f"_SIG_HANDLED_ELSEWHERE, so meta.json would silently drop them")
         meta[str(it["id"])] = entry
+
+    errors = attach_weapon_palettes(meta, load_weapon_colours(), load_weapon_palette_overrides())
+    if errors:
+        sys.exit("FAIL: weapon palette bake found " + str(len(errors)) + " problem(s):\n  "
+                  + "\n  ".join(errors))
+
     OUT.write_text(json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"wrote {OUT} ({len(meta)} weapons)")
 
 
+def selftest():
+    """Built-in regression cases for attach_weapon_palettes' five validation lanes -- no game, no
+    real data files needed (small in-memory fixtures only). Mirrors tools/scan_logs.py
+    --selftest's check()/report shape (no pytest in this repo). Wired into tools/pipeline.ps1
+    beside the scan_logs/recolor_icons selftest gates."""
+    cases = []
+
+    def check(name, cond):
+        cases.append((name, bool(cond)))
+
+    def fake_meta():
+        return {"1": {"name": "Cutpurse", "wp": 4, "cat": "Knife", "formula": 1, "flavor": "f"}}
+
+    def fake_colours(rgb=(24, 16, 32)):
+        colours = {str(i): {"hex": "#000000", "rgb": list(rgb)} for i in range(1, 16)}
+        return {"weapons": [{"id": 1, "name": "Cutpurse", "cat": "Knife", "pal": 3, "tile": 1,
+                              "colours": colours}]}
+
+    # Happy path: a clean row validates with zero errors and attaches palette+colors at the end.
+    meta = fake_meta()
+    errors = attach_weapon_palettes(meta, fake_colours(), {"overrides": {}})
+    check("clean row: no errors", errors == [])
+    check("clean row: palette attached from the export's own pal", meta["1"].get("palette") == 3)
+    check("clean row: 15 colors attached", len(meta["1"].get("colors", [])) == 15)
+    check("clean row: colors land after palette (append-at-end order)",
+          list(meta["1"].keys())[-2:] == ["palette", "colors"])
+
+    # Lane 1: a colour-file id with no matching emitted meta entry (a future noGrowth exclusion,
+    # or a stale id).
+    errors = attach_weapon_palettes({}, fake_colours(), {"overrides": {}})
+    check("lane1 unemitted id: fails", len(errors) > 0)
+
+    # Lane 1: an id present, but the export's name disagrees with meta's (case-insensitive).
+    mismatched = fake_colours()
+    mismatched["weapons"][0]["name"] = "Not Cutpurse"
+    errors = attach_weapon_palettes(fake_meta(), mismatched, {"overrides": {}})
+    check("lane1 name mismatch: fails", len(errors) > 0)
+
+    # Lane 2: a missing colour entry (14 of 15 present).
+    missing_entry = fake_colours()
+    del missing_entry["weapons"][0]["colours"]["7"]
+    errors = attach_weapon_palettes(fake_meta(), missing_entry, {"overrides": {}})
+    check("lane2 missing entry: fails", len(errors) > 0)
+
+    # Lane 3: an rgb value that does not round-trip through 5 bits (not BGR555-clean).
+    not_5bit = fake_colours(rgb=(1, 2, 3))
+    errors = attach_weapon_palettes(fake_meta(), not_5bit, {"overrides": {}})
+    check("lane3 not 5-bit clean: fails", len(errors) > 0)
+
+    # Lane 4: an override resolves the final palette out of the 0..15 range.
+    errors = attach_weapon_palettes(fake_meta(), fake_colours(), {"overrides": {"1": {"trulyUses": 99}}})
+    check("lane4 out-of-range palette: fails", len(errors) > 0)
+
+    # Lane 5: an override id with no matching weapon_colors.json row.
+    errors = attach_weapon_palettes(fake_meta(), fake_colours(), {"overrides": {"999": {"trulyUses": 0}}})
+    check("lane5 orphan override: fails", len(errors) > 0)
+
+    passed = sum(1 for _, ok in cases if ok)
+    for name, ok in cases:
+        if not ok:
+            print(f"  FAIL: {name}")
+    print(f"gen_living_weapon_meta selftest: {passed}/{len(cases)} passed.")
+    return 0 if passed == len(cases) else 1
+
+
 if __name__ == "__main__":
+    if "--selftest" in sys.argv[1:]:
+        sys.exit(selftest())
     main()

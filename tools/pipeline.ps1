@@ -453,6 +453,16 @@ function Invoke-TablePipeline {
         throw "REFUSING TO ${FailVerb}: meta-gen failed (exit $LASTEXITCODE)."
     }
 
+    # LW-251: gen_living_weapon_meta.py's own regression cases for the WeaponPalette bake's five
+    # validation lanes (data/weapon_colors.json + data/weapon_palette_overrides.json folding into
+    # meta.json). Same argument as scan_logs/recolor_icons below: those failure lanes only run
+    # when a broken data file lands, so nothing else would ever exercise them without this.
+    Write-Host "  -> tools/gen_living_weapon_meta.py --selftest (the palette bake's regression cases)..."
+    & python "$PipelineRepoRoot\tools\gen_living_weapon_meta.py" --selftest
+    if ($LASTEXITCODE -ne 0) {
+        throw "REFUSING TO ${FailVerb}: gen_living_weapon_meta.py --selftest failed (exit $LASTEXITCODE)."
+    }
+
     # Run the log scanner's own built-in regression cases (LW-148 F2): scan_logs.py is a
     # verify-time tool, not a build gate, but its PARSING LOGIC (line_level, the recognized-line
     # tripwire, --allow, flight-trigger parsing, ...) is exactly the kind of pure code this

@@ -20,6 +20,15 @@ public sealed class WeaponMeta
     // The iconic passive this weapon grants its wielder at a kill-tier (null for most
     // weapons -- they are pure stat growth). Only support passives are wired; see Signatures.
     [JsonProperty("signature")] public WeaponSignature? Signature { get; set; }
+    // LW-251 (WeaponPalette runtime): the resident palette bank index this weapon's bench colours
+    // write into, and the 15 authored BGR555 codes for entries 1..15 (entry 0, transparency, is
+    // never carried here -- see Offsets.WeaponPaletteBankA/B's own doc for the bank shape). Baked
+    // from data/weapon_colors.json (+ data/weapon_palette_overrides.json's per-weapon palette
+    // corrections) by tools/gen_living_weapon_meta.py; absent on every weapon with no authored
+    // colours, which is why the defaults below are sentinels rather than 0/empty (0 is a real,
+    // used palette index -- Materia Blade's own -- so it cannot double as "no colours").
+    [JsonProperty("palette")] public int Palette { get; set; } = -1;
+    [JsonProperty("colors")] public int[]? Colors { get; set; }
 }
 
 /// <summary>A weapon's curated tier-grant: at kill-tier &gt;= AtTier the wielder gains the

@@ -97,6 +97,31 @@ public class MetaSchemaTests : IDisposable
         Assert.Equal("Galewind", map[9].Name);
     }
 
+    // LW-251: the WeaponPalette runtime's own schema addition. A weapon with authored bench
+    // colours carries "palette"/"colors"; one with none omits both keys entirely (rather than
+    // emitting a null/-1 literal), so WeaponMeta's property defaults are what an absent-key
+    // weapon actually reads at runtime.
+    [Fact]
+    public void WeaponMeta_parses_palette_and_colors_and_defaults_absent_keys_to_sentinel()
+    {
+        var dir = TempDir();
+        File.WriteAllText(Path.Combine(dir, "meta.json"),
+            "{\"32\":{\"name\":\"Materia Blade\",\"wp\":8,\"cat\":\"Sword\",\"formula\":1,\"flavor\":\"f\"," +
+            "\"palette\":0,\"colors\":[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]}," +
+            "\"9\":{\"name\":\"Galewind\",\"wp\":7,\"cat\":\"Knife\",\"formula\":1,\"flavor\":\"f\"}}");
+        var map = MetaLoader.Load(dir);
+
+        Assert.Equal(0, map[32].Palette);
+        Assert.Equal(15, map[32].Colors!.Length);
+        Assert.Equal(1, map[32].Colors![0]);
+        Assert.Equal(15, map[32].Colors![14]);
+
+        // A weapon with no authored colours never carries the keys -- Palette/Colors read their
+        // property defaults (-1 / null), not a baked "no colour" literal.
+        Assert.Equal(-1, map[9].Palette);
+        Assert.Null(map[9].Colors);
+    }
+
     // LW-171 "Crossfire": pins the committed bake, mirroring LivingPoachTests' precedent for
     // pinning committed generated files (poach.json). Outrider Pistol (id 71) "Gun Slinger" was
     // the sole gunSlinger-flagged weapon; Arbalest (id 79) "Crossfire" is the second. Both must
@@ -116,5 +141,26 @@ public class MetaSchemaTests : IDisposable
         Assert.True(arbalest.Signature!.GunSlinger);
         Assert.Equal(3, arbalest.Signature.AtTier);
         Assert.Equal("Crossfire", arbalest.Signature.DisplayLabel);
+    }
+
+    // LW-251: pins the committed bake's use of data/weapon_palette_overrides.json, mirroring the
+    // gunSlinger pin above. This is the only gate that catches the generator silently ignoring
+    // the overrides file: Materia Blade (id 32) must carry the OVERRIDE palette (0), not the raw
+    // export's mapped palette (8, data/weapon_colors.json's own "pal" field for id 32) -- and a
+    // weapon with no override row (Galewind, id 9) must keep its export palette (4) untouched.
+    [Fact]
+    public void Baked_meta_applies_the_Materia_Blade_palette_override_and_leaves_others_alone()
+    {
+        var map = MetaLoader.Load(Path.GetDirectoryName(RepoMetaPath())!);
+
+        Assert.True(map.TryGetValue(32, out var materiaBlade), "id32 (Materia Blade) missing from meta.json");
+        Assert.Equal(0, materiaBlade.Palette);   // the override (data/weapon_palette_overrides.json), not the mapped 8
+        Assert.NotNull(materiaBlade.Colors);
+        Assert.Equal(15, materiaBlade.Colors!.Length);
+
+        Assert.True(map.TryGetValue(9, out var galewind), "id9 (Galewind) missing from meta.json");
+        Assert.Equal(4, galewind.Palette);   // export's own "pal" -- no override row for id 9
+        Assert.NotNull(galewind.Colors);
+        Assert.Equal(15, galewind.Colors!.Length);
     }
 }

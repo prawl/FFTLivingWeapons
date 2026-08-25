@@ -570,4 +570,22 @@ internal static class Offsets
     // [party-browse-screen-byte] (LIVE_LEDGER.md) for the full evidence; [worldmap-menu-open-byte]
     // narrows to the DENY-side half of the gate as of this round (see its row for the note).
     public const long PartyBrowseFlag = 0x140D408E2;   // u8
+
+    // --- LW-251: WeaponPalette runtime -- the two resident weapon-palette banks a swing's
+    // sprite draws its colours from. 16 palettes per bank, 32 bytes (16 u16 BGR555 entries) each;
+    // entry 0 of every palette is the transparency slot and is structurally never written (the
+    // runtime's write window starts at WeaponPaletteStride's own +2 offset, 30 bytes covering
+    // entries 1..15). BOTH banks must be written together or the change flickers between draws.
+    // A battle LOAD refreshes both banks from the loaded file, reverting every write -- the
+    // runtime's own snapshot/restore + re-assert design exists because of that, not despite it.
+    // Sources: observed live 2026-08-21/22 (ledger row [resident-weapon-palette-buffer],
+    // awaiting owner flip) for the two bank addresses and the per-draw read; ledger row
+    // [per-weapon-colour-by-turn-repaint] (also awaiting owner flip) for the per-draw refresh +
+    // battle-load revert. tools/probes/lw305_bench_paint.py's own BANKS/PAL_STRIDE constants are
+    // the same two numbers, independently re-derived here rather than shared (the probe is a
+    // throwaway script; Offsets.cs is the pinned production source every other constant here
+    // lives in).
+    public const long WeaponPaletteBankA = 0x140D35750;
+    public const long WeaponPaletteBankB = 0x140D35950;
+    public const int WeaponPaletteStride = 32;   // bytes per palette (16 u16 entries)
 }
