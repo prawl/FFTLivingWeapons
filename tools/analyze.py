@@ -533,8 +533,8 @@ def check_grows_lockstep(items):
 #: must have an entry here; a value missing from this table is itself a violation below -- new
 #: lane vocabulary must extend this table consciously, not inherit it from the helper it checks.
 GROWS_PHRASE_EXPECTED = {"Speed": "Speed", "PA": "PA", "MA": "MA", "HP": "HP", "WP": "WP",
-                         "PA+MA": "PA and MA", "WP+Faith": "WP and Faith",
-                         "PA+MA+Brave": "PA, MA and Brave"}
+                         "PA+MA": "PA & MA", "WP+Faith": "WP & Faith",
+                         "PA+MA+Brave": "PA, MA & Brave"}
 
 
 def check_grows_phrase(items):

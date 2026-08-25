@@ -96,9 +96,9 @@ def rider_text(rider):
 
 
 def grows_phrase(grows):
-    """'PA+MA+Brave' -> 'PA, MA and Brave'; single tokens pass through."""
+    """'PA+MA+Brave' -> 'PA, MA & Brave' (owner wording 2026-08-25); single tokens pass through."""
     parts = grows.split("+")
-    return parts[0] if len(parts) == 1 else ", ".join(parts[:-1]) + " and " + parts[-1]
+    return parts[0] if len(parts) == 1 else ", ".join(parts[:-1]) + " & " + parts[-1]
 
 
 def mechanics(it):
