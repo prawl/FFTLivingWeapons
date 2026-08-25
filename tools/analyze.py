@@ -163,15 +163,20 @@ DESC_MAX = 205  # TOTAL assembled card description budget (chars). RECALIBRATED 
                 # both proved too loose live.)
 
 
+COLOR_TAG_RE = re.compile(r"<color=\d{2}>|</color>")
+
+
 def check_desc_budget(items):
     """The FULL assembled card description (Kills scaffold + flavor + mechanics + range line +
     signature block, assemble_desc, the exact patch_names bake) must fit the equip card's box.
-    Overflow pushes the bottom lines off the screen."""
+    Overflow pushes the bottom lines off the screen. Color tags are stripped before counting:
+    the renderer consumes them (LW-307/LW-329 proven), so they are bytes, never glyphs, and
+    only glyphs occupy the box."""
     bad = []
     for it in items:
         if not it.get("name") or it.get("name") == "TBD":
             continue
-        n = len(assemble_desc(it))
+        n = len(COLOR_TAG_RE.sub("", assemble_desc(it)))
         if n > DESC_MAX:
             bad.append((it, n))
     return bad
@@ -536,6 +541,15 @@ GROWS_PHRASE_EXPECTED = {"Speed": "Speed", "PA": "PA", "MA": "MA", "HP": "HP", "
                          "PA+MA": "PA & MA", "WP+Faith": "WP & Faith",
                          "PA+MA+Brave": "PA, MA & Brave"}
 
+#: LW-329 color ruling (owner, 2026-08-25): the whole Grows line wears its lane's hue via an
+#: inline <color=NN> tag the card renderer consumes (proven: LIVE_LEDGER
+#: [inline-color-markup-in-ui-text], card surface half). Slots from the owner-read palette
+#: sitting (tools/probes/lw329_palette_map.json); katanas ride periwinkle 94 (owner default,
+#: poles own purple 95). Pinned literally HERE like the phrase table above, for the same
+#: self-referentiality reason: the verdict must not come from lib.flavor's own copy.
+GROWS_COLOR_SLOT = {"Speed": "40", "PA": "30", "MA": "50", "HP": "81", "WP": "83",
+                    "WP+Faith": "60", "PA+MA": "95", "PA+MA+Brave": "94"}
+
 
 def check_grows_phrase(items):
     """LW-322 (owner ruling 2026-08-25): every living weapon's card must say in plain words what
@@ -555,19 +569,22 @@ def check_grows_phrase(items):
             if "Grows:" in assembled:
                 violations.append((it, ["'Grows:' token present on a non-living item's card"]))
             continue
-        count = assembled.count("\nGrows: ")
+        count = assembled.count("Grows: ")
         if count != 1:
-            violations.append((it, [f"'\\nGrows: ' occurs {count} times, expected exactly 1"]))
+            violations.append((it, [f"'Grows: ' occurs {count} times, expected exactly 1"]))
             continue
         grows = it.get("grows")
         if grows not in GROWS_PHRASE_EXPECTED:
             violations.append((it, [f"grows {grows!r} has no entry in the pinned "
                                      f"GROWS_PHRASE_EXPECTED table -- extend it"]))
             continue
-        idx = assembled.index("\nGrows: ")
-        end = assembled.find("\n", idx + 1)
-        line = assembled[idx:] if end == -1 else assembled[idx:end]
-        expected = "\nGrows: " + GROWS_PHRASE_EXPECTED[grows] + "."
+        if grows not in GROWS_COLOR_SLOT:
+            violations.append((it, [f"grows {grows!r} has no entry in the pinned "
+                                     f"GROWS_COLOR_SLOT table -- extend it"]))
+            continue
+        line = next((l for l in assembled.split("\n") if "Grows: " in l), "")
+        expected = (f"<color={GROWS_COLOR_SLOT[grows]}>Grows: "
+                    + GROWS_PHRASE_EXPECTED[grows] + ".</color>")
         if line != expected:
             detail = f"Grows line {line!r} != expected {expected!r}"
             if grows_phrase_fn is not None and grows_phrase_fn(grows) != GROWS_PHRASE_EXPECTED[grows]:

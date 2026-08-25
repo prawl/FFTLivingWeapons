@@ -95,6 +95,11 @@ def rider_text(rider):
     return " ".join(out)
 
 
+#: LW-329 lane-hue slots, owner-read palette sitting 2026-08-25 (lw329_palette_map.json).
+LANE_COLOR_SLOT = {"Speed": "40", "PA": "30", "MA": "50", "HP": "81", "WP": "83",
+                   "WP+Faith": "60", "PA+MA": "95", "PA+MA+Brave": "94"}
+
+
 def grows_phrase(grows):
     """'PA+MA+Brave' -> 'PA, MA & Brave' (owner wording 2026-08-25); single tokens pass through."""
     parts = grows.split("+")
@@ -310,10 +315,20 @@ def assemble_desc(it, scaffold=True):
     # grows. Unconditional on `scaffold` (body text, not scaffold) so an unscaffolded render
     # still carries it. Source is items.json's "grows", already GROWS LOCKSTEP-gated to the grid.
     if is_living(it):
+        # LW-329 (owner rulings 2026-08-25): the WHOLE Grows line wears its lane's hue via
+        # an inline color tag the card renderer consumes (LIVE_LEDGER
+        # [inline-color-markup-in-ui-text], card surface half). Slots are the owner-read
+        # palette sitting's picks (tools/probes/lw329_palette_map.json); katanas ride
+        # periwinkle 94, poles own purple 95. analyze.py pins its own copy of this table
+        # (GROWS_COLOR_SLOT) so gate and bake cannot drift apart. The line stays at the
+        # BODY BOTTOM for now: moving it under the Kills line stretches the runtime's
+        # Kills-to-flavor anchor gap and risks nearest-flavor mispairing, so the move
+        # ships only together with a CardScanner anchor extension (see docs/TODO.md).
         desc = desc.rstrip()
         if desc and not desc.endswith((".", "!", "?")):
             desc += "."
-        desc += "\nGrows: " + grows_phrase(it["grows"]) + "."
+        desc += ("\n<color=" + LANE_COLOR_SLOT[it["grows"]] + ">Grows: "
+                 + grows_phrase(it["grows"]) + ".</color>")
     # LW-166 baked a "No Poaching." clause here for dormant-formula weapons; LW-167 armed a
     # runtime cure (Living Poach) that makes them poachable again, so the clause would now be
     # false. Removed (owner chose clean cards + a FAQ entry over a replacement line) -- see

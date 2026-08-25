@@ -226,8 +226,14 @@ belongs rather than at the bottom.
   katana blend awaits one owner pick, periwinkle 94 (readable, distinct) versus sharing
   purple 95. Sitting lessons for the bake arc: the heap copy population GROWS mid-sitting
   and a killed probe strands tagged copies (recovered live by scanning for the tag prefix;
-  harden the cycler with a stuck-state check before its next run). Unblocked: the color
-  bake needs only the katana pick and the tag-stripping desc-budget gate. (Tech: wrap each baked Grows line in <color=NN>...</color> keyed
+  harden the cycler with a stuck-state check before its next run). COLOR SHIPPED
+  2026-08-25 late (katanas periwinkle 94 by owner default): every Grows line wears its
+  lane hue via an inline color tag, baked at the BODY BOTTOM. The owner's requested move
+  (Grows directly under the Kills line) is deliberately NOT in this bake: it stretches
+  the runtime's Kills-to-flavor anchor gap from 2 fixed bytes to about 50, and a
+  short-tailed neighbor card in the heap pool could then out-near the card's own flavor
+  and mispaint the counter; the move ships only with a CardScanner anchor extension, row
+  LW-332. Owner live read owed: colored lines on restart, hues matching the sitting map. (Tech: wrap each baked Grows line in <color=NN>...</color> keyed
   by meta.json's lane; the desc-budget gate must strip tags before counting since tags
   are bytes, not glyphs; ships as its own bake after the LW-322 live pass.)
 
@@ -241,6 +247,18 @@ belongs rather than at the bottom.
   then extend the CAST map (and the grid onHit cells) so the cards confess. (Tech: found
   2026-08-25 rendering the per-type card examples; formula-2 elemless weapons with an oai
   outside lib/flavor.py's CAST dict print nothing; check 92, 93, 94 first.)
+
+- [LW-332] 2026-08-25: The Grows line moves up to sit directly under the Kills line, the
+  progression header the owner asked for on his live read, and it needs a matched DLL
+  change to be safe: the card painter pairs each Kills slot with the NEAREST flavor text
+  and relies on only two fixed bytes sitting between them, so inserting the Grows line
+  stretches that gap to about 50 bytes and a neighboring card ending in its own flavor
+  line could pair closer, painting the wrong weapon's counter. Ship the move together
+  with a CardScanner anchor extension (derive each weapon's Grows line from meta's lane
+  and admit it as an anchor candidate, restoring a small fixed gap) plus tests, then
+  flip the GROWS PHRASE gate to demand line-two placement. (Tech: FindNearestFlavor and
+  the 2026-07-06 bidirectional design note in Display/CardScanner.cs are the
+  load-bearing read; the gate already carries the pinned color and phrase tables.)
 
 - [LW-330] 2026-08-25: The enemy AI cures Venombolt's poison, so the always-Poison
   crossbow's identity needs a look: the owner watched an enemy NPC spend its turn using a
