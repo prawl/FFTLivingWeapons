@@ -39,6 +39,7 @@ USAGE:
   python lw305_bench_paint.py glow "Materia Blade" 2  # LIVE: authored colours brightened to kill tier +2 (LW-295 look test)
   python lw305_bench_paint.py glow "Materia Blade" 3 0.9  # same, but with an explicit brighten factor
   python lw305_bench_paint.py glowrender "Materia Blade"  # offline: the authored paint beside all three glow tiers
+  python lw305_bench_paint.py outlineglow "Warbrand" 2 tier  # LIVE: outline glow look test (systems: identity|complement|tier)
   python lw305_bench_paint.py restore               # LIVE: re-read banks from... see note below
 
 There is no `restore`: nothing on disk holds the pre-write bytes, and a battle load restores the
@@ -464,6 +465,101 @@ def cmd_paint(key):
     print("a battle load reverts this; re-run after every load")
 
 
+# LW-295 look test v2 (owner redirect 2026-08-25, "surrounded by the glow color"): outline
+# entries only. An entry is OUTLINE when >= EDGE_MIN of its pixels border transparency in the
+# weapon's own tile; it takes the glow hue at once and ramps brightness per tier toward a
+# per-entry ceiling that preserves the outline's internal shading. Body entries never move.
+# These constants mirror the gallery renderer (scratchpad build) EXACTLY, so the live swing
+# and the published Glow Ladder agree.
+GLOW_EDGE_MIN = 0.40
+GLOW_OUTLINE_RAMP = {1: 0.40, 2: 0.70, 3: 1.0}
+GLOW_TIER_HSV = {1: (0.58, 0.75), 2: (0.12, 0.85), 3: (0.14, 0.25)}   # blue, gold, pale radiant
+
+
+def _edge_shares(box, idx):
+    """Per palette index: what share of its pixels touch transparency (or the tile border)."""
+    from collections import Counter
+    total, edge = Counter(), Counter()
+    for yy in range(box["h"]):
+        for xx in range(box["w"]):
+            v = idx[box["y"] + yy][box["x"] + xx]
+            if not v:
+                continue
+            total[v] += 1
+            for dy, dx in ((-1, 0), (1, 0), (0, -1), (0, 1)):
+                ny, nx = yy + dy, xx + dx
+                if not (0 <= ny < box["h"] and 0 <= nx < box["w"]) or idx[box["y"] + ny][box["x"] + nx] == 0:
+                    edge[v] += 1
+                    break
+    return {v: edge.get(v, 0) / t for v, t in total.items()}
+
+
+def _outline_codes(w, tier, system):
+    """The 15 outline-glow codes for one weapon at one tier under one colour system."""
+    import colorsys
+    sys.path.insert(0, str(HERE.parent))          # tools/, for lib.items
+    from lib.items import load_items
+    tint = {it["id"]: tuple(it["iconTint"]) for it in load_items()["items"]
+            if it.get("iconTint")}.get(w["id"])
+    if tint is None:
+        sys.exit(f"{w['name']} has no iconTint; no glow colour to derive")
+    h, s, _v = tint
+    if system == "complement":
+        h = (h + 0.5) % 1.0
+        gs = max(min(1.0, s * 1.1), 0.60)
+    elif system == "tier":
+        h, gs = GLOW_TIER_HSV[tier]
+    elif system == "identity":
+        gs = max(min(1.0, s * 1.1), 0.60)
+    else:
+        sys.exit("system must be identity, complement or tier")
+    _raw, idx, boxes = _tile_grid()
+    shares = _edge_shares(boxes[w["tile"]], idx)
+    out = []
+    for i, code, rgb, _semi in codes_for(w):
+        if shares.get(i, 0.0) >= GLOW_EDGE_MIN:
+            _h0, _s0, v0 = colorsys.rgb_to_hsv(*(c / 255 for c in rgb))
+            gv = 0.70 + 0.30 * v0
+            v = v0 + (gv - v0) * GLOW_OUTLINE_RAMP[tier]
+            rgb = tuple(int(round(c * 255)) for c in colorsys.hsv_to_rgb(h, gs, v))
+            code = code_of(rgb)
+        out.append((i, code))
+    return out
+
+
+def cmd_outlineglow(key, tier, system="tier"):
+    """LW-295 look test v2, live: outline glow in one of the three candidate colour systems.
+
+    Tier 0 restores the authored paint (the A/B baseline). NOTE while the LivingWeapon mod is
+    ENABLED its shipped painter re-asserts the acting weapon's palette about once a second and
+    will clobber this write mid-swing; for a clean look, disable the mod in Reloaded and
+    relaunch first.
+    """
+    import battle_cheats as bc
+    bc._require_game()
+    tier = int(tier)
+    if tier not in (0, 1, 2, 3):
+        sys.exit("tier must be 0 (authored), 1, 2 or 3")
+    doc = load()
+    w = find(doc, key)
+    pal, ov = true_palette(w)
+    if ov:
+        print(f"OVERRIDE: the map says palette {ov['mapSays']} but a live swing says {pal}")
+    if tier == 0:
+        entries = [(i, c) for i, c, _rgb, _semi in codes_for(w)]
+        print(f"restoring {w['name']}'s authored paint into palette {pal}")
+    else:
+        entries = _outline_codes(w, tier, system)
+        print(f"outline glow +{tier} ({system}): {w['name']} into palette {pal}, both banks")
+    wrote = write_codes(pal, entries)
+    print(f"{wrote}/{len(BANKS)} banks")
+    share = [x["name"] for x in doc["weapons"]
+             if true_palette(x)[0] == pal and x["id"] != w["id"]]
+    if share:
+        print(f"same palette, so also affected if drawn: {', '.join(share)}")
+    print("a battle load reverts this; re-run after every load")
+
+
 def cmd_glow(key, tier, factor=None):
     """LW-295 look test: this weapon's authored colours brightened one kill tier, written live.
 
@@ -516,6 +612,8 @@ if __name__ == "__main__":
         cmd_glow(*sys.argv[2:5])
     elif mode == "glowrender" and len(sys.argv) > 2:
         cmd_glowrender(*sys.argv[2:4])
+    elif mode == "outlineglow" and len(sys.argv) > 3:
+        cmd_outlineglow(*sys.argv[2:5])
     elif mode == "flat" and len(sys.argv) > 5:
         cmd_flat(*sys.argv[2:6])
     elif mode == "slots" and len(sys.argv) > 2:
