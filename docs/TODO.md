@@ -179,7 +179,10 @@ the technical detail lives in the indented lines under it.
     vanilla Runeblade, MA+2 rider, arcane buff-thief) grows MA, the game's only MA sword.
     The other stat riders all sit on rods and staves already growing MA. Rod of Faith's
     innate Faith is a STATUS, not a stat rider, so it stays MA; it is the natural Faith-rod
-    candidate under LW-317 if gun Faith plays well.
+    candidate under LW-317 if gun Faith plays well. Two closing rulings 2026-08-25: the
+    Holy Lance's mounted Speed signature is a conditional grant, not a permanent rider, so
+    it stays PA; and the Arcanum's MA swap is CONFIRMED after a second look (a lone blue
+    sword is the color system carrying information, not a bug).
   - THIS seat ships only what the single-lane engine already does: the grid's grows column
     becomes the single authority (fixing the rows LW-249 left stale), the lane bakes through
     items.json into meta.json, the runtime routes from the baked lane instead of category
