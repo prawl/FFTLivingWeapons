@@ -22,7 +22,7 @@
   "70": "white (unreadable on the card ground)"
  },
  "unswept_ramp_heads": [],
- "wanted_for": "LW-322 Grows text + LW-319 lane hues: red=90 found; blue and green still unmapped",
+ "wanted_for": "LW-322 Grows text + LW-319 lane hues: fully mapped, see lane_palette_proposal",
  "lane_palette_proposal": {
   "PA": "90 (red; 30 light red as the softer alternate)",
   "MA": "50 (blue)",
