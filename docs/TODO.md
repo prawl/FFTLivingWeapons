@@ -233,18 +233,6 @@ belongs rather than at the bottom.
     only reads once. Instruments: auto_text_probe.py verbs scan/classify/pokeall/check/
     hold/autoflag/snap/flagdiff; FF16Tools unpack recipe proven on 0008.pac.
 
-- [LW-249] 2026-08-16: Nine poles grow the wrong stat, so a mage who levels a Whale Whisker
-  gets thirty percent more muscle and not one point of extra spell power. Their damage runs on
-  Magick Attack, but the growth code only recognises rods and staves as caster gear, so every
-  pole climbs Physical Attack instead, which does nothing for the weapon the player is holding.
-  Three guns have the same shape of problem from the other direction: their damage ignores
-  stats entirely, so their growth cannot help them at all and is silently wasted. Confirm the
-  poles really are magick scaled in the shipped data before changing anything, because the
-  claim comes from the design grid rather than from a live reading. (Tech: Tuning.IsCaster
-  tests category Rod or Staff only; poles carry category Pole and route to the PA lane in
-  GrowthEngine.cs's stat picker. Affected ids 48, 107 through 114. The stat-independent guns
-  are 71, 72 and 73, formula 3, WP times WP.)
-
 - [LW-172] 2026-08-12: The mod's human versus monster job boundary is off by two, and every
   consumer of it needs an audit: monsters start at job 94 (Chocobo; Black Chocobo 95), not 96.
   OWNER SIGHTING 2026-08-17, the player-visible cost is now on record: during the LW-233 retry

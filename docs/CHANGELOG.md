@@ -10,6 +10,21 @@ before 2026-07-21 keep their original prose.
 
 ## 2.4.0 cycle
 
+- [LW-249] SHIPPED 678e4d2 2026-08-24: Poles grew muscle their own swings could never use.
+  Every pole's damage runs on spell power (the design grid's dmgScaling column, the CSV that
+  outranks every other description: ids 48 and 107 through 114, all MA x WP), but the growth
+  router only treated rods and staves as caster gear, so a mage levelling a Whale Whisker got
+  Physical Attack. Poles now grow Magick Attack. The premise survived two wrong turns on the
+  way, both recorded so nobody repeats them: the row itself guessed nine poles off the grid
+  before the data was read, and the fix's first attempt misread the per item formula int in
+  items.json as the damage math (it is the engine HANDLER id; 29 weapons including plain
+  swords carry formula 2). The route table is now pinned directly by tests, including a trap
+  pin holding a formula 2 sword on the PA lane. Deliberately NOT touched, both riding the
+  parked LW-250 owner decision: the three guns whose growth stays honestly wasted, and the
+  five rods the grid scales PA x WP while the router sends them to MA, the same bug shape in
+  reverse. (Tech: Tuning.IsCaster adds Pole; GrowthEngine.Route made internal static with an
+  11-case pinned table, poles red first; suite 3231 green; analyze.py PASS.)
+
 - [LW-311] SHIPPED 1deb650 2026-08-24: For the first seconds after a cold boot, and forever
   when the mod is absent or stood down, every weapon card claimed "Kills: 0/5" with total
   confidence, a literal zero baked into the card text that the runtime only later paints over,
