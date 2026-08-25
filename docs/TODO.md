@@ -241,6 +241,17 @@ belongs rather than at the bottom.
   fingerprint probe. The WP and Faith halves are gated
   on LW-316's probe verdicts.)
 
+- [LW-322] 2026-08-25: Every weapon's description says what it grows in plain words, e.g.
+  "Grows: Speed" or "Grows: PA, MA and Brave", because the glow colors alone tell a player
+  THAT a weapon grew, not WHAT it grows, and text works for everyone including colorblind
+  players. Ships as ONE description bake right after LW-317 so the words state the final
+  lanes and never an interim lie, and lands before the LW-319 colors so text leads and
+  color confirms. (Tech: the phrase joins the rider tail of the generated descriptions,
+  sourced from the same grows tokens the LW-250 gate enforces; the two load-bearing lines
+  stay untouched, the Kills meter scaffold and the flavor anchor line the in-card counter
+  latches onto; one item.en.nxd rebake via tools/patch_names.py, restart-only, plus the
+  description-uniqueness gate re-run. Owner proposed 2026-08-25.)
+
 - [LW-320] 2026-08-25: Audit every weapon's power against how it is obtained, because a
   weapon's price should include the effort of getting it. The grid's obtain column splits
   the catalog 88 from shops versus 33 earned (Midlight's Deep treasure hunts, rare poaches,
