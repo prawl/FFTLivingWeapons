@@ -270,7 +270,7 @@
     "wp": 12,
     "cat": "Knife",
     "formula": 1,
-    "flavor": "A knife manufactured in a region renowned for its blades.",
+    "flavor": "A duelist's masterwork honed until the blade forgets to make a sound.",
     "lane": "speed",
     "signature": {
       "abilityId": 0,
@@ -432,7 +432,7 @@
     "wp": 13,
     "cat": "NinjaBlade",
     "formula": 1,
-    "flavor": "A legendary ninja's sword.",
+    "flavor": "A legendary ninja's sword, quick as rumor and twice as hard to trace.",
     "lane": "speed",
     "palette": 13,
     "colors": [
@@ -458,7 +458,7 @@
     "wp": 14,
     "cat": "NinjaBlade",
     "formula": 1,
-    "flavor": "An exquisitely crafted ninja sword that was once used by a secret society.",
+    "flavor": "Forged for the Iga clans; no trick to it but speed and a perfect edge.",
     "lane": "speed",
     "palette": 6,
     "colors": [
@@ -484,7 +484,7 @@
     "wp": 13,
     "cat": "NinjaBlade",
     "formula": 1,
-    "flavor": "A powerful ninja sword that was once used by a secret society.",
+    "flavor": "A Koga blade quenched in poison lore, its gold edge dimmed with shadow.",
     "lane": "speed",
     "palette": 5,
     "colors": [
@@ -588,7 +588,7 @@
     "wp": 7,
     "cat": "Sword",
     "formula": 2,
-    "flavor": "A heavy greatsword whose reach lets its bearer cut a pace beyond the foe's swing.",
+    "flavor": "A heavy greatsword that cuts a pace beyond the foe's swing.",
     "lane": "pa",
     "palette": 15,
     "colors": [
@@ -817,7 +817,7 @@
     "wp": 14,
     "cat": "Sword",
     "formula": 1,
-    "flavor": "Runes crawl its fuller, and at a touch unwind whatever wards a foe wraps about itself.",
+    "flavor": "Runes crawl its fuller, unwinding whatever wards a foe wears.",
     "lane": "ma",
     "signature": {
       "abilityId": 0,
@@ -876,7 +876,7 @@
     "wp": 11,
     "cat": "Sword",
     "formula": 1,
-    "flavor": "Cloud's sword, made for SOLDIER's elite to fight to their full potential.",
+    "flavor": "A humble blade that wakes a mercenary's buried light.",
     "lane": "pa+ma",
     "signature": {
       "abilityId": 0,
@@ -909,7 +909,7 @@
     "wp": 16,
     "cat": "KnightSword",
     "formula": 1,
-    "flavor": "A broad-bladed knight's sword with jewels embedded in its pommel.",
+    "flavor": "A bulwark blade that turns aside blows unseen.",
     "lane": "hp",
     "signature": {
       "abilityId": 0,
@@ -942,7 +942,7 @@
     "wp": 18,
     "cat": "KnightSword",
     "formula": 1,
-    "flavor": "A knight's sword given as a symbol of an oath of fealty. It has been blessed with a ward of protection.",
+    "flavor": "A knight's oath given steel, sworn to stand between the crown and harm.",
     "lane": "hp",
     "palette": 15,
     "colors": [
@@ -968,7 +968,7 @@
     "wp": 21,
     "cat": "KnightSword",
     "formula": 1,
-    "flavor": "Only the true heir may wield this legendary sword, granted fleetness of foot and divine might.",
+    "flavor": "The blade of kings, drawn only by hands the light itself has chosen.",
     "lane": "hp",
     "palette": 8,
     "colors": [
@@ -994,7 +994,7 @@
     "wp": 24,
     "cat": "KnightSword",
     "formula": 1,
-    "flavor": "A knight's sword named in tales of the world's end. It wards against spellcraft.",
+    "flavor": "A doom-named greatblade said to open the last battle of the gods.",
     "lane": "hp",
     "palette": 14,
     "colors": [
@@ -1020,7 +1020,7 @@
     "wp": 28,
     "cat": "KnightSword",
     "formula": 1,
-    "flavor": "This holy knight's sword is said to have been a gift from the gods themselves, and possesses mystical powers.",
+    "flavor": "A blade of living chaos; what it touches it unmakes, flesh to stone.",
     "lane": "hp",
     "palette": 5,
     "colors": [
@@ -1046,7 +1046,7 @@
     "wp": 6,
     "cat": "Katana",
     "formula": 2,
-    "flavor": "A katana with a brilliant white blade.",
+    "flavor": "A katana housing the war-spirit Ashura, eager to be drawn.",
     "lane": "pa+ma+brave",
     "palette": 13,
     "colors": [
@@ -1072,7 +1072,7 @@
     "wp": 8,
     "cat": "Katana",
     "formula": 1,
-    "flavor": "A katana whose blade is adorned with a breathtaking carving of a tiger.",
+    "flavor": "Honest Kotetsu steel, heavy in the cut and blinding on the backswing.",
     "lane": "pa+ma+brave",
     "palette": 13,
     "colors": [
@@ -1098,7 +1098,7 @@
     "wp": 9,
     "cat": "Katana",
     "formula": 47,
-    "flavor": "A katana with a blade forged of the finest iron sand by master swordsmith Nagamitsu Osafune, of the eastern land of Bizen.",
+    "flavor": "Bizen work of the old school; it drinks the mind of what it wounds.",
     "lane": "pa+ma+brave",
     "palette": 13,
     "colors": [
@@ -1124,7 +1124,7 @@
     "wp": 9,
     "cat": "Katana",
     "formula": 1,
-    "flavor": "Referred to as a demon sword, this katana's keen blade showers blood upon the battlefield.",
+    "flavor": "A rain-tempered blade whose touch slows the world for its victim.",
     "lane": "pa+ma+brave",
     "palette": 5,
     "colors": [
@@ -1150,7 +1150,7 @@
     "wp": 10,
     "cat": "Katana",
     "formula": 1,
-    "flavor": "This katana echoes a legendary blade plucked from the tail of a marauding eastern dragon.",
+    "flavor": "A gathering-clouds blade, wind-swift.",
     "lane": "pa+ma+brave",
     "signature": {
       "abilityId": 0,
@@ -1183,7 +1183,7 @@
     "wp": 11,
     "cat": "Katana",
     "formula": 1,
-    "flavor": "This exquisitely crafted katana has a beautifully patterned blade and an incredible cutting edge.",
+    "flavor": "A shrine-blessed blade whose wounds fester like a curse repaid.",
     "lane": "pa+ma+brave",
     "signature": {
       "abilityId": 0,
@@ -1216,7 +1216,7 @@
     "wp": 13,
     "cat": "Katana",
     "formula": 67,
-    "flavor": "This katana is said to have drunk the blood of countless enemies.",
+    "flavor": "Muramasa's hungry steel, so quick it seems to swing itself.",
     "lane": "speed",
     "palette": 6,
     "colors": [
@@ -1242,7 +1242,7 @@
     "wp": 13,
     "cat": "Katana",
     "formula": 2,
-    "flavor": "A katana with a hilt in the shape of a chrysanthemum.",
+    "flavor": "A chrysanthemum-hilted katana.",
     "lane": "pa+ma+brave",
     "signature": {
       "abilityId": 0,
@@ -1275,7 +1275,7 @@
     "wp": 16,
     "cat": "Katana",
     "formula": 1,
-    "flavor": "This katana was forged by a master swordsmith, and its sheath is inlaid with beautiful patterns.",
+    "flavor": "Masamune's masterpiece; holy light sleeps in the folded steel.",
     "lane": "pa+ma+brave",
     "palette": 15,
     "colors": [
@@ -1301,7 +1301,7 @@
     "wp": 20,
     "cat": "Katana",
     "formula": 1,
-    "flavor": "This katana is decorated with intricate designs and boasts a wickedly sharp edge.",
+    "flavor": "A blade of falling petals; what stands before it soon cannot move.",
     "lane": "pa+ma+brave",
     "palette": 8,
     "colors": [
@@ -1575,7 +1575,7 @@
     "wp": 7,
     "cat": "Rod",
     "formula": 1,
-    "flavor": "A rod wielded by a dragon master. Its tip is made from carved dragon bone.",
+    "flavor": "A rod carved from wyrm-horn that hushes mages and cheats death once.",
     "lane": "ma",
     "palette": 10,
     "colors": [
@@ -1601,7 +1601,7 @@
     "wp": 7,
     "cat": "Rod",
     "formula": 1,
-    "flavor": "It purges doubt, leaving only faith.",
+    "flavor": "A rod alight with borrowed conviction.",
     "lane": "ma",
     "signature": {
       "abilityId": 0,
@@ -1811,7 +1811,7 @@
     "wp": 6,
     "cat": "Staff",
     "formula": 1,
-    "flavor": "A staff that increases the might of its user.",
+    "flavor": "A mace crowned with caged thunder, fit for a storm-god's hand.",
     "lane": "ma",
     "palette": 5,
     "colors": [
@@ -1837,7 +1837,7 @@
     "wp": 7,
     "cat": "Staff",
     "formula": 1,
-    "flavor": "An ordinary-looking wooden stick with a curious stone embedded in its tip.",
+    "flavor": "The magi's own staff, steeped in old lore.",
     "lane": "ma",
     "signature": {
       "abilityId": 0,
@@ -2059,7 +2059,7 @@
     "wp": 12,
     "cat": "Gun",
     "formula": 4,
-    "flavor": "A magickal firearm that shoots freezing bullets.",
+    "flavor": "A gun that chambers winter itself and fires it by faith alone.",
     "lane": "wp+faith",
     "palette": 13,
     "colors": [
@@ -2085,7 +2085,7 @@
     "wp": 12,
     "cat": "Gun",
     "formula": 4,
-    "flavor": "A magickal firearm that shoots flaming bullets.",
+    "flavor": "A gun that breathes furnace-heart flame, aimed by faith alone.",
     "lane": "wp+faith",
     "palette": 14,
     "colors": [
@@ -2111,7 +2111,7 @@
     "wp": 15,
     "cat": "Gun",
     "formula": 4,
-    "flavor": "A magickal firearm that shoots electrically charged bullets.",
+    "flavor": "A thunder-cell relic gun; its bolt answers to faith, not aim.",
     "lane": "wp+faith",
     "palette": 11,
     "colors": [
@@ -2477,7 +2477,7 @@
     "wp": 8,
     "cat": "Bow",
     "formula": 2,
-    "flavor": "Balanced so fine that hand and target fly as one.",
+    "flavor": "Hand and mark fly as one when she is drawn.",
     "lane": "speed",
     "signature": {
       "abilityId": 0,
@@ -2510,7 +2510,7 @@
     "wp": 12,
     "cat": "Bow",
     "formula": 1,
-    "flavor": "The bow of a legendary archer, drawn for great power.",
+    "flavor": "The legend-archer's bow; each arrow finds its mark.",
     "lane": "speed",
     "signature": {
       "abilityId": 0,
@@ -2543,7 +2543,7 @@
     "wp": 16,
     "cat": "Bow",
     "formula": 1,
-    "flavor": "The bow of a mythical hero. It is constructed entirely of metal and requires great strength to draw.",
+    "flavor": "A hero's bow strung with holy light; its arrows pin what they strike.",
     "lane": "speed",
     "palette": 15,
     "colors": [
@@ -2621,7 +2621,7 @@
     "wp": 8,
     "cat": "Instrument",
     "formula": 2,
-    "flavor": "The pure sound of this harp can charm those who hear it played.",
+    "flavor": "A harp of faerie song that lulls the listening world to sleep.",
     "lane": "ma",
     "palette": 15,
     "colors": [
@@ -2725,7 +2725,7 @@
     "wp": 10,
     "cat": "Book",
     "formula": 1,
-    "flavor": "A book said to contain every word of every known language.",
+    "flavor": "The book of everything; read aloud, it unwrites a foe's blessings.",
     "lane": "ma",
     "palette": 11,
     "colors": [
@@ -2916,7 +2916,7 @@
     "wp": 15,
     "cat": "Polearm",
     "formula": 2,
-    "flavor": "A spear made from a mysterious material that some say is the whisker of a dragon.",
+    "flavor": "A spear of wyrm-whisker that remembers the fire it came from.",
     "lane": "pa",
     "palette": 12,
     "colors": [
@@ -3098,7 +3098,7 @@
     "wp": 10,
     "cat": "Pole",
     "formula": 1,
-    "flavor": "A pole made from ivory that has been specially treated for improved durability.",
+    "flavor": "A carved ivory pole whose gleam steals the eyes of the struck.",
     "lane": "pa+ma",
     "palette": 12,
     "colors": [
@@ -3150,7 +3150,7 @@
     "wp": 14,
     "cat": "Pole",
     "formula": 2,
-    "flavor": "A pole made from an unidentified material that some say is a whale's whisker.",
+    "flavor": "A pole of deep-sea baleen; the tide itself follows its sweep.",
     "lane": "pa+ma",
     "palette": 11,
     "colors": [
@@ -3202,7 +3202,7 @@
     "wp": 18,
     "cat": "Bag",
     "formula": 1,
-    "flavor": "A custom-made handbag designed for battle.",
+    "flavor": "A satchel sewn around a fallen star; it hits like one.",
     "lane": "pa",
     "palette": 10,
     "colors": [

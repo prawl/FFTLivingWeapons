@@ -397,7 +397,7 @@
       "name": "Zwill Straightblade",
       "tier": 6,
       "identity": "Endgame capstone + burst-setup — Sleep a target, team deletes it at +50%. Top WP but poach-gated and the Sleep self-removes, so a setup tool not a universal best.",
-      "desc": "A knife manufactured in a region renowned for its blades.\nWhen attacking, has a chance of inflicting Sleep.",
+      "flavorOverride": "A duelist's masterwork honed until the blade forgets to make a sound.",
       "baseline": {
         "wp": 12,
         "evade": 10,
@@ -591,7 +591,7 @@
       "name": "Sasuke's Blade",
       "tier": 6,
       "identity": "Marquee ninja blade — best-in-line 20% evade AND on-hit Sleep (vanilla Stop re-skinned to Sleep id12; both deny turns). Trades 1 WP under Iga for top evade + a soft-lock fired twice/turn. Iconic name kept.",
-      "desc": "A legendary ninja's sword.",
+      "flavorOverride": "A legendary ninja's sword, quick as rumor and twice as hard to trace.",
       "baseline": {
         "wp": 14,
         "evade": 10,
@@ -622,7 +622,7 @@
       "name": "Iga Blade",
       "tier": 6,
       "identity": "No-strings DPS capstone — line-max 14 WP, strong 15% evade, zero gimmick. Two 14-WP PA*WP hits/turn when you want raw damage over a tradeoff. The endgame default. Iconic name kept.",
-      "desc": "An exquisitely crafted ninja sword that was once used by a secret society.",
+      "flavorOverride": "Forged for the Iga clans; no trick to it but speed and a perfect edge.",
       "baseline": {
         "wp": 15,
         "evade": 15,
@@ -653,7 +653,7 @@
       "name": "Koga Blade",
       "tier": 6,
       "identity": "Attrition capstone — only Dark-element blade + on-hit Poison DOT (Regabonds id51 re-skinned to Poison id22). Trades evade for relentless chip that ticks while the ninja dodges away. Fixes vanilla's strictly-dominated Koga. Iconic name kept.",
-      "desc": "A powerful ninja sword that was once used by a secret society.",
+      "flavorOverride": "A Koga blade quenched in poison lore, its gold edge dimmed with shadow.",
       "baseline": {
         "wp": 15,
         "evade": 5,
@@ -780,7 +780,7 @@
       "name": "Claymore",
       "tier": 2,
       "identity": "REACH SWORD test — the only sword that strikes from 2 tiles, paid for with zero evade + no element/proc",
-      "flavorOverride": "A heavy greatsword whose reach lets its bearer cut a pace beyond the foe's swing.",
+      "flavorOverride": "A heavy greatsword that cuts a pace beyond the foe's swing.",
       "baseline": {
         "wp": 7,
         "evade": 8,
@@ -1061,7 +1061,7 @@
       "name": "Arcanum",
       "tier": 5,
       "identity": "Arcane buff-thief: at +3 the Larceny signature makes a strike STEAL one of the foe's buffs (Reraise > Haste > Protect > Shell > Reflect > Regen) for the wielder to wear ~3 turns -- the melee answer to buffed foes (Omnilex is the ranged version). Innate strip-proc (ability 55) removed 2026-06-15: Larceny does the stripping at +3, so Arcanum is a plain sword until it grows in.",
-      "flavorOverride": "Runes crawl its fuller, and at a touch unwind whatever wards a foe wraps about itself.",
+      "flavorOverride": "Runes crawl its fuller, unwinding whatever wards a foe wears.",
       "baseline": {
         "wp": 14,
         "evade": 15,
@@ -1136,7 +1136,7 @@
       "livingWeapon": true,
       "tier": 6,
       "identity": "Ultima living blade — HP%-scaled PA on a clean elementless melee blade. WP11/Ev12. item-id 32 = Cloud's Limit weapon (function unchanged by rename). UiSE 1001.",
-      "desc": "Cloud's sword, made for SOLDIER's elite to fight to their full potential.\n\nFull HP: 115% dmg (130% at +3)\nNear death: 50% dmg (60% at +3)",
+      "desc": "A humble blade that wakes a mercenary's buried light.\nFull HP: 115% dmg (130% at +3)\nNear death: 50% dmg (60% at +3)",
       "signature": {
         "atTier": 0,
         "ultima": true,
@@ -1175,7 +1175,7 @@
       "name": "Defender",
       "tier": 4,
       "identity": "Parry-tank capstone — game-max 60% physical evade, lowest WP of the five, EquipBonus rider Protect (halve physical taken). The un-killable front-line dodge wall; pick it to NOT die, not to deal damage. Most available of the five (tier 4). Renamed from generic 'Defender' to signal the pure shield-blade role.",
-      "desc": "A broad-bladed knight's sword with jewels embedded in its pommel.",
+      "flavorOverride": "A bulwark blade that turns aside blows unseen.",
       "baseline": {
         "wp": 16,
         "evade": 60,
@@ -1214,7 +1214,7 @@
       "name": "Save the Queen",
       "tier": 5,
       "identity": "Protect-warden — strong 45% evade plus innate Protect (halve incoming physical), a tanky duelist that out-survives the fight. The 'control the fight' pick between pure tank (Defender) and the Holy capstone. Vanilla Save the Queen's Protect, restored.",
-      "desc": "A knight's sword given as a symbol of an oath of fealty. It has been blessed with a ward of protection.\nWhile equipped, grants Protect.",
+      "flavorOverride": "A knight's oath given steel, sworn to stand between the crown and harm.",
       "baseline": {
         "wp": 18,
         "evade": 30,
@@ -1246,7 +1246,7 @@
       "name": "Excalibur",
       "tier": 6,
       "identity": "Holy-knight tempo capstone — Holy element (anti-Undead, with its signature Holy absorb) plus EquipBonus rider Haste for extra turns. The build-defining matchup + tempo + survivability blade; the only elemental Knight Sword that also carries a permanent rider. Iconic name kept. Seated at vanilla WP21 (verbatim Game8/Regabonds) mid-ladder.",
-      "desc": "Only the true heir may wield this legendary sword, granted fleetness of foot and divine might.\nWhen attacking, deals Holy-elemental damage.",
+      "flavorOverride": "The blade of kings, drawn only by hands the light itself has chosen.",
       "baseline": {
         "wp": 21,
         "evade": 35,
@@ -1277,7 +1277,7 @@
       "name": "Ragnarok",
       "tier": 6,
       "identity": "Anti-caster prestige blade — unique Dark element plus Silence-on-hit shuts down enemy mages, with high WP and middling evade. Fixes vanilla's 'squeezed slot' (riderless WP24, dominated by Chaos): now owns the Dark + Silence niche so it is NOT dominated by Chaos Blade. Iconic name kept. The pick versus caster-heavy comps.",
-      "desc": "A knight's sword named in tales of the world's end. It wards against spellcraft.\nWhen attacking, deals Dark-elemental damage and has a chance of inflicting Silence.",
+      "flavorOverride": "A doom-named greatblade said to open the last battle of the gods.",
       "baseline": {
         "wp": 24,
         "evade": 20,
@@ -1308,7 +1308,7 @@
       "name": "Chaos Blade",
       "tier": 6,
       "identity": "Raw-power king — highest WP in the category, lowest evade (paid defensively), with a chance to Petrify on hit. The element-less brute-force capstone; pick it to delete a target. Vanilla WP50 game-breaker cut to WP28 so it no longer strictly dominates Ragnarok. Iconic name kept; vanilla's Regen rider stripped (equipBonusId 0) so it's pure offense.",
-      "desc": "This holy knight's sword is said to have been a gift from the gods themselves, and possesses mystical powers.\nIts edge carries a curse that petrifies the unwary.",
+      "flavorOverride": "A blade of living chaos; what it touches it unmakes, flesh to stone.",
       "baseline": {
         "wp": 50,
         "evade": 20,
@@ -1340,7 +1340,7 @@
       "name": "Ashura",
       "tier": 1,
       "identity": "Earliest katana + the line's evade crown (25%) — the defensive samurai's first blade; out-dodges every higher-WP katana, earning its slot on availability + guard, not power. No rider to misfire while you learn the class.",
-      "desc": "A katana with a brilliant white blade.",
+      "flavorOverride": "A katana housing the war-spirit Ashura, eager to be drawn.",
       "baseline": {
         "wp": 7,
         "evade": 15,
@@ -1371,7 +1371,7 @@
       "name": "Kotetsu",
       "tier": 1,
       "identity": "Cheap anti-bruiser — one swing Blinds an enemy melee threat for the fight (only early Blind katana). Pays -7 evade vs Asura for +2 WP and the rider.",
-      "desc": "A katana whose blade is adorned with a breathtaking carving of a tiger.",
+      "flavorOverride": "Honest Kotetsu steel, heavy in the cut and blinding on the backswing.",
       "baseline": {
         "wp": 8,
         "evade": 15,
@@ -1402,7 +1402,7 @@
       "name": "Bizen Osafune",
       "tier": 2,
       "identity": "MP-siphon blade (Formula 47 = Absorb-MP) — every hit drains the target's MP and refuels the wielder's own Iaido casts. The mage-samurai / Draw-Out fuel battery. Same WP as Murasame; identity is the MP economy. Set UiStatusEffectId=1001 (absorb convention).",
-      "desc": "A katana with a blade forged of the finest iron sand by master swordsmith Nagamitsu Osafune, of the eastern land of Bizen.",
+      "flavorOverride": "Bizen work of the old school; it drinks the mind of what it wounds.",
       "baseline": {
         "wp": 9,
         "evade": 15,
@@ -1433,7 +1433,7 @@
       "name": "Murasame",
       "tier": 2,
       "identity": "The rain blade — a chance to Slow the struck foe, miring them as a downpour mires a battlefield. The only Slow katana; distinct from Ashura's raw cast and Bizen's MP drain. Trades formula-2 burst for Brave-scaled damage plus the tempo swing of Slow.",
-      "desc": "Referred to as a demon sword, this katana's keen blade showers blood upon the battlefield.",
+      "flavorOverride": "A rain-tempered blade whose touch slows the world for its victim.",
       "baseline": {
         "wp": 10,
         "evade": 15,
@@ -1464,7 +1464,7 @@
       "name": "Ame-no-Murakumo",
       "tier": 3,
       "identity": "The gathering-storm blade — only Wind katana (x2 vs Wind-weak) AND Silences on hit, choking an enemy mage's spellbook. The anti-caster capstone of the mid line (Heaven's Cloud lore). Trades evade for the storm package.",
-      "desc": "This katana echoes a legendary blade plucked from the tail of a marauding eastern dragon.",
+      "flavorOverride": "A gathering-clouds blade, wind-swift.",
       "baseline": {
         "wp": 11,
         "evade": 15,
@@ -1502,7 +1502,7 @@
       "name": "Kiyomori",
       "tier": 3,
       "identity": "Attrition parry-blade — the evade apex below the capstones (20%) plus Poison-on-hit that chips high-HP foes every clock tick (its Protect/Shell Draw Out reframed as relentless pressure). Survives any duel; outlasts raw blades vs bulk.",
-      "desc": "This exquisitely crafted katana has a beautifully patterned blade and an incredible cutting edge.",
+      "flavorOverride": "A shrine-blessed blade whose wounds fester like a curse repaid.",
       "baseline": {
         "wp": 12,
         "evade": 15,
@@ -1540,7 +1540,7 @@
       "name": "Muramasa",
       "tier": 4,
       "identity": "Berserker katana (the Muramasa curse): damage equals the wielder's missing HP. Zero at full health, up to a near-MaxHP hit near death. WP and evade are cosmetic for damage. A desperation finisher.",
-      "desc": "This katana is said to have drunk the blood of countless enemies.",
+      "flavorOverride": "Muramasa's hungry steel, so quick it seems to swing itself.",
       "baseline": {
         "wp": 14,
         "evade": 15,
@@ -1571,7 +1571,7 @@
       "name": "Kiku-ichimonji",
       "tier": 4,
       "identity": "The reach blade — the ONLY range-2 katana, echoing Kikuichimonji's long-range Draw Out. Strike from the second rank and stay safer; no element or status, reach IS the identity. Nothing at this WP can match its range.",
-      "desc": "A katana with a hilt in the shape of a chrysanthemum.",
+      "flavorOverride": "A chrysanthemum-hilted katana.",
       "baseline": {
         "wp": 15,
         "evade": 15,
@@ -1599,7 +1599,7 @@
         "mushin": true,
         "displayLabel": "Mushin",
         "note": "Mushin (no-mind): a full WAIT turn (no move, no act) arms one PA-boosted hit; the wielder's next own action spends it (band +0x3E, the same CPa byte katana damage already scales from), then the charge clears. One wait equals one charged hit, no stacking (a single armed bool, not a counter). LIVE-MAPPED 2026-07-09 (tools/probes/mushin_wait_probe.py, scratchpad/psxflags_watch.log): the engine already tracks this on the acting unit's own per-turn bookkeeping, ported from the PSX struct (FFHacktics offsets 0x186/0x187/0x188) at frame offset PSX+0x32, band offset frame-0x1C. TURN FLAG (band +0x19C) reads 1 while the unit's move/act/wait menu is open, 0 otherwise; MOVED (band +0x19D) and ACTED (band +0x19E) each latch 0 to 1 the instant that action happens and are reset by the engine at the NEXT turn's open. Detection watches the TURN FLAG's own falling edge (1 to 0, the turn closing) per wielder: acted true consumes any armed charge; acted false and moved false is a genuine full wait, arms one charge; acted false and moved true (a move-only turn) changes nothing, an armed charge survives untouched. Earlier live attempts that same day (now retired) rebuilt the trigger on other units' scheduler-CT cycling and on KillTracker's action-latch machinery because the wait moment looked invisible; the literal per-unit flags close that gap directly, so none of that apparatus is read anymore. Owns the PA lane at every tier (GrowthEngine.Mushin.cs, OwnsMushin) so growth stays byte-identical to the plain Factor[tier] formula below tier 3 or between charges. Does NOT touch formula 2 / onHitAbilityId 83.",
-        "p3Desc": "A turn of perfect stillness empties the mind; the next strike falls devastatingly hard."
+        "p3Desc": "Stillness empties the mind; the next strike falls devastatingly hard."
       }
     },
     {
@@ -1610,7 +1610,7 @@
       "name": "Masamune",
       "tier": 5,
       "identity": "The legendary all-rounder — high WP AND top-tier evade AND innate Holy AND Sleep-on-hit soft CC (its Haste/Regen Draw Out rendered honestly as battlefield tempo control). Poach-from-Elmdore rarity (T5). Trades 4 WP for the whole package, so it never dominates Chirijiraden. Holy-absorbers heal.",
-      "desc": "This katana was forged by a master swordsmith, and its sheath is inlaid with beautiful patterns.",
+      "flavorOverride": "Masamune's masterpiece; holy light sleeps in the folded steel.",
       "baseline": {
         "wp": 18,
         "evade": 15,
@@ -1641,7 +1641,7 @@
       "name": "Chirijiraden",
       "tier": 6,
       "identity": "Endgame damage capstone — max WP (20) and Immobilize-on-hit that pins the target so it can't flee the carnage (its MA*30 ultimate Draw Out reframed as 'nowhere to run'). Pays for top damage with middling guard, no element, and pure endgame-only availability (T6). A sidegrade to Masamune, not a strict upgrade.",
-      "desc": "This katana is decorated with intricate designs and boasts a wickedly sharp edge.",
+      "flavorOverride": "A blade of falling petals; what stands before it soon cannot move.",
       "baseline": {
         "wp": 25,
         "evade": 15,
@@ -1983,7 +1983,7 @@
       "name": "Dragon Rod",
       "tier": 4,
       "identity": "Silence on hit, plus the only weapon that grants Initial Reraise (auto-revive once per battle). A survivable battle-mage rod, echoing the dragoon Dragon Spirit (community-requested buff).",
-      "desc": "A rod wielded by a dragon master. Its tip is made from carved dragon bone.\nHas a chance to inflict Silence on hit. Begins battle with Reraise.",
+      "flavorOverride": "A rod carved from wyrm-horn that hushes mages and cheats death once.",
       "baseline": {
         "wp": 5,
         "evade": 20,
@@ -2017,7 +2017,7 @@
       "name": "Rod of Faith",
       "tier": 5,
       "identity": "Faith-zealot rod — InnateStatus: Faith pins the wielder at max Faith, so every spell cast (and cast AT them) lands at peak potency: a glass-cannon nuker. Holy element on the Attack smites undead. Only innate-Faith weapon.",
-      "desc": "It purges doubt, leaving only faith.\nWhile equipped, grants Faith.",
+      "flavorOverride": "A rod alight with borrowed conviction.",
       "baseline": {
         "wp": 5,
         "evade": 20,
@@ -2276,7 +2276,7 @@
       "name": "Zeus Mace",
       "tier": 5,
       "identity": "Hybrid gish staff (iconic name kept) — the only Lightning staff PLUS an MA+1 rider: element coverage for anti-armor/mech fights stacked with a modest spell-power bump. Treasure-gated (T5); its Lightning element is a good the MA+2 capstone lacks.",
-      "desc": "A staff that increases the might of its user.\nMagick Attack +1.",
+      "flavorOverride": "A mace crowned with caged thunder, fit for a storm-god's hand.",
       "baseline": {
         "wp": 6,
         "evade": 15,
@@ -2309,7 +2309,7 @@
       "name": "Staff of the Magi",
       "tier": 6,
       "identity": "MA-BOOST 'bigger-heals' capstone — top MA+2 rider drives both offense and, because Cure spells scale off Magick Attack, the strongest heals in the line. Highest staff WP (7) and the endgame (T6) gate earn the rider; the pure spell-power pick. (Dropped the old Stop proc so its identity is cleanly MA, not a gimmick.)",
-      "desc": "An ordinary-looking wooden stick with a curious stone embedded in its tip.\nMagick Attack +2.",
+      "flavorOverride": "The magi's own staff, steeped in old lore.",
       "baseline": {
         "wp": 7,
         "evade": 15,
@@ -2581,7 +2581,7 @@
       "name": "Glacial Gun",
       "tier": 3,
       "identity": "First elemental gun: Ice, WP12 (144 base), R8. Formula-4 innate Blizzard-line cast, Faith-scaled (a high roll beats the Repeater, a low/immune roll loses). The only Ice gun: anti-Fire-creature, +25% vs Ice-weak, but Ice-absorbers heal it. Element + Faith variance is the trade for the WP jump.",
-      "desc": "A magickal firearm that shoots freezing bullets.\nIts attack strikes as Blizzard at no MP cost, scaling with the wielder's Faith.",
+      "flavorOverride": "A gun that chambers winter itself and fires it by faith alone.",
       "baseline": {
         "wp": 21,
         "evade": 5,
@@ -2612,7 +2612,7 @@
       "name": "Blaze Gun",
       "tier": 3,
       "identity": "Fire twin of the Hailshot at IDENTICAL WP12/R8: the different element is the entire differentiator. The only Fire gun: anti-Undead, anti-Ice-creature, shreds Oiled targets; Fire-absorbers heal it. A true sidegrade, never an upgrade, picked purely for the Fire matchup.",
-      "desc": "A magickal firearm that shoots flaming bullets.\nIts attack strikes as Fire at no MP cost, scaling with the wielder's Faith.",
+      "flavorOverride": "A gun that breathes furnace-heart flame, aimed by faith alone.",
       "baseline": {
         "wp": 20,
         "evade": 5,
@@ -2643,7 +2643,7 @@
       "name": "Blaster",
       "tier": 6,
       "identity": "Endgame capstone: Lightning, WP15 (225 base), no drawback, only Lightning gun (+25% in rain; Lightning-absorbers heal). PAYS for its clean power with the SHORTEST gun range (R7) so every other gun out-distances it: the close-the-gap-and-nuke finisher, not a kiter. The poach/endgame trophy.",
-      "desc": "A magickal firearm that shoots electrically charged bullets.\nIts attack strikes as Thunder at no MP cost, scaling with the wielder's Faith.",
+      "flavorOverride": "A thunder-cell relic gun; its bolt answers to faith, not aim.",
       "baseline": {
         "wp": 22,
         "evade": 5,
@@ -3112,7 +3112,7 @@
       "name": "Huntress",
       "tier": 5,
       "identity": "T5 marksman / mid-evade owner — WP8 + 10 evade + Leg Shot may-cast (Disable), earlier than the capstones. Out-dodges Tempest, out-shoots the mids. Fixes vanilla \"Yoichi dominates Artemis\".",
-      "flavorOverride": "Balanced so fine that hand and target fly as one.",
+      "flavorOverride": "Hand and mark fly as one when she is drawn.",
       "baseline": {
         "wp": 10,
         "evade": 0,
@@ -3154,7 +3154,7 @@
       "name": "Yoichi Bow",
       "tier": 6,
       "identity": "T6 AGILE capstone — top sustained WP (12) that STILL keeps 5 evade: heavy damage on light feet. The speed-build DPS capstone vs Seraph's glass cannon.",
-      "desc": "The bow of a legendary archer, drawn for great power.",
+      "flavorOverride": "The legend-archer's bow; each arrow finds its mark.",
       "baseline": {
         "wp": 12,
         "evade": 0,
@@ -3196,7 +3196,7 @@
       "name": "Perseus Bow",
       "tier": 6,
       "identity": "T6 raw+reach capstone — max WP (16) + long range (7) + innate Holy (anti-Undead), with a chance to inflict Don't Act to lock a key target down from afar. 0 evade = pure glass cannon.",
-      "desc": "The bow of a mythical hero. It is constructed entirely of metal and requires great strength to draw.",
+      "flavorOverride": "A hero's bow strung with holy light; its arrows pin what they strike.",
       "baseline": {
         "wp": 16,
         "evade": 0,
@@ -3292,7 +3292,7 @@
       "name": "Faerie Harp",
       "tier": 5,
       "identity": "T5 capstone harp — iconic faerie lullaby: ranged Sleep lulls a target out of the fight for a team burst (self-removes on hit, so a setup tool not a delete). Top harp WP, T5-gated. Owns Sleep line-wide.",
-      "desc": "The pure sound of this harp can charm those who hear it played.\nWhen attacking, has a chance of casting Sleep.",
+      "flavorOverride": "A harp of faerie song that lulls the listening world to sleep.",
       "baseline": {
         "wp": 15,
         "evade": 10,
@@ -3416,7 +3416,7 @@
       "name": "Omnilex",
       "tier": 6,
       "identity": "T6 anti-caster capstone — ranged Silence shuts an enemy mage's spellbook before they nuke, plus innate Holy attacks (anti-Undead; Holy-absorbers heal). Top book WP, T6-gated, owns Silence + Holy.",
-      "desc": "A book said to contain every word of every known language.",
+      "flavorOverride": "The book of everything; read aloud, it unwrites a foe's blessings.",
       "baseline": {
         "wp": 11,
         "evade": 15,
@@ -3602,7 +3602,7 @@
       "name": "Holy Lance",
       "tier": 5,
       "identity": "ICONIC. T5 only Holy spear — innate Holy melee, anti-Undead crusader. The element does the work, no proc/Formula-2 needed. Holy-absorbers heal (cost). Sekhret-poach gated. +3 Cavalier's Charge: Speed +3 while riding a chocobo (a crusader's mounted charge).",
-      "desc": "A sacred lance clad in light.\nWhen attacking, has a chance of casting Holy.",
+      "flavorOverride": "A sacred lance clad in light.",
       "baseline": {
         "wp": 14,
         "evade": 10,
@@ -3643,7 +3643,7 @@
       "name": "Dragon Whisker",
       "tier": 6,
       "identity": "ICONIC capstone. T6 raw apex — strictly-highest spear WP (15), the ultimate Jump platform, openly carrying its Fire Breath may-cast (LW-320 ghost-proc ruling 2026-08-25). Pays with the lowest 10% evade. Red-Dragon poach.",
-      "desc": "A spear made from a mysterious material that some say is the whisker of a dragon.",
+      "flavorOverride": "A spear of wyrm-whisker that remembers the fire it came from.",
       "baseline": {
         "wp": 17,
         "evade": 10,
@@ -3861,7 +3861,7 @@
       "name": "Ivory Pole",
       "tier": 4,
       "identity": "T4 only Blind pole — on-hit Blind (9) craters a target's physical hit-rate. Sits under Gokuu's WP: the rider is the whole identity. Neuter an enemy bruiser from range.",
-      "desc": "A pole made from ivory that has been specially treated for improved durability.",
+      "flavorOverride": "A carved ivory pole whose gleam steals the eyes of the struck.",
       "baseline": {
         "wp": 11,
         "evade": 20,
@@ -3923,7 +3923,7 @@
       "name": "Whale Whisker",
       "tier": 6,
       "identity": "ICONIC capstone. THE caster pole — tied-highest pole WP (14, with the Eight-Fluted) + only Water element with a Torrent may-cast (Formula 2). MA*WP comes free from the Pole weapon type. Best-in-slot for a high-MA front-liner. Tiamat-poach.",
-      "desc": "A pole made from an unidentified material that some say is a whale's whisker.",
+      "flavorOverride": "A pole of deep-sea baleen; the tide itself follows its sweep.",
       "baseline": {
         "wp": 16,
         "evade": 20,
@@ -3985,7 +3985,7 @@
       "name": "Fallingstar Bag",
       "tier": 5,
       "identity": "The bag ceiling king. Highest bag WP (vanilla's WP20 poach-outlier re-curved to a gentle 18, preserving its 'strongest bag' identity), no rider — the female 'just hit hardest' pick when you don't want a status. Poach/late-game availability. Pays for its ceiling with zero utility, the bag mirror of War Axe. Owns the raw-WP niche in the bag set; can't dominate Sandman/Hornet/Hexweave because it lacks every one of their status riders.",
-      "desc": "A custom-made handbag designed for battle.\nThe damage dealt varies greatly.",
+      "flavorOverride": "A satchel sewn around a fallen star; it hits like one.",
       "baseline": {
         "wp": 20,
         "evade": 0,

@@ -34,7 +34,10 @@ CAST = {42: "Gravity (damaging a share of the target's current HP)",
         # procs shipped silently for eleven weeks (LW-320 audit find, owner-ruled
         # re-advertised 2026-08-25). Names from the vanilla ability table
         # (working/nxd_ability/ability.sqlite).
-        83: "Draw Out: Kiku-ichimonji",
+        # LW-322 budget release valve #1 (2026-08-25): short form -- the only card
+        # carrying this proc IS Kiku-ichimonji, so "Draw Out" alone is unambiguous
+        # there. The full name lives in the grid's onHit cell.
+        83: "Draw Out",
         102: "Aurablast",
         139: "Rend Armor (breaking the target's armor)",
         141: "Rend Weapon (breaking the target's weapon)",
@@ -90,6 +93,12 @@ def rider_text(rider):
     if q.get("BoostJP"):
         out.append("Boosts JP earned.")
     return " ".join(out)
+
+
+def grows_phrase(grows):
+    """'PA+MA+Brave' -> 'PA, MA and Brave'; single tokens pass through."""
+    parts = grows.split("+")
+    return parts[0] if len(parts) == 1 else ", ".join(parts[:-1]) + " and " + parts[-1]
 
 
 def mechanics(it):
@@ -297,6 +306,14 @@ def assemble_desc(it, scaffold=True):
         if desc and not desc.endswith((".", "!", "?")):
             desc += "."
         desc += f" Reaches {rng} tiles."
+    # LW-322 (owner ruling 2026-08-25): every living weapon's card says in plain words what it
+    # grows. Unconditional on `scaffold` (body text, not scaffold) so an unscaffolded render
+    # still carries it. Source is items.json's "grows", already GROWS LOCKSTEP-gated to the grid.
+    if is_living(it):
+        desc = desc.rstrip()
+        if desc and not desc.endswith((".", "!", "?")):
+            desc += "."
+        desc += "\nGrows: " + grows_phrase(it["grows"]) + "."
     # LW-166 baked a "No Poaching." clause here for dormant-formula weapons; LW-167 armed a
     # runtime cure (Living Poach) that makes them poachable again, so the clause would now be
     # false. Removed (owner chose clean cards + a FAQ entry over a replacement line) -- see

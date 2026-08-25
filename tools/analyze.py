@@ -526,6 +526,56 @@ def check_grows_lockstep(items):
     return violations
 
 
+#: LW-322 round 3: the GROWS PHRASE gate's expectation, pinned LITERAL and independent of
+#: lib.flavor.grows_phrase (verify round 1 proved the gate self-referential: mutating
+#: grows_phrase's separator moved the card and the expectation together, so the gate stayed
+#: green through a real regression). Every currently-shipped grows value (GROWS_VOCAB above)
+#: must have an entry here; a value missing from this table is itself a violation below -- new
+#: lane vocabulary must extend this table consciously, not inherit it from the helper it checks.
+GROWS_PHRASE_EXPECTED = {"Speed": "Speed", "PA": "PA", "MA": "MA", "HP": "HP", "WP": "WP",
+                         "PA+MA": "PA and MA", "WP+Faith": "WP and Faith",
+                         "PA+MA+Brave": "PA, MA and Brave"}
+
+
+def check_grows_phrase(items):
+    """LW-322 (owner ruling 2026-08-25): every living weapon's card must say in plain words what
+    it grows -- one 'Grows: <phrase>.' line in the assembled description, matching
+    GROWS_PHRASE_EXPECTED[item['grows']] (the pinned literal table, NOT lib.flavor.grows_phrase --
+    see that table's own docstring for why the verdict must not come from the helper it is meant
+    to catch drift in). Every non-living item's card must carry no 'Grows:' token at all.
+    grows_phrase is still read via getattr (mirrors the DORMANT_FORMULAS pattern above) but ONLY
+    to cross-report helper drift alongside a real violation -- it never decides pass/fail."""
+    grows_phrase_fn = getattr(flavor_mod, "grows_phrase", None)
+    violations = []
+    for it in items:
+        if not it.get("name") or it.get("name") == "TBD":
+            continue
+        assembled = assemble_desc(it)
+        if not is_living(it):
+            if "Grows:" in assembled:
+                violations.append((it, ["'Grows:' token present on a non-living item's card"]))
+            continue
+        count = assembled.count("\nGrows: ")
+        if count != 1:
+            violations.append((it, [f"'\\nGrows: ' occurs {count} times, expected exactly 1"]))
+            continue
+        grows = it.get("grows")
+        if grows not in GROWS_PHRASE_EXPECTED:
+            violations.append((it, [f"grows {grows!r} has no entry in the pinned "
+                                     f"GROWS_PHRASE_EXPECTED table -- extend it"]))
+            continue
+        idx = assembled.index("\nGrows: ")
+        end = assembled.find("\n", idx + 1)
+        line = assembled[idx:] if end == -1 else assembled[idx:end]
+        expected = "\nGrows: " + GROWS_PHRASE_EXPECTED[grows] + "."
+        if line != expected:
+            detail = f"Grows line {line!r} != expected {expected!r}"
+            if grows_phrase_fn is not None and grows_phrase_fn(grows) != GROWS_PHRASE_EXPECTED[grows]:
+                detail += f" (lib.flavor.grows_phrase also drifted: {grows_phrase_fn(grows)!r})"
+            violations.append((it, [detail]))
+    return violations
+
+
 def check_p3_grid_lockstep(items):
     """docs/living_weapon_grid.csv's '+3 ability' column must never drift from items.json's
     signature.p3Desc (owner requirement, LW-36 part 3): the CSV is the design source of truth
@@ -797,6 +847,10 @@ def main():
         dict(header="GROWS LOCKSTEP (LW-250: items.json grows == grid CSV 'grows', vocabulary + presence)",
              check_fn=lambda: check_grows_lockstep(items),
              pass_msg="PASS: every living weapon's growth lane matches the grid and the locked vocabulary.",
+             format_failure=_fmt_drift_probs, sets_rc=True),
+        dict(header="GROWS PHRASE (every living weapon's card names its lanes)",
+             check_fn=lambda: check_grows_phrase(items),
+             pass_msg="PASS: every living weapon's card states its growth lane(s); no other card mentions Grows.",
              format_failure=_fmt_drift_probs, sets_rc=True),
         dict(header="P3 ABILITY GRID LOCKSTEP (items.json p3Desc == grid CSV '+3 ability')",
              check_fn=lambda: check_p3_grid_lockstep(items),
