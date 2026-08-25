@@ -223,6 +223,7 @@ public class EngineTests
                 ("growth", TickGates.InBattle, 3, true, Array.Empty<string>()),
                 ("toast", TickGates.InBattle, 1, false, new[] { "kill-poll" }),
                 ("attack-card", TickGates.InBattle, 1, false, Array.Empty<string>()),
+                ("weapon-palette", TickGates.InBattle, 1, false, Array.Empty<string>()),
             };
 #if LWDEV
             expected.AddRange(new (string, Func<TickPhaseState, bool>, int, bool, string[])[]

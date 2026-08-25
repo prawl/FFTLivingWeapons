@@ -1,0 +1,710 @@
+using System.Collections.Generic;
+using System.Linq;
+using LivingWeapon;
+using Xunit;
+
+namespace LivingWeapon.Tests;
+
+/// <summary>
+/// LW-251: the WeaponPalette runtime -- the per-turn weapon-sprite palette repaint (see
+/// LivingWeapon/Display/WeaponPalette.cs's class doc for the mechanism, and
+/// WeaponPalette.Policy.cs for the pure six-row decision table this suite's first section
+/// exercises directly). Module-level coverage (this file's remainder) drives WeaponPalette.Tick
+/// against FakeSparseMemory band seats, mirroring BulwarkTests.cs's shape: a builder that seeds a
+/// FlagOwner-satisfying band entry, then per-test Tick sequences asserting on
+/// FakeSparseMemory.WrittenBytes/WriteOrder (never on a comment citation -- the LW-257
+/// vacuous-test lesson).
+/// </summary>
+public class WeaponPaletteTests
+{
+    // ================= 1. WeaponPalettePolicy.Decide -- pure, no memory (TDD item 1) =================
+
+    private const int ReassertTicks = WeaponPalette.ReassertTicks;
+
+    [Fact]
+    public void Decide_NothingPaintedNothingDesired_Nothing()
+        => Assert.Equal(WeaponPaletteAction.Nothing,
+            WeaponPalettePolicy.Decide(paintedPal: -1, paintedWeapon: -1, desiredPal: -1, desiredWeapon: -1,
+                ticksUnchanged: 0, reassertTicks: ReassertTicks));
+
+    [Fact]
+    public void Decide_PaintedNothingDesired_Restore()
+        => Assert.Equal(WeaponPaletteAction.Restore,
+            WeaponPalettePolicy.Decide(paintedPal: 3, paintedWeapon: 9, desiredPal: -1, desiredWeapon: -1,
+                ticksUnchanged: 0, reassertTicks: ReassertTicks));
+
+    [Fact]
+    public void Decide_NothingPaintedSomethingDesired_Paint()
+        => Assert.Equal(WeaponPaletteAction.Paint,
+            WeaponPalettePolicy.Decide(paintedPal: -1, paintedWeapon: -1, desiredPal: 4, desiredWeapon: 9,
+                ticksUnchanged: 0, reassertTicks: ReassertTicks));
+
+    [Fact]
+    public void Decide_SamePaintedAndDesired_BelowReassert_Nothing()
+        => Assert.Equal(WeaponPaletteAction.Nothing,
+            WeaponPalettePolicy.Decide(paintedPal: 4, paintedWeapon: 9, desiredPal: 4, desiredWeapon: 9,
+                ticksUnchanged: ReassertTicks - 1, reassertTicks: ReassertTicks));
+
+    [Fact]
+    public void Decide_SamePaintedAndDesired_AtReassertThreshold_Paint()
+        => Assert.Equal(WeaponPaletteAction.Paint,
+            WeaponPalettePolicy.Decide(paintedPal: 4, paintedWeapon: 9, desiredPal: 4, desiredWeapon: 9,
+                ticksUnchanged: ReassertTicks, reassertTicks: ReassertTicks));
+
+    [Fact]
+    public void Decide_DifferentPalette_RestoreThenPaint()
+        => Assert.Equal(WeaponPaletteAction.RestoreThenPaint,
+            WeaponPalettePolicy.Decide(paintedPal: 3, paintedWeapon: 9, desiredPal: 4, desiredWeapon: 22,
+                ticksUnchanged: 0, reassertTicks: ReassertTicks));
+
+    [Fact]
+    public void Decide_SamePaletteDifferentWeapon_PaintOnly_NoRestore()
+        => Assert.Equal(WeaponPaletteAction.Paint,
+            WeaponPalettePolicy.Decide(paintedPal: 4, paintedWeapon: 9, desiredPal: 4, desiredWeapon: 22,
+                ticksUnchanged: 0, reassertTicks: ReassertTicks));
+
+    // ================= 2. Module-level: WeaponPalette.Tick against FakeSparseMemory =================
+
+    private const long BankA = Offsets.WeaponPaletteBankA;
+    private const long BankB = Offsets.WeaponPaletteBankB;
+    private const int Stride = Offsets.WeaponPaletteStride;
+    private static readonly long[] Banks = { BankA, BankB };
+
+    private static long Tgt(long bank, int pal) => bank + pal * Stride;
+
+    /// <summary>15 distinct, deliberately non-BGR555-lookalike authored codes for entries 1..15
+    /// (all well under 0x8000, exactly like a real q5-quantised code never sets bit 15).</summary>
+    private static int[] Codes() => new[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 };
+
+    /// <summary>A second, distinguishable 15-code set for a SECOND authored weapon in the same
+    /// test (so a paint can be told apart from Codes()'s own weapon by value alone).</summary>
+    private static int[] AltCodes() => new[] { 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115 };
+
+    /// <summary>A full 16-entry raw bank image (entry 0 included, distinguishable per-index so a
+    /// test can prove it was left alone). <paramref name="bit15At"/> sets bit 15 on the named
+    /// entries only, so the carry can be observed against a KNOWN subset.</summary>
+    private static ushort[] SeedBank(params int[] bit15At)
+    {
+        var e = new ushort[16];
+        for (int i = 0; i < 16; i++) e[i] = (ushort)(0x0100 + i);
+        foreach (int i in bit15At) e[i] |= 0x8000;
+        return e;
+    }
+
+    private static void StageBank(FakeSparseMemory mem, long bank, int pal, ushort[] entries16)
+    {
+        var bytes = new byte[32];
+        for (int i = 0; i < 16; i++)
+        {
+            bytes[i * 2] = (byte)(entries16[i] & 0xFF);
+            bytes[i * 2 + 1] = (byte)(entries16[i] >> 8);
+        }
+        mem.TerrainBlocks[Tgt(bank, pal)] = bytes;
+    }
+
+    /// <summary>Reads a bank's current 32-byte image back through TryReadBytes -- the same lane
+    /// PaintBanks/RestoreBanks themselves read/write through, so this reflects every write
+    /// exactly as production code would see it (unlike a raw U16()/U8s read-back, which does NOT
+    /// observe a WriteBytes call -- FakeSparseMemory's own documented channel gap).</summary>
+    private static ushort[] ReadBank(FakeSparseMemory mem, long bank, int pal)
+    {
+        Assert.True(mem.TryReadBytes(Tgt(bank, pal), 32, out var raw));
+        var e = new ushort[16];
+        for (int i = 0; i < 16; i++) e[i] = (ushort)(raw[i * 2] | (raw[i * 2 + 1] << 8));
+        return e;
+    }
+
+    private const int Slot = Offsets.SlotsBack;   // band slot 20, mirrors FlagOwnerResolveTests' SlotA
+    private const int SlotOther = Offsets.SlotsBack + 1;
+
+    /// <summary>Seeds a band entry as the FlagOwner (real position, ATurnFlag == 1) wielding
+    /// <paramref name="weaponId"/>.</summary>
+    private static long SeatOwner(FakeSparseMemory mem, int slot, int weaponId, int gx = 5, int gy = 5)
+    {
+        long entry = Band.Entry(slot);
+        MemSeats.SeatBand(mem, slot, weapon: weaponId, lvl: 30, br: 50, fa: 50, gx: gx, gy: gy);
+        mem.U8s[entry + Offsets.ATurnFlag] = 1;
+        return entry;
+    }
+
+    private static Dictionary<int, WeaponMeta> Meta(int weaponId, int palette, int[]? colors = null)
+        => new()
+        {
+            [weaponId] = new WeaponMeta
+            {
+                Name = "Test Weapon", Wp = 5, Cat = "Sword", Formula = 1, Flavor = "f",
+                Palette = palette, Colors = colors ?? Codes(),
+            }
+        };
+
+    /// <summary>Both banks staged at <paramref name="pal"/> with <paramref name="seed"/>, an
+    /// owner seated wielding <paramref name="weaponId"/>, and a WeaponPalette wired to a
+    /// single-weapon meta map authoring that weapon at that palette.</summary>
+    private static (FakeSparseMemory mem, WeaponPalette wp) Build(int weaponId, int pal, ushort[] seed)
+    {
+        var mem = new FakeSparseMemory();
+        SeatOwner(mem, Slot, weaponId);
+        foreach (long bank in Banks) StageBank(mem, bank, pal, seed);
+        var wp = new WeaponPalette(Meta(weaponId, pal), mem);
+        return (mem, wp);
+    }
+
+    // ---- TDD item 2: paint writes both banks at +2, 30 bytes; entry 0 (offset 0..1) untouched ----
+
+    [Fact]
+    public void Paint_WritesBothBanksAtPlus2_30Bytes_Entry0Untouched()
+    {
+        var seed = SeedBank();
+        var (mem, wp) = Build(weaponId: 9, pal: 4, seed);
+
+        wp.Tick(true);
+
+        foreach (long bank in Banks)
+        {
+            long tgt = Tgt(bank, 4);
+            Assert.Contains(mem.WrittenBytes, w => w.addr == tgt + 2 && w.bytes.Length == 30);
+
+            var after = ReadBank(mem, bank, 4);
+            Assert.Equal(seed[0], after[0]);   // entry 0 (transparency) never written
+            for (int i = 1; i <= 15; i++)
+                Assert.Equal(Codes()[i - 1], after[i] & 0x7FFF);   // low 15 bits == the authored code
+        }
+    }
+
+    // ---- TDD item 3: bit-15 carry (the load-bearing non-vacuous test) ----
+
+    [Fact]
+    public void Paint_CarriesBit15FromCurrentBytes_NeverInventsIt()
+    {
+        // Entries 2, 6, and 15 start with bit 15 set; the rest do not.
+        var seed = SeedBank(2, 6, 15);
+        var (mem, wp) = Build(weaponId: 9, pal: 4, seed);
+
+        wp.Tick(true);
+
+        foreach (long bank in Banks)
+        {
+            var after = ReadBank(mem, bank, 4);
+            for (int i = 1; i <= 15; i++)
+            {
+                bool expectBit15 = i == 2 || i == 6 || i == 15;
+                Assert.Equal(expectBit15, (after[i] & 0x8000) != 0);
+                Assert.Equal(Codes()[i - 1], after[i] & 0x7FFF);
+            }
+        }
+    }
+
+    // ---- TDD item 4: restore writes the snapshot verbatim, including its own bit 15s ----
+
+    [Fact]
+    public void Restore_WritesThePreFirstPaintSnapshotVerbatim()
+    {
+        var seed = SeedBank(3, 9);   // entries 3 and 9 start with bit 15 set
+        var (mem, wp) = Build(weaponId: 9, pal: 4, seed);
+
+        wp.Tick(true);   // paint: captures the snapshot from `seed`
+
+        // The owner's weapon changes to one with no authored colours -> Restore.
+        mem.U16s[Band.Entry(Slot) + Offsets.AWeapon] = 12345;
+        wp.Tick(true);
+
+        foreach (long bank in Banks)
+        {
+            var after = ReadBank(mem, bank, 4);
+            for (int i = 1; i <= 15; i++)
+                Assert.Equal(seed[i], after[i]);   // verbatim, bit 15 included
+        }
+    }
+
+    // ---- TDD item 5: snapshot immutability (the starved-bracket correctness property) ----
+
+    [Fact]
+    public void Restore_UsesTheOriginalPreFirstPaintBytes_EvenIfMemoryWasMutatedSincePaint()
+    {
+        var seed = SeedBank(3, 9);
+        var (mem, wp) = Build(weaponId: 9, pal: 4, seed);
+
+        wp.Tick(true);   // paint: snapshot captured from `seed`
+
+        // Something else (a starved bracket, a probe, a battle load) mutates the raw bank bytes
+        // underneath the runtime, WITHOUT going through WeaponPalette's own write path.
+        var mutated = SeedBank(1, 4, 8);
+        foreach (long bank in Banks) StageBank(mem, bank, 4, mutated);
+
+        mem.U16s[Band.Entry(Slot) + Offsets.AWeapon] = 12345;   // unauthored -> Restore
+        wp.Tick(true);
+
+        foreach (long bank in Banks)
+        {
+            var after = ReadBank(mem, bank, 4);
+            for (int i = 1; i <= 15; i++)
+                Assert.Equal(seed[i], after[i]);   // the ORIGINAL snapshot, not `mutated`
+        }
+    }
+
+    // ---- TDD item 6: an unreadable bank is skipped entirely (no write, no snapshot) ----
+
+    [Fact]
+    public void Paint_UnreadableBank_UntouchedAndNoSnapshot_OtherBankStillPaints()
+    {
+        var mem = new FakeSparseMemory();
+        SeatOwner(mem, Slot, 9);
+        StageBank(mem, BankA, 4, SeedBank());   // BankB deliberately left unstaged -- TryReadBytes fails there
+        var wp = new WeaponPalette(Meta(9, 4), mem);
+
+        wp.Tick(true);
+
+        long tgtA = Tgt(BankA, 4), tgtB = Tgt(BankB, 4);
+        Assert.Contains(mem.WrittenBytes, w => w.addr == tgtA + 2);
+        Assert.DoesNotContain(mem.WrittenBytes, w => w.addr >= tgtB && w.addr < tgtB + 32);
+
+        // Proves no snapshot was recorded for BankB: stage it (now readable) with fresh content,
+        // then force a Restore -- if a (BankB, 4) snapshot had been wrongly recorded (e.g. as
+        // zeros), this Restore would overwrite the fresh content with it. It must not.
+        var freshB = SeedBank(5);
+        StageBank(mem, BankB, 4, freshB);
+        int writesBeforeRestore = mem.WrittenBytes.Count;
+        mem.U16s[Band.Entry(Slot) + Offsets.AWeapon] = 12345;   // unauthored -> Restore
+        wp.Tick(true);
+
+        Assert.DoesNotContain(mem.WrittenBytes.Skip(writesBeforeRestore), w => w.addr >= tgtB && w.addr < tgtB + 32);
+        Assert.Equal(freshB, ReadBank(mem, BankB, 4));   // BankB's fresh content survives untouched
+    }
+
+    // ---- TDD item 7: FlagOwner refusal holds state (no restore, no write) ----
+
+    [Fact]
+    public void Tick_NoFlagOwner_HoldsState_NoWrites()
+    {
+        var mem = new FakeSparseMemory();
+        // A band entry exists and carries a valid, authored weapon, but ATurnFlag is never set
+        // to 1 -- Band.FlagOwner must refuse (mirrors FlagOwnerResolveTests.FlagOwner_zero_t1...).
+        MemSeats.SeatBand(mem, Slot, weapon: 9, lvl: 30, br: 50, fa: 50, gx: 5, gy: 5);
+        StageBank(mem, BankA, 4, SeedBank());
+        StageBank(mem, BankB, 4, SeedBank());
+        var wp = new WeaponPalette(Meta(9, 4), mem);
+
+        wp.Tick(true);
+
+        Assert.Empty(mem.WrittenBytes);
+    }
+
+    // ---- TDD item 8: an unauthored/absent weapon on the owner's turn restores the painted palette ----
+
+    [Fact]
+    public void UnauthoredWeaponOnOwnersTurn_RestoresThePaintedPalette()
+    {
+        var seed = SeedBank();
+        var (mem, wp) = Build(weaponId: 9, pal: 4, seed);
+        wp.Tick(true);   // paint
+
+        mem.U16s[Band.Entry(Slot) + Offsets.AWeapon] = 999999 & 0xFFFF;   // not in meta at all
+        wp.Tick(true);
+
+        foreach (long bank in Banks)
+        {
+            var after = ReadBank(mem, bank, 4);
+            for (int i = 1; i <= 15; i++) Assert.Equal(seed[i], after[i]);
+        }
+    }
+
+    // ---- TDD item 9: re-assert every ReassertTicks -- exactly one extra write cycle, bit 15
+    //      re-carried from the CURRENT bytes (seeded differently before the re-assert) ----
+
+    [Fact]
+    public void SameOwnerHeldPastReassertTicks_RepaintsOnce_CarryingCurrentBit15()
+    {
+        var seed = SeedBank(2);
+        var (mem, wp) = Build(weaponId: 9, pal: 4, seed);
+
+        wp.Tick(true);   // initial paint: one write cycle (both banks)
+        int writesAfterInitialPaint = mem.WrittenBytes.Count;
+        Assert.Equal(Banks.Length, writesAfterInitialPaint);
+
+        // ReassertTicks further ticks with nothing changed: all "Nothing" (no writes) -- the
+        // counter Decide reads is the value BEFORE this tick's own increment, so it takes
+        // exactly ReassertTicks such ticks to carry the counter up to ReassertTicks itself.
+        for (int i = 0; i < ReassertTicks; i++) wp.Tick(true);
+        Assert.Equal(writesAfterInitialPaint, mem.WrittenBytes.Count);
+
+        // Something rewrote the banks underneath (a different bit-15 pattern this time), without
+        // going through WeaponPalette -- the re-assert must carry THESE bytes' bit 15s, not the
+        // original snapshot's and not the first paint's.
+        var reseeded = SeedBank(9, 11);
+        foreach (long bank in Banks) StageBank(mem, bank, 4, reseeded);
+
+        wp.Tick(true);   // the ReassertTicks-th unchanged tick -> exactly one more write cycle
+
+        Assert.Equal(writesAfterInitialPaint + Banks.Length, mem.WrittenBytes.Count);
+        foreach (long bank in Banks)
+        {
+            var after = ReadBank(mem, bank, 4);
+            for (int i = 1; i <= 15; i++)
+            {
+                bool expectBit15 = i == 9 || i == 11;
+                Assert.Equal(expectBit15, (after[i] & 0x8000) != 0);
+                Assert.Equal(Codes()[i - 1], after[i] & 0x7FFF);
+            }
+        }
+    }
+
+    // ---- TDD item 10: ResetBattle clears the latch and keeps _vanilla (observable: a fresh
+    //      paint WRITE happens on the next tick with the same owner) ----
+
+    [Fact]
+    public void ResetBattle_ClearsLatch_NextTickWithSameOwnerRepaints()
+    {
+        var seed = SeedBank();
+        var (mem, wp) = Build(weaponId: 9, pal: 4, seed);
+        wp.Tick(true);
+        int writesAfterFirstPaint = mem.WrittenBytes.Count;
+
+        wp.ResetBattle();
+        wp.Tick(true);   // same owner, same weapon -- must repaint (latch was cleared)
+
+        Assert.Equal(writesAfterFirstPaint + Banks.Length, mem.WrittenBytes.Count);
+    }
+
+    // ---- TDD item 15: inLive == false writes nothing, even with a resolvable owner+weapon ----
+
+    [Fact]
+    public void Tick_InLiveFalse_NoWrites()
+    {
+        var (mem, wp) = Build(weaponId: 9, pal: 4, SeedBank());
+
+        wp.Tick(false);
+
+        Assert.Empty(mem.WrittenBytes);
+    }
+
+    // ---- TDD item 16: palette-switch ordering -- the old palette's restore writes land BEFORE
+    //      the new palette's paint writes ----
+
+    [Fact]
+    public void PaletteSwitch_RestoresOldPaletteBeforePaintingTheNew()
+    {
+        var mem = new FakeSparseMemory();
+        SeatOwner(mem, Slot, weaponId: 9);   // owner A, weapon 9, palette 4
+        StageBank(mem, BankA, 4, SeedBank());
+        StageBank(mem, BankB, 4, SeedBank());
+        StageBank(mem, BankA, 7, SeedBank(3));
+        StageBank(mem, BankB, 7, SeedBank(3));
+        var meta = Meta(9, 4);
+        meta[22] = new WeaponMeta { Name = "Other", Wp = 5, Cat = "Sword", Formula = 1, Flavor = "g", Palette = 7, Colors = Codes() };
+        var wp = new WeaponPalette(meta, mem);
+
+        wp.Tick(true);   // paint owner A's weapon 9 into palette 4
+
+        // The turn passes to a different owner (a different band slot) wielding weapon 22
+        // (palette 7, a DIFFERENT palette from 4).
+        mem.U8s[Band.Entry(Slot) + Offsets.ATurnFlag] = 0;
+        SeatOwner(mem, SlotOther, weaponId: 22);
+
+        int writeOrderCountBefore = mem.WriteOrder.Count;
+        wp.Tick(true);
+
+        long restoreAddr = Tgt(BankA, 4) + 2;
+        long paintAddr = Tgt(BankA, 7) + 2;
+        var thisTickOrder = mem.WriteOrder.Skip(writeOrderCountBefore).ToList();
+        int restoreIdx = thisTickOrder.IndexOf(restoreAddr);
+        int paintIdx = thisTickOrder.IndexOf(paintAddr);
+        Assert.True(restoreIdx >= 0 && paintIdx >= 0, "expected both a restore write and a paint write this tick");
+        Assert.True(restoreIdx < paintIdx, "the old palette's restore must be written before the new palette's paint");
+    }
+
+    // ================= 3. Additive edge-case coverage (module-level) =================
+    // Six scenarios not exercised above. Each pins a correctness property of the shared
+    // (bank, pal) -> vanilla-snapshot dictionary and the FlagOwner-driven latch, using only the
+    // public surface (Tick + ResetBattle) against FakeSparseMemory, mirroring section 2's style.
+
+    // ---- Scenario 1: same-palette handoff between two DIFFERENT authored owners. The second
+    //      owner's paint must not restore the first owner's palette in between (Decide's own
+    //      "same palette, different weapon -> Paint only" row), so the snapshot a later restore
+    //      uses is still the bytes captured before EITHER owner ever painted. ----
+
+    [Fact]
+    public void SamePaletteHandoff_SecondOwnerPaintsWithoutRestore_LaterRestoreUsesPreFirstOwnerBytes()
+    {
+        var mem = new FakeSparseMemory();
+        var seed = SeedBank(1, 13);   // the true, pre-anyone vanilla bytes
+        StageBank(mem, BankA, 4, seed);
+        StageBank(mem, BankB, 4, seed);
+        var meta = Meta(9, 4);   // owner A: weapon 9 -> palette 4
+        meta[22] = new WeaponMeta { Name = "Other", Wp = 5, Cat = "Sword", Formula = 1, Flavor = "g", Palette = 4, Colors = AltCodes() };   // owner B: weapon 22 -> SAME palette 4
+        var wp = new WeaponPalette(meta, mem);
+
+        long entryA = SeatOwner(mem, Slot, weaponId: 9);
+        wp.Tick(true);   // owner A paints; captures the palette-4 snapshot from `seed`
+        int writesBeforeHandoff = mem.WrittenBytes.Count;
+
+        // Owner A's turn ends; a different band entry, a different authored weapon, the SAME
+        // palette becomes the FlagOwner.
+        mem.U8s[entryA + Offsets.ATurnFlag] = 0;
+        long entryB = SeatOwner(mem, SlotOther, weaponId: 22);
+        wp.Tick(true);
+
+        // Same palette, different weapon -> exactly one more write cycle (Paint only): no restore
+        // write landed between owner A and owner B.
+        Assert.Equal(writesBeforeHandoff + Banks.Length, mem.WrittenBytes.Count);
+        foreach (long bank in Banks)
+        {
+            var after = ReadBank(mem, bank, 4);
+            for (int i = 1; i <= 15; i++) Assert.Equal(AltCodes()[i - 1], after[i] & 0x7FFF);   // owner B's codes now showing
+        }
+
+        // Owner B's weapon becomes unauthored -> Restore. Prove the restore uses the bytes
+        // captured before owner A's FIRST paint, not anything from owner B's intervening one.
+        mem.U16s[entryB + Offsets.AWeapon] = 999999 & 0xFFFF;
+        wp.Tick(true);
+
+        foreach (long bank in Banks)
+        {
+            var after = ReadBank(mem, bank, 4);
+            for (int i = 1; i <= 15; i++) Assert.Equal(seed[i], after[i]);   // the ORIGINAL pre-owner-A vanilla, bit 15 included
+        }
+    }
+
+    // ---- Scenario 2: mid-turn weapon swap on the SAME band entry (a steal/break), to a
+    //      DIFFERENT palette -- the module has no owner-identity concept, so a bare weapon-id
+    //      rewrite with no re-seat must drive the same RestoreThenPaint the cross-owner switch
+    //      test (section 2, above) drives. The "swap to an UNAUTHORED id" half of this scenario
+    //      is already covered by UnauthoredWeaponOnOwnersTurn_RestoresThePaintedPalette (same
+    //      band entry, weapon rewritten to an id absent from meta -> Restore, no paint). ----
+
+    [Fact]
+    public void MidTurnWeaponSwap_SameEntry_DifferentPalette_RestoresOldThenPaintsNew()
+    {
+        var mem = new FakeSparseMemory();
+        long entry = SeatOwner(mem, Slot, weaponId: 9);   // weapon 9, palette 4
+        var seed4 = SeedBank(3);
+        var seed7 = SeedBank(11);
+        StageBank(mem, BankA, 4, seed4);
+        StageBank(mem, BankB, 4, seed4);
+        StageBank(mem, BankA, 7, seed7);
+        StageBank(mem, BankB, 7, seed7);
+        var meta = Meta(9, 4);
+        meta[22] = new WeaponMeta { Name = "Other", Wp = 5, Cat = "Sword", Formula = 1, Flavor = "g", Palette = 7, Colors = AltCodes() };
+        var wp = new WeaponPalette(meta, mem);
+
+        wp.Tick(true);   // paint weapon 9 into palette 4
+
+        // The SAME entry's weapon id changes mid-turn (a steal or a break); the flag byte itself
+        // is never touched -- FlagOwner still resolves the same entry.
+        mem.U16s[entry + Offsets.AWeapon] = 22;
+        int writeOrderCountBefore = mem.WriteOrder.Count;
+        wp.Tick(true);
+
+        long restoreAddr = Tgt(BankA, 4) + 2;
+        long paintAddr = Tgt(BankA, 7) + 2;
+        var order = mem.WriteOrder.Skip(writeOrderCountBefore).ToList();
+        int restoreIdx = order.IndexOf(restoreAddr);
+        int paintIdx = order.IndexOf(paintAddr);
+        Assert.True(restoreIdx >= 0 && paintIdx >= 0, "expected both a restore write and a paint write this tick");
+        Assert.True(restoreIdx < paintIdx, "the old palette's restore must land before the new palette's paint");
+
+        foreach (long bank in Banks)
+        {
+            var restored = ReadBank(mem, bank, 4);
+            for (int i = 1; i <= 15; i++) Assert.Equal(seed4[i], restored[i]);   // palette 4 back to vanilla, verbatim
+
+            var painted = ReadBank(mem, bank, 7);
+            for (int i = 1; i <= 15; i++) Assert.Equal(AltCodes()[i - 1], painted[i] & 0x7FFF);   // palette 7 now carries weapon 22's codes
+        }
+    }
+
+    // ---- Scenario 3: mid-turn weapon swap on the SAME band entry, to a weapon mapped to the
+    //      SAME palette -- Decide's "same palette, different weapon -> Paint only" row again, but
+    //      pinned here with full content checks: the repaint carries weapon 22's codes, AND the
+    //      snapshot a later restore uses is still weapon 9's pre-paint bytes (never re-captured
+    //      from the intermediate, already-repainted bank). ----
+
+    [Fact]
+    public void MidTurnWeaponSwap_SameEntry_SamePalette_RepaintsNoRestore_SnapshotUnchanged()
+    {
+        var mem = new FakeSparseMemory();
+        long entry = SeatOwner(mem, Slot, weaponId: 9);
+        var seed = SeedBank(4, 8);
+        StageBank(mem, BankA, 4, seed);
+        StageBank(mem, BankB, 4, seed);
+        var meta = Meta(9, 4);
+        meta[22] = new WeaponMeta { Name = "Other", Wp = 5, Cat = "Sword", Formula = 1, Flavor = "g", Palette = 4, Colors = AltCodes() };
+        var wp = new WeaponPalette(meta, mem);
+
+        wp.Tick(true);   // paint weapon 9's codes into palette 4; captures the snapshot from `seed`
+        int writesAfterFirstPaint = mem.WrittenBytes.Count;
+
+        mem.U16s[entry + Offsets.AWeapon] = 22;   // same entry, same palette, different weapon
+        wp.Tick(true);
+
+        // Same-palette swap is a Paint only -- exactly one more write cycle, never a
+        // restore-then-paint's two.
+        Assert.Equal(writesAfterFirstPaint + Banks.Length, mem.WrittenBytes.Count);
+        foreach (long bank in Banks)
+        {
+            var after = ReadBank(mem, bank, 4);
+            for (int i = 1; i <= 15; i++)
+                Assert.Equal(AltCodes()[i - 1], after[i] & 0x7FFF);   // now carries weapon 22's codes
+        }
+
+        // The snapshot captured at the FIRST paint (weapon 9's, from `seed`) must still be the one
+        // a later restore uses -- proving the W1 -> W2 same-palette transition never re-captured it.
+        mem.U16s[entry + Offsets.AWeapon] = 999999 & 0xFFFF;   // unauthored -> Restore
+        wp.Tick(true);
+
+        foreach (long bank in Banks)
+        {
+            var after = ReadBank(mem, bank, 4);
+            for (int i = 1; i <= 15; i++) Assert.Equal(seed[i], after[i]);   // back to the ORIGINAL seed, not AltCodes
+        }
+    }
+
+    // ---- Scenario 4: FlagOwner goes dark AFTER a paint (death, ambiguity, turn end with no
+    //      successor yet) and stays dark for many ticks -- comfortably past ReassertTicks, since
+    //      Tick's early return on FlagOwner refusal means _ticksUnchanged never advances while
+    //      dark, so the reassert cadence itself cannot fire during darkness either. ResetBattle
+    //      then clears the latch; the next resolvable owner must repaint from a FRESH read (proven
+    //      by reseeding the banks with a different bit-15 pattern between darkness and revival).
+    //      ----
+
+    [Fact]
+    public void OwnerGoesDark_HoldsAcrossManyTicks_ResetBattleThenFreshOwnerRepaintsFromFreshRead()
+    {
+        var seed = SeedBank(1, 7);
+        var (mem, wp) = Build(weaponId: 9, pal: 4, seed);
+        long entry = Band.Entry(Slot);
+
+        wp.Tick(true);   // paint
+        int writesAfterPaint = mem.WrittenBytes.Count;
+
+        mem.U8s[entry + Offsets.ATurnFlag] = 0;   // the owner's turn flag goes dark
+
+        for (int i = 0; i < ReassertTicks * 3; i++) wp.Tick(true);
+        Assert.Equal(writesAfterPaint, mem.WrittenBytes.Count);   // held: no restore, no repaint, no matter how long
+
+        wp.ResetBattle();   // battle-enter/exit edge: the banks were just refreshed from the loaded file
+
+        // Something else (exactly what ResetBattle's own doc describes) rewrites the raw bytes
+        // underneath while the latch is clear, so a genuinely fresh read is distinguishable from a
+        // stale cached one.
+        var reloaded = SeedBank(6, 12);
+        foreach (long bank in Banks) StageBank(mem, bank, 4, reloaded);
+
+        mem.U8s[entry + Offsets.ATurnFlag] = 1;   // a fresh resolvable owner, same weapon, same palette
+        wp.Tick(true);
+
+        Assert.Equal(writesAfterPaint + Banks.Length, mem.WrittenBytes.Count);   // exactly one fresh paint cycle
+        foreach (long bank in Banks)
+        {
+            var after = ReadBank(mem, bank, 4);
+            for (int i = 1; i <= 15; i++)
+            {
+                bool expectBit15 = i == 6 || i == 12;
+                Assert.Equal(expectBit15, (after[i] & 0x8000) != 0);   // carried from the RELOADED bytes, not the original seed
+                Assert.Equal(Codes()[i - 1], after[i] & 0x7FFF);
+            }
+        }
+    }
+
+    // ---- Scenario 5: a restore requested for a palette with NO captured snapshot on one bank
+    //      (unreadable across every paint attempt on that palette, including a reassert repaint),
+    //      readable only later -- the restore must write nothing to that bank, while the OTHER
+    //      bank (which DOES have a snapshot) restores to its exact original content, not whatever
+    //      bytes happened to be present during the second paint attempt. ----
+
+    [Fact]
+    public void SnapshotMissBank_NeverWritten_AcrossMultiplePaintAttempts_HealthyBankRestoresVerbatim()
+    {
+        var mem = new FakeSparseMemory();
+        long entry = SeatOwner(mem, Slot, weaponId: 9);
+        var seedA = SeedBank(2, 10);
+        StageBank(mem, BankA, 4, seedA);   // BankB deliberately left unstaged for the whole test
+        var wp = new WeaponPalette(Meta(9, 4), mem);
+
+        wp.Tick(true);   // paint attempt 1 (the initial paint)
+
+        // Ride past the reassert cadence to force a SECOND paint attempt on the same (bank, pal):
+        // BankB must stay unreadable, and therefore snapshot-less, across BOTH attempts.
+        for (int i = 0; i < ReassertTicks; i++) wp.Tick(true);
+        var reseededA = SeedBank(5);
+        StageBank(mem, BankA, 4, reseededA);
+        wp.Tick(true);   // paint attempt 2 (the reassert repaint)
+
+        long tgtB = Tgt(BankB, 4);
+        Assert.DoesNotContain(mem.WrittenBytes, w => w.addr >= tgtB && w.addr < tgtB + 32);
+
+        // BankB becomes readable only now, with fresh content distinguishable from anything a
+        // wrongly recorded snapshot could produce.
+        var freshB = SeedBank(9);
+        StageBank(mem, BankB, 4, freshB);
+        int writesBeforeRestore = mem.WrittenBytes.Count;
+
+        mem.U16s[entry + Offsets.AWeapon] = 999999 & 0xFFFF;   // unauthored -> Restore
+        wp.Tick(true);
+
+        // BankB: still no write, ever -- a restore must never invent bytes for a bank it has no
+        // snapshot for.
+        Assert.DoesNotContain(mem.WrittenBytes.Skip(writesBeforeRestore), w => w.addr >= tgtB && w.addr < tgtB + 32);
+        Assert.Equal(freshB, ReadBank(mem, BankB, 4));
+
+        // BankA: it DOES have a snapshot (captured on paint attempt 1, from `seedA`) and must
+        // restore to that ORIGINAL content verbatim -- not `reseededA`, the bytes present during
+        // attempt 2.
+        var afterA = ReadBank(mem, BankA, 4);
+        for (int i = 1; i <= 15; i++) Assert.Equal(seedA[i], afterA[i]);
+    }
+
+    // ---- Scenario 6: two authored owners alternating across two DIFFERENT palettes over several
+    //      turns. Each transition must restore the previous palette before painting the next (the
+    //      section-2 ordering test's own property), and after several such alternations, BOTH
+    //      palettes' snapshots must still be their original vanilla bytes -- no drift from being
+    //      restored-and-repainted repeatedly. ----
+
+    [Fact]
+    public void AlternatingOwnersAcrossPalettes_RestoresBeforeEachPaint_SnapshotsNeverDriftAcrossRounds()
+    {
+        var mem = new FakeSparseMemory();
+        var seed4 = SeedBank(2, 5);
+        var seed7 = SeedBank(9);
+        StageBank(mem, BankA, 4, seed4);
+        StageBank(mem, BankB, 4, seed4);
+        StageBank(mem, BankA, 7, seed7);
+        StageBank(mem, BankB, 7, seed7);
+        var meta = Meta(9, 4);   // owner A (slot 20): weapon 9 -> palette 4
+        meta[22] = new WeaponMeta { Name = "Other", Wp = 5, Cat = "Sword", Formula = 1, Flavor = "g", Palette = 7, Colors = AltCodes() };   // owner B (slot 21): weapon 22 -> palette 7
+        var wp = new WeaponPalette(meta, mem);
+
+        SeatOwner(mem, Slot, weaponId: 9);
+        wp.Tick(true);   // paint palette 4
+
+        for (int round = 0; round < 3; round++)
+        {
+            mem.U8s[Band.Entry(Slot) + Offsets.ATurnFlag] = 0;
+            SeatOwner(mem, SlotOther, weaponId: 22);
+            wp.Tick(true);   // restore palette 4, paint palette 7
+
+            mem.U8s[Band.Entry(SlotOther) + Offsets.ATurnFlag] = 0;
+            SeatOwner(mem, Slot, weaponId: 9);
+            wp.Tick(true);   // restore palette 7, paint palette 4
+        }
+        // Currently painted: palette 4 (owner A), after 3 full alternation rounds.
+
+        // Hand off to owner B again to force palette 4's restore, and check it against seed4.
+        mem.U8s[Band.Entry(Slot) + Offsets.ATurnFlag] = 0;
+        SeatOwner(mem, SlotOther, weaponId: 22);
+        wp.Tick(true);   // restore palette 4 (checked below), paint palette 7
+        foreach (long bank in Banks)
+        {
+            var after = ReadBank(mem, bank, 4);
+            for (int i = 1; i <= 15; i++) Assert.Equal(seed4[i], after[i]);   // still the ORIGINAL vanilla, no drift
+        }
+
+        // Owner B's weapon becomes unauthored to force palette 7's restore, and check it against seed7.
+        mem.U16s[Band.Entry(SlotOther) + Offsets.AWeapon] = 999999 & 0xFFFF;
+        wp.Tick(true);
+        foreach (long bank in Banks)
+        {
+            var after = ReadBank(mem, bank, 7);
+            for (int i = 1; i <= 15; i++) Assert.Equal(seed7[i], after[i]);   // still the ORIGINAL vanilla, no drift
+        }
+    }
+}

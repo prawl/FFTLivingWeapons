@@ -37,6 +37,7 @@ internal sealed class Engine
     private readonly ISignature[] _fieldSignatures;   // the in-battle tick order (Barrage ticks pre-gate instead)
     private readonly Display _display;
     private readonly AttackCard _attackCard;   // LW-31 stage 2: the Attack-menu desc dossier painter
+    private readonly WeaponPalette _weaponPalette;   // LW-251: the per-turn weapon-sprite palette repaint
     private readonly BattleState _battle = new();      // debounced in/out edges (slot9 sticks; mode flickers)
     private CancellationTokenSource? _cts;
     private DateTime _lastField = DateTime.MinValue;   // last tick we were on the live battlefield
@@ -239,6 +240,9 @@ internal sealed class Engine
         // recorder tap (the KillTracker/LaunchGuard idiom above), a no-op until Flight.Init runs.
         _attackCard = new AttackCard(live, _tracker.ResolveCursorPlayer,
                                       _tracker.SpriteOf, meta, _kills, Flight.Record);
+        // LW-251: the per-turn weapon-sprite palette repaint, wired last of the display
+        // subsystems -- it only reads meta + the live band, no dependency on any of the above.
+        _weaponPalette = new WeaponPalette(meta, live);
 #if LWDEV
         // Shares the SAME register KillerStamp/AttackCard already trust (see TurnOwnerSpike.cs's
         // class doc for why a second register is deliberately avoided).
@@ -334,6 +338,9 @@ internal sealed class Engine
             // LW-31 stage 2: the Attack-menu desc dossier painter.
             new TickPhase("attack-card", TickGates.InBattle, 1, false, Array.Empty<string>(),
                 _ => e!._attackCard.Tick()),
+            // LW-251: the per-turn weapon-sprite palette repaint (WeaponPalette.cs).
+            new TickPhase("weapon-palette", TickGates.InBattle, 1, false, Array.Empty<string>(),
+                s => e!._weaponPalette.Tick(s.InLive)),
         };
 #if LWDEV
         // Dev-only passive/cold-call research instruments, in-battle only (see each Spike class's
@@ -445,6 +452,7 @@ internal sealed class Engine
         // the restarted battle's capture needs.
         _naturalLedger.OnBattleReset();
         _attackCard.ResetBattle();   // LW-31 stage 2: restore vanilla to any live Attack-menu copies; the cache stays warm for the next battle's re-verify
+        _weaponPalette.ResetBattle();   // LW-251: the banks were just refreshed from file; the paint latch is stale by definition
 #if LWDEV
         _bodyDoubleSpike.ResetBattle();   // LW-58: the bind + decoy CT-hold never survive a battle edge
 #endif
