@@ -212,6 +212,18 @@ belongs rather than at the bottom.
   here rather than assumed; handing the strongest class a PA and MA growing weapon family
   needs a deliberate ruling, and the pole lane itself loses nothing while that waits.
 
+- [LW-323] 2026-08-25: A weapon's level-up announcement can show up one battle late: the
+  owner saw "Stoneshooter has grown to Stoneshooter+2" pop during a NEW battle when the
+  kill that earned it happened in the battle before, which reads as the gun leveling now.
+  An undelivered toast should not survive its own battle; it should deliver there or be
+  dropped at battle end (the tier itself is saved correctly either way, this is display
+  only). (Tech: owner sighting 2026-08-25 during the LW-316 probe battle; livingweapon.log
+  shows the kill at 13:05:37, its battle-end save at 13:07:26, and the toast delivery at
+  13:08:41, after the transition. The Chaos Blade toast at 12:31:04 delivered in-battle
+  the same day, so this is the missed-window path: delivery rides the Wait facing-prompt
+  swap, and a toast that misses every prompt window queues across the battle edge instead
+  of being flushed with it.)
+
 - [LW-305] 2026-08-22: The colour bench can now paint a weapon in the running game, but the list
   saying which weapon owns which colour set has at least one wrong entry, so some weapons would be
   painted in someone else's colours. Audit that list weapon by weapon and correct it. Materia Blade

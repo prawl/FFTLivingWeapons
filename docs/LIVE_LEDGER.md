@@ -1654,6 +1654,54 @@ The Gun Slinger / Crossfire twin grant (the [gunslinger-roster-offhand-support-w
 
 ## Uncertain — observed live, not yet isolated / built on
 
+### [wp-table-write-live-damage] Writing a weapon's WP in the resident stats table changes the next shot's damage mid-battle, no restart, and reverts clean
+
+A weapon's power lives in one shared table the game re-reads on every shot, so raising a number there makes the very next attack hit harder with no reload, and putting the number back restores the old damage exactly. Owner ran the LW-316 probe live 2026-08-25: Stoneshooter (id 73, WP16, formula 3 = WP squared) read 291 on the baseline shot (owner had ~125 percent zodiac advantage on the target), held WP=4 read EXACTLY 16 (4 squared, unambiguous, no crit or variance can produce a teens number from 291), and the post-restore shot read 291 again, byte-exact revert. Ready for the owner's PROVEN flip. This un-gates the physical-gun WP growth lane (LW-317), with the engine write TURN-SCOPED like WeaponPalette's repaint because the table is shared: while held, every wielder of that id (enemies included) gets the changed damage.
+
+<details><summary>How we got here</summary>
+
+**Claim:** a mid-battle write to the resident ItemWeaponData stats table changes the damage of the wielder's next shot with no restart, and restoring the byte restores the damage.
+
+**Mechanism:** resident stats table at `0x14080F690` + SecondTableId*8 (8-byte records: range, attackflags, formula, 0xFF, WP, evade, elem, onHit; SecondTableId read from ItemData `0x14080EA90` + id*12 + 4, == own id for weapons). The damage routine resolves the record per shot (precedent: the WeaponArtHook incident, [weapon-blade-art-walled] correction, where an art-id remap made Warbrand compute Broadsword damage live). Instrument: `tools/probes/warbrand_damage_probe.py --hold 4=N --id 73` (100ms hold, byte-exact restore on Ctrl+C); table base re-verified 127/127 rows against the shipped XML the same day.
+
+**Evidence:** owner live run 2026-08-25, one battle: baseline 291 (WP16, zodiac-advantaged target), held WP4 -> 16 exact, restored -> 291 exact, same target throughout. Open observation, not load-bearing: 291 vs the plain 256 = WP squared model is unexplained in detail (owner reports ~125 percent zodiac, which predicts 320); the WP4 shot reading a plain 16 says the modifier is not a flat multiplier. The lane needs only "table WP drives damage live", which held in both directions.
+
+**Date:** 2026-08-25
+
+</details>
+
+### [current-faith-write-scales-magic-gun] A held CURRENT-faith write scales a magic gun's spell damage linearly, both directions, and the forecast tracks it
+
+Holding a unit's live Faith higher makes their magic gun's spells hit harder in exact proportion, and dropping it back drops the damage back, with the game's own damage forecast following the held value. Owner ran the LW-316 probe live 2026-08-25 with Ramza + Blaze Gun (id 75, formula 4, random-tier elemental cast): Faith 75 baseline 45 twice; held Faith 90 vs a time mage read forecast 55 and dealt 55; restored to 75 the same target read 45 = floor(55 * 75/90), the exact linear caster-side model. Ready for the owner's PROVEN flip. This un-gates the magic-gun Faith lane (LW-317) and confirms the design's cap-near-85 instinct: the same linearity raises damage TAKEN from enemy magic.
+
+<details><summary>How we got here</summary>
+
+**Claim:** writing the CURRENT faith copy (combat +0x2D, band +0x11; the proven StatHold lane, [[brave-faith-current-vs-orig-offsets]]) changes formula-4 magic-gun spell damage on the next shot, linearly with caster faith.
+
+**Mechanism:** current faith is re-read per shot by the formula-4 damage calc AND by the pre-action damage forecast; the orig copy (+0x2C/+0x10) stays untouched as the locate fingerprint. Instrument: `tools/probes/lw316_lane_probes.py faith_hold <slot> <value>` (150ms re-assert, restore on Ctrl+C).
+
+**Evidence:** owner live run 2026-08-25: baseline Faith 75, two shots at 45; held 90, forecast 55 = actual 55 (time mage, ~125 percent zodiac); restored 75, same target, 45 (= floor(55*75/90)). An earlier 90-damage shot against a different target under the hold is attributed to the gun's random spell-tier roll plus the target change, not counted as evidence. The bidirectional same-target forecast+actual pair is the clean isolate (no tier RNG in the forecast comparison).
+
+**Date:** 2026-08-25
+
+</details>
+
+### [maxhp-hold-attribution-safe] A held raised MaxHP does NOT break kill attribution; current HP stays put, so the unit reads hurt until healed
+
+Raising one unit's Max HP mid-battle leaves the mod's kill bookkeeping intact: with the hold live the unit's kill credited its own weapon cleanly, and the battle saved normally. Current HP does not follow the raised max, so the unit shows e.g. 624/724 (reads hurt, heals can top up to the new max); the bar renders sanely. Owner ran the LW-316 probe live 2026-08-25 on Ramza (624 -> held 724): kill number 11 credited to Chaos Blade at the credit edge with zero ambiguity, battle-end save clean. Ready for the owner's PROVEN flip. This un-gates the Knight Sword HP lane (LW-317: u16 hold, clamped 999); the lane ships with the reads-hurt behavior as designed-in (growth raises the ceiling, healing fills it).
+
+<details><summary>How we got here</summary>
+
+**Claim:** a re-asserted u16 write to band +0x16 (AMaxHp) on one player unit neither breaks the actor resolver's (maxHp, hp, level) keyed paths nor glitches the HP display; current HP (+0x14) is left alone to observe whether the engine moves it (it does not).
+
+**Mechanism:** the condensed active-unit mirror re-copies from the authoritative struct, so the resolver's condensed-vs-band match stays consistent when the band value is held (the godmode mis-credit came from COLLISIONS, several units flattened to identical maxhp/hp, not from holding per se; the probe warns on (level, newmax) collisions). Instrument: `tools/probes/lw316_lane_probes.py maxhp_hold <slot> <newmax>` (50ms re-assert, 999 clamp, restore + hp re-clamp on Ctrl+C).
+
+**Evidence:** owner live run 2026-08-25: Ramza 624/624 -> hold 724: card showed 624/724, current HP untouched by the engine; kill with the hold live: `[kill] Chaos Blade claims kill number 11` + `kill credit (weapon id 37 ...)` with no could-not-determine or ambiguity lines; `[battle-end] 1 kill credited (Chaos Blade 1) ... saved` (13:17:41). The probe's condensed-mirror console verdict was not read by the owner during the run; the end-to-end credit at the edge is the stronger fact and subsumes it. Same session, separate finding: the tier toast that queued in the PREVIOUS battle delivered a battle late (logged as LW-323, display-only, unrelated to the hold).
+
+**Date:** 2026-08-25
+
+</details>
+
 ### [auto-battle-mode-byte] Per-unit auto-battle byte at combat+0x1EC drives the behaviour AND the overhead Auto tag, and a write forces the tag to re-render
 
 Uncertain as of 2026-08-24: the owner isolated the byte in CE and drove it both directions live (0 = auto off, tag gone; 12 decimal = 0x0C = auto on, tag shown, AI acts), but the value's encoding (whether instruction modes change it) and the game's re-stamp behaviour are unprobed, and nothing is built on it yet.
