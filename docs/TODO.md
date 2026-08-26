@@ -177,28 +177,6 @@ the technical detail lives in the indented lines under it.
     the owner in the grid, analyze.py green after any retunes, and the changed weapons
     spot-read live if stats moved.
 
-- **[LW-327] A grown Knight Sword's bonus HP is real at battle start: the knight begins full instead of reading hurt** (opened 2026-08-25) [QUEUED]
-  - Today the raised maximum shows 679/883 and the knight starts every battle looking
-    wounded until healed; the owner wants the bar to start full (owner call 2026-08-25,
-    made during the LW-317 live pass; ships in 2.4.0). One-time top-up at the hold's
-    first apply: raise current HP by the same amount the max rose, preserving any damage
-    the unit genuinely carried into battle, never past the new max, never repeated on the
-    per-turn re-apply or a mid-battle tier retarget (either repeat would heal the unit
-    again), and never touching a unit at 0 HP.
-  - (Tech: extend GrowthEngine.Lanes' HoldU16 FIRST-CAPTURE branch with a guarded u16
-    current-HP write at the combat struct's CHp, delta = target minus natural max;
-    attribution is safe per [maxhp-hold-attribution-safe], PROVEN and owner-flipped
-    2026-08-25, and the LW-317 pass; that row also proves the engine leaves current HP
-    alone, which is what lets a one-shot write stick.)
-  - Done means: a knight whose sword raised Max HP opens a battle with current HP raised
-    by the same delta (a full bar when they entered full), genuine pre-battle damage
-    still shown, HP never exceeding the new max, no top-up repeats within a battle, and
-    no other lane's behavior changes.
-  - Verify: new failing-first GrowthEngine tests through the IGameMemory fake covering
-    the full-HP top-up, carried-damage preservation, ceiling clamp, no double top-up on
-    re-apply or retarget, and the 0-HP and unwritable skips; the full suite green; and
-    the owner live-reads a knight opening a battle at 883/883.
-
 ## Backlog
 
 Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner directed).

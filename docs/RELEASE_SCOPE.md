@@ -430,8 +430,9 @@ this paragraph is the pointer that says so.
 - [ ] Hue true-ups: the PA red 90, WP pink 82, and katana teal 93 rendered colors get
       measured off a live card, one screenshot each; lane_glow.py carries flagged
       stand-ins until then.
-- [ ] Knight Sword battle-start HP top-up (LW-327): BUILT and adversarially verified
-      2026-08-26 (code 9 of 10, suite 3309 green), owner live pass pending.
+- [x] Knight Sword battle-start HP top-up (LW-327): SHIPPED 90683ef 2026-08-26 after
+      three owner run live rounds, each of which caught a real defect (full story in the
+      changelog row); owner live verdict "It's holding up correctly", tape clean.
 
 ### R2. Testing passes (BLOCKER)
 - [ ] The extensive glow-growth pass (LW-340), AFTER LW-336 lands; restart-cadence

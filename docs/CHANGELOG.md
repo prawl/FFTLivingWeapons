@@ -10,6 +10,31 @@ before 2026-07-21 keep their original prose.
 
 ## 2.4.0 cycle
 
+- [LW-327] SHIPPED 90683ef 2026-08-26: A knight whose grown sword raised their Max HP now
+  starts every battle with the bar FULL (906 of 906 on the owner's save) instead of
+  looking wounded until healed. Shipping it took three owner run live rounds that each
+  caught a real defect, all fixed in the same arc. Round one: the game's pre battle
+  screens flicker battle state on and off, and each flicker made the Max HP hold
+  recapture its own written value as natural, compounding 697 to 906 to the 999 ceiling
+  and handing out a phantom 93 point heal the game's own event tape recorded; that creep
+  was latent since the LW 317 hold shipped, and the fix (a per unit write record that
+  survives the resets and recognizes the mod's own handwriting) deliberately overturned
+  the old restart residue decision pin. Round two: the top up decided at one instant
+  against a half built battle struct and lost its one shot when current HP was not
+  populated yet; fixed as a pending intent, armed only on genuine captures, retried each
+  tick until the HP field reads sane, delivered exactly once per real battle. Round
+  three passed every pre registered signature: opened 906 of 906 through the transition
+  churn, max pinned at 906 under three hits, damage stuck, exactly one healing event on
+  the tape, kill 18 credited and saved; owner live verdict "It's holding up correctly".
+  Two bounded edges accepted and documented in code: a tier that first rises between
+  battles opens one battle un topped, and a pending intent surviving a reset inside its
+  sub second delivery window can top up once after it. The verify rounds also flagged
+  that GrowthEngine.Lanes.cs now sits at 290 lines and owes a real split on its next
+  growth. (Tech: _u16WriteRecord and _pendingTopUp in GrowthEngine.Lanes.cs, both
+  deliberately excluded from ResetBattle; TryDeliverTopUp runs from every branch with an
+  applied entry; 17 new tests; suite 3319 green; two adversarial verifies, code 9 of 10,
+  verdict SHIP; evidence tapes flight_20260826_050959, _054308, _062907.)
+
 - [LW-333] SHIPPED 9e66f97 2026-08-25: Six weapon cards stopped spilling their text over
   the game's UI. The owner caught them live the night the Grows line shipped: the card
   box clips by WRAPPED LINES, not characters, and the old 205 character gate never knew,
