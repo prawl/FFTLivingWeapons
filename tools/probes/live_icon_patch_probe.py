@@ -13,8 +13,19 @@ WHAT WE ESTABLISHED OFFLINE (this is the probe's foundation, all verified 2026-0
   * Inside modded.pac each icon sits UNCOMPRESSED, VERBATIM, EXACTLY ONCE, at the same
     byte length as the .tex on disk (cards 0x C860, smalls 0x3060). Verified by locating
     our deployed bytes with a content search: found once each, no second copy.
-  * modded.pac is REBUILT at every launch from the loose files, so any patch we make here
-    is transient: worst case, relaunch restores it. That is what makes this probe safe.
+  * SAFETY CORRECTION 2026-08-26: the launch merge is INCREMENTAL, not a full rebuild.
+    A patch made here SURVIVED a relaunch (modded_files.txt untouched, marker art still
+    in the pac in the new session), so "worst case, relaunch restores it" is FALSE.
+    A patch persists until the matching loose file changes (a deploy) or you restore.
+    ALWAYS run restore explicitly; never rely on a relaunch to clean up.
+
+2026-08-26 VERDICTS (owner-run, ledger rows [live-icon-repaint] and
+[icon-refresh-unreliable] carry the evidence): stage 1 (first draw) still shows the
+patch; stage 2 (already-drawn icon) refused EVERY eviction tried in a long session AND
+a fresh session: tab round-trip, close/reopen equipment, world map, save+load,
+title-screen reload, and a full battle enter/exit. The 2026-08-16 stage 2 pass remains
+the only time a drawn icon ever refreshed; the condition is unidentified. Treat drawn
+icons as restart-only.
 
 THEREFORE a live repaint is physically expressible: overwrite an icon's bytes in place
 inside modded.pac. What remains genuinely UNKNOWN, and is the whole point of the probe:

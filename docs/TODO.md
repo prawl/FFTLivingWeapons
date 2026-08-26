@@ -253,6 +253,12 @@ belongs rather than at the bottom.
   re-anchor 2026-07-24, commit 9959821, so all three sessions share one binary; ledger
   rows [icon-refresh-unreliable] and the updated [live-icon-repaint] carry the evidence
   and the eviction-condition hunt's next probes; successor design captured as LW-336.)
+  SAME NIGHT, TWO MORE READS, then the owner PAUSED the hunt: a full battle enter and
+  exit also failed to refresh a drawn icon (the heaviest scene load in the game), and
+  the launch merge turned out to be INCREMENTAL, meaning a pac patch survives
+  relaunches until a deploy changes the matching loose file, so probe patches must
+  always be restored by hand and never trusted to a relaunch. Silver lining recorded
+  in the ledger: splice work persists across restarts too in a deploy-free install.
 - [LW-336] 2026-08-26: Let the mod keep the glow icons current on its own, so nobody has
   to run an extra script after every deploy. Today deploy_glow_tex.py must be re-run by
   hand after every BuildLinked or the icons ship plain, and the in-game splice fights it

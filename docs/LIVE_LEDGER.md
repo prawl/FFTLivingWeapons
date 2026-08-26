@@ -428,7 +428,7 @@ actually reads.
 
 ### [live-icon-repaint] Equip icon pac patch: the WRITE still lands live and first draw reads it, but the already-drawn-icon refresh is UNRELIABLE (fired 2026-08-16, refused 2026-08-25 and 2026-08-26, same game binary)
 
-Split verdict as of 2026-08-26 (owner-run re-probe, the LW-334 bisect). STILL TRUE: `modded.pac` accepts an in-place overwrite while the game runs (no lock, byte-exact verify), and an icon drawn for the FIRST time in the process afterwards shows the patched art on both surfaces (owner-witnessed: Tideward wore Emberward's red, screenshot 03:51). NO LONGER TRUSTWORTHY: the 2026-08-16 "leave the list and come back" refresh of an already-drawn icon. In tonight's session nothing evicted a drawn icon: with Galewall patched and Tideward restored in the pac, a tab round-trip, closing and reopening equipment, leaving to the world map, save plus load, and a title-screen reload ALL kept the stale art; only restart refreshes. The same recipe DID work on 2026-08-16, and the PE build key proves all three sessions ran the SAME exe (0x6A5EA53C / 0x18D78000, the 1.5.2 build taught 2026-07-24), so this is a conditional eviction with an unidentified condition, not a game change. Treat already-drawn icons as restart-only for design purposes. See [icon-refresh-unreliable] in the Contradicted section.
+Split verdict as of 2026-08-26 (owner-run re-probe, the LW-334 bisect). STILL TRUE: `modded.pac` accepts an in-place overwrite while the game runs (no lock, byte-exact verify), and an icon drawn for the FIRST time in the process afterwards shows the patched art on both surfaces (owner-witnessed: Tideward wore Emberward's red, screenshot 03:51). NO LONGER TRUSTWORTHY: the 2026-08-16 "leave the list and come back" refresh of an already-drawn icon. In tonight's session nothing evicted a drawn icon: with Galewall patched and Tideward restored in the pac, a tab round-trip, closing and reopening equipment, leaving to the world map, save plus load, and a title-screen reload ALL kept the stale art; only restart refreshes. The same recipe DID work on 2026-08-16, and the PE build key proves all three sessions ran the SAME exe (0x6A5EA53C / 0x18D78000, the 1.5.2 build taught 2026-07-24), so this is a conditional eviction with an unidentified condition, not a game change; a full battle enter/exit in a FRESH session also failed to refresh (owner-run, same night). Treat already-drawn icons as restart-only for design purposes. SAFETY CORRECTION 2026-08-26: the launch merge is INCREMENTAL, a pac patch SURVIVES relaunches until the matching loose file changes, so "relaunch repairs it" is FALSE; always restore explicitly. See [icon-refresh-unreliable] in the Contradicted section.
 
 <details><summary>How we got here</summary>
 
@@ -493,7 +493,10 @@ and is read at an icon's first draw, but the eviction that re-reads an ALREADY-d
 icon is CONDITIONAL and the condition is unidentified; it fired on 2026-08-16 (fresh
 launch made for the probe) and refused on 2026-08-25 and 2026-08-26 (tonight's session
 hours old, heavy play behind it). Suspects: session age, VRAM/cache pressure, scene
-history; the one eviction rung never tested is a battle enter/exit. Whatever the
+history. BATTLE RUNG SETTLED LATER THE SAME NIGHT (owner-run, ~04:30, in a FRESH
+session): with Galewall drawn pink and the pac then patched red, a full battle enter
+and exit did NOT refresh it either, so every candidate eviction rung has now failed at
+least once, in both a stale session and a fresh one. Whatever the
 condition, LW-334's operational conclusion holds: the LW-295 splice cannot rely on
 mid-session refresh (it lands minutes after boot, after the plain art is drawn). Bonus
 context from the same session's log: the shipped splice currently stands itself down
@@ -502,6 +505,22 @@ because deploy_glow_tex.py overwrites the loose bases with tier variants; the in
 launch-merge path and the splice fight over the same bases and the guard picks the safe
 loser. Probe: `tools/probes/live_icon_patch_probe.py` run by hand, patch/restore both
 verified in the tool output.
+
+**SECOND SAFETY CORRECTION, same night (~04:15): the launch merge is INCREMENTAL, so
+this row's "regenerated from the loose files at every launch, relaunch is a guaranteed
+repair" sentence above is FALSE.** The owner relaunched mid-probe and the fresh
+session's pac still held the patch: Emberward's art counted TWICE (its own slot plus
+Galewall's), Galewall's own bytes were nowhere, and `modded_files.txt` had not been
+touched since the last deploy (Aug 19) while the pac's mtime was bumped with its
+content preserved. The patch had to be restored BY HAND from the loose bytes (verified:
+every icon back to exactly one occurrence). Rule: a pac patch persists until the
+matching loose file changes; ALWAYS restore explicitly. Upside of the same fact: bytes
+spliced into the pac (the LW-295 design) persist across restarts in a deploy-free
+install, so splice work would legitimately show at the NEXT session's first draw; only
+dev-time deploys kept erasing it. FINAL LADDER RUNG, owner-run in the fresh session:
+with Galewall drawn pink on screen and the pac then patched red, a full battle enter
+and exit did NOT refresh the icon. Every candidate eviction has now failed at least
+once, in both a stale session and a fresh one.
 
 </details>
 
@@ -2446,7 +2465,7 @@ Contradicted 2026-08-26, owner live: the 2026-08-16 recipe (an already-drawn equ
 
 **The retraction that sharpened it:** the first same-night conclusion blamed game patch 1.5.2. The owner was skeptical and the PE key killed it: the exe reads 0x6A5EA53C / 0x18D78000, the 1.5.2 build the guard learned 2026-07-24, three weeks BEFORE the 2026-08-16 pass; the mod armed normally in all three sessions. Same binary, opposite outcomes, so the difference lives in session state, not the game version. Known differences: 2026-08-16 was a fresh launch made for the probe; 2026-08-25 and 2026-08-26 were long sessions with heavy play behind them. Suspects: cache/VRAM pressure, session age, scene history.
 
-**Next step:** the cheap discriminator is a fresh-launch stage 2 (launch, open equipment so the shield draws plain, patch, tab round-trip) and, separately, a battle enter/exit rung (the one eviction never tested, and the heaviest texture-pressure event in the game). If fresh-launch stage 2 passes, refresh works early-session and dies later, which points at a cache that stops evicting as it fills. Until someone hunts this, nothing ships on mid-session refresh; the launch-merge path (deploy_glow_tex.py today, the LW-336 runtime loose-tex sync as successor) does not need it.
+**Next step:** the battle enter/exit rung WAS run later the same night (owner, fresh session, Galewall drawn pink then pac patched red): a full battle did NOT refresh it, so every candidate eviction has now failed at least once in both a stale and a fresh session, and the arc is PAUSED by the owner with the condition unfound. The remaining unexplored discriminators if anyone resumes: a fresh-launch stage 2 timed early (the 2026-08-16 pass was minutes after boot), and VRAM/cache-pressure manipulation. The same night also proved the pac itself PERSISTS across relaunches (incremental merge; see [live-icon-repaint]), so any future probe must restore explicitly. Until the condition is found, nothing ships on mid-session refresh; the launch-merge path (deploy_glow_tex.py today, the LW-336 runtime loose-tex sync as successor) does not need it.
 
 </details>
 
