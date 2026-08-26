@@ -9,6 +9,13 @@
    255,
    177,
    94
+  ],
+  "vibrant_hex": "#FF9A2E",
+  "vibrant_panel_dE": 52.0,
+  "vibrant_rgb": [
+   255,
+   154,
+   46
   ]
  },
  "ma": {
@@ -20,6 +27,13 @@
   "rgb": [
    106,
    137,
+   255
+  ],
+  "vibrant_hex": "#3D66FF",
+  "vibrant_panel_dE": 66.4,
+  "vibrant_rgb": [
+   61,
+   102,
    255
   ]
  },
@@ -33,6 +47,13 @@
    193,
    110,
    106
+  ],
+  "vibrant_hex": "#D93E36",
+  "vibrant_panel_dE": 57.1,
+  "vibrant_rgb": [
+   217,
+   62,
+   54
   ]
  },
  "pa+ma": {
@@ -45,6 +66,13 @@
    121,
    98,
    185
+  ],
+  "vibrant_hex": "#6136D9",
+  "vibrant_panel_dE": 75.3,
+  "vibrant_rgb": [
+   97,
+   54,
+   217
   ]
  },
  "pa+ma+brave": {
@@ -57,6 +85,13 @@
    96,
    127,
    188
+  ],
+  "vibrant_hex": "#366DD9",
+  "vibrant_panel_dE": 53.7,
+  "vibrant_rgb": [
+   54,
+   109,
+   217
   ]
  },
  "speed": {
@@ -69,6 +104,13 @@
    141,
    163,
    113
+  ],
+  "vibrant_hex": "#91D936",
+  "vibrant_panel_dE": 59.9,
+  "vibrant_rgb": [
+   145,
+   217,
+   54
   ]
  },
  "wp": {
@@ -80,6 +122,13 @@
   "rgb": [
    107,
    250,
+   255
+  ],
+  "vibrant_hex": "#3FF8FF",
+  "vibrant_panel_dE": 36.5,
+  "vibrant_rgb": [
+   63,
+   248,
    255
   ]
  },
@@ -93,6 +142,13 @@
    221,
    184,
    82
+  ],
+  "vibrant_hex": "#F3BE2C",
+  "vibrant_panel_dE": 54.3,
+  "vibrant_rgb": [
+   243,
+   190,
+   44
   ]
  }
 }

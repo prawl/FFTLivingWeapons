@@ -87,38 +87,35 @@ the technical detail lives in the indented lines under it.
     ramp; it lives on only in git history. Whether that already-approved look also satisfies
     this row's own gallery-pass wait clause is the owner's call, not this arc's.
 
-- **[LW-319] The weapon glow matches the card text's colors, hue names the stat** (opened 2026-08-25) [BUILDING]
-  - The color arc's finale, promoted 2026-08-25 on the owner's call after the Grows
-    line move was weighed and demoted (LW-332, bottom placement stays): a grown weapon
-    glows in the same lane hue its Grows line is painted in, so the card and the
-    battlefield speak one color language. Intensity stays the kill tier. Replaces the
-    toward-white sprite transform and the identity-colored icon rims LW-295 shipped
-    (whose mechanism live pass stays owed and still counts: paint, splice and tier
-    plumbing are unchanged).
-  - The hue DICTIONARY is already ruled and live on the cards (LW-329, 2026-08-25):
-    Speed green, PA red, MA blue, HP orange, WP cyan, magic guns gold, poles purple,
-    katanas periwinkle. The owner asked 2026-08-25 for an EXACT match: sample the
-    live-rendered text color of each ruled palette slot off the screen and feed those
-    measured RGB values to the glow, rather than eyeballing matching shades. The
-    gallery's job shrinks to confirming the sampled shades read well on the icon art.
-  - (Tech: drive tools/probes/lw329_palette_cycler.py through the eight ruled slots on
-    a live card, capture a frame per slot, pixel-sample the glyph cores into
-    tools/probes/lw319_text_rgb_map.json; swap the runtime brighten for the
-    outline-glow transform proven in the bench probe's outlineglow verb (fce8ad3);
-    re-bake the 726 icon rims in the sampled lane RGBs keyed by meta.json's lane; Glow
-    Ladder gallery preview before the build for the owner's shade confirmation. The
-    card palette slots are TEXT renderer indices, which is exactly why the sprite side
-    needs sampled RGBs instead of the slot numbers.)
-  - Done means: a grown weapon's glow hue names its lane exactly per the LW-329
-    dictionary, the glow RGB is the measured on-screen color of that lane's text slot,
-    intensity still tracks the kill tier, multi-lane weapons wear their blend hue
-    (poles purple, katanas periwinkle), and the old toward-white transform and
-    identity-colored rims are fully replaced with no icon left on the old look.
-  - Verify: the icon gates green (recolor_icons selftest, preview manifest identity),
-    the sampled RGB map committed with its capture provenance, the Glow Ladder gallery
-    approved by the owner before the bake, the full suite green for the runtime
-    transform swap, and the owner's live pass: tiered weapons glowing their lane hues
-    in the equip list and in battle.
+- **[LW-332] The Grows line moves up to sit directly under the Kills line** (opened 2026-08-25) [BUILDING]
+  - Re-promoted 2026-08-25 late on the owner's fresh call ("the fact that the Grows
+    isn't directly under the Kills is killing me"), pausing the glow arc (LW-319, now
+    backlog top with its state banked). The progression header: kills and growth
+    together at the top of the card, prose below. It needs a matched DLL change to be
+    safe: the card painter pairs each Kills slot with the NEAREST flavor text and
+    relies on only one fixed byte between them, so inserting the Grows line stretches
+    that gap and a neighboring card ending in its own flavor line could pair closer
+    and paint the wrong weapon's counter. The owner heard this downside 2026-08-25
+    and ruled it minor barring surprises; the reverted shortcut attempt (moving the
+    line without anchor work) stays the cautionary tale.
+  - (Tech: extend Display/CardScanner's anchor candidates with each weapon's Grows
+    line, derived from meta.json's lane via a C# mirror of the NOW-SPELLED phrase and
+    color tables (lib/flavor.py GROWS_SPELLED + LANE_COLOR_SLOT, WP teal 93 since
+    2b98b0a) plus a parse-the-python lockstep gate so the two cannot drift, restoring
+    a small fixed Kills-to-anchor gap; then move the line in lib/flavor.assemble_desc
+    and flip analyze.py's GROWS PHRASE gate to demand line-two placement.
+    FindNearestFlavor and the 2026-07-06 bidirectional design note are the
+    load-bearing read.)
+  - Done means: every living weapon's card shows the colored Grows line as the SECOND
+    line, directly under the Kills line; the painter still paints the right weapon's
+    counter every time because the anchor extension keeps the pairing gap small and
+    fixed; the GROWS PHRASE gate enforces line-two placement; nothing else about the
+    card layout moves.
+  - Verify: the full suite green including new CardScanner tests for the moved layout
+    (with a packed-pool mispaint regression case where a neighbor card ends in its own
+    flavor line); analyze.py green with the tightened gate; and the owner live-reads
+    the moved line plus a battle where the Kills counter paints correctly on at least
+    two different weapons.
 - **[LW-322] Every weapon's description says in plain words what it grows** (opened 2026-08-25) [AWAITING-LIVE]
   - "Grows: Speed" or "Grows: PA, MA and Brave" joins each living weapon's card text,
     because the glow colors alone tell a player THAT a weapon grew, not WHAT it grows,
@@ -218,17 +215,22 @@ belongs rather than at the bottom.
   As things stand the LW-295 icon mechanism live pass FAILS; rethink the display path
   before LW-319 rebakes the rims in lane hues. Evidence: this session's livingweapon.log
   (manifest load 20:01:21, zero warns) plus the direct pac byte check.
+- [LW-212] 2026-08-13: The four bags' recolor seat, BUILT and gated 2026-08-16 and
   AWAITING the owner's gallery pass ever since; demoted from Now 2026-08-25 only to
   free the seat for LW-332 (the owner queued the Grows-line move). Nothing about the
   work changed: the art is live in the current install, and the full Done means and
   Verify text lives in this file's history (75f0c7f and earlier). Re-promote for the
   gallery pass whenever the owner sits down for icons.
-- [LW-332] 2026-08-25: The Grows line move under the Kills line, demoted the same day
-  it was seated on the owner's ruling "keep it where it is for now" after a pros and
-  cons read: the bottom placement stays live, and a fixed top header is not worth new
-  anchor ambiguity in the card painter today. The full seat contract lives in this
-  file's history (18989b6). Re-promote only on a fresh owner call, and the move still
-  must not ship without the CardScanner anchor extension that contract demands.
+- [LW-319] 2026-08-25: The weapon glow in lane hues, PAUSED by the owner the same day
+  ("let's pause on the glow for a moment") to re-promote LW-332; state banked and ready
+  to resume: the eight lane text colors are MEASURED off the live card
+  (tools/probes/lw319_text_rgb_map.json, crops committed), the Glow Ladder gallery
+  renders A (verbatim) against B (same hue at glow strength, the owner called verbatim
+  underwhelming) per lane with the full 121-weapon roster on both icon surfaces, WP's
+  glow hue still needs re-measuring from the live teal 93 text (one owner screenshot of
+  any gun's card), and the icon splice display failure is its own row (LW-334). Full
+  seat contract in this file's history (f43135a). Resume = owner rules A or B per lane,
+  then the outline-glow transform swap + 726-rim re-bake per that contract.
 
 - [LW-327] 2026-08-25: A grown Knight Sword's bonus HP should be REAL at battle start:
   today the raised maximum shows 679/883 and the knight begins every battle reading hurt
