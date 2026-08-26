@@ -283,6 +283,14 @@ belongs rather than at the bottom.
   is the prerequisite, otherwise the manual deploy_glow_tex step fakes the result; the
   late level-up toast (LW-323) and slow kill counters (LW-324) sit on the same player
   experience and an extensive pass will trip both.
+- [LW-341] 2026-08-26: Teach the deploy audit that glow-tiered icons are healthy, not
+  drift. Once LW-336 ships, the mod itself rewrites its deployed weapon icon tex files
+  to each weapon's current tier, so BuildLinked -VerifyOnly comparing the install
+  against the repo will report up to 242 "mismatched" icons that are actually the
+  feature working, burying any real drift in noise. The audit should treat a managed
+  glow icon as current when its hash matches the manifest's base OR any baked tier
+  variant for that icon, and only then report it. Surfaced while speccing LW-336;
+  the post-deploy [5/5] parity check is unaffected (it runs on fresh plain bases).
 - [LW-319] 2026-08-25: The weapon glow in lane hues, PAUSED by the owner the same day
   ("let's pause on the glow for a moment") to re-promote LW-332; state banked and ready
   to resume: the eight lane text colors are MEASURED off the live card
