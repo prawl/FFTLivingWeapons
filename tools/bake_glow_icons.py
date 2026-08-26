@@ -104,6 +104,11 @@ SCHEMA_VERSION = 1
 # over powering, tone it down by like 10 or 15%'; 1.3 = -13%, and the inner ring
 # drops off full 255 opacity, 170*1.3=221).
 TIER_SCALES = {1: 0.6, 2: 1.0, 3: 1.3}
+# Rim WIDTH trim (owner Atlas feedback 2026-08-26 late: "make the width of the glow
+# smaller"): the falloff band keeps its color at half strength and the 3px third band
+# (a rims.json per-weapon widener) is dropped everywhere, so the rim reads as a crisp
+# ring with a whisper of falloff instead of a 2-3px halo. Inner band untouched.
+OUTER_TRIM = 0.5
 # (pac subfolder, filename prefix, surface tag, fixed tex byte length). Same four surfaces
 # process() loops over; sizes are the shipped tex sizes (0xC860 / 0x3060), verified against a
 # real deployed file at the start of this arc.
@@ -158,11 +163,11 @@ def _glow_variant(body, tint, item_id, rim_scale):
     deep = LANE_GLOW[_LANE_BY_ID[item_id]]["deep"]
     bright = LANE_GLOW[_LANE_BY_ID[item_id]]["bright"]
     rim = ri.RAMP_RIMS.get(str(item_id))
-    if rim:
-        return ri.ramp_glow(body, tint, inner_a=rim["inner_a"], outer_a=rim["outer_a"],
-                            third_a=rim["third_a"], rim_rgb=deep, outer_rgb=bright,
-                            rim_scale=rim_scale)
-    return ri.ramp_glow(body, tint, rim_rgb=deep, outer_rgb=bright, rim_scale=rim_scale)
+    inner_a = rim["inner_a"] if rim else 170
+    outer_a = rim["outer_a"] if rim else 80
+    return ri.ramp_glow(body, tint, inner_a=inner_a,
+                        outer_a=int(round(outer_a * OUTER_TRIM)), third_a=0,
+                        rim_rgb=deep, outer_rgb=bright, rim_scale=rim_scale)
 
 
 def encode_tex(img, out_path, tag):
