@@ -5,7 +5,7 @@
   <Entries>
     <ItemArmor>
       <Id>0</Id> <!-- Padded Coif (was Leather Helm) -->
-      <HPBonus>12</HPBonus>
+      <HPBonus>14</HPBonus>
       <MPBonus>0</MPBonus>
     </ItemArmor>
     <ItemArmor>
@@ -160,7 +160,7 @@
     </ItemArmor>
     <ItemArmor>
       <Id>31</Id> <!-- Hushward Mail (was Chainmail) -->
-      <HPBonus>42</HPBonus>
+      <HPBonus>46</HPBonus>
       <MPBonus>0</MPBonus>
     </ItemArmor>
     <ItemArmor>

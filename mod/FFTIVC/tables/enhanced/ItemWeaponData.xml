@@ -50,7 +50,7 @@
       <Formula>1</Formula>
       <Power>7</Power>
       <Evasion>16</Evasion>
-      <Elements>None</Elements>
+      <Elements>Holy</Elements>
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>

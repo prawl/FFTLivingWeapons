@@ -399,6 +399,19 @@ belongs rather than at the bottom.
   (id 5) escapes three same-or-earlier siblings by single points, its riderless plain
   knife identity is the thinnest in the catalog. The Warbrand's one-point WP crown over
   Arcanum and Lightbringer is the owner's own LW-320 ruling, by design.
+  RULINGS EXECUTED 2026-08-26 in session, gates hardened the same hour: the Hushward
+  Mail takes hp 46 (armor out-HPs clothing at tier parity, the owner's pick), the
+  Padded Coif takes hp 14 (the same disease one shelf up, same medicine), and the
+  Argent Dirk goes HOLY (owner: "Holy-guacamole, I love it"; the name and its own
+  silversmith flavor line always said silver, the element makes it mechanical and
+  erases all three of its thin matchups without touching a number). Two NEW permanent
+  analyze.py stanzas enforce the audit forever: STAT TWINS (no two slot-sharing items
+  with one identical stat line) and THIN NICHE with the SPLIT LINE (2-point margin
+  same-tier, 1-point cross-tier; the owner delegated the line call 2026-08-26 and the
+  diversity reasoning is written into analyze.py at the constants), both
+  mutation-proven red then green. The exception list holds exactly three owner-ruled
+  entries (Warbrand twice, Iga Blade). item.en.nxd rebaked for the Dirk's new "Deals
+  Holy damage." card line, verify PASS, restart-only, rides the next deploy.
 - [LW-321] 2026-08-25: Weak classes get a design pass through the weapon lens: Thief,
   Archer, Orator and Mystic sit low on community tier lists, and this mod's proven lever
   for that is their TOOLS, not their job tables. The owner already ran the template on the

@@ -224,7 +224,7 @@
       "proposed": {
         "wp": 7,
         "evade": 16,
-        "element": "None",
+        "element": "Holy",
         "onHit": "None",
         "onHitAbilityId": 0,
         "formula": 1,
@@ -4692,7 +4692,7 @@
         "magEv": 0
       },
       "proposed": {
-        "hp": 12,
+        "hp": 14,
         "mp": 0,
         "physEv": 0,
         "magEv": 0,
@@ -5515,7 +5515,7 @@
         "magEv": 0
       },
       "proposed": {
-        "hp": 42,
+        "hp": 46,
         "mp": 0,
         "physEv": 0,
         "magEv": 0,

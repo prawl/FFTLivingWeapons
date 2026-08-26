@@ -128,6 +128,112 @@ def check_slots(items, normal_formulas):
     return violations
 
 
+# --- LW-318 hardening: the two blind spots the 2026-08-26 thin-niche audit proved real ---
+
+# Owner-ruled (or provisionally parked) survivals the THIN NICHE gate accepts. Key is
+# (survivor id, rival id); every entry cites its authority. Removing an entry makes the
+# gate demand the pair be re-balanced.
+THIN_NICHE_EXCEPTIONS = {
+    (67, 30): "Warbrand's 1-WP crown over Arcanum: owner ruling 2026-08-25 (LW-320), crown kept, shelf moved to the last unlock",
+    (67, 31): "Warbrand's 1-WP crown over Lightbringer: same LW-320 ruling",
+    (17, 16): "Iga Blade's 1-WP edge over Sasuke's Blade: the plain crown of the ninja blades, the Warbrand pattern in miniature",
+}
+
+# Axes where a small survival margin counts as "thin". Range is deliberately absent:
+# any reach edge is a real niche (a 2-tile pole is not almost a 1-tile staff).
+THIN_AXES = {"wp", "evade", "physEv", "magEv", "hp", "mp"}
+
+# The SPLIT LINE (owner-delegated ruling 2026-08-26, reasoning in the LW-318 row):
+# same-tier rivals sharing a shelf are held to a 2-point margin (a same-shelf sibling
+# alive by 2 points is a redundant twin-in-waiting), while a LATER item surviving an
+# earlier one is held only to 1 point, because the catalog's normal upgrade grammar is
+# a gentle +2-WP chapter step that deliberately keeps old gear attractive (the
+# build-diversity thesis itself); flagging those would pressure exactly the pairs
+# where the earlier item's kept perk makes a real choice (Save the Queen's +2 WP vs
+# the Defender's +15 evade being the canonical example).
+THIN_MARGIN_SAME_TIER = 2
+THIN_MARGIN_CROSS_TIER = 1
+
+
+def _gate_pairs(items):
+    """Every ordered (A, B) the dominance gates themselves compare: same category,
+    plus shared-slot cross-category pairs under the access rule."""
+    seen = set()
+    by_cat = {}
+    for it in items:
+        by_cat.setdefault(it["category"], []).append(it)
+    for group in by_cat.values():
+        for a in group:
+            for b in group:
+                if a["id"] != b["id"]:
+                    seen.add((a["id"], b["id"]))
+                    yield a, b
+    groups = {}
+    for it in items:
+        g = SLOT_GROUP.get(it["category"])
+        if g:
+            groups.setdefault(g, []).append(it)
+    for grp in groups.values():
+        for a in grp:
+            for b in grp:
+                if a["id"] != b["id"] and can_dominate_access(b, a) and (a["id"], b["id"]) not in seen:
+                    seen.add((a["id"], b["id"]))
+                    yield a, b
+
+
+def check_twins(items, normal_formulas):
+    """No two gate-compared items may be IDENTICAL on every numeric axis, tier and
+    rider set. The dominance gate cannot see this (domination needs a strict edge), but
+    a twin whose rival is equippable by at least as many jobs is redundant in practice:
+    the 2026-08-26 audit caught the Hushward Mail selling the Wardsilk Vest's exact
+    stat line to fewer jobs. Each unordered pair reports once (dedup by pair, not id
+    order: access-restricted directions can yield only one ordering)."""
+    items = [it for it in items if not it.get("livingWeapon") and "proposed" in it]
+    bad, done = [], set()
+    for a, b in _gate_pairs(items):
+        key = frozenset((a["id"], b["id"]))
+        if key in done:
+            continue
+        done.add(key)
+        pa, pb = a["proposed"], b["proposed"]
+        if any(pa.get(ax, d) != pb.get(ax, d) for ax, d in NUMERIC_AXES.items()):
+            continue
+        if a.get("tier", 0) != b.get("tier", 0):
+            continue
+        if riders(pa, normal_formulas) != riders(pb, normal_formulas):
+            continue
+        bad.append((a, b))
+    return bad
+
+
+def check_thin_niche(items, normal_formulas):
+    """No item may survive a same-or-earlier-tier rival on a SINGLE thin margin of a
+    non-range axis (the 2026-08-26 audit's definition of practically vendor trash),
+    unless the pair carries an owner-ruled THIN_NICHE_EXCEPTIONS entry. Thinness is
+    the SPLIT LINE above: 2 points against a same-tier rival, 1 point against an
+    earlier one. The shields computation mirrors dominates() exactly: with the
+    dominance gate green, a single-shield pair always has a strictly stronger rival
+    behind the margin."""
+    items = [it for it in items if not it.get("livingWeapon") and "proposed" in it]
+    bad = []
+    for a, b in _gate_pairs(items):
+        if (a["id"], b["id"]) in THIN_NICHE_EXCEPTIONS:
+            continue
+        pa, pb = a["proposed"], b["proposed"]
+        shields = []
+        for ax, d in NUMERIC_AXES.items():
+            av, bv = pa.get(ax, d), pb.get(ax, d)
+            if bv < av:
+                shields.append((ax, av - bv))
+        if b.get("tier", 0) > a.get("tier", 0):
+            shields.append(("tier", None))
+        shields.extend(("rider", None) for _ in riders(pa, normal_formulas) - riders(pb, normal_formulas))
+        limit = THIN_MARGIN_SAME_TIER if b.get("tier", 0) == a.get("tier", 0) else THIN_MARGIN_CROSS_TIER
+        if len(shields) == 1 and shields[0][0] in THIN_AXES and shields[0][1] <= limit:
+            bad.append((a, b, shields[0][0], shields[0][1]))
+    return bad
+
+
 FLAVOR_MAX = 90   # authored flavor lines must fit the equip card
 P3DESC_MAX = 90   # the signature EFFECT line (the card header carries the name + the +N tier)
 SIGNAME_MAX = 60  # the name in the "{name} (+{atTier})" card header. May carry a class-restriction
@@ -852,6 +958,20 @@ def _fmt_slots(v):
               + ", ".join(f"id{b['id']} {b.get('name')}({b['category']})" for b in doms))
 
 
+def _fmt_twins(v):
+    for a, b in v:
+        print(f"  TWINS id{a['id']} {display_name(a)} ({a['category']}) == id{b['id']} "
+              f"{display_name(b)} ({b['category']}): identical on every axis, tier and rider; "
+              f"one of the pair needs a real edge")
+
+
+def _fmt_thin(v):
+    for a, b, ax, margin in v:
+        print(f"  THIN id{a['id']} {display_name(a)} survives id{b['id']} {display_name(b)} "
+              f"only by {margin} point(s) of {ax}; re-balance the pair or add an owner-ruled "
+              f"THIN_NICHE_EXCEPTIONS entry")
+
+
 def _fmt_unique_flavor(v):
     for a, b in v:
         print(f"  DUPLICATE id{a['id']} {a.get('name')} shares its flavor with id{b['id']} {b.get('name')}:")
@@ -951,6 +1071,15 @@ def main():
              check_fn=lambda: check_slots(items, nf),
              pass_msg="PASS: no item is dominated within its equip slot.",
              format_failure=_fmt_slots, sets_rc=True),
+        dict(header="STAT TWINS (no two slot-sharing items with one identical stat line)",
+             check_fn=lambda: check_twins(items, nf),
+             pass_msg="PASS: no two items share an identical stat line.",
+             format_failure=_fmt_twins, sets_rc=True),
+        dict(header=f"THIN NICHE (single-margin survival: <= {THIN_MARGIN_SAME_TIER} pts same-tier, "
+                    f"<= {THIN_MARGIN_CROSS_TIER} pt cross-tier, save owner-ruled exceptions)",
+             check_fn=lambda: check_thin_niche(items, nf),
+             pass_msg="PASS: every survival margin is real (or owner-ruled).",
+             format_failure=_fmt_thin, sets_rc=True),
         dict(header="DESCRIPTION UNIQUENESS (no two items share a flavor line)",
              check_fn=lambda: check_unique_flavor(items),
              pass_msg="PASS: every item's flavor line is unique.",
