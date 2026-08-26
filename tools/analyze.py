@@ -651,8 +651,11 @@ GROWS_PHRASE_EXPECTED = {"Speed": "Speed", "PA": "Physical Attack", "MA": "Magic
 #: the card; 93 read "teal/sage (readable)" at the same sitting). Same cyan family, darker.
 #: PA moved light red 30 -> prominent red 90 (owner color-sweep read 2026-08-25, banked in
 #: lw307_card_colors.json: "Prominent Red (I like this over the one we're using)").
-GROWS_COLOR_SLOT = {"Speed": "40", "PA": "90", "MA": "50", "HP": "81", "WP": "93",
-                    "WP+Faith": "60", "PA+MA": "95", "PA+MA+Brave": "94"}
+#: Owner tour rulings 2026-08-26: katanas 94 -> 93 (teal, repurposed from WP; steel read
+#: too close to MA at the icon rim) and WP 93 -> 82 (pink, the sweep's one new readable
+#: family, pairing WP's new magenta glow).
+GROWS_COLOR_SLOT = {"Speed": "40", "PA": "90", "MA": "50", "HP": "81", "WP": "82",
+                    "WP+Faith": "60", "PA+MA": "95", "PA+MA+Brave": "93"}
 
 
 def check_grows_phrase(items):

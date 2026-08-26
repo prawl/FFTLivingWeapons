@@ -17,10 +17,12 @@ Base hue sources, per lane:
               sage slot-40 TEXT green the owner vetoed as a rim stays vetoed.
   pa        = prominent red, slot 90's family (owner sweep read "I like this over
               the one we're using"). Rendered-RGB measure-later caveat.
-  wp        = teal, slot 93's family (the WP text moved 83 -> 93 for legibility
-              2026-08-25; the owed gun-card screenshot will true this hue up).
-Per-lane saturation caps: PA+MA+Brave keeps a muted cap because steel IS its
-identity; full chroma would collapse it into the MA blue at a glance.
+Owner tour rulings 2026-08-26 (three at once, second sitting): katanas were too
+close to MA blue, so they take the TEAL family WP had (glow h174, text slot 93)
+and the old steel sat-cap dies with the steel; WP finds a new color, MAGENTA
+h310 (the one open band, 50 degrees off PA red; text slot 82 pink, the sweep's
+one new readable family); knight-sword orange and gold were 13 degrees apart,
+now spread to h24 red-orange and h52 yellow-gold.
 """
 import colorsys
 import json
@@ -63,11 +65,11 @@ def _bases():
         "speed":        (_rgb(140 / 360, 0.66, 0.95), 1.0),   # emerald (Warbrand rim family)
         "pa":           (_rgb(0 / 360, 0.85, 0.85), 1.0),     # prominent red stand-in (slot 90)
         "ma":           (m["MA"], 1.0),
-        "hp":           (m["HP"], 1.0),
-        "wp":           (_rgb(174 / 360, 0.80, 0.95), 1.0),   # teal stand-in (slot 93 family)
-        "wp+faith":     (m["WP+Faith"], 1.0),
+        "hp":           (_rgb(24 / 360, 0.75, 1.00), 1.0),    # red-orange; spread from gold
+        "wp":           (_rgb(310 / 360, 0.80, 0.95), 1.0),   # magenta (owner: WP finds a new color)
+        "wp+faith":     (_rgb(52 / 360, 0.75, 0.95), 1.0),    # yellow-gold; spread from orange
         "pa+ma":        (m["PA+MA"], 1.0),
-        "pa+ma+brave":  (m["PA+MA+Brave"], 0.65),             # steel stays steel (see docstring)
+        "pa+ma+brave":  (_rgb(174 / 360, 0.80, 0.95), 1.0),   # teal, repurposed from WP (owner)
     }
 
 

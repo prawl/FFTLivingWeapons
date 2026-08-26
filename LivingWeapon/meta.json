@@ -1085,7 +1085,7 @@
     "formula": 2,
     "flavor": "A katana housing the war-spirit Ashura, eager to be drawn.",
     "lane": "pa+ma+brave",
-    "growsLine": "<color=94>Grows: Physical Attack, Magick Attack & Bravery.</color>",
+    "growsLine": "<color=93>Grows: Physical Attack, Magick Attack & Bravery.</color>",
     "palette": 13,
     "colors": [
       4162,
@@ -1112,7 +1112,7 @@
     "formula": 1,
     "flavor": "Honest Kotetsu steel, heavy in the cut and blinding on the backswing.",
     "lane": "pa+ma+brave",
-    "growsLine": "<color=94>Grows: Physical Attack, Magick Attack & Bravery.</color>",
+    "growsLine": "<color=93>Grows: Physical Attack, Magick Attack & Bravery.</color>",
     "palette": 13,
     "colors": [
       4162,
@@ -1139,7 +1139,7 @@
     "formula": 47,
     "flavor": "Bizen work of the old school; it drinks the mind of what it wounds.",
     "lane": "pa+ma+brave",
-    "growsLine": "<color=94>Grows: Physical Attack, Magick Attack & Bravery.</color>",
+    "growsLine": "<color=93>Grows: Physical Attack, Magick Attack & Bravery.</color>",
     "palette": 13,
     "colors": [
       4162,
@@ -1166,7 +1166,7 @@
     "formula": 1,
     "flavor": "A rain-tempered blade whose touch slows the world for its victim.",
     "lane": "pa+ma+brave",
-    "growsLine": "<color=94>Grows: Physical Attack, Magick Attack & Bravery.</color>",
+    "growsLine": "<color=93>Grows: Physical Attack, Magick Attack & Bravery.</color>",
     "palette": 5,
     "colors": [
       2116,
@@ -1193,7 +1193,7 @@
     "formula": 1,
     "flavor": "The gathering-clouds blade.",
     "lane": "pa+ma+brave",
-    "growsLine": "<color=94>Grows: Physical Attack, Magick Attack & Bravery.</color>",
+    "growsLine": "<color=93>Grows: Physical Attack, Magick Attack & Bravery.</color>",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -1227,7 +1227,7 @@
     "formula": 1,
     "flavor": "Shrine-blessed; wounds fester.",
     "lane": "pa+ma+brave",
-    "growsLine": "<color=94>Grows: Physical Attack, Magick Attack & Bravery.</color>",
+    "growsLine": "<color=93>Grows: Physical Attack, Magick Attack & Bravery.</color>",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -1288,7 +1288,7 @@
     "formula": 2,
     "flavor": "A chrysanthemum-hilted katana.",
     "lane": "pa+ma+brave",
-    "growsLine": "<color=94>Grows: Physical Attack, Magick Attack & Bravery.</color>",
+    "growsLine": "<color=93>Grows: Physical Attack, Magick Attack & Bravery.</color>",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -1322,7 +1322,7 @@
     "formula": 1,
     "flavor": "Masamune's masterpiece; holy light sleeps in the folded steel.",
     "lane": "pa+ma+brave",
-    "growsLine": "<color=94>Grows: Physical Attack, Magick Attack & Bravery.</color>",
+    "growsLine": "<color=93>Grows: Physical Attack, Magick Attack & Bravery.</color>",
     "palette": 15,
     "colors": [
       4194,
@@ -1349,7 +1349,7 @@
     "formula": 1,
     "flavor": "A blade of falling petals; what stands before it soon cannot move.",
     "lane": "pa+ma+brave",
-    "growsLine": "<color=94>Grows: Physical Attack, Magick Attack & Bravery.</color>",
+    "growsLine": "<color=93>Grows: Physical Attack, Magick Attack & Bravery.</color>",
     "palette": 8,
     "colors": [
       102,
@@ -2019,7 +2019,7 @@
     "formula": 1,
     "flavor": "A barbed, scorpion-named katana whose every sting marks a foe for a slow, certain death.",
     "lane": "pa+ma+brave",
-    "growsLine": "<color=94>Grows: Physical Attack, Magick Attack & Bravery.</color>",
+    "growsLine": "<color=93>Grows: Physical Attack, Magick Attack & Bravery.</color>",
     "palette": 13,
     "colors": [
       3428,
@@ -2046,7 +2046,7 @@
     "formula": 3,
     "flavor": "A wheel-lock that shoots farthest.",
     "lane": "wp",
-    "growsLine": "<color=93>Grows: Weapon Power.</color>",
+    "growsLine": "<color=82>Grows: Weapon Power.</color>",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -2080,7 +2080,7 @@
     "formula": 3,
     "flavor": "An iron-framed repeater for the long road; it hits harder than the pistol and never jams.",
     "lane": "wp",
-    "growsLine": "<color=93>Grows: Weapon Power.</color>",
+    "growsLine": "<color=82>Grows: Weapon Power.</color>",
     "palette": 10,
     "colors": [
       3138,
@@ -2107,7 +2107,7 @@
     "formula": 3,
     "flavor": "A heavy gun bored to spit earthen shards; each shot lands like a sliding mountain.",
     "lane": "wp",
-    "growsLine": "<color=93>Grows: Weapon Power.</color>",
+    "growsLine": "<color=82>Grows: Weapon Power.</color>",
     "palette": 14,
     "colors": [
       1125,

@@ -100,8 +100,11 @@ def rider_text(rider):
 #: "teal/sage (readable)" at the same sitting -- same family, darker, legible).
 #: PA light red 30 -> prominent red 90 (owner sweep read 2026-08-25: "Prominent Red
 #: (I like this over the one we're using)", banked in lw307_card_colors.json).
-LANE_COLOR_SLOT = {"Speed": "40", "PA": "90", "MA": "50", "HP": "81", "WP": "93",
-                   "WP+Faith": "60", "PA+MA": "95", "PA+MA+Brave": "94"}
+#: Owner tour rulings 2026-08-26: katanas take the teal 93 WP wore (steel 94 was too
+#: close to MA blue at the icon rim, and 93 is the proven-readable teal); WP moves to
+#: pink 82 (the sweep's one new readable family), pairing the new magenta glow.
+LANE_COLOR_SLOT = {"Speed": "40", "PA": "90", "MA": "50", "HP": "81", "WP": "82",
+                   "WP+Faith": "60", "PA+MA": "95", "PA+MA+Brave": "93"}
 
 
 #: Owner ruling 2026-08-25 late: stat names spelled out in the game's own vocabulary
