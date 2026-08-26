@@ -149,9 +149,14 @@ Display:
       narration, outranking all Marks.
 - [ ] **Announce honesty:** the legend RECORD is guaranteed (persisted at earn time). The
       ANNOUNCEMENT is best-effort with named loss modes (process exit before delivery, queue
-      overflow, dead-hook launch). Mitigation: undelivered Legend announcements persist
-      (pendingAnnounce in legends.json) and re-enqueue on next launch.
+      overflow, dead-hook launch, and since LW-323 the battle-end drop). Mitigation: undelivered
+      Legend announcements persist (pendingAnnounce in legends.json) and re-enqueue on next launch.
       Test: pending_legend_toast_survives_store_roundtrip.
+      LW-323 LIFETIME NOTE (2026-08-26): the toast queue now DROPS all pending toasts at every
+      battle edge (a toast never outlives its battle), so a naive launch-time re-enqueue would be
+      wiped by the first battle-enter edge before any facing prompt could render. When Phase 2
+      builds this row, the re-enqueue must happen IN-BATTLE (post-enter-edge, e.g. on the first
+      toast-phase tick of a live battle) or carry an explicit exemption from the battle-end drop.
 - [ ] Big center-screen banner: STRETCH, never blocks Phase 2. Honest ledger status: the callout
       renders are UNCERTAIN rows (piggyback-only; arbitrary-time fire still OPEN; ShowSpike is
       #if LWDEV dev-only). Productionizing it is its own arc with its own ledger row. If it lands:

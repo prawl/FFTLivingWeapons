@@ -177,6 +177,36 @@ the technical detail lives in the indented lines under it.
     the owner in the grid, analyze.py green after any retunes, and the changed weapons
     spot-read live if stats moved.
 
+- **[LW-323] A weapon's level-up announcement never shows up a battle late anymore** (opened 2026-08-25) [AWAITING-LIVE]
+  - BUILT and adversarially verified 2026-08-26 (code 9 of 10, zero code findings; suite
+    3332 green), owner live pass outstanding. The owner saw "Stoneshooter has grown to
+    Stoneshooter+2" pop during a NEW battle when the kill happened the battle before,
+    reading as if the gun leveled now. The toast queue simply had no battle-end hook, so
+    an announcement that missed every popup window waited for the next battle.
+  - Now a toast lives at most until its own battle ends: at the battle-end edge every
+    undelivered toast is dropped with one honest log line ("went undelivered by its
+    battle's end...; the growth itself is saved either way") and a flight-tape record,
+    and a new-game reset drops the old playthrough's pending toasts the same way.
+  - NOTE, recorded because an owner ruling was overturned: the old code carried a comment
+    calling the cross-battle survival deliberate ("Patrick-confirmed ruling A"). The
+    owner's 2026-08-25 live sighting and this seat's direction supersede that ruling; the
+    comment is deleted with the fix and this row is the overturn's record. The verify
+    round also annotated docs/RELIQUARY_AC.md's Phase 2 announce-honesty row, whose
+    launch-time re-enqueue mitigation the new lifetime would otherwise silently defeat.
+  - (Tech: BannerToast.DropPendingAtBattleEnd, locked, silent when empty, called FIRST
+    in Engine.ResetBattleState so drops land on the dying battle's tape before the exit
+    flush, and from Rebaseline on the new-game edge; all four Enqueue callers verified
+    in-battle gated so churn edges drop nothing; a real concurrency hammer replaces the
+    phantom test name the old comment cited.)
+  - Done means: a tier-up toast either shows during its own battle or is dropped at that
+    battle's end with the log line and tape record; the next battle never opens with a
+    stale toast; in-battle delivery is unchanged; a new game never shows the old
+    playthrough's pending announcements.
+  - Verify: suite green with the five new queue-lifetime tests and the concurrency
+    hammer; and the owner's two live reads: a tier crossed then the battle ended fast
+    shows NO ghost toast in the next battle (drop line on the log, record on the tape),
+    and a tier crossed with a Wait prompt still to come delivers in-battle as always.
+
 ## Backlog
 
 Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner directed).
@@ -433,18 +463,6 @@ belongs rather than at the bottom.
   entire justification for the poles' dormant PA half in LW-250's table) under scrutiny
   here rather than assumed; handing the strongest class a PA and MA growing weapon family
   needs a deliberate ruling, and the pole lane itself loses nothing while that waits.
-
-- [LW-323] 2026-08-25: A weapon's level-up announcement can show up one battle late: the
-  owner saw "Stoneshooter has grown to Stoneshooter+2" pop during a NEW battle when the
-  kill that earned it happened in the battle before, which reads as the gun leveling now.
-  An undelivered toast should not survive its own battle; it should deliver there or be
-  dropped at battle end (the tier itself is saved correctly either way, this is display
-  only). (Tech: owner sighting 2026-08-25 during the LW-316 probe battle; livingweapon.log
-  shows the kill at 13:05:37, its battle-end save at 13:07:26, and the toast delivery at
-  13:08:41, after the transition. The Chaos Blade toast at 12:31:04 delivered in-battle
-  the same day, so this is the missed-window path: delivery rides the Wait facing-prompt
-  swap, and a toast that misses every prompt window queues across the battle edge instead
-  of being flushed with it.)
 
 - [LW-325] 2026-08-25: Regression test every one of the 30 signature abilities, owner
   directed after Puppeteer needed retries during demo recording. The natural vehicle is
