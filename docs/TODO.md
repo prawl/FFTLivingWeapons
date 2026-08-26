@@ -280,12 +280,16 @@ belongs rather than at the bottom.
   Re-promote for the gallery pass whenever the owner sits down for icons.
 - [LW-337] 2026-08-26: Torso gear gets the recolor treatment so body armor reads as
   distinct items the way the helms already do; owner queued 2026-08-26 while defining
-  the next release. Engine and rules get decided when the arc starts; the helm pass is
-  the named quality reference, and the LW-313 seat (the owner's new icon path, still
-  unwritten) should be spelled out first so this family rides the right pipeline.
+  the next release. This is the owner's restatement of the EXISTING legacy re-pass
+  seats, not new work: armour is LW-218, clothing LW-219, robes LW-220; this row sets
+  the quality bar (the helm standard) and the sequencing, those rows hold the items.
+  The LW-313 seat (the owner's new icon path, still unwritten) gets spelled out first
+  so the family rides the right pipeline.
 - [LW-338] 2026-08-26: Accessories get the recolor treatment to the same helm-quality
-  standard; owner queued 2026-08-26 alongside LW-337 and the same notes apply (engine
-  decided at arc start, LW-313's path spelled out first).
+  standard; owner queued 2026-08-26 alongside LW-337 and the same shape applies: it
+  restates the existing seats (shoes LW-221, armguards LW-222, rings LW-223, armlets
+  LW-224, cloaks LW-225, perfumes LW-226, hair adornments LW-217) rather than opening
+  new ones, with LW-313's path spelled out first.
 - [LW-339] 2026-08-26: The in-battle weapon sprite recolor gets one extensive live test
   pass hunting edge cases before the release calls it done; owner queued 2026-08-26.
   Known suspects to script into the pass rather than rediscover live: counter attacks

@@ -408,6 +408,56 @@ recorded in the OUT section rather than edited away.
 
 ---
 
+## 2.4.0 re-scope (2026-08-26, owner call): the glow finale cut
+
+Plain version: 2.4.0 stops being "every icon reworked" and becomes "the living weapon
+experience is finished and proven". Since the 2026-08-19 scoping above, the glow rims went
+from parked to SHIPPED: the owner delegated the palette, tuned the look live across five
+passes on 2026-08-26, and closed with LGTM. This cut finishes that arc properly and tests
+the whole growth experience like a release deserves. The wardrobe work this section used to
+headline (the 90 legacy items, sections 1 and 2 above) moves WHOLE to the 2.5.0 section
+below; nothing is cancelled, it is re-sequenced behind the new icon path the owner still
+has to write down (LW-313). The 2026-08-19 sections above stay as the record of what was
+scoped then; their unticked boxes are re-homed by this section and the 2.5.0 section, and
+this paragraph is the pointer that says so.
+
+### R1. Glow completion (BLOCKER)
+- [ ] The mod keeps its own glow icons current (LW-336): retires the manual
+      deploy_glow_tex step and the pac splice; without it the glow only works on machines
+      where someone remembers a script.
+- [ ] The Grows line wears its weapon's glow color (LW-329, owner design already ruled).
+- [ ] Per-weapon inner ring colors for the five standouts (LW-335, owner picks).
+- [ ] Hue true-ups: the PA red 90, WP pink 82, and katana teal 93 rendered colors get
+      measured off a live card, one screenshot each; lane_glow.py carries flagged
+      stand-ins until then.
+- [ ] Knight Sword battle-start HP top-up (LW-327): BUILT and adversarially verified
+      2026-08-26 (code 9 of 10, suite 3309 green), owner live pass pending.
+
+### R2. Testing passes (BLOCKER)
+- [ ] The extensive glow-growth pass (LW-340), AFTER LW-336 lands; restart-cadence
+      per the settled physics (a drawn icon refreshes only at next launch).
+- [ ] The extensive in-battle recolor edge-case pass (LW-339); suspects pre-listed in
+      the row: counters (LW-310), ex flails (LW-312), the parry palette clash, the
+      wrong palette-map entry (LW-305).
+- [ ] The 30-signature regression tour (LW-325) plus fixes for what it finds; Puppeteer
+      (LW-326) is its first open defect.
+- [ ] The kills-paint speed pass (LW-324).
+- [ ] The late tier toast fixed (LW-323) BEFORE the glow-growth pass, so it cannot
+      pollute every growth observation.
+
+### R3. Owed owner eyeballs (BLOCKER, cheap, one sitting each)
+- [ ] Galleries: knives (LW-198), ninja blades (LW-205), books (LW-210), bags (LW-212).
+- [ ] The Grows-line reads (LW-332): same-lane fast-flip plus one credit battle.
+- [ ] The grows-text live pass (LW-322) and the power audit read (LW-320).
+
+### R4. Ship furniture
+- [ ] Deploy riders get their VERIFY_LIVE.md home (LW-286) before the next deploy.
+- [ ] Download page banner re-rendered after the final art state (LW-281).
+- [ ] analyze.py exit 0; dotnet test green; Publish.ps1 clean PROD; changelog exits for
+      everything above; ModVersion 2.4.0 and the matching tag.
+
+---
+
 ## 2.4.0 OUT of scope (explicit, so nothing drifts back in)
 
 - **Bringing the glow rim BACK, or redesigning it (LW-295).** Superseded 2026-08-19 by a second
@@ -432,6 +482,22 @@ recorded in the OUT section rather than edited away.
 - **Three rows whose premises are stale and must be re measured rather than trusted (LW-232,
   LW-237, LW-242)**: all three describe recipes that LW-247 deleted from the recolour tool, so
   they no longer describe the shipped art.
+
+---
+
+## 2.5.0 wardrobe cut (queued 2026-08-26, unlocked)
+
+The 2026-08-19 art-cut remainder moves here whole, joined by the owner's 2026-08-26
+restatement of the same work and the arcs deliberately kept out of the glow finale:
+- Step zero: the owner spells out the new icon path (LW-313) so every row below rides it.
+- The hats (LW-288), the legacy 72 as torso gear (LW-337: armour LW-218, clothing LW-219,
+  robes LW-220) and accessories (LW-338: shoes LW-221, armguards LW-222, rings LW-223,
+  armlets LW-224, cloaks LW-225, perfumes LW-226, hair adornments LW-217), and the six
+  never-colored throwing weapons and bombs (LW-214).
+- Gate hardening before that bake (LW-241, LW-245), exactly as section 2 above argued.
+- The four keep-or-retint rulings (LW-277, LW-244, LW-238).
+- The shields' battle color hunt (LW-302, its color source is still unfound).
+- The final weapon balance pass (LW-318) and the weak-class design pass (LW-321).
 
 ---
 
