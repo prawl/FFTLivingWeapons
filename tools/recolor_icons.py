@@ -3665,12 +3665,32 @@ def selftest():
                 if _d == 1:
                     _d1_130.add((_x, _y))
         _row130 = RAMP_RIMS["130"]
+        # The rim paints EXTERIOR-only and COMPOSES UNDER art (the 2026-08-26 border-quality
+        # pass), so exact-rgb equality only holds where the underlying art pixel is fully
+        # transparent and border-reachable; the wiring proof is unchanged on that subset (a
+        # bypassed rims lookup still paints a different color there). Same small-verbatim-copy
+        # idiom as the mask helper above.
+        _ext130 = set()
+        _stk = [(x, y) for x in range(_w130) for y in (0, _h130 - 1) if (x, y) not in _mask130]
+        _stk += [(x, y) for y in range(_h130) for x in (0, _w130 - 1) if (x, y) not in _mask130]
+        while _stk:
+            _p = _stk.pop()
+            if _p in _ext130:
+                continue
+            _ext130.add(_p)
+            for _nb in ((_p[0] + 1, _p[1]), (_p[0] - 1, _p[1]),
+                        (_p[0], _p[1] + 1), (_p[0], _p[1] - 1)):
+                if (0 <= _nb[0] < _w130 and 0 <= _nb[1] < _h130
+                        and _nb not in _mask130 and _nb not in _ext130):
+                    _stk.append(_nb)
+        _d1_pure = {p for p in _d1_130 if p in _ext130 and _vend130.getpixel(p)[3] == 0}
         check("ramp pin3b (wiring): route()'s inner glow band (Chebyshev d==1 outside the "
-              "smoothed silhouette) carries EXACTLY rims.json[\"130\"]'s rgb (mutation that "
-              "must go red: bypass the rims lookup in ramp_render, which falls back to "
-              "rim_color(tint) -- a different colour on this id)",
-              len(_d1_130) > 0
-              and all(_wired130.getpixel(p)[:3] == tuple(_row130["rgb"]) for p in _d1_130))
+              "smoothed silhouette, exterior cells over transparent ground) carries EXACTLY "
+              "rims.json[\"130\"]'s rgb (mutation that must go red: bypass the rims lookup "
+              "in ramp_render, which falls back to rim_color(tint) -- a different colour on "
+              "this id)",
+              len(_d1_pure) > 0
+              and all(_wired130.getpixel(p)[:3] == tuple(_row130["rgb"]) for p in _d1_pure))
     elif _vend130 is not None:
         skip("ramp pin3 + pin3b (wiring): id130 fresh-render/route() checks (need a real "
              "vanilla decode)")
