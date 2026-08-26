@@ -208,7 +208,16 @@ Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner dire
 A new row still lands here in the session it surfaces; slot it where its urgency
 belongs rather than at the bottom.
 
-- [LW-212] 2026-08-13: The four bags' recolor seat, BUILT and gated 2026-08-16 and
+- [LW-334] 2026-08-25: Weapon icons never show their glow rims in game even though the
+  splice itself works. First real live read of the LW-295 icon half: the pac on disk
+  provably holds the tier 3 icon bytes (checked directly this session) while the equip
+  list keeps drawing plain art, and closing and reopening the menu does not refresh it.
+  Likely the game caches icon textures at first draw, or reads the pac only at boot
+  before the background splice lands (the splice needs a minute or two after launch to
+  index 242 icons against a 64MB pac, and the pac is rebuilt plain at every launch).
+  As things stand the LW-295 icon mechanism live pass FAILS; rethink the display path
+  before LW-319 rebakes the rims in lane hues. Evidence: this session's livingweapon.log
+  (manifest load 20:01:21, zero warns) plus the direct pac byte check.
   AWAITING the owner's gallery pass ever since; demoted from Now 2026-08-25 only to
   free the seat for LW-332 (the owner queued the Grows-line move). Nothing about the
   work changed: the art is live in the current install, and the full Done means and
