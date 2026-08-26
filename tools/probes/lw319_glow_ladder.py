@@ -45,6 +45,17 @@ def lane_rim(body, tint, item_id, rgb, scale):
     return ri.ramp_glow(body, tint, rim_rgb=rgb, rim_scale=scale)
 
 
+def vibrant(rgb):
+    """The measured hue at glow strength (owner direction 2026-08-25 late: the verbatim
+    card-text values are post-blend parchment pastels and read underwhelming as rims, so
+    the glow keeps the HUE and turns saturation and brightness up). Floors chosen so every
+    lane lands clearly saturated and bright; the A/B ladder is the owner's judgment call."""
+    import colorsys
+    h, s, v = colorsys.rgb_to_hsv(*(c / 255 for c in rgb))
+    s2, v2 = min(1.0, max(s * 1.3, 0.75)), min(1.0, max(v * 1.1, 0.85))
+    return tuple(int(round(c * 255)) for c in colorsys.hsv_to_rgb(h, s2, v2))
+
+
 def panel_dE(rgb, alpha=170):
     eff = tuple(round(rgb[k] * alpha / 255 + ri.RAMP_PANEL[k] * (1 - alpha / 255))
                 for k in range(3))
@@ -81,13 +92,19 @@ def main():
         body = ri.ramp_render(item_id, tint, "card", glow=False)
         safe = lane.replace("+", "_")
         body.save(HERE / f"lw319_ladder_{safe}_t0.png")
+        vib = vibrant(rgb)
         for tier, scale in sorted(TIER_SCALES.items()):
-            img = lane_rim(body, tint, item_id, rgb, scale)
-            img.save(HERE / f"lw319_ladder_{safe}_t{tier}.png")
+            lane_rim(body, tint, item_id, rgb, scale).save(
+                HERE / f"lw319_ladder_{safe}_t{tier}.png")
+            lane_rim(body, tint, item_id, vib, scale).save(
+                HERE / f"lw319_ladder_{safe}_v{tier}.png")
         de = round(panel_dE(rgb), 1)
         manifest[lane] = {
             "poster": poster, "id": item_id,
             "rgb": list(rgb), "hex": MEASURED[LANE_KEY[lane]]["hex"],
+            "vibrant_rgb": list(vib),
+            "vibrant_hex": "#{:02X}{:02X}{:02X}".format(*vib),
+            "vibrant_panel_dE": round(panel_dE(vib), 1),
             "panel_dE": de, "contrast_ok": de >= 30.0,
         }
         flag = "" if de >= 30.0 else "  <-- BELOW the identity-rim contrast bar (30)"
