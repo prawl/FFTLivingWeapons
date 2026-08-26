@@ -1837,7 +1837,7 @@ SHIP_GLOW_RIM = False
 
 
 def ramp_glow(im, tint, inner_a=170, outer_a=80, third_a=0, min_de=30.0, rim_sat=None,
-             rim_rgb=None, rim_scale: float = 1.0):
+             rim_rgb=None, rim_scale: float = 1.0, outer_rgb=None):
     """Identity rim as an ADDED layer outside the body. The body contour uses a looser alpha
     threshold plus a majority smooth, so the rim follows the SHAPE the eye sees.
 
@@ -1847,7 +1847,13 @@ def ramp_glow(im, tint, inner_a=170, outer_a=80, third_a=0, min_de=30.0, rim_sat
     contrast resolution (so a scaled rim still proves its contrast at the alpha it will actually
     paint, not the caller's nominal one). rim_scale=1.0 is an EXACT identity:
     int(round(x * 1.0)) clamped 0..255 reproduces x for every x already in 0..255, so every
-    existing call site (all of which omit this kwarg) is byte-for-byte unaffected."""
+    existing call site (all of which omit this kwarg) is byte-for-byte unaffected.
+
+    outer_rgb (LW-319 C rung, owner-ruled 2026-08-25 on the knife sitting): when given, the
+    OUTER bands (d==2 and any rims.json third band) wear it while the inner band keeps
+    rim_rgb -- the two-tone pop rim (deep inner ring, bright falloff; the color pairs come
+    from tools/lib/lane_glow.py). None is an exact identity: every band wears rim_rgb, so
+    all pre-existing call sites are byte-for-byte unaffected."""
     inner_a = max(0, min(255, int(round(inner_a * rim_scale))))
     outer_a = max(0, min(255, int(round(outer_a * rim_scale))))
     third_a = max(0, min(255, int(round(third_a * rim_scale))))
@@ -1857,6 +1863,8 @@ def ramp_glow(im, tint, inner_a=170, outer_a=80, third_a=0, min_de=30.0, rim_sat
     if rim_rgb is None:
         rim_rgb = ramp_rim_color(t_hue, rim_sat if rim_sat is not None else t_sat,
                                  min_de=min_de, alpha=inner_a)
+    if outer_rgb is None:
+        outer_rgb = rim_rgb
     body = {(x, y) for y in range(h) for x in range(w) if px[x, y][3] >= 160}
     smoothed = set()
     for y in range(h):
@@ -1875,9 +1883,9 @@ def ramp_glow(im, tint, inner_a=170, outer_a=80, third_a=0, min_de=30.0, rim_sat
             if d == 1:
                 po[x, y] = rim_rgb + (inner_a,)
             elif d == 2:
-                po[x, y] = rim_rgb + (outer_a,)
+                po[x, y] = outer_rgb + (outer_a,)
             elif d == 3 and third_a:
-                po[x, y] = rim_rgb + (third_a,)
+                po[x, y] = outer_rgb + (third_a,)
     return out
 
 

@@ -88,6 +88,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from lib.categories import WEAPON_CATS
 from lib.items import load_items
+from lib.lane_glow import lane_glow
 from lib.paths import ROOT, FF16
 import recolor_icons as ri
 
@@ -136,19 +137,29 @@ def variant_name(pfx, item_id, tier):
     return f"{pfx}_{item_id:03d}_uitx_t{tier}.tex"
 
 
+LANE_GLOW = lane_glow()
+_LANE_BY_ID = {it["id"]: it["grows"].lower() for it in load_items()["items"]
+               if it.get("grows")}
+
+
 def _glow_variant(body, tint, item_id, rim_scale):
     """Mirrors ramp_render's own post-body glow tail (recolor_icons.py: inside ramp_render,
     everything from `if not glow: return body` onward) so a (id, surface) body can be decoded
-    ONCE and reused for all three tiers. Bit-for-bit equivalent to calling
-    ri.ramp_render(item_id, tint, surface, glow=True, rim_scale=rim_scale) fresh, because
-    `body` is exactly what that call would compute before its own glow tail runs (verified
-    live for a rims.json id and a non-rims.json id before this file was written)."""
+    ONCE and reused for all three tiers.
+
+    COLOR routing changed for the LW-319 C rung (owner-ruled 2026-08-25 on the knife
+    sitting: lane hues at pop strength, pink over green): the rim wears the weapon's LANE
+    pair from tools/lib/lane_glow.py -- deep inner ring, bright outer falloff -- instead of
+    the LW-295 identity color. A rims.json row still contributes its per-weapon ALPHAS
+    (rim geometry stays owner-tuned per weapon); only its rgb is superseded."""
+    deep = LANE_GLOW[_LANE_BY_ID[item_id]]["deep"]
+    bright = LANE_GLOW[_LANE_BY_ID[item_id]]["bright"]
     rim = ri.RAMP_RIMS.get(str(item_id))
     if rim:
         return ri.ramp_glow(body, tint, inner_a=rim["inner_a"], outer_a=rim["outer_a"],
-                            third_a=rim["third_a"], rim_rgb=tuple(rim["rgb"]),
+                            third_a=rim["third_a"], rim_rgb=deep, outer_rgb=bright,
                             rim_scale=rim_scale)
-    return ri.ramp_glow(body, tint, rim_scale=rim_scale)
+    return ri.ramp_glow(body, tint, rim_rgb=deep, outer_rgb=bright, rim_scale=rim_scale)
 
 
 def encode_tex(img, out_path, tag):
