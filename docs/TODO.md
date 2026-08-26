@@ -308,6 +308,21 @@ belongs rather than at the bottom.
   that tests are prod threshold only ON PURPOSE and a tripwire keeps dev only logic
   out of tested paths. (Tech: dotnet test -p:LwDev=true, 95 failures, 89 pre existing,
   6 the new IconGlow tests written to the file's own prod threshold convention.)
+- [LW-346] 2026-08-26: Resume the 261 item-cap break, the owner's call after the Cloud
+  mod collision made new item ids the unlock for partner compat, the axes and flails
+  restoration, and the LW-344 partner platform. Everything hard is already beaten and
+  live-verified (2026-06-26, three ledger rows awaiting the owner's PROVEN flips):
+  id261 equips, displays, persists, and deals real damage via four hookable gates, and
+  the battlefield model redirects via a construction-time slot swap. What was never
+  built: the slot-swap loop, the rig's port from the FFTHandsFree research bridge
+  (branch capbreak-equip, committed and pushed) into this mod, and >128 distinct
+  stat rows. THE CATCH: every address was verified on the pre-1.5 binary and the game
+  has moved twice since, so step zero is a re-anchor pass (offline byte check of the
+  four gate sites against the 1.5.2 exe, then one live probe session). The data-layer
+  prototype (Moonblade id 261 end to end) lives on this repo's prototype/new-weapon-261
+  branch, a read-only quarry: replay its recipes onto a fresh worktree branch, never
+  merge it (it predates the folder move). Path B (RenderModelHold on the render global)
+  stays dead: insufficient live AND the global drives damage.
 - [LW-344] 2026-08-26: Partner mods want their items to be living weapons too: the
   Cloud mod author (Xeoshades) asked for growth on their Buster Sword line, and today
   growth already bleeds onto any item occupying our ids, wearing the WRONG name in
