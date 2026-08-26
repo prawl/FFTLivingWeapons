@@ -308,6 +308,24 @@ belongs rather than at the bottom.
   that tests are prod threshold only ON PURPOSE and a tripwire keeps dev only logic
   out of tested paths. (Tech: dotnet test -p:LwDev=true, 95 failures, 89 pre existing,
   6 the new IconGlow tests written to the file's own prod threshold convention.)
+- [LW-344] 2026-08-26: Partner mods want their items to be living weapons too: the
+  Cloud mod author (Xeoshades) asked for growth on their Buster Sword line, and today
+  growth already bleeds onto any item occupying our ids, wearing the WRONG name in
+  toasts and losing its counters (their descriptions replace our baked anchors). The
+  right shape is a partner manifest: our runtime merges a small declaration file a
+  partner mod ships (id, name, growth lane), giving their items first-class growth
+  with correct names; counters additionally need the partner to bake our Kills
+  scaffold and flavor anchor format into their descriptions, which is documentable.
+  Turns the mod into a platform. Surfaced via the 2026-08-26 Nexus PM and Discord
+  exchange (docs/USER_FEEDBACK.md same date).
+- [LW-345] 2026-08-26: Softening the card cache wipe on menu edges is its own arc, on
+  purpose: today Display.Invalidate clears every found counter site on the status-card
+  edge, forcing a re-find even when nothing moved, and the LW-324 plan review ruled
+  softening OUT of that build after finding the wipe load-bearing on four axes
+  (coupled pending-state reset, the coverage latch's shrink detection, a post-LW-257
+  three-beat verify storm across up to 3072 retained sites, and SuffixRotation's
+  survives-Invalidate invariant). Any future attempt starts from that review's
+  evidence list, not from the June research doc's optimistic Option A.
 - [LW-343] 2026-08-26: The mod's own Nexus page teaches the OLD kill thresholds and
   never says where the knob lives, and players notice: two users independently hunted
   for the threshold setting and failed, and the page still says 50 kills while the
@@ -505,6 +523,14 @@ belongs rather than at the bottom.
   pool addresses are heap allocations so a blind replay is unsafe, but a verify-then-adopt
   warm-start against the LW-257 anchor checks could cut the cold-boot window. Owner filed
   it as a someday row, not urgent.)
+  BUILT and adversarially verified 2026-08-26 (full pipeline: premise from four
+  launches of flight tapes, plan, adversarial plan review that REDESIGNED the lever
+  from per-site to per-region warm start, TDD implement whose mandated trap test
+  caught the plan's own suppression bug, fresh verify: code 9 of 10, zero code
+  changes required, suite 3343 green). Awaiting the owner's stopwatch read: cold
+  boot 1 writes pool_regions.json at locate completion, cold boot 2 logs "seeded
+  N of M" and the counters appear in one to two seconds. The N of M numbers close
+  the [kills-pool-region-recurrence] ledger row.
 
 - [LW-305] 2026-08-22: The colour bench can now paint a weapon in the running game, but the list
   saying which weapon owns which colour set has at least one wrong entry, so some weapons would be
