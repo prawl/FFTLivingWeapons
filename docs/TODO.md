@@ -57,36 +57,6 @@ the technical detail lives in the indented lines under it.
     Zwill Straightblade's anchor call this row records still holds under the new engine (still
     anchored, still gold, measured gap 0 degrees); nothing about this row's Done means or Verify
     changes, only which engine produced the pixels the owner will eventually gallery-judge.
-- **[LW-205] Four of the nine ninja blades were a pale blade with the whole identity in a small coloured guard** (opened 2026-08-13) [AWAITING-LIVE]
-  - BUILT and gated 2026-08-16, owner gallery pass outstanding. Like the knives before them these
-    were picked for what a player sees rather than for a coverage number, which was already a
-    CARD median of 63.2 percent. All nine now have a coloured blade, a metal guard and a bright
-    fuller, and one of them is back on the colour its own artwork is painted in.
-  - Three kept their vanilla names and they split two ways under the anchoring gate. The Sasuke's
-    Blade and the Iga Blade measure near-neutral, so their colour is free, though the Iga is kept
-    WARM because its art is warm and there was no reason to fight it. The Koga Blade is not free:
-    at chroma 0.232 it is emphatically a gold blade with a green guard and it was wearing flat
-    green, so it keeps its gold and its Dark element and Poison rider go where the artist already
-    put green, into the hilt. That is the Holy Lance's resolution for the fourth time.
-  - (Tech: same sword recipe as the knives and katanas. Three percentiles moved per sprite: the
-    Mistedge's and Silentfang's guards are barely darker than their blades, and the Raijin
-    Longblade is the family's awkward one, its CARD carrying a large dark region the hilt key
-    claims 42.5 percent of at the default while its ICON guard is small, so hilt 18 with the
-    levin fuller widened to 34 to keep the lightning on the card. Moving the family off bright-v2
-    emptied SMALL_TWO_ZONE entirely and displaced three more pins, all caught by the pins.)
-  - Done means: all nine carry their identity colour across their solid art with a visibly
-    separate second material, no two read alike at list size, every reserved name is anchored
-    against BOTH surfaces with the reasoning recorded, and no already-approved art moves.
-  - Verify: all four gates green with the family inside every owner-rule pin and three mutations
-    proving those pins bite; each blade's second material measured on the real art; the bake
-    matching a FULL preview manifest pixel for pixel; and the owner's gallery pass.
-  - LW-247 update (2026-08-18): ninja blades, like every other weapon, now render through the
-    new ramp engine, which is what actually reached the live install and already passed the
-    owner's in-game look on 2026-08-16. The old zone recipe this row's Tech bullet describes
-    (hilt/edge percentiles) was deleted from tools/recolor_icons.py once every weapon moved to
-    ramp; it lives on only in git history. Whether that already-approved look also satisfies
-    this row's own gallery-pass wait clause is the owner's call, not this arc's.
-
 - **[LW-332] The Grows line moves up to sit directly under the Kills line** (opened 2026-08-25) [AWAITING-LIVE]
   - BUILT, four-round pipeline 2026-08-25 late (two adversarial verify rounds broke and
     then blessed the ownership design; final verdict SHIP, code 9, spec 9). Deployed and
@@ -207,6 +177,28 @@ the technical detail lives in the indented lines under it.
     the owner in the grid, analyze.py green after any retunes, and the changed weapons
     spot-read live if stats moved.
 
+- **[LW-327] A grown Knight Sword's bonus HP is real at battle start: the knight begins full instead of reading hurt** (opened 2026-08-25) [QUEUED]
+  - Today the raised maximum shows 679/883 and the knight starts every battle looking
+    wounded until healed; the owner wants the bar to start full (owner call 2026-08-25,
+    made during the LW-317 live pass; ships in 2.4.0). One-time top-up at the hold's
+    first apply: raise current HP by the same amount the max rose, preserving any damage
+    the unit genuinely carried into battle, never past the new max, never repeated on the
+    per-turn re-apply or a mid-battle tier retarget (either repeat would heal the unit
+    again), and never touching a unit at 0 HP.
+  - (Tech: extend GrowthEngine.Lanes' HoldU16 FIRST-CAPTURE branch with a guarded u16
+    current-HP write at the combat struct's CHp, delta = target minus natural max;
+    attribution is safe per [maxhp-hold-attribution-safe], PROVEN and owner-flipped
+    2026-08-25, and the LW-317 pass; that row also proves the engine leaves current HP
+    alone, which is what lets a one-shot write stick.)
+  - Done means: a knight whose sword raised Max HP opens a battle with current HP raised
+    by the same delta (a full bar when they entered full), genuine pre-battle damage
+    still shown, HP never exceeding the new max, no top-up repeats within a battle, and
+    no other lane's behavior changes.
+  - Verify: new failing-first GrowthEngine tests through the IGameMemory fake covering
+    the full-HP top-up, carried-damage preservation, ceiling clamp, no double top-up on
+    re-apply or retarget, and the 0-HP and unwritable skips; the full suite green; and
+    the owner live-reads a knight opening a battle at 883/883.
+
 ## Backlog
 
 Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner directed).
@@ -319,17 +311,6 @@ belongs rather than at the bottom.
   silhouette, costing Perseus Bow its inner rim) are fixed with a new pin3d guarding
   the border behavior. AWAITING the owner's look at the final border-fixed state, its
   overlay pending one game-quit window.
-
-- [LW-327] 2026-08-25: A grown Knight Sword's bonus HP should be REAL at battle start:
-  today the raised maximum shows 679/883 and the knight begins every battle reading hurt
-  until healed, and the owner wants the bar to start full. Ships IN 2.4.0 (owner call
-  2026-08-25, made during the LW-317 live pass). One-time top-up at the hold's first
-  apply: raise current HP by the same amount the max rose, preserving any damage the
-  unit genuinely carried into battle, never past the new max. (Tech: extend
-  GrowthEngine.Lanes' HoldU16 capture branch with a guarded u16 current-HP write at
-  CHp 0x30, delta = target - natural max; attribution is safe per
-  [maxhp-hold-attribution-safe] and the LW-317 pass; needs its own failing test first
-  and one owner reading, a knight opening a battle at 883/883.)
 
 - [LW-329] 2026-08-25: The Grows line on every weapon card gets painted in its weapon's
   glow color, whole line, one hue per weapon (owner ruling 2026-08-25: single-lane cards
