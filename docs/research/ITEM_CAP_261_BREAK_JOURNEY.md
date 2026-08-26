@@ -1017,3 +1017,31 @@ The three LIVE_LEDGER rows ([id261-equips-displays-moonblade], [id261-functional
 scope; PROVEN flips remain owner-only. Unbuilt work is unchanged: construction slot-swap loop,
 rig port out of the research bridge, >128 distinct stat rows, and the standalone framework
 question (owner to name it).
+
+### Same evening, two more unknowns fall: custom ICONS proven, custom STATS free in V1
+
+**ICONS SOLVED (owner-witnessed, screenshot 18.11).** The blank icon was a missing SECOND file.
+An item's menu icon is a pair per surface: the pixels (`ui/ffto/icon/equip_item/texture/
+ei_<id>_uitx.tex`, filename IS the item id; small-list variant under `equip_item_s/` as
+`ei_s_<id>`) plus a tiny parts file (`.../textureparts/ei_<id>_uitx.utexpt`, ~0x5C bytes: a
+header and the embedded path string of its own .tex). Shipping only the .tex registers fine but
+the game's icon load asks for the .utexpt and gives up ("not found/empty" in the modloader log,
+which is what cracked it, per the serve-vs-registration rule). Recipe for a NEW id: copy any
+donor pair, byte-patch the embedded `ei_037` style path to the new id (same length), ship all
+four files. Proven live on id 261: both surfaces rendered the donor art. Other mods already ship
+new-id .tex + .utexpt pairs (face portraits), so the modloader path was never in doubt. Donor
+.utexpt extraction: FF16Tools `unpack -i data/enhanced/0008.pac -g fft -f <path>`.
+
+**STAT READS FUNNEL THROUGH THE HOOKED ACCESSOR (owner-read WP flip).** With id 261 equipped,
+swapping the rig's weapon clone row 67 (Warbrand, WP 15) to 37 (Chaos Blade, WP 28) flipped the
+equip card's WP to 28 on reopen. Combined with June's 323-damage battle hit through the same
+hook, every consumer of weapon stats resolves through the accessor we own. Consequence for the
+extended-items system: V1 hands out FULLY CUSTOM stats by returning a pointer to an LW-authored
+row buffer; no ItemWeaponData relocation and no donor-clone limitation for stats.
+
+Remaining unknowns after tonight: boot-registry inventory-list visibility (arm-at-boot, the
+make-or-break; probe needs a marker-file-gated auto-arm build of the HandsFree rig and a
+backed-up save, minding the 2026-06-10 auto-arm scar and checking the "+" items 256-260),
+nxd merge semantics, the construction slot-swap loop on 1.5.2, and the acquisition tables
+(shop/poach/Move-Find, phase 3 by design). Probe litter: the four ei_261 icon files live in the
+DEPLOYED livingweapons mod folder only (not the repo); the next BuildLinked sweep removes them.
