@@ -565,9 +565,15 @@ def check_grows_lockstep(items):
 #: green through a real regression). Every currently-shipped grows value (GROWS_VOCAB above)
 #: must have an entry here; a value missing from this table is itself a violation below -- new
 #: lane vocabulary must extend this table consciously, not inherit it from the helper it checks.
-GROWS_PHRASE_EXPECTED = {"Speed": "Speed", "PA": "PA", "MA": "MA", "HP": "HP", "WP": "WP",
-                         "PA+MA": "PA & MA", "WP+Faith": "WP & Faith",
-                         "PA+MA+Brave": "PA, MA & Brave"}
+#: Spelled-out ruling 2026-08-25 late (supersedes the same-day abbreviations): full stat
+#: names in the game's vocabulary, HP kept as HP, the pole lane elided to one wrapped line.
+#: These literals are typed here by hand, NOT copied from lib.flavor.GROWS_SPELLED, so the
+#: gate still catches a drifted bake.
+GROWS_PHRASE_EXPECTED = {"Speed": "Speed", "PA": "Physical Attack", "MA": "Magick Attack",
+                         "HP": "HP", "WP": "Weapon Power",
+                         "WP+Faith": "Weapon Power & Faith",
+                         "PA+MA": "Physical & Magick Attack",
+                         "PA+MA+Brave": "Physical Attack, Magick Attack & Bravery"}
 
 #: LW-329 color ruling (owner, 2026-08-25): the whole Grows line wears its lane's hue via an
 #: inline <color=NN> tag the card renderer consumes (proven: LIVE_LEDGER
@@ -575,7 +581,9 @@ GROWS_PHRASE_EXPECTED = {"Speed": "Speed", "PA": "PA", "MA": "MA", "HP": "HP", "
 #: sitting (tools/probes/lw329_palette_map.json); katanas ride periwinkle 94 (owner default,
 #: poles own purple 95). Pinned literally HERE like the phrase table above, for the same
 #: self-referentiality reason: the verdict must not come from lib.flavor's own copy.
-GROWS_COLOR_SLOT = {"Speed": "40", "PA": "30", "MA": "50", "HP": "81", "WP": "83",
+#: WP moved cyan 83 -> teal 93 (owner gripe 2026-08-25 late: 83 "a tad hard to read" on
+#: the card; 93 read "teal/sage (readable)" at the same sitting). Same cyan family, darker.
+GROWS_COLOR_SLOT = {"Speed": "40", "PA": "30", "MA": "50", "HP": "81", "WP": "93",
                     "WP+Faith": "60", "PA+MA": "95", "PA+MA+Brave": "94"}
 
 

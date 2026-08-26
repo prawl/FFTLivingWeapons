@@ -1491,7 +1491,7 @@
         "iai": true,
         "displayLabel": "Iai",
         "note": "Iai (quick-draw) -- every deployed main-hand wielder's Speed (band +0x24) is held at field-max+1 from battle-open so it takes the opening turn (turn order = Speed, ties lose; LIVE-VERIFIED 2026-07-01). Released when the engine's own actor pointer (Offsets.ActorPtr, 0x14186AF68) names the acting unit whose frame nameId back-reference (Offsets.ANameId, frame+0x1FC) matches the wielder's roster nameId captured at arm time -- either an arrival transition or an Acted-edge match while already pointing there -- backstopped by a 90s wall-clock cap (address-matching stays as a fallback if the nameId capture fails). Identity-matched (not just positional), so two wielders release independently even with identical stats, and the release survives a revolving engine mirror frame that can make address-only resolution ambiguity-bail mid-hold. Mechanism proven by tools/probes/unitid_probe.py 2026-07-01; see docs/LIVE_LEDGER.md. LIVE-VERIFY PENDING (of this identity-match rebuild specifically).",
-        "p3Desc": "Makes the wielder act first at battle start (the quick draw)."
+        "p3Desc": "Acts first when battle begins."
       }
     },
     {
@@ -1502,7 +1502,7 @@
       "name": "Kiyomori",
       "tier": 3,
       "identity": "Attrition parry-blade — the evade apex below the capstones (20%) plus Poison-on-hit that chips high-HP foes every clock tick (its Protect/Shell Draw Out reframed as relentless pressure). Survives any duel; outlasts raw blades vs bulk.",
-      "flavorOverride": "A shrine-blessed blade whose wounds fester like a curse repaid.",
+      "flavorOverride": "Shrine-blessed; wounds fester.",
       "baseline": {
         "wp": 12,
         "evade": 15,
@@ -1599,7 +1599,7 @@
         "mushin": true,
         "displayLabel": "Mushin",
         "note": "Mushin (no-mind): a full WAIT turn (no move, no act) arms one PA-boosted hit; the wielder's next own action spends it (band +0x3E, the same CPa byte katana damage already scales from), then the charge clears. One wait equals one charged hit, no stacking (a single armed bool, not a counter). LIVE-MAPPED 2026-07-09 (tools/probes/mushin_wait_probe.py, scratchpad/psxflags_watch.log): the engine already tracks this on the acting unit's own per-turn bookkeeping, ported from the PSX struct (FFHacktics offsets 0x186/0x187/0x188) at frame offset PSX+0x32, band offset frame-0x1C. TURN FLAG (band +0x19C) reads 1 while the unit's move/act/wait menu is open, 0 otherwise; MOVED (band +0x19D) and ACTED (band +0x19E) each latch 0 to 1 the instant that action happens and are reset by the engine at the NEXT turn's open. Detection watches the TURN FLAG's own falling edge (1 to 0, the turn closing) per wielder: acted true consumes any armed charge; acted false and moved false is a genuine full wait, arms one charge; acted false and moved true (a move-only turn) changes nothing, an armed charge survives untouched. Earlier live attempts that same day (now retired) rebuilt the trigger on other units' scheduler-CT cycling and on KillTracker's action-latch machinery because the wait moment looked invisible; the literal per-unit flags close that gap directly, so none of that apparatus is read anymore. Owns the PA lane at every tier (GrowthEngine.Mushin.cs, OwnsMushin) so growth stays byte-identical to the plain Factor[tier] formula below tier 3 or between charges. Does NOT touch formula 2 / onHitAbilityId 83.",
-        "p3Desc": "Stillness empties the mind; the next strike falls terribly hard."
+        "p3Desc": "Still mind, terrible strike."
       }
     },
     {
@@ -2481,7 +2481,7 @@
       "name": "Outrider Pistol",
       "tier": 1,
       "identity": "Tier-1 starter and the LONGEST reach in the game (R9). Plain WP*WP (49 flat) ignoring PA/Speed/evade, no element to whiff or be absorbed, no drawback, earliest/cheapest gun. The out-range-everything pick that never retires; reach + availability ARE the niche.",
-      "flavorOverride": "A wheel-lock that throws its shot farthest.",
+      "flavorOverride": "A wheel-lock that shoots farthest.",
       "baseline": {
         "wp": 6,
         "evade": 5,
@@ -2750,7 +2750,7 @@
       "name": "Arbalest",
       "tier": 3,
       "identity": "Raw stringless workhorse and the longest-reaching crossbow (Range 6; the Venombolt holds Range 5). Best rider-free WP of its era + unique reach; the clean PA*WP sniper.",
-      "flavorOverride": "A steel arbalest cranked taut as a war-engine.",
+      "flavorOverride": "Cranked taut as a war-engine.",
       "baseline": {
         "wp": 4,
         "evade": 5,

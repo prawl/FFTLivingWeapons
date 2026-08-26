@@ -96,14 +96,29 @@ def rider_text(rider):
 
 
 #: LW-329 lane-hue slots, owner-read palette sitting 2026-08-25 (lw329_palette_map.json).
-LANE_COLOR_SLOT = {"Speed": "40", "PA": "30", "MA": "50", "HP": "81", "WP": "83",
+#: WP cyan 83 -> teal 93 (owner 2026-08-25 late: 83 hard to read on parchment; 93 read
+#: "teal/sage (readable)" at the same sitting -- same family, darker, legible).
+LANE_COLOR_SLOT = {"Speed": "40", "PA": "30", "MA": "50", "HP": "81", "WP": "93",
                    "WP+Faith": "60", "PA+MA": "95", "PA+MA+Brave": "94"}
 
 
+#: Owner ruling 2026-08-25 late: stat names spelled out in the game's own vocabulary
+#: ("Magick", "Bravery"); HP stays HP (the game itself never spells it out); the pole
+#: lane elides the shared word Attack to hold one wrapped line at the card's 33-char
+#: wrap. A whole-phrase table, not a per-token join: the elision is not derivable
+#: token-wise. The katana lane wraps to two lines by design; the three katana cards
+#: paid a line elsewhere in the same ruling (flavor or signature prose).
+GROWS_SPELLED = {"Speed": "Speed", "PA": "Physical Attack", "MA": "Magick Attack",
+                 "HP": "HP", "WP": "Weapon Power",
+                 "WP+Faith": "Weapon Power & Faith",
+                 "PA+MA": "Physical & Magick Attack",
+                 "PA+MA+Brave": "Physical Attack, Magick Attack & Bravery"}
+
+
 def grows_phrase(grows):
-    """'PA+MA+Brave' -> 'PA, MA & Brave' (owner wording 2026-08-25); single tokens pass through."""
-    parts = grows.split("+")
-    return parts[0] if len(parts) == 1 else ", ".join(parts[:-1]) + " & " + parts[-1]
+    """'PA+MA+Brave' -> 'Physical Attack, Magick Attack & Bravery' (spelled-out ruling
+    2026-08-25 late, superseding the same-day abbreviation wording)."""
+    return GROWS_SPELLED[grows]
 
 
 def mechanics(it):
