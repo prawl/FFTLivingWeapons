@@ -991,3 +991,29 @@ byte check through the rig's own eyes), then capbreak_arm_equip and re-prove the
 chain (clone ids 37/67). The ledger rows [id261-equips-displays-moonblade],
 [id261-functional-in-battle], [id261-model-construction-slot-swap] still await the owner's PROVEN
 flips from 2026-06-26.
+
+### Same day, the live re-prove on 1.5.2: PASSED first try
+
+Owner at the game, world map. Deployed the re-anchored rig (HandsFree bb92fe1+7ffa5cb),
+capbreak_arm_equip armed clean on the first attempt (every byte guard matched at the new
+addresses; catalog buffer 0x136F60000). Wrote roster slot0 rHand 0x1411A7D24 = 261, owner opened
+the equip screen: **id261 HELD the slot, no crash, rendered as "Moonblade" with its own
+description ("A pale crescent blade that drinks the moonlight"), WP 15 (the id67 Warbrand stat
+clone), category Sword, and the Living Weapon Kills line painted.** Only the menu icon is blank
+(no art; the battlefield model remains the unbuilt construction slot-swap). Restored rHand=43,
+disarmed, verified released. The rig's call counters read 0 by design (the hooks run as pure
+native stubs); the proof is the screen itself, since unhooked id261 cannot survive the validity
+zeroing loop nor resolve stats without the NULL-deref crash.
+
+WHY THE NAME SHOWED: the shipped mod/FFTIVC/data/enhanced/nxd/item.en.nxd on main has carried the
+prototype's 262nd row (Moonblade) since the June work, unnoticed and harmless (row 261 is
+unreachable without the cap-break; live since then with zero player reports). So name, description,
+and the Kills anchor all come free once the id resolves. Also observed: three installed mods ship
+item.en.nxd (livingweapons, offensivechemist, wotlequipmentreplacer) and ours won the table merge.
+
+STATE AFTER THIS PASS: the four-gate equip chain is re-proven end to end on current retail 1.5.2.
+The three LIVE_LEDGER rows ([id261-equips-displays-moonblade], [id261-functional-in-battle],
+[id261-model-construction-slot-swap]) now have a second dated confirmation for the first row's
+scope; PROVEN flips remain owner-only. Unbuilt work is unchanged: construction slot-swap loop,
+rig port out of the research bridge, >128 distinct stat rows, and the standalone framework
+question (owner to name it).
