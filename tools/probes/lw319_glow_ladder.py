@@ -62,9 +62,10 @@ def roster():
             continue
         item_id = int(k)
         rgb = tuple(MEASURED[LANE_KEY[v["lane"]]]["rgb"])
-        body = ri.ramp_render(item_id, ri.ICON_TINTS[item_id], "card", glow=False)
-        img = lane_rim(body, ri.ICON_TINTS[item_id], item_id, rgb, TIER_SCALES[3])
-        img.save(HERE / f"lw319_roster_t3_id{item_id:03d}.png")
+        for surface, sfx in (("card", ""), ("small", "s")):
+            body = ri.ramp_render(item_id, ri.ICON_TINTS[item_id], surface, glow=False)
+            img = lane_rim(body, ri.ICON_TINTS[item_id], item_id, rgb, TIER_SCALES[3])
+            img.save(HERE / f"lw319_roster_t3{sfx}_id{item_id:03d}.png")
         print(f"  id {item_id:3d} {v['name']} ({v['lane']})")
 
 
