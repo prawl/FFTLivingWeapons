@@ -213,6 +213,15 @@ Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner dire
 A new row still lands here in the session it surfaces; slot it where its urgency
 belongs rather than at the bottom.
 
+- [LW-335] 2026-08-26: A handful of chosen weapons get their OWN inner ring color so
+  they stand out from the rest of their lane. Owner intent stated at the Atlas sitting
+  ("I fully intend on changing the inner color of a handful of weapons to help them
+  stand out; that's another task though"): the lane color stays the language, a few
+  special weapons speak louder. Which weapons and which colors are the owner's picks.
+  (Tech: mechanism is a per-id override map consulted before LANE_GLOW in
+  bake_glow_icons._glow_variant, the same precedence shape rims.json already uses for
+  per-weapon alphas; the mesh finding from the same sitting applies, a ring reads best
+  when its hue sits far from the weapon's own art hue.)
 - [LW-334] 2026-08-25: Weapon icons never show their glow rims in game even though the
   splice itself works. First real live read of the LW-295 icon half: the pac on disk
   provably holds the tier 3 icon bytes (checked directly this session) while the equip

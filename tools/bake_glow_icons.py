@@ -114,7 +114,9 @@ OUTER_TRIM = 0.5
 # scale is multiplied by this, so the whole ladder dims 15% while tier ratios and
 # rim width stay exactly as shipped. A width pass-2 (OUTER_TRIM 0.25) was started
 # and reverted for this in the same breath.
-GLOW_TRIM = 0.85
+GLOW_TRIM = 0.7  # 0.85 -> 0.7 (owner 2026-08-26: the 15% pass measured real, 653
+                 # differing rim pixels, but read as identical by eye; +3 ring now
+                 # ~60% opacity instead of 74%)
 # (pac subfolder, filename prefix, surface tag, fixed tex byte length). Same four surfaces
 # process() loops over; sizes are the shipped tex sizes (0xC860 / 0x3060), verified against a
 # real deployed file at the start of this arc.
