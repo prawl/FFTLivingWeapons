@@ -10,7 +10,8 @@
 # half: mods-folder resolution, the build-flavor guard, the save-file + flight/ archive
 # round-trip (tools/pipeline.ps1's $PreservedSaveFiles), the Vortex marker exclusion, and
 # deploy verification. Table/nxd/tex changes take effect on game RESTART; the DLL loads
-# on next game launch.
+# on next game launch. A running fft_enhanced.exe is KILLED before deploying (owner call
+# 2026-08-26); only -VerifyOnly leaves a running game alone.
 #
 #   -Prod   build with production kill thresholds {5,10,15} and no kill seeding
 #           (omits -p:LwDev=true) -- for release-testing on a real save.
@@ -80,6 +81,26 @@ try {
         }
         Write-Host "`nInstall matches the repo. Data tree is current." -ForegroundColor Green
         exit 0
+    }
+
+    # --- Pre-deploy: kill a running game (owner call 2026-08-26) ---
+    # A deploy into the live Mods folder cannot land under a running fft_enhanced.exe, and
+    # killing it by hand before BuildLinked was forgotten often enough to earn this step.
+    # Get-Process matches case-insensitively on purpose: the running image is
+    # FFT_enhanced.exe while every doc writes fft_enhanced.exe, and a case-sensitive check
+    # once reported "not running" for a running game. -VerifyOnly never reaches here (it is
+    # read-only and safe with the game up; it exits above).
+    $gameProcs = @(Get-Process -Name "fft_enhanced" -ErrorAction SilentlyContinue)
+    if ($gameProcs.Count -gt 0) {
+        Write-Host "`nPre-deploy: killing running fft_enhanced.exe (PID $($gameProcs.Id -join ', '))..." -ForegroundColor Yellow
+        foreach ($p in $gameProcs) {
+            Stop-Process -Id $p.Id -Force
+            if (-not $p.WaitForExit(10000)) {
+                Write-Host "  fft_enhanced.exe (PID $($p.Id)) did not exit within 10s; aborting the deploy." -ForegroundColor Red
+                exit 1
+            }
+        }
+        Write-Host "  Game closed; deploying into a quiet install." -ForegroundColor Green
     }
 
     # --- Pre-deploy: scan the OUTGOING session's log (LW-54, docs/VERIFY_LIVE.md) ---
