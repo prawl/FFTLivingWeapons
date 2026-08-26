@@ -51,6 +51,23 @@ def panel_dE(rgb, alpha=170):
     return ri._ramp_dE(eff, ri.RAMP_PANEL)
 
 
+def roster():
+    """Every living weapon's card icon at tier 3 in its lane's measured hue, for the
+    full-roster half of the gallery (owner call 2026-08-25: judge the shades in the
+    artifact, the in-game icon splice having failed to show). Outputs are DERIVED and
+    stay untracked; the committed probe + lw319_text_rgb_map.json regenerate them."""
+    meta = json.load(open(HERE.parent.parent / "LivingWeapon" / "meta.json"))
+    for k, v in sorted(meta.items(), key=lambda kv: int(kv[0])):
+        if not (isinstance(v, dict) and "lane" in v):
+            continue
+        item_id = int(k)
+        rgb = tuple(MEASURED[LANE_KEY[v["lane"]]]["rgb"])
+        body = ri.ramp_render(item_id, ri.ICON_TINTS[item_id], "card", glow=False)
+        img = lane_rim(body, ri.ICON_TINTS[item_id], item_id, rgb, TIER_SCALES[3])
+        img.save(HERE / f"lw319_roster_t3_id{item_id:03d}.png")
+        print(f"  id {item_id:3d} {v['name']} ({v['lane']})")
+
+
 def main():
     meta = json.load(open(HERE.parent.parent / "LivingWeapon" / "meta.json"))
     by_name = {v["name"]: (int(k), v) for k, v in meta.items() if isinstance(v, dict)}
@@ -81,4 +98,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    roster() if len(sys.argv) > 1 and sys.argv[1] == "roster" else main()
