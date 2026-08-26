@@ -8,13 +8,17 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-295 cycle B: IconGlow's stateful half (IconGlow.cs + IconGlow.Apply.cs) driven entirely
-/// through <see cref="FakeIconGlowStore"/> -- an in-memory stand-in for glow_icons/manifest.json,
-/// the deployed FFTIVC tree, and modded.pac. No real asset ever needs to exist for this file to
-/// pass (the glow_icons bake is a separate, parallel arc). Every test passes a SYNCHRONOUS
-/// runBackground (<c>a =&gt; a()</c>) unless it is specifically testing the in-flight-task guard
-/// (U8), so the background splice completes before Tick() returns and assertions can read the
-/// fake pac buffer immediately.
+/// LW-336: IconGlow's stateful half (IconGlow.cs + IconGlow.Apply.cs) driven entirely through
+/// <see cref="FakeIconGlowStore"/> -- an in-memory stand-in for glow_icons/manifest.json, the
+/// deployed FFTIVC tree, and the base-backup snapshot store. No real asset ever needs to exist
+/// for this file to pass (the glow_icons bake is a separate, parallel arc). Every test passes a
+/// SYNCHRONOUS runBackground (<c>a =&gt; a()</c>) unless it is specifically testing the
+/// in-flight-task guard, so the background apply completes before Tick() returns and assertions
+/// can read the fake deployed-tex dictionary immediately.
+///
+/// modded.pac is gone from this whole file: owner-witnessed 2026-08-26 killed that display path
+/// (icon textures cache at first draw; mid-session pac writes never show), so the runtime now
+/// writes the DEPLOYED loose tex directly -- the file the launch merge re-reads next boot.
 /// </summary>
 public class IconGlowTests
 {
@@ -23,15 +27,6 @@ public class IconGlowTests
         var bytes = new byte[len];
         new Random(seed).NextBytes(bytes);
         return bytes;
-    }
-
-    private static byte[] BuildPac(int totalLen, params (int Offset, byte[] Bytes)[] placements)
-    {
-        var pac = new byte[totalLen];
-        new Random(999999).NextBytes(pac);   // filler, so an un-placed region can never accidentally match a needle
-        foreach (var (offset, bytes) in placements)
-            Array.Copy(bytes, 0, pac, offset, bytes.Length);
-        return pac;
     }
 
     private static string Sha1Hex(byte[] bytes)
@@ -61,40 +56,52 @@ public class IconGlowTests
         };
     }
 
-    /// <summary>In-memory stand-in for every file IconGlow ever touches. WriteAt mutates
-    /// <see cref="Pac"/> in place (like the real file) so a test can read the buffer back
-    /// afterward and also records every call in <see cref="Writes"/> for exact offset/length
-    /// assertions.</summary>
+    /// <summary>In-memory stand-in for every file IconGlow ever touches: the deployed FFTIVC
+    /// tree (<see cref="Deployed"/>), the base-backup snapshot store (<see cref="Backup"/>), and
+    /// the baked glow_icons variant files (<see cref="Variants"/>). Per-(id,surface) fail
+    /// toggles let a test force one surface's write to fail while its sibling still succeeds
+    /// (the partial-failure retry contract). Every write call is logged in
+    /// <see cref="DeployedWrites"/>/<see cref="BackupWrites"/> BEFORE the fail toggle is
+    /// consulted, mirroring the production store's own never-throw contract.</summary>
     private sealed class FakeIconGlowStore : IIconGlowStore
     {
         public IconGlowManifest? Manifest;
-        public byte[]? Pac;
-        public bool FailWrite;
-        public bool FailReadPac;
-        public readonly Dictionary<(int Id, string Surface), byte[]> BaseTex = new();
+        public readonly Dictionary<(int Id, string Surface), byte[]> Deployed = new();
+        public readonly Dictionary<(int Id, string Surface), byte[]> Backup = new();
         public readonly Dictionary<(int Id, string Surface, int Tier), byte[]> Variants = new();
-        public readonly List<(long Offset, byte[] Bytes)> Writes = new();
+        public readonly HashSet<(int Id, string Surface)> FailDeployedWrite = new();
+        public readonly HashSet<(int Id, string Surface)> FailBackupWrite = new();
+        public readonly List<(int Id, string Surface, byte[] Bytes)> DeployedWrites = new();
+        public readonly List<(int Id, string Surface, byte[] Bytes)> BackupWrites = new();
 
         public IconGlowManifest? ReadManifest() => Manifest;
-        public byte[]? ReadBaseTex(IconGlowEntry entry) => BaseTex.TryGetValue((entry.Id, entry.Surface), out var b) ? b : null;
+        public byte[]? ReadDeployedTex(IconGlowEntry entry) => Deployed.TryGetValue((entry.Id, entry.Surface), out var b) ? b : null;
         public byte[]? ReadVariantTex(IconGlowEntry entry, int tier) => Variants.TryGetValue((entry.Id, entry.Surface, tier), out var b) ? b : null;
-        public byte[]? ReadPac() => FailReadPac ? null : Pac;
+        public byte[]? ReadBaseBackup(IconGlowEntry entry) => Backup.TryGetValue((entry.Id, entry.Surface), out var b) ? b : null;
 
-        public bool WriteAt(long offset, byte[] bytes)
+        public bool WriteDeployedTex(IconGlowEntry entry, byte[] bytes)
         {
-            Writes.Add((offset, bytes));
-            if (FailWrite || Pac == null || offset < 0 || offset + bytes.Length > Pac.Length) return false;
-            Array.Copy(bytes, 0, Pac, offset, bytes.Length);
+            DeployedWrites.Add((entry.Id, entry.Surface, bytes));
+            if (FailDeployedWrite.Contains((entry.Id, entry.Surface))) return false;
+            Deployed[(entry.Id, entry.Surface)] = bytes;
+            return true;
+        }
+
+        public bool WriteBaseBackup(IconGlowEntry entry, byte[] bytes)
+        {
+            BackupWrites.Add((entry.Id, entry.Surface, bytes));
+            if (FailBackupWrite.Contains((entry.Id, entry.Surface))) return false;
+            Backup[(entry.Id, entry.Surface)] = bytes;
             return true;
         }
     }
 
-    // ---- U4 (THE LOAD-BEARING TEST): splice writes the variant's exact bytes at the exact
-    // stored offset, for BOTH surfaces a weapon id carries. A wrong offset or a wrong length here
-    // corrupts a 64MB file the game reads back on its next list open. ----
+    // ---- ApplyId writes the variant's exact bytes to the deployed tex for BOTH surfaces a
+    // weapon id carries, from a pristine starting point (also exercises the first-touch
+    // snapshot). ----
 
     [Fact]
-    public void Splice_WritesVariantBytesAtOffset_ExactLength()
+    public void ApplyId_WritesVariantBytes_ForBothSurfaces()
     {
         var store = new FakeIconGlowStore();
         const int id = 42;
@@ -104,54 +111,51 @@ public class IconGlowTests
         var cardEntry = MakeEntry(id, "card", cardBase, new() { [2] = cardT2 });
         var smallEntry = MakeEntry(id, "small", smallBase, new() { [2] = smallT2 });
         store.Manifest = new IconGlowManifest { SchemaVersion = 1, Icons = new() { cardEntry, smallEntry } };
-        store.BaseTex[(id, "card")] = cardBase;
-        store.BaseTex[(id, "small")] = smallBase;
+        store.Deployed[(id, "card")] = cardBase;
+        store.Deployed[(id, "small")] = smallBase;
         store.Variants[(id, "card", 2)] = cardT2;
         store.Variants[(id, "small", 2)] = smallT2;
-
-        const int cardOffset = 5000, smallOffset = 9000;
-        store.Pac = BuildPac(20000, (cardOffset, cardBase), (smallOffset, smallBase));
 
         var kills = new Dictionary<int, int> { [id] = 10 };   // prod tier 2
         var icon = new IconGlow("m", kills, new[] { id }, store, a => a());
 
         icon.Tick();
 
-        Assert.Equal(cardT2, store.Pac.Skip(cardOffset).Take(cardBase.Length).ToArray());
-        Assert.Equal(smallT2, store.Pac.Skip(smallOffset).Take(smallBase.Length).ToArray());
-        Assert.Contains(store.Writes, w => w.Offset == cardOffset && w.Bytes.SequenceEqual(cardT2));
-        Assert.Contains(store.Writes, w => w.Offset == smallOffset && w.Bytes.SequenceEqual(smallT2));
-        // nothing outside the two exact windows moved
-        Assert.Equal(cardBase.Length, store.Writes.Single(w => w.Offset == cardOffset).Bytes.Length);
-        Assert.Equal(smallBase.Length, store.Writes.Single(w => w.Offset == smallOffset).Bytes.Length);
+        Assert.Equal(cardT2, store.Deployed[(id, "card")]);
+        Assert.Equal(smallT2, store.Deployed[(id, "small")]);
+        Assert.Contains(store.DeployedWrites, w => w.Id == id && w.Surface == "card" && w.Bytes.SequenceEqual(cardT2));
+        Assert.Contains(store.DeployedWrites, w => w.Id == id && w.Surface == "small" && w.Bytes.SequenceEqual(smallT2));
+        // the pristine base got snapshotted before the overwrite
+        Assert.Equal(cardBase, store.Backup[(id, "card")]);
+        Assert.Equal(smallBase, store.Backup[(id, "small")]);
     }
 
-    // ---- U5: tier 0 splices BASE bytes back in -- the restore path a PlaythroughReset drives ----
+    // ---- tier 0 restores base bytes via the earlier snapshot -- the restore path a
+    // PlaythroughReset drives ----
 
     [Fact]
-    public void TierZero_SplicesBaseBytes()
+    public void TierZero_ReturnsToBase_AfterEarlierTierApply()
     {
         var store = new FakeIconGlowStore();
         const int id = 7;
         byte[] baseBytes = RandBytes(301, 16), t1 = RandBytes(302, 16);
         var entry = MakeEntry(id, "card", baseBytes, new() { [1] = t1 });
         store.Manifest = new IconGlowManifest { SchemaVersion = 1, Icons = new() { entry } };
-        store.BaseTex[(id, "card")] = baseBytes;
+        store.Deployed[(id, "card")] = baseBytes;   // pristine at first touch
         store.Variants[(id, "card", 1)] = t1;
-        const int offset = 40;
-        store.Pac = BuildPac(2000, (offset, baseBytes));
 
         var kills = new Dictionary<int, int> { [id] = 5 };   // tier 1
         var icon = new IconGlow("m", kills, new[] { id }, store, a => a());
         icon.Tick();
-        Assert.Equal(t1, store.Pac.Skip(offset).Take(baseBytes.Length).ToArray());
+        Assert.Equal(t1, store.Deployed[(id, "card")]);
+        Assert.Equal(baseBytes, store.Backup[(id, "card")]);   // snapshotted on the way up
 
         kills[id] = 0;   // PlaythroughReset clears the shared tally in place
         icon.Tick();
-        Assert.Equal(baseBytes, store.Pac.Skip(offset).Take(baseBytes.Length).ToArray());
+        Assert.Equal(baseBytes, store.Deployed[(id, "card")]);
     }
 
-    // ---- U6: a missing/malformed manifest stands the whole subsystem down, once, never throws ----
+    // ---- a missing/malformed manifest stands the whole subsystem down, once, never throws ----
 
     [Fact]
     public void MissingManifest_WarnsOnce_StandsDown_NeverThrows()
@@ -178,19 +182,20 @@ public class IconGlowTests
         Assert.Equal(1, cap.File.Count(l => l.Contains("IconGlow standing down") && l.Contains("schemaVersion")));
     }
 
-    // ---- U7: a failed write degrades that icon, warns exactly once, and keeps retrying ----
+    // ---- a failed deployed-tex write degrades that icon, warns exactly once, and keeps
+    // retrying ----
 
     [Fact]
     public void FailedWrite_RetriesOnNextTrigger_WarnsOncePerIcon()
     {
-        var store = new FakeIconGlowStore { FailWrite = true };
+        var store = new FakeIconGlowStore();
         const int id = 55;
         byte[] baseBytes = RandBytes(401, 10), t1 = RandBytes(402, 10);
         var entry = MakeEntry(id, "card", baseBytes, new() { [1] = t1 });
         store.Manifest = new IconGlowManifest { SchemaVersion = 1, Icons = new() { entry } };
-        store.BaseTex[(id, "card")] = baseBytes;
+        store.Deployed[(id, "card")] = baseBytes;
         store.Variants[(id, "card", 1)] = t1;
-        store.Pac = BuildPac(500, (50, baseBytes));
+        store.FailDeployedWrite.Add((id, "card"));
 
         var kills = new Dictionary<int, int> { [id] = 5 };
         var icon = new IconGlow("m", kills, new[] { id }, store, a => a());
@@ -199,11 +204,11 @@ public class IconGlowTests
         icon.Tick();
         icon.Tick();   // write never succeeded -> the diff is still nonempty, so it retries
 
-        Assert.Equal(2, store.Writes.Count(w => w.Offset == 50));
+        Assert.Equal(2, store.DeployedWrites.Count(w => w.Id == id && w.Surface == "card"));
         Assert.Equal(1, cap.File.Count(l => l.Contains($"icon {id}") && l.Contains("failed to write")));
     }
 
-    // ---- U8: while a splice is (simulated) still in flight, a later Tick starts no second one ----
+    // ---- while a splice is (simulated) still in flight, a later Tick starts no second one ----
 
     [Fact]
     public void Tick_InFlightTask_DoesNotStartASecond()
@@ -213,14 +218,13 @@ public class IconGlowTests
         byte[] baseBytes = RandBytes(501, 10), t1 = RandBytes(502, 10);
         var entry = MakeEntry(id, "card", baseBytes, new() { [1] = t1 });
         store.Manifest = new IconGlowManifest { SchemaVersion = 1, Icons = new() { entry } };
-        store.BaseTex[(id, "card")] = baseBytes;
+        store.Deployed[(id, "card")] = baseBytes;
         store.Variants[(id, "card", 1)] = t1;
-        store.Pac = BuildPac(500, (50, baseBytes));
 
         var kills = new Dictionary<int, int> { [id] = 5 };
         int starts = 0;
-        // Captures the apply action but never invokes it -- stands in for a splice that is still
-        // running on the background task when the next tick arrives.
+        // Captures the apply action but never invokes it -- stands in for an apply that is
+        // still running on the background task when the next tick arrives.
         var icon = new IconGlow("m", kills, new[] { id }, store, _ => starts++);
 
         icon.Tick();
@@ -230,7 +234,7 @@ public class IconGlowTests
         Assert.Equal(1, starts);
     }
 
-    // ---- U9: a manifest id outside the known weapon set is a stale bake -- rejected at load ----
+    // ---- a manifest id outside the known weapon set is a stale bake -- rejected at load ----
 
     [Fact]
     public void ManifestIdOutsideWeaponSet_RejectedAtLoad()
@@ -242,11 +246,10 @@ public class IconGlowTests
         var knownEntry = MakeEntry(knownId, "card", knownBase, new() { [1] = knownT1 });
         var staleEntry = MakeEntry(staleId, "card", staleBase, new() { [1] = staleT1 });
         store.Manifest = new IconGlowManifest { SchemaVersion = 1, Icons = new() { knownEntry, staleEntry } };
-        store.BaseTex[(knownId, "card")] = knownBase;
+        store.Deployed[(knownId, "card")] = knownBase;
         store.Variants[(knownId, "card", 1)] = knownT1;
-        store.BaseTex[(staleId, "card")] = staleBase;
+        store.Deployed[(staleId, "card")] = staleBase;
         store.Variants[(staleId, "card", 1)] = staleT1;
-        store.Pac = BuildPac(1000, (50, knownBase), (300, staleBase));
 
         // weaponIds carries ONLY knownId -- staleId is the stale-manifest defense's target.
         var kills = new Dictionary<int, int> { [knownId] = 5, [staleId] = 5 };
@@ -254,45 +257,42 @@ public class IconGlowTests
 
         icon.Tick();
 
-        Assert.Equal(knownT1, store.Pac.Skip(50).Take(knownBase.Length).ToArray());
-        Assert.Equal(staleBase, store.Pac.Skip(300).Take(staleBase.Length).ToArray());   // untouched
-        Assert.Empty(store.Writes.Where(w => w.Offset == 300));
+        Assert.Equal(knownT1, store.Deployed[(knownId, "card")]);
+        Assert.Equal(staleBase, store.Deployed[(staleId, "card")]);   // untouched
+        Assert.Empty(store.DeployedWrites.Where(w => w.Id == staleId));
     }
 
-    // ---- U10: a second tier change reuses the offset found on the FIRST index build. An
-    // implementation that re-searches would find the base needle GONE (tier 1's bytes replaced
-    // it) and wrongly stand the icon down instead of advancing it to tier 3. ----
+    // ---- a second tier change on a later tick correctly advances to the new variant ----
 
     [Fact]
-    public void SecondSplice_ReusesIndexOffset()
+    public void SecondTierChange_AdvancesToNewVariant()
     {
         var store = new FakeIconGlowStore();
         const int id = 11;
         byte[] baseBytes = RandBytes(701, 10), t1 = RandBytes(702, 10), t3 = RandBytes(703, 10);
         var entry = MakeEntry(id, "card", baseBytes, new() { [1] = t1, [3] = t3 });
         store.Manifest = new IconGlowManifest { SchemaVersion = 1, Icons = new() { entry } };
-        store.BaseTex[(id, "card")] = baseBytes;
+        store.Deployed[(id, "card")] = baseBytes;
         store.Variants[(id, "card", 1)] = t1;
         store.Variants[(id, "card", 3)] = t3;
-        const int offset = 77;
-        store.Pac = BuildPac(1000, (offset, baseBytes));
 
         var kills = new Dictionary<int, int> { [id] = 5 };   // tier 1
         var icon = new IconGlow("m", kills, new[] { id }, store, a => a());
         icon.Tick();
-        Assert.Equal(t1, store.Pac.Skip(offset).Take(baseBytes.Length).ToArray());
+        Assert.Equal(t1, store.Deployed[(id, "card")]);
 
         kills[id] = 15;   // tier 3
         icon.Tick();
 
-        Assert.Equal(t3, store.Pac.Skip(offset).Take(baseBytes.Length).ToArray());
+        Assert.Equal(t3, store.Deployed[(id, "card")]);
     }
 
-    // ---- U11: a stale bake (deployed base tex no longer matches the manifest's baked hash)
-    // degrades the icon to unmanaged rather than splicing an old-body rim over new art ----
+    // ---- a deployed tex that matches neither the manifest's baked base nor any variant hash
+    // (a stale bake, or someone else's art) degrades the icon to unmanaged rather than splicing
+    // over it ----
 
     [Fact]
-    public void BaseSha1Mismatch_DegradesToUnmanaged_WarnsOnce()
+    public void DeployedTexMatchesNoKnownHash_DegradesToUnmanaged_WarnsOnce()
     {
         var store = new FakeIconGlowStore();
         const int id = 13;
@@ -302,20 +302,420 @@ public class IconGlowTests
         var entry = MakeEntry(id, "card", bakedAgainst, new() { [1] = t1 });
         entry.Length = deployedBase.Length;
         store.Manifest = new IconGlowManifest { SchemaVersion = 1, Icons = new() { entry } };
-        store.BaseTex[(id, "card")] = deployedBase;
+        store.Deployed[(id, "card")] = deployedBase;
         store.Variants[(id, "card", 1)] = t1;
-        const int offset = 15;
-        store.Pac = BuildPac(500, (offset, deployedBase));
 
         var kills = new Dictionary<int, int> { [id] = 5 };
         var icon = new IconGlow("m", kills, new[] { id }, store, a => a());
 
         using var cap = LogCapture.Start();
         icon.Tick();
-        Assert.Equal(deployedBase, store.Pac.Skip(offset).Take(deployedBase.Length).ToArray());   // untouched
-        Assert.Equal(1, cap.File.Count(l => l.Contains("stale glow bake")));
+        Assert.Equal(deployedBase, store.Deployed[(id, "card")]);   // untouched
+        Assert.Equal(1, cap.File.Count(l => l.Contains("foreign art")));
 
         icon.Tick();   // stays unmanaged, no repeat warn
-        Assert.Equal(1, cap.File.Count(l => l.Contains("stale glow bake")));
+        Assert.Equal(1, cap.File.Count(l => l.Contains("foreign art")));
+    }
+
+    // ---- LOAD-BEARING: when the deployed tex already holds the exact variant bytes for the
+    // desired tier (a prior session, or a pre-tiered install), the judge seeds _applied from
+    // that fact and NO write happens -- pins the fix for the LW-334 interim script having
+    // pre-tiered files that the old pac-splice path would otherwise have stood down as
+    // unmanaged (never having a plain base to index against). ----
+
+    [Fact]
+    public void Judge_SeedsAppliedFromDeployedVariant()
+    {
+        var store = new FakeIconGlowStore();
+        const int id = 21;
+        byte[] cardBase = RandBytes(901, 14), cardT3 = RandBytes(902, 14);
+        byte[] smallBase = RandBytes(903, 8), smallT3 = RandBytes(904, 8);
+        var cardEntry = MakeEntry(id, "card", cardBase, new() { [3] = cardT3 });
+        var smallEntry = MakeEntry(id, "small", smallBase, new() { [3] = smallT3 });
+        store.Manifest = new IconGlowManifest { SchemaVersion = 1, Icons = new() { cardEntry, smallEntry } };
+        store.Deployed[(id, "card")] = cardT3;     // already at tier 3 on both surfaces
+        store.Deployed[(id, "small")] = smallT3;
+
+        var kills = new Dictionary<int, int> { [id] = 15 };   // tier 3
+        var icon = new IconGlow("m", kills, new[] { id }, store, a => a());
+
+        using var cap = LogCapture.Start();
+        icon.Tick();
+
+        Assert.Empty(store.DeployedWrites);
+        Assert.Empty(store.BackupWrites);   // neither surface was pristine, nothing to snapshot
+        Assert.DoesNotContain(cap.File, l => l.Contains("leaves icon 21 plain"));
+
+        icon.Tick();   // desired already matches the seeded applied tier -> no further work
+        Assert.Empty(store.DeployedWrites);
+    }
+
+    [Fact]
+    public void Judge_PristineSnapshotsThenApplies()
+    {
+        var store = new FakeIconGlowStore();
+        const int id = 22;
+        byte[] baseBytes = RandBytes(1001, 10), t2 = RandBytes(1002, 10);
+        var entry = MakeEntry(id, "card", baseBytes, new() { [2] = t2 });
+        store.Manifest = new IconGlowManifest { SchemaVersion = 1, Icons = new() { entry } };
+        store.Deployed[(id, "card")] = baseBytes;   // pristine
+        store.Variants[(id, "card", 2)] = t2;
+
+        var kills = new Dictionary<int, int> { [id] = 10 };   // tier 2
+        var icon = new IconGlow("m", kills, new[] { id }, store, a => a());
+        icon.Tick();
+
+        Assert.Equal(baseBytes, store.Backup[(id, "card")]);
+        Assert.Equal(t2, store.Deployed[(id, "card")]);
+
+        int writesAfterFirst = store.DeployedWrites.Count;
+        icon.Tick();   // applied already recorded 2 -> no further writes
+        Assert.Equal(writesAfterFirst, store.DeployedWrites.Count);
+    }
+
+    [Fact]
+    public void Tier0_RestoresFromBackup()
+    {
+        var store = new FakeIconGlowStore();
+        const int id = 23;
+        byte[] baseBytes = RandBytes(1101, 10), t2 = RandBytes(1102, 10);
+        var entry = MakeEntry(id, "card", baseBytes, new() { [2] = t2 });
+        store.Manifest = new IconGlowManifest { SchemaVersion = 1, Icons = new() { entry } };
+        store.Deployed[(id, "card")] = t2;       // already holds tier 2
+        store.Backup[(id, "card")] = baseBytes;  // a backup already exists from an earlier session
+
+        // Starts at the tier that matches what is already deployed, then drops to 0 -- a more
+        // targeted variant of this restore than JudgeAll_RestoresStaleRimWhenDesiredZero above,
+        // which pins the FIX 1 case (kills 0 from the very first tick) directly.
+        var kills = new Dictionary<int, int> { [id] = 10 };   // tier 2, matches the deployed t2
+        var icon = new IconGlow("m", kills, new[] { id }, store, a => a());
+        icon.Tick();
+        Assert.Equal(t2, store.Deployed[(id, "card")]);   // judge seeded 2 == desired 2, no write
+
+        kills[id] = 0;
+        icon.Tick();
+
+        Assert.Equal(baseBytes, store.Deployed[(id, "card")]);
+        Assert.Empty(store.BackupWrites);   // the surface was never pristine at judge time -- no new snapshot
+    }
+
+    [Fact]
+    public void Judge_ForeignArtUnmanagedWarnsOnce()
+    {
+        var store = new FakeIconGlowStore();
+        const int id = 24;
+        byte[] baseBytes = RandBytes(1201, 10), t1 = RandBytes(1202, 10);
+        byte[] foreign = RandBytes(1203, 10);   // unrelated to base or any baked variant
+        var entry = MakeEntry(id, "card", baseBytes, new() { [1] = t1 });
+        store.Manifest = new IconGlowManifest { SchemaVersion = 1, Icons = new() { entry } };
+        store.Deployed[(id, "card")] = foreign;
+
+        var kills = new Dictionary<int, int> { [id] = 5 };
+        var icon = new IconGlow("m", kills, new[] { id }, store, a => a());
+
+        using var cap = LogCapture.Start();
+        icon.Tick();
+        icon.Tick();
+
+        Assert.Equal(1, cap.File.Count(l => l.Contains("foreign art")));
+        Assert.Empty(store.DeployedWrites);
+        Assert.Empty(store.BackupWrites);
+        Assert.Equal(foreign, store.Deployed[(id, "card")]);
+    }
+
+    [Fact]
+    public void Tier0_WithoutBackup_Unmanaged()
+    {
+        var store = new FakeIconGlowStore();
+        const int id = 25;
+        byte[] baseBytes = RandBytes(1301, 10), t2 = RandBytes(1302, 10);
+        var entry = MakeEntry(id, "card", baseBytes, new() { [2] = t2 });
+        store.Manifest = new IconGlowManifest { SchemaVersion = 1, Icons = new() { entry } };
+        store.Deployed[(id, "card")] = t2;   // holds tier 2, no backup ever taken
+
+        // Same shape as Tier0_RestoresFromBackup: reach tier 0 by dropping FROM the tier that
+        // matches what is already deployed.
+        var kills = new Dictionary<int, int> { [id] = 10 };   // tier 2, matches the deployed t2
+        var icon = new IconGlow("m", kills, new[] { id }, store, a => a());
+        icon.Tick();
+        Assert.Equal(t2, store.Deployed[(id, "card")]);   // judge seeded 2 == desired 2, no write
+
+        kills[id] = 0;
+        using var cap = LogCapture.Start();
+        icon.Tick();
+
+        Assert.Equal(t2, store.Deployed[(id, "card")]);   // unchanged, nothing to restore from
+        Assert.Empty(store.DeployedWrites);
+        Assert.Equal(1, cap.File.Count(l => l.Contains("no pristine base copy is available")));
+    }
+
+    [Fact]
+    public void PartialWriteFailure_StaysStaleAndRetries()
+    {
+        var store = new FakeIconGlowStore();
+        const int id = 26;
+        byte[] cardBase = RandBytes(1401, 10), cardT1 = RandBytes(1402, 10);
+        byte[] smallBase = RandBytes(1403, 6), smallT1 = RandBytes(1404, 6);
+        var cardEntry = MakeEntry(id, "card", cardBase, new() { [1] = cardT1 });
+        var smallEntry = MakeEntry(id, "small", smallBase, new() { [1] = smallT1 });
+        store.Manifest = new IconGlowManifest { SchemaVersion = 1, Icons = new() { cardEntry, smallEntry } };
+        store.Deployed[(id, "card")] = cardBase;
+        store.Deployed[(id, "small")] = smallBase;
+        store.Variants[(id, "card", 1)] = cardT1;
+        store.Variants[(id, "small", 1)] = smallT1;
+        store.FailDeployedWrite.Add((id, "card"));   // card fails, small succeeds
+
+        var kills = new Dictionary<int, int> { [id] = 5 };   // tier 1
+        var icon = new IconGlow("m", kills, new[] { id }, store, a => a());
+
+        using (var cap = LogCapture.Start())
+        {
+            icon.Tick();
+            Assert.Equal(cardBase, store.Deployed[(id, "card")]);    // failed write -- unchanged
+            Assert.Equal(smallT1, store.Deployed[(id, "small")]);    // succeeded
+            Assert.Equal(1, cap.File.Count(l => l.Contains($"icon {id}") && l.Contains("failed to write")));
+        }
+
+        // applied did not record the tier -- the next diff still sees this id as changed and
+        // retries BOTH surfaces (harmlessly rewriting the one that already succeeded)
+        store.FailDeployedWrite.Remove((id, "card"));
+        icon.Tick();
+        Assert.Equal(cardT1, store.Deployed[(id, "card")]);
+        Assert.Equal(smallT1, store.Deployed[(id, "small")]);
+
+        int writesAfterHeal = store.DeployedWrites.Count;
+        icon.Tick();   // now recorded -> no further work
+        Assert.Equal(writesAfterHeal, store.DeployedWrites.Count);
+    }
+
+    [Fact]
+    public void Judge_DivergentSurfaces_SeedsMinimum()
+    {
+        var store = new FakeIconGlowStore();
+        const int id = 27;
+        byte[] cardBase = RandBytes(1501, 10), cardT2 = RandBytes(1502, 10);
+        byte[] smallBase = RandBytes(1503, 6), smallT2 = RandBytes(1504, 6);
+        var cardEntry = MakeEntry(id, "card", cardBase, new() { [2] = cardT2 });
+        var smallEntry = MakeEntry(id, "small", smallBase, new() { [2] = smallT2 });
+        store.Manifest = new IconGlowManifest { SchemaVersion = 1, Icons = new() { cardEntry, smallEntry } };
+        store.Deployed[(id, "card")] = cardT2;     // already at tier 2
+        store.Deployed[(id, "small")] = smallBase; // still pristine
+        store.Variants[(id, "card", 2)] = cardT2;
+        store.Variants[(id, "small", 2)] = smallT2;
+
+        var kills = new Dictionary<int, int> { [id] = 10 };   // tier 2
+        var icon = new IconGlow("m", kills, new[] { id }, store, a => a());
+        icon.Tick();
+
+        Assert.Equal(smallBase, store.Backup[(id, "small")]);   // the pristine surface got snapshotted
+        // both surfaces end up healed to the desired tier -- including the one that was
+        // already there, proving the seed was the MINIMUM (0), not "already fine, skip it"
+        Assert.Contains(store.DeployedWrites, w => w.Id == id && w.Surface == "card" && w.Bytes.SequenceEqual(cardT2));
+        Assert.Equal(smallT2, store.Deployed[(id, "small")]);
+    }
+
+    [Fact]
+    public void SnapshotFailure_RefusesOverwrite()
+    {
+        var store = new FakeIconGlowStore();
+        const int id = 28;
+        byte[] cardBase = RandBytes(1601, 10), cardT1 = RandBytes(1602, 10);
+        byte[] smallBase = RandBytes(1603, 6), smallT1 = RandBytes(1604, 6);
+        var cardEntry = MakeEntry(id, "card", cardBase, new() { [1] = cardT1 });
+        var smallEntry = MakeEntry(id, "small", smallBase, new() { [1] = smallT1 });
+        store.Manifest = new IconGlowManifest { SchemaVersion = 1, Icons = new() { cardEntry, smallEntry } };
+        store.Deployed[(id, "card")] = cardBase;     // pristine
+        store.Deployed[(id, "small")] = smallBase;   // also pristine
+        store.FailBackupWrite.Add((id, "card"));     // the snapshot for "card" cannot be written
+
+        var kills = new Dictionary<int, int> { [id] = 5 };
+        var icon = new IconGlow("m", kills, new[] { id }, store, a => a());
+
+        using var cap = LogCapture.Start();
+        icon.Tick();
+
+        Assert.Empty(store.DeployedWrites);   // nothing written for this id at all
+        Assert.DoesNotContain((id, "card"), store.Backup.Keys);
+        Assert.DoesNotContain((id, "small"), store.Backup.Keys);
+        Assert.Equal(1, cap.File.Count(l => l.Contains("refusing to overwrite")));
+    }
+
+    // ---- LW-336 adversarial-verify fix round: five findings, six new tests. See each fix's
+    // own remarks in IconGlow.cs / IconGlow.Apply.cs for the mechanism these pin. ----
+
+    // ---- FIX 1 (the ship-blocker), LOAD-BEARING: a tiered tex left on disk from an earlier
+    // session, with kills already back at 0 before this launch's very first tick, must not stay
+    // rimmed forever. Diff() alone can never see it -- an id absent from _applied counts as
+    // tier 0 == desired 0 == "no change" -- so only a once-per-launch judge of EVERY manageable
+    // id can discover the truth and correct it. Against the pre-fix code this never resolves no
+    // matter how many ticks run (changed.Count stays 0 forever), confirming RED. ----
+
+    [Fact]
+    public void JudgeAll_RestoresStaleRimWhenDesiredZero()
+    {
+        var store = new FakeIconGlowStore();
+        const int id = 31;
+        byte[] cardBase = RandBytes(1701, 10), cardT2 = RandBytes(1702, 10);
+        byte[] smallBase = RandBytes(1703, 6), smallT2 = RandBytes(1704, 6);
+        var cardEntry = MakeEntry(id, "card", cardBase, new() { [2] = cardT2 });
+        var smallEntry = MakeEntry(id, "small", smallBase, new() { [2] = smallT2 });
+        store.Manifest = new IconGlowManifest { SchemaVersion = 1, Icons = new() { cardEntry, smallEntry } };
+        store.Deployed[(id, "card")] = cardT2;     // stale tier-2 tex left over from an earlier session
+        store.Deployed[(id, "small")] = smallT2;
+        store.Backup[(id, "card")] = cardBase;     // that earlier session already snapshotted the base
+        store.Backup[(id, "small")] = smallBase;
+
+        var kills = new Dictionary<int, int> { [id] = 0 };   // desired tier 0 from the very first tick
+        var icon = new IconGlow("m", kills, new[] { id }, store, a => a());
+
+        icon.Tick();
+        icon.Tick();
+
+        Assert.Equal(cardBase, store.Deployed[(id, "card")]);
+        Assert.Equal(smallBase, store.Deployed[(id, "small")]);
+    }
+
+    // ---- FIX 1's narrower cousin: JudgeId's seeded MINIMUM already equals the desired tier
+    // (0), but one surface (card) is still stuck at tier 2. A future Diff can never notice this
+    // -- applied == desired the moment it is seeded -- so the heal must happen right at judge
+    // time, in the same pass that discovers the divergence. ----
+
+    [Fact]
+    public void DivergentSurfaces_HealEvenWhenMinimumEqualsDesired()
+    {
+        var store = new FakeIconGlowStore();
+        const int id = 32;
+        byte[] cardBase = RandBytes(1711, 10), cardT2 = RandBytes(1712, 10);
+        byte[] smallBase = RandBytes(1713, 6);
+        var cardEntry = MakeEntry(id, "card", cardBase, new() { [2] = cardT2 });
+        var smallEntry = MakeEntry(id, "small", smallBase, new());
+        store.Manifest = new IconGlowManifest { SchemaVersion = 1, Icons = new() { cardEntry, smallEntry } };
+        store.Deployed[(id, "card")] = cardT2;     // stuck at tier 2
+        store.Deployed[(id, "small")] = smallBase; // already pristine (tier 0)
+        store.Backup[(id, "card")] = cardBase;     // an earlier session's snapshot, needed to heal card
+        store.Backup[(id, "small")] = smallBase;
+
+        var kills = new Dictionary<int, int> { [id] = 0 };   // desired tier 0 == the seeded minimum
+        var icon = new IconGlow("m", kills, new[] { id }, store, a => a());
+
+        icon.Tick();
+
+        Assert.Equal(cardBase, store.Deployed[(id, "card")]);     // healed
+        Assert.Equal(smallBase, store.Deployed[(id, "small")]);   // already correct, unchanged
+    }
+
+    // ---- FIX 2a: a Publish-zip update can lay REBAKED bases while an old base_backup/
+    // survives. The only moment that is healable is judge time -- when a surface is found
+    // PRISTINE and its existing backup does not match, re-snapshot it right there. ----
+
+    [Fact]
+    public void StaleBackup_ResnapshottedOnPristineJudge()
+    {
+        var store = new FakeIconGlowStore();
+        const int id = 33;
+        byte[] baseBytes = RandBytes(1721, 10), oldBackup = RandBytes(1722, 10);
+        var entry = MakeEntry(id, "card", baseBytes, new());
+        store.Manifest = new IconGlowManifest { SchemaVersion = 1, Icons = new() { entry } };
+        store.Deployed[(id, "card")] = baseBytes;   // pristine against the CURRENT bake
+        store.Backup[(id, "card")] = oldBackup;     // stale: from a bake this base no longer matches
+
+        var kills = new Dictionary<int, int> { [id] = 0 };
+        var icon = new IconGlow("m", kills, new[] { id }, store, a => a());
+
+        icon.Tick();
+
+        Assert.Equal(baseBytes, store.Backup[(id, "card")]);
+    }
+
+    // ---- FIX 2b: if staleness ever slips past judge time (or a backup goes bad afterward),
+    // ApplyId must never write it -- a wrong-version restore would look correct at a glance and
+    // rot the deployed art silently. ----
+
+    [Fact]
+    public void StaleBackup_RefusedAtTierZeroRestore()
+    {
+        var store = new FakeIconGlowStore();
+        const int id = 34;
+        byte[] baseBytes = RandBytes(1731, 10), t2 = RandBytes(1732, 10), staleBackup = RandBytes(1733, 10);
+        var entry = MakeEntry(id, "card", baseBytes, new() { [2] = t2 });
+        store.Manifest = new IconGlowManifest { SchemaVersion = 1, Icons = new() { entry } };
+        store.Deployed[(id, "card")] = t2;
+        store.Backup[(id, "card")] = staleBackup;   // does not match entry.BaseSha1
+
+        // reach tier 0 by dropping FROM the tier that matches what is already deployed, so the
+        // judge seeds truthfully first (mirrors Tier0_RestoresFromBackup's own pattern above).
+        var kills = new Dictionary<int, int> { [id] = 10 };   // tier 2, matches the deployed t2
+        var icon = new IconGlow("m", kills, new[] { id }, store, a => a());
+        icon.Tick();
+        Assert.Equal(t2, store.Deployed[(id, "card")]);   // judge seeded 2 == desired 2, no write yet
+
+        kills[id] = 0;
+        using var cap = LogCapture.Start();
+        icon.Tick();
+
+        Assert.Equal(t2, store.Deployed[(id, "card")]);   // untouched -- the stale backup was refused
+        Assert.Empty(store.DeployedWrites.Where(w => w.Id == id));
+        Assert.Equal(1, cap.File.Count(l => l.Contains("older bake")));
+    }
+
+    // ---- FIX 3: a successful judge/apply pass must leave exactly one observable trace, so a
+    // live pass can see the subsystem work without per-icon spam. ----
+
+    [Fact]
+    public void ApplyBatch_EmitsOneSummaryLine()
+    {
+        var store = new FakeIconGlowStore();
+        const int idA = 35, idB = 36;
+        byte[] baseA = RandBytes(1741, 10), t1A = RandBytes(1742, 10);
+        byte[] baseB = RandBytes(1743, 10), t2B = RandBytes(1744, 10);
+        var entryA = MakeEntry(idA, "card", baseA, new() { [1] = t1A });
+        var entryB = MakeEntry(idB, "card", baseB, new() { [2] = t2B });
+        store.Manifest = new IconGlowManifest { SchemaVersion = 1, Icons = new() { entryA, entryB } };
+        store.Deployed[(idA, "card")] = baseA;
+        store.Deployed[(idB, "card")] = baseB;
+        store.Variants[(idA, "card", 1)] = t1A;
+        store.Variants[(idB, "card", 2)] = t2B;
+
+        var kills = new Dictionary<int, int> { [idA] = 5, [idB] = 10 };   // tier 1, tier 2
+        var icon = new IconGlow("m", kills, new[] { idA, idB }, store, a => a());
+
+        using var cap = LogCapture.Start();
+        icon.Tick();
+
+        Assert.Equal(t1A, store.Deployed[(idA, "card")]);
+        Assert.Equal(t2B, store.Deployed[(idB, "card")]);
+        Assert.Equal(1, cap.File.Count(l => l.Contains("IconGlow: judged") && l.Contains("wrote")));
+    }
+
+    // ---- FIX 5's tripwire: the backup store flattens to just the base tex FILENAME
+    // (Path.GetFileName), so two different ids whose baked BaseRel resolves to the same
+    // filename would cross-wire each other's snapshots. Guard it at manifest load, before
+    // either id is ever trusted. Zero collisions exist in the real 242-entry manifest; this
+    // guards a future bake rename. ----
+
+    [Fact]
+    public void ManifestBasenameCollision_Unmanaged()
+    {
+        var store = new FakeIconGlowStore();
+        const int idA = 37, idB = 38;
+        byte[] baseA = RandBytes(1751, 10), baseB = RandBytes(1752, 10);
+        var entryA = MakeEntry(idA, "card", baseA, new());
+        var entryB = MakeEntry(idB, "card", baseB, new());
+        entryB.BaseRel = entryA.BaseRel;   // force a basename collision across two different ids
+        store.Manifest = new IconGlowManifest { SchemaVersion = 1, Icons = new() { entryA, entryB } };
+        store.Deployed[(idA, "card")] = baseA;
+        store.Deployed[(idB, "card")] = baseB;
+
+        var kills = new Dictionary<int, int> { [idA] = 5, [idB] = 5 };
+        var icon = new IconGlow("m", kills, new[] { idA, idB }, store, a => a());
+
+        using var cap = LogCapture.Start();
+        icon.Tick();
+        icon.Tick();
+
+        Assert.Empty(store.DeployedWrites);
+        Assert.Empty(store.BackupWrites);
+        Assert.Equal(1, cap.File.Count(l => l.Contains("share the base tex filename")
+            && l.Contains(idA.ToString()) && l.Contains(idB.ToString())));
     }
 }

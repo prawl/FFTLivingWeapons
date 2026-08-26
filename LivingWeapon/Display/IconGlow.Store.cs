@@ -1,5 +1,5 @@
+using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using Newtonsoft.Json;
 
@@ -19,7 +19,7 @@ internal sealed class IconGlowManifest
 
 /// <summary>One managed icon: the weapon id, which surface (card/small), where its deployed
 /// vanilla-shape base tex lives (relative to modDir/FFTIVC), and the three glow variants keyed by
-/// tier "1".."3" (tier 0 always means the base tex itself -- there is no "0" variant file).</summary>
+/// tier "1".."3" (tier 0 always means the plain base art -- there is no "0" variant file).</summary>
 internal sealed class IconGlowEntry
 {
     [JsonProperty("id")] public int Id { get; set; }
@@ -33,9 +33,15 @@ internal sealed class IconGlowEntry
 
 /// <summary>Every file/byte access IconGlow needs, as one seam -- so the whole subsystem is
 /// testable with an in-memory fake and the production side is free to fail file-system-shaped
-/// ways (missing folder, share violation, a relaunch's fresh pac) without ever throwing across
-/// this boundary. NO Mem/IGameMemory involvement anywhere: this is plain file I/O against the mod
-/// folder and the game's own modded.pac, so nothing here can raise an access violation.</summary>
+/// ways (missing folder, share violation, a locked file) without ever throwing across this
+/// boundary. NO Mem/IGameMemory involvement anywhere: this is plain file I/O against the mod
+/// folder, so nothing here can raise an access violation.
+///
+/// LW-336: modded.pac is gone from this contract. The runtime now reads and writes the DEPLOYED
+/// loose tex directly (modDir/FFTIVC/&lt;baseRel&gt;) -- the same files the launch merge
+/// re-reads next boot -- plus a pristine-base snapshot store (glow_icons/base_backup/) so a
+/// weapon that returns to tier 0 has something plain to restore, since glow_icons/ ships only
+/// the tier 1..3 variants and the deployed base gets overwritten in place.</summary>
 internal interface IIconGlowStore
 {
     /// <summary>Reads and parses glow_icons/manifest.json. Null on anything short of a clean
@@ -43,33 +49,38 @@ internal interface IIconGlowStore
     /// null as "stand down", never distinguishes the reason.</summary>
     IconGlowManifest? ReadManifest();
 
-    /// <summary>Reads the entry's DEPLOYED loose base tex (modDir/FFTIVC/&lt;baseRel&gt;) -- the
-    /// bytes actually shipped in this build, which is also the needle BuildIndex searches
-    /// modded.pac for. Null on any failure.</summary>
-    byte[]? ReadBaseTex(IconGlowEntry entry);
+    /// <summary>Reads the entry's DEPLOYED loose tex (modDir/FFTIVC/&lt;baseRel&gt;) -- whatever
+    /// bytes are actually sitting there right now, which may legitimately be the plain base OR a
+    /// tier variant this runtime (or an earlier one) already wrote. Null on any failure.</summary>
+    byte[]? ReadDeployedTex(IconGlowEntry entry);
 
     /// <summary>Reads one tier's (1..3) baked glow variant for the entry. Null on any failure or
     /// an unknown tier.</summary>
     byte[]? ReadVariantTex(IconGlowEntry entry, int tier);
 
-    /// <summary>Reads the WHOLE running game's modded.pac (data/enhanced/modded.pac, resolved off
-    /// the running process's own module directory -- there is no other runtime game-root
-    /// resolver). Null on any failure (unreadable, share violation, path unresolved).</summary>
-    byte[]? ReadPac();
+    /// <summary>Writes bytes to the entry's DEPLOYED loose tex (modDir/FFTIVC/&lt;baseRel&gt;)
+    /// ATOMICALLY -- a torn write must never be possible, since the launch merge reads these
+    /// bytes back on the next boot. Returns false on any failure instead of throwing.</summary>
+    bool WriteDeployedTex(IconGlowEntry entry, byte[] bytes);
 
-    /// <summary>Writes bytes at an absolute offset into modded.pac, opened with
-    /// FileShare.ReadWrite (the game holds it open). Returns false on any failure instead of
-    /// throwing -- a splice failure degrades that one icon, it never crashes the mod.</summary>
-    bool WriteAt(long offset, byte[] bytes);
+    /// <summary>Reads the entry's pristine-base snapshot from glow_icons/base_backup/, if one
+    /// has ever been taken. Null when no snapshot exists yet or on any failure.</summary>
+    byte[]? ReadBaseBackup(IconGlowEntry entry);
+
+    /// <summary>Snapshots the entry's verified-pristine bytes to glow_icons/base_backup/
+    /// ATOMICALLY, before anything else may overwrite the deployed tex. Returns false on any
+    /// failure instead of throwing -- a failed snapshot must refuse the overwrite it would have
+    /// guarded, never silently proceed without one.</summary>
+    bool WriteBaseBackup(IconGlowEntry entry, byte[] bytes);
 }
 
-/// <summary>Production <see cref="IIconGlowStore"/>: glow_icons/ and the deployed FFTIVC tree
-/// live under modDir; the pac path has no existing runtime resolver to reuse (probes hardcode the
-/// Steam path, Mod.cs:67 resolves only modDir) so it is derived here from
-/// Process.GetCurrentProcess().MainModule's own directory -- the DLL runs in-process inside
-/// fft_enhanced.exe, so that IS the game's install directory. Every method is wrapped so a
-/// failure anywhere (missing MainModule, missing folder, a locked file) surfaces as null/false,
-/// never a throw -- IconGlow's whole contract depends on this seam never raising.</summary>
+/// <summary>Production <see cref="IIconGlowStore"/>: glow_icons/ (including its base_backup/
+/// snapshot subfolder) and the deployed FFTIVC tree both live under modDir. Every method is
+/// wrapped so a failure anywhere (missing folder, a locked file, a permissions error) surfaces as
+/// null/false, never a throw -- IconGlow's whole contract depends on this seam never raising.
+/// Both write paths go through <see cref="AtomicWrite"/>: write to a sibling temp file, then swap
+/// it into place, so a crash or a share violation mid-write can never leave a torn file for the
+/// next launch's merge (or a later ReadBaseBackup) to read back.</summary>
 internal sealed class FileIconGlowStore : IIconGlowStore
 {
     private readonly string _modDir;
@@ -87,13 +98,9 @@ internal sealed class FileIconGlowStore : IIconGlowStore
         catch { return null; }
     }
 
-    public byte[]? ReadBaseTex(IconGlowEntry entry)
+    public byte[]? ReadDeployedTex(IconGlowEntry entry)
     {
-        try
-        {
-            var rel = entry.BaseRel.Replace('/', Path.DirectorySeparatorChar);
-            return File.ReadAllBytes(Path.Combine(_modDir, "FFTIVC", rel));
-        }
+        try { return File.ReadAllBytes(DeployedPath(entry)); }
         catch { return null; }
     }
 
@@ -107,41 +114,45 @@ internal sealed class FileIconGlowStore : IIconGlowStore
         catch { return null; }
     }
 
-    public byte[]? ReadPac()
+    public bool WriteDeployedTex(IconGlowEntry entry, byte[] bytes) => AtomicWrite(DeployedPath(entry), bytes);
+
+    public byte[]? ReadBaseBackup(IconGlowEntry entry)
     {
-        try
-        {
-            var path = ResolvePacPath();
-            return path is null ? null : File.ReadAllBytes(path);
-        }
+        try { return File.ReadAllBytes(BackupPath(entry)); }
         catch { return null; }
     }
 
-    public bool WriteAt(long offset, byte[] bytes)
+    public bool WriteBaseBackup(IconGlowEntry entry, byte[] bytes) => AtomicWrite(BackupPath(entry), bytes);
+
+    private string DeployedPath(IconGlowEntry entry) =>
+        Path.Combine(_modDir, "FFTIVC", entry.BaseRel.Replace('/', Path.DirectorySeparatorChar));
+
+    private string BackupPath(IconGlowEntry entry) =>
+        Path.Combine(_modDir, "glow_icons", "base_backup", Path.GetFileName(entry.BaseRel));
+
+    /// <summary>Write-to-temp-then-swap: never leaves <paramref name="path"/> partially
+    /// written. File.Replace is preferred (single atomic filesystem op when the destination
+    /// exists); a delete+move fallback covers the cases File.Replace itself can refuse (no
+    /// existing destination, cross-volume). The temp file is always cleaned up, success or
+    /// failure. Never throws.</summary>
+    private static bool AtomicWrite(string path, byte[] bytes)
     {
+        string? tmp = null;
         try
         {
-            var path = ResolvePacPath();
-            if (path is null) return false;
-            using var fs = new FileStream(path, FileMode.Open, FileAccess.Write, FileShare.ReadWrite);
-            fs.Seek(offset, SeekOrigin.Begin);
-            fs.Write(bytes, 0, bytes.Length);
+            var dir = Path.GetDirectoryName(path);
+            if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+            tmp = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
+            File.WriteAllBytes(tmp, bytes);
+            if (File.Exists(path)) File.Replace(tmp, path, null);
+            else File.Move(tmp, path);
+            tmp = null;
             return true;
         }
         catch { return false; }
-    }
-
-    /// <summary>&lt;game install dir&gt;/data/enhanced/modded.pac (P6/P8's own path). Null if
-    /// MainModule is unavailable for any reason -- never throws.</summary>
-    private static string? ResolvePacPath()
-    {
-        try
+        finally
         {
-            var exe = Process.GetCurrentProcess().MainModule?.FileName;
-            if (string.IsNullOrEmpty(exe)) return null;
-            var dir = Path.GetDirectoryName(exe);
-            return dir is null ? null : Path.Combine(dir, "data", "enhanced", "modded.pac");
+            if (tmp != null) { try { File.Delete(tmp); } catch { } }
         }
-        catch { return null; }
     }
 }

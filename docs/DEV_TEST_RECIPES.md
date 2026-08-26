@@ -46,14 +46,23 @@ into RAM but don't show.
 
 ## Glow tier bounce (see every icon at one glow tier)
 
-The equip-icon glow rims ride the launch merge (deploy_glow_tex.py, the LW-334 interim
-path), so a tier change needs a relaunch. To tour the tiers: quit the game, then
+No manual deploy step exists any more (LW-336 retired deploy_glow_tex.py, the LW-334
+interim path): `BuildLinked.ps1`/`Publish.ps1` deploy every equip icon as its plain base,
+and the RUNTIME keeps each weapon's deployed icon file matched to its own kill tier while
+the game plays (out of battle, a few seconds after a save loads). Because icon textures
+cache at first draw for the whole process, a file the runtime rewrites mid-session never
+shows THAT session -- icons show their correct rims starting the SECOND launch after a
+deploy (the first launch re-tiers the files, the second draws them).
+
+To tour the tiers: quit the game, then
 
     python tools\glow_bounce.py 7      # 0 = plain, 7 = tier 1, 12 = tier 2, 15 = tier 3
 
-It sets EVERY living weapon's kills.json tally to that value (cards read it too) and
-re-applies the overlay, tier 0 restoring the plain base. Launch, look, quit, next value.
-It refuses while the game runs and never touches the kills.json.*.bak real-tally backups;
+`glow_bounce.py` only sets EVERY living weapon's kills.json tally to that value (cards
+read it too); the same two-launch rhythm applies -- launch once to let the runtime
+re-tier the files (tier 0 included, restored from its plain-base snapshot), quit, then
+launch again to see it. It refuses while the game runs and never touches the
+kills.json.*.bak real-tally backups;
 restore one of those by hand when the tour ends.
 
 ## Bump a weapon's WP for one-hit-kill testing

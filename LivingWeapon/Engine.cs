@@ -39,7 +39,7 @@ internal sealed class Engine
     private readonly AttackCard _attackCard;   // LW-31 stage 2: the Attack-menu desc dossier painter
     private readonly WeaponPalette _weaponPalette;   // LW-251: the per-turn weapon-sprite palette repaint
     private readonly WpTableHold _wpTableHold;   // LW-317: the turn-scoped resident-stats WP write for the "wp"/"wp+faith" gun lanes
-    private readonly IconGlow _iconGlow;   // LW-295 cycle B: out-of-battle equip-icon glow-rim splice into modded.pac
+    private readonly IconGlow _iconGlow;   // LW-295 cycle B (LW-336: loose-tex sync): out-of-battle equip-icon glow-rim, kept synced to kill tier on the deployed FFTIVC files
     private readonly BattleState _battle = new();      // debounced in/out edges (slot9 sticks; mode flickers)
     private CancellationTokenSource? _cts;
     private DateTime _lastField = DateTime.MinValue;   // last tick we were on the live battlefield
@@ -251,10 +251,10 @@ internal sealed class Engine
         // Routes (GrowthEngine.Lanes.cs) contributes no combat-struct lane for those, so this is
         // their whole growth mechanism.
         _wpTableHold = new WpTableHold(meta, _kills, live);
-        // LW-295 cycle B: keeps every weapon's equip icon spliced to its current kill tier
-        // (glow rim) inside modded.pac. Reads the shared kill tally + the known weapon id set
-        // (meta.Keys, so a stale bake's ids never get managed); all file/pac I/O goes through
-        // the FileIconGlowStore seam, never Mem.
+        // LW-295 cycle B (LW-336: retargeted from pac-splicing to the deployed loose tex): keeps
+        // every weapon's equip icon (modDir/FFTIVC/<baseRel>) synced to its current kill tier.
+        // Reads the shared kill tally + the known weapon id set (meta.Keys, so a stale bake's
+        // ids never get managed); all file I/O goes through the FileIconGlowStore seam, never Mem.
         _iconGlow = new IconGlow(modDir, _kills, meta.Keys, new FileIconGlowStore(modDir));
 #if LWDEV
         // Shares the SAME register KillerStamp/AttackCard already trust (see TurnOwnerSpike.cs's
@@ -311,7 +311,7 @@ internal sealed class Engine
             // Out of battle (slot9 cleared): keep the equip card painted.
             new TickPhase("display-out", TickGates.OutOfBattle, 1, false, Array.Empty<string>(),
                 _ => e!._display.Tick(false)),
-            // LW-295 cycle B: out-of-battle equip-icon glow-rim splice (IconGlow.cs). Cadence 30
+            // LW-295 cycle B: out-of-battle equip-icon loose-tex sync (IconGlow.cs). Cadence 30
             // mirrors "gunslinger"'s own re-assert throttle -- kills only change in battle, and a
             // slow disk read must not run every 33ms.
             new TickPhase("icon-glow", TickGates.OutOfBattle, 30, false, Array.Empty<string>(),

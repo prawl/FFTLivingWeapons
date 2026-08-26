@@ -5,10 +5,10 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-295 cycle B: IconGlowPolicy's pure half -- no I/O, no store, no manifest. DesiredTiers and
-/// Diff drive the tick-facing desired-vs-applied comparison (IconGlow.cs); FindNeedle/
-/// ClassifyHitCount drive the pac needle search (IconGlow.Apply.cs). Every test here compiles
-/// WITHOUT LWDEV (LivingWeapon.Tests.csproj only defines it when dotnet test is given
+/// LW-295 cycle B (needle machinery retired LW-336): IconGlowPolicy's pure half -- no I/O, no
+/// store, no manifest. DesiredTiers and Diff drive the tick-facing desired-vs-applied comparison
+/// that IconGlow.cs (the diff) and IconGlow.Apply.cs (the judge + apply) act on. Every test here
+/// compiles WITHOUT LWDEV (LivingWeapon.Tests.csproj only defines it when dotnet test is given
 /// -p:LwDev=true), so Tuning.TierOf resolves the PROD curve {5,10,15} -- every kill count below
 /// is chosen against that curve, one below and one at each boundary.
 /// </summary>
@@ -71,65 +71,16 @@ public class IconGlowPolicyTests
     [Fact]
     public void Diff_IdMissingFromApplied_CountsAsTierZero()
     {
-        // P6: the pac is rebuilt from loose files every launch, so an id this runtime has never
-        // touched yet is guaranteed to still be sitting at tier-0 base art.
+        // An id absent from applied is treated as tier 0 only PROVISIONALLY: the background
+        // judge (IconGlow.Apply.cs) corrects _applied from the real deployed tex before any
+        // write happens, so a not-yet-seeded id never causes a wrong overwrite -- see that
+        // file's class doc comment for why the old "the pac is rebuilt every launch" premise
+        // this used to cite no longer holds.
         var applied = new Dictionary<int, int>();
         var desired = new Dictionary<int, int> { [9] = 1 };
 
         var changed = IconGlowPolicy.Diff(applied, desired);
 
         Assert.Equal(1, changed[9]);
-    }
-
-    // ---- U3: needle verdict classification -- exactly one hit is the only manageable case ----
-
-    [Fact]
-    public void ClassifyHitCount_Zero_IsNotFound()
-        => Assert.Equal(IconGlowPolicy.NeedleVerdict.NotFound, IconGlowPolicy.ClassifyHitCount(0));
-
-    [Fact]
-    public void ClassifyHitCount_One_IsFoundOnce()
-        => Assert.Equal(IconGlowPolicy.NeedleVerdict.FoundOnce, IconGlowPolicy.ClassifyHitCount(1));
-
-    [Fact]
-    public void ClassifyHitCount_Two_IsAmbiguous()
-        => Assert.Equal(IconGlowPolicy.NeedleVerdict.Ambiguous, IconGlowPolicy.ClassifyHitCount(2));
-
-    [Fact]
-    public void FindNeedle_ExactlyOnce_ReturnsHitAndOffset()
-    {
-        byte[] haystack = { 9, 9, 1, 2, 3, 9, 9, 9 };
-        byte[] needle = { 1, 2, 3 };
-
-        int hits = IconGlowPolicy.FindNeedle(haystack, needle, out long offset);
-
-        Assert.Equal(1, hits);
-        Assert.Equal(2, offset);
-    }
-
-    [Fact]
-    public void FindNeedle_NotPresent_ReturnsZeroHits()
-    {
-        byte[] haystack = { 9, 9, 9, 9 };
-        byte[] needle = { 1, 2, 3 };
-
-        int hits = IconGlowPolicy.FindNeedle(haystack, needle, out long offset);
-
-        Assert.Equal(0, hits);
-        Assert.Equal(-1, offset);
-    }
-
-    [Fact]
-    public void FindNeedle_MultipleOccurrences_CapsCountAtTwo()
-    {
-        // Truly occurs three times; the cap only ever needs to know ">1", never the real count,
-        // so a common byte run never forces scanning the rest of a 64MB buffer.
-        byte[] haystack = { 1, 2, 3, 9, 1, 2, 3, 9, 1, 2, 3 };
-        byte[] needle = { 1, 2, 3 };
-
-        int hits = IconGlowPolicy.FindNeedle(haystack, needle, out long offset);
-
-        Assert.Equal(2, hits);
-        Assert.Equal(0, offset);   // the first hit's offset is still correct even once capped
     }
 }
