@@ -121,6 +121,17 @@ def grows_phrase(grows):
     return GROWS_SPELLED[grows]
 
 
+def grows_line(it):
+    """The exact tagged 'Grows: <phrase>.' line for a living item -- the SINGLE composition
+    point for that line's text (LW-332), called by both assemble_desc (the rendered card) and
+    gen_living_weapon_meta.py (the baked "growsLine" meta field the runtime treats as a second
+    Kills-counter anchor, LivingWeapon/Display/CardScanner.cs): the two can never independently
+    drift apart because both read the same string out of here. LW-329's inline color tag wears
+    the lane's hue (LANE_COLOR_SLOT); the phrase itself is grows_phrase's spelled-out wording."""
+    return ("<color=" + LANE_COLOR_SLOT[it["grows"]] + ">Grows: "
+            + grows_phrase(it["grows"]) + ".</color>")
+
+
 def mechanics(it):
     s = it["proposed"]
     parts = []
@@ -305,12 +316,16 @@ def card_signature_name(sig):
 def assemble_desc(it, scaffold=True):
     """The COMPLETE rendered card description, byte-for-byte what patch_names.py bakes into
     item.en.nxd: the Living Weapon Kills-meter scaffold FIRST (owner decision 2026-07-06, moved
-    off the last line so the counter reads before the flavor prose), then a blank line, then the
-    flavor line (+ generated mechanics), the uniform range sentence, and the "+{atTier} Ability"
-    signature block. Extracted here so analyze.py's desc-budget gate and the baker CANNOT drift:
-    the same lockstep contract flavor_anchor carries for the (now second) flavor line.
+    off the last line so the counter reads before the flavor prose), then the colored Grows line
+    (LW-332, moved up from the body bottom -- CardScanner now anchors the Kills counter to it
+    too, so the wider gap that move opens no longer risks a mispaint), then the flavor line
+    (+ generated mechanics), the uniform range sentence, and the "+{atTier} Ability" signature
+    block. Extracted here so analyze.py's desc-budget gate and the baker CANNOT drift: the same
+    lockstep contract flavor_anchor carries for the (now third) flavor line.
     `scaffold` stays a parameter for callers that need an unscaffolded render; the bake itself
-    is unconditional (patch_names' never-False SCAFFOLD_LIVING knob was deleted in LW-155)."""
+    is unconditional (patch_names' never-False SCAFFOLD_LIVING knob was deleted in LW-155). An
+    unscaffolded living render still carries the Grows line, as its own first line (there is no
+    Kills line for it to sit under)."""
     custom = it.get("desc")
     if custom:
         desc = custom
@@ -330,21 +345,22 @@ def assemble_desc(it, scaffold=True):
     # LW-322 (owner ruling 2026-08-25): every living weapon's card says in plain words what it
     # grows. Unconditional on `scaffold` (body text, not scaffold) so an unscaffolded render
     # still carries it. Source is items.json's "grows", already GROWS LOCKSTEP-gated to the grid.
-    if is_living(it):
-        # LW-329 (owner rulings 2026-08-25): the WHOLE Grows line wears its lane's hue via
-        # an inline color tag the card renderer consumes (LIVE_LEDGER
-        # [inline-color-markup-in-ui-text], card surface half). Slots are the owner-read
-        # palette sitting's picks (tools/probes/lw329_palette_map.json); katanas ride
-        # periwinkle 94, poles own purple 95. analyze.py pins its own copy of this table
-        # (GROWS_COLOR_SLOT) so gate and bake cannot drift apart. The line stays at the
-        # BODY BOTTOM for now: moving it under the Kills line stretches the runtime's
-        # Kills-to-flavor anchor gap and risks nearest-flavor mispairing, so the move
-        # ships only together with a CardScanner anchor extension (see docs/TODO.md).
+    # LW-329: the WHOLE line wears its lane's hue via an inline color tag the card renderer
+    # consumes (LIVE_LEDGER [inline-color-markup-in-ui-text], card surface half); grows_line()
+    # is the single composition point (shared with gen_living_weapon_meta.py's baked
+    # "growsLine" meta field, which the runtime treats as a second Kills-counter anchor --
+    # LivingWeapon/Display/CardScanner.cs). LW-332: the line moved UP from the body bottom to
+    # directly under the Kills line (this composed value, `gl`, is placed below; this early
+    # rstrip/period-ensure step is UNCHANGED from before that move -- it keeps every other baked
+    # byte identical -- even though its result no longer has Grows glued onto it right here).
+    gl = grows_line(it) if is_living(it) else None
+    if gl is not None:
         desc = desc.rstrip()
         if desc and not desc.endswith((".", "!", "?")):
             desc += "."
-        desc += ("\n<color=" + LANE_COLOR_SLOT[it["grows"]] + ">Grows: "
-                 + grows_phrase(it["grows"]) + ".</color>")
+        if not scaffold:
+            # No Kills scaffold to sit under: the line is simply the body's FIRST line.
+            desc = gl + "\n" + desc
     # LW-166 baked a "No Poaching." clause here for dormant-formula weapons; LW-167 armed a
     # runtime cure (Living Poach) that makes them poachable again, so the clause would now be
     # false. Removed (owner chose clean cards + a FAQ entry over a replacement line) -- see
@@ -360,13 +376,16 @@ def assemble_desc(it, scaffold=True):
             at = sig.get("atTier", 3)
             header = f"{sname} (+{at})" if sname else f"(+{at})"
             desc = desc.rstrip() + f"\n\n{header}\n{p3}"
-        # Kills line FIRST, blank line after, then the rest of the body. The DLL paints the
-        # tier-progress meter into the KILLS_SLOT_BODY_CHARS-wide body slot in place; the
-        # literal prefix MUST stay in lockstep with ByteScan.MeterSlotDigits.
+        # Kills line FIRST, then the Grows line (LW-332: moved here from the body bottom so the
+        # owner's growth lane reads right under the counter -- CardScanner now anchors the Kills
+        # counter to Grows too, so the wider gap this opens no longer risks a mispaint), then the
+        # rest of the body. The DLL paints the tier-progress meter into the
+        # KILLS_SLOT_BODY_CHARS-wide body slot in place; the literal prefix MUST stay in
+        # lockstep with ByteScan.MeterSlotDigits.
         # Blank line after Kills removed 2026-08-25 (LW-333): the box clips by wrapped
         # LINES and the blank cost every card one of nine; density matches the owner's
-        # own layout sketch. Bonus: the Kills-to-flavor anchor gap shrinks by a byte.
-        desc = KILLS_SCAFFOLD + "\n" + desc.lstrip("\n")
+        # own layout sketch.
+        desc = KILLS_SCAFFOLD + "\n" + gl + "\n" + desc.lstrip("\n")
     return desc
 
 

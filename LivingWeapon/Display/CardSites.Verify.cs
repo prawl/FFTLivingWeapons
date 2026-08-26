@@ -69,26 +69,52 @@ internal sealed partial class CardSites
         return ByteEq(ck, kl) ? AnchorState.Live : AnchorState.Mismatch;
     }
 
-    /// <summary>Kills-site flavor-anchor tri-state: baked-only when _anchors is null (every
-    /// pre-Reliquary caller); otherwise ANY of [baked, current, previous] (EarnedAnchors.AnchorsFor
-    /// -- every candidate is enforced equal-length by construction, so one read suffices) counts
-    /// as Live. Mirrors the original bool KillsAnchorMatches this replaces, read-for-read.</summary>
+    /// <summary>Kills-site flavor-anchor tri-state: baked Flavor + Grows (LW-332) when _anchors
+    /// is null (the production path today -- Engine.cs wires legends: null); otherwise ANY of
+    /// EarnedAnchors.AnchorsFor's set (baked, current, previous, Grows). Delegates to <see
+    /// cref="MatchAnyAnchor"/>. Mirrors the original bool KillsAnchorMatches this replaces,
+    /// read-for-read wherever every candidate still shares one length.</summary>
     private AnchorState VerifyKillsFlavor(Site s, CardPatterns.Entry pat)
     {
         if (_anchors == null)
         {
-            byte[] ab = pat.Flavor;
-            if (ab.Length == 0) return AnchorState.Mismatch;
-            if (!_mem.TryReadBytes(s.AnchorAddr, ab.Length, out var cur)) return AnchorState.Unreadable;
-            return ByteEq(cur, ab) ? AnchorState.Live : AnchorState.Mismatch;
+            var baked = new List<byte[]>(2);
+            if (pat.Flavor.Length > 0) baked.Add(pat.Flavor);
+            if (pat.Grows.Length > 0) baked.Add(pat.Grows);
+            return MatchAnyAnchor(s, baked);
         }
 
-        var candidates = _anchors.AnchorsFor(s.Id, s.Enc);
+        return MatchAnyAnchor(s, _anchors.AnchorsFor(s.Id, s.Enc));
+    }
+
+    /// <summary>Match the bytes at s.AnchorAddr against ANY of the given candidates, reading once
+    /// per DISTINCT candidate byte length rather than assuming a single shared length. Before
+    /// LW-332, every candidate set the anchors!=null branch saw genuinely shared one length --
+    /// EarnedAnchors enforces current/previous equal-length to baked Flavor by construction --
+    /// so a single read at candidates[0].Length always sufficed. LW-332 appended the baked Grows
+    /// pattern to that same set (and to the null-anchors fallback) with its OWN, generally
+    /// DIFFERENT, length: since FlavorPos can now resolve to the Grows line's position
+    /// (Display.cs:335 via CardScanner's bidirectional search), a site's AnchorAddr may hold
+    /// EITHER length, so both must be tried. In practice this is still exactly ONE read for
+    /// every pre-Grows fixture (every candidate shares a length) and at most two once Grows is
+    /// in play. Live on the first byte match; Unreadable only when EVERY distinct length failed
+    /// to read; Mismatch otherwise (including the empty-candidates case).</summary>
+    private AnchorState MatchAnyAnchor(Site s, IReadOnlyList<byte[]> candidates)
+    {
         if (candidates.Count == 0) return AnchorState.Mismatch;
-        if (!_mem.TryReadBytes(s.AnchorAddr, candidates[0].Length, out var curBytes)) return AnchorState.Unreadable;
+        bool readSomething = false;
+        var triedLengths = new List<int>(2);
         foreach (var cand in candidates)
-            if (cand.Length == curBytes.Length && ByteEq(curBytes, cand)) return AnchorState.Live;
-        return AnchorState.Mismatch;
+        {
+            if (cand.Length == 0 || triedLengths.Contains(cand.Length)) continue;
+            triedLengths.Add(cand.Length);
+
+            if (!_mem.TryReadBytes(s.AnchorAddr, cand.Length, out var curBytes)) continue;
+            readSomething = true;
+            foreach (var c2 in candidates)
+                if (c2.Length == curBytes.Length && ByteEq(curBytes, c2)) return AnchorState.Live;
+        }
+        return readSomething ? AnchorState.Mismatch : AnchorState.Unreadable;
     }
 
     /// <summary>The leniency policy (LW-257, load-bearing): decides whether THIS pass should

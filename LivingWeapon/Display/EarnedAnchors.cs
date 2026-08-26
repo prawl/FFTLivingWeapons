@@ -17,6 +17,11 @@ namespace LivingWeapon;
 ///
 /// Engine-thread only: no locking. Display/Engine's tick loop is single-threaded; this class is
 /// not safe to call from any other thread.
+///
+/// LW-332: AnchorsFor also appends the weapon's baked Grows line LAST (verify-only -- there is
+/// no CURRENT/PREVIOUS rotation for it, it never changes). UniqueAnchorsFor exposes the same set
+/// WITHOUT Grows, for CardScanner's two-key ownership rule (same-lane weapons bake byte-identical
+/// Grows lines, so a shared Grows match alone must never decide ownership).
 /// </summary>
 internal sealed class EarnedAnchors
 {
@@ -75,8 +80,31 @@ internal sealed class EarnedAnchors
     /// <summary>The live anchor set for (weaponId, enc): baked FIRST (always present, if this
     /// weapon has a non-empty baked flavor), then current (if any), then previous (if any AND
     /// distinct from current -- dedup keeps the scanner from registering the same byte pattern
-    /// twice). Empty for a weapon id with no baked pattern at all.</summary>
+    /// twice), then the baked Grows line LAST (LW-332, if non-empty). Empty for a weapon id with
+    /// no baked pattern at all.</summary>
     public List<byte[]> AnchorsFor(int weaponId, int enc)
+    {
+        var list = UniqueAnchorsFor(weaponId, enc);
+        if (_pats.TryGet(weaponId, enc, out var baked) && baked.Grows.Length > 0)
+            list.Add(baked.Grows);
+        return list;
+    }
+
+    /// <summary>LW-332: the SAME set as <see cref="AnchorsFor"/> minus the baked Grows pattern --
+    /// same-lane weapons bake byte-IDENTICAL Grows lines, so CardScanner's two-key ownership rule
+    /// (FindNearestFlavor) needs each entry's UNIQUE candidates (flavor + earned lines) to break
+    /// a tie a shared Grows byte match alone can never resolve; a Grows-only "match" must never
+    /// confer ownership by itself.
+    ///
+    /// LW-332 round 3 accepted residual: analyze.py's FLAVOR PREFIX gate (check_flavor_prefix)
+    /// only sees BAKED flavor, not the current/previous composed lines this method also returns
+    /// -- it cannot gate runtime content. Narrow in practice: TryEncode length-locks every
+    /// composed line to the SAME weapon's own baked flavor byte-length, so a cross-weapon F
+    /// collision through composed content needs a coincidental same-length prefix match, is
+    /// bounded by STEP 2's rule that an entry WITH NO unique candidate in-window is ineligible,
+    /// and any mispaint it did cause would still be caught by CardSites' paint-time verify. No
+    /// code change for this round.</summary>
+    public List<byte[]> UniqueAnchorsFor(int weaponId, int enc)
     {
         var list = new List<byte[]>(3);
         if (_pats.TryGet(weaponId, enc, out var baked) && baked.Flavor.Length > 0)

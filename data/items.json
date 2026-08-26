@@ -951,7 +951,7 @@
       "name": "Wrathblade",
       "tier": 4,
       "identity": "Berserker sword: damage equals the wielder's missing HP. Zero at full health, devastating near death. WP and evade are cosmetic for damage. The widely-equippable desperation blade.",
-      "flavorOverride": "Ruin feeds it.",
+      "flavorOverride": "Ruin feeds on the dying.",
       "baseline": {
         "wp": 12,
         "evade": 10,
@@ -3001,7 +3001,7 @@
       "name": "Stormarc",
       "tier": 3,
       "identity": "T3 elemental — attacks deal Lightning (anti-armor/robotic; Lightning-absorbers heal it). +1 WP over Frostarc, different element coverage.",
-      "flavorOverride": "Storm-wired.",
+      "flavorOverride": "Storm-wired, arcs unseen.",
       "baseline": {
         "wp": 6,
         "evade": 0,

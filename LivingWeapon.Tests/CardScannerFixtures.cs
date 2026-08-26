@@ -22,6 +22,21 @@ internal static class CardScannerFixtures
         return map;
     }
 
+    /// <summary>LW-332: BuildMeta/BuildMetaMap with an additional baked GrowsLine per weapon
+    /// (the pre-existing helpers leave GrowsLine at its "" default, i.e. no Grows anchor).</summary>
+    internal static WeaponMeta BuildMetaWithGrows(string name, string flavor, string growsLine)
+    {
+        return new WeaponMeta { Name = name, Flavor = flavor, GrowsLine = growsLine };
+    }
+
+    internal static Dictionary<int, WeaponMeta> BuildMetaMapWithGrows(params (int id, string name, string flavor, string growsLine)[] items)
+    {
+        var map = new Dictionary<int, WeaponMeta>();
+        foreach (var (id, name, flavor, growsLine) in items)
+            map[id] = BuildMetaWithGrows(name, flavor, growsLine);
+        return map;
+    }
+
     /// <summary>
     /// Build a full card buffer: name + 2-char suffix slot + description.
     /// Description = flavor + " filler." + "\n\nKills: NNNN" (where NNNN is a 4-char slot).

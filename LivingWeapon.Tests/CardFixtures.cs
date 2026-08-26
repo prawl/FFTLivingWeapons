@@ -93,6 +93,32 @@ internal static class CardFixtures
         return (killsSlotPos, flavorPos);
     }
 
+    /// <summary>Write a NEW-LAYOUT card block WITH a Grows line between the Kills slot and the
+    /// flavor (LW-332 post-move bake order): "Kills: " + slot + "\n" + growsLine + "\n" +
+    /// flavor. Returns (killsSlotPos, growsPos, flavorPos) buf-relative.</summary>
+    internal static (int killsSlotPos, int growsPos, int flavorPos) WriteCardForwardWithGrows(
+        byte[] buf, int pos, string growsLine, string flavor, int enc = 1, string? slot = null)
+    {
+        slot ??= DefaultMeterSlot();
+        byte[] killsB = ByteScan.Enc("Kills: ", enc);
+        byte[] slotB  = ByteScan.Enc(slot, enc);
+        byte[] nB     = ByteScan.Enc("\n", enc);
+        byte[] growsB = ByteScan.Enc(growsLine, enc);
+        byte[] flvB   = ByteScan.Enc(flavor, enc);
+
+        int at = pos;
+        Array.Copy(killsB, 0, buf, at, killsB.Length); at += killsB.Length;
+        int killsSlotPos = at;
+        Array.Copy(slotB, 0, buf, at, slotB.Length); at += slotB.Length;
+        Array.Copy(nB, 0, buf, at, nB.Length); at += nB.Length;
+        int growsPos = at;
+        Array.Copy(growsB, 0, buf, at, growsB.Length); at += growsB.Length;
+        Array.Copy(nB, 0, buf, at, nB.Length); at += nB.Length;
+        int flavorPos = at;
+        Array.Copy(flvB, 0, buf, at, flvB.Length); at += flvB.Length;
+        return (killsSlotPos, growsPos, flavorPos);
+    }
+
     /// <summary>Write a NEW-LAYOUT card block that ALSO carries the weapon's Name + 2-char
     /// suffix slot ahead of the Kills line (the realistic pool geometry, LW-37: name -> ... ->
     /// Kills -> flavor), so a single fixture can drive both kills AND suffix attribution

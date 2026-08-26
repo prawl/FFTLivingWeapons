@@ -24,6 +24,15 @@ public sealed class WeaponMeta
     // The weapon's flavor line -- the stable lead of its description. The in-card Kills
     // counter is anchored to this (the nearest flavor before a "Kills " is that weapon's).
     [JsonProperty("flavor")] public string Flavor { get; set; } = "";
+    // LW-332: the exact tagged "Grows: ..." card line (lib.flavor.grows_line -- LW-329's inline
+    // color tag) this living weapon's description bakes. CardScanner treats it as a SECOND
+    // anchor pattern alongside Flavor, since the Grows line now sits right under the Kills
+    // scaffold (closer to it than Flavor is) once the bake moves the line up. The runtime never
+    // COMPOSES this string -- it only ever encodes what the bake already shipped; meta.json (via
+    // the Python bake, the single source of truth) carries its exact bytes. "" for any
+    // non-living id the bake might emit (a defense; every id gen_living_weapon_meta.py emits
+    // today is living).
+    [JsonProperty("growsLine")] public string GrowsLine { get; set; } = "";
     // The iconic passive this weapon grants its wielder at a kill-tier (null for most
     // weapons -- they are pure stat growth). Only support passives are wired; see Signatures.
     [JsonProperty("signature")] public WeaponSignature? Signature { get; set; }

@@ -12,10 +12,11 @@ namespace LivingWeapon;
 internal sealed class CardPatterns
 {
     /// <summary>
-    /// An (id, enc) -> (Name, Flavor) pattern pair. Name and Flavor are the
-    /// encoded byte sequences CardScanner searches for via ByteScan.FindAll.
+    /// An (id, enc) -> (Name, Flavor, Grows) pattern set. Name, Flavor, and Grows are the
+    /// encoded byte sequences CardScanner searches for via ByteScan.FindAll. Grows (LW-332) is
+    /// the baked "Grows: ..." line -- empty for any id with no baked GrowsLine.
     /// </summary>
-    internal readonly record struct Entry(int Id, int Enc, byte[] Name, byte[] Flavor);
+    internal readonly record struct Entry(int Id, int Enc, byte[] Name, byte[] Flavor, byte[] Grows);
 
     private readonly Dictionary<(int id, int enc), Entry> _entries = new();
     private readonly byte[] _killsAscii;
@@ -37,22 +38,25 @@ internal sealed class CardPatterns
             // Coalesce nulls that Newtonsoft can produce from explicit JSON null values.
             string name = kv.Value.Name ?? "";
             string flavor = kv.Value.Flavor ?? "";
+            string grows = kv.Value.GrowsLine ?? "";
 
-            // Skip if name is empty (flavor may be empty).
+            // Skip if name is empty (flavor/grows may be empty).
             if (string.IsNullOrEmpty(name))
                 continue;
 
             // enc = 1 (ASCII)
             byte[] nameAscii = ByteScan.Ascii(name);
             byte[] flavorAscii = ByteScan.Ascii(flavor);
-            var e1 = new Entry(id, 1, nameAscii, flavorAscii);
+            byte[] growsAscii = ByteScan.Ascii(grows);
+            var e1 = new Entry(id, 1, nameAscii, flavorAscii, growsAscii);
             _entries[(id, 1)] = e1;
             entries.Add(e1);
 
             // enc = 2 (UTF-16LE)
             byte[] nameUtf16 = ByteScan.Utf16(name);
             byte[] flavorUtf16 = ByteScan.Utf16(flavor);
-            var e2 = new Entry(id, 2, nameUtf16, flavorUtf16);
+            byte[] growsUtf16 = ByteScan.Utf16(grows);
+            var e2 = new Entry(id, 2, nameUtf16, flavorUtf16, growsUtf16);
             _entries[(id, 2)] = e2;
             entries.Add(e2);
         }
@@ -61,10 +65,13 @@ internal sealed class CardPatterns
 
         // MaxAnchorLen: maximum over encoded BYTE lengths (not char counts). UTF-16LE
         // doubles every char, so computing from chars would understate by 2x for that enc.
+        // LW-332: Grows is included alongside Name/Flavor -- it is searched exactly like Flavor
+        // (CardScanner.AnchorCandidates) and can be the longer pattern for some lanes.
         foreach (var e in entries)
         {
             _maxAnchorLen = Math.Max(_maxAnchorLen, e.Name.Length);
             _maxAnchorLen = Math.Max(_maxAnchorLen, e.Flavor.Length);
+            _maxAnchorLen = Math.Max(_maxAnchorLen, e.Grows.Length);
         }
 
         // Cache the encoded "Kills: " literal (7 chars = 7 for enc=1, 14 for enc=2).
@@ -89,7 +96,7 @@ internal sealed class CardPatterns
     }
 
     /// <summary>
-    /// The maximum BYTE length over all encoded Name and Flavor arrays (both
+    /// The maximum BYTE length over all encoded Name, Flavor, and Grows (LW-332) arrays (both
     /// enc=1 and enc=2). UTF-16LE doubles every char, so UTF-16 patterns are
     /// the largest. Display's startup invariant checks this against the sweep
     /// lookback (via <see cref="FitsLookback"/>) so every anchor + slot fits
@@ -103,7 +110,7 @@ internal sealed class CardPatterns
     /// Reliquary Phase 1 note (docs/RELIQUARY_AC.md, decision 12): this class stays IMMUTABLE
     /// and unaware of EarnedAnchors -- an earned/current/previous composed-line pattern is
     /// enforced (EarnedAnchors.TryEncode) to have the SAME encoded byte length as its weapon's
-    /// baked Flavor pattern here, so MaxAnchorLen (computed once, from baked Name/Flavor only)
+    /// baked Flavor pattern here, so MaxAnchorLen (computed once, from baked Name/Flavor/Grows)
     /// remains a valid upper bound even once earned lines are registered. See Display.cs's ctor
     /// for where this invariant is exercised at startup, and
     /// DisplayStoryLineTests.FitsLookback_with_earned_patterns_registered for the test.</summary>
@@ -115,13 +122,15 @@ internal sealed class CardPatterns
 
     /// <summary>True when the given trailing slack (ChunkReader.TrailSlack / DisplaySweep.TrailSlack)
     /// fits the worst-case FORWARD reach a new-layout card needs: the bidirectional attribution
-    /// search (CardScanner) can now find a weapon's flavor AFTER its "Kills: " hit (the Reliquary
-    /// Phase-2 equip-meter layout, docs/TODO.md), so the trailing slack (not just the leading
-    /// Lookback prefix FitsLookback guards) must hold the widest anchor plus the Kills literal
-    /// plus the meter slot, all in UTF-16 (the widest encoding), plus the "\n\n" gap between the
-    /// slot and the next card's own leading bytes. Mirrors FitsLookback for the forward direction;
-    /// see Display's ctor for where this is exercised at startup (log-and-continue, same posture
-    /// as FitsLookback: a too-short slack only degrades painting, never crashes).</summary>
+    /// search (CardScanner) can now find a weapon's flavor (or, since LW-332, its Grows line --
+    /// whichever anchor sits AFTER "Kills: ") after its "Kills: " hit (the Reliquary Phase-2
+    /// equip-meter layout, docs/TODO.md), so the trailing slack (not just the leading Lookback
+    /// prefix FitsLookback guards) must hold the widest anchor (MaxAnchorLen, which already
+    /// includes Grows) plus the Kills literal plus the meter slot, all in UTF-16 (the widest
+    /// encoding), plus the "\n\n" gap between the slot and the next card's own leading bytes.
+    /// Mirrors FitsLookback for the forward direction; see Display's ctor for where this is
+    /// exercised at startup (log-and-continue, same posture as FitsLookback: a too-short slack
+    /// only degrades painting, never crashes).</summary>
     public bool FitsTrailSlack(int trailSlack)
     {
         int worstCase = _maxAnchorLen + Kills(2).Length + Signatures.KillsMeterSlotChars * 2 + 4;

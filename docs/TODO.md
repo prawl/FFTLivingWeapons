@@ -87,7 +87,15 @@ the technical detail lives in the indented lines under it.
     ramp; it lives on only in git history. Whether that already-approved look also satisfies
     this row's own gallery-pass wait clause is the owner's call, not this arc's.
 
-- **[LW-332] The Grows line moves up to sit directly under the Kills line** (opened 2026-08-25) [BUILDING]
+- **[LW-332] The Grows line moves up to sit directly under the Kills line** (opened 2026-08-25) [AWAITING-LIVE]
+  - BUILT, four-round pipeline 2026-08-25 late (two adversarial verify rounds broke and
+    then blessed the ownership design; final verdict SHIP, code 9, spec 9). Deployed and
+    the owner saw the moved line live on the Stormarc card and ordered the commit. Owed
+    owner reads: the same-lane fast-flip (two weapons sharing a Grows line each keep
+    their own count) and one battle crediting kills to the right weapon. A blank line
+    after the Grows line was weighed the same night and DECLINED by the owner: 26 cards
+    sit at the 9-line cap, three of them cannot pay a line from prose at all, and the
+    owner chose keeping the signature block's blank line over the extra gap.
   - Re-promoted 2026-08-25 late on the owner's fresh call ("the fact that the Grows
     isn't directly under the Kills is killing me"), pausing the glow arc (LW-319, now
     backlog top with its state banked). The progression header: kills and growth

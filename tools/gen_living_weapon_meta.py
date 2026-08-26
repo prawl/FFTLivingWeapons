@@ -25,7 +25,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from lib.categories import WEAPON_CATS
-from lib.flavor import flavor_anchor   # same deterministic flavor() the descriptions are baked from
+from lib.flavor import (assemble_desc, flavor_anchor, grows_line,   # same deterministic
+                         is_living)                                 # bake the descriptions use
 from lib.items import load_items
 from lib.paths import ROOT
 
@@ -268,6 +269,32 @@ def check_wp_sid_identity(meta, add_data_id):
     return errors
 
 
+def check_grows_line_in_desc(meta, items):
+    """LW-332 bake-time pin: every emitted "growsLine" must appear EXACTLY once in that weapon's
+    assembled description (lib.flavor.assemble_desc) -- this is what lets CardScanner
+    (LivingWeapon/Display/CardScanner.cs) treat growsLine as just another baked anchor pattern
+    with NO C#-side mirror of its text: if the bake ever drifted the two apart, the runtime would
+    search the card for bytes it never actually shows. An empty growsLine (a non-living id, a
+    defense -- see main()) is never checked. Pure over its two inputs (no file I/O), mirroring
+    check_wp_sid_identity's own shape so `--selftest` can drive it directly."""
+    errors = []
+    by_id = {it["id"]: it for it in items}
+    for wid_str, entry in meta.items():
+        gl = entry.get("growsLine")
+        if not gl:
+            continue
+        it = by_id.get(int(wid_str))
+        if it is None:
+            errors.append(f"id {wid_str} ({entry.get('name')}) has a growsLine but no matching "
+                           f"items.json row")
+            continue
+        count = assemble_desc(it).count(gl)
+        if count != 1:
+            errors.append(f"id {wid_str} ({entry['name']}) growsLine {gl!r} occurs {count} "
+                           f"times in its assembled description, expected exactly 1")
+    return errors
+
+
 _ADD_DATA_IDS_FILE = ROOT / "data" / "additional_data_ids.json"
 
 
@@ -313,6 +340,13 @@ def main():
             # every multi-lane token now keeps its own real shape (the LW-250 interim collapse
             # is retired).
             "lane": lane_of(it.get("grows"), cat),
+            # LW-332: the exact tagged "Grows: ..." card line (lib.flavor.grows_line) this
+            # weapon's description bakes -- CardScanner treats it as a second Kills-counter
+            # anchor once the line moves directly under the Kills scaffold. Every id reaching
+            # this point is living (the loop already filtered on WEAPON_CATS + not noGrowth,
+            # is_living's own predicate), so this is "" only as a defense against a future emit
+            # path that isn't -- see check_grows_line_in_desc below for the bake-time pin.
+            "growsLine": grows_line(it) if is_living(it) else "",
         }
         sig = it.get("signature")
         if sig:   # iconic tier-grant; emit only the fields the runtime uses (drop curator notes).
@@ -354,6 +388,11 @@ def main():
     if sid_errors:
         sys.exit("FAIL: gun WP-table sid identity check found " + str(len(sid_errors)) + " problem(s):\n  "
                   + "\n  ".join(sid_errors))
+
+    grows_line_errors = check_grows_line_in_desc(meta, doc["items"])
+    if grows_line_errors:
+        sys.exit("FAIL: growsLine bake-time pin found " + str(len(grows_line_errors)) + " problem(s):\n  "
+                  + "\n  ".join(grows_line_errors))
 
     # write_bytes, not write_text: Path.write_text applies the platform's newline
     # translation on write, which silently turns this LF-only tracked file to CRLF on every
@@ -480,6 +519,31 @@ def selftest():
           len(check_wp_sid_identity(clean_meta, {74: 74})) > 0)
     check("sid identity: a non-wp/wp+faith lane is never checked",
           check_wp_sid_identity({"9": {"name": "Galewind", "lane": "pa"}}, {}) == [])
+
+    # LW-332: check_grows_line_in_desc, the bake-time pin that every baked "growsLine" occurs
+    # EXACTLY once in its own weapon's assembled description (lib.flavor.assemble_desc) -- this
+    # is what lets CardScanner treat growsLine as just another baked anchor pattern with NO C#
+    # mirror of its text.
+    def fake_grows_item(iid, grows, category="Knife"):
+        return {"id": iid, "name": "Cutpurse", "category": category, "vanillaName": "Cutpurse",
+                "tier": 1, "grows": grows, "proposed": {"wp": 4, "evade": 0, "formula": 1},
+                "baseline": {"wp": 4}}
+
+    clean_item = fake_grows_item(1, "PA")
+    clean_meta_gl = {"1": {"name": "Cutpurse", "growsLine": grows_line(clean_item)}}
+    check("grows line: a growsLine matching its own item's assembled desc passes",
+          check_grows_line_in_desc(clean_meta_gl, [clean_item]) == [])
+
+    drifted_meta_gl = {"1": {"name": "Cutpurse", "growsLine": grows_line(fake_grows_item(1, "MA"))}}
+    check("grows line: a growsLine that doesn't match its own item's assembled desc fails",
+          len(check_grows_line_in_desc(drifted_meta_gl, [clean_item])) > 0)
+
+    orphan_meta_gl = {"99": {"name": "Ghost", "growsLine": grows_line(clean_item)}}
+    check("grows line: a growsLine with no matching items.json row fails",
+          len(check_grows_line_in_desc(orphan_meta_gl, [clean_item])) > 0)
+
+    check("grows line: an empty growsLine is never checked (non-living defense)",
+          check_grows_line_in_desc({"1": {"name": "X", "growsLine": ""}}, []) == [])
 
     passed = sum(1 for _, ok in cases if ok)
     for name, ok in cases:

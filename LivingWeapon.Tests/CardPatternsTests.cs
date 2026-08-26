@@ -239,6 +239,53 @@ public class CardPatternsTests
     }
 
     [Fact]
+    public void Grows_line_round_trips_both_encodings()
+    {
+        // LW-332: Entry gains a Grows pattern (encoded from WeaponMeta.GrowsLine) alongside
+        // Name/Flavor, the same way Flavor itself is encoded.
+        const string growsLine = "<color=30>Grows: Physical Attack.</color>";
+        var meta = new Dictionary<int, WeaponMeta>
+        {
+            { 1, new WeaponMeta { Name = "Sword", Flavor = "A sharp blade", GrowsLine = growsLine } },
+        };
+        var patterns = new CardPatterns(meta);
+
+        Assert.True(patterns.TryGet(1, 1, out var e1));
+        Assert.True(patterns.TryGet(1, 2, out var e2));
+        Assert.Equal(ByteScan.Ascii(growsLine), e1.Grows);
+        Assert.Equal(ByteScan.Utf16(growsLine), e2.Grows);
+    }
+
+    [Fact]
+    public void Empty_grows_line_yields_an_empty_array()
+    {
+        var meta = new Dictionary<int, WeaponMeta>
+        {
+            { 1, new WeaponMeta { Name = "Sword", Flavor = "A sharp blade" } },   // GrowsLine defaults to ""
+        };
+        var patterns = new CardPatterns(meta);
+
+        Assert.True(patterns.TryGet(1, 1, out var e1));
+        Assert.Empty(e1.Grows);
+    }
+
+    [Fact]
+    public void MaxAnchorLen_includes_the_grows_pattern()
+    {
+        // A GrowsLine longer than either Name or Flavor must widen MaxAnchorLen -- the whole
+        // point of including it is so a too-short lookback/trail-slack is caught at startup.
+        var meta = new Dictionary<int, WeaponMeta>
+        {
+            { 1, new WeaponMeta { Name = "Sword", Flavor = "Hi", GrowsLine = "A very long grows line indeed" } },
+        };
+        var patterns = new CardPatterns(meta);
+
+        // UTF-16LE doubles every char: "A very long grows line indeed" is 29 chars -> 58 bytes,
+        // the new max (longer than Name's 10 bytes or Flavor's 4 bytes in UTF-16).
+        Assert.Equal(58, patterns.MaxAnchorLen);
+    }
+
+    [Fact]
     public void Handles_non_ascii_characters_in_name()
     {
         // ByteScan.Ascii drops non-ASCII; UTF-16 keeps them

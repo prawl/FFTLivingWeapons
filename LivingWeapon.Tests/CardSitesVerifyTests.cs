@@ -197,6 +197,44 @@ public class CardSitesVerifyTests
             "the address predicate must actually gate the answer, not be ignored");
     }
 
+    /// <summary>LW-332: once the Grows line sits between "Kills: " and flavor, CardScanner's
+    /// FlavorPos can resolve to the GROWS line's position instead of the flavor's (Grows sits
+    /// closer to "Kills: "). Grows and Flavor are generally DIFFERENT byte lengths -- unlike the
+    /// baked/current/previous set, which EarnedAnchors enforces equal-length to Flavor -- so
+    /// VerifyKillsFlavor must not assume the one shared length that set relies on; it must also
+    /// try the Grows pattern's own length, or a site anchored at Grows evicts on its very first
+    /// verify pass (Mismatch, no leniency) even though the bytes there are a legitimate baked
+    /// anchor. Exercises the anchors==null branch -- the actual production path today (Engine.cs
+    /// wires legends: null).</summary>
+    [Fact]
+    public void A_kills_site_anchored_at_the_grows_line_verifies_live_when_anchors_is_null()
+    {
+        const string flavor = "A fine blade indeed, truly";               // 26 chars
+        const string grows = "<color=30>Grows: Physical Attack.</color>"; // 41 chars -- different length
+        var meta = new System.Collections.Generic.Dictionary<int, WeaponMeta>
+        {
+            { 1, new WeaponMeta { Name = "Sword", Flavor = flavor, GrowsLine = grows, Wp = 15, Cat = "Sword", Formula = 1 } },
+        };
+        var pats = new CardPatterns(meta);
+
+        var buf = new byte[200];
+        int anchorPos = 10;
+        // The anchor address holds the GROWS bytes, not the flavor's -- simulating FlavorPos
+        // having resolved to the Grows line (Display.cs:335, via CardScanner.FindKills).
+        int slotAddr = CardFixtures.WriteKillsBlock(buf, anchorPos, grows, gap: 20);
+
+        var heap = new FakeHeap((0x1000L, buf, writable: true));
+        var sites = new CardSites(heap, pats);   // anchors omitted -> null, the production path
+
+        var site = new CardSites.Site(Id: 1, Enc: 1, SlotAddr: 0x1000 + slotAddr, AnchorAddr: 0x1000 + anchorPos, IsKills: true);
+        sites.Add(site);
+
+        int writes = sites.PaintAll(id => 7);
+
+        Assert.Equal(1, sites.Count);   // must NOT evict -- Grows is a legitimate baked anchor
+        Assert.Equal(1, writes);
+    }
+
     [Fact]
     public void Read_fail_shape_refusal_and_not_writable_are_three_distinct_outcomes()
     {

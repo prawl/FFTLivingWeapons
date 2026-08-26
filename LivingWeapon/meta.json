@@ -6,6 +6,7 @@
     "formula": 1,
     "flavor": "First steel of a guttersnipe's trade, light to palm and cheap to abandon in flight.",
     "lane": "speed",
+    "growsLine": "<color=40>Grows: Speed.</color>",
     "palette": 14,
     "colors": [
       7459,
@@ -32,6 +33,7 @@
     "formula": 1,
     "flavor": "Quenched to a liquid sheen, it slips aside as readily as it slips between ribs.",
     "lane": "speed",
+    "growsLine": "<color=40>Grows: Speed.</color>",
     "palette": 15,
     "colors": [
       3660,
@@ -58,6 +60,7 @@
     "formula": 45,
     "flavor": "Its edge swims with gloom; each wound steals a foe's daylight.",
     "lane": "speed",
+    "growsLine": "<color=40>Grows: Speed.</color>",
     "signature": {
       "abilityId": 213,
       "slot": "support",
@@ -90,6 +93,7 @@
     "formula": 45,
     "flavor": "Smith-wrought to throttle the throat; a chant dies unspoken the instant it draws blood.",
     "lane": "speed",
+    "growsLine": "<color=40>Grows: Speed.</color>",
     "signature": {
       "abilityId": 212,
       "slot": "support",
@@ -122,6 +126,7 @@
     "formula": 1,
     "flavor": "Balanced to the grain and burnished bright, the dirk a silversmith sets aside for himself.",
     "lane": "speed",
+    "growsLine": "<color=40>Grows: Speed.</color>",
     "palette": 13,
     "colors": [
       11394,
@@ -148,6 +153,7 @@
     "formula": 48,
     "flavor": "A duelist's parrying knife that drinks the blood it turns aside to mend its own bearer.",
     "lane": "speed",
+    "growsLine": "<color=40>Grows: Speed.</color>",
     "signature": {
       "abilityId": 210,
       "slot": "support",
@@ -180,6 +186,7 @@
     "formula": 1,
     "flavor": "Honed past sense into a tooth of cold adamant: it bites to the bone and shields nothing.",
     "lane": "speed",
+    "growsLine": "<color=40>Grows: Speed.</color>",
     "palette": 5,
     "colors": [
       4164,
@@ -206,6 +213,7 @@
     "formula": 1,
     "flavor": "One graze starts a quiet count that death collects.",
     "lane": "speed",
+    "growsLine": "<color=40>Grows: Speed.</color>",
     "signature": {
       "abilityId": 209,
       "slot": "support",
@@ -239,6 +247,7 @@
     "formula": 1,
     "flavor": "A coiled gust in steel.",
     "lane": "speed",
+    "growsLine": "<color=40>Grows: Speed.</color>",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -272,6 +281,7 @@
     "formula": 1,
     "flavor": "A duelist's silent masterwork.",
     "lane": "speed",
+    "growsLine": "<color=40>Grows: Speed.</color>",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -304,6 +314,7 @@
     "formula": 99,
     "flavor": "So weightless it leads the hand rather than follows; swifter the wielder, crueler the cut.",
     "lane": "speed",
+    "growsLine": "<color=40>Grows: Speed.</color>",
     "palette": 14,
     "colors": [
       2148,
@@ -330,6 +341,7 @@
     "formula": 1,
     "flavor": "A blade veiled in cold mist that stings the eyes of all it cuts.",
     "lane": "speed",
+    "growsLine": "<color=40>Grows: Speed.</color>",
     "palette": 14,
     "colors": [
       7237,
@@ -356,6 +368,7 @@
     "formula": 2,
     "flavor": "Tempered in winter's heart, its kiss leaves frost, and a deeper cold where it sinks.",
     "lane": "speed",
+    "growsLine": "<color=40>Grows: Speed.</color>",
     "palette": 15,
     "colors": [
       2178,
@@ -382,6 +395,7 @@
     "formula": 2,
     "flavor": "Christened for the thunder god, it carries his storm and looses it at the touch of flesh.",
     "lane": "speed",
+    "growsLine": "<color=40>Grows: Speed.</color>",
     "palette": 3,
     "colors": [
       6216,
@@ -408,6 +422,7 @@
     "formula": 1,
     "flavor": "Drawn against the spellbound, it stops a chant mid-breath; the silence finishes the deed.",
     "lane": "speed",
+    "growsLine": "<color=40>Grows: Speed.</color>",
     "palette": 4,
     "colors": [
       2115,
@@ -434,6 +449,7 @@
     "formula": 1,
     "flavor": "A legendary ninja's sword, quick as rumor and twice as hard to trace.",
     "lane": "speed",
+    "growsLine": "<color=40>Grows: Speed.</color>",
     "palette": 13,
     "colors": [
       5219,
@@ -460,6 +476,7 @@
     "formula": 1,
     "flavor": "Forged for the Iga clans; no trick to it but speed and a perfect edge.",
     "lane": "speed",
+    "growsLine": "<color=40>Grows: Speed.</color>",
     "palette": 6,
     "colors": [
       6342,
@@ -486,6 +503,7 @@
     "formula": 1,
     "flavor": "A Koga blade quenched in poison lore, its gold edge dimmed with shadow.",
     "lane": "speed",
+    "growsLine": "<color=40>Grows: Speed.</color>",
     "palette": 5,
     "colors": [
       2148,
@@ -512,6 +530,7 @@
     "formula": 1,
     "flavor": "A wanderer's blade worn smooth by the road, slim enough to slip a blow before it falls.",
     "lane": "pa",
+    "growsLine": "<color=30>Grows: Physical Attack.</color>",
     "palette": 14,
     "colors": [
       2148,
@@ -538,6 +557,7 @@
     "formula": 2,
     "flavor": "Broad and heavy at the edge, it parries nothing; it drives a foe back off their feet.",
     "lane": "pa",
+    "growsLine": "<color=30>Grows: Physical Attack.</color>",
     "palette": 14,
     "colors": [
       5218,
@@ -564,6 +584,7 @@
     "formula": 2,
     "flavor": "A duelist's sword balanced to catch an incoming stroke and return it in the same breath.",
     "lane": "pa",
+    "growsLine": "<color=30>Grows: Physical Attack.</color>",
     "palette": 3,
     "colors": [
       3170,
@@ -590,6 +611,7 @@
     "formula": 2,
     "flavor": "A heavy greatsword that cuts a pace beyond the foe's swing.",
     "lane": "pa",
+    "growsLine": "<color=30>Grows: Physical Attack.</color>",
     "palette": 15,
     "colors": [
       2179,
@@ -616,6 +638,7 @@
     "formula": 6,
     "flavor": "A sellsword that drinks deep.",
     "lane": "pa",
+    "growsLine": "<color=30>Grows: Physical Attack.</color>",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -649,6 +672,7 @@
     "formula": 2,
     "flavor": "Drawn from coral and storm alike, its edge mutters with thunder waiting to leap free.",
     "lane": "pa",
+    "growsLine": "<color=30>Grows: Physical Attack.</color>",
     "palette": 7,
     "colors": [
       3171,
@@ -675,6 +699,7 @@
     "formula": 1,
     "flavor": "A briar-marked blade said to send roots through any it strikes, fixing them to the earth.",
     "lane": "pa",
+    "growsLine": "<color=30>Grows: Physical Attack.</color>",
     "palette": 8,
     "colors": [
       5155,
@@ -701,6 +726,7 @@
     "formula": 2,
     "flavor": "A waving, flame-shaped edge that kindles where it lands, leaving the unclean to smolder.",
     "lane": "pa",
+    "growsLine": "<color=30>Grows: Physical Attack.</color>",
     "palette": 15,
     "colors": [
       2116,
@@ -725,8 +751,9 @@
     "wp": 12,
     "cat": "Sword",
     "formula": 67,
-    "flavor": "Ruin feeds it.",
+    "flavor": "Ruin feeds on the dying.",
     "lane": "speed",
+    "growsLine": "<color=40>Grows: Speed.</color>",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -760,6 +787,7 @@
     "formula": 99,
     "flavor": "Bites harder the faster you go.",
     "lane": "speed",
+    "growsLine": "<color=40>Grows: Speed.</color>",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -793,6 +821,7 @@
     "formula": 2,
     "flavor": "A dull, leaden edge that calls down a crushing weight, dragging the proudest foe down.",
     "lane": "pa",
+    "growsLine": "<color=30>Grows: Physical Attack.</color>",
     "palette": 7,
     "colors": [
       3171,
@@ -819,6 +848,7 @@
     "formula": 1,
     "flavor": "Runes crawl its fuller, unwinding whatever wards a foe wears.",
     "lane": "ma",
+    "growsLine": "<color=50>Grows: Magick Attack.</color>",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -852,6 +882,7 @@
     "formula": 2,
     "flavor": "Hallowed steel that wakes with a dawn-white glow, scouring shadow and dead flesh away.",
     "lane": "pa",
+    "growsLine": "<color=30>Grows: Physical Attack.</color>",
     "palette": 8,
     "colors": [
       7170,
@@ -878,6 +909,7 @@
     "formula": 1,
     "flavor": "A humble blade that wakes a mercenary's buried light.",
     "lane": "pa+ma",
+    "growsLine": "<color=95>Grows: Physical & Magick Attack.</color>",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -911,6 +943,7 @@
     "formula": 1,
     "flavor": "A bulwark blade that turns aside blows unseen.",
     "lane": "hp",
+    "growsLine": "<color=81>Grows: HP.</color>",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -944,6 +977,7 @@
     "formula": 1,
     "flavor": "A knight's oath given steel, sworn to stand between the crown and harm.",
     "lane": "hp",
+    "growsLine": "<color=81>Grows: HP.</color>",
     "palette": 15,
     "colors": [
       4194,
@@ -970,6 +1004,7 @@
     "formula": 1,
     "flavor": "The blade of kings, drawn only by hands the light itself has chosen.",
     "lane": "hp",
+    "growsLine": "<color=81>Grows: HP.</color>",
     "palette": 8,
     "colors": [
       367,
@@ -996,6 +1031,7 @@
     "formula": 1,
     "flavor": "A doom-named greatblade said to open the last battle of the gods.",
     "lane": "hp",
+    "growsLine": "<color=81>Grows: HP.</color>",
     "palette": 14,
     "colors": [
       2148,
@@ -1022,6 +1058,7 @@
     "formula": 1,
     "flavor": "A blade of living chaos; what it touches it unmakes, flesh to stone.",
     "lane": "hp",
+    "growsLine": "<color=81>Grows: HP.</color>",
     "palette": 5,
     "colors": [
       4164,
@@ -1048,6 +1085,7 @@
     "formula": 2,
     "flavor": "A katana housing the war-spirit Ashura, eager to be drawn.",
     "lane": "pa+ma+brave",
+    "growsLine": "<color=94>Grows: Physical Attack, Magick Attack & Bravery.</color>",
     "palette": 13,
     "colors": [
       4162,
@@ -1074,6 +1112,7 @@
     "formula": 1,
     "flavor": "Honest Kotetsu steel, heavy in the cut and blinding on the backswing.",
     "lane": "pa+ma+brave",
+    "growsLine": "<color=94>Grows: Physical Attack, Magick Attack & Bravery.</color>",
     "palette": 13,
     "colors": [
       4162,
@@ -1100,6 +1139,7 @@
     "formula": 47,
     "flavor": "Bizen work of the old school; it drinks the mind of what it wounds.",
     "lane": "pa+ma+brave",
+    "growsLine": "<color=94>Grows: Physical Attack, Magick Attack & Bravery.</color>",
     "palette": 13,
     "colors": [
       4162,
@@ -1126,6 +1166,7 @@
     "formula": 1,
     "flavor": "A rain-tempered blade whose touch slows the world for its victim.",
     "lane": "pa+ma+brave",
+    "growsLine": "<color=94>Grows: Physical Attack, Magick Attack & Bravery.</color>",
     "palette": 5,
     "colors": [
       2116,
@@ -1152,6 +1193,7 @@
     "formula": 1,
     "flavor": "The gathering-clouds blade.",
     "lane": "pa+ma+brave",
+    "growsLine": "<color=94>Grows: Physical Attack, Magick Attack & Bravery.</color>",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -1185,6 +1227,7 @@
     "formula": 1,
     "flavor": "Shrine-blessed; wounds fester.",
     "lane": "pa+ma+brave",
+    "growsLine": "<color=94>Grows: Physical Attack, Magick Attack & Bravery.</color>",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -1218,6 +1261,7 @@
     "formula": 67,
     "flavor": "Muramasa's hungry steel, so quick it seems to swing itself.",
     "lane": "speed",
+    "growsLine": "<color=40>Grows: Speed.</color>",
     "palette": 6,
     "colors": [
       1092,
@@ -1244,6 +1288,7 @@
     "formula": 2,
     "flavor": "A chrysanthemum-hilted katana.",
     "lane": "pa+ma+brave",
+    "growsLine": "<color=94>Grows: Physical Attack, Magick Attack & Bravery.</color>",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -1277,6 +1322,7 @@
     "formula": 1,
     "flavor": "Masamune's masterpiece; holy light sleeps in the folded steel.",
     "lane": "pa+ma+brave",
+    "growsLine": "<color=94>Grows: Physical Attack, Magick Attack & Bravery.</color>",
     "palette": 15,
     "colors": [
       4194,
@@ -1303,6 +1349,7 @@
     "formula": 1,
     "flavor": "A blade of falling petals; what stands before it soon cannot move.",
     "lane": "pa+ma+brave",
+    "growsLine": "<color=94>Grows: Physical Attack, Magick Attack & Bravery.</color>",
     "palette": 8,
     "colors": [
       102,
@@ -1329,6 +1376,7 @@
     "formula": 1,
     "flavor": "Quarried from old bedrock, it strikes with the slow patience of shifting earth.",
     "lane": "pa+ma",
+    "growsLine": "<color=95>Grows: Physical & Magick Attack.</color>",
     "palette": 13,
     "colors": [
       4161,
@@ -1355,6 +1403,7 @@
     "formula": 1,
     "flavor": "A savage cleaving thing that pours its own blind frenzy into every wound it tears open.",
     "lane": "hp",
+    "growsLine": "<color=81>Grows: HP.</color>",
     "palette": 14,
     "colors": [
       2118,
@@ -1381,6 +1430,7 @@
     "formula": 46,
     "flavor": "A spiteful edge made to ruin, not to slay.",
     "lane": "hp",
+    "growsLine": "<color=81>Grows: HP.</color>",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -1414,6 +1464,7 @@
     "formula": 47,
     "flavor": "An apprentice's rod that drinks a foe's magic dry at every tap, never wanting for power.",
     "lane": "ma",
+    "growsLine": "<color=50>Grows: Magick Attack.</color>",
     "palette": 14,
     "colors": [
       4194,
@@ -1440,6 +1491,7 @@
     "formula": 4,
     "flavor": "Caged storm; each blow lets the thunder out.",
     "lane": "ma",
+    "growsLine": "<color=50>Grows: Magick Attack.</color>",
     "palette": 9,
     "colors": [
       4162,
@@ -1466,6 +1518,7 @@
     "formula": 4,
     "flavor": "Embers smolder in its heart, eager to set a foe ablaze.",
     "lane": "ma",
+    "growsLine": "<color=50>Grows: Magick Attack.</color>",
     "palette": 9,
     "colors": [
       4163,
@@ -1492,6 +1545,7 @@
     "formula": 4,
     "flavor": "Where it points, the air turns to killing winter.",
     "lane": "ma",
+    "growsLine": "<color=50>Grows: Magick Attack.</color>",
     "palette": 12,
     "colors": [
       3170,
@@ -1518,6 +1572,7 @@
     "formula": 1,
     "flavor": "A warded rod that keeps its bearer's voice when every other throat in the field is hushed.",
     "lane": "ma",
+    "growsLine": "<color=50>Grows: Magick Attack.</color>",
     "palette": 9,
     "colors": [
       3202,
@@ -1544,6 +1599,7 @@
     "formula": 1,
     "flavor": "Dark answers its bearer.",
     "lane": "ma",
+    "growsLine": "<color=50>Grows: Magick Attack.</color>",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -1577,6 +1633,7 @@
     "formula": 1,
     "flavor": "A rod carved from wyrm-horn that hushes mages and cheats death once.",
     "lane": "ma",
+    "growsLine": "<color=50>Grows: Magick Attack.</color>",
     "palette": 10,
     "colors": [
       2146,
@@ -1603,6 +1660,7 @@
     "formula": 1,
     "flavor": "A rod of borrowed conviction.",
     "lane": "ma",
+    "growsLine": "<color=50>Grows: Magick Attack.</color>",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -1636,6 +1694,7 @@
     "formula": 1,
     "flavor": "A plain length of green birch, the first staff pressed into any apprentice's hands.",
     "lane": "ma",
+    "growsLine": "<color=50>Grows: Magick Attack.</color>",
     "palette": 13,
     "colors": [
       4226,
@@ -1662,6 +1721,7 @@
     "formula": 1,
     "flavor": "Bound with a warlock's hex.",
     "lane": "ma",
+    "growsLine": "<color=50>Grows: Magick Attack.</color>",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -1695,6 +1755,7 @@
     "formula": 7,
     "flavor": "A staff that knits living flesh.",
     "lane": "ma",
+    "growsLine": "<color=50>Grows: Magick Attack.</color>",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -1728,6 +1789,7 @@
     "formula": 1,
     "flavor": "A consecrated stave that lets no enchantment seal its bearer's lips, however loud the din.",
     "lane": "ma",
+    "growsLine": "<color=50>Grows: Magick Attack.</color>",
     "palette": 14,
     "colors": [
       2148,
@@ -1754,6 +1816,7 @@
     "formula": 4,
     "flavor": "Its crown smolders with caged flame; the warmth keeps restless feet quick afield.",
     "lane": "ma",
+    "growsLine": "<color=50>Grows: Magick Attack.</color>",
     "palette": 13,
     "colors": [
       4194,
@@ -1780,6 +1843,7 @@
     "formula": 1,
     "flavor": "A stave of gathered holy light.",
     "lane": "ma",
+    "growsLine": "<color=50>Grows: Magick Attack.</color>",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -1813,6 +1877,7 @@
     "formula": 1,
     "flavor": "A mace crowned with caged thunder, fit for a storm-god's hand.",
     "lane": "ma",
+    "growsLine": "<color=50>Grows: Magick Attack.</color>",
     "palette": 5,
     "colors": [
       1156,
@@ -1839,6 +1904,7 @@
     "formula": 1,
     "flavor": "The magi's time-stilling staff.",
     "lane": "ma",
+    "growsLine": "<color=50>Grows: Magick Attack.</color>",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -1872,6 +1938,7 @@
     "formula": 1,
     "flavor": "A graceless slab of war-iron with no guile to it, only a weight that breaks what it meets.",
     "lane": "pa",
+    "growsLine": "<color=30>Grows: Physical Attack.</color>",
     "palette": 15,
     "colors": [
       2148,
@@ -1898,6 +1965,7 @@
     "formula": 45,
     "flavor": "Cruelly serrated and slick with venom; it leaves no clean cut, only a wound that festers.",
     "lane": "speed",
+    "growsLine": "<color=40>Grows: Speed.</color>",
     "palette": 9,
     "colors": [
       4514,
@@ -1924,6 +1992,7 @@
     "formula": 69,
     "flavor": "A mercy for the dying: it glances off the hale, guts the bleeding.",
     "lane": "speed",
+    "growsLine": "<color=40>Grows: Speed.</color>",
     "palette": 10,
     "colors": [
       2147,
@@ -1950,6 +2019,7 @@
     "formula": 1,
     "flavor": "A barbed, scorpion-named katana whose every sting marks a foe for a slow, certain death.",
     "lane": "pa+ma+brave",
+    "growsLine": "<color=94>Grows: Physical Attack, Magick Attack & Bravery.</color>",
     "palette": 13,
     "colors": [
       3428,
@@ -1976,6 +2046,7 @@
     "formula": 3,
     "flavor": "A wheel-lock that shoots farthest.",
     "lane": "wp",
+    "growsLine": "<color=93>Grows: Weapon Power.</color>",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -2009,6 +2080,7 @@
     "formula": 3,
     "flavor": "An iron-framed repeater for the long road; it hits harder than the pistol and never jams.",
     "lane": "wp",
+    "growsLine": "<color=93>Grows: Weapon Power.</color>",
     "palette": 10,
     "colors": [
       3138,
@@ -2035,6 +2107,7 @@
     "formula": 3,
     "flavor": "A heavy gun bored to spit earthen shards; each shot lands like a sliding mountain.",
     "lane": "wp",
+    "growsLine": "<color=93>Grows: Weapon Power.</color>",
     "palette": 14,
     "colors": [
       1125,
@@ -2061,6 +2134,7 @@
     "formula": 4,
     "flavor": "A gun that chambers winter itself and fires it by faith alone.",
     "lane": "wp+faith",
+    "growsLine": "<color=60>Grows: Weapon Power & Faith.</color>",
     "palette": 13,
     "colors": [
       5185,
@@ -2087,6 +2161,7 @@
     "formula": 4,
     "flavor": "A gun that breathes furnace-heart flame, aimed by faith alone.",
     "lane": "wp+faith",
+    "growsLine": "<color=60>Grows: Weapon Power & Faith.</color>",
     "palette": 14,
     "colors": [
       1093,
@@ -2113,6 +2188,7 @@
     "formula": 4,
     "flavor": "A thunder-cell relic gun; its bolt answers to faith, not aim.",
     "lane": "wp+faith",
+    "growsLine": "<color=60>Grows: Weapon Power & Faith.</color>",
     "palette": 11,
     "colors": [
       2178,
@@ -2139,6 +2215,7 @@
     "formula": 2,
     "flavor": "A featherlight crossbow a scout slings on one shoulder, drawn quick and loosed quicker.",
     "lane": "pa",
+    "growsLine": "<color=30>Grows: Physical Attack.</color>",
     "palette": 14,
     "colors": [
       4162,
@@ -2165,6 +2242,7 @@
     "formula": 1,
     "flavor": "Its quarrel marks final dusk.",
     "lane": "pa",
+    "growsLine": "<color=30>Grows: Physical Attack.</color>",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -2198,6 +2276,7 @@
     "formula": 1,
     "flavor": "Cranked taut as a war-engine.",
     "lane": "pa",
+    "growsLine": "<color=30>Grows: Physical Attack.</color>",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -2231,6 +2310,7 @@
     "formula": 45,
     "flavor": "Quarrels of festering venom.",
     "lane": "pa",
+    "growsLine": "<color=30>Grows: Physical Attack.</color>",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -2263,6 +2343,7 @@
     "formula": 45,
     "flavor": "A crossbow whose bolts burst with clinging pitch, leaving the quarry slick for the spark.",
     "lane": "pa",
+    "growsLine": "<color=30>Grows: Physical Attack.</color>",
     "palette": 3,
     "colors": [
       3175,
@@ -2289,6 +2370,7 @@
     "formula": 1,
     "flavor": "A siege-grade crossbow scaled for a strong back, driving a quarrel to crack a shield wall.",
     "lane": "pa",
+    "growsLine": "<color=30>Grows: Physical Attack.</color>",
     "palette": 15,
     "colors": [
       2148,
@@ -2315,6 +2397,7 @@
     "formula": 1,
     "flavor": "A slender hunting bow that prizes the quick step; loosed and gone before the answer comes.",
     "lane": "speed",
+    "growsLine": "<color=40>Grows: Speed.</color>",
     "palette": 13,
     "colors": [
       5154,
@@ -2341,6 +2424,7 @@
     "formula": 1,
     "flavor": "Worked from pale silver, light as nothing, it dances clear of every blow without a trick.",
     "lane": "speed",
+    "growsLine": "<color=40>Grows: Speed.</color>",
     "palette": 7,
     "colors": [
       3140,
@@ -2367,6 +2451,7 @@
     "formula": 2,
     "flavor": "Carved from rimed wood that never thaws; its arrows carry the chill of a frozen lake.",
     "lane": "speed",
+    "growsLine": "<color=40>Grows: Speed.</color>",
     "palette": 14,
     "colors": [
       2179,
@@ -2391,8 +2476,9 @@
     "wp": 5,
     "cat": "Bow",
     "formula": 2,
-    "flavor": "Storm-wired.",
+    "flavor": "Storm-wired, arcs unseen.",
     "lane": "speed",
+    "growsLine": "<color=40>Grows: Speed.</color>",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -2427,6 +2513,7 @@
     "formula": 2,
     "flavor": "A tall bow that lofts arrows on the wind, arcing over crag to pluck a foe from any perch.",
     "lane": "speed",
+    "growsLine": "<color=40>Grows: Speed.</color>",
     "palette": 3,
     "colors": [
       1187,
@@ -2453,6 +2540,7 @@
     "formula": 2,
     "flavor": "A bow that hisses like surf and stills the throat it finds.",
     "lane": "speed",
+    "growsLine": "<color=40>Grows: Speed.</color>",
     "palette": 14,
     "colors": [
       3202,
@@ -2479,6 +2567,7 @@
     "formula": 2,
     "flavor": "Hand and mark fly as one.",
     "lane": "speed",
+    "growsLine": "<color=40>Grows: Speed.</color>",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -2512,6 +2601,7 @@
     "formula": 1,
     "flavor": "The legend-archer's bow.",
     "lane": "speed",
+    "growsLine": "<color=40>Grows: Speed.</color>",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -2545,6 +2635,7 @@
     "formula": 1,
     "flavor": "A hero's bow strung with holy light; its arrows pin what they strike.",
     "lane": "speed",
+    "growsLine": "<color=40>Grows: Speed.</color>",
     "palette": 15,
     "colors": [
       14593,
@@ -2571,6 +2662,7 @@
     "formula": 2,
     "flavor": "A harp whose airs ride the gathering wind, luring the unwary into a fog of confusion.",
     "lane": "ma",
+    "growsLine": "<color=50>Grows: Magick Attack.</color>",
     "palette": 8,
     "colors": [
       3200,
@@ -2597,6 +2689,7 @@
     "formula": 2,
     "flavor": "Strung for twilight songs that smear a listener's sight to dusk as they stand entranced.",
     "lane": "ma",
+    "growsLine": "<color=50>Grows: Magick Attack.</color>",
     "palette": 6,
     "colors": [
       7431,
@@ -2623,6 +2716,7 @@
     "formula": 2,
     "flavor": "A harp of faerie song that lulls the listening world to sleep.",
     "lane": "ma",
+    "growsLine": "<color=50>Grows: Magick Attack.</color>",
     "palette": 15,
     "colors": [
       2148,
@@ -2649,6 +2743,7 @@
     "formula": 2,
     "flavor": "A street orator's folio, its arguments so dazzling they leave the heckler blinking, lost.",
     "lane": "ma",
+    "growsLine": "<color=50>Grows: Magick Attack.</color>",
     "palette": 13,
     "colors": [
       10338,
@@ -2675,6 +2770,7 @@
     "formula": 1,
     "flavor": "A codex of beasts and their endings; to be named in its pages is to be promised the grave.",
     "lane": "ma",
+    "growsLine": "<color=50>Grows: Magick Attack.</color>",
     "palette": 14,
     "colors": [
       4163,
@@ -2701,6 +2797,7 @@
     "formula": 2,
     "flavor": "A codex of binding sigils that fix a reader's feet fast, rooted by the words' own weight.",
     "lane": "ma",
+    "growsLine": "<color=50>Grows: Magick Attack.</color>",
     "palette": 10,
     "colors": [
       2182,
@@ -2727,6 +2824,7 @@
     "formula": 1,
     "flavor": "The book of everything; read aloud, it unwrites a foe's blessings.",
     "lane": "ma",
+    "growsLine": "<color=50>Grows: Magick Attack.</color>",
     "palette": 11,
     "colors": [
       37,
@@ -2753,6 +2851,7 @@
     "formula": 1,
     "flavor": "A plain ash spear cut to reach a foe a pace beyond a sword's swing, and nothing more.",
     "lane": "pa",
+    "growsLine": "<color=30>Grows: Physical Attack.</color>",
     "palette": 13,
     "colors": [
       4163,
@@ -2779,6 +2878,7 @@
     "formula": 1,
     "flavor": "Issued to every footsoldier; it thrusts clean from the second rank, out of the press.",
     "lane": "pa",
+    "growsLine": "<color=30>Grows: Physical Attack.</color>",
     "palette": 13,
     "colors": [
       1124,
@@ -2805,6 +2905,7 @@
     "formula": 2,
     "flavor": "Ice clings to its head; a deep thrust leaves frost in the wound.",
     "lane": "pa",
+    "growsLine": "<color=30>Grows: Physical Attack.</color>",
     "palette": 15,
     "colors": [
       5191,
@@ -2831,6 +2932,7 @@
     "formula": 2,
     "flavor": "A charged partisan that calls a bolt down as steel meets flesh.",
     "lane": "pa",
+    "growsLine": "<color=30>Grows: Physical Attack.</color>",
     "palette": 10,
     "colors": [
       2115,
@@ -2857,6 +2959,7 @@
     "formula": 69,
     "flavor": "Spares the hale; pins the bleeding.",
     "lane": "speed",
+    "growsLine": "<color=40>Grows: Speed.</color>",
     "palette": 4,
     "colors": [
       2147,
@@ -2883,6 +2986,7 @@
     "formula": 2,
     "flavor": "A sacred lance clad in light.",
     "lane": "pa",
+    "growsLine": "<color=30>Grows: Physical Attack.</color>",
     "signature": {
       "abilityId": 0,
       "slot": "",
@@ -2918,6 +3022,7 @@
     "formula": 2,
     "flavor": "A spear of wyrm-whisker that remembers the fire it came from.",
     "lane": "pa",
+    "growsLine": "<color=30>Grows: Physical Attack.</color>",
     "palette": 12,
     "colors": [
       6275,
@@ -2944,6 +3049,7 @@
     "formula": 1,
     "flavor": "A far-tagging pike, light as a squall; then doom gathers.",
     "lane": "pa",
+    "growsLine": "<color=30>Grows: Physical Attack.</color>",
     "palette": 8,
     "colors": [
       2209,
@@ -2970,6 +3076,7 @@
     "formula": 2,
     "flavor": "Cut from green wood for the unblooded; a focused blow flings martial spirit a pace off.",
     "lane": "pa+ma",
+    "growsLine": "<color=95>Grows: Physical & Magick Attack.</color>",
     "palette": 12,
     "colors": [
       2177,
@@ -2996,6 +3103,7 @@
     "formula": 1,
     "flavor": "Reed banded with iron, springy and swift, suited to a hand that prizes speed over weight.",
     "lane": "pa+ma",
+    "growsLine": "<color=95>Grows: Physical & Magick Attack.</color>",
     "palette": 10,
     "colors": [
       3139,
@@ -3022,6 +3130,7 @@
     "formula": 1,
     "flavor": "Wax-scented, slow to swing; its measured taps coax the watchful into heavy-lidded sleep.",
     "lane": "pa+ma",
+    "growsLine": "<color=95>Grows: Physical & Magick Attack.</color>",
     "palette": 15,
     "colors": [
       4358,
@@ -3048,6 +3157,7 @@
     "formula": 1,
     "flavor": "A folded-iron war-fan that beats the air shut round a chanting mouth, stealing its spell.",
     "lane": "pa+ma",
+    "growsLine": "<color=95>Grows: Physical & Magick Attack.</color>",
     "palette": 3,
     "colors": [
       3170,
@@ -3074,6 +3184,7 @@
     "formula": 1,
     "flavor": "Worn smooth by a sage's grip; no trick to it, only the weight of a practiced strike.",
     "lane": "pa+ma",
+    "growsLine": "<color=95>Grows: Physical & Magick Attack.</color>",
     "palette": 6,
     "colors": [
       4295,
@@ -3100,6 +3211,7 @@
     "formula": 1,
     "flavor": "A carved ivory pole whose gleam steals the eyes of the struck.",
     "lane": "pa+ma",
+    "growsLine": "<color=95>Grows: Physical & Magick Attack.</color>",
     "palette": 12,
     "colors": [
       3139,
@@ -3126,6 +3238,7 @@
     "formula": 1,
     "flavor": "Eight grooves channel a slow venom, so one clean rap festers long after the bout is won.",
     "lane": "pa+ma",
+    "growsLine": "<color=95>Grows: Physical & Magick Attack.</color>",
     "palette": 14,
     "colors": [
       9347,
@@ -3152,6 +3265,7 @@
     "formula": 2,
     "flavor": "A pole of deep-sea baleen; the tide itself follows its sweep.",
     "lane": "pa+ma",
+    "growsLine": "<color=95>Grows: Physical & Magick Attack.</color>",
     "palette": 11,
     "colors": [
       2116,
@@ -3178,6 +3292,7 @@
     "formula": 1,
     "flavor": "A conjurer's satchel that breathes slumberdust, sinking the wakeful into untroubled dream.",
     "lane": "pa",
+    "growsLine": "<color=30>Grows: Physical Attack.</color>",
     "palette": 14,
     "colors": [
       4163,
@@ -3204,6 +3319,7 @@
     "formula": 1,
     "flavor": "A satchel sewn around a fallen star; it hits like one.",
     "lane": "pa",
+    "growsLine": "<color=30>Grows: Physical Attack.</color>",
     "palette": 10,
     "colors": [
       6629,
@@ -3230,6 +3346,7 @@
     "formula": 1,
     "flavor": "A pouch that looses a sting at the lash, festering in the wound long after the blow.",
     "lane": "pa",
+    "growsLine": "<color=30>Grows: Physical Attack.</color>",
     "palette": 13,
     "colors": [
       2148,
@@ -3256,6 +3373,7 @@
     "formula": 1,
     "flavor": "Woven with binding hexes; one swing snares a voice and strangles the spell mid-word.",
     "lane": "pa",
+    "growsLine": "<color=30>Grows: Physical Attack.</color>",
     "palette": 13,
     "colors": [
       16740,
@@ -3281,7 +3399,8 @@
     "cat": "Cloth",
     "formula": 1,
     "flavor": "Tarred silk that clings where it lands, leaving the mark slick and waiting for a spark.",
-    "lane": "ma"
+    "lane": "ma",
+    "growsLine": "<color=50>Grows: Magick Attack.</color>"
   },
   "120": {
     "name": "Bindsilk Veil",
@@ -3289,7 +3408,8 @@
     "cat": "Cloth",
     "formula": 1,
     "flavor": "Gossamer veil snapping taut round a quarry's limbs, rooting it as its dancer slips aside.",
-    "lane": "ma"
+    "lane": "ma",
+    "growsLine": "<color=50>Grows: Magick Attack.</color>"
   },
   "121": {
     "name": "Gravesilk Veil",
@@ -3297,6 +3417,7 @@
     "cat": "Cloth",
     "formula": 2,
     "flavor": "Funeral silk heavy as a tomb; beneath it the mighty sag.",
-    "lane": "ma"
+    "lane": "ma",
+    "growsLine": "<color=50>Grows: Magick Attack.</color>"
   }
 }

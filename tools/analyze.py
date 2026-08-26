@@ -333,6 +333,30 @@ def check_flavor_length(items):
     return bad
 
 
+def check_grows_gap_min_length(items):
+    """LW-332 round 2 (executed-counterexample fix, S2): every living weapon's flavor anchor
+    must be STRICTLY LONGER than the fixed Kills-to-Grows gap -- len("Kills: ") +
+    KILLS_SLOT_BODY_CHARS + 1 (the "\\n" between the meter slot and the Grows line) = 19 chars --
+    so no baked flavor can ever out-near a card's own Grows anchor in CardScanner's STEP 2
+    fallback (LivingWeapon/Display/CardScanner.cs FindNearestFlavor, the nearest-distance rule
+    used once the exact-layout probe finds no owner). A flavor shorter than this gap sitting
+    just above a DIFFERENT weapon's "Kills: " line wins that weapon's nearest-distance check
+    outright (no tie-break even engages) and steals its Kills counter -- the S2 executed
+    counterexample an adversarial verifier found live against Stormarc ("Storm-wired.", 12
+    chars) and Wrathblade ("Ruin feeds it.", 14 chars) before both were re-flavored."""
+    gap = len("Kills: ") + KILLS_SLOT_BODY_CHARS + 1
+    bad = []
+    for it in items:
+        if not it.get("name") or it.get("name") == "TBD":
+            continue
+        if not is_living(it):
+            continue
+        anchor = flavor_anchor(it) or ""
+        if len(anchor) <= gap:
+            bad.append((it, len(anchor)))
+    return bad
+
+
 def check_unique_flavor(items):
     """Every named item's flavor line must be UNIQUE. The Living Weapon in-card counter anchors a
     weapon's Kills tally to its flavor line (the stable lead of its description); two items sharing
@@ -350,6 +374,48 @@ def check_unique_flavor(items):
             violations.append((it, seen[key]))
         else:
             seen[key] = it
+    return violations
+
+
+def check_flavor_prefix(items):
+    """FLAVOR PREFIX (LW-332 round 3, verifier finding; round 4 enforces the premise below):
+    CardScanner's layout probe (LivingWeapon/Display/CardScanner.cs LayoutProbeOwner, STEP 1)
+    checks a candidate's unique anchor against the buffer bytes at F (line index 2 of the
+    scaffolded assemble_desc -- the first body line, right after the Kills scaffold and the Grows
+    line) via MatchesExactlyAt, which is a fixed-length EQUALITY of the candidate's OWN bytes
+    against a same-length slice of the buffer -- i.e. a prefix match against whatever longer real
+    line actually sits at F. check_unique_flavor above is EQUALITY-only (two flavor lines being
+    identical), so a SHORTER anchor that happens to be a literal prefix of a longer one sails
+    through it untouched while the probe would still treat it as "matching" at F. Completeness
+    argument: anchors carry no newline and assemble_desc's own "\\n" join means every rendered
+    line ends with one, so an anchor LONGER than the target line can never match across that line
+    break -- prefix-of-line is therefore the ONLY possible cross-weapon match shape at F, and
+    checking it here for every ordered living-weapon pair closes it entirely for baked data. The
+    "anchors carry no newline" premise was merely ASSUMED through round 3; round 4 ENFORCES it
+    below (first, before the prefix scan runs) -- data/items.json's flavorOverride flows unsplit
+    into flavor_anchor, so nothing upstream stops a newline from reaching it, and a newline-bearing
+    anchor would make the completeness argument above false while the runtime probe (which
+    compares raw buffer bytes) stays none the wiser. (EarnedAnchors' runtime-composed
+    current/previous lines are a separate, narrower, accepted residual this data gate cannot see
+    -- see the comment beside EarnedAnchors.UniqueAnchorsFor.)"""
+    living = [it for it in items if it.get("name") and it.get("name") != "TBD" and is_living(it)]
+    first_body_line = {}
+    for y in living:
+        parts = assemble_desc(y).split("\n")
+        first_body_line[y["id"]] = parts[2] if len(parts) > 2 else ""
+    violations = []
+    for x in living:
+        x_anchor = flavor_anchor(x) or ""
+        if "\n" in x_anchor or "\r" in x_anchor:
+            violations.append((x, None))   # NEWLINE violation; y=None signals _fmt_flavor_prefix
+            continue
+        if not x_anchor:
+            continue
+        for y in living:
+            if y is x:
+                continue
+            if first_body_line[y["id"]].startswith(x_anchor):
+                violations.append((x, y))
     return violations
 
 
@@ -592,9 +658,14 @@ def check_grows_phrase(items):
     it grows -- one 'Grows: <phrase>.' line in the assembled description, matching
     GROWS_PHRASE_EXPECTED[item['grows']] (the pinned literal table, NOT lib.flavor.grows_phrase --
     see that table's own docstring for why the verdict must not come from the helper it is meant
-    to catch drift in). Every non-living item's card must carry no 'Grows:' token at all.
-    grows_phrase is still read via getattr (mirrors the DORMANT_FORMULAS pattern above) but ONLY
-    to cross-report helper drift alongside a real violation -- it never decides pass/fail."""
+    to catch drift in). LW-332: the line must sit EXACTLY on the SECOND line (index 1) of the
+    scaffolded assembled desc -- line 0 is the Kills scaffold, line 1 is Grows, directly under
+    it. This is a correctness requirement, not a style pick: CardScanner
+    (LivingWeapon/Display/CardScanner.cs) now anchors the in-card Kills counter to the Grows
+    line too, and it only sits close enough to win that role at this exact position. Every
+    non-living item's card must carry no 'Grows:' token at all. grows_phrase is still read via
+    getattr (mirrors the DORMANT_FORMULAS pattern above) but ONLY to cross-report helper drift
+    alongside a real violation -- it never decides pass/fail."""
     grows_phrase_fn = getattr(flavor_mod, "grows_phrase", None)
     violations = []
     for it in items:
@@ -618,11 +689,13 @@ def check_grows_phrase(items):
             violations.append((it, [f"grows {grows!r} has no entry in the pinned "
                                      f"GROWS_COLOR_SLOT table -- extend it"]))
             continue
-        line = next((l for l in assembled.split("\n") if "Grows: " in l), "")
+        lines = assembled.split("\n")
+        line = lines[1] if len(lines) > 1 else ""
         expected = (f"<color={GROWS_COLOR_SLOT[grows]}>Grows: "
                     + GROWS_PHRASE_EXPECTED[grows] + ".</color>")
         if line != expected:
-            detail = f"Grows line {line!r} != expected {expected!r}"
+            detail = (f"line index 1 is {line!r}, expected the Grows line {expected!r} "
+                      f"(LW-332: Grows must sit directly under the Kills scaffold)")
             if grows_phrase_fn is not None and grows_phrase_fn(grows) != GROWS_PHRASE_EXPECTED[grows]:
                 detail += f" (lib.flavor.grows_phrase also drifted: {grows_phrase_fn(grows)!r})"
             violations.append((it, [detail]))
@@ -780,9 +853,29 @@ def _fmt_unique_flavor(v):
         print(f"      {flavor_anchor(a)!r}")
 
 
+def _fmt_flavor_prefix(v):
+    for x, y in v:
+        if y is None:
+            print(f"  NEWLINE id{x['id']} {x.get('name')}'s flavor anchor contains a line break; "
+                  f"the prefix gate's completeness argument requires single-line anchors: "
+                  f"{flavor_anchor(x)!r}")
+            continue
+        line = assemble_desc(y).split("\n")[2]
+        print(f"  PREFIX id{x['id']} {x.get('name')}'s flavor anchor is a prefix of "
+              f"id{y['id']} {y.get('name')}'s body line at F:")
+        print(f"      anchor {flavor_anchor(x)!r}")
+        print(f"      line   {line!r}")
+
+
 def _fmt_flavor_length(v):
     for a, n in v:
         print(f"  TOO LONG id{a['id']} {a.get('name')} ({n} chars): {a['flavorOverride']!r}")
+
+
+def _fmt_grows_gap_min_length(v):
+    gap = len("Kills: ") + KILLS_SLOT_BODY_CHARS + 1
+    for a, n in v:
+        print(f"  TOO SHORT id{a['id']} {a.get('name')} ({n} chars, need > {gap}): {flavor_anchor(a)!r}")
 
 
 def _fmt_p3desc(v):
@@ -861,6 +954,16 @@ def main():
              check_fn=lambda: check_flavor_length(items),
              pass_msg=f"PASS: every authored flavor line is <= {FLAVOR_MAX} chars.",
              format_failure=_fmt_flavor_length, sets_rc=True),
+        dict(header="GROWS GAP MIN LENGTH (living weapon flavor anchor outreaches the fixed "
+                    "Kills->Grows gap, so a fallback nearest-distance scan can never mistake a "
+                    "foreign flavor for a card's own Grows anchor)",
+             check_fn=lambda: check_grows_gap_min_length(items),
+             pass_msg="PASS: every living weapon's flavor anchor outreaches the Kills->Grows gap.",
+             format_failure=_fmt_grows_gap_min_length, sets_rc=True),
+        dict(header="FLAVOR PREFIX (no flavor anchor may prefix another card's body line)",
+             check_fn=lambda: check_flavor_prefix(items),
+             pass_msg="PASS: no living weapon's flavor anchor is a prefix of another card's body line at F.",
+             format_failure=_fmt_flavor_prefix, sets_rc=True),
         dict(header=f"P3 DESCRIPTION (signature effect <= {P3DESC_MAX} chars + a card-header name)",
              check_fn=lambda: check_p3desc(items),
              pass_msg="PASS: every p3Desc is valid.",
