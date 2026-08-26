@@ -387,6 +387,18 @@ belongs rather than at the bottom.
   a curve check the gate can actually enforce. Owner-placed DIRECTLY before the glow task,
   so the colors land on a curve worth showing.
 
+  Balance proof re-run for the owner 2026-08-26 with a new blind-spot instrument
+  (tools/probes/lw318_thin_niche.py, the gate's own dominance law reused verbatim):
+  zero strictly dominated items stands, vanilla's same-law count is 73 of 234, and the
+  thin-niche hunt over all 836 single-shield pairs found exactly ONE true catch: the
+  Hushward Mail (id 175) and the Wardsilk Vest (id 191) are STAT TWINS, identical on
+  every gate axis, tier and rider, in the same body slot, where the vest's universal
+  access makes the armored-only mail redundant in practice; the gate cannot see it
+  because domination requires a strict edge. Suggested fix when this row runs: armor
+  out-HPs clothing at tier parity. Watch item, thinner but defensible: the Argent Dirk
+  (id 5) escapes three same-or-earlier siblings by single points, its riderless plain
+  knife identity is the thinnest in the catalog. The Warbrand's one-point WP crown over
+  Arcanum and Lightbringer is the owner's own LW-320 ruling, by design.
 - [LW-321] 2026-08-25: Weak classes get a design pass through the weapon lens: Thief,
   Archer, Orator and Mystic sit low on community tier lists, and this mod's proven lever
   for that is their TOOLS, not their job tables. The owner already ran the template on the
