@@ -237,8 +237,21 @@ belongs rather than at the bottom.
   underwhelming) per lane with the full 121-weapon roster on both icon surfaces, WP's
   glow hue still needs re-measuring from the live teal 93 text (one owner screenshot of
   any gun's card), and the icon splice display failure is its own row (LW-334). Full
-  seat contract in this file's history (f43135a). Resume = owner rules A or B per lane,
-  then the outline-glow transform swap + 726-rim re-bake per that contract.
+  seat contract in this file's history (f43135a). A third rung now exists (2026-08-25
+  late, owner call: icons only, one family judged before the recipe rolls forward): C,
+  a two-tone pop rim that keeps the lane hue but paints the inner ring full-chroma
+  held deep so it punches on the white list ground, with a bright full-chroma falloff
+  outside. The 11 Speed knives are rendered in A/B/C on both icon surfaces and sit in
+  the gallery for the ruling (Tech: lw319_glow_ladder.py knives mode, commit 11f43be;
+  Speed inner-ring panel dE moves 30.3 to 87.4 in the same hue family). Same sitting,
+  the owner rejected Speed's GREEN outright, so Speed needs a new color before its lane
+  can be ruled, and the color menu is gated by what the card text can wear: the vibrancy
+  sweep steps the untested markup forms on a live card (Tech: lw307_card_markup_probe.py
+  sweep mode; hex first, then the 8X/9X slot gaps, then three-digit; reads merge into
+  lw307_card_colors.json). If hex parses, any hue is available. Resume = run the sweep,
+  owner picks Speed's new color, owner rules A, B or C on the knives re-rendered in it,
+  the winning transform rolls lane by lane, then the transform swap + 726-rim re-bake
+  per that contract.
 
 - [LW-327] 2026-08-25: A grown Knight Sword's bonus HP should be REAL at battle start:
   today the raised maximum shows 679/883 and the knight begins every battle reading hurt
