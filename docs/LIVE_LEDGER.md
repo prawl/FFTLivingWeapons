@@ -426,9 +426,9 @@ actually reads.
 
 </details>
 
-### [live-icon-repaint] Equip icons repaint LIVE, no game restart
+### [live-icon-repaint] Equip icon pac patch: the WRITE still lands live, but since game 1.5.2 an already-drawn icon stays frozen until restart (the refresh recipe is CONTRADICTED)
 
-An equip icon's bytes can be overwritten in place inside `<game>/data/enhanced/modded.pac` while the game is running, and the new art appears the next time that inventory list is loaded (leave the list and come back); no restart, both the 48px row icon and the 100px detail card. Proven, owner live-verified 2026-08-16. This RETIRES the long-standing "icon changes are restart-only" belief: that was true of editing our loose `.tex` files, because those are only a merge input.
+Split verdict as of 2026-08-26 (owner-run re-probe on game 1.5.2, the LW-334 bisect). STILL TRUE: `modded.pac` accepts an in-place overwrite while the game runs (no lock, byte-exact verify), and an icon drawn for the FIRST time in the process afterwards shows the patched art on both surfaces (owner-witnessed: Tideward wore Emberward's red, screenshot 03:51). CONTRADICTED: the 2026-08-16 "leave the list and come back" refresh. Once an icon has been drawn the engine never re-reads it for the life of the process: with Galewall patched and Tideward restored in the pac, a tab round-trip, closing and reopening equipment, leaving to the world map, save plus load, and a title-screen reload ALL kept the stale art. Restart is the only refresh. This is the whole mechanism behind the LW-334 splice display failure. See [icon-refresh-restart-only-152] in the Contradicted section.
 
 <details><summary>How we got here</summary>
 
@@ -475,6 +475,25 @@ NOTE the modloader also exposes an unused `IFFTOModPackManager.AddModdedFile` AP
 in this install calls it, and it is registration-time, so it is not an alternative here.
 
 **Date:** 2026-08-16
+
+**RE-RUN 2026-08-26 (game 1.5.2, the LW-334 bisect), owner live:** stage 1 cold on Tideward
+reproduced the 2026-08-16 result exactly: red art on both surfaces at the session's first
+equipment draw (screenshot 03:51, game up since 03:26). Stage 2 warm FAILED where 2026-08-16
+passed: with Galewall patched and Tideward restored in the pac, the owner climbed the full
+eviction ladder (tab round-trip, close and reopen equipment, back to the world map, save
+then load, title screen then reload the save) and EVERY rung kept drawing the first-draw
+art on both shields. All restores verified byte-exact; the pac was clean at session end.
+Conclusion: on 1.5.2 the pac stays writable and is read at an icon's first draw, but the
+per-list reload that made the 2026-08-16 recipe work is gone; icon textures now cache per
+process from first draw. A pac write can therefore never repaint an icon the player has
+already seen this session, which is exactly what LW-334 observed of the LW-295 splice
+(the splice lands minutes after boot, after the plain art is drawn and frozen). Bonus
+context from the same session's log: the shipped splice currently stands itself down
+anyway ("deployed base tex does not match the manifest's baked hash" for every icon),
+because deploy_glow_tex.py overwrites the loose bases with tier variants; the interim
+launch-merge path and the splice fight over the same bases and the guard picks the safe
+loser. Probe: `tools/probes/live_icon_patch_probe.py` run by hand, patch/restore both
+verified in the tool output.
 
 </details>
 
@@ -2406,6 +2425,20 @@ Uncertain as of 2026-08-17 (evidence re-derived independently from banked tapes;
 </details>
 
 ## Contradicted — probe before building on these
+
+### [icon-refresh-restart-only-152] The 2026-08-16 "leave the list and come back" icon refresh is dead on game 1.5.2
+
+Contradicted 2026-08-26, owner live: an equip icon that has been drawn once stays frozen for the whole process no matter what the player does short of restarting the game. The pac write itself still works and still shows on an icon's FIRST draw of the session (see [live-icon-repaint], which carries the full re-probe evidence). Consequence: LW-334's display failure is engine caching, not a splice bug, and no pac write can ever repaint an already-seen icon on current patch.
+
+<details><summary>How we got here</summary>
+
+**Claim (original wording):** navigating to another inventory tab and back re-loads the list and shows the new art; the refresh unit is the list/tab load, not the frame and not the process.
+
+**The contradiction:** the 2026-08-26 LW-334 bisect, `live_icon_patch_probe.py` run by hand on game 1.5.2 with the owner watching. First draw of the session read the patched pac (Tideward showed Emberward's red, both surfaces). After that, nothing evicted: tab round-trip, close and reopen equipment, world map, save plus load, and a title-screen reload all kept the first-draw art while the pac on disk said the opposite (Galewall patched, Tideward restored). On 2026-08-16 the identical stage 2 flipped Galewall after one tab round-trip, so the game patch between those dates coarsened texture caching from per-list-load to per-process.
+
+**Next step:** if live refresh is ever wanted again the pac channel cannot deliver it; the untested candidates are the engine's ResourceManager cache or the DX12 texture itself in process memory, both unexplored and priced as a heavy RE arc. The shipping display path stays the launch merge, restart-only by physics, which is what deploy_glow_tex.py (and any future runtime loose-tex sync) rides.
+
+</details>
 
 ### [terrain-height-byte-blocks-movement] Terrain grid HEIGHT (byte +2) write BLOCKS movement (the Bulwark premise, as ORIGINALLY built)
 
