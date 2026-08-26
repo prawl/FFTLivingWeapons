@@ -229,21 +229,6 @@ belongs rather than at the bottom.
   relaunches until a deploy changes the matching loose file, so probe patches must
   always be restored by hand and never trusted to a relaunch. Silver lining recorded
   in the ledger: splice work persists across restarts too in a deploy-free install.
-- [LW-336] 2026-08-26: Let the mod keep the glow icons current on its own, so nobody has
-  to run an extra script after every deploy. Today deploy_glow_tex.py must be re-run by
-  hand after every BuildLinked or the icons ship plain, and the in-game splice fights it
-  (the splice stands itself down every launch because the loose base art no longer
-  matches its manifest). With mid-session refresh proven unreliable by LW-334's answer
-  (it fired once on 2026-08-16 and refused twice since, same game binary, condition
-  unknown), the honest design is: the runtime writes each weapon's current-tier variant
-  over its own loose tex when the tier changes (or at quit), the next launch merges it,
-  and the icons are simply always correct at boot. That retires the manual
-  deploy_glow_tex step AND the pac splice in one move; tier-ups keep showing one restart
-  late, which no reliable mechanism currently beats. (Tech: IconGlow already owns the variant store, manifest, and
-  desired-vs-applied diff; retarget its apply step from pac offsets to the deployed
-  loose tex paths under FFTIVC/data/enhanced/ui/ffto/icon, plain file I/O, no Mem.
-  Decide the splice's fate in the same seat: keep it only if first-session
-  never-yet-drawn icons are worth the code.)
 - [LW-212] 2026-08-13: The four bags' recolor seat, BUILT and gated 2026-08-16 and
   AWAITING the owner's gallery pass ever since; demoted from Now 2026-08-25 only to
   free the seat for LW-332 (the owner queued the Grows-line move). Nothing about the

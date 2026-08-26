@@ -10,6 +10,25 @@ before 2026-07-21 keep their original prose.
 
 ## 2.4.0 cycle
 
+- [LW-336] SHIPPED 410fefd 2026-08-26: The mod now keeps its own glow icons current, so
+  nobody ever runs a script after a deploy again. Icons rim up as weapons grow and the
+  rims come OFF when tallies reset, all automatic: the mod archives the plain art into a
+  vault the first time it sees it, writes each weapon's current tier art in place
+  atomically, and restores from the vault at tier zero, visible from the next launch
+  (a drawn icon never refreshes mid session, the physics settled earlier the same day).
+  Two adversarial verify rounds shaped it; the first caught a genuine ship blocker (an
+  icon whose tally already read zero at launch was never inspected, so a stale rim would
+  survive forever silently; every icon is now judged once per launch) plus a stale vault
+  trap on zip updates and the missing observability line, and the second returned SHIP
+  at code 9 of 10 after mutation proving the fix. Owner live pass 2026-08-26 on all four
+  legs: rims on automatically, rims off automatically after a reset (a first), the vault
+  round tripping all 242 files byte perfectly, zero warns across three sessions; owner
+  verdict "everything looks kosher". Retires tools/deploy_glow_tex.py and the pac splice
+  write path outright. (Tech: IconGlow retargeted to the deployed loose tex, judge all
+  latch, base_backup vault with sha verification, atomic writes, basename collision
+  tripwire; suite 3327 green; follow ups LW-341 the deploy audit variant awareness and
+  LW-342 the dev flavor test gap, both captured as backlog rows.)
+
 - [LW-327] SHIPPED 90683ef 2026-08-26: A knight whose grown sword raised their Max HP now
   starts every battle with the bar FULL (906 of 906 on the owner's save) instead of
   looking wounded until healed. Shipping it took three owner run live rounds that each

@@ -422,9 +422,9 @@ scoped then; their unticked boxes are re-homed by this section and the 2.5.0 sec
 this paragraph is the pointer that says so.
 
 ### R1. Glow completion (BLOCKER)
-- [ ] The mod keeps its own glow icons current (LW-336): retires the manual
-      deploy_glow_tex step and the pac splice; without it the glow only works on machines
-      where someone remembers a script.
+- [x] The mod keeps its own glow icons current (LW-336): SHIPPED 410fefd 2026-08-26,
+      owner live pass all four legs ("everything looks kosher"); deploy_glow_tex and the
+      pac splice are retired outright.
 - [ ] The Grows line wears its weapon's glow color (LW-329, owner design already ruled).
 - [ ] Per-weapon inner ring colors for the five standouts (LW-335, owner picks).
 - [ ] Hue true-ups: the PA red 90, WP pink 82, and katana teal 93 rendered colors get
