@@ -42,7 +42,6 @@ import battle_cheats as bc  # noqa: E402
 UNDO = HERE / "lw307_markup_undo.json"
 META = HERE.parents[1] / "LivingWeapon" / "meta.json"
 KEEP_PREFIX = 24          # untouched lead chars; protects most of the anchor prefix
-TAG_OPEN_LEN = 10         # len("<color=NN>") with a two-digit color
 TAG_CLOSE = "</color>"
 
 
@@ -95,14 +94,17 @@ def walk_hits(needle):
 
 
 def tagged_line(orig, color):
-    """Same-length rewrite: prefix + <color=NN> + remaining prose (18 chars sacrificed)
-    + </color>. Asserts its own length so a bad edit can never shift the pool."""
+    """Same-length rewrite: prefix + <color=VALUE> + remaining prose (tag-length chars
+    sacrificed) + </color>. Asserts its own length so a bad edit can never shift the pool.
+    VALUE may be 1-3 digits or #RRGGBB / #RRGGBBAA: the vibrancy sweep's whole question
+    is which of those forms the renderer parses, so the poke side must not pre-judge it."""
+    import re
+    if not re.fullmatch(r"\d{1,3}|#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?", str(color)):
+        sys.exit(f"color {color!r}: use 1-3 digits or #RRGGBB / #RRGGBBAA")
     open_tag = f"<color={color}>"
-    if len(open_tag) != TAG_OPEN_LEN:
-        sys.exit("color must be exactly two characters (e.g. 80), the proven numeric form")
-    cut = KEEP_PREFIX + TAG_OPEN_LEN + len(TAG_CLOSE)
+    cut = KEEP_PREFIX + len(open_tag) + len(TAG_CLOSE)
     if len(orig) <= cut + 8:
-        sys.exit("flavor line too short to tag at same length")
+        sys.exit(f"flavor line too short for a {len(open_tag)}-char tag at same length")
     out = orig[:KEEP_PREFIX] + open_tag + orig[cut:] + TAG_CLOSE
     assert len(out) == len(orig), (len(out), len(orig))
     return out
@@ -150,6 +152,55 @@ def cmd_restore():
     print(f"restored {wrote}/{len(st['hits'])} copies")
 
 
+SWEEP_PLANS = {
+    # Hex first: three pokes answer whether the renderer parses arbitrary RGB, which
+    # would make the slot-gap sweep a fallback rather than the main event.
+    "hexfirst": ["#FF00FF", "#00FF00", "#FF8800"],
+    # The 8X and 9X rows are proven multi-hue (80 yellow, 81 orange, 83 cyan; 90 red,
+    # 93 teal, 94 steel, 95 purple), so their gaps are the best place for a hiding hue.
+    "gaps9x8x": ["92", "96", "97", "98", "82", "84", "85", "86", "87", "89"],
+    "threedigit": ["100", "110", "120", "128", "150", "200", "255"],
+    "gapsall": [str(v) for v in range(11, 100)
+                if str(v) not in {"19", "20", "21", "30", "40", "50", "60", "68", "69",
+                                  "70", "77", "80", "81", "83", "88", "90", "91", "93",
+                                  "94", "95", "99"}],
+}
+CATALOG = HERE / "lw307_card_colors.json"
+
+
+def cmd_sweep(*values):
+    """Step through candidate color values on the live card, one poke per Enter, and
+    MERGE the owner's typed reads into lw307_card_colors.json (never clobbers: existing
+    observations stay, same-key re-reads are appended with the date). Reads typed before
+    the card redraws are stale: leave and reopen the equip list first, every value.
+    Restores the original line at the end (and on Ctrl+C)."""
+    vals = list(SWEEP_PLANS.get(values[0], values)) if values else SWEEP_PLANS["hexfirst"]
+    st = json.loads(UNDO.read_text(encoding="utf8"))
+    reads = {}
+    try:
+        for v in vals:
+            new = tagged_line(st["flavor"], v).encode(st["encoding"])
+            wrote = sum(1 for hx in st["hits"] if bc.wpm(int(hx, 16), new))
+            print(f"\n<color={v}> poked into {wrote} cop{'ies' if wrote != 1 else 'y'}."
+                  f" LEAVE and REOPEN the equip list, then read the tail.")
+            ans = input("  what color is it? (blank = skip, q = stop) > ").strip()
+            if ans.lower() == "q":
+                break
+            if ans:
+                reads[str(v)] = ans
+    finally:
+        cmd_restore()
+        if reads:
+            cat = json.loads(CATALOG.read_text(encoding="utf8"))
+            obs = cat.setdefault("observed", {})
+            import datetime
+            day = datetime.date.today().isoformat()
+            for k, txt in reads.items():
+                obs[k] = f"{obs[k]} | {day}: {txt}" if k in obs else f"{txt} ({day})"
+            CATALOG.write_text(json.dumps(cat, indent=1) + "\n", encoding="utf8")
+            print(f"\nmerged {len(reads)} read(s) into {CATALOG.name}")
+
+
 if __name__ == "__main__":
     mode = sys.argv[1] if len(sys.argv) > 1 else ""
     if mode == "scan" and len(sys.argv) > 2:
@@ -158,5 +209,7 @@ if __name__ == "__main__":
         cmd_poke(*sys.argv[2:4])
     elif mode == "restore":
         cmd_restore()
+    elif mode == "sweep":
+        cmd_sweep(*sys.argv[2:])
     else:
         print(__doc__)
