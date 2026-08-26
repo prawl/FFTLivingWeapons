@@ -236,28 +236,34 @@ belongs rather than at the bottom.
   As things stand the LW-295 icon mechanism live pass FAILS; rethink the display path
   before LW-319 rebakes the rims in lane hues. Evidence: this session's livingweapon.log
   (manifest load 20:01:21, zero warns) plus the direct pac byte check.
-  ANSWERED 2026-08-26 by re-running the icon patch probe by hand with the owner watching:
-  the game changed in patch 1.5.2 and now keeps every icon picture it has already shown
-  frozen until the game restarts. Menu round trips, save and load, even backing out to
-  the title screen all kept showing the stale art while the file on disk said otherwise.
-  Writing the pac still works and an icon never yet shown this session picks up the new
-  art on its first draw, so the splice was never buggy, it is simply too late: by the
-  time it lands the player has already seen the plain icons and they are frozen. Live
-  refresh through the pac is CLOSED on current patch; correct-at-boot via the launch
-  merge is the display path, restart-only by physics. (Tech: probe
-  live_icon_patch_probe.py stages 1 and 2, owner eviction ladder all stale; ledger rows
-  [icon-refresh-restart-only-152] and the updated [live-icon-repaint] carry the full
-  evidence; successor design captured as LW-336.)
+  ANSWERED 2026-08-26 by re-running the icon patch probe by hand with the owner watching,
+  then CORRECTED the same hour on the owner's skepticism: the refresh of an icon the game
+  has already shown is UNRELIABLE, and nothing may be built on it. Tonight menu round
+  trips, save and load, even backing out to the title screen all kept showing stale art
+  while the file on disk said otherwise; on 2026-08-16 the very same recipe worked after
+  one tab hop, and the exe's build fingerprint proves both sessions ran the SAME game
+  binary, so the first "the game patch changed it" conclusion was wrong and is retracted.
+  Something about session state decides whether the game ever rechecks a drawn icon, and
+  that something is not yet identified. Writing the pac still works and an icon never yet
+  shown this session picks up the new art on its first draw, so the splice was never
+  buggy, it is simply too late and too optional: by the time it lands the player has
+  usually seen the plain icons. Correct-at-boot via the launch merge is the display path;
+  treat drawn icons as restart-only. (Tech: probe live_icon_patch_probe.py stages 1 and
+  2, owner eviction ladder all stale; PE key 0x6A5EA53C unchanged since the 1.5.2
+  re-anchor 2026-07-24, commit 9959821, so all three sessions share one binary; ledger
+  rows [icon-refresh-unreliable] and the updated [live-icon-repaint] carry the evidence
+  and the eviction-condition hunt's next probes; successor design captured as LW-336.)
 - [LW-336] 2026-08-26: Let the mod keep the glow icons current on its own, so nobody has
   to run an extra script after every deploy. Today deploy_glow_tex.py must be re-run by
   hand after every BuildLinked or the icons ship plain, and the in-game splice fights it
   (the splice stands itself down every launch because the loose base art no longer
-  matches its manifest). With live refresh closed by LW-334's answer, the honest design
-  is: the runtime writes each weapon's current-tier variant over its own loose tex when
-  the tier changes (or at quit), the next launch merges it, and the icons are simply
-  always correct at boot. That retires the manual deploy_glow_tex step AND the pac
-  splice in one move; tier-ups keep showing one restart late, which is now known to be
-  physics, not a bug. (Tech: IconGlow already owns the variant store, manifest, and
+  matches its manifest). With mid-session refresh proven unreliable by LW-334's answer
+  (it fired once on 2026-08-16 and refused twice since, same game binary, condition
+  unknown), the honest design is: the runtime writes each weapon's current-tier variant
+  over its own loose tex when the tier changes (or at quit), the next launch merges it,
+  and the icons are simply always correct at boot. That retires the manual
+  deploy_glow_tex step AND the pac splice in one move; tier-ups keep showing one restart
+  late, which no reliable mechanism currently beats. (Tech: IconGlow already owns the variant store, manifest, and
   desired-vs-applied diff; retarget its apply step from pac offsets to the deployed
   loose tex paths under FFTIVC/data/enhanced/ui/ffto/icon, plain file I/O, no Mem.
   Decide the splice's fate in the same seat: keep it only if first-session
