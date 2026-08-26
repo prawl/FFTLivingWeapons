@@ -1873,19 +1873,48 @@ def ramp_glow(im, tint, inner_a=170, outer_a=80, third_a=0, min_de=30.0, rim_sat
                     if (dx, dy) != (0, 0))
             if ((x, y) in body and n >= 3) or ((x, y) not in body and n >= 5):
                 smoothed.add((x, y))
+    # EXTERIOR-ONLY + COMPOSE-UNDER (LW-319 quality pass, owner gun-zoom read 2026-08-26:
+    # stray rim pixels inside the art). Flood-fill from the canvas border across non-body
+    # cells finds the true OUTSIDE, so enclosed holes (a trigger guard) never glow; and the
+    # rim composes UNDER any existing art pixel (art-over-rim) instead of replacing it, so
+    # anti-aliased edges below the body threshold keep their art on top.
+    exterior = set()
+    stack = [(x, y) for x in range(w) for y in (0, h - 1) if (x, y) not in smoothed]
+    stack += [(x, y) for y in range(h) for x in (0, w - 1) if (x, y) not in smoothed]
+    while stack:
+        p = stack.pop()
+        if p in exterior:
+            continue
+        exterior.add(p)
+        x, y = p
+        for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+            if 0 <= nx < w and 0 <= ny < h and (nx, ny) not in smoothed                     and (nx, ny) not in exterior:
+                stack.append((nx, ny))
+
+    def under(x, y, rgb, a):
+        ar, ag, ab, aa = px[x, y]          # existing art pixel stays ON TOP of the rim
+        fa = aa / 255.0
+        oa = aa + a * (1 - fa)
+        if oa <= 0:
+            return
+        po[x, y] = (int(round((ar * aa + rgb[0] * a * (1 - fa)) / oa)),
+                    int(round((ag * aa + rgb[1] * a * (1 - fa)) / oa)),
+                    int(round((ab * aa + rgb[2] * a * (1 - fa)) / oa)),
+                    int(round(min(255, oa))))
+
     r_ = 3 if third_a else 2
     for y in range(h):
         for x in range(w):
-            if (x, y) in smoothed:
+            if (x, y) not in exterior:
                 continue
             d = min((max(abs(dx), abs(dy)) for dx in range(-r_, r_ + 1) for dy in range(-r_, r_ + 1)
                      if (x + dx, y + dy) in smoothed), default=99)
             if d == 1:
-                po[x, y] = rim_rgb + (inner_a,)
+                under(x, y, rim_rgb, inner_a)
             elif d == 2:
-                po[x, y] = outer_rgb + (outer_a,)
+                under(x, y, outer_rgb, outer_a)
             elif d == 3 and third_a:
-                po[x, y] = outer_rgb + (third_a,)
+                under(x, y, outer_rgb, third_a)
     return out
 
 
