@@ -283,6 +283,16 @@ belongs rather than at the bottom.
   is the prerequisite, otherwise the manual deploy_glow_tex step fakes the result; the
   late level-up toast (LW-323) and slow kill counters (LW-324) sit on the same player
   experience and an extensive pass will trip both.
+- [LW-342] 2026-08-26: The test suite silently means "production flavor only": building
+  the tests with the DEV knob turned on fails 89 of them at today's HEAD, and nothing
+  anywhere runs that combination, so the dev flavored DLL ships gated by tests compiled
+  for the other flavor's thresholds. Found as bycatch during the LW-336 verify rounds
+  (the implementer proved the 89 are pre existing via a throwaway worktree at HEAD).
+  Decide the honest posture: either the dev test build becomes a gate somewhere
+  (BuildLinked dev runs dotnet test with the LwDev property), or the suite documents
+  that tests are prod threshold only ON PURPOSE and a tripwire keeps dev only logic
+  out of tested paths. (Tech: dotnet test -p:LwDev=true, 95 failures, 89 pre existing,
+  6 the new IconGlow tests written to the file's own prod threshold convention.)
 - [LW-341] 2026-08-26: Teach the deploy audit that glow-tiered icons are healthy, not
   drift. Once LW-336 ships, the mod itself rewrites its deployed weapon icon tex files
   to each weapon's current tier, so BuildLinked -VerifyOnly comparing the install
