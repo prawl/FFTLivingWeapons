@@ -98,7 +98,9 @@ def rider_text(rider):
 #: LW-329 lane-hue slots, owner-read palette sitting 2026-08-25 (lw329_palette_map.json).
 #: WP cyan 83 -> teal 93 (owner 2026-08-25 late: 83 hard to read on parchment; 93 read
 #: "teal/sage (readable)" at the same sitting -- same family, darker, legible).
-LANE_COLOR_SLOT = {"Speed": "40", "PA": "30", "MA": "50", "HP": "81", "WP": "93",
+#: PA light red 30 -> prominent red 90 (owner sweep read 2026-08-25: "Prominent Red
+#: (I like this over the one we're using)", banked in lw307_card_colors.json).
+LANE_COLOR_SLOT = {"Speed": "40", "PA": "90", "MA": "50", "HP": "81", "WP": "93",
                    "WP+Faith": "60", "PA+MA": "95", "PA+MA+Brave": "94"}
 
 
