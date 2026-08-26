@@ -59,13 +59,18 @@ def main():
                        .read_text(encoding="utf8"))
     manifest = json.loads((mod_dir / "glow_icons" / "manifest.json")
                           .read_text(encoding="utf8"))
-    applied = skipped = 0
+    repo_mod = pathlib.Path(__file__).resolve().parents[1] / "mod" / "FFTIVC"
+    applied = plain = 0
     for entry in manifest["icons"]:
         tier = tier_for(int(kills.get(str(entry["id"]), 0)))
         if tier == 0:
-            skipped += 1
-            continue
-        src = mod_dir / "glow_icons" / entry["variants"][str(tier)]
+            # Restore the PLAIN repo base rather than skipping: a prior apply may have
+            # overlaid a rim on this deployed tex, and a weapon back at tier 0 (or a
+            # glow_bounce.py test value) must visibly lose it.
+            src = repo_mod / entry["baseRel"]
+            plain += 1
+        else:
+            src = mod_dir / "glow_icons" / entry["variants"][str(tier)]
         dst = mod_dir / "FFTIVC" / entry["baseRel"]
         data = src.read_bytes()
         if len(data) != entry["length"]:
@@ -73,8 +78,8 @@ def main():
                      f"{entry['length']} (never write a wrong-size tex)")
         dst.write_bytes(data)
         applied += 1
-    print(f"glow tex applied over {applied} deployed icons ({skipped} at tier 0 kept "
-          f"plain); restart the game to see them")
+    print(f"glow tex applied over {applied} deployed icons ({plain} of them restored "
+          f"to the plain tier-0 base); restart the game to see them")
 
 
 if __name__ == "__main__":

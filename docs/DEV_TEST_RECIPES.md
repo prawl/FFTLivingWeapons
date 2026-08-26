@@ -44,6 +44,18 @@ below `RosterBase` (`0x1411A7D10` on 1.5); ids 0..260 stay clear of the roster.
 Caveat: only ids whose IC layout matches FFTPatcher-canonical render in the menu (~80–85%); the rest write
 into RAM but don't show.
 
+## Glow tier bounce (see every icon at one glow tier)
+
+The equip-icon glow rims ride the launch merge (deploy_glow_tex.py, the LW-334 interim
+path), so a tier change needs a relaunch. To tour the tiers: quit the game, then
+
+    python tools\glow_bounce.py 7      # 0 = plain, 7 = tier 1, 12 = tier 2, 15 = tier 3
+
+It sets EVERY living weapon's kills.json tally to that value (cards read it too) and
+re-applies the overlay, tier 0 restoring the plain base. Launch, look, quit, next value.
+It refuses while the game runs and never touches the kills.json.*.bak real-tally backups;
+restore one of those by hand when the tour ends.
+
 ## Bump a weapon's WP for one-hit-kill testing
 
 Edit `data/items.json` → the item's `proposed.wp` (NOT `baseline`) → `BuildLinked.ps1` → restart the game
