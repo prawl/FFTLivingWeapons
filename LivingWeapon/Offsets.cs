@@ -598,9 +598,13 @@ internal static class Offsets
     // tools/gen_living_weapon_meta.py's check_wp_sid_identity for every "wp"/"wp+faith" weapon,
     // not just asserted here.
     /// <summary>u16 combat-struct MaxHp (== AMaxHp 0x16 + BandEntry 0x1C; distinct from CHp
-    /// 0x30, current HP -- HoldU16 never touches current HP, only this MAX field). PROVEN
-    /// 2026-08-25, ledger [maxhp-hold-attribution-safe]: a raised MaxHp hold does not break
-    /// kill attribution and current HP stays put.</summary>
+    /// 0x30, current HP -- HoldU16 itself never touches current HP, only this MAX field, with one
+    /// sanctioned exception: the LW-327 top-up (GrowthEngine.Lanes.cs) raises CHp by the delta
+    /// the max rose, once per real battle -- a GENUINE capture arms a pending intent that
+    /// delivers on the first tick current HP reads sane, so a grown weapon opens the battle full
+    /// instead of reading hurt. PROVEN 2026-08-25, ledger
+    /// [maxhp-hold-attribution-safe]: a raised MaxHp hold does not break kill attribution and
+    /// current HP stays put outside that per-battle top-up.</summary>
     public const int CMaxHp = 0x32;   // u16
     /// <summary>u8 combat-struct CURRENT brave (orig is <see cref="CBrave"/>, 0x2A -- never
     /// written by this lane). PROVEN 2026-07-02 (Kobu ships on it), ledger
