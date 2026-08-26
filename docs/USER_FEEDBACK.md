@@ -70,3 +70,53 @@ player's; parenthetical scope/triage notes are added during capture and not yet 
 ### Positive
 - Loves the new changes: the weapon name replacing "Attack" in the menu "feels nice", and the
   new +3 for Outrider is "awesome".
+
+## 2026-08-26 (Nexus posts sweep, all 4 pages, plus one private message)
+
+Source: the mod page's 96 posts read end to end in the owner's browser, and the
+Xeoshades PM. Standing at read time: 40 endorsements, 1,523 total downloads, 12,214
+views, ZERO open bug reports, rank 4 on the game's two-week most-endorsed list (the
+owner's Treasure Master spinoff holds rank 1).
+
+### Actionable
+- The kill thresholds are undiscoverable AND the mod page is stale: two users
+  independently (bongchoof, eddyca) hunted for the threshold knob and failed, and the
+  page prose still says 50 kills while the shipped curve has been 5/10/15 since the
+  2026-08-12 softening. Captured as [LW-343].
+- Faerie Harp charm regret (azavierj1218): the vanilla harp's Charm proc was the game's
+  only charm weapon; our Sleep replacement erased that uniqueness and the player mourns
+  it. Balance-signal for [LW-318]; the display half (procs silent on cards) is [LW-331].
+- Orran escort fight spike (TankyCrobat, Tactician): every thief and chemist carrying a
+  bow or gun focus-fires Orran for a near-unwinnable opener. Feeds [LW-318]/[LW-321]
+  (the thief-bow buff is loved, the encounter tuning is not).
+- Compat demand cluster keeps growing: Antidote/Regabond item collisions
+  (Denverplays2), Red/Blue Mage and Dark Knight job mods (mediadragon, kaylin04442,
+  Krice01), and the community is hand-merging tables to cope (Moonpyramid777's
+  NotePad++ guide). Feeds [LW-177]/[LW-296].
+- Xeoshades PM ("Jade", 2026-08-14): building a Cloud/Buster Sword mod on ids 67-70
+  and 49, believing 48/50 are free; every one of those ids is a load-bearing living
+  weapon, so the mods collide totally. Wants a compat patch and offered collaboration;
+  also independently confirmed the ex-flail distorted swing [LW-312]. The honest
+  unlock for BOTH the Cloud mod and the axes/flails complaints is the item-cap break.
+- Axes/flails removal controversy (SpyderZT, Davidlangevin): variety loss felt; the
+  owner's public answer (234-item hard cap, restore them when the cap breaks) stands.
+- PanicCatz: wants a vanilla-names variant (mechanics only). Architectural tension,
+  recorded honestly: the Kills counter is painted into the DESCRIPTIONS the mod bakes,
+  so a vanilla-text variant loses the on-card counters; not ruled, owner's call.
+
+### Handled / historical
+- bongchoof's three posts (slow counter paint, day-two tally loss, threshold hunt):
+  owner handled via Discord 2026-08 (his note, 2026-08-26). The slow-paint half is
+  now [LW-324] (in build at capture time); the counters-lag observation is the same
+  complaint the owner filed himself.
+- a412045249's 1.5.2 stand-down prompt: the fingerprint guard working as designed;
+  the re-anchor shipped the same week.
+- TerraEpon's new-game crash (old post): matches the parked Bloodpact ability-nxd
+  corruption era, fixed/parked 2026-06; not current.
+- azavierj1218's "weapon animations don't match the icon colors": SHIPPED since
+  (the LW-251 battle palette, owner live pass 2026-08-24); good release-notes line.
+
+### Positive
+- "Huge fan of equipment not turning into junk" (Xeoshades) is the build-diversity
+  thesis quoted back verbatim; GameDadVII made a YouTube video on the mod; multiple
+  players praise the thief-bow identity and the +3 signatures.

@@ -308,6 +308,15 @@ belongs rather than at the bottom.
   that tests are prod threshold only ON PURPOSE and a tripwire keeps dev only logic
   out of tested paths. (Tech: dotnet test -p:LwDev=true, 95 failures, 89 pre existing,
   6 the new IconGlow tests written to the file's own prod threshold convention.)
+- [LW-343] 2026-08-26: The mod's own Nexus page teaches the OLD kill thresholds and
+  never says where the knob lives, and players notice: two users independently hunted
+  for the threshold setting and failed, and the page still says 50 kills while the
+  shipped curve has been 5/10/15 since the 2026-08-12 softening (LW-161). Fix is
+  content, not code: update the Nexus description (thresholds, the kills.json tweak
+  path with its real location under Reloaded/User/Mods, and the current feature list),
+  and mirror the same facts in README.md so the page can be regenerated from the repo
+  instead of drifting again. Surfaced by the 2026-08-26 Nexus posts sweep
+  (docs/USER_FEEDBACK.md, same date).
 - [LW-341] 2026-08-26: Teach the deploy audit that glow-tiered icons are healthy, not
   drift. Once LW-336 ships, the mod itself rewrites its deployed weapon icon tex files
   to each weapon's current tier, so BuildLinked -VerifyOnly comparing the install
