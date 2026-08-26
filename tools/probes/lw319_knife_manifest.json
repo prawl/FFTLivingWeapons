@@ -1,0 +1,53 @@
+{
+ "lane": "speed",
+ "measured": "#8DA371",
+ "vibrant": "#91D936",
+ "pop_deep": "#60AB00",
+ "pop_bright": "#8FFF00",
+ "knives": [
+  {
+   "id": 1,
+   "name": "Cutpurse"
+  },
+  {
+   "id": 2,
+   "name": "Quicksilver"
+  },
+  {
+   "id": 3,
+   "name": "Gloomfang"
+  },
+  {
+   "id": 4,
+   "name": "Hushblade"
+  },
+  {
+   "id": 5,
+   "name": "Argent Dirk"
+  },
+  {
+   "id": 6,
+   "name": "Sanguine Gauche"
+  },
+  {
+   "id": 7,
+   "name": "Adamant Fang"
+  },
+  {
+   "id": 8,
+   "name": "Mortal Coil"
+  },
+  {
+   "id": 9,
+   "name": "Galewind"
+  },
+  {
+   "id": 10,
+   "name": "Zwill Straightblade"
+  },
+  {
+   "id": 68,
+   "name": "Bloodlash"
+  }
+ ]
+}

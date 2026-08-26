@@ -56,6 +56,98 @@ def vibrant(rgb):
     return tuple(int(round(c * 255)) for c in colorsys.hsv_to_rgb(h, s2, v2))
 
 
+def pop_deep(rgb):
+    """C rung inner band: the lane hue at full chroma, value held DEEP. The inventory
+    ground is white (RAMP_PANEL), so a rim pops by being darker and fully saturated,
+    not lighter; a pale core would dissolve into the panel."""
+    import colorsys
+    h, s, v = colorsys.rgb_to_hsv(*(c / 255 for c in rgb))
+    return tuple(int(round(c * 255)) for c in colorsys.hsv_to_rgb(h, 1.0, min(max(v * 1.05, 0.60), 0.80)))
+
+
+def pop_bright(rgb):
+    """C rung outer band: the same hue at full chroma and full value; the shipped outer
+    alpha (80, tier-scaled) fades it into the white panel as the glow falloff."""
+    import colorsys
+    h, s, v = colorsys.rgb_to_hsv(*(c / 255 for c in rgb))
+    return tuple(int(round(c * 255)) for c in colorsys.hsv_to_rgb(h, 1.0, 1.0))
+
+
+def two_tone_rim(body_img, item_id, deep, bright, scale):
+    """C rung ('pop'): ramp_glow's exact contour and band geometry, but the inner band
+    wears the DEEP color and the outer (and any rims.json third) the BRIGHT one.
+    This is a PROPOSED transform, not the shipped bake: if the owner rules C, the
+    same two-color loop moves into bake_glow_icons/ramp_glow in its own commit."""
+    rim = ri.RAMP_RIMS.get(str(item_id)) or {}
+    inner_a = max(0, min(255, int(round(rim.get("inner_a", 170) * scale))))
+    outer_a = max(0, min(255, int(round(rim.get("outer_a", 80) * scale))))
+    third_a = max(0, min(255, int(round(rim.get("third_a", 0) * scale))))
+    w, h = body_img.size
+    out = body_img.copy(); po = out.load(); px = body_img.load()
+    body = {(x, y) for y in range(h) for x in range(w) if px[x, y][3] >= 160}
+    smoothed = set()
+    for y in range(h):
+        for x in range(w):
+            n = sum((x + dx, y + dy) in body for dy in (-1, 0, 1) for dx in (-1, 0, 1)
+                    if (dx, dy) != (0, 0))
+            if ((x, y) in body and n >= 3) or ((x, y) not in body and n >= 5):
+                smoothed.add((x, y))
+    r_ = 3 if third_a else 2
+    for y in range(h):
+        for x in range(w):
+            if (x, y) in smoothed:
+                continue
+            d = min((max(abs(dx), abs(dy)) for dx in range(-r_, r_ + 1) for dy in range(-r_, r_ + 1)
+                     if (x + dx, y + dy) in smoothed), default=99)
+            if d == 1:
+                po[x, y] = deep + (inner_a,)
+            elif d == 2:
+                po[x, y] = bright + (outer_a,)
+            elif d == 3 and third_a:
+                po[x, y] = bright + (third_a,)
+    return out
+
+
+def knives():
+    """The LW-319 C-rung family sitting (owner call 2026-08-25 late: icons only, one
+    family judged before the recipe rolls forward): all 11 Speed knives on BOTH icon
+    surfaces, body + tiers 1..3 in A (verbatim measured), B (vibrant), C (two-tone pop).
+    Outputs are DERIVED and stay untracked; this probe + the measured map regenerate them."""
+    items = json.load(open(HERE.parent.parent / "data" / "items.json"))
+    rows = items["items"] if isinstance(items, dict) and "items" in items else items
+    meta = json.load(open(HERE.parent.parent / "LivingWeapon" / "meta.json"))
+    fam = [r for r in rows if isinstance(r, dict) and r.get("category") == "Knife"]
+    rgb = tuple(MEASURED["Speed"]["rgb"])
+    vib, deep, bright = vibrant(rgb), pop_deep(rgb), pop_bright(rgb)
+    manifest = {"lane": "speed", "measured": MEASURED["Speed"]["hex"],
+                "vibrant": "#{:02X}{:02X}{:02X}".format(*vib),
+                "pop_deep": "#{:02X}{:02X}{:02X}".format(*deep),
+                "pop_bright": "#{:02X}{:02X}{:02X}".format(*bright), "knives": []}
+    for r in sorted(fam, key=lambda r: r["id"]):
+        item_id = r["id"]
+        entry = meta.get(str(item_id))
+        assert entry and entry["lane"] == "speed", f"knife {item_id} is not Speed lane"
+        tint = ri.ICON_TINTS[item_id]
+        for surface, sfx in (("card", ""), ("small", "s")):
+            body = ri.ramp_render(item_id, tint, surface, glow=False)
+            body.save(HERE / f"lw319_knife{sfx}_id{item_id:03d}_t0.png")
+            for tier, scale in sorted(TIER_SCALES.items()):
+                lane_rim(body, tint, item_id, rgb, scale).save(
+                    HERE / f"lw319_knife{sfx}_id{item_id:03d}_a{tier}.png")
+                lane_rim(body, tint, item_id, vib, scale).save(
+                    HERE / f"lw319_knife{sfx}_id{item_id:03d}_b{tier}.png")
+                two_tone_rim(body, item_id, deep, bright, scale).save(
+                    HERE / f"lw319_knife{sfx}_id{item_id:03d}_c{tier}.png")
+        manifest["knives"].append({"id": item_id, "name": entry["name"]})
+        print(f"  id {item_id:3d} {entry['name']}")
+    (HERE / "lw319_knife_manifest.json").write_text(
+        json.dumps(manifest, indent=1) + "\n", encoding="utf8")
+    print(f"A {MEASURED['Speed']['hex']} dE {round(panel_dE(rgb),1)} | "
+          f"B {manifest['vibrant']} dE {round(panel_dE(vib),1)} | "
+          f"C deep {manifest['pop_deep']} dE {round(panel_dE(deep, 255),1)} "
+          f"bright {manifest['pop_bright']} dE {round(panel_dE(bright, 120),1)}")
+
+
 def panel_dE(rgb, alpha=170):
     eff = tuple(round(rgb[k] * alpha / 255 + ri.RAMP_PANEL[k] * (1 - alpha / 255))
                 for k in range(3))
@@ -116,4 +208,5 @@ def main():
 
 
 if __name__ == "__main__":
-    roster() if len(sys.argv) > 1 and sys.argv[1] == "roster" else main()
+    mode = sys.argv[1] if len(sys.argv) > 1 else ""
+    knives() if mode == "knives" else roster() if mode == "roster" else main()
