@@ -31,7 +31,7 @@ tree; this writes glow_icons/ instead):
   3. encode the tier image the same way process() does: Pillow PNG -> FF16Tools img-conv
      --no-chunk-compression -> .tex, written to glow_icons/ (never mod/FFTIVC/).
 
-Tier scales are knobs (owner tunes at the live pass): {1: 0.6, 2: 1.0, 3: 1.5}. rim_scale=1.0
+Tier scales are knobs (owner tunes at the live pass): {1: 0.6, 2: 1.0, 3: 1.3}. rim_scale=1.0
 (tier 2) is an EXACT identity on ramp_glow's resolved alphas (see its doc comment), so tier 2's
 pixels equal what the parked rim already produced before this file existed.
 
@@ -100,7 +100,10 @@ SCHEMA_VERSION = 1
 # Knobs (owner tunes at the live pass, per LW-295 plan F1): tier 0 (no glow) is not baked here,
 # the runtime keeps the base .tex spliced in for tier 0 (P6: the pac rebuilds from loose files
 # every launch, so base art is the guaranteed launch state).
-TIER_SCALES = {1: 0.6, 2: 1.0, 3: 1.5}
+# Tier 3 softened 1.5 -> 1.3 (owner Atlas feedback 2026-08-26: '+3 the glow is too
+# over powering, tone it down by like 10 or 15%'; 1.3 = -13%, and the inner ring
+# drops off full 255 opacity, 170*1.3=221).
+TIER_SCALES = {1: 0.6, 2: 1.0, 3: 1.3}
 # (pac subfolder, filename prefix, surface tag, fixed tex byte length). Same four surfaces
 # process() loops over; sizes are the shipped tex sizes (0xC860 / 0x3060), verified against a
 # real deployed file at the start of this arc.
