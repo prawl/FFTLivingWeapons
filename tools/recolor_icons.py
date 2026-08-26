@@ -1887,7 +1887,12 @@ def ramp_glow(im, tint, inner_a=170, outer_a=80, third_a=0, min_de=30.0, rim_sat
             continue
         exterior.add(p)
         x, y = p
-        for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+        # 8-connected on purpose: the silhouette smooth and the rim bands are both
+        # 8-neighbor, so the fill must be too, or a diagonal crack reads as an enclosed
+        # hole (adversarial review: Perseus Bow lost its inner-bow rim through exactly
+        # such a crack while the other eight bows painted theirs).
+        for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1),
+                       (x + 1, y + 1), (x + 1, y - 1), (x - 1, y + 1), (x - 1, y - 1)):
             if 0 <= nx < w and 0 <= ny < h and (nx, ny) not in smoothed                     and (nx, ny) not in exterior:
                 stack.append((nx, ny))
 
@@ -3679,7 +3684,9 @@ def selftest():
                 continue
             _ext130.add(_p)
             for _nb in ((_p[0] + 1, _p[1]), (_p[0] - 1, _p[1]),
-                        (_p[0], _p[1] + 1), (_p[0], _p[1] - 1)):
+                        (_p[0], _p[1] + 1), (_p[0], _p[1] - 1),
+                        (_p[0] + 1, _p[1] + 1), (_p[0] + 1, _p[1] - 1),
+                        (_p[0] - 1, _p[1] + 1), (_p[0] - 1, _p[1] - 1)):
                 if (0 <= _nb[0] < _w130 and 0 <= _nb[1] < _h130
                         and _nb not in _mask130 and _nb not in _ext130):
                     _stk.append(_nb)
@@ -3694,6 +3701,32 @@ def selftest():
     elif _vend130 is not None:
         skip("ramp pin3 + pin3b (wiring): id130 fresh-render/route() checks (need a real "
              "vanilla decode)")
+
+    # Pin 3d (2026-08-26 border-quality pass): ramp_glow's exterior-only + compose-under
+    # behavior, pinned on a synthetic so a revert to the old replace-painter goes red.
+    # Shape: a 10x10 opaque square with a 4x4 hole; the hole's center survives the
+    # majority smooth as enclosed interior. Three assertions: (a) enclosed cells stay
+    # unpainted; (b) a pure-ground d==1 band cell carries EXACTLY the rim rgb; (c) an
+    # opaque art speck sitting in the band keeps its own bytes (the old painter
+    # overwrote it with rim color, the exact defect the owner photographed on a gun).
+    _sq = Image.new("RGBA", (24, 24), (0, 0, 0, 0))
+    for _y in range(4, 14):
+        for _x in range(4, 14):
+            _sq.putpixel((_x, _y), (90, 90, 90, 255))
+    for _y in range(8, 12):
+        for _x in range(8, 12):
+            _sq.putpixel((_x, _y), (0, 0, 0, 0))          # the enclosed hole
+    _sq.putpixel((3, 8), (200, 50, 25, 255))              # opaque art speck at d==1
+    _g = ramp_glow(_sq, (0.5, 0.5, 1.0), rim_rgb=(10, 200, 30), outer_rgb=(40, 220, 60))
+    check("ramp pin3d (border pass): an ENCLOSED hole never paints (mutation that must go "
+          "red: drop the exterior flood fill)",
+          all(_g.getpixel((_x, _y))[3] == 0 for _y in (9, 10) for _x in (9, 10)))
+    check("ramp pin3d (border pass): a pure-ground d==1 band cell carries exactly the rim "
+          "rgb at inner alpha",
+          _g.getpixel((8, 3))[:3] == (10, 200, 30) and _g.getpixel((8, 3))[3] > 0)
+    check("ramp pin3d (border pass): an opaque art pixel in the band keeps its own bytes "
+          "(mutation that must go red: revert compose-under to replace-painting)",
+          _g.getpixel((3, 8)) == (200, 50, 25, 255))
 
     # Pin 4: a reserved id's hue is byte-preserved (pop_filter touches sat/value only).
     _rf = Image.new("RGBA", (10, 10), (0, 0, 0, 0))

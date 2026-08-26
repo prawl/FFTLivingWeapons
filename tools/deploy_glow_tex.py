@@ -50,7 +50,11 @@ def main():
     if not mods:
         sys.exit("REFUSED: RELOADEDIIMODS is not set")
     mod_dir = pathlib.Path(mods) / MOD_ID
-    flavor = (mod_dir / "build_flavor.txt").read_text(encoding="utf8").strip()
+    marker = mod_dir / "build_flavor.txt"
+    if not marker.exists():
+        sys.exit("REFUSED: no build_flavor.txt in the deployed mod (a Publish-zip install "
+                 "never has one; this step only runs on BuildLinked -Prod installs)")
+    flavor = marker.read_text(encoding="utf8").strip()
     if flavor != "prod":
         sys.exit(f"REFUSED: deployed flavor is {flavor!r}, not prod (dev builds seed "
                  "tallies; this step keys tiers off REAL kills)")

@@ -271,8 +271,17 @@ belongs rather than at the bottom.
   19f2c10, 68670f6, 53d5887): 726 variants re-baked, PA Grows text slot 90 through
   flavor/meta/nxd in lockstep, and deploy_glow_tex.py as the LW-334 interim display
   path (tier rims copied into the deployed loose tex after BuildLinked, riding the
-  launch merge; restart-only updates until LW-334 cracks live refresh). AWAITING the
-  owner's first in-game look at the popped icons.
+  launch merge; restart-only updates until LW-334 cracks live refresh). The owner then
+  tuned the look live across five passes the same night (2026-08-26): tier 3 softened
+  1.5 to 1.3, the falloff band halved and the third band dropped, the whole ladder
+  dimmed to 0.7 after a 0.85 pass measured real but read invisible, and a border
+  quality pass (rim paints exterior-only and composes under art) after the owner
+  photographed stray rim pixels on a gun. A final adversarial review returned SHIP
+  WITH NITS; its two real catches (glow_bounce.py wrote one directory too high and
+  had never worked, and the exterior fill was 4-connected against an 8-connected
+  silhouette, costing Perseus Bow its inner rim) are fixed with a new pin3d guarding
+  the border behavior. AWAITING the owner's look at the final border-fixed state, its
+  overlay pending one game-quit window.
 
 - [LW-327] 2026-08-25: A grown Knight Sword's bonus HP should be REAL at battle start:
   today the raised maximum shows 679/883 and the knight begins every battle reading hurt

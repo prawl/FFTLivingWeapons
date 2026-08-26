@@ -35,7 +35,11 @@ def main():
     mods = os.environ.get("RELOADEDIIMODS")
     if not mods:
         sys.exit("REFUSED: RELOADEDIIMODS is not set")
-    save_dir = pathlib.Path(mods).parent.parent / "User" / "Mods" / MOD_ID
+    # RELOADEDIIMODS is <root>\Reloaded\Mods, so the Reloaded root is ONE parent up
+    # (the adversarial review caught the original two-parent form resolving outside
+    # the Reloaded tree entirely; deploy_glow_tex.py computes the same root from
+    # mod_dir.parent.parent, which is equivalent to this).
+    save_dir = pathlib.Path(mods).parent / "User" / "Mods" / MOD_ID
     kills_path = save_dir / "kills.json"
     meta = json.loads((HERE.parent / "LivingWeapon" / "meta.json").read_text(encoding="utf8"))
     weapon_ids = sorted(int(k) for k, v in meta.items() if isinstance(v, dict) and "lane" in v)

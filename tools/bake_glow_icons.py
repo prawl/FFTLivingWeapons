@@ -39,7 +39,7 @@ Manifest schema (schemaVersion 1, EXACT field names -- the runtime half implemen
 schema, so a rename here is a cross-agent break, not a local refactor):
   {
     "schemaVersion": 1,
-    "tierScales": {"1": 0.6, "2": 1.0, "3": 1.5},
+    "tierScales": {"1": 0.6, "2": 1.0, "3": 1.3},
     "icons": [
       {"id": 12, "surface": "card",
        "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_012_uitx.tex",
