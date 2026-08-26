@@ -221,7 +221,11 @@ belongs rather than at the bottom.
   (Tech: mechanism is a per-id override map consulted before LANE_GLOW in
   bake_glow_icons._glow_variant, the same precedence shape rims.json already uses for
   per-weapon alphas; the mesh finding from the same sitting applies, a ring reads best
-  when its hue sits far from the weapon's own art hue.)
+  when its hue sits far from the weapon's own art hue. Audit candidates from the same
+  night, rings that dissolve into their own art: Frost Kodachi 13 green on green the
+  worst, Save the Queen 34 orange on gold, Terrastaff 48 violet on violet, Blaze Gun
+  75 gold on gold, Gloomfang 3 mildly; Excalibur 35 proves the lane hue itself is fine
+  on contrasting art. Render: tools/probes/lw319_suspects.png.)
 - [LW-334] 2026-08-25: Weapon icons never show their glow rims in game even though the
   splice itself works. First real live read of the LW-295 icon half: the pac on disk
   provably holds the tier 3 icon bytes (checked directly this session) while the equip
