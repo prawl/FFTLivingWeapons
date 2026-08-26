@@ -134,14 +134,18 @@ def patch(target):
 
 def restore():
     if not os.path.exists(STATE):
-        print("nothing to restore (no state file); a relaunch rebuilds modded.pac anyway")
+        print("nothing to restore (no state file). WARNING: a relaunch does NOT rebuild "
+              "modded.pac (the merge is incremental, proven 2026-08-26), so if a patch was "
+              "made without state, restore by hand: content-search the marker bytes and "
+              "write the target's own .tex bytes back over them.")
         return
     state = json.load(open(STATE))
     target = state["target"]
     for w in state["writes"]:
         own = open(tex_path(target, w["surface"]), "rb").read()
         assert hashlib.md5(own).hexdigest() == w["own_md5"], \
-            "the deployed .tex changed since the patch; relaunch instead (the pac rebuilds)"
+            "the deployed .tex changed since the patch; relaunch instead (a changed source " \
+            "file is what triggers the incremental re-merge; VERIFY the pac afterwards)"
         with open(PAC, "r+b") as f:
             f.seek(w["offset"])
             f.write(own)
