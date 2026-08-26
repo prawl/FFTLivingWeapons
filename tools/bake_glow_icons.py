@@ -33,7 +33,7 @@ tree; this writes glow_icons/ instead):
 
 Tier scales are knobs (owner tunes at the live pass): {1: 0.6, 2: 1.0, 3: 1.3}. rim_scale=1.0
 (tier 2) is an EXACT identity on ramp_glow's resolved alphas (see its doc comment), so tier 2's
-pixels equal what the parked rim already produced before this file existed.
+pixels equaled the parked rim's output until the owner tuning passes of 2026-08-26 (lane colors, OUTER_TRIM, GLOW_TRIM) reshaped every tier.
 
 Manifest schema (schemaVersion 1, EXACT field names -- the runtime half implements to this same
 schema, so a rename here is a cross-agent break, not a local refactor):
@@ -109,6 +109,12 @@ TIER_SCALES = {1: 0.6, 2: 1.0, 3: 1.3}
 # (a rims.json per-weapon widener) is dropped everywhere, so the rim reads as a crisp
 # ring with a whisper of falloff instead of a 2-3px halo. Inner band untouched.
 OUTER_TRIM = 0.5
+# Global intensity trim (owner 2026-08-26, second tuning pass: "make the glow a
+# little less intense instead of lowering the width"): every tier's resolved rim
+# scale is multiplied by this, so the whole ladder dims 15% while tier ratios and
+# rim width stay exactly as shipped. A width pass-2 (OUTER_TRIM 0.25) was started
+# and reverted for this in the same breath.
+GLOW_TRIM = 0.85
 # (pac subfolder, filename prefix, surface tag, fixed tex byte length). Same four surfaces
 # process() loops over; sizes are the shipped tex sizes (0xC860 / 0x3060), verified against a
 # real deployed file at the start of this arc.
@@ -167,7 +173,8 @@ def _glow_variant(body, tint, item_id, rim_scale):
     outer_a = rim["outer_a"] if rim else 80
     return ri.ramp_glow(body, tint, inner_a=inner_a,
                         outer_a=int(round(outer_a * OUTER_TRIM)), third_a=0,
-                        rim_rgb=deep, outer_rgb=bright, rim_scale=rim_scale)
+                        rim_rgb=deep, outer_rgb=bright,
+                        rim_scale=rim_scale * GLOW_TRIM)
 
 
 def encode_tex(img, out_path, tag):
