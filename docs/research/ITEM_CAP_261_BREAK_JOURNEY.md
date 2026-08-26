@@ -1045,3 +1045,40 @@ backed-up save, minding the 2026-06-10 auto-arm scar and checking the "+" items 
 nxd merge semantics, the construction slot-swap loop on 1.5.2, and the acquisition tables
 (shop/poach/Move-Find, phase 3 by design). Probe litter: the four ei_261 icon files live in the
 DEPLOYED livingweapons mod folder only (not the repo); the next BuildLinked sweep removes them.
+
+### Late evening: the registry hunt narrows the wall to one builder; four hypotheses retired
+
+Built the marker-gated BOOT-ARM path (FFTHandsFree f3ba480 + 1777eb0: arm the rig during mod
+load, before the game boots, with experimental "patch 0xADDR OLD NEW" lines readable from the
+marker file so a hunt round is a text edit plus relaunch). Boot-armed runs confirmed working
+(rig armed pre-boot, all byte guards green, "+" items 256-260 audited clean pre/post). RESULT:
+id261 still absent from the party inventory and the equip picker. Retired tonight, each with
+its evidence:
+- The six known registry patches applied PRE-BOOT are not sufficient. (Round 1.)
+- Three loop-bound candidates from the live imm scan (0x140397121 incl. the journal's
+  0x140392xxx hint, 0x14039678F, 0x1402D679B) patched at boot: no effect. (Round 2; probe
+  tools/probes/lw346_registry_cap_scan.py enumerates every instruction-shaped 261/260/262
+  immediate in .code.)
+- ItemData.xml row 261: SILENTLY DROPPED. The modloader log proves XML table merge has no
+  added-row path, while nex/nxd tables DO ("Processing 1 added rows for nex table 'item.en'"
+  is our Moonblade name row loading). Data-side minting cannot ride the XML tables.
+- The 1.5 category system is RANGE TABLES, not the pre-1.5 plain getter: the modloader itself
+  logs "Found ItemDataTypeToItemIdRangeData @ 0x14067FB38" and "Found ItemIdRangeToCategoryData
+  @ 0x1406804E0" (which is why the June-26 8-candidate getter hunt found nothing the right
+  shape). The category fence (final boundary u16 261 at 0x1406804FA) widened to 262 live: no
+  effect on an already-open session (boot-time effect untested). Dump probe:
+  tools/probes/lw346_idrange_tables_dump.py.
+- The June-26 "category candidate" 0x1402875dc descendant (0x140287563 on 1.5.2) is an
+  adjust-per-id-byte-with-clamp routine over a SECOND per-id array at 0x1411A76FF (id bound
+  imm at 0x14028756F); that array reads all zeros on a 99-of-everything save, so it is not the
+  owned-count bag either.
+
+TWO PRECISION FACTS FOR THE NEXT SESSION: (1) the equip picker's E-badge walk is a registry
+scan (equipping id261 then opening the picker shows NO badge and the cursor defaults to id257,
+the first extended id); (2) the return-to-bag path is registry-gated too: swapping the equipped
+id261 for a real weapon makes the Moonblade EVAPORATE (nowhere to land, dropped silently,
+hand restored clean). NEXT: the June-4 documented method, owner + Cheat Engine
+find-what-accesses while the picker builds (usermode VEH survives Denuvo on this exe), with
+the E-badge compare or a known item's Equipped/Held count as the tripwire. All probe writes
+reverted this session; the boot-arm marker removed; residual in-process patches die at exit
+(owner quits without saving).
