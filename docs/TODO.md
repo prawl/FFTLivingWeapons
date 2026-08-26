@@ -265,12 +265,42 @@ belongs rather than at the bottom.
   desired-vs-applied diff; retarget its apply step from pac offsets to the deployed
   loose tex paths under FFTIVC/data/enhanced/ui/ffto/icon, plain file I/O, no Mem.
   Decide the splice's fate in the same seat: keep it only if first-session
-  never-yet-drawn icons are worth the code.) The four bags' recolor seat, BUILT and gated 2026-08-16 and
+  never-yet-drawn icons are worth the code.)
+- [LW-212] 2026-08-13: The four bags' recolor seat, BUILT and gated 2026-08-16 and
   AWAITING the owner's gallery pass ever since; demoted from Now 2026-08-25 only to
   free the seat for LW-332 (the owner queued the Grows-line move). Nothing about the
   work changed: the art is live in the current install, and the full Done means and
   Verify text lives in this file's history (75f0c7f and earlier). Re-promote for the
   gallery pass whenever the owner sits down for icons.
+- [LW-205] 2026-08-13: The nine ninja blades' recolor seat, BUILT and gated 2026-08-16
+  and AWAITING the owner's gallery pass ever since; demoted from Now 2026-08-26 only to
+  free the seat for LW-327 (the owner queued the Knight Sword battle-start HP top-up).
+  Nothing about the work changed: the art is live in the current install, and the full
+  Done means and Verify text lives in this file's history (commit 957195a and earlier).
+  Re-promote for the gallery pass whenever the owner sits down for icons.
+- [LW-337] 2026-08-26: Torso gear gets the recolor treatment so body armor reads as
+  distinct items the way the helms already do; owner queued 2026-08-26 while defining
+  the next release. Engine and rules get decided when the arc starts; the helm pass is
+  the named quality reference, and the LW-313 seat (the owner's new icon path, still
+  unwritten) should be spelled out first so this family rides the right pipeline.
+- [LW-338] 2026-08-26: Accessories get the recolor treatment to the same helm-quality
+  standard; owner queued 2026-08-26 alongside LW-337 and the same notes apply (engine
+  decided at arc start, LW-313's path spelled out first).
+- [LW-339] 2026-08-26: The in-battle weapon sprite recolor gets one extensive live test
+  pass hunting edge cases before the release calls it done; owner queued 2026-08-26.
+  Known suspects to script into the pass rather than rediscover live: counter attacks
+  still swing vanilla (LW-310), the four ex flails draw broken garbage (LW-312), two
+  weapons sharing one of the 13 palettes can clash during a parry (roughly 8 percent of
+  parry exchanges per ledger row [per-weapon-colour-by-turn-repaint]), the palette map
+  carries at least one proven-wrong entry (LW-305), and shields stay vanilla entirely
+  (LW-302, its own hunt).
+- [LW-340] 2026-08-26: The glow rims get one extensive owner test proving they grow as
+  you play; owner queued 2026-08-26. Physics settled the same day: a drawn icon never
+  refreshes mid-session, so growth shows at the NEXT launch, and the script must test
+  tier-ups landing after restart, not live. LW-336 (the runtime keeps the icons current)
+  is the prerequisite, otherwise the manual deploy_glow_tex step fakes the result; the
+  late level-up toast (LW-323) and slow kill counters (LW-324) sit on the same player
+  experience and an extensive pass will trip both.
 - [LW-319] 2026-08-25: The weapon glow in lane hues, PAUSED by the owner the same day
   ("let's pause on the glow for a moment") to re-promote LW-332; state banked and ready
   to resume: the eight lane text colors are MEASURED off the live card
