@@ -1748,6 +1748,10 @@ Raising one unit's Max HP mid-battle leaves the mod's kill bookkeeping intact: w
 
 ## Uncertain — observed live, not yet isolated / built on
 
+### [kills-pool-region-recurrence] The Kills string pool regions recur across launches; one base identical in every observed launch
+
+Observed 2026-08-26 across four distinct game launches (flight tape coverage records, read-only): region 0x15DC00000 sat at the IDENTICAL base in every launch with a stable 363 to 370 site count; the largest region (about 1100 to 1400 sites) was stable within each launch and moved once between launches (0x15E800000 vs 0x163C00000); the third region drifted per launch inside the 0x4F9A00000000 neighborhood. Basis for LW-324's warm start (persist located sites at quit, verify then adopt at next launch). SITE level recurrence inside a recurring region is NOT yet measured, so the warm start must remain correct at zero percent adoption (adoption gated on the existing paint-time ownership verification) and must log its own adoption rate; the owner's LW-324 live pass doubles as the site-level measurement. UNCERTAIN until that read.
+
 ### [auto-battle-mode-byte] Per-unit auto-battle byte at combat+0x1EC drives the behaviour AND the overhead Auto tag, and a write forces the tag to re-render
 
 Uncertain as of 2026-08-24: the owner isolated the byte in CE and drove it both directions live (0 = auto off, tag gone; 12 decimal = 0x0C = auto on, tag shown, AI acts), but the value's encoding (whether instruction modes change it) and the game's re-stamp behaviour are unprobed, and nothing is built on it yet.
