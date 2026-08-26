@@ -946,3 +946,48 @@ PROVEN (Patrick); then stage the commits green-gated. The "boot-built registry g
 (findings 1-13 / section H) is now DEFINITIVELY RETIRED for equip: it was a chain of hookable plain/thunk
 gates + one register-clobber, not a registry. ~121 weapons / 240 items / 128 ItemWeaponData rows -- new ids
 past 261 reuse a stat row via SecondTableId (Moonblade -> 67).
+
+## 2026-08-26: the 1.5.2 re-anchor. Every gate found again; disk checking is blind here; a live read settled it
+
+Resuming the arc (ledger row LW-346). Every rig address above was found on the 1.5.0 binary and
+the game recompiled twice since (1.5.1, 1.5.2), so step zero was proving where the gates live now.
+
+**Offline exe diffing CANNOT answer for these sites.** The gate sites sit in Denuvo-processed
+ranges: the bytes on disk at those addresses match the running image in NO build, including the
+very build the rig was live-verified on (the rig's own oldbytes are absent from that build's exe
+on disk). The catalog DATA tables are plaintext on disk (and identical 1.5.1 to 1.5.2); the code
+sites are not. Probe: tools/probes/lw346_capbreak_reanchor.py (offline, both backups vs current).
+
+**Live read-only pass (game at the world map, plain RPM from outside, zero writes):** probes
+tools/probes/lw346_capbreak_live_bytecheck.py then lw346_capbreak_live_confirm.py. All ten sites
+drifted, but as two INTACT block slides with internal spacing byte-identical: the equip-resolver
+and display-cap region moved -0x78 (resolver pair spacing 0x40B preserved) and the catalog
+accessor cluster moved -0x74 (lea to weapon thunk 0xE, lea to validity thunk 0x256, both
+preserved). Full instruction shapes re-read at every new site, each with a shifted-address
+negative control; the catalog lea matched with its disp32 intact.
+
+Old to new (1.5.2, PE key 0x6A5EA53C):
+- equip clamp byte: 0x140284C82 to 0x140284C0A
+- count-getter cap byte: 0x140284878 to 0x140284800
+- display caps 1-4: 0x14028479C/0x140284841/0x140288D52/0x1402890EC to
+  0x140284724/0x1402847C9/0x140288CDA/0x140289074 (all cmp imm32 0x105 shapes confirmed)
+- catalog accessor entry: 0x1402B8CB8 to 0x1402B8C44 (id<256 branch shape confirmed)
+- catalog extended-branch disp32: 0x1402B8CDE to 0x1402B8C6A (disp32 value 0x0067F910 unchanged)
+- weapon-stat thunk: 0x1402B8CE8 to 0x1402B8C74 (E9, target now 0x14FE85562)
+- validity thunk: 0x1402B8F30 to 0x1402B8EBC (E9, target now 0x14FED2C3F)
+
+UNCHANGED: extended catalog base 0x14067F910, main catalog base 0x14080EA90, count array
+0x1411A7C00 (64/64 first bytes read as plausible inventory counts live). Thunk TARGETS moved but
+the rig decodes them live at install, so only site constants needed updating.
+
+Wired into FFTHandsFree branch capbreak-equip 2026-08-26: commit 7ffa5cb (constants, comments,
+tests), plus bb92fe1 fixing a pre-existing strict-mode roster red (seven DoAction/randmod verbs
+were registered without roster entries). Suite 4934 pass / 0 fail. Note the earlier "THE RIG ...
+UNCOMMITTED" line in this journal is stale: the branch was committed and pushed before this
+session, and now carries the re-anchor on top.
+
+NEXT: the owner-driven live probe on 1.5.2: enable the HandsFree mod, capbreak_status (read-only
+byte check through the rig's own eyes), then capbreak_arm_equip and re-prove the Moonblade equip
+chain (clone ids 37/67). The ledger rows [id261-equips-displays-moonblade],
+[id261-functional-in-battle], [id261-model-construction-slot-swap] still await the owner's PROVEN
+flips from 2026-06-26.
