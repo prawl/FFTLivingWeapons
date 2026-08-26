@@ -248,10 +248,18 @@ belongs rather than at the bottom.
   can be ruled, and the color menu is gated by what the card text can wear: the vibrancy
   sweep steps the untested markup forms on a live card (Tech: lw307_card_markup_probe.py
   sweep mode; hex first, then the 8X/9X slot gaps, then three-digit; reads merge into
-  lw307_card_colors.json). If hex parses, any hue is available. Resume = run the sweep,
-  owner picks Speed's new color, owner rules A, B or C on the knives re-rendered in it,
-  the winning transform rolls lane by lane, then the transform swap + 726-rim re-bake
-  per that contract.
+  lw307_card_colors.json). SWEEP RAN 2026-08-25/26 (reads banked): hex does not parse
+  and one bad tag un-parses the WHOLE description string, values past 99 parse but only
+  into washes, slot 82 pink is the one new family, slot 90 red is preferred over 30.
+  The owner then delegated the palette ("paint the weapons to their respective colors,
+  make the glow POP", 2026-08-26): a pink Speed round was cut as too close to PA red,
+  Speed settled on the EMERALD already in the baked icon art (Warbrand screenshot),
+  PA red 90, and the full C-rung lane bake SHIPPED to the install (commits bd3a68e,
+  19f2c10, 68670f6, 53d5887): 726 variants re-baked, PA Grows text slot 90 through
+  flavor/meta/nxd in lockstep, and deploy_glow_tex.py as the LW-334 interim display
+  path (tier rims copied into the deployed loose tex after BuildLinked, riding the
+  launch merge; restart-only updates until LW-334 cracks live refresh). AWAITING the
+  owner's first in-game look at the popped icons.
 
 - [LW-327] 2026-08-25: A grown Knight Sword's bonus HP should be REAL at battle start:
   today the raised maximum shows 679/883 and the knight begins every battle reading hurt

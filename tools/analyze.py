@@ -649,7 +649,9 @@ GROWS_PHRASE_EXPECTED = {"Speed": "Speed", "PA": "Physical Attack", "MA": "Magic
 #: self-referentiality reason: the verdict must not come from lib.flavor's own copy.
 #: WP moved cyan 83 -> teal 93 (owner gripe 2026-08-25 late: 83 "a tad hard to read" on
 #: the card; 93 read "teal/sage (readable)" at the same sitting). Same cyan family, darker.
-GROWS_COLOR_SLOT = {"Speed": "40", "PA": "30", "MA": "50", "HP": "81", "WP": "93",
+#: PA moved light red 30 -> prominent red 90 (owner color-sweep read 2026-08-25, banked in
+#: lw307_card_colors.json: "Prominent Red (I like this over the one we're using)").
+GROWS_COLOR_SLOT = {"Speed": "40", "PA": "90", "MA": "50", "HP": "81", "WP": "93",
                     "WP+Faith": "60", "PA+MA": "95", "PA+MA+Brave": "94"}
 
 
