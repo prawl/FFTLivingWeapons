@@ -10,6 +10,39 @@ before 2026-07-21 keep their original prose.
 
 ## 2.4.0 cycle
 
+- [LW-346] SHIPPED c4afde5 2026-08-27: A brand-new weapon past the game's item limit is now a
+  real item this mod owns, with no research rig attached. The game only knows 261 items; the
+  Moonblade is number 262, and it now lists in every menu and sort, equips (formation screen
+  too), keeps a shield in the off-hand, swings a knight-sword blade, deals weapon damage, counts
+  its kills, and survives save, quit, cold boot and load, all owner-walked on 2026-08-27 18:34
+  to 18:43 on the ported build with the research marker off. Called the extended inventory
+  (owner naming). A new weapon is one row in data/items.json with an `extended` block naming its
+  donors; the build writes three small tables the DLL reads at boot, the item's text row and
+  icon pair; at startup the mod checks the game build, widens the nineteen id caps, relocates
+  the extended catalog, redirects the ten item accessors and hooks the two menu routines as one
+  transaction with rollback, then widens the two copy-protected damage caps once a save loads.
+  Recorded limits: enemies cannot carry a new id through the encounter table (LW-350), shops
+  cannot stock one, Optimize ranks by WP, the WP growth lane is not wired for extended ids,
+  uninstalling loses the item cleanly (docs/COMPATIBILITY.md). The rest of the owner's
+  13-item checklist that is not built: item 9's Poachers' Den and errand rewards, item 3's
+  Rend Weapon / Throw / in-battle Equip Change / steal / spoils reads (optional extra reads).
+  (Tech: commits 15f4767, 4a4c3e3, 10ba024, 4e1cfae, 9406599, 128b28a, d7cae97, c4afde5;
+  LivingWeapon/Extended, LivingWeapon/Memory, Persistence/ExtendedBagSidecar,
+  mod/extended_inventory, tools/bake_extended_icon_parts.py; ledger rows
+  [extended-inventory-boot-arm], [weapon-stat-row-stub], [donor-table-thunk-stub] and the
+  three capbreak-* rows flipped PROVEN by the owner 2026-08-27; suite 3424.)
+- [LW-347] SHIPPED c4afde5 2026-08-27: Equipping a shield in the off-hand no longer throws the
+  new weapon out of the main hand. The game's item-type probe answered "not a weapon" for the
+  new id, so a shield beside it counted as two shields; the extended inventory answers that
+  probe as the item's clone donor. Owner-observed on the ported build 2026-08-27 (walk step 2).
+  (Tech: Offsets.ThunkTypeProbe 0x1402B8EE8 in ExtendedSites.DonorThunks.)
+- [LW-348] SHIPPED c4afde5 2026-08-27: The new weapon's bag count now survives a cold boot even
+  though the save file cannot hold it. The mod keeps extended_inventory.json beside kills.json,
+  writes it whenever a count changes and replays it at the next boot; an id with no entry gets
+  its data-declared first-copy seed. Owner-observed 2026-08-27: the seed on the first boot
+  (Moonblade x1), the change to x0 on equip, and the replay from the file on the cold boot at
+  18:43. (Tech: Persistence/ExtendedBagSidecar, the "extended-bag" tick phase every 30 ticks,
+  SidecarJson.SaveAtomic.)
 - [LW-336] SHIPPED 410fefd 2026-08-26: The mod now keeps its own glow icons current, so
   nobody ever runs a script after a deploy again. Icons rim up as weapons grow and the
   rims come OFF when tallies reset, all automatic: the mod archives the plain art into a

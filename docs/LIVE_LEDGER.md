@@ -20,6 +20,114 @@ isolated live) · **CONTRADICTED** (evidence points both ways — probe before b
 
 ## Proven
 
+### [extended-inventory-boot-arm] The ported extended inventory (LivingWeapon/Extended, 2026-08-27) arms the whole cap-break set from Mod.StartEx and the Moonblade behaves as it did under the research rig
+
+Built 2026-08-27 (commits 4a4c3e3, 10ba024, 4e1cfae, 9406599, 128b28a) and NOT yet run in the game: the FFTHandsFree rig's boot-arm marker v2, the two post-load pokes and the count re-seed, replayed as one transaction inside this mod (19 cap patches with old-byte verification, the relocated catalog, ten accessor thunk stubs, the category-getter and order-rebuild hooks, the LW-348 bag sidecar). Every piece is a port of something the owner observed on 1.5.2 on 2026-08-26/27 under the rig; what is new and unobserved is the composition (arming from this DLL's StartEx behind the PE build-key landmark, the two copy-protected caps landing from the tick loop, the sidecar replay) and the two stub shapes below. The owner's live pass on the ported build (docs/TODO.md LW-346 Verify) is what moves this row.
+
+PROVEN 2026-08-27 18:34-18:43, owner live pass on the ported build (commit c4afde5, prod flavor, research marker off): the arm line at boot, both post-load caps landing on their own after the load, the Moonblade listed in Inventory and the equip picker, a shield kept in the off-hand, a blade swing in a fresh battle, one kill credited to its tally (kills.json 261: 1, the first-blood toast, the exit-edge summary), and a save / quit / cold boot / load with the hand still 261 and the bag count replayed from the sidecar.
+
+<details><summary>How we got here</summary>
+
+**Claim (original wording):** everything the rig did can be done by the mod itself at boot, with the same result.
+
+**Mechanism:** docs/research/ITEM_CAP_261_BREAK_JOURNEY.md, the 2026-08-27 03:20 port blueprint; ExtendedInventory.BootArm (LivingWeapon/Extended/ExtendedInventory.cs).
+
+**Evidence:** unit suites only (ExtendedInventoryTests over a fake vanilla image; ThunkStubTests executing the stubs in-process). No game run.
+
+**Date:** 2026-08-27
+
+</details>
+
+### [weapon-stat-row-stub] The weapon-stat accessor thunk answering an extended id with a pointer to an 8-byte ITEM_WEAPON_DATA row the mod authored gives that item those stats
+
+Not yet observed. The rig always answered as a DONOR id (row 67, Warbrand) and the owner-read WP flip (67 to 37 made the card read 28, journal 2026-08-26 "STAT FUNNEL") shows every stats consumer resolves through this thunk; the port returns the mod's own row instead (ThunkStub.EmitRowStub, executed in-process by ThunkStubTests). The premise that nothing downstream needs the row to live inside the game's 128-row table (Offsets.ItemStatsBase) is the untested step. If the card or the damage read wrong on the ported build, this row is the first suspect: fall back to a donor stub for the weapon-stat thunk and keep the custom row for later.
+
+PROVEN 2026-08-27, same owner pass: the card read the authored row's stats, the swing did weapon damage and the kill credited, all with the weapon-stat thunk answering a pointer into the mod's stub page (row 01 8E 01 FF 0F 00 00 00 read back live).
+
+<details><summary>How we got here</summary>
+
+**Claim (original wording):** the weapon-stat thunk's callers use only the pointer it returns.
+
+**Mechanism:** journal 2026-08-26 "STAT FUNNEL" (WP 15 to 28 on donor swap) and 2026-08-27 00:00 (the 8-byte row copied to the damage staging).
+
+**Evidence:** ThunkStubTests.Row_stub_executes_returning_our_row_pointer_for_extended_ids_only (the stub itself); no game run.
+
+**Date:** 2026-08-27
+
+</details>
+
+### [donor-table-thunk-stub] A per-id donor table behind each accessor thunk behaves like the rig's constant-donor stub for one id and lets every extended id name its own clone and art donors
+
+Not yet observed. The rig's stub remapped every id 261..511 to ONE donor; the port's stub (ThunkStub.EmitDonorStub) looks the donor up in a table indexed by id minus 261 and passes ids past the table through untouched. Register contract is the same (only rax and rcx touched, rdx and r8..r11 untouched, the June r11 lesson). ThunkStubTests executes the stub in the test process through a function pointer (donor lookup, mask, passthrough); the game has not run it.
+
+PROVEN 2026-08-27, same owner pass: every per-category answer (type, validity, range, sprite pair, the four siblings) came through the table stubs (all nine read back live as donor 37) with the same outcome the constant-donor rig gave on 2026-08-26/27.
+
+<details><summary>How we got here</summary>
+
+**Claim (original wording):** a table lookup in the stub is register-safe and behaves as the constant stub did.
+
+**Mechanism:** LivingWeapon/Extended/ThunkStub.cs, byte layout pinned in ThunkStubTests.
+
+**Evidence:** in-process execution tests only.
+
+**Date:** 2026-08-27
+
+</details>
+
+### [capbreak-uninstall-is-clean-loss] Loading a save that holds the new weapon on a game WITHOUT the rig loads fine: the hand is emptied, the item is simply gone, nothing crashes
+
+Observed 2026-08-27 02:25 by the owner on 1.5.2: with the boot marker disarmed (vanilla game plus the HandsFree bridge without the cap-break rig), the save that carried the Moonblade in Ramza's right hand and one spare in the bag loaded normally; the hand read 0x00FF, the bag count 0, the Acquired list had been rebuilt without 261, and the Inventory showed no Moonblade. Both persisted display-order tables still carried 261 as their LAST entry before the end marker; the vanilla rebuild stops scanning at the first word >= 261, so nothing after it could be lost in this save, but a save where a sort had moved 261 into the middle of a table would hide every later entry from that list's default order until the player sorts once (the sort path drops the id and rewrites the table). Not yet built on; the removal note for LW-346 item 10 should say "sell or unequip new items first; if a list looks short after uninstalling, sort it once".
+
+PROVEN 2026-08-27 (owner flip): the 02:25 observation stands and the removal note now ships in docs/COMPATIBILITY.md.
+
+<details><summary>How we got here</summary>
+
+**Claim (original wording):** without the rig the load sanitizer (the 5-slot validity loop behind thunk 0x1402B8EBC) zeroes hand ids past 260 and the count array past 260 is never read, so removal is a clean loss.
+
+**Mechanism:** marker renamed, cold relaunch, tools/probes/lw346_saveload_check.py plus a table-index read after the load.
+
+**Evidence:** the probe readout (hand 255/255, count 0, tables has-261 at index 127 with the marker at 128, Acquired 261 absent); the owner's menu read.
+
+**Date:** 2026-08-27
+
+</details>
+
+### [capbreak-save-roundtrip-1-5-2] A save carries the new weapon in the hand, in both menu order tables and in the Acquired list, but NOT its bag count
+
+Observed 2026-08-27 01:50-02:00 by the owner on 1.5.2 with the research rig boot-armed (marker v2): roster slot 0 rHand 261 survived save, quit to title, load (the load sanitizer passes it with the validity thunk cloned); both weapons display-order tables and the Acquired list held 261 after the load; a bag count of 2 written before the save read 2 after a same-process reload but 1 after a cold boot plus load, which is the rig's boot seed, so the count is not in the save file and the load neither restores nor clears it. Matches the static read of the serializer (bag copied as exactly 261 bytes at save+0x83A8). Design consequence: LW-348, a mod-owned sidecar re-seeds count[261+] after every load. Probe: tools/probes/lw346_saveload_check.py.
+
+PROVEN 2026-08-27 (owner flip): re-observed on the ported build's cold boot at 18:43 (hand 261, both order tables and the Acquired list carrying 261, bag count absent from the save and replayed from extended_inventory.json).
+
+<details><summary>How we got here</summary>
+
+**Claim (original wording):** count[261] cannot ride in the save because the save struct packs the bag as 0x105 bytes against the next 261-byte array; the roster hand ids are u16 in the unit block and do ride.
+
+**Mechanism:** serializer 0x14021926C / restores 0x14021B1D5 and 0x14021E1D1 read live (journal 2026-08-27 00:00-00:50); the three-step owner test above.
+
+**Evidence:** the probe's three readouts (post-load: hand 261, count 0; after seeding 2 and a same-process reload: 2; after a cold boot and load: 1).
+
+**Date:** 2026-08-27
+
+</details>
+
+### [capbreak-swing-art-via-accessor-clones] With the range-index and sprite-pair accessor thunks cloned to the Chaos Blade, the new weapon (id 261) swings a visible knight-sword blade and damages as a knight sword
+
+Observed 2026-08-27 01:30-01:35 by the owner on 1.5.2 (screenshots tools/probes/lw346_moonblade_swing_blade_1.png and _2.png): with marker v2 boot-armed (seven extra cathook lines: 0x1402B8BCC range index, 0x1402B8E60 sprite/palette pair, 0x1402B8C0C range base, 0x1402B8CD4 / 0x1402B8D3C / 0x1402B8DA0 / 0x1402B8E04 sibling per-item accessors, all ids 261-511 -> 37) plus the two post-load damage caps, Ramza's Moonblade swings drew a blade on every attack, 272 damage on a chocobo at 125 percent compatibility = PA 21 x WP 15 x Brave 69 percent, i.e. the knight-sword Brave formula on the Warbrand-clone WP (the earlier 396 / 317 reading was the same PA x WP without the Brave factor). Two loose ends keep this Uncertain: the first several swings of that battle were still bare-fisted before the blade began showing on every swing (nothing was changed in between; a lazily loaded sprite sheet or CLUT is the working guess), and the action block's weapon word reads 242 for the Moonblade during the swing (combat +0x1A8, published to 0x1407B077A) in both the fist and the blade swings, so that value is not what decides the drawing.
+
+PROVEN 2026-08-27 (owner flip): re-observed on the ported build at 18:37-18:42, a blade swing and a credited kill in a fresh battle; the first-swings-fist loose end did not recur this pass.
+
+<details><summary>How we got here</summary>
+
+**Claim (original wording):** the punch was the attack-animation setup 0x1403099B0 publishing "no weapon" because the range-index thunk 0x1402B8BCC answers -1 for id 261, and the hand art comes from the sprite/palette pair accessor 0x1402B8E60, which answers NULL for 261; cloning both to 37 gives the Moonblade the Chaos Blade's drawing.
+
+**Mechanism:** static read of the live process (journal 2026-08-27 00:00-00:50), the M0 poke proof on Save the Queen ([weapon-sprite-pair-drives-swing-art]), then one relaunch with tools/probes/lw346_capbreak_bootarm.marker.v2.txt. The 242 came from a 0.5 ms watch (tools/probes/lw346_render_cluster_watch.py) on the render cluster 0x1407B0760.. and Ramza's combat action block 0x141855CE0+0x1A0 during two swings; the CE "find what writes" on that word (owner) resolved to the CRT memcpy from a stack local built by the action-commit routine 0x140281488, whose class-8 path copies its input unchanged, and the plain attack builder 0x14030D2D4 takes that input from the static template 0x14186AFAC filled by copy-protected code (0x1508B2DC0).
+
+**Evidence:** the two screenshots above; the watch logs in the session scratchpad; docs/research/ITEM_CAP_261_BREAK_JOURNEY.md (2026-08-27 01:00-01:40 section).
+
+**Date:** 2026-08-27
+
+</details>
+
 ### [per-weapon-colour-by-turn-repaint] Per-weapon battle colour IS achievable: the palette is read PER DRAW and can be repainted live
 
 Writing the static 1024-byte workspace at `0x140d35750` changes a weapon's colour IMMEDIATELY, mid-battle, with no reload, and two palettes can be driven to different colours in the same battle at the same time. Because the game is turn-based and a weapon sprite only renders during its own attack animation, repainting that weapon's palette on its turn gives every weapon its own colour. This ROUTES AROUND [weapon-palette-assignment-walled] rather than breaking it. PROVEN: owner live passed the shipped WeaponPalette runtime built on this row, 2026-08-24 (the LW-251 pass; runtime commit b38160a).
@@ -1747,102 +1855,6 @@ Raising one unit's Max HP mid-battle leaves the mod's kill bookkeeping intact: w
 </details>
 
 ## Uncertain — observed live, not yet isolated / built on
-
-### [extended-inventory-boot-arm] The ported extended inventory (LivingWeapon/Extended, 2026-08-27) arms the whole cap-break set from Mod.StartEx and the Moonblade behaves as it did under the research rig
-
-Built 2026-08-27 (commits 4a4c3e3, 10ba024, 4e1cfae, 9406599, 128b28a) and NOT yet run in the game: the FFTHandsFree rig's boot-arm marker v2, the two post-load pokes and the count re-seed, replayed as one transaction inside this mod (19 cap patches with old-byte verification, the relocated catalog, ten accessor thunk stubs, the category-getter and order-rebuild hooks, the LW-348 bag sidecar). Every piece is a port of something the owner observed on 1.5.2 on 2026-08-26/27 under the rig; what is new and unobserved is the composition (arming from this DLL's StartEx behind the PE build-key landmark, the two copy-protected caps landing from the tick loop, the sidecar replay) and the two stub shapes below. The owner's live pass on the ported build (docs/TODO.md LW-346 Verify) is what moves this row.
-
-<details><summary>How we got here</summary>
-
-**Claim (original wording):** everything the rig did can be done by the mod itself at boot, with the same result.
-
-**Mechanism:** docs/research/ITEM_CAP_261_BREAK_JOURNEY.md, the 2026-08-27 03:20 port blueprint; ExtendedInventory.BootArm (LivingWeapon/Extended/ExtendedInventory.cs).
-
-**Evidence:** unit suites only (ExtendedInventoryTests over a fake vanilla image; ThunkStubTests executing the stubs in-process). No game run.
-
-**Date:** 2026-08-27
-
-</details>
-
-### [weapon-stat-row-stub] The weapon-stat accessor thunk answering an extended id with a pointer to an 8-byte ITEM_WEAPON_DATA row the mod authored gives that item those stats
-
-Not yet observed. The rig always answered as a DONOR id (row 67, Warbrand) and the owner-read WP flip (67 to 37 made the card read 28, journal 2026-08-26 "STAT FUNNEL") shows every stats consumer resolves through this thunk; the port returns the mod's own row instead (ThunkStub.EmitRowStub, executed in-process by ThunkStubTests). The premise that nothing downstream needs the row to live inside the game's 128-row table (Offsets.ItemStatsBase) is the untested step. If the card or the damage read wrong on the ported build, this row is the first suspect: fall back to a donor stub for the weapon-stat thunk and keep the custom row for later.
-
-<details><summary>How we got here</summary>
-
-**Claim (original wording):** the weapon-stat thunk's callers use only the pointer it returns.
-
-**Mechanism:** journal 2026-08-26 "STAT FUNNEL" (WP 15 to 28 on donor swap) and 2026-08-27 00:00 (the 8-byte row copied to the damage staging).
-
-**Evidence:** ThunkStubTests.Row_stub_executes_returning_our_row_pointer_for_extended_ids_only (the stub itself); no game run.
-
-**Date:** 2026-08-27
-
-</details>
-
-### [donor-table-thunk-stub] A per-id donor table behind each accessor thunk behaves like the rig's constant-donor stub for one id and lets every extended id name its own clone and art donors
-
-Not yet observed. The rig's stub remapped every id 261..511 to ONE donor; the port's stub (ThunkStub.EmitDonorStub) looks the donor up in a table indexed by id minus 261 and passes ids past the table through untouched. Register contract is the same (only rax and rcx touched, rdx and r8..r11 untouched, the June r11 lesson). ThunkStubTests executes the stub in the test process through a function pointer (donor lookup, mask, passthrough); the game has not run it.
-
-<details><summary>How we got here</summary>
-
-**Claim (original wording):** a table lookup in the stub is register-safe and behaves as the constant stub did.
-
-**Mechanism:** LivingWeapon/Extended/ThunkStub.cs, byte layout pinned in ThunkStubTests.
-
-**Evidence:** in-process execution tests only.
-
-**Date:** 2026-08-27
-
-</details>
-
-### [capbreak-uninstall-is-clean-loss] Loading a save that holds the new weapon on a game WITHOUT the rig loads fine: the hand is emptied, the item is simply gone, nothing crashes
-
-Observed 2026-08-27 02:25 by the owner on 1.5.2: with the boot marker disarmed (vanilla game plus the HandsFree bridge without the cap-break rig), the save that carried the Moonblade in Ramza's right hand and one spare in the bag loaded normally; the hand read 0x00FF, the bag count 0, the Acquired list had been rebuilt without 261, and the Inventory showed no Moonblade. Both persisted display-order tables still carried 261 as their LAST entry before the end marker; the vanilla rebuild stops scanning at the first word >= 261, so nothing after it could be lost in this save, but a save where a sort had moved 261 into the middle of a table would hide every later entry from that list's default order until the player sorts once (the sort path drops the id and rewrites the table). Not yet built on; the removal note for LW-346 item 10 should say "sell or unequip new items first; if a list looks short after uninstalling, sort it once".
-
-<details><summary>How we got here</summary>
-
-**Claim (original wording):** without the rig the load sanitizer (the 5-slot validity loop behind thunk 0x1402B8EBC) zeroes hand ids past 260 and the count array past 260 is never read, so removal is a clean loss.
-
-**Mechanism:** marker renamed, cold relaunch, tools/probes/lw346_saveload_check.py plus a table-index read after the load.
-
-**Evidence:** the probe readout (hand 255/255, count 0, tables has-261 at index 127 with the marker at 128, Acquired 261 absent); the owner's menu read.
-
-**Date:** 2026-08-27
-
-</details>
-
-### [capbreak-save-roundtrip-1-5-2] A save carries the new weapon in the hand, in both menu order tables and in the Acquired list, but NOT its bag count
-
-Observed 2026-08-27 01:50-02:00 by the owner on 1.5.2 with the research rig boot-armed (marker v2): roster slot 0 rHand 261 survived save, quit to title, load (the load sanitizer passes it with the validity thunk cloned); both weapons display-order tables and the Acquired list held 261 after the load; a bag count of 2 written before the save read 2 after a same-process reload but 1 after a cold boot plus load, which is the rig's boot seed, so the count is not in the save file and the load neither restores nor clears it. Matches the static read of the serializer (bag copied as exactly 261 bytes at save+0x83A8). Design consequence: LW-348, a mod-owned sidecar re-seeds count[261+] after every load. Probe: tools/probes/lw346_saveload_check.py.
-
-<details><summary>How we got here</summary>
-
-**Claim (original wording):** count[261] cannot ride in the save because the save struct packs the bag as 0x105 bytes against the next 261-byte array; the roster hand ids are u16 in the unit block and do ride.
-
-**Mechanism:** serializer 0x14021926C / restores 0x14021B1D5 and 0x14021E1D1 read live (journal 2026-08-27 00:00-00:50); the three-step owner test above.
-
-**Evidence:** the probe's three readouts (post-load: hand 261, count 0; after seeding 2 and a same-process reload: 2; after a cold boot and load: 1).
-
-**Date:** 2026-08-27
-
-</details>
-
-### [capbreak-swing-art-via-accessor-clones] With the range-index and sprite-pair accessor thunks cloned to the Chaos Blade, the new weapon (id 261) swings a visible knight-sword blade and damages as a knight sword
-
-Observed 2026-08-27 01:30-01:35 by the owner on 1.5.2 (screenshots tools/probes/lw346_moonblade_swing_blade_1.png and _2.png): with marker v2 boot-armed (seven extra cathook lines: 0x1402B8BCC range index, 0x1402B8E60 sprite/palette pair, 0x1402B8C0C range base, 0x1402B8CD4 / 0x1402B8D3C / 0x1402B8DA0 / 0x1402B8E04 sibling per-item accessors, all ids 261-511 -> 37) plus the two post-load damage caps, Ramza's Moonblade swings drew a blade on every attack, 272 damage on a chocobo at 125 percent compatibility = PA 21 x WP 15 x Brave 69 percent, i.e. the knight-sword Brave formula on the Warbrand-clone WP (the earlier 396 / 317 reading was the same PA x WP without the Brave factor). Two loose ends keep this Uncertain: the first several swings of that battle were still bare-fisted before the blade began showing on every swing (nothing was changed in between; a lazily loaded sprite sheet or CLUT is the working guess), and the action block's weapon word reads 242 for the Moonblade during the swing (combat +0x1A8, published to 0x1407B077A) in both the fist and the blade swings, so that value is not what decides the drawing.
-
-<details><summary>How we got here</summary>
-
-**Claim (original wording):** the punch was the attack-animation setup 0x1403099B0 publishing "no weapon" because the range-index thunk 0x1402B8BCC answers -1 for id 261, and the hand art comes from the sprite/palette pair accessor 0x1402B8E60, which answers NULL for 261; cloning both to 37 gives the Moonblade the Chaos Blade's drawing.
-
-**Mechanism:** static read of the live process (journal 2026-08-27 00:00-00:50), the M0 poke proof on Save the Queen ([weapon-sprite-pair-drives-swing-art]), then one relaunch with tools/probes/lw346_capbreak_bootarm.marker.v2.txt. The 242 came from a 0.5 ms watch (tools/probes/lw346_render_cluster_watch.py) on the render cluster 0x1407B0760.. and Ramza's combat action block 0x141855CE0+0x1A0 during two swings; the CE "find what writes" on that word (owner) resolved to the CRT memcpy from a stack local built by the action-commit routine 0x140281488, whose class-8 path copies its input unchanged, and the plain attack builder 0x14030D2D4 takes that input from the static template 0x14186AFAC filled by copy-protected code (0x1508B2DC0).
-
-**Evidence:** the two screenshots above; the watch logs in the session scratchpad; docs/research/ITEM_CAP_261_BREAK_JOURNEY.md (2026-08-27 01:00-01:40 section).
-
-**Date:** 2026-08-27
-
-</details>
 
 ### [weapon-sprite-pair-drives-swing-art] The two-byte sprite/palette record at 0x140785CF0 + id*2 picks BOTH the drawing and the palette of a weapon's swing, and it is read on every swing
 
