@@ -61,7 +61,7 @@ public class EngineTests
         mem.U8s[rb + Offsets.RFaith] = (byte)faith;
     }
 
-    private static FakeSparseMemory HealthyMemory(int level = 12, int nameId = 1, byte sprite = 0x02,
+    internal static FakeSparseMemory HealthyMemory(int level = 12, int nameId = 1, byte sprite = 0x02,
         int brave = 70, int faith = 65)
     {
         var mem = new FakeSparseMemory();
@@ -77,7 +77,7 @@ public class EngineTests
     /// the TempDirs root would resolve that root OUTSIDE the sandbox TempDirs cleans up (e.g. the
     /// OS temp root's own parent), leaking a real directory. Nesting modDir 3 levels deep keeps
     /// the resolved root (and everything Engine writes) inside the disposed TempDirs.Dir.</summary>
-    private static string NestedModDir(TempDirs temp)
+    internal static string NestedModDir(TempDirs temp)
     {
         string modDir = Path.Combine(temp.Dir, "Reloaded-II", "Mods", "prawl.fft.livingweapons");
         Directory.CreateDirectory(modDir);
@@ -217,6 +217,8 @@ public class EngineTests
                 ("display-out", TickGates.OutOfBattle, 1, false, Array.Empty<string>()),
                 ("icon-glow", TickGates.OutOfBattle, 30, false, Array.Empty<string>()),
                 ("pool-locate", TickGates.Always, 1, false, Array.Empty<string>()),
+                ("extended-caps", TickGates.Always, 30, false, Array.Empty<string>()),
+                ("extended-bag", TickGates.Always, 30, false, Array.Empty<string>()),
                 ("kill-poll", TickGates.InBattle, 1, false, Array.Empty<string>()),
                 ("turn-poll", TickGates.InBattle, 1, false, Array.Empty<string>()),
                 ("field-signatures", TickGates.InBattle, 1, false, new[] { "kill-poll", "turn-poll" }),

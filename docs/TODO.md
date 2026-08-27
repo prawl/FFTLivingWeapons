@@ -472,6 +472,22 @@ belongs rather than at the bottom.
   (no shop-flags row), so how the seven enter the world (poach rows, Move-Find tiles, a seeded
   first copy, or LW-350's enemy loadout) decides whether players can still find them. Needs
   LW-346 (the port) live-passed and LW-348 (the bag sidecar) first.
+- [LW-352] 2026-08-27: The Duskstring Harp's card says it absorbs HP and it does not; the owner
+  saw it 2026-08-27. Beyond fixing the harp, the ask is a new build gate: every claim a weapon's
+  card makes must be backed by its own row (formula, on-hit ability, element, equip-bonus rider,
+  the Special Effect badge), so a promise the data cannot keep fails the build instead of
+  shipping. First read of the harp (id 93, vanilla Bloodstring Harp): its row is formula 2 with
+  a Blind proc (ability 234), the bake's mechanics sentence comes out EMPTY (no Blind line at
+  all), and the "Absorbs HP" wording is the vanilla row's Special Effect badge
+  (UiItemCategory badge field UiStatusEffectId 1001) that tools/patch_names.py sets for the
+  Sanguine Gauche (id 6) and never clears on 93. Shape: (1) a badge rule in the bake, 1001 only
+  on rows whose formula really drains HP and cleared everywhere else; (2) an analyze.py gate
+  that walks every item's rendered description plus badge against its proposed row with a
+  claim table (absorb needs a drain formula, a named status needs its on-hit ability id, an
+  element word needs the element flag, a rider phrase needs its equip-bonus row) and fails
+  loud on any orphan claim or any unspoken proc; (3) the audit's allowed cells widened for the
+  badge column. Verify: the harp's card reads Blind and no absorb, and the gate goes red when
+  a test row claims what its numbers do not deliver.
 - [LW-344] 2026-08-26: Partner mods want their items to be living weapons too: the
   Cloud mod author (Xeoshades) asked for growth on their Buster Sword line, and today
   growth already bleeds onto any item occupying our ids, wearing the WRONG name in
@@ -696,6 +712,14 @@ belongs rather than at the bottom.
   N of M" and the counters appear in one to two seconds. The N of M numbers close
   the [kills-pool-region-recurrence] ledger row.
 
+  2026-08-27 18:15, owner report on the deployed prod build (Aug 26, without this row's
+  warm start): the Chaos Blade crossed to +3 mid-battle (kill 15 at 18:12:39, toast the same
+  second) but the card's +3 text arrived long after. The log names the wait: after the battle
+  the cached text pools tested stale (18:15:05 revalidate stillPool=False), so a fresh
+  budgeted sweep ran (locate-complete 18:15:26, 20 s; in-battle passes took 60 to 88 s) before
+  the paint could land. Post-battle re-find is a second face of this row, separate from the
+  cold boot the warm start covers: candidate lever = keep painting into still-valid regions
+  while only the invalidated ones are re-found, instead of one all-or-nothing revalidate.
 - [LW-305] 2026-08-22: The colour bench can now paint a weapon in the running game, but the list
   saying which weapon owns which colour set has at least one wrong entry, so some weapons would be
   painted in someone else's colours. Audit that list weapon by weapon and correct it. Materia Blade

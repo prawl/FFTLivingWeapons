@@ -50,11 +50,13 @@ public class Mod : IMod
             {
                 // Degraded but coping (the audit's Warning promotion): toasts die, the mod runs.
                 ModLogger.Warn(LogVerb.Startup, "The game-hooks helper mod (reloaded.sharedlib.hooks) is not loaded; toast pop-ups will not be delivered.");
+                _engine?.InjectHooks(null);   // LW-346: lets the extended inventory log WHY it stays off
             }
         }
         catch (Exception ex)
         {
             ModLogger.Error(LogVerb.Startup, "Failed to connect to the game's rendering hooks; toast pop-ups will not be delivered: " + ex.Message);
+            try { _engine?.InjectHooks(null); } catch { }
         }
     }
 

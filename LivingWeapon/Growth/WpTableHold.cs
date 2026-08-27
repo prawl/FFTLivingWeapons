@@ -80,6 +80,10 @@ internal sealed class WpTableHold
         var fp = ((int)_mem.U8(entry + Offsets.ALevel), (int)_mem.U8(entry + Offsets.ABrave), (int)_mem.U8(entry + Offsets.AFaith));
         Wielder.ResolveAnyHandNameId(_mem, weaponId, fp, out int matchCount);
         if (matchCount == 0) return false;   // no roster row wields it at this fingerprint -- an enemy
+        // LW-346: an extended-inventory id has no row in the resident table (its stats row lives in
+        // the mod's own stub page); indexing past ItemStatsRows would write into the EquipBonus
+        // table behind it. A wp-lane extended weapon gets no bump until it has its own writer.
+        if (weaponId >= Offsets.ItemStatsRows) return false;
         if (!_meta.TryGetValue(weaponId, out var m) || (m.Lane != "wp" && m.Lane != "wp+faith")) return false;
         tier = Tuning.TierOf(_kills, weaponId);
         return tier > 0;

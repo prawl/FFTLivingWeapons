@@ -40,6 +40,7 @@ internal sealed class Engine
     private readonly WeaponPalette _weaponPalette;   // LW-251: the per-turn weapon-sprite palette repaint
     private readonly WpTableHold _wpTableHold;   // LW-317: the turn-scoped resident-stats WP write for the "wp"/"wp+faith" gun lanes
     private readonly IconGlow _iconGlow;   // LW-295 cycle B (LW-336: loose-tex sync): out-of-battle equip-icon glow-rim, kept synced to kill tier on the deployed FFTIVC files
+    private readonly ExtendedInventory _extended;   // LW-346: the extended inventory (ids 261+); boot-armed from InjectHooks, its post-load half ticks below
     private readonly BattleState _battle = new();      // debounced in/out edges (slot9 sticks; mode flickers)
     private CancellationTokenSource? _cts;
     private DateTime _lastField = DateTime.MinValue;   // last tick we were on the live battlefield
@@ -88,8 +89,12 @@ internal sealed class Engine
     /// (the default) falls back to <see cref="StandDownNotice.Show"/> right here at the production
     /// construction site, so a real build still raises the real message box on a mismatch; tests
     /// pass a captured no-op so `dotnet test` never pops a Win32 dialog.</param>
+    /// <param name="extended">LW-346: the extended inventory. Null (production) builds it over
+    /// the live code patcher/allocator and the shipped extended_inventory tables; tests inject
+    /// one over fakes so the boot arm can be driven without a game.</param>
     public Engine(string modDir, bool? bannerToasts = null, bool? devSeedKills = null,
-        bool? devForceFingerprintMismatch = null, IGameMemory? mem = null, Action<string, string>? notice = null)
+        bool? devForceFingerprintMismatch = null, IGameMemory? mem = null, Action<string, string>? notice = null,
+        ExtendedInventory? extended = null)
     {
         // LW-51: save files now live in the update-safe Reloaded/User/Mods/<ModId> dir, not the
         // deploy mod dir, so a mod-folder-replace update can no longer wipe them. Each store's
@@ -256,6 +261,15 @@ internal sealed class Engine
         // Reads the shared kill tally + the known weapon id set (meta.Keys, so a stale bake's
         // ids never get managed); all file I/O goes through the FileIconGlowStore seam, never Mem.
         _iconGlow = new IconGlow(modDir, _kills, meta.Keys, new FileIconGlowStore(modDir));
+        // LW-346: the extended inventory (ids 261+). Loaded from modDir/extended_inventory here;
+        // ARMED later from InjectHooks (Mod.StartEx, still before the game runs) behind its own
+        // PE build-key landmark, because the boot arm cannot wait for LaunchGuard's roster
+        // landmark (readable only once a save loads) and the menu registry is built at boot.
+        // Tests inject `extended` (fakes); production builds the live seams right here.
+        _extended = extended ?? new ExtendedInventory(new LiveCodePatcher(), new LiveNearAllocator(),
+            ExtendedInventoryData.Load(modDir), ExtendedBagSidecar.Load(save.PathFor(ExtendedBagSidecar.FileName)),
+            FingerprintGuard.PeBuildKey((long a, int n, out byte[] b) => live.TryReadBytes(a, n, out b), Offsets.ModuleBase,
+                LaunchGuard.ExpectedTimeDateStamp, LaunchGuard.ExpectedSizeOfImage).Probe);
 #if LWDEV
         // Shares the SAME register KillerStamp/AttackCard already trust (see TurnOwnerSpike.cs's
         // class doc for why a second register is deliberately avoided).
@@ -329,6 +343,16 @@ internal sealed class Engine
             // row's own precedent for reading NowIn out of the shared tick blackboard.
             new TickPhase("pool-locate", TickGates.Always, 1, false, Array.Empty<string>(),
                 s => e!._display.StepPoolLocate(s.NowIn)),
+            // LW-346: the extended inventory's post-load half (ExtendedInventory.Tick.cs). The two
+            // copy-protected damage caps settle once their pages read vanilla (only after a save
+            // loads, which is also when LaunchGuard lets these rows run at all), and the bag
+            // counts of the new ids ride the LW-348 sidecar. Cadence 30 (about a second): one byte
+            // read per id and a rare disk write, never per tick. Always gate: the bag changes out
+            // of battle (shops) and in it (steal, break); both rows no-op until the boot arm armed.
+            new TickPhase("extended-caps", TickGates.Always, 30, false, Array.Empty<string>(),
+                _ => e!._extended.StepPostLoadCaps()),
+            new TickPhase("extended-bag", TickGates.Always, 30, false, Array.Empty<string>(),
+                _ => e!._extended.StepBagSidecar(e._live)),
 
             // Every ~33ms tick so a fast-forward death's brief hp==0 window isn't missed.
             new TickPhase("kill-poll", TickGates.InBattle, 1, false, Array.Empty<string>(),
@@ -421,8 +445,15 @@ internal sealed class Engine
     /// reloaded.sharedlib.hooks (controllers are not resolvable at construction time).
     /// Production arms the facing-prompt swap here (gated on the compiled BannerToasts default,
     /// always on since LW-52 removed the launcher toggle).</summary>
-    public void InjectHooks(Reloaded.Hooks.Definitions.IReloadedHooks hooks)
+    public void InjectHooks(Reloaded.Hooks.Definitions.IReloadedHooks? hooks)
     {
+        // LW-346: the extended inventory arms NOW, still inside mod loading and before the game
+        // runs, behind its own PE build-key landmark plus per-site old-byte checks (it cannot
+        // ride LaunchGuard's handshake: the roster landmark needs a loaded save, and the menu
+        // registry the new ids must be in is built at boot). A null hooks controller is passed
+        // through so the refusal reason lands in the log instead of a silent no-op.
+        _extended.BootArm(hooks);
+        if (hooks == null) return;
         // LW-50: the arm is deferred through LaunchGuard's hook handshake so a hook installed
         // before the fingerprint guard decides anything waits for the Armed edge (or never fires
         // at all if the guard stands down).

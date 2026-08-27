@@ -73,6 +73,8 @@ public class EngineTickTableTests
             "display-out",      // OutOfBattle gate: paints the equip card into menu buffers, not battle memory
             "icon-glow",        // OutOfBattle gate: LW-295 cycle B, plain file I/O against modded.pac, no memory touched at all
             "pool-locate",      // Always gate: reads heap memory only (finding pool regions); the paint that consumes the result stays InBattle/OutOfBattle-gated separately
+            "extended-caps",    // Always gate: LW-346, two copy-protected code bytes widened once their pages read vanilla (a loaded save); never battle memory; no-op until the boot arm armed
+            "extended-bag",     // Always gate: LW-348, reads the bag count bytes of the extended ids and writes the sidecar FILE on change; the bag changes in shops and in battle alike
         };
 
         var rows = Engine.BuildPhases(null);

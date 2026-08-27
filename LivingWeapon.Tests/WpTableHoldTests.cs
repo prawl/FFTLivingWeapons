@@ -72,6 +72,25 @@ public class WpTableHoldTests
         Assert.Equal((byte)16, mem.U8s[addr]);   // restored, with a read-back verify
     }
 
+    // ---- LW-346: extended-inventory ids have no row in the resident table ----
+
+    [Fact]
+    public void WpTableHold_NeverIndexesPastTheResidentTableForAnExtendedId()
+    {
+        const int extId = ExtendedCatalog.FirstExtendedId;   // 261: row 261 would land in the EquipBonus table
+        var mem = new FakeSparseMemory();
+        SeatOwner(mem, Slot, extId);
+        SeatMatchingRoster(mem, 0, extId);
+        long addr = StatsAddr(extId);
+        mem.MarkWritable(addr, 1);
+        mem.U8s[addr] = 16;
+        var hold = new WpTableHold(Meta(extId, "wp", wp: 16), KillsAtTier3(extId), mem);
+
+        hold.Tick(inLive: true);
+        Assert.Equal((byte)16, mem.U8s[addr]);   // untouched: the id is past Offsets.ItemStatsRows
+        Assert.DoesNotContain(mem.WriteOrder, a => a == addr);
+    }
+
     // ---- TDD item 11 ----
 
     [Fact]

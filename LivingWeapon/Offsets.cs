@@ -625,6 +625,11 @@ internal static class Offsets
     public const long ItemStatsBase = 0x14080F690L;
     public const int ItemStatsStride = 8;
     public const int ItemStatsWpOff = 4;
+    /// <summary>Row count of the resident item-stats table (ItemWeaponData has 128 rows; the
+    /// EquipBonus table starts right after it at 0x14080FEA0). LW-346: an extended-inventory id
+    /// (261+) has NO row here (its stats live in the mod's own stub page), so any writer indexing
+    /// this table by item id must stop at this bound or it lands in the EquipBonus rows.</summary>
+    public const int ItemStatsRows = 128;
 
     // --- LW-346 extended inventory (the 261 item-cap break ported from the FFTHandsFree rig) ---
     // Every address below was re-anchored for 1.5.2 on 2026-08-26 (the equip/display cluster
