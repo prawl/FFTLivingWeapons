@@ -191,6 +191,17 @@ Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner dire
 A new row still lands here in the session it surfaces; slot it where its urgency
 belongs rather than at the bottom.
 
+- [LW-355] 2026-08-27: Two weapons were changed to do what their own cards claimed, and the
+  owner has to ratify or revert both (one field each in data/items.json). Siren's Lyre (id 92)
+  now casts Confuse on hit (ability 243) instead of Charm (201): its flavor, identity and design
+  field always said Confuse, and the Charm was the known deferred bug the owner had parked
+  (memory sirens-lyre-charm-bug); Charm is the stronger effect, so this is a nerf to the lyre
+  and the harp lane's dominance picture passed the gate after it. Glarebound Tome (id 95) now
+  casts Blind (234) instead of Intimidate (119, a Bravery-lowering spell): its name, flavor,
+  design field and grid row all say Blind. Both landed with the LW-352 claims gate (7b0499a)
+  because the gate refuses a card that claims what its row does not deliver, and the
+  alternative (rewriting the prose to match the old rows) would have erased the design. To
+  revert either: put the old ability id back and change its onHit/flavor to the truth.
 - [LW-353] 2026-08-27: Loading a save wipes the new weapon out of the bag and the mod then
   writes that wipe to disk as if the player had sold it, so a second save slot cannot coexist
   with the extended inventory. Owner test 2 (2026-08-27 18:53): with one Moonblade placed at
@@ -395,22 +406,6 @@ belongs rather than at the bottom.
   (no shop-flags row), so how the seven enter the world (poach rows, Move-Find tiles, a seeded
   first copy, or LW-350's enemy loadout) decides whether players can still find them. Needs
   LW-346 (the port) live-passed and LW-348 (the bag sidecar) first.
-- [LW-352] 2026-08-27: The Duskstring Harp's card says it absorbs HP and it does not; the owner
-  saw it 2026-08-27. Beyond fixing the harp, the ask is a new build gate: every claim a weapon's
-  card makes must be backed by its own row (formula, on-hit ability, element, equip-bonus rider,
-  the Special Effect badge), so a promise the data cannot keep fails the build instead of
-  shipping. First read of the harp (id 93, vanilla Bloodstring Harp): its row is formula 2 with
-  a Blind proc (ability 234), the bake's mechanics sentence comes out EMPTY (no Blind line at
-  all), and the "Absorbs HP" wording is the vanilla row's Special Effect badge
-  (UiItemCategory badge field UiStatusEffectId 1001) that tools/patch_names.py sets for the
-  Sanguine Gauche (id 6) and never clears on 93. Shape: (1) a badge rule in the bake, 1001 only
-  on rows whose formula really drains HP and cleared everywhere else; (2) an analyze.py gate
-  that walks every item's rendered description plus badge against its proposed row with a
-  claim table (absorb needs a drain formula, a named status needs its on-hit ability id, an
-  element word needs the element flag, a rider phrase needs its equip-bonus row) and fails
-  loud on any orphan claim or any unspoken proc; (3) the audit's allowed cells widened for the
-  badge column. Verify: the harp's card reads Blind and no absorb, and the gate goes red when
-  a test row claims what its numbers do not deliver.
 - [LW-344] 2026-08-26: Partner mods want their items to be living weapons too: the
   Cloud mod author (Xeoshades) asked for growth on their Buster Sword line, and today
   growth already bleeds onto any item occupying our ids, wearing the WRONG name in
@@ -516,17 +511,6 @@ belongs rather than at the bottom.
   LW-332. Owner live read owed: colored lines on restart, hues matching the sitting map. (Tech: wrap each baked Grows line in <color=NN>...</color> keyed
   by meta.json's lane; the desc-budget gate must strip tags before counting since tags
   are bytes, not glyphs; ships as its own bake after the LW-322 live pass.)
-
-- [LW-331] 2026-08-25: A few weapons' cards still keep their proc a secret, the last
-  silent-power pocket: Faerie Harp's card never says it casts Sleep (only its flavor line
-  hints), and Siren's Lyre and Duskstring Harp are suspected of the same. Their procs are
-  recorded as PROSE in items.json's onHit field, but the mechanics generator only names
-  procs by ability ID, and these ids are not in its name maps, so no May-cast line prints.
-  Same disease the LW-320 ghost-proc ruling cured for seven other weapons; sweep every
-  weapon whose onHit prose is non-empty while its generated mechanics line says nothing,
-  then extend the CAST map (and the grid onHit cells) so the cards confess. (Tech: found
-  2026-08-25 rendering the per-type card examples; formula-2 elemless weapons with an oai
-  outside lib/flavor.py's CAST dict print nothing; check 92, 93, 94 first.)
 
 - [LW-330] 2026-08-25: The enemy AI cures Venombolt's poison, so the always-Poison
   crossbow's identity needs a look: the owner watched an enemy NPC spend its turn using a

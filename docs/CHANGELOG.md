@@ -10,6 +10,28 @@ before 2026-07-21 keep their original prose.
 
 ## 2.4.0 cycle
 
+- [LW-352] SHIPPED 7b0499a 2026-08-27: Every weapon now has to do what its card claims, and claim
+  what it does, or the build refuses. The owner caught the Duskstring Harp advertising "Absorbs
+  HP" on its card while its real effect (a Blind spell on hit) went unmentioned: the badge was
+  the vanilla harp's, never cleared, and the description bake had no name for the spell. The
+  Special Effect badge is now derived from the weapon's formula and written for every weapon
+  (1001 only for the two HP-drain formulas, 1002 only for the healing staff); the bake names
+  the six Mystic-style spells the instrument and book lines cast; and a CLAIMS gate in
+  tools/analyze.py fails the build on an on-hit effect the card never states, a badge that
+  disagrees with the formula, or hand-written prose naming an effect the row does not
+  deliver (flavor metaphors are admitted unless they use the game's capitalized status name
+  or an inflicts/casts/grants/wards clause). Six mutations prove the gate red; the shipped
+  data is green. (Tech: lib.flavor.badge_for + CAST 37/119/201/234/243/246,
+  patch_names.item_intent writes UiStatusEffectId for every weapon, bake_intent drops the
+  hand-allowed badge cell, analyze.check_claims / row_effects / _authored_claims; item.en.nxd
+  rebuilt, decode-verify 1130 intended 0 unintended. Two row corrections rode along and await
+  the owner's ratification as LW-355.)
+- [LW-331] SHIPPED 7b0499a 2026-08-27: The last cards that kept their spell a secret now say it.
+  Siren's Lyre, Duskstring Harp, Faerie Harp, Glarebound Tome and Binding Codex each cast a
+  status spell on hit that the card never mentioned because the bake's cast-name table did not
+  know those ability ids; the table now does (Immobilize, Intimidate, Charm, Blind, Confuse,
+  Sleep from the vanilla ability table) and the LW-352 gate makes a silent proc a build failure
+  from here on. (Tech: lib.flavor.CAST; the sweep LW-331 asked for is the gate's UNSPOKEN lane.)
 - [LW-346] SHIPPED c4afde5 2026-08-27: A brand-new weapon past the game's item limit is now a
   real item this mod owns, with no research rig attached. The game only knows 261 items; the
   Moonblade is number 262, and it now lists in every menu and sort, equips (formation screen
