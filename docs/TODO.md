@@ -354,6 +354,26 @@ belongs rather than at the bottom.
   `cathook 0x1402B8EE8 37`); owner-observed working 2026-08-26 23:20. Ships with the rig
   port (LW-346 item 8); the byte +7 suspicion was wrong (that byte is the equip-bonus row).
   (Tech: check 0x140288788, apply 0x140288590, probe thunk 0x1402B8EE8 -> 0x14FEED4B0.)
+- [LW-348] 2026-08-27: The new weapon's bag count cannot ride in the save file, so the mod
+  must remember it itself. The save stores exactly 261 item counts packed against the next
+  array with no room to grow, which is why the Moonblade's count vanishes on a load unless
+  the research rig re-seeds it. Shape: an extended-bag sidecar keyed to the save (the same
+  persistence layer the kills tally uses) that the mod writes when a count changes and
+  replays after every load; without the mod the item simply is not in the bag, which is
+  also the safe-removal answer LW-346 item 10 asks for. Owner ruling needed on one point:
+  whether a load with the sidecar missing seeds one copy or none. (Tech: serialize
+  0x14021926C copies 0x1411A7C00[0..0x104] to save+0x83A8, the next 261-byte array from
+  0x1411A7700 starts at +0x84AD; restores 0x14021B1D5 and 0x14021E1D1; journal 2026-08-27
+  00:00 section.)
+- [LW-349] 2026-08-27: Weapon battle colors may not be walled after all: the probes that
+  declared "you cannot pick which palette a weapon uses" read the two-byte sprite/palette
+  table one item off (base 0x140785CF2 instead of 0x140785CF0), so every write and every
+  watch landed on the neighbouring weapon. The live code shows two real readers of that
+  table, the sprite composer for the drawing and a copy-protected color loader for the
+  palette nibbles, both through the accessor thunk 0x1402B8E60. One live poke on a vanilla
+  sword (tools/probes/lw346_sprite_pair_poke.py, undo included) settles it; if the swing
+  follows the record, LW-289's wall row is overturned and per-weapon color becomes a data
+  fix. Surfaced while chasing the Moonblade's punch animation (LW-346 item 4).
 - [LW-344] 2026-08-26: Partner mods want their items to be living weapons too: the
   Cloud mod author (Xeoshades) asked for growth on their Buster Sword line, and today
   growth already bleeds onto any item occupying our ids, wearing the WRONG name in

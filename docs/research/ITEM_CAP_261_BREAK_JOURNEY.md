@@ -1415,3 +1415,117 @@ another capped copy BEFORE calling the accumulator, or lives in the copy-protect
 NEXT (one capture): CE "find what accesses" on the roster rHand 0x1411A7D24 armed on the
 formation screen through the first battle turn, then read the construction-time readers for
 the cap idiom.
+
+### 2026-08-27 00:00-00:50: the punch is a "not a weapon" verdict, and the art is a two-byte pair the old probes read one item off (static read of the live process, owner away, nothing poked)
+
+Plain language: with the owner away this was a read-only pass over the running game. The
+question was why Ramza still punches with the Moonblade. The answer has two halves. First,
+when an attack starts the game asks a small helper "which family of item is id X?", and for
+261 the helper says "none" (its list of family boundaries ends at 261), so the attack code
+publishes "no weapon in hand" and draws nothing. Second, the picture drawn in the hand comes
+from a two-byte record per item (which drawing in the weapon art sheet, which color set),
+reached through another helper that also answers "none" for 261. Both helpers are the
+five-byte jump thunks the research rig already knows how to clone, so the fix is two (plus a
+few sibling) marker lines, staged for the next boot and NOT yet tested live. A bonus: the
+two-byte table is at 0x140785CF0, and June's probes used 0x140785CF2 as the base, one item
+off, which is why writing it "changed nothing" and why the CE watch on it saw zero hits.
+The save side was read too: the save file stores exactly 261 bag counts, packed against
+the next array, so the new weapon's count has to live in a mod-owned sidecar.
+
+Method: tools/probes/lw346_live_disasm.py and lw346_xref_scan.py over RPM of the 23:10
+boot (pid 43392, marker v1 armed, the two copy-protected damage caps still poked), plus
+three small read-only helpers written tonight. Every address below was read this way; none
+was observed changing behavior yet.
+
+The retired lead. June's chain "0x1401ED93C reads both hands, 0x1401EDC50 resolves the
+model" is half right: 0x1401ED910(unit) reads combat +0x20 / +0x24, range-checks the id
+(the marker widened it to 261), and calls 0x1401EDC50(0, id), but that callee is a two-hop
+nex read: table #45 = *(0x143CDA2E8) is item.en (262 rows on this install because the
+shipped item.en.nxd carries the Moonblade row; id range [0, 261]), field +0x24 is
+UiItemCategoryId; table #38 = *(0x143CDA6F0) is UIItemCategory (35 rows), field +0x18 is an
+is-weapon flag. tools/probes/lw346_swing_model_tables.py replays it: ids 37, 67, 257 and 261
+all resolve (261 -> category 3 -> 1), id 260 -> category 28 -> 0. So this is a "does the hand
+hold a weapon" test that 261 already PASSES; it is not the model, and the FF16Tools ffto
+layouts (Item.layout, UIItemCategory.layout) name both fields. No nex table has a weapon
+graphic column; the art is engine data (below).
+
+Pub2 on 1.5.2 is 0x14F45D298 and the render global did not move. It stores combat +0x20 to
+0x1407B0764 and +0x24 to 0x1407B0766, sets word 0x1407B0762 = 1, and clamps with the
+0x105 cap the marker widened at 0x14F45D315 (r14 = 0xFF + (0x58 ^ 0x5F) = 0x106): ids at or
+above the cap get the off-hand word substituted and 0xFF written to the off-hand global. Its
+tail branches on the unit type byte (+0x1A1 through the class table at 0x140680010): type 2
+(monsters) publishes +0x1A8 instead. Readers of 0x1407B0764: plain 0x140282057 (a
+draw-request filler that copies the DERIVED id, see below, into its struct at +0x20),
+0x140307DFC (a publish wrapper), 0x1403099B0 (the attack-animation setup); copy-protected
+0x1505F4700 (a status bit table at cluster +0x51, not the id) and 0x1506E80C0 (a second
+publisher of the derived global for the non-player entry path; its obfuscated constants do
+not decode statically, the same shape as the plain one).
+
+THE PUNCH. 0x1403099B0 picks the weapon id (r9w) from the cluster (0x1407B0764, or
+0x1407B0766 when the flag byte says off-hand, or the thrown item for action type 0x13), then:
+`ecx = id; call 0x1402B8BCC` (range-index accessor, below); index -1 falls to a "not a
+weapon" path; otherwise `[0x14067FB78 + idx*4]` (range -> data type) must be 0 (weapons). The
+verdict is folded into a mask and the routine stores `word 0x1407B077A = id & mask` at
+0x140309B75: the DERIVED weapon id, 0 for "no weapon". Everything downstream (the
+weapon-stat thunk call right after it, whose 8-byte row is copied to the damage staging at
+0x1407B07A8; the draw-request filler; 14 plain and 6 copy-protected readers) consumes
+0x1407B077A. For id 261 the range index is -1, so 0x1407B077A = 0: the unit attacks
+unarmed on screen. Damage still came out weapon-driven tonight because that path was fed by
+a different copy of the hand (the 23:15 sites), which is consistent with the two-global
+split.
+
+The accessor family (all five-byte E9 thunks at 0x1402B8Bxx-0x1402B8Fxx into the
+copy-protected region; ecx = item id; the rig's cathook line clones any of them):
+- 0x1402B8BCC -> 0x14FE66B2F range INDEX: passes ids <= 0xFD or 0x100..0x104, then walks the
+  13-word fence table 0x1406804E2..0x1406804FC ([0,122,128,144,172,208,240,256,258,258,258,
+  259,260,261]) and returns the index of the first fence above the id; -1 otherwise. So 261
+  and up have NO range. Callers: the attack setup, the seven bodies below, the type probe.
+- 0x1402B8C0C -> 0x14FE6FF5D range BASE (fence word for the id's data type).
+- 0x1402B8C74 (weapon stats, cloned to 67), 0x1402B8EBC (validity, cloned to 37),
+  0x1402B8EE8 (type probe, cloned to 37): the three the rig already redirects.
+- 0x1402B8CD4 -> 0x14FE97BF0, 0x1402B8D3C -> 0x14FEACE84, 0x1402B8DA0 -> 0x14FEB8430: two-byte
+  rows keyed by (id - range base), two table bases each selected by obfuscated data-type
+  constants; meaning unread. 0x1402B8E04 -> 0x14FEBE43B: three-byte rows for data types 4
+  and 9 (tables 0x14067277C / 0x14080FB70).
+- 0x1402B8E60 -> 0x14FEC80C0 the SPRITE/PALETTE PAIR: for data type 0 (weapons) returns
+  0x140785CF0 + id*2 (raw id, not id minus base), for two other types 0x140672B54 + id*2,
+  NULL when the range index is -1. Byte 0 = palette selector, byte 1 = graphic index:
+  id 37 Chaos Blade 50 0C (0x0C = the FFHacktics knight-sword slot), id 33 Defender 80 0C,
+  id 35 Excalibur 80 0E, id 27 Materia Blade D0 06, id 67 Warbrand F0 03 (its old axe art),
+  id 1 and 19 E0 00, ids 256-260 00 00. Exactly two callers: the plain sprite composer
+  0x14026BC60 (`ecx = word [unit+0x150]; call; graphic = [pair+1] or 0`) and the
+  copy-protected CLUT loader at 0x14E92B95C (`palette = [pair+0]`, high nibble times an
+  obfuscated stride into a table at 0x140D35750, then the low nibble). June's
+  weapon_sprite_probe/writetest and the 2026-08-19 LW-289 lever list all used 0x140785CF2
+  as the base, i.e. every write and every watch landed on id+1; the "vestigial table"
+  verdict rests on that. This is a LEAD for the palette-assignment wall, not a result.
+- 0x1402B8F18 -> 0x14FEEE3C0 is an ability-id remap (66 callers), not an item accessor.
+
+Staged, not run (owner decides):
+- M0, no relaunch, any vanilla weapon: `python tools/probes/lw346_sprite_pair_poke.py --apply
+  <id>` writes the Chaos Blade pair (50 0C) over that weapon's record (undo file written,
+  `--restore <id>` puts it back), then one attack. Knight-sword art on the swing = the pair
+  table drives the HD art and the LW-289 wall reopens; unchanged art on the very next swing
+  but changed after a fresh battle = read at construction only; unchanged after both = the
+  table really is vestigial and the base fix was not the reason.
+- M1, one relaunch: tools/probes/lw346_capbreak_bootarm.marker.v2.txt adds seven cathook
+  lines (0x1402B8BCC, 0x1402B8E60, 0x1402B8C0C, 0x1402B8CD4, 0x1402B8D3C, 0x1402B8DA0,
+  0x1402B8E04, all -> 37) to the banked v1. Expected: 0x1407B077A = 261 during the attack,
+  a Chaos Blade in the hand, damage unchanged at 317 base (the stat thunk keeps its 67
+  clone). The sibling clones exist so no body ever indexes "261 minus base" into a
+  128-row table; the cost is that the Moonblade answers as a Chaos Blade to those
+  unread tables, the same identity its catalog record already borrows.
+
+The save gate, read from the serializer. The game save struct holds the bag as exactly
+0x105 bytes at +0x83A8 (copy loop 0x14021926C.., 40 movups plus a 5-byte tail) immediately
+followed at +0x84AD by a second 261-byte per-item array copied from 0x1411A7700; the restore
+copies at 0x14021B1D5 and 0x14021E1D1 (which zeroes count[0] first) mirror it. There is no
+slack to widen: count[261] is not in the save and cannot be without moving the next field.
+Design consequence for LW-346 item 6: the mod owns an extended-bag sidecar keyed to the save
+and re-seeds count[261+] after every load (and the roster hand ids need nothing, they are
+u16 in the unit block the same copies carry). Other bag readers seen and not yet read:
+a count getter with a 0x105 cap at 0x14015415B (surface unknown), a bag WRITER at
+0x1402060F4 that fills counts from a table (new-game or reward seeding), and a loop at
+0x14031FD40 bounded by 0x17F over the catalog accessor. tools/probes/lw346_saveload_check.py
+prints hand, count, both order tables and the acquired list in one go for the round-trip
+test; tonight's live state: rHand 261, count 99, 261 in both tables and first in Acquired.
