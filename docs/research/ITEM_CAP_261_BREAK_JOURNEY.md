@@ -1625,3 +1625,16 @@ Warbrand clone's WP 15 against the Chaos Blade's 28), so whether Optimize even c
 Buy lists are a known gap (no shop-flags row past id 255) and were not opened. LW-346 item 3
 progress: sell = yes; shop stock, poach, Move-Find, spoils, steal, Rend Weapon, crystal, Throw,
 in-battle Equip Change still unchecked.
+
+### 2026-08-27 02:20-02:30: no Chronicle item list; uninstall is a clean loss (owner eyes)
+
+Plain language: the Chronicle has no screen that lists individual equipment, so the "Chronicle
+item collection" clause of LW-346 item 9 has nothing to check. Then the uninstall test: with
+the boot marker renamed away, a cold relaunch loaded the save that had the Moonblade in hand
+and one in the bag: no crash, the hand came up empty, the item was gone from the Inventory,
+the Acquired list had been rebuilt without it. One hazard to document: the two display-order
+tables are saved with the game and still held 261 as their last entry; the vanilla rebuild
+stops at the first id it does not know, so a table where a sort had pushed 261 into the
+middle would hide the later entries from that list's default order until one sort. Ledger
+row [capbreak-uninstall-is-clean-loss]. The marker was renamed back afterwards (v2 stays the
+next-launch state).

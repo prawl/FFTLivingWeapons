@@ -350,6 +350,10 @@ belongs rather than at the bottom.
   02:15: shop SELL works (listed at 5 gil, count 1 to 0); Optimize swapped it for the
   Chaos Blade, consistent with a WP ranking (15 vs 28), so "Optimize considers 261" is
   unproven; buy lists not opened (known no-row gap).
+  02:30: item 10 CONFIRMED live (marker off, cold boot, save loads, hand emptied, item gone,
+  no crash; ledger [capbreak-uninstall-is-clean-loss]); removal note must add "sort once if
+  a list looks short" because the saved order tables keep the id. Item 9's Chronicle clause
+  is void (no per-item screen exists).
   LIVE_LEDGER for June's three rows and tonight's. Verify: one fresh boot with only the marker
   (no poke script) walks (1) through (6) live with the owner watching; the rest ship through
   the normal gates and their own live passes.

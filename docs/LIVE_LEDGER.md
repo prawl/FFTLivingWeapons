@@ -1748,6 +1748,22 @@ Raising one unit's Max HP mid-battle leaves the mod's kill bookkeeping intact: w
 
 ## Uncertain — observed live, not yet isolated / built on
 
+### [capbreak-uninstall-is-clean-loss] Loading a save that holds the new weapon on a game WITHOUT the rig loads fine: the hand is emptied, the item is simply gone, nothing crashes
+
+Observed 2026-08-27 02:25 by the owner on 1.5.2: with the boot marker disarmed (vanilla game plus the HandsFree bridge without the cap-break rig), the save that carried the Moonblade in Ramza's right hand and one spare in the bag loaded normally; the hand read 0x00FF, the bag count 0, the Acquired list had been rebuilt without 261, and the Inventory showed no Moonblade. Both persisted display-order tables still carried 261 as their LAST entry before the end marker; the vanilla rebuild stops scanning at the first word >= 261, so nothing after it could be lost in this save, but a save where a sort had moved 261 into the middle of a table would hide every later entry from that list's default order until the player sorts once (the sort path drops the id and rewrites the table). Not yet built on; the removal note for LW-346 item 10 should say "sell or unequip new items first; if a list looks short after uninstalling, sort it once".
+
+<details><summary>How we got here</summary>
+
+**Claim (original wording):** without the rig the load sanitizer (the 5-slot validity loop behind thunk 0x1402B8EBC) zeroes hand ids past 260 and the count array past 260 is never read, so removal is a clean loss.
+
+**Mechanism:** marker renamed, cold relaunch, tools/probes/lw346_saveload_check.py plus a table-index read after the load.
+
+**Evidence:** the probe readout (hand 255/255, count 0, tables has-261 at index 127 with the marker at 128, Acquired 261 absent); the owner's menu read.
+
+**Date:** 2026-08-27
+
+</details>
+
 ### [capbreak-save-roundtrip-1-5-2] A save carries the new weapon in the hand, in both menu order tables and in the Acquired list, but NOT its bag count
 
 Observed 2026-08-27 01:50-02:00 by the owner on 1.5.2 with the research rig boot-armed (marker v2): roster slot 0 rHand 261 survived save, quit to title, load (the load sanitizer passes it with the validity thunk cloned); both weapons display-order tables and the Acquired list held 261 after the load; a bag count of 2 written before the save read 2 after a same-process reload but 1 after a cold boot plus load, which is the rig's boot seed, so the count is not in the save file and the load neither restores nor clears it. Matches the static read of the serializer (bag copied as exactly 261 bytes at save+0x83A8). Design consequence: LW-348, a mod-owned sidecar re-seeds count[261+] after every load. Probe: tools/probes/lw346_saveload_check.py.
