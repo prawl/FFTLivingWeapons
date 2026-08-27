@@ -1702,3 +1702,45 @@ items 7 and 8) without re-reading tonight's journal. Each piece names its live p
    by WP so a weaker new weapon will be swapped out, Regen (equip-bonus row) is not applied
    on the field yet, and an uninstall loses the item cleanly but a saved order table may need
    one sort.
+
+### 2026-08-27 evening: shops. The buy list is built by plain code that stops at id 255 and reads a 256-row town-flags table (static read of the live process, owner away, nothing poked)
+
+Plain language: "shops cannot stock a new item" was the data-table fact (the modloader's
+ItemShopsData has exactly 256 rows), not a wall. The code that builds a town's Buy list is
+plain, readable, and does three things per candidate id: asks the category getter (already
+hooked) which tab, reads the item's 16 town bits from a static table and tests the bit for
+the current town, then checks the catalog record's chapter byte. Its loop simply ends at 255.
+
+The find: the modloader's own FFTOItemShopsDataManager locates the game table by a data
+signature (`00 00 FE 01 FE 01 ...`: the loader sets the Unused bit on every id > 0, which is
+why a plain reconstruction of the XML never matched); that signature sits at 0x14067F890
+(.data, 512 bytes, live copy matches the loader's model except ids 254/255). No plain-code
+rip-relative or imm64 reference exists, and none of the eleven accessor thunks index it; the
+readers use an image-relative disp32 off a base register, a shape the xref sweep never
+covered. Raw-searching .code for the 4-byte displacement 0x0067F890 gave exactly two readers:
+- 0x140288F3B `movzx edx, byte ptr [rcx + rbp + 0x67F890]` inside the BUY-list builder
+  (function entry 0x140288E54; ret 0x1402890BC). Loop 0x140288F1A..0x140288FDF over
+  `ebx = 0..0xFF` (`cmp ebx,0x100` at 0x140288FD9, imm32 at +2); `r12` walks the HIGH bytes
+  from `lea r12,[rip+0x3F6989]` at 0x140288F01 (= 0x14067F891, +2 per id), `rbp` = image base,
+  `rcx = id*2` reads the LOW byte; `edx = low << 8 | high`; `test edx, 0x8000 >> townIndex`
+  ([rsp+0x78], 0..15; town 0 = Lesalia ... 7 = Yardrow = bits 7..0, town 8 = Gollund ...
+  = bits 15..9: the loader's ShopFlags bit order); then `0x1402B8C44(id)` (catalog accessor,
+  our relocated buffer) byte +0x0A must be <= the current level ([rsp+0x80]; Blank = 0
+  always passes); then the word is appended at r15 and r14 counts; the sorter 0x140285B10
+  runs at the end. The second loop 0x140288FFD..0x140289078 (`cmp ebx,0x106`, already
+  widened by the port's cap 0x140289074) is the SELL list through the total-owned getter,
+  which is why selling the Moonblade already worked.
+- 0x140345393 (+0x14034538B for the high byte) inside the "new stock in this town" badge
+  scan, bounded by its own `cmp r10d,0x200` at 0x1403453C7 (ids 0..255) and cross-checked
+  against a per-item byte array at 0x1411A7810 + id*2. Left alone: it never needs 261.
+
+The build (LW-354, LivingWeapon/Extended/ShopFlagsMirror.cs, 2026-08-27 evening, unit-gated,
+NOT yet run in the game): a page we own holds a live MIRROR of the 512 vanilla bytes (synced
+from the tick loop every 30 ticks whenever they change, so the loader's OnAllModsLoaded
+writes and any partner mod's shop edits still land) plus our u16 rows for ids 261+; the
+builder's two references are re-pointed at it (rel32 of the lea, disp32 of the movzx) and
+the loop bound's low byte goes 0x00 -> 0x05 + N (ExtendedSites). Data: `shops: "Dorter,
+Gariland"` on the items.json row (the loader's names) -> `<Shops>` on ItemExtendedData.xml.
+The Moonblade carries `Dorter` as the live-test placeholder. Live expectation: Dorter's
+Outfitter lists the Moonblade under weapons at its record price (10 gil), buying raises the
+bag count and the sidecar follows; Gariland does not list it.

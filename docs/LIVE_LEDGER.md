@@ -1856,6 +1856,22 @@ Raising one unit's Max HP mid-battle leaves the mod's kill bookkeeping intact: w
 
 ## Uncertain — observed live, not yet isolated / built on
 
+### [shop-buy-list-flags-mirror] A town's Buy list can stock an extended-inventory id once the builder's loop bound is widened and its two reads of the 256-row town-flags table are re-pointed at a mirror page carrying rows past 255
+
+Not yet observed (built 2026-08-27 evening from a static read of the live 1.5.2 process, docs/research/ITEM_CAP_261_BREAK_JOURNEY.md "shops"). What the read established: the builder is plain code at 0x140288E54, loops ids 0..0xFF (cmp ebx,0x100 at 0x140288FD9), reads the 16 town bits from 0x14067F890 + id*2 through a rip-relative high-byte walker (0x140288F01) and an image-relative low-byte read (0x140288F3B), tests 0x8000 >> townIndex, then gates on the catalog record's +0x0A chapter byte. What the build assumes and the live pass must show: that widening the loop and re-pointing those two references (LivingWeapon/Extended/ShopFlagsMirror.cs) is sufficient, i.e. no other reader between the list build and the purchase re-derives the flags from the vanilla table, and that the "+" ids 256-260 (now candidates too, with zero rows in the mirror) stay unlisted. The owner's shop visit on the next deploy moves this row.
+
+<details><summary>How we got here</summary>
+
+**Claim (original wording):** the buy-list builder's loop bound and its two table references are the whole shop gate for a new id.
+
+**Mechanism:** the modloader's own data signature located the table; a raw disp32 search of .code found the two readers where rip-relative and imm64 sweeps found none; capstone over RPM read the builder.
+
+**Evidence:** ShopFlagsMirrorTests and ExtendedInventoryTests over a fake vanilla image; the disk and live bytes of all three sites matched on 2026-08-27; no game run.
+
+**Date:** 2026-08-27
+
+</details>
+
 ### [weapon-sprite-pair-drives-swing-art] The two-byte sprite/palette record at 0x140785CF0 + id*2 picks BOTH the drawing and the palette of a weapon's swing, and it is read on every swing
 
 Observed 2026-08-27 00:50 and 00:56 by the owner on 1.5.2, mid-battle, no relaunch, no fresh battle: Save the Queen (id 34, vanilla record F0 0C) was rewritten from outside to 50 03 (Warbrand's axe drawing, Chaos Blade's palette nibble) and the very next swing drew Warbrand's art in purple (tools/probes/lw349_sprite_pair_graphic_swap_34.png); rewritten to F0 03 (Warbrand's own record) the next swing drew the same shape in Warbrand's steel (tools/probes/lw349_sprite_pair_palette_swap_34.png); restored to F0 0C afterwards. So byte 1 selects the drawing and byte 0 the palette, per draw. This is the mechanism [weapon-palette-assignment-walled] said did not exist: that row's probes used base 0x140785CF2, one item off. Not yet built on; owner flip pending.

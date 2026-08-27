@@ -12,7 +12,7 @@ public class ExtendedSitesTests
     public void One_extended_id_reproduces_the_rig_marker_byte_for_byte()
     {
         var boot = ExtendedSites.BootPatches(1).ToDictionary(p => p.Addr, p => p);
-        Assert.Equal(19, boot.Count);
+        Assert.Equal(20, boot.Count);
         // the rig's six built-ins
         Assert.Equal((0x01, 0x02), (boot[0x140284800].Old, boot[0x140284800].New));
         foreach (long a in new[] { 0x140284724L, 0x1402847C9L, 0x140288CDAL, 0x140289074L })
@@ -32,6 +32,7 @@ public class ExtendedSitesTests
         Assert.Equal((0x05, 0x06), (boot[0x14028024F].Old, boot[0x14028024F].New));
         Assert.Equal((0x04, 0x05), (boot[0x1401ED95B].Old, boot[0x1401ED95B].New));
         Assert.Equal((0x04, 0x05), (boot[0x1401ED982].Old, boot[0x1401ED982].New));
+        Assert.Equal((0x00, 0x06), (boot[0x140288FDB].Old, boot[0x140288FDB].New));   // LW-354: shop loop 0x100 -> 0x106
         Assert.All(boot.Values, p => Assert.False(string.IsNullOrWhiteSpace(p.Label)));
 
         var post = ExtendedSites.PostLoadPatches(1).ToDictionary(p => p.Addr, p => p);
@@ -48,6 +49,7 @@ public class ExtendedSitesTests
         Assert.Equal(0x0D, boot[0x140284C0A].New);   // lea disp 6 + 7
         Assert.Equal(0x0B, boot[0x140101071].New);   // 0x104 + 7
         Assert.Equal(0x02, boot[0x140284800].New);   // high-byte widening is fixed (ids up to 515)
+        Assert.Equal(0x0C, boot[0x140288FDB].New);   // shop loop 0x100 -> 0x10C
         var post = ExtendedSites.PostLoadPatches(7).ToDictionary(p => p.Addr, p => p);
         Assert.Equal(0x0D, post[0x14F2EA40F].New);
         Assert.Equal(0x58 ^ 13, post[0x14F45D315].New);   // r15 = 0x58 ^ imm must equal 6 + 7

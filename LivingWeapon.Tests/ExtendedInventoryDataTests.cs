@@ -23,7 +23,7 @@ public class ExtendedInventoryDataTests : IDisposable
         "<ItemWeapon><Id>261</Id><Range>1</Range><AttackFlags>Throwable, TwoSwords, TwoHands, Striking</AttackFlags><Formula>1</Formula>" +
         "<Power>15</Power><Evasion>0</Evasion><Elements>None</Elements><OptionsAbilityId>0</OptionsAbilityId></ItemWeapon>";
     private const string ExtRow261 =
-        "<ItemExtended><Id>261</Id><Name>Moonblade</Name><CloneDonorId>37</CloneDonorId><ArtDonorId>37</ArtDonorId><SeedCount>1</SeedCount></ItemExtended>";
+        "<ItemExtended><Id>261</Id><Name>Moonblade</Name><CloneDonorId>37</CloneDonorId><ArtDonorId>37</ArtDonorId><SeedCount>1</SeedCount><Shops>Dorter, Gariland</Shops></ItemExtended>";
 
     private void Write(string items = ItemRow261, string weapons = WeaponRow261, string ext = ExtRow261)
     {
@@ -49,6 +49,7 @@ public class ExtendedInventoryDataTests : IDisposable
         Assert.Equal(37, m.CloneDonor);
         Assert.Equal(37, m.ArtDonor);
         Assert.Equal(1, m.SeedCount);
+        Assert.Equal(0x4002, m.ShopFlags);   // LW-354: Dorter | Gariland
     }
 
     [Fact]
@@ -86,6 +87,12 @@ public class ExtendedInventoryDataTests : IDisposable
 
         Write(ext: ExtRow261.Replace("<CloneDonorId>37</CloneDonorId>", "<CloneDonorId>300</CloneDonorId>"));
         Assert.Contains(ExtendedInventoryData.Load(_modDir).Errors, e => e.Contains("CloneDonorId 300"));
+
+        Write(ext: ExtRow261.Replace("<Shops>Dorter, Gariland</Shops>", "<Shops>Ivalice</Shops>"));
+        Assert.Contains(ExtendedInventoryData.Load(_modDir).Errors, e => e.Contains("Ivalice"));
+
+        Write(ext: ExtRow261.Replace("<Shops>Dorter, Gariland</Shops>", ""));   // an older table without <Shops> = sold nowhere, not an error
+        Assert.Equal(0, Assert.Single(ExtendedInventoryData.Load(_modDir).Items).ShopFlags);
     }
 
     [Fact]
@@ -135,6 +142,7 @@ public class ExtendedInventoryDataTests : IDisposable
         Assert.Equal(37, m.CloneDonor);
         Assert.Equal(0x0F, m.WeaponRow[4]);   // Power 15, the rig's proven damage row
         Assert.Equal(3, m.CatalogRecord[5]);   // Sword
+        Assert.Equal(0x4000, m.ShopFlags);   // Dorter, the live-test placeholder
         Assert.All(r.Items, i => Assert.InRange(i.Id, ExtendedCatalog.FirstExtendedId, ExtendedCatalog.LastExtendedId));
     }
 

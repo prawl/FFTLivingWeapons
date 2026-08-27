@@ -20,7 +20,7 @@ namespace LivingWeapon;
 /// </summary>
 internal static class ExtendedSites
 {
-    private enum Widen { PlusN, HighByte, XorMask }
+    private enum Widen { PlusN, HighByte, XorMask, ShopLoop }
 
     private readonly record struct Site(long Addr, byte Old, Widen Kind, string Label);
 
@@ -47,6 +47,10 @@ internal static class ExtendedSites
         new(0x14028024FL, 0x05, Widen.PlusN, "hand resolver copy 2 (mov r8d,0x105)"),
         new(0x1401ED95BL, 0x04, Widen.PlusN, "attacker validity inline check, right hand (cmp ax,4)"),
         new(0x1401ED982L, 0x04, Widen.PlusN, "attacker validity inline check, left hand (cmp ax,4)"),
+        // LW-354 (2026-08-27 evening, static read): the shop BUY-list builder walks ids 0..0xFF
+        // (cmp ebx,0x100 at 0x140288FD9; this is the imm32's low byte); widened to 0x105 + N so
+        // the extended ids are candidates. Their town flags come from the ShopFlagsMirror.
+        new(0x140288FDBL, 0x00, Widen.ShopLoop, "shop buy-list loop bound (cmp ebx,0x100)"),
     };
 
     /// <summary>Copy-protected sites: their pages read vanilla only after a save has loaded, so
@@ -71,6 +75,7 @@ internal static class ExtendedSites
     {
         Widen.PlusN => (byte)(old + n),
         Widen.HighByte => 0x02,
+        Widen.ShopLoop => (byte)(0x05 + n),   // 0x100 -> 0x105 + N (the imm32's high byte stays 0x01)
         _ => (byte)(0x58 ^ ((0x58 ^ old) + n)),
     };
 

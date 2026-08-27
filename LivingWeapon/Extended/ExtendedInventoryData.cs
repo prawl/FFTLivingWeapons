@@ -24,6 +24,8 @@ internal sealed class ExtendedItemDef
     public int ArtDonor { get; init; }
     /// <summary>Bag copies granted the first time the item is seen with no sidecar entry (LW-348).</summary>
     public int SeedCount { get; init; }
+    /// <summary>ITEM_SHOPS_DATA.ShopFlags: the towns whose shop stocks it (LW-354); 0 = nowhere.</summary>
+    public ushort ShopFlags { get; init; }
 }
 
 /// <summary>
@@ -105,6 +107,8 @@ internal static class ExtendedInventoryData
         {
             Id = id, Name = Text(e, "Name"), Category = category, CatalogRecord = record, WeaponRow = row,
             CloneDonor = clone, ArtDonor = art, SeedCount = Int(e, "SeedCount"),
+            // <Shops> is optional (an older table without it = sold nowhere), the loader's own names.
+            ShopFlags = ExtendedRecords.ParseShops(e.Element("Shops")?.Value),
         };
     }
 

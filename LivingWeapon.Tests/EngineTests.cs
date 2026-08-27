@@ -219,6 +219,7 @@ public class EngineTests
                 ("pool-locate", TickGates.Always, 1, false, Array.Empty<string>()),
                 ("extended-caps", TickGates.Always, 30, false, Array.Empty<string>()),
                 ("extended-bag", TickGates.Always, 30, false, Array.Empty<string>()),
+                ("extended-shops", TickGates.Always, 30, false, Array.Empty<string>()),
                 ("kill-poll", TickGates.InBattle, 1, false, Array.Empty<string>()),
                 ("turn-poll", TickGates.InBattle, 1, false, Array.Empty<string>()),
                 ("field-signatures", TickGates.InBattle, 1, false, new[] { "kill-poll", "turn-poll" }),

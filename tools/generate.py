@@ -187,6 +187,9 @@ def equipbonus_entry(eid, fields):
 # and read by the DLL, never by the modloader: a 261-row XML under FFTIVC/tables is silently dropped.
 EXTENDED_FIRST_ID = 261
 EXTENDED_LAST_ID = 511
+# ITEM_SHOPS_DATA.ShopFlags names (fftivc.utility.modloader.Interfaces/Tables/Structures/ITEM_SHOPS_DATA.cs).
+EXTENDED_SHOP_NAMES = {"None", "Gollund", "Dorter", "Zaland", "Goug", "Warjilis", "Bervenia", "SalGhidos", "Unused",
+                       "Lesalia", "Riovanes", "Eagrose", "Lionel", "Limberry", "Zeltennia", "Gariland", "Yardrow"}
 
 
 def hdr_ext(table):
@@ -215,6 +218,11 @@ def validate_extended(ext, all_items):
                 raise SystemExit(f"extended inventory: id {i} ({it.get('name')}) {key}={d!r} must name a vanilla-range item (1..255) present in items.json")
         if not s.get("attackFlags"):
             raise SystemExit(f"extended inventory: id {i} ({it.get('name')}) needs proposed.attackFlags (no vanilla row to inherit them from)")
+        # LW-354: the towns whose shop stocks it, in the modloader's own ItemShopsData names.
+        for tok in [x.strip() for x in str(e.get("shops", "None")).split(",") if x.strip()]:
+            if tok not in EXTENDED_SHOP_NAMES:
+                raise SystemExit(f"extended inventory: id {i} ({it.get('name')}) shops token {tok!r} is not a town "
+                                 f"(vocabulary: {', '.join(sorted(EXTENDED_SHOP_NAMES))})")
         if not it.get("name") or it["name"] == "TBD":
             raise SystemExit(f"extended inventory: id {i} needs a real name (it is the item.en.nxd row too)")
         # The menu icon is a .tex plus a .utexpt parts file per surface; a vanilla id gets its parts
@@ -248,7 +256,8 @@ def extended_entry(it):
             f"      <Name>{xml_escape(display_name(it))}</Name>\n"
             f"      <CloneDonorId>{e['cloneDonor']}</CloneDonorId>\n"
             f"      <ArtDonorId>{e.get('artDonor', e['cloneDonor'])}</ArtDonorId>\n"
-            f"      <SeedCount>{e.get('seedCount', 0)}</SeedCount>\n    </ItemExtended>\n")
+            f"      <SeedCount>{e.get('seedCount', 0)}</SeedCount>\n"
+            f"      <Shops>{e.get('shops', 'None')}</Shops>\n    </ItemExtended>\n")
 
 
 def write_extended_tables(ext, wrote):

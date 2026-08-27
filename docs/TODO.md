@@ -13,6 +13,28 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.4.0)
 
+- **[LW-354] A town shop can sell a brand-new extended-inventory weapon** (opened 2026-08-27) [AWAITING-LIVE]
+  - Plain language: the owner asked whether shops were really impossible for the new items; they
+    were not, only the data table was. The game keeps one row of town flags per item and has
+    room for 256 rows, and the code that builds a shop's Buy list stops at id 255. Built
+    2026-08-27 evening while the owner was away: the mod now keeps a mirror of that table with
+    rows past 255 (kept in sync with the game's own table so other mods' shop edits still land),
+    points the Buy-list builder at the mirror, widens its loop by the number of new items, and
+    reads which towns sell each item from a `shops` field on the items.json row (the modloader's
+    own town names). The Moonblade carries `Dorter` as the live-test placeholder. NOT deployed
+    (the owner was away; a deploy needs the go-ahead).
+  - (Tech: docs/research/ITEM_CAP_261_BREAK_JOURNEY.md "shops" section; LivingWeapon/Extended/
+    ShopFlagsMirror.cs; Offsets.ShopFlagsTable 0x14067F890, ShopBuilderHighByteLeaRel32
+    0x140288F04, ShopBuilderLowByteDisp32 0x140288F3F; ExtendedSites shop loop byte 0x140288FDB
+    0x00 -> 0x05+N; the "extended-shops" tick phase; ledger row [shop-buy-list-flags-mirror].)
+  - Done means: the Dorter Outfitter lists the Moonblade under weapons at its record price,
+    buying one raises the bag count (and the sidecar follows), a town not named in `shops`
+    does not list it, the "+" items 256-260 stay unlisted, and nothing else in the shop
+    (sell, fitting, the new-stock badge) changes.
+  - Verify: suite green (ShopFlagsMirrorTests, the ExtendedSites and phase pins); then the
+    owner, after a kill-and-deploy: the boot line now ends "shop table mirrored"; walk into
+    Dorter's Outfitter and Gariland's; buy one Moonblade; read the bag count and
+    extended_inventory.json; flip the ledger row.
 - **[LW-332] The Grows line moves up to sit directly under the Kills line** (opened 2026-08-25) [AWAITING-LIVE]
   - BUILT, four-round pipeline 2026-08-25 late (two adversarial verify rounds broke and
     then blessed the ownership design; final verdict SHIP, code 9, spec 9). Deployed and

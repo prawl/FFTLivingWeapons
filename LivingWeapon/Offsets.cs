@@ -673,4 +673,23 @@ internal static class Offsets
     /// <summary>Plain function entries hooked with Reloaded.Hooks behind a prologue landmark.</summary>
     public const long FnCategoryGetter = 0x1402890C0L;   // inventory list-build filter (called at 0x140288BF5)
     public const long FnOrderRebuild = 0x140285DF0L;     // display-order rebuild (drops ids its table lacks)
+
+    // --- LW-354: shop stock for extended ids (found 2026-08-27 evening, static read of the live
+    // 1.5.2 process, docs/research/ITEM_CAP_261_BREAK_JOURNEY.md section "shops"). The per-item
+    // town-flags table (the modloader's ItemShopsData, 256 u16 rows, loader signature
+    // "00 00 FE 01 FE 01 ...") and the shop BUY-list builder's two references to it. The builder
+    // loops ids 0..0xFF (cmp ebx,0x100 at 0x140288FD9, imm32 at +2), reads the flags word as
+    // (low byte << 8 | high byte) and tests 0x8000 >> townIndex (town 0 = Lesalia ... 9 = Dorter,
+    // the loader's ShopFlags bit order), then the catalog record's +0x0A chapter byte. No other
+    // plain-code reader reaches ids past 255 (the "new stock" badge scan at 0x1403453C7 bounds
+    // itself at 0x200 and is left alone). ---
+    /// <summary>ITEM_SHOPS_DATA: u16 ShopFlags per item id, 256 rows, .data.</summary>
+    public const long ShopFlagsTable = 0x14067F890L;
+    /// <summary>rel32 field of <c>lea r12,[rip+0x3F6989]</c> at 0x140288F01 (next ip 0x140288F08),
+    /// which starts the builder's HIGH-byte walker at ShopFlagsTable + 1.</summary>
+    public const long ShopBuilderHighByteLeaRel32 = 0x140288F04L;
+    public const long ShopBuilderHighByteLeaNextIp = 0x140288F08L;
+    /// <summary>disp32 field of <c>movzx edx, byte ptr [rcx + rbp + 0x67F890]</c> at 0x140288F3B
+    /// (rbp = image base, rcx = id*2): the LOW byte read.</summary>
+    public const long ShopBuilderLowByteDisp32 = 0x140288F3FL;
 }

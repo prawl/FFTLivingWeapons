@@ -46,6 +46,16 @@ internal sealed partial class ExtendedInventory
         }
     }
 
+    /// <summary>LW-354: keep the shop-table mirror's vanilla half current (the modloader applies
+    /// every mod's ItemShopsData after this arm; a partner mod's shop edits must still land).
+    /// Logs once per copy at Debug.</summary>
+    public void StepShopSync()
+    {
+        if (!Armed) return;
+        if (_shops.Sync(_patcher))
+            ModLogger.Debug(LogVerb.Engine, "Extended inventory: the shop table mirror was refreshed from the game's own table.");
+    }
+
     /// <summary>Read the live bag counts of the extended ids and persist them when any changed.</summary>
     public void StepBagSidecar(IGameMemory mem)
     {

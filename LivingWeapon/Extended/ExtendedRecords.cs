@@ -58,6 +58,30 @@ internal static class ExtendedRecords
         ["Earth"] = 8, ["Water"] = 4, ["Holy"] = 2, ["Dark"] = 1,
     };
 
+    /// <summary>ITEM_SHOPS_DATA.ShopFlags (u16, the modloader's ItemShopsData names): which towns
+    /// stock the item. LW-354.</summary>
+    public static readonly IReadOnlyDictionary<string, ushort> Shops = new Dictionary<string, ushort>(StringComparer.OrdinalIgnoreCase)
+    {
+        ["Gollund"] = 1 << 15, ["Dorter"] = 1 << 14, ["Zaland"] = 1 << 13, ["Goug"] = 1 << 12,
+        ["Warjilis"] = 1 << 11, ["Bervenia"] = 1 << 10, ["SalGhidos"] = 1 << 9, ["Unused"] = 1 << 8,
+        ["Lesalia"] = 1 << 7, ["Riovanes"] = 1 << 6, ["Eagrose"] = 1 << 5, ["Lionel"] = 1 << 4,
+        ["Limberry"] = 1 << 3, ["Zeltennia"] = 1 << 2, ["Gariland"] = 1 << 1, ["Yardrow"] = 1 << 0,
+    };
+
+    /// <summary>Parses a ShopFlags list ("Dorter, Gariland"; "None" or empty = 0).</summary>
+    public static ushort ParseShops(string? csv)
+    {
+        if (string.IsNullOrWhiteSpace(csv)) return 0;
+        ushort v = 0;
+        foreach (var raw in csv.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            if (raw.Equals("None", StringComparison.OrdinalIgnoreCase)) continue;
+            if (!Shops.TryGetValue(raw, out var bit)) throw new FormatException($"Shops: unknown town '{raw}'");
+            v |= bit;
+        }
+        return v;
+    }
+
     /// <summary>Parses a modloader flag list ("Throwable, TwoSwords, Striking"; "None" or empty
     /// = 0) against <paramref name="table"/>. Throws FormatException naming the bad token, so the
     /// loader's validation stays loud.</summary>

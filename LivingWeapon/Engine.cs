@@ -353,6 +353,10 @@ internal sealed class Engine
                 _ => e!._extended.StepPostLoadCaps()),
             new TickPhase("extended-bag", TickGates.Always, 30, false, Array.Empty<string>(),
                 _ => e!._extended.StepBagSidecar(e._live)),
+            // LW-354: the shop-table mirror's vanilla half follows the game's own table (a 512-byte
+            // compare, a rare copy); shops open out of battle, but the compare is harmless anywhere.
+            new TickPhase("extended-shops", TickGates.Always, 30, false, Array.Empty<string>(),
+                _ => e!._extended.StepShopSync()),
 
             // Every ~33ms tick so a fast-forward death's brief hp==0 window isn't missed.
             new TickPhase("kill-poll", TickGates.InBattle, 1, false, Array.Empty<string>(),

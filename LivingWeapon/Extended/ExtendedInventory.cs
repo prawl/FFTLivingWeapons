@@ -33,6 +33,7 @@ internal sealed partial class ExtendedInventory
 
     private readonly BytePatchSet _patches = new();
     private readonly ExtendedCatalog _catalog = new();
+    private readonly ShopFlagsMirror _shops = new();   // LW-354
     private readonly List<ThunkClone> _clones = new();
     private CategoryGetterHook? _getterHook;
     private OrderRebuildHook? _orderHook;
@@ -97,7 +98,7 @@ internal sealed partial class ExtendedInventory
         Refusal = null;
         ModLogger.Event(LogVerb.Startup,
             $"Extended inventory armed: {Items.Count} new item(s) [{string.Join(", ", Items.Select(i => $"{i.Name} (id {i.Id})"))}], "
-            + $"{_patches.AppliedCount} cap patches, {_clones.Count} accessor redirects, 2 menu hooks; "
+            + $"{_patches.AppliedCount} cap patches, {_clones.Count} accessor redirects, 2 menu hooks, shop table mirrored; "
             + "2 damage caps wait for the first save to load.");
     }
 
@@ -107,6 +108,8 @@ internal sealed partial class ExtendedInventory
         string? why = _patches.Apply(_patcher, ExtendedSites.BootPatches(n));
         if (why != null) return why;
         why = _catalog.Install(_patcher, _allocator, Items.Select(i => (i.Id, i.CatalogRecord)).ToList());
+        if (why != null) return why;
+        why = _shops.Install(_patcher, _allocator, Items.Select(i => (i.Id, i.ShopFlags)).ToList());
         if (why != null) return why;
 
         int lo = ExtendedCatalog.FirstExtendedId;
@@ -140,6 +143,7 @@ internal sealed partial class ExtendedInventory
         _getterHook?.Release(); _getterHook = null;
         for (int i = _clones.Count - 1; i >= 0; i--) _clones[i].Restore(_patcher);
         _clones.Clear();
+        _shops.Restore(_patcher);
         _catalog.Restore(_patcher);
         _patches.Rollback(_patcher);
     }

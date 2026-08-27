@@ -38,6 +38,7 @@ public class ExtendedInventoryTests : IDisposable
         foreach (var p in ExtendedSites.BootPatches(1)) f.Seed(p.Addr, p.Old);
         foreach (var (addr, bytes) in Thunks) f.Seed(addr, bytes);
         f.Seed(Offsets.ExtCatalogDisp32, 0x10, 0xF9, 0x67, 0x00);
+        ShopFlagsMirrorTests.SeedVanillaShopSites(f);
         for (int id = ExtendedCatalog.DlcLo; id <= ExtendedCatalog.DlcHi; id++)
         {
             var rec = new byte[12]; rec[0] = (byte)id;
@@ -88,6 +89,9 @@ public class ExtendedInventoryTests : IDisposable
             Assert.True(f.Read(stub, 2).SequenceEqual(new byte[] { 0x89, 0xC8 }));   // a stub sits at the target
         }
         Assert.Equal(1, f.Bytes[Offsets.BagCountArray + 261]);   // the data seed (no sidecar entry)
+        Assert.NotEqual(0x90, f.Bytes[Offsets.ShopBuilderLowByteDisp32]);   // shop table mirrored (LW-354)
+        inv.StepShopSync();
+        Assert.Equal(0xFE, f.Bytes[Offsets.ModuleBase + BitConverter.ToInt32(f.Read(Offsets.ShopBuilderLowByteDisp32, 4), 0) + 37 * 2]);   // vanilla half synced
         inv.BootArm(null);   // idempotent
         Assert.True(inv.Armed);
     }

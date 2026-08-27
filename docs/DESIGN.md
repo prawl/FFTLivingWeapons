@@ -229,8 +229,10 @@ caps are widened from the tick loop and the bag counts ride `extended_inventory.
 `kills.json` (LW-348), because the save file stores exactly 261 counts.
 
 **Known limits (stated, not hidden).** Enemies cannot carry a new id through the encounter table
-(one-byte ids; LW-350 is the runtime loadout answer). Shops cannot stock one (no shop-flags row
-past 255). Optimize ranks by WP and will swap a weaker new weapon out. Growth of the WP lane is
+(one-byte ids; LW-350 is the runtime loadout answer). Shops CAN stock one (LW-354, built
+2026-08-27, live pass pending): the game's town-flags table has 256 rows, so the mod mirrors it
+into a page with rows past 255 and re-points the Buy-list builder at the mirror; `shops` on the
+items.json row names the towns. Optimize ranks by WP and will swap a weaker new weapon out. Growth of the WP lane is
 not wired for extended ids (their stats row is not in the game's table). Uninstalling loses the
 item cleanly (docs/COMPATIBILITY.md has the note).
 
