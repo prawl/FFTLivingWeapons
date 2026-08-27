@@ -1,0 +1,63 @@
+# LW-346 registry probe, Variant 3 (2026-08-26 late): the June-4 (pre-1.5) display recipe ported
+# to 1.5.2. Boot-arm the equip-minimal rig + the six built-in registry patches, plus:
+#  - the third June-4 display cap: the sorted-list loop bound cmp edi,0x105 at 0x14039711F
+#    (imm low byte 0x140397121, 05 -> 06); that loop calls the category getter at 0x140397051
+#  - the category getter hook: 0x1402890C0 (pre-1.5 0x140284F3C + 0x4184; int3-padded entry,
+#    movzx r11d,cx / mov eax,0x3ff shape; called by the inventory list-build at 0x140288BF5
+#    right after the total-owned getter). ids 261-511 answer as id 37 (Chaos Blade, a weapon).
+# Fence (0x1406804FA) left vanilla; no table XML this round.
+#  - round 3b (after the 20:00/20:01 crashes at 0x14029FC5B, catalog accessor fed id 0x3FF = a masked
+#    0xFFFF row terminator): list builder B (0x140288FFD loop) filters ids through the sibling getter
+#    0x140287564 whose own cap (mov eax,0x105 at 0x14028756F, imm byte 0x140287570) returns 0 for
+#    id 261, while list builder A (0x140288B94) counts 261 via total-owned; rows vs count disagreed.
+#  - round 4 (2026-08-27, after the inventory wall fell live): the default-order rebuild 0x140285DF0
+#    drops any list id its per-tab order table lacks and stops scanning the table at a word >= 0x105
+#    (mov eax,0x105 imm byte 0x140285E2D). The guard rides this marker (code byte, boot-safe); the
+#    two order tables (inventory 0x1407B2550, equip picker 0x141874540) are filled at load time, so
+#    they get id 261 appended AFTER the save loads, from outside, with
+#    python tools/probes/lw346_order_table_poke.py --apply (FFTLivingWeapons repo), then re-open the menu.
+#  - round 4b (2026-08-26 21:15 crash, same site 0x14029FC5B, id 0x3FF): sorting the inventory by
+#    "Acquired" takes the mode-8 path of 0x140286228, which rebuilds the list from the ACQUIRED
+#    order list (0x141874726) and ignores that rebuild's count, so a dropped 261 leaves a stale
+#    count again. The acquired list is maintained by 0x140286160 over ids 1..260 only
+#    (lea edi,[rbp+6] at 0x140286185); widen it (+7) so the game itself enrolls 261, and widen
+#    the two sibling scan guards (mode-8 move-to-front 0x1402862F7, delete-from-list 0x140285EE7).
+#  - round 5 (2026-08-26 late, the battle-entry evaporation): two more id caps on the paths that put an item
+#    BACK into the bag: 0x14030CEC0 (return-to-bag, `mov eax,0x105; cmp ax,bx; jbe skip` imm byte
+#    0x14030CED3) and 0x140101058 (adjust-count, `mov eax,0x104; cmp di,ax; ja skip` imm byte 0x140101071).
+#    Without them an unequipped id 261 is dropped on the floor instead of returning to the bag.
+#  - round 6 (2026-08-26 22:46, CE find-what-writes chain roster -> staging 0x143C47390 -> battle object):
+#    the roster-to-battle converter at 0x1403602EF keeps a hand's id only when it is below 0x105
+#    (`mov ecx,0x105` imm byte 0x1403602F4), else substitutes the alternate word; widen 05 -> 06 so
+#    id 261 reaches the battle object (the hooked validity loop right after accepts it as 37).
+#  - round 8 (2026-08-26 23:10, LW-347 shield): the hand-compatibility check 0x140288788 asks the item
+#    TYPE probe thunk 0x1402B8EE8(id, dataType) whether the other hand holds a weapon; for id 261 the
+#    probe answers via the range tables (category 13 -> data type 9, not a weapon), so a shield in the
+#    off-hand evicts the Moonblade as if two shields were held. Clone the probe 261-511 -> 37 (thunk
+#    path, the stub only remaps ecx and leaves rdx = dataType intact).
+#  - round 9 (2026-08-26 23:15, CE find-what-accesses on Ramza's combat weapon word during an attack): two more
+#    plain-code copies of the hand-resolver idiom (`lea ecx,[rdx+6]` / `mov r8d,0x105`: keep the hand id only if
+#    below 261, else use the alternate word) at 0x140226FDD (imm byte 0x140226FDF) and 0x14028024D (imm byte
+#    0x14028024F). Two more copies sit inside the copy-protected region (0x14F2EA40D, 0x14F45D319) and are NOT
+#    boot-patchable from here (pages are not decrypted when the marker arms); they need a post-load poke.
+#  - round 9b: an inline copy of the validity range check on the attacker's hands at 0x1401ED93C..
+#    (`(id-1) <= 0xFC || (id-0x100) <= 4`): widen both `cmp ax,4` bytes (0x1401ED95B, 0x1401ED982) 04 -> 05
+#    so id 261 passes. The two copy-protected caps are poked post-load by tools/probes/lw346_battle_caps_poke.py.
+# Delete this file to make the next launch normal.
+patch 0x140397121 05 06
+patch 0x140287570 05 06
+cathook 0x1402890C0 37
+patch 0x140285E2D 05 06
+patch 0x140286187 06 07
+patch 0x1402862F7 05 06
+patch 0x140285EE7 06 07
+patch 0x14030CED3 05 06
+patch 0x140101071 04 05
+patch 0x1403602F4 05 06
+#  - round 7: the order-rebuild hook (OrderRebuildHook, built 2026-08-27) replaces the table pokes.
+orderhook 0x140285DF0
+cathook 0x1402B8EE8 37
+patch 0x140226FDF 06 07
+patch 0x14028024F 05 06
+patch 0x1401ED95B 04 05
+patch 0x1401ED982 04 05
