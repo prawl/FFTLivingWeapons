@@ -342,6 +342,11 @@ belongs rather than at the bottom.
   in ENTD; (10) removal is safe: a documented or automated exit path for a save holding 261
   when the mod is uninstalled; (11) text and icon polish (SortOrder 217, other languages);
   (12) LW's own meta.json row, growth and signature wiring; (13) owner PROVEN flips in
+  PROGRESS 2026-08-27 01:35 (owner eyes): item 4's model clause is beaten in the rig, the
+  Moonblade swings a knight-sword blade (marker v2: range-index + sprite-pair accessor clones,
+  ledger row [capbreak-swing-art-via-accessor-clones]); damage now follows the knight-sword
+  Brave formula (272 at 125 percent = PA 21 x WP 15 x Br 69). Save/load (item 6) is mapped:
+  the save holds 261 counts only, sidecar design in LW-348. Regen parked by the owner.
   LIVE_LEDGER for June's three rows and tonight's. Verify: one fresh boot with only the marker
   (no poke script) walks (1) through (6) live with the owner watching; the rest ship through
   the normal gates and their own live passes.

@@ -1748,6 +1748,22 @@ Raising one unit's Max HP mid-battle leaves the mod's kill bookkeeping intact: w
 
 ## Uncertain — observed live, not yet isolated / built on
 
+### [capbreak-swing-art-via-accessor-clones] With the range-index and sprite-pair accessor thunks cloned to the Chaos Blade, the new weapon (id 261) swings a visible knight-sword blade and damages as a knight sword
+
+Observed 2026-08-27 01:30-01:35 by the owner on 1.5.2 (screenshots tools/probes/lw346_moonblade_swing_blade_1.png and _2.png): with marker v2 boot-armed (seven extra cathook lines: 0x1402B8BCC range index, 0x1402B8E60 sprite/palette pair, 0x1402B8C0C range base, 0x1402B8CD4 / 0x1402B8D3C / 0x1402B8DA0 / 0x1402B8E04 sibling per-item accessors, all ids 261-511 -> 37) plus the two post-load damage caps, Ramza's Moonblade swings drew a blade on every attack, 272 damage on a chocobo at 125 percent compatibility = PA 21 x WP 15 x Brave 69 percent, i.e. the knight-sword Brave formula on the Warbrand-clone WP (the earlier 396 / 317 reading was the same PA x WP without the Brave factor). Two loose ends keep this Uncertain: the first several swings of that battle were still bare-fisted before the blade began showing on every swing (nothing was changed in between; a lazily loaded sprite sheet or CLUT is the working guess), and the action block's weapon word reads 242 for the Moonblade during the swing (combat +0x1A8, published to 0x1407B077A) in both the fist and the blade swings, so that value is not what decides the drawing.
+
+<details><summary>How we got here</summary>
+
+**Claim (original wording):** the punch was the attack-animation setup 0x1403099B0 publishing "no weapon" because the range-index thunk 0x1402B8BCC answers -1 for id 261, and the hand art comes from the sprite/palette pair accessor 0x1402B8E60, which answers NULL for 261; cloning both to 37 gives the Moonblade the Chaos Blade's drawing.
+
+**Mechanism:** static read of the live process (journal 2026-08-27 00:00-00:50), the M0 poke proof on Save the Queen ([weapon-sprite-pair-drives-swing-art]), then one relaunch with tools/probes/lw346_capbreak_bootarm.marker.v2.txt. The 242 came from a 0.5 ms watch (tools/probes/lw346_render_cluster_watch.py) on the render cluster 0x1407B0760.. and Ramza's combat action block 0x141855CE0+0x1A0 during two swings; the CE "find what writes" on that word (owner) resolved to the CRT memcpy from a stack local built by the action-commit routine 0x140281488, whose class-8 path copies its input unchanged, and the plain attack builder 0x14030D2D4 takes that input from the static template 0x14186AFAC filled by copy-protected code (0x1508B2DC0).
+
+**Evidence:** the two screenshots above; the watch logs in the session scratchpad; docs/research/ITEM_CAP_261_BREAK_JOURNEY.md (2026-08-27 01:00-01:40 section).
+
+**Date:** 2026-08-27
+
+</details>
+
 ### [weapon-sprite-pair-drives-swing-art] The two-byte sprite/palette record at 0x140785CF0 + id*2 picks BOTH the drawing and the palette of a weapon's swing, and it is read on every swing
 
 Observed 2026-08-27 00:50 and 00:56 by the owner on 1.5.2, mid-battle, no relaunch, no fresh battle: Save the Queen (id 34, vanilla record F0 0C) was rewritten from outside to 50 03 (Warbrand's axe drawing, Chaos Blade's palette nibble) and the very next swing drew Warbrand's art in purple (tools/probes/lw349_sprite_pair_graphic_swap_34.png); rewritten to F0 03 (Warbrand's own record) the next swing drew the same shape in Warbrand's steel (tools/probes/lw349_sprite_pair_palette_swap_34.png); restored to F0 0C afterwards. So byte 1 selects the drawing and byte 0 the palette, per draw. This is the mechanism [weapon-palette-assignment-walled] said did not exist: that row's probes used base 0x140785CF2, one item off. Not yet built on; owner flip pending.

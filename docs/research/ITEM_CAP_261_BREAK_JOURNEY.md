@@ -1546,3 +1546,58 @@ is why nothing is drawn, and cloning it to 37 (marker v2) should put a knight sw
 hand; the "not a weapon" verdict (0x1402B8BCC) is the other half. M1 (one relaunch with
 tools/probes/lw346_capbreak_bootarm.marker.v2.txt) is the next experiment. Screenshots:
 tools/probes/lw349_sprite_pair_graphic_swap_34.png, lw349_sprite_pair_palette_swap_34.png.
+
+### 2026-08-27 01:00-01:40: M1 relaunch, the Moonblade swings a blade (owner eyes), with two loose ends
+
+Plain language: the owner relaunched with marker v2 (the seven extra clone lines) and, after
+the two post-load damage pokes, attacked with the Moonblade. The first several swings were
+still bare-fisted; then, with nothing changed in between, a blade appeared and stayed on
+every swing after that (screenshots tools/probes/lw346_moonblade_swing_blade_1.png, _2.png).
+Damage on a chocobo at 125 percent: 272 = PA 21 x WP 15 x Brave 69 percent, so the weapon
+now also uses the knight-sword Brave formula (the earlier 396 was PA x WP without it), the
+identity a Chaos Blade clone should have.
+
+Boot log: `BOOT-ARMED: equip-minimal rig + 19 registry patches + 9 clone hook(s) + 1 order
+hook(s)`; every cathook installed on the thunk path (stub for 0x1402B8BCC at 0x114AE0000:
+`mov eax,ecx; and eax,0x3ff; cmp eax,0x105; jb; cmp eax,0x1ff; ja; mov ecx,0x25; jmp [rip]`,
+so only ecx is remapped, r9 survives).
+
+The fist swings were chased before the blade appeared, and the chase produced facts worth
+keeping even though the trigger is still unknown:
+- tools/probes/lw346_render_cluster_watch.py (0.5 ms poll of the cluster 0x1407B0760.. and a
+  unit's action block) showed, for every Moonblade swing fist or blade alike: pub2 publishes
+  main 261 / off 255 with the flag word 0x0001, then ~180 ms later the derived word
+  0x1407B077A becomes 242 (0xF2), the flag's high byte 0x1407B0763 goes 1, and the 8-byte
+  weapon-stat staging at 0x1407B07A8.. fills; at action end the derived word returns to 0.
+  So 242 is the game's own value for this action, not the fist's cause.
+- The 242 rides in the action block: combat struct 0x141855CE0 (June's CWeapon base; hands at
+  +0x20/+0x24), block at +0x1A0 = `10 06 b9 01 00 00 00 00 f2 00 05 10 05 00 ...` during the
+  swing (+1 type 6, +2 word 441, +8 = 242), and `10 01 00 ...` at rest (the wrapper
+  0x140307DFC re-publishes a neutral type-1 block). CE "find what writes" on +0x1A8 (owner):
+  CRT memcpy 0x1405C9EB1 from a stack local (RDX 0x12ECDFBA0, 0x14 bytes); stack return
+  0x145DD86DD = inside the copy-protected memcpy wrapper behind the thunk 0x14002630C, next
+  return 0x140281970 = the class-8 branch of the plain action-commit routine 0x140281488
+  (copies its rcx input to a local, dispatches on the class table 0x140680010[type], and
+  memcpys the local to rdx = combat+0x1A0; class 8 copies it unchanged). Its plain callers:
+  0x14020AC3E, 0x14030D389 (the player attack builder 0x14030D2D4: memcpy of the 0x14-byte
+  static template 0x14186AFAC, then +0 = [unit+0x1BC], +0xA = 5, +0xC/+0xE/+0x10 = target
+  coordinates, and the hands copied from statics 0x14186AFA2/0x14186AFA4 to unit +0x20/+0x24,
+  June's "pub3"); copy-protected 0x14DB3278D, 0x14F3B75A0. The template 0x14186AFAC is
+  filled by copy-protected 0x1508B2DC0 (memcpy from its caller's action, then publishes the
+  unit's hands to 0x14186AFA2/A4 and sets byte 0x14186AFA1 = 1); the plain writers
+  0x14030D941 / 0x14030DA90 are whole-state save/restore block copies (template +8 mirrors
+  state struct +0xD4). Whatever computes the 242 sits above that in protected code; not
+  chased further because the blade appeared.
+- The derived publisher 0x1506E80C0 (copy-protected) takes the action block as rsi and for
+  this class publishes word [rsi+8] (the 242) to 0x1407B077A; 0x1403099B0 is the plain
+  publisher for the wrapper's neutral re-publish. Both write the same global.
+- June's CWeapon address 0x141855D00 (= 0x141855CE0 + 0x20) is unchanged on 1.5.2; unit 1's
+  struct (0x1418564E0, stride 0x800) mirrors Ramza's hands.
+
+Working guess for the fist-then-blade: the knight-sword sprite sheet page or its CLUT for
+graphic 0x0C was not resident until something loaded it (another unit or the status page),
+and the composer drew nothing until then. Untested; noted on the ledger row
+[capbreak-swing-art-via-accessor-clones] (Uncertain). What is settled for the LW port: the
+model fix is `cathook 0x1402B8BCC` + `cathook 0x1402B8E60` (donor id per item), with the
+sibling accessors cloned so no body indexes past its tables. LW-346 item 4's model clause is
+covered by the rig; Regen stays parked.
