@@ -1154,6 +1154,21 @@ xref_scan, live_disasm, inventory_snapshot):
   initialized data); on disk those bytes are FF, so the table is RUNTIME-FILLED (a
   struct-to-globals copier at 0x1403271B3.. writes it). A boot-time byte patch of the table
   can be overwritten by a later load; patch after the save loads, or hook the routine.
+- List-length bounds (read 2026-08-26 on the round-3 boot, same probe): builder A stops
+  appending at 145 entries (`81 FE 91 00 00 00` cmp esi,0x91 / jge at 0x140288CC1..0x140288CC7,
+  right after the word store and `add r13,2`), so every list it produces holds at most 145 words
+  plus the 0xFFFF terminator; the Acquired list scan in 0x140286228 stops at 0x92 words
+  (`cmp edx,0x92` at 0x140286318). The rig's OrderRebuildHook reads a 160-word window on the
+  strength of those two bounds.
+- Entry and terminator of 0x140285DF0 (read 2026-08-26 on the round-3 boot with
+  tools/probes/lw346_live_disasm.py, capstone over RPM): the routine begins
+  `48 89 5C 24 08` mov [rsp+8],rbx / `48 89 6C 24 18` mov [rsp+18h],rbp / `48 89 74 24 20`
+  mov [rsp+20h],rsi / `57` push rdi / `48 81 EC 40 02 00 00` sub rsp,240h (a 0x240-byte
+  stack temp, security cookie at [rsp+230h]). Its tail stores bp (= 0xFFFF) into the temp at
+  index count (`66 89 6C 54 20` at 0x140285E94), then memcpys count*2+2 bytes back over the
+  list (`lea edx,[rbx*2+2]` at 0x140285E99, call 0x1405C9D80 at 0x140285EA8) and returns ebx.
+  So the output is always a subset of the input words, in table order, 0xFFFF-terminated. The
+  rig's OrderRebuildHook pins those first ten prologue bytes as its stale-address guard.
 - More hardcoded 0x105 guards on list paths: 0x1402862F7 (mode-8 move-to-front scan inside
   0x140286228) and 0x140285EE7 (`lea r10d,[r11+6]` in the delete-from-list routine
   0x140285ED8). Builder A's own tail (bl==0 path, 0x140288D5D) also calls the default-order
@@ -1263,3 +1278,105 @@ were checked against the modloader's source (fftivc.utility.modloader 1.7.2) wit
   sibling getter cap at 0x140287570, already widened by the marker) and a live read of how the
   shop list consults the flags. The "+" items 256-260 are not sold anywhere, which fits.
 Everything else on the checklist is live work on the next boot.
+
+### 2026-08-26 22:15-22:50: the battle gate on 1.5.2, found with three CE captures, and beaten live
+
+Plain language: equipping the Moonblade and starting a battle left Ramza empty-handed, and
+afterwards the weapon was gone from the bag too. The owner ran Cheat Engine's "find what
+writes" three times while I read the code each capture pointed at, and the chain came out:
+the game copies a unit from the roster into a staging block, then block-copies that into the
+battle object; the roster-to-staging step only keeps a hand's item if its id is below 261,
+otherwise it silently substitutes the empty alternate word. One byte widened, the Moonblade
+survives into battle (owner eyes, 22:50).
+
+The chain (read live; addresses on 1.5.2):
+- Roster slot 0 (0x1411A7D10, rHand u16 at +0x14 = 0x1411A7D24, lHand +0x16, head/body/acc
+  at +0x0E/+0x10/+0x12). CE writers of rHand: 0x140285834 (`mov [rbx+14],0x00FF00FF`) and
+  0x140285857 (`mov [rbx+14],r10w`) inside 0x140285744, the UNIT-OBJECT -> ROSTER sync (it
+  clears both hands, then re-writes each from the unit object's +0x54/+0x56, routing shields
+  (catalog byte +5 == 0x13) to lHand). Not a validator: it wrote 261 back (watcher
+  tools/probes/lw346_equip_watch.py, 22:29:31.984 -> .986).
+- Battle objects live in a static pool (0x1437415A0.., 0x280 bytes each; pointer table
+  0x141800F50, count word 0x1437414A8). Ramza's this boot: 0x143742220, later 0x1437424A0.
+  CE writers of object+0x54 (weapon): only the CRT memset (0x1405CA419, 0x280 bytes) and the
+  CRT memcpy (0x1405C9F9E, 0x560 bytes from the staging block 0x143C47390 in .data).
+- CE writers of the staging block's helm word (0x143C47448): the memset and 0x14036032E
+  (`mov [rbx+58],ax`) inside the roster-to-staging converter. Its weapon path at 0x1403602EF:
+  `movzx eax,[rdi+20]; mov ecx,0x105; cmp ax,0xFF; je alt; cmp cx,ax; ja keep; alt: movzx
+  eax,[rdi+22]` then `mov [rbx+54],ax`; the same shape for the off-hand (+0x24/+0x26 ->
+  +0x56); then a 5-slot loop calling the validity thunk 0x1402B8EBC (hooked, 261 -> 37) and
+  zeroing rejects. THE GATE: the imm byte 0x1403602F4 (05). Widened live 05 -> 06 (WPM from
+  outside, verified) and added to the marker; after it Ramza's battle object read +0x54 =
+  0x0105 and the owner saw the Moonblade survive into battle.
+- Why it "vanished from the bag" before the fix: equipping moves the item out of the bag
+  array (0x1411A7C00[261] 1 -> 0), the converter dropped it from the battle object, and the
+  unit-object -> roster sync then wrote the empty hand back over the roster; the return-to-bag
+  path 0x14030CEC0 (`mov eax,0x105` imm 0x14030CED3) and the adjust-count path 0x140101058
+  (`mov eax,0x104` imm 0x140101071) both skip ids past 260, so nothing put it back. Both caps
+  are on the marker now (untested live). The bag count was restored from outside twice
+  tonight (1, then 99 on request).
+- Also learned: the battle-start party snapshot/restore (0x140279E88 / 0x140279C8B) copies
+  the unit block (0x7E90 bytes) and the bag array as 261 bytes (ids 0..260): count[261] is
+  neither saved nor restored by it; a save/load round trip therefore loses the Moonblade's
+  count unless the rig re-seeds it after load (the boot-arm seeds it only at launch).
+- Remaining battle gap, unchanged from June: with 261 in hand Ramza attacks bare-fisted on the
+  field (the swing model/animation bakes from the id at construction; no model for 261).
+  Damage source to be confirmed by the owner's next hit (weapon-stat thunk clone 67 => WP 15).
+
+Damage control, 22:55 (owner, same Knight at 100%, no Attack Boost): bare fist 323, Moonblade
+equipped 323. So on 1.5.2 the field damage IGNORES the Moonblade: the attack resolves as an
+unarmed strike even though the battle object carries id 261 (the earlier 426 was Attack Boost).
+June's "323 = PA 22 x WP 15" reading was most likely this same fist number. NEXT GATE on the
+battle path: the damage/attack-type code's weapon-stat fetch for the attacker's hand (the
+battle object's +0x54 through a lookup that is not the hooked thunk, or a capped lookup like
+the converter's). CE "find what accesses" on the battle object's weapon word during an attack
+is the direct route; the answer decides whether the swing model and the damage share one gate.
+
+### 2026-08-26 23:05: the OrderRebuildHook live pass PASSES on all three list paths
+
+Plain language: the durable fix for the menu lists (one hook that puts back whatever the
+display-order rebuild threw out) went into the research rig tonight, built through four
+implement/verify rounds, deployed, and passed its live pass with the owner: with both order
+tables reset to vanilla from outside, the Moonblade was the last Weapons row, the Acquired
+sort no longer crashes, and the unit picker lists it without a sort. Log lines:
+`re-appended 1 id(s) [261] (list 0x141811470, table 0x1407B2550, count 111 -> 112)`,
+`re-appended 1 id(s) [261] (list 0x141811470, table 0x141874540, count 24 -> 25)` (the
+picker), and on the Acquired sort `re-appended 112 id(s) [...] (table 0x141874726, count 0
+-> 112)`: the acquired-order table matched NOTHING, so that sort now keeps the previous order
+instead of crashing; the acquired list's real format still needs a read (its first words are
+not what the mode-8 scan expects). Owner also confirmed: the shield-in-off-hand removal
+(LW-347) persists with the hook, as expected (different gate).
+
+Acquired-list postscript (23:10): the list at 0x141874726 now begins `0105 0104 0103 0102 0101
+0023 ...` (261 first, enrolled by the widened maintainer cap 0x140286187), and the mode-8
+rebuild's table scan stops at the first word >= 0x105, so with the scan guard 0x140285E2D at
+its vanilla 05 (which --restore had just put back) the scan saw zero entries and the hook
+re-appended the whole list in its previous order. With the guard at 06 (the marker's boot
+value) the Acquired sort should be a real acquisition-order sort; guard re-poked to 06 live.
+The mode-8 count bug is now harmless either way because the hook keeps the list intact.
+
+### 2026-08-26 23:10: LW-347 (shield evicts the Moonblade) traced to the item TYPE probe
+
+Plain language: putting a shield in the off-hand threw the Moonblade out because the game
+asked "is the thing in the other hand a weapon?" and, for id 261, the answer came back "no"
+(the game's range tables file 261 under a non-weapon type), so it treated the pair like two
+shields and cleared the weapon. The rig's catalog record byte +7 (05 vs Chaos Blade's 00) is
+NOT the cause: byte +7 is the equip-bonus row id (vanilla Chaos Blade = 5, Regen; the main
+table's 37 reads 0 only because the rebalance XML rewrote it after the rig cloned the vanilla
+bytes at boot). Chain (CE writers of Ramza's unit object +0x54 during the shield equip:
+0x14028864C `mov [r11+r10*2+54],r13w`): equip-apply 0x140288590(unit, slot, item) calls the
+compatibility check 0x140288788; when that returns anything but 1 for a hand slot, the OTHER
+hand is emptied (count returned to the bag via 0x1402847F8) before the new item is written.
+0x140288788: can-equip 0x1402886D0, then `0x1402B8EE8(item, 0)` (weapon type?) and
+`0x1402B8EE8(otherHand & 0x3ff, 0)`, with the weapon-stat thunk 0x1402B8C74 supplying byte +1
+bits (0x08 two-handed, 0x01 dual-wield) for whichever is a weapon; for a shield in hand and a
+NON-weapon in the other hand it returns 0 (conflict). 0x1402B8EE8 is a 5-byte jmp thunk
+(-> 0x14FEED4B0), so the existing thunk-path clone hook covers it: marker line
+`cathook 0x1402B8EE8 37` (the near stub remaps ecx only; rdx = dataType survives). Added for
+the next boot; live effect pending the owner's relaunch. Every other consumer of the probe
+(comparator sort, builder C, the picker's is-weapon tests, the category getter's five probes)
+now sees 261 as a knight sword too, which is the intended identity.
+
+23:20, owner eyes after the relaunch: with `cathook 0x1402B8EE8 37` armed (thunk path, stub at
+0x114AD0000) a shield in the off-hand no longer evicts the Moonblade. LW-347 is explained and
+beaten in the rig; battle re-check with the shield on is next.

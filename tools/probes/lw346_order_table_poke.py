@@ -32,6 +32,10 @@ TABLES = [
     ("inventory weapons order table (pointer array 0x14067F498[0])", 0x14067F498),
     ("equip-picker weapons order table (pointer array 0x14067FA90[0])", 0x14067FA90),
 ]
+# The "Acquired" sort order list (most recent first, 0x00FF end marker, at most 0x92 words): the
+# game enrols new ids into it over ids 1..260 only, so 261 is prepended here as if just acquired.
+ACQUIRED = ("acquired-order list 0x141874726", 0x141874726)
+ACQ_MAX = 0x92
 GUARD = ("default-order table-scan guard imm 0x105 -> 0x106 (mov eax,imm32 @0x140285E2C)", 0x140285E2D, b"\x05", b"\x06")
 
 

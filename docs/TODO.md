@@ -345,13 +345,15 @@ belongs rather than at the bottom.
   LIVE_LEDGER for June's three rows and tonight's. Verify: one fresh boot with only the marker
   (no poke script) walks (1) through (6) live with the owner watching; the rest ship through
   the normal gates and their own live passes.
-- [LW-347] 2026-08-26: Equipping the Moonblade (id 261) empties Ramza's off-hand and
-  refuses anything in it, although its record is meant to be a Chaos Blade copy that
-  allows a shield. First suspect: the research rig's 261 catalog record differs from
-  Chaos Blade in exactly one byte (+7 reads 05, Chaos Blade reads 00), and the
-  off-hand rule may read that byte; second suspect: the weapon-stat thunk clone (id 67)
-  answering for the off-hand check. Owner-spotted 2026-08-26 on the 1.5.2 live boot
-  right after the inventory wall fell; parked by the owner for after LW-346's list work.
+- [LW-347] 2026-08-26: Equipping a shield in Ramza's off-hand threw the Moonblade (id 261)
+  out of his main hand, although a real Chaos Blade keeps a shield fine. CAUSE (traced the
+  same night with three CE captures): the hand-compatibility check asks the game's item
+  TYPE probe whether the other hand holds a weapon, and for id 261 the probe answers from
+  the range tables (a non-weapon type), so the pair counted as two shields. FIX in the
+  research rig: clone the probe thunk for ids 261-511 to id 37 (marker line
+  `cathook 0x1402B8EE8 37`); owner-observed working 2026-08-26 23:20. Ships with the rig
+  port (LW-346 item 8); the byte +7 suspicion was wrong (that byte is the equip-bonus row).
+  (Tech: check 0x140288788, apply 0x140288590, probe thunk 0x1402B8EE8 -> 0x14FEED4B0.)
 - [LW-344] 2026-08-26: Partner mods want their items to be living weapons too: the
   Cloud mod author (Xeoshades) asked for growth on their Buster Sword line, and today
   growth already bleeds onto any item occupying our ids, wearing the WRONG name in
