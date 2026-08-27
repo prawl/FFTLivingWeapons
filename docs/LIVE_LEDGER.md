@@ -1748,6 +1748,54 @@ Raising one unit's Max HP mid-battle leaves the mod's kill bookkeeping intact: w
 
 ## Uncertain — observed live, not yet isolated / built on
 
+### [inventory-default-order-drops-unknown-ids] The party inventory's default display order is rebuilt from a per-tab id table and drops any id the table lacks; appending id 261 to the table lists it
+
+Observed 2026-08-26 20:55 by the owner on 1.5.2 (screenshot tools/probes/lw346_moonblade_listed_152.png): with the research rig boot-armed, three live pokes from outside (weapons order table [127] 0x00FF -> 0x0105 and [128] 0 -> 0x00FF at 0x1407B264E/0x1407B2650, scan guard imm 0x140285E2D 05 -> 06) and a re-open of the Items screen, id 261 was the last Weapons row with a full three-page card, sorted, equipped and unequipped. Not yet isolated as a single mechanism the mod owns: the tables are runtime-filled and the durable fix (a hook on the rebuild routine) is being built.
+
+<details><summary>How we got here</summary>
+
+**Claim (original wording):** the list rebuild 0x140285DF0(table, list) copies list words in table order and discards the rest; the weapons table (0x1407B2550 via 0x14067F498[0], 127 ids, FF on disk, filled at load) has no 261; the equip picker uses a second table set (0x14067FA90, weapons 0x141874540) regenerated from the last inventory sort.
+
+**Mechanism:** read live with capstone over RPM (tools/probes/lw346_live_disasm.py, lw346_xref_scan.py); the live buffer 0x141811470 order matched the table exactly before the poke and held 261 last after it (tools/probes/lw346_inventory_snapshot.py --rows: 112 buffer entries, 112 UI rows in the same order).
+
+**Evidence:** docs/research/ITEM_CAP_261_BREAK_JOURNEY.md (2026-08-27 early sections), the snapshot probe output, the owner's screenshot.
+
+**Date:** 2026-08-26
+
+</details>
+
+### [validity-compaction-keeps-261-as-37] The list clean-up passes cannot drop id 261 while the rig's validity stub maps it to 37
+
+Read live 2026-08-27 (no owner action): the thunk 0x1402B8EBC -> rig stub 0x114AC0000 (261..511 -> 37) -> original 0x14FED2C3F computes valid = (id-1) <= 252 || (id-256) <= 4 and returns EAX = 1, with both hidden constants re-read from 0x154F773F4 and 0x14EC34A0C; every compaction pass (sorter 0x140285B10 and siblings at 0x140286265, 0x1402879C3, 0x140287B23, 0x140288175, 0x1402882E2) masks the word with 0x3ff and calls that thunk. Status Uncertain because it is a code reading plus one consistent live observation (261 survived every comparator sort the owner tried), not an isolated probe of each pass.
+
+<details><summary>How we got here</summary>
+
+**Claim (original wording):** the night-3 plan to force six "keep" branches targets a gate that is not closed.
+
+**Mechanism:** tools/probes/lw346_compaction_audit.py (read-only) confirmed every call target and branch byte; the routine behind the stub was disassembled through its jmp [rip] pointer.
+
+**Evidence:** docs/research/ITEM_CAP_261_BREAK_JOURNEY.md (2026-08-27 early); owner sorts on 2026-08-26 kept the Moonblade listed.
+
+**Date:** 2026-08-27
+
+</details>
+
+### [acquired-sort-ignores-rebuild-count] Sorting by Acquired rebuilds the list against the acquired-order list and keeps a stale count, which crashes on the last row when an id was dropped
+
+Observed 2026-08-26 21:15 by the owner: sorting the inventory by Acquired with id 261 listed crashed at 0x14029FC5B (dump FFT_enhanced.exe.20664.dmp: read of the rig catalog at id 0x3FF, the 0xFFFF terminator masked). Code read: mode 8 of 0x140286228 calls the rebuild with the acquired list 0x141874726 and discards its return; the acquired list's maintainer 0x140286160 walks ids 1..260 (imm 0x140286187). The same shape explains the three night-3 crashes.
+
+<details><summary>How we got here</summary>
+
+**Claim (original wording):** the 112-rows-versus-111-entries mismatch comes from a rebuild whose count the caller ignores, not from a validity clean-up.
+
+**Mechanism:** tools/probes/lw346_minidump_context.py on the dump; disassembly of 0x1402862A0..0x1402863E2 and 0x140286160..0x140286227.
+
+**Evidence:** docs/research/ITEM_CAP_261_BREAK_JOURNEY.md (2026-08-26 21:15 section); Windows Application log Event 1000 fault offset 0x29fc5b.
+
+**Date:** 2026-08-26
+
+</details>
+
 ### [kills-pool-region-recurrence] The Kills string pool regions recur across launches; one base identical in every observed launch
 
 Observed 2026-08-26 across four distinct game launches (flight tape coverage records, read-only): region 0x15DC00000 sat at the IDENTICAL base in every launch with a stable 363 to 370 site count; the largest region (about 1100 to 1400 sites) was stable within each launch and moved once between launches (0x15E800000 vs 0x163C00000); the third region drifted per launch inside the 0x4F9A00000000 neighborhood. Basis for LW-324's warm start (persist located sites at quit, verify then adopt at next launch). SITE level recurrence inside a recurring region is NOT yet measured, so the warm start must remain correct at zero percent adoption (adoption gated on the existing paint-time ownership verification) and must log its own adoption rate; the owner's LW-324 live pass doubles as the site-level measurement. UNCERTAIN until that read.
@@ -2606,6 +2654,8 @@ This wall was OVERTURNED 2026-06-11: the tile mark is a per-tile FLAG bit, and w
 </details>
 
 ### [bag-list-261-cap] >261 items in the BAG INVENTORY LIST
+
+OVERTURN CANDIDATE 2026-08-26 (owner flip pending): the bag list showed id 261 on 1.5.2 once the default-order table carried it; see [inventory-default-order-drops-unknown-ids] under Uncertain. The wall was the display-order table, not a boot-built registry.
 
 Getting more than 261 items into the bag inventory list stays Walled: the bag list is a boot-built registry that live cap-lifts cannot inject into. NARROWED 2026-06-26: the wall is ONLY the bag list; equip, equip-screen display, and battle function were broken through via force-equip plus the 4-gate hook chain.
 

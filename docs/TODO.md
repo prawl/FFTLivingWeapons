@@ -323,6 +323,28 @@ belongs rather than at the bottom.
   branch, a read-only quarry: replay its recipes onto a fresh worktree branch, never
   merge it (it predates the folder move). Path B (RenderModelHold on the render global)
   stays dead: insufficient live AND the global drives damage.
+  DONE MEANS (owner checklist, 2026-08-26 late, all to be covered): (1) menus list the new
+  weapon everywhere with no hand pokes: Inventory, every sort mode including Acquired, the
+  unit equip picker without a sort, via one hook on the display-order rebuild routine;
+  (2) a shield can sit in the off-hand with it equipped (LW-347); (3) it enters the world the
+  normal ways: shop stock and buy-back, poach, Move-Find Item, battle spoils, steal, and it
+  leaves them too: sell, Rend Weapon, crystal drop, Ninja Throw, in-battle Equip Change,
+  Optimize; (4) it works in battle: equip, swing, damage, kill tally, in-battle card and
+  attack row, enemy AI reaction, battle end, plus the weapon model and swing animation the
+  slot-swap loop was meant to give it; (5) it is equippable from the battle formation screen;
+  (6) it survives save and load on 1.5.2 including the load sanitizer and the persisted order
+  lists; (7) the definition lives in DATA: a Nenkai-mimic XML per table for ids 261+ generated
+  from data/items.json by generate.py, parsed by the LW mod at boot with loud validation, which
+  builds the catalog and weapon-stat records in memory, adds the name row, registers the icon;
+  (8) the rig moves from the FFTHandsFree research bridge into LivingWeapons (guarded Mem,
+  LaunchGuard landmark, PATCH_REANCHOR entries for every new site); (9) the other lists are
+  checked: Chronicle item collection, Poachers' Den stock, errand rewards, enemies carrying it
+  in ENTD; (10) removal is safe: a documented or automated exit path for a save holding 261
+  when the mod is uninstalled; (11) text and icon polish (SortOrder 217, other languages);
+  (12) LW's own meta.json row, growth and signature wiring; (13) owner PROVEN flips in
+  LIVE_LEDGER for June's three rows and tonight's. Verify: one fresh boot with only the marker
+  (no poke script) walks (1) through (6) live with the owner watching; the rest ship through
+  the normal gates and their own live passes.
 - [LW-347] 2026-08-26: Equipping the Moonblade (id 261) empties Ramza's off-hand and
   refuses anything in it, although its record is meant to be a Chaos Blade copy that
   allows a shield. First suspect: the research rig's 261 catalog record differs from

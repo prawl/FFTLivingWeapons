@@ -1245,3 +1245,21 @@ itself), `patch 0x1402862F7 05 06` (mode-8 move-to-front scan guard), `patch 0x1
 prepends 261 to the acquired list post-load (guarded, restorable) in case the maintainer only
 runs on acquisition events. The durable form stays the same: hook 0x140285DF0 to append
 whatever it dropped, which makes the ignored return value harmless.
+
+### 2026-08-27: the owner's done-checklist, and what the data side already allows (offline read)
+
+Plain language: the owner listed everything that has to be true before a new weapon counts as
+done (banked in docs/TODO.md under LW-346). Three of the "how does it enter the world" paths
+were checked against the modloader's source (fftivc.utility.modloader 1.7.2) without the game:
+- Move-Find Item: `MapTrapFormationData` (128 maps, 4 slots, `RareItemId`/`CommonItemId` are
+  u16) is moddable by sparse XML and already parsed by tools/lib/treasure.py, so a tile can
+  name id 261 as data; whether the pickup code accepts it is a live question (the count-array
+  adder at 0x1402847F8 takes ids up to 0x203, so the write half looks free).
+- Poach: the poach rewards live in `poachitem.en.nxd` (per-cell moddable, ADDED rows load) keyed
+  from the Job sheet (tools/extract_poach_map.py), so a new row can name 261 as data.
+- Shop: `ItemShopsData` is a per-ITEM table of `ShopFlags` with exactly 256 entries (ids
+  0..255), so ids 256+ have no shop row at all in the modloader's model; shop stock for 261
+  needs the in-process XML path (an extended shop-flags array plus the shop list builder B's
+  sibling getter cap at 0x140287570, already widened by the marker) and a live read of how the
+  shop list consults the flags. The "+" items 256-260 are not sold anywhere, which fits.
+Everything else on the checklist is live work on the next boot.
