@@ -120,3 +120,4 @@
 119,3,med,Damask Cloth,Tarsilk Veil,Cloth,Shop,7,(PA+MA)/2 x WP,50%,MA,Oil,MA +10%,MA +20%,MA +30%,,,
 120,4,med,Cashmere,Bindsilk Veil,Cloth,Shop,8,(PA+MA)/2 x WP,50%,MA,May inflict Immobilize,MA +10%,MA +20%,MA +30%,,,
 121,6,high,Wyrmweave Silk,Gravesilk Veil,Cloth,"Poach (Tiamat, common)",9,(PA+MA)/2 x WP,50%,MA,May cast Gravity,MA +10%,MA +20%,MA +30%,,,
+261,6,med,Moonblade,Moonblade,Sword,TBD,15,PA x WP,0%,PA,,PA +10%,PA +20%,PA +30%,,"The first extended-inventory weapon (LW-346): a net-new id past the game's 261 wall, swinging the Chaos Blade's art through the donor tables. Obtain is TBD until the acquisition pass (no shop row can exist past id 255; poach, Move-Find or a seeded first copy are the candidates).",
