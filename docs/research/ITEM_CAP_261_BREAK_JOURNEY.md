@@ -1082,3 +1082,166 @@ find-what-accesses while the picker builds (usermode VEH survives Denuvo on this
 the E-badge compare or a known item's Equipped/Held count as the tripwire. All probe writes
 reverted this session; the boot-arm marker removed; residual in-process patches die at exit
 (owner quits without saving).
+
+### Night: the June-4 recipe fully ported; the list-builder accepts id 261; a post-build clean-up throws it out
+
+Plain language: for the first time on 1.5.2 the party inventory made room for the Moonblade
+(112 rows instead of 111) and then crashed on that last row, because a clean-up pass that runs
+after the list is built deleted the Moonblade again without telling the menu. The old walls are
+down; one more sits behind them.
+
+What changed tonight (all read-only RPM plus the marker-gated boot-arm, no Cheat Engine):
+- Nenkai's modloader source settled the 1.5 category model: item id -> `ItemIdRangeToCategoryData`
+  (14 u16 starts at 0x1406804E0) -> category -> `ItemCategoryToDataTypeData` (14 u32 at
+  0x14067FB78) -> data type; id 261 = category 13 = DataType 9, a non-weapon type. All three
+  tables are sparse-XML moddable and patched pre-boot. Two data-only rounds were NULLS
+  (category 13 -> DataType 5 weapon2; fence 261 -> 262 making 261 an accessory): the list does
+  not consult these tables at build time, it asks the plain category getter.
+- The June-4 category getter on 1.5.2 is 0x1402890C0 (pre-1.5 0x140284F3C + 0x4184, the same
+  slide as the bag/equipped/total getters and display caps 3/4; entry int3-padded, shape
+  byte-exact). The party-inventory list builder (0x140288B94, loop cap = display cap 3) calls
+  it right after total-owned 0x140287530. The third June-4 cap is 0x140397121 (builder
+  0x140396FEC); no round had carried it.
+- FFTHandsFree boot-arm marker gained `cathook 0xADDR CLONEID` (AccessorCloneHook at boot, ids
+  261-511 -> 37). Live: hook armed, builder A returned 112 rows, the UI row table's row 111 read
+  0x3FF (a masked 0xFFFF terminator), the word buffer 0x141811470 held 111 entries with a
+  double terminator, and the detail panel crashed at 0x14029FC5B (catalog accessor fed id
+  0x3FF -> unmapped pointer). Three identical crashes, dumps parsed for the register context.
+- The deletion mechanism: seven plain-code passes call the validity thunk 0x1402B8EBC per list
+  word and compact rejects in place (sorter 0x140285B10 and siblings, listed in handoff.md).
+  The validity routine behind the rig's stub (0x14FED2C3F, decrypted in memory) is a pure id
+  range check (1..253 or 256..260) that should accept 261 as the clone 37; which pass rejected
+  it is the open question. Next: patch every compaction branch to "keep" (behaviour-preserving
+  for vanilla ids) and bisect.
+Rig change uncommitted on capbreak-equip pending that run. The address table that section
+leaned on is banked in the next section (handoff.md is disposable).
+
+### 2026-08-27 early: the clean-up-pass theory is retired before a relaunch; the real gate is the default-order rebuild
+
+Plain language: the night plan was to force every "throw this id out" branch to "keep" and
+relaunch. Reading the running game first (no patches, no debugger) showed those branches can
+never throw the Moonblade out, so that relaunch would have proven nothing. The pass that
+actually drops it is the one that puts the list into the game's default display order: it
+rebuilds the list from a fixed per-tab table of item ids, and any id the table does not know
+(261) is silently left behind. The table is filled at load time, not baked into the exe.
+
+Facts, all from read-only RPM on the round-3 boot (probes in tools/probes: compaction_audit,
+xref_scan, live_disasm, inventory_snapshot):
+- The validity routine behind the thunk 0x1402B8EBC (rig stub 0x114AC0000, 261..511 -> 37,
+  original 0x14FED2C3F) is `valid = (id-1) <= 252 || (id-256) <= 4`, result in EAX (= r8d = 1);
+  both hidden constants re-read live (0x154F773F4, 0x14EC34A0C). Every compaction pass (sorter
+  0x140285B10 and the five siblings at 0x140286265 / 0x1402879C3 / 0x140287B23 / 0x140288175 /
+  0x1402882E2) masks the word with 0x3ff and calls that thunk, so 261 is KEPT by all of them.
+  The proposed branch bytes (75 25, 75 23, 0F 85 x4) all matched live; the patch is simply
+  aimed at a gate that is not closed.
+- Party-inventory pipeline: dispatcher 0x14036C3EC (dl==0) -> builder A 0x140288B94 with
+  cx=-1, dx=-1 (no internal sort), group 5 for the weapons tab, r9 = the global word buffer
+  0x141811470, 6th arg 0 (count source = total-owned 0x140287530). A's return count is passed
+  to 0x14036B18C and never read there. 0x14036B18C reads the menu's sort mode (0x14019879C,
+  panel +0xB18/+0xB1C; -1 = default) and calls either 0x140285DF0 (default order) or
+  0x140286228 (compaction + swap-only bubble sort via comparator 0x14028B180); the WIDGET COUNT
+  is that call's return (0x1402A3230(panel+0x58, count, ...)); rows come from 0x14036B2D0 ->
+  0x14028B65C, row id = word & 0x3ff (a 0xFFFF terminator row therefore reads 0x3FF, the
+  crash id).
+- 0x140285DF0 (default order): counts the order table until a 0x00FF word or a word >= 0x105
+  (imm byte 0x140285E2D), then for each table id copies the matching list word into a stack
+  temp, memcpys the temp back over the list, returns the matched count. Ids absent from the
+  table are dropped. The live buffer order (257, 1, 2, 4, ..., 32, 256, 33, ...) equals the
+  weapons order table exactly, which is how the path was identified.
+- Order tables: pointer array 0x14067F498 (tab 0 weapons -> 0x1407B2550, 1 -> 0x1407B2678,
+  2 -> 0x1407B24B0, 3 -> 0x1407B2500, 4 -> 0x1407B26B8). The weapons table holds 127 ids, no
+  261, sentinel 0x00FF at index 127 (0x1407B264E), zero padding after. Section .xpdata (RW
+  initialized data); on disk those bytes are FF, so the table is RUNTIME-FILLED (a
+  struct-to-globals copier at 0x1403271B3.. writes it). A boot-time byte patch of the table
+  can be overwritten by a later load; patch after the save loads, or hook the routine.
+- More hardcoded 0x105 guards on list paths: 0x1402862F7 (mode-8 move-to-front scan inside
+  0x140286228) and 0x140285EE7 (`lea r10d,[r11+6]` in the delete-from-list routine
+  0x140285ED8). Builder A's own tail (bl==0 path, 0x140288D5D) also calls the default-order
+  rebuild.
+- Still open: why the widget showed 112 rows against a 111-entry buffer (the default-order
+  path returns the matched count, which would be 111). The 0xFFFF at [112] and [266] are
+  consistent with leftovers from earlier, longer builds rather than proof of one deletion.
+  Next look (zero patches, current boot): open Items -> Weapons, run
+  `python tools/probes/lw346_inventory_snapshot.py --rows` (buffer, sort modes, widget, row
+  table); then switch the sort to a non-default mode and re-run: 0x140286228 should keep 261.
+
+
+### 2026-08-26 ~20:55: WALL DOWN on 1.5.2. The Moonblade is LISTED in the party inventory with a working detail panel
+
+Plain language: with three bytes poked into the running game (no relaunch), the Moonblade
+showed up as the last row of the Weapons tab, and moving the cursor onto it drew the full
+item card: sword icon, "Sword" category, name, attack 15, evade 0%, the custom description,
+and the "Kills: 0" line. No crash. Owner-observed (screenshot
+tools/probes/lw346_moonblade_listed_152.png).
+
+Recipe (round-3 boot: rig boot-armed by the marker incl. `cathook 0x1402890C0 37`, then from
+outside via tools/probes/lw346_order_table_poke.py --apply while the game sat at the menu):
+- weapons order table [127] `0x1407B264E`: 00FF (end marker) -> 0105 (id 261)
+- weapons order table [128] `0x1407B2650`: 0000 (padding) -> 00FF (end marker)
+- default-order scan guard `0x140285E2D`: 05 -> 06 (`mov eax,0x105` -> `0x106`)
+Then close and re-open the Items screen. Snapshot after re-open: word buffer 112 entries with
+261 last, row table 112 rows in the same order (row 111 = 261). Count and rows agree, which is
+also the first direct evidence that the earlier 112-vs-111 disagreement came from the dropped
+entry and not from a separate count source.
+
+Why the table poke must happen AFTER load: the table bytes are FF on disk and get filled by a
+load-time copier (0x1403271B3..), so a boot-time marker patch would be overwritten or refuse
+its old-byte guard. The code byte can ride the marker (`patch 0x140285E2D 05 06`); the table
+needs a post-load write (outside poke now; a hook on 0x140285DF0 that appends unmatched ids
+is the durable form).
+
+Still to check on this boot: detail-panel pages 2/3, the All tab, the equip picker E-badge
+and the swap-off-hand landing (both registry-gated per the LATE handoff).
+
+Follow-ups on the same boot (owner eyes, ~20:57): detail pages 2/3 render (Attribute Bonuses
+none, Equipment Effects "Permanent Regen" and the Eligible Jobs grid come from the clone-37
+Chaos Blade data behind the thunks; Can Dual Wield / Can Wield Two-handed shown). Sorting the
+list keeps the Moonblade (the comparator path 0x140286228 never drops it, as read). There is
+no "All" tab in the party Inventory screen. The UNIT equip picker did NOT list it on the first
+unit tried: that picker is builder A with 6th arg 3, which (a) takes its count from the
+per-id bag array 0x1411A7C00 (the rig's CountArrayBase, [261] = 1 live, cap imm 0x140284800
+already widened) and (b) EXCLUDES any item the can-equip check 0x1402886D0(id, unit job,
+unit+0x73) rejects (result -1 -> not appended), and that check reads the item record byte +5
+through the catalog accessor, i.e. the Moonblade currently carries Chaos Blade's knight-sword
+eligibility (page 3 highlights only the Knight). So the picker null is expected for a
+non-Knight unit; a Knight-job unit is the discriminating retry.
+
+Unit equip picker, resolved the same night (owner eyes): the picker only listed the
+Moonblade after the owner sorted the picker once, and then it EQUIPPED and UNEQUIPPED
+cleanly (the LATE handoff's "evaporates on swap-off" no longer reproduces on this boot). Cause,
+read live: the picker has its own display-order table set (pointer array 0x14067FA90; weapons
+at 0x141874540, reverse-id order ending ", 67, 256, 257"), consumed by the same default-order
+rebuild 0x140285DF0 at 0x14033695A, and the game REGENERATES that table from the last
+inventory sort. Before the sort it lacked 261 (dropped); after the sort it read
+"..., 67, 256, 257, 261" and, with the 0x140285E2D guard widened, the rebuild kept 261. So a
+durable fix must cover both tables (or hook the rebuild to append unmatched ids). Also
+answered: id 261's item.en row has UiItemCategoryId 3 (Sword) and SortOrder 216 (a tie with
+Akademy Blade; the oneoff meant 217), sane values; the sort keys were never the gate, the
+id-260 caps on the table generators are.
+
+Owner-spotted regression to chase later (LW-347): with the Moonblade equipped, Ramza's
+off-hand empties and refuses a shield, unlike a real Chaos Blade. The rig's 261 record is
+"04 16 62 82 25 04 00 05 0A 00 14 00" vs Chaos Blade "04 16 62 82 25 04 00 00 0A 00 14 00":
+byte +7 is the only difference (05 vs 00) and is the first suspect.
+
+### 2026-08-26 21:15: the "Acquired" sort crashes the same way, and it names the last list gate
+
+Plain language: sorting the inventory by Acquired crashed the game at the same spot as the
+night-3 crashes (owner report; dump FFT_enhanced.exe.20664.dmp parsed with
+tools/probes/lw346_minidump_context.py: read of 0x114AA2FF7, rax = rig catalog + 0x3FF*12, rsi
+= 0x3FF). Mechanism, from the code already read: mode 8 of 0x140286228 rebuilds the list
+with 0x140285DF0 against the ACQUIRED order list (0x141874726, most recent first, 0x00FF end
+marker, at most 0x92 words) and DISCARDS that rebuild's return, returning its own compaction
+count instead. The acquired list never holds 261 because its maintainer 0x140286160 walks ids
+1..260 (`lea edi,[rbp+6]` with ebp = 0xFF, imm byte 0x140286187), so the rebuild drops 261,
+the count stays one too high, and the last row reads the 0xFFFF terminator (0x3FF) again. This
+is the same shape as the night-3 crash and very likely its actual cause (the owner's sort
+setting), which the "clean-up pass" theory had misread.
+
+Fix lines added to the boot-arm marker for the next boot (code bytes, old-byte guarded):
+`patch 0x140286187 06 07` (acquired-list maintainer walks ids 1..261 so the game enrols 261
+itself), `patch 0x1402862F7 05 06` (mode-8 move-to-front scan guard), `patch 0x140285EE7 06 07`
+(delete-from-list scan guard, lea r10d,[r11+6]). tools/probes/lw346_order_table_poke.py also
+prepends 261 to the acquired list post-load (guarded, restorable) in case the maintainer only
+runs on acquisition events. The durable form stays the same: hook 0x140285DF0 to append
+whatever it dropped, which makes the ignored return value harmless.

@@ -311,7 +311,7 @@ belongs rather than at the bottom.
 - [LW-346] 2026-08-26: Resume the 261 item-cap break, the owner's call after the Cloud
   mod collision made new item ids the unlock for partner compat, the axes and flails
   restoration, and the LW-344 partner platform. Everything hard is already beaten and
-  live-verified (2026-06-26, three ledger rows awaiting the owner's PROVEN flips):
+  observed live (2026-06-26, three ledger rows still awaiting the owner's PROVEN flips):
   id261 equips, displays, persists, and deals real damage via four hookable gates, and
   the battlefield model redirects via a construction-time slot swap. What was never
   built: the slot-swap loop, the rig's port from the FFTHandsFree research bridge
@@ -323,6 +323,13 @@ belongs rather than at the bottom.
   branch, a read-only quarry: replay its recipes onto a fresh worktree branch, never
   merge it (it predates the folder move). Path B (RenderModelHold on the render global)
   stays dead: insufficient live AND the global drives damage.
+- [LW-347] 2026-08-26: Equipping the Moonblade (id 261) empties Ramza's off-hand and
+  refuses anything in it, although its record is meant to be a Chaos Blade copy that
+  allows a shield. First suspect: the research rig's 261 catalog record differs from
+  Chaos Blade in exactly one byte (+7 reads 05, Chaos Blade reads 00), and the
+  off-hand rule may read that byte; second suspect: the weapon-stat thunk clone (id 67)
+  answering for the off-hand check. Owner-spotted 2026-08-26 on the 1.5.2 live boot
+  right after the inventory wall fell; parked by the owner for after LW-346's list work.
 - [LW-344] 2026-08-26: Partner mods want their items to be living weapons too: the
   Cloud mod author (Xeoshades) asked for growth on their Buster Sword line, and today
   growth already bleeds onto any item occupying our ids, wearing the WRONG name in
