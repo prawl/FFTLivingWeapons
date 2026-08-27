@@ -43,6 +43,11 @@ $RequiredModFiles = @(
     # below get -- this list checks presence, not every shipped file).
     "glow_icons/manifest.json",
     "glow_icons/ei_001_uitx_t1.tex",
+    # LW-346: the extended-inventory tables (ids 261+), read by LivingWeapon.dll at boot, not by
+    # the modloader (tools/generate.py writes all three even when no extended row exists).
+    "extended_inventory/ItemData.xml",
+    "extended_inventory/ItemWeaponData.xml",
+    "extended_inventory/ItemExtendedData.xml",
     "FFTIVC/tables/enhanced/ItemData.xml",
     "FFTIVC/tables/enhanced/ItemWeaponData.xml",
     "FFTIVC/tables/enhanced/ItemArmorData.xml",

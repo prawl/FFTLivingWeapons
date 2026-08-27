@@ -12,6 +12,10 @@ ITEMS = ROOT / "data" / "items.json"   # the only hand-edited item source
 
 # Deployable mod tree: the sparse modloader tables + the full-table nxd overrides.
 MOD_TABLES = ROOT / "mod" / "FFTIVC" / "tables" / "enhanced"
+# LW-346: the extended-inventory tables (ids 261+). Same row schema as the modloader's XML, but
+# read by LivingWeapon.dll at boot, NOT by the modloader, so they live OUTSIDE the FFTIVC tree
+# the loader scans (a 261-row XML table is silently dropped there, journal 2026-08-26).
+MOD_EXTENDED = ROOT / "mod" / "extended_inventory"
 MOD_NXD_DIR = ROOT / "mod" / "FFTIVC" / "data" / "enhanced" / "nxd"
 MOD_ITEM_NXD = MOD_NXD_DIR / "item.en.nxd"
 MOD_ABILITY_NXD = MOD_NXD_DIR / "ability.en.nxd"

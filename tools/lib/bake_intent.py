@@ -25,7 +25,18 @@ ALLOWED_ITEM_CELLS = {
     (67, "Unknown18"): (0, "Warbrand replaces Iron Flail; keep known-good card"),
 }
 
-# Key 261 is the 261-item cap-break research row (docs/research/ITEM_CAP_261_BREAK_JOURNEY.md):
-# display text for the id-261 item the sibling FFTHandsFree experiment can equip. Inert for
-# normal players (the base game never shows a 262nd item); kept so the experiment keeps text.
-ALLOWED_EXTRA_ROWS = {"Item-en": {261}}
+# LW-346: every extended-inventory row (an `extended` block in data/items.json, ids 261+) is an
+# ADDED Item-en row: the base game has no text row past 260, so patch_names.py seeds one from a
+# template and the rename loop fills it. Key 261 (the Moonblade) was the first, seeded during the
+# 2026-06 research (docs/research/ITEM_CAP_261_BREAK_JOURNEY.md) and now defined in items.json
+# like the rest; the set is derived from the data so a new extended row can never ship without
+# its text row being audited.
+from .items import load_items
+
+
+def extended_item_ids(items=None):
+    rows = items if items is not None else load_items()["items"]
+    return {it["id"] for it in rows if it.get("extended")}
+
+
+ALLOWED_EXTRA_ROWS = {"Item-en": {261} | extended_item_ids()}

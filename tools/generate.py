@@ -20,7 +20,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from lib.categories import WEAPON_TABLE_CATS   # the 18 wieldable cats + Throwing/Bomb (table rows, no growth)
 from lib.items import load_items, display_name
-from lib.paths import ROOT, MOD_TABLES
+from lib.paths import ROOT, MOD_TABLES, MOD_EXTENDED
+from xml.sax.saxutils import escape as xml_escape
 
 ITEMS = Path(sys.argv[1]) if len(sys.argv) > 1 else None   # default: data/items.json (lib.paths)
 OUT = Path(sys.argv[2]) if len(sys.argv) > 2 else ROOT / "out"
@@ -176,13 +177,98 @@ def equipbonus_entry(eid, fields):
     return f"    <ItemEquipBonus>\n      <Id>{eid}</Id>\n{body}    </ItemEquipBonus>\n"
 
 
+# --- LW-346: the extended inventory (ids 261+) ---------------------------------------------------
+# An `extended` block on an items.json row marks an item the GAME has no slot for: LivingWeapon.dll
+# builds its catalog record and weapon-stat row in memory at boot and redirects the game's per-item
+# accessors to per-item DONORS (docs/research/ITEM_CAP_261_BREAK_JOURNEY.md, the 2026-08-27 03:20
+# port blueprint). The three files below carry the modloader's OWN row names (Item / ItemWeapon
+# field for field, so anyone who can edit a vanilla row can author one of ours) plus one small
+# ItemExtended block for what no vanilla table can express. They are written to mod/extended_inventory/
+# and read by the DLL, never by the modloader: a 261-row XML under FFTIVC/tables is silently dropped.
+EXTENDED_FIRST_ID = 261
+EXTENDED_LAST_ID = 511
+
+
+def hdr_ext(table):
+    return (f'<?xml version="1.0" encoding="utf-8"?>\n'
+            f'<!-- built from data/items.json by tools/generate.py; edits get clobbered. Read by LivingWeapon.dll at boot (the extended inventory, ids 261+), NOT by the modloader. -->\n'
+            f'<{table}>\n  <Version>1</Version>\n  <Entries>\n')
+
+
+def validate_extended(ext, all_items):
+    """Loud, offline validation of the extended rows so a bad row fails generate.py, not the game.
+    Ids must be contiguous from 261 (the DLL's donor tables are indexed by id - 261 and a gap would
+    read a neighbour's donor); V1 is weapons only; every donor must be a real vanilla-range item."""
+    ids = sorted(it["id"] for it in ext)
+    if ids != list(range(EXTENDED_FIRST_ID, EXTENDED_FIRST_ID + len(ids))):
+        raise SystemExit(f"extended inventory: ids must be contiguous from {EXTENDED_FIRST_ID}, got {ids}")
+    if ids and ids[-1] > EXTENDED_LAST_ID:
+        raise SystemExit(f"extended inventory: id {ids[-1]} is past the accessor mask's last slot {EXTENDED_LAST_ID}")
+    known = {it["id"] for it in all_items if it["id"] < 256}
+    for it in ext:
+        e, s, i = it["extended"], it["proposed"], it["id"]
+        if it["category"] not in WEAPON_TABLE_CATS:
+            raise SystemExit(f"extended inventory: id {i} ({it.get('name')}) category {it['category']!r} is not a weapon (V1 is weapons only)")
+        for key in ("cloneDonor", "artDonor"):
+            d = e.get(key, e.get("cloneDonor"))
+            if not isinstance(d, int) or d < 1 or d > 255 or d not in known:
+                raise SystemExit(f"extended inventory: id {i} ({it.get('name')}) {key}={d!r} must name a vanilla-range item (1..255) present in items.json")
+        if not s.get("attackFlags"):
+            raise SystemExit(f"extended inventory: id {i} ({it.get('name')}) needs proposed.attackFlags (no vanilla row to inherit them from)")
+        if not it.get("name") or it["name"] == "TBD":
+            raise SystemExit(f"extended inventory: id {i} needs a real name (it is the item.en.nxd row too)")
+
+
+def extended_itemdata_entry(it):
+    e, s = it["extended"], it["proposed"]
+    return (f"    <Item>\n      <Id>{it['id']}</Id> <!-- {name_comment(it)} -->\n"
+            f"      <Palette>{e.get('palette', 0)}</Palette>\n"
+            f"      <SpriteID>{e.get('spriteId', 0)}</SpriteID>\n"
+            f"      <RequiredLevel>{e.get('requiredLevel', 0)}</RequiredLevel>\n"
+            f"      <TypeFlags>{e.get('typeFlags', 'Weapon')}</TypeFlags>\n"
+            f"      <AdditionalDataId>{e['cloneDonor']}</AdditionalDataId>\n"
+            f"      <ItemCategory>{it['category']}</ItemCategory>\n"
+            f"      <EquipBonusId>{s.get('equipBonusId', 0)}</EquipBonusId>\n"
+            f"      <Price>{e.get('price', 10)}</Price>\n"
+            f"      <ShopAvailability>{e.get('shopAvailability', 'Blank')}</ShopAvailability>\n    </Item>\n")
+
+
+def extended_entry(it):
+    e = it["extended"]
+    return (f"    <ItemExtended>\n      <Id>{it['id']}</Id> <!-- {name_comment(it)} -->\n"
+            f"      <Name>{xml_escape(display_name(it))}</Name>\n"
+            f"      <CloneDonorId>{e['cloneDonor']}</CloneDonorId>\n"
+            f"      <ArtDonorId>{e.get('artDonor', e['cloneDonor'])}</ArtDonorId>\n"
+            f"      <SeedCount>{e.get('seedCount', 0)}</SeedCount>\n    </ItemExtended>\n")
+
+
+def write_extended_tables(ext, wrote):
+    """Always writes all three files (empty Entries when there are no extended rows) so the
+    required-file manifest stays stable and the DLL's loader can tell 'no rows' from 'no file'."""
+    MOD_EXTENDED.mkdir(parents=True, exist_ok=True)
+    write_table(MOD_EXTENDED / "ItemData.xml",
+                hdr_ext("ItemTable") + "".join(extended_itemdata_entry(it) for it in ext) + "  </Entries>\n</ItemTable>\n")
+    write_table(MOD_EXTENDED / "ItemWeaponData.xml",
+                hdr_ext("ItemWeaponTable") + "".join(weapon_entry(it) for it in ext) + "  </Entries>\n</ItemWeaponTable>\n")
+    write_table(MOD_EXTENDED / "ItemExtendedData.xml",
+                hdr_ext("ItemExtendedTable") + "".join(extended_entry(it) for it in ext) + "  </Entries>\n</ItemExtendedTable>\n")
+    wrote.append(f"extended_inventory/ItemData.xml + ItemWeaponData.xml + ItemExtendedData.xml ({len(ext)} extended items: {[it['id'] for it in ext]})")
+
+
 def main():
     doc = load_items(ITEMS)
-    items = sorted(doc["items"], key=lambda x: x["id"])
+    all_items = sorted(doc["items"], key=lambda x: x["id"])
     new_eb = doc.get("_equipBonus", {})
     OUT.mkdir(parents=True, exist_ok=True)
     MOD_TABLES.mkdir(parents=True, exist_ok=True)
     wrote = []
+
+    # LW-346: extended-inventory rows (ids 261+) never reach the modloader tables (a row past the
+    # 261 cap is dropped at best and kills the whole table at worst); they get their own files.
+    extended = [it for it in all_items if it.get("extended")]
+    validate_extended(extended, all_items)
+    write_extended_tables(extended, wrote)
+    items = [it for it in all_items if not it.get("extended")]
 
     weapons = [it for it in items if it["category"] in WEAPON_TABLE_CATS]
     write_table(MOD_TABLES / "ItemWeaponData.xml",
@@ -238,7 +324,7 @@ def main():
         remove_stale(equipbonus_path)
 
     names = {str(it["id"]): {"name": it.get("name"), "vanillaName": it["vanillaName"]}
-             for it in items if it.get("name") not in (None, "TBD")}
+             for it in all_items if it.get("name") not in (None, "TBD")}   # extended rows ride the rename handoff too
     (OUT / "names.json").write_text(json.dumps(names, indent=2, ensure_ascii=False), encoding="utf-8")
 
     for w in wrote:

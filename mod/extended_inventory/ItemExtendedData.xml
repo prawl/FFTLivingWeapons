@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- built from data/items.json by tools/generate.py; edits get clobbered. Read by LivingWeapon.dll at boot (the extended inventory, ids 261+), NOT by the modloader. -->
+<ItemExtendedTable>
+  <Version>1</Version>
+  <Entries>
+    <ItemExtended>
+      <Id>261</Id> <!-- Moonblade -->
+      <Name>Moonblade</Name>
+      <CloneDonorId>37</CloneDonorId>
+      <ArtDonorId>37</ArtDonorId>
+      <SeedCount>1</SeedCount>
+    </ItemExtended>
+  </Entries>
+</ItemExtendedTable>

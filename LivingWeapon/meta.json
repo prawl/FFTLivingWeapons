@@ -3419,5 +3419,14 @@
     "flavor": "Funeral silk heavy as a tomb; beneath it the mighty sag.",
     "lane": "ma",
     "growsLine": "<color=50>Grows: Magick Attack.</color>"
+  },
+  "261": {
+    "name": "Moonblade",
+    "wp": 15,
+    "cat": "Sword",
+    "formula": 1,
+    "flavor": "A pale crescent blade that drinks the moonlight.",
+    "lane": "pa",
+    "growsLine": "<color=90>Grows: Physical Attack.</color>"
   }
 }

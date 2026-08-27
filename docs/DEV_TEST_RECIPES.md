@@ -39,8 +39,11 @@ inventory count array: count[itemId] = u8 @ 0x1411A7C00 + itemId   (1.5.x; == Of
 GARBAGE and accepts writes that go nowhere, then get zeroed by the game — it burned a session on
 2026-07-15; verify against `Offsets.InventoryCountBase` before hand-writing). The array sits 0x110
 below `RosterBase` (`0x1411A7D10` on 1.5); ids 0..260 stay clear of the roster.
-**Skip the crashy / IC-unused ids:** `262` (Onion Sword crashes on equip-render) and `261, 263–277`
-(IC stripped these slots). `give_all_items` already skips them; replicate the skip if you write your own.
+**Skip the crashy / IC-unused ids:** `262` (Onion Sword crashes on equip-render), `261, 263–277`
+(IC stripped these slots), and `254, 255` (the engine's "random item" placeholder and the never-used
+slot: no name, no catalog record; 99 of 254 rendered as a nameless black-icon row on the Items tab,
+2026-08-27). `give_all_items` skips all of them since HandsFree c3fa8e4; replicate the skip if you
+write your own. Clearing a stray one is a single-byte zero of `count[id]` from outside on a safe screen.
 Caveat: only ids whose IC layout matches FFTPatcher-canonical render in the menu (~80–85%); the rest write
 into RAM but don't show.
 

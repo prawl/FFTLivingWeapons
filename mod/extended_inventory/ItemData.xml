@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- built from data/items.json by tools/generate.py; edits get clobbered. Read by LivingWeapon.dll at boot (the extended inventory, ids 261+), NOT by the modloader. -->
+<ItemTable>
+  <Version>1</Version>
+  <Entries>
+    <Item>
+      <Id>261</Id> <!-- Moonblade -->
+      <Palette>4</Palette>
+      <SpriteID>22</SpriteID>
+      <RequiredLevel>0</RequiredLevel>
+      <TypeFlags>Weapon</TypeFlags>
+      <AdditionalDataId>37</AdditionalDataId>
+      <ItemCategory>Sword</ItemCategory>
+      <EquipBonusId>0</EquipBonusId>
+      <Price>10</Price>
+      <ShopAvailability>Blank</ShopAvailability>
+    </Item>
+  </Entries>
+</ItemTable>

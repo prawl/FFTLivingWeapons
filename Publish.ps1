@@ -171,6 +171,15 @@ function Copy-ModAssets {
         Write-ErrorMessage "Failed to copy FFTIVC folder (robocopy exit $LASTEXITCODE)!"
     }
 
+    # LW-346: the extended-inventory tables (ids 261+) sit beside FFTIVC, read by the DLL only;
+    # Verify-Package's $RequiredModFiles rows fail red if they are missing.
+    $sourceExtended = Join-Path (Split-Path $SourceFFTIVC -Parent) "extended_inventory"
+    if (-not (Test-Path $sourceExtended)) {
+        Write-ErrorMessage "extended_inventory folder not found at: $sourceExtended (run tools/generate.py)"
+    }
+    Write-Host "  -> Copying extended_inventory folder (the DLL-read tables for ids 261+)..."
+    Copy-Item $sourceExtended -Destination "$BuildOutputPath/extended_inventory" -Recurse -Force
+
     $xmlCount = (Get-ChildItem "$destFFTIVC/tables/enhanced" -Filter "*.xml" -ErrorAction SilentlyContinue | Measure-Object).Count
     $texCount = (Get-ChildItem "$destFFTIVC" -Filter "*.tex" -Recurse -ErrorAction SilentlyContinue | Measure-Object).Count
     Write-Host "  -> Staged $xmlCount table XML(s) and $texCount icon .tex file(s)" -ForegroundColor Green

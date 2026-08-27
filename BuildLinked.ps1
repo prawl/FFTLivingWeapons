@@ -196,6 +196,9 @@ try {
     Invoke-LivingWeaponPublish -OutDir $dest -Dev:(-not $Prod) -CleanFirst
 
     Copy-Item "$root\mod\FFTIVC" $dest -Recurse -Force
+    # LW-346: the extended-inventory tables live beside FFTIVC (the DLL reads them, the modloader
+    # must not see them); the manifest below fails red if the folder is missing.
+    Copy-Item "$root\mod\extended_inventory" $dest -Recurse -Force
     # Prune parked repo artifacts from the staged tree ($ParkedArtifactFilter, tools/pipeline.ps1):
     # Copy-Item -Exclude is unreliable against -Recurse, so stage everything and delete the parked
     # files deterministically. The [5/5] verification below fails red if any survive.

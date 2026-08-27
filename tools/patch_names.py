@@ -58,6 +58,35 @@ def named_items():
     return [it for it in load_items()["items"] if it.get("name") and it["name"] != "TBD"]
 
 
+# LW-346: the extended inventory (ids 261+) has no vanilla Item-en row to UPDATE. Seed one by
+# cloning a template weapon row under the new Key so the guarded rename loop below lands like any
+# other item; item_intent then overwrites Name/Description/UiItemCategoryId/SortOrder. 257 (a real
+# weapon row) supplies sane defaults for every column. Idempotent (guarded by row existence); the
+# audit's ALLOWED_EXTRA_ROWS (lib/bake_intent.py) is derived from the same items.json rows.
+EXTENDED_TEMPLATE_KEY = 257
+
+
+def seed_extended_rows(con, named):
+    cols = [d[0] for d in con.execute('SELECT * FROM "Item-en" LIMIT 1').description]
+    tmpl = None
+    seeded = []
+    for it in named:
+        iid = it["id"]
+        if not it.get("extended") or con.execute('SELECT 1 FROM "Item-en" WHERE Key=?', (iid,)).fetchone():
+            continue
+        if tmpl is None:
+            tmpl = con.execute('SELECT * FROM "Item-en" WHERE Key=?', (EXTENDED_TEMPLATE_KEY,)).fetchone()
+            if tmpl is None:
+                sys.exit(f"FAIL: template row Key={EXTENDED_TEMPLATE_KEY} missing; cannot seed extended-inventory rows")
+        row = dict(zip(cols, tmpl))
+        row["Key"] = iid
+        qcols = ",".join('"%s"' % c for c in cols)
+        con.execute(f'INSERT INTO "Item-en" ({qcols}) VALUES ({",".join("?" for _ in cols)})', [row[c] for c in cols])
+        seeded.append(iid)
+        print(f"  seeded extended-inventory Item-en row Key={iid} (cloned from {EXTENDED_TEMPLATE_KEY})")
+    return seeded
+
+
 def build_sort_map(named):
     """Regroup weapon SortOrder by ACTUAL type (fixes repurposed-in-place scatter). Within a type,
     order by (tier, id) for a clean weak->strong progression. Non-weapons keep their stock
@@ -211,6 +240,7 @@ def main():
                       f"      {intent[(it['id'], 'Description')]!r}")
         return
     con = sqlite3.connect(SQLITE)
+    seed_extended_rows(con, named)   # LW-346: rows for ids 261+ before the guarded UPDATEs need them
     apply_patches(con, named, intent)
     orphan_sweep(con, sort_map)
     con.commit(); con.close()
