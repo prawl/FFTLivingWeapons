@@ -1380,3 +1380,38 @@ now sees 261 as a knight sword too, which is the intended identity.
 23:20, owner eyes after the relaunch: with `cathook 0x1402B8EE8 37` armed (thunk path, stub at
 0x114AD0000) a shield in the off-hand no longer evicts the Moonblade. LW-347 is explained and
 beaten in the rig; battle re-check with the shield on is next.
+
+### 2026-08-26 23:15-23:35: field DAMAGE is now weapon-driven; Regen (equip bonus) still not applied
+
+Plain language: with the Moonblade in hand the attack was doing bare-fist damage. One CE
+"find what accesses" on Ramza's combat weapon word during a hit listed nine readers; four of
+them are copies of the same "keep the hand only if the id is below 261" check (two in plain
+code, two in the copy-protected region) and one is an inline copy of the validity range
+check. All widened live (plain ones on the marker; the copy-protected pair via
+tools/probes/lw346_battle_caps_poke.py, post-load, and those bytes HELD in memory). A fresh
+battle from the world map then hit 396 at 125 percent compatibility = 317 base against the
+249 fist, i.e. PA x WP with the Warbrand-clone WP 15. The punch animation remains (the
+model gap). The owner could not bisect which copy mattered; all six stay.
+Sites: 0x140226FDD `lea ecx,[rdx+6]` (byte 0x140226FDF 06->07); 0x14028024D `mov r8d,0x105`
+(byte 0x14028024F 05->06); 0x1401ED93C.. inline `(id-1)<=0xFC || (id-0x100)<=4` on both hands
+(bytes 0x1401ED95B and 0x1401ED982 04->05); copy-protected 0x14F2EA40D `lea ecx,[rdx+6]`
+(byte 0x14F2EA40F 06->07, right before two weapon-stat thunk calls) and 0x14F45D312
+`xor r15d,0x5E` (byte 0x14F45D315 5E->5F; r15 = 0x58^0x5E = 6 feeds `lea r14d,[rbp+r15]` with
+ebp = 0x2F + 0xD0 = 0xFF, the 0x105 cap on the damage-staging globals). A battle RESTART
+reuses the snapshot built before the pokes; only a fresh entry re-runs construction.
+Still open: the Moonblade's Permanent Regen (equip-bonus row 5 in record byte +7) shows on
+the status page but never ticks; the status applier reaches the record through yet another
+path. Record 261 lives at 0x114AA0C3C this boot (ext buffer 0x114AA0000), byte +7 at
+0x114AA0C43.
+
+Regen, 23:35 (owner screenshots): the in-battle "Equipment Effects" page lists Permanent Regen
+for the Moonblade, the "Current Status Effects" window shows Protect and Shell (armor) but no
+Regen, and HP does not tick. CE accesses on the record's bonus byte 0x114AA0C43 across a
+battle start: only the equipment-effects accumulator 0x1400FA7AC (30x; catalog(item) ->
+record byte +7 -> EquipBonus row (stride 0x1A at 0x14080FEA0) OR-ed into dest+0x18..) and the
+card reader 0x14029F726. Plain-code callers of the accumulator: 0x140295C37, 0x1402A0EDA,
+0x1402A0F40 (page/card paths). So the field applier either resolves the hand through yet
+another capped copy BEFORE calling the accumulator, or lives in the copy-protected region.
+NEXT (one capture): CE "find what accesses" on the roster rHand 0x1411A7D24 armed on the
+formation screen through the first battle turn, then read the construction-time readers for
+the cap idiom.
