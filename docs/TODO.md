@@ -169,6 +169,22 @@ Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner dire
 A new row still lands here in the session it surfaces; slot it where its urgency
 belongs rather than at the bottom.
 
+- [LW-353] 2026-08-27: Loading a save wipes the new weapon out of the bag and the mod then
+  writes that wipe to disk as if the player had sold it, so a second save slot cannot coexist
+  with the extended inventory. Owner test 2 (2026-08-27 18:53): with one Moonblade placed at
+  boot, loading a save (slot B, which never had it) left the bag reading 0 twenty seconds later
+  and the sidecar recorded x0; loading slot A again then had no Moonblade either. Two causes:
+  the sidecar is ONE global file (extended_inventory.json in the save dir, keyed to nothing, the
+  same shape as kills.json and LW-61's known cross-playthrough share), and the bag tick treats
+  every RAM change as a player action, including the clear a LOAD performs (the port replays
+  the file at BOOT only; LW-348's design said after every load). Fix shape: (1) find a live
+  save identity (which slot or which playthrough is loaded: a probe on the game's own load path
+  or the save struct for a slot index / play-time / roster fingerprint), (2) key sidecar entries
+  by that identity, (3) detect the load edge on the tick loop and REPLAY the identity's entry
+  (or the seed for an identity never seen) instead of recording, and record only while the
+  identity is stable. Until it ships, one save slot at a time is the honest rule. Surfaced by
+  LW-346's live pass; the runtime enemy loadout (LW-350) and partner items (LW-344) inherit
+  the same keying.
 - [LW-198] 2026-08-13: The eleven knives all had a white blade, so their colour lived in a handle a few pixels across. Demoted from Now on 2026-08-27 to
   seat LW-346 (the extended-inventory port); its status is unchanged, AWAITING-LIVE, the
   owner's gallery pass is still the only thing outstanding, and every line below is the
