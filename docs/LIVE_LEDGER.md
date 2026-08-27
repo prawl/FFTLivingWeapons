@@ -20,6 +20,24 @@ isolated live) · **CONTRADICTED** (evidence points both ways — probe before b
 
 ## Proven
 
+### [shop-buy-list-flags-mirror] A town's Buy list can stock an extended-inventory id once the builder's loop bound is widened and its two reads of the 256-row town-flags table are re-pointed at a mirror page carrying rows past 255
+
+Not yet observed (built 2026-08-27 evening from a static read of the live 1.5.2 process, docs/research/ITEM_CAP_261_BREAK_JOURNEY.md "shops"). What the read established: the builder is plain code at 0x140288E54, loops ids 0..0xFF (cmp ebx,0x100 at 0x140288FD9), reads the 16 town bits from 0x14067F890 + id*2 through a rip-relative high-byte walker (0x140288F01) and an image-relative low-byte read (0x140288F3B), tests 0x8000 >> townIndex, then gates on the catalog record's +0x0A chapter byte. What the build assumes and the live pass must show: that widening the loop and re-pointing those two references (LivingWeapon/Extended/ShopFlagsMirror.cs) is sufficient, i.e. no other reader between the list build and the purchase re-derives the flags from the vanilla table, and that the "+" ids 256-260 (now candidates too, with zero rows in the mirror) stay unlisted. The owner's shop visit on the next deploy moves this row.
+
+PROVEN 2026-08-27 19:50-19:53, owner live pass on the deployed prod build (07b9cb2 tree): the boot line reported the mirror, Dorter's Outfitter listed the Moonblade at 10 gil and a purchase raised the bag count 1 to 2 (sidecar x2), Gariland's Outfitter did not list it, no "+" item appeared; the live builder sites read the mirror page (0x114AB0000, vanilla half byte-identical to the game's table, row 261 = Dorter, loop bound 0x106).
+
+<details><summary>How we got here</summary>
+
+**Claim (original wording):** the buy-list builder's loop bound and its two table references are the whole shop gate for a new id.
+
+**Mechanism:** the modloader's own data signature located the table; a raw disp32 search of .code found the two readers where rip-relative and imm64 sweeps found none; capstone over RPM read the builder.
+
+**Evidence:** ShopFlagsMirrorTests and ExtendedInventoryTests over a fake vanilla image; the disk and live bytes of all three sites matched on 2026-08-27; no game run.
+
+**Date:** 2026-08-27
+
+</details>
+
 ### [extended-inventory-boot-arm] The ported extended inventory (LivingWeapon/Extended, 2026-08-27) arms the whole cap-break set from Mod.StartEx and the Moonblade behaves as it did under the research rig
 
 Built 2026-08-27 (commits 4a4c3e3, 10ba024, 4e1cfae, 9406599, 128b28a) and NOT yet run in the game: the FFTHandsFree rig's boot-arm marker v2, the two post-load pokes and the count re-seed, replayed as one transaction inside this mod (19 cap patches with old-byte verification, the relocated catalog, ten accessor thunk stubs, the category-getter and order-rebuild hooks, the LW-348 bag sidecar). Every piece is a port of something the owner observed on 1.5.2 on 2026-08-26/27 under the rig; what is new and unobserved is the composition (arming from this DLL's StartEx behind the PE build-key landmark, the two copy-protected caps landing from the tick loop, the sidecar replay) and the two stub shapes below. The owner's live pass on the ported build (docs/TODO.md LW-346 Verify) is what moves this row.
@@ -1855,22 +1873,6 @@ Raising one unit's Max HP mid-battle leaves the mod's kill bookkeeping intact: w
 </details>
 
 ## Uncertain — observed live, not yet isolated / built on
-
-### [shop-buy-list-flags-mirror] A town's Buy list can stock an extended-inventory id once the builder's loop bound is widened and its two reads of the 256-row town-flags table are re-pointed at a mirror page carrying rows past 255
-
-Not yet observed (built 2026-08-27 evening from a static read of the live 1.5.2 process, docs/research/ITEM_CAP_261_BREAK_JOURNEY.md "shops"). What the read established: the builder is plain code at 0x140288E54, loops ids 0..0xFF (cmp ebx,0x100 at 0x140288FD9), reads the 16 town bits from 0x14067F890 + id*2 through a rip-relative high-byte walker (0x140288F01) and an image-relative low-byte read (0x140288F3B), tests 0x8000 >> townIndex, then gates on the catalog record's +0x0A chapter byte. What the build assumes and the live pass must show: that widening the loop and re-pointing those two references (LivingWeapon/Extended/ShopFlagsMirror.cs) is sufficient, i.e. no other reader between the list build and the purchase re-derives the flags from the vanilla table, and that the "+" ids 256-260 (now candidates too, with zero rows in the mirror) stay unlisted. The owner's shop visit on the next deploy moves this row.
-
-<details><summary>How we got here</summary>
-
-**Claim (original wording):** the buy-list builder's loop bound and its two table references are the whole shop gate for a new id.
-
-**Mechanism:** the modloader's own data signature located the table; a raw disp32 search of .code found the two readers where rip-relative and imm64 sweeps found none; capstone over RPM read the builder.
-
-**Evidence:** ShopFlagsMirrorTests and ExtendedInventoryTests over a fake vanilla image; the disk and live bytes of all three sites matched on 2026-08-27; no game run.
-
-**Date:** 2026-08-27
-
-</details>
 
 ### [weapon-sprite-pair-drives-swing-art] The two-byte sprite/palette record at 0x140785CF0 + id*2 picks BOTH the drawing and the palette of a weapon's swing, and it is read on every swing
 

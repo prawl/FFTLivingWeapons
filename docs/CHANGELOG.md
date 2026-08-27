@@ -10,6 +10,18 @@ before 2026-07-21 keep their original prose.
 
 ## 2.4.0 cycle
 
+- [LW-354] SHIPPED 07b9cb2 2026-08-27: A town shop can now sell a brand-new extended-inventory
+  weapon. The owner asked whether shops were truly impossible for the new items; only the data
+  table was: the game keeps one row of town flags per item with room for exactly 256, and the
+  code that builds a shop's Buy list stopped at id 255. The mod now keeps a mirror of that table
+  with rows past 255 (synced from the game's own table every second, so other mods' shop edits
+  still land), points the Buy-list builder at the mirror and widens its loop; which towns sell an
+  item is a `shops` field on its items.json row. Owner-walked 2026-08-27 19:50-19:53 on the
+  deployed build: Dorter listed the Moonblade at 10 gil, a purchase raised the bag count and the
+  sidecar followed, Gariland did not list it, no "+" item appeared. (Tech: LivingWeapon/Extended/
+  ShopFlagsMirror.cs; Offsets.ShopFlagsTable 0x14067F890, the builder's lea rel32 0x140288F04 and
+  disp32 0x140288F3F, ExtendedSites shop loop byte 0x140288FDB; the "extended-shops" phase; ledger
+  row [shop-buy-list-flags-mirror] PROVEN by the owner; the find is the journal's "shops" section.)
 - [LW-352] SHIPPED 7b0499a 2026-08-27: Every weapon now has to do what its card claims, and claim
   what it does, or the build refuses. The owner caught the Duskstring Harp advertising "Absorbs
   HP" on its card while its real effect (a Blind spell on hit) went unmentioned: the badge was
