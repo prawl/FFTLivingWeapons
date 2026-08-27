@@ -13,50 +13,98 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.4.0)
 
-- **[LW-198] The eleven knives all had a white blade, so their colour lived in a handle a few pixels across** (opened 2026-08-13) [AWAITING-LIVE]
-  - BUILT and gated 2026-08-16, owner gallery pass outstanding. Coverage was never this family's
-    problem, at a CARD median of 41.2 percent, the healthiest of any family in the programme.
-    The problem was that four of the eleven read as the same pale sliver in a list, because the
-    artist drew every knife with a white blade and only the small grip in colour, and the tints
-    left the blade white. All eleven now have a coloured BLADE with a bright fuller and a
-    distinct grip.
-  - Two specific colours were forced rather than chosen. The Zwill Straightblade kept its vanilla
-    name and was painted dream lavender over art that measures a warm 46 degrees at chroma 0.178,
-    141 degrees from its own picture; the new anchors gate reported it on sight, which is the
-    first time that gate has caught something before the art shipped rather than after. And the
-    Mortal Coil and the Bloodlash were the SAME necrotic green, 0.05 apart in value and nothing
-    else, which the palette tripwire could not see while the family was still on the old engine.
-  - A knife is a SWORD in miniature and takes the sword recipe unchanged: the card art has a dark
-    braided grip and a bright fuller, and the two sword keys land on exactly those. (Tech: shared
-    sprite id 1 / id 68 needed grip pct 30 rather than 24, where the icon claims 2.8 percent.
-    Shipped zone share: grip card 6.5 to 22.3 percent and icon 6.2 to 15.2, fuller card 12.2 to
-    25.4 and icon 14.5 to 21.0. Moving the family off bright-v2 displaced four selftest pins that
-    used a knife as their sample and killed one dead override, all caught by the pins themselves.)
-  - Done means: all eleven carry their identity colour across their solid art with a visibly
-    separate second material, no two read alike at list size, every reserved name is anchored
-    against BOTH surfaces with the reasoning recorded, and no already-approved art moves.
-  - Verify: all four gates green (recolor_icons selftest with the family inside every owner-rule
-    pin and mutations proving those pins bite, icon_preview.py compare --expect naming exactly
-    these ids, anchors, silhouettes); each knife's second material measured on the real art; the
-    bake matching a FULL preview manifest pixel for pixel; and the owner's gallery pass.
-  - This row also carries the LW-198 through LW-226 PROGRAM STATEMENT that the other section
-    rows cite, owner-directed 2026-08-13: after the shields pass (LW-190) set the quality bar,
-    the owner called the first-pass recolours hasty ("sloppy"), so every equipment section gets
-    the treatment that made the shields land: per item owner review rounds judged as pictures,
-    rule fixes over pixel fixes, variant picker pages when a call is contested, engines chosen
-    per family on evidence, and the identity proof (preview equals production, bake matched
-    pixel for pixel) at the end. The assembly line is docs/DEV_TEST_RECIPES.md ("Icon recolor
-    process") plus the engine modes in tools/recolor_icons.py. Order is now decided by
-    MEASUREMENT rather than by the ledger, lowest true CARD median first; eleven families have
-    been through it as of 2026-08-16, and what remains after the knives is ninja blades (63.2
-    percent), books (67.0) and bags (72.1).
-  - LW-247 update (2026-08-18): knives now render through the new ramp engine, which is what
-    actually reached the live install and already passed the owner's in-game look on 2026-08-16.
-    The old zone recipe (hilt/edge percentiles) this row's Tech bullet describes was deleted from
-    tools/recolor_icons.py once every weapon moved to ramp; it lives on only in git history. The
-    Zwill Straightblade's anchor call this row records still holds under the new engine (still
-    anchored, still gold, measured gap 0 degrees); nothing about this row's Done means or Verify
-    changes, only which engine produced the pixels the owner will eventually gallery-judge.
+- **[LW-346] A brand-new weapon past the game's item limit becomes a real item this mod owns, with no research rig attached** (opened 2026-08-26) [BUILDING]
+  - Plain language: the game only knows 261 items. Last night's research rig proved a 262nd
+    (id 261, the Moonblade) can be listed, equipped, swung, saved and sold on 1.5.2, but every
+    piece of that lives in a separate research mod (FFTHandsFree, branch capbreak-equip) plus
+    a marker file and hand pokes. Promoted 2026-08-27 (owner: "make a push to finish out the
+    extended weapons tasks", sequencing choice 1: port first, then one live pass on the ported
+    build instead of the rig). This row now carries the port: the rig moves into Living
+    Weapons as a data-driven "extended items" system, so a new weapon is a row in
+    data/items.json, and LW-347 (the shield eviction fix, one thunk clone) and LW-348 (the
+    bag-count sidecar) ride with it and exit with it.
+  - Port shape (docs/research/ITEM_CAP_261_BREAK_JOURNEY.md, the 03:20 blueprint): a guarded
+    code patcher plus near allocator; a table of boot-safe byte patches with old-byte
+    verification and full rollback; per-item donor tables behind the accessor thunk clones
+    (stats come from an LW-owned 8-byte weapon row, art from a per-item art donor); the
+    relocated extended catalog filled from data; the order-rebuild hook and the category
+    getter hook; the two copy-protected damage caps written from the tick loop once their
+    pages read vanilla; all of it armed at boot behind the PE build-key landmark (the roster
+    landmark cannot be read before a save loads) and inert with one log line when the
+    extended tables are absent. Data: tools/generate.py emits tables/extended/*.xml in the
+    modloader's own row shape from `extended` rows in items.json; the C# loader validates
+    loudly; names still ride item.en.nxd, icons ride the per-id .tex + .utexpt pair.
+  - History, kept verbatim from the Backlog row this was promoted from on 2026-08-27 (it
+    carries the owner's 13-item checklist and every live result so far):
+    Resume the 261 item-cap break, the owner's call after the Cloud
+    mod collision made new item ids the unlock for partner compat, the axes and flails
+    restoration, and the LW-344 partner platform. Everything hard is already beaten and
+    observed live (2026-06-26, three ledger rows still awaiting the owner's PROVEN flips):
+    id261 equips, displays, persists, and deals real damage via four hookable gates, and
+    the battlefield model redirects via a construction-time slot swap. What was never
+    built: the slot-swap loop, the rig's port from the FFTHandsFree research bridge
+    (branch capbreak-equip, committed and pushed) into this mod, and >128 distinct
+    stat rows. THE CATCH: every address was verified on the pre-1.5 binary and the game
+    has moved twice since, so step zero is a re-anchor pass (offline byte check of the
+    four gate sites against the 1.5.2 exe, then one live probe session). The data-layer
+    prototype (Moonblade id 261 end to end) lives on this repo's prototype/new-weapon-261
+    branch, a read-only quarry: replay its recipes onto a fresh worktree branch, never
+    merge it (it predates the folder move). Path B (RenderModelHold on the render global)
+    stays dead: insufficient live AND the global drives damage.
+    DONE MEANS (owner checklist, 2026-08-26 late, all to be covered): (1) menus list the new
+    weapon everywhere with no hand pokes: Inventory, every sort mode including Acquired, the
+    unit equip picker without a sort, via one hook on the display-order rebuild routine;
+    (2) a shield can sit in the off-hand with it equipped (LW-347); (3) it enters the world the
+    normal ways: shop stock and buy-back, poach, Move-Find Item, battle spoils, steal, and it
+    leaves them too: sell, Rend Weapon, crystal drop, Ninja Throw, in-battle Equip Change,
+    Optimize; (4) it works in battle: equip, swing, damage, kill tally, in-battle card and
+    attack row, enemy AI reaction, battle end, plus the weapon model and swing animation the
+    slot-swap loop was meant to give it; (5) it is equippable from the battle formation screen;
+    (6) it survives save and load on 1.5.2 including the load sanitizer and the persisted order
+    lists; (7) the definition lives in DATA: a Nenkai-mimic XML per table for ids 261+ generated
+    from data/items.json by generate.py, parsed by the LW mod at boot with loud validation, which
+    builds the catalog and weapon-stat records in memory, adds the name row, registers the icon;
+    (8) the rig moves from the FFTHandsFree research bridge into LivingWeapons (guarded Mem,
+    LaunchGuard landmark, PATCH_REANCHOR entries for every new site); (9) the other lists are
+    checked: Chronicle item collection, Poachers' Den stock, errand rewards, enemies carrying it
+    in ENTD; (10) removal is safe: a documented or automated exit path for a save holding 261
+    when the mod is uninstalled; (11) text and icon polish (SortOrder 217, other languages);
+    (12) LW's own meta.json row, growth and signature wiring; (13) owner PROVEN flips in
+    PROGRESS 2026-08-27 01:35 (owner eyes): item 4's model clause is beaten in the rig, the
+    Moonblade swings a knight-sword blade (marker v2: range-index + sprite-pair accessor clones,
+    ledger row [capbreak-swing-art-via-accessor-clones]); damage now follows the knight-sword
+    Brave formula (272 at 125 percent = PA 21 x WP 15 x Br 69). Save/load (item 6) is mapped:
+    the save holds 261 counts only, sidecar design in LW-348. Regen parked by the owner.
+    02:15: shop SELL works (listed at 5 gil, count 1 to 0); Optimize swapped it for the
+    Chaos Blade, consistent with a WP ranking (15 vs 28), so "Optimize considers 261" is
+    unproven; buy lists not opened (known no-row gap).
+    02:30: item 10 CONFIRMED live (marker off, cold boot, save loads, hand emptied, item gone,
+    no crash; ledger [capbreak-uninstall-is-clean-loss]); removal note must add "sort once if
+    a list looks short" because the saved order tables keep the id. Item 9's Chronicle clause
+    is void (no per-item screen exists).
+    03:15: enemies CANNOT carry it via the encounter table (ENTD item ids are one byte; a
+    Knight given RightHand 261 spawned empty-handed, journal 02:45-03:15), so item 9's "enemies
+    carrying it" and item 3's steal / Rend / spoils need a runtime loadout write after enemy
+    construction, to be designed with the port.
+    LIVE_LEDGER for June's three rows and tonight's. Verify: one fresh boot with only the marker
+    (no poke script) walks (1) through (6) live with the owner watching; the rest ship through
+    the normal gates and their own live passes.
+  - Done means: the owner's checklist above, items 1 through 8 and 10 through 12, is true on
+    the PORTED build with the HandsFree marker deleted and no poke script: the Moonblade lists
+    everywhere, keeps a shield, enters and leaves the world by the paths that exist for it
+    (sell works; shop stock and enemy carry are recorded limits), fights with a blade and a
+    kill tally, equips from the formation screen, survives save and load with its bag count
+    (LW-348), is defined in data, is safe to uninstall (documented note), has its name and
+    icon, and grows like any living weapon. Item 9's remaining clauses (Poachers' Den, errand
+    rewards) and item 13 (owner PROVEN flips on the ledger rows) are recorded, not built.
+  - Verify: both gates green (analyze.py exit 0, the suite) and generate.py byte-stable; then
+    ONE fresh boot of the ported build, marker deleted, with the owner watching: the log shows
+    the extended-items arm line and no rollback; Inventory, every sort mode and the equip
+    picker list the Moonblade; a shield stays in the off-hand; a FRESH battle from the world
+    map swings a blade (swing again if the first is a fist) and a kill lands on its tally; the
+    formation screen equips it; save, quit, cold boot, load: hand and bag count intact; the
+    item-3 loose ends (Rend Weapon, Throw, in-battle Equip Change, spoils, steal) read live
+    and get their own rows if they fail.
 - **[LW-332] The Grows line moves up to sit directly under the Kills line** (opened 2026-08-25) [AWAITING-LIVE]
   - BUILT, four-round pipeline 2026-08-25 late (two adversarial verify rounds broke and
     then blessed the ownership design; final verdict SHIP, code 9, spec 9). Deployed and
@@ -213,6 +261,53 @@ Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner dire
 A new row still lands here in the session it surfaces; slot it where its urgency
 belongs rather than at the bottom.
 
+- [LW-198] 2026-08-13: The eleven knives all had a white blade, so their colour lived in a handle a few pixels across. Demoted from Now on 2026-08-27 to
+  seat LW-346 (the extended-items port); its status is unchanged, AWAITING-LIVE, the
+  owner's gallery pass is still the only thing outstanding, and every line below is the
+  Now row's text verbatim so nothing is lost by the move.
+  - BUILT and gated 2026-08-16, owner gallery pass outstanding. Coverage was never this family's
+    problem, at a CARD median of 41.2 percent, the healthiest of any family in the programme.
+    The problem was that four of the eleven read as the same pale sliver in a list, because the
+    artist drew every knife with a white blade and only the small grip in colour, and the tints
+    left the blade white. All eleven now have a coloured BLADE with a bright fuller and a
+    distinct grip.
+  - Two specific colours were forced rather than chosen. The Zwill Straightblade kept its vanilla
+    name and was painted dream lavender over art that measures a warm 46 degrees at chroma 0.178,
+    141 degrees from its own picture; the new anchors gate reported it on sight, which is the
+    first time that gate has caught something before the art shipped rather than after. And the
+    Mortal Coil and the Bloodlash were the SAME necrotic green, 0.05 apart in value and nothing
+    else, which the palette tripwire could not see while the family was still on the old engine.
+  - A knife is a SWORD in miniature and takes the sword recipe unchanged: the card art has a dark
+    braided grip and a bright fuller, and the two sword keys land on exactly those. (Tech: shared
+    sprite id 1 / id 68 needed grip pct 30 rather than 24, where the icon claims 2.8 percent.
+    Shipped zone share: grip card 6.5 to 22.3 percent and icon 6.2 to 15.2, fuller card 12.2 to
+    25.4 and icon 14.5 to 21.0. Moving the family off bright-v2 displaced four selftest pins that
+    used a knife as their sample and killed one dead override, all caught by the pins themselves.)
+  - Done means: all eleven carry their identity colour across their solid art with a visibly
+    separate second material, no two read alike at list size, every reserved name is anchored
+    against BOTH surfaces with the reasoning recorded, and no already-approved art moves.
+  - Verify: all four gates green (recolor_icons selftest with the family inside every owner-rule
+    pin and mutations proving those pins bite, icon_preview.py compare --expect naming exactly
+    these ids, anchors, silhouettes); each knife's second material measured on the real art; the
+    bake matching a FULL preview manifest pixel for pixel; and the owner's gallery pass.
+  - This row also carries the LW-198 through LW-226 PROGRAM STATEMENT that the other section
+    rows cite, owner-directed 2026-08-13: after the shields pass (LW-190) set the quality bar,
+    the owner called the first-pass recolours hasty ("sloppy"), so every equipment section gets
+    the treatment that made the shields land: per item owner review rounds judged as pictures,
+    rule fixes over pixel fixes, variant picker pages when a call is contested, engines chosen
+    per family on evidence, and the identity proof (preview equals production, bake matched
+    pixel for pixel) at the end. The assembly line is docs/DEV_TEST_RECIPES.md ("Icon recolor
+    process") plus the engine modes in tools/recolor_icons.py. Order is now decided by
+    MEASUREMENT rather than by the ledger, lowest true CARD median first; eleven families have
+    been through it as of 2026-08-16, and what remains after the knives is ninja blades (63.2
+    percent), books (67.0) and bags (72.1).
+  - LW-247 update (2026-08-18): knives now render through the new ramp engine, which is what
+    actually reached the live install and already passed the owner's in-game look on 2026-08-16.
+    The old zone recipe (hilt/edge percentiles) this row's Tech bullet describes was deleted from
+    tools/recolor_icons.py once every weapon moved to ramp; it lives on only in git history. The
+    Zwill Straightblade's anchor call this row records still holds under the new engine (still
+    anchored, still gold, measured gap 0 degrees); nothing about this row's Done means or Verify
+    changes, only which engine produced the pixels the owner will eventually gallery-judge.
 - [LW-335] 2026-08-26: A handful of chosen weapons get their OWN inner ring color so
   they stand out from the rest of their lane. Owner intent stated at the Atlas sitting
   ("I fully intend on changing the inner color of a handful of weapons to help them
@@ -308,59 +403,6 @@ belongs rather than at the bottom.
   that tests are prod threshold only ON PURPOSE and a tripwire keeps dev only logic
   out of tested paths. (Tech: dotnet test -p:LwDev=true, 95 failures, 89 pre existing,
   6 the new IconGlow tests written to the file's own prod threshold convention.)
-- [LW-346] 2026-08-26: Resume the 261 item-cap break, the owner's call after the Cloud
-  mod collision made new item ids the unlock for partner compat, the axes and flails
-  restoration, and the LW-344 partner platform. Everything hard is already beaten and
-  observed live (2026-06-26, three ledger rows still awaiting the owner's PROVEN flips):
-  id261 equips, displays, persists, and deals real damage via four hookable gates, and
-  the battlefield model redirects via a construction-time slot swap. What was never
-  built: the slot-swap loop, the rig's port from the FFTHandsFree research bridge
-  (branch capbreak-equip, committed and pushed) into this mod, and >128 distinct
-  stat rows. THE CATCH: every address was verified on the pre-1.5 binary and the game
-  has moved twice since, so step zero is a re-anchor pass (offline byte check of the
-  four gate sites against the 1.5.2 exe, then one live probe session). The data-layer
-  prototype (Moonblade id 261 end to end) lives on this repo's prototype/new-weapon-261
-  branch, a read-only quarry: replay its recipes onto a fresh worktree branch, never
-  merge it (it predates the folder move). Path B (RenderModelHold on the render global)
-  stays dead: insufficient live AND the global drives damage.
-  DONE MEANS (owner checklist, 2026-08-26 late, all to be covered): (1) menus list the new
-  weapon everywhere with no hand pokes: Inventory, every sort mode including Acquired, the
-  unit equip picker without a sort, via one hook on the display-order rebuild routine;
-  (2) a shield can sit in the off-hand with it equipped (LW-347); (3) it enters the world the
-  normal ways: shop stock and buy-back, poach, Move-Find Item, battle spoils, steal, and it
-  leaves them too: sell, Rend Weapon, crystal drop, Ninja Throw, in-battle Equip Change,
-  Optimize; (4) it works in battle: equip, swing, damage, kill tally, in-battle card and
-  attack row, enemy AI reaction, battle end, plus the weapon model and swing animation the
-  slot-swap loop was meant to give it; (5) it is equippable from the battle formation screen;
-  (6) it survives save and load on 1.5.2 including the load sanitizer and the persisted order
-  lists; (7) the definition lives in DATA: a Nenkai-mimic XML per table for ids 261+ generated
-  from data/items.json by generate.py, parsed by the LW mod at boot with loud validation, which
-  builds the catalog and weapon-stat records in memory, adds the name row, registers the icon;
-  (8) the rig moves from the FFTHandsFree research bridge into LivingWeapons (guarded Mem,
-  LaunchGuard landmark, PATCH_REANCHOR entries for every new site); (9) the other lists are
-  checked: Chronicle item collection, Poachers' Den stock, errand rewards, enemies carrying it
-  in ENTD; (10) removal is safe: a documented or automated exit path for a save holding 261
-  when the mod is uninstalled; (11) text and icon polish (SortOrder 217, other languages);
-  (12) LW's own meta.json row, growth and signature wiring; (13) owner PROVEN flips in
-  PROGRESS 2026-08-27 01:35 (owner eyes): item 4's model clause is beaten in the rig, the
-  Moonblade swings a knight-sword blade (marker v2: range-index + sprite-pair accessor clones,
-  ledger row [capbreak-swing-art-via-accessor-clones]); damage now follows the knight-sword
-  Brave formula (272 at 125 percent = PA 21 x WP 15 x Br 69). Save/load (item 6) is mapped:
-  the save holds 261 counts only, sidecar design in LW-348. Regen parked by the owner.
-  02:15: shop SELL works (listed at 5 gil, count 1 to 0); Optimize swapped it for the
-  Chaos Blade, consistent with a WP ranking (15 vs 28), so "Optimize considers 261" is
-  unproven; buy lists not opened (known no-row gap).
-  02:30: item 10 CONFIRMED live (marker off, cold boot, save loads, hand emptied, item gone,
-  no crash; ledger [capbreak-uninstall-is-clean-loss]); removal note must add "sort once if
-  a list looks short" because the saved order tables keep the id. Item 9's Chronicle clause
-  is void (no per-item screen exists).
-  03:15: enemies CANNOT carry it via the encounter table (ENTD item ids are one byte; a
-  Knight given RightHand 261 spawned empty-handed, journal 02:45-03:15), so item 9's "enemies
-  carrying it" and item 3's steal / Rend / spoils need a runtime loadout write after enemy
-  construction, to be designed with the port.
-  LIVE_LEDGER for June's three rows and tonight's. Verify: one fresh boot with only the marker
-  (no poke script) walks (1) through (6) live with the owner watching; the rest ship through
-  the normal gates and their own live passes.
 - [LW-347] 2026-08-26: Equipping a shield in Ramza's off-hand threw the Moonblade (id 261)
   out of his main hand, although a real Chaos Blade keeps a shield fine. CAUSE (traced the
   same night with three CE captures): the hand-compatibility check asks the game's item
@@ -412,6 +454,24 @@ belongs rather than at the bottom.
   LW-346 item 7, applied once per unit right after enemy construction (the construction edge
   the Body Double arc already reads), verified by the unit's status screen and one steal.
   Surfaced by the LW-346 enemy test; needs the port (LW-346 item 8) first.
+- [LW-351] 2026-08-27: The LAST task of the extended-weapons arc, owner-ordered and NOT to
+  be started until every row before it has had its live pass: the seven weapons this mod
+  retyped away from their vanilla families go back to being axes and flails at their original
+  ids, and the seven rebalanced designs come back as brand-new extended items instead. Today
+  ids 48 Terrastaff, 49 Ravager, 50 Sunderer (vanilla Battle Axe, Giant's Axe, Slasher) and
+  67 Warbrand, 68 Bloodlash, 69 Climhazzard, 70 Sasori (vanilla Iron Flail, Flail of Flame,
+  Morning Star, Scorpion Tail) equip and fight as poles, knight swords, swords, knives, ninja
+  blades and katana while still swinging axe and flail art, the last visible scar of the
+  retype (LW-293, LW-312). Shape: items.json restores the seven ids to their vanilla names,
+  categories and numbers; the seven designs move to extended ids 262 to 268 with their stats,
+  growth lanes, signatures (Sunderer's Bulwark, Bulwark.SundererId), colors and icons; every
+  id-keyed file follows (kills.json tallies migrate old id to new id once, legends,
+  weapon_colors.json, weapon_palette_overrides.json, icon_ramp treatments, the grid csv,
+  additional_data_ids.json); JobData equip lists and the Equip Axes note in ability.en.nxd
+  are re-read. OPEN, owner ruling needed before the build: shops cannot stock ids past 255
+  (no shop-flags row), so how the seven enter the world (poach rows, Move-Find tiles, a seeded
+  first copy, or LW-350's enemy loadout) decides whether players can still find them. Needs
+  LW-346 (the port) live-passed and LW-348 (the bag sidecar) first.
 - [LW-344] 2026-08-26: Partner mods want their items to be living weapons too: the
   Cloud mod author (Xeoshades) asked for growth on their Buster Sword line, and today
   growth already bleeds onto any item occupying our ids, wearing the WRONG name in
