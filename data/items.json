@@ -3243,7 +3243,7 @@
         "evade": 10,
         "element": "None",
         "onHit": "Confuses the target on hit",
-        "onHitAbilityId": 201,
+        "onHitAbilityId": 243,
         "formula": 2,
         "range": 3
       },
@@ -3336,7 +3336,7 @@
         "evade": 15,
         "element": "None",
         "onHit": "May inflict Blind",
-        "onHitAbilityId": 119,
+        "onHitAbilityId": 234,
         "formula": 2,
         "range": 3
       },

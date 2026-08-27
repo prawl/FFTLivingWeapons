@@ -18,7 +18,7 @@ from pathlib import Path
 import sqlite3
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from lib.categories import WEAPON_CATS
-from lib.flavor import assemble_desc, is_living, plural
+from lib.flavor import assemble_desc, badge_for, is_living, plural
 from lib.items import load_items
 from lib.nxd import PAC, decode_nxd_to_sqlite, encode_sqlite_to_nxd, deploy_nxd, unpack
 from lib.paths import ROOT, MOD_ITEM_NXD
@@ -137,6 +137,11 @@ def item_intent(named, sort_map=None):
             intent[(it["id"], "UiItemCategoryId")] = UICAT[eff]
         if it["id"] in sort_map:
             intent[(it["id"], "SortOrder")] = sort_map[it["id"]]
+        # LW-352: the Special Effect badge follows the formula (lib.flavor.badge_for), written for
+        # every weapon so a vanilla badge can never outlive the mechanic it advertised.
+        badge = badge_for(it)
+        if badge is not None:
+            intent[(it["id"], "UiStatusEffectId")] = badge
     return intent
 
 
@@ -168,6 +173,9 @@ def apply_patches(con, named, intent):
         if (i, "SortOrder") in intent:
             _guarded_update(con, 'UPDATE "Item-en" SET SortOrder=? WHERE Key=?',
                             (intent[(i, "SortOrder")], i), f"id{i} ({clean!r}) SortOrder")
+        if (i, "UiStatusEffectId") in intent:
+            _guarded_update(con, 'UPDATE "Item-en" SET UiStatusEffectId=? WHERE Key=?',
+                            (intent[(i, "UiStatusEffectId")], i), f"id{i} ({clean!r}) UiStatusEffectId")
     return intent
 
 

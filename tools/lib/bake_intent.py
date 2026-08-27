@@ -10,9 +10,10 @@ from the items.json derivation is a defect the audit flags.
 """
 
 ALLOWED_ITEM_CELLS = {
-    # Sanguine Gauche drains HP on every hit (items.json id 6, formula 48 Night Sword);
-    # 1001 is the game's own "Absorbs HP" Special Effect badge.
-    (6, "UiStatusEffectId"): (1001, "Sanguine Gauche lifeleech badge"),
+    # (The "Absorbs HP" badge, UiStatusEffectId 1001, used to be a hand-allowed cell for the
+    # Sanguine Gauche. Since LW-352 (2026-08-27) every weapon's badge is DERIVED from its formula
+    # by lib.flavor.badge_for and written by patch_names.item_intent, so it is an intended cell,
+    # not an allowance; the Duskstring Harp's stale vanilla badge is what the change removes.)
     # Warbrand (id 67) is our deterministic Sword rework on the Iron Flail slot; vanilla
     # 1.5.1 flags row 67 as a random-damage flail. Our card must not claim random damage.
     (67, "IsRandomDamage"): (0, "Warbrand is a deterministic sword by design"),

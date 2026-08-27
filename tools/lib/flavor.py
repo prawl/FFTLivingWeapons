@@ -42,7 +42,18 @@ CAST = {42: "Gravity (damaging a share of the target's current HP)",
         139: "Rend Armor (breaking the target's armor)",
         141: "Rend Weapon (breaking the target's weapon)",
         213: "Leg Shot (Immobilize)",  # short form: the long clause blew Huntress's 205-char card budget
-        249: "Fire Breath"}  # Formula-2 NON-elemental ability casts by opt id (elemental casts handled separately)
+        249: "Fire Breath",
+        # LW-331 / LW-352 (2026-08-27): the Mystic-style status spells the instrument and book
+        # lines cast on hit. Names from the vanilla ability table (working/skeptic_throwability
+        # .sqlite Ability-en: 37 Immobilize, 119 Intimidate "reduces the bravery of a distant
+        # unit", 201 Charm, 234 Blind, 243 Confuse, 246 Sleep). Five cards printed NO mechanics
+        # line while their rows cast these, the same silent-proc disease LW-320 cured elsewhere.
+        37: "Immobilize",
+        119: "Intimidate (lowering the target's Bravery)",
+        201: "Charm",
+        234: "Blind",
+        243: "Confuse",
+        246: "Sleep"}  # Formula-2 NON-elemental ability casts by opt id (elemental casts handled separately)
 
 # thematic flavor clauses keyed by the item's defining trait (element > proc > rider > role)
 ELEM_FLAVOR = {
@@ -62,6 +73,31 @@ PROC_FLAVOR = {
     55: "An arcane edge that unravels enchantments.",
     101: "It slicks the target in clinging oil.",
 }
+
+
+#: LW-352: the equip card's "Special Effect" badge (item.en.nxd UiStatusEffectId) is derived from
+#: the weapon's damage formula, never inherited from the vanilla row: 1001 "Absorbs HP" only for
+#: the two drain formulas, 1002 (the healing-staff badge) only for formula 7, 0 for everything
+#: else. The Duskstring Harp (id 93) shipped the Bloodstring Harp's vanilla 1001 badge while its
+#: row was a Blind cast (owner sighting 2026-08-27); this rule is what the bake writes and what
+#: analyze.py's claim gate pins.
+BADGE_ABSORB_HP = 1001
+BADGE_HEALING = 1002
+ABSORB_HP_FORMULAS = frozenset({6, 48})   # 6 = absorb HP dealt, 48 = Night Sword drain
+ABSORB_MP_FORMULAS = frozenset({47})
+HEAL_FORMULAS = frozenset({7})
+
+
+def badge_for(it):
+    """The UiStatusEffectId a weapon's card must carry, from its proposed formula (0 = no badge)."""
+    if it.get("category") not in WEAPON_CATS:
+        return None
+    f = (it.get("proposed") or {}).get("formula", 1)
+    if f in ABSORB_HP_FORMULAS:
+        return BADGE_ABSORB_HP
+    if f in HEAL_FORMULAS:
+        return BADGE_HEALING
+    return 0
 
 
 def rider_text(rider):

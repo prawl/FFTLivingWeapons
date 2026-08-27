@@ -20,7 +20,9 @@ from lib import flavor as flavor_mod   # module ref (not `from ... import`): the
                                         # a RED run fails loudly on the missing set, never on ImportError
 from lib.categories import WEAPON_CATS
 from lib.flavor import (assemble_desc, card_signature_name, flavor_anchor,   # the exact rendered card text
-                         rider_text, is_living, KILLS_SCAFFOLD, KILLS_SLOT_BODY_CHARS)
+                         rider_text, is_living, KILLS_SCAFFOLD, KILLS_SLOT_BODY_CHARS,
+                         badge_for, mechanics, PROC, CAST,   # LW-352: the claim gate's row-effect derivation
+                         ABSORB_HP_FORMULAS, ABSORB_MP_FORMULAS, HEAL_FORMULAS)
                                                    # + the house-voice prose each rider bakes onto its card
 from lib.items import load_items, display_name
 from lib.paths import ROOT, ITEMS as ITEMS_DEFAULT
@@ -437,6 +439,190 @@ def check_flavor_length(items):
         if fo and len(fo) > FLAVOR_MAX:
             bad.append((it, len(fo)))
     return bad
+
+
+# ---- LW-352: CLAIMS (every effect a weapon's card or design prose claims is backed by its row,
+# and every effect its row carries is spoken on the card) -------------------------------------
+# Owner ask 2026-08-27 after the Duskstring Harp's card said "Absorbs HP" (a vanilla badge the
+# bake never cleared) while its row cast Blind (which the bake never named). Three lanes:
+#   1. UNSPOKEN: the row carries an on-hit effect the generated mechanics line does not render
+#      (an ability id missing from PROC/CAST, or a formula the renderer has no sentence for).
+#   2. BADGE: the Special Effect badge is exactly badge_for(it) (formula-derived, LW-352); the
+#      bake writes that value, this pins that a formula change and the badge cannot drift.
+#   3. AUTHORED: the hand-written prose (flavorOverride, desc, the items.json onHit field, the
+#      identity line is NOT included: it is curator notes, never rendered) may only name an
+#      effect the row actually delivers. A claim word with no backing effect fails; a metaphor
+#      that happens to use a status word must be reworded or the row must deliver it.
+# The vocabulary is deliberately the game's own status/element/absorb words; anything softer
+# ("chill", "glare") is flavor, not a claim.
+_STATUS_WORDS = {
+    "Blind": r"\bblind\w*", "Silence": r"\bsilenc\w*", "Doom": r"\bdoom\w*", "Sleep": r"\bsleep\w*",
+    "Immobilize": r"\bimmobili[sz]\w*", "Petrify": r"\bpetrif\w*", "Slow": r"\bslow\b", "Poison": r"\bpoison\w*",
+    "Confuse": r"\bconfus\w*", "Charm": r"\bcharm\w*", "Stop": r"\bstop\b", "Berserk": r"\bberserk\w*",
+    "Oil": r"\boil\b", "Disable": r"\bdisabl\w*", "Toad": r"\btoad\b", "Death": r"\binstant(ly)? (death|kill)\w*",
+    "Bravery": r"\bbrave(ry)?\b", "Haste": r"\bhaste\b", "Regen": r"\bregen\w*", "Reraise": r"\breraise\b",
+    "Float": r"\bfloat\b", "Protect": r"\bprotect\b", "Shell": r"\bshell\b", "Reflect": r"\breflect\b",
+    "Invisible": r"\b(invisib\w*|transparent)\b", "Undead": r"\bundead\b", "Faith": r"\bfaith\b",
+}
+_ELEMENT_WORDS = {e: r"\b" + e.lower() + r"\b" for e in ("Fire", "Ice", "Lightning", "Wind", "Earth", "Water", "Holy", "Dark")}
+_ABSORB_HP_WORDS = r"\b(absorbs? hp|drains?|drinks? the blood|leech\w*|lifeleech|siphons? (hp|life))"
+_ABSORB_MP_WORDS = r"\b(absorbs? mp|drains? mp|siphons? mp)"
+_CAST_WORDS = r"\bcasts?\b"
+# formula-2 cast ability -> the status it inflicts (the CAST table's short names map onto the
+# same status vocabulary the authored prose uses); elemental spells map onto their element.
+_CAST_STATUS = {37: "Immobilize", 119: "Bravery", 201: "Charm", 213: "Immobilize", 234: "Blind",
+                243: "Confuse", 246: "Sleep"}
+_CAST_ELEMENT = {15: "Holy", 16: "Fire", 20: "Lightning", 24: "Ice", 127: "Water", 131: "Wind", 249: "Fire"}
+_SPECIAL_PROCS = {55: "Dispel", 95: "Stop/Petrify/Death", 41: "Death"}
+
+
+def row_effects(it):
+    """The set of effect tokens a weapon's proposed row actually delivers (status names, element
+    names, 'absorb-hp', 'absorb-mp', 'heal', 'knockback', 'cast', rider statuses)."""
+    s = it["proposed"]
+    f = s.get("formula", 1)
+    p = s.get("onHitAbilityId", 0) or 0
+    el = s.get("element", "None")
+    eff = set()
+    if el not in ("None", "", None):
+        eff.add(el)
+    if f in ABSORB_HP_FORMULAS:
+        eff.add("absorb-hp")
+    if f in ABSORB_MP_FORMULAS:
+        eff.add("absorb-mp")
+    if f in HEAL_FORMULAS:
+        eff.update({"heal", "Undead"})   # a healing swing damages the Undead: the same mechanic
+    if f == 4:
+        eff.add("Faith")   # a magic gun's shot scales with Faith (the bake says so on the card)
+        if el not in ("None", "", None):
+            eff.add("cast")   # "Fires as <spell>": the attack IS the spell
+    if f in (2, 4):
+        if p:
+            eff.add("cast")
+        if p in _CAST_STATUS:
+            eff.add(_CAST_STATUS[p])
+        if p in _CAST_ELEMENT:
+            eff.add(_CAST_ELEMENT[p])
+        if p == 147:
+            eff.add("knockback")
+        if p == 42:
+            eff.add("Gravity")
+    else:
+        if p in PROC:
+            eff.add(PROC[p])
+            if PROC[p] == "Don't Act":
+                eff.add("Disable")   # the game's own name for the status
+        if p == 95:
+            eff.update({"Stop", "Petrify", "Death"})
+        if p == 41:
+            eff.add("Death")
+        if p == 55:
+            eff.add("Dispel")
+    rider = parse_rider(s.get("rider")) or {}
+    for field in ("InnateStatus", "StartingStatus", "ImmuneStatus"):
+        for st in re.split(r",\s*|\s*&\s*", rider.get(field) or ""):
+            st = st.strip()
+            if st:
+                eff.add({"KO": "Death", "Stone": "Petrify"}.get(st, st))
+    for field in ("AbsorbElements", "NullifyElements", "HalveElements", "StrongElements", "WeakElements"):
+        for e in re.split(r",\s*|/", rider.get(field) or ""):
+            if e.strip():
+                eff.add(e.strip())
+    if rider.get("BoostJP"):
+        eff.add("JP")
+    return eff
+
+
+def _unspoken(it):
+    """Lane 1: an on-hit effect the generated mechanics line never states."""
+    s = it["proposed"]
+    f = s.get("formula", 1)
+    p = s.get("onHitAbilityId", 0) or 0
+    el = s.get("element", "None")
+    if not p:
+        return None
+    if f in (2, 4):
+        if el not in ("None", "", None):
+            return None   # rendered as "May cast <element spell> on hit"
+        if p in CAST or p == 147:
+            return None
+        return f"formula {f} casts ability {p} on hit, which lib.flavor.CAST has no name for; the card says nothing"
+    if p in PROC or p in _SPECIAL_PROCS:
+        return None
+    return f"formula {f} procs ability {p} on hit, which lib.flavor.PROC has no name for; the card says nothing"
+
+
+def _authored_claims(it):
+    """Lane 3: (source, claim) pairs found in the hand-written prose."""
+    texts = [("flavorOverride", it.get("flavorOverride") or ""),
+             ("desc", (it.get("desc") or "").split("\n", 1)[0]),
+             ("onHit", it["proposed"].get("onHit") or "")]
+    claims = []
+    for src, text in texts:
+        if not text or text.lower() == "none":
+            continue
+        # FLAVOR prose is metaphor-rich ("a doom-named greatblade", "slow to swing", "blind
+        # frenzy"): a status or element word there is a claim only when it is the game's own
+        # capitalized name away from a sentence start, or sits in an inflict/cast/grant/ward
+        # clause. The onHit design field is a mechanics statement and takes the plain vocabulary.
+        strict = src != "onHit"
+        low = text.lower()
+        def claims_word(pat):
+            m = re.search(pat, low)
+            if not m:
+                return False
+            if not strict:
+                return True
+            head = low[max(0, m.start() - 40):m.start()]
+            if re.search(r"(inflict\w*|cast\w*|grant\w*|ward\w*|immune to|begins battle with|adds?)\s+[^.]*$", head):
+                return True
+            word = text[m.start():m.end()]
+            at_sentence_start = m.start() == 0 or low[max(0, m.start() - 2):m.start()].strip() in (".", "!", "?", ";")
+            return word[:1].isupper() and not at_sentence_start
+        for status, pat in _STATUS_WORDS.items():
+            if claims_word(pat):
+                claims.append((src, status))
+        for element, pat in _ELEMENT_WORDS.items():
+            if claims_word(pat):
+                claims.append((src, element))
+        if re.search(_ABSORB_HP_WORDS, low):
+            claims.append((src, "absorb-hp"))
+        if re.search(_ABSORB_MP_WORDS, low):
+            claims.append((src, "absorb-mp"))
+        if re.search(_CAST_WORDS, low) and not strict:
+            claims.append((src, "cast"))
+    return claims
+
+
+def check_claims(items):
+    """LW-352: every weapon's row, card and prose agree. Returns [(item, [problem, ...])]."""
+    bad = []
+    for it in items:
+        if it.get("category") not in WEAPON_CATS or "proposed" not in it:
+            continue
+        probs = []
+        u = _unspoken(it)
+        if u:
+            probs.append("UNSPOKEN: " + u)
+        badge = badge_for(it)
+        f = it["proposed"].get("formula", 1)
+        want = 1001 if f in ABSORB_HP_FORMULAS else 1002 if f in HEAL_FORMULAS else 0
+        if badge != want:
+            probs.append(f"BADGE: badge_for gives {badge}, the formula {f} wants {want}")
+        eff = row_effects(it)
+        for src, claim in _authored_claims(it):
+            ok = claim in eff or (claim == "cast" and "cast" in eff) or (claim == "Bravery" and "Bravery" in eff)
+            if not ok:
+                probs.append(f"{src} claims {claim!r} but the row delivers {sorted(eff) or 'nothing'}")
+        if probs:
+            bad.append((it, probs))
+    return bad
+
+
+def _fmt_claims(v):
+    for a, probs in v:
+        for pr in probs:
+            print(f"  CLAIM id{a['id']} {a.get('name')}: {pr}")
 
 
 def check_grows_gap_min_length(items):
@@ -1088,6 +1274,12 @@ def main():
              check_fn=lambda: check_flavor_length(items),
              pass_msg=f"PASS: every authored flavor line is <= {FLAVOR_MAX} chars.",
              format_failure=_fmt_flavor_length, sets_rc=True),
+        dict(header="CLAIMS (LW-352: every effect a weapon's card or prose claims is in its row, "
+                    "every on-hit effect in its row is spoken on the card, and the Special Effect "
+                    "badge follows the formula)",
+             check_fn=lambda: check_claims(items),
+             pass_msg="PASS: every weapon does what its card and prose claim, and claims everything it does.",
+             format_failure=_fmt_claims, sets_rc=True),
         dict(header="GROWS GAP MIN LENGTH (living weapon flavor anchor outreaches the fixed "
                     "Kills->Grows gap, so a fallback nearest-distance scan can never mistake a "
                     "foreign flavor for a card's own Grows anchor)",
