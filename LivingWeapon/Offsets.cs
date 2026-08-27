@@ -625,4 +625,47 @@ internal static class Offsets
     public const long ItemStatsBase = 0x14080F690L;
     public const int ItemStatsStride = 8;
     public const int ItemStatsWpOff = 4;
+
+    // --- LW-346 extended inventory (the 261 item-cap break ported from the FFTHandsFree rig) ---
+    // Every address below was re-anchored for 1.5.2 on 2026-08-26 (the equip/display cluster
+    // slid -0x78 and the accessor cluster -0x74 from 1.5.0; data bases unchanged) and confirmed
+    // against the 1.5.2 exe on disk on 2026-08-27 (every thunk reads E9, every function entry
+    // carries its landmark prologue behind ret/CC padding). Provenance per site:
+    // docs/research/ITEM_CAP_261_BREAK_JOURNEY.md, sections 2026-08-26 "the 1.5.2 re-anchor"
+    // through 2026-08-27 03:20 "the port blueprint"; the single-byte patch sites live in
+    // ExtendedSites.cs as a table. Live evidence is owner-observed (Uncertain rows in
+    // docs/LIVE_LEDGER.md: [inventory-default-order-drops-unknown-ids],
+    // [capbreak-swing-art-via-accessor-clones], [weapon-sprite-pair-drives-swing-art]).
+    /// <summary>Image base; fixed (no ASLR), the origin every disp32 below is measured from.</summary>
+    public const long ModuleBase = 0x140000000L;
+    /// <summary>The four disp32 bytes inside the catalog accessor's extended branch
+    /// (<c>lea rax,[rax*4 + disp32]</c> at 0x1402B8C66) that select the ids-256+ catalog block;
+    /// vanilla value 0x0067F910 = <see cref="ExtCatalogBase"/> minus the image base.</summary>
+    public const long ExtCatalogDisp32 = 0x1402B8C6AL;
+    /// <summary>Vanilla extended catalog block (ids 256-260, 12-byte ITEM_COMMON_DATA records,
+    /// indexed by the full id, so record 256 sits at base + 256*12).</summary>
+    public const long ExtCatalogBase = 0x14067F910L;
+    /// <summary>Main catalog block (ids 0-255, 12-byte records).</summary>
+    public const long MainCatalogBase = 0x14080EA90L;
+    /// <summary>Two-byte sprite/palette pair per item id (byte 0 palette nibbles, byte 1 the
+    /// drawing); read on every swing. June's probes used base +2, one item off.</summary>
+    public const long WeaponSpritePairTable = 0x140785CF0L;
+    /// <summary>Bag count per item id (one byte each); the save stores exactly 261 of them.</summary>
+    public const long BagCountArray = 0x1411A7C00L;
+    /// <summary>The E9 accessor thunks (five bytes each) the extended ids are redirected through.
+    /// Weapon stats returns a pointer to an 8-byte ITEM_WEAPON_DATA row; the rest take an item
+    /// id in rcx and index per-category tables that have no row for a new id.</summary>
+    public const long ThunkWeaponStat = 0x1402B8C74L;
+    public const long ThunkValidity = 0x1402B8EBCL;
+    public const long ThunkTypeProbe = 0x1402B8EE8L;   // (id, dataType): LW-347's shield eviction
+    public const long ThunkRangeIndex = 0x1402B8BCCL;  // -1 for a new id = "not a weapon" = the punch
+    public const long ThunkSpritePair = 0x1402B8E60L;  // the swing art record
+    public const long ThunkRangeBase = 0x1402B8C0CL;
+    public const long ThunkSibling1 = 0x1402B8CD4L;
+    public const long ThunkSibling2 = 0x1402B8D3CL;
+    public const long ThunkSibling3 = 0x1402B8DA0L;
+    public const long ThunkSibling4 = 0x1402B8E04L;
+    /// <summary>Plain function entries hooked with Reloaded.Hooks behind a prologue landmark.</summary>
+    public const long FnCategoryGetter = 0x1402890C0L;   // inventory list-build filter (called at 0x140288BF5)
+    public const long FnOrderRebuild = 0x140285DF0L;     // display-order rebuild (drops ids its table lacks)
 }

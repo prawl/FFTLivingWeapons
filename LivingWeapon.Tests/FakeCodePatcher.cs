@@ -5,7 +5,7 @@ using LivingWeapon;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// Dictionary-backed <see cref="ICodePatcher"/> for the extended-items suites (LW-346). Unseeded
+/// Dictionary-backed <see cref="ICodePatcher"/> for the extended-inventory suites (LW-346). Unseeded
 /// bytes read as unreadable (TryRead false) unless <see cref="ZeroFillUnseeded"/> is set, which
 /// mirrors a zero-filled VirtualAlloc page; every write is applied AND appended to
 /// <see cref="Writes"/> in order so a test can assert exactly what landed where (the rollback

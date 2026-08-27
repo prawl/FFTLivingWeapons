@@ -4,11 +4,11 @@ using System.Runtime.InteropServices;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-346: the byte-patch seam for CODE pages (the extended-items boot arm and its thunk stubs).
+/// LW-346: the byte-patch seam for CODE pages (the extended-inventory boot arm and its thunk stubs).
 ///
 /// WHY A SECOND SEAM NEXT TO <see cref="Mem"/>: Mem's writes are gated on
 /// <see cref="Mem.WritesEnabled"/>, which LaunchGuard flips true only once a save has loaded and
-/// Ramza's roster row verifies. The extended-items patches MUST land before the game runs a single
+/// Ramza's roster row verifies. The extended-inventory patches MUST land before the game runs a single
 /// instruction (the rig proved the menu registry and the bag array are built once at boot,
 /// docs/research/ITEM_CAP_261_BREAK_JOURNEY.md), so they cannot wait for that edge. They are
 /// gated differently instead, and only through this seam: the caller (ExtendedItems.BootArm)

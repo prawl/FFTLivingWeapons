@@ -20,7 +20,7 @@ the technical detail lives in the indented lines under it.
     a marker file and hand pokes. Promoted 2026-08-27 (owner: "make a push to finish out the
     extended weapons tasks", sequencing choice 1: port first, then one live pass on the ported
     build instead of the rig). This row now carries the port: the rig moves into Living
-    Weapons as a data-driven "extended items" system, so a new weapon is a row in
+    Weapons as a data-driven "extended inventory" system, so a new weapon is a row in
     data/items.json, and LW-347 (the shield eviction fix, one thunk clone) and LW-348 (the
     bag-count sidecar) ride with it and exit with it.
   - Port shape (docs/research/ITEM_CAP_261_BREAK_JOURNEY.md, the 03:20 blueprint): a guarded
@@ -99,7 +99,7 @@ the technical detail lives in the indented lines under it.
     rewards) and item 13 (owner PROVEN flips on the ledger rows) are recorded, not built.
   - Verify: both gates green (analyze.py exit 0, the suite) and generate.py byte-stable; then
     ONE fresh boot of the ported build, marker deleted, with the owner watching: the log shows
-    the extended-items arm line and no rollback; Inventory, every sort mode and the equip
+    the extended-inventory arm line and no rollback; Inventory, every sort mode and the equip
     picker list the Moonblade; a shield stays in the off-hand; a FRESH battle from the world
     map swings a blade (swing again if the first is a fist) and a kill lands on its tally; the
     formation screen equips it; save, quit, cold boot, load: hand and bag count intact; the
@@ -262,7 +262,7 @@ A new row still lands here in the session it surfaces; slot it where its urgency
 belongs rather than at the bottom.
 
 - [LW-198] 2026-08-13: The eleven knives all had a white blade, so their colour lived in a handle a few pixels across. Demoted from Now on 2026-08-27 to
-  seat LW-346 (the extended-items port); its status is unchanged, AWAITING-LIVE, the
+  seat LW-346 (the extended-inventory port); its status is unchanged, AWAITING-LIVE, the
   owner's gallery pass is still the only thing outstanding, and every line below is the
   Now row's text verbatim so nothing is lost by the move.
   - BUILT and gated 2026-08-16, owner gallery pass outstanding. Coverage was never this family's

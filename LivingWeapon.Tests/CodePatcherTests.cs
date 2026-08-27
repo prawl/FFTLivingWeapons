@@ -5,7 +5,7 @@ using Xunit;
 
 namespace LivingWeapon.Tests;
 
-/// <summary>LW-346 S1: the extended-items memory primitives. The live patcher is driven over a
+/// <summary>LW-346 S1: the extended-inventory memory primitives. The live patcher is driven over a
 /// GCHandle-pinned buffer (the LiveMemory precedent: the real VirtualProtect + RPM/WPM path, no
 /// game), the allocator's placement arithmetic is pinned as pure cases, and the fakes are
 /// checked against the contract the S2 suites lean on.</summary>
