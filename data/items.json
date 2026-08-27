@@ -7359,11 +7359,6 @@
       "identity": "The first weapon past the game's 261-item wall (LW-346, the extended inventory): a net-new sword with its own id, stats, name, icon and growth, swinging the Chaos Blade's art through the extended-inventory donor tables. Gate-exempt like the Materia Blade: it exists to prove the system, not to win a lane.",
       "flavorOverride": "A pale crescent blade that drinks the moonlight.",
       "iconSource": 37,
-      "iconTint": [
-        0.6,
-        0.75,
-        0.95
-      ],
       "extended": {
         "cloneDonor": 37,
         "artDonor": 37,

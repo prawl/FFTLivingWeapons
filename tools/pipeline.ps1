@@ -48,6 +48,10 @@ $RequiredModFiles = @(
     "extended_inventory/ItemData.xml",
     "extended_inventory/ItemWeaponData.xml",
     "extended_inventory/ItemExtendedData.xml",
+    # LW-346: an extended id ships its own icon PARTS files (the game's pac has none past 260);
+    # one spot-check row stands for the pair per surface (tools/bake_extended_icon_parts.py).
+    "FFTIVC/data/enhanced/ui/ffto/icon/equip_item/textureparts/ei_261_uitx.utexpt",
+    "FFTIVC/data/enhanced/ui/ffto/icon/equip_item_s/textureparts/ei_s_261_uitx.utexpt",
     "FFTIVC/tables/enhanced/ItemData.xml",
     "FFTIVC/tables/enhanced/ItemWeaponData.xml",
     "FFTIVC/tables/enhanced/ItemArmorData.xml",

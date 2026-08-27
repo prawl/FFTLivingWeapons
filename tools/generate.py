@@ -217,6 +217,15 @@ def validate_extended(ext, all_items):
             raise SystemExit(f"extended inventory: id {i} ({it.get('name')}) needs proposed.attackFlags (no vanilla row to inherit them from)")
         if not it.get("name") or it["name"] == "TBD":
             raise SystemExit(f"extended inventory: id {i} needs a real name (it is the item.en.nxd row too)")
+        # The menu icon is a .tex plus a .utexpt parts file per surface; a vanilla id gets its parts
+        # files from the game's pac, a new id ships all four (tools/recolor_icons.py <id> for the
+        # pictures, tools/bake_extended_icon_parts.py for the parts; owner-observed 2026-08-26).
+        icon = ROOT / "mod" / "FFTIVC" / "data" / "enhanced" / "ui" / "ffto" / "icon"
+        for sub, pfx in (("equip_item", "ei"), ("equip_item_s", "ei_s")):
+            for rel in (f"{sub}/texture/{pfx}_{i:03d}_uitx.tex", f"{sub}/textureparts/{pfx}_{i:03d}_uitx.utexpt"):
+                if not (icon / rel).exists():
+                    raise SystemExit(f"extended inventory: id {i} ({it.get('name')}) is missing its icon file {rel}; "
+                                     f"run tools/recolor_icons.py {i} and tools/bake_extended_icon_parts.py")
 
 
 def extended_itemdata_entry(it):

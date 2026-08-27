@@ -130,9 +130,14 @@ def weapon_ids():
     """The exact bake set: tools/lib/categories.py WEAPON_CATS via items.json. Hard assert (the
     owner rule this whole file exists to enforce): never a non-weapon id, never anything outside
     1..121."""
-    ids = sorted(it["id"] for it in load_items()["items"] if it.get("category") in WEAPON_CATS)
-    stray = [i for i in ids if not (1 <= i <= 121)]
-    assert not stray, f"WEAPON_CATS produced an id outside 1..121: {stray}"
+    rows = load_items()["items"]
+    ids = sorted(it["id"] for it in rows if it.get("category") in WEAPON_CATS)
+    # LW-346: an extended-inventory weapon (an `extended` block, ids 261+) is a real growing
+    # weapon with its own baked icon pair, so it gets rims like the vanilla-range 121; anything
+    # else outside 1..121 is still the stray the owner rule forbids.
+    extended = {it["id"] for it in rows if it.get("extended")}
+    stray = [i for i in ids if not (1 <= i <= 121) and i not in extended]
+    assert not stray, f"WEAPON_CATS produced an id outside 1..121 that is not an extended-inventory row: {stray}"
     return ids
 
 
@@ -409,9 +414,19 @@ def main():
             print("BAKE ABORTED: VANILLA tex tree or FF16Tools CLI not found on this box.")
             return 1
         ids = [i for i in weapon_ids() if args.frm <= i <= args.to]
+        # LW-346: an extended-inventory weapon ships its plain icon (tools/recolor_icons.py) but
+        # has no LW-247 ramp treatment row (data/icon_ramp/treatments.json is emitted from the
+        # census replay, which never saw it), and the rim tail is a ramp-engine feature. Skip it
+        # loudly rather than abort the whole bake; the runtime treats a missing manifest entry
+        # as tier 0 (no rim). Rims for extended ids are LW-346 item 11 follow-up work.
+        unramped = [i for i in ids if i not in ri.RAMP_IDS]
+        if unramped:
+            print(f"SKIPPED {len(unramped)} extended-inventory id(s) with no ramp treatment row "
+                  f"(plain icon ships, no glow rims yet): {unramped}")
+            ids = [i for i in ids if i in ri.RAMP_IDS]
         if not ids:
-            print(f"No weapon ids in range [{args.frm}, {args.to}]")
-            return 1
+            print(f"No rampable weapon ids in range [{args.frm}, {args.to}]")
+            return 0 if unramped else 1
         print(f"Baking {len(ids)} weapon id(s) in [{args.frm}, {args.to}]"
               + (" (--force)" if args.force else "") + " ...")
         bake_range(ids, force=args.force)

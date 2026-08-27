@@ -112,6 +112,12 @@ SRC = {}  # item id -> vanilla icon id to source from, for repurposed weapons th
 _CATEGORY = {}
 _NAME = {}
 for _it in load_items()["items"]:
+    # LW-346: an extended-inventory row (ids 261+) is outside the tint programme: it ships a
+    # byte copy of its iconSource donor's already-recolored pair (tools/bake_extended_icon_parts.py),
+    # the way it borrows the donor's swing art, so it never enters the racks, the halo sample or
+    # the bright-v2 pins. Its own treatment is LW-346 item 11 polish.
+    if _it.get("extended"):
+        continue
     if _it.get("iconTint"):
         ICON_TINTS[_it["id"]] = tuple(_it["iconTint"])
     if _it.get("iconSource"):
