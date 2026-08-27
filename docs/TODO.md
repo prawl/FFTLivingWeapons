@@ -347,6 +347,9 @@ belongs rather than at the bottom.
   ledger row [capbreak-swing-art-via-accessor-clones]); damage now follows the knight-sword
   Brave formula (272 at 125 percent = PA 21 x WP 15 x Br 69). Save/load (item 6) is mapped:
   the save holds 261 counts only, sidecar design in LW-348. Regen parked by the owner.
+  02:15: shop SELL works (listed at 5 gil, count 1 to 0); Optimize swapped it for the
+  Chaos Blade, consistent with a WP ranking (15 vs 28), so "Optimize considers 261" is
+  unproven; buy lists not opened (known no-row gap).
   LIVE_LEDGER for June's three rows and tonight's. Verify: one fresh boot with only the marker
   (no poke script) walks (1) through (6) live with the owner watching; the rest ship through
   the normal gates and their own live passes.

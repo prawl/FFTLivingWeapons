@@ -1612,3 +1612,16 @@ bag said 1, which is the research rig's boot seed, so the save file never held t
 the load neither restores nor wipes it. Exactly what the serializer read predicted (the save
 copies 261 counts, no more). The hand id and the lists ride in the save natively. LW-346 item
 6 is therefore one sidecar away (LW-348); ledger row [capbreak-save-roundtrip-1-5-2].
+
+### 2026-08-27 02:05-02:15: shop sell and Optimize (owner eyes)
+
+Plain language: in a town shop the Moonblade appeared in the Sell list of weapons at 5 gil
+(half the price byte in its catalog record, which is the Chaos Blade clone's 10), selling one
+worked and the bag count went from 1 to 0 (the adjust-count cap the marker widened at
+0x140101071 is doing its job). Optimize on Ramza's equipment screen replaced the Moonblade
+with the Chaos Blade, which is what a WP ranking would do (the Moonblade's stats are the
+Warbrand clone's WP 15 against the Chaos Blade's 28), so whether Optimize even considers id
+261 is not settled by this; it needs a bag where the Moonblade is the strongest knight sword.
+Buy lists are a known gap (no shop-flags row past id 255) and were not opened. LW-346 item 3
+progress: sell = yes; shop stock, poach, Move-Find, spoils, steal, Rend Weapon, crystal, Throw,
+in-battle Equip Change still unchecked.
