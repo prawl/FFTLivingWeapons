@@ -1748,6 +1748,22 @@ Raising one unit's Max HP mid-battle leaves the mod's kill bookkeeping intact: w
 
 ## Uncertain — observed live, not yet isolated / built on
 
+### [capbreak-save-roundtrip-1-5-2] A save carries the new weapon in the hand, in both menu order tables and in the Acquired list, but NOT its bag count
+
+Observed 2026-08-27 01:50-02:00 by the owner on 1.5.2 with the research rig boot-armed (marker v2): roster slot 0 rHand 261 survived save, quit to title, load (the load sanitizer passes it with the validity thunk cloned); both weapons display-order tables and the Acquired list held 261 after the load; a bag count of 2 written before the save read 2 after a same-process reload but 1 after a cold boot plus load, which is the rig's boot seed, so the count is not in the save file and the load neither restores nor clears it. Matches the static read of the serializer (bag copied as exactly 261 bytes at save+0x83A8). Design consequence: LW-348, a mod-owned sidecar re-seeds count[261+] after every load. Probe: tools/probes/lw346_saveload_check.py.
+
+<details><summary>How we got here</summary>
+
+**Claim (original wording):** count[261] cannot ride in the save because the save struct packs the bag as 0x105 bytes against the next 261-byte array; the roster hand ids are u16 in the unit block and do ride.
+
+**Mechanism:** serializer 0x14021926C / restores 0x14021B1D5 and 0x14021E1D1 read live (journal 2026-08-27 00:00-00:50); the three-step owner test above.
+
+**Evidence:** the probe's three readouts (post-load: hand 261, count 0; after seeding 2 and a same-process reload: 2; after a cold boot and load: 1).
+
+**Date:** 2026-08-27
+
+</details>
+
 ### [capbreak-swing-art-via-accessor-clones] With the range-index and sprite-pair accessor thunks cloned to the Chaos Blade, the new weapon (id 261) swings a visible knight-sword blade and damages as a knight sword
 
 Observed 2026-08-27 01:30-01:35 by the owner on 1.5.2 (screenshots tools/probes/lw346_moonblade_swing_blade_1.png and _2.png): with marker v2 boot-armed (seven extra cathook lines: 0x1402B8BCC range index, 0x1402B8E60 sprite/palette pair, 0x1402B8C0C range base, 0x1402B8CD4 / 0x1402B8D3C / 0x1402B8DA0 / 0x1402B8E04 sibling per-item accessors, all ids 261-511 -> 37) plus the two post-load damage caps, Ramza's Moonblade swings drew a blade on every attack, 272 damage on a chocobo at 125 percent compatibility = PA 21 x WP 15 x Brave 69 percent, i.e. the knight-sword Brave formula on the Warbrand-clone WP (the earlier 396 / 317 reading was the same PA x WP without the Brave factor). Two loose ends keep this Uncertain: the first several swings of that battle were still bare-fisted before the blade began showing on every swing (nothing was changed in between; a lazily loaded sprite sheet or CLUT is the working guess), and the action block's weapon word reads 242 for the Moonblade during the swing (combat +0x1A8, published to 0x1407B077A) in both the fist and the blade swings, so that value is not what decides the drawing.

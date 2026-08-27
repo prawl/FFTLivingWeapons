@@ -1601,3 +1601,14 @@ and the composer drew nothing until then. Untested; noted on the ledger row
 model fix is `cathook 0x1402B8BCC` + `cathook 0x1402B8E60` (donor id per item), with the
 sibling accessors cloned so no body indexes past its tables. LW-346 item 4's model clause is
 covered by the rig; Regen stays parked.
+
+### 2026-08-27 01:50-02:00: the save round trip (owner eyes): hand, lists and Acquired survive; the bag count does not
+
+Plain language: with the Moonblade equipped and two spare copies in the bag, the owner saved,
+quit to the title screen and loaded: the weapon was still in Ramza's hand, both menu order
+tables and the Acquired list still knew it, and the bag still said 2. That last one was RAM
+remembering, not the save: after quitting the game entirely and loading the same save, the
+bag said 1, which is the research rig's boot seed, so the save file never held the count and
+the load neither restores nor wipes it. Exactly what the serializer read predicted (the save
+copies 261 counts, no more). The hand id and the lists ride in the save natively. LW-346 item
+6 is therefore one sidecar away (LW-348); ledger row [capbreak-save-roundtrip-1-5-2].

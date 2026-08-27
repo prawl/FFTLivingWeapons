@@ -367,6 +367,9 @@ belongs rather than at the bottom.
   replays after every load; without the mod the item simply is not in the bag, which is
   also the safe-removal answer LW-346 item 10 asks for. Owner ruling needed on one point:
   whether a load with the sidecar missing seeds one copy or none. (Tech: serialize
+  CONFIRMED LIVE 2026-08-27 02:00 (owner, cold boot plus load): the hand id, both menu order
+  tables and the Acquired list survive a save; the bag count does not (ledger row
+  [capbreak-save-roundtrip-1-5-2]). The sidecar is the whole remaining gap for item 6.
   0x14021926C copies 0x1411A7C00[0..0x104] to save+0x83A8, the next 261-byte array from
   0x1411A7700 starts at +0x84AD; restores 0x14021B1D5 and 0x14021E1D1; journal 2026-08-27
   00:00 section.)
