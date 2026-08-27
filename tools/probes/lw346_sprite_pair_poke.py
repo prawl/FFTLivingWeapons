@@ -49,7 +49,9 @@ def main():
             print("id %3d @0x%X: %s (palette 0x%02X, graphic 0x%02X)" % (i, a, cur.hex().upper(), cur[0], cur[1])); continue
         if mode == "--apply":
             undo = "tools/probes/lw346_sprite_pair_undo_%d.txt" % i
-            open(undo, "w").write(cur.hex())
+            import os
+            if not os.path.exists(undo):  # keep the FIRST (vanilla) bytes across repeated --apply calls
+                open(undo, "w").write(cur.hex())
             ok = wr(h, a, pair)
             print("id %d: %s -> %s %s (undo bytes saved to %s)" % (i, cur.hex().upper(), pair.hex().upper(), "verified" if ok and rd(h, a, 2) == pair else "WRITE FAILED", undo))
         elif mode == "--restore":

@@ -374,6 +374,17 @@ belongs rather than at the bottom.
   sword (tools/probes/lw346_sprite_pair_poke.py, undo included) settles it; if the swing
   follows the record, LW-289's wall row is overturned and per-weapon color becomes a data
   fix. Surfaced while chasing the Moonblade's punch animation (LW-346 item 4).
+  RESULT 2026-08-27 00:50-00:56, owner eyes, mid-battle, no relaunch: BOTH bytes are live.
+  Save the Queen rewritten to Warbrand's drawing with Chaos Blade's palette swung as a purple
+  Warbrand on the very next swing; rewritten to Warbrand's own record it swung in Warbrand's
+  steel; restored after (screenshots tools/probes/lw349_sprite_pair_*_34.png, ledger row
+  [weapon-sprite-pair-drives-swing-art], owner PROVEN flip pending). What this buys: which
+  of the 16 palettes a weapon draws from is one byte per weapon in a plain writable table,
+  so the per-turn repaint the WeaponPalette runtime does today can become "assign each
+  weapon its own palette slot at boot" plus one repaint per slot, and the 13-palettes-for-127-
+  weapons grouping stops being the game's. Shape of the build: a guarded boot write of byte 0
+  per living weapon (from a new items.json field), the LW-305 map re-derived from
+  0x140785CF0 (the old map read the neighbor), and a LaunchGuard landmark on the table.
 - [LW-344] 2026-08-26: Partner mods want their items to be living weapons too: the
   Cloud mod author (Xeoshades) asked for growth on their Buster Sword line, and today
   growth already bleeds onto any item occupying our ids, wearing the WRONG name in

@@ -1529,3 +1529,20 @@ a count getter with a 0x105 cap at 0x14015415B (surface unknown), a bag WRITER a
 0x14031FD40 bounded by 0x17F over the catalog accessor. tools/probes/lw346_saveload_check.py
 prints hand, count, both order tables and the acquired list in one go for the round-trip
 test; tonight's live state: rHand 261, count 99, 261 in both tables and first in Acquired.
+
+### 2026-08-27 00:50-01:00: the sprite/palette pair is LIVE, both bytes, per swing (owner eyes)
+
+Plain language: the owner ran the M0 test in a battle with Save the Queen. First swing after
+the record was rewritten to Warbrand's drawing with the Chaos Blade's palette (50 03): a purple
+Warbrand. Second swing after rewriting it to Warbrand's own record (F0 03): the same shape in
+Warbrand's normal steel. Restored to F0 0C afterwards. So the two-byte record picks both the
+drawing and the palette, and the game reads it on every swing, no reload needed. June's and
+LW-289's "vestigial table" verdict is an artifact of the one-item-off base; ledger row
+[weapon-sprite-pair-drives-swing-art] added (Uncertain, owner flip pending), the walled row
+carries an overturn pointer, LW-349 records the result and the shape of the color build.
+
+For the Moonblade this settles the art half: the accessor 0x1402B8E60 returning NULL for 261
+is why nothing is drawn, and cloning it to 37 (marker v2) should put a knight sword in the
+hand; the "not a weapon" verdict (0x1402B8BCC) is the other half. M1 (one relaunch with
+tools/probes/lw346_capbreak_bootarm.marker.v2.txt) is the next experiment. Screenshots:
+tools/probes/lw349_sprite_pair_graphic_swap_34.png, lw349_sprite_pair_palette_swap_34.png.

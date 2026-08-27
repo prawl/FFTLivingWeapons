@@ -1748,6 +1748,22 @@ Raising one unit's Max HP mid-battle leaves the mod's kill bookkeeping intact: w
 
 ## Uncertain — observed live, not yet isolated / built on
 
+### [weapon-sprite-pair-drives-swing-art] The two-byte sprite/palette record at 0x140785CF0 + id*2 picks BOTH the drawing and the palette of a weapon's swing, and it is read on every swing
+
+Observed 2026-08-27 00:50 and 00:56 by the owner on 1.5.2, mid-battle, no relaunch, no fresh battle: Save the Queen (id 34, vanilla record F0 0C) was rewritten from outside to 50 03 (Warbrand's axe drawing, Chaos Blade's palette nibble) and the very next swing drew Warbrand's art in purple (tools/probes/lw349_sprite_pair_graphic_swap_34.png); rewritten to F0 03 (Warbrand's own record) the next swing drew the same shape in Warbrand's steel (tools/probes/lw349_sprite_pair_palette_swap_34.png); restored to F0 0C afterwards. So byte 1 selects the drawing and byte 0 the palette, per draw. This is the mechanism [weapon-palette-assignment-walled] said did not exist: that row's probes used base 0x140785CF2, one item off. Not yet built on; owner flip pending.
+
+<details><summary>How we got here</summary>
+
+**Claim (original wording):** the punch with the Moonblade comes from the sprite-pair accessor thunk 0x1402B8E60 -> 0x14FEC80C0 returning NULL for ids without a range, and the record it returns for real weapons is what the plain sprite composer 0x14026BC60 (byte 1) and the copy-protected CLUT loader 0x14E92B95C (byte 0, high nibble times a stride into the 0x140D35750 palette workspace, then the low nibble) read.
+
+**Mechanism:** static read of the live process with capstone over RPM (tools/probes/lw346_live_disasm.py, lw346_xref_scan.py), then the two-swing poke test above with tools/probes/lw346_sprite_pair_poke.py (undo file kept the vanilla bytes; restore verified).
+
+**Evidence:** docs/research/ITEM_CAP_261_BREAK_JOURNEY.md (2026-08-27 00:00-00:50 and 00:50-01:00 sections); the two owner screenshots named above.
+
+**Date:** 2026-08-27
+
+</details>
+
 ### [inventory-default-order-drops-unknown-ids] The party inventory's default display order is rebuilt from a per-tab id table and drops any id the table lacks; appending id 261 to the table lists it
 
 Observed 2026-08-26 20:55 by the owner on 1.5.2 (screenshot tools/probes/lw346_moonblade_listed_152.png): with the research rig boot-armed, three live pokes from outside (weapons order table [127] 0x00FF -> 0x0105 and [128] 0 -> 0x00FF at 0x1407B264E/0x1407B2650, scan guard imm 0x140285E2D 05 -> 06) and a re-open of the Items screen, id 261 was the last Weapons row with a full three-page card, sorted, equipped and unequipped. Not yet isolated as a single mechanism the mod owns: the tables are runtime-filled and the durable fix (a hook on the rebuild routine) is being built.
@@ -2807,6 +2823,8 @@ Byte 1 of the classic item-graphics record was written up as "the graphic", mean
 
 
 ### [weapon-palette-assignment-walled] WHICH palette a weapon uses cannot be changed by any known data channel
+
+OVERTURN CANDIDATE 2026-08-27 (owner flip pending): the assignment IS a data channel, the two-byte record at 0x140785CF0 + id*2 (byte 0 palette nibbles, byte 1 drawing), read on every swing; the four levers below all missed it because the probes used 0x140785CF2 as the table base, one item off. See [weapon-sprite-pair-drives-swing-art] under Uncertain.
 
 Repainting the sixteen palettes of FFTPack file 71 works and is PROVEN ([wep-spr-palette-block]).
 Changing WHICH of them a given weapon draws from does not: the ItemData `<Palette>` byte, the
