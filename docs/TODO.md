@@ -404,6 +404,14 @@ belongs rather than at the bottom.
   weapons grouping stops being the game's. Shape of the build: a guarded boot write of byte 0
   per living weapon (from a new items.json field), the LW-305 map re-derived from
   0x140785CF0 (the old map read the neighbor), and a LaunchGuard landmark on the table.
+- [LW-350] 2026-08-27: Enemies cannot be handed a new weapon id through the encounter table,
+  so the mod itself must dress them after they are built. The classic encounter record keeps
+  item ids as single bytes, and a Knight given id 261 there spawned empty-handed (journal
+  2026-08-27 02:45); this blocks steal, Rend Weapon and battle spoils of new ids until a
+  runtime loadout write exists. Shape: a per-encounter loadout list in the same data layer as
+  LW-346 item 7, applied once per unit right after enemy construction (the construction edge
+  the Body Double arc already reads), verified by the unit's status screen and one steal.
+  Surfaced by the LW-346 enemy test; needs the port (LW-346 item 8) first.
 - [LW-344] 2026-08-26: Partner mods want their items to be living weapons too: the
   Cloud mod author (Xeoshades) asked for growth on their Buster Sword line, and today
   growth already bleeds onto any item occupying our ids, wearing the WRONG name in
