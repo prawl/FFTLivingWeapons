@@ -1638,3 +1638,67 @@ stops at the first id it does not know, so a table where a sort had pushed 261 i
 middle would hide the later entries from that list's default order until one sort. Ledger
 row [capbreak-uninstall-is-clean-loss]. The marker was renamed back afterwards (v2 stays the
 next-launch state).
+
+### 2026-08-27 02:45-03:15: an enemy cannot carry the new weapon through the encounter table (owner eyes, one read short)
+
+Plain language: the encounter table (ENTD) was edited so that the Knight in slot 3 of Monastery
+Vaults, Fourth Level (battle 435) holds the Moonblade. Two launches were spent learning that the
+arena mod which ships that table is not enabled in Reloaded at all (its listing in the app
+config is stale; the loader log names 12 mods and it is not one), so the edited table was moved
+into the LivingWeapons mod folder for the test launch (merged: the log shows `(435,3,0)
+RightHand changed`) and removed again afterwards. In the battle the Knight spawned with helmet
+and shield but an EMPTY right hand; no unit in the pool held 261. The likely cause is format,
+not a cap: the classic ENTD record stores item ids as single bytes (the FF16Tools layout notes
+the override ints are "cast to byte" when patched), so 261 becomes 5 (a dagger a Knight cannot
+hold) or nothing. The owner's status-screen read (empty versus Argent Dirk) was not taken
+before clocking out. Design consequence for LW-346 items 3 and 9: enemies carrying a new id,
+and therefore steal / Rend / spoils of it, need a RUNTIME loadout write after enemy
+construction (the mod already knows the construction edge from the Body Double arc), not a
+table row; the same limit applies to the DLC "+" ids 256-260, which fits their absence from
+any encounter. Also learned: Reloaded's loaded-mod set is the log's "Loading N Mod(s)" list,
+not the EnabledMods array in AppConfig.json; check the log before trusting a mod's presence.
+
+### 2026-08-27 03:20: the port blueprint, written for the next session's /build (nothing here is new evidence)
+
+Plain language: everything the research rig does for the new weapon, listed as the pieces the
+LivingWeapons mod itself would have to carry, so the next session can plan the port (LW-346
+items 7 and 8) without re-reading tonight's journal. Each piece names its live proof.
+
+1. Boot-time byte patches (plain code, safe before the game runs; all on marker v2, every one
+   owner-observed 2026-08-26/27): 0x140397121, 0x140287570, 0x140285E2D, 0x140286187,
+   0x1402862F7, 0x140285EE7, 0x14030CED3, 0x140101071, 0x1403602F4, 0x140226FDF, 0x14028024F,
+   0x1401ED95B, 0x1401ED982, plus the rig's own six (count-getter cap, four display caps,
+   count[261] seed) and the equip clamp 0x140284C82 (06 -> 07). Port shape: one table of
+   (address, old, new) with old-byte verification and full rollback on any mismatch, behind
+   LaunchGuard (the PE key already gates the mod), and a PATCH_REANCHOR entry per site.
+2. Post-load byte patches in the copy-protected region (pages are not decrypted at boot):
+   0x14F2EA40F 06 -> 07 and 0x14F45D315 5E -> 5F (damage path). Port shape: the same table
+   applied by the tick loop once the page reads its expected old byte (poll until readable and
+   vanilla, then write, then verify), never at boot.
+3. Thunk clones (five-byte E9 thunks redirected to a near stub that remaps ecx for ids
+   261..511 and jumps to the original; the rig's ThunkRedirectInstaller): weapon stats
+   0x1402B8C74 -> per-item donor (67 tonight), validity 0x1402B8EBC -> 37, type probe
+   0x1402B8EE8 -> 37, range index 0x1402B8BCC -> 37, sprite/palette pair 0x1402B8E60 -> 37,
+   range base 0x1402B8C0C, siblings 0x1402B8CD4 / 0x1402B8D3C / 0x1402B8DA0 / 0x1402B8E04 ->
+   37. Port shape: a native stub per thunk allocated within +/-2 GB (VirtualAlloc near the
+   image), the stub maps id -> donor through a small table so each new id can name its own
+   stats donor and art donor; the plain category getter 0x1402890C0 needs the function-entry
+   (Reloaded.Hooks) form the rig uses.
+4. Extended catalog: the accessor 0x1402B8C44's extended branch (ids >= 256) already indexes
+   a relocated 8 KB buffer (disp32 patched at the June site); the LW mod owns that buffer and
+   fills one 12-byte record per new id (donor record copied, then byte 5 type, byte 7 equip
+   bonus row, bytes 8-9 price edited from data). Live proof: the Moonblade's card, shield
+   compatibility, sell price 5 (record price 10).
+5. Order-rebuild hook on 0x140285DF0 (re-append what the display-order rebuild dropped;
+   HandsFree OrderRebuildHook b1abd77, four partials plus tests). Port as-is.
+6. Sidecar for bag counts of ids 261+ (LW-348): written on change, replayed after every load;
+   the save never carries them (proven tonight, cold boot).
+7. Data layer (item 7): one Nenkai-mimic XML per table for ids 261+ generated from
+   data/items.json (name, description, icon pair, stats donor, art donor, price, type,
+   equip-bonus row); item.en.nxd already accepts added rows (the Moonblade row ships today);
+   icons are the per-id .tex plus .utexpt pair proven 2026-08-26.
+8. Known limits to state in the docs: enemies cannot carry a new id through the encounter
+   table (one-byte ids), shops cannot stock it (no shop-flags row past 255), Optimize ranks
+   by WP so a weaker new weapon will be swapped out, Regen (equip-bonus row) is not applied
+   on the field yet, and an uninstall loses the item cleanly but a saved order table may need
+   one sort.

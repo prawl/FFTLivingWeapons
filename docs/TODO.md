@@ -354,6 +354,10 @@ belongs rather than at the bottom.
   no crash; ledger [capbreak-uninstall-is-clean-loss]); removal note must add "sort once if
   a list looks short" because the saved order tables keep the id. Item 9's Chronicle clause
   is void (no per-item screen exists).
+  03:15: enemies CANNOT carry it via the encounter table (ENTD item ids are one byte; a
+  Knight given RightHand 261 spawned empty-handed, journal 02:45-03:15), so item 9's "enemies
+  carrying it" and item 3's steal / Rend / spoils need a runtime loadout write after enemy
+  construction, to be designed with the port.
   LIVE_LEDGER for June's three rows and tonight's. Verify: one fresh boot with only the marker
   (no poke script) walks (1) through (6) live with the owner watching; the rest ship through
   the normal gates and their own live passes.
