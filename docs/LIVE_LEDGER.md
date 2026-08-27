@@ -1748,6 +1748,54 @@ Raising one unit's Max HP mid-battle leaves the mod's kill bookkeeping intact: w
 
 ## Uncertain — observed live, not yet isolated / built on
 
+### [extended-inventory-boot-arm] The ported extended inventory (LivingWeapon/Extended, 2026-08-27) arms the whole cap-break set from Mod.StartEx and the Moonblade behaves as it did under the research rig
+
+Built 2026-08-27 (commits 4a4c3e3, 10ba024, 4e1cfae, 9406599, 128b28a) and NOT yet run in the game: the FFTHandsFree rig's boot-arm marker v2, the two post-load pokes and the count re-seed, replayed as one transaction inside this mod (19 cap patches with old-byte verification, the relocated catalog, ten accessor thunk stubs, the category-getter and order-rebuild hooks, the LW-348 bag sidecar). Every piece is a port of something the owner observed on 1.5.2 on 2026-08-26/27 under the rig; what is new and unobserved is the composition (arming from this DLL's StartEx behind the PE build-key landmark, the two copy-protected caps landing from the tick loop, the sidecar replay) and the two stub shapes below. The owner's live pass on the ported build (docs/TODO.md LW-346 Verify) is what moves this row.
+
+<details><summary>How we got here</summary>
+
+**Claim (original wording):** everything the rig did can be done by the mod itself at boot, with the same result.
+
+**Mechanism:** docs/research/ITEM_CAP_261_BREAK_JOURNEY.md, the 2026-08-27 03:20 port blueprint; ExtendedInventory.BootArm (LivingWeapon/Extended/ExtendedInventory.cs).
+
+**Evidence:** unit suites only (ExtendedInventoryTests over a fake vanilla image; ThunkStubTests executing the stubs in-process). No game run.
+
+**Date:** 2026-08-27
+
+</details>
+
+### [weapon-stat-row-stub] The weapon-stat accessor thunk answering an extended id with a pointer to an 8-byte ITEM_WEAPON_DATA row the mod authored gives that item those stats
+
+Not yet observed. The rig always answered as a DONOR id (row 67, Warbrand) and the owner-read WP flip (67 to 37 made the card read 28, journal 2026-08-26 "STAT FUNNEL") shows every stats consumer resolves through this thunk; the port returns the mod's own row instead (ThunkStub.EmitRowStub, executed in-process by ThunkStubTests). The premise that nothing downstream needs the row to live inside the game's 128-row table (Offsets.ItemStatsBase) is the untested step. If the card or the damage read wrong on the ported build, this row is the first suspect: fall back to a donor stub for the weapon-stat thunk and keep the custom row for later.
+
+<details><summary>How we got here</summary>
+
+**Claim (original wording):** the weapon-stat thunk's callers use only the pointer it returns.
+
+**Mechanism:** journal 2026-08-26 "STAT FUNNEL" (WP 15 to 28 on donor swap) and 2026-08-27 00:00 (the 8-byte row copied to the damage staging).
+
+**Evidence:** ThunkStubTests.Row_stub_executes_returning_our_row_pointer_for_extended_ids_only (the stub itself); no game run.
+
+**Date:** 2026-08-27
+
+</details>
+
+### [donor-table-thunk-stub] A per-id donor table behind each accessor thunk behaves like the rig's constant-donor stub for one id and lets every extended id name its own clone and art donors
+
+Not yet observed. The rig's stub remapped every id 261..511 to ONE donor; the port's stub (ThunkStub.EmitDonorStub) looks the donor up in a table indexed by id minus 261 and passes ids past the table through untouched. Register contract is the same (only rax and rcx touched, rdx and r8..r11 untouched, the June r11 lesson). ThunkStubTests executes the stub in the test process through a function pointer (donor lookup, mask, passthrough); the game has not run it.
+
+<details><summary>How we got here</summary>
+
+**Claim (original wording):** a table lookup in the stub is register-safe and behaves as the constant stub did.
+
+**Mechanism:** LivingWeapon/Extended/ThunkStub.cs, byte layout pinned in ThunkStubTests.
+
+**Evidence:** in-process execution tests only.
+
+**Date:** 2026-08-27
+
+</details>
+
 ### [capbreak-uninstall-is-clean-loss] Loading a save that holds the new weapon on a game WITHOUT the rig loads fine: the hand is emptied, the item is simply gone, nothing crashes
 
 Observed 2026-08-27 02:25 by the owner on 1.5.2: with the boot marker disarmed (vanilla game plus the HandsFree bridge without the cap-break rig), the save that carried the Moonblade in Ramza's right hand and one spare in the bag loaded normally; the hand read 0x00FF, the bag count 0, the Acquired list had been rebuilt without 261, and the Inventory showed no Moonblade. Both persisted display-order tables still carried 261 as their LAST entry before the end marker; the vanilla rebuild stops scanning at the first word >= 261, so nothing after it could be lost in this save, but a save where a sort had moved 261 into the middle of a table would hide every later entry from that list's default order until the player sorts once (the sort path drops the id and rewrites the table). Not yet built on; the removal note for LW-346 item 10 should say "sell or unequip new items first; if a list looks short after uninstalling, sort it once".

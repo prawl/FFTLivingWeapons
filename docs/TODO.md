@@ -13,7 +13,7 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.4.0)
 
-- **[LW-346] A brand-new weapon past the game's item limit becomes a real item this mod owns, with no research rig attached** (opened 2026-08-26) [BUILDING]
+- **[LW-346] A brand-new weapon past the game's item limit becomes a real item this mod owns, with no research rig attached** (opened 2026-08-26) [AWAITING-LIVE]
   - Plain language: the game only knows 261 items. Last night's research rig proved a 262nd
     (id 261, the Moonblade) can be listed, equipped, swung, saved and sold on 1.5.2, but every
     piece of that lives in a separate research mod (FFTHandsFree, branch capbreak-equip) plus
@@ -23,6 +23,28 @@ the technical detail lives in the indented lines under it.
     Weapons as a data-driven "extended inventory" system, so a new weapon is a row in
     data/items.json, and LW-347 (the shield eviction fix, one thunk clone) and LW-348 (the
     bag-count sidecar) ride with it and exit with it.
+  - BUILT 2026-08-27 in six gated stages (15f4767 ledger, 4a4c3e3 memory seams, 10ba024 native
+    pieces, 4e1cfae data layer, 9406599 boot arm plus the LW-348 sidecar, 128b28a icons, then
+    the docs stage), suite green at every one (3424 at the end); the owner's live pass is what
+    is outstanding. What lives in the mod now: LivingWeapon/Extended (ThunkStub, ThunkClone,
+    BytePatchSet, PendingPatch, ExtendedRecords, ExtendedCatalog, OrderRebuildHook,
+    CategoryGetterHook, ExtendedInventoryData, ExtendedSites, ExtendedInventory + .Tick),
+    LivingWeapon/Memory (CodePatcher, NearAllocator), LivingWeapon/Persistence/ExtendedBagSidecar,
+    mod/extended_inventory/*.xml from generate.py, the Moonblade's icon pair and parts files,
+    and its item.en.nxd row. Three new Uncertain ledger rows carry what the unit tests cannot:
+    [extended-inventory-boot-arm], [weapon-stat-row-stub], [donor-table-thunk-stub].
+    Same-day owner sightings folded in: the blank "99" Items row was give_all_items seeding
+    id 254 (memory note, HandsFree c3fa8e4 skips it); the Moonblade punching and then vanishing
+    were the two rig rituals not yet run that boot (the post-load caps and the count re-seed),
+    both of which the port does on its own.
+  - FIRST BOOT PROTOCOL (owner): the HandsFree research marker (capbreak_bootarm.marker in its bridge folder)
+    must be renamed away BEFORE the launch (both the rig and the port refuse on a site that is
+    already patched, so with the marker on, whichever arms second stands down); the
+    LW-323/LW-324 working-tree files are separate and stay uncommitted. Expected log lines:
+    "Extended inventory armed: 1 new item(s) [Moonblade (id 261)], 19 cap patches, 10 accessor
+    redirects, 2 menu hooks; 2 damage caps wait for the first save to load", then after the
+    load "Extended-inventory bag counts placed from none (first run): Moonblade x1" and two
+    "cap is widened" lines. A "NOT armed this session (...)" warning names the exact refusal.
   - Port shape (docs/research/ITEM_CAP_261_BREAK_JOURNEY.md, the 03:20 blueprint): a guarded
     code patcher plus near allocator; a table of boot-safe byte patches with old-byte
     verification and full rollback; per-item donor tables behind the accessor thunk clones

@@ -87,6 +87,21 @@ Then produce the checklist the live session will execute:
    dev spikes under #if LWDEV, Treasure Master anchors). Classify each: state flag / struct base /
    table base / display mirror / TM; and whether it GATES WRITES (stale-but-valid write anchors are
    the dangerous class, see Traps).
+   LW-346, the extended inventory (2026-08-27), adds a whole class of CODE sites that a patch
+   moves as a block: the 19 boot-safe and 2 post-load single-byte id caps in
+   `LivingWeapon/Extended/ExtendedSites.cs` (each row carries its vanilla OLD byte, which is
+   that site's own landmark: the boot arm refuses the entire set on one mismatch and the two
+   post-load caps give up on a foreign byte), the ten E9 accessor thunks, the two hooked
+   function entries, the catalog disp32 and the three data bases in Offsets.cs's "extended
+   inventory" block, plus the prologue arrays `CategoryGetterHook.ExpectedPrologue` and
+   `OrderRebuildHook.ExpectedPrologue`. The 1.5.0 to 1.5.2 history says the equip/display
+   cluster slides as one block and the accessor cluster as another (-0x78 and -0x74 that time),
+   so re-find one site per cluster first, then verify the rest at the slid address with the
+   byte-check probe (`tools/probes/lw346_capbreak_live_bytecheck.py`, or the offline read the
+   2026-08-27 session did against the exe on disk: every old byte, every E9, both prologues
+   behind ret/CC padding). ExtendedSites.cs, Offsets.cs and both prologue arrays move in the
+   SAME commit as LaunchGuard's PE key; the ExtendedSitesTests pins (marker-v2 byte values)
+   are the tests that must move with them.
 2. Every pin that must move in the same commit: tests that hard-code addresses or build keys
    (BarrageTests table-base pin, ScholarRingTests write tripwire, LaunchGuardTests /
    StandDownFlightArchiveTests staging), docs/recipes stating addresses as current.

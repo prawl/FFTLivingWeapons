@@ -196,6 +196,44 @@ enemy pool.
    TODO: extract the true vanilla item.en.nxd for the full build. NXD round-trip = `nxd-to-sqlite` →
    edit `Item-en` table → `sqlite-to-nxd`, both with `-g fft`.
 
+## 6b. The extended inventory (brand-new item ids past the game's 261 wall)
+
+Added 2026-08-27 (LW-346). The game's item tables end at id 260 and the engine hardcodes that
+wall in about two dozen places (menu list loops, the equip clamp, the save format, the accessor
+thunks every per-item lookup goes through). This section is the plain-language contract for
+the system that steps past it; the address-level story is docs/research/ITEM_CAP_261_BREAK_JOURNEY.md
+and the ledger rows named there.
+
+**What it is for.** Net-new weapons that exist only while this mod runs: first the Moonblade
+(id 261, the proof), then the seven rebalanced ex-axe and ex-flail designs (LW-351, so ids
+48-50 and 67-70 can go back to being real axes and flails), then partner mods' items (LW-344).
+
+**How a new item is declared.** One row in `data/items.json` with an `extended` block. The row
+looks like any other weapon (name, category, tier, `proposed` stats, `grows`, flavor) plus:
+`cloneDonor` (the vanilla id whose answers the game's per-category lookups borrow: type, validity,
+range, the sibling per-item tables), `artDonor` (whose sprite/palette pair draws the swing),
+`seedCount` (bag copies granted on a first install), `iconSource` (whose menu picture it copies),
+and the catalog fields the modloader's own Item row has (palette, spriteId, requiredLevel,
+typeFlags, price, shopAvailability). `tools/generate.py` validates (contiguous ids from 261,
+weapons only in V1, real donors, attack flags present, all four icon files present) and writes
+`mod/extended_inventory/{ItemData,ItemWeaponData,ItemExtendedData}.xml` in the modloader's row
+vocabulary. Those files are read by LivingWeapon.dll at boot, never by the modloader.
+
+**What the runtime does with it.** At startup, before the game runs, `ExtendedInventory.BootArm`
+checks the game build, widens every id cap (each site verified against its vanilla byte), relocates
+the extended catalog into a buffer it fills from the data, redirects the ten accessor thunks so
+the new ids answer with the mod's own 8-byte stats row (weapon stats) or as their donors
+(everything else), and hooks the two menu routines that would otherwise drop an unknown id. One
+refusal rolls all of it back with one log line. After a save loads, two copy-protected damage
+caps are widened from the tick loop and the bag counts ride `extended_inventory.json` beside
+`kills.json` (LW-348), because the save file stores exactly 261 counts.
+
+**Known limits (stated, not hidden).** Enemies cannot carry a new id through the encounter table
+(one-byte ids; LW-350 is the runtime loadout answer). Shops cannot stock one (no shop-flags row
+past 255). Optimize ranks by WP and will swap a weaker new weapon out. Growth of the WP lane is
+not wired for extended ids (their stats row is not in the game's table). Uninstalling loses the
+item cleanly (docs/COMPATIBILITY.md has the note).
+
 ## 7. Open questions / next steps
 
 - [ ] **Formula override scope**: can the `<Formula>` field re-curve guns off `WP²`, or is `WP²` hardcoded
