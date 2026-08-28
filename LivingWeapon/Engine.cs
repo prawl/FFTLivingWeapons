@@ -255,16 +255,16 @@ internal sealed class Engine
         // LW-317: the turn-scoped resident-stats WP write for the "wp"/"wp+faith" gun lanes --
         // Routes (GrowthEngine.Lanes.cs) contributes no combat-struct lane for those, so this is
         // their whole growth mechanism.
-        _wpTableHold = new WpTableHold(meta, _kills, live);
-        // LW-295 cycle B (LW-336: retargeted from pac-splicing to the deployed loose tex): keeps
-        // every weapon's equip icon (modDir/FFTIVC/<baseRel>) synced to its current kill tier.
-        // Reads the shared kill tally + the known weapon id set (meta.Keys, so a stale bake's
-        // ids never get managed); all file I/O goes through the FileIconGlowStore seam, never Mem.
-        _iconGlow = new IconGlow(modDir, _kills, meta.Keys, new FileIconGlowStore(modDir));
         // LW-346: the extended inventory (ids 261+). Loaded from modDir/extended_inventory here;
         // ARMED later from InjectHooks (Mod.StartEx, still before the game runs) behind its own
         // PE build-key landmark, because the boot arm cannot wait for LaunchGuard's roster
         // landmark (readable only once a save loads) and the menu registry is built at boot.
+        // Tests inject `extended` (fakes); production builds the live seams right here. Built
+        // BEFORE WpTableHold, which resolves an extended id's WP byte through it.
+        _extended = extended ?? new ExtendedInventory(new LiveCodePatcher(), new LiveNearAllocator(),
+            ExtendedInventoryData.Load(modDir), ExtendedBagSidecar.Load(save.PathFor(ExtendedBagSidecar.FileName)),
+            FingerprintGuard.PeBuildKey((long a, int n, out byte[] b) => live.TryReadBytes(a, n, out b), Offsets.ModuleBase,
+                LaunchGuard.ExpectedTimeDateStamp, LaunchGuard.ExpectedSizeOfImage).Probe);
         // LW-346 growth polish: an extended id's WP byte lives in the extended inventory's stub
         // page (the resident table has no row for it), so the hold resolves it through _extended.
         _wpTableHold = new WpTableHold(meta, _kills, live, _extended.WeaponRowAddr);
@@ -273,12 +273,6 @@ internal sealed class Engine
         // Reads the shared kill tally + the known weapon id set (meta.Keys, so a stale bake's
         // ids never get managed); all file I/O goes through the FileIconGlowStore seam, never Mem.
         _iconGlow = new IconGlow(modDir, _kills, meta.Keys, new FileIconGlowStore(modDir));
-        // Tests inject `extended` (fakes); production builds the live seams right here. Built
-        // BEFORE WpTableHold, which resolves an extended id's WP byte through it.
-        _extended = extended ?? new ExtendedInventory(new LiveCodePatcher(), new LiveNearAllocator(),
-            ExtendedInventoryData.Load(modDir), ExtendedBagSidecar.Load(save.PathFor(ExtendedBagSidecar.FileName)),
-            FingerprintGuard.PeBuildKey((long a, int n, out byte[] b) => live.TryReadBytes(a, n, out b), Offsets.ModuleBase,
-                LaunchGuard.ExpectedTimeDateStamp, LaunchGuard.ExpectedSizeOfImage).Probe);
 #if LWDEV
         // Shares the SAME register KillerStamp/AttackCard already trust (see TurnOwnerSpike.cs's
         // class doc for why a second register is deliberately avoided).
