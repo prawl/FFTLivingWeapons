@@ -877,7 +877,7 @@
       <Power>6</Power>
       <Evasion>10</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>201</OptionsAbilityId>
+      <OptionsAbilityId>243</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>93</Id> <!-- Duskstring Harp (was Bloodstring Harp) -->
@@ -904,7 +904,7 @@
       <Power>5</Power>
       <Evasion>15</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>119</OptionsAbilityId>
+      <OptionsAbilityId>234</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>96</Id> <!-- Knell Codex (was Bestiary) -->
