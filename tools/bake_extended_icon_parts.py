@@ -36,6 +36,7 @@ from lib.paths import ROOT, STEAM_FFT
 
 ICON_PAC = STEAM_FFT / "data" / "enhanced" / "0008.pac"
 MOD_ICON = ROOT / "mod" / "FFTIVC" / "data" / "enhanced" / "ui" / "ffto" / "icon"
+GLOW_DIR = ROOT / "LivingWeapon" / "glow_icons"
 SURFACES = (("equip_item", "ei"), ("equip_item_s", "ei_s"))
 DONOR_ID = 37   # Chaos Blade: the pair proven live on id 261; any vanilla weapon's pair has the same layout
 
@@ -89,6 +90,22 @@ def main():
                 out.parent.mkdir(parents=True, exist_ok=True)
                 out.write_bytes(patch_parts(donors[(sub, pfx)], sub, pfx, DONOR_ID, it["id"]))
                 print(f"  wrote {out.relative_to(ROOT)} ({out.stat().st_size} bytes, from id {DONOR_ID})")
+                # Glow rims (LW-295/LW-336): the donor's three baked tier variants, byte-copied
+                # under the new id, so the runtime's icon sync rims the extended item like any
+                # weapon (its base tex IS the donor's, so the donor's variants are exact).
+                for tier in (1, 2, 3):
+                    src = GLOW_DIR / f"{pfx}_{icon_donor:03d}_uitx_t{tier}.tex"
+                    if not src.exists():
+                        raise SystemExit(f"id {it['id']} ({it['name']}): icon donor {icon_donor} has no glow variant "
+                                         f"{src.name} (run tools/bake_glow_icons.py bake --from {icon_donor} --to {icon_donor})")
+                    dst = GLOW_DIR / f"{pfx}_{it['id']:03d}_uitx_t{tier}.tex"
+                    dst.write_bytes(src.read_bytes())
+                    print(f"  wrote {dst.relative_to(ROOT)} (byte copy of id {icon_donor}'s tier {tier})")
+    # The glow manifest entries for the extended ids (sha1s of the copies), via the glow bake's own
+    # upsert so the schema can never drift between the two writers.
+    from bake_glow_icons import update_manifest
+    update_manifest([it["id"] for it in ext])
+    print(f"  manifest upserted for {[it['id'] for it in ext]}")
     return 0
 
 

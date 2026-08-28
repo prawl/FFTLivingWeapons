@@ -13,6 +13,30 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.4.0)
 
+- **[LW-356] A brand-new weapon grows and glows like the old ones** (opened 2026-08-27) [AWAITING-LIVE]
+  - Plain language: the Moonblade counted kills and grew its stat from day one (its growth lane
+    rides the same meta.json row as every weapon), but two growth surfaces still knew only the
+    game's own ids. Built 2026-08-27 evening (owner: "Do 3 now"). (1) The Weapon Power lane:
+    a gun-style weapon's WP bump is written into the game's stats table, which has no row past
+    id 127; an extended item's row lives in the mod's own stub page, so the hold now resolves
+    that row through the extended inventory and writes there (no extended weapon uses the WP
+    lane yet; the Moonblade grows Physical Attack). (2) Glow rims: the extended item's three
+    tier variants are byte copies of its icon donor's (its picture IS the donor's), with manifest
+    entries, so the runtime rims it at each kill tier like any weapon. (3) The in-battle card
+    and Attack-menu paint for id 261 have no id bound in the code and need one owner read.
+  - (Tech: WpTableHold takes an extended-row resolver (ExtendedInventory.WeaponRowAddr = stub
+    page + RowStubHeader + (id-261)*8; Power at +4), refuses an extended id the resolver does
+    not know; tools/bake_extended_icon_parts.py copies the donor's glow_icons/*_t1..t3 and
+    upserts the manifest through bake_glow_icons.update_manifest; glow verify 122 ids.)
+  - Done means: a wp-lane extended weapon's turn-scoped WP bump lands in its stub row and
+    restores (unit-proven; live when such a weapon exists), the Moonblade's equip icon wears the
+    tier rim at +1 and beyond after the second launch following a deploy (the game caches icons
+    at first draw), and in battle its Attack-menu card and the status card paint its Kills
+    line and name suffix like any weapon.
+  - Verify: suite green (the two WpTableHold extended tests, the WeaponRowAddr pin, glow
+    verify); then the owner: deploy, launch twice, the Moonblade's icon shows the tier-1 rim
+    (it has 1 kill; prod tier 1 needs 5, so either five kills or the rim stays plain and that
+    is correct), and one battle's Attack menu on the Moonblade shows its dossier line.
 - **[LW-332] The Grows line moves up to sit directly under the Kills line** (opened 2026-08-25) [AWAITING-LIVE]
   - BUILT, four-round pipeline 2026-08-25 late (two adversarial verify rounds broke and
     then blessed the ownership design; final verdict SHIP, code 9, spec 9). Deployed and

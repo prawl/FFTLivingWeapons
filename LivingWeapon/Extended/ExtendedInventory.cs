@@ -35,6 +35,7 @@ internal sealed partial class ExtendedInventory
     private readonly ExtendedCatalog _catalog = new();
     private readonly ShopFlagsMirror _shops = new();   // LW-354
     private readonly List<ThunkClone> _clones = new();
+    private ThunkClone? _weaponStatClone;   // the row stub: its page holds every extended id's 8-byte stats row
     private CategoryGetterHook? _getterHook;
     private OrderRebuildHook? _orderHook;
 
@@ -116,8 +117,10 @@ internal sealed partial class ExtendedInventory
         var rows = Items.OrderBy(i => i.Id).Select(i => i.WeaponRow).ToArray();
         var cloneDonors = Items.OrderBy(i => i.Id).Select(i => i.CloneDonor).ToArray();
         var artDonors = Items.OrderBy(i => i.Id).Select(i => i.ArtDonor).ToArray();
-        why = InstallClone(new ThunkClone(Offsets.ThunkWeaponStat, "weapon-stat"), t => ThunkStub.EmitRowStub(lo, rows, t));
+        var weaponStat = new ThunkClone(Offsets.ThunkWeaponStat, "weapon-stat");
+        why = InstallClone(weaponStat, t => ThunkStub.EmitRowStub(lo, rows, t));
         if (why != null) return why;
+        _weaponStatClone = weaponStat;
         foreach (var (addr, label, usesArt) in ExtendedSites.DonorThunks)
         {
             var donors = usesArt ? artDonors : cloneDonors;
@@ -143,9 +146,23 @@ internal sealed partial class ExtendedInventory
         _getterHook?.Release(); _getterHook = null;
         for (int i = _clones.Count - 1; i >= 0; i--) _clones[i].Restore(_patcher);
         _clones.Clear();
+        _weaponStatClone = null;
         _shops.Restore(_patcher);
         _catalog.Restore(_patcher);
         _patches.Rollback(_patcher);
+    }
+
+    /// <summary>The address of an extended id's 8-byte ITEM_WEAPON_DATA row inside the weapon-stat
+    /// stub page (what the game's weapon-stat accessor returns for that id), or -1 when the
+    /// inventory is not armed or the id is not one of ours. WpTableHold writes its turn-scoped
+    /// WP bump there for a wp/wp+faith-lane extended weapon (the resident table has no row for
+    /// these ids, Offsets.ItemStatsRows). Same 8-byte layout as the resident table: Power at +4.</summary>
+    public long WeaponRowAddr(int id)
+    {
+        if (!Armed || _weaponStatClone == null || !_weaponStatClone.Installed) return -1;
+        int i = id - ExtendedCatalog.FirstExtendedId;
+        if (i < 0 || i >= Items.Count) return -1;
+        return _weaponStatClone.StubAddr + ThunkStub.RowStubHeader + (long)i * ThunkStub.RowSize;
     }
 
     private void SeedBag()

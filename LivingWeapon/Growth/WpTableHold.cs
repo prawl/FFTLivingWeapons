@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace LivingWeapon;
@@ -42,11 +43,19 @@ internal sealed class WpTableHold
     // worse than one loud warning and standing clear.
     private readonly HashSet<int> _standDown = new();
 
-    public WpTableHold(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, IGameMemory mem)
+    // LW-346 growth polish: an extended-inventory id (261+) has no row in the resident stats table
+    // (its 8-byte row lives in the mod's own weapon-stat stub page); this resolver answers that
+    // row's address, or -1 for an id that is not an armed extended item. Null = no extended
+    // inventory (tests, and the pre-LW-346 shape): such ids are refused, never guessed.
+    private readonly Func<int, long>? _extendedRowAddr;
+
+    public WpTableHold(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, IGameMemory mem,
+        Func<int, long>? extendedRowAddr = null)
     {
         _meta = meta;
         _kills = kills;
         _mem = mem;
+        _extendedRowAddr = extendedRowAddr;
     }
 
     public void Tick(bool inLive)
@@ -64,6 +73,7 @@ internal sealed class WpTableHold
         if (!Wants(entry, weaponId, out int tier)) { Restore(); return; }   // enemy turn / weapon change / tier 0
 
         long addr = StatsAddr(weaponId);
+        if (addr < 0) { Restore(); return; }   // an extended id with no armed row: nothing to bump
         if (_addr != -1 && _addr != addr) Restore();   // the wielder swapped to a different wp weapon
         if (_standDown.Contains(weaponId)) return;      // a foreign writer already flagged this id this battle
 
@@ -82,15 +92,23 @@ internal sealed class WpTableHold
         if (matchCount == 0) return false;   // no roster row wields it at this fingerprint -- an enemy
         // LW-346: an extended-inventory id has no row in the resident table (its stats row lives in
         // the mod's own stub page); indexing past ItemStatsRows would write into the EquipBonus
-        // table behind it. A wp-lane extended weapon gets no bump until it has its own writer.
-        if (weaponId >= Offsets.ItemStatsRows) return false;
+        // table behind it, so such an id is only ever served through the extended-row resolver.
+        if (weaponId >= Offsets.ItemStatsRows && _extendedRowAddr == null) return false;
         if (!_meta.TryGetValue(weaponId, out var m) || (m.Lane != "wp" && m.Lane != "wp+faith")) return false;
         tier = Tuning.TierOf(_kills, weaponId);
         return tier > 0;
     }
 
-    private static long StatsAddr(int weaponId)
-        => Offsets.ItemStatsBase + (long)weaponId * Offsets.ItemStatsStride + Offsets.ItemStatsWpOff;
+    /// <summary>The WP byte to hold: the resident table row for a vanilla-range id; the mod's own
+    /// stub row (same 8-byte layout, Power at +4) for an armed extended id; -1 for an extended id
+    /// the resolver does not know.</summary>
+    private long StatsAddr(int weaponId)
+    {
+        if (weaponId < Offsets.ItemStatsRows)
+            return Offsets.ItemStatsBase + (long)weaponId * Offsets.ItemStatsStride + Offsets.ItemStatsWpOff;
+        long row = _extendedRowAddr?.Invoke(weaponId) ?? -1;
+        return row < 0 ? -1 : row + Offsets.ItemStatsWpOff;
+    }
 
     /// <summary>Write discipline (N1): before ANY write, the byte must read either the baked WP
     /// or the target WE last held it at -- anything else is a foreign write this hold must never

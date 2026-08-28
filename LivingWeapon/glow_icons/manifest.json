@@ -4119,6 +4119,40 @@
     "2": "4a2bc43a2ceb960c644610d3b3a2740549f5d738",
     "3": "4613f6145a5829e53354b0f6f120aebcad3e2ab0"
    }
+  },
+  {
+   "id": 261,
+   "surface": "card",
+   "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_261_uitx.tex",
+   "length": 51296,
+   "baseSha1": "be2a28c8ae247ca28908fb7401bd665c53079e2f",
+   "variants": {
+    "1": "ei_261_uitx_t1.tex",
+    "2": "ei_261_uitx_t2.tex",
+    "3": "ei_261_uitx_t3.tex"
+   },
+   "variantSha1s": {
+    "1": "821d65d151f93a0bacaeff82407f5dd3ab627506",
+    "2": "b1b516adc75b41aa70f89b6a89378868de16a391",
+    "3": "547e9bba34022146fddb7e5979c9f637126bb7ea"
+   }
+  },
+  {
+   "id": 261,
+   "surface": "small",
+   "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_261_uitx.tex",
+   "length": 12384,
+   "baseSha1": "ab496a5172fcce55f524c402de1efb3384295915",
+   "variants": {
+    "1": "ei_s_261_uitx_t1.tex",
+    "2": "ei_s_261_uitx_t2.tex",
+    "3": "ei_s_261_uitx_t3.tex"
+   },
+   "variantSha1s": {
+    "1": "d849474fe1030533828e6333eda2bb072eac58e5",
+    "2": "28bcda3878c1adb3f300d87f2ce8b6fdeff0061a",
+    "3": "d6451aa34cffb2468e48e013a6d96852c9194ece"
+   }
   }
  ]
 }

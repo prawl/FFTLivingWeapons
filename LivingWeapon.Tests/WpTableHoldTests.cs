@@ -91,6 +91,40 @@ public class WpTableHoldTests
         Assert.DoesNotContain(mem.WriteOrder, a => a == addr);
     }
 
+    [Fact]
+    public void WpTableHold_BumpsAnExtendedIdInsideItsOwnStubRow()
+    {
+        const int extId = ExtendedCatalog.FirstExtendedId;
+        const long row = 0x150000038L;   // the stub page's first 8-byte row (any address; the resolver owns it)
+        var mem = new FakeSparseMemory();
+        long entry = SeatOwner(mem, Slot, extId);
+        SeatMatchingRoster(mem, 0, extId);
+        long addr = row + Offsets.ItemStatsWpOff;
+        mem.MarkWritable(addr, 1);
+        mem.U8s[addr] = 16;
+        var hold = new WpTableHold(Meta(extId, "wp", wp: 16), KillsAtTier3(extId), mem, id => id == extId ? row : -1);
+
+        hold.Tick(inLive: true);
+        Assert.Equal((byte)19, mem.U8s[addr]);   // bumped inside OUR row, never the resident table
+        Assert.DoesNotContain(mem.WriteOrder, a => a == StatsAddr(extId));
+
+        mem.U8s[entry + Offsets.ATurnFlag] = 0;
+        for (int i = 0; i < Tuning.WpUnresolvedRestoreTicks; i++) hold.Tick(inLive: true);
+        Assert.Equal((byte)16, mem.U8s[addr]);   // restored the same way
+    }
+
+    [Fact]
+    public void WpTableHold_LeavesAnExtendedIdAloneWhenTheResolverDoesNotKnowIt()
+    {
+        const int extId = ExtendedCatalog.FirstExtendedId + 1;
+        var mem = new FakeSparseMemory();
+        SeatOwner(mem, Slot, extId);
+        SeatMatchingRoster(mem, 0, extId);
+        var hold = new WpTableHold(Meta(extId, "wp", wp: 16), KillsAtTier3(extId), mem, _ => -1);
+        hold.Tick(inLive: true);
+        Assert.Empty(mem.WriteOrder);
+    }
+
     // ---- TDD item 11 ----
 
     [Fact]

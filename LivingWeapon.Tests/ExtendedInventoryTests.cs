@@ -94,6 +94,12 @@ public class ExtendedInventoryTests : IDisposable
         Assert.Equal(0xFE, f.Bytes[Offsets.ModuleBase + BitConverter.ToInt32(f.Read(Offsets.ShopBuilderLowByteDisp32, 4), 0) + 37 * 2]);   // vanilla half synced
         inv.BootArm(null);   // idempotent
         Assert.True(inv.Armed);
+        // growth polish: the WP hold's extended-row resolver points inside the weapon-stat stub page
+        Assert.True(ThunkStub.IsJmpRel32(f.Read(Offsets.ThunkWeaponStat, 5), Offsets.ThunkWeaponStat, out long stubPage));
+        Assert.Equal(stubPage + ThunkStub.RowStubHeader, inv.WeaponRowAddr(261));
+        Assert.Equal(0x0F, f.Bytes[inv.WeaponRowAddr(261) + Offsets.ItemStatsWpOff]);   // Power 15 sits at +4
+        Assert.Equal(-1, inv.WeaponRowAddr(262));
+        Assert.Equal(-1, inv.WeaponRowAddr(37));
     }
 
     [Fact]
@@ -117,6 +123,7 @@ public class ExtendedInventoryTests : IDisposable
         Assert.False(inv.Armed);
         Assert.Null(inv.Refusal);
         Assert.Empty(f.Writes);
+        Assert.Equal(-1, inv.WeaponRowAddr(261));   // unarmed: the WP hold gets no row
         var empty = Build(f, new ExtendedInventoryData.LoadResult { FolderPresent = true });
         empty.BootArm(null);
         Assert.False(empty.Armed);
