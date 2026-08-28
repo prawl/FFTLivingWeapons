@@ -10,6 +10,12 @@ before 2026-07-21 keep their original prose.
 
 ## 2.4.0 cycle
 
+- [LW-355] SHIPPED 7b0499a 2026-08-27: Two weapons now do what their cards always claimed,
+  ratified by the owner ("Keep", 2026-08-27 evening). Siren's Lyre casts Confuse on hit
+  (ability 243) instead of Charm (201), closing the parked known issue from 1.2.0; Glarebound
+  Tome casts Blind (234) instead of Intimidate (119, a Bravery-lowering spell no text ever
+  mentioned). Both cards print the new line. (Tech: data/items.json onHitAbilityId; the
+  regenerated ItemWeaponData.xml in eaf7961; the LW-352 claims gate is what forced the choice.)
 - [LW-354] SHIPPED 07b9cb2 2026-08-27: A town shop can now sell a brand-new extended-inventory
   weapon. The owner asked whether shops were truly impossible for the new items; only the data
   table was: the game keeps one row of town flags per item with room for exactly 256, and the

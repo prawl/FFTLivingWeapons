@@ -209,17 +209,6 @@ belongs rather than at the bottom.
   shows; the win is a rule the runtime can drive (LW-336's sync would then refresh the rim
   the moment a tier is crossed). Cite the exact probe (tools/probes/live_icon_patch_probe.py)
   and restore the pac explicitly after (it persists across relaunches).
-- [LW-355] 2026-08-27: Two weapons were changed to do what their own cards claimed, and the
-  owner has to ratify or revert both (one field each in data/items.json). Siren's Lyre (id 92)
-  now casts Confuse on hit (ability 243) instead of Charm (201): its flavor, identity and design
-  field always said Confuse, and the Charm was the known deferred bug the owner had parked
-  (memory sirens-lyre-charm-bug); Charm is the stronger effect, so this is a nerf to the lyre
-  and the harp lane's dominance picture passed the gate after it. Glarebound Tome (id 95) now
-  casts Blind (234) instead of Intimidate (119, a Bravery-lowering spell): its name, flavor,
-  design field and grid row all say Blind. Both landed with the LW-352 claims gate (7b0499a)
-  because the gate refuses a card that claims what its row does not deliver, and the
-  alternative (rewriting the prose to match the old rows) would have erased the design. To
-  revert either: put the old ability id back and change its onHit/flavor to the truth.
 - [LW-353] 2026-08-27: Loading a save wipes the new weapon out of the bag and the mod then
   writes that wipe to disk as if the player had sold it, so a second save slot cannot coexist
   with the extended inventory. Owner test 2 (2026-08-27 18:53): with one Moonblade placed at
