@@ -692,4 +692,27 @@ internal static class Offsets
     /// <summary>disp32 field of <c>movzx edx, byte ptr [rcx + rbp + 0x67F890]</c> at 0x140288F3B
     /// (rbp = image base, rcx = id*2): the LOW byte read.</summary>
     public const long ShopBuilderLowByteDisp32 = 0x140288F3FL;
+
+    // --- LW-353: the save edges (static read of the live 1.5.2 process, 2026-08-27 evening,
+    // docs/research/ITEM_CAP_261_BREAK_JOURNEY.md "save edges"). The game builds a save STRUCT in
+    // a transient allocation whose pointer lives in one global (null between saves and loads);
+    // the serializer fills it (bag at +0x83A8, exactly 261 counts) and the load-apply routine
+    // copies it back into the game's globals. Its +0x100..+0x1B8 header is the slot-list
+    // metadata (play time in seconds at +0x1B4, chapter/location bytes, the four party names at
+    // +0x124), which the file round-trips verbatim, so a hash of that header is a per-save key
+    // that reads the same at save time and at load time. ---
+    /// <summary>u64: pointer to the save struct being serialized or applied; 0 otherwise.</summary>
+    public const long SaveStructPtr = 0x141D407A0L;
+    public const int SaveHeaderKeyOff = 0x100;
+    public const int SaveHeaderKeyLen = 0xB8;
+    public const int SaveHeaderPlayTimeOff = 0x1B4;   // u32 seconds = h*3600 + m*60 + s from 0x141856704/708/700
+    /// <summary>The save serializer (fills the struct; ecx = save kind/slot, dl/r8b = header
+    /// bytes +0x112/+0x113). Entry preceded by <c>ret; CC CC</c>.</summary>
+    public const long FnSaveSerialize = 0x140218F78L;
+    /// <summary>The load-apply routine (copies the struct's bag into 0x1411A7C00 at 0x14021B1D5,
+    /// the roster block after it). Entry preceded by four CC.</summary>
+    public const long FnSaveApply = 0x14021B070L;
+    /// <summary>A switch-dispatched sibling that also restores the bag (its case at 0x14021E1D1
+    /// zeroes count[0] first); hooked with the same handler so no load path is missed.</summary>
+    public const long FnSaveApplyB = 0x14021DDF0L;
 }

@@ -103,15 +103,60 @@ public class ExtendedInventoryTests : IDisposable
     }
 
     [Fact]
-    public void The_sidecar_count_beats_the_data_seed_at_boot()
+    public void Boot_always_places_the_data_seed_a_loaded_save_replays_its_own_counts()
     {
         var f = VanillaImage();
         var sidecar = ExtendedBagSidecar.Load(Path.Combine(_dir, ExtendedBagSidecar.FileName));
-        sidecar.Update(new Dictionary<int, int> { [261] = 3 });
+        var hdrA = SaveEdgeTrackerTests.Header(1000);
+        sidecar.RecordSave(SaveEdgeTracker.KeyFromHeader(hdrA), new Dictionary<int, int> { [261] = 3 });
         var inv = Build(f, Moonblade(), sidecar: sidecar);
         inv.BootArm(null);
         Assert.True(inv.Armed);
+        Assert.Equal(1, f.Bytes[Offsets.BagCountArray + 261]);   // boot = the seed (no save is loaded yet)
+
+        // The game applies save A: its bag holds the file's 261 counts (nothing for ours) ...
+        f.Seed(Offsets.BagCountArray + 261, 0);
+        inv.Tracker.OnApplied(hdrA);
+        inv.StepBagSidecar(new FakeSparseMemory());
+        Assert.Equal(3, f.Bytes[Offsets.BagCountArray + 261]);   // ... and the replay puts A's own count back
+
+        // A save never seen before (slot B) gets the seed, never A's count.
+        f.Seed(Offsets.BagCountArray + 261, 0);
+        inv.Tracker.OnApplied(SaveEdgeTrackerTests.Header(2000));
+        inv.StepBagSidecar(new FakeSparseMemory());
+        Assert.Equal(1, f.Bytes[Offsets.BagCountArray + 261]);
+
+        // The player buys one and saves: the serialize edge records 2 under the new key.
+        f.Seed(Offsets.BagCountArray + 261, 2);
+        var hdrB2 = SaveEdgeTrackerTests.Header(2600);
+        inv.Tracker.OnSerialized(hdrB2, new Dictionary<int, int> { [261] = 2 });
+        inv.StepBagSidecar(new FakeSparseMemory());
+        Assert.True(ExtendedBagSidecar.Load(Path.Combine(_dir, ExtendedBagSidecar.FileName)).TryGetSave(SaveEdgeTracker.KeyFromHeader(hdrB2), out var rec) && rec[261] == 2);
+
+        // A load that follows a save in the same window is drained FIRST, so the save that
+        // came after it records the replayed state, not the file's zero.
+        f.Seed(Offsets.BagCountArray + 261, 0);
+        inv.Tracker.OnApplied(hdrA);
+        inv.Tracker.OnSerialized(SaveEdgeTrackerTests.Header(1001), new Dictionary<int, int> { [261] = 3 });
+        inv.StepBagSidecar(new FakeSparseMemory());
         Assert.Equal(3, f.Bytes[Offsets.BagCountArray + 261]);
+    }
+
+    [Fact]
+    public void A_schema_1_sidecar_feeds_the_first_unknown_save_once_then_the_seed()
+    {
+        string path = Path.Combine(_dir, ExtendedBagSidecar.FileName);
+        File.WriteAllText(path, "{\"version\":1,\"counts\":{\"261\":2}}");
+        var f = VanillaImage();
+        var inv = Build(f, Moonblade(), sidecar: ExtendedBagSidecar.Load(path));
+        inv.BootArm(null);
+        inv.Tracker.OnApplied(SaveEdgeTrackerTests.Header(10));
+        inv.StepBagSidecar(new FakeSparseMemory());
+        Assert.Equal(2, f.Bytes[Offsets.BagCountArray + 261]);   // the pre-LW-353 count, once
+        inv.Tracker.OnApplied(SaveEdgeTrackerTests.Header(20));
+        inv.StepBagSidecar(new FakeSparseMemory());
+        Assert.Equal(1, f.Bytes[Offsets.BagCountArray + 261]);   // then the seed
+        Assert.Null(ExtendedBagSidecar.Load(path).TakeLegacy());  // and the file no longer carries it
     }
 
     [Fact]
@@ -191,7 +236,7 @@ public class ExtendedInventoryTests : IDisposable
     }
 
     [Fact]
-    public void Post_load_caps_settle_once_their_pages_read_vanilla_and_the_bag_sidecar_follows_changes()
+    public void Post_load_caps_settle_once_their_pages_read_vanilla_and_the_bag_is_untouched_without_an_edge()
     {
         var f = VanillaImage();
         var inv = Build(f, Moonblade());
@@ -208,15 +253,14 @@ public class ExtendedInventoryTests : IDisposable
         Assert.Equal(0x07, f.Bytes[0x14F2EA40F]);
         Assert.Equal(0x5F, f.Bytes[0x14F45D315]);
 
+        // LW-353: with no save edge pending, the tick writes nothing (a change in the bag is
+        // never recorded on its own any more; only a save edge records, only a load edge replays).
         var mem = new FakeSparseMemory();
-        mem.U8s[Offsets.BagCountArray + 261] = 1;
+        f.Seed(Offsets.BagCountArray + 261, 2);
         inv.StepBagSidecar(mem);
         string path = Path.Combine(_dir, ExtendedBagSidecar.FileName);
-        Assert.False(File.Exists(path));   // unchanged since boot: no write
-        mem.U8s[Offsets.BagCountArray + 261] = 2;
-        inv.StepBagSidecar(mem);
-        Assert.True(File.Exists(path));
-        Assert.Equal(2, ExtendedBagSidecar.Load(path).ResolveBootCount(261, 1));
+        Assert.False(File.Exists(path));
+        Assert.Equal(2, f.Bytes[Offsets.BagCountArray + 261]);
     }
 
     [Fact]

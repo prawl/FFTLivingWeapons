@@ -6,73 +6,147 @@ using Newtonsoft.Json;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-348: extended_inventory.json, the bag counts of the extended-inventory ids (261+), kept by
-/// the mod because the save file cannot hold them: the save serialises exactly 261 count bytes
-/// packed against the next array (docs/LIVE_LEDGER.md [capbreak-save-roundtrip-1-5-2], owner
-/// cold-boot round trip 2026-08-27). Lives in SaveLocation.SaveDir beside kills.json (survives a
-/// mod-folder-replace update). The boot arm replays it into the bag array before the game runs
-/// (a load leaves ids 261+ alone, so the replayed values survive every load that session); the
-/// tick loop saves it whenever a count changes (buy, sell, pick up, break).
+/// LW-348 / LW-353: extended_inventory.json, the bag counts of the extended-inventory ids
+/// (261+), kept by the mod because the save file cannot hold them (the save serialises exactly
+/// 261 count bytes; docs/LIVE_LEDGER.md [capbreak-save-roundtrip-1-5-2]). Lives in
+/// SaveLocation.SaveDir beside kills.json.
 ///
-/// Ruling still owed by the owner (docs/TODO.md LW-348): an id with NO entry here gets its
-/// data-declared SeedCount (the Moonblade: 1) so a first-time install sees the item at all; an
-/// explicit 0 stays 0. Load never throws: missing, corrupt or unrecognised means "no entries".
+/// SCHEMA 2 (LW-353, 2026-08-27): counts are keyed PER SAVE. The key is derived from the save
+/// struct's own header at the moment the game serialises it (SaveEdgeTracker.KeyFromHeader),
+/// the counts are those of that instant, and the same key is read back when the game applies
+/// that save, so loading slot B never sees slot A's items and loading an older save of the same
+/// slot gets that save's own counts. The owner's test 2 (2026-08-27 18:53) is what schema 1's
+/// one global file, recorded continuously, failed: a load's own clear was written to disk as a
+/// sale. Schema 1 files migrate their single count map into <see cref="TakeLegacy"/>, a one-shot
+/// fallback for the first load whose key is unknown (the saves that predate the keys).
+///
+/// Bounded: the newest <see cref="MaxSaves"/> keys are kept (an autosave lands every battle and
+/// shop visit; the file must not grow forever). Load never throws; Update is fail-soft.
 /// </summary>
 internal sealed class ExtendedBagSidecar
 {
-    internal const int SchemaVersion = 1;
+    internal const int SchemaVersion = 2;
+    internal const int MaxSaves = 64;
     public const string FileName = "extended_inventory.json";
 
     private readonly string _path;
-    private readonly Dictionary<int, int> _counts;
+    private readonly Dictionary<string, Dictionary<int, int>> _saves;
+    private readonly List<string> _order;   // oldest first
+    private Dictionary<int, int>? _legacy;
 
-    public IReadOnlyDictionary<int, int> Counts => _counts;
     public string LoadedFrom { get; }
+    public int SaveCount => _saves.Count;
 
-    private ExtendedBagSidecar(string path, Dictionary<int, int> counts, string loadedFrom)
+    private ExtendedBagSidecar(string path, Dictionary<string, Dictionary<int, int>> saves, List<string> order,
+        Dictionary<int, int>? legacy, string loadedFrom)
     {
         _path = path;
-        _counts = counts;
+        _saves = saves;
+        _order = order;
+        _legacy = legacy;
         LoadedFrom = loadedFrom;
     }
 
     public static ExtendedBagSidecar Load(string path)
     {
+        var empty = new Dictionary<string, Dictionary<int, int>>();
         try
         {
-            if (!File.Exists(path)) return new ExtendedBagSidecar(path, new Dictionary<int, int>(), "none (first run)");
+            if (!File.Exists(path)) return new ExtendedBagSidecar(path, empty, new List<string>(), null, "none (first run)");
             var dto = JsonConvert.DeserializeObject<Dto>(File.ReadAllText(path));
-            if (dto == null || dto.Version != SchemaVersion)
+            if (dto == null) return Unrecognised(path, empty);
+            if (dto.Version == 1)
             {
-                ModLogger.Warn(LogVerb.Save, "The extended-inventory sidecar has an unrecognised schema; starting with no saved counts.");
-                return new ExtendedBagSidecar(path, new Dictionary<int, int>(), "unrecognised schema");
+                var legacy = ParseCounts(dto.Counts);
+                return new ExtendedBagSidecar(path, empty, new List<string>(), legacy.Count > 0 ? legacy : null, path + " (schema 1, migrated)");
             }
-            var counts = new Dictionary<int, int>();
-            foreach (var kv in dto.Counts)
-                if (int.TryParse(kv.Key, out int id) && kv.Value >= 0 && kv.Value <= 255) counts[id] = kv.Value;
-            return new ExtendedBagSidecar(path, counts, path);
+            if (dto.Version != SchemaVersion) return Unrecognised(path, empty);
+            var saves = new Dictionary<string, Dictionary<int, int>>();
+            var order = new List<string>();
+            foreach (var key in dto.Order ?? new List<string>())
+                if (dto.Saves != null && dto.Saves.TryGetValue(key, out var raw) && !saves.ContainsKey(key))
+                {
+                    saves[key] = ParseCounts(raw);
+                    order.Add(key);
+                }
+            return new ExtendedBagSidecar(path, saves, order, dto.Legacy != null ? ParseCounts(dto.Legacy) : null, path);
         }
         catch (Exception ex)
         {
             ModLogger.Warn(LogVerb.Save, "The extended-inventory sidecar could not be read; starting with no saved counts: " + ex.Message);
-            return new ExtendedBagSidecar(path, new Dictionary<int, int>(), "unreadable");
+            return new ExtendedBagSidecar(path, empty, new List<string>(), null, "unreadable");
         }
     }
 
-    /// <summary>The count to put in the bag at boot for <paramref name="id"/>: the saved one when
-    /// there is an entry, else the data's first-copy seed.</summary>
-    public int ResolveBootCount(int id, int seedCount) => _counts.TryGetValue(id, out int c) ? c : seedCount;
-
-    /// <summary>Record <paramref name="counts"/> (the live bag bytes) and persist atomically.
-    /// Fail-soft: a failed save logs and leaves the previous file intact (this runs on Engine's
-    /// tick thread, which must never raise).</summary>
-    public void Update(IReadOnlyDictionary<int, int> counts)
+    private static ExtendedBagSidecar Unrecognised(string path, Dictionary<string, Dictionary<int, int>> empty)
     {
-        foreach (var kv in counts) _counts[kv.Key] = kv.Value;
+        ModLogger.Warn(LogVerb.Save, "The extended-inventory sidecar has an unrecognised schema; starting with no saved counts.");
+        return new ExtendedBagSidecar(path, empty, new List<string>(), null, "unrecognised schema");
+    }
+
+    private static Dictionary<int, int> ParseCounts(Dictionary<string, int>? raw)
+    {
+        var counts = new Dictionary<int, int>();
+        if (raw == null) return counts;
+        foreach (var kv in raw)
+            if (int.TryParse(kv.Key, out int id) && kv.Value >= 0 && kv.Value <= 255) counts[id] = kv.Value;
+        return counts;
+    }
+
+    /// <summary>The counts recorded for <paramref name="key"/>, if that save was ever serialised
+    /// while this mod ran.</summary>
+    public bool TryGetSave(string key, out IReadOnlyDictionary<int, int> counts)
+    {
+        if (_saves.TryGetValue(key, out var c)) { counts = c; return true; }
+        counts = new Dictionary<int, int>();
+        return false;
+    }
+
+    /// <summary>The schema-1 counts, handed out ONCE (the first unknown-key load after the
+    /// migration inherits them; every later unknown key gets the data seed).</summary>
+    public Dictionary<int, int>? TakeLegacy()
+    {
+        var l = _legacy;
+        _legacy = null;
+        return l;
+    }
+
+    /// <summary>Record the counts the game just serialised under <paramref name="key"/> and
+    /// persist atomically (SidecarJson chain). Fail-soft: a failed write logs and leaves the
+    /// previous file intact.</summary>
+    public void RecordSave(string key, IReadOnlyDictionary<int, int> counts)
+    {
+        _saves[key] = new Dictionary<int, int>(counts);
+        _order.Remove(key);
+        _order.Add(key);
+        while (_order.Count > MaxSaves)
+        {
+            _saves.Remove(_order[0]);
+            _order.RemoveAt(0);
+        }
+        Persist();
+    }
+
+    /// <summary>Persist after the legacy counts were consumed, so they are not handed out twice
+    /// across launches.</summary>
+    public void PersistAfterLegacyTaken() => Persist();
+
+    private void Persist()
+    {
         try
         {
-            var dto = new Dto { Version = SchemaVersion };
-            foreach (var kv in _counts) dto.Counts[kv.Key.ToString()] = kv.Value;
+            var dto = new Dto { Version = SchemaVersion, Order = new List<string>(_order) };
+            foreach (var key in _order)
+            {
+                var m = new Dictionary<string, int>();
+                foreach (var kv in _saves[key]) m[kv.Key.ToString()] = kv.Value;
+                dto.Saves[key] = m;
+            }
+            if (_legacy != null)
+            {
+                dto.Legacy = new Dictionary<string, int>();
+                foreach (var kv in _legacy) dto.Legacy[kv.Key.ToString()] = kv.Value;
+            }
             SidecarJson.SaveAtomic(_path, JsonConvert.SerializeObject(dto));
         }
         catch (Exception ex)
@@ -84,6 +158,9 @@ internal sealed class ExtendedBagSidecar
     private sealed class Dto
     {
         [JsonProperty("version")] public int Version { get; set; }
-        [JsonProperty("counts")] public Dictionary<string, int> Counts { get; set; } = new();
+        [JsonProperty("counts", NullValueHandling = NullValueHandling.Ignore)] public Dictionary<string, int>? Counts { get; set; }   // schema 1
+        [JsonProperty("order", NullValueHandling = NullValueHandling.Ignore)] public List<string>? Order { get; set; }
+        [JsonProperty("saves", NullValueHandling = NullValueHandling.Ignore)] public Dictionary<string, Dictionary<string, int>> Saves { get; set; } = new();
+        [JsonProperty("legacy", NullValueHandling = NullValueHandling.Ignore)] public Dictionary<string, int>? Legacy { get; set; }
     }
 }

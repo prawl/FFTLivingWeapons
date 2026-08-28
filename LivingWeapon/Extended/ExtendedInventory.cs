@@ -38,6 +38,9 @@ internal sealed partial class ExtendedInventory
     private ThunkClone? _weaponStatClone;   // the row stub: its page holds every extended id's 8-byte stats row
     private CategoryGetterHook? _getterHook;
     private OrderRebuildHook? _orderHook;
+    private SaveEdgeHooks? _saveHooks;   // LW-353
+    /// <summary>LW-353: the save/load edge core the hooks feed and the tick drains. Tests drive it directly.</summary>
+    public SaveEdgeTracker Tracker { get; } = new();
 
     public IReadOnlyList<ExtendedItemDef> Items => _data.Items;
     public bool Armed { get; private set; }
@@ -66,7 +69,13 @@ internal sealed partial class ExtendedInventory
         string? why = _getterHook.Install(hooks);
         if (why != null) return why;
         _orderHook = new OrderRebuildHook(_patcher);
-        return _orderHook.Install(hooks);
+        why = _orderHook.Install(hooks);
+        if (why != null) return why;
+        // LW-353: the save edges (record counts per save, replay per save); a refusal here rolls
+        // the whole arm back like any other piece, because an armed inventory whose counts vanish
+        // on every load is worse than no inventory.
+        _saveHooks = new SaveEdgeHooks(_patcher, Tracker, Items.OrderBy(i => i.Id).Select(i => i.Id).ToList());
+        return _saveHooks.Install(hooks);
     }
 
     /// <summary>Runs once from Engine.InjectHooks (Mod.StartEx). Idempotent. Null hooks = the
@@ -142,6 +151,7 @@ internal sealed partial class ExtendedInventory
     /// design (a game thread may be inside them); every code byte goes back.</summary>
     private void RollBack()
     {
+        _saveHooks?.Release(); _saveHooks = null;
         _orderHook?.Release(); _orderHook = null;
         _getterHook?.Release(); _getterHook = null;
         for (int i = _clones.Count - 1; i >= 0; i--) _clones[i].Restore(_patcher);
@@ -165,17 +175,18 @@ internal sealed partial class ExtendedInventory
         return _weaponStatClone.StubAddr + ThunkStub.RowStubHeader + (long)i * ThunkStub.RowSize;
     }
 
+    /// <summary>Boot placement: the data seed for every extended id. No save is loaded at boot,
+    /// so this is the bag a NEW game starts with; a loaded save replays its own recorded counts
+    /// through the load edge (ExtendedInventory.Tick.cs, LW-353).</summary>
     private void SeedBag()
     {
         foreach (var item in Items)
         {
-            int count = _sidecar.ResolveBootCount(item.Id, item.SeedCount);
-            _lastCounts[item.Id] = count;
-            if (!_patcher.TryWrite(Offsets.BagCountArray + item.Id, new[] { (byte)count }))
-                ModLogger.Warn(LogVerb.Save, $"Could not place {count} {item.Name} in the bag at boot (write refused).");
+            if (!_patcher.TryWrite(Offsets.BagCountArray + item.Id, new[] { (byte)item.SeedCount }))
+                ModLogger.Warn(LogVerb.Save, $"Could not place {item.SeedCount} {item.Name} in the bag at boot (write refused).");
         }
-        ModLogger.Event(LogVerb.Save, $"Extended-inventory bag counts placed from {_sidecar.LoadedFrom}: "
-            + string.Join(", ", Items.Select(i => $"{i.Name} x{_lastCounts[i.Id]}")) + ".");
+        ModLogger.Event(LogVerb.Save, "Extended-inventory bag counts seeded for a new game: "
+            + string.Join(", ", Items.Select(i => $"{i.Name} x{i.SeedCount}")) + $"; saved games replay their own (sidecar: {_sidecar.LoadedFrom}, {_sidecar.SaveCount} save(s) known).");
     }
 
     private void Refuse(string why)

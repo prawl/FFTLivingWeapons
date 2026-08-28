@@ -226,7 +226,9 @@ the new ids answer with the mod's own 8-byte stats row (weapon stats) or as thei
 (everything else), and hooks the two menu routines that would otherwise drop an unknown id. One
 refusal rolls all of it back with one log line. After a save loads, two copy-protected damage
 caps are widened from the tick loop and the bag counts ride `extended_inventory.json` beside
-`kills.json` (LW-348), because the save file stores exactly 261 counts.
+`kills.json` (LW-348), because the save file stores exactly 261 counts; since LW-353 they are
+keyed PER SAVE (a hash of the save struct's header, read by hooks on the game's own serializer
+and load-apply routine), recorded when the game saves and replayed when it loads.
 
 **Known limits (stated, not hidden).** Enemies cannot carry a new id through the encounter table
 (one-byte ids; LW-350 is the runtime loadout answer). Shops CAN stock one (LW-354, built

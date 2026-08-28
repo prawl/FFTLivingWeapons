@@ -1874,6 +1874,22 @@ Raising one unit's Max HP mid-battle leaves the mod's kill bookkeeping intact: w
 
 ## Uncertain — observed live, not yet isolated / built on
 
+### [save-edge-hooks-key-bag-counts] Hooking the save serializer and the load-apply routine, and keying the extended-inventory bag counts by a hash of the save struct's header, gives each save its own counts across a load
+
+Not yet observed (built 2026-08-27 late from a static read, docs/research/ITEM_CAP_261_BREAK_JOURNEY.md "save edges"). What the read established: the save struct is transient with its pointer in 0x141D407A0, its +0x100..+0x1B8 header carries the play time (+0x1B4) and the slot-list metadata, the serializer is 0x140218F78 and the load-apply routine 0x14021B070 (with 0x14021DDF0 as a second restore path), all plain entries behind clean prologues. What the live pass must show: the serializer hook fires on a manual save AND on the autosave (both write the same struct), the apply hook fires on a load with the struct pointer still valid after the original returns (the header is read AFTER the original), the header bytes read at save time equal those read at load time for the same save (the key matches, the replay picks the right entry), and the second routine does not fire with a stale struct on some unrelated action (a false replay). The owner's test 2 (slot A with 2, slot B never, A again) moves this row.
+
+<details><summary>How we got here</summary>
+
+**Claim (original wording):** the save struct header is a stable per-save identity readable at both edges through one global.
+
+**Mechanism:** capstone over RPM on the serializer and both restore routines; the play-time globals cross-checked against the session clock.
+
+**Evidence:** SaveEdgeTrackerTests, ExtendedBagSidecarTests, ExtendedInventoryTests over fakes; the disk prologues of all three entries; no game run.
+
+**Date:** 2026-08-27
+
+</details>
+
 ### [weapon-sprite-pair-drives-swing-art] The two-byte sprite/palette record at 0x140785CF0 + id*2 picks BOTH the drawing and the palette of a weapon's swing, and it is read on every swing
 
 Observed 2026-08-27 00:50 and 00:56 by the owner on 1.5.2, mid-battle, no relaunch, no fresh battle: Save the Queen (id 34, vanilla record F0 0C) was rewritten from outside to 50 03 (Warbrand's axe drawing, Chaos Blade's palette nibble) and the very next swing drew Warbrand's art in purple (tools/probes/lw349_sprite_pair_graphic_swap_34.png); rewritten to F0 03 (Warbrand's own record) the next swing drew the same shape in Warbrand's steel (tools/probes/lw349_sprite_pair_palette_swap_34.png); restored to F0 0C afterwards. So byte 1 selects the drawing and byte 0 the palette, per draw. This is the mechanism [weapon-palette-assignment-walled] said did not exist: that row's probes used base 0x140785CF2, one item off. Not yet built on; owner flip pending.

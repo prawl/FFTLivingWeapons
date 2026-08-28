@@ -13,6 +13,47 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.4.0)
 
+- **[LW-353] A saved game remembers its own new weapons, slot by slot** (opened 2026-08-27) [AWAITING-LIVE]
+  - Plain language: the owner's test 2 showed loading a second save slot wiped the Moonblade
+    out of the first, because the bag-count sidecar was one global file that wrote every
+    change to disk, a load's own clear included. Built 2026-08-27 late while the owner was
+    away: the mod now hooks the game's own save writer and save loader; when the game writes a
+    save it records the new items' counts under that save's own key (a fingerprint of the
+    save's header: play time, party, chapter), and when the game loads a save it puts that
+    save's counts back. A save the mod has never seen gets the pre-fix counts once (so the
+    owner's slot A keeps its Moonblades), then the first-copy seed. The tick never records on
+    its own any more. NOT deployed.
+  - (Tech: Offsets.SaveStructPtr 0x141D407A0, FnSaveSerialize 0x140218F78, FnSaveApply
+    0x14021B070, FnSaveApplyB 0x14021DDF0, header +0x100..+0x1B8 with play time at +0x1B4;
+    LivingWeapon/Extended/SaveEdgeHooks.cs + SaveEdgeTracker.cs; ExtendedBagSidecar schema 2
+    (`saves` keyed, `order`, 64-key cap, `legacy` one-shot); ledger row
+    [save-edge-hooks-key-bag-counts]; journal "save edges".)
+  - History, verbatim from the Backlog row (owner test 2, 2026-08-27 18:53):
+    Loading a save wipes the new weapon out of the bag and the mod then
+    writes that wipe to disk as if the player had sold it, so a second save slot cannot coexist
+    with the extended inventory. Owner test 2 (2026-08-27 18:53): with one Moonblade placed at
+    boot, loading a save (slot B, which never had it) left the bag reading 0 twenty seconds later
+    and the sidecar recorded x0; loading slot A again then had no Moonblade either. Two causes:
+    the sidecar is ONE global file (extended_inventory.json in the save dir, keyed to nothing, the
+    same shape as kills.json and LW-61's known cross-playthrough share), and the bag tick treats
+    every RAM change as a player action, including the clear a LOAD performs (the port replays
+    the file at BOOT only; LW-348's design said after every load). Fix shape: (1) find a live
+    save identity (which slot or which playthrough is loaded: a probe on the game's own load path
+    or the save struct for a slot index / play-time / roster fingerprint), (2) key sidecar entries
+    by that identity, (3) detect the load edge on the tick loop and REPLAY the identity's entry
+    (or the seed for an identity never seen) instead of recording, and record only while the
+    identity is stable. Until it ships, one save slot at a time is the honest rule. Surfaced by
+    LW-346's live pass; the runtime enemy loadout (LW-350) and partner items (LW-344) inherit
+    the same keying.
+  - Done means: test 2 passes on the deployed build: slot A saved with two Moonblades, slot B
+    (a playthrough that never had one) loaded shows none, slot A loaded again shows two; a
+    manual save and the autosave both log a "save was written (key ...)" line, every load logs
+    a "save was loaded (key ...)" line with the matching key, and quitting to the title and
+    back keeps the counts.
+  - Verify: suite green (SaveEdgeTrackerTests, the schema-2 sidecar tests, the edge-driven
+    ExtendedInventoryTests); then the owner walks test 2 with the log open: the two canary
+    lines ("save-edge hook is confirmed working" / "load-edge hook ..."), the key on the save
+    line equals the key on the later load line, and the counts follow the slots.
 - **[LW-356] A brand-new weapon grows and glows like the old ones** (opened 2026-08-27) [AWAITING-LIVE]
   - Plain language: the Moonblade counted kills and grew its stat from day one (its growth lane
     rides the same meta.json row as every weapon), but two growth surfaces still knew only the
@@ -104,7 +145,45 @@ the technical detail lives in the indented lines under it.
     205-char card budget for all 121 weapons.
   - Verify: analyze.py green (uniqueness, budget, scaffold lockstep), the nxd bake audit
     clean, and the owner reads the Grows line on a handful of cards live after a restart.
-- **[LW-320] Every weapon's power audited against how it is obtained** (opened 2026-08-25) [AWAITING-LIVE]
+- **[LW-323] A weapon's level-up announcement never shows up a battle late anymore** (opened 2026-08-25) [AWAITING-LIVE]
+  - BUILT and adversarially verified 2026-08-26 (code 9 of 10, zero code findings; suite
+    3332 green), owner live pass outstanding. The owner saw "Stoneshooter has grown to
+    Stoneshooter+2" pop during a NEW battle when the kill happened the battle before,
+    reading as if the gun leveled now. The toast queue simply had no battle-end hook, so
+    an announcement that missed every popup window waited for the next battle.
+  - Now a toast lives at most until its own battle ends: at the battle-end edge every
+    undelivered toast is dropped with one honest log line ("went undelivered by its
+    battle's end...; the growth itself is saved either way") and a flight-tape record,
+    and a new-game reset drops the old playthrough's pending toasts the same way.
+  - NOTE, recorded because an owner ruling was overturned: the old code carried a comment
+    calling the cross-battle survival deliberate ("Patrick-confirmed ruling A"). The
+    owner's 2026-08-25 live sighting and this seat's direction supersede that ruling; the
+    comment is deleted with the fix and this row is the overturn's record. The verify
+    round also annotated docs/RELIQUARY_AC.md's Phase 2 announce-honesty row, whose
+    launch-time re-enqueue mitigation the new lifetime would otherwise silently defeat.
+  - (Tech: BannerToast.DropPendingAtBattleEnd, locked, silent when empty, called FIRST
+    in Engine.ResetBattleState so drops land on the dying battle's tape before the exit
+    flush, and from Rebaseline on the new-game edge; all four Enqueue callers verified
+    in-battle gated so churn edges drop nothing; a real concurrency hammer replaces the
+    phantom test name the old comment cited.)
+  - Done means: a tier-up toast either shows during its own battle or is dropped at that
+    battle's end with the log line and tape record; the next battle never opens with a
+    stale toast; in-battle delivery is unchanged; a new game never shows the old
+    playthrough's pending announcements.
+  - Verify: suite green with the five new queue-lifetime tests and the concurrency
+    hammer; and the owner's two live reads: a tier crossed then the battle ended fast
+    shows NO ghost toast in the next battle (drop line on the log, record on the tape),
+    and a tier crossed with a Wait prompt still to come delivers in-battle as always.
+
+## Backlog
+
+Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner directed).
+A new row still lands here in the session it surfaces; slot it where its urgency
+belongs rather than at the bottom.
+
+- [LW-320] 2026-08-25: Every weapon's power audited against how it is obtained. Demoted from Now on 2026-08-27 late to seat
+  LW-353 (per-save bag counts); status unchanged, AWAITING-LIVE, the owner's sign-off on the
+  grid rulings is still the only thing outstanding; every line below is the Now row's text verbatim.
   - A weapon's price should include the effort of getting it. The grid's obtain column
     splits the catalog 88 shop weapons versus 33 earned ones (Midlight's Deep treasure
     hunts, rare poaches, story steals, character joins), and the first look already found
@@ -156,43 +235,6 @@ the technical detail lives in the indented lines under it.
   - Verify: the obtain-vs-power chart reviewed by the owner, every ruling signed off by
     the owner in the grid, analyze.py green after any retunes, and the changed weapons
     spot-read live if stats moved.
-
-- **[LW-323] A weapon's level-up announcement never shows up a battle late anymore** (opened 2026-08-25) [AWAITING-LIVE]
-  - BUILT and adversarially verified 2026-08-26 (code 9 of 10, zero code findings; suite
-    3332 green), owner live pass outstanding. The owner saw "Stoneshooter has grown to
-    Stoneshooter+2" pop during a NEW battle when the kill happened the battle before,
-    reading as if the gun leveled now. The toast queue simply had no battle-end hook, so
-    an announcement that missed every popup window waited for the next battle.
-  - Now a toast lives at most until its own battle ends: at the battle-end edge every
-    undelivered toast is dropped with one honest log line ("went undelivered by its
-    battle's end...; the growth itself is saved either way") and a flight-tape record,
-    and a new-game reset drops the old playthrough's pending toasts the same way.
-  - NOTE, recorded because an owner ruling was overturned: the old code carried a comment
-    calling the cross-battle survival deliberate ("Patrick-confirmed ruling A"). The
-    owner's 2026-08-25 live sighting and this seat's direction supersede that ruling; the
-    comment is deleted with the fix and this row is the overturn's record. The verify
-    round also annotated docs/RELIQUARY_AC.md's Phase 2 announce-honesty row, whose
-    launch-time re-enqueue mitigation the new lifetime would otherwise silently defeat.
-  - (Tech: BannerToast.DropPendingAtBattleEnd, locked, silent when empty, called FIRST
-    in Engine.ResetBattleState so drops land on the dying battle's tape before the exit
-    flush, and from Rebaseline on the new-game edge; all four Enqueue callers verified
-    in-battle gated so churn edges drop nothing; a real concurrency hammer replaces the
-    phantom test name the old comment cited.)
-  - Done means: a tier-up toast either shows during its own battle or is dropped at that
-    battle's end with the log line and tape record; the next battle never opens with a
-    stale toast; in-battle delivery is unchanged; a new game never shows the old
-    playthrough's pending announcements.
-  - Verify: suite green with the five new queue-lifetime tests and the concurrency
-    hammer; and the owner's two live reads: a tier crossed then the battle ended fast
-    shows NO ghost toast in the next battle (drop line on the log, record on the tape),
-    and a tier crossed with a Wait prompt still to come delivers in-battle as always.
-
-## Backlog
-
-Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner directed).
-A new row still lands here in the session it surfaces; slot it where its urgency
-belongs rather than at the bottom.
-
 - [LW-357] 2026-08-27: Reconfirm whether an equip icon can change WHILE the game is running,
   owner-ordered after tonight's rim read: the mod's working rule says a drawn icon never
   refreshes mid-session (rims show at the next launch, LW-340's physics), but the owner is
@@ -209,22 +251,6 @@ belongs rather than at the bottom.
   shows; the win is a rule the runtime can drive (LW-336's sync would then refresh the rim
   the moment a tier is crossed). Cite the exact probe (tools/probes/live_icon_patch_probe.py)
   and restore the pac explicitly after (it persists across relaunches).
-- [LW-353] 2026-08-27: Loading a save wipes the new weapon out of the bag and the mod then
-  writes that wipe to disk as if the player had sold it, so a second save slot cannot coexist
-  with the extended inventory. Owner test 2 (2026-08-27 18:53): with one Moonblade placed at
-  boot, loading a save (slot B, which never had it) left the bag reading 0 twenty seconds later
-  and the sidecar recorded x0; loading slot A again then had no Moonblade either. Two causes:
-  the sidecar is ONE global file (extended_inventory.json in the save dir, keyed to nothing, the
-  same shape as kills.json and LW-61's known cross-playthrough share), and the bag tick treats
-  every RAM change as a player action, including the clear a LOAD performs (the port replays
-  the file at BOOT only; LW-348's design said after every load). Fix shape: (1) find a live
-  save identity (which slot or which playthrough is loaded: a probe on the game's own load path
-  or the save struct for a slot index / play-time / roster fingerprint), (2) key sidecar entries
-  by that identity, (3) detect the load edge on the tick loop and REPLAY the identity's entry
-  (or the seed for an identity never seen) instead of recording, and record only while the
-  identity is stable. Until it ships, one save slot at a time is the honest rule. Surfaced by
-  LW-346's live pass; the runtime enemy loadout (LW-350) and partner items (LW-344) inherit
-  the same keying.
 - [LW-198] 2026-08-13: The eleven knives all had a white blade, so their colour lived in a handle a few pixels across. Demoted from Now on 2026-08-27 to
   seat LW-346 (the extended-inventory port); its status is unchanged, AWAITING-LIVE, the
   owner's gallery pass is still the only thing outstanding, and every line below is the

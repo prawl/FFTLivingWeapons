@@ -1744,3 +1744,38 @@ Gariland"` on the items.json row (the loader's names) -> `<Shops>` on ItemExtend
 The Moonblade carries `Dorter` as the live-test placeholder. Live expectation: Dorter's
 Outfitter lists the Moonblade under weapons at its record price (10 gil), buying raises the
 bag count and the sidecar follows; Gariland does not list it.
+
+### 2026-08-27 late: save edges. The save struct is transient, its header is a per-save key, and the serializer and the load-apply routine are plain hookable entries (static read, owner away, nothing poked)
+
+Plain language: the owner's test 2 showed the bag-count sidecar being one global file that
+records continuously, so a load's own clear of count[261] was written to disk as if the
+player had sold the item, and a second slot could not coexist. The fix needed to know WHICH
+save was written or loaded. The save file itself is no help (PNG with a custom `ffTo` chunk,
+entropy 8.0 bits per byte, a "UMIF" container; all manual slots live in one enhanced.png, the
+autosave in autoenhanced.png), but the in-memory save struct is: the game allocates it per
+save or load, keeps its pointer in ONE global (0x141D407A0, null in between), and its
++0x100..+0x1B8 header is the slot-list metadata the file round-trips verbatim.
+
+The serializer 0x140218F78 (entry after `ret; CC CC`; prologue `48 89 5C 24 08 48 89 6C 24
+20 56 57 41 54 41 56`) takes ecx = the save kind/slot (kept in r12d; its sign lands at +0x100),
+dl/r8b into +0x112/+0x113, three getter results (ids 0x2F/0x2E/0x31 through 0x1402332D8)
+into +0x114..+0x116, the four party names as 32-byte entries from +0x124, chapter/location
+bytes at +0x119/+0x11B/+0x11E, and at +0x1B4 the PLAY TIME in seconds computed as
+h*3600 + m*60 + s from the globals 0x141856704 / 0x141856708 / 0x141856700 (live read
+0h41m22s matched the session). The bag copy at 0x14021926C follows. The load-apply routine
+0x14021B070 (four CC before; prologue `48 89 5C 24 08 57 44 0F B6 1D`) reads the same
+global (0x14021B101), copies the struct's bag and roster blocks back into the game's
+globals (the 0x14021B1D5 site), and takes ecx = an index it keeps in edi. A second,
+switch-dispatched routine 0x14021DDF0 (prologue `48 83 EC 28 8B 15 E2 1C C6 02 85 D2`) owns
+the other restore site 0x14021E1D1 (it zeroes count[0] first); which game action drives it
+is unread, so it is hooked with the same handler.
+
+The build (LW-353, LivingWeapon/Extended/SaveEdgeHooks.cs + SaveEdgeTracker.cs, the sidecar
+at schema 2): three Reloaded hooks behind those prologues, each forwarding to the original
+first, then reading the struct's 0xB8 header through the guarded patcher and handing it to the
+tracker: after the serializer, the counts of the extended ids at that instant are recorded
+under key `pt<playTime>-<sha1[0:12] of the header>`; after either apply routine, that key's
+counts are replayed into the bag on the next tick (the load edge drains before the save edge,
+so a save right after a load records the replayed state). Unknown key = the schema-1 counts
+once (migration), then the data seed. The tick no longer records bag changes on its own. Boot
+places the seed (a new game's bag). Unit-gated only; the owner's test 2 is the live pass.
