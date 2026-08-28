@@ -30,7 +30,7 @@ def main():
     r, l = struct.unpack("<HH", rd(h, ROSTER0 + 0x14, 4))
     print("roster slot 0: rHand=%d (0x%04X) lHand=%d (0x%04X)  -> %s" % (r, r, l, l, "HOLDS 261" if NEW_ID in (r, l) else "no 261"))
     c = rd(h, BAG + NEW_ID, 1)[0]
-    print("bag count[261] = %d  -> %s" % (c, "present" if c else "GONE (re-seed needed)"))
+    print("bag count[261] = %d  -> %s" % (c, "present" if c else "none (0 is a valid per-save count since LW-353; the rig-era re-seed no longer applies)"))
     for label, slot in TABLES:
         base, end, state = table_state(h, slot)
         print("%s: %s (base 0x%X, end marker at %s)" % (label, state, base, end))

@@ -20,9 +20,12 @@ This pays off harder the more the rest of your install ramps up. Under enemy-buf
 ## Features
 
 - **Living weapons that grow as they kill.** Each weapon tracks its own kills, lifts the wielder's PA/MA/Speed as the tally climbs, and shows the count on the equip card. Iconic weapons gain signature on-hit and aura effects (Charm, Barrage, extra turns, doom, life-steal, healing auras, and more) -- so the weapon you commit to becomes uniquely yours.
-- **Treasure Master.** Equip the Scholar's Ring to reveal hidden treasure tiles on the battlefield.
+- **An extended inventory: brand-new weapons past the game's 261-item limit.** The game only knows
+  261 items; the mod adds more (the Moonblade, id 261, is the first), listed in every menu, sold in the
+  towns its data names, equipped and swung in battle, growing and glowing like the rest, and remembered
+  per save. Everything about a new item is one row in `data/items.json`.
 - **All 234 equippable items reworked** across every category:
-  - **Weapons: 121** (Sword 14, Knife 10, Katana 10, Bow 9, Ninja Blade 8, Rod 8, Staff 8, Polearm 8, Pole 8, Gun 6, Crossbow 6, Knight Sword 5, Flail 4, Book 4, Bag 4, Axe 3, Instrument 3, Cloth 3)
+  - **Weapons: 121 vanilla-range + 1 extended** (Sword 14, Knife 10, Katana 10, Bow 9, Ninja Blade 8, Rod 8, Staff 8, Polearm 8, Pole 8, Gun 6, Crossbow 6, Knight Sword 5, Flail 4, Book 4, Bag 4, Axe 3, Instrument 3, Cloth 3)
   - **Shields: 16**
   - **Head: 28** (Helmet 13, Hat 12, Hair Adornment 3)
   - **Body: 36** (Clothing 14, Armor 14, Robe 8)
@@ -68,6 +71,11 @@ Everything the mod *does* works in every game language: the item rebalance (stat
   immediately after a load, the cards can briefly show zeroed "Kills" text — the mod paints
   the real tally moments later. Back out and re-open the menu and your numbers are there.
   Nothing is ever lost; only the first paint lags a few seconds.
+- **Removing the mod loses the extended-inventory weapons cleanly.** The game cannot know an item past
+  its own 261 without the mod running: a save that holds one still loads fine, the unit's hand is
+  simply emptied and the item is gone from the bag. Unequip or sell them first if you plan to
+  uninstall; if an inventory list then looks short, sort it once and it repairs itself. Reinstall and
+  they come back with their saved counts.
 - **Dual-wielding doubles the growth.** A kill while wielding two weapons credits both of them,
   not just one, so pairing two Living Weapons together is the fastest way to grow a pair at once.
   A shield equipped in either hand never earns credit; only a real weapon does.
