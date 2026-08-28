@@ -177,6 +177,41 @@ Mem.WritesEnabled.
 **Cleanup:** disable + delete lwdrill.jobconflict, relaunch, confirm the lane-armed line and
 Barrage return.
 
+## Add an extended-inventory item (a brand-new weapon past id 260, LW-346)
+
+Plain language: a new weapon is one row in `data/items.json` plus four generated icon files;
+everything else (tables, name row, glow rims, the runtime) follows from the build. The Moonblade
+(id 261) is the worked example; read its row first.
+
+1. **The row.** Append to `data/items.json` with the next free id (contiguous from 261; a gap fails
+   `generate.py`). Weapons only in V1. Fill it like any living weapon (`name`, `category`, `tier`,
+   `grows`, `flavorOverride`, `baseline`, `proposed` incl. `attackFlags`, `livingWeapon: true` if it
+   should be gate-exempt) plus an `extended` block: `cloneDonor` (the vanilla id whose per-category
+   answers it borrows: type, validity, range), `artDonor` (whose swing art it draws), `seedCount`
+   (bag copies on a first install / new game), `shops` (`"Dorter, Gariland"`, the modloader's
+   ItemShopsData names; `None` = nowhere), `shopAvailability` (the chapter gate; `Blank` = always),
+   `palette`/`spriteId`/`requiredLevel`/`typeFlags`/`price` (the catalog record's own fields), and
+   `iconSource` (the vanilla id whose SHIPPED, already-recolored icon it copies).
+2. **Icons.** `python tools/bake_extended_icon_parts.py`: byte-copies the donor's `.tex` pair, writes
+   the two `.utexpt` parts files (the game's pac has none past 260; the card is blank without them),
+   copies the donor's three glow-rim variants and upserts `glow_icons/manifest.json`. Extended rows
+   stay OUTSIDE the tint programme (`recolor_icons.py` skips them; their own look is item 11 polish).
+3. **Tables.** `python tools/generate.py` (validates the row, writes `mod/extended_inventory/*.xml`;
+   these are read by the DLL at boot, never by the modloader) then `python tools/analyze.py`
+   (the claims gate included; read its exit code DIRECTLY, never through a pipe).
+4. **Text.** `python tools/patch_names.py` seeds the Item-en row from the template (257) and bakes
+   the name/description/badge like any weapon; the decode-verify must PASS.
+5. **Grid.** Add the row to `docs/living_weapon_grid.csv` (the gate refuses a living weapon that is
+   missing from it); obtain `TBD` or `Shop` per the row's `shops`.
+6. **Build.** `.\BuildLinked.ps1 -Prod` (or the dev flavor). The boot line must read
+   `Extended inventory armed: N new item(s) [...]`; a `NOT armed this session (...)` warning names
+   the refusal. The runtime needs nothing per item: growth, kills, toasts, the card, the shop
+   mirror and the per-save bag counts all key off the id.
+
+Removing an item: delete its row, re-run 2-5 (delete its icon files and glow variants by hand;
+`generate.py` only checks presence), and note that saves holding it lose it cleanly (the
+uninstall note in docs/COMPATIBILITY.md).
+
 ## Icon recolor process (the LW-189 pipeline, reusable for every equipment pass)
 
 Recoloring a family of equipment sprites is a settled assembly line, proven on the 121
