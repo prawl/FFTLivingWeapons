@@ -193,6 +193,22 @@ Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner dire
 A new row still lands here in the session it surfaces; slot it where its urgency
 belongs rather than at the bottom.
 
+- [LW-357] 2026-08-27: Reconfirm whether an equip icon can change WHILE the game is running,
+  owner-ordered after tonight's rim read: the mod's working rule says a drawn icon never
+  refreshes mid-session (rims show at the next launch, LW-340's physics), but the owner is
+  fairly positive it was proven the other way, and the ledger agrees the refresh DID happen
+  once. The record: on 2026-08-16 one tab round-trip refreshed a drawn icon; on 2026-08-25
+  and 2026-08-26 every eviction tried (tab round-trip, equipment reopen, world map, save and
+  load, title reload, a full battle) kept the first-draw art on the same game binary; the
+  file write and the first draw stayed dependable throughout ([live-icon-repaint] and its
+  contradiction row). So the honest state is "it works under a condition nobody has named",
+  not "it never works". Outside the extended-inventory arc. Shape: one scripted session
+  that replays the 2026-08-16 recipe EXACTLY (a fresh launch, the patch minutes after boot,
+  one tab round-trip) against the 2026-08-26 shape, changing one thing at a time (time since
+  boot, whether the tab was drawn before the patch, VRAM pressure), until the discriminator
+  shows; the win is a rule the runtime can drive (LW-336's sync would then refresh the rim
+  the moment a tier is crossed). Cite the exact probe (tools/probes/live_icon_patch_probe.py)
+  and restore the pac explicitly after (it persists across relaunches).
 - [LW-355] 2026-08-27: Two weapons were changed to do what their own cards claimed, and the
   owner has to ratify or revert both (one field each in data/items.json). Siren's Lyre (id 92)
   now casts Confuse on hit (ability 243) instead of Charm (201): its flavor, identity and design
