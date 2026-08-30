@@ -2533,6 +2533,14 @@ belongs rather than at the bottom.
   +0x17A..0x181 presence-byte candidate, the SpriteSet +0x00 model swap being
   scene-graph-side, the then-next CE step (what-writes on band +0x46 at a pop), and the
   untested frog-cast-in-the-revert-window variant.
+- [LW-362] 2026-08-30: The game's own four DLC blades (ids 256 to 259, Materia Blade+,
+  Akademy Blade and kin) could become living weapons too, counting kills and growing like
+  everything else; today their kills are deliberately left uncredited as untracked items,
+  which the owner noticed mid-battle. Owner priority ruling: LOW, not important right now,
+  parked at the bottom of the backlog on purpose. Shape when picked up: meta rows for the
+  four (growth lanes, tiers), the grid csv rows, and a check that their stock SortOrder
+  reservations (the check_stock_rows tripwire) and the LW-344 partner whitelist stay
+  consistent with them becoming tracked.
 
 ## Walled (blocked by engine / Denuvo / modloader)
 
