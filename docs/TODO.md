@@ -374,10 +374,11 @@ belongs rather than at the bottom.
   id-keyed file follows (kills.json tallies migrate old id to new id once, legends,
   weapon_colors.json, weapon_palette_overrides.json, icon_ramp treatments, the grid csv,
   additional_data_ids.json); JobData equip lists and the Equip Axes note in ability.en.nxd
-  are re-read. OPEN, owner ruling needed before the build: shops cannot stock ids past 255
-  (no shop-flags row), so how the seven enter the world (poach rows, Move-Find tiles, a seeded
-  first copy, or LW-350's enemy loadout) decides whether players can still find them. Needs
-  LW-346 (the port) live-passed and LW-348 (the bag sidecar) first.
+  are re-read. The old shop blocker is GONE: since LW-354 shipped, shops stock extended ids
+  through the mirrored flags page, so the seven enter the world through their vanilla towns'
+  shops (each row's `shops` field with a real `shopAvailability`); poach rows, Move-Find tiles
+  and LW-350's enemy loadout are extras, not workarounds. The LW-346/LW-348 prerequisites have
+  shipped and live-passed.
   Owner addition 2026-08-30: every one of the seven extended items gets its row in
   docs/living_weapon_grid.csv and in every other doc that enumerates items (DESIGN.md
   counts, README, recipe examples), and the seven restored axes and flails get the same
@@ -434,12 +435,20 @@ belongs rather than at the bottom.
   fftivc.re.cloud.complete, the FF7 RE Trilogy Cloud Conversion by Jade Knightblazer,
   https://www.nexusmods.com/finalfantasytacticstheivalicechronicles/mods/114) and, when
   present, USES THAT MOD'S OWN FILES to author new weapons as extended-inventory items.
-  Facts from the 1.0.1 archive (read 2026-08-30, the owner's download): it ships whole-table
-  nxds (item.en, ability.en, job, jobcommand, poachitem, overrideentrydata, and the
-  overrideabilityactiondata table this repo parked as corrupting), effect bins, and equip
-  icon .tex files for ids 032, 049, 067, 068, 069, 070 and 256, which sit exactly on slots
-  this mod occupies today and on the axe and flail slots LW-351 restores, so re-homing its
-  weapons onto extended ids resolves a real collision, not a hypothetical one.
+  Facts from the 1.0.1 archive (read 2026-08-30, the owner's download): it ships eight
+  whole-table nxds (item.en, ability.en, job, jobcommand, poachitem, uijobabilityhelp,
+  overrideentrydata, and the overrideabilityactiondata table this repo parked as corrupting),
+  ten table XMLs sharing this mod's own filenames (its ItemEquipBonusData defines rows 74 to
+  78, colliding with this mod's 74 to 79), effect bins, g2d tex_161, and equip icons (both
+  sizes) for ids 032, 049, 067, 068, 069, 070 and 256. Ids 32/49/67-70 sit exactly on slots
+  this mod occupies today, 49/67-70 being the axe and flail slots LW-351 restores; id 256 is
+  the partner's OWN new item (Materia Blade Plus) on a vanilla extended row, proof they are
+  already squeezing the 256-260 range this mod's donor tables also start from. Re-homing
+  their weapons onto extended ids resolves the ITEM-SLOT collisions; the whole-table nxds and
+  the EquipBonus row overlap collide regardless and need their own answer in the build. The
+  author is the same person as LW-344's original reporter: docs/USER_FEEDBACK.md records the
+  Xeoshades PM signed "Jade" (2026-08-14). Folder recognition in practice means reading the
+  ModConfig.json ModId, an implementation choice the build may revisit.
 - [LW-345] 2026-08-26: Softening the card cache wipe on menu edges is its own arc, on
   purpose: today Display.Invalidate clears every found counter site on the status-card
   edge, forcing a re-find even when nothing moved, and the LW-324 plan review ruled
