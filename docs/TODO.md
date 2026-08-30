@@ -378,6 +378,18 @@ belongs rather than at the bottom.
   (no shop-flags row), so how the seven enter the world (poach rows, Move-Find tiles, a seeded
   first copy, or LW-350's enemy loadout) decides whether players can still find them. Needs
   LW-346 (the port) live-passed and LW-348 (the bag sidecar) first.
+  Owner addition 2026-08-30: every one of the seven extended items gets its row in
+  docs/living_weapon_grid.csv and in every other doc that enumerates items (DESIGN.md
+  counts, README, recipe examples), and the seven restored axes and flails get the same
+  treatment; the analyze.py grid lockstep gates enforce the csv half mechanically, the
+  rest is checked by hand in the same commit.
+- [LW-361] 2026-08-30: The restored axes and flails get a real redesign of their own.
+  LW-351 brings the seven vanilla weapons back exactly as the base game had them, which
+  leaves them the only items without the mod's build-diversity treatment; the owner wants
+  them redesigned as their own task AFTER the restore ships. Until then LW-351's spec must
+  decide how the vanilla rows pass the no-domination gate (an owner-ruled exemption or
+  interim tiers, decided there); this row is where the real designs land, through the
+  usual grid csv first, then items.json, then the gates.
 - [LW-359] 2026-08-30: A player reports the twin-weapon consent rule leaking two ways: with a shield in the off hand, backing out of the equip menu removed the shield and stamped the second weapon anyway (the shield only stuck when placed in the MAIN hand), and swapping the main hand from a twin weapon to daggers left the granted Dual Wield support behind for a while, letting daggers dual-wield free.
   Reported by Darkrapid on Discord 2026-08-30 (docs/USER_FEEDBACK.md); the owner told the
   player the intended rule and promised a look. The design (LW-193/LW-194, ad2240a): an
