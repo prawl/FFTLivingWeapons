@@ -429,6 +429,17 @@ belongs rather than at the bottom.
   scaffold and flavor anchor format into their descriptions, which is documentable.
   Turns the mod into a platform. Surfaced via the 2026-08-26 Nexus PM and Discord
   exchange (docs/USER_FEEDBACK.md same date).
+  Owner agreement 2026-08-30, the settled design: the runtime SCANS the Reloaded Mods folder
+  for a WHITELISTED partner mod's folder (keyed on its ModConfig.json ModId, first entry
+  fftivc.re.cloud.complete, the FF7 RE Trilogy Cloud Conversion by Jade Knightblazer,
+  https://www.nexusmods.com/finalfantasytacticstheivalicechronicles/mods/114) and, when
+  present, USES THAT MOD'S OWN FILES to author new weapons as extended-inventory items.
+  Facts from the 1.0.1 archive (read 2026-08-30, the owner's download): it ships whole-table
+  nxds (item.en, ability.en, job, jobcommand, poachitem, overrideentrydata, and the
+  overrideabilityactiondata table this repo parked as corrupting), effect bins, and equip
+  icon .tex files for ids 032, 049, 067, 068, 069, 070 and 256, which sit exactly on slots
+  this mod occupies today and on the axe and flail slots LW-351 restores, so re-homing its
+  weapons onto extended ids resolves a real collision, not a hypothetical one.
 - [LW-345] 2026-08-26: Softening the card cache wipe on menu edges is its own arc, on
   purpose: today Display.Invalidate clears every found counter site on the status-card
   edge, forcing a re-find even when nothing moved, and the LW-324 plan review ruled
