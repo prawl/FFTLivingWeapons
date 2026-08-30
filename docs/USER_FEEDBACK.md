@@ -120,3 +120,28 @@ owner's Treasure Master spinoff holds rank 1).
 - "Huge fan of equipment not turning into junk" (Xeoshades) is the build-diversity
   thesis quoted back verbatim; GameDadVII made a YouTube video on the mod; multiple
   players praise the thief-bow identity and the +3 signatures.
+
+## 2026-08-30 (Discord poach report)
+
+### Actionable
+- Poach does nothing with the mod on: a player's Ninja with the Poach support could
+  not poach; turning the mod off on the same save made poach work again. Awaiting the
+  player's livingweapon.log and details (weapons in both hands, which monster, whether
+  the killing blow was the plain Attack command). Captured as [LW-358], which also owes
+  the never-written poach FAQ entry. (Triage, not yet verified: mod-off-works is
+  exactly the LW-166 data-layer prediction; with the mod on, the fifteen reworked
+  weapons poach only through the runtime Living Poach cure, which fires only on plain
+  Attack kills, needs the mod armed, and cannot see LW-174's five story-battle
+  monster jobs.)
+  - Outcome, same day: the player sent livingweapon.log and the flight folder, but both
+    captures were taken mid-battle, before any kill, so the failed attempt was never
+    recorded. The log proves the mod armed (prod 2.3.3) and the Ninja is Ramza with only
+    Hushblade; the tapes hold five full battles with zero kills by dormant-formula
+    weapons. The player then became unavailable, so the owner closed the chase and
+    promoted [LW-358] to Now as a proactive re-verify of Living Poach on the current
+    game version plus the FAQ entry.
+- "It's good otherwise 15 weapon damage weapons show up a bit early keep one shotting
+  my mages but I was also level 13 with enemies now in 20s lol" (verbatim, same Discord
+  thread). Early access to WP 15 weapons echoes the owner's own "steady then boom"
+  finding (shop-stock Warbrand/Ravager); feeds [LW-320]'s obtain-vs-power audit and
+  [LW-318]. The player flags their own level deficit as a confound.

@@ -109,6 +109,40 @@ the technical detail lives in the indented lines under it.
     hammer; and the owner's two live reads: a tier crossed then the battle ended fast
     shows NO ghost toast in the next battle (drop line on the log, record on the tape),
     and a tier crossed with a Wait prompt still to come delivers in-battle as always.
+- **[LW-358] Re-check poaching ourselves and finally explain it to players** (opened 2026-08-30) [QUEUED]
+  - Plain language: a player's Ninja with the Poach ability could not poach anything while
+    the mod was on; turning the mod off on the same save made poaching work again. That
+    on/off pattern is exactly what the mod predicts for the fifteen reworked weapons whose
+    poach rides the mod's own runtime cure, so either the cure quietly broke or the player
+    was never told how it works (the promised FAQ entry was never written). The player went
+    quiet before sending the one finished battle that would have named the answer, so the
+    owner ruled 2026-08-30: stop waiting, re-verify poaching end to end on the current game
+    version ourselves, and write the FAQ either way.
+  - Evidence banked 2026-08-30 before the player went quiet: the log proves the mod armed
+    normally (prod 2.3.3) and the Ninja is Ramza holding only Hushblade (id 4, one of the
+    fifteen, left hand empty); twenty flight tapes hold five full battles with zero kills
+    by any of the fifteen weapons, and both captures were taken mid-battle, so no Living
+    Poach attempt was ever recorded. The evidence neither clears nor convicts the cure.
+  - (Tech: prime suspect is the basic-Attack discriminator premise, killer's action record
+    kind==Offsets.ArecKindPerforming and abil==0 at the credit moment
+    (LivingPoach.Signals.cs ReadWasBasicAttack), live-proven 2026-08-12 on game 1.5.1 and
+    never re-proven on 1.5.2. The player's corpse-side kill-diagnostics show plain-Attack
+    kills reading all zeros while ability kills stamp kind=5 plus the ability id; that is
+    the victim's record, not the killer's, so it is a hint, not a conviction. While in
+    there: ReadKillerHasPoach (support bit at combat +0x98) and the PoachMap job lookup
+    refuse silently today and deserve gate-reason log lines. Player evidence copies live
+    in the session scratchpad (player_poach_livingweapon_20260830.log, flight zip); the
+    report is in docs/USER_FEEDBACK.md under 2026-08-30.)
+  - Done means: the owner runs one live battle on the current game build killing a
+    poachable regular monster with a plain Attack from a dormant-formula weapon whose
+    wielder has Poach, and either the carcass lands (cure healthy on 1.5.2, fault was
+    elsewhere) or the log names the failing gate and that fault is fixed with its
+    falsifying case pinned as a test; and the player-facing poach FAQ entry exists
+    (README or docs) covering the fifteen weapons, the plain-Attack-only rule, and
+    LW-174's five story monsters the cure cannot see.
+  - Verify: full suite green; the owner's live battle shows either the "The weapon's
+    spirit claims the carcass" log line with the Den count matching, or the named
+    discriminator or gate-reason line in livingweapon.log; the owner reads the FAQ text.
 
 ## Backlog
 
@@ -116,7 +150,6 @@ Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner dire
 A new row still lands here in the session it surfaces; slot it where its urgency
 belongs rather than at the bottom.
 
-- [LW-358] 2026-08-30: A player's Ninja with Poach could not poach with the mod on (mod off, same save, worked); the promised poach FAQ entry was never written, so nothing tells players about the fifteen reworked weapons whose poach rides the mod's own Living Poach cure. Write the FAQ entry (README or docs), record the report in docs/USER_FEEDBACK.md, and chase the player's details (weapons in both hands, monster, whether the killing blow was the plain Attack command, livingweapon.log) to rule out a real Living Poach fault; note LW-174's five story monsters are still invisible to the cure.
 - [LW-320] 2026-08-25: Every weapon's power audited against how it is obtained. Demoted from Now on 2026-08-27 late to seat
   LW-353 (per-save bag counts); status unchanged, AWAITING-LIVE, the owner's sign-off on the
   grid rulings is still the only thing outstanding; every line below is the Now row's text verbatim.

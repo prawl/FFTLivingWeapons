@@ -183,7 +183,11 @@ public class ProofClaimContractTests
         // the phrase "Proven LIVE_LEDGER row this code cites" in that block matched "proven live"
         // across the word boundary in "Proven LIVE_LEDGER". Deleting the block removed that
         // accidental hit, not a reworded claim.
-        { "docs/TODO.md", 7 },
+        // 7 -> 8 (2026-08-30, LW-358 promoted): the new Now row cites the basic-Attack
+        // discriminator premise as "live-proven 2026-08-12"; that leans on LIVE_LEDGER's
+        // [basic-attack-discriminator] row, which sits in the Proven section (owner-flipped
+        // 2026-08-12 on the LW-167 arming pass), so the claim is real and the count moves.
+        { "docs/TODO.md", 8 },
         { "docs/VERIFY_LIVE.md", 3 },
     };
 
