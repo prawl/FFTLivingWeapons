@@ -376,7 +376,9 @@ belongs rather than at the bottom.
   additional_data_ids.json); JobData equip lists and the Equip Axes note in ability.en.nxd
   are re-read. The old shop blocker is GONE: since LW-354 shipped, shops stock extended ids
   through the mirrored flags page, so the seven enter the world through their vanilla towns'
-  shops (each row's `shops` field with a real `shopAvailability`); poach rows, Move-Find tiles
+  shops (each row's `shops` field with a real `shopAvailability`, never `Blank`: the owner's
+  standing ruling, because a Blank item sells in its listed towns from day one); poach rows,
+  Move-Find tiles
   and LW-350's enemy loadout are extras, not workarounds. The LW-346/LW-348 prerequisites have
   shipped and live-passed.
   Owner addition 2026-08-30: every one of the seven extended items gets its row in
@@ -438,12 +440,13 @@ belongs rather than at the bottom.
   Facts from the 1.0.1 archive (read 2026-08-30, the owner's download): it ships eight
   whole-table nxds (item.en, ability.en, job, jobcommand, poachitem, uijobabilityhelp,
   overrideentrydata, and the overrideabilityactiondata table this repo parked as corrupting),
-  ten table XMLs sharing this mod's own filenames (its ItemEquipBonusData defines rows 74 to
-  78, colliding with this mod's 74 to 79), effect bins, g2d tex_161, and equip icons (both
+  ten table XMLs, four sharing this mod's own filenames (ItemData, ItemWeaponData,
+  ItemEquipBonusData whose rows 74 to 78 collide with this mod's 74 to 79, and JobData), effect bins, g2d tex_161, and equip icons (both
   sizes) for ids 032, 049, 067, 068, 069, 070 and 256. Ids 32/49/67-70 sit exactly on slots
   this mod occupies today, 49/67-70 being the axe and flail slots LW-351 restores; id 256 is
   the partner's OWN new item (Materia Blade Plus) on a vanilla extended row, proof they are
-  already squeezing the 256-260 range this mod's donor tables also start from. Re-homing
+  already squeezing the game's own 256-260 extended catalog range, the one this mod relocates
+  (this mod's new ids start at 261). Re-homing
   their weapons onto extended ids resolves the ITEM-SLOT collisions; the whole-table nxds and
   the EquipBonus row overlap collide regardless and need their own answer in the build. The
   author is the same person as LW-344's original reporter: docs/USER_FEEDBACK.md records the
