@@ -202,7 +202,9 @@ everything else (tables, name row, glow rims, the runtime) follows from the buil
 4. **Text.** `python tools/patch_names.py` seeds the Item-en row from the template (257) and bakes
    the name/description/badge like any weapon; the decode-verify must PASS.
 5. **Grid.** Add the row to `docs/living_weapon_grid.csv` (the gate refuses a living weapon that is
-   missing from it); obtain `TBD` or `Shop` per the row's `shops`.
+   missing from it); obtain stays `TBD` for an extended item even when it is shop-sold (the
+   gate's shop-sold checker reads only vanilla shop data and is blind to the extended `shops`
+   field, so `Shop` there goes red).
 6. **Build.** `.\BuildLinked.ps1 -Prod` (or the dev flavor). The boot line must read
    `Extended inventory armed: N new item(s) [...]`; a `NOT armed this session (...)` warning names
    the refusal. The runtime needs nothing per item: growth, kills, toasts, the card, the shop

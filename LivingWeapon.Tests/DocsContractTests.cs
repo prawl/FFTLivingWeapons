@@ -45,7 +45,7 @@ public class DocsContractTests
     private static readonly HashSet<string> AllowedTopLevelDocs = new(StringComparer.OrdinalIgnoreCase)
     {
         "BULWARK_AC.md", "CHANGELOG.md", "COMPATIBILITY.md", "DESIGN.md", "DEV_TEST_RECIPES.md",
-        "LIVE_LEDGER.md", "LOGGING.md",
+        "EXTENDED_INVENTORY_GUIDE.md", "LIVE_LEDGER.md", "LOGGING.md",
         "MECHANICS.md", "PATCH_REANCHOR.md", "PROVOKE_AC.md", "RELEASE_SCOPE.md", "RELIQUARY_AC.md",
         "RELIQUARY_DESIGN.md", "TODO.md", "USER_FEEDBACK.md",
         "VERIFY_LIVE.md",
