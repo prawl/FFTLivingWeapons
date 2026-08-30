@@ -10,6 +10,29 @@ before 2026-07-21 keep their original prose.
 
 ## 2.4.0 cycle
 
+- [LW-353] SHIPPED 908608a 2026-08-30: A saved game now remembers its own new weapons, slot
+  by slot. The first build (57dd06e) shipped asleep: it watched a save pointer address with one
+  wrong digit and hooked two wrong routines, so nothing ever fired and a second slot showed the
+  first slot's Moonblade. Waking the hooks exposed a second bug: the save fingerprint hashed
+  three bytes that are only set while a save is being written, so a save never recognized its
+  own load. The fingerprint now ignores those bytes. Owner live pass 2026-08-30: three loads in
+  a row placed each save's own recorded counts under matching keys and the counts followed
+  their slots; ledger row [save-edge-hooks-key-bag-counts] flipped Proven the same day. (Tech:
+  SaveStructPtr 0x140D407A0, FnSaveSerialize 0x140218F78 reached through the save wrapper
+  0x14021B070, FnSaveApply 0x14021B0E8, FnSaveApplyB 0x14021DE98, the async stepper 0x14021DDF0
+  deliberately not hooked; key = sha1 over header +0x100..+0x1B8 with SaveHeaderVolatileOffs
+  {0x1A, 0x1C, 0x1D} zeroed first; fix commit 908608a; probes lw353_save_edge_watch.py and
+  lw353_header_roundtrip.py; journal "save edges" plus its two correction entries.)
+- [LW-356] SHIPPED 25264d1 2026-08-30: A brand-new weapon grows and glows like the old ones.
+  The Weapon Power growth lane resolves an extended id's stat row in the mod's own stub page
+  instead of the game's 128-row table, and an extended item's icon wears the same kill-tier
+  glow rims as every weapon (byte copies of its icon donor's variants). The owner passed the
+  rims (Chaos Blade rimmed, the Moonblade correctly plain below tier) and the Attack-menu
+  dossier live 2026-08-27, and flipped the item 2026-08-30 with the WP lane unit-proven only,
+  because no extended weapon uses WP growth yet; the first extended gun inherits that check.
+  (Tech: 25264d1 plus fix ae9b907; WpTableHold resolves ExtendedInventory.WeaponRowAddr = stub
+  page + RowStubHeader + (id-261)*8, Power at +4, and refuses an unknown extended id;
+  tools/bake_extended_icon_parts.py bakes the donor's glow variants and manifest entries.)
 - [LW-355] SHIPPED 7b0499a 2026-08-27: Two weapons now do what their cards always claimed,
   ratified by the owner ("Keep", 2026-08-27 evening). Siren's Lyre casts Confuse on hit
   (ability 243) instead of Charm (201), closing the parked known issue from 1.2.0; Glarebound

@@ -13,87 +13,6 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.4.0)
 
-- **[LW-353] A saved game remembers its own new weapons, slot by slot** (opened 2026-08-27) [AWAITING-LIVE]
-  - Plain language: the owner's test 2 showed loading a second save slot wiped the Moonblade
-    out of the first, because the bag-count sidecar was one global file that wrote every
-    change to disk, a load's own clear included. Built 2026-08-27 late while the owner was
-    away: the mod now hooks the game's own save writer and save loader; when the game writes a
-    save it records the new items' counts under that save's own key (a fingerprint of the
-    save's header: play time, party, chapter), and when the game loads a save it puts that
-    save's counts back. A save the mod has never seen gets the pre-fix counts once (so the
-    owner's slot A keeps its Moonblades), then the first-copy seed. The tick never records on
-    its own any more. The corrected build was deployed on 2026-08-27 at 22:57 and live-tested
-    twice; the build with the masked key is waiting on the owner's re-test.
-  - Correction 2026-08-27 late night: the owner's live test 2 on the deployed build showed
-    nothing firing (slot B still held the boot-seeded Moonblade). Cause: the struct-pointer
-    constant was one digit off (0x141D407A0 for 0x140D407A0) and two of the three hooked entries
-    were the wrong routines (the save wrapper and the async file stepper instead of the load-apply
-    and the second restore). Fixed in code, tests and the probe; the live pass is still owed.
-  - Correction 2026-08-28: the first live run of the fix showed the hooks working (the save and
-    load-apply canary lines, five saves recorded), but a save still did not recognize its own
-    load. The fingerprint the mod takes of a save included three bytes the game flips to 0xFF
-    only while a save is being written, so the same save looked like two different saves and
-    every load fell back to the starter copy. The key now ignores those three bytes at both
-    edges. The owner's re-test is still owed.
-  - (Tech: Offsets.SaveStructPtr 0x140D407A0, FnSaveSerialize 0x140218F78, FnSaveApply
-    0x14021B0E8, FnSaveApplyB 0x14021DE98 (0x14021DDF0 is the async stepper, not hooked),
-    header +0x100..+0x1B8 with play time at +0x1B4 and SaveHeaderVolatileOffs {0x1A, 0x1C,
-    0x1D} zeroed before the hash (the save-in-flight markers);
-    LivingWeapon/Extended/SaveEdgeHooks.cs + SaveEdgeTracker.cs; ExtendedBagSidecar schema 2
-    (`saves` keyed, `order`, 64-key cap, `legacy` one-shot); ledger row
-    [save-edge-hooks-key-bag-counts]; journal "save edges".)
-  - History, verbatim from the Backlog row (owner test 2, 2026-08-27 18:53):
-    Loading a save wipes the new weapon out of the bag and the mod then
-    writes that wipe to disk as if the player had sold it, so a second save slot cannot coexist
-    with the extended inventory. Owner test 2 (2026-08-27 18:53): with one Moonblade placed at
-    boot, loading a save (slot B, which never had it) left the bag reading 0 twenty seconds later
-    and the sidecar recorded x0; loading slot A again then had no Moonblade either. Two causes:
-    the sidecar is ONE global file (extended_inventory.json in the save dir, keyed to nothing, the
-    same shape as kills.json and LW-61's known cross-playthrough share), and the bag tick treats
-    every RAM change as a player action, including the clear a LOAD performs (the port replays
-    the file at BOOT only; LW-348's design said after every load). Fix shape: (1) find a live
-    save identity (which slot or which playthrough is loaded: a probe on the game's own load path
-    or the save struct for a slot index / play-time / roster fingerprint), (2) key sidecar entries
-    by that identity, (3) detect the load edge on the tick loop and REPLAY the identity's entry
-    (or the seed for an identity never seen) instead of recording, and record only while the
-    identity is stable. Until it ships, one save slot at a time is the honest rule. Surfaced by
-    LW-346's live pass; the runtime enemy loadout (LW-350) and partner items (LW-344) inherit
-    the same keying.
-  - Done means: test 2 passes on the deployed build: slot A saved with two Moonblades, slot B
-    (a playthrough that never had one) loaded shows none, slot A loaded again shows two; a
-    manual save and the autosave both log a "save was written (key ...)" line, every load logs
-    a "save was loaded (key ...)" line with the matching key, and quitting to the title and
-    back keeps the counts.
-  - Verify: suite green (SaveEdgeTrackerTests, the schema-2 sidecar tests, the edge-driven
-    ExtendedInventoryTests); then the owner walks test 2 with the log open: the two canary
-    lines ("save-edge hook is confirmed working" / "load-edge hook ..."), the key on the save
-    line equals the key on the later load line, the counts follow the slots, and
-    extended_inventory.json afterwards holds only the keys of saves actually written or
-    loaded, with no legacy key left.
-- **[LW-356] A brand-new weapon grows and glows like the old ones** (opened 2026-08-27) [AWAITING-LIVE]
-  - Plain language: the Moonblade counted kills and grew its stat from day one (its growth lane
-    rides the same meta.json row as every weapon), but two growth surfaces still knew only the
-    game's own ids. Built 2026-08-27 evening (owner: "Do 3 now"). (1) The Weapon Power lane:
-    a gun-style weapon's WP bump is written into the game's stats table, which has no row past
-    id 127; an extended item's row lives in the mod's own stub page, so the hold now resolves
-    that row through the extended inventory and writes there (no extended weapon uses the WP
-    lane yet; the Moonblade grows Physical Attack). (2) Glow rims: the extended item's three
-    tier variants are byte copies of its icon donor's (its picture IS the donor's), with manifest
-    entries, so the runtime rims it at each kill tier like any weapon. (3) The in-battle card
-    and Attack-menu paint for id 261 have no id bound in the code and need one owner read.
-  - (Tech: WpTableHold takes an extended-row resolver (ExtendedInventory.WeaponRowAddr = stub
-    page + RowStubHeader + (id-261)*8; Power at +4), refuses an extended id the resolver does
-    not know; tools/bake_extended_icon_parts.py copies the donor's glow_icons/*_t1..t3 and
-    upserts the manifest through bake_glow_icons.update_manifest; glow verify 122 ids.)
-  - Done means: a wp-lane extended weapon's turn-scoped WP bump lands in its stub row and
-    restores (unit-proven; live when such a weapon exists), the Moonblade's equip icon wears the
-    tier rim at +1 and beyond after the second launch following a deploy (the game caches icons
-    at first draw), and in battle its Attack-menu card and the status card paint its Kills
-    line and name suffix like any weapon.
-  - Verify: suite green (the two WpTableHold extended tests, the WeaponRowAddr pin, glow
-    verify); then the owner: deploy, launch twice, the Moonblade's icon shows the tier-1 rim
-    (it has 1 kill; prod tier 1 needs 5, so either five kills or the rim stays plain and that
-    is correct), and one battle's Attack menu on the Moonblade shows its dossier line.
 - **[LW-332] The Grows line moves up to sit directly under the Kills line** (opened 2026-08-25) [AWAITING-LIVE]
   - BUILT, four-round pipeline 2026-08-25 late (two adversarial verify rounds broke and
     then blessed the ownership design; final verdict SHIP, code 9, spec 9). Deployed and
@@ -197,6 +116,7 @@ Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner dire
 A new row still lands here in the session it surfaces; slot it where its urgency
 belongs rather than at the bottom.
 
+- [LW-358] 2026-08-30: A player's Ninja with Poach could not poach with the mod on (mod off, same save, worked); the promised poach FAQ entry was never written, so nothing tells players about the fifteen reworked weapons whose poach rides the mod's own Living Poach cure. Write the FAQ entry (README or docs), record the report in docs/USER_FEEDBACK.md, and chase the player's details (weapons in both hands, monster, whether the killing blow was the plain Attack command, livingweapon.log) to rule out a real Living Poach fault; note LW-174's five story monsters are still invisible to the cure.
 - [LW-320] 2026-08-25: Every weapon's power audited against how it is obtained. Demoted from Now on 2026-08-27 late to seat
   LW-353 (per-save bag counts); status unchanged, AWAITING-LIVE, the owner's sign-off on the
   grid rulings is still the only thing outstanding; every line below is the Now row's text verbatim.
