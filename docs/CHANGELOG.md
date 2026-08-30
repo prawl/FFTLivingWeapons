@@ -10,6 +10,18 @@ before 2026-07-21 keep their original prose.
 
 ## 2.4.0 cycle
 
+- [LW-322] SHIPPED 5dbc7ff 2026-08-30: Every living weapon's card now says in plain words what
+  it grows ("Grows: Speed", "Grows: PA, MA and Brave"), because the glow colors alone tell a
+  player THAT a weapon grew, not WHAT it grows, and text works for everyone including colorblind
+  players. Mid-build the owner scrapped the kept-vanilla-name rule, so all 36 famous-name
+  weapons moved onto the generated path with authored flavor lines and their hidden effects now
+  print (the LW-328 exits were absorbed). Owner live pass 2026-08-30: every card read named
+  exactly its baked lanes, with no phrase on non-growing items. (Tech: built 2026-08-25, commit
+  5dbc7ff; the phrase joins the rider tail from the same baked grows tokens the LW-250 gate
+  enforces; a pinned-table GROWS PHRASE gate in analyze.py, mutation-proven non-vacuous; Kiku
+  fits at 201/205 via a Draw Out label and a Mushin p3Desc compression in grid lockstep; Materia
+  Blade keeps a custom desc so its Ultima scaling numbers survive; one item.en.nxd rebake via
+  tools/patch_names.py, restart-only.)
 - [LW-353] SHIPPED 908608a 2026-08-30: A saved game now remembers its own new weapons, slot
   by slot. The first build (57dd06e) shipped asleep: it watched a save pointer address with one
   wrong digit and hooked two wrong routines, so nothing ever fired and a second slot showed the

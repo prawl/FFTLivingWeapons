@@ -50,36 +50,6 @@ the technical detail lives in the indented lines under it.
     flavor line); analyze.py green with the tightened gate; and the owner live-reads
     the moved line plus a battle where the Kills counter paints correctly on at least
     two different weapons.
-- **[LW-322] Every weapon's description says in plain words what it grows** (opened 2026-08-25) [AWAITING-LIVE]
-  - "Grows: Speed" or "Grows: PA, MA and Brave" joins each living weapon's card text,
-    because the glow colors alone tell a player THAT a weapon grew, not WHAT it grows,
-    and text works for everyone including colorblind players. Ships as ONE description
-    bake now that LW-317 has landed the final lanes, so the words never state an interim
-    lie, and lands before the LW-319 colors so text leads and color confirms.
-  - (Tech: the phrase joins the rider tail of the generated descriptions, sourced from
-    the same baked grows tokens the LW-250 gate enforces (now the real multi-lane tokens,
-    8b8dfad); the two load-bearing lines stay untouched, the Kills meter scaffold and the
-    flavor anchor line the in-card counter latches onto; one item.en.nxd rebake via
-    tools/patch_names.py, restart-only, plus the description-uniqueness and desc-budget
-    gates re-run. Owner proposed 2026-08-25.)
-  - BUILT and verified 2026-08-25 (commit 5dbc7ff), owner live pass outstanding. Mid-build
-    the owner widened the seat: the kept-vanilla-name text rule is SCRAPPED ("the effects it
-    produces is more important than the flavor text"), so all 36 famous-name weapons moved
-    onto the generated path with authored flavor lines and their hidden effects now print
-    (LW-328 exits absorbed). One clause of this seat was superseded by that ruling: the
-    flavor anchor line is NOT byte-identical for the rewritten cards; the anchor mechanism
-    stays safe because meta.json and the nxd rebake together, the same co-move the Huntress
-    fix proved live earlier today. (Tech: lite pipeline, two adversarial verify rounds,
-    final scores code 9 spec 8 SHIP; a new pinned-table GROWS PHRASE gate in analyze.py,
-    mutation-proven non-vacuous; Kiku fits at 201/205 via a Draw Out label and a Mushin
-    p3Desc compression in grid lockstep; Materia Blade keeps a custom desc so its Ultima
-    scaling numbers survive.)
-  - Done means: every living weapon's shipped description carries a Grows phrase naming
-    exactly its baked lanes, no phrase on non-growing items, the Kills scaffold and the
-    flavor anchor line byte-identical to before, and the assembled text still inside the
-    205-char card budget for all 121 weapons.
-  - Verify: analyze.py green (uniqueness, budget, scaffold lockstep), the nxd bake audit
-    clean, and the owner reads the Grows line on a handful of cards live after a restart.
 - **[LW-323] A weapon's level-up announcement never shows up a battle late anymore** (opened 2026-08-25) [AWAITING-LIVE]
   - BUILT and adversarially verified 2026-08-26 (code 9 of 10, zero code findings; suite
     3332 green), owner live pass outstanding. The owner saw "Stoneshooter has grown to
@@ -149,35 +119,6 @@ the technical detail lives in the indented lines under it.
 Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner directed).
 A new row still lands here in the session it surfaces; slot it where its urgency
 belongs rather than at the bottom.
-
-- [LW-360] 2026-08-30: The kill counters on the equip cards stop populating for most of the
-  menu when the new warm start is running: the owner flipped cards live and the counts stayed
-  dashes indefinitely. Cause read live the same day: the warm start (the uncommitted LW-324
-  work) latches paint coverage 0.3s after arming on the one persisted region it could seed
-  (122 sites, one per weapon), and MaybePoolPaint's covered short-circuit returns before ever
-  consulting ShouldRunFullPoolScan, so the two regions the full locate publishes 20s later are
-  never scanned at all; their 244 scaffold copies (one full card set per encoding, probed live,
-  none painted in 45s of watching) stay dashes until something drains coverage. Before the warm
-  start, coverage could not latch until after an all-region scan, which is why this never
-  showed. Fix shape: the covered short-circuit must also break on a fresh region publish (read
-  PoolLocator.PublishGeneration there, or clear the coverage latch when a publish adds regions),
-  so a newly published region gets one scan even while covered. Blocks the paint half of the
-  LW-332 live pass; the defect lives in the uncommitted LW-323/324 pile, so it lands there, not
-  on a shipped build.
-- [LW-359] 2026-08-30: A player reports the twin-weapon consent rule leaking two ways: with a shield in the off hand, backing out of the equip menu removed the shield and stamped the second weapon anyway (the shield only stuck when placed in the MAIN hand), and swapping the main hand from a twin weapon to daggers left the granted Dual Wield support behind for a while, letting daggers dual-wield free.
-  Reported by Darkrapid on Discord 2026-08-30 (docs/USER_FEEDBACK.md); the owner told the
-  player the intended rule and promised a look. The design (LW-193/LW-194, ad2240a): an
-  empty off hand invites the twin, anything player-equipped in the off-hand or shield slot
-  declines it, and the mod never writes the shield slot. The shield-eaten symptom is the
-  shape of the [twin-grant-inventory-desync] lane those rows closed, so first establish
-  WHICH lane stamps over the back-out transition (suspect: the browse-screen re-stamp that
-  fires within one pass of leaving Equip and Abilities, racing the game's own normalize
-  while the off hand reads transiently empty), and whether Dual Wield support Key 477 is
-  ever restored when a main-hand swap disqualifies the grant. GunSlinger.cs family
-  (Policy/Apply/Reconcile/Store/MenuGate); re-read GunSlingerPolicy's consent checks and
-  the LIVE_LEDGER twin rows before trusting any hypothesis. The first "cannot single-wield
-  without occupying the other hand" half of the report is the consent design working as
-  built, a UX perception to answer in the FAQ (LW-358's entry can cover both).
 
 - [LW-320] 2026-08-25: Every weapon's power audited against how it is obtained. Demoted from Now on 2026-08-27 late to seat
   LW-353 (per-save bag counts); status unchanged, AWAITING-LIVE, the owner's sign-off on the
@@ -437,6 +378,35 @@ belongs rather than at the bottom.
   (no shop-flags row), so how the seven enter the world (poach rows, Move-Find tiles, a seeded
   first copy, or LW-350's enemy loadout) decides whether players can still find them. Needs
   LW-346 (the port) live-passed and LW-348 (the bag sidecar) first.
+- [LW-359] 2026-08-30: A player reports the twin-weapon consent rule leaking two ways: with a shield in the off hand, backing out of the equip menu removed the shield and stamped the second weapon anyway (the shield only stuck when placed in the MAIN hand), and swapping the main hand from a twin weapon to daggers left the granted Dual Wield support behind for a while, letting daggers dual-wield free.
+  Reported by Darkrapid on Discord 2026-08-30 (docs/USER_FEEDBACK.md); the owner told the
+  player the intended rule and promised a look. The design (LW-193/LW-194, ad2240a): an
+  empty off hand invites the twin, anything player-equipped in the off-hand or shield slot
+  declines it, and the mod never writes the shield slot. The shield-eaten symptom is the
+  shape of the [twin-grant-inventory-desync] lane those rows closed, so first establish
+  WHICH lane stamps over the back-out transition (suspect: the browse-screen re-stamp that
+  fires within one pass of leaving Equip and Abilities, racing the game's own normalize
+  while the off hand reads transiently empty), and whether Dual Wield support Key 477 is
+  ever restored when a main-hand swap disqualifies the grant. GunSlinger.cs family
+  (Policy/Apply/Reconcile/Store/MenuGate); re-read GunSlingerPolicy's consent checks and
+  the LIVE_LEDGER twin rows before trusting any hypothesis. The first "cannot single-wield
+  without occupying the other hand" half of the report is the consent design working as
+  built, a UX perception to answer in the FAQ (LW-358's entry can cover both).
+
+- [LW-360] 2026-08-30: The kill counters on the equip cards stop populating for most of the
+  menu when the new warm start is running: the owner flipped cards live and the counts stayed
+  dashes indefinitely. Cause read live the same day: the warm start (the uncommitted LW-324
+  work) latches paint coverage 0.3s after arming on the one persisted region it could seed
+  (122 sites, one per weapon), and MaybePoolPaint's covered short-circuit returns before ever
+  consulting ShouldRunFullPoolScan, so the two regions the full locate publishes 20s later are
+  never scanned at all; their 244 scaffold copies (one full card set per encoding, probed live,
+  none painted in 45s of watching) stay dashes until something drains coverage. Before the warm
+  start, coverage could not latch until after an all-region scan, which is why this never
+  showed. Fix shape: the covered short-circuit must also break on a fresh region publish (read
+  PoolLocator.PublishGeneration there, or clear the coverage latch when a publish adds regions),
+  so a newly published region gets one scan even while covered. Blocks the paint half of the
+  LW-332 live pass; the defect lives in the uncommitted LW-323/324 pile, so it lands there, not
+  on a shipped build.
 - [LW-344] 2026-08-26: Partner mods want their items to be living weapons too: the
   Cloud mod author (Xeoshades) asked for growth on their Buster Sword line, and today
   growth already bleeds onto any item occupying our ids, wearing the WRONG name in
