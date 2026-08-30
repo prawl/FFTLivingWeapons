@@ -121,7 +121,7 @@ owner's Treasure Master spinoff holds rank 1).
   thesis quoted back verbatim; GameDadVII made a YouTube video on the mod; multiple
   players praise the thief-bow identity and the +3 signatures.
 
-## 2026-08-30 (Discord poach report)
+## 2026-08-30 (Discord reports)
 
 ### Actionable
 - Poach does nothing with the mod on: a player's Ninja with the Poach support could
@@ -140,6 +140,15 @@ owner's Treasure Master spinoff holds rank 1).
     weapons. The player then became unavailable, so the owner closed the chase and
     promoted [LW-358] to Now as a proactive re-verify of Living Poach on the current
     game version plus the FAQ entry.
+- Twin-weapon (forced dual wield) reports (Darkrapid): three observations in one post.
+  (1) A twin weapon cannot be single-wielded except by occupying the other hand; that is
+  the LW-193/194 consent design working as built, but it reads as a restriction to the
+  player, so the poach/mechanics FAQ should explain it. (2) Bug: with a shield in the OFF
+  hand, backing out of the equip menu removed the shield and added the second weapon; only
+  a MAIN-hand shield stuck. The owner replied with the intended rule (off-hand shield
+  should decline the twin) and promised a look. (3) Bug: "change the weapon to daggers and
+  you seem to temporarily gain dual wield", so the granted Dual Wield support appears to
+  linger after a disqualifying swap. Captured as [LW-359].
 - "It's good otherwise 15 weapon damage weapons show up a bit early keep one shotting
   my mages but I was also level 13 with enemies now in 20s lol" (verbatim, same Discord
   thread). Early access to WP 15 weapons echoes the owner's own "steady then boom"
