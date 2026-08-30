@@ -693,26 +693,59 @@ internal static class Offsets
     /// (rbp = image base, rcx = id*2): the LOW byte read.</summary>
     public const long ShopBuilderLowByteDisp32 = 0x140288F3FL;
 
-    // --- LW-353: the save edges (static read of the live 1.5.2 process, 2026-08-27 evening,
-    // docs/research/ITEM_CAP_261_BREAK_JOURNEY.md "save edges"). The game builds a save STRUCT in
-    // a transient allocation whose pointer lives in one global (null between saves and loads);
-    // the serializer fills it (bag at +0x83A8, exactly 261 counts) and the load-apply routine
-    // copies it back into the game's globals. Its +0x100..+0x1B8 header is the slot-list
-    // metadata (play time in seconds at +0x1B4, chapter/location bytes, the four party names at
-    // +0x124), which the file round-trips verbatim, so a hash of that header is a per-save key
-    // that reads the same at save time and at load time. ---
-    /// <summary>u64: pointer to the save struct being serialized or applied; 0 otherwise.</summary>
-    public const long SaveStructPtr = 0x141D407A0L;
+    // --- LW-353: the save edges (corrected 2026-08-27 late night after the owner's live test 2
+    // found the hooks silent; the first build read the pointer from 0x141D407A0, one digit off,
+    // and hooked two routines that were not the ones it named. Re-read from the running 1.5.2
+    // process and the exe on disk, docs/research/ITEM_CAP_261_BREAK_JOURNEY.md "save edges,
+    // corrected"). ONE global holds the pointer to the save STRUCT the game is serializing or
+    // applying: the load-apply reads it as `4C 8B 05 98 56 B2 00` at 0x14021B101 (next ip
+    // 0x14021B108 + 0xB25698) and the serializer at 0x140218F8E; an image xref sweep
+    // (tools/probes/lw346_xref_scan.py) counts 46 references to it and none to the old address.
+    // The struct is NOT transient: the pointer normally holds the static image buffer
+    // 0x142C81C80 (ten routines store an address into the global, so the earlier "null between
+    // saves and loads" reading was a misread), and the hooks therefore read whatever it points at
+    // AFTER the original returns, which is the struct that routine just filled or applied.
+    // Saving runs through the wrapper 0x14021B070 (clears the +0x101 bytes, stamps +0x111, then
+    // jumps to the serializer at 0x14021B0E3), so hooking the serializer catches every save, the
+    // autosave included. The real load-apply is 0x14021B0E8, the byte right after that jump, and
+    // a second restore routine at 0x14021DE98 owns the other bag copy. 0x14021DDF0 is the async
+    // file-op stepper (state dword 0x142E7FADC, called twice a frame while a save OR a load is in
+    // flight) and is deliberately NOT hooked: it fires on saves as well as loads. The struct's
+    // +0x100..+0x1B8 header is the slot-list metadata (play time in seconds at +0x1B4,
+    // chapter/location bytes, the four party names at +0x124), which the file round-trips
+    // verbatim, so a hash of that header is a per-save key that reads the same at save time and
+    // at load time. ---
+    /// <summary>u64: pointer to the save struct being serialized or applied.</summary>
+    public const long SaveStructPtr = 0x140D407A0L;
     public const int SaveHeaderKeyOff = 0x100;
     public const int SaveHeaderKeyLen = 0xB8;
     public const int SaveHeaderPlayTimeOff = 0x1B4;   // u32 seconds = h*3600 + m*60 + s from 0x141856704/708/700
+    /// <summary>Offsets INTO the 0xB8 key window above (so header +0x11A, +0x11C and +0x11D):
+    /// the three bytes the game holds at 0xFF while a save is in flight and leaves at 0x00 at
+    /// rest. <see cref="SaveEdgeTracker.KeyFromHeader"/> zeroes them before hashing, so a save
+    /// and its later load key identically. The save edge samples the in-flight state (it runs
+    /// right after the serializer returns); every load observed so far sampled at rest, where the
+    /// mask is a free no-op, and it is applied at both edges anyway so a load that ever does
+    /// sample mid-flight still keys the same. Read from the owner's 2026-08-28 session: setting
+    /// exactly these three bytes to 0xFF in the resting headers the round-trip probe captured
+    /// reproduces all five save keys the mod logged that night, and zeroing them makes the save
+    /// key equal the load key for every observed pair.</summary>
+    public static readonly int[] SaveHeaderVolatileOffs = { 0x1A, 0x1C, 0x1D };
     /// <summary>The save serializer (fills the struct; ecx = save kind/slot, dl/r8b = header
-    /// bytes +0x112/+0x113). Entry preceded by <c>ret; CC CC</c>.</summary>
+    /// bytes +0x112/+0x113). Entry preceded by <c>ret; CC CC</c>; every save caller reaches it
+    /// through the wrapper 0x14021B070's tail jump, so this one entry covers them all.</summary>
     public const long FnSaveSerialize = 0x140218F78L;
-    /// <summary>The load-apply routine (copies the struct's bag into 0x1411A7C00 at 0x14021B1D5,
-    /// the roster block after it). Entry preceded by four CC.</summary>
-    public const long FnSaveApply = 0x14021B070L;
-    /// <summary>A switch-dispatched sibling that also restores the bag (its case at 0x14021E1D1
-    /// zeroes count[0] first); hooked with the same handler so no load path is missed.</summary>
-    public const long FnSaveApplyB = 0x14021DDF0L;
+    /// <summary>The real load-apply routine, entered right after the save wrapper 0x14021B070's
+    /// jump to the serializer (no padding between them): it reads the struct pointer at
+    /// 0x14021B101 and copies the struct's bag into 0x1411A7C00 and its roster block into
+    /// 0x1411A7D10 at 0x14021B1D5.</summary>
+    public const long FnSaveApply = 0x14021B0E8L;
+    /// <summary>The second restore routine (its bag copy at 0x14021E1D1 zeroes count[0] first,
+    /// as the load-apply's does at 0x14021B1C8; it reads the struct pointer at 0x14021DEC9 and
+    /// 0x14021E1B6). One plain-code caller, 0x1402FB9EE; which game action drives it is unread,
+    /// so it is hooked with the same handler and carries its own canary.</summary>
+    public const long FnSaveApplyB = 0x14021DE98L;
+    /// <summary>The static image buffer the pointer above normally holds; diagnostic only, the
+    /// hooks always follow the pointer rather than reading this.</summary>
+    public const long SaveStructStatic = 0x142C81C80L;
 }

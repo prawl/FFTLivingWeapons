@@ -1779,3 +1779,106 @@ counts are replayed into the bag on the next tick (the load edge drains before t
 so a save right after a load records the replayed state). Unknown key = the schema-1 counts
 once (migration), then the data seed. The tick no longer records bag changes on its own. Boot
 places the seed (a new game's bag). Unit-gated only; the owner's test 2 is the live pass.
+(Superseded on the addresses by the correction entry below.)
+
+### 2026-08-27 late night: save edges, corrected (owner test 2 found the hooks silent)
+
+Plain language: the owner ran test 2 on the deployed build and nothing happened. Every hook
+reported itself installed, the log carried no "save was written" or "save was loaded" line at
+all, and slot B still held the Moonblade the boot seed had placed. Two reasons, both invisible to
+the unit suite: the constant for "which save is in memory" was one digit off, and two of the
+three hooked entries were not the routines they were named after. Re-read from the running
+process and the exe on disk, nothing poked:
+
+- The struct-pointer global is 0x140D407A0, not 0x141D407A0. The load-apply reads it as
+  `4C 8B 05 98 56 B2 00` at 0x14021B101 (next ip 0x14021B108 + 0xB25698); the serializer reads it
+  at 0x140218F8E. An image xref sweep (tools/probes/lw346_xref_scan.py) counts 46 references to
+  0x140D407A0 and ZERO to the address the build used.
+- The struct is not transient. Read live at the world map the global held 0x142C81C80, a static
+  image buffer: ten routines store an address into the global, seven of them the static buffer
+  via `lea` at 0x1400C45CC, 0x14021A4D4, 0x140183E06, 0x140246024, 0x1402CEEF8, 0x1402FB9DB and
+  0x14038E387. Its header was read live twice:
+  the play time u32 at +0x1B4 was 4404 at the first read and 4598 at a later one while the session
+  clock stood at 6652, so the header carries the play time of the LAST save or load, not the
+  running clock (the first read merely fell soon after an edge); the bag mirror at +0x83A8 matched
+  the live bag at 0x1411A7C00. The hooks read whatever the pointer holds AFTER the original
+  returns, which is the struct that routine just filled or applied.
+- 0x14021B070 is the SAVE wrapper, not the load-apply: `movups [rax+0x101],0`,
+  `mov byte [rax+0x111],0xFE`, then `jmp 0x140218F78` (the serializer) at 0x14021B0E3. All five
+  save callers (0x1400C446B, 0x14021AF04, 0x140246049, 0x1402BBAC5, 0x1402CEF24) go through the
+  wrapper and the serializer has no other plain-code caller, so hooking the serializer catches
+  every save, the autosave included.
+- The real load-apply is 0x14021B0E8, the byte right after that jmp with no padding between them
+  (prologue `48 8B C4 48 89 58 08 48 89 68 10 48 89 70 18 48 89 78 20 41 56`). It reads the global
+  at 0x14021B101 and copies the struct's roster block (+0x518..) into 0x1411A7D10 and its bag
+  (+0x83A8, 261 bytes) into 0x1411A7C00 at 0x14021B1D5. Six entry paths reach it: calls at
+  0x1400C45EB (right after the slot image, stride 0x9CE4, is memcpy'd into the static buffer),
+  0x14021AB42, 0x1402BBB34, 0x140326758 and 0x140326FE7, plus a TAIL JUMP at 0x1402D0444
+  (`jmp 0x14021B0E8`, taken after that path stores the pointer at 0x1402D0432 and runs its own
+  0x9CE4 memcpy: a load path too, and a jump lands on a hook stub exactly as a call does). Note:
+  tools/probes/lw346_xref_scan.py printed call sites one byte early (0x1402BBB33 for the E8 at
+  0x1402BBB34), which is how the wrong caller list was transcribed; the tool was fixed in this same
+  pass and now prints the E8's own address.
+- 0x14021DDF0 is not a restore at all: it is the async file-op stepper (state dword 0x142E7FADC;
+  state 0 calls 0x140245B7C(struct, kind, 0, -1), state 1 polls 0x14033EB00 and dispatches a
+  two-case switch that only clears the state), called twice a frame from 0x14021AF2E/0x14021AF42
+  while a save OR a load is in flight. A load edge taken from it would fire on saves too, so it is
+  dropped, not hooked.
+- The second restore routine (the one owning the bag copy at 0x14021E1D1, which zeroes count[0]
+  first as the load-apply's copy does at 0x14021B1C8) starts at 0x14021DE98 (prologue
+  `48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57 41 54 41 55 41 56 41 57`); it reads the global
+  at 0x14021DEC9 and 0x14021E1B6. Its one plain-code caller is 0x1402FB9EE, which stores the
+  static buffer into the global first and calls 0x140245D0C.
+  Which game action drives it is still unread, so it keeps its own canary line: the owner's live
+  pass is what will name it.
+
+The build now carries those four constants (Offsets.SaveStructPtr, FnSaveSerialize, FnSaveApply,
+FnSaveApplyB, plus SaveStructStatic for the diagnostic), the two corrected prologues, install
+labels that say which routine refused ("save-serialize", "load-apply", "load-restore-b"), one
+canary per load path, and a test that pins all five constants so a re-anchor has to move the test
+and the code together. tools/probes/lw353_save_edge_watch.py was corrected the same way and now
+watches the HEADER as well as the pointer, because a static struct's pointer does not move.
+
+Lesson: a function boundary hidden behind a tail jmp and a one-digit address transcription both
+passed a static read; the live xref sweep (zero references to the address) is the check that
+catches either in one command.
+
+### 2026-08-28: the key had to ignore three save-in-flight bytes (test 2, second run)
+
+Plain language: with the addresses corrected the hooks fired exactly as designed (the save and
+load-apply canary lines, five saves recorded, the pre-fix counts migrated) and test 2 still
+failed. A save never recognized its own load, so every load fell back to the first-copy seed: the
+fingerprint the mod takes of a save included three bytes the game sets only while a save is being
+written, so one save looked like two. The second restore routine 0x14021DE98 never fired in that
+run, so which game action drives it is still unanswered.
+
+- The three bytes are offsets 0x1A, 0x1C and 0x1D of the hashed window (header +0x11A, +0x11C,
+  +0x11D). They read 0xFF at the instant DetourSerialize samples, right after the serializer
+  returns, and 0x00 at rest, which is the state every observed load sampled. Everything else in
+  +0x100..+0x1B8 round-trips byte-identically: tools/probes/lw353_header_roundtrip.py captured two
+  resting headers 26 seconds apart (01:09:27 and 01:09:53) that differ only in the play-time u32
+  at +0x1B4.
+- Offline reconciliation, from that probe's logged hex plus the mod's own log: setting exactly
+  those three bytes to 0xFF in a resting header reproduces all five save keys of the run
+  (pt2200-f0fefc093c1b, pt2212-7423df91f46f, pt2219-0dbabc353233, pt2269-fb60d7fd7608 and
+  pt2584-f25ab97abe23, the last written at 01:09:54) from their resting counterparts
+  (pt2219-4ee338125549, pt2269-b0d816f46ff3 and pt2584-ac68fc314b36, that last one a fully
+  observed pair with the probe's 01:09:53 capture), and zeroing them before the hash makes the
+  save key equal the load key for every observed pair.
+- Only the SAVE edge was seen sampling in flight. All four load keys the run logged
+  (pt2147-16f352195175, pt2269-b0d816f46ff3, pt2219-4ee338125549, pt2584-ac68fc314b36) are
+  resting-form: pt2147's header reconstructed with resting bytes hashes to 16f352195175 exactly.
+  The mask still rides BOTH edges, because at rest it costs nothing and it keeps the key right if
+  a load ever does sample mid-flight. It lives in the mod (Offsets.SaveHeaderVolatileOffs, applied
+  in SaveEdgeTracker.KeyFromHeader) and in both probes, which now derive the key the same way (the
+  round-trip probe still prints RAW header hex, since diffing headers is what it is for).
+- Already incurred: the run's five saves sit under unmasked keys, so under the mask those five
+  entries are orphans, harmless within the sidecar's 64-key cap. The one-shot legacy migration was
+  consumed in the same run, placed into the bag once and then cleared, and it is recorded under no
+  key at all (PersistAfterLegacyTaken writes no key, and pt2147 is absent from the live saves
+  map). Nothing is lost either way, because the legacy payload equaled the seed ({261: 1}): each
+  save takes the seed once and then records normally. The pre-fix sidecar was copied aside before
+  the change.
+
+Lesson: a fingerprint is only as stable as its least stable byte, and the two edges sample at
+different moments; diff one state against the other before hashing either.

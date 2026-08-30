@@ -22,9 +22,23 @@ the technical detail lives in the indented lines under it.
     save's header: play time, party, chapter), and when the game loads a save it puts that
     save's counts back. A save the mod has never seen gets the pre-fix counts once (so the
     owner's slot A keeps its Moonblades), then the first-copy seed. The tick never records on
-    its own any more. NOT deployed.
-  - (Tech: Offsets.SaveStructPtr 0x141D407A0, FnSaveSerialize 0x140218F78, FnSaveApply
-    0x14021B070, FnSaveApplyB 0x14021DDF0, header +0x100..+0x1B8 with play time at +0x1B4;
+    its own any more. The corrected build was deployed on 2026-08-27 at 22:57 and live-tested
+    twice; the build with the masked key is waiting on the owner's re-test.
+  - Correction 2026-08-27 late night: the owner's live test 2 on the deployed build showed
+    nothing firing (slot B still held the boot-seeded Moonblade). Cause: the struct-pointer
+    constant was one digit off (0x141D407A0 for 0x140D407A0) and two of the three hooked entries
+    were the wrong routines (the save wrapper and the async file stepper instead of the load-apply
+    and the second restore). Fixed in code, tests and the probe; the live pass is still owed.
+  - Correction 2026-08-28: the first live run of the fix showed the hooks working (the save and
+    load-apply canary lines, five saves recorded), but a save still did not recognize its own
+    load. The fingerprint the mod takes of a save included three bytes the game flips to 0xFF
+    only while a save is being written, so the same save looked like two different saves and
+    every load fell back to the starter copy. The key now ignores those three bytes at both
+    edges. The owner's re-test is still owed.
+  - (Tech: Offsets.SaveStructPtr 0x140D407A0, FnSaveSerialize 0x140218F78, FnSaveApply
+    0x14021B0E8, FnSaveApplyB 0x14021DE98 (0x14021DDF0 is the async stepper, not hooked),
+    header +0x100..+0x1B8 with play time at +0x1B4 and SaveHeaderVolatileOffs {0x1A, 0x1C,
+    0x1D} zeroed before the hash (the save-in-flight markers);
     LivingWeapon/Extended/SaveEdgeHooks.cs + SaveEdgeTracker.cs; ExtendedBagSidecar schema 2
     (`saves` keyed, `order`, 64-key cap, `legacy` one-shot); ledger row
     [save-edge-hooks-key-bag-counts]; journal "save edges".)
@@ -53,7 +67,9 @@ the technical detail lives in the indented lines under it.
   - Verify: suite green (SaveEdgeTrackerTests, the schema-2 sidecar tests, the edge-driven
     ExtendedInventoryTests); then the owner walks test 2 with the log open: the two canary
     lines ("save-edge hook is confirmed working" / "load-edge hook ..."), the key on the save
-    line equals the key on the later load line, and the counts follow the slots.
+    line equals the key on the later load line, the counts follow the slots, and
+    extended_inventory.json afterwards holds only the keys of saves actually written or
+    loaded, with no legacy key left.
 - **[LW-356] A brand-new weapon grows and glows like the old ones** (opened 2026-08-27) [AWAITING-LIVE]
   - Plain language: the Moonblade counted kills and grew its stat from day one (its growth lane
     rides the same meta.json row as every weapon), but two growth surfaces still knew only the

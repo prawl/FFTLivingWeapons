@@ -14,6 +14,12 @@ The Denuvo-processed code is scanned as it sits in memory (readable via RPM), so
 references are complete; references from inside the encrypted/virtualised regions are not
 recoverable this way (they show up as "no hits", which is a fact, not a proof of absence).
 
+A printed CALL hit is the E8 opcode's own address, so it can be pasted straight into a
+disassembler. A printed rip-relative hit is still the disp32's FIRST byte, which sits three
+bytes into a 7-byte mov/lea: the load-apply's own read of the save-struct global, the
+instruction at 0x14021B101, prints as 0x14021B104. Not every printed hit is an instruction
+start.
+
 Writes nothing. Usage: python tools/probes/lw346_xref_scan.py 0xADDR [0xADDR ...] [--ctx N]
 """
 import ctypes as C
@@ -159,7 +165,11 @@ def main():
                 if (a, tag) in seen:
                     continue
                 seen.add((a, tag))
-                site = a - 1 if tag == "call" else a
+                # `a` is already the first byte of the reference: for a call that is the E8
+                # opcode itself (ce indexes the E8, not its rel32). An earlier `a - 1` here
+                # printed every call site one byte early and put 0x1402BBB33 in the LW-353
+                # notes for the real call at 0x1402BBB34; fixed 2026-08-27.
+                site = a
                 print("  - 0x%X  (%s)" % (site, tag))
                 if "--ctx" in sys.argv or len(hits) <= 40:
                     show_ctx(h, site)

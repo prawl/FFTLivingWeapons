@@ -6,15 +6,19 @@ namespace LivingWeapon;
 
 /// <summary>
 /// LW-353: the testable core behind the save-edge hooks. The detours (SaveEdgeHooks.cs) only do
-/// two things on the game's thread: read the transient save struct's header and the extended
+/// two things on the game's thread: read the save struct's header and the extended
 /// ids' live bag counts, and hand them here. Everything else (file I/O, the replay write into
 /// the bag) runs on Engine's tick through <see cref="ExtendedInventory.StepBagSidecar"/>, which
 /// drains the two pending slots below. One pending slot each: a second edge before the tick
 /// drains the first simply supersedes it (the newer state is the truth either way).
 ///
-/// KEY: <c>pt&lt;playTimeSeconds&gt;-&lt;first 12 hex of SHA-1 over the 0xB8 header bytes&gt;</c>.
-/// The header holds the slot list's metadata (play time, chapter, party names) and the file
-/// round-trips it verbatim, so the same save yields the same key when it is later applied.
+/// KEY: <c>pt&lt;playTimeSeconds&gt;-&lt;first 12 hex of SHA-1 over the 0xB8 header bytes&gt;</c>,
+/// with the three save-in-flight marker bytes (<see cref="Offsets.SaveHeaderVolatileOffs"/>)
+/// zeroed first: they read 0xFF at a save edge and 0x00 at rest, so an unmasked hash gave the
+/// same save two different keys and no load ever found its own counts (the owner's 2026-08-28
+/// session). The rest of the header holds the slot list's metadata (play time, chapter, party
+/// names) and the file round-trips it verbatim, so the same save yields the same key when it
+/// is later applied.
 /// </summary>
 internal sealed class SaveEdgeTracker
 {
@@ -32,7 +36,9 @@ internal sealed class SaveEdgeTracker
             throw new ArgumentException("header must be the full key window", nameof(header));
         int pt = Offsets.SaveHeaderPlayTimeOff - Offsets.SaveHeaderKeyOff;
         uint playTime = (uint)(header[pt] | header[pt + 1] << 8 | header[pt + 2] << 16 | header[pt + 3] << 24);
-        var sha = SHA1.HashData(header.AsSpan(0, Offsets.SaveHeaderKeyLen));
+        byte[] masked = header.AsSpan(0, Offsets.SaveHeaderKeyLen).ToArray();
+        foreach (int off in Offsets.SaveHeaderVolatileOffs) masked[off] = 0;
+        var sha = SHA1.HashData(masked);
         return $"pt{playTime}-{Convert.ToHexString(sha, 0, 6).ToLowerInvariant()}";
     }
 

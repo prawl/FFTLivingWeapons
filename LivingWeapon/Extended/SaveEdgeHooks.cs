@@ -13,10 +13,18 @@ namespace LivingWeapon;
 /// <see cref="SaveEdgeTracker"/>. A detour never throws, never logs on the hot path beyond the
 /// once-per-session canaries, and never writes game memory; the replay itself lands on the tick.
 ///
-/// Landmarks (read on the 1.5.2 exe on disk 2026-08-27, each preceded by ret/CC padding):
-///   serializer   0x140218F78: 48 89 5C 24 08 48 89 6C 24 20 56 57 41 54 41 56
-///   load-apply   0x14021B070: 48 89 5C 24 08 57 44 0F B6 1D
-///   load-apply B 0x14021DDF0: 48 83 EC 28 8B 15 E2 1C C6 02 85 D2
+/// Landmarks (re-read from the 1.5.2 exe on disk 2026-08-27 late night, after the first build
+/// named two entries that were not the routines it meant):
+///   save-serialize 0x140218F78: 48 89 5C 24 08 48 89 6C 24 20 56 57 41 54 41 56
+///   load-apply     0x14021B0E8: 48 8B C4 48 89 58 08 48 89 68 10 48 89 70 18 48
+///   load-restore-b 0x14021DE98: 48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57
+/// Every save caller reaches the serializer through the wrapper 0x14021B070's tail jump, so that
+/// one entry covers manual saves and the autosave. The load-apply sits at the byte right after
+/// that jump. The async file-op stepper 0x14021DDF0 is deliberately NOT hooked: it is called
+/// twice a frame while a save OR a load is in flight, so a load edge taken from it would fire on
+/// saves too. The struct pointer normally holds the static image buffer 0x142C81C80
+/// (Offsets.SaveStructStatic), so the header read after the original returns is the struct that
+/// routine just filled or applied.
 /// Signatures are unknown beyond "Microsoft x64, up to four register args"; the detours forward
 /// rcx/rdx/r8/r9 verbatim and return the original's rax, the same contract PromptSwapHook uses.
 /// </summary>
@@ -26,15 +34,15 @@ internal sealed class SaveEdgeHooks
     public delegate nint EdgeFn(nint rcx, nint rdx, nint r8, nint r9);
 
     public static readonly byte[] SerializePrologue = { 0x48, 0x89, 0x5C, 0x24, 0x08, 0x48, 0x89, 0x6C, 0x24, 0x20, 0x56, 0x57, 0x41, 0x54, 0x41, 0x56 };
-    public static readonly byte[] ApplyPrologue = { 0x48, 0x89, 0x5C, 0x24, 0x08, 0x57, 0x44, 0x0F, 0xB6, 0x1D };
-    public static readonly byte[] ApplyBPrologue = { 0x48, 0x83, 0xEC, 0x28, 0x8B, 0x15, 0xE2, 0x1C, 0xC6, 0x02, 0x85, 0xD2 };
+    public static readonly byte[] ApplyPrologue = { 0x48, 0x8B, 0xC4, 0x48, 0x89, 0x58, 0x08, 0x48, 0x89, 0x68, 0x10, 0x48, 0x89, 0x70, 0x18, 0x48 };
+    public static readonly byte[] ApplyBPrologue = { 0x48, 0x89, 0x5C, 0x24, 0x08, 0x48, 0x89, 0x6C, 0x24, 0x10, 0x48, 0x89, 0x74, 0x24, 0x18, 0x57 };
 
     private readonly ICodePatcher _mem;
     private readonly SaveEdgeTracker _tracker;
     private readonly IReadOnlyList<int> _extendedIds;
     private IHook<EdgeFn>? _serialize, _apply, _applyB;
     private EdgeFn? _k1, _k2, _k3;   // GC anchors: the native thunks must outlive us
-    private bool _canarySave, _canaryLoad;
+    private bool _canarySave, _canaryLoadA, _canaryLoadB;
 
     public bool IsActive => _serialize?.IsHookEnabled == true && _apply?.IsHookEnabled == true && _applyB?.IsHookEnabled == true;
 
@@ -55,8 +63,8 @@ internal sealed class SaveEdgeHooks
         foreach (var (addr, expected, label) in new[]
         {
             (Offsets.FnSaveSerialize, SerializePrologue, "save-serialize"),
-            (Offsets.FnSaveApply, ApplyPrologue, "save-apply"),
-            (Offsets.FnSaveApplyB, ApplyBPrologue, "save-apply-b"),
+            (Offsets.FnSaveApply, ApplyPrologue, "load-apply"),
+            (Offsets.FnSaveApplyB, ApplyBPrologue, "load-restore-b"),
         })
         {
             bool ok = _mem.TryRead(addr, expected.Length, out var entry);
@@ -87,7 +95,7 @@ internal sealed class SaveEdgeHooks
     }
 
     /// <summary>The 0xB8 header bytes of the struct the global points at, or null when the
-    /// pointer is null or the read fails.</summary>
+    /// pointer does not resolve or the read fails.</summary>
     internal byte[]? ReadHeader()
     {
         if (!_mem.TryRead(Offsets.SaveStructPtr, 8, out var p)) return null;
@@ -123,25 +131,38 @@ internal sealed class SaveEdgeHooks
     private nint DetourApply(nint rcx, nint rdx, nint r8, nint r9)
     {
         nint ret = _apply!.OriginalFunction(rcx, rdx, r8, r9);
-        AfterApply();
+        AfterApply(second: false);
         return ret;
     }
 
     private nint DetourApplyB(nint rcx, nint rdx, nint r8, nint r9)
     {
         nint ret = _applyB!.OriginalFunction(rcx, rdx, r8, r9);
-        AfterApply();
+        AfterApply(second: true);
         return ret;
     }
 
-    private void AfterApply()
+    /// <summary>One canary per path: which of the two restore routines a real load runs through
+    /// is still unread, so the log has to name the one that actually fired.</summary>
+    private void AfterApply(bool second)
     {
         try
         {
             var hdr = ReadHeader();
-            if (hdr == null) return;   // not a save load (the struct pointer is null): nothing to key
+            if (hdr == null) return;   // the pointer did not resolve; otherwise every call takes an edge, which is sound because both routines overwrite the bag from the struct
             _tracker.OnApplied(hdr);
-            if (!_canaryLoad) { _canaryLoad = true; SafeLog("The load-edge hook is confirmed working; the game's first save load this session was intercepted."); }
+            if (second)
+            {
+                if (_canaryLoadB) return;
+                _canaryLoadB = true;
+                SafeLog("The second restore routine (0x14021DE98) fired for the first time this session and a load edge was taken from it; note which game action just happened.");
+            }
+            else
+            {
+                if (_canaryLoadA) return;
+                _canaryLoadA = true;
+                SafeLog("The load-edge hook is confirmed working; the game's first save load this session was intercepted (load-apply 0x14021B0E8).");
+            }
         }
         catch (Exception) { /* never reaches the game */ }
     }
