@@ -116,8 +116,8 @@ the technical detail lives in the indented lines under it.
 - **[LW-351] The seven axes and flails go back to vanilla and their designs move to new extended ids** (opened 2026-08-27) [BUILDING]
   - Plain language: this mod had turned the game's seven axes and flails into other weapon
     types (a pole, knight swords, a sword, a knife, a ninja blade, a katana) while they still
-    swung axe and flail art. Now the seven vanilla weapons come back exactly as the base game
-    had them, at their old ids, and the seven rebalanced designs move to brand-new
+    swung axe and flail art. Now the seven vanilla weapons come back with the base game's
+    numbers, categories, prices and shops (the card prose stays this mod's), at their old ids, and the seven rebalanced designs move to brand-new
     extended-inventory ids 262 to 268, keeping their stats, growth lanes, signatures, icons
     and shop windows, with a save's earned kills following each design to its new id.
   - Progress 2026-08-30: STAGE 1 (the Battle Axe restored at 48, the Terrastaff moved to 262)
@@ -128,16 +128,16 @@ the technical detail lives in the indented lines under it.
     Terrastaff now records its true reach (2 tiles, its clone donor's), which makes it beat
     the Ironreed Pole; the owner deferred that pair out loud (analyze.py DOMINANCE_DEFERRED)
     until one dominance pass gates all seven together (LW-363).
-  - (Tech: items.json restores ids 48-50/67-70 to vanilla names, categories, baseline numbers
-    and tiers with noGrowth; the designs re-add as extended rows with migratedFrom, each
+  - (Tech, stage 1 landed for 48/262, the rest is stage 2 scope: items.json restores ids
+    48-50/67-70 to vanilla names, categories, baseline numbers and tiers with noGrowth; the designs re-add as extended rows with migratedFrom, each
     authoring its NEW category's delivery grammar and its clone donor's range (generate.py
     check_extended_flag_grammar / check_extended_range); TallyMigration moves kills and
-    legend deeds once per pairing; Bulwark.SundererId 50 to 264; THIN_NICHE_EXCEPTIONS keys
-    move with the Warbrand; weapon_colors rows for the old ids are parked per stage; icons
+    legend deeds once per pairing; Bulwark.SundererId 50 to 264 (stage 2); THIN_NICHE_EXCEPTIONS
+    keys move with the Warbrand (stage 2); weapon_colors rows for the old ids are parked per stage; icons
     are baked at the new ids BEFORE each old slot reverts to vanilla art; JobData no longer
     strips Axe/Flail; ability 460's Equip Axes text re-worded.)
-  - Done means: every one of the seven vanilla axes and flails is back in the game as the
-    base game had it, every one of the seven designs equips, fights, shows its Kills line and
+  - Done means: every one of the seven vanilla axes and flails is back in the game with the
+    base game's numbers and shops, every one of the seven designs equips, fights, shows its Kills line and
     grows at its new id from a shop in its old slot's towns, a player's earned kills on a
     design follow it to the new id once, every doc and grid row that enumerates items lists
     all fourteen, and the seven designs pass the no-domination gate together in one pass

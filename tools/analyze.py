@@ -1288,11 +1288,13 @@ def main():
     for key, label in dom_runs:
         proposed = label == "PROPOSED"
         n_def = len(DOMINANCE_DEFERRED)
-        deferred = (f" ({n_def} pair{'s' if n_def != 1 else ''} deferred by owner ruling, see LW-363)"
+        # counts the entries ON FILE, not the pairs still dominated: a rotted entry announces
+        # itself as a STALE DEFERRAL line above the verdict, so this number never overstates.
+        deferred = (f" ({n_def} owner-ruled deferral{'s' if n_def != 1 else ''} on file, see LW-363)"
                     if proposed and DOMINANCE_DEFERRED else "")
         registry.append(dict(
             header=f"{label} dominance check",
-            # only the PROPOSED verdict honours DOMINANCE_DEFERRED; --baseline stays raw
+            # only the PROPOSED verdict honors DOMINANCE_DEFERRED; --baseline stays raw
             check_fn=(lambda: check_proposed_dominance(items, nf)) if proposed
             else (lambda key=key: check(items, key, nf)),
             pass_msg=f"PASS: no item is strictly dominated{deferred}. Build-diversity invariant holds.",

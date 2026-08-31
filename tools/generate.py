@@ -280,6 +280,13 @@ def validate_extended(ext, all_items):
         raise SystemExit(f"extended inventory: ids must be contiguous from {EXTENDED_FIRST_ID}, got {ids}")
     if ids and ids[-1] > EXTENDED_LAST_ID:
         raise SystemExit(f"extended inventory: id {ids[-1]} is past the accessor mask's last slot {EXTENDED_LAST_ID}")
+    # An owner-ruled exception for an id that no longer ships is rot, and rot must be loud: a
+    # silently ignored entry would look like a standing ruling to the next reader of this file.
+    for name, table in (("EXTENDED_DELIVERY_EXCEPTIONS", EXTENDED_DELIVERY_EXCEPTIONS),
+                        ("EXTENDED_RANGE_EXCEPTIONS", EXTENDED_RANGE_EXCEPTIONS)):
+        for stale in sorted(k for k in table if k not in ids):
+            raise SystemExit(f"extended inventory: {name} names id {stale}, which is not an extended row "
+                             f"any more; remove the stale entry (never leave a dead ruling on file)")
     known = {it["id"] for it in all_items if it["id"] < 256}
     for it in ext:
         e, s, i = it["extended"], it["proposed"], it["id"]
