@@ -164,6 +164,26 @@ the technical detail lives in the indented lines under it.
     DLL owns first, the way LW-346 relocated the item catalog; the u16 list at 0x1411A7810
     already spills two bytes per extended item into the Poacher's Den store and relies on the
     game refilling that store from the save (a Den glance is part of every round).
+  - Round 1 RESULT (2026-08-31 02:09-02:12, owner screenshot plus the log): the game retained
+    all eleven. The boot line armed 11, the four probes seeded x1, the reset hook kept them,
+    the load placed the save's own counts, the four listed on the Items tab with full cards
+    (icon, WP, Kills scaffold, Grows line), and a save recorded them; the picker chart's stale
+    268 word healed itself the moment 268 was a real item again ("removed 2 doubled id(s)
+    [268,268]", the walk-stopper the LW-367 row describes, now with a live signature). Owner
+    Den glance and one reload still owed to close the round.
+  - Round 2 SCOUT (read-only sweeps of the running game, 2026-08-31 ~02:20): the reset routine
+    zeroes the count list and its sibling with image-relative addressing (`mov byte
+    [rax+r8+0x11A7C00]`, r8 = image base), a form the rip-relative xref sweep cannot see, so a
+    relocation must re-point BOTH families. Counted in plain code: count list 0x1411A7C00 = 17
+    rip-relative + 20 image-relative readers (37); sibling byte list 0x1411A7700 = 7 + 1; u16
+    list 0x1411A7810 = 14 + 3; plus a 0x80-byte list at 0x1411A7680 (1) that ends where the
+    sibling begins; Denuvo-side readers are invisible to both sweeps (the damage path is one).
+    The u16 seed loop runs 0x110 entries from 0x1411A7810 and the very next instructions memset
+    the three 97-byte poach stores at 0x1411A7A1A / 0x1411A7A7B / 0x1411A7ADC and re-seed a u16
+    list at 0x1411A7B3D, which is why the spill is harmless. Verdict: past eleven is a relocation
+    of at least the count list with 37 known re-points and an unknown number behind Denuvo, or a
+    per-function mirror at the accessor entry points; estimate and owner go-ahead before any
+    fan-out (the fan-out rule).
   - (Tech: the three id-keyed arrays the initializer 0x140284500 seeds are u8 0x1411A7C00
     (bag counts, 0x110 bytes then RosterBase), u8 0x1411A7700 (0x110 bytes then the u16 array)
     and u16 0x1411A7810 (0x105 entries then PoachStoreBase 0x1411A7A1B); every PlusN site in
