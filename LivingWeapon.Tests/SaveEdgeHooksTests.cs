@@ -138,4 +138,23 @@ public class SaveEdgeHooksTests
 
         Assert.Equal(stale2, f2.Read(rel2.PageAddr + 0x000, 2));   // untouched
     }
+
+    /// <summary>LW-351 stage 3 P4-F3: the replay callback and the tracker publication used to share
+    /// one try, so a throwing replay skipped <see cref="SaveEdgeTracker.OnApplied"/> too -- the very
+    /// edge Engine's tick fallback keys on. A throw here must cost only the replay, not the edge.</summary>
+    [Fact]
+    public void A_throwing_replay_still_publishes_the_load_edge()
+    {
+        var f = new FakeCodePatcher();
+        f.Seed(Offsets.SaveStructPtr, BitConverter.GetBytes(StructAddr));
+        f.Seed(StructAddr + Offsets.SaveHeaderKeyOff, SaveEdgeTrackerTests.Header(2482));
+        var tracker = new SaveEdgeTracker();
+        var hooks = new SaveEdgeHooks(f, tracker, new List<int>(),
+            replayOnLoad: _ => throw new InvalidOperationException("boom"));
+
+        hooks.AfterApply(second: false);
+
+        Assert.True(tracker.TryTakePendingLoad(out var key));
+        Assert.Equal(SaveEdgeTracker.KeyFromHeader(SaveEdgeTrackerTests.Header(2482)), key);
+    }
 }

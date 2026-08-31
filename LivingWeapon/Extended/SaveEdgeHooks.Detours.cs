@@ -73,7 +73,10 @@ internal sealed partial class SaveEdgeHooks
             // belong here, before the game can draw a menu from either. Doing it in this order
             // also means the tick can never take the edge before the resolution it must re-use is
             // there (the tracker's own lock is the fence between the two threads).
-            _replayOnLoad?.Invoke(SaveEdgeTracker.KeyFromHeader(hdr));
+            // LW-351 stage 3 P4-F3: the replay runs in its own try so a fault in it can never
+            // suppress the edge the line right after publishes.
+            try { _replayOnLoad?.Invoke(SaveEdgeTracker.KeyFromHeader(hdr)); }
+            catch (Exception) { /* a replay fault must not cost the edge below */ }
             _tracker.OnApplied(hdr);
             if (second)
             {
