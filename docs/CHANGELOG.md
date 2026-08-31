@@ -10,6 +10,36 @@ before 2026-07-21 keep their original prose.
 
 ## 2.4.0 cycle
 
+- [LW-351] SHIPPED a57d3920 2026-08-31: The game's seven axes and flails are themselves again
+  and the seven rebalanced designs live on at new ids with every earned kill carried over.
+  Plain language: this mod had turned the seven vanilla axes and flails into other weapon
+  types that still swung axe and flail art. Now the Battle Axe, Giant's Axe, Slasher, Iron
+  Flail, Flail of Flame, Morning Star and Scorpion Tail are back with the base game's numbers
+  and shops at their old ids, and the seven designs (Terrastaff, Ravager, Sunderer, Warbrand,
+  Bloodlash, Climhazzard, Sasori) moved whole to extended ids 261 to 267, keeping their
+  stats, growth lanes, signatures, icons and shop windows, with a save's earned kills
+  following each design once. Getting there took down every layer of the game's 261 item
+  wall in turn; the owner live passed stage 1 and stage 2, flipped all six ledger rows the
+  arc wrote, and the closing fairness pass shipped under LW-363 in the same commit this row
+  cites. (Tech: stage commits a6ea868b stage 1, 0e612454 stage 2, 7b5f01c8 round 7,
+  127c9594 round 8, 0b5332ef the Moonblade removal and id slide, 5ce751f9 plus 5340b732
+  stage 3, fa975190 the owner's PROVEN flips, a57d3920 the LW-363 dominance close; LIVE
+  LEDGER rows reserved-id-equality-list-gate, order-template-housekeeper-family,
+  inventory-reset-hook-keeps-extended-counts, order-templates-are-save-state,
+  extended-reach-from-donor-not-authored-row, menu-rebuild-needs-unique-sort-keys, all
+  PROVEN 2026-08-31.)
+- [LW-363] SHIPPED a57d3920 2026-08-31: The seven moved designs passed their fairness pass in
+  one sitting and the loud deferral list is empty again. Plain language: after the seven
+  designs moved to their new ids, the mod's no worse weapon gate had exactly one deferred
+  offense on file: the Terrastaff, keeping its promised numbers and now recording its true
+  two tile reach, made the plain Ironreed Pole pointless. The pole now guards a little
+  better (22 percent evade instead of 20), giving it an honest job again as the line's
+  guard pole under the Hushfan, and the other six designs already survived on their own
+  merits. The owner's spot read of the new number rides the next deployed session and a re
+  rule would be one line. (Tech: items.json id 108 proposed.evade 20 to 22; analyze.py
+  DOMINANCE_DEFERRED emptied, mechanism kept; grid parry and ruling cells synced; the evade
+  route is the only clean single field fix, wp 10 trips the thin margin rule and equal
+  numbers still lose to Earth plus the earlier tier; adversarial review SHIP 8 of 10.)
 - [LW-367] SHIPPED 58fff174 2026-08-31: The mod now heals saved menus that still name a
   removed weapon, no hand sorting needed. Plain language: a save can carry menu chart words
   for weapons that no longer exist (the deleted test props, the Moonblade before them), and

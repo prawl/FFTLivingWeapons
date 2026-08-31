@@ -76,101 +76,31 @@ the technical detail lives in the indented lines under it.
   - Verify: full suite green; the owner's live battle shows either the "The weapon's
     spirit claims the carcass" log line with the Den count matching, or the named
     discriminator or gate-reason line in livingweapon.log; the owner reads the FAQ text.
-- **[LW-363] The seven moved weapon designs pass the no-domination gate in one pass and the loud deferral list empties** (opened 2026-08-30) [BUILDING]
-  - Plain language: when the Terrastaff moved to its new id it started recording the reach it
-    really has (two tiles, borrowed from its donor pole), and by the mod's own fairness rule
-    that made the plain Ironreed Pole pointless next to it: same reach, same guard, less power,
-    later shelf, no element. The owner chose to move all seven designs first and then judge the
-    whole neighborhood in one sitting instead of patching pairs piecemeal; this row is that
-    sitting. The fix space is narrow: touching the Terrastaff cannot save the pole (equal
-    numbers still lose to its Earth element and earlier shelf, and its numbers are a migration
-    promise), and a power bump for the pole falls to the thin-margin rule, so the pole's guard
-    is the one honest lever. The Ironreed Pole becomes the line's mid guard pole at 22 percent
-    evade, keeping its no-rider raw-power identity and staying under the Hushfan's 25 crown.
-  - (Tech: items.json id 108 proposed.evade 20 to 22; analyze.py DOMINANCE_DEFERRED emptied,
-    mechanism kept for future arcs; grid parry cell and identity prose synced; wp 10 fails
-    check_thin_niche, cross-tier margin 1, and a rider breaks the stated riderless identity.)
-  - Done means: no weapon is left strictly better than a neighbor, and no pair sits parked
-    on an IOU: the deferral dict in tools/analyze.py is empty again, the gate is green with
-    every one of the seven designs and the Ironreed Pole surviving on real merits with no new
-    thin-niche or twin flags, and the grid csv matches every number that moved.
-  - Verify: the item fairness gates all come back clean: analyze.py green with no DEFERRED line and no new exception entries; the full
-    suite green; the grid sync gate green on the changed row; the owner spot-reads the
-    Ironreed Pole card (22 percent evade) on his next deployed session and may re-rule the
-    number, which would be a one-line follow-up.
-- **[LW-351] The seven axes and flails go back to vanilla and their designs move to new extended ids** (opened 2026-08-27) [BUILDING]
-  - Plain language: this mod had turned the game's seven axes and flails into other weapon
-    types (a pole, knight swords, a sword, a knife, a ninja blade, a katana) while they still
-    swung axe and flail art. Now the seven vanilla weapons come back with the base game's
-    numbers, categories, prices and shops (the card prose stays this mod's), at their old ids, and the seven rebalanced designs move to brand-new
-    extended-inventory ids 261 to 267 (262 to 268 until the Moonblade's removal on 2026-08-31), keeping their stats, growth lanes, signatures, icons
-    and shop windows, with a save's earned kills following each design to its new id.
-  - Progress 2026-08-30: STAGE 1 (the Battle Axe restored at 48, the Terrastaff moved to 262)
-    is live-passed and closed after six fix rounds that each peeled one more layer of the
-    game's 261-item wall (id caps, menu sort keys, the save's fixed bag, the saved menu order
-    templates, and a hardcoded reserved-id list in the equip check that refused whatever sat
-    at id 262). STAGE 2 is BUILT (2026-08-30 late): the Ravager, Sunderer, Warbrand,
-    Bloodlash, Climhazzard and Sasori then lived at ids 263 to 268 (262 to 267 since the
-    Moonblade left) and the Giant's Axe, Slasher,
-    Iron Flail, Flail of Flame, Morning Star and Scorpion Tail are back at their own ids; its
-    owner live pass ran 2026-08-30 late: the six designs list, equip and swing their donor
-    art, and it found three more defects, fixed in round 7: the game's inventory reset wiped
-    the new items' counts after every real battle (a hook now keeps them), the per-save
-    count file held only 64 saves and forgot the owner's own (now 1024, least recently
-    touched out first), and items bought without saving stayed off the menus (owned ids are
-    now seated into the order template before the game rebuilds). Round 8 (2026-08-31)
-    then caught the game's own menu-chart housekeeper stopping at the new ids and
-    doubling shields while erasing designs: its three copies are widened and the mod
-    repairs a damaged chart at load and before every rebuild. RE-TEST 9 PASSED
-    2026-08-31 01:06-01:22 on that build (rounds 7 + 8 deployed): the damaged picker
-    chart healed on the load, Sort stayed clean, a Bloodlash bought without saving
-    landed at the front of both charts through the game's own housekeeper, every
-    count survived a 23-turn battle that credited Sasori 2 and Sunderer 2 kills,
-    and the flail, Sasori and Sunderer all swung. Two observations went to their own
-    rows (LW-365 empty-tile fists, LW-366 Bulwark at tier 3). Stage 2 is live-passed;
-    stage 3 closes the ledger. The
-    Terrastaff now records its true reach (2 tiles, its clone donor's), which makes it beat
-    the Ironreed Pole; the owner deferred that pair out loud (analyze.py DOMINANCE_DEFERRED)
-    until one dominance pass gates all seven together (LW-363, since resolved: the dict is
-    empty again and the pole took a guard niche).
-  - Progress 2026-08-31: the Moonblade is gone. Plain language: it was the throwaway sword
-    that first proved a weapon could live past the game's 261-item wall, and with the seven
-    real designs proven the owner ruled it out; its row, icons and text row are deleted and
-    the seven designs slid down one id to 261 to 267 (the owner's rig had its kill, deed and
-    per-save count files shifted to match; no public release ever shipped the old numbers).
-    OWNER LIVE-VERIFIED 2026-08-31 ~01:45 on the deployed build ("I do not see the
-    Moonblade"): the boot line armed seven items and the load replayed the shifted counts.
-    Two consequences of the shift to know: every worn extended weapon became the next design
-    down (the unit that wore the Moonblade holds a Terrastaff, the Sunderer wearer holds a
-    Warbrand, the Sasori wearer is empty-handed because 268 no longer exists), and the saved
-    menu charts still carry a 268 word, which is exactly the stopping word the game's chart
-    housekeeper trips over (the round-8 defect shape: doubled neighbors, a lost end marker),
-    so Sort BOTH weapon lists once before buying or looting anything. The adversarial review
-    of 0b5332ef (SHIP, one MAJOR) found the mod's own chart repair keeps such a word; that
-    fix is LW-367.
-  - (Tech, stage 1 landed for 48/262, the rest is stage 2 scope: items.json restores ids
-    48-50/67-70 to vanilla names, categories, baseline numbers and tiers with noGrowth; the designs re-add as extended rows with migratedFrom, each
-    authoring its NEW category's delivery grammar and its clone donor's range (generate.py
-    check_extended_flag_grammar / check_extended_range); TallyMigration moves kills and
-    legend deeds once per pairing; Bulwark.SundererId 50 to 264 (stage 2), 263 since the
-    Moonblade's removal; THIN_NICHE_EXCEPTIONS
-    keys move with the Warbrand (stage 2); weapon_colors rows for the old ids are parked per stage; icons
-    are baked at the new ids BEFORE each old slot reverts to vanilla art; JobData no longer
-    strips Axe/Flail; ability 460's Equip Axes text re-worded.)
-  - Done means: every one of the seven vanilla axes and flails is back in the game with the
-    base game's numbers and shops, every one of the seven designs equips, fights, shows its Kills line and
-    grows at its new id from a shop in its old slot's towns, a player's earned kills on a
-    design follow it to the new id once, every doc and grid row that enumerates items lists
-    all fourteen, and the seven designs pass the no-domination gate together in one pass
-    (the DOMINANCE_DEFERRED dict empties under LW-363).
-  - Verify: full suite green with the migration, site and grammar tests; analyze.py green
-    with no deferred pairs left; patch_names full bake green; the owner's live pass on each
-    stage (stage 1 passed 2026-08-30: two items armed, shop listing and window poke, Battle
-    Axe restored and sold, Terrastaff equips bag-owned on an Oracle and a Geomancer and
-    swings for Earth damage; stage 2 adds seven items armed (eight before the Moonblade's
-    removal), each design listed in one of its
-    towns and equipping on its category's job, the Sunderer's Bulwark firing at 263 with its
-    migrated tally, one vanilla axe and one vanilla flail swing).
+- **[LW-365] Swinging a new weapon at an empty tile no longer shows fists** (opened 2026-08-31) [BUILDING]
+  - Plain language: attacking an enemy with one of the seven moved designs swings the weapon,
+    but attacking an empty square swings bare fists (owner sighting 2026-08-31 01:20). A last
+    family of game routines that read what a unit is holding was built with the old 261 item
+    limit and treats a new weapon's id as an empty hand, falling back to the other hand. Every
+    suspect location has now been read from the game file on disk and classified: nine are the
+    same one byte bound the mod already widens in 24 other places, one is a false alarm (a
+    slot count that only looks like the bound), and one must NOT be widened because its bound
+    protects a fixed size scratch area on the stack.
+  - (Tech: probe tools/probes/lw365_hand_resolver_scan.py, run 2026-08-31 against the 1.5.2
+    exe on disk; six hand resolver copies 0x1402C4EB7, 0x1402DE6FF, 0x1402FE436, 0x14033B5BB,
+    0x140378640, 0x14039636B and three equip slot switch guards 0x1403066A7, 0x14030671D,
+    0x1403067AB join ExtendedSites.BootSites as PlusN disp8 sites; 0x1402C8155 is walled, its
+    bound guards a 0x414 byte stack array indexed by item id, the LW-371 lesson; 0x1402BD993
+    is a false positive, lea over rsi=1 yields the slot count 7 with 0xFF as a fill value and
+    the routine already masks ids with 0x3FF; the sibling imm32 at 0x1403066BE serves non hand
+    slots and is recorded, not widened.)
+  - Done means: the fists have a named cause and the fix is armed: every listed site is read
+    on disk and classified, the nine widenable bounds ride the boot arm with test pins, the
+    two walled addresses carry negative pins so no future sweep widens them blind, and the
+    suite is green.
+  - Verify: suite green with the new site pins and both negative pins; then the owner's live
+    check on the next deployed build: equip a moved design, Attack an empty tile, the weapon
+    art appears instead of fists, and a normal swing at an enemy still lands.
+
 ## Backlog
 
 Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner directed).
@@ -493,23 +423,6 @@ belongs rather than at the bottom.
   (Tech: patch_names.seed_extended_rows + item_intent; lib/bake_intent.ALLOWED_EXTRA_ROWS derives
   from the data; KILLS_SCAFFOLD is 11 chars and the suffix slot 2; memory
   modloader-merge-semantics pins the per-cell nxd union.)
-- [LW-365] 2026-08-31: Sweep the last few places where the game still assumes no item id above
-  261 when it reads a unit's hands. Plain language: the new weapons equip and fight fine, but
-  a handful of routines that look up what a unit is holding were built with the old limit and
-  fall back to the other hand when they see one of our ids; which screens they serve is not
-  known yet, so the risk is a wrong item shown somewhere, not a crash. Done looks like: each
-  site read on disk, classified, either widened (with its test pin) or recorded as harmless
-  with the reason. (Tech: six hand-resolver copies with the `mov edx,0xff; lea ecx,[rdx+6]`
-  shape at 0x1402C4EB7, 0x1402DE6FF, 0x1402FE436, 0x14033B5BB, 0x140378640, 0x14039636B, three
-  slot guards at 0x1403066A7, 0x14030671D, 0x1403067AB, and a u16 list walker bounded by 0x105
-  at 0x1402C8155; none is in ExtendedSites.BootSites; the disp8 family is invisible to the
-  imm32 scan, grep `8d ?? 06` after a `mov r32,0xff`.)
-  Owner-observed symptom 2026-08-31 01:20 (the round-8 build): a unit swinging the Sunderer
-  or the Sasori at an ENEMY shows the sword, but swinging the same weapon at an EMPTY tile
-  shows fists; the Iron Flail (a vanilla id) renders both ways. The empty-tile attack path
-  is the prime suspect for one of these un-widened resolver copies: it reads an extended
-  right-hand id as "no weapon" and falls back to the left hand. Repro: equip any design,
-  Attack an empty square.
 - [LW-359] 2026-08-30: A player reports the twin-weapon consent rule leaking two ways: with a shield in the off hand, backing out of the equip menu removed the shield and stamped the second weapon anyway (the shield only stuck when placed in the MAIN hand), and swapping the main hand from a twin weapon to daggers left the granted Dual Wield support behind for a while, letting daggers dual-wield free.
   Reported by Darkrapid on Discord 2026-08-30 (docs/USER_FEEDBACK.md); the owner told the
   player the intended rule and promised a look. The design (LW-193/LW-194, ad2240a): an

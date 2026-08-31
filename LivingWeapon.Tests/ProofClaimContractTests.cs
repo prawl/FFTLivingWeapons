@@ -191,7 +191,7 @@ public class ProofClaimContractTests
         // the owner's own in-session sign-off ("OWNER LIVE-VERIFIED 2026-08-31 ~01:45": he loaded
         // the deployed build and saw no Moonblade). It asserts the owner's verdict on that
         // change, not a LIVE_LEDGER mechanism row, the same shape as the LW-127 entry above.
-        { "docs/TODO.md", 9 },
+        { "docs/TODO.md", 8 },
         { "docs/VERIFY_LIVE.md", 3 },
     };
 
