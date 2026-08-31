@@ -199,7 +199,7 @@ public class TallyMigrationTests
         var meta = MetaLoader.Load(Path.Combine(RepoRoot(), "LivingWeapon"));
         var expected = new Dictionary<int, int>
         {
-            [48] = 262, [49] = 263, [50] = 264, [67] = 265, [68] = 266, [69] = 267, [70] = 268,
+            [48] = 261, [49] = 262, [50] = 263, [67] = 264, [68] = 265, [69] = 266, [70] = 267,
         };
         Assert.Equal(expected, TallyMigration.Plan(meta));
         foreach (int old in expected.Keys) Assert.False(meta.ContainsKey(old), $"id {old} is still a living weapon in meta.json");

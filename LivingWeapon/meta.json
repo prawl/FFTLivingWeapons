@@ -3225,15 +3225,6 @@
     "growsLine": "<color=50>Grows: Magick Attack.</color>"
   },
   "261": {
-    "name": "Moonblade",
-    "wp": 15,
-    "cat": "Sword",
-    "formula": 1,
-    "flavor": "A pale crescent blade that drinks the moonlight.",
-    "lane": "pa",
-    "growsLine": "<color=90>Grows: Physical Attack.</color>"
-  },
-  "262": {
     "name": "Terrastaff",
     "wp": 9,
     "cat": "Pole",
@@ -3243,7 +3234,7 @@
     "growsLine": "<color=95>Grows: Physical & Magick Attack.</color>",
     "migratedFrom": 48
   },
-  "263": {
+  "262": {
     "name": "Ravager",
     "wp": 15,
     "cat": "KnightSword",
@@ -3253,7 +3244,7 @@
     "growsLine": "<color=81>Grows: HP.</color>",
     "migratedFrom": 49
   },
-  "264": {
+  "263": {
     "name": "Sunderer",
     "wp": 13,
     "cat": "KnightSword",
@@ -3270,7 +3261,7 @@
     },
     "migratedFrom": 50
   },
-  "265": {
+  "264": {
     "name": "Warbrand",
     "wp": 15,
     "cat": "Sword",
@@ -3280,7 +3271,7 @@
     "growsLine": "<color=90>Grows: Physical Attack.</color>",
     "migratedFrom": 67
   },
-  "266": {
+  "265": {
     "name": "Bloodlash",
     "wp": 8,
     "cat": "Knife",
@@ -3290,7 +3281,7 @@
     "growsLine": "<color=40>Grows: Speed.</color>",
     "migratedFrom": 68
   },
-  "267": {
+  "266": {
     "name": "Climhazzard",
     "wp": 5,
     "cat": "NinjaBlade",
@@ -3300,7 +3291,7 @@
     "growsLine": "<color=40>Grows: Speed.</color>",
     "migratedFrom": 69
   },
-  "268": {
+  "267": {
     "name": "Sasori",
     "wp": 11,
     "cat": "Katana",

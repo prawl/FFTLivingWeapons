@@ -81,7 +81,7 @@ the technical detail lives in the indented lines under it.
     types (a pole, knight swords, a sword, a knife, a ninja blade, a katana) while they still
     swung axe and flail art. Now the seven vanilla weapons come back with the base game's
     numbers, categories, prices and shops (the card prose stays this mod's), at their old ids, and the seven rebalanced designs move to brand-new
-    extended-inventory ids 262 to 268, keeping their stats, growth lanes, signatures, icons
+    extended-inventory ids 261 to 267 (262 to 268 until the Moonblade's removal on 2026-08-31), keeping their stats, growth lanes, signatures, icons
     and shop windows, with a save's earned kills following each design to its new id.
   - Progress 2026-08-30: STAGE 1 (the Battle Axe restored at 48, the Terrastaff moved to 262)
     is live-passed and closed after six fix rounds that each peeled one more layer of the
@@ -109,11 +109,22 @@ the technical detail lives in the indented lines under it.
     Terrastaff now records its true reach (2 tiles, its clone donor's), which makes it beat
     the Ironreed Pole; the owner deferred that pair out loud (analyze.py DOMINANCE_DEFERRED)
     until one dominance pass gates all seven together (LW-363).
+  - Progress 2026-08-31: the Moonblade is gone. Plain language: it was the throwaway sword
+    that first proved a weapon could live past the game's 261-item wall, and with the seven
+    real designs proven the owner ruled it out; its row, icons and text row are deleted and
+    the seven designs slid down one id to 261 to 267 (the owner's rig had its kill, deed and
+    per-save count files shifted to match; no public release ever shipped the old numbers).
+    Owner live check owed on the deployed build: the boot line arms seven items, the unit
+    that wore the Moonblade now holds the Terrastaff (same number, new item) and the one that
+    wore the Sasori is empty-handed (its old number no longer exists), every list shows all
+    seven, and a list that looks short is sorted once (the saved menu charts still hold the
+    old last number 268 until the game's own Sort drops it).
   - (Tech, stage 1 landed for 48/262, the rest is stage 2 scope: items.json restores ids
     48-50/67-70 to vanilla names, categories, baseline numbers and tiers with noGrowth; the designs re-add as extended rows with migratedFrom, each
     authoring its NEW category's delivery grammar and its clone donor's range (generate.py
     check_extended_flag_grammar / check_extended_range); TallyMigration moves kills and
-    legend deeds once per pairing; Bulwark.SundererId 50 to 264 (stage 2); THIN_NICHE_EXCEPTIONS
+    legend deeds once per pairing; Bulwark.SundererId 50 to 264 (stage 2), 263 since the
+    Moonblade's removal; THIN_NICHE_EXCEPTIONS
     keys move with the Warbrand (stage 2); weapon_colors rows for the old ids are parked per stage; icons
     are baked at the new ids BEFORE each old slot reverts to vanilla art; JobData no longer
     strips Axe/Flail; ability 460's Equip Axes text re-worded.)
@@ -127,8 +138,9 @@ the technical detail lives in the indented lines under it.
     with no deferred pairs left; patch_names full bake green; the owner's live pass on each
     stage (stage 1 passed 2026-08-30: two items armed, shop listing and window poke, Battle
     Axe restored and sold, Terrastaff equips bag-owned on an Oracle and a Geomancer and
-    swings for Earth damage; stage 2 adds eight items armed, each design listed in one of its
-    towns and equipping on its category's job, the Sunderer's Bulwark firing at 264 with its
+    swings for Earth damage; stage 2 adds seven items armed (eight before the Moonblade's
+    removal), each design listed in one of its
+    towns and equipping on its category's job, the Sunderer's Bulwark firing at 263 with its
     migrated tally, one vanilla axe and one vanilla flail swing).
 
 ## Backlog
@@ -410,14 +422,16 @@ belongs rather than at the bottom.
   byte 0 is the Range the game ignored; suspects are the two-byte sibling rows keyed by
   (id minus range base) behind 0x1402B8CD4 / 0x1402B8D3C / 0x1402B8DA0, which answer for
   the clone donor today.)
-- [LW-366] 2026-08-31: The Sunderer's Bulwark has not been seen firing at its new id 264. The
+- [LW-366] 2026-08-31: The Sunderer's Bulwark has not been seen firing at its new id 263 (264
+  before the Moonblade's removal later that day slid every extended id down one). The
   owner swung the Sunderer on the stage-2 pass and saw no Bulwark, but that weapon held zero
   kills (the tally was zeroed for the pass and the move carried zero across), and Bulwark only
   wakes at the third growth tier (15 kills on a production build), so at tier 0 staying dark is
   the correct behavior, not a fault. What is owed is the real check: a Sunderer at tier 3 on
-  the 264 build fires Bulwark exactly as the id-50 one did. (Tech: Bulwark.SundererId = 264
-  since 0e612454; the signature gates on tier >= Signature.AtTier (3); the kill tally
-  migration moved id 50's count to 264 (TallyMigration), which was 0 on the owner's rig;
+  the 263 build fires Bulwark exactly as the id-50 one did. (Tech: Bulwark.SundererId = 263
+  since the Moonblade's removal, 264 from 0e612454 before; the signature gates on tier >=
+  Signature.AtTier (3); the kill tally migration moved id 50's count to the Sunderer's id
+  (TallyMigration), which was 0 on the owner's rig;
   a dev-flavored BuildLinked seeds every tally to max tier and is the quickest way to see it.)
 - [LW-365] 2026-08-31: Sweep the last few places where the game still assumes no item id above
   261 when it reads a unit's hands. Plain language: the new weapons equip and fight fine, but

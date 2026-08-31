@@ -7,10 +7,11 @@ DEV_TEST_RECIPES.md holds the terse version of the same recipe, this file is the
 
 Final Fantasy Tactics: The Ivalice Chronicles has room for exactly 261 items, and every slot is
 taken. This mod broke that wall: it can add brand-new items with their own id, name, stats, icon,
-shop listing and growth, living at ids 261 and up. The Moonblade (id 261) is the first and the
-worked example for everything below; ids 262 to 268 are the seven designs LW-351 moved off the
-vanilla axe and flail slots (the Terrastaff, Ravager, Sunderer, Warbrand, Bloodlash, Climhazzard
-and Sasori).
+shop listing and growth, living at ids 261 and up. Ids 261 to 267 are the seven designs LW-351
+moved off the vanilla axe and flail slots (the Terrastaff, Ravager, Sunderer, Warbrand, Bloodlash,
+Climhazzard and Sasori); the Terrastaff (id 261) is the worked example for everything below. The
+Moonblade, the throwaway sword that first proved the wall could be crossed, held id 261 until
+2026-08-31 and was removed once the seven real designs had proven the system.
 
 The important mental model: a new item is **one row in `data/items.json`, one row in
 `docs/living_weapon_grid.csv`, and one icon bake**. Everything else (the tables the DLL reads,
@@ -24,7 +25,7 @@ signature needs none.
 
 - **Weapons only** in V1. The generator refuses any non-weapon category.
 - **Ids are contiguous from 261**, ceiling 511; the next free id is one past the highest `id` in
-  `data/items.json` (268 today, so the next item is 269). A gap fails `generate.py` on purpose
+  `data/items.json` (267 today, so the next item is 268). A gap fails `generate.py` on purpose
   (the runtime donor tables are indexed by `id - 261`; a gap would read a neighbor's donors).
 - **This is internal to Living Weapons, not a public framework** (owner ruling, recorded on the
   LW-344 task row, 2026-08-30):
@@ -39,21 +40,22 @@ signature needs none.
 
 ## The worked example
 
-Read the Moonblade's row in `data/items.json` (id 261) first. It is a normal living-weapon row
-plus one `extended` block:
+Read the Terrastaff's row in `data/items.json` (id 261) first. It is a normal living-weapon row
+plus one `extended` block (and, because the design moved here from the Battle Axe's slot, a
+`migratedFrom: 48` on the row):
 
 ```json
 "extended": {
-  "cloneDonor": 37,
-  "artDonor": 37,
-  "seedCount": 1,
-  "shops": "Dorter",
-  "palette": 4,
-  "spriteId": 22,
+  "cloneDonor": 108,
+  "artDonor": 108,
+  "seedCount": 0,
+  "shops": "Lesalia, Riovanes, Eagrose, Lionel, Limberry, Zeltennia",
+  "palette": 7,
+  "spriteId": 62,
   "requiredLevel": 0,
   "typeFlags": "Weapon",
-  "price": 10,
-  "shopAvailability": "Blank"
+  "price": 1500,
+  "shopAvailability": "Chapter1_KillMiluda"
 }
 ```
 
@@ -72,7 +74,7 @@ Growth is not a flag: EVERY weapon-category item counts kills, grows, and must h
 lane and a grid row (the gates refuse a weapon missing either), unless it opts out with
 `noGrowth`. `livingWeapon: true` is a separate, rarer switch: a pure exemption from the
 build-diversity no-domination gate, for an item whose power is its growth rather than its
-static numbers (the Moonblade and Materia Blade are the only two). An item without it is
+static numbers (the Materia Blade is the only one today). An item without it is
 judged like every other item, and losing to domination there is a design bug to fix, not a
 warning to suppress. `grows` has a locked vocabulary:
 `PA, MA, Speed, HP, PA+MA, PA+MA+Brave, WP, WP+Faith`.
@@ -85,7 +87,7 @@ The `extended` block, field by field:
 | `artDonor` | Whose swing animation and swing art/color it draws in battle (the swing-art accessor resolves through this donor) | Usually the same as cloneDonor |
 | `seedCount` | Bag copies placed at every boot arm; a loaded save then replays its own recorded count, so the effect is a one-time grant per save | 1 for a unique weapon, 0 for shop-only |
 | `shops` | Towns whose shop stocks it, comma-separated, or `None` | Accepted town tokens: `Gollund, Dorter, Zaland, Goug, Warjilis, Bervenia, SalGhidos, Lesalia, Riovanes, Eagrose, Lionel, Limberry, Zeltennia, Gariland, Yardrow` (plus the legacy slot name `Unused`); the generator refuses anything outside that vocabulary |
-| `shopAvailability` | The story gate on the shop listing; `Blank` means no gate: the item sells in its listed towns from day one | Owner ruling (recorded on the LW-351 task row): a real item never ships `Blank`; give it an availability window matching its tier. The Moonblade ships Blank only because it existed to prove the system |
+| `shopAvailability` | The story gate on the shop listing; `Blank` means no gate: the item sells in its listed towns from day one | Owner ruling (recorded on the LW-351 task row): a real item never ships `Blank`; give it an availability window matching its tier. The removed Moonblade proof item was the only row that ever shipped Blank |
 | `palette` / `spriteId` | Bytes +0/+1 of the item's 12-byte catalog record (menu-side fields) | Copy the donor's pair. These do NOT control the battle swing's art or color; that resolves through `artDonor` |
 | `requiredLevel`, `typeFlags`, `price` | More catalog record fields | `typeFlags: "Weapon"`; price is the shop price |
 | `iconSource` (on the row, not in `extended`) | The vanilla id whose SHIPPED, already-recolored icon it copies | Pick an icon that reads right on the card; the donor must already have baked glow variants, or the icon bake stops and tells you to run `tools/bake_glow_icons.py` first |
@@ -94,9 +96,9 @@ The `extended` block, field by field:
 **Trap, `iconSource` on a moved design:** it names a SHIPPED picture, so it copies whatever that
 id ships at bake time. The Terrastaff's `iconSource` is 48, and the id-48 icon was its own art on
 the day it was baked but is the vanilla Battle Axe's art now (the same holds for every moved
-design: 263 to 268 name 49, 50 and 67 to 70). Re-running `tools/bake_extended_icon_parts.py`
+design: 262 to 267 name 49, 50 and 67 to 70). Re-running `tools/bake_extended_icon_parts.py`
 with no ids would therefore repaint the moved designs with axes and flails. Since stage 2 the
-bake takes the ids to touch on its command line (`python tools/bake_extended_icon_parts.py 269`)
+bake takes the ids to touch on its command line (`python tools/bake_extended_icon_parts.py 268`)
 and refuses an id that is not an extended row; bake only the row you are adding, check the
 result, and if a design ever has to diverge from its old picture for good, give it its own
 recolor rather than a donor.
@@ -219,6 +221,22 @@ Delete its row, re-run steps 2-5 (delete its icon files and glow variants by han
 only checks presence, it does not garbage-collect), and remember the contiguity rule: only the
 LAST id can be removed without renumbering. Saves holding the item lose it cleanly, as in the
 uninstall note above.
+
+Removing one from the MIDDLE slides every later id down one (the Moonblade's removal on
+2026-08-31 is the worked example, commit history under that date): renumber the rows in
+`data/items.json` and `docs/living_weapon_grid.csv`; byte-copy each later id's `.tex` pair and
+its six glow variants down one id and re-point its two `.utexpt` parts files (the picture path
+inside them names the id; `bake_extended_icon_parts.patch_parts` does it without touching the
+donor pac), then delete the old last id's files and let `bake_glow_icons.update_manifest` prune
+its manifest entry; DELETE the old last id's row from `working/pilot_item.sqlite` before the name
+bake, or the audit refuses the stray row; move every constant that names an id
+(`Bulwark.SundererId`, `analyze.py`'s `DOMINANCE_DEFERRED` and `THIN_NICHE_EXCEPTIONS` keys, the
+shipped-roster tests); and on a dev rig shift the keys in `kills.json`, `legends.json` and
+`extended_inventory.json` by hand, because the runtime's tally migration keys on the OLD vanilla
+id (`migratedFrom`) and knows nothing about a shift between extended ids. A player's save keeps
+its hand words as numbers, so a worn item becomes whatever now holds that number and a worn old
+last id empties; the saved menu charts still carry the old last id until the game's own Sort
+drops it (a list that looks short after the change: sort it once).
 
 ## Where the deep answers live
 

@@ -7297,48 +7297,6 @@
     },
     {
       "id": 261,
-      "category": "Sword",
-      "grows": "PA",
-      "vanillaName": "Moonblade",
-      "name": "Moonblade",
-      "tier": 6,
-      "livingWeapon": true,
-      "identity": "The first weapon past the game's 261-item wall (LW-346, the extended inventory): a net-new sword with its own id, stats, name, icon and growth, swinging the Chaos Blade's art through the extended-inventory donor tables. Gate-exempt like the Materia Blade: it exists to prove the system, not to win a lane.",
-      "flavorOverride": "A pale crescent blade that drinks the moonlight.",
-      "iconSource": 37,
-      "extended": {
-        "cloneDonor": 37,
-        "artDonor": 37,
-        "seedCount": 1,
-        "shops": "Dorter",
-        "palette": 4,
-        "spriteId": 22,
-        "requiredLevel": 0,
-        "typeFlags": "Weapon",
-        "price": 10,
-        "shopAvailability": "Blank"
-      },
-      "baseline": {
-        "wp": 15,
-        "evade": 0,
-        "element": "None",
-        "onHit": "None",
-        "onHitAbilityId": 0,
-        "formula": 1
-      },
-      "proposed": {
-        "wp": 15,
-        "evade": 0,
-        "element": "None",
-        "onHit": "None",
-        "onHitAbilityId": 0,
-        "formula": 1,
-        "range": 1,
-        "attackFlags": "Throwable, TwoSwords, TwoHands, Striking"
-      }
-    },
-    {
-      "id": 262,
       "category": "Pole",
       "grows": "PA+MA",
       "vanillaName": "Terrastaff",
@@ -7380,7 +7338,7 @@
       }
     },
     {
-      "id": 263,
+      "id": 262,
       "category": "KnightSword",
       "grows": "HP",
       "vanillaName": "Ravager",
@@ -7422,7 +7380,7 @@
       }
     },
     {
-      "id": 264,
+      "id": 263,
       "category": "KnightSword",
       "grows": "HP",
       "vanillaName": "Sunderer",
@@ -7471,7 +7429,7 @@
       }
     },
     {
-      "id": 265,
+      "id": 264,
       "category": "Sword",
       "grows": "PA",
       "vanillaName": "Warbrand",
@@ -7513,7 +7471,7 @@
       }
     },
     {
-      "id": 266,
+      "id": 265,
       "category": "Knife",
       "grows": "Speed",
       "vanillaName": "Bloodlash",
@@ -7555,7 +7513,7 @@
       }
     },
     {
-      "id": 267,
+      "id": 266,
       "category": "NinjaBlade",
       "grows": "Speed",
       "vanillaName": "Climhazzard",
@@ -7597,7 +7555,7 @@
       }
     },
     {
-      "id": 268,
+      "id": 267,
       "category": "Katana",
       "grows": "PA+MA+Brave",
       "vanillaName": "Sasori",

@@ -177,7 +177,7 @@ public class MetaSchemaTests : IDisposable
     {
         var map = MetaLoader.Load(Path.GetDirectoryName(RepoMetaPath())!);
 
-        foreach (int id in new[] { 27, 44, 267, 103 })   // 267 = Climhazzard, at its extended id since LW-351 stage 2 (was 69)
+        foreach (int id in new[] { 27, 44, 266, 103 })   // 266 = Climhazzard, at its extended id (267 at LW-351 stage 2, one lower since the Moonblade's removal 2026-08-31; was 69)
         {
             Assert.True(map.TryGetValue(id, out var m), $"id{id} missing from meta.json");
             Assert.Equal("speed", m.Lane);

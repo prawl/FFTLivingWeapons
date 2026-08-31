@@ -4,15 +4,7 @@
   <Version>1</Version>
   <Entries>
     <ItemExtended>
-      <Id>261</Id> <!-- Moonblade -->
-      <Name>Moonblade</Name>
-      <CloneDonorId>37</CloneDonorId>
-      <ArtDonorId>37</ArtDonorId>
-      <SeedCount>1</SeedCount>
-      <Shops>Dorter</Shops>
-    </ItemExtended>
-    <ItemExtended>
-      <Id>262</Id> <!-- Terrastaff -->
+      <Id>261</Id> <!-- Terrastaff -->
       <Name>Terrastaff</Name>
       <CloneDonorId>108</CloneDonorId>
       <ArtDonorId>108</ArtDonorId>
@@ -20,7 +12,7 @@
       <Shops>Lesalia, Riovanes, Eagrose, Lionel, Limberry, Zeltennia</Shops>
     </ItemExtended>
     <ItemExtended>
-      <Id>263</Id> <!-- Ravager -->
+      <Id>262</Id> <!-- Ravager -->
       <Name>Ravager</Name>
       <CloneDonorId>33</CloneDonorId>
       <ArtDonorId>33</ArtDonorId>
@@ -28,7 +20,7 @@
       <Shops>Lesalia, Riovanes, Eagrose, Lionel, Limberry, Zeltennia</Shops>
     </ItemExtended>
     <ItemExtended>
-      <Id>264</Id> <!-- Sunderer -->
+      <Id>263</Id> <!-- Sunderer -->
       <Name>Sunderer</Name>
       <CloneDonorId>33</CloneDonorId>
       <ArtDonorId>33</ArtDonorId>
@@ -36,7 +28,7 @@
       <Shops>Lesalia, Riovanes, Eagrose, Lionel, Limberry, Zeltennia</Shops>
     </ItemExtended>
     <ItemExtended>
-      <Id>265</Id> <!-- Warbrand -->
+      <Id>264</Id> <!-- Warbrand -->
       <Name>Warbrand</Name>
       <CloneDonorId>21</CloneDonorId>
       <ArtDonorId>21</ArtDonorId>
@@ -44,7 +36,7 @@
       <Shops>Dorter, Warjilis, SalGhidos, Riovanes, Eagrose, Lionel, Limberry, Zeltennia</Shops>
     </ItemExtended>
     <ItemExtended>
-      <Id>266</Id> <!-- Bloodlash -->
+      <Id>265</Id> <!-- Bloodlash -->
       <Name>Bloodlash</Name>
       <CloneDonorId>1</CloneDonorId>
       <ArtDonorId>1</ArtDonorId>
@@ -52,7 +44,7 @@
       <Shops>Dorter, Warjilis, SalGhidos, Riovanes, Eagrose, Lionel, Limberry, Zeltennia</Shops>
     </ItemExtended>
     <ItemExtended>
-      <Id>267</Id> <!-- Climhazzard -->
+      <Id>266</Id> <!-- Climhazzard -->
       <Name>Climhazzard</Name>
       <CloneDonorId>12</CloneDonorId>
       <ArtDonorId>12</ArtDonorId>
@@ -60,7 +52,7 @@
       <Shops>Dorter, Warjilis, SalGhidos, Riovanes, Eagrose, Lionel, Limberry, Zeltennia</Shops>
     </ItemExtended>
     <ItemExtended>
-      <Id>268</Id> <!-- Sasori -->
+      <Id>267</Id> <!-- Sasori -->
       <Name>Sasori</Name>
       <CloneDonorId>43</CloneDonorId>
       <ArtDonorId>43</ArtDonorId>

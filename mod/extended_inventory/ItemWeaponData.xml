@@ -4,17 +4,7 @@
   <Version>1</Version>
   <Entries>
     <ItemWeapon>
-      <Id>261</Id> <!-- Moonblade -->
-      <Range>1</Range>
-      <AttackFlags>Throwable, TwoSwords, TwoHands, Striking</AttackFlags>
-      <Formula>1</Formula>
-      <Power>15</Power>
-      <Evasion>0</Evasion>
-      <Elements>None</Elements>
-      <OptionsAbilityId>0</OptionsAbilityId>
-    </ItemWeapon>
-    <ItemWeapon>
-      <Id>262</Id> <!-- Terrastaff -->
+      <Id>261</Id> <!-- Terrastaff -->
       <Range>2</Range>
       <AttackFlags>Throwable, TwoHands, Lunging</AttackFlags>
       <Formula>1</Formula>
@@ -24,7 +14,7 @@
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>263</Id> <!-- Ravager -->
+      <Id>262</Id> <!-- Ravager -->
       <Range>1</Range>
       <AttackFlags>Throwable, TwoHands, TwoSwords, Striking</AttackFlags>
       <Formula>1</Formula>
@@ -34,7 +24,7 @@
       <OptionsAbilityId>23</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>264</Id> <!-- Sunderer -->
+      <Id>263</Id> <!-- Sunderer -->
       <Range>1</Range>
       <AttackFlags>Throwable, TwoHands, TwoSwords, Striking</AttackFlags>
       <Formula>46</Formula>
@@ -44,7 +34,7 @@
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>265</Id> <!-- Warbrand -->
+      <Id>264</Id> <!-- Warbrand -->
       <Range>1</Range>
       <AttackFlags>Throwable, TwoHands, TwoSwords, Striking</AttackFlags>
       <Formula>1</Formula>
@@ -54,7 +44,7 @@
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>266</Id> <!-- Bloodlash -->
+      <Id>265</Id> <!-- Bloodlash -->
       <Range>1</Range>
       <AttackFlags>Throwable, TwoSwords, Striking</AttackFlags>
       <Formula>45</Formula>
@@ -64,7 +54,7 @@
       <OptionsAbilityId>22</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>267</Id> <!-- Climhazzard -->
+      <Id>266</Id> <!-- Climhazzard -->
       <Range>1</Range>
       <AttackFlags>Throwable, TwoHands, TwoSwords, Striking</AttackFlags>
       <Formula>69</Formula>
@@ -74,7 +64,7 @@
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>268</Id> <!-- Sasori -->
+      <Id>267</Id> <!-- Sasori -->
       <Range>1</Range>
       <AttackFlags>Throwable, TwoHands, TwoSwords, Striking</AttackFlags>
       <Formula>1</Formula>

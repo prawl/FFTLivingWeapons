@@ -21,16 +21,16 @@ This pays off harder the more the rest of your install ramps up. Under enemy-buf
 
 - **Living weapons that grow as they kill.** Each weapon tracks its own kills, lifts the wielder's PA/MA/Speed as the tally climbs, and shows the count on the equip card. Iconic weapons gain signature on-hit and aura effects (Charm, Barrage, extra turns, doom, life-steal, healing auras, and more) -- so the weapon you commit to becomes uniquely yours.
 - **An extended inventory: brand-new weapons past the game's 261-item limit.** The game only knows
-  261 items; the mod adds more (the Moonblade, id 261, is the first), listed in every menu, sold in the
+  261 items; the mod adds more (seven today, ids 261 to 267), listed in every menu, sold in the
   towns its data names, equipped and swung in battle, growing and glowing like the rest, and remembered
   per save. Everything about a new item is one row in `data/items.json`.
 - **All 234 equippable items reworked** across every category:
-  - **Weapons: 121 vanilla-range + 8 extended** (Sword 14, Knife 10, Katana 10, Bow 9, Ninja Blade 8, Rod 8, Staff 8, Polearm 8, Pole 8, Gun 6, Crossbow 6, Knight Sword 5, Flail 4, Book 4, Bag 4, Axe 3, Instrument 3, Cloth 3)
+  - **Weapons: 121 vanilla-range + 7 extended** (Sword 14, Knife 10, Katana 10, Bow 9, Ninja Blade 8, Rod 8, Staff 8, Polearm 8, Pole 8, Gun 6, Crossbow 6, Knight Sword 5, Flail 4, Book 4, Bag 4, Axe 3, Instrument 3, Cloth 3)
   - **Shields: 16**
   - **Head: 28** (Helmet 13, Hat 12, Hair Adornment 3)
   - **Body: 36** (Clothing 14, Armor 14, Robe 8)
   - **Accessories: 33** (Shoes 7, Cloak 7, Ring 6, Armlet 5, Perfume 4, Armguard 4)
-- **Recolored menu icons and rewritten descriptions for the full roster**, plus fresh names for all but the iconic legendaries and samurai katanas. Every item ships an `ei_<id>` / `ei_s_<id>` icon pair (484 `.tex` files total, the brand-new weapons past the game's own 261-item wall included).
+- **Recolored menu icons and rewritten descriptions for the full roster**, plus fresh names for all but the iconic legendaries and samurai katanas. Every item ships an `ei_<id>` / `ei_s_<id>` icon pair (482 `.tex` files total, the brand-new weapons past the game's own 261-item wall included).
 - **A programmatic no-strict-domination gate.** `tools/analyze.py` fails the build if *any* item is strictly dominated by another. It also models **equip-slot access**, so an item isn't called "dominated" by something its slot can't actually use.
 - **Range as a real lever.** Reach is a first-class tradeoff via the **Lunging** flag, not just a number, so short-range and extended-range weapons stay distinct choices instead of one obsoleting the other.
 - **Vanilla spell and status casts preserved.** On-equip and on-use spell/status effects keep their original behavior. The rebalance touches stats and identity, not the game's existing magic.
@@ -98,7 +98,7 @@ python tools/analyze.py         # prove no item is strictly dominated (gates dep
 .\Publish.ps1                   # PROD: generate + gate + build the DLL + package the release zip
 ```
 
-The package contains 7 sparse modloader XMLs (`ItemData`, `ItemWeaponData`, `ItemArmorData`, `ItemShieldData`, `ItemAccessoryData`, `ItemEquipBonusData`, plus `JobData` for the widened generic-job equip lists and class-evade floor), the full-table `item.en.nxd` (names + descriptions), the cell-merged `ability.en.nxd` (the Barrage text, the Provoke text and the Equip Axes wording), and the 242 menu-icon `.tex` pairs.
+The package contains 7 sparse modloader XMLs (`ItemData`, `ItemWeaponData`, `ItemArmorData`, `ItemShieldData`, `ItemAccessoryData`, `ItemEquipBonusData`, plus `JobData` for the widened generic-job equip lists and class-evade floor), the full-table `item.en.nxd` (names + descriptions), the cell-merged `ability.en.nxd` (the Barrage text, the Provoke text and the Equip Axes wording), and the 241 menu-icon `.tex` pairs.
 
 > **Editing note:** formula and effect IDs in the XML are **decimal, not hex**. The "Special Effect" badge in an item's description is the separate `UiStatusEffectId` nxd field; status/element procs are described in the item's prose, not flagged by a badge.
 

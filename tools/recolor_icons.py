@@ -2270,7 +2270,7 @@ RAMP_SEPARATION_RULINGS = {
 # still collides, every row carrying a real reason).
 RAMP_SEPARATION_RULINGS_RETIRED = {
     (23, 67): "RETIRED 2026-08-30 by LW-351 stage 2. The Warbrand design moved from id 67 to "
-              "extended id 265 and id 67 is the vanilla Iron Flail again, shipping the game's "
+              "extended id 265 (264 since the Moonblade's removal) and id 67 is the vanilla Iron Flail again, shipping the game's "
               "own art with no tint row, so the pair cannot collide and the ruling grandfathers "
               "nothing. The original ruling (OWNER PASS 2026-08-16): Sanguine Sword and the "
               "Warbrand, which rode the Vagabond's sprite, separated by WEIGHT and by which "
@@ -3178,7 +3178,7 @@ def selftest():
           "and that is stated OUT LOUD rather than buried under a floor -- katana's ten ids all "
           "kept a vanilla name, so the anchors gate holds that rack and this one cannot; knight "
           "sword's five remaining ids are the exempt legendaries (its two judged ids moved to "
-          "extended 263/264 in LW-351 stage 2); axe's three and flail's four ids ship the game's "
+          "extended 262/263 in LW-351 stage 2, one lower since the Moonblade's removal); axe's three and flail's four ids ship the game's "
           "own art with no tint to judge. 16 of 20 racks compare a pair",
           _pairs_by_rack["katana"] == 0 and _pairs_by_rack["knight sword"] == 0
           and _pairs_by_rack["axe"] == 0 and _pairs_by_rack["flail"] == 0

@@ -204,10 +204,11 @@ thunks every per-item lookup goes through). This section is the plain-language c
 the system that steps past it; the address-level story is docs/research/ITEM_CAP_261_BREAK_JOURNEY.md
 and the ledger rows named there.
 
-**What it is for.** Net-new weapons that exist only while this mod runs: first the Moonblade
-(id 261, the proof), then the seven rebalanced ex-axe and ex-flail designs at ids 262 to 268
-(LW-351, 2026-08-30, so ids 48-50 and 67-70 went back to being real axes and flails), then
-partner mods' items (LW-344).
+**What it is for.** Net-new weapons that exist only while this mod runs: the seven rebalanced
+ex-axe and ex-flail designs at ids 261 to 267 (LW-351, 2026-08-30, so ids 48-50 and 67-70 went
+back to being real axes and flails), then partner mods' items (LW-344). The Moonblade, the
+throwaway sword that first proved the wall could be crossed, held id 261 until 2026-08-31 and was
+removed once the seven real designs had proven the system; the seven slid down one id that day.
 
 **How a new item is declared.** One row in `data/items.json` with an `extended` block. The row
 looks like any other weapon (name, category, tier, `proposed` stats, `grows`, flavor) plus:

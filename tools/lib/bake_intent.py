@@ -28,10 +28,11 @@ ALLOWED_ITEM_CELLS = {
 
 # LW-346: every extended-inventory row (an `extended` block in data/items.json, ids 261+) is an
 # ADDED Item-en row: the base game has no text row past 260, so patch_names.py seeds one from a
-# template and the rename loop fills it. Key 261 (the Moonblade) was the first, seeded during the
-# 2026-06 research (docs/research/ITEM_CAP_261_BREAK_JOURNEY.md) and now defined in items.json
-# like the rest; the set is derived from the data so a new extended row can never ship without
-# its text row being audited.
+# template and the rename loop fills it. Key 261 was seeded first for the Moonblade during the
+# 2026-06 research (docs/research/ITEM_CAP_261_BREAK_JOURNEY.md); that proof item was removed on
+# 2026-08-31 and the Terrastaff holds Key 261 now, defined in items.json like the rest. The set is
+# derived from the data so a new extended row can never ship without its text row being audited
+# and a removed one cannot linger as a stray row.
 from .items import load_items
 
 
@@ -40,4 +41,4 @@ def extended_item_ids(items=None):
     return {it["id"] for it in rows if it.get("extended")}
 
 
-ALLOWED_EXTRA_ROWS = {"Item-en": {261} | extended_item_ids()}
+ALLOWED_EXTRA_ROWS = {"Item-en": extended_item_ids()}

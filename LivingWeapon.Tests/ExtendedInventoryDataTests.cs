@@ -131,18 +131,20 @@ public class ExtendedInventoryDataTests : IDisposable
     }
 
     [Fact]
-    public void The_shipped_folder_loads_clean_and_defines_the_moonblade()
+    public void The_shipped_folder_loads_clean_and_defines_the_terrastaff()
     {
+        // The first extended id was the Moonblade (Sword, donor 37, WP 15, Dorter) until its removal
+        // on 2026-08-31; the Terrastaff, moved off the Battle Axe's slot by LW-351, holds 261 now.
         string repoRoot = RepoRoot();
         var r = ExtendedInventoryData.Load(Path.Combine(repoRoot, "mod"));
         Assert.True(r.FolderPresent, "mod/extended_inventory is missing: run tools/generate.py");
         Assert.True(r.Ok, string.Join("; ", r.Errors));
         var m = Assert.Single(r.Items, i => i.Id == 261);
-        Assert.Equal("Moonblade", m.Name);
-        Assert.Equal(37, m.CloneDonor);
-        Assert.Equal(0x0F, m.WeaponRow[4]);   // Power 15, the rig's proven damage row
-        Assert.Equal(3, m.CatalogRecord[5]);   // Sword
-        Assert.Equal(0x4000, m.ShopFlags);   // Dorter, the live-test placeholder
+        Assert.Equal("Terrastaff", m.Name);
+        Assert.Equal(108, m.CloneDonor);
+        Assert.Equal(9, m.WeaponRow[4]);   // Power 9, the id-48 design's number carried over
+        Assert.Equal(16, m.CatalogRecord[5]);   // Pole
+        Assert.Equal(0x00FC, m.ShopFlags);   // Lesalia, Riovanes, Eagrose, Lionel, Limberry, Zeltennia
         Assert.All(r.Items, i => Assert.InRange(i.Id, ExtendedCatalog.FirstExtendedId, ExtendedCatalog.LastExtendedId));
     }
 
@@ -153,20 +155,21 @@ public class ExtendedInventoryDataTests : IDisposable
         return dir?.FullName ?? throw new InvalidOperationException("repo root not found above the test bin dir");
     }
 
-    /// <summary>LW-351 stage 2: the shipped folder carries the eight extended weapons, contiguous,
-    /// each on the clone donor the plan locked, so a regenerate that drops, reorders or re-donors
-    /// one goes red here before it reaches a build.</summary>
+    /// <summary>LW-351 stage 2: the shipped folder carries the seven extended weapons, contiguous
+    /// from 261 since the Moonblade's removal (2026-08-31), each on the clone donor the plan locked,
+    /// so a regenerate that drops, reorders or re-donors one goes red here before it reaches a
+    /// build.</summary>
     [Fact]
-    public void The_shipped_folder_defines_the_eight_extended_weapons_on_their_locked_donors()
+    public void The_shipped_folder_defines_the_seven_extended_weapons_on_their_locked_donors()
     {
         var r = ExtendedInventoryData.Load(Path.Combine(RepoRoot(), "mod"));
         Assert.True(r.Ok, string.Join("; ", r.Errors));
         var expected = new (int Id, string Name, int Donor, string Category)[]
         {
-            (261, "Moonblade", 37, "Sword"), (262, "Terrastaff", 108, "Pole"),
-            (263, "Ravager", 33, "KnightSword"), (264, "Sunderer", 33, "KnightSword"),
-            (265, "Warbrand", 21, "Sword"), (266, "Bloodlash", 1, "Knife"),
-            (267, "Climhazzard", 12, "NinjaBlade"), (268, "Sasori", 43, "Katana"),
+            (261, "Terrastaff", 108, "Pole"), (262, "Ravager", 33, "KnightSword"),
+            (263, "Sunderer", 33, "KnightSword"), (264, "Warbrand", 21, "Sword"),
+            (265, "Bloodlash", 1, "Knife"), (266, "Climhazzard", 12, "NinjaBlade"),
+            (267, "Sasori", 43, "Katana"),
         };
         Assert.Equal(expected.Select(e => e.Id), r.Items.Select(i => i.Id).OrderBy(x => x));
         foreach (var e in expected)

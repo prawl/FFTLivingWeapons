@@ -136,14 +136,15 @@ def check_slots(items, normal_formulas):
 # A deferred pair is dropped from the PROPOSED dominance verdict only, prints its own DEFERRED
 # line on EVERY run (never silent), and a pair that is no longer dominated is called out as a
 # stale entry so the dict cannot rot. The --baseline pass and every other gate ignore this.
-# Today's one entry: the Terrastaff moved to extended id 262 and now records its true reach
+# Today's one entry: the Terrastaff moved to extended id 261 (262 until the Moonblade's removal
+# on 2026-08-31 slid every extended id down one) and now records its true reach
 # (range 2, the reach the game plays for its clone donor 108 Ironreed Pole; see generate.py's
 # check_extended_range), which makes it beat the Ironreed Pole outright (T1 vs T2, WP 9 vs 8,
 # same evade, same reach, plus Earth). The owner ruled that stage 2 moves the other six designs
 # first and ONE dominance pass then gates all seven together; that pass empties this dict
 # (docs/TODO.md LW-363).
 DOMINANCE_DEFERRED = {
-    (108, 262): "owner ruling 2026-08-30: the Terrastaff records its true reach 2 (clone donor 108, "
+    (108, 261): "owner ruling 2026-08-30: the Terrastaff records its true reach 2 (clone donor 108, "
                 "Ironreed Pole) so the row stops lying; stage 2 moves the other six axe/flail designs "
                 "first, then one dominance pass gates all seven; cleared under LW-363",
 }
@@ -178,9 +179,10 @@ def check_proposed_dominance(items, normal_formulas):
 # gate demand the pair be re-balanced.
 THIN_NICHE_EXCEPTIONS = {
     # LW-351 stage 2 (2026-08-30): the Warbrand moved from id 67 (the vanilla Iron Flail, restored) to
-    # extended id 265; the ruling is about the design, so the keys follow it.
-    (265, 30): "Warbrand's 1-WP crown over Arcanum: owner ruling 2026-08-25 (LW-320), crown kept, shelf moved to the last unlock",
-    (265, 31): "Warbrand's 1-WP crown over Lightbringer: same LW-320 ruling",
+    # extended id 265, then 264 when the Moonblade's removal (2026-08-31) slid every extended id
+    # down one; the ruling is about the design, so the keys follow it.
+    (264, 30): "Warbrand's 1-WP crown over Arcanum: owner ruling 2026-08-25 (LW-320), crown kept, shelf moved to the last unlock",
+    (264, 31): "Warbrand's 1-WP crown over Lightbringer: same LW-320 ruling",
     (17, 16): "Iga Blade's 1-WP edge over Sasuke's Blade: the plain crown of the ninja blades, the Warbrand pattern in miniature",
 }
 

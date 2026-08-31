@@ -4,19 +4,7 @@
   <Version>1</Version>
   <Entries>
     <Item>
-      <Id>261</Id> <!-- Moonblade -->
-      <Palette>4</Palette>
-      <SpriteID>22</SpriteID>
-      <RequiredLevel>0</RequiredLevel>
-      <TypeFlags>Weapon</TypeFlags>
-      <AdditionalDataId>37</AdditionalDataId>
-      <ItemCategory>Sword</ItemCategory>
-      <EquipBonusId>0</EquipBonusId>
-      <Price>10</Price>
-      <ShopAvailability>Blank</ShopAvailability>
-    </Item>
-    <Item>
-      <Id>262</Id> <!-- Terrastaff -->
+      <Id>261</Id> <!-- Terrastaff -->
       <Palette>7</Palette>
       <SpriteID>62</SpriteID>
       <RequiredLevel>0</RequiredLevel>
@@ -28,7 +16,7 @@
       <ShopAvailability>Chapter1_KillMiluda</ShopAvailability>
     </Item>
     <Item>
-      <Id>263</Id> <!-- Ravager -->
+      <Id>262</Id> <!-- Ravager -->
       <Palette>3</Palette>
       <SpriteID>22</SpriteID>
       <RequiredLevel>0</RequiredLevel>
@@ -40,7 +28,7 @@
       <ShopAvailability>Chapter4_Start</ShopAvailability>
     </Item>
     <Item>
-      <Id>264</Id> <!-- Sunderer -->
+      <Id>263</Id> <!-- Sunderer -->
       <Palette>3</Palette>
       <SpriteID>22</SpriteID>
       <RequiredLevel>0</RequiredLevel>
@@ -52,7 +40,7 @@
       <ShopAvailability>Chapter4_Bethla</ShopAvailability>
     </Item>
     <Item>
-      <Id>265</Id> <!-- Warbrand -->
+      <Id>264</Id> <!-- Warbrand -->
       <Palette>2</Palette>
       <SpriteID>14</SpriteID>
       <RequiredLevel>0</RequiredLevel>
@@ -64,7 +52,7 @@
       <ShopAvailability>Chapter4_KillElmdor</ShopAvailability>
     </Item>
     <Item>
-      <Id>266</Id> <!-- Bloodlash -->
+      <Id>265</Id> <!-- Bloodlash -->
       <Palette>0</Palette>
       <SpriteID>1</SpriteID>
       <RequiredLevel>0</RequiredLevel>
@@ -76,7 +64,7 @@
       <ShopAvailability>Chapter3_Start</ShopAvailability>
     </Item>
     <Item>
-      <Id>267</Id> <!-- Climhazzard -->
+      <Id>266</Id> <!-- Climhazzard -->
       <Palette>0</Palette>
       <SpriteID>9</SpriteID>
       <RequiredLevel>0</RequiredLevel>
@@ -88,7 +76,7 @@
       <ShopAvailability>Chapter3_SaveRafa</ShopAvailability>
     </Item>
     <Item>
-      <Id>268</Id> <!-- Sasori -->
+      <Id>267</Id> <!-- Sasori -->
       <Palette>5</Palette>
       <SpriteID>28</SpriteID>
       <RequiredLevel>0</RequiredLevel>

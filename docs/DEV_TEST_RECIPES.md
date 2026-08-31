@@ -39,13 +39,13 @@ inventory count array: count[itemId] = u8 @ 0x1411A7C00 + itemId   (1.5.x; == Of
 GARBAGE and accepts writes that go nowhere, then get zeroed by the game — it burned a session on
 2026-07-15; verify against `Offsets.InventoryCountBase` before hand-writing). The array sits 0x110
 below `RosterBase` (`0x1411A7D10` on 1.5); ids 0..260 stay clear of the roster.
-**Skip the crashy / IC-unused ids:** `269–277` (IC stripped these slots; `263–268` are the mod's own weapons since LW-351 stage 2) and `254, 255` (the
+**Skip the crashy / IC-unused ids:** `268–277` (IC stripped these slots; `261–267` are the mod's own weapons since LW-351 and the Moonblade's removal) and `254, 255` (the
 engine's "random item" placeholder and the never-used slot: no name, no catalog record; 99 of 254
 rendered as a nameless black-icon row on the Items tab, 2026-08-27). `give_all_items` skips these
 since HandsFree c3fa8e4; replicate the skip if you write your own.
-**Do NOT skip the mod's own new weapons.** While Living Weapons is running, `261` (Moonblade) and
-`262` to `268` (the Terrastaff, Ravager, Sunderer, Warbrand, Bloodlash, Climhazzard and Sasori,
-moved off the vanilla axe and flail slots by LW-351) are real items with their own
+**Do NOT skip the mod's own new weapons.** While Living Weapons is running, `261` to `267` (the
+Terrastaff, Ravager, Sunderer, Warbrand, Bloodlash, Climhazzard and Sasori, moved off the vanilla
+axe and flail slots by LW-351) are real items with their own
 catalog records, and a rig that skips them cannot hand you the very things you are testing. The
 old warning about `262` was about the base game's Onion Sword slot, which crashes on equip-render
 when nothing defines it; with the mod off, skip it again. Clearing a stray one is a single-byte zero of `count[id]` from outside on a safe screen.
@@ -185,7 +185,7 @@ Barrage return.
 ## Add an extended-inventory item (a brand-new weapon past id 260, LW-346)
 
 Plain language: a new weapon is one row in `data/items.json` plus four generated icon files;
-everything else (tables, name row, glow rims, the runtime) follows from the build. The Moonblade
+everything else (tables, name row, glow rims, the runtime) follows from the build. The Terrastaff
 (id 261) is the worked example; read its row first.
 
 1. **The row.** Append to `data/items.json` with the next free id (contiguous from 261; a gap fails
