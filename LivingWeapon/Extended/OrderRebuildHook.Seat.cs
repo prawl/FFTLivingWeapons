@@ -21,6 +21,7 @@ internal sealed partial class OrderRebuildHook
 {
     private readonly int _extendedCount;
     private readonly long _bagBase;   // LW-368 round 2: ExtendedInventory.BagCountBase, set at construction
+    private readonly Func<TemplateSeat.Region[]>? _regions;   // LW-371: ExtendedInventory.TemplateRegions, set at construction
     private long _seated;
     private long _seatRefusals;
     private bool _refusalWarned;
@@ -56,9 +57,10 @@ internal sealed partial class OrderRebuildHook
     /// whose templates this mod knows nothing about).</summary>
     private void SeatOwnedInto(nint table)
     {
+        var regions = _regions?.Invoke() ?? TemplateSeat.WeaponRegions;
         TemplateSeat.Region region = default;
         bool known = false;
-        foreach (var r in TemplateSeat.WeaponRegions)
+        foreach (var r in regions)
             if (r.Addr == (long)table) { region = r; known = true; break; }
         if (!known) return;
         // Round 8c: an empty owned list no longer returns early; the repair half of Plan must

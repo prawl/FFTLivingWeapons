@@ -7,14 +7,20 @@ namespace LivingWeapon;
 
 /// <summary>
 /// LW-353: the native half of the save edges (untestable by construction, the PromptSwapHook
-/// posture): three Reloaded.Hooks detours behind prologue landmarks, each forwarding to the
-/// original FIRST and then, once the struct is complete (serialize) or applied (load), reading
-/// the save struct's header through the guarded patcher and handing it to
-/// <see cref="SaveEdgeTracker"/>. A detour never throws and never logs on the hot path beyond the
-/// once-per-session canaries.
+/// posture): three Reloaded.Hooks detours behind prologue landmarks. The two LOAD detours forward
+/// to the original FIRST and then, once the struct is applied, read the save struct's header
+/// through the guarded patcher and hand it to <see cref="SaveEdgeTracker"/>; the SERIALIZE detour
+/// has forwarded to the original first that way, too, since LW-353 -- but since LW-371 (below) it
+/// first projects the three relocated chart blocks BEFORE forwarding, so the struct the original
+/// serializes already carries the projection, and only reads the header AFTER, once the struct is
+/// complete. A detour never throws and never logs on the hot path beyond the once-per-session
+/// canaries.
 ///
-/// LW-351 CHANGES ONE POSTURE ON PURPOSE: the load detours DO write game memory, the only place
-/// these hooks ever do, and they write in the one moment nothing else can. The routine they wrap
+/// LW-351 CHANGES ONE POSTURE ON PURPOSE: the load detours write game memory, and LW-371 gives the
+/// serialize detour the same license -- it now writes too, projecting the relocated page down into
+/// the three old chart blocks (<see cref="TemplateSync.Project"/>) BEFORE forwarding to the
+/// original, so the game's own struct copy (right after) serializes exactly what the projection
+/// just wrote. The routine the load detours wrap
 /// undoes two things the extended items need on its way past: it copies the save file's bag over
 /// the game's count array (that file carries ids 0..260, so every extended id lands on zero) and
 /// it RESTORES both menu order templates byte-for-byte out of the save struct (0x14021B4BD /
@@ -63,6 +69,7 @@ internal sealed partial class SaveEdgeHooks
     private readonly IReadOnlyList<int> _extendedIds;
     private readonly Action<string>? _replayOnLoad;   // LW-351: the bag replay, by save key
     private readonly long _bagBase;   // LW-368 round 2: ExtendedInventory.BagCountBase, set at construction
+    private readonly TemplateRelocation? _templates;   // LW-371: null = no template sync (every pre-existing caller)
     private IHook<EdgeFn>? _serialize, _apply, _applyB;
     private EdgeFn? _k1, _k2, _k3;   // GC anchors: the native thunks must outlive us
     private bool _canarySave, _canaryLoadA, _canaryLoadB;
@@ -73,14 +80,21 @@ internal sealed partial class SaveEdgeHooks
     /// cref="ExtendedInventory.BagCountBase"/> in production (the relocated page once armed,
     /// else the vanilla block); defaults to the vanilla block so every pre-existing caller keeps
     /// compiling unchanged.</param>
+    /// <param name="templates">LW-371: the template relocation, so the serialize detour can
+    /// project the page down into the old chart blocks and the load detour can adopt the restored
+    /// blocks back onto the page (<see cref="TemplateSync"/>). Null (the default) is a no-op on
+    /// both edges -- <see cref="TemplateSync.Project"/>/<see cref="TemplateSync.Adopt"/> only run
+    /// when given a non-null, installed relocation -- so every pre-existing caller keeps compiling
+    /// and behaving unchanged.</param>
     public SaveEdgeHooks(ICodePatcher mem, SaveEdgeTracker tracker, IReadOnlyList<int> extendedIds,
-        Action<string>? replayOnLoad = null, long bagBase = Offsets.BagCountArray)
+        Action<string>? replayOnLoad = null, long bagBase = Offsets.BagCountArray, TemplateRelocation? templates = null)
     {
         _mem = mem;
         _tracker = tracker;
         _extendedIds = extendedIds;
         _replayOnLoad = replayOnLoad;
         _bagBase = bagBase;
+        _templates = templates;
     }
 
     /// <summary>Pure: install only when the guarded read succeeded and the prologue matches.</summary>

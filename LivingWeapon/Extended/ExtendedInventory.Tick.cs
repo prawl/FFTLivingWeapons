@@ -99,7 +99,8 @@ internal sealed partial class ExtendedInventory
         BagReplay.Apply(_patcher, Items, plan, BagCountBase);
         TemplateSeat.Apply(_patcher, BagReplay.OwnedIds(plan, Items),
             onRefused: why => _refusalNote = _refusalNote == null ? why : _refusalNote + " | " + why,
-            onRepaired: note => _repairNote = _repairNote == null ? note : _repairNote + " | " + note);
+            onRepaired: note => _repairNote = _repairNote == null ? note : _repairNote + " | " + note,
+            regions: TemplateRegions);
         _detourReplay = plan;
     }
 
@@ -138,7 +139,8 @@ internal sealed partial class ExtendedInventory
             if (!detourServed)
                 TemplateSeat.Apply(_patcher, BagReplay.OwnedIds(plan, Items),
                     why => ModLogger.Warn(LogVerb.Save, why), what => ModLogger.Event(LogVerb.Save, what),
-                    what => ModLogger.Event(LogVerb.Save, "A damaged menu order table was healed on the load: " + what));
+                    what => ModLogger.Event(LogVerb.Save, "A damaged menu order table was healed on the load: " + what),
+                    regions: TemplateRegions);
         }
         if (Tracker.TryTakePendingSave(out string saveKey, out var saved))
         {

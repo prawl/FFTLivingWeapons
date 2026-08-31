@@ -5,15 +5,29 @@ namespace LivingWeapon;
 /// <summary>
 /// The three detour bodies for <see cref="SaveEdgeHooks"/> and the AfterApply repair they share
 /// on the load path -- the HOT-PATH half, split out of SaveEdgeHooks.cs under the 200-line house
-/// guideline. Every one of these runs on the GAME's own thread, forwards to the original FIRST,
-/// and never throws past its own boundary (see the base file's class doc for why the load path
-/// alone writes memory here).
+/// guideline. Every one of these runs on the GAME's own thread, forwards to the original FIRST
+/// EXCEPT the LW-371 projection step below, which by design runs BEFORE it (see the base file's
+/// class doc for why), and never throws past its own boundary.
 /// </summary>
 internal sealed partial class SaveEdgeHooks
 {
     private nint DetourSerialize(nint rcx, nint rdx, nint r8, nint r9)
+        => SerializeCore(() => _serialize!.OriginalFunction(rcx, rdx, r8, r9));
+
+    /// <summary>The whole serialize-detour body with the native trampoline call injected (the
+    /// InventoryResetHook.Process idiom, and a test seam: tests drive this directly the way
+    /// AfterApply is already driven). LW-371: the projection runs FIRST, inside its own try -- a
+    /// fault here skips it and the game serializes whatever the old chart blocks already hold
+    /// (the pre-arc behavior, never worse) -- then <paramref name="original"/> is called exactly
+    /// once, OUTSIDE every try, then the existing post-serialize tracker work runs in its own
+    /// try.</summary>
+    internal nint SerializeCore(Func<nint> original)
     {
-        nint ret = _serialize!.OriginalFunction(rcx, rdx, r8, r9);
+        try { if (_templates != null) TemplateSync.Project(_mem, _templates); }
+        catch (Exception) { /* a fault here must never reach the game; the old blocks stand as they are */ }
+
+        nint ret = original();   // exactly once, never inside a try
+
         try
         {
             var hdr = ReadHeader();
@@ -49,6 +63,10 @@ internal sealed partial class SaveEdgeHooks
         {
             var hdr = ReadHeader();
             if (hdr == null) return;   // the pointer did not resolve; otherwise every call takes an edge, which is sound because both routines overwrite the bag from the struct
+            // LW-371: adopt the old chart blocks the routine below us just restored from the save
+            // struct back onto the relocated page (marker rule + wall, TemplateSync.Adopt) BEFORE
+            // the bag/template replay below, so the seat that follows always lands on a fresh page.
+            if (_templates != null) TemplateSync.Adopt(_mem, _templates);
             // LW-351: repair FIRST, publish the edge SECOND. The routine just below us has this
             // instant finished overwriting the bag from the save file and restoring both menu
             // order templates out of the save struct, so the counts and the template seats both

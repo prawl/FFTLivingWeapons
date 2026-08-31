@@ -17,6 +17,18 @@ namespace LivingWeapon;
 /// it, and no amount of bag replaying can change that. The mod therefore seats the ids itself, in
 /// the same load-detour moment that replays the bag counts, once the game's own restore has run.
 ///
+/// LW-371 UPDATE: the paragraph above is the pre-relocation picture, still true when the
+/// template relocation has not armed. Once it HAS armed, the templates the game actually works
+/// on no longer live at the two Offsets constants above -- they live on the mod's own page
+/// (<see cref="ExtendedInventory.TemplateRegions"/>), and <see cref="Offsets.InventoryOrderTemplate"/>
+/// / <see cref="Offsets.PickerOrderTemplate"/> hold only the save-field projection
+/// <see cref="TemplateSync"/> writes at each save edge (the first 140 chart words in page order,
+/// extended ids included, D4) -- the save's staging area, not live game state. <see
+/// cref="WeaponRegions"/> below stays the VANILLA pair unconditionally: it is what
+/// <see cref="ExtendedInventory.TemplateRegions"/> falls back to when the relocation never armed,
+/// and every caller here still reaches it by default, but production always seats through
+/// <c>TemplateRegions</c> instead so a seat lands wherever the game is actually reading from.
+///
 /// This is the LW-346 hand-proven poke made systematic: that probe wrote the new id over the end
 /// marker and put the marker one word later, and the owner watched both menus list the item.
 ///
@@ -127,14 +139,19 @@ internal static partial class TemplateSeat
     /// refused write reports through <paramref name="onRefused"/>; a table healed on the way
     /// (round 8b) reports through <paramref name="onRepaired"/>. The detour path passes no
     /// logging callback, because it must not log on the game's own thread.</summary>
+    /// <param name="regions">LW-371: the regions to seat into -- <see cref="WeaponRegions"/> (the
+    /// vanilla pair) when null or omitted, else <see cref="ExtendedInventory.TemplateRegions"/>
+    /// (the relocated page's regions once armed). Every production caller passes the latter; the
+    /// default keeps every pre-existing test and caller compiling unchanged.</param>
     public static void Apply(ICodePatcher patcher, IReadOnlyList<int> ids,
-        Action<string>? onRefused = null, Action<string>? onSeated = null, Action<string>? onRepaired = null)
+        Action<string>? onRefused = null, Action<string>? onSeated = null, Action<string>? onRepaired = null,
+        Region[]? regions = null)
     {
         // Round 8c: no early return on an empty owned list. The seat half is then a no-op, but
         // the repair half must still run: a damaged table on a save whose player owns no
         // extended item at all is exactly the crash shape (id-0 rows from a marker-less table).
         ids ??= Array.Empty<int>();
-        foreach (var region in WeaponRegions)
+        foreach (var region in regions ?? WeaponRegions)
         {
             if (!patcher.TryRead(region.Addr, region.CapacityWords * 2, out var bytes)) continue;
             var seat = Plan(bytes, region.CapacityWords, ids);

@@ -26,6 +26,10 @@ namespace LivingWeapon;
 /// Then <see cref="Armed"/> is true and the tick half (ExtendedInventory.Tick.cs) owns the two
 /// copy-protected caps and the bag sidecar. With no extended rows shipped, everything above is
 /// skipped with one Debug line: the mod behaves exactly as before this system existed.
+///
+/// The step list itself (<c>Install</c>, <c>InstallClone</c>, <c>SeedBag</c>) lives in
+/// ExtendedInventory.Arm.cs (LW-371, verifier NIT-5); this file keeps the fields, the ctor, this
+/// sequencing method, the properties and <see cref="Refuse"/>.
 /// </summary>
 internal sealed partial class ExtendedInventory
 {
@@ -38,6 +42,7 @@ internal sealed partial class ExtendedInventory
 
     private readonly BytePatchSet _patches = new();
     private readonly ListRelocation _relocation = new();   // LW-368 round 2
+    private readonly TemplateRelocation _templates = new();   // LW-371
     private readonly ExtendedCatalog _catalog = new();
     private readonly ShopFlagsMirror _shops = new();   // LW-354
     private readonly List<ThunkClone> _clones = new();
@@ -58,6 +63,12 @@ internal sealed partial class ExtendedInventory
     /// vanilla block). Every reader/writer of a bag byte resolves its base through this, never
     /// the raw offset, so a relocation refusal falls back to the vanilla block transparently.</summary>
     public long BagCountBase => _relocation.Installed ? _relocation.CountBase : Offsets.BagCountArray;
+    /// <summary>LW-371: the two weapon order-template regions in effect right now -- the
+    /// relocated page's regions once the template relocation armed, else the vanilla pair. Every
+    /// seat (boot replay, load replay, the order-rebuild hook) reads through this, never
+    /// <see cref="TemplateSeat.WeaponRegions"/> directly, so a relocation refusal falls back to the
+    /// vanilla tables transparently.</summary>
+    public TemplateSeat.Region[] TemplateRegions => _templates.Regions;
 
     /// <param name="installHooks">Test seam (internal): the step that installs the two
     /// Reloaded.Hooks detours, returning null on success or the refusal. Null (production) uses
@@ -106,47 +117,8 @@ internal sealed partial class ExtendedInventory
             $"Extended inventory armed: {Items.Count} new item(s) [{string.Join(", ", Items.Select(i => $"{i.Name} (id {i.Id})"))}], "
             + $"{_patches.AppliedCount} cap patches, {_clones.Count} accessor redirects, 3 hooks, shop table mirrored, "
             + $"item count lists relocated to 0x{_relocation.PageAddr:X}; "
+            + $"menu order charts relocated to 0x{_templates.PageAddr:X}; "
             + "2 damage caps wait for the first save to load.");
-    }
-
-    private string? Install(IReloadedHooks? hooks)
-    {
-        int n = Items.Count;
-        string? why = _patches.Apply(_patcher, ExtendedSites.BootPatches(n));
-        if (why != null) return why;
-        // LW-368 round 2 (D3): the list relocation lands right after the boot cap patches and
-        // before everything else, so every later step that touches a bag byte can resolve its
-        // base through BagCountBase from the moment it runs.
-        why = _relocation.Install(_patcher, _allocator);
-        if (why != null) return why;
-        why = _catalog.Install(_patcher, _allocator, Items.Select(i => (i.Id, i.CatalogRecord)).ToList());
-        if (why != null) return why;
-        why = _shops.Install(_patcher, _allocator, Items.Select(i => (i.Id, i.ShopFlags)).ToList());
-        if (why != null) return why;
-
-        int lo = ExtendedCatalog.FirstExtendedId;
-        var rows = Items.OrderBy(i => i.Id).Select(i => i.WeaponRow).ToArray();
-        var cloneDonors = Items.OrderBy(i => i.Id).Select(i => i.CloneDonor).ToArray();
-        var artDonors = Items.OrderBy(i => i.Id).Select(i => i.ArtDonor).ToArray();
-        var weaponStat = new ThunkClone(Offsets.ThunkWeaponStat, "weapon-stat");
-        why = InstallClone(weaponStat, t => ThunkStub.EmitRowStub(lo, rows, t));
-        if (why != null) return why;
-        _weaponStatClone = weaponStat;
-        foreach (var (addr, label, usesArt) in ExtendedSites.DonorThunks)
-        {
-            var donors = usesArt ? artDonors : cloneDonors;
-            why = InstallClone(new ThunkClone(addr, label), t => ThunkStub.EmitDonorStub(lo, donors, t));
-            if (why != null) return why;
-        }
-
-        return _installHooks(hooks);
-    }
-
-    private string? InstallClone(ThunkClone clone, Func<long, byte[]> emit)
-    {
-        string? why = clone.Install(_patcher, _allocator, emit);
-        if (why == null) _clones.Add(clone);
-        return why;
     }
 
     /// <summary>The address of an extended id's 8-byte ITEM_WEAPON_DATA row inside the weapon-stat
@@ -160,20 +132,6 @@ internal sealed partial class ExtendedInventory
         int i = id - ExtendedCatalog.FirstExtendedId;
         if (i < 0 || i >= Items.Count) return -1;
         return _weaponStatClone.StubAddr + ThunkStub.RowStubHeader + (long)i * ThunkStub.RowSize;
-    }
-
-    /// <summary>Boot placement: the data seed for every extended id. No save is loaded at boot,
-    /// so this is the bag a NEW game starts with; a loaded save replays its own recorded counts
-    /// through the load edge (ExtendedInventory.Tick.cs, LW-353).</summary>
-    private void SeedBag()
-    {
-        foreach (var item in Items)
-        {
-            if (!_patcher.TryWrite(BagCountBase + item.Id, new[] { (byte)item.SeedCount }))
-                ModLogger.Warn(LogVerb.Save, $"Could not place {item.SeedCount} {item.Name} in the bag at boot (write refused).");
-        }
-        ModLogger.Event(LogVerb.Save, "Extended-inventory bag counts seeded for a new game: "
-            + string.Join(", ", Items.Select(i => $"{i.Name} x{i.SeedCount}")) + $"; saved games replay their own (sidecar: {_sidecar.LoadedFrom}, {_sidecar.SaveCount} save(s) known).");
     }
 
     private void Refuse(string why)

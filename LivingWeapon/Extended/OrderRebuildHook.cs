@@ -33,8 +33,12 @@ internal sealed partial class OrderRebuildHook
     /// <summary>First 10 bytes at the entry: mov [rsp+8],rbx; mov [rsp+18h],rbp.</summary>
     public static readonly byte[] ExpectedPrologue = { 0x48, 0x89, 0x5C, 0x24, 0x08, 0x48, 0x89, 0x6C, 0x24, 0x18 };
 
-    /// <summary>Upper bound on words read per call: builder A caps lists at 145 entries, the
-    /// Acquired scan at 146 (journal, "List-length bounds"); 160 bounds every speculative read.</summary>
+    /// <summary>Upper bound on words read per call: builder A caps lists at 149 entries since
+    /// LW-371 (150 words with the terminator; widened from the vanilla 145/146), and the picker's
+    /// weapons-only caller then appends up to two hand items after that, 152 words worst case
+    /// (D5, P14: the GS-cookie-derived room of the two stack list buffers -- see
+    /// Offsets.ListBuilderCapByte / ListBuilderStackRoomBytes); 160 still bounds every
+    /// speculative read.</summary>
     public const int MaxWords = 160;
     public const ushort Terminator = 0xFFFF;
     public const int IdMask = 0x3FF;
@@ -61,11 +65,18 @@ internal sealed partial class OrderRebuildHook
     /// cref="ExtendedInventory.BagCountBase"/> in production (the relocated page once armed,
     /// else the vanilla block); defaults to the vanilla block so every pre-existing caller keeps
     /// compiling unchanged.</param>
-    public OrderRebuildHook(ICodePatcher mem, long targetAddr = 0, int extendedCount = 0, long bagBase = Offsets.BagCountArray)
+    /// <param name="regions">LW-371: where the two weapon order templates live right now -- <see
+    /// cref="ExtendedInventory.TemplateRegions"/> in production (the relocated page's regions once
+    /// the template relocation armed); null (the default) falls back to
+    /// <see cref="TemplateSeat.WeaponRegions"/> at call time, so every pre-existing caller keeps
+    /// compiling and behaving unchanged.</param>
+    public OrderRebuildHook(ICodePatcher mem, long targetAddr = 0, int extendedCount = 0,
+        long bagBase = Offsets.BagCountArray, Func<TemplateSeat.Region[]>? regions = null)
     {
         _mem = mem;
         _extendedCount = extendedCount;
         _bagBase = bagBase;
+        _regions = regions;
         TargetAddr = targetAddr == 0 ? Offsets.FnOrderRebuild : targetAddr;
     }
 

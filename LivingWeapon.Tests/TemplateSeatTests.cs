@@ -370,4 +370,31 @@ public class TemplateSeatTests
         Assert.Contains("0x141874540", refused[1]);
         Assert.Empty(f.Writes);
     }
+
+    /// <summary>LW-371 (T8, half a): a caller passing <paramref name="regions"/> is served THOSE
+    /// regions, not <see cref="TemplateSeat.WeaponRegions"/> -- proven by seating into a page
+    /// address that is nowhere near either vanilla template. Omitting the parameter (every
+    /// pre-existing test above) keeps behaving exactly as it always has.</summary>
+    [Fact]
+    public void Apply_seats_into_the_regions_parameter_when_one_is_given()
+    {
+        var page = new TemplateSeat.Region[]
+        {
+            new(0x150000000L, 511, "the relocated inventory order template"),
+            new(0x150000400L, 511, "the relocated equip-picker order template"),
+        };
+        var f = new FakeCodePatcher();
+        foreach (var r in page) f.Seed(r.Addr, Table(r.CapacityWords, 1, 2, TemplateSeat.EndMarker));
+        // The vanilla addresses are deliberately left UNSEEDED: if Apply ever fell back to
+        // WeaponRegions despite the parameter, its guarded read would fail there and this test
+        // would show zero writes instead of the wrong-address ones.
+        var seated = new List<string>();
+
+        TemplateSeat.Apply(f, new[] { Terra }, why => Assert.Fail(why), seated.Add, regions: page);
+
+        Assert.Equal(2, seated.Count);
+        foreach (var r in page)
+            Assert.Equal(new ushort[] { 1, 2, Terra, TemplateSeat.EndMarker }, WordsAt(f, r.Addr, 4));
+        Assert.DoesNotContain(f.Writes, w => w.Addr == Offsets.InventoryOrderTemplate || w.Addr == Offsets.PickerOrderTemplate);
+    }
 }

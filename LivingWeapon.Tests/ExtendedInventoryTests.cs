@@ -34,7 +34,10 @@ public class ExtendedInventoryTests : IDisposable
     /// <summary>A vanilla 1.5.2 image as far as the boot arm looks (bytes read on disk 2026-08-27).
     /// LW-368 round 2 / round 2b: also seeds all 55 list-relocation fields and the two 0x110-byte
     /// old blocks (bag counts + sibling flags) at their vanilla values, so BootArm still arms end
-    /// to end.</summary>
+    /// to end. LW-371: also seeds the ten template-relocation fields and the three old chart spans
+    /// (each an empty chart: the 0x00FF marker at word 0, zeros after) -- without this,
+    /// <c>_templates.Install</c> refuses on the unreadable/wrong old chart spans and every
+    /// BootArm-based test fails <c>Assert.True(inv.Armed)</c>.</summary>
     internal static FakeCodePatcher VanillaImage()
     {
         var f = new FakeCodePatcher();
@@ -50,7 +53,23 @@ public class ExtendedInventoryTests : IDisposable
         foreach (var site in ListRelocation.Sites) f.Seed(site.Addr, BitConverter.GetBytes(site.Vanilla));
         f.Seed(Offsets.BagCountArray, new byte[ListRelocation.BlockBytes]);
         f.Seed(Offsets.SiblingListArray, new byte[ListRelocation.BlockBytes]);
+        foreach (var s in TemplateRelocation.Slots) f.Seed(s.Addr, BitConverter.GetBytes(s.Vanilla));
+        foreach (var rf in TemplateRelocation.RipFields) f.Seed(rf.Addr, BitConverter.GetBytes(rf.Vanilla));
+        foreach (var c in TemplateRelocation.CapBytes) f.Seed(c.Addr, c.Vanilla);
+        foreach (var chart in TemplateRelocation.Charts) f.Seed(chart.OldBase, EmptyChart(chart.SpanBytes));
         return f;
+    }
+
+    /// <summary>An empty order-chart span: the 0x00FF end marker at word 0, zeros after (matches
+    /// what the game's copy-protected new-game initializer leaves before anything is owned --
+    /// 0x150C9FB15 for the inventory chart, 0x150C9FCAD..CC9 for the picker's sub-tables, plan
+    /// finding 3; <c>InventoryResetHook</c> never touches a template at all, only the bag array).</summary>
+    private static byte[] EmptyChart(int spanBytes)
+    {
+        var bytes = new byte[spanBytes];
+        bytes[0] = (byte)(TemplateSeat.EndMarker & 0xFF);
+        bytes[1] = (byte)(TemplateSeat.EndMarker >> 8);
+        return bytes;
     }
 
     private static Dictionary<long, byte> Snapshot(FakeCodePatcher f) => new(f.Bytes);
@@ -270,6 +289,32 @@ public class ExtendedInventoryTests : IDisposable
         foreach (var p in ExtendedSites.BootPatches(1)) Assert.Equal(p.Old, f.Bytes[p.Addr]);
         Assert.Equal(Offsets.BagCountArray, inv.BagCountBase);
         Assert.Equal(0, f.Bytes[inv.BagCountBase + 261]);   // SeedBag never ran (still the vanilla zero-fill)
+    }
+
+    /// <summary>LW-371 (T9d): a field the TEMPLATE relocation owns is already moved. Its Install
+    /// step runs right after the list relocation (D2), so its refusal must roll THAT back too
+    /// (and the boot cap patches before it) -- the same "nothing earlier remains applied"
+    /// contract T10 pins for the list relocation, one link further down the chain.</summary>
+    [Fact]
+    public void A_moved_template_slot_refuses_the_whole_arm_and_rolls_back_byte_identically()
+    {
+        var f = VanillaImage();
+        f.Seed(TemplateRelocation.Slots[0].Addr, BitConverter.GetBytes(TemplateRelocation.Slots[0].Vanilla + 1));   // already moved
+        var before = Snapshot(f);
+        var inv = Build(f, Moonblade());
+
+        inv.BootArm(null);
+
+        Assert.False(inv.Armed);
+        Assert.Contains("template-relocation", inv.Refusal);
+        Assert.Equal(before, f.Bytes.Where(kv => before.ContainsKey(kv.Key)).ToDictionary(kv => kv.Key, kv => kv.Value));
+        // Everything that ran before the template relocation -- the boot cap patches AND the list
+        // relocation, both of which succeed on a vanilla image -- must be rolled back too.
+        foreach (var p in ExtendedSites.BootPatches(1)) Assert.Equal(p.Old, f.Bytes[p.Addr]);
+        foreach (var site in ListRelocation.Sites) Assert.Equal(BitConverter.GetBytes(site.Vanilla), f.Read(site.Addr, 4));
+        Assert.Equal(Offsets.BagCountArray, inv.BagCountBase);
+        Assert.Equal(0, f.Bytes[inv.BagCountBase + 261]);   // SeedBag never ran (still the vanilla zero-fill)
+        Assert.Equal(TemplateSeat.WeaponRegions, inv.TemplateRegions);   // the vanilla pair, never the page
     }
 
     [Fact]

@@ -270,4 +270,36 @@ public class OrderRebuildHookTests
         Assert.Equal(new ushort[] { 5, 261 }, seen);
         Assert.Equal(1, hook.Seated);
     }
+
+    /// <summary>LW-371 (T8, half b): the seat step looks up its regions through the injected
+    /// <c>regions</c> getter, not <see cref="TemplateSeat.WeaponRegions"/> -- once a page address
+    /// is injected, that page is "known" and seats, and the vanilla address is not (it is left
+    /// untouched even when passed as the table), matching what the game itself does once the
+    /// pointer slot has been re-pointed at the page.</summary>
+    [Fact]
+    public void Process_seats_into_a_page_table_address_and_ignores_the_vanilla_address_once_relocated()
+    {
+        const long pageAddr = 0x150000000L;
+        var page = (nint)pageAddr;
+        var f = WithList(1, 0xFFFF);
+        f.Seed(pageAddr, Words(5, TemplateSeat.EndMarker));
+        f.Seed((long)Picker, Words(9, TemplateSeat.EndMarker));   // the vanilla address: left alone once relocated
+        f.Seed(Bag + 261, 2);
+        TemplateSeat.Region[] Page() => new[] { new TemplateSeat.Region(pageAddr, 511, "the relocated picker order template") };
+        var hook = new OrderRebuildHook(f, extendedCount: 1, regions: Page);
+
+        ushort[]? seen = null;
+        hook.Process(page, List, (table, list) => { seen = TemplateWords(f, (long)table); return Rebuild(f, 1)(table, list); });
+
+        Assert.Equal(new ushort[] { 5, 261 }, seen);
+        Assert.Equal(1, hook.Seated);
+        Assert.Equal(new ushort[] { 9 }, TemplateWords(f, (long)Picker));   // the vanilla address never took the write
+
+        // The vanilla address is no longer "known" once regions is injected: passing it as the
+        // table seats nothing at all.
+        var hook2 = new OrderRebuildHook(f, extendedCount: 1, regions: Page);
+        hook2.Process(Picker, List, Rebuild(f, 1));
+        Assert.Equal(0, hook2.Seated);
+        Assert.Equal(new ushort[] { 9 }, TemplateWords(f, (long)Picker));
+    }
 }

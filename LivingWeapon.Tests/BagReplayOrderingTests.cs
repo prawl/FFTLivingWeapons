@@ -90,10 +90,14 @@ public class BagReplayOrderingTests : IDisposable
         /// <summary>Round 5: give both weapon order templates a table of their own, holding
         /// <paramref name="words"/> and then the 0x00FF end marker. Without this the fake image
         /// has no template regions at all, the guarded read fails and the seat is a silent no-op
-        /// (which is what keeps the round-4 tests above counting bag writes only).</summary>
+        /// (which is what keeps the round-4 tests above counting bag writes only). LW-371: seeds
+        /// the EFFECTIVE regions (<see cref="ExtendedInventory.TemplateRegions"/>) -- once the
+        /// world's inventory is armed those are the relocated page's regions, not the vanilla
+        /// tables, because Install already copied the (empty) vanilla charts onto the page and
+        /// every later seat resolves through this same getter.</summary>
         public void SeedTemplates(params int[] words)
         {
-            foreach (var r in TemplateSeat.WeaponRegions)
+            foreach (var r in Inv.TemplateRegions)
             {
                 var bytes = new byte[r.CapacityWords * 2];
                 for (int i = 0; i < words.Length; i++)
@@ -113,9 +117,10 @@ public class BagReplayOrderingTests : IDisposable
             return Enumerable.Range(0, count).Select(i => (ushort)(b[i * 2] | (b[i * 2 + 1] << 8))).ToArray();
         }
 
-        /// <summary>Writes that landed inside either order template (the bag writes are elsewhere).</summary>
+        /// <summary>Writes that landed inside either order template (the bag writes are elsewhere).
+        /// LW-371: the EFFECTIVE regions (see <see cref="SeedTemplates"/>).</summary>
         public int SeatWrites() => Image.Writes.Count(x =>
-            TemplateSeat.WeaponRegions.Any(r => x.Addr >= r.Addr && x.Addr < r.Addr + r.CapacityWords * 2));
+            Inv.TemplateRegions.Any(r => x.Addr >= r.Addr && x.Addr < r.Addr + r.CapacityWords * 2));
     }
 
     private World NewWorld(string tag, string? sidecarFile = null)
@@ -133,6 +138,11 @@ public class BagReplayOrderingTests : IDisposable
         inv.BootArm(null);
         Assert.True(inv.Armed, inv.Refusal);
         var hooks = new SaveEdgeHooks(f, inv.Tracker, inv.Items.Select(i => i.Id).ToList(), inv.ReplayOnLoad, inv.BagCountBase);
+        // LW-371: BootArm itself now writes the (readable, valid) page regions TemplateRegions
+        // resolves to -- every test below reads Image.Writes to see what a LOAD edge did, not what
+        // arming did, so the boot-time writes (the bag seed included, pre-existing) are cleared
+        // here rather than in each test.
+        f.Writes.Clear();
         return new World { Image = f, Sidecar = sidecar, Inv = inv, Hooks = hooks, SidecarPath = path };
     }
 
@@ -229,19 +239,24 @@ public class BagReplayOrderingTests : IDisposable
     {
         using var cap = LogCapture.Start();
         var w = NewWorld("seed");
-        w.Image.Writes.Clear();
 
         w.GameApplied(SaveEdgeTrackerTests.Header(4242), detour: true);
         Assert.Single(w.Image.Writes.Where(x => x.Addr == w.Inv.BagCountBase + Terra));
-        // Exactly the N extended bag bytes and nothing else: this world never seeded the order
-        // templates, so the round-5 seat's guarded read of them fails and it writes nothing (the
-        // seat's own writes are counted in the tests below, which do seed them).
-        Assert.Equal(2, w.Image.Writes.Count);
+        // The N extended bag bytes (2: Moon's seed count 1, Terra's seed count 0) plus the
+        // round-5 seat's own writes: LW-371, this world never called SeedTemplates, but the page
+        // NewWorld's boot arm already filled (an empty chart, marker-only) is readable either way,
+        // so the seat's guarded read succeeds -- Moon (seed count 1) is owned and gets seated into
+        // both order-template regions, one write each.
+        var bagWrites = w.Image.Writes.Count(x => x.Addr == w.Inv.BagCountBase + Moon || x.Addr == w.Inv.BagCountBase + Terra);
+        Assert.Equal(2, bagWrites);
+        Assert.Equal(2, w.SeatWrites());
+        Assert.Equal(4, w.Image.Writes.Count);
 
         w.Tick();
         var writes = w.Image.Writes.Where(x => x.Addr == w.Inv.BagCountBase + Terra).ToList();
         Assert.Equal(2, writes.Count);                        // the detour's, then the fallback's
         Assert.All(writes, x => Assert.Equal(0, x.Data[0]));   // the seed both times, never a stale count
+        Assert.Equal(2, w.SeatWrites());                       // round 8c: the tick does not seat again
         Assert.Equal(1, w.Bag(Moon));
         Assert.Equal(1, Lines(cap, "first-copy seed"));
     }
@@ -262,7 +277,7 @@ public class BagReplayOrderingTests : IDisposable
 
         w.GameApplied(hdr, detour: true);
 
-        foreach (var r in TemplateSeat.WeaponRegions)
+        foreach (var r in w.Inv.TemplateRegions)
             Assert.Equal(new ushort[] { 1, 2, 3, Terra, TemplateSeat.EndMarker }, w.TemplateWords(r.Addr, 5));
         Assert.Equal(2, w.SeatWrites());                   // one write per template, and only there
         Assert.Equal(0, Lines(cap, "A save was loaded"));   // no tick has run yet
@@ -270,7 +285,7 @@ public class BagReplayOrderingTests : IDisposable
         // The tick's fallback runs the same seat and finds nothing left to do.
         w.Tick();
         Assert.Equal(2, w.SeatWrites());
-        foreach (var r in TemplateSeat.WeaponRegions)
+        foreach (var r in w.Inv.TemplateRegions)
             Assert.Equal(new ushort[] { 1, 2, 3, Terra, TemplateSeat.EndMarker }, w.TemplateWords(r.Addr, 5));
     }
 
@@ -287,7 +302,7 @@ public class BagReplayOrderingTests : IDisposable
         w.Sidecar.RecordSave(SaveEdgeTracker.KeyFromHeader(hdr), new Dictionary<int, int> { [Moon] = 0, [Terra] = 3 });
 
         w.GameApplied(hdr, detour: true);
-        foreach (var r in TemplateSeat.WeaponRegions)
+        foreach (var r in w.Inv.TemplateRegions)
             Assert.Equal(new ushort[] { 1, 7, Terra, TemplateSeat.EndMarker }, w.TemplateWords(r.Addr, 4));
         w.Tick();
 
@@ -312,7 +327,7 @@ public class BagReplayOrderingTests : IDisposable
         Assert.Equal(2, w.SeatWrites());
 
         // The game is mid-way through its own edit of the picker table when the tick fires.
-        var picker = TemplateSeat.WeaponRegions[1];
+        var picker = w.Inv.TemplateRegions[1];
         w.Image.Seed(picker.Addr, w.Image.Read(picker.Addr, 6).Concat(new byte[] { 3, 0, 0xFF, 0 }).ToArray());   // 1 2 3 3 FF: a transient double
         w.Tick();
 
@@ -326,7 +341,7 @@ public class BagReplayOrderingTests : IDisposable
         alone.GameApplied(hdr, detour: false);
         alone.Tick();
         Assert.Equal(2, alone.SeatWrites());
-        foreach (var r in TemplateSeat.WeaponRegions)
+        foreach (var r in alone.Inv.TemplateRegions)
             Assert.Equal(new ushort[] { 1, 7, Terra, TemplateSeat.EndMarker }, alone.TemplateWords(r.Addr, 4));
     }
 
@@ -340,9 +355,11 @@ public class BagReplayOrderingTests : IDisposable
         using var cap = LogCapture.Start();
         var w = NewWorld("refused");
         w.SeedTemplates(1, 2, 3);
-        // The picker table: 141 distinct non-zero words and no 0x00FF anywhere, the one shape the
-        // repair refuses to guess at.
-        var picker = TemplateSeat.WeaponRegions[1];
+        // The picker table: filled with nonzero words and no 0x00FF anywhere -- the one shape the
+        // repair refuses to guess at. LW-371: at 511 words the low byte (i + 1) wraps every 256
+        // entries, so the words are NOT all distinct any more; that doesn't matter here, only the
+        // refusal shape does (the fixed high byte 0x01 keeps every word off both 0x0000 and 0x00FF).
+        var picker = w.Inv.TemplateRegions[1];
         var full = new byte[picker.CapacityWords * 2];
         for (int i = 0; i < picker.CapacityWords; i++) { full[i * 2] = (byte)(i + 1); full[i * 2 + 1] = 0x01; }
         w.Image.Seed(picker.Addr, full);
@@ -386,7 +403,7 @@ public class BagReplayOrderingTests : IDisposable
         w.Tick();
 
         Assert.Equal(0, w.SeatWrites());
-        foreach (var r in TemplateSeat.WeaponRegions)
+        foreach (var r in w.Inv.TemplateRegions)
             Assert.Equal(new ushort[] { 1, 2, 3, TemplateSeat.EndMarker }, w.TemplateWords(r.Addr, 4));
     }
 
@@ -407,7 +424,7 @@ public class BagReplayOrderingTests : IDisposable
 
         w.Tick();
 
-        foreach (var r in TemplateSeat.WeaponRegions)
+        foreach (var r in w.Inv.TemplateRegions)
             Assert.Equal(new ushort[] { 1, 2, 3, Moon, Terra, TemplateSeat.EndMarker }, w.TemplateWords(r.Addr, 6));
         Assert.Equal(2, w.SeatWrites());
         Assert.Equal(2, Lines(cap, "now lists"));

@@ -791,4 +791,58 @@ internal static class Offsets
     /// table names (slot 1, 0x14067FA98) is 0x14187465A, exactly 0x11A = 282 bytes = 141 words
     /// above the base, the same size the inventory template's copy proves for its twin.</summary>
     public const int PickerOrderTemplateWords = 141;
+
+    // --- LW-371 (plan v1.1, 2026-08-31): the order-template RELOCATION knowledge. Both templates
+    // above are read only through a pointer-table SLOT (finding 1: 11 plain-code sites read the
+    // three slots below, never the template addresses directly), and the picker block also hides a
+    // FIFTH sub-table -- "every owned item, any category" -- reached at the shared picker base
+    // plus 0x1E6 (finding 4, the reviewer's RE re-check (a), reproduced in LW371_plan.md). Moving
+    // all three charts means re-pointing these ten fields (three slots, five rip-relative int32s,
+    // two menu-list-cap bytes); tools/probes/lw371_order_template_relocate.py --scan re-derives
+    // every one of them against the live process.
+    /// <summary>Slot A naming <see cref="InventoryOrderTemplate"/> (reviewer (b): reads
+    /// 0x1407B2550 today; housekeeper 0x140285F80, list build 0x140288D55, rebuild callers
+    /// 0x1403382B3 / 0x14036B1D9).</summary>
+    public const long InventoryOrderTableSlot = 0x14067F498L;
+    /// <summary>Slot B naming <see cref="InventoryOrderTemplate"/> (reviewer (b): also reads
+    /// 0x1407B2550; the third housekeeper copy, 0x14039684C).</summary>
+    public const long InventoryOrderTableSlotB = 0x140689C38L;
+    /// <summary>Slot naming <see cref="PickerOrderTemplate"/> (reviewer (b): reads 0x141874540;
+    /// picker housekeeper 0x14028609F, callers 0x14033694F / 0x140336CEF).</summary>
+    public const long PickerOrderTableSlot = 0x14067FA90L;
+    /// <summary>The picker block's fifth sub-table (finding 4): "every owned item, any category".
+    /// Not named by any pointer slot -- reached only by the rip-relative fields the reviewer's
+    /// table (a) lists (a shared rsi base at [rsi+rcx*2+0x1E6]/[...+0x1E8], plus four direct
+    /// disp32 fields). Its own ceiling today is 261 owned kinds of ANY category; past that it
+    /// overwrites 0x141874932.</summary>
+    public const long PickerAllItemsTemplate = 0x141874726L;
+    /// <summary>Capacity of the table above, in u16 words: 0x20C bytes (finding 4).</summary>
+    public const int PickerAllItemsTemplateWords = 262;
+    /// <summary>The shared list builder's entry-cap byte: the imm32 low byte of <c>cmp esi,0x91</c>
+    /// (six bytes, 81 FE 91 00 00 00) at 0x140288CC1, widened 0x91 (145 entries) -&gt; 0x95 (149,
+    /// D5, v1.3). PROOF OF ROOM (v1.3 correction): both stack list buffers hold exactly
+    /// <see cref="ListBuilderStackRoomBytes"/> bytes between the buffer and the GS security
+    /// cookie (reviewer (d): fnA rsp+0x70..rsp+0x1A0 via <c>lea rbp,[rsp-0xb0]</c> then
+    /// <c>mov [rbp+0xa0],rax</c>; fnB true entry 0x140336B88, rsp+0x50..rsp+0x180 via
+    /// <c>lea rbp,[rax-0xa8]</c> then <c>[rbp+0x80]</c>), and the builder itself writes cap+1
+    /// words (the entries plus a terminator) -- BUT fnA (entry 0x1402875A4, the picker's
+    /// weapons-only per-slot list) does not stop there: after the capped builder list it appends
+    /// the unit's two hand items (stores at 0x14028778C and 0x1402877A9, each only if the
+    /// validity thunk 0x1402B8EE8 accepts the id) and THEN writes its own 0xFFFF terminator
+    /// (0x1402877C0), so fnA's buffer must hold cap + 3 words, not cap + 1: (0x95+3)*2 = 0x130
+    /// exactly. 0x97 (151) would have put the terminator on the cookie at (151+3)*2 = 0x134 and
+    /// fast-failed the process (STATUS_STACK_BUFFER_OVERRUN) the first time 150+ weapon-class
+    /// kinds sat in the bag with both hands full.</summary>
+    public const long ListBuilderCapByte = 0x140288CC3L;
+    /// <summary>The list-insert bound byte: the imm32 low byte of <c>cmp edx,0x92</c> (six bytes,
+    /// 81 FA 92 00 00 00) at 0x140286318, widened 0x92 (146) -&gt; 0x96 (150 = builder cap + 1, so
+    /// the loop still reaches the terminator at index 149).</summary>
+    public const long ListInsertBoundByte = 0x14028631AL;
+    /// <summary>Bytes between the smaller of the two stack list buffers and its GS cookie (reviewer
+    /// (d), both callers re-read 09:00: fnA frame 0x1B0, buffer rsp+0x70, cookie rsp+0x1A0; fnB
+    /// entry 0x140336B88, frame 0x190, buffer rsp+0x50, cookie rsp+0x180). The builder alone would
+    /// only need cap+1 words, but fnA's weapons-only path appends two hand items and its own
+    /// terminator after the builder returns (P14), so the binding constraint is cap+3 words: a
+    /// cap fits only when (cap+3)*2 &lt;= this.</summary>
+    public const int ListBuilderStackRoomBytes = 0x130;
 }
