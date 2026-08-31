@@ -194,6 +194,18 @@ the technical detail lives in the indented lines under it.
     lists at boot arm, re-points the 45 fields with their vanilla bytes pinned, moves its own
     base off the Offsets.BagCountArray constant, and the partner's eight (fifteen total) is the
     first live target.
+  - Round 2 PLAN REVIEWED and the third list PROBED (2026-08-31 03:00-03:30): the adversarial
+    plan review found the rip/image-relative counts swapped (24 rip + 21 image-relative, fixed),
+    the test scope understated (fixed in the plan), and that the game's third per-item list (one
+    word per item at 0x1411A7810) has no gap before the Poacher's Den store, so every extended
+    id's word already sits inside the Den bytes. A three-list probe re-pointed 63 fields live and
+    the Den glance held, but the owner then quit mid-battle to disable a monster mod, so that
+    run proved nothing either way (no crash, no save written while it was live). Owner ruling
+    2026-08-31: the Den does not matter to him; the third list stays where it is this round
+    and the guide records the overlap as the documented residual. Exact widening ceiling
+    confirmed by the reviewer's live decode of every widened site: 121 extended items (the
+    eight single-byte lea bounds); past that needs jump-out trampolines at those sites, a
+    later stage. The implementer is building the two-list relocation from LW368_plan.md v2.2.
   - (Tech: the three id-keyed arrays the initializer 0x140284500 seeds are u8 0x1411A7C00
     (bag counts, 0x110 bytes then RosterBase), u8 0x1411A7700 (0x110 bytes then the u16 array)
     and u16 0x1411A7810 (0x105 entries then PoachStoreBase 0x1411A7A1B); every PlusN site in
