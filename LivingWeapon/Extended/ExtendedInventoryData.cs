@@ -72,6 +72,11 @@ internal static class ExtendedInventoryData
                 }
             if (ids.Count > 0 && ids[^1] > ExtendedCatalog.LastExtendedId)
                 errors.Add($"id {ids[^1]} is past the last extended slot {ExtendedCatalog.LastExtendedId}");
+            // LW-368 round 2 (P11): past this many, seven of the boot-patch sites plus one
+            // post-load site are `lea` disp8 bytes that overflow instead of widening, corrupting
+            // a bound rather than raising it.
+            if (ids.Count > ExtendedSites.MaxExtendedCount)
+                errors.Add($"{ids.Count} extended items is past ExtendedSites.MaxExtendedCount ({ExtendedSites.MaxExtendedCount}): the eight disp8 lea sites cannot widen any further");
             foreach (int id in ids)
             {
                 if (!catalog.TryGetValue(id, out var c)) { errors.Add($"id {id}: no ItemData.xml row"); continue; }

@@ -39,6 +39,9 @@ inventory count array: count[itemId] = u8 @ 0x1411A7C00 + itemId   (1.5.x; == Of
 GARBAGE and accepts writes that go nowhere, then get zeroed by the game — it burned a session on
 2026-07-15; verify against `Offsets.InventoryCountBase` before hand-writing). The array sits 0x110
 below `RosterBase` (`0x1411A7D10` on 1.5); ids 0..260 stay clear of the roster.
+With the extended inventory armed (LW-368 round 2), the live bag list is not this fixed address
+any more: it is the relocated page named in the boot arm's "lists relocated to 0x..." log line
+(`ExtendedInventory.BagCountBase`), so read/write there instead once armed.
 **Skip the crashy / IC-unused ids:** `268–277` (IC stripped these slots; `261–267` are the mod's own weapons since LW-351 and the Moonblade's removal) and `254, 255` (the
 engine's "random item" placeholder and the never-used slot: no name, no catalog record; 99 of 254
 rendered as a nameless black-icon row on the Items tab, 2026-08-27). `give_all_items` skips these

@@ -236,7 +236,11 @@ internal sealed class Engine
         _signatures = new ISignature[] { extra, eagle, ricochet, maim, kobu, iai, mushin, larceny, puppeteer, plague, _barrage, _shadowBlade, _provoke, _provokeHold, renewal, rapture, font, feign, benediction, sanctuary, choir, bulwark };
         _fieldSignatures = new ISignature[] { extra, eagle, ricochet, maim, kobu, iai, mushin, larceny, puppeteer, plague, _provokeHold, renewal, rapture, font, feign, benediction, sanctuary, choir, bulwark };
         save.Migrate("gunslinger.json");
-        _gunSlinger = new GunSlinger(meta, _kills, save.SaveDir, live, recorder: Flight.Record);
+        // LW-368 round 2: the sack reads follow the extended inventory's bag base once it arms
+        // (the relocated page instead of the vanilla block). The lambda captures _extended, a
+        // field this constructor does not assign until below -- fine, because it is only ever
+        // invoked later, on a PrepRoster pass, by which point BootArm has already run.
+        _gunSlinger = new GunSlinger(meta, _kills, save.SaveDir, live, recorder: Flight.Record, bagCountBase: () => _extended!.BagCountBase);
         // LW-35 (owner direction): Marks are release-hidden on EVERY card surface. The Attack card
         // already stopped consuming the deed ledger (AttackCard.Resolve sets markLabel=null); the
         // equip card stops the same way, by NOT wiring legends into Display's StoryLines. The

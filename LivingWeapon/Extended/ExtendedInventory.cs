@@ -13,11 +13,16 @@ namespace LivingWeapon;
 ///   1. the PE build-key landmark must Match (the roster landmark LaunchGuard waits for cannot
 ///      be read this early; a patched game refuses here with one line);
 ///   2. the boot-safe cap patches (ExtendedSites.BootPatches, old bytes verified);
-///   3. the relocated catalog filled with our records;
-///   4. the accessor thunk clones: the weapon-stat thunk answers with our own stat rows, the
+///   3. LW-368 round 2: the two per-item byte lists (bag counts, sibling flags) copied onto a
+///      page the mod owns and every plain-code reference to the old blocks re-pointed there
+///      (ListRelocation.cs), so the ceiling past which id N reads Ramza's own roster row is
+///      gone and every later step below resolves a bag byte through <see cref="BagCountBase"/>;
+///   4. the relocated catalog filled with our records;
+///   5. the accessor thunk clones: the weapon-stat thunk answers with our own stat rows, the
 ///      nine per-category thunks answer as each item's clone/art donor;
-///   5. the category-getter and order-rebuild hooks (Reloaded.Hooks, prologue landmarks);
-///   6. the bag counts (sidecar value, else the data's first-copy seed).
+///   6. the category-getter and order-rebuild hooks (Reloaded.Hooks, prologue landmarks);
+///   7. the bag counts (sidecar value, else the data's first-copy seed), written at
+///      <see cref="BagCountBase"/>.
 /// Then <see cref="Armed"/> is true and the tick half (ExtendedInventory.Tick.cs) owns the two
 /// copy-protected caps and the bag sidecar. With no extended rows shipped, everything above is
 /// skipped with one Debug line: the mod behaves exactly as before this system existed.
@@ -32,6 +37,7 @@ internal sealed partial class ExtendedInventory
     private readonly Func<IReloadedHooks?, string?> _installHooks;
 
     private readonly BytePatchSet _patches = new();
+    private readonly ListRelocation _relocation = new();   // LW-368 round 2
     private readonly ExtendedCatalog _catalog = new();
     private readonly ShopFlagsMirror _shops = new();   // LW-354
     private readonly List<ThunkClone> _clones = new();
@@ -47,6 +53,11 @@ internal sealed partial class ExtendedInventory
     public bool Armed { get; private set; }
     /// <summary>Why the last BootArm did not arm (null once armed, or when nothing is shipped).</summary>
     public string? Refusal { get; private set; }
+    /// <summary>LW-368 round 2: where the per-item bag counts live right now -- the relocated
+    /// page once the list relocation armed, else <see cref="Offsets.BagCountArray"/> (the
+    /// vanilla block). Every reader/writer of a bag byte resolves its base through this, never
+    /// the raw offset, so a relocation refusal falls back to the vanilla block transparently.</summary>
+    public long BagCountBase => _relocation.Installed ? _relocation.CountBase : Offsets.BagCountArray;
 
     /// <param name="installHooks">Test seam (internal): the step that installs the two
     /// Reloaded.Hooks detours, returning null on success or the refusal. Null (production) uses
@@ -93,7 +104,8 @@ internal sealed partial class ExtendedInventory
         Refusal = null;
         ModLogger.Event(LogVerb.Startup,
             $"Extended inventory armed: {Items.Count} new item(s) [{string.Join(", ", Items.Select(i => $"{i.Name} (id {i.Id})"))}], "
-            + $"{_patches.AppliedCount} cap patches, {_clones.Count} accessor redirects, 3 hooks, shop table mirrored; "
+            + $"{_patches.AppliedCount} cap patches, {_clones.Count} accessor redirects, 3 hooks, shop table mirrored, "
+            + $"item count lists relocated to 0x{_relocation.PageAddr:X}; "
             + "2 damage caps wait for the first save to load.");
     }
 
@@ -101,6 +113,11 @@ internal sealed partial class ExtendedInventory
     {
         int n = Items.Count;
         string? why = _patches.Apply(_patcher, ExtendedSites.BootPatches(n));
+        if (why != null) return why;
+        // LW-368 round 2 (D3): the list relocation lands right after the boot cap patches and
+        // before everything else, so every later step that touches a bag byte can resolve its
+        // base through BagCountBase from the moment it runs.
+        why = _relocation.Install(_patcher, _allocator);
         if (why != null) return why;
         why = _catalog.Install(_patcher, _allocator, Items.Select(i => (i.Id, i.CatalogRecord)).ToList());
         if (why != null) return why;
@@ -152,7 +169,7 @@ internal sealed partial class ExtendedInventory
     {
         foreach (var item in Items)
         {
-            if (!_patcher.TryWrite(Offsets.BagCountArray + item.Id, new[] { (byte)item.SeedCount }))
+            if (!_patcher.TryWrite(BagCountBase + item.Id, new[] { (byte)item.SeedCount }))
                 ModLogger.Warn(LogVerb.Save, $"Could not place {item.SeedCount} {item.Name} in the bag at boot (write refused).");
         }
         ModLogger.Event(LogVerb.Save, "Extended-inventory bag counts seeded for a new game: "

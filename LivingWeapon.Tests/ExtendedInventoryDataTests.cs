@@ -180,4 +180,23 @@ public class ExtendedInventoryDataTests : IDisposable
             Assert.Equal(e.Category, it.Category);
         }
     }
+
+    /// <summary>LW-368 round 2 (T12, D7): past ExtendedSites.MaxExtendedCount (121) the eight
+    /// disp8 lea sites overflow instead of widening, so a table this size must refuse loudly
+    /// here rather than shipping a build that corrupts a bound at runtime.</summary>
+    [Fact]
+    public void More_than_MaxExtendedCount_ids_refuse_and_name_the_ceiling()
+    {
+        int n = ExtendedSites.MaxExtendedCount + 1;   // 122
+        string items = string.Concat(Enumerable.Range(0, n).Select(i => ItemRow261.Replace("261", (261 + i).ToString())));
+        string weapons = string.Concat(Enumerable.Range(0, n).Select(i => WeaponRow261.Replace("261", (261 + i).ToString())));
+        string ext = string.Concat(Enumerable.Range(0, n).Select(i => ExtRow261.Replace("261", (261 + i).ToString())));
+        Write(items, weapons, ext);
+
+        var r = ExtendedInventoryData.Load(_modDir);
+
+        Assert.False(r.Ok);
+        Assert.Empty(r.Items);
+        Assert.Contains(r.Errors, e => e.Contains("MaxExtendedCount") && e.Contains(n.ToString()));
+    }
 }

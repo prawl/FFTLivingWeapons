@@ -90,4 +90,22 @@ public class InventoryResetHookTests
         Assert.Equal(Offsets.FnInventoryReset, new InventoryResetHook(new FakeCodePatcher(), 1).TargetAddr);
         Assert.Equal(0x140284500L, Offsets.FnInventoryReset);
     }
+
+    /// <summary>LW-368 round 2 (T11): the hook reads and restores through an injected base, not
+    /// the vanilla constant.</summary>
+    [Fact]
+    public void Process_reads_and_restores_through_an_injected_bag_base()
+    {
+        const long altBase = 0x150000000L;
+        long altBag = altBase + ExtendedCatalog.FirstExtendedId;
+        var f = new FakeCodePatcher();
+        f.Seed(altBag, 2, 0, 5);
+        var hook = new InventoryResetHook(f, 3, bagBase: altBase);
+
+        hook.Process(2, _ => { f.TryWrite(altBag, new byte[] { 0, 0, 0 }); return 0; });
+
+        Assert.Equal(new byte[] { 2, 0, 5 }, f.Read(altBag, 3));
+        Assert.Equal(1, hook.Restores);
+        Assert.False(f.Bytes.ContainsKey(Offsets.BagCountArray + ExtendedCatalog.FirstExtendedId));   // never the vanilla block
+    }
 }

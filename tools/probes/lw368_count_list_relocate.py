@@ -95,6 +95,12 @@ LISTS = {                          # name -> (live base, bytes the game means, o
     # 0x20A live bytes are copied (the Den bytes past them are not this list's), room 0x400 words.
     "u16":     (0x1411A7810, 0x20A, 0x800, 0x800),
 }
+# Round 2b (2026-08-31): a reference may name an INTERIOR address of a list (the new-game seed
+# stores starting counts at fixed ids: `mov byte [rip+d],1`, `mov dword [rip+d],imm32`), so the
+# scan matches any target inside the list's live entries, records `off` = target - base and, for
+# rip sites, `trail` = the immediate bytes after the field (next-ip = field + 4 + trail). The +0x108
+# dword of each 0x110 block is a live game state variable, NOT a list entry: entries stop at 0x105.
+LIST_ENTRIES = {"count": 0x105, "sibling": 0x105, "u16": 0x20A}
 PAGE_BYTES = 0x10000
 UNDO = Path(__file__).resolve().parent / "lw368_count_list_relocate_undo.json"
 
@@ -135,6 +141,32 @@ def rip_hits(buf, base, target):
     return sorted(out)
 
 
+def rip_hits_range(buf, base, lo, hi):
+    """Positions p of a disp32 such that p+4(+0|+1|+2|+4)+disp32 lands in [lo, hi)."""
+    if len(buf) < 8:
+        return []
+    n = len(buf)
+    disp = (buf[0:n - 3].astype(np.uint32) | (buf[1:n - 2].astype(np.uint32) << 8)
+            | (buf[2:n - 1].astype(np.uint32) << 16) | (buf[3:n].astype(np.uint32) << 24)).astype(np.int64)
+    disp = np.where(disp >= 1 << 31, disp - (1 << 32), disp)
+    pos = np.arange(len(disp), dtype=np.int64) + base
+    out = set()
+    for trail in (0, 1, 2, 4):
+        tgt = pos + 4 + trail + disp
+        out.update(int(x) for x in np.nonzero((tgt >= lo) & (tgt < hi))[0])
+    return sorted(out)
+
+
+def rva_hits_range(buf, lo, hi):
+    """Positions p of a little-endian u32 whose value lands in [lo, hi) (image-relative disp32)."""
+    if len(buf) < 4:
+        return []
+    n = len(buf)
+    u = (buf[0:n - 3].astype(np.uint32) | (buf[1:n - 2].astype(np.uint32) << 8)
+         | (buf[2:n - 1].astype(np.uint32) << 16) | (buf[3:n].astype(np.uint32) << 24)).astype(np.int64)
+    return [int(x) for x in np.nonzero((u >= lo) & (u < hi))[0]]
+
+
 def classify(h, hit, lists):
     """The instruction owning the field at `hit`, or None. Returns a dict describing the site."""
     raw = read_or_none(h, hit - 8, 8 + 16)
@@ -152,22 +184,27 @@ def classify(h, hit, lists):
             continue
         if insn.size <= back:
             continue
-        # displacement field exactly at the hit
-        if insn.disp_offset == back and insn.disp_size == 4:
+        # displacement field exactly at the hit. capstone 5 reports disp_size 2 for a rip-relative
+        # store with a 0x66 operand-size prefix (`mov word ptr [rip+d], imm16`, the new-game seed's
+        # word store at 0x140284306) although the field is four bytes, so the field's own bytes are
+        # the check: they must decode to the displacement capstone resolved.
+        if insn.disp_offset == back and struct.unpack_from("<i", raw, 8)[0] == next((op.mem.disp for op in insn.operands if op.type == X86_OP_MEM), None):
             for op in insn.operands:
                 if op.type != X86_OP_MEM:
                     continue
                 if op.mem.base == X86_REG_RIP:
-                    target = insn.address + insn.size + op.mem.disp
-                    for name, (lbase, _, _, _) in lists.items():
-                        if target == lbase:
+                    target = insn.address + insn.size + op.mem.disp   # insn.size includes any trailing immediate
+                    for name, (lbase, lbytes, _, _) in lists.items():
+                        if lbase <= target < lbase + LIST_ENTRIES.get(name, lbytes):
                             return dict(addr=hit, start=start, size=insn.size, kind="rip", list=name,
-                                        off=0, text=f"{insn.mnemonic} {insn.op_str}")
+                                        off=target - lbase, trail=insn.size - back - 4,
+                                        text=f"{insn.mnemonic} {insn.op_str}")
                 else:
-                    for name, (lbase, _, _, _) in lists.items():
-                        if op.mem.disp == lbase - IMAGE_BASE:
+                    for name, (lbase, lbytes, _, _) in lists.items():
+                        rva = lbase - IMAGE_BASE
+                        if rva <= op.mem.disp < rva + LIST_ENTRIES.get(name, lbytes):
                             return dict(addr=hit, start=start, size=insn.size, kind="rva", list=name,
-                                        off=0, text=f"{insn.mnemonic} {insn.op_str}")
+                                        off=op.mem.disp - rva, trail=0, text=f"{insn.mnemonic} {insn.op_str}")
         if insn.imm_offset == back and insn.imm_size in (4, 8):
             for op in insn.operands:
                 if op.type != X86_OP_IMM:
@@ -189,10 +226,11 @@ def scan(h, verbose=True):
             continue
         buf = np.frombuffer(XS.rd_big(h, base, size), dtype=np.uint8)
         raw_hits = set()
-        for lname, (lbase, _, _, _) in LISTS.items():
-            for p in rip_hits(buf, base, lbase):
+        for lname, (lbase, lbytes, _, _) in LISTS.items():
+            entries = LIST_ENTRIES.get(lname, lbytes)
+            for p in rip_hits_range(buf, base, lbase, lbase + entries):
                 raw_hits.add(base + p)
-            for p in find_pattern(buf, struct.pack("<I", lbase - IMAGE_BASE)):
+            for p in rva_hits_range(buf, lbase - IMAGE_BASE, lbase - IMAGE_BASE + entries):
                 raw_hits.add(base + p)
             for p in find_pattern(buf, struct.pack("<Q", lbase)):
                 raw_hits.add(base + p)
@@ -206,7 +244,7 @@ def scan(h, verbose=True):
     if verbose:
         print(f"{len(sites)} classified site(s), {len(unclassified)} unclassified raw hit(s)")
         for s in sites:
-            print(f"  {s['section']:<6} {s['list']:<7} {s['kind']:<5} field@{s['addr']:#x}  {s['start']:#x}: {s['text']}")
+            print(f"  {s['section']:<6} {s['list']:<7} {s['kind']:<5} field@{s['addr']:#x} off+{s['off']:#x} trail{s.get('trail',0)}  {s['start']:#x}: {s['text']}")
         for name, hit in unclassified:
             print(f"  UNCLASSIFIED {name} raw hit at {hit:#x} (a coincidental byte pattern, or a shape this probe does not know)")
     return sites, unclassified
@@ -231,7 +269,7 @@ def new_field_bytes(site, page):
     lbase, _, poff, _ = LISTS[site["list"]]
     new_target = page + poff + site["off"]
     if site["kind"] == "rip":
-        disp = new_target - (site["start"] + site["size"])
+        disp = new_target - (site["start"] + site["size"])   # == new_target - (field + 4 + trail)
         assert -(1 << 31) <= disp < (1 << 31)
         return struct.pack("<i", disp)
     if site["kind"] in ("rva", "imm32"):

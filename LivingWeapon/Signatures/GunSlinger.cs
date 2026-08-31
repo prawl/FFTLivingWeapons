@@ -72,13 +72,20 @@ internal sealed partial class GunSlinger
     private readonly GunSlingerStore _store;
     private readonly HashSet<int> _twinIds;   // every gun-slinger-flagged id, cached at construction
     private readonly Action<string, string>? _recorder;   // flight tap: GunSlinger.Reconcile.cs's "twin-refund" record
+    private readonly Func<long> _bagCountBase;   // LW-368 round 2: GunSlinger.Reconcile.cs's sack reads
 
     /// <summary><paramref name="recorder"/> is the flight-ring tap (production: Flight.Record,
     /// null-object-safe; tests inject a fake to observe the reconcile's "twin-refund" record --
     /// see GunSlinger.Reconcile.cs). Mirrors the Puppeteer/ActorRegister injected-recorder idiom
-    /// used elsewhere in this codebase.</summary>
+    /// used elsewhere in this codebase. <paramref name="bagCountBase"/> is a Func, not a value,
+    /// because Engine constructs GunSlinger before <c>ExtendedInventory.BagCountBase</c> is known
+    /// (the extended inventory arms later, from InjectHooks): production passes
+    /// <c>() => _extended.BagCountBase</c>, a closure over a field Engine assigns after this
+    /// constructor returns but before the lambda is ever invoked. Defaults to the vanilla block
+    /// so every pre-existing caller keeps compiling and behaving unchanged.</summary>
     public GunSlinger(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills,
-                      string modDir, IGameMemory? mem = null, Action<string, string>? recorder = null)
+                      string modDir, IGameMemory? mem = null, Action<string, string>? recorder = null,
+                      Func<long>? bagCountBase = null)
     {
         _meta  = meta;
         _kills = kills;
@@ -86,6 +93,7 @@ internal sealed partial class GunSlinger
         _store = new GunSlingerStore(modDir);
         _twinIds = ResolveTwinIds(meta);
         _recorder = recorder;
+        _bagCountBase = bagCountBase ?? (() => Offsets.InventoryCountBase);
     }
 
     /// <summary>Test seam: expose the store so integration tests can verify snapshot state.</summary>

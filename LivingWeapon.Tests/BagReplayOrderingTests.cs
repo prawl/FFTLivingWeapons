@@ -68,7 +68,9 @@ public class BagReplayOrderingTests : IDisposable
         public SaveEdgeHooks Hooks = null!;
         public string SidecarPath = "";
 
-        public int Bag(int id) => Image.Bytes[Offsets.BagCountArray + id];
+        // LW-368 round 2: reads through Inv.BagCountBase (the relocated page once armed),
+        // not the vanilla constant -- the world always builds an armed inventory.
+        public int Bag(int id) => Image.Bytes[Inv.BagCountBase + id];
         public Dictionary<int, int> BagState() => Inv.Items.ToDictionary(i => i.Id, i => Bag(i.Id));
 
         /// <summary>The game just applied a loaded save: the bag now holds the file's counts,
@@ -76,7 +78,7 @@ public class BagReplayOrderingTests : IDisposable
         /// pre-round-4 order (the edge is only published; the tick does all the work).</summary>
         public void GameApplied(byte[] header, bool detour)
         {
-            foreach (var it in Inv.Items) Image.Seed(Offsets.BagCountArray + it.Id, 0);
+            foreach (var it in Inv.Items) Image.Seed(Inv.BagCountBase + it.Id, 0);
             Image.Seed(Offsets.SaveStructPtr, BitConverter.GetBytes(StructAddr));
             Image.Seed(StructAddr + Offsets.SaveHeaderKeyOff, header);
             if (detour) Hooks.AfterApply(second: false);
@@ -122,11 +124,15 @@ public class BagReplayOrderingTests : IDisposable
         if (sidecarFile != null) File.WriteAllText(path, sidecarFile);
         var f = ExtendedInventoryTests.VanillaImage();
         var sidecar = ExtendedBagSidecar.Load(path);
+        // LW-368 round 2: the list relocation is now the FIRST allocator grant inside Install
+        // (D3: patches -> relocation -> catalog -> shops -> clones), so the catalog buffer and
+        // every thunk stub land one grant later than before this round; nothing here asserts a
+        // specific FakeNearAllocator address, so the shift needs no other change.
         var inv = new ExtendedInventory(f, new FakeNearAllocator(), TwoItems(), sidecar,
             () => new LandmarkReading(LandmarkVerdict.Match), _ => null);
         inv.BootArm(null);
         Assert.True(inv.Armed, inv.Refusal);
-        var hooks = new SaveEdgeHooks(f, inv.Tracker, inv.Items.Select(i => i.Id).ToList(), inv.ReplayOnLoad);
+        var hooks = new SaveEdgeHooks(f, inv.Tracker, inv.Items.Select(i => i.Id).ToList(), inv.ReplayOnLoad, inv.BagCountBase);
         return new World { Image = f, Sidecar = sidecar, Inv = inv, Hooks = hooks, SidecarPath = path };
     }
 
@@ -226,14 +232,14 @@ public class BagReplayOrderingTests : IDisposable
         w.Image.Writes.Clear();
 
         w.GameApplied(SaveEdgeTrackerTests.Header(4242), detour: true);
-        Assert.Single(w.Image.Writes.Where(x => x.Addr == Offsets.BagCountArray + Terra));
+        Assert.Single(w.Image.Writes.Where(x => x.Addr == w.Inv.BagCountBase + Terra));
         // Exactly the N extended bag bytes and nothing else: this world never seeded the order
         // templates, so the round-5 seat's guarded read of them fails and it writes nothing (the
         // seat's own writes are counted in the tests below, which do seed them).
         Assert.Equal(2, w.Image.Writes.Count);
 
         w.Tick();
-        var writes = w.Image.Writes.Where(x => x.Addr == Offsets.BagCountArray + Terra).ToList();
+        var writes = w.Image.Writes.Where(x => x.Addr == w.Inv.BagCountBase + Terra).ToList();
         Assert.Equal(2, writes.Count);                        // the detour's, then the fallback's
         Assert.All(writes, x => Assert.Equal(0, x.Data[0]));   // the seed both times, never a stale count
         Assert.Equal(1, w.Bag(Moon));
@@ -454,5 +460,23 @@ public class BagReplayOrderingTests : IDisposable
         Assert.True(reloaded.TryGetSave(key, out var saved));
         Assert.Equal(new Dictionary<int, int> { [Moon] = 2, [Terra] = 4 }, new Dictionary<int, int>(saved));
         Assert.Null(reloaded.TakeLegacy());
+    }
+
+    /// <summary>LW-368 round 2 (T11): BagReplay.Apply writes through whatever base it is handed,
+    /// never a hardcoded constant -- the base is a required parameter precisely so a caller can
+    /// never forget it.</summary>
+    [Fact]
+    public void Apply_writes_through_an_injected_base_other_than_the_vanilla_block()
+    {
+        var f = new FakeCodePatcher();
+        const long altBase = 0x150000000L;
+        var items = TwoItems().Items;
+        var plan = BagReplay.Resolve(ExtendedBagSidecar.Load(Path.Combine(_dir, "apply_base_" + ExtendedBagSidecar.FileName)), items, "some-key");
+
+        BagReplay.Apply(f, items, plan, altBase);
+
+        Assert.Equal(1, f.Bytes[altBase + Moon]);     // the seed count for Moon
+        Assert.Equal(0, f.Bytes[altBase + Terra]);    // the seed count for Terra
+        Assert.False(f.Bytes.ContainsKey(Offsets.BagCountArray + Moon));   // never the vanilla block
     }
 }

@@ -55,8 +55,14 @@ internal sealed partial class CardSites
     /// premise it was built on (peak observed kills sites was 726-728 of the 2048 ceiling, not
     /// anywhere near a clean per-id multiple), so this constant is now sized to the newer,
     /// harder measurement instead of the old estimate: 2048 already clears the tape's own 726-728
-    /// kills-site peak with headroom, and nothing in that tape suggests raising it further.</summary>
-    internal const int MaxSites = 2048;
+    /// kills-site peak with headroom, and nothing in that tape suggests raising it further.
+    /// LW-368 (2026-08-31): 4096, because the extended inventory can now carry up to 121 more
+    /// growing weapons (ExtendedSites.MaxExtendedCount) and CardSitesCacheTests pins this cap at
+    /// ids x 2 kinds x 8 copies; 121 + 121 = 242 ids need 3872. Plain language: the painter's
+    /// address book had room for 128 growing weapons; with the relocated count list there can be
+    /// 242, so the book doubles. The list is still incremental (LW-262), so a bigger ceiling
+    /// costs nothing until sites actually appear.</summary>
+    internal const int MaxSites = 4096;
 
     /// <summary>Upper bound on simultaneously-live SUFFIX sites, INDEPENDENT of MaxSites (LW-262,
     /// verifier F2: the two are separate ceilings on a shared List, not a shared pool split

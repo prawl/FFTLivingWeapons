@@ -284,4 +284,36 @@ public class ExtendedSitesTests
         Assert.DoesNotContain(ExtendedSites.DonorThunks, t => t.Addr == Offsets.ThunkWeaponStat);   // the row stub, not a donor
         Assert.Equal(9, ExtendedSites.DonorThunks.Select(t => t.Addr).Distinct().Count());
     }
+
+    /// <summary>LW-368 round 2 (T9, P11): the eight `lea reg,[base+6]` sites whose displacement is
+    /// a single SIGNED byte. At N = MaxExtendedCount (121) every one still reads 0x7F or below
+    /// (the largest non-negative signed byte); at N = 122 -- the negative control -- at least one
+    /// flips to 0x80 and beyond, the exact overflow ExtendedSites.MaxExtendedCount exists to
+    /// forbid. The two special-encoding sites (the shop loop's imm32 low byte, the damage-staging
+    /// xor mask) are unaffected -- neither is a disp8 -- and are pinned exactly at the boundary.</summary>
+    [Fact]
+    public void BootPatches_121_keeps_every_disp8_site_non_negative_and_122_overflows_one()
+    {
+        var disp8BootAddrs = new long[]
+        {
+            0x140284C0AL, 0x140286187L, 0x140285EE7L, 0x140226FDFL,
+            0x140285FB5L, 0x1402860AEL, 0x140396881L,
+        };
+        const long disp8PostAddr = 0x14F2EA40FL;
+
+        var boot121 = ExtendedSites.BootPatches(ExtendedSites.MaxExtendedCount).ToDictionary(p => p.Addr, p => p);
+        var post121 = ExtendedSites.PostLoadPatches(ExtendedSites.MaxExtendedCount).ToDictionary(p => p.Addr, p => p);
+        foreach (long a in disp8BootAddrs)
+            Assert.True(boot121[a].New <= 0x7F, $"0x{a:X} at N=121 reads 0x{boot121[a].New:X2}, expected <= 0x7F");
+        Assert.True(post121[disp8PostAddr].New <= 0x7F);
+
+        var boot122 = ExtendedSites.BootPatches(ExtendedSites.MaxExtendedCount + 1).ToDictionary(p => p.Addr, p => p);
+        var post122 = ExtendedSites.PostLoadPatches(ExtendedSites.MaxExtendedCount + 1).ToDictionary(p => p.Addr, p => p);
+        Assert.Contains(disp8BootAddrs, a => boot122[a].New > 0x7F);
+        Assert.True(post122[disp8PostAddr].New > 0x7F);
+
+        // ShopLoop / XorMask are not disp8 sites: pinned exactly, no sign overflow at the boundary.
+        Assert.Equal((byte)(0x05 + 121), boot121[0x140288FDBL].New);
+        Assert.Equal((byte)(0x58 ^ ((0x58 ^ 0x5E) + 121)), post121[0x14F45D315L].New);
+    }
 }

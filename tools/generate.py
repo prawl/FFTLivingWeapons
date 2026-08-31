@@ -187,6 +187,12 @@ def equipbonus_entry(eid, fields):
 # and read by the DLL, never by the modloader: a 261-row XML under FFTIVC/tables is silently dropped.
 EXTENDED_FIRST_ID = 261
 EXTENDED_LAST_ID = 511
+# LW-368 round 2 (P11): the real headroom is narrower than the 511 id-mask above. Seven of the
+# boot-patch sites (plus one post-load site) in LivingWeapon/Extended/ExtendedSites.cs are `lea reg,[base+6]` instructions
+# whose displacement is a single SIGNED byte, not an imm32; past 121 extended items that byte
+# overflows negative instead of widening, corrupting the bound it guards rather than raising it.
+# Mirrors LivingWeapon/Extended/ExtendedSites.cs's MaxExtendedCount; keep the two in step.
+EXTENDED_MAX_COUNT = 121
 # ITEM_SHOPS_DATA.ShopFlags names (fftivc.utility.modloader.Interfaces/Tables/Structures/ITEM_SHOPS_DATA.cs).
 EXTENDED_SHOP_NAMES = {"None", "Gollund", "Dorter", "Zaland", "Goug", "Warjilis", "Bervenia", "SalGhidos", "Unused",
                        "Lesalia", "Riovanes", "Eagrose", "Lionel", "Limberry", "Zeltennia", "Gariland", "Yardrow"}
@@ -282,6 +288,9 @@ def validate_extended(ext, all_items):
         raise SystemExit(f"extended inventory: ids must be contiguous from {EXTENDED_FIRST_ID}, got {ids}")
     if ids and ids[-1] > EXTENDED_LAST_ID:
         raise SystemExit(f"extended inventory: id {ids[-1]} is past the accessor mask's last slot {EXTENDED_LAST_ID}")
+    if len(ids) > EXTENDED_MAX_COUNT:
+        raise SystemExit(f"extended inventory: {len(ids)} items is past EXTENDED_MAX_COUNT ({EXTENDED_MAX_COUNT}): "
+                         f"the eight disp8 lea sites in ExtendedSites.cs cannot widen any further")
     # An owner-ruled exception for an id that no longer ships is rot, and rot must be loud: a
     # silently ignored entry would look like a standing ruling to the next reader of this file.
     for name, table in (("EXTENDED_DELIVERY_EXCEPTIONS", EXTENDED_DELIVERY_EXCEPTIONS),

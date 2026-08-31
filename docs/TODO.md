@@ -206,6 +206,27 @@ the technical detail lives in the indented lines under it.
     confirmed by the reviewer's live decode of every widened site: 121 extended items (the
     eight single-byte lea bounds); past that needs jump-out trampolines at those sites, a
     later stage. The implementer is building the two-list relocation from LW368_plan.md v2.2.
+  - Round 2 BUILT and VERIFIED (2026-08-31 03:40-05:10): implemented from plan v2.2, then three
+    adversarial verification rounds, each scoring the code 9 of 10 and each finding only plan
+    text to fix (a missing reach refusal, since added and test-pinned; a live-test bait that
+    misread the seating code; the armed line's redirect count). The third round found the
+    LW-371 hazard above: the game's own chart housekeeper has no capacity guard, so the live
+    test must keep the owned designs at twelve or fewer on the give-all save. Suite 3539 green.
+    Plan is at v2.6; the owner's live pass at fifteen items is next, after he closes the game
+    for the deploy.
+  - Round 2 LIVE PASS at fifteen (2026-08-31 04:49-04:53, owner): the boot line armed 15 with
+    the lists relocated to 0x114AA0000, vanilla counts read right, a Potion went 44 to 45, an
+    item was used, a probe blade swung, a save and reload placed every count. The tripwire
+    (the mod's own watch on the dead old block) fired once at the load edge and earned its
+    place: the writer it caught is the game's new-game starting-inventory seed, ten stores to
+    fixed addresses inside the block (starting gear at ids 51, 59, 77, 128, 144, 172 and the
+    consumables 240 to 253), so on that build a NEW GAME would start with an empty bag. A
+    second fact fell out of the same sweep: the last bytes of each block are not padding,
+    a live game state dword sits at +0x108, which the old in-place layout had overlapped from
+    the fourth extended id on (264 to 267 sat inside it); the relocation removed that overlap. Round 2b re-points the ten
+    seed sites (55 in all), narrows the tripwire to the list bytes, and adds a new-game check
+    to the live script. (Tech: seed routine 0x1402842E8..0x140284334, rip fields with a
+    trailing immediate of 1, 2 or 4 bytes; state dwords 0x1411A7D08 and 0x1411A7808.)
   - (Tech: the three id-keyed arrays the initializer 0x140284500 seeds are u8 0x1411A7C00
     (bag counts, 0x110 bytes then RosterBase), u8 0x1411A7700 (0x110 bytes then the u16 array)
     and u16 0x1411A7810 (0x105 entries then PoachStoreBase 0x1411A7A1B); every PlusN site in
@@ -568,6 +589,20 @@ belongs rather than at the bottom.
   (Tech: patch_names.seed_extended_rows + item_intent; lib/bake_intent.ALLOWED_EXTRA_ROWS derives
   from the data; KILLS_SCAFFOLD is 11 chars and the suffix slot 2; memory
   modloader-merge-semantics pins the per-cell nxd union.)
+- [LW-371] 2026-08-31: Owning more than 140 weapons and shields at once silently damages the
+  game's own menu chart, and the mod should guard against it. Plain language: the chart that
+  remembers your inventory order is a fixed 141-word field in the save; the game's housekeeper
+  that inserts a newly owned item has no room check (read on disk 2026-08-31: it walks to the
+  end marker, shifts the whole chart right by one and writes the new id at the front, bounded
+  only by the marker), so the 141st owned hand-slot item writes past the chart into whatever
+  follows, and the damage rides the save file. Vanilla alone cannot reach 141 (128 vanilla
+  seats on the give-all save), but with the extended inventory it is reachable by normal play,
+  and this mod's own loud refusal covers only its seating path while its re-append lists the
+  item anyway. Found by the third adversarial verifier of LW-368 round 2. Done looks like: the
+  mod refuses (or trims) a seat past 140 on the game's path too, one honest log line names it,
+  and a test pins the 141st id. (Tech: maintainer 0x140285F80, marker walk at 0x140285FEA-FF4,
+  shift at 0x14028601D-02A; its callers 0x140334D70 and 0x14036BB60 are unclassified; the
+  regions are Offsets.InventoryOrderTemplate / PickerOrderTemplate, 141 words each.)
 - [LW-365] 2026-08-31: Sweep the last few places where the game still assumes no item id above
   261 when it reads a unit's hands. Plain language: the new weapons equip and fight fine, but
   a handful of routines that look up what a unit is holding were built with the old limit and

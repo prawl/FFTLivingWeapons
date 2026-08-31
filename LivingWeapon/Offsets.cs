@@ -435,6 +435,7 @@ internal static class Offsets
     // Source: docs/DEV_TEST_RECIPES.md (inventory-give recipe, give_all_items probe).
     // count[itemId] = u8 @ InventoryCountBase + itemId.  Read/write via IGameMemory so
     // the seam is testable.  Do NOT read or write mid-battle (gated by Engine.Tick !nowIn).
+    // (the VANILLA block; the armed extended inventory relocates it, ExtendedInventory.BagCountBase)
     public const long InventoryCountBase = 0x1411A7C00;   // 1.5 CONFIRMED +0x6440 (was 0x1411A17C0): dev give-all inventory present at predicted addr
     // --- Bulwark (Sunderer +3, docs/BULWARK_AC.md): the PATHFINDER's own live terrain grid, 8
     // bytes/tile. idx = x + y*mapWidth + layerBit*0x100. BASE CORRECTED 2026-07-28: the true
@@ -655,8 +656,14 @@ internal static class Offsets
     /// <summary>Two-byte sprite/palette pair per item id (byte 0 palette nibbles, byte 1 the
     /// drawing); read on every swing. June's probes used base +2, one item off.</summary>
     public const long WeaponSpritePairTable = 0x140785CF0L;
-    /// <summary>Bag count per item id (one byte each); the save stores exactly 261 of them.</summary>
+    /// <summary>Bag count per item id (one byte each); the save stores exactly 261 of them.
+    /// (the VANILLA block; the armed extended inventory relocates it, ExtendedInventory.BagCountBase)</summary>
     public const long BagCountArray = 0x1411A7C00L;
+    /// <summary>LW-368: the second per-item byte list the game keeps beside the bag counts (the
+    /// per-item flag list the reset routine zeroes alongside <see cref="BagCountArray"/>, byte
+    /// for byte, at the same 0x105-entry/0x110-slot shape). Relocated together with the bag
+    /// counts when the list relocation arms (ListRelocation.cs); vanilla otherwise.</summary>
+    public const long SiblingListArray = 0x1411A7700L;
     /// <summary>The E9 accessor thunks (five bytes each) the extended ids are redirected through.
     /// Weapon stats returns a pointer to an 8-byte ITEM_WEAPON_DATA row; the rest take an item
     /// id in rcx and index per-category tables that have no row for a new id.</summary>

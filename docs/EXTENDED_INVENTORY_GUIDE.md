@@ -24,9 +24,27 @@ signature needs none.
 ## What it is NOT (read before designing)
 
 - **Weapons only** in V1. The generator refuses any non-weapon category.
-- **Ids are contiguous from 261**, ceiling 511; the next free id is one past the highest `id` in
+- **Ids are contiguous from 261**; the next free id is one past the highest `id` in
   `data/items.json` (267 today, so the next item is 268). A gap fails `generate.py` on purpose
   (the runtime donor tables are indexed by `id - 261`; a gap would read a neighbor's donors).
+  The 511 id-mask is not the real headroom, and LW-368 round 2 (the item-count-list relocation)
+  narrowed the picture to three separate numbers: **at most 121 extended items can EXIST at
+  once** (`ExtendedSites.MaxExtendedCount`, enforced by `generate.py` and `ExtendedInventoryData`;
+  past it, seven of the boot-patch sites plus one post-load site are `lea` instructions whose
+  one-byte displacement overflows instead of widening); **at most 140 items total, vanilla plus extended, can be OWNED
+  at once**, because the menu order templates that list what you carry are a fixed 140-word
+  save-format field, and the wall is SILENT: the game's own chart housekeeper has no capacity
+  guard (read on disk 2026-08-31: it walks to the end marker and shifts the whole chart right by
+  one to insert a newly owned id, bounded only by the marker), so owning a 141st hand-slot item
+  writes past the chart into whatever follows and that overflow rides the save file; this mod's
+  own seating refuses loudly only on ITS path and then re-appends owned ids to the built list
+  regardless, so the menu still shows the item while the chart is already damaged. Keep the
+  total under 140 (the give-all save has 128 vanilla seats, so at most 12 extended designs owned
+  at once there) until LW-371 guards the housekeeper; and the two menu-list
+  output buffers sit just above that, capped at 145 and 146 words. One residual limit this round
+  did NOT close: a third per-item word list (0x105 entries, not moved this round) still overlaps
+  the Poacher's Den's own bytes for every extended id, so poaching a monster carrying one can
+  read garbage there until that list is relocated too.
 - **This is internal to Living Weapons, not a public framework** (owner ruling, recorded on the
   LW-344 task row, 2026-08-30):
   partner mods are integrated by an explicit whitelist, never by an open declaration format; the

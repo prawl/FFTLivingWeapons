@@ -43,8 +43,13 @@ namespace LivingWeapon;
 /// routine just filled or applied.
 /// Signatures are unknown beyond "Microsoft x64, up to four register args"; the detours forward
 /// rcx/rdx/r8/r9 verbatim and return the original's rax, the same contract PromptSwapHook uses.
+///
+/// This file is construction, Install/Release and the two read helpers (ReadHeader/ReadCounts);
+/// the three detour bodies and AfterApply are split into SaveEdgeHooks.Detours.cs under the
+/// 200-line house guideline (the same lifecycle/hot-path seam ExtendedInventory.cs and
+/// ExtendedInventory.Hooks.cs already use).
 /// </summary>
-internal sealed class SaveEdgeHooks
+internal sealed partial class SaveEdgeHooks
 {
     [Function(CallingConventions.Microsoft)]
     public delegate nint EdgeFn(nint rcx, nint rdx, nint r8, nint r9);
@@ -57,18 +62,25 @@ internal sealed class SaveEdgeHooks
     private readonly SaveEdgeTracker _tracker;
     private readonly IReadOnlyList<int> _extendedIds;
     private readonly Action<string>? _replayOnLoad;   // LW-351: the bag replay, by save key
+    private readonly long _bagBase;   // LW-368 round 2: ExtendedInventory.BagCountBase, set at construction
     private IHook<EdgeFn>? _serialize, _apply, _applyB;
     private EdgeFn? _k1, _k2, _k3;   // GC anchors: the native thunks must outlive us
     private bool _canarySave, _canaryLoadA, _canaryLoadB;
 
     public bool IsActive => _serialize?.IsHookEnabled == true && _apply?.IsHookEnabled == true && _applyB?.IsHookEnabled == true;
 
-    public SaveEdgeHooks(ICodePatcher mem, SaveEdgeTracker tracker, IReadOnlyList<int> extendedIds, Action<string>? replayOnLoad = null)
+    /// <param name="bagBase">LW-368 round 2: where the bag bytes live -- <see
+    /// cref="ExtendedInventory.BagCountBase"/> in production (the relocated page once armed,
+    /// else the vanilla block); defaults to the vanilla block so every pre-existing caller keeps
+    /// compiling unchanged.</param>
+    public SaveEdgeHooks(ICodePatcher mem, SaveEdgeTracker tracker, IReadOnlyList<int> extendedIds,
+        Action<string>? replayOnLoad = null, long bagBase = Offsets.BagCountArray)
     {
         _mem = mem;
         _tracker = tracker;
         _extendedIds = extendedIds;
         _replayOnLoad = replayOnLoad;
+        _bagBase = bagBase;
     }
 
     /// <summary>Pure: install only when the guarded read succeeded and the prologue matches.</summary>
@@ -122,78 +134,15 @@ internal sealed class SaveEdgeHooks
         return _mem.TryRead(ptr + Offsets.SaveHeaderKeyOff, Offsets.SaveHeaderKeyLen, out var hdr) ? hdr : null;
     }
 
-    private Dictionary<int, int> ReadCounts()
+    /// <summary>Internal (not private): a test seam, the same idiom <see cref="AfterApply"/>
+    /// already uses to bypass the native trampoline. Reads through <see cref="_bagBase"/>
+    /// (LW-368 round 2).</summary>
+    internal Dictionary<int, int> ReadCounts()
     {
         var counts = new Dictionary<int, int>();
         foreach (int id in _extendedIds)
-            counts[id] = _mem.TryRead(Offsets.BagCountArray + id, 1, out var b) ? b[0] : 0;
+            counts[id] = _mem.TryRead(_bagBase + id, 1, out var b) ? b[0] : 0;
         return counts;
     }
 
-    private nint DetourSerialize(nint rcx, nint rdx, nint r8, nint r9)
-    {
-        nint ret = _serialize!.OriginalFunction(rcx, rdx, r8, r9);
-        try
-        {
-            var hdr = ReadHeader();
-            if (hdr != null)
-            {
-                _tracker.OnSerialized(hdr, ReadCounts());
-                if (!_canarySave) { _canarySave = true; SafeLog("The save-edge hook is confirmed working; the game's first save this session was intercepted."); }
-            }
-        }
-        catch (Exception) { /* a managed fault here must never reach the game */ }
-        return ret;
-    }
-
-    private nint DetourApply(nint rcx, nint rdx, nint r8, nint r9)
-    {
-        nint ret = _apply!.OriginalFunction(rcx, rdx, r8, r9);
-        AfterApply(second: false);
-        return ret;
-    }
-
-    private nint DetourApplyB(nint rcx, nint rdx, nint r8, nint r9)
-    {
-        nint ret = _applyB!.OriginalFunction(rcx, rdx, r8, r9);
-        AfterApply(second: true);
-        return ret;
-    }
-
-    /// <summary>One canary per path: which of the two restore routines a real load runs through
-    /// is still unread, so the log has to name the one that actually fired.</summary>
-    internal void AfterApply(bool second)
-    {
-        try
-        {
-            var hdr = ReadHeader();
-            if (hdr == null) return;   // the pointer did not resolve; otherwise every call takes an edge, which is sound because both routines overwrite the bag from the struct
-            // LW-351: repair FIRST, publish the edge SECOND. The routine just below us has this
-            // instant finished overwriting the bag from the save file and restoring both menu
-            // order templates out of the save struct, so the counts and the template seats both
-            // belong here, before the game can draw a menu from either. Doing it in this order
-            // also means the tick can never take the edge before the resolution it must re-use is
-            // there (the tracker's own lock is the fence between the two threads).
-            _replayOnLoad?.Invoke(SaveEdgeTracker.KeyFromHeader(hdr));
-            _tracker.OnApplied(hdr);
-            if (second)
-            {
-                if (_canaryLoadB) return;
-                _canaryLoadB = true;
-                SafeLog("The second restore routine (0x14021DE98) fired for the first time this session and a load edge was taken from it; note which game action just happened.");
-            }
-            else
-            {
-                if (_canaryLoadA) return;
-                _canaryLoadA = true;
-                SafeLog("The load-edge hook is confirmed working; the game's first save load this session was intercepted (load-apply 0x14021B0E8).");
-            }
-        }
-        catch (Exception) { /* never reaches the game */ }
-    }
-
-    private static void SafeLog(string line)
-    {
-        try { ModLogger.Event(LogVerb.Save, line); } catch (Exception) { }
-    }
 }

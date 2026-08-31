@@ -72,7 +72,7 @@ internal sealed partial class AnchorScout
         if (spec.Name != RosterBaseSpecName) return;
         long inventoryBase = scan.Bases[0] - InventoryCountDelta;
         ModLogger.EventWithTrace(LogVerb.Startup,
-            "The roster find predicts the inventory-count table as a sibling.",
+            "The roster find predicts the inventory-count table (vanilla block) as a sibling.",
             $"sibling prediction: inventory-count base at 0x{inventoryBase:X} (roster - 0x110; delta held across pre-1.5/1.5/1.5.1)");
     }
 

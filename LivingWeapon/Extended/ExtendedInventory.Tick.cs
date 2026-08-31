@@ -21,6 +21,8 @@ namespace LivingWeapon;
 ///     only for a load edge the detour did not serve (round 8c), and it writes the detour's
 ///     repair and refusal notes to the log (rounds 8c and 8d).
 ///   - the shop-table mirror's vanilla half follows the game's own table.
+///   - LW-368 round 2: the list-relocation hidden-writer tripwire (D8) -- one Warn, ever, if
+///     either old per-item byte list changes after the relocation copied it away.
 /// Reads go through <see cref="IGameMemory"/> like every other tick-loop reader; the replay
 /// write goes through the guarded patcher (the same seam the boot placement uses).
 /// </summary>
@@ -94,7 +96,7 @@ internal sealed partial class ExtendedInventory
     {
         if (!Armed || Items.Count == 0) return;
         var plan = BagReplay.Resolve(_sidecar, Items, key);
-        BagReplay.Apply(_patcher, Items, plan);
+        BagReplay.Apply(_patcher, Items, plan, BagCountBase);
         TemplateSeat.Apply(_patcher, BagReplay.OwnedIds(plan, Items),
             onRefused: why => _refusalNote = _refusalNote == null ? why : _refusalNote + " | " + why,
             onRepaired: note => _repairNote = _repairNote == null ? note : _repairNote + " | " + note);
@@ -108,13 +110,18 @@ internal sealed partial class ExtendedInventory
     public void StepBagSidecar(IGameMemory mem)
     {
         if (!Armed) return;
+        // LW-368 round 2 (D8): the hidden-writer tripwire. Cheap (two block reads every 30
+        // ticks) and the only detector for a code reference the relocation's static sweep
+        // missed; CheckOldBlocks itself guarantees at most one non-null return, ever.
+        string? tripwire = _relocation.CheckOldBlocks(_patcher);
+        if (tripwire != null) ModLogger.Warn(LogVerb.Save, tripwire);
         if (Tracker.TryTakePendingLoad(out string loadKey))
         {
             var fromDetour = _detourReplay;
             _detourReplay = null;
             bool detourServed = fromDetour != null && fromDetour.Key == loadKey;
             var plan = detourServed ? fromDetour! : BagReplay.Resolve(_sidecar, Items, loadKey);
-            BagReplay.Apply(_patcher, Items, plan, (item, n) =>
+            BagReplay.Apply(_patcher, Items, plan, BagCountBase, (item, n) =>
                 ModLogger.Warn(LogVerb.Save, $"Could not place {n} {item.Name} in the bag after the load (write refused)."));
             ModLogger.Event(LogVerb.Save, $"A save was loaded (key {loadKey}); extended-inventory bag counts placed from {plan.Source}: "
                 + BagReplay.Describe(plan, Items) + ".");

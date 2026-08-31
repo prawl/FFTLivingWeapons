@@ -251,4 +251,23 @@ public class OrderRebuildHookTests
         Assert.Equal(0, hook.Seated);
         Assert.Equal(1, hook.SeatRefusals);
     }
+
+    /// <summary>LW-368 round 2 (T11): ownership reads through an injected base, not the vanilla
+    /// constant -- an id owned at the vanilla block but not at the injected base must NOT seat.</summary>
+    [Fact]
+    public void Owned_reads_through_an_injected_bag_base()
+    {
+        const long altBase = 0x150000000L;
+        var f = WithList(1, 0xFFFF);
+        f.Seed((long)Picker, Words(5, TemplateSeat.EndMarker));
+        f.Seed(Bag + 261, 9);            // owned at the VANILLA block: must be ignored
+        f.Seed(altBase + 261, 2);        // owned at the INJECTED base: must be the one that seats
+        var hook = new OrderRebuildHook(f, extendedCount: 1, bagBase: altBase);
+
+        ushort[]? seen = null;
+        hook.Process(Picker, List, (table, list) => { seen = TemplateWords(f, (long)table); return Rebuild(f, 1)(table, list); });
+
+        Assert.Equal(new ushort[] { 5, 261 }, seen);
+        Assert.Equal(1, hook.Seated);
+    }
 }

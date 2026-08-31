@@ -511,4 +511,36 @@ public class GunSlingerReconcileTests
         Assert.False(mem.WrittenU16.ContainsKey(b + Offsets.ROffHand));
         Assert.False(gs.StoreForTest().Get(1).HasOff);
     }
+
+    /// <summary>LW-368 round 2 (T13): the sack read follows the injected bagCountBase Func, not
+    /// the hardcoded Offsets.InventoryCountBase. Offsets.InventoryCountBase is deliberately never
+    /// marked readable in this fake, so if the reconcile ever regressed to reading the constant
+    /// directly, ReconcilePrepare's Readable guard would silently drop the id and this detection
+    /// would never fire.</summary>
+    [Fact]
+    public void Reconcile_sackRead_followsAnInjectedBagCountBase()
+    {
+        using var temp = TempDirs.Create("gs_test_");
+        const long altBase = 0x150000000L;
+        var mem = new FakeSparseMemory();
+        var kills = new Dictionary<int, int> { [OutriderPistolId] = Tuning.ProdThresholds[2] };
+        SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: (ushort)OutriderPistolId, off: EmptyU16, supp: 0);
+        mem.ReadableAddrs.Add(altBase + OutriderPistolId);
+        mem.U8s[altBase + OutriderPistolId] = 7;
+        var flight = new List<(string type, string payload)>();
+        var gs = new GunSlinger(MakeTwoGunMeta(), kills, temp.Dir, mem, recorder: (t, p) => flight.Add((t, p)), bagCountBase: () => altBase);
+        gs.PrepRoster();   // pass 1: grant fires; row memory bootstraps OffTwinId=0 (pre-grant raw read)
+        gs.PrepRoster();   // pass 2: off now reads the twin; row memory re-baselines OffTwinId=twin
+
+        long b = RowAddr(0);
+        Assert.Equal((ushort)OutriderPistolId, mem.U16s[b + Offsets.ROffHand]);   // sanity: the twin really is held
+
+        mem.U16s[b + Offsets.ROffHand] = EmptyU16;    // the game clears it
+        mem.U8s[altBase + OutriderPistolId] = 8;      // and "returns" the phantom, AT THE INJECTED BASE
+        SetMenu(mem, 1);                              // suppress the unrelated re-assert this pass
+
+        gs.PrepRoster();
+
+        Assert.Contains(flight, e => e.type == "twin-refund");
+    }
 }

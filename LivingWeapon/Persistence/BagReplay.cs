@@ -81,15 +81,18 @@ internal static class BagReplay
         => plan.Counts.TryGetValue(item.Id, out int c) ? c : item.SeedCount;
 
     /// <summary>Write the plan into the bag: one guarded byte per extended id, nothing else.
-    /// <paramref name="onRefused"/> is null on the detour path, which must not log on the game's
-    /// thread; the tick passes its warning.</summary>
-    public static void Apply(ICodePatcher patcher, IReadOnlyList<ExtendedItemDef> items, Plan plan,
+    /// <paramref name="bagBase"/> is <see cref="ExtendedInventory.BagCountBase"/> (LW-368 round
+    /// 2: the relocated page once the list relocation armed, else the vanilla block) -- every
+    /// caller passes it explicitly rather than defaulting, so a stale base can never sneak in
+    /// silently. <paramref name="onRefused"/> is null on the detour path, which must not log on
+    /// the game's thread; the tick passes its warning.</summary>
+    public static void Apply(ICodePatcher patcher, IReadOnlyList<ExtendedItemDef> items, Plan plan, long bagBase,
         Action<ExtendedItemDef, int>? onRefused = null)
     {
         foreach (var item in items)
         {
             int n = CountFor(plan, item);
-            if (!patcher.TryWrite(Offsets.BagCountArray + item.Id, new[] { (byte)n })) onRefused?.Invoke(item, n);
+            if (!patcher.TryWrite(bagBase + item.Id, new[] { (byte)n })) onRefused?.Invoke(item, n);
         }
     }
 

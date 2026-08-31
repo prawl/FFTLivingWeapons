@@ -66,9 +66,10 @@ internal sealed partial class GunSlinger
         if (inBattle) return null;
 
         var sack = new Dictionary<int, byte>();
+        long bagBase = _bagCountBase();   // LW-368 round 2: the relocated page once armed, else the vanilla block
         foreach (int id in _twinIds)
         {
-            long addr = Offsets.InventoryCountBase + id;
+            long addr = bagBase + id;
             if (_mem.Readable(addr, 1)) sack[id] = _mem.U8(addr);
         }
         return sack;

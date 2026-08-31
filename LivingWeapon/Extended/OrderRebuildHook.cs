@@ -57,10 +57,15 @@ internal sealed partial class OrderRebuildHook
 
     /// <param name="extendedCount">N, the armed extended ids 261..261+N-1 the seat-before-rebuild
     /// step (OrderRebuildHook.Seat.cs) may seat; 0 = no seating, the re-append fallback only.</param>
-    public OrderRebuildHook(ICodePatcher mem, long targetAddr = 0, int extendedCount = 0)
+    /// <param name="bagBase">LW-368 round 2: where the bag bytes live -- <see
+    /// cref="ExtendedInventory.BagCountBase"/> in production (the relocated page once armed,
+    /// else the vanilla block); defaults to the vanilla block so every pre-existing caller keeps
+    /// compiling unchanged.</param>
+    public OrderRebuildHook(ICodePatcher mem, long targetAddr = 0, int extendedCount = 0, long bagBase = Offsets.BagCountArray)
     {
         _mem = mem;
         _extendedCount = extendedCount;
+        _bagBase = bagBase;
         TargetAddr = targetAddr == 0 ? Offsets.FnOrderRebuild : targetAddr;
     }
 

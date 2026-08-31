@@ -206,4 +206,21 @@ public class SaveEdgeTrackerTests
         Assert.NotNull(hdr);
         Assert.Equal(SaveEdgeTracker.KeyFromHeader(Header(2482)), SaveEdgeTracker.KeyFromHeader(hdr!));
     }
+
+    /// <summary>LW-368 round 2 (T11): the save-serialize edge's count snapshot reads through an
+    /// injected base, not the vanilla constant. ReadCounts is internal (not private) for exactly
+    /// this seam, the same idiom AfterApply already uses to bypass the native trampoline.</summary>
+    [Fact]
+    public void ReadCounts_reads_through_an_injected_bag_base()
+    {
+        const long altBase = 0x150000000L;
+        var f = new FakeCodePatcher();
+        f.Seed(altBase + 261, 5);
+        f.Seed(Offsets.BagCountArray + 261, 9);   // the vanilla block: must be ignored
+        var hooks = new SaveEdgeHooks(f, new SaveEdgeTracker(), new[] { 261 }, bagBase: altBase);
+
+        var counts = hooks.ReadCounts();
+
+        Assert.Equal(5, counts[261]);
+    }
 }

@@ -55,6 +55,7 @@ internal sealed class InventoryResetHook
 
     private readonly ICodePatcher _mem;
     private readonly int _count;
+    private readonly long _bagBase;
     private IHook<ResetFn>? _hook;
     private ResetFn? _keepalive;   // GC anchor: the native thunk must outlive us
     private long _runs;
@@ -69,10 +70,15 @@ internal sealed class InventoryResetHook
     public long Restores => Interlocked.Read(ref _restores);
 
     /// <param name="extendedCount">N, the armed extended ids 261..261+N-1 whose bag bytes are kept.</param>
-    public InventoryResetHook(ICodePatcher mem, int extendedCount, long targetAddr = 0)
+    /// <param name="bagBase">LW-368 round 2: where the bag bytes live -- <see
+    /// cref="ExtendedInventory.BagCountBase"/> in production (the relocated page once armed,
+    /// else the vanilla block); defaults to the vanilla block so every pre-existing caller keeps
+    /// compiling unchanged.</param>
+    public InventoryResetHook(ICodePatcher mem, int extendedCount, long targetAddr = 0, long bagBase = Offsets.BagCountArray)
     {
         _mem = mem;
         _count = extendedCount;
+        _bagBase = bagBase;
         TargetAddr = targetAddr == 0 ? Offsets.FnInventoryReset : targetAddr;
     }
 
@@ -108,7 +114,7 @@ internal sealed class InventoryResetHook
     internal nint Process(int mode, ResetFn original)
     {
         Interlocked.Increment(ref _runs);
-        long addr = Offsets.BagCountArray + ExtendedCatalog.FirstExtendedId;
+        long addr = _bagBase + ExtendedCatalog.FirstExtendedId;
         byte[]? before = _count > 0 && _mem.TryRead(addr, _count, out var b) ? b : null;
         nint result = original(mode);   // exactly once, never inside a try
         try { Restore(addr, before, mode); }

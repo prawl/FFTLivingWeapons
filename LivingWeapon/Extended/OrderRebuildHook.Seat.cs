@@ -20,6 +20,7 @@ namespace LivingWeapon;
 internal sealed partial class OrderRebuildHook
 {
     private readonly int _extendedCount;
+    private readonly long _bagBase;   // LW-368 round 2: ExtendedInventory.BagCountBase, set at construction
     private long _seated;
     private long _seatRefusals;
     private bool _refusalWarned;
@@ -48,7 +49,7 @@ internal sealed partial class OrderRebuildHook
 
     /// <summary>True when the game's bag array holds at least one of <paramref name="id"/>; an
     /// unreadable byte counts as not owned (never seat or re-append on a guess).</summary>
-    private bool Owned(int id) => _mem.TryRead(Offsets.BagCountArray + id, 1, out var b) && b[0] != 0;
+    private bool Owned(int id) => _mem.TryRead(_bagBase + id, 1, out var b) && b[0] != 0;
 
     /// <summary>Seat the owned extended ids into <paramref name="table"/> when it is one of the
     /// two weapon order templates; any other table is left alone (the detour also serves lists

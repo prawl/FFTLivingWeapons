@@ -14,10 +14,14 @@ namespace LivingWeapon;
 /// constants; every old byte was re-read from the 1.5.2 exe on disk 2026-08-27.
 ///
 /// WIDENING RULE: the rig widened every cap by exactly one (a single new id); this table
-/// generalises to N. A plain immediate/displacement low byte becomes old + N (no site's low byte
-/// can carry past 0xFF for N up to 250). Two sites differ: the count getter's cap is widened on
-/// its HIGH byte (0x103 -&gt; 0x203, ids up to 515, fixed) and the damage-staging cap feeds its
-/// bound through <c>xor r15d,0x5E</c> with 0x58, so its new byte is 0x58 ^ (6 + N).
+/// generalises to N. A plain immediate/displacement low byte becomes old + N (LW-368 round 2,
+/// P11: eight of these sites are `lea` instructions whose displacement is a single SIGNED byte,
+/// not an imm32, so their own byte overflows past N = <see cref="MaxExtendedCount"/> = 121 --
+/// that bound, not 0xFF, is what actually caps N; <c>ExtendedInventoryData</c> and
+/// tools/generate.py both refuse a shipped table past it). Two sites differ: the count getter's
+/// cap is widened on its HIGH byte (0x103 -&gt; 0x203, ids up to 515, fixed) and the
+/// damage-staging cap feeds its bound through <c>xor r15d,0x5E</c> with 0x58, so its new byte is
+/// 0x58 ^ (6 + N).
 ///
 /// TRAP (LW-351 fix round 3, 2026-08-30): the count getter's entry address 0x140284800 is the
 /// SECOND byte of one immediate, <c>mov r8d,0x103</c> at 0x1402847FD, whose bytes run
@@ -49,6 +53,15 @@ namespace LivingWeapon;
 /// </summary>
 internal static class ExtendedSites
 {
+    /// <summary>How many extended items can exist at once. Plain language: past this many, the
+    /// game breaks in a way that has nothing to do with save slots or menu space -- eight of the
+    /// PlusN sites above are `lea reg,[base+6]` instructions whose displacement is a single
+    /// SIGNED byte (P11), and 6 + 122 = 0x80 flips that byte negative, corrupting the bound
+    /// instead of raising it. 121 is exact (the reviewer's live decode of every PlusN site,
+    /// LW368_plan.md P11); <see cref="ExtendedInventoryData"/> and tools/generate.py both refuse
+    /// a shipped table past it.</summary>
+    public const int MaxExtendedCount = 121;
+
     private enum Widen { PlusN, HighByte, XorMask, ShopLoop }
 
     private readonly record struct Site(long Addr, byte Old, Widen Kind, string Label);
@@ -63,11 +76,14 @@ internal static class ExtendedSites
         // builder family at 0x140280000-0x140290000 carries nine imm32 0x105 item-id bounds and
         // this was the one site LW-346 missed. 0x140284553 `mov edx,0x105` loads the bound the
         // per-item state initialiser reuses four times: it clears the id-keyed byte arrays at
-        // 0x1411A7C00 and 0x1411A7700 and seeds the id-keyed u16 array at 0x1411A7810. The
-        // widened tail is safe: each byte array holds 0x105 entries in a 0x110-byte slot (live
-        // read 2026-08-30: 0x1411A7805-0F and 0x1411A7D05-0F are zero padding, the next
-        // structure starts on the 0x10 boundary), and the u16 array's tail is re-zeroed by the
-        // memset at 0x1402845E0 that immediately follows it.
+        // 0x1411A7C00 and 0x1411A7700 and seeds the id-keyed u16 array at 0x1411A7810. CORRECTED
+        // 2026-08-31 (LW-368 round 2b): the widened tail is NOT safe padding -- a live game state
+        // dword sits at +0x108 of each 0x110-byte byte-array slot (read live 2026-08-31:
+        // 0x1411A7D08 and 0x1411A7808 both carry a `cmp/mov dword` operand elsewhere in the exe,
+        // not zero-fill), so the in-place widening overlapped it from the fourth extended id on (id 264; the dword spans 264-267).
+        // The LW-368 list relocation (ListRelocation.cs) is what actually removes that overlap,
+        // by moving both byte arrays off this block entirely; the u16 array's tail is still
+        // re-zeroed by the memset at 0x1402845E0 that immediately follows it.
         new(0x140284554L, 0x05, Widen.PlusN, "per-item state initialiser bound (mov edx,0x105)"),
         new(0x140284724L, 0x05, Widen.PlusN, "display iteration cap 1"),
         new(0x1402847C9L, 0x05, Widen.PlusN, "display iteration cap 2"),

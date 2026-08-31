@@ -31,7 +31,10 @@ public class ExtendedInventoryTests : IDisposable
         (Offsets.ThunkSibling4, new byte[] { 0xE9, 0x32, 0x56, 0xC0, 0x0F }),
     };
 
-    /// <summary>A vanilla 1.5.2 image as far as the boot arm looks (bytes read on disk 2026-08-27).</summary>
+    /// <summary>A vanilla 1.5.2 image as far as the boot arm looks (bytes read on disk 2026-08-27).
+    /// LW-368 round 2 / round 2b: also seeds all 55 list-relocation fields and the two 0x110-byte
+    /// old blocks (bag counts + sibling flags) at their vanilla values, so BootArm still arms end
+    /// to end.</summary>
     internal static FakeCodePatcher VanillaImage()
     {
         var f = new FakeCodePatcher();
@@ -44,6 +47,9 @@ public class ExtendedInventoryTests : IDisposable
             var rec = new byte[12]; rec[0] = (byte)id;
             f.Seed(Offsets.ExtCatalogBase + (long)id * 12, rec);
         }
+        foreach (var site in ListRelocation.Sites) f.Seed(site.Addr, BitConverter.GetBytes(site.Vanilla));
+        f.Seed(Offsets.BagCountArray, new byte[ListRelocation.BlockBytes]);
+        f.Seed(Offsets.SiblingListArray, new byte[ListRelocation.BlockBytes]);
         return f;
     }
 
@@ -88,7 +94,10 @@ public class ExtendedInventoryTests : IDisposable
             Assert.NotEqual(original, now);
             Assert.True(f.Read(stub, 2).SequenceEqual(new byte[] { 0x89, 0xC8 }));   // a stub sits at the target
         }
-        Assert.Equal(1, f.Bytes[Offsets.BagCountArray + 261]);   // the data seed (no sidecar entry)
+        // LW-368 round 2: the seed lands on the RELOCATED page, never the vanilla block.
+        Assert.NotEqual(Offsets.BagCountArray, inv.BagCountBase);
+        Assert.Equal(1, f.Bytes[inv.BagCountBase + 261]);   // the data seed (no sidecar entry)
+        Assert.Equal(0, f.Bytes[Offsets.BagCountArray + 261]);   // ... not the vanilla block, which stays zero
         Assert.NotEqual(0x90, f.Bytes[Offsets.ShopBuilderLowByteDisp32]);   // shop table mirrored (LW-354)
         inv.StepShopSync();
         Assert.Equal(0xFE, f.Bytes[Offsets.ModuleBase + BitConverter.ToInt32(f.Read(Offsets.ShopBuilderLowByteDisp32, 4), 0) + 37 * 2]);   // vanilla half synced
@@ -112,22 +121,22 @@ public class ExtendedInventoryTests : IDisposable
         var inv = Build(f, Moonblade(), sidecar: sidecar);
         inv.BootArm(null);
         Assert.True(inv.Armed);
-        Assert.Equal(1, f.Bytes[Offsets.BagCountArray + 261]);   // boot = the seed (no save is loaded yet)
+        Assert.Equal(1, f.Bytes[inv.BagCountBase + 261]);   // boot = the seed (no save is loaded yet)
 
         // The game applies save A: its bag holds the file's 261 counts (nothing for ours) ...
-        f.Seed(Offsets.BagCountArray + 261, 0);
+        f.Seed(inv.BagCountBase + 261, 0);
         inv.Tracker.OnApplied(hdrA);
         inv.StepBagSidecar(new FakeSparseMemory());
-        Assert.Equal(3, f.Bytes[Offsets.BagCountArray + 261]);   // ... and the replay puts A's own count back
+        Assert.Equal(3, f.Bytes[inv.BagCountBase + 261]);   // ... and the replay puts A's own count back
 
         // A save never seen before (slot B) gets the seed, never A's count.
-        f.Seed(Offsets.BagCountArray + 261, 0);
+        f.Seed(inv.BagCountBase + 261, 0);
         inv.Tracker.OnApplied(SaveEdgeTrackerTests.Header(2000));
         inv.StepBagSidecar(new FakeSparseMemory());
-        Assert.Equal(1, f.Bytes[Offsets.BagCountArray + 261]);
+        Assert.Equal(1, f.Bytes[inv.BagCountBase + 261]);
 
         // The player buys one and saves: the serialize edge records 2 under the new key.
-        f.Seed(Offsets.BagCountArray + 261, 2);
+        f.Seed(inv.BagCountBase + 261, 2);
         var hdrB2 = SaveEdgeTrackerTests.Header(2600);
         inv.Tracker.OnSerialized(hdrB2, new Dictionary<int, int> { [261] = 2 });
         inv.StepBagSidecar(new FakeSparseMemory());
@@ -135,11 +144,11 @@ public class ExtendedInventoryTests : IDisposable
 
         // A load that follows a save in the same window is drained FIRST, so the save that
         // came after it records the replayed state, not the file's zero.
-        f.Seed(Offsets.BagCountArray + 261, 0);
+        f.Seed(inv.BagCountBase + 261, 0);
         inv.Tracker.OnApplied(hdrA);
         inv.Tracker.OnSerialized(SaveEdgeTrackerTests.Header(1001), new Dictionary<int, int> { [261] = 3 });
         inv.StepBagSidecar(new FakeSparseMemory());
-        Assert.Equal(3, f.Bytes[Offsets.BagCountArray + 261]);
+        Assert.Equal(3, f.Bytes[inv.BagCountBase + 261]);
     }
 
     [Fact]
@@ -152,10 +161,10 @@ public class ExtendedInventoryTests : IDisposable
         inv.BootArm(null);
         inv.Tracker.OnApplied(SaveEdgeTrackerTests.Header(10));
         inv.StepBagSidecar(new FakeSparseMemory());
-        Assert.Equal(2, f.Bytes[Offsets.BagCountArray + 261]);   // the pre-LW-353 count, once
+        Assert.Equal(2, f.Bytes[inv.BagCountBase + 261]);   // the pre-LW-353 count, once
         inv.Tracker.OnApplied(SaveEdgeTrackerTests.Header(20));
         inv.StepBagSidecar(new FakeSparseMemory());
-        Assert.Equal(1, f.Bytes[Offsets.BagCountArray + 261]);   // then the seed
+        Assert.Equal(1, f.Bytes[inv.BagCountBase + 261]);   // then the seed
         Assert.Null(ExtendedBagSidecar.Load(path).TakeLegacy());  // and the file no longer carries it
     }
 
@@ -164,11 +173,13 @@ public class ExtendedInventoryTests : IDisposable
     {
         var f = VanillaImage();
         var inv = Build(f, new ExtendedInventoryData.LoadResult());
+        Assert.Equal(Offsets.BagCountArray, inv.BagCountBase);   // before any arm attempt: the vanilla block
         inv.BootArm(null);
         Assert.False(inv.Armed);
         Assert.Null(inv.Refusal);
         Assert.Empty(f.Writes);
         Assert.Equal(-1, inv.WeaponRowAddr(261));   // unarmed: the WP hold gets no row
+        Assert.Equal(Offsets.BagCountArray, inv.BagCountBase);   // still the vanilla block: nothing shipped, nothing armed
         var empty = Build(f, new ExtendedInventoryData.LoadResult { FolderPresent = true });
         empty.BootArm(null);
         Assert.False(empty.Armed);
@@ -211,7 +222,10 @@ public class ExtendedInventoryTests : IDisposable
         Assert.False(inv.Armed);
         Assert.Contains("prologue", inv.Refusal);
         Assert.Equal(before, f.Bytes.Where(kv => before.ContainsKey(kv.Key)).ToDictionary(kv => kv.Key, kv => kv.Value));
-        Assert.False(f.Bytes.ContainsKey(Offsets.BagCountArray + 261));   // never seeded
+        // LW-368 round 2: the list relocation itself succeeds before the order-rebuild hook
+        // refuses, then RollBack restores it, so BagCountBase falls back to the vanilla block.
+        Assert.Equal(Offsets.BagCountArray, inv.BagCountBase);
+        Assert.Equal(0, f.Bytes[inv.BagCountBase + 261]);   // never seeded (still the vanilla zero-fill)
     }
 
     [Fact]
@@ -235,6 +249,29 @@ public class ExtendedInventoryTests : IDisposable
         Assert.Empty(g.Writes);
     }
 
+    /// <summary>LW-368 round 2 (T10): a field the list relocation owns is already moved. The
+    /// relocation step runs right after the boot cap patches, so its refusal must roll THOSE
+    /// back too, not just leave its own 55 fields untouched -- "nothing earlier remains applied".</summary>
+    [Fact]
+    public void A_relocation_field_refusal_rolls_back_the_boot_cap_patches_too()
+    {
+        var f = VanillaImage();
+        f.Seed(ListRelocation.Sites[0].Addr, BitConverter.GetBytes(ListRelocation.Sites[0].Vanilla + 1));   // already moved
+        var before = Snapshot(f);
+        var inv = Build(f, Moonblade());
+
+        inv.BootArm(null);
+
+        Assert.False(inv.Armed);
+        Assert.Contains("list-relocation", inv.Refusal);
+        Assert.Equal(before, f.Bytes.Where(kv => before.ContainsKey(kv.Key)).ToDictionary(kv => kv.Key, kv => kv.Value));
+        // The boot cap patches ran and succeeded before the relocation step; RollBack must undo
+        // them too, so none of ExtendedSites.BootPatches(1) is left applied.
+        foreach (var p in ExtendedSites.BootPatches(1)) Assert.Equal(p.Old, f.Bytes[p.Addr]);
+        Assert.Equal(Offsets.BagCountArray, inv.BagCountBase);
+        Assert.Equal(0, f.Bytes[inv.BagCountBase + 261]);   // SeedBag never ran (still the vanilla zero-fill)
+    }
+
     [Fact]
     public void Post_load_caps_settle_once_their_pages_read_vanilla_and_the_bag_is_untouched_without_an_edge()
     {
@@ -256,11 +293,11 @@ public class ExtendedInventoryTests : IDisposable
         // LW-353: with no save edge pending, the tick writes nothing (a change in the bag is
         // never recorded on its own any more; only a save edge records, only a load edge replays).
         var mem = new FakeSparseMemory();
-        f.Seed(Offsets.BagCountArray + 261, 2);
+        f.Seed(inv.BagCountBase + 261, 2);
         inv.StepBagSidecar(mem);
         string path = Path.Combine(_dir, ExtendedBagSidecar.FileName);
         Assert.False(File.Exists(path));
-        Assert.Equal(2, f.Bytes[Offsets.BagCountArray + 261]);
+        Assert.Equal(2, f.Bytes[inv.BagCountBase + 261]);
     }
 
     [Fact]
