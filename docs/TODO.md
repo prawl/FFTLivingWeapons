@@ -466,6 +466,27 @@ belongs rather than at the bottom.
   stay untouched (LaunchGuard's roster landmark is the tripwire), and either a new proven
   ceiling or a relocation (mirror pages the way the shop flags and the catalog were mirrored)
   that lifts it, with the guide's headroom line updated.
+- [LW-369] 2026-08-31: Brand-new weapons should be able to carry equip bonuses of their own
+  (PA+1, Haste and kin) even though the game's bonus table is full. Plain language: every item
+  points at a row in the game's ItemEquipBonusData table for what wearing it gives you beyond
+  its base numbers (stat riders, Move and Jump, innate statuses and abilities); that table caps
+  at 84 rows and vanilla wastes most of them on duplicates (three items with the same PA+1 get
+  three rows), so a new weapon can reuse an existing row today but cannot get a row of its own,
+  and consolidating vanilla rows is unsafe because redefining a shared row changes every item
+  that points at it. Asked by the LW-344 partner author (Jade Knightblazer, 2026-08-31) for his
+  eight planned weapons. Shape: relocate the table into a buffer the DLL owns and re-point the
+  game's reader at it, the way LW-346 relocated the item catalog, so rows past 84 exist for
+  extended items; the alternative he floated, applying bonuses from meta.json at runtime, only
+  reaches PA, MA and Speed (the growth engine already holds those) and cannot reach Move, Jump,
+  innate statuses or innate abilities, which the game reads from the table at equip time, so it
+  is the fallback, not the plan. Done looks like: one extended weapon with a NEW bonus row (a
+  stat rider plus an innate status) showing both on its card and in battle, the loader
+  untouched, the guide's rider paragraph updated. (Tech: the resident bonus table starts at
+  0x14080FEA0, right after the 128-row item-stats table (Offsets.ItemStatsRows); an extended
+  item's catalog record already carries an EquipBonusId (ExtendedRecords.EncodeCatalogRecord),
+  and generate.py places new rows only in the free slots 74-79 plus six audited vanilla rows
+  (memory equipbonus-row-override-audit); the game's readers of the table are unfound, so the
+  first step is the xref sweep that found the shop-flags table, lw346_xref_scan.py.)
 - [LW-365] 2026-08-31: Sweep the last few places where the game still assumes no item id above
   261 when it reads a unit's hands. Plain language: the new weapons equip and fight fine, but
   a handful of routines that look up what a unit is holding were built with the old limit and
