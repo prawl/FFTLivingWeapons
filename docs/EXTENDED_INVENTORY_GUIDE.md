@@ -40,12 +40,14 @@ signature needs none.
   fields (the mod writes the first 140 chart words back into them at every save and copies
   them onto the page at every load, so a mod-less load behaves exactly as before: a list may
   look short until one Sort). The binding number is now the game's menu LIST, not the chart:
-  the Items tab draws weapons and shields as ONE list capped at **149 entries** (raised from
-  145; the two smallest list buffers hold 152 words before the stack cookie, and the picker's weapons list adds the unit's two hand items after the cap), so a player who
-  owns all 139 vanilla hand kinds (121 weapons, 16 shields, two DLC blades) sees at most 10
-  extended kinds drawn there; the picker's per-slot lists are weapons-only (123 + 26) and the
-  chart holds every kind regardless. Lifting 149 is LW-372 (a hook that hands the two small
-  callers a mod-owned buffer). The picker's other three sub-charts (helmets 30 words for 28
+  the big menus (the Items tab's combined weapons view, the All Items browser, the shops) draw
+  up to **255 entries** per list (LW-372: the shared caps widened from 145/150 to 255/256, safe
+  because a hook on the list builder hands the two STACK-buffer callers a mod-owned buffer and
+  copies back at most 149 entries; those two menus, the equip picker among them, keep 149,
+  which no real save approaches: the worst per-unit picker list today is ~142). At the absolute
+  maximum (all 261 vanilla ids plus all 121 extended owned = 382 kinds) the All Items browser
+  draws 255 of 382 and the combined weapons view 255 of 260; every undrawn kind still shows in
+  its category tab, equips and saves. The chart holds every kind regardless. The picker's other three sub-charts (helmets 30 words for 28
   vanilla kinds, body 38 for 36, accessories 34 for 33) are NOT relocated: a V2 extended
   helmet, armor or accessory would overflow the picker block on day one. One residual limit
   LW-368 did NOT close: a third per-item word list (0x105 entries, not moved) still overlaps

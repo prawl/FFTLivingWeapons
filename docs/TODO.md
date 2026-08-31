@@ -148,36 +148,6 @@ the technical detail lives in the indented lines under it.
     removal), each design listed in one of its
     towns and equipping on its category's job, the Sunderer's Bulwark firing at 263 with its
     migrated tally, one vanilla axe and one vanilla flail swing).
-- **[LW-372] The Items tab should draw every weapon and shield kind you own, not just the first 149** (opened 2026-08-31) [QUEUED]
-  - Plain language: just the first 149. Plain language: when the Items tab or the equip picker opens, the game
-    copies the list onto a notepad before drawing it; two menus use a small notepad (152 lines,
-    the next eight bytes are the stack cookie the game checks on the way out) and LW-371 raises
-    the game's line limit from 145 to 149, the most those two can hold once the picker's
-    two hand-item appends and the terminator are counted (cap plus three lines). The Items tab draws
-    weapons and shields as ONE list and vanilla has 139 hand kinds (121 weapons, 16 shields,
-    two DLC blades), so a player who owns everything sees at most 10 new kinds drawn there; the
-    11th still exists, is still owned and still sits in the chart, it just is not drawn until
-    the list has room (the picker's weapons-only lists are fine to 30 new kinds). Owner ruling
-    2026-08-31 09:00 ("1, then 2"): LW-371 ships the wall removal with the honest 149, and this
-    row is the next Now item. The lift: a hook on the list builder 0x140288B94 that, when the
-    caller hands it a stack buffer (0x1402875A9 rsp+0x70, 0x140336B88 rsp+0x50), lets the game
-    write into a mod-owned buffer and copies at most 149 entries back, after which the cap can
-    go to 255 (the static list buffer 0x141811470 holds 256 words; the rebuild's stack temp
-    holds 264). No hard gate at 12: it would refuse the fifteen-item dev table; a test pins the
-    arithmetic instead (LW-371 T9b/T9c). (Tech: cap bytes 0x140288CC3 and 0x14028631A; the
-    cookie slots [rbp+0xA0] and [rbp+0x80] with rbp = rsp+0x100 in both frames, read live
-    2026-08-31 by the LW-371 plan reviewer and re-read by the orchestrator.)
-  - Done means: with the seven designs plus the partner's eight new kinds owned on a save that owns
-    every vanilla weapon and shield (154 hand kinds), the Items tab draws all 154 and the equip
-    picker every kind, the two small-notepad menus still work with their 149 lines, and nothing
-    is written past any list buffer or its stack cookie (the hook hands the two stack callers a
-    mod-owned buffer and copies at most 149 entries back).
-  - Verify: suite green with a test that drives the hook with a stack-address buffer and a
-    static-address buffer and pins the copy-back truncation; the owner's live pass on a save
-    with 146 or more hand kinds (the partner's kinds or more probe rows): the Items tab lists
-    past 145, the picker lists every kind, Sort keeps them, save and reload keep them, the log
-    shows the hook's armed line and no warning.
-
 ## Backlog
 
 Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner directed).
@@ -2702,6 +2672,17 @@ belongs rather than at the bottom.
   counts the distinct new combinations, names the free-row budget and the rows already taken,
   and refuses with one sentence a partner can act on (reuse an existing combination or drop
   a bonus); a test pins the count.
+- [LW-375] 2026-08-31: The All Items browser should draw every owned kind, not just the
+  first 255. Plain language: with LW-372 the big menus draw 255 rows, and the only screens a
+  maxed-out player can outgrow are the All Items browser (255 of a possible 382 kinds) and,
+  by five rows, the combined weapons view; every undrawn kind still shows in its category tab,
+  equips and saves, so nothing is lost, just not browsable in one list. The owner called it
+  the remaining pitfall on 2026-08-31. The lift is the third relocation of the same shape:
+  move the fixed 256-word drawing list (about 37 places name it) to a mod page and hook the
+  sorter's 264-word scratch space; only worth doing after more than about 134 extended
+  weapons can exist (today's ceiling is 121) or for completionist bragging rights. (Tech: the
+  static list buffer, its size proven by the neighbor object; the LW-368 sweep-and-repoint
+  recipe applies.)
 - [LW-362] 2026-08-30: The game's own four DLC blades (ids 256 to 259, Materia Blade+,
   Akademy Blade and kin) could become living weapons too, counting kills and growing like
   everything else; today their kills are deliberately left uncredited as untracked items,

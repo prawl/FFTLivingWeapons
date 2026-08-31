@@ -49,6 +49,10 @@ picker chart at +0x400, all-items chart at +0x800, 0x400 bytes each, 0xFFFF wall
 marker); the old blocks only hold the save-field projection written at each save.
 `tools/probes/lw371_order_template_relocate.py` (read-only without --apply) prints both live charts'
 marker positions from the OLD addresses, so on an armed build read the page instead.
+Since LW-372 the armed line also says "5 hooks (menu list builder hooked)" and the two menu-list
+caps read 255/256 once armed (the shipped bytes, not vanilla's 145/150 and not LW-371's 149/150);
+`tools/probes/lw372_list_cap_probe.py` still prints the live cap bytes and the last built list's
+length, but its --apply is retired (it expects the pre-LW-372 baseline and refuses by design).
 **Skip the crashy / IC-unused ids:** `268–277` (IC stripped these slots; `261–267` are the mod's own weapons since LW-351 and the Moonblade's removal) and `254, 255` (the
 engine's "random item" placeholder and the never-used slot: no name, no catalog record; 99 of 254
 rendered as a nameless black-icon row on the Items tab, 2026-08-27). `give_all_items` skips these

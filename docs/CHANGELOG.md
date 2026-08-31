@@ -10,6 +10,21 @@ before 2026-07-21 keep their original prose.
 
 ## 2.4.0 cycle
 
+- [LW-372] SHIPPED 900594d0 2026-08-31: The big item menus now draw up to 255 kinds and the two
+  small ones can never crash on a full bag. Plain language: the game copies your bag onto a
+  notepad before drawing any list, and one shared line limit stopped every menu at 149. Six menus
+  use a big 255-line notepad and now draw all of it; two menus (the equip picker among them) use
+  a small notepad on the stack, and a doorman hook now writes their list into a notepad the mod
+  owns and hands back the first 149 lines, so the raised limit can never overrun them. Any copy
+  failure returns an empty list and a zero count, never a wrong count. Owner live pass 2026-08-31
+  12:44 to 12:59 on the deployed build: a 161-row shop list and a 153-row All Items view (the
+  first lists past the old 149), the picker with both hands full on two units, save, reload and a
+  battle retry all holding, zero warnings. Ledger rows [items-tab-draws-past-149] and
+  [list-builder-buffer-swap], both owner-flipped PROVEN. Three adversarial verification rounds;
+  the second caught a failure path that returned an untruncated count before it ever ran.
+  (Tech: LivingWeapon/Extended/ListBuilderHook.cs + .Pool.cs + .Policy.cs on 0x140288B94;
+  TemplateRelocation cap sites to [FF] / [00 01 00 00]; OrderRebuildHook.MaxWords 260;
+  suite 3587; plan LW372_plan.md v1.3, untracked.)
 - [LW-371] SHIPPED f3c78f24 2026-08-31: The bag can now hold more than 140 kinds of weapons and
   shields at once without hurting the save file. Plain language: the game lists what you carry
   from two charts that hold 140 kinds plus an end marker, and its housekeeper never checked that
