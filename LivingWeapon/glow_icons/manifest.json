@@ -1605,40 +1605,6 @@
    }
   },
   {
-   "id": 48,
-   "surface": "card",
-   "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_048_uitx.tex",
-   "length": 51296,
-   "baseSha1": "b791040d7725e791e61c365cf663a93656572925",
-   "variants": {
-    "1": "ei_048_uitx_t1.tex",
-    "2": "ei_048_uitx_t2.tex",
-    "3": "ei_048_uitx_t3.tex"
-   },
-   "variantSha1s": {
-    "1": "bea1aa6bf1cc53e2ca504a5e76de677e7d64e5b2",
-    "2": "18f401f25c3fd5bf573d5974798fd107e3c90139",
-    "3": "69de5d5c2d09d93913dd73a90f573c5a9f4c93b2"
-   }
-  },
-  {
-   "id": 48,
-   "surface": "small",
-   "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_048_uitx.tex",
-   "length": 12384,
-   "baseSha1": "deafd2f58517f354e3fe0ec9efe84ddf98b9928b",
-   "variants": {
-    "1": "ei_s_048_uitx_t1.tex",
-    "2": "ei_s_048_uitx_t2.tex",
-    "3": "ei_s_048_uitx_t3.tex"
-   },
-   "variantSha1s": {
-    "1": "09c264c9abaf243184b59a0573f8ebdbe02d58b2",
-    "2": "c3f5ceffb902ec5409925308ad6460348d708e60",
-    "3": "0330ca33cc2c9bae8383d4473dd49673b2fb1658"
-   }
-  },
-  {
    "id": 49,
    "surface": "card",
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_049_uitx.tex",
@@ -4152,6 +4118,40 @@
     "1": "d849474fe1030533828e6333eda2bb072eac58e5",
     "2": "28bcda3878c1adb3f300d87f2ce8b6fdeff0061a",
     "3": "d6451aa34cffb2468e48e013a6d96852c9194ece"
+   }
+  },
+  {
+   "id": 262,
+   "surface": "card",
+   "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_262_uitx.tex",
+   "length": 51296,
+   "baseSha1": "b791040d7725e791e61c365cf663a93656572925",
+   "variants": {
+    "1": "ei_262_uitx_t1.tex",
+    "2": "ei_262_uitx_t2.tex",
+    "3": "ei_262_uitx_t3.tex"
+   },
+   "variantSha1s": {
+    "1": "bea1aa6bf1cc53e2ca504a5e76de677e7d64e5b2",
+    "2": "18f401f25c3fd5bf573d5974798fd107e3c90139",
+    "3": "69de5d5c2d09d93913dd73a90f573c5a9f4c93b2"
+   }
+  },
+  {
+   "id": 262,
+   "surface": "small",
+   "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_262_uitx.tex",
+   "length": 12384,
+   "baseSha1": "deafd2f58517f354e3fe0ec9efe84ddf98b9928b",
+   "variants": {
+    "1": "ei_s_262_uitx_t1.tex",
+    "2": "ei_s_262_uitx_t2.tex",
+    "3": "ei_s_262_uitx_t3.tex"
+   },
+   "variantSha1s": {
+    "1": "09c264c9abaf243184b59a0573f8ebdbe02d58b2",
+    "2": "c3f5ceffb902ec5409925308ad6460348d708e60",
+    "3": "0330ca33cc2c9bae8383d4473dd49673b2fb1658"
    }
   }
  ]

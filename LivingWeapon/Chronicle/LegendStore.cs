@@ -100,6 +100,18 @@ internal sealed class LegendStore
     /// <summary>True if this weapon has ever had a deed recorded.</summary>
     public bool Has(int weaponId) => _legends.ContainsKey(weaponId);
 
+    /// <summary>LW-351: hand the deed map to <see cref="TallyMigration.MoveLegends"/> so a design
+    /// that changed item id keeps the deeds it earned. The POLICY lives there (pure, unit-tested
+    /// against a plain dictionary); this is only the seam that reaches the private map and marks
+    /// the store dirty, so the next SaveIfDirty writes it (previous generation to .bak). Returns
+    /// how many old ids moved.</summary>
+    public int Migrate(IReadOnlyDictionary<int, int> plan)
+    {
+        int moved = TallyMigration.MoveLegends(plan, _legends);
+        if (moved > 0) _dirty = true;
+        return moved;
+    }
+
     /// <summary>Read view for the composer (CardLine/StoryLines): the weapon's current deed
     /// state, or a fresh (empty) WeaponLegend for a weapon with no deeds yet -- never null, so
     /// callers don't need a separate Has() guard just to read defaults.</summary>

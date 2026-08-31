@@ -113,6 +113,42 @@ the technical detail lives in the indented lines under it.
   - Verify: full suite green; the owner's live battle shows either the "The weapon's
     spirit claims the carcass" log line with the Den count matching, or the named
     discriminator or gate-reason line in livingweapon.log; the owner reads the FAQ text.
+- **[LW-351] The seven axes and flails go back to vanilla and their designs move to new extended ids** (opened 2026-08-27) [BUILDING]
+  - Plain language: this mod had turned the game's seven axes and flails into other weapon
+    types (a pole, knight swords, a sword, a knife, a ninja blade, a katana) while they still
+    swung axe and flail art. Now the seven vanilla weapons come back exactly as the base game
+    had them, at their old ids, and the seven rebalanced designs move to brand-new
+    extended-inventory ids 262 to 268, keeping their stats, growth lanes, signatures, icons
+    and shop windows, with a save's earned kills following each design to its new id.
+  - Progress 2026-08-30: STAGE 1 (the Battle Axe restored at 48, the Terrastaff moved to 262)
+    is live-passed and closed after six fix rounds that each peeled one more layer of the
+    game's 261-item wall (id caps, menu sort keys, the save's fixed bag, the saved menu order
+    templates, and a hardcoded reserved-id list in the equip check that refused whatever sat
+    at id 262). Stage 2 (the other six pairs) is next; stage 3 closes the ledger. The
+    Terrastaff now records its true reach (2 tiles, its clone donor's), which makes it beat
+    the Ironreed Pole; the owner deferred that pair out loud (analyze.py DOMINANCE_DEFERRED)
+    until one dominance pass gates all seven together (LW-363).
+  - (Tech: items.json restores ids 48-50/67-70 to vanilla names, categories, baseline numbers
+    and tiers with noGrowth; the designs re-add as extended rows with migratedFrom, each
+    authoring its NEW category's delivery grammar and its clone donor's range (generate.py
+    check_extended_flag_grammar / check_extended_range); TallyMigration moves kills and
+    legend deeds once per pairing; Bulwark.SundererId 50 to 264; THIN_NICHE_EXCEPTIONS keys
+    move with the Warbrand; weapon_colors rows for the old ids are parked per stage; icons
+    are baked at the new ids BEFORE each old slot reverts to vanilla art; JobData no longer
+    strips Axe/Flail; ability 460's Equip Axes text re-worded.)
+  - Done means: every one of the seven vanilla axes and flails is back in the game as the
+    base game had it, every one of the seven designs equips, fights, shows its Kills line and
+    grows at its new id from a shop in its old slot's towns, a player's earned kills on a
+    design follow it to the new id once, every doc and grid row that enumerates items lists
+    all fourteen, and the seven designs pass the no-domination gate together in one pass
+    (the DOMINANCE_DEFERRED dict empties under LW-363).
+  - Verify: full suite green with the migration, site and grammar tests; analyze.py green
+    with no deferred pairs left; patch_names full bake green; the owner's live pass on each
+    stage (stage 1 passed 2026-08-30: two items armed, shop listing and window poke, Battle
+    Axe restored and sold, Terrastaff equips bag-owned on an Oracle and a Geomancer and
+    swings for Earth damage; stage 2 adds eight items armed, each design listed in one of its
+    towns and equipping on its category's job, the Sunderer's Bulwark firing at 264 with its
+    migrated tally, one vanilla axe and one vanilla flail swing).
 
 ## Backlog
 
@@ -360,32 +396,6 @@ belongs rather than at the bottom.
   LW-346 item 7, applied once per unit right after enemy construction (the construction edge
   the Body Double arc already reads), verified by the unit's status screen and one steal.
   Surfaced by the LW-346 enemy test; needs the port (LW-346 item 8) first.
-- [LW-351] 2026-08-27: The LAST task of the extended-weapons arc, owner-ordered and NOT to
-  be started until every row before it has had its live pass: the seven weapons this mod
-  retyped away from their vanilla families go back to being axes and flails at their original
-  ids, and the seven rebalanced designs come back as brand-new extended items instead. Today
-  ids 48 Terrastaff, 49 Ravager, 50 Sunderer (vanilla Battle Axe, Giant's Axe, Slasher) and
-  67 Warbrand, 68 Bloodlash, 69 Climhazzard, 70 Sasori (vanilla Iron Flail, Flail of Flame,
-  Morning Star, Scorpion Tail) equip and fight as poles, knight swords, swords, knives, ninja
-  blades and katana while still swinging axe and flail art, the last visible scar of the
-  retype (LW-293, LW-312). Shape: items.json restores the seven ids to their vanilla names,
-  categories and numbers; the seven designs move to extended ids 262 to 268 with their stats,
-  growth lanes, signatures (Sunderer's Bulwark, Bulwark.SundererId), colors and icons; every
-  id-keyed file follows (kills.json tallies migrate old id to new id once, legends,
-  weapon_colors.json, weapon_palette_overrides.json, icon_ramp treatments, the grid csv,
-  additional_data_ids.json); JobData equip lists and the Equip Axes note in ability.en.nxd
-  are re-read. The old shop blocker is GONE: since LW-354 shipped, shops stock extended ids
-  through the mirrored flags page, so the seven enter the world through their vanilla towns'
-  shops (each row's `shops` field with a real `shopAvailability`, never `Blank`: the owner's
-  standing ruling, because a Blank item sells in its listed towns from day one); poach rows,
-  Move-Find tiles
-  and LW-350's enemy loadout are extras, not workarounds. The LW-346/LW-348 prerequisites have
-  shipped and live-passed.
-  Owner addition 2026-08-30: every one of the seven extended items gets its row in
-  docs/living_weapon_grid.csv and in every other doc that enumerates items (DESIGN.md
-  counts, README, recipe examples), and the seven restored axes and flails get the same
-  treatment; the analyze.py grid lockstep gates enforce the csv half mechanically, the
-  rest is checked by hand in the same commit.
 - [LW-361] 2026-08-30: The restored axes and flails get a real redesign of their own.
   LW-351 brings the seven vanilla weapons back exactly as the base game had them, which
   leaves them the only items without the mod's build-diversity treatment; the owner wants
@@ -393,6 +403,32 @@ belongs rather than at the bottom.
   decide how the vanilla rows pass the no-domination gate (an owner-ruled exemption or
   interim tiers, decided there); this row is where the real designs land, through the
   usual grid csv first, then items.json, then the gates.
+- [LW-363] 2026-08-30: The seven moved axe and flail designs get their no-domination pass in
+  one go, and the loud deferral list empties. Plain language: when the Terrastaff moved to its
+  new id it started recording the reach it really has (two tiles, borrowed from its donor
+  pole), and by the mod's own rule that makes the plain Ironreed Pole pointless next to it.
+  The owner chose to move the other six designs first and then rebalance all seven against
+  their neighbors in one sitting, so the pair is deferred out loud rather than fixed
+  piecemeal. Done looks like: analyze.py's DOMINANCE_DEFERRED dict is empty again, every one
+  of the seven survives the gate on its own merits (or carries an owner-ruled
+  THIN_NICHE_EXCEPTIONS entry with the ruling cited), and the grid csv reflects any number
+  that moved. (Tech: tools/analyze.py DOMINANCE_DEFERRED, keyed (dominated id, dominator id),
+  printed as its own DEFERRED line every run; a stale entry is called out; only the PROPOSED
+  verdict honors it.)
+- [LW-364] 2026-08-30: Find out where the game really reads an extended weapon's reach from,
+  so a range-1 pole (or any reach its donor lacks) becomes possible. Plain language: an
+  extended weapon strikes as far as the vanilla weapon it borrows its engine from, no matter
+  what its own row says; the Terrastaff proved it on 2026-08-30 (row said 1, it hit two
+  tiles away, its donor is a range-2 pole). Two explanations fit and the one sighting cannot
+  separate them: the game reads the donor's own row through the sibling accessors, or the
+  Lunging delivery class fixes the reach by itself. Done looks like: a live probe that tells
+  them apart (a donor swap or a flags swap on one item, owner-observed), the answer recorded
+  in LIVE_LEDGER, and either a per-item reach stub or a guide rule saying reach is
+  donor-bound for good. Until then generate.py's check_extended_range keeps every row honest.
+  (Tech: the weapon-stat thunk 0x1402B8C74 already serves the mod's own 8-byte row whose
+  byte 0 is the Range the game ignored; suspects are the two-byte sibling rows keyed by
+  (id minus range base) behind 0x1402B8CD4 / 0x1402B8D3C / 0x1402B8DA0, which answer for
+  the clone donor today.)
 - [LW-359] 2026-08-30: A player reports the twin-weapon consent rule leaking two ways: with a shield in the off hand, backing out of the equip menu removed the shield and stamped the second weapon anyway (the shield only stuck when placed in the MAIN hand), and swapping the main hand from a twin weapon to daggers left the granted Dual Wield support behind for a while, letting daggers dual-wield free.
   Reported by Darkrapid on Discord 2026-08-30 (docs/USER_FEEDBACK.md); the owner told the
   player the intended rule and promised a look. The design (LW-193/LW-194, ad2240a): an

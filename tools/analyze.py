@@ -130,6 +130,47 @@ def check_slots(items, normal_formulas):
     return violations
 
 
+# --- LW-351 stage 1 close (owner ruling 2026-08-30): deferred dominance pairs ---
+# The gate's verdict is final, but the owner can defer a pair, out loud, when a rebalance is
+# scheduled for a later step. Key is (dominated id, dominator id); the value cites the ruling.
+# A deferred pair is dropped from the PROPOSED dominance verdict only, prints its own DEFERRED
+# line on EVERY run (never silent), and a pair that is no longer dominated is called out as a
+# stale entry so the dict cannot rot. The --baseline pass and every other gate ignore this.
+# Today's one entry: the Terrastaff moved to extended id 262 and now records its true reach
+# (range 2, the reach the game plays for its clone donor 108 Ironreed Pole; see generate.py's
+# check_extended_range), which makes it beat the Ironreed Pole outright (T1 vs T2, WP 9 vs 8,
+# same evade, same reach, plus Earth). The owner ruled that stage 2 moves the other six designs
+# first and ONE dominance pass then gates all seven together; that pass empties this dict
+# (docs/TODO.md LW-363).
+DOMINANCE_DEFERRED = {
+    (108, 262): "owner ruling 2026-08-30: the Terrastaff records its true reach 2 (clone donor 108, "
+                "Ironreed Pole) so the row stops lying; stage 2 moves the other six axe/flail designs "
+                "first, then one dominance pass gates all seven; cleared under LW-363",
+}
+
+
+def check_proposed_dominance(items, normal_formulas):
+    """The PROPOSED dominance verdict with the owner-deferred pairs pulled out and announced."""
+    kept, seen = [], set()
+    for a, doms in check(items, "proposed", normal_formulas):
+        live = []
+        for b in doms:
+            key = (a["id"], b["id"])
+            if key in DOMINANCE_DEFERRED:
+                seen.add(key)
+                print(f"  DEFERRED (owner-ruled, LW-363): id{a['id']} {display_name(a)} beaten by "
+                      f"id{b['id']} {display_name(b)}")
+            else:
+                live.append(b)
+        if live:
+            kept.append((a, live))
+    for key in DOMINANCE_DEFERRED:
+        if key not in seen:
+            print(f"  STALE DEFERRAL: id{key[0]} is no longer beaten by id{key[1]}; remove that "
+                  f"DOMINANCE_DEFERRED entry (not a failure, but the dict must not rot)")
+    return kept
+
+
 # --- LW-318 hardening: the two blind spots the 2026-08-26 thin-niche audit proved real ---
 
 # Owner-ruled (or provisionally parked) survivals the THIN NICHE gate accepts. Key is
@@ -1245,12 +1286,18 @@ def main():
     registry = []
     dom_runs = [("baseline", "BASELINE"), ("proposed", "PROPOSED")] if CHECK_BASELINE else [("proposed", "PROPOSED")]
     for key, label in dom_runs:
+        proposed = label == "PROPOSED"
+        n_def = len(DOMINANCE_DEFERRED)
+        deferred = (f" ({n_def} pair{'s' if n_def != 1 else ''} deferred by owner ruling, see LW-363)"
+                    if proposed and DOMINANCE_DEFERRED else "")
         registry.append(dict(
             header=f"{label} dominance check",
-            check_fn=lambda key=key: check(items, key, nf),
-            pass_msg="PASS: no item is strictly dominated. Build-diversity invariant holds.",
+            # only the PROPOSED verdict honours DOMINANCE_DEFERRED; --baseline stays raw
+            check_fn=(lambda: check_proposed_dominance(items, nf)) if proposed
+            else (lambda key=key: check(items, key, nf)),
+            pass_msg=f"PASS: no item is strictly dominated{deferred}. Build-diversity invariant holds.",
             format_failure=_fmt_dominance,
-            sets_rc=(label == "PROPOSED"),   # --baseline is reference-only, never fails the gate
+            sets_rc=proposed,   # --baseline is reference-only, never fails the gate
         ))
     registry += [
         dict(header="SLOT-WIDE dominance (cross-category, same equip slot, access-aware)",
@@ -1351,8 +1398,8 @@ def main():
 
     rc = 0
     for gate in registry:
-        v = gate["check_fn"]()
         print(f"\n--- {gate['header']} ---")
+        v = gate["check_fn"]()   # after the header, so a check's own lines (DEFERRED, STALE) land under it
         if not v:
             print(f"  {gate['pass_msg']}")
         else:

@@ -32,7 +32,7 @@ public class ExtendedInventoryTests : IDisposable
     };
 
     /// <summary>A vanilla 1.5.2 image as far as the boot arm looks (bytes read on disk 2026-08-27).</summary>
-    private static FakeCodePatcher VanillaImage()
+    internal static FakeCodePatcher VanillaImage()
     {
         var f = new FakeCodePatcher();
         foreach (var p in ExtendedSites.BootPatches(1)) f.Seed(p.Addr, p.Old);

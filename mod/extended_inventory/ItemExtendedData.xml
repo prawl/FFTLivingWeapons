@@ -11,5 +11,13 @@
       <SeedCount>1</SeedCount>
       <Shops>Dorter</Shops>
     </ItemExtended>
+    <ItemExtended>
+      <Id>262</Id> <!-- Terrastaff -->
+      <Name>Terrastaff</Name>
+      <CloneDonorId>108</CloneDonorId>
+      <ArtDonorId>108</ArtDonorId>
+      <SeedCount>0</SeedCount>
+      <Shops>Lesalia, Riovanes, Eagrose, Lionel, Limberry, Zeltennia</Shops>
+    </ItemExtended>
   </Entries>
 </ItemExtendedTable>

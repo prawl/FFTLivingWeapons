@@ -48,14 +48,15 @@ PATCHES = {
                        "Each strike inflicts half the usual damage.",
         "IconId": 32,
     },
-    # LW-77: Name/IconId untouched, Description only. Every axe in this rebalance was reforged
-    # into another weapon type (make_jobequip.py REMOVE), so the support has nothing left to
-    # equip; this note replaces the mod JobCommandData.xml row that used to zero the learnable
-    # slot (deleted, whole-row writeback collision, see tools/oneoff/make_jobcommand.py).
+    # LW-77 / LW-351: Name/IconId untouched, Description only. The LW-77 text said the support
+    # had nothing left to equip, because every axe and flail in this rebalance had been reforged
+    # into another weapon type (make_jobequip.py's REMOVE set). LW-351 gives those items their
+    # vanilla identities back, so the support does something again and the note is retired.
+    # This row still exists rather than reverting to vanilla text because the description also
+    # replaces the mod JobCommandData.xml row that used to zero the learnable slot (deleted,
+    # whole-row writeback collision, see tools/oneoff/make_jobcommand.py).
     460: {
-        "Description": "Allows the unit to equip axes, regardless of job. Every axe in this "
-                       "rebalance was reforged into another weapon type, so there is nothing "
-                       "left to equip.",
+        "Description": "Equip axes and flails, regardless of job.",
     },
     # ---------------------------------------------------------------------------------------
     # LW-123: the Defender's "Provoke" command. Key 189 is vanilla `Embrace`, a cut ability that

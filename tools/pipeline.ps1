@@ -478,6 +478,18 @@ function Invoke-TablePipeline {
         throw "REFUSING TO ${FailVerb}: gen_living_weapon_meta.py --selftest failed (exit $LASTEXITCODE)."
     }
 
+    # LW-351: the item table's weapon menu-order keys must all be distinct. The game rebuilds its
+    # weapon order tables slot-by-sort-key, so two rows sharing a SortOrder silently cost one of
+    # them its slot in an in-game list -- which is how the 2026-08-30 live pass lost the Moonblade
+    # from the inventory and the Terrastaff from the equip picker. The check is pure (items.json
+    # plus the stock-row table in patch_names.py), so it belongs here, on every build, rather than
+    # in the nxd bake step, which only runs on this box and only when someone re-bakes the text.
+    Write-Host "  -> tools/patch_names.py --selftest (no two weapon rows may share a menu-order key)..."
+    & python "$PipelineRepoRoot\tools\patch_names.py" --selftest
+    if ($LASTEXITCODE -ne 0) {
+        throw "REFUSING TO ${FailVerb}: duplicate weapon SortOrder in the item bake (see above)."
+    }
+
     # Run the log scanner's own built-in regression cases (LW-148 F2): scan_logs.py is a
     # verify-time tool, not a build gate, but its PARSING LOGIC (line_level, the recognized-line
     # tripwire, --allow, flight-trigger parsing, ...) is exactly the kind of pure code this

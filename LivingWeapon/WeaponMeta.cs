@@ -45,6 +45,11 @@ public sealed class WeaponMeta
     // used palette index -- Materia Blade's own -- so it cannot double as "no colours").
     [JsonProperty("palette")] public int Palette { get; set; } = -1;
     [JsonProperty("colors")] public int[]? Colors { get; set; }
+    // LW-351: the item id this design USED to live at, when a design was moved to a different id
+    // (data/items.json `migratedFrom` -> the bake). TallyMigration reads it once per launch to
+    // carry a save's earned kills and deeds across the move, so the pairing table is DATA and no
+    // C# file names a weapon. 0 = this design never moved (every id but the moved ones).
+    [JsonProperty("migratedFrom")] public int MigratedFrom { get; set; }
 }
 
 /// <summary>A weapon's curated tier-grant: at kill-tier &gt;= AtTier the wielder gains the

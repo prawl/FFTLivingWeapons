@@ -74,7 +74,7 @@ internal sealed partial class ExtendedInventory
         // LW-353: the save edges (record counts per save, replay per save); a refusal here rolls
         // the whole arm back like any other piece, because an armed inventory whose counts vanish
         // on every load is worse than no inventory.
-        _saveHooks = new SaveEdgeHooks(_patcher, Tracker, Items.OrderBy(i => i.Id).Select(i => i.Id).ToList());
+        _saveHooks = new SaveEdgeHooks(_patcher, Tracker, Items.OrderBy(i => i.Id).Select(i => i.Id).ToList(), ReplayOnLoad);
         return _saveHooks.Install(hooks);
     }
 

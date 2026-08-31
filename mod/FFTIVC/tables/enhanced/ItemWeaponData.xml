@@ -452,12 +452,12 @@
       <OptionsAbilityId>14</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>48</Id> <!-- Terrastaff (was Battle Axe) -->
+      <Id>48</Id> <!-- Battle Axe -->
       <Range>1</Range>
       <Formula>1</Formula>
       <Power>9</Power>
-      <Evasion>20</Evasion>
-      <Elements>Earth</Elements>
+      <Evasion>0</Evasion>
+      <Elements>None</Elements>
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>

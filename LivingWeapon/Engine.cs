@@ -121,6 +121,11 @@ internal sealed class Engine
         ModLogger.Event(LogVerb.Save,
             LaunchHeader.ComposeLegends(_legends.WeaponCount, _legends.TotalMarks, _legends.LoadedFrom));
         var meta = MetaLoader.Load(modDir);
+        // LW-351: a design that moved to a new item id brings the player's earned progress with
+        // it. This runs AFTER the tally and legends are loaded (so it sees what the disk held)
+        // and BEFORE anything reads them -- including the dev seed below, which would otherwise
+        // seed the old id and then have the move sum that seed into the new one.
+        MigrateMovedDesigns(meta);
 #if LWDEV
         // DEV build only: seed every weapon to max tier for fast verification. Compiled out of
         // Release entirely (Tuning.DevSeedAllKills is a const false there, so a runtime `if` would
@@ -288,6 +293,34 @@ internal sealed class Engine
         LogNames.Init(meta);
         // Launch header L5 (the kill-total half of the old line moved to L3, the load summary).
         ModLogger.Event(LogVerb.Startup, $"Living Weapons is tracking {meta.Count} weapon types.");
+    }
+
+    /// <summary>LW-351: carry a save's earned kills and deeds across a design that changed item
+    /// id, once, on the first launch after the move. The pairing comes from meta.json
+    /// (<c>migratedFrom</c>, baked from data/items.json), never from code, and
+    /// <see cref="TallyMigration"/> owns the rule. Persists only what actually moved, through the
+    /// same atomic save chain everything else uses (previous generation kept as .bak).</summary>
+    private void MigrateMovedDesigns(Dictionary<int, WeaponMeta> meta)
+    {
+        var plan = TallyMigration.Plan(meta);
+        if (plan.Count == 0) return;
+        int kills = TallyMigration.MoveKills(plan, _kills);
+        int deeds = _legends.Migrate(plan);
+        if (kills > 0) _tally.Save();
+        if (deeds > 0) _legends.SaveIfDirty();
+        if (kills > 0 || deeds > 0)
+            ModLogger.Event(LogVerb.Save,
+                $"Some weapons changed item id in this version; {kills} weapon tall{(kills == 1 ? "y" : "ies")} "
+                + $"and {deeds} deed record(s) were moved over so no earned progress was lost "
+                + $"({string.Join(", ", Plans(plan))}).");
+    }
+
+    /// <summary>"old -&gt; new" for the migration log line, in a stable order.</summary>
+    private static IEnumerable<string> Plans(Dictionary<int, int> plan)
+    {
+        var keys = new List<int>(plan.Keys);
+        keys.Sort();
+        foreach (int k in keys) yield return $"{k} -> {plan[k]}";
     }
 
     /// <summary>LW-184: the declarative fan-out table Tick()'s post-edge tail steps through, in

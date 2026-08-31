@@ -5,9 +5,10 @@ namespace LivingWeapon;
 /// <summary>
 /// LW-346: the WHAT half of the extended inventory (the game knowledge), kept apart from the
 /// lifecycle in ExtendedInventory.cs the way LaunchGuard.Landmarks.cs is kept apart from
-/// LaunchGuard.cs. Every site below is a single-byte id CAP the 1.5.2 build hardcodes as 261
-/// (0x105) in one encoding or another; each one is widened by the number of extended ids so the
-/// game's own loops, guards and clamps admit them. Provenance per site is the FFTHandsFree
+/// LaunchGuard.cs. Every BootSites entry but its last two is a single-byte id CAP the 1.5.2 build
+/// hardcodes as 261 (0x105) in one encoding or another; each one is widened by the number of
+/// extended ids so the game's own loops, guards and clamps admit them (the last two are a
+/// reserved-id list moved out of the way once; see NOT A CAP). Provenance per site is the FFTHandsFree
 /// boot-arm marker v2 (tools/probes/lw346_capbreak_bootarm.marker.v2.txt, every line
 /// owner-observed on 1.5.2 2026-08-26/27) plus the rig's CapBreakEquipHook/CapBreakDisplayHook
 /// constants; every old byte was re-read from the 1.5.2 exe on disk 2026-08-27.
@@ -17,6 +18,34 @@ namespace LivingWeapon;
 /// can carry past 0xFF for N up to 250). Two sites differ: the count getter's cap is widened on
 /// its HIGH byte (0x103 -&gt; 0x203, ids up to 515, fixed) and the damage-staging cap feeds its
 /// bound through <c>xor r15d,0x5E</c> with 0x58, so its new byte is 0x58 ^ (6 + N).
+///
+/// TRAP (LW-351 fix round 3, 2026-08-30): the count getter's entry address 0x140284800 is the
+/// SECOND byte of one immediate, <c>mov r8d,0x103</c> at 0x1402847FD, whose bytes run
+/// 0x1402847FF..0x140284802. Re-reading that instruction on disk shows 0x103 and invites a
+/// second, PlusN entry on the low byte 0x1402847FF; that would widen one immediate twice. The
+/// bag accessor it gates (read/adjust 0x1411A7C00[id]) already admits ids 1..516 with the entry
+/// below: the running game read 41 b8 03 02 00 00 there on 2026-08-30 (read-only RPM, N=2).
+/// ExtendedSitesTests pins both halves.
+///
+/// NOT A CAP (LW-351 fix round 6, 2026-08-30): two sites below are a RESERVED-ITEM EQUALITY
+/// LIST, not a bound. The per-job can-equip check 0x1402886D0 (and an inlined copy of it at
+/// 0x140396F1C) tests the item id against five hardcoded ids before it ever reads the item's
+/// own job class; read from the 1.5.2 exe on disk:
+///   140288709  81 ea 06 01 00 00  sub edx, 0x106   ; id == 262 ?
+///   14028870F  74 48              je special
+///   140288711  83 ea 1a           sub edx, 0x1a    ; == 288 ?
+///   140288716  83 ea 05           sub edx, 5       ; == 293 ?
+///   14028871B  83 ea 08           sub edx, 8       ; == 301 ?
+///   140288720  83 fa 09 / 74 34   cmp edx, 9 ; je  ; == 310 ?
+///   (0x140396F52  81 e9 06 01 00 00  sub ecx, 0x106, then the same four steps)
+/// The special path admits only jobs 0xA1 and 0xA4 (unnamed rows in job.en) and answers -1
+/// ("cannot be equipped by the current job") for every other job. Vanilla never reaches it
+/// (ItemData ends at id 260), but the SECOND extended id is 262, so whichever item sits there
+/// is refused everywhere; the owner's swap experiment (261 and 262 exchanged, redeployed)
+/// showed the refusal following the id, not the item. The fix moves the list, once, out of
+/// the whole extended range: the imm32's second byte 0x01 -&gt; 0x02 makes it {518, 544, 549,
+/// 557, 566}, past EXTENDED_LAST_ID (511, tools/generate.py) and inside the 0x3FF id mask.
+/// The same byte lands for any N: this is a relocation, not a widening, and its entries say so.
 /// </summary>
 internal static class ExtendedSites
 {
@@ -28,7 +57,18 @@ internal static class ExtendedSites
     /// game runs.</summary>
     private static readonly Site[] BootSites =
     {
+        // the imm32 of `mov r8d,0x103` at 0x1402847FD; see the TRAP note above.
         new(0x140284800L, 0x01, Widen.HighByte, "count-getter cap (mov r8d,0x103 -> 0x203)"),
+        // LW-351 fix round 2 (2026-08-30, re-disassembled from the 1.5.2 exe on disk): the
+        // builder family at 0x140280000-0x140290000 carries nine imm32 0x105 item-id bounds and
+        // this was the one site LW-346 missed. 0x140284553 `mov edx,0x105` loads the bound the
+        // per-item state initialiser reuses four times: it clears the id-keyed byte arrays at
+        // 0x1411A7C00 and 0x1411A7700 and seeds the id-keyed u16 array at 0x1411A7810. The
+        // widened tail is safe: each byte array holds 0x105 entries in a 0x110-byte slot (live
+        // read 2026-08-30: 0x1411A7805-0F and 0x1411A7D05-0F are zero padding, the next
+        // structure starts on the 0x10 boundary), and the u16 array's tail is re-zeroed by the
+        // memset at 0x1402845E0 that immediately follows it.
+        new(0x140284554L, 0x05, Widen.PlusN, "per-item state initialiser bound (mov edx,0x105)"),
         new(0x140284724L, 0x05, Widen.PlusN, "display iteration cap 1"),
         new(0x1402847C9L, 0x05, Widen.PlusN, "display iteration cap 2"),
         new(0x140288CDAL, 0x05, Widen.PlusN, "display iteration cap 3"),
@@ -51,6 +91,13 @@ internal static class ExtendedSites
         // (cmp ebx,0x100 at 0x140288FD9; this is the imm32's low byte); widened to 0x105 + N so
         // the extended ids are candidates. Their town flags come from the ShopFlagsMirror.
         new(0x140288FDBL, 0x00, Widen.ShopLoop, "shop buy-list loop bound (cmp ebx,0x100)"),
+        // LW-351 fix round 6: the reserved-item equality list in the can-equip check and its
+        // inlined twin (see the NOT A CAP note above). Each address is the SECOND byte of the
+        // `sub r32,0x106` imm32 (0x140288709 + 3; 0x140396F52 + 3): 0x106 -> 0x206, so the five
+        // reserved ids {262, 288, 293, 301, 310} become {518, 544, 549, 557, 566}. Relocated
+        // once, never widened by N (HighByte lands 0x02 for every count).
+        new(0x14028870CL, 0x01, Widen.HighByte, "reserved-item equality list, can-equip check (sub edx,0x106 -> 0x206)"),
+        new(0x140396F55L, 0x01, Widen.HighByte, "reserved-item equality list, inlined twin (sub ecx,0x106 -> 0x206)"),
     };
 
     /// <summary>Copy-protected sites: their pages read vanilla only after a save has loaded, so

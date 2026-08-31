@@ -21,10 +21,6 @@
       <EquipBonusId>0</EquipBonusId>
     </Item>
     <Item>
-      <Id>48</Id> <!-- Terrastaff (was Battle Axe) -->
-      <ItemCategory>Pole</ItemCategory>
-    </Item>
-    <Item>
       <Id>49</Id> <!-- Ravager (was Giant's Axe) -->
       <ItemCategory>KnightSword</ItemCategory>
       <ShopAvailability>Chapter4_Start</ShopAvailability>

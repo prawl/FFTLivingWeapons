@@ -125,6 +125,16 @@ for _it in load_items()["items"]:
     _CATEGORY[_it["id"]] = _it.get("category")
     _NAME[_it["id"]] = _it.get("name")
 
+# LW-351: THE IDENTITY (NO-OP) LANE. An item restored to its vanilla self ships the game's own
+# artwork untouched: its row names itself as its own iconSource and carries NO iconTint, so
+# there is no colour to apply and no other item's picture to borrow. Those ids keep their
+# data/icon_ramp/treatments.json row (that table is pinned at 150 and is GENERATED from
+# tools/probes/ramp/weapon_assignments.json, not from items.json), but nothing tints them, so
+# main() re-encodes the vanilla decode for them instead of routing it through an engine, and
+# the selftest's live loop sorts them into their own bucket rather than counting them judged.
+# Derived, never a hand-list: a future restore lands here by editing items.json alone.
+VANILLA_KEPT = frozenset(i for i, s in SRC.items() if s == i and i not in ICON_TINTS)
+
 
 def recipe_comment_names():
     """The same read-back for the ZONE_OVERRIDES table, which the scan above cannot see.
@@ -1133,6 +1143,12 @@ BOW_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Bow")
 GUN_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Gun")
 ROD_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Rod")
 POLE_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Pole")
+# LW-351: the Axe family exists again (the Battle Axe went back to its own slot when the
+# Terrastaff design moved out to id 262). It gets a rack of its own for the same reason every
+# other family has one -- RAMP_RACKS must PARTITION the 150 ramp ids, and a ramp id in no rack
+# is an id judged by nothing. Its members ship the game's own art (VANILLA_KEPT below), so the
+# rack compares zero pairs today; that is stated out loud in the selftest rather than hidden.
+AXE_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Axe")
 SPEAR_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Polearm")
 STAFF_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Staff")
 CLOTH_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Cloth")
@@ -2115,7 +2131,7 @@ RAMP_RACKS = (
     ("gun", GUN_RACK), ("rod", ROD_RACK), ("pole", POLE_RACK), ("harp", HARP_RACK),
     ("polearm", SPEAR_RACK), ("staff", STAFF_RACK), ("cloth", CLOTH_RACK),
     ("katana", KATANA_RACK), ("knife", KNIFE_RACK), ("ninja blade", NINJA_RACK),
-    ("book", BOOK_RACK), ("bag", BAG_RACK),
+    ("book", BOOK_RACK), ("bag", BAG_RACK), ("axe", AXE_RACK),
     ("crossbow", frozenset(i for i, c in _CATEGORY.items() if c == "Crossbow")),
     ("shield", RAMP_SHIELDS), ("helm", RAMP_HELMS),
 )
@@ -2298,8 +2314,14 @@ def process(item_id, tint, src_id=None):
         shutil.copy(src, work_tex)
         subprocess.run([str(FF16), "tex-conv", "-i", str(work_tex)], capture_output=True)
         van = Image.open(WORK / f"{src_name}.dds").convert("RGBA")
-        im = route(van, item_id, tint, surface)
-        share = solid_tint_share(van, im)
+        # LW-351 identity lane: a restored item's picture is the game's own, so no engine runs.
+        # It still goes through the SAME encode as every other shipped icon (Pillow PNG ->
+        # img-conv --no-chunk-compression) rather than being byte-copied out of the vanilla
+        # decode, because the glow splice needs the fixed surface size (card 51296 / small
+        # 12384 -- tools/bake_glow_icons.py's manifest doc) and the raw vanilla file is neither.
+        identity = item_id in VANILLA_KEPT
+        im = van.copy() if identity else route(van, item_id, tint, surface)
+        share = 1.0 if identity else solid_tint_share(van, im)
         if share < SOLID_TINT_FLOOR:
             if item_id in RAMP_RESERVED_POP:
                 print(f"  WARN {out_name}: the tint reaches {share * 100:.1f}% of the solid art. "
@@ -2319,7 +2341,7 @@ def process(item_id, tint, src_id=None):
         dst.mkdir(parents=True, exist_ok=True)
         shutil.move(str(WORK / f"{out_name}.tex"), str(dst / f"{out_name}.tex"))
         print(f"  {out_name}" + (f" (from {src_name})" if src_id is not None else "")
-              + f" -> {sub} [{engine_for(item_id)}]")
+              + f" -> {sub} [{'identity (vanilla art kept)' if identity else engine_for(item_id)}]")
 
 
 def selftest():
@@ -3071,7 +3093,7 @@ def selftest():
     # THE LIVE LOOP. _judged, _exempt and _pairs_by_rack are ACCUMULATED here, never derived
     # from the tables, because a count derived from the same predicate it is meant to check is
     # a tautology (a set difference would make three of pin6's conjuncts true by construction).
-    _judged, _exempt, _no_tint = set(), set(), set()
+    _judged, _exempt, _no_tint, _vanilla_kept = set(), set(), set(), set()
     _pairs_by_rack, _unruled = {}, []
     for _rack_name, _rack in RAMP_RACKS:
         _hg, _sg = ramp_rack_floors(_rack_name)
@@ -3079,6 +3101,13 @@ def selftest():
         for _i in sorted(_rack):
             if ramp_exempt(_i):
                 _exempt.add(_i)
+                continue
+            # LW-351: an id on the identity lane ships the game's own art, so there is no tint
+            # for a palette rule to judge and no defect in there not being one. It gets its OWN
+            # bucket, so "no tint row" stays what it always was -- a mid-edit accident -- and a
+            # restore can never hide in that hole.
+            if _i in VANILLA_KEPT:
+                _vanilla_kept.add(_i)
                 continue
             _sig = ramp_signal(_i)
             if _sig is None:
@@ -3099,16 +3128,25 @@ def selftest():
               f"ruling (unruled collisions: {[(a, b) for r, a, b in _unruled if r == _rack_name]})",
               not [1 for r, _, _ in _unruled if r == _rack_name])
 
-    check(f"ramp pin6a coverage: the 18 racks PARTITION the 150 ramp ids, none twice and none "
-          f"missing (helms were in NO rack before LW-287, so 13 items were judged by nothing)",
-          len(RAMP_RACKS) == 18
+    check(f"ramp pin6a coverage: the 19 racks PARTITION the 150 ramp ids, none twice and none "
+          f"missing (helms were in NO rack before LW-287, so 13 items were judged by nothing; "
+          f"axe is LW-351's, for the family that came back)",
+          len(RAMP_RACKS) == 19
           and sum(len(r) for _, r in RAMP_RACKS) == 150
           and set().union(*(set(r) for _, r in RAMP_RACKS)) == set(RAMP_IDS))
     check(f"ramp pin6b coverage: every ramp id was reached by the live loop and sorted into "
           f"exactly one bucket ({len(_judged)} judged + {len(_exempt)} exempt + "
+          f"{len(_vanilla_kept)} shipping vanilla art + "
           f"{len(_no_tint)} without a tint row = 150)",
-          len(_judged) == 114 and len(_exempt) == 36 and not _no_tint
-          and _judged | _exempt == set(RAMP_IDS) and not (_judged & _exempt))
+          len(_judged) == 113 and len(_exempt) == 36 and len(_vanilla_kept) == 1
+          and not _no_tint
+          and _judged | _exempt | _vanilla_kept == set(RAMP_IDS)
+          and not (_judged & _exempt) and not (_judged & _vanilla_kept)
+          and not (_exempt & _vanilla_kept))
+    check(f"ramp pin6b2 coverage (LW-351): the vanilla-art bucket the LOOP built is exactly the "
+          f"derived VANILLA_KEPT set, spelled out, so a restored id is a diff and never a silent "
+          f"drift (got {sorted(_vanilla_kept)})",
+          sorted(_vanilla_kept) == sorted(VANILLA_KEPT) and sorted(_vanilla_kept) == [48])
     check("ramp pin6c coverage: the exempt set the LOOP built is exactly RAMP_RESERVED_POP, "
           "spelled out, so widening the exemption is a diff and never a silent drift",
           sorted(_exempt) == sorted(RAMP_RESERVED_POP)
@@ -3118,14 +3156,16 @@ def selftest():
     check(f"ramp pin6d coverage: the pairs the loop actually COMPARED, per rack, are exactly as "
           f"measured on 2026-08-19 (got {_pairs_by_rack})",
           _pairs_by_rack == {"sword": 91, "knight sword": 1, "bow": 21, "gun": 1, "rod": 15,
-                             "pole": 21, "harp": 1, "polearm": 15, "staff": 15, "cloth": 3,
+                             "pole": 15, "harp": 1, "polearm": 15, "staff": 15, "cloth": 3,
                              "katana": 0, "knife": 45, "ninja blade": 15, "book": 3, "bag": 6,
-                             "crossbow": 15, "shield": 120, "helm": 78}
-          and sum(_pairs_by_rack.values()) == 466)
-    check("ramp pin6e coverage: the katana rack compares ZERO pairs and that is stated OUT LOUD "
-          "rather than buried under a floor -- 10 of its 11 ids kept a vanilla name, so the "
-          "anchors gate holds that rack and this one cannot. 17 of 18 racks compare a pair",
-          _pairs_by_rack["katana"] == 0
+                             "crossbow": 15, "shield": 120, "helm": 78, "axe": 0}
+          and sum(_pairs_by_rack.values()) == 460)
+    check("ramp pin6e coverage: the katana and axe racks compare ZERO pairs and that is stated "
+          "OUT LOUD rather than buried under a floor -- 10 of katana's 11 ids kept a vanilla "
+          "name, so the anchors gate holds that rack and this one cannot, and axe's one id "
+          "(LW-351) ships the game's own art with no tint to judge. 17 of 19 racks compare a "
+          "pair",
+          _pairs_by_rack["katana"] == 0 and _pairs_by_rack["axe"] == 0
           and sum(1 for _, v in _pairs_by_rack.items() if v >= 1) == 17)
 
     # ramp pin7: the loop is LIVE, rack by rack. Clone one judged id's tint onto another judged
@@ -3139,7 +3179,9 @@ def selftest():
     # error as scoring a mutation caught because the suite went red, when what went red was an
     # unrelated flaky test.
     _PIN7_PAIRS = {"sword": (19, 20), "knight sword": (49, 50), "bow": (83, 84),
-                   "gun": (71, 72), "rod": (51, 52), "pole": (48, 107), "harp": (92, 93),
+                   # LW-351: the pole pair was (48, 107) until the Battle Axe took id 48 back
+                   # and left the pole rack; 107/108 are the rack's next two judged ids.
+                   "gun": (71, 72), "rod": (51, 52), "pole": (107, 108), "harp": (92, 93),
                    "polearm": (99, 100), "staff": (59, 60), "cloth": (119, 120),
                    "knife": (1, 2), "ninja blade": (11, 12), "book": (95, 96),
                    "bag": (115, 116), "crossbow": (77, 78), "shield": (128, 129),
@@ -3393,12 +3435,12 @@ def selftest():
     # old form could not give: it covers crossbows, shields and helms too, and it reads the same
     # RAMP_RACKS the live loop above iterates, so a rack cannot be judged under one definition
     # and size-checked under another.
-    _RACK_SIZES = {"sword": 15, "knight sword": 7, "bow": 9, "gun": 6, "rod": 8, "pole": 9,
+    _RACK_SIZES = {"sword": 15, "knight sword": 7, "bow": 9, "gun": 6, "rod": 8, "pole": 8,
                    "harp": 3, "polearm": 8, "staff": 8, "cloth": 3, "katana": 11, "knife": 11,
                    "ninja blade": 9, "book": 4, "bag": 4, "crossbow": 6, "shield": 16,
-                   "helm": 13}
+                   "helm": 13, "axe": 1}
     _sizes = {n: len(r) for n, r in RAMP_RACKS}
-    check(f"every rack is exactly the size it should be, all eighteen (got {_sizes})",
+    check(f"every rack is exactly the size it should be, all nineteen (got {_sizes})",
           _sizes == _RACK_SIZES and sum(_RACK_SIZES.values()) == 150)
     # SHARED SPRITES. Three items in these two racks draw themselves with ANOTHER item's picture
     # (the Warbrand on the Vagabond's, the Ravager on the Defender's, the Sunderer on Save the
@@ -3826,7 +3868,10 @@ def main():
     if "--selftest" in sys.argv:
         raise SystemExit(selftest())
     only = set(int(a) for a in sys.argv[1:] if a.isdigit())
-    for i, tint in ICON_TINTS.items():
+    # LW-351: the identity lane rides the same loop, with no tint to hand it. Without this an
+    # id whose iconTint was removed would simply stop being re-baked, and whatever art it last
+    # shipped (in the restore's case, the DESIGN's recolored picture) would sit there forever.
+    for i, tint in sorted(list(ICON_TINTS.items()) + [(v, None) for v in VANILLA_KEPT]):
         if only and i not in only:
             continue
         print(f"id{i}:")

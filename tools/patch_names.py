@@ -11,6 +11,7 @@ Description = one flavor line + one mechanics line, the mechanics derived from t
 Usage:
   python tools/patch_names.py            # patch all named items, re-encode, deploy nxd to mod tree
   python tools/patch_names.py --dry      # print the name/description that WOULD be written, no write
+  python tools/patch_names.py --selftest # the SortOrder uniqueness gate (pure; no game, no sqlite)
 """
 import sys
 import tempfile
@@ -42,6 +43,24 @@ UICAT = {"Knife": 1, "NinjaBlade": 2, "Sword": 3, "KnightSword": 4, "Katana": 5,
 # UiItemCategoryId -> hundreds (derived from the dominant SortOrder//100 per category in the stock data).
 GROUP_RANK = {1: 1, 3: 2, 4: 3, 12: 4, 11: 5, 8: 6, 7: 7, 10: 8, 14: 9, 16: 10,
               6: 11, 15: 12, 5: 13, 2: 14, 9: 15, 13: 16, 18: 17, 17: 18}
+
+# The weapon-category Item-en rows the BASE GAME ships that data/items.json never names: the two
+# DLC swords. Key -> (UiItemCategoryId, the game's own SortOrder). We do not own these rows and
+# never write them, so the numbers below are exactly what the shipped table keeps -- which means
+# the regeneration above has to treat them as TAKEN and number around them. It did not, and the
+# LW-351 live pass (2026-08-30) paid for it: Key 256 and the Warbrand both read 215, Key 257 and
+# the Moonblade both read 216. The game rebuilds its two weapon order tables slot-by-sort-key, so
+# each duplicate cost one of the pair its slot -- the Moonblade fell out of the inventory list,
+# the Terrastaff out of the equip picker, and a stale entry stayed visible in each hole.
+# Reproduce (needs the local install): decode the game's own nxd/item.en.nxd the way
+# tools/audit_nxd_bakes.py does, then
+#   SELECT Key, UiItemCategoryId, SortOrder FROM "Item-en" WHERE UiItemCategoryId BETWEEN 1 AND 18
+# and drop every Key data/items.json names. Vanilla 1.5.2: 123 weapon rows, no duplicate SortOrder
+# among them, and these two are the only un-named ones. check_stock_rows (below) refuses to bake
+# if the installed game stops matching this list, and --selftest refuses if the regenerated keys
+# ever land on one of these values again.
+STOCK_WEAPON_ROWS = {256: (3, 215),   # Materia Blade+ (Sword)
+                     257: (3, 216)}   # Akademy Blade  (Sword)
 
 # rider_text / mechanics / flavor / plural -- the deterministic description bake -- moved to
 # lib/flavor.py so analyze.py (the CI gate) and gen_living_weapon_meta.py import them from a
@@ -87,11 +106,14 @@ def seed_extended_rows(con, named):
     return seeded
 
 
-def build_sort_map(named):
+def build_sort_map(named, stock=None):
     """Regroup weapon SortOrder by ACTUAL type (fixes repurposed-in-place scatter). Within a type,
-    order by (tier, id) for a clean weak->strong progression. Non-weapons keep their stock
-    SortOrder. Pulled out of main() so both apply_patches (the writer) and a verify caller can
-    share the exact same derivation."""
+    order by (tier, id) for a clean weak->strong progression, SKIPPING the numbers the game's own
+    un-named weapon rows already hold (STOCK_WEAPON_ROWS): those rows stay exactly where the game
+    put them, so the only way for every weapon row to end up on a distinct key is for ours to
+    number around theirs. Non-weapons keep their stock SortOrder. Pulled out of main() so both
+    apply_patches (the writer) and a verify caller can share the exact same derivation."""
+    stock = STOCK_WEAPON_ROWS if stock is None else stock
     sort_map, by_group = {}, {}
     for it in named:
         eff = it["proposed"].get("categoryOverride") or it.get("category")
@@ -99,9 +121,65 @@ def build_sort_map(named):
             by_group.setdefault(UICAT[eff], []).append(it)
     for uicat, items_in in by_group.items():
         rank = GROUP_RANK.get(uicat, 19)
-        for i, it in enumerate(sorted(items_in, key=lambda x: (x.get("tier", 99) or 99, x["id"])), start=1):
-            sort_map[it["id"]] = rank * 100 + i
+        taken = {so for cat, so in stock.values() if GROUP_RANK.get(cat, 19) == rank}
+        slot = 0
+        for it in sorted(items_in, key=lambda x: (x.get("tier", 99) or 99, x["id"])):
+            slot += 1
+            while rank * 100 + slot in taken:
+                slot += 1
+            sort_map[it["id"]] = rank * 100 + slot
     return sort_map
+
+
+def sort_order_collisions(sort_map, stock=None):
+    """Every SortOrder claimed by more than one weapon row of the SHIPPED table, {value: [keys]}.
+    That table is our regenerated rows (sort_map) plus the stock rows we leave alone
+    (STOCK_WEAPON_ROWS), so both halves are counted here. Empty is the only healthy answer: the
+    game's weapon order tables are built slot-by-sort-key, and a shared key costs one of the two
+    rows its slot."""
+    stock = STOCK_WEAPON_ROWS if stock is None else stock
+    claims = {}
+    for iid, so in sort_map.items():
+        claims.setdefault(so, []).append(iid)
+    for key, (_cat, so) in stock.items():
+        claims.setdefault(so, []).append(key)
+    return {so: sorted(keys) for so, keys in claims.items() if len(keys) > 1}
+
+
+def selftest(named=None, sort_map=None):
+    """Build gate (wired into tools/pipeline.ps1, so BuildLinked, Publish and CI all run it, and
+    called by main() so a manual bake cannot route around it): no two weapon rows in the shipped
+    item table may share a SortOrder.
+
+    Pure derivation -- data/items.json plus STOCK_WEAPON_ROWS -- so it needs neither the game
+    install nor the working sqlite, and it fails on the AUTHORING mistake (an items.json edit that
+    grows a weapon group onto a stock row's number) rather than after a re-bake. It exists because
+    the failure it guards is invisible from the data: everything reads fine, the bake verifies
+    clean, and the loss only shows up as an item missing from an in-game list."""
+    named = named_items() if named is None else named
+    sort_map = build_sort_map(named) if sort_map is None else sort_map
+    label = {it["id"]: it["name"] for it in named}
+    clash = sort_order_collisions(sort_map)
+    for so, keys in sorted(clash.items()):
+        who = ", ".join(f"Key {k} ({label.get(k, 'stock row, not ours')})" for k in keys)
+        print(f"  SortOrder {so} is claimed by {len(keys)} weapon rows: {who}")
+    # Same failure through the other door: an extended row (ids 261+) is SEEDED by cloning
+    # Key EXTENDED_TEMPLATE_KEY, so it starts life holding that row's SortOrder and only the
+    # weapon branch of item_intent ever replaces it. A non-weapon extended item would therefore
+    # ship a second row on the template's key without one line of this file changing.
+    cloned_key = sorted(it["id"] for it in named if it.get("extended") and it["id"] not in sort_map)
+    if cloned_key:
+        print(f"  extended rows with no regenerated menu key: {cloned_key} -- each was cloned from "
+              f"Key {EXTENDED_TEMPLATE_KEY} and would ship that row's SortOrder as a duplicate")
+    overlap = sorted(set(STOCK_WEAPON_ROWS) & {it["id"] for it in named})
+    if overlap:
+        print(f"  STOCK_WEAPON_ROWS lists ids data/items.json also owns: {overlap}")
+    if clash or overlap or cloned_key:
+        sys.exit(f"FAIL: {len(clash)} duplicate weapon SortOrder(s), {len(overlap)} stock/owned id "
+                 f"clash(es), {len(cloned_key)} extended row(s) on a cloned key -- the game's "
+                 f"order-table rebuild drops one row per collision")
+    print(f"  selftest PASS: {len(sort_map) + len(STOCK_WEAPON_ROWS)} weapon rows "
+          f"({len(STOCK_WEAPON_ROWS)} of them the game's own), all on distinct SortOrder values")
 
 
 def item_intent(named, sort_map=None):
@@ -179,33 +257,37 @@ def apply_patches(con, named, intent):
     return intent
 
 
-def orphan_sweep(con, sort_map):
-    """Orphan weapons not in items.json (e.g. DLC dupes like the id254 Moonblade) keep a stale
-    SortOrder -- sweep any that don't match their type group to the END of that group, so none
-    stray to the front. Every row here came straight off a SELECT of the same table in the same
-    transaction, so its Key is guaranteed present; the guard still runs for the same reason every
-    UPDATE in this file gets one (LW-148: no unguarded UPDATE, full stop)."""
-    grp_max = {}
-    for so in sort_map.values():
-        grp_max[so // 100] = max(grp_max.get(so // 100, 0), so % 100)
-    for key, uicat, so in con.execute(
-            'SELECT Key, UiItemCategoryId, SortOrder FROM "Item-en" WHERE UiItemCategoryId BETWEEN 1 AND 18').fetchall():
-        rank = GROUP_RANK.get(uicat)
-        if key not in sort_map and rank and so // 100 != rank:
-            grp_max[rank] = grp_max.get(rank, 0) + 1
-            _guarded_update(con, 'UPDATE "Item-en" SET SortOrder=? WHERE Key=?',
-                            (rank * 100 + grp_max[rank], key), f"orphan id{key} SortOrder sweep")
+def check_stock_rows(con, named_ids):
+    """Refuse to bake unless the table's un-named weapon rows are EXACTLY the ones
+    STOCK_WEAPON_ROWS describes, category and SortOrder both.
+
+    This is the on-box half of the LW-351 fix. build_sort_map numbers our rows around these
+    values, so a stale list is not a cosmetic problem: a game patch that adds a weapon row, or
+    renumbers one of these two, would put a stock row back inside our range and cost some item its
+    slot in an in-game list, with nothing else on the bake path noticing. We never write these
+    rows, so their values stay the game's own and this stays idempotent (it is a read, not a
+    sweep). Its predecessor swept off-group orphans to the end of their group; nothing has been
+    off-group since 1.5.x, and the sweep could not have seen these two (both sit in the group they
+    belong to), which is exactly how the duplicate survived to a live pass."""
+    actual = {key: (cat, so) for key, cat, so in con.execute(
+        'SELECT Key, UiItemCategoryId, SortOrder FROM "Item-en" WHERE UiItemCategoryId BETWEEN 1 AND 18')
+        if key not in named_ids}
+    if actual != STOCK_WEAPON_ROWS:
+        sys.exit(f"FAIL: the item table's un-named weapon rows are {actual}, not the "
+                 f"STOCK_WEAPON_ROWS {STOCK_WEAPON_ROWS} tools/patch_names.py numbers around. "
+                 f"Update that table (Key -> (UiItemCategoryId, SortOrder)) from the installed "
+                 f"game, re-run `python tools/patch_names.py --selftest`, then bake again.")
 
 
 def verify_against_vanilla(built_nxd, own_intent):
     """Decode the freshly-built nxd and diff it cell-by-cell against CURRENT vanilla, refusing to
     deploy unless exactly the intended cells differ (the patch_ability_names.py / patch_status_names.py
     verify() shape, LW-148). Reuses tools/audit_nxd_bakes.py's own audit (item_intent,
-    ALLOWED_ITEM_CELLS, the orphan-sweep allowance, and its LW-148 MISS check for a silently
-    no-opped rename) rather than a second, weaker reimplementation of the same classification --
-    the audit tool is already the thing that knows what counts as intentional for this table.
+    ALLOWED_ITEM_CELLS, and its LW-148 MISS check for a silently no-opped rename) rather than a
+    second, weaker reimplementation of the same classification -- the audit tool is already the
+    thing that knows what counts as intentional for this table.
     Imported lazily (not at module load) to dodge the one real circular edge: audit_nxd_bakes.py
-    itself imports GROUP_RANK/item_intent/named_items from this module.
+    itself imports item_intent/named_items from this module.
 
     own_intent (apply_patches' own {(id, col): value} record of what THIS run tried to write) gets
     one extra, narrower check on top: the patch_ability_names.py-style final loop confirming every
@@ -237,6 +319,9 @@ def verify_against_vanilla(built_nxd, own_intent):
 
 
 def main():
+    if "--selftest" in sys.argv:
+        selftest()
+        return
     dry = "--dry" in sys.argv
     named = named_items()
     sort_map = build_sort_map(named)
@@ -247,10 +332,11 @@ def main():
                 print(f"id{it['id']:>3} {intent[(it['id'], 'Name')]!r}\n"
                       f"      {intent[(it['id'], 'Description')]!r}")
         return
+    selftest(named, sort_map)   # never bake a table two weapon rows would share a menu slot in
     con = sqlite3.connect(SQLITE)
     seed_extended_rows(con, named)   # LW-346: rows for ids 261+ before the guarded UPDATEs need them
     apply_patches(con, named, intent)
-    orphan_sweep(con, sort_map)
+    check_stock_rows(con, {it["id"] for it in named})
     con.commit(); con.close()
     print(f"Patched {len(named)} rows in {SQLITE.name}. Re-encoding to nxd...")
     out_nxd = encode_sqlite_to_nxd(SQLITE, ENC_DIR, "item.en.nxd")

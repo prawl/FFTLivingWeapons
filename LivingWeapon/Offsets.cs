@@ -748,4 +748,39 @@ internal static class Offsets
     /// <summary>The static image buffer the pointer above normally holds; diagnostic only, the
     /// hooks always follow the pointer rather than reading this.</summary>
     public const long SaveStructStatic = 0x142C81C80L;
+
+    // --- LW-351 fix round 5: the two weapon menu ORDER TEMPLATES (2026-08-30, disassembled from
+    // the 1.5.2 exe on disk; re-derive with tools/probes/lw351_order_template_probe.py --disk).
+    // These tables decide which item ids the party inventory and the unit equip picker are willing
+    // to list, and they are NOT rebuilt from the item data during a load: the load-apply routine
+    // (FnSaveApply) RESTORES both out of the save struct it was handed and the serializer
+    // (FnSaveSerialize) writes them back, so they are SAVE STATE. Copy direction, read off the
+    // disassembly both ways:
+    //   load    0x14021B4BD  lea rdx,[rip+0x59708C] -> 0x1407B2550 (dest), rcx = [r8+0x8A6C] (src)
+    //   save    0x1402194BC  lea rdx,[rip+0x59908D] -> 0x1407B2550 (src),  rcx = [r8+0x8A6C] (dest)
+    // A save written before an extended id ever seated therefore restores a template without it,
+    // which is why the mod seats owned extended ids itself right after the load-apply returns
+    // (Persistence/TemplateSeat.cs). Both tables are u16 item ids ending in a 0x00FF marker; the
+    // menu LISTS the order-rebuild hook works on end in 0xFFFF instead.
+    /// <summary>The party inventory's weapon display-order template: u16 item ids, 0x00FF end
+    /// marker, named by the pointer table 0x14067F498 slot 0.</summary>
+    public const long InventoryOrderTemplate = 0x1407B2550L;
+    /// <summary>Capacity of the table above, in u16 words. Derivation: the load-apply's
+    /// fixed-size copy into it moves exactly 0x11A = 282 bytes = 141 words (the loop at
+    /// 0x14021B560 runs r10 = 2 iterations of rsi = 0x80 bytes, r10 from <c>lea r10d,[r11+2]</c>
+    /// at 0x14021B1C4 with r11 already counted down to 0, rsi from <c>lea esi,[rbx+0x7c]</c> at
+    /// 0x14021B11C with ebx = 4; the tail at 0x14021B5A9 adds 16+8+2 = 0x1A bytes). The
+    /// bound agrees with the neighbors: the next object any pointer names above this base is
+    /// 0x1407B266C (picker pointer table 0x14067FAD0), 0x11C above it, i.e. these 141 words plus
+    /// two bytes of alignment padding.</summary>
+    public const int InventoryOrderTemplateWords = 141;
+    /// <summary>The unit equip picker's weapon display-order template (same word format), named
+    /// by the pointer table 0x14067FA90 slot 0. It sits inside one 0x3F2-byte block the load
+    /// restores from [r8+0x8C7C] (the copy at 0x14021B6F9: r9 = 7 iterations of 0x80 plus a
+    /// 0x72-byte tail), which also carries the picker's three other sub-tables.</summary>
+    public const long PickerOrderTemplate = 0x141874540L;
+    /// <summary>Capacity of the table above, in u16 words: the next sub-table its own pointer
+    /// table names (slot 1, 0x14067FA98) is 0x14187465A, exactly 0x11A = 282 bytes = 141 words
+    /// above the base, the same size the inventory template's copy proves for its twin.</summary>
+    public const int PickerOrderTemplateWords = 141;
 }

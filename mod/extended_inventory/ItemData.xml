@@ -15,5 +15,17 @@
       <Price>10</Price>
       <ShopAvailability>Blank</ShopAvailability>
     </Item>
+    <Item>
+      <Id>262</Id> <!-- Terrastaff -->
+      <Palette>7</Palette>
+      <SpriteID>62</SpriteID>
+      <RequiredLevel>0</RequiredLevel>
+      <TypeFlags>Weapon</TypeFlags>
+      <AdditionalDataId>108</AdditionalDataId>
+      <ItemCategory>Pole</ItemCategory>
+      <EquipBonusId>0</EquipBonusId>
+      <Price>1500</Price>
+      <ShopAvailability>Chapter1_KillMiluda</ShopAvailability>
+    </Item>
   </Entries>
 </ItemTable>

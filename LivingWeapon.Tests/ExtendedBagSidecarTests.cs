@@ -1,6 +1,9 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 using LivingWeapon;
 using Xunit;
 
@@ -71,6 +74,53 @@ public class ExtendedBagSidecarTests : IDisposable
         var back = ExtendedBagSidecar.Load(PathOf);
         Assert.Null(back.TakeLegacy());   // and not again after a relaunch
         Assert.Equal(PathOf, back.LoadedFrom);
+    }
+
+    /// <summary>LW-351: the bag replay moved onto the game's OWN thread (it now runs inside the
+    /// load detour, before the game rebuilds its menu templates), so this sidecar is reached from
+    /// two threads at once: the detour resolving a load, and Engine's tick recording a save. Its
+    /// maps are plain Dictionary/List and its writer is SidecarJson's fixed .tmp path, and
+    /// unsynchronised use of those from two threads is undefined behavior rather than a race over
+    /// which write wins (the FileConsoleLoggerThreadSafetyTests precedent, same reasoning). This
+    /// hammers both roles at once and demands that nothing escapes and the file is still readable
+    /// afterwards.</summary>
+    [Fact]
+    public void Recording_and_reading_from_two_threads_never_throws()
+    {
+        File.WriteAllText(PathOf, "{\"version\":1,\"counts\":{\"261\":2}}");
+        var s = ExtendedBagSidecar.Load(PathOf);
+        var failures = new ConcurrentQueue<Exception>();
+        using var cap = LogCapture.Start();   // Persist swallows its own faults, so the log is where a lost write shows
+        using var done = new CancellationTokenSource();
+
+        var recorder = Task.Run(() =>
+        {
+            try
+            {
+                for (int i = 0; i < 150; i++) s.RecordSave($"pt{i}-{i:x12}", new Dictionary<int, int> { [261] = i & 0xFF });
+            }
+            catch (Exception ex) { failures.Enqueue(ex); }
+            finally { done.Cancel(); }
+        });
+        var replayer = Task.Run(() =>
+        {
+            try
+            {
+                while (!done.IsCancellationRequested)
+                {
+                    s.TryGetSave("pt7-000000000007", out _);
+                    if (s.TakeLegacy() != null) { /* the one-shot, spent on this thread in production */ }
+                    s.PersistAfterLegacyTaken();
+                }
+            }
+            catch (Exception ex) { failures.Enqueue(ex); }
+        });
+
+        Assert.True(Task.WaitAll(new[] { recorder, replayer }, TimeSpan.FromSeconds(60)));
+        Assert.Empty(failures);
+        Assert.DoesNotContain(cap.File, l => l.Contains("Failed to save the extended-inventory bag counts"));
+        var back = ExtendedBagSidecar.Load(PathOf);
+        Assert.True(back.SaveCount > 0, "the sidecar file must still be readable after the two threads ran");
     }
 
     [Fact]

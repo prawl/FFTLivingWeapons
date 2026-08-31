@@ -377,6 +377,14 @@ def main():
                 sys.exit(f"FAIL: id{it['id']} ({name}) signature carries unhandled key(s) "
                          f"{sorted(unknown)}: not in _SIG_PASSTHROUGH, not allowlisted in "
                          f"_SIG_HANDLED_ELSEWHERE, so meta.json would silently drop them")
+        # LW-351: the id this design USED to live at, when a design moved to a different item id
+        # (the Terrastaff off the vanilla Battle Axe's slot onto its own extended id). The runtime
+        # (Persistence/TallyMigration.cs) reads this once per launch to carry a save's earned kills
+        # and deeds across the move, so the pairing table is DATA and no C# file names a weapon.
+        # Emitted at the END of the entry dict, before attach_weapon_palettes appends its own
+        # keys, per LW-156's byte-identity rule (new keys append, they never insert).
+        if it.get("migratedFrom"):
+            entry["migratedFrom"] = int(it["migratedFrom"])
         meta[str(it["id"])] = entry
 
     errors = attach_weapon_palettes(meta, load_weapon_colours(), load_weapon_palette_overrides())

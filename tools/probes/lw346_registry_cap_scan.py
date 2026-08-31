@@ -29,6 +29,28 @@ KNOWN = {
     0x140288CDA: "display cap 3",
     0x140289074: "display cap 4",
     0x140284800: "count-getter cap (0x103 imm, listed for reference)",
+    # SCAN ALIAS (LW-351 re-test 6): BootSites' adjust-count cap (mov eax,0x104 at
+    # 0x140101070) reads 0x104 + N live, so with the mod armed at N=2 it lands in the 0x106
+    # list. Already widened; never give it a second entry.
+    0x140101071: "adjust-count cap, ALREADY WIDENED (reads 0x104+N live; not a 0x106 site)",
+    # LW-351 fix round 6 (2026-08-30): the two RESERVED-ITEM EQUALITY LISTS, not caps. The
+    # can-equip check 0x1402886D0 and its inlined twin at 0x140396F1C test the id against
+    # {262, 288, 293, 301, 310} (sub r32,0x106 then imm8 steps 0x1a/5/8/9) and admit only jobs
+    # 0xA1/0xA4; the mod relocates both lists to {518, ...} by raising the imm32's second byte
+    # (ExtendedSites 0x14028870C / 0x140396F55). The keys below are the imm32 LOW bytes this
+    # scan reports; at the relocated value they self-exclude (they read 0x206, not 0x106).
+    0x14028870B: "reserved-item list, can-equip check (sub edx,0x106; NOT a cap)",
+    0x140396F54: "reserved-item list, inlined twin (sub ecx,0x106; NOT a cap)",
+    # zlib deflate, never patch: 0x106 = MIN_LOOKAHEAD (MAX_MATCH 258 + MIN_MATCH 3 + 1).
+    # 0x140410190 / 0x1404105xx are deflate_fast/deflate_slow, 0x14040FB50 is fill_window.
+    0x1404101E7: "zlib deflate lookahead < MIN_LOOKAHEAD (never patch)",
+    0x1404101FC: "zlib deflate lookahead < MIN_LOOKAHEAD (never patch)",
+    0x1404105F8: "zlib deflate twin, lookahead < MIN_LOOKAHEAD (never patch)",
+    0x14041060D: "zlib deflate twin, lookahead < MIN_LOOKAHEAD (never patch)",
+    0x14040FCC1: "zlib fill_window lookahead bound (never patch)",
+    0x140410291: "zlib w_size - MIN_LOOKAHEAD (never patch)",
+    0x1404106CA: "zlib w_size - MIN_LOOKAHEAD (never patch)",
+    0x1404F5EBD: "zlib w_size - MIN_LOOKAHEAD (never patch)",
 }
 
 
@@ -84,8 +106,14 @@ def classify(ctx8):
     p1, p2 = ctx8[-1], ctx8[-2]
     if p1 == 0x3D:
         return "cmp eax,imm32"
+    if p1 == 0x2D:
+        return "sub eax,imm32"
     if p2 == 0x81 and 0xF8 <= p1 <= 0xFF:
         return f"cmp r32,imm32 (81 {p1:02X})"
+    # LW-351 fix round 6: `sub r32,imm32` is how the can-equip check spells an EQUALITY test
+    # (sub then je); without this case the reserved-item list at 0x140288709 never showed up.
+    if p2 == 0x81 and 0xE8 <= p1 <= 0xEF:
+        return f"sub r32,imm32 (81 {p1:02X})"
     if p2 == 0x81 and 0xC0 <= p1 <= 0xC7:
         return f"add r32,imm32 (81 {p1:02X})"
     if 0xB8 <= p1 <= 0xBF:

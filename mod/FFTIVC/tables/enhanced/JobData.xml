@@ -4,8 +4,8 @@
   <Version>1</Version>
   <Entries>
     <Job>
-      <Id>3</Id> <!-- Gallant Knight: equip: Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, Armor, HairAdornment, Hat, Helmet, Shield, KnightSword, Sword, Unarmed -->
-      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, Armor, HairAdornment, Hat, Helmet, Shield, KnightSword, Sword, Unarmed</EquippableItems>
+      <Id>3</Id> <!-- Gallant Knight: equip: Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, Armor, HairAdornment, Hat, Helmet, Shield, Flail, KnightSword, Sword, Unarmed -->
+      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, Armor, HairAdornment, Hat, Helmet, Shield, Flail, KnightSword, Sword, Unarmed</EquippableItems>
     </Job>
     <Job>
       <Id>4</Id> <!-- Squire: C-EV 5 to 8 -->
@@ -40,8 +40,8 @@
       <CharacterEvasion>8</CharacterEvasion>
     </Job>
     <Job>
-      <Id>74</Id> <!-- Squire: equip: Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Clothing, HairAdornment, Hat, Sword, Unarmed, Crossbow; C-EV 5 to 8 -->
-      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Clothing, HairAdornment, Hat, Sword, Unarmed, Crossbow</EquippableItems>
+      <Id>74</Id> <!-- Squire: equip: Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Clothing, HairAdornment, Hat, Flail, Axe, Sword, Unarmed, Crossbow; C-EV 5 to 8 -->
+      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Clothing, HairAdornment, Hat, Flail, Axe, Sword, Unarmed, Crossbow</EquippableItems>
       <CharacterEvasion>8</CharacterEvasion>
     </Job>
     <Job>
@@ -91,8 +91,8 @@
       <CharacterEvasion>8</CharacterEvasion>
     </Job>
     <Job>
-      <Id>86</Id> <!-- Geomancer: equip: Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Shield, Sword, Unarmed, Pole -->
-      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Shield, Sword, Unarmed, Pole</EquippableItems>
+      <Id>86</Id> <!-- Geomancer: equip: Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Shield, Axe, Sword, Unarmed, Pole -->
+      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Shield, Axe, Sword, Unarmed, Pole</EquippableItems>
     </Job>
     <Job>
       <Id>87</Id> <!-- Dragoon: equip: Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Armor, HairAdornment, Helmet, Shield, Polearm, Unarmed, Sword -->
@@ -103,8 +103,8 @@
       <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Armor, HairAdornment, Helmet, Katana, Unarmed, Polearm, Shield</EquippableItems>
     </Job>
     <Job>
-      <Id>89</Id> <!-- Ninja: equip: Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Clothing, HairAdornment, Hat, NinjaBlade, Knife, Unarmed, Shield -->
-      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Clothing, HairAdornment, Hat, NinjaBlade, Knife, Unarmed, Shield</EquippableItems>
+      <Id>89</Id> <!-- Ninja: equip: Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Clothing, HairAdornment, Hat, Flail, NinjaBlade, Knife, Unarmed, Shield -->
+      <EquippableItems>Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Clothing, HairAdornment, Hat, Flail, NinjaBlade, Knife, Unarmed, Shield</EquippableItems>
     </Job>
     <Job>
       <Id>90</Id> <!-- Arithmetician: equip: Perfume, Cloak, Armlet, Ring, Armguard, Shoes, Robe, Clothing, HairAdornment, Hat, Pole, Book, Unarmed, Shield; C-EV 5 to 8 -->

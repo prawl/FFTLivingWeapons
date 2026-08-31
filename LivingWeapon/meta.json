@@ -1369,33 +1369,6 @@
       5355
     ]
   },
-  "48": {
-    "name": "Terrastaff",
-    "wp": 9,
-    "cat": "Pole",
-    "formula": 1,
-    "flavor": "Quarried from old bedrock, it strikes with the slow patience of shifting earth.",
-    "lane": "pa+ma",
-    "growsLine": "<color=95>Grows: Physical & Magick Attack.</color>",
-    "palette": 13,
-    "colors": [
-      4161,
-      10436,
-      19816,
-      26225,
-      3170,
-      14665,
-      20874,
-      4363,
-      4531,
-      4728,
-      3273,
-      4332,
-      4433,
-      4599,
-      28606
-    ]
-  },
   "49": {
     "name": "Ravager",
     "wp": 15,
@@ -3428,5 +3401,15 @@
     "flavor": "A pale crescent blade that drinks the moonlight.",
     "lane": "pa",
     "growsLine": "<color=90>Grows: Physical Attack.</color>"
+  },
+  "262": {
+    "name": "Terrastaff",
+    "wp": 9,
+    "cat": "Pole",
+    "formula": 1,
+    "flavor": "Quarried from old bedrock, it strikes with the slow patience of shifting earth.",
+    "lane": "pa+ma",
+    "growsLine": "<color=95>Grows: Physical & Magick Attack.</color>",
+    "migratedFrom": 48
   }
 }

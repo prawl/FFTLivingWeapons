@@ -1666,13 +1666,12 @@
     },
     {
       "id": 48,
-      "category": "Pole",
-      "grows": "PA+MA",
+      "category": "Axe",
       "vanillaName": "Battle Axe",
-      "name": "Terrastaff",
+      "name": "Battle Axe",
       "tier": 1,
-      "identity": "Earth pole: the only Earth-element pole, for the Geomancer who lost the Axe. (was the Hatchet)",
-      "flavorOverride": "Quarried from old bedrock, it strikes with the slow patience of shifting earth.",
+      "noGrowth": true,
+      "identity": "The vanilla Battle Axe, restored to its own slot by LW-351 when the Terrastaff design moved out to id 262. Every number here is the base game's (working/axes_flails/baseline.md: WP 9, evade 0, no element, no proc, formula 1, range 1, Chapter1_KillMiluda shelf = tier 1), and attackFlags are deliberately NOT authored so generate.py's sparse emit leaves the vanilla ForcedTwoHands/Throwable/TwoHands/Striking set alone. noGrowth keeps it out of the Living Weapon system entirely (no kill counting, no growth, no grid row); its own redesign is LW-361.",
       "baseline": {
         "wp": 9,
         "evade": 0,
@@ -1682,19 +1681,14 @@
       },
       "proposed": {
         "wp": 9,
-        "evade": 20,
-        "element": "Earth",
+        "evade": 0,
+        "element": "None",
         "onHit": "None",
         "onHitAbilityId": 0,
         "formula": 1,
-        "categoryOverride": "Pole"
+        "range": 1
       },
-      "iconTint": [
-        0.624,
-        0.6,
-        0.9
-      ],
-      "iconSource": 107
+      "iconSource": 48
     },
     {
       "id": 49,
@@ -7388,6 +7382,48 @@
         "formula": 1,
         "range": 1,
         "attackFlags": "Throwable, TwoSwords, TwoHands, Striking"
+      }
+    },
+    {
+      "id": 262,
+      "category": "Pole",
+      "grows": "PA+MA",
+      "vanillaName": "Terrastaff",
+      "name": "Terrastaff",
+      "tier": 1,
+      "identity": "Earth pole: the only Earth-element pole, for the Geomancer who lost the Axe. LW-351 moved the design off the vanilla Battle Axe slot (id 48) onto its own extended-inventory id so the Battle Axe could go back to being a Battle Axe; the numbers, lane and flavor are unchanged from the id-48 row, and migratedFrom carries a save's earned tally across.",
+      "flavorOverride": "Quarried from old bedrock, it strikes with the slow patience of shifting earth.",
+      "iconSource": 48,
+      "migratedFrom": 48,
+      "extended": {
+        "cloneDonor": 108,
+        "artDonor": 108,
+        "seedCount": 0,
+        "shops": "Lesalia, Riovanes, Eagrose, Lionel, Limberry, Zeltennia",
+        "palette": 7,
+        "spriteId": 62,
+        "requiredLevel": 0,
+        "typeFlags": "Weapon",
+        "price": 1500,
+        "shopAvailability": "Chapter1_KillMiluda"
+      },
+      "baseline": {
+        "wp": 9,
+        "evade": 20,
+        "element": "Earth",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1
+      },
+      "proposed": {
+        "wp": 9,
+        "evade": 20,
+        "element": "Earth",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 2,
+        "attackFlags": "Throwable, TwoHands, Lunging"
       }
     }
   ]

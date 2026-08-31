@@ -22,6 +22,12 @@ namespace LivingWeapon;
 ///
 /// Bounded: the newest <see cref="MaxSaves"/> keys are kept (an autosave lands every battle and
 /// shop visit; the file must not grow forever). Load never throws; Update is fail-soft.
+///
+/// TWO THREADS since LW-351: Engine's tick records a save here, and the game's OWN thread reads
+/// here from inside the load detour (the replay has to beat the game's menu-template rebuild).
+/// The maps are plain Dictionary/List and SidecarJson writes through a fixed .tmp path, so both
+/// are locked: <c>_gate</c> guards the in-memory state and <c>_ioGate</c> serialises the disk
+/// write, and _gate is never held across the I/O so a load edge cannot wait on a disk write.
 /// </summary>
 internal sealed class ExtendedBagSidecar
 {
@@ -29,13 +35,15 @@ internal sealed class ExtendedBagSidecar
     internal const int MaxSaves = 64;
     public const string FileName = "extended_inventory.json";
 
+    private readonly object _gate = new();     // the in-memory maps below
+    private readonly object _ioGate = new();   // one writer at a time on the file itself
     private readonly string _path;
     private readonly Dictionary<string, Dictionary<int, int>> _saves;
     private readonly List<string> _order;   // oldest first
     private Dictionary<int, int>? _legacy;
 
     public string LoadedFrom { get; }
-    public int SaveCount => _saves.Count;
+    public int SaveCount { get { lock (_gate) return _saves.Count; } }
 
     private ExtendedBagSidecar(string path, Dictionary<string, Dictionary<int, int>> saves, List<string> order,
         Dictionary<int, int>? legacy, string loadedFrom)
@@ -97,7 +105,12 @@ internal sealed class ExtendedBagSidecar
     /// while this mod ran.</summary>
     public bool TryGetSave(string key, out IReadOnlyDictionary<int, int> counts)
     {
-        if (_saves.TryGetValue(key, out var c)) { counts = c; return true; }
+        lock (_gate)
+        {
+            // Safe to hand the stored map out by reference: RecordSave replaces an entry with a
+            // fresh dictionary, it never mutates one that was already handed out.
+            if (_saves.TryGetValue(key, out var c)) { counts = c; return true; }
+        }
         counts = new Dictionary<int, int>();
         return false;
     }
@@ -106,9 +119,12 @@ internal sealed class ExtendedBagSidecar
     /// migration inherits them; every later unknown key gets the data seed).</summary>
     public Dictionary<int, int>? TakeLegacy()
     {
-        var l = _legacy;
-        _legacy = null;
-        return l;
+        lock (_gate)
+        {
+            var l = _legacy;
+            _legacy = null;
+            return l;
+        }
     }
 
     /// <summary>Record the counts the game just serialised under <paramref name="key"/> and
@@ -116,13 +132,16 @@ internal sealed class ExtendedBagSidecar
     /// previous file intact.</summary>
     public void RecordSave(string key, IReadOnlyDictionary<int, int> counts)
     {
-        _saves[key] = new Dictionary<int, int>(counts);
-        _order.Remove(key);
-        _order.Add(key);
-        while (_order.Count > MaxSaves)
+        lock (_gate)
         {
-            _saves.Remove(_order[0]);
-            _order.RemoveAt(0);
+            _saves[key] = new Dictionary<int, int>(counts);
+            _order.Remove(key);
+            _order.Add(key);
+            while (_order.Count > MaxSaves)
+            {
+                _saves.Remove(_order[0]);
+                _order.RemoveAt(0);
+            }
         }
         Persist();
     }
@@ -135,19 +154,24 @@ internal sealed class ExtendedBagSidecar
     {
         try
         {
-            var dto = new Dto { Version = SchemaVersion, Order = new List<string>(_order) };
-            foreach (var key in _order)
+            string json;
+            lock (_gate)
             {
-                var m = new Dictionary<string, int>();
-                foreach (var kv in _saves[key]) m[kv.Key.ToString()] = kv.Value;
-                dto.Saves[key] = m;
+                var dto = new Dto { Version = SchemaVersion, Order = new List<string>(_order) };
+                foreach (var key in _order)
+                {
+                    var m = new Dictionary<string, int>();
+                    foreach (var kv in _saves[key]) m[kv.Key.ToString()] = kv.Value;
+                    dto.Saves[key] = m;
+                }
+                if (_legacy != null)
+                {
+                    dto.Legacy = new Dictionary<string, int>();
+                    foreach (var kv in _legacy) dto.Legacy[kv.Key.ToString()] = kv.Value;
+                }
+                json = JsonConvert.SerializeObject(dto);
             }
-            if (_legacy != null)
-            {
-                dto.Legacy = new Dictionary<string, int>();
-                foreach (var kv in _legacy) dto.Legacy[kv.Key.ToString()] = kv.Value;
-            }
-            SidecarJson.SaveAtomic(_path, JsonConvert.SerializeObject(dto));
+            lock (_ioGate) SidecarJson.SaveAtomic(_path, json);
         }
         catch (Exception ex)
         {

@@ -12,7 +12,7 @@ public class ExtendedSitesTests
     public void One_extended_id_reproduces_the_rig_marker_byte_for_byte()
     {
         var boot = ExtendedSites.BootPatches(1).ToDictionary(p => p.Addr, p => p);
-        Assert.Equal(20, boot.Count);
+        Assert.Equal(23, boot.Count);
         // the rig's six built-ins
         Assert.Equal((0x01, 0x02), (boot[0x140284800].Old, boot[0x140284800].New));
         foreach (long a in new[] { 0x140284724L, 0x1402847C9L, 0x140288CDAL, 0x140289074L })
@@ -33,6 +33,9 @@ public class ExtendedSitesTests
         Assert.Equal((0x04, 0x05), (boot[0x1401ED95B].Old, boot[0x1401ED95B].New));
         Assert.Equal((0x04, 0x05), (boot[0x1401ED982].Old, boot[0x1401ED982].New));
         Assert.Equal((0x00, 0x06), (boot[0x140288FDB].Old, boot[0x140288FDB].New));   // LW-354: shop loop 0x100 -> 0x106
+        // LW-351 fix round 6: the two reserved-item equality lists, relocated (not widened)
+        Assert.Equal((0x01, 0x02), (boot[0x14028870C].Old, boot[0x14028870C].New));
+        Assert.Equal((0x01, 0x02), (boot[0x140396F55].Old, boot[0x140396F55].New));
         Assert.All(boot.Values, p => Assert.False(string.IsNullOrWhiteSpace(p.Label)));
 
         var post = ExtendedSites.PostLoadPatches(1).ToDictionary(p => p.Addr, p => p);
@@ -50,9 +53,193 @@ public class ExtendedSitesTests
         Assert.Equal(0x0B, boot[0x140101071].New);   // 0x104 + 7
         Assert.Equal(0x02, boot[0x140284800].New);   // high-byte widening is fixed (ids up to 515)
         Assert.Equal(0x0C, boot[0x140288FDB].New);   // shop loop 0x100 -> 0x10C
+        Assert.Equal(0x02, boot[0x14028870C].New);   // reserved-item list: relocated once, N-independent
+        Assert.Equal(0x02, boot[0x140396F55].New);
         var post = ExtendedSites.PostLoadPatches(7).ToDictionary(p => p.Addr, p => p);
         Assert.Equal(0x0D, post[0x14F2EA40F].New);
         Assert.Equal(0x58 ^ 13, post[0x14F45D315].New);   // r15 = 0x58 ^ imm must equal 6 + 7
+    }
+
+    [Fact]
+    public void Fix_round_2_pins_every_builder_family_id_bound_for_two_extended_ids()
+    {
+        // LW-351 fix round 2. The builder family at 0x140280000-0x140290000 carries nine imm32
+        // 0x105 item-id bounds (re-disassembled from the 1.5.2 exe on disk 2026-08-30; each
+        // address below is the imm32's LOW byte, whose offset inside the instruction varies by
+        // encoding: mov r32,imm32 = +1, REX mov r64/r8d = +2, cmp eax,imm32 = +1,
+        // cmp r/m32,imm32 = +2). Eight were already in the table; the ninth is 0x140284554,
+        // the per-item state initialiser's shared bound (0x140284553 `mov edx,0x105`), which
+        // clears the id-keyed byte arrays at 0x1411A7C00 and 0x1411A7700 and seeds the id-keyed
+        // u16 array at 0x1411A7810. Two extended ids means every one of them reads 0x07.
+        var two = ExtendedSites.BootPatches(2).ToDictionary(p => p.Addr, p => p);
+        foreach (long a in new[]
+                 {
+                     0x14028024FL,   // S1 hand resolver copy 2 (mov r8d,0x105)
+                     0x140284554L,   // S2 per-item state initialiser bound (mov edx,0x105)
+                     0x140284724L,   // S3 per-item array bounds check (cmp rax,0x105)
+                     0x1402847C9L,   // S4 per-item decay loop bound (cmp ebx,0x105)
+                     0x140285E2DL,   // S5 default-order template walk guard (mov eax,0x105)
+                     0x1402862F7L,   // S6 acquired-sort template walk guard (mov eax,0x105)
+                     0x140287570L,   // S7 per-item byte getter id filter (mov eax,0x105)
+                     0x140288CDAL,   // S8 default-order template builder bound (cmp edi,0x105)
+                     0x140289074L,   // S9 second template builder bound (cmp ebx,0x105)
+                 })
+            Assert.Equal((0x05, 0x07), (two[a].Old, two[a].New));
+    }
+
+    [Fact]
+    public void The_new_initialiser_bound_widens_by_one_for_a_single_extended_id()
+    {
+        var one = ExtendedSites.BootPatches(1).ToDictionary(p => p.Addr, p => p);
+        Assert.Equal((0x05, 0x06), (one[0x140284554].Old, one[0x140284554].New));
+        Assert.False(string.IsNullOrWhiteSpace(one[0x140284554].Label));
+    }
+
+    [Fact]
+    public void The_builder_family_jcc_displacements_are_never_patched()
+    {
+        // The same 0x105 byte scan also hits three `jcc rel32` displacements whose low byte is
+        // 0x05: 0x14028511A je, 0x140288115 jne, 0x140288EDE jge. Widening one of those bytes
+        // retargets a branch instead of raising a bound, so pin them out of both tables for good.
+        var addrs = ExtendedSites.BootPatches(2).Select(p => p.Addr)
+            .Concat(ExtendedSites.PostLoadPatches(2).Select(p => p.Addr)).ToHashSet();
+        foreach (long a in new[]
+                 {
+                     0x14028511AL, 0x14028511BL, 0x14028511CL,
+                     0x140288115L, 0x140288116L, 0x140288117L,
+                     0x140288EDEL, 0x140288EE0L, 0x140288EE1L,
+                 })
+            Assert.DoesNotContain(a, addrs);
+    }
+
+    [Fact]
+    public void The_bag_accessor_cap_is_widened_once_on_its_high_byte_and_never_on_its_low_byte()
+    {
+        // LW-351 fix round 3. Re-derived from the 1.5.2 exe on disk 2026-08-30:
+        //   1402847F8  b8 ff 03 00 00     mov eax, 0x3ff
+        //   1402847FD  41 b8 03 01 00 00  mov r8d, 0x103        <- THE id cap's imm32
+        //   140284803  66 23 c8           and cx, ax            (mask the id to 10 bits)
+        //   140284806  8d 41 ff           lea eax, [rcx - 1]
+        //   140284809  66 41 3b c0        cmp ax, r8w
+        //   14028480D  77 1c              ja -> xor eax,eax; ret  (id-1 over the cap = "none")
+        //   14028480F  movzx r8d,cx; lea r9,[0x1411A7C00]; movzx ecx,byte[r8+r9];
+        //              add ecx,edx; cmovns eax,ecx; mov byte[r8+r9],al; ret
+        // i.e. the BAG accessor: read-and-adjust the per-id count in the array at 0x1411A7C00,
+        // clamped at zero. The imm32 occupies 0x1402847FF..0x140284802, so its LOW byte is
+        // 0x1402847FF and the address the table has carried since LW-346 (0x140284800) is that
+        // same immediate's SECOND byte. The count-getter entry therefore already widens THIS
+        // instruction, to 0x0203 (ids 1..516); a PlusN entry on 0x1402847FF would patch one
+        // immediate twice. Live confirmation 2026-08-30 (read-only RPM, mod armed with N=2):
+        // the running game reads 41 b8 03 02 00 00 here, so 261 and 262 already pass this gate
+        // and it cannot be what drops them from the menu templates.
+        var boot = ExtendedSites.BootPatches(2);
+        var addrs = boot.Select(p => p.Addr).ToHashSet();
+        var getter = boot.Single(p => p.Addr == 0x140284800L);
+        Assert.Equal((0x01, 0x02), (getter.Old, getter.New));
+        foreach (long a in new[] { 0x1402847FDL, 0x1402847FEL, 0x1402847FFL, 0x140284801L, 0x140284802L })
+            Assert.DoesNotContain(a, addrs);
+    }
+
+    [Fact]
+    public void Fix_round_3_sweep_hits_and_the_graceful_0x104_cap_are_never_patched()
+    {
+        // LW-351 fix round 3. The 0x103/0x104 value sweep over the builder region also hit four
+        // `jcc rel32` displacements that merely happen to equal 0x103, disassembled from disk
+        // 2026-08-30: jne at 0x14028094C, jne at 0x14028353C, je at 0x14028E5F9 and jne at
+        // 0x140364875 (their rel32 bytes are listed below), plus one MID-INSTRUCTION hit at
+        // 0x14028B80C, which is the high byte of the RIP displacement in
+        // `c7 05 8f 5c 4b 03  01 00 00 00  mov dword [rip+0x34B5C8F], 1` at 0x14028B807 running
+        // into that instruction's own imm32. Writing any of them retargets a branch or corrupts
+        // a store instead of raising a bound.
+        //
+        // 0x14036B430 is different: it IS a real id cap, `cmp dword [rbx], 0x104` at
+        // 0x14036B42E inside the item-info record builder 0x14036B2D0, and it is left unpatched
+        // BY DECISION, not by ignorance. The cap-passing path is
+        // `movsxd rax,[rbx]; mov cl, byte[rax*2 + 0x1411A7810]` (byte 0 of the id-keyed u16
+        // array); the fallback is `mov cl, r12b`, with r12 zeroed at 0x14036B35B. Live
+        // read-only RPM 2026-08-30: 0x1411A7810 reads 0x0000 for ids 261 and 262 (vanilla rows
+        // read 0x0101, and ids 257/260 already read 0x0100), so byte 0 is 0x00 for every
+        // extended id and BOTH paths store the same 0x00 into the record at +0x21. Widening
+        // that cap cannot change a byte the game draws. Note also that the address the
+        // fix-round notes carried, 0x14036B432, is the immediate's THIRD byte, not its low one.
+        var addrs = ExtendedSites.BootPatches(2).Select(p => p.Addr)
+            .Concat(ExtendedSites.PostLoadPatches(2).Select(p => p.Addr)).ToHashSet();
+        foreach (long a in new[]
+                 {
+                     0x14028094EL, 0x14028094FL, 0x140280950L, 0x140280951L,   // jne 0x14028094C
+                     0x14028353EL, 0x14028353FL, 0x140283540L, 0x140283541L,   // jne 0x14028353C
+                     0x14028E5FBL, 0x14028E5FCL, 0x14028E5FDL, 0x14028E5FEL,   // je  0x14028E5F9
+                     0x140364877L, 0x140364878L, 0x140364879L, 0x14036487AL,   // jne 0x140364875
+                     0x14028B80CL, 0x14028B80DL, 0x14028B80EL, 0x14028B80FL,   // mid-instruction
+                     0x14036B430L, 0x14036B431L, 0x14036B432L, 0x14036B433L,   // the graceful cap
+                 })
+            Assert.DoesNotContain(a, addrs);
+    }
+
+    [Fact]
+    public void Fix_round_6_relocates_both_reserved_item_equality_lists_past_the_extended_range_once()
+    {
+        // LW-351 fix round 6. The per-job can-equip check 0x1402886D0 and an inlined copy of it
+        // at 0x140396F1C both test the item id against a hardcoded RESERVED list, not a bound:
+        //   140288709  81 ea 06 01 00 00  sub edx, 0x106   ; id == 262 ?
+        //   14028870F  74 48              je special
+        //   140288711  83 ea 1a           sub edx, 0x1a    ; == 288 ?
+        //   140288716  83 ea 05           sub edx, 5       ; == 293 ?
+        //   14028871B  83 ea 08           sub edx, 8       ; == 301 ?
+        //   140288720  83 fa 09 / 74 34   cmp edx, 9 ; je  ; == 310 ?
+        // (0x140396F52 `81 e9 06 01 00 00 sub ecx,0x106` then the same four steps). The special
+        // path admits only jobs 0xA1 and 0xA4 and refuses every other job, which is exactly the
+        // "This cannot be equipped by the current job" the owner saw for whichever item sat at
+        // id 262 (the swap experiment: Terrastaff at 261 equipped, Moonblade at 262 refused).
+        // The fix raises the imm32's SECOND byte 0x01 -> 0x02 so the list reads {518, 544, 549,
+        // 557, 566}: past EXTENDED_LAST_ID (511) and unreachable by vanilla (ItemData ends at
+        // 260). It is NOT widened by N: the same byte lands for one, two or seven items.
+        foreach (int n in new[] { 1, 2, 7 })
+        {
+            var boot = ExtendedSites.BootPatches(n).ToDictionary(p => p.Addr, p => p);
+            Assert.Equal((0x01, 0x02), (boot[0x14028870C].Old, boot[0x14028870C].New));
+            Assert.Equal((0x01, 0x02), (boot[0x140396F55].Old, boot[0x140396F55].New));
+            Assert.Contains("reserved", boot[0x14028870C].Label);
+            Assert.Contains("reserved", boot[0x140396F55].Label);
+            Assert.DoesNotContain("cap", boot[0x14028870C].Label);
+            Assert.DoesNotContain("cap", boot[0x140396F55].Label);
+        }
+    }
+
+    [Fact]
+    public void Fix_round_6_zlib_constants_and_the_chains_other_bytes_are_never_patched()
+    {
+        // LW-351 fix round 6. The live 0x106 scan surfaced five `cmp r32,0x106 ; jae` sites at
+        // 0x1404101E7, 0x1404101FC, 0x1404105F8, 0x14041060D and 0x14040FCC1 that a first
+        // reading called an equip gate. They are zlib: function 0x140410190 is deflate_fast /
+        // deflate_slow ([rbx+0x9C] = lookahead, [rbx+0x94] = strstart, [rbx+0x68] = head,
+        // [rbx+0x60] = prev, [rbx+0x70] = ins_h, `cmp eax,3` = MIN_MATCH) and 0x14040FB50 is
+        // fill_window (`mov eax,0x102` = MAX_MATCH); 0x106 = MIN_LOOKAHEAD = 258 + 3 + 1. The
+        // three `2d 06 01 00 00 sub eax,0x106` at 0x140410290, 0x1404106C9 and 0x1404F5EBC are
+        // w_size - MIN_LOOKAHEAD. Writing any of those bytes corrupts the game's compressor.
+        // The two reserved-list chains are patched on ONE byte each (the imm32's second byte);
+        // their low bytes and the imm8 steps must stay vanilla or the list changes shape, and
+        // 0x140101071 (the adjust-count cap, already in the table) must never gain a twin.
+        var addrs = ExtendedSites.BootPatches(2).Select(p => p.Addr)
+            .Concat(ExtendedSites.PostLoadPatches(2).Select(p => p.Addr)).ToHashSet();
+        foreach (long a in new[]
+                 {
+                     0x1404101E6L, 0x1404101E7L, 0x1404101E8L, 0x1404101E9L, 0x1404101EAL,   // zlib cmp eax,0x106
+                     0x1404101FBL, 0x1404101FCL, 0x1404101FDL, 0x1404101FEL, 0x1404101FFL,
+                     0x1404105F7L, 0x1404105F8L, 0x1404105F9L, 0x1404105FAL, 0x1404105FBL,
+                     0x14041060CL, 0x14041060DL, 0x14041060EL, 0x14041060FL, 0x140410610L,
+                     0x14040FCBEL, 0x14040FCBFL, 0x14040FCC0L, 0x14040FCC1L, 0x14040FCC2L, 0x14040FCC3L, 0x14040FCC4L,   // cmp r9d,0x106
+                     0x140410291L, 0x140410292L, 0x140410293L, 0x140410294L,   // sub eax,0x106 imm bytes
+                     0x1404106CAL, 0x1404106CBL, 0x1404106CCL, 0x1404106CDL,
+                     0x1404F5EBDL, 0x1404F5EBEL, 0x1404F5EBFL, 0x1404F5EC0L,
+                     0x140288709L, 0x14028870AL, 0x14028870BL, 0x14028870DL, 0x14028870EL,   // chain 1: everything but the second imm byte
+                     0x140288713L, 0x140288718L, 0x14028871DL, 0x140288722L,
+                     0x140396F52L, 0x140396F53L, 0x140396F54L, 0x140396F56L, 0x140396F57L,   // chain 2
+                     0x140396F5CL, 0x140396F61L, 0x140396F66L, 0x140396F6BL,
+                 })
+            Assert.DoesNotContain(a, addrs);
+        Assert.Single(ExtendedSites.BootPatches(2), p => p.Addr == 0x140101071L);
+        Assert.DoesNotContain(ExtendedSites.BootPatches(2), p => p.Addr == 0x140101070L || p.Addr == 0x140101072L);
     }
 
     [Fact]

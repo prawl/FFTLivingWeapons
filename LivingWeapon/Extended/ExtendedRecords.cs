@@ -59,7 +59,15 @@ internal static class ExtendedRecords
     };
 
     /// <summary>ITEM_SHOPS_DATA.ShopFlags (u16, the modloader's ItemShopsData names): which towns
-    /// stock the item. LW-354.</summary>
+    /// stock the item. LW-354.
+    ///
+    /// DO NOT "FIX" THE ORDER. The list looks upside down (the first town is the HIGH bit) and it
+    /// is meant to: the shop row is one u16, the game's Buy-list builder reads its two bytes the
+    /// other way round, and numbering the towns from bit 15 down cancels that swap exactly. The
+    /// two wrongs are what make an author's plain-English `shops` string land on the right towns,
+    /// so re-numbering this table from bit 0 up silently moves every item to a different set of
+    /// shops. Authors only ever think in the names below (LW-351 authored the first non-Dorter
+    /// list through them).</summary>
     public static readonly IReadOnlyDictionary<string, ushort> Shops = new Dictionary<string, ushort>(StringComparer.OrdinalIgnoreCase)
     {
         ["Gollund"] = 1 << 15, ["Dorter"] = 1 << 14, ["Zaland"] = 1 << 13, ["Goug"] = 1 << 12,

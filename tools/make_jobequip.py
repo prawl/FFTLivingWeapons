@@ -10,8 +10,9 @@ post-snapshot runtime edit to that SAME row, and load order cannot fix it (prove
 Red Mages 2.0.2, deleting our row 57 resurrected Red Mage). So this table now lists only rows
 with a real payload: a live equip addition/strip, or a job CEV_ALLOW covers. Honest delta from
 the old blanket sweep: ZERO player-loadout change (every kept equip row is byte-identical; every
-dropped equip row differed from vanilla only by the empty Axe/Flail categories, see REMOVE
-below), and the C-EV floor on unknown/reserved ids plus the two enemy-only specials (Keeper of
+dropped equip row differed from vanilla only by the then-empty Axe/Flail categories, which
+LW-351 stopped stripping -- see REMOVE below), and the C-EV floor on unknown/reserved ids plus
+the two enemy-only specials (Keeper of
 Darkness id151, Archaeodaemon id153) reverts to vanilla: tiny and player-favorable. Construct 8
 (job145, player-recruitable via Puppeteer) keeps its floor.
 Skips monsters and the Lucavi boss forms. Parse-checks before writing (the modloader silently
@@ -42,7 +43,13 @@ CEV_FLOOR = 8              # floor every human job's class evade to this (raises
 # id153) reverts the floor to vanilla now, since a listed row is a whole-row writeback hazard.
 CEV_ALLOW = {1, 2, 3, 4, 5, 6, 7, 15, 145}
 LUCAVI = {62, 64, 65, 67, 69, 73}  # boss forms in the generic id range; enemy-only, skip equip edits
-REMOVE = {"Axe", "Flail"}  # emptied categories (all axes/flails repurposed into other weapons); strip from every equip list
+# Categories stripped from EVERY equip list. EMPTY since LW-351 (2026-08-30): it held
+# {"Axe", "Flail"} for as long as this rebalance had repurposed every axe and flail into another
+# weapon type, so the two categories named nothing a unit could equip. LW-351 gives those items
+# their vanilla identities back (the Battle Axe first), which means Squire and Geomancer must
+# get Axe back and Squire and Ninja must get Flail back -- and the only way to do that is to
+# stop stripping them. The seam stays for the next category that genuinely empties out.
+REMOVE = set()
 # Daggers grew teeth (signatures), so narrow generic dagger access. Per-GENERIC-job category strip
 # (story chars keep their loadouts). Keep Knife on Thief/Chemist/Black Mage (+ Ninja, the dual-blade
 # class). Dancer also equips knives in vanilla -- left alone pending a call.
@@ -85,10 +92,9 @@ for jid in human:
     strip_story = STORY_STRIP.get(jid, set())
     strip = set(REMOVE) | strip_generic | strip_story   # per-generic-job category strip + id-keyed story-job strips
     final_equip = [c for c in (cur + additions) if c not in strip]
-    # LW-77: a row only earns its EquippableItems element for a REAL payload. Ignore REMOVE-only
-    # diffs (every dropped Axe/Flail reverts to vanilla-equal, since no axe/flail ships) for the
-    # emit decision; a real cross-equip/shield addition or a real category strip still emits, and
-    # the emitted list still strips REMOVE either way.
+    # LW-77: a row only earns its EquippableItems element for a REAL payload. A REMOVE-only diff
+    # never counted as one (a dropped category that no item ships is vanilla-equal); REMOVE is
+    # empty since LW-351, so today every emitted list is an addition or a real category strip.
     equip_changed = bool(additions) or bool(strip_generic) or bool(strip_story)
     innate = []
     have = [int((job.findtext(f"InnateAbilityId{i}") or "0").strip() or 0) for i in (1, 2, 3, 4)]

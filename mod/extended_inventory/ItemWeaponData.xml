@@ -13,5 +13,15 @@
       <Elements>None</Elements>
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
+    <ItemWeapon>
+      <Id>262</Id> <!-- Terrastaff -->
+      <Range>2</Range>
+      <AttackFlags>Throwable, TwoHands, Lunging</AttackFlags>
+      <Formula>1</Formula>
+      <Power>9</Power>
+      <Evasion>20</Evasion>
+      <Elements>Earth</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
   </Entries>
 </ItemWeaponTable>

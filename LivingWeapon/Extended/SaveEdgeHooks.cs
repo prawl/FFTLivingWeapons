@@ -10,8 +10,23 @@ namespace LivingWeapon;
 /// posture): three Reloaded.Hooks detours behind prologue landmarks, each forwarding to the
 /// original FIRST and then, once the struct is complete (serialize) or applied (load), reading
 /// the save struct's header through the guarded patcher and handing it to
-/// <see cref="SaveEdgeTracker"/>. A detour never throws, never logs on the hot path beyond the
-/// once-per-session canaries, and never writes game memory; the replay itself lands on the tick.
+/// <see cref="SaveEdgeTracker"/>. A detour never throws and never logs on the hot path beyond the
+/// once-per-session canaries.
+///
+/// LW-351 CHANGES ONE POSTURE ON PURPOSE: the load detours DO write game memory, the only place
+/// these hooks ever do, and they write in the one moment nothing else can. The routine they wrap
+/// undoes two things the extended items need on its way past: it copies the save file's bag over
+/// the game's count array (that file carries ids 0..260, so every extended id lands on zero) and
+/// it RESTORES both menu order templates byte-for-byte out of the save struct (0x14021B4BD /
+/// 0x14021B5BB), which for any save written before a new id ever seated means a table that will
+/// never name it. Round 4 (re-test 4) proved the first half, round 5 (re-test 5 plus the closing
+/// disassembly, 2026-08-30) proved the second: nothing in the load path rebuilds those templates
+/// from the item data, so an owned-but-unworn new item could never be listed or equipped. Both
+/// repairs therefore happen right here, after the original returns: N bounded one-byte writes into
+/// the bag-count array (BagReplay) plus at most a few words into each order template
+/// (TemplateSeat), all through the guarded patcher, and nothing else. Engine's tick still runs the
+/// same replay and seat afterwards as an idempotent fallback, and it keeps the one log line
+/// (BagReplay holds the resolution both paths share).
 ///
 /// Landmarks (re-read from the 1.5.2 exe on disk 2026-08-27 late night, after the first build
 /// named two entries that were not the routines it meant):
@@ -40,17 +55,19 @@ internal sealed class SaveEdgeHooks
     private readonly ICodePatcher _mem;
     private readonly SaveEdgeTracker _tracker;
     private readonly IReadOnlyList<int> _extendedIds;
+    private readonly Action<string>? _replayOnLoad;   // LW-351: the bag replay, by save key
     private IHook<EdgeFn>? _serialize, _apply, _applyB;
     private EdgeFn? _k1, _k2, _k3;   // GC anchors: the native thunks must outlive us
     private bool _canarySave, _canaryLoadA, _canaryLoadB;
 
     public bool IsActive => _serialize?.IsHookEnabled == true && _apply?.IsHookEnabled == true && _applyB?.IsHookEnabled == true;
 
-    public SaveEdgeHooks(ICodePatcher mem, SaveEdgeTracker tracker, IReadOnlyList<int> extendedIds)
+    public SaveEdgeHooks(ICodePatcher mem, SaveEdgeTracker tracker, IReadOnlyList<int> extendedIds, Action<string>? replayOnLoad = null)
     {
         _mem = mem;
         _tracker = tracker;
         _extendedIds = extendedIds;
+        _replayOnLoad = replayOnLoad;
     }
 
     /// <summary>Pure: install only when the guarded read succeeded and the prologue matches.</summary>
@@ -144,12 +161,19 @@ internal sealed class SaveEdgeHooks
 
     /// <summary>One canary per path: which of the two restore routines a real load runs through
     /// is still unread, so the log has to name the one that actually fired.</summary>
-    private void AfterApply(bool second)
+    internal void AfterApply(bool second)
     {
         try
         {
             var hdr = ReadHeader();
             if (hdr == null) return;   // the pointer did not resolve; otherwise every call takes an edge, which is sound because both routines overwrite the bag from the struct
+            // LW-351: repair FIRST, publish the edge SECOND. The routine just below us has this
+            // instant finished overwriting the bag from the save file and restoring both menu
+            // order templates out of the save struct, so the counts and the template seats both
+            // belong here, before the game can draw a menu from either. Doing it in this order
+            // also means the tick can never take the edge before the resolution it must re-use is
+            // there (the tracker's own lock is the fence between the two threads).
+            _replayOnLoad?.Invoke(SaveEdgeTracker.KeyFromHeader(hdr));
             _tracker.OnApplied(hdr);
             if (second)
             {

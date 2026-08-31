@@ -12,8 +12,11 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 OFFSETS_CS = ROOT / "LivingWeapon" / "Offsets.cs"
 
+# The literal suffix is optional and dropped: Offsets.cs writes most addresses as `0x140782A30`
+# but the whole LW-346/351/353 block writes them as `0x1407B2550L`, and a parser blind to the L
+# form silently omits those constants, which is the exact stale-address failure LW-41 removed.
 _CONST = re.compile(
-    r"(?:public|internal)\s+const\s+(?:long|int|uint|ulong)\s+(\w+)\s*=\s*(0x[0-9A-Fa-f_]+|\d+)\s*;")
+    r"(?:public|internal)\s+const\s+(?:long|int|uint|ulong)\s+(\w+)\s*=\s*(0x[0-9A-Fa-f_]+|\d+)[LlUu]{0,2}\s*;")
 
 
 def _parse(text):

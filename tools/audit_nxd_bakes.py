@@ -18,8 +18,9 @@ to be an old bake of this very mod, not vanilla):
   Item-en intent = the same derivation patch_names.py bakes (items.json named rows via
   lib.flavor.assemble_desc, the UiItemCategoryId map, the SortOrder regrouping) plus
   lib/bake_intent.py's ALLOWED_ITEM_CELLS (deliberate hand edits the bake carries; each
-  entry cites its design reason; the rebase tool re-applies the same list) plus the
-  SortOrder orphan-sweep pattern on unnamed weapon rows.
+  entry cites its design reason; the rebase tool re-applies the same list). Weapon rows
+  items.json does not name keep the game's own SortOrder untouched (LW-351), so a diff on
+  one of those is a finding, not a pattern to vouch for.
   Ability-en intent = patch_ability_names.PATCHES.
 Anything the loader applies that intent does not explain is UNINTENDED (stale vanilla text or
 pilot-sqlite residue: both design bugs). An intended cell whose bake value no longer matches
@@ -48,7 +49,7 @@ from lib.nxd_patch import rows as _rows   # LW-149 Stage E: unify onto the share
 from lib.paths import FF16, MOD_ABILITY_NXD, MOD_ITEM_NXD, MOD_STATUS_NXD, STEAM_FFT
 from patch_ability_names import PATCHES as ABILITY_PATCHES
 from patch_status_names import PATCHES as STATUS_PATCHES
-from patch_names import GROUP_RANK, item_intent as _bake_item_intent, named_items
+from patch_names import item_intent as _bake_item_intent, named_items
 
 
 
@@ -61,18 +62,11 @@ def item_intent():
     return _bake_item_intent(named_items())
 
 
-def orphan_sort_ok(bake_row, vanilla_row, value):
-    """patch_names sweeps unnamed weapon-type rows to the END of their type group, so an
-    orphan's regenerated SortOrder is rank*100 + n for its UiItemCategoryId. Only vouches
-    when the bake keeps the vanilla category: a row whose category is itself off-intent
-    (e.g. a blanked vanilla row we resurrect) gets no SortOrder pass from this rule."""
-    cat = bake_row.get("UiItemCategoryId")
-    if cat != vanilla_row.get("UiItemCategoryId"):
-        return False
-    rank = GROUP_RANK.get(cat)
-    return rank is not None and isinstance(value, int) and value // 100 == rank
-
-
+# (The orphan-sweep allowance is gone, LW-351: patch_names.py no longer rewrites the SortOrder of
+# weapon rows data/items.json does not name. It numbers OUR rows around theirs instead, so a stock
+# weapon row's key must now match vanilla exactly and any diff on one is a real finding. The rule
+# it replaced vouched for any value in the right hundreds, which is also why it could not have
+# caught the duplicate that cost the 2026-08-30 live pass its two items.)
 
 
 def rows(db, table):
@@ -113,8 +107,6 @@ def audit_table(table, vanilla_cols, vanilla, bake, intent, allowed_cells, allow
             elif (key, col) in intent:
                 cls = "INTENDED" if b == intent[(key, col)] else "DRIFT"
                 seen_intended.add((key, col))
-            elif table == "Item-en" and col == "SortOrder" and orphan_sort_ok(bake[key], vanilla[key], b):
-                cls = "INTENDED"  # the orphan sweep regroups unnamed weapon rows
             else:
                 cls = "UNINTENDED"
             counts[cls] += 1

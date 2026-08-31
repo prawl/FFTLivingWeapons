@@ -22,7 +22,7 @@ signature needs none.
 
 - **Weapons only** in V1. The generator refuses any non-weapon category.
 - **Ids are contiguous from 261**, ceiling 511; the next free id is one past the highest `id` in
-  `data/items.json` (261 today, so the next item is 262). A gap fails `generate.py` on purpose
+  `data/items.json` (262 today, so the next item is 263). A gap fails `generate.py` on purpose
   (the runtime donor tables are indexed by `id - 261`; a gap would read a neighbor's donors).
 - **This is internal to Living Weapons, not a public framework** (owner ruling, recorded on the
   LW-344 task row, 2026-08-30):
@@ -87,13 +87,45 @@ The `extended` block, field by field:
 | `palette` / `spriteId` | Bytes +0/+1 of the item's 12-byte catalog record (menu-side fields) | Copy the donor's pair. These do NOT control the battle swing's art or color; that resolves through `artDonor` |
 | `requiredLevel`, `typeFlags`, `price` | More catalog record fields | `typeFlags: "Weapon"`; price is the shop price |
 | `iconSource` (on the row, not in `extended`) | The vanilla id whose SHIPPED, already-recolored icon it copies | Pick an icon that reads right on the card; the donor must already have baked glow variants, or the icon bake stops and tells you to run `tools/bake_glow_icons.py` first |
+| `migratedFrom` (on the row, not in `extended`) | Only for a design that MOVED here from another id: the id it used to live at. The bake copies it to `meta.json` and the runtime carries a save's earned kills and deeds across the move, once | Set it to the old id (Terrastaff carries `48`). Omit it on a genuinely net-new item. The move only fires while the old id has no living-weapon row of its own, so it is safe to redesign that slot later |
+
+**Trap, `iconSource` on a moved design:** it names a SHIPPED picture, so it copies whatever that
+id ships at bake time. The Terrastaff's `iconSource` is 48, and the id-48 icon was its own art on
+the day it was baked but is the vanilla Battle Axe's art now. Re-running
+`tools/bake_extended_icon_parts.py` therefore repaints the Terrastaff with an axe. Check the
+result whenever you re-run the icon bake after a move, and if the two ever have to diverge for
+good, give the moved design its own recolor rather than a donor.
 
 If the item carries a stat rider (PA+1 and kin), `proposed.equipBonusId` names its EquipBonus
 row, which also feeds the catalog record; the rider prose gates check it.
 
 Traps that have bitten before, all enforced or documented:
 - `proposed.attackFlags` is **required** (there is no vanilla row to inherit flags from; the
-  generator refuses without it). Ranged weapons need `Direct`/`Arc` style flags, not `Striking`.
+  generator refuses without it), and the flags must speak the item's NEW category's grammar.
+  Plainly: the flags say how the weapon reaches its target, and the game groups every category
+  around one delivery word, so a pole that says `Striking` (the axe's word) is wrong even
+  when the card looks fine. `generate.py` reads the delivery word out of your flags
+  (`Striking`, `Lunging`, `Direct` or `Arc`) and refuses the row unless it is the one every
+  vanilla row of that category carries (`CATEGORY_DELIVERY` in the script: swords, knight swords,
+  ninja blades, knives, katana, axes, flails, rods, staves and bags strike; poles, polearms
+  and cloths lunge; guns, crossbows, instruments, books, bombs and thrown items are direct;
+  bows arc). The grip words
+  (`Throwable`, `TwoHands`, `TwoSwords`, `ForcedTwoHands`) are yours to choose. A design that
+  MOVES categories (the Terrastaff went from the Battle Axe's Axe slot to a Pole) authors the
+  destination's grammar, not the flags its old slot lent it: copy them from a vanilla row of
+  the new category (the Terrastaff took the Ironreed Pole's `Throwable, TwoHands, Lunging`).
+  A deliberate exception needs the owner's ruling in `EXTENDED_DELIVERY_EXCEPTIONS` (empty).
+- `proposed.range` must be the **clone donor's** range, because that is the reach the game
+  plays. Plainly: you can type any range you like on an extended row, and the game ignores it;
+  the weapon strikes as far as the donor it borrows its engine from. The owner watched this on
+  the Terrastaff on 2026-08-30 (its row said 1, it hit two tiles away, its donor the Ironreed
+  Pole is a range-2 pole). Where the game really reads the reach from is not settled (the
+  donor's own row through the sibling accessors, or the Lunging delivery class itself; every
+  vanilla Lunging category is range 2, so that one sighting cannot tell them apart; LW-364 owns
+  the answer). What IS settled: the row records the donor's range so the dominance math and the
+  reader see the truth, `generate.py` refuses otherwise (`check_extended_range`), and a design
+  that needs a different reach picks a donor that has it. An owner-ruled `EXTENDED_RANGE_EXCEPTIONS`
+  entry (empty today) is the only way past the check.
 - **Formula and effect ids are DECIMAL in this repo's data**, while every FFT reference lists
   them in hex. Convert.
 - `onHitAbilityId` is a **single byte (0-255)**; a larger value makes the modloader silently

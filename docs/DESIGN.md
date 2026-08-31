@@ -231,8 +231,8 @@ keyed PER SAVE (a hash of the save struct's header, read by hooks on the game's 
 and load-apply routine), recorded when the game saves and replayed when it loads.
 
 **Known limits (stated, not hidden).** Enemies cannot carry a new id through the encounter table
-(one-byte ids; LW-350 is the runtime loadout answer). Shops CAN stock one (LW-354, built
-2026-08-27, live pass pending): the game's town-flags table has 256 rows, so the mod mirrors it
+(one-byte ids; LW-350 is the runtime loadout answer). Shops CAN stock one (LW-354, owner-passed
+2026-08-27 on a Dorter buy): the game's town-flags table has 256 rows, so the mod mirrors it
 into a page with rows past 255 and re-points the Buy-list builder at the mirror; `shops` on the
 items.json row names the towns. Optimize ranks by WP and will swap a weaker new weapon out. The WP
 growth lane writes an extended id's bump into the mod's own stats row (LW-356; no extended weapon

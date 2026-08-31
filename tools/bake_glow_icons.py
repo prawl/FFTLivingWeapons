@@ -131,7 +131,13 @@ def weapon_ids():
     owner rule this whole file exists to enforce): never a non-weapon id, never anything outside
     1..121."""
     rows = load_items()["items"]
-    ids = sorted(it["id"] for it in rows if it.get("category") in WEAPON_CATS)
+    # LW-351: a glow rim is a KILL-TIER rim, so an item that opts out of the Living Weapon
+    # system (noGrowth -- the restored vanilla axes and flails) can never earn one. It also has
+    # no items.json iconTint and no `grows` lane, which is what bake_range and _glow_variant
+    # read, so including it here would KeyError the bake rather than produce anything. Excluded
+    # at the source instead, so verify()'s expected set and the bake set stay the same rule.
+    ids = sorted(it["id"] for it in rows
+                 if it.get("category") in WEAPON_CATS and not it.get("noGrowth"))
     # LW-346: an extended-inventory weapon (an `extended` block, ids 261+) is a real growing
     # weapon with its own baked icon pair, so it gets rims like the vanilla-range 121; anything
     # else outside 1..121 is still the stray the owner rule forbids.

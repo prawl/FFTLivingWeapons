@@ -198,6 +198,79 @@ def hdr_ext(table):
             f'<{table}>\n  <Version>1</Version>\n  <Entries>\n')
 
 
+# LW-351 fix round 6: an extended row has no vanilla row to inherit its AttackFlags from, so the
+# author types them, and the first moved design (the Terrastaff, an Axe design turned Pole) shipped
+# with the flags its OLD slot lent it. The game read that fine on the card and refused nothing, but
+# the flags decide how the weapon reaches its target (its DELIVERY class), so a Pole carrying the
+# axe's Striking is a mis-authored row even when it happens to work. The rule: a moved design
+# authors its NEW category's vanilla grammar. The table below is each weapon category's delivery
+# flag as the game ships it (read from the modloader's vanilla TableData/ItemWeaponData.xml on
+# 2026-08-30: every vanilla row of a category carries exactly one of these four); the grip flags
+# (Throwable / TwoHands / TwoSwords / ForcedTwoHands) are the designer's call and are not gated.
+EXTENDED_DELIVERY_FLAGS = ("Striking", "Lunging", "Direct", "Arc")
+CATEGORY_DELIVERY = {
+    "Knife": "Striking", "NinjaBlade": "Striking", "Sword": "Striking", "KnightSword": "Striking",
+    "Katana": "Striking", "Axe": "Striking", "Rod": "Striking", "Staff": "Striking", "Flail": "Striking",
+    "Bag": "Striking", "Gun": "Direct", "Crossbow": "Direct", "Instrument": "Direct", "Book": "Direct",
+    "Throwing": "Direct", "Bomb": "Direct", "Bow": "Arc", "Polearm": "Lunging", "Pole": "Lunging",
+    "Cloth": "Lunging",
+}
+# Owner-ruled exceptions: id -> the delivery flag that row may carry instead of its category's.
+# Empty today; a row goes here only with the owner's ruling cited beside it, never to silence the gate.
+EXTENDED_DELIVERY_EXCEPTIONS = {}
+
+
+# LW-351 stage-1 close (owner ruling 2026-08-30): an extended weapon plays at its CLONE DONOR's
+# reach, not at the reach typed on its own row. The Terrastaff shipped with `range: 1` (the plan's
+# C17 ruling, meant to keep the Ironreed Pole alive) and the owner watched it strike two tiles away
+# on the round-6 build; the weapon-stat stub does hand the game a row whose byte 0 reads 1, so the
+# targeting code takes its reach from somewhere else: either the donor's own row through the
+# sibling accessors (donor 108 Ironreed Pole = 2) or the Lunging delivery class itself (every
+# vanilla Lunging category is range 2, so the two cannot be told apart from that observation; the
+# mechanism is Backlog row LW-364). The operational rule is settled: the row must record the number
+# the game will play, i.e. the donor's shipped range (the donor's own items.json `proposed.range`,
+# which is what mod/FFTIVC/tables/enhanced/ItemWeaponData.xml emits for it). A row that says
+# otherwise lies to analyze.py's dominance math and to anyone reading the data.
+# Owner-ruled exceptions: extended id -> the range the owner allows that row to record instead.
+# Empty today; an entry needs the owner's ruling cited beside it, never a silent way past the gate.
+EXTENDED_RANGE_EXCEPTIONS = {}
+
+
+def check_extended_range(it, all_items):
+    """Refuse an extended weapon row whose proposed.range differs from its clone donor's shipped range."""
+    i, s = it["id"], it["proposed"]
+    donor_id = it["extended"]["cloneDonor"]
+    donor = next(d for d in all_items if d["id"] == donor_id)
+    donor_range = donor["proposed"].get("range")
+    if donor_range is None:
+        raise SystemExit(f"extended inventory: id {i} ({it.get('name')}) clone donor {donor_id} "
+                         f"({donor.get('name')}) has no proposed.range to inherit reach from")
+    want = EXTENDED_RANGE_EXCEPTIONS.get(i, donor_range)
+    if s.get("range") != want:
+        raise SystemExit(f"extended inventory: id {i} ({it.get('name')}) records range {s.get('range')!r} but the "
+                         f"game plays an extended weapon at its clone donor's reach, and donor {donor_id} "
+                         f"({donor.get('name')}) ships range {donor_range}. Record {want} so the row tells the "
+                         f"truth (the reach cannot be changed by this number; pick a donor with the reach "
+                         f"you want, or the owner rules an EXTENDED_RANGE_EXCEPTIONS entry).")
+
+
+def check_extended_flag_grammar(it):
+    """Refuse an extended weapon row whose delivery flag is not its category's vanilla one."""
+    i, cat = it["id"], it["category"]
+    tokens = {t.strip() for t in str(it["proposed"]["attackFlags"]).split(",") if t.strip()}
+    delivery = sorted(t for t in tokens if t in EXTENDED_DELIVERY_FLAGS)
+    want = EXTENDED_DELIVERY_EXCEPTIONS.get(i, CATEGORY_DELIVERY.get(cat))
+    if want is None:
+        raise SystemExit(f"extended inventory: id {i} ({it.get('name')}) category {cat!r} has no delivery-flag "
+                         f"grammar in CATEGORY_DELIVERY; add it from the vanilla ItemWeaponData rows")
+    if delivery != [want]:
+        raise SystemExit(f"extended inventory: id {i} ({it.get('name')}) is a {cat} but its attackFlags "
+                         f"{it['proposed']['attackFlags']!r} carry delivery {delivery or 'none'}; every vanilla "
+                         f"{cat} row carries {want!r}. A moved design authors its NEW category's grammar "
+                         f"(delivery flag + grip), not the flags its old slot lent it. If this row is a "
+                         f"deliberate exception, the owner rules it into EXTENDED_DELIVERY_EXCEPTIONS.")
+
+
 def validate_extended(ext, all_items):
     """Loud, offline validation of the extended rows so a bad row fails generate.py, not the game.
     Ids must be contiguous from 261 (the DLL's donor tables are indexed by id - 261 and a gap would
@@ -218,6 +291,8 @@ def validate_extended(ext, all_items):
                 raise SystemExit(f"extended inventory: id {i} ({it.get('name')}) {key}={d!r} must name a vanilla-range item (1..255) present in items.json")
         if not s.get("attackFlags"):
             raise SystemExit(f"extended inventory: id {i} ({it.get('name')}) needs proposed.attackFlags (no vanilla row to inherit them from)")
+        check_extended_flag_grammar(it)
+        check_extended_range(it, all_items)
         # LW-354: the towns whose shop stocks it, in the modloader's own ItemShopsData names.
         for tok in [x.strip() for x in str(e.get("shops", "None")).split(",") if x.strip()]:
             if tok not in EXTENDED_SHOP_NAMES:
