@@ -38,6 +38,11 @@ public class ExtendedWeaponCeilingTests
     {
         var r = ExtendedInventoryData.Load(Path.Combine(RepoRoot(), "mod"));
         Assert.True(r.Ok, string.Join("; ", r.Errors));
+        // Reviewer finding (2026-08-31): generate.py's weapons-only refusal also admits Throwing
+        // and Bomb, which the picker set below does not count; a row outside the counted set must
+        // go red here rather than ride past the ceiling uncounted.
+        Assert.All(r.Items, i => Assert.True(WeaponCats.Contains(i.Category),
+            $"extended id {i.Id} has category {i.Category}, outside the LW-375 ceiling's counted weapon set"));
         int extendedWeapons = r.Items.Count(i => WeaponCats.Contains(i.Category));
         int ceiling = ListBuilderHook.StackCallerCap - CountVanillaWeaponKinds();
         Assert.True(extendedWeapons <= ceiling,
@@ -57,7 +62,9 @@ public class ExtendedWeaponCeilingTests
     /// <summary>123 = the vanilla items.json rows whose category is a weapon class (18 types,
     /// Throwing/Bomb excluded, Shield excluded: the picker's weapons-only list is mode 5) plus
     /// the two DLC blades 256/257 (not items.json rows) -- the weapons-only twin of
-    /// TemplateRelocationTests.CountVanillaHandKinds.</summary>
+    /// TemplateRelocationTests.CountVanillaHandKinds. Exactly TWO DLC blades exist: 258 to 260
+    /// are a hat, a vest and a ring (docs/research/ITEM_CAP_261_BREAK_JOURNEY.md byte dump),
+    /// which the LW-362 backlog row also records since its 2026-08-31 correction.</summary>
     private static int CountVanillaWeaponKinds()
     {
         string path = Path.Combine(RepoRoot(), "data", "items.json");

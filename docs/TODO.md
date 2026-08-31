@@ -2672,12 +2672,15 @@ belongs rather than at the bottom.
   counts the distinct new combinations, names the free-row budget and the rows already taken,
   and refuses with one sentence a partner can act on (reuse an existing combination or drop
   a bonus); a test pins the count.
-- [LW-362] 2026-08-30: The game's own four DLC blades (ids 256 to 259, Materia Blade+,
-  Akademy Blade and kin) could become living weapons too, counting kills and growing like
+- [LW-362] 2026-08-30: The game's own two DLC blades (ids 256 and 257, Materia Blade+ and
+  the Akademy Blade) could become living weapons too, counting kills and growing like
   everything else; today their kills are deliberately left uncredited as untracked items,
-  which the owner noticed mid-battle. Owner priority ruling: LOW, not important right now,
+  which the owner noticed mid-battle. (Corrected 2026-08-31: this row first said four blades,
+  ids 256 to 259, but 258 to 260 are DLC gear, a hat, a vest and a ring, per the byte dump in
+  docs/research/ITEM_CAP_261_BREAK_JOURNEY.md; the LW-375 ceiling arithmetic leans on exactly
+  two DLC blades existing.) Owner priority ruling: LOW, not important right now,
   parked at the bottom of the backlog on purpose. Shape when picked up: meta rows for the
-  four (growth lanes, tiers), the grid csv rows, and a check that their stock SortOrder
+  two (growth lanes, tiers), the grid csv rows, and a check that their stock SortOrder
   reservations (the check_stock_rows tripwire) and the LW-344 partner whitelist stay
   consistent with them becoming tracked.
 

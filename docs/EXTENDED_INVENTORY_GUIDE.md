@@ -44,15 +44,16 @@ signature needs none.
   up to **255 entries** per list (LW-372: the shared caps widened from 145/150 to 255/256, safe
   because a hook on the list builder hands the two STACK-buffer callers a mod-owned buffer and
   copies back at most 149 entries; those two menus, the equip picker among them, keep 149,
-  which no real save approaches: the worst per-unit picker list today is ~142). LW-375 owner ruling (2026-08-31): that picker list is now the DESIGN
+  which no real save approaches: the worst per-unit picker list today is ~142).
+  LW-375 owner ruling (2026-08-31): that picker list is now the DESIGN
   CEILING for the whole catalog, 123 vanilla weapon kinds plus at most 26 extended weapon
   kinds to fill its 149 rows, enforced by ExtendedWeaponCeilingTests (the gate refuses a
   bigger extended catalog); the third relocation that would lift the big browsers past 255
   drawn rows (the static draw list 0x141811470, about 50 code fields, plus the rebuild's
-  264-word stack temp) was declined. At the absolute
-  maximum (all 261 vanilla ids plus all 121 extended owned = 382 kinds) the All Items browser
-  draws 255 of 382 and the combined weapons view 255 of 260; every undrawn kind still shows in
-  its category tab, equips and saves. The chart holds every kind regardless. The picker's other three sub-charts (helmets 30 words for 28
+  264-word stack temp) was declined.
+  At the ruling's maximum (all 261 vanilla ids plus all 26 extended owned = 287 kinds) the All
+  Items browser draws 255 of 287 and the combined weapons view (at most 165 kinds) never
+  truncates at all; every undrawn kind still shows in its category tab, equips and saves. The chart holds every kind regardless. The picker's other three sub-charts (helmets 30 words for 28
   vanilla kinds, body 38 for 36, accessories 34 for 33) are NOT relocated: a V2 extended
   helmet, armor or accessory would overflow the picker block on day one. One residual limit
   LW-368 did NOT close: a third per-item word list (0x105 entries, not moved) still overlaps
