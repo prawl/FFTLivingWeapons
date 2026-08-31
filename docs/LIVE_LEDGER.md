@@ -76,6 +76,10 @@ Not yet observed (built 2026-08-27 evening from a static read of the live 1.5.2 
 
 PROVEN 2026-08-27 19:50-19:53, owner live pass on the deployed prod build (07b9cb2 tree): the boot line reported the mirror, Dorter's Outfitter listed the Moonblade at 10 gil and a purchase raised the bag count 1 to 2 (sidecar x2), Gariland's Outfitter did not list it, no "+" item appeared; the live builder sites read the mirror page (0x114AB0000, vanilla half byte-identical to the game's table, row 261 = Dorter, loop bound 0x106).
 
+Built on again 2026-08-30 (LW-351 stage 1, owner eyes): the Terrastaff listed at 1500 gil and
+purchased; the P6 window poke proved the catalog record's +0x0A chapter byte gates an extended
+row live (absent with a future window, present after the real one was restored, one byte).
+
 <details><summary>How we got here</summary>
 
 **Claim (original wording):** the buy-list builder's loop bound and its two table references are the whole shop gate for a new id.
@@ -1943,6 +1947,88 @@ Proven, owner-flipped 2026-08-30: the re-test on the masked-key build passed end
 </details>
 
 ## Uncertain — observed live, not yet isolated / built on
+
+
+### [reserved-id-equality-list-gate] The game's can-equip check refuses five RESERVED item ids by an equality list, not a bound, and relocating the list's five constants frees the ids for extended items
+Observed 2026-08-30 (LW-351 fix round 6, revised): whatever item sat at id 262 was refused by
+every job's equip check while 261 and 263 equipped fine. The five 0x106-looking "caps" first
+blamed were zlib MIN_LOOKAHEAD constants (never patch); the real gate is an EQUALITY chain over
+{262, 288, 293, 301, 310} inside the can-equip routine 0x1402886D0 plus a twin at 0x140396F52
+(the twin runs for jobs 161/164 only). The shipped fix relocates the five constants high
+(0x106 -> 0x206 etc., the HighByte site kind in ExtendedSites) so no real id ever matches.
+Owner-observed live re-test 7 (2026-08-30 ~22:50): the Terrastaff at 262 equips on an Oracle
+AND a Geomancer while bag-owned; post-launch read-only probe: 0x140288709 reads
+81 ea 06 02 00 00 and 0x140396F52 reads 81 e9 06 02 00 00 (both relocated). Every later stage-2
+and LW-368/371/372 pass re-crosses this gate. Owner flip pending. Evidence: LW351_plan.md round
+6 (the revised section wins), memory reserved-item-id-list-equip-gate, docs/TODO.md LW-351 row.
+
+
+### [order-template-housekeeper-family] THREE copies of the game's owned-item template maintainer walk the menu order charts with a disp8 bound invisible to imm32 scans, and an un-widened copy corrupts a chart holding an extended id on every insert
+Observed 2026-08-31 00:00-00:20 (LW-351 round 8) and the round-8b verify: the maintainer keeps
+chart == owned set; its walk stops at the 0x00FF marker OR the first word >= its bound, loaded
+by lea r14d,[r15+6] with r15d = 0xFF (a disp8 byte, invisible to the imm32 sweep). An extended
+id inside the chart ends the walk early, so an insert shifts only the prefix: one doubled
+neighbor and one destroyed word per insert, and the marker is lost once the crawling id reaches
+it (owner's screen: five doubled shields, five vanished designs, an empty row, a crash; the
+emulations in ExtendedSitesTests reproduce both shapes). The family: 0x140285F80 (inventory),
+0x140286070 (picker), 0x14039684C (third copy, ownership from the transaction-time mirror
+0x143C52740, trigger most likely the shop commit); bound bytes 0x140285FB5, 0x1402860AE,
+0x140396881, all widened in ExtendedSites.BootSites (PlusN) since rounds 8/8b. Owner-observed
+live re-test 9 (2026-08-31 01:06-01:22): Sort clean, no doubled shields, every owned design
+listed, markers intact, no empty rows. Owner flip pending. Evidence: LW351_plan.md rounds 8/8b,
+memory order-template-mechanics, tools/probes/lw351_template_watch.py.
+
+
+### [inventory-reset-hook-keeps-extended-counts] The game's per-item state initializer zeroes the bag-count list to its (widened) bound and refills only ids 0..260 from the save struct, so a detour must carry the extended counts across every run
+Observed 2026-08-30 23:18-23:34 (LW-351 stage-2 live pass, defect A): after one real battle
+every extended bag count read 0 while vanilla counts survived; the initializer 0x140284500
+zeroes bag[id] for id 0..bound (the store at 0x140284561) and nothing refills 261+ (before the
+bound was widened the extended slots survived by accident). No direct callers on disk (indirect
+dispatch). The shipped InventoryResetHook detours it: snapshot the N extended bytes before the
+original, restore after, one Info canary per launch, a flight record per run. Owner-observed
+live re-test 9 (2026-08-31): counts survived the battle, the canary fired at the load edge
+(mode 1); the 23:2x post-battle trigger has not recurred and the hook stays armed for it.
+Owner flip pending. Evidence: LW351_plan.md round 7 (R7-1), tools/probes/lw351_bag_watch.py,
+livingweapon.log 2026-08-30 23:24-23:29.
+
+
+### [order-templates-are-save-state] The two weapon menu order charts round-trip through the save file and are NEVER rebuilt from ownership on a load, so a chart word a save carries outlives every session until the game's own housekeeping drops it
+Observed 2026-08-30 (LW-351 re-test 5 disconfirmed the pre-write theory) and read off the
+disassembly both ways: load-apply restores both charts out of the save struct (0x14021B4BD,
+struct+0x8A6C) and the serializer writes them back (0x1402194BC), so a save written before an
+extended id ever seated restores a chart without it, and a stale id a save carries comes back
+every load. TemplateSeat (load edge + seat-before-rebuild) is the shipped consequence: owned
+extended ids are seated after every restore. Owner-observed across re-tests 5-9 and every
+LW-368/371 pass (the LW-371 relocation moved the charts the game WORKS ON to a mod page; the
+save fields stay the staging area, TemplateSync projecting/adopting at the edges). Owner flip
+pending. Evidence: LW351_plan.md re-test 5 + fix round 5, the Offsets.cs template constants'
+derivations, [order-templates-relocatable] (PROVEN) for the relocation half.
+
+
+### [extended-reach-from-donor-not-authored-row] An extended weapon's battle reach comes from its clone donor's row (or its delivery class), NOT from the authored range byte in its own weapon row
+Observed 2026-08-30 ~22:50 (re-test 7, owner eyes): the Terrastaff's authored row carried
+range 1 and the weapon-stat thunk's row read 01 at [0], yet targeting reached 2 tiles, the
+donor's number (108 Ironreed Pole, range 2; every vanilla Lunging category is range 2, so the
+donor-row and delivery-class explanations are not separable from this observation). Mechanism
+UNRESOLVED (Backlog LW-364). The settled operational rule (owner, 2026-08-30): an extended
+item's proposed.range must equal its clone donor's shipped range; generate.py
+check_extended_range enforces it. Owner flip pending (the observation half). Evidence:
+LW351_plan.md "STAGE 1 CLOSED" section, docs/TODO.md LW-364 row.
+
+
+### [menu-rebuild-needs-unique-sort-keys] The menu-order rebuild slots weapon rows by their item.en SortOrder key, so two rows sharing a key smear both order charts (one survivor, a stale hole), and keys must stay unique across STOCK DLC rows too
+Observed 2026-08-30 18:0x-18:15 (the stage-1 live failure): the baked Moonblade key 216
+collided with the stock Akademy Blade (id 257, also 216, a row the old derivation never
+accounted for); both charts mis-built (word 127 a survivor, word 128 a stale hole, the visible
+doubled Aegis Prime) and the new id vanished from the equip grid. With every weapon-category
+row's key unique (patch_names build_sort_map counts the stock 256-259 rows; the --selftest
+uniqueness gate runs in BuildLinked/CI) re-test 3 rebuilt hole-free with zero re-append lines
+(the hook's pre-registered no-op expectation, Y6). RESIDUAL CHANNEL (Z2, never closed): a
+partner mod shipping its own item.en.nxd with weapon SortOrder cells re-creates the duplicate
+through the loader's per-cell merge, invisible to every bake-side gate; the runtime has no
+duplicate-key tripwire at rebuild time (the Cloud mod specifically cannot: it ships ItemData
+rows, not nxd sort cells). Owner flip pending. Evidence: LW351_plan.md fix round 1 + Y6/Z2,
+tools/patch_names.py --selftest.
 
 ### [weapon-sprite-pair-drives-swing-art] The two-byte sprite/palette record at 0x140785CF0 + id*2 picks BOTH the drawing and the palette of a weapon's swing, and it is read on every swing
 

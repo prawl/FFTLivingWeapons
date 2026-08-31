@@ -95,7 +95,10 @@ plus one `extended` block (and, because the design moved here from the Battle Ax
 
 ### 1. Author the row (`data/items.json`, the only hand-edited source)
 
-Append a row with the **next free id** (contiguous from 261). Fill it like any weapon row:
+Append a row with the **next free id** (contiguous from 261). Check the seat budget first:
+at most 26 extended weapon kinds may ever ship (the LW-375 ruling: 123 vanilla weapon kinds
++ 26 fill the equip picker's 149 rows; ExtendedWeaponCeilingTests is the gate, and 7 seats
+are taken today). Fill it like any weapon row:
 `name` (a real one; "TBD" is refused because the name is also the in-game text row),
 `vanillaName` (for a net-new item, set it to the item's own name; the grid gate compares it),
 `category` (a weapon category), `tier`, `flavorOverride` (the card's flavor line, 90 chars max),
@@ -274,7 +277,9 @@ extended item becomes whatever now holds its number (the next design down) and a
 id empties. The saved menu charts also still carry the old last id, and that word is exactly
 what the game's chart housekeeper stops at (the LW-351 round-8 defect shape: a doubled neighbor
 and a lost end marker on every new acquisition), so Sort BOTH weapon lists once BEFORE buying or
-looting anything; LW-367 teaches the mod's repair to drop such a word itself.
+looting anything; since LW-367 the mod's own repair drops such
+a stale word itself on the first load or menu rebuild and names the dropped ids in its log
+line, so the hand Sort is only the fallback.
 
 ## Where the deep answers live
 
