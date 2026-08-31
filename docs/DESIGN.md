@@ -205,8 +205,9 @@ the system that steps past it; the address-level story is docs/research/ITEM_CAP
 and the ledger rows named there.
 
 **What it is for.** Net-new weapons that exist only while this mod runs: first the Moonblade
-(id 261, the proof), then the seven rebalanced ex-axe and ex-flail designs (LW-351, so ids
-48-50 and 67-70 can go back to being real axes and flails), then partner mods' items (LW-344).
+(id 261, the proof), then the seven rebalanced ex-axe and ex-flail designs at ids 262 to 268
+(LW-351, 2026-08-30, so ids 48-50 and 67-70 went back to being real axes and flails), then
+partner mods' items (LW-344).
 
 **How a new item is declared.** One row in `data/items.json` with an `extended` block. The row
 looks like any other weapon (name, category, tier, `proposed` stats, `grows`, flavor) plus:

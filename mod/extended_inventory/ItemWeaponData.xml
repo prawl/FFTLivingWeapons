@@ -23,5 +23,65 @@
       <Elements>Earth</Elements>
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
+    <ItemWeapon>
+      <Id>263</Id> <!-- Ravager -->
+      <Range>1</Range>
+      <AttackFlags>Throwable, TwoHands, TwoSwords, Striking</AttackFlags>
+      <Formula>1</Formula>
+      <Power>15</Power>
+      <Evasion>5</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>23</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>264</Id> <!-- Sunderer -->
+      <Range>1</Range>
+      <AttackFlags>Throwable, TwoHands, TwoSwords, Striking</AttackFlags>
+      <Formula>46</Formula>
+      <Power>13</Power>
+      <Evasion>10</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>265</Id> <!-- Warbrand -->
+      <Range>1</Range>
+      <AttackFlags>Throwable, TwoHands, TwoSwords, Striking</AttackFlags>
+      <Formula>1</Formula>
+      <Power>15</Power>
+      <Evasion>0</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>266</Id> <!-- Bloodlash -->
+      <Range>1</Range>
+      <AttackFlags>Throwable, TwoSwords, Striking</AttackFlags>
+      <Formula>45</Formula>
+      <Power>8</Power>
+      <Evasion>15</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>22</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>267</Id> <!-- Climhazzard -->
+      <Range>1</Range>
+      <AttackFlags>Throwable, TwoHands, TwoSwords, Striking</AttackFlags>
+      <Formula>69</Formula>
+      <Power>5</Power>
+      <Evasion>20</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>268</Id> <!-- Sasori -->
+      <Range>1</Range>
+      <AttackFlags>Throwable, TwoHands, TwoSwords, Striking</AttackFlags>
+      <Formula>1</Formula>
+      <Power>11</Power>
+      <Evasion>10</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>11</OptionsAbilityId>
+    </ItemWeapon>
   </Entries>
 </ItemWeaponTable>

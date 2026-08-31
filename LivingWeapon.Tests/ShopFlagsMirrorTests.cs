@@ -104,4 +104,25 @@ public class ShopFlagsMirrorTests
     [Fact]
     public void ParseShops_rejects_an_unknown_town()
         => Assert.Contains("Ivalice", Assert.Throws<FormatException>(() => ExtendedRecords.ParseShops("Dorter, Ivalice")).Message);
+
+    /// <summary>LW-351 stage 2 (D12): the mirror carries EVERY extended row, not just the first;
+    /// each item's town bits land at its own id's slot, in the loader's byte order, and an id
+    /// with no row stays empty. Town values come from ParseShops so the test speaks the same
+    /// vocabulary the items.json rows do.</summary>
+    [Fact]
+    public void Install_lands_every_extended_row_at_its_own_slot()
+    {
+        var f = new FakeCodePatcher();
+        SeedVanillaShopSites(f);
+        var m = new ShopFlagsMirror();
+        ushort six = (ushort)ExtendedRecords.ParseShops("Lesalia, Riovanes, Eagrose, Lionel, Limberry, Zeltennia");
+        ushort eight = (ushort)ExtendedRecords.ParseShops("Dorter, Warjilis, SalGhidos, Riovanes, Eagrose, Lionel, Limberry, Zeltennia");
+        Assert.Null(m.Install(f, new FakeNearAllocator(), new List<(int, ushort)> { (261, 0x4000), (262, six), (268, eight) }));
+        long buf = m.MirrorAddr;
+        Assert.Equal((0x00, 0x40), (f.Bytes[buf + 261 * 2], f.Bytes[buf + 261 * 2 + 1]));
+        Assert.Equal((six & 0xFF, six >> 8), (f.Bytes[buf + 262 * 2], f.Bytes[buf + 262 * 2 + 1]));
+        Assert.Equal((eight & 0xFF, eight >> 8), (f.Bytes[buf + 268 * 2], f.Bytes[buf + 268 * 2 + 1]));
+        Assert.Equal(0, f.Bytes[buf + 263 * 2] | f.Bytes[buf + 263 * 2 + 1]);   // no row, no bits
+        Assert.NotEqual(six, eight);
+    }
 }

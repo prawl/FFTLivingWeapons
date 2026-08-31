@@ -241,10 +241,12 @@ def check_extended_range(it, all_items):
     i, s = it["id"], it["proposed"]
     donor_id = it["extended"]["cloneDonor"]
     donor = next(d for d in all_items if d["id"] == donor_id)
-    donor_range = donor["proposed"].get("range")
-    if donor_range is None:
-        raise SystemExit(f"extended inventory: id {i} ({it.get('name')}) clone donor {donor_id} "
-                         f"({donor.get('name')}) has no proposed.range to inherit reach from")
+    # The donor's SHIPPED reach: weapon_entry() emits <Range>proposed.range</Range> with 1 as the
+    # default for a row that authors none (most melee rows, e.g. the Riposte and the Cutpurse), so
+    # the same default is the truth here. LW-351 stage 2 corrected the first cut of this gate,
+    # which refused a donor with no range key and would have forced range keys onto donor rows
+    # that ship 1 either way.
+    donor_range = donor["proposed"].get("range", 1)
     want = EXTENDED_RANGE_EXCEPTIONS.get(i, donor_range)
     if s.get("range") != want:
         raise SystemExit(f"extended inventory: id {i} ({it.get('name')}) records range {s.get('range')!r} but the "

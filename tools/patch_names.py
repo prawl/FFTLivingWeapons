@@ -146,6 +146,21 @@ def sort_order_collisions(sort_map, stock=None):
     return {so: sorted(keys) for so, keys in claims.items() if len(keys) > 1}
 
 
+# The seven axes and flails LW-351 restored to vanilla (ids 48-50, 67-70), as their generated cards
+# read on 2026-08-30: name from vanillaName, description from lib/flavor.py's tier template plus the
+# mechanics line the row's own numbers earn (the Slasher's vanilla Slow proc, the Flail of Flame's
+# Fire cast). No Kills scaffold: noGrowth rows are not living weapons.
+RESTORED_ROW_CARDS = {
+    48: ("Battle Axe", "A plain, dependable axe for the early road."),
+    49: ("Giant's Axe", "A humble axe, the first a recruit is trusted with."),
+    50: ("Slasher", "A keen axe that has earned its keep many times over.\nMay inflict Slow on hit."),
+    67: ("Iron Flail", "A humble flail, the first a recruit is trusted with."),
+    68: ("Flail of Flame", "Forged in flame, it sears what it strikes.\nDeals Fire damage. May cast Fira on hit."),
+    69: ("Morning Star", "A well-balanced flail, the smith's quiet pride."),
+    70: ("Scorpion Tail", "A heavy flail that ends an argument in one swing."),
+}
+
+
 def selftest(named=None, sort_map=None):
     """Build gate (wired into tools/pipeline.ps1, so BuildLinked, Publish and CI all run it, and
     called by main() so a manual bake cannot route around it): no two weapon rows in the shipped
@@ -174,10 +189,21 @@ def selftest(named=None, sort_map=None):
     overlap = sorted(set(STOCK_WEAPON_ROWS) & {it["id"] for it in named})
     if overlap:
         print(f"  STOCK_WEAPON_ROWS lists ids data/items.json also owns: {overlap}")
-    if clash or overlap or cloned_key:
+    # LW-351 (C14/T5, stage 2): the seven restored vanilla axes and flails ship GENERATED cards
+    # (vanilla numbers, this mod's prose), pinned line for line so a flavor-table edit that
+    # reworded one, or a row edit that re-armed growth on one, is a diff here and not a surprise
+    # on the owner's card. Pure: item_intent needs no game files.
+    intent = item_intent(named, sort_map)
+    wrong = []
+    for rid, (want_name, want_desc) in RESTORED_ROW_CARDS.items():
+        got = (intent.get((rid, "Name")), intent.get((rid, "Description")))
+        if got != (want_name, want_desc):
+            wrong.append(rid)
+            print(f"  restored row {rid} card drifted: wanted {(want_name, want_desc)!r}, got {got!r}")
+    if clash or overlap or cloned_key or wrong:
         sys.exit(f"FAIL: {len(clash)} duplicate weapon SortOrder(s), {len(overlap)} stock/owned id "
-                 f"clash(es), {len(cloned_key)} extended row(s) on a cloned key -- the game's "
-                 f"order-table rebuild drops one row per collision")
+                 f"clash(es), {len(cloned_key)} extended row(s) on a cloned key, {len(wrong)} restored "
+                 f"row card(s) drifted -- the game's order-table rebuild drops one row per collision")
     print(f"  selftest PASS: {len(sort_map) + len(STOCK_WEAPON_ROWS)} weapon rows "
           f"({len(STOCK_WEAPON_ROWS)} of them the game's own), all on distinct SortOrder values")
 

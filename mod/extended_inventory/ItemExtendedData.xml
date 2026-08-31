@@ -19,5 +19,53 @@
       <SeedCount>0</SeedCount>
       <Shops>Lesalia, Riovanes, Eagrose, Lionel, Limberry, Zeltennia</Shops>
     </ItemExtended>
+    <ItemExtended>
+      <Id>263</Id> <!-- Ravager -->
+      <Name>Ravager</Name>
+      <CloneDonorId>33</CloneDonorId>
+      <ArtDonorId>33</ArtDonorId>
+      <SeedCount>0</SeedCount>
+      <Shops>Lesalia, Riovanes, Eagrose, Lionel, Limberry, Zeltennia</Shops>
+    </ItemExtended>
+    <ItemExtended>
+      <Id>264</Id> <!-- Sunderer -->
+      <Name>Sunderer</Name>
+      <CloneDonorId>33</CloneDonorId>
+      <ArtDonorId>33</ArtDonorId>
+      <SeedCount>0</SeedCount>
+      <Shops>Lesalia, Riovanes, Eagrose, Lionel, Limberry, Zeltennia</Shops>
+    </ItemExtended>
+    <ItemExtended>
+      <Id>265</Id> <!-- Warbrand -->
+      <Name>Warbrand</Name>
+      <CloneDonorId>21</CloneDonorId>
+      <ArtDonorId>21</ArtDonorId>
+      <SeedCount>0</SeedCount>
+      <Shops>Dorter, Warjilis, SalGhidos, Riovanes, Eagrose, Lionel, Limberry, Zeltennia</Shops>
+    </ItemExtended>
+    <ItemExtended>
+      <Id>266</Id> <!-- Bloodlash -->
+      <Name>Bloodlash</Name>
+      <CloneDonorId>1</CloneDonorId>
+      <ArtDonorId>1</ArtDonorId>
+      <SeedCount>0</SeedCount>
+      <Shops>Dorter, Warjilis, SalGhidos, Riovanes, Eagrose, Lionel, Limberry, Zeltennia</Shops>
+    </ItemExtended>
+    <ItemExtended>
+      <Id>267</Id> <!-- Climhazzard -->
+      <Name>Climhazzard</Name>
+      <CloneDonorId>12</CloneDonorId>
+      <ArtDonorId>12</ArtDonorId>
+      <SeedCount>0</SeedCount>
+      <Shops>Dorter, Warjilis, SalGhidos, Riovanes, Eagrose, Lionel, Limberry, Zeltennia</Shops>
+    </ItemExtended>
+    <ItemExtended>
+      <Id>268</Id> <!-- Sasori -->
+      <Name>Sasori</Name>
+      <CloneDonorId>43</CloneDonorId>
+      <ArtDonorId>43</ArtDonorId>
+      <SeedCount>0</SeedCount>
+      <Shops>Dorter, Warjilis, SalGhidos, Riovanes, Eagrose, Lionel, Limberry, Zeltennia</Shops>
+    </ItemExtended>
   </Entries>
 </ItemExtendedTable>

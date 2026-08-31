@@ -23,6 +23,11 @@ data/enhanced/0008.pac into the OS temp dir. Outputs land in the mod tree beside
 files and are committed like the 468 icon textures.
 
 Usage: python tools/bake_extended_icon_parts.py            # every `extended` row in items.json
+       python tools/bake_extended_icon_parts.py 263 264    # only those ids (LW-351 stage 2: a
+                                                            # moved design's iconSource names its
+                                                            # OLD id, whose art turns vanilla after
+                                                            # the restore, so re-baking every row
+                                                            # would repaint the earlier moves)
        python tools/bake_extended_icon_parts.py --selftest  # the patch arithmetic, no game files
 """
 import sys
@@ -64,6 +69,20 @@ def patch_parts(donor_bytes, sub, pfx, donor_id, item_id):
     return out
 
 
+def selected(argv, ext):
+    """Pure: the extended rows to bake. Bare digits on the command line pick ids; no digits means
+    every extended row. An id that is not an extended row is refused (ValueError) rather than
+    silently skipped, so a typo cannot pass as "already done"."""
+    wanted = {int(a) for a in argv if a.isdigit()}
+    if not wanted:
+        return list(ext)
+    have = {it["id"] for it in ext}
+    missing = sorted(wanted - have)
+    if missing:
+        raise ValueError(f"not extended-inventory rows in data/items.json: {missing}")
+    return [it for it in ext if it["id"] in wanted]
+
+
 def main():
     if "--selftest" in sys.argv:
         return selftest()
@@ -71,6 +90,10 @@ def main():
     if not ext:
         print("no extended-inventory rows in data/items.json; nothing to bake")
         return 0
+    try:
+        ext = selected(sys.argv[1:], ext)
+    except ValueError as e:
+        raise SystemExit(f"bake_extended_icon_parts: {e}")
     with tempfile.TemporaryDirectory(prefix="lw_icon_parts_") as td:
         tmp = Path(td)
         donors = {}
@@ -127,7 +150,16 @@ def selftest():
         raise AssertionError("a donor without the expected path must be refused")
     except ValueError:
         pass
-    print("bake_extended_icon_parts selftest: 3/3 passed.")
+    rows = [{"id": 261}, {"id": 262}, {"id": 263}]
+    assert selected([], rows) == rows                       # no ids: every row
+    assert selected(["--dry"], rows) == rows                # a flag is not an id
+    assert [r["id"] for r in selected(["263", "261"], rows)] == [261, 263]   # file order kept
+    try:
+        selected(["264"], rows)
+        raise AssertionError("an id that is not an extended row must be refused")
+    except ValueError:
+        pass
+    print("bake_extended_icon_parts selftest: 5/5 passed.")
     return 0
 
 

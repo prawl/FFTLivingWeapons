@@ -8,7 +8,9 @@ DEV_TEST_RECIPES.md holds the terse version of the same recipe, this file is the
 Final Fantasy Tactics: The Ivalice Chronicles has room for exactly 261 items, and every slot is
 taken. This mod broke that wall: it can add brand-new items with their own id, name, stats, icon,
 shop listing and growth, living at ids 261 and up. The Moonblade (id 261) is the first and the
-worked example for everything below.
+worked example for everything below; ids 262 to 268 are the seven designs LW-351 moved off the
+vanilla axe and flail slots (the Terrastaff, Ravager, Sunderer, Warbrand, Bloodlash, Climhazzard
+and Sasori).
 
 The important mental model: a new item is **one row in `data/items.json`, one row in
 `docs/living_weapon_grid.csv`, and one icon bake**. Everything else (the tables the DLL reads,
@@ -22,7 +24,7 @@ signature needs none.
 
 - **Weapons only** in V1. The generator refuses any non-weapon category.
 - **Ids are contiguous from 261**, ceiling 511; the next free id is one past the highest `id` in
-  `data/items.json` (262 today, so the next item is 263). A gap fails `generate.py` on purpose
+  `data/items.json` (268 today, so the next item is 269). A gap fails `generate.py` on purpose
   (the runtime donor tables are indexed by `id - 261`; a gap would read a neighbor's donors).
 - **This is internal to Living Weapons, not a public framework** (owner ruling, recorded on the
   LW-344 task row, 2026-08-30):
@@ -91,10 +93,13 @@ The `extended` block, field by field:
 
 **Trap, `iconSource` on a moved design:** it names a SHIPPED picture, so it copies whatever that
 id ships at bake time. The Terrastaff's `iconSource` is 48, and the id-48 icon was its own art on
-the day it was baked but is the vanilla Battle Axe's art now. Re-running
-`tools/bake_extended_icon_parts.py` therefore repaints the Terrastaff with an axe. Check the
-result whenever you re-run the icon bake after a move, and if the two ever have to diverge for
-good, give the moved design its own recolor rather than a donor.
+the day it was baked but is the vanilla Battle Axe's art now (the same holds for every moved
+design: 263 to 268 name 49, 50 and 67 to 70). Re-running `tools/bake_extended_icon_parts.py`
+with no ids would therefore repaint the moved designs with axes and flails. Since stage 2 the
+bake takes the ids to touch on its command line (`python tools/bake_extended_icon_parts.py 269`)
+and refuses an id that is not an extended row; bake only the row you are adding, check the
+result, and if a design ever has to diverge from its old picture for good, give it its own
+recolor rather than a donor.
 
 If the item carries a stat rider (PA+1 and kin), `proposed.equipBonusId` names its EquipBonus
 row, which also feeds the catalog record; the rider prose gates check it.

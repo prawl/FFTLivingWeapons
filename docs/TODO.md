@@ -124,7 +124,10 @@ the technical detail lives in the indented lines under it.
     is live-passed and closed after six fix rounds that each peeled one more layer of the
     game's 261-item wall (id caps, menu sort keys, the save's fixed bag, the saved menu order
     templates, and a hardcoded reserved-id list in the equip check that refused whatever sat
-    at id 262). Stage 2 (the other six pairs) is next; stage 3 closes the ledger. The
+    at id 262). STAGE 2 is BUILT (2026-08-30 late): the Ravager, Sunderer, Warbrand,
+    Bloodlash, Climhazzard and Sasori now live at ids 263 to 268 and the Giant's Axe, Slasher,
+    Iron Flail, Flail of Flame, Morning Star and Scorpion Tail are back at their own ids; its
+    owner live pass is owed, then stage 3 closes the ledger. The
     Terrastaff now records its true reach (2 tiles, its clone donor's), which makes it beat
     the Ironreed Pole; the owner deferred that pair out loud (analyze.py DOMINANCE_DEFERRED)
     until one dominance pass gates all seven together (LW-363).

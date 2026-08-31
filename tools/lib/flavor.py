@@ -66,6 +66,12 @@ ELEM_FLAVOR = {
     "Holy": "Blessed steel that burns the unclean.",
     "Dark": "Shadow clings to its edge.",
 }
+
+# Tiered elemental casts by ability id (decimal), so a card names the tier the row really
+# casts: vanilla weapons carry Fire 16 / Thunder 20 / Blizzard 24, the Flail of Flame Fira 17.
+TIERED_CAST = {16: "Fire", 17: "Fira", 18: "Firaga", 19: "Firaja",
+               20: "Thunder", 21: "Thundara", 22: "Thundaga", 23: "Thundaja",
+               24: "Blizzard", 25: "Blizzara", 26: "Blizzaga", 27: "Blizzaja"}
 PROC_FLAVOR = {
     9: "Its glare leaves foes groping blind.", 10: "It smothers an enemy's voice mid-spell.",
     11: "A mark of doom rides every blow.", 12: "Its rhythm lulls the wary to sleep.",
@@ -206,7 +212,11 @@ def mechanics(it):
         if f in (6, 47, 48):
             parts.append({6: "Absorbs HP dealt.", 47: "Absorbs MP dealt.", 48: "Night Sword: drains HP."}[f])
         if f == 2 and el not in ("None", None, ""):  # vanilla elemental spell-cast on hit
-            spell = {"Lightning": "Thunder", "Fire": "Fire", "Ice": "Blizzard"}.get(el, el)
+            # The cast is named by the row's ability id when it is one of the tiered elemental
+            # spells (decimal ids, Fire 16 .. Firaja 19, Thunder 20 .. 23, Blizzard 24 .. 27,
+            # the PSX order); the element only picks the name when the id is not one of those.
+            # The restored Flail of Flame (68) carries 17 = Fira, not Fire (LW-351 stage 2).
+            spell = TIERED_CAST.get(p) or {"Lightning": "Thunder", "Fire": "Fire", "Ice": "Blizzard"}.get(el, el)
             parts.append(f"May cast {spell} on hit.")
         if f == 2 and p == 147:  # Rush = knockback
             parts.append("May knock the target back a tile.")

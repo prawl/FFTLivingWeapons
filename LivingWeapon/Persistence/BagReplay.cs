@@ -28,8 +28,10 @@ namespace LivingWeapon;
 /// The resolution order is exactly what the tick has done since LW-353: the counts recorded for
 /// that save's key, else the schema-1 counts once (the pre-key migration), else the data's
 /// first-copy seed. <see cref="Resolve"/> is the only place that spends that one-shot migration,
-/// which is why the detour hands its <see cref="Plan"/> forward to the tick instead of letting
-/// the tick resolve the same key a second time.
+/// and since LW-351 stage 2 it records the migrated counts under the key it resolved them for,
+/// so a second resolve of the same key (the game's second load routine, the tick, the next
+/// launch) answers with the same counts instead of the seed. The detour still hands its
+/// <see cref="Plan"/> forward to the tick so the tick does not resolve the key a second time.
 /// </summary>
 internal static class BagReplay
 {
@@ -62,7 +64,12 @@ internal static class BagReplay
         var legacy = sidecar.TakeLegacy();
         if (legacy != null)
         {
-            sidecar.PersistAfterLegacyTaken();
+            // P4-F1 (LW-351 stage 2): record the migrated counts UNDER THIS KEY, not merely
+            // "spent". Both of the game's load routines are hooked, so one logical load can
+            // resolve the same key twice; with a bare persist the second resolve found the key
+            // unknown and re-seeded it, throwing the migrated counts away between one routine
+            // and the next. RecordSave persists, so the one-shot is still spent exactly once.
+            sidecar.RecordSave(key, legacy);
             return new Plan(key, legacy, "the pre-LW-353 counts (one-time migration)");
         }
         return new Plan(key, items.ToDictionary(i => i.Id, i => i.SeedCount),

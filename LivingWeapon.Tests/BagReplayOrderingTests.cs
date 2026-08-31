@@ -329,4 +329,33 @@ public class BagReplayOrderingTests : IDisposable
 
         Assert.Empty(f.Writes);
     }
+
+    /// <summary>(P4-F1, stage 2) Both of the game's load routines are hooked, so ONE logical
+    /// load can call AfterApply twice with the same header. Before the cure the first call spent
+    /// the schema-1 one-shot and the second, finding the key unknown, re-seeded it: a migrated
+    /// count of 4 became the seed's 0 between one routine and the next. The cure records the
+    /// legacy counts under the resolved key at migration time, so every later resolve of that key
+    /// (the second routine, the tick, the next launch) answers with the same counts.</summary>
+    [Fact]
+    public void Two_load_routines_on_one_legacy_key_keep_the_migrated_counts()
+    {
+        using var cap = LogCapture.Start();
+        var w = NewWorld("twice", "{\"version\":1,\"counts\":{\"261\":2,\"262\":4}}");
+        var hdr = SaveEdgeTrackerTests.Header(2775);
+        string key = SaveEdgeTracker.KeyFromHeader(hdr);
+
+        w.GameApplied(hdr, detour: true);
+        Assert.Equal(4, w.Bag(Terra));
+        w.GameApplied(hdr, detour: true);   // the second routine, same save, same header
+        Assert.Equal(4, w.Bag(Terra));      // RED before the cure: re-seeded to 0
+        Assert.Equal(2, w.Bag(Moon));
+        w.Tick();
+        Assert.Equal(new Dictionary<int, int> { [Moon] = 2, [Terra] = 4 }, w.BagState());
+
+        // The sidecar now owns the counts under that key and the one-shot is gone from disk.
+        var reloaded = ExtendedBagSidecar.Load(w.SidecarPath);
+        Assert.True(reloaded.TryGetSave(key, out var saved));
+        Assert.Equal(new Dictionary<int, int> { [Moon] = 2, [Terra] = 4 }, new Dictionary<int, int>(saved));
+        Assert.Null(reloaded.TakeLegacy());
+    }
 }

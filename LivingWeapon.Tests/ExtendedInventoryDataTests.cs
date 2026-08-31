@@ -152,4 +152,29 @@ public class ExtendedInventoryDataTests : IDisposable
         while (dir != null && !File.Exists(Path.Combine(dir.FullName, "docs", "TODO.md"))) dir = dir.Parent;
         return dir?.FullName ?? throw new InvalidOperationException("repo root not found above the test bin dir");
     }
+
+    /// <summary>LW-351 stage 2: the shipped folder carries the eight extended weapons, contiguous,
+    /// each on the clone donor the plan locked, so a regenerate that drops, reorders or re-donors
+    /// one goes red here before it reaches a build.</summary>
+    [Fact]
+    public void The_shipped_folder_defines_the_eight_extended_weapons_on_their_locked_donors()
+    {
+        var r = ExtendedInventoryData.Load(Path.Combine(RepoRoot(), "mod"));
+        Assert.True(r.Ok, string.Join("; ", r.Errors));
+        var expected = new (int Id, string Name, int Donor, string Category)[]
+        {
+            (261, "Moonblade", 37, "Sword"), (262, "Terrastaff", 108, "Pole"),
+            (263, "Ravager", 33, "KnightSword"), (264, "Sunderer", 33, "KnightSword"),
+            (265, "Warbrand", 21, "Sword"), (266, "Bloodlash", 1, "Knife"),
+            (267, "Climhazzard", 12, "NinjaBlade"), (268, "Sasori", 43, "Katana"),
+        };
+        Assert.Equal(expected.Select(e => e.Id), r.Items.Select(i => i.Id).OrderBy(x => x));
+        foreach (var e in expected)
+        {
+            var it = Assert.Single(r.Items, i => i.Id == e.Id);
+            Assert.Equal(e.Name, it.Name);
+            Assert.Equal(e.Donor, it.CloneDonor);
+            Assert.Equal(e.Category, it.Category);
+        }
+    }
 }

@@ -1149,6 +1149,11 @@ POLE_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Pole")
 # is an id judged by nothing. Its members ship the game's own art (VANILLA_KEPT below), so the
 # rack compares zero pairs today; that is stated out loud in the selftest rather than hidden.
 AXE_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Axe")
+# LW-351 stage 2 (2026-08-30): the Flail family exists again too (Iron Flail, Flail of Flame,
+# Morning Star and Scorpion Tail took ids 67-70 back when the Warbrand, Bloodlash, Climhazzard
+# and Sasori designs moved to extended ids 265-268). Same partition argument; same zero-pair
+# honesty: all four ship the game's own art.
+FLAIL_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Flail")
 SPEAR_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Polearm")
 STAFF_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Staff")
 CLOTH_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Cloth")
@@ -2131,7 +2136,7 @@ RAMP_RACKS = (
     ("gun", GUN_RACK), ("rod", ROD_RACK), ("pole", POLE_RACK), ("harp", HARP_RACK),
     ("polearm", SPEAR_RACK), ("staff", STAFF_RACK), ("cloth", CLOTH_RACK),
     ("katana", KATANA_RACK), ("knife", KNIFE_RACK), ("ninja blade", NINJA_RACK),
-    ("book", BOOK_RACK), ("bag", BAG_RACK), ("axe", AXE_RACK),
+    ("book", BOOK_RACK), ("bag", BAG_RACK), ("axe", AXE_RACK), ("flail", FLAIL_RACK),
     ("crossbow", frozenset(i for i, c in _CATEGORY.items() if c == "Crossbow")),
     ("shield", RAMP_SHIELDS), ("helm", RAMP_HELMS),
 )
@@ -2256,9 +2261,6 @@ RAMP_SEPARATION_RULINGS = {
               "as shipped.",
     (26, 28): "OWNER PASS 2026-08-16: Flamberge and Swiftedge separate by WEIGHT (a molten "
               "blade against a diamond-cyan one at very different value); approved as shipped.",
-    (23, 67): "OWNER PASS 2026-08-16: Sanguine Sword and the Warbrand (which rides the "
-              "Vagabond's sprite, not the Sanguine Sword's) separate by WEIGHT and by which "
-              "sprite they wear; approved as shipped.",
 }
 
 # RETIRED RULINGS. A grandfather row that no longer grandfathers anything is deleted from the
@@ -2267,6 +2269,13 @@ RAMP_SEPARATION_RULINGS = {
 # Selftest pin ramp pin11 keeps this table honest (nothing in both tables, nothing retired that
 # still collides, every row carrying a real reason).
 RAMP_SEPARATION_RULINGS_RETIRED = {
+    (23, 67): "RETIRED 2026-08-30 by LW-351 stage 2. The Warbrand design moved from id 67 to "
+              "extended id 265 and id 67 is the vanilla Iron Flail again, shipping the game's "
+              "own art with no tint row, so the pair cannot collide and the ruling grandfathers "
+              "nothing. The original ruling (OWNER PASS 2026-08-16): Sanguine Sword and the "
+              "Warbrand, which rode the Vagabond's sprite, separated by WEIGHT and by which "
+              "sprite they wore. The Warbrand's extended icon is a byte copy of the picture it "
+              "shipped at id 67 on the day it moved, outside this programme's judgment.",
     (44, 70): "RETIRED 2026-08-19 by LW-287. Muramasa (44) kept its vanilla name, so it is now "
               "EXEMPT from palette separation: it ships as the artist's own art popped and its "
               "ICON_TINTS row reaches no pixel of it. With 44 unjudged the pair cannot collide, "
@@ -3128,17 +3137,17 @@ def selftest():
               f"ruling (unruled collisions: {[(a, b) for r, a, b in _unruled if r == _rack_name]})",
               not [1 for r, _, _ in _unruled if r == _rack_name])
 
-    check(f"ramp pin6a coverage: the 19 racks PARTITION the 150 ramp ids, none twice and none "
+    check(f"ramp pin6a coverage: the 20 racks PARTITION the 150 ramp ids, none twice and none "
           f"missing (helms were in NO rack before LW-287, so 13 items were judged by nothing; "
-          f"axe is LW-351's, for the family that came back)",
-          len(RAMP_RACKS) == 19
+          f"axe and flail are LW-351's, for the two families that came back)",
+          len(RAMP_RACKS) == 20
           and sum(len(r) for _, r in RAMP_RACKS) == 150
           and set().union(*(set(r) for _, r in RAMP_RACKS)) == set(RAMP_IDS))
     check(f"ramp pin6b coverage: every ramp id was reached by the live loop and sorted into "
           f"exactly one bucket ({len(_judged)} judged + {len(_exempt)} exempt + "
           f"{len(_vanilla_kept)} shipping vanilla art + "
           f"{len(_no_tint)} without a tint row = 150)",
-          len(_judged) == 113 and len(_exempt) == 36 and len(_vanilla_kept) == 1
+          len(_judged) == 107 and len(_exempt) == 36 and len(_vanilla_kept) == 7
           and not _no_tint
           and _judged | _exempt | _vanilla_kept == set(RAMP_IDS)
           and not (_judged & _exempt) and not (_judged & _vanilla_kept)
@@ -3146,27 +3155,34 @@ def selftest():
     check(f"ramp pin6b2 coverage (LW-351): the vanilla-art bucket the LOOP built is exactly the "
           f"derived VANILLA_KEPT set, spelled out, so a restored id is a diff and never a silent "
           f"drift (got {sorted(_vanilla_kept)})",
-          sorted(_vanilla_kept) == sorted(VANILLA_KEPT) and sorted(_vanilla_kept) == [48])
+          sorted(_vanilla_kept) == sorted(VANILLA_KEPT)
+          and sorted(_vanilla_kept) == [48, 49, 50, 67, 68, 69, 70])
     check("ramp pin6c coverage: the exempt set the LOOP built is exactly RAMP_RESERVED_POP, "
           "spelled out, so widening the exemption is a diff and never a silent drift",
           sorted(_exempt) == sorted(RAMP_RESERVED_POP)
           and sorted(_exempt) == [10, 16, 17, 18, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42,
                                   43, 44, 45, 46, 47, 57, 58, 65, 66, 73, 74, 75, 76, 90, 91,
                                   94, 98, 104, 105, 112, 114])
+    # Measured 2026-08-19; re-measured 2026-08-30 after LW-351 stage 2 moved six tinted
+    # designs (49, 50, 67, 68, 69, 70) out of the vanilla range: sword 91 -> 78, knight sword
+    # 1 -> 0 (its five remaining ids are the exempt legendaries), knife 45 -> 36, ninja blade
+    # 15 -> 10, and the new flail rack compares nothing.
     check(f"ramp pin6d coverage: the pairs the loop actually COMPARED, per rack, are exactly as "
-          f"measured on 2026-08-19 (got {_pairs_by_rack})",
-          _pairs_by_rack == {"sword": 91, "knight sword": 1, "bow": 21, "gun": 1, "rod": 15,
+          f"measured (got {_pairs_by_rack})",
+          _pairs_by_rack == {"sword": 78, "knight sword": 0, "bow": 21, "gun": 1, "rod": 15,
                              "pole": 15, "harp": 1, "polearm": 15, "staff": 15, "cloth": 3,
-                             "katana": 0, "knife": 45, "ninja blade": 15, "book": 3, "bag": 6,
-                             "crossbow": 15, "shield": 120, "helm": 78, "axe": 0}
-          and sum(_pairs_by_rack.values()) == 460)
-    check("ramp pin6e coverage: the katana and axe racks compare ZERO pairs and that is stated "
-          "OUT LOUD rather than buried under a floor -- 10 of katana's 11 ids kept a vanilla "
-          "name, so the anchors gate holds that rack and this one cannot, and axe's one id "
-          "(LW-351) ships the game's own art with no tint to judge. 17 of 19 racks compare a "
-          "pair",
-          _pairs_by_rack["katana"] == 0 and _pairs_by_rack["axe"] == 0
-          and sum(1 for _, v in _pairs_by_rack.items() if v >= 1) == 17)
+                             "katana": 0, "knife": 36, "ninja blade": 10, "book": 3, "bag": 6,
+                             "crossbow": 15, "shield": 120, "helm": 78, "axe": 0, "flail": 0}
+          and sum(_pairs_by_rack.values()) == 432)
+    check("ramp pin6e coverage: the katana, knight sword, axe and flail racks compare ZERO pairs "
+          "and that is stated OUT LOUD rather than buried under a floor -- katana's ten ids all "
+          "kept a vanilla name, so the anchors gate holds that rack and this one cannot; knight "
+          "sword's five remaining ids are the exempt legendaries (its two judged ids moved to "
+          "extended 263/264 in LW-351 stage 2); axe's three and flail's four ids ship the game's "
+          "own art with no tint to judge. 16 of 20 racks compare a pair",
+          _pairs_by_rack["katana"] == 0 and _pairs_by_rack["knight sword"] == 0
+          and _pairs_by_rack["axe"] == 0 and _pairs_by_rack["flail"] == 0
+          and sum(1 for _, v in _pairs_by_rack.items() if v >= 1) == 16)
 
     # ramp pin7: the loop is LIVE, rack by rack. Clone one judged id's tint onto another judged
     # id in the same rack and RE-RUN THE ACTUAL PAIR LOOP, asserting it reports that pair as an
@@ -3178,9 +3194,11 @@ def selftest():
     # naming this pair) is how a mutation hunt clears while the gate is deaf. Same family of
     # error as scoring a mutation caught because the suite went red, when what went red was an
     # unrelated flaky test.
-    _PIN7_PAIRS = {"sword": (19, 20), "knight sword": (49, 50), "bow": (83, 84),
-                   # LW-351: the pole pair was (48, 107) until the Battle Axe took id 48 back
-                   # and left the pole rack; 107/108 are the rack's next two judged ids.
+    # LW-351: the pole pair was (48, 107) until the Battle Axe took id 48 back and left the
+    # pole rack; 107/108 are the rack's next two judged ids. Stage 2 removed the knight-sword
+    # pair (49, 50) the same way: the Ravager and Sunderer moved to extended ids, and the five
+    # knight swords left are all exempt legendaries, so that rack has no judged pair to clone.
+    _PIN7_PAIRS = {"sword": (19, 20), "bow": (83, 84),
                    "gun": (71, 72), "rod": (51, 52), "pole": (107, 108), "harp": (92, 93),
                    "polearm": (99, 100), "staff": (59, 60), "cloth": (119, 120),
                    "knife": (1, 2), "ninja blade": (11, 12), "book": (95, 96),
@@ -3216,10 +3234,10 @@ def selftest():
         _reported = (_a, _b) in _injected or (_b, _a) in _injected
         if not (_a in _judged and _b in _judged and _clean and _reported):
             _pin7_bad.append((_rack_name, _a, _b))
-    check(f"ramp pin7 mutation guard: in all 17 racks that compare a pair, cloning one judged "
+    check(f"ramp pin7 mutation guard: in all 16 racks that compare a pair, cloning one judged "
           f"id's tint onto another judged id makes THE RACK'S OWN LOOP report that exact pair "
           f"as an unruled collision (racks that did not react: {_pin7_bad})",
-          not _pin7_bad and len(_PIN7_PAIRS) == 17)
+          not _pin7_bad and len(_PIN7_PAIRS) == 16)
 
     # ramp pin8: the detector itself, on synthetic numbers, so a gutted comparator is caught
     # even if every real tint happened to be far apart.
@@ -3259,7 +3277,7 @@ def selftest():
     check(f"ramp pin10: every live grandfather ruling still grandfathers a REAL collision. Dead "
           f"rows must move to RAMP_SEPARATION_RULINGS_RETIRED with a reason, never be deleted "
           f"(dead: {_dead})",
-          not _dead and len(RAMP_SEPARATION_RULINGS) == 9)
+          not _dead and len(RAMP_SEPARATION_RULINGS) == 8)
 
     # ramp pin11: the retired table is honest.
     _both = [k for k in RAMP_SEPARATION_RULINGS_RETIRED
@@ -3280,8 +3298,10 @@ def selftest():
     # it. Replaces a guard whose subject was next(iter(RAMP_SEPARATION_RULINGS)) -- welded to
     # source order, so re-ordering the table silently re-pointed the mutation at another pair --
     # and two of whose three conjuncts were true by construction.
+    # (23, 67) was the subject until LW-351 stage 2 retired that ruling; (26, 28) is live.
     check("ramp pin12: ruled() is order-insensitive and actually discriminates",
-          ruled(23, 67) and ruled(67, 23) and not ruled(23, 68) and not ruled(44, 70))
+          ruled(26, 28) and ruled(28, 26) and not ruled(26, 29) and not ruled(44, 70)
+          and not ruled(23, 67))
 
     # ramp pin13: no two EXEMPT ids draw themselves from the same source sprite. Exempt ids are
     # judged by no tint rule, so if two of them shared a sprite they could ship byte-identical
@@ -3435,12 +3455,14 @@ def selftest():
     # old form could not give: it covers crossbows, shields and helms too, and it reads the same
     # RAMP_RACKS the live loop above iterates, so a rack cannot be judged under one definition
     # and size-checked under another.
-    _RACK_SIZES = {"sword": 15, "knight sword": 7, "bow": 9, "gun": 6, "rod": 8, "pole": 8,
-                   "harp": 3, "polearm": 8, "staff": 8, "cloth": 3, "katana": 11, "knife": 11,
-                   "ninja blade": 9, "book": 4, "bag": 4, "crossbow": 6, "shield": 16,
-                   "helm": 13, "axe": 1}
+    # LW-351 stage 2: 49/50 (knight sword -> axe) and 67-70 (sword/knife/ninja blade/katana ->
+    # flail) changed racks with their categories; the 150 ramp ids are unchanged.
+    _RACK_SIZES = {"sword": 14, "knight sword": 5, "bow": 9, "gun": 6, "rod": 8, "pole": 8,
+                   "harp": 3, "polearm": 8, "staff": 8, "cloth": 3, "katana": 10, "knife": 10,
+                   "ninja blade": 8, "book": 4, "bag": 4, "crossbow": 6, "shield": 16,
+                   "helm": 13, "axe": 3, "flail": 4}
     _sizes = {n: len(r) for n, r in RAMP_RACKS}
-    check(f"every rack is exactly the size it should be, all nineteen (got {_sizes})",
+    check(f"every rack is exactly the size it should be, all twenty (got {_sizes})",
           _sizes == _RACK_SIZES and sum(_RACK_SIZES.values()) == 150)
     # SHARED SPRITES. Three items in these two racks draw themselves with ANOTHER item's picture
     # (the Warbrand on the Vagabond's, the Ravager on the Defender's, the Sunderer on Save the
@@ -3455,12 +3477,16 @@ def selftest():
     twins = sorted((src, i) for i, src in SRC.items()
                    if i in ICON_TINTS and src in ICON_TINTS
                    and _CATEGORY.get(i) == _CATEGORY.get(src))
-    # Non-vacuity without a magic count: the scan must find the pair this rule was written for
-    # (the Vagabond's sprite worn by the Warbrand) and must not come back empty. A hardcoded
-    # total had to be edited every time a family brought its own twins, which makes the pin fail
-    # for being correct; poles brought the fourth pair on 2026-08-14.
-    check(f"the shared-sprite scan is not vacuous ({len(twins)} pairs found)",
-          (19, 67) in twins and len(twins) >= 3)
+    # This scan used to anchor on the pair the rule was written for (the Vagabond's sprite worn
+    # by the Warbrand) and refuse to come back empty. LW-351 (2026-08-30) moved EVERY
+    # picture-borrowing design out of the vanilla range (the Terrastaff, Ravager, Sunderer,
+    # Warbrand, Bloodlash, Climhazzard and Sasori are extended rows now, whose icons are byte
+    # copies baked outside this programme), so the true answer today is "no pairs", and the
+    # pin says exactly that: the scan is kept live for the next family that borrows a picture,
+    # and the day one does, this line goes red and gets re-pinned with the pair by name.
+    check(f"the shared-sprite scan finds exactly the pairs that exist today: none since LW-351 "
+          f"stage 2 (got {twins})",
+          twins == [])
     # The floor is HUE OR SATURATION, not hue or value. Written with a value term it let two
     # items drawn with one picture ship on the same hue AND the same saturation, separated by
     # brightness alone, which is the exact escape this file bans one screen below for second

@@ -1692,13 +1692,12 @@
     },
     {
       "id": 49,
-      "category": "KnightSword",
-      "grows": "HP",
+      "category": "Axe",
       "vanillaName": "Giant's Axe",
-      "name": "Ravager",
-      "tier": 5,
-      "identity": "Frenzy-cleaver — a high-WP KnightSword with a chance to Confuse on hit: a savage blow that scrambles the struck foe into lashing out at random, the chaos of the old Berserk gambit without its always-on self-harm. Repurposed Giant's Axe slot, relabeled KnightSword (UiItemCategoryId + icon) so the card reads right. Shelf moved off vanilla Chapter2_MeetDraclau to Chapter4_Start (tier 5; LW-320 owner ruling 2026-08-25): the power stays, the boom arrives with the late game.",
-      "flavorOverride": "A savage cleaving thing that pours its own blind frenzy into every wound it tears open.",
+      "name": "Giant's Axe",
+      "tier": 2,
+      "noGrowth": true,
+      "identity": "The vanilla Giant's Axe, restored to its own slot by LW-351 stage 2 when the Ravager design moved out to id 263. Every number here is the base game's (working/axes_flails/baseline.md and the modloader's vanilla TableData rows: WP 12, evade 0, element None, formula 1, OptionsAbilityId 0, range 1, Chapter2_MeetDraclau shelf = tier 2), and attackFlags are deliberately NOT authored so generate.py's sparse emit leaves the vanilla ForcedTwoHands/Throwable/TwoHands/Striking set alone. noGrowth keeps it out of the Living Weapon system entirely (no kill counting, no growth, no grid row); its own redesign is LW-361.",
       "baseline": {
         "wp": 12,
         "evade": 0,
@@ -1707,31 +1706,24 @@
         "formula": "1 (Weapon formula; Axe random Rdm(1..PA)*WP)"
       },
       "proposed": {
-        "wp": 15,
-        "evade": 5,
+        "wp": 12,
+        "evade": 0,
         "element": "None",
-        "onHit": "May inflict Confuse",
-        "onHitAbilityId": 23,
+        "onHit": "None",
+        "onHitAbilityId": 0,
         "formula": 1,
-        "categoryOverride": "KnightSword",
-        "shopOverride": "Chapter4_Start"
+        "range": 1
       },
-      "iconTint": [
-        0.975,
-        0.6,
-        0.9
-      ],
-      "iconSource": 33
+      "iconSource": 49
     },
     {
       "id": 50,
-      "category": "KnightSword",
-      "grows": "HP",
+      "category": "Axe",
       "vanillaName": "Slasher",
-      "name": "Sunderer",
-      "tier": 5,
-      "identity": "Sunder bruiser — normal KnightSword damage PLUS every hit shatters a random piece of the foe's gear (formula 46). The break is the whole point, so it pays the LOWEST WP in the category (13) = a sidegrade, not an upgrade; whiffs on the unequipped and on monsters.",
-      "flavorOverride": "A spiteful edge made to ruin, not to slay.",
+      "name": "Slasher",
+      "tier": 3,
+      "noGrowth": true,
+      "identity": "The vanilla Slasher, restored to its own slot by LW-351 stage 2 when the Sunderer design moved out to id 264. Every number here is the base game's (working/axes_flails/baseline.md and the modloader's vanilla TableData rows: WP 16, evade 0, element None, formula 1, OptionsAbilityId 18, range 1, Chapter3_Zalmo shelf = tier 3), and attackFlags are deliberately NOT authored so generate.py's sparse emit leaves the vanilla ForcedTwoHands/Throwable/TwoHands/Striking set alone. Its vanilla on-hit (OptionsAbilityId 18, a chance of Slow) rides along, so the generated card says so. noGrowth keeps it out of the Living Weapon system entirely (no kill counting, no growth, no grid row); its own redesign is LW-361.",
       "baseline": {
         "wp": 16,
         "evade": 0,
@@ -1740,27 +1732,15 @@
         "formula": "1 (Weapon formula; Axe random Rdm(1..PA)*WP)"
       },
       "proposed": {
-        "wp": 13,
-        "evade": 10,
+        "wp": 16,
+        "evade": 0,
         "element": "None",
-        "onHit": "None",
-        "onHitAbilityId": 0,
-        "formula": 46,
-        "categoryOverride": "KnightSword"
+        "onHit": "May inflict Slow",
+        "onHitAbilityId": 18,
+        "formula": 1,
+        "range": 1
       },
-      "iconTint": [
-        0.479,
-        0.6,
-        0.9
-      ],
-      "iconSource": 34,
-      "signature": {
-        "atTier": 3,
-        "bulwark": true,
-        "displayLabel": "Bulwark",
-        "note": "Bulwark (Line in the Sand, docs/BULWARK_AC.md): a full WAIT turn (no move, no act -- the same PSX turn-flag falling edge Mushin arms on, band +0x19C/+0x19D/+0x19E) plants the blade; the ONE tile directly BEHIND the wielder is barred (the anti-Provoke, leave-me-alone move: mobility and allies are untouched, but the back-attack bonus is denied) until the wielder's own next turn opens (the rising edge of the same flag), the wielder dies, or the wielder cannot be located for Tuning.BulwarkUnresolvedTicks consecutive ticks. MECHANISM (settled live 2026-07-28, LIVE_LEDGER Contradicted-section terrain entry -- the original height-write design is dead): the pathfinder's live terrain grid (Offsets.PathTerrainGrid, base corrected 2026-07-28 to 0x140D8DCB0) exposes the engine's OWN obstacle state at byte +6 bit 0x02 -- this map's five natural trees all read byte+6 == 0x22. OR'ing it in blocks movement and enemy AI pathing while the tile stays hoverable/selectable, rendering the game's own red circle-slash 'invalid destination' cursor. FACING (band +0x35 low 2 bits, packed with the terrain-layer bit, live-proven 2026-07-28) picks which neighbor is 'behind': 0=South, 1=West, 2=North, 3=East. Off-map behind (the wielder's back is to the map edge) plants nothing. VACANT ONLY: an occupied tile (unit or corpse) is never written; a tile whose occupant leaves is raised after two consecutive vacant ticks, never mid-walk. The behind-tile lookup is PER-AXIS bounds-guarded before any index math, closing the wrap trap where an unguarded x-1/y-1 at the map edge silently aliases a tile on another row/column. RESTORE is exact-byte on every release path INCLUDING the battle-exit edge (ResetBattle now restores before clearing state): grid writes persist the whole process session, and stale walkability dirt once crashed the game, so dropping the book unwritten is no longer safe.",
-        "p3Desc": "A full wait plants the blade; none may take the ground at the wielder's back."
-      }
+      "iconSource": 50
     },
     {
       "id": 51,
@@ -2338,13 +2318,12 @@
     },
     {
       "id": 67,
-      "category": "Sword",
-      "grows": "PA",
+      "category": "Flail",
       "vanillaName": "Iron Flail",
-      "name": "Warbrand",
-      "tier": 6,
-      "identity": "Pure-power brute — the highest weapon power of any sword, bought with zero evade AND zero utility. The crown arrives LAST: final shop unlock (tier 6, Chapter4_KillElmdor; LW-320 owner ruling 2026-08-25, replacing the Ch3 shelf) so the raw-damage king caps the catalog instead of ambushing the mid-game; the brute alternative to the utility blades (Arcanum/Graviton/Materia). (was Ironlash)",
-      "flavorOverride": "A graceless slab of war-iron with no guile to it, only a weight that breaks what it meets.",
+      "name": "Iron Flail",
+      "tier": 1,
+      "noGrowth": true,
+      "identity": "The vanilla Iron Flail, restored to its own slot by LW-351 stage 2 when the Warbrand design moved out to id 265. Every number here is the base game's (working/axes_flails/baseline.md and the modloader's vanilla TableData rows: WP 9, evade 0, element None, formula 1, OptionsAbilityId 0, range 1, Chapter2_SaveAgrias shelf = tier 1), and attackFlags are deliberately NOT authored so generate.py's sparse emit leaves the vanilla Throwable/TwoHands/TwoSwords/Striking set alone. noGrowth keeps it out of the Living Weapon system entirely (no kill counting, no growth, no grid row); its own redesign is LW-361.",
       "baseline": {
         "wp": 9,
         "evade": 0,
@@ -2353,31 +2332,24 @@
         "formula": "1 (Weapon formula; Flail random Rdm(1..PA)*WP)"
       },
       "proposed": {
-        "wp": 15,
+        "wp": 9,
         "evade": 0,
         "element": "None",
         "onHit": "None",
         "onHitAbilityId": 0,
         "formula": 1,
-        "categoryOverride": "Sword",
-        "shopOverride": "Chapter4_KillElmdor"
+        "range": 1
       },
-      "iconTint": [
-        0.401,
-        0.6,
-        0.9
-      ],
-      "iconSource": 19
+      "iconSource": 67
     },
     {
       "id": 68,
-      "category": "Knife",
-      "grows": "Speed",
+      "category": "Flail",
       "vanillaName": "Flail of Flame",
-      "name": "Bloodlash",
+      "name": "Flail of Flame",
       "tier": 3,
-      "identity": "Plague dagger: GUARANTEED Poison on EVERY hit (formula 2D), a festering wound that chips bulky foes down over time. Mildest of the 100% daggers, full WP. (was a flail)",
-      "flavorOverride": "Cruelly serrated and slick with venom; it leaves no clean cut, only a wound that festers.",
+      "noGrowth": true,
+      "identity": "The vanilla Flail of Flame, restored to its own slot by LW-351 stage 2 when the Bloodlash design moved out to id 266. Every number here is the base game's (working/axes_flails/baseline.md and the modloader's vanilla TableData rows: WP 11, evade 0, element Fire, formula 2, OptionsAbilityId 17, range 1, Chapter3_Zalmo shelf = tier 3), and attackFlags are deliberately NOT authored so generate.py's sparse emit leaves the vanilla Throwable/TwoHands/TwoSwords/Striking set alone. Keeps vanilla's formula 2 + Fire with OptionsAbilityId 17 (the Fira cast), which the generated card states as its Fire cast. noGrowth keeps it out of the Living Weapon system entirely (no kill counting, no growth, no grid row); its own redesign is LW-361.",
       "baseline": {
         "wp": 11,
         "evade": 0,
@@ -2386,30 +2358,24 @@
         "formula": "2 (Elemental weapon formula — REQUIRED to carry Fire element; NOT formula 1)"
       },
       "proposed": {
-        "wp": 8,
-        "evade": 15,
-        "element": "None",
-        "onHit": "Poison (100% via formula 2D)",
-        "onHitAbilityId": 22,
-        "formula": 45,
-        "categoryOverride": "Knife"
+        "wp": 11,
+        "evade": 0,
+        "element": "Fire",
+        "onHit": "May cast Fira on hit",
+        "onHitAbilityId": 17,
+        "formula": 2,
+        "range": 1
       },
-      "iconTint": [
-        0.335,
-        0.6,
-        0.9
-      ],
-      "iconSource": 1
+      "iconSource": 68
     },
     {
       "id": 69,
-      "category": "NinjaBlade",
-      "grows": "Speed",
+      "category": "Flail",
       "vanillaName": "Morning Star",
-      "name": "Climhazzard",
-      "tier": 4,
-      "identity": "T4 agile dual-wield executioner — the ninja's mercy stroke. Damage = the TARGET's missing HP (formula 69), useless on a fresh foe, lethal on a wounded one. Dual-wieldable = two missing-HP strikes per turn; WP barely matters so the budget goes to evade.",
-      "flavorOverride": "A mercy for the dying: it glances off the hale, guts the bleeding.",
+      "name": "Morning Star",
+      "tier": 3,
+      "noGrowth": true,
+      "identity": "The vanilla Morning Star, restored to its own slot by LW-351 stage 2 when the Climhazzard design moved out to id 267. Every number here is the base game's (working/axes_flails/baseline.md and the modloader's vanilla TableData rows: WP 16, evade 0, element None, formula 1, OptionsAbilityId 0, range 1, Chapter3_SaveRafa shelf = tier 3), and attackFlags are deliberately NOT authored so generate.py's sparse emit leaves the vanilla Throwable/TwoHands/TwoSwords/Striking set alone. noGrowth keeps it out of the Living Weapon system entirely (no kill counting, no growth, no grid row); its own redesign is LW-361.",
       "baseline": {
         "wp": 16,
         "evade": 0,
@@ -2418,30 +2384,24 @@
         "formula": "1 (Weapon formula; Flail random Rdm(1..PA)*WP)"
       },
       "proposed": {
-        "wp": 5,
-        "evade": 20,
+        "wp": 16,
+        "evade": 0,
         "element": "None",
         "onHit": "None",
         "onHitAbilityId": 0,
-        "formula": 69,
-        "categoryOverride": "NinjaBlade"
+        "formula": 1,
+        "range": 1
       },
-      "iconTint": [
-        0.405,
-        0.6,
-        0.9
-      ],
-      "iconSource": 11
+      "iconSource": 69
     },
     {
       "id": 70,
-      "category": "Katana",
-      "grows": "PA+MA+Brave",
+      "category": "Flail",
       "vanillaName": "Scorpion Tail",
-      "name": "Sasori",
+      "name": "Scorpion Tail",
       "tier": 5,
-      "identity": "Venom katana: a scorpion's lethal sting, chance to Doom on hit (death in three turns). (was Scorpion Tail)",
-      "flavorOverride": "A barbed, scorpion-named katana whose every sting marks a foe for a slow, certain death.",
+      "noGrowth": true,
+      "identity": "The vanilla Scorpion Tail, restored to its own slot by LW-351 stage 2 when the Sasori design moved out to id 268. Every number here is the base game's (working/axes_flails/baseline.md and the modloader's vanilla TableData rows: WP 23, evade 0, element None, formula 1, OptionsAbilityId 0, range 1, Unknown20 (sold nowhere in vanilla; rare) shelf = tier 5), and attackFlags are deliberately NOT authored so generate.py's sparse emit leaves the vanilla Throwable/TwoHands/TwoSwords/Striking set alone. noGrowth keeps it out of the Living Weapon system entirely (no kill counting, no growth, no grid row); its own redesign is LW-361.",
       "baseline": {
         "wp": 23,
         "evade": 0,
@@ -2450,22 +2410,15 @@
         "formula": "1 (Weapon formula; Flail random Rdm(1..PA)*WP)"
       },
       "proposed": {
-        "wp": 11,
-        "evade": 10,
+        "wp": 23,
+        "evade": 0,
         "element": "None",
-        "onHit": "May inflict Doom",
-        "onHitAbilityId": 11,
+        "onHit": "None",
+        "onHitAbilityId": 0,
         "formula": 1,
-        "categoryOverride": "Katana",
-        "shopOverride": "Chapter3_Zalmo",
-        "typeFlagsOverride": "Weapon"
+        "range": 1
       },
-      "iconTint": [
-        0.287,
-        0.6,
-        0.9
-      ],
-      "iconSource": 38
+      "iconSource": 70
     },
     {
       "id": 71,
@@ -7424,6 +7377,265 @@
         "formula": 1,
         "range": 2,
         "attackFlags": "Throwable, TwoHands, Lunging"
+      }
+    },
+    {
+      "id": 263,
+      "category": "KnightSword",
+      "grows": "HP",
+      "vanillaName": "Ravager",
+      "name": "Ravager",
+      "tier": 5,
+      "identity": "Frenzy-cleaver: a high-WP KnightSword with a chance to Confuse on hit, a savage blow that scrambles the struck foe into lashing out at random, the chaos of the old Berserk gambit without its always-on self-harm. Shelf on Chapter4_Start at tier 5 (LW-320 owner ruling 2026-08-25): the power stays, the boom arrives with the late game. LW-351 moved the design off the vanilla Giant's Axe slot (id 49) onto its own extended-inventory id so the Giant's Axe could go back to being itself; the numbers, lane and flavor are unchanged from the id-49 row, the flags speak the KnightSword grammar (its clone donor is id 33) and migratedFrom carries a save's earned tally across.",
+      "flavorOverride": "A savage cleaving thing that pours its own blind frenzy into every wound it tears open.",
+      "iconSource": 49,
+      "migratedFrom": 49,
+      "extended": {
+        "cloneDonor": 33,
+        "artDonor": 33,
+        "seedCount": 0,
+        "shops": "Lesalia, Riovanes, Eagrose, Lionel, Limberry, Zeltennia",
+        "palette": 3,
+        "spriteId": 22,
+        "requiredLevel": 0,
+        "typeFlags": "Weapon",
+        "price": 4000,
+        "shopAvailability": "Chapter4_Start"
+      },
+      "baseline": {
+        "wp": 15,
+        "evade": 5,
+        "element": "None",
+        "onHit": "May inflict Confuse",
+        "onHitAbilityId": 23,
+        "formula": 1
+      },
+      "proposed": {
+        "wp": 15,
+        "evade": 5,
+        "element": "None",
+        "onHit": "May inflict Confuse",
+        "onHitAbilityId": 23,
+        "formula": 1,
+        "range": 1,
+        "attackFlags": "Throwable, TwoHands, TwoSwords, Striking"
+      }
+    },
+    {
+      "id": 264,
+      "category": "KnightSword",
+      "grows": "HP",
+      "vanillaName": "Sunderer",
+      "name": "Sunderer",
+      "tier": 5,
+      "identity": "Sunder bruiser: normal KnightSword damage PLUS every hit shatters a random piece of the foe's gear (formula 46). The break is the whole point, so it pays the LOWEST WP in the category (13), a sidegrade, not an upgrade; whiffs on the unequipped and on monsters. Carries the Bulwark signature (+3). LW-351 moved the design off the vanilla Slasher slot (id 50) onto its own extended-inventory id so the Slasher could go back to being itself; the numbers, lane and flavor are unchanged from the id-50 row, the flags speak the KnightSword grammar (its clone donor is id 33) and migratedFrom carries a save's earned tally across.",
+      "flavorOverride": "A spiteful edge made to ruin, not to slay.",
+      "iconSource": 50,
+      "migratedFrom": 50,
+      "extended": {
+        "cloneDonor": 33,
+        "artDonor": 33,
+        "seedCount": 0,
+        "shops": "Lesalia, Riovanes, Eagrose, Lionel, Limberry, Zeltennia",
+        "palette": 3,
+        "spriteId": 22,
+        "requiredLevel": 0,
+        "typeFlags": "Weapon",
+        "price": 12000,
+        "shopAvailability": "Chapter4_Bethla"
+      },
+      "baseline": {
+        "wp": 13,
+        "evade": 10,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 46
+      },
+      "proposed": {
+        "wp": 13,
+        "evade": 10,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 46,
+        "range": 1,
+        "attackFlags": "Throwable, TwoHands, TwoSwords, Striking"
+      },
+      "signature": {
+        "atTier": 3,
+        "bulwark": true,
+        "displayLabel": "Bulwark",
+        "note": "Bulwark (Line in the Sand, docs/BULWARK_AC.md): a full WAIT turn (no move, no act -- the same PSX turn-flag falling edge Mushin arms on, band +0x19C/+0x19D/+0x19E) plants the blade; the ONE tile directly BEHIND the wielder is barred (the anti-Provoke, leave-me-alone move: mobility and allies are untouched, but the back-attack bonus is denied) until the wielder's own next turn opens (the rising edge of the same flag), the wielder dies, or the wielder cannot be located for Tuning.BulwarkUnresolvedTicks consecutive ticks. MECHANISM (settled live 2026-07-28, LIVE_LEDGER Contradicted-section terrain entry -- the original height-write design is dead): the pathfinder's live terrain grid (Offsets.PathTerrainGrid, base corrected 2026-07-28 to 0x140D8DCB0) exposes the engine's OWN obstacle state at byte +6 bit 0x02 -- this map's five natural trees all read byte+6 == 0x22. OR'ing it in blocks movement and enemy AI pathing while the tile stays hoverable/selectable, rendering the game's own red circle-slash 'invalid destination' cursor. FACING (band +0x35 low 2 bits, packed with the terrain-layer bit, live-proven 2026-07-28) picks which neighbor is 'behind': 0=South, 1=West, 2=North, 3=East. Off-map behind (the wielder's back is to the map edge) plants nothing. VACANT ONLY: an occupied tile (unit or corpse) is never written; a tile whose occupant leaves is raised after two consecutive vacant ticks, never mid-walk. The behind-tile lookup is PER-AXIS bounds-guarded before any index math, closing the wrap trap where an unguarded x-1/y-1 at the map edge silently aliases a tile on another row/column. RESTORE is exact-byte on every release path INCLUDING the battle-exit edge (ResetBattle now restores before clearing state): grid writes persist the whole process session, and stale walkability dirt once crashed the game, so dropping the book unwritten is no longer safe.",
+        "p3Desc": "A full wait plants the blade; none may take the ground at the wielder's back."
+      }
+    },
+    {
+      "id": 265,
+      "category": "Sword",
+      "grows": "PA",
+      "vanillaName": "Warbrand",
+      "name": "Warbrand",
+      "tier": 6,
+      "identity": "Pure-power brute: the highest weapon power of any sword, bought with zero evade AND zero utility. The crown arrives LAST: final shop unlock (tier 6, Chapter4_KillElmdor; LW-320 owner ruling 2026-08-25) so the raw-damage king caps the catalog instead of ambushing the mid-game; the brute alternative to the utility blades (Arcanum/Graviton/Materia). LW-351 moved the design off the vanilla Iron Flail slot (id 67) onto its own extended-inventory id so the Iron Flail could go back to being itself; the numbers, lane and flavor are unchanged from the id-67 row, the flags speak the Sword grammar (its clone donor is id 21) and migratedFrom carries a save's earned tally across.",
+      "flavorOverride": "A graceless slab of war-iron with no guile to it, only a weight that breaks what it meets.",
+      "iconSource": 67,
+      "migratedFrom": 67,
+      "extended": {
+        "cloneDonor": 21,
+        "artDonor": 21,
+        "seedCount": 0,
+        "shops": "Dorter, Warjilis, SalGhidos, Riovanes, Eagrose, Lionel, Limberry, Zeltennia",
+        "palette": 2,
+        "spriteId": 14,
+        "requiredLevel": 0,
+        "typeFlags": "Weapon",
+        "price": 1200,
+        "shopAvailability": "Chapter4_KillElmdor"
+      },
+      "baseline": {
+        "wp": 15,
+        "evade": 0,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1
+      },
+      "proposed": {
+        "wp": 15,
+        "evade": 0,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 1,
+        "range": 1,
+        "attackFlags": "Throwable, TwoHands, TwoSwords, Striking"
+      }
+    },
+    {
+      "id": 266,
+      "category": "Knife",
+      "grows": "Speed",
+      "vanillaName": "Bloodlash",
+      "name": "Bloodlash",
+      "tier": 3,
+      "identity": "Plague dagger: GUARANTEED Poison on EVERY hit (formula 2D), a festering wound that chips bulky foes down over time. Mildest of the 100% daggers, full WP. LW-351 moved the design off the vanilla Flail of Flame slot (id 68) onto its own extended-inventory id so the Flail of Flame could go back to being itself; the numbers, lane and flavor are unchanged from the id-68 row, the flags speak the Knife grammar (its clone donor is id 1) and migratedFrom carries a save's earned tally across.",
+      "flavorOverride": "Cruelly serrated and slick with venom; it leaves no clean cut, only a wound that festers.",
+      "iconSource": 68,
+      "migratedFrom": 68,
+      "extended": {
+        "cloneDonor": 1,
+        "artDonor": 1,
+        "seedCount": 0,
+        "shops": "Dorter, Warjilis, SalGhidos, Riovanes, Eagrose, Lionel, Limberry, Zeltennia",
+        "palette": 0,
+        "spriteId": 1,
+        "requiredLevel": 0,
+        "typeFlags": "Weapon",
+        "price": 4000,
+        "shopAvailability": "Chapter3_Start"
+      },
+      "baseline": {
+        "wp": 8,
+        "evade": 15,
+        "element": "None",
+        "onHit": "Poison (100% via formula 2D)",
+        "onHitAbilityId": 22,
+        "formula": 45
+      },
+      "proposed": {
+        "wp": 8,
+        "evade": 15,
+        "element": "None",
+        "onHit": "Poison (100% via formula 2D)",
+        "onHitAbilityId": 22,
+        "formula": 45,
+        "range": 1,
+        "attackFlags": "Throwable, TwoSwords, Striking"
+      }
+    },
+    {
+      "id": 267,
+      "category": "NinjaBlade",
+      "grows": "Speed",
+      "vanillaName": "Climhazzard",
+      "name": "Climhazzard",
+      "tier": 4,
+      "identity": "T4 agile dual-wield executioner: the ninja's mercy stroke. Damage = the TARGET's missing HP (formula 69), useless on a fresh foe, lethal on a wounded one. Dual-wieldable = two missing-HP strikes per turn; WP barely matters so the budget goes to evade. LW-351 moved the design off the vanilla Morning Star slot (id 69) onto its own extended-inventory id so the Morning Star could go back to being itself; the numbers, lane and flavor are unchanged from the id-69 row, the flags speak the NinjaBlade grammar (its clone donor is id 12) and migratedFrom carries a save's earned tally across.",
+      "flavorOverride": "A mercy for the dying: it glances off the hale, guts the bleeding.",
+      "iconSource": 69,
+      "migratedFrom": 69,
+      "extended": {
+        "cloneDonor": 12,
+        "artDonor": 12,
+        "seedCount": 0,
+        "shops": "Dorter, Warjilis, SalGhidos, Riovanes, Eagrose, Lionel, Limberry, Zeltennia",
+        "palette": 0,
+        "spriteId": 9,
+        "requiredLevel": 0,
+        "typeFlags": "Weapon",
+        "price": 9000,
+        "shopAvailability": "Chapter3_SaveRafa"
+      },
+      "baseline": {
+        "wp": 5,
+        "evade": 20,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 69
+      },
+      "proposed": {
+        "wp": 5,
+        "evade": 20,
+        "element": "None",
+        "onHit": "None",
+        "onHitAbilityId": 0,
+        "formula": 69,
+        "range": 1,
+        "attackFlags": "Throwable, TwoHands, TwoSwords, Striking"
+      }
+    },
+    {
+      "id": 268,
+      "category": "Katana",
+      "grows": "PA+MA+Brave",
+      "vanillaName": "Sasori",
+      "name": "Sasori",
+      "tier": 5,
+      "identity": "Venom katana: a scorpion's lethal sting, chance to Doom on hit (death in three turns). LW-351 moved the design off the vanilla Scorpion Tail slot (id 70) onto its own extended-inventory id so the Scorpion Tail could go back to being itself; the numbers, lane and flavor are unchanged from the id-70 row, the flags speak the Katana grammar (its clone donor is id 43) and migratedFrom carries a save's earned tally across.",
+      "flavorOverride": "A barbed, scorpion-named katana whose every sting marks a foe for a slow, certain death.",
+      "iconSource": 70,
+      "migratedFrom": 70,
+      "extended": {
+        "cloneDonor": 43,
+        "artDonor": 43,
+        "seedCount": 0,
+        "shops": "Dorter, Warjilis, SalGhidos, Riovanes, Eagrose, Lionel, Limberry, Zeltennia",
+        "palette": 5,
+        "spriteId": 28,
+        "requiredLevel": 0,
+        "typeFlags": "Weapon",
+        "price": 40000,
+        "shopAvailability": "Chapter4_Start"
+      },
+      "baseline": {
+        "wp": 11,
+        "evade": 10,
+        "element": "None",
+        "onHit": "May inflict Doom",
+        "onHitAbilityId": 11,
+        "formula": 1
+      },
+      "proposed": {
+        "wp": 11,
+        "evade": 10,
+        "element": "None",
+        "onHit": "May inflict Doom",
+        "onHitAbilityId": 11,
+        "formula": 1,
+        "range": 1,
+        "attackFlags": "Throwable, TwoHands, TwoSwords, Striking"
       }
     }
   ]

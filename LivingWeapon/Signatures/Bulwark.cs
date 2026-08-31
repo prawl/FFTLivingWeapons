@@ -60,7 +60,11 @@ internal sealed partial class Bulwark : ISignature
 {
     void ISignature.Tick(in TickContext ctx) => Tick(ctx.OnField);
 
-    internal const int SundererId = 50;
+    /// <summary>The Sunderer's item id. 264 since LW-351 stage 2 (2026-08-30): the design moved
+    /// off the vanilla Slasher's slot (50, restored to a plain axe) onto its own extended-inventory
+    /// id, and a save's earned tally follows it there (TallyMigration, meta.json migratedFrom).
+    /// BulwarkTests pins the value.</summary>
+    internal const int SundererId = 264;
 
     private readonly IGameMemory _mem;
     private readonly Dictionary<int, WeaponMeta> _meta;

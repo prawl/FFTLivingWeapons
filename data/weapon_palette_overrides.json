@@ -7,12 +7,6 @@
    "trulyUses": 0,
    "evidence": "2026-08-22, two same-battle controls. Under the key chart palette 8 was cyan: Zwill Straightblade (map X=8) showed 324 cyan px and Chirijiraden (X=8) showed 499, while Materia Blade showed ZERO cyan and 2331 red px, red being palette 0. Lightbringer, whose map row is byte-identical to Materia Blade's (X=8 Y=1 graphic=2), also came out cyan, so the row shape is not the cause and this is a per-weapon special case. Vanilla tile 15 rendered under palette 0 also reproduces the untouched in-game sprite exactly, which palette 8 does not.",
    "checkedBy": "python lw305_bench_paint.py keychart, then swing"
-  },
-  "49": {
-   "name": "Ravager",
-   "mapSays": 11,
-   "trulyUses": 14,
-   "evidence": "2026-08-24, live keychart round during the LW-251 runtime test session. The runtime painted palette 11 (the map row) through the owner's swing window at 20:15 and the weapon did not change on screen. Under the 16-hue keychart the owner swung Ravager and it came out MAGENTA = palette 14 (screenshot tools/probes/lw251_ravager_keychart.png). Axes were never part of the 8-weapon audit, so the map's X nibble was unverified for this graphic."
   }
  }
 }

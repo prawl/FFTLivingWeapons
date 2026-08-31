@@ -177,8 +177,10 @@ def check_proposed_dominance(items, normal_formulas):
 # (survivor id, rival id); every entry cites its authority. Removing an entry makes the
 # gate demand the pair be re-balanced.
 THIN_NICHE_EXCEPTIONS = {
-    (67, 30): "Warbrand's 1-WP crown over Arcanum: owner ruling 2026-08-25 (LW-320), crown kept, shelf moved to the last unlock",
-    (67, 31): "Warbrand's 1-WP crown over Lightbringer: same LW-320 ruling",
+    # LW-351 stage 2 (2026-08-30): the Warbrand moved from id 67 (the vanilla Iron Flail, restored) to
+    # extended id 265; the ruling is about the design, so the keys follow it.
+    (265, 30): "Warbrand's 1-WP crown over Arcanum: owner ruling 2026-08-25 (LW-320), crown kept, shelf moved to the last unlock",
+    (265, 31): "Warbrand's 1-WP crown over Lightbringer: same LW-320 ruling",
     (17, 16): "Iga Blade's 1-WP edge over Sasuke's Blade: the plain crown of the ninja blades, the Warbrand pattern in miniature",
 }
 

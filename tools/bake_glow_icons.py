@@ -280,9 +280,20 @@ def load_manifest():
 
 def update_manifest(ids):
     """Upserts manifest entries for `ids` only; entries for ids baked in an earlier slice are
-    left exactly as they were (read-modify-write over the file, keyed by (id, surface))."""
+    left exactly as they were (read-modify-write over the file, keyed by (id, surface)).
+
+    LW-351 stage 2: it also DROPS entries for ids that are no longer in weapon_ids(), i.e. items
+    that left the glow programme (the restored vanilla axes and flails are noGrowth and earn no
+    kill-tier rim). verify() already refuses such stale entries; pruning them here means the
+    generated manifest never needs a hand edit to pass its own gate. The variant files of a
+    pruned id are the caller's to delete (they are listed in the printout)."""
     manifest = load_manifest()
-    by_key = {(e["id"], e["surface"]): e for e in manifest.get("icons", [])}
+    live = set(weapon_ids())
+    stale = sorted({e["id"] for e in manifest.get("icons", []) if e["id"] not in live})
+    if stale:
+        print(f"  pruning manifest entries for ids outside the glow programme: {stale} "
+              f"(delete their variant files under {OUT_DIR.name}/)")
+    by_key = {(e["id"], e["surface"]): e for e in manifest.get("icons", []) if e["id"] in live}
     for item_id in ids:
         for sub, pfx, surface, size in SURFACES:
             entry = manifest_entry(item_id, sub, pfx, surface, size)

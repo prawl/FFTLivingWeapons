@@ -1605,74 +1605,6 @@
    }
   },
   {
-   "id": 49,
-   "surface": "card",
-   "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_049_uitx.tex",
-   "length": 51296,
-   "baseSha1": "6db9749309de30d2f7020d97f7b1ba86c8265333",
-   "variants": {
-    "1": "ei_049_uitx_t1.tex",
-    "2": "ei_049_uitx_t2.tex",
-    "3": "ei_049_uitx_t3.tex"
-   },
-   "variantSha1s": {
-    "1": "f0e74e91d2b3c9cdba16842812848c86fa208414",
-    "2": "c836c3aea01ac4ba664d5d96ef74223ff7095f5a",
-    "3": "187e0aef8ecf37963b4b400204e4d5ae69875610"
-   }
-  },
-  {
-   "id": 49,
-   "surface": "small",
-   "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_049_uitx.tex",
-   "length": 12384,
-   "baseSha1": "03596fdacbc10b0efbb9d5fa5cd6e341b2dfcced",
-   "variants": {
-    "1": "ei_s_049_uitx_t1.tex",
-    "2": "ei_s_049_uitx_t2.tex",
-    "3": "ei_s_049_uitx_t3.tex"
-   },
-   "variantSha1s": {
-    "1": "d4d3f5b8da42c74201b81760262ffbea167bb81a",
-    "2": "c85de3eb0f6285489d44e961523e10264e956008",
-    "3": "486ef4726c8c962776624dad7f7d9789d2da8d20"
-   }
-  },
-  {
-   "id": 50,
-   "surface": "card",
-   "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_050_uitx.tex",
-   "length": 51296,
-   "baseSha1": "cc73a0aa7244fe8fef6ae3d62f679c32a7cd35de",
-   "variants": {
-    "1": "ei_050_uitx_t1.tex",
-    "2": "ei_050_uitx_t2.tex",
-    "3": "ei_050_uitx_t3.tex"
-   },
-   "variantSha1s": {
-    "1": "a5373191dcffe27a468df9d089d4c205b39aedaf",
-    "2": "23bbceef2c89516919b69c0f62cb3c1c2718cc1c",
-    "3": "ece3d05dfe5d02b3aec70bbf9084e49fab2fc024"
-   }
-  },
-  {
-   "id": 50,
-   "surface": "small",
-   "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_050_uitx.tex",
-   "length": 12384,
-   "baseSha1": "71bb23f6aa622646e00d5501ab55ed8615d23606",
-   "variants": {
-    "1": "ei_s_050_uitx_t1.tex",
-    "2": "ei_s_050_uitx_t2.tex",
-    "3": "ei_s_050_uitx_t3.tex"
-   },
-   "variantSha1s": {
-    "1": "1baa14ddfceed35ef099639780a03578518e4b76",
-    "2": "1d9ee39e42f3d2a97444a6bf3cbe6031fb51b58b",
-    "3": "7a9cfb01ac99978ac4cf1260877181cfbc87e28d"
-   }
-  },
-  {
    "id": 51,
    "surface": "card",
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_051_uitx.tex",
@@ -2214,142 +2146,6 @@
     "1": "ccf69fbc494f9975c03ba1a404aa33c3fad099d6",
     "2": "0c626f9e83bc4aa18ac7e8feb5be24f8799cb134",
     "3": "12da0a0ae39a9fff7bb9db6f55c93f077aa1ccd5"
-   }
-  },
-  {
-   "id": 67,
-   "surface": "card",
-   "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_067_uitx.tex",
-   "length": 51296,
-   "baseSha1": "0d98915eec3e1c32959602ab7f125da35e7f7e82",
-   "variants": {
-    "1": "ei_067_uitx_t1.tex",
-    "2": "ei_067_uitx_t2.tex",
-    "3": "ei_067_uitx_t3.tex"
-   },
-   "variantSha1s": {
-    "1": "b4e35c39e0519cb6e664252512597baa0b345078",
-    "2": "b6623746ba959c72ac7180405e87261f642d9e0c",
-    "3": "c8793e938c85736254cd9bc9ad2af21583ff6861"
-   }
-  },
-  {
-   "id": 67,
-   "surface": "small",
-   "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_067_uitx.tex",
-   "length": 12384,
-   "baseSha1": "01127726b83cc7e7a971d968061c5ffa0468f384",
-   "variants": {
-    "1": "ei_s_067_uitx_t1.tex",
-    "2": "ei_s_067_uitx_t2.tex",
-    "3": "ei_s_067_uitx_t3.tex"
-   },
-   "variantSha1s": {
-    "1": "6231e501f7a213297f22b60c4be133e2c193d560",
-    "2": "46892535b3752f8bc18161d2dd1899279462783c",
-    "3": "83b467bfe7ecaeb46aa096430bc82485a61a5e3b"
-   }
-  },
-  {
-   "id": 68,
-   "surface": "card",
-   "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_068_uitx.tex",
-   "length": 51296,
-   "baseSha1": "5c72cf7ede12e4cd722851780b3a6d9de12d9bed",
-   "variants": {
-    "1": "ei_068_uitx_t1.tex",
-    "2": "ei_068_uitx_t2.tex",
-    "3": "ei_068_uitx_t3.tex"
-   },
-   "variantSha1s": {
-    "1": "da7e60d3e036bc4aae76561ccc660b4aac1da421",
-    "2": "46c4f30cdf6b2ced30406326a062578c83cec519",
-    "3": "66526f499a7159d80783be7fed1cbf4f00631070"
-   }
-  },
-  {
-   "id": 68,
-   "surface": "small",
-   "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_068_uitx.tex",
-   "length": 12384,
-   "baseSha1": "9fad6361f6d8dd35f1e308be3003346df479ac14",
-   "variants": {
-    "1": "ei_s_068_uitx_t1.tex",
-    "2": "ei_s_068_uitx_t2.tex",
-    "3": "ei_s_068_uitx_t3.tex"
-   },
-   "variantSha1s": {
-    "1": "51f810713bf2434f1d04e7fb9fda810549d40673",
-    "2": "8ddaa2611b88ff3d4eb050bef6551f2b9aa44e3f",
-    "3": "0757651edb0eb45b9828706385ae7efe77fe422d"
-   }
-  },
-  {
-   "id": 69,
-   "surface": "card",
-   "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_069_uitx.tex",
-   "length": 51296,
-   "baseSha1": "66d13a9de927a41ceae5877fda94ed8d5adf38fa",
-   "variants": {
-    "1": "ei_069_uitx_t1.tex",
-    "2": "ei_069_uitx_t2.tex",
-    "3": "ei_069_uitx_t3.tex"
-   },
-   "variantSha1s": {
-    "1": "d7590070e69c72820058fc2edccf096f9b676f24",
-    "2": "0a5b8573ed2cc016aefbeb03b801836c02040fc0",
-    "3": "b1a7673077eee6bfba83aec4a7a16cb6bcafc020"
-   }
-  },
-  {
-   "id": 69,
-   "surface": "small",
-   "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_069_uitx.tex",
-   "length": 12384,
-   "baseSha1": "f6d8c7039851e99a3b3318abf32461a83ae70b74",
-   "variants": {
-    "1": "ei_s_069_uitx_t1.tex",
-    "2": "ei_s_069_uitx_t2.tex",
-    "3": "ei_s_069_uitx_t3.tex"
-   },
-   "variantSha1s": {
-    "1": "976a8dc6cbf4ca9b9b6543dff842fd1671ef205c",
-    "2": "f34688c9dc8ac7a40154793c5a2504d0e0514ca4",
-    "3": "285184accc8cf1d648489eb92a424caf4de0ea55"
-   }
-  },
-  {
-   "id": 70,
-   "surface": "card",
-   "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_070_uitx.tex",
-   "length": 51296,
-   "baseSha1": "8790ad523e1351f06badd65ff151b257c06f8b58",
-   "variants": {
-    "1": "ei_070_uitx_t1.tex",
-    "2": "ei_070_uitx_t2.tex",
-    "3": "ei_070_uitx_t3.tex"
-   },
-   "variantSha1s": {
-    "1": "7b70b8f5b4c95dc24f8469f6d15fbd53e4a1c2e5",
-    "2": "8a39287a8dd60e432fc5e1b826621585d7f25113",
-    "3": "675ae7ffc2d2a1ac0593242bdf5c577ab1cd7aaa"
-   }
-  },
-  {
-   "id": 70,
-   "surface": "small",
-   "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_070_uitx.tex",
-   "length": 12384,
-   "baseSha1": "d2e1230fc3597b4a710be49134dafcf267b0699c",
-   "variants": {
-    "1": "ei_s_070_uitx_t1.tex",
-    "2": "ei_s_070_uitx_t2.tex",
-    "3": "ei_s_070_uitx_t3.tex"
-   },
-   "variantSha1s": {
-    "1": "f411dc1e0bb71c71e940fe7ae825861f4273a276",
-    "2": "905168dca7fca5a9e164bf4fc1a616c81361a19c",
-    "3": "249960ced0aa5b923c06db5c7e256ac7d393fb4b"
    }
   },
   {
@@ -4152,6 +3948,210 @@
     "1": "09c264c9abaf243184b59a0573f8ebdbe02d58b2",
     "2": "c3f5ceffb902ec5409925308ad6460348d708e60",
     "3": "0330ca33cc2c9bae8383d4473dd49673b2fb1658"
+   }
+  },
+  {
+   "id": 263,
+   "surface": "card",
+   "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_263_uitx.tex",
+   "length": 51296,
+   "baseSha1": "6db9749309de30d2f7020d97f7b1ba86c8265333",
+   "variants": {
+    "1": "ei_263_uitx_t1.tex",
+    "2": "ei_263_uitx_t2.tex",
+    "3": "ei_263_uitx_t3.tex"
+   },
+   "variantSha1s": {
+    "1": "f0e74e91d2b3c9cdba16842812848c86fa208414",
+    "2": "c836c3aea01ac4ba664d5d96ef74223ff7095f5a",
+    "3": "187e0aef8ecf37963b4b400204e4d5ae69875610"
+   }
+  },
+  {
+   "id": 263,
+   "surface": "small",
+   "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_263_uitx.tex",
+   "length": 12384,
+   "baseSha1": "03596fdacbc10b0efbb9d5fa5cd6e341b2dfcced",
+   "variants": {
+    "1": "ei_s_263_uitx_t1.tex",
+    "2": "ei_s_263_uitx_t2.tex",
+    "3": "ei_s_263_uitx_t3.tex"
+   },
+   "variantSha1s": {
+    "1": "d4d3f5b8da42c74201b81760262ffbea167bb81a",
+    "2": "c85de3eb0f6285489d44e961523e10264e956008",
+    "3": "486ef4726c8c962776624dad7f7d9789d2da8d20"
+   }
+  },
+  {
+   "id": 264,
+   "surface": "card",
+   "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_264_uitx.tex",
+   "length": 51296,
+   "baseSha1": "cc73a0aa7244fe8fef6ae3d62f679c32a7cd35de",
+   "variants": {
+    "1": "ei_264_uitx_t1.tex",
+    "2": "ei_264_uitx_t2.tex",
+    "3": "ei_264_uitx_t3.tex"
+   },
+   "variantSha1s": {
+    "1": "a5373191dcffe27a468df9d089d4c205b39aedaf",
+    "2": "23bbceef2c89516919b69c0f62cb3c1c2718cc1c",
+    "3": "ece3d05dfe5d02b3aec70bbf9084e49fab2fc024"
+   }
+  },
+  {
+   "id": 264,
+   "surface": "small",
+   "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_264_uitx.tex",
+   "length": 12384,
+   "baseSha1": "71bb23f6aa622646e00d5501ab55ed8615d23606",
+   "variants": {
+    "1": "ei_s_264_uitx_t1.tex",
+    "2": "ei_s_264_uitx_t2.tex",
+    "3": "ei_s_264_uitx_t3.tex"
+   },
+   "variantSha1s": {
+    "1": "1baa14ddfceed35ef099639780a03578518e4b76",
+    "2": "1d9ee39e42f3d2a97444a6bf3cbe6031fb51b58b",
+    "3": "7a9cfb01ac99978ac4cf1260877181cfbc87e28d"
+   }
+  },
+  {
+   "id": 265,
+   "surface": "card",
+   "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_265_uitx.tex",
+   "length": 51296,
+   "baseSha1": "0d98915eec3e1c32959602ab7f125da35e7f7e82",
+   "variants": {
+    "1": "ei_265_uitx_t1.tex",
+    "2": "ei_265_uitx_t2.tex",
+    "3": "ei_265_uitx_t3.tex"
+   },
+   "variantSha1s": {
+    "1": "b4e35c39e0519cb6e664252512597baa0b345078",
+    "2": "b6623746ba959c72ac7180405e87261f642d9e0c",
+    "3": "c8793e938c85736254cd9bc9ad2af21583ff6861"
+   }
+  },
+  {
+   "id": 265,
+   "surface": "small",
+   "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_265_uitx.tex",
+   "length": 12384,
+   "baseSha1": "01127726b83cc7e7a971d968061c5ffa0468f384",
+   "variants": {
+    "1": "ei_s_265_uitx_t1.tex",
+    "2": "ei_s_265_uitx_t2.tex",
+    "3": "ei_s_265_uitx_t3.tex"
+   },
+   "variantSha1s": {
+    "1": "6231e501f7a213297f22b60c4be133e2c193d560",
+    "2": "46892535b3752f8bc18161d2dd1899279462783c",
+    "3": "83b467bfe7ecaeb46aa096430bc82485a61a5e3b"
+   }
+  },
+  {
+   "id": 266,
+   "surface": "card",
+   "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_266_uitx.tex",
+   "length": 51296,
+   "baseSha1": "5c72cf7ede12e4cd722851780b3a6d9de12d9bed",
+   "variants": {
+    "1": "ei_266_uitx_t1.tex",
+    "2": "ei_266_uitx_t2.tex",
+    "3": "ei_266_uitx_t3.tex"
+   },
+   "variantSha1s": {
+    "1": "da7e60d3e036bc4aae76561ccc660b4aac1da421",
+    "2": "46c4f30cdf6b2ced30406326a062578c83cec519",
+    "3": "66526f499a7159d80783be7fed1cbf4f00631070"
+   }
+  },
+  {
+   "id": 266,
+   "surface": "small",
+   "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_266_uitx.tex",
+   "length": 12384,
+   "baseSha1": "9fad6361f6d8dd35f1e308be3003346df479ac14",
+   "variants": {
+    "1": "ei_s_266_uitx_t1.tex",
+    "2": "ei_s_266_uitx_t2.tex",
+    "3": "ei_s_266_uitx_t3.tex"
+   },
+   "variantSha1s": {
+    "1": "51f810713bf2434f1d04e7fb9fda810549d40673",
+    "2": "8ddaa2611b88ff3d4eb050bef6551f2b9aa44e3f",
+    "3": "0757651edb0eb45b9828706385ae7efe77fe422d"
+   }
+  },
+  {
+   "id": 267,
+   "surface": "card",
+   "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_267_uitx.tex",
+   "length": 51296,
+   "baseSha1": "66d13a9de927a41ceae5877fda94ed8d5adf38fa",
+   "variants": {
+    "1": "ei_267_uitx_t1.tex",
+    "2": "ei_267_uitx_t2.tex",
+    "3": "ei_267_uitx_t3.tex"
+   },
+   "variantSha1s": {
+    "1": "d7590070e69c72820058fc2edccf096f9b676f24",
+    "2": "0a5b8573ed2cc016aefbeb03b801836c02040fc0",
+    "3": "b1a7673077eee6bfba83aec4a7a16cb6bcafc020"
+   }
+  },
+  {
+   "id": 267,
+   "surface": "small",
+   "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_267_uitx.tex",
+   "length": 12384,
+   "baseSha1": "f6d8c7039851e99a3b3318abf32461a83ae70b74",
+   "variants": {
+    "1": "ei_s_267_uitx_t1.tex",
+    "2": "ei_s_267_uitx_t2.tex",
+    "3": "ei_s_267_uitx_t3.tex"
+   },
+   "variantSha1s": {
+    "1": "976a8dc6cbf4ca9b9b6543dff842fd1671ef205c",
+    "2": "f34688c9dc8ac7a40154793c5a2504d0e0514ca4",
+    "3": "285184accc8cf1d648489eb92a424caf4de0ea55"
+   }
+  },
+  {
+   "id": 268,
+   "surface": "card",
+   "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_268_uitx.tex",
+   "length": 51296,
+   "baseSha1": "8790ad523e1351f06badd65ff151b257c06f8b58",
+   "variants": {
+    "1": "ei_268_uitx_t1.tex",
+    "2": "ei_268_uitx_t2.tex",
+    "3": "ei_268_uitx_t3.tex"
+   },
+   "variantSha1s": {
+    "1": "7b70b8f5b4c95dc24f8469f6d15fbd53e4a1c2e5",
+    "2": "8a39287a8dd60e432fc5e1b826621585d7f25113",
+    "3": "675ae7ffc2d2a1ac0593242bdf5c577ab1cd7aaa"
+   }
+  },
+  {
+   "id": 268,
+   "surface": "small",
+   "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_268_uitx.tex",
+   "length": 12384,
+   "baseSha1": "d2e1230fc3597b4a710be49134dafcf267b0699c",
+   "variants": {
+    "1": "ei_s_268_uitx_t1.tex",
+    "2": "ei_s_268_uitx_t2.tex",
+    "3": "ei_s_268_uitx_t3.tex"
+   },
+   "variantSha1s": {
+    "1": "f411dc1e0bb71c71e940fe7ae825861f4273a276",
+    "2": "905168dca7fca5a9e164bf4fc1a616c81361a19c",
+    "3": "249960ced0aa5b923c06db5c7e256ac7d393fb4b"
    }
   }
  ]

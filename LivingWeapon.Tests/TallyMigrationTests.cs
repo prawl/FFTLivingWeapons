@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using LivingWeapon;
 using Xunit;
 
@@ -185,5 +186,31 @@ public class TallyMigrationTests
         w.Counts[mark] = counts;
         w.Marks.Add(mark);
         return w;
+    }
+
+    // ---- (h) THE SHIPPED PAIRING. meta.json is baked from data/items.json; every design LW-351
+    // moved must name its old id there, and no restored (noGrowth) id may still be a living weapon
+    // in the bake, or the move for that pair silently becomes a no-op (rule (e) above). Reads the
+    // TRACKED bake, so a regenerate that drops a migratedFrom goes red here, not in a save. ----
+
+    [Fact]
+    public void The_shipped_meta_names_all_seven_moves_and_leaves_no_old_id_living()
+    {
+        var meta = MetaLoader.Load(Path.Combine(RepoRoot(), "LivingWeapon"));
+        var expected = new Dictionary<int, int>
+        {
+            [48] = 262, [49] = 263, [50] = 264, [67] = 265, [68] = 266, [69] = 267, [70] = 268,
+        };
+        Assert.Equal(expected, TallyMigration.Plan(meta));
+        foreach (int old in expected.Keys) Assert.False(meta.ContainsKey(old), $"id {old} is still a living weapon in meta.json");
+        Assert.Equal(new[] { "Terrastaff", "Ravager", "Sunderer", "Warbrand", "Bloodlash", "Climhazzard", "Sasori" },
+            expected.Values.Select(id => meta[id].Name).ToArray());
+    }
+
+    private static string RepoRoot()
+    {
+        var dir = new DirectoryInfo(System.AppContext.BaseDirectory);
+        while (dir != null && !File.Exists(Path.Combine(dir.FullName, "docs", "TODO.md"))) dir = dir.Parent;
+        return dir?.FullName ?? throw new System.InvalidOperationException("repo root not found above the test bin dir");
     }
 }

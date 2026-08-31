@@ -1369,67 +1369,6 @@
       5355
     ]
   },
-  "49": {
-    "name": "Ravager",
-    "wp": 15,
-    "cat": "KnightSword",
-    "formula": 1,
-    "flavor": "A savage cleaving thing that pours its own blind frenzy into every wound it tears open.",
-    "lane": "hp",
-    "growsLine": "<color=81>Grows: HP.</color>",
-    "palette": 14,
-    "colors": [
-      2118,
-      6287,
-      10487,
-      15803,
-      7439,
-      8503,
-      14841,
-      4266,
-      4337,
-      5464,
-      7303,
-      11467,
-      17745,
-      25144,
-      4230
-    ]
-  },
-  "50": {
-    "name": "Sunderer",
-    "wp": 13,
-    "cat": "KnightSword",
-    "formula": 46,
-    "flavor": "A spiteful edge made to ruin, not to slay.",
-    "lane": "hp",
-    "growsLine": "<color=81>Grows: HP.</color>",
-    "signature": {
-      "abilityId": 0,
-      "slot": "",
-      "atTier": 3,
-      "displayLabel": "Bulwark",
-      "bulwark": true
-    },
-    "palette": 14,
-    "colors": [
-      4162,
-      10470,
-      16779,
-      24079,
-      22822,
-      26026,
-      28273,
-      4358,
-      6535,
-      6664,
-      7396,
-      14693,
-      21961,
-      25194,
-      26318
-    ]
-  },
   "51": {
     "name": "Wellspring Rod",
     "wp": 5,
@@ -1902,114 +1841,6 @@
       9613,
       14932,
       31608
-    ]
-  },
-  "67": {
-    "name": "Warbrand",
-    "wp": 15,
-    "cat": "Sword",
-    "formula": 1,
-    "flavor": "A graceless slab of war-iron with no guile to it, only a weight that breaks what it meets.",
-    "lane": "pa",
-    "growsLine": "<color=90>Grows: Physical Attack.</color>",
-    "palette": 15,
-    "colors": [
-      2148,
-      5352,
-      10671,
-      18070,
-      6576,
-      7701,
-      11929,
-      5318,
-      7465,
-      10636,
-      1257,
-      8592,
-      8791,
-      14140,
-      23375
-    ]
-  },
-  "68": {
-    "name": "Bloodlash",
-    "wp": 8,
-    "cat": "Knife",
-    "formula": 45,
-    "flavor": "Cruelly serrated and slick with venom; it leaves no clean cut, only a wound that festers.",
-    "lane": "speed",
-    "growsLine": "<color=40>Grows: Speed.</color>",
-    "palette": 9,
-    "colors": [
-      4514,
-      5667,
-      13067,
-      20370,
-      2146,
-      5349,
-      10665,
-      3272,
-      3503,
-      8920,
-      7396,
-      14693,
-      21961,
-      25194,
-      5413
-    ]
-  },
-  "69": {
-    "name": "Climhazzard",
-    "wp": 5,
-    "cat": "NinjaBlade",
-    "formula": 69,
-    "flavor": "A mercy for the dying: it glances off the hale, guts the bleeding.",
-    "lane": "speed",
-    "growsLine": "<color=40>Grows: Speed.</color>",
-    "palette": 10,
-    "colors": [
-      2147,
-      3238,
-      9614,
-      11864,
-      6478,
-      7634,
-      8693,
-      10405,
-      14598,
-      20872,
-      5318,
-      8489,
-      12717,
-      19059,
-      23342
-    ]
-  },
-  "70": {
-    "name": "Sasori",
-    "wp": 11,
-    "cat": "Katana",
-    "formula": 1,
-    "flavor": "A barbed, scorpion-named katana whose every sting marks a foe for a slow, certain death.",
-    "lane": "pa+ma+brave",
-    "growsLine": "<color=93>Grows: Physical Attack, Magick Attack & Bravery.</color>",
-    "palette": 13,
-    "colors": [
-      3428,
-      6696,
-      12045,
-      22423,
-      2147,
-      9674,
-      10891,
-      4363,
-      4531,
-      4728,
-      3273,
-      4332,
-      4433,
-      4599,
-      15123
     ]
   },
   "71": {
@@ -3411,5 +3242,72 @@
     "lane": "pa+ma",
     "growsLine": "<color=95>Grows: Physical & Magick Attack.</color>",
     "migratedFrom": 48
+  },
+  "263": {
+    "name": "Ravager",
+    "wp": 15,
+    "cat": "KnightSword",
+    "formula": 1,
+    "flavor": "A savage cleaving thing that pours its own blind frenzy into every wound it tears open.",
+    "lane": "hp",
+    "growsLine": "<color=81>Grows: HP.</color>",
+    "migratedFrom": 49
+  },
+  "264": {
+    "name": "Sunderer",
+    "wp": 13,
+    "cat": "KnightSword",
+    "formula": 46,
+    "flavor": "A spiteful edge made to ruin, not to slay.",
+    "lane": "hp",
+    "growsLine": "<color=81>Grows: HP.</color>",
+    "signature": {
+      "abilityId": 0,
+      "slot": "",
+      "atTier": 3,
+      "displayLabel": "Bulwark",
+      "bulwark": true
+    },
+    "migratedFrom": 50
+  },
+  "265": {
+    "name": "Warbrand",
+    "wp": 15,
+    "cat": "Sword",
+    "formula": 1,
+    "flavor": "A graceless slab of war-iron with no guile to it, only a weight that breaks what it meets.",
+    "lane": "pa",
+    "growsLine": "<color=90>Grows: Physical Attack.</color>",
+    "migratedFrom": 67
+  },
+  "266": {
+    "name": "Bloodlash",
+    "wp": 8,
+    "cat": "Knife",
+    "formula": 45,
+    "flavor": "Cruelly serrated and slick with venom; it leaves no clean cut, only a wound that festers.",
+    "lane": "speed",
+    "growsLine": "<color=40>Grows: Speed.</color>",
+    "migratedFrom": 68
+  },
+  "267": {
+    "name": "Climhazzard",
+    "wp": 5,
+    "cat": "NinjaBlade",
+    "formula": 69,
+    "flavor": "A mercy for the dying: it glances off the hale, guts the bleeding.",
+    "lane": "speed",
+    "growsLine": "<color=40>Grows: Speed.</color>",
+    "migratedFrom": 69
+  },
+  "268": {
+    "name": "Sasori",
+    "wp": 11,
+    "cat": "Katana",
+    "formula": 1,
+    "flavor": "A barbed, scorpion-named katana whose every sting marks a foe for a slow, certain death.",
+    "lane": "pa+ma+brave",
+    "growsLine": "<color=93>Grows: Physical Attack, Magick Attack & Bravery.</color>",
+    "migratedFrom": 70
   }
 }

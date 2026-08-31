@@ -13,7 +13,7 @@ namespace LivingWeapon.Tests;
 /// </summary>
 public class BulwarkTests
 {
-    private const int SundererId = Bulwark.SundererId;   // 50
+    private const int SundererId = Bulwark.SundererId;   // 264 since LW-351 stage 2 (was 50, the vanilla Slasher's slot)
 
     private static long GridAddr(int idx) => Offsets.PathTerrainGrid + (long)idx * Offsets.PathTerrainStride + Offsets.PathTerrainVetoField;
     private static int Idx(int x, int y, int w, int layerBit = 0) => x + y * w + layerBit * 0x100;
@@ -516,4 +516,11 @@ public class BulwarkTests
 
         Assert.Equal(BulwarkPolicy.VetoedF6(0x20), mem.U8(GridAddr(idx)));
     }
+
+    /// <summary>LW-351 stage 2: the Sunderer design moved off the vanilla Slasher's slot (id 50)
+    /// onto extended id 264, and the signature keys on the item id, so the constant moves with
+    /// it. Pinned by value so a stale constant fails here and not on the owner's card.</summary>
+    [Fact]
+    public void The_sunderer_lives_at_its_extended_id_since_the_move()
+        => Assert.Equal(264, Bulwark.SundererId);
 }

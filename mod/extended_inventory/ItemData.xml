@@ -27,5 +27,77 @@
       <Price>1500</Price>
       <ShopAvailability>Chapter1_KillMiluda</ShopAvailability>
     </Item>
+    <Item>
+      <Id>263</Id> <!-- Ravager -->
+      <Palette>3</Palette>
+      <SpriteID>22</SpriteID>
+      <RequiredLevel>0</RequiredLevel>
+      <TypeFlags>Weapon</TypeFlags>
+      <AdditionalDataId>33</AdditionalDataId>
+      <ItemCategory>KnightSword</ItemCategory>
+      <EquipBonusId>0</EquipBonusId>
+      <Price>4000</Price>
+      <ShopAvailability>Chapter4_Start</ShopAvailability>
+    </Item>
+    <Item>
+      <Id>264</Id> <!-- Sunderer -->
+      <Palette>3</Palette>
+      <SpriteID>22</SpriteID>
+      <RequiredLevel>0</RequiredLevel>
+      <TypeFlags>Weapon</TypeFlags>
+      <AdditionalDataId>33</AdditionalDataId>
+      <ItemCategory>KnightSword</ItemCategory>
+      <EquipBonusId>0</EquipBonusId>
+      <Price>12000</Price>
+      <ShopAvailability>Chapter4_Bethla</ShopAvailability>
+    </Item>
+    <Item>
+      <Id>265</Id> <!-- Warbrand -->
+      <Palette>2</Palette>
+      <SpriteID>14</SpriteID>
+      <RequiredLevel>0</RequiredLevel>
+      <TypeFlags>Weapon</TypeFlags>
+      <AdditionalDataId>21</AdditionalDataId>
+      <ItemCategory>Sword</ItemCategory>
+      <EquipBonusId>0</EquipBonusId>
+      <Price>1200</Price>
+      <ShopAvailability>Chapter4_KillElmdor</ShopAvailability>
+    </Item>
+    <Item>
+      <Id>266</Id> <!-- Bloodlash -->
+      <Palette>0</Palette>
+      <SpriteID>1</SpriteID>
+      <RequiredLevel>0</RequiredLevel>
+      <TypeFlags>Weapon</TypeFlags>
+      <AdditionalDataId>1</AdditionalDataId>
+      <ItemCategory>Knife</ItemCategory>
+      <EquipBonusId>0</EquipBonusId>
+      <Price>4000</Price>
+      <ShopAvailability>Chapter3_Start</ShopAvailability>
+    </Item>
+    <Item>
+      <Id>267</Id> <!-- Climhazzard -->
+      <Palette>0</Palette>
+      <SpriteID>9</SpriteID>
+      <RequiredLevel>0</RequiredLevel>
+      <TypeFlags>Weapon</TypeFlags>
+      <AdditionalDataId>12</AdditionalDataId>
+      <ItemCategory>NinjaBlade</ItemCategory>
+      <EquipBonusId>0</EquipBonusId>
+      <Price>9000</Price>
+      <ShopAvailability>Chapter3_SaveRafa</ShopAvailability>
+    </Item>
+    <Item>
+      <Id>268</Id> <!-- Sasori -->
+      <Palette>5</Palette>
+      <SpriteID>28</SpriteID>
+      <RequiredLevel>0</RequiredLevel>
+      <TypeFlags>Weapon</TypeFlags>
+      <AdditionalDataId>43</AdditionalDataId>
+      <ItemCategory>Katana</ItemCategory>
+      <EquipBonusId>0</EquipBonusId>
+      <Price>40000</Price>
+      <ShopAvailability>Chapter4_Start</ShopAvailability>
+    </Item>
   </Entries>
 </ItemTable>

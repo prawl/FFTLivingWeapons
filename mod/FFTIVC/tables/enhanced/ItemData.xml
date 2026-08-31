@@ -21,15 +21,6 @@
       <EquipBonusId>0</EquipBonusId>
     </Item>
     <Item>
-      <Id>49</Id> <!-- Ravager (was Giant's Axe) -->
-      <ItemCategory>KnightSword</ItemCategory>
-      <ShopAvailability>Chapter4_Start</ShopAvailability>
-    </Item>
-    <Item>
-      <Id>50</Id> <!-- Sunderer (was Slasher) -->
-      <ItemCategory>KnightSword</ItemCategory>
-    </Item>
-    <Item>
       <Id>52</Id> <!-- Spark Rod (was Thunder Rod) -->
       <EquipBonusId>0</EquipBonusId>
     </Item>
@@ -80,25 +71,6 @@
     <Item>
       <Id>66</Id> <!-- Staff of the Magi -->
       <EquipBonusId>1</EquipBonusId>
-    </Item>
-    <Item>
-      <Id>67</Id> <!-- Warbrand (was Iron Flail) -->
-      <ItemCategory>Sword</ItemCategory>
-      <ShopAvailability>Chapter4_KillElmdor</ShopAvailability>
-    </Item>
-    <Item>
-      <Id>68</Id> <!-- Bloodlash (was Flail of Flame) -->
-      <ItemCategory>Knife</ItemCategory>
-    </Item>
-    <Item>
-      <Id>69</Id> <!-- Climhazzard (was Morning Star) -->
-      <ItemCategory>NinjaBlade</ItemCategory>
-    </Item>
-    <Item>
-      <Id>70</Id> <!-- Sasori (was Scorpion Tail) -->
-      <ItemCategory>Katana</ItemCategory>
-      <TypeFlags>Weapon</TypeFlags>
-      <ShopAvailability>Chapter3_Zalmo</ShopAvailability>
     </Item>
     <Item>
       <Id>73</Id> <!-- Stoneshooter -->

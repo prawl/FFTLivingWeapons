@@ -461,22 +461,22 @@
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>49</Id> <!-- Ravager (was Giant's Axe) -->
+      <Id>49</Id> <!-- Giant's Axe -->
       <Range>1</Range>
       <Formula>1</Formula>
-      <Power>15</Power>
-      <Evasion>5</Evasion>
-      <Elements>None</Elements>
-      <OptionsAbilityId>23</OptionsAbilityId>
-    </ItemWeapon>
-    <ItemWeapon>
-      <Id>50</Id> <!-- Sunderer (was Slasher) -->
-      <Range>1</Range>
-      <Formula>46</Formula>
-      <Power>13</Power>
-      <Evasion>10</Evasion>
+      <Power>12</Power>
+      <Evasion>0</Evasion>
       <Elements>None</Elements>
       <OptionsAbilityId>0</OptionsAbilityId>
+    </ItemWeapon>
+    <ItemWeapon>
+      <Id>50</Id> <!-- Slasher -->
+      <Range>1</Range>
+      <Formula>1</Formula>
+      <Power>16</Power>
+      <Evasion>0</Evasion>
+      <Elements>None</Elements>
+      <OptionsAbilityId>18</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>51</Id> <!-- Wellspring Rod (was Rod) -->
@@ -631,40 +631,40 @@
       <OptionsAbilityId>44</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>67</Id> <!-- Warbrand (was Iron Flail) -->
+      <Id>67</Id> <!-- Iron Flail -->
       <Range>1</Range>
       <Formula>1</Formula>
-      <Power>15</Power>
+      <Power>9</Power>
       <Evasion>0</Evasion>
       <Elements>None</Elements>
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>68</Id> <!-- Bloodlash (was Flail of Flame) -->
+      <Id>68</Id> <!-- Flail of Flame -->
       <Range>1</Range>
-      <Formula>45</Formula>
-      <Power>8</Power>
-      <Evasion>15</Evasion>
-      <Elements>None</Elements>
-      <OptionsAbilityId>22</OptionsAbilityId>
+      <Formula>2</Formula>
+      <Power>11</Power>
+      <Evasion>0</Evasion>
+      <Elements>Fire</Elements>
+      <OptionsAbilityId>17</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>69</Id> <!-- Climhazzard (was Morning Star) -->
+      <Id>69</Id> <!-- Morning Star -->
       <Range>1</Range>
-      <Formula>69</Formula>
-      <Power>5</Power>
-      <Evasion>20</Evasion>
+      <Formula>1</Formula>
+      <Power>16</Power>
+      <Evasion>0</Evasion>
       <Elements>None</Elements>
       <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
-      <Id>70</Id> <!-- Sasori (was Scorpion Tail) -->
+      <Id>70</Id> <!-- Scorpion Tail -->
       <Range>1</Range>
       <Formula>1</Formula>
-      <Power>11</Power>
-      <Evasion>10</Evasion>
+      <Power>23</Power>
+      <Evasion>0</Evasion>
       <Elements>None</Elements>
-      <OptionsAbilityId>11</OptionsAbilityId>
+      <OptionsAbilityId>0</OptionsAbilityId>
     </ItemWeapon>
     <ItemWeapon>
       <Id>71</Id> <!-- Outrider Pistol (was Romandan Pistol) -->
