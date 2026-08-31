@@ -438,6 +438,15 @@ belongs rather than at the bottom.
   byte 0 is the Range the game ignored; suspects are the two-byte sibling rows keyed by
   (id minus range base) behind 0x1402B8CD4 / 0x1402B8D3C / 0x1402B8DA0, which answer for
   the clone donor today.)
+- [LW-366] 2026-08-31: The Sunderer's Bulwark has not been seen firing at its new id 264. The
+  owner swung the Sunderer on the stage-2 pass and saw no Bulwark, but that weapon held zero
+  kills (the tally was zeroed for the pass and the move carried zero across), and Bulwark only
+  wakes at the third growth tier (15 kills on a production build), so at tier 0 staying dark is
+  the correct behavior, not a fault. What is owed is the real check: a Sunderer at tier 3 on
+  the 264 build fires Bulwark exactly as the id-50 one did. (Tech: Bulwark.SundererId = 264
+  since 0e612454; the signature gates on tier >= Signature.AtTier (3); the kill tally
+  migration moved id 50's count to 264 (TallyMigration), which was 0 on the owner's rig;
+  a dev-flavored BuildLinked seeds every tally to max tier and is the quickest way to see it.)
 - [LW-365] 2026-08-31: Sweep the last few places where the game still assumes no item id above
   261 when it reads a unit's hands. Plain language: the new weapons equip and fight fine, but
   a handful of routines that look up what a unit is holding were built with the old limit and
