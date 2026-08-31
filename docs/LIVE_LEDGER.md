@@ -20,6 +20,24 @@ isolated live) · **CONTRADICTED** (evidence points both ways — probe before b
 
 ## Proven
 
+### [item-count-lists-relocatable] The game's two per-item byte lists (bag counts at 0x1411A7C00, the sibling flag list at 0x1411A7700) can be moved to a page the mod owns by re-pointing every code reference, and the game keeps counting correctly
+
+Observed 2026-08-31 02:40-02:55 by the owner on 1.5.2, in a running game, no relaunch: with both lists copied to a 64 KB page at 0x13FF00000 and all 45 plain-code references re-pointed from outside (tools/probes/lw368_count_list_relocate.py --apply; 24 rip-relative displacements, 21 image-relative displacements of the `[idx + r8 + rva]` shape with r8 the image base), vanilla item counts read normally on the Items tab, buying a Potion raised its count and charged gil, equipping and unequipping a vanilla weapon moved the held/equipped numbers, a save and a reload kept the changed counts, and the Poacher's Den still showed every carcass. Then `--undo` copied the page back and restored the 45 fields. One raw reference inside the copy-protected region (0x149D257C0) is not an x86 field and was left untouched; nothing the owner exercised depended on it. PROVEN 2026-08-31, owner live passes on the deployed prod builds (commit 6b8c842e): fifteen extended items armed with the lists relocated to 0x114AA0000, vanilla counts right on the Items tab, a Potion bought (44 to 45), an item used in battle, a probe blade swung, a save and reload placing every count; then, on the round-2b build with the ten new-game seed sites re-pointed, a fresh new game started with its seeded Potions x5 and no tripwire line. Owner flip 2026-08-31.
+
+Built on 2026-08-31 (LW-368 round 2, LivingWeapon/Extended/ListRelocation.cs, deployed prod 04:47): the owner's fifteen-item pass held (armed 15, page 0x114AA0000, counts, a purchase, an item, a swing, save and reload). The build's tripwire on the dead old block then fired once at the load edge and named a writer both probe sweeps had missed: the game's new-game starting-inventory seed at 0x1402842E8..0x140284334, ten immediate-operand stores to fixed interior addresses of the count block (starting gear ids 51, 59, 77, 128, 144, 172 and the consumables 240 to 253; next-ip = field + 4 + a 1, 2 or 4 byte trailing immediate), so a new game on that build would start with an empty bag until round 2b re-points them. The same sweep showed the blocks' tails are not padding: a live game state dword sits at +0x108 of each (0x1411A7D08, 0x1411A7808), which the in-place layout had overlapped from the fourth extended id on (264 to 267); the relocation removed that overlap.
+
+<details><summary>How we got here</summary>
+
+**Claim (original wording):** eleven extended items is a hard ceiling because id 272's count byte is the first byte of Ramza's roster row (the count list has 0x110 bytes before RosterBase); moving the list is the only way past it, and the game will not notice as long as every reader is re-pointed.
+
+**Mechanism:** two read-only sweeps of the running game's executable sections (rip-relative disp32 targets, then the 4-byte RVA pattern that the reset routine's `mov byte [rax+r8+0x11A7C00],0` form uses and the first sweep cannot see), capstone operand details to pin each field to its instruction, VirtualProtectEx + WriteProcessMemory per field with read-back, a page allocated below the image because the entire 2 GB above it is one arena reservation.
+
+**Evidence:** tools/probes/lw368_count_list_relocate.py and its lw368_count_list_relocate_undo.json.done (the 45 fields, old and new bytes); docs/TODO.md LW-368 row; the owner's five-point check reported in chat 2026-08-31.
+
+**Date:** 2026-08-31
+
+</details>
+
 ### [shop-buy-list-flags-mirror] A town's Buy list can stock an extended-inventory id once the builder's loop bound is widened and its two reads of the 256-row town-flags table are re-pointed at a mirror page carrying rows past 255
 
 Not yet observed (built 2026-08-27 evening from a static read of the live 1.5.2 process, docs/research/ITEM_CAP_261_BREAK_JOURNEY.md "shops"). What the read established: the builder is plain code at 0x140288E54, loops ids 0..0xFF (cmp ebx,0x100 at 0x140288FD9), reads the 16 town bits from 0x14067F890 + id*2 through a rip-relative high-byte walker (0x140288F01) and an image-relative low-byte read (0x140288F3B), tests 0x8000 >> townIndex, then gates on the catalog record's +0x0A chapter byte. What the build assumes and the live pass must show: that widening the loop and re-pointing those two references (LivingWeapon/Extended/ShopFlagsMirror.cs) is sufficient, i.e. no other reader between the list build and the purchase re-derives the flags from the vanilla table, and that the "+" ids 256-260 (now candidates too, with zero rows in the mirror) stay unlisted. The owner's shop visit on the next deploy moves this row.
@@ -1893,22 +1911,6 @@ Proven, owner-flipped 2026-08-30: the re-test on the masked-key build passed end
 </details>
 
 ## Uncertain — observed live, not yet isolated / built on
-
-### [item-count-lists-relocatable] The game's two per-item byte lists (bag counts at 0x1411A7C00, the sibling flag list at 0x1411A7700) can be moved to a page the mod owns by re-pointing every code reference, and the game keeps counting correctly
-
-Observed 2026-08-31 02:40-02:55 by the owner on 1.5.2, in a running game, no relaunch: with both lists copied to a 64 KB page at 0x13FF00000 and all 45 plain-code references re-pointed from outside (tools/probes/lw368_count_list_relocate.py --apply; 24 rip-relative displacements, 21 image-relative displacements of the `[idx + r8 + rva]` shape with r8 the image base), vanilla item counts read normally on the Items tab, buying a Potion raised its count and charged gil, equipping and unequipping a vanilla weapon moved the held/equipped numbers, a save and a reload kept the changed counts, and the Poacher's Den still showed every carcass. Then `--undo` copied the page back and restored the 45 fields. One raw reference inside the copy-protected region (0x149D257C0) is not an x86 field and was left untouched; nothing the owner exercised depended on it. Built on 2026-08-31 (LW-368 round 2, LivingWeapon/Extended/ListRelocation.cs, deployed prod 04:47): the owner's fifteen-item pass held (armed 15, page 0x114AA0000, counts, a purchase, an item, a swing, save and reload). The build's tripwire on the dead old block then fired once at the load edge and named a writer both probe sweeps had missed: the game's new-game starting-inventory seed at 0x1402842E8..0x140284334, ten immediate-operand stores to fixed interior addresses of the count block (starting gear ids 51, 59, 77, 128, 144, 172 and the consumables 240 to 253; next-ip = field + 4 + a 1, 2 or 4 byte trailing immediate), so a new game on that build would start with an empty bag until round 2b re-points them. The same sweep showed the blocks' tails are not padding: a live game state dword sits at +0x108 of each (0x1411A7D08, 0x1411A7808), which the in-place layout had overlapped from the fourth extended id on (264 to 267); the relocation removed that overlap.
-
-<details><summary>How we got here</summary>
-
-**Claim (original wording):** eleven extended items is a hard ceiling because id 272's count byte is the first byte of Ramza's roster row (the count list has 0x110 bytes before RosterBase); moving the list is the only way past it, and the game will not notice as long as every reader is re-pointed.
-
-**Mechanism:** two read-only sweeps of the running game's executable sections (rip-relative disp32 targets, then the 4-byte RVA pattern that the reset routine's `mov byte [rax+r8+0x11A7C00],0` form uses and the first sweep cannot see), capstone operand details to pin each field to its instruction, VirtualProtectEx + WriteProcessMemory per field with read-back, a page allocated below the image because the entire 2 GB above it is one arena reservation.
-
-**Evidence:** tools/probes/lw368_count_list_relocate.py and its lw368_count_list_relocate_undo.json.done (the 45 fields, old and new bytes); docs/TODO.md LW-368 row; the owner's five-point check reported in chat 2026-08-31.
-
-**Date:** 2026-08-31
-
-</details>
 
 ### [weapon-sprite-pair-drives-swing-art] The two-byte sprite/palette record at 0x140785CF0 + id*2 picks BOTH the drawing and the palette of a weapon's swing, and it is read on every swing
 

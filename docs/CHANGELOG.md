@@ -10,6 +10,24 @@ before 2026-07-21 keep their original prose.
 
 ## 2.4.0 cycle
 
+- [LW-368] SHIPPED 6b8c842e 2026-08-31: The extended inventory can now hold up to 121
+  brand-new weapons instead of eleven. Plain language: the game keeps "how many of each item
+  you own" as one byte per item in a fixed block that ends where Ramza's roster row begins, so
+  the twelfth new weapon would have written into Ramza. At boot the mod now copies that block
+  and its sibling flag block onto a page it owns and re-points every place in the game's code
+  that names them (55 fields, ten of them the new-game starting-inventory seed that the
+  build's own tripwire caught on the first live pass). Owner live passes 2026-08-31: fifteen
+  items armed, counts, a purchase, an item, a swing, save and reload, and a fresh new game
+  starting with its potions. The proof lives in the ledger row [item-count-lists-relocatable]
+  (owner-flipped PROVEN). What the round also learned, recorded as its own rows: the game's
+  menu chart holds 140 owned weapons and shields and its housekeeper overflows silently past
+  that (LW-371); the last bytes of each count block are a live game variable, which the old
+  in-place layout had overlapped from the fourth extended id on; the third per-item list still
+  overlaps the Poacher's Den bytes for extended ids (documented residual in the guide); past
+  121 needs jump-out trampolines at eight signed-byte bounds (a later stage). (Tech:
+  LivingWeapon/Extended/ListRelocation.cs + .Fields.cs + .Sites.cs, ExtendedInventory.BagCountBase,
+  ExtendedSites.MaxExtendedCount = 121, CardSites.MaxSites 4096; probe
+  tools/probes/lw368_count_list_relocate.py; four adversarial verification rounds, suite 3542.)
 - [LW-332] SHIPPED 08937d7 2026-08-31: Every living weapon's card now shows its Grows line as
   the SECOND line, directly under the Kills line, so a player reads kills and growth together
   at the top of the card and the prose below. The move needed a matching runtime change: the
