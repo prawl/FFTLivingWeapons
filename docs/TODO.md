@@ -458,6 +458,12 @@ belongs rather than at the bottom.
   slot guards at 0x1403066A7, 0x14030671D, 0x1403067AB, and a u16 list walker bounded by 0x105
   at 0x1402C8155; none is in ExtendedSites.BootSites; the disp8 family is invisible to the
   imm32 scan, grep `8d ?? 06` after a `mov r32,0xff`.)
+  Owner-observed symptom 2026-08-31 01:20 (the round-8 build): a unit swinging the Sunderer
+  or the Sasori at an ENEMY shows the sword, but swinging the same weapon at an EMPTY tile
+  shows fists; the Iron Flail (a vanilla id) renders both ways. The empty-tile attack path
+  is the prime suspect for one of these un-widened resolver copies: it reads an extended
+  right-hand id as "no weapon" and falls back to the left hand. Repro: equip any design,
+  Attack an empty square.
 - [LW-359] 2026-08-30: A player reports the twin-weapon consent rule leaking two ways: with a shield in the off hand, backing out of the equip menu removed the shield and stamped the second weapon anyway (the shield only stuck when placed in the MAIN hand), and swapping the main hand from a twin weapon to daggers left the granted Dual Wield support behind for a while, letting daggers dual-wield free.
   Reported by Darkrapid on Discord 2026-08-30 (docs/USER_FEEDBACK.md); the owner told the
   player the intended rule and promised a look. The design (LW-193/LW-194, ad2240a): an
