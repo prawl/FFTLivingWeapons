@@ -13,43 +13,6 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.4.0)
 
-- **[LW-332] The Grows line moves up to sit directly under the Kills line** (opened 2026-08-25) [AWAITING-LIVE]
-  - BUILT, four-round pipeline 2026-08-25 late (two adversarial verify rounds broke and
-    then blessed the ownership design; final verdict SHIP, code 9, spec 9). Deployed and
-    the owner saw the moved line live on the Stormarc card and ordered the commit. Owed
-    owner reads: the same-lane fast-flip (two weapons sharing a Grows line each keep
-    their own count) and one battle crediting kills to the right weapon. A blank line
-    after the Grows line was weighed the same night and DECLINED by the owner: 26 cards
-    sit at the 9-line cap, three of them cannot pay a line from prose at all, and the
-    owner chose keeping the signature block's blank line over the extra gap.
-  - Re-promoted 2026-08-25 late on the owner's fresh call ("the fact that the Grows
-    isn't directly under the Kills is killing me"), pausing the glow arc (LW-319, now
-    backlog top with its state banked). The progression header: kills and growth
-    together at the top of the card, prose below. It needs a matched DLL change to be
-    safe: the card painter pairs each Kills slot with the NEAREST flavor text and
-    relies on only one fixed byte between them, so inserting the Grows line stretches
-    that gap and a neighboring card ending in its own flavor line could pair closer
-    and paint the wrong weapon's counter. The owner heard this downside 2026-08-25
-    and ruled it minor barring surprises; the reverted shortcut attempt (moving the
-    line without anchor work) stays the cautionary tale.
-  - (Tech: extend Display/CardScanner's anchor candidates with each weapon's Grows
-    line, derived from meta.json's lane via a C# mirror of the NOW-SPELLED phrase and
-    color tables (lib/flavor.py GROWS_SPELLED + LANE_COLOR_SLOT, WP teal 93 since
-    2b98b0a) plus a parse-the-python lockstep gate so the two cannot drift, restoring
-    a small fixed Kills-to-anchor gap; then move the line in lib/flavor.assemble_desc
-    and flip analyze.py's GROWS PHRASE gate to demand line-two placement.
-    FindNearestFlavor and the 2026-07-06 bidirectional design note are the
-    load-bearing read.)
-  - Done means: every living weapon's card shows the colored Grows line as the SECOND
-    line, directly under the Kills line; the painter still paints the right weapon's
-    counter every time because the anchor extension keeps the pairing gap small and
-    fixed; the GROWS PHRASE gate enforces line-two placement; nothing else about the
-    card layout moves.
-  - Verify: the full suite green including new CardScanner tests for the moved layout
-    (with a packed-pool mispaint regression case where a neighbor card ends in its own
-    flavor line); analyze.py green with the tightened gate; and the owner live-reads
-    the moved line plus a battle where the Kills counter paints correctly on at least
-    two different weapons.
 - **[LW-323] A weapon's level-up announcement never shows up a battle late anymore** (opened 2026-08-25) [AWAITING-LIVE]
   - BUILT and adversarially verified 2026-08-26 (code 9 of 10, zero code findings; suite
     3332 green), owner live pass outstanding. The owner saw "Stoneshooter has grown to

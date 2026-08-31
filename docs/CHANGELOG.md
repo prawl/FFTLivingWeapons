@@ -10,6 +10,19 @@ before 2026-07-21 keep their original prose.
 
 ## 2.4.0 cycle
 
+- [LW-332] SHIPPED 08937d7 2026-08-31: Every living weapon's card now shows its Grows line as
+  the SECOND line, directly under the Kills line, so a player reads kills and growth together
+  at the top of the card and the prose below. The move needed a matching runtime change: the
+  card painter pairs each Kills counter with the nearest flavor text, so the painter's anchor
+  candidates now include every weapon's own Grows line (derived from meta.json's lane) and the
+  Kills-to-anchor gap stays small and fixed; the GROWS PHRASE gate in analyze.py demands the
+  line-two placement. Owner live pass: the moved line read on the Stormarc card the night it
+  shipped, and on 2026-08-31 a 23-turn battle credited Sasori 2 and Sunderer 2 kills to the
+  right weapons with the counters painting correctly; the owner flipped it done 2026-08-31.
+  (Tech: commit 08937d7 2026-08-25; Display/CardScanner anchor extension mirrored from
+  lib/flavor.py GROWS_SPELLED + LANE_COLOR_SLOT with a parse-the-python lockstep gate;
+  lib/flavor.assemble_desc moves the line; the packed-pool mispaint regression case is in the
+  CardScanner tests.)
 - [LW-322] SHIPPED 5dbc7ff 2026-08-30: Every living weapon's card now says in plain words what
   it grows ("Grows: Speed", "Grows: PA, MA and Brave"), because the glow colors alone tell a
   player THAT a weapon grew, not WHAT it grows, and text works for everyone including colorblind
