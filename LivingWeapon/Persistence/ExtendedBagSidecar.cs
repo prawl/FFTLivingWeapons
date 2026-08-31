@@ -20,8 +20,12 @@ namespace LivingWeapon;
 /// sale. Schema 1 files migrate their single count map into <see cref="TakeLegacy"/>, a one-shot
 /// fallback for the first load whose key is unknown (the saves that predate the keys).
 ///
-/// Bounded: the newest <see cref="MaxSaves"/> keys are kept (an autosave lands every battle and
-/// shop visit; the file must not grow forever). Load never throws; Update is fail-soft.
+/// Bounded: <see cref="MaxSaves"/> keys are kept and the least recently USED one goes first
+/// (LW-351 fix round 7, 2026-08-30: the old cap of 64 with oldest-written eviction let one
+/// evening of battle autosaves, two to four keys per fight, push the owner's real save out, so
+/// his pt2775 load came back "never seen" and its counts were replaced by the seed). A load that
+/// finds its key moves that key to the back of the line; entries are a few bytes each, so a
+/// thousand of them is still a small file. Load never throws; Update is fail-soft.
 ///
 /// TWO THREADS since LW-351: Engine's tick records a save here, and the game's OWN thread reads
 /// here from inside the load detour (the replay has to beat the game's menu-template rebuild).
@@ -32,43 +36,45 @@ namespace LivingWeapon;
 internal sealed class ExtendedBagSidecar
 {
     internal const int SchemaVersion = 2;
-    internal const int MaxSaves = 64;
+    internal const int MaxSaves = 1024;
     public const string FileName = "extended_inventory.json";
 
     private readonly object _gate = new();     // the in-memory maps below
     private readonly object _ioGate = new();   // one writer at a time on the file itself
     private readonly string _path;
+    private readonly int _maxSaves;
     private readonly Dictionary<string, Dictionary<int, int>> _saves;
-    private readonly List<string> _order;   // oldest first
+    private readonly List<string> _order;   // least recently used first
     private Dictionary<int, int>? _legacy;
 
     public string LoadedFrom { get; }
     public int SaveCount { get { lock (_gate) return _saves.Count; } }
 
     private ExtendedBagSidecar(string path, Dictionary<string, Dictionary<int, int>> saves, List<string> order,
-        Dictionary<int, int>? legacy, string loadedFrom)
+        Dictionary<int, int>? legacy, string loadedFrom, int maxSaves = MaxSaves)
     {
         _path = path;
+        _maxSaves = Math.Max(1, maxSaves);
         _saves = saves;
         _order = order;
         _legacy = legacy;
         LoadedFrom = loadedFrom;
     }
 
-    public static ExtendedBagSidecar Load(string path)
+    public static ExtendedBagSidecar Load(string path, int maxSaves = MaxSaves)
     {
         var empty = new Dictionary<string, Dictionary<int, int>>();
         try
         {
-            if (!File.Exists(path)) return new ExtendedBagSidecar(path, empty, new List<string>(), null, "none (first run)");
+            if (!File.Exists(path)) return new ExtendedBagSidecar(path, empty, new List<string>(), null, "none (first run)", maxSaves);
             var dto = JsonConvert.DeserializeObject<Dto>(File.ReadAllText(path));
-            if (dto == null) return Unrecognised(path, empty);
+            if (dto == null) return Unrecognised(path, empty, maxSaves);
             if (dto.Version == 1)
             {
                 var legacy = ParseCounts(dto.Counts);
-                return new ExtendedBagSidecar(path, empty, new List<string>(), legacy.Count > 0 ? legacy : null, path + " (schema 1, migrated)");
+                return new ExtendedBagSidecar(path, empty, new List<string>(), legacy.Count > 0 ? legacy : null, path + " (schema 1, migrated)", maxSaves);
             }
-            if (dto.Version != SchemaVersion) return Unrecognised(path, empty);
+            if (dto.Version != SchemaVersion) return Unrecognised(path, empty, maxSaves);
             var saves = new Dictionary<string, Dictionary<int, int>>();
             var order = new List<string>();
             foreach (var key in dto.Order ?? new List<string>())
@@ -77,19 +83,19 @@ internal sealed class ExtendedBagSidecar
                     saves[key] = ParseCounts(raw);
                     order.Add(key);
                 }
-            return new ExtendedBagSidecar(path, saves, order, dto.Legacy != null ? ParseCounts(dto.Legacy) : null, path);
+            return new ExtendedBagSidecar(path, saves, order, dto.Legacy != null ? ParseCounts(dto.Legacy) : null, path, maxSaves);
         }
         catch (Exception ex)
         {
             ModLogger.Warn(LogVerb.Save, "The extended-inventory sidecar could not be read; starting with no saved counts: " + ex.Message);
-            return new ExtendedBagSidecar(path, empty, new List<string>(), null, "unreadable");
+            return new ExtendedBagSidecar(path, empty, new List<string>(), null, "unreadable", maxSaves);
         }
     }
 
-    private static ExtendedBagSidecar Unrecognised(string path, Dictionary<string, Dictionary<int, int>> empty)
+    private static ExtendedBagSidecar Unrecognised(string path, Dictionary<string, Dictionary<int, int>> empty, int maxSaves)
     {
         ModLogger.Warn(LogVerb.Save, "The extended-inventory sidecar has an unrecognised schema; starting with no saved counts.");
-        return new ExtendedBagSidecar(path, empty, new List<string>(), null, "unrecognised schema");
+        return new ExtendedBagSidecar(path, empty, new List<string>(), null, "unrecognised schema", maxSaves);
     }
 
     private static Dictionary<int, int> ParseCounts(Dictionary<string, int>? raw)
@@ -109,7 +115,16 @@ internal sealed class ExtendedBagSidecar
         {
             // Safe to hand the stored map out by reference: RecordSave replaces an entry with a
             // fresh dictionary, it never mutates one that was already handed out.
-            if (_saves.TryGetValue(key, out var c)) { counts = c; return true; }
+            if (_saves.TryGetValue(key, out var c))
+            {
+                // A used key goes to the back of the line, so a save the player keeps loading is
+                // never the one the cap throws away. In memory only: the next RecordSave persists
+                // the order, and a read on the game's own thread must not touch the disk.
+                _order.Remove(key);
+                _order.Add(key);
+                counts = c;
+                return true;
+            }
         }
         counts = new Dictionary<int, int>();
         return false;
@@ -137,7 +152,7 @@ internal sealed class ExtendedBagSidecar
             _saves[key] = new Dictionary<int, int>(counts);
             _order.Remove(key);
             _order.Add(key);
-            while (_order.Count > MaxSaves)
+            while (_order.Count > _maxSaves)
             {
                 _saves.Remove(_order[0]);
                 _order.RemoveAt(0);

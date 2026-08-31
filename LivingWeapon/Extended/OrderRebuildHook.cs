@@ -38,6 +38,11 @@ internal sealed partial class OrderRebuildHook
     public const int MaxWords = 160;
     public const ushort Terminator = 0xFFFF;
     public const int IdMask = 0x3FF;
+    /// <summary>Bit 14 of a list word: the game's E badge, set while every copy of the item is
+    /// worn. LW-351 round 7 verify (2026-08-30): a design whose only copies are equipped reads
+    /// bag 0 yet is still owned, so the owned-only re-append must honor the badge too or the
+    /// rebuild orphans it until a copy returns to the bag.</summary>
+    public const int EquippedBadge = 0x4000;
 
     private readonly ICodePatcher _mem;
     private IHook<RebuildFn>? _hook;
@@ -50,9 +55,12 @@ internal sealed partial class OrderRebuildHook
     public long Calls => Interlocked.Read(ref _calls);
     public long Reappended => Interlocked.Read(ref _reappended);
 
-    public OrderRebuildHook(ICodePatcher mem, long targetAddr = 0)
+    /// <param name="extendedCount">N, the armed extended ids 261..261+N-1 the seat-before-rebuild
+    /// step (OrderRebuildHook.Seat.cs) may seat; 0 = no seating, the re-append fallback only.</param>
+    public OrderRebuildHook(ICodePatcher mem, long targetAddr = 0, int extendedCount = 0)
     {
         _mem = mem;
+        _extendedCount = extendedCount;
         TargetAddr = targetAddr == 0 ? Offsets.FnOrderRebuild : targetAddr;
     }
 
@@ -87,6 +95,8 @@ internal sealed partial class OrderRebuildHook
     /// corrected count. A failed read on either side is a silent passthrough.</summary>
     internal int Process(nint table, nint list, RebuildFn original)
     {
+        try { SeatOwnedInto(table); }   // fix round 7: owned ids go into the template FIRST
+        catch (Exception) { /* the game's own rebuild still runs on whatever the template holds */ }
         var before = ReadListOrNull(list);
         int count = original(table, list);   // exactly once, never inside a try
         try { return Reappend(before, table, list, count); }
@@ -99,7 +109,10 @@ internal sealed partial class OrderRebuildHook
         var after = ReadListOrNull(list);
         if (after == null) return count;
 
-        var dropped = DroppedWords(before, after);
+        // Fix round 7: only an id the bag still holds comes back. The previous list can carry an
+        // id the player has since sold or equipped away; re-appending it seated a row the game
+        // had no item for (the owner's "empty item in my inventory list", 2026-08-30 23:34).
+        var dropped = Array.FindAll(DroppedWords(before, after), w => Owned(w & IdMask) || (w & EquippedBadge) != 0);
         if (dropped.Length == 0) return count;
         // The write must never exceed the input's own footprint, even if a table lists an id twice.
         if (after.Length + dropped.Length > before.Length)

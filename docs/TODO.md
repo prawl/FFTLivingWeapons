@@ -127,7 +127,13 @@ the technical detail lives in the indented lines under it.
     at id 262). STAGE 2 is BUILT (2026-08-30 late): the Ravager, Sunderer, Warbrand,
     Bloodlash, Climhazzard and Sasori now live at ids 263 to 268 and the Giant's Axe, Slasher,
     Iron Flail, Flail of Flame, Morning Star and Scorpion Tail are back at their own ids; its
-    owner live pass is owed, then stage 3 closes the ledger. The
+    owner live pass ran 2026-08-30 late: the six designs list, equip and swing their donor
+    art, and it found three more defects, fixed in round 7: the game's inventory reset wiped
+    the new items' counts after every real battle (a hook now keeps them), the per-save
+    count file held only 64 saves and forgot the owner's own (now 1024, least recently
+    touched out first), and items bought without saving stayed off the menus (owned ids are
+    now seated into the order template before the game rebuilds). Re-test owed, then
+    stage 3 closes the ledger. The
     Terrastaff now records its true reach (2 tiles, its clone donor's), which makes it beat
     the Ironreed Pole; the owner deferred that pair out loud (analyze.py DOMINANCE_DEFERRED)
     until one dominance pass gates all seven together (LW-363).

@@ -10,6 +10,8 @@ namespace LivingWeapon.Tests;
 public class OrderRebuildHookTests
 {
     private static readonly nint List = (nint)0x141811470;   // the live inventory buffer address, any value works
+    private const long Bag = Offsets.BagCountArray;
+    private static readonly nint Picker = (nint)Offsets.PickerOrderTemplate;
 
     private static byte[] Words(params ushort[] words)
     {
@@ -61,6 +63,7 @@ public class OrderRebuildHookTests
     public void Process_reappends_what_the_rebuild_dropped_and_corrects_the_count()
     {
         var f = WithList(1, 2, 0x4105, 3, 0xFFFF);
+        f.Seed(Bag + 0x105, 1);   // owned: the fix-round-7 filter re-appends only ids the bag holds
         var hook = new OrderRebuildHook(f);
         int count = hook.Process((nint)0x1407B2550, List, Rebuild(f, 1, 2, 3));
         Assert.Equal(4, count);
@@ -86,6 +89,7 @@ public class OrderRebuildHookTests
     public void Process_refuses_to_grow_the_list_past_its_own_input_footprint()
     {
         var f = WithList(0x105, 0xFFFF);
+        f.Seed(Bag + 0x105, 1);
         var hook = new OrderRebuildHook(f);
         // A pathological rebuild that returns MORE words than it was given: re-appending would
         // write past the input footprint, so the hook declines and returns the game's answer.
@@ -98,6 +102,7 @@ public class OrderRebuildHookTests
     public void Process_returns_the_games_count_when_the_reappend_write_is_refused()
     {
         var f = WithList(0x105, 1, 0xFFFF);
+        f.Seed(Bag + 0x105, 1);
         f.RefuseWritesAt.Add(List + 2);   // the tail write lands right after the one kept word
         Assert.Equal(1, new OrderRebuildHook(f).Process(0, List, Rebuild(f, 1)));
     }
@@ -109,5 +114,98 @@ public class OrderRebuildHookTests
         Assert.False(OrderRebuildHook.ShouldArm(true, new byte[] { 0x48, 0x89, 0x5C, 0x24, 0x08, 0x48, 0x89, 0x6C, 0x24, 0x19 }));
         Assert.False(OrderRebuildHook.ShouldArm(false, OrderRebuildHook.ExpectedPrologue));
         Assert.Equal(Offsets.FnOrderRebuild, new OrderRebuildHook(new FakeCodePatcher()).TargetAddr);
+    }
+
+    // --- LW-351 fix round 7 (R7-3): seat owned ids BEFORE the rebuild; never re-append an unowned id ---
+
+    private static ushort[] TemplateWords(FakeCodePatcher f, long addr)
+    {
+        var words = new System.Collections.Generic.List<ushort>();
+        var b = f.Read(addr, Offsets.PickerOrderTemplateWords * 2);
+        for (int i = 0; i < Offsets.PickerOrderTemplateWords; i++)
+        {
+            ushort w = (ushort)(b[i * 2] | (b[i * 2 + 1] << 8));
+            if (w == TemplateSeat.EndMarker) break;
+            words.Add(w);
+        }
+        return words.ToArray();
+    }
+
+    [Fact]
+    public void Process_seats_owned_extended_ids_into_a_known_template_before_the_rebuild_runs()
+    {
+        var f = WithList(1, 0xFFFF);
+        f.Seed((long)Picker, Words(5, TemplateSeat.EndMarker));
+        f.Seed(Bag + 261, 2, 0, 1);   // 261 owned, 262 not, 263 owned
+        var hook = new OrderRebuildHook(f, extendedCount: 3);
+        ushort[]? seen = null;
+        hook.Process(Picker, List, (table, list) => { seen = TemplateWords(f, (long)table); return Rebuild(f, 1)(table, list); });
+        Assert.Equal(new ushort[] { 5, 261, 263 }, seen);
+        Assert.Equal(2, hook.Seated);
+        // idempotent: the next rebuild finds them seated and writes nothing more to the template
+        int writes = f.Writes.Count;
+        hook.Process(Picker, List, Rebuild(f, 1));
+        Assert.Equal(new ushort[] { 5, 261, 263 }, TemplateWords(f, (long)Picker));
+        Assert.DoesNotContain(f.Writes.GetRange(writes, f.Writes.Count - writes), w => w.Addr >= (long)Picker && w.Addr < (long)Picker + Offsets.PickerOrderTemplateWords * 2);
+    }
+
+    [Fact]
+    public void Process_never_reappends_an_id_the_player_owns_none_of()
+    {
+        // "Owns none" = bag 0 AND no E badge on the word (a badged word is worn, hence owned;
+        // see Process_reappends_an_equipped_extended_id_even_when_the_bag_holds_none).
+        var f = WithList(1, 0x105, 0x106, 0xFFFF);
+        f.Seed(Bag + 261, 0, 3);   // 261 gone from the bag and not worn, 262 owned
+        var hook = new OrderRebuildHook(f);
+        int count = hook.Process(0, List, Rebuild(f, 1));
+        Assert.Equal(2, count);
+        Assert.Equal(new ushort[] { 1, 0x106 }, OrderRebuildHook.ParseList(f.Read(List, 8)));
+        Assert.Equal(1, hook.Reappended);
+    }
+
+    [Fact]
+    public void Process_reappends_an_equipped_extended_id_even_when_the_bag_holds_none()
+    {
+        // LW-351 round 7 verify (F15): a design whose every copy is worn (bag 0) carries the E
+        // badge (bit 14) on its list word; the game's rebuild can still drop it when the id is
+        // not in the saved template yet, and the owned-only filter must not orphan it.
+        var f = WithList(1, 0x4105, 0xFFFF);
+        f.Seed(Bag + 261, 0);   // no copy in the bag, the word itself says "equipped"
+        var hook = new OrderRebuildHook(f);
+        int count = hook.Process(0, List, Rebuild(f, 1));
+        Assert.Equal(2, count);
+        Assert.Equal(new ushort[] { 1, 0x4105 }, OrderRebuildHook.ParseList(f.Read(List, 8)));
+        Assert.Equal(1, hook.Reappended);
+    }
+
+    [Fact]
+    public void Process_does_not_seat_into_a_table_that_is_not_a_known_template()
+    {
+        var f = WithList(1, 0xFFFF);
+        var stranger = (nint)0x1418A0000;
+        f.Seed((long)stranger, Words(5, TemplateSeat.EndMarker));
+        f.Seed((long)Picker, Words(5, TemplateSeat.EndMarker));
+        f.Seed(Bag + 261, 2);
+        var hook = new OrderRebuildHook(f, extendedCount: 1);
+        hook.Process(stranger, List, Rebuild(f, 1));
+        Assert.Equal(new ushort[] { 5 }, TemplateWords(f, (long)stranger));
+        Assert.Equal(new ushort[] { 5 }, TemplateWords(f, (long)Picker));
+        Assert.Equal(0, hook.Seated);
+    }
+
+    [Fact]
+    public void Process_leaves_a_full_template_untouched()
+    {
+        var f = WithList(1, 0xFFFF);
+        var full = new ushort[Offsets.PickerOrderTemplateWords];
+        for (int i = 0; i < full.Length - 1; i++) full[i] = (ushort)(i + 1);
+        full[^1] = TemplateSeat.EndMarker;   // marker on the last word: no room for anything
+        f.Seed((long)Picker, Words(full));
+        f.Seed(Bag + 261, 2);
+        var hook = new OrderRebuildHook(f, extendedCount: 1);
+        hook.Process(Picker, List, Rebuild(f, 1));
+        Assert.Equal(Words(full), f.Read((long)Picker, full.Length * 2));
+        Assert.Equal(0, hook.Seated);
+        Assert.Equal(1, hook.SeatRefusals);
     }
 }

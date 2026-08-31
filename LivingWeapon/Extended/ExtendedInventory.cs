@@ -38,6 +38,7 @@ internal sealed partial class ExtendedInventory
     private ThunkClone? _weaponStatClone;   // the row stub: its page holds every extended id's 8-byte stats row
     private CategoryGetterHook? _getterHook;
     private OrderRebuildHook? _orderHook;
+    private InventoryResetHook? _resetHook;   // LW-351 fix round 7
     private SaveEdgeHooks? _saveHooks;   // LW-353
     /// <summary>LW-353: the save/load edge core the hooks feed and the tick drains. Tests drive it directly.</summary>
     public SaveEdgeTracker Tracker { get; } = new();
@@ -60,22 +61,6 @@ internal sealed partial class ExtendedInventory
         _peKeyProbe = peKeyProbe;
         _installHooks = installHooks ?? DefaultInstallHooks;
         _pending = ExtendedSites.PostLoadPatches(Math.Max(1, data.Items.Count)).Select(p => new PendingPatch(p)).ToList();
-    }
-
-    private string? DefaultInstallHooks(IReloadedHooks? hooks)
-    {
-        if (hooks == null) return "the game-hooks helper mod (reloaded.sharedlib.hooks) is not loaded";
-        _getterHook = new CategoryGetterHook(_patcher, ExtendedCatalog.FirstExtendedId, Items.OrderBy(i => i.Id).Select(i => i.CloneDonor).ToArray());
-        string? why = _getterHook.Install(hooks);
-        if (why != null) return why;
-        _orderHook = new OrderRebuildHook(_patcher);
-        why = _orderHook.Install(hooks);
-        if (why != null) return why;
-        // LW-353: the save edges (record counts per save, replay per save); a refusal here rolls
-        // the whole arm back like any other piece, because an armed inventory whose counts vanish
-        // on every load is worse than no inventory.
-        _saveHooks = new SaveEdgeHooks(_patcher, Tracker, Items.OrderBy(i => i.Id).Select(i => i.Id).ToList(), ReplayOnLoad);
-        return _saveHooks.Install(hooks);
     }
 
     /// <summary>Runs once from Engine.InjectHooks (Mod.StartEx). Idempotent. Null hooks = the
@@ -108,7 +93,7 @@ internal sealed partial class ExtendedInventory
         Refusal = null;
         ModLogger.Event(LogVerb.Startup,
             $"Extended inventory armed: {Items.Count} new item(s) [{string.Join(", ", Items.Select(i => $"{i.Name} (id {i.Id})"))}], "
-            + $"{_patches.AppliedCount} cap patches, {_clones.Count} accessor redirects, 2 menu hooks, shop table mirrored; "
+            + $"{_patches.AppliedCount} cap patches, {_clones.Count} accessor redirects, 3 hooks, shop table mirrored; "
             + "2 damage caps wait for the first save to load.");
     }
 
@@ -145,21 +130,6 @@ internal sealed partial class ExtendedInventory
         string? why = clone.Install(_patcher, _allocator, emit);
         if (why == null) _clones.Add(clone);
         return why;
-    }
-
-    /// <summary>Undo in reverse install order. Stub pages and the catalog buffer are leaked by
-    /// design (a game thread may be inside them); every code byte goes back.</summary>
-    private void RollBack()
-    {
-        _saveHooks?.Release(); _saveHooks = null;
-        _orderHook?.Release(); _orderHook = null;
-        _getterHook?.Release(); _getterHook = null;
-        for (int i = _clones.Count - 1; i >= 0; i--) _clones[i].Restore(_patcher);
-        _clones.Clear();
-        _weaponStatClone = null;
-        _shops.Restore(_patcher);
-        _catalog.Restore(_patcher);
-        _patches.Rollback(_patcher);
     }
 
     /// <summary>The address of an extended id's 8-byte ITEM_WEAPON_DATA row inside the weapon-stat

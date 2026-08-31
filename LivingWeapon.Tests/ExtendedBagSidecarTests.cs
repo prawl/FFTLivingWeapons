@@ -139,4 +139,27 @@ public class ExtendedBagSidecarTests : IDisposable
         Assert.True(partly.TryGetSave("k", out var c));
         Assert.Equal(new Dictionary<int, int> { [261] = 4 }, c);   // only well-formed byte-range entries survive
     }
+
+    // --- LW-351 fix round 7 (R7-2): the cap is 1024 and a key a load touched is not the first to go ---
+
+    [Fact]
+    public void The_cap_holds_a_thousand_saves_so_battle_autosaves_cannot_push_real_saves_out()
+        => Assert.Equal(1024, ExtendedBagSidecar.MaxSaves);
+
+    [Fact]
+    public void A_key_a_load_touched_survives_the_cap_over_an_older_untouched_one()
+    {
+        var s = ExtendedBagSidecar.Load(PathOf, maxSaves: 3);
+        s.RecordSave("pt100-aaaaaaaaaaaa", new Dictionary<int, int> { [261] = 1 });
+        s.RecordSave("pt200-bbbbbbbbbbbb", new Dictionary<int, int> { [261] = 2 });
+        s.RecordSave("pt300-cccccccccccc", new Dictionary<int, int> { [261] = 3 });
+        Assert.True(s.TryGetSave("pt100-aaaaaaaaaaaa", out _));   // the owner loads the oldest save again
+        s.RecordSave("pt400-dddddddddddd", new Dictionary<int, int> { [261] = 4 });   // the 4th key: someone has to go
+        Assert.Equal(3, s.SaveCount);
+        Assert.True(s.TryGetSave("pt100-aaaaaaaaaaaa", out var a) && a[261] == 1);   // touched: kept
+        Assert.False(s.TryGetSave("pt200-bbbbbbbbbbbb", out _));   // the oldest UNTOUCHED key went instead
+        var back = ExtendedBagSidecar.Load(PathOf, maxSaves: 3);   // the touch survived the persist
+        Assert.True(back.TryGetSave("pt100-aaaaaaaaaaaa", out _));
+        Assert.False(back.TryGetSave("pt200-bbbbbbbbbbbb", out _));
+    }
 }

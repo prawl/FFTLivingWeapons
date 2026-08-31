@@ -673,6 +673,7 @@ internal static class Offsets
     /// <summary>Plain function entries hooked with Reloaded.Hooks behind a prologue landmark.</summary>
     public const long FnCategoryGetter = 0x1402890C0L;   // inventory list-build filter (called at 0x140288BF5)
     public const long FnOrderRebuild = 0x140285DF0L;     // display-order rebuild (drops ids its table lacks)
+    public const long FnInventoryReset = 0x140284500L;   // per-item state reset: zeroes the bag array below its widened bound (LW-351 R7)
 
     // --- LW-354: shop stock for extended ids (found 2026-08-27 evening, static read of the live
     // 1.5.2 process, docs/research/ITEM_CAP_261_BREAK_JOURNEY.md section "shops"). The per-item
