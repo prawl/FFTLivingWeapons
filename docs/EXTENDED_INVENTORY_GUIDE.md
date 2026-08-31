@@ -31,18 +31,24 @@ signature needs none.
   narrowed the picture to three separate numbers: **at most 121 extended items can EXIST at
   once** (`ExtendedSites.MaxExtendedCount`, enforced by `generate.py` and `ExtendedInventoryData`;
   past it, seven of the boot-patch sites plus one post-load site are `lea` instructions whose
-  one-byte displacement overflows instead of widening); **at most 140 items total, vanilla plus extended, can be OWNED
-  at once**, because the menu order templates that list what you carry are a fixed 140-word
-  save-format field, and the wall is SILENT: the game's own chart housekeeper has no capacity
-  guard (read on disk 2026-08-31: it walks to the end marker and shifts the whole chart right by
-  one to insert a newly owned id, bounded only by the marker), so owning a 141st hand-slot item
-  writes past the chart into whatever follows and that overflow rides the save file; this mod's
-  own seating refuses loudly only on ITS path and then re-appends owned ids to the built list
-  regardless, so the menu still shows the item while the chart is already damaged. Keep the
-  total under 140 (the give-all save has 128 vanilla seats, so at most 12 extended designs owned
-  at once there) until LW-371 guards the housekeeper; and the two menu-list
-  output buffers sit just above that, capped at 145 and 146 words. One residual limit this round
-  did NOT close: a third per-item word list (0x105 entries, not moved this round) still overlaps
+  one-byte displacement overflows instead of widening); **owned at once** (LW-371, 2026-08-31):
+  the two weapon menu order charts (the Items tab's and the equip picker's, 140 kinds plus an
+  end marker in the save file, whose housekeeper overflows them silently into the neighboring
+  data when a 141st kind is picked up) and the picker's third chart (every owned item of any
+  category, 262 words) now live on a page the mod owns with 511 words of room each, reached
+  through the three pointer slots every live reader uses; the save file keeps its 141-word
+  fields (the mod writes the first 140 chart words back into them at every save and copies
+  them onto the page at every load, so a mod-less load behaves exactly as before: a list may
+  look short until one Sort). The binding number is now the game's menu LIST, not the chart:
+  the Items tab draws weapons and shields as ONE list capped at **149 entries** (raised from
+  145; the two smallest list buffers hold 152 words before the stack cookie, and the picker's weapons list adds the unit's two hand items after the cap), so a player who
+  owns all 139 vanilla hand kinds (121 weapons, 16 shields, two DLC blades) sees at most 10
+  extended kinds drawn there; the picker's per-slot lists are weapons-only (123 + 26) and the
+  chart holds every kind regardless. Lifting 149 is LW-372 (a hook that hands the two small
+  callers a mod-owned buffer). The picker's other three sub-charts (helmets 30 words for 28
+  vanilla kinds, body 38 for 36, accessories 34 for 33) are NOT relocated: a V2 extended
+  helmet, armor or accessory would overflow the picker block on day one. One residual limit
+  LW-368 did NOT close: a third per-item word list (0x105 entries, not moved) still overlaps
   the Poacher's Den's own bytes for every extended id, so poaching a monster carrying one can
   read garbage there until that list is relocated too.
 - **This is internal to Living Weapons, not a public framework** (owner ruling, recorded on the

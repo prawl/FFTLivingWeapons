@@ -10,6 +10,28 @@ before 2026-07-21 keep their original prose.
 
 ## 2.4.0 cycle
 
+- [LW-371] SHIPPED f3c78f24 2026-08-31: The bag can now hold more than 140 kinds of weapons and
+  shields at once without hurting the save file. Plain language: the game lists what you carry
+  from two charts that hold 140 kinds plus an end marker, and its housekeeper never checked that
+  limit: a 141st kind pushed the marker off the end into the neighboring data (the helmet chart on
+  the picker side) and the save file kept the damage, seen live on the give-all save this morning
+  before any probe write. Now the charts the game works on live on a page the mod owns (510 kinds
+  each, plus the picker's every-owned-item chart), the save file keeps its old 141-word field (the
+  first 140 chart words are written back before each save and copied onto the page after each
+  load, so a save still loads without the mod), and the menu list limit goes from 145 to 149,
+  the most the two smallest list buffers hold once the picker's two hand-item appends are counted
+  (the second adversarial verifier caught that 151 would have overrun the stack cookie). What it
+  does not do, by owner ruling: the Items tab draws weapons and shields as one list, so a player
+  who owns all 139 vanilla hand kinds sees at most 10 new kinds drawn there; LW-372 lifts that.
+  Proof: the premise relocated from outside the game and held (ledger row
+  [order-templates-relocatable], owner flipped PROVEN 2026-08-31), three adversarial
+  verifications with a non-vacuity break each, 3572 tests, and the owner's eight-step live pass
+  09:37 to 09:55 on the deployed prod build with zero warnings (143 kinds in both menus, saves
+  and reloads, a sold kind vanishing, a mod-less load, a new game, a lost battle plus Retry).
+  (Tech: LivingWeapon/Extended/TemplateRelocation.cs + .Sites.cs + TemplateSync.cs,
+  ExtendedInventory.Arm.cs; slots 0x14067F498[0], 0x140689C38[0], 0x14067FA90[0]; the five
+  all-items rip fields; cap bytes 0x140288CC3 0x91 to 0x95 and 0x14028631A 0x92 to 0x96; probe
+  tools/probes/lw371_order_template_relocate.py; plan LW371_plan.md v1.3, untracked.)
 - [LW-368] SHIPPED 6b8c842e 2026-08-31: The extended inventory can now hold up to 121
   brand-new weapons instead of eleven. Plain language: the game keeps "how many of each item
   you own" as one byte per item in a fixed block that ends where Ramza's roster row begins, so

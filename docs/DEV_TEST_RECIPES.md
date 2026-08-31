@@ -42,6 +42,13 @@ below `RosterBase` (`0x1411A7D10` on 1.5); ids 0..260 stay clear of the roster.
 With the extended inventory armed (LW-368 round 2), the live bag list is not this fixed address
 any more: it is the relocated page named in the boot arm's "lists relocated to 0x..." log line
 (`ExtendedInventory.BagCountBase`), so read/write there instead once armed.
+Likewise (LW-371) the two weapon menu order charts and the picker's all-items chart are not at
+`Offsets.InventoryOrderTemplate` / `PickerOrderTemplate` / `PickerAllItemsTemplate` once armed:
+the boot line's "menu order charts relocated to 0x..." names the page (inventory chart at +0x000,
+picker chart at +0x400, all-items chart at +0x800, 0x400 bytes each, 0xFFFF walls after the
+marker); the old blocks only hold the save-field projection written at each save.
+`tools/probes/lw371_order_template_relocate.py` (read-only without --apply) prints both live charts'
+marker positions from the OLD addresses, so on an armed build read the page instead.
 **Skip the crashy / IC-unused ids:** `268–277` (IC stripped these slots; `261–267` are the mod's own weapons since LW-351 and the Moonblade's removal) and `254, 255` (the
 engine's "random item" placeholder and the never-used slot: no name, no catalog record; 99 of 254
 rendered as a nameless black-icon row on the Items tab, 2026-08-27). `give_all_items` skips these

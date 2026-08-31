@@ -1,0 +1,42 @@
+{
+ "page": 5367660544,
+ "slots": [
+  {
+   "label": "inventory chart, pointer table 0x14067F498 slot 0",
+   "addr": 5375521944,
+   "old": "50257b4001000000",
+   "new": "0000f03f01000000",
+   "landed": true
+  },
+  {
+   "label": "inventory chart, pointer table 0x140689C38 slot 0",
+   "addr": 5375564856,
+   "old": "50257b4001000000",
+   "new": "0000f03f01000000",
+   "landed": true
+  },
+  {
+   "label": "picker chart, pointer table 0x14067FA90 slot 0",
+   "addr": 5375523472,
+   "old": "4045874101000000",
+   "new": "0004f03f01000000",
+   "landed": true
+  }
+ ],
+ "caps": [
+  {
+   "label": "list builder entry cap (cmp esi,0x91 -> 0x9F) at 0x140288CC1",
+   "addr": 5371366595,
+   "old": 145,
+   "new": 159,
+   "landed": true
+  },
+  {
+   "label": "list insert bound (cmp edx,0x92 -> 0xA0) at 0x140286318",
+   "addr": 5371355930,
+   "old": 146,
+   "new": 160,
+   "landed": true
+  }
+ ]
+}

@@ -148,42 +148,35 @@ the technical detail lives in the indented lines under it.
     removal), each design listed in one of its
     towns and equipping on its category's job, the Sunderer's Bulwark firing at 263 with its
     migrated tally, one vanilla axe and one vanilla flail swing).
-
-- **[LW-371] The bag should hold more than 140 kinds of weapons and shields at once** (opened 2026-08-31) [QUEUED]
-  - Plain language: the game's inventory chart for weapons and shields is a fixed 141-word field
-    inside the save file (140 kinds plus the end marker), and the game's own housekeeper writes
-    past it silently when a 141st kind is picked up. With every vanilla kind owned (121 weapons,
-    16 shields, two DLC blades) there is room for exactly one new weapon kind, which makes the
-    121 that can now exist (LW-368) a hollow number for a completionist. Owner ruling 2026-08-31:
-    a guard alone is not enough; the ceiling itself has to move. Found by the third adversarial
-    verifier of LW-368 round 2.
-  - Shape (unproven, RE first, the LW-368 method): (1) the cheap safety first: refuse or trim the
-    141st insert on the game's own path with one honest log line; (2) then relocate BOTH order
-    templates (the inventory chart and the equip-picker chart) the way the count lists were
-    relocated: a page the mod owns with room for hundreds of words, every reader and writer
-    re-pointed (the rebuild's five callers, the housekeeper's three copies, the save serializer
-    and load-apply copies), while the save file keeps its 141-word field and the mod persists
-    the words past 140 in its own sidecar, the way bag counts past 261 already ride
-    extended_inventory.json, so the save format never changes and removing the mod stays a clean
-    loss; (3) the two list output caps at 145 and 146 entries widened alongside, after reading
-    what buffers they size.
-  - (Tech: Offsets.InventoryOrderTemplate 0x1407B2550 and PickerOrderTemplate 0x141874540, 141
-    words each; housekeeper 0x140285F80 with the marker walk at 0x140285FEA-FF4 and the shift at
-    0x14028601D-02A, its copies 0x140286070 and 0x14039684C, callers 0x140334D70 and 0x14036BB60
-    unclassified; FnOrderRebuild 0x140285DF0 called from 0x1402862D2, 0x140288D5D, 0x14033695A,
-    0x1403382C1, 0x14036B1EB, templates fetched through the pointer table 0x14067F498; output
-    caps cmp esi,0x91 at 0x140288CC1 and cmp edx,0x92 at 0x140286318; the range sweep in
-    tools/probes/lw368_count_list_relocate.py is the tool, run over both regions' full spans and
-    the pointer table entries; premise probe live before any plan, per the LW-368 playbook.)
-  - Done means: a save that owns every vanilla weapon and shield can hold at least the seven
-    designs plus the partner's eight new kinds at the same time (154 kinds), listed in the Items
-    tab and the equip picker, kept across save and reload with no silent overflow; and until the
-    relocation lands, a 141st kind is refused loudly instead of written past the chart.
-  - Verify: suite green with the site pins and a chart-capacity policy test; the owner's live
-    pass on the give-all save: buy past 140 kinds, both lists show every kind, Sort keeps them,
-    save, quit and reload keep them, the log shows the relocation line and no overflow warning;
-    then start the game without the mod once and confirm the same save still loads (the 141-word
-    field untouched, the extra kinds simply absent, as the uninstall note promises).
+- **[LW-372] The Items tab should draw every weapon and shield kind you own, not just the first 149** (opened 2026-08-31) [QUEUED]
+  - Plain language: just the first 149. Plain language: when the Items tab or the equip picker opens, the game
+    copies the list onto a notepad before drawing it; two menus use a small notepad (152 lines,
+    the next eight bytes are the stack cookie the game checks on the way out) and LW-371 raises
+    the game's line limit from 145 to 149, the most those two can hold once the picker's
+    two hand-item appends and the terminator are counted (cap plus three lines). The Items tab draws
+    weapons and shields as ONE list and vanilla has 139 hand kinds (121 weapons, 16 shields,
+    two DLC blades), so a player who owns everything sees at most 10 new kinds drawn there; the
+    11th still exists, is still owned and still sits in the chart, it just is not drawn until
+    the list has room (the picker's weapons-only lists are fine to 30 new kinds). Owner ruling
+    2026-08-31 09:00 ("1, then 2"): LW-371 ships the wall removal with the honest 149, and this
+    row is the next Now item. The lift: a hook on the list builder 0x140288B94 that, when the
+    caller hands it a stack buffer (0x1402875A9 rsp+0x70, 0x140336B88 rsp+0x50), lets the game
+    write into a mod-owned buffer and copies at most 149 entries back, after which the cap can
+    go to 255 (the static list buffer 0x141811470 holds 256 words; the rebuild's stack temp
+    holds 264). No hard gate at 12: it would refuse the fifteen-item dev table; a test pins the
+    arithmetic instead (LW-371 T9b/T9c). (Tech: cap bytes 0x140288CC3 and 0x14028631A; the
+    cookie slots [rbp+0xA0] and [rbp+0x80] with rbp = rsp+0x100 in both frames, read live
+    2026-08-31 by the LW-371 plan reviewer and re-read by the orchestrator.)
+  - Done means: with the seven designs plus the partner's eight new kinds owned on a save that owns
+    every vanilla weapon and shield (154 hand kinds), the Items tab draws all 154 and the equip
+    picker every kind, the two small-notepad menus still work with their 149 lines, and nothing
+    is written past any list buffer or its stack cookie (the hook hands the two stack callers a
+    mod-owned buffer and copies at most 149 entries back).
+  - Verify: suite green with a test that drives the hook with a stack-address buffer and a
+    static-address buffer and pins the copy-back truncation; the owner's live pass on a save
+    with 146 or more hand kinds (the partner's kinds or more probe rows): the Items tab lists
+    past 145, the picker lists every kind, Sort keeps them, save and reload keep them, the log
+    shows the hook's armed line and no warning.
 
 ## Backlog
 
@@ -2687,6 +2680,28 @@ belongs rather than at the bottom.
   +0x17A..0x181 presence-byte candidate, the SpriteSet +0x00 model swap being
   scene-graph-side, the then-next CE step (what-writes on band +0x46 at a pop), and the
   untested frog-cast-in-the-revert-window variant.
+- [LW-373] 2026-08-31: A partner who wants to add weapons should get a two-page recipe, not
+  a framework and not a Python lesson. Plain language: Jade tried to add his weapons by
+  hand-editing the game's text table and found the mod "renaming everything back" and no
+  kill counter on his cards; the painter finds a card by the exact name and flavor text baked
+  from data/items.json, so his hand edits could never match. Everything he needs is already
+  one items.json row (name, flavorOverride, identity, stats, riders, shops, availability,
+  donors, growth lane, tier, seedCount) plus the whitelist step; what is missing is a readable
+  guide. Done looks like: a partner recipe page in the docs folder (the row schema in plain words, the whitelist
+  step, `generate.py` and `analyze.py` as the two commands, the refusals he will meet and what
+  each means, the 90-character flavor budget, tier 1 at 5 kills, the EquipBonus row budget)
+  and a DocsContractTests entry for it; his rows then arrive as a normal items.json PR. Owner
+  ruling 2026-08-31: no JSON extraction of the gate's tables (that would be the open
+  declaration format the 2026-08-30 ruling rejected).
+- [LW-374] 2026-08-31: The build should refuse, in plain words, when the new weapons ask for
+  more equip-bonus combinations than the game has free rows. Plain language: a weapon's
+  stat bonuses (PA, MA, Speed, Move, Jump, innate or immune statuses) live in a separate game
+  table with only a handful of free rows (74 to 79) plus vanilla rows the generator reuses
+  when the combination already exists; ours and a partner's designs share that budget. Today
+  running out is a generator error nobody has read yet. Done looks like: `generate.py`
+  counts the distinct new combinations, names the free-row budget and the rows already taken,
+  and refuses with one sentence a partner can act on (reuse an existing combination or drop
+  a bonus); a test pins the count.
 - [LW-362] 2026-08-30: The game's own four DLC blades (ids 256 to 259, Materia Blade+,
   Akademy Blade and kin) could become living weapons too, counting kills and growing like
   everything else; today their kills are deliberately left uncredited as untracked items,
