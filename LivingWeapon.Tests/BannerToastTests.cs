@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using LivingWeapon;
 using Xunit;
 
@@ -502,5 +505,109 @@ public class BannerToastTests
         for (int i = 2000; i <= 2015; i++) keys.Add(i);
 
         Assert.Equal(keys.Count, new HashSet<int>(keys).Count);
+    }
+
+    // ---- LW-323: a toast never outlives its battle -- DropPendingAtBattleEnd empties the queue
+    // on the battle-exit edge (Engine.ResetBattleState) and ahead of Rebaseline's new-game
+    // resnapshot, so a toast that missed every facing-prompt window in its own battle can never
+    // deliver into a LATER one. ----
+
+    [Fact]
+    public void Drop_clears_pending_at_battle_end()
+    {
+        var bt = new BannerToast(new Dictionary<int, WeaponMeta>(), new Dictionary<int, int>(), enabled: true);
+        bt.Enqueue(1, 1, "first");
+        bt.Enqueue(2, 2, "second");
+
+        bt.DropPendingAtBattleEnd();
+
+        Assert.False(bt.HasPending);
+        Assert.False(bt.TryTake(out _));
+    }
+
+    [Fact]
+    public void Drop_on_empty_queue_is_silent()
+    {
+        var bt = new BannerToast(new Dictionary<int, WeaponMeta>(), new Dictionary<int, int>(), enabled: true);
+        using var cap = LogCapture.Start();
+
+        var ex = Record.Exception(() => bt.DropPendingAtBattleEnd());
+
+        Assert.Null(ex);
+        Assert.Empty(cap.File);
+        Assert.False(bt.HasPending);
+    }
+
+    [Fact]
+    public void Drop_logs_one_line_per_dropped_toast()
+    {
+        var bt = new BannerToast(new Dictionary<int, WeaponMeta>(), new Dictionary<int, int>(), enabled: true);
+        bt.Enqueue(1, 1, "first");
+        bt.Enqueue(2, 2, "second");
+        using var cap = LogCapture.Start();
+
+        bt.DropPendingAtBattleEnd();
+
+        Assert.Equal(2, cap.File.Count(l => l.Contains("[toast]")));
+    }
+
+    [Fact]
+    public void PlaythroughReset_drops_pending()
+    {
+        var meta = new Dictionary<int, WeaponMeta> { [1] = Meta("Alpha") };
+        var kills = new Dictionary<int, int> { [1] = Tuning.ProdThresholds[2] };
+        var bt = new BannerToast(meta, kills, enabled: true);
+        bt.Enqueue(1, 1, "stale toast");
+
+        bt.Rebaseline();
+
+        Assert.False(bt.HasPending);
+    }
+
+    // ---- (33) A concurrency hammer: Enqueue, TryTake, and DropPendingAtBattleEnd contending
+    // from multiple threads never throws and never corrupts the queue (mirrors
+    // FlightRecorderTests' Task.Run hammer pattern) ----
+
+    [Fact]
+    public void Concurrent_enqueue_drop_and_drain_is_safe()
+    {
+        var bt = new BannerToast(new Dictionary<int, WeaponMeta>(), new Dictionary<int, int>(), enabled: true);
+        var exceptions = new List<Exception>();
+        var excLock = new object();
+
+        const int writers = 8;
+        const int perWriter = 200;
+
+        var writerTasks = Enumerable.Range(0, writers).Select(w => Task.Run(() =>
+        {
+            try
+            {
+                for (int i = 0; i < perWriter; i++)
+                    bt.Enqueue(w, 1, $"w{w}-{i}");
+            }
+            catch (Exception ex) { lock (excLock) exceptions.Add(ex); }
+        })).ToArray();
+
+        var drainCts = new CancellationTokenSource();
+        var drainTask = Task.Run(() =>
+        {
+            try
+            {
+                while (!drainCts.IsCancellationRequested)
+                {
+                    bt.TryTake(out _);
+                    bt.DropPendingAtBattleEnd();
+                }
+            }
+            catch (Exception ex) { lock (excLock) exceptions.Add(ex); }
+        });
+
+        Task.WaitAll(writerTasks, TimeSpan.FromSeconds(30));
+        drainCts.Cancel();
+        drainTask.Wait(TimeSpan.FromSeconds(30));
+        bt.DropPendingAtBattleEnd();   // drain whatever is left
+
+        Assert.Empty(exceptions);
+        Assert.False(bt.HasPending);
     }
 }

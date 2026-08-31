@@ -239,7 +239,7 @@ internal sealed class Engine
         // this DISPLAY surface stops painting the story line. Pass legends: _legends to re-enable
         // (Reliquary Phase 2), which rebuilds StoryLines/EarnedAnchors (the three-way anchor, decision 2).
         _display = new Display(meta, _kills, live, legends: null, poolPaint: Tuning.PoolPaintEnabled,
-                                recorder: Flight.Record);
+                                recorder: Flight.Record, poolRegionSidecarPath: save.PathFor("pool_regions.json"));
         // LW-31: the acting unit's Attack-menu dossier. Wired here (not beside _tracker) because
         // it needs the tracker's cursor-resolve + sprite seam. CURSOR-ONLY since 2026-07-06
         // (owner-observed wrong-weapon display; see AttackCard.cs's class doc): the tracker's
@@ -499,6 +499,10 @@ internal sealed class Engine
     /// 2026-06-15). Idempotent: a normal Exit->Enter double-resets harmlessly.</summary>
     private void ResetBattleState()
     {
+        // LW-323: a toast never outlives its battle. Runs FIRST so a dropped toast's Flight
+        // records land on THIS battle's tape, ahead of the exit edge's Flush(battle-exit) below
+        // (see OnBattleExit) -- the next facing prompt after this edge belongs to a different battle.
+        _toast.DropPendingAtBattleEnd();
         _tracker.ResetBattle();
         _turns.ResetBattle();
         _growth.ResetBattle();
@@ -516,8 +520,6 @@ internal sealed class Engine
 #if LWDEV
         _bodyDoubleSpike.ResetBattle();   // LW-58: the bind + decoy CT-hold never survive a battle edge
 #endif
-        // The toast QUEUE deliberately survives battle edges (Patrick-confirmed ruling A) --
-        // PromptSwap is stateless (no per-battle state to reset).
     }
 
     internal void Tick()

@@ -98,6 +98,14 @@ internal sealed partial class PoolLocator
     /// in-flight) returns null.</summary>
     internal LocateCompletion? Step(long budgetBytes, long nowMs)
     {
+        // LW-324: runs exactly once, before anything below can begin the cold scan
+        // (PoolLocator.WarmStart.cs owns the full contract; a no-op with no sidecar wired).
+        if (!_warmStartAttempted)
+        {
+            _warmStartAttempted = true;
+            SeedFromSidecar();
+        }
+
         if (!_scan.Running)
         {
             // Verify round FIX 1: this cadence gate used to sit ONLY inside the `_cached.Count > 0`
@@ -205,5 +213,6 @@ internal sealed partial class PoolLocator
         _lastRevalidateMs = nowMs;
         PublishGeneration++;   // commit 1B: every publish is a "fresh region list" event
         LogRegionsFound();
+        MaybeSaveSidecar();   // LW-324: dirty-checked write-on-completion, PoolLocator.WarmStart.cs
     }
 }

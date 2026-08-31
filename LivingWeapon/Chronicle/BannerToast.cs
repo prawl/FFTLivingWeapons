@@ -12,11 +12,17 @@ namespace LivingWeapon;
 ///
 /// The queue is cross-thread-safe (loop-thread enqueue via DetectCrossings; PromptSwap's
 /// TryPrepareSwap dequeues from the game's own text-setter thread), so every touch point routes
-/// through the three locked members below (_lock) so the queue stays safe regardless of which
+/// through the four locked members below (_lock) so the queue stays safe regardless of which
 /// thread reaches it. (The LWDEV DevProbe auto-toast and F2 DevTestKey cycle that verified the
 /// delivery path live are REMOVED -- the fake "Zwill ... 999th kill ... Testfire!" payload kept
 /// firing in normal dev play once per launch; the delivery mechanism is proven and the real
 /// crossing detector is the only enqueuer now.)
+///
+/// LIFETIME (LW-323): a toast lives at most until its own battle's exit edge -- see
+/// <see cref="DropPendingAtBattleEnd"/>. Accepted: a mid-battle sentinel flicker (full exit/enter
+/// churn) drops a pending toast even though play continues, same as every other battle-scoped
+/// system on that edge, costing one popup while the growth itself stays saved; a toast enqueued
+/// during the exit sequence itself is dropped too, since no facing prompt renders after the edge.
 /// </summary>
 internal sealed partial class BannerToast
 {
@@ -62,12 +68,16 @@ internal sealed partial class BannerToast
     }
 
     /// <summary>LW-70: called by Engine on the PlaythroughReset new-game detection edge (the same
-    /// edge as Display.Invalidate, LW-59). A pure snapshot refresh that never enqueues -- it just
-    /// re-primes _tiers/_counts against the freshly-cleared kills dictionary so the first post-reset
-    /// tally rise reads as a fresh crossing instead of a rollback below a stale baseline. No lock
-    /// needed: _tiers/_counts are loop-thread-only (the _lock guards only _queue), same as the
-    /// construction prime.</summary>
-    public void Rebaseline() => Snapshot();
+    /// edge as Display.Invalidate, LW-59). LW-323: drops any pending toast FIRST -- one still
+    /// queued here is about the OLD playthrough. The resnapshot itself never enqueues -- it just
+    /// re-primes _tiers/_counts against the freshly-cleared kills so the first post-reset tally
+    /// rise reads as a fresh crossing, not a rollback below a stale baseline. No lock needed for
+    /// the resnapshot: _tiers/_counts are loop-thread-only (_lock guards only _queue).</summary>
+    public void Rebaseline()
+    {
+        DropPendingAtBattleEnd();
+        Snapshot();
+    }
 
     public void Tick(bool tallyChanged)
     {
@@ -128,7 +138,7 @@ internal sealed partial class BannerToast
     }
 
     /// <summary>Locked enqueue. Internal: also the concurrency-hammer test seam
-    /// (Concurrent_enqueue_and_drain_is_safe). QueueCap drop-oldest stays inside the lock.</summary>
+    /// (Concurrent_enqueue_drop_and_drain_is_safe). QueueCap drop-oldest stays inside the lock.</summary>
     internal void Enqueue(int weaponId, int tier, string payload)
     {
         lock (_lock)
@@ -168,4 +178,22 @@ internal sealed partial class BannerToast
         }
     }
 
+    /// <summary>LW-323: drops every pending toast, undelivered. Called EARLY from
+    /// Engine.ResetBattleState (ahead of the other resets, so these Flight records land on THIS
+    /// battle's tape) and from <see cref="Rebaseline"/>. Empty queue: silent no-op. Otherwise one
+    /// Event line per drop (same voice as <see cref="Enqueue"/>'s drop-oldest line) plus one Flight
+    /// record each, reusing the "toast"/"dropped" shape with a new reason -- no new tap.</summary>
+    internal void DropPendingAtBattleEnd()
+    {
+        lock (_lock)
+        {
+            if (_queue.Count == 0) return;
+            foreach (var (weaponId, tier, _) in _queue)
+            {
+                ModLogger.Event(LogVerb.Toast, $"A toast went undelivered by its battle's end and was dropped ({LogNames.Weapon(weaponId)}, tier {tier}); the growth itself is saved either way.");
+                Flight.Record("toast", $"dropped weapon={weaponId} tier={tier} (undelivered at battle end)");
+            }
+            _queue.Clear();
+        }
+    }
 }

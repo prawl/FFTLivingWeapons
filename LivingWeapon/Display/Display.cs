@@ -80,9 +80,14 @@ internal sealed partial class Display
     /// idiom (AttackCard.cs's `Action&lt;string,string&gt;? recorder` param). Null (the default,
     /// every existing test) means no flight lines are ever emitted -- see Display.Flight.cs's
     /// class doc. Production (Engine.cs) passes Flight.Record.</param>
+    /// <param name="poolRegionSidecarPath">LW-324: pool_regions.json's path
+    /// (SaveLocation.PathFor), threaded straight through to PoolLocator's own ctor. Null (the
+    /// default, every existing test) disables the warm-start seed and its write-on-completion
+    /// entirely, byte-identical to before this arc. Production (Engine.cs) passes
+    /// save.PathFor("pool_regions.json").</param>
     public Display(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, IGameMemory mem,
                    Func<long>? nowMs = null, LegendStore? legends = null, bool? poolPaint = null,
-                   Action<string, string>? recorder = null)
+                   Action<string, string>? recorder = null, string? poolRegionSidecarPath = null)
     {
         _meta      = meta;
         _kills     = kills;
@@ -90,7 +95,7 @@ internal sealed partial class Display
         _nowMs     = nowMs ?? (() => Environment.TickCount64);
         _pats      = new CardPatterns(meta);
         _poolPaint   = poolPaint ?? false;
-        _poolLocator = new PoolLocator(mem, _pats, _nowMs);
+        _poolLocator = new PoolLocator(mem, _pats, _nowMs, poolRegionSidecarPath);
         _sweep     = new DisplaySweep(mem, _nowMs);
         // StoryLines owns EarnedAnchors (the three-way anchor registry, decision 2) -- built
         // before CardSites so CardSites can be handed its anchors at construction. SeedAtStartup

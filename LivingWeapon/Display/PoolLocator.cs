@@ -95,12 +95,17 @@ internal sealed partial class PoolLocator
 
     private readonly List<(long baseAddr, long size)> _cached = new();
 
-    public PoolLocator(IGameMemory mem, CardPatterns pats, Func<long>? nowMs = null)
+    /// <param name="regionSidecarPath">LW-324: pool_regions.json's path (SaveLocation.PathFor),
+    /// wiring in the warm-start seed (PoolLocator.WarmStart.cs's SeedFromSidecar) and its
+    /// write-on-completion (MaybeSaveSidecar). Null (the default -- every pre-existing caller
+    /// and test) disables both entirely, byte-identical to before this arc.</param>
+    public PoolLocator(IGameMemory mem, CardPatterns pats, Func<long>? nowMs = null, string? regionSidecarPath = null)
     {
         _pats = pats;
         _reader = new ChunkReader(mem);
         _scan = new PoolScan(mem, pats);
         _nowMs = nowMs ?? (() => Environment.TickCount64);
+        _regionSidecarPath = regionSidecarPath;
     }
 
     /// <summary>TEST-ONLY. Production must NEVER call this: it blocks the calling thread until the
