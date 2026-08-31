@@ -137,6 +137,46 @@ internal static class ExtendedSites
         new(0x140285FB5L, 0x06, Widen.PlusN, "owned-item template maintainer walk, inventory tables (lea r14d,[r15+6])"),
         new(0x1402860AEL, 0x06, Widen.PlusN, "owned-item template maintainer walk, picker tables (lea r14d,[r15+6])"),
         new(0x140396881L, 0x06, Widen.PlusN, "owned-item template maintainer walk, third copy 0x14039684C over the inventory tables (lea r14d,[r15+6])"),
+        // LW-365 (2026-08-31, read from the 1.5.2 exe on disk via
+        // tools/probes/lw365_hand_resolver_scan.py): the last nine one-byte bounds in the family
+        // of routines that read "what is this unit holding". Six are further copies of the hand
+        // resolver already in this table (shape `mov edx,0xff` then `lea ecx,[rdx+6]`, disp byte
+        // = lea +2, guarding `cmp ax,dx / je skip` for an empty hand and `cmp cx,ax / ja valid`
+        // for id < 0x105): three guard word [rbx+0x20] (the fallback read is [rbx+0x22]; copies
+        // 3, 4, 6), two read a rip-relative global hand word (copies 5, 7), and copy 8 uses the
+        // variant encoding `45 8d 41 06` (lea r8d,[r9+6]) over the same guard. The remaining
+        // three are equip-slot switch guards inside the function at ~0x140306655 (a switch
+        // mapping a UI code to an equipped-item word plus a slot flag byte at [r8+0x1B]): each is
+        // `mov r10d,0xff` then `lea eax,[r10+6]` (41 8d 42 06; disp byte = lea +3), guarding
+        // `cmp ax,[r9+slot] / jbe skip` for the word at +0x1E/+0x1C/+0x1A (flags 0x20/0x40/0x80).
+        //
+        // Two more suspect sites were investigated and are NOT patched. 0x1402C8155 (the u16
+        // walker's `lea r12d,[rax+6]`) is WALLED: its 0x105 bound guards a STACK buffer -- the
+        // function memsets a 0x414-byte (0x105 dwords) frame array at 0x1402C8119, the walk
+        // accumulates into it BY ITEM ID, and the same register bounds the final per-id scan at
+        // 0x1402C81DB, so widening the byte would write past the array for extended ids (the
+        // LW-371 stack-cookie lesson); the branch also requires callee 0x140278fec(id) >= 0x64,
+        // so extended ids merely skip a strip-and-convert pass invisible to the player.
+        // The lea at 0x1402BD992 (bytes 44 8d 4e 06; opcode byte 0x1402BD993, disp8 byte
+        // 0x1402BD995) after `mov r11d,0xff` is a FALSE POSITIVE, not a cap: rsi is 1 there (mov
+        // esi,1 at 0x1402BD974, preserved across the intervening call), so the lea computes 7,
+        // the equip-slot word count for a `rep stosw` fill of 0x00FF empty markers, and the
+        // routine already masks hand ids with 0x3FF. Never patch EITHER byte: sweeps propose the
+        // opcode byte or the disp byte depending on their convention, so both are pinned absent.
+        // One more imm32 sibling, 0x1403066BE (`mov eax,0x105`, the same switch as the three
+        // guards above) is recorded, not widened: it serves the word slots at
+        // [r9+0x22]/[r9+0x26] (flags 8/2), which are not hand slots, and extended kinds are
+        // weapons-only today (ExtendedWeaponCeilingTests), so no extended id can reach it;
+        // revisit only if extended non-weapon kinds ever ship.
+        new(0x1402C4EB7L, 0x06, Widen.PlusN, "hand resolver copy 3 (guards word [rbx+0x20]; fallback read [rbx+0x22])"),
+        new(0x1402DE6FFL, 0x06, Widen.PlusN, "hand resolver copy 4 (guards word [rbx+0x20], second copy)"),
+        new(0x1402FE436L, 0x06, Widen.PlusN, "hand resolver copy 5 (reads a rip-relative global hand word)"),
+        new(0x14033B5BBL, 0x06, Widen.PlusN, "hand resolver copy 6 (guards word [rbx+0x20], third copy)"),
+        new(0x140378640L, 0x06, Widen.PlusN, "hand resolver copy 7 (reads a rip-relative global hand word, second copy)"),
+        new(0x14039636BL, 0x06, Widen.PlusN, "hand resolver copy 8 (lea r8d,[r9+6]; variant encoding 45 8d 41 06)"),
+        new(0x1403066A7L, 0x06, Widen.PlusN, "equip-slot switch guard, word +0x1E (lea eax,[r10+6])"),
+        new(0x14030671DL, 0x06, Widen.PlusN, "equip-slot switch guard, word +0x1C (lea eax,[r10+6])"),
+        new(0x1403067ABL, 0x06, Widen.PlusN, "equip-slot switch guard, word +0x1A (lea eax,[r10+6])"),
     };
 
     /// <summary>Copy-protected sites: their pages read vanilla only after a save has loaded, so
@@ -163,21 +203,5 @@ internal static class ExtendedSites
         Widen.HighByte => 0x02,
         Widen.ShopLoop => (byte)(0x05 + n),   // 0x100 -> 0x105 + N (the imm32's high byte stays 0x01)
         _ => (byte)(0x58 ^ ((0x58 ^ old) + n)),
-    };
-
-    /// <summary>The accessor thunks every per-category lookup goes through, with which donor
-    /// table each one answers from: the art donor draws the swing, the clone donor answers for
-    /// everything else (type, validity, range, the sibling per-item tables).</summary>
-    public static readonly (long Addr, string Label, bool UsesArtDonor)[] DonorThunks =
-    {
-        (Offsets.ThunkValidity, "validity", false),
-        (Offsets.ThunkTypeProbe, "type-probe", false),
-        (Offsets.ThunkRangeIndex, "range-index", false),
-        (Offsets.ThunkRangeBase, "range-base", false),
-        (Offsets.ThunkSibling1, "sibling-1", false),
-        (Offsets.ThunkSibling2, "sibling-2", false),
-        (Offsets.ThunkSibling3, "sibling-3", false),
-        (Offsets.ThunkSibling4, "sibling-4", false),
-        (Offsets.ThunkSpritePair, "sprite-pair", true),
     };
 }

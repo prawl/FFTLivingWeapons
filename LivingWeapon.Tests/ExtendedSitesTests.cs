@@ -12,7 +12,7 @@ public class ExtendedSitesTests
     public void One_extended_id_reproduces_the_rig_marker_byte_for_byte()
     {
         var boot = ExtendedSites.BootPatches(1).ToDictionary(p => p.Addr, p => p);
-        Assert.Equal(26, boot.Count);
+        Assert.Equal(35, boot.Count);
         // the rig's six built-ins
         Assert.Equal((0x01, 0x02), (boot[0x140284800].Old, boot[0x140284800].New));
         foreach (long a in new[] { 0x140284724L, 0x1402847C9L, 0x140288CDAL, 0x140289074L })
@@ -278,11 +278,11 @@ public class ExtendedSitesTests
     [Fact]
     public void Donor_thunks_cover_the_nine_per_category_accessors_with_only_the_sprite_pair_on_the_art_donor()
     {
-        Assert.Equal(9, ExtendedSites.DonorThunks.Length);
-        Assert.Single(ExtendedSites.DonorThunks, t => t.UsesArtDonor);
-        Assert.Equal(Offsets.ThunkSpritePair, ExtendedSites.DonorThunks.Single(t => t.UsesArtDonor).Addr);
-        Assert.DoesNotContain(ExtendedSites.DonorThunks, t => t.Addr == Offsets.ThunkWeaponStat);   // the row stub, not a donor
-        Assert.Equal(9, ExtendedSites.DonorThunks.Select(t => t.Addr).Distinct().Count());
+        Assert.Equal(9, ExtendedDonorThunks.DonorThunks.Length);
+        Assert.Single(ExtendedDonorThunks.DonorThunks, t => t.UsesArtDonor);
+        Assert.Equal(Offsets.ThunkSpritePair, ExtendedDonorThunks.DonorThunks.Single(t => t.UsesArtDonor).Addr);
+        Assert.DoesNotContain(ExtendedDonorThunks.DonorThunks, t => t.Addr == Offsets.ThunkWeaponStat);   // the row stub, not a donor
+        Assert.Equal(9, ExtendedDonorThunks.DonorThunks.Select(t => t.Addr).Distinct().Count());
     }
 
     /// <summary>LW-368 round 2 (T9, P11): the eight `lea reg,[base+6]` sites whose displacement is
@@ -315,5 +315,40 @@ public class ExtendedSitesTests
         // ShopLoop / XorMask are not disp8 sites: pinned exactly, no sign overflow at the boundary.
         Assert.Equal((byte)(0x05 + 121), boot121[0x140288FDBL].New);
         Assert.Equal((byte)(0x58 ^ ((0x58 ^ 0x5E) + 121)), post121[0x14F45D315L].New);
+    }
+
+    /// <summary>LW-365 (2026-08-31): the last nine hand-read id bounds, all read from the 1.5.2
+    /// exe on disk via tools/probes/lw365_hand_resolver_scan.py -- six hand-resolver copies and
+    /// three equip-slot switch guards, all `lea reg,[base+6]` (disp8 = 0x06) like the sites
+    /// already in the table. Two more suspect sites were investigated and are walled, never
+    /// patched: 0x1402C8155 guards a STACK buffer (widening it would write past the frame array,
+    /// the LW-371 stack-cookie lesson) and 0x1402BD993 is a false positive (rsi = 1 there, so the
+    /// lea computes the equip-slot word count for a fill, not a cap).</summary>
+    [Fact]
+    public void Lw365_pins_the_nine_hand_read_bounds_and_walls_the_stack_bounded_walker()
+    {
+        var nine = new long[]
+        {
+            0x1402C4EB7L, 0x1402DE6FFL, 0x1402FE436L, 0x14033B5BBL, 0x140378640L, 0x14039636BL,
+            0x1403066A7L, 0x14030671DL, 0x1403067ABL,
+        };
+
+        var one = ExtendedSites.BootPatches(1).ToDictionary(p => p.Addr, p => p);
+        foreach (long a in nine)
+        {
+            Assert.Equal((0x06, 0x07), (one[a].Old, one[a].New));
+            Assert.False(string.IsNullOrWhiteSpace(one[a].Label));
+        }
+
+        var seven = ExtendedSites.BootPatches(7).ToDictionary(p => p.Addr, p => p);
+        foreach (long a in nine)
+            Assert.Equal(0x0D, seven[a].New);
+
+        Assert.False(one.ContainsKey(0x1402C8155L));
+        // The false positive at 0x1402BD992 (44 8d 4e 06) is pinned at BOTH its opcode byte
+        // (0x1402BD993) and its disp8 byte (0x1402BD995): a sweep proposing either byte under
+        // either convention must never sneak it into the table.
+        Assert.False(one.ContainsKey(0x1402BD993L));
+        Assert.False(one.ContainsKey(0x1402BD995L));
     }
 }

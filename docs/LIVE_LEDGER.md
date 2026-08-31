@@ -2034,6 +2034,27 @@ Proven, owner-flipped 2026-08-30: the re-test on the masked-key build passed end
 
 
 
+### [empty-tile-hand-read-bounds] The empty-tile fist swing comes from the last un-widened 0x105 hand-read bounds, and widening the nine makes an extended weapon read as held on those paths
+
+Claim (LW-365, built 2026-08-31, NOT yet run in the game): attacking an empty tile with an
+extended weapon (ids 261 to 267) swings fists because a family of routines that read a unit's
+hand words still treats an id at or above 0x105 as an empty hand and falls back to the other
+hand; nine such one-byte bounds (six hand-resolver copies, three equip-slot switch guards)
+joined ExtendedSites.BootSites and the boot arm now reports 35 cap patches where it said 26.
+Status: Uncertain until the owner's empty-tile swing check on the deployed build (the cure is
+inferred from the shape; the widening mechanism itself rides the proven boot transaction).
+
+**Mechanism / evidence:** every address re-read from the 1.5.2 exe on disk 2026-08-31 by
+tools/probes/lw365_hand_resolver_scan.py (self-gating, exit 1 on drift) and independently
+re-derived twice in adversarial verify rounds; the shape is mov r32,0xff then lea reg,[base+6]
+with the transcribed address being the lea's disp8 byte. Two look-alikes are walled and pinned
+absent in ExtendedSitesTests: 0x1402C8155 bounds a 0x414 byte stack array indexed by item id
+(widening it corrupts the frame; its skip only bypasses a strip pass gated on a per-id value
+at or above 100, unreachable in play) and the lea at 0x1402BD992 computes the equip-slot fill
+count 7 from rsi=1 (pinned at both its opcode byte 0x1402BD993 and disp8 byte 0x1402BD995,
+because sweep conventions differ). The imm32 sibling 0x1403066BE serves non-hand slots and is
+recorded, not widened. See docs/TODO.md LW-365 for the classification table.
+
 ### [weapon-sprite-pair-drives-swing-art] The two-byte sprite/palette record at 0x140785CF0 + id*2 picks BOTH the drawing and the palette of a weapon's swing, and it is read on every swing
 
 Observed 2026-08-27 00:50 and 00:56 by the owner on 1.5.2, mid-battle, no relaunch, no fresh battle: Save the Queen (id 34, vanilla record F0 0C) was rewritten from outside to 50 03 (Warbrand's axe drawing, Chaos Blade's palette nibble) and the very next swing drew Warbrand's art in purple (tools/probes/lw349_sprite_pair_graphic_swap_34.png); rewritten to F0 03 (Warbrand's own record) the next swing drew the same shape in Warbrand's steel (tools/probes/lw349_sprite_pair_palette_swap_34.png); restored to F0 0C afterwards. So byte 1 selects the drawing and byte 0 the palette, per draw. This is the mechanism [weapon-palette-assignment-walled] said did not exist: that row's probes used base 0x140785CF2, one item off. Not yet built on; owner flip pending.

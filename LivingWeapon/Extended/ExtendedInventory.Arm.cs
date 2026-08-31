@@ -46,7 +46,7 @@ internal sealed partial class ExtendedInventory
         why = InstallClone(weaponStat, t => ThunkStub.EmitRowStub(lo, rows, t));
         if (why != null) return why;
         _weaponStatClone = weaponStat;
-        foreach (var (addr, label, usesArt) in ExtendedSites.DonorThunks)
+        foreach (var (addr, label, usesArt) in ExtendedDonorThunks.DonorThunks)
         {
             var donors = usesArt ? artDonors : cloneDonors;
             why = InstallClone(new ThunkClone(addr, label), t => ThunkStub.EmitDonorStub(lo, donors, t));

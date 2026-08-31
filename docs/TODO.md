@@ -76,7 +76,7 @@ the technical detail lives in the indented lines under it.
   - Verify: full suite green; the owner's live battle shows either the "The weapon's
     spirit claims the carcass" log line with the Den count matching, or the named
     discriminator or gate-reason line in livingweapon.log; the owner reads the FAQ text.
-- **[LW-365] Swinging a new weapon at an empty tile no longer shows fists** (opened 2026-08-31) [BUILDING]
+- **[LW-365] Swinging a new weapon at an empty tile no longer shows fists** (opened 2026-08-31) [AWAITING-LIVE]
   - Plain language: attacking an enemy with one of the seven moved designs swings the weapon,
     but attacking an empty square swings bare fists (owner sighting 2026-08-31 01:20). A last
     family of game routines that read what a unit is holding was built with the old 261 item
@@ -93,13 +93,22 @@ the technical detail lives in the indented lines under it.
     is a false positive, lea over rsi=1 yields the slot count 7 with 0xFF as a fill value and
     the routine already masks ids with 0x3FF; the sibling imm32 at 0x1403066BE serves non hand
     slots and is recorded, not widened.)
+  - Built 2026-08-31 through the compressed build pipeline: a lower model implemented it
+    test first, one adversarial verifier scored it SHIP with the spec capped for two plan
+    defects (a wall pinned at the wrong byte convention and the probe passing its own
+    failure), a fix round closed both, and a fresh verifier re-derived every byte from the
+    game file itself and scored code 9 and spec 8, SHIP. Suite 3600 green. The probe now
+    gates its own findings (exit 1 on any drift). Deploy owed on the owner's go ahead.
   - Done means: the fists have a named cause and the fix is armed: every listed site is read
     on disk and classified, the nine widenable bounds ride the boot arm with test pins, the
     two walled addresses carry negative pins so no future sweep widens them blind, and the
     suite is green.
-  - Verify: suite green with the new site pins and both negative pins; then the owner's live
-    check on the next deployed build: equip a moved design, Attack an empty tile, the weapon
-    art appears instead of fists, and a normal swing at an enemy still lands.
+  - Verify: suite green with the new site pins and the three negative pins; then the owner's
+    live check on the next deployed build: the boot line reports 35 cap patches where it said
+    26, then equip a moved design, Attack an empty tile, the weapon art appears instead of
+    fists, a normal swing at an enemy still lands, and the unit's equip and status screens
+    still show the weapon in hand (the three switch guards feed that mapping). A refusal is
+    one WARN naming the failing site label and nothing half applied.
 
 ## Backlog
 
