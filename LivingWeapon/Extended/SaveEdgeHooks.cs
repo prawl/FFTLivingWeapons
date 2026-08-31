@@ -25,8 +25,9 @@ namespace LivingWeapon;
 /// repairs therefore happen right here, after the original returns: N bounded one-byte writes into
 /// the bag-count array (BagReplay) plus at most a few words into each order template
 /// (TemplateSeat), all through the guarded patcher, and nothing else. Engine's tick still runs the
-/// same replay and seat afterwards as an idempotent fallback, and it keeps the one log line
-/// (BagReplay holds the resolution both paths share).
+/// same replay afterwards as an idempotent fallback and keeps the one log line (BagReplay holds
+/// the resolution both paths share); the seat it runs only when this detour did not serve the
+/// load edge (round 8c), and the detour's repair and refusal notes reach the log through it.
 ///
 /// Landmarks (re-read from the 1.5.2 exe on disk 2026-08-27 late night, after the first build
 /// named two entries that were not the routines it meant):

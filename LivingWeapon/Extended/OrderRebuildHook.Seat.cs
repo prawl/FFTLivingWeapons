@@ -28,6 +28,10 @@ internal sealed partial class OrderRebuildHook
     public long Seated => Interlocked.Read(ref _seated);
     /// <summary>Seatings a template could not take (no marker, no room, or a refused write).</summary>
     public long SeatRefusals => Interlocked.Read(ref _seatRefusals);
+    private long _repaired;
+    private readonly HashSet<long> _repairLogged = new();   // Info once per template per launch, Debug after
+    /// <summary>Templates healed in place (doubled ids collapsed, a lost marker restored) ahead of a rebuild.</summary>
+    public long Repaired => Interlocked.Read(ref _repaired);
 
     /// <summary>The extended ids the bag holds at least one of, ascending; empty when none or
     /// when the bag is unreadable.</summary>
@@ -56,13 +60,23 @@ internal sealed partial class OrderRebuildHook
         foreach (var r in TemplateSeat.WeaponRegions)
             if (r.Addr == (long)table) { region = r; known = true; break; }
         if (!known) return;
+        // Round 8c: an empty owned list no longer returns early; the repair half of Plan must
+        // still see the table (a doubled or marker-less template is damage whoever owns what).
         var owned = OwnedExtendedIds();
-        if (owned.Count == 0) return;
         if (!_mem.TryRead(region.Addr, region.CapacityWords * 2, out var bytes)) return;
         var seat = TemplateSeat.Plan(bytes, region.CapacityWords, owned);
         if (seat.Refusal != null) { Refused($"{region.Label} at 0x{region.Addr:X} could not take the owned new item(s) before the menu rebuild ({seat.Refusal})."); return; }
         if (!seat.Writes) return;
         if (!_mem.TryWrite(region.Addr + (long)seat.WordIndex * 2, seat.Bytes!)) { Refused($"{region.Label} at 0x{region.Addr:X} refused the seating write."); return; }
+        if (seat.Repaired != null)
+        {
+            Interlocked.Increment(ref _repaired);
+            bool first;
+            lock (_repairLogged) first = _repairLogged.Add(region.Addr);
+            string line = $"{region.Label} at 0x{region.Addr:X} was repaired ahead of the menu rebuild: {seat.Repaired}.";
+            SafeLog(() => { if (first) ModLogger.Event(LogVerb.Engine, line); else ModLogger.Debug(LogVerb.Engine, line); });
+            return;
+        }
         int n = seat.Bytes!.Length / 2 - 1;
         Interlocked.Add(ref _seated, n);
         SafeLog(() => ModLogger.Debug(LogVerb.Engine, $"Seated {n} owned extended item id(s) into {region.Label} ahead of the menu rebuild (0x{region.Addr:X}, from word {seat.WordIndex})."));

@@ -23,8 +23,9 @@ namespace LivingWeapon;
 /// SELF-PERPETUATING, STILL RUN EVERY TIME: because the serializer copies the template region
 /// back into the save struct, the first save written after a seat carries the seated table, and
 /// every later load restores it already seated. The seat still runs on every load: it is a no-op
-/// when the id is already there, which is also what makes the detour and the tick able to run it
-/// one after the other.
+/// when the id is already there. The load detour runs it on the game's own thread the moment the
+/// load routine returns; the tick runs it only as the fallback for a load edge the detour did not
+/// serve (round 8c), so a whole-table repair never races the game's own template edits.
 ///
 /// VANILLA SEMANTICS ARE KEPT: only ids the player owns at least one of are seated, because a
 /// template lists owned items. An extended item the player has none of stays out, exactly as a
@@ -34,7 +35,7 @@ namespace LivingWeapon;
 /// menu LISTS <see cref="OrderRebuildHook"/> repairs end in 0xFFFF instead; the two terminators
 /// are not interchangeable.
 /// </summary>
-internal static class TemplateSeat
+internal static partial class TemplateSeat
 {
     /// <summary>The word both templates end on (NOT the lists' 0xFFFF).</summary>
     public const ushort EndMarker = 0x00FF;
@@ -51,9 +52,11 @@ internal static class TemplateSeat
     };
 
     /// <summary>What one template needs: the word index the write starts at, the bytes to write
-    /// there (the missing ids followed by the moved end marker), or a refusal to be logged.
-    /// Nothing to do is <see cref="Bytes"/> null with no refusal.</summary>
-    internal readonly record struct Seating(int WordIndex, byte[]? Bytes, string? Refusal)
+    /// there (the missing ids followed by the moved end marker, or, after a repair, the whole
+    /// table from word 0 through the new marker with <see cref="Repaired"/> saying what was
+    /// healed), or a refusal to be logged. Nothing to do is <see cref="Bytes"/> null with no
+    /// refusal.</summary>
+    internal readonly record struct Seating(int WordIndex, byte[]? Bytes, string? Refusal, string? Repaired = null)
     {
         public bool Writes => Bytes != null && Bytes.Length > 0;
         public static Seating Nothing => new(0, null, null);
@@ -64,54 +67,73 @@ internal static class TemplateSeat
     /// out what has to be written so every id in <paramref name="ids"/> is listed ahead of that
     /// marker. Missing ids are appended in ascending id order, the marker moves that many words
     /// on, and nothing is ever written past <paramref name="capacityWords"/>. Words are compared
-    /// as the game stores them, plain ids with no flag bits (the menu LISTS carry flags, these
-    /// tables do not), so a junk word can never be mistaken for an id already seated.</summary>
+    /// on the game's 0x3FF id mask (the menu LISTS carry flag bits above it; these tables do not
+    /// today, and a flagged copy still names the same item), the same rule the repair applies
+    /// when it collapses doubles.</summary>
     public static Seating Plan(byte[] region, int capacityWords, IReadOnlyList<int> ids)
     {
-        if (region == null || ids == null || ids.Count == 0) return Seating.Nothing;
+        if (region == null) return Seating.Nothing;
+        ids ??= Array.Empty<int>();
         int words = Math.Min(capacityWords, region.Length / 2);
-        int marker = -1;
-        var listed = new HashSet<ushort>();
-        for (int i = 0; i < words; i++)
-        {
-            ushort w = (ushort)(region[i * 2] | (region[i * 2 + 1] << 8));
-            if (w == EndMarker) { marker = i; break; }
-            listed.Add(w);
-        }
-        if (marker < 0)
-            return Seating.Refuse($"no {EndMarker:X4} end marker in its first {words} words, so where the list ends is unknown");
+        var scan = ScanTable(region, words);
+        if (scan.Refusal != null) return Seating.Refuse(scan.Refusal);
 
+        // Round 8c: listed-ness is judged on the game's own 0x3FF id mask, the same rule the
+        // repair's dedupe uses; judging it on the raw word would drop a flagged double and then
+        // re-add the id, forever, one write per pass.
+        var listed = new HashSet<int>();
+        foreach (ushort w in scan.Body) listed.Add(w & 0x3FF);
         var missing = new List<int>();
         foreach (int id in ids)
-            if (!listed.Contains((ushort)id) && !missing.Contains(id)) missing.Add(id);
-        if (missing.Count == 0) return Seating.Nothing;
+            if (!listed.Contains(id & 0x3FF) && !missing.Contains(id)) missing.Add(id);
         missing.Sort();
 
-        // The ids take marker..marker+missing.Count-1 and the moved marker takes the word after,
-        // so the last word touched must still be inside the region.
-        if (marker + missing.Count > capacityWords - 1)
-            return Seating.Refuse($"it already fills {marker} of its {capacityWords} words, so there is no room for {missing.Count} more id(s) and its end marker");
-
-        var bytes = new byte[(missing.Count + 1) * 2];
-        for (int i = 0; i < missing.Count; i++)
+        if (scan.Repaired == null)
         {
-            bytes[i * 2] = (byte)(missing[i] & 0xFF);
-            bytes[i * 2 + 1] = (byte)((missing[i] >> 8) & 0xFF);
+            if (missing.Count == 0) return Seating.Nothing;
+            // The ids take marker..marker+missing.Count-1 and the moved marker takes the word
+            // after, so the last word touched must still be inside the region.
+            if (scan.Marker + missing.Count > capacityWords - 1)
+                return Seating.Refuse($"it already fills {scan.Marker} of its {capacityWords} words, so there is no room for {missing.Count} more id(s) and its end marker");
+            return new Seating(scan.Marker, Encode(missing), null);
         }
-        bytes[missing.Count * 2] = (byte)(EndMarker & 0xFF);
-        bytes[missing.Count * 2 + 1] = (byte)(EndMarker >> 8);
-        return new Seating(marker, bytes, null);
+
+        // Round 8b: a damaged table is rewritten from word 0 through the new marker in one write.
+        if (scan.Body.Count + missing.Count > capacityWords - 1)
+            return Seating.Refuse($"even after a repair it would hold {scan.Body.Count + missing.Count} ids, more than its {capacityWords} words allow with an end marker");
+        var all = new List<int>(scan.Body.Count + missing.Count);
+        foreach (ushort w in scan.Body) all.Add(w);
+        all.AddRange(missing);
+        return new Seating(0, Encode(all), null, scan.Repaired);
+    }
+
+    /// <summary>The words as the game stores them, little-endian u16, followed by the end marker.</summary>
+    private static byte[] Encode(List<int> wordsThenMarker)
+    {
+        var bytes = new byte[(wordsThenMarker.Count + 1) * 2];
+        for (int i = 0; i < wordsThenMarker.Count; i++)
+        {
+            bytes[i * 2] = (byte)(wordsThenMarker[i] & 0xFF);
+            bytes[i * 2 + 1] = (byte)((wordsThenMarker[i] >> 8) & 0xFF);
+        }
+        bytes[wordsThenMarker.Count * 2] = (byte)(EndMarker & 0xFF);
+        bytes[wordsThenMarker.Count * 2 + 1] = (byte)(EndMarker >> 8);
+        return bytes;
     }
 
     /// <summary>Seat <paramref name="ids"/> in both weapon templates through the guarded patcher.
     /// A template that cannot be read is left alone silently (the order-rebuild hook's posture: a
     /// failed read means the game's answer stands); a template with no end marker, no room, or a
-    /// refused write reports through <paramref name="onRefused"/>. The detour path passes neither
-    /// callback, because it must not log on the game's own thread.</summary>
+    /// refused write reports through <paramref name="onRefused"/>; a table healed on the way
+    /// (round 8b) reports through <paramref name="onRepaired"/>. The detour path passes no
+    /// logging callback, because it must not log on the game's own thread.</summary>
     public static void Apply(ICodePatcher patcher, IReadOnlyList<int> ids,
-        Action<string>? onRefused = null, Action<string>? onSeated = null)
+        Action<string>? onRefused = null, Action<string>? onSeated = null, Action<string>? onRepaired = null)
     {
-        if (ids == null || ids.Count == 0) return;
+        // Round 8c: no early return on an empty owned list. The seat half is then a no-op, but
+        // the repair half must still run: a damaged table on a save whose player owns no
+        // extended item at all is exactly the crash shape (id-0 rows from a marker-less table).
+        ids ??= Array.Empty<int>();
         foreach (var region in WeaponRegions)
         {
             if (!patcher.TryRead(region.Addr, region.CapacityWords * 2, out var bytes)) continue;
@@ -125,6 +147,11 @@ internal static class TemplateSeat
             if (!patcher.TryWrite(region.Addr + (long)seat.WordIndex * 2, seat.Bytes!))
             {
                 onRefused?.Invoke($"The new item(s) may not be listed in the menus: {region.Label} at 0x{region.Addr:X} refused the write.");
+                continue;
+            }
+            if (seat.Repaired != null)
+            {
+                onRepaired?.Invoke($"{region.Label} at 0x{region.Addr:X} was repaired before seating: {seat.Repaired}.");
                 continue;
             }
             onSeated?.Invoke($"{region.Label} now lists {(seat.Bytes!.Length / 2) - 1} new item id(s) the loaded save did not know about (0x{region.Addr:X}, from word {seat.WordIndex}).");

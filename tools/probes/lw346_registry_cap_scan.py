@@ -9,6 +9,18 @@ note. This scans the running exe's .code section for every instruction-shaped 0x
 (and 0x104/0x106 for off-by-one encodings) imm32, prints each with context, and marks
 the sites the rig already owns, leaving a shortlist of candidate un-patched caps.
 
+BLIND SPOT (LW-351 fix round 8, 2026-08-31): a bound built as `lea r32,[r32+6]` on a register
+preloaded with 0xFF (disp8 0x06, no imm32 anywhere) is invisible to this scan. Five are known,
+all template walkers in the builder family: 0x140285EE7 (delete-from-list), 0x140286187 (the
+acquired-list maintainer), and the three owned-item template maintainer copies 0x140285FB5
+(inventory tables), 0x1402860AE (picker tables) and 0x140396881 (a third copy, 0x14039684C,
+over the inventory tables through its own pointer table 0x140689C38); the three the port
+missed sit in the r14/r15 register pair the swept lea+6 forms never used, found by the owner's
+Sort doubling five shields and a verifier's grep. To hunt the family, find each `mov r32,0xff`
+(41 bf / bd / 41 bb ff 00 00 00) and, within 0x40 bytes after it, a `lea r32,[THAT register+6]`
+(8d ?? 06 whose modrm base is the register just loaded); the register match matters, a bare
+`8d ?? 06` grep also hits 0x1402BD992 (lea r9d,[rsi+6], and rsi is not the 0xFF register).
+
 READ-ONLY. Requires the game running. Companion of lw346_capbreak_live_confirm.py.
 """
 import ctypes as C

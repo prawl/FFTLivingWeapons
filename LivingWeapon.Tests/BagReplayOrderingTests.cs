@@ -268,6 +268,103 @@ public class BagReplayOrderingTests : IDisposable
             Assert.Equal(new ushort[] { 1, 2, 3, Terra, TemplateSeat.EndMarker }, w.TemplateWords(r.Addr, 5));
     }
 
+    /// <summary>Round 8c (verifier V8b-2): the detour heals BOTH templates but must not log on
+    /// the game's thread, so it hands its notes to the tick; a second note must not overwrite the
+    /// first, or the log names only the picker when the inventory table was healed too.</summary>
+    [Fact]
+    public void The_tick_logs_every_template_the_load_detour_healed_in_one_line()
+    {
+        using var cap = LogCapture.Start();
+        var w = NewWorld("healboth");
+        w.SeedTemplates(1, 7, 7);   // both tables doubled the way the un-widened maintainer left them
+        var hdr = SaveEdgeTrackerTests.Header(2775);
+        w.Sidecar.RecordSave(SaveEdgeTracker.KeyFromHeader(hdr), new Dictionary<int, int> { [Moon] = 0, [Terra] = 3 });
+
+        w.GameApplied(hdr, detour: true);
+        foreach (var r in TemplateSeat.WeaponRegions)
+            Assert.Equal(new ushort[] { 1, 7, Terra, TemplateSeat.EndMarker }, w.TemplateWords(r.Addr, 4));
+        w.Tick();
+
+        var healed = cap.File.Where(l => l.Contains("healed on the load")).ToList();
+        Assert.Single(healed);
+        Assert.Contains("inventory order template", healed[0]);
+        Assert.Contains("equip-picker order template", healed[0]);
+    }
+
+    /// <summary>Round 8c (verifier V8b-3): once the detour has replayed and seated on the game's
+    /// own thread, the tick must not touch the templates again from the engine thread (a whole-
+    /// table rewrite racing the game's maintainer mid-shift would clobber it). The tick's own
+    /// seat stays only for the load edge the detour did not serve.</summary>
+    [Fact]
+    public void The_tick_leaves_the_templates_alone_when_the_detour_already_served_the_load()
+    {
+        var w = NewWorld("skip");
+        w.SeedTemplates(1, 2, 3);
+        var hdr = SaveEdgeTrackerTests.Header(2775);
+        w.Sidecar.RecordSave(SaveEdgeTracker.KeyFromHeader(hdr), new Dictionary<int, int> { [Moon] = 0, [Terra] = 3 });
+        w.GameApplied(hdr, detour: true);
+        Assert.Equal(2, w.SeatWrites());
+
+        // The game is mid-way through its own edit of the picker table when the tick fires.
+        var picker = TemplateSeat.WeaponRegions[1];
+        w.Image.Seed(picker.Addr, w.Image.Read(picker.Addr, 6).Concat(new byte[] { 3, 0, 0xFF, 0 }).ToArray());   // 1 2 3 3 FF: a transient double
+        w.Tick();
+
+        Assert.Equal(2, w.SeatWrites());   // not one more template byte from the tick
+        Assert.Equal(new ushort[] { 1, 2, 3, 3, TemplateSeat.EndMarker }, w.TemplateWords(picker.Addr, 5));
+
+        // The fallback path (no detour) still heals and seats from the tick.
+        var alone = NewWorld("skip_alone");
+        alone.SeedTemplates(1, 7, 7);
+        alone.Sidecar.RecordSave(SaveEdgeTracker.KeyFromHeader(hdr), new Dictionary<int, int> { [Moon] = 0, [Terra] = 3 });
+        alone.GameApplied(hdr, detour: false);
+        alone.Tick();
+        Assert.Equal(2, alone.SeatWrites());
+        foreach (var r in TemplateSeat.WeaponRegions)
+            Assert.Equal(new ushort[] { 1, 7, Terra, TemplateSeat.EndMarker }, alone.TemplateWords(r.Addr, 4));
+    }
+
+    /// <summary>Round 8d (verifier finding 5 on round 8c): the tick no longer re-runs the seat when
+    /// the detour served the load, so a refusal the detour met (a table with no end marker and no
+    /// empty word, no room, a refused write) must travel to the tick the way the repair notes do,
+    /// or the one warning that tells the owner his menus may be short is never written.</summary>
+    [Fact]
+    public void The_tick_warns_once_about_a_template_the_load_detour_could_not_seat()
+    {
+        using var cap = LogCapture.Start();
+        var w = NewWorld("refused");
+        w.SeedTemplates(1, 2, 3);
+        // The picker table: 141 distinct non-zero words and no 0x00FF anywhere, the one shape the
+        // repair refuses to guess at.
+        var picker = TemplateSeat.WeaponRegions[1];
+        var full = new byte[picker.CapacityWords * 2];
+        for (int i = 0; i < picker.CapacityWords; i++) { full[i * 2] = (byte)(i + 1); full[i * 2 + 1] = 0x01; }
+        w.Image.Seed(picker.Addr, full);
+        var hdr = SaveEdgeTrackerTests.Header(2775);
+        w.Sidecar.RecordSave(SaveEdgeTracker.KeyFromHeader(hdr), new Dictionary<int, int> { [Moon] = 0, [Terra] = 3 });
+
+        w.GameApplied(hdr, detour: true);
+        Assert.Equal(0, Lines(cap, "may not be listed"));   // the detour never logs on the game's thread
+        w.Tick();
+
+        var warned = cap.File.Where(l => l.Contains("The new item(s) may not be listed in the menus")).ToList();
+        Assert.Single(warned);
+        Assert.Contains("WARN", warned[0]);
+        Assert.Contains("equip-picker order template", warned[0]);
+        Assert.Contains("no 00FF end marker", warned[0]);
+        w.Tick();
+        Assert.Equal(1, Lines(cap, "may not be listed"));   // said once, not every tick
+
+        // A clean load raises no such warning.
+        using var quiet = LogCapture.Start();
+        var ok = NewWorld("refused_clean");
+        ok.SeedTemplates(1, 2, 3);
+        ok.Sidecar.RecordSave(SaveEdgeTracker.KeyFromHeader(hdr), new Dictionary<int, int> { [Moon] = 0, [Terra] = 3 });
+        ok.GameApplied(hdr, detour: true);
+        ok.Tick();
+        Assert.Equal(0, Lines(quiet, "may not be listed"));
+    }
+
     /// <summary>THE negative (T-R3-5's vanilla semantics): a template lists items the player owns.
     /// An extended item with an empty bag count stays out of both templates, exactly as a vanilla
     /// item the player has none of does.</summary>

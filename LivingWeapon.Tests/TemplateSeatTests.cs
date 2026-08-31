@@ -57,6 +57,9 @@ public class TemplateSeatTests
         Assert.Equal((ushort)0x00FF, TemplateSeat.EndMarker);   // NOT the menu lists' 0xFFFF
     }
 
+    // Round 8b: the filler tables below use DISTINCT ids (Range) because a table that lists
+    // one id many times is now a damaged table the repair collapses, not a full one.
+
     /// <summary>The LW-346 hand poke, made policy: the id goes where the marker was and the marker
     /// moves one word on.</summary>
     [Fact]
@@ -95,7 +98,7 @@ public class TemplateSeatTests
     [Fact]
     public void An_id_that_exactly_fits_the_last_free_word_is_still_seated()
     {
-        var region = Table(141, Enumerable.Repeat(7, 139).Append(TemplateSeat.EndMarker).ToArray());
+        var region = Table(141, Enumerable.Range(1, 139).Append(TemplateSeat.EndMarker).ToArray());
 
         var seat = TemplateSeat.Plan(region, 141, new[] { Terra });
 
@@ -107,7 +110,7 @@ public class TemplateSeatTests
     [Fact]
     public void A_template_with_no_room_left_refuses_loudly_instead_of_writing_past_its_capacity()
     {
-        var full = Table(141, Enumerable.Repeat(7, 140).Append(TemplateSeat.EndMarker).ToArray());
+        var full = Table(141, Enumerable.Range(1, 140).Append(TemplateSeat.EndMarker).ToArray());
 
         var one = TemplateSeat.Plan(full, 141, new[] { Terra });
         Assert.False(one.Writes);
@@ -115,7 +118,7 @@ public class TemplateSeatTests
         Assert.Contains("141", one.Refusal);
 
         // Room for one id, two are owed: still a refusal, never a partial write past the end.
-        var almost = Table(141, Enumerable.Repeat(7, 139).Append(TemplateSeat.EndMarker).ToArray());
+        var almost = Table(141, Enumerable.Range(1, 139).Append(TemplateSeat.EndMarker).ToArray());
         var two = TemplateSeat.Plan(almost, 141, new[] { Terra, Third });
         Assert.False(two.Writes);
         Assert.NotNull(two.Refusal);
@@ -124,7 +127,7 @@ public class TemplateSeatTests
     [Fact]
     public void A_template_with_no_end_marker_is_refused_not_guessed_at()
     {
-        var seat = TemplateSeat.Plan(Table(141, Enumerable.Repeat(7, 141).ToArray()), 141, new[] { Terra });
+        var seat = TemplateSeat.Plan(Table(141, Enumerable.Range(1, 141).ToArray()), 141, new[] { Terra });
 
         Assert.False(seat.Writes);
         Assert.NotNull(seat.Refusal);
@@ -141,6 +144,166 @@ public class TemplateSeatTests
     }
 
     /// <summary>The applier walks BOTH templates and writes through the guarded patcher only.</summary>
+    // LW-351 round 8b (2026-08-31): REPAIR. The game's un-widened maintainer walks (fixed in
+    // round 8) had already doubled entries and, on the owner's save, erased an end marker; the
+    // widening stops new damage but heals nothing, because the game's rebuild re-emits every
+    // doubled template entry and writes the list back. So Plan repairs first: doubled ids keep
+    // their first occurrence, a zero word (id 0 is never an entry) goes, a missing marker lands at
+    // the first zero word, and the whole table up to the new marker is rewritten in one write.
+
+    [Fact]
+    public void A_doubled_id_keeps_its_first_occurrence_and_the_whole_table_is_rewritten()
+    {
+        var region = Table(8, 1, 5, 2, 5, 3, TemplateSeat.EndMarker);
+
+        var seat = TemplateSeat.Plan(region, 8, new[] { Terra });
+
+        Assert.Null(seat.Refusal);
+        Assert.Equal(0, seat.WordIndex);
+        Assert.Equal(new ushort[] { 1, 5, 2, 3, Terra, TemplateSeat.EndMarker }, Words(seat.Bytes!, 6));
+        Assert.NotNull(seat.Repaired);
+        Assert.Contains("5", seat.Repaired);
+    }
+
+    [Fact]
+    public void A_template_with_no_marker_gets_one_at_its_first_zero_word_and_stale_words_after_it_are_dropped()
+    {
+        var region = Table(8, 1, 2, 3, 0, 0, 9, 0, 0);   // no 0x00FF anywhere; a stale 9 past the zeros
+
+        var seat = TemplateSeat.Plan(region, 8, new[] { Terra });
+
+        Assert.Null(seat.Refusal);
+        Assert.Equal(0, seat.WordIndex);
+        Assert.Equal(new ushort[] { 1, 2, 3, Terra, TemplateSeat.EndMarker }, Words(seat.Bytes!, 5));
+        Assert.Contains("marker", seat.Repaired);
+    }
+
+    [Fact]
+    public void A_repair_runs_even_when_no_extended_id_is_owned()
+    {
+        var region = Table(8, 1, 2, 2, TemplateSeat.EndMarker);
+
+        var seat = TemplateSeat.Plan(region, 8, new int[0]);
+
+        Assert.True(seat.Writes);
+        Assert.Equal(new ushort[] { 1, 2, TemplateSeat.EndMarker }, Words(seat.Bytes!, 3));
+    }
+
+    [Fact]
+    public void A_zero_word_inside_a_marked_template_is_removed()
+    {
+        var region = Table(8, 1, 0, 2, TemplateSeat.EndMarker);
+
+        var seat = TemplateSeat.Plan(region, 8, new int[0]);
+
+        Assert.Equal(new ushort[] { 1, 2, TemplateSeat.EndMarker }, Words(seat.Bytes!, 3));
+        Assert.Contains("zero", seat.Repaired);
+    }
+
+    [Fact]
+    public void A_template_with_no_marker_and_no_zero_word_is_still_refused()
+    {
+        var region = Table(4, 1, 2, 3, 4);
+
+        var seat = TemplateSeat.Plan(region, 4, new[] { Terra });
+
+        Assert.NotNull(seat.Refusal);
+        Assert.Contains("end marker", seat.Refusal);
+        Assert.False(seat.Writes);
+    }
+
+    [Fact]
+    public void A_clean_template_still_takes_the_append_only_path()
+    {
+        var region = Table(8, 1, 2, TemplateSeat.EndMarker);
+
+        var seat = TemplateSeat.Plan(region, 8, new[] { Terra });
+
+        Assert.Equal(2, seat.WordIndex);
+        Assert.Equal(new ushort[] { Terra, TemplateSeat.EndMarker }, Words(seat.Bytes!, 2));
+        Assert.Null(seat.Repaired);
+    }
+
+    [Fact]
+    public void A_repair_that_would_not_fit_refuses_instead_of_writing_past_capacity()
+    {
+        var region = Table(4, 1, 1, 2, TemplateSeat.EndMarker);   // body 2 + two ids + marker = 5 > 4
+
+        var seat = TemplateSeat.Plan(region, 4, new[] { Terra, Third });
+
+        Assert.NotNull(seat.Refusal);
+        Assert.False(seat.Writes);
+    }
+
+    [Fact]
+    public void Apply_reports_a_repair_once_per_template_and_rewrites_it()
+    {
+        var f = new FakeCodePatcher();
+        foreach (var r in TemplateSeat.WeaponRegions)
+            f.Seed(r.Addr, Table(r.CapacityWords, 1, 7, 7, TemplateSeat.EndMarker));
+        var repaired = new List<string>();
+
+        TemplateSeat.Apply(f, new[] { Terra }, onRepaired: repaired.Add);
+
+        Assert.Equal(2, repaired.Count);
+        Assert.Contains("inventory order template", repaired[0]);
+        Assert.Equal(new ushort[] { 1, 7, Terra, TemplateSeat.EndMarker }, WordsAt(f, Offsets.PickerOrderTemplate, 4));
+    }
+
+    /// <summary>Round 8c (verifier V8b-1): a damaged table must heal even on a save whose player
+    /// owns no extended item at all; the crash shape (a marker-less inventory table yielding
+    /// id-0 rows) does not care whether a design is owned.</summary>
+    [Fact]
+    public void Apply_repairs_a_doubled_template_even_when_no_id_is_owned()
+    {
+        var f = new FakeCodePatcher();
+        foreach (var r in TemplateSeat.WeaponRegions)
+            f.Seed(r.Addr, Table(r.CapacityWords, 1, 7, 7, TemplateSeat.EndMarker));
+        var repaired = new List<string>();
+
+        TemplateSeat.Apply(f, new int[0], onRepaired: repaired.Add);
+
+        Assert.Equal(2, repaired.Count);
+        Assert.Equal(2, f.Writes.Count);
+        foreach (var r in TemplateSeat.WeaponRegions)
+            Assert.Equal(new ushort[] { 1, 7, TemplateSeat.EndMarker }, WordsAt(f, r.Addr, 3));
+    }
+
+    [Fact]
+    public void Apply_leaves_a_clean_template_alone_when_no_id_is_owned()
+    {
+        var f = new FakeCodePatcher();
+        foreach (var r in TemplateSeat.WeaponRegions)
+            f.Seed(r.Addr, Table(r.CapacityWords, 1, 2, TemplateSeat.EndMarker));
+        var noise = new List<string>();
+
+        TemplateSeat.Apply(f, new int[0], noise.Add, noise.Add, noise.Add);
+
+        Assert.Empty(f.Writes);
+        Assert.Empty(noise);
+    }
+
+    /// <summary>Round 8c (verifier V8b-4): the dedupe and the "already listed" check must agree
+    /// on what an id is. A second copy carrying a flag bit (0x505 is 261 with bit 10 set) is a
+    /// double of 261 by the game's own 0x3FF mask; it is removed once and 261 is NOT appended
+    /// again, or every later pass would remove and re-add it forever.</summary>
+    [Fact]
+    public void A_flagged_double_is_collapsed_by_masked_id_and_the_id_is_not_re_added()
+    {
+        var region = Table(8, 0x505, 0x105, TemplateSeat.EndMarker);
+
+        var seat = TemplateSeat.Plan(region, 8, new[] { Moon });
+
+        Assert.Null(seat.Refusal);
+        Assert.True(seat.Writes);
+        Assert.Equal(new ushort[] { 0x505, TemplateSeat.EndMarker }, Words(seat.Bytes!, 2));
+        Assert.NotNull(seat.Repaired);
+
+        var again = TemplateSeat.Plan(Table(8, 0x505, TemplateSeat.EndMarker), 8, new[] { Moon });
+        Assert.False(again.Writes);
+        Assert.Null(again.Refusal);
+    }
+
     [Fact]
     public void Apply_seats_the_ids_in_both_weapon_templates()
     {
@@ -197,7 +360,7 @@ public class TemplateSeatTests
     {
         var f = new FakeCodePatcher();
         foreach (var r in TemplateSeat.WeaponRegions)
-            f.Seed(r.Addr, Table(r.CapacityWords, Enumerable.Repeat(7, r.CapacityWords - 1).Append(TemplateSeat.EndMarker).ToArray()));
+            f.Seed(r.Addr, Table(r.CapacityWords, Enumerable.Range(1, r.CapacityWords - 1).Append(TemplateSeat.EndMarker).ToArray()));
         var refused = new List<string>();
 
         TemplateSeat.Apply(f, new[] { Terra }, refused.Add);

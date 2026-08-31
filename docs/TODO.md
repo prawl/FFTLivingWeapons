@@ -438,6 +438,17 @@ belongs rather than at the bottom.
   byte 0 is the Range the game ignored; suspects are the two-byte sibling rows keyed by
   (id minus range base) behind 0x1402B8CD4 / 0x1402B8D3C / 0x1402B8DA0, which answer for
   the clone donor today.)
+- [LW-365] 2026-08-31: Sweep the last few places where the game still assumes no item id above
+  261 when it reads a unit's hands. Plain language: the new weapons equip and fight fine, but
+  a handful of routines that look up what a unit is holding were built with the old limit and
+  fall back to the other hand when they see one of our ids; which screens they serve is not
+  known yet, so the risk is a wrong item shown somewhere, not a crash. Done looks like: each
+  site read on disk, classified, either widened (with its test pin) or recorded as harmless
+  with the reason. (Tech: six hand-resolver copies with the `mov edx,0xff; lea ecx,[rdx+6]`
+  shape at 0x1402C4EB7, 0x1402DE6FF, 0x1402FE436, 0x14033B5BB, 0x140378640, 0x14039636B, three
+  slot guards at 0x1403066A7, 0x14030671D, 0x1403067AB, and a u16 list walker bounded by 0x105
+  at 0x1402C8155; none is in ExtendedSites.BootSites; the disp8 family is invisible to the
+  imm32 scan, grep `8d ?? 06` after a `mov r32,0xff`.)
 - [LW-359] 2026-08-30: A player reports the twin-weapon consent rule leaking two ways: with a shield in the off hand, backing out of the equip menu removed the shield and stamped the second weapon anyway (the shield only stuck when placed in the MAIN hand), and swapping the main hand from a twin weapon to daggers left the granted Dual Wield support behind for a while, letting daggers dual-wield free.
   Reported by Darkrapid on Discord 2026-08-30 (docs/USER_FEEDBACK.md); the owner told the
   player the intended rule and promised a look. The design (LW-193/LW-194, ad2240a): an

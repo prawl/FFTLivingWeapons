@@ -1,0 +1,7 @@
+{
+ "what": "LW-351 2026-08-31 00:1x: restored the 0x00FF end marker of the inventory order template at word 129 (0x1407B2550 + 0x102), which the stage-2 session had lost (zeros followed 261 at word 128)",
+ "addr": 5376779858,
+ "old": "0000",
+ "new": "00FF",
+ "undo": "write 00 00 at addr"
+}

@@ -12,7 +12,7 @@ public class ExtendedSitesTests
     public void One_extended_id_reproduces_the_rig_marker_byte_for_byte()
     {
         var boot = ExtendedSites.BootPatches(1).ToDictionary(p => p.Addr, p => p);
-        Assert.Equal(23, boot.Count);
+        Assert.Equal(26, boot.Count);
         // the rig's six built-ins
         Assert.Equal((0x01, 0x02), (boot[0x140284800].Old, boot[0x140284800].New));
         foreach (long a in new[] { 0x140284724L, 0x1402847C9L, 0x140288CDAL, 0x140289074L })
@@ -207,6 +207,36 @@ public class ExtendedSitesTests
     }
 
     [Fact]
+    public void Fix_round_8_widens_all_three_owned_item_template_maintainer_walks()
+    {
+        // LW-351 fix round 8 (2026-08-31). The maintainer 0x140285F80 (inventory order tables;
+        // its second half 0x140286070 serves the picker tables) walks a template to its end
+        // before inserting a newly owned id at the front, and its walk stops at the 0x00FF
+        // marker OR at the first word >= r14w, where r14d = `lea r14d,[r15+6]` with r15d = 0xFF:
+        // 0x105, read from disk at 0x140285FB2, 0x1402860AB and (round 8b, the third copy
+        // 0x14039684C over the same five inventory tables through its own pointer table
+        // 0x140689C38) 0x14039687E, all `45 8d 77 06`. None of the three disp8 bytes was in the
+        // table (the sibling walkers 0x140286187 and 0x140285EE7 were; these three sit in a
+        // different register pair, r14 from r15, than the swept lea+6 forms), so an extended id
+        // inside a template ended the walk early. The insert's shift starts AT the stop word, so
+        // that extended id survives and crawls one slot right while the word to its RIGHT is
+        // overwritten, and the end marker itself is lost once the crawling id reaches it; the
+        // doubles come from the truncated walk failing to FIND the ids past the stop word, so
+        // the maintainer re-inserts ids it already lists. The owner's Sort on 2026-08-31 00:11
+        // showed five doubled shields and five vanished designs; the emulated sequence
+        // reproduces that table word for word.
+        foreach (int n in new[] { 1, 2, 7 })
+        {
+            var boot = ExtendedSites.BootPatches(n).ToDictionary(p => p.Addr, p => p);
+            foreach (long a in new[] { 0x140285FB5L, 0x1402860AEL, 0x140396881L })
+            {
+                Assert.Equal((0x06, 0x06 + n), (boot[a].Old, boot[a].New));
+                Assert.Contains("maintainer", boot[a].Label);
+            }
+        }
+    }
+
+    [Fact]
     public void Fix_round_6_zlib_constants_and_the_chains_other_bytes_are_never_patched()
     {
         // LW-351 fix round 6. The live 0x106 scan surfaced five `cmp r32,0x106 ; jae` sites at
@@ -236,6 +266,9 @@ public class ExtendedSitesTests
                      0x140288713L, 0x140288718L, 0x14028871DL, 0x140288722L,
                      0x140396F52L, 0x140396F53L, 0x140396F54L, 0x140396F56L, 0x140396F57L,   // chain 2
                      0x140396F5CL, 0x140396F61L, 0x140396F66L, 0x140396F6BL,
+                     0x140285FB2L, 0x140285FB3L, 0x140285FB4L,   // round 8: the lea's opcode/modrm bytes, only the disp8 moves
+                     0x1402860ABL, 0x1402860ACL, 0x1402860ADL,
+                     0x14039687EL, 0x14039687FL, 0x140396880L,   // round 8b: the third copy's lea, same rule
                  })
             Assert.DoesNotContain(a, addrs);
         Assert.Single(ExtendedSites.BootPatches(2), p => p.Addr == 0x140101071L);

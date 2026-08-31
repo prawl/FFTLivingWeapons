@@ -150,6 +150,49 @@ public class OrderRebuildHookTests
     }
 
     [Fact]
+    public void Process_repairs_a_doubled_template_before_the_rebuild_runs()
+    {
+        // Round 8b: a template the un-widened maintainer already doubled (5 twice) is healed in
+        // place before the game's rebuild reads it, owned ids appended after the repair.
+        var f = WithList(1, 0xFFFF);
+        f.Seed((long)Picker, Words(5, 5, 9, TemplateSeat.EndMarker));
+        f.Seed(Bag + 261, 1);
+        var hook = new OrderRebuildHook(f, extendedCount: 1);
+        ushort[]? seen = null;
+        hook.Process(Picker, List, (table, list) => { seen = TemplateWords(f, (long)table); return Rebuild(f, 1)(table, list); });
+        Assert.Equal(new ushort[] { 5, 9, 261 }, seen);
+        Assert.Equal(1, hook.Repaired);
+    }
+
+    [Fact]
+    public void Process_repairs_a_doubled_template_even_when_no_extended_id_is_owned()
+    {
+        // Round 8c (verifier V8b-1): the repair is not gated on ownership; only the seat is.
+        var f = WithList(1, 0xFFFF);
+        f.Seed((long)Picker, Words(5, 5, 9, TemplateSeat.EndMarker));
+        f.Seed(Bag + 261, 0);
+        var hook = new OrderRebuildHook(f, extendedCount: 1);
+        ushort[]? seen = null;
+        hook.Process(Picker, List, (table, list) => { seen = TemplateWords(f, (long)table); return Rebuild(f, 1)(table, list); });
+        Assert.Equal(new ushort[] { 5, 9 }, seen);
+        Assert.Equal(1, hook.Repaired);
+    }
+
+    [Fact]
+    public void Process_writes_nothing_to_a_clean_template_when_no_extended_id_is_owned()
+    {
+        var f = WithList(1, 0xFFFF);
+        f.Seed((long)Picker, Words(5, 9, TemplateSeat.EndMarker));
+        f.Seed(Bag + 261, 0);
+        var hook = new OrderRebuildHook(f, extendedCount: 1);
+        int writes = f.Writes.Count;
+        hook.Process(Picker, List, Rebuild(f, 1));
+        Assert.Equal(new ushort[] { 5, 9 }, TemplateWords(f, (long)Picker));
+        Assert.DoesNotContain(f.Writes.GetRange(writes, f.Writes.Count - writes), w => w.Addr >= (long)Picker && w.Addr < (long)Picker + Offsets.PickerOrderTemplateWords * 2);
+        Assert.Equal(0, hook.Repaired);
+    }
+
+    [Fact]
     public void Process_never_reappends_an_id_the_player_owns_none_of()
     {
         // "Owns none" = bag 0 AND no E badge on the word (a badged word is worn, hence owned;

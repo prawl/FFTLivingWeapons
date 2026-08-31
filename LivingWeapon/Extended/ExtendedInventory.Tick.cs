@@ -15,9 +15,11 @@ namespace LivingWeapon;
 ///     before gets the schema-1 legacy counts once, then the data seed. Since LW-351 the replay
 ///     itself already ran INSIDE the load detour (<see cref="ReplayOnLoad"/>, the game's own
 ///     thread, the instant the load routine finished overwriting the bag from the file); the tick
-///     re-applies the same resolution as an idempotent fallback and owns the one log line, and
-///     both paths also seat the owned extended ids in the menu order templates the same load
-///     restored out of the save struct (<see cref="TemplateSeat"/>, fix round 5).
+///     re-applies the same resolution as an idempotent fallback and owns the one log line. The
+///     detour also repairs and seats the menu order templates the same load restored out of
+///     the save struct (<see cref="TemplateSeat"/>, fix rounds 5 and 8b); the tick seats them
+///     only for a load edge the detour did not serve (round 8c), and it writes the detour's
+///     repair and refusal notes to the log (rounds 8c and 8d).
 ///   - the shop-table mirror's vanilla half follows the game's own table.
 /// Reads go through <see cref="IGameMemory"/> like every other tick-loop reader; the replay
 /// write goes through the guarded patcher (the same seam the boot placement uses).
@@ -32,6 +34,16 @@ internal sealed partial class ExtendedInventory
     /// seed on the tick). Written BEFORE the tracker publishes the load edge, so the tick that
     /// takes that edge always sees it; a plain reference, read once and cleared by the drain.</summary>
     private volatile BagReplay.Plan? _detourReplay;
+    // Round 8b/8c: what the load detour healed, one note per template, joined and logged once by
+    // the tick (the detour never logs on the game's thread). Appended under the same single-writer
+    // discipline as _detourReplay: the detour writes before the edge is published, the tick reads
+    // and clears after taking the edge.
+    private volatile string? _repairNote;
+    // Round 8d: what the load detour could NOT do (a table with no marker and no empty word, no
+    // room, a refused write). Since round 8c the tick no longer re-runs the seat after a served
+    // load, so without this hand-forward the one warning that says the menus may be short would
+    // never be written. Same discipline as _repairNote; the tick logs it once as Warn and clears it.
+    private volatile string? _refusalNote;
 
     public bool CapsSettled => _pending.All(p => p.Settled);
     public IReadOnlyList<PendingPatch> PendingCaps => _pending;
@@ -83,7 +95,9 @@ internal sealed partial class ExtendedInventory
         if (!Armed || Items.Count == 0) return;
         var plan = BagReplay.Resolve(_sidecar, Items, key);
         BagReplay.Apply(_patcher, Items, plan);
-        TemplateSeat.Apply(_patcher, BagReplay.OwnedIds(plan, Items));
+        TemplateSeat.Apply(_patcher, BagReplay.OwnedIds(plan, Items),
+            onRefused: why => _refusalNote = _refusalNote == null ? why : _refusalNote + " | " + why,
+            onRepaired: note => _repairNote = _repairNote == null ? note : _repairNote + " | " + note);
         _detourReplay = plan;
     }
 
@@ -98,13 +112,26 @@ internal sealed partial class ExtendedInventory
         {
             var fromDetour = _detourReplay;
             _detourReplay = null;
-            var plan = fromDetour != null && fromDetour.Key == loadKey ? fromDetour : BagReplay.Resolve(_sidecar, Items, loadKey);
+            bool detourServed = fromDetour != null && fromDetour.Key == loadKey;
+            var plan = detourServed ? fromDetour! : BagReplay.Resolve(_sidecar, Items, loadKey);
             BagReplay.Apply(_patcher, Items, plan, (item, n) =>
                 ModLogger.Warn(LogVerb.Save, $"Could not place {n} {item.Name} in the bag after the load (write refused)."));
             ModLogger.Event(LogVerb.Save, $"A save was loaded (key {loadKey}); extended-inventory bag counts placed from {plan.Source}: "
                 + BagReplay.Describe(plan, Items) + ".");
-            TemplateSeat.Apply(_patcher, BagReplay.OwnedIds(plan, Items),
-                why => ModLogger.Warn(LogVerb.Save, why), what => ModLogger.Event(LogVerb.Save, what));
+            string? note = _repairNote;
+            _repairNote = null;
+            if (note != null) ModLogger.Event(LogVerb.Save, "A damaged menu order table was healed on the load: " + note);
+            string? refused = _refusalNote;
+            _refusalNote = null;
+            if (refused != null) ModLogger.Warn(LogVerb.Save, refused);
+            // Round 8c: when the detour served this load it already repaired and seated both
+            // templates on the game's own thread; the tick must not rewrite a template from the
+            // engine thread (a whole-table write racing the game's maintainer mid-shift would
+            // clobber it). The tick's own seat stays only for a load edge the detour did not serve.
+            if (!detourServed)
+                TemplateSeat.Apply(_patcher, BagReplay.OwnedIds(plan, Items),
+                    why => ModLogger.Warn(LogVerb.Save, why), what => ModLogger.Event(LogVerb.Save, what),
+                    what => ModLogger.Event(LogVerb.Save, "A damaged menu order table was healed on the load: " + what));
         }
         if (Tracker.TryTakePendingSave(out string saveKey, out var saved))
         {

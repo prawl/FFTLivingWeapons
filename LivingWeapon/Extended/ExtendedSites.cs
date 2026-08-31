@@ -98,6 +98,29 @@ internal static class ExtendedSites
         // once, never widened by N (HighByte lands 0x02 for every count).
         new(0x14028870CL, 0x01, Widen.HighByte, "reserved-item equality list, can-equip check (sub edx,0x106 -> 0x206)"),
         new(0x140396F55L, 0x01, Widen.HighByte, "reserved-item equality list, inlined twin (sub ecx,0x106 -> 0x206)"),
+        // LW-351 fix round 8 (2026-08-31, read from the 1.5.2 exe on disk): the owned-item
+        // template maintainer 0x140285F80 (inventory order tables; its second half 0x140286070
+        // serves the picker tables) walks a template to its end before inserting a newly owned
+        // id at the front, and that walk stops at the 0x00FF marker OR at the first word >=
+        // r14w, where r14d comes from `45 8d 77 06` lea r14d,[r15+6] with r15d = 0xFF (0x105).
+        // Three copies exist, all on the same r14/r15 pair: 0x140285F80 (inventory tables),
+        // 0x140286070 (picker tables) and 0x14039684C (round 8b; the same five inventory tables
+        // through its own pointer table 0x140689C38, owned-ness read from a transaction-time
+        // count mirror at 0x143C52740). The sibling walkers (0x140286187, 0x140285EE7) were
+        // widened by LW-346; these three were missed because their bound lives in a different
+        // register pair (r14 from r15) than the swept lea+6 forms, not because disp8 bounds
+        // were unknown (four such entries predate round 8). Unwidened, an extended id inside a
+        // template ends the walk early, with two effects. The insert's shift starts AT the stop
+        // word, so that id survives and crawls one slot right while the word to its RIGHT is
+        // overwritten, and the end marker itself is lost once the crawling id reaches it. The
+        // doubles come from the truncated walk failing to FIND the ids past the stop word, so
+        // the maintainer re-inserts ids it already lists (the owner's Sort on 2026-08-31 00:11
+        // showed five doubled shields and five vanished designs; the emulated sequence
+        // reproduces that table word for word). Each address below is the lea's disp8 byte
+        // (instruction +3). Templates already damaged are healed by TemplateSeat's repair.
+        new(0x140285FB5L, 0x06, Widen.PlusN, "owned-item template maintainer walk, inventory tables (lea r14d,[r15+6])"),
+        new(0x1402860AEL, 0x06, Widen.PlusN, "owned-item template maintainer walk, picker tables (lea r14d,[r15+6])"),
+        new(0x140396881L, 0x06, Widen.PlusN, "owned-item template maintainer walk, third copy 0x14039684C over the inventory tables (lea r14d,[r15+6])"),
     };
 
     /// <summary>Copy-protected sites: their pages read vanilla only after a save has loaded, so
