@@ -149,6 +149,42 @@ the technical detail lives in the indented lines under it.
     towns and equipping on its category's job, the Sunderer's Bulwark firing at 263 with its
     migrated tally, one vanilla axe and one vanilla flail swing).
 
+- **[LW-371] The bag should hold more than 140 kinds of weapons and shields at once** (opened 2026-08-31) [QUEUED]
+  - Plain language: the game's inventory chart for weapons and shields is a fixed 141-word field
+    inside the save file (140 kinds plus the end marker), and the game's own housekeeper writes
+    past it silently when a 141st kind is picked up. With every vanilla kind owned (121 weapons,
+    16 shields, two DLC blades) there is room for exactly one new weapon kind, which makes the
+    121 that can now exist (LW-368) a hollow number for a completionist. Owner ruling 2026-08-31:
+    a guard alone is not enough; the ceiling itself has to move. Found by the third adversarial
+    verifier of LW-368 round 2.
+  - Shape (unproven, RE first, the LW-368 method): (1) the cheap safety first: refuse or trim the
+    141st insert on the game's own path with one honest log line; (2) then relocate BOTH order
+    templates (the inventory chart and the equip-picker chart) the way the count lists were
+    relocated: a page the mod owns with room for hundreds of words, every reader and writer
+    re-pointed (the rebuild's five callers, the housekeeper's three copies, the save serializer
+    and load-apply copies), while the save file keeps its 141-word field and the mod persists
+    the words past 140 in its own sidecar, the way bag counts past 261 already ride
+    extended_inventory.json, so the save format never changes and removing the mod stays a clean
+    loss; (3) the two list output caps at 145 and 146 entries widened alongside, after reading
+    what buffers they size.
+  - (Tech: Offsets.InventoryOrderTemplate 0x1407B2550 and PickerOrderTemplate 0x141874540, 141
+    words each; housekeeper 0x140285F80 with the marker walk at 0x140285FEA-FF4 and the shift at
+    0x14028601D-02A, its copies 0x140286070 and 0x14039684C, callers 0x140334D70 and 0x14036BB60
+    unclassified; FnOrderRebuild 0x140285DF0 called from 0x1402862D2, 0x140288D5D, 0x14033695A,
+    0x1403382C1, 0x14036B1EB, templates fetched through the pointer table 0x14067F498; output
+    caps cmp esi,0x91 at 0x140288CC1 and cmp edx,0x92 at 0x140286318; the range sweep in
+    tools/probes/lw368_count_list_relocate.py is the tool, run over both regions' full spans and
+    the pointer table entries; premise probe live before any plan, per the LW-368 playbook.)
+  - Done means: a save that owns every vanilla weapon and shield can hold at least the seven
+    designs plus the partner's eight new kinds at the same time (154 kinds), listed in the Items
+    tab and the equip picker, kept across save and reload with no silent overflow; and until the
+    relocation lands, a 141st kind is refused loudly instead of written past the chart.
+  - Verify: suite green with the site pins and a chart-capacity policy test; the owner's live
+    pass on the give-all save: buy past 140 kinds, both lists show every kind, Sort keeps them,
+    save, quit and reload keep them, the log shows the relocation line and no overflow warning;
+    then start the game without the mod once and confirm the same save still loads (the 141-word
+    field untouched, the extra kinds simply absent, as the uninstall note promises).
+
 ## Backlog
 
 Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner directed).
@@ -494,20 +530,6 @@ belongs rather than at the bottom.
   (Tech: patch_names.seed_extended_rows + item_intent; lib/bake_intent.ALLOWED_EXTRA_ROWS derives
   from the data; KILLS_SCAFFOLD is 11 chars and the suffix slot 2; memory
   modloader-merge-semantics pins the per-cell nxd union.)
-- [LW-371] 2026-08-31: Owning more than 140 weapons and shields at once silently damages the
-  game's own menu chart, and the mod should guard against it. Plain language: the chart that
-  remembers your inventory order is a fixed 141-word field in the save; the game's housekeeper
-  that inserts a newly owned item has no room check (read on disk 2026-08-31: it walks to the
-  end marker, shifts the whole chart right by one and writes the new id at the front, bounded
-  only by the marker), so the 141st owned hand-slot item writes past the chart into whatever
-  follows, and the damage rides the save file. Vanilla alone cannot reach 141 (128 vanilla
-  seats on the give-all save), but with the extended inventory it is reachable by normal play,
-  and this mod's own loud refusal covers only its seating path while its re-append lists the
-  item anyway. Found by the third adversarial verifier of LW-368 round 2. Done looks like: the
-  mod refuses (or trims) a seat past 140 on the game's path too, one honest log line names it,
-  and a test pins the 141st id. (Tech: maintainer 0x140285F80, marker walk at 0x140285FEA-FF4,
-  shift at 0x14028601D-02A; its callers 0x140334D70 and 0x14036BB60 are unclassified; the
-  regions are Offsets.InventoryOrderTemplate / PickerOrderTemplate, 141 words each.)
 - [LW-365] 2026-08-31: Sweep the last few places where the game still assumes no item id above
   261 when it reads a unit's hands. Plain language: the new weapons equip and fight fine, but
   a handful of routines that look up what a unit is holding were built with the old limit and
