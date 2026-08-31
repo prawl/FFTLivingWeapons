@@ -10,6 +10,23 @@ before 2026-07-21 keep their original prose.
 
 ## 2.4.0 cycle
 
+- [LW-375] WONTFIX 2026-08-31: The plan to make the All Items browser draw every owned kind is
+  dropped by owner ruling, and the shortest menu list becomes the recorded design ceiling for
+  the whole catalog. Plain language: of every list that shows items, the smallest is the equip
+  picker's weapons list, which safely holds 149 rows (LW-371 proved anything bigger crashes the
+  game on a full bag; LW-372's doorman hook holds it at 149). The game has 123 vanilla weapon
+  kinds, so 26 extended weapon kinds is the most that can ever ship before a completionist's
+  picker starts dropping rows: the owner ruled 123 plus 26 the universal limit for all lists
+  and declined the third relocation that would have lifted the browser (a fresh live sweep
+  found about 50 places in the game's code naming the draw list, not the 37 the old note
+  guessed). The browser keeps drawing at most 255 rows, a window vanilla players never had
+  either (vanilla drew 145 of its 261); every kind still shows in its category tab, equips and
+  saves, so nothing is lost. A new test now refuses any build whose extended catalog outgrows
+  the picker. (Tech: ExtendedWeaponCeilingTests pins StackCallerCap 149 minus 123 vanilla
+  weapon kinds = 26 and gates mod/extended_inventory against it; the declined lift was
+  relocating the static draw buffer 0x141811470, 42 rip plus 8 image-relative code fields
+  re-derived live 2026-08-31 in the scout sweep, plus handling the rebuild's 264-word stack
+  temp at 0x140285DF0.)
 - [LW-372] SHIPPED 900594d0 2026-08-31: The big item menus now draw up to 255 kinds and the two
   small ones can never crash on a full bag. Plain language: the game copies your bag onto a
   notepad before drawing any list, and one shared line limit stopped every menu at 149. Six menus

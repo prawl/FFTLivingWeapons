@@ -2672,17 +2672,6 @@ belongs rather than at the bottom.
   counts the distinct new combinations, names the free-row budget and the rows already taken,
   and refuses with one sentence a partner can act on (reuse an existing combination or drop
   a bonus); a test pins the count.
-- [LW-375] 2026-08-31: The All Items browser should draw every owned kind, not just the
-  first 255. Plain language: with LW-372 the big menus draw 255 rows, and the only screens a
-  maxed-out player can outgrow are the All Items browser (255 of a possible 382 kinds) and,
-  by five rows, the combined weapons view; every undrawn kind still shows in its category tab,
-  equips and saves, so nothing is lost, just not browsable in one list. The owner called it
-  the remaining pitfall on 2026-08-31. The lift is the third relocation of the same shape:
-  move the fixed 256-word drawing list (about 37 places name it) to a mod page and hook the
-  sorter's 264-word scratch space; only worth doing after more than about 134 extended
-  weapons can exist (today's ceiling is 121) or for completionist bragging rights. (Tech: the
-  static list buffer, its size proven by the neighbor object; the LW-368 sweep-and-repoint
-  recipe applies.)
 - [LW-362] 2026-08-30: The game's own four DLC blades (ids 256 to 259, Materia Blade+,
   Akademy Blade and kin) could become living weapons too, counting kills and growing like
   everything else; today their kills are deliberately left uncredited as untracked items,
