@@ -76,6 +76,28 @@ the technical detail lives in the indented lines under it.
   - Verify: full suite green; the owner's live battle shows either the "The weapon's
     spirit claims the carcass" log line with the Den count matching, or the named
     discriminator or gate-reason line in livingweapon.log; the owner reads the FAQ text.
+- **[LW-363] The seven moved weapon designs pass the no-domination gate in one pass and the loud deferral list empties** (opened 2026-08-30) [BUILDING]
+  - Plain language: when the Terrastaff moved to its new id it started recording the reach it
+    really has (two tiles, borrowed from its donor pole), and by the mod's own fairness rule
+    that made the plain Ironreed Pole pointless next to it: same reach, same guard, less power,
+    later shelf, no element. The owner chose to move all seven designs first and then judge the
+    whole neighborhood in one sitting instead of patching pairs piecemeal; this row is that
+    sitting. The fix space is narrow: touching the Terrastaff cannot save the pole (equal
+    numbers still lose to its Earth element and earlier shelf, and its numbers are a migration
+    promise), and a power bump for the pole falls to the thin-margin rule, so the pole's guard
+    is the one honest lever. The Ironreed Pole becomes the line's mid guard pole at 22 percent
+    evade, keeping its no-rider raw-power identity and staying under the Hushfan's 25 crown.
+  - (Tech: items.json id 108 proposed.evade 20 to 22; analyze.py DOMINANCE_DEFERRED emptied,
+    mechanism kept for future arcs; grid parry cell and identity prose synced; wp 10 fails
+    check_thin_niche, cross-tier margin 1, and a rider breaks the stated riderless identity.)
+  - Done means: no weapon is left strictly better than a neighbor, and no pair sits parked
+    on an IOU: the deferral dict in tools/analyze.py is empty again, the gate is green with
+    every one of the seven designs and the Ironreed Pole surviving on real merits with no new
+    thin-niche or twin flags, and the grid csv matches every number that moved.
+  - Verify: the item fairness gates all come back clean: analyze.py green with no DEFERRED line and no new exception entries; the full
+    suite green; the grid sync gate green on the changed row; the owner spot-reads the
+    Ironreed Pole card (22 percent evade) on his next deployed session and may re-rule the
+    number, which would be a one-line follow-up.
 - **[LW-351] The seven axes and flails go back to vanilla and their designs move to new extended ids** (opened 2026-08-27) [BUILDING]
   - Plain language: this mod had turned the game's seven axes and flails into other weapon
     types (a pole, knight swords, a sword, a knife, a ninja blade, a katana) while they still
@@ -109,7 +131,8 @@ the technical detail lives in the indented lines under it.
     stage 3 closes the ledger. The
     Terrastaff now records its true reach (2 tiles, its clone donor's), which makes it beat
     the Ironreed Pole; the owner deferred that pair out loud (analyze.py DOMINANCE_DEFERRED)
-    until one dominance pass gates all seven together (LW-363).
+    until one dominance pass gates all seven together (LW-363, since resolved: the dict is
+    empty again and the pole took a guard niche).
   - Progress 2026-08-31: the Moonblade is gone. Plain language: it was the throwaway sword
     that first proved a weapon could live past the game's 261-item wall, and with the seven
     real designs proven the owner ruled it out; its row, icons and text row are deleted and
@@ -401,18 +424,6 @@ belongs rather than at the bottom.
   decide how the vanilla rows pass the no-domination gate (an owner-ruled exemption or
   interim tiers, decided there); this row is where the real designs land, through the
   usual grid csv first, then items.json, then the gates.
-- [LW-363] 2026-08-30: The seven moved axe and flail designs get their no-domination pass in
-  one go, and the loud deferral list empties. Plain language: when the Terrastaff moved to its
-  new id it started recording the reach it really has (two tiles, borrowed from its donor
-  pole), and by the mod's own rule that makes the plain Ironreed Pole pointless next to it.
-  The owner chose to move the other six designs first and then rebalance all seven against
-  their neighbors in one sitting, so the pair is deferred out loud rather than fixed
-  piecemeal. Done looks like: analyze.py's DOMINANCE_DEFERRED dict is empty again, every one
-  of the seven survives the gate on its own merits (or carries an owner-ruled
-  THIN_NICHE_EXCEPTIONS entry with the ruling cited), and the grid csv reflects any number
-  that moved. (Tech: tools/analyze.py DOMINANCE_DEFERRED, keyed (dominated id, dominator id),
-  printed as its own DEFERRED line every run; a stale entry is called out; only the PROPOSED
-  verdict honors it.)
 - [LW-364] 2026-08-30: Find out where the game really reads an extended weapon's reach from,
   so a range-1 pole (or any reach its donor lacks) becomes possible. Plain language: an
   extended weapon strikes as far as the vanilla weapon it borrows its engine from, no matter

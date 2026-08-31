@@ -3683,7 +3683,7 @@
       "vanillaName": "Battle Bamboo",
       "name": "Ironreed Pole",
       "tier": 2,
-      "identity": "ICONIC. T2 raw-stat pole baseline — best no-rider WP of its era at 20% evade. The 'monk who just wants to hit from a tile back' default.",
+      "identity": "ICONIC. T2 raw-stat pole baseline — best no-rider WP of its era, guarded at 22% evade (under the Hushfan's 25 crown; its niche vs the Earth-armed Terrastaff, LW-363). The 'monk who just wants to hit from a tile back' default.",
       "flavorOverride": "Reed banded with iron, springy and swift, suited to a hand that prizes speed over weight.",
       "baseline": {
         "wp": 7,
@@ -3694,7 +3694,7 @@
       },
       "proposed": {
         "wp": 8,
-        "evade": 20,
+        "evade": 22,
         "element": "None",
         "onHit": "None",
         "onHitAbilityId": 0,

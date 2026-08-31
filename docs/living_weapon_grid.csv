@@ -99,7 +99,7 @@
 105,6,high,Dragon Whisker,Dragon Whisker,Polearm,"Poach (Red Dragon, rare 1/8)",15,PA x WP,10%,PA,May cast Fire Breath,PA +10%,PA +20%,PA +30%,,,"ghost proc restored to prose map; kept-name text rule scrapped later that day (LW-322 ruling), the card now carries the line (owner 2026-08-25)"
 106,6,high,Javelin II,Wyrmpike,Polearm,"Move-Find (Nelveska Temple, rare)",13,PA x WP,10%,PA,May inflict Doom,PA +10%,PA +20%,PA +30%,,,
 107,1,low,Cypress Pole,Greenwood Pole,Pole,Shop,6,MA x WP,20%,PA+MA,May cast Aurablast,PA +10%,PA +20%,PA +30%,,,ghost proc re-advertised on the card (owner 2026-08-25)
-108,2,med,Battle Bamboo,Ironreed Pole,Pole,Shop,8,MA x WP,20%,PA+MA,—,PA +10%,PA +20%,PA +30%,,,
+108,2,med,Battle Bamboo,Ironreed Pole,Pole,Shop,8,MA x WP,22%,PA+MA,—,PA +10%,PA +20%,PA +30%,,,"evade 20 to 22 (LW-363, 2026-08-31): the moved Terrastaff records its true 2-tile reach and beats this pole on power, shelf and element at equal reach and guard; the guard bump is the smallest fix that keeps the migration promise (Terrastaff numbers are locked), where a minimal wp bump trips the thin-margin rule and a bigger one breaks the gentle power curve. Owner may re-rule."
 109,3,med,Musk Pole,Slumber Rod,Pole,Shop,8,MA x WP,20%,PA+MA,May inflict Sleep,PA +10%,PA +20%,PA +30%,,,
 110,3,med,Iron Fan,Hushfan,Pole,Shop,9,MA x WP,25%,PA+MA,May inflict Silence,PA +10%,PA +20%,PA +30%,,,
 111,5,med,Gokuu's Pole,Sage's Pole,Pole,Shop,12,MA x WP,20%,PA+MA,May inflict Slow,PA +10%,PA +20%,PA +30%,,,

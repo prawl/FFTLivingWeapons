@@ -130,24 +130,19 @@ def check_slots(items, normal_formulas):
     return violations
 
 
-# --- LW-351 stage 1 close (owner ruling 2026-08-30): deferred dominance pairs ---
+# --- Deferred dominance pairs (mechanism kept; the dict is empty by design) ---
 # The gate's verdict is final, but the owner can defer a pair, out loud, when a rebalance is
 # scheduled for a later step. Key is (dominated id, dominator id); the value cites the ruling.
 # A deferred pair is dropped from the PROPOSED dominance verdict only, prints its own DEFERRED
 # line on EVERY run (never silent), and a pair that is no longer dominated is called out as a
 # stale entry so the dict cannot rot. The --baseline pass and every other gate ignore this.
-# Today's one entry: the Terrastaff moved to extended id 261 (262 until the Moonblade's removal
-# on 2026-08-31 slid every extended id down one) and now records its true reach
-# (range 2, the reach the game plays for its clone donor 108 Ironreed Pole; see generate.py's
-# check_extended_range), which makes it beat the Ironreed Pole outright (T1 vs T2, WP 9 vs 8,
-# same evade, same reach, plus Earth). The owner ruled that stage 2 moves the other six designs
-# first and ONE dominance pass then gates all seven together; that pass empties this dict
-# (docs/TODO.md LW-363).
-DOMINANCE_DEFERRED = {
-    (108, 261): "owner ruling 2026-08-30: the Terrastaff records its true reach 2 (clone donor 108, "
-                "Ironreed Pole) so the row stops lying; stage 2 moves the other six axe/flail designs "
-                "first, then one dominance pass gates all seven; cleared under LW-363",
-}
+# History: the dict's only occupant was the Ironreed Pole vs Terrastaff pair, keyed
+# (108, 262) at birth (LW-351 stage 1, owner ruling 2026-08-30) and (108, 261) after the
+# Moonblade's removal slid the extended ids down one; resolved under LW-363 (2026-08-31) by
+# giving the pole a real guard niche (evade 20 to 22) instead of a deferral. The Terrastaff
+# side was untouchable (its numbers are a migration promise, and equal numbers still lose to
+# Earth plus the earlier tier); a wp bump fell to check_thin_niche's cross-tier margin.
+DOMINANCE_DEFERRED = {}
 
 
 def check_proposed_dominance(items, normal_formulas):
@@ -159,7 +154,7 @@ def check_proposed_dominance(items, normal_formulas):
             key = (a["id"], b["id"])
             if key in DOMINANCE_DEFERRED:
                 seen.add(key)
-                print(f"  DEFERRED (owner-ruled, LW-363): id{a['id']} {display_name(a)} beaten by "
+                print(f"  DEFERRED (owner-ruled): id{a['id']} {display_name(a)} beaten by "
                       f"id{b['id']} {display_name(b)}")
             else:
                 live.append(b)
@@ -1294,7 +1289,7 @@ def main():
         n_def = len(DOMINANCE_DEFERRED)
         # counts the entries ON FILE, not the pairs still dominated: a rotted entry announces
         # itself as a STALE DEFERRAL line above the verdict, so this number never overstates.
-        deferred = (f" ({n_def} owner-ruled deferral{'s' if n_def != 1 else ''} on file, see LW-363)"
+        deferred = (f" ({n_def} owner-ruled deferral{'s' if n_def != 1 else ''} on file, see DOMINANCE_DEFERRED)"
                     if proposed and DOMINANCE_DEFERRED else "")
         registry.append(dict(
             header=f"{label} dominance check",
