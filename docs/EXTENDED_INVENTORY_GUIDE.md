@@ -231,12 +231,18 @@ donor pac), then delete the old last id's files and let `bake_glow_icons.update_
 its manifest entry; DELETE the old last id's row from `working/pilot_item.sqlite` before the name
 bake, or the audit refuses the stray row; move every constant that names an id
 (`Bulwark.SundererId`, `analyze.py`'s `DOMINANCE_DEFERRED` and `THIN_NICHE_EXCEPTIONS` keys, the
-shipped-roster tests); and on a dev rig shift the keys in `kills.json`, `legends.json` and
-`extended_inventory.json` by hand, because the runtime's tally migration keys on the OLD vanilla
-id (`migratedFrom`) and knows nothing about a shift between extended ids. A player's save keeps
-its hand words as numbers, so a worn item becomes whatever now holds that number and a worn old
-last id empties; the saved menu charts still carry the old last id until the game's own Sort
-drops it (a list that looks short after the change: sort it once).
+shipped-roster tests: `ExtendedInventoryDataTests`, `TallyMigrationTests`, `BulwarkTests`,
+`MetaSchemaTests`); re-read every doc and note that names an id (README counts, DESIGN,
+COMPATIBILITY, DEV_TEST_RECIPES, the restored rows' `identity` prose in `data/items.json`, the
+`recolor_icons.py` ruling prose, the TODO rows); and on a dev rig shift the keys in `kills.json`,
+`legends.json` and `extended_inventory.json` by hand (keep a timestamped `.bak` of each), because
+the runtime's tally migration keys on the OLD vanilla id (`migratedFrom`) and knows nothing about
+a shift between extended ids. A player's save keeps its hand words as numbers, so EVERY worn
+extended item becomes whatever now holds its number (the next design down) and a worn old last
+id empties. The saved menu charts also still carry the old last id, and that word is exactly
+what the game's chart housekeeper stops at (the LW-351 round-8 defect shape: a doubled neighbor
+and a lost end marker on every new acquisition), so Sort BOTH weapon lists once BEFORE buying or
+looting anything; LW-367 teaches the mod's repair to drop such a word itself.
 
 ## Where the deep answers live
 

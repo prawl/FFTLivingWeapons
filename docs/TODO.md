@@ -88,7 +88,8 @@ the technical detail lives in the indented lines under it.
     game's 261-item wall (id caps, menu sort keys, the save's fixed bag, the saved menu order
     templates, and a hardcoded reserved-id list in the equip check that refused whatever sat
     at id 262). STAGE 2 is BUILT (2026-08-30 late): the Ravager, Sunderer, Warbrand,
-    Bloodlash, Climhazzard and Sasori now live at ids 263 to 268 and the Giant's Axe, Slasher,
+    Bloodlash, Climhazzard and Sasori then lived at ids 263 to 268 (262 to 267 since the
+    Moonblade left) and the Giant's Axe, Slasher,
     Iron Flail, Flail of Flame, Morning Star and Scorpion Tail are back at their own ids; its
     owner live pass ran 2026-08-30 late: the six designs list, equip and swing their donor
     art, and it found three more defects, fixed in round 7: the game's inventory reset wiped
@@ -114,11 +115,16 @@ the technical detail lives in the indented lines under it.
     real designs proven the owner ruled it out; its row, icons and text row are deleted and
     the seven designs slid down one id to 261 to 267 (the owner's rig had its kill, deed and
     per-save count files shifted to match; no public release ever shipped the old numbers).
-    Owner live check owed on the deployed build: the boot line arms seven items, the unit
-    that wore the Moonblade now holds the Terrastaff (same number, new item) and the one that
-    wore the Sasori is empty-handed (its old number no longer exists), every list shows all
-    seven, and a list that looks short is sorted once (the saved menu charts still hold the
-    old last number 268 until the game's own Sort drops it).
+    OWNER LIVE-VERIFIED 2026-08-31 ~01:45 on the deployed build ("I do not see the
+    Moonblade"): the boot line armed seven items and the load replayed the shifted counts.
+    Two consequences of the shift to know: every worn extended weapon became the next design
+    down (the unit that wore the Moonblade holds a Terrastaff, the Sunderer wearer holds a
+    Warbrand, the Sasori wearer is empty-handed because 268 no longer exists), and the saved
+    menu charts still carry a 268 word, which is exactly the stopping word the game's chart
+    housekeeper trips over (the round-8 defect shape: doubled neighbors, a lost end marker),
+    so Sort BOTH weapon lists once before buying or looting anything. The adversarial review
+    of 0b5332ef (SHIP, one MAJOR) found the mod's own chart repair keeps such a word; that
+    fix is LW-367.
   - (Tech, stage 1 landed for 48/262, the rest is stage 2 scope: items.json restores ids
     48-50/67-70 to vanilla names, categories, baseline numbers and tiers with noGrowth; the designs re-add as extended rows with migratedFrom, each
     authoring its NEW category's delivery grammar and its clone donor's range (generate.py
@@ -433,6 +439,33 @@ belongs rather than at the bottom.
   Signature.AtTier (3); the kill tally migration moved id 50's count to the Sunderer's id
   (TallyMigration), which was 0 on the owner's rig;
   a dev-flavored BuildLinked seeds every tally to max tier and is the quickest way to see it.)
+  Note 2026-08-31: the Moonblade removal slid every hand word down one, so the unit that wore
+  the Sunderer now holds a Warbrand and the owner's rig owns no Sunderer at all; one must be
+  bought again (Chapter4_Bethla window) before this check can run.
+- [LW-367] 2026-08-31: The mod's menu-chart repair should throw out a saved id that no longer
+  exists. Plain language: when an extended weapon is removed (the Moonblade today) the saved
+  menu charts keep its old number, and that number is exactly the word the game's chart
+  housekeeper stops at (the LW-351 round-8 defect shape: a doubled neighbor and a lost end
+  marker on every new acquisition) until the player sorts the list by hand. Found by the
+  adversarial review of 0b5332ef (the one MAJOR finding). Done looks like: TemplateSeat's scan
+  drops any word whose masked id is at or past the armed range (FirstExtendedId + the armed
+  count), says so in its repair note, and a TemplateSeatTests case pins it; until then the
+  rule is "Sort both weapon lists first". (Tech: TemplateSeat.Repair.cs ScanTable keeps every
+  nonzero word; both callers know Items.Count; the game's own Sort already drops such ids,
+  ledger row capbreak-uninstall-is-clean-loss, owner-observed 2026-08-27, not yet built on.)
+- [LW-368] 2026-08-31: Find out how many brand-new weapons the extended inventory can really
+  hold, and push that ceiling up. Plain language: the partner mod (LW-344) wants to add eight
+  weapons of its own on top of this mod's seven, and today's proven-safe ceiling is eleven in
+  total, because the game's own per-item count list has exactly 272 slots before it runs into
+  Ramza's roster row (0x110 bytes below RosterBase; ids 0 to 271), and the per-item state
+  initializer's widening was analyzed safe only to N <= 11 (LW351_plan.md U1). Owner order
+  2026-08-31: push it as far as it goes and test it. Done looks like: every fixed-size
+  per-item array the game keeps (the count bytes, the u16 seed/state array, the A7810 words,
+  anything else the initializer touches) named with its neighbor and its slack, a dev build
+  with dummy clone rows at the candidate count proving the roster and the Poacher's Den store
+  stay untouched (LaunchGuard's roster landmark is the tripwire), and either a new proven
+  ceiling or a relocation (mirror pages the way the shop flags and the catalog were mirrored)
+  that lifts it, with the guide's headroom line updated.
 - [LW-365] 2026-08-31: Sweep the last few places where the game still assumes no item id above
   261 when it reads a unit's hands. Plain language: the new weapons equip and fight fine, but
   a handful of routines that look up what a unit is holding were built with the old limit and

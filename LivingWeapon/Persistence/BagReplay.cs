@@ -99,7 +99,7 @@ internal static class BagReplay
     public static IReadOnlyList<int> OwnedIds(Plan plan, IReadOnlyList<ExtendedItemDef> items)
         => items.Where(i => CountFor(plan, i) > 0).Select(i => i.Id).OrderBy(id => id).ToList();
 
-    /// <summary>"Moonblade x1, Terrastaff x3", the tail of the tick's log line.</summary>
+    /// <summary>"Terrastaff x3, Ravager x1", the tail of the tick's log line.</summary>
     public static string Describe(Plan plan, IReadOnlyList<ExtendedItemDef> items)
         => string.Join(", ", items.Select(i => $"{i.Name} x{CountFor(plan, i)}"));
 }

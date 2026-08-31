@@ -1151,7 +1151,8 @@ POLE_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Pole")
 AXE_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Axe")
 # LW-351 stage 2 (2026-08-30): the Flail family exists again too (Iron Flail, Flail of Flame,
 # Morning Star and Scorpion Tail took ids 67-70 back when the Warbrand, Bloodlash, Climhazzard
-# and Sasori designs moved to extended ids 265-268). Same partition argument; same zero-pair
+# and Sasori designs moved to extended ids 265-268, 264-267 since the Moonblade's removal).
+# Same partition argument; same zero-pair
 # honesty: all four ship the game's own art.
 FLAIL_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Flail")
 SPEAR_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Polearm")

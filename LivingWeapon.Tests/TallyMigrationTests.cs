@@ -20,7 +20,7 @@ public class TallyMigrationTests
     private static WeaponMeta Meta(string name, int migratedFrom = 0) =>
         new() { Name = name, Cat = "Pole", Wp = 9, Formula = 1, Lane = "pa+ma", MigratedFrom = migratedFrom };
 
-    /// <summary>The shipped shape: 262 says it came from 48, and 48 is no longer a living weapon
+    /// <summary>The shipped shape: an extended id says it came from 48, and 48 is no longer a living weapon
     /// (the restored Battle Axe is noGrowth, so the bake emits no entry for it).</summary>
     private static Dictionary<int, WeaponMeta> MovedTerrastaff() =>
         new() { [262] = Meta("Terrastaff", migratedFrom: 48), [108] = Meta("Ironreed Pole") };

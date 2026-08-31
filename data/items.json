@@ -1671,7 +1671,7 @@
       "name": "Battle Axe",
       "tier": 1,
       "noGrowth": true,
-      "identity": "The vanilla Battle Axe, restored to its own slot by LW-351 when the Terrastaff design moved out to id 262. Every number here is the base game's (working/axes_flails/baseline.md: WP 9, evade 0, no element, no proc, formula 1, range 1, Chapter1_KillMiluda shelf = tier 1), and attackFlags are deliberately NOT authored so generate.py's sparse emit leaves the vanilla ForcedTwoHands/Throwable/TwoHands/Striking set alone. noGrowth keeps it out of the Living Weapon system entirely (no kill counting, no growth, no grid row); its own redesign is LW-361.",
+      "identity": "The vanilla Battle Axe, restored to its own slot by LW-351 when the Terrastaff design moved out to id 261 (262 until the Moonblade's removal on 2026-08-31). Every number here is the base game's (working/axes_flails/baseline.md: WP 9, evade 0, no element, no proc, formula 1, range 1, Chapter1_KillMiluda shelf = tier 1), and attackFlags are deliberately NOT authored so generate.py's sparse emit leaves the vanilla ForcedTwoHands/Throwable/TwoHands/Striking set alone. noGrowth keeps it out of the Living Weapon system entirely (no kill counting, no growth, no grid row); its own redesign is LW-361.",
       "baseline": {
         "wp": 9,
         "evade": 0,
@@ -1697,7 +1697,7 @@
       "name": "Giant's Axe",
       "tier": 2,
       "noGrowth": true,
-      "identity": "The vanilla Giant's Axe, restored to its own slot by LW-351 stage 2 when the Ravager design moved out to id 263. Every number here is the base game's (working/axes_flails/baseline.md and the modloader's vanilla TableData rows: WP 12, evade 0, element None, formula 1, OptionsAbilityId 0, range 1, Chapter2_MeetDraclau shelf = tier 2), and attackFlags are deliberately NOT authored so generate.py's sparse emit leaves the vanilla ForcedTwoHands/Throwable/TwoHands/Striking set alone. noGrowth keeps it out of the Living Weapon system entirely (no kill counting, no growth, no grid row); its own redesign is LW-361.",
+      "identity": "The vanilla Giant's Axe, restored to its own slot by LW-351 stage 2 when the Ravager design moved out to id 262 (263 until the Moonblade's removal on 2026-08-31). Every number here is the base game's (working/axes_flails/baseline.md and the modloader's vanilla TableData rows: WP 12, evade 0, element None, formula 1, OptionsAbilityId 0, range 1, Chapter2_MeetDraclau shelf = tier 2), and attackFlags are deliberately NOT authored so generate.py's sparse emit leaves the vanilla ForcedTwoHands/Throwable/TwoHands/Striking set alone. noGrowth keeps it out of the Living Weapon system entirely (no kill counting, no growth, no grid row); its own redesign is LW-361.",
       "baseline": {
         "wp": 12,
         "evade": 0,
@@ -1723,7 +1723,7 @@
       "name": "Slasher",
       "tier": 3,
       "noGrowth": true,
-      "identity": "The vanilla Slasher, restored to its own slot by LW-351 stage 2 when the Sunderer design moved out to id 264. Every number here is the base game's (working/axes_flails/baseline.md and the modloader's vanilla TableData rows: WP 16, evade 0, element None, formula 1, OptionsAbilityId 18, range 1, Chapter3_Zalmo shelf = tier 3), and attackFlags are deliberately NOT authored so generate.py's sparse emit leaves the vanilla ForcedTwoHands/Throwable/TwoHands/Striking set alone. Its vanilla on-hit (OptionsAbilityId 18, a chance of Slow) rides along, so the generated card says so. noGrowth keeps it out of the Living Weapon system entirely (no kill counting, no growth, no grid row); its own redesign is LW-361.",
+      "identity": "The vanilla Slasher, restored to its own slot by LW-351 stage 2 when the Sunderer design moved out to id 263 (264 until the Moonblade's removal on 2026-08-31). Every number here is the base game's (working/axes_flails/baseline.md and the modloader's vanilla TableData rows: WP 16, evade 0, element None, formula 1, OptionsAbilityId 18, range 1, Chapter3_Zalmo shelf = tier 3), and attackFlags are deliberately NOT authored so generate.py's sparse emit leaves the vanilla ForcedTwoHands/Throwable/TwoHands/Striking set alone. Its vanilla on-hit (OptionsAbilityId 18, a chance of Slow) rides along, so the generated card says so. noGrowth keeps it out of the Living Weapon system entirely (no kill counting, no growth, no grid row); its own redesign is LW-361.",
       "baseline": {
         "wp": 16,
         "evade": 0,
@@ -2323,7 +2323,7 @@
       "name": "Iron Flail",
       "tier": 1,
       "noGrowth": true,
-      "identity": "The vanilla Iron Flail, restored to its own slot by LW-351 stage 2 when the Warbrand design moved out to id 265. Every number here is the base game's (working/axes_flails/baseline.md and the modloader's vanilla TableData rows: WP 9, evade 0, element None, formula 1, OptionsAbilityId 0, range 1, Chapter2_SaveAgrias shelf = tier 1), and attackFlags are deliberately NOT authored so generate.py's sparse emit leaves the vanilla Throwable/TwoHands/TwoSwords/Striking set alone. noGrowth keeps it out of the Living Weapon system entirely (no kill counting, no growth, no grid row); its own redesign is LW-361.",
+      "identity": "The vanilla Iron Flail, restored to its own slot by LW-351 stage 2 when the Warbrand design moved out to id 264 (265 until the Moonblade's removal on 2026-08-31). Every number here is the base game's (working/axes_flails/baseline.md and the modloader's vanilla TableData rows: WP 9, evade 0, element None, formula 1, OptionsAbilityId 0, range 1, Chapter2_SaveAgrias shelf = tier 1), and attackFlags are deliberately NOT authored so generate.py's sparse emit leaves the vanilla Throwable/TwoHands/TwoSwords/Striking set alone. noGrowth keeps it out of the Living Weapon system entirely (no kill counting, no growth, no grid row); its own redesign is LW-361.",
       "baseline": {
         "wp": 9,
         "evade": 0,
@@ -2349,7 +2349,7 @@
       "name": "Flail of Flame",
       "tier": 3,
       "noGrowth": true,
-      "identity": "The vanilla Flail of Flame, restored to its own slot by LW-351 stage 2 when the Bloodlash design moved out to id 266. Every number here is the base game's (working/axes_flails/baseline.md and the modloader's vanilla TableData rows: WP 11, evade 0, element Fire, formula 2, OptionsAbilityId 17, range 1, Chapter3_Zalmo shelf = tier 3), and attackFlags are deliberately NOT authored so generate.py's sparse emit leaves the vanilla Throwable/TwoHands/TwoSwords/Striking set alone. Keeps vanilla's formula 2 + Fire with OptionsAbilityId 17 (the Fira cast), which the generated card states as its Fire cast. noGrowth keeps it out of the Living Weapon system entirely (no kill counting, no growth, no grid row); its own redesign is LW-361.",
+      "identity": "The vanilla Flail of Flame, restored to its own slot by LW-351 stage 2 when the Bloodlash design moved out to id 265 (266 until the Moonblade's removal on 2026-08-31). Every number here is the base game's (working/axes_flails/baseline.md and the modloader's vanilla TableData rows: WP 11, evade 0, element Fire, formula 2, OptionsAbilityId 17, range 1, Chapter3_Zalmo shelf = tier 3), and attackFlags are deliberately NOT authored so generate.py's sparse emit leaves the vanilla Throwable/TwoHands/TwoSwords/Striking set alone. Keeps vanilla's formula 2 + Fire with OptionsAbilityId 17 (the Fira cast), which the generated card states as its Fire cast. noGrowth keeps it out of the Living Weapon system entirely (no kill counting, no growth, no grid row); its own redesign is LW-361.",
       "baseline": {
         "wp": 11,
         "evade": 0,
@@ -2375,7 +2375,7 @@
       "name": "Morning Star",
       "tier": 3,
       "noGrowth": true,
-      "identity": "The vanilla Morning Star, restored to its own slot by LW-351 stage 2 when the Climhazzard design moved out to id 267. Every number here is the base game's (working/axes_flails/baseline.md and the modloader's vanilla TableData rows: WP 16, evade 0, element None, formula 1, OptionsAbilityId 0, range 1, Chapter3_SaveRafa shelf = tier 3), and attackFlags are deliberately NOT authored so generate.py's sparse emit leaves the vanilla Throwable/TwoHands/TwoSwords/Striking set alone. noGrowth keeps it out of the Living Weapon system entirely (no kill counting, no growth, no grid row); its own redesign is LW-361.",
+      "identity": "The vanilla Morning Star, restored to its own slot by LW-351 stage 2 when the Climhazzard design moved out to id 266 (267 until the Moonblade's removal on 2026-08-31). Every number here is the base game's (working/axes_flails/baseline.md and the modloader's vanilla TableData rows: WP 16, evade 0, element None, formula 1, OptionsAbilityId 0, range 1, Chapter3_SaveRafa shelf = tier 3), and attackFlags are deliberately NOT authored so generate.py's sparse emit leaves the vanilla Throwable/TwoHands/TwoSwords/Striking set alone. noGrowth keeps it out of the Living Weapon system entirely (no kill counting, no growth, no grid row); its own redesign is LW-361.",
       "baseline": {
         "wp": 16,
         "evade": 0,
@@ -2401,7 +2401,7 @@
       "name": "Scorpion Tail",
       "tier": 5,
       "noGrowth": true,
-      "identity": "The vanilla Scorpion Tail, restored to its own slot by LW-351 stage 2 when the Sasori design moved out to id 268. Every number here is the base game's (working/axes_flails/baseline.md and the modloader's vanilla TableData rows: WP 23, evade 0, element None, formula 1, OptionsAbilityId 0, range 1, Unknown20 (sold nowhere in vanilla; rare) shelf = tier 5), and attackFlags are deliberately NOT authored so generate.py's sparse emit leaves the vanilla Throwable/TwoHands/TwoSwords/Striking set alone. noGrowth keeps it out of the Living Weapon system entirely (no kill counting, no growth, no grid row); its own redesign is LW-361.",
+      "identity": "The vanilla Scorpion Tail, restored to its own slot by LW-351 stage 2 when the Sasori design moved out to id 267 (268 until the Moonblade's removal on 2026-08-31). Every number here is the base game's (working/axes_flails/baseline.md and the modloader's vanilla TableData rows: WP 23, evade 0, element None, formula 1, OptionsAbilityId 0, range 1, Unknown20 (sold nowhere in vanilla; rare) shelf = tier 5), and attackFlags are deliberately NOT authored so generate.py's sparse emit leaves the vanilla Throwable/TwoHands/TwoSwords/Striking set alone. noGrowth keeps it out of the Living Weapon system entirely (no kill counting, no growth, no grid row); its own redesign is LW-361.",
       "baseline": {
         "wp": 23,
         "evade": 0,

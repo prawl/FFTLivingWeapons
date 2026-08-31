@@ -182,6 +182,9 @@ public class MetaSchemaTests : IDisposable
             Assert.True(map.TryGetValue(id, out var m), $"id{id} missing from meta.json");
             Assert.Equal("speed", m.Lane);
         }
+        // Pinned by name too: 265 (Bloodlash) is also a speed lane, so a lane-only pin would let an
+        // off-by-one in the extended id pass (adversarial review of 0b5332ef, 2026-08-31).
+        Assert.Equal("Climhazzard", map[266].Name);
 
         Assert.True(map.TryGetValue(30, out var arcanum), "id30 (Arcanum) missing from meta.json");
         Assert.Equal("ma", arcanum.Lane);

@@ -187,7 +187,11 @@ public class ProofClaimContractTests
         // discriminator premise as "live-proven 2026-08-12"; that leans on LIVE_LEDGER's
         // [basic-attack-discriminator] row, which sits in the Proven section (owner-flipped
         // 2026-08-12 on the LW-167 arming pass), so the claim is real and the count moves.
-        { "docs/TODO.md", 8 },
+        // 8 -> 9 (2026-08-31, the Moonblade removal): the LW-351 row's progress bullet records
+        // the owner's own in-session sign-off ("OWNER LIVE-VERIFIED 2026-08-31 ~01:45": he loaded
+        // the deployed build and saw no Moonblade). It asserts the owner's verdict on that
+        // change, not a LIVE_LEDGER mechanism row, the same shape as the LW-127 entry above.
+        { "docs/TODO.md", 9 },
         { "docs/VERIFY_LIVE.md", 3 },
     };
 
