@@ -1,0 +1,66 @@
+[
+ {
+  "addr": 5840838478,
+  "label": "modded/from1/psx_record/full",
+  "len": 254,
+  "prot": "RW",
+  "region": 5821693952,
+  "regionSize": 42311680
+ },
+ {
+  "addr": 5840838476,
+  "label": "modded/from0/psx_record/full",
+  "len": 256,
+  "prot": "RW",
+  "region": 5821693952,
+  "regionSize": 42311680
+ },
+ {
+  "addr": 5862891678,
+  "label": "modded/from1/psx_record/full",
+  "len": 254,
+  "prot": "RW",
+  "region": 5821693952,
+  "regionSize": 42311680
+ },
+ {
+  "addr": 5862891676,
+  "label": "modded/from0/psx_record/full",
+  "len": 256,
+  "prot": "RW",
+  "region": 5821693952,
+  "regionSize": 42311680
+ },
+ {
+  "addr": 5984609094,
+  "label": "modded/from1/psx_record/full",
+  "len": 254,
+  "prot": "RW",
+  "region": 5968494592,
+  "regionSize": 29421568
+ },
+ {
+  "addr": 5984609092,
+  "label": "modded/from0/psx_record/full",
+  "len": 256,
+  "prot": "RW",
+  "region": 5968494592,
+  "regionSize": 29421568
+ },
+ {
+  "addr": 281014844582,
+  "label": "vanilla/from1/psx_record/full",
+  "len": 254,
+  "prot": "RW",
+  "region": 281000624128,
+  "regionSize": 252624896
+ },
+ {
+  "addr": 281014844580,
+  "label": "vanilla/from0/psx_record/full",
+  "len": 256,
+  "prot": "RW",
+  "region": 281000624128,
+  "regionSize": 252624896
+ }
+]
