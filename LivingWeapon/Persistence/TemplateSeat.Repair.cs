@@ -18,7 +18,11 @@ namespace LivingWeapon;
 /// RULES, each pinned by a test: a doubled id keeps its first occurrence; a zero word goes (id 0
 /// is never an entry, the menu shows it as an empty row); a table with no 0x00FF marker gets
 /// one at its first zero word and everything past that word is dropped as stale; a table with
-/// neither marker nor zero word is refused, not guessed at; a clean table is untouched.
+/// neither marker nor zero word is refused, not guessed at; a clean table is untouched. LW-367: a
+/// word whose masked id is at or past the caller's armed range is dropped too, ahead of the
+/// doubled-id dedupe -- a saved chart can carry the id of a design that has since been removed or
+/// was never armed on this build, and such a word left in place ends the game's own maintainer
+/// walk early exactly like the doubled-id damage above.
 /// </summary>
 internal static partial class TemplateSeat
 {
@@ -28,7 +32,11 @@ internal static partial class TemplateSeat
 
     /// <summary>Pure: read <paramref name="words"/> u16 words of <paramref name="region"/> and
     /// apply the repair rules above.</summary>
-    internal static Scan ScanTable(byte[] region, int words)
+    /// <param name="firstStaleId">LW-367: a word whose masked id is at or past this bound is
+    /// dropped as stale instead of kept. Defaults to <see cref="int.MaxValue"/> so every legacy
+    /// caller and test keeps today's behavior byte-for-byte; production callers pass
+    /// <see cref="ExtendedCatalog.FirstExtendedId"/> plus the armed extended count.</param>
+    internal static Scan ScanTable(byte[] region, int words, int firstStaleId = int.MaxValue)
     {
         var raw = new List<ushort>(words);
         int marker = -1;
@@ -52,17 +60,26 @@ internal static partial class TemplateSeat
         var seen = new HashSet<int>();
         var body = new List<ushort>(raw.Count);
         var doubled = new List<string>();
+        var stale = new List<string>();
         int zeros = 0;
         foreach (ushort w in raw)
         {
             if (w == 0) { zeros++; continue; }
             int id = w & 0x3FF;   // the game's own id mask; the templates carry no flag bits today
+            // LW-367: a stale word is dropped before the dedupe ever sees it, so it never marks
+            // its masked id as seen (and so never counts as a double either).
+            if (id >= firstStaleId) { stale.Add(id.ToString()); continue; }
             if (!seen.Add(id)) { doubled.Add(id.ToString()); continue; }
             body.Add(w);
         }
         if (doubled.Count > 0 || zeros > 0)
         {
             string healed = $"removed {doubled.Count} doubled id(s) [{string.Join(",", doubled)}] and {zeros} zero word(s)";
+            note = note == null ? healed : note + "; " + healed;
+        }
+        if (stale.Count > 0)
+        {
+            string healed = $"dropped {stale.Count} stale id(s) [{string.Join(",", stale)}] past the armed range";
             note = note == null ? healed : note + "; " + healed;
         }
         return new Scan(body, marker, note, null);

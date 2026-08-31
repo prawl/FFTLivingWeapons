@@ -67,7 +67,9 @@ internal sealed partial class OrderRebuildHook
         // still see the table (a doubled or marker-less template is damage whoever owns what).
         var owned = OwnedExtendedIds();
         if (!_mem.TryRead(region.Addr, region.CapacityWords * 2, out var bytes)) return;
-        var seat = TemplateSeat.Plan(bytes, region.CapacityWords, owned);
+        // LW-367: anything at or past the armed range is stale (a removed design, a stunt
+        // leftover) and gets dropped by the repair rather than kept.
+        var seat = TemplateSeat.Plan(bytes, region.CapacityWords, owned, ExtendedCatalog.FirstExtendedId + _extendedCount);
         if (seat.Refusal != null) { Refused($"{region.Label} at 0x{region.Addr:X} could not take the owned new item(s) before the menu rebuild ({seat.Refusal})."); return; }
         if (!seat.Writes) return;
         if (!_mem.TryWrite(region.Addr + (long)seat.WordIndex * 2, seat.Bytes!)) { Refused($"{region.Label} at 0x{region.Addr:X} refused the seating write."); return; }

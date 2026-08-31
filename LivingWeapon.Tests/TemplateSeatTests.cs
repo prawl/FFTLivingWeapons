@@ -235,6 +235,129 @@ public class TemplateSeatTests
         Assert.False(seat.Writes);
     }
 
+    // LW-367: a saved chart can carry the id of an extended weapon that no longer exists (a
+    // removed design, or a stunt leftover past the armed range). Left in place, such a word ends
+    // the game's own maintainer walk early; the repair now drops it like any other damage.
+
+    /// <summary>Named break for the verifier: delete the drop in ScanTable's body loop and this
+    /// fails (268 survives the rewrite instead of being dropped).</summary>
+    [Fact]
+    public void A_saved_id_past_the_armed_range_is_dropped_as_a_repair()
+    {
+        var region = Table(8, 1, 2, 268, 50, TemplateSeat.EndMarker);
+
+        var seat = TemplateSeat.Plan(region, 8, new int[0], firstStaleId: 268);
+
+        Assert.Null(seat.Refusal);
+        Assert.True(seat.Writes);
+        Assert.Equal(0, seat.WordIndex);
+        Assert.Equal(new ushort[] { 1, 2, 50, TemplateSeat.EndMarker }, Words(seat.Bytes!, 4));
+        Assert.NotNull(seat.Repaired);
+        Assert.Contains("268", seat.Repaired);
+        Assert.Contains("stale", seat.Repaired);
+    }
+
+    /// <summary>LW-367 verifier finding F1: the stale check must judge the MASKED id (<c>w &amp;
+    /// 0x3FF</c>), not the raw word, because a word can carry a flag bit above the id (LW-346's
+    /// EquippedBadge, 0x4000) and still name the same stale id underneath. Named break for the
+    /// verifier: change <c>int id = w &amp; 0x3FF;</c> to <c>int id = w;</c> in ScanTable's body
+    /// loop and this fails on the note (it reports the raw word, not 268) -- swapping only the
+    /// comparison's operand (<c>id &gt;=</c> to <c>w &gt;=</c>) does NOT break this test: a
+    /// masked id can only be smaller than or equal to its raw word, so whenever the masked id
+    /// already clears the stale bound the raw word clears it too.</summary>
+    [Fact]
+    public void A_flagged_stale_word_is_dropped_by_its_masked_id()
+    {
+        const int flagged = 0x4000 | 268;   // EquippedBadge | id 268 -> 0x410C
+        var region = Table(8, 1, 2, flagged, 50, TemplateSeat.EndMarker);
+
+        var seat = TemplateSeat.Plan(region, 8, new int[0], firstStaleId: 268);
+
+        Assert.Null(seat.Refusal);
+        Assert.True(seat.Writes);
+        Assert.Equal(0, seat.WordIndex);
+        Assert.Equal(new ushort[] { 1, 2, 50, TemplateSeat.EndMarker }, Words(seat.Bytes!, 4));
+        Assert.DoesNotContain((ushort)flagged, Words(seat.Bytes!, 4));
+        Assert.NotNull(seat.Repaired);
+        Assert.Contains("268", seat.Repaired);
+        Assert.Contains("stale", seat.Repaired);
+    }
+
+    /// <summary>LW-367 verifier F1 follow-up: the drop judges the MASKED id, not the raw word --
+    /// judging the raw word would wrongly drop a flagged armed word (0x4105 = EquippedBadge 0x4000
+    /// | id 261, an ARMED id) because the raw word (16645) is itself >= the stale bound (268) even
+    /// though the id underneath it is nowhere near stale.</summary>
+    [Fact]
+    public void A_flagged_armed_word_survives_the_stale_drop()
+    {
+        const int flaggedArmed = 0x4000 | Moon;   // EquippedBadge | id 261 -> 0x4105
+        var f = new FakeCodePatcher();
+        foreach (var r in TemplateSeat.WeaponRegions)
+            f.Seed(r.Addr, Table(r.CapacityWords, flaggedArmed, 5, TemplateSeat.EndMarker));
+        var repaired = new List<string>();
+
+        TemplateSeat.Apply(f, new int[0], onRepaired: repaired.Add, firstStaleId: 268);
+
+        Assert.Empty(repaired);           // no "stale" repair segment is ever reported
+        Assert.Empty(f.Writes);
+        foreach (var r in TemplateSeat.WeaponRegions)
+            Assert.Equal(new ushort[] { (ushort)flaggedArmed, 5, TemplateSeat.EndMarker }, WordsAt(f, r.Addr, 3));
+    }
+
+    [Fact]
+    public void The_armed_range_boundary_is_exact()
+    {
+        const int firstStaleId = 268;
+        var region = Table(8, 1, firstStaleId - 1, firstStaleId, TemplateSeat.EndMarker);
+
+        var seat = TemplateSeat.Plan(region, 8, new int[0], firstStaleId: firstStaleId);
+
+        Assert.NotNull(seat.Repaired);
+        Assert.Equal(new ushort[] { 1, firstStaleId - 1, TemplateSeat.EndMarker }, Words(seat.Bytes!, 3));
+    }
+
+    [Fact]
+    public void Vanilla_and_DLC_words_are_never_dropped()
+    {
+        foreach (int firstStaleId in new[] { 261, 300, int.MaxValue })
+        {
+            var region = Table(8, 256, 259, 260, TemplateSeat.EndMarker);
+
+            var seat = TemplateSeat.Plan(region, 8, new int[0], firstStaleId: firstStaleId);
+
+            Assert.Null(seat.Repaired);
+            Assert.False(seat.Writes);
+        }
+    }
+
+    [Fact]
+    public void The_default_keeps_todays_behavior()
+    {
+        var region = Table(8, 1, 300, TemplateSeat.EndMarker);
+
+        var seat = TemplateSeat.Plan(region, 8, new int[0]);
+
+        Assert.Null(seat.Repaired);
+        Assert.False(seat.Writes);
+    }
+
+    [Fact]
+    public void A_stale_word_and_a_doubled_id_heal_in_one_note()
+    {
+        var region = Table(8, 1, 5, 5, 268, TemplateSeat.EndMarker);
+
+        var seat = TemplateSeat.Plan(region, 8, new int[0], firstStaleId: 268);
+
+        Assert.NotNull(seat.Repaired);
+        Assert.Contains("5", seat.Repaired);
+        Assert.Contains("268", seat.Repaired);
+        // Final-verifier b1: the spec's v1.1 NOTE ORDER ruling (doubled/zeros segment first, the
+        // stale segment appended after) needs a pin, or swapping the two append blocks passes.
+        Assert.True(seat.Repaired!.IndexOf("doubled", StringComparison.Ordinal) < seat.Repaired.IndexOf("stale", StringComparison.Ordinal),
+            "the doubled/zeros segment must compose before the stale segment");
+        Assert.Equal(new ushort[] { 1, 5, TemplateSeat.EndMarker }, Words(seat.Bytes!, 3));
+    }
+
     [Fact]
     public void Apply_reports_a_repair_once_per_template_and_rewrites_it()
     {
@@ -248,6 +371,22 @@ public class TemplateSeatTests
         Assert.Equal(2, repaired.Count);
         Assert.Contains("inventory order template", repaired[0]);
         Assert.Equal(new ushort[] { 1, 7, Terra, TemplateSeat.EndMarker }, WordsAt(f, Offsets.PickerOrderTemplate, 4));
+    }
+
+    [Fact]
+    public void Apply_drops_stale_ids_with_the_bound_given()
+    {
+        var f = new FakeCodePatcher();
+        foreach (var r in TemplateSeat.WeaponRegions)
+            f.Seed(r.Addr, Table(r.CapacityWords, 1, 268, 2, TemplateSeat.EndMarker));
+        var repaired = new List<string>();
+
+        TemplateSeat.Apply(f, new int[0], onRepaired: repaired.Add, firstStaleId: 268);
+
+        Assert.Equal(2, repaired.Count);
+        Assert.Contains("268", repaired[0]);
+        Assert.Contains("stale", repaired[0]);
+        Assert.Equal(new ushort[] { 1, 2, TemplateSeat.EndMarker }, WordsAt(f, Offsets.PickerOrderTemplate, 3));
     }
 
     /// <summary>Round 8c (verifier V8b-1): a damaged table must heal even on a save whose player

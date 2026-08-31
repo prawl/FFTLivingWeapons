@@ -82,12 +82,17 @@ internal static partial class TemplateSeat
     /// on the game's 0x3FF id mask (the menu LISTS carry flag bits above it; these tables do not
     /// today, and a flagged copy still names the same item), the same rule the repair applies
     /// when it collapses doubles.</summary>
-    public static Seating Plan(byte[] region, int capacityWords, IReadOnlyList<int> ids)
+    /// <param name="firstStaleId">LW-367: forwarded to <see cref="ScanTable"/> -- a word whose
+    /// masked id is at or past this bound is dropped as stale rather than kept. Defaults to
+    /// <see cref="int.MaxValue"/> so every legacy caller and test keeps today's behavior
+    /// byte-for-byte; production callers pass <see cref="ExtendedCatalog.FirstExtendedId"/> plus
+    /// the armed extended count.</param>
+    public static Seating Plan(byte[] region, int capacityWords, IReadOnlyList<int> ids, int firstStaleId = int.MaxValue)
     {
         if (region == null) return Seating.Nothing;
         ids ??= Array.Empty<int>();
         int words = Math.Min(capacityWords, region.Length / 2);
-        var scan = ScanTable(region, words);
+        var scan = ScanTable(region, words, firstStaleId);
         if (scan.Refusal != null) return Seating.Refuse(scan.Refusal);
 
         // Round 8c: listed-ness is judged on the game's own 0x3FF id mask, the same rule the
@@ -143,9 +148,14 @@ internal static partial class TemplateSeat
     /// vanilla pair) when null or omitted, else <see cref="ExtendedInventory.TemplateRegions"/>
     /// (the relocated page's regions once armed). Every production caller passes the latter; the
     /// default keeps every pre-existing test and caller compiling unchanged.</param>
+    /// <param name="firstStaleId">LW-367: forwarded to <see cref="Plan"/> -- a word whose masked
+    /// id is at or past this bound is dropped as stale on every repair. Defaults to
+    /// <see cref="int.MaxValue"/> so every legacy caller keeps today's behavior byte-for-byte;
+    /// production callers pass <see cref="ExtendedCatalog.FirstExtendedId"/> plus the armed
+    /// extended count.</param>
     public static void Apply(ICodePatcher patcher, IReadOnlyList<int> ids,
         Action<string>? onRefused = null, Action<string>? onSeated = null, Action<string>? onRepaired = null,
-        Region[]? regions = null)
+        Region[]? regions = null, int firstStaleId = int.MaxValue)
     {
         // Round 8c: no early return on an empty owned list. The seat half is then a no-op, but
         // the repair half must still run: a damaged table on a save whose player owns no
@@ -154,7 +164,7 @@ internal static partial class TemplateSeat
         foreach (var region in regions ?? WeaponRegions)
         {
             if (!patcher.TryRead(region.Addr, region.CapacityWords * 2, out var bytes)) continue;
-            var seat = Plan(bytes, region.CapacityWords, ids);
+            var seat = Plan(bytes, region.CapacityWords, ids, firstStaleId);
             if (seat.Refusal != null)
             {
                 onRefused?.Invoke($"The new item(s) may not be listed in the menus: {region.Label} at 0x{region.Addr:X} could not take them ({seat.Refusal}).");

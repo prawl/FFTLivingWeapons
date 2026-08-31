@@ -213,6 +213,24 @@ public class OrderRebuildHookTests
         Assert.Equal(1, hook.Repaired);
     }
 
+    /// <summary>LW-367: a saved chart can carry the id of an extended weapon past the armed
+    /// range (a removed design, or a stunt leftover); the seat-before-rebuild step must drop it
+    /// like any other damage, not just the doubled-id shape.</summary>
+    [Fact]
+    public void Process_drops_a_stale_id_ahead_of_the_rebuild()
+    {
+        const int extendedCount = 1;
+        int staleId = ExtendedCatalog.FirstExtendedId + extendedCount;   // one past the armed range
+        var f = WithList(1, 0xFFFF);
+        f.Seed((long)Picker, Words(5, (ushort)staleId, 9, TemplateSeat.EndMarker));
+        f.Seed(Bag + 261, 1);
+        var hook = new OrderRebuildHook(f, extendedCount: extendedCount);
+        ushort[]? seen = null;
+        hook.Process(Picker, List, (table, list) => { seen = TemplateWords(f, (long)table); return Rebuild(f, 1)(table, list); });
+        Assert.Equal(new ushort[] { 5, 9, 261 }, seen);
+        Assert.Equal(1, hook.Repaired);
+    }
+
     [Fact]
     public void Process_repairs_a_doubled_template_even_when_no_extended_id_is_owned()
     {
