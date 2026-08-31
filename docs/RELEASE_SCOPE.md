@@ -448,7 +448,8 @@ this paragraph is the pointer that says so.
 
 ### R3. Owed owner eyeballs (BLOCKER, cheap, one sitting each)
 - [ ] Galleries: knives (LW-198), ninja blades (LW-205), books (LW-210), bags (LW-212).
-- [ ] The Grows-line reads (LW-332): same-lane fast-flip plus one credit battle.
+- [x] The Grows-line reads (LW-332): same-lane fast-flip plus one credit battle. Owner
+      live pass 2026-08-31 (SHIPPED 08937d7 in the changelog).
 - [ ] The grows-text live pass (LW-322) and the power audit read (LW-320).
 
 ### R4. Ship furniture
