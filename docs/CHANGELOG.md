@@ -10,6 +10,19 @@ before 2026-07-21 keep their original prose.
 
 ## 2.4.0 cycle
 
+- [LW-367] SHIPPED 58fff174 2026-08-31: The mod now heals saved menus that still name a
+  removed weapon, no hand sorting needed. Plain language: a save can carry menu chart words
+  for weapons that no longer exist (the deleted test props, the Moonblade before them), and
+  the game's chart housekeeper trips over such a word until the player sorts by hand. Now the
+  mod's own chart repair drops any saved id past the armed range on the first load or menu
+  rebuild and names the dropped ids in its log. Owner live pass the same evening on the
+  freshly cleaned build: seven items armed, the heal line fired once per chart naming only
+  dead prop numbers, both weapon menus listed exactly what he owns with no sort, a purchase
+  stayed clean, and a second load was silent because the heal had stuck. Two adversarial
+  verify rounds (code 9 of 10, final SHIP) and eight new tests, including the flagged word
+  pair that pins the masked id comparison. (Tech: TemplateSeat.ScanTable/Plan/Apply gain
+  firstStaleId = FirstExtendedId + armed count, passed by the rebuild hook seat and both load
+  edge sites; suite 3599; the stage 3 close rode alongside in 5ce751f9 and 5340b732.)
 - [LW-375] WONTFIX 2026-08-31: The plan to make the All Items browser draw every owned kind is
   dropped by owner ruling, and the shortest menu list becomes the recorded design ceiling for
   the whole catalog. Plain language: of every list that shows items, the smallest is the equip

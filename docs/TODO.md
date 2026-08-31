@@ -148,26 +148,6 @@ the technical detail lives in the indented lines under it.
     removal), each design listed in one of its
     towns and equipping on its category's job, the Sunderer's Bulwark firing at 263 with its
     migrated tally, one vanilla axe and one vanilla flail swing).
-- **[LW-367] The mod heals saved menus that still name a removed weapon** (opened 2026-08-31) [AWAITING-LIVE]
-  - Plain language: when an extended weapon is removed (the Moonblade before, the stunt props
-    today) the saved menu charts keep its old number, and that number is exactly the word the
-    game's chart housekeeper trips over (a doubled neighbor and a lost end marker on every new
-    acquisition) until the player sorts by hand. The mod's own chart repair currently keeps
-    such a word. Found by the adversarial review of 0b5332ef; promoted 2026-08-31 with the
-    stunt cleanup (every owner save now carries stale 268 to 381 words, the perfect fixture).
-    (Tech: TemplateSeat.Repair.cs ScanTable gains a firstStaleId bound = FirstExtendedId +
-    the armed count, passed by both callers; a dropped word makes the scan Repaired so the
-    whole-table rewrite ships the heal; ledger row capbreak-uninstall-is-clean-loss is the
-    proof the game itself treats such a drop as clean.)
-  - Done means: loading a save whose menu charts name removed extended weapons heals the
-    charts automatically, with a repair note naming the dropped ids, no hand Sort needed;
-    every id the player really owns stays listed; charts without stale words behave exactly
-    as before (a default parameter keeps every legacy path byte-identical).
-  - Verify: suite green with the new TemplateSeatTests and OrderRebuildHookTests cases (drop,
-    boundary, vanilla and DLC words kept, legacy default, one-note composition); the owner's
-    live pass on the post-cleanup build: load the stunt-era save WITHOUT sorting, the log
-    shows the repair line naming stale ids, Items tab and picker list exactly the owned kinds,
-    one purchase keeps the marker intact, and a second load after saving shows no repair line.
 ## Backlog
 
 Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner directed).
