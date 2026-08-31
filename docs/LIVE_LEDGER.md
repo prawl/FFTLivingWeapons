@@ -1894,6 +1894,22 @@ Proven, owner-flipped 2026-08-30: the re-test on the masked-key build passed end
 
 ## Uncertain — observed live, not yet isolated / built on
 
+### [item-count-lists-relocatable] The game's two per-item byte lists (bag counts at 0x1411A7C00, the sibling flag list at 0x1411A7700) can be moved to a page the mod owns by re-pointing every code reference, and the game keeps counting correctly
+
+Observed 2026-08-31 02:40-02:55 by the owner on 1.5.2, in a running game, no relaunch: with both lists copied to a 64 KB page at 0x13FF00000 and all 45 plain-code references re-pointed from outside (tools/probes/lw368_count_list_relocate.py --apply; 21 rip-relative displacements, 24 image-relative displacements of the `[idx + r8 + rva]` shape with r8 the image base), vanilla item counts read normally on the Items tab, buying a Potion raised its count and charged gil, equipping and unequipping a vanilla weapon moved the held/equipped numbers, a save and a reload kept the changed counts, and the Poacher's Den still showed every carcass. Then `--undo` copied the page back and restored the 45 fields. One raw reference inside the copy-protected region (0x149D257C0) is not an x86 field and was left untouched; nothing the owner exercised depended on it. Not yet built on: the DLL still uses the old list for its own extended-count replay during the probe (Offsets.BagCountArray is a constant), so extended counts were not judged; the build moves that base too.
+
+<details><summary>How we got here</summary>
+
+**Claim (original wording):** eleven extended items is a hard ceiling because id 272's count byte is the first byte of Ramza's roster row (the count list has 0x110 bytes before RosterBase); moving the list is the only way past it, and the game will not notice as long as every reader is re-pointed.
+
+**Mechanism:** two read-only sweeps of the running game's executable sections (rip-relative disp32 targets, then the 4-byte RVA pattern that the reset routine's `mov byte [rax+r8+0x11A7C00],0` form uses and the first sweep cannot see), capstone operand details to pin each field to its instruction, VirtualProtectEx + WriteProcessMemory per field with read-back, a page allocated below the image because the entire 2 GB above it is one arena reservation.
+
+**Evidence:** tools/probes/lw368_count_list_relocate.py and its lw368_count_list_relocate_undo.json.done (the 45 fields, old and new bytes); docs/TODO.md LW-368 row; the owner's five-point check reported in chat 2026-08-31.
+
+**Date:** 2026-08-31
+
+</details>
+
 ### [weapon-sprite-pair-drives-swing-art] The two-byte sprite/palette record at 0x140785CF0 + id*2 picks BOTH the drawing and the palette of a weapon's swing, and it is read on every swing
 
 Observed 2026-08-27 00:50 and 00:56 by the owner on 1.5.2, mid-battle, no relaunch, no fresh battle: Save the Queen (id 34, vanilla record F0 0C) was rewritten from outside to 50 03 (Warbrand's axe drawing, Chaos Blade's palette nibble) and the very next swing drew Warbrand's art in purple (tools/probes/lw349_sprite_pair_graphic_swap_34.png); rewritten to F0 03 (Warbrand's own record) the next swing drew the same shape in Warbrand's steel (tools/probes/lw349_sprite_pair_palette_swap_34.png); restored to F0 0C afterwards. So byte 1 selects the drawing and byte 0 the palette, per draw. This is the mechanism [weapon-palette-assignment-walled] said did not exist: that row's probes used base 0x140785CF2, one item off. Not yet built on; owner flip pending.

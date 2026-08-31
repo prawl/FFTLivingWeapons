@@ -184,6 +184,16 @@ the technical detail lives in the indented lines under it.
     of at least the count list with 37 known re-points and an unknown number behind Denuvo, or a
     per-function mirror at the accessor entry points; estimate and owner go-ahead before any
     fan-out (the fan-out rule).
+  - Round 2 PREMISE HELD (2026-08-31 02:40-02:55, owner's five-point check): both lists were
+    relocated in the running game from outside (tools/probes/lw368_count_list_relocate.py, 45
+    fields re-pointed, page below the image because the whole 2 GB above it is one arena
+    reservation) and vanilla counts, a Potion purchase, equip/unequip, a save and reload, and
+    the Poacher's Den all behaved; undone afterwards. Ledger row
+    [item-count-lists-relocatable] (Uncertain until the owner flips it). Owner chose "probe
+    first, then the build" and the probe held, so the build is next: the DLL relocates both
+    lists at boot arm, re-points the 45 fields with their vanilla bytes pinned, moves its own
+    base off the Offsets.BagCountArray constant, and the partner's eight (fifteen total) is the
+    first live target.
   - (Tech: the three id-keyed arrays the initializer 0x140284500 seeds are u8 0x1411A7C00
     (bag counts, 0x110 bytes then RosterBase), u8 0x1411A7700 (0x110 bytes then the u16 array)
     and u16 0x1411A7810 (0x105 entries then PoachStoreBase 0x1411A7A1B); every PlusN site in
