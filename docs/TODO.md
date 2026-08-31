@@ -149,6 +149,38 @@ the technical detail lives in the indented lines under it.
     towns and equipping on its category's job, the Sunderer's Bulwark firing at 263 with its
     migrated tally, one vanilla axe and one vanilla flail swing).
 
+- **[LW-368] Find out how many brand-new weapons the extended inventory can really hold, and push that ceiling up** (opened 2026-08-31) [BUILDING]
+  - Plain language: the partner mod (LW-344) wants to add eight weapons of its own on top of
+    this mod's seven, and today's analyzed-safe ceiling is eleven in total, because the game's
+    own per-item count list has exactly 272 slots before it runs into Ramza's roster row (0x110
+    bytes below RosterBase; ids 0 to 271), and the per-item state initializer's widening was
+    analyzed safe only to N <= 11 (LW351_plan.md U1). Owner order 2026-08-31: push it as far
+    as it goes and test it, slap in as many items as possible and see what the game retains.
+  - Round 1 (2026-08-31): four throwaway "Probe Blade" rows at ids 268 to 271 fill the
+    inventory to the analyzed ceiling of eleven on the owner's install (uncommitted working
+    tree, deployed prod flavor, Dorter sells them at 10 gil). Past eleven is not a test but a
+    corruption: id 272's count byte IS the first byte of Ramza's roster row, so item twelve
+    needs the count list (and its sibling byte list at 0x1411A7700) relocated into a buffer the
+    DLL owns first, the way LW-346 relocated the item catalog; the u16 list at 0x1411A7810
+    already spills two bytes per extended item into the Poacher's Den store and relies on the
+    game refilling that store from the save (a Den glance is part of every round).
+  - (Tech: the three id-keyed arrays the initializer 0x140284500 seeds are u8 0x1411A7C00
+    (bag counts, 0x110 bytes then RosterBase), u8 0x1411A7700 (0x110 bytes then the u16 array)
+    and u16 0x1411A7810 (0x105 entries then PoachStoreBase 0x1411A7A1B); every PlusN site in
+    ExtendedSites widens to 0x105+N; the count getter 0x140284870 masks ids to 0x3FF and caps at
+    0x203; the two list output caps are cmp esi,0x91 at 0x140288CC1 and cmp edx,0x92 at
+    0x140286318; the relocation needs an xref sweep of the three bases with
+    tools/probes/lw346_xref_scan.py, then every reader re-pointed.)
+  - Done means: every fixed-size per-item array the game keeps is named with its neighbor and
+    its slack; the owner has watched the game retain a full set of eleven (listed, bought,
+    equipped, counts kept across a save and load, Den counts intact); and either the count
+    arrays are relocated so the partner's eight fit (fifteen total, tested the same way) or the
+    ceiling is recorded as eleven with the reason, in the guide's headroom line either way.
+  - Verify: the boot line reads "Extended inventory armed: 11 new item(s)" (then 15 after the
+    relocation), the four probe blades list in Dorter and in the Items tab, equip and swing,
+    a save and load keeps their counts, the Poacher's Den still shows its carcasses, the
+    fingerprint guard never stands the mod down; suite green with the relocation's site pins.
+
 ## Backlog
 
 Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner directed).
@@ -453,19 +485,6 @@ belongs rather than at the bottom.
   rule is "Sort both weapon lists first". (Tech: TemplateSeat.Repair.cs ScanTable keeps every
   nonzero word; both callers know Items.Count; the game's own Sort already drops such ids,
   ledger row capbreak-uninstall-is-clean-loss, owner-observed 2026-08-27, not yet built on.)
-- [LW-368] 2026-08-31: Find out how many brand-new weapons the extended inventory can really
-  hold, and push that ceiling up. Plain language: the partner mod (LW-344) wants to add eight
-  weapons of its own on top of this mod's seven, and today's proven-safe ceiling is eleven in
-  total, because the game's own per-item count list has exactly 272 slots before it runs into
-  Ramza's roster row (0x110 bytes below RosterBase; ids 0 to 271), and the per-item state
-  initializer's widening was analyzed safe only to N <= 11 (LW351_plan.md U1). Owner order
-  2026-08-31: push it as far as it goes and test it. Done looks like: every fixed-size
-  per-item array the game keeps (the count bytes, the u16 seed/state array, the A7810 words,
-  anything else the initializer touches) named with its neighbor and its slack, a dev build
-  with dummy clone rows at the candidate count proving the roster and the Poacher's Den store
-  stay untouched (LaunchGuard's roster landmark is the tripwire), and either a new proven
-  ceiling or a relocation (mirror pages the way the shop flags and the catalog were mirrored)
-  that lifts it, with the guide's headroom line updated.
 - [LW-369] 2026-08-31: Brand-new weapons should be able to carry equip bonuses of their own
   (PA+1, Haste and kin) even though the game's bonus table is full. Plain language: every item
   points at a row in the game's ItemEquipBonusData table for what wearing it gives you beyond
@@ -487,6 +506,26 @@ belongs rather than at the bottom.
   and generate.py places new rows only in the free slots 74-79 plus six audited vanilla rows
   (memory equipbonus-row-override-audit); the game's readers of the table are unfound, so the
   first step is the xref sweep that found the shop-flags table, lw346_xref_scan.py.)
+- [LW-370] 2026-08-31: A partner mod's brand-new weapons should get their names and card text
+  from a plain file, with this mod's card painter working on them, and without the partner ever
+  building an item.en.nxd. Plain language: the painter (the live Kills counter and the "+2" name
+  suffix on the equip card) only overwrites a fixed-width slot that this mod's name bake reserves
+  inside each item's text row, so an item whose text row lacks the slot gets no painting; and a
+  brand-new item has no text row at all until someone adds one. Asked by the LW-344 partner
+  author (2026-08-31): "the Painter, 100 percent import; descriptions in a txt or the meta file,
+  as long as the item.en.nxd formatting is left vanilla". Shape: the LW-344 whitelist integration
+  reads the partner's item names and descriptions from a simple file (JSON in the items.json row
+  shape, or plain text) and bakes them through patch_names.py, which already seeds a text row per
+  extended id and lays the painter's scaffold; the loader merges nxd overrides per cell against
+  vanilla with cross-mod union and inserts new rows, so the partner ships no nxd, vanilla rows he
+  never touches stay untouched, and the painter works on his cards with no new code. A free-text
+  description option (his prose instead of this mod's two-line house format, scaffold still laid)
+  is part of the shape. The runtime alternative, the DLL serving text by hooking the game's text
+  lookup, is the walled French-text path and stays out of scope. Done looks like: one partner
+  item authored from the file, listed with its own name and card, Kills line painting live.
+  (Tech: patch_names.seed_extended_rows + item_intent; lib/bake_intent.ALLOWED_EXTRA_ROWS derives
+  from the data; KILLS_SCAFFOLD is 11 chars and the suffix slot 2; memory
+  modloader-merge-semantics pins the per-cell nxd union.)
 - [LW-365] 2026-08-31: Sweep the last few places where the game still assumes no item id above
   261 when it reads a unit's hands. Plain language: the new weapons equip and fight fine, but
   a handful of routines that look up what a unit is holding were built with the old limit and
