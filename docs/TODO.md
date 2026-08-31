@@ -132,7 +132,16 @@ the technical detail lives in the indented lines under it.
     the new items' counts after every real battle (a hook now keeps them), the per-save
     count file held only 64 saves and forgot the owner's own (now 1024, least recently
     touched out first), and items bought without saving stayed off the menus (owned ids are
-    now seated into the order template before the game rebuilds). Re-test owed, then
+    now seated into the order template before the game rebuilds). Round 8 (2026-08-31)
+    then caught the game's own menu-chart housekeeper stopping at the new ids and
+    doubling shields while erasing designs: its three copies are widened and the mod
+    repairs a damaged chart at load and before every rebuild. RE-TEST 9 PASSED
+    2026-08-31 01:06-01:22 on that build (rounds 7 + 8 deployed): the damaged picker
+    chart healed on the load, Sort stayed clean, a Bloodlash bought without saving
+    landed at the front of both charts through the game's own housekeeper, every
+    count survived a 23-turn battle that credited Sasori 2 and Sunderer 2 kills,
+    and the flail, Sasori and Sunderer all swung. Two observations went to their own
+    rows (LW-365 empty-tile fists, LW-366 Bulwark at tier 3). Stage 2 is live-passed;
     stage 3 closes the ledger. The
     Terrastaff now records its true reach (2 tiles, its clone donor's), which makes it beat
     the Ironreed Pole; the owner deferred that pair out loud (analyze.py DOMINANCE_DEFERRED)
