@@ -36,6 +36,14 @@ copy-protected code region is swept and patched too (its pages read fine once a 
 a reference the sweeps cannot see (an obfuscated pointer) shows up as a vanilla count going
 wrong, which is exactly what the probe exists to catch. Apply on a quiet screen (world map).
 
+RESULTS: two-list apply 2026-08-31 ~02:35 (count + sibling, 45 fields): the owner's five checks
+held (counts, a purchase, equip/unequip, save and reload, the Den); undone cleanly (the .done
+record). Three-list apply ~02:55 (u16 added, 63 fields, one in the copy-protected region): the
+Den glance held, then the owner QUIT mid-battle at 03:11 to disable a monster mod, so the process
+died with the fields patched and no undo ran (the *_threelist_crashed.json.done record); the u16
+relocation is therefore INCONCLUSIVE and stays out of LW-368 round 2. Re-run with the u16 list only
+when a fresh premise probe (battle, save, reload, Den) is planned for it.
+
 Usage:  python tools/probes/lw368_count_list_relocate.py            # --scan (read-only)
         python tools/probes/lw368_count_list_relocate.py --apply
         python tools/probes/lw368_count_list_relocate.py --verify
@@ -79,6 +87,13 @@ IMAGE_BASE = 0x140000000
 LISTS = {                          # name -> (live base, bytes the game means, offset inside the new page, room)
     "count":   (0x1411A7C00, 0x110, 0x000, 0x400),
     "sibling": (0x1411A7700, 0x110, 0x400, 0x400),
+    # Round 2 plan review (2026-08-31): the u16 list has exactly 0x105 entries and ONE spare byte
+    # before PoachStoreBase 0x1411A7A1B, so every extended id's word already sits inside the
+    # Poacher's Den stores (id 261 -> keys 1/2; id 381 -> the third store). The reset routine's
+    # seed loop writes 0x105+N words there and the Den memsets that follow re-zero the spill,
+    # but the ids' own reads come back as carcass counts. Relocating it removes the overlap;
+    # 0x20A live bytes are copied (the Den bytes past them are not this list's), room 0x400 words.
+    "u16":     (0x1411A7810, 0x20A, 0x800, 0x800),
 }
 PAGE_BYTES = 0x10000
 UNDO = Path(__file__).resolve().parent / "lw368_count_list_relocate_undo.json"
