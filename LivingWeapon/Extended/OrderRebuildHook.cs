@@ -33,13 +33,21 @@ internal sealed partial class OrderRebuildHook
     /// <summary>First 10 bytes at the entry: mov [rsp+8],rbx; mov [rsp+18h],rbp.</summary>
     public static readonly byte[] ExpectedPrologue = { 0x48, 0x89, 0x5C, 0x24, 0x08, 0x48, 0x89, 0x6C, 0x24, 0x18 };
 
-    /// <summary>Upper bound on words read per call: builder A caps lists at 149 entries since
-    /// LW-371 (150 words with the terminator; widened from the vanilla 145/146), and the picker's
-    /// weapons-only caller then appends up to two hand items after that, 152 words worst case
-    /// (D5, P14: the GS-cookie-derived room of the two stack list buffers -- see
-    /// Offsets.ListBuilderCapByte / ListBuilderStackRoomBytes); 160 still bounds every
-    /// speculative read.</summary>
-    public const int MaxWords = 160;
+    /// <summary>Upper bound on words read per call. LW-372 (D5): the shared list builder's own
+    /// entry cap widens to 255 (256 words with the terminator) for every caller the widened cap
+    /// applies to directly -- the game's own static 256-word notepad, and (via ListBuilderHook's
+    /// truncation) a passthrough for anything that already fit -- so the re-append fallback here
+    /// must be able to parse a full-size rebuilt list again: 260 words, 4 words of headroom over
+    /// the 256 a 255-entry list plus terminator needs.
+    /// Honest note (v1.1): reading MaxWords*2 = 520 bytes off the STATIC buffer
+    /// (<see cref="Offsets.MenuListBuffer"/>, itself only 512 bytes / 256 words) overshoots it by
+    /// 8 mapped bytes into the neighbor object at +0x200. This is benign, not a bug to "fix": the
+    /// terminator inside the real list is always found first (<see cref="ParseList"/> stops
+    /// there), the read itself is guarded (<see cref="ICodePatcher"/>, never faults), and the 8
+    /// stray bytes are only ever examined as words if no terminator turns up at all -- in which
+    /// case ParseList already returns null and Process passes the game's own answer through
+    /// unchanged.</summary>
+    public const int MaxWords = 260;
     public const ushort Terminator = 0xFFFF;
     public const int IdMask = 0x3FF;
     /// <summary>Bit 14 of a list word: the game's E badge, set while every copy of the item is

@@ -2,7 +2,7 @@ namespace LivingWeapon;
 
 /// <summary>
 /// LW-371 (plan v1.1): the ten-field map <see cref="TemplateRelocation.Install"/> rewrites (three
-/// pointer-table slots, five rip-relative int32 fields, two menu-list-cap bytes) plus the three
+/// pointer-table slots, five rip-relative int32 fields, two menu-list-cap sites) plus the three
 /// chart descriptors the lifecycle and <see cref="TemplateSync"/> both read. Split out the way
 /// ListRelocation.Sites.cs is split from ListRelocation.cs: this file is the WHAT (the table),
 /// TemplateRelocation.cs is the lifecycle (Install/Restore/Regions). Same partial class, so
@@ -13,7 +13,9 @@ namespace LivingWeapon;
 /// process by tools/probes/lw371_order_template_relocate.py --scan, and the reviewer's RE
 /// re-check table (reproduced at the end of the plan) for the exact site bytes and the GS-cookie
 /// arithmetic that corrected the v1.0 caps: 159 -> 151 (the cookie) -> 149 (fnA's two hand-item
-/// appends, v1.3, see the CapBytes doc below).
+/// appends, v1.3, see the CapSites doc below). LW-372 (D4) widens the two cap sites' own VALUES
+/// further (to 255/256) and, since the insert bound's new value no longer fits one byte, widens
+/// the record itself from a single byte to a byte array (<see cref="CapSite"/>).
 /// </summary>
 internal sealed partial class TemplateRelocation
 {
@@ -63,9 +65,15 @@ internal sealed partial class TemplateRelocation
     /// ListRelocation's round-2b sites this record needs no Trail field.</summary>
     internal readonly record struct RipField(long Addr, int Vanilla, int Off, string Label);
 
-    /// <summary>One menu-list-cap byte (finding 5, D5): the imm32 low byte of a `cmp reg,imm32`
-    /// six-byte instruction.</summary>
-    internal readonly record struct CapByte(long Addr, byte Vanilla, byte New, string Label);
+    /// <summary>One menu-list-cap site (finding 5, D5; widened to variable-length in LW-372 D4): a
+    /// `cmp reg,imm32` six-byte instruction's immediate, either just its low byte (the builder cap,
+    /// whose widest ever value is 0xFF and fits in one byte) or the full 4-byte imm32 (the insert
+    /// bound, whose LW-372 value 0x100 does not). <see cref="Vanilla"/> and <see cref="New"/> are
+    /// always the same length; the three loops that touch a <see cref="CapSite"/>
+    /// (TemplateRelocation.Install's verify-read and write, TemplateRelocation.Restore) all use
+    /// <c>Vanilla.Length</c> as the byte count, so a site's own array length is the single source
+    /// of truth for how many bytes it spans -- no separate width field to drift out of sync.</summary>
+    internal readonly record struct CapSite(long Addr, byte[] Vanilla, byte[] New, string Label);
 
     /// <summary>One chart: where it lives today, how many bytes the game's own copy spans, where
     /// its page copy lands, how many bytes that region gets, and the word capacity
@@ -96,16 +104,21 @@ internal sealed partial class TemplateRelocation
         new(0x1402862CEL, 0x015EE454, 0, "lea rcx feeding the rebuild call at 0x1402862D2 (type 8 by the disassembly; types 6/7 branch to 0x140286342) (site 0x1402862CB)"),
     };
 
-    /// <summary>The two menu-list caps (finding 5, D5, v1.3 P14). 149, not 151: the picker's
-    /// weapons-only list caller fnA (entry 0x1402875A4) appends the unit's two hand items AFTER
-    /// the capped builder list (stores at 0x14028778C and 0x1402877A9, each only if the validity
-    /// thunk 0x1402B8EE8 accepts the id) and THEN writes the 0xFFFF terminator (0x1402877C0), so
-    /// its 0x130-byte stack buffer must hold cap + 3 words, not cap + 1: (0x95 + 3) * 2 = 0x130
-    /// exactly; 0x97 (151) would land the terminator on the GS cookie at (151 + 3) * 2 = 0x134.</summary>
-    internal static readonly CapByte[] CapBytes =
+    /// <summary>The two menu-list caps. LW-372 (D4) widens both straight from TRUE vanilla to
+    /// their final shipped value -- 255/256, not the LW-371 149/150 waypoint -- because the two
+    /// STACK callers (fnA/fnB) no longer read the builder's raw output at all: ListBuilderHook
+    /// intercepts them and truncates to <see cref="ListBuilderHook.StackCallerCap"/> (149) before
+    /// either ever sees a byte past that, so the builder cap itself is free to widen to the
+    /// biggest value a single byte holds (0xFF = 255) and the insert bound just needs to stay
+    /// cap + 1 so its own walk still reaches the terminator (0x100 = 256). D8: this widening and
+    /// the ListBuilderHook install are one transaction -- if the hook cannot arm, TemplateRelocation.Restore
+    /// puts both these sites back to vanilla along with everything else.</summary>
+    internal static readonly CapSite[] CapSites =
     {
-        new(Offsets.ListBuilderCapByte, 0x91, 0x95, "list-builder entry cap (cmp esi,0x91 at 0x140288CC1)"),
-        new(Offsets.ListInsertBoundByte, 0x92, 0x96, "list-insert bound (cmp edx,0x92 at 0x140286318)"),
+        new(Offsets.ListBuilderCapByte, new byte[] { 0x91 }, new byte[] { 0xFF },
+            "list-builder entry cap (cmp esi,0x91 at 0x140288CC1, widened to 255)"),
+        new(Offsets.ListInsertBoundByte, new byte[] { 0x92, 0x00, 0x00, 0x00 }, new byte[] { 0x00, 0x01, 0x00, 0x00 },
+            "list-insert bound (cmp edx,0x92 at 0x140286318, widened to 256 = cap + 1)"),
     };
 
     /// <summary>The three charts, in page order (D2).</summary>

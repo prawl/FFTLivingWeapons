@@ -20,7 +20,8 @@ namespace LivingWeapon;
 ///   4. the relocated catalog filled with our records;
 ///   5. the accessor thunk clones: the weapon-stat thunk answers with our own stat rows, the
 ///      nine per-category thunks answer as each item's clone/art donor;
-///   6. the category-getter and order-rebuild hooks (Reloaded.Hooks, prologue landmarks);
+///   6. the category-getter, order-rebuild, list-builder (LW-372), reset and save-edge hooks
+///      (Reloaded.Hooks, prologue landmarks);
 ///   7. the bag counts (sidecar value, else the data's first-copy seed), written at
 ///      <see cref="BagCountBase"/>.
 /// Then <see cref="Armed"/> is true and the tick half (ExtendedInventory.Tick.cs) owns the two
@@ -49,6 +50,7 @@ internal sealed partial class ExtendedInventory
     private ThunkClone? _weaponStatClone;   // the row stub: its page holds every extended id's 8-byte stats row
     private CategoryGetterHook? _getterHook;
     private OrderRebuildHook? _orderHook;
+    private ListBuilderHook? _listBuilderHook;   // LW-372
     private InventoryResetHook? _resetHook;   // LW-351 fix round 7
     private SaveEdgeHooks? _saveHooks;   // LW-353
     /// <summary>LW-353: the save/load edge core the hooks feed and the tick drains. Tests drive it directly.</summary>
@@ -115,7 +117,7 @@ internal sealed partial class ExtendedInventory
         Refusal = null;
         ModLogger.Event(LogVerb.Startup,
             $"Extended inventory armed: {Items.Count} new item(s) [{string.Join(", ", Items.Select(i => $"{i.Name} (id {i.Id})"))}], "
-            + $"{_patches.AppliedCount} cap patches, {_clones.Count} accessor redirects, 3 hooks, shop table mirrored, "
+            + $"{_patches.AppliedCount} cap patches, {_clones.Count} accessor redirects, 5 hooks (menu list builder hooked), shop table mirrored, "
             + $"item count lists relocated to 0x{_relocation.PageAddr:X}; "
             + $"menu order charts relocated to 0x{_templates.PageAddr:X}; "
             + "2 damage caps wait for the first save to load.");

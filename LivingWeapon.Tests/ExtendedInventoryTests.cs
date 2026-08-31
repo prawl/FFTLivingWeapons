@@ -55,7 +55,7 @@ public class ExtendedInventoryTests : IDisposable
         f.Seed(Offsets.SiblingListArray, new byte[ListRelocation.BlockBytes]);
         foreach (var s in TemplateRelocation.Slots) f.Seed(s.Addr, BitConverter.GetBytes(s.Vanilla));
         foreach (var rf in TemplateRelocation.RipFields) f.Seed(rf.Addr, BitConverter.GetBytes(rf.Vanilla));
-        foreach (var c in TemplateRelocation.CapBytes) f.Seed(c.Addr, c.Vanilla);
+        foreach (var c in TemplateRelocation.CapSites) f.Seed(c.Addr, c.Vanilla);
         foreach (var chart in TemplateRelocation.Charts) f.Seed(chart.OldBase, EmptyChart(chart.SpanBytes));
         return f;
     }
@@ -245,6 +245,34 @@ public class ExtendedInventoryTests : IDisposable
         // refuses, then RollBack restores it, so BagCountBase falls back to the vanilla block.
         Assert.Equal(Offsets.BagCountArray, inv.BagCountBase);
         Assert.Equal(0, f.Bytes[inv.BagCountBase + 261]);   // never seeded (still the vanilla zero-fill)
+    }
+
+    /// <summary>U6 (v1.1 strengthened, LW-372): the D8 transaction is asserted on BYTES, not just
+    /// the Armed flag. Drives the REAL <see cref="ListBuilderHook.Install"/> (not a canned refusal
+    /// string) against a genuinely corrupted prologue, so this also proves Install's own prologue
+    /// check is what refuses. TemplateRelocation's cap sites are already widened (255/256) by the
+    /// time the hooks step runs (Install order: cap patches -&gt; list relocation -&gt; template
+    /// relocation -&gt; catalog -&gt; shops -&gt; clones -&gt; hooks), so RollBack must put them back to
+    /// TRUE vanilla, not the LW-371 149/150 waypoint.</summary>
+    [Fact]
+    public void A_list_builder_prologue_mismatch_refuses_and_the_cap_sites_read_vanilla_bytes()
+    {
+        var f = VanillaImage();
+        var badPrologue = (byte[])ListBuilderHook.ExpectedPrologue.Clone();
+        badPrologue[0] = 0x90;
+        f.Seed(Offsets.FnListBuilder, badPrologue);
+        // The null-forgiving `h!` is safe here: badPrologue makes ShouldArm fail inside Install
+        // before Install ever touches `hooks`, so the null BootArm(null) passes through this
+        // lambda is never dereferenced.
+        var inv = Build(f, Moonblade(), hooks: h => new ListBuilderHook(f).Install(h!));
+
+        inv.BootArm(null);
+
+        Assert.False(inv.Armed);
+        Assert.Contains("list-builder", inv.Refusal);
+        Assert.Contains("prologue", inv.Refusal);
+        Assert.Equal((byte)0x91, f.Bytes[Offsets.ListBuilderCapByte]);
+        Assert.Equal(new byte[] { 0x92, 0x00, 0x00, 0x00 }, f.Read(Offsets.ListInsertBoundByte, 4));
     }
 
     [Fact]

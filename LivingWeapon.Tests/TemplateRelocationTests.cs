@@ -48,7 +48,7 @@ public class TemplateRelocationTests
         var f = new FakeCodePatcher();
         foreach (var s in TemplateRelocation.Slots) f.Seed(s.Addr, BitConverter.GetBytes(s.Vanilla));
         foreach (var rf in TemplateRelocation.RipFields) f.Seed(rf.Addr, BitConverter.GetBytes(rf.Vanilla));
-        foreach (var c in TemplateRelocation.CapBytes) f.Seed(c.Addr, c.Vanilla);
+        foreach (var c in TemplateRelocation.CapSites) f.Seed(c.Addr, c.Vanilla);
         for (int i = 0; i < TemplateRelocation.Charts.Length; i++)
             f.Seed(TemplateRelocation.Charts[i].OldBase, ChartSpan(TemplateRelocation.Charts[i], ChartTags[i], 3));
         return f;
@@ -77,7 +77,7 @@ public class TemplateRelocationTests
         var f = new FakeCodePatcher();
         foreach (var s in TemplateRelocation.Slots) f.Seed(s.Addr, BitConverter.GetBytes(s.Vanilla));
         foreach (var rf in TemplateRelocation.RipFields) f.Seed(rf.Addr, BitConverter.GetBytes(rf.Vanilla));
-        foreach (var c in TemplateRelocation.CapBytes) f.Seed(c.Addr, c.Vanilla);
+        foreach (var c in TemplateRelocation.CapSites) f.Seed(c.Addr, c.Vanilla);
         f.Seed(TemplateRelocation.Charts[0].OldBase, invSpan);
         f.Seed(TemplateRelocation.Charts[1].OldBase, pickerSpan);
         f.Seed(TemplateRelocation.Charts[2].OldBase, allSpan);
@@ -114,8 +114,11 @@ public class TemplateRelocationTests
             Assert.Equal(BitConverter.GetBytes(expected), f.Read(rfField.Addr, 4));
         }
 
-        Assert.Equal(0x95, f.Bytes[Offsets.ListBuilderCapByte]);
-        Assert.Equal(0x96, f.Bytes[Offsets.ListInsertBoundByte]);
+        // LW-372 (D4): the builder cap widens straight to 0xFF (255) and the insert bound to the
+        // 4-byte imm32 0x100 (256 = cap + 1); the two small-notepad callers no longer read this
+        // cap at all (ListBuilderHook intercepts and truncates them to 149 first).
+        Assert.Equal(0xFF, f.Bytes[Offsets.ListBuilderCapByte]);
+        Assert.Equal(new byte[] { 0x00, 0x01, 0x00, 0x00 }, f.Read(Offsets.ListInsertBoundByte, 4));
 
         // The page holds each copy (unchanged: every seeded span already carries a marker) then
         // 0xFFFF walls to the region end -- verified without calling TemplateSync at all.
@@ -154,13 +157,23 @@ public class TemplateRelocationTests
         Assert.Contains($"0x{field.Addr:X}", why2);
         Assert.Empty(f2.Writes);
 
-        var cap = TemplateRelocation.CapBytes[0];
+        var cap = TemplateRelocation.CapSites[0];
         var f3 = SeedVanilla();
-        f3.Seed(cap.Addr, (byte)(cap.Vanilla + 1));
+        f3.Seed(cap.Addr, (byte)(cap.Vanilla[0] + 1));
         string? why3 = new TemplateRelocation().Install(f3, new FakeNearAllocator());
         Assert.NotNull(why3);
         Assert.Contains($"0x{cap.Addr:X}", why3);
         Assert.Empty(f3.Writes);
+
+        // LW-372: the 4-byte cap site's mismatch can hide in ANY of its four bytes, not just the
+        // low one.
+        var cap2 = TemplateRelocation.CapSites[1];
+        var f4 = SeedVanilla();
+        f4.Seed(cap2.Addr + 3, (byte)(cap2.Vanilla[3] + 1));
+        string? why4 = new TemplateRelocation().Install(f4, new FakeNearAllocator());
+        Assert.NotNull(why4);
+        Assert.Contains($"0x{cap2.Addr:X}", why4);
+        Assert.Empty(f4.Writes);
     }
 
     [Fact]
@@ -203,7 +216,7 @@ public class TemplateRelocationTests
 
         foreach (var s in TemplateRelocation.Slots) Assert.Equal(BitConverter.GetBytes(s.Vanilla), f.Read(s.Addr, 8));
         foreach (var rf in TemplateRelocation.RipFields) Assert.Equal(BitConverter.GetBytes(rf.Vanilla), f.Read(rf.Addr, 4));
-        foreach (var c in TemplateRelocation.CapBytes) Assert.Equal(c.Vanilla, f.Read(c.Addr, 1)[0]);
+        foreach (var c in TemplateRelocation.CapSites) Assert.Equal(c.Vanilla, f.Read(c.Addr, c.Vanilla.Length));
         Assert.False(rel.Installed);
         Assert.Equal(pageSnapshot, f.Read(page, written));   // D7: the page is leaked, Restore never touches it
 
@@ -229,25 +242,10 @@ public class TemplateRelocationTests
         Assert.Equal(511, regions[1].CapacityWords);
     }
 
-    [Fact]
-    public void Caps_fit_the_smallest_list_buffer()
-    {
-        int builderCapNew = TemplateRelocation.CapBytes[0].New;
-        int insertBoundNew = TemplateRelocation.CapBytes[1].New;
-        // v1.3 (P14): the builder alone only needs cap + 1 words, but fnA's weapons-only picker
-        // list appends the unit's two hand items AFTER the capped builder list and only THEN
-        // writes its own terminator, so the binding buffer requirement is cap + 3 words (the two
-        // hand-item appends plus the terminator), not cap + 1.
-        Assert.True((builderCapNew + 3) * 2 <= Offsets.ListBuilderStackRoomBytes);
-        Assert.Equal(builderCapNew + 1, insertBoundNew);
-
-        // The v1.2 candidate the second verifier's fnA-append find corrected: 0x97 (151) does NOT
-        // fit once the two hand items and the terminator are counted -- (151 + 3) * 2 = 0x134.
-        Assert.True((0x97 + 3) * 2 > Offsets.ListBuilderStackRoomBytes);
-        // The v1.0 candidate the first verifier's cookie find corrected: 0x9F would NOT have fit
-        // even under the (wrong) cap + 1 accounting.
-        Assert.True((0x9F + 1) * 2 > Offsets.ListBuilderStackRoomBytes);
-    }
+    // Caps_fit_the_smallest_list_buffer retired (LW-372): the two small-notepad callers no longer
+    // read the builder's cap at all once ListBuilderHook intercepts them, so the stack-room proof
+    // moved to the constant that actually gates it -- ListBuilderHook.StackCallerCap -- pinned in
+    // ListBuilderHookTests.A_stack_buffer_call_runs_against_the_pool_and_copies_149_back (U1).
 
     [Fact]
     public void Region_capacity_exceeds_max_owned_kinds()
@@ -288,7 +286,7 @@ public class TemplateRelocationTests
         var allAddrs = new List<(long Addr, int Len)>();
         foreach (var s in TemplateRelocation.Slots) allAddrs.Add((s.Addr, 8));
         foreach (var rf in TemplateRelocation.RipFields) allAddrs.Add((rf.Addr, 4));
-        foreach (var c in TemplateRelocation.CapBytes) allAddrs.Add((c.Addr, 1));
+        foreach (var c in TemplateRelocation.CapSites) allAddrs.Add((c.Addr, c.Vanilla.Length));
         Assert.Equal(10, allAddrs.Count);
         Assert.Equal(allAddrs.Count, allAddrs.Select(a => a.Addr).Distinct().Count());
         for (int i = 0; i < allAddrs.Count; i++)
@@ -320,8 +318,16 @@ public class TemplateRelocationTests
         for (int i = 1; i < TemplateRelocation.RipFields.Length; i++)
             Assert.Equal(0, TemplateRelocation.RipFields[i].Off);
 
-        Assert.Equal((byte)0x91, TemplateRelocation.CapBytes[0].Vanilla);
-        Assert.Equal((byte)0x92, TemplateRelocation.CapBytes[1].Vanilla);
+        // LW-372 (D4, U7): the two cap sites' widths -- one byte for the builder cap (0xFF still
+        // fits), four for the insert bound (0x100 does not) -- and their vanilla/new byte arrays.
+        Assert.Equal(new byte[] { 0x91 }, TemplateRelocation.CapSites[0].Vanilla);
+        Assert.Equal(new byte[] { 0xFF }, TemplateRelocation.CapSites[0].New);
+        Assert.Equal(1, TemplateRelocation.CapSites[0].Vanilla.Length);
+        Assert.Equal(new byte[] { 0x92, 0x00, 0x00, 0x00 }, TemplateRelocation.CapSites[1].Vanilla);
+        Assert.Equal(new byte[] { 0x00, 0x01, 0x00, 0x00 }, TemplateRelocation.CapSites[1].New);
+        Assert.Equal(4, TemplateRelocation.CapSites[1].Vanilla.Length);
+        foreach (var c in TemplateRelocation.CapSites)
+            Assert.Equal(c.Vanilla.Length, c.New.Length);
 
         var bootAddrs = ExtendedSites.BootPatches(1).Select(p => p.Addr).ToHashSet();
         var postAddrs = ExtendedSites.PostLoadPatches(1).Select(p => p.Addr).ToHashSet();
@@ -366,7 +372,7 @@ public class TemplateRelocationTests
 
         var fieldAddrs = TemplateRelocation.Slots.Select(s => s.Addr)
             .Concat(TemplateRelocation.RipFields.Select(rf => rf.Addr))
-            .Concat(TemplateRelocation.CapBytes.Select(c => c.Addr)).ToHashSet();
+            .Concat(TemplateRelocation.CapSites.Select(c => c.Addr)).ToHashSet();
         for (int i = 3; i < f.Writes.Count; i++)
             Assert.Contains(f.Writes[i].Addr, fieldAddrs);
         foreach (var (addr, data) in f.Writes)

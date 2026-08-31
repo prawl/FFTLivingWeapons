@@ -4,13 +4,13 @@ using Reloaded.Hooks.Definitions;
 namespace LivingWeapon;
 
 /// <summary>
-/// The detour half of the arm: the four Reloaded.Hooks detours the extended inventory installs
-/// (category getter, menu-order rebuild, inventory reset, save edges), in install order, and
-/// the reverse-order rollback every refusal takes. Split from ExtendedInventory.cs in LW-351
-/// fix round 7 (2026-08-30) when the inventory-reset hook joined; the step list that installs
-/// the cap patches, list relocation, template relocation, catalog, shop mirror and thunk clones
-/// (`Install`) lives in ExtendedInventory.Arm.cs (LW-371, verifier NIT-5), the tick logic in
-/// .Tick.cs. RollBack restores the two relocations here, in REVERSE install order (D2/LW-371):
+/// The detour half of the arm: the five Reloaded.Hooks detours the extended inventory installs
+/// (category getter, menu-order rebuild, LW-372's list-builder, inventory reset, save edges), in
+/// install order, and the reverse-order rollback every refusal takes. Split from ExtendedInventory.cs
+/// in LW-351 fix round 7 (2026-08-30) when the inventory-reset hook joined; the step list that
+/// installs the cap patches, list relocation, template relocation, catalog, shop mirror and thunk
+/// clones (`Install`) lives in ExtendedInventory.Arm.cs (LW-371, verifier NIT-5), the tick logic
+/// in .Tick.cs. RollBack restores the two relocations here, in REVERSE install order (D2/LW-371):
 /// the template relocation first (right after the catalog, its install successor), then the
 /// list relocation (right before the boot cap patches, its install predecessor) -- the only
 /// other place either one is touched.
@@ -29,6 +29,13 @@ internal sealed partial class ExtendedInventory
         // LW-371: seats into TemplateRegions (the page regions once the template relocation armed).
         _orderHook = new OrderRebuildHook(_patcher, extendedCount: Items.Count, bagBase: BagCountBase, regions: () => TemplateRegions);
         why = _orderHook.Install(hooks);
+        if (why != null) return why;
+        // LW-372 (D4/D8): the shared list builder's own cap already widened to 255 (TemplateRelocation.CapSites,
+        // installed earlier in Arm.cs's Install), which is only safe because this hook keeps the
+        // two small-notepad stack callers truncated to 149 -- one transaction, so a refusal here
+        // rolls the whole arm back and the cap sites go back to vanilla too.
+        _listBuilderHook = new ListBuilderHook(_patcher, _allocator);
+        why = _listBuilderHook.Install(hooks);
         if (why != null) return why;
         // Fix round 7: the game's per-item reset zeroes the bag array below its widened bound
         // (every extended count went to x0 after one real battle, owner 2026-08-30 23:29); the
@@ -51,6 +58,7 @@ internal sealed partial class ExtendedInventory
     {
         _saveHooks?.Release(); _saveHooks = null;
         _resetHook?.Release(); _resetHook = null;
+        _listBuilderHook?.Release(); _listBuilderHook = null;
         _orderHook?.Release(); _orderHook = null;
         _getterHook?.Release(); _getterHook = null;
         for (int i = _clones.Count - 1; i >= 0; i--) _clones[i].Restore(_patcher);

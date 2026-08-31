@@ -11,7 +11,7 @@ namespace LivingWeapon;
 /// limit -- a 141st kind is shoved in at the front and the last word falls off the end into
 /// whatever data sits next (on the picker side, the helmet chart). This class copies all three
 /// charts onto a page the mod owns and re-points the ten places in the game's code that name the
-/// old blocks -- three DATA slots, five CODE fields and two CAP BYTES (the table lives in
+/// old blocks -- three DATA slots, five CODE fields and two CAP SITES (the table lives in
 /// TemplateRelocation.Sites.cs, the WHAT half of this partial) -- so every walker, inserter and
 /// deleter now runs against 512-word regions holding 510 ids + the marker, instead of the old
 /// 141/141/262-word blocks holding 140/140/261 ids + the marker. Same posture as its closest
@@ -69,12 +69,12 @@ internal sealed partial class TemplateRelocation
             if (now != f.Vanilla)
                 return $"template-relocation: 0x{f.Addr:X} reads 0x{now:X8}, expected vanilla 0x{f.Vanilla:X8} (already redirected or moved)";
         }
-        foreach (var c in CapBytes)
+        foreach (var c in CapSites)
         {
-            if (!patcher.TryRead(c.Addr, 1, out var b))
-                return $"template-relocation: 0x{c.Addr:X} is unreadable (expected vanilla 0x{c.Vanilla:X2})";
-            if (b[0] != c.Vanilla)
-                return $"template-relocation: 0x{c.Addr:X} reads 0x{b[0]:X2}, expected vanilla 0x{c.Vanilla:X2} (already redirected or moved)";
+            if (!patcher.TryRead(c.Addr, c.Vanilla.Length, out var b))
+                return $"template-relocation: 0x{c.Addr:X} is unreadable (expected vanilla 0x{Convert.ToHexString(c.Vanilla)})";
+            if (!BytesEqual(b, c.Vanilla))
+                return $"template-relocation: 0x{c.Addr:X} reads 0x{Convert.ToHexString(b)}, expected vanilla 0x{Convert.ToHexString(c.Vanilla)} (already redirected or moved)";
         }
 
         long page = allocator.Alloc(PageSize, Offsets.ModuleBase);
@@ -95,7 +95,7 @@ internal sealed partial class TemplateRelocation
                 return $"template-relocation: the {Charts[i].Label} page copy was refused";
         }
 
-        var written = new List<(long Addr, byte[] Old)>(Slots.Length + RipFields.Length + CapBytes.Length);
+        var written = new List<(long Addr, byte[] Old)>(Slots.Length + RipFields.Length + CapSites.Length);
         foreach (var s in Slots)
         {
             if (!patcher.TryWrite(s.Addr, BitConverter.GetBytes(page + PageOffsetOf(s.Chart))))
@@ -108,11 +108,11 @@ internal sealed partial class TemplateRelocation
             { RollBack(patcher, written); return $"template-relocation: field write refused at 0x{f.Addr:X}"; }
             written.Add((f.Addr, BitConverter.GetBytes(f.Vanilla)));
         }
-        foreach (var c in CapBytes)
+        foreach (var c in CapSites)
         {
-            if (!patcher.TryWrite(c.Addr, new[] { c.New }))
+            if (!patcher.TryWrite(c.Addr, c.New))
             { RollBack(patcher, written); return $"template-relocation: field write refused at 0x{c.Addr:X}"; }
-            written.Add((c.Addr, new[] { c.Vanilla }));
+            written.Add((c.Addr, c.Vanilla));
         }
 
         PageAddr = page;
@@ -129,7 +129,7 @@ internal sealed partial class TemplateRelocation
         bool ok = true;
         foreach (var s in Slots) ok &= patcher.TryWrite(s.Addr, BitConverter.GetBytes(s.Vanilla));
         foreach (var f in RipFields) ok &= patcher.TryWrite(f.Addr, BitConverter.GetBytes(f.Vanilla));
-        foreach (var c in CapBytes) ok &= patcher.TryWrite(c.Addr, new[] { c.Vanilla });
+        foreach (var c in CapSites) ok &= patcher.TryWrite(c.Addr, c.Vanilla);
         if (ok) _installed = false;
         return ok;
     }
@@ -172,4 +172,14 @@ internal sealed partial class TemplateRelocation
     /// through <see cref="CheckReach"/> first (<see cref="Install"/> does); this itself truncates
     /// unconditionally.</summary>
     internal static int NewField(RipField f, long page) => (int)(page + AllItemsPageOffset + f.Off - (f.Addr + 4));
+
+    /// <summary>Pure: LW-372 (D4) -- a <see cref="CapSite"/>'s verify-read compares a variable
+    /// number of bytes now (1 for the builder cap, 4 for the insert bound), so the fixed single-byte
+    /// compare Install used before this widening is a plain array-equality helper instead.</summary>
+    private static bool BytesEqual(byte[] a, byte[] b)
+    {
+        if (a.Length != b.Length) return false;
+        for (int i = 0; i < a.Length; i++) if (a[i] != b[i]) return false;
+        return true;
+    }
 }

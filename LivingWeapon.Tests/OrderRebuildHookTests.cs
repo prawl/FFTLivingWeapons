@@ -47,6 +47,55 @@ public class OrderRebuildHookTests
         Assert.Null(OrderRebuildHook.ParseList(Words(1, 2, 3)));
     }
 
+    // --- U8 (LW-372, D5): MaxWords widened 160 -> 260 so a full-size 255-entry list still parses ---
+
+    [Fact]
+    public void MaxWords_covers_a_255_entry_list_plus_its_terminator()
+        => Assert.True(OrderRebuildHook.MaxWords >= 256, "MaxWords must cover 255 entries + the terminator (D5)");
+
+    [Fact]
+    public void ParseList_finds_the_terminator_of_a_255_entry_list()
+    {
+        var words = new ushort[OrderRebuildHook.MaxWords];
+        for (int i = 0; i < 255; i++) words[i] = (ushort)(i + 1);
+        words[255] = OrderRebuildHook.Terminator;
+        for (int i = 256; i < words.Length; i++) words[i] = 0x1234;   // padding past the terminator: never reached
+
+        var parsed = OrderRebuildHook.ParseList(Words(words));
+
+        Assert.Equal(255, parsed!.Length);
+        Assert.Equal((ushort)1, parsed[0]);
+        Assert.Equal((ushort)255, parsed[254]);
+    }
+
+    [Fact]
+    public void Process_reappends_a_dropped_id_from_a_256_word_list_now_that_MaxWords_covers_it()
+    {
+        // D5: the builder cap widens to 255, so the re-append fallback must be able to parse a
+        // full 256-word rebuilt list (255 ids + terminator). With the old MaxWords (160) the read
+        // would have been truncated before ever reaching the terminator, "before" would parse as
+        // null, and the re-append below would silently never happen.
+        var beforeIds = new ushort[256];
+        for (int i = 0; i < 256; i++) beforeIds[i] = (ushort)(i + 1);   // ids 1..256; 256 gets dropped
+        var beforeWords = new ushort[257];
+        Array.Copy(beforeIds, beforeWords, 256);
+        beforeWords[256] = OrderRebuildHook.Terminator;
+        var f = new FakeCodePatcher { ZeroFillUnseeded = true };
+        f.Seed(List, Words(beforeWords));
+        f.Seed(Bag + 256, 1);   // id 256 (well inside IdMask) is owned
+        var hook = new OrderRebuildHook(f);
+        var afterIds = new ushort[255];
+        Array.Copy(beforeIds, afterIds, 255);   // the rebuild drops only id 256
+
+        int count = hook.Process(0, List, Rebuild(f, afterIds));
+
+        Assert.Equal(256, count);   // 255 kept + the 1 re-appended
+        var final = OrderRebuildHook.ParseList(f.Read(List, OrderRebuildHook.MaxWords * 2));
+        Assert.Equal(256, final!.Length);
+        Assert.Equal((ushort)256, final[255]);
+        Assert.Equal(1, hook.Reappended);
+    }
+
     [Fact]
     public void DroppedWords_keeps_input_order_flags_and_reports_each_id_once()
     {

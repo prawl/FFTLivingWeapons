@@ -845,4 +845,25 @@ internal static class Offsets
     /// terminator after the builder returns (P14), so the binding constraint is cap+3 words: a
     /// cap fits only when (cap+3)*2 &lt;= this.</summary>
     public const int ListBuilderStackRoomBytes = 0x130;
+
+    // --- LW-372 (plan v1.1, 2026-08-31): lifts the Items-tab draw limit from 149 to 255. The two
+    // cap sites above widen further (TemplateRelocation.Sites.cs CapSites: builder cap 0x91->0xFF,
+    // insert bound 0x92000000->0x00010000) but that alone is not safe for the two STACK callers
+    // (fnA/fnB): a hook on the builder itself (ListBuilderHook.cs) keeps them at the LW-371-proven
+    // 149 through a mod-owned pool, and lets every static-buffer caller run unchanged. See
+    // ListBuilderHook.cs and LW372_plan.md (Q2, Q3, D1-D4).
+    /// <summary>The shared list builder's own entry (Q2, live-read 2026-08-31, confirmed on the
+    /// 1.5.2 exe on disk): <c>int Fn(nint a, nint b, nint c, nint list)</c> (Microsoft x64; a/b/c
+    /// are cx/dx/r8b widths the function only reads the low bits of, list = r9, the output
+    /// buffer). Prologue: mov rax,rsp; mov [rax+0x20],r9; two word-arg spills -- see
+    /// <see cref="ListBuilderHook.ExpectedPrologue"/>. 15 bytes, no rip-relative field inside the
+    /// stolen window.</summary>
+    public const long FnListBuilder = 0x140288B94L;
+    /// <summary>The game's own static 256-word menu list buffer (LW-371 finding 5(e): 37
+    /// plain-code sites read/lea it, all at +0, none through a stack temp). D2's hook rule treats
+    /// this ONE address as safe to run the widened (255-entry) builder against unchanged;
+    /// anything else handed in as r9 -- a stack buffer, or any caller this sweep never met -- is
+    /// routed through <see cref="ListBuilderHook"/>'s mod-owned pool and truncated back to
+    /// <see cref="ListBuilderHook.StackCallerCap"/> instead.</summary>
+    public const long MenuListBuffer = 0x141811470L;
 }
