@@ -61,6 +61,7 @@ internal sealed partial class ExtendedInventory
         _listBuilderHook?.Release(); _listBuilderHook = null;
         _orderHook?.Release(); _orderHook = null;
         _getterHook?.Release(); _getterHook = null;
+        _swingIdFallback?.Restore(_patcher); _swingIdFallback = null;
         for (int i = _clones.Count - 1; i >= 0; i--) _clones[i].Restore(_patcher);
         _clones.Clear();
         _weaponStatClone = null;

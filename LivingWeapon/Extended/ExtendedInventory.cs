@@ -48,6 +48,7 @@ internal sealed partial class ExtendedInventory
     private readonly ShopFlagsMirror _shops = new();   // LW-354
     private readonly List<ThunkClone> _clones = new();
     private ThunkClone? _weaponStatClone;   // the row stub: its page holds every extended id's 8-byte stats row
+    private SwingIdFallbackHook? _swingIdFallback;   // LW-365: empty-tile swing art falls back to the hand id
     private CategoryGetterHook? _getterHook;
     private OrderRebuildHook? _orderHook;
     private ListBuilderHook? _listBuilderHook;   // LW-372
@@ -117,7 +118,7 @@ internal sealed partial class ExtendedInventory
         Refusal = null;
         ModLogger.Event(LogVerb.Startup,
             $"Extended inventory armed: {Items.Count} new item(s) [{string.Join(", ", Items.Select(i => $"{i.Name} (id {i.Id})"))}], "
-            + $"{_patches.AppliedCount} cap patches, {_clones.Count} accessor redirects, 5 hooks (menu list builder hooked), shop table mirrored, "
+            + $"{_patches.AppliedCount} cap patches, {_clones.Count} accessor redirects, swing-id fallback armed, 5 hooks (menu list builder hooked), shop table mirrored, "
             + $"item count lists relocated to 0x{_relocation.PageAddr:X}; "
             + $"menu order charts relocated to 0x{_templates.PageAddr:X}; "
             + "2 damage caps wait for the first save to load.");

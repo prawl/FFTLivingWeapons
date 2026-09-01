@@ -53,6 +53,13 @@ internal sealed partial class ExtendedInventory
             if (why != null) return why;
         }
 
+        // LW-365: the swing-id fallback needs the clones (they are what makes an extended id
+        // drawable), so it lands right after them and before the detours.
+        var fallback = new SwingIdFallbackHook();
+        why = fallback.Install(_patcher, _allocator, lo, Items.Count);
+        if (why != null) return why;
+        _swingIdFallback = fallback;
+
         return _installHooks(hooks);
     }
 

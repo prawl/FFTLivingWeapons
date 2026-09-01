@@ -682,6 +682,18 @@ internal static class Offsets
     public const long FnOrderRebuild = 0x140285DF0L;     // display-order rebuild (drops ids its table lacks)
     public const long FnInventoryReset = 0x140284500L;   // per-item state reset: zeroes the bag array below its widened bound (LW-351 R7)
 
+    /// <summary>LW-365: the swing-prep routine 0x140281CE8 copies the standing swing-id word into
+    /// the animation record here: `0F B7 05 00 E7 52 00` = movzx eax, word [rip+0x52E700]
+    /// (= <see cref="SwingIdWord"/>), followed by `mov [rdi+0x20], ax`. Read on the 1.5.2 exe on
+    /// disk 2026-08-31 (tools/probes/lw_disk_disasm.py 0x140282073). Plain .code, boot-safe.</summary>
+    public const long FnSwingPrepIdCopy = 0x140282073L;
+    /// <summary>The render-statics word the swing art follows (cluster 0x1407B0760 + 0x1A);
+    /// 0 for an extended id at swing time (docs/LIVE_LEDGER.md [empty-tile-hand-read-bounds]).</summary>
+    public const long SwingIdWord = 0x1407B077AL;
+    /// <summary>Battle unit array the swing-prep routine indexes with `acting slot &lt;&lt; 9` in rsi
+    /// (= <see cref="CombatAnchor"/> - 16 * <see cref="CombatStride"/>; slot 16 is Ramza's row).</summary>
+    public const long BattleUnitsBase = CombatAnchor - 16 * (long)CombatStride;   // 0x141853CE0
+
     // --- LW-354: shop stock for extended ids (found 2026-08-27 evening, static read of the live
     // 1.5.2 process, docs/research/ITEM_CAP_261_BREAK_JOURNEY.md section "shops"). The per-item
     // town-flags table (the modloader's ItemShopsData, 256 u16 rows, loader signature

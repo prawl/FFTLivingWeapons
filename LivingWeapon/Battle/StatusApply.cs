@@ -23,8 +23,9 @@ namespace LivingWeapon;
 /// </summary>
 internal static class StatusApply
 {
-    /// <summary>The apply engine's slot-0 unit base (== BattleUnitsBase; CombatAnchor - 0x2000).</summary>
-    public const long BattleUnitsBase = Offsets.CombatAnchor - 0x2000;
+    /// <summary>The apply engine's slot-0 unit base -- the same constant as
+    /// <see cref="Offsets.BattleUnitsBase"/> (LW-365: one source of truth).</summary>
+    public const long BattleUnitsBase = Offsets.BattleUnitsBase;
 
     // Band-entry-relative bitfield bases (combat base + 0x1C convention; from the deathdiff/inflict tapes).
     public const int PendingAdd = 0x1BF;   // the ADD-request field the apply engine reads

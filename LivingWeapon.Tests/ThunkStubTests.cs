@@ -148,6 +148,51 @@ public class ThunkStubTests
     }
 
     [Fact]
+    public void SwingId_fallback_stub_bytes_are_pinned_exactly()
+    {
+        var s = ThunkStub.EmitSwingIdFallbackStub(0x1407B077AL, 0x141853D00L, 261, 267, 0x14028207AL);
+        var expected = new byte[]
+        {
+            0x48, 0xB8, 0x7A, 0x07, 0x7B, 0x40, 0x01, 0x00, 0x00, 0x00,   // mov rax, 0x1407B077A
+            0x0F, 0xB7, 0x00,                                             // movzx eax, word [rax]
+            0x66, 0x85, 0xC0,                                             // test ax, ax
+            0x75, 0x20,                                                   // jnz +0x20 -> 0x32
+            0x48, 0xB8, 0x00, 0x3D, 0x85, 0x41, 0x01, 0x00, 0x00, 0x00,   // mov rax, 0x141853D00
+            0x0F, 0xB7, 0x04, 0x30,                                       // movzx eax, word [rax+rsi]
+            0x3D, 0x05, 0x01, 0x00, 0x00,                                 // cmp eax, 261
+            0x72, 0x09,                                                   // jb +9 -> 0x30
+            0x3D, 0x0B, 0x01, 0x00, 0x00,                                 // cmp eax, 267
+            0x77, 0x02,                                                   // ja +2 -> 0x30
+            0xEB, 0x02,                                                   // jmp +2 -> 0x32
+            0x31, 0xC0,                                                   // zero: xor eax, eax
+            0xFF, 0x25, 0x00, 0x00, 0x00, 0x00,                           // done: jmp [rip+0]
+            0x7A, 0x20, 0x28, 0x40, 0x01, 0x00, 0x00, 0x00,               // return: 0x14028207A
+        };
+        Assert.Equal(expected, s);
+        Assert.Equal(ThunkStub.SwingIdStubSize, s.Length);
+    }
+
+    [Fact]
+    public void SwingId_fallback_stub_rejects_a_bad_range()
+    {
+        Assert.Throws<ArgumentException>(() => ThunkStub.EmitSwingIdFallbackStub(0x1407B077AL, 0x141853D00L, 267, 261, 0x14028207AL));   // lo > hi
+        Assert.Throws<ArgumentException>(() => ThunkStub.EmitSwingIdFallbackStub(0x1407B077AL, 0x141853D00L, 261, 0x400, 0x14028207AL));   // hi > 0x3FF
+    }
+
+    /// <summary>LW-365 fix round: the rip-relative disp32 baked into
+    /// <see cref="SwingIdFallbackHook.ExpectedSite"/> (<c>00 E7 52 00</c> = 0x52E700) must agree with
+    /// <see cref="Offsets.SwingIdWord"/>'s offset from the instruction right after the movzx
+    /// (SiteAddr + 7); a drift between the two constants would make the stub read the wrong word
+    /// with every other test still green. Pure constant pin: GREEN immediately, no RED phase (see
+    /// the fix-round report).</summary>
+    [Fact]
+    public void SwingId_constants_agree_with_the_site_encoding()
+    {
+        Assert.Equal(Offsets.FnSwingPrepIdCopy + 7 + 0x52E700, Offsets.SwingIdWord);
+        Assert.Equal(0x141853D00L, Offsets.BattleUnitsBase + Offsets.CWeapon);
+    }
+
+    [Fact]
     public void Installer_refuses_a_non_thunk_an_unreadable_site_and_a_failed_allocation_without_writing()
     {
         var fake = new FakeCodePatcher();

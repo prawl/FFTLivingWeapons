@@ -114,6 +114,16 @@ the technical detail lives in the indented lines under it.
     Fix scope is now that stub as a boot-time code hook (same recipe as the donor thunk
     clones), not a bound widening. Details in docs/LIVE_LEDGER.md under
     [empty-tile-hand-read-bounds], addendum 2026-08-31.
+  - Built 2026-08-31 late through the compressed build pipeline: SwingIdFallbackHook plants
+    the stub at boot right after the accessor clones (a refusal rolls the whole extended
+    inventory back, the boot line now says "swing-id fallback armed"); three adversarial
+    verify rounds (round 1 code 9 spec 5, round 2 code 9 spec 5, round 3 code 9 spec 8 SHIP),
+    every byte of the stub re-derived from the game file by each verifier, 12 new tests,
+    suite 3612 green. Deploy and the owner's live pass still owed.
+  (Tech: site 0x140282073 `0F B7 05 00 E7 52 00`, 5-byte jump plus two nops into a 0x40-byte
+    stub from the near allocator; stub reads word 0x1407B077A and, when 0, substitutes
+    word [0x141853CE0 + 0x20 + rsi] only if it lies in [261, 261+N-1]; StatusApply's
+    BattleUnitsBase now aliases Offsets.BattleUnitsBase.)
   - Done means: the fists have a named cause and the fix is armed: every listed site is read
     on disk and classified, the nine widenable bounds ride the boot arm with test pins, the
     two walled addresses carry negative pins so no future sweep widens them blind, and the

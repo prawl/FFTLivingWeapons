@@ -43,6 +43,7 @@ public class ExtendedInventoryTests : IDisposable
         var f = new FakeCodePatcher();
         foreach (var p in ExtendedSites.BootPatches(1)) f.Seed(p.Addr, p.Old);
         foreach (var (addr, bytes) in Thunks) f.Seed(addr, bytes);
+        f.Seed(Offsets.FnSwingPrepIdCopy, SwingIdFallbackHook.ExpectedSite);   // LW-365
         f.Seed(Offsets.ExtCatalogDisp32, 0x10, 0xF9, 0x67, 0x00);
         ShopFlagsMirrorTests.SeedVanillaShopSites(f);
         for (int id = ExtendedCatalog.DlcLo; id <= ExtendedCatalog.DlcHi; id++)
@@ -88,11 +89,35 @@ public class ExtendedInventoryTests : IDisposable
         },
     };
 
+    /// <summary>LW-365 F1 (v1.2): two items (ids 261, 262) so lo != hi in the fallback stub's
+    /// baked range -- Moonblade() alone has lo == hi and cannot catch a swapped lo/count. Same
+    /// records as Moonblade(), copied, with the second item's Id/Name changed.</summary>
+    private static ExtendedInventoryData.LoadResult TwoBlades() => new()
+    {
+        FolderPresent = true,
+        Items = new[]
+        {
+            new ExtendedItemDef
+            {
+                Id = 261, Name = "Moonblade", Category = "Sword", CloneDonor = 37, ArtDonor = 37, SeedCount = 1,
+                CatalogRecord = new byte[] { 0x04, 0x16, 0x00, 0x80, 0x25, 0x03, 0x00, 0x00, 0x0A, 0x00, 0x00, 0x00 },
+                WeaponRow = new byte[] { 0x01, 0x8E, 0x01, 0xFF, 0x0F, 0x00, 0x00, 0x00 },
+            },
+            new ExtendedItemDef
+            {
+                Id = 262, Name = "Ravager", Category = "Sword", CloneDonor = 37, ArtDonor = 37, SeedCount = 1,
+                CatalogRecord = new byte[] { 0x04, 0x16, 0x00, 0x80, 0x25, 0x03, 0x00, 0x00, 0x0A, 0x00, 0x00, 0x00 },
+                WeaponRow = new byte[] { 0x01, 0x8E, 0x01, 0xFF, 0x0F, 0x00, 0x00, 0x00 },
+            },
+        },
+    };
+
     private static Func<LandmarkReading> Match => () => new LandmarkReading(LandmarkVerdict.Match);
 
     private ExtendedInventory Build(FakeCodePatcher f, ExtendedInventoryData.LoadResult data,
-        Func<LandmarkReading>? pe = null, Func<IReloadedHooks?, string?>? hooks = null, ExtendedBagSidecar? sidecar = null)
-        => new(f, new FakeNearAllocator(), data,
+        Func<LandmarkReading>? pe = null, Func<IReloadedHooks?, string?>? hooks = null, ExtendedBagSidecar? sidecar = null,
+        FakeNearAllocator? allocator = null)
+        => new(f, allocator ?? new FakeNearAllocator(), data,
             sidecar ?? ExtendedBagSidecar.Load(Path.Combine(_dir, ExtendedBagSidecar.FileName)),
             pe ?? Match, hooks ?? (_ => null));
 
@@ -100,7 +125,8 @@ public class ExtendedInventoryTests : IDisposable
     public void Arms_the_whole_set_over_a_vanilla_image_and_seeds_the_bag()
     {
         var f = VanillaImage();
-        var inv = Build(f, Moonblade());
+        var alloc = new FakeNearAllocator();
+        var inv = Build(f, Moonblade(), allocator: alloc);
         inv.BootArm(null);
         Assert.True(inv.Armed, inv.Refusal);
         Assert.Null(inv.Refusal);
@@ -117,6 +143,12 @@ public class ExtendedInventoryTests : IDisposable
         Assert.NotEqual(Offsets.BagCountArray, inv.BagCountBase);
         Assert.Equal(1, f.Bytes[inv.BagCountBase + 261]);   // the data seed (no sidecar entry)
         Assert.Equal(0, f.Bytes[Offsets.BagCountArray + 261]);   // ... not the vanilla block, which stays zero
+        Assert.Equal(0xE9, f.Bytes[Offsets.FnSwingPrepIdCopy]);   // LW-365: swing-id fallback armed
+        // LW-365 fix round: pin the production wiring's lo/hi bounds baked into the fallback stub
+        // (the last allocator request whose Near is the swing-id site is the fallback's own page).
+        var fallbackPage = alloc.Requests.Last(r => r.Near == Offsets.FnSwingPrepIdCopy).Got;
+        Assert.Equal(ExtendedCatalog.FirstExtendedId, BitConverter.ToInt32(f.Read(fallbackPage + 0x21, 4), 0));
+        Assert.Equal(ExtendedCatalog.FirstExtendedId + inv.Items.Count - 1, BitConverter.ToInt32(f.Read(fallbackPage + 0x28, 4), 0));
         Assert.NotEqual(0x90, f.Bytes[Offsets.ShopBuilderLowByteDisp32]);   // shop table mirrored (LW-354)
         inv.StepShopSync();
         Assert.Equal(0xFE, f.Bytes[Offsets.ModuleBase + BitConverter.ToInt32(f.Read(Offsets.ShopBuilderLowByteDisp32, 4), 0) + 37 * 2]);   // vanilla half synced
@@ -128,6 +160,24 @@ public class ExtendedInventoryTests : IDisposable
         Assert.Equal(0x0F, f.Bytes[inv.WeaponRowAddr(261) + Offsets.ItemStatsWpOff]);   // Power 15 sits at +4
         Assert.Equal(-1, inv.WeaponRowAddr(262));
         Assert.Equal(-1, inv.WeaponRowAddr(37));
+    }
+
+    /// <summary>LW-365 F1 (v1.2): the one-item Moonblade() fixture has lo == hi in the fallback
+    /// stub's baked range, so a swapped lo/count could not be caught. TwoBlades() (ids 261, 262)
+    /// pins both ends distinctly: +0x21..+0x24 must decode to lo (261), +0x28..+0x2B to hi (262).</summary>
+    [Fact]
+    public void Arms_two_items_and_bakes_lo_and_hi_into_the_fallback_page()
+    {
+        var f = VanillaImage();
+        var alloc = new FakeNearAllocator();
+        var inv = Build(f, TwoBlades(), allocator: alloc);
+
+        inv.BootArm(null);
+
+        Assert.True(inv.Armed, inv.Refusal);
+        var fallbackPage = alloc.Requests.Last(r => r.Near == Offsets.FnSwingPrepIdCopy).Got;
+        Assert.Equal(261, BitConverter.ToInt32(f.Read(fallbackPage + 0x21, 4), 0));
+        Assert.Equal(262, BitConverter.ToInt32(f.Read(fallbackPage + 0x28, 4), 0));
     }
 
     [Fact]
@@ -245,6 +295,19 @@ public class ExtendedInventoryTests : IDisposable
         // refuses, then RollBack restores it, so BagCountBase falls back to the vanilla block.
         Assert.Equal(Offsets.BagCountArray, inv.BagCountBase);
         Assert.Equal(0, f.Bytes[inv.BagCountBase + 261]);   // never seeded (still the vanilla zero-fill)
+    }
+
+    /// <summary>LW-365: the swing-id fallback installs before the hooks step (Arm.cs order), so a
+    /// hooks refusal must roll it back too, in RollBack's reverse order (right before the clones
+    /// loop) -- the site goes back to its original 7-byte movzx, never left mid-jump.</summary>
+    [Fact]
+    public void A_hooks_refusal_restores_the_swing_id_fallback_site_to_its_original_seven_bytes()
+    {
+        var f = VanillaImage();
+        var inv = Build(f, Moonblade(), hooks: _ => "order-rebuild: 0x140285DF0 does not carry the expected prologue");
+        inv.BootArm(null);
+        Assert.False(inv.Armed);
+        Assert.Equal(SwingIdFallbackHook.ExpectedSite, f.Read(Offsets.FnSwingPrepIdCopy, SwingIdFallbackHook.ExpectedSite.Length));
     }
 
     /// <summary>U6 (v1.1 strengthened, LW-372): the D8 transaction is asserted on BYTES, not just

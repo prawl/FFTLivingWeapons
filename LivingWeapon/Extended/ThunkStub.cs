@@ -86,6 +86,47 @@ internal static class ThunkStub
         return s;
     }
 
+    public const int SwingIdStubSize = 0x40;
+
+    /// <summary>
+    /// LW-365 swing-id fallback stub, planted over the 7-byte movzx at Offsets.FnSwingPrepIdCopy.
+    /// Register contract: rax is the instruction's own destination (free), rsi = acting slot &lt;&lt; 9
+    /// (live, read-only), flags are dead across the site (the next compare is <c>cmp</c> at +0x1C).
+    /// <code>
+    /// 00 mov rax,standing(imm64) | 0A movzx eax,word [rax] | 0D test ax,ax | 10 jnz done(+0x20)
+    /// 12 mov rax,handsBase(imm64) | 1C movzx eax,word [rax+rsi] | 20 cmp eax,lo | 25 jb zero(+0x09)
+    /// 27 cmp eax,hi | 2C ja zero(+0x02) | 2E jmp done(+0x02) | 30 zero: xor eax,eax
+    /// 32 done: jmp [rip+0] | 38 return:8   (total 0x40)
+    /// </code>
+    /// Unlike <see cref="EmitDonorStub"/>/<see cref="EmitRowStub"/>, the hand word is compared
+    /// UNMASKED: the 0x3FF mask exists for menu LIST words that carry flag bits above bit 9, but
+    /// the combat struct's CWeapon (+0x20) is a plain u16 item id (GrowthEngine.Locate compares
+    /// it unmasked against roster ids), and any stray high bit would already fall outside [lo, hi]
+    /// and take the zero arm, i.e. vanilla behavior, so no mask is applied here.
+    /// </summary>
+    public static byte[] EmitSwingIdFallbackStub(long standingWord, long handsBase, int lo, int hi, long returnAddr)
+    {
+        if (lo < 0) throw new ArgumentException("lo must be >= 0", nameof(lo));
+        if (lo > hi) throw new ArgumentException("lo must be <= hi", nameof(hi));
+        if (hi > IdMask) throw new ArgumentException($"hi must be <= {IdMask}", nameof(hi));
+
+        var s = new byte[SwingIdStubSize];
+        s[0x00] = 0x48; s[0x01] = 0xB8; Array.Copy(BitConverter.GetBytes(standingWord), 0, s, 0x02, 8);   // mov rax, standing
+        s[0x0A] = 0x0F; s[0x0B] = 0xB7; s[0x0C] = 0x00;                       // movzx eax, word [rax]
+        s[0x0D] = 0x66; s[0x0E] = 0x85; s[0x0F] = 0xC0;                       // test ax, ax
+        s[0x10] = 0x75; s[0x11] = 0x20;                                       // jnz +0x20 -> done (0x32)
+        s[0x12] = 0x48; s[0x13] = 0xB8; Array.Copy(BitConverter.GetBytes(handsBase), 0, s, 0x14, 8);   // mov rax, handsBase
+        s[0x1C] = 0x0F; s[0x1D] = 0xB7; s[0x1E] = 0x04; s[0x1F] = 0x30;       // movzx eax, word [rax+rsi]
+        s[0x20] = 0x3D; WriteI32(s, 0x21, lo);                                // cmp eax, lo
+        s[0x25] = 0x72; s[0x26] = 0x09;                                       // jb zero (0x30)
+        s[0x27] = 0x3D; WriteI32(s, 0x28, hi);                                // cmp eax, hi
+        s[0x2C] = 0x77; s[0x2D] = 0x02;                                       // ja zero (0x30)
+        s[0x2E] = 0xEB; s[0x2F] = 0x02;                                       // jmp done (0x32)
+        s[0x30] = 0x31; s[0x31] = 0xC0;                                       // zero: xor eax, eax
+        EmitAbsJmp(s, 0x32, returnAddr);                                      // done: jmp [rip+0]; return:8
+        return s;
+    }
+
     /// <summary>True iff <paramref name="entry5"/> is an <c>E9 rel32</c> jump; decodes its absolute
     /// destination (thunk + 5 + rel32).</summary>
     public static bool IsJmpRel32(byte[]? entry5, long thunkAddr, out long target)
