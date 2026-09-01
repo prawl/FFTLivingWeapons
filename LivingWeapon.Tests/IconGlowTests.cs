@@ -85,6 +85,11 @@ public class IconGlowTests
         /// batching fix is fewer, larger calls rather than one call per icon.</summary>
         public readonly List<IReadOnlyList<(IconGlowEntry Entry, byte[] OldBytes, byte[] NewBytes)>> PatchPacBatchCalls = new();
         public PacPatchResult PatchPacResult = PacPatchResult.Patched;
+        /// <summary>LW-381: a per-(id,surface) override on top of the single canned
+        /// <see cref="PatchPacResult"/> -- lets a test make ONE surface land Patched while a
+        /// sibling in the SAME batch call lands something else (T10's "hider only sees the
+        /// actually-patched surfaces" case).</summary>
+        public readonly Dictionary<(int Id, string Surface), PacPatchResult> PatchPacResultOverride = new();
 
         public IconGlowManifest? ReadManifest() => Manifest;
         public byte[]? ReadDeployedTex(IconGlowEntry entry) => Deployed.TryGetValue((entry.Id, entry.Surface), out var b) ? b : null;
@@ -112,9 +117,38 @@ public class IconGlowTests
         {
             PatchPacBatchCalls.Add(items);
             var results = new Dictionary<(int, string), PacPatchResult>();
-            foreach (var item in items) results[(item.Entry.Id, item.Entry.Surface)] = PatchPacResult;
+            foreach (var item in items)
+            {
+                var key = (item.Entry.Id, item.Entry.Surface);
+                results[key] = PatchPacResultOverride.TryGetValue(key, out var r) ? r : PatchPacResult;
+            }
             return results;
         }
+    }
+
+    /// <summary>LW-381: records every <see cref="Hide"/> call's full target list; returns a
+    /// Hidden outcome for every target unless <see cref="OnHide"/> is set (T12's postpone-then-
+    /// hide sequencing needs a call-count-driven result).</summary>
+    private sealed class RecordingIconCacheHider : IIconCacheHider
+    {
+        public readonly List<IReadOnlyList<IconCacheTarget>> Calls = new();
+        public Func<IReadOnlyList<IconCacheTarget>, IconCacheHideResult>? OnHide;
+
+        public IconCacheHideResult Hide(IReadOnlyList<IconCacheTarget> targets)
+        {
+            Calls.Add(targets);
+            if (OnHide != null) return OnHide(targets);
+            var result = new IconCacheHideResult();
+            foreach (var t in targets) result.Set(t.Id, t.Surface, new SurfaceOutcome(HideOutcome.Hidden, 0, 0, 1, 1));
+            return result;
+        }
+    }
+
+    /// <summary>LW-381 T11: a hider that always throws -- pins that a hide failure can never
+    /// reach out of ApplyDiff and affect the loose-write result or the apply's own summary line.</summary>
+    private sealed class ThrowingIconCacheHider : IIconCacheHider
+    {
+        public IconCacheHideResult Hide(IReadOnlyList<IconCacheTarget> targets) => throw new InvalidOperationException("hider boom");
     }
 
     // ---- ApplyId writes the variant's exact bytes to the deployed tex for BOTH surfaces a
@@ -138,7 +172,7 @@ public class IconGlowTests
         store.Variants[(id, "small", 2)] = smallT2;
 
         var kills = new Dictionary<int, int> { [id] = 10 };   // prod tier 2
-        var icon = new IconGlow("m", kills, new[] { id }, store, a => a());
+        var icon = new IconGlow("m", kills, new[] { id }, store, new NoopIconCacheHider(), a => a());
 
         icon.Tick();
 
@@ -166,7 +200,7 @@ public class IconGlowTests
         store.Variants[(id, "card", 1)] = t1;
 
         var kills = new Dictionary<int, int> { [id] = 5 };   // tier 1
-        var icon = new IconGlow("m", kills, new[] { id }, store, a => a());
+        var icon = new IconGlow("m", kills, new[] { id }, store, new NoopIconCacheHider(), a => a());
         icon.Tick();
         Assert.Equal(t1, store.Deployed[(id, "card")]);
         Assert.Equal(baseBytes, store.Backup[(id, "card")]);   // snapshotted on the way up
@@ -182,7 +216,7 @@ public class IconGlowTests
     public void MissingManifest_WarnsOnce_StandsDown_NeverThrows()
     {
         var store = new FakeIconGlowStore();   // Manifest left null: "missing"
-        var icon = new IconGlow("m", new Dictionary<int, int>(), Array.Empty<int>(), store, a => a());
+        var icon = new IconGlow("m", new Dictionary<int, int>(), Array.Empty<int>(), store, new NoopIconCacheHider(), a => a());
 
         using var cap = LogCapture.Start();
         var ex = Record.Exception(() => { icon.Tick(); icon.Tick(); icon.Tick(); });
@@ -195,7 +229,7 @@ public class IconGlowTests
     public void UnsupportedSchemaVersion_StandsDown()
     {
         var store = new FakeIconGlowStore { Manifest = new IconGlowManifest { SchemaVersion = 2, Icons = new() } };
-        var icon = new IconGlow("m", new Dictionary<int, int>(), Array.Empty<int>(), store, a => a());
+        var icon = new IconGlow("m", new Dictionary<int, int>(), Array.Empty<int>(), store, new NoopIconCacheHider(), a => a());
 
         using var cap = LogCapture.Start();
         icon.Tick();
@@ -219,7 +253,7 @@ public class IconGlowTests
         store.FailDeployedWrite.Add((id, "card"));
 
         var kills = new Dictionary<int, int> { [id] = 5 };
-        var icon = new IconGlow("m", kills, new[] { id }, store, a => a());
+        var icon = new IconGlow("m", kills, new[] { id }, store, new NoopIconCacheHider(), a => a());
 
         using var cap = LogCapture.Start();
         icon.Tick();
@@ -246,7 +280,7 @@ public class IconGlowTests
         int starts = 0;
         // Captures the apply action but never invokes it -- stands in for an apply that is
         // still running on the background task when the next tick arrives.
-        var icon = new IconGlow("m", kills, new[] { id }, store, _ => starts++);
+        var icon = new IconGlow("m", kills, new[] { id }, store, new NoopIconCacheHider(), _ => starts++);
 
         icon.Tick();
         icon.Tick();
@@ -274,7 +308,7 @@ public class IconGlowTests
 
         // weaponIds carries ONLY knownId -- staleId is the stale-manifest defense's target.
         var kills = new Dictionary<int, int> { [knownId] = 5, [staleId] = 5 };
-        var icon = new IconGlow("m", kills, new[] { knownId }, store, a => a());
+        var icon = new IconGlow("m", kills, new[] { knownId }, store, new NoopIconCacheHider(), a => a());
 
         icon.Tick();
 
@@ -298,7 +332,7 @@ public class IconGlowTests
         store.Variants[(id, "card", 3)] = t3;
 
         var kills = new Dictionary<int, int> { [id] = 5 };   // tier 1
-        var icon = new IconGlow("m", kills, new[] { id }, store, a => a());
+        var icon = new IconGlow("m", kills, new[] { id }, store, new NoopIconCacheHider(), a => a());
         icon.Tick();
         Assert.Equal(t1, store.Deployed[(id, "card")]);
 
@@ -327,7 +361,7 @@ public class IconGlowTests
         store.Variants[(id, "card", 1)] = t1;
 
         var kills = new Dictionary<int, int> { [id] = 5 };
-        var icon = new IconGlow("m", kills, new[] { id }, store, a => a());
+        var icon = new IconGlow("m", kills, new[] { id }, store, new NoopIconCacheHider(), a => a());
 
         using var cap = LogCapture.Start();
         icon.Tick();
@@ -358,7 +392,7 @@ public class IconGlowTests
         store.Deployed[(id, "small")] = smallT3;
 
         var kills = new Dictionary<int, int> { [id] = 15 };   // tier 3
-        var icon = new IconGlow("m", kills, new[] { id }, store, a => a());
+        var icon = new IconGlow("m", kills, new[] { id }, store, new NoopIconCacheHider(), a => a());
 
         using var cap = LogCapture.Start();
         icon.Tick();
@@ -383,7 +417,7 @@ public class IconGlowTests
         store.Variants[(id, "card", 2)] = t2;
 
         var kills = new Dictionary<int, int> { [id] = 10 };   // tier 2
-        var icon = new IconGlow("m", kills, new[] { id }, store, a => a());
+        var icon = new IconGlow("m", kills, new[] { id }, store, new NoopIconCacheHider(), a => a());
         icon.Tick();
 
         Assert.Equal(baseBytes, store.Backup[(id, "card")]);
@@ -409,7 +443,7 @@ public class IconGlowTests
         // targeted variant of this restore than JudgeAll_RestoresStaleRimWhenDesiredZero above,
         // which pins the FIX 1 case (kills 0 from the very first tick) directly.
         var kills = new Dictionary<int, int> { [id] = 10 };   // tier 2, matches the deployed t2
-        var icon = new IconGlow("m", kills, new[] { id }, store, a => a());
+        var icon = new IconGlow("m", kills, new[] { id }, store, new NoopIconCacheHider(), a => a());
         icon.Tick();
         Assert.Equal(t2, store.Deployed[(id, "card")]);   // judge seeded 2 == desired 2, no write
 
@@ -432,7 +466,7 @@ public class IconGlowTests
         store.Deployed[(id, "card")] = foreign;
 
         var kills = new Dictionary<int, int> { [id] = 5 };
-        var icon = new IconGlow("m", kills, new[] { id }, store, a => a());
+        var icon = new IconGlow("m", kills, new[] { id }, store, new NoopIconCacheHider(), a => a());
 
         using var cap = LogCapture.Start();
         icon.Tick();
@@ -457,7 +491,7 @@ public class IconGlowTests
         // Same shape as Tier0_RestoresFromBackup: reach tier 0 by dropping FROM the tier that
         // matches what is already deployed.
         var kills = new Dictionary<int, int> { [id] = 10 };   // tier 2, matches the deployed t2
-        var icon = new IconGlow("m", kills, new[] { id }, store, a => a());
+        var icon = new IconGlow("m", kills, new[] { id }, store, new NoopIconCacheHider(), a => a());
         icon.Tick();
         Assert.Equal(t2, store.Deployed[(id, "card")]);   // judge seeded 2 == desired 2, no write
 
@@ -487,7 +521,7 @@ public class IconGlowTests
         store.FailDeployedWrite.Add((id, "card"));   // card fails, small succeeds
 
         var kills = new Dictionary<int, int> { [id] = 5 };   // tier 1
-        var icon = new IconGlow("m", kills, new[] { id }, store, a => a());
+        var icon = new IconGlow("m", kills, new[] { id }, store, new NoopIconCacheHider(), a => a());
 
         using (var cap = LogCapture.Start())
         {
@@ -525,7 +559,7 @@ public class IconGlowTests
         store.Variants[(id, "small", 2)] = smallT2;
 
         var kills = new Dictionary<int, int> { [id] = 10 };   // tier 2
-        var icon = new IconGlow("m", kills, new[] { id }, store, a => a());
+        var icon = new IconGlow("m", kills, new[] { id }, store, new NoopIconCacheHider(), a => a());
         icon.Tick();
 
         Assert.Equal(smallBase, store.Backup[(id, "small")]);   // the pristine surface got snapshotted
@@ -550,7 +584,7 @@ public class IconGlowTests
         store.FailBackupWrite.Add((id, "card"));     // the snapshot for "card" cannot be written
 
         var kills = new Dictionary<int, int> { [id] = 5 };
-        var icon = new IconGlow("m", kills, new[] { id }, store, a => a());
+        var icon = new IconGlow("m", kills, new[] { id }, store, new NoopIconCacheHider(), a => a());
 
         using var cap = LogCapture.Start();
         icon.Tick();
@@ -587,7 +621,7 @@ public class IconGlowTests
         store.Backup[(id, "small")] = smallBase;
 
         var kills = new Dictionary<int, int> { [id] = 0 };   // desired tier 0 from the very first tick
-        var icon = new IconGlow("m", kills, new[] { id }, store, a => a());
+        var icon = new IconGlow("m", kills, new[] { id }, store, new NoopIconCacheHider(), a => a());
 
         icon.Tick();
         icon.Tick();
@@ -617,7 +651,7 @@ public class IconGlowTests
         store.Backup[(id, "small")] = smallBase;
 
         var kills = new Dictionary<int, int> { [id] = 0 };   // desired tier 0 == the seeded minimum
-        var icon = new IconGlow("m", kills, new[] { id }, store, a => a());
+        var icon = new IconGlow("m", kills, new[] { id }, store, new NoopIconCacheHider(), a => a());
 
         icon.Tick();
 
@@ -641,7 +675,7 @@ public class IconGlowTests
         store.Backup[(id, "card")] = oldBackup;     // stale: from a bake this base no longer matches
 
         var kills = new Dictionary<int, int> { [id] = 0 };
-        var icon = new IconGlow("m", kills, new[] { id }, store, a => a());
+        var icon = new IconGlow("m", kills, new[] { id }, store, new NoopIconCacheHider(), a => a());
 
         icon.Tick();
 
@@ -666,7 +700,7 @@ public class IconGlowTests
         // reach tier 0 by dropping FROM the tier that matches what is already deployed, so the
         // judge seeds truthfully first (mirrors Tier0_RestoresFromBackup's own pattern above).
         var kills = new Dictionary<int, int> { [id] = 10 };   // tier 2, matches the deployed t2
-        var icon = new IconGlow("m", kills, new[] { id }, store, a => a());
+        var icon = new IconGlow("m", kills, new[] { id }, store, new NoopIconCacheHider(), a => a());
         icon.Tick();
         Assert.Equal(t2, store.Deployed[(id, "card")]);   // judge seeded 2 == desired 2, no write yet
 
@@ -698,7 +732,7 @@ public class IconGlowTests
         store.Variants[(idB, "card", 2)] = t2B;
 
         var kills = new Dictionary<int, int> { [idA] = 5, [idB] = 10 };   // tier 1, tier 2
-        var icon = new IconGlow("m", kills, new[] { idA, idB }, store, a => a());
+        var icon = new IconGlow("m", kills, new[] { idA, idB }, store, new NoopIconCacheHider(), a => a());
 
         using var cap = LogCapture.Start();
         icon.Tick();
@@ -728,7 +762,7 @@ public class IconGlowTests
         store.Deployed[(idB, "card")] = baseB;
 
         var kills = new Dictionary<int, int> { [idA] = 5, [idB] = 5 };
-        var icon = new IconGlow("m", kills, new[] { idA, idB }, store, a => a());
+        var icon = new IconGlow("m", kills, new[] { idA, idB }, store, new NoopIconCacheHider(), a => a());
 
         using var cap = LogCapture.Start();
         icon.Tick();
@@ -765,7 +799,7 @@ public class IconGlowTests
         store.Variants[(id, "small", 1)] = smallT1;
 
         var kills = new Dictionary<int, int> { [id] = 5 };   // tier 1
-        var icon = new IconGlow("m", kills, new[] { id }, store, a => a());
+        var icon = new IconGlow("m", kills, new[] { id }, store, new NoopIconCacheHider(), a => a());
         icon.Tick();
 
         // ONE flush for the whole apply (R2-2), carrying both surfaces' items.
@@ -794,7 +828,7 @@ public class IconGlowTests
         store.FailDeployedWrite.Add((id, "card"));   // the loose write itself fails
 
         var kills = new Dictionary<int, int> { [id] = 5 };
-        var icon = new IconGlow("m", kills, new[] { id }, store, a => a());
+        var icon = new IconGlow("m", kills, new[] { id }, store, new NoopIconCacheHider(), a => a());
         icon.Tick();
 
         Assert.NotEmpty(store.DeployedWrites);       // the write was attempted...
@@ -824,7 +858,7 @@ public class IconGlowTests
         store.Variants[(id, "card", 2)] = t2;
 
         var kills = new Dictionary<int, int> { [id] = 5 };   // tier 1
-        var icon = new IconGlow("m", kills, new[] { id }, store, a => a());
+        var icon = new IconGlow("m", kills, new[] { id }, store, new NoopIconCacheHider(), a => a());
 
         using var cap = LogCapture.Start();
         icon.Tick();
@@ -858,7 +892,7 @@ public class IconGlowTests
         store.Variants[(id, "card", 1)] = t1;
 
         var kills = new Dictionary<int, int> { [id] = 5 };
-        var icon = new IconGlow("m", kills, new[] { id }, store, a => a());
+        var icon = new IconGlow("m", kills, new[] { id }, store, new NoopIconCacheHider(), a => a());
 
         using var cap = LogCapture.Start();
         icon.Tick();
@@ -887,7 +921,7 @@ public class IconGlowTests
         store.Variants[(idB, "card", 1)] = t1B;
 
         var kills = new Dictionary<int, int> { [idA] = 5, [idB] = 5 };
-        var icon = new IconGlow("m", kills, new[] { idA, idB }, store, a => a());
+        var icon = new IconGlow("m", kills, new[] { idA, idB }, store, new NoopIconCacheHider(), a => a());
 
         using var cap = LogCapture.Start();
         icon.Tick();
@@ -922,7 +956,7 @@ public class IconGlowTests
         store.Variants[(id, "small", 1)] = smallT1;
 
         var kills = new Dictionary<int, int> { [id] = 5 };   // desired tier 1
-        var icon = new IconGlow("m", kills, new[] { id }, store, a => a());
+        var icon = new IconGlow("m", kills, new[] { id }, store, new NoopIconCacheHider(), a => a());
         icon.Tick();   // first-ever tick: judgeAllIds judges+heals this id in one pass (FIX 1)
 
         // Both surfaces get written (the heal writes every surface unconditionally)...
@@ -952,7 +986,7 @@ public class IconGlowTests
         store.Variants[(id, "card", 2)] = t2;
 
         var kills = new Dictionary<int, int> { [id] = 5 };   // tier 1
-        var icon = new IconGlow("m", kills, new[] { id }, store, a => a());
+        var icon = new IconGlow("m", kills, new[] { id }, store, new NoopIconCacheHider(), a => a());
 
         using var cap = LogCapture.Start();
         icon.Tick();   // pac mirror fails (Failed) -- one warning, on the pac-dedicated set
@@ -963,5 +997,138 @@ public class IconGlowTests
 
         Assert.Equal(1, cap.File.Count(l => l.Contains($"icon {id}") && l.Contains("modded.pac")));
         Assert.Equal(1, cap.File.Count(l => l.Contains($"icon {id}") && l.Contains("failed to write")));
+    }
+
+    // ---- LW-381 second half: IconGlow hands only the surfaces that actually landed in
+    // modded.pac this pass to the cache hider (T10), a throwing hider never touches the apply's
+    // own result (T11), and a Postponed surface is retried by the NEXT tick's dedicated
+    // hide-only pass, stopping once it comes back Hidden (T12). ----
+
+    [Fact]
+    public void FlushPacBatch_HandsOnlyThisPassPatchedSurfaces_ToTheHider()
+    {
+        var store = new FakeIconGlowStore();
+        const int id22 = 22, id51 = 51;
+        byte[] cardBase = RandBytes(2001, 10), cardT1 = RandBytes(2002, 10);
+        byte[] smallBase = RandBytes(2003, 6), smallT1 = RandBytes(2004, 6);
+        byte[] otherBase = RandBytes(2005, 10), otherT1 = RandBytes(2006, 10);
+        var cardEntry = MakeEntry(id22, "card", cardBase, new() { [1] = cardT1 });
+        var smallEntry = MakeEntry(id22, "small", smallBase, new() { [1] = smallT1 });
+        var otherEntry = MakeEntry(id51, "card", otherBase, new() { [1] = otherT1 });
+        store.Manifest = new IconGlowManifest { SchemaVersion = 1, Icons = new() { cardEntry, smallEntry, otherEntry } };
+        store.Deployed[(id22, "card")] = cardBase;
+        store.Deployed[(id22, "small")] = smallBase;
+        store.Deployed[(id51, "card")] = otherBase;
+        store.Variants[(id22, "card", 1)] = cardT1;
+        store.Variants[(id22, "small", 1)] = smallT1;
+        store.Variants[(id51, "card", 1)] = otherT1;
+        store.PatchPacResultOverride[(id51, "card")] = PacPatchResult.NotFound;   // id22 keeps the default Patched
+
+        var kills = new Dictionary<int, int> { [id22] = 5, [id51] = 5 };   // both tier 1
+        var hider = new RecordingIconCacheHider();
+        var icon = new IconGlow("m", kills, new[] { id22, id51 }, store, hider, a => a());
+
+        icon.Tick();
+
+        Assert.Single(hider.Calls);
+        var targets = hider.Calls[0];
+        Assert.Equal(2, targets.Count);
+        Assert.Contains(targets, t => t.Id == id22 && t.Surface == "card" && t.Entry == cardEntry);
+        Assert.Contains(targets, t => t.Id == id22 && t.Surface == "small" && t.Entry == smallEntry);
+        Assert.DoesNotContain(targets, t => t.Id == id51);
+    }
+
+    [Fact]
+    public void FlushPacBatch_NeverCallsHider_WhenNothingPatchedThisPass()
+    {
+        var store = new FakeIconGlowStore { PatchPacResult = PacPatchResult.NotFound };
+        const int id = 70;
+        byte[] baseBytes = RandBytes(2010, 10), t1 = RandBytes(2011, 10);
+        var entry = MakeEntry(id, "card", baseBytes, new() { [1] = t1 });
+        store.Manifest = new IconGlowManifest { SchemaVersion = 1, Icons = new() { entry } };
+        store.Deployed[(id, "card")] = baseBytes;
+        store.Variants[(id, "card", 1)] = t1;
+
+        var kills = new Dictionary<int, int> { [id] = 5 };
+        var hider = new RecordingIconCacheHider();
+        var icon = new IconGlow("m", kills, new[] { id }, store, hider, a => a());
+
+        icon.Tick();
+
+        Assert.Empty(hider.Calls);
+    }
+
+    [Fact]
+    public void ThrowingHider_NeverFailsApply_SummaryLineStillLogged()
+    {
+        var store = new FakeIconGlowStore();
+        const int id = 71;
+        byte[] baseBytes = RandBytes(2020, 10), t1 = RandBytes(2021, 10);
+        var entry = MakeEntry(id, "card", baseBytes, new() { [1] = t1 });
+        store.Manifest = new IconGlowManifest { SchemaVersion = 1, Icons = new() { entry } };
+        store.Deployed[(id, "card")] = baseBytes;
+        store.Variants[(id, "card", 1)] = t1;
+
+        var kills = new Dictionary<int, int> { [id] = 5 };   // tier 1
+        var icon = new IconGlow("m", kills, new[] { id }, store, new ThrowingIconCacheHider(), a => a());
+
+        using var cap = LogCapture.Start();
+        var ex = Record.Exception(() => icon.Tick());
+
+        Assert.Null(ex);
+        Assert.Equal(t1, store.Deployed[(id, "card")]);   // the loose write is unaffected by the throw
+        Assert.Equal(1, cap.File.Count(l => l.Contains("IconGlow: judged") && l.Contains("wrote")));
+
+        // _applied recorded the write despite the hider throwing: a second tick with no kill
+        // change performs no further write.
+        int writesAfterFirst = store.DeployedWrites.Count;
+        icon.Tick();
+        Assert.Equal(writesAfterFirst, store.DeployedWrites.Count);
+    }
+
+    [Fact]
+    public void PendingHide_PostponedByFirstApply_RetriedByNextTick_StopsAfterHidden()
+    {
+        var store = new FakeIconGlowStore();
+        const int id = 72;
+        byte[] baseBytes = RandBytes(2030, 10), t1 = RandBytes(2031, 10);
+        var entry = MakeEntry(id, "card", baseBytes, new() { [1] = t1 });
+        store.Manifest = new IconGlowManifest { SchemaVersion = 1, Icons = new() { entry } };
+        store.Deployed[(id, "card")] = baseBytes;
+        store.Variants[(id, "card", 1)] = t1;
+
+        var hider = new RecordingIconCacheHider();
+        int callCount = 0;
+        hider.OnHide = targets =>
+        {
+            callCount++;
+            var outcome = callCount == 1
+                ? new SurfaceOutcome(HideOutcome.Postponed, 0, 0, 0, 0)
+                : new SurfaceOutcome(HideOutcome.Hidden, 0, 0, 1, 1);
+            var result = new IconCacheHideResult();
+            foreach (var t in targets) result.Set(t.Id, t.Surface, outcome);
+            return result;
+        };
+
+        var kills = new Dictionary<int, int> { [id] = 5 };   // tier 1
+        var captured = new List<Action>();
+        var icon = new IconGlow("m", kills, new[] { id }, store, hider, a => captured.Add(a));
+
+        icon.Tick();                     // schedules the normal apply
+        Assert.Single(captured);
+        captured[0]();                    // ApplyDiff -> FlushPacBatch -> hider call #1 -> Postponed
+        captured.Clear();
+        Assert.Single(hider.Calls);
+
+        icon.Tick();                      // nothing else to apply, but a pending hide remains
+        Assert.Single(captured);
+        captured[0]();                     // RunPendingHidesOnly -> hider call #2 -> Hidden
+        captured.Clear();
+        Assert.Equal(2, hider.Calls.Count);
+        Assert.Contains(hider.Calls[1], t => t.Id == id && t.Surface == "card");
+
+        icon.Tick();                       // pending set is now empty -> nothing scheduled
+        Assert.Empty(captured);
+        Assert.Equal(2, hider.Calls.Count);   // no further hider calls
     }
 }

@@ -281,7 +281,12 @@ internal sealed class Engine
         // every weapon's equip icon (modDir/FFTIVC/<baseRel>) synced to its current kill tier.
         // Reads the shared kill tally + the known weapon id set (meta.Keys, so a stale bake's
         // ids never get managed); all file I/O goes through the FileIconGlowStore seam, never Mem.
-        _iconGlow = new IconGlow(modDir, _kills, meta.Keys, new FileIconGlowStore(modDir));
+        // LW-381 second half: the cache hider (IGameMemory-backed, unlike the store above) makes
+        // a pac-mirrored tier change visible THIS session instead of only after a restart --
+        // see IconCacheHide.cs's class remarks. _tickState.NowIn is read live each call so the
+        // hider always sees the CURRENT battle status, not the one at construction time.
+        _iconGlow = new IconGlow(modDir, _kills, meta.Keys, new FileIconGlowStore(modDir),
+            new IconCacheHide(live, () => _tickState.NowIn));
 #if LWDEV
         // Shares the SAME register KillerStamp/AttackCard already trust (see TurnOwnerSpike.cs's
         // class doc for why a second register is deliberately avoided).

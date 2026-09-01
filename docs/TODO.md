@@ -108,6 +108,20 @@ the technical detail lives in the indented lines under it.
     finds the records fast (a 4 GB sweep per re-tier is ~40 s off-thread; the manager
     singletons and the texture container are not yet reachable from a static), and whether the
     orphaned hidden records survive screen teardown; nothing faulted in the owner's session.)
+  - BUILT 2026-09-01, AWAITING-LIVE: the hiding code described above is now written into the mod
+    and covered by unit tests, not just proven by hand. Plain language: the fix from the
+    paragraph above now runs automatically right after a weapon's glow rim lands in the game's
+    pac file. The owner still needs to watch it work in a real play session (see the live-test
+    steps below) before this row can close.
+    (Tech: LivingWeapon/Display/IconCacheHide.cs holds the sweep's lifecycle (the two passes,
+    classification, reporting); .Policy.cs is the pure classification and log-line formatting
+    (with the per-chunk byte scanners split further into .Scan.cs once that file crossed 200
+    lines); .Types.cs is the shared data model (the hider contract, its request/result shapes);
+    .Write.cs is the two write primitives (a texture record, a parts entry) and their re-verify.
+    IconGlow.Hide.cs schedules a hide after a pac write and retries one a battle postponed;
+    IconGlow.Manifest.cs is the manifest-load code, moved out unchanged to make room. Covered by
+    LivingWeapon.Tests/IconCacheHideTests.cs, a fake-heap suite for the sweep, the classification
+    gates, and the coupling rule.)
   - Done means: a weapon crossing a kill tier mid-session shows its new glow rim after the
     icon list is next redrawn, with no relaunch; if the pac write cannot happen for any
     reason the loose tex (and therefore next-launch behavior) stays exactly as correct as

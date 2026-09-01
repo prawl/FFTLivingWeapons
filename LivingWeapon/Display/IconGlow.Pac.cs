@@ -49,11 +49,18 @@ internal sealed partial class IconGlow
     // report writes that never happened.
     // _pendingPacPatches accumulates every surface queued this ApplyDiff pass; FlushPacBatch
     // drains it in ONE store call at the end of the pass.
+    // _pacPatchedThisPass (LW-381) is the subset that actually landed as PacPatchResult.Patched
+    // this pass -- exactly the surfaces eligible for a cache hide (RoutePacResult fills it,
+    // FlushPacBatch consumes it, ApplyDiff's top-of-pass reset clears it, same lifecycle as the
+    // other per-pass fields here). _hidesThisApply is this pass' count of surfaces the hider
+    // actually reported Hidden, read by ApplyDiff's finally-block summary line.
     private bool _pacUnavailableWarned;
     private readonly HashSet<int> _pacWarnedOnce = new();
     private int _pacPatchedThisApply;
     private int _pacAlreadyCurrentThisApply;
+    private int _hidesThisApply;
     private readonly List<(int Id, IconGlowEntry Entry, byte[] OldBytes, byte[] NewBytes)> _pendingPacPatches = new();
+    private readonly List<(int Id, string Surface, IconGlowEntry Entry)> _pacPatchedThisPass = new();
 
     /// <summary>After a successful <c>WriteDeployedTex</c>, queues the same bytes to be mirrored
     /// into modded.pac when this pass's batch flushes. Skips queuing entirely when there is
@@ -86,6 +93,10 @@ internal sealed partial class IconGlow
             RoutePacResult(p.Id, p.Entry, result);
         }
         _pendingPacPatches.Clear();
+
+        // LW-381: hand every surface that actually landed in modded.pac this pass to the cache
+        // hider (IconGlow.Hide.cs), so the NEXT screen open shows it instead of the old art.
+        HideThisPassPatched();
     }
 
     /// <summary>Routes one item's result exactly as round 1 did, with two R2 corrections:
@@ -97,6 +108,7 @@ internal sealed partial class IconGlow
         {
             case PacPatchResult.Patched:
                 _pacPatchedThisApply++;
+                _pacPatchedThisPass.Add((id, entry.Surface, entry));   // LW-381: hide-eligible this pass
                 break;
             case PacPatchResult.AlreadyCurrent:
                 _pacAlreadyCurrentThisApply++;   // R2-6: nothing was written -- never counted as a write

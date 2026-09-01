@@ -31,7 +31,9 @@ internal sealed partial class IconGlow
         int judged = 0, written = 0;
         _pacPatchedThisApply = 0;
         _pacAlreadyCurrentThisApply = 0;   // R2-6: counted separately from a real pac write
+        _hidesThisApply = 0;   // A3-1 (round 2): per-pass, or a pass with no hide reprints a stale count
         _pendingPacPatches.Clear();
+        _pacPatchedThisPass.Clear();   // LW-381: this pass' hide-eligible surfaces (RoutePacResult fills it)
         try
         {
             if (judgeAllIds != null)
@@ -77,7 +79,7 @@ internal sealed partial class IconGlow
             int newlyUnmanaged = _unmanaged.Count - unmanagedBefore;
             if (judged > 0 || written > 0 || newlyUnmanaged > 0)
                 ModLogger.Debug(LogVerb.Display,
-                    $"IconGlow: judged {judged} icons, wrote {written} ({newlyUnmanaged} unmanaged, {_pacPatchedThisApply} pac-patched, {_pacAlreadyCurrentThisApply} pac-already-current).");
+                    $"IconGlow: judged {judged} icons, wrote {written} ({newlyUnmanaged} unmanaged, {_pacPatchedThisApply} pac-patched, {_pacAlreadyCurrentThisApply} pac-already-current), hide: {_hidesThisApply} surface(s) hidden.");
         }
     }
 

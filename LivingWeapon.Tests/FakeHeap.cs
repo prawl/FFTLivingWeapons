@@ -23,6 +23,28 @@ internal sealed class FakeHeap : IGameMemory
     private List<Region> _regions = new();
     public int Writes { get; private set; }
 
+    /// <summary>LW-381 test hook: counts calls to <see cref="Regions"/> itself (not the number of
+    /// regions returned) -- lets a test pin how many full-memory passes a sweep actually made,
+    /// independent of how many regions or targets were involved.</summary>
+    public int RegionsCalls { get; private set; }
+
+    /// <summary>LW-381 test hook: total calls to <see cref="TryReadBytes"/> + <see cref="ReadInto"/>
+    /// -- lets a test prove NO byte read happened at all (beyond the region list itself), e.g. an
+    /// in-battle sweep that aborts before its first chunk.</summary>
+    public int ReadCalls { get; private set; }
+
+    /// <summary>LW-381 test hook: when set and it returns non-null for (addr,len), stands in for
+    /// <see cref="TryReadBytes"/>'s normal region lookup at that address -- a stateful closure can
+    /// return different bytes on successive calls for the SAME address, simulating a targeted
+    /// read whose classification result goes stale before a later re-read (a real TOCTOU window).
+    /// Returning null falls through to the normal region-backed read.</summary>
+    public Func<long, int, byte[]?>? ReadOverride;
+
+    /// <summary>LW-381 test hook: when set, overrides <see cref="Writable"/> entirely, bypassing
+    /// the per-region Writable flag -- simulates a region's protection changing between a sweep's
+    /// snapshot and its later write attempt.</summary>
+    public Func<long, int, bool>? WritableOverride;
+
     public FakeHeap(params (long baseAddr, byte[] data)[] regions)
     {
         foreach (var (addr, data) in regions)
@@ -67,6 +89,12 @@ internal sealed class FakeHeap : IGameMemory
 
     public bool TryReadBytes(long addr, int len, out byte[] buf)
     {
+        ReadCalls++;
+        if (ReadOverride != null)
+        {
+            var over = ReadOverride(addr, len);
+            if (over != null) { buf = over; return true; }
+        }
         buf = new byte[len];
         var r = FindRegion(addr, len);
         if (r == null) return false;
@@ -77,6 +105,7 @@ internal sealed class FakeHeap : IGameMemory
 
     public int ReadInto(long addr, byte[] buf, int len)
     {
+        ReadCalls++;
         if (len > buf.Length) return 0;
         var r = FindRegion(addr, len);
         if (r == null) return 0;
@@ -100,6 +129,7 @@ internal sealed class FakeHeap : IGameMemory
 
     public bool Writable(long addr, int len)
     {
+        if (WritableOverride != null) return WritableOverride(addr, len);
         var r = FindRegion(addr, len);
         return r != null && r.Writable;
     }
@@ -108,7 +138,10 @@ internal sealed class FakeHeap : IGameMemory
     /// only. A read-only region is never yielded (LW-37's PoolLocator relies on this: a
     /// located region is writable BY CONSTRUCTION because it can only ever come from here).</summary>
     public IEnumerable<(long baseAddr, long size)> Regions()
-        => _regions.Where(r => r.Writable).Select(r => (r.BaseAddr, (long)r.Data.Length));
+    {
+        RegionsCalls++;
+        return _regions.Where(r => r.Writable).Select(r => (r.BaseAddr, (long)r.Data.Length)).ToList();
+    }
 
     public byte[]? RegionBytes(long baseAddr)
     {

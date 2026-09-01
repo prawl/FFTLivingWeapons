@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -52,6 +51,11 @@ namespace LivingWeapon;
 /// (Engine._kills), so the very next out-of-battle diff sees every id back at tier 0 and
 /// self-heals -- there is nothing for a reset edge to tell this class that the next tick doesn't
 /// already discover on its own.
+///
+/// LW-381 second half: a successfully pac-patched surface is handed to <see cref="_hider"/>
+/// (IconGlow.Pac.cs's FlushPacBatch) so the very next menu screen shows it instead of only the
+/// next relaunch; a hider result of Postponed (a battle was in progress) is retried by a
+/// dedicated hide-only background pass the next time this Tick() finds nothing else to schedule.
 /// </summary>
 internal sealed partial class IconGlow
 {
@@ -59,6 +63,7 @@ internal sealed partial class IconGlow
     private readonly Dictionary<int, int> _kills;              // shared reference, Engine._kills
     private readonly HashSet<int> _weaponIds;                  // the meta id set -- U9's rejection filter
     private readonly IIconGlowStore _store;
+    private readonly IIconCacheHider _hider;   // LW-381: hides a re-tiered icon's cache records (IconCacheHide.cs)
     private readonly Action<Action> _runBackground;
 
     private readonly object _lock = new();
@@ -69,6 +74,12 @@ internal sealed partial class IconGlow
     private bool _judgedAllOnce;   // FIX 1: true once the launch's first background apply is scheduled
     private readonly Dictionary<int, int> _applied = new();
 
+    // LW-381: surfaces a hide call returned Postponed for (a battle was in progress) -- retried
+    // by a dedicated hide-only background pass the next Tick() finds nothing else to do (see
+    // RunPendingHidesOnly in IconGlow.Hide.cs). Hidden/NothingResident/TextureMissing/Refused all
+    // leave this set; only Postponed survives in it.
+    private readonly HashSet<(int Id, string Surface)> _pendingHides = new();
+
     /// <param name="modDir">Mod deployment directory (held for the manifest-loaded log line only
     /// -- every actual read/write goes through <paramref name="store"/>).</param>
     /// <param name="kills">The shared per-weapon kill tally (Engine._kills), held by reference.</param>
@@ -76,16 +87,20 @@ internal sealed partial class IconGlow
     /// id is a stale bake and is rejected at load.</param>
     /// <param name="store">Wraps every file access; production passes a FileIconGlowStore, tests
     /// pass an in-memory fake.</param>
+    /// <param name="hider">LW-381: hides a just pac-patched icon's cache records so the next
+    /// screen open shows it this session. Production passes a real IconCacheHide (IGameMemory-
+    /// backed); every test that isn't exercising the hide itself passes a NoopIconCacheHider.</param>
     /// <param name="runBackground">Runs the judge-and-write work. Null (production default)
     /// schedules a real Task.Run; tests inject a synchronous or capture-only runner for
     /// determinism.</param>
     public IconGlow(string modDir, Dictionary<int, int> kills, IEnumerable<int> weaponIds,
-        IIconGlowStore store, Action<Action>? runBackground = null)
+        IIconGlowStore store, IIconCacheHider hider, Action<Action>? runBackground = null)
     {
         _modDir = modDir;
         _kills = kills;
         _weaponIds = new HashSet<int>(weaponIds);
         _store = store;
+        _hider = hider;
         _runBackground = runBackground ?? (a => Task.Run(a));
     }
 
@@ -107,7 +122,18 @@ internal sealed partial class IconGlow
         // to do" without actually reading the files. Force that one full judge through.
         bool firstApply;
         lock (_lock) firstApply = !_judgedAllOnce;
-        if (changed.Count == 0 && !firstApply) return;
+        if (changed.Count == 0 && !firstApply)
+        {
+            // LW-381 (D3): nothing left for the normal apply path, but a surface postponed by an
+            // earlier in-battle hide attempt still needs a retry -- give it the SAME _applying
+            // latch (RunPendingHidesOnly in IconGlow.Hide.cs) rather than a second concurrent path.
+            bool hasPendingHides;
+            lock (_lock) hasPendingHides = _pendingHides.Count > 0;
+            if (!hasPendingHides) return;
+            lock (_lock) _applying = true;
+            _runBackground(RunPendingHidesOnly);
+            return;
+        }
 
         List<int>? judgeAllIds = null;
         if (firstApply)
@@ -125,66 +151,4 @@ internal sealed partial class IconGlow
     }
 
     private IEnumerable<int> ManageableIds() => _entriesById.Keys.Where(id => !_unmanaged.Contains(id));
-
-    private void EnsureManifestLoaded()
-    {
-        if (_manifest != null || _standDown) return;
-        var manifest = _store.ReadManifest();
-        if (manifest == null) { StandDown("glow_icons/manifest.json is missing or malformed"); return; }
-        if (manifest.SchemaVersion != 1) { StandDown($"manifest schemaVersion {manifest.SchemaVersion} is not the supported version 1"); return; }
-
-        var kept = new List<IconGlowEntry>();
-        int rejected = 0;
-        foreach (var icon in manifest.Icons)
-        {
-            if (_weaponIds.Contains(icon.Id)) kept.Add(icon);
-            else rejected++;
-        }
-        if (rejected > 0)
-            ModLogger.Warn(LogVerb.Display, $"IconGlow's manifest listed {rejected} icon entr{(rejected == 1 ? "y" : "ies")} for weapon ids outside the current build; ignoring them (defense against a stale bake).");
-
-        manifest.Icons = kept;
-        RejectBasenameCollisions(kept);
-        var byId = new Dictionary<int, List<IconGlowEntry>>();
-        foreach (var e in kept)
-        {
-            if (!byId.TryGetValue(e.Id, out var list)) byId[e.Id] = list = new List<IconGlowEntry>();
-            list.Add(e);
-        }
-        _entriesById = byId;
-        _manifest = manifest;
-        ModLogger.Debug(LogVerb.Display, $"IconGlow: manifest loaded ({kept.Count} icon entr{(kept.Count == 1 ? "y" : "ies")}) from {_modDir}\\glow_icons.");
-    }
-
-    private void StandDown(string reason)
-    {
-        _standDown = true;
-        ModLogger.Warn(LogVerb.Display, $"IconGlow standing down: {reason}. Weapon icons will not glow this launch (data-only failure, never a crash).");
-    }
-
-    /// <summary>FIX 5's tripwire: the base-backup store flattens every entry to just its base
-    /// tex FILENAME (FileIconGlowStore.BackupPath uses Path.GetFileName, ignoring the rest of
-    /// BaseRel), so two DIFFERENT ids whose baked BaseRel resolves to the same filename would
-    /// silently cross-wire each other's pristine-base snapshots. Zero collisions exist in the
-    /// real 242-entry manifest today; this guards a future bake rename from ever reaching the
-    /// store. Marks every id in a colliding group unmanaged, once, with one warn naming the
-    /// filename and every id it collided under -- never a per-icon repeat.</summary>
-    private void RejectBasenameCollisions(List<IconGlowEntry> kept)
-    {
-        var idsByFilename = new Dictionary<string, List<int>>(StringComparer.OrdinalIgnoreCase);
-        foreach (var e in kept)
-        {
-            var name = Path.GetFileName(e.BaseRel);
-            if (!idsByFilename.TryGetValue(name, out var ids)) idsByFilename[name] = ids = new List<int>();
-            if (!ids.Contains(e.Id)) ids.Add(e.Id);
-        }
-
-        foreach (var (filename, ids) in idsByFilename)
-        {
-            if (ids.Count < 2) continue;
-            foreach (var id in ids) _unmanaged.Add(id);
-            ModLogger.Warn(LogVerb.Display,
-                $"IconGlow leaves icons {string.Join(", ", ids)} plain this launch: they share the base tex filename \"{filename}\" (a bake bug; the backup store cannot tell them apart).");
-        }
-    }
 }

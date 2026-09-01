@@ -26,6 +26,11 @@ internal sealed class ChunkReader
     /// this must be sized, not guessed. See CardPatterns.FitsTrailSlack for the checked bound and
     /// Display's ctor for where it's exercised at startup.</summary>
     public const int TrailSlack = 4096;
+    /// <summary>Bytes zero-cleared past a short read so a scan that reaches past readLen sees
+    /// deterministic zeros, never a stale tail from a longer previous read. Pinned by
+    /// IconCacheHideTests (LW-381): the icon cache scan reaches at most PrefixMax + CStringMax
+    /// bytes past its window, and that sum must stay under this.</summary>
+    public const int ZeroClearLength = 512;
 
     private readonly IGameMemory _mem;
     private readonly byte[] _buf = new byte[Lookback + ChunkSize + TrailSlack];
@@ -81,7 +86,7 @@ internal sealed class ChunkReader
 
         // Clear tail so stale bytes from a previous longer read don't leak into the scanner.
         if (readLen < _buf.Length)
-            Array.Clear(_buf, readLen, Math.Min(512, _buf.Length - readLen));
+            Array.Clear(_buf, readLen, Math.Min(ZeroClearLength, _buf.Length - readLen));
 
         searchable = (int)Math.Min(ChunkSize, rend - chunkStart);
         return got;
