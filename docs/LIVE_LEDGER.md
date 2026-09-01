@@ -20,6 +20,29 @@ isolated live) · **CONTRADICTED** (evidence points both ways — probe before b
 
 ## Proven
 
+### [swing-id-fallback-stub] A stub at the swing builder's id copy that substitutes the acting unit's right-hand id when the standing swing-id word is 0 makes an extended weapon draw its own blade on a targetless swing
+Plain language: when a unit swings, the game copies one standing "weapon id" word into the
+swing's animation record; for a moved design that word is 0 at swing time, so the art lookup
+drew bare hands. Replacing the 7-byte copy instruction with a jump to a small stub that reads
+the word and, when it is 0, uses the unit's own right-hand id (only if it is one of ours)
+draws the weapon's blade. Observed 2026-08-31 late by the owner with the stub hand-planted in
+the running game: Ravager (id 262) at an empty tile drew its own blade ("Correct blade on
+Ravenger now"; the first cut, which read the last-published unit's hand, drew the Akademy
+blade instead, proving any valid id draws), the Ravager's enemy-targeted swing still drew the
+blade, and a vanilla weapon's empty-tile swing was unchanged. PROVEN 2026-08-31 (owner flip,
+"We've already live verified. Flip"): the shipped build (9bb0896f, SwingIdFallbackHook.cs)
+plants the identical stub at boot right after the accessor clones. Mechanism: site
+0x140282073 `0F B7 05 00 E7 52 00` (movzx eax, word [0x1407B077A]) inside the swing-prep
+routine 0x140281CE8, where rsi = acting slot << 9; the stub reads the word, tests for 0, then
+reads word [0x141853CE0 + 0x20 + rsi] and keeps it only when it lies in [261, 261 + N - 1],
+else yields 0, and returns through an absolute jump to 0x14028207A; flags are dead across the
+site and rax is the instruction's own destination. Evidence: tools/probes/lw365_swingid_fallback_probe.py
+(the hand-planted cut), lw365_clone_call_log.py (the call logger that isolated the last hop:
+the art routine 0x14026A358 received 0 for the Ravager and 257 for the Akademy Blade with every
+earlier lookup answering the right id), the [empty-tile-hand-read-bounds] addendum below for
+every lane ruled out on the way. Scope: right hand only; the substitution also fires on any
+pass where the standing word is 0 and the right hand holds an extended id.
+
 ### [reserved-id-equality-list-gate] The game's can-equip check refuses five RESERVED item ids by an equality list, not a bound, and relocating the list's five constants frees the ids for extended items
 Observed 2026-08-30 (LW-351 fix round 6, revised): whatever item sat at id 262 was refused by
 every job's equip check while 261 and 263 equipped fine. The five 0x106-looking "caps" first
@@ -2046,7 +2069,8 @@ reports 35 cap patches, equip and status screens fine). The cure half is CONTRAD
 nine sites armed, the Ravager (id 262) still swings fists at an empty tile, on three separate
 swings, while the same unit holding the vanilla Akademy Blade (id 257) swings the blade and the
 Ravager swung at an enemy shows the blade. The fists are NOT a hand-read bound. See the
-addendum below for what the late-evening instruments ruled out and what they found.
+addendum below for what the late-evening instruments ruled out and what they found; the cure
+itself is the Proven row [swing-id-fallback-stub] (owner flip 2026-08-31, shipped 9bb0896f).
 
 **Addendum 2026-08-31 (late evening, owner at the controls, read-only tapes plus three
 reversible holds, everything restored):** plain language first: the game builds a little

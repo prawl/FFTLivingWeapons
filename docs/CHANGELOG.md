@@ -10,6 +10,26 @@ before 2026-07-21 keep their original prose.
 
 ## 2.4.0 cycle
 
+- [LW-365] SHIPPED 9bb0896f 2026-08-31: Swinging one of the seven moved designs at an empty
+  tile now draws its own blade instead of bare fists. Plain language: the game copies one
+  standing "weapon id" word into each swing's animation record, and for a new weapon that word
+  was 0 at swing time, so the art lookup was asked for weapon 0 and drew hands; a tiny stub at
+  that copy now falls back to the unit's own right-hand id when the word is 0 and the hand
+  holds one of the new weapons. Vanilla weapons, bare hands and every other id keep their
+  exact old behavior. The night's first fix (nine more widened item-count bounds, bdeb63fa)
+  was armed but did not cure it; a long instrumented session then ruled out the attack
+  builder's disarm branch, the render statics id word, the action block id word and every
+  clone thunk before a call logger on the mod's own clones isolated the last hop. The owner
+  saw the hand-planted stub draw the Ravager's blade at an empty tile, keep it on an enemy
+  swing and leave a vanilla swing unchanged, and flipped the ledger row on that evidence.
+  (Tech: SwingIdFallbackHook.cs plants a 0x40-byte stub from the near allocator over the
+  7-byte `movzx eax, word [0x1407B077A]` at 0x140282073, installed right after the accessor
+  clones and rolled back right before them; twelve new tests pin the stub image, the site
+  encoding identity, the refusal order and a two-item lo/hi bake; three adversarial verify
+  rounds, final code 9 spec 8 SHIP; suite 3612 green; LIVE LEDGER rows swing-id-fallback-stub
+  PROVEN and empty-tile-hand-read-bounds SPLIT; probes lw365_clone_call_log.py,
+  lw365_swingid_fallback_probe.py, lw365_actor_pool_dump.py, lw365_publisher_gate_watch.py,
+  lw_disk_disasm.py.)
 - [LW-351] SHIPPED a57d3920 2026-08-31: The game's seven axes and flails are themselves again
   and the seven rebalanced designs live on at new ids with every earned kill carried over.
   Plain language: this mod had turned the seven vanilla axes and flails into other weapon
