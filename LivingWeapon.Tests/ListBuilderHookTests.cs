@@ -35,7 +35,7 @@ public class ListBuilderHookTests
     /// entry count -- the exact contract Process relies on (D2/Q5: it trusts the returned count,
     /// never re-scans for a terminator itself).</summary>
     private static ListBuilderHook.BuildFn Builder(FakeCodePatcher f, params ushort[] entries)
-        => (a, b, c, list) =>
+        => (a, b, c, list, _, _) =>
         {
             var w = new ushort[entries.Length + 1];
             Array.Copy(entries, w, entries.Length);
@@ -84,7 +84,7 @@ public class ListBuilderHookTests
         var f = new FakeCodePatcher { ZeroFillUnseeded = true };
         var hook = new ListBuilderHook(f, poolBase: PoolBase);
 
-        int result = hook.Process(0, 0, 0, StackBuffer, Builder(f, entries));
+        int result = hook.Process(0, 0, 0, StackBuffer, 0, 0, Builder(f, entries));
 
         Assert.Equal(ListBuilderHook.StackCallerCap, result);
         var kept = ReadWords(f, (long)StackBuffer, ListBuilderHook.StackCallerCap + 1);
@@ -107,7 +107,7 @@ public class ListBuilderHookTests
         int calls = 0;
         nint seenList = 0;
 
-        int result = hook.Process(1, 2, 3, staticList, (a, b, c, list) => { calls++; seenList = list; return 42; });
+        int result = hook.Process(1, 2, 3, staticList, 0, 0, (a, b, c, list, _, _) => { calls++; seenList = list; return 42; });
 
         Assert.Equal(1, calls);
         Assert.Equal(staticList, seenList);   // the original sees the static buffer itself
@@ -124,7 +124,7 @@ public class ListBuilderHookTests
         var f = new FakeCodePatcher { ZeroFillUnseeded = true };
         var hook = new ListBuilderHook(f, poolBase: PoolBase);
 
-        int result = hook.Process(0, 0, 0, StackBuffer, Builder(f, 5, 9, 0x105));
+        int result = hook.Process(0, 0, 0, StackBuffer, 0, 0, Builder(f, 5, 9, 0x105));
 
         Assert.Equal(3, result);
         Assert.Equal(new ushort[] { 5, 9, 0x105 }, ReadWords(f, (long)StackBuffer, 3));
@@ -141,7 +141,7 @@ public class ListBuilderHookTests
         for (int i = 0; i < ListBuilderHook.PoolSlots; i++) Assert.True(hook.AcquireSlot() >= 0);   // hold every slot
 
         int calls = 0;
-        int result = hook.Process(0, 0, 0, StackBuffer, (a, b, c, list) => { calls++; return 7; });
+        int result = hook.Process(0, 0, 0, StackBuffer, 0, 0, (a, b, c, list, _, _) => { calls++; return 7; });
 
         Assert.Equal(0, result);
         Assert.Equal(0, calls);   // D3: no safe buffer exists to hand the original at all
@@ -160,7 +160,7 @@ public class ListBuilderHookTests
         // Five sequential calls with only four slots: without the finally-release, the fifth
         // would find every slot still held and refuse (a menu listing nothing).
         for (int i = 0; i < ListBuilderHook.PoolSlots + 1; i++)
-            Assert.Equal(2, hook.Process(0, 0, 0, StackBuffer, Builder(f, 1, 2)));
+            Assert.Equal(2, hook.Process(0, 0, 0, StackBuffer, 0, 0, Builder(f, 1, 2)));
 
         Assert.Equal(0, hook.PoolExhaustedCount);
     }
@@ -185,7 +185,7 @@ public class ListBuilderHookTests
         var hook = new ListBuilderHook(new ReadThrowingCodePatcher(inner), poolBase: PoolBase);
         int calls = 0;
 
-        int result = hook.Process(0, 0, 0, StackBuffer, (a, b, c, list) => { calls++; return 5; });
+        int result = hook.Process(0, 0, 0, StackBuffer, 0, 0, (a, b, c, list, _, _) => { calls++; return 5; });
 
         Assert.Equal(1, calls);   // the original still ran exactly once, outside the guard
         // v1.2 (F1): the v1.1 wording pinned `result == count` here -- the exact defect this
@@ -206,7 +206,7 @@ public class ListBuilderHookTests
         f.RefuseWritesAt.Add((long)StackBuffer);
         var hook = new ListBuilderHook(f, poolBase: PoolBase);
 
-        int result = hook.Process(0, 0, 0, StackBuffer, Builder(f, 1, 2, 3));
+        int result = hook.Process(0, 0, 0, StackBuffer, 0, 0, Builder(f, 1, 2, 3));
 
         Assert.Equal(0, result);
         Assert.Equal(1, hook.CopyBackRefusals);
@@ -242,13 +242,64 @@ public class ListBuilderHookTests
         var inner = new FakeCodePatcher { ZeroFillUnseeded = true };
         var hook = new ListBuilderHook(new ZeroRefusingCodePatcher(inner), poolBase: PoolBase);
 
-        int result = hook.Process(0, 0, 0, StackBuffer, (a, b, c, list) => 0);   // a legitimately empty build
+        int result = hook.Process(0, 0, 0, StackBuffer, 0, 0, (a, b, c, list, _, _) => 0);   // a legitimately empty build
 
         Assert.Equal(0, result);
         Assert.Equal(ListBuilderHook.Terminator, ReadWords(inner, (long)StackBuffer, 1)[0]);
         // Q12: an empty list is a RESULT, not a refusal -- the pre-fix code took the (live-refused)
         // zero-length slot read and ticked this counter for a build that never actually failed.
         Assert.Equal(0, hook.CopyBackRefusals);
+    }
+
+    // --- LW-382 (arity fix): the callee reads a 6th argument (mode) four times and a 5th
+    // (spare) never; a 4-argument delegate silently replaced both with whatever the calling
+    // frame's own stack bytes held. T1 is the load-bearing, non-vacuous check: it fails the
+    // moment a parameter is dropped again, on either the stack-buffer or the static-buffer path.
+
+    [Fact]
+    public void Process_hands_the_original_the_fifth_and_sixth_arguments_it_was_given()
+    {
+        var f = new FakeCodePatcher { ZeroFillUnseeded = true };
+        var hook = new ListBuilderHook(f, poolBase: PoolBase);
+        nint spare = (nint)0x5A5A5A5A;
+        nint mode = (nint)3;
+
+        nint seenA = 0, seenB = 0, seenC = 0, seenSpare = 0, seenMode = 0;
+        ListBuilderHook.BuildFn captor = (a, b, c, list, sp, md) =>
+        {
+            seenA = a; seenB = b; seenC = c; seenSpare = sp; seenMode = md;
+            f.TryWrite((long)list, Words(ListBuilderHook.Terminator));
+            return 0;
+        };
+
+        // Path 1: a non-static buffer, routed through the pool.
+        hook.Process(1, 2, 3, StackBuffer, spare, mode, captor);
+        Assert.Equal((nint)1, seenA);
+        Assert.Equal((nint)2, seenB);
+        Assert.Equal((nint)3, seenC);
+        Assert.Equal(spare, seenSpare);
+        Assert.Equal(mode, seenMode);
+
+        // Path 2: the game's own static buffer, a pure passthrough.
+        seenA = seenB = seenC = seenSpare = seenMode = 0;
+        var staticList = (nint)Offsets.MenuListBuffer;
+        hook.Process(4, 5, 6, staticList, spare, mode, captor);
+        Assert.Equal((nint)4, seenA);
+        Assert.Equal((nint)5, seenB);
+        Assert.Equal((nint)6, seenC);
+        Assert.Equal(spare, seenSpare);
+        Assert.Equal(mode, seenMode);
+    }
+
+    [Fact]
+    public void BuildFn_declares_every_argument_the_game_passes()
+    {
+        var invoke = typeof(ListBuilderHook.BuildFn).GetMethod("Invoke");
+        Assert.NotNull(invoke);
+        var pars = invoke!.GetParameters();
+        Assert.Equal(6, pars.Length);
+        Assert.All(pars, p => Assert.Equal(typeof(nint), p.ParameterType));
+        Assert.Equal(typeof(int), invoke.ReturnType);
     }
 
     // --- prologue ---

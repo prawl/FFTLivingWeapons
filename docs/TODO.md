@@ -76,6 +76,102 @@ the technical detail lives in the indented lines under it.
   - Verify: full suite green; the owner's live battle shows either the "The weapon's
     spirit claims the carcass" log line with the Den count matching, or the named
     discriminator or gate-reason line in livingweapon.log; the owner reads the FAQ text.
+- **[LW-381] A weapon's glow rim now updates the same session it levels up, not just after a relaunch** (opened 2026-09-01) [AWAITING-LIVE]
+  - Plain language: a weapon's icon gets a brighter rim as it earns more kills, but until
+    now that rim only showed up after quitting and relaunching the game. It now shows up
+    in the same session, once the item list is redrawn (leaving and re-entering it, or
+    moving between party-menu sections; a cursor move inside an already-open list is not
+    enough).
+  - This rests on a live proof the owner ran tonight (ledger row [live-icon-repaint],
+    PROVEN 2026-09-01): the running game accepts an in-place, same-length overwrite of an
+    icon's bytes inside modded.pac, and an already-drawn icon refreshes on the next list
+    redraw. That overturns the earlier finding that icons cache at first draw forever
+    (ledger row [icon-refresh-unreliable], now RETRACTED).
+  - (Tech: the always-correct deployed loose-tex write is unchanged; a new PacScan/ModdedPac
+    pair mirrors the same bytes into the running game's modded.pac right after, via a new
+    IIconGlowStore.PatchPac seam. Same-length in-place patch only, offset cache per icon,
+    fails soft to today's restart-only behavior on any error (missing pac, ambiguous
+    search, share violation). tools/glow_bounce.py's dev cheat now needs only one launch.)
+  - Done means: a weapon crossing a kill tier mid-session shows its new glow rim after the
+    icon list is next redrawn, with no relaunch; if the pac write cannot happen for any
+    reason the loose tex (and therefore next-launch behavior) stays exactly as correct as
+    it is today.
+  - Verify: suite green with the new PacScan/ModdedPac/IconGlow pac-mirror tests; the
+    owner's live pass: cross a kill tier mid-session, re-enter the equipment list without
+    relaunching, see the new rim on both the row icon and the detail card.
+
+- **[LW-382] The party menu says you own nothing, and selling crashes the game** (opened 2026-09-01) [AWAITING-LIVE]
+  - Plain language: open the party menu inventory and it reports 0 weapons and 0 items, even
+    though the shop's buy screen still lists everything the player owns. Try to sell and the
+    game closes instantly. The owner hit the crash twice, then every time. Turning the Living
+    Weapons mod off and loading the same save fixed both symptoms, so this one is ours and not
+    the game's.
+  - It is not wrong from the start. The same save listed its shields correctly, with counts, at
+    03:56 on this same build (prod 2.3.3), and was broken by 05:06 after an hour of battles and
+    loot. Something crosses a bound or damages state during play.
+  - The crash is a native access violation, not a managed error: livingweapon.prev.log ends
+    mid-tick on a routine display line at 05:06:14.996 with no error line and no flight tape,
+    and the next launch begins 20 seconds later. The last mod activity before death is the
+    extended inventory save-edge hook firing twice, at 05:06:11 and 05:06:12.
+  - (Tech: suspects are the extended inventory's menu list builder and the relocated item count
+    lists at 0x114AA0000 plus the menu order charts at 0x114AB0000. A CAPACITY CEILING IS RULED
+    OUT: with the mod off the owner counted 47 distinct sellable items (13 weapons, 3 shields, 8
+    helms, 7 garb, 3 accessories, 13 items), nowhere near the nearest bound of 121
+    (ExtendedSites.MaxExtendedCount; the others are ListBuilderHook.StackCallerCap 149,
+    OrderRebuildHook.MaxWords 260, TemplateRelocation.Sites.PageRegionCapacityWords 511). The
+    live suspicion is now a SPLIT SOURCE: the party menu reads the relocated count lists through
+    the mod's own accessor redirects while the shop reads the game's untouched table, so a
+    relocated page that went to zero would show exactly this pair of symptoms. Order templates
+    are save state, so a damaged one persists, which fits a repro that stays broken.
+    InventoryResetHook and TemplateSync are the two paths that can zero a relocated page.
+    FIRST STEP IS INSTRUMENTATION, NOT A FIX: the whole Extended folder emits no log line during
+    menu work, so both captured logs are silent about the failing path. The owner's saves were
+    copied to a scratch backup before any diagnosis.)
+  - BISECTED 2026-09-01, owner live. With the extended inventory left unarmed (the temporary
+    ExtendedStandDown marker) and everything else in the mod running, the weapons list comes
+    back. The log proves the configuration: "Extended inventory STOOD DOWN", no armed line. So
+    the cause is inside that subsystem and nowhere else in the mod.
+  - Also measured, and this is the sharpest clue: the list-builder detour logged 40 calls while
+    the owner tabbed around, and every one took the PASSTHROUGH branch, where the mod forwards
+    the caller's own buffer to the game's own builder and does nothing else. The game's builder
+    returned 3 entries for shields (the owner owns exactly 3) and 0 for weapons and for items.
+    So the failure is category-specific and it is produced by the game's own builder.
+  - CORRECTED 2026-09-01: the line above used to end "and the mod's list-builder hook is NOT the
+    cause", reasoning that the passthrough branch forwards the caller's own buffer and does
+    nothing else. That reasoning was wrong, and it is worth keeping as the lesson. The damage
+    does not happen in a branch, it happens at the delegate boundary, so BOTH branches lose the
+    same thing and the passthrough evidence pointed away from the culprit instead of at it.
+  - CAUSE FOUND 2026-09-01, from the game's own machine code. The game's list builder takes SIX
+    arguments and our detour declared FOUR, so the sixth never reached the game. In plain
+    language that sixth one tells the routine what kind of list it is building: a plain inventory
+    browse, an equip picker, a shop. Getting nothing, the routine read whatever leftover bytes sat
+    in that spot and decided from those. One of the things it decides is whether to throw away
+    every item the chosen character cannot wear, and nobody can wear a potion, so the Items tab
+    emptied. The fix hands all six through untouched.
+  - (Tech: the callee reads byte [rsp+0x88] four times, at 0x140288BCA / 0x140288C61 /
+    0x140288C8D / 0x140288CA1; its prologue pushes 7 registers then subs 0x20, so that resolves to
+    argument 6's home slot, cross-checked against the r9 and dx spills the same prologue writes.
+    All eight call sites write it immediately before calling. Mode 0 skips the can-equip filter,
+    2 and above DROP a refused id, 1 greys it, 3 switches which ownership getter runs.
+    ListBuilderHook.BuildFn is widened from 4 to 6 nint parameters and Process forwards both extras
+    verbatim on the passthrough path and the pool path. The Reloaded.Hooks residual is CLOSED by
+    static decompilation of the deployed reloaded.sharedlib.hooks x64 DLL: for a
+    Microsoft-to-Microsoft pairing both ReverseWrapper.Create and Wrapper.CreatePointer skip
+    Reloaded's own arity-sensitive shuffler entirely, so the CLR marshals per the platform ABI.
+    A temporary diagnostic in ListBuilderHook.Diag.cs logs (a, b, c, mode) and the returned count,
+    120 lines per launch, and is deleted with the shipping commit.)
+  - Four theories died on data before that: a split source between the relocated and vanilla bag
+    counts, an empty sibling flag list, a corrupt menu order chart, and the mod's own list-builder
+    hook. Bag counts read 41 ids / 360 items identically with the mod on and off; the flag list
+    reads all zeros in BOTH configurations, so empty is its normal state; all three order charts
+    read identically too.
+  - Done means: the party menu inventory lists what the shop's buy screen lists, and selling an
+    item completes without closing the game, on the owner's own save that reproduces this today.
+  - Verify: the owner opens the party menu on the repro save and sees his real weapon and item
+    counts, then sells an item and the game stays up; and every list-builder line in the log
+    carries a small stable mode value (0x0 to 0x3), not a wide pointer-shaped one, which is what
+    proves the sixth argument is reaching the game. Suite 3614 green; both gates green; three
+    independent verify rounds, the last SHIP at code 9 and spec 8.
 
 ## Backlog
 
@@ -83,6 +179,45 @@ Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner dire
 A new row still lands here in the session it surfaces; slot it where its urgency
 belongs rather than at the bottom.
 
+- [LW-384] 2026-09-01: The Eclipsebolt's death mark lands on the slow three turn countdown instead
+  of the one turn its tier three signature promises, and once it does there is no second chance.
+  Owner-observed 2026-09-01 07:10 in a live battle, and the log names the refusal outright:
+  "a level 27 enemy's Doom appeared outside the Eclipsebolt wielder's own action (lastActed
+  mainHand id=22); its countdown (3) is left alone". The hastening was armed at the time (the
+  tier three line fired at 07:10:09), so the signature was awake and simply decided the mark was
+  not its own.
+  - Why it is a real defect and not just bad luck, from the code rather than the tape: EagleEye
+    records its own baseline BEFORE it checks attribution (EagleEye.Hasten writes
+    _wasDoomed[addr] = doomed, then tests the gate). A mark is only ever hastened on a RISING
+    edge, so the moment one sweep refuses it, that edge is spent and the mark can never be
+    hastened again, even if the wielder's acted period is still open a millisecond later. There
+    is no retry anywhere in the path.
+  - The gate is also a race by construction. It reads KillTracker.LastPlayerMainHand and the
+    global Acted byte at SWEEP time, not at the moment the mark appeared, and the sweep only runs
+    on every sixth engine tick (about 200ms). Anything that closes the acted period or lets
+    another player unit act inside that window makes the mark look foreign forever.
+  - Honest limit on the evidence: the log does not independently prove this particular Doom came
+    from the Eclipsebolt, because no Eclipsebolt damage event sits next to it (the surrounding
+    traffic is all movement). The owner saw the shot. Whether or not this one instance was the
+    bow, the spent-rising-edge flaw above is real on its own reading.
+  - Beware the opposite failure when fixing. This gate exists because of LW-95: without it, Mortal
+    Coil (id 8) procced Doom while a tier three Eclipsebolt merely sat fielded and EagleEye
+    hastened it anyway. A fix must stop under firing without bringing that over firing back, so
+    the answer is probably to keep re-testing an unhastened mark for a few sweeps while its
+    countdown is still above target rather than to widen who counts as the actor.
+  - (Tech: LivingWeapon/Signatures/EagleEye.cs, the Hasten sweep. Doom status at base+0x49 mask
+    0x01, countdown at base+0x59, per LIVE_LEDGER doom-status-bytes. Same family as the known
+    last actor attribution traps, memories actorptr-dwell-semantics and stale-latch-stamp-fix.)
+- [LW-383] 2026-09-01: One grown weapon glows on its inventory icon and another one does not, on the
+  same build in the same session. Owner-observed 2026-09-01: the Scoutbolt lit up correctly as it
+  levelled, while the Eclipsebolt sat at +2 with no glow at all. Both are ordinary weapons on the
+  same save, so this is not about the new item ids. First thing to settle is whether the Eclipsebolt
+  was already drawn on screen before its glow was written, because a drawn icon only picks a change
+  up on a list REDRAW (leaving the list and coming back, or moving between party menu sections; a
+  cursor move inside an open list is not enough, see LIVE_LEDGER [live-icon-repaint]). If it stays
+  dark after a real redraw, the cause is somewhere else and this is its own hunt. Note the deployed
+  build predates LW-381 and has never carried that cure. The 2026-09-01 05:53 log line
+  "IconGlow: judged 121 icons, wrote 3" is the number to check against what should have been lit.
 - [LW-320] 2026-08-25: Every weapon's power audited against how it is obtained. Demoted from Now on 2026-08-27 late to seat
   LW-353 (per-save bag counts); status unchanged, AWAITING-LIVE, the owner's sign-off on the
   grid rulings is still the only thing outstanding; every line below is the Now row's text verbatim.

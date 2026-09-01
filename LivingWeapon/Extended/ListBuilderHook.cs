@@ -37,11 +37,25 @@ namespace LivingWeapon;
 /// on a throw the way a bare try/catch would swallow one, and a leaked slot would eventually brick
 /// every stack-buffer menu (four slots, never refilled). The copy-back's own failures (F1, v1.2)
 /// are handled one level in, by ListBuilderHook.Pool.cs's CopyBack/CopyBackRefused.
+///
+/// LW-382: the target actually takes SIX arguments, not four. F1 (disasm, this session): the
+/// prologue pushes 7 registers then subs 0x20 from rsp, so entry-rax (rsp at entry) is
+/// rsp+0x58, and the body reads <c>byte ptr [rsp+0x88]</c> (= rax+0x30, the home slot of
+/// argument 6) at four separate branches -- it is a real per-caller mode byte, not padding. All
+/// eight call sites set it immediately before the call (a literal, or a register carrying a
+/// per-caller flag). A delegate that only declares four arguments still compiles and still
+/// runs, because the native calling convention does not check arity: the callee simply reads
+/// whatever bytes the CALLING frame happened to leave at its own [rsp+0x28]/[rsp+0x20] home
+/// slots, i.e. stack junk, in place of arguments 6 and 5. When that junk reads as "equip
+/// picker" the callee throws away every id the current wielder cannot equip -- an empty Items
+/// tab is the visible symptom. The two extra parameters below (<c>spare</c>, <c>mode</c>) are
+/// forwarded verbatim to the original on every call path; neither this hook nor the pool ever
+/// inspects them -- deciding what they mean is the callee's job, not ours.
 /// </summary>
 internal sealed partial class ListBuilderHook
 {
     [Function(CallingConventions.Microsoft)]
-    public delegate int BuildFn(nint a, nint b, nint c, nint list);
+    public delegate int BuildFn(nint a, nint b, nint c, nint list, nint spare, nint mode);
 
     /// <summary>First 16 bytes at the entry (Q2, live-read 2026-08-31, confirmed byte-identical on
     /// the 1.5.2 exe on disk): mov rax,rsp; mov [rax+0x20],r9; two word-arg spills (mov
@@ -146,13 +160,14 @@ internal sealed partial class ListBuilderHook
     /// write, or an exception this catch alone reaches (e.g. a throw on the read itself, before
     /// CopyBack's own best-effort write ever runs) -- also answers with an empty list and 0, NEVER
     /// the original's own count (its world lives in the pool slot, not the caller's buffer).</summary>
-    internal int Process(nint a, nint b, nint c, nint list, BuildFn original)
+    internal int Process(nint a, nint b, nint c, nint list, nint spare, nint mode, BuildFn original)
     {
         Interlocked.Increment(ref _calls);
         if ((long)list == Offsets.MenuListBuffer)
         {
             Interlocked.Increment(ref _passthroughs);
-            return original(a, b, c, list);   // exactly once, never inside a try: the widened cap already applies here
+            int passCount = original(a, b, c, list, spare, mode);   // exactly once, never inside a try: the widened cap already applies here
+            return passCount;
         }
 
         int slot = AcquireSlot();
@@ -160,7 +175,7 @@ internal sealed partial class ListBuilderHook
         long slotAddr = SlotAddr(_poolBase, slot);
         try
         {
-            int count = original(a, b, c, (nint)slotAddr);   // exactly once, never inside a try/catch (the finally is deliberate: D7's pool posture, see the class doc)
+            int count = original(a, b, c, (nint)slotAddr, spare, mode);   // exactly once, never inside a try/catch (the finally is deliberate: D7's pool posture, see the class doc)
             try { return CopyBack(list, slotAddr, count); }
             catch (Exception) { CopyBackRefused(list, "the copy-back threw"); return 0; }   // F1: never the original's own count
         }
@@ -168,7 +183,7 @@ internal sealed partial class ListBuilderHook
     }
 
     // Hot-path detour: MUST NOT throw. Process guards everything but the original call itself.
-    private int Detour(nint a, nint b, nint c, nint list) => Process(a, b, c, list, _hook!.OriginalFunction);
+    private int Detour(nint a, nint b, nint c, nint list, nint spare, nint mode) => Process(a, b, c, list, spare, mode, _hook!.OriginalFunction);
 
     private static void SafeLog(Action log)
     {

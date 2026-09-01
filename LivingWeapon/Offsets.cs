@@ -865,11 +865,36 @@ internal static class Offsets
     // 149 through a mod-owned pool, and lets every static-buffer caller run unchanged. See
     // ListBuilderHook.cs and LW372_plan.md (Q2, Q3, D1-D4).
     /// <summary>The shared list builder's own entry (Q2, live-read 2026-08-31, confirmed on the
-    /// 1.5.2 exe on disk): <c>int Fn(nint a, nint b, nint c, nint list)</c> (Microsoft x64; a/b/c
-    /// are cx/dx/r8b widths the function only reads the low bits of, list = r9, the output
-    /// buffer). Prologue: mov rax,rsp; mov [rax+0x20],r9; two word-arg spills -- see
-    /// <see cref="ListBuilderHook.ExpectedPrologue"/>. 15 bytes, no rip-relative field inside the
-    /// stolen window.</summary>
+    /// 1.5.2 exe on disk; corrected LW-382, disasm this session): <c>int Fn(nint a, nint b, nint c,
+    /// nint list, nint spare, nint mode)</c> (Microsoft x64; a/b/c are cx/dx/r8b widths the
+    /// function only reads the low bits of, list = r9, the output buffer; args 5/6 are stack
+    /// arguments at the caller's [rsp+0x20]/[rsp+0x28]). Prologue: mov rax,rsp; mov [rax+0x20],r9;
+    /// two word-arg spills -- see <see cref="ListBuilderHook.ExpectedPrologue"/>. 15 bytes, no
+    /// rip-relative field inside the stolen window.
+    ///
+    /// LW-382 F1: the prologue pushes 7 registers then subs 0x20 from rsp, so entry-rax (rsp at
+    /// entry) is rsp+0x58, putting argument 6's home slot at rax+0x30. The body reads
+    /// <c>byte ptr [rsp+0x88]</c> (= rax+0x30) at 0x140288BCA, 0x140288C61, 0x140288C8D and
+    /// 0x140288CA1 -- four separate branches on the mode byte, never a stray read. It also reads
+    /// <c>[rsp+0x78]</c> (= rax+0x20, argument 4, the list buffer) and <c>[rsp+0x68]</c>
+    /// (= rax+0x10, argument 2), which is how the frame arithmetic above was cross-checked
+    /// against two arguments whose identity was already known. No reference to <c>[rsp+0x80]</c>
+    /// (= rax+0x28, argument 5) exists anywhere in the body -- argument 5 is unread by the
+    /// callee, forwarded only because forwarding what the hook was given is the smaller claim.
+    ///
+    /// LW-382 F2: all eight call sites set argument 6 immediately before <c>call 0x140288b94</c>,
+    /// at their own <c>[rsp+0x28]</c> -- for example 0x14028774D (<c>mov byte [rsp+0x28],3</c>,
+    /// call at 0x14028775E) and 0x14036C45E (<c>mov byte [rsp+0x28],r9b</c>). It is a real
+    /// per-caller value at every site, not padding.
+    ///
+    /// LW-382 F3: what the mode byte decides, from the callee's own branches -- <c>== 3</c> at
+    /// 0x140288BCA routes ownership through the bag-count-only read (0x1402847F8) instead of the
+    /// bag-count-plus-sibling-flag read (0x140287530); <c>== 0</c> at 0x140288C61 jumps to
+    /// 0x140288CB6, skipping the can-equip filter entirely; <c>&gt;= 2</c> at 0x140288C8D drops
+    /// the id from the list when can-equip (0x1402886D0) answers -1; <c>== 1</c> at 0x140288CA1
+    /// instead sets bit 14 (the grey E badge) and keeps the row. A mode byte that reads as
+    /// "equip picker" when it should not throws away every id the current wielder cannot equip.
+    /// </summary>
     public const long FnListBuilder = 0x140288B94L;
     /// <summary>The game's own static 256-word menu list buffer (LW-371 finding 5(e): 37
     /// plain-code sites read/lea it, all at +0, none through a stack temp). D2's hook rule treats
