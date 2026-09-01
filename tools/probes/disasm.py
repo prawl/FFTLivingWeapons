@@ -12,7 +12,17 @@ import pathlib
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from treasure_flags import rpm, _require_game
+from lw346_live_disasm import find_pid, k32, rd as _rd
+
+
+def _require_game():
+    if find_pid("fft_enhanced.exe") is None:
+        print("game not running")
+        sys.exit(1)
+
+
+def rpm(a, n):
+    return _rd(k32.OpenProcess(0x0410, False, find_pid("fft_enhanced.exe")), a, n)
 
 try:
     from capstone import Cs, CS_ARCH_X86, CS_MODE_64

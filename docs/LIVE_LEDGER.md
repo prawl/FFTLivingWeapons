@@ -2041,8 +2041,66 @@ extended weapon (ids 261 to 267) swings fists because a family of routines that 
 hand words still treats an id at or above 0x105 as an empty hand and falls back to the other
 hand; nine such one-byte bounds (six hand-resolver copies, three equip-slot switch guards)
 joined ExtendedSites.BootSites and the boot arm now reports 35 cap patches where it said 26.
-Status: Uncertain until the owner's empty-tile swing check on the deployed build (the cure is
-inferred from the shape; the widening mechanism itself rides the proven boot transaction).
+Status: SPLIT (owner live, 2026-08-31 evening). The widening half is VERIFIED APPLIED (boot line
+reports 35 cap patches, equip and status screens fine). The cure half is CONTRADICTED: with all
+nine sites armed, the Ravager (id 262) still swings fists at an empty tile, on three separate
+swings, while the same unit holding the vanilla Akademy Blade (id 257) swings the blade and the
+Ravager swung at an enemy shows the blade. The fists are NOT a hand-read bound. See the
+addendum below for what the late-evening instruments ruled out and what they found.
+
+**Addendum 2026-08-31 (late evening, owner at the controls, read-only tapes plus three
+reversible holds, everything restored):** plain language first: the game builds a little
+"animation actor" for each swing and copies into it WHICH ability is being performed; the
+weapon art is picked from that ability's effect number. For a vanilla weapon the empty-tile
+Attack arrives with ability 0x1B9 (Attack) and effect 0xF2; for the Ravager the actor gets
+ability 0 and effect 0, so the art lookup is asked for weapon 0 and draws bare hands. Ruled
+out, each by a live instrument: (1) the disarm branch of the attack builder 0x14030D2D4 (the
+classifier 0x14027FE20 is a targetability verdict over the reach map at 0x1418004E0; it marked
+the four neighbor tiles for the Ravager's own swing, its hand bound 0x14F2EA40F is already
+widened, and no 0xFF hand write ever showed on a 0.3 ms tape); (2) the render statics block
+0x1407B0760: its id word at +0x1A held at 262 by an external 1 ms writer straight through a
+swing still produced fists, so it is a mirror, not the art driver, and its no-weapon flag byte
+at +0x1C never changes for either unit, which clears the imm32 0x105 at 0x140309EF7 as a
+cure; (3) the action block word at +0x1A4 is zero for vanilla and for 262 alike on targetless
+swings; (4) every clone thunk answers 262 on every lane a call logger saw: the weapon-stat
+clone (for 0x1402B8C74) is called with 262 from the reach builder 0x14F2EA434 and from
+0x1402802B3 on each swing, the range-index clone (for 0x1402B8BCC) with 262 from the
+attack-setup routine 0x140309B27. Found: the art id reaches the pair-art thunk 0x1402B8E60
+through the routine at .code 0x14026A358 (body 0x14E92B8B0, called once per swing with ecx =
+word [actor+0x1C8] from 0x14DA74997, then per frame from the art builder 0x14026BC60 with the
+weapon id); the actors are a static pool at 0x140D2D5F8 + slot*0x548 (slot 10 was Ramza's
+unit, slot 11 the Ravager's; +0x148 unit pointer, +0x1BC ability id, +0x1C8 effect id, +0x150
+mirror). Vanilla's targetless action block also receives +0x1A2 = 0x1B9 and +0x1A8 = 0xF2 at
+swing time; the Ravager's never does. Holding those two action words externally produced a
+spell-cast pose, not the blade (the animation page follows the ability id).
+
+**LEVER OBSERVED LIVE BY THE OWNER 2026-08-31 late ("BLADE BLADE BLADE", then "Correct blade
+on Ravenger now" with the corrected stub; the row flip itself stays the owner's call):** the swing-prep routine 0x140281CE8 copies the standing id word
+0x1407B077A into its output block at 0x140282073 (`movzx eax, word [0x1407B077A]`, then
+`mov [rdi+0x20], ax`), that block becomes the animation actor's +0x1C8, and the caller at
+0x14DA74997 hands that word to the art routine (.code 0x14026A358, body 0x14E92B8B0) which
+calls the pair-art thunk 0x1402B8E60 with it. A read-only call logger on the mod's five clone
+thunks (tools/probes/lw365_clone_call_log.py) showed the same pipeline for both units right up
+to that art call: weapon-stat clone called with the right id from the reach builder
+(0x14F2EA434) and the hit resolver (0x1402802B3), the prep validator returning 0, the prep's
+affected-unit list empty; only the art call differed, 257 for the Akademy Blade unit and 0 for
+the Ravager unit. No setup-routine publish happens between a unit's turn start and its swing
+for either unit (entry hook at 0x1403099D3 plus write hooks on all five writers of the id word
+were silent in both windows), so the standing value is per-unit state restored by the statics
+save/restore pair (0x14030D941 / 0x14030DA0A) and the Ravager's saved value is 0 because its
+only real publish (the confirm-time setup call with the class-6 pseudo action) ends with the
+cat-1 lane overwriting the id with the ability effect 0xF2, then a later zero publish. The
+cure that works: a 39-byte stub at 0x140282073 (tools/probes/lw365_swingid_fallback_probe.py)
+that reads the standing word and, when it is 0, substitutes the acting unit's right-hand word
+(`units base 0x141853CE0 + 0x20 + rsi`, rsi = acting slot << 9 in that frame). First run
+substituted the last-published unit's hand (cluster byte +1) and drew the Akademy blade on the
+Ravager unit, proving any valid id draws; the corrected rsi-based stub drew the Ravager's own
+blade. Vanilla units never hit the substitution (their standing word is nonzero). This is the
+LW-365 fix mechanism: a boot-time code hook, the same stub-and-jump recipe as the ten donor
+thunk clones (ExtendedDonorThunks / ThunkStub), guarded to the extended id range or to a zero
+standing word. Instruments: tools/probes/lw365_publisher_gate_watch.py,
+lw365_clone_call_log.py, lw365_swingid_fallback_probe.py, lw365_actor_pool_dump.py,
+lw_disk_disasm.py.
 
 **Mechanism / evidence:** every address re-read from the 1.5.2 exe on disk 2026-08-31 by
 tools/probes/lw365_hand_resolver_scan.py (self-gating, exit 1 on drift) and independently

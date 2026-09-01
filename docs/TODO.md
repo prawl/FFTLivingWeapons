@@ -98,7 +98,22 @@ the technical detail lives in the indented lines under it.
     defects (a wall pinned at the wrong byte convention and the probe passing its own
     failure), a fix round closed both, and a fresh verifier re-derived every byte from the
     game file itself and scored code 9 and spec 8, SHIP. Suite 3600 green. The probe now
-    gates its own findings (exit 1 on any drift). Deploy owed on the owner's go ahead.
+    gates its own findings (exit 1 on any drift).
+  - Live check 2026-08-31 evening: the nine widened bounds ARMED (boot line 35 cap patches,
+    equip and status screens fine) but the fists PERSIST, so the cause named above was
+    wrong. A long instrumented session then mapped the real chain: the swing art comes
+    from the per swing animation actor's ability and effect numbers (vanilla empty swings
+    carry Attack 0x1B9 with effect 0xF2, the Ravager's carry 0 and 0, so the art lookup
+    draws bare hands). Ruled out live: the attack builder's disarm branch, the render
+    statics id word (held at 262 through a swing, still fists), the action block id word,
+    and every clone thunk (a call logger saw them answer 262 on every lane). The cure lever
+    was then shown working in the owner's game the same night: the swing builder copies one standing "weapon id"
+    word into the animation object, and for a moved design that word is 0 at swing time;
+    a tiny stub at the copy that falls back to the unit's own right-hand id when the word
+    is 0 drew the Ravager's blade at an empty tile (owner: "Correct blade on Ravenger now").
+    Fix scope is now that stub as a boot-time code hook (same recipe as the donor thunk
+    clones), not a bound widening. Details in docs/LIVE_LEDGER.md under
+    [empty-tile-hand-read-bounds], addendum 2026-08-31.
   - Done means: the fists have a named cause and the fix is armed: every listed site is read
     on disk and classified, the nine widenable bounds ride the boot arm with test pins, the
     two walled addresses carry negative pins so no future sweep widens them blind, and the
