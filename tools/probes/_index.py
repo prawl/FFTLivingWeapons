@@ -42,7 +42,7 @@ GROUPS = {
         "item_type_probe.py", "purchase_diff.py", "refund_jp.py", "learned_probe.py",
         "set_learned.py", "set_learned2.py", "clear_stray.py", "restore_counter.py",
         "hold_secondary.py", "support_poke.py", "mp_probe.py", "hp_poke.py",
-        "staff_ma_probe.py", "ramza_check.py",
+        "staff_ma_probe.py", "ramza_check.py", "lw386_den_produced_probe.py",
     ],
     "Statuses, stats, and reactions": [
         "status_probe.py", "poison_probe.py", "charm_probe.py", "brave_probe.py",

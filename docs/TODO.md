@@ -82,6 +82,39 @@ Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner dire
 A new row still lands here in the session it surfaces; slot it where its urgency
 belongs rather than at the bottom.
 
+- [LW-386] 2026-09-01: The Poacher's Den is handing players items the mod never meant it to, and one
+  player saw four katanas where two dragons' carcasses belong. Plain language: a Discord player on
+  the public 2.3.3 build poached Blue and Red Dragons and the Den listed and produced Asura, Kotetsu,
+  Bizen Osafune and Murasame instead of the dragons' rewards, while the regular Dragon and the pig
+  line behaved. That exact symptom is NOT reproduced yet and its cause is unknown; what the same-day
+  audit DID prove wrong in 2.3.3 is listed below, and it is player-visible on its own.
+  - PROVEN wrong in the public build (data audit 2026-09-01, docs/USER_FEEDBACK.md 2026-09-01):
+    five carcasses hand out a weapon of a different TYPE than the carcass card promises, because
+    2.3.3 recategorized the seven axes and flails in place: Grenade rare gives Bloodlash (a knife;
+    the card says Flail of Flame), Wisenkin common and rare give Terrastaff (a pole) and Ravager (a
+    knight sword; the card says Battle Axe and Giant's Axe), Minotaur rare gives Sunderer (a knight
+    sword; the card says Slasher), Hydra rare gives Sasori (a katana; the card says Scorpion Tail).
+    HEAD already restored those seven ids (LW-351), so 2.4.0 cures this by shipping; the row exists
+    so the 2.3.3 player-facing fact is on record and the release notes can say so.
+  - PROVEN wrong in every build: 39 of the 96 carcass descriptions name the VANILLA reward ("Used
+    to produce a length of cashmere") while the Den hands out the mod's renamed item (Bindsilk
+    Veil). The mod never patches poachitem.en.nxd. Decide: patch the 39 descriptions the way
+    item.en.nxd is patched, or leave and FAQ it.
+  - ELIMINATED for the katana symptom: vanilla poach data is correct (keys 87 to 90 produce items
+    120, 57, 239, 105); the mod ships no poach or job text table; JobData.xml touches no monster
+    row; the nxd bake audit is green; the owner's running modded game holds the vanilla produced
+    ids in all three in-memory copies of the poach sheet
+    (tools/probes/lw386_den_produced_probe.py table, read-only). The tag's ItemData.xml,
+    ItemWeaponData.xml, JobData.xml and item.en.nxd all differ from HEAD, so a 2.3.3-tag deploy
+    is the honest repro bed if the owner's HEAD build does not reproduce.
+  - NEXT (owner-driven, two minutes): poke Den store keys 87 and 89 to 1 with the probe, open the
+    Den, read what the Blue and Red Dragon lines show and produce, restore. Then ask the player
+    for mod version, other mods, a Den screenshot and livingweapon.log. Related to [LW-358]
+    (the earlier no-poach report) only by subject; different symptom, different gate.
+  - (Tech: carcass store u8[96] at Offsets.PoachStoreBase 0x1411A7A1B; PoachItem sheet rows are
+    0x38 bytes with the produced item id at +0x2C, three live copies found 2026-09-01 at
+    0x15c62xxxx and two 0x4c9bxxxxxx heap mirrors; the tag build is v2.3.3 = cb14be3b; the
+    recategorized rows are ItemData.xml ids 48, 49, 50, 67, 68, 69, 70 at that tag.)
 - [LW-385] 2026-09-01: Icon-glow same-session refresh, the regression and edge-case pass to run
   next session (owner directed, held for a dedicated test session). Plain language: the live glow
   cure (LW-381) works, and here is the list to hammer before it is trusted everywhere.

@@ -154,3 +154,24 @@ owner's Treasure Master spinoff holds rank 1).
   thread). Early access to WP 15 weapons echoes the owner's own "steady then boom"
   finding (shop-stock Warbrand/Ravager); feeds [LW-320]'s obtain-vs-power audit and
   [LW-318]. The player flags their own level deficit as a confound.
+
+## 2026-09-01 (Discord report)
+
+### Actionable
+- Poacher's Den hands out the wrong items for two dragons (verbatim: "does the mod affect
+  poach tables because while trying to poach red and blue dragons their items are messed
+  up. The blue dragon's carcass was called 'blue Asura' and 'blue Kotetsu' and gave the
+  corresponding katanas in the Poacher's Den, same with the Red dragon giving 'red Bizen
+  Osafune' and 'red Murasame' instead of their carcasses which is weird because the regular
+  dragon is still poached properly. I haven't done much testing poaching other monsters
+  aside from the Pig family line but those seem to be giving the right drops too.").
+  Captured as [LW-386]. Same-day triage, not yet reproduced: the four wrong items are
+  ids 38 to 41 for carcass keys 87 to 90, four katanas in a row for four carcass keys in a
+  row; the game's own poach sheet says those keys produce Cashmere, Dragon Rod, Sortilege
+  and Dragon Whisker; the mod ships no poach table and touches no monster job row; the
+  owner's running modded game holds the vanilla produced items in all three in-memory
+  copies of the sheet. Still owed from the player: mod version, other mods, a Den
+  screenshot, livingweapon.log. What the audit DID prove wrong in the public 2.3.3
+  build sits under [LW-386] in docs/TODO.md (five carcasses whose reward changed weapon
+  type, and 39 carcass descriptions naming the vanilla item while the Den hands out the
+  mod's renamed one).

@@ -76,6 +76,7 @@ Ground rules before running anything here:
 - `hp_poke.py` Direct HP/MP write probe: prove the band addressing + provisional MP pair on screen.
 - `item_type_probe.py` Item-type probe (READ-ONLY). Settle Bug B: do our category overrides reach the engine?
 - `learned_probe.py` Find Ramza's roster record + the Mettle learned-bitfield (he JUST learned slot-10
+- `lw386_den_produced_probe.py` LW-386 Poacher's Den probe: does the LIVE game's poach-item table still say what each carcass
 - `menu_signal_probe.py` World-map menu-open signal hunt (READ-ONLY). Premise P-A of the LW-193 consent rewrite:
 - `mp_probe.py` MP-offset hunt on the auth band: HP=+0x14, maxHP=+0x16 -- MP should be a nearby
 - `offhand_shield_probe.py` Off-hand / shield gear-loss probe (READ-ONLY). Premise check for LW-193 (a Crossfire or
@@ -236,6 +237,7 @@ Ground rules before running anything here:
 ## Ungrouped (add these to _index.py's GROUPS)
 
 - `auto_text_probe.py` Find which resident copy of the "Auto" tag the renderer actually reads.
+- `bag_count_split_probe.py` READ-ONLY probe for LW-382: the party menu reports 0 weapons and 0 items while the shop's buy
 - `lw247_emit_tables.py` LW-247 D4 emitter: replays the exact census configuration passes against the TRACKED probe
 - `lw247_extract_bodies.py` LW-247 D4: extracts the 16 vendored body PNGs data/icon_ramp/bodies/ needs -- the (id,
 - `lw247_keepship_check.py` LW-247 Phase 0 premise P6 (KEEP_SHIPPED circularity check), promoted from the session
@@ -268,6 +270,55 @@ Ground rules before running anything here:
 - `lw305_bench_paint.py` LW-305: paint a Weapon Colour Bench export straight into the running game.
 - `lw312_frame_atlas.py` LW-312: render EVERY frame of battle_wep1/2_shp.bin as labeled contact sheets.
 - `lw316_lane_probes.py` LW-316 lane probes: the Faith and MaxHP halves of the three growth-lane questions.
+- `lw318_thin_niche.py` LW-318: hunt the dominance gate's blind spot -- items alive on a single thin niche.
+- `lw319_crop_reader.py` LW-319: offline re-read of the 2026-08-25 sampler sitting's provenance crops.
+- `lw319_glow_ladder.py` LW-319: render the Glow Ladder gallery panels in the MEASURED lane hues.
+- `lw319_text_sampler.py` LW-319: measure the exact on-screen RGB of each ruled Grows-line color slot.
+- `lw346_battle_caps_poke.py` LW-346 live poke (outside-process WPM): widen the attack path's copy-protected id caps.
+- `lw346_capbreak_live_bytecheck.py` LW-346 LIVE byte check of the 261 cap-break rig's gate addresses (READ-ONLY).
+- `lw346_capbreak_live_confirm.py` LW-346 candidate confirmation for the re-anchored 261 cap-break gates (READ-ONLY).
+- `lw346_capbreak_reanchor.py` LW-346 offline byte check: did the 261 cap-break rig's gates survive to 1.5.2?
+- `lw346_catcache_scan.py` LW-346 registry hunt: find the boot-resolved per-id CATEGORY cache in live memory.
+- `lw346_compaction_audit.py` LW-346 READ-ONLY live audit of the post-build inventory-list compaction passes (1.5.2).
+- `lw346_count_ref_scan.py` LW-346 registry hunt: every live .code reference to the bag count array (0x1411A7C00).
+- `lw346_equip_watch.py` LW-346 READ-ONLY watcher: when does the equipped id 261 leave Ramza's hand, and the bag?
+- `lw346_idrange_tables_dump.py` LW-346: dump the two id-range tables the modloader names in its own log (READ-ONLY).
+- `lw346_inventory_snapshot.py` LW-346 READ-ONLY snapshot of the party inventory list while the menu is open (1.5.2).
+- `lw346_live_disasm.py` LW-346 READ-ONLY live disassembly of a code range in the running game (capstone, x64).
+- `lw346_minidump_context.py` Print the crash registers and faulting address from a Windows minidump (read-only).
+- `lw346_order_table_poke.py` LW-346 live poke (outside-process WPM): let the default-order rebuilds keep id 261.
+- `lw346_registry_candidate_dump.py` LW-346 registry hunt: characterize an id-ordered table found by lw346_registry_seq_scan.
+- `lw346_registry_cap_scan.py` LW-346 registry-cap hunt: find every 261-shaped immediate in the live .code section.
+- `lw346_registry_seq_scan.py` LW-346 registry hunt, data-first round: find every id-ORDERED structure in live memory.
+- `lw346_render_cluster_watch.py` LW-346 read-only watch: log every change of the attacker render cluster during one action.
+- `lw346_saveload_check.py` LW-346 read-only probe: does the new weapon (id 261) survive a save and load?
+- `lw346_sprite_pair_poke.py` LW-346 live poke (outside-process WPM): rewrite one weapon's battle sprite/palette pair.
+- `lw346_swing_model_tables.py` LW-346 read-only probe: dump the two nex rows the swing-side weapon resolver reads.
+- `lw346_xref_scan.py` LW-346 READ-ONLY live cross-reference scan of the game's plain code section (1.5.2).
+- `lw351_avail_poke.py` LW-351 stage-1 P6 probe: flip the Terrastaff's shop window byte live, then restore it.
+- `lw351_bag_watch.py` LW-351 stage-2 live pass: watch the extended-inventory bag counts and say WHEN they change.
+- `lw351_order_template_probe.py` LW-351 READ-ONLY probe: are the new item ids listed in the two menu order templates?
+- `lw351_template_watch.py` LW-351: watch the two weapon order templates and say WHICH WORDS change and WHEN.
+- `lw353_header_roundtrip.py` LW-353 READ-ONLY header round-trip diff: which bytes of the save-struct header survive a
+- `lw353_save_edge_watch.py` LW-353 READ-ONLY watch of the game's save struct (1.5.2).
+- `lw365_actor_pool_dump.py` LW-365 READ-ONLY dump/watch of the animation actor pool (the render nodes).
+- `lw365_clone_call_log.py` LW-365 call logger on the mod's own accessor clones (READ-mostly; the only writes are the
+- `lw365_hand_resolver_scan.py` LW-365 READ-ONLY disk scan: the last id-261 assumptions on the unit-hands read path.
+- `lw365_publisher_gate_watch.py` LW-365 read-only watch: does the attack-anim publisher's no-weapon flag fire for id 262?
+- `lw365_swingid_fallback_probe.py` LW-365 cure probe (WRITES one 7-byte jump into game code at 0x140282073 plus a stub in the
+- `lw365_targetless_swing_watch.py` LW-365 read-only watch: where does the weapon id die on a TARGETLESS swing?
+- `lw368_count_list_relocate.py` LW-368 round 2 premise probe: relocate the game's two per-item byte lists LIVE and watch the game.
+- `lw371_order_template_relocate.py` LW-371 premise probe: relocate the two weapon menu order templates LIVE and watch the game.
+- `lw372_list_cap_probe.py` LW-372 premise probe: does the Items tab draw and scroll past 149 rows once the list cap allows it?
+- `lw381_icon_bufwatch.py` LW-381 buffer watch: WHAT makes the game recycle a menu icon's resident buffer?
+- `lw381_icon_memscan.py` LW-381 icon memory scan: is a menu icon's texture resident in the game's own RAM?
+- `lw381_icon_memwrite.py` LW-381 premise proof: overwrite a menu icon's RESIDENT copy in the game's heap.
+- `lw381_parts_cache_probe.py` LW-381: locate the game's UITextureParts cache and one icon's entry in it. READ ONLY.
+- `lw381_parts_cache_rename.py` LW-381 premise probe: make the game RELOAD one menu icon by hiding its cache entry.
+- `lw381_tally_poke.py` Set a weapon's LIVE kill count inside the running game, without a restart.
+- `lw381_tex_cache_rename.py` LW-381 premise probe, layer two: hide one icon's TEXTURE cache record so the next load re-reads.
+- `lw_disk_disasm.py` Disk-side disassembler for fft_enhanced.exe (READ-ONLY, no process access).
+- `order_template_probe.py` READ-ONLY probe for LW-382, step 2: dump the three MENU ORDER TEMPLATES.
 - `vq_walk_cost.py` Measure the real wall-clock cost of one full VirtualQueryEx address-space walk against the
 
 ## tapes/
