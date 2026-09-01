@@ -92,6 +92,22 @@ the technical detail lives in the indented lines under it.
     IIconGlowStore.PatchPac seam. Same-length in-place patch only, offset cache per icon,
     fails soft to today's restart-only behavior on any error (missing pac, ambiguous
     search, share violation). tools/glow_bounce.py's dev cheat now needs only one launch.)
+  - MECHANISM FOUND 2026-09-01 (live, owner-witnessed; LIVE_LEDGER [icon-cache-hide-reload]):
+    patching the pac is necessary but not sufficient. The game remembers every drawn icon in
+    two caches and never re-reads the file while they stand, which is why the glow only ever
+    showed after a restart and why the earlier "refresh on redraw" sightings came and went
+    (the game clears those caches on its own early in a session, never after battles). Hiding
+    both records for one icon by name makes the next screen open reload it from the pac: the
+    Claymore drew its tier 2 rim mid-session with no restart. The shipped IconGlow pac mirror
+    stays; this hide is the missing second half.
+  - (Tech: UITextureParts entries (name ptr +0, interned id +8, vector at manager+0xE0/+0xE8,
+    lookup 0x1403FBB80, loader 0x1403FBE3C, consumers re-look-up by name every draw) and a
+    texture record per .tex (path ptr +0, size +0x28, low hash dword +0x30). Hide = name ptr +1,
+    id/hash 0. Probes: lw381_parts_cache_probe.py, lw381_parts_cache_rename.py,
+    lw381_tex_cache_rename.py, lw381_icon_memscan.py. Open questions for the build: how the mod
+    finds the records fast (a 4 GB sweep per re-tier is ~40 s off-thread; the manager
+    singletons and the texture container are not yet reachable from a static), and whether the
+    orphaned hidden records survive screen teardown; nothing faulted in the owner's session.)
   - Done means: a weapon crossing a kill tier mid-session shows its new glow rim after the
     icon list is next redrawn, with no relaunch; if the pac write cannot happen for any
     reason the loose tex (and therefore next-launch behavior) stays exactly as correct as
@@ -218,6 +234,10 @@ belongs rather than at the bottom.
   dark after a real redraw, the cause is somewhere else and this is its own hunt. Note the deployed
   build predates LW-381 and has never carried that cure. The 2026-09-01 05:53 log line
   "IconGlow: judged 121 icons, wrote 3" is the number to check against what should have been lit.
+  RESOLVED IN PRINCIPLE 2026-09-01: the same cause as LW-381's missing half. Both weapons had
+  correct glow art on disk and in the pac; the Eclipsebolt had already been drawn stale before
+  its glow landed, so its cached icon never re-read the file. See LIVE_LEDGER
+  [icon-cache-hide-reload]. Closes with LW-381; kept as its own row until that ships.
 - [LW-320] 2026-08-25: Every weapon's power audited against how it is obtained. Demoted from Now on 2026-08-27 late to seat
   LW-353 (per-save bag counts); status unchanged, AWAITING-LIVE, the owner's sign-off on the
   grid rulings is still the only thing outstanding; every line below is the Now row's text verbatim.

@@ -1,23 +1,20 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Security.Cryptography;
 
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-336: the background half of <see cref="IconGlow"/> -- IconGlow.cs decides WHETHER to apply
-/// something this tick; this file is HOW. Writes the DEPLOYED loose tex
-/// (modDir/FFTIVC/&lt;baseRel&gt;), never modded.pac: owner-witnessed 2026-08-26, icon textures
-/// cache at first draw for the whole process, so only the loose tex the launch merge re-reads
-/// next boot can ever display correctly. Each id is judged once (<see cref="JudgeId"/>: pristine
-/// / known tier / foreign per surface, seeding <c>_applied</c> as the surfaces' MINIMUM tier)
-/// before <see cref="ApplyId"/> writes it, all-or-nothing; a partial failure leaves it stale so
-/// the next diff retries.
-/// FIX 1: <c>judgeAllIds</c> on <see cref="ApplyDiff"/> (set only on the launch's first-ever
-/// call) judges every manageable id even with an empty <c>changed</c> (a desired tier already
-/// matching the assumed default of 0), seeding <c>_applied</c> for a later Diff -- except
-/// JudgeId's DIVERGENT return, which a later Diff could never notice, so heals inline.
+/// LW-336 (pac mirror split to IconGlow.Pac.cs, LW-381; judging split to IconGlow.Judge.cs,
+/// LW-381 R2-2): IconGlow.cs decides WHETHER to apply something this tick; this file is HOW to
+/// get the DEPLOYED loose tex right, the durable half the launch merge re-reads next boot
+/// (correct even if IconGlow.Pac.cs's same-session mirror never ran). Each id is judged once
+/// (<see cref="JudgeId"/>, in IconGlow.Judge.cs: pristine / known tier / foreign per surface,
+/// seeding <c>_applied</c> as the surfaces' MINIMUM tier) before <see cref="ApplyId"/> writes it,
+/// all-or-nothing; a partial failure leaves it stale so the next diff retries.
+/// FIX 1: <c>judgeAllIds</c> on <see cref="ApplyDiff"/> (first apply only) judges every
+/// manageable id even with an empty <c>changed</c>, seeding <c>_applied</c> for a later Diff --
+/// except JudgeId's DIVERGENT return, which a later Diff could never notice, so heals inline.
 /// </summary>
 internal sealed partial class IconGlow
 {
@@ -32,6 +29,9 @@ internal sealed partial class IconGlow
     {
         int unmanagedBefore = _unmanaged.Count;
         int judged = 0, written = 0;
+        _pacPatchedThisApply = 0;
+        _pacAlreadyCurrentThisApply = 0;   // R2-6: counted separately from a real pac write
+        _pendingPacPatches.Clear();
         try
         {
             if (judgeAllIds != null)
@@ -64,6 +64,11 @@ internal sealed partial class IconGlow
                 if (seeded == tier && !divergent) continue;   // already at the desired tier, no dangling surface
                 if (ApplyId(id, tier)) { lock (_lock) _applied[id] = tier; written++; }
             }
+
+            // R2-2: every surface queued by QueuePacMirror across BOTH loops above flushes as
+            // ONE store call here -- strictly after every loose write in this pass, per the
+            // load-bearing order (see IconGlow.Pac.cs's class remarks).
+            FlushPacBatch();
         }
         finally
         {
@@ -71,61 +76,9 @@ internal sealed partial class IconGlow
             // FIX 3: one observable line per batch (Debug tier), never per icon; silent if idle.
             int newlyUnmanaged = _unmanaged.Count - unmanagedBefore;
             if (judged > 0 || written > 0 || newlyUnmanaged > 0)
-                ModLogger.Debug(LogVerb.Display, $"IconGlow: judged {judged} icons, wrote {written} ({newlyUnmanaged} unmanaged).");
+                ModLogger.Debug(LogVerb.Display,
+                    $"IconGlow: judged {judged} icons, wrote {written} ({newlyUnmanaged} unmanaged, {_pacPatchedThisApply} pac-patched, {_pacAlreadyCurrentThisApply} pac-already-current).");
         }
-    }
-
-    /// <summary>First-touch classification for one id: PRISTINE, a known tier, or FOREIGN (any
-    /// FOREIGN surface marks the whole id unmanaged). Every PRISTINE surface is then snapshotted
-    /// before the id is trusted (FIX 2a: an existing backup is kept only when its own sha1
-    /// matches <see cref="IconGlowEntry.BaseSha1"/> -- a rebake can leave an old one behind, and
-    /// judge time is the only healable moment, so a stale/missing backup is (re)written here); a
-    /// failed snapshot marks the id unmanaged. Returns true iff surfaces were NOT all one tier
-    /// (DIVERGENT, see the class remarks).</summary>
-    private bool JudgeId(int id)
-    {
-        var tiers = new List<(IconGlowEntry Entry, byte[] Bytes, int Tier)>();
-        foreach (var entry in _entriesById[id])
-        {
-            byte[]? bytes = _store.ReadDeployedTex(entry);
-            int? tier = ClassifyDeployed(entry, bytes);
-            if (tier == null)
-            {
-                MarkUnmanaged(id, "its deployed tex matches neither the plain base nor any baked tier, foreign art");
-                return false;
-            }
-            tiers.Add((entry, bytes!, tier.Value));
-        }
-        foreach (var (entry, bytes, tier) in tiers)
-        {
-            if (tier != 0) continue;   // only a PRISTINE surface needs a base snapshot
-            var existingBackup = _store.ReadBaseBackup(entry);
-            if (existingBackup != null && string.Equals(Sha1Hex(existingBackup), entry.BaseSha1, StringComparison.OrdinalIgnoreCase))
-                continue;   // already have a correct one
-            if (!_store.WriteBaseBackup(entry, bytes))
-            {
-                MarkUnmanaged(id, "could not snapshot its pristine base; refusing to overwrite what cannot be restored");
-                return false;
-            }
-        }
-        int seeded = tiers.Min(t => t.Tier);
-        bool divergent = tiers.Any(t => t.Tier != seeded);
-        lock (_lock) _applied[id] = seeded;
-        _judged.Add(id);
-        return divergent;
-    }
-
-    /// <summary>PRISTINE = 0, a recognized baked variant = that tier (1..3), anything else
-    /// (missing, wrong length, unreadable, or a hash matching neither) = null (foreign).</summary>
-    private static int? ClassifyDeployed(IconGlowEntry entry, byte[]? bytes)
-    {
-        if (bytes == null || bytes.Length != entry.Length) return null;
-        string sha1 = Sha1Hex(bytes);
-        if (string.Equals(sha1, entry.BaseSha1, StringComparison.OrdinalIgnoreCase)) return 0;
-        foreach (var kv in entry.VariantSha1s)
-            if (string.Equals(sha1, kv.Value, StringComparison.OrdinalIgnoreCase) && int.TryParse(kv.Key, out var t))
-                return t;
-        return null;
     }
 
     /// <summary>Writes every surface this id has a manifest row for to its DEPLOYED loose tex.
@@ -133,21 +86,25 @@ internal sealed partial class IconGlow
     /// plain -- else unmanaged); anything else writes the baked variant. FIX 2b: an existing
     /// backup is still sha1-verified before writing -- a mismatch past JudgeId's own FIX 2a
     /// re-snapshot means restoring it would silently write OLDER art back; refuse and go
-    /// unmanaged. True only when EVERY surface wrote cleanly.</summary>
+    /// unmanaged. True only when EVERY surface wrote cleanly. <c>oldBytes</c> is read once per
+    /// surface and reused by the tier-0 check below AND <see cref="QueuePacMirror"/> (LW-381).
+    /// R2-7 (accepted, not a defect): this read now happens for EVERY surface of every apply,
+    /// where round 1 only read it inside the tier-0 no-backup sub-case -- 12 to 51 KB per surface
+    /// per apply, accepted in exchange for having the true <c>oldBytes</c> to search for.</summary>
     private bool ApplyId(int id, int tier)
     {
         bool allOk = true;
         foreach (var entry in _entriesById[id])
         {
+            byte[]? oldBytes = _store.ReadDeployedTex(entry);
             byte[]? bytes;
             if (tier == 0)
             {
                 bytes = _store.ReadBaseBackup(entry);
                 if (bytes == null)
                 {
-                    byte[]? deployed = _store.ReadDeployedTex(entry);
-                    bool alreadyPlain = deployed != null && deployed.Length == entry.Length &&
-                        string.Equals(Sha1Hex(deployed), entry.BaseSha1, StringComparison.OrdinalIgnoreCase);
+                    bool alreadyPlain = oldBytes != null && oldBytes.Length == entry.Length &&
+                        string.Equals(Sha1Hex(oldBytes), entry.BaseSha1, StringComparison.OrdinalIgnoreCase);
                     if (alreadyPlain) continue;   // nothing to write, this surface is already ok
                     MarkUnmanaged(id, "no pristine base copy is available until the next deploy refreshes it");
                     return false;
@@ -172,7 +129,9 @@ internal sealed partial class IconGlow
             {
                 WarnOnce(id, $"IconGlow failed to write icon {id} ({entry.Surface}); will retry.");
                 allOk = false;
+                continue;
             }
+            QueuePacMirror(id, entry, oldBytes, bytes);   // ORDER LOAD-BEARING: loose tex first, pac second (flushed once, see ApplyDiff)
         }
         return allOk;
     }

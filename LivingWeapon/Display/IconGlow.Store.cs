@@ -1,6 +1,4 @@
-using System;
 using System.Collections.Generic;
-using System.IO;
 using Newtonsoft.Json;
 
 namespace LivingWeapon;
@@ -35,13 +33,17 @@ internal sealed class IconGlowEntry
 /// testable with an in-memory fake and the production side is free to fail file-system-shaped
 /// ways (missing folder, share violation, a locked file) without ever throwing across this
 /// boundary. NO Mem/IGameMemory involvement anywhere: this is plain file I/O against the mod
-/// folder, so nothing here can raise an access violation.
+/// folder (and, for <see cref="PatchPacBatch"/>, the game's own data folder), so nothing here can
+/// raise an access violation.
 ///
-/// LW-336: modded.pac is gone from this contract. The runtime now reads and writes the DEPLOYED
-/// loose tex directly (modDir/FFTIVC/&lt;baseRel&gt;) -- the same files the launch merge
-/// re-reads next boot -- plus a pristine-base snapshot store (glow_icons/base_backup/) so a
-/// weapon that returns to tier 0 has something plain to restore, since glow_icons/ ships only
-/// the tier 1..3 variants and the deployed base gets overwritten in place.</summary>
+/// The runtime reads and writes the DEPLOYED loose tex directly (modDir/FFTIVC/&lt;baseRel&gt;)
+/// -- the same files the launch merge re-reads next boot -- plus a pristine-base snapshot store
+/// (glow_icons/base_backup/) so a weapon that returns to tier 0 has something plain to restore,
+/// since glow_icons/ ships only the tier 1..3 variants and the deployed base gets overwritten in
+/// place. modded.pac IS back in this contract (LW-381, 2026-09-01): ledger row
+/// [live-icon-repaint] proved, owner-witnessed, that an in-place same-length pac overwrite lands
+/// live and an already-drawn icon refreshes on the next list redraw, so the loose-tex write below
+/// is now paired with a same-session pac write -- see IconGlow.Apply.cs's class remarks.</summary>
 internal interface IIconGlowStore
 {
     /// <summary>Reads and parses glow_icons/manifest.json. Null on anything short of a clean
@@ -72,87 +74,15 @@ internal interface IIconGlowStore
     /// failure instead of throwing -- a failed snapshot must refuse the overwrite it would have
     /// guarded, never silently proceed without one.</summary>
     bool WriteBaseBackup(IconGlowEntry entry, byte[] bytes);
+
+    /// <summary>LW-381 R2-2: mirrors a batch of just-written deployed texes into the running
+    /// game's modded.pac in as close to ONE pass as possible (ledger [live-icon-repaint], PROVEN
+    /// 2026-09-01) -- replaces a round-1 per-surface <c>PatchPac</c> that cost one full pass PER
+    /// icon; a batch re-tier (e.g. tools/glow_bounce.py) is 242 managed entries, and one pass per
+    /// icon over a 65 MB file is the mass case this batching exists for. Returns one result per
+    /// item, keyed by (Id, Surface). Never throws; a non-Patched result is informational only and
+    /// must not fail the apply.</summary>
+    IReadOnlyDictionary<(int Id, string Surface), PacPatchResult> PatchPacBatch(
+        IReadOnlyList<(IconGlowEntry Entry, byte[] OldBytes, byte[] NewBytes)> items);
 }
 
-/// <summary>Production <see cref="IIconGlowStore"/>: glow_icons/ (including its base_backup/
-/// snapshot subfolder) and the deployed FFTIVC tree both live under modDir. Every method is
-/// wrapped so a failure anywhere (missing folder, a locked file, a permissions error) surfaces as
-/// null/false, never a throw -- IconGlow's whole contract depends on this seam never raising.
-/// Both write paths go through <see cref="AtomicWrite"/>: write to a sibling temp file, then swap
-/// it into place, so a crash or a share violation mid-write can never leave a torn file for the
-/// next launch's merge (or a later ReadBaseBackup) to read back.</summary>
-internal sealed class FileIconGlowStore : IIconGlowStore
-{
-    private readonly string _modDir;
-
-    public FileIconGlowStore(string modDir) => _modDir = modDir;
-
-    public IconGlowManifest? ReadManifest()
-    {
-        try
-        {
-            var path = Path.Combine(_modDir, "glow_icons", "manifest.json");
-            if (!File.Exists(path)) return null;
-            return JsonConvert.DeserializeObject<IconGlowManifest>(File.ReadAllText(path));
-        }
-        catch { return null; }
-    }
-
-    public byte[]? ReadDeployedTex(IconGlowEntry entry)
-    {
-        try { return File.ReadAllBytes(DeployedPath(entry)); }
-        catch { return null; }
-    }
-
-    public byte[]? ReadVariantTex(IconGlowEntry entry, int tier)
-    {
-        try
-        {
-            if (!entry.Variants.TryGetValue(tier.ToString(), out var file)) return null;
-            return File.ReadAllBytes(Path.Combine(_modDir, "glow_icons", file));
-        }
-        catch { return null; }
-    }
-
-    public bool WriteDeployedTex(IconGlowEntry entry, byte[] bytes) => AtomicWrite(DeployedPath(entry), bytes);
-
-    public byte[]? ReadBaseBackup(IconGlowEntry entry)
-    {
-        try { return File.ReadAllBytes(BackupPath(entry)); }
-        catch { return null; }
-    }
-
-    public bool WriteBaseBackup(IconGlowEntry entry, byte[] bytes) => AtomicWrite(BackupPath(entry), bytes);
-
-    private string DeployedPath(IconGlowEntry entry) =>
-        Path.Combine(_modDir, "FFTIVC", entry.BaseRel.Replace('/', Path.DirectorySeparatorChar));
-
-    private string BackupPath(IconGlowEntry entry) =>
-        Path.Combine(_modDir, "glow_icons", "base_backup", Path.GetFileName(entry.BaseRel));
-
-    /// <summary>Write-to-temp-then-swap: never leaves <paramref name="path"/> partially
-    /// written. File.Replace is preferred (single atomic filesystem op when the destination
-    /// exists); a delete+move fallback covers the cases File.Replace itself can refuse (no
-    /// existing destination, cross-volume). The temp file is always cleaned up, success or
-    /// failure. Never throws.</summary>
-    private static bool AtomicWrite(string path, byte[] bytes)
-    {
-        string? tmp = null;
-        try
-        {
-            var dir = Path.GetDirectoryName(path);
-            if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
-            tmp = path + "." + Guid.NewGuid().ToString("N") + ".tmp";
-            File.WriteAllBytes(tmp, bytes);
-            if (File.Exists(path)) File.Replace(tmp, path, null);
-            else File.Move(tmp, path);
-            tmp = null;
-            return true;
-        }
-        catch { return false; }
-        finally
-        {
-            if (tmp != null) { try { File.Delete(tmp); } catch { } }
-        }
-    }
-}

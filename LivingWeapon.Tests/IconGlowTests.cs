@@ -62,7 +62,14 @@ public class IconGlowTests
     /// toggles let a test force one surface's write to fail while its sibling still succeeds
     /// (the partial-failure retry contract). Every write call is logged in
     /// <see cref="DeployedWrites"/>/<see cref="BackupWrites"/> BEFORE the fail toggle is
-    /// consulted, mirroring the production store's own never-throw contract.</summary>
+    /// consulted, mirroring the production store's own never-throw contract.
+    ///
+    /// LW-381 R2-2: <see cref="PatchPacBatchCalls"/> records every <c>PatchPacBatch</c>
+    /// invocation (the whole item list passed that call) so a test can assert both how many times
+    /// the store was actually invoked -- the batching fix's whole point -- and what each item
+    /// carried. <see cref="PatchPacResult"/> is the single canned result every item in every call
+    /// returns -- a per-surface toggle was not needed by anything in this file's test list (the
+    /// routing tests key off the RESULT value, not which surface produced it).</summary>
     private sealed class FakeIconGlowStore : IIconGlowStore
     {
         public IconGlowManifest? Manifest;
@@ -73,6 +80,11 @@ public class IconGlowTests
         public readonly HashSet<(int Id, string Surface)> FailBackupWrite = new();
         public readonly List<(int Id, string Surface, byte[] Bytes)> DeployedWrites = new();
         public readonly List<(int Id, string Surface, byte[] Bytes)> BackupWrites = new();
+        /// <summary>LW-381 R2-2: one entry per <c>PatchPacBatch</c> CALL (not per item), so a test
+        /// can assert how many times the store was actually invoked -- the whole point of the
+        /// batching fix is fewer, larger calls rather than one call per icon.</summary>
+        public readonly List<IReadOnlyList<(IconGlowEntry Entry, byte[] OldBytes, byte[] NewBytes)>> PatchPacBatchCalls = new();
+        public PacPatchResult PatchPacResult = PacPatchResult.Patched;
 
         public IconGlowManifest? ReadManifest() => Manifest;
         public byte[]? ReadDeployedTex(IconGlowEntry entry) => Deployed.TryGetValue((entry.Id, entry.Surface), out var b) ? b : null;
@@ -93,6 +105,15 @@ public class IconGlowTests
             if (FailBackupWrite.Contains((entry.Id, entry.Surface))) return false;
             Backup[(entry.Id, entry.Surface)] = bytes;
             return true;
+        }
+
+        public IReadOnlyDictionary<(int Id, string Surface), PacPatchResult> PatchPacBatch(
+            IReadOnlyList<(IconGlowEntry Entry, byte[] OldBytes, byte[] NewBytes)> items)
+        {
+            PatchPacBatchCalls.Add(items);
+            var results = new Dictionary<(int, string), PacPatchResult>();
+            foreach (var item in items) results[(item.Entry.Id, item.Entry.Surface)] = PatchPacResult;
+            return results;
         }
     }
 
@@ -717,5 +738,230 @@ public class IconGlowTests
         Assert.Empty(store.BackupWrites);
         Assert.Equal(1, cap.File.Count(l => l.Contains("share the base tex filename")
             && l.Contains(idA.ToString()) && l.Contains(idB.ToString())));
+    }
+
+    // ---- LW-381: modded.pac same-session mirror. Every case below drives IconGlow through the
+    // fake store's PatchPacBatch hook -- no real pac file, no real modded.pac, anywhere in this
+    // region. R2-2 fix round: the store is now flushed ONCE per ApplyDiff pass rather than once
+    // per surface, so most assertions below key off PatchPacBatchCalls (call COUNT and each
+    // call's item list) rather than a per-surface call tally. ----
+
+    // ---- a tier change queues both surfaces and flushes them in ONE batch call, carrying the
+    // previously deployed bytes as OldBytes and the new tier's bytes as NewBytes ----
+
+    [Fact]
+    public void TierChange_QueuesBothSurfaces_IntoOnePacBatchFlush_WithOldAndNewBytes()
+    {
+        var store = new FakeIconGlowStore();
+        const int id = 61;
+        byte[] cardBase = RandBytes(1201, 10), cardT1 = RandBytes(1202, 10);
+        byte[] smallBase = RandBytes(1203, 6), smallT1 = RandBytes(1204, 6);
+        var cardEntry = MakeEntry(id, "card", cardBase, new() { [1] = cardT1 });
+        var smallEntry = MakeEntry(id, "small", smallBase, new() { [1] = smallT1 });
+        store.Manifest = new IconGlowManifest { SchemaVersion = 1, Icons = new() { cardEntry, smallEntry } };
+        store.Deployed[(id, "card")] = cardBase;
+        store.Deployed[(id, "small")] = smallBase;
+        store.Variants[(id, "card", 1)] = cardT1;
+        store.Variants[(id, "small", 1)] = smallT1;
+
+        var kills = new Dictionary<int, int> { [id] = 5 };   // tier 1
+        var icon = new IconGlow("m", kills, new[] { id }, store, a => a());
+        icon.Tick();
+
+        // ONE flush for the whole apply (R2-2), carrying both surfaces' items.
+        Assert.Single(store.PatchPacBatchCalls);
+        var items = store.PatchPacBatchCalls[0];
+        Assert.Equal(2, items.Count);
+        Assert.Contains(items, it => it.Entry.Id == id && it.Entry.Surface == "card"
+            && it.OldBytes.SequenceEqual(cardBase) && it.NewBytes.SequenceEqual(cardT1));
+        Assert.Contains(items, it => it.Entry.Id == id && it.Entry.Surface == "small"
+            && it.OldBytes.SequenceEqual(smallBase) && it.NewBytes.SequenceEqual(smallT1));
+    }
+
+    // ---- the pac mirror is queued only AFTER WriteDeployedTex succeeded for that surface, and
+    // not at all when the loose write failed -- so nothing is even flushed ----
+
+    [Fact]
+    public void PacBatch_ExcludesSurface_WhenDeployedWriteFailed()
+    {
+        var store = new FakeIconGlowStore();
+        const int id = 62;
+        byte[] baseBytes = RandBytes(1301, 10), t1 = RandBytes(1302, 10);
+        var entry = MakeEntry(id, "card", baseBytes, new() { [1] = t1 });
+        store.Manifest = new IconGlowManifest { SchemaVersion = 1, Icons = new() { entry } };
+        store.Deployed[(id, "card")] = baseBytes;
+        store.Variants[(id, "card", 1)] = t1;
+        store.FailDeployedWrite.Add((id, "card"));   // the loose write itself fails
+
+        var kills = new Dictionary<int, int> { [id] = 5 };
+        var icon = new IconGlow("m", kills, new[] { id }, store, a => a());
+        icon.Tick();
+
+        Assert.NotEmpty(store.DeployedWrites);       // the write was attempted...
+        Assert.Empty(store.PatchPacBatchCalls);      // ...but never succeeded, so nothing to flush
+    }
+
+    // ---- PatchPacBatch returning Failed/Ambiguous for an item does NOT fail the apply, does NOT
+    // mark the id unmanaged, and warns at most once per id per launch -- R2-8 fix: driving the
+    // SAME id through two genuinely DIFFERENT tier changes across two ticks (rather than a second
+    // tick that never reaches the pac mirror at all, which could not have failed the old
+    // assertion either way) so the "only one warning" claim is actually put at risk. ----
+
+    // internal enum can't be a public [Theory] parameter type (CS0051) -- resultName stands in.
+    [Theory]
+    [InlineData("Failed")]
+    [InlineData("Ambiguous")]
+    public void PacBatch_SearchOrWriteFailure_DoesNotFailApply_WarnsOncePerIcon_AcrossRepeatedFailures(string resultName)
+    {
+        var result = Enum.Parse<PacPatchResult>(resultName);
+        var store = new FakeIconGlowStore { PatchPacResult = result };
+        const int id = 63;
+        byte[] baseBytes = RandBytes(1401, 10), t1 = RandBytes(1402, 10), t2 = RandBytes(1405, 10);
+        var entry = MakeEntry(id, "card", baseBytes, new() { [1] = t1, [2] = t2 });
+        store.Manifest = new IconGlowManifest { SchemaVersion = 1, Icons = new() { entry } };
+        store.Deployed[(id, "card")] = baseBytes;
+        store.Variants[(id, "card", 1)] = t1;
+        store.Variants[(id, "card", 2)] = t2;
+
+        var kills = new Dictionary<int, int> { [id] = 5 };   // tier 1
+        var icon = new IconGlow("m", kills, new[] { id }, store, a => a());
+
+        using var cap = LogCapture.Start();
+        icon.Tick();
+        // The loose write itself succeeded and is the source of truth here: the pac failure
+        // must be purely informational.
+        Assert.Equal(t1, store.Deployed[(id, "card")]);
+        Assert.DoesNotContain(cap.File, l => l.Contains($"leaves icon {id} plain"));
+
+        kills[id] = 10;   // tier 2 -- a genuinely different apply, reaches the pac mirror again
+        icon.Tick();
+        Assert.Equal(t2, store.Deployed[(id, "card")]);
+
+        // The pac mirror really did fire on BOTH ticks (proving the second tick was not a no-op
+        // that trivially "didn't repeat" the warning), yet only ONE warning was ever emitted.
+        Assert.Equal(2, store.PatchPacBatchCalls.Count);
+        Assert.Equal(1, cap.File.Count(l => l.Contains($"icon {id}") && l.Contains("modded.pac")));
+    }
+
+    // ---- R2-4: NotFound is expected steady state (this session's own re-tier can run after the
+    // launch merge already read the pac), never a warning -- Debug only. ----
+
+    [Fact]
+    public void PacBatch_NotFound_LogsDebugOnly_NeverWarns()
+    {
+        var store = new FakeIconGlowStore { PatchPacResult = PacPatchResult.NotFound };
+        const int id = 66;
+        byte[] baseBytes = RandBytes(1406, 10), t1 = RandBytes(1407, 10);
+        var entry = MakeEntry(id, "card", baseBytes, new() { [1] = t1 });
+        store.Manifest = new IconGlowManifest { SchemaVersion = 1, Icons = new() { entry } };
+        store.Deployed[(id, "card")] = baseBytes;
+        store.Variants[(id, "card", 1)] = t1;
+
+        var kills = new Dictionary<int, int> { [id] = 5 };
+        var icon = new IconGlow("m", kills, new[] { id }, store, a => a());
+
+        using var cap = LogCapture.Start();
+        icon.Tick();
+
+        Assert.Equal(t1, store.Deployed[(id, "card")]);
+        Assert.DoesNotContain(cap.File, l => l.Contains("[WARN]") && l.Contains($"icon {id}") && l.Contains("modded.pac"));
+        Assert.Contains(cap.File, l => l.Contains("[DEBUG]") && l.Contains($"icon {id}") && l.Contains("modded.pac"));
+    }
+
+    // ---- Unavailable warns at most once per launch across ALL icons, not once per icon -- and
+    // both icons still share the one batch flush. ----
+
+    [Fact]
+    public void PacBatch_Unavailable_WarnsOncePerLaunch_AcrossAllIcons()
+    {
+        var store = new FakeIconGlowStore { PatchPacResult = PacPatchResult.Unavailable };
+        const int idA = 64, idB = 65;
+        byte[] baseA = RandBytes(1501, 10), t1A = RandBytes(1502, 10);
+        byte[] baseB = RandBytes(1503, 10), t1B = RandBytes(1504, 10);
+        var entryA = MakeEntry(idA, "card", baseA, new() { [1] = t1A });
+        var entryB = MakeEntry(idB, "card", baseB, new() { [1] = t1B });
+        store.Manifest = new IconGlowManifest { SchemaVersion = 1, Icons = new() { entryA, entryB } };
+        store.Deployed[(idA, "card")] = baseA;
+        store.Deployed[(idB, "card")] = baseB;
+        store.Variants[(idA, "card", 1)] = t1A;
+        store.Variants[(idB, "card", 1)] = t1B;
+
+        var kills = new Dictionary<int, int> { [idA] = 5, [idB] = 5 };
+        var icon = new IconGlow("m", kills, new[] { idA, idB }, store, a => a());
+
+        using var cap = LogCapture.Start();
+        icon.Tick();
+
+        Assert.Single(store.PatchPacBatchCalls);              // one flush, both icons batched together
+        Assert.Equal(2, store.PatchPacBatchCalls[0].Count);   // both surfaces were in it
+        Assert.Equal(1, cap.File.Count(l => l.Contains("cannot locate modded.pac")));
+    }
+
+    // ---- when the deployed bytes already equal the target bytes, the surface is never queued
+    // for the pac mirror at all. The straightforward way this happens (Judge seeds _applied
+    // straight from an already-correct deployed variant) never even reaches ApplyId -- see
+    // Judge_SeedsAppliedFromDeployedVariant. This test instead pins the guard on the queueing
+    // path itself, via the one route that calls WriteDeployedTex with bytes that were already
+    // deployed: FIX 1's judgeAllIds heal writes EVERY surface of a divergent id to the healed
+    // tier, even a surface that individually already held those exact bytes (card, below)
+    // alongside one that did not (small). ----
+
+    [Fact]
+    public void PacBatch_NotQueued_ForSurfaceAlreadyAtTargetBytes_EvenWhenSiblingSurfaceChanges()
+    {
+        var store = new FakeIconGlowStore();
+        const int id = 67;
+        byte[] cardBase = RandBytes(1601, 10), cardT1 = RandBytes(1602, 10);
+        byte[] smallBase = RandBytes(1603, 6), smallT1 = RandBytes(1604, 6);
+        var cardEntry = MakeEntry(id, "card", cardBase, new() { [1] = cardT1 });
+        var smallEntry = MakeEntry(id, "small", smallBase, new() { [1] = smallT1 });
+        store.Manifest = new IconGlowManifest { SchemaVersion = 1, Icons = new() { cardEntry, smallEntry } };
+        store.Deployed[(id, "card")] = cardT1;     // card: already at tier 1
+        store.Deployed[(id, "small")] = smallBase; // small: still pristine -- DIVERGENT id
+        store.Variants[(id, "card", 1)] = cardT1;
+        store.Variants[(id, "small", 1)] = smallT1;
+
+        var kills = new Dictionary<int, int> { [id] = 5 };   // desired tier 1
+        var icon = new IconGlow("m", kills, new[] { id }, store, a => a());
+        icon.Tick();   // first-ever tick: judgeAllIds judges+heals this id in one pass (FIX 1)
+
+        // Both surfaces get written (the heal writes every surface unconditionally)...
+        Assert.Contains(store.DeployedWrites, w => w.Id == id && w.Surface == "card");
+        Assert.Contains(store.DeployedWrites, w => w.Id == id && w.Surface == "small");
+        // ...but only "small" actually changed bytes, so only "small" is in the (one) flush.
+        Assert.Single(store.PatchPacBatchCalls);
+        Assert.Single(store.PatchPacBatchCalls[0]);
+        Assert.Equal("small", store.PatchPacBatchCalls[0][0].Entry.Surface);
+    }
+
+    // ---- R2-3: the pac warn set is independent of _warnedOnce. A cosmetic pac failure for icon
+    // X must not permanently mute a LATER, genuinely different, loose-tex write failure warning
+    // for the same id -- that is the failure that actually breaks the feature, and censoring it
+    // behind a cosmetic same-session-only failure would be a defect in the evidence chain. ----
+
+    [Fact]
+    public void PacWarnSet_IndependentOfWarnedOnce_PacFailureDoesNotSuppressLaterLooseWriteFailureWarning()
+    {
+        var store = new FakeIconGlowStore { PatchPacResult = PacPatchResult.Failed };
+        const int id = 68;
+        byte[] baseBytes = RandBytes(1801, 10), t1 = RandBytes(1802, 10), t2 = RandBytes(1803, 10);
+        var entry = MakeEntry(id, "card", baseBytes, new() { [1] = t1, [2] = t2 });
+        store.Manifest = new IconGlowManifest { SchemaVersion = 1, Icons = new() { entry } };
+        store.Deployed[(id, "card")] = baseBytes;
+        store.Variants[(id, "card", 1)] = t1;
+        store.Variants[(id, "card", 2)] = t2;
+
+        var kills = new Dictionary<int, int> { [id] = 5 };   // tier 1
+        var icon = new IconGlow("m", kills, new[] { id }, store, a => a());
+
+        using var cap = LogCapture.Start();
+        icon.Tick();   // pac mirror fails (Failed) -- one warning, on the pac-dedicated set
+
+        kills[id] = 10;   // tier 2 -- now the LOOSE write itself fails: a genuinely different bug
+        store.FailDeployedWrite.Add((id, "card"));
+        icon.Tick();
+
+        Assert.Equal(1, cap.File.Count(l => l.Contains($"icon {id}") && l.Contains("modded.pac")));
+        Assert.Equal(1, cap.File.Count(l => l.Contains($"icon {id}") && l.Contains("failed to write")));
     }
 }

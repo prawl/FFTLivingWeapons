@@ -7,12 +7,16 @@ using System.Threading.Tasks;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-295 cycle B (display path replaced LW-336): out of battle, keeps every weapon's DEPLOYED
-/// equip-icon loose tex (modDir/FFTIVC/&lt;baseRel&gt;) matched to the glow-rim variant for its
-/// CURRENT kill tier (plain base art at tier 0) -- restart-visible via the modloader's own launch
-/// merge, no modded.pac involvement anywhere in this subsystem any more. Ticked only via
-/// TickGates.OutOfBattle cadence 30 (Engine.cs) -- kills only change in battle, menus live outside
-/// it, and file I/O during a fight buys nothing.
+/// LW-295 cycle B (display path replaced LW-336; modded.pac write added LW-381): out of battle,
+/// keeps every weapon's DEPLOYED equip-icon loose tex (modDir/FFTIVC/&lt;baseRel&gt;) matched to
+/// the glow-rim variant for its CURRENT kill tier (plain base art at tier 0). The loose write is
+/// always correct and is what the modloader's own launch merge re-reads next boot; a same-session
+/// mirror into modded.pac rides beside it now (IconGlow.Apply.cs / IconGlow.Pac.cs) so a tier
+/// change is visible in THIS session too, once the icon list is redrawn -- ledger row
+/// [live-icon-repaint], PROVEN 2026-09-01, overturned the earlier "icons cache at first draw for
+/// the whole process" verdict this class used to justify skipping modded.pac entirely. Ticked
+/// only via TickGates.OutOfBattle cadence 30 (Engine.cs) -- kills only change in battle, menus
+/// live outside it, and file I/O during a fight buys nothing.
 ///
 /// Lazily loads glow_icons/manifest.json on first tick through <see cref="IIconGlowStore"/> (ALL
 /// file I/O goes through that seam; NO Mem/IGameMemory anywhere -- this is plain file I/O and

@@ -20,6 +20,16 @@ isolated live) · **CONTRADICTED** (evidence points both ways — probe before b
 
 ## Proven
 
+### [icon-cache-hide-reload] A menu icon already drawn this session re-reads its art from modded.pac on the next screen open once its two cache records are hidden by name (PROVEN 2026-09-01, owner live)
+
+PROVEN 2026-09-01 (owner flip, ~10:10, after watching the reload twice: the red marker art, then the Claymore's own tier 2 glow). Plain language: the game remembers every menu icon it has drawn, in two places, and it never asks the file again while those memories stand. That is why a glow written mid-session showed only after a restart, and why the earlier "refresh on list redraw" observations came and went: they happened whenever the game had cleared those memories on its own, which it does early in a session and not after battles. Hiding both memories for one icon makes the next screen open load the icon fresh from the pac, with no restart.
+
+**Mechanism:** Two caches, both plain heap objects. (1) UITextureParts entries, one per UI context, looked up by the loader at 0x1403FBE3C through 0x1403FBB80 over a vector at manager+0xE0/+0xE8: matched on an interned id at entry+8 when both sides carry one, else by strcmp on the name pointer at entry+0 (the URI, e.g. `UITextureParts://ui/ffto/icon/equip_item/textureparts/ei_022_uitx`); every drawing consumer looks up by name on each draw and keeps no pointer. (2) A texture record per .tex whose +0 points at the asset path (`ui/ffto/icon/equip_item/texture/ei_022_uitx.tex`), +0x28 holds the .tex byte size and +0x30 the low 32 bits of the pac table's path hash. Hiding = name pointer +1 and id/hash zeroed on every record of both kinds for the icon; nothing is freed or moved. Parts entries are 0x70 bytes (handles at +0x50, state u16 at +0x58 = 0x0101 once loaded) and carry no pointer to their texture record (textures are referenced by handle), so the texture record must be found by its own path string. The game reclaims hidden entries on its own: within the same session three hidden slots were freed and reused for fresh, correctly named entries, with no fault, so the hide leaks nothing and needs no restore. Hiding only layer (1) makes the icon vanish at once and come back stale on reopen (the parts reload found its texture in layer (2)); hiding both makes it come back from the file.
+
+**Evidence:** Owner live, one session (pid 37036, launched 07:41, ~2h in, after several battles, the state where every pac-patch refresh had refused): pac patched to Emberward's red art for item 22 (tools/probes/live_icon_patch_probe.py), both layers hidden (tools/probes/lw381_tex_cache_rename.py, lw381_parts_cache_rename.py, located by lw381_parts_cache_probe.py), inventory reopened: the Claymore's card and list row both drew the red shield (owner screenshots 09:49:00 and 09:49:44). Then the real case: pac restored to the Claymore's own tier 2 art, both layers hidden again, inventory reopened: the Claymore drew its tier 2 glow rim, the first mid-session glow ever seen on an icon that was already drawn stale, no restart (owner, ~09:55). Control earlier the same session: the same pac patch with no hide left both surfaces unchanged through section switches, list reopen and a save load. Not yet observed: whether the orphaned hidden records survive screen teardown without a fault (the risk if the game ever frees an entry's name pointer; the names are shared interned strings, so the expectation is that it does not).
+
+**Date:** 2026-09-01
+
 ### [swing-id-fallback-stub] A stub at the swing builder's id copy that substitutes the acting unit's right-hand id when the standing swing-id word is 0 makes an extended weapon draw its own blade on a targetless swing
 Plain language: when a unit swings, the game copies one standing "weapon id" word into the
 swing's animation record; for a moved design that word is 0 at swing time, so the art lookup
@@ -709,9 +719,25 @@ actually reads.
 
 </details>
 
-### [live-icon-repaint] Equip icon pac patch: the WRITE still lands live and first draw reads it, but the already-drawn-icon refresh is UNRELIABLE (fired 2026-08-16, refused 2026-08-25 and 2026-08-26, same game binary)
+### [live-icon-repaint] Equip icon pac patch: an in-place write to modded.pac lands live, and an ALREADY-DRAWN icon refreshes on the next list redraw (PROVEN 2026-09-01, owner live)
 
-Split verdict as of 2026-08-26 (owner-run re-probe, the LW-334 bisect). STILL TRUE: `modded.pac` accepts an in-place overwrite while the game runs (no lock, byte-exact verify), and an icon drawn for the FIRST time in the process afterwards shows the patched art on both surfaces (owner-witnessed: Tideward wore Emberward's red, screenshot 03:51). NO LONGER TRUSTWORTHY: the 2026-08-16 "leave the list and come back" refresh of an already-drawn icon. In tonight's session nothing evicted a drawn icon: with Galewall patched and Tideward restored in the pac, a tab round-trip, closing and reopening equipment, leaving to the world map, save plus load, and a title-screen reload ALL kept the stale art; only restart refreshes. The same recipe DID work on 2026-08-16, and the PE build key proves all three sessions ran the SAME exe (0x6A5EA53C / 0x18D78000, the 1.5.2 build taught 2026-07-24), so this is a conditional eviction with an unidentified condition, not a game change; a full battle enter/exit in a FRESH session also failed to refresh (owner-run, same night). Treat already-drawn icons as restart-only for design purposes. SAFETY CORRECTION 2026-08-26: the launch merge is INCREMENTAL, a pac patch SURVIVES relaunches until the matching loose file changes, so "relaunch repairs it" is FALSE; always restore explicitly. See [icon-refresh-unreliable] in the Contradicted section.
+PROVEN 2026-09-01, owner-run re-probe, owner flipped. In plain language: the game notices a changed equip icon while it is running, as soon as it draws the list again. No restart needed.
+
+Tonight's run used `tools/probes/live_icon_patch_probe.py` against Galewall (id 129) on a freshly deployed install, and the icon changed THREE times in one process with no relaunch, both surfaces (list row and detail card) each time:
+
+1. Cold patch, then first draw: Galewall wore Emberward's red-orange art. This doubles as the control, it proves the write reached the running game AND leaves Galewall verifiably DRAWN.
+2. Restore to its own art while the owner stood on the world map, then reopen the inventory: Galewall was back to its authored pink (`iconTint` hue 0.88; Emberward is 0.05). An already-drawn icon refreshed.
+3. Re-patch, then navigation between party-menu sections only, never back to the world map: red again.
+
+EVICTION UNIT: the LIST REDRAW. Re-entering the list, or moving between party-menu sections, is enough. Moving the cursor from item to item inside an already-open list is NOT (owner-confirmed the same session: the pac was restored under him while he sat on the Shields tab and nothing changed until the list was re-entered). So the cache is per list draw, not per frame and not per process.
+
+WHAT THIS CORRECTS: the 2026-08-26 verdict of restart-only was wrong, and the design rule built on it ("only the loose tex the launch merge re-reads next boot can ever display correctly") is falsified. See [icon-refresh-unreliable], now RETRACTED.
+
+STILL UNEXPLAINED, and worth keeping in view: why 2026-08-25 and 2026-08-26 refused every eviction. The leading suspect is now pac provenance rather than session state. Tonight's pac was freshly re-merged by a deploy made minutes before launch, whereas the incremental merge means an older session's pac can carry patched or stale content from previous runs; a probe that locates bytes in a region the running game is not actually mapping would look exactly like a refusal. Untested.
+
+SCOPE: tested on a shield in the inventory list and its detail card. The product surface (a weapon's glow rim on the equip card) is presumed to be the same path but was not itself tested tonight. The write also came from an external Python process; doing it in-process from the DLL is a separate, unbuilt capability.
+
+SAFETY CORRECTION (unchanged, 2026-08-26): the launch merge is INCREMENTAL, a pac patch SURVIVES relaunches until the matching loose file changes, so "relaunch repairs it" is FALSE; always restore explicitly. Tonight's probe restored and byte-verified at the end; the pac is clean.
 
 <details><summary>How we got here</summary>
 
@@ -2911,9 +2937,9 @@ Uncertain as of 2026-08-17 (evidence re-derived independently from banked tapes;
 
 ## Contradicted — probe before building on these
 
-### [icon-refresh-unreliable] The "leave the list and come back" icon refresh is CONDITIONAL, condition unknown: it fired 2026-08-16 and refused 2026-08-25 and 2026-08-26 on the SAME game binary
+### [icon-refresh-unreliable] RETRACTED 2026-09-01: the "leave the list and come back" icon refresh is REAL and reproducible; this row's contradiction did not hold
 
-Contradicted 2026-08-26, owner live: the 2026-08-16 recipe (an already-drawn equip icon picks up a pac change on the next list/tab load) cannot be relied on. In tonight's session a drawn icon stayed frozen through every eviction attempt short of restart, while on 2026-08-16 one tab round-trip refreshed it, and the PE build key proves both sessions ran the same exe. Something conditional governs the eviction and it is unidentified. Design rule until it is: treat already-drawn icons as restart-only; the pac write and the first-draw read remain dependable (see [live-icon-repaint], which carries the full evidence including the retracted first conclusion).
+RETRACTED 2026-09-01, owner-run re-probe, owner flipped. This row said an already-drawn equip icon could not be relied on to pick up a pac change, and that only a restart refreshed it. That is wrong. A verified already-drawn icon refreshed three times in one process on 2026-09-01, and the eviction unit was pinned to the list redraw (a cursor move inside an open list does not do it). The 2026-08-16 observation this row doubted was correct all along; the 2026-08-25 and 2026-08-26 refusals remain unexplained and are the open question, not the rule. Full evidence lives on [live-icon-repaint], now PROVEN. Nothing should be designed against this row any more; the material below is kept for provenance only.
 
 <details><summary>How we got here</summary>
 
