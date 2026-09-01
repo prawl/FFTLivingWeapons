@@ -2095,7 +2095,8 @@ that reads the standing word and, when it is 0, substitutes the acting unit's ri
 (`units base 0x141853CE0 + 0x20 + rsi`, rsi = acting slot << 9 in that frame). First run
 substituted the last-published unit's hand (cluster byte +1) and drew the Akademy blade on the
 Ravager unit, proving any valid id draws; the corrected rsi-based stub drew the Ravager's own
-blade. Vanilla units never hit the substitution (their standing word is nonzero). This is the
+blade. Vanilla units never hit the substitution (their standing word is nonzero; the owner
+re-ran a vanilla empty-tile swing with the stub in and saw no change). This is the
 LW-365 fix mechanism: a boot-time code hook, the same stub-and-jump recipe as the ten donor
 thunk clones (ExtendedDonorThunks / ThunkStub), guarded to the extended id range or to a zero
 standing word. Instruments: tools/probes/lw365_publisher_gate_watch.py,
