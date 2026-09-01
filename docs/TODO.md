@@ -82,6 +82,28 @@ Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner dire
 A new row still lands here in the session it surfaces; slot it where its urgency
 belongs rather than at the bottom.
 
+- [LW-385] 2026-09-01: Icon-glow same-session refresh, the regression and edge-case pass to run
+  next session (owner directed, held for a dedicated test session). Plain language: the live glow
+  cure (LW-381) works, and here is the list to hammer before it is trusted everywhere.
+  - Refused-but-not-retried surface: when a weapon's menu records are resident but its texture
+    record is not, the hide refuses and never tries again on later ticks (Riposte, live
+    2026-09-01: refused, yet a manual inventory reopen still redrew it because the game recreated
+    the record). Decide whether IconCacheHide should keep the surface pending and retry until the
+    texture record appears, rather than leaning on the player reopening.
+  - The seven extended weapons (ids 261 to 267) have never re-tiered under the shipped build; their
+    icons are donor bakes and the sweep keys on ei_NNN_uitx / ei_s_NNN_uitx, so if the game names
+    an extended asset differently the sweep finds nothing and it stays restart-only. Cross one
+    (Terrastaff or Ravager) live to settle it.
+  - New game / tally reset drops every icon to tier 0 at once (242 pac patches plus one hide pass);
+    designed for, never watched. Observe it once.
+  - Weak-machine cost: each hide is two background reads of about four gigabytes of process memory
+    after a battle; no hitch on this box, unverified on a slower one.
+  - Harden tools/probes/lw381_tally_poke.py before it is ever run again: on 2026-09-01 its
+    "looks like the tally dictionary" shape check matched 210 records of an unrelated 16-byte
+    structure and wrote 2 to 5 in each (id 2 poke); all 210 were read back and restored to 2 the
+    same minute, no error, real Quicksilver tally never touched, but the gate needs neighbour
+    corroboration on EVERY candidate (not just the count) or an allow-list of the real tally page
+    before it writes.
 - [LW-384] 2026-09-01: The Eclipsebolt's death mark lands on the slow three turn countdown instead
   of the one turn its tier three signature promises, and once it does there is no second chance.
   Owner-observed 2026-09-01 07:10 in a live battle, and the log names the refusal outright:
