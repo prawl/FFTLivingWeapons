@@ -1,4 +1,4 @@
-﻿# Changelog (work-ledger exits)
+# Changelog (work-ledger exits)
 
 STATUS: CONTRACT (machine-checked by TodoContractTests)
 
@@ -10,6 +10,36 @@ before 2026-07-21 keep their original prose.
 
 ## 2.4.0 cycle
 
+- [LW-381] SHIPPED 5d72924f 2026-09-01: A weapon's glow rim now appears the same session it
+  levels up, with no restart. Plain language: the game keeps two records for every menu icon
+  it has drawn and never reads the icon file again while they stand, which is why a mid session
+  tier change stayed invisible until a relaunch and why the earlier "refresh on redraw"
+  sightings came and went (the game clears those records on its own early in a session, never
+  after a battle). The mod now mirrors each new glow into the game's merged pac and then hides
+  that icon's two records by name, so the next menu open reloads it. Owner live pass 2026-09-01:
+  the Cutpurse crossed to tier two in a battle and wore its rim on the first inventory open;
+  every other icon unchanged; a further battle, a save load and a relaunch all kept it.
+  (Tech: IconGlow.Pac.cs mirrors through ModdedPac and PacScan; IconCacheHide sweeps private
+  memory in two passes, classifies UITextureParts entries and texture records by shape, writes
+  name pointer +1 with id or hash zeroed through the guarded IGameMemory seam, texture first and
+  parts only when a texture record was hidden; three adversarial verify rounds, final code 8
+  spec 5 with the two residual spec items closed in the ship commit; LIVE_LEDGER rows
+  live-icon-repaint and icon-cache-hide-reload PROVEN; suite 3664; probes lw381_*.py.)
+- [LW-383] SHIPPED 5d72924f 2026-09-01: One weapon glowed and another with the same tier did
+  not; same cause as LW-381's missing half. The Eclipsebolt had been drawn stale before its glow
+  landed, so its cached icon never re-read the file. Fixed by the LW-381 cache hide; folded
+  into that row's live pass.
+- [LW-382] SHIPPED 52c383ce 2026-09-01: The party menu listed nothing under Weapons and Items and
+  selling closed the game. Plain language: the game's list builder takes six pieces of
+  information and the mod's detour passed only four, so the sixth, which says what kind of list
+  is being built, was replaced by whatever bytes sat on the stack; when that read as an equip
+  picker the builder threw away everything the chosen character could not wear, and nobody can
+  wear a potion. The detour now declares all six and passes the last two through untouched.
+  Owner live pass 2026-09-01: every weapon and item listed, Sell opens and completes. (Tech:
+  ListBuilderHook.BuildFn widened 4 to 6 nint parameters, forwarded verbatim on both branches;
+  the callee reads byte [rsp+0x88] four times and all eight call sites write it; Reloaded.Hooks
+  handles the six argument Microsoft x64 detour with no wrapper; probes
+  bag_count_split_probe.py and order_template_probe.py cleared the other suspects first.)
 - [LW-365] SHIPPED 9bb0896f 2026-08-31: Swinging one of the seven moved designs at an empty
   tile now draws its own blade instead of bare fists. Plain language: the game copies one
   standing "weapon id" word into each swing's animation record, and for a new weapon that word
