@@ -225,6 +225,30 @@ Without the marker file (a normal build) the lane arms with "The battle sentinel
 right after the armed line, and a real New Game archives and clears exactly as before.
 **Cleanup:** redeploy; the marker is wiped.
 
+## LW-392 blind drill: watch the mod say it cannot find the game (owner)
+
+The startup guard now speaks when it cannot read the game for about a minute (a WARN plus ONE
+message box), and logs one calm line if a save has not loaded after about two minutes on a
+readable game. This drill makes a healthy game look unreadable for about eighty seconds so you
+can watch the warning and then the recovery.
+
+1. Close the game. Run a DEV deploy (plain BuildLinked; add -Force when the install is prod
+   flavored).
+2. Drop an empty marker file named `LW_FORCE_GUARD_UNREADABLE` into the deployed mod dir (next to
+   the DLL). BuildLinked wipes it on the next deploy. The env variable lane exists but does not
+   reach the game on this box.
+3. Launch and sit on the TITLE screen. At about 60 seconds expect ONE WARN "Living Weapons has not
+   been able to read the game for about a minute ..." ending with the sentence naming
+   LW_FORCE_GUARD_UNREADABLE, and ONE message box "Living Weapons cannot find the game yet".
+4. At about 80 seconds the drill releases silently. Press Continue on a save: expect the usual
+   "Living Weapons is armed" line, then "Living Weapons found the game after the earlier warning".
+5. Normal-build leg: BuildLinked -Prod, launch, sit on the title screen for 2.5 minutes. Expect
+   exactly one calm INFO line ("waiting for a save to load ... normal on the title screen"), no
+   box. Continue: armed as usual, no recovery line.
+
+tools/scan_logs.py stays clean on both legs (neither new WARN carries the stand-down phrase).
+**Cleanup:** redeploy; the marker is wiped.
+
 ## Add an extended-inventory item (a brand-new weapon past id 260, LW-346)
 
 Plain language: a new weapon is one row in `data/items.json` plus four generated icon files;

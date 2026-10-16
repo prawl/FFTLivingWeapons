@@ -122,9 +122,16 @@ public class LaunchGuardTests
             ImageBase.ResetForTests();            // the mod never learned the live base
             var guard = new LaunchGuard(mem, forceMismatch: false);
 
-            for (int i = 0; i < 100; i++) guard.Step();
+            var notices = new List<(string title, string text)>();
+            using var cap = LogCapture.Start();
+            guard = new LaunchGuard(mem, forceMismatch: false, notice: (t, x) => notices.Add((t, x)));
+
+            for (int i = 0; i < LaunchGuard.ImageStallSteps + 1; i++) guard.Step();
 
             Assert.Equal(GuardState.Verifying, guard.State);
+            // LW-392: the same symptom now speaks, once in the log (WARN) and once in a box.
+            Assert.Single(notices);
+            Assert.Single(cap.File, l => l.Contains("[WARN]") && l.Contains("has not been able to read the game"));
         }
         finally { ImageBase.ResetForTests(); }
     }
@@ -1142,5 +1149,195 @@ public class LaunchGuardTests
             Assert.Contains("[WARN]", line);
             Assert.DoesNotContain("[ERROR]", line);
         });
+    }
+
+    // --- LW-392: the mod says so when it cannot find the game ---
+
+    private sealed class StallRig
+    {
+        public LaunchGuard Guard = null!;
+        public readonly List<(string title, string text)> Notices = new();
+        public readonly List<(string type, string payload)> Records = new();
+    }
+
+    private static StallRig NewStallRig(FakeSparseMemory mem, bool forceUnreadable = false)
+    {
+        var rig = new StallRig();
+        rig.Guard = new LaunchGuard(mem, forceMismatch: false,
+            notice: (t, x) => rig.Notices.Add((t, x)),
+            recorder: (t, p) => rig.Records.Add((t, p)),
+            forceUnreadable: forceUnreadable);
+        return rig;
+    }
+
+    private static void StepN(LaunchGuard g, int n) { for (int i = 0; i < n; i++) g.Step(); }
+
+    private const string BoxHead = "Living Weapons cannot find the game yet";
+
+    [Fact]
+    // NON-VACUITY LEVER (spec v2, verified 2026-10-16): in LandmarkStall.Watch change `streak == stallSteps`
+    // to `streak == stallSteps + 100`; nothing fires inside this test's +50 margin and Assert.Single(rig.Notices)
+    // fails with an empty collection. The repeat levers above cannot work alone: the once-only property is
+    // deduped at two layers (the watcher fires once per streak AND _stallWarned), by design.
+    public void Image_unreadable_for_the_stall_window_warns_once_and_boxes_once()
+    {
+        // LOAD-BEARING (LW-392). Two dedupe layers guard the box: the decorator fires once per
+        // streak (LandmarkStall `streak == stallSteps`) and the adapter latches (_stallWarned).
+        // Levers that turn this red: (a) change `==` to `>=` in LandmarkStall.Watch AND delete the
+        // `if (_stallWarned) return;` line in OnImageStalled -> 51 notices, Assert.Single fails;
+        // (b) swap the PE landmark's OnImageStalled handler for a no-op -> no notice, Assert.Single fails.
+        WithWritesRestored(() =>
+        {
+            using var cap = LogCapture.Start();
+            var rig = NewStallRig(new FakeSparseMemory());   // no PE blocks, roster level 0: nothing readable
+
+            StepN(rig.Guard, LaunchGuard.ImageStallSteps + 50);
+
+            var notice = Assert.Single(rig.Notices);
+            Assert.StartsWith(BoxHead, notice.text);
+            string line = Assert.Single(cap.File, l => l.Contains("has not been able to read the game"));
+            Assert.Contains("[WARN]", line);
+            Assert.Equal(GuardState.Verifying, rig.Guard.State);
+            Assert.Single(rig.Records, r => r.type == "guard" && r.payload.Contains("stalled"));
+        });
+    }
+
+    [Fact]
+    public void Image_unreadable_below_the_window_stays_silent()
+    {
+        WithWritesRestored(() =>
+        {
+            using var cap = LogCapture.Start();
+            var rig = NewStallRig(new FakeSparseMemory());
+
+            StepN(rig.Guard, LaunchGuard.ImageStallSteps - 1);
+
+            Assert.Empty(rig.Notices);
+            Assert.DoesNotContain(cap.File, l => l.Contains("[WARN]"));
+            Assert.Empty(rig.Records);
+        });
+    }
+
+    [Fact]
+    public void Title_screen_wait_logs_the_calm_line_once_and_never_boxes()
+    {
+        WithWritesRestored(() =>
+        {
+            using var cap = LogCapture.Start();
+            var mem = HealthyMemory(level: 0);
+            mem.TerrainBlocks[Offsets.RosterBase + Offsets.RLevel] = new byte[] { 0 };   // mapped, zero: the title screen
+            var rig = NewStallRig(mem);
+
+            StepN(rig.Guard, LaunchGuard.RosterWaitSteps + 50);
+
+            Assert.Empty(rig.Notices);
+            string line = Assert.Single(cap.File, l => l.Contains("waiting for a save to load"));
+            Assert.Contains("[INFO]", line);
+            Assert.DoesNotContain(cap.File, l => l.Contains("[WARN]"));
+            Assert.Equal(GuardState.Verifying, rig.Guard.State);
+        });
+    }
+
+    [Fact]
+    public void Roster_page_unreadable_reads_as_cannot_find_the_game()
+    {
+        WithWritesRestored(() =>
+        {
+            using var cap = LogCapture.Start();
+            var rig = NewStallRig(HealthyMemory(level: 0));   // PE fine; roster level byte is NOT mappable
+
+            StepN(rig.Guard, LaunchGuard.RosterWaitSteps + 1);
+
+            var notice = Assert.Single(rig.Notices);
+            Assert.StartsWith(BoxHead, notice.text);
+            Assert.Single(cap.File, l => l.Contains("has not been able to read the game"));
+            Assert.DoesNotContain(cap.File, l => l.Contains("waiting for a save to load"));
+        });
+    }
+
+    [Fact]
+    public void Arming_after_a_stall_logs_the_recovery_line()
+    {
+        WithWritesRestored(() =>
+        {
+            using var cap = LogCapture.Start();
+            var mem = new FakeSparseMemory();
+            var rig = NewStallRig(mem);
+            StepN(rig.Guard, LaunchGuard.ImageStallSteps + 1);
+            Assert.Single(rig.Notices);
+
+            StagePeHealthy(mem);
+            StageRamzaRow(mem, 12, 1, 0x02, 70, 65);
+            rig.Guard.Step();
+
+            Assert.Equal(GuardState.Armed, rig.Guard.State);
+            Assert.Single(cap.File, l => l.Contains("found the game after the earlier warning"));
+            Assert.Contains(rig.Records, r => r.type == "guard" && r.payload.Contains("armed after the stall warning"));
+        });
+    }
+
+    [Fact]
+    public void Arming_without_a_stall_logs_no_recovery_line()
+    {
+        WithWritesRestored(() =>
+        {
+            using var cap = LogCapture.Start();
+            var rig = NewStallRig(HealthyMemory());
+
+            rig.Guard.Step();
+
+            Assert.Equal(GuardState.Armed, rig.Guard.State);
+            Assert.DoesNotContain(cap.File, l => l.Contains("found the game after the earlier warning"));
+            Assert.DoesNotContain(rig.Records, r => r.payload.Contains("armed after the stall warning"));
+        });
+    }
+
+    [Fact]
+    public void Unreadable_drill_forces_the_warning_then_releases()
+    {
+        WithWritesRestored(() =>
+        {
+            using var cap = LogCapture.Start();
+            var rig = NewStallRig(HealthyMemory(), forceUnreadable: true);
+
+            StepN(rig.Guard, LaunchGuard.ImageStallSteps + 1);
+            var notice = Assert.Single(rig.Notices);
+            Assert.StartsWith(BoxHead, notice.text);
+            Assert.Contains("LW_FORCE_GUARD_UNREADABLE", notice.text);
+            Assert.Contains(cap.File, l => l.Contains("[WARN]") && l.Contains("LW_FORCE_GUARD_UNREADABLE"));
+            Assert.Equal(GuardState.Verifying, rig.Guard.State);
+
+            StepN(rig.Guard, LaunchGuard.DrillBlindSteps - (LaunchGuard.ImageStallSteps + 1));   // DrillBlindSteps total
+            Assert.Equal(GuardState.Verifying, rig.Guard.State);
+            rig.Guard.Step();
+
+            Assert.Equal(GuardState.Armed, rig.Guard.State);
+            Assert.Single(rig.Notices);
+            Assert.Single(cap.File, l => l.Contains("found the game after the earlier warning"));
+        });
+    }
+
+    [Fact]
+    public void Real_stall_does_not_name_the_drill_flag()
+    {
+        WithWritesRestored(() =>
+        {
+            using var cap = LogCapture.Start();
+            var rig = NewStallRig(new FakeSparseMemory());
+
+            StepN(rig.Guard, LaunchGuard.ImageStallSteps + 1);
+
+            Assert.DoesNotContain("LW_FORCE_", Assert.Single(rig.Notices).text);
+            Assert.DoesNotContain(cap.File, l => l.Contains("LW_FORCE_"));
+        });
+    }
+
+    [Fact]
+    public void Stall_texts_never_speak_the_scanner_stand_down_phrase()
+    {
+        // tools/scan_logs.py STANDDOWN_MARK reads "standing down to protect your save" as a dead mod.
+        foreach (var text in new[] { LaunchGuard.ImageStallWarn, LaunchGuard.ImageStallBox,
+                                     LaunchGuard.RosterWaitInfo, LaunchGuard.RecoveryInfo })
+            Assert.DoesNotContain("standing down to protect your save", text);
     }
 }

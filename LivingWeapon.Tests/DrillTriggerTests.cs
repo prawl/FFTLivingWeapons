@@ -104,4 +104,28 @@ public class DrillTriggerTests
 
         Assert.True(DrillTrigger.DrillRequested(temp.Dir, DrillTrigger.SensingFlagName));
     }
+
+    // --- LW-392: the third drill flag (the blind-guard drill), same two lanes ---
+
+    [Fact]
+    public void Unreadable_flag_env_set_to_1_requests_the_drill_and_satisfies_no_other_flag()
+    {
+        string? Get(string name) => name == DrillTrigger.UnreadableFlagName ? "1" : null;
+        Assert.True(DrillTrigger.DrillRequested(ModDir, DrillTrigger.UnreadableFlagName, Get, NoFile));
+        Assert.False(DrillTrigger.DrillRequested(ModDir, DrillTrigger.FlagName, Get, NoFile));
+        Assert.False(DrillTrigger.DrillRequested(ModDir, DrillTrigger.SensingFlagName, Get, NoFile));
+    }
+
+    [Fact]
+    public void Unreadable_flag_marker_file_requests_the_drill_and_no_other_flags_file_satisfies_it()
+    {
+        string path = Path.Combine(ModDir, DrillTrigger.UnreadableFlagName);
+        Assert.True(DrillTrigger.DrillRequested(ModDir, DrillTrigger.UnreadableFlagName, Env(null), p => p == path));
+        Assert.False(DrillTrigger.DrillRequested(ModDir, DrillTrigger.UnreadableFlagName, Env(null),
+            p => p == Path.Combine(ModDir, DrillTrigger.FlagName)));
+        Assert.False(DrillTrigger.DrillRequested(ModDir, DrillTrigger.UnreadableFlagName, Env(null),
+            p => p == Path.Combine(ModDir, DrillTrigger.SensingFlagName)));
+        Assert.False(DrillTrigger.DrillRequested(ModDir, DrillTrigger.FlagName, Env(null), p => p == path));
+        Assert.False(DrillTrigger.DrillRequested(ModDir, DrillTrigger.SensingFlagName, Env(null), p => p == path));
+    }
 }

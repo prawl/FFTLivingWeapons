@@ -95,9 +95,13 @@ internal sealed class Engine
     /// <param name="devForceSensingMismatch">LW-395 dev drill (LW_FORCE_SENSING_MISMATCH, dev
     /// builds only; Mod.cs passes a hard false elsewhere): forces the sensing lane to read a
     /// mismatch so the refuse-to-clear path can be watched. Null/false means a normal lane.</param>
+    /// <param name="devForceGuardUnreadable">LW-392 dev drill (LW_FORCE_GUARD_UNREADABLE, dev builds
+    /// only; Mod.cs passes a hard false elsewhere): the startup guard reads blind for about eighty
+    /// seconds so the cannot-find-the-game warning and then the recovery line can be watched.</param>
     public Engine(string modDir, bool? bannerToasts = null, bool? devSeedKills = null,
         bool? devForceFingerprintMismatch = null, IGameMemory? mem = null, Action<string, string>? notice = null,
-        ExtendedInventory? extended = null, bool? devForceSensingMismatch = null)
+        ExtendedInventory? extended = null, bool? devForceSensingMismatch = null,
+        bool? devForceGuardUnreadable = null)
     {
         // LW-51: save files now live in the update-safe Reloaded/User/Mods/<ModId> dir, not the
         // deploy mod dir, so a mod-folder-replace update can no longer wipe them. Each store's
@@ -153,7 +157,8 @@ internal sealed class Engine
         // ring, so a stand-down leaves a durable archive.
         _launchGuard = new LaunchGuard(live, devForceFingerprintMismatch ?? false, notice: ResolveNotice(notice),
             recorder: Flight.Record, requestFlush: Flight.RequestFlush,
-            forceSensingMismatch: devForceSensingMismatch ?? false);
+            forceSensingMismatch: devForceSensingMismatch ?? false,
+            forceUnreadable: devForceGuardUnreadable ?? false);
         // LW-82: read-only, ticks only while the guard is StoodDown (below); never arms, never
         // writes, never touches GuardState. Verifier scout, not healer (owner-locked decision).
         _anchorScout = new AnchorScout(live);

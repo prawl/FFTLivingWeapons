@@ -9,6 +9,9 @@ namespace LivingWeapon;
 /// LaunchGuard.cs's constructor still reaches every constant and probe here by plain name: this is
 /// a real data/game-knowledge-vs-behavior split, not a state-machine clone.
 ///
+/// LW-392: the roster probe's Unreadable verdict now carries a Detail (slot empty vs page
+/// unreadable) that LaunchGuard.Stall.cs reads to word the long-wait message.
+///
 /// LW-112: the JobCommand rec8/rec9 constants (Rec8Addr/Rec9Addr/Rec8Sig/Rec9Sig) stay here even
 /// though the landmark that reads them moved to the kit-lane guard (LaunchGuard.KitLane.cs) -- they
 /// are game-KNOWLEDGE (where the table lives, what it says), not lifecycle, and AnchorScout also
@@ -68,7 +71,11 @@ internal sealed partial class LaunchGuard
     {
         long rb = Offsets.RosterBase;
         int level = _mem.U8(rb + Offsets.RLevel);
-        if (level < 1 || level > 99) return LandmarkVerdict.Unreadable;   // unpopulated slot (title screen)
+        if (level < 1 || level > 99)   // unpopulated slot (title screen) or an unreadable page
+            // LW-392: say which. A mapped zero byte reads as "slot empty" (the ordinary title screen);
+            // only a page the mod cannot read at all is "page unreadable" (LaunchGuard.Stall.cs).
+            return new LandmarkReading(LandmarkVerdict.Unreadable,
+                _mem.TryReadBytes(rb + Offsets.RLevel, 1, out _) ? RosterSlotEmpty : RosterPageUnreadable);
 
         int nameId = _mem.U16(rb + Offsets.RNameId);
         byte sprite = _mem.U8(rb + Offsets.RSprite);

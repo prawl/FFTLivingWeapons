@@ -48,6 +48,9 @@ namespace LivingWeapon;
 /// LW-395: a THIRD independent instance, the SENSING lane (LaunchGuard.Sensing.cs), verifies the
 /// six battle sentinels once per launch, out of battle only. It gates the new-game detector so a
 /// moved sentinel can never clear kills.json; a stand-down there switches only that detector off.
+///
+/// LW-392: the two main landmarks are wrapped by <see cref="LandmarkStall"/> (LaunchGuard.Stall.cs),
+/// so a mod that cannot read the game says so once (a WARN and one box) instead of retrying in silence.
 /// </summary>
 internal sealed partial class LaunchGuard
 {
@@ -77,9 +80,11 @@ internal sealed partial class LaunchGuard
     /// only stand-down calls this, with a dedicated "standdown" trigger.</param>
     /// <param name="forceSensingMismatch">LW-395 dev drill (LW_FORCE_SENSING_MISMATCH): perturbs
     /// the sensing lane's expected slot9 so healthy memory reads as a mismatch.</param>
+    /// <param name="forceUnreadable">LW-392 dev drill (LW_FORCE_GUARD_UNREADABLE): both main landmarks
+    /// read Unreadable for DrillBlindSteps so the stall warning and the recovery line can be watched.</param>
     public LaunchGuard(IGameMemory mem, bool forceMismatch, Action<string, string>? notice = null,
         Action<string, string>? recorder = null, Action<string>? requestFlush = null,
-        bool forceSensingMismatch = false)
+        bool forceSensingMismatch = false, bool forceUnreadable = false)
     {
         _mem = mem;
         _forceMismatch = forceMismatch;
@@ -94,10 +99,15 @@ internal sealed partial class LaunchGuard
         // Release still compiles this same code path and exercises it with a hard false.
         uint expectedTimeDateStamp = forceMismatch ? ExpectedTimeDateStamp ^ 1 : ExpectedTimeDateStamp;
 
+        // LW-392: each main landmark is wrapped so a long unreadable streak speaks once
+        // (LaunchGuard.Stall.cs); DrillBlind sits inside the watcher so forced reads count.
+        _forceUnreadable = forceUnreadable; _blindStepsLeft = forceUnreadable ? DrillBlindSteps : 0;
         var landmarks = new[]
         {
-            FingerprintGuard.PeBuildKey(tryRead, ImageBase.Base, expectedTimeDateStamp, ExpectedSizeOfImage),
-            FingerprintGuard.Custom("ramza-roster-row", ProbeRamzaRosterRow),
+            LandmarkStall.Watch(DrillBlind(FingerprintGuard.PeBuildKey(tryRead, ImageBase.Base, expectedTimeDateStamp, ExpectedSizeOfImage), spends: true),
+                ImageStallSteps, OnImageStalled),
+            LandmarkStall.Watch(DrillBlind(FingerprintGuard.Custom("ramza-roster-row", ProbeRamzaRosterRow), spends: false),
+                RosterWaitSteps, OnRosterStalled),
         };
         _guard = new FingerprintGuard(landmarks, StandDown, ArmedEdge, MismatchDebounce);
 
@@ -147,6 +157,7 @@ internal sealed partial class LaunchGuard
         _recorder?.Invoke("guard", "armed (all landmarks match; writes enabled)");
         ModLogger.Event(LogVerb.Startup,
             "The game build matches all memory landmarks; Living Weapons is armed (writes were held until now).");
+        LogRecoveryIfStalled();   // LW-392: one extra line only if the stall warning fired earlier
         lock (_hookLock)
         {
             var arm = _pendingHookArm;

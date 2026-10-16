@@ -56,7 +56,8 @@ the technical detail lives in the indented lines under it.
     and a test that a part behind a closed door is never ticked; the owner's live drill on a
     dev build with the forced-wrong landmark reads the report and sees the surviving parts
     work, then the owner's normal prod pass reads all ON; scan_logs clean on both.
-- **[LW-392] The mod says so when it cannot find the game instead of staying silent** (opened 2026-10-16) [QUEUED]
+- **[LW-392] The mod says so when it cannot find the game instead of staying silent** (opened 2026-10-16) [AWAITING-LIVE]
+  - Built 2026-10-16, suite 3795 green, owner live pass pending (dev blind drill, normal launch).
   - Plain language: players spent three weeks guessing why kill counts froze because the mod
     stayed silent when it could not find the game. After a short wait it should say so, once,
     in the log and in a box, and then keep trying. This is stage 1 of LW-393 and lands with
@@ -67,15 +68,19 @@ the technical detail lives in the indented lines under it.
     Unreadable with readable image is the normal title screen and never warns; the warning is
     for the case where the mod cannot see the game at all, plus a calmer "still waiting" log
     line when a save should have loaded by now.
-  - (Tech: count consecutive Unreadable ticks per landmark in FingerprintGuard; after about a
-    minute log ONE warn and show the once-per-session box for a landmark that needs no save;
-    an eventual arm logs "armed after the warning"; the roster probe must tell an unreadable
-    page from an empty slot (today both read as level 0). LaunchGuardTests pins the silent
-    retry as correct and must change with the behavior. No interaction with AnchorScout.)
+  - (Tech: as built: LandmarkStall wraps the two main landmarks and counts consecutive
+    Unreadable probes without touching the portable FingerprintGuard core; at about a minute
+    (1800 steps) the image landmark logs ONE warn and shows the once-per-session box, at about
+    two minutes (3600 steps) a roster row that reads "slot empty" logs the calm wait line, a
+    roster page that cannot be read at all routes to the warning; an eventual arm logs the
+    recovery line; the roster probe falls back to TryReadBytes only when the level byte is out
+    of range, so an unreadable page is told from an empty slot; the pinned silent-retry test was
+    extended, not replaced, and still asserts Verifying. Drill flag LW_FORCE_GUARD_UNREADABLE
+    goes blind for 2400 steps then releases. No interaction with AnchorScout.)
   - Done means: a dev build launched with the image deliberately unreadable to the guard logs
     the warning after about a minute and shows the box once; the normal build on the title
     screen never warns; loading a save after the warning arms and logs the recovery line.
-  - Verify: suite green with the timing tests replacing the pinned silent-retry test; the
+  - Verify: suite green with the timing tests beside the extended silent-retry test; the
     owner's dev drill shows the box once and the log line; the owner's normal launch shows no
     box and arms as usual.
 - **[LW-323] A weapon's level-up announcement never shows up a battle late anymore** (opened 2026-08-25) [AWAITING-LIVE]
@@ -222,6 +227,20 @@ belongs rather than at the bottom.
   restored backup save gets the counts it had when it was written, a copied slot gets its own
   counts, and a mod-less launch still loads clean. Pair with LW-390's reopen list only if the
   save hooks move.
+- [LW-404] 2026-10-16: Every time the mod needs to step into the middle of one of the game's routines it gets a hand-built, one-of-a-kind patch, which is slow to write and easy to get wrong; adopt one general "stop here, hand me the registers, let me change them, carry on" tool for new sites, and keep the hand-built fast paths where they are.
+  Not for 2.4.0. Today a new code-site hook means a bespoke byte layout in ThunkStub.cs or a
+  one-off like SwingIdFallbackHook, each with its own register contract pinned by tests.
+  gibbed's WhatSpriteLimit (github.com/gibbed/WhatSpriteLimit, MidHook.cs, a port of
+  safetyhook's mid-hook) shows the cleaner shape: one fixed stub saves the full register set
+  and flags into a context struct, calls a C# handler marked UnmanagedCallersOnly, the handler
+  reads and rewrites registers and may set a new rip, and the stub restores and resumes or
+  redirects. Eleven of his hooks share that one stub. Scope: add it as a SECOND tool in Memory/
+  beside ThunkStub, not a replacement; the ten accessor leaf stubs and the list builder stay
+  hand-laid because they run per list entry and a full context save there is a measurable tax.
+  Decide whether to emit the stub as fixed bytes (no new dependency) or take Iced as he does.
+  First customers: the LW-390 reopen candidates and the LW-402 probe. Done means: one new site
+  hooked through it with a unit test on the context round-trip and an owner live pass showing
+  no stutter.
 
 - [LW-386] 2026-09-01: The Poacher's Den is handing players items the mod never meant it to, and one
   player saw four katanas where two dragons' carcasses belong. Plain language: a Discord player on
@@ -1013,6 +1032,18 @@ belongs rather than at the bottom.
     held the command icons, not words), or glyphs are baked at boot from a source that
     only reads once. Instruments: auto_text_probe.py verbs scan/classify/pokeall/check/
     hold/autoflag/snap/flagdiff; FF16Tools unpack recipe proven on 0008.pac.
+  - SOURCE FOUND 2026-10-16 (offline, from another modder's data-only mod): the word over the
+    unit's head is an ordinary table string after all, and the hunt poked the wrong one of two
+    identical "Auto" rows. Jaylo's "Auto battle word indicator removal" (Nexus mod 144) ships
+    one file, ui.en.nxd, with exactly one cell changed against vanilla 0004.en.pac: key 2806
+    "Auto" set to empty. Key 2806 sits in the overhead plate's own cluster (2802 Enemy, 2803
+    Guest, 2804 Special, 2806 Auto, 2807 ??, 2809 Lv. ??), which are the plate's TextGuest,
+    TextSpecial and TextAuto nodes. The row the parked hunt poked was key 2566, the other
+    "Auto" (the save-list "Saved Data (Auto)" family beside the 2567 <if template), which is
+    why nothing changed. Consequences: a static rename is a data-only change (full-table
+    ui.en.nxd override, takes effect on restart, same per-language caveat as item.en.nxd); a
+    per-unit title still needs the render-time swap, but the swap now has a known source
+    string to match on. Not re-tested live; ledger row [auto-battle-mode-byte] unchanged.
 
 - [LW-172] 2026-08-12: The mod's human versus monster job boundary is off by two, and every
   consumer of it needs an audit: monsters start at job 94 (Chocobo; Black Chocobo 95), not 96.

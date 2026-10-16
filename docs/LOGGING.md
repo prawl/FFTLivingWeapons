@@ -113,7 +113,7 @@ deliberately; no ad-hoc per-module prefixes. The legacy column maps the pre-face
 
 | Verb | Legacy prefix(es) | Level discipline |
 |---|---|---|
-| `startup` | bare startup lines, `DEV:` seed line, both Mod.cs hooks lines | Info; launch header + its hooks footer, plus the fingerprint guard's armed/stand-down lines and (LW-82) the anchor scout's re-find inventory that only runs after a stand-down. |
+| `startup` | bare startup lines, `DEV:` seed line, both Mod.cs hooks lines | Info; launch header + its hooks footer, plus the fingerprint guard's armed/stand-down lines, the LW-392 stall warning, title-screen wait and recovery lines, and (LW-82) the anchor scout's re-find inventory that only runs after a stand-down. |
 | `config` | `config:` | Info once per launch; Warning on read failure. |
 | `battle-start` | `battle: started` | Info once per battle; sentinels move to a `[trace]` companion. |
 | `battle-end` | `battle: ended` | Info once per battle; THE match-report summary line. |

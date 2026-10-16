@@ -21,7 +21,8 @@ internal enum LandmarkVerdict { Unreadable, Match, Mismatch }
 internal enum GuardState { Verifying, Armed, StoodDown }
 
 /// <summary>LW-83: one landmark's verdict PLUS, on a Mismatch only, the observed-vs-expected
-/// evidence behind it (Detail is null for every other verdict). The implicit operator from a bare
+/// evidence behind it (Detail is null for Match; the core reads it only on Mismatch, but an Unreadable
+/// may carry a reason an adapter's own wrapper reads, LW-392). The implicit operator from a bare
 /// <see cref="LandmarkVerdict"/> is load-bearing: every probe that has no detail to offer (Match,
 /// Unreadable, or a Custom landmark that never composes one) keeps returning a bare verdict with
 /// no call-site change.</summary>
@@ -42,7 +43,8 @@ internal readonly struct LandmarkReading
 /// <summary>One fact the guard checks: a name (for diagnostics) and a probe that reads live
 /// memory and returns a landmark reading. A probe never throws: a failed read is Unreadable, not
 /// an exception. <see cref="LandmarkReading.Detail"/> carries the observed-vs-expected mismatch
-/// evidence and is null on every other verdict (LW-83).</summary>
+/// evidence (LW-83), or, since LW-392, an optional reason on an Unreadable verdict that only the
+/// adapter reads; it is null on a Match.</summary>
 internal sealed class GuardLandmark
 {
     public string Name { get; }

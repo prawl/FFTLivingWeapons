@@ -22,6 +22,11 @@ internal static class DrillTrigger
     /// of this name in the mod dir). Forces the sensing lane's mismatch on healthy memory.</summary>
     internal const string SensingFlagName = "LW_FORCE_SENSING_MISMATCH";
 
+    /// <summary>LW-392: the blind-guard drill flag, same two lanes. Makes the main guard's
+    /// landmarks read Unreadable for a while on healthy memory, so the stall warning and then the
+    /// recovery line can be watched without a real unreadable game.</summary>
+    internal const string UnreadableFlagName = "LW_FORCE_GUARD_UNREADABLE";
+
     /// <summary>General form: any flag name through the injected env and file-existence reads, so
     /// tests never touch the real process environment. The env lane matches exactly "1"; any other
     /// value (including "0" and "true") is not a request. A flag's marker file never satisfies a

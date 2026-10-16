@@ -120,9 +120,11 @@ public class Mod : IMod
 #if LWDEV
             bool devForceFingerprintMismatch = DrillTrigger.DrillRequested(modDir);
             bool devForceSensingMismatch = DrillTrigger.DrillRequested(modDir, DrillTrigger.SensingFlagName);
+            bool devForceGuardUnreadable = DrillTrigger.DrillRequested(modDir, DrillTrigger.UnreadableFlagName);
 #else
             const bool devForceFingerprintMismatch = false;
             const bool devForceSensingMismatch = false;
+            const bool devForceGuardUnreadable = false;
 #endif
             ModLogger.Event(LogVerb.Config,
                 $"Configuration loaded: LogLevel={ModLogger.LogLevel} (from {configPath})");
@@ -134,7 +136,7 @@ public class Mod : IMod
             // LW-52: bannerToasts and devSeedKills are no longer config-driven; omitting them lets
             // the Engine ctor fall back to its Tuning defaults (toasts on; dev-seed under LWDEV).
             _engine = new Engine(modDir, devForceFingerprintMismatch: devForceFingerprintMismatch,
-                devForceSensingMismatch: devForceSensingMismatch);
+                devForceSensingMismatch: devForceSensingMismatch, devForceGuardUnreadable: devForceGuardUnreadable);
             _engine.Start();
         }
         catch (Exception ex)
