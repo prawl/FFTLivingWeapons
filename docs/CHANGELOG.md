@@ -10,6 +10,22 @@ before 2026-07-21 keep their original prose.
 
 ## 2.4.0 cycle
 
+- [LW-392] SHIPPED eacb8761 2026-10-16: The mod now says so when it cannot find the game instead of
+  staying silent. Plain language: when the mod could not read the game at all it used to retry
+  quietly forever, which is how five players spent weeks guessing why their kill counts had frozen
+  after the September update. Now, after about a minute of not seeing the game, it logs one warning
+  and shows one box that says what is happening and how to get help, then keeps trying; on an
+  ordinary title screen it logs one calm line after about two minutes and never a box; if it later
+  finds the game it logs a recovery line beside the armed line. Stage 1a of the parts model
+  (LW-393); the build key demotion (LW-397) follows as its own row. Built lite on the proven LW-50
+  guard loop with one independent verify (code 9, spec 8, non vacuity lever proven). Owner live
+  pass 2026-10-16 18:45 to 18:55, two legs: the blind drill showed the box and the warning at 61
+  seconds, released itself, and logged the recovery line on Continue; the normal launch logged
+  the calm line once at 121 seconds, no box, no warning, armed as usual. Log scan clean on both.
+  (Tech: LandmarkStall decorator counts consecutive Unreadable probes per landmark, once per
+  streak; LaunchGuard.Stall.cs thresholds 1800 / 3600 / 2400 steps at the 33 ms tick, handlers,
+  texts, drill LW_FORCE_GUARD_UNREADABLE; roster probe falls back to TryReadBytes only on an out of
+  range level byte; the pinned silent retry test extended, still asserts Verifying; suite 3795.)
 - [LW-395] SHIPPED e3a9fac0 2026-10-16: A game update that moves the bytes the mod watches for
   battles can no longer make it wipe a player's kill counts by mistake. Plain language: the mod
   notices a new game by watching a few bytes in the game, and on that signal it archives and

@@ -56,33 +56,6 @@ the technical detail lives in the indented lines under it.
     and a test that a part behind a closed door is never ticked; the owner's live drill on a
     dev build with the forced-wrong landmark reads the report and sees the surviving parts
     work, then the owner's normal prod pass reads all ON; scan_logs clean on both.
-- **[LW-392] The mod says so when it cannot find the game instead of staying silent** (opened 2026-10-16) [AWAITING-LIVE]
-  - Built 2026-10-16, suite 3795 green, owner live pass pending (dev blind drill, normal launch).
-  - Plain language: players spent three weeks guessing why kill counts froze because the mod
-    stayed silent when it could not find the game. After a short wait it should say so, once,
-    in the log and in a box, and then keep trying. This is stage 1 of LW-393 and lands with
-    the build key demotion.
-  - The September break (LW-387) read as Unreadable at the guard, which retries silently by
-    design for the boot window. Five Nexus reports (2026-09-20 to 10-04) describe "mod loads,
-    cards show the baked 0/5 text, nothing counts" with no message anywhere. A Ramza-row
-    Unreadable with readable image is the normal title screen and never warns; the warning is
-    for the case where the mod cannot see the game at all, plus a calmer "still waiting" log
-    line when a save should have loaded by now.
-  - (Tech: as built: LandmarkStall wraps the two main landmarks and counts consecutive
-    Unreadable probes without touching the portable FingerprintGuard core; at about a minute
-    (1800 steps) the image landmark logs ONE warn and shows the once-per-session box, at about
-    two minutes (3600 steps) a roster row that reads "slot empty" logs the calm wait line, a
-    roster page that cannot be read at all routes to the warning; an eventual arm logs the
-    recovery line; the roster probe falls back to TryReadBytes only when the level byte is out
-    of range, so an unreadable page is told from an empty slot; the pinned silent-retry test was
-    extended, not replaced, and still asserts Verifying. Drill flag LW_FORCE_GUARD_UNREADABLE
-    goes blind for 2400 steps then releases. No interaction with AnchorScout.)
-  - Done means: a dev build launched with the image deliberately unreadable to the guard logs
-    the warning after about a minute and shows the box once; the normal build on the title
-    screen never warns; loading a save after the warning arms and logs the recovery line.
-  - Verify: suite green with the timing tests beside the extended silent-retry test; the
-    owner's dev drill shows the box once and the log line; the owner's normal launch shows no
-    box and arms as usual.
 - **[LW-323] A weapon's level-up announcement never shows up a battle late anymore** (opened 2026-08-25) [AWAITING-LIVE]
   - BUILT and adversarially verified 2026-08-26 (code 9 of 10, zero code findings; suite
     3332 green), owner live pass outstanding. The owner saw "Stoneshooter has grown to
