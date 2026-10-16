@@ -294,14 +294,14 @@ counts that stopped moving. This cut makes the mod find the game wherever it lan
 nothing else. Cut from v2.3.3 on branch hotfix/2.3.4, deliberately ahead of the unreleased
 2.4.0 work on main, so players get 2.3.3 plus exactly one fix. Owner scope call 2026-10-15.
 
-- [ ] **ASLR rebase (LW-387)**: every address the mod knows is resolved against the live image
+- [x] **ASLR rebase (LW-387)**: shipped 3adcb824. Every address the mod knows is resolved against the live image
       base at startup; the startup guard learns the new build's identity. Offline diff proved
       every internal position unchanged (docs/research/PORT_1.5.2_NODRM_OFFSETS.md).
-- [ ] **Owner live pass**: startup line names the resolved base, "Living Weapons is armed" after
-      a save loads, one kill credited with victim identity, card paints, scan_logs exit 0.
-- [ ] Gates re-run at the cut: dotnet test green, analyze.py exit 0, audit_nxd_bakes.py exit 0
+- [x] **Owner live pass** (2026-10-16): base resolved 0x7FF65E0F0000, armed at 23 seconds, Chaos
+      Blade kill credited with victim identity, card counter confirmed by eye, scan_logs CLEAN.
+- [x] Gates re-run at the cut: dotnet test 3115 green, analyze.py exit 0, audit_nxd_bakes.py exit 0
       (already green 2026-10-15 against the new build: the data pacs did not change).
-- [ ] Package built (FFTLivingWeapons-2.3.4.zip); ModVersion bumped to 2.3.4.
+- [x] Package built (FFTLivingWeapons-2.3.4.zip, 2026-10-16); ModVersion bumped to 2.3.4.
 - [ ] Tag v2.3.4 cut at the release commit and pushed (rides the owner's push word).
 
 ## DEFERRED (post-release backlog)

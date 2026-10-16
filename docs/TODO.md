@@ -13,34 +13,6 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.3.4)
 
-- **[LW-387] Kill counts stopped working after the game shed its copy protection; make the mod find the game wherever Windows puts it** (opened 2026-10-15) [AWAITING-LIVE]
-  - Plain language: in September the game publisher removed Denuvo. The new game program is the
-    same code at the same internal positions, but without the protection wrapper Windows is now
-    allowed to load it at a different address every launch. The mod assumed one fixed address, so
-    on the new build every spot it reads is empty: its startup guard sees nothing it recognizes,
-    waits politely forever, and never switches on. Players see kill counts that never move and no
-    message, which is exactly the Nexus report. Nothing in a save is at risk: the guard held every
-    write the whole time.
-  - The fix is one rule applied everywhere: every game address the mod knows is kept as the
-    documented number, and at startup the mod asks Windows where the game actually landed and
-    adds the difference. The guard also learns the new build's identity. The offline diff of the
-    two program files proved every table, flag and function sits at the same internal position
-    (docs/research/PORT_1.5.2_NODRM_OFFSETS.md). (Tech: new ImageBase helper, preferred base
-    0x140000000, live base from GetModuleHandle(null) with the main module as fallback, Offsets members become ImageBase.At(pin)
-    properties; LaunchGuard PE key 0x6A5E4A1B / 0x03F9E000; source tripwire test forbids new
-    bare image literals; tools/lib/offsets.py parser follows the new shape.)
-  - Done means: on the Denuvo-free build (Steam buildid 24304444) the mod logs the resolved
-    image base at startup, arms a few seconds after a save loads with no stand-down, counts a
-    kill with victim identity, and paints the equip card; on the test host every existing test
-    still passes unchanged because the default base is the documented one.
-  - Owner live pass 2026-10-16 PASSED on buildid 24304444: base resolved 0x7FF65E0F0000, armed at
-    23 seconds with no stand-down, Chaos Blade kill credited with victim identity, card counter
-    painted and confirmed by eye, scan_logs CLEAN with zero warnings.
-  - Verify: suite green including the relocated-base guard test and the literal tripwire; owner
-    live pass from a prod-flavored deploy: the startup line names a base other than 0x140000000,
-    "Living Weapons is armed" appears after a save loads, one battle credits a kill, the card
-    shows the counter, scan_logs --require-battle --flight exits 0. Owner only flips this row.
-
 - **[LW-112] Stop blaming a game update when another mod rewrote the same game data** (opened 2026-07-21) [AWAITING-LIVE]
   - Done means: a player running a custom job mod alongside Living Weapons no longer sees this mod
     switch itself off with a message blaming a game update that never happened. When the game
