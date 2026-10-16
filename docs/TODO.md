@@ -56,34 +56,6 @@ the technical detail lives in the indented lines under it.
     and a test that a part behind a closed door is never ticked; the owner's live drill on a
     dev build with the forced-wrong landmark reads the report and sees the surviving parts
     work, then the owner's normal prod pass reads all ON; scan_logs clean on both.
-- **[LW-395] A moved battle sentinel must never make the mod think a new game started and clear the kill counts** (opened 2026-10-16) [AWAITING-LIVE]
-  - Built 2026-10-16, suite 3776 green, owner live pass pending (dev drill leg, prod leg, cold-launch New Game leg).
-  - Plain language: the mod watches two bytes in the game to notice when a player starts a
-    new game, and on that signal it archives and clears the kill counts so the old playthrough
-    does not bleed into the new one. If a game update moves those bytes and the new bytes
-    happen to read like "new game", the tally is wiped for nothing. This row makes the
-    detector refuse unless the mod has first confirmed those bytes are where it expects.
-    Stage 0 of the parts model (LW-393); it ships first because it protects data on its own.
-  - Found by the 2026-10-16 adversarial check of the parts model (banked in
-    docs/research/WRITE_SITE_AUDIT_2026-10.md): PlaythroughReset.Observe reads EventId and
-    BattleMode every tick and after thirty ticks of EventId 2 with BattleMode 0 out of live
-    it archives and clears kills.json (PlaythroughReset.Policy.cs 28, PlaythroughReset.cs 53).
-  - (Tech: the lane verifies out of battle only; an in battle reading retries silently,
-    because a Continue can resume a mid battle autosave and then the sentinels legitimately
-    look like a fight. The out of battle shape it accepts: Slot9 all ones, BattleMode 0 or
-    255, Slot0 all ones or a small phase value, EventId 0xFFFF or a small nonzero id, both
-    flags 0 or 1. PlaythroughReset.Observe takes a sensingArmed input and returns Fired,
-    Refused or None. Battle state hygiene still runs on Refused, while the data action
-    (archive and clear) runs only on Fired. A lane that arms after the hold already
-    completed fires once through a pending latch. The landmark later becomes the "battle
-    sensing" line of the LW-393 report.)
-  - Done means: with the sensing landmark forced wrong on a dev build, thirty ticks of a
-    fabricated EventId 2 do not archive or clear kills.json and the log says the reset was
-    refused and why; on the normal build a real new game still archives and clears exactly as
-    today.
-  - Verify: suite green with the refusal test (landmark down, fake new-game signal, tally
-    untouched) and the unchanged happy-path test; owner live: start a new game on a prod build
-    and see the archive line as before.
 - **[LW-392] The mod says so when it cannot find the game instead of staying silent** (opened 2026-10-16) [QUEUED]
   - Plain language: players spent three weeks guessing why kill counts froze because the mod
     stayed silent when it could not find the game. After a short wait it should say so, once,

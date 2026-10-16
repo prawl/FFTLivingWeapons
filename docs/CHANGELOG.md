@@ -10,6 +10,33 @@ before 2026-07-21 keep their original prose.
 
 ## 2.4.0 cycle
 
+- [LW-395] SHIPPED e3a9fac0 2026-10-16: A game update that moves the bytes the mod watches for
+  battles can no longer make it wipe a player's kill counts by mistake. Plain language: the mod
+  notices a new game by watching a few bytes in the game, and on that signal it archives and
+  clears the kill counts. If an update had moved those bytes and the new bytes happened to read
+  like a new game, the counts would have been wiped for nothing. Now the mod first checks, once
+  per launch and only out of battle, that those bytes read the way this game build holds them.
+  Until that check passes a new game signal is logged as refused and the counts stay put; once
+  it passes a real new game archives and clears exactly as before; if the check fails the mod
+  says so in one warning line and everything else keeps working. Stage 0 of the parts model
+  (LW-393). The premise was probed first: an external read of the six bytes across the title
+  screen, the world map, the party menu, a quit to title and the Orbonne opener showed one frozen
+  tuple out of battle (mode 255 before the first battle, a new fact) and the opener moving only
+  the mode byte, the event id and the submenu flag; ledger row sentinel-out-of-battle-tuple,
+  PROVEN by the owner. Three verify rounds found a non compiling falsification lever, then a real
+  design hole (the post victory slot0 marker sticks on the world map, so an in battle test keyed
+  on it could wait out a session), then a low residual (in battle pause and dialogue frames
+  reaching the out of battle check); all three fixed before the live pass. Owner live pass
+  2026-10-16 18:03 to 18:12, three legs: the dev drill refused a real new game with the seeded
+  counts untouched and no box; the prod build armed the check 39 ms after the main guard,
+  credited a kill, read the post quit title tuple (slot0 4, event 401), and archived a real new
+  game with no warning all session; a cold launch new game armed before the prayer. Log scan
+  clean on all three. (Tech: LaunchGuard.Sensing.cs, a third FingerprintGuard lane stepped after
+  the main guard arms; three family probe over TryReadBytes: live mode or BattleState.InLiveBattle
+  frame retries, out of battle shape matches, else mismatch with the tuple; PlaythroughReset.Observe
+  returns Fired, Refused or None with a required sensingArmed input and a pending latch; hygiene on
+  Refused, data on Fired; DrillTrigger LW_FORCE_SENSING_MISMATCH; tools/lib/livebase.py rebases
+  probe pins onto the live base, sentinel_probe.py --watch; suite 3776.)
 - [LW-388] SHIPPED f706e5c7 2026-10-16: Everything built since August works again on the game
   build that shed its copy protection. Plain language: the September game update removed Denuvo
   and the unprotected game is loaded at a random address every launch. The released 2.3.4 hotfix
