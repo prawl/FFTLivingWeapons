@@ -28,7 +28,7 @@ Ground rules before running anything here:
 - `page_protect_probe.py` Page-protection probe: can the in-process DLL write the ability tables, or only Python?
 - `ptr_scan.py` Pointer-reference scanner: find every RW memory site holding a qword pointer to a given
 - `rarebits.py` Frequency-analyze a bandsurvey dump: for every (offset, bit), how many rows
-- `react_hunt.py` Find switch/jump tables in FFT_enhanced.exe -- runs of consecutive code pointers whose
+- `react_hunt.py` Find switch/jump tables in FFT_enhanced.exe, runs of consecutive code pointers whose
 - `realunits.py` Filter a bandsurvey dump to plausible REAL units (sane lvl/br/fa, real mhp),
 - `retaddr_check.py` Classify stack-scraped qwords as return addresses: is the preceding insn a CALL?
 - `status_map.py` THE STATUS MAP (LW-119): all 40 per-unit status ids with their evidence tier and hazards.
@@ -42,7 +42,7 @@ Ground rules before running anything here:
 - `arec_watch.py` LW-167 stage 4 probe: does a basic Attack kill stamp the victim's ACTION RECORD the way an
 - `collapse_stats.py` Live test harness for the low-entropy-roster attribution fix.
 - `combat_scan.py` Scan the live battle-unit array and tag player vs enemy.
-- `condensed_fp_probe.py` Condensed/turn-queue layout probe (FFT:IC 1.5). Read-only RPM -- cannot crash the game.
+- `condensed_fp_probe.py` Condensed/turn-queue layout probe (FFT:IC 1.5). Read-only RPM, cannot crash the game.
 - `cursor_resolve_probe.py` LW-87 Phase 0 probe: WHY does the Attack card's cursor resolve go silent for whole battles?
 - `frame_diff.py` Frame diff capture: sample every combat frame (array 0x141853CE0, 28 x 0x200) at ~30ms and log
 - `killcredit_probe.py` LW-137 probe: does the kill-credit death-edge bury read a TURN or a CURSOR?
@@ -51,16 +51,16 @@ Ground rules before running anything here:
 - `sentinel_probe.py` Dump the battle-state sentinels Engine reads every tick, from the live game.
 - `stamp_swap.py` Stamp-swap probe (WRITE, reversible): when an AI action stamps a PLAYER frame as its pending
 - `team_probe.py` Find a clean ALLY/ENEMY ("team") byte on the LIVE band entry (0x14184xxxx family).
-- `turnteam_probe.py` Turn-owner TEAM signal probe -- for the Shadow Blade turn-gate (stop ability 165 leaking to
+- `turnteam_probe.py` Turn-owner TEAM signal probe, for the Shadow Blade turn-gate (stop ability 165 leaking to
 - `unitid_probe.py` Unit-identity probe (READ-ONLY). The question: how do we attribute a COMPLETED TURN to a
 
 ## Turns, CT, and the scheduler
 
 - `acted_moved_watch.py` SPIKE (read-only): learn how to detect a FULL WAIT (no act AND no move) for the Mushin signature.
-- `acted_probe.py` Acted-byte + turn-boundary probe (FFT:IC 1.5). Read-only RPM -- cannot crash the game.
+- `acted_probe.py` Acted-byte + turn-boundary probe (FFT:IC 1.5). Read-only RPM, cannot crash the game.
 - `acted_watch.py` SPIKE (READ-ONLY): high-rate (~2-4ms) change-trace of the global Acted byte against band HP
 - `charging_probe.py` Watch the delayed-action status bits (Charging 0x08 / Jump 0x04 / Performing 0x01) on every
-- `ct_offset_probe.py` CT-offset disambiguator (FFT:IC 1.5). Read-only RPM -- cannot crash the game.
+- `ct_offset_probe.py` CT-offset disambiguator (FFT:IC 1.5). Read-only RPM, cannot crash the game.
 - `ct_probe.py` Scheduler-CT probe for the Zwill "extra turn on kill" signature.
 - `ct_watch.py` Watch every valid band unit's scheduler-CT byte (+0x25) live and print transitions.
 - `mushin_wait_probe.py` SPIKE (read-only): settle the Mushin FULL-WAIT trigger.
@@ -78,7 +78,7 @@ Ground rules before running anything here:
 - `learned_probe.py` Find Ramza's roster record + the Mettle learned-bitfield (he JUST learned slot-10
 - `lw386_den_produced_probe.py` LW-386 Poacher's Den probe: does the LIVE game's poach-item table still say what each carcass
 - `menu_signal_probe.py` World-map menu-open signal hunt (READ-ONLY). Premise P-A of the LW-193 consent rewrite:
-- `mp_probe.py` MP-offset hunt on the auth band: HP=+0x14, maxHP=+0x16 -- MP should be a nearby
+- `mp_probe.py` MP-offset hunt on the auth band: HP=+0x14, maxHP=+0x16, MP should be a nearby
 - `offhand_shield_probe.py` Off-hand / shield gear-loss probe (READ-ONLY). Premise check for LW-193 (a Crossfire or
 - `purchase_diff.py` Snapshot/diff the roster block to see exactly what an ability purchase changes.
 - `ramza_check.py` Read Ramza (roster slot 0): nameId @+0x230, the stray-write byte @+0x119,
@@ -86,8 +86,8 @@ Ground rules before running anything here:
 - `restore_counter.py` One-shot: write the saved reaction baseline (00 00 08 00 = Counter, RSM 186) back
 - `roster_dump.py` (no docstring)
 - `roster_head.py` Hexdump roster record heads + find the Yoichi (item 90) wielder.
-- `roster_loss_trace.py` ROSTER LOSS TRACE -- the single test that unblocks Bait-n-Switch AND Divine Intervention.
-- `roster_reaction_shove.py` Roster-REACTION shove probe -- test the FFHacktics claim "shove ANY ability into a
+- `roster_loss_trace.py` ROSTER LOSS TRACE, the single test that unblocks Bait-n-Switch AND Divine Intervention.
+- `roster_reaction_shove.py` Roster-REACTION shove probe, test the FFHacktics claim "shove ANY ability into a
 - `roster_read.py` Read-only dump of the pre-battle SOURCE record(s) the engine hands to
 - `roster_ring_probe.py` Diagnose RingGate: which roster slots hold the Scholar's Ring, and are those
 - `roster_span_probe.py` Roster span probe (LW-96): does the save-roster block extend past slot 19?
@@ -105,19 +105,19 @@ Ground rules before running anything here:
 - `berserk_probe.py` SPIKE (WRITE, auto-reverting): "controllable Berserk" for the Shura katana idea.
 - `brave_oneshot_probe.py` Brave re-normalize probe (WRITE, battle-transient): one-shot raise a unit's CURRENT brave
 - `brave_probe.py` SPIKE (READ + WRITE): set a wielder's Brave low to test the Kobu signature (Kiyomori +3),
-- `charm_probe.py` Charm-break probe (FFT:IC 1.5). Read-only RPM -- cannot crash the game.
-- `combat_reaction.py` Live combat-band reaction reader/writer -- read + flip in-battle reaction bits.
-- `cripple_probe.py` Cripple probe -- does CLEARING a unit's passive bitfields actually suppress them
+- `charm_probe.py` Charm-break probe (FFT:IC 1.5). Read-only RPM, cannot crash the game.
+- `combat_reaction.py` Live combat-band reaction reader/writer, read + flip in-battle reaction bits.
+- `cripple_probe.py` Cripple probe, does CLEARING a unit's passive bitfields actually suppress them
 - `evasive_stance_probe.py` Evasive Stance / Vigilance "Defending" status WATCHSPAN probe (FFT:IC 1.5).
 - `give_enemy_buffs.py` Grant the marquee buffs (Protect/Shell/Haste/Reflect) to ENEMY band units so Larceny's steal of
 - `haste_ct_probe.py` FUNCTIONAL test for a stolen Haste buff: does the held +0x48/0x08 bit actually speed up CT,
 - `intercept_probe.py` Intercept probe (WRITE, reversible): while the ACTING unit is an AI enemy, hold a chosen
 - `mount_probe.py` Mount-Info probe (READ-ONLY). Find the IC combat-struct offset of the FFT "Mount Info" byte so we
-- `noncharge_probe.py` Non-charge probe -- does GRANTING a unit the Non-charge support live actually make its
+- `noncharge_probe.py` Non-charge probe, does GRANTING a unit the Non-charge support live actually make its
 - `poison_probe.py` Poison status/duration probe (HANDOFF open thread 7, the Venombolt search point).
 - `provoke_mark_probe.py` Provoke mark probe: can the mark be taken back OFF an enemy?
 - `reaction_force_probe.py` Reaction-ability GRANT / force hunt (`read`, `list`, `map` are READ-ONLY; `set` writes).
-- `reaction_grant_probe.py` Reaction-GRANT probe -- does OR-setting a reaction bit on a LIVE unit make that
+- `reaction_grant_probe.py` Reaction-GRANT probe, does OR-setting a reaction bit on a LIVE unit make that
 - `reaction_id_sites.py` Find every function that loads a reaction-ability id as an immediate.
 - `reaction_names.py` (no docstring)
 - `status_probe.py` Dump live band units' status bitfield (+0x45..+0x49) decoded via the full FFT status map.
@@ -129,18 +129,18 @@ Ground rules before running anything here:
 - `ability_table_probe.py` Live validation of the game's hardcoded ability BEHAVIOR table (READ-ONLY).
 - `aim_all_barrage.py` Fill ALL 16 ability slots of rec 8 (Archer Aim) with ability 358 (Barrage) and set every
 - `barrage_check.py` (no docstring)
-- `barrage_probe.py` Barrage probe -- inject ability 358 (Barrage, vanilla-unused 4x-attack) into a live
+- `barrage_probe.py` Barrage probe, inject ability 358 (Barrage, vanilla-unused 4x-attack) into a live
 - `cmdarray_scan.py` Find the per-unit battle COMMAND ARRAY: a tight cluster holding pages {8 Aim, 14 Steal,
-- `cmdlist_after.py` Find the live command-id list and read the entry AFTER Steal (0E) -- that's Reequip's
+- `cmdlist_after.py` Find the live command-id list and read the entry AFTER Steal (0E), that's Reequip's
 - `cmdlist_scan.py` Find the battle unit's materialized COMMAND LIST.
 - `cmdlist_scan2.py` Global scan for command-list shapes: u16 pair [8][14] adjacent (08 00 0E 00) and the
 - `decode_abilities.py` (no docstring)
 - `fix_ext.py` Set the TRUE extend bit for rec 8 slot 9 (per-byte MSB layout: flag byte0 = slots 1-8,
 - `job_kit_dump.py` Dump each generic job's full native ability set from the live JobCommand table.
-- `jobcommand_find_probe.py` JobCommand table BASE re-finder (READ-ONLY -- cannot crash the game, never writes).
+- `jobcommand_find_probe.py` JobCommand table BASE re-finder (READ-ONLY, cannot crash the game, never writes).
 - `jobpage_refine.py` Refine job-table candidates: require the FULL 20-job run (pages 5..24 for jobs 74..93)
 - `jobpage_scan.py` Find the job -> command-page mapping table.
-- `kit_stamp_probe.py` Kit-stamp probe (WRITE -- reversible). Overwrite ONE JobCommand record so it holds a single
+- `kit_stamp_probe.py` Kit-stamp probe (WRITE, reversible). Overwrite ONE JobCommand record so it holds a single
 - `steal_only_barrage.py` Monster-style single-ability command: overwrite rec 14 (Steal) so it contains ONLY
 - `tier_scan.py` Scan FFT_enhanced memory for the Aim/Jump tier-id tables the command executor consults.
 
@@ -148,12 +148,12 @@ Ground rules before running anything here:
 
 - `ai_target_scan.py` AI-Data struct scanner: find the IC engine's AI working struct by heap fingerprint.
 - `anim_poke_probe.py` THE ONE OWED POKE: the animation request register (LW-113; ledger row 'Play ANY animation',
-- `clone_probe.py` CLONE PROBE -- the spawn-a-unit WRITE test (step 2 of the spawn-an-enemy probe ladder).
+- `clone_probe.py` CLONE PROBE, the spawn-a-unit WRITE test (step 2 of the spawn-an-enemy probe ladder).
 - `deployed_signal_probe.py` Diagnose WHY the Coordinator ghost-filter under-catches PLAYER units (FFTMultiplayer).
-- `despawn_probe.py` DESPAWN PROBE -- try to remove a live unit from the battlefield COMPLETELY (not just KO it).
-- `formation_diff.py` FORMATION DIFF probe -- photograph the engine BUILDING a unit, instead of guessing the struct.
+- `despawn_probe.py` DESPAWN PROBE, try to remove a live unit from the battlefield COMPLETELY (not just KO it).
+- `formation_diff.py` FORMATION DIFF probe, photograph the engine BUILDING a unit, instead of guessing the struct.
 - `knockback_probe.py` KNOCKBACK, both lanes (LW-116): the composed imitation we can run today, and the watcher
-- `move_render_probe.py` Move / render-sync discovery probe -- find the RENDER position a forced move
+- `move_render_probe.py` Move / render-sync discovery probe, find the RENDER position a forced move
 - `node_dump_diff.py` LW-58 Canary 3 offline forensics: diff the two render-node hex dumps in livingweapon.log.
 - `node_move_watch.py` Render-node move watch: the instrument that cracked the render position (2026-07-10, LW-65).
 - `node_world_fit.py` Render-node world-coordinate fit table (2026-07-10, LW-65 companion to node_move_watch.py).
@@ -180,11 +180,11 @@ Ground rules before running anything here:
 - `attack_row_redirect.py` LW-31 stage 3: the OWNER-EYEBALL redirect poke for the battle Attack row.
 - `attack_table_scan.py` LW-31 stage 3 recon: external, READ-ONLY scan of the running fft_enhanced.exe for the
 - `callout_life_probe.py` Hunt the battle-callout bubble's LIFE TIMER (why the toast bubble tears down after ~1s)
-- `callout_show_probe.py` Callout forced-show probe -- rungs 1 and 2 of the on-command ladder (AC 2026-07-02).
+- `callout_show_probe.py` Callout forced-show probe, rungs 1 and 2 of the on-command ladder (AC 2026-07-02).
 - `callout_timer_probe.py` READ-ONLY watcher for the callout linger timer + selector surface (Track B dig part 2).
 - `display_probe.py` Display-card re-anchor probe for FFT:IC 1.5 (read-only, cannot crash the game).
-- `feign_probe.py` FEIGN DEATH probe -- deliberately reproduce the "corpse that still takes turns".
-- `heal_number_probe.py` HEAL-NUMBER PROBE -- can we make a silent band-HP write surface the GREEN floating heal numeral?
+- `feign_probe.py` FEIGN DEATH probe, deliberately reproduce the "corpse that still takes turns".
+- `heal_number_probe.py` HEAL-NUMBER PROBE, can we make a silent band-HP write surface the GREEN floating heal numeral?
 - `item_text_census.py` LW-37 feasibility recon: does the EQUIP-CARD item-description text have a REDIRECTABLE record
 - `lw307_card_markup_probe.py` LW-307: does the weapon description CARD consume inline color markup?
 - `lw329_palette_cycler.py` LW-329: map the card's numeric color slots to hues, one owner sitting.
@@ -208,11 +208,11 @@ Ground rules before running anything here:
 - `warbrand_art_probe.py` Live spike: make Warbrand (recat flail->sword, item id 67) SWING sword art.
 - `warbrand_damage_probe.py` Warbrand damage-type probe. Settle: what makes recat flail id 67 roll Rand(1..PA)*WP
 - `weapon_sprite_probe.py` Weapon battle-sprite probe (READ-ONLY). Locate the table that ACTUALLY drives the in-battle
-- `weapon_sprite_writetest.py` Weapon battle-sprite WRITE-TEST (WRITES MEMORY -- not a read-only probe). Prove the lever:
+- `weapon_sprite_writetest.py` Weapon battle-sprite WRITE-TEST (WRITES MEMORY, not a read-only probe). Prove the lever:
 
 ## Game-patch re-anchoring
 
-- `anchorscan_feasibility_probe.py` AnchorScan feasibility probe (READ-ONLY -- cannot crash the game, never writes).
+- `anchorscan_feasibility_probe.py` AnchorScan feasibility probe (READ-ONLY, cannot crash the game, never writes).
 - `display_probe.py` Display-card re-anchor probe for FFT:IC 1.5 (read-only, cannot crash the game).
 - `exe_reanchor_scan.py` Offline re-anchor scanner: diff two FFT:IC exes ON DISK to pre-solve image-static anchors.
 - `rip_xref_reanchor.py` Offline re-anchor of RUNTIME globals by RIP-relative cross-reference between two exes.
@@ -220,7 +220,7 @@ Ground rules before running anything here:
 ## Data and doc one-shots (no game process needed)
 
 - `add_dmg_col.py` Add a dmgScaling column to docs/living_weapon_grid.csv from data/items.json truth.
-- `crystal_counter_probe.py` CRYSTAL COUNTER PROBE -- the "3 hearts" death/crystal countdown byte, and how to switch it OFF.
+- `crystal_counter_probe.py` CRYSTAL COUNTER PROBE, the "3 hearts" death/crystal countdown byte, and how to switch it OFF.
 - `find_counter.py` (no docstring)
 - `fix_mojibake.py` Repair UTF-8-read-as-cp1252 mojibake in the docs: for each line, if the reverse
 - `larceny_locate_probe.py` Diagnose Larceny's wielder-locate miss (wielderLocated=False while the kill-tracker sees mainHand
@@ -239,7 +239,7 @@ Ground rules before running anything here:
 - `auto_text_probe.py` Find which resident copy of the "Auto" tag the renderer actually reads.
 - `bag_count_split_probe.py` READ-ONLY probe for LW-382: the party menu reports 0 weapons and 0 items while the shop's buy
 - `lw247_emit_tables.py` LW-247 D4 emitter: replays the exact census configuration passes against the TRACKED probe
-- `lw247_extract_bodies.py` LW-247 D4: extracts the 16 vendored body PNGs data/icon_ramp/bodies/ needs -- the (id,
+- `lw247_extract_bodies.py` LW-247 D4: extracts the 16 vendored body PNGs data/icon_ramp/bodies/ needs, the (id,
 - `lw247_keepship_check.py` LW-247 Phase 0 premise P6 (KEEP_SHIPPED circularity check), promoted from the session
 - `lw247_repro_census.py` LW-247 Phase 0 census: can the TRACKED ramp engine reproduce the live install?
 - `lw247_repro_census2.py` LW-247 census pass 2: for every file census pass 1 marked RECON-only, split BODY
@@ -270,7 +270,7 @@ Ground rules before running anything here:
 - `lw305_bench_paint.py` LW-305: paint a Weapon Colour Bench export straight into the running game.
 - `lw312_frame_atlas.py` LW-312: render EVERY frame of battle_wep1/2_shp.bin as labeled contact sheets.
 - `lw316_lane_probes.py` LW-316 lane probes: the Faith and MaxHP halves of the three growth-lane questions.
-- `lw318_thin_niche.py` LW-318: hunt the dominance gate's blind spot -- items alive on a single thin niche.
+- `lw318_thin_niche.py` LW-318: hunt the dominance gate's blind spot, items alive on a single thin niche.
 - `lw319_crop_reader.py` LW-319: offline re-read of the 2026-08-25 sampler sitting's provenance crops.
 - `lw319_glow_ladder.py` LW-319: render the Glow Ladder gallery panels in the MEASURED lane hues.
 - `lw319_text_sampler.py` LW-319: measure the exact on-screen RGB of each ruled Grows-line color slot.

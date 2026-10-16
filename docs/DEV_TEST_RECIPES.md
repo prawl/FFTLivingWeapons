@@ -2,13 +2,13 @@
 
 STATUS: CONTRACT (dev harness cheats and probe recipes)
 
-Throwaway conveniences for testing this mod live. None of this ships — it's harness only.
+Throwaway conveniences for testing this mod live. None of this ships, it's harness only.
 
 ## Step zero for unexplainable game weirdness: bisect the mod list FIRST
 
 Before any code archaeology on a "this mod corrupted X" report: disable the OTHER Reloaded
 mods and re-test. The Materia Blade+ gun-range corruption cost a day of staring at this
-repo's tables — the culprit was FFTHandsFree auto-arming its parked 261-cap hooks on every
+repo's tables, the culprit was FFTHandsFree auto-arming its parked 261-cap hooks on every
 boot. If the weirdness involves item stats/visuals that this mod's tables don't even touch,
 the prior is another mod, not us. Toggle in Reloaded-II's UI; one launch per suspect; THEN
 open the hood.
@@ -26,17 +26,17 @@ FFT_GIVE_ITEMS_DELAY=200 give_all_items 99   # slower if writes drift
 
 - Requires the **FFTHandsFree mod loaded** in the running game (it drives the `fft` command→`command.json`
   bridge). Both `FFTHandsFree` and `prawl.fft.livingweapons` can be loaded at once.
-- **Run on a safe screen** (WorldMap / TravelList / battle). NOT while PartyMenu is open — roster-adjacent
+- **Run on a safe screen** (WorldMap / TravelList / battle). NOT while PartyMenu is open, roster-adjacent
   writes get clobbered. Close + reopen the inventory afterward to refresh the menu.
 
-**The underlying recipe** (works via plain RPM/WPM too, no bridge needed — see `give_living_blades.py`):
+**The underlying recipe** (works via plain RPM/WPM too, no bridge needed, see `give_living_blades.py`):
 
 ```
 inventory count array: count[itemId] = u8 @ 0x1411A7C00 + itemId   (1.5.x; == Offsets.InventoryCountBase)
 ```
 
 **1.5 moved this array +0x6440** (pre-1.5 it was `0x1411A17C0`; that old region now READS PLAUSIBLE
-GARBAGE and accepts writes that go nowhere, then get zeroed by the game — it burned a session on
+GARBAGE and accepts writes that go nowhere, then get zeroed by the game, it burned a session on
 2026-07-15; verify against `Offsets.InventoryCountBase` before hand-writing). The array sits 0x110
 below `RosterBase` (`0x1411A7D10` on 1.5); ids 0..260 stay clear of the roster.
 With the extended inventory armed (LW-368 round 2), the live bag list is not this fixed address
@@ -73,7 +73,7 @@ interim path): `BuildLinked.ps1`/`Publish.ps1` deploy every equip icon as its pl
 and the RUNTIME keeps each weapon's deployed icon file matched to its own kill tier while
 the game plays (out of battle, a few seconds after a save loads). Because icon textures
 cache at first draw for the whole process, a file the runtime rewrites mid-session never
-shows THAT session -- icons show their correct rims starting the SECOND launch after a
+shows THAT session, icons show their correct rims starting the SECOND launch after a
 deploy (the first launch re-tiers the files, the second draws them).
 
 To tour the tiers: quit the game, then
@@ -81,7 +81,7 @@ To tour the tiers: quit the game, then
     python tools\glow_bounce.py 7      # 0 = plain, 7 = tier 1, 12 = tier 2, 15 = tier 3
 
 `glow_bounce.py` only sets EVERY living weapon's kills.json tally to that value (cards
-read it too); the same two-launch rhythm applies -- launch once to let the runtime
+read it too); the same two-launch rhythm applies, launch once to let the runtime
 re-tier the files (tier 0 included, restored from its plain-base snapshot), quit, then
 launch again to see it. It refuses while the game runs and never touches the
 kills.json.*.bak real-tally backups;
@@ -96,7 +96,7 @@ Edit `data/items.json` → the item's `proposed.wp` (NOT `baseline`) → `BuildL
 ## Live memory probes
 
 The RE instruments live in **`tools/probes/`** (rescued from `%TEMP%\fft_probes\`, which the
-OS may clean — see its README for the curated index). The workhorse is `ct_probe.py` — RPM/WPM
+OS may clean, see its README for the curated index). The workhorse is `ct_probe.py`, RPM/WPM
 (can't crash the game) watch/dump/hold of the battle structs. Modes: `dump`, `watch [s] [hz]`,
 `hold combat|static|cond <val> <mhp> <lvl> [s]`. Used to find the scheduler CT. A probe result
 that settles a mechanism claim belongs in `docs/LIVE_LEDGER.md`.
@@ -123,7 +123,7 @@ python tools\probes\battle_cheats.py --selftest   # no game required
 whoever the cursor is on), press Enter, and the probe fingerprint-matches via HP/MaxHP/Level
 into the authoritative band (`BandReadBase`, same walk as `Wielder.Locate`), then writes the
 3-byte movement bitfield at `band+0x80` (`AMovement = CMovement - BandEntry = 0x9C - 0x1C`).
-Holds the grant every ~200ms until Ctrl+C (same as the DLL — engine can normalize passives
+Holds the grant every ~200ms until Ctrl+C (same as the DLL, engine can normalize passives
 per turn), then restores the original bytes.  Default ability 243 = Master Teleportation
 (proven live by Rapture, 2026-06-10).
 
@@ -132,7 +132,7 @@ side n ≥ 0), skips player slots and already-dead entries, and writes `HP=0` + 
 at `band+0x45` for each live enemy.  This is the external port of FFTHandsFree's
 `CheatKillEnemiesHandler` / `KillEnemiesPlanner.Plan`.  **Porting difference**: the original
 in-process handler also clears Reraise (battle-array `+0x47` bit `0x20`), which requires
-cross-referencing the static battle array by HP fingerprint — not ported here because the band
+cross-referencing the static battle array by HP fingerprint, not ported here because the band
 alone is enough for the quick-clear use case.  If enemies revive (Reraise/undead), run twice.
 
 ## Verify a signature grant is ACTIVE
@@ -145,21 +145,21 @@ companion since the console is Info-only):
 [Living Weapons] [12:34:56.789] [INFO] [grant] Gloomfang bestows Concentration on its wielder.
 [Living Weapons] [12:34:56.789] [DEBUG] [trace] grant detail (support ability 213, readback=SET, +0x98[1]=0x01)
 ```
-`readback=SET` = write landed; `readback=MISS` = write failed (VirtualQuery guard rejected the address — investigate Mem.Writable) and a `[WARN] [grant]` line says the grant may not take effect.
+`readback=SET` = write landed; `readback=MISS` = write failed (VirtualQuery guard rejected the address, investigate Mem.Writable) and a `[WARN] [grant]` line says the grant may not take effect.
 A `build-time-only support` Warning = the ability id bakes at battle-build, so the live bit can't take effect (design bug in the signature config).
 
 **2. Per-ability in-game oracle** (no memory tools needed):
-- **Concentration** (Gloomfang) — open the attack command and preview a hit against a unit with high physical evade or a shield; the hit% should read full (100%) rather than reduced. Without Concentration, evade knocks it down.
-- **Attack Boost** (Mortal Coil, below half HP) — watch the damage preview on any physical attack before and after the wielder drops under 50% HP; the number rises once the condition trips. The boost arms and stays for the rest of the battle even if HP recovers.
-- **Defense Boost** (Sanguine Gauche) / **Magick Def Boost** (Hushblade) — compare incoming damage from a known attack or spell before and after the grant fires; the number drops.
-- **Extra Turn** (Zwill) — behavioral; already live-verified.
+- **Concentration** (Gloomfang), open the attack command and preview a hit against a unit with high physical evade or a shield; the hit% should read full (100%) rather than reduced. Without Concentration, evade knocks it down.
+- **Attack Boost** (Mortal Coil, below half HP), watch the damage preview on any physical attack before and after the wielder drops under 50% HP; the number rises once the condition trips. The boost arms and stays for the rest of the battle even if HP recovers.
+- **Defense Boost** (Sanguine Gauche) / **Magick Def Boost** (Hushblade), compare incoming damage from a known attack or spell before and after the grant fires; the number drops.
+- **Extra Turn** (Zwill), behavioral; already live-verified.
 
 **3. Redundancy note.**
 If the wielder's job already has the same support picked, the log also emits:
 ```
 [Living Weapons] [12:34:56.789] [INFO] [grant] The wielder already chose Concentration as their support; the weapon's grant adds nothing (pick a different support to benefit).
 ```
-The grant writes the same bit that's already set — no stacking is possible (the engine reads a flag, not a count). Switch the equipped support to get value from the weapon grant.
+The grant writes the same bit that's already set, no stacking is possible (the engine reads a flag, not a count). Switch the equipped support to get value from the weapon grant.
 
 ## LW-112 kit-lane drill: prove the mod-conflict verdict live (owner, two legs)
 
@@ -276,7 +276,7 @@ owner-approved live-install look. Two things are new for anyone extending this f
   (the 16 vendored body PNGs a fresh render cannot reproduce, data/icon_ramp/bodies/). Re-run
   both after any tint or config change that could move which items enter Mode B or which
   bodies need vendoring; do not hand-edit the generated JSON or PNGs.
-- **Glow is an explicit knob.** `route(im, item_id, tint, surface, glow=True)` -- pass
+- **Glow is an explicit knob.** `route(im, item_id, tint, surface, glow=True)`, pass
   `glow=False` to render the body alone, no identity rim. This is how the arc gate's
   --no-glow smoke render works (there is no CLI flag for it; call `route()` or
   `recolor_icons.ramp_render(item_id, tint, surface, glow=False)` directly from a scratch
@@ -284,15 +284,15 @@ owner-approved live-install look. Two things are new for anyone extending this f
 - **THE ARC GATE** (run once per ramp engine change, in addition to the four gates below): a
   full bake, then a SHA-256 compare of the repo mod tree against the live install, 468/468,
   run TWICE from the already-rebaked tree (the second run is what catches a hidden mod-tree
-  read the first run's own output would otherwise mask -- LW-247's B1 fix exists because of
+  read the first run's own output would otherwise mask, LW-247's B1 fix exists because of
   exactly that failure class). `compare --expect` gets the exact 150 ramp ids named, not a
   blanket "nothing moved" claim, since routing 150 ids onto a new engine legitimately moves
   every one of them once.
 
 **THE FOUR GATES, and what each one is for.** The first runs in CI, including on the GitHub
 runner that has neither the game files nor the texture tool: its two game-file-dependent
-sites -- the ramp haze check that renders a real id (19) through route(), and pin 3 plus its
-wiring extension pin 3b (id 130's fresh render and vendored-body/rims wiring) -- detect that
+sites, the ramp haze check that renders a real id (19) through route(), and pin 3 plus its
+wiring extension pin 3b (id 130's fresh render and vendored-body/rims wiring), detect that
 absence and SKIP loudly (`SELFTEST SKIP (game files absent): <check name>`, two lines on a
 CI box, counted in the closing summary line) instead of crashing; on a dev box with the game
 files present, nothing skips. The other three gates below need the game files and the

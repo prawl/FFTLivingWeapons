@@ -99,7 +99,7 @@ python tools/probes/rip_xref_reanchor.py     # runtime globals, re-read out of t
 ```
 
 The second one is the surprising half. Runtime globals (roster, combat band, battle flags, UI
-mirrors) hold nothing in the file, so the file cannot show their CONTENTS -- but the code that
+mirrors) hold nothing in the file, so the file cannot show their CONTENTS, but the code that
 reaches them encodes their ADDRESSES in RIP-relative displacements, and those can be read straight
 out of both images and compared. Consensus across many independent referencing sites (up to 33 for
 RosterBase on 1.5.2) is far stronger evidence than a single live fingerprint hit. Keep the standing
@@ -150,11 +150,11 @@ PORT_1.5_OFFSETS.md "Method"):
 - Content-anchored tables (JobCommand): SIGNATURE scan on invariant CONTENT (rec 8 Aim bytes +
   rec 9 Martial Arts bytes exactly one RecSize apart); tools/probes/jobcommand_find_probe.py. The
   Provoke ability-action table pair (`Offsets.LiveActionTable` + its byte-identical decoy mirror,
-  `Provoke.Policy.cs` `DecoyActionTable`, one table-length -- 368*20 bytes -- apart) and the
+  `Provoke.Policy.cs` `DecoyActionTable`, one table-length, 368*20 bytes, apart) and the
   hand-authored inflict-status table (`Offsets.InflictTable`) are the same anchor class: re-find by
   content signature, then re-verify which of the two action-table copies is LIVE (the decoy accepts
-  writes and reads them back identically, so only a behavior check -- does a write actually change
-  what the ability does -- tells them apart, never a byte comparison).
+  writes and reads them back identically, so only a behavior check, does a write actually change
+  what the ability does, tells them apart, never a byte comparison).
 - Region siblings: predict by the measured neighborhood delta, then VERIFY by read/behavior.
 - NEVER interpolate across regions: deltas are a non-monotonic gradient (1.5 measured +0x5080
   to +0x676C depending on region; 1.5.1 shrank the image, so expect negative-leaning deltas).

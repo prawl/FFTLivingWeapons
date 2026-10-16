@@ -338,7 +338,7 @@ item id as a string.
 
 Weapon rows (`"kind": "weapon"`) carry the effective per-id engine configuration, replayed
 from tools/probes/lw247_repro_census.py + lw247_repro_census2.py's exact mutation order
-(not read from weapon_treatments.json directly -- see this script's docstring for why that
+(not read from weapon_treatments.json directly, see this script's docstring for why that
 table disagrees with the deployed config on 40 ids): `tint` (the final [hue, sat, value_mult]
 after the bag desaturation pass), `reserved`, `punch`, `rotate`, `forceb`, `muted`,
 `white_spec`, `soft_spec`, `outline_black`, `deep_damp`, `vscale_override` (float or null),
@@ -370,7 +370,7 @@ provenance table.
 ## Environment pin
 
 Recorded at implement time (2026-08-18): Python {sys.version.split()[0]}, Pillow {__import__("PIL").__version__},
-FF16Tools.CLI 1.13.2 (directory name; the binary's own `--version` self-reports 1.13.0 -- both
+FF16Tools.CLI 1.13.2 (directory name; the binary's own `--version` self-reports 1.13.0, both
 noted since they disagree and neither was investigated further, this arc being scoped to the
 icon pipeline and not the tool's own versioning).
 """

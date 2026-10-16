@@ -5,10 +5,10 @@ STATUS: CONTRACT (the canonical design thesis)
 **Status:** shipped (v2.x); living draft. Started life as a pure-data item rebalance ("Item Overhaul");
 the project's center of gravity is now the **Living Weapon**, with the rebalance as its foundation.
 **Date:** 2026-05-29 (thesis reframed 2026-06-17)
-**Goal:** Make each weapon a character that **grows as it kills** -- and rebalance **all** items so the
+**Goal:** Make each weapon a character that **grows as it kills**, and rebalance **all** items so the
 weapon you invest in never becomes vendor trash. Every item should have a reason to exist; new gear
 should not auto-obsolete old gear.
-**Mechanism:** two layers shipped as one Reloaded mod -- an in-process C# DLL (`LivingWeapon/`) for the
+**Mechanism:** two layers shipped as one Reloaded mod, an in-process C# DLL (`LivingWeapon/`) for the
 growth + per-weapon signature runtime, layered over a pure-data item rebalance on Nenkai's
 `fftivc.utility.modloader` (same channel as "WotL Equipment Replacer / Treasure Hunt" and
 `FFT.Regabonds.Rebalance`).
@@ -18,7 +18,7 @@ growth + per-weapon signature runtime, layered over a pure-data item rebalance o
 ## 1. The thesis (the spine of the whole mod)
 
 > **A weapon is a character: it grows as it kills, and the iconic weapons awaken signature abilities.
-> For that to mean anything, the gear around it can never become vendor trash -- so the item rebalance
+> For that to mean anything, the gear around it can never become vendor trash, so the item rebalance
 > below is the foundation, not a side feature.**
 
 The growth runtime is the headline; the rest of this section is the rebalance that keeps a grown weapon

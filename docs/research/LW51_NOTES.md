@@ -103,14 +103,14 @@ The Tier-1 lever is the live EVENT ID at `Offsets.EventId = 0x140782A94` (u16), 
 (1.5-predicted `+0x6000` off FFTHandsFree's pre-1.5 `0x14077CA94`, anchored by the CONFIRMED neighbor
 `Acted = 0x140782A8C`). `tools/probes/read_state.py` confirmed it live: `0xFFFF` at the menu, then it
 climbed `2 -> 4 -> 5` through the Orbonne prologue (`2` = Orbonne Prayer opening dialogue, `4` = Orbonne
-Battle, `5` = Gafgarion chat), EXACTLY matching the PSX Scenario Order table -- so 1.5 kept the PSX
+Battle, `5` = Gafgarion chat), EXACTLY matching the PSX Scenario Order table, so 1.5 kept the PSX
 event numbering. It climbs monotonically into the hundreds across the game.
 
 TIER 1 IS NOW BUILDABLE, fully grounded:
 - Trigger: `Offsets.EventId` in the low opening range (`== 1` / `2`, the Orbonne Prayer, which lingers
   for minutes and only ever plays at a brand-new game's start), edge-detected (fire once on entry).
 - HARD GATE: only read `EventId` when `Offsets.BattleMode == 0`. In battle it holds a stale event or
-  aliases as the acting unit's nameId (`400+`) -- confirmed live (it read `5` at `BattleMode==3`).
+  aliases as the acting unit's nameId (`400+`), confirmed live (it read `5` at `BattleMode==3`).
 - Action on the edge: archive the current tally (non-destructive) and start a fresh one.
 
 TIER 2 (concurrent-save isolation) is still open: it needs a genuinely-unused writable TIC save

@@ -31,7 +31,7 @@ transient widget copies each paint.
 => The ONE genuinely new piece is reaching + caching the STABLE POOL region so the sweep can retire,
 instead of re-walking the heap every paint to re-find transient widget copies.
 
-## The live fact that CALIBRATES (owner ~10-min recon, item_text_census.py) -- does NOT block the build
+## The live fact that CALIBRATES (owner ~10-min recon, item_text_census.py), does NOT block the build
 Does the current `DisplaySweep` region source (`Mem.Regions()`: committed/PRIVATE/writable) already
 include the pool region (proof addr ~0x004CDBxxx)?
 - `find "<a distinctive baked flavor substring>"` -> note the pool hit address; `dump <addr>` to

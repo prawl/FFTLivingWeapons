@@ -1,4 +1,4 @@
-# Bulwark ("Line in the Sand") — acceptance criteria
+# Bulwark ("Line in the Sand"), acceptance criteria
 
 STATUS: CONTRACT (design gate for the Bulwark signature; owner-only live sign-offs)
 
@@ -8,25 +8,25 @@ while the stance holds, the ground behind them cannot be walked on. Enemies do n
 funneled by trickery or mind control; the tile itself refuses them. Vanilla FFT has no
 zone control of any kind. This is the first.
 
-**The mechanism** (Tech: terrain grid `0x140D8DCB0` — CORRECTED 2026-07-28 from the wrong base
+**The mechanism** (Tech: terrain grid `0x140D8DCB0`, CORRECTED 2026-07-28 from the wrong base
 `0x140D8DCC0` (16 bytes / 2 records too high, which landed every write 2 tiles east of target;
 the disasm operand `[rdx + idx*8 + 0xD8DCB2]` puts record byte +2 at `0x140D8DCB2`, which only
-resolves against the `0xB0` base) — 8 bytes/tile, `idx = x + y*mapWidth + layerBit*0x100`. The
+resolves against the `0xB0` base), 8 bytes/tile, `idx = x + y*mapWidth + layerBit*0x100`. The
 walkability lever is byte **+6 bit 0x02**: the engine's OWN obstacle state (this map's five
 natural trees all read byte+6 == 0x22, bit 0x02 set). OR'ing it in blocks movement AND enemy AI
 pathing while the tile stays hoverable/selectable, rendering the game's native red circle-slash
 "invalid destination" cursor. Bit 0x01 also blocks but additionally strips the tile from the
-cursor mask (rejected — the player couldn't even hover it). HEIGHT (byte +2, the ORIGINAL
+cursor mask (rejected, the player couldn't even hover it). HEIGHT (byte +2, the ORIGINAL
 mechanism this doc first shipped with) is NOT a walkability input: raising a vacant tile's
-height left it selectable and SOFTLOCKED the game when a unit stepped onto it — that design is
+height left it selectable and SOFTLOCKED the game when a unit stepped onto it, that design is
 dead. FACING (band `+0x35` low 2 bits, packed with the same byte's terrain-layer bit, live-proven
 2026-07-28 to track the Wait facing wheel) picks which neighbor is "behind": 0=South (looks
 0,-1), 1=West (looks -1,0), 2=North (looks 0,+1), 3=East (looks +1,0); behind = the tile OPPOSITE
 the wielder's look direction. LIVE-PASS CORRECTED 2026-07-28 06:15: the Y-axis was flipped from
-the design above — a facing-North plant at (9,8) barred (9,9) and the owner watched it render IN
+the design above, a facing-North plant at (9,8) barred (9,9) and the owner watched it render IN
 FRONT of the unit, not behind (the companion facing-West plant at (10,8) was correct; X-axis was
 never wrong). Corroboration: at battle start, enemies at LOW y face the players at HIGH y and
-read facing byte 2 (North) — so North looks toward +y, not -y as a sibling repo's "y+ = south"
+read facing byte 2 (North), so North looks toward +y, not -y as a sibling repo's "y+ = south"
 note had assumed. The game's own facing LABELS are unchanged (byte 2 is still North); only the
 Y-axis delta flipped: South's behind is now y+1, North's behind is now y-1. Settled live
 2026-07-28, LIVE_LEDGER Contradicted-section terrain entry. GRID WRITES PERSIST THE WHOLE PROCESS
@@ -59,7 +59,7 @@ that ends a hold, including battle exit (criterion 9 / A1).)
 
 - 4. While active, the ONE TILE DIRECTLY BEHIND the wielder (per its facing at the moment of
      planting) is impassable: it vanishes from every enemy's move range and enemies path
-     around it. This is "the anti-Provoke, the leave-me-alone move" — the wielder's own
+     around it. This is "the anti-Provoke, the leave-me-alone move", the wielder's own
      mobility and every ally's movement are untouched; only the back tile, and so the
      back-attack bonus, is denied. (SUPERSEDES the original four-orthogonal-tile ring: a full
      ring walled allies too, which the owner rejected in favor of denying only the back.)
@@ -70,10 +70,10 @@ that ends a hold, including battle exit (criterion 9 / A1).)
      class is avoided by the same rule.
 - 6. If the behind tile's occupant LEAVES while the stance holds, it is raised after two
      consecutive vacant engine ticks, never mid-walk (the mover owns transforms during a
-     walk; we never race it) — the same deferred-watch machinery the four-tile ring used,
+     walk; we never race it), the same deferred-watch machinery the four-tile ring used,
      now watching the one tile.
 - 7. MAP EDGE: if the wielder's back is to the map edge, the behind tile falls off the
-     declared map and `BulwarkPolicy.BehindTile` returns null — the wielder plants NOTHING
+     declared map and `BulwarkPolicy.BehindTile` returns null, the wielder plants NOTHING
      that turn (no substitute tile, no partial ring). PER-AXIS bounds checks run BEFORE any
      index math: an unguarded x-1/y-1 at the map edge would otherwise silently wrap to a
      valid tile on another row/column. A test pins all four facings' off-map case.
@@ -82,15 +82,15 @@ that ends a hold, including battle exit (criterion 9 / A1).)
      scope, revisit only with live evidence).
 - 9. RESTORE is MANDATORY and ACTIVE: write the exact prior byte back on release, wielder
      death, AND the battle-exit edge, and confirm the restore book is empty afterward.
-     **CORRECTED 2026-07-28: the grid does NOT rebuild per map (that P1 claim is CONTRADICTED
-     -- live, walkability dirt persisted across restarts and onto the world map and CRASHED the
+     **CORRECTED 2026-07-28: the grid does NOT rebuild per map (that P1 claim is CONTRADICTED,
+     live, walkability dirt persisted across restarts and onto the world map and CRASHED the
      game). So an unrestored tile LEAKS for the whole process session and can crash the engine.
      Restore is the safety-critical path, not a nicety.** The write is in-process RAM only
      (never disk/save), so a full game relaunch is the last-resort clean slate.
 
 ## Plan-review amendments (2026-07-27 adversarial pass; each was a blocker or should-fix)
 
-- A1. Battle-edge semantics — SETTLED 2026-07-28 (inverted after the crash, then rewritten
+- A1. Battle-edge semantics, SETTLED 2026-07-28 (inverted after the crash, then rewritten
       for the back-tile rework). Grid writes PERSIST THE WHOLE PROCESS SESSION (proven live:
       stale walkability dirt survived battle restarts and onto the world map, and once
       crashed the game), so the battle edge is a RELEASE path, not a drop. `ResetBattle()`
@@ -101,7 +101,7 @@ that ends a hold, including battle exit (criterion 9 / A1).)
       idempotent no-op on an already-empty book (`Release()` itself performs zero writes and
       stays silent when there is nothing to restore, so the routine double-edge reset produces
       no log noise). The restore is safe on ANY edge because the grid is one persistent
-      per-process structure and the book holds this same session's true originals — there is
+      per-process structure and the book holds this same session's true originals, there is
       no "wrong map" to scribble onto. Belt-and-suspenders: the write is in-process RAM only,
       so a full game relaunch is always the last-resort clean slate.
 - A2. Two deployed Sunderers REFUSE via the single-wielder resolver (LW-136 semantics), never
@@ -117,10 +117,10 @@ that ends a hold, including battle exit (criterion 9 / A1).)
 - A5. RETIRED with the height mechanism: the original "high ground shrinks the block below
       jump reach" concern was specific to a graduated height write and does not apply to a
       binary obstacle bit. Whether Fly/Teleport ignores the byte +6 veto (as it ignores
-      ordinary terrain) is UNTESTED for this mechanism specifically — treat as unverified, not
+      ordinary terrain) is UNTESTED for this mechanism specifically, treat as unverified, not
       assumed, until a live pass confirms it (folds into V6).
 - A6. Tile (0,0) reads permanently occupied (the frozen-twin mirrors live there): a wielder
-      whose behind tile resolves to (0,0) plants nothing that turn — the safe direction (the
+      whose behind tile resolves to (0,0) plants nothing that turn, the safe direction (the
       occupied-tile rule, criterion 5), documented rather than special-cased.
 - A7. Wielder LOSS release is explicit machinery, not an assumed edge: while planted, a
       wielder reading dead (hp 0 or the Dead bit) or failing to resolve for N consecutive
@@ -134,8 +134,8 @@ that ends a hold, including battle exit (criterion 9 / A1).)
 - 10. NO PERSISTENT red/painted tile marker (a highlight visible without hovering). Tile
       paint is walled behind LW-142 (the quad arena crashes on naive writes) and the
       mark-blob addressing (solver-refuted formula). The player-facing signal is the plant
-      announcement through the shipped toast lane, the effect itself, AND — new, free, a
-      byproduct of the mechanism itself — the game's own red circle-slash cursor the moment
+      announcement through the shipped toast lane, the effect itself, AND, new, free, a
+      byproduct of the mechanism itself, the game's own red circle-slash cursor the moment
       a player hovers the barred tile: a native affordance Bulwark never has to draw.
 - 12. AI sanity is a WATCH item, not a precondition: one live battle confirms no AI freeze
       or pathing loop when a preferred route is blocked (the engine handles real cliffs
@@ -148,8 +148,8 @@ that ends a hold, including battle exit (criterion 9 / A1).)
       never barred that hold.
 
 (Item 11, the "phantom-cliff" cosmetic accepted while the height lever was in use, is DELETED:
-the height mechanism it excused is retired, and its replacement — the native red circle-slash
-cursor over the barred tile — is a FEATURE, not a cost. See item 10.)
+the height mechanism it excused is retired, and its replacement, the native red circle-slash
+cursor over the barred tile, is a FEATURE, not a cost. See item 10.)
 
 ## Verify (owner-only live pass)
 
@@ -158,14 +158,14 @@ cursor over the barred tile — is a FEATURE, not a cost. See item 10.)
 - [ ] V2. An enemy standing on the behind tile walks away normally and attacks normally
       while adjacent; its vacated tile then blocks.
 - [ ] V3. Two waits from the same spot on the map's edge row, one per orientation. First:
-      wait FACING INTO the map, so the wielder's back is to the void — nothing plants (the
+      wait FACING INTO the map, so the wielder's back is to the void, nothing plants (the
       stance simply does not activate; the file-only Debug refusal "the wielder's back is
       to the map edge" is the expected receipt) and no phantom block appears anywhere else
       on the map. Then turn around and wait FACING THE VOID, so the wielder's back points
-      into the map — the real tile behind him bars normally.
+      into the map, the real tile behind him bars normally.
 - [ ] V4. A corpse on the behind tile is untouched; a revive onto it still works.
 - [ ] V5. Release on the wielder's next turn; the tile restores exactly; a battle restart
-      (and a battle END) shows pristine terrain — no leaked obstacle bit onto the next fight
+      (and a battle END) shows pristine terrain, no leaked obstacle bit onto the next fight
       or the world map.
 - [ ] V6. One full battle with the stance used twice, across at least one facing change: no
       AI freeze, no crash, no drift in the flight recorder's battle-exit archive, and an

@@ -13,7 +13,7 @@ item id as a string.
 
 Weapon rows (`"kind": "weapon"`) carry the effective per-id engine configuration, replayed
 from tools/probes/lw247_repro_census.py + lw247_repro_census2.py's exact mutation order
-(not read from weapon_treatments.json directly -- see this script's docstring for why that
+(not read from weapon_treatments.json directly, see this script's docstring for why that
 table disagrees with the deployed config on 40 ids): `tint` (the final [hue, sat, value_mult]
 after the bag desaturation pass), `reserved`, `punch`, `rotate`, `forceb`, `muted`,
 `white_spec`, `soft_spec`, `outline_black`, `deep_damp`, `vscale_override` (float or null),
@@ -25,7 +25,7 @@ applicable, the same optional `donor` field weapon rows do: their FLAG configura
 pop, rotate, etc.) is FIXED module-level constants in the ported engine (PUNCH base, POP,
 ROTATE_ALL, WARM_TRIM_VANILLA, KEEP_SHIPPED, the TWIN groups), not something a census replay
 produces, so the note documents which fixed sets the id belongs to rather than duplicating
-config a code reader can already see -- but Mode-B donor selection IS data-dependent even for
+config a code reader can already see, but Mode-B donor selection IS data-dependent even for
 shields/helms (it falls out of each render's own neutral-fraction test), so those ids still
 need a captured donor pin the same way weapons do.
 
@@ -48,6 +48,6 @@ provenance table.
 ## Environment pin
 
 Recorded at implement time (2026-08-18): Python 3.13.6, Pillow 12.0.0,
-FF16Tools.CLI 1.13.2 (directory name; the binary's own `--version` self-reports 1.13.0 -- both
+FF16Tools.CLI 1.13.2 (directory name; the binary's own `--version` self-reports 1.13.0, both
 noted since they disagree and neither was investigated further, this arc being scoped to the
 icon pipeline and not the tool's own versioning).

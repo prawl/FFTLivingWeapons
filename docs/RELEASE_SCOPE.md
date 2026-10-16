@@ -1,4 +1,4 @@
-# Release Scope -- next release (consolidation)
+# Release Scope, next release (consolidation)
 
 STATUS: CONTRACT (locked scope for the 2.3.0 consolidation release, the 2.3.1 patch cut, the
 2.3.2 game-compatibility cut, the 2.3.3 feature cut, the 2.3.4 compat cut, and the 2.4.0 art cut)
@@ -12,7 +12,7 @@ Re-scoped 2026-07-14 (owner, in-session): the AnchorScan verifier scout (LW-82 v
 the 1.5.1-aftermath compat batch (section 10) are IN and required.
 
 **Identity: "Finish the Samurai Swords + a focused item-balance tuning pass."** A consolidation
-release -- land the two committed blockers, absorb ONE cheap high-value tuning batch, and DEFER every
+release, land the two committed blockers, absorb ONE cheap high-value tuning batch, and DEFER every
 removal and research/walled item. Scope grounded by a repo-wide triage of every open TODO + user-
 feedback item (2026-07-04): each was ground-truthed against the actual code/data before landing here.
 
@@ -26,7 +26,7 @@ Two owner decisions set the stopping line:
 
 ---
 
-## IN -- ship gate (every box green = ship)
+## IN, ship gate (every box green = ship)
 
 ### 1. Samurai Swords (BLOCKER): finish = 3 signatures
 Tuning is DONE and analyze.py-green; the work is the one open signature slot (Kiku's Mushin).
@@ -47,7 +47,7 @@ Tuning is DONE and analyze.py-green; the work is the one open signature slot (Ki
 - [x] Clean DEV redeploy before ANY katana live test (orphaned Zanshin DLL may still be deployed);
       done ahead of the Mushin live pass, 2026-07-09.
 
-### 2. Galewind / Puppeteer expiry (BLOCKER) -- ship with fallback
+### 2. Galewind / Puppeteer expiry (BLOCKER), ship with fallback
 Shipped behavior (LW-5, e882799, owner live-verified 2026-07-07; supersedes the wielder-clock
 paragraph this section carried at lock time): the puppet releases after taking ITS OWN turn
 (TurnQueue acted rising-falling edge on the puppet's seat; GlobalTurns cap backstop; 4-global-turn
@@ -66,20 +66,20 @@ turn" became accurate with the own-turn release). Boxes stay for the owner sweep
       (Ticked in the 8.8 owner sweep 2026-07-16: moot, the own-turn release shipped, was
       live-verified, and held through the whole smoke pass; the fallback was never invoked.)
 - [x] Fix the card text regardless: p3Desc promises "no Lucavi" (IsDominatable allows every job) and
-      "for its full turn" (does not hold) -- reword to shippable semantics.
+      "for its full turn" (does not hold), reword to shippable semantics.
       (Ticked in the 8.8 owner sweep 2026-07-16: shipped as LW-46, the false no-Lucavi clause
       dropped and the full-turn wording made accurate by the own-turn release.)
-- [x] **Iai ReleaseSignal harden** -- same ActorPtr-dwell trap (Ame-no-Murakumo is a katana too);
+- [x] **Iai ReleaseSignal harden**, same ActorPtr-dwell trap (Ame-no-Murakumo is a katana too);
       fix the bare-arrival false-release ONCE, alongside this turn-credit work.
       (Ticked in the 8.8 owner sweep 2026-07-16: shipped as LW-71, c2965ce, owner live-verified
       2026-07-11; the release names the turn flags, re-confirmed in smoke rows 2.1 and 2.2.)
 
-### 3. Item-balance tuning pass (SHOULD) -- ONE analyze.py / patch_names.py batch, restart-only
+### 3. Item-balance tuning pass (SHOULD), ONE analyze.py / patch_names.py batch, restart-only
 - [x] **Rod nerf** (rods are over-tuned). Shipped dd45229, 2026-07-05.
-- [x] **Added-Move nerf** (Trailwarden Jerkin + Wayfarer Boots -- too mobile too early). Give every
+- [x] **Added-Move nerf** (Trailwarden Jerkin + Wayfarer Boots, too mobile too early). Give every
       de-Moved item a replacement dimension or analyze.py flags a dominated husk. Shipped dd45229,
       2026-07-05.
-- [x] **Early-armor rider smell** -- retune riders that are dead weight at their tier (incl.
+- [x] **Early-armor rider smell**, retune riders that are dead weight at their tier (incl.
       Sanctguard id133 StrongElements=Holy, dead until T5-T6 Holy weapons). Shipped dd45229,
       2026-07-05.
 - [x] **Claymore = CARD REWORD only** (working-as-designed per the ForcedTwoHands commit; a buff
@@ -87,9 +87,9 @@ turn" became accurate with the own-turn release). Boxes stay for the owner sweep
 - [x] Any name/desc change -> patch_names.py item.en.nxd re-bake (full-table replace, restart-only);
       this batch's own re-bake shipped dd45229, 2026-07-05.
 
-### 4. Remove Offensive Chemist (NICE) -- S, INDEPENDENT of Treasure Master
+### 4. Remove Offensive Chemist (NICE), S, INDEPENDENT of Treasure Master
 - [x] Grenades (246-250) already out of items.json; scrub any residual refs; two nxd re-bakes via
-      patch_names.py + patch_ability_names.py (never hand-edit cells -- Barrage shares ability key 358).
+      patch_names.py + patch_ability_names.py (never hand-edit cells, Barrage shares ability key 358).
       Shipped a5ea61e, 2026-07-05.
 
 ### 5. Doc + hygiene (free)
@@ -196,7 +196,7 @@ turn" became accurate with the own-turn release). Boxes stay for the owner sweep
 
 ---
 
-## 2.3.1 patch cut (2026-07-21) -- the two post-2.3.0 bug clusters, no new features
+## 2.3.1 patch cut (2026-07-21), the two post-2.3.0 bug clusters, no new features
 
 - [x] **Roster window (LW-96)**: soldiers past number 20 on the party list earn kills and growth
       like everyone else (the "only Ramza and generics benefit" report). Shipped 18b983f,
@@ -207,7 +207,7 @@ turn" became accurate with the own-turn release). Boxes stay for the owner sweep
       5136f2e + 10320b2, ledger exits 519204d; owner live pass 2026-07-21 (07:24 battle) clean.
 - [x] Gates re-run at the cut: dotnet test 2584 green, analyze.py exit 0 (2026-07-21).
 
-## 2.3.2 compat cut (2026-07-25) -- game 1.5.2 compatibility ONLY, no new features
+## 2.3.2 compat cut (2026-07-25), game 1.5.2 compatibility ONLY, no new features
 
 The game updated to 1.5.2 and the mod switched itself off to protect saves, which is what the
 startup guard is for. This cut exists to make the mod work again on the updated game, and to do
@@ -233,7 +233,7 @@ nothing else. Owner scope call 2026-07-25, in-session.
 - [x] Gates re-run at the cut: dotnet test 2752 green, analyze.py exit 0, audit_nxd_bakes.py exit 0
       (2026-07-25).
 
-## 2.3.3 feature cut (2026-08-12) -- Living Poach, Crossfire, and the softened growth curve
+## 2.3.3 feature cut (2026-08-12), Living Poach, Crossfire, and the softened growth curve
 
 The cycle's theme: weapons that do more than grow. Owner scope call 2026-08-12, in-session.
 The cut was preceded the same evening by an owner regression night covering the two riskiest
@@ -286,7 +286,7 @@ or the owner's call to accept it as a standing watch.
 - [x] Tag v2.3.3 cut at the release commit b7104c0 and pushed (2026-08-12, owner word in
       session).
 
-## 2.3.4 compat cut (2026-10-15) -- the Denuvo-free game build, no new features
+## 2.3.4 compat cut (2026-10-15), the Denuvo-free game build, no new features
 
 The publisher removed Denuvo from the game in September 2026. The program code did not move,
 but the unprotected build lets Windows load it at a random address each launch (ASLR), so the
@@ -305,7 +305,7 @@ nothing else. Cut from v2.3.3 on branch hotfix/2.3.4, deliberately ahead of the 
 - [x] Package built (FFTLivingWeapons-2.3.4.zip, 2026-10-16); ModVersion bumped to 2.3.4.
 - [x] Tag v2.3.4 cut at e2a2f0c3 and pushed 2026-10-16 on the owner's word; GitHub release and Nexus upload live.
 
-## 2.4.0 art cut (scoped 2026-08-19) -- every icon reworked
+## 2.4.0 art cut (scoped 2026-08-19), every icon reworked
 
 Owner scope call 2026-08-19, in session: every icon reworked for the next deploy. Plain version
 of what that means: today a player opening the equip menu sees two different eras of artwork
@@ -529,26 +529,26 @@ restatement of the same work and the arcs deliberately kept out of the glow fina
 ---
 
 ## DEFERRED (post-release backlog)
-- **Remove Treasure Master** -- L, works + tested, no user benefit this cycle; do as a dedicated
+- **Remove Treasure Master**, L, works + tested, no user benefit this cycle; do as a dedicated
   cleanup. OBVIATES the Scholar's Ring idle-nag bug (do NOT fix that doomed code). On removal:
   de-list treasure.json from pipeline.ps1 + release.yml + csproj together; BattleState.BattleDisplayed
   and its TickContext property must survive the cut (Treasure Master is its last pre-gate consumer,
   but the predicate is core BattleState); also drop Treasure Master from the ModConfig
   description.
-- **Alter Axes and Flails** -- scope trap. Only cheap slice = Squire/Geomancer equip access on
+- **Alter Axes and Flails**, scope trap. Only cheap slice = Squire/Geomancer equip access on
   existing sword-typed items; PA*WP axe collides with the type-welded formula + id-welded art, flail
-  band has no known formula id -- the rest is research.
-- **Migrate lossy-detection siblings** (Maim / Larceny / Ricochet) to cache + rearm -- invisible
+  band has no known formula id, the rest is research.
+- **Migrate lossy-detection siblings** (Maim / Larceny / Ricochet) to cache + rearm, invisible
   tech-debt; do opportunistically when those files are next touched.
-- **Kill-tally card milestones** beyond the counter -- redundant with the shipped milestone toasts;
+- **Kill-tally card milestones** beyond the counter, redundant with the shipped milestone toasts;
   gated on an untested glyph-render probe.
-- **Replace the Stormbrand** -- marginal (status procs are low-%); the real cure is an L runtime
+- **Replace the Stormbrand**, marginal (status procs are low-%); the real cure is an L runtime
   signature. Pick the theme AFTER the Samurai signatures lock (avoid a Slow/element dupe).
-- **Enemies USE living-weapon benefits** -- XL undesigned feature; the player's real want is already
+- **Enemies USE living-weapon benefits**, XL undesigned feature; the player's real want is already
   delivered by the static rebalance.
 
 ## WALLED (not release work)
-- **Sword swing-art** -- art is welded to the weapon id and the same render node drives DAMAGE
+- **Sword swing-art**, art is welded to the weapon id and the same render node drives DAMAGE
   (Warbrand computed as a Broadsword when swapped). No art-only lever; recat needs item-id relocation.
-- **French item TEXT display** -- two independent live-confirmed walls (game loads item.nxd once under
+- **French item TEXT display**, two independent live-confirmed walls (game loads item.nxd once under
   English; modloader nex parser crashes on the real French table). Only a DLL live-paint path remains.

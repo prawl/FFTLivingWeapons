@@ -102,7 +102,7 @@ tools/probes/lw247_census2_result.json). Extracted by tools/probes/lw247_extract
 each file is the target texture restored to vanilla OUTSIDE the smoothed vanilla silhouette
 (the same contour rule tools/probes/ramp/ramp_engine.py's glow() uses to place its rim), so
 recompositing data/icon_ramp/rims.json's rim over one of these bodies reproduces the shipped
-texture pixel-exact -- the reconstruction identity proven in tools/probes/lw247_repro_census.py
+texture pixel-exact, the reconstruction identity proven in tools/probes/lw247_repro_census.py
 and lw247_repro_census2.py.
 
 Regenerate with `python tools/probes/lw247_extract_bodies.py`; do not hand-edit these PNGs.

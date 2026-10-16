@@ -1,4 +1,4 @@
-# Provoke (Defender +3) -- scope + acceptance criteria
+# Provoke (Defender +3), scope + acceptance criteria
 
 STATUS: CONTRACT (Provoke acceptance criteria)
 

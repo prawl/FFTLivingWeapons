@@ -32,10 +32,10 @@ C:\Users\ptyRa\FFT_IC_backup_1.5.2\. SizeOfImage GREW by 0x5EA000, the reverse o
 
 Two tracked instruments, both added here, both read-only against files:
 
-- `tools/probes/exe_reanchor_scan.py` -- section-layout diff, plus content re-find of anything the
+- `tools/probes/exe_reanchor_scan.py`, section-layout diff, plus content re-find of anything the
   file actually bakes: the JobCommand ability table, the ability-action table and its decoy mirror,
   the inflict-status table, and the code addresses the mod hooks or cold-calls.
-- `tools/probes/rip_xref_reanchor.py` -- the runtime globals. These live in zero-initialized image
+- `tools/probes/rip_xref_reanchor.py`, the runtime globals. These live in zero-initialized image
   space and hold nothing on disk, so content matching is impossible; but every one of them is
   reached by RIP-relative instructions whose 32-bit displacement encodes the address. Find those
   sites in the old exe, re-locate each by its surrounding bytes (with the displacement punched out,

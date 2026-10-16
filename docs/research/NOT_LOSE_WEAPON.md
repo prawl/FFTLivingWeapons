@@ -4,14 +4,14 @@ STATUS: JOURNAL (closed research log; verify claims against LIVE_LEDGER.md befor
 
 Feasibility research for two requested Living Weapon features:
 
-1. **Keep broken equipment** — when an enemy Breaks/Rends a weapon, shield, or armor, lose it only for
+1. **Keep broken equipment**, when an enemy Breaks/Rends a weapon, shield, or armor, lose it only for
    *that* battle, then return it permanently afterward (not destroyed forever).
-2. **Stop crystallization** — bypass the "3 strikes → crystal/treasure" permanent unit loss; keep the KO'd
+2. **Stop crystallization**, bypass the "3 strikes → crystal/treasure" permanent unit loss; keep the KO'd
    party member.
 
 **Bottom line:** both are feasible without any new engine capability. The Living Weapon runtime already
 *detects a battle state by polling and writes a byte back* every 100ms (that's literally `GrowthEngine`).
-Neither feature needs hooks/detours — only battle enter/exit bookkeeping. **Both use the same trick:** a
+Neither feature needs hooks/detours, only battle enter/exit bookkeeping. **Both use the same trick:** a
 nameId-keyed roster snapshot taken on battle-enter, selectively restored on battle-exit.
 
 ---
@@ -22,31 +22,31 @@ The data/table route for Feature 1 would mean neutering the Knight's Rend/Break 
 tool twice over:
 
 - This mod's ability tables (`ability.en.nxd` / `overrideabilityactiondata.nxd`) are **parked** because
-  editing them corrupted unrelated abilities (Fire range, Red Mage wipe, new-game crash) — see
+  editing them corrupted unrelated abilities (Fire range, Red Mage wipe, new-game crash), see
   `docs/MECHANICS.md` (Bloodpact bullet). Reviving them for this is high-risk.
 - A table edit can only disable break *entirely* or do nothing. It cannot express "lost for this battle,
   returned after." Only a runtime restore can.
 
 The runtime path reuses proven infrastructure: `Engine.cs` battle enter/exit detection, `Mem` (RPM/WPM-backed,
-VirtualQuery-guarded — a bad/freed address is a no-op, never a crash), and the exact roster `+0x14` equip
+VirtualQuery-guarded, a bad/freed address is a no-op, never a crash), and the exact roster `+0x14` equip
 write `GrowthEngine` already performs and that persists to save.
 
 ---
 
-## Feature 1 — Keep broken equipment
+## Feature 1, Keep broken equipment
 
 **Verdict: likely feasible (medium confidence).** The whole bet rides on one battle-end timing question.
 
 > **TESTED LIVE 2026-06-16 (`tools/probes/roster_loss_trace.py`, dual-watch roster + in-battle band):**
 > the timing resolves IN OUR FAVOR. An enemy break empties the *in-battle* unit copy immediately, but
-> the **persistent roster slot does NOT change mid-battle** — it goes empty (Ramza body `0x00b7 → 0x00ff`)
+> the **persistent roster slot does NOT change mid-battle**, it goes empty (Ramza body `0x00b7 → 0x00ff`)
 > only once **out of battle** (`battleMode=0`, ~13 s after the exit edge, at the party-menu reconcile).
 > So restore-on-exit / verify-then-write lands cleanly *after* the commit. Two gotchas confirmed:
 > **(a) the empty/broken sentinel is `0x00FF`, not `0xFFFF`**; **(b) QUITTING a battle reverts the break
-> entirely** — only a *completed* battle commits the loss. Crystallization timing (Feature 2) is still
+> entirely**, only a *completed* battle commits the loss. Crystallization timing (Feature 2) is still
 > untested (the `[SLOT CLEARED]` path is wired in the probe, just needs a generic left to crystallize).
 
-**Approach — snapshot-and-restore on the persistent roster** (`0x1411A18D0`, stride `0x258`):
+**Approach, snapshot-and-restore on the persistent roster** (`0x1411A18D0`, stride `0x258`):
 
 - **Battle ENTER:** snapshot every populated player roster unit's 7 equipment `u16`s, keyed by
   **nameId (`+0x230`), not roster index** (slots reorder; nameId is the stable key `KillTracker`/
@@ -62,7 +62,7 @@ write `GrowthEngine` already performs and that persists to save.
   | +0x18 | reserved |
   | +0x1A | shield |
 
-- **During battle:** do nothing. Let the break play out — the unit fights without that piece, exactly as
+- **During battle:** do nothing. Let the break play out, the unit fights without that piece, exactly as
   requested.
 - **Battle EXIT:** for each snapshotted unit, re-find its slot by nameId and write back **only** slots that
   were non-empty in the snapshot **and** read empty (`0xFFFF`) now. The "non-empty-then AND empty-now" guard
@@ -73,43 +73,43 @@ write `GrowthEngine` already performs and that persists to save.
 
 - *Known/mapped:* all 7 equip offsets, the nameId key, battle enter/exit edges, the guarded write primitive.
   No new offset discovery required.
-- *Unknown — confirm in-game first:*
+- *Unknown, confirm in-game first:*
   1. Does Rend write `0xFFFF` into the **persistent** roster mid-battle, or only into the in-battle struct
      with a copy-back at battle end? (Decides where to diff and when the loss commits.)
-  2. **The timing race** — the loss commits when the game copies battle equipment back to the roster at
+  2. **The timing race**, the loss commits when the game copies battle equipment back to the roster at
      battle-end reconciliation. The restore must land *after* that copy-back. `Engine`'s current exit edge
      (`slot9` clear) is coarse and may fire before the reconcile, so likely delay the restore a few ticks
      past the transition (mirror the existing `FieldSettleSeconds` settle window) and verify-then-write.
   3. Does the next-battle stat resolver re-validate equipment and silently drop an item the current job can't
      wield? (Restoring the exact pre-break value mitigates this unless the player changed jobs in between.)
-  4. Coordinate with `GrowthEngine` — both writers can target `+0x14` on the same exit tick; they must agree
+  4. Coordinate with `GrowthEngine`, both writers can target `+0x14` on the same exit tick; they must agree
      on the canonical id (snapshot may hold a pre-upgrade weapon).
 
-**Risks:** the timing race is the only real one, and it is naturally fail-safe — a missed/early write just
+**Risks:** the timing race is the only real one, and it is naturally fail-safe, a missed/early write just
 leaves the item lost (vanilla behavior), never corruption. Scope note: break and steal empty the slot
 identically, so this silently returns *stolen* gear too. Probably desired, but own it.
 
 ---
 
-## Feature 2 — Stop crystallization
+## Feature 2, Stop crystallization
 
-**Verdict: needs reverse-engineering for the "ideal" path; a low-risk path exists today.** The obvious move —
-pinning the death counter — is the trap.
+**Verdict: needs reverse-engineering for the "ideal" path; a low-risk path exists today.** The obvious move,
+pinning the death counter, is the trap.
 
-> **UPDATE 2026-06-16 — the counter is now MAPPED, and the safe path's premise FAILED.** Two live findings
+> **UPDATE 2026-06-16, the counter is now MAPPED, and the safe path's premise FAILED.** Two live findings
 > (`tools/probes/crystal_counter_probe.py`, `tools/probes/roster_loss_trace.py`):
 > 1. **The "3 hearts" counter = combat-slot base `+0x07`** (band entry −0x15). A diff of a KO'd unit's live
 >    slot caught it stepping `3→2→1→0` in sync with the on-screen hearts (once per the dead unit's turn). So
->    the counter-pin path is no longer blocked on the unmapped offset — what remains is the *gating* test:
+>    the counter-pin path is no longer blocked on the unmapped offset, what remains is the *gating* test:
 >    does holding it ≥1 actually prevent crystallization (`crystal_counter_probe.py pin`)?
 > 2. **The recommended "post-battle roster-restore" premise is FALSE here.** Crystallization does NOT touch
 >    the stat-roster `0x1411A18D0` at all (watched every byte for 6.5 min incl. a 116 s out-of-battle window),
 >    yet the unit IS gone from Organize → party membership lives in a *separate* structure we haven't located.
 >    So the safe restore needs a new target (find the membership list), OR we lean on the now-mapped counter-pin
->    — which **GATING-TESTED GREEN 2026-06-16 (Patrick, live): holding `+0x07` at 3 keeps the unit at 3 hearts
+>, which **GATING-TESTED GREEN 2026-06-16 (Patrick, live): holding `+0x07` at 3 keeps the unit at 3 hearts
 >    and it does not crystallize.** Counter-pin is now the recommended Divine Intervention.
 > 3. **Ramza is NOT special in IC** (Patrick, live 2026-06-16): he counts down the 3-heart counter like every
->    other unit — his KO is **not** an instant game-over. So the pin covers Ramza too; no Ramza-only HP-floor.
+>    other unit, his KO is **not** an instant game-over. So the pin covers Ramza too; no Ramza-only HP-floor.
 >    The "Ramza caveat" further down was a PSX-wiki assumption and does NOT hold for The Ivalice Chronicles.
 
 **Recommended primary: post-battle roster-restore (same snapshot infra). NOT counter-pin, NOT HP-floor.**
@@ -117,16 +117,16 @@ pinning the death counter — is the trap.
 Why counter-pinning (hold the death timer at 3 every tick so it never hits 0) is the wrong lead:
 
 - The death-counter offset is **unmapped in every public IC source** (FearLess Cheat Engine, OpenCheatTables,
-  WeMod, dicene's FFT_Egg_Control — all checked, none expose it). FFHacktics notes the PSX original kept the
-  counter in a *separate small per-unit byte array* (PSX staging `0x8019FD26`), **not** the main unit struct —
+  WeMod, dicene's FFT_Egg_Control, all checked, none expose it). FFHacktics notes the PSX original kept the
+  counter in a *separate small per-unit byte array* (PSX staging `0x8019FD26`), **not** the main unit struct,
   so in IC it may not sit at a clean `0x140893C00 + slot*0x200 + k` offset at all.
 - It is **unverified** whether crystallization even reads a poll-pinnable byte vs. firing inside an atomic
   turn-resolution routine a 100ms poll can't pre-empt.
 - **Irreversible failure mode.** Every other thing the DLL writes is cosmetic/recoverable. One missed pin =
   a permanently deleted party member. The blast radius dwarfs anything the runtime does today. The loop is
   `Task.Delay(100)` (not frame-locked), and the `Display` ByteScan on the same thread can stall it well past
-  100ms — if a stall coincides with the KO'd unit's turn, the pin misses.
-- ~~It does nothing for Ramza (his KO is a direct game-over, no counter).~~ **WRONG for IC — corrected
+  100ms, if a stall coincides with the KO'd unit's turn, the pin misses.
+- ~~It does nothing for Ramza (his KO is a direct game-over, no counter).~~ **WRONG for IC, corrected
   2026-06-16 (Patrick, live): Ramza counts down the 3-heart counter like everyone, so the pin covers him too.**
 
 The alternatives, ranked:
@@ -136,27 +136,27 @@ The alternatives, ranked:
   discovery** (all roster fields already in `Offsets.cs`), survives a missed poll (it's an end-of-battle
   reconcile, not a per-tick race), and inherently covers the party. Its one risk is the same battle-end
   timing window as Feature 1.
-- **HP-floor (poll HP==0 → write HP=1):** trivial (`KillTracker` already reads HP per slot) but *over-delivers*
-  — it eliminates real tactical KOs entirely and may fight the engine's own per-tick KO application. Use only
+- **HP-floor (poll HP==0 → write HP=1):** trivial (`KillTracker` already reads HP per slot) but *over-delivers*,
+  it eliminates real tactical KOs entirely and may fight the engine's own per-tick KO application. Use only
   if losing the tactical KO is acceptable.
-- **Counter-pin:** only if the empirical test proves the byte exists, is poll-pinnable, and gates the event —
+- **Counter-pin:** only if the empirical test proves the byte exists, is poll-pinnable, and gates the event,
   and even then keep post-battle-restore as the safety net.
 
-**~~Ramza caveat (unavoidable, state it plainly):~~ CORRECTED 2026-06-16 (Patrick, live) — does NOT apply to IC.**
+**~~Ramza caveat (unavoidable, state it plainly):~~ CORRECTED 2026-06-16 (Patrick, live), does NOT apply to IC.**
 The claim below (Ramza KO = instant Game Over, no counter) came from the FFTHandsFree PSX-era wiki. In The
-Ivalice Chronicles, **Ramza counts down the 3-heart counter exactly like every other unit** — so the counter-pin
+Ivalice Chronicles, **Ramza counts down the 3-heart counter exactly like every other unit**, so the counter-pin
 covers him with no special-casing, and no Ramza-only HP-floor is needed. ~~Ramza crystallizing = instant Game
 Over mid-battle; the only thing that covers him is a narrow HP-floor on Ramza specifically; keep counter-pin
 away from Ramza entirely.~~
 
 **The gating unknown (could kill Feature 2):** *when* does the game zero the persistent roster slot on
-crystallize — mid-battle, or at battle-end copy-back? If mid-battle, there is nothing left to restore on exit
+crystallize, mid-battle, or at battle-end copy-back? If mid-battle, there is nothing left to restore on exit
 and the post-battle-restore path is dead.
 
 **RE plan for the counter offset (only if you pursue counter-pin):** in a throwaway battle, KO a non-Ramza
 unit and don't revive it. Each tick, snapshot that unit's full `0x200`-stride slot at
 `0x140893C00 + slot*0x200` and diff across its skipped turns, watching for the byte that steps `3→2→1→0`.
-Search near known fields first — `+0x25` (CT), the `+0x45` status bitfield (byte0 `0x20` = Dead,
+Search near known fields first, `+0x25` (CT), the `+0x45` status bitfield (byte0 `0x20` = Dead,
 `0x40` = Crystal). If it's not co-located in the `0x200` stride (per the PSX layout note), the search space is
 larger. Then pin it to 3 across several of the unit's turns: does it crystallize anyway (→ event reads other
 state, abandon counter-pin), and does it stay Phoenix-Down-revivable?
@@ -166,11 +166,11 @@ state, abandon counter-pin), and does it stay Phoenix-Down-revivable?
 ## Shared infrastructure & sequencing
 
 - **Both features need one component:** a battle-enter roster snapshot keyed by nameId. Build it for Feature 1;
-  Feature 2's post-battle-restore reuses it directly (just snapshot more fields — level/job/stats alongside
+  Feature 2's post-battle-restore reuses it directly (just snapshot more fields, level/job/stats alongside
   equipment).
 - **Both share the same battle-end restore-timing window.** Solve it once (delay past the settle window,
   verify-then-write) and both unblock.
-- **Ship Feature 1 first** — every byte it touches is already mapped, no per-tick writes (snapshot on enter,
+- **Ship Feature 1 first**, every byte it touches is already mapped, no per-tick writes (snapshot on enter,
   restore on exit), fail-safe failure mode. Rough effort: a focused day once the timing test passes.
 
 ## The one test that unblocks both
@@ -184,16 +184,16 @@ the timing race for Feature 1 and the gating unknown for Feature 2.
 - Thread new logic through `IGameMemory` (`LivingWeapon/GameMemory.cs`) rather than calling `Mem` statically,
   so it stays unit-testable; write the failing `LivingWeapon.Tests` (xUnit) case first, then the code (the
   test gate is enforced by `BuildLinked`/`Publish`/CI).
-- Snapshot/restore is pure logic over memory reads/writes — a fake `IGameMemory` can simulate a break
+- Snapshot/restore is pure logic over memory reads/writes, a fake `IGameMemory` can simulate a break
   (slot → `0xFFFF`) and assert the restore writes back the original id only when the slot is empty.
 
 ## References
 
-- `LivingWeapon/Engine.cs` — battle enter/exit edges, `FieldSettleSeconds` settle window, exit flush.
-- `LivingWeapon/GrowthEngine.cs` — the proven roster `+0x14` write lever, nameId/fingerprint matching.
-- `LivingWeapon/Offsets.cs` — roster + static battle array offsets.
-- FFTHandsFree `docs/UNIT_DATA_STRUCTURE.md`, `docs/BATTLE_MEMORY_MAP.md` — roster equip offsets, static
+- `LivingWeapon/Engine.cs`, battle enter/exit edges, `FieldSettleSeconds` settle window, exit flush.
+- `LivingWeapon/GrowthEngine.cs`, the proven roster `+0x14` write lever, nameId/fingerprint matching.
+- `LivingWeapon/Offsets.cs`, roster + static battle array offsets.
+- FFTHandsFree `docs/UNIT_DATA_STRUCTURE.md`, `docs/BATTLE_MEMORY_MAP.md`, roster equip offsets, static
   battle array fields (`+0x45` status bitfield), inventory-not-located status.
-- FFTHandsFree `docs/Wiki/StatusEffects.md` — KO/death counter (starts at 3) → crystal/treasure rules,
+- FFTHandsFree `docs/Wiki/StatusEffects.md`, KO/death counter (starts at 3) → crystal/treasure rules,
   Safeguard prevents break/steal, Ramza death = Game Over.
-- FFHacktics Wiki (World Stats / Miscellaneous Unit Data) — PSX counter stored in a separate per-unit array.
+- FFHacktics Wiki (World Stats / Miscellaneous Unit Data), PSX counter stored in a separate per-unit array.

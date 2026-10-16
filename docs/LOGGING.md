@@ -29,7 +29,7 @@ diverge by design (the rendering split):
 weapon and job names come from `LogNames`; numeric ids, hex addresses, offsets, and read-backs
 live in parentheses on FILE lines only. The standard mechanism is the **two-line id pattern**
 (`ModLogger.EventWithTrace`/`WarnWithTrace`): a clean console sentence plus a `[trace]` Debug
-companion carrying the parenthesized ids. No " -- " separator and no em dash appear in any log
+companion carrying the parenthesized ids. No double-hyphen separator and no em dash appear in any log
 text (colon/semicolon/comma/parens instead); `LogContractTests` enforces this by source scan.
 
 **Console dedup is a semantic key, not a rendered-string key:** the console suppresses a repeat
@@ -122,7 +122,7 @@ deliberately; no ad-hoc per-module prefixes. The legacy column maps the pre-face
 | `mark` | (new: Reliquary RecordDeed earn, previously toast-only) | Info, once per earn. |
 | `tier` | tier crossings (previously buried in GRANT/toast payloads) | Reserved: no per-crossing line is emitted; a crossing surfaces via the `[battle-end]` summary and toast delivery instead. |
 | `grant` | `GRANT`, `barrage:`/`shadow blade:` JobCommand grant + readback lines | Info when armed; a readback MISS stays Warning-worthy. |
-| `signature` | `eagle-eye:` `ricochet:` `maim:` `kobu:` `iai:` `plague:` `renewal:` `rapture:` `font:` `feign-death:` `larceny:` `benediction:` `sanctuary:` `choir:` `ultima:` `afterimage:` `puppeteer:`* (historic, archives only: `charm-lock:` `life-sap:` `wyrmblood:` -- their modules were deleted as dormant in LW-159, so no current build emits them) | Info only under the relevance gate (a deployed unit wields the weapon this battle); everything else Debug. |
+| `signature` | `eagle-eye:` `ricochet:` `maim:` `kobu:` `iai:` `plague:` `renewal:` `rapture:` `font:` `feign-death:` `larceny:` `benediction:` `sanctuary:` `choir:` `ultima:` `afterimage:` `puppeteer:`* (historic, archives only: `charm-lock:` `life-sap:` `wyrmblood:`, their modules were deleted as dormant in LW-159, so no current build emits them) | Info only under the relevance gate (a deployed unit wields the weapon this battle); everything else Debug. |
 | `toast` | `banner-toast:` `prompt-swap:` | Info for delivered/dropped; queue internals Debug. |
 | `save` | `kill-tally:` `legend-store:` + the new load summaries | Info for load summaries; Warning for fallback/corrupt; Error for failed saves. |
 | `display` | `display:` | Info once per launch: sweep generation 1 is the liveness canary; every later generation is Debug, file-only. |
@@ -194,7 +194,7 @@ The moving parts:
   per-battle attribution latch could otherwise carry a credit into the next battle). Flight taps
   it per refused weapon as `"kill"` type, `reason=no-live-wielder weapon=<id>`, alongside the
   existing `not-tracked-enemy` / `identity-already-resolved` (renamed from
-  `duplicate-identity-already-credited`: LW-68 -- the old wording was wrong whenever the prior
+  `duplicate-identity-already-credited`: LW-68, the old wording was wrong whenever the prior
   resolution was a no-credit, not a real credit) / `untracked-weapon` / `expired-unresolved`
   no-credit reasons (KillTracker.Corpses.cs). A same-tuple death whose alive-edge was orphaned by
   maxHp drift (a real, uncredited enemy death, not a duplicate) instead breadcrumbs
@@ -218,7 +218,7 @@ An always-on, cheap, structured capture of on-change runtime events, surviving d
 launches, so the FIRST live anomaly of a session is diagnosable after the fact even if nobody was
 watching the console at the time.
 
-**Shape:** `LivingWeapon/FlightRecorder.cs` is the testable INSTANCE core -- a bounded ring
+**Shape:** `LivingWeapon/FlightRecorder.cs` is the testable INSTANCE core, a bounded ring
 (capacity 4096, oldest-dropped) of `(elapsedMs, type, payload)` records. Every dependency (the
 monotonic clock, the wall-clock provider, the file writer, the retention lister/deleter) is
 injected, so the whole ring/flush/retention contract is unit-tested with no real disk or clock
@@ -226,7 +226,7 @@ injected, so the whole ring/flush/retention contract is unit-tested with no real
 facade over it, mirroring `ModLogger`'s own swappable-`Instance` idiom**: every call site
 (`Flight.Record`/`RequestFlush`/`DrainPending`/`FlushBattleEnd`) is a silent no-op until
 `Flight.Init(modDir)` builds the real core (called once from `Mod.cs`, right after
-`ModLogger.Init`). That is what lets every pre-existing test keep passing unmodified -- none of
+`ModLogger.Init`). That is what lets every pre-existing test keep passing unmodified, none of
 them call `Flight.Init`, so every `Flight.*` call inside the production code they exercise does
 nothing.
 
@@ -237,7 +237,7 @@ deliberately NOT renamed by the logging facelift: `tools/parse_flight.py --grep`
 existing archive depend on them. The console `[verb]` glossary above is a different namespace; do
 not "align" them.
 
-**What gets captured (on-change only -- never a per-tick state dump):** battle enter/exit edges
+**What gets captured (on-change only, never a per-tick state dump):** battle enter/exit edges
 and battle-mode changes (Engine); the event timeline (BattleLog's `event: damage/healing/move`
 lines, dual-emitted alongside the `[trace]` file sink under the flight type `"ev"`); turn-clock
 rising/falling edges and per-unit turn credit (TurnTracker); the engine actor-pointer's ownership
@@ -268,11 +268,11 @@ one record per refused cursor answer (roster/band weapon disagreement, or a hove
 yet the turn owner), deduped to once per refusal key per battle, naming the refusal kind and
 both weapon ids so a live "wrong dossier" report can be diagnosed after the fact; the equip-card
 pool locate's own completion record (`"card"`, LW-261, PoolLocator.Step via Display.PoolLocate.cs's
-RecordLocateCompleteIfTapped -- an ADDITIONAL payload shape under the existing frozen `"card"` type,
+RecordLocateCompleteIfTapped, an ADDITIONAL payload shape under the existing frozen `"card"` type,
 not a new type string): `locate-complete regions=N ticks=N bytes=N ms=N trigger=...`, one record per
 completed resumable scan (never a partial result), naming how many named-pool regions it found, how
 many Step calls and how many bytes and milliseconds it took, and why the scan ran (`first`,
-`revalidate`, `invalidate`, or `empty-retry`) -- read alongside `LW37 locate-complete:` in
+`revalidate`, `invalidate`, or `empty-retry`), read alongside `LW37 locate-complete:` in
 `livingweapon.log`, the file-only line carrying the same numbers; LW-262's own two additions under
 this same "card" type, neither a new type string: the `coverage` payload (Display.PoolPaint.cs's
 AnnounceCoverage, Display.Flight.cs's RecordCoverageIfTapped) gained a `suffix=N` field alongside
@@ -281,7 +281,7 @@ at the moment coverage latches, read the same way the pre-existing `sites=`/`kil
 is; and a `site-evicted ... reason=pruned-dead` record (Display.Flight.cs's OnSitePruned, wired as
 CardSites' onPruneEvict ctor param) now fires for every site the cap-relief prune
 (CardSites.Admission.cs's PruneDeadSites) actually evicts, reusing the SAME budget tiers as the
-strike-driven `site-evicted` lines EmitVerdict already emits -- before this, a cap-relief drain was
+strike-driven `site-evicted` lines EmitVerdict already emits, before this, a cap-relief drain was
 invisible on the tape entirely (only inferable as a falling `sites=` count with no matching
 eviction line); and the Defender's
 provoke hold (`"provoke"`, ProvokeHold, LW-123): `arm nameId=.. tile=..`, `release reason=.. tile=..`
@@ -307,7 +307,7 @@ the chemist-grenade paths left the repo entirely with the Offensive Chemist remo
 a runtime mechanic worth a jsonl record, and its own log lines (under `[startup]`) are already the
 durable evidence a re-anchor session reads.
 
-**Where files land:** `<modDir>/flight/flight_<yyyyMMdd_HHmmss>_<trigger>.jsonl` -- one compact
+**Where files land:** `<modDir>/flight/flight_<yyyyMMdd_HHmmss>_<trigger>.jsonl`, one compact
 JSON object per line (Newtonsoft.Json; no hand-rolled escaping). The first line of every file is
 a header object (`{"hdr": true, "wall": "...", "t": <elapsedMs>}`) carrying the wall-clock time
 and the recorder's own elapsedMs at flush, so a file's records can be cross-referenced against
@@ -324,10 +324,10 @@ cycle) before any exit edge fired, so the NEXT battle's enter edge is the reliab
 prior battle's tail can still be saved. (c) the first Error-tier line of a launch: the typed
 `ModLogger.Error(verb, ...)` path arms it (the only error path since LW-155 deleted the
 verb-less lane). An Error never
-flushes synchronously -- it only raises a pending flag (`Flight.RequestFlush("error")`); the
+flushes synchronously, it only raises a pending flag (`Flight.RequestFlush("error")`); the
 actual serialize+write+retention-prune runs later from `Flight.DrainPending()`, called once per
 Engine tick. This matters because `PromptSwapHook.Detour` logs errors on the game's own
-`SetTextString` thread before forwarding -- a synchronous flush there would stall the game's own
+`SetTextString` thread before forwarding, a synchronous flush there would stall the game's own
 prompt commit. (d) a dedicated `"standdown"` trigger (`Flight.RequestFlush("standdown")`,
 requested LAST inside `LaunchGuard.StandDown`, LW-53): a fingerprint-guard stand-down happens
 before any battle edge is reachable (`Engine.Tick`'s pre-arm early return holds every other
@@ -348,7 +348,7 @@ stays inside `FileConsoleLogger`'s Error paths, flag-only and thread-safe.
 
 **Retention:** after every flush, files beyond the 20 newest are deleted (oldest-first).
 `BuildLinked.ps1`'s clean step preserves `<modDir>/flight/` wholesale (added to the
-`Remove-Item -Exclude` list, the same treatment as `kills.json`) -- no TEMP round-trip needed
+`Remove-Item -Exclude` list, the same treatment as `kills.json`), no TEMP round-trip needed
 since it is just excluded outright. `Publish.ps1` needs no change: it stages the release zip from
 the repo tree and never reads a deployed install's `flight/` folder.
 
@@ -358,12 +358,12 @@ the repo tree and never reads a deployed install's `flight/` folder.
    records land in the same flush file instead of two. Diagnosable (the header timestamp still
    anchors everything), just not split as cleanly as usual.
 2. **A hard process death loses the in-memory ring.** The mod's `CanUnload()` returns `false` and
-   there is no Reloaded unload hook wired, so nothing flushes on process exit -- there is no
+   there is no Reloaded unload hook wired, so nothing flushes on process exit, there is no
    periodic partial flush in v1. Only records already written by a prior flush (battle-enter,
    battle-exit, or first-error) survive a kill; whatever was recorded since the last flush is gone.
    The battle-ENTER flush narrows this: within a session, every battle but the last-before-kill is
    archived at the following battle's enter edge, so a session that ends in the usual kill-and-deploy
-   no longer loses everything -- only the final battle's tail (recorded after its own enter flush,
+   no longer loses everything, only the final battle's tail (recorded after its own enter flush,
    with no later enter/exit edge to catch it) is lost.
 
 **Reading a flight file:** `tools/parse_flight.py <path> [--grep TYPE]` prints a plain-text

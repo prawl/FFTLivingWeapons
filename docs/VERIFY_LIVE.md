@@ -151,8 +151,8 @@ the pre-LW-262 criterion would have, is exactly the misreading this note exists 
 The honest post-partition pass signal is NOT a sites number at all: coverage latches (a `coverage`
 record with `trigger=first` or `trigger=re-latch`) and STAYS latched, with no repeat nine-second
 locate fall-through after it does. The one number still worth reading off the coverage line is
-`suffix=`, which must never exceed 1024 (MaxSuffixSites) -- if it does, that is a real regression
+`suffix=`, which must never exceed 1024 (MaxSuffixSites), if it does, that is a real regression
 of the cap itself, not a healthy-but-large total the way `sites=` near 2048 now can be. Watch
 alongside it for `site-evicted ... reason=pruned-dead` lines, which should be rare (a kills
-cap-relief prune, expected to seldom fire post-partition -- Display.Flight.cs's OnSitePruned doc)
+cap-relief prune, expected to seldom fire post-partition, Display.Flight.cs's OnSitePruned doc)
 rather than routine.

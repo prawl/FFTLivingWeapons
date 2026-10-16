@@ -1,4 +1,4 @@
-# Slayer's Reliquary -- scope + acceptance criteria
+# Slayer's Reliquary, scope + acceptance criteria
 
 STATUS: CONTRACT (Reliquary acceptance criteria)
 
@@ -12,20 +12,20 @@ per-weapon deeds (Marks + Legends) -> the card's flavor line becomes the weapon'
 toast announcements. Zero stat effect; pure fiction.
 
 ## Non-goals (this scope)
-- NO unit-title apex ("Ramza, the Demonsbane" / command-menu header hook) -- design-only, later scope.
+- NO unit-title apex ("Ramza, the Demonsbane" / command-menu header hook), design-only, later scope.
 - **Card-only v1:** design surfaces 2-10 (sprite label, status sheet full-roll, formation, turn-order,
   targeting, shop, victory screen, roster, +0xDC retitle) are DEFERRED to a later scope. Consequence,
-  stated plainly: the full legend roll persists in legends.json but has no visible in-game home in v1
-  -- the card shows only the proudest line. (Decision 6.)
+  stated plainly: the full legend roll persists in legends.json but has no visible in-game home in v1,
+  the card shows only the proudest line. (Decision 6.)
 - NO new game-memory WRITES beyond the two existing proven surfaces (card painter slots, PromptSwap
   facing-prompt swap). Everything else is read-only against game memory.
 - NO enemy-side identity/name write (WALLED). NO reliance on AREC +0xB (REFUTED). NO stat bonus, ever.
-- The weapon NAME field is never modified beyond the existing +N suffix -- no epithet in the name.
+- The weapon NAME field is never modified beyond the existing +N suffix, no epithet in the name.
 
-## Phase 0 -- probes (instruments land tracked in tools/probes/; results land as LIVE_LEDGER rows;
+## Phase 0, probes (instruments land tracked in tools/probes/; results land as LIVE_LEDGER rows;
 ## only the owner flips PROVEN)
 
-**P1 -- victim snapshot integrity.** Instrumented dev build captures victim {nameId (band +0x1E0),
+**P1, victim snapshot integrity.** Instrumented dev build captures victim {nameId (band +0x1E0),
 job byte (combat +0x03 = band-entry -0x19, Puppeteer.Policy JobOff, live-confirmed 2026-06-18),
 undead bit (+0x45/0x10)} at THREE points: (a) alive-path refresh beside _slotId, (b) deadStreak==1
 edge, (c) CreditKill tick.
@@ -34,10 +34,10 @@ edge, (c) CreditKill tick.
   authoritative and recorded as a ledger row. Probe also measures the out-of-band job-id rate and
   demonstrates the mirror-seat clone is filtered.
 - FAIL (blocks Phase 1 capture): any kill where ALL three points read garbage (nameId==0 or
-  unclassifiable-and-implausible job) -- then the capture design is wrong, back to RE.
+  unclassifiable-and-implausible job), then the capture design is wrong, back to RE.
 - Also on the verify list: Dark Knight 94-vs-160 conflict, Machinist 43.
 
-**P2 -- named-boss key: discrimination AND stability.** Dump victim/roster nameIds across >=3
+**P2, named-boss key: discrimination AND stability.** Dump victim/roster nameIds across >=3
 battles incl. human story enemies (Gafgarion at Zirekile = ENTD 405) + the first Lucavi (Queklain).
 - PASS: a key (nameId alone, or an enumerated composite of at most nameId+job+level+maxHP) that (i)
   uniquely separates the named boss from every same-battle grunt, (ii) has zero collisions with the
@@ -45,7 +45,7 @@ battles incl. human story enemies (Gafgarion at Zirekile = ENTD 405) + the first
   separately-loaded instances of the same battle (ideally +1 different save) yields the same key.
 - FAIL (blocks Phase 2): no such key exists in the sampled data.
 
-**P3 -- credit fires on battle-ending boss kills.** Kill >=2 battle-ending bosses (one Lucavi + one
+**P3, credit fires on battle-ending boss kills.** Kill >=2 battle-ending bosses (one Lucavi + one
 human story boss, named in the probe log). First confirm the flight battle-exit flush fires AT ALL on
 a cutscene-terminated battle (else "no records" is ambiguous).
 - PASS: flight jsonl for each battle contains the kill latch + CreditKill for the boss death. A pass
@@ -54,18 +54,18 @@ a cutscene-terminated battle (else "no records" is ambiguous).
 - FAIL: either record absent -> Phase 2 BLOCKED until a supplemental credit path for battle-ending
   deaths is designed and probed (its own ledger row).
 
-**P4 -- flavor-line overwrite renders (RENDER-ONLY).** Dev build paints a same-length ASCII test
+**P4, flavor-line overwrite renders (RENDER-ONLY).** Dev build paints a same-length ASCII test
 string over ONE weapon's card flavor line. Explicitly accepted: the probe weapon's Kills site dies
-for that session (the painter's anchor is the very text overwritten -- the Phase 1 painter change is
+for that session (the painter's anchor is the very text overwritten, the Phase 1 painter change is
 what fixes that; P4 only proves the render).
 - PASS: renders on the equip card in BOTH text encodings the painter already handles (8-bit and
   UTF-16LE copies); bounded interaction set = open/close the card >=5x, scroll >=3 weapons, one
   battle enter/exit; no crash; other weapons' Kills slots still correct.
 - FAIL: fallback = baked fixed-width deed-slot line via patch_names.py. NOTE: the fallback is a
   data-layer change that hits analyze.py's uniqueness/length gates, re-bakes item.en.nxd, moves the
-  Kills anchor, and ADDS a line (breaks zero-net-text-growth) -- it needs its own sign-off before use.
+  Kills anchor, and ADDS a line (breaks zero-net-text-growth), it needs its own sign-off before use.
 
-## Phase 1 -- Marks + last-victim narration (gated on P1; card display additionally on P4)
+## Phase 1, Marks + last-victim narration (gated on P1; card display additionally on P4)
 
 Capture:
 - [ ] Victim snapshot {nameId, job, undeadBit} captured at the P1-adopted point, stored per-slot
@@ -85,7 +85,7 @@ Classify:
       (79-82, 85, 90) > human band (74-95) > monster band (96-144) > unknown/special. One test per
       precedence pair (e.g. undead_caster_classifies_undead).
 - [ ] Out-of-band ids (story bosses read e.g. 37; Ramza forms 0-3; Machinist 43) land in
-      unknown/special, never a Mark -- EXPECTED on story battles, documented as such (human/caster
+      unknown/special, never a Mark, EXPECTED on story battles, documented as such (human/caster
       Marks undercount there by design).
 - [ ] Dark Knight: classifier accepts both 94 and 160 until the P1 verify resolves it (resolution is
       a named P1 output, not open-ended).
@@ -106,7 +106,7 @@ Persist:
       the line-101 -Exclude list (ONE mechanism, named; kills.json keeps its historical %TEMP%
       round-trip). Two checkboxes, two manual verifications: sentinel value survives two consecutive
       deploys AND one simulated failed deploy.
-      (gunslinger.json is wiped by every deploy TODAY -- pre-existing bug, fixed in the same touch.)
+      (gunslinger.json is wiped by every deploy TODAY, pre-existing bug, fixed in the same touch.)
 
 Announce:
 - [ ] Mark-earned toast rides the existing BannerToast queue. Event-key space pinned: Marks =
@@ -126,7 +126,7 @@ Display:
       full archetype/legend x weapon cross-product at padded lengths. (Without this, identical earned
       lines across weapons resurrect the pre-Display-v2 shared-kills cross-attribution bug.)
 - [ ] Composer: exact same char count as the baked flavor line (pad/truncate), pure ASCII (non-ASCII
-      desyncs dual-encoding byte lengths), " -- " never em dash. Validator unit-tested.
+      desyncs dual-encoding byte lengths), an ASCII double hyphen as the separator, never an em dash. Validator unit-tested.
 - [ ] **Three-way anchor + paint-through:** site discovery/verify accepts original baked flavor OR
       current earned line OR the per-weapon LAST-PAINTED line (persisted in LegendStore so it
       survives relaunch). A site verifying via a stale-but-known anchor is REPAINTED to current,
@@ -138,7 +138,7 @@ Display:
 - [ ] Weapon NAME field untouched beyond the existing +N suffix.
 - [ ] FitsLookback still passes with earned patterns registered.
 
-## Phase 2 -- Legends (gated on P2 + P3)
+## Phase 2, Legends (gated on P2 + P3)
 - [ ] Curated legends table: P2-key -> canonical name + epithet fragment. Storage (meta.json vs
       sibling data file) DECIDED and recorded before the first Phase 2 commit; the entry list is
       enumerated in the data file with a count in the AC.
@@ -167,7 +167,7 @@ Display:
       fallback is the one exception and needs its own sign-off).
 - [ ] Zero new unguarded writes; only writes remain the painter slots + PromptSwap buffer.
 - [ ] No new heap sweeps (reuse budgeted DisplaySweep). 200-line trigger respected; policy halves pure.
-- [ ] Flight record kinds: deed-miss, mark-earned, legend-earned, legend-delivered -- visible in a
+- [ ] Flight record kinds: deed-miss, mark-earned, legend-earned, legend-delivered, visible in a
       captured battle jsonl via parse_flight.py.
 - [ ] EN-only caveat added to docs/RELIQUARY_DESIGN.md display section (toast + card text EN-only;
       gameplay-neutral in FR).
