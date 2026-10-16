@@ -10,6 +10,38 @@ before 2026-07-21 keep their original prose.
 
 ## 2.4.0 cycle
 
+- [LW-388] SHIPPED f706e5c7 2026-10-16: Everything built since August works again on the game
+  build that shed its copy protection. Plain language: the September game update removed Denuvo
+  and the unprotected game is loaded at a random address every launch. The released 2.3.4 hotfix
+  (LW-387) fixed the shipped mod; this port teaches the whole 2.4.0 line the same rule, including
+  the extended inventory, which patches game code and parks its own pages next to the game. Three
+  things the hotfix never met were found and fixed on the way: the mod's own pages must be placed
+  within reach of the game's real location; two damage cap patches lived inside the protector's
+  code and were found again in the plain game code; and the ten item lookup routines the extended
+  inventory redirects used to begin with a jump into the protector and are ordinary routines now,
+  so each is hooked at its entry with a jump and a small trampoline that re-runs the displaced
+  instructions. The first live pass failed at boot on exactly that third point and the fix round
+  went through plan review, a test first build and an independent verify that crashed the test
+  host on purpose to prove the execution test bites. Owner live pass 2026-10-16 11:02: image base
+  read at startup, extended inventory armed with all ten redirects and both relocation pages in
+  reach, main guard armed after the save load, Warbrand listed, equipped, swung for weapon damage,
+  one credited kill, card read 2 of 5, log scan clean. The 2.3.4 hotfix branch is merged in, so
+  history shows the release. (Tech: port commit 7903ed58, merge f706e5c7; ImageBase.At over the 73
+  Offsets pins; LiveNearAllocator scans upward from the live image first; BootSites gain
+  0x14027F002 and 0x1402822A4, PostLoadSites empty; AccessorEntryHook with exact entry landmarks in
+  ExtendedDonorThunks and ThunkStub.EmitEntryTrampoline; tests 3717 to 3737; journal
+  docs/research/PORT_1.5.2_NODRM_OFFSETS.md; LIVE_LEDGER denuvo-free-build-relocates-under-aslr.)
+- [LW-391] SHIPPED 7903ed58 2026-10-16: The test that forbids bare game addresses in code lost its
+  two small blind spots. Plain language: when every address must be written as its documented
+  number and rebased at use, a stray literal in the wrong place silently points at nothing on the
+  unprotected game, so a test hunts for them. It now also catches literals with unsigned suffixes
+  and underscore digit groups, and the companion test that forbids freezing an address into a
+  field at startup now covers arrays and derives the address member list from Offsets.cs itself,
+  with a floor of seventy members so an empty list can never pass by accident. Landed inside the
+  LW-388 port commit. (Tech: ImageLiteralContractTests literal regex 0x1_*[45][0-9A-Fa-f_]{7,} with
+  optional UL, ul, U, u, L suffixes; direct argument of ImageBase.At rule; PinTables rule for the
+  three site tables; no-bake ratchet over const, static readonly and arrays with the member set read
+  from Offsets.cs.)
 - [LW-381] SHIPPED 5d72924f 2026-09-01: A weapon's glow rim now appears the same session it
   levels up, with no restart. Plain language: the game keeps two records for every menu icon
   it has drawn and never reads the icon file again while they stand, which is why a mid session

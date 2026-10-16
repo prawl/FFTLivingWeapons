@@ -324,9 +324,11 @@ already built families get their owner look, and the checks that catch collatera
 being things a person has to remember.
 
 ### 1. The 90 remaining items (BLOCKER, the release's whole point)
-- [ ] **Runs on the Denuvo-free game build (LW-388)**: every address resolved against the live
-      image base, the extended inventory's pages and displacements measured from it; the 2.3.4
-      hotfix merged in. Blocks every other box in this cut.
+- [x] **Runs on the Denuvo-free game build (LW-388)**: shipped 7903ed58 + merge f706e5c7. Every
+      address resolved against the live image base, the extended inventory's pages and
+      displacements measured from it, the ten item lookup entries hooked with trampolines; the
+      2.3.4 hotfix merged in. Owner live pass 2026-10-16 11:02 (extended inventory armed, Warbrand
+      kill credited, card 2 of 5). Unblocks every other box in this cut.
 
 - [ ] **The 12 hats (LW-288)**: the only family still on the superseded three zone engine. The
       owner did pass them in game, but under the older method, so they will drift visibly from
