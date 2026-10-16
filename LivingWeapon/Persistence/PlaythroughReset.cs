@@ -19,12 +19,27 @@ namespace LivingWeapon;
 /// survive from the previous battle straight into the Orbonne opener. The detection edge is
 /// deliberately NOT gated on the tally being non-empty: a zero-credit battle followed by a new
 /// game still needs the forced exit, even though there is nothing to archive.
+///
+/// LW-395: the data action (archive + clear) is additionally gated on <c>sensingArmed</c>, the
+/// LaunchGuard sensing lane's verdict that the battle sentinels read the way this game build is
+/// known to hold them (docs/research/WRITE_SITE_AUDIT_2026-10.md item 3: a game update that moves
+/// those bytes could otherwise look like a New Game and wipe a real tally). <see cref="Observe"/>
+/// therefore returns a tri-state <see cref="ResetVerdict"/>: <c>Fired</c> (the data action ran),
+/// <c>Refused</c> (the signal qualified but the lane has not verified, so NOTHING was archived or
+/// cleared), <c>None</c>. A refusal sets a late-arm latch: if the lane arms while the same hold is
+/// still going, the first armed held tick fires it once; a hold break clears the latch. Engine still
+/// runs its state hygiene (forced battle exit, display and toast resets) on Refused as well as
+/// Fired, because the same tick already trusts these sentinel reads for every write gate; only
+/// the data consumer waits for Fired.
 /// </summary>
 internal sealed class PlaythroughReset
 {
     private readonly SaveLocation _save;
     private readonly KillTally _tally;
     private int _heldTicks;
+    // LW-395 late-arm latch: set when the threshold tick was refused, consumed by the first later
+    // armed held tick of the SAME hold, cleared by a hold break.
+    private bool _pendingFire;
 
     public PlaythroughReset(SaveLocation save, KillTally tally)
     {
@@ -34,28 +49,56 @@ internal sealed class PlaythroughReset
 
     /// <summary>Call once per engine tick with the values Engine.Tick already read this tick.
     /// Increments the hold counter while the opening condition holds, resets it to 0 the instant
-    /// it doesn't. Returns true on the tick the counter reaches HoldTicks (not >=, so it never
-    /// returns true on every subsequent qualifying tick): a held-and-still-elevated counter past
-    /// the threshold returns false on every later tick; a genuine re-fire needs the condition to
-    /// break and climb back to the threshold from scratch. The return is the "a new game just
-    /// qualified" detection edge (see this class's own doc comment): true exactly on that one
-    /// tick, tally empty or not. The archive/clear tally ACTION below keeps its own separate,
-    /// unchanged gate: it only runs when the detection edge fires AND the tally is non-empty.</summary>
-    public bool Observe(int eventId, int battleMode, bool inLive)
+    /// it doesn't (the counter counts the same whether or not sensing is armed). On the tick the
+    /// counter reaches HoldTicks (== not >=, so a held-and-still-elevated counter never re-fires
+    /// on every later tick; a genuine re-fire needs the condition to break and climb back from
+    /// scratch): with <paramref name="sensingArmed"/> the data action runs (archive + clear, only
+    /// when the tally is non-empty) and the result is <see cref="ResetVerdict.Fired"/>; without it
+    /// ONE refusal line is logged, nothing is touched, the late-arm latch is set and the result is
+    /// <see cref="ResetVerdict.Refused"/>. On a later held tick, an armed lane with the latch set
+    /// runs the data action once (Fired). Both non-None results are the "a new game just qualified"
+    /// detection edge (see this class's own doc comment), tally empty or not.</summary>
+    public ResetVerdict Observe(int eventId, int battleMode, bool inLive, bool sensingArmed)
     {
         if (PlaythroughResetPolicy.IsOpeningOutOfBattle(eventId, battleMode, inLive)) _heldTicks++;
-        else _heldTicks = 0;
+        else { _heldTicks = 0; _pendingFire = false; }
 
-        bool detected = _heldTicks == PlaythroughResetPolicy.HoldTicks;
-
-        if (detected && _tally.Kills.Count > 0)
+        if (_heldTicks == PlaythroughResetPolicy.HoldTicks)
         {
-            _save.Archive("kills.json");
-            _tally.Kills.Clear();
-            _tally.Save();
-            ModLogger.Event(LogVerb.Save, "A new game was detected; the previous kill tally was archived and reset.");
+            if (sensingArmed) { RunDataAction(); return ResetVerdict.Fired; }
+            ModLogger.Warn(LogVerb.Save,
+                "A new game signal was seen but the battle sentinel check has not passed, so the kill tally was left untouched (nothing archived, nothing cleared).");
+            _pendingFire = true;
+            return ResetVerdict.Refused;
         }
 
-        return detected;
+        if (_heldTicks > PlaythroughResetPolicy.HoldTicks && _pendingFire && sensingArmed)
+        {
+            _pendingFire = false;
+            RunDataAction();
+            return ResetVerdict.Fired;
+        }
+
+        return ResetVerdict.None;
     }
+
+    private void RunDataAction()
+    {
+        if (_tally.Kills.Count == 0) return;
+        _save.Archive("kills.json");
+        _tally.Kills.Clear();
+        _tally.Save();
+        ModLogger.Event(LogVerb.Save, "A new game was detected; the previous kill tally was archived and reset.");
+    }
+}
+
+/// <summary>LW-395: what <see cref="PlaythroughReset.Observe"/> decided this tick.</summary>
+internal enum ResetVerdict
+{
+    /// <summary>No detection edge this tick.</summary>
+    None,
+    /// <summary>The new-game signal qualified AND the sentinels are verified: the data action ran.</summary>
+    Fired,
+    /// <summary>The signal qualified but the sentinel check has not passed: no data was touched.</summary>
+    Refused,
 }

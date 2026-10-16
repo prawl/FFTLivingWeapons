@@ -92,9 +92,12 @@ internal sealed class Engine
     /// <param name="extended">LW-346: the extended inventory. Null (production) builds it over
     /// the live code patcher/allocator and the shipped extended_inventory tables; tests inject
     /// one over fakes so the boot arm can be driven without a game.</param>
+    /// <param name="devForceSensingMismatch">LW-395 dev drill (LW_FORCE_SENSING_MISMATCH, dev
+    /// builds only; Mod.cs passes a hard false elsewhere): forces the sensing lane to read a
+    /// mismatch so the refuse-to-clear path can be watched. Null/false means a normal lane.</param>
     public Engine(string modDir, bool? bannerToasts = null, bool? devSeedKills = null,
         bool? devForceFingerprintMismatch = null, IGameMemory? mem = null, Action<string, string>? notice = null,
-        ExtendedInventory? extended = null)
+        ExtendedInventory? extended = null, bool? devForceSensingMismatch = null)
     {
         // LW-51: save files now live in the update-safe Reloaded/User/Mods/<ModId> dir, not the
         // deploy mod dir, so a mod-folder-replace update can no longer wipe them. Each store's
@@ -149,7 +152,8 @@ internal sealed class Engine
         // recorder/requestFlush wire the guard's own arm/stand-down lifecycle into the flight
         // ring, so a stand-down leaves a durable archive.
         _launchGuard = new LaunchGuard(live, devForceFingerprintMismatch ?? false, notice: ResolveNotice(notice),
-            recorder: Flight.Record, requestFlush: Flight.RequestFlush);
+            recorder: Flight.Record, requestFlush: Flight.RequestFlush,
+            forceSensingMismatch: devForceSensingMismatch ?? false);
         // LW-82: read-only, ticks only while the guard is StoodDown (below); never arms, never
         // writes, never touches GuardState. Verifier scout, not healer (owner-locked decision).
         _anchorScout = new AnchorScout(live);
@@ -581,6 +585,8 @@ internal sealed class Engine
         }
         // LW-112: the kit-lane guard steps only once the main guard armed; cheap no-op once terminal.
         _launchGuard.StepKitLane();
+        // LW-395: the sensing lane (battle-sentinel verification) steps beside it; it gates the new-game detector below.
+        _launchGuard.StepSensing();
 
         uint slot0 = _live.U32(Offsets.Slot0);
         uint slot9 = _live.U32(Offsets.Slot9);
@@ -603,23 +609,35 @@ internal sealed class Engine
         // on the SAME inLive this tick's other modules already trust, so a mid-battle dialogue
         // frame aliasing eventId==2 can never be mistaken for the new-game opening. LW-56: this
         // call now runs before BattleState.Step (moved up from below), so its detection edge
-        // (Observe's return value, true exactly on the HoldTicks-th held tick) can reach Step as
+        // (Observe's verdict, Fired or Refused on the HoldTicks-th held tick, or Fired on the
+        // first armed held tick after a refused one) can reach Step as
         // a forced-exit signal on the same tick a new game qualifies: flushing stale per-battle
         // attribution state (the KillTracker weapon latch) that a mid-battle New Game would
         // otherwise carry into the Orbonne opener, since no ordinary battle-exit edge ever fires
         // for an in-session New Game.
-        bool newGame = _playthroughReset.Observe(eventId, battleMode, inLive);
+        // LW-395: the detector may only CLEAR data once the sensing lane verified the battle
+        // sentinels (LaunchGuard.Sensing.cs). Fired = the data action ran; Refused = the signal
+        // qualified but nothing was touched. The pure state hygiene below runs on EITHER (the same
+        // tick already trusts these sentinel reads for InLiveBattle and every write gate, so a
+        // refused signal still ends the previous battle's state: the LW-56 stale-latch class);
+        // only the data consumer (the natural ledger) waits for Fired. Side effect to know: the
+        // forced exit reaches OnBattleExit's _tally.Save(), an idempotent rewrite of the
+        // uncleared tally.
+        var reset = _playthroughReset.Observe(eventId, battleMode, inLive, _launchGuard.SensingArmed);
+        bool newGame = reset != ResetVerdict.None;
         if (newGame && _battle.In)
-            ModLogger.Event(LogVerb.BattleEnd, "A new game was detected while battle state was still live; forcing the battle exit edge to flush stale attribution state.");
+            ModLogger.Event(LogVerb.BattleEnd, "A new game signal was seen while battle state was still live; forcing the battle exit edge to flush stale attribution state.");
         // LW-59: a main-menu New Game (no battle live at reset) fires no Exited edge below
         // (BattleState's In==false branch cannot return Exited), so it never reached
         // _display.Invalidate() otherwise, leaving stale painted suffix bytes in the equip-card
         // pool for the freshly-cleared tally to inherit. Invalidate unconditionally here: Observe
-        // returns true exactly once per detection, Invalidate is idempotent, and the mid-battle
+        // reports a detection at most twice per hold (one Refused, then at most one Fired),
+        // Invalidate is idempotent, and the mid-battle
         // case's forced-exit edge below also invalidates the same tick, harmlessly. LW-70: the
         // same once-per-detection edge also re-baselines the toast queue, so a post-reset first
         // kill reads as a fresh crossing instead of a rollback below the stale pre-reset snapshot.
-        if (newGame) { _display.Invalidate(); _toast.Rebaseline(); _naturalLedger.Clear(); }   // LW-90: a new game's units share nameIds with the old save's; stale residue must not correct them
+        if (newGame) { _display.Invalidate(); _toast.Rebaseline(); }
+        if (reset == ResetVerdict.Fired) _naturalLedger.Clear();   // LW-90: a new game's units share nameIds with the old save's; stale residue must not correct them
         // Enter is instant; exit is debounced (battleMode flickers, slot9 sticks), UNLESS forceExit
         // fires (LW-56: a detected new game bypasses the debounce entirely). nowIn is sticky through
         // mid-battle dips, flipping only on the debounced or forced edges.

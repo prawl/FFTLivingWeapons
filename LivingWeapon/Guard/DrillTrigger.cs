@@ -18,13 +18,26 @@ internal static class DrillTrigger
 {
     internal const string FlagName = "LW_FORCE_FINGERPRINT_MISMATCH";
 
-    /// <summary>Test seam: injected env and file-existence reads, so tests never touch the real
-    /// process environment. The env lane matches exactly "1"; any other value (including "0" and
-    /// "true") is not a request.</summary>
+    /// <summary>LW-395: the sensing lane's drill flag, same two lanes (env "1" or a marker file
+    /// of this name in the mod dir). Forces the sensing lane's mismatch on healthy memory.</summary>
+    internal const string SensingFlagName = "LW_FORCE_SENSING_MISMATCH";
+
+    /// <summary>General form: any flag name through the injected env and file-existence reads, so
+    /// tests never touch the real process environment. The env lane matches exactly "1"; any other
+    /// value (including "0" and "true") is not a request. A flag's marker file never satisfies a
+    /// different flag.</summary>
+    internal static bool DrillRequested(string modDir, string flagName, Func<string, string?> getEnv, Func<string, bool> fileExists)
+        => getEnv(flagName) == "1" || fileExists(Path.Combine(modDir, flagName));
+
+    /// <summary>Test seam for the original (fingerprint) flag.</summary>
     internal static bool DrillRequested(string modDir, Func<string, string?> getEnv, Func<string, bool> fileExists)
-        => getEnv(FlagName) == "1" || fileExists(Path.Combine(modDir, FlagName));
+        => DrillRequested(modDir, FlagName, getEnv, fileExists);
 
     /// <summary>Production convenience overload over the real environment and filesystem.</summary>
     internal static bool DrillRequested(string modDir)
-        => DrillRequested(modDir, Environment.GetEnvironmentVariable, File.Exists);
+        => DrillRequested(modDir, FlagName);
+
+    /// <summary>Production overload for any flag over the real environment and filesystem.</summary>
+    internal static bool DrillRequested(string modDir, string flagName)
+        => DrillRequested(modDir, flagName, Environment.GetEnvironmentVariable, File.Exists);
 }

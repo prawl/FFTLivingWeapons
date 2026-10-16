@@ -349,4 +349,91 @@ public class EngineTests
         }
         finally { ModLogger.UseNullLogger(); }
     }
+
+    // --- LW-395: the sensing lane gates the new-game detector end to end through Engine.Tick ---
+
+    // Stages the six sentinels in BOTH stores: TerrainBlocks (what the sensing probe's
+    // TryReadBytes reads) and the U16s/U8s dictionaries (what Engine.Tick's U32/U16/U8 reads
+    // compose from; the interface-default U32 is two U16 reads, FakeSparseMemory.cs).
+    private static void StageSentinelsBothStores(FakeSparseMemory mem, uint slot0, uint slot9, byte mode,
+        ushort eventId, byte pause, byte submenu)
+    {
+        SeedU32Bytes(mem, Offsets.Slot0, slot0);
+        SeedU32Bytes(mem, Offsets.Slot9, slot9);
+        mem.TerrainBlocks[Offsets.BattleMode] = new[] { mode };
+        mem.TerrainBlocks[Offsets.EventId] = new[] { (byte)eventId, (byte)(eventId >> 8) };
+        mem.TerrainBlocks[Offsets.PauseFlag] = new[] { pause };
+        mem.TerrainBlocks[Offsets.SubmenuFlag] = new[] { submenu };
+        mem.U16s[Offsets.Slot0] = (ushort)slot0;
+        mem.U16s[Offsets.Slot0 + 2] = (ushort)(slot0 >> 16);
+        mem.U16s[Offsets.Slot9] = (ushort)slot9;
+        mem.U16s[Offsets.Slot9 + 2] = (ushort)(slot9 >> 16);
+        mem.U8s[Offsets.BattleMode] = mode;
+        mem.U16s[Offsets.EventId] = eventId;
+        mem.U8s[Offsets.PauseFlag] = pause;
+        mem.U8s[Offsets.SubmenuFlag] = submenu;
+    }
+
+    // Seeds kills.json, runs the idle world map (the lane arms, or stands down under the drill),
+    // then the Orbonne opener held long enough for the detector. Returns the kills.json text
+    // before and after, and the archive dir. The caller disposes the LogCapture.
+    private static (string before, string after, string archiveDir, LogCapture cap) RunNewGameSignal(
+        TempDirs temp, bool drill)
+    {
+        string modDir = NestedModDir(temp);
+        var save = new SaveLocation(modDir);
+        var seeded = KillTally.Load(save.PathFor("kills.json"));
+        seeded.Kills[1] = 5;
+        seeded.Save();
+        string before = File.ReadAllText(save.PathFor("kills.json"));
+
+        var cap = LogCapture.Start();
+        var mem = HealthyMemory();
+        StageSentinelsBothStores(mem, 0xFFFFFFFFu, 0xFFFFFFFFu, 255, 0xFFFF, 0, 0);
+        var engine = new Engine(modDir, devSeedKills: false, devForceSensingMismatch: drill, mem: mem, notice: (_, __) => { });
+
+        for (int i = 0; i < 40; i++) engine.Tick();
+        StageSentinelsBothStores(mem, 0xFFFFFFFFu, 0xFFFFFFFFu, 0, 2, 0, 1);
+        for (int i = 0; i < PlaythroughResetPolicy.HoldTicks + 5; i++) engine.Tick();
+
+        return (before, File.ReadAllText(save.PathFor("kills.json")), Path.Combine(save.SaveDir, "archive"), cap);
+    }
+
+    [Fact]
+    public void New_game_signal_with_sensing_down_leaves_kills_json_untouched()
+    {
+        bool prevWrites = Mem.WritesEnabled;
+        using var temp = TempDirs.Create("lw_engine_sense_down_");
+        try
+        {
+            var (before, after, archive, cap) = RunNewGameSignal(temp, drill: true);
+            using (cap)
+            {
+                Assert.Equal(before, after);
+                Assert.False(Directory.Exists(archive));
+                Assert.Contains(cap.File, l => l.Contains("battle sentinel check has not passed"));
+                Assert.DoesNotContain(cap.File, l => l.Contains("A new game was detected"));
+            }
+        }
+        finally { Mem.WritesEnabled = prevWrites; }
+    }
+
+    [Fact]
+    public void New_game_signal_with_sensing_armed_archives_as_before()
+    {
+        bool prevWrites = Mem.WritesEnabled;
+        using var temp = TempDirs.Create("lw_engine_sense_up_");
+        try
+        {
+            var (_, after, archive, cap) = RunNewGameSignal(temp, drill: false);
+            using (cap)
+            {
+                Assert.True(File.Exists(Path.Combine(archive, "kills.1.json")));   // existence only, never contents
+                Assert.Equal("{}", after);
+                Assert.Contains(cap.File, l => l.Contains("A new game was detected"));
+                Assert.DoesNotContain(cap.File, l => l.Contains("battle sentinel check has not passed"));
+            }
+        }
+        finally { Mem.WritesEnabled = prevWrites; }
+    }
 }

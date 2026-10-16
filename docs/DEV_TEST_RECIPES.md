@@ -196,6 +196,35 @@ Mem.WritesEnabled.
 **Cleanup:** disable + delete lwdrill.jobconflict, relaunch, confirm the lane-armed line and
 Barrage return.
 
+## LW-395 sensing drill: prove the new game detector refuses to clear kills (owner)
+
+The sensing lane (LaunchGuard.Sensing.cs) must verify the six battle sentinels before the new
+game detector may archive and empty kills.json. This drill forces the lane to fail on a healthy
+game so you can watch the detector refuse.
+
+1. Close the game. Run a DEV deploy (plain BuildLinked; add -Force when the install is prod
+   flavored). A dev build SEEDS every weapon's tally, so back up kills.json first if the real one
+   matters.
+2. Drop an empty marker file named `LW_FORCE_SENSING_MISMATCH` into the deployed mod dir (next to
+   the DLL). BuildLinked wipes it on the next deploy. The env variable lane exists but does not
+   reach the game on this box.
+3. Launch, press Continue to the world map. Expect, within about 2 seconds of the "Living Weapons
+   is armed" line, ONE WARN: "The battle sentinels do not read the way this mod expects (...)"
+   ending with the sentence naming LW_FORCE_SENSING_MISMATCH. No message box. Kill counting and
+   everything else keep working.
+4. Start a New Game and let the prayer dialogue run. Expect, about 1 second in, the WARN "A new game
+   signal was seen but the battle sentinel check has not passed, so the kill tally was left
+   untouched", NO "A new game was detected" line, no archive folder entry, and kills.json unchanged.
+5. The drill CANNOT fire while a resumed battle is live: the lane waits (silent retry) while the
+   battle MODE byte reads 1 to 5, and on the mode 0 frames inside a battle that carry an excuse
+   (a paused screen, a mid battle dialogue), the same rule BattleState.InLiveBattle uses. So
+   continue from a world map save or finish the battle first. A stuck slot0 marker on the world
+   map after a victory (no pause, no event) does not delay it.
+
+Without the marker file (a normal build) the lane arms with "The battle sentinels read as expected"
+right after the armed line, and a real New Game archives and clears exactly as before.
+**Cleanup:** redeploy; the marker is wiped.
+
 ## Add an extended-inventory item (a brand-new weapon past id 260, LW-346)
 
 Plain language: a new weapon is one row in `data/items.json` plus four generated icon files;

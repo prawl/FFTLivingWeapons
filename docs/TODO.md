@@ -56,7 +56,8 @@ the technical detail lives in the indented lines under it.
     and a test that a part behind a closed door is never ticked; the owner's live drill on a
     dev build with the forced-wrong landmark reads the report and sees the surviving parts
     work, then the owner's normal prod pass reads all ON; scan_logs clean on both.
-- **[LW-395] A moved battle sentinel must never make the mod think a new game started and clear the kill counts** (opened 2026-10-16) [QUEUED]
+- **[LW-395] A moved battle sentinel must never make the mod think a new game started and clear the kill counts** (opened 2026-10-16) [AWAITING-LIVE]
+  - Built 2026-10-16, suite 3776 green, owner live pass pending (dev drill leg, prod leg, cold-launch New Game leg).
   - Plain language: the mod watches two bytes in the game to notice when a player starts a
     new game, and on that signal it archives and clears the kill counts so the old playthrough
     does not bleed into the new one. If a game update moves those bytes and the new bytes
@@ -67,11 +68,15 @@ the technical detail lives in the indented lines under it.
     docs/research/WRITE_SITE_AUDIT_2026-10.md): PlaythroughReset.Observe reads EventId and
     BattleMode every tick and after thirty ticks of EventId 2 with BattleMode 0 out of live
     it archives and clears kills.json (PlaythroughReset.Policy.cs 28, PlaythroughReset.cs 53).
-  - (Tech: a sensing landmark over the sentinel family (Slot0, Slot9, BattleMode, EventId;
-    shape: BattleMode in its known value set and Slot0 reading one of its two documented
-    markers while a save is loaded) as a FingerprintGuard instance; PlaythroughReset.Observe
-    takes a sensingArmed input and returns NoChange while false; the landmark later becomes the
-    "battle sensing" line of the LW-393 report.)
+  - (Tech: the lane verifies out of battle only; an in battle reading retries silently,
+    because a Continue can resume a mid battle autosave and then the sentinels legitimately
+    look like a fight. The out of battle shape it accepts: Slot9 all ones, BattleMode 0 or
+    255, Slot0 all ones or a small phase value, EventId 0xFFFF or a small nonzero id, both
+    flags 0 or 1. PlaythroughReset.Observe takes a sensingArmed input and returns Fired,
+    Refused or None. Battle state hygiene still runs on Refused, while the data action
+    (archive and clear) runs only on Fired. A lane that arms after the hold already
+    completed fires once through a pending latch. The landmark later becomes the "battle
+    sensing" line of the LW-393 report.)
   - Done means: with the sensing landmark forced wrong on a dev build, thirty ticks of a
     fabricated EventId 2 do not archive or clear kills.json and the log says the reset was
     refused and why; on the normal build a real new game still archives and clears exactly as
@@ -225,6 +230,26 @@ belongs rather than at the bottom.
   orchestrator's VM-frame callers, the may-cast relocation past 255 and proc rates. Engine
   design walls (art welded to id, 4th menu row, entice pool relocation) stay walled. Every
   0x15xxxxxxx address (the old protector blob) is dead forever. Owner decides the order.
+- [LW-402] 2026-10-16: New weapon signatures still have to borrow an existing ability's number, because the game only knows 512 abilities; another modder has shown on this exact game build that brand-new ability numbers past 512 can be taught to it, so find out what that would buy us.
+  Not for 2.4.0. Scouted 2026-10-16 from ZeroDS's FFTModLoader source (github.com/andersongz0/
+  FFTModLoader, ContentExpansionRuntime): abilities 513 to 523 served from a mod-owned pointer
+  table by a stub in front of the ability getter (RVA 0x275A78) and its secondary-record getter
+  (0x2BB060), the action-bound immediates at 0x309B85 and 0x309CFB lifted 368 to 1024, the
+  ability data table 0x787F80 relocated 4096 to 8192 bytes by rewriting 31 operands, and a
+  private formula dispatch. Same exe SHA as ours. Independent work, not a copy of ours, and the
+  consumable path only; whether a weapon command (the Barrage and Shadow Blade lane) can ride
+  the same route is the question. Walled items that would reopen: the hijack recipe's
+  rename-and-re-effect limit, the parked Bloodpact channel, every "needs its own ability" idea
+  in docs/MECHANICS.md. Starts as a probe, not a build.
+- [LW-403] 2026-10-16: The file that remembers how many of each new weapon the player owns is tied to the save folder, so restoring an old save or copying saves between slots can hand a player the wrong counts; tie it to the save itself instead.
+  Not for 2.4.0. Today Persistence/ExtendedBagSidecar (LW-348) keys by save directory and
+  replays after load. The stronger identity, seen in ZeroDS's ExpandedSaveStore: key the sidecar
+  by the hash of the native save payload plus the slot, keep the previous generation under a
+  history folder, and write only after the game's own save completes (their hook sites 0x32B94,
+  0x32E60, 0x33DF0 are candidates to confirm against our SaveEdgeHooks). Done looks like: a
+  restored backup save gets the counts it had when it was written, a copied slot gets its own
+  counts, and a mod-less launch still loads clean. Pair with LW-390's reopen list only if the
+  save hooks move.
 
 - [LW-386] 2026-09-01: The Poacher's Den is handing players items the mod never meant it to, and one
   player saw four katanas where two dragons' carcasses belong. Plain language: a Discord player on

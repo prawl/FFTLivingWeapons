@@ -38,6 +38,8 @@ internal static class Offsets
                                              //   row; see Slot0InBattleMarker for the values).
     public static long Slot9 => ImageBase.At(0x140782A54);   // 1.5 CONFIRMED +0x6000 (was 0x14077CA54): read 0xFFFFFFFF at all four
                                              //   battle enter/exit edges on the same 2026-07-21 log.
+                                             //   Slot0 and Slot9 both stay 0xFFFFFFFF from the title screen through the Orbonne
+                                             //   opener until the first battle (LIVE_LEDGER [sentinel-out-of-battle-tuple]).
 
     /// <summary>The slot0 in-battle marker VALUE on 1.5 (pre-1.5 it was 0xFF; the quit-stick trap
     /// and the 0x66 victory-clear are pre-1.5 observations, sentinel_probe.py 2026-06-10).
@@ -398,6 +400,8 @@ internal static class Offsets
     //     world-map party menu from combat; this can, so the card paints there instead
     //     of only at game boot (the old "kills update only after restart" bug). ---
     public static long BattleMode => ImageBase.At(0x1409069A0);   // 1.5 CONFIRMED +0x6350 (was 0x140900650): u8 3-in-battle/0-on-map, tracked across 3 transitions
+                                             //   Also 255 before the session's first battle, 0 on the map after one (owner tape
+                                             //   2026-10-16, LIVE_LEDGER [sentinel-out-of-battle-tuple]).
 
     // --- in-battle "BattleStatus" card: checking a unit's status mid-battle opens the
     //     equip card (with the Kills line). Detected (per FFTHandsFree ScreenDetectionLogic)

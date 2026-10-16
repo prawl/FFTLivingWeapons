@@ -862,4 +862,285 @@ public class LaunchGuardTests
         }
         finally { Mem.WritesEnabled = prevWrites; }
     }
+
+    // ---- LW-395: the sensing lane (LaunchGuard.Sensing.cs) -------------------------------------
+    // The lane verifies the six battle sentinels once per launch, out of battle only. Staged through
+    // TerrainBlocks because the probe reads them with TryReadBytes (a failed read is Unreadable).
+
+    private static void StageSentinels(FakeSparseMemory mem, uint slot0, uint slot9, byte mode,
+        ushort eventId, byte pause, byte submenu)
+    {
+        SeedU32Bytes(mem, Offsets.Slot0, slot0);
+        SeedU32Bytes(mem, Offsets.Slot9, slot9);
+        mem.TerrainBlocks[Offsets.BattleMode] = new[] { mode };
+        mem.TerrainBlocks[Offsets.EventId] = new[] { (byte)eventId, (byte)(eventId >> 8) };
+        mem.TerrainBlocks[Offsets.PauseFlag] = new[] { pause };
+        mem.TerrainBlocks[Offsets.SubmenuFlag] = new[] { submenu };
+    }
+
+    // A guard plus everything its recorder, flush and notice taps captured.
+    private sealed class SensingRig
+    {
+        public readonly List<(string type, string payload)> Records = new();
+        public readonly List<string> Flushes = new();
+        public readonly List<(string title, string text)> Notices = new();
+        public LaunchGuard Guard = null!;
+    }
+
+    private static SensingRig NewSensingRig(FakeSparseMemory mem, bool forceSensingMismatch = false)
+    {
+        var rig = new SensingRig();
+        rig.Guard = new LaunchGuard(mem, forceMismatch: false,
+            notice: (t, x) => rig.Notices.Add((t, x)),
+            recorder: (t, p) => rig.Records.Add((t, p)),
+            requestFlush: f => rig.Flushes.Add(f),
+            forceSensingMismatch: forceSensingMismatch);
+        return rig;
+    }
+
+    // Arming the main guard flips Mem.WritesEnabled; restore it so no test leaks the static.
+    private static void WithWritesRestored(System.Action body)
+    {
+        bool prev = Mem.WritesEnabled;
+        try { Mem.WritesEnabled = false; body(); }
+        finally { Mem.WritesEnabled = prev; }
+    }
+
+    private static void StepSensingN(LaunchGuard g, int n) { for (int i = 0; i < n; i++) g.StepSensing(); }
+
+    [Theory]
+    [InlineData(0xFFFFFFFFu, 0xFFFFFFFFu, (byte)255, (ushort)0xFFFF, (byte)0, (byte)0)]   // idle: title screen through the pre-first-battle world
+    [InlineData(0xFFFFFFFFu, 0xFFFFFFFFu, (byte)0, (ushort)2, (byte)0, (byte)1)]          // the Orbonne opener
+    [InlineData(0x11u, 0xFFFFFFFFu, (byte)0, (ushort)0xFFFF, (byte)0, (byte)0)]           // post-battle small phase value
+    [InlineData(0x10u, 0xFFFFFFFFu, (byte)0, (ushort)0xFFFF, (byte)0, (byte)0)]           // post-victory stuck marker
+    public void Sensing_lane_arms_on_the_out_of_battle_tuples(uint slot0, uint slot9, byte mode, ushort ev, byte pause, byte sub)
+    {
+        WithWritesRestored(() =>
+        {
+            var mem = HealthyMemory();
+            StageSentinels(mem, slot0, slot9, mode, ev, pause, sub);
+            var rig = NewSensingRig(mem);
+
+            rig.Guard.Step();
+            Assert.Equal(GuardState.Armed, rig.Guard.State);
+            Assert.False(rig.Guard.SensingArmed);
+            rig.Guard.StepSensing();
+
+            Assert.True(rig.Guard.SensingArmed);
+            Assert.Equal(GuardState.Armed, rig.Guard.SensingState);
+            Assert.Contains(rig.Records, r => r.type == "guard" && r.payload.StartsWith("sensing lane armed"));
+            Assert.Empty(rig.Flushes);
+        });
+    }
+
+    [Theory]
+    [InlineData(0x10u, 0xFFFFFFFFu, (byte)3, (ushort)271, (byte)0, (byte)0)]    // a live battle
+    [InlineData(0x10u, 0u, (byte)1, (ushort)0, (byte)0, (byte)0)]               // slot9 dropped mid-battle: still family (a)
+    [InlineData(0xFFFFFFFFu, 0xFFFFFFFFu, (byte)2, (ushort)0xFFFF, (byte)0, (byte)0)]   // battle mode alone
+    [InlineData(0x10u, 0xFFFFFFFFu, (byte)0, (ushort)271, (byte)0, (byte)0)]    // marker-only mid-battle dialogue frame (mode 0, real event id): InLiveBattle's excuse
+    [InlineData(0x10u, 0xFFFFFFFFu, (byte)0, (ushort)0xFFFF, (byte)1, (byte)0)] // marker-only paused frame (mode 0, pause flag): InLiveBattle's excuse
+    [InlineData(0x10u, 0u, (byte)0, (ushort)271, (byte)0, (byte)0)]             // dialogue frame with slot9 dropped: must wait, never reach family (b)
+    public void Sensing_lane_waits_silently_while_a_battle_is_live(uint slot0, uint slot9, byte mode, ushort ev, byte pause, byte sub)
+    {
+        // A Continue can resume a mid-battle autosave, so the lane can come up with a battle live;
+        // it must retry (never count toward the debounce, never stand down a healthy build).
+        WithWritesRestored(() =>
+        {
+            var mem = HealthyMemory();
+            StageSentinels(mem, slot0, slot9, mode, ev, pause, sub);
+            var rig = NewSensingRig(mem);
+            rig.Guard.Step();
+            int before = rig.Records.Count;
+
+            StepSensingN(rig.Guard, 35);
+
+            Assert.Equal(GuardState.Verifying, rig.Guard.SensingState);
+            Assert.False(rig.Guard.SensingArmed);
+            Assert.Equal(before, rig.Records.Count);
+            Assert.Empty(rig.Flushes);
+
+            // and it still arms once the battle is over
+            StageSentinels(mem, 0xFFFFFFFFu, 0xFFFFFFFFu, 0, 0xFFFF, 0, 0);
+            rig.Guard.StepSensing();
+            Assert.True(rig.Guard.SensingArmed);
+        });
+    }
+
+    [Fact]
+    public void Sensing_foreign_slot9_stands_the_lane_down_after_the_debounce_and_nothing_else()
+    {
+        WithWritesRestored(() =>
+        {
+            var mem = HealthyMemory();
+            StageSentinels(mem, 0xFFFFFFFFu, 1u, 255, 0xFFFF, 0, 0);
+            var rig = NewSensingRig(mem);
+            rig.Guard.Step();
+
+            StepSensingN(rig.Guard, 29);
+            Assert.Equal(GuardState.Verifying, rig.Guard.SensingState);
+            rig.Guard.StepSensing();   // exactly MismatchDebounce (30) mismatching steps
+
+            Assert.Equal(GuardState.StoodDown, rig.Guard.SensingState);
+            Assert.False(rig.Guard.SensingArmed);
+            var rec = Assert.Single(rig.Records, r => r.payload.Contains("sensing stand-down"));
+            Assert.Equal("guard", rec.type);
+            Assert.Contains("slot9=0x00000001", rec.payload);
+            Assert.Equal("standdown", Assert.Single(rig.Flushes));
+            Assert.Empty(rig.Notices);   // no OS box for this lane
+            Assert.Equal(GuardState.Armed, rig.Guard.State);
+            Assert.True(Mem.WritesEnabled);
+        });
+    }
+
+    [Theory]
+    [InlineData(0u, 0u, (byte)0, (ushort)0, (byte)0, (byte)0, true)]                              // all zero: the address moved
+    [InlineData(0xFFFFFFFFu, 0xFFFFFFFFu, (byte)255, (ushort)0, (byte)0, (byte)0, true)]          // event 0 out of battle
+    [InlineData(0xFFFFFFFFu, 0xFFFFFFFFu, (byte)255, (ushort)0x400, (byte)0, (byte)0, true)]      // event above the plausible ceiling
+    [InlineData(0xFFFFFFFFu, 0xFFFFFFFFu, (byte)255, (ushort)401, (byte)0, (byte)0, false)]       // highest observed id: a Match
+    [InlineData(0xFFFFFFFFu, 0xFFFFFFFFu, (byte)7, (ushort)0xFFFF, (byte)0, (byte)0, true)]       // mode outside both families
+    [InlineData(0x100u, 0xFFFFFFFFu, (byte)0, (ushort)0xFFFF, (byte)0, (byte)0, true)]            // slot0 neither frozen nor small
+    [InlineData(0xFFFFFFFFu, 0xFFFFFFFFu, (byte)0, (ushort)0xFFFF, (byte)2, (byte)0, true)]       // pause is not a flag
+    [InlineData(0xFFFFFFFFu, 0xFFFFFFFFu, (byte)0, (ushort)0xFFFF, (byte)0, (byte)2, true)]       // submenu is not a flag
+    public void Sensing_out_of_battle_rules_match_or_mismatch(uint slot0, uint slot9, byte mode, ushort ev, byte pause, byte sub, bool mismatch)
+    {
+        WithWritesRestored(() =>
+        {
+            var mem = HealthyMemory();
+            StageSentinels(mem, slot0, slot9, mode, ev, pause, sub);
+            var rig = NewSensingRig(mem);
+            rig.Guard.Step();
+
+            StepSensingN(rig.Guard, 30);
+
+            if (mismatch)
+            {
+                Assert.Equal(GuardState.StoodDown, rig.Guard.SensingState);
+                Assert.Contains(rig.Records, r => r.payload.Contains($"slot0=0x{slot0:X8}")
+                    && r.payload.Contains($"slot9=0x{slot9:X8}") && r.payload.Contains($"event=0x{ev:X4}"));
+            }
+            else Assert.True(rig.Guard.SensingArmed);
+        });
+    }
+
+    [Fact]
+    public void Sensing_missing_sentinel_block_stays_verifying_silently()
+    {
+        WithWritesRestored(() =>
+        {
+            var mem = HealthyMemory();
+            StageSentinels(mem, 0xFFFFFFFFu, 0xFFFFFFFFu, 255, 0xFFFF, 0, 0);
+            mem.TerrainBlocks.Remove(Offsets.BattleMode);   // TryReadBytes fails outright
+            var rig = NewSensingRig(mem);
+            rig.Guard.Step();
+            int before = rig.Records.Count;
+
+            StepSensingN(rig.Guard, 35);
+
+            Assert.Equal(GuardState.Verifying, rig.Guard.SensingState);
+            Assert.Equal(before, rig.Records.Count);
+            Assert.Empty(rig.Flushes);
+        });
+    }
+
+    [Fact]
+    public void Sensing_lane_never_steps_before_the_main_guard_arms()
+    {
+        WithWritesRestored(() =>
+        {
+            var mem = HealthyMemory(level: 0);   // unpopulated roster: the main guard keeps retrying
+            StageSentinels(mem, 1u, 1u, 7, 9, 5, 5);   // would be a Mismatch if the lane ever stepped
+            var rig = NewSensingRig(mem);
+            rig.Guard.Step();
+
+            StepSensingN(rig.Guard, 35);
+
+            Assert.Equal(GuardState.Verifying, rig.Guard.State);
+            Assert.Equal(GuardState.Verifying, rig.Guard.SensingState);
+            Assert.Empty(rig.Records);
+            Assert.Empty(rig.Flushes);
+        });
+    }
+
+    [Fact]
+    public void Sensing_transient_mismatch_heals()
+    {
+        WithWritesRestored(() =>
+        {
+            var mem = HealthyMemory();
+            StageSentinels(mem, 0xFFFFFFFFu, 1u, 255, 0xFFFF, 0, 0);
+            var rig = NewSensingRig(mem);
+            rig.Guard.Step();
+
+            StepSensingN(rig.Guard, 10);
+            Assert.Equal(GuardState.Verifying, rig.Guard.SensingState);
+            StageSentinels(mem, 0xFFFFFFFFu, 0xFFFFFFFFu, 255, 0xFFFF, 0, 0);
+            rig.Guard.StepSensing();
+
+            Assert.True(rig.Guard.SensingArmed);
+        });
+    }
+
+    [Fact]
+    public void Sensing_drill_forces_a_mismatch_on_healthy_memory_and_names_only_its_own_flag()
+    {
+        WithWritesRestored(() =>
+        {
+            using var cap = LogCapture.Start();
+            var mem = HealthyMemory();
+            StageSentinels(mem, 0xFFFFFFFFu, 0xFFFFFFFFu, 255, 0xFFFF, 0, 0);
+            var rig = NewSensingRig(mem, forceSensingMismatch: true);
+            rig.Guard.Step();
+
+            StepSensingN(rig.Guard, 30);
+
+            Assert.Equal(GuardState.StoodDown, rig.Guard.SensingState);
+            Assert.Contains(rig.Records, r => r.payload.Contains("LW_FORCE_SENSING_MISMATCH"));
+            Assert.DoesNotContain(rig.Records, r => r.payload.Contains("LW_FORCE_FINGERPRINT_MISMATCH"));
+            Assert.Contains(cap.File, l => l.Contains("LW_FORCE_SENSING_MISMATCH"));
+            Assert.DoesNotContain(cap.File, l => l.Contains("LW_FORCE_FINGERPRINT_MISMATCH"));
+        });
+    }
+
+    [Fact]
+    public void Sensing_real_stand_down_names_neither_drill_flag_and_never_speaks_the_scanner_phrase()
+    {
+        // tools/scan_logs.py STANDDOWN_MARK classifies "standing down to protect your save" as a
+        // full stand-down; this lane leaves the mod running, so it must never say it.
+        WithWritesRestored(() =>
+        {
+            using var cap = LogCapture.Start();
+            var mem = HealthyMemory();
+            StageSentinels(mem, 0xFFFFFFFFu, 1u, 255, 0xFFFF, 0, 0);
+            var rig = NewSensingRig(mem);
+            rig.Guard.Step();
+
+            StepSensingN(rig.Guard, 30);
+
+            Assert.Equal(GuardState.StoodDown, rig.Guard.SensingState);
+            Assert.Contains(cap.File, l => l.Contains("battle sentinels do not read the way this mod expects"));
+            Assert.DoesNotContain(cap.File, l => l.Contains("standing down to protect your save"));
+            Assert.DoesNotContain(cap.File, l => l.Contains("LW_FORCE_"));
+            Assert.DoesNotContain(rig.Records, r => r.payload.Contains("LW_FORCE_"));
+        });
+    }
+
+    [Fact]
+    public void Sensing_stand_down_line_is_warn_tier_not_error()
+    {
+        WithWritesRestored(() =>
+        {
+            using var cap = LogCapture.Start();
+            var mem = HealthyMemory();
+            StageSentinels(mem, 0xFFFFFFFFu, 1u, 255, 0xFFFF, 0, 0);
+            var rig = NewSensingRig(mem);
+            rig.Guard.Step();
+
+            StepSensingN(rig.Guard, 30);
+
+            Assert.Equal(GuardState.StoodDown, rig.Guard.SensingState);
+            string line = Assert.Single(cap.File, l => l.Contains("The battle sentinels do not read the way this mod expects"));
+            Assert.Contains("[WARN]", line);
+            Assert.DoesNotContain("[ERROR]", line);
+        });
+    }
 }

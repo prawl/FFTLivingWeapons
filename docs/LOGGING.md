@@ -263,7 +263,8 @@ tier-up/milestone toast enqueue and drop (BannerToast); toast delivery into the 
 (PromptSwap); the Reliquary deed taps (`mark-earned`/`deed-miss`); the fingerprint guard's own
 lifecycle (`"guard"`, LaunchGuard):
 the armed edge and a stand-down's landmark diag, so a stand-down archive is self-contained
-(LW-53); and the Attack card's cursor-gate tripwire (`"card"`, AttackCard.Resolve.cs, LW-55):
+(LW-53), plus the sensing lane's own armed payload ("sensing lane armed (battle sentinels
+match; new-game detector enabled)", LW-395); and the Attack card's cursor-gate tripwire (`"card"`, AttackCard.Resolve.cs, LW-55):
 one record per refused cursor answer (roster/band weapon disagreement, or a hover that is not
 yet the turn owner), deduped to once per refusal key per battle, naming the refusal kind and
 both weapon ids so a live "wrong dossier" report can be diagnosed after the fact; the equip-card
@@ -337,6 +338,10 @@ a trigger other than `"error"` bypasses that latch entirely and the archive land
 `flight_*_standdown.jsonl`. The same trigger also fires on a kit-lane stand-down (LW-112, a
 conflicting mod's JobCommand-table edit disabling only the three weapon-granted commands); the
 record's payload text ("stand-down" vs "kit-lane stand-down") is what tells the two shapes apart.
+LW-395 adds a third shape: a sensing-lane stand-down (the battle sentinels did not read the way
+the mod expects, so only the new-game detector is switched off) records "sensing stand-down (...)"
+with the full observed sentinel tuple, and carries "(drill: LW_FORCE_SENSING_MISMATCH)" after the
+words "sensing stand-down" when a dev drill forced it.
 
 **The error trigger is FlushOnce, a documented divergence from "ERROR = broke + flight flush":**
 only the very first error of a launch ever produces a flight file, however many Error lines

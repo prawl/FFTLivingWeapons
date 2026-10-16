@@ -115,10 +115,14 @@ public class Mod : IMod
             // LW_FORCE_FINGERPRINT_MISMATCH to 1, or drop a marker file of that same name into the
             // mod dir (LW-83: env variables do not reach fft_enhanced through this box's launch
             // chain), before launching a DEV build to force the mismatch.
+            // LW-395: LW_FORCE_SENSING_MISMATCH (same two lanes) does the same for the sensing lane
+            // that gates the new-game detector.
 #if LWDEV
             bool devForceFingerprintMismatch = DrillTrigger.DrillRequested(modDir);
+            bool devForceSensingMismatch = DrillTrigger.DrillRequested(modDir, DrillTrigger.SensingFlagName);
 #else
             const bool devForceFingerprintMismatch = false;
+            const bool devForceSensingMismatch = false;
 #endif
             ModLogger.Event(LogVerb.Config,
                 $"Configuration loaded: LogLevel={ModLogger.LogLevel} (from {configPath})");
@@ -129,7 +133,8 @@ public class Mod : IMod
             Mem.WritesEnabled = false;
             // LW-52: bannerToasts and devSeedKills are no longer config-driven; omitting them lets
             // the Engine ctor fall back to its Tuning defaults (toasts on; dev-seed under LWDEV).
-            _engine = new Engine(modDir, devForceFingerprintMismatch: devForceFingerprintMismatch);
+            _engine = new Engine(modDir, devForceFingerprintMismatch: devForceFingerprintMismatch,
+                devForceSensingMismatch: devForceSensingMismatch);
             _engine.Start();
         }
         catch (Exception ex)

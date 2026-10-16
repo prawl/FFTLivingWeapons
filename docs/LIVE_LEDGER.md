@@ -20,6 +20,22 @@ isolated live) · **CONTRADICTED** (evidence points both ways, probe before buil
 
 ## Proven
 
+### [sentinel-out-of-battle-tuple] Out of battle the six battle sentinels hold one frozen tuple until a new game or a battle starts, and the Orbonne opener changes only the mode byte, the event id and the submenu flag (PROVEN 2026-10-16, owner live, probe tape plus three LW-395 legs)
+
+PROVEN 2026-10-16 (owner flip, after the probe walkthrough and the three LW-395 live legs the same evening). Plain language: the mod watches six bytes in the game to know whether a battle is on and whether a new game just started. On the current game build those six bytes sit perfectly still on the title screen, the world map, the party menu and after a quit to title, and they only move when a new game or a battle begins. That is what lets LW-395 check "are these the bytes I think they are" before it trusts a new game signal enough to clear the kill counts. New since the ledger's older rows: before the first battle of a session the mode byte reads 255, not 0.
+
+**Mechanism:** the tuple (Slot0, Slot9, BattleMode, EventId, PauseFlag, SubmenuFlag) read through tools/probes/sentinel_probe.py --watch (rebased onto the live image by tools/lib/livebase.py). Frozen out of battle, pre first battle: Slot0 0xFFFFFFFF, Slot9 0xFFFFFFFF, BattleMode 255, EventId 0xFFFF, PauseFlag 0, SubmenuFlag 0. The frozen tuple held unchanged across title screen, Continue into a save, world map, party menu with an equip card opened and closed, and a quit back to the title screen (one tape line in 122 seconds). New Game: BattleMode 255 to 0 and SubmenuFlag 0 to 1 on the same sample, EventId 0xFFFF to 2 fifty milliseconds later, then EventId held 2 with BattleMode 0 for the rest of the opener while PauseFlag toggled 0/1/0/1/0 as the prayer dialogue advanced; Slot0 and Slot9 stayed 0xFFFFFFFF throughout. Consequences: (1) the LW-395 sensing landmark verifies out of battle only: a Continue can resume a mid battle autosave, so the main guard (and the lane one tick behind it) can arm with the battle already live; the lane therefore treats a live mode byte (BattleMode 1 to 5) as not yet decidable and retries silently; the Slot0 marker is deliberately NOT an in battle signal for the lane, because it sticks at 0x10 or 0x11 on the world map after a victory (the slot0-battle-phase-values row) and a lane waiting on it could wait out the whole session after a resumed autosave battle was won; out of battle the lane requires Slot9 0xFFFFFFFF, BattleMode 0 or 255, Slot0 either 0xFFFFFFFF or a small phase value (0x10 and 0x11 included), EventId 0xFFFF or a small nonzero id, and both flags 0 or 1; (2) BattleState's "mode 0 = world map" comment is incomplete, 255 is the pre first battle value (the flight tapes already carried four "battleMode 255 -> 1" records); (3) the reset detector's own happy path fired on this same new game on the shipped prod build (livingweapon.log 16:39:33 "A new game was detected", archive kills.12.json), so EventId 2 at BattleMode 0 out of live remains the correct opener signature on this build.
+
+**Evidence:** tools/probes/tapes/sentinel_watch_20261016_163725.log (pid 30712, base 0x7FF65FC60000, seven change lines), the owner narrating each state in session; livingweapon.log 2026-10-16 16:37:49 (armed after Continue) and 16:39:33 (new game detected). Not observed on this tape: the post battle world map (Slot0 is known to read 0x10 or 0x11 there from the slot0-battle-phase-values row), the post quit value of Slot0, a resume into a mid battle autosave, and a cold launch New Game (when Ramza's roster row first fills on that path is unobserved; the LW-395 live script carries a leg for it). The lane's out of battle rule is deliberately wide on Slot0 so those states cannot false alarm; a moved BattleMode that happens to read 1 to 5 makes the lane retry forever with no line, the residual handed to LW-392's per door timer. LIVE LEGS 2026-10-16 18:03 to 18:12 (owner, prod build of the LW-395 tree): post QUIT title screen read Slot0 4, Slot9 0xFFFFFFFF, BattleMode 0, EventId 401, flags 0 (so event 401, once seen mid battle, is also the post quit title value; the lane's rule accepts this tuple); cold launch New Game armed the main guard 22 s after launch and the lane 35 ms later, before the prayer, with no refusal line, so a cold launch New Game is detectable; a dev drill stand down landed 5.3 s after arming because the post arm equip card sweep stretches ticks during the 30 tick debounce; the prod New Game archived kills.13.json with no WARN all session.
+
+**Date:** 2026-10-16
+
+
+
+
+
+
+
 ### [denuvo-free-build-relocates-under-aslr] The Denuvo-free game build relocates under ASLR and every pinned RVA is unchanged; the mod runs on it once every address is rebased onto the live image base (PROVEN 2026-10-16, owner live, twice)
 
 PROVEN 2026-10-16 (owner flips: the 2.3.4 hotfix pass at 23 seconds with a Chaos Blade kill, then the main port pass with the extended inventory armed and a Warbrand kill). Plain language: the September update removed the copy protection and the unprotected game is placed at a random address every launch. Nothing inside the program moved, so no address had to be found again; every address only had to be measured from where the game actually sits instead of where it used to sit.
@@ -2086,12 +2102,6 @@ Proven, owner-flipped 2026-08-30: the re-test on the masked-key build passed end
 </details>
 
 ## Uncertain, observed live, not yet isolated / built on
-
-
-
-
-
-
 
 ### [empty-tile-hand-read-bounds] The empty-tile fist swing comes from the last un-widened 0x105 hand-read bounds, and widening the nine makes an extended weapon read as held on those paths
 

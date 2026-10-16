@@ -1,0 +1,9 @@
+# sentinel watch pid=30712 base=0x7ff65fc60000 started 2026-10-16 16:37:25 for 1500s
+t=    0.00s slot0=0xffffffff slot9=0xffffffff mode=255 event=65535 pause=0 submenu=0
+t=  122.39s slot0=0xffffffff slot9=0xffffffff mode=0 event=65535 pause=0 submenu=1
+t=  122.44s slot0=0xffffffff slot9=0xffffffff mode=0 event=2 pause=0 submenu=1
+t=  124.86s slot0=0xffffffff slot9=0xffffffff mode=0 event=2 pause=1 submenu=1
+t=  128.39s slot0=0xffffffff slot9=0xffffffff mode=0 event=2 pause=0 submenu=1
+t=  128.54s slot0=0xffffffff slot9=0xffffffff mode=0 event=2 pause=1 submenu=1
+t=  129.19s slot0=0xffffffff slot9=0xffffffff mode=0 event=2 pause=0 submenu=1
+t=  778.88s slot0=unreadable slot9=unreadable mode=unreadable event=unreadable pause=unreadable submenu=unreadable

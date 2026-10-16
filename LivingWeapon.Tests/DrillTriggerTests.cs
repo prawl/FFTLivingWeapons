@@ -65,4 +65,43 @@ public class DrillTriggerTests
 
         Assert.True(DrillTrigger.DrillRequested(temp.Dir));
     }
+
+    // --- LW-395: the second drill flag (the sensing lane's), same two lanes ---
+
+    [Fact]
+    public void Sensing_flag_env_set_to_1_requests_the_drill()
+    {
+        string? Get(string name) => name == DrillTrigger.SensingFlagName ? "1" : null;
+        Assert.True(DrillTrigger.DrillRequested(ModDir, DrillTrigger.SensingFlagName, Get, NoFile));
+        Assert.False(DrillTrigger.DrillRequested(ModDir, DrillTrigger.FlagName, Get, NoFile));   // the other flag is not satisfied
+    }
+
+    [Fact]
+    public void Sensing_flag_marker_file_requests_the_drill_and_does_not_satisfy_the_first_flag()
+    {
+        string sensingPath = Path.Combine(ModDir, DrillTrigger.SensingFlagName);
+        Func<string, bool> fileExists = path => path == sensingPath;
+
+        Assert.True(DrillTrigger.DrillRequested(ModDir, DrillTrigger.SensingFlagName, Env(null), fileExists));
+        Assert.False(DrillTrigger.DrillRequested(ModDir, Env(null), fileExists));   // first flag's overload: its own file is absent
+    }
+
+    [Fact]
+    public void First_flag_marker_file_does_not_satisfy_the_sensing_flag()
+    {
+        string firstPath = Path.Combine(ModDir, DrillTrigger.FlagName);
+        Func<string, bool> fileExists = path => path == firstPath;
+
+        Assert.True(DrillTrigger.DrillRequested(ModDir, Env(null), fileExists));
+        Assert.False(DrillTrigger.DrillRequested(ModDir, DrillTrigger.SensingFlagName, Env(null), fileExists));
+    }
+
+    [Fact]
+    public void Sensing_flag_production_overload_sees_a_real_marker_file()
+    {
+        using var temp = TempDirs.Create("lw_drill_");
+        File.WriteAllText(Path.Combine(temp.Dir, DrillTrigger.SensingFlagName), "");
+
+        Assert.True(DrillTrigger.DrillRequested(temp.Dir, DrillTrigger.SensingFlagName));
+    }
 }

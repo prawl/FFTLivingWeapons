@@ -44,6 +44,10 @@ namespace LivingWeapon;
 /// (StepKitLane, KitLaneArmedEdge, KitLaneStandDown) live together in LaunchGuard.KitLane.cs
 /// instead -- one file for the lane's whole seam, since it is small enough not to need its own
 /// WHAT/lifecycle split.
+///
+/// LW-395: a THIRD independent instance, the SENSING lane (LaunchGuard.Sensing.cs), verifies the
+/// six battle sentinels once per launch, out of battle only. It gates the new-game detector so a
+/// moved sentinel can never clear kills.json; a stand-down there switches only that detector off.
 /// </summary>
 internal sealed partial class LaunchGuard
 {
@@ -61,6 +65,8 @@ internal sealed partial class LaunchGuard
     // LW-83: the drill ctor arg, stashed so StandDown can self-identify a drill-forced stand-down
     // (Mod.cs compiles this to a hard false outside LWDEV, so a player build never sets it).
     private readonly bool _forceMismatch;
+    // LW-395: the sensing lane's fields (_sensingGuard, _expectedSlot9, _forceSensingMismatch) are
+    // declared in LaunchGuard.Sensing.cs beside the lane's probe; this ctor only assigns them.
 
     /// <param name="notice">The OS-level stand-down notice; null (the default) means NO OS notice
     /// fires, which is what every unit test gets so a real message box never pops during
@@ -69,8 +75,11 @@ internal sealed partial class LaunchGuard
     /// <param name="recorder">LW-53: the flight ring tap (production: Flight.Record).</param>
     /// <param name="requestFlush">LW-53: the flight flush request (production: Flight.RequestFlush);
     /// only stand-down calls this, with a dedicated "standdown" trigger.</param>
+    /// <param name="forceSensingMismatch">LW-395 dev drill (LW_FORCE_SENSING_MISMATCH): perturbs
+    /// the sensing lane's expected slot9 so healthy memory reads as a mismatch.</param>
     public LaunchGuard(IGameMemory mem, bool forceMismatch, Action<string, string>? notice = null,
-        Action<string, string>? recorder = null, Action<string>? requestFlush = null)
+        Action<string, string>? recorder = null, Action<string>? requestFlush = null,
+        bool forceSensingMismatch = false)
     {
         _mem = mem;
         _forceMismatch = forceMismatch;
@@ -96,6 +105,12 @@ internal sealed partial class LaunchGuard
         // as the main guard; its own arm/stand-down edges live in LaunchGuard.KitLane.cs.
         var kitLaneLandmarks = new[] { FingerprintGuard.Custom("jobcommand-table", ProbeKitLaneTable) };
         _kitLaneGuard = new FingerprintGuard(kitLaneLandmarks, KitLaneStandDown, KitLaneArmedEdge, MismatchDebounce);
+
+        // LW-395: the sensing lane's one landmark; lifecycle and probe live in LaunchGuard.Sensing.cs.
+        _forceSensingMismatch = forceSensingMismatch;
+        _expectedSlot9 = forceSensingMismatch ? SensingSentinelIdle ^ 1 : SensingSentinelIdle;
+        _sensingGuard = new FingerprintGuard(new[] { FingerprintGuard.Custom("battle-sentinels", ProbeSensingTuple) },
+            SensingStandDown, SensingArmedEdge, MismatchDebounce);
     }
 
     public bool Armed => _guard.Armed;
