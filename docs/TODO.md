@@ -13,6 +13,66 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.4.0)
 
+- **[LW-393] When a game update breaks one part of the mod, only that part switches off and the player is told which parts still work** (opened 2026-10-16) [QUEUED]
+  - Plain language: today the mod has one safety switch. If any one of its checks fails at
+    startup, the whole mod stays off and the player gets one message telling them to update.
+    The September game update tripped that switch over nothing (the game was recompiled,
+    nothing moved) and players lost the whole mod for a month. The owner ruled 2026-10-16: a
+    mod that breaks in parts beats a tower that falls at once. Each part gets its own check
+    and its own switch, and the startup report lists every part as ON or OFF with the reason.
+  - Premise work, same day, both banked in docs/research/WRITE_SITE_AUDIT_2026-10.md: a
+    write-site audit (129 write sites in 59 files, ten agents) and an adversarial check of the
+    dependency model drawn from it. Four corrections from that check drive the design: the
+    game build key is the real global switch and also gates the extended inventory, the
+    banners and the weapon commands; the band and the combat structs are ONE pinned region
+    while the static unit array at 0x140899F50 is a second the first model missed; a shared
+    sensing layer (battle sentinels, EventId, TurnQueue, ActorPtr, Acted) sits under every
+    part; and the harmful-write class is five static-table writers plus GunSlinger's roster
+    stamps, everything else failing closed by fingerprint.
+  - Parts for the report: battle sensing, kill counting, stat growth, card paint, band
+    signatures, static-table signatures, weapon commands, banners, extended inventory, twin
+    pistols. Stages, each green on its own: (0) sensing landmark and the kills.json reset
+    guard (LW-395); (1) LW-392 plus the build key demotion to a logged warning; (2) the parts
+    registry, a per-module gate inside the signature loop, the report; (3) region landmarks
+    (band, static array, the five static tables, GunSlinger). Rough size four to six days.
+  - (Tech: FingerprintGuard core reusable per door (KitLane is the template); PE key becomes
+    a report line, never a stand-down; ExtendedInventory's arm drops the PE key gate and
+    keeps per-site bytes; PromptSwapHook's OfferHookArm and the kit lane step unchain from
+    the main guard's Armed edge; TickGates gain one predicate per part; the field-signatures
+    row gates per module; StandDownNotice aggregates into one box; Unreadable gets a timed
+    log line per door; scan_logs STANDDOWN_MARK phrase kept or updated with the scanner.)
+  - Done means: on a dev build with one landmark deliberately forced wrong, the log and the
+    once-per-session box list every part with ON or OFF and a plain reason, the parts that do
+    not need the moved region keep running (counter paints, banners fire, extended items
+    list), nothing is written where a check failed, and on the normal build every part
+    reports ON with the build key logged as information; the three existing gates (kit lane,
+    prompt hook, extended arm) still refuse exactly as before.
+  - Verify: full suite green with the per-door landmark tests, the registry and report tests,
+    and a test that a part behind a closed door is never ticked; the owner's live drill on a
+    dev build with the forced-wrong landmark reads the report and sees the surviving parts
+    work, then the owner's normal prod pass reads all ON; scan_logs clean on both.
+- **[LW-392] The mod says so when it cannot find the game instead of staying silent** (opened 2026-10-16) [QUEUED]
+  - Plain language: players spent three weeks guessing why kill counts froze because the mod
+    stayed silent when it could not find the game. After a short wait it should say so, once,
+    in the log and in a box, and then keep trying. This is stage 1 of LW-393 and lands with
+    the build key demotion.
+  - The September break (LW-387) read as Unreadable at the guard, which retries silently by
+    design for the boot window. Five Nexus reports (2026-09-20 to 10-04) describe "mod loads,
+    cards show the baked 0/5 text, nothing counts" with no message anywhere. A Ramza-row
+    Unreadable with readable image is the normal title screen and never warns; the warning is
+    for the case where the mod cannot see the game at all, plus a calmer "still waiting" log
+    line when a save should have loaded by now.
+  - (Tech: count consecutive Unreadable ticks per landmark in FingerprintGuard; after about a
+    minute log ONE warn and show the once-per-session box for a landmark that needs no save;
+    an eventual arm logs "armed after the warning"; the roster probe must tell an unreadable
+    page from an empty slot (today both read as level 0). LaunchGuardTests pins the silent
+    retry as correct and must change with the behavior. No interaction with AnchorScout.)
+  - Done means: a dev build launched with the image deliberately unreadable to the guard logs
+    the warning after about a minute and shows the box once; the normal build on the title
+    screen never warns; loading a save after the warning arms and logs the recovery line.
+  - Verify: suite green with the timing tests replacing the pinned silent-retry test; the
+    owner's dev drill shows the box once and the log line; the owner's normal launch shows no
+    box and arms as usual.
 - **[LW-323] A weapon's level-up announcement never shows up a battle late anymore** (opened 2026-08-25) [AWAITING-LIVE]
   - BUILT and adversarially verified 2026-08-26 (code 9 of 10, zero code findings; suite
     3332 green), owner live pass outstanding. The owner saw "Stoneshooter has grown to
@@ -82,43 +142,25 @@ Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner dire
 A new row still lands here in the session it surfaces; slot it where its urgency
 belongs rather than at the bottom.
 
-- [LW-393] 2026-10-16: When a game update moves one piece of the game, the mod should switch off only the parts that need that piece and tell the player which parts are off and which still work, instead of the whole mod going dark.
-  Owner ruling 2026-10-16: a mod that breaks in parts beats a tower that falls at once. Premise
-  work the same day: a write-site audit (129 write sites, 59 files) and an adversarial check of
-  the dependency model drawn from it (both in the session scratchpad, to be banked as a research
-  journal with the first stage). What the check established: (1) the game build key is the real
-  global switch today and it also sits inside the extended inventory's arm and in front of the
-  banners and the weapon commands, so demoting it from a stand-down to a logged warning is step
-  one, not a detail; (2) the band and the combat structs are ONE pinned region, and the static
-  unit array at 0x140899F50 that the kill oracle reads is a second region the first model missed;
-  (3) a shared sensing layer (battle sentinels, EventId, TurnQueue, ActorPtr, Acted) sits under
-  every part and one consumer, the new-game reset, archives and clears kills.json after thirty
-  ticks of EventId 2 with BattleMode 0, so a moved sentinel can wipe the tally; it needs its own
-  landmark and the reset must require it; (4) the harmful-write class is five static-table writers
-  (Bulwark terrain grid, weapon palette banks, the poach den store which is save state, Provoke's
-  action and inflict tables, the WP table hold) plus GunSlinger's roster stamps, each needing a
-  vanilla-byte landmark; everything else fails closed by fingerprint. Parts for the report: battle
-  sensing, kill counting, stat growth, card paint, band signatures, static-table signatures, weapon
-  commands, banners, extended inventory, twin pistols. Stages: (0) sensing landmark and the reset
-  guard, (1) LW-392 plus the build key demotion, (2) parts registry, per-module gate inside the
-  signature loop, the report, (3) region landmarks. A dev drill forces one part down and the owner
-  reads the report. Rough size after the check: double the first guess, four to six days.
 - [LW-394] 2026-10-16: Three weapon commands mark an ability as learned in the player's save and never unmark it, so no safety switch can undo them if they ever land in the wrong place; decide whether they should clean up after themselves.
   Barrage, Shadow Blade and Provoke each set one learned bit in the roster row (Barrage.cs 247,
   ShadowBlade.cs 199, Provoke.cs 194) and hold it by design so the command stays usable. The audit
   found these are the only save-persistent writes with no restore path; the Ramza row landmark is
   their only protection under any guard design. Options: clear the bit when the grant ends, or keep
   the hold and accept the risk in writing. Surfaced by the 2026-10-16 write-site audit.
-- [LW-392] 2026-10-16: Players spent three weeks guessing why kill counts froze because the mod stayed silent when it could not find the game; make it say so after a short wait.
-  The September break (LW-387) read as Unreadable at the guard, which retries silently by design
-  for the boot window. Five Nexus reports (2026-09-20 to 10-04) describe "mod loads, cards show the
-  baked 0/5 text, nothing counts" with no message anywhere. Design (plan review 2026-10-16): count
-  consecutive ticks on which the PE-key landmark reads Unreadable; that landmark needs no save and
-  reads Match within one tick when the base is right, so it is the base-independent symptom. After
-  about a minute log ONE warn ("cannot find the game in memory") and show the once-per-session box,
-  then keep retrying; an eventual arm logs "armed after the warning". A Ramza-row Unreadable with a
-  matched PE key is the normal title screen and never warns. No interaction with AnchorScout or the
-  kit lane. Build-lite after LW-388 lands.
+- [LW-395] 2026-10-16: A moved battle sentinel could make the mod think a new game started and archive and clear the player's kill counts; the new-game detector must refuse unless the battle sensing checks pass.
+  Found by the 2026-10-16 adversarial check of the parts model: PlaythroughReset.Observe reads
+  EventId and BattleMode every tick and after thirty ticks of EventId 2 with BattleMode 0 out of
+  live it archives and clears kills.json (PlaythroughReset.Policy.cs 28, PlaythroughReset.cs 53).
+  If a game update moves those sentinels and the new bytes happen to read 2 and 0, the tally is
+  wiped. Stage 0 of LW-393: give the sensing layer its own landmark and gate the reset on it.
+  Independent of the parts model, so it ships first.
+- [LW-396] 2026-10-16: A Warbrand kill on the enemy's own turn went uncredited in the owner's live pass; look at whether the enemy-turn rule is too strict for weapon damage that lands during the enemy phase.
+  Live pass 2026-10-16 11:02 (LW-388 port): the first Warbrand kill was refused by the existing
+  enemy-turn rule (KillTracker.Corpses, UntrackedReason.EnemyTurn) while the second was credited.
+  Pre-existing behavior, not a regression; the rule exists to stop enemy-on-enemy deaths from
+  paying a player weapon. Worth a flight-tape read to see whether a counter or reaction kill is
+  being thrown away.
 - [LW-389] 2026-10-15: The live memory probes in tools/probes still talk to the game at the old fixed address; teach the shared harness the real module base so probes work again on the unprotected game.
   battle_cheats.py and friends read pins from tools/lib/offsets.py (preferred base) and RPM the
   game externally; with ASLR on they must add the live base (EnumProcessModules or psutil on
