@@ -10,8 +10,8 @@ namespace LivingWeapon.Tests;
 public class OrderRebuildHookTests
 {
     private static readonly nint List = (nint)0x141811470;   // the live inventory buffer address, any value works
-    private const long Bag = Offsets.BagCountArray;
-    private static readonly nint Picker = (nint)Offsets.PickerOrderTemplate;
+    private static long Bag => Offsets.BagCountArray;
+    private static nint Picker => (nint)Offsets.PickerOrderTemplate;
 
     private static byte[] Words(params ushort[] words)
     {

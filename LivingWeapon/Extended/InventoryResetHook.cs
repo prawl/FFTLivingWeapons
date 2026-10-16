@@ -74,11 +74,11 @@ internal sealed class InventoryResetHook
     /// cref="ExtendedInventory.BagCountBase"/> in production (the relocated page once armed,
     /// else the vanilla block); defaults to the vanilla block so every pre-existing caller keeps
     /// compiling unchanged.</param>
-    public InventoryResetHook(ICodePatcher mem, int extendedCount, long targetAddr = 0, long bagBase = Offsets.BagCountArray)
+    public InventoryResetHook(ICodePatcher mem, int extendedCount, long targetAddr = 0, long bagBase = 0)
     {
         _mem = mem;
         _count = extendedCount;
-        _bagBase = bagBase;
+        _bagBase = bagBase == 0 ? Offsets.BagCountArray : bagBase;   // 0 = the vanilla block (a rebased pin cannot be a default value)
         TargetAddr = targetAddr == 0 ? Offsets.FnInventoryReset : targetAddr;
     }
 

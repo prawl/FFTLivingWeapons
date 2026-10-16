@@ -4,7 +4,7 @@ namespace LivingWeapon;
 
 /// <summary>
 /// LW-365: the stateful half of the swing-id fallback (<see cref="ThunkStub.EmitSwingIdFallbackStub"/>
-/// is the pure byte half), ThunkClone's twin for a mid-instruction jump instead of a five-byte
+/// is the pure byte half), AccessorEntryHook's twin for a mid-instruction jump instead of a five-byte
 /// accessor thunk. The swing-prep routine copies the standing swing-id word into the animation
 /// record with a 7-byte movzx at <see cref="Offsets.FnSwingPrepIdCopy"/>; for a moved id that word
 /// is 0 at swing time, so the art lookup draws bare hands (docs/LIVE_LEDGER.md
@@ -13,7 +13,7 @@ namespace LivingWeapon;
 /// standing word and, only when it is 0 AND the acting unit's right hand holds one of our ids,
 /// substitutes the hand id before returning to the original code right after the site.
 ///
-/// Same contract as ThunkClone: every step returns a refusal string instead of throwing, Install
+/// Same contract as AccessorEntryHook: every step returns a refusal string instead of throwing, Install
 /// is idempotent, Restore puts the seven original bytes back and deliberately leaks the stub page
 /// (a game thread may be inside it; the rig's rule R3).
 /// </summary>
@@ -27,9 +27,9 @@ internal sealed class SwingIdFallbackHook
     public long StubAddr { get; private set; }
     private byte[]? _original;
 
-    public SwingIdFallbackHook(long siteAddr = Offsets.FnSwingPrepIdCopy)
+    public SwingIdFallbackHook(long siteAddr = 0)
     {
-        SiteAddr = siteAddr;
+        SiteAddr = siteAddr == 0 ? Offsets.FnSwingPrepIdCopy : siteAddr;   // 0 = the live pin (a rebased pin cannot be a default value)
     }
 
     /// <summary>Installs the redirect for extended ids [lo, lo + count - 1]. Idempotent: a second

@@ -41,13 +41,17 @@ internal sealed class ExtendedCatalog
         }
         if (!patcher.TryRead(Offsets.ExtCatalogDisp32, 4, out var cur))
             return $"catalog: disp32 site 0x{Offsets.ExtCatalogDisp32:X} is unreadable";
-        var vanilla = EncodeDisp32(Offsets.ExtCatalogBase, Offsets.ModuleBase)!;
+        // LW-388: both terms are LIVE (ExtCatalogBase is a rebased pin, ImageBase.Base the live
+        // base), so their difference is the same RVA the file carries: correct by construction.
+        var vanilla = EncodeDisp32(Offsets.ExtCatalogBase, ImageBase.Base)!;
         if (!BytesEqual(cur, vanilla))
             return $"catalog: disp32 reads {Convert.ToHexString(cur)}, expected vanilla {Convert.ToHexString(vanilla)} (already redirected or moved)";
 
-        long buf = allocator.Alloc(BufferSize, Offsets.ModuleBase);
+        long buf = allocator.Alloc(BufferSize, ImageBase.Base);
         if (buf == 0) return "catalog: no page within reach of the image base";
-        var disp = EncodeDisp32(buf, Offsets.ModuleBase);
+        // The accessor indexes from the LIVE image base the game holds in a register, so the new
+        // disp32 is measured from ImageBase.Base, never the preferred base.
+        var disp = EncodeDisp32(buf, ImageBase.Base);
         if (disp == null) return $"catalog: buffer 0x{buf:X} is out of disp32 reach";
         if (!patcher.TryWrite(buf, new byte[BufferSize])) return $"catalog: zero-fill refused at 0x{buf:X}";
 

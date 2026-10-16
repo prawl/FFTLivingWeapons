@@ -65,14 +65,14 @@ internal sealed partial class ListRelocation
         if (Installed) return null;
         foreach (var site in Sites)
         {
-            if (!patcher.TryRead(site.Addr, 4, out var bytes))
-                return $"list-relocation: 0x{site.Addr:X} is unreadable (expected vanilla 0x{site.Vanilla:X8})";
+            if (!patcher.TryRead(Live(site), 4, out var bytes))
+                return $"list-relocation: 0x{Live(site):X} is unreadable (expected vanilla 0x{site.Vanilla:X8})";
             int now = BitConverter.ToInt32(bytes, 0);
             if (now != site.Vanilla)
-                return $"list-relocation: 0x{site.Addr:X} reads 0x{now:X8}, expected vanilla 0x{site.Vanilla:X8} (already redirected or moved)";
+                return $"list-relocation: 0x{Live(site):X} reads 0x{now:X8}, expected vanilla 0x{site.Vanilla:X8} (already redirected or moved)";
         }
 
-        long page = allocator.Alloc(PageSize, Offsets.ModuleBase);
+        long page = allocator.Alloc(PageSize, ImageBase.Base);
         if (page == 0) return "list-relocation: no page within reach of the image base";
         string? reach = CheckReach(page);
         if (reach != null) return reach;
@@ -86,11 +86,11 @@ internal sealed partial class ListRelocation
         var written = new List<Site>(Sites.Length);
         foreach (var site in Sites)
         {
-            if (!patcher.TryWrite(site.Addr, Encode(NewField(site, page))))
+            if (!patcher.TryWrite(Live(site), Encode(NewField(site, page))))
             {
                 for (int i = written.Count - 1; i >= 0; i--)
-                    patcher.TryWrite(written[i].Addr, Encode(written[i].Vanilla));
-                return $"list-relocation: field write refused at 0x{site.Addr:X}";
+                    patcher.TryWrite(Live(written[i]), Encode(written[i].Vanilla));
+                return $"list-relocation: field write refused at 0x{Live(site):X}";
             }
             written.Add(site);
         }
@@ -110,7 +110,7 @@ internal sealed partial class ListRelocation
         if (!Installed) return true;
         bool ok = true;
         foreach (var site in Sites)
-            ok &= patcher.TryWrite(site.Addr, Encode(site.Vanilla));
+            ok &= patcher.TryWrite(Live(site), Encode(site.Vanilla));
         if (ok)
         {
             CountBase = Offsets.BagCountArray;

@@ -6,8 +6,9 @@ namespace LivingWeapon;
 /// <summary>
 /// The tick half of <see cref="ExtendedInventory"/> (Engine phases "extended-caps",
 /// "extended-bag" and "extended-shops", every 30th tick, only once LaunchGuard armed):
-///   - the two copy-protected damage caps (ExtendedSites.PostLoadPatches) are stepped as
-///     <see cref="PendingPatch"/>es until each settles, each settle logged exactly once;
+///   - the copy-protected caps (ExtendedSites.PostLoadPatches; none since LW-388, the Denuvo-free
+///     build patches both damage caps at boot) are stepped as <see cref="PendingPatch"/>es until
+///     each settles, each settle logged exactly once;
 ///   - the bag counts of the extended ids follow the game's own save edges (LW-353): when the
 ///     game serialized a save, the counts of that instant are recorded under that save's key;
 ///     when the game applied a loaded save (its bag now holds the file's 261 counts and nothing

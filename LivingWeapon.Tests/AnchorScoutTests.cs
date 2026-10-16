@@ -18,8 +18,8 @@ namespace LivingWeapon.Tests;
 /// </summary>
 public class AnchorScoutTests
 {
-    private const long JobPin = Barrage.AbilityBase;
-    private const long RosterPin = Offsets.RosterBase;
+    private static long JobPin => Barrage.AbilityBase;
+    private static long RosterPin => Offsets.RosterBase;
     private const long Half = 0x10000;      // 64KB test region (the plan's fixture-size guidance)
     private const int ChunkBytes = 0x2000;  // 8KB chunks
 

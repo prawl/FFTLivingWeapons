@@ -56,8 +56,11 @@ internal static partial class TemplateSeat
     /// the words a log line calls it by.</summary>
     internal readonly record struct Region(long Addr, int CapacityWords, string Label);
 
-    /// <summary>The two weapon templates, in the order they are seated.</summary>
-    internal static readonly Region[] WeaponRegions =
+    /// <summary>The two weapon templates, in the order they are seated. Addr is LIVE (rebased
+    /// <see cref="Offsets"/> properties), so this is a property building a fresh array, never a
+    /// static readonly field that would bake the image base at type-init (LW-388); it is compared
+    /// against the live rcx in OrderRebuildHook.Seat.</summary>
+    internal static Region[] WeaponRegions => new Region[]
     {
         new(Offsets.InventoryOrderTemplate, Offsets.InventoryOrderTemplateWords, "the inventory order template"),
         new(Offsets.PickerOrderTemplate, Offsets.PickerOrderTemplateWords, "the equip-picker order template"),

@@ -87,7 +87,7 @@ internal sealed partial class LaunchGuard
 
         var landmarks = new[]
         {
-            FingerprintGuard.PeBuildKey(tryRead, ModuleBase, expectedTimeDateStamp, ExpectedSizeOfImage),
+            FingerprintGuard.PeBuildKey(tryRead, ImageBase.Base, expectedTimeDateStamp, ExpectedSizeOfImage),
             FingerprintGuard.Custom("ramza-roster-row", ProbeRamzaRosterRow),
         };
         _guard = new FingerprintGuard(landmarks, StandDown, ArmedEdge, MismatchDebounce);

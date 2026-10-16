@@ -53,7 +53,12 @@ internal sealed partial class TemplateRelocation
     public string? Install(ICodePatcher patcher, INearAllocator allocator)
     {
         if (Installed) return null;
-        foreach (var s in Slots)
+        // LW-388: one snapshot of each LIVE table per call (they are properties that build a
+        // fresh array on every read).
+        var slots = Slots;
+        var capSites = CapSites;
+        var charts = Charts;
+        foreach (var s in slots)
         {
             if (!patcher.TryRead(s.Addr, 8, out var b))
                 return $"template-relocation: 0x{s.Addr:X} is unreadable (expected vanilla 0x{s.Vanilla:X})";
@@ -63,13 +68,13 @@ internal sealed partial class TemplateRelocation
         }
         foreach (var f in RipFields)
         {
-            if (!patcher.TryRead(f.Addr, 4, out var b))
-                return $"template-relocation: 0x{f.Addr:X} is unreadable (expected vanilla 0x{f.Vanilla:X8})";
+            if (!patcher.TryRead(Live(f), 4, out var b))
+                return $"template-relocation: 0x{Live(f):X} is unreadable (expected vanilla 0x{f.Vanilla:X8})";
             int now = BitConverter.ToInt32(b, 0);
             if (now != f.Vanilla)
-                return $"template-relocation: 0x{f.Addr:X} reads 0x{now:X8}, expected vanilla 0x{f.Vanilla:X8} (already redirected or moved)";
+                return $"template-relocation: 0x{Live(f):X} reads 0x{now:X8}, expected vanilla 0x{f.Vanilla:X8} (already redirected or moved)";
         }
-        foreach (var c in CapSites)
+        foreach (var c in capSites)
         {
             if (!patcher.TryRead(c.Addr, c.Vanilla.Length, out var b))
                 return $"template-relocation: 0x{c.Addr:X} is unreadable (expected vanilla 0x{Convert.ToHexString(c.Vanilla)})";
@@ -77,26 +82,26 @@ internal sealed partial class TemplateRelocation
                 return $"template-relocation: 0x{c.Addr:X} reads 0x{Convert.ToHexString(b)}, expected vanilla 0x{Convert.ToHexString(c.Vanilla)} (already redirected or moved)";
         }
 
-        long page = allocator.Alloc(PageSize, Offsets.ModuleBase);
+        long page = allocator.Alloc(PageSize, ImageBase.Base);
         if (page == 0) return "template-relocation: no page within reach of the image base";
         string? reach = CheckReach(page);
         if (reach != null) return reach;
 
-        var spans = new byte[Charts.Length][];
-        for (int i = 0; i < Charts.Length; i++)
+        var spans = new byte[charts.Length][];
+        for (int i = 0; i < charts.Length; i++)
         {
-            if (!patcher.TryRead(Charts[i].OldBase, Charts[i].SpanBytes, out spans[i]))
-                return $"template-relocation: the old {Charts[i].Label} span at 0x{Charts[i].OldBase:X} is unreadable";
+            if (!patcher.TryRead(charts[i].OldBase, charts[i].SpanBytes, out spans[i]))
+                return $"template-relocation: the old {charts[i].Label} span at 0x{charts[i].OldBase:X} is unreadable";
         }
-        for (int i = 0; i < Charts.Length; i++)
+        for (int i = 0; i < charts.Length; i++)
         {
-            byte[] image = TemplateSync.RegionImage(spans[i], Charts[i].RegionBytes);
-            if (!patcher.TryWrite(page + Charts[i].PageOffset, image))
-                return $"template-relocation: the {Charts[i].Label} page copy was refused";
+            byte[] image = TemplateSync.RegionImage(spans[i], charts[i].RegionBytes);
+            if (!patcher.TryWrite(page + charts[i].PageOffset, image))
+                return $"template-relocation: the {charts[i].Label} page copy was refused";
         }
 
-        var written = new List<(long Addr, byte[] Old)>(Slots.Length + RipFields.Length + CapSites.Length);
-        foreach (var s in Slots)
+        var written = new List<(long Addr, byte[] Old)>(slots.Length + RipFields.Length + capSites.Length);
+        foreach (var s in slots)
         {
             if (!patcher.TryWrite(s.Addr, BitConverter.GetBytes(page + PageOffsetOf(s.Chart))))
             { RollBack(patcher, written); return $"template-relocation: field write refused at 0x{s.Addr:X}"; }
@@ -104,11 +109,11 @@ internal sealed partial class TemplateRelocation
         }
         foreach (var f in RipFields)
         {
-            if (!patcher.TryWrite(f.Addr, BitConverter.GetBytes(NewField(f, page))))
-            { RollBack(patcher, written); return $"template-relocation: field write refused at 0x{f.Addr:X}"; }
-            written.Add((f.Addr, BitConverter.GetBytes(f.Vanilla)));
+            if (!patcher.TryWrite(Live(f), BitConverter.GetBytes(NewField(f, page))))
+            { RollBack(patcher, written); return $"template-relocation: field write refused at 0x{Live(f):X}"; }
+            written.Add((Live(f), BitConverter.GetBytes(f.Vanilla)));
         }
-        foreach (var c in CapSites)
+        foreach (var c in capSites)
         {
             if (!patcher.TryWrite(c.Addr, c.New))
             { RollBack(patcher, written); return $"template-relocation: field write refused at 0x{c.Addr:X}"; }
@@ -128,7 +133,7 @@ internal sealed partial class TemplateRelocation
         if (!Installed) return true;
         bool ok = true;
         foreach (var s in Slots) ok &= patcher.TryWrite(s.Addr, BitConverter.GetBytes(s.Vanilla));
-        foreach (var f in RipFields) ok &= patcher.TryWrite(f.Addr, BitConverter.GetBytes(f.Vanilla));
+        foreach (var f in RipFields) ok &= patcher.TryWrite(Live(f), BitConverter.GetBytes(f.Vanilla));
         foreach (var c in CapSites) ok &= patcher.TryWrite(c.Addr, c.Vanilla);
         if (ok) _installed = false;
         return ok;
@@ -160,9 +165,9 @@ internal sealed partial class TemplateRelocation
     {
         foreach (var f in RipFields)
         {
-            long distance = page + AllItemsPageOffset + f.Off - (f.Addr + 4);
+            long distance = page + AllItemsPageOffset + f.Off - (Live(f) + 4);
             if (distance < int.MinValue || distance > int.MaxValue)
-                return $"template-relocation: page 0x{page:X} is out of int32 reach of field 0x{f.Addr:X}";
+                return $"template-relocation: page 0x{page:X} is out of int32 reach of field 0x{Live(f):X}";
         }
         return null;
     }
@@ -171,7 +176,11 @@ internal sealed partial class TemplateRelocation
     /// all-items copy, offset by <see cref="RipField.Off"/>. Callers that write the result must go
     /// through <see cref="CheckReach"/> first (<see cref="Install"/> does); this itself truncates
     /// unconditionally.</summary>
-    internal static int NewField(RipField f, long page) => (int)(page + AllItemsPageOffset + f.Off - (f.Addr + 4));
+    internal static int NewField(RipField f, long page) => (int)(page + AllItemsPageOffset + f.Off - (Live(f) + 4));
+
+    /// <summary>LW-388: <see cref="RipField.Addr"/> is PIN space; this is where the field sits in
+    /// the running image. Every read, write and rip distance goes through it.</summary>
+    private static long Live(RipField f) => ImageBase.At(f.Addr);
 
     /// <summary>Pure: LW-372 (D4) -- a <see cref="CapSite"/>'s verify-read compares a variable
     /// number of bytes now (1 for the builder cap, 4 for the insert bound), so the fixed single-byte

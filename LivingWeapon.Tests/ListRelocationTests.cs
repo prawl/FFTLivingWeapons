@@ -67,7 +67,7 @@ public class ListRelocationTests
             long off = site.List == ListRelocation.ListId.Count ? 0 : 0x400;
             int expected = site.Kind == ListRelocation.SiteKind.RipLea
                 ? (int)(page + off + site.Off - (site.Addr + 4 + site.Trail))
-                : (int)(page + off + site.Off - Offsets.ModuleBase);
+                : (int)(page + off + site.Off - ImageBase.Base);
             Assert.Equal(BitConverter.GetBytes(expected), f.Read(site.Addr, 4));
         }
         Assert.Equal(CountPattern(), f.Read(page, ListRelocation.BlockBytes));
@@ -94,7 +94,7 @@ public class ListRelocationTests
             long oldListBase = site.List == ListRelocation.ListId.Count ? Offsets.BagCountArray : Offsets.SiblingListArray;
             int expected = site.Kind == ListRelocation.SiteKind.RipLea
                 ? (int)(oldListBase + site.Off - (site.Addr + 4 + site.Trail))
-                : (int)(oldListBase + site.Off - Offsets.ModuleBase);
+                : (int)(oldListBase + site.Off - ImageBase.Base);
             Assert.Equal(expected, site.Vanilla);
         }
     }
@@ -272,7 +272,7 @@ public class ListRelocationTests
     {
         // D6/REACH (v2.4, verifier finding b1): the allocator's window is 2 GB around the image
         // base, but the FIRST free region inside that window can sit anywhere -- including more
-        // than 2 GB below every site and below Offsets.ModuleBase. A page granted there would
+        // than 2 GB below every site and below ImageBase.Base. A page granted there would
         // silently truncate every field's (int) distance into garbage without this check.
         var f = SeedVanilla();
         var alloc = new FakeNearAllocator { Base = 0x40000000L };

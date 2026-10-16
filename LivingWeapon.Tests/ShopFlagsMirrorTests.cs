@@ -35,7 +35,7 @@ public class ShopFlagsMirrorTests
         int rel = BitConverter.ToInt32(f.Read(Offsets.ShopBuilderHighByteLeaRel32, 4), 0);
         Assert.Equal(buf + 1, Offsets.ShopBuilderHighByteLeaNextIp + rel);   // r12 walks the mirror's high bytes
         int disp = BitConverter.ToInt32(f.Read(Offsets.ShopBuilderLowByteDisp32, 4), 0);
-        Assert.Equal(buf, Offsets.ModuleBase + disp);                        // low-byte read lands on the mirror
+        Assert.Equal(buf, ImageBase.Base + disp);                        // low-byte read lands on the mirror
         Assert.Null(m.Install(f, alloc, new List<(int, ushort)>()));         // idempotent
         Assert.Single(alloc.Requests);
     }

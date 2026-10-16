@@ -9,7 +9,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>LW-346 S4: the boot-arm transaction over the fakes: a vanilla 1.5.2 process image
-/// (every patch site's old byte, the ten E9 thunks with their real bytes, the catalog disp32 and
+/// (every patch site's old byte, the ten accessor function entries with their real bytes, the catalog disp32 and
 /// the five "+" records) either arms completely or is left byte-for-byte untouched.</summary>
 public class ExtendedInventoryTests : IDisposable
 {
@@ -17,19 +17,14 @@ public class ExtendedInventoryTests : IDisposable
     public ExtendedInventoryTests() => Directory.CreateDirectory(_dir);
     public void Dispose() { try { Directory.Delete(_dir, true); } catch { } }
 
-    private static readonly (long Addr, byte[] Bytes)[] Thunks =
-    {
-        (Offsets.ThunkWeaponStat, new byte[] { 0xE9, 0xE9, 0xC8, 0xBC, 0x0F }),
-        (Offsets.ThunkValidity, new byte[] { 0xE9, 0x7E, 0x9D, 0xC1, 0x0F }),
-        (Offsets.ThunkTypeProbe, new byte[] { 0xE9, 0xC3, 0x45, 0xC3, 0x0F }),
-        (Offsets.ThunkRangeIndex, new byte[] { 0xE9, 0x5E, 0xDF, 0xBA, 0x0F }),
-        (Offsets.ThunkSpritePair, new byte[] { 0xE9, 0x5B, 0xF2, 0xC0, 0x0F }),
-        (Offsets.ThunkRangeBase, new byte[] { 0xE9, 0x4C, 0x73, 0xBB, 0x0F }),
-        (Offsets.ThunkSibling1, new byte[] { 0xE9, 0x17, 0xEF, 0xBD, 0x0F }),
-        (Offsets.ThunkSibling2, new byte[] { 0xE9, 0x43, 0x41, 0xBF, 0x0F }),
-        (Offsets.ThunkSibling3, new byte[] { 0xE9, 0x8B, 0xF6, 0xBF, 0x0F }),
-        (Offsets.ThunkSibling4, new byte[] { 0xE9, 0x32, 0x56, 0xC0, 0x0F }),
-    };
+    // A property (LW-388 R5): the addresses are rebased pins, so a static readonly array would
+    // freeze whatever base was live when the class first loaded.
+    // LW-388 R12: built FROM the production table so the fixture cannot drift from it; each
+    // entry seeds its real function-entry bytes (the Denuvo-free exe on disk 2026-10-16).
+    private static (long Addr, byte[] Bytes)[] Thunks =>
+        new[] { ExtendedDonorThunks.WeaponStat }
+            .Concat(ExtendedDonorThunks.DonorThunks.Select(t => t.Entry))
+            .Select(e => (e.Addr, e.Expected)).ToArray();
 
     /// <summary>A vanilla 1.5.2 image as far as the boot arm looks (bytes read on disk 2026-08-27).
     /// LW-368 round 2 / round 2b: also seeds all 55 list-relocation fields and the two 0x110-byte
@@ -38,10 +33,18 @@ public class ExtendedInventoryTests : IDisposable
     /// (each an empty chart: the 0x00FF marker at word 0, zeros after) -- without this,
     /// <c>_templates.Install</c> refuses on the unreadable/wrong old chart spans and every
     /// BootArm-based test fails <c>Assert.True(inv.Armed)</c>.</summary>
+    ///
+    /// LW-388: staged at the LIVE addresses of whatever <see cref="ImageBase"/> is current, so a
+    /// test that calls <see cref="ImageBase.Set"/> first gets a relocated image. Offsets.* are
+    /// LIVE already and seed as-is; the PIN-space tables (the boot sites, ListRelocation.Sites,
+    /// TemplateRelocation.RipFields) seed at ImageBase.At(pin). The boot sites are read at the
+    /// PREFERRED base (<see cref="PinBootPatches"/>), never through ExtendedSites.Build's own
+    /// rebase, so a Build that forgot ImageBase.At would stage and read the same wrong address and
+    /// hide the bug; this way it reads an unstaged pin and refuses.</summary>
     internal static FakeCodePatcher VanillaImage()
     {
         var f = new FakeCodePatcher();
-        foreach (var p in ExtendedSites.BootPatches(1)) f.Seed(p.Addr, p.Old);
+        foreach (var p in PinBootPatches(1)) f.Seed(ImageBase.At(p.Addr), p.Old);
         foreach (var (addr, bytes) in Thunks) f.Seed(addr, bytes);
         f.Seed(Offsets.FnSwingPrepIdCopy, SwingIdFallbackHook.ExpectedSite);   // LW-365
         f.Seed(Offsets.ExtCatalogDisp32, 0x10, 0xF9, 0x67, 0x00);
@@ -51,14 +54,25 @@ public class ExtendedInventoryTests : IDisposable
             var rec = new byte[12]; rec[0] = (byte)id;
             f.Seed(Offsets.ExtCatalogBase + (long)id * 12, rec);
         }
-        foreach (var site in ListRelocation.Sites) f.Seed(site.Addr, BitConverter.GetBytes(site.Vanilla));
+        foreach (var site in ListRelocation.Sites) f.Seed(ImageBase.At(site.Addr), BitConverter.GetBytes(site.Vanilla));
         f.Seed(Offsets.BagCountArray, new byte[ListRelocation.BlockBytes]);
         f.Seed(Offsets.SiblingListArray, new byte[ListRelocation.BlockBytes]);
         foreach (var s in TemplateRelocation.Slots) f.Seed(s.Addr, BitConverter.GetBytes(s.Vanilla));
-        foreach (var rf in TemplateRelocation.RipFields) f.Seed(rf.Addr, BitConverter.GetBytes(rf.Vanilla));
+        foreach (var rf in TemplateRelocation.RipFields) f.Seed(ImageBase.At(rf.Addr), BitConverter.GetBytes(rf.Vanilla));
         foreach (var c in TemplateRelocation.CapSites) f.Seed(c.Addr, c.Vanilla);
         foreach (var chart in TemplateRelocation.Charts) f.Seed(chart.OldBase, EmptyChart(chart.SpanBytes));
         return f;
+    }
+
+    /// <summary>ExtendedSites.BootPatches as PIN-space records: built with the preferred base in
+    /// effect, then the live base is put back. ImageBase is process-wide static state; the suite
+    /// runs serially (TestLoggingSetup.cs), so the brief swap is invisible to other tests.</summary>
+    internal static List<BytePatch> PinBootPatches(int n)
+    {
+        long live = ImageBase.Base;
+        ImageBase.ResetForTests();
+        try { return ExtendedSites.BootPatches(n); }
+        finally { if (live != ImageBase.Preferred) ImageBase.Set(live); }
     }
 
     /// <summary>An empty order-chart span: the 0x00FF end marker at word 0, zeros after (matches
@@ -134,7 +148,7 @@ public class ExtendedInventoryTests : IDisposable
         Assert.NotEqual(0x10, f.Bytes[Offsets.ExtCatalogDisp32]);   // catalog redirected
         foreach (var (addr, original) in Thunks)
         {
-            var now = f.Read(addr, 5);
+            var now = f.Read(addr, original.Length);
             Assert.True(ThunkStub.IsJmpRel32(now, addr, out long stub));
             Assert.NotEqual(original, now);
             Assert.True(f.Read(stub, 2).SequenceEqual(new byte[] { 0x89, 0xC8 }));   // a stub sits at the target
@@ -151,7 +165,7 @@ public class ExtendedInventoryTests : IDisposable
         Assert.Equal(ExtendedCatalog.FirstExtendedId + inv.Items.Count - 1, BitConverter.ToInt32(f.Read(fallbackPage + 0x28, 4), 0));
         Assert.NotEqual(0x90, f.Bytes[Offsets.ShopBuilderLowByteDisp32]);   // shop table mirrored (LW-354)
         inv.StepShopSync();
-        Assert.Equal(0xFE, f.Bytes[Offsets.ModuleBase + BitConverter.ToInt32(f.Read(Offsets.ShopBuilderLowByteDisp32, 4), 0) + 37 * 2]);   // vanilla half synced
+        Assert.Equal(0xFE, f.Bytes[ImageBase.Base + BitConverter.ToInt32(f.Read(Offsets.ShopBuilderLowByteDisp32, 4), 0) + 37 * 2]);   // vanilla half synced
         inv.BootArm(null);   // idempotent
         Assert.True(inv.Armed);
         // growth polish: the WP hold's extended-row resolver points inside the weapon-stat stub page
@@ -342,7 +356,9 @@ public class ExtendedInventoryTests : IDisposable
     public void A_moved_thunk_or_a_foreign_cap_byte_refuses_and_restores()
     {
         var f = VanillaImage();
-        f.Seed(Offsets.ThunkSpritePair, 0x48, 0x83, 0xEC, 0x28, 0x44);   // not an E9 thunk any more
+        // The wrong-world case: the nine bytes the old Denuvo exe carries at the sprite-pair address
+        // (an E9 thunk plus the next function's bytes), not a partial match of the real entry.
+        f.Seed(Offsets.ThunkSpritePair, 0xE9, 0x5B, 0xF2, 0xC0, 0x0F, 0xE3, 0xCF, 0x77, 0x56);
         var before = Snapshot(f);
         var inv = Build(f, Moonblade());
         inv.BootArm(null);
@@ -408,23 +424,28 @@ public class ExtendedInventoryTests : IDisposable
         Assert.Equal(TemplateSeat.WeaponRegions, inv.TemplateRegions);   // the vanilla pair, never the page
     }
 
+    /// <summary>LW-388 (R2): the two damage caps are plain boot sites on the Denuvo-free build
+    /// (re-found 2026-10-16 in its .text: the eighth hand-resolver copy, disp8 at 0x14027F002 with
+    /// two ThunkWeaponStat calls following, and the swing publisher's lea r14d,[rbp+6], disp8 at
+    /// 0x1402822A4; formerly the protected-tail 0x14F2EA40F / 0x14F45D315). BootArm widens both
+    /// (VanillaImage seeds 0x06 there through the boot table), nothing waits for a save, and the
+    /// post-load step has nothing left to do.</summary>
     [Fact]
-    public void Post_load_caps_settle_once_their_pages_read_vanilla_and_the_bag_is_untouched_without_an_edge()
+    public void Damage_caps_widen_at_boot_and_the_bag_is_untouched_without_an_edge()
     {
         var f = VanillaImage();
+        Assert.Equal(0x06, f.Bytes[ImageBase.At(0x14027F002L)]);
+        Assert.Equal(0x06, f.Bytes[ImageBase.At(0x1402822A4L)]);
         var inv = Build(f, Moonblade());
-        inv.StepPostLoadCaps();   // before arming: nothing
-        Assert.False(inv.CapsSettled);
         inv.BootArm(null);
-        Assert.True(inv.Armed);
-        inv.StepPostLoadCaps();   // pages still copy-protected (unreadable): still waiting
-        Assert.False(inv.CapsSettled);
-        f.Seed(0x14F2EA40F, 0x06);
-        f.Seed(0x14F45D315, 0x5E);
-        inv.StepPostLoadCaps();
+        Assert.True(inv.Armed, inv.Refusal);
+        Assert.Equal(0x07, f.Bytes[ImageBase.At(0x14027F002L)]);
+        Assert.Equal(0x07, f.Bytes[ImageBase.At(0x1402822A4L)]);
+        Assert.Empty(inv.PendingCaps);
+        int writes = f.Writes.Count;
+        inv.StepPostLoadCaps();   // nothing pending: a no-op
         Assert.True(inv.CapsSettled);
-        Assert.Equal(0x07, f.Bytes[0x14F2EA40F]);
-        Assert.Equal(0x5F, f.Bytes[0x14F45D315]);
+        Assert.Equal(writes, f.Writes.Count);
 
         // LW-353: with no save edge pending, the tick writes nothing (a change in the bag is
         // never recorded on its own any more; only a save edge records, only a load edge replays).
@@ -434,6 +455,125 @@ public class ExtendedInventoryTests : IDisposable
         string path = Path.Combine(_dir, ExtendedBagSidecar.FileName);
         Assert.False(File.Exists(path));
         Assert.Equal(2, f.Bytes[inv.BagCountBase + 261]);
+    }
+
+    // ---- LW-388: the boot arm on an ASLR-relocated image ----
+
+    /// <summary>A plausible ASLR base (64 KB aligned, in the 0x7FF6... range the owner's 2026-10-16
+    /// pass saw: 0x7FF65E0F0000); the same value the ImageBase and LaunchGuard suites use.</summary>
+    private const long RelocatedBase = 0x7FF6_1234_0000L;
+    /// <summary>SizeOfImage of the Denuvo-free 1.5.2 exe (LaunchGuard.ExpectedSizeOfImage, read from
+    /// the on-disk PE, docs/research/PORT_1.5.2_NODRM_OFFSETS.md).</summary>
+    private const long SizeOfImage = 0x03F9E000L;
+
+    /// <summary>LOAD-BEARING (LW-388 A10/R4): with the image at a random base and every vanilla byte
+    /// staged at its LIVE address, BootArm arms end to end; every write lands inside the relocated
+    /// image or on a page the allocator granted (none at a preferred-base pin); the allocator was
+    /// asked for pages near the LIVE image base and near each LIVE thunk; and the catalog's
+    /// image-relative disp32 is measured from the live base. Each of the plan's three verifier
+    /// breaks fails this test: ListRelocation.Distance's image-relative branch reverted to the
+    /// preferred base (out of int32 reach), TemplateRelocation reading RipField.Addr without
+    /// ImageBase.At (unreadable pin), ExtendedSites.Build emitting the pin Addr (unreadable pin).</summary>
+    [Fact]
+    public void Boot_arm_arms_on_a_relocated_image_and_writes_only_live_addresses()
+    {
+        try
+        {
+            Assert.True(ImageBase.Set(RelocatedBase));
+            var f = VanillaImage();
+            var alloc = new FakeNearAllocator { Mode = FakeAllocMode.RelativeToNear };
+            var inv = Build(f, TwoBlades(), allocator: alloc);
+
+            inv.BootArm(null);
+
+            Assert.True(inv.Armed, inv.Refusal);
+            Assert.Null(inv.Refusal);
+            Assert.NotEmpty(f.Writes);
+            var pages = alloc.Requests.Where(r => r.Got != 0).ToList();
+            foreach (var (addr, data) in f.Writes)
+            {
+                bool inImage = addr >= ImageBase.Base && addr + data.Length <= ImageBase.Base + SizeOfImage;
+                bool onPage = pages.Any(p => addr >= p.Got && addr + data.Length <= p.Got + p.Size);
+                Assert.True(inImage || onPage, $"write at 0x{addr:X} is neither in the relocated image nor on a granted page");
+                Assert.False(addr >= ImageBase.Preferred && addr < ImageBase.Preferred + SizeOfImage,
+                    $"write at 0x{addr:X} landed on a preferred-base pin");
+            }
+
+            var nears = alloc.Requests.Select(r => r.Near).ToHashSet();
+            Assert.Contains(ImageBase.Base, nears);
+            foreach (var (thunk, _) in Thunks) Assert.Contains(thunk, nears);   // Offsets.Thunk* are LIVE
+            Assert.Contains(ImageBase.At(0x1402B8C74L), nears);   // ThunkWeaponStat's documented pin, rebased
+            Assert.Contains(Offsets.FnSwingPrepIdCopy, nears);
+            Assert.All(nears, n => Assert.True(n >= ImageBase.Base, $"allocation requested near pin-space 0x{n:X}"));
+
+            long catalog = alloc.Requests.Single(r => r.Size == ExtendedCatalog.BufferSize).Got;
+            Assert.Equal(catalog - ImageBase.Base, BitConverter.ToInt32(f.Read(Offsets.ExtCatalogDisp32, 4), 0));
+
+            // the widened caps (incl. the two LW-388 damage caps) sit at their LIVE addresses
+            foreach (var p in PinBootPatches(2)) Assert.Equal(p.New, f.Bytes[ImageBase.At(p.Addr)]);
+            Assert.Equal(0x08, f.Bytes[ImageBase.At(0x14027F002L)]);
+            Assert.Equal(0x08, f.Bytes[ImageBase.At(0x1402822A4L)]);
+            // the two relocated lists: every rip field measures from its live address, every
+            // image-relative field from the live base
+            Assert.NotEqual(Offsets.BagCountArray, inv.BagCountBase);
+            foreach (var site in ListRelocation.Sites)
+            {
+                int now = BitConverter.ToInt32(f.Read(ImageBase.At(site.Addr), 4), 0);
+                long target = site.Kind == ListRelocation.SiteKind.RipLea
+                    ? ImageBase.At(site.Addr) + 4 + site.Trail + now
+                    : ImageBase.Base + now;
+                long listBase = site.List == ListRelocation.ListId.Count ? inv.BagCountBase : inv.BagCountBase + ListRelocation.SiblingPageOffset;
+                Assert.Equal(listBase + site.Off, target);
+            }
+            Assert.Equal(1, f.Bytes[inv.BagCountBase + 261]);   // the data seed landed on the page
+        }
+        finally { ImageBase.ResetForTests(); }
+    }
+
+    /// <summary>The mirror (the symptom LW-388 fixes): the same relocated staging, but the mod
+    /// never learned the live base, so it reads the preferred pins, finds nothing there, and
+    /// refuses at the very first read (the count-getter cap) without writing a byte.</summary>
+    [Fact]
+    public void Boot_arm_refuses_cleanly_when_the_image_is_relocated_but_the_base_is_not_resolved()
+    {
+        try
+        {
+            Assert.True(ImageBase.Set(RelocatedBase));
+            var f = VanillaImage();   // staged at the relocated addresses
+            ImageBase.ResetForTests();   // the mod never learned the live base
+            var inv = Build(f, Moonblade(), allocator: new FakeNearAllocator { Mode = FakeAllocMode.RelativeToNear });
+
+            inv.BootArm(null);
+
+            Assert.False(inv.Armed);
+            Assert.Contains("count-getter cap", inv.Refusal);
+            Assert.Contains("is unreadable", inv.Refusal);
+            Assert.Empty(f.Writes);
+        }
+        finally { ImageBase.ResetForTests(); }
+    }
+
+    /// <summary>R1 in test form: a page from the far bottom of the 2 GB window below the image
+    /// (what the old bottom-up allocator scan picked under ASLR, where everything below the image
+    /// is free) is out of int32 reach of the rip-relative list fields, so the arm refuses with the
+    /// reach line and rolls every boot cap back. CheckReach stays the refusal net.</summary>
+    [Fact]
+    public void Boot_arm_refuses_a_page_out_of_int32_reach_below_a_relocated_image()
+    {
+        try
+        {
+            Assert.True(ImageBase.Set(RelocatedBase));
+            var f = VanillaImage();
+            var inv = Build(f, Moonblade(), allocator: new FakeNearAllocator { Mode = FakeAllocMode.FarBelowNear });
+
+            inv.BootArm(null);
+
+            Assert.False(inv.Armed);
+            Assert.Contains("out of int32 reach", inv.Refusal);
+            foreach (var p in PinBootPatches(1)) Assert.Equal(p.Old, f.Bytes[ImageBase.At(p.Addr)]);
+            Assert.Equal(Offsets.BagCountArray, inv.BagCountBase);
+        }
+        finally { ImageBase.ResetForTests(); }
     }
 
     [Fact]

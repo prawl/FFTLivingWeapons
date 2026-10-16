@@ -272,7 +272,7 @@ internal sealed class Engine
         // BEFORE WpTableHold, which resolves an extended id's WP byte through it.
         _extended = extended ?? new ExtendedInventory(new LiveCodePatcher(), new LiveNearAllocator(),
             ExtendedInventoryData.Load(modDir), ExtendedBagSidecar.Load(save.PathFor(ExtendedBagSidecar.FileName)),
-            FingerprintGuard.PeBuildKey((long a, int n, out byte[] b) => live.TryReadBytes(a, n, out b), Offsets.ModuleBase,
+            FingerprintGuard.PeBuildKey((long a, int n, out byte[] b) => live.TryReadBytes(a, n, out b), ImageBase.Base,
                 LaunchGuard.ExpectedTimeDateStamp, LaunchGuard.ExpectedSizeOfImage).Probe);
         // LW-346 growth polish: an extended id's WP byte lives in the extended inventory's stub
         // page (the resident table has no row for it), so the hold resolves it through _extended.

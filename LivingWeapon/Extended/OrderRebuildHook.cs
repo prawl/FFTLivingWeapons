@@ -79,11 +79,11 @@ internal sealed partial class OrderRebuildHook
     /// <see cref="TemplateSeat.WeaponRegions"/> at call time, so every pre-existing caller keeps
     /// compiling and behaving unchanged.</param>
     public OrderRebuildHook(ICodePatcher mem, long targetAddr = 0, int extendedCount = 0,
-        long bagBase = Offsets.BagCountArray, Func<TemplateSeat.Region[]>? regions = null)
+        long bagBase = 0, Func<TemplateSeat.Region[]>? regions = null)
     {
         _mem = mem;
         _extendedCount = extendedCount;
-        _bagBase = bagBase;
+        _bagBase = bagBase == 0 ? Offsets.BagCountArray : bagBase;   // 0 = the vanilla block (a rebased pin cannot be a default value)
         _regions = regions;
         TargetAddr = targetAddr == 0 ? Offsets.FnOrderRebuild : targetAddr;
     }

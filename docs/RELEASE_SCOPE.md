@@ -305,6 +305,10 @@ already built families get their owner look, and the checks that catch collatera
 being things a person has to remember.
 
 ### 1. The 90 remaining items (BLOCKER, the release's whole point)
+- [ ] **Runs on the Denuvo-free game build (LW-388)**: every address resolved against the live
+      image base, the extended inventory's pages and displacements measured from it; the 2.3.4
+      hotfix merged in. Blocks every other box in this cut.
+
 - [ ] **The 12 hats (LW-288)**: the only family still on the superseded three zone engine. The
       owner did pass them in game, but under the older method, so they will drift visibly from
       their neighbours once the rest of the wardrobe is redone. This ticket did not exist before

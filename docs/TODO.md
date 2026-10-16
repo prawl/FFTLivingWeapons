@@ -13,6 +13,46 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.4.0)
 
+- **[LW-388] The game shed its copy protection and now loads at a random address every launch; make main find the game wherever Windows puts it, the way the 2.3.4 hotfix already does** (opened 2026-10-15) [BUILDING]
+  - Plain language: the September update removed Denuvo and the unprotected game is loaded at a
+    random address each launch. The v2.3.4 hotfix (LW-387, cut from v2.3.3) fixed the released
+    mod. Main carries the whole 2.4.0 cycle on top, including the extended inventory, which
+    patches game code and parks its own data pages within jump range of the old fixed address.
+    Until main learns the same rule, nothing built since August can ship on the current game.
+  - The rule is unchanged: every address stays written as its documented number and is resolved
+    against the live image base at use. Main adds two things the hotfix did not have: data pages
+    must be allocated near the live base instead of the old fixed one, and every displacement the
+    extended inventory writes into game code is measured from the live base. The 2.3.4 hotfix
+    branch is merged in afterwards so history shows it. (Tech: ImageBase.At over 73 Offsets pins,
+    Offsets.ModuleBase deleted for ImageBase.Base in the five allocator calls and the three
+    image-relative disp32 encoders; pin-space site tables rebased at their read/write sites; static
+    readonly tables that read Offsets become properties; tripwire and no-bake ratchets extended to
+    arrays; plan at the session scratchpad LW388_PLAN.md, journal
+    docs/research/PORT_1.5.2_NODRM_OFFSETS.md.)
+  - Live pass 2026-10-16 (prod deploy of the first build) FAILED at boot: the game image base
+    resolved (0x7FF65FC60000) but the extended inventory refused to arm because the ten item lookup
+    routines it redirects are no longer five byte jumps into Denuvo's tail; on the unprotected game
+    the routine bodies sit at those addresses themselves. Every other code site the mod touches is
+    byte identical between the two builds (offline diff of all 311 image literals). Fix round R12
+    hooks each routine entry with a jump plus a trampoline that re-runs the stolen instructions, the
+    way the swing id fallback already does; the stubs themselves do not change. (Tech: spec at the
+    session scratchpad LW388_R12_ACCESSOR_ENTRY_SPEC.md; journal section "Accessor thunks became
+    function entries".)
+  - Owner live pass 2026-10-16 11:02 PASSED on a prod deploy of main with R12: base and extended
+    inventory armed lines read as expected (10 accessor redirects, both relocation pages in the
+    0x7FF range), the main guard armed after the save load, the Warbrand was listed, equipped,
+    swung for weapon damage, took a credited kill and its card read 2 of 5; the log scan is clean.
+    What remains for this row is the hotfix branch merge, so the status stays BUILDING until then.
+  - Done means: on the Denuvo-free build (Steam buildid 24304444) a prod-flavored main deploy logs
+    the resolved image base, arms the extended inventory with its relocation pages inside the live
+    image's reach, arms the main guard after a save loads, credits a kill, paints the card, and
+    shows an extended item in the inventory; every existing test passes unchanged at the default
+    base; hotfix/2.3.4 is an ancestor of main.
+  - Verify: suite green with the relocated-base boot-arm test and the array-aware no-bake ratchet;
+    owner live pass from a prod deploy reading the startup base line, the extended inventory armed
+    line with 0x7FF-range relocation addresses, the armed line, one credited kill, the card, and
+    an extended item on screen; scan_logs --require-battle --flight exits 0. Owner only flips.
+
 - **[LW-323] A weapon's level-up announcement never shows up a battle late anymore** (opened 2026-08-25) [AWAITING-LIVE]
   - BUILT and adversarially verified 2026-08-26 (code 9 of 10, zero code findings; suite
     3332 green), owner live pass outstanding. The owner saw "Stoneshooter has grown to
@@ -81,6 +121,32 @@ the technical detail lives in the indented lines under it.
 Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner directed).
 A new row still lands here in the session it surfaces; slot it where its urgency
 belongs rather than at the bottom.
+
+- [LW-392] 2026-10-16: Players spent three weeks guessing why kill counts froze because the mod stayed silent when it could not find the game; make it say so after a short wait.
+  The September break (LW-387) read as Unreadable at the guard, which retries silently by design
+  for the boot window. Five Nexus reports (2026-09-20 to 10-04) describe "mod loads, cards show the
+  baked 0/5 text, nothing counts" with no message anywhere. Design (plan review 2026-10-16): count
+  consecutive ticks on which the PE-key landmark reads Unreadable; that landmark needs no save and
+  reads Match within one tick when the base is right, so it is the base-independent symptom. After
+  about a minute log ONE warn ("cannot find the game in memory") and show the once-per-session box,
+  then keep retrying; an eventual arm logs "armed after the warning". A Ramza-row Unreadable with a
+  matched PE key is the normal title screen and never warns. No interaction with AnchorScout or the
+  kit lane. Build-lite after LW-388 lands.
+- [LW-391] 2026-10-15: The new test that forbids bare game addresses in code has two small blind spots; widen it when the hotfix lands on main.
+  Verify round 2 of LW-387: the literal regex tail `L?` misses unsigned suffixes (0x...UL, 0x...u),
+  and the no-bake ratchet matches only `const long` / `static readonly long`, so `readonly static long`,
+  a plain `static long X = ...`, ulong/nint/IntPtr fields and `long[]` initializers escape it. No such
+  code exists today (verifier grep), so the holes are theoretical; close them in
+  ImageLiteralContractTests when LW-388 ports the rule to main.
+- [LW-389] 2026-10-15: The live memory probes in tools/probes still talk to the game at the old fixed address; teach the shared harness the real module base so probes work again on the unprotected game.
+  battle_cheats.py and friends read pins from tools/lib/offsets.py (preferred base) and RPM the
+  game externally; with ASLR on they must add the live base (EnumProcessModules or psutil on
+  fft_enhanced.exe) in one shared place, not per probe.
+- [LW-390] 2026-10-15: With the copy protection gone the game's code is plain and debuggable for the first time; re-examine every wall the ledger blamed on Denuvo and decide which to reopen.
+  Candidates: crit-hit engine byte, external code probes, the ENTD blueprint hunt, the callout
+  orchestrator's VM-frame callers, the may-cast relocation past 255 and proc rates. Engine
+  design walls (art welded to id, 4th menu row, entice pool relocation) stay walled. Every
+  0x15xxxxxxx address (the old protector blob) is dead forever. Owner decides the order.
 
 - [LW-386] 2026-09-01: The Poacher's Den is handing players items the mod never meant it to, and one
   player saw four katanas where two dragons' carcasses belong. Plain language: a Discord player on

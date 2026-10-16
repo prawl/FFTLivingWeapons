@@ -46,10 +46,12 @@ internal sealed class ShopFlagsMirror
         if (BitConverter.ToInt32(disp, 0) != VanillaLowByteDisp32)
             return $"shops: low-byte disp32 reads {Convert.ToHexString(disp)}, expected vanilla {VanillaLowByteDisp32:X8} (already redirected or moved)";
 
-        long buf = allocator.Alloc(PageSize, Offsets.ModuleBase);
+        long buf = allocator.Alloc(PageSize, ImageBase.Base);
         if (buf == 0) return "shops: no page within reach of the image base";
         long newRel = (buf + 1) - Offsets.ShopBuilderHighByteLeaNextIp;
-        long newDisp = buf - Offsets.ModuleBase;
+        // LW-388: rbp holds the LIVE image base at the low-byte read, so the disp32 is an RVA
+        // measured from ImageBase.Base.
+        long newDisp = buf - ImageBase.Base;
         if (newRel < int.MinValue || newRel > int.MaxValue || newDisp < int.MinValue || newDisp > int.MaxValue)
             return $"shops: mirror 0x{buf:X} is out of rel32/disp32 reach";
         if (!patcher.TryWrite(buf, new byte[PageSize])) return $"shops: zero-fill refused at 0x{buf:X}";

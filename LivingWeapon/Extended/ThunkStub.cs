@@ -3,10 +3,12 @@ using System;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-346: the pure byte emitters for the accessor-thunk clones. The game reaches every per-item
-/// accessor (weapon stats, validity, type probe, range index, sprite/palette pair, ...) through a
-/// five-byte <c>E9 jmp rel32</c> thunk into copy-protected code; redirecting the thunk to a tiny
-/// stub we own lets ids past the vanilla cap (261..511) answer as a chosen DONOR item, or, for the
+/// LW-346: the pure byte emitters for the accessor entry hooks. The game reaches every per-item
+/// accessor (weapon stats, validity, type probe, range index, sprite/palette pair, ...) through
+/// ten fixed addresses: on the Denuvo build each was a five-byte <c>E9 jmp rel32</c> thunk into
+/// copy-protected code, on the Denuvo-free build (LW-388 R12, read on disk 2026-10-16) each is the
+/// function entry itself, hooked via AccessorEntryHook with a trampoline (ThunkStub.Trampoline.cs).
+/// Redirecting the address to a tiny stub we own lets ids past the vanilla cap (261..511) answer as a chosen DONOR item, or, for the
 /// weapon-stat accessor, answer with a row we author. The FFTHandsFree rig's constant-donor stub
 /// (ThunkRedirect.EmitCloneStub, owner-observed on 1.5.2) is generalised here to a per-id table
 /// so each new item names its own donors (docs/research/ITEM_CAP_261_BREAK_JOURNEY.md, the
@@ -20,7 +22,7 @@ namespace LivingWeapon;
 ///
 /// Layouts are fixed-offset so a unit test can pin them byte for byte (see ThunkStubTests).
 /// </summary>
-internal static class ThunkStub
+internal static partial class ThunkStub
 {
     /// <summary>The accessors mask their id argument with 0x3FF (list words carry flag bits above
     /// bit 9); the stubs mask the same way before the range check.</summary>

@@ -53,11 +53,19 @@ internal sealed class FakeCodePatcher : ICodePatcher
 }
 
 /// <summary>Deterministic <see cref="INearAllocator"/>: hands out consecutive 64 KB-spaced
-/// addresses starting at <see cref="Base"/> (default 0x150000000, inside +-2 GB of the image),
-/// records every request, and can refuse (Alloc 0) after <see cref="RefuseAfter"/> grants.</summary>
+/// addresses, records every request, and can refuse (Alloc 0) after <see cref="RefuseAfter"/>
+/// grants. Where the k-th grant lands depends on <see cref="Mode"/>: <see
+/// cref="FakeAllocMode.FixedBase"/> (the default) ignores the request and starts at <see
+/// cref="Base"/> (0x150000000, inside +-2 GB of the PREFERRED image only); <see
+/// cref="FakeAllocMode.RelativeToNear"/> honours it like the live allocator does (nearAddr +
+/// 0x1000000 + k * 0x10000, so it stays in reach of a relocated image, LW-388 R4); <see
+/// cref="FakeAllocMode.FarBelowNear"/> is the adversarial layout R1 describes, the bottom of the
+/// 2 GB window below the request (nearAddr - SearchRange + 0x10000 + k * 0x10000), the pick the
+/// old bottom-up scan made under ASLR.</summary>
 internal sealed class FakeNearAllocator : INearAllocator
 {
     public long Base = 0x150000000L;
+    public FakeAllocMode Mode = FakeAllocMode.FixedBase;
     public int RefuseAfter = int.MaxValue;
     public readonly List<(int Size, long Near, long Got)> Requests = new();
     private long _next;
@@ -65,10 +73,25 @@ internal sealed class FakeNearAllocator : INearAllocator
     public long Alloc(int size, long nearAddr)
     {
         if (Requests.Count >= RefuseAfter) { Requests.Add((size, nearAddr, 0)); return 0; }
-        if (_next == 0) _next = Base;
-        long got = _next;
-        _next += 0x10000;
+        long k = Requests.Count;
+        long got;
+        switch (Mode)
+        {
+            case FakeAllocMode.RelativeToNear:
+                got = nearAddr + 0x1000000 + k * 0x10000;
+                break;
+            case FakeAllocMode.FarBelowNear:
+                got = nearAddr - LiveNearAllocator.SearchRange + 0x10000 + k * 0x10000;
+                break;
+            default:
+                if (_next == 0) _next = Base;
+                got = _next;
+                _next += 0x10000;
+                break;
+        }
         Requests.Add((size, nearAddr, got));
         return got;
     }
 }
+
+internal enum FakeAllocMode { FixedBase, RelativeToNear, FarBelowNear }

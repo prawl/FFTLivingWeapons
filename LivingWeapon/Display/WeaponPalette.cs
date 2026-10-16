@@ -31,7 +31,9 @@ internal sealed partial class WeaponPalette
     /// some other writer wipes the banks without this class ever seeing a battle edge.</summary>
     internal const int ReassertTicks = 30;
 
-    private static readonly long[] Banks = { Offsets.WeaponPaletteBankA, Offsets.WeaponPaletteBankB };
+    // A property, not a static readonly array (LW-388): both banks are rebased pins, and a field
+    // would freeze the image base at type-init.
+    private static long[] Banks => new[] { Offsets.WeaponPaletteBankA, Offsets.WeaponPaletteBankB };
 
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly IGameMemory _mem;

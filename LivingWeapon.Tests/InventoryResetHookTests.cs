@@ -11,7 +11,7 @@ namespace LivingWeapon.Tests;
 /// with a lambda standing in for the game's routine.</summary>
 public class InventoryResetHookTests
 {
-    private const long Bag = Offsets.BagCountArray + ExtendedCatalog.FirstExtendedId;
+    private static long Bag => Offsets.BagCountArray + ExtendedCatalog.FirstExtendedId;
 
     private static FakeCodePatcher Bagged(params byte[] counts)
     {

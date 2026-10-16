@@ -35,7 +35,7 @@ internal sealed partial class ListRelocation
 {
     /// <summary>How a field's 4 bytes resolve to an address: <see cref="RipLea"/> measures from
     /// the byte right after the field (a `lea` operand), <see cref="ImageRelative"/> measures
-    /// from <see cref="Offsets.ModuleBase"/> (an RVA fed through a register the game already
+    /// from <see cref="ImageBase.Base"/> (an RVA fed through a register the game already
     /// loaded with the image base).</summary>
     internal enum SiteKind { RipLea, ImageRelative }
 
@@ -51,7 +51,9 @@ internal sealed partial class ListRelocation
     /// <see cref="Trail"/> is how many immediate-operand bytes follow the disp32 in a
     /// `mov [rip+disp], imm` instruction -- the rip distance must measure past them to the true
     /// next instruction, not just past the disp32 -- and <see cref="Off"/> is the byte offset
-    /// INSIDE the list (not byte 0) the field's write actually lands on.</summary>
+    /// INSIDE the list (not byte 0) the field's write actually lands on. Addr is PIN space
+    /// (LW-388): a documented preferred-base address, rebased through <see cref="ImageBase.At"/>
+    /// at every use (ListRelocation.Live); Vanilla is a displacement, unchanged by relocation.</summary>
     internal readonly record struct Site(long Addr, SiteKind Kind, ListId List, int Vanilla, int Trail = 0, int Off = 0);
 
     /// <summary>The 55 fields: 34 <see cref="SiteKind.RipLea"/> + 21 <see

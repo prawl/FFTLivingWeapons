@@ -26,6 +26,12 @@ docs/research/PORT_<ver>_OFFSETS.md journal, not here.
 
 ## Standing facts that keep this calm
 
+- Addresses inside a protector blob are NOT pins (2026-10-16, LW-388). Two post-load byte patches sat
+  at 0x14F... inside Denuvo's 349MB section; when the protector left, those bytes ceased to exist and the
+  functions reappeared in plain .text at ordinary RVAs. Re-find by instruction shape and by the RIP
+  references to the globals the routine writes (docs/research/PORT_1.5.2_NODRM_OFFSETS.md, "Denuvo-tail
+  code sites"); never wrap a blob address in ImageBase.At to silence a tripwire.
+
 - The save is safe: the runtime is born disarmed and nothing wrote. There is no urgency beyond
   the release schedule.
 - The DATA layer still works: modloader tables/nxd/tex anchor by the loader's own scans, not by
@@ -43,9 +49,18 @@ docs/research/PORT_<ver>_OFFSETS.md journal, not here.
 
 1. PE fields from disk (python: e_lfanew at 0x3C; TimeDateStamp at PE+8; SizeOfImage at
    optional header +56), exe SHA256, exe size and mtime, Steam buildid + lastupdated from
-   steamapps/appmanifest_*.acf.
+   steamapps/appmanifest_*.acf. ALSO read DllCharacteristics (optional header +70) and the
+   section count: the 2026-09 update removed Denuvo, turned DYNAMIC_BASE on (the image loads at a
+   random base every launch) and dropped the protector sections while leaving every RVA alone.
+   A base move alone needs no re-anchor once ImageBase is in place (LW-387/LW-388).
 2. Copy the new exe to C:\Users\ptyRa\FFT_IC_backup_<ver>\ (precedent saved the 1.5 port).
 3. Record a row in the build-identity registry below.
+4. Byte-diff every CODE site the mod writes or verifies (hook prologues, patch sites, the
+   accessor entries, disp32 fields) between the old backup and the new exe, 16 bytes each, before
+   trusting any RVA audit. The 2026-10 lesson: a protector's removal changes the BYTES at every
+   stolen-function entry (Denuvo's E9 thunks became the real function bodies) while every ADDRESS
+   stays put, so an address audit alone reads green and the arm still refuses
+   (docs/research/PORT_1.5.2_NODRM_OFFSETS.md, "Accessor thunks became function entries").
 
 | build | TimeDateStamp | SizeOfImage | Steam buildid | exe SHA256 (prefix) | backup |
 |---|---|---|---|---|---|
@@ -53,6 +68,7 @@ docs/research/PORT_<ver>_OFFSETS.md journal, not here.
 | 1.5 | 0x6A0F86A9 | 0x190EB000 | 23353019 | 3625FD9B | none (replaced in place) |
 | 1.5.1 | 0x6A3C5497 | 0x1878E000 | 23901820 | 841DD404 | C:\Users\ptyRa\FFT_IC_backup_1.5.1\ |
 | 1.5.2 | 0x6A5EA53C | 0x18D78000 | 24304240 | 1FD5320D | C:\Users\ptyRa\FFT_IC_backup_1.5.2\ |
+| 1.5.2 Denuvo-free (ASLR on) | 0x6A5E4A1B | 0x03F9E000 | 24304444 | 937233F7 | C:\Users\ptyRa\FFT_IC_backup_1.5.2-nodrm\ |
 
 ## Step 2: ledger it
 

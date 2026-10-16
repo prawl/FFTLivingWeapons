@@ -18,7 +18,7 @@ namespace LivingWeapon;
 ///      (ListRelocation.cs), so the ceiling past which id N reads Ramza's own roster row is
 ///      gone and every later step below resolves a bag byte through <see cref="BagCountBase"/>;
 ///   4. the relocated catalog filled with our records;
-///   5. the accessor thunk clones: the weapon-stat thunk answers with our own stat rows, the
+///   5. the accessor entry hooks: the weapon-stat entry answers with our own stat rows, the
 ///      nine per-category thunks answer as each item's clone/art donor;
 ///   6. the category-getter, order-rebuild, list-builder (LW-372), reset and save-edge hooks
 ///      (Reloaded.Hooks, prologue landmarks);
@@ -28,7 +28,7 @@ namespace LivingWeapon;
 /// copy-protected caps and the bag sidecar. With no extended rows shipped, everything above is
 /// skipped with one Debug line: the mod behaves exactly as before this system existed.
 ///
-/// The step list itself (<c>Install</c>, <c>InstallClone</c>, <c>SeedBag</c>) lives in
+/// The step list itself (<c>Install</c>, <c>InstallAccessorHook</c>, <c>SeedBag</c>) lives in
 /// ExtendedInventory.Arm.cs (LW-371, verifier NIT-5); this file keeps the fields, the ctor, this
 /// sequencing method, the properties and <see cref="Refuse"/>.
 /// </summary>
@@ -46,8 +46,8 @@ internal sealed partial class ExtendedInventory
     private readonly TemplateRelocation _templates = new();   // LW-371
     private readonly ExtendedCatalog _catalog = new();
     private readonly ShopFlagsMirror _shops = new();   // LW-354
-    private readonly List<ThunkClone> _clones = new();
-    private ThunkClone? _weaponStatClone;   // the row stub: its page holds every extended id's 8-byte stats row
+    private readonly List<AccessorEntryHook> _accessorHooks = new();
+    private AccessorEntryHook? _weaponStatHook;   // the row stub: its page holds every extended id's 8-byte stats row
     private SwingIdFallbackHook? _swingIdFallback;   // LW-365: empty-tile swing art falls back to the hand id
     private CategoryGetterHook? _getterHook;
     private OrderRebuildHook? _orderHook;
@@ -118,10 +118,10 @@ internal sealed partial class ExtendedInventory
         Refusal = null;
         ModLogger.Event(LogVerb.Startup,
             $"Extended inventory armed: {Items.Count} new item(s) [{string.Join(", ", Items.Select(i => $"{i.Name} (id {i.Id})"))}], "
-            + $"{_patches.AppliedCount} cap patches, {_clones.Count} accessor redirects, swing-id fallback armed, 5 hooks (menu list builder hooked), shop table mirrored, "
+            + $"{_patches.AppliedCount} cap patches, {_accessorHooks.Count} accessor redirects, swing-id fallback armed, 5 hooks (menu list builder hooked), shop table mirrored, "
             + $"item count lists relocated to 0x{_relocation.PageAddr:X}; "
-            + $"menu order charts relocated to 0x{_templates.PageAddr:X}; "
-            + "2 damage caps wait for the first save to load.");
+            + $"menu order charts relocated to 0x{_templates.PageAddr:X}"
+            + (_pending.Count == 0 ? "." : $"; {_pending.Count} damage cap(s) wait for the first save to load."));
     }
 
     /// <summary>The address of an extended id's 8-byte ITEM_WEAPON_DATA row inside the weapon-stat
@@ -131,10 +131,10 @@ internal sealed partial class ExtendedInventory
     /// these ids, Offsets.ItemStatsRows). Same 8-byte layout as the resident table: Power at +4.</summary>
     public long WeaponRowAddr(int id)
     {
-        if (!Armed || _weaponStatClone == null || !_weaponStatClone.Installed) return -1;
+        if (!Armed || _weaponStatHook == null || !_weaponStatHook.Installed) return -1;
         int i = id - ExtendedCatalog.FirstExtendedId;
         if (i < 0 || i >= Items.Count) return -1;
-        return _weaponStatClone.StubAddr + ThunkStub.RowStubHeader + (long)i * ThunkStub.RowSize;
+        return _weaponStatHook.StubAddr + ThunkStub.RowStubHeader + (long)i * ThunkStub.RowSize;
     }
 
     private void Refuse(string why)

@@ -34,9 +34,9 @@ public class ExtendedCatalogTests
     [Fact]
     public void Disp32_encodes_the_buffer_relative_to_the_image_base()
     {
-        Assert.Equal(VanillaDisp32, ExtendedCatalog.EncodeDisp32(Offsets.ExtCatalogBase, Offsets.ModuleBase));
-        Assert.Equal(new byte[] { 0x00, 0x00, 0x00, 0x10 }, ExtendedCatalog.EncodeDisp32(0x150000000L, Offsets.ModuleBase));
-        Assert.Null(ExtendedCatalog.EncodeDisp32(0x240000000L, Offsets.ModuleBase));
+        Assert.Equal(VanillaDisp32, ExtendedCatalog.EncodeDisp32(Offsets.ExtCatalogBase, ImageBase.Base));
+        Assert.Equal(new byte[] { 0x00, 0x00, 0x00, 0x10 }, ExtendedCatalog.EncodeDisp32(0x150000000L, ImageBase.Base));
+        Assert.Null(ExtendedCatalog.EncodeDisp32(0x240000000L, ImageBase.Base));
     }
 
     [Fact]
@@ -58,14 +58,14 @@ public class ExtendedCatalogTests
         Assert.True(cat.Installed);
         long buf = cat.BufferAddr;
         Assert.Equal(ExtendedCatalog.BufferSize, alloc.Requests[0].Size);
-        Assert.Equal(Offsets.ModuleBase, alloc.Requests[0].Near);
+        Assert.Equal(ImageBase.Base, alloc.Requests[0].Near);
         Assert.Equal(buf, f.Writes[0].Addr);
         Assert.Equal(ExtendedCatalog.BufferSize, f.Writes[0].Data.Length);   // zero fill first
         for (int id = 256; id <= 260; id++) Assert.Equal((byte)id, f.Bytes[buf + id * 12]);
         Assert.Equal(0xA1, f.Bytes[buf + 261 * 12]);
         Assert.Equal(0xA2, f.Bytes[buf + 262 * 12]);
         Assert.Equal(Offsets.ExtCatalogDisp32, f.Writes[^1].Addr);           // disp32 flipped LAST
-        Assert.Equal(ExtendedCatalog.EncodeDisp32(buf, Offsets.ModuleBase), f.Writes[^1].Data);
+        Assert.Equal(ExtendedCatalog.EncodeDisp32(buf, ImageBase.Base), f.Writes[^1].Data);
         Assert.Null(cat.Install(f, alloc, new List<(int, byte[])>()));       // idempotent
         Assert.Single(alloc.Requests);
         Assert.True(cat.Restore(f));

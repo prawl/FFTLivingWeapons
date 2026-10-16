@@ -131,7 +131,7 @@ internal sealed partial class ListBuilderHook
         {
             if (_alloc == null)
                 return "list-builder: no allocator was given for the stack-caller pool";
-            long page = _alloc.Alloc(PoolBytes, Offsets.ModuleBase);
+            long page = _alloc.Alloc(PoolBytes, ImageBase.Base);
             if (page == 0)
                 return "list-builder: no page within reach for the stack-caller pool";
             _poolBase = page;

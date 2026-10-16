@@ -82,13 +82,13 @@ internal sealed partial class SaveEdgeHooks
             {
                 if (_canaryLoadB) return;
                 _canaryLoadB = true;
-                SafeLog("The second restore routine (0x14021DE98) fired for the first time this session and a load edge was taken from it; note which game action just happened.");
+                SafeLog($"The second restore routine (0x{Offsets.FnSaveApplyB:X}) fired for the first time this session and a load edge was taken from it; note which game action just happened.");
             }
             else
             {
                 if (_canaryLoadA) return;
                 _canaryLoadA = true;
-                SafeLog("The load-edge hook is confirmed working; the game's first save load this session was intercepted (load-apply 0x14021B0E8).");
+                SafeLog($"The load-edge hook is confirmed working; the game's first save load this session was intercepted (load-apply 0x{Offsets.FnSaveApply:X}).");
             }
         }
         catch (Exception) { /* never reaches the game */ }

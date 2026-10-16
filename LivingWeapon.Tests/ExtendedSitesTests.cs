@@ -12,7 +12,8 @@ public class ExtendedSitesTests
     public void One_extended_id_reproduces_the_rig_marker_byte_for_byte()
     {
         var boot = ExtendedSites.BootPatches(1).ToDictionary(p => p.Addr, p => p);
-        Assert.Equal(35, boot.Count);
+        // 37 since LW-388: the two damage caps moved from the post-load set into the boot set.
+        Assert.Equal(37, boot.Count);
         // the rig's six built-ins
         Assert.Equal((0x01, 0x02), (boot[0x140284800].Old, boot[0x140284800].New));
         foreach (long a in new[] { 0x140284724L, 0x1402847C9L, 0x140288CDAL, 0x140289074L })
@@ -38,10 +39,17 @@ public class ExtendedSitesTests
         Assert.Equal((0x01, 0x02), (boot[0x140396F55].Old, boot[0x140396F55].New));
         Assert.All(boot.Values, p => Assert.False(string.IsNullOrWhiteSpace(p.Label)));
 
-        var post = ExtendedSites.PostLoadPatches(1).ToDictionary(p => p.Addr, p => p);
-        Assert.Equal(2, post.Count);
-        Assert.Equal((0x06, 0x07), (post[0x14F2EA40F].Old, post[0x14F2EA40F].New));
-        Assert.Equal((0x5E, 0x5F), (post[0x14F45D315].Old, post[0x14F45D315].New));
+        // LW-388 (R2): the two damage caps, re-found 2026-10-16 in the plain .text of the
+        // Denuvo-free 1.5.2 exe (Steam buildid 24304444, read offline). 0x14027F002 is the disp8 of
+        // `8d 4a 06` lea ecx,[rdx+6] after `ba ff 00 00 00` mov edx,0xff, followed within 0x30 bytes
+        // by two calls to ThunkWeaponStat 0x1402B8C74 (the eighth hand-resolver copy the pattern
+        // sweep finds; the former protected-tail copy). 0x1402822A4 is the disp8 of `44 8d 75 06`
+        // lea r14d,[rbp+6] after `bd ff 00 00 00` mov ebp,0xff in the swing publisher 0x140282234,
+        // which stores combat +0x20/+0x24 to 0x1407B0764/0x1407B0766 (the former xor r15d,0x5E
+        // copy: 0x58 ^ 0x5E = 6). Both are plain PlusN boot sites now; the post-load set is empty.
+        Assert.Equal((0x06, 0x07), (boot[0x14027F002].Old, boot[0x14027F002].New));
+        Assert.Equal((0x06, 0x07), (boot[0x1402822A4].Old, boot[0x1402822A4].New));
+        Assert.Empty(ExtendedSites.PostLoadPatches(1));
     }
 
     [Fact]
@@ -55,9 +63,9 @@ public class ExtendedSitesTests
         Assert.Equal(0x0C, boot[0x140288FDB].New);   // shop loop 0x100 -> 0x10C
         Assert.Equal(0x02, boot[0x14028870C].New);   // reserved-item list: relocated once, N-independent
         Assert.Equal(0x02, boot[0x140396F55].New);
-        var post = ExtendedSites.PostLoadPatches(7).ToDictionary(p => p.Addr, p => p);
-        Assert.Equal(0x0D, post[0x14F2EA40F].New);
-        Assert.Equal(0x58 ^ 13, post[0x14F45D315].New);   // r15 = 0x58 ^ imm must equal 6 + 7
+        Assert.Equal(0x0D, boot[0x14027F002].New);   // LW-388: damage-path hand resolver, lea disp 6 + 7
+        Assert.Equal(0x0D, boot[0x1402822A4].New);   // LW-388: damage-staging cap, lea disp 6 + 7 (plain, no xor)
+        Assert.Empty(ExtendedSites.PostLoadPatches(7));
     }
 
     [Fact]
@@ -280,17 +288,18 @@ public class ExtendedSitesTests
     {
         Assert.Equal(9, ExtendedDonorThunks.DonorThunks.Length);
         Assert.Single(ExtendedDonorThunks.DonorThunks, t => t.UsesArtDonor);
-        Assert.Equal(Offsets.ThunkSpritePair, ExtendedDonorThunks.DonorThunks.Single(t => t.UsesArtDonor).Addr);
-        Assert.DoesNotContain(ExtendedDonorThunks.DonorThunks, t => t.Addr == Offsets.ThunkWeaponStat);   // the row stub, not a donor
-        Assert.Equal(9, ExtendedDonorThunks.DonorThunks.Select(t => t.Addr).Distinct().Count());
+        Assert.Equal(Offsets.ThunkSpritePair, ExtendedDonorThunks.DonorThunks.Single(t => t.UsesArtDonor).Entry.Addr);
+        Assert.DoesNotContain(ExtendedDonorThunks.DonorThunks, t => t.Entry.Addr == Offsets.ThunkWeaponStat);   // the row stub, not a donor
+        Assert.Equal(9, ExtendedDonorThunks.DonorThunks.Select(t => t.Entry.Addr).Distinct().Count());
     }
 
     /// <summary>LW-368 round 2 (T9, P11): the eight `lea reg,[base+6]` sites whose displacement is
     /// a single SIGNED byte. At N = MaxExtendedCount (121) every one still reads 0x7F or below
     /// (the largest non-negative signed byte); at N = 122 -- the negative control -- at least one
     /// flips to 0x80 and beyond, the exact overflow ExtendedSites.MaxExtendedCount exists to
-    /// forbid. The two special-encoding sites (the shop loop's imm32 low byte, the damage-staging
-    /// xor mask) are unaffected -- neither is a disp8 -- and are pinned exactly at the boundary.</summary>
+    /// forbid. The shop loop's imm32 low byte is not a disp8 and is pinned exactly at the boundary.
+    /// LW-388: both damage caps are boot disp8 sites now (the xor encoding is gone with the
+    /// protector).</summary>
     [Fact]
     public void BootPatches_121_keeps_every_disp8_site_non_negative_and_122_overflows_one()
     {
@@ -298,23 +307,20 @@ public class ExtendedSitesTests
         {
             0x140284C0AL, 0x140286187L, 0x140285EE7L, 0x140226FDFL,
             0x140285FB5L, 0x1402860AEL, 0x140396881L,
+            0x14027F002L, 0x1402822A4L,   // LW-388: the two damage caps, boot sites since the protector left
         };
-        const long disp8PostAddr = 0x14F2EA40FL;
 
         var boot121 = ExtendedSites.BootPatches(ExtendedSites.MaxExtendedCount).ToDictionary(p => p.Addr, p => p);
-        var post121 = ExtendedSites.PostLoadPatches(ExtendedSites.MaxExtendedCount).ToDictionary(p => p.Addr, p => p);
         foreach (long a in disp8BootAddrs)
             Assert.True(boot121[a].New <= 0x7F, $"0x{a:X} at N=121 reads 0x{boot121[a].New:X2}, expected <= 0x7F");
-        Assert.True(post121[disp8PostAddr].New <= 0x7F);
 
         var boot122 = ExtendedSites.BootPatches(ExtendedSites.MaxExtendedCount + 1).ToDictionary(p => p.Addr, p => p);
-        var post122 = ExtendedSites.PostLoadPatches(ExtendedSites.MaxExtendedCount + 1).ToDictionary(p => p.Addr, p => p);
         Assert.Contains(disp8BootAddrs, a => boot122[a].New > 0x7F);
-        Assert.True(post122[disp8PostAddr].New > 0x7F);
+        Assert.True(boot122[0x14027F002L].New > 0x7F);
+        Assert.True(boot122[0x1402822A4L].New > 0x7F);
 
-        // ShopLoop / XorMask are not disp8 sites: pinned exactly, no sign overflow at the boundary.
+        // ShopLoop is not a disp8 site: pinned exactly, no sign overflow at the boundary.
         Assert.Equal((byte)(0x05 + 121), boot121[0x140288FDBL].New);
-        Assert.Equal((byte)(0x58 ^ ((0x58 ^ 0x5E) + 121)), post121[0x14F45D315L].New);
     }
 
     /// <summary>LW-365 (2026-08-31): the last nine hand-read id bounds, all read from the 1.5.2

@@ -4,7 +4,7 @@ using Xunit;
 
 namespace LivingWeapon.Tests;
 
-/// <summary>LW-365: the swing-id fallback hook (SwingIdFallbackHook.cs), ThunkClone's stateful
+/// <summary>LW-365: the swing-id fallback hook (SwingIdFallbackHook.cs), AccessorEntryHook's stateful
 /// twin for a mid-instruction jump instead of a five-byte accessor thunk -- the site is a 7-byte
 /// movzx, so the install writes a 5-byte E9 jmp plus two 0x90 pad bytes over it, not a straight
 /// overwrite.</summary>

@@ -8,8 +8,8 @@ namespace LivingWeapon;
 /// (category getter, menu-order rebuild, LW-372's list-builder, inventory reset, save edges), in
 /// install order, and the reverse-order rollback every refusal takes. Split from ExtendedInventory.cs
 /// in LW-351 fix round 7 (2026-08-30) when the inventory-reset hook joined; the step list that
-/// installs the cap patches, list relocation, template relocation, catalog, shop mirror and thunk
-/// clones (`Install`) lives in ExtendedInventory.Arm.cs (LW-371, verifier NIT-5), the tick logic
+/// installs the cap patches, list relocation, template relocation, catalog, shop mirror and accessor
+/// entry hooks (`Install`) lives in ExtendedInventory.Arm.cs (LW-371, verifier NIT-5), the tick logic
 /// in .Tick.cs. RollBack restores the two relocations here, in REVERSE install order (D2/LW-371):
 /// the template relocation first (right after the catalog, its install successor), then the
 /// list relocation (right before the boot cap patches, its install predecessor) -- the only
@@ -62,9 +62,9 @@ internal sealed partial class ExtendedInventory
         _orderHook?.Release(); _orderHook = null;
         _getterHook?.Release(); _getterHook = null;
         _swingIdFallback?.Restore(_patcher); _swingIdFallback = null;
-        for (int i = _clones.Count - 1; i >= 0; i--) _clones[i].Restore(_patcher);
-        _clones.Clear();
-        _weaponStatClone = null;
+        for (int i = _accessorHooks.Count - 1; i >= 0; i--) _accessorHooks[i].Restore(_patcher);
+        _accessorHooks.Clear();
+        _weaponStatHook = null;
         _shops.Restore(_patcher);
         _catalog.Restore(_patcher);
         _templates.Restore(_patcher);   // LW-371: undo right before the catalog, its install successor

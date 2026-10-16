@@ -25,7 +25,7 @@ internal sealed partial class ListRelocation
         {
             long distance = Distance(site, page);
             if (distance < int.MinValue || distance > int.MaxValue)
-                return $"list-relocation: page 0x{page:X} is out of int32 reach of field 0x{site.Addr:X}";
+                return $"list-relocation: page 0x{page:X} is out of int32 reach of field 0x{Live(site):X}";
         }
         return null;
     }
@@ -34,7 +34,10 @@ internal sealed partial class ListRelocation
     /// of its own list, at <see cref="Site.Off"/> inside it (0 for every field but round 2b's
     /// ten). A <see cref="SiteKind.RipLea"/> field measures from the next instruction -- its own
     /// address + 4, plus <see cref="Site.Trail"/> more for any immediate operand that trails the
-    /// disp32; a <see cref="SiteKind.ImageRelative"/> field measures from the image base.
+    /// disp32; a <see cref="SiteKind.ImageRelative"/> field measures from the image base. Both
+    /// terms are LIVE (LW-388): the rip term from the field's rebased address, the image term
+    /// from <see cref="ImageBase.Base"/>, because the game loads the LIVE image base into the
+    /// register those instructions index from, so an RVA-space displacement is measured from it.
     /// Callers that write the result must go through <see cref="CheckReach"/> first
     /// (<see cref="ListRelocation.Install"/> does) -- this itself truncates unconditionally.</summary>
     internal static int NewField(Site site, long page) => (int)Distance(site, page);
@@ -45,8 +48,13 @@ internal sealed partial class ListRelocation
     {
         long listBase = page + (site.List == ListId.Count ? 0 : SiblingPageOffset);
         long newTarget = listBase + site.Off;
-        return site.Kind == SiteKind.RipLea ? newTarget - (site.Addr + 4 + site.Trail) : newTarget - Offsets.ModuleBase;
+        return site.Kind == SiteKind.RipLea ? newTarget - (Live(site) + 4 + site.Trail) : newTarget - ImageBase.Base;
     }
+
+    /// <summary>LW-388: <see cref="Site.Addr"/> is PIN space (the documented preferred-base
+    /// address); this is where the field sits in the running image. Every read, write and rip
+    /// distance goes through it.</summary>
+    private static long Live(Site site) => ImageBase.At(site.Addr);
 
     /// <summary>Pure: an int32 as its 4 little-endian bytes.</summary>
     internal static byte[] Encode(int value) => BitConverter.GetBytes(value);

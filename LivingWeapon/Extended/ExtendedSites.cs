@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace LivingWeapon;
@@ -5,9 +6,9 @@ namespace LivingWeapon;
 /// <summary>
 /// LW-346: the WHAT half of the extended inventory (the game knowledge), kept apart from the
 /// lifecycle in ExtendedInventory.cs the way LaunchGuard.Landmarks.cs is kept apart from
-/// LaunchGuard.cs. Every BootSites entry but its last two is a single-byte id CAP the 1.5.2 build
+/// LaunchGuard.cs. Every BootSites entry but two is a single-byte id CAP the 1.5.2 build
 /// hardcodes as 261 (0x105) in one encoding or another; each one is widened by the number of
-/// extended ids so the game's own loops, guards and clamps admit them (the last two are a
+/// extended ids so the game's own loops, guards and clamps admit them (the two exceptions are a
 /// reserved-id list moved out of the way once; see NOT A CAP). Provenance per site is the FFTHandsFree
 /// boot-arm marker v2 (tools/probes/lw346_capbreak_bootarm.marker.v2.txt, every line
 /// owner-observed on 1.5.2 2026-08-26/27) plus the rig's CapBreakEquipHook/CapBreakDisplayHook
@@ -18,10 +19,14 @@ namespace LivingWeapon;
 /// P11: eight of these sites are `lea` instructions whose displacement is a single SIGNED byte,
 /// not an imm32, so their own byte overflows past N = <see cref="MaxExtendedCount"/> = 121 --
 /// that bound, not 0xFF, is what actually caps N; <c>ExtendedInventoryData</c> and
-/// tools/generate.py both refuse a shipped table past it). Two sites differ: the count getter's
-/// cap is widened on its HIGH byte (0x103 -&gt; 0x203, ids up to 515, fixed) and the
-/// damage-staging cap feeds its bound through <c>xor r15d,0x5E</c> with 0x58, so its new byte is
-/// 0x58 ^ (6 + N).
+/// tools/generate.py both refuse a shipped table past it). One site differs: the count getter's
+/// cap is widened on its HIGH byte (0x103 -&gt; 0x203, ids up to 515, fixed). (The damage-staging
+/// cap's old <c>xor r15d,0x5E</c> encoding was Denuvo's constant obfuscation; the Denuvo-free
+/// build carries the plain <c>lea r14d,[rbp+6]</c>, a PlusN site like the rest, LW-388.)
+///
+/// ADDRESS SPACE (LW-388): every <see cref="Site.Addr"/> is PIN space, the documented
+/// preferred-base (0x140000000) address. <see cref="Build"/> rebases each one through
+/// <see cref="ImageBase.At"/>, so every <see cref="BytePatch.Addr"/> it hands out is LIVE.
 ///
 /// TRAP (LW-351 fix round 3, 2026-08-30): the count getter's entry address 0x140284800 is the
 /// SECOND byte of one immediate, <c>mov r8d,0x103</c> at 0x1402847FD, whose bytes run
@@ -62,8 +67,9 @@ internal static class ExtendedSites
     /// a shipped table past it.</summary>
     public const int MaxExtendedCount = 121;
 
-    private enum Widen { PlusN, HighByte, XorMask, ShopLoop }
+    private enum Widen { PlusN, HighByte, ShopLoop }
 
+    /// <summary>One single-byte patch site. Addr is PIN space (see the class summary).</summary>
     private readonly record struct Site(long Addr, byte Old, Widen Kind, string Label);
 
     /// <summary>Boot-safe sites: plain code pages, patched in ExtendedInventory.BootArm before the
@@ -136,7 +142,7 @@ internal static class ExtendedSites
         // (instruction +3). Templates already damaged are healed by TemplateSeat's repair.
         new(0x140285FB5L, 0x06, Widen.PlusN, "owned-item template maintainer walk, inventory tables (lea r14d,[r15+6])"),
         new(0x1402860AEL, 0x06, Widen.PlusN, "owned-item template maintainer walk, picker tables (lea r14d,[r15+6])"),
-        new(0x140396881L, 0x06, Widen.PlusN, "owned-item template maintainer walk, third copy 0x14039684C over the inventory tables (lea r14d,[r15+6])"),
+        new(0x140396881L, 0x06, Widen.PlusN, "owned-item template maintainer walk, third copy (function RVA 0x39684C) over the inventory tables (lea r14d,[r15+6])"),
         // LW-365 (2026-08-31, read from the 1.5.2 exe on disk via
         // tools/probes/lw365_hand_resolver_scan.py): the last nine one-byte bounds in the family
         // of routines that read "what is this unit holding". Six are further copies of the hand
@@ -177,15 +183,29 @@ internal static class ExtendedSites
         new(0x1403066A7L, 0x06, Widen.PlusN, "equip-slot switch guard, word +0x1E (lea eax,[r10+6])"),
         new(0x14030671DL, 0x06, Widen.PlusN, "equip-slot switch guard, word +0x1C (lea eax,[r10+6])"),
         new(0x1403067ABL, 0x06, Widen.PlusN, "equip-slot switch guard, word +0x1A (lea eax,[r10+6])"),
+        // LW-388 (R2, read offline 2026-10-16 from the Denuvo-free 1.5.2 exe on disk, Steam buildid
+        // 24304444): the two damage caps that used to live in the copy-protected tail (and so were
+        // patched only after a save loaded) are plain .text on this build, so they join the boot
+        // set. The first is the eighth hand-resolver copy the pattern sweep finds (`ba ff 00 00 00`
+        // mov edx,0xff, then `8d 4a 06` lea ecx,[rdx+6], disp8 byte below), followed within 0x30
+        // bytes by two calls to Offsets.ThunkWeaponStat, the shape the journal recorded for the
+        // protected copy ("right before two weapon-stat thunk calls"). The second sits in the swing
+        // publisher whose plain entry is RVA 0x282234: `bd ff 00 00 00` mov ebp,0xff at RVA
+        // 0x282287, then `44 8d 75 06` lea r14d,[rbp+6] at RVA 0x2822A1 (disp8 byte below); it
+        // stores combat +0x20/+0x24 to the swing words at RVA 0x7B0764/0x7B0766 and substitutes the
+        // off-hand word for ids at or above the bound (`66 44 3b f0` cmp r14w,ax / `77 14` ja). That
+        // is the journal's protected copy in plain code: its `xor r15d,0x5E` with 0x58 was the
+        // protector's constant obfuscation of the same 6 (0x58 ^ 0x5E = 6).
+        new(0x14027F002L, 0x06, Widen.PlusN, "damage-path hand resolver (lea ecx,[rdx+6]); plain-text copy of the former protected-tail site, two weapon-stat thunk calls follow"),
+        new(0x1402822A4L, 0x06, Widen.PlusN, "damage-staging cap (lea r14d,[rbp+6] after mov ebp,0xff) in the swing publisher; plain copy of the former xor r15d,0x5E site; lea bytes are 44 8d 75 06 at image offsets A1..A4, the disp8 is A4 (confirmed against the exe on disk 2026-10-16)"),
     };
 
     /// <summary>Copy-protected sites: their pages read vanilla only after a save has loaded, so
-    /// they are stepped from the tick loop as <see cref="PendingPatch"/>es.</summary>
-    private static readonly Site[] PostLoadSites =
-    {
-        new(0x14F2EA40FL, 0x06, Widen.PlusN, "damage-path hand resolver (lea ecx,[rdx+6])"),
-        new(0x14F45D315L, 0x5E, Widen.XorMask, "damage-staging cap input (xor r15d,0x5E)"),
-    };
+    /// they are stepped from the tick loop as <see cref="PendingPatch"/>es. EMPTY since LW-388:
+    /// the Denuvo-free build has no protected tail, and its two former entries are plain boot
+    /// sites above. The array and the pending machinery stay, correct with zero sites, for any
+    /// future late-mapped page.</summary>
+    private static readonly Site[] PostLoadSites = { };
 
     public static List<BytePatch> BootPatches(int extendedCount) => Build(BootSites, extendedCount);
     public static List<BytePatch> PostLoadPatches(int extendedCount) => Build(PostLoadSites, extendedCount);
@@ -193,7 +213,8 @@ internal static class ExtendedSites
     private static List<BytePatch> Build(Site[] sites, int n)
     {
         var list = new List<BytePatch>(sites.Length);
-        foreach (var s in sites) list.Add(new BytePatch(s.Addr, s.Old, NewByte(s.Old, s.Kind, n), s.Label));
+        // LW-388: Site.Addr is PIN space; the patch carries the LIVE address.
+        foreach (var s in sites) list.Add(new BytePatch(ImageBase.At(s.Addr), s.Old, NewByte(s.Old, s.Kind, n), s.Label));
         return list;
     }
 
@@ -202,6 +223,6 @@ internal static class ExtendedSites
         Widen.PlusN => (byte)(old + n),
         Widen.HighByte => 0x02,
         Widen.ShopLoop => (byte)(0x05 + n),   // 0x100 -> 0x105 + N (the imm32's high byte stays 0x01)
-        _ => (byte)(0x58 ^ ((0x58 ^ old) + n)),
+        _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "unknown widening kind"),
     };
 }

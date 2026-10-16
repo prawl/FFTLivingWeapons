@@ -136,10 +136,10 @@ public class WeaponPaletteTests
 
     // ================= 2. Module-level: WeaponPalette.Tick against FakeSparseMemory =================
 
-    private const long BankA = Offsets.WeaponPaletteBankA;
-    private const long BankB = Offsets.WeaponPaletteBankB;
+    private static long BankA => Offsets.WeaponPaletteBankA;
+    private static long BankB => Offsets.WeaponPaletteBankB;
     private const int Stride = Offsets.WeaponPaletteStride;
-    private static readonly long[] Banks = { BankA, BankB };
+    private static long[] Banks => new[] { BankA, BankB };
 
     private static long Tgt(long bank, int pal) => bank + pal * Stride;
 

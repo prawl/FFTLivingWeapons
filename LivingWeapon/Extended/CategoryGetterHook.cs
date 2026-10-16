@@ -11,8 +11,10 @@ namespace LivingWeapon;
 /// id through this getter right after the total-owned getter, and a new id only passes the
 /// Weapons tab when the getter answers with a weapon's group code, so ids in the extended range
 /// are answered AS their donor (the rig's "cathook 0x1402890C0 37" marker line, owner-observed
-/// listing the Moonblade 2026-08-26 20:55). It is a function entry, not an E9 thunk, so it takes
-/// the Reloaded.Hooks detour form (the PromptSwapHook precedent) behind a prologue landmark:
+/// listing the Moonblade 2026-08-26 20:55). Its callers were not observed keeping
+/// volatile registers live across the call, so a managed detour is safe here (the PromptSwapHook
+/// precedent), behind a prologue landmark; the ten accessors in ExtendedDonorThunks are function
+/// entries too but take the native AccessorEntryHook for the r11 reason:
 /// <see cref="ExpectedPrologue"/> = <c>sub rsp,28h; movzx r11d,cx; mov eax,3FFh</c>, read on the
 /// 1.5.2 exe on disk 2026-08-27 with ret+CC padding immediately before it.
 /// </summary>

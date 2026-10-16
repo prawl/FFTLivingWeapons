@@ -14,7 +14,7 @@ namespace LivingWeapon.Tests;
 /// </summary>
 public class BandSweepTests
 {
-    private const long Lo = Offsets.CombatAnchor - BandSweep.Radius;
+    private static long Lo => Offsets.CombatAnchor - BandSweep.Radius;
 
     /// <summary>Serves whole chunks by base address (the sweep's TryReadBytes shape) and
     /// counts read attempts; unseeded chunks fail like an unmapped region.</summary>

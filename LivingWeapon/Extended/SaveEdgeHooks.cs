@@ -87,13 +87,13 @@ internal sealed partial class SaveEdgeHooks
     /// when given a non-null, installed relocation -- so every pre-existing caller keeps compiling
     /// and behaving unchanged.</param>
     public SaveEdgeHooks(ICodePatcher mem, SaveEdgeTracker tracker, IReadOnlyList<int> extendedIds,
-        Action<string>? replayOnLoad = null, long bagBase = Offsets.BagCountArray, TemplateRelocation? templates = null)
+        Action<string>? replayOnLoad = null, long bagBase = 0, TemplateRelocation? templates = null)
     {
         _mem = mem;
         _tracker = tracker;
         _extendedIds = extendedIds;
         _replayOnLoad = replayOnLoad;
-        _bagBase = bagBase;
+        _bagBase = bagBase == 0 ? Offsets.BagCountArray : bagBase;   // 0 = the vanilla block (a rebased pin cannot be a default value)
         _templates = templates;
     }
 

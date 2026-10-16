@@ -74,6 +74,61 @@ public class LaunchGuardTests
         return mem;
     }
 
+    // LW-387 (ported by LW-388): the Denuvo-free 1.5.2 build loads at a random (ASLR) base. These
+    // stage the PE header, Ramza's roster row and the JobCommand bytes at addresses that FOLLOW the
+    // live image base, so they must be called AFTER ImageBase.Set (or deliberately before it, in the
+    // unresolved mirror).
+    private const long RelocatedBase = 0x7FF6_1234_0000L;
+
+    private static FakeSparseMemory RelocatedHealthyMemory()
+    {
+        var mem = new FakeSparseMemory();
+        SeedU32Bytes(mem, ImageBase.Base + ELfanewOff, ELfanew);
+        SeedU32Bytes(mem, ImageBase.Base + ELfanew + TimeDateStampOff, LaunchGuard.ExpectedTimeDateStamp);
+        SeedU32Bytes(mem, ImageBase.Base + ELfanew + SizeOfImageOff, LaunchGuard.ExpectedSizeOfImage);
+        long rec8 = Barrage.AbilityBase + 8L * Barrage.RecSize;
+        long rec9 = Barrage.AbilityBase + 9L * Barrage.RecSize;
+        mem.TerrainBlocks[rec8] = new byte[] { 0x96, 0x97, 0x98, 0x99, 0x9A, 0x9B, 0x9C, 0x9D };
+        mem.TerrainBlocks[rec9] = new byte[] { 0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6A, 0x6B };
+        StageRamzaRow(mem, 12, 1, 0x02, 70, 65);
+        return mem;
+    }
+
+    [Fact]
+    public void Guard_arms_when_the_image_is_relocated_and_the_base_is_resolved()
+    {
+        try
+        {
+            Assert.True(ImageBase.Set(RelocatedBase));
+            var mem = RelocatedHealthyMemory();
+            var guard = new LaunchGuard(mem, forceMismatch: false);
+
+            guard.Step();
+
+            Assert.Equal(GuardState.Armed, guard.State);
+        }
+        finally { ImageBase.ResetForTests(); }
+    }
+
+    [Fact]
+    public void Guard_stays_unreadable_when_the_image_is_relocated_but_the_base_is_not_resolved()
+    {
+        // The exact player symptom before LW-387: the image sits at a random base, the mod still
+        // reads the preferred one, every landmark read fails, the guard retries silently forever.
+        try
+        {
+            ImageBase.Set(RelocatedBase);
+            var mem = RelocatedHealthyMemory();   // staged at the relocated addresses
+            ImageBase.ResetForTests();            // the mod never learned the live base
+            var guard = new LaunchGuard(mem, forceMismatch: false);
+
+            for (int i = 0; i < 100; i++) guard.Step();
+
+            Assert.Equal(GuardState.Verifying, guard.State);
+        }
+        finally { ImageBase.ResetForTests(); }
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(200)]
@@ -153,8 +208,8 @@ public class LaunchGuardTests
     [Fact]
     public void ExpectedPeKey_constants_are_pinned()
     {
-        Assert.Equal(0x6A5EA53Cu, LaunchGuard.ExpectedTimeDateStamp);
-        Assert.Equal(0x18D78000u, LaunchGuard.ExpectedSizeOfImage);
+        Assert.Equal(0x6A5E4A1Bu, LaunchGuard.ExpectedTimeDateStamp);
+        Assert.Equal(0x03F9E000u, LaunchGuard.ExpectedSizeOfImage);
     }
 
     [Fact]
@@ -398,7 +453,7 @@ public class LaunchGuardTests
 
         Assert.Equal(GuardState.StoodDown, guard.State);
         Assert.Single(records);
-        Assert.Contains("0x6A5EA53C", records[0].payload);
+        Assert.Contains("0x6A5E4A1B", records[0].payload);
         Assert.Contains("0x11111111", records[0].payload);
     }
 
