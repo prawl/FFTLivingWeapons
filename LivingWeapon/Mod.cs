@@ -68,6 +68,12 @@ public class Mod : IMod
                             ?? Environment.CurrentDirectory;
             ModLogger.Init(modDir);
             Flight.Init(modDir);   // the black-box event ring -- must exist before anything else can Record
+            // LW-387: the Denuvo-free build is ASLR-relocated. Resolve the live image base ONCE, here,
+            // before the Engine (and its 33ms thread) exists; every pinned address rebases through it.
+            if (ImageBase.TryResolveLive(out long liveBase) && ImageBase.Set(liveBase))
+                ModLogger.Event(LogVerb.Startup, $"Game image base 0x{ImageBase.Base:X} (preferred 0x{ImageBase.Preferred:X}, delta 0x{ImageBase.Delta:X}); every pinned address is rebased onto it.");
+            else
+                ModLogger.Warn(LogVerb.Startup, $"Could not read the game image base; using the preferred base 0x{ImageBase.Preferred:X}. If the game loaded elsewhere the startup guard will never arm.");
             // Launch header L1 (logging facelift): version from the deployed ModConfig.json
             // (fail-soft), flavor from the compiled Tuning.BuildFlavor const (the binary's own
             // truth, never build_flavor.txt).

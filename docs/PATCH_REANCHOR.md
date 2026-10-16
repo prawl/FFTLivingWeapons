@@ -26,6 +26,16 @@ docs/research/PORT_<ver>_OFFSETS.md journal, not here.
 
 ## Standing facts that keep this calm
 
+- A patch can change the LOADER CONTRACT, not only addresses (2026-10-15, LW-387). The
+  Denuvo-free build (Steam buildid 24304444) kept every internal position but turned ASLR on
+  (DllCharacteristics 0x8160: DYNAMIC_BASE + HIGH_ENTROPY_VA, a real .reloc section), so the image
+  no longer loads at 0x140000000. Symptom: the guard's PE landmark reads UNREADABLE, not Mismatch,
+  so there is NO loud line and NO box; the mod simply never arms and players report kill counts
+  that stopped. Step 1 therefore also records DllCharacteristics and the section count; a 12MB
+  exe with seven standard sections is the unprotected shape. The mod now resolves every address
+  through ImageBase.At(pin) against the live main-module base, so a base move alone needs no
+  re-anchor; an RVA move still does.
+
 - The save is safe: the runtime is born disarmed and nothing wrote. There is no urgency beyond
   the release schedule.
 - The DATA layer still works: modloader tables/nxd/tex anchor by the loader's own scans, not by
@@ -42,8 +52,10 @@ docs/research/PORT_<ver>_OFFSETS.md journal, not here.
 ## Step 1: capture identity and back up (before anything else)
 
 1. PE fields from disk (python: e_lfanew at 0x3C; TimeDateStamp at PE+8; SizeOfImage at
-   optional header +56), exe SHA256, exe size and mtime, Steam buildid + lastupdated from
-   steamapps/appmanifest_*.acf.
+   optional header +56; DllCharacteristics at optional header +70, bit 0x40 = DYNAMIC_BASE, the
+   ASLR switch; the section count at PE+6 and the section names), exe SHA256, exe size and
+   mtime, Steam buildid + lastupdated from steamapps/appmanifest_*.acf. A 12MB exe with seven
+   standard sections and DYNAMIC_BASE set is the unprotected shape (2026-10-15, LW-387).
 2. Copy the new exe to C:\Users\ptyRa\FFT_IC_backup_<ver>\ (precedent saved the 1.5 port).
 3. Record a row in the build-identity registry below.
 
@@ -53,6 +65,7 @@ docs/research/PORT_<ver>_OFFSETS.md journal, not here.
 | 1.5 | 0x6A0F86A9 | 0x190EB000 | 23353019 | 3625FD9B | none (replaced in place) |
 | 1.5.1 | 0x6A3C5497 | 0x1878E000 | 23901820 | 841DD404 | C:\Users\ptyRa\FFT_IC_backup_1.5.1\ |
 | 1.5.2 | 0x6A5EA53C | 0x18D78000 | 24304240 | 1FD5320D | C:\Users\ptyRa\FFT_IC_backup_1.5.2\ |
+| 1.5.2 no-DRM | 0x6A5E4A1B | 0x03F9E000 | 24304444 | 937233F7 | C:\Users\ptyRa\FFT_IC_backup_1.5.2-nodrm\ |
 
 ## Step 2: ledger it
 

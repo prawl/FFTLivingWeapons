@@ -17,7 +17,7 @@ namespace LivingWeapon;
 internal static class ScholarRing
 {
 #if LWDEV
-    private static readonly long _addr = Offsets.InventoryCountBase + Offsets.ScholarRingItemId;
+    private static long Addr => Offsets.InventoryCountBase + Offsets.ScholarRingItemId;
 
     private static bool _granted;   // log once per session
 #endif
@@ -31,14 +31,14 @@ internal static class ScholarRing
     public static void Grant(IGameMemory mem)
     {
 #if LWDEV
-        if (!mem.Readable(_addr, 1)) return;
+        if (!mem.Readable(Addr, 1)) return;
 
-        byte count = mem.U8(_addr);
+        byte count = mem.U8(Addr);
         if (count != 0) return;
 
-        if (!mem.Writable(_addr, 1)) return;
+        if (!mem.Writable(Addr, 1)) return;
 
-        mem.W8(_addr, 1);
+        mem.W8(Addr, 1);
 
         if (!_granted)
         {

@@ -17,17 +17,20 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed partial class LaunchGuard
 {
-    // PE fingerprint of the 1.5.2 exe (Steam buildid 24304240, exe stamped 2026-07-20, installed
-    // 2026-07-24), re-derived from the on-disk PE per docs/PATCH_REANCHOR.md. Prior builds:
-    // 1.5.1 0x6A3C5497 / 0x1878E000 (docs/research/PORT_1.5.1_OFFSETS.md), 1.5 0x6A0F86A9 /
-    // 0x190EB000 (docs/research/PORT_1.5_OFFSETS.md:11-15), pre-1.5 0x690C1269 / 0x156C8000 --
+    // PE fingerprint of the Denuvo-free 1.5.2 exe (Steam buildid 24304444, exe stamped 2026-07-20
+    // 16:17:31 UTC, SHA256 937233F7..., installed 2026-10-15), read from the on-disk PE per
+    // docs/PATCH_REANCHOR.md (docs/research/PORT_1.5.2_NODRM_OFFSETS.md). This build has ASLR
+    // (DllCharacteristics 0x8160), so the PE header is read at ImageBase.Base, not a fixed address
+    // (LW-387). Prior builds: the Denuvo-wrapped 1.5.2 0x6A5EA53C / 0x18D78000 (buildid 24304240,
+    // docs/research/PORT_1.5.2_OFFSETS.md), 1.5.1 0x6A3C5497 / 0x1878E000
+    // (docs/research/PORT_1.5.1_OFFSETS.md), 1.5 0x6A0F86A9 / 0x190EB000
+    // (docs/research/PORT_1.5_OFFSETS.md:11-15), pre-1.5 0x690C1269 / 0x156C8000 --
     // every pair differs in BOTH fields, so either field alone would catch a rollback. PE
     // FileVersion is NOT usable (reads 1.0.0.0 on every build, docs/research/PORT_1.5.md:96-98).
-    // The 1.5.2 audit (docs/research/PORT_1.5.2_OFFSETS.md) found every DATA absolute unchanged
-    // and exactly one CODE address moved (PromptSwapHook.FnSetTextString, +4).
-    internal const uint ExpectedTimeDateStamp = 0x6A5EA53C;
-    internal const uint ExpectedSizeOfImage = 0x18D78000;
-    private const long ModuleBase = 0x140000000L;
+    // The Denuvo-free build is the same compile as the wrapped 1.5.2: every pinned RVA is unchanged,
+    // only the loader contract (relocation) differs.
+    internal const uint ExpectedTimeDateStamp = 0x6A5E4A1B;
+    internal const uint ExpectedSizeOfImage = 0x03F9E000;
 
     // JobCommand table, rec 8 (Aim, Archer) + rec 9 (Martial Arts, Monk) ability-id bytes. Window
     // addresses = Barrage.AbilityBase (0x14067E213, Barrage.cs:43) + rec * Barrage.RecSize (25,
@@ -35,8 +38,8 @@ internal sealed partial class LaunchGuard
     // recompile is tools/probes/jobcommand_find_probe.py:44-45 (REC8_SIG/REC9_SIG). Rec 14 (Steal)
     // is deliberately dropped: its exact bytes rest on one dump note, weaker provenance than the
     // probe-verified pair above.
-    private static readonly long Rec8Addr = Barrage.AbilityBase + 8L * Barrage.RecSize;
-    private static readonly long Rec9Addr = Barrage.AbilityBase + 9L * Barrage.RecSize;
+    private static long Rec8Addr => Barrage.AbilityBase + 8L * Barrage.RecSize;
+    private static long Rec9Addr => Barrage.AbilityBase + 9L * Barrage.RecSize;
     // Aim ability ids 150..157 (0x96..0x9D), Martial Arts ability ids 100..107 (0x64..0x6B): the
     // same bytes as jobcommand_find_probe.py's REC8_SIG/REC9_SIG. Content is FILE-BAKED static
     // image data (this comment used to call the table "boot-built"; that premise was stale: the

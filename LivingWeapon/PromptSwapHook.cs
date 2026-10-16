@@ -64,7 +64,7 @@ internal sealed class PromptSwapHook
     // own move; 2 of them +12, pointing into the region 1.5.2 shifted +16). The old address now
     // holds `00 00 00 cc` padding, so hooking it blind would corrupt the function -- which
     // HookLandmark.Verify would have refused, the 1.5.1 incident's whole point.
-    private const long FnSetTextString = 0x1403F109C;
+    private static long FnSetTextString => ImageBase.At(0x1403F109C);
 
     // The 11-byte prologue read live at FnSetTextString (the true setter) on 1.5.1, 2026-07-14
     // (LW-89 step 2, see above): push rbp; push rbx; push rdi; mov rbp,rsp; sub rsp,50h. UNCHANGED

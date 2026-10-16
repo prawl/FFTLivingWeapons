@@ -1,7 +1,7 @@
 # Release Scope -- next release (consolidation)
 
 STATUS: CONTRACT (locked scope for the 2.3.0 consolidation release, the 2.3.1 patch cut, the
-2.3.2 game-compatibility cut, and the 2.3.3 feature cut)
+2.3.2 game-compatibility cut, the 2.3.3 feature cut, and the 2.3.4 compat cut)
 
 Locked 2026-07-04. Current shipped version 2.2.2; proposed next **2.3.0** (owner confirms the bump).
 2.3.0 shipped 2026-07-16 (tag v2.3.0). The **2.3.1** patch cut (section at the bottom) followed on
@@ -284,6 +284,25 @@ or the owner's call to accept it as a standing watch.
       (FFTLivingWeapons-2.3.3.zip); ModVersion bumped to 2.3.3; no parked artifacts
       packaged.
 - [ ] Tag v2.3.3 cut at the release commit and pushed (rides the owner's push word).
+
+## 2.3.4 compat cut (2026-10-15) -- the Denuvo-free game build, no new features
+
+The publisher removed Denuvo from the game in September 2026. The program code did not move,
+but the unprotected build lets Windows load it at a random address each launch (ASLR), so the
+mod's fixed addresses all pointed at nothing and it never switched on. Players reported kill
+counts that stopped moving. This cut makes the mod find the game wherever it lands and does
+nothing else. Cut from v2.3.3 on branch hotfix/2.3.4, deliberately ahead of the unreleased
+2.4.0 work on main, so players get 2.3.3 plus exactly one fix. Owner scope call 2026-10-15.
+
+- [ ] **ASLR rebase (LW-387)**: every address the mod knows is resolved against the live image
+      base at startup; the startup guard learns the new build's identity. Offline diff proved
+      every internal position unchanged (docs/research/PORT_1.5.2_NODRM_OFFSETS.md).
+- [ ] **Owner live pass**: startup line names the resolved base, "Living Weapons is armed" after
+      a save loads, one kill credited with victim identity, card paints, scan_logs exit 0.
+- [ ] Gates re-run at the cut: dotnet test green, analyze.py exit 0, audit_nxd_bakes.py exit 0
+      (already green 2026-10-15 against the new build: the data pacs did not change).
+- [ ] Package built (FFTLivingWeapons-2.3.4.zip); ModVersion bumped to 2.3.4.
+- [ ] Tag v2.3.4 cut at the release commit and pushed (rides the owner's push word).
 
 ## DEFERRED (post-release backlog)
 - **Remove Treasure Master** -- L, works + tested, no user benefit this cycle; do as a dedicated

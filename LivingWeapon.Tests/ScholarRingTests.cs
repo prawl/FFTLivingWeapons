@@ -21,9 +21,9 @@ namespace LivingWeapon.Tests;
 /// </summary>
 public class ScholarRingTests
 {
-    private const long Base    = Offsets.InventoryCountBase;
+    private static long Base    => Offsets.InventoryCountBase;
     private const int  ItemId  = Offsets.ScholarRingItemId;   // 260
-    private const long RingAddr = Base + ItemId;
+    private static long RingAddr => Base + ItemId;
 
     private static FakeSparseMemory MakeReadableWritable(byte initialCount)
     {

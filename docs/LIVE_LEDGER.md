@@ -17,6 +17,7 @@ isolated live) · **CONTRADICTED** (evidence points both ways — probe before b
 
 | Claim | Mechanism | Evidence | Date |
 |---|---|---|---|
+| The Denuvo-free game build relocates under ASLR and every pinned RVA is unchanged; the mod runs on it once addresses are rebased | `ImageBase.At(pin)` = documented preferred-base pin + (live base from `GetModuleHandleW(null)` minus `0x140000000`); guard PE key `0x6A5E4A1B` / `0x03F9E000` | owner live pass 2026-10-16 on buildid 24304444: base resolved `0x7FF65E0F0000`, armed with no stand-down, Chaos Blade kill credited with victim identity, card counter painted and owner-confirmed by eye, scan_logs CLEAN; offline exe diff docs/research/PORT_1.5.2_NODRM_OFFSETS.md (LW-387) | 2026-10-16 |
 | Per-unit turn/moved/acted flags (the full-wait read) | band `+0x19C` menu-open flag (1 while the unit's move/act/wait menu is up), `+0x19D` moved, `+0x19E` acted; both latches engine-reset at next turn open; falling edge of `+0x19C` is the turn-end decision point | owner live-verified 2026-07-09 (Mushin BANK on a still wait, SPENT on the strike); FFHacktics PSX struct 0x186-0x189 + probes/mushin_wait_probe.py tape; `+0x19F` = PSX Ability Outcome (0x02 hit, 0x01 turn ended) | 2026-07-09 |
 | Charm survives its on-hit break | write+HOLD auth-copy `+0x49/0x20` AND `+0x54/0x20` | held through a hit live; `0x140893C00` is a cosmetic decoy | 2026-06-08 |
 | Poison can be pinned + made uncurable | band `+0x48/0x80` re-OR + timer `+0x4A` re-pin (init 36) | two-healer battle at 1.75x rate; `probes/poison_probe.py` | 2026-06-09 |

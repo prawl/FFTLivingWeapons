@@ -47,7 +47,7 @@ internal static class ProvokePolicy
     /// it. NEVER written by anything in this runtime -- kept here (not Offsets.cs) because it is a
     /// policy-level safety constant proven only by a test (both copies hold identical data, so no
     /// runtime check can ever catch a mis-pin), not an address the runtime writes through.</summary>
-    public const long DecoyActionTable = 0x14078961C;
+    public static long DecoyActionTable => ImageBase.At(0x14078961C);
 
     public const int ActionStride = 20;
     public const int ActionRows = 368;

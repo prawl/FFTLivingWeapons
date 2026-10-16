@@ -46,7 +46,7 @@ internal sealed partial class Barrage : ISignature
     // internal (not private): ShadowBlade reuses these table-layout constants + the static helpers
     // below to grant Shadow Blade through the same proven JobCommand injection -- the Barrage logic
     // itself is untouched. (The shared inject/restore core is a future extraction, see ShadowBlade.cs.)
-    internal const long AbilityBase = 0x14067E213L;
+    internal static long AbilityBase => ImageBase.At(0x14067E213L);
     internal const int RecSize = 25;         // bytes per record (3 flags + 16 abilities + 6 RSM)
     internal const int FlagPrefixSize = 3;   // ExtAb u16 + ExtRSM u8
     internal const int AbilityCount = 16;
