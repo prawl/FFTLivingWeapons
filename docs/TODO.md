@@ -82,6 +82,33 @@ Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner dire
 A new row still lands here in the session it surfaces; slot it where its urgency
 belongs rather than at the bottom.
 
+- [LW-393] 2026-10-16: When a game update moves one piece of the game, the mod should switch off only the parts that need that piece and tell the player which parts are off and which still work, instead of the whole mod going dark.
+  Owner ruling 2026-10-16: a mod that breaks in parts beats a tower that falls at once. Premise
+  work the same day: a write-site audit (129 write sites, 59 files) and an adversarial check of
+  the dependency model drawn from it (both in the session scratchpad, to be banked as a research
+  journal with the first stage). What the check established: (1) the game build key is the real
+  global switch today and it also sits inside the extended inventory's arm and in front of the
+  banners and the weapon commands, so demoting it from a stand-down to a logged warning is step
+  one, not a detail; (2) the band and the combat structs are ONE pinned region, and the static
+  unit array at 0x140899F50 that the kill oracle reads is a second region the first model missed;
+  (3) a shared sensing layer (battle sentinels, EventId, TurnQueue, ActorPtr, Acted) sits under
+  every part and one consumer, the new-game reset, archives and clears kills.json after thirty
+  ticks of EventId 2 with BattleMode 0, so a moved sentinel can wipe the tally; it needs its own
+  landmark and the reset must require it; (4) the harmful-write class is five static-table writers
+  (Bulwark terrain grid, weapon palette banks, the poach den store which is save state, Provoke's
+  action and inflict tables, the WP table hold) plus GunSlinger's roster stamps, each needing a
+  vanilla-byte landmark; everything else fails closed by fingerprint. Parts for the report: battle
+  sensing, kill counting, stat growth, card paint, band signatures, static-table signatures, weapon
+  commands, banners, extended inventory, twin pistols. Stages: (0) sensing landmark and the reset
+  guard, (1) LW-392 plus the build key demotion, (2) parts registry, per-module gate inside the
+  signature loop, the report, (3) region landmarks. A dev drill forces one part down and the owner
+  reads the report. Rough size after the check: double the first guess, four to six days.
+- [LW-394] 2026-10-16: Three weapon commands mark an ability as learned in the player's save and never unmark it, so no safety switch can undo them if they ever land in the wrong place; decide whether they should clean up after themselves.
+  Barrage, Shadow Blade and Provoke each set one learned bit in the roster row (Barrage.cs 247,
+  ShadowBlade.cs 199, Provoke.cs 194) and hold it by design so the command stays usable. The audit
+  found these are the only save-persistent writes with no restore path; the Ramza row landmark is
+  their only protection under any guard design. Options: clear the bit when the grant ends, or keep
+  the hold and accept the risk in writing. Surfaced by the 2026-10-16 write-site audit.
 - [LW-392] 2026-10-16: Players spent three weeks guessing why kill counts froze because the mod stayed silent when it could not find the game; make it say so after a short wait.
   The September break (LW-387) read as Unreadable at the guard, which retries silently by design
   for the boot window. Five Nexus reports (2026-09-20 to 10-04) describe "mod loads, cards show the
