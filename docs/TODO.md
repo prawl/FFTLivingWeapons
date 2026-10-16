@@ -31,26 +31,54 @@ the technical detail lives in the indented lines under it.
     stamps, everything else failing closed by fingerprint.
   - Parts for the report: battle sensing, kill counting, stat growth, card paint, band
     signatures, static-table signatures, weapon commands, banners, extended inventory, twin
-    pistols. Stages, each green on its own: (0) sensing landmark and the kills.json reset
-    guard (LW-395); (1) LW-392 plus the build key demotion to a logged warning; (2) the parts
-    registry, a per-module gate inside the signature loop, the report; (3) region landmarks
-    (band, static array, the five static tables, GunSlinger). Rough size four to six days.
+    pistols. The build is split into one row per green-gated stage; THIS row is the middle
+    stage only: the parts registry, a per-module gate inside the signature loop, and the
+    report, built over the gates that already exist (kit lane, prompt hook, extended arm, the
+    roster row). Order of the rows: LW-395 (sensing landmark and the kills.json reset guard),
+    LW-392 (the timed warning), LW-397 (build key becomes a report line), this row, LW-398
+    (band and static array landmarks), LW-399 (vanilla byte landmarks at the five static
+    tables), LW-400 (GunSlinger gets a door), LW-401 (README and docs say what the guard does
+    now). Each row has its own finish line; this one's drill forces the roster landmark wrong.
   - (Tech: FingerprintGuard core reusable per door (KitLane is the template); PE key becomes
     a report line, never a stand-down; ExtendedInventory's arm drops the PE key gate and
     keeps per-site bytes; PromptSwapHook's OfferHookArm and the kit lane step unchain from
     the main guard's Armed edge; TickGates gain one predicate per part; the field-signatures
     row gates per module; StandDownNotice aggregates into one box; Unreadable gets a timed
     log line per door; scan_logs STANDDOWN_MARK phrase kept or updated with the scanner.)
-  - Done means: on a dev build with one landmark deliberately forced wrong, the log and the
-    once-per-session box list every part with ON or OFF and a plain reason, the parts that do
-    not need the moved region keep running (counter paints, banners fire, extended items
-    list), nothing is written where a check failed, and on the normal build every part
-    reports ON with the build key logged as information; the three existing gates (kit lane,
-    prompt hook, extended arm) still refuse exactly as before.
+  - Done means: on a dev build with the roster landmark deliberately forced wrong, the log and
+    the once-per-session box list every part with ON or OFF and a plain reason, the parts that
+    do not need the roster keep running (banners fire, extended items list), nothing is
+    written where a check failed, and on the normal build every part reports ON; the three
+    existing gates (kit lane, prompt hook, extended arm) still refuse exactly as before; the
+    battle sensing line sits above every part. Landmarks beyond the roster and the existing
+    gates are LW-398, LW-399 and LW-400, not this row.
   - Verify: full suite green with the per-door landmark tests, the registry and report tests,
     and a test that a part behind a closed door is never ticked; the owner's live drill on a
     dev build with the forced-wrong landmark reads the report and sees the surviving parts
     work, then the owner's normal prod pass reads all ON; scan_logs clean on both.
+- **[LW-395] A moved battle sentinel must never make the mod think a new game started and clear the kill counts** (opened 2026-10-16) [QUEUED]
+  - Plain language: the mod watches two bytes in the game to notice when a player starts a
+    new game, and on that signal it archives and clears the kill counts so the old playthrough
+    does not bleed into the new one. If a game update moves those bytes and the new bytes
+    happen to read like "new game", the tally is wiped for nothing. This row makes the
+    detector refuse unless the mod has first confirmed those bytes are where it expects.
+    Stage 0 of the parts model (LW-393); it ships first because it protects data on its own.
+  - Found by the 2026-10-16 adversarial check of the parts model (banked in
+    docs/research/WRITE_SITE_AUDIT_2026-10.md): PlaythroughReset.Observe reads EventId and
+    BattleMode every tick and after thirty ticks of EventId 2 with BattleMode 0 out of live
+    it archives and clears kills.json (PlaythroughReset.Policy.cs 28, PlaythroughReset.cs 53).
+  - (Tech: a sensing landmark over the sentinel family (Slot0, Slot9, BattleMode, EventId;
+    shape: BattleMode in its known value set and Slot0 reading one of its two documented
+    markers while a save is loaded) as a FingerprintGuard instance; PlaythroughReset.Observe
+    takes a sensingArmed input and returns NoChange while false; the landmark later becomes the
+    "battle sensing" line of the LW-393 report.)
+  - Done means: with the sensing landmark forced wrong on a dev build, thirty ticks of a
+    fabricated EventId 2 do not archive or clear kills.json and the log says the reset was
+    refused and why; on the normal build a real new game still archives and clears exactly as
+    today.
+  - Verify: suite green with the refusal test (landmark down, fake new-game signal, tally
+    untouched) and the unchanged happy-path test; owner live: start a new game on a prod build
+    and see the archive line as before.
 - **[LW-392] The mod says so when it cannot find the game instead of staying silent** (opened 2026-10-16) [QUEUED]
   - Plain language: players spent three weeks guessing why kill counts froze because the mod
     stayed silent when it could not find the game. After a short wait it should say so, once,
@@ -142,19 +170,46 @@ Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner dire
 A new row still lands here in the session it surfaces; slot it where its urgency
 belongs rather than at the bottom.
 
+- [LW-397] 2026-10-16: The game's build stamp should be reported, never used to switch the mod off, because a recompile with nothing moved tripped it for a month and a Nexus recipe now tells players to stub it out.
+  Stage 1b of the parts model (LW-393), lands with LW-392. Today the PE build key (TimeDateStamp
+  and SizeOfImage) is a stand-down landmark in the main guard AND the boot gate of the extended
+  inventory (ExtendedInventory.cs 106 to 112), and the prompt hook and the kit lane only step
+  after the main guard arms. After this row: one WARN line "this game build is new to the mod,
+  its own checks passed, running normally" and the stamp goes in the log header; the extended
+  arm keeps its per-site byte checks and drops the key; the kit lane and the prompt hook offer
+  unchain from the main guard's Armed edge and gate on their own checks. The Ramza row stays the
+  stand-down landmark until LW-393 gives each part its own.
+- [LW-398] 2026-10-16: The battle band and the static unit array need their own "is it still here" check, so kill counting, growth and the battle signatures can be switched off alone when one of them moves.
+  Stage 3a of the parts model (LW-393). The band and the combat structs are one region measured
+  from CombatAnchor (Offsets.cs 199 to 207, 361); the static unit array at 0x140899F50 is a second
+  (Offsets.cs 89 to 95) read by the kill oracle and several signature fingerprints. Both are only
+  populated in battle, so the landmark arms on first battle entry and must report "waiting" until
+  then. Shape ideas from the audit: a slot whose level, HP and max HP agree with the roster row the
+  band says it mirrors; Band.IsValid already encodes most of it.
+- [LW-399] 2026-10-16: The five places the mod writes into fixed game tables with no check in front (Bulwark's terrain grid, the weapon palette banks, the poach den store, Provoke's two tables, the WP table hold) each get a vanilla byte check before the first write.
+  Stage 3b of the parts model (LW-393). These are the harmful-write class from the audit: on a
+  moved table they author bytes into foreign memory, and the poach store is save state. Each gets a
+  FingerprintGuard.ByteSignature over a known vanilla span (sourced the way Rec8Sig was, by a probe
+  script against the backup exe) and the writer refuses while its door is closed. Provoke.Table
+  also compares its captured original against vanilla instead of trusting whatever it read.
+- [LW-400] 2026-10-16: The twin pistol grant writes into the player's save from outside battle with only the main guard in front of it; give it its own door and a line in the report.
+  Stage 3c of the parts model (LW-393). GunSlinger is not a signature: it ticks on the Always
+  gate in and out of battle (Engine.cs 368) and writes the roster off-hand and support fields
+  (GunSlinger.Apply.cs 83 to 90). Its door is the roster landmark plus the two menu flags it
+  already fails toward suppression on; the report lists it as "twin pistols".
+- [LW-401] 2026-10-16: The README, the compatibility notes and the logging guide must describe the new behavior: the mod no longer refuses everything until the build matches; it checks each part and reports which are on.
+  Exits with the last stage of the parts model. Today README's Good to know bullet says the mod
+  "holds every write until the landmarks match" and docs/LOGGING.md and tools/scan_logs.py key on
+  the stand-down phrase. After the build: the README describes the per-part report and what a
+  player should do when a part reads OFF; docs/COMPATIBILITY.md gets the report format; the
+  scanner's marker phrase follows the new text; docs/PATCH_REANCHOR.md's guard step names the
+  new landmarks. Written last so it describes what shipped, not what was planned.
 - [LW-394] 2026-10-16: Three weapon commands mark an ability as learned in the player's save and never unmark it, so no safety switch can undo them if they ever land in the wrong place; decide whether they should clean up after themselves.
   Barrage, Shadow Blade and Provoke each set one learned bit in the roster row (Barrage.cs 247,
   ShadowBlade.cs 199, Provoke.cs 194) and hold it by design so the command stays usable. The audit
   found these are the only save-persistent writes with no restore path; the Ramza row landmark is
   their only protection under any guard design. Options: clear the bit when the grant ends, or keep
   the hold and accept the risk in writing. Surfaced by the 2026-10-16 write-site audit.
-- [LW-395] 2026-10-16: A moved battle sentinel could make the mod think a new game started and archive and clear the player's kill counts; the new-game detector must refuse unless the battle sensing checks pass.
-  Found by the 2026-10-16 adversarial check of the parts model: PlaythroughReset.Observe reads
-  EventId and BattleMode every tick and after thirty ticks of EventId 2 with BattleMode 0 out of
-  live it archives and clears kills.json (PlaythroughReset.Policy.cs 28, PlaythroughReset.cs 53).
-  If a game update moves those sentinels and the new bytes happen to read 2 and 0, the tally is
-  wiped. Stage 0 of LW-393: give the sensing layer its own landmark and gate the reset on it.
-  Independent of the parts model, so it ships first.
 - [LW-396] 2026-10-16: A Warbrand kill on the enemy's own turn went uncredited in the owner's live pass; look at whether the enemy-turn rule is too strict for weapon damage that lands during the enemy phase.
   Live pass 2026-10-16 11:02 (LW-388 port): the first Warbrand kill was refused by the existing
   enemy-turn rule (KillTracker.Corpses, UntrackedReason.EnemyTurn) while the second was credited.
