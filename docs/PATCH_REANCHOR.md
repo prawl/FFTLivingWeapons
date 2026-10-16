@@ -26,6 +26,16 @@ docs/research/PORT_<ver>_OFFSETS.md journal, not here.
 
 ## Standing facts that keep this calm
 
+- A patch can change the LOADER CONTRACT, not only addresses (2026-10-15, LW-387). The
+  Denuvo-free build (Steam buildid 24304444) kept every internal position but turned ASLR on
+  (DllCharacteristics 0x8160: DYNAMIC_BASE + HIGH_ENTROPY_VA, a real .reloc section), so the image
+  no longer loads at 0x140000000. Symptom: the guard's PE landmark reads UNREADABLE, not Mismatch,
+  so there is NO loud line and NO box; the mod simply never arms and players report kill counts
+  that stopped. Step 1 therefore also records DllCharacteristics and the section count; a 12MB
+  exe with seven standard sections is the unprotected shape. The mod now resolves every address
+  through ImageBase.At(pin) against the live main-module base, so a base move alone needs no
+  re-anchor; an RVA move still does.
+
 - Addresses inside a protector blob are NOT pins (2026-10-16, LW-388). Two post-load byte patches sat
   at 0x14F... inside Denuvo's 349MB section; when the protector left, those bytes ceased to exist and the
   functions reappeared in plain .text at ordinary RVAs. Re-find by instruction shape and by the RIP

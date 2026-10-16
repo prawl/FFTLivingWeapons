@@ -20,6 +20,16 @@ isolated live) · **CONTRADICTED** (evidence points both ways — probe before b
 
 ## Proven
 
+### [denuvo-free-build-relocates-under-aslr] The Denuvo-free game build relocates under ASLR and every pinned RVA is unchanged; the mod runs on it once every address is rebased onto the live image base (PROVEN 2026-10-16, owner live, twice)
+
+PROVEN 2026-10-16 (owner flips: the 2.3.4 hotfix pass at 23 seconds with a Chaos Blade kill, then the main port pass with the extended inventory armed and a Warbrand kill). Plain language: the September update removed the copy protection and the unprotected game is placed at a random address every launch. Nothing inside the program moved, so no address had to be found again; every address only had to be measured from where the game actually sits instead of where it used to sit.
+
+**Mechanism:** `ImageBase.At(pin)` = documented preferred-base pin + (live base from `GetModuleHandleW(null)`, `Process.MainModule` fallback, minus `0x140000000`), resolved once in Mod.StartEngine before the Engine exists; guard PE key `0x6A5E4A1B` / `0x03F9E000`; image-relative disp32 fields measured from `ImageBase.Base`; the near allocator searches upward from the live image first; the ten accessor entries (E9 thunks on the Denuvo build) are hooked at their real entries with a trampoline (AccessorEntryHook).
+
+**Evidence:** Owner live pass 2026-10-16 on Steam buildid 24304444, hotfix v2.3.4: base `0x7FF65E0F0000`, armed with no stand-down, Chaos Blade kill credited with victim identity, card counter painted and owner-confirmed, scan_logs CLEAN. Owner live pass 2026-10-16 11:02, main (LW-388 with R12): base `0x7FF65FC60000`, extended inventory armed with 10 accessor redirects and both relocation pages at `0x7FF663C00000` / `0x7FF663C10000`, main guard armed after the save load, Warbrand (id 264) listed, equipped, swung for weapon damage (999, 168, 144, 72), credited kill, card read 2 of 5, scan_logs CLEAN. Offline exe diff: docs/research/PORT_1.5.2_NODRM_OFFSETS.md (LW-387, LW-388).
+
+**Date:** 2026-10-16
+
 ### [icon-cache-hide-reload] A menu icon already drawn this session re-reads its art from modded.pac on the next screen open once its two cache records are hidden by name (PROVEN 2026-09-01, owner live)
 
 PROVEN 2026-09-01 (owner flip, ~10:10, after watching the reload twice: the red marker art, then the Claymore's own tier 2 glow). Plain language: the game remembers every menu icon it has drawn, in two places, and it never asks the file again while those memories stand. That is why a glow written mid-session showed only after a restart, and why the earlier "refresh on list redraw" observations came and went: they happened whenever the game had cleared those memories on its own, which it does early in a session and not after battles. Hiding both memories for one icon makes the next screen open load the icon fresh from the pac, with no restart.

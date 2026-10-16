@@ -1,7 +1,7 @@
 # Release Scope -- next release (consolidation)
 
 STATUS: CONTRACT (locked scope for the 2.3.0 consolidation release, the 2.3.1 patch cut, the
-2.3.2 game-compatibility cut, the 2.3.3 feature cut, and the 2.4.0 art cut)
+2.3.2 game-compatibility cut, the 2.3.3 feature cut, the 2.3.4 compat cut, and the 2.4.0 art cut)
 
 Locked 2026-07-04. Current shipped version 2.2.2; proposed next **2.3.0** (owner confirms the bump).
 2.3.0 shipped 2026-07-16 (tag v2.3.0). The **2.3.1** patch cut (section at the bottom) followed on
@@ -285,6 +285,25 @@ or the owner's call to accept it as a standing watch.
       packaged.
 - [x] Tag v2.3.3 cut at the release commit b7104c0 and pushed (2026-08-12, owner word in
       session).
+
+## 2.3.4 compat cut (2026-10-15) -- the Denuvo-free game build, no new features
+
+The publisher removed Denuvo from the game in September 2026. The program code did not move,
+but the unprotected build lets Windows load it at a random address each launch (ASLR), so the
+mod's fixed addresses all pointed at nothing and it never switched on. Players reported kill
+counts that stopped moving. This cut makes the mod find the game wherever it lands and does
+nothing else. Cut from v2.3.3 on branch hotfix/2.3.4, deliberately ahead of the unreleased
+2.4.0 work on main, so players get 2.3.3 plus exactly one fix. Owner scope call 2026-10-15.
+
+- [x] **ASLR rebase (LW-387)**: shipped 3adcb824. Every address the mod knows is resolved against the live image
+      base at startup; the startup guard learns the new build's identity. Offline diff proved
+      every internal position unchanged (docs/research/PORT_1.5.2_NODRM_OFFSETS.md).
+- [x] **Owner live pass** (2026-10-16): base resolved 0x7FF65E0F0000, armed at 23 seconds, Chaos
+      Blade kill credited with victim identity, card counter confirmed by eye, scan_logs CLEAN.
+- [x] Gates re-run at the cut: dotnet test 3115 green, analyze.py exit 0, audit_nxd_bakes.py exit 0
+      (already green 2026-10-15 against the new build: the data pacs did not change).
+- [x] Package built (FFTLivingWeapons-2.3.4.zip, 2026-10-16); ModVersion bumped to 2.3.4.
+- [x] Tag v2.3.4 cut at e2a2f0c3 and pushed 2026-10-16 on the owner's word; GitHub release and Nexus upload live.
 
 ## 2.4.0 art cut (scoped 2026-08-19) -- every icon reworked
 

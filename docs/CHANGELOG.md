@@ -487,6 +487,24 @@ before 2026-07-21 keep their original prose.
   tools/probes/lw251_* and lw305_*; residuals and follow ups are LW-305, LW-308, LW-310,
   LW-311.)
 
+## 2.3.4 cycle
+
+- [LW-387] SHIPPED 3adcb824 2026-10-16: Kill counts work again on the game build that shed its
+  copy protection. Plain language: the September game update removed Denuvo, and the unprotected
+  game is loaded at a random address every launch. The mod assumed one fixed address, read empty
+  memory, and waited forever without switching on, which players saw as kill counts that never
+  moved. No save was ever at risk because the guard held every write. Now every game address the
+  mod knows stays written as its documented number and is resolved against the real image base
+  the mod asks Windows for at startup, and the startup guard knows the new build's identity. The
+  offline diff of the two game files proved every internal position unchanged. Owner live pass
+  2026-10-16 on Steam buildid 24304444: base resolved 0x7FF65E0F0000, armed at 23 seconds with no
+  stand-down, Chaos Blade kill credited with victim identity, card counter painted and confirmed
+  by eye, scan_logs CLEAN. Cut as v2.3.4 from v2.3.3 on branch hotfix/2.3.4, ahead of the
+  unreleased 2.4.0 work; porting the rule to main is LW-388. (Tech: ImageBase.At(pin) over a
+  live base from GetModuleHandleW(null); Offsets pins are static properties; LaunchGuard PE key
+  0x6A5E4A1B / 0x03F9E000; literal tripwire and no-bake ratchet tests; two adversarial verify
+  rounds, code 8 of 10 both; journal docs/research/PORT_1.5.2_NODRM_OFFSETS.md.)
+
 ## 2.3.3 cycle
 
 - [LW-297] SHIPPED f393d76 2026-08-21: Deploying the mod used to report success by counting
