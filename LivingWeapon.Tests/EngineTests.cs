@@ -68,7 +68,14 @@ public class EngineTests
         StagePeHealthy(mem);
         StageJobCommandHealthy(mem);
         StageRamzaRow(mem, level, nameId, sprite, brave, faith);
+        StageTwinFlags(mem, 0, 0);
         return mem;
+    }
+
+    internal static void StageTwinFlags(FakeSparseMemory mem, byte menu, byte browse)
+    {
+        mem.TerrainBlocks[Offsets.MenuOpenFlag] = new byte[] { menu };
+        mem.TerrainBlocks[Offsets.PartyBrowseFlag] = new byte[] { browse };
     }
 
     /// <summary>LW-150 S5 hazard (c): SaveLocation.ResolveSaveDir walks up two directories from

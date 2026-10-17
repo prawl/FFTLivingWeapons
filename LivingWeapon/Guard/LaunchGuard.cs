@@ -3,7 +3,7 @@ using System;
 namespace LivingWeapon;
 
 /// <summary>
-/// The LivingWeapon adapter over the portable <see cref="FingerprintGuard"/>. It holds three independent guards
+/// The LivingWeapon adapter over the portable <see cref="FingerprintGuard"/>. It holds four independent guards
 /// and each one feeds a door of the parts registry. The main guard checks Ramza's roster row at RosterBase slot 0,
 /// a data only landmark, and its armed edge is what enables Mem writes. The kit lane (LaunchGuard.KitLane.cs) checks
 /// the JobCommand table and the sensing lane (LaunchGuard.Sensing.cs) checks the battle sentinels. The build stamp is
@@ -32,13 +32,16 @@ internal sealed partial class LaunchGuard
     /// <param name="forceSensingMismatch">Dev drill LW_FORCE_SENSING_MISMATCH. Makes healthy sentinels read as a mismatch.</param>
     /// <param name="forceUnreadable">Dev drill LW_FORCE_GUARD_UNREADABLE. Both main landmarks read Unreadable for DrillBlindSteps.</param>
     /// <param name="forceRosterMismatch">Dev drill LW_FORCE_ROSTER_MISMATCH. A populated healthy roster row reads as a mismatch.</param>
+    /// <param name="forceTwinMismatch">Dev drill LW_FORCE_TWIN_MISMATCH. Once a save is loaded the menu flag check reads as a mismatch.</param>
     public LaunchGuard(IGameMemory mem, bool forceMismatch, Action<string, string>? notice = null,
         Action<string, string>? recorder = null, Action<string>? requestFlush = null,
-        bool forceSensingMismatch = false, bool forceUnreadable = false, bool forceRosterMismatch = false)
+        bool forceSensingMismatch = false, bool forceUnreadable = false, bool forceRosterMismatch = false,
+        bool forceTwinMismatch = false)
     {
         _mem = mem;
         _forceMismatch = forceMismatch;
         _forceRosterMismatch = forceRosterMismatch;
+        _forceTwinMismatch = forceTwinMismatch;
         _notice = notice;
         _recorder = recorder;
         _requestFlush = requestFlush;
@@ -59,6 +62,8 @@ internal sealed partial class LaunchGuard
         };
         _guard = new FingerprintGuard(landmarks, StandDown, ArmedEdge, MismatchDebounce);
         _kitLaneGuard = new FingerprintGuard(new[] { KitLaneLandmark() }, KitLaneStandDown, KitLaneArmedEdge, MismatchDebounce);
+
+        _twinGuard = new FingerprintGuard(new[] { TwinLandmark() }, TwinStandDown, TwinArmedEdge, MismatchDebounce);
 
         _forceSensingMismatch = forceSensingMismatch;
         _expectedSlot9 = forceSensingMismatch ? SensingSentinelIdle ^ 1 : SensingSentinelIdle;

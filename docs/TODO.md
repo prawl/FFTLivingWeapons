@@ -76,6 +76,34 @@ the technical detail lives in the indented lines under it.
   - Verify: full suite green; the owner's live battle shows either the "The weapon's
     spirit claims the carcass" log line with the Den count matching, or the named
     discriminator or gate-reason line in livingweapon.log; the owner reads the FAQ text.
+- **[LW-400] The twin weapon grant gets its own safety switch and its own line in the parts report** (opened 2026-10-16) [BUILDING]
+  - The twin weapon grant (the Outrider Pistol's twin and the Arbalest's Crossfire share one
+    code path) is the one part of the mod that writes into the player's save data from the
+    world map, and it relies on two small menu flags to stay out of the equipment screens.
+    Today nothing checks those flags before trusting them. After this row the grant has its own
+    door: WAITING until a save loads, ON when the flags and Ramza's hand slots look right, OFF
+    with one calm warning and a seat in the parts box when they do not, while every other part
+    keeps running. The grant also refuses to write on its own whenever its door is not open.
+    The report calls the part "twin weapons" rather than "twin pistols" because the Arbalest's
+    Crossfire grant runs on the same GunSlinger code and a crossbow player must recognize the
+    line as theirs. Stage 3c of the parts model (LW-393).
+  - Done means: a player whose game moved those two flag bytes sees "twin weapons OFF" in the
+    log and in the box, kill counting and the rest stay ON, no twin is ever stamped while that
+    door is closed, and a dev drill makes the whole thing watchable. (Tech: Door.TwinPistols; a
+    fourth FingerprintGuard in LaunchGuard.Twin.cs over MenuOpenFlag and PartyBrowseFlag reading
+    0 or 1 plus slot 0 hand words at most 0x1FF or 0xFFFF, Waiting on an empty slot; the twin
+    weapons part depends on Roster and TwinPistols; GunSlinger takes a required doorOpen
+    predicate and refuses in PrepRoster with one WARN under the signature verb; MenuGate denies
+    on a byte above 1; LW_FORCE_TWIN_MISMATCH drill; PartsBoard takes the drill sentence as text;
+    ledger entry twin-menu-flags-zero-at-map-time UNCERTAIN.)
+  - Verify: the owner runs the two legs in docs/DEV_TEST_RECIPES.md (LW-400 twin weapons drill):
+    under the drill, Continue produces the twin WARN, a report line with twin weapons OFF and
+    nine parts ON, exactly one box naming kill counting under Still working, no twin on a freshly
+    equipped unit's Status screen, a credited kill, scan_logs exit 0; without the drill, all ten
+    ON with the twin lane armed in the same second as the roster, the twin appearing on the
+    Status back out, scan clean. (Tech: all six gates green; the load bearing test is
+    GunSlingerTests.PrepRoster_writes_nothing_while_the_twin_door_is_closed_and_writes_when_open,
+    red when the return is removed from the PrepRoster door line.)
 ## Backlog
 
 Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner directed).
@@ -95,11 +123,6 @@ belongs rather than at the bottom.
   FingerprintGuard.ByteSignature over a known vanilla span (sourced the way Rec8Sig was, by a probe
   script against the backup exe) and the writer refuses while its door is closed. Provoke.Table
   also compares its captured original against vanilla instead of trusting whatever it read.
-- [LW-400] 2026-10-16: The twin pistol grant writes into the player's save from outside battle with only the main guard in front of it; give it its own door and a line in the report.
-  Stage 3c of the parts model (LW-393). GunSlinger is not a signature: it ticks on the Always
-  gate in and out of battle (Engine.cs 368) and writes the roster off-hand and support fields
-  (GunSlinger.Apply.cs 83 to 90). Its door is the roster landmark plus the two menu flags it
-  already fails toward suppression on; the report lists it as "twin pistols".
 - [LW-401] 2026-10-16: The README, the compatibility notes and the logging guide must describe the new behavior: the mod no longer refuses everything until the build matches; it checks each part and reports which are on.
   Exits with the last stage of the parts model. Today README's Good to know bullet says the mod
   "holds every write until the landmarks match" and docs/LOGGING.md and tools/scan_logs.py key on

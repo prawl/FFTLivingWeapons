@@ -53,10 +53,11 @@ internal sealed class Engine
     private readonly TickPhaseState _tickState = new();
     private readonly GunSlinger _gunSlinger = null!;
     private readonly IGameMemory _live = null!;   // assigned in ctor, used by Tick
-    private readonly LaunchGuard _launchGuard;   // the three door guards; its roster edge enables Mem writes
+    private readonly LaunchGuard _launchGuard;   // the four door guards; its roster edge enables Mem writes
     private readonly PartsBoard _board;   // the parts report line and its box per closure wave
-    private readonly Dictionary<Door, DoorReading> _readings = new();   // the five doors, refilled every tick
+    private readonly Dictionary<Door, DoorReading> _readings = new();   // the six doors, refilled every tick
     private readonly bool _devForceRoster;
+    private readonly bool _devForceTwin;
     private readonly AnchorScout _anchorScout;   // verifier scout, ticks only once StoodDown; writes nothing
     private readonly BannerToast _toast;
     private readonly bool _bannerToastsEnabled;
@@ -78,15 +79,16 @@ internal sealed class Engine
     /// <param name="mem">Injectable memory seam. Null builds a <see cref="LiveMemory"/>; tests pass a fake.</param>
     /// <param name="notice">The box for the parts board and the stall warning. Null falls back to <see cref="StandDownNotice.Show"/>; tests pass a no-op.</param>
     /// <param name="extended">the extended inventory. Null builds the live one; tests inject fakes.</param>
-    /// <param name="devForceSensingMismatch">Dev drill (LW_FORCE_SENSING_MISMATCH, dev builds only): forces the
-    /// sensing lane to read a mismatch so the refuse-to-clear path can be watched.</param>
+    /// <param name="devForceSensingMismatch">Dev drill (LW_FORCE_SENSING_MISMATCH, dev builds only) under which the sensing lane reads a mismatch.</param>
     /// <param name="devForceRosterMismatch">Dev drill (LW_FORCE_ROSTER_MISMATCH, dev builds only) under which a healthy roster row reads wrong.</param>
     /// <param name="devForceGuardUnreadable">Dev drill (LW_FORCE_GUARD_UNREADABLE, dev builds only): the startup
     /// guard reads blind for about eighty seconds so the cannot-find-the-game warning and recovery line can be watched.</param>
+    /// <param name="devForceTwinMismatch">Dev drill (LW_FORCE_TWIN_MISMATCH, dev builds only) under which the twin weapon door reads wrong once a save is loaded.</param>
     public Engine(string modDir, bool? bannerToasts = null, bool? devSeedKills = null,
         bool? devForceFingerprintMismatch = null, IGameMemory? mem = null, Action<string, string>? notice = null,
         ExtendedInventory? extended = null, bool? devForceSensingMismatch = null,
-        bool? devForceGuardUnreadable = null, bool? devForceRosterMismatch = null)
+        bool? devForceGuardUnreadable = null, bool? devForceRosterMismatch = null,
+        bool? devForceTwinMismatch = null)
     {
         // Save files live in the update-safe Reloaded/User/Mods/<ModId> dir so a mod-folder
         // replace cannot wipe them. Each store migrates its legacy file there before first load.
@@ -130,8 +132,10 @@ internal sealed class Engine
             recorder: Flight.Record, requestFlush: Flight.RequestFlush,
             forceSensingMismatch: devForceSensingMismatch ?? false,
             forceUnreadable: devForceGuardUnreadable ?? false,
-            forceRosterMismatch: devForceRosterMismatch ?? false);
+            forceRosterMismatch: devForceRosterMismatch ?? false,
+            forceTwinMismatch: devForceTwinMismatch ?? false);
         _devForceRoster = devForceRosterMismatch ?? false;
+        _devForceTwin = devForceTwinMismatch ?? false;
         _board = new PartsBoard(ResolveNotice(notice), Flight.Record);
         _tickState.PartOn = PartOn;
         // Read-only scout that ticks only while StoodDown; it never arms or writes (a scout, never a healer).
@@ -202,7 +206,7 @@ internal sealed class Engine
         save.Migrate("gunslinger.json");
         // Sack reads follow the extended inventory's bag base once it arms. The lambda
         // captures _extended, assigned below, and only runs later on a PrepRoster pass after BootArm.
-        _gunSlinger = new GunSlinger(meta, _kills, save.SaveDir, live, recorder: Flight.Record, bagCountBase: () => _extended!.BagCountBase);
+        _gunSlinger = new GunSlinger(meta, _kills, save.SaveDir, () => PartOn(Part.TwinPistols), live, recorder: Flight.Record, bagCountBase: () => _extended!.BagCountBase);
         // Marks are release-hidden on the equip card too, so legends is null here (the
         // Attack card already skips the deed ledger via AttackCard.Resolve markLabel=null). Pass legends as _legends
         // to re-enable in Reliquary Phase 2, which rebuilds StoryLines/EarnedAnchors (the three-way anchor, decision 2).
@@ -406,7 +410,8 @@ internal sealed class Engine
         _readings[Door.Sensing] = _launchGuard.SensingDoor;
         _readings[Door.PromptHook] = _promptSwapHook.Door;
         _readings[Door.ExtendedArm] = _extended.Door;
-        _board.Observe(_readings, _launchGuard.BuildHedge, _devForceRoster);
+        _readings[Door.TwinPistols] = _launchGuard.TwinPistolsDoor;
+        _board.Observe(_readings, _launchGuard.BuildHedge, PartsReport.DrillSentence(_devForceRoster, _devForceTwin));
     }
 
     /// <summary>Test seam. The part of each entry in <see cref="FieldTickOrder"/>.</summary>
@@ -482,10 +487,11 @@ internal sealed class Engine
     {
         Flight.DrainPending();   // cheap flag check every tick; the actual I/O (if any is pending) runs here, never on the requester's thread
 
-        // The three guards step on their own from the first tick. A stood down roster door only starts the read-only scout.
+        // The four guards step on their own from the first tick. A stood down roster door only starts the read-only scout.
         _launchGuard.Step();
         _launchGuard.StepKitLane();
         _launchGuard.StepSensing();
+        _launchGuard.StepTwin();
         if (_launchGuard.State == GuardState.StoodDown) _anchorScout.Tick();
         ObserveDoors();
 

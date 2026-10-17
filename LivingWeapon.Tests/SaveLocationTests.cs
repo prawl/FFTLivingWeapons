@@ -16,6 +16,8 @@ namespace LivingWeapon.Tests;
 /// </summary>
 public class SaveLocationTests : IDisposable
 {
+    private static bool DoorOpen() => true;
+
     private readonly List<TempDirs> _tempDirs = new();
 
     private string TempRoot()
@@ -223,7 +225,7 @@ public class SaveLocationTests : IDisposable
         Assert.False(legends.Has(1));   // fresh: no legacy legends.json existed
 
         save.Migrate("gunslinger.json");
-        var gunSlinger = new GunSlinger(new Dictionary<int, WeaponMeta>(), tally.Kills, save.SaveDir, new FakeSparseMemory());
+        var gunSlinger = new GunSlinger(new Dictionary<int, WeaponMeta>(), tally.Kills, save.SaveDir, DoorOpen, new FakeSparseMemory());
         var snap = gunSlinger.StoreForTest().Get(1);
         Assert.True(snap.HasOff);
         Assert.Equal(100, snap.OrigOff);

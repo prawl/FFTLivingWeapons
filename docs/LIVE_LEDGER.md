@@ -2313,6 +2313,22 @@ The claim that a matching PE build key combined with a rec8/rec9 landmark mismat
 
 </details>
 
+### [twin-menu-flags-zero-at-map-time] The two menu flags and Ramza's hand words read zero or one and plausible item ids on a loaded save, so the twin weapon door can check them once at Continue (LW-400)
+
+The claim that the world map menu byte (0x140D508D0) and the party browse byte (0x140D408E2) only ever read 0 or 1, and that Ramza's right hand, off hand, shield and support words on a loaded save read at most 0x1FF or exactly 0xFFFF, is Uncertain: the file image half is checked offline and the live half is one save per earlier ledger row, with the first full read of this row waiting on the owner's LW-400 legs (2026-10-17).
+
+<details><summary>How we got here</summary>
+
+**Claim (original wording):** Both menu flags sit in the exe's .data past its raw data, so they read zero from module map time and are always mapped; on a loaded save they hold only 0 or 1; slot 0 of the roster holds hand words that are item ids (at most 511 = 0x1FF) or an empty sentinel (0, 255, 0xFFFF) and a support key under 512. The twin weapon door arms on that, stands down on anything else, and reads WAITING while slot 0's level is 0.
+
+**Mechanism:** tools/probes/twin_flags_file_image_probe.py against the 1.5.2 Denuvo-free exe (stamp 0x6A5E4A1B, size 0x03F9E000): MenuOpenFlag 0x140D508D0 and PartyBrowseFlag 0x140D408E2 are past the raw data of .data (raw 0x1A3A00 of virtual 0x35A87FC), zero until written, inside the mapped span; the roster fields are the same. Mem.TryReadBytes is a raw ReadProcessMemory with no Readable pre filter, so a mapped but unreadable page reads false and the probe reports "menu flags unreadable", never a crash. Item ids end at ExtendedCatalog.LastExtendedId (511); every known roster key (Poach 471, Dual Wield 477, Non-charge 483, Master Teleportation 499) is id plus 256 and under 512.
+
+**Evidence:** the offline probe output above, re-derived independently from the PE section table in the plan review; the ledger rows [worldmap-menu-open-byte] and [party-browse-screen-byte] (one save, one session each, tapes lw193_menusig_20260817_063908.log and lw193_menusig_20260817_110948.log) for the 0 or 1 values. Unobserved for the menu byte: title screen, story dialogs, the world map modal box, mid battle menus; for the browse byte: the Equipment and Abilities sub pickers, formation, battle. The door reads the flags only at arming time, so the live read that matters is the twin lane armed line in the same second as the roster armed line on Continue (docs/DEV_TEST_RECIPES.md, LW-400 recipe, Leg B). A twin warning naming a flag value or a hand word falsifies this row on that save. A value of 2 or more after arming is handled by the grant's own menu gate, which denies on it.
+
+**Date:** 2026-10-17
+
+</details>
+
 ### [per-turn-normalize-repaints-boosted-baseline] Engine per-turn normalize re-paints a stat baseline INCLUDING a mod boost active at battle open (LW-90)
 
 Uncertain claim that the game snapshots stats at battle open with a mod boost baked in, so every later normalize restores the boosted baseline unless the mod re-corrects it; evidenced by log lines and owner eyewitness on 2026-07-21, when the LastTarget corrective prong shipped.

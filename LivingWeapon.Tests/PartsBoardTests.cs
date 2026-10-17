@@ -20,7 +20,7 @@ public class PartsBoardTests
 
         public Rig() { Board = new PartsBoard((t, x) => Notices.Add((t, x)), (t, p) => Records.Add((t, p))); }
 
-        public void Tick(int n = 1, string hedge = "", bool drill = false)
+        public void Tick(int n = 1, string hedge = "", string drill = "")
         {
             for (int i = 0; i < n; i++) Board.Observe(R, hedge, drill);
         }
@@ -159,7 +159,7 @@ public class PartsBoardTests
         var rig = new Rig();
         rig.R[Door.Roster] = DoorReading.Failed("the party data is not where this mod expects it");
 
-        rig.Tick(PartsBoard.SettleSteps + 1, LaunchGuard.UnknownBuildHedge, drill: true);
+        rig.Tick(PartsBoard.SettleSteps + 1, LaunchGuard.UnknownBuildHedge, drill: PartsReport.RosterDrillSentence);
 
         var box = Assert.Single(rig.Notices);
         Assert.Equal(PartsReport.ComposeBox(rig.R, PartsReport.RosterDrillSentence, LaunchGuard.UnknownBuildHedge), box.text);
@@ -173,8 +173,26 @@ public class PartsBoardTests
         var r = PartsReportTests.AllOpen();
         r[Door.Roster] = DoorReading.Failed("x");
 
-        for (int i = 0; i < PartsBoard.SettleSteps + 2; i++) board.Observe(r, "", false);
+        for (int i = 0; i < PartsBoard.SettleSteps + 2; i++) board.Observe(r, "", "");
 
         Assert.Equal(1, board.BoxCount);
+    }
+
+    [Fact]
+    public void A_twin_closure_boxes_once_and_carries_the_sentence_it_was_given()
+    {
+        using var cap = LogCapture.Start();
+        var rig = new Rig();
+        rig.Tick(10);
+        rig.R[Door.TwinPistols] = DoorReading.Failed("the menu flags the twin weapon grant relies on do not read as expected");
+
+        rig.Tick(PartsBoard.SettleSteps + 1, "", PartsReport.TwinDrillSentence);
+
+        var box = Assert.Single(rig.Notices);
+        Assert.EndsWith(PartsReport.TwinDrillSentence, box.text);
+        Assert.Contains("Switched off: twin weapons", box.text);
+        rig.Tick(5000, "", PartsReport.TwinDrillSentence);
+        Assert.Single(rig.Notices);
+        Assert.Equal(1, rig.Board.BoxCount);
     }
 }
