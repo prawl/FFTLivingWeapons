@@ -20,7 +20,7 @@ internal sealed partial class PromptSwap
     // (facing prompt, tile prompt, unit name, ...).
     private const int StructSampleCap = 6;
 
-    // Bytes dumped for the struct sample: the hypothesized capacity-check field at +0x18 plus
+    // Bytes dumped for the struct sample. The hypothesized capacity-check field at +0x18 plus
     // headroom, and a look-behind in case textPtr sits off the string-object base.
     private const int StructRawLen = 32;
     private const int StructPreLen = 8;
@@ -40,7 +40,7 @@ internal sealed partial class PromptSwap
             ModLogger.Debug(LogVerb.Toast, $"prompt head sample {_sampledHeads.Count} of {SampleCap}: \"{text}\"");
     }
 
-    /// <summary>LW-89 step 1b: logs at Debug a bounded window around textPtr (look-behind, raw bytes,
+    /// <summary>LW-89 step 1b. Logs at Debug a bounded window around textPtr (look-behind, raw bytes,
     /// the three capacity-check offsets, one pointer-chase), one line per unique 16-byte pattern, up
     /// to StructSampleCap a session. An unreadable textPtr counts against the cap via the
     /// "unreadable" key, so a persistent failure cannot log forever.</summary>

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Cursor state for an incremental, high-address-first region walk: which region the walk is
+/// Cursor state for an incremental, high-address-first region walk. Which region the walk is
 /// on and the next chunk-aligned address within it, or done. <see cref="AtStart"/> seeds a fresh
 /// walk over an already-sorted region list (an empty list starts done).
 /// </summary>

@@ -60,7 +60,7 @@ internal sealed partial class Bulwark : ISignature
 
     public void ResetBattle()
     {
-        // A1: restore before clearing. Release no-ops silently when the book and deferred watch are
+        // A1. Restore before clearing. Release no-ops silently when the book and deferred watch are
         // empty, so the enter-edge call after each exit-edge reset logs nothing.
         Release("the battle ended");
         _wasActive = false;
@@ -99,7 +99,7 @@ internal sealed partial class Bulwark : ISignature
         }
         _unresolvedStreak = 0;
 
-        // A7: a corpse never raises the turn flag, so this is the release path for death.
+        // A7. A corpse never raises the turn flag, so this is the release path for death.
         if (_planted)
         {
             int hp = _mem.U16(entry + Offsets.AHp);

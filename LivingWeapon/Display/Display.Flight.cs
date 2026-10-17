@@ -65,7 +65,7 @@ internal sealed partial class Display
     {
         foreach (var e in verdict.Entries)
         {
-            // break, not return: tier 1 has a private reserve, so hitting its cap must not
+            // break, not return. Tier 1 has a private reserve, so hitting its cap must not
             // silence tiers 2/3. Their returns below are fine because they share one budget.
             if (_evictedBudget >= EvictedRecordBudget) break;
             if (!e.Evicted) continue;
@@ -111,7 +111,7 @@ internal sealed partial class Display
     /// wired in Display.cs). Spends the shared <see cref="_flightBudget"/>; since LW-259 its
     /// neighbors are EmitVerdict tiers 2 and 3, not tier 1. One prune can evict 1000+ dead kills
     /// sites in a burst and exhaust the 64 records, starving tier 2/3 lines for the window. That is
-    /// accepted: kills prunes should be rare (2026-08-18 tape peaked at 726-728 of 2048) and suffix
+    /// accepted. Kills prunes should be rare (2026-08-18 tape peaked at 726-728 of 2048) and suffix
     /// sites no longer prune (CardSites.Admission.cs "prune amplification bound"). A dedicated
     /// reserve would have to be nearly as large as the budget or too small to catch a burst; if
     /// bursts show up on a real tape, size one from that. Same format as the site-evicted line,

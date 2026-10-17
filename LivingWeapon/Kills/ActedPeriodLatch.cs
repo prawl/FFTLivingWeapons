@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// S3: carries the latch state in and out of each <see cref="ActedPeriodLatch.Step"/> /
+/// S3. Carries the latch state in and out of each <see cref="ActedPeriodLatch.Step"/> /
 /// <see cref="ActedPeriodLatch.Reset"/> call. The fields live on KillTracker; it seeds this before the call
 /// and copies back after (SeedLatchOutputs/ApplyLatchOutputs), so the latch needs no KillTracker reference.
 /// </summary>
@@ -16,7 +16,7 @@ internal sealed class ActedPeriodOutputs
     internal List<int> LastPlayerWeapons = new();
     internal int LastPlayerMainHand;
     internal (int lvl, int br, int fa) LastActorFp;
-    // LW-252 stage 3: the acting unit's frame nameId, refreshed beside LastActorFp (outside the !SameSet
+    // LW-252 stage 3. The acting unit's frame nameId, refreshed beside LastActorFp (outside the !SameSet
     // guard) so TrackDelayed can compare identity by nameId. 0 means none was resolved (never latched,
     // ambiguous or enemy period, or the first-kill fallback).
     internal int LastActorNameId;
@@ -30,7 +30,7 @@ internal sealed class ActedPeriodOutputs
 }
 
 /// <summary>
-/// S3: the acted-period latch, moved out of KillTracker.Poll and FirstKillFallback unchanged
+/// S3. The acted-period latch, moved out of KillTracker.Poll and FirstKillFallback unchanged
 /// apart from addressing state through <see cref="ActedPeriodOutputs"/>. It latches the acting player's
 /// weapons once per acted-period. The condensed struct follows the cursor (BATTLE_COORDINATES.md) and
 /// acted stays 1 all turn, so the first successful resolve is kept until acted stays 0 for UnfreezeTicks.
@@ -74,13 +74,13 @@ internal sealed class ActedPeriodLatch
             if (!o.Latched)
             {
                 // A resolved player always replaces the latch, even with an empty weapon set, so untracked
-                // gear goes uncredited (live bug: a DLC-armed Ramza's Throw Stone kill paid the prior actor's
+                // gear goes uncredited (live bug. A DLC-armed Ramza's Throw Stone kill paid the prior actor's
                 // crossbow). An unresolved period (enemy acting, Acted-byte flake) keeps the old latch.
                 if (_resolver.TryResolveActingPlayer(out var ws))
                 {
                     o.Latched = true;
                     o.LastResolveTick = _register.Tick;   // KillerStamp's ordering-gate comparand (KillerStamp.cs)
-                    // Outside the !SameSet guard for the same reason as the fingerprint below: two untracked
+                    // Outside the !SameSet guard for the same reason as the fingerprint below. Two untracked
                     // actors share an empty set and the second would otherwise keep the first's verdict.
                     o.LatchResolvedEmpty = ws.Count == 0;
                     if (ws.Count > 0) o.AnyTrackedWeaponThisBattle = true;   // sticky armed gate (facelift)
@@ -88,7 +88,7 @@ internal sealed class ActedPeriodLatch
                     o.LatchViaFallback = _resolver.LastResolveSource == ResolveSource.TqFallback;
                     // Refresh the acting fingerprint on the latch edge, outside the !SameSet guard. Two Arcanum
                     // holders share weapon set {30}, so inside it a handoff never updated it (the Larceny bug).
-                    // LW-252 stage 3: the nameId refreshes at the same place and for the same reason, so a
+                    // LW-252 stage 3. The nameId refreshes at the same place and for the same reason, so a
                     // same-set handoff does not leave the previous wielder's identity behind.
                     bool resolvedFp = _resolver.TryResolveActingFingerprint(out var afp, out var actorNameId);
                     o.LastActorFp = resolvedFp ? afp : default;
@@ -150,12 +150,12 @@ internal sealed class ActedPeriodLatch
         {
             o.LastPlayerWeapons = ws;
             o.LastPlayerMainHand = _resolver.ResolveActingMainHand();
-            // LW-252 stage 3: LastActorNameId stays 0 here. This path only runs when the acted path never
+            // LW-252 stage 3. LastActorNameId stays 0 here. This path only runs when the acted path never
             // latched this battle, so there is no identity, and TrackDelayed falls back to the fingerprint.
             o.ActorTag = string.Join(",", ws);
             o.LastResolveTick = _register.Tick;   // KillerStamp's ordering-gate comparand (KillerStamp.cs)
             _fallbackStreak = 0; _fallbackSet = new();
-            o.AnyTrackedWeaponThisBattle = true;   // ws is non-empty here: a tracked weapon is fielded
+            o.AnyTrackedWeaponThisBattle = true;   // ws is non-empty here. A tracked weapon is fielded
             o.LatchViaFallback = true;             // first-kill fallback is a fallback resolve by definition
             ModLogger.EventWithTrace(LogVerb.Credit,
                 "No actor had been identified yet; crediting the only player who has acted (first-kill fallback), wielding " + string.Join(", ", ws.ConvertAll(LogNames.Weapon)) + ".",
@@ -164,7 +164,7 @@ internal sealed class ActedPeriodLatch
         }
     }
 
-    /// <summary>Reset per-battle state: this class's own fields, plus the battle-start default of every
+    /// <summary>Reset per-battle state. This class's own fields, plus the battle-start default of every
     /// output field written into <paramref name="o"/> for KillTracker.ResetBattle to copy back.</summary>
     internal void Reset(ActedPeriodOutputs o)
     {
@@ -175,7 +175,7 @@ internal sealed class ActedPeriodLatch
         o.LastPlayerWeapons = new();
         o.LastPlayerMainHand = 0;
         o.LastActorFp = default;
-        o.LastActorNameId = 0;   // LW-252 stage 3: clears beside LastActorFp
+        o.LastActorNameId = 0;   // LW-252 stage 3. Clears beside LastActorFp
         o.LastResolveTick = 0;
         o.Latched = false;
         o.PeriodOpen = false;

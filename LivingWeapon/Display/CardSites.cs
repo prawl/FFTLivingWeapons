@@ -6,12 +6,12 @@ namespace LivingWeapon;
 /// <summary>
 /// The verified paint-site cache. Anchor patterns (name/flavor) are re-verified at paint time to detect buffer reuse.
 /// A mismatching anchor evicts on first occurrence; an unreadable one evicts only after Tuning.CardEvictStrikes consecutive misses (CardSites.Verify.cs ApplyStrike), so one transient read failure no longer deletes a live site. Skip-if-equal is not an eviction trigger.
-/// Cap relief: when Add finds the kills cache at cap it re-verifies every anchor without painting, evicts dead sites and retries, at most once per PruneEveryRefusals refusals (the first cap hit after a prune or Clear prunes at once). The prune skips the strike leniency (see PruneDeadSites).
+/// Cap relief. When Add finds the kills cache at cap it re-verifies every anchor without painting, evicts dead sites and retries, at most once per PruneEveryRefusals refusals (the first cap hit after a prune or Clear prunes at once). The prune skips the strike leniency (see PruneDeadSites).
 /// LW-262 moved Add/PruneDeadSites/EvictList and their state to CardSites.Admission.cs once suffix and kills got separate caps; SyncFlavorToCurrent is in CardSites.Reliquary.cs. PaintSiteWithResult stays here as one state machine whose branches each tag a PaintOutcome for CardVerdict.
 /// </summary>
 internal sealed partial class CardSites
 {
-    /// <summary>A paint site: weapon id, encoding, slot address, anchor address, and
+    /// <summary>A paint site. Weapon id, encoding, slot address, anchor address, and
     /// whether this is a kills site (true) or suffix site (false).</summary>
     internal readonly record struct Site(int Id, int Enc, long SlotAddr, long AnchorAddr, bool IsKills);
 

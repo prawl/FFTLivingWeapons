@@ -19,7 +19,7 @@ internal sealed partial class Choir : ISignature
     private readonly IGameMemory _mem;
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly Dictionary<int, int> _kills;
-    // LW-252 stage 5: the bearer tuple carries nameId; Choir ignores it since _granted is band-fp keyed.
+    // LW-252 stage 5. The bearer tuple carries nameId; Choir ignores it since _granted is band-fp keyed.
     private readonly List<(long entry, (int lvl, int br, int fa) fp, int nameId)> _bearers = new();
     private bool _wasActive;
 
@@ -68,7 +68,7 @@ internal sealed partial class Choir : ISignature
 
         if (!active)
         {
-            // Inactive: clear the bit on every band entry Choir granted
+            // Inactive. Clear the bit on every band entry Choir granted
             for (int s = 0; s < Offsets.BandSlots; s++)
             {
                 long e = Band.Entry(s);
@@ -88,7 +88,7 @@ internal sealed partial class Choir : ISignature
         var protectedBF = new HashSet<(int br, int fa)>();
         for (int r = 0; r < Offsets.RosterSlots; r++)
         {
-            // LW-149 stage D: uses Wielder's shared strict occupied-slot walk (Wielder.Roster.cs).
+            // LW-149 stage D. Uses Wielder's shared strict occupied-slot walk (Wielder.Roster.cs).
             if (!Wielder.TryOccupiedSlot(_mem, r, out long rb, out _)) continue;
             if (_mem.U8(rb + Offsets.RSupport) == Tuning.InstantCastSupportId)
                 protectedBF.Add((_mem.U8(rb + Offsets.RBrave), _mem.U8(rb + Offsets.RFaith)));

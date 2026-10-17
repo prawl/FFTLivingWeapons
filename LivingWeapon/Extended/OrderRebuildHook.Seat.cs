@@ -15,7 +15,7 @@ namespace LivingWeapon;
 internal sealed partial class OrderRebuildHook
 {
     private readonly int _extendedCount;
-    private readonly long _bagBase;   // LW-368 round 2: ExtendedInventory.BagCountBase, set at construction
+    private readonly long _bagBase;   // LW-368 round 2. ExtendedInventory.BagCountBase, set at construction
     private readonly Func<TemplateSeat.Region[]>? _regions;   // ExtendedInventory.TemplateRegions, set at construction
     private long _seated;
     private long _seatRefusals;

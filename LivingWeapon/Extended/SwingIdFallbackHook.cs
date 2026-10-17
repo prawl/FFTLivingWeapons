@@ -26,7 +26,7 @@ internal sealed class SwingIdFallbackHook
         SiteAddr = siteAddr == 0 ? Offsets.FnSwingPrepIdCopy : siteAddr;   // 0 = the live pin (a rebased pin cannot be a default value)
     }
 
-    /// <summary>Installs the redirect for extended ids [lo, lo + count - 1]. Idempotent; returns null or the refusal.</summary>
+    /// <summary>Installs the redirect for extended ids [lo, lo + count, 1]. Idempotent; returns null or the refusal.</summary>
     public string? Install(ICodePatcher patcher, INearAllocator allocator, int lo, int count)
     {
         if (Installed) return null;

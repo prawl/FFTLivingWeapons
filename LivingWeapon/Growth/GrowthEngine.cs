@@ -5,7 +5,7 @@ namespace LivingWeapon;
 
 /// <summary>
 /// Grows every player's weapon stat, holding it at round(natural*(1+factor)) across the
-/// per-battle reset. Roster-driven: for each populated roster player slot it reads Brave/Faith/
+/// per-battle reset. Roster-driven. For each populated roster player slot it reads Brave/Faith/
 /// R-hand, then finds that unit's combat struct by fingerprint, searching +/-N slots around the
 /// anchor because the array base shifts per battle. The found address is cached per slot, so
 /// enemies are never grown even when they wield the same weapon id. Reads and writes are
@@ -36,7 +36,7 @@ internal sealed partial class GrowthEngine
     private readonly HashSet<int> _fallbackLogged = new();            // slots whose tier-2 fallback was already logged this battle
     private bool _logged;
     // Kiku-ichimonji's Mushin stack count, shared with Mushin.cs (Engine.cs passes one
-    // WielderKeyedStore to both). LW-252 stage 5: keyed by nameId, fp fallback, which closes the
+    // WielderKeyedStore to both). LW-252 stage 5. Keyed by nameId, fp fallback, which closes the
     // fp-twin collision. Defaults to an empty store so older call sites compile unchanged.
     private readonly WielderKeyedStore<Box<int>> _mushinArmed;
 
@@ -65,7 +65,7 @@ internal sealed partial class GrowthEngine
         _mushin.Clear();
         _structForSlot.Clear();
         _grantLogged.Clear();
-        _heldSupports.Clear();   // no writes: the per-battle struct is gone/rebuilding
+        _heldSupports.Clear();   // no writes. The per-battle struct is gone/rebuilding
         _ambiguousLogged.Clear();
         _fallbackLogged.Clear();
         _appliedFlat.Clear();    // the flat-capped Brave/Faith lanes (GrowthEngine.Lanes.cs)
@@ -73,7 +73,7 @@ internal sealed partial class GrowthEngine
         _logged = false;
     }
 
-    /// <summary>One in-battle tick: grow each player's wielded weapon(s) -- both hands.</summary>
+    /// <summary>One in-battle tick. Grow each player's wielded weapon(s) -- both hands.</summary>
     public void Apply()
     {
         for (int r = 0; r < Offsets.RosterSlots; r++)
@@ -86,7 +86,7 @@ internal sealed partial class GrowthEngine
             int brave = _mem.U8(rb + Offsets.RBrave);
             int faith = _mem.U8(rb + Offsets.RFaith);
 
-            // Both hands: a dual-wielder's off-hand weapon grows and grants its signature too (KillTracker
+            // Both hands. A dual-wielder's off-hand weapon grows and grants its signature too (KillTracker
             // already credits both blades).
             var hands = Hands(rb);
             if (hands.Count == 0) continue;                                // unarmed / non-overhaul both hands
@@ -112,9 +112,9 @@ internal sealed partial class GrowthEngine
                     HoldSignature(s, r, weapon, m.Name, m.Signature, tier, hp, maxHp, brave, faith, pickedSupport);
                     if (m.Signature != null && m.Signature.Mounted)   // mount-gated flat stat grant
                         HoldTimedStat(s, m.Signature, tier, rosterNameId, level);
-                    HoldAfterimage(s, m, tier, level, brave, faith, rosterNameId);   // Swiftedge: ramping Speed (owns the speed lane)
-                    HoldUltima(s, m, tier, level, brave, faith, rosterNameId);       // Materia Blade: HP%-scaled PA hold (owns PA lane)
-                    HoldMushin(s, m, tier, level, brave, faith, rosterNameId);       // Kiku-ichimonji: one-hit charged-PA hold (owns PA lane)
+                    HoldAfterimage(s, m, tier, level, brave, faith, rosterNameId);   // Swiftedge. Ramping Speed (owns the speed lane)
+                    HoldUltima(s, m, tier, level, brave, faith, rosterNameId);       // Materia Blade. HP%-scaled PA hold (owns PA lane)
+                    HoldMushin(s, m, tier, level, brave, faith, rosterNameId);       // Kiku-ichimonji. One-hit charged-PA hold (owns PA lane)
                 }
                 // Routes/MergeRoute (GrowthEngine.Lanes.cs) let a weapon want several combat-struct
                 // bytes; hands sharing an address merge to the stronger effect.
@@ -146,7 +146,7 @@ internal sealed partial class GrowthEngine
     /// captured record, so a grown stat &gt;99 still bumps on a tier cross, and an unexpected value
     /// (buff/debuff) is left alone. first-sight capture consults the NaturalLedger, and
     /// RecordWrite runs per evaluation so chained restarts match. Internal for the LW-90 seam tests.
-    /// LW-149 stage A: not converted to the OwnershipHold core (OwnershipHold.cs)
+    /// LW-149 stage A. Not converted to the OwnershipHold core (OwnershipHold.cs)
     /// because RecordWrite fires unconditionally; see GrowthEngineCadenceTests.cs.</summary>
     internal void Hold(long addr, double factor, StatLane lane, int nameId, int level)
     {
@@ -158,7 +158,7 @@ internal sealed partial class GrowthEngine
             if (cur == e.target) { if (factor != e.factor) WriteTarget(addr, e.natural, factor, lane, nameId, e.baked); return; }
             if (cur == e.natural || (e.baked > 0 && cur == e.baked))
                 WriteTarget(addr, e.natural, factor, lane, nameId, e.baked);   // battle reset / baked normalize -> re-apply
-            return;                                                            // anything else: leave it
+            return;                                                            // anything else. Leave it
         }
         if (cur >= StatMin && cur <= StatSaneHi)
         {

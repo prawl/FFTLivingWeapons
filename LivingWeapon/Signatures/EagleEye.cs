@@ -68,7 +68,7 @@ internal sealed partial class EagleEye : ISignature
         if (target <= 0) return 0;
         for (int r = 0; r < Offsets.RosterSlots; r++)
         {
-            // LW-149 stage D: shared lenient occupied-slot walk (Wielder.Occupancy.cs, also used by
+            // LW-149 stage D. Shared lenient occupied-slot walk (Wielder.Occupancy.cs, also used by
             // Plague.IsEquipped), no level gate.
             if (!Wielder.TryOccupiedSlotLenient(_mem, r, out long rb)) continue;
             // Main hand only.

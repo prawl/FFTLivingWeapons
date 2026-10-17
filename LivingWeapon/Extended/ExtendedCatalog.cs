@@ -8,8 +8,8 @@ namespace LivingWeapon;
 /// this mod owns and fills slots past 260 with our own 12-byte records. The accessor at
 /// 0x1402B8C44 reaches ids &gt;= 256 via <c>lea rax,[rax*4 + disp32]</c>; rewriting the disp32
 /// at <see cref="Offsets.ExtCatalogDisp32"/> points it at our buffer and leaves the accessor native
-/// (a managed detour clobbered r11 in the FFTHandsFree rig: docs/research/ITEM_CAP_261_BREAK_JOURNEY.md,
-/// 2026-06-26 session 3; re-anchored for 1.5.2 on 2026-08-26). The buffer is 8 KB: ids are masked
+/// (a managed detour clobbered r11 in the FFTHandsFree rig. Docs/research/ITEM_CAP_261_BREAK_JOURNEY.md,
+/// 2026-06-26 session 3; re-anchored for 1.5.2 on 2026-08-26). The buffer is 8 KB. Ids are masked
 /// with 0x1FF, so a stray id reads at most 511 * 12 = 0x17F4, a zero record.
 /// </summary>
 internal sealed class ExtendedCatalog

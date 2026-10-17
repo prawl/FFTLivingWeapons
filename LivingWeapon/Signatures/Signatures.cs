@@ -53,7 +53,7 @@ internal static class Signatures
     /// <summary>
     /// Encode a movement-ability id into (byteOffset, mask) in the 3-byte movement bitfield
     /// (<see cref="Offsets.CMovement"/> = +0x9C, base id 230, MSB-first). False outside the field.
-    /// Unlike supports, only one movement bit takes effect: on 2026-06-10 both Spiritual Font bits
+    /// Unlike supports, only one movement bit takes effect. On 2026-06-10 both Spiritual Font bits
     /// (237+238) held but the engine honored only Lifefont. Never grant a movement pair.
     /// </summary>
     public static bool ResolveMovement(int abilityId, out int byteOffset, out byte mask)
@@ -79,7 +79,7 @@ internal static class Signatures
         return grants;
     }
 
-    /// <summary>Shared activation gate: a signature exists and its kill-tier is earned. Each feature
+    /// <summary>Shared activation gate. A signature exists and its kill-tier is earned. Each feature
     /// ANDs this with its own payload check.</summary>
     public static bool Earned(WeaponSignature? sig, int tier) => sig is not null && tier >= sig.AtTier;
 
@@ -103,7 +103,7 @@ internal static class Signatures
     public static bool IsBuildTimeOnly(int abilityId) =>
         abilityId == 220 || abilityId == 221 || abilityId == 228;   // Doublehand, Dual Wield, HP Boost
 
-    // Card display: the painted Kills counter. The old painted "Grant <ability>" label is gone;
+    // Card display. The painted Kills counter. The old painted "Grant <ability>" label is gone;
     // the baked "While this weapon is equipped at +3, ..." sentence names the ability on every card.
 
     /// <summary>The Kills counter in a fixed 4-char slot, left-aligned and space-padded ("42  ").
@@ -134,7 +134,7 @@ internal static class Signatures
     /// under LWDEV, prod {5,10,15} otherwise). This is what CardSites paints.</summary>
     public static string KillsMeterSlot(int kills) => KillsMeterSlotIn(kills, Tuning.KillThresholds, Tuning.Suffix);
 
-    /// <summary>Once-per-transition latch for a nag condition that holds across many ticks: returns
+    /// <summary>Once-per-transition latch for a nag condition that holds across many ticks. Returns
     /// true once on the false-&gt;true edge, then stays silent until the condition clears. Used by
     /// Barrage/ShadowBlade's inject-blocked nags so they do not log every 33ms.</summary>
     public static bool StuckEdge(ref bool latched, bool condition)

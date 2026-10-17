@@ -18,7 +18,7 @@ internal static class FlavorStamp
     internal static string ContentFor(string buildFlavor) => buildFlavor == "production" ? "prod" : "dev";
 
     /// <summary>
-    /// Overwrites the stamp with the current build's flavor. Never throws: it runs in Engine's constructor
+    /// Overwrites the stamp with the current build's flavor. Never throws. It runs in Engine's constructor
     /// and a ctor exception kills the mod (Mod.StartEngine's catch).
     /// </summary>
     internal static void Write(SaveLocation save)

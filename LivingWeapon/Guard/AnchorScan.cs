@@ -6,20 +6,20 @@ namespace LivingWeapon;
 /// <summary>
 /// Portable anchor re-find scan core. Like FingerprintGuard.cs and HookLandmark.cs it has
 /// no project dependencies, so a sibling mod can copy the file. Game knowledge lives in the adapter
-/// that builds an <see cref="AnchorSpec"/>. Not thread-safe: drive <see cref="AnchorScan.Step"/>
+/// that builds an <see cref="AnchorSpec"/>. Not thread-safe. Drive <see cref="AnchorScan.Step"/>
 /// from one host loop thread.
 /// </summary>
 internal delegate bool AnchorTryRead(long addr, int len, out byte[] buf);
 
 internal enum AnchorVerdict { Scanning, FoundAtPin, FoundElsewhere, Ambiguous, NotFound }
 
-/// <summary>One anchor's search parameters: signature, base offset from a hit, pinned address,
+/// <summary>One anchor's search parameters. Signature, base offset from a hit, pinned address,
 /// region, alignment filter and optional confirm predicate.</summary>
 internal sealed class AnchorSpec
 {
     public string Name { get; }
     public byte[] Signature { get; }
-    /// <summary>candidate base = hit start address - SignatureOffset.</summary>
+    /// <summary>candidate base = hit start address, SignatureOffset.</summary>
     public int SignatureOffset { get; }
     public long PinnedAddress { get; }
     public long RegionLo { get; }
@@ -48,7 +48,7 @@ internal sealed class AnchorSpec
 /// <summary>One spec's incremental scan. <see cref="Step"/> reads one chunk per call so the
 /// caller can spread a large region across host-loop ticks.
 ///
-/// No dedup set is needed. Each Step reads <c>[cursor, cursor + chunkBytes + Signature.Length - 1)</c>
+/// No dedup set is needed. Each Step reads <c>[cursor, cursor + chunkBytes + Signature.Length, 1)</c>
 /// so a signature straddling a chunk boundary is found, but only matches starting in
 /// <c>[cursor, cursor + chunkBytes)</c> count for this chunk. The next chunk owns the overlap
 /// tail, so no hit is counted twice or missed.</summary>

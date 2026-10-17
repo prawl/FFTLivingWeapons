@@ -49,7 +49,7 @@ internal sealed partial class ExtraTurn : ISignature
     public void Tick(DateTime now)
     {
         int count = _kills.TryGetValue(ZwillId, out int k) ? k : 0;
-        // Main hand only: a Zwill in the off-hand does not arm the grant.
+        // Main hand only. A Zwill in the off-hand does not arm the grant.
         if (Tuning.TierFor(count) < AtTier || !Wielder.TryResolveMainHand(_mem, ZwillId, out _wielder, _hands))
         {
             if (_state != GrantState.Idle) Release(ReleaseReason.GateLost);

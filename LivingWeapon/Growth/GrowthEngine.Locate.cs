@@ -59,7 +59,7 @@ internal sealed partial class GrowthEngine
                 if (!_logged) { _logged = true; ModLogger.Debug(LogVerb.Growth, $"located party slot {slot} in memory; stat growth will apply"); }
                 return tier1;
             }
-            if (matchCount1 > 0)   // S6: candidates existed, genuinely ambiguous -- refuse, no tier-2 fallthrough
+            if (matchCount1 > 0)   // S6. Candidates existed, genuinely ambiguous -- refuse, no tier-2 fallthrough
             {
                 if (_ambiguousLogged.Add(slot))
                     ModLogger.Warn(LogVerb.Growth, $"Growth is skipped for party slot {slot}; it could not be matched to one unique unit ({matchCount1} candidates, ambiguous fingerprint).");
@@ -72,7 +72,7 @@ internal sealed partial class GrowthEngine
         {
             _structForSlot[slot] = (found, 2);
             if (!_logged) { _logged = true; ModLogger.Debug(LogVerb.Growth, $"located party slot {slot} in memory; stat growth will apply"); }
-            // D2: only logged when tier 1 ran and came up empty.
+            // D2. Only logged when tier 1 ran and came up empty.
             if (rosterNameId > 0 && _fallbackLogged.Add(slot))
                 ModLogger.Debug(LogVerb.Growth, $"matched party slot {slot} by its stats alone, not by its engine id; the id was blank this battle (fingerprint fallback, frame nameId miss)");
             return found;
@@ -109,7 +109,7 @@ internal sealed partial class GrowthEngine
     {
         if (rosterNameId <= 0) return true;
         long nameAddr = s + Offsets.BandEntry + Offsets.ANameId;
-        if (!mem.Readable(nameAddr, 2)) return true;   // unreadable: veto can't apply, passes
+        if (!mem.Readable(nameAddr, 2)) return true;   // unreadable. Veto can't apply, passes
         int entryNameId = mem.U16(nameAddr);
         return entryNameId == 0 || entryNameId == rosterNameId;
     }
@@ -151,7 +151,7 @@ internal sealed partial class GrowthEngine
 
     /// <summary>Twin tie-break for a homogeneous multi-match. Prefers a real-position (nonzero gx
     /// or gy) entry, else the first at (0,0).
-    /// LW-252 stage 6: with nameId &lt;= 0 (no verified identity) and 2+ real-position candidates,
+    /// LW-252 stage 6. With nameId &lt;= 0 (no verified identity) and 2+ real-position candidates,
     /// refuse. A wrong-twin hold is a wrong-unit write, and the per-turn normalize can bake a hold
     /// into the save baseline (ledger [per-turn-normalize-repaints-boosted-baseline], UNCERTAIN;
     /// LW-90). One real candidate, a real+(0,0) mirror pair, and any nameId &gt; 0 match resolve as before.</summary>
@@ -195,9 +195,9 @@ internal sealed partial class GrowthEngine
         if (mem.U8(s + Offsets.CBrave) != brave || mem.U8(s + Offsets.CFaith) != faith) return false;
         int pa = mem.U8(s + Offsets.CPa), ma = mem.U8(s + Offsets.CMa);
         if (pa < StatMin || pa > SigStatHi || ma < StatMin || ma > SigStatHi) return false;
-        if (nameId <= 0) return true;   // fingerprint mode: never touches s+0x1FC (S3)
+        if (nameId <= 0) return true;   // fingerprint mode. Never touches s+0x1FC (S3)
         long nameAddr = s + Offsets.BandEntry + Offsets.ANameId;
-        if (!mem.Readable(nameAddr, 2)) return false;   // tier-1 exact mode: unreadable fails (D8)
+        if (!mem.Readable(nameAddr, 2)) return false;   // tier-1 exact mode. Unreadable fails (D8)
         return mem.U16(nameAddr) == nameId;
     }
 }

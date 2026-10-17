@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Reliquary Phase 1 compose driver: owns EarnedAnchors, the LegendStore view and the meta
+/// Reliquary Phase 1 compose driver. Owns EarnedAnchors, the LegendStore view and the meta
 /// budgets, so Display.cs only needs a small seam to call it. CURRENT is recomposed from store
 /// state on every launch (decision 12), so it is never persisted. PREVIOUS loads from LegendStore's
 /// persisted "lastPainted", since a buffer painted before the last rotation may still be on screen.

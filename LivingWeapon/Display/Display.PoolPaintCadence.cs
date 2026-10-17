@@ -1,7 +1,7 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// Commit 1B: when MaybePoolPaint's full-region ScanPoolRegion pass should run, split out of
+/// Commit 1B. When MaybePoolPaint's full-region ScanPoolRegion pass should run, split out of
 /// Display.PoolPaint.cs. The pass used to run on every Tick that reached the fall-through while
 /// coverage stayed unlatched, 130 to 480ms per pass on a live tape. LW-262's cache partition
 /// should make that state rare; this bounds it anyway.
@@ -20,7 +20,7 @@ internal sealed partial class Display
     /// whole-heap sweep fallback in Display.cs's Tick.</summary>
     internal int PoolScanPassesForTest;
 
-    /// <summary>True when the full-region scan in MaybePoolPaint should run: the located region list
+    /// <summary>True when the full-region scan in MaybePoolPaint should run. The located region list
     /// is new since the last scan (PoolLocator.Restart.cs's PublishGeneration), or MaintenanceMs has
     /// elapsed. ReOfferDrainedRegions' single-region scans (Display.PoolDrain.cs) are not gated by
     /// this.</summary>
@@ -28,8 +28,8 @@ internal sealed partial class Display
     {
         int gen = _poolLocator.PublishGeneration;
         long now = _nowMs();
-        // F1 fix: the generation branch must stamp _lastPoolScanMs too. Left at -1, the next call's
-        // cadence check `now - (-1)` always passed and ran a second full scan right after each publish.
+        // F1 fix. The generation branch must stamp _lastPoolScanMs too. Left at -1, the next call's
+        // cadence check `now, (-1)` always passed and ran a second full scan right after each publish.
         if (gen != _lastScannedGeneration) { _lastScannedGeneration = gen; _lastPoolScanMs = now; return true; }
         if (now - _lastPoolScanMs < MaintenanceMs) return false;
         _lastPoolScanMs = now;

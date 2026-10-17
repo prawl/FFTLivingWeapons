@@ -3,20 +3,20 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// Venombolt's "Plague" signature: with a +3 Venombolt equipped, an enemy the wielder poisons
-/// keeps that poison forever and takes extra damage each turn. Mechanism: memory
+/// Venombolt's "Plague" signature. With a +3 Venombolt equipped, an enemy the wielder poisons
+/// keeps that poison forever and takes extra damage each turn. Mechanism. Memory
 /// poison-status-bytes (holding bit +0x48/0x80 survived a two-healer battle at 1.75x rate).
 ///
-/// Detect: a per-slot poison baseline updates every tick, so pre-existing poison has no edge. A
+/// Detect. A per-slot poison baseline updates every tick, so pre-existing poison has no edge. A
 /// victim latches when its poison rising edge and the wielder's acted window fall within
 /// Tuning.PlagueGraceMs, in either order (the engine can apply poison before or after the
 /// observed window; exact overlap missed real procs, 2026-06-10). Enemies are matched by
 /// static-array fingerprint.
-/// Hold: each tick re-OR the poison bit and re-pin the timer to 36 when below init, which beats
+/// Hold. Each tick re-OR the poison bit and re-pin the timer to 36 when below init, which beats
 /// expiry and healer cures.
-/// Augment: on each victim turn edge (CT &gt;= 90 then &lt; 70, band +0x09) write mhp*3/32 extra
+/// Augment. On each victim turn edge (CT &gt;= 90 then &lt; 70, band +0x09) write mhp*3/32 extra
 /// damage to +0x14 as one 2-byte write, floored at 1 (never lethal).
-/// Release: ResetBattle clears all latches; a roster without id 80 drops them; a fingerprint
+/// Release. ResetBattle clears all latches; a roster without id 80 drops them; a fingerprint
 /// mismatch drops that latch. Outside live battle there are no writes or new latches.
 /// All access is VirtualQuery-guarded.
 /// </summary>
@@ -113,7 +113,7 @@ internal sealed partial class Plague : ISignature
         Drive(inLive);
     }
 
-    /// <summary>Hold all latched victims each tick: re-OR the poison bit, re-pin the timer.
+    /// <summary>Hold all latched victims each tick. Re-OR the poison bit, re-pin the timer.
     /// Skips writes when <paramref name="inLive"/> is false (A3).</summary>
     private void Drive(bool inLive)
     {

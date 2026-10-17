@@ -11,7 +11,7 @@ namespace LivingWeapon;
 /// <c>WriteDeployedTex</c> has already succeeded and flushed ONCE per <c>ApplyDiff</c> pass
 /// (R2-2 -- see <see cref="FlushPacBatch"/>).
 ///
-/// why this EXISTS NOW: ledger row [live-icon-repaint], PROVEN 2026-09-01 (owner-run
+/// why this EXISTS NOW. Ledger row [live-icon-repaint], PROVEN 2026-09-01 (owner-run
 /// tools/probes/live_icon_patch_probe.py, three same-process patches all landed), established
 /// that an in-place same-length overwrite of an icon's bytes inside modded.pac lands live with no
 /// exclusive lock, and that an already-drawn icon refreshes on the next list redraw (re-entering
@@ -28,7 +28,7 @@ namespace LivingWeapon;
 /// shared pass over the pac instead of 242 -- see <see cref="IIconGlowStore.PatchPacBatch"/> and
 /// <see cref="ModdedPac.PatchBatch"/> for where the actual single-pass search happens.
 ///
-/// FAIL-SOFT BY DESIGN: nothing here may affect <c>ApplyId</c>'s <c>allOk</c> or ever call
+/// Fail soft. Nothing here may affect <c>ApplyId</c>'s <c>allOk</c> or ever call
 /// <c>MarkUnmanaged</c>. The loose write already produced today's correct, shipped result before
 /// this ever runs, so any pac outcome short of success just means "still restart-only this
 /// session" -- never a retry, never a failure of the apply.
@@ -38,13 +38,13 @@ internal sealed partial class IconGlow
     // _pacUnavailableWarned is a dedicated once-EVER flag (not WarnOnce, which is keyed per icon
     // id): "no pac this launch" is one environment fact (missing install, relocated Reloaded-II),
     // not a per-icon one, so it must warn exactly once total, not once per icon.
-    // _pacWarnedOnce (R2-3) is a SEPARATE per-id warn-once set from _warnedOnce: that shared set
+    // _pacWarnedOnce (R2-3) is a SEPARATE per-id warn-once set from _warnedOnce. That shared set
     // also gates MarkUnmanaged and the loose-tex write failure warning, so routing a cosmetic pac
     // failure through it would permanently mute a later genuine loose-tex failure warning for the
     // same id -- the failure that actually breaks the feature. See WarnPacOnce.
     // _pacPatchedThisApply / _pacAlreadyCurrentThisApply (R2-6) are reset and read back within a
     // single ApplyDiff call (the background task is serialized by _applying, so plain ints need
-    // no lock -- they never survive past the call that produced them). Counted SEPARATELY: an
+    // no lock -- they never survive past the call that produced them). Counted SEPARATELY. An
     // AlreadyCurrent result means nothing was written, so folding it into "pac-patched" would
     // report writes that never happened.
     // _pendingPacPatches accumulates every surface queued this ApplyDiff pass; FlushPacBatch
@@ -64,7 +64,7 @@ internal sealed partial class IconGlow
 
     /// <summary>After a successful <c>WriteDeployedTex</c>, queues the same bytes to be mirrored
     /// into modded.pac when this pass's batch flushes. Skips queuing entirely when there is
-    /// nothing to mirror: no prior deployed bytes to diff against, a length mismatch against the
+    /// nothing to mirror. No prior deployed bytes to diff against, a length mismatch against the
     /// manifest (never patchable in place; see <see cref="ModdedPac.Patch"/>), or the deployed
     /// bytes already matching the target -- that last case is also what makes a pristine id's
     /// very first write silent, since JudgeId's snapshot pass means ApplyId is never called for
@@ -76,10 +76,10 @@ internal sealed partial class IconGlow
         _pendingPacPatches.Add((id, entry, oldBytes, newBytes));
     }
 
-    /// <summary>R2-2: drains every surface <see cref="QueuePacMirror"/> queued this pass in one
+    /// <summary>R2-2. Drains every surface <see cref="QueuePacMirror"/> queued this pass in one
     /// <see cref="IIconGlowStore.PatchPacBatch"/> call (a no-op, cheaply, when nothing was
     /// queued). Called once, at the end of <see cref="ApplyDiff"/>, strictly after every loose
-    /// write in this pass has already happened -- see the class remarks: loose-tex first, pac
+    /// write in this pass has already happened -- see the class remarks. Loose-tex first, pac
     /// mirror second, never the other way round.</summary>
     private void FlushPacBatch()
     {
@@ -111,7 +111,7 @@ internal sealed partial class IconGlow
                 _pacPatchedThisPass.Add((id, entry.Surface, entry));   // hide-eligible this pass
                 break;
             case PacPatchResult.AlreadyCurrent:
-                _pacAlreadyCurrentThisApply++;   // R2-6: nothing was written -- never counted as a write
+                _pacAlreadyCurrentThisApply++;   // R2-6. Nothing was written -- never counted as a write
                 break;
             case PacPatchResult.Unavailable:
                 if (!_pacUnavailableWarned)
@@ -122,7 +122,7 @@ internal sealed partial class IconGlow
                 }
                 break;
             case PacPatchResult.NotFound:
-                // R2-4: legitimately normal, not a bug. The pac's incremental launch merge reads
+                // R2-4. Legitimately normal, not a bug. The pac's incremental launch merge reads
                 // the deployed loose tex ONCE, at launch; a weapon this runtime re-tiers after
                 // that merge has already run leaves the OLD bytes (the ones this search looked
                 // for) genuinely absent from the pac -- measured on the live install, 6 of 242
@@ -139,7 +139,7 @@ internal sealed partial class IconGlow
         }
     }
 
-    /// <summary>R2-3: a DEDICATED once-per-id warn set for pac-mirror failures, independent of
+    /// <summary>R2-3. A DEDICATED once-per-id warn set for pac-mirror failures, independent of
     /// <see cref="_warnedOnce"/> (see the field remarks above for why sharing it would be a
     /// defect, not just a style choice).</summary>
     private void WarnPacOnce(int id, string message)

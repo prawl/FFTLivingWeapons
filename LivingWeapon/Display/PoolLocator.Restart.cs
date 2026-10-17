@@ -18,7 +18,7 @@ internal sealed partial class PoolLocator
 
     /// <summary>Progress log cadence in scan ticks. 300 is a round number, not a measured one;
     /// retune it, or derive a real anomaly threshold, from the first live tape's completion tick
-    /// count. It is not an anomaly threshold: the old WatchdogTicks = 90 was calibrated against the
+    /// count. It is not an anomaly threshold. The old WatchdogTicks = 90 was calibrated against the
     /// ~145MB of found pool regions, but PoolScan walks the whole process heap, so a normal scan is
     /// hundreds to thousands of Steps and 90 would fire on every one. Internal so
     /// PoolLocatorGuardTests can cref it; the pin hardcodes 300 so a mutated constant
@@ -41,7 +41,7 @@ internal sealed partial class PoolLocator
     private bool _hasScannedOnce;   // true once any scan has completed, found something or not -- distinguishes "first" from "empty-retry"
 
     private long _lastRevalidateMs = long.MinValue / 2;   // sentinel so the first check is always due (same as DisplaySweep.cs)
-    internal int _revalidateCount;   // test-only: how many times the Step-driven revalidate cadence actually fired
+    internal int _revalidateCount;   // test-only. How many times the Step-driven revalidate cadence actually fired
 
     /// <summary>True from an <see cref="Invalidate"/> (or a failed periodic revalidate) until the
     /// next publish. Display.Heartbeat.cs's ProcessPending reads it, since a stale cache is as
@@ -86,7 +86,7 @@ internal sealed partial class PoolLocator
                     long t0 = _nowMs();
                     bool stillPool = AllCachedStillPool();
                     LogRevalidate(_nowMs() - t0, stillPool);
-                    if (stillPool) return null;   // still good: nothing to do this tick
+                    if (stillPool) return null;   // still good. Nothing to do this tick
                     _pendingTrigger = "revalidate";
                 }
                 else
@@ -136,7 +136,7 @@ internal sealed partial class PoolLocator
     {
         _cached.Clear();
         _cached.AddRange(regions);
-        // B1: staleness must survive a publish while a restart is still queued. A scan running when
+        // B1. Staleness must survive a publish while a restart is still queued. A scan running when
         // Invalidate() lands straddles the relocation and publishes on its own, so its result is the
         // one Invalidate() distrusted. Step clears _restartPending when it picks the restart up, so
         // the queued scan's own publish clears staleness correctly.
@@ -147,7 +147,7 @@ internal sealed partial class PoolLocator
         // otherwise run an unbudgeted AllCachedStillPool right away. MaybePoolPaint's fall-through
         // call was removed in R1, but the guard is still tested.
         _lastRevalidateMs = nowMs;
-        PublishGeneration++;   // commit 1B: every publish is a "fresh region list" event
+        PublishGeneration++;   // commit 1B. Every publish is a "fresh region list" event
         LogRegionsFound();
         MaybeSaveSidecar();   // dirty-checked write-on-completion, PoolLocator.WarmStart.cs
     }

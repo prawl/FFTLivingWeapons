@@ -36,14 +36,14 @@ internal sealed class SaveEdgeTracker
         return $"pt{playTime}-{Convert.ToHexString(sha, 0, 6).ToLowerInvariant()}";
     }
 
-    /// <summary>The game just serialized a save: remember its key and the counts at that instant.</summary>
+    /// <summary>The game just serialized a save. Remember its key and the counts at that instant.</summary>
     public void OnSerialized(byte[] header, Dictionary<int, int> counts)
     {
         string key = KeyFromHeader(header);
         lock (_gate) { _pendingSave = (key, new Dictionary<int, int>(counts)); CurrentKey = key; }
     }
 
-    /// <summary>The game just applied a loaded save: its bag is now the file's (no extended ids).</summary>
+    /// <summary>The game just applied a loaded save. Its bag is now the file's (no extended ids).</summary>
     public void OnApplied(byte[] header)
     {
         string key = KeyFromHeader(header);

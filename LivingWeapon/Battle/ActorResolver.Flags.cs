@@ -1,6 +1,6 @@
 namespace LivingWeapon;
 
-/// <summary>Which resolve path answered this call: the turn-queue fallback, the engine
+/// <summary>Which resolve path answered this call. The turn-queue fallback, the engine
 /// actor-pointer register, or the per-unit turn-flags lane (LW-63, this file). A flags-sourced
 /// latch counts as pointer-quality evidence in KillTracker's fallback counters, like a register one.</summary>
 internal enum ResolveSource { TqFallback, Register, Flags }
@@ -41,7 +41,7 @@ internal sealed partial class ActorResolver
         if (!Band.FlagOwner(_mem, out long e, out _)) return false;
 
         ushort nameId = _mem.U16(e + Offsets.ANameId);
-        if (nameId == 0) return false;   // capture failure: fail closed, never a guess
+        if (nameId == 0) return false;   // capture failure. Fail closed, never a guess
 
         byte lvl = _mem.U8(e + Offsets.ALevel);
         byte br = _mem.U8(e + Offsets.ABrave);
@@ -64,7 +64,7 @@ internal sealed partial class ActorResolver
         bandSlot = -1;
         moved = 0;
         if (!Band.FlagOwner(_mem, out long e, out int slot)) return false;
-        if (_mem.U8(e + Offsets.AActed) != 1) return false;   // D4: the stamp lane's own ordering gate
+        if (_mem.U8(e + Offsets.AActed) != 1) return false;   // D4. The stamp lane's own ordering gate
 
         ushort nid = _mem.U16(e + Offsets.ANameId);
         if (nid == 0) return false;

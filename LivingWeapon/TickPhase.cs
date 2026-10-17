@@ -17,7 +17,7 @@ internal sealed class TickPhaseState
     public bool BattleStatus;
     public bool KitLaneArmed;
 
-    /// <summary>Written by the kill-poll row, read by the toast and save-on-change rows (<c>after: ["kill-poll"]</c>).</summary>
+    /// <summary>Written by the kill-poll row, read by the toast and save-on-change rows (<c>after ["kill-poll"]</c>).</summary>
     public bool Changed;
 }
 

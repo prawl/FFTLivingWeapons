@@ -8,7 +8,7 @@ namespace LivingWeapon;
 /// kill credit, so player corpses, guests and uncaptured identities are excluded.
 ///
 /// Capture reads static-array slots up to EnemySlotMax each onField tick and filters by sane field
-/// values. The inBattle flag is unusable: it pulses 0/1 per unit mid-battle (2026-06-09), which
+/// values. The inBattle flag is unusable. It pulses 0/1 per unit mid-battle (2026-06-09), which
 /// dropped half the enemies. Capture only adds during a battle; post-restart reinforcements are a
 /// logged, accepted gap.
 ///
@@ -34,7 +34,7 @@ internal sealed class EnemyOracle
 
     private int _coveragePollsLeft = CoverageInterval;
     private bool _coverageDone;
-    // Facelift: coverage lines reach the console only once a Living Weapon is deployed; the file gets
+    // Facelift. Coverage lines reach the console only once a Living Weapon is deployed; the file gets
     // everything via ScopedLogger's demotion. the armed latch usually rises after the success
     // line latches (97s late, 2026-07-11), so a demoted success line is kept and replayed (see TickField).
     private readonly ScopedLogger _slog;
@@ -56,12 +56,12 @@ internal sealed class EnemyOracle
     /// <summary>True if the identity was captured from an enemy-side array slot.</summary>
     public bool Contains((byte lvl, byte br, byte fa, ushort mhp) id) => _enemyIds.Contains(id);
 
-    /// <summary>LW-34 evidence: called once a band seat's scheduler participation (CT slam nonzero or
+    /// <summary>LW-34 evidence. Called once a band seat's scheduler participation (CT slam nonzero or
     /// turn flag ==1) has held for 3 ticks. Harmless for ids never captured, since CheckCoverage
     /// intersects this set with <see cref="_enemyIds"/>.</summary>
     public void MarkFielded((byte lvl, byte br, byte fa, ushort mhp) id) => _fielded.Add(id);
 
-    /// <summary>LW-34 evidence: called at a slot's dead-edge stamp. Separate from
+    /// <summary>LW-34 evidence. Called at a slot's dead-edge stamp. Separate from
     /// <see cref="MarkFielded"/> so a kill still counts if the corpse leaves the band first.</summary>
     public void MarkDead((byte lvl, byte br, byte fa, ushort mhp) id) => _died.Add(id);
 
@@ -82,7 +82,7 @@ internal sealed class EnemyOracle
         _pendingConsoleLine = null;
     }
 
-    /// <summary>One onField tick: capture identities and run the coverage check when due.</summary>
+    /// <summary>One onField tick. Capture identities and run the coverage check when due.</summary>
     public void TickField()
     {
         Capture();
@@ -99,7 +99,7 @@ internal sealed class EnemyOracle
         }
     }
 
-    /// <summary>Like ScopedLogger.SafeArmed: a throwing predicate must not kill the tick.</summary>
+    /// <summary>Like ScopedLogger.SafeArmed. A throwing predicate must not kill the tick.</summary>
     private bool SafeArmed()
     {
         try { return _armed(); } catch { return false; }
@@ -160,14 +160,14 @@ internal sealed class EnemyOracle
             }
         }
 
-        if (total == 0) return;   // nothing evidenced yet: defer silently, retry
+        if (total == 0) return;   // nothing evidenced yet. Defer silently, retry
 
         bool stableTotal = total == _prevTotal;
         _prevTotal = total;
 
         if (found == total)
         {
-            if (!stableTotal) return;   // the fielded count just grew: wait for one more agreeing pass
+            if (!stableTotal) return;   // the fielded count just grew. Wait for one more agreeing pass
             string line = $"All {total} enemies are accounted for; kill credit will be reliable this battle.";
             _slog.Info(line);
             // Only the success line gets the console replay.

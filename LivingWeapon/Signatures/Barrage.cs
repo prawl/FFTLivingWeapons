@@ -3,22 +3,22 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// Yoichi Bow signature: while a +3 Yoichi Bow wielder is in the roster, ability 358 (Barrage, 4-arrow volley) is injected into their job's JobCommand
+/// Yoichi Bow signature. While a +3 Yoichi Bow wielder is in the roster, ability 358 (Barrage, 4-arrow volley) is injected into their job's JobCommand
 /// record and re-asserted every tick, in and out of battle (the table rebuilds at boot and the learn screen and pre-battle menus read it live).
 /// Only the empty slot we filled is touched (Barrage.Policy.ReleaseSlot), so ShadowBlade can share the record and abilities others add survive.
 /// BarrageState.RecId/SlotIdx (Barrage.State.cs) move as a pair and clear on every path that ends a grant.
-/// The learned bit is held set, never cleared: the learn menu's purchase writeback wiped it (seen 2026-06-10, High Ether purchase).
+/// The learned bit is held set, never cleared. The learn menu's purchase writeback wiped it (seen 2026-06-10, High Ether purchase).
 /// Jobs (Barrage.Policy.cs): roster byte +0x02, band 74..92 -> rec = job-69, learned jobIdx = job-74 (Dancer 92 shares jobIdx 17). Unmapped jobs
 /// (Mettle/Aimed Shot uniques, Mime, monsters, Dark Knight) log once per job id and no-op; noted in the bows CSV.
 /// </summary>
 internal sealed partial class Barrage : ISignature
 {
     void ISignature.Tick(in TickContext ctx) => Tick();
-    // ABILITY_BASE: record 0's AbilityId1 byte; flags sit at ABILITY_BASE + rec*25 - 3.
+    // ABILITY_BASE. Record 0's AbilityId1 byte; flags sit at ABILITY_BASE + rec*25, 3.
     // 1.5 re-found 2026-06-17 (tools/probes/jobcommand_find_probe.py, read-only): the recompile moved the JobCommand table +0x5080.
     // Found by the rec 8 Aim (bytes 150-157) + rec 9 Martial Arts (bytes 100-107) signature, 25 bytes apart, a unique hit; the rest of
     // the table read coherently (Steal rec 14 = 108-115, Iaido rec 19, Machinist rec 37 = 213-215). The delta is not monotonic vs the
-    // +0x6000 of the 0x14077 region, so it was found, not interpolated (was 0x140679436 - 27*25 = 0x140679193 pre-1.5).
+    // +0x6000 of the 0x14077 region, so it was found, not interpolated (was 0x140679436, 27*25 = 0x140679193 pre-1.5).
     // Pinned by BarrageTests.AbilityBase_is_pinned_to_the_verified_1_5_table_base. Internal because ShadowBlade reuses these
     // constants and helpers (shared inject/restore core is a future extraction, see ShadowBlade.cs).
     internal static long AbilityBase => ImageBase.At(0x14067E213L);
@@ -44,8 +44,8 @@ internal sealed partial class Barrage : ISignature
     private readonly BarrageState _state; // atomic (RecId, SlotIdx) pair; RecId doubles as "record currently targeted"
     private bool _wasActive;
     private int _lastUnsupportedJob = -1; // log-once guard for unmapped jobs
-    private bool _recNotReadableLogged;    // Signatures.StuckEdge latch: record unreadable nag
-    private bool _noSlotLogged;            // Signatures.StuckEdge latch: no empty slot nag
+    private bool _recNotReadableLogged;    // Signatures.StuckEdge latch. Record unreadable nag
+    private bool _noSlotLogged;            // Signatures.StuckEdge latch. No empty slot nag
 
     public Barrage(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, IGameMemory? mem = null)
     {
@@ -57,7 +57,7 @@ internal sealed partial class Barrage : ISignature
 
     public void ResetBattle()
     {
-        // No release on battle exit: the grant lasts the session while the bow stays equipped.
+        // No release on battle exit. The grant lasts the session while the bow stays equipped.
         _wasActive = false;
         _recNotReadableLogged = false;
         _noSlotLogged = false;
@@ -81,12 +81,12 @@ internal sealed partial class Barrage : ISignature
                 if (!_mem.Readable(rb + Offsets.RNameId, 2)) continue;
                 int lvl = _mem.U8(rb + Offsets.RLevel);
                 if (lvl < 1 || lvl > 99) continue;
-                // Signatures fire from the main hand only: an offhand Yoichi does not grant Barrage.
+                // Signatures fire from the main hand only. An offhand Yoichi does not grant Barrage.
                 if (_mem.U16(rb + Offsets.RRHand) != YoichiId) continue;
                 int jobId = _mem.U8(rb + RJobId);
                 if (jobId <= 0) continue;
                 int secRec = _mem.U8(rb + RSecondary);
-                if (!IsEligibleWielder(jobId, secRec)) continue;   // THIEF-only: primary job 83 or secondary record 14
+                if (!IsEligibleWielder(jobId, secRec)) continue;   // THIEF-only. Primary job 83 or secondary record 14
                 wielderSlot = r;
                 wielderJob = jobId;
                 wielderSecondary = secRec;
@@ -103,7 +103,7 @@ internal sealed partial class Barrage : ISignature
             return;
         }
 
-        // Resolve the grant target: primary job's record, else the mounted secondary's record
+        // Resolve the grant target. Primary job's record, else the mounted secondary's record
         // (special-executor primaries like Aim silently drop foreign abilities at confirm).
         if (!TryResolveGrant(wielderJob, wielderSecondary, out int recId, out int jobIdx, out bool viaSecondary))
         {
@@ -130,14 +130,14 @@ internal sealed partial class Barrage : ISignature
                 $"barrage grant (party slot {wielderSlot}, record {recId}, learn index {jobIdx})");
         }
 
-        // Job changed mid-session: release the old record's slot first; Restore() clears BarrageState.RecId so the
+        // Job changed mid-session. Release the old record's slot first; Restore() clears BarrageState.RecId so the
         // lookup below re-runs FindEmptySlot on the new record.
         if (_state.RecId >= 0 && _state.RecId != recId) Restore();
 
         long flagAddr = AbilityBase + (long)recId * RecSize - FlagPrefixSize;
         long abBase = AbilityBase + (long)recId * RecSize;
 
-        // Bounds check before any write. Debug tier with a once-per-transition latch: this can hold for many 33ms ticks while the table loads.
+        // Bounds check before any write. Debug tier with a once-per-transition latch. This can hold for many 33ms ticks while the table loads.
         bool recNotReadable = !_mem.Readable(flagAddr, RecSize);
         if (Signatures.StuckEdge(ref _recNotReadableLogged, recNotReadable))
             ModLogger.Debug(LogVerb.Grant, $"command record {recId} is not readable in memory yet; skipping this tick");
@@ -154,7 +154,7 @@ internal sealed partial class Barrage : ISignature
             int slot1 = FindEmptySlot(ab, extAb);
             if (slot1 < 0)
             {
-                // Debug tier + latch: the condition can hold every tick until a slot frees up.
+                // Debug tier + latch. The condition can hold every tick until a slot frees up.
                 if (Signatures.StuckEdge(ref _noSlotLogged, true))
                     ModLogger.Debug(LogVerb.Grant, $"no empty ability slot in the {LogNames.Job(wielderJob)} command list (record {recId}); cannot inject Barrage");
                 return;
@@ -165,7 +165,7 @@ internal sealed partial class Barrage : ISignature
             ModLogger.Debug(LogVerb.Grant, $"placed Barrage in ability slot {slot1} of {LogNames.Job(wielderJob)}'s action list (slot index {slotIdx}, record {recId})");
         }
 
-        // Idempotent inject: only write when the slot is not already correct.
+        // Idempotent inject. Only write when the slot is not already correct.
         if (!_mem.TryReadBytes(flagAddr, RecSize, out byte[] cur)) return;
         ushort curExt = (ushort)(cur[0] | (cur[1] << 8));
         byte curByte = cur[FlagPrefixSize + slotIdx];

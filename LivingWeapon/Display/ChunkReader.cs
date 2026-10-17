@@ -57,7 +57,7 @@ internal sealed class ChunkReader
         return 0;
     }
 
-    /// <summary>Read [chunkStart - L, chunkStart + ChunkSize + TrailSlack) clamped to the region, zero-clearing the tail
+    /// <summary>Read [chunkStart, L, chunkStart + ChunkSize + TrailSlack) clamped to the region, zero-clearing the tail
     /// past readLen. Returns bytes read into Buf (0 on failure).</summary>
     public int ReadInRegion(long chunkStart, long rbase, long rend,
                             out int lookback, out int searchable)

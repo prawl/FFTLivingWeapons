@@ -30,7 +30,7 @@ internal sealed class NaturalLedger
 
     private readonly Dictionary<(int nameId, StatLane lane), Entry> _entries = new();
 
-    // LW-149 stage A: counts every RecordWrite call, early returns included, for the cadence pins in GrowthEngineCadenceTests.cs
+    // LW-149 stage A. Counts every RecordWrite call, early returns included, for the cadence pins in GrowthEngineCadenceTests.cs
     internal int RecordWriteCalls { get; private set; }
 
     /// <summary>Promote Current to Prev for entries that recorded anything this attempt. Safe to call repeatedly per transition.</summary>

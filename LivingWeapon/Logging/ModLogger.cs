@@ -71,12 +71,12 @@ internal static class ModLogger
     /// <summary>Resets the console-only per-battle dedup (conflict C1). Engine calls it on battle enter and exit.</summary>
     public static void NoteBattleEdge() => Instance.NoteBattleEdge();
 
-    /// <summary>Test-only: drop the current logger so the next call re-creates the default.</summary>
+    /// <summary>Test-only. Drop the current logger so the next call re-creates the default.</summary>
     public static void Reset()
     {
         lock (_lock) { _logger = null; _modDir = null; }
     }
 
-    /// <summary>Test-only: swap in the swallow-everything logger.</summary>
+    /// <summary>Test-only. Swap in the swallow-everything logger.</summary>
     public static void UseNullLogger() => Instance = NullLogger.Instance;
 }

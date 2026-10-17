@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Arcanum's "Larceny" signature: while a +3 Arcanum is the acting wielder's main hand, each enemy
+/// Arcanum's "Larceny" signature. While a +3 Arcanum is the acting wielder's main hand, each enemy
 /// its action damages loses its highest-priority holdable buff, which the wielder then holds for
 /// LarcenyHoldTurns of its own turns. Enemies are detected by per-tick HP drops during the acted
 /// period (enemy-fingerprint filtered), and the wielder by fingerprint via
@@ -68,7 +68,7 @@ internal sealed class Larceny : ISignature
         // KillTracker.LastActorFingerprint is latched once per acted period outside the SameSet
         // guard, so it still updates when two Arcanum holders share weapon set {30}.
         var actorFp = _tracker.LastActorFingerprint;
-        // LW-252 stage 5: the same latch's nameId (KillTracker.LastActorNameId) gives fp-twin
+        // LW-252 stage 5. The same latch's nameId (KillTracker.LastActorNameId) gives fp-twin
         // holders separate ledgers in LarcenyHoldings.
         int actorNameId = _tracker.LastActorNameId;
         bool tierOk = LarcenyPolicy.IsActive(m.Signature, tier);
@@ -111,7 +111,7 @@ internal sealed class Larceny : ISignature
             if (buff is null) continue;     // foe carried no holdable buff
             var key = (buff.Value.Off, buff.Value.Mask);
 
-            // One decision per struck foe: a multi-hit action steals each buff from one enemy,
+            // One decision per struck foe. A multi-hit action steals each buff from one enemy,
             // dispels duplicates the wielder owns, and skips a copy already stolen (LarcenyPolicy.Decide).
             bool wielderHas = LarcenyPolicy.HasBit(_mem, actingAddr, key.Item1, key.Item2);
             var action = LarcenyPolicy.Decide(_holdings.IsHeld(actorNameId, actorFp, key), wielderHas);

@@ -4,7 +4,7 @@ namespace LivingWeapon;
 
 /// <summary>
 /// The LivingWeapon adapter over the portable <see cref="FingerprintGuard"/>. The main guard has one stand-down landmark,
-/// a DATA-only one (owner decision: no .text code hash, see docs/TODO.md LW-50 and docs/RELEASE_SCOPE.md section 7): Ramza's
+/// a DATA-only one (owner decision. No .text code hash, see docs/TODO.md LW-50 and docs/RELEASE_SCOPE.md section 7): Ramza's
 /// roster row shape at RosterBase slot 0. A mismatch stands the whole mod down for the session. the build stamp (PE
 /// TimeDateStamp + SizeOfImage) is read first but only reported (LaunchGuard.Stamp.cs); its slot returns Match on any readable
 /// read so an unreadable game still feeds the LW-392 stall warning (<see cref="LandmarkStall"/>, LaunchGuard.Stall.cs).
@@ -21,7 +21,7 @@ internal sealed partial class LaunchGuard
     // A mismatch usually means another mod rewrote that table, so it disables only Barrage, Shadow Blade and Provoke and the main
     // guard keeps running. It steps only after the main guard armed; since the stamp is only a report, a lane stand-down
     // may be the game update itself. Probe evidence 2026-07-14, tools/probes/anchorscan_feasibility_probe.py, exe backup file
-    // offset 0x67D6DB: the rec8/rec9 pair is file-baked static data, present from module-map time, so the lane needs no boot-window gate.
+    // offset 0x67D6DB. The rec8/rec9 pair is file-baked static data, present from module-map time, so the lane needs no boot-window gate.
     private readonly FingerprintGuard _kitLaneGuard;
     private readonly object _hookLock = new();
     private Action? _pendingHookArm;
@@ -37,8 +37,8 @@ internal sealed partial class LaunchGuard
 
     /// <param name="notice">The OS-level stand-down notice; null means no OS notice, so unit tests never pop a message box.
     /// Production wires the real notice from Engine's construction site.</param>
-    /// <param name="recorder">the flight ring tap (production: Flight.Record).</param>
-    /// <param name="requestFlush">the flight flush request (production: Flight.RequestFlush);
+    /// <param name="recorder">the flight ring tap (production. Flight.Record).</param>
+    /// <param name="requestFlush">the flight flush request (production. Flight.RequestFlush);
     /// only stand-down calls this, with a dedicated "standdown" trigger.</param>
     /// <param name="forceMismatch">LW-83 dev drill (LW_FORCE_FINGERPRINT_MISMATCH): forces the build stamp
     /// to read unknown so the report line and the armed-edge warning can be watched; it can no longer
@@ -58,7 +58,7 @@ internal sealed partial class LaunchGuard
         _requestFlush = requestFlush;
         GuardTryRead tryRead = (long a, int n, out byte[] b) => _mem.TryReadBytes(a, n, out b);
 
-        // Plain bool so Release compiles this path too: perturbs the expected TimeDateStamp to watch the unknown-build report
+        // Plain bool so Release compiles this path too. Perturbs the expected TimeDateStamp to watch the unknown-build report
         // without a real patch. Only the Mod.StartEngine call site is #if LWDEV.
         uint expectedTimeDateStamp = forceMismatch ? ExpectedTimeDateStamp ^ 1 : ExpectedTimeDateStamp;
         _expectedStampTds = expectedTimeDateStamp;   // the stamp probe (LaunchGuard.Stamp.cs) compares against this
@@ -89,7 +89,7 @@ internal sealed partial class LaunchGuard
 
     public bool Armed => _guard.Armed;
 
-    /// <summary>Test/diagnostic seam: the underlying state machine's terminal state, so a test can
+    /// <summary>Test/diagnostic seam. The underlying state machine's terminal state, so a test can
     /// tell "still retrying" apart from "permanently stood down" (both read Armed == false).</summary>
     internal GuardState State => _guard.State;
 

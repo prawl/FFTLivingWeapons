@@ -2,7 +2,7 @@ using System;
 
 namespace LivingWeapon;
 
-/// <summary>The edge an engine tick crossed: a fresh battle Entered, a battle Exited, or neither.</summary>
+/// <summary>The edge an engine tick crossed. A fresh battle Entered, a battle Exited, or neither.</summary>
 internal enum BattleEdge { None, Entered, Exited }
 
 /// <summary>
@@ -23,7 +23,7 @@ internal sealed class BattleState
     private bool _haveLastTick;
     private bool _pairWasArmed;                    // last observed sentinel-pair state (for the edge)
 
-    /// <summary>Both battle sentinels armed at once: slot0 at the in-battle marker
+    /// <summary>Both battle sentinels armed at once. Slot0 at the in-battle marker
     /// (Offsets.Slot0InBattleMarker, 0x10 on 1.5, re-anchored from the pre-1.5 0xFF by LW-42) and
     /// slot9 at its stuck sentinel. Only the disarmed-to-armed edge of the pair enters. As a level
     /// signal it re-entered instantly after every exit, because both sentinels stuck on the
@@ -34,7 +34,7 @@ internal sealed class BattleState
     internal static bool PairArmed(uint slot0, uint slot9) =>
         slot0 == Offsets.Slot0InBattleMarker && slot9 == 0xFFFFFFFF;
 
-    /// <summary>The instant battle-enter signal: a fresh sentinel-pair arm (edge, computed by the
+    /// <summary>The instant battle-enter signal. A fresh sentinel-pair arm (edge, computed by the
     /// caller) or any live battlefield mode. battleMode reads 0 on the world map and menus and 2/3/4
     /// on a live battlefield (Offsets.BattleMode), so a live mode has no world-map false positive.
     /// This matches InLiveBattle's live-mode set. A former "mode 3 only enters when slot0==0xFF"
@@ -52,14 +52,14 @@ internal sealed class BattleState
     /// behavior, AWAITING-LIVE (owner slow-cast eyeball); if wrong the excuse stays dead, never
     /// wrongly live. The marker alone is not trusted, since pre-1.5 a QUIT left it stuck on the
     /// world map (probe-verified 2026-06-10; a victory cleared it to 0x66, and a 1.5 victory exit
-    /// sampled 0x11). A marker-only frame needs an excuse for battleMode 0: targeting modes 1/5,
+    /// sampled 0x11). A marker-only frame needs an excuse for battleMode 0. Targeting modes 1/5,
     /// the pause flag, or a real event id.</summary>
     public static bool InLiveBattle(uint slot0, int battleMode, bool paused, int eventId) =>
         battleMode == 2 || battleMode == 3 || battleMode == 4
         || (slot0 == Offsets.Slot0InBattleMarker && (battleMode == 1 || battleMode == 5
                               || paused || IsRealEvent(eventId)));
 
-    /// <summary>On the live battlefield: in battle and a live mode. slot9 stays stuck on the world-map
+    /// <summary>On the live battlefield. In battle and a live mode. slot9 stays stuck on the world-map
     /// party menu, so battleMode (2/3/4 live, 0 map/menus) tells combat from a menu.</summary>
     public static bool OnField(bool inBattle, int battleMode) =>
         inBattle && (battleMode == 2 || battleMode == 3 || battleMode == 4);
@@ -76,14 +76,14 @@ internal sealed class BattleState
     public static bool ShouldPaintCard(bool statusCardOpen, bool onField, double secondsOffField, double settleSeconds) =>
         statusCardOpen || (!onField && secondsOffField > settleSeconds);
 
-    /// <summary>A battle map is on screen, the broad gate for the pre-gate module: slot9 stuck and
+    /// <summary>A battle map is on screen, the broad gate for the pre-gate module. Slot9 stuck and
     /// battleMode non-zero. That covers formation (mode 1), your turn (2/3/4), enemy turns (1) and
     /// cast targeting (5), and is false on the world map even if slot9 is stuck. Preferred over
     /// InLiveBattle there to avoid the mode-1 flicker on enemy turns.</summary>
     public static bool BattleDisplayed(uint slot9, int battleMode) =>
         slot9 == 0xFFFFFFFFu && battleMode != 0;
 
-    /// <summary>A real story event suspends the exit timer: any nonzero id except 0xFFFF. 0xFFFF is
+    /// <summary>A real story event suspends the exit timer. Any nonzero id except 0xFFFF. 0xFFFF is
     /// present on every confirmed battle exit (log 2026-06-10, event=65535). Zero is excluded
     /// (unknown semantics). The old 1..399 band was a guess; event 401 showed up mid-battle on
     /// 2026-06-10 with no visible dialogue, faked an exit and dropped a kill credit. The nameId
@@ -123,7 +123,7 @@ internal sealed class BattleState
             return BattleEdge.Exited;
         }
 
-        // In: an in-live tick zeroes the accumulator; out-of-live ticks accumulate only when neither
+        // In. An in-live tick zeroes the accumulator; out-of-live ticks accumulate only when neither
         // paused nor in a real event.
         TimeSpan delta = _haveLastTick && now > _lastTick ? now - _lastTick : TimeSpan.Zero;
         _lastTick = now;

@@ -10,7 +10,7 @@ namespace LivingWeapon;
 /// </summary>
 internal static partial class CardScanner
 {
-    /// <summary>Anchor patterns for a weapon id at this encoding: EarnedAnchors' full set when
+    /// <summary>Anchor patterns for a weapon id at this encoding. EarnedAnchors' full set when
     /// wired, else the baked Flavor and Grows patterns (LW-332; either may be empty).</summary>
     private static IReadOnlyList<byte[]> AnchorCandidates(int id, int enc, CardPatterns pats, EarnedAnchors? anchors)
     {

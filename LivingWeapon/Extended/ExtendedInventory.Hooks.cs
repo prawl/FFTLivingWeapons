@@ -4,7 +4,7 @@ using Reloaded.Hooks.Definitions;
 namespace LivingWeapon;
 
 /// <summary>
-/// The detour half of the arm: the five Reloaded.Hooks detours (category getter, menu-order rebuild, LW-372 list-builder,
+/// The detour half of the arm. The five Reloaded.Hooks detours (category getter, menu-order rebuild, LW-372 list-builder,
 /// inventory reset, save edges) in install order, plus the reverse-order rollback. Split from ExtendedInventory.cs in
 /// LW-351 fix round 7 (2026-08-30). `Install` lives in ExtendedInventory.Arm.cs, tick logic in .Tick.cs.
 /// RollBack restores the template relocation first, then the list relocation (D2/LW-371).
@@ -17,8 +17,8 @@ internal sealed partial class ExtendedInventory
         _getterHook = new CategoryGetterHook(_patcher, ExtendedCatalog.FirstExtendedId, Items.OrderBy(i => i.Id).Select(i => i.CloneDonor).ToArray());
         string? why = _getterHook.Install(hooks);
         if (why != null) return why;
-        // Fix round 7: seats the owned extended ids into the template before the game's rebuild, so it needs the id count.
-        // LW-368 round 2: ownership via BagCountBase (relocated page once armed). seats into TemplateRegions.
+        // Fix round 7. Seats the owned extended ids into the template before the game's rebuild, so it needs the id count.
+        // LW-368 round 2. Ownership via BagCountBase (relocated page once armed). seats into TemplateRegions.
         _orderHook = new OrderRebuildHook(_patcher, extendedCount: Items.Count, bagBase: BagCountBase, regions: () => TemplateRegions);
         why = _orderHook.Install(hooks);
         if (why != null) return why;
@@ -27,7 +27,7 @@ internal sealed partial class ExtendedInventory
         _listBuilderHook = new ListBuilderHook(_patcher, _allocator);
         why = _listBuilderHook.Install(hooks);
         if (why != null) return why;
-        // Fix round 7: the game's per-item reset zeroed the extended bag counts after one real battle (owner 2026-08-30 23:29); the detour preserves them.
+        // Fix round 7. The game's per-item reset zeroed the extended bag counts after one real battle (owner 2026-08-30 23:29); the detour preserves them.
         _resetHook = new InventoryResetHook(_patcher, Items.Count, bagBase: BagCountBase);
         why = _resetHook.Install(hooks);
         if (why != null) return why;
@@ -52,7 +52,7 @@ internal sealed partial class ExtendedInventory
         _shops.Restore(_patcher);
         _catalog.Restore(_patcher);
         _templates.Restore(_patcher);   // undo right before the catalog, its install successor
-        _relocation.Restore(_patcher);   // LW-368 round 2: undo right before the boot cap patches, its install neighbor
+        _relocation.Restore(_patcher);   // LW-368 round 2. Undo right before the boot cap patches, its install neighbor
         _patches.Rollback(_patcher);
     }
 }

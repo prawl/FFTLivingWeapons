@@ -3,20 +3,20 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// AttackCard's decide half: what the row and tail should say right now. AttackCard.Paint.cs
+/// AttackCard's decide half. What the row and tail should say right now. AttackCard.Paint.cs
 /// writes it. LW-55 put the cursor-answer gate check here too.
 /// </summary>
 internal sealed partial class AttackCard
 {
-    /// <summary>The plan for one composed tick: the 74-byte image from AttackRow.BuildImage and the
+    /// <summary>The plan for one composed tick. The 74-byte image from AttackRow.BuildImage and the
     /// row name length (AttackRow.Policy.OffsetBytes needs it for descOff).</summary>
     private readonly record struct ComposedPlan(byte[] Image, int RowNameChars);
 
-    /// <summary>LW-55 dedup: each (refusal kind, roster hand, band weapon) is reported once per
+    /// <summary>LW-55 dedup. Each (refusal kind, roster hand, band weapon) is reported once per
     /// battle so a stuck hover does not spam the log or flight ring. Cleared in ResetBattle.</summary>
     private readonly HashSet<(CursorRefusal Kind, int RosterHand, int BandWeapon)> _reportedRefusals = new();
 
-    /// <summary>LW-87 dedup: each <see cref="CursorMiss"/> stage is reported once per battle.
+    /// <summary>LW-87 dedup. Each <see cref="CursorMiss"/> stage is reported once per battle.
     /// Cleared in ResetBattle.</summary>
     private readonly HashSet<CursorMiss> _reportedMisses = new();
 
@@ -65,7 +65,7 @@ internal sealed partial class AttackCard
 
     /// <summary>LW-55 tripwire. <see cref="CursorRefusal.WeaponMismatch"/> is the real anomaly (a
     /// wrong dossier nearly painted): Warn plus flight record. <see cref="CursorRefusal.NotTurnOwner"/>
-    /// is, since LW-87, a rare one-tick turn-flag race: Debug plus flight record. Deduped via
+    /// is, since LW-87, a rare one-tick turn-flag race. Debug plus flight record. Deduped via
     /// <see cref="_reportedRefusals"/>.</summary>
     private void ReportRefusal(CursorRefusal refusal, CursorAnswer answer)
     {
@@ -84,7 +84,7 @@ internal sealed partial class AttackCard
 
     /// <summary>the first miss of each <see cref="CursorMiss"/> stage per battle gets a Debug
     /// line and a flight "card" record ("miss:&lt;stage&gt;"), deduped by <see cref="_reportedMisses"/>.
-    /// Never a Warn: NoOwner fires between any two turns and BridgeFail on every enemy turn.</summary>
+    /// Never a Warn. NoOwner fires between any two turns and BridgeFail on every enemy turn.</summary>
     private void ReportMiss(CursorMiss miss)
     {
         if (miss == CursorMiss.None) return;
@@ -101,7 +101,7 @@ internal sealed partial class AttackCard
         int tier = Tuning.TierFor(kills);
         // Marks are hidden from this surface; LegendStore/Reliquary still collect them.
         string? markLabel = null;
-        // A signature always gets a clause: " armed" once earned, else an "Unlocks {label}" tease (2026-07-06).
+        // A signature always gets a clause, " armed" once earned, else an "Unlocks {label}" tease (2026-07-06).
         string? sigLabel = m.Signature != null && !string.IsNullOrEmpty(m.Signature.DisplayLabel)
             ? m.Signature.DisplayLabel
             : null;

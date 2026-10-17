@@ -26,7 +26,7 @@ internal sealed partial class FeignDeath : ISignature
     // edge. The scoped logger keeps those lines off the console unless a deployed unit wields it.
     private readonly ScopedLogger _slog;
     private bool _wasActive;
-    private bool _spent;          // once-per-battle: the played-dead cycle has run its course
+    private bool _spent;          // once-per-battle. The played-dead cycle has run its course
     private bool _sawAlive;       // the wielder has been seen alive this battle (arm guard)
     private Phase _phase;
     private DateTime _possumStart;
@@ -145,7 +145,7 @@ internal sealed partial class FeignDeath : ISignature
             && _mem.U16(Offsets.TurnQueue + Offsets.TqLevel) == wlvl;
     }
 
-    /// <summary>True when another player unit is alive in the band: a real-position entry (not a (0,0) twin)
+    /// <summary>True when another player unit is alive in the band. A real-position entry (not a (0,0) twin)
     /// matching a player fingerprint, HP above 0, dead bit clear, and not the wielder or its twin. Guards the
     /// finishing blow against a party wipe. A miscount lands on "no other ally", which degrades to survival.</summary>
     private bool OtherAllyAlive(long wielder)
@@ -157,7 +157,7 @@ internal sealed partial class FeignDeath : ISignature
         {
             long e = Band.Entry(s);
             if (!Band.IsValid(_mem, e)) continue;
-            if (_mem.U8(e + Offsets.AGx) == 0 && _mem.U8(e + Offsets.AGy) == 0) continue;   // (0,0) twin: stale liveness
+            if (_mem.U8(e + Offsets.AGx) == 0 && _mem.U8(e + Offsets.AGy) == 0) continue;   // (0,0) twin. Stale liveness
             int mhp = _mem.U16(e + Offsets.AMaxHp), lvl = _mem.U8(e + Offsets.ALevel);
             int br = _mem.U8(e + Offsets.ABrave), fa = _mem.U8(e + Offsets.AFaith);
             if (mhp == wMhp && lvl == wLvl && br == wBr && fa == wFa) continue;   // the wielder (or its twin)

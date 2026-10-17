@@ -1,13 +1,13 @@
 namespace LivingWeapon;
 
-/// <summary>One accessor function entry the extended inventory hooks: its live address, a log
+/// <summary>One accessor function entry the extended inventory hooks. Its live address, a log
 /// label, the bytes it must carry before we overwrite it (the trampoline re-executes them), and
 /// the offset of the <c>E8 rel32</c> call inside them (-1 when there is none).</summary>
 internal readonly record struct AccessorEntry(long Addr, string Label, byte[] Expected, int CallAt);
 
 /// <summary>
 /// Split out of ExtendedSites.cs when the byte-patch table passed ~200 lines.
-/// LW-388 R12: on the Denuvo build each of these ten addresses held a five-byte <c>E9 rel32</c> thunk
+/// LW-388 R12. On the Denuvo build each of these ten addresses held a five-byte <c>E9 rel32</c> thunk
 /// into the protected tail. On the Denuvo-free build they are plain function entries, so the hook
 /// steals real instructions (see <see cref="AccessorEntryHook"/>). Expected bytes were read from the
 /// Denuvo-free exe on disk 2026-10-16 (Steam buildid 24304444). The two call entries both call the

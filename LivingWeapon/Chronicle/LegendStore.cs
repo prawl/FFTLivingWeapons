@@ -6,7 +6,7 @@ using Newtonsoft.Json;
 namespace LivingWeapon;
 
 /// <summary>
-/// One weapon's Reliquary deed record: the last victim, per-archetype kill counts (Unknown is
+/// One weapon's Reliquary deed record. The last victim, per-archetype kill counts (Unknown is
 /// counted but never earns a Mark), and the Marks earned in order. Legends and PendingAnnounce are
 /// Phase 2 slots kept in the schema now to avoid a later migration (decision 10). LastPainted is
 /// the previous composed card line, kept so a relaunch can still recognize a buffer painted
@@ -38,7 +38,7 @@ internal sealed class LegendStore
     private readonly Dictionary<int, WeaponLegend> _legends;
     private bool _dirty;
 
-    /// <summary>Where the load came from: "primary", "backup", or "fresh". Feeds the launch header's [save] legends line.</summary>
+    /// <summary>Where the load came from, "primary", "backup", or "fresh". Feeds the launch header's [save] legends line.</summary>
     public string LoadedFrom { get; }
 
     /// <summary>Weapons with at least one recorded deed.</summary>
@@ -105,7 +105,7 @@ internal sealed class LegendStore
     public WeaponLegend Get(int weaponId) =>
         _legends.TryGetValue(weaponId, out var w) ? w : new WeaponLegend();
 
-    /// <summary>Records one kill: classifies the victim, sets lastVictim, and bumps that archetype's
+    /// <summary>Records one kill. Classifies the victim, sets lastVictim, and bumps that archetype's
     /// count. Returns archetypes that first crossed Tuning.MarkThresholds[0] on this kill.</summary>
     public List<VictimClass.Archetype> RecordDeed(int weaponId, VictimSnapshot victim)
     {
@@ -133,7 +133,7 @@ internal sealed class LegendStore
         return earned;
     }
 
-    /// <summary>Decision 12: stores the previous composed card line ("lastPainted"). StoryLines calls
+    /// <summary>Decision 12. Stores the previous composed card line ("lastPainted"). StoryLines calls
     /// it on a compose-change edge, not at paint time.</summary>
     public void RotatePainted(int weaponId, string? previous)
     {

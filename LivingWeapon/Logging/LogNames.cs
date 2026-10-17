@@ -9,7 +9,7 @@ internal static class LogNames
     private static IReadOnlyDictionary<int, WeaponMeta> _meta
         = new Dictionary<int, WeaponMeta>();
 
-    // PSX wheel order: ids 74..93 generic jobs, plus the three verified specials.
+    // PSX wheel order. Ids 74..93 generic jobs, plus the three verified specials.
     private static readonly Dictionary<int, string> Jobs = new()
     {
         { 74,  "Squire" },
@@ -43,7 +43,7 @@ internal static class LogNames
         _meta = meta;
     }
 
-    /// <summary>Weapon display name: "Yoichi Bow" if known, "weapon 90" otherwise.</summary>
+    /// <summary>Weapon display name, "Yoichi Bow" if known, "weapon 90" otherwise.</summary>
     public static string Weapon(int id)
     {
         if (_meta.TryGetValue(id, out var m) && m.Name.Length > 0)
@@ -51,7 +51,7 @@ internal static class LogNames
         return "weapon " + id;
     }
 
-    /// <summary>Job display name: "Thief" if known, "job 83" otherwise.</summary>
+    /// <summary>Job display name, "Thief" if known, "job 83" otherwise.</summary>
     public static string Job(int id)
     {
         return Jobs.TryGetValue(id, out var name) ? name : "job " + id;

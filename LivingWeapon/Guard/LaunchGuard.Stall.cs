@@ -9,11 +9,11 @@ namespace LivingWeapon;
 internal sealed partial class LaunchGuard
 {
     // Steps are 33 ms Engine ticks (Engine.cs PollMs); real times are approximate.
-    /// <summary>1800 steps * 33 ms = 59.4 s: image (PE) landmark unreadable this long means the mod cannot read the game.</summary>
+    /// <summary>1800 steps * 33 ms = 59.4 s. Image (PE) landmark unreadable this long means the mod cannot read the game.</summary>
     internal const int ImageStallSteps = 1800;
-    /// <summary>3600 steps * 33 ms = 118.8 s: roster row empty this long on a readable game is the ordinary title screen.</summary>
+    /// <summary>3600 steps * 33 ms = 118.8 s. Roster row empty this long on a readable game is the ordinary title screen.</summary>
     internal const int RosterWaitSteps = 3600;
-    /// <summary>2400 steps * 33 ms = 79.2 s: drill blind window, past the image warning (1800) but short enough that a Continue still arms within the minute.</summary>
+    /// <summary>2400 steps * 33 ms = 79.2 s. Drill blind window, past the image warning (1800) but short enough that a Continue still arms within the minute.</summary>
     internal const int DrillBlindSteps = 2400;
 
     // Roster-probe Detail on an Unreadable verdict (LaunchGuard.Landmarks.cs): empty slot (title screen) vs unreadable page.
@@ -37,7 +37,7 @@ internal sealed partial class LaunchGuard
     private const string DrillSentence =
         " This warning was forced by the LW_FORCE_GUARD_UNREADABLE drill flag (dev builds only).";
 
-    // Once-per-session latches (D8: one LaunchGuard per process); drill: _blindStepsLeft > 0 makes both main probes Unreadable.
+    // Once-per-session latches (D8. One LaunchGuard per process); the drill, _blindStepsLeft > 0, makes both main probes Unreadable.
     private bool _stallWarned;
     private bool _waitNoted;
     private readonly bool _forceUnreadable;
@@ -60,7 +60,7 @@ internal sealed partial class LaunchGuard
         _stallWarned = true;
         string drill = _forceUnreadable ? DrillSentence : "";
         _recorder?.Invoke("guard", $"stalled ({name} unreadable for about a minute)");
-        // WARN tier, no flush request: nothing stood down, the log line is the evidence.
+        // WARN tier, no flush request. Nothing stood down, the log line is the evidence.
         ModLogger.Warn(LogVerb.Startup, ImageStallWarn + drill);
         _notice?.Invoke("FFT Living Weapons", ImageStallBox + drill);
     }

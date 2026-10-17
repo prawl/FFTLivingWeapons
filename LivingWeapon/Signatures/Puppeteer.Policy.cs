@@ -6,7 +6,7 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed partial class Puppeteer
 {
-    // ---- target gate: who can be puppeted ----
+    // ---- target gate. Who can be puppeted ----
     // The job gate is off (2026-06-18): a real 828-HP boss read job 37 at combat +0x03, below the
     // old GenericJobLo (74) floor, and the job byte is unreliable on the IC build. The enemy check
     // (EnemyFingerprintCache.Contains) and the fingerprint gates in Puppeteer.cs do the filtering.
@@ -42,7 +42,7 @@ internal sealed partial class Puppeteer
     public static bool IsActive(WeaponSignature? sig, int tier)
         => Signatures.Earned(sig, tier) && sig!.PuppeteerTurns > 0;
 
-    /// <summary>D1: the wielder is acting when the actor pointer names the wielder's band seat
+    /// <summary>D1. The wielder is acting when the actor pointer names the wielder's band seat
     /// (<paramref name="pointerMatch"/>, same signal as TurnTracker.TryActiveViaPointer), or by the older
     /// <paramref name="latchMainHand"/> + <paramref name="actedFlag"/> fallback when the pointer is
     /// benched, ambiguous (ResolveDeployedMainHand returns 0) or invalid.</summary>
@@ -63,7 +63,7 @@ internal sealed partial class Puppeteer
     /// <summary>True when the struck unit is an enemy (never puppet an ally).</summary>
     public static bool ShouldLatch(bool isEnemy) => isEnemy;
 
-    /// <summary>True when the wielder may apply a NEW puppet: at least <paramref name="cooldownTurns"/>
+    /// <summary>True when the wielder may apply a NEW puppet. At least <paramref name="cooldownTurns"/>
     /// of the wielder's own turns have elapsed since the last puppet. The current &lt; last guard handles
     /// a battle restart (the wielder turn counter reset below the stored stamp), treat as off cooldown.</summary>
     public static bool OffCooldown(int currentWielderTurn, int lastPuppetWielderTurn, int cooldownTurns)
@@ -71,7 +71,7 @@ internal sealed partial class Puppeteer
            || currentWielderTurn - lastPuppetWielderTurn >= cooldownTurns;
 
     // ---- the agency flag (the runtime hold target) ----
-    // Agency flag: combat +0x05, bit 0x08 set = human (action menu opens), clear = AI. Observed
+    // Agency flag. Combat +0x05, bit 0x08 set = human (action menu opens), clear = AI. Observed
     // 2026-06-18 (Ramza read 0x0B, enemies 0x50; setting it on an enemy opened the player menu).
     // The band entry sits at combat +0x1C, so combat +0x05 is band -0x17 (cf. Offsets.ACrystalHearts).
     internal const int AgencyOff = -0x17;
@@ -94,7 +94,7 @@ internal sealed partial class Puppeteer
     }
 }
 
-/// <summary>Per-battle state for Puppeteer: one active puppet (the latch) plus the turn stamp of the
+/// <summary>Per-battle state for Puppeteer. One active puppet (the latch) plus the turn stamp of the
 /// last puppet (the cooldown clock). No memory access. Release on the puppet's own turn is detected in
 /// Puppeteer.Hold.cs (LW-5 round-2/3 tape, 2026-07-07; the old wielder clock released on the wrong
 /// unit's turn because LW-7 dumps turn credit onto the wielder). This state holds only the cap,
@@ -116,7 +116,7 @@ internal sealed class PuppeteerState
     /// <summary>The battle-turn stamp of the last puppet, or null if none yet (the cooldown clock).</summary>
     public int? LastPuppetWielderTurn => _lastPuppetWielderTurn;
 
-    /// <summary>True when a NEW puppet may be applied: no puppet is active AND the cooldown has elapsed
+    /// <summary>True when a NEW puppet may be applied. No puppet is active AND the cooldown has elapsed
     /// (or none has ever been applied this battle).</summary>
     public bool CanPuppet(int currentWielderTurn, int cooldownTurns)
         => !HasPuppet
@@ -131,7 +131,7 @@ internal sealed class PuppeteerState
         _lastPuppetWielderTurn = currentWielderTurn;
     }
 
-    /// <summary>The LW-5 safety cap: true once GlobalTurns has advanced <paramref name="capTurns"/>
+    /// <summary>The LW-5 safety cap. True once GlobalTurns has advanced <paramref name="capTurns"/>
     /// past the dominate baseline. A backstop if the turn-queue "own turn" signal never fires
     /// (Puppeteer.Hold.cs handles the normal release).</summary>
     public bool IsCapped(int globalTurnsNow, int capTurns)
@@ -141,7 +141,7 @@ internal sealed class PuppeteerState
     /// set, so a new puppet is blocked until the cooldown elapses.</summary>
     public void Release() => _puppet = null;
 
-    /// <summary>Battle exit: clear the puppet AND the cooldown clock.</summary>
+    /// <summary>Battle exit. Clear the puppet AND the cooldown clock.</summary>
     public void Clear() { _puppet = null; _lastPuppetWielderTurn = null; }
 
     private readonly record struct PuppeteerEntry(

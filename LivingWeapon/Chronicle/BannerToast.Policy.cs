@@ -46,7 +46,7 @@ internal sealed partial class BannerToast
     private static readonly int[] Milestones = { 1000, 500, 250, 100, 1 };
 
     /// <summary>Returns the highest milestone crossed, so a jump announces only that one. First
-    /// blood only fires from a true zero start: the construction prime baselines loaded tallies and
+    /// blood only fires from a true zero start. The construction prime baselines loaded tallies and
     /// the dev-seed floor (Tuning.DevKillSeed, 3) sits above 1. Returns 0 when none was crossed.</summary>
     public static int CrossedMilestone(int prevKills, int newKills)
     {

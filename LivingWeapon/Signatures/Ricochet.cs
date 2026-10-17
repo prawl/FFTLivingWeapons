@@ -59,7 +59,7 @@ internal sealed partial class Ricochet : ISignature
         var slots = new List<SlotInfo>(Offsets.BandSlots);
         var events = new List<(int Slot, int Gx, int Gy, int Dmg)>(2);
 
-        // Pass 1: observe every valid band entry and build the full candidate list first.
+        // Pass 1. Observe every valid band entry and build the full candidate list first.
         for (int s = 0; s < Offsets.BandSlots; s++)
         {
             // Shared sanity read in Band.TryReadUnit (Band.Sanity.cs). The gx/gy > 30
@@ -68,7 +68,7 @@ internal sealed partial class Ricochet : ISignature
             int gx = _mem.U8(addr + Offsets.AGx), gy = _mem.U8(addr + Offsets.AGy);
             if (gx > 30 || gy > 30) continue;
 
-            int dmg = _state.Observe(s, hp);   // always observe: baselining while inactive
+            int dmg = _state.Observe(s, hp);   // always observe. Baselining while inactive
             if (!active) continue;
 
             bool enemy = enemyFps!.Contains(fp);
@@ -77,7 +77,7 @@ internal sealed partial class Ricochet : ISignature
         }
         if (!active) return;
 
-        // Pass 2: chain each enemy damage event; the tick-wide struck set prevents double hits.
+        // Pass 2. Chain each enemy damage event; the tick-wide struck set prevents double hits.
         var struck = new HashSet<int>();
         foreach (var ev in events) struck.Add(ev.Slot);   // real-hit victims are never chip targets
         foreach (var (vs, gx, gy, dmg) in events)

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Roster-only wielder resolution: finds the roster unit holding a weapon (fingerprint + hand ids) with no band read.
+/// Roster-only wielder resolution. Finds the roster unit holding a weapon (fingerprint + hand ids) with no band read.
 /// Ports ExtraTurn's ResolveWielder pair; the twin filter lives in Wielder.cs. Goes through IGameMemory so tests can fake it.
 /// </summary>
 internal static partial class Wielder
@@ -40,7 +40,7 @@ internal static partial class Wielder
             if (!TryOccupiedSlot(mem, r, out long rb, out int lvl)) continue;   // empty slot
             int rh = mem.U16(rb + Offsets.RRHand), lh = mem.U16(rb + Offsets.RLHand), oh = mem.U16(rb + Offsets.ROffHand);
             if (rh != weaponId && lh != weaponId && oh != weaponId) continue;
-            if (++found > 1) return false;       // two wielders: ambiguous, no grant
+            if (++found > 1) return false;       // two wielders. Ambiguous, no grant
             fp = (lvl, mem.U8(rb + Offsets.RBrave), mem.U8(rb + Offsets.RFaith));
             hands.Clear();
             CollectHands(rh, lh, oh, hands);
@@ -61,7 +61,7 @@ internal static partial class Wielder
         {
             if (!TryOccupiedSlot(mem, r, out long rb, out int lvl)) continue;   // empty slot
             if (mem.U16(rb + Offsets.RRHand) != weaponId) continue;    // main-hand match only
-            if (++found > 1) return false;                              // two main-hand wielders: ambiguous
+            if (++found > 1) return false;                              // two main-hand wielders. Ambiguous
             fp = (lvl, mem.U8(rb + Offsets.RBrave), mem.U8(rb + Offsets.RFaith));
             hands.Clear();
             hands.Add(weaponId);   // locate set = main-hand id only (exact band-field match)
@@ -134,7 +134,7 @@ internal static partial class Wielder
 
     /// <summary>True when at least one roster row holding <paramref name="weaponId"/> in any hand has a live band entry.
     /// Used by the credit gate (<see cref="CreditGate"/>, via KillTracker.CreditKill). Scans all three hands because a corpse credit can name
-    /// a dual-wielder's off-hand blade, whose band entry mirrors the main hand. No ambiguity bail: a benched duplicate must not hide a deployed copy.</summary>
+    /// a dual-wielder's off-hand blade, whose band entry mirrors the main hand. No ambiguity bail. A benched duplicate must not hide a deployed copy.</summary>
     public static bool HasLiveWielder(IGameMemory mem, int weaponId)
     {
         for (int r = 0; r < Offsets.RosterSlots; r++)
@@ -146,7 +146,7 @@ internal static partial class Wielder
             var hands = new List<int>();
             CollectHands(rh, lh, oh, hands);
             int rosterNameId = mem.U16(rb + Offsets.RNameId);
-            if (Locate(mem, weaponId, hands, fp, rosterNameId) != 0) return true;   // deployed: done
+            if (Locate(mem, weaponId, hands, fp, rosterNameId) != 0) return true;   // deployed. Done
         }
         return false;
     }
@@ -160,7 +160,7 @@ internal static partial class Wielder
     {
         ScanNameIdMatches(mem, weaponId, fp, mainHandOnly: true, out int count, out int first, out bool allSame);
         if (count == 0) return -1;
-        return allSame ? first : -1;                                   // distinct nameIds among matches: ambiguous
+        return allSame ? first : -1;                                   // distinct nameIds among matches. Ambiguous
     }
 
     /// <summary>Any-hand sibling of <see cref="RosterNameId"/> for <see cref="Locate"/>'s implicit-resolve overload. Returns the nameId
@@ -178,7 +178,7 @@ internal static partial class Wielder
         out int matchCount)
     {
         ScanNameIdMatches(mem, weaponId, fp, mainHandOnly: false, out matchCount, out int first, out _);
-        return matchCount == 1 ? first : -1;                            // >1 slot: refuse regardless of nameId equality
+        return matchCount == 1 ? first : -1;                            // >1 slot. Refuse regardless of nameId equality
     }
 
     /// <summary>Shared walk behind <see cref="RosterNameId"/> and <see cref="ResolveAnyHandNameId"/> (D4). Counts slots holding

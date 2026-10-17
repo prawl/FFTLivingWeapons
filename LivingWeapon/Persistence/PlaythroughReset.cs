@@ -1,11 +1,11 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-51 Tier-1: detects a fresh playthrough's opening (the Orbonne Prayer new-game dialogue) and
+/// LW-51 Tier-1. Detects a fresh playthrough's opening (the Orbonne Prayer new-game dialogue) and
 /// resets the kill tally. Only a sustained hold (<see cref="PlaythroughResetPolicy.HoldTicks"/>)
 /// fires, so a one-frame EventId dip such as a Continue load cannot reset data. On fire it archives
 /// kills.json via <see cref="SaveLocation.Archive"/>, then clears the shared <see cref="KillTally.Kills"/>
-/// and saves. legends.json is left alone: Marks are release-hidden.
+/// and saves. legends.json is left alone. Marks are release-hidden.
 /// The return value of <see cref="Observe"/> also tells Engine a new game qualified, so it can
 /// force BattleState's exit edge (an in-session New Game fires none, leaving a stale KillTracker latch).
 /// The data action also needs sensingArmed from LaunchGuard's sensing lane
@@ -19,7 +19,7 @@ internal sealed class PlaythroughReset
     private readonly SaveLocation _save;
     private readonly KillTally _tally;
     private int _heldTicks;
-    // LW-395 late-arm latch: set by a refused threshold tick, consumed by the first armed tick of
+    // LW-395 late-arm latch. Set by a refused threshold tick, consumed by the first armed tick of
     // the same hold, cleared when the hold breaks.
     private bool _pendingFire;
 
@@ -73,8 +73,8 @@ internal enum ResetVerdict
 {
     /// <summary>No detection edge this tick.</summary>
     None,
-    /// <summary>The new-game signal qualified and the sentinels are verified: the data action ran.</summary>
+    /// <summary>The new-game signal qualified and the sentinels are verified. The data action ran.</summary>
     Fired,
-    /// <summary>The signal qualified but the sentinel check has not passed: no data was touched.</summary>
+    /// <summary>The signal qualified but the sentinel check has not passed. No data was touched.</summary>
     Refused,
 }

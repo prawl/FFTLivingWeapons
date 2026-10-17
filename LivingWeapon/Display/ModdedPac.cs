@@ -28,7 +28,7 @@ internal enum PacPatchResult
 /// offsets are cached per icon so a weapon re-tiering skips the multi-MB re-scan.
 ///
 /// One instance per pac path (see <see cref="FileIconGlowStore"/>), reused for the launch. Nothing
-/// throws outward: failures are return values, since the loose-tex write is already correct
+/// throws outward. Failures are return values, since the loose-tex write is already correct
 /// without the pac write (IconGlow.Apply.cs).
 ///
 /// This file picks which offset to trust and when to run a shared <see cref="PacScan"/> pass
@@ -55,7 +55,7 @@ internal sealed partial class ModdedPac
     }
 
     /// <summary>
-    /// LW-381 R2-2: patches every entry, sharing one pass over the pac for those the offset cache
+    /// LW-381 R2-2. Patches every entry, sharing one pass over the pac for those the offset cache
     /// cannot resolve. Cache-resolved entries are handled first; if all are, no pass runs. Never throws.
     /// </summary>
     internal IReadOnlyDictionary<string, PacPatchResult> PatchBatch(IReadOnlyList<(string CacheKey, byte[] OldBytes, byte[] NewBytes)> triples)

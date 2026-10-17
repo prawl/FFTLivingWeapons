@@ -8,7 +8,7 @@ namespace LivingWeapon;
 /// method, so one writer owns the byte. It holds per-tier growth at every tier and, once +3 is earned, adds
 /// <see cref="Tuning.AfterimageSpeedPerTurn"/> per completed wielder turn (capped at <see cref="Tuning.AfterimageSpeedCap"/>),
 /// resetting to zero when the wielder takes damage. Swiftedge damage is Speed x WP (formula 99).
-/// Ownership follows Hold / HoldTimedStat: capture natural, re-apply our target each turn, leave foreign values alone.
+/// Ownership follows Hold / HoldTimedStat. Capture natural, re-apply our target each turn, leave foreign values alone.
 /// Writes are Mem.Writable-guarded and natural-derived, so a wrong guess lasts at most one battle.
 /// </summary>
 internal sealed partial class GrowthEngine
@@ -19,7 +19,7 @@ internal sealed partial class GrowthEngine
     /// <summary>True when the weapon's signature is Afterimage. It owns Speed at every tier, so Route declines that lane.</summary>
     internal static bool OwnsSpeed(WeaponMeta m) => m.Signature is { Afterimage: true };
 
-    /// <summary>Hold Swiftedge's Speed: tier growth plus the +3 Afterimage ramp. Main-hand only, guarded, fail-safe.
+    /// <summary>Hold Swiftedge's Speed. Tier growth plus the +3 Afterimage ramp. Main-hand only, guarded, fail-safe.
     /// rosterNameId (D7) feeds ReadHp's locate and the LW-90 NaturalLedger. Internal for the LW-90 seam tests.</summary>
     internal void HoldAfterimage(long s, WeaponMeta m, int tier, int level, int brave, int faith, int rosterNameId)
     {
@@ -48,14 +48,14 @@ internal sealed partial class GrowthEngine
             int hp = ReadHp(_mem, level, brave, faith, rosterNameId).hp;   // 0 if no band match -> policy treats as unreadable
             next = AfterimagePolicy.Step(rec.st, turns, hp, Tuning.AfterimageSpeedCap);
         }
-        else next = AfterimageState.Empty;                       // below +3: ramp dormant, growth only
+        else next = AfterimageState.Empty;                       // below +3. Ramp dormant, growth only
 
         int growth = Clamp((int)Math.Round(rec.natural * (1 + Tuning.SpeedFactor[tier])));
         int target = Clamp(growth + AfterimagePolicy.SpeedBonus(next, Tuning.AfterimageSpeedPerTurn));
 
         if (step.Branch == OwnershipHold.Branch.Foreign)
         {
-            _afterimage[addr] = (rec.natural, next, rec.lastTarget, rec.baked);   // foreign value: advance state, leave byte
+            _afterimage[addr] = (rec.natural, next, rec.lastTarget, rec.baked);   // foreign value. Advance state, leave byte
             return;
         }
 

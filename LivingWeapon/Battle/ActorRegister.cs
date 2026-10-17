@@ -16,7 +16,7 @@ internal enum RosterBridge { Player, Enemy, Unknown }
 /// <see cref="NotCanonical"/>: not the scripted signature, the ordinary authoritative-enemy case.
 /// Neither is recorded in the flight tap. The rest are the rescue's own verdicts, each recorded:
 /// <see cref="OracleEnemy"/> (the identity tuple was captured as enemy-side at battle start,
-/// refused before either key runs). Then the fingerprint key: <see cref="Unique"/> (accepted),
+/// refused before either key runs). Then the fingerprint key <see cref="Unique"/> (accepted),
 /// <see cref="WpnMismatch"/> (a unique fingerprint match whose hands disagree with the band
 /// weapon, terminal, never falls through), <see cref="Ambiguous"/> (more than one fingerprint
 /// match, terminal). Then, only on a ZERO-fingerprint-match fall-through, the weapon key (round 2):
@@ -31,7 +31,7 @@ internal enum RescueOutcome
 /// <summary>
 /// Tick-driven ownership tracker for the engine's own actor pointer (<see cref="Offsets.ActorPtr"/>,
 /// resolved via <see cref="Band.ActorEntry"/>). Feeds <see cref="ActorResolver"/>'s register-first
-/// preamble: the pointer names the TRUE acting unit's frame, both teams, mirror-safe (Proven ledger
+/// preamble. The pointer names the TRUE acting unit's frame, both teams, mirror-safe (Proven ledger
 /// row, ActorPtr) -- unlike a fingerprint walk, it never resolves to a revolving mirror copy. But
 /// WHICH roster player owns that frame is not mirror-safe on its own; the frame nameId
 /// back-reference (<see cref="Offsets.ANameId"/>, Proven ledger row) bridges pointer to roster.
@@ -42,7 +42,7 @@ internal enum RescueOutcome
 /// <see cref="Update"/> runs every tick, including OFF-FIELD ticks (menu-flicker arrivals). This
 /// is safe for <see cref="StableSince"/> on its own (a menu-flicker arrival can never be "stable
 /// since before the acted period" unless it genuinely predates the period) AND for its interaction
-/// with KillTracker's corpse anchor: the anchor compares <c>KillTracker._pendingBirthTick</c>
+/// with KillTracker's corpse anchor. The anchor compares <c>KillTracker._pendingBirthTick</c>
 /// against <see cref="ArrivalTick"/>, both stamped in this same register-tick currency (Tick
 /// advances every Update(), on- or off-field alike), so an off-field stretch cannot desync the two
 /// sides of that comparison the way it would a duration built from an onField-only counter.
@@ -59,7 +59,7 @@ internal enum RescueOutcome
 /// predates the caller's period-start tick -- a same-tick arrival is exactly the ambiguous
 /// "the pointer already moved to the next actor" case the gate exists to reject.
 ///
-/// CORPSE ANCHOR: this class does not itself refuse an answer for a pending corpse older than the
+/// CORPSE ANCHOR. This class does not itself refuse an answer for a pending corpse older than the
 /// current ownership -- that check needs <c>KillTracker</c>'s per-slot pending state and stays in
 /// <c>KillTracker.cs</c> (see <see cref="ArrivalTick"/>, the comparand its register-tick birth
 /// stamps are checked against).
@@ -68,9 +68,9 @@ internal enum RescueOutcome
 /// <see cref="LastPlayerRosterBase"/>/<see cref="LastPlayerArrivalTick"/> exist for
 /// <c>KillTracker</c>'s death-edge culprit stamp (<c>KillerStamp.cs</c>), which compares this
 /// snapshot's freshness against the acted-edge latch instead of trusting the latch unconditionally.
-/// DOCUMENTED RESIDUAL: a struck PLAYER (an ally hit by a player AoE, or a counter-struck attacker)
+/// DOCUMENTED RESIDUAL. A struck PLAYER (an ally hit by a player AoE, or a counter-struck attacker)
 /// parked on by the pointer bridges Player and can overwrite this snapshot in the ~1-3 tick
-/// damage-to-edge gap -- the stamp-time flight tap instruments it. Same residual family: a pointer
+/// damage-to-edge gap -- the stamp-time flight tap instruments it. Same residual family. A pointer
 /// bounce X -&gt; idle -&gt; X (or X -&gt; victim -&gt; X) is a fresh Player-bridged transition, so it
 /// RE-STAMPS <see cref="LastPlayerArrivalTick"/> to now -- a re-arrival can therefore pass
 /// KillerStamp's ordering gate without that player having acted since the latch resolve; the
@@ -85,8 +85,8 @@ internal sealed partial class ActorRegister
     // Flight recorder tap (optional; null/no-op default keeps every existing test green
     // unmodified). KillTracker wires this to Flight.Record when it constructs the register.
     private readonly Action<string, string>? _recorder;
-    // LW-56 A1: the oracle-exclusion clause's truth source. Null (every pre-round-2 call site,
-    // and every test that omits it) means the clause is OFF: RescueCanonical runs exactly as it
+    // LW-56 A1. The oracle-exclusion clause's truth source. Null (every pre-round-2 call site,
+    // and every test that omits it) means the clause is OFF. RescueCanonical runs exactly as it
     // did before this was wired. KillTracker passes a lambda over its own EnemyOracle so a
     // canonical entry whose identity was captured as enemy-side at battle start is refused before
     // either rescue key runs.
@@ -123,7 +123,7 @@ internal sealed partial class ActorRegister
     public int LastPlayerArrivalTick { get; private set; }
 
     /// <summary>true only when the RAW U64 read of <see cref="Offsets.ActorPtr"/> is
-    /// LITERALLY ZERO this tick. Deliberately distinct from <see cref="CurrentEntry"/> (and
+    /// literally zero this tick. Distinct on purpose from <see cref="CurrentEntry"/> (and
     /// <see cref="Band.ActorEntry"/>, which it wraps): that path folds a raw-zero pointer and a
     /// nonzero-but-bad-shape pointer into the same 0 return (Band.cs's own doc), which is fine for
     /// "who is acting" but useless as RestartSentinel's retry signal -- a shape-fail garbage
@@ -143,7 +143,7 @@ internal sealed partial class ActorRegister
         _isOracleEnemy = isOracleEnemy;
     }
 
-    /// <summary>Ticks since the current owner's arrival. NOTE: KillTracker's corpse anchor no
+    /// <summary>Ticks since the current owner's arrival. NOTE. KillTracker's corpse anchor no
     /// longer consumes this -- a duration built from _pendingAge (onField-only ticks) desynced
     /// against this (every-tick) counter across off-field stretches, under-counting corpse age.
     /// The anchor instead compares register-tick birth stamps directly against
@@ -169,7 +169,7 @@ internal sealed partial class ActorRegister
         RawNullThisTick = false;
     }
 
-    /// <summary>One tick: read the engine's own actor pointer and, on an observed transition past
+    /// <summary>One tick. Read the engine's own actor pointer and, on an observed transition past
     /// the priming read, stamp a fresh trusted arrival and its owner snapshot.</summary>
     public void Update()
     {
@@ -182,7 +182,7 @@ internal sealed partial class ActorRegister
 
         if (!_primed)
         {
-            // Priming read: observed, but never trusted (there's no way to know how stale this is).
+            // Priming read. Observed, but never trusted (there's no way to know how stale this is).
             _primed = true;
             _prevEntry = entry;
             return;
@@ -214,7 +214,7 @@ internal sealed partial class ActorRegister
                     LastPlayerRosterBase = 0;
                     LastPlayerArrivalTick = 0;
                 }
-                // Enemy: leave the snapshot untouched -- a struck enemy victim's own frame bridges
+                // Enemy. Leave the snapshot untouched -- a struck enemy victim's own frame bridges
                 // Enemy (its nameId matches no roster slot) and must not blow away a real snapshot.
             }
             else
@@ -226,10 +226,10 @@ internal sealed partial class ActorRegister
             }
             // Pointer-transition tap (on-change only -- Update() only reaches here when the
             // pointer actually moved): old entry, new entry, and the freshly-resolved nameId.
-            // LW-56 round 2: a rescue-judged transition also carries the outcome, the fp it
+            // LW-56 round 2. A rescue-judged transition also carries the outcome, the fp it
             // judged (read live off CurrentFp), and the raw band weapon read (wpn=, never
-            // normalized: a sentinel rides through as 0xFF/0xFFFF, not 0). The filter is a
-            // NEGATIVE list (not NotRun/NotCanonical) on purpose: a future outcome added to the
+            // normalized. A sentinel rides through as 0xFF/0xFFFF, not 0). The filter is a
+            // NEGATIVE list (not NotRun/NotCanonical) on purpose. A future outcome added to the
             // enum is tapped by default instead of silently dropped.
             string rescueTap = CurrentRescue is not (RescueOutcome.NotRun or RescueOutcome.NotCanonical)
                 ? $" rescue={CurrentRescue} fp=L{CurrentFp.lvl}B{CurrentFp.br}F{CurrentFp.fa} wpn={_mem.U16(entry + Offsets.AWeapon)}"

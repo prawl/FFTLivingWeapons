@@ -19,7 +19,7 @@ internal sealed partial class GrowthEngine
 
     /// <summary>The <see cref="LaneRoute"/>s a weapon's baked WeaponMeta.Lane wants at this tier,
     /// before Apply merges per address across both hands. Ownership bails (Afterimage, Ultima,
-    /// Mushin) apply per component: see Routes_MateriaBlade_UltimaOwnsPa_MaStillRoutes. An empty
+    /// Mushin) apply per component. See Routes_MateriaBlade_UltimaOwnsPa_MaStillRoutes. An empty
     /// or unknown lane returns an empty list.</summary>
     internal static List<LaneRoute> Routes(long s, WeaponMeta m, int tier)
     {
@@ -50,12 +50,12 @@ internal sealed partial class GrowthEngine
                 list.Add(new LaneRoute(s + Offsets.CMaxHp, Tuning.Factor[tier], 0, Tuning.HpCeiling, StatLane.MaxHp, true));
                 break;
             case "wp":
-                break;   // WpTableHold owns it: Routes contributes no combat-struct lane
+                break;   // WpTableHold owns it. Routes contributes no combat-struct lane
             case "wp+faith":
                 list.Add(new LaneRoute(s + Offsets.CFaithCurrent, 0, Tuning.FaithBonus[tier], Tuning.FaithLaneCap, StatLane.Faith, false));
                 break;
             default:
-                break;   // stale/missing lane: no growth, never a guess
+                break;   // stale/missing lane. No growth, never a guess
         }
         return list;
     }
@@ -79,7 +79,7 @@ internal sealed partial class GrowthEngine
     /// here when the merged Cap is nonzero and the route is not u16. Target = max(natural,
     /// min(natural + flat, cap)), so it never lowers the wielder's own value. Uses the LW-90
     /// NaturalLedger like Hold (FilterCapture at first sight, RecordWrite each pass). A cur that
-    /// is not natural, the target, or the baked residue is left alone: after a Kobu brave raise
+    /// is not natural, the target, or the baked residue is left alone. After a Kobu brave raise
     /// (Kobu.cs) the hold retires for the battle and resumes next battle.</summary>
     internal void HoldFlatCapped(long addr, int flat, int cap, StatLane lane, int nameId, int level)
     {
@@ -116,7 +116,7 @@ internal sealed partial class GrowthEngine
     private readonly Dictionary<long, (int natural, int target, double factor)> _appliedU16 = new();
 
     // (nameId, lane) -> the last (natural, target) this hold wrote, keyed by roster identity
-    // because the combat-struct address changes every battle. Not cleared by ResetBattle: the
+    // because the combat-struct address changes every battle. Not cleared by ResetBattle. The
     // pre-battle transition (owner-witnessed 2026-08-26) fires several enter/exit resets, each
     // clearing _appliedU16 while the written max stays in game memory, so the next capture
     // read the stale target as natural and compounded (697 -> 906 -> 999).
@@ -169,7 +169,7 @@ internal sealed partial class GrowthEngine
                 var applied = _appliedU16[addr];
                 TryDeliverTopUp(addr, applied.natural, applied.target, lane, nameId);
             }
-            return;   // anything else: leave it
+            return;   // anything else. Leave it
         }
         if (cur >= U16CaptureMin && cur <= U16CaptureMax)
         {
@@ -183,7 +183,7 @@ internal sealed partial class GrowthEngine
             WriteU16Target(addr, natural, factor, ceiling, lane, nameId);
             var applied = _appliedU16[addr];
             if (!held && nameId > 0 && applied.target > applied.natural)
-                _pendingTopUp.Add((nameId, lane));   // genuine capture: intent to top up (delivered below, now or later)
+                _pendingTopUp.Add((nameId, lane));   // genuine capture. Intent to top up (delivered below, now or later)
             TryDeliverTopUp(addr, applied.natural, applied.target, lane, nameId);
         }
     }

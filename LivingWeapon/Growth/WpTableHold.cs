@@ -13,7 +13,7 @@ namespace LivingWeapon;
 /// included, so refusal here leans toward restore. A short gap is tolerated (<see cref="Tuning.WpUnresolvedRestoreTicks"/>
 /// unresolved ticks, like Tuning.BulwarkUnresolvedTicks) so a band-scan gap between turns does not drop a
 /// healthy hold. Clean signals (enemy turn, other weapon, tier 0, battle exit, ResetBattle) restore at once.
-/// Accepted: an enemy reaction shot with the same gun id inside the wielder's turn sees the bump too.
+/// Accepted. An enemy reaction shot with the same gun id inside the wielder's turn sees the bump too.
 /// It is rare, bounded by the cadence-1 restore, and this table cannot tell who fires.
 /// </summary>
 internal sealed class WpTableHold
@@ -48,7 +48,7 @@ internal sealed class WpTableHold
 
     public void Tick(bool inLive)
     {
-        if (!inLive) { Restore(); return; }   // a genuine battle-exit frame: no grace
+        if (!inLive) { Restore(); return; }   // a genuine battle-exit frame. No grace
 
         if (!Band.FlagOwner(_mem, out long entry, out _))
         {
@@ -61,7 +61,7 @@ internal sealed class WpTableHold
         if (!Wants(entry, weaponId, out int tier)) { Restore(); return; }   // enemy turn / weapon change / tier 0
 
         long addr = StatsAddr(weaponId);
-        if (addr < 0) { Restore(); return; }   // an extended id with no armed row: nothing to bump
+        if (addr < 0) { Restore(); return; }   // an extended id with no armed row. Nothing to bump
         if (_addr != -1 && _addr != addr) Restore();   // the wielder swapped to a different wp weapon
         if (_standDown.Contains(weaponId)) return;      // a foreign writer already flagged this id this battle
 
@@ -85,7 +85,7 @@ internal sealed class WpTableHold
         return tier > 0;
     }
 
-    /// <summary>The WP byte to hold: the resident table row for a vanilla-range id; the mod's own
+    /// <summary>The WP byte to hold. The resident table row for a vanilla-range id; the mod's own
     /// stub row (same 8-byte layout, Power at +4) for an armed extended id; -1 for an extended id
     /// the resolver does not know.</summary>
     private long StatsAddr(int weaponId)

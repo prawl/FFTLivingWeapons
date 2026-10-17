@@ -5,7 +5,7 @@ namespace LivingWeapon;
 
 /// <summary>
 /// Ame-no-Murakumo "Iai": at +3 each deployed main-hand wielder's Speed is held at field-max + Tuning.IaiSpeedMargin from battle open so it acts first, then reverts to its captured natural after its opening turn.
-/// Speed byte is entry + Offsets.ASpeed (0x40 - 0x1C = 0x24); writing 50 showed Speed 50 and the unit went first (2026-07-01).
+/// Speed byte is entry + Offsets.ASpeed (0x40, 0x1C = 0x24); writing 50 showed Speed 50 and the unit went first (2026-07-01).
 /// Release (rebuilt 2026-07-01, tools/probes/unitid_probe.py "watch"/"find"; docs/LIVE_LEDGER.md row still Uncertain): ActorPtr arrival or an Acted-edge, matched by roster nameId against the acting frame's nameId (Iai.Policy.ReleaseSignalById).
 /// Band seat 28 is a mirror frame that clones real units and makes Wielder.Locate bail, so release and the IaiHoldCapSeconds cap run over every hold, resolved or not.
 /// nameId is used because the pointer always names the real frame, never the seat-28 mirror, so it survives churn when the address does not.
@@ -85,13 +85,13 @@ internal sealed partial class Iai : ISignature
         _prevActed = actedNow;
     }
 
-    /// <summary>Pass 1: arm and hold each resolved wielder (capture natural once, then write the clamped Speed every tick);
+    /// <summary>Pass 1. Arm and hold each resolved wielder (capture natural once, then write the clamped Speed every tick);
     /// released wielders get the LW-90 corrective below.</summary>
     private void ApplyHolds(DateTime now, int fieldMax)
     {
         foreach (var (entry, fp, nameId) in _wielders)
         {
-            // LW-252 stage 5: factory runs only on a genuine first arm. null means an ambiguous nameId-0 tick while two seeded fp-twins already hold, so treat it as not located this tick.
+            // LW-252 stage 5. Factory runs only on a genuine first arm. null means an ambiguous nameId-0 tick while two seeded fp-twins already hold, so treat it as not located this tick.
             var state = _holds.GetOrCreate(nameId, fp, () =>
             {
                 var s = new HoldState { ArmedAt = now };
@@ -109,7 +109,7 @@ internal sealed partial class Iai : ISignature
 
             if (state.Released)
             {
-                // LW-90 corrective (observed 2026-07-21, owner repro 11:03-11:08 log, docs/LIVE_LEDGER.md row still Uncertain): the engine's per-turn normalize re-paints a baseline that captured our boost (Iai arms ~100ms after battle open), so the boost returns after release.
+                // LW-90 corrective (observed 2026-07-21, owner repro 11:03-11:08 log, docs/LIVE_LEDGER.md row still Uncertain). The engine's per-turn normalize re-paints a baseline that captured our boost (Iai arms ~100ms after battle open), so the boost returns after release.
                 // Watch BakedResidue (restart case) and LastTarget (fresh battle) for the rest of the battle; a real Speed buff landing on either value gets overwritten.
                 // Safe inside the resolved loop because the D3 tier-1 tie-break resolves nameId-verified mirror copies (IaiTests.Post_release_corrective_survives_mirror_churn).
                 int cur0 = _mem.U8(spAddr);
@@ -123,7 +123,7 @@ internal sealed partial class Iai : ISignature
                 continue;
             }
 
-            // Hold: capture natural once, then write the clamped target every tick.
+            // Hold. Capture natural once, then write the clamped target every tick.
             int cur = _mem.U8(spAddr);
             if (state.NaturalSpeed < SpeedSaneMin)
             {
@@ -147,7 +147,7 @@ internal sealed partial class Iai : ISignature
         }
     }
 
-    /// <summary>Pass 2: release and cap over every unreleased hold, not just this tick's _wielders,
+    /// <summary>Pass 2. Release and cap over every unreleased hold, not just this tick's _wielders,
     /// so a mirror-churned wielder can still release and still hit the wall-clock cap (N6, 2026-07-01).</summary>
     private void SweepReleases(bool evaluate, long acting, bool actedNow, int actingNameId,
         bool flagResolved, long flagEntry, int flagNameId, DateTime now)
@@ -161,7 +161,7 @@ internal sealed partial class Iai : ISignature
                 ? ReleaseSignalById(_prevActing, acting, _prevActed, actedNow, actingNameId, state.NameId)
                 : ReleaseSignal(_prevActing, acting, _prevActed, actedNow, state.LastEntry);
             // Corroborate the legacy signal against the turn-flag owner. Identity path compares nameId (0 is never a match); address path compares the owner's entry to LastEntry.
-            // Known corner: a stale LastEntry on an address-fallback hold can be falsely Refused on the real turn; the cap bounds it.
+            // Known corner. A stale LastEntry on an address-fallback hold can be falsely Refused on the real turn; the cap bounds it.
             FlagVerdict flags = identity
                 ? FlagCorroboration(flagResolved, ownerIdentityKnown: flagNameId > 0, ownerIsWielder: flagNameId == state.NameId)
                 : FlagCorroboration(flagResolved, ownerIdentityKnown: state.LastEntry != 0, ownerIsWielder: flagEntry == state.LastEntry);
@@ -169,7 +169,7 @@ internal sealed partial class Iai : ISignature
             bool capFired = !released && (now - state.ArmedAt).TotalSeconds >= Tuning.IaiHoldCapSeconds;
             if (!released && !capFired) continue;
 
-            // Restore address: a flags-confirmed release restores to the flag owner's entry since the pointer may be parked elsewhere;
+            // Restore address. A flags-confirmed release restores to the flag owner's entry since the pointer may be parked elsewhere;
             // an identity release uses the pointer's entry; address-fallback and cap use LastEntry (stale beats leaving the unit fast). LastEntry 0 skips the write.
             var (restoreAddr, confirmed) = RestoreAddress(released, identity, flags, flagEntry, acting, state.LastEntry);
             if (restoreAddr != 0 && state.NaturalSpeed >= SpeedSaneMin && _mem.Writable(restoreAddr, 1))
@@ -210,7 +210,7 @@ internal sealed partial class Iai : ISignature
         public bool Released;
         /// <summary>Roster nameId captured at arm time (Wielder.RosterNameId); -1 = capture failed, &lt;= 0 also when the slot's nameId read 0. Non-positive routes release to the address fallback.</summary>
         public int NameId = -1;
-        /// <summary>Last band entry this hold resolved to: the address-fallback release target and the cap's restore address.</summary>
+        /// <summary>Last band entry this hold resolved to. The address-fallback release target and the cap's restore address.</summary>
         public long LastEntry;
     }
 }

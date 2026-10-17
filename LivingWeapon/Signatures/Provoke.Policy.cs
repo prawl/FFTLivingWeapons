@@ -1,7 +1,7 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// Pure decisions behind the Defender's "Provoke" signature: repoint ability 189
+/// Pure decisions behind the Defender's "Provoke" signature. Repoint ability 189
 /// (vanilla Embrace) to plant an inert mark while a tier-3 main-hand Defender wielder exists,
 /// and inject the renamed command into the wielder's JobCommand list. Provoke.cs has the
 /// armed-or-inert story (id 33's items.json signature block, back since 43de63e).
@@ -14,7 +14,7 @@ namespace LivingWeapon;
 /// takes writes and reads them back but the game ignores it, so only the live copy is written.
 /// Row byte +15 is an index into the inflict-status table (<see cref="Offsets.InflictTable"/>,
 /// 128 rows of 6 bytes, mode byte first; a test pins the order after an off-by-one cost a live
-/// cycle). Row <see cref="ProvokeInflictRow"/> (29) was unused: mode 0x80 (AllOrNothing), then
+/// cycle). Row <see cref="ProvokeInflictRow"/> (29) was unused. Mode 0x80 (AllOrNothing), then
 /// s0 bit 0x80 (StatusEffectData id 0, the blank slot docs/PROVOKE_AC.md uses as the mark).
 /// Observed 2026-07-22 (LIVE_LEDGER row, Uncertain).
 /// </summary>
@@ -47,7 +47,7 @@ internal static class ProvokePolicy
     /// <summary>The unused inflict-table row Provoke authors; also the InflictStatus index value.</summary>
     public const int ProvokeInflictRow = 29;
 
-    /// <summary>The six bytes row 29 must hold: mode 0x80, then s0 bit 0x80, s1..s4 clear.</summary>
+    /// <summary>The six bytes row 29 must hold. Mode 0x80, then s0 bit 0x80, s1..s4 clear.</summary>
     public static readonly byte[] DesiredInflictRow = { 0x80, 0x80, 0x00, 0x00, 0x00, 0x00 };
 
     /// <summary>Address of the InflictStatus byte for an ability id, in the live table only.</summary>

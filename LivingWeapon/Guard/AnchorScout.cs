@@ -14,7 +14,7 @@ namespace LivingWeapon;
 /// tools/probes/anchorscan_feasibility_probe.py 2026-07-14) and roster-base (Offsets.RosterBase,
 /// anchored on Ramza's slot 0 shape, stride and %8 alignment plus a populated non-Ramza row in
 /// slots +1..+3; needs a save loaded). A roster find also predicts the inventory-count table at
-/// roster - 0x110 (Offsets.cs:103,353 + docs/research/PORT_1.5_OFFSETS.md:57-58). Log prose is
+/// roster, 0x110 (Offsets.cs:103,353 + docs/research/PORT_1.5_OFFSETS.md:57-58). Log prose is
 /// in AnchorScout.Report.cs, split from the specs and timers here.
 /// </summary>
 internal sealed partial class AnchorScout
@@ -39,7 +39,7 @@ internal sealed partial class AnchorScout
 
     public AnchorScout(IGameMemory mem) : this(mem, DefaultRegionHalfWidth, DefaultChunkBytes) { }
 
-    /// <summary>Test seam: an injectable region half-width and chunk size so a fixture can stage a
+    /// <summary>Test seam. An injectable region half-width and chunk size so a fixture can stage a
     /// small window (e.g. a 64KB region, 8KB chunks) instead of the real multi-megabyte scan.</summary>
     public AnchorScout(IGameMemory mem, long regionHalfWidth, int chunkBytes)
     {

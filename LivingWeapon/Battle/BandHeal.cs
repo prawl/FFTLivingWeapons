@@ -2,7 +2,7 @@ using System;
 
 namespace LivingWeapon;
 
-/// <summary>Shared band-entry HP heal core: heal sizing, the clamp-without-revive rule and the guarded
+/// <summary>Shared band-entry HP heal core. Heal sizing, the clamp-without-revive rule and the guarded
 /// HP write. Moved out of LifeSap.Policy.cs in LW-149 stage G because Benediction, Renewal and
 /// SpiritualFont borrowed it; LifeSap itself was deleted in LW-159.</summary>
 internal static class BandHeal

@@ -23,7 +23,7 @@ internal static partial class ThunkStub
     public const int RowSize = 8;              // ITEM_WEAPON_DATA (fftivc.utility.modloader) is 8 bytes
 
     /// <summary>
-    /// Ids in [lo, lo + donors.Length) are rewritten to <c>donors[id - lo]</c> in ecx, then it jumps to
+    /// Ids in [lo, lo + donors.Length) are rewritten to <c>donors[id, lo]</c> in ecx, then it jumps to
     /// <paramref name="originalTarget"/>; other ids pass through.
     /// </summary>
     public static byte[] EmitDonorStub(int lo, int[] donors, long originalTarget)
@@ -41,7 +41,7 @@ internal static partial class ThunkStub
     }
 
     /// <summary>
-    /// Weapon-stat accessor: ids in [lo, lo + rows.Length) return a pointer to their own 8-byte
+    /// Weapon-stat accessor. Ids in [lo, lo + rows.Length) return a pointer to their own 8-byte
     /// ITEM_WEAPON_DATA row in the stub page (Offsets.ItemStatsBase layout, Power at +4); other ids
     /// jump to <paramref name="originalTarget"/>.
     /// </summary>
@@ -75,10 +75,10 @@ internal static partial class ThunkStub
     /// <code>
     /// 00 mov rax,standing(imm64) | 0A movzx eax,word [rax] | 0D test ax,ax | 10 jnz done(+0x20)
     /// 12 mov rax,handsBase(imm64) | 1C movzx eax,word [rax+rsi] | 20 cmp eax,lo | 25 jb zero(+0x09)
-    /// 27 cmp eax,hi | 2C ja zero(+0x02) | 2E jmp done(+0x02) | 30 zero: xor eax,eax
-    /// 32 done: jmp [rip+0] | 38 return:8   (total 0x40)
+    /// 27 cmp eax,hi | 2C ja zero(+0x02) | 2E jmp done(+0x02) | 30 zero. Xor eax,eax
+    /// 32 done. Jmp [rip+0] | 38 return:8   (total 0x40)
     /// </code>
-    /// The hand word is compared unmasked: CWeapon (+0x20) is a plain u16 id (GrowthEngine.Locate
+    /// The hand word is compared unmasked. CWeapon (+0x20) is a plain u16 id (GrowthEngine.Locate
     /// compares it unmasked too), and a stray high bit falls outside [lo, hi] and takes the zero arm.
     /// </summary>
     public static byte[] EmitSwingIdFallbackStub(long standingWord, long handsBase, int lo, int hi, long returnAddr)
@@ -99,8 +99,8 @@ internal static partial class ThunkStub
         s[0x27] = 0x3D; WriteI32(s, 0x28, hi);                                // cmp eax, hi
         s[0x2C] = 0x77; s[0x2D] = 0x02;                                       // ja zero (0x30)
         s[0x2E] = 0xEB; s[0x2F] = 0x02;                                       // jmp done (0x32)
-        s[0x30] = 0x31; s[0x31] = 0xC0;                                       // zero: xor eax, eax
-        EmitAbsJmp(s, 0x32, returnAddr);                                      // done: jmp [rip+0]; return:8
+        s[0x30] = 0x31; s[0x31] = 0xC0;                                       // zero. Xor eax, eax
+        EmitAbsJmp(s, 0x32, returnAddr);                                      // done. Jmp [rip+0]; return:8
         return s;
     }
 

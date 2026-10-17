@@ -31,7 +31,7 @@ internal sealed class ShadowBlade : ISignature
     private readonly BarrageState _state = new();   // same atomic (RecId, SlotIdx) ledger Barrage uses
     private bool _wasActive;
     private int _lastUnsupportedJob = -1;
-    private bool _noSlotLogged;   // Signatures.StuckEdge latch: no empty slot nag
+    private bool _noSlotLogged;   // Signatures.StuckEdge latch. No empty slot nag
 
     public ShadowBlade(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, IGameMemory? mem = null)
     {
@@ -105,7 +105,7 @@ internal sealed class ShadowBlade : ISignature
                 $"shadow blade grant (party slot {wielderSlot}, ability {abilityId}, record {recId}, learn index {jobIdx})");
         }
 
-        // Job changed mid-session: release the old record's slot before targeting the new one.
+        // Job changed mid-session. Release the old record's slot before targeting the new one.
         if (_state.RecId >= 0 && _state.RecId != recId) Restore(abilityId);
 
         long flagAddr = Barrage.AbilityBase + (long)recId * Barrage.RecSize - Barrage.FlagPrefixSize;
@@ -124,7 +124,7 @@ internal sealed class ShadowBlade : ISignature
             int slot1 = Barrage.FindEmptySlot(ab, extAb);
             if (slot1 < 0)
             {
-                // Debug tier + latch: the condition can hold every tick until a slot frees up.
+                // Debug tier + latch. The condition can hold every tick until a slot frees up.
                 if (Signatures.StuckEdge(ref _noSlotLogged, true))
                     ModLogger.Debug(LogVerb.Grant, $"no empty ability slot in the {LogNames.Job(wielderJob)} command list (record {recId}); cannot inject Shadow Blade");
                 return;

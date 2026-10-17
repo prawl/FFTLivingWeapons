@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// AttackCard's locate half: the budgeted, high-address-first ScanCursor walk from AttackCardSpike, armed by
+/// AttackCard's locate half. The budgeted, high-address-first ScanCursor walk from AttackCardSpike, armed by
 /// Tick() whenever <c>_needsCensus</c> is set (battle enter, or an eviction in AttackCard.Paint.cs's RepaintAll).
 /// Each accepted hit is synced at once (AttackCard.Paint's SyncHit).
 /// </summary>
@@ -70,10 +70,10 @@ internal sealed partial class AttackCard
             int descPos = AttackCardProbeText.DescStart(pos, enc);
             long descAddr = bufBase + descPos;
 
-            // enc1: every image is AttackRow.FootprintBytes (AttackRow.Policy.BuildImage), the vanilla
+            // enc1. Every image is AttackRow.FootprintBytes (AttackRow.Policy.BuildImage), the vanilla
             // desc's 73-char footprint, so there is no observed length to pin; SyncHit does the byte-exact
             // 74-byte known-image check.
-            // enc2: dead path (no live catalogs; AttackCard.Enc2.cs). Keeps the original LW-33 pin logic:
+            // enc2. Dead path (no live catalogs; AttackCard.Enc2.cs). Keeps the original LW-33 pin logic:
             // its only write is vanilla-restore, so it needs the true observed length.
             int cachedFootprint;
             if (enc == 1)
@@ -99,7 +99,7 @@ internal sealed partial class AttackCard
     private void Finish()
     {
         _scanning = false;
-        // A HitCap finish counts as complete: cap 32 vs about six live copies, so a full-cap finish
+        // A HitCap finish counts as complete. Cap 32 vs about six live copies, so a full-cap finish
         // self-heals via RepaintAll's eviction path.
         _sweepCompleted = true;
         ModLogger.Debug(LogVerb.Display,

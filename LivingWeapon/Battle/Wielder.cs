@@ -3,19 +3,19 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// Band-address-space half of Wielder: given a roster-resolved fingerprint and hand-id set
+/// Band-address-space half of Wielder. Given a roster-resolved fingerprint and hand-id set
 /// (Wielder.Roster.cs), find that unit's live band entry. Ports ExtraTurn's Locate pair, twin
 /// filter included, behind IGameMemory so the walk is testable with the fake.
 /// The LW-252 ambiguous-roster branch is in Wielder.Ambiguous.cs.
 /// </summary>
 internal static partial class Wielder
 {
-    /// <summary>Weapon id inside the band-entry frame: CWeapon(0x20) - BandEntry(0x1C) = +0x04.</summary>
+    /// <summary>Weapon id inside the band-entry frame. CWeapon(0x20), BandEntry(0x1C) = +0x04.</summary>
     private const int EntryWeapon = Offsets.CWeapon - Offsets.BandEntry;
 
     /// <summary>The wielder's live band entry. Resolves the roster nameId from the hand ids and
     /// delegates to the explicit overload below. If 2+ roster rows match it routes to
-    /// <see cref="LocateAmbiguous"/> instead: before LW-252 that case resolved to the same -1 as
+    /// <see cref="LocateAmbiguous"/> instead. Before LW-252 that case resolved to the same -1 as
     /// zero matches, which disarmed tier 2's foreign-nameId veto and let a band collider be adopted
     /// (ledger [party-nameid-unique-key], mirror mechanism [frame-1fc-nameid-mirror]). Zero matches,
     /// or a 2+ roster with an unseeded row, still take the old tier-2-only path with rosterNameId -1.</summary>
@@ -41,7 +41,7 @@ internal static partial class Wielder
         {
             long hit = LocateTier1(mem, weaponId, hands, fp, rosterNameId, out int candidatesSeen);
             if (hit != 0) return hit;
-            if (candidatesSeen > 0) return 0;   // saw candidates, refused: do not fall through (S6)
+            if (candidatesSeen > 0) return 0;   // saw candidates, refused. Do not fall through (S6)
         }
         return LocateTier2(mem, weaponId, hands, fp, rosterNameId);
     }
@@ -73,7 +73,7 @@ internal static partial class Wielder
             if (!Band.IsValid(mem, e)) continue;
             if (!BasePredicate(mem, e, hands, fp, out int wid)) continue;
             int entryNameId = mem.U16(e + Offsets.ANameId);   // unguarded fail-safe read (Iai pattern, D8)
-            if (entryNameId != rosterNameId) continue;         // D1 gate (rosterNameId > 0 here: no 0==0 trap)
+            if (entryNameId != rosterNameId) continue;         // D1 gate (rosterNameId > 0 here. No 0==0 trap)
             candidatesSeen++;
             bool realPos = mem.U8(e + Offsets.AGx) != 0 || mem.U8(e + Offsets.AGy) != 0;
             if (real && !realPos) continue;                                  // (0,0) twin loses to a live match
@@ -95,7 +95,7 @@ internal static partial class Wielder
         return 0;
     }
 
-    /// <summary>The fingerprint scan (the original pre-nameId algorithm) plus a veto: when
+    /// <summary>The fingerprint scan (the original pre-nameId algorithm) plus a veto. When
     /// <paramref name="rosterNameId"/> is positive, an entry with a nonzero frame nameId that differs
     /// is excluded; an entry reading 0 still passes. With rosterNameId &lt;= 0 it behaves as before.</summary>
     private static long LocateTier2(IGameMemory mem, int weaponId, IReadOnlyList<int> hands,
@@ -115,31 +115,31 @@ internal static partial class Wielder
             if (rosterNameId > 0)
             {
                 int entryNameId = mem.U16(e + Offsets.ANameId);
-                if (entryNameId != 0 && entryNameId != rosterNameId) continue;   // D2 veto: foreign nonzero nameId excluded
+                if (entryNameId != 0 && entryNameId != rosterNameId) continue;   // D2 veto. Foreign nonzero nameId excluded
             }
             bool realPos = mem.U8(e + Offsets.AGx) != 0 || mem.U8(e + Offsets.AGy) != 0;
             if (real && !realPos) continue;                                  // (0,0) twin loses to a live match
             if (realPos && !real)
             {
-                real = true; matches = 0; exacts = 0; exact = 0;   // match reset omitted: reassigned unconditionally below
+                real = true; matches = 0; exacts = 0; exact = 0;   // match reset omitted. Reassigned unconditionally below
                 firstMatch = 0; firstExact = 0; tieWid = -1; tieHomogenous = true;
             }
             matches++; match = e; if (firstMatch == 0) firstMatch = e;
             if (wid == weaponId) { exacts++; exact = e; if (firstExact == 0) firstExact = e; }
-            // Track homogeneity: all candidates must share the same weapon-id at their entry.
+            // Track homogeneity. All candidates must share the same weapon-id at their entry.
             if (tieWid == -1) tieWid = wid;
             else if (tieWid != wid) tieHomogenous = false;
         }
         if (exacts == 1) return exact;
         if (matches == 1) return match;
-        // Tie among (0,0) candidates only: with no real-position survivor and one shared weapon id,
+        // Tie among (0,0) candidates only. With no real-position survivor and one shared weapon id,
         // they are copies of one unit on the corner tile, so return the first.
         if (matches > 1 && !real && tieHomogenous)
             return (exacts > 0 ? firstExact : firstMatch);
         return 0;
     }
 
-    /// <summary>Per-entry gate for both tiers: weapon id is one of the hands, level is
+    /// <summary>Per-entry gate for both tiers. Weapon id is one of the hands, level is
     /// roster-consistent (<see cref="Band.LevelMatchesRoster"/>), brave/faith match <paramref name="fp"/>.
     /// Outputs the entry's weapon id for the exact-vs-hand tie-break.</summary>
     private static bool BasePredicate(IGameMemory mem, long e, IReadOnlyList<int> hands,
@@ -183,7 +183,7 @@ internal static partial class Wielder
                 if (entryNameId != rosterNameId) continue;
                 results.Add(e);
             }
-            if (results.Count > before) return;   // tier 1 found copies: done, no tier-2 fallback
+            if (results.Count > before) return;   // tier 1 found copies. Done, no tier-2 fallback
         }
         for (int s = 0; s < Offsets.BandSlots; s++)
         {
@@ -205,7 +205,7 @@ internal static partial class Wielder
         return false;
     }
 
-    /// <summary>DEV diagnostic: on a Locate miss, dump every valid band entry's locate fields next to
+    /// <summary>DEV diagnostic. On a Locate miss, dump every valid band entry's locate fields next to
     /// what was wanted, so one log read names the rejecting predicate. Dev-pulse callers only.</summary>
     public static void DumpCandidates(IGameMemory mem, IReadOnlyList<int> hands, (int lvl, int br, int fa) fp)
     {

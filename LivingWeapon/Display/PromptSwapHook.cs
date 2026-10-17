@@ -100,7 +100,7 @@ internal sealed class PromptSwapHook
         if (!_canary)
         {
             _canary = true;
-            // Stays on console: its absence marks a dead-hook launch (Denuvo hook launch fragility).
+            // Stays on console. Its absence marks a dead-hook launch (Denuvo hook launch fragility).
             ModLogger.EventWithTrace(LogVerb.Toast,
                 "The prompt hook is confirmed working; the game's first prompt this session was intercepted.",
                 $"prompt-hook canary detail (thread {GetCurrentThreadId()})");

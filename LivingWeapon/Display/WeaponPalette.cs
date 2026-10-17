@@ -18,7 +18,7 @@ internal sealed partial class WeaponPalette
     /// banks without a battle edge reaching this class (same cadence as GunSlinger, TickGates).</summary>
     internal const int ReassertTicks = 30;
 
-    // A property, not a static readonly array: both banks are rebased pins, and a field
+    // A property, not a static readonly array. Both banks are rebased pins, and a field
     // would freeze the image base at type-init.
     private static long[] Banks => new[] { Offsets.WeaponPaletteBankA, Offsets.WeaponPaletteBankB };
 
@@ -28,7 +28,7 @@ internal sealed partial class WeaponPalette
     /// <summary>the shared kill tally (Engine._kills); Desire.cs keys the glow tier off it.</summary>
     private readonly Dictionary<int, int> _kills;
 
-    /// <summary>Session lifetime, not cleared by ResetBattle: a battle load re-copies the vanilla
+    /// <summary>Session lifetime, not cleared by ResetBattle. A battle load re-copies the vanilla
     /// file into the banks (see Offsets.WeaponPaletteBankA/B), so the first capture stays valid.
     /// Keyed by (bank, palette); entries 1..15, captured before the first paint of that pair.</summary>
     private readonly Dictionary<(long bank, int pal), ushort[]> _vanilla = new();
@@ -55,7 +55,7 @@ internal sealed partial class WeaponPalette
     public void Tick(bool inLive)
     {
         if (!inLive) return;
-        if (!Band.FlagOwner(_mem, out long entry, out _)) return;   // hold: no restore, no write
+        if (!Band.FlagOwner(_mem, out long entry, out _)) return;   // hold. No restore, no write
 
         int wid = _mem.U16(entry + Offsets.AWeapon);
         int desiredPal = -1, desiredWeapon = -1, desiredGlow = 0;
@@ -94,7 +94,7 @@ internal sealed partial class WeaponPalette
         }
     }
 
-    /// <summary>Battle enter and exit edge: the banks were just refreshed from the file, so the
+    /// <summary>Battle enter and exit edge. The banks were just refreshed from the file, so the
     /// latch is stale. _vanilla is session lifetime and stays.</summary>
     public void ResetBattle()
     {

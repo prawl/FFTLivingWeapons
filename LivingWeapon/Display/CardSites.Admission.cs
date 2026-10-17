@@ -55,7 +55,7 @@ internal sealed partial class CardSites
     /// <summary>Test accessor (CardSitesSuffixPartitionTests): live KILLS sites currently cached.</summary>
     internal int KillsCount => _killsCount;
 
-    /// <summary>Test accessor and Display.PoolPaint.cs's coverage-payload source: live SUFFIX
+    /// <summary>Test accessor and Display.PoolPaint.cs's coverage-payload source. Live SUFFIX
     /// sites currently cached.</summary>
     internal int SuffixCount => _suffixCount;
 

@@ -12,7 +12,7 @@ namespace LivingWeapon;
 ///
 /// Rename mechanism (2026-07-06, see AttackRow.Policy.cs for record geometry). The row and its
 /// hover-card title share one string, driven by a JobCommand text-catalog record at
-/// LabelAddr - 0x1FC1. Its nameOff/descOff normally point at the "Attack" label and the vanilla desc
+/// LabelAddr, 0x1FC1. Its nameOff/descOff normally point at the "Attack" label and the vanilla desc
 /// after it. The painter leaves the label bytes alone (they anchor the race-guard re-verify), writes
 /// a split image "&lt;rowName&gt;\0&lt;tail&gt;" into the desc footprint, and repoints nameOff/descOff
 /// into its two halves. The vanilla plan is the same 74-byte shape, so anchors compare whole images.
@@ -79,8 +79,8 @@ internal sealed partial class AttackCard
     private bool _needsCensus = true;
     private bool _scanning;
     private bool _sweepCompleted;   // honest "no census has ever completed"; Arm gates re-arm on this too
-    private bool _nextIsRepaint;    // alternation toggle: which phase Tick runs next while a sweep is in flight
-    private int _rejectedThisCensus;   // census-lifecycle state: reset in Arm, reported by Finish
+    private bool _nextIsRepaint;    // alternation toggle. Which phase Tick runs next while a sweep is in flight
+    private int _rejectedThisCensus;   // census-lifecycle state. Reset in Arm, reported by Finish
     private List<(long rbase, long rsize)> _regionsDesc = new();
     private RegionCursor _cursor;
 

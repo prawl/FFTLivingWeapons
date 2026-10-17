@@ -38,7 +38,7 @@ internal sealed class CardVerdict
     /// before PaintAllTapped clears it), which would otherwise fill the lane before PaintAll finds any eviction.
     /// If the lane is all evictions, the newer one is dropped.
     ///
-    /// Costs of the replacement: it scans from index 0, so O(n) at worst (cheap at 256). And the
+    /// Costs of the replacement. It scans from index 0, so O(n) at worst (cheap at 256). And the
     /// replaced slot keeps its list position, so <see cref="Entries"/> is not insertion-ordered after a
     /// replacement. EmitVerdict (Display.Flight.cs) walks by outcome and Evicted, not position, so it is unaffected.</summary>
     public void Note(int id, long slotAddr, PaintOutcome outcome, int observed, bool evicted = false)
@@ -58,7 +58,7 @@ internal sealed class CardVerdict
             _notable[i] = entry;
             return;
         }
-        // every entry is already an eviction: drop, like any other over-cap entry.
+        // every entry is already an eviction. Drop, like any other over-cap entry.
     }
 
     /// <summary>True if <paramref name="id"/> settled (Wrote or AlreadyEqual) at any site this pass

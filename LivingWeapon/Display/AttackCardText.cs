@@ -14,7 +14,7 @@ internal static class AttackCardText
     /// commit 1272a6c). AttackCard.cs restores it when the plan is vanilla.</summary>
     internal const string VanillaDesc = "Attacks with the equipped weapon, or bare fists if no weapon is equipped.";
 
-    /// <summary>Write budget: the vanilla description's length.</summary>
+    /// <summary>Write budget. The vanilla description's length.</summary>
     internal const int DefaultBudgetChars = 73;
 
     // Fails at class load if VanillaDesc is mistyped (same check as AttackCardProbeText).

@@ -82,7 +82,7 @@ internal sealed partial class GrowthEngine
                 }
             }
         }
-        else if (active && cur >= StatMin && cur <= StatSaneHi)   // first sight while active: capture + apply
+        else if (active && cur >= StatMin && cur <= StatSaneHi)   // first sight while active. Capture + apply
         {
             int nat = _ledger.FilterCapture(rosterNameId, StatLane.Speed, cur, level, out int baked);
             ModLogger.Debug(LogVerb.Growth, $"timed-stat: capture natural {nat} (read {cur}, level {level}, rosterNameId {rosterNameId})");

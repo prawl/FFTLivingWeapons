@@ -7,7 +7,7 @@ namespace LivingWeapon;
 /// The stateful trigger (turn-flag edges, terrain-grid reads/writes, restore book) is in Bulwark.cs.
 /// Provenance (docs/BULWARK_AC.md): terrain grid at 0x140D8DCB0 (Offsets.PathTerrainGrid, base
 /// corrected 2026-07-28), 8 bytes/tile, idx = x + y*mapWidth + layerBit*0x100. Byte +6 bit 0x02 is
-/// the engine's obstacle state: blocks movement and enemy pathing, tile stays hoverable (LIVE_LEDGER
+/// the engine's obstacle state. Blocks movement and enemy pathing, tile stays hoverable (LIVE_LEDGER
 /// Contradicted-section terrain entry, 2026-07-28). Facing = band +0x35 low 2 bits (0=S 1=W 2=N 3=E),
 /// same entry. Map WxH at 0x140C6AD6A (Offsets.MapDimsWH) read 11x12 and 10x18 on the two probe maps.
 /// </summary>
@@ -20,7 +20,7 @@ internal static class BulwarkPolicy
     ///   facing 1 West  (looks -1,0)  -&gt; behind (x+1, y),   requires x &lt; w-1
     ///   facing 2 North (looks 0,+1)  -&gt; behind (x,   y-1), requires y &gt; 0
     ///   facing 3 East  (looks +1,0)  -&gt; behind (x-1, y),   requires x &gt; 0
-    /// Corrected 2026-07-28 06:15: the Y axis was inverted (a sibling repo's "y+ = south" note is
+    /// Corrected 2026-07-28 06:15. The Y axis was inverted (a sibling repo's "y+ = south" note is
     /// wrong for this grid). A facing-North plant at (9,8) barred (9,9), in front of the unit; at
     /// battle start enemies at low y facing players at high y read facing byte 2, so North looks
     /// toward +y. The game's labels are kept, only the Y delta flipped.
@@ -67,7 +67,7 @@ internal static class BulwarkPolicy
     internal static bool IsVacant((int x, int y) tile, HashSet<(int x, int y)> occupied)
         => !occupied.Contains(tile);
 
-    /// <summary>Sanity floor (AC A3) on map WxH and the wielder's position: 1..30 per axis, area at
+    /// <summary>Sanity floor (AC A3) on map WxH and the wielder's position 1..30 per axis, area at
     /// most 256, wielder inside the map. On failure the caller refuses to plant.</summary>
     internal static bool DimsSane(int w, int h, int gx, int gy)
         => w >= 1 && w <= 30 && h >= 1 && h <= 30 && w * h <= 256 && gx < w && gy < h;

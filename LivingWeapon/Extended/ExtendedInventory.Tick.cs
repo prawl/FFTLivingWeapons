@@ -21,10 +21,10 @@ internal sealed partial class ExtendedInventory
     /// so the key resolves once (a second resolve would spend the one-shot schema-1 migration in the
     /// detour and land the seed on the tick). Written before the load edge is published.</summary>
     private volatile BagReplay.Plan? _detourReplay;
-    // Round 8b/8c: what the detour healed, joined and logged once by the tick (the detour never
+    // Round 8b/8c. What the detour healed, joined and logged once by the tick (the detour never
     // logs on the game's thread).
     private volatile string? _repairNote;
-    // Round 8d: what the detour could not do (no marker and no empty word, no room, a refused
+    // Round 8d. What the detour could not do (no marker and no empty word, no room, a refused
     // write). The tick logs it once as Warn, since it no longer re-runs the seat after a served load.
     private volatile string? _refusalNote;
 
@@ -107,7 +107,7 @@ internal sealed partial class ExtendedInventory
             string? refused = _refusalNote;
             _refusalNote = null;
             if (refused != null) ModLogger.Warn(LogVerb.Save, refused);
-            // Round 8c: a served load was already seated on the game's thread, and a whole-table
+            // Round 8c. A served load was already seated on the game's thread, and a whole-table
             // write from the engine thread could race the game's maintainer mid-shift.
             if (!detourServed)
                 TemplateSeat.Apply(_patcher, BagReplay.OwnedIds(plan, Items),

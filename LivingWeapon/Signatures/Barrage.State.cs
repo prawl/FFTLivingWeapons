@@ -18,7 +18,7 @@ internal sealed class BarrageState
     /// <summary>Record the slot just found empty and injected into. Both fields move together.</summary>
     public void Set(int recId, int slotIdx) { _recId = recId; _slotIdx = slotIdx; }
 
-    /// <summary>Forget the injection: the grant ended, the wielder changed job records, or a release
+    /// <summary>Forget the injection. The grant ended, the wielder changed job records, or a release
     /// was refused. Called on every grant-end path so the next grant re-runs FindEmptySlot.</summary>
     public void Clear() { _recId = -1; _slotIdx = -1; }
 }

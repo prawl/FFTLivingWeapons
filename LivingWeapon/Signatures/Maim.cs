@@ -3,7 +3,7 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// Huntress's "Maim" signature: while a +3 Huntress is equipped and the wielder's action damages
+/// Huntress's "Maim" signature. While a +3 Huntress is equipped and the wielder's action damages
 /// an enemy, that enemy loses its reaction abilities (combat +0x94, band +0x78, 4 bytes held to
 /// zero) for 3 of its turns, then the saved bits restore. Hold-zero at +0x94 suppressed Counter
 /// through 5 hits and a one-shot restore brought it back (memory reaction-suppression-cripple).
@@ -56,7 +56,7 @@ internal sealed partial class Maim : ISignature
         if (!_meta.TryGetValue(HuntressId, out var m) || m.Signature is null) { Drive(); return; }
         int tier = Tuning.TierOf(_kills, HuntressId);
         // Latching a new victim needs the wielder on field, but counting a held victim's turns,
-        // holding its reaction at zero and expiring the latch run every in-battle tick: an enemy's
+        // holding its reaction at zero and expiring the latch run every in-battle tick. An enemy's
         // CT crosses 90 to below 70 during its own off-field turn (a maim outlasted 3+ victim turns,
         // 2026-06-17).
         bool active = onField && IsActive(m.Signature, tier)
@@ -69,7 +69,7 @@ internal sealed partial class Maim : ISignature
 
         int crippleTurns = m.Signature.CrippleTurns;
 
-        // Observe HP diffs and latch new victims, on-field only: the hit lands during the on-field
+        // Observe HP diffs and latch new victims, on-field only. The hit lands during the on-field
         // attack animation, so baseline and detection must share that window.
         if (onField)
         {
@@ -87,7 +87,7 @@ internal sealed partial class Maim : ISignature
 
                 if (!_state.IsHeld(fp))
                 {
-                    // First hit: save the live reaction before zeroing it and seed the turn counter
+                    // First hit. Save the live reaction before zeroing it and seed the turn counter
                     // with the victim's current CT. A failed read refuses the latch, since saving a
                     // fake 0 would later wipe a real reaction. There is nothing to retry because the
                     // HP-diff event is spent (Kobu's rearm-read refusal rolls back for a retry).
@@ -99,7 +99,7 @@ internal sealed partial class Maim : ISignature
                 }
                 else
                 {
-                    // Re-hit: refresh the window (reset turn counter), keep saved bytes intact.
+                    // Re-hit. Refresh the window (reset turn counter), keep saved bytes intact.
                     _state.Refresh(fp);
                     ModLogger.Event(LogVerb.Signature, $"An already-maimed enemy ({fp.mhp} maximum HP) was hit again; its suppression window restarts.");
                 }

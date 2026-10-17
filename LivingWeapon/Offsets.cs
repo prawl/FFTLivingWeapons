@@ -46,7 +46,7 @@ internal static class Offsets
 
     // --- condensed active-unit struct = the unit whose turn it is (FFTHandsFree NavigationActions.Scan
     //     "AddrCondensedBase"). The acting player is found by HP+MaxHP+level against the battle array,
-    //     then resolved to the roster by a level/brave/faith fingerprint, not by +0x04: TqNameId is a
+    //     then resolved to the roster by a level/brave/faith fingerprint, not by +0x04. TqNameId is a
     //     sequential battle index, and a Time Mage's index 1 collided with Ramza's roster nameId 1,
     //     which mis-credited everyone's kills to Ramza. ---
     public static long TurnQueue => ImageBase.At(0x1407832A0);   // 1.5 CONFIRMED +0x6000 (was 0x14077D2A0): fingerprint team=0/nameId=1/hp=486/486
@@ -62,12 +62,12 @@ internal static class Offsets
     public const int SlotsBack = 20;   // enemy slots, at array offsets <= 0
     public const int SlotsFwd = 10;   // player slots, at array offsets >= 1
     public const int NSlots = SlotsBack + SlotsFwd;
-    // slot s sits at ArrayBase + (s - (SlotsBack - 1)) * stride; enemy slots are s <= SlotsBack-1.
+    // slot s sits at ArrayBase + (s, (SlotsBack, 1)) * stride; enemy slots are s <= SlotsBack-1.
     public static long ArrayReadBase => ArrayBase - (SlotsBack - 1) * ArrayStride;
     public const int EnemySlotMax = SlotsBack - 1;   // slots 0..19 are enemy-side
     public const int ALevel = 0x0D; // u8   (roster-match fingerprint)
     public const int ABrave = 0x0E; // u8   origBrave (roster-match fingerprint; re-normalizes, never displays; Wielder's locate fingerprint, never write it)
-    /// <summary>u8 band-relative CURRENT brave (CBraveCurrent 0x2B - BandEntry 0x1C = 0x0F), the
+    /// <summary>u8 band-relative CURRENT brave (CBraveCurrent 0x2B, BandEntry 0x1C = 0x0F), the
     /// effective and displayed value; Kobu reads it (enemy) and holds it (wielder). Band +0x2B is
     /// the Reraise/Invisible/Float bitfield (AReraise), not brave. Layout:
     /// brave-faith-current-vs-orig-offsets (FFTMultiplayer 2026-06-20).</summary>
@@ -81,19 +81,19 @@ internal static class Offsets
     public const int AGx = 0x33; // u8
     public const int AGy = 0x34; // u8
     /// <summary>u8 band-relative byte whose bit 7 is the terrain LAYER (bridge decks share (gx,gy) on different
-    /// layers): combat +0x51 - BandEntry (0x1C) = 0x35. Bulwark (docs/BULWARK_AC.md criterion 8) blocks only
+    /// layers): combat +0x51, BandEntry (0x1C) = 0x35. Bulwark (docs/BULWARK_AC.md criterion 8) blocks only
     /// the wielder's own layer. Low 2 bits are FACING (0=South, 1=West, 2=North, 3=East), tracking the Wait
     /// facing wheel 2026-07-28 (LIVE_LEDGER row "Unit FACING is band +0x35 low 2 bits"); the Y direction was
     /// corrected 2026-07-28 06:15 so North (2) looks toward +y (see BulwarkPolicy.BehindTile).
     /// Bulwark.Terrain.cs's Plant reads both in one read.</summary>
     public const int ALayerBit = 0x35;   // u8, bit 0x80 = layer index, low 2 bits = facing
     /// <summary>u8 band-relative write target (combat base+0x41): slam to 100 to inject a scheduler turn
-    /// (ExtraTurn.CtOff). Reads do not tick reliably. ct_watch / finish_watch 2026-06-14: it reads cleanly for
+    /// (ExtraTurn.CtOff). Reads do not tick reliably. ct_watch / finish_watch 2026-06-14. It reads cleanly for
     /// enemy turns but stale ~85 on the player's own unit during its input menu, so FeignDeath counts the
     /// wielder's turns with a wall clock. Iai no longer reads it (rebuilt on ActorPtr 2026-07-01);
     /// Maim/FeignDeath/SpiritualFont/Plague/Rapture still do.</summary>
     public const int ACtSlam = 0x25;
-    /// <summary>u8 band-relative read byte (combat base+0x25) for counting completed turns: CT seen
+    /// <summary>u8 band-relative read byte (combat base+0x25) for counting completed turns. CT seen
     /// at/above 90, then below 70 = one turn (CtTurns, used by Maim for victims). On a player unit
     /// it stays flat 0 (the Rapture wall, ct_watch / finish_watch 2026-06-14), so victims only.</summary>
     public const int ACtTurn = 0x09;
@@ -118,7 +118,7 @@ internal static class Offsets
     /// Balthier / 0xA3 Luso / 0xA5 Argath Deathknight render as humans. AttackRow.Policy.HumanSprite gates the
     /// "Fists" treatment on it and fails closed on any other value.</summary>
     public const int RSprite = 0x00;
-    public const int RAccessory = 0x12; // u16 equipped accessory item id. Probe 2026-06-12: Scholar's Ring (id 260) at RosterBase + slot*RosterStride + 0x12; sibling accessories 218/224/226/232 confirmed in adjacent slots. Empty slot reads 255 or 0, never 260.
+    public const int RAccessory = 0x12; // u16 equipped accessory item id. Probe 2026-06-12. Scholar's Ring (id 260) at RosterBase + slot*RosterStride + 0x12; sibling accessories 218/224/226/232 confirmed in adjacent slots. Empty slot reads 255 or 0, never 260.
     public const int RRHand = 0x14;   // u16 right-hand weapon id (FFTPatcher-canonical, == items.json id)
     public const int RLHand = 0x16;   // u16 left-hand weapon id; 0xFF/0xFFFF when empty (stays empty in practice)
     public const int ROffHand = 0x18;  // u16 dual-wield OFF-HAND weapon. FFTHandsFree mislabels it "reserved"; a roster dump showed the 2nd weapon lands here (+0x16 stays empty, shields go to +0x1A).
@@ -137,8 +137,8 @@ internal static class Offsets
     public const int CombatStride = 0x200;
     public const int CombatSearchSlots = 24;   // scan +/- this many slots around the anchor
     /// <summary>Base of combat-FRAME index i=0 (i*CombatStride below CombatAnchor's slot n=24); FrameReadBase
-    /// == BandReadBase - BandEntry. Matches the probe's FRAME_BASE0 0x141852CE0 (tools/probes/unitid_probe.py,
-    /// rechecked 2026-07-01). Seat = (ptr - FrameReadBase) / CombatStride for an <see
+    /// == BandReadBase, BandEntry. Matches the probe's FRAME_BASE0 0x141852CE0 (tools/probes/unitid_probe.py,
+    /// rechecked 2026-07-01). Seat = (ptr, FrameReadBase) / CombatStride for an <see
     /// cref="ActorPtr"/>.</summary>
     public static long FrameReadBase => CombatAnchor - 24 * (long)CombatStride;
     public const int CWeapon = 0x20;   // u16 equipped weapon id (the self-mapping key)
@@ -167,10 +167,10 @@ internal static class Offsets
 
     // --- dead / undead status bytes (band-entry relative) ---
     // Layout from the Doom research (doom-status-bytes memory): Dead +0x45/0x20, Undead +0x45/0x10. Dead
-    // whatever the HP: the Phoenix-Down undead kill is a status-death the 33ms poll may not see as an HP write.
+    // whatever the HP. The Phoenix-Down undead kill is a status-death the 33ms poll may not see as an HP write.
     public const int ADeadStatus = 0x45;  // u8 status bitfield byte shared by Dead and Undead flags
-    public const byte ADeadBit = 0x20;  // mask: bit 5 of ADeadStatus is the Dead flag
-    public const byte AUndeadBit = 0x10;  // mask: bit 4 of ADeadStatus is the Undead flag
+    public const byte ADeadBit = 0x20;  // mask. Bit 5 of ADeadStatus is the Dead flag
+    public const byte AUndeadBit = 0x10;  // mask. Bit 4 of ADeadStatus is the Undead flag
     // Delayed-action bits on the same byte (tools/probes/status_probe.py decode map; actor_attrib_probe.py
     // watchweapon trace 2026-06-26). Jump 0x04 went status[45] 00->04 at jump-commit and 04->00 at landing
     // (~8.6s later). Charging 0x08 sets the same way (charging_probe.py); the untracked-arm cross-turn summon
@@ -181,15 +181,15 @@ internal static class Offsets
 
     // --- poison status bytes (band-entry relative, 2026-06-09) ---
     public const int APoison = 0x48;  // u8 status bitfield byte containing the poison flag
-    public const byte APoisonBit = 0x80;  // mask: bit 7 of APoison is the "poisoned" flag
+    public const byte APoisonBit = 0x80;  // mask. Bit 7 of APoison is the "poisoned" flag
     public const int APoisonTimer = 0x4A;  // u8 poison countdown timer (engine inits to 36; ticks per CT unit)
 
     // --- reraise (auto-revive) status byte (band-entry relative, observed 2026-06-14) ---
-    // Held re-applied through the death that clears it, this is the engine's own animated Reraise: a lethal hit
+    // Held re-applied through the death that clears it, this is the engine's own animated Reraise. A lethal hit
     // becomes a played-dead corpse raised at ~10% HP when its CT next reaches 100. Feign Death holds it on the
     // wielder (FeignDeath.cs); the death-commit clears it once, the hold re-stamps.
     public const int AReraise = 0x47;  // u8 status bitfield byte containing the Reraise flag
-    public const byte AReraiseBit = 0x20;  // mask: bit 5 of AReraise is the "reraise" flag
+    public const byte AReraiseBit = 0x20;  // mask. Bit 5 of AReraise is the "reraise" flag
 
     // --- invisible (transparent) status byte (band-entry relative, observed 2026-06-14) ---
     // Shares +0x47 with Reraise, bit 4 (0x10). Single-target enemies skip the unit, AoE splash can reach it.
@@ -197,15 +197,15 @@ internal static class Offsets
     // 2026-07-22 (mod off; LIVE_LEDGER "orphan flag" Uncertain row): the bit survives the unit's own action and
     // 60s of clock, but being hit clears it, so a hold re-stamps for splash. +0x47 is the composed layer, a
     // read-out; the engine registers an applied status in the inflicted layer (+0x1D3..+0x1D7). A composed-only
-    // write is an orphan flag nothing owns: no transparency, no expiry (ours read composed 0x10 / inflicted
+    // write is an orphan flag nothing owns. No transparency, no expiry (ours read composed 0x10 / inflicted
     // 0x00; an engine-applied Stop read 0x02 / 0x02), so anything holding this bit needs a watchdog.
     public const int AInvisible = 0x47;  // u8 status bitfield byte containing the Invisible flag
-    public const byte AInvisibleBit = 0x10;  // mask: bit 4 of AInvisible is the "invisible" flag
+    public const byte AInvisibleBit = 0x10;  // mask. Bit 4 of AInvisible is the "invisible" flag
 
     // --- marquee buff status bits (band-entry relative). The band status bytes equal the PSX
     //     current-status 5-byte field (byte N = +0x45+N), cross-checked against the known bits
     //     (Dead/Undead +0x45, Reraise/Transparent +0x47, Poison +0x48, Doom +0x49) and a probe
-    //     2026-06-15 (Float +0x47/0x40, Regen +0x48/0x40 on real enemy units). Bit map: FFTHandsFree
+    //     2026-06-15 (Float +0x47/0x40, Regen +0x48/0x40 on real enemy units). Bit map. FFTHandsFree
     //     StatusDecoder. Larceny steals these (LarcenyPolicy.Stealable). Regen is wired;
     //     Haste/Protect/Shell/Reflect are bit-confirmed. Float set by the bit is cosmetic (icon shows,
     //     no hover; observed 2026-06-15), so Larceny skips it; AFloat stays for status_probe. ---
@@ -216,32 +216,32 @@ internal static class Offsets
     public const int AHaste = 0x48; public const byte AHasteBit = 0x08;
     public const int AReflect = 0x49; public const byte AReflectBit = 0x02;
 
-    // --- auth band: live unit data (the static array freezes on battle restart; the band stays live).
+    // --- auth band. Live unit data (the static array freezes on battle restart; the band stays live).
     //     Entry layout matches the static-array A* offsets. BandEntry = unit-copy offset inside each
     //     slot; BandReadBase starts at n=-24. A fresh corpse read 0/539 only in the band. ---
     public const int BandEntry = 0x1C;    // unit copy offset within a combat band slot
-    /// <summary>Band-relative u16 equipped weapon id (CWeapon - BandEntry = 0x04), the byte GrowthEngine reads
-    /// at addr + CWeapon (n = s - 24) and SeatBand writes at e + (CWeapon - BandEntry).</summary>
+    /// <summary>Band-relative u16 equipped weapon id (CWeapon, BandEntry = 0x04), the byte GrowthEngine reads
+    /// at addr + CWeapon (n = s, 24) and SeatBand writes at e + (CWeapon, BandEntry).</summary>
     public const int AWeapon = CWeapon - BandEntry;   // == 0x04
-    /// <summary>u8 band-relative Speed byte, CSpeed(0x40) - BandEntry(0x1C) = 0x24. Writing 50 to
+    /// <summary>u8 band-relative Speed byte, CSpeed(0x40), BandEntry(0x1C) = 0x24. Writing 50 to
     /// entry+0x24 showed Speed 50 and the unit went first (2026-07-01; LIVE_LEDGER band
     /// +0x22/0x23/0x24 = PA/MA/Speed). Use this, not CSpeed, on a band entry.</summary>
     public const int ASpeed = CSpeed - BandEntry;   // == 0x24
-    /// <summary>u16 band-relative roster-nameId back-reference: frame +0x1FC (0x1FC - BandEntry = 0x1E0)
+    /// <summary>u16 band-relative roster-nameId back-reference. Frame +0x1FC (0x1FC, BandEntry = 0x1E0)
     /// mirrors the unit's roster nameId (<see cref="RNameId"/>, roster +0x230). Found 2026-07-01 by
-    /// tools/probes/unitid_probe.py "find" SCAN-A across two battles: player seats match the roster (Ramza 1,
+    /// tools/probes/unitid_probe.py "find" SCAN-A across two battles. Player seats match the roster (Ramza 1,
     /// Samurai 298, Ninja 271). An engine mirror frame (band seat 28) also carries the mirrored unit's nameId
     /// (298, later 271), so nameId cannot tell an original from a mirror; the <see cref="ActorPtr"/> target
     /// (Band.ActorEntry) always names the real frame, so Iai's release matches it against the captured
     /// Wielder.RosterNameId. The locate layer (Plan v2 D1/D2/D5/D7) uses it as tier-1 exact match and tier-2
-    /// veto: Wielder.Locate/LocateAll, GrowthEngine.LocateIn/ScanEntries/MatchesEntry/ReadHp,
+    /// veto. Wielder.Locate/LocateAll, GrowthEngine.LocateIn/ScanEntries/MatchesEntry/ReadHp,
     /// RingGate.BandHasUnit.</summary>
     public const int ANameId = 0x1E0;
-    // Band-relative reaction field: CReaction(0x94) - BandEntry(0x1C) = 0x78, 4 bytes (Maim reads, holds, restores it).
+    // Band-relative reaction field. CReaction(0x94), BandEntry(0x1C) = 0x78, 4 bytes (Maim reads, holds, restores it).
     public const int AReaction = 0x78;
-    // Band-relative movement field: CMovement(0x9C) - BandEntry(0x1C) = 0x80, 3 bytes (Rapture saves, holds, restores it).
+    // Band-relative movement field. CMovement(0x9C), BandEntry(0x1C) = 0x80, 3 bytes (Rapture saves, holds, restores it).
     public const int AMovement = 0x80;
-    public const int ASupport = 0x7C;   // 4 bytes, base id 198, MSB-first; == CSupport(0x98) - BandEntry(0x1C). Choir OR-sets the Non-charge bit here.
+    public const int ASupport = 0x7C;   // 4 bytes, base id 198, MSB-first; == CSupport(0x98), BandEntry(0x1C). Choir OR-sets the Non-charge bit here.
 
     // --- per-unit turn/moved/acted flags (band-entry relative, confirmed 2026-07-09) ---
     // docs/LIVE_LEDGER.md "Per-unit turn/moved/acted flags (the full-wait read)" row (owner pass 2026-07-09:
@@ -262,19 +262,19 @@ internal static class Offsets
     public const int BandSlots = 49;     // n = -24..+24 around the anchor
 
     // --- AREC kill diagnostic (band-entry-relative; D4 of the kill-attribution plan) ---
-    /// <summary>u8-array-relative per-unit action record, frame FR_AREC (0x1A0) - BandEntry (0x1C) = 0x184.
-    /// Sub-offsets: +0x0 idx (engine index == seat-8), +0x2 abil u16 (<see cref="ArecAbil"/>), +0xA kind (<see
+    /// <summary>u8-array-relative per-unit action record, frame FR_AREC (0x1A0), BandEntry (0x1C) = 0x184.
+    /// Sub-offsets +0x0 idx (engine index == seat-8), +0x2 abil u16 (<see cref="ArecAbil"/>), +0xA kind (<see
     /// cref="ArecKind"/>, 5=performing/6=receiving), +0xB xref (victim&lt;-&gt;attacker, unproven and refuted
     /// as a kill-attribution shortcut; docs/LIVE_LEDGER.md Uncertain AREC row). KillTracker.CreditKill only
     /// logs it (Tuning.VerboseEvents); the production reader is LW-167 stage 4's LivingPoach.ReadWasBasicAttack
     /// on the KILLER's record (LIVE_LEDGER "The basic-Attack discriminator (LW-167 stage 4)" row, 2026-08-12).
     /// Guarded reads.</summary>
     public const int AArec = 0x184;
-    /// <summary>u16 AArec-relative ability id: 0 (<see cref="LivingWeapon.Tuning.BasicAttackAbilityId"/>) is
+    /// <summary>u16 AArec-relative ability id 0 (<see cref="LivingWeapon.Tuning.BasicAttackAbilityId"/>) is
     /// the basic Attack command. Read with <see cref="ArecKind"/> == <see cref="ArecKindPerforming"/>
     /// (LivingPoach stage 4).</summary>
     public const int ArecAbil = 0x2;
-    /// <summary>u8 AArec-relative kind tag: <see cref="ArecKindPerforming"/> (5) = this unit's own pending
+    /// <summary>u8 AArec-relative kind tag <see cref="ArecKindPerforming"/> (5) = this unit's own pending
     /// action; 6 = receiving (a struck unit's stale last-action stamp, noise here). Probable (2026-08-12 owner
     /// probe); LivingPoach depends on it.</summary>
     public const int ArecKind = 0xA;
@@ -282,15 +282,15 @@ internal static class Offsets
     public const byte ArecKindPerforming = 5;
 
     // --- display scratch (equipped-weapon menu WP, Ramza context) ---
-    // 1.5 confirmed 2026-06-17: MirrorWeapon - 0x1E; read 6 = Venombolt's WP with Ramza's card up.
+    // 1.5 confirmed 2026-06-17. MirrorWeapon, 0x1E; read 6 = Venombolt's WP with Ramza's card up.
     public static long WpScratch => ImageBase.At(0x141876E96);   // 1.5 CONFIRMED +0x6660 (was 0x141870836)
 
-    // --- battlefield discriminator: 0 = out of battle (world map / menus, even while slot9 is still the stuck
+    // --- battlefield discriminator 0 = out of battle (world map / menus, even while slot9 is still the stuck
     // 0xFFFFFFFF sentinel), 2/3/4 = on the battlefield (FFTHandsFree CommandWatcher.cs). Slot9 alone cannot
     // tell the world-map party menu from combat (the old "kills update only after restart" bug). ---
     public static long BattleMode => ImageBase.At(0x1409069A0);   // 1.5 CONFIRMED +0x6350 (was 0x140900650): u8 3-in-battle/0-on-map, tracked across 3 transitions Also 255 before the session's first battle, 0 on the map after one (owner tape 2026-10-16, LIVE_LEDGER [sentinel-out-of-battle-tuple]).
 
-    // --- in-battle "BattleStatus" card: checking a unit's status mid-battle opens the equip card (with the Kills
+    // --- in-battle "BattleStatus" card. Checking a unit's status mid-battle opens the equip card (with the Kills
     // line). Detected (FFTHandsFree ScreenDetectionLogic) as pauseFlag==1 && menuCursor==3 (the Status action-menu
     // slot) && submenuFlag==1. ---
     // 1.5 confirmed 2026-06-17 (display_probe consistency-sample + watch): reads 1 while a menu/Status card is
@@ -300,8 +300,8 @@ internal static class Offsets
     // held 1 for the whole player turn. BattleState.InLiveBattle's excuse clause and the #if LWDEV dev-spike
     // gates see a narrower window; docs/research/PORT_1.5.1_OFFSETS.md.
     public static long PauseFlag => ImageBase.At(0x140C6B1C8);
-    public static long MenuCursor => ImageBase.At(0x1407FC620);   // 1.5 PRE-1.5/UNUSED: StatusCardOpen does not gate on it ("the card's own cursor once open")
-    // 1.5 confirmed 2026-06-17: u8 == 1 only when the Status card is open (0 on the free battlefield, enemy
+    public static long MenuCursor => ImageBase.At(0x1407FC620);   // 1.5 PRE-1.5/UNUSED. StatusCardOpen does not gate on it ("the card's own cursor once open")
+    // 1.5 confirmed 2026-06-17. U8 == 1 only when the Status card is open (0 on the free battlefield, enemy
     // turns and the plain command menu). Found by a 3-state solve (live/menu/card) and reconfirmed across
     // sessions. (was 0x140D3A10C, +0x6752) 1.5.1 moved it (delta -0x52, struct-local reshuffle): the old
     // 0x140D4085E reads 0 in every state. Re-found 2026-07-13 by a 3-state solve (12 samples per state at
@@ -320,7 +320,7 @@ internal static class Offsets
     public static long MirrorOffHand => ImageBase.At(0x141876EB6);   // 1.5 CONFIRMED +0x6660 (was 0x141870856). mirror[1]: viewed off-hand; read 143 (Ramza's shield)
 
     // --- inventory item count array ---
-    // Source: docs/DEV_TEST_RECIPES.md (inventory-give recipe, give_all_items probe). count[itemId] = u8 @
+    // Source. Docs/DEV_TEST_RECIPES.md (inventory-give recipe, give_all_items probe). count[itemId] = u8 @
     // InventoryCountBase + itemId. Not safe mid-battle (gated by Engine.Tick !nowIn). The vanilla block; the
     // armed extended inventory relocates it (ExtendedInventory.BagCountBase).
     public static long InventoryCountBase => ImageBase.At(0x1411A7C00);   // 1.5 CONFIRMED +0x6440 (was 0x1411A17C0): dev give-all inventory present at predicted addr
@@ -350,7 +350,7 @@ internal static class Offsets
     // Barrage.AbilityBase (a JobCommand table). Covered only by the roster landmark until LW-399 gives them
     // their own vanilla-byte landmark (LW-397 demoted the PE key to a report line); they need a re-find on a
     // re-anchor (docs/PATCH_REANCHOR.md). The byte-identical decoy mirror of the action table
-    // (ProvokePolicy.DecoyActionTable, Provoke.Policy.cs) is not pinned: nothing writes it.
+    // (ProvokePolicy.DecoyActionTable, Provoke.Policy.cs) is not pinned. Nothing writes it.
     public static long LiveActionTable => ImageBase.At(0x14078B2DC);   // 368 rows x 20 bytes; the copy the engine and UI both read
     public static long InflictTable => ImageBase.At(0x14080FBA0);      // 128 rows x 6 bytes, [mode][s0..s4], mode byte FIRST
 
@@ -366,11 +366,11 @@ internal static class Offsets
     /// ghost/cutscene seat that <see cref="Band.IsValid"/> alone misses (hide/reveal PROVEN row plus the
     /// guardian probe, 2026-07-22). The hold skips such seats; Band.IsValid runs first, so a garbage seat is
     /// rejected earlier.</summary>
-    public const int AGateByte = -0x1B;   // band entry - 0x1B == combat +0x01
+    public const int AGateByte = -0x1B;   // band entry, 0x1B == combat +0x01
     public const byte AGateHiddenValue = 0xFF;
 
-    // --- Living Poach: the Poacher's Den carcass store, u8[96], one byte per poach.json carcass key
-    // (addr = PoachStoreBase + (key - 1)). LIVE_LEDGER row 2026-08-12: found by a fingerprint scan of the Den's
+    // --- Living Poach. The Poacher's Den carcass store, u8[96], one byte per poach.json carcass key
+    // (addr = PoachStoreBase + (key, 1)). LIVE_LEDGER row 2026-08-12. Found by a fingerprint scan of the Den's
     // inventory-style array; the owner saw a read (the Den UI reflects the byte) and a write (a poke landed a
     // carcass in the Den). A mid-battle poach does not write the array; the engine increments it at battle end,
     // and a mid-battle mod write survives that (owner-observed 2026-08-12).
@@ -388,19 +388,19 @@ internal static class Offsets
     public const int DespawnNodeModeOff = 0x12C;           // mode flags; all access is to the LOW BYTE (bits 0x30 = removal mode/done)
     public const uint DespawnNodeModeClearMask = 0x30;     // bits cleared before the mode-2 stamp
     public const uint DespawnNodeModeRemoveValue = 0x20;   // mode 2 = "remove me" (the sweeper consumes it)
-    public static long DespawnCurrentActorNodeId => ImageBase.At(0x140CF873C);   // dword: the current actor's node id; never remove it
-    public const int DespawnNodeWalkMax = 64;               // bounded list walk (BodyDoubleSpike/spawn_probe precedent)
+    public static long DespawnCurrentActorNodeId => ImageBase.At(0x140CF873C);   // dword. The current actor's node id; never remove it
+    public const int DespawnNodeWalkMax = 64;               // bounded list walk, same as BodyDoubleSpike and spawn_probe
 
-    /// <summary>The composed-status byte holding the chest/crystal conversion bit: status byte 1 (ADeadStatus +
+    /// <summary>The composed-status byte holding the chest/crystal conversion bit. Status byte 1 (ADeadStatus +
     /// 1 = 0x46, == StatusApply.Composed + StatusApply.StatusByte(id)), composed ids 8-15 MSB-first. Treasure
     /// (id 15; LW-58's pop-signature evidence, docs/LIVE_LEDGER.md) is one of them and Blind/Darkness (id 13)
-    /// shares the byte, so test <see cref="ACorpseChestBitMask"/>, not the byte: a Blinded unconverted corpse
+    /// shares the byte, so test <see cref="ACorpseChestBitMask"/>, not the byte. A Blinded unconverted corpse
     /// reads it nonzero (owner-caught 2026-08-12, CorpseDespawn.cs's staleness check false-positived on
     /// it).</summary>
     public const int ACorpseConvertMarker = 0x46;
-    public const byte ACorpseChestBitMask = 0x01;  // mask: bit 0 of ACorpseConvertMarker (id 15, the byte's last slot MSB-first) is Treasure/chest
+    public const byte ACorpseChestBitMask = 0x01;  // mask. Bit 0 of ACorpseConvertMarker (id 15, the byte's last slot MSB-first) is Treasure/chest
 
-    // --- Gun Slinger / Crossfire twin-grant consent: a "menu panel is open" flag. Reads 1
+    // --- Gun Slinger / Crossfire twin-grant consent. A "menu panel is open" flag. Reads 1
     // while a party/equip/shop/save menu is open, 0 on the free map, in travel, and through formation and
     // battle-load, so a gate on it leaves the pre-battle window open (the twin must be in the roster when a
     // battle constructs; see [twin-dualfire-construction-bound]). Found by menu_signal_probe.py (tape
@@ -411,7 +411,7 @@ internal static class Offsets
     // byte counts as open in GunSlinger.cs, so it fails toward not writing.
     public static long MenuOpenFlag => ImageBase.At(0x140D508D0);   // u8
 
-    // --- Gun Slinger / Crossfire twin-grant consent, owner-AC round: the party-browse stamp. Reads 1
+    // --- Gun Slinger / Crossfire twin-grant consent, owner-AC round. The party-browse stamp. Reads 1
     // on the party overview root and the Character Status page; 0 in E&A (all three tabs), the save menu, shop,
     // travel, formation and battle. Clean edges 2026-08-17 afternoon (tape lw193_menusig_20260817_110948.log,
     // verify-watch method). E&A's own sub-pickers are unprobed; the gate denies on unreadable/0, which covers
@@ -419,7 +419,7 @@ internal static class Offsets
     // half as of this round.
     public static long PartyBrowseFlag => ImageBase.At(0x140D408E2);   // u8
 
-    // --- WeaponPalette runtime. The two resident weapon-palette banks a swing's sprite draws from: 16
+    // --- WeaponPalette runtime. The two resident weapon-palette banks a swing's sprite draws from 16
     // palettes per bank, 32 bytes (16 u16 BGR555 entries) each. Entry 0 is the transparency slot and is never
     // written (the write window starts at +2, 30 bytes for entries 1..15). Write both banks together or the
     // change flickers. A battle load refreshes both banks and reverts every write, hence the snapshot/restore
@@ -430,7 +430,7 @@ internal static class Offsets
     public static long WeaponPaletteBankB => ImageBase.At(0x140D35950);
     public const int WeaponPaletteStride = 32;   // bytes per palette (16 u16 entries)
 
-    // --- LW-317 multi-lane growth: the CURRENT-brave/CURRENT-faith holds, the u16 MaxHp hold, and the
+    // --- LW-317 multi-lane growth. The CURRENT-brave/CURRENT-faith holds, the u16 MaxHp hold, and the
     // turn-scoped resident item-stats WP write. sid == id (the row-index identity WpTableHold assumes) is also
     // checked at bake time by tools/gen_living_weapon_meta.py's check_wp_sid_identity for every "wp"/"wp+faith"
     // weapon.
@@ -446,7 +446,7 @@ internal static class Offsets
     /// here). PROVEN 2026-08-25, ledger [current-faith-write-scales-magic-gun]: a held write scales
     /// magic-gun damage linearly both ways and the forecast panel tracks it.</summary>
     public const int CFaithCurrent = 0x2D;   // u8
-    /// <summary>Base of the resident item-stats table that WpTableHold's WP write targets: row stride <see
+    /// <summary>Base of the resident item-stats table that WpTableHold's WP write targets. Row stride <see
     /// cref="ItemStatsStride"/>, WP at row +<see cref="ItemStatsWpOff"/>, row index = sid (== items.json id;
     /// the probe matched id 73, additional_data_ids.json every id &lt;= 127). PROVEN 2026-08-25, ledger
     /// [wp-table-write-live-damage]: re-read per shot, so a write moves live damage and reverts
@@ -461,7 +461,7 @@ internal static class Offsets
 
     // --- LW-346 extended inventory (the 261 item-cap break ported from the FFTHandsFree rig) ---
     // Re-anchored for 1.5.2 on 2026-08-26 (the equip/display cluster slid -0x78 and the accessor cluster -0x74 from 1.5.0;
-    // data bases unchanged), checked against the exe on disk 2026-08-27. LW-388 R12: the ten "Thunk*" addresses
+    // data bases unchanged), checked against the exe on disk 2026-08-27. LW-388 R12. The ten "Thunk*" addresses
     // were E9 thunks only on the Denuvo build; the Denuvo-free exe (buildid 24304444, read 2026-10-16) has the
     // function entries themselves, so ExtendedDonorThunks pins their real first bytes and AccessorEntryHook
     // steals them (the names keep "Thunk" for the tests and docs that cite them). Provenance per site:
@@ -505,10 +505,10 @@ internal static class Offsets
     /// <summary>Plain function entries hooked with Reloaded.Hooks behind a prologue landmark.</summary>
     public static long FnCategoryGetter => ImageBase.At(0x1402890C0L);   // inventory list-build filter (called at 0x140288BF5)
     public static long FnOrderRebuild => ImageBase.At(0x140285DF0L);     // display-order rebuild (drops ids its table lacks)
-    public static long FnInventoryReset => ImageBase.At(0x140284500L);   // per-item state reset: zeroes the bag array below its widened bound (LW-351 R7)
+    public static long FnInventoryReset => ImageBase.At(0x140284500L);   // per-item state reset. Zeroes the bag array below its widened bound (LW-351 R7)
 
     /// <summary>the swing-prep routine 0x140281CE8 copies the standing swing-id word into
-    /// the animation record here: `0F B7 05 00 E7 52 00` = movzx eax, word [rip+0x52E700]
+    /// the animation record here, `0F B7 05 00 E7 52 00` = movzx eax, word [rip+0x52E700]
     /// (= <see cref="SwingIdWord"/>), then `mov [rdi+0x20], ax`. Read on the 1.5.2 exe on disk
     /// 2026-08-31 (tools/probes/lw_disk_disasm.py 0x140282073). Plain .code, boot-safe.</summary>
     public static long FnSwingPrepIdCopy => ImageBase.At(0x140282073L);
@@ -516,7 +516,7 @@ internal static class Offsets
     /// extended id at swing time (docs/LIVE_LEDGER.md [empty-tile-hand-read-bounds]).</summary>
     public static long SwingIdWord => ImageBase.At(0x1407B077AL);
     /// <summary>Battle unit array the swing-prep routine indexes with `acting slot &lt;&lt; 9` in rsi
-    /// (= <see cref="CombatAnchor"/> - 16 * <see cref="CombatStride"/>; slot 16 is Ramza's row).</summary>
+    /// (= <see cref="CombatAnchor"/>, 16 * <see cref="CombatStride"/>; slot 16 is Ramza's row).</summary>
     public static long BattleUnitsBase => CombatAnchor - 16 * (long)CombatStride;   // 0x141853CE0
 
     // --- shop stock for extended ids (found 2026-08-27 evening by a static read of the 1.5.2 process,
@@ -526,7 +526,7 @@ internal static class Offsets
     // byte << 8 | high byte), tests 0x8000 >> townIndex (town 0 = Lesalia ... 9 = Dorter), then the catalog
     // record's +0x0A chapter byte. The "new stock" badge scan at 0x1403453C7 bounds itself at 0x200 and is left
     // alone. ---
-    /// <summary>ITEM_SHOPS_DATA: u16 ShopFlags per item id, 256 rows, .data.</summary>
+    /// <summary>ITEM_SHOPS_DATA. U16 ShopFlags per item id, 256 rows, .data.</summary>
     public static long ShopFlagsTable => ImageBase.At(0x14067F890L);
     /// <summary>rel32 field of <c>lea r12,[rip+0x3F6989]</c> at 0x140288F01 (next ip 0x140288F08),
     /// which starts the builder's HIGH-byte walker at ShopFlagsTable + 1.</summary>
@@ -539,7 +539,7 @@ internal static class Offsets
     // --- the save edges (corrected 2026-08-27 late night after the owner's test 2 found the hooks
     // silent; the first build read the pointer from 0x141D407A0, one digit off. Re-read from the running 1.5.2
     // process and the exe, docs/research/ITEM_CAP_261_BREAK_JOURNEY.md "save edges, corrected"). One global
-    // points at the save struct being serialized or applied: the load-apply reads it as `4C 8B 05 98 56 B2 00`
+    // points at the save struct being serialized or applied. The load-apply reads it as `4C 8B 05 98 56 B2 00`
     // at 0x14021B101 (next ip 0x14021B108 + 0xB25698), the serializer at 0x140218F8E;
     // tools/probes/lw346_xref_scan.py counts 46 references and none to the old address. The pointer normally
     // holds the static image buffer 0x142C81C80, so the hooks read whatever it points at after the original
@@ -549,7 +549,7 @@ internal static class Offsets
     // is the async file-op stepper (state dword 0x142E7FADC) and is left unhooked. The struct's +0x100..+0x1B8
     // header (play time in seconds at +0x1B4, chapter/location bytes, four party names at +0x124) round-trips
     // verbatim, so a hash of it is a per-save key that reads the same at save and at load. ---
-    /// <summary>u64: pointer to the save struct being serialized or applied.</summary>
+    /// <summary>u64. Pointer to the save struct being serialized or applied.</summary>
     public static long SaveStructPtr => ImageBase.At(0x140D407A0L);
     public const int SaveHeaderKeyOff = 0x100;
     public const int SaveHeaderKeyLen = 0xB8;
@@ -558,7 +558,7 @@ internal static class Offsets
     /// game holds at 0xFF while a save is in flight and 0x00 at rest.
     /// <see cref="SaveEdgeTracker.KeyFromHeader"/> zeroes them before hashing so a save and its later
     /// load key identically (loads sample at rest, where the mask is a no-op, but it runs at both
-    /// edges). From the owner's 2026-08-28 session: setting them to 0xFF in the resting headers the
+    /// edges). From the owner's 2026-08-28 session. Setting them to 0xFF in the resting headers the
     /// round-trip probe captured reproduces all five save keys the mod logged that night, and zeroing
     /// them makes the save key equal the load key for every observed pair.</summary>
     public static readonly int[] SaveHeaderVolatileOffs = { 0x1A, 0x1C, 0x1D };
@@ -579,7 +579,7 @@ internal static class Offsets
     /// follow the pointer.</summary>
     public static long SaveStructStatic => ImageBase.At(0x142C81C80L);
 
-    // --- LW-351 fix round 5: the two weapon menu ORDER TEMPLATES (2026-08-30, disassembled from the
+    // --- LW-351 fix round 5. The two weapon menu ORDER TEMPLATES (2026-08-30, disassembled from the
     // 1.5.2 exe on disk; re-derive with tools/probes/lw351_order_template_probe.py --disk). They set
     // which item ids the party inventory and the unit equip picker will list. They are save state:
     // the load-apply (FnSaveApply) restores both from the save struct and the serializer
@@ -597,19 +597,19 @@ internal static class Offsets
     /// = 141 words (the loop at 0x14021B560 runs r10 = 2 iterations of rsi = 0x80 bytes, r10 from <c>lea
     /// r10d,[r11+2]</c> at 0x14021B1C4 with r11 counted down to 0, rsi from <c>lea esi,[rbx+0x7c]</c> at
     /// 0x14021B11C with ebx = 4; the tail at 0x14021B5A9 adds 16+8+2 = 0x1A bytes). The next named object is
-    /// 0x1407B266C (picker pointer table 0x14067FAD0), 0x11C up: 141 words plus two padding bytes.</summary>
+    /// 0x1407B266C (picker pointer table 0x14067FAD0), 0x11C up 141 words plus two padding bytes.</summary>
     public const int InventoryOrderTemplateWords = 141;
     /// <summary>The unit equip picker's weapon display-order template, named by the pointer table
     /// 0x14067FA90 slot 0. It sits in a 0x3F2-byte block the load restores from [r8+0x8C7C] (the copy
-    /// at 0x14021B6F9: r9 = 7 iterations of 0x80 plus a 0x72-byte tail), which also holds the
+    /// at 0x14021B6F9. R9 = 7 iterations of 0x80 plus a 0x72-byte tail), which also holds the
     /// picker's three other sub-tables.</summary>
     public static long PickerOrderTemplate => ImageBase.At(0x141874540L);
-    /// <summary>Capacity of the table above in u16 words: the next sub-table (pointer table slot 1,
+    /// <summary>Capacity of the table above in u16 words. The next sub-table (pointer table slot 1,
     /// 0x14067FA98) is 0x14187465A, 0x11A = 282 bytes = 141 words up, like its twin.</summary>
     public const int PickerOrderTemplateWords = 141;
 
     // --- order-template relocation. Both templates are read only through a
-    // pointer-table slot (finding 1: 11 plain-code sites read the three slots below), and the picker block
+    // pointer-table slot (finding 1 11 plain-code sites read the three slots below), and the picker block
     // hides a fifth sub-table, "every owned item, any category", at the shared picker base plus 0x1E6 (finding
     // 4, reviewer RE re-check (a), reproduced in LW371_plan.md). Moving all three charts re-points ten fields
     // (three slots, five rip-relative int32s, two menu-list-cap bytes);
@@ -628,48 +628,48 @@ internal static class Offsets
     /// [rsi+rcx*2+0x1E6]/[...+0x1E8], four direct disp32 fields). Its ceiling is 261 owned kinds;
     /// past that it overwrites 0x141874932.</summary>
     public static long PickerAllItemsTemplate => ImageBase.At(0x141874726L);
-    /// <summary>Capacity of the table above, in u16 words: 0x20C bytes (finding 4).</summary>
+    /// <summary>Capacity of the table above, in u16 words 0x20C bytes (finding 4).</summary>
     public const int PickerAllItemsTemplateWords = 262;
-    /// <summary>The shared list builder's entry-cap byte: the imm32 low byte of <c>cmp esi,0x91</c> (six bytes,
+    /// <summary>The shared list builder's entry-cap byte. The imm32 low byte of <c>cmp esi,0x91</c> (six bytes,
     /// 81 FE 91 00 00 00) at 0x140288CC1, widened 0x91 (145 entries) -&gt; 0x95 (149, D5, v1.3). Both stack
     /// list buffers hold <see cref="ListBuilderStackRoomBytes"/> bytes before the GS cookie (reviewer (d): fnA
     /// rsp+0x70..rsp+0x1A0 via <c>lea rbp,[rsp-0xb0]</c> then <c>mov [rbp+0xa0],rax</c>; fnB true entry
     /// 0x140336B88, rsp+0x50..rsp+0x180 via <c>lea rbp,[rax-0xa8]</c> then <c>[rbp+0x80]</c>). The builder
     /// writes cap+1 words, but fnA (entry 0x1402875A4, the picker's weapons-only per-slot list) then appends
     /// the unit's two hand items (stores at 0x14028778C and 0x1402877A9, each if validity thunk 0x1402B8EE8
-    /// accepts) and its own 0xFFFF terminator (0x1402877C0), so it needs cap + 3 words: (0x95+3)*2 = 0x130. Cap
+    /// accepts) and its own 0xFFFF terminator (0x1402877C0), so it needs cap + 3 words (0x95+3)*2 = 0x130. Cap
     /// 0x97 (151) would put the terminator on the cookie at (151+3)*2 = 0x134 and fast-fail the process
     /// (STATUS_STACK_BUFFER_OVERRUN).</summary>
     public static long ListBuilderCapByte => ImageBase.At(0x140288CC3L);
-    /// <summary>The list-insert bound byte: the imm32 low byte of <c>cmp edx,0x92</c> (six bytes,
+    /// <summary>The list-insert bound byte. The imm32 low byte of <c>cmp edx,0x92</c> (six bytes,
     /// 81 FA 92 00 00 00) at 0x140286318, widened 0x92 (146) -&gt; 0x96 (150 = builder cap + 1, so the
     /// loop still reaches the terminator at index 149).</summary>
     public static long ListInsertBoundByte => ImageBase.At(0x14028631AL);
     /// <summary>Bytes between the smaller stack list buffer and its GS cookie (reviewer (d), both
-    /// callers re-read 09:00: fnA frame 0x1B0, buffer rsp+0x70, cookie rsp+0x1A0; fnB entry
+    /// callers re-read 09:00. FnA frame 0x1B0, buffer rsp+0x70, cookie rsp+0x1A0; fnB entry
     /// 0x140336B88, frame 0x190, buffer rsp+0x50, cookie rsp+0x180). fnA's two hand items plus
-    /// terminator (P14) make the limit cap+3 words: a cap fits when (cap+3)*2 &lt;= this.</summary>
+    /// terminator (P14) make the limit cap+3 words. A cap fits when (cap+3)*2 &lt;= this.</summary>
     public const int ListBuilderStackRoomBytes = 0x130;
 
     // --- lifts the Items-tab draw limit from 149 to 255. The two cap sites
-    // above widen further (TemplateRelocation.Sites.cs CapSites: builder cap 0x91->0xFF, insert bound
+    // above widen further (TemplateRelocation.Sites.cs CapSites. Builder cap 0x91->0xFF, insert bound
     // 0x92000000->0x00010000), unsafe for the stack callers fnA/fnB. A hook on the builder (ListBuilderHook.cs)
     // holds them at 149 through a mod-owned pool and leaves static-buffer callers unchanged. See LW372_plan.md
     // (Q2, Q3, D1-D4).
     /// <summary>The shared list builder's own entry (Q2, read 2026-08-31 on the 1.5.2 exe on disk; corrected
     /// LW-382 by disasm): <c>int Fn(nint a, nint b, nint c, nint list, nint spare, nint mode)</c> (Microsoft
     /// x64; a/b/c are cx/dx/r8b widths read only in their low bits, list = r9 the output buffer; args 5/6 are
-    /// stack arguments at the caller's [rsp+0x20]/[rsp+0x28]). Prologue: mov rax,rsp; mov [rax+0x20],r9; two
+    /// stack arguments at the caller's [rsp+0x20]/[rsp+0x28]). Prologue. Mov rax,rsp; mov [rax+0x20],r9; two
     /// word-arg spills (see <see cref="ListBuilderHook.ExpectedPrologue"/>). 15 bytes, no rip-relative field in
-    /// the stolen window. LW-382 F1: the prologue pushes 7 registers then subs 0x20, so entry rsp (rax) is
+    /// the stolen window. LW-382 F1. The prologue pushes 7 registers then subs 0x20, so entry rsp (rax) is
     /// rsp+0x58 and argument 6's home slot is rax+0x30. The body reads <c>byte ptr [rsp+0x88]</c> (= rax+0x30)
     /// at 0x140288BCA, 0x140288C61, 0x140288C8D and 0x140288CA1, four branches on the mode byte. It also reads
     /// <c>[rsp+0x78]</c> (= rax+0x20, argument 4, the list buffer) and <c>[rsp+0x68]</c> (= rax+0x10, argument
     /// 2), which cross-checks the frame arithmetic against two arguments of known identity. No
     /// <c>[rsp+0x80]</c> (= rax+0x28, argument 5) read exists in the body; the hook forwards argument 5 as
-    /// given. LW-382 F2: all eight call sites set argument 6 right before <c>call 0x140288b94</c> at their own
+    /// given. LW-382 F2. All eight call sites set argument 6 right before <c>call 0x140288b94</c> at their own
     /// <c>[rsp+0x28]</c>, e.g. 0x14028774D (<c>mov byte [rsp+0x28],3</c>, call at 0x14028775E) and 0x14036C45E
-    /// (<c>mov byte [rsp+0x28],r9b</c>). LW-382 F3: the mode byte, from the callee's branches. <c>== 3</c> at
+    /// (<c>mov byte [rsp+0x28],r9b</c>). LW-382 F3. The mode byte, from the callee's branches. <c>== 3</c> at
     /// 0x140288BCA reads ownership from the bag count alone (0x1402847F8) instead of count plus sibling flag
     /// (0x140287530); <c>== 0</c> at 0x140288C61 jumps to 0x140288CB6, skipping the can-equip filter; <c>&gt;=
     /// 2</c> at 0x140288C8D drops the id when can-equip (0x1402886D0) answers -1; <c>== 1</c> at 0x140288CA1

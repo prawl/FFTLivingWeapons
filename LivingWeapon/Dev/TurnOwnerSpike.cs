@@ -60,9 +60,9 @@ internal sealed class TurnOwnerSpike
             int lvl = _mem.U8(addr + Offsets.ALevel);
             int br = _mem.U8(addr + Offsets.ABrave);
             int fa = _mem.U8(addr + Offsets.AFaith);
-            int slam = _mem.U8(addr + Offsets.ACtSlam);           // hypothesis 1: scheduler CT (0x25), player-unreliable
-            int turn = _mem.U8(addr + Offsets.ACtTurn);           // hypothesis 3: per-unit completed-turn CT (0x09)
-            int kind = _mem.U8(addr + Offsets.AArec + 0xA);       // hypothesis 4: AArec kind (5=performing/6=receiving)
+            int slam = _mem.U8(addr + Offsets.ACtSlam);           // hypothesis 1. Scheduler CT (0x25), player-unreliable
+            int turn = _mem.U8(addr + Offsets.ACtTurn);           // hypothesis 3. Per-unit completed-turn CT (0x09)
+            int kind = _mem.U8(addr + Offsets.AArec + 0xA);       // hypothesis 4. AArec kind (5=performing/6=receiving)
             int idx = _mem.U8(addr + Offsets.AArec);              // AArec idx (== seat-8): which unit the record is for
             slots.Add((s, lvl, br, fa, slam, turn, kind, idx));
         }

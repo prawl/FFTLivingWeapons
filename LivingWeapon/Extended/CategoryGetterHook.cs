@@ -74,7 +74,7 @@ internal sealed class CategoryGetterHook
         catch (Exception) { /* swallowed: release must never throw */ }
     }
 
-    // Hot path: no logging or allocation, never throws.
+    // Hot path. No logging or allocation, never throws.
     private nint Detour(nint rcx)
     {
         Interlocked.Increment(ref _calls);

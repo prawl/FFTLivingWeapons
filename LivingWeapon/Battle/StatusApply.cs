@@ -7,7 +7,7 @@ namespace LivingWeapon;
 /// StatusSpike's v1 target (FnApplyStatuses = 0x150BF66DC) died 2026-07-22 (prologue mismatch), so v2 decodes the dispatch thunk at
 /// 0x1401FB064 each launch and landmark-verifies the destination (StatusSpike.cs v2 block). Argument order (id + 1, mode, slot) is inferred.
 /// The slot argument indexes the battle-stats array at BattleUnitsBase 0x141853CE0 (stride 0x200). Band seats anchor on CombatAnchor 0x141855CE0
-/// = BattleUnitsBase + 0x2000 (16 slots), so engine slot = seat - 8; the first enemy (seat 8) is slot 0 (census 2026-07-09).
+/// = BattleUnitsBase + 0x2000 (16 slots), so engine slot = seat, 8; the first enemy (seat 8) is slot 0 (census 2026-07-09).
 /// </summary>
 internal static class StatusApply
 {
@@ -25,11 +25,11 @@ internal static class StatusApply
     public const int PoisonId = 24;   // composed +0x48 / 0x80
     public const int HasteId = 28;   // composed +0x48 / 0x08 (the harmless canary status)
 
-    /// <summary>The battle-stats array holds up to this many units (FFHacktics: 21 = 0x15 Battle Stats slots). A slot outside
+    /// <summary>The battle-stats array holds up to this many units (FFHacktics 21 = 0x15 Battle Stats slots). A slot outside
     /// [0, MaxEngineSlot] indexes off the array and a cold call could AV inside the engine, so callers must reject it.</summary>
     public const int MaxEngineSlot = 20;
 
-    /// <summary>Engine battle-stats-array index for a band seat (0..BandSlots-1), seat - 8 (see the class doc). Negative for seats 0..7,
+    /// <summary>Engine battle-stats-array index for a band seat (0..BandSlots-1), seat, 8 (see the class doc). Negative for seats 0..7,
     /// which sit below BattleUnitsBase (forecast/scratch region, not real units) and are not callable, see <see cref="IsCallableSeat"/>.</summary>
     public static int EngineSlot(int seat) => seat - 8;
 

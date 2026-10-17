@@ -16,7 +16,7 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed partial class ListBuilderHook
 {
-    // The target takes six arguments. F1 disasm: the body reads byte ptr [rsp+0x88] (rax+0x30,
+    // The target takes six arguments. F1 disasm. The body reads byte ptr [rsp+0x88] (rax+0x30,
     // home slot of argument 6) as a per-caller mode byte at four branches. Declaring only four let the
     // callee read stack junk and drop every unequippable id (empty Items tab). spare and mode pass through untouched.
     [Function(CallingConventions.Microsoft)]
@@ -30,15 +30,15 @@ internal sealed partial class ListBuilderHook
 
     public const ushort Terminator = 0xFFFF;
 
-    /// <summary>D2: LW-371 cap for a 152-word stack buffer. 149 + the picker's two hand-item appends +
+    /// <summary>D2. LW-371 cap for a 152-word stack buffer. 149 + the picker's two hand-item appends +
     /// terminator = (149+3)*2 = <see cref="Offsets.ListBuilderStackRoomBytes"/> (0x130, pinned by
     /// ListBuilderHookTests U1). The copy-back reuses this constant.</summary>
     public const int StackCallerCap = 149;
 
-    /// <summary>D3: four slots on one page, for reentrancy rather than concurrency.</summary>
+    /// <summary>D3. Four slots on one page, for reentrancy rather than concurrency.</summary>
     public const int PoolSlots = 4;
 
-    /// <summary>D3: bytes per slot. 255 entries + terminator need 0x200 bytes; each slot is twice that.</summary>
+    /// <summary>D3. Bytes per slot. 255 entries + terminator need 0x200 bytes; each slot is twice that.</summary>
     public const int SlotBytes = 0x400;
 
     /// <summary>Pool page requested from <see cref="INearAllocator"/> at Install.</summary>
@@ -47,7 +47,7 @@ internal sealed partial class ListBuilderHook
     private readonly ICodePatcher _mem;
     private readonly INearAllocator? _alloc;
     private IHook<BuildFn>? _hook;
-    private BuildFn? _keepalive;   // GC anchor: the native thunk must outlive us
+    private BuildFn? _keepalive;   // GC anchor. The native thunk must outlive us
     private long _poolBase;
     private readonly int[] _busy = new int[PoolSlots];   // D3 pool-lifecycle state; see ListBuilderHook.Pool.cs
     private long _calls;
@@ -61,7 +61,7 @@ internal sealed partial class ListBuilderHook
 
     /// <param name="allocator">Grants the pool page at <see cref="Install"/> (production). Null when
     /// <paramref name="poolBase"/> is given.</param>
-    /// <param name="poolBase">Pre-allocated pool page (test seam: ListBuilderHookTests drives
+    /// <param name="poolBase">Pre-allocated pool page (test seam. ListBuilderHookTests drives
     /// <see cref="Process"/> without <see cref="Install"/>). 0 means Install allocates one through
     /// <paramref name="allocator"/>.</param>
     public ListBuilderHook(ICodePatcher mem, INearAllocator? allocator = null, long targetAddr = 0, long poolBase = 0)
@@ -76,7 +76,7 @@ internal sealed partial class ListBuilderHook
     /// <see cref="ExpectedPrologue"/> (HookLandmark.Verify prefix compare).</summary>
     internal static bool ShouldArm(bool readOk, byte[]? prologue) => readOk && HookLandmark.Verify(prologue, ExpectedPrologue);
 
-    /// <summary>Null on success, else the refusal. D8: the cap-byte patches and this hook are one
+    /// <summary>Null on success, else the refusal. D8. The cap-byte patches and this hook are one
     /// transaction, so a refusal rolls back the extended-inventory arm (ExtendedInventory.Hooks.cs does
     /// this on any non-null return). Idempotent.</summary>
     public string? Install(IReloadedHooks hooks)
@@ -109,12 +109,12 @@ internal sealed partial class ListBuilderHook
         catch (Exception ex) { SafeLog(() => ModLogger.Debug(LogVerb.Engine, "list-builder release swallowed: " + ex.Message)); }
     }
 
-    /// <summary>Detour body with the original injected for tests. D2: the static buffer passes through;
+    /// <summary>Detour body with the original injected for tests. D2. The static buffer passes through;
     /// any other buffer goes through a pool slot (ListBuilderHook.Pool.cs) and the result is truncated to
-    /// <see cref="StackCallerCap"/>. D3/Q11: pool exhaustion returns an empty list without calling the
+    /// <see cref="StackCallerCap"/>. D3/Q11. Pool exhaustion returns an empty list without calling the
     /// original. F1 (v1.2): any failure after the original ran (failed read, refused write, a throw) also
     /// returns an empty list and 0, never the original's count, since its list sits in the pool slot.
-    /// D7: the original call has no catch but sits in try/finally, so a game exception propagates and the
+    /// D7. The original call has no catch but sits in try/finally, so a game exception propagates and the
     /// slot is still released. CopyBack's own failures are handled in Pool.cs.</summary>
     internal int Process(nint a, nint b, nint c, nint list, nint spare, nint mode, BuildFn original)
     {
@@ -133,9 +133,9 @@ internal sealed partial class ListBuilderHook
         {
             int count = original(a, b, c, (nint)slotAddr, spare, mode);   // called once, no catch (D7, see Process)
             try { return CopyBack(list, slotAddr, count); }
-            catch (Exception) { CopyBackRefused(list, "the copy-back threw"); return 0; }   // F1: never the original's own count
+            catch (Exception) { CopyBackRefused(list, "the copy-back threw"); return 0; }   // F1. Never the original's own count
         }
-        finally { ReleaseSlot(slot); }   // D3: released the instant the copy-back is done, reentrant-safe
+        finally { ReleaseSlot(slot); }   // D3. Released the instant the copy-back is done, reentrant-safe
     }
 
     // Hot path, must not throw. Process guards all but the original call.

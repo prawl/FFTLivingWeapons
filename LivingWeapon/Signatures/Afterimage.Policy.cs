@@ -11,7 +11,7 @@ internal static class AfterimagePolicy
         => Signatures.Earned(sig, tier) && sig!.Afterimage;
 
     /// <summary>Advance the ramp from one observation. <paramref name="turns"/> is the wielder's completed-turn count (TurnTracker),
-    /// <paramref name="hp"/> the current HP (0 = unreadable: carry the last good HP). A hit (hp below the last reading) resets stacks to 0 even if a turn completed;
+    /// <paramref name="hp"/> the current HP (0 = unreadable. Carry the last good HP). A hit (hp below the last reading) resets stacks to 0 even if a turn completed;
     /// otherwise each new turn adds a stack up to <paramref name="cap"/>. Healing never resets. The first observation only baselines.</summary>
     public static AfterimageState Step(in AfterimageState prev, int turns, int hp, int cap)
     {
@@ -35,7 +35,7 @@ internal static class AfterimagePolicy
     public static int SpeedBonus(in AfterimageState s, int perTurn) => s.Stacks * perTurn;
 }
 
-/// <summary>One wielder's Afterimage ramp: stacks held plus the last-seen turn count and HP. Reset on battle exit (GrowthEngine.ResetBattle).</summary>
+/// <summary>One wielder's Afterimage ramp. Stacks held plus the last-seen turn count and HP. Reset on battle exit (GrowthEngine.ResetBattle).</summary>
 internal readonly struct AfterimageState
 {
     /// <summary>Stacks currently held (0..cap); the Speed bonus is Stacks x SpeedPerTurn.</summary>
@@ -55,6 +55,6 @@ internal readonly struct AfterimageState
         Seeded = seeded;
     }
 
-    /// <summary>The pre-battle / first-sight state: nothing held, not yet seeded.</summary>
+    /// <summary>The pre-battle / first-sight state. Nothing held, not yet seeded.</summary>
     public static readonly AfterimageState Empty = new(0, 0, 0, false);
 }

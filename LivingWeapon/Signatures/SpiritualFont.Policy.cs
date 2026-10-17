@@ -12,7 +12,7 @@ internal sealed partial class SpiritualFont
     public static bool IsActive(WeaponSignature? sig, int tier)
         => Signatures.Earned(sig, tier) && sig!.FontOnMove;
 
-    /// <summary>Main-hand only: the weapon must be in RRHand to activate, though kills count from any hand.</summary>
+    /// <summary>Main-hand only. The weapon must be in RRHand to activate, though kills count from any hand.</summary>
     public const bool ActivatesOnMainHandOnly = true;
 
     /// <summary>New MP after the gain, clamped at maxMp. Unlike the HP half, mp 0 still gains (HP 0
@@ -52,7 +52,7 @@ internal sealed partial class SpiritualFont
         mem.W16(a, (ushort)newMp);
     }
 
-    // MoveWatch: position-poll state machine. The first sighting baselines silently. A new tile must
+    // MoveWatch. Position-poll state machine. The first sighting baselines silently. A new tile must
     // hold for StabilityTicks ticks before it fires (rides out mid-animation pulses and the (0,0)
     // flicker on the live band), then RateCap suppresses further fires. Knockback and teleport also
     // pay, like vanilla fonts.
@@ -87,7 +87,7 @@ internal sealed partial class SpiritualFont
         /// <summary>Feed the current tile. True once per completed move.</summary>
         public bool Observe(int gx, int gy)
         {
-            // Cooldown: count down, never fire.
+            // Cooldown. Count down, never fire.
             if (_state == State.Cooldown)
             {
                 if (--_coolTicks <= 0) _state = State.Stable;
@@ -98,7 +98,7 @@ internal sealed partial class SpiritualFont
 
             if (_state == State.Fresh)
             {
-                // First sighting: baseline silently.
+                // First sighting. Baseline silently.
                 _baseGx = gx; _baseGy = gy;
                 _state = State.Stable;
                 return false;
@@ -106,7 +106,7 @@ internal sealed partial class SpiritualFont
 
             if (gx == _baseGx && gy == _baseGy)
             {
-                // Back at baseline: cancel any candidate.
+                // Back at baseline. Cancel any candidate.
                 _stabCount = 0;
                 _candGx = _candGy = 0;
                 _state = State.Stable;
@@ -125,7 +125,7 @@ internal sealed partial class SpiritualFont
             _stabCount++;
             if (_stabCount >= StabilityTicks)
             {
-                // Confirmed: fire and enter cooldown.
+                // Confirmed. Fire and enter cooldown.
                 _baseGx = gx; _baseGy = gy;
                 _stabCount = 0;
                 _candGx = _candGy = 0;

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Shared sweep behind EagleEye: chunked reads of the +/-1MB window around the combat anchor, matching
+/// Shared sweep behind EagleEye. Chunked reads of the +/-1MB window around the combat anchor, matching
 /// 2-byte AMaxHp against candidate fingerprints and confirming level/brave/faith at the struct-relative
 /// offsets. The caller supplies the per-hit body. Heavy, so callers throttle it (about every 6th tick).
 /// </summary>

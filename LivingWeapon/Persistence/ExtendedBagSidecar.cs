@@ -18,7 +18,7 @@ namespace LivingWeapon;
 /// evicted oldest-written, and an evening of battle autosaves pushed out the owner's real save
 /// (pt2775; LW-351 fix round 7, 2026-08-30). A load that finds its key moves it to the back.
 ///
-/// Two threads: Engine's tick records saves and the game's thread reads from the load
+/// Two threads. Engine's tick records saves and the game's thread reads from the load
 /// detour. <c>_gate</c> guards the maps, <c>_ioGate</c> serialises the write and never nests I/O.
 /// </summary>
 internal sealed partial class ExtendedBagSidecar

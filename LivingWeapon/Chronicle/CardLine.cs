@@ -5,21 +5,21 @@ namespace LivingWeapon;
 /// <summary>
 /// Reliquary Phase 1's card-flavor composer (docs/RELIQUARY_AC.md Display section). Turns a weapon's
 /// deed ledger (LegendStore's WeaponLegend) into the story line that replaces its baked flavor, or
-/// null to keep the baked line (decision 8: no deeds recorded). Order (decision 10 defers Legends
+/// null to keep the baked line (decision 8. No deeds recorded). Order (decision 10 defers Legends
 /// to Phase 2): highest-count archetype among earned Marks &gt; last victim &gt; null.
 /// Forms are tried in fixed priority A, B, C, D, not by length, so a short low-priority form cannot
 /// beat a longer one that also fits. {n} is the mark archetype's count, {k} is totalKills.
-///   A: "{name}, {title}: {n} {noun} felled; last, {a(n) victimNoun}."
-///   B: "{name}, {title}: {n} {noun} felled."
-///   C: "{name}: {k} felled; last, {a(n) victimNoun}."
-///   D: "{name}: {k} felled."
+///   (A) "{name}, {title}: {n} {noun} felled; last, {a(n) victimNoun}."
+///   (B) "{name}, {title}: {n} {noun} felled."
+///   (C) "{name}: {k} felled; last, {a(n) victimNoun}."
+///   (D) "{name}: {k} felled."
 /// None fitting gives null (CardLineTests.Sasukes_blade_26_budget_is_always_null). The result is
 /// right-padded to budgetChars. The separator is ": " (wording pass 2026-07-05); an em dash would be
 /// dropped by ByteScan.Ascii and desync the encodings, see <see cref="IsPaintable"/>.
 /// </summary>
 internal static class CardLine
 {
-    // A weapon composes only if its budget holds form D at a 5-digit kill count: name + ": " (2) +
+    // A weapon composes only if its budget holds form D at a 5-digit kill count. Name + ": " (2) +
     // 5 digits + " felled." (8). Forms only lengthen as the count grows, and nothing repaints back to
     // the baked line, so a non-null to null flip would strand a stale line. Sasuke's Blade (budget 26 <
     // 14+15) is the one weapon this excludes today. CardLineTests.Digit_headroom_property_all_121 covers it.
@@ -28,7 +28,7 @@ internal static class CardLine
 
     public static string? Compose(string weaponName, int totalKills, WeaponLegend legend, int budgetChars)
     {
-        // Decision 8: no deed recorded, so the baked line stays.
+        // Decision 8. No deed recorded, so the baked line stays.
         if (legend.LastVictimCls < 0) return null;
 
         // Headroom guard (see the constants above).

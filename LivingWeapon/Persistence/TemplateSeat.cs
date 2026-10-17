@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-351 fix round 5: seat the extended item ids the player owns into the game's two weapon order
+/// LW-351 fix round 5. Seat the extended item ids the player owns into the game's two weapon order
 /// templates (party inventory and unit equip picker). An id the table does not name is never listed.
 /// The load routine restores the tables byte-for-byte from the save struct and the serializer writes
 /// them back, so they are save state (copies cited on <see cref="Offsets.InventoryOrderTemplate"/>
@@ -24,7 +24,7 @@ internal static partial class TemplateSeat
     /// <summary>The word both templates end on (the lists use 0xFFFF).</summary>
     public const ushort EndMarker = 0x00FF;
 
-    /// <summary>One order template: where it starts, how many u16 words the game gives it, and
+    /// <summary>One order template. Where it starts, how many u16 words the game gives it, and
     /// the words a log line calls it by.</summary>
     internal readonly record struct Region(long Addr, int CapacityWords, string Label);
 
@@ -37,7 +37,7 @@ internal static partial class TemplateSeat
         new(Offsets.PickerOrderTemplate, Offsets.PickerOrderTemplateWords, "the equip-picker order template"),
     };
 
-    /// <summary>What one template needs: the start word index, the bytes to write (missing ids plus the
+    /// <summary>What one template needs. The start word index, the bytes to write (missing ids plus the
     /// moved end marker, or after a repair the whole table with <see cref="Repaired"/> saying what was
     /// healed), or a refusal to log. Nothing to do is <see cref="Bytes"/> null with no refusal.</summary>
     internal readonly record struct Seating(int WordIndex, byte[]? Bytes, string? Refusal, string? Repaired = null)
@@ -47,7 +47,7 @@ internal static partial class TemplateSeat
         public static Seating Refuse(string why) => new(0, null, why);
     }
 
-    /// <summary>Pure: read <paramref name="region"/> as u16 words up to its end marker and work out what
+    /// <summary>Pure. Read <paramref name="region"/> as u16 words up to its end marker and work out what
     /// to write so every id in <paramref name="ids"/> is listed. Missing ids are appended ascending, the
     /// marker moves on, and nothing is written past <paramref name="capacityWords"/>. Words compare on
     /// the game's 0x3FF id mask (menu lists carry flag bits above it), as the repair's dedupe does.</summary>
@@ -62,7 +62,7 @@ internal static partial class TemplateSeat
         var scan = ScanTable(region, words, firstStaleId);
         if (scan.Refusal != null) return Seating.Refuse(scan.Refusal);
 
-        // Round 8c: listed-ness uses the 0x3FF mask like the repair's dedupe; the raw word would drop
+        // Round 8c. Listed-ness uses the 0x3FF mask like the repair's dedupe; the raw word would drop
         // a flagged double and re-add the id forever.
         var listed = new HashSet<int>();
         foreach (ushort w in scan.Body) listed.Add(w & 0x3FF);
@@ -81,7 +81,7 @@ internal static partial class TemplateSeat
             return new Seating(scan.Marker, Encode(missing), null);
         }
 
-        // Round 8b: a damaged table is rewritten from word 0 through the new marker in one write.
+        // Round 8b. A damaged table is rewritten from word 0 through the new marker in one write.
         if (scan.Body.Count + missing.Count > capacityWords - 1)
             return Seating.Refuse($"even after a repair it would hold {scan.Body.Count + missing.Count} ids, more than its {capacityWords} words allow with an end marker");
         var all = new List<int>(scan.Body.Count + missing.Count);
@@ -116,7 +116,7 @@ internal static partial class TemplateSeat
         Action<string>? onRefused = null, Action<string>? onSeated = null, Action<string>? onRepaired = null,
         Region[]? regions = null, int firstStaleId = int.MaxValue)
     {
-        // Round 8c: no early return on an empty list; a damaged table on a save with no extended items
+        // Round 8c. No early return on an empty list; a damaged table on a save with no extended items
         // still needs the repair (id-0 rows from a marker-less table crash).
         ids ??= Array.Empty<int>();
         foreach (var region in regions ?? WeaponRegions)

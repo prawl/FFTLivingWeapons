@@ -9,7 +9,7 @@ namespace LivingWeapon;
 /// basis is the wielder's live brave read that tick, so a later dip is a fresh baseline
 /// (Kobu.Policy.cs OneShotRaise).
 ///
-/// Premise: a one-shot current-brave write on a player unit sticks across turns, and the engine does
+/// Premise. A one-shot current-brave write on a player unit sticks across turns, and the engine does
 /// not re-normalize it from orig (2026-07-02, probes/brave_oneshot_probe.py, LIVE_LEDGER row). That
 /// overturned the older belief in brave_probe.py's recipe text, which is why the old per-tick hold is gone.
 ///

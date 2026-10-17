@@ -42,7 +42,7 @@ internal sealed class HotChunkSet
         if (wasEmpty) _lastPassMs = now;
     }
 
-    /// <summary>A count or target change: rescan hot chunks on the next pass regardless of clock.</summary>
+    /// <summary>A count or target change. Rescan hot chunks on the next pass regardless of clock.</summary>
     public void RequestRescan() => _rescanRequested = true;
 
     /// <summary>True when a pass is due (rescan request or HotRescanMs elapsed) and the set is non-empty; stamps the

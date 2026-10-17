@@ -40,7 +40,7 @@ internal sealed partial class PoolLocator
             PublishGeneration++;   // a fresh region list event, same as SeedForTest/Publish
         }
 
-        // Force the cold scan to begin: otherwise Step would see _cached non-empty and only revalidate,
+        // Force the cold scan to begin. Otherwise Step would see _cached non-empty and only revalidate,
         // skipping the full locate until RevalidateMs fires. Like Invalidate() but leaves _pendingTrigger
         // alone, so a first-ever scan still reports Trigger="first". Set even when nothing survived.
         _restartPending = true;

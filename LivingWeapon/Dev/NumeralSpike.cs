@@ -6,7 +6,7 @@ namespace LivingWeapon;
 
 /// <summary>
 /// Dev-only spike that cold-calls FnNumberPopup (0x140227CF8) to put a numeral on screen on command; Renewal
-/// heals currently show nothing (LIVE_LEDGER Renewal row). The data side is closed: 0x1407832BE (last displayed
+/// heals currently show nothing (LIVE_LEDGER Renewal row). The data side is closed 0x1407832BE (last displayed
 /// number) has one reference, its own write at 0x140228412, and the per-unit field combat +0x1C4 (HP +0x30 fell
 /// 408 -> 184, outcome byte +0x1BB flipped to 0x02, +0x1D8/+0x1E5 latch with it) drew nothing when written on an
 /// idle unit (2026-07-27), so those are outputs. Press F8 in a paused live battle, or queue numeral_request.txt
@@ -39,8 +39,8 @@ internal sealed class NumeralSpike
 
     // v2 (2026-07-27): fire #1 returned clean but drew nothing, and r8 is a dead argument (the caller never sets it),
     // so the live contract is rcx/rdx/r9. Two opt-in request flags test the remaining suspects:
-    // "live" fires without the pause requirement, since natural popups never spawn while paused (precedent: ShowSpike ColdSpawn).
-    // "actor" pre-sets the selection global FnNumberPopup reads (disasm 0x140228504: mov rbp,[0x142FF3CF8]; at the writer
+    // "live" fires without the pause requirement, since natural popups never spawn while paused (same as ShowSpike ColdSpawn).
+    // "actor" pre-sets the selection global FnNumberPopup reads (disasm 0x140228504. Mov rbp,[0x142FF3CF8]; at the writer
     // break rbp was 0x141855E9E, slot 16 base + 0x1BE) and restores it afterward.
     private const long ActorGlobal = 0x142FF3CF8;
     private const int ActorBias = 0x1BE;   // the global stores unitBase + 0x1BE, not unitBase
@@ -74,7 +74,7 @@ internal sealed class NumeralSpike
         _requestPath = string.IsNullOrEmpty(modDir) ? null : System.IO.Path.Combine(modDir, RequestFileName);
     }
 
-    /// <summary>In-battle loop tick: heartbeat, key edge, request-file lane. The cold call runs on this
+    /// <summary>In-battle loop tick. Heartbeat, key edge, request-file lane. The cold call runs on this
     /// loop thread, as ShowSpike.ColdSpawn does.</summary>
     public void Tick(bool inLive)
     {
@@ -144,7 +144,7 @@ internal sealed class NumeralSpike
     }
 
     /// <summary>Every precondition checkable without calling. Each failure is a logged refusal.
-    /// Follows StatusSpike's hardening: prologue landmark at the pinned address (bytes read statically at 0x140227CF8),
+    /// Follows StatusSpike's hardening. Prologue landmark at the pinned address (bytes read statically at 0x140227CF8),
     /// pause required unless "live", and every cribbed argument re-checked for readability.</summary>
     private bool TargetReady(string label, bool skipPause)
     {
@@ -229,7 +229,7 @@ internal sealed class NumeralSpike
                     ModLogger.Error(LogVerb.Trace, $"numeral-spike: {label} actor global 0x{ActorGlobal:X} not writable; firing without it.");
                 }
             }
-            // unchecked: the address is a 64-bit constant above int range; the process is x64, so the nint cast is exact.
+            // unchecked. The address is a 64-bit constant above int range; the process is x64, so the nint cast is exact.
             var fn = Marshal.GetDelegateForFunctionPointer<NumberPopupFn>(unchecked((nint)FnNumberPopup));
             fn(ArgPresentation, ArgLayoutTable, ArgStatic3, ArgLayoutArray);
             ModLogger.Event(LogVerb.Trace, $"numeral-spike: {label} returned without crashing. Look at the field: a numeral means this flag combination is the missing state; note WHICH unit it appeared over.");

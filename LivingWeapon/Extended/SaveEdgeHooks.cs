@@ -25,12 +25,12 @@ namespace LivingWeapon;
 ///
 /// Landmarks (re-read from the 1.5.2 exe on disk 2026-08-27, after the first build named two
 /// entries that were not the routines it meant):
-///   save-serialize 0x140218F78: 48 89 5C 24 08 48 89 6C 24 20 56 57 41 54 41 56
-///   load-apply     0x14021B0E8: 48 8B C4 48 89 58 08 48 89 68 10 48 89 70 18 48
-///   load-restore-b 0x14021DE98: 48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57
+///   save-serialize 0x140218F78 48 89 5C 24 08 48 89 6C 24 20 56 57 41 54 41 56
+///   load-apply     0x14021B0E8 48 8B C4 48 89 58 08 48 89 68 10 48 89 70 18 48
+///   load-restore-b 0x14021DE98 48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57
 /// Every save caller reaches the serializer through the wrapper 0x14021B070's tail jump, so one
 /// entry covers manual saves and autosave. The load-apply sits at the byte after that jump. The
-/// async file-op stepper 0x14021DDF0 is not hooked: it runs twice a frame during a save or a
+/// async file-op stepper 0x14021DDF0 is not hooked. It runs twice a frame during a save or a
 /// load, so a load edge taken from it would fire on saves too. The struct pointer normally holds
 /// the static image buffer 0x142C81C80 (Offsets.SaveStructStatic), so the header read after the
 /// original returns is the struct just filled or applied.
@@ -52,15 +52,15 @@ internal sealed partial class SaveEdgeHooks
     private readonly SaveEdgeTracker _tracker;
     private readonly IReadOnlyList<int> _extendedIds;
     private readonly Action<string>? _replayOnLoad;   // the bag replay, by save key
-    private readonly long _bagBase;   // LW-368 round 2: ExtendedInventory.BagCountBase, set at construction
+    private readonly long _bagBase;   // LW-368 round 2. ExtendedInventory.BagCountBase, set at construction
     private readonly TemplateRelocation? _templates;   // null = no template sync (every pre-existing caller)
     private IHook<EdgeFn>? _serialize, _apply, _applyB;
-    private EdgeFn? _k1, _k2, _k3;   // GC anchors: the native thunks must outlive us
+    private EdgeFn? _k1, _k2, _k3;   // GC anchors. The native thunks must outlive us
     private bool _canarySave, _canaryLoadA, _canaryLoadB;
 
     public bool IsActive => _serialize?.IsHookEnabled == true && _apply?.IsHookEnabled == true && _applyB?.IsHookEnabled == true;
 
-    /// <param name="bagBase">LW-368 round 2: where the bag bytes live (<see
+    /// <param name="bagBase">LW-368 round 2. Where the bag bytes live (<see
     /// cref="ExtendedInventory.BagCountBase"/> in production); defaults to the vanilla block.</param>
     /// <param name="templates">for <see cref="TemplateSync"/> project/adopt. Null makes
     /// both edges no-ops.</param>
@@ -75,7 +75,7 @@ internal sealed partial class SaveEdgeHooks
         _templates = templates;
     }
 
-    /// <summary>Pure: install only when the guarded read succeeded and the prologue matches.</summary>
+    /// <summary>Pure. Install only when the guarded read succeeded and the prologue matches.</summary>
     internal static bool ShouldArm(bool readOk, byte[]? prologue, byte[] expected) => readOk && HookLandmark.Verify(prologue, expected);
 
     /// <summary>Null on success, else the refusal. All three land or none does.</summary>

@@ -6,7 +6,7 @@ using System.Xml.Linq;
 
 namespace LivingWeapon;
 
-/// <summary>One extended-inventory item as the boot arm needs it: the two binary records the
+/// <summary>One extended-inventory item as the boot arm needs it. The two binary records the
 /// game reads plus the donor ids the accessor stubs answer with.</summary>
 internal sealed class ExtendedItemDef
 {
@@ -23,14 +23,14 @@ internal sealed class ExtendedItemDef
     public int ArtDonor { get; init; }
     /// <summary>Bag copies granted the first time the item is seen with no sidecar entry.</summary>
     public int SeedCount { get; init; }
-    /// <summary>ITEM_SHOPS_DATA.ShopFlags: the towns whose shop stocks it; 0 = nowhere.</summary>
+    /// <summary>ITEM_SHOPS_DATA.ShopFlags. The towns whose shop stocks it; 0 = nowhere.</summary>
     public ushort ShopFlags { get; init; }
 }
 
 /// <summary>
 /// Reads <c>&lt;modDir&gt;/extended_inventory/{ItemData,ItemWeaponData,ItemExtendedData}.xml</c>
 /// (written by tools/generate.py from the `extended` rows of data/items.json) into <see cref="ExtendedItemDef"/>s.
-/// Any bad row makes <see cref="Load"/> return zero items plus the reasons, since a half-loaded catalog would hand the game a zero record. Ids must be contiguous from <see cref="ExtendedCatalog.FirstExtendedId"/> (the stubs index donors by id - 261). A missing folder means nothing shipped.
+/// Any bad row makes <see cref="Load"/> return zero items plus the reasons, since a half-loaded catalog would hand the game a zero record. Ids must be contiguous from <see cref="ExtendedCatalog.FirstExtendedId"/> (the stubs index donors by id, 261). A missing folder means nothing shipped.
 /// </summary>
 internal static class ExtendedInventoryData
 {

@@ -40,9 +40,9 @@ internal sealed class GunSlingerStore
         return snap;
     }
 
-    /// <summary>Atomic save: write tmp, move it over the primary, then write the same json to .bak.
+    /// <summary>Atomic save. Write tmp, move it over the primary, then write the same json to .bak.
     /// The .bak holds the current generation (SidecarJson.SaveAtomic's holds the previous one), so one save
-    /// leaves a valid fallback. Not folded onto the shared chain: that would change which generation
+    /// leaves a valid fallback. Not folded onto the shared chain. That would change which generation
     /// the fallback sees. A failed save logs and leaves the prior file intact.</summary>
     public void Save()
     {

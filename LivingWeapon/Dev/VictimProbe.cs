@@ -6,9 +6,9 @@ namespace LivingWeapon;
 /// Reliquary P1 probe (docs/RELIQUARY_AC.md Phase 0, "P1 -- victim snapshot integrity"). Log-only; KillTracker calls it to observe.
 /// Captures a corpse's nameId (Offsets.ANameId), job byte (Offsets.AJob) and undead bit
 /// (Offsets.ADeadStatus &amp; Offsets.AUndeadBit) at three points so a live run can compare them:
-///   (a) alive: every consistent alive on-field tick (KillTracker.Corpses.cs ScanCorpses).
-///   (b) edge: the tick a slot's dead-streak first starts (deadStreak == 1).
-///   (c) credit: a fresh read at CreditKill time (KillTracker.cs), logged beside the other two.
+///   (a) alive. Every consistent alive on-field tick (KillTracker.Corpses.cs ScanCorpses).
+///   (b) edge. The tick a slot's dead-streak first starts (deadStreak == 1).
+///   (c) credit. A fresh read at CreditKill time (KillTracker.cs), logged beside the other two.
 /// </summary>
 internal sealed class VictimProbe
 {

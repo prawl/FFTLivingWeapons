@@ -24,8 +24,8 @@ internal sealed partial class FeignDeath
         public bool? Invisible { get; init; }
         public bool? Reraise { get; init; }
         public HpAction Hp { get; init; }
-        public bool MarkKilled { get; init; }   // latch: the finishing blow has been dealt
-        public bool MarkWasDead { get; init; }  // latch: the finish death registered (awaiting revive)
+        public bool MarkKilled { get; init; }   // latch. The finishing blow has been dealt
+        public bool MarkWasDead { get; init; }  // latch. The finish death registered (awaiting revive)
         public bool Spent { get; init; }        // the feign is over -> once-per-battle latch
     }
 
@@ -43,11 +43,11 @@ internal sealed partial class FeignDeath
     public static bool ShouldRearm(bool spent, int hp, int maxHp, bool dead) =>
         spent && !dead && maxHp > 0 && hp >= maxHp;
 
-    /// <summary>Dead last tick, alive now: the engine's Reraise firing. Any revive counts, including
+    /// <summary>Dead last tick, alive now. The engine's Reraise firing. Any revive counts, including
     /// an ally's Phoenix Down that gets there first.</summary>
     public static bool IsReviveEdge(bool wasDead, int hp) => wasDead && hp > 0;
 
-    /// <summary>One possum turn completed: the wielder was the active unit last tick and is not now.
+    /// <summary>One possum turn completed. The wielder was the active unit last tick and is not now.
     /// Counted off the active-unit struct (TurnQueue) because the +0x25 CT undercounted and overran
     /// the possum (2026-06-14).</summary>
     public static bool TurnEnded(bool wasActive, bool nowActive) => wasActive && !nowActive;
@@ -56,7 +56,7 @@ internal sealed partial class FeignDeath
     public static bool Elapsed(System.DateTime start, System.DateTime now, double seconds) =>
         (now - start).TotalSeconds >= seconds;
 
-    /// <summary>One tick of the transition, following the observed probe: flop, hold prone and
+    /// <summary>One tick of the transition, following the observed probe. Flop, hold prone and
     /// invisible, finishing blow (HP 0 and the dead bit) until the revive edge, clear KO state, spent.</summary>
     public static FeignTick Step(Phase phase, int hp, bool dead, bool sawAlive,
                                  bool possumDone, bool recoverElapsed,
@@ -87,7 +87,7 @@ internal sealed partial class FeignDeath
                 if (!finishKilled)
                 {
                     if (!otherAllyAlive)
-                        // Last party member: a force-kill would be a game over before Reraise fires
+                        // Last party member. A force-kill would be a game over before Reraise fires
                         // ~18s later, so stay alive at 1 HP and end the feign.
                         return new FeignTick
                         {
@@ -119,7 +119,7 @@ internal sealed partial class FeignDeath
                     };
                 }
                 if (hp == 0)
-                    // Still a corpse: hold Reraise. Do not re-stamp the dead bit; doing so at the CT-100
+                    // Still a corpse. Hold Reraise. Do not re-stamp the dead bit; doing so at the CT-100
                     // turn fought the auto-Reraise and left a stuck turn (hearts, can't Wait).
                     return new FeignTick
                     {
@@ -131,12 +131,12 @@ internal sealed partial class FeignDeath
                 if (finishWasDead && hp > 0)
                     // Revive edge. Recover clears the dead bit; leaving it set shows the hearts.
                     return new FeignTick { Next = Phase.Recover, Invisible = false, Reraise = true };
-                // Killed and alive again without the death being observed: just hold.
+                // Killed and alive again without the death being observed. Just hold.
                 return new FeignTick { Next = Phase.Finish, Invisible = false, Reraise = true };
 
             case Phase.Recover:
             default:
-                // Post-revive: drop Reraise, keep the dead bit cleared and HP above 0 for the window.
+                // Post-revive. Drop Reraise, keep the dead bit cleared and HP above 0 for the window.
                 return new FeignTick
                 {
                     Next = Phase.Recover,

@@ -9,7 +9,7 @@ namespace LivingWeapon;
 /// The gate is the sticky last-player-actor latch, not a timing window. The first design (acted edge plus a
 /// grace window) never fired, because charged spells land late (act 10:23:31, heal 10:23:38). The latch
 /// persists across enemy turns until the next player acts, and KillTracker.ResetBattle clears it.
-/// Cost: any ally HP rise from the wielder's action until the next player acts is boosted (charged Cure,
+/// Cost. Any ally HP rise from the wielder's action until the next player acts is boosted (charged Cure,
 /// Regen, absorb, item or reaction heal, revive). A revived ally already reads alive when observed, so
 /// BandHeal.NewHp's hp&lt;=0 guard only skips units still at 0. If another player acts before a charged
 /// heal lands, the boost is lost and never misdirected. That can be common given the ~7 s charge.
@@ -80,7 +80,7 @@ internal sealed partial class Benediction : ISignature
             // Per-fingerprint dedupe as in Renewal/Ricochet. Two allies with identical (mhp,lvl,br,fa)
             // on a group heal collide and only the first is boosted (accepted).
             if (allyFps is null || !allyFps.Contains(fp)) continue;   // allies only (Band.AllyFingerprints, as Renewal)
-            if (boosted!.Contains(fp)) continue;                       // band twin: one boost per unit
+            if (boosted!.Contains(fp)) continue;                       // band twin. One boost per unit
 
             int bonus = BonusHeal(rise, m.Signature.HealBoostPct);
             if (bonus <= 0) continue;

@@ -6,7 +6,7 @@ namespace LivingWeapon;
 /// </summary>
 internal static partial class CorpseDespawn
 {
-    /// <summary>(a) Staleness. Re-verify before touching anything: still Dead, same nameId (slot reuse),
+    /// <summary>(a) Staleness. Re-verify before touching anything. Still Dead, same nameId (slot reuse),
     /// and not already an engine chest conversion.</summary>
     private static bool StillOurCorpse(IGameMemory mem, long entry, int bandSlot, ushort expectedNameId)
     {

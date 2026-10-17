@@ -51,7 +51,7 @@ internal sealed partial class PromptSwap
         payload = "";
         if (textPtr == 0) return false;
 
-        // LW-89 step 1b: runs before the head decode so unreadable or undecodable commits are dumped
+        // LW-89 step 1b. Runs before the head decode so unreadable or undecodable commits are dumped
         // too (see SampleStruct, PromptSwap.Sampler.cs).
         SampleStruct(textPtr);
 

@@ -1,7 +1,7 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-149 stage C: shared activation-edge detector replacing the per-module
+/// LW-149 stage C. Shared activation-edge detector replacing the per-module
 /// <c>if (active != _wasActive)</c> blocks. It only detects edges; callers keep their own logging.
 /// </summary>
 internal static class ActivationEdge

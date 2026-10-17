@@ -9,13 +9,13 @@ namespace LivingWeapon;
 /// engine inflicts the status itself. External writes to the composed/inflicted/pending fields were
 /// closed lanes on 2026-07-09 (spawn_probe.py tapes). Target is FnApplyStatuses 0x150BF66DC (CE
 /// what-writes + disasm 2026-07-09), ecx = battle-stats slot, edx = mode. A pending-add bit is written
-/// and the routine called at once. Precedent is ShowSpike.ColdSpawn (2026-07-03). Fires only with a
+/// and the routine called at once. Same shape as ShowSpike.ColdSpawn (2026-07-03). Fires only with a
 /// paused unit menu (PauseFlag == 1); F2 Haste on a live enemy is the canary, F4 treasure on a corpse.
 /// Throwaway save only, see denuvo-hook-launch-fragility. Request lane usage is on RequestFileName.
 /// </summary>
 internal sealed class StatusSpike
 {
-    private const long FnApplyStatuses = 0x150BF66DC;   // v1 target: ecx = battle-stats slot, edx = mode
+    private const long FnApplyStatuses = 0x150BF66DC;   // v1 target. Ecx = battle-stats slot, edx = mode
 
     // The v1 apply engine's prologue (disasm 2026-07-09): mov [rsp+8],rbx; mov [rsp+0x10],rbp.
     private static readonly byte[] ApplyPrologue = { 0x48, 0x89, 0x5C, 0x24, 0x08, 0x48, 0x89, 0x6C, 0x24, 0x10 };
@@ -107,7 +107,7 @@ internal sealed class StatusSpike
         _requestPath = string.IsNullOrEmpty(modDir) ? null : System.IO.Path.Combine(modDir, RequestFileName);
     }
 
-    /// <summary>In-battle loop tick: heartbeat, key edges, request poll. <paramref name="inLive"/> is the
+    /// <summary>In-battle loop tick. Heartbeat, key edges, request poll. <paramref name="inLive"/> is the
     /// genuine-live-battle predicate, not the debounced sticky state.</summary>
     public void Tick(bool inLive)
     {
@@ -122,7 +122,7 @@ internal sealed class StatusSpike
         if (!inLive) return;   // only fire during a genuine live-battle frame
         if (Pressed(VkF2, ref _f2Was)) Fire("CANARY", StatusApply.HasteId, corpse: false, ref _hasteMode);
         if (Pressed(VkF4, ref _f4Was)) Fire("TREASURE", StatusApply.TreasureId, corpse: true, ref _treasureMode);
-        if (_hbTick % 15 == 0) PollRequest();   // ~0.5s: responsive without hammering the disk
+        if (_hbTick % 15 == 0) PollRequest();   // ~0.5s. Responsive without hammering the disk
     }
 
     /// <summary>Consume a queued request file (see RequestFileName) and fire it through the same path as
@@ -135,7 +135,7 @@ internal sealed class StatusSpike
         {
             if (!System.IO.File.Exists(_requestPath)) return;
             raw = System.IO.File.ReadAllText(_requestPath).Trim();
-            System.IO.File.Delete(_requestPath);   // delete FIRST: a request must never fire twice
+            System.IO.File.Delete(_requestPath);   // delete FIRST. A request must never fire twice
         }
         catch (Exception ex)
         {
@@ -150,7 +150,7 @@ internal sealed class StatusSpike
         }
         bool corpse = parts.Length > 2 && parts[2].Trim().Equals("corpse", StringComparison.OrdinalIgnoreCase);
         _argOrder = 0;
-        _subject = 2;   // default to nameId: the decode says arg3 is a 16-bit handle, and slot already failed
+        _subject = 2;   // default to nameId. The decode says arg3 is a 16-bit handle, and slot already failed
         foreach (var seg in parts)
         {
             string t = seg.Trim();
@@ -215,7 +215,7 @@ internal sealed class StatusSpike
         for (int s = 0; s < Offsets.BandSlots; s++)
         {
             if (s >= Offsets.BandSlots / 2) break;             // enemy side only
-            if (!StatusApply.IsCallableSeat(s)) continue;       // AV guard: engine slot in range
+            if (!StatusApply.IsCallableSeat(s)) continue;       // AV guard. Engine slot in range
             long e = Band.Entry(s);
             if (!Band.IsValid(_mem, e)) continue;
             int hp = _mem.U16(e + Offsets.AHp);
@@ -233,7 +233,7 @@ internal sealed class StatusSpike
     /// <summary>Which identifier the dispatch's third argument wants (2026-07-22 decode). It is narrowed to
     /// 16 bits (movzx ecx, r8w) and used in a lookup at 0x140260ABC whose null result aborts the routine,
     /// matching our four clean no-op fires. A nameId fits 16 bits better than a slot, but that is a guess,
-    /// so all three are selectable. 0 = engine slot (seat - 8), 1 = band seat, 2 = nameId.</summary>
+    /// so all three are selectable. 0 = engine slot (seat, 8), 1 = band seat, 2 = nameId.</summary>
     private int SubjectFor(int seat, int engineSlot)
     {
         switch (_subject)
@@ -264,7 +264,7 @@ internal sealed class StatusSpike
         }
         // v2 first (runtime-resolved dispatch); the pinned v1 engine is a fallback when its landmark still matches.
         long dispatch = ResolveDispatch(label);
-        if (dispatch == 0 && !TargetReady(label)) return;   // neither door verified: refuse
+        if (dispatch == 0 && !TargetReady(label)) return;   // neither door verified. Refuse
 
         int by = StatusApply.StatusByte(statusId);
         byte mask = StatusApply.StatusMask(statusId);
@@ -299,7 +299,7 @@ internal sealed class StatusSpike
             if (dispatch != 0)
             {
                 var fn = Marshal.GetDelegateForFunctionPointer<DispatchStatusFn>(unchecked((nint)dispatch));
-                // Arg order is inferred, so it is a knob: one deploy tries every permutation. Order 0 is the
+                // Arg order is inferred, so it is a knob. One deploy tries every permutation. Order 0 is the
                 // v1 header's reading (id+1, mode, slot).
                 int subj = SubjectFor(seat, engineSlot);
                 switch (_argOrder)

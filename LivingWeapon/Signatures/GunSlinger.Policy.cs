@@ -24,7 +24,7 @@ internal sealed class GunSlingerSnap
 /// Pure decisions for the Gun Slinger roster prep (LW-193/LW-194 consent model). No memory access;
 /// the caller supplies every input. An empty off-hand invites the twin; anything the player put in
 /// the off-hand or shield slot declines it, and no write lands on a player-held item in any lane.
-/// Empty sentinels: off-hand 0x00FF or 0xFFFF; shield 255 (seen on an empty slot), 0xFFFF, or 0
+/// Empty sentinels. Off-hand 0x00FF or 0xFFFF; shield 255 (seen on an empty slot), 0xFFFF, or 0
 /// (see <see cref="IsEmptyShield"/>). The support slot is a u16 ability key at +0x0A (reaction +0x08,
 /// movement +0x0C) and reads 0 when empty. Dual Wield is Key 477 (support id 221 + 256, seen
 /// 2026-08-12, a low-byte 221 write rendered "Toadja", Key 221). Support values are
@@ -50,34 +50,34 @@ internal static class GunSlingerPolicy
     /// shield byte does not veto the grant forever.</summary>
     private static bool IsEmptyShield(ushort v) => v == 0 || IsEmptyOff(v);
 
-    /// <summary>Ours: off holds any flagged twin id (a swap between two flagged weapons leaves the
+    /// <summary>Ours. Off holds any flagged twin id (a swap between two flagged weapons leaves the
     /// old twin there) and a grant is on record. HasOff is the ownership marker.</summary>
     private static bool IsOurs(ushort off, GunSlingerSnap snap, HashSet<int> twinIds) => snap.HasOff && twinIds.Contains(off);
 
-    /// <summary>Not empty and not ours: a player choice or garbage; never write over it.</summary>
+    /// <summary>Not empty and not ours. A player choice or garbage; never write over it.</summary>
     private static bool IsPlayerItem(ushort off, GunSlingerSnap snap, HashSet<int> twinIds) => !IsEmptyOff(off) && !IsOurs(off, snap, twinIds);
 
     /// <summary>How long the field stays dark (<c>BattleState.OnField</c> false) in battle before a
     /// cleared off-hand is read as battle-end teardown rather than a flicker. Tape lw193_watch_*.log
-    /// 10:42:38-10:43:58: the game cleared oh (71-&gt;255) at 10:43:53.626 inside the ~4s exit debounce,
+    /// 10:42:38-10:43:58. The game cleared oh (71-&gt;255) at 10:43:53.626 inside the ~4s exit debounce,
     /// the re-assert stamped it back 0.2s later, and the post-battle reconcile refunded that phantom
     /// stamp as a sack item at 10:43:58.588. 2s sits under that debounce and over mid-battle OnField
     /// flickers (GunSlinger.cs PrepRoster, 2026-07-04). <paramref name="secondsOffField"/> is Engine's
     /// raw <c>_lastField</c> clock.</summary>
     internal const double TwilightHoldSeconds = 2.0;
 
-    /// <summary>True when the re-assert should be withheld: in battle and dark past
+    /// <summary>True when the re-assert should be withheld. In battle and dark past
     /// <see cref="TwilightHoldSeconds"/>. inBattle is in the AND so a stale out-of-battle clock can
     /// never trip it.</summary>
     private static bool IsTwilight(bool inBattle, double secondsOffField) => inBattle && secondsOffField > TwilightHoldSeconds;
 
     /// <summary>First matching rule wins. <paramref name="snap"/> is read-only (the caller mutates
     /// it); <paramref name="shield"/> is RShield +0x1A, read only; <paramref name="twinIds"/> is every
-    /// flagged weapon id. Evidence: docs/LIVE_LEDGER.md [twin-grant-inventory-desync].</summary>
+    /// flagged weapon id. Evidence. Docs/LIVE_LEDGER.md [twin-grant-inventory-desync].</summary>
     public static GunSlingerOffAction DesiredOffHand(bool mainIsGS, int twin, ushort off, ushort shield,
         GunSlingerSnap snap, bool menuOpen, bool inBattle, HashSet<int> twinIds, double secondsOffField = 0.0)
     {
-        // Rule 1: no twin-lane write while a world-map menu is open. Scoped to !inBattle because the
+        // Rule 1. No twin-lane write while a world-map menu is open. Scoped to !inBattle because the
         // menu byte reads 0 through formation/battle-load, when the twin must be present
         // ([twin-dualfire-construction-bound]). The browse-screen lane in GunSlinger.MenuGate.cs
         // is the only out-of-battle allow path.
@@ -85,7 +85,7 @@ internal static class GunSlingerPolicy
 
         bool ours = IsOurs(off, snap, twinIds);
 
-        // Rule 2: the wielder switched away from every flagged weapon.
+        // Rule 2. The wielder switched away from every flagged weapon.
         if (!mainIsGS)
         {
             if (!snap.HasOff) return GunSlingerOffAction.Leave;
@@ -93,11 +93,11 @@ internal static class GunSlingerPolicy
                 return (IsEmptyShield(shield) || IsEmptyOff(snap.OrigOff))
                     ? GunSlingerOffAction.Restore
                     : GunSlingerOffAction.WriteEmptyAndDrop;   // legacy real gear can't rejoin a shield-occupied hand
-            // Off-hand was cleared or replaced under the hold: stand down, write nothing.
+            // Off-hand was cleared or replaced under the hold. Stand down, write nothing.
             return GunSlingerOffAction.StandDownNoWrite;   // snap.HasOff guaranteed true above
         }
 
-        // Rule 3: a shield withholds consent in every lane, in battle too (the game cleans up
+        // Rule 3. A shield withholds consent in every lane, in battle too (the game cleans up
         // shield plus dual-wield as an impossible state, [twin-grant-inventory-desync]).
         if (!IsEmptyShield(shield))
         {
@@ -106,18 +106,18 @@ internal static class GunSlingerPolicy
             return snap.HasOff ? GunSlingerOffAction.StandDownNoWrite : GunSlingerOffAction.Leave;
         }
 
-        // Rule 4: off==twin is steady; another flagged id is a stale twin from a main-hand swap,
+        // Rule 4. Off==twin is steady; another flagged id is a stale twin from a main-hand swap,
         // so re-stamp the current twin over it.
         if (ours)
             return off == (ushort)twin ? GunSlingerOffAction.Leave : GunSlingerOffAction.Write;
 
-        // Rule 5: a player item or garbage withholds consent.
+        // Rule 5. A player item or garbage withholds consent.
         if (IsPlayerItem(off, snap, twinIds))
             return snap.HasOff ? GunSlingerOffAction.StandDownNoWrite : GunSlingerOffAction.Leave;
 
-        // Rule 6: off is empty, the only state that invites the twin.
+        // Rule 6. Off is empty, the only state that invites the twin.
         if (snap.HasOff)
-            // Twilight guard: withhold the re-assert (HasOff stays true) while the field is dark.
+            // Twilight guard. Withhold the re-assert (HasOff stays true) while the field is dark.
             return IsTwilight(inBattle, secondsOffField) ? GunSlingerOffAction.Leave : GunSlingerOffAction.Write;
         // SnapshotAndWrite is out-of-battle only; a mid-battle flicker must not snapshot gear.
         return inBattle ? GunSlingerOffAction.Leave : GunSlingerOffAction.SnapshotAndWrite;
@@ -128,22 +128,22 @@ internal static class GunSlingerPolicy
     public static GunSlingerSuppAction DesiredSupport(bool mainIsGS, ushort supp, ushort off, ushort shield,
         GunSlingerSnap snap, bool menuOpen, bool inBattle, HashSet<int> twinIds, double secondsOffField = 0.0)
     {
-        // Rule 1: same menu gate as DesiredOffHand.
+        // Rule 1. Same menu gate as DesiredOffHand.
         if (menuOpen && !inBattle) return GunSlingerSuppAction.Leave;
 
-        // Rule 2: the wielder switched away from every flagged weapon.
+        // Rule 2. The wielder switched away from every flagged weapon.
         if (!mainIsGS)
             return snap.HasSupp ? GunSlingerSuppAction.Restore : GunSlingerSuppAction.Leave;
 
-        // Rule 3: consent withheld (shield, or a player item in the off-hand): Dual Wield comes off too.
+        // Rule 3. Consent withheld (shield, or a player item in the off-hand): Dual Wield comes off too.
         bool consentWithheld = !IsEmptyShield(shield) || IsPlayerItem(off, snap, twinIds);
         if (consentWithheld)
             return snap.HasSupp ? GunSlingerSuppAction.Restore : GunSlingerSuppAction.Leave;
 
-        // Rule 4: already Dual Wield, steady state.
+        // Rule 4. Already Dual Wield, steady state.
         if (supp == GunSlinger.DualWieldKey) return GunSlingerSuppAction.Leave;
 
-        // Rule 5: grant or re-assert; same out-of-battle and twilight limits as the off-hand.
+        // Rule 5. Grant or re-assert; same out-of-battle and twilight limits as the off-hand.
         if (snap.HasSupp)
             return IsTwilight(inBattle, secondsOffField) ? GunSlingerSuppAction.Leave : GunSlingerSuppAction.Write;
         return inBattle ? GunSlingerSuppAction.Leave : GunSlingerSuppAction.SnapshotAndWrite;

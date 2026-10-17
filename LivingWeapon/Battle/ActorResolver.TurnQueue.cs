@@ -25,7 +25,7 @@ internal sealed partial class ActorResolver
         List<int>? weaponSet = null;    // hand-set of the first slot that contains actorWeapon
         bool weaponAmbiguous = false;   // two weapon-matched slots disagree on their full set
         List<int>? armed = null;        // first armed match (legacy path)
-        bool armedAmbiguous = false;    // legacy: two armed slots disagree on set
+        bool armedAmbiguous = false;    // legacy. Two armed slots disagree on set
         bool emptyMatch = false;
 
         for (int s = 0; s < Offsets.RosterSlots; s++)
@@ -47,7 +47,7 @@ internal sealed partial class ActorResolver
         // Weapon-matched wins when unambiguous.
         if (weaponSet != null && !weaponAmbiguous) { hands = weaponSet; return true; }  // weapon disambiguated
         // Unarmed band actor with its own empty-hands slot resolves to Empty rather than borrowing an armed fingerprint twin's weapon (b42f77a).
-        // Empty routes to KillTracker's _lethalUntracked no-credit path and also overrides the armedAmbiguous bail below: miss, never mis-credit.
+        // Empty routes to KillTracker's _lethalUntracked no-credit path and also overrides the armedAmbiguous bail below. Miss, never mis-credit.
         // Gated on emptyMatch so an armed unit with an unpopulated band field still takes the armed path.
         if (actorUnarmed && emptyMatch) { hands = Empty; return true; }
         if (armed != null && !armedAmbiguous) { hands = armed; return true; }  // legacy unique armed
@@ -83,7 +83,7 @@ internal sealed partial class ActorResolver
     }
 
     /// <summary>Reads the condensed turn-queue maxHp, hp and level and applies the sanity gate shared by the tq-fallback resolves.
-    /// False means no plausible unit: maxHp 0 or &gt;= 2000, or level outside 1..99. Each caller returns its own failure value.</summary>
+    /// False means no plausible unit. MaxHp 0 or &gt;= 2000, or level outside 1..99. Each caller returns its own failure value.</summary>
     private bool TryReadTqActor(out ushort maxHp, out ushort hp, out ushort level)
     {
         maxHp = _mem.U16(Offsets.TurnQueue + Offsets.TqMaxHp);
@@ -94,7 +94,7 @@ internal sealed partial class ActorResolver
 
     /// <summary>Twin filter for this resolver's three tq-fallback walks. Prefers real-position (gx/gy != 0,0) band seats over a
     /// roster unit's frozen (0,0) mirror, whose stale fields would make the resolve look ambiguous. Band.ActiveOwner and Wielder.Locate keep their own variants.
-    /// Verdicts: Skip ignores a (0,0) seat after a real match; Restart is the first real seat after (0,0)-only accumulation, so the caller
+    /// Verdicts. Skip ignores a (0,0) seat after a real match; Restart is the first real seat after (0,0)-only accumulation, so the caller
     /// discards and restarts; Keep accumulates normally. The caller owns the accumulation. Construct fresh per resolve.</summary>
     private struct TwinFilter
     {

@@ -9,7 +9,7 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed partial class ModdedPac
 {
-    /// <summary>Cached-offset fast path: read the bytes at <c>offset</c> and act on what is there.
+    /// <summary>Cached-offset fast path. Read the bytes at <c>offset</c> and act on what is there.
     /// <paramref name="stale"/> is true only when they match neither old nor new, the cue for a full search.
     /// Any I/O failure (FileShare, truncated file mid-session) is final.</summary>
     private PacPatchResult TryPatchAtOffset(long offset, byte[] oldBytes, byte[] newBytes, out bool stale)
@@ -32,7 +32,7 @@ internal sealed partial class ModdedPac
     }
 
     /// <summary>Write at the offset, flush to disk (<see cref="FileStream.Flush(bool)"/> with
-    /// <c>flushToDisk: true</c>, the probe's flush + fsync), then reopen and compare. Never throws; any
+    /// <c>flushToDisk. True</c>, the probe's flush + fsync), then reopen and compare. Never throws; any
     /// failure returns <see cref="PacPatchResult.Failed"/>.</summary>
     private PacPatchResult WriteAndVerify(long offset, byte[] newBytes)
     {

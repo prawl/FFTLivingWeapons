@@ -7,7 +7,7 @@ namespace LivingWeapon;
 /// HP-absorbing dark strike through the same JobCommand injection that ships Barrage, reusing its table
 /// primitives. Two differences from Barrage live here. Eligibility is a whitelist of sword command sets
 /// (Squire/Knight, via the primary job or a mounted secondary) plus Ramza's story sword forms, and
-/// NeedsInject takes any ability id. Still to confirm in game: that the granted ability shows its real
+/// NeedsInject takes any ability id. Still to confirm in game. That the granted ability shows its real
 /// name and that every resolvable job executes it. The stateful runtime (ShadowBlade.cs) is the next step.
 /// </summary>
 internal static class ShadowBladePolicy
@@ -31,7 +31,7 @@ internal static class ShadowBladePolicy
     {
         { 1, 25 },   // Squire (story variant)  -> Mettle rec 25
         { 2, 26 },   // Squire (story variant)  -> Mettle rec 26
-        { 3, 27 },   // Gallant Knight          -> Mettle rec 27  (live-confirmed: roster job-byte 3)
+        { 3, 27 },   // Gallant Knight          -> Mettle rec 27  (live-confirmed. Roster job-byte 3)
         { 4, 28 },   // Squire (story variant)  -> Mettle rec 28
     };
 

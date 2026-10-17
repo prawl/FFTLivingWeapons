@@ -21,19 +21,19 @@ internal static class LarcenyPolicy
     /// <summary>Never steal from an ally -- only enemies the wielder strikes.</summary>
     public static bool ShouldLatch(bool isEnemy) => isEnemy;
 
-    /// <summary>What to do with one struck foe once its top buff is picked. Skip: the wielder already wears
-    /// a stolen copy, so leave the foe alone (one foe per buff per term). Dispel: the wielder has the bit from
+    /// <summary>What to do with one struck foe once its top buff is picked. Skip. The wielder already wears
+    /// a stolen copy, so leave the foe alone (one foe per buff per term). Dispel. The wielder has the bit from
     /// its own source, so strip the foe without latching, and expiry never clears the wielder's own buff.
-    /// Steal: the wielder lacks it, so strip the foe and grant and latch it.</summary>
+    /// Steal. The wielder lacks it, so strip the foe and grant and latch it.</summary>
     public static LarcenyAction Decide(bool alreadyHeld, bool wielderHasBuff)
         => alreadyHeld ? LarcenyAction.Skip
          : wielderHasBuff ? LarcenyAction.Dispel
          : LarcenyAction.Steal;
 
-    /// <summary>A stealable buff: a band-relative status byte offset + its bit mask, with a label.</summary>
+    /// <summary>A stealable buff. A band-relative status byte offset + its bit mask, with a label.</summary>
     public readonly record struct Buff(string Name, int Off, byte Mask);
 
-    /// <summary>Priority order: the first buff the target has is the one stolen, so array order is the
+    /// <summary>Priority order. The first buff the target has is the one stolen, so array order is the
     /// precedence. Reraise, Haste, Protect, Shell, Reflect, Regen.
     /// Reraise (+0x47/0x20) denies a free revive and grants it. Haste (+0x48/0x08), Protect (+0x48/0x20),
     /// Shell (+0x48/0x10), Reflect (+0x49/0x02), Regen (+0x48/0x40).
@@ -48,7 +48,7 @@ internal static class LarcenyPolicy
         new("Shell",   Offsets.AShell,   Offsets.AShellBit),     // +0x48/0x10, under test 2026-06-15
         new("Reflect", Offsets.AReflect, Offsets.AReflectBit),   // +0x49/0x02, under test 2026-06-15
         new("Regen", Offsets.ARegen, Offsets.ARegenBit),         // +0x48/0x40, functional (heals each turn, observed live 2026-06-15)
-        // Float (+0x47/0x40) dropped 2026-06-15: the bit shows the icon but the unit does not float
+        // Float (+0x47/0x40) dropped 2026-06-15. The bit shows the icon but the unit does not float
         //   (observed live), and it is the lowest-value buff anyway.
     };
 

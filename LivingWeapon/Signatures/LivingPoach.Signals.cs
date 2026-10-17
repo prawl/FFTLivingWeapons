@@ -1,7 +1,7 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-167 Living Poach killer-signal reads: two stateless per-weapon reads off the deployed
+/// LW-167 Living Poach killer-signal reads. Two stateless per-weapon reads off the deployed
 /// main-hand wielder (Wielder.ResolveDeployedMainHand). Split from LivingPoach.cs, which holds the
 /// stateful executor; the executor receives these as injected delegates.
 /// Both inherit the resolve lane's limit. A credit naming an off-hand copy resolves to nobody, or

@@ -10,7 +10,7 @@ namespace LivingWeapon;
 /// Hide is the default; a reveal needs a player-side turn or TurnOrder.cs's CT+Speed lookahead showing
 /// the marked enemy is clearly further off (ProvokeHold.Policy.ActionFor, D1 revised in LW-127). Gates
 /// on the mark bit, not `meta[33].Signature`, so a real cast and the DEV planter (ProvokeSpike.cs,
-/// LWDEV) behave alike. Split: this file is the state machine, .Scan.cs the band walks, .Policy.cs the
+/// LWDEV) behave alike. Split. This file is the state machine, .Scan.cs the band walks, .Policy.cs the
 /// pure decisions and guarded bit writers. See docs/PROVOKE_AC.md.
 /// </summary>
 internal sealed partial class ProvokeHold : ISignature
@@ -68,12 +68,12 @@ internal sealed partial class ProvokeHold : ISignature
         _provokeTurns = provokeTurns ?? Tuning.ProvokeTurns;
     }
 
-    /// <summary>Both battle edges: reveal every identity ever flagged (ours only), scrub a live mark
+    /// <summary>Both battle edges. Reveal every identity ever flagged (ours only), scrub a live mark
     /// if armed, reset counters (AC 12/13). A hard process kill loses this, so it only covers
     /// same-process restarts.</summary>
     public void ResetBattle()
     {
-        // LW-133 ship switch: disabled means no writes, including these edge reveals and scrubs.
+        // LW-133 ship switch. Disabled means no writes, including these edge reveals and scrubs.
         if (!_enabled) return;
         foreach (var id in _everFlagged)
         {
@@ -142,7 +142,7 @@ internal sealed partial class ProvokeHold : ISignature
     {
         long markedEntry = LocateByIdentity(_mem, _markedId);
         bool markedLocated = markedEntry != 0;
-        if (markedLocated) _markedTile = ReadTile(_mem, markedEntry);   // criterion 15: keep it fresh while we still can
+        if (markedLocated) _markedTile = ReadTile(_mem, markedEntry);   // criterion 15. Keep it fresh while we still can
         _markedMissTicks = markedLocated ? 0 : _markedMissTicks + 1;
         bool markedMissedOut = !markedLocated && _markedMissTicks >= Tuning.ProvokeMarkedMissTicks;
         bool markedDead = markedLocated && !IsAlive(_mem, markedEntry);
@@ -153,14 +153,14 @@ internal sealed partial class ProvokeHold : ISignature
         _lastTick = now;
         bool watchdogElapsed = WatchdogElapsed(_liveElapsed, Tuning.ProvokeWatchdogSeconds);
 
-        // LW-131 (release gate) and LW-135 (hide/reveal) share one read per tick: does a player-side
+        // LW-131 (release gate) and LW-135 (hide/reveal) share one read per tick. Does a player-side
         // seat own the per-unit turn flag (ProvokeHold.Scan.cs)? Needed every armed tick.
         bool playerTurn = PlayerSideOwnsTurn(_mem);
         bool markedActive = MarkedIsActor(_mem, _markedId) && !playerTurn;
         // A falling edge completes a turn only after a rise since arming; cleared on use so
         // each turn needs its own rise (ProvokeTurns > 1).
         if (!_wasMarkedActive && markedActive) _sawFreshRise = true;
-        // LW-127 round-4: the falling edge that completes a turn also clears the engagement latch.
+        // LW-127 round-4. The falling edge that completes a turn also clears the engagement latch.
         if (TurnEnded(_wasMarkedActive, markedActive) && _sawFreshRise) { _markedTurns++; _sawFreshRise = false; _engaged = false; }
         _wasMarkedActive = markedActive;
 
@@ -256,7 +256,7 @@ internal sealed partial class ProvokeHold : ISignature
         _wasMarkedActive = false;
         _markedTurns = 0;
         _markedMissTicks = 0;
-        _engaged = false;   // LW-127 round-4: no stale latch into the next arm
+        _engaged = false;   // LW-127 round-4. No stale latch into the next arm
     }
 
     /// <summary>Placeholder (R3, criterion 18) for hiding the invisible icon without the AI-ignore

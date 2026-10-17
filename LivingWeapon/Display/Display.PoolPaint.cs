@@ -19,7 +19,7 @@ internal sealed partial class Display
     // verifying, e.g. after a save-load). Same count means same coverage; a lower count triggers the re-check below.
     private int _countAtCoverage;
 
-    // LW-165 stage 1: true once pool coverage has gone false->true in this launch. Never reset, so it
+    // LW-165 stage 1. True once pool coverage has gone false->true in this launch. Never reset, so it
     // is independent of _poolCovered. The first latch logs at Info (kill counters went live);
     // later re-latches (Invalidate, the LW-163 drained-cache heal) stay Debug.
     private bool _coverageAnnounced;
@@ -54,9 +54,9 @@ internal sealed partial class Display
         if (!_poolPaint) return false;
         if (_poolCovered)
         {
-            if (_sites.Count == _countAtCoverage) return true;                 // cheap steady-state: one int compare
-            if (CoversAllMeta()) { _countAtCoverage = _sites.Count; return true; }  // shrank but still covers: re-latch
-            _poolCovered = false;                                              // drained below coverage: fall through to re-locate
+            if (_sites.Count == _countAtCoverage) return true;                 // cheap steady-state. One int compare
+            if (CoversAllMeta()) { _countAtCoverage = _sites.Count; return true; }  // shrank but still covers. Re-latch
+            _poolCovered = false;                                              // drained below coverage. Fall through to re-locate
         }
 
         var regions = _poolLocator.CachedRegions;
@@ -69,7 +69,7 @@ internal sealed partial class Display
         }
         ReArmNoPoolRegionLog();   // the next drought gets its own transition line
 
-        // Commit 1B: scan every name-bearing baked region, but only when ShouldRunFullPoolScan allows.
+        // Commit 1B. Scan every name-bearing baked region, but only when ShouldRunFullPoolScan allows.
         // On an off-cadence tick the sites cache is unchanged and Tick falls through to the sweep.
         if (ShouldRunFullPoolScan())
         {
@@ -85,8 +85,8 @@ internal sealed partial class Display
         if (_poolCovered)
         {
             _countAtCoverage = _sites.Count;   // snapshot the count the re-check above compares against
-            LatchRegionCounts(regions);        // LW-257 commit 2: this beat's per-region baseline (own doc)
-            AnnounceCoverage(regions);         // LW-165 stage 1: this is always a false->true edge (see field doc)
+            LatchRegionCounts(regions);        // LW-257 commit 2. This beat's per-region baseline (own doc)
+            AnnounceCoverage(regions);         // LW-165 stage 1. This is always a false->true edge (see field doc)
         }
         // Promoted from #if LWDEV, rate-limited by PoolCoverageLogGate (Display.PoolPaintLog.cs).
         // Snapshot() is copied only when the gate logs.
@@ -99,7 +99,7 @@ internal sealed partial class Display
         return _poolCovered;
     }
 
-    /// <summary>LW-165 stage 1: called from the false->true latch site above only; the re-latch in the
+    /// <summary>LW-165 stage 1. Called from the false->true latch site above only; the re-latch in the
     /// short-circuit at the top of <see cref="MaybePoolPaint"/> never reaches here. The first call of a
     /// launch is the "kill counters just went live" moment, logged at Info with the paint-spot count and
     /// the time since Display's first Tick (Engine ticks Display only after the launch guard arms).
@@ -136,7 +136,7 @@ internal sealed partial class Display
     /// DisplaySweep) and feed each chunk to OnChunk, so the pool path shares the sweep's discovery,
     /// write discipline and foreign-refusal code.
     ///
-    /// allSuffixes: true searches every tracked id's suffix in a text-bearing chunk, not just the
+    /// allSuffixes. True searches every tracked id's suffix in a text-bearing chunk, not just the
     /// rotation slice, so a tally reset cannot leave a stale +N. Cost is about 121 ids x 2 encodings of
     /// FindAll passes per such chunk, tens of ms for a full 4MB chunk, on Engine's background loop and not
     /// the game thread. It runs on battle-exit, paused status-card and battle-enter Invalidate (LW-163,

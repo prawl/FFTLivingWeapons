@@ -34,7 +34,7 @@ internal readonly struct LandmarkReading
     public static implicit operator LandmarkReading(LandmarkVerdict verdict) => new(verdict);
 }
 
-/// <summary>One fact the guard checks: a diagnostic name and a probe that reads live memory. A probe
+/// <summary>One fact the guard checks. A diagnostic name and a probe that reads live memory. A probe
 /// does not throw; a failed read is Unreadable. See <see cref="LandmarkReading.Detail"/>.</summary>
 internal sealed class GuardLandmark
 {
@@ -79,7 +79,7 @@ internal sealed class FingerprintGuard
 
     public void Step()
     {
-        if (State != GuardState.Verifying) return;   // terminal: probe delegates are never invoked again
+        if (State != GuardState.Verifying) return;   // terminal. Probe delegates are never invoked again
 
         bool anyMismatch = false;
         bool anyUnreadable = false;

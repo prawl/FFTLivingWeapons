@@ -5,7 +5,7 @@ namespace LivingWeapon;
 
 /// <summary>Composes the one-line [battle-end] match report (logging facelift stage 3) from the
 /// per-battle counters. Pure over its inputs, so it is tested without an Engine. Tier crossings
-/// are derived by comparing the tier at (lifetime - battleCredits) with the tier at lifetime.</summary>
+/// are derived by comparing the tier at (lifetime, battleCredits) with the tier at lifetime.</summary>
 internal static class BattleSummary
 {
     /// <param name="battleCredits">weaponId -&gt; kills credited this battle.</param>
@@ -31,7 +31,7 @@ internal static class BattleSummary
         if (totalKills == 0)
             return $"Battle ended: no kills were credited; {turnsClause}";
 
-        // Kills clause: names with battle counts, most kills first (ties by name for stability).
+        // Kills clause. Names with battle counts, most kills first (ties by name for stability).
         var credited = new List<KeyValuePair<int, int>>(battleCredits);
         credited.Sort((a, b) => a.Value != b.Value ? b.Value.CompareTo(a.Value)
                                                    : string.CompareOrdinal(nameOf(a.Key), nameOf(b.Key)));

@@ -21,7 +21,7 @@ internal sealed partial class LaunchGuard
     private readonly uint _expectedSlot9;
     private readonly bool _forceSensingMismatch;
 
-    // Provenance for every value below: docs/LIVE_LEDGER.md [sentinel-out-of-battle-tuple] (owner
+    // Provenance for every value below. Docs/LIVE_LEDGER.md [sentinel-out-of-battle-tuple] (owner
     // tape 2026-10-16, tools/probes/tapes/sentinel_watch_20261016_163725.log) and
     // [slot0-battle-phase-values].
     /// <summary>slot0 and slot9 both read this from the title screen through the Orbonne opener until the first battle.</summary>

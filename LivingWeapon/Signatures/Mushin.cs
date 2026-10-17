@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Kiku-ichimonji's Mushin signature: a full wait turn (no move, no act) arms one charge, and the
+/// Kiku-ichimonji's Mushin signature. A full wait turn (no move, no act) arms one charge, and the
 /// wielder's next own action spends it.
 ///
 /// History (2026-07-09): rounds 1 to 4 tried other signals for the wait moment, then the enemy
@@ -11,23 +11,23 @@ namespace LivingWeapon;
 /// None read the wielder's own turn. Round 5 replaced them with the engine's per-unit turn flags.
 ///
 /// Turn-flag mapping (tools/probes/mushin_wait_probe.py, scratchpad/psxflags_watch.log; PSX offsets
-/// from FFHacktics, frame offset = PSX + 0x32, band offset = frame offset - Offsets.BandEntry (0x1C)):
-///   TURN FLAG  PSX 0x186, frame +0x1B8, band +0x19C: 1 while the move/act/wait menu is open.
-///   MOVED      PSX 0x187, frame +0x1B9, band +0x19D: set at the move, reset by the engine at the next turn open.
-///   ACTED      PSX 0x188, frame +0x1BA, band +0x19E: set at the action, same reset.
+/// from FFHacktics, frame offset = PSX + 0x32, band offset = frame offset, Offsets.BandEntry (0x1C)):
+///   TURN FLAG  PSX 0x186, frame +0x1B8, band +0x19C 1 while the move/act/wait menu is open.
+///   MOVED      PSX 0x187, frame +0x1B9, band +0x19D. Set at the move, reset by the engine at the next turn open.
+///   ACTED      PSX 0x188, frame +0x1BA, band +0x19E. Set at the action, same reset.
 ///   PSX 0x189, frame +0x1BB, band +0x19F is Ability Outcome (0x02 hit-by-ability, 0x01 turn-ended); unused here.
 ///
 /// Per resolved main-hand wielder (Wielder.ResolveDeployedMainHandAll) the previous turn flag is
 /// tracked per fingerprint, primed on first sight without deciding (safe mid-turn, since the engine
 /// resets MOVED/ACTED at that turn's open). On the falling edge (1 to 0) MOVED and ACTED are read
-/// and MushinPolicy decides: acted consumes the charge, neither moved nor acted arms it, move-only
+/// and MushinPolicy decides. Acted consumes the charge, neither moved nor acted arms it, move-only
 /// changes nothing. Each decision is logged at Debug. No other signals are used, and every read is
 /// per-wielder-entry and guarded.
 ///
-/// Offsets: the three band offsets were local consts until LW-55 stage 1 moved them to Offsets.cs
+/// Offsets. The three band offsets were local consts until LW-55 stage 1 moved them to Offsets.cs
 /// (ATurnFlag/AMoved/AActed); the earlier deferral was due to uncommitted LW-51 work (bf351db).
 ///
-/// Accepted residuals: (1) a reaction during the wielder's own menu window sets ACTED, turning a
+/// Accepted residuals (1) a reaction during the wielder's own menu window sets ACTED, turning a
 /// wait into a no-arm or consume, which fails safe; (2) auto-battle and charmed turns are untested;
 /// (3) twin/mirror frames carry frozen flags, but the twin-filtered Wielder.Locate prefers the real entry.
 ///
@@ -58,7 +58,7 @@ internal sealed partial class Mushin : ISignature
     /// captured without deciding and a legitimate 0 stays distinguishable.</summary>
     private readonly WielderKeyedStore<Box<int>> _prevTurnFlag = new();
 
-    private readonly ScopedLogger _slog;   // armed gate: a benched/below-tier Kiku must not narrate on console
+    private readonly ScopedLogger _slog;   // armed gate. A benched/below-tier Kiku must not narrate on console
     private bool _wasActive;
 
     public Mushin(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills,
@@ -105,14 +105,14 @@ internal sealed partial class Mushin : ISignature
         if (!_mem.Readable(entry + TurnFlagOffset, 1)) return;
         int cur = _mem.U8(entry + TurnFlagOffset);
 
-        // LW-252 stage 5: keyed via WielderKeyedStore (nameId primary, fp fallback). null means an
+        // LW-252 stage 5. Keyed via WielderKeyedStore (nameId primary, fp fallback). null means an
         // ambiguous nameId-0 tick for a fp two seeded twins already hold; skip this wielder this tick.
         var flag = _prevTurnFlag.GetOrCreate(nameId, fp, () => new Box<int> { Value = -1 });
         if (flag == null) return;
 
         if (flag.Value == -1)
         {
-            flag.Value = cur;   // first sight: prime only, never decide
+            flag.Value = cur;   // first sight. Prime only, never decide
             return;
         }
         int prev = flag.Value;
@@ -138,7 +138,7 @@ internal sealed partial class Mushin : ISignature
         }
         else if (MushinPolicy.ShouldArm(turnEnded: true, moved, acted))
         {
-            arm.Value = 1;   // idempotent: an already-armed wielder waiting again simply re-arms 1
+            arm.Value = 1;   // idempotent. An already-armed wielder waiting again simply re-arms 1
             ModLogger.Debug(LogVerb.Signature,
                 $"Mushin falling edge (level {fp.lvl}, brave {fp.br}, faith {fp.fa}): moved {moved}, acted {acted}, verdict ARM.");
             ModLogger.Event(LogVerb.Signature,

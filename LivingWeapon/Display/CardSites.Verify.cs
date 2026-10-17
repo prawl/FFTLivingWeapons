@@ -9,8 +9,8 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed partial class CardSites
 {
-    /// <summary>Live: the anchor reads back as expected. Mismatch: the read succeeded but the
-    /// bytes differ (buffer reused, never transient). Unreadable: the read failed (save-load
+    /// <summary>Live. The anchor reads back as expected. Mismatch. The read succeeded but the
+    /// bytes differ (buffer reused, never transient). Unreadable. The read failed (save-load
     /// window, heap generation boundary).</summary>
     internal enum AnchorState { Live, Mismatch, Unreadable }
 
@@ -49,8 +49,8 @@ internal sealed partial class CardSites
         return ByteEq(ck, kl) ? AnchorState.Live : AnchorState.Mismatch;
     }
 
-    /// <summary>Flavor-anchor state for a kills site: baked Flavor + Grows when _anchors
-    /// is null (production today, Engine.cs wires legends: null), else everything
+    /// <summary>Flavor-anchor state for a kills site. Baked Flavor + Grows when _anchors
+    /// is null (production today, Engine.cs wires legends. Null), else everything
     /// EarnedAnchors.AnchorsFor returns. Delegates to <see cref="MatchAnyAnchor"/>.</summary>
     private AnchorState VerifyKillsFlavor(Site s, CardPatterns.Entry pat)
     {

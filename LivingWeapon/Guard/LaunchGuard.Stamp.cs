@@ -29,7 +29,7 @@ internal sealed partial class LaunchGuard
     private bool _stampRead;
     private bool _stampKnown;
 
-    /// <summary>Test/diagnostic seam: null until the header was read, then whether it equals the
+    /// <summary>Test/diagnostic seam. Null until the header was read, then whether it equals the
     /// build this mod was made for.</summary>
     internal bool? BuildStampKnown => _stampRead ? _stampKnown : null;
 
@@ -53,7 +53,7 @@ internal sealed partial class LaunchGuard
 
     private bool TryReadForStamp(long addr, int len, out byte[] buf) => _mem.TryReadBytes(addr, len, out buf);
 
-    /// <summary>The main guard's first landmark: reads the header, latches and reports it once, and
+    /// <summary>The main guard's first landmark. Reads the header, latches and reports it once, and
     /// never returns Mismatch.</summary>
     private LandmarkReading ProbeBuildStamp()
     {
@@ -74,13 +74,13 @@ internal sealed partial class LaunchGuard
             ModLogger.Event(LogVerb.Startup, KnownStampLine(tds, soi));
             return;
         }
-        // Record only when something is off: a known stamp adds no record.
+        // Record only when something is off. A known stamp adds no record.
         _recorder?.Invoke("guard", $"build stamp unknown ({StampText(tds, soi)}; expected 0x{ExpectedTimeDateStamp:X8} / 0x{ExpectedSizeOfImage:X8})");
         // Under the drill both sides print identical numbers, so the line says why.
         ModLogger.Event(LogVerb.Startup, UnknownStampLine(tds, soi) + (_forceMismatch ? DrillStampSentence : ""));
     }
 
-    /// <summary>Called from the armed edge: when the mod armed on a stamp it does not know, say so
+    /// <summary>Called from the armed edge. When the mod armed on a stamp it does not know, say so
     /// once, calmly, with no OS message box.</summary>
     private void LogUnknownBuildIfAny()
     {

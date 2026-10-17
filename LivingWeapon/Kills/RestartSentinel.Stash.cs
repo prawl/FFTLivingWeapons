@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-233 deferred-verdict half of RestartSentinel: the stash state and its per-tick bookkeeping
+/// LW-233 deferred-verdict half of RestartSentinel. The stash state and its per-tick bookkeeping
 /// (ProcessStash), split out of RestartSentinel.cs for the 200-line trigger. Tick() and
 /// PresentRevive in RestartSentinel.cs still reach into this state. See
 /// RestartSentinelPolicy.ShouldStash for why the stash exists (the 0ms-join gap).

@@ -16,7 +16,7 @@ internal enum DespawnRefusal
 }
 
 /// <summary>
-/// LW-167 stage 3: guarded corpse despawn for Living Poach. Vanilla Poach leaves no corpse (no
+/// LW-167 stage 3. Guarded corpse despawn for Living Poach. Vanilla Poach leaves no corpse (no
 /// crystal, no chest), so a poached carcass must not linger. Production copy of the Ctrl+F5 dev
 /// instrument in BodyDoubleSpike.cs (#if LWDEV), which keeps its own private constants.
 /// Mechanism is the Proven row "DESPAWN any unit mid-battle, sprite and all" in

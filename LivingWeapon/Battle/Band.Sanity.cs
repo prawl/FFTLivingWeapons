@@ -1,7 +1,7 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-149 stage B: the shared per-band-slot sanity read that the signature modules' band walks (Plague, Ricochet,
+/// LW-149 stage B. The shared per-band-slot sanity read that the signature modules' band walks (Plague, Ricochet,
 /// Larceny, Maim, Kobu, Benediction, Puppeteer) used to duplicate. It guards the maxHp read, then rejects phantom slots:
 /// maxHp outside 1..1999 (exclusive bound, see <see cref="Band.EnemyFingerprints"/> for why it differs from the static-array
 /// sweep's inclusive 2000), level outside 1..99, or brave/faith outside 1..100. The hp-reading overload serves every caller but Plague.

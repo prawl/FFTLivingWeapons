@@ -9,7 +9,7 @@ namespace LivingWeapon;
 /// a save loads, but these patches must land before the game runs (menu registry and bag array are built once at boot,
 /// docs/research/ITEM_CAP_261_BREAK_JOURNEY.md). Each site verifies its expected old byte before writing and rolls back on any
 /// mismatch; a moved site is one log line, not a write. (Until LW-397 the caller also required a matching PE build key.)
-/// No raw pointer derefs: reads use ReadProcessMemory; writes lift the page to PAGE_EXECUTE_READWRITE with VirtualProtect,
+/// No raw pointer derefs. Reads use ReadProcessMemory; writes lift the page to PAGE_EXECUTE_READWRITE with VirtualProtect,
 /// call WriteProcessMemory, then restore protection. Failures return false, since an AV is uncatchable in .NET.
 /// Tests inject a dictionary-backed fake; the pinned-buffer suite drives the live adapter (as for LiveMemory).
 /// </summary>

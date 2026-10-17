@@ -5,7 +5,7 @@ using System.Threading;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-50 OS-level stand-down notice: a player who never opens livingweapon.log still learns the
+/// LW-50 OS-level stand-down notice. A player who never opens livingweapon.log still learns the
 /// mod went inert. Zero project dependencies (as FingerprintGuard.cs), so a sibling mod can copy this file.
 /// <see cref="Show"/> runs on the Engine tick thread from LaunchGuard's stand-down edge, and that thread
 /// also drains the flight recorder (FlightRecorder.DrainPending; LW-53, LaunchGuard.StandDown). A modal
@@ -18,7 +18,7 @@ internal static class StandDownNotice
     //   MB_OK            = 0x00000000 (single OK button; also the implicit default)
     //   MB_ICONWARNING   = 0x00000030 (warning triangle icon)
     //   MB_SETFOREGROUND = 0x00010000 (brings the message box window to the foreground)
-    //   MB_TOPMOST       = 0x00040000 (WS_EX_TOPMOST: stays above the fullscreen game window)
+    //   MB_TOPMOST       = 0x00040000 (WS_EX_TOPMOST. Stays above the fullscreen game window)
     private const uint MB_OK = 0x00000000;
     private const uint MB_ICONWARNING = 0x00000030;
     private const uint MB_SETFOREGROUND = 0x00010000;
@@ -41,7 +41,7 @@ internal static class StandDownNotice
             };
             thread.Start();
         }
-        catch { /* swallow: same doctrine, covering thread construction/start itself */ }
+        catch { /* swallow: same rule, covering thread construction and start */ }
     }
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]

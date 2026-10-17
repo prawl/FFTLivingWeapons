@@ -8,14 +8,14 @@ namespace LivingWeapon;
 /// and per-instance bookkeeping live in Barrage.cs.
 ///
 /// Record layout (2026-06-10 menu session; barrage_probe.py's "msb" flag is whole-u16 order and wrong,
-/// it rendered 358 as Aurablast/102). Record r has flags at ABILITY_BASE + r*25 - 3 =
+/// it rendered 358 as Aurablast/102). Record r has flags at ABILITY_BASE + r*25, 3 =
 /// [ExtAb byte0][ExtAb byte1][ExtRSM], then AbilityId1..16, RSMId1..6. Extend bits are MSB-first per
-/// byte (byte0 = slots 1-8, byte1 = slots 9-16), so slot 10 = 0x4000 as an LE u16. Anchor: Archer rec 8
+/// byte (byte0 = slots 1-8, byte1 = slots 9-16), so slot 10 = 0x4000 as an LE u16. Anchor. Archer rec 8
 /// = Aim+1..+8 as bytes 150-157 with byte0 = 0xFF (ids 406-413).
 ///
 /// Jobs (Archer 77 -> rec 8 menu-verified, Chemist 75 -> jobIdx 1 purchase-diff-verified; source is
 /// FFTHandsFree's CharacterData roster-job dict, PSX wheel order from 74). Generic band 74..92 maps to
-/// rec = job - 69, jobIdx = job - 74; Dancer 92 shares jobIdx 17 with Bard but keeps its own record
+/// rec = job, 69, jobIdx = job, 74; Dancer 92 shares jobIdx 17 with Bard but keeps its own record
 /// (Bard 22, Dance 23). Mime 93, unique story jobs, monsters and Dark Knight are unmapped.
 /// </summary>
 internal sealed partial class Barrage
@@ -58,7 +58,7 @@ internal sealed partial class Barrage
     }
 
     /// <summary>Resolve a secondary command record (roster +0x07 holds the JobCommand rec id) to its
-    /// learned jobIdx. Normal-executor records only: recs 5..23 minus Items 6, Aim 8, Jump 18, Throw 20,
+    /// learned jobIdx. Normal-executor records only. Recs 5..23 minus Items 6, Aim 8, Jump 18, Throw 20,
     /// Arithmeticks 21, plus the Mettle variants 25-27 (jobIdx 0; Mettle executed 358).</summary>
     public static bool TryResolveSecondary(int secondaryRec, out int jobIdx)
     {

@@ -52,13 +52,13 @@ internal sealed class DisplaySweep
     /// <summary>True once the current generation has exhausted all regions.</summary>
     public bool IsComplete => _genComplete;
 
-    /// <summary>Record that a chunk yielded paint sites: keep it hot, refresh its TTL, and reset the hot-rescan countdown.</summary>
+    /// <summary>Record that a chunk yielded paint sites. Keep it hot, refresh its TTL, and reset the hot-rescan countdown.</summary>
     public void MarkHot(long chunkStart) => _hot.Mark(chunkStart, _nowMs());
 
-    /// <summary>A count or target change: rescan hot chunks on the next Tick regardless of clock.</summary>
+    /// <summary>A count or target change. Rescan hot chunks on the next Tick regardless of clock.</summary>
     public void RequestRescan() => _hot.RequestRescan();
 
-    /// <summary>Menu buffers reallocated: start a new generation soon (subject to GenerationMinGapMs). Hot chunks are kept.</summary>
+    /// <summary>Menu buffers reallocated. Start a new generation soon (subject to GenerationMinGapMs). Hot chunks are kept.</summary>
     public void Invalidate() => _invalidatePending = true;
 
     /// <summary>Drive one cycle, hot phase then background phase, sharing budgetBytes. At least one background chunk runs while the generation is active.</summary>
@@ -113,7 +113,7 @@ internal sealed class DisplaySweep
         _genCompleteTime = now;
     }
 
-    /// <summary>Hot phase: re-offer chunks that yielded paint sites, evicting TTL-expired ones first.
+    /// <summary>Hot phase. Re-offer chunks that yielded paint sites, evicting TTL-expired ones first.
     /// A rotation cursor keeps a tight budget from starving any chunk. Returns the remaining budget.</summary>
     private long RunHotPhase(long now, long remaining, ChunkHandler onChunk)
     {

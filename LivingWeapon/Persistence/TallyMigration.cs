@@ -24,7 +24,7 @@ internal static class TallyMigration
         {
             int from = kv.Value?.MigratedFrom ?? 0;
             if (from <= 0 || from == kv.Key) continue;
-            if (meta.ContainsKey(from)) continue;   // the old id is living again: it keeps its own
+            if (meta.ContainsKey(from)) continue;   // the old id is living again. It keeps its own
             if (!plan.TryGetValue(from, out int already) || kv.Key < already) plan[from] = kv.Key;
         }
         return plan;

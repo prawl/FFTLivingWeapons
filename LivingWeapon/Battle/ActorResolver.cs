@@ -21,7 +21,7 @@ internal sealed partial class ActorResolver
     private int _periodStartTick = -1;     // -1 = not currently inside an acted-period
     private bool _corpseAnchorOk = true;   // KillTracker's per-tick corpse-anchor veto (V1)
 
-    /// <summary>Which path answered the last credit-worthy resolve: flags lane, register, or
+    /// <summary>Which path answered the last credit-worthy resolve. Flags lane, register, or
     /// turn-queue fallback. Feeds the latch log tag and KillTracker's fallback counters.</summary>
     internal ResolveSource LastResolveSource { get; private set; }
 
@@ -46,7 +46,7 @@ internal sealed partial class ActorResolver
     /// current ownership (pending-birth stamp &lt;= arrival tick). Pushed once per Poll tick from KillTracker.cs.</summary>
     public void SetCorpseAnchorOk(bool ok) => _corpseAnchorOk = ok;
 
-    /// <summary>True when the register path may answer: a period is open, no pending corpse outdates the
+    /// <summary>True when the register path may answer. A period is open, no pending corpse outdates the
     /// ownership, and ownership has been stable since before the period began.</summary>
     private bool RegisterPathOpen =>
         _register != null && _periodStartTick >= 0 && _corpseAnchorOk && _register.StableSince(_periodStartTick);
@@ -132,11 +132,11 @@ internal sealed partial class ActorResolver
     /// (KillTracker.Stamp.cs); weapon semantics stay in this class.</summary>
     internal List<int> HandsFromRoster(long rosterBase) => Hands(rosterBase);
 
-    /// <summary>LW-31 stage 3: raw right-hand id, no tracked-weapon filter. The 0/0xFF/0xFFFF sentinels tell
+    /// <summary>LW-31 stage 3. Raw right-hand id, no tracked-weapon filter. The 0/0xFF/0xFFFF sentinels tell
     /// unarmed from untracked gear (AttackRow.Policy.ComposeRow).</summary>
     public int RawMainHand(long rosterBase) => _mem.U16(rosterBase + Offsets.RRHand);
 
-    /// <summary>LW-31 stage 3: the roster slot's SpriteSet byte (Offsets.RSprite), the human/monster gate for
+    /// <summary>LW-31 stage 3. The roster slot's SpriteSet byte (Offsets.RSprite), the human/monster gate for
     /// the "Fists" row decision (AttackRow.Policy.HumanSprite).</summary>
     public byte SpriteOf(long rosterBase) => _mem.U8(rosterBase + Offsets.RSprite);
 
@@ -267,7 +267,7 @@ internal sealed partial class ActorResolver
         return true;
     }
 
-    /// <summary>The roster fingerprint match both roster walks share: does roster slot
+    /// <summary>The roster fingerprint match both roster walks share. Does roster slot
     /// <paramref name="b"/> belong to a unit with this live (level,brave,faith)? Level uses the level-drift rule
     /// (exact equality once disarmed main-hand signatures after a mid-battle level-up). Extend here when the
     /// fingerprint grows; ActorRegister.Bridge.cs keeps its own copy, so touch both.</summary>

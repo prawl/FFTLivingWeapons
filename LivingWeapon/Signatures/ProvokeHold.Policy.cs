@@ -13,7 +13,7 @@ internal sealed partial class ProvokeHold
     /// <summary>What to do to every player-side-but-bearer unit this tick.</summary>
     internal enum HideAction { Hide, Reveal }
 
-    /// <summary>The armed release decision for one tick. First match wins: bearer safety (BearerGone,
+    /// <summary>The armed release decision for one tick. First match wins. Bearer safety (BearerGone,
     /// BearerDead), then enemy state, then Watchdog last so a stuck hold names its real reason (AC 17).
     /// A transient locate miss (<paramref name="markedMissedOut"/> and <paramref name="markedLocated"/> both
     /// false) falls through; the debounce (decision 11) is in the caller's miss-tick counting.</summary>

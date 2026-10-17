@@ -7,22 +7,22 @@ using System.Threading.Tasks;
 namespace LivingWeapon;
 
 /// <summary>
-/// The Living Weapon runtime: one background loop that counts kills and applies stat
+/// The Living Weapon runtime. One background loop that counts kills and applies stat
 /// growth in battle. Detection and growth share the in-memory <see cref="KillTally"/>,
 /// which persists across sessions. Display painting is layered on top.
 /// </summary>
 internal sealed class Engine
 {
-    // Fast poll: at fast-forward a death's hp==0 window is brief and a 100ms loop missed kills.
+    // Fast poll. At fast-forward a death's hp==0 window is brief and a 100ms loop missed kills.
     // Growth runs every Nth tick (the counter now lives on the "growth" TickPhase row).
     private const int PollMs = 33;
 
     private readonly KillTally _tally;
-    private readonly PlaythroughReset _playthroughReset;   // LW-51 Tier-1: archives + resets the tally on a new-game opening
+    private readonly PlaythroughReset _playthroughReset;   // LW-51 Tier-1. Archives + resets the tally on a new-game opening
     private readonly Dictionary<int, int> _kills;
     private readonly LegendStore _legends;   // Reliquary Phase 1 deed ledger (docs/RELIQUARY_AC.md)
     private readonly Reliquary _reliquary;   // the battle-end summary reads BattleMarks
-    private readonly LivingPoach _livingPoach;   // LW-167 stage 2: the Poach carcass-drop executor
+    private readonly LivingPoach _livingPoach;   // LW-167 stage 2. The Poach carcass-drop executor
     private readonly KillTracker _tracker;
     private readonly TurnTracker _turns;
     private readonly NaturalLedger _naturalLedger;   // the shared cross-battle written-target memory
@@ -30,14 +30,14 @@ internal sealed class Engine
     private readonly Barrage _barrage;     // ticks in and out of battle (learn-screen hold)
     private readonly ShadowBlade _shadowBlade; // ticks pre-gate like Barrage
     private readonly Provoke _provoke;     // LW-123 arc 1; armed via id 33's signature block
-    private readonly ProvokeHold _provokeHold;   // LW-123 arc 2a: reads arc 1's mark and gates on the band bit
+    private readonly ProvokeHold _provokeHold;   // LW-123 arc 2a. Reads arc 1's mark and gates on the band bit
     private readonly ISignature[] _signatures;        // every signature module, battle-exit reset order
     private readonly ISignature[] _fieldSignatures;   // the in-battle tick order (Barrage ticks pre-gate instead)
     private readonly Display _display;
-    private readonly AttackCard _attackCard;   // LW-31 stage 2: the Attack-menu desc dossier painter
+    private readonly AttackCard _attackCard;   // LW-31 stage 2. The Attack-menu desc dossier painter
     private readonly WeaponPalette _weaponPalette;   // the per-turn weapon-sprite palette repaint
     private readonly WpTableHold _wpTableHold;   // turn-scoped WP write for the "wp"/"wp+faith" gun lanes
-    private readonly IconGlow _iconGlow;   // LW-295 cycle B: out-of-battle equip-icon glow-rim synced to kill tier
+    private readonly IconGlow _iconGlow;   // LW-295 cycle B. Out-of-battle equip-icon glow-rim synced to kill tier
     private readonly ExtendedInventory _extended;   // extended inventory (ids 261+); boot-armed from InjectHooks
     private readonly BattleState _battle = new();      // debounced in/out edges (slot9 sticks; mode flickers)
     private CancellationTokenSource? _cts;
@@ -61,18 +61,18 @@ internal sealed class Engine
 #if LWDEV
     private readonly TurnOwnerSpike _turnOwnerSpike;   // LW-31 stage 2 passive turn-owner correlation recorder, dev-only
     private readonly StatusSpike _statusSpike;   // cold-call the status apply engine (F2 canary / F4 chest-convert), dev-only
-    private readonly BodyDoubleSpike _bodyDoubleSpike;   // LW-58 Canary 8: duplicate a hovered unit into a real AI fighter (F5), dev-only
-    private readonly ProvokeSpike _provokeSpike;   // LW-123 arc 2a: plant the provoke mark without the real granted command (F6 / provoke_request.txt), dev-only
+    private readonly BodyDoubleSpike _bodyDoubleSpike;   // LW-58 Canary 8. Duplicate a hovered unit into a real AI fighter (F5), dev-only
+    private readonly ProvokeSpike _provokeSpike;   // LW-123 arc 2a. Plant the provoke mark without the real granted command (F6 / provoke_request.txt), dev-only
     private readonly NumeralSpike _numeralSpike;   // cold-call the floating number-popup builder (F8 / numeral_request.txt), dev-only
 #endif
 
     /// <param name="modDir">Mod deployment directory (meta.json lives here).</param>
     /// <param name="bannerToasts">Tier-up toast gate. Null falls back to Tuning.BannerToasts (LW-52 removed the launcher toggle).</param>
     /// <param name="devSeedKills">Dev-build kill seeding gate (compiled out of Release). Null seeds every weapon.</param>
-    /// <param name="devForceFingerprintMismatch">LW-50 dev knob: perturbs the expected PE build key so LaunchGuard
+    /// <param name="devForceFingerprintMismatch">LW-50 dev knob. Perturbs the expected PE build key so LaunchGuard
     /// reports an unknown build without standing down. Compiled always, wired under #if LWDEV in Mod.cs.</param>
-    /// <param name="mem">LW-150 S5: injectable memory seam. Null builds a <see cref="LiveMemory"/>; tests pass a fake.</param>
-    /// <param name="notice">LW-150 S5: stand-down notice for LaunchGuard. Null falls back to
+    /// <param name="mem">LW-150 S5. Injectable memory seam. Null builds a <see cref="LiveMemory"/>; tests pass a fake.</param>
+    /// <param name="notice">LW-150 S5. Stand-down notice for LaunchGuard. Null falls back to
     /// <see cref="StandDownNotice.Show"/>; tests pass a no-op so no Win32 dialog opens.</param>
     /// <param name="extended">the extended inventory. Null builds the live one; tests inject fakes.</param>
     /// <param name="devForceSensingMismatch">LW-395 dev drill (LW_FORCE_SENSING_MISMATCH, dev builds only): forces the
@@ -91,16 +91,16 @@ internal sealed class Engine
         ModLogger.Event(LogVerb.Save, $"Save files live at {save.SaveDir}.");
 
         _tally = KillTally.Load(save.Migrate("kills.json"));
-        // LW-51 Tier-1: Observe runs every tick post-arm, gated on the same inLive as the other modules.
+        // LW-51 Tier-1. Observe runs every tick post-arm, gated on the same inLive as the other modules.
         // LW-56 moved the call ahead of BattleState.Step so its detection edge can force an exit.
         _playthroughReset = new PlaythroughReset(save, _tally);
         _kills = _tally.Kills;
-        // Launch header L3: the tally as the disk held it, before the dev seed inflates it.
+        // Launch header L3. The tally as the disk held it, before the dev seed inflates it.
         ModLogger.Event(LogVerb.Save,
             LaunchHeader.ComposeTally(_tally.Total, _tally.Kills.Count, _tally.LoadedFrom));
         save.Migrate("legends.json");
         _legends = LegendStore.Load(save.SaveDir);   // Reliquary Phase 1 deed ledger, sibling of kills.json
-        // Launch header L4: the legends load summary.
+        // Launch header L4. The legends load summary.
         ModLogger.Event(LogVerb.Save,
             LaunchHeader.ComposeLegends(_legends.WeaponCount, _legends.TotalMarks, _legends.LoadedFrom));
         var meta = MetaLoader.Load(modDir);
@@ -108,7 +108,7 @@ internal sealed class Engine
         // before the dev seed, which would otherwise be summed into the new id.
         MigrateMovedDesigns(meta);
 #if LWDEV
-        // Dev build only: seed every weapon to max tier. Compiled out of Release (a runtime `if` on the
+        // Dev build only. Seed every weapon to max tier. Compiled out of Release (a runtime `if` on the
         // const would be unreachable code, CS0162). LW-52 removed the launcher toggle, so devSeedKills
         // is always null here; the != false guard stays for a future opt-out.
         if (Tuning.DevSeedAllKills && devSeedKills != false)
@@ -126,7 +126,7 @@ internal sealed class Engine
             recorder: Flight.Record, requestFlush: Flight.RequestFlush,
             forceSensingMismatch: devForceSensingMismatch ?? false,
             forceUnreadable: devForceGuardUnreadable ?? false);
-        // Read-only scout that ticks only while StoodDown; it never arms or writes (owner ruling: scout, not healer).
+        // Read-only scout that ticks only while StoodDown; it never arms or writes (a scout, never a healer).
         _anchorScout = new AnchorScout(live);
         _bannerToastsEnabled = bannerToasts ?? Tuning.BannerToasts;
         _toast = new BannerToast(meta, _kills, _bannerToastsEnabled);
@@ -148,54 +148,54 @@ internal sealed class Engine
         _promptSwap = new PromptSwap(_toast, live);
         _promptSwapHook = new PromptSwapHook(_promptSwap, live);
         _turns = new TurnTracker(live, Flight.Record);
-        // verbose: true so the event timeline always reaches the file at Debug tier via [trace]; the
-        // console stays at Info since LW-52. The sink also records each ev: line into the flight ring; the
+        // verbose. True so the event timeline always reaches the file at Debug tier via [trace]; the
+        // console stays at Info since LW-52. The sink also records each ev. Line into the flight ring; the
         // dual-emit composes here at the composition root (B2) so BattleLog never references Flight.
         // HasLiveWielder reads the same live memory as the other roster/band consumers.
         _tracker = new KillTracker(_kills, live, new HashSet<int>(meta.Keys),
                                    new BattleLog(verbose: true, sink: s => { ModLogger.Debug(LogVerb.Trace, s); Flight.Record("ev", s); }),
                                    Flight.Record, deeds: deeds, hasLiveWielder: id => Wielder.HasLiveWielder(live, id));
-        // Mushin stack count: one WielderKeyedStore shared by the trigger (Mushin) and the growth hold
-        // (GrowthEngine.HoldMushin). LW-252 stage 5: nameId primary, fp fallback (see WielderKeyedStore).
+        // Mushin stack count. One WielderKeyedStore shared by the trigger (Mushin) and the growth hold
+        // (GrowthEngine.HoldMushin). LW-252 stage 5. NameId primary, fp fallback (see WielderKeyedStore).
         var mushinArmed = new WielderKeyedStore<Box<int>>();
         // One NaturalLedger shared by every capture-natural hold (GrowthEngine's five lanes plus
         // Iai), so a baked value is recognized after a battle restart. Reset in ResetBattleState and on the new-game edge.
         _naturalLedger = new NaturalLedger();
         _growth = new GrowthEngine(meta, _kills, _turns, live, mushinArmed, _naturalLedger);
-        _barrage = new Barrage(meta, _kills, live);                 // Yoichi +3: grant Barrage command to the wielder
-        _shadowBlade = new ShadowBlade(meta, _kills, live);           // Sanguine +3: grant Shadow Blade (HP-draining dark strike)
-        _provoke = new Provoke(meta, _kills, live);                   // Defender +3: grant Provoke (LW-123 arc 1; grants only while id 33 carries its signature block)
-        _provokeHold = new ProvokeHold(_kills, live);                 // LW-123 arc 2a: the hold that reads arc 1's mark and hides the party from the provoked enemy
-        var extra = new ExtraTurn(_kills, live);                    // Zwill +3: a kill grants the killer an immediate extra turn
-        var eagle = new EagleEye(meta, _kills, _tracker, live);     // Eclipsebolt +3: hasten the wielder's OWN Doom procs to a 1-turn countdown (attributed only)
-        var ricochet = new Ricochet(meta, _kills, _tracker, live);  // Stormarc +3: bounce chip to nearest other enemy
-        var maim = new Maim(meta, _kills, _tracker, live);          // Huntress +3: struck enemies lose reactions N turns
-        var kobu = new Kobu(meta, _kills, _tracker, live);          // Kiyomori +3: on a melee hit, if foe's brave exceeds wielder's, raise wielder's current brave to match
-        var iai = new Iai(meta, _kills, live, _naturalLedger);       // Ame-no-Murakumo +3: hold every deployed wielder's Speed above the field max for the opening turn, released by the engine actor pointer (arrival or acted-edge match) naming the wielder's own band entry
-        var mushin = new Mushin(meta, _kills, mushinArmed, live);   // Kiku-ichimonji +3: a full wait turn (no move, no act) arms one charge, spent on the wielder's next own-turn action (LW-4 round 5: the literal PSX turn-flag design, no tracker dependency)
-        var plague = new Plague(meta, _kills, _tracker, mem: live); // Venombolt +3: poison never fades, ticks harder
-        var renewal = new Renewal(meta, _kills, _turns, live);     // Mending Staff +3: turn-edge regen aura to allies within 1 tile (Chebyshev)
-        var rapture = new Rapture(meta, _kills, _turns, live);      // Rod of Faith +3: low-HP Master Teleportation window
-        var font = new SpiritualFont(meta, _kills, _tracker, live); // Umbral Rod +3: a moved action restores HP and MP (id 56; the signature moved off the growth-only starter Wellspring, id 51)
-        var feign = new FeignDeath(meta, _kills, live);             // Wrathblade +3: a lethal hit becomes a played-dead corpse, engine auto-revives at ~10% HP
-        var larceny = new Larceny(meta, _kills, _tracker, _turns, live);  // Arcanum +3: steal the struck foe's buff onto the wielder (fades after N of the wielder's own turns)
-        var puppeteer = new Puppeteer(meta, _kills, _tracker, _turns, live, Flight.Record);  // Galewind +3: dominate a struck enemy for N of its turns (Puppeteer; successor to Charm-Lock, whose dormant module was deleted in LW-159). Flight.Record = the LW-5 recon tap (puppet-turn signals).
-        var benediction = new Benediction(meta, _kills, _tracker, live); // Sanctus Staff +3: ally HP rises boosted 30% while a Sanctus Staff is the last player to act (sticky latch, survives the charged-heal resolve gap)
-        var sanctuary = new Sanctuary(meta, _kills, live);               // Staff of the Magi +3: while the bearer lives, fallen allies are held from crystallizing
-        var choir = new Choir(meta, _kills, live);                       // Warlock's Staff +3: adjacent allies cast magick instantly (Non-charge aura)
-        // Sunderer +3: a full-wait turn bars the tile at the wielder's back (docs/BULWARK_AC.md).
+        _barrage = new Barrage(meta, _kills, live);                 // Yoichi +3. Grant Barrage command to the wielder
+        _shadowBlade = new ShadowBlade(meta, _kills, live);           // Sanguine +3. Grant Shadow Blade (HP-draining dark strike)
+        _provoke = new Provoke(meta, _kills, live);                   // Defender +3. Grant Provoke (LW-123 arc 1; grants only while id 33 carries its signature block)
+        _provokeHold = new ProvokeHold(_kills, live);                 // LW-123 arc 2a. The hold that reads arc 1's mark and hides the party from the provoked enemy
+        var extra = new ExtraTurn(_kills, live);                    // Zwill +3. A kill grants the killer an immediate extra turn
+        var eagle = new EagleEye(meta, _kills, _tracker, live);     // Eclipsebolt +3. Hasten the wielder's OWN Doom procs to a 1-turn countdown (attributed only)
+        var ricochet = new Ricochet(meta, _kills, _tracker, live);  // Stormarc +3. Bounce chip to nearest other enemy
+        var maim = new Maim(meta, _kills, _tracker, live);          // Huntress +3. Struck enemies lose reactions N turns
+        var kobu = new Kobu(meta, _kills, _tracker, live);          // Kiyomori +3. On a melee hit, if foe's brave exceeds wielder's, raise wielder's current brave to match
+        var iai = new Iai(meta, _kills, live, _naturalLedger);       // Ame-no-Murakumo +3. Hold every deployed wielder's Speed above the field max for the opening turn, released by the engine actor pointer (arrival or acted-edge match) naming the wielder's own band entry
+        var mushin = new Mushin(meta, _kills, mushinArmed, live);   // Kiku-ichimonji +3. A full wait turn (no move, no act) arms one charge, spent on the wielder's next own-turn action (LW-4 round 5. The literal PSX turn-flag design, no tracker dependency)
+        var plague = new Plague(meta, _kills, _tracker, mem: live); // Venombolt +3. Poison never fades, ticks harder
+        var renewal = new Renewal(meta, _kills, _turns, live);     // Mending Staff +3. Turn-edge regen aura to allies within 1 tile (Chebyshev)
+        var rapture = new Rapture(meta, _kills, _turns, live);      // Rod of Faith +3. Low-HP Master Teleportation window
+        var font = new SpiritualFont(meta, _kills, _tracker, live); // Umbral Rod +3. A moved action restores HP and MP (id 56; the signature moved off the growth-only starter Wellspring, id 51)
+        var feign = new FeignDeath(meta, _kills, live);             // Wrathblade +3. A lethal hit becomes a played-dead corpse, engine auto-revives at ~10% HP
+        var larceny = new Larceny(meta, _kills, _tracker, _turns, live);  // Arcanum +3. Steal the struck foe's buff onto the wielder (fades after N of the wielder's own turns)
+        var puppeteer = new Puppeteer(meta, _kills, _tracker, _turns, live, Flight.Record);  // Galewind +3. Dominate a struck enemy for N of its turns (Puppeteer; successor to Charm-Lock, whose dormant module was deleted in LW-159). Flight.Record = the LW-5 recon tap (puppet-turn signals).
+        var benediction = new Benediction(meta, _kills, _tracker, live); // Sanctus Staff +3. Ally HP rises boosted 30% while a Sanctus Staff is the last player to act (sticky latch, survives the charged-heal resolve gap)
+        var sanctuary = new Sanctuary(meta, _kills, live);               // Staff of the Magi +3. While the bearer lives, fallen allies are held from crystallizing
+        var choir = new Choir(meta, _kills, live);                       // Warlock's Staff +3. Adjacent allies cast magick instantly (Non-charge aura)
+        // Sunderer +3. A full-wait turn bars the tile at the wielder's back (docs/BULWARK_AC.md).
         // Built after _toast, which it takes.
         var bulwark = new Bulwark(meta, _kills, _toast, live);
-        // Order matters: reset runs extra..font with Barrage between Plague and Renewal. The in-battle
+        // Order matters. Reset runs extra..font with Barrage between Plague and Renewal. The in-battle
         // tick order excludes Barrage, which ticks pre-gate so learn screens are covered.
         _signatures = new ISignature[] { extra, eagle, ricochet, maim, kobu, iai, mushin, larceny, puppeteer, plague, _barrage, _shadowBlade, _provoke, _provokeHold, renewal, rapture, font, feign, benediction, sanctuary, choir, bulwark };
         _fieldSignatures = new ISignature[] { extra, eagle, ricochet, maim, kobu, iai, mushin, larceny, puppeteer, plague, _provokeHold, renewal, rapture, font, feign, benediction, sanctuary, choir, bulwark };
         save.Migrate("gunslinger.json");
-        // LW-368 round 2: sack reads follow the extended inventory's bag base once it arms. The lambda
+        // LW-368 round 2. Sack reads follow the extended inventory's bag base once it arms. The lambda
         // captures _extended, assigned below, and only runs later on a PrepRoster pass after BootArm.
         _gunSlinger = new GunSlinger(meta, _kills, save.SaveDir, live, recorder: Flight.Record, bagCountBase: () => _extended!.BagCountBase);
         // Marks are release-hidden on the equip card too, so legends is null here (the
-        // Attack card already skips the deed ledger via AttackCard.Resolve markLabel=null). Pass legends: _legends
+        // Attack card already skips the deed ledger via AttackCard.Resolve markLabel=null). Pass legends as _legends
         // to re-enable in Reliquary Phase 2, which rebuilds StoryLines/EarnedAnchors (the three-way anchor, decision 2).
         _display = new Display(meta, _kills, live, legends: null, poolPaint: Tuning.PoolPaintEnabled,
                                 recorder: Flight.Record, poolRegionSidecarPath: save.PathFor("pool_regions.json"));
@@ -233,7 +233,7 @@ internal sealed class Engine
         // Built last; the rows close over the subsystems through this engine.
         _phases = BuildPhases(this);
         LogNames.Init(meta);
-        // Launch header L5: the tracking line.
+        // Launch header L5. The tracking line.
         ModLogger.Event(LogVerb.Startup, $"Living Weapons is tracking {meta.Count} weapon types.");
     }
 
@@ -289,7 +289,7 @@ internal sealed class Engine
                 s => e!._gunSlinger.PrepRoster(inBattle: s.NowIn, secondsOffField: (s.Now - e._lastField).TotalSeconds)),
             new TickPhase("display-out", TickGates.OutOfBattle, 1, false, Array.Empty<string>(),
                 _ => e!._display.Tick(false)),
-            // LW-295 cycle B: out-of-battle equip-icon loose-tex sync (IconGlow.cs). Cadence 30 because kills
+            // LW-295 cycle B. Out-of-battle equip-icon loose-tex sync (IconGlow.cs). Cadence 30 because kills
             // only change in battle and a slow disk read must not run every 33ms.
             new TickPhase("icon-glow", TickGates.OutOfBattle, 30, false, Array.Empty<string>(),
                 _ => e!._iconGlow.Tick()),
@@ -328,10 +328,10 @@ internal sealed class Engine
             // Growth holds stats; every 3rd tick (~100ms) is plenty.
             new TickPhase("growth", TickGates.InBattle, 3, true, Array.Empty<string>(),
                 _ => e!._growth.Apply()),
-            // Not onField-gated: the facing prompt can render during mode-1 cast animations. Delivery fires from the game's own hook.
+            // Not onField-gated. The facing prompt can render during mode-1 cast animations. Delivery fires from the game's own hook.
             new TickPhase("toast", TickGates.InBattle, 1, false, new[] { "kill-poll" },
                 s => e!._toast.Tick(s.Changed)),
-            // LW-31 stage 2: the Attack-menu desc dossier painter.
+            // LW-31 stage 2. The Attack-menu desc dossier painter.
             new TickPhase("attack-card", TickGates.InBattle, 1, false, Array.Empty<string>(),
                 _ => e!._attackCard.Tick()),
             // The per-turn weapon-sprite palette repaint (WeaponPalette.cs).
@@ -358,14 +358,14 @@ internal sealed class Engine
         // Reads Changed from kill-poll; saves the tally and the Reliquary ledger when a kill landed.
         phases.Add(new TickPhase("save-on-change", TickGates.InBattle, 1, false, new[] { "kill-poll" },
             s => { if (s.Changed) { e!._tally.Save(); e._legends.SaveIfDirty(); } }));
-        // slot9 is still the battle sentinel; once off-field a beat (battleMode 0: world-map menu or post-battle), paint the card.
+        // slot9 is still the battle sentinel; once off-field a beat (battleMode 0. World-map menu or post-battle), paint the card.
         phases.Add(new TickPhase("paint", TickGates.InBattle, 1, false, Array.Empty<string>(),
             s =>
             {
                 if (BattleState.ShouldPaintCard(s.BattleStatus, s.OnField, (s.Now - e!._lastField).TotalSeconds, FieldSettleSeconds))
                     e._display.Tick(true);
                 else
-                    e._display.PaintCountsIfChanged();   // LW-91 stage 2: a mid-battle kill still follows onto the equip card
+                    e._display.PaintCountsIfChanged();   // LW-91 stage 2. A mid-battle kill still follows onto the equip card
             }));
 
         return phases.ToArray();
@@ -381,7 +381,7 @@ internal sealed class Engine
     /// (Barrage, ShadowBlade, Provoke), which still appear in <see cref="SignatureResetOrder"/>.</summary>
     internal IReadOnlyList<Type> FieldTickOrder => Array.ConvertAll(_fieldSignatures, s => s.GetType());
 
-    /// <summary>Test seam: the tick fan-out table. Pinned by EngineTests.</summary>
+    /// <summary>Test seam. The tick fan-out table. Pinned by EngineTests.</summary>
     internal IReadOnlyList<TickPhase> Phases => _phases;
 
     /// <summary>Late-injected by Mod.Start/StartEx once the loader resolves reloaded.sharedlib.hooks.
@@ -404,7 +404,7 @@ internal sealed class Engine
         var token = _cts.Token;
         Task.Run(async () =>
         {
-            // Launch header L6: liveness canary that closes the header.
+            // Launch header L6. Liveness canary that closes the header.
             ModLogger.Event(LogVerb.Startup, "The runtime loop has started.");
             while (!token.IsCancellationRequested)
             {
@@ -422,7 +422,7 @@ internal sealed class Engine
         _cts = null;
     }
 
-    /// <summary>Clear all per-battle state: kill tracker, turn clocks, growth holds, signature ledgers.
+    /// <summary>Clear all per-battle state. Kill tracker, turn clocks, growth holds, signature ledgers.
     /// Fires on both battle edges so a restart that skips a clean Exit still starts clean (Larceny
     /// stolen-buff carryover, 2026-06-15). Idempotent.</summary>
     private void ResetBattleState()
@@ -436,10 +436,10 @@ internal sealed class Engine
         _reliquary.ResetBattle();   // per-battle Marks ledger (the exit edge composes its summary before this runs)
         _livingPoach.ResetBattle();   // clears the per-corpse poach dedupe latch
         foreach (var sig in _signatures) sig.ResetBattle();
-        // Promote the ledger's write-set. Safe on both edges: it only fires for entries that
+        // Promote the ledger's write-set. Safe on both edges. It only fires for entries that
         // recorded something since the last promotion, so the exit+enter double reset keeps the history.
         _naturalLedger.OnBattleReset();
-        _attackCard.ResetBattle();   // LW-31 stage 2: restore vanilla to any live Attack-menu copies; the cache stays warm for the next battle's re-verify
+        _attackCard.ResetBattle();   // LW-31 stage 2. Restore vanilla to any live Attack-menu copies; the cache stays warm for the next battle's re-verify
         _weaponPalette.ResetBattle();   // the banks were just refreshed from file; the paint latch is stale by definition
         _wpTableHold.ResetBattle();     // the resident stats table gets no battle-load refresh, so a physical restore is mandatory
 #if LWDEV
@@ -470,10 +470,10 @@ internal sealed class Engine
         if (_lastMode == int.MinValue) _lastMode = battleMode;
         else if (battleMode != _lastMode) { Flight.Record("mode", $"battleMode {_lastMode} -> {battleMode}"); _lastMode = battleMode; }
         bool paused = _live.U8(Offsets.PauseFlag) == 1;
-        int eventId = _live.U16(Offsets.EventId);   // out-of-live: dialogue/cutscene; in-combat: nameId alias
+        int eventId = _live.U16(Offsets.EventId);   // out-of-live. Dialogue/cutscene; in-combat. NameId alias
         var now = DateTime.Now;
-        // A genuine in-battle frame: live modes, or the slot0 marker with a targeting/paused/event excuse.
-        // The marker alone lies: pre-1.5 it stuck at 0xFF after a battle QUIT, and the 1.5 post-quit value
+        // A genuine in-battle frame. Live modes, or the slot0 marker with a targeting/paused/event excuse.
+        // The marker alone lies. Pre-1.5 it stuck at 0xFF after a battle QUIT, and the 1.5 post-quit value
         // is unverified (LW-42; Offsets.Slot0InBattleMarker). Computed before BattleState.Step so
         // PlaythroughReset's detection edge can reach Step as a forced exit on the same tick.
         bool inLive = BattleState.InLiveBattle(slot0, battleMode, paused, eventId);
@@ -502,7 +502,7 @@ internal sealed class Engine
         bool battleDisplayed = BattleState.BattleDisplayed(slot9, battleMode);
         if (edge == BattleEdge.Entered) OnBattleEnter(slot0, slot9, battleMode);
 
-        // In-battle Status card (a paused, stable menu): paint the counter there too. LW-150 S5: the
+        // In-battle Status card (a paused, stable menu): paint the counter there too. LW-150 S5. The
         // PauseFlag is re-read here, fresher than `paused` above, because the game mutates it on other
         // threads between the two; folding into one read would shift StatusCardOpen by a tick.
         bool battleStatus = BattleState.StatusCardOpen(nowIn, battleMode,
@@ -531,15 +531,15 @@ internal sealed class Engine
         ModLogger.NoteBattleEdge();   // console-only per-battle dedup reset (C1); file sink unaffected
         ModLogger.EventWithTrace(LogVerb.BattleStart, "Battle started.",
             $"battle-start sentinels (slot0={slot0:X} slot9={slot9:X} mode={battleMode})");
-        // Archive the ring before the new battle's events pour in: sessions ending in a process kill never
+        // Archive the ring before the new battle's events pour in. Sessions ending in a process kill never
         // fire the exit flush, so the enter edge rescues the previous battle's tail (observed 2026-07-04:
         // three sessions, zero archives).
         Flight.FlushBattleStart();
-        // Reset on enter too: a battle restart can re-enter without a clean Exit (pre-1.5 the slot0/slot9
+        // Reset on enter too. A battle restart can re-enter without a clean Exit (pre-1.5 the slot0/slot9
         // sentinels stuck, the quit-stick trap; the 1.5 restart values are unverified). Without it Larceny's
         // stale ledger re-applied stolen buffs in the new battle (2026-06-15).
         ResetBattleState();
-        // Drop the pool-paint coverage latch on entry too. Defense in depth: a save-load after the
+        // Drop the pool-paint coverage latch on entry too. Defense in depth. A save-load after the
         // previous exit's Invalidate() can swap the buffers under the latch with no exit edge to drop it.
         // A fast reload that eats the debounce gets no enter edge at all (LW-108's class); the count-gated
         // re-check in Display.PoolPaint.cs (MaybePoolPaint) covers that. The pool scan stacks on top of
@@ -558,13 +558,13 @@ internal sealed class Engine
             _turns.GlobalTurns, LogNames.Weapon, Tuning.TierFor);
         ModLogger.EventWithTrace(LogVerb.BattleEnd, summary,
             $"battle-end sentinels (slot0={slot0:X} slot9={slot9:X} mode={battleMode} paused={paused} event={eventId})");
-        // LW-56 D11/A3: re-emit the identity census on every exit (normal and forced). The enter-side census
+        // LW-56 D11/A3. Re-emit the identity census on every exit (normal and forced). The enter-side census
         // can miss a whole battle when oracle coverage never completes.
         _tracker.EmitExitCensus();
         ResetBattleState();
         _tally.Save();               // flush on battle end
         _legends.SaveIfDirty();      // Reliquary ledger, saved with the tally
-        // S2: flight flush is exit-only; ResetBattleState() runs on both edges, so it cannot live there.
+        // S2. Flight flush is exit-only; ResetBattleState() runs on both edges, so it cannot live there.
         Flight.FlushBattleEnd();
         _display.Invalidate();       // re-find the menu's freshly-allocated render copies
         ModLogger.NoteBattleEdge();  // console-only per-battle dedup reset (C1); file sink unaffected

@@ -10,7 +10,7 @@ using System.Collections.Generic;
 /// Band.ActorEntry (2026-07-01, tools/probes/unitid_probe.py "watch"; the pointer parks on the action's
 /// target at a caster's acted edge), then the turn-queue fingerprint match. The fallback bails on an
 /// ambiguous match but can still credit the wrong unit when one matches unambiguously (F1).
-/// Counts live in <see cref="WielderKeyedStore{TState}"/> (LW-252 stage 5: nameId first, fp fallback).
+/// Counts live in <see cref="WielderKeyedStore{TState}"/> (LW-252 stage 5. NameId first, fp fallback).
 /// </summary>
 internal sealed class TurnTracker
 {
@@ -43,7 +43,7 @@ internal sealed class TurnTracker
     /// <see cref="Turns(int,int,int,int)"/> so the query key matches the credit key.</summary>
     public int Turns(int level, int brave, int faith) => Turns(0, level, brave, faith);
 
-    /// <summary>LW-252 stage 5: lookup by <paramref name="nameId"/>, falling back to the fp lane when
+    /// <summary>LW-252 stage 5. Lookup by <paramref name="nameId"/>, falling back to the fp lane when
     /// it is 0 or unresolved (see WielderKeyedStore). Returns 0 on any miss; Probe never creates, so
     /// this is a pure read.</summary>
     public int Turns(int nameId, int level, int brave, int faith)
@@ -63,7 +63,7 @@ internal sealed class TurnTracker
             bool viaFallback = !viaFlags && !viaPointer && TryActiveFingerprint(out fp, out entry);
             if (viaFlags || viaPointer || viaFallback)
             {
-                // LW-252 stage 5: nameId from the entry that resolved fp (0 if unreadable).
+                // LW-252 stage 5. NameId from the entry that resolved fp (0 if unreadable).
                 // Settle only runs without a nameId; name-keyed credits never drift.
                 int nameId = entry != 0 ? _mem.U16(entry + Offsets.ANameId) : 0;
                 var key = nameId > 0 ? fp : Settle(fp);
@@ -100,7 +100,7 @@ internal sealed class TurnTracker
         return true;
     }
 
-    /// <summary>LW-94 part 2: a mid-battle level-up drifts the band fingerprint (observed 36 to 37)
+    /// <summary>LW-94 part 2. A mid-battle level-up drifts the band fingerprint (observed 36 to 37)
     /// while consumers such as Renewal.cs query the pre-battle roster fingerprint. If this key has
     /// no count but (level-1, brave, faith) does, the turn settles onto the old key. It can
     /// mis-settle a distinct fresh unit landing on the same key, an accepted rarity like the other

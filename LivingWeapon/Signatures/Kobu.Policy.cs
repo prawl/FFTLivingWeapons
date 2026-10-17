@@ -11,8 +11,8 @@ internal sealed partial class Kobu
     public static bool IsActive(WeaponSignature? sig, int tier)
         => Signatures.Earned(sig, tier) && sig!.BraveOneUp;
 
-    /// <summary>One-shot raise: returns the value to write to the wielder's current-brave byte,
-    /// or 0 for no write. Never lowers or writes sideways: min(cap, struckLive) must exceed wielderLive,
+    /// <summary>One-shot raise. Returns the value to write to the wielder's current-brave byte,
+    /// or 0 for no write. Never lowers or writes sideways. Min(cap, struckLive) must exceed wielderLive,
     /// and a wielder read outside 1..100 is ignored.</summary>
     public static int OneShotRaise(int wielderLive, int struckLive, int cap)
     {

@@ -25,7 +25,7 @@ internal static class MemBits
     {
         wasSet = false;
         if (!mem.Writable(addr, 1)) return false;
-        if (!mem.TryReadBytes(addr, 1, out var pre)) return false;   // failed read: bail, no write
+        if (!mem.TryReadBytes(addr, 1, out var pre)) return false;   // failed read. Bail, no write
         byte cur = pre[0];
         wasSet = (cur & mask) != 0;
         if (!wasSet) mem.W8(addr, (byte)(cur | mask));
@@ -37,7 +37,7 @@ internal static class MemBits
     internal static bool Clear(IGameMemory mem, long addr, byte mask)
     {
         if (!mem.Writable(addr, 1)) return false;
-        if (!mem.TryReadBytes(addr, 1, out var pre)) return false;   // failed read: bail, no false "clear"
+        if (!mem.TryReadBytes(addr, 1, out var pre)) return false;   // failed read. Bail, no false "clear"
         byte cur = pre[0];
         if ((cur & mask) != 0) mem.W8(addr, (byte)(cur & ~mask));
         return (mem.U8(addr) & mask) == 0;

@@ -3,7 +3,7 @@ using System;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-346 / LW-388 R12: install/restore for one hooked accessor entry (<see cref="ThunkStub"/>
+/// LW-346 / LW-388 R12. Install/restore for one hooked accessor entry (<see cref="ThunkStub"/>
 /// holds the byte emitters). The Denuvo build had a five-byte <c>E9</c> thunk at each of the ten
 /// accessors; the Denuvo-free exe (read on disk 2026-10-16, buildid 24304444) has the real
 /// bodies there, so the hook steals the first instructions instead of decoding a jump. Install

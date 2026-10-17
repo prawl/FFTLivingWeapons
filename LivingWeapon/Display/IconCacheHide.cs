@@ -8,7 +8,7 @@ namespace LivingWeapon;
 /// <summary>
 /// LW-381 second half. Hides a re-tiered icon's two drawn-icon cache records (parts and texture) so the next menu
 /// screen reloads it from modded.pac (written by IconGlow.Pac.cs). LIVE_LEDGER <c>[icon-cache-hide-reload]</c>, PROVEN 2026-09-01.
-/// Hide both records or neither: parts alone makes the icon vanish and return stale, so the texture hides first and
+/// Hide both records or neither. Parts alone makes the icon vanish and return stale, so the texture hides first and
 /// parts only after it did (<see cref="IconCacheHidePolicy.DecideOutcome"/>). A hide is a same-length in-place edit (name pointer +1, id/hash zeroed).
 /// <see cref="Hide"/> makes two passes (<see cref="SweepStrings"/>, <see cref="SweepPointers"/>; <see cref="ForEachChunk"/> aborts in battle) and skips pass 2 if pass 1 finds nothing.
 /// Writes are in IconCacheHide.Write.cs. Only the first-call 4 MB reader allocation (<see cref="OutOfMemoryException"/>) can throw; both callers in IconGlow.Hide.cs catch it.
@@ -17,7 +17,7 @@ internal sealed partial class IconCacheHide : IIconCacheHider
 {
     private readonly IGameMemory _mem;
     private readonly Func<bool> _inBattle;
-    private ChunkReader? _reader;   // D8: private, lazy -- never shared with Display's own sweep
+    private ChunkReader? _reader;   // D8. Private, lazy -- never shared with Display's own sweep
 
     // Warn once per launch. TextureMissing keys by id, a refused write by (id, surface).
     private readonly HashSet<int> _textureMissingWarnedOnce = new();
@@ -44,7 +44,7 @@ internal sealed partial class IconCacheHide : IIconCacheHider
             foreach (var t in targets) Report(t, new SurfaceOutcome(HideOutcome.Postponed, 0, 0, 0, 0), result);
             return result;
         }
-        if (stringMap.Count == 0)   // A3-13: nothing pass 2 could ever find -- skip its full sweep
+        if (stringMap.Count == 0)   // A3-13. Nothing pass 2 could ever find -- skip its full sweep
         {
             foreach (var t in targets) Report(t, new SurfaceOutcome(HideOutcome.NothingResident, 0, 0, 0, 0), result);
             return result;
@@ -124,7 +124,7 @@ internal sealed partial class IconCacheHide : IIconCacheHider
         }
 
         int partsHidden = 0;
-        if (texHidden > 0)   // COUPLING: never touch a parts entry unless a texture actually hid
+        if (texHidden > 0)   // COUPLING. Never touch a parts entry unless a texture actually hid
         {
             foreach (var h in parts)
             {

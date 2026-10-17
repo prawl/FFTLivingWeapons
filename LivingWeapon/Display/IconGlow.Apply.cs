@@ -24,7 +24,7 @@ internal sealed partial class IconGlow
         int unmanagedBefore = _unmanaged.Count;
         int judged = 0, written = 0;
         _pacPatchedThisApply = 0;
-        _pacAlreadyCurrentThisApply = 0;   // R2-6: counted separately from a real pac write
+        _pacAlreadyCurrentThisApply = 0;   // R2-6. Counted separately from a real pac write
         _hidesThisApply = 0;   // A3-1 (round 2): per-pass, or a pass with no hide reprints a stale count
         _pendingPacPatches.Clear();
         _pacPatchedThisPass.Clear();   // this pass' hide-eligible surfaces (RoutePacResult fills it)
@@ -120,7 +120,7 @@ internal sealed partial class IconGlow
                 allOk = false;
                 continue;
             }
-            QueuePacMirror(id, entry, oldBytes, bytes);   // ORDER LOAD-BEARING: loose tex first, pac second (flushed once, see ApplyDiff)
+            QueuePacMirror(id, entry, oldBytes, bytes);   // loose tex first, then pac (flushed once, see ApplyDiff)
         }
         return allOk;
     }

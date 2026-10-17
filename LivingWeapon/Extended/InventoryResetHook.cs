@@ -19,7 +19,7 @@ namespace LivingWeapon;
 /// and ecx is the mode. The routine ends with ret at 0x14028467C; 0x14028467D is the range-check abort.
 /// No direct caller exists (indirect dispatch), so the canary log line shows when it runs. Nothing
 /// proved eax unread, so the delegate returns nint and the detour passes rax through.
-/// Not restored: the second byte array 0x1411A7700 (per-item save state at struct +0x84AD), which
+/// Not restored. The second byte array 0x1411A7700 (per-item save state at struct +0x84AD), which
 /// stays zeroed for extended ids as in every live pass. The restore also ignores mode, so if New Game
 /// routes through here the previous save's extended counts return until the load edge re-seeds them
 /// (the canary logs the mode).
@@ -38,7 +38,7 @@ internal sealed class InventoryResetHook
     private readonly int _count;
     private readonly long _bagBase;
     private IHook<ResetFn>? _hook;
-    private ResetFn? _keepalive;   // GC anchor: the native thunk must outlive us
+    private ResetFn? _keepalive;   // GC anchor. The native thunk must outlive us
     private long _runs;
     private long _restores;
     private bool _canary;
@@ -61,7 +61,7 @@ internal sealed class InventoryResetHook
         TargetAddr = targetAddr == 0 ? Offsets.FnInventoryReset : targetAddr;
     }
 
-    /// <summary>Pure decision: install only when the guarded read succeeded and the entry carries
+    /// <summary>Pure decision. Install only when the guarded read succeeded and the entry carries
     /// <see cref="ExpectedPrologue"/> (HookLandmark.Verify's prefix compare).</summary>
     internal static bool ShouldArm(bool readOk, byte[]? prologue) => readOk && HookLandmark.Verify(prologue, ExpectedPrologue);
 

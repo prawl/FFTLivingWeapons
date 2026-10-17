@@ -6,7 +6,7 @@ namespace LivingWeapon;
 /// Mending Staff "Renewal": at each +3 wielder turn edge, the wielder and every ally within
 /// RegenAuraRadius (Chebyshev, so radius 1 includes diagonals; RenewalTests pins this) heal
 /// round(maxHP * Tuning.RenewalPct) of their own max HP, clamped at full. The band HP write is
-/// silent: no status icon or number, Regen bit untouched.
+/// silent. No status icon or number, Regen bit untouched.
 /// Config over the shared <see cref="HealPulse"/> core; pure rules are in Renewal.Policy.cs.
 /// </summary>
 internal sealed partial class Renewal : ISignature

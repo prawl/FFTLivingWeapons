@@ -10,6 +10,6 @@ internal sealed partial class Choir
     public static bool IsActive(WeaponSignature? sig, int tier)
         => Signatures.Earned(sig, tier) && sig!.InstantCastRadius > 0;
 
-    /// <summary>Main-hand only: the weapon must be in RRHand. Kills count from any hand.</summary>
+    /// <summary>Main-hand only. The weapon must be in RRHand. Kills count from any hand.</summary>
     public const bool ActivatesOnMainHandOnly = true;
 }

@@ -22,7 +22,7 @@ internal sealed partial class BannerToast
     private readonly Dictionary<int, int> _tiers = new();
     private readonly Dictionary<int, int> _counts = new();
     private readonly object _lock = new();
-    // The tuple's tier slot is the dedupe key: tiers use 1..3, Chronicle milestones the negated value (-1, -100, -250, -500, -1000).
+    // The tuple's tier slot is the dedupe key. Tiers use 1..3, Chronicle milestones the negated value (-1, -100, -250, -500, -1000).
     // Bulwark (Sunderer +3, docs/BULWARK_AC.md) reserves key 4 (Tuning.BulwarkToastKey) so its direct Enqueue cannot collide.
     internal readonly List<(int weaponId, int tier, string payload)> _queue = new();
 
@@ -80,7 +80,7 @@ internal sealed partial class BannerToast
 
             if (crossed != 0 && milestone == 1)
             {
-                // First blood on the same kill as a tier crossing: one merged toast keyed on the tier. Milestones of 100+
+                // First blood on the same kill as a tier crossing. One merged toast keyed on the tier. Milestones of 100+
                 // cannot coincide with a first kill, so they take the two-toast path below.
                 if (!Contains(id, crossed))
                 {
@@ -90,13 +90,13 @@ internal sealed partial class BannerToast
                 continue;
             }
 
-            if (crossed != 0 && !Contains(id, crossed))   // dedupe: queue membership
+            if (crossed != 0 && !Contains(id, crossed))   // dedupe. Queue membership
             {
                 string? sigLabel = crossed == 3 ? meta.Signature?.DisplayLabel : null;
                 Enqueue(id, crossed, Payload(meta.Name, crossed, _kills[id], sigLabel));
             }
 
-            // FIFO: a same-jump tier toast enqueues before the milestone toast.
+            // FIFO. A same-jump tier toast enqueues before the milestone toast.
             if (milestone != 0 && !Contains(id, -milestone))
                 Enqueue(id, -milestone, MilestonePayload(meta.Name, milestone));
         }
@@ -117,7 +117,7 @@ internal sealed partial class BannerToast
             // Static Flight.Record call; this class is too small to need an injected recorder.
             Flight.Record("toast", $"enqueued weapon={weaponId} tier={tier} payload=\"{payload}\"");
             if (_queue.Count <= QueueCap) return;
-            // Stale news loses: drop the oldest.
+            // Stale news loses. Drop the oldest.
             var dropped = _queue[0];
             _queue.RemoveAt(0);
             ModLogger.Event(LogVerb.Toast, $"The toast queue hit its cap of {QueueCap}; the oldest toast was dropped ({LogNames.Weapon(dropped.weaponId)}, tier {dropped.tier}).");

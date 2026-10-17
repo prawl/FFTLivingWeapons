@@ -12,12 +12,12 @@ internal static class VictimClass
     /// see CardLine.Compose). Unknown is never a Mark archetype (see LegendStore.RecordDeed).</summary>
     internal enum Archetype { Caster = 0, Human = 1, Monster = 2, Undead = 3, Unknown = 4 }
 
-    // Caster band sits inside the human 74-95 range, so it is checked first (AC precedence: undead > caster > human > monster > unknown).
+    // Caster band sits inside the human 74-95 range, so it is checked first (AC precedence. Undead > caster > human > monster > unknown).
     private static bool IsCasterJob(byte job) =>
         job is 79 or 80 or 81 or 82 or 85 or 90;
 
     private static bool IsHumanJob(byte job) =>
-        (job >= 74 && job <= 95) || job == 160;   // 160: Dark Knight's alternate id (both-ids rule)
+        (job >= 74 && job <= 95) || job == 160;   // 160. Dark Knight's alternate id (both-ids rule)
 
     private static bool IsMonsterJob(byte job) =>
         job >= 96 && job <= 144;

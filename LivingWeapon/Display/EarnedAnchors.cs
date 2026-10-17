@@ -25,13 +25,13 @@ internal sealed class EarnedAnchors
 
     public EarnedAnchors(CardPatterns pats) { _pats = pats; }
 
-    /// <summary>Rotate on a compose-change: previous := old current, current := line. An identical
+    /// <summary>Rotate on a compose-change. Previous := old current, current := line. An identical
     /// line is a no-op, and a length mismatch is refused and logged. Returns the evicted line (for
     /// LegendStore.RotatePainted's "lastPainted"), or null if nothing rotated.</summary>
     public string? SetCurrent(int weaponId, string line)
     {
         if (_current.TryGetValue(weaponId, out var existing) && existing.Line == line)
-            return null;   // dedup: identical content, no rotation
+            return null;   // dedup. Identical content, no rotation
 
         if (!TryEncode(weaponId, line, out var entry)) return null;
 

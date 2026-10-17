@@ -11,23 +11,23 @@ namespace LivingWeapon;
 /// per chunk.
 ///
 /// WHAT CHUNKING ACTUALLY BUYS -- corrected here after the round-1 comment claimed it "keeps the
-/// subsystem off the Large Object Heap entirely", which is arithmetically false: the LOH
+/// subsystem off the Large Object Heap entirely", which is arithmetically false. The LOH
 /// threshold is 85,000 bytes, and the default chunk size below (1,048,576 bytes) clears that
 /// twelve times over on its own, so chunking buys nothing there by itself. The real benefits are
 /// (a) a BOUNDED peak footprint -- one chunk-sized window live at a time instead of the whole
 /// ~65 MB file -- and (b) a streamable core that is unit-testable against a plain
 /// <see cref="MemoryStream"/> with no file system involved. Getting (a) right requires reusing
-/// the window buffer across iterations: the round-1 shape allocated a fresh window array per
+/// the window buffer across iterations. The round-1 shape allocated a fresh window array per
 /// chunk, which for a single-icon patch produced roughly 69 MB of LOH garbage -- MORE than the
 /// 65 MB read it existed to avoid -- and LOH collections are gen2 and STOP every MANAGED THREAD,
 /// Engine's 33 ms tick loop included. This class allocates its window buffer once per call and
 /// refills it in place every iteration.
 ///
-/// The one subtlety a naive chunked scan gets wrong: a needle that straddles the boundary
+/// The one subtlety a naive chunked scan gets wrong. A needle that straddles the boundary
 /// between two chunks is invisible to either chunk read alone. <see cref="FindBatch"/> carries
 /// the trailing bytes of each window forward as a prefix on the next read (sized to the LARGEST
 /// active needle, so a batch of mixed needle lengths is handled correctly too -- see its own
-/// remarks for why a naive "needle length - 1" carry is not safe once more than one needle length
+/// remarks for why a naive "needle length, 1" carry is not safe once more than one needle length
 /// is in play), and de-duplicates re-examined bytes by their absolute stream position rather than
 /// by re-deriving overlap-region math per needle. Deleting or shrinking that carry is the
 /// specific bug this class exists to make impossible -- see PacScanTests for the pinned case.
@@ -57,7 +57,7 @@ internal static class PacScan
     /// <summary>
     /// Scans <paramref name="stream"/> from its current position to its end for a single
     /// occurrence of EACH needle in <paramref name="needles"/>, in one sequential pass -- the
-    /// R2-2 fix: a per-needle loop over <see cref="FindSingle"/> re-reads the whole stream once
+    /// R2-2 fix. A per-needle loop over <see cref="FindSingle"/> re-reads the whole stream once
     /// per needle (242 managed icons over a 65 MB pac is ~15.7 GB of reads for one full re-tier),
     /// where this walks the stream once regardless of needle count. Returns one result per
     /// needle, same order and same NotFound/Ambiguous/offset convention as <see cref="FindSingle"/>.
@@ -102,7 +102,7 @@ internal static class PacScan
             if (haveCarry)
                 // Array.Copy is explicitly overlap-safe (unlike Buffer.BlockCopy, whose docs make
                 // no such guarantee) -- source and destination can be the same array here when
-                // windowLen - overlapLen < overlapLen (a small chunkSize in a test).
+                // windowLen, overlapLen < overlapLen (a small chunkSize in a test).
                 Array.Copy(window, windowLen - overlapLen, window, 0, overlapLen);
 
             int filled = ReadFully(stream, window, carry, chunkSize);
@@ -111,7 +111,7 @@ internal static class PacScan
 
             // Every position before `freshDataStart` was already fully covered (and searched) by
             // an earlier window; only hits that reach at or past it are newly discoverable this
-            // pass. This is what makes the mixed-needle-length carry safe: a short needle fully
+            // pass. This is what makes the mixed-needle-length carry safe. A short needle fully
             // contained in the old, re-copied-down portion of `window` would otherwise be found
             // (and counted) a second time here.
             long freshDataStart = windowAbsoluteStart + carry;
@@ -166,7 +166,7 @@ internal static class PacScan
 
     /// <summary>Fills <paramref name="buffer"/>[<paramref name="offset"/>..+<paramref name="count"/>)
     /// by looping <see cref="Stream.Read"/> until either the request is fully satisfied or the
-    /// stream truly ends. R2-5: <c>Stream.Read</c> may legally return fewer bytes than requested
+    /// stream truly ends. R2-5 <c>Stream.Read</c> may legally return fewer bytes than requested
     /// before EOF -- treating any short read as EOF would truncate the scan (a false NotFound at
     /// best; at worst a second occurrence past the truncation point is never seen, so a genuinely
     /// Ambiguous case is reported as a confident single hit and a write proceeds on the strength

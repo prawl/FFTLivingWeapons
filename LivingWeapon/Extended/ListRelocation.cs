@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-368 round 2: lifts the extended inventory past eleven items. The game keeps owned counts as one
+/// LW-368 round 2. Lifts the extended inventory past eleven items. The game keeps owned counts as one
 /// byte per item in a block that ends where Ramza's roster row begins, plus a second per-item byte list
 /// beside it, so a new id past that edge reads and writes Ramza's save data. This copies both lists onto
 /// a page the mod owns and re-points the 55 code fields that name the old blocks (table in
@@ -26,11 +26,11 @@ internal sealed partial class ListRelocation
     /// <summary>The page the two lists live on once installed; 0 before that.</summary>
     public long PageAddr { get; private set; }
 
-    /// <summary>Where the bag counts resolve right now: the new page's count copy once
+    /// <summary>Where the bag counts resolve right now. The new page's count copy once
     /// installed, else <see cref="Offsets.BagCountArray"/> (the vanilla block).</summary>
     public long CountBase { get; private set; } = Offsets.BagCountArray;
 
-    /// <summary>Where the sibling flag list resolves right now: the new page's copy once
+    /// <summary>Where the sibling flag list resolves right now. The new page's copy once
     /// installed, else <see cref="Offsets.SiblingListArray"/> (the vanilla block).</summary>
     public long SiblingBase { get; private set; } = Offsets.SiblingListArray;
 

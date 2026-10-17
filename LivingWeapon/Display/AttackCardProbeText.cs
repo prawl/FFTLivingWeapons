@@ -47,15 +47,15 @@ internal static class AttackCardProbeText
         byte[] textBytes = ByteScan.Enc(s, enc);
         var result = new byte[textBytes.Length + enc];
         Array.Copy(textBytes, result, textBytes.Length);
-        // The trailing bytes are zero-initialized: the NUL terminator.
+        // The trailing bytes are zero-initialized. The NUL terminator.
         return result;
     }
 
-    /// <summary>Offset of the desc string relative to a label hit at pos: the label's encoded bytes
+    /// <summary>Offset of the desc string relative to a label hit at pos. The label's encoded bytes
     /// plus its NUL (7 bytes for enc 1, 14 for enc 2).</summary>
     internal static int DescStart(int pos, int enc) => pos + (Label.Length + 1) * enc;
 
-    /// <summary>True when the label matches at pos and is a standalone C-string: NUL (or buffer
+    /// <summary>True when the label matches at pos and is a standalone C-string. NUL (or buffer
     /// start) just before pos, NUL just after the label. Stricter than HeaderProbeText.IsExactHit
     /// because "Attack" also appears inside prose ("Attacks", "attack power"). A boundary that
     /// cannot be checked inside the buffer counts as a miss.</summary>
@@ -72,7 +72,7 @@ internal static class AttackCardProbeText
             int beforePos = pos - enc;
             if (!IsEncodedNul(buffer, beforePos, enc)) return false;
         }
-        // pos == 0: buffer start satisfies the "before" boundary.
+        // pos == 0. Buffer start satisfies the "before" boundary.
 
         int afterPos = pos + pat.Length;
         if (!IsEncodedNul(buffer, afterPos, enc)) return false;
@@ -91,7 +91,7 @@ internal static class AttackCardProbeText
         int count = 0;
         while (count < capChars)
         {
-            if (pos < 0 || pos + enc > buffer.Length) break;   // ran off the buffer: stop, don't throw
+            if (pos < 0 || pos + enc > buffer.Length) break;   // ran off the buffer. Stop, don't throw
             if (IsEncodedNul(buffer, pos, enc)) break;         // terminator found
 
             char c = enc == 2 ? (char)(buffer[pos] | (buffer[pos + 1] << 8)) : (char)buffer[pos];

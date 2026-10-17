@@ -43,7 +43,7 @@ internal sealed class BattleCensus
     /// <summary>Re-arm for the next battle.</summary>
     public void ResetBattle() => _fired = false;
 
-    /// <summary>LW-56 D11/A3: run the census regardless of <see cref="_fired"/>, on the battle-exit
+    /// <summary>LW-56 D11/A3. Run the census regardless of <see cref="_fired"/>, on the battle-exit
     /// edge, so the exit tape always has one.</summary>
     internal void EmitExit() => RunCensus();
 

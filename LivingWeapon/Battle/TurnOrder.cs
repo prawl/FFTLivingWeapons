@@ -8,9 +8,9 @@ namespace LivingWeapon;
 /// clock model the 2026-07-27 phase-0 probe validated 15/15 (project() in
 /// tools/probes/provoke_lookahead_probe.py, not its leaders(), which diverges when two min-ETA
 /// units carry different Speeds).
-/// Player seats are excluded: ExtraTurn slams CT (band +0x25), Iai holds Speed (band +0x24), and
+/// Player seats are excluded. ExtraTurn slams CT (band +0x25), Iai holds Speed (band +0x24), and
 /// GrowthEngine holds Speed for growth. Offsets.ACtSlam says not to trust CT for the player's own turns.
-/// Stateless: each call walks the band fresh, so LW-139 can reuse it.
+/// Stateless. Each call walks the band fresh, so LW-139 can reuse it.
 /// </summary>
 internal static class TurnOrder
 {
@@ -32,15 +32,15 @@ internal static class TurnOrder
         return mem.U8(e + Offsets.ASpeed) > 0;
     }
 
-    /// <summary>Ticks until a seat's CT reaches the threshold: 0 if already there (CT can overshoot, the
+    /// <summary>Ticks until a seat's CT reaches the threshold 0 if already there (CT can overshoot, the
     /// probe read 110), else ceil(remaining / Speed).</summary>
     private static int RawEta(int ct, int speed) =>
         ct >= ActThreshold ? 0 : (int)Math.Ceiling((ActThreshold - ct) / (double)speed);
 
-    /// <summary>The probe's project() at depth 1: every candidate waits the minimum raw ETA, then the
+    /// <summary>The probe's project() at depth 1. Every candidate waits the minimum raw ETA, then the
     /// one with the highest CT acts (a further overshoot has waited longer). <paramref name="leaderEta"/>
     /// is that wait. False when no seat is a candidate. <paramref name="scratch"/> is caller-owned like
-    /// ProvokeHold's _hideScratch: this type is stateless and flight/logging run off the engine thread.</summary>
+    /// ProvokeHold's _hideScratch. This type is stateless and flight/logging run off the engine thread.</summary>
     internal static bool TryNextEnemyToAct(IGameMemory mem, List<(long e, int ct, int speed)> scratch,
         out long entry, out int leaderEta)
     {

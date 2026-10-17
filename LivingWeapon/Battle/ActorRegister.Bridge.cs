@@ -105,7 +105,7 @@ internal sealed partial class ActorRegister
             return RosterBridge.Player;
         }
 
-        // fpMatches == 0: the weapon key (D10, round 2).
+        // fpMatches == 0. The weapon key (D10, round 2).
         return RescueWeaponKey(bandWeapon, lvl, out rosterBase);
     }
 

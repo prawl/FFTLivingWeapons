@@ -8,7 +8,7 @@ namespace LivingWeapon;
 /// (<see cref="Offsets.ShopFlagsTable"/>), which has no rows past 255 (the builder's loop cap is widened by ExtendedSites). This class gives the builder a mirror page
 /// holding a live copy of the 512 vanilla bytes plus our flags for ids 261+, and re-points the builder's two references to the table at it
 /// (a rip-relative lea for the high byte, an image-relative disp32 for the low byte).
-/// The original table stays in place: the modloader and other mods keep writing it (at OnAllModsLoaded, after this arm) and the new-stock badge scan reads it.
+/// The original table stays in place. The modloader and other mods keep writing it (at OnAllModsLoaded, after this arm) and the new-stock badge scan reads it.
 /// <see cref="Sync"/> recopies it into the mirror when it changes, so partner shop edits still land.
 /// </summary>
 internal sealed class ShopFlagsMirror

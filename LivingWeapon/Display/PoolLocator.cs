@@ -13,13 +13,13 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed partial class PoolLocator
 {
-    /// <summary>Per-Step byte budget in battle: one ChunkReader.ChunkSize chunk, to keep the loop near 33ms (cf. Display's BudgetInBattle).
-    /// Retune 2026-08-18: the old per-call snapshot logged 100.5 to 157.7ms per tick; dropping one ~45ms snapshot per Step (tools/probes/vq_walk_cost.py) predicts 36 to 73s per scan.
-    /// Measured that day: 72.2s and 88.4s.</summary>
+    /// <summary>Per-Step byte budget in battle. One ChunkReader.ChunkSize chunk, to keep the loop near 33ms (cf. Display's BudgetInBattle).
+    /// Retune 2026-08-18. The old per-call snapshot logged 100.5 to 157.7ms per tick; dropping one ~45ms snapshot per Step (tools/probes/vq_walk_cost.py) predicts 36 to 73s per scan.
+    /// Measured that day 72.2s and 88.4s.</summary>
     internal const long LocateBudgetInBattle = 4L * 1024 * 1024;
 
     /// <summary>Same lane out of battle, four chunks per Step (Display's BudgetOutOfBattle is also 16MB).
-    /// Measured 2026-08-18: the cold-boot scan took 29.8s over 151 Steps (~197ms each), about double the predicted 85 to 90ms because the heap sweep shares those ticks.</summary>
+    /// Measured 2026-08-18. The cold-boot scan took 29.8s over 151 Steps (~197ms each), about double the predicted 85 to 90ms because the heap sweep shares those ticks.</summary>
     internal const long LocateBudgetOutOfBattle = 16L * 1024 * 1024;
 
     private readonly CardPatterns _pats;
@@ -72,7 +72,7 @@ internal sealed partial class PoolLocator
         _cached.AddRange(regions);
         _restartPending = false;
         _stale = false;
-        PublishGeneration++;   // commit 1B: a seed counts as a fresh region list
+        PublishGeneration++;   // commit 1B. A seed counts as a fresh region list
     }
 
     /// <summary>Aggregates PoolLocatorPolicy.Scan across the chunks of [rbase, rbase+rsize) via ChunkReader, since a pool can exceed ChunkSize.

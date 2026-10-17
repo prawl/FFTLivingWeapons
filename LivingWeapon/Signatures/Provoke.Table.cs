@@ -1,7 +1,7 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// Provoke's table lifecycle: the byte writes that repoint ability 189's effect (mechanism and
+/// Provoke's table lifecycle. The byte writes that repoint ability 189's effect (mechanism and
 /// LIVE_LEDGER provenance are in ProvokePolicy's class doc). Separate from the slot lifecycle in
 /// Provoke.cs.
 ///
@@ -44,7 +44,7 @@ internal sealed partial class Provoke
         long inflictAddr = ProvokePolicy.InflictRowAddr(ProvokePolicy.ProvokeInflictRow);
         CaptureOriginal(actionAddr, inflictAddr);
 
-        // Never write bytes we cannot restore: if the capture was partial, bail.
+        // Never write bytes we cannot restore. If the capture was partial, bail.
         if (!_tableCaptured) return;
 
         // Author the inflict row first and repoint the action byte last, so the ability never

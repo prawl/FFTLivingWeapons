@@ -35,7 +35,7 @@ public sealed class WeaponMeta
     [JsonProperty("migratedFrom")] public int MigratedFrom { get; set; }
 }
 
-/// <summary>A weapon's tier grant: at kill tier &gt;= AtTier the wielder gains the support
+/// <summary>A weapon's tier grant. At kill tier &gt;= AtTier the wielder gains the support
 /// passive AbilityId. Support slot only, so it never takes the player's reaction or movement slot.
 /// Baked from data/items.json into meta.json.</summary>
 public sealed class WeaponSignature
@@ -94,7 +94,7 @@ public sealed class WeaponSignature
     // Sanctuary (Staff of the Magi): fallen allies' crystal counter (combat +0x07 / band -0x15) held at SanctuaryHearts.
     [JsonProperty("antiCrystallize")] public bool AntiCrystallize { get; set; }
     // Kobu (Kiyomori): a melee hit raises the wielder's brave to the target's (band +0x0F), once,
-    // capped at Tuning.KobuBraveCap. Katana formula 1: PA x Brave/100 x WP.
+    // capped at Tuning.KobuBraveCap. Katana formula 1. PA x Brave/100 x WP.
     [JsonProperty("braveOneUp")] public bool BraveOneUp { get; set; }
     // Iai (Ame-no-Murakumo): wielder CT (band +0x25) held at 100 until their first turn ends.
     [JsonProperty("iai")] public bool Iai { get; set; }

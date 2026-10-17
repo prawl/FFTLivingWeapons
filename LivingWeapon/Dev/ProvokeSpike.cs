@@ -10,17 +10,17 @@ namespace LivingWeapon;
 /// testable on any save and job. Plants the mark arc 1's cast plants (composed +0x45/0x80, inflicted +0x1D3/0x80,
 /// blank status id 0, <see cref="ProvokeHold.MarkId"/>) on an enemy with two guarded <see cref="MemBits.OrSet"/>
 /// writes. ProvokeHold gates on the mark bit, so it is unchanged by this spike.
-/// Triggers as in StatusSpike: F6 (VK 0x75) and a marker file (<c>&lt;modDir&gt;/provoke_request.txt</c>, polled
+/// Triggers as in StatusSpike. F6 (VK 0x75) and a marker file (<c>&lt;modDir&gt;/provoke_request.txt</c>, polled
 /// ~0.5s, deleted on read). Moved off F3 on 2026-07-22 because F3 never registered on the owner's box; F6 is
-/// free since LW-67 stripped the old F6 spikes. No env vars: they do not survive the game's launch chain.
-/// Target: the hovered enemy if available (while paused, the condensed TurnQueue struct tracks the cursor,
+/// free since LW-67 stripped the old F6 spikes. No env vars. They do not survive the game's launch chain.
+/// Target. The hovered enemy if available (while paused, the condensed TurnQueue struct tracks the cursor,
 /// memory "condensed-struct-follows-hover", matched to a band seat by maxHp+level), else the first live enemy.
 /// Not StatusSpike.FindEnemy, which is scoped to cold-callable seats 8..28; this spike makes no cold call.
 /// Fires only while <see cref="Mem.WritesEnabled"/>, in a genuine inLive frame, with the game foreground.
 /// </summary>
 internal sealed class ProvokeSpike
 {
-    private const int VkF6 = 0x75;   // F6: owner-confirmed working on this box; F3 was eaten (see class doc)
+    private const int VkF6 = 0x75;   // F6. Owner-confirmed working on this box; F3 was eaten (see class doc)
 
     private readonly IGameMemory _mem;
     private readonly string? _requestPath;
@@ -39,7 +39,7 @@ internal sealed class ProvokeSpike
         _requestPath = string.IsNullOrEmpty(modDir) ? null : Path.Combine(modDir, "provoke_request.txt");
     }
 
-    /// <summary>In-battle loop tick: heartbeat, the F6 edge, and the ~0.5s marker-file poll, same shape
+    /// <summary>In-battle loop tick. Heartbeat, the F6 edge, and the ~0.5s marker-file poll, same shape
     /// as StatusSpike.Tick.</summary>
     public void Tick(bool inLive)
     {
@@ -53,7 +53,7 @@ internal sealed class ProvokeSpike
 
         if (!inLive) return;
         if (Pressed(VkF6, ref _f6Was)) Fire("F6");
-        if (_hbTick % 15 == 0) PollRequest();   // ~0.5s: responsive without hammering the disk
+        if (_hbTick % 15 == 0) PollRequest();   // ~0.5s. Responsive without hammering the disk
     }
 
     /// <summary>Consume a queued request file (presence alone is the trigger). Deleted first so a stale

@@ -7,7 +7,7 @@ namespace LivingWeapon;
 /// (id 56, tier 3) because tier 1 weapons carry no signatures. When the wielder's tile changes and
 /// holds for 3 ticks (MoveWatch, SpiritualFont.Policy.cs), it restores Tuning.FontHpPct of max HP
 /// and Tuning.FontMpPct of max MP, at most once per 90 ticks (about 3 s). Position polling is used
-/// because four engine-flag triggers failed in play: the global TurnTracker struct at 0x14077D2A0
+/// because four engine-flag triggers failed in play. The global TurnTracker struct at 0x14077D2A0
 /// follows the cursor, band +0x25 and +0x09 CT reads never ticked reliably, and the KillTracker
 /// actor latch missed the second action because the Acted flag at 0x14077CA8C pulses unreliably.
 /// The MP offsets (band +0x18/+0x1A) were checked on screen 2026-06-10, and MP writes stay off for
@@ -25,7 +25,7 @@ internal sealed partial class SpiritualFont : ISignature
     private readonly List<int> _hands = new();
     private readonly List<long> _locateAllBuf = new();   // reused buffer for LocateAll calls
     private readonly MoveWatch _watch = new();
-    private readonly ScopedLogger _slog;   // armed gate: a benched +3 rod stays quiet
+    private readonly ScopedLogger _slog;   // armed gate. A benched +3 rod stays quiet
     private int _moveCount;                // moves fired this battle (for logging)
     private bool _wasActive;
     private int _pulseTicks;             // Tuning.FontDevPulse clock
@@ -67,14 +67,14 @@ internal sealed partial class SpiritualFont : ISignature
         }
         if (!active)
         {
-            _watch.Reset();   // unequipped: re-baseline
+            _watch.Reset();   // unequipped. Re-baseline
             return;
         }
 
         // Only validate once a rod wielder is confirmed, so battles without the rod never sample the band.
         if (onField && !_mpChecked) ValidateMpLayout();
 
-        // Dev pulse: force a replenish every 300 ticks (about 10 s) to check the band addressing and
+        // Dev pulse. Force a replenish every 300 ticks (about 10 s) to check the band addressing and
         // writes on screen without movement. Checked 2026-06-10.
         if (Tuning.FontDevPulse && ++_pulseTicks >= 300)
         {
@@ -84,7 +84,7 @@ internal sealed partial class SpiritualFont : ISignature
             ModLogger.Debug(LogVerb.Signature, $"font development pulse {(_locateAllBuf.Count == 0 ? "could not locate the wielder" : "forcing a replenish to verify the writes")}");
             if (_locateAllBuf.Count > 0)
             {
-                long pe = _locateAllBuf[0];   // move 0: not a MoveWatch fire
+                long pe = _locateAllBuf[0];   // move 0. Not a MoveWatch fire
                 ReplenishAll(_locateAllBuf, 0, _mem.U8(pe + Offsets.AGx), _mem.U8(pe + Offsets.AGy));
             }
             else Wielder.DumpCandidates(_mem, _hands, fp);   // names the rejecting predicate

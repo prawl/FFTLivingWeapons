@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-257 commit 2: maintenance-beat plumbing shared by <see cref="Display.Tick"/> and
+/// LW-257 commit 2. Maintenance-beat plumbing shared by <see cref="Display.Tick"/> and
 /// <see cref="Display.PaintCountsIfChanged"/>, so the on-field path (Engine.cs calls only
 /// PaintCountsIfChanged there) repaints once a second too. Split from Display.cs (over the 200-line trigger).
 /// Every beat runs one PaintAll regardless of what is pending; the pending set only watches whether each
@@ -17,7 +17,7 @@ internal sealed partial class Display
     /// it. Internal so tests can inspect it.</summary>
     internal readonly Dictionary<int, int> _pendingIds = new();
 
-    /// <summary>Maintenance beat gate: true at most once per MaintenanceMs. It advances _lastMaintenanceMs
+    /// <summary>Maintenance beat gate. True at most once per MaintenanceMs. It advances _lastMaintenanceMs
     /// whenever it fires, even if the caller skips its paint, so Tick and PaintCountsIfChanged share one
     /// clock.</summary>
     private bool MaintenanceDue(long now)
@@ -79,7 +79,7 @@ internal sealed partial class Display
     /// DisplayHeartbeatTests.ProcessPending_after_invalidate_still_settles_ids_painted_at_new_addresses pins it.
     ///
     /// Six full pool scans on the 2026-08-18 pass took 631 to 689 ticks (65.4 to 101.7s, old blocking
-    /// LocateAll: 7 to 10s), so the permissive branch is common on a real tape. SnapshotRefreshMs
+    /// LocateAll 7 to 10s), so the permissive branch is common on a real tape. SnapshotRefreshMs
     /// (PoolScan.cs) should cut that by 29 to 32 percent; the next tape's "LW37 locate-complete" line
     /// gives the new figure.
     ///

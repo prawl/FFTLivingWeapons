@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-252 stage 5: reference-type box so a value (e.g. an int turn counter) can be a
+/// LW-252 stage 5. Reference-type box so a value (e.g. an int turn counter) can be a
 /// <see cref="WielderKeyedStore{TState}"/> state. Callers sharing a Box share its value.
 /// </summary>
 internal sealed class Box<T>
@@ -13,7 +13,7 @@ internal sealed class Box<T>
 }
 
 /// <summary>
-/// LW-252 stage 5: per-wielder state keyed on roster nameId, with the (level,brave,faith)
+/// LW-252 stage 5. Per-wielder state keyed on roster nameId, with the (level,brave,faith)
 /// fingerprint as a fallback. Replaces the fp-only keying that Iai, Larceny, Mushin and TurnTracker
 /// used, which shared state between fp-twin units.
 ///
@@ -24,11 +24,11 @@ internal sealed class Box<T>
 /// from each owner's ResetBattle.
 ///
 /// <see cref="Probe"/> (read-only) and <see cref="GetOrCreate"/> share one resolution rule.
-///   nameId > 0: a byName hit wins. Else a byFp hit is adopted (byName now aliases it). Else
+///   nameId > 0. A byName hit wins. Else a byFp hit is adopted (byName now aliases it). Else
 ///     GetOrCreate makes an entry under byName and the side map, and Probe returns null.
-///   nameId == 0: a byFp hit wins. Else if exactly one entry is on the side map for this fp it is
+///   nameId == 0. A byFp hit wins. Else if exactly one entry is on the side map for this fp it is
 ///     returned (a name-keyed unit whose nameId glitched). Two or more return null, since guessing
-///     could corrupt a different twin's state. None: GetOrCreate makes an entry under byFp and the
+///     could corrupt a different twin's state. None. GetOrCreate makes an entry under byFp and the
 ///     side map, and Probe returns null.
 ///
 /// A fp-twin pair where one member never resolves a nameId still shares one byFp state, as before
@@ -66,10 +66,10 @@ internal sealed class WielderKeyedStore<TState> where TState : class
             if (_byName.TryGetValue(nameId, out var byName)) return byName.State;
             if (_byFp.TryGetValue(fp, out var byFp))
             {
-                _byName[nameId] = byFp;   // alias-adopt: byFp keeps the entry too
+                _byName[nameId] = byFp;   // alias-adopt. ByFp keeps the entry too
                 return byFp.State;
             }
-            if (factory == null) return null;   // Probe: miss
+            if (factory == null) return null;   // Probe. Miss
             var created = new Entry { State = factory(), Fp = fp, ArmNameId = nameId };
             _byName[nameId] = created;
             AddSide(fp, created);
@@ -83,7 +83,7 @@ internal sealed class WielderKeyedStore<TState> where TState : class
                 if (side.Count == 1) return side[0].State;   // transient recovery
                 return null;                                  // 2+: ambiguous, skip
             }
-            if (factory == null) return null;   // Probe: miss
+            if (factory == null) return null;   // Probe. Miss
             var created = new Entry { State = factory(), Fp = fp, ArmNameId = 0 };
             _byFp[fp] = created;
             AddSide(fp, created);

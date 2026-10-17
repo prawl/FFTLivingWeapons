@@ -3,7 +3,7 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// The signature half of GrowthEngine: the ability or stat a weapon grants at its kill tier, held
+/// The signature half of GrowthEngine. The ability or stat a weapon grants at its kill tier, held
 /// on the combat struct beside the stat growth. Two kinds:
 ///   - support bit (always-on or HP-gated), OR-ed in at +0x98 (Signatures.ResolveSupport/ConditionMet);
 ///   - timed flat stat (first-N-turns), a Speed bonus written then reverted, gated by TurnTracker.
@@ -16,13 +16,13 @@ internal sealed partial class GrowthEngine
     private readonly HashSet<int> _grantLogged = new();
 
     // Support bits held this battle, so a mid-battle unequip (Rend/Steal mutate the roster live)
-    // releases the grant instead of letting it linger to battle end: (roster slot, weapon) ->
+    // releases the grant instead of letting it linger to battle end (roster slot, weapon) ->
     // (struct base, bit, ability id, the latch-time brave/faith for the same-unit check).
     private readonly Dictionary<(int slot, int weapon), (long s, int off, byte mask, int abilityId, int brave, int faith)>
         _heldSupports = new();
 
     /// <summary>Hold this weapon's signature support passive on the combat struct, once its
-    /// <summary>Hold this weapon's signature support passive once its kill tier is earned: OR the
+    /// <summary>Hold this weapon's signature support passive once its kill tier is earned. OR the
     /// bit in each tick to beat the engine's per-turn normalize. ReleaseUnequipped strips it if the
     /// weapon leaves the wielder's hands mid-battle. pickedSupport is the player's chosen roster
     /// support id (Offsets.RSupport), used for the redundancy note (0 = unknown).</summary>
@@ -32,14 +32,14 @@ internal sealed partial class GrowthEngine
         if (!Signatures.ResolveSupport(sig, tier, out int off, out byte mask)) return;
         if (!Signatures.ConditionMet(sig, hp, maxHp)) return;   // HP-gate; no-op for always-on signatures
         long addr = s + Offsets.CSupport + off;
-        // Latch and announce only a confirmed set: OrSet's read-back fails on an unwritable page or
+        // Latch and announce only a confirmed set. OrSet's read-back fails on an unwritable page or
         // a teardown race, and then we retry next tick so the once-per-battle log is not burned.
         if (!MemBits.OrSet(addr, mask, out _)) return;
         _heldSupports[(rosterSlot, weapon)] = (s, off, mask, sig!.AbilityId, brave, faith);
         LogGrantOnce(weapon, name, sig!, off, mask, addr, pickedSupport);
     }
 
-    /// <summary>Mid-battle unequip release: when a latched weapon is no longer in its wielder's
+    /// <summary>Mid-battle unequip release. When a latched weapon is no longer in its wielder's
     /// roster hands, clear the granted bit, unless it is the player's own picked support. Only
     /// clears while the latched struct still fingerprint-matches (units migrate between fixed
     /// slots; same rule as Maim.Drive). An unreadable roster slot keeps the latch.</summary>
@@ -78,7 +78,7 @@ internal sealed partial class GrowthEngine
                                int pickedSupport = 0)
     {
         if (!_grantLogged.Add(weapon)) return;
-        bool present = (_mem.U8(addr) & mask) != 0;   // read-back: did our write actually land?
+        bool present = (_mem.U8(addr) & mask) != 0;   // read-back. Did our write actually land?
         ModLogger.EventWithTrace(LogVerb.Grant,
             $"{name} bestows {sig.DisplayLabel} on its wielder.",
             $"grant detail (support ability {sig.AbilityId}, readback={(present ? "SET" : "MISS")}, +0x98[{off}]=0x{mask:X2})");
@@ -109,7 +109,7 @@ internal sealed partial class GrowthEngine
         return (hp2, maxHp2);
     }
 
-    /// <summary>One band pass: <paramref name="exact"/> is tier 1 (band nameId == rosterNameId,
+    /// <summary>One band pass <paramref name="exact"/> is tier 1 (band nameId == rosterNameId,
     /// only called with rosterNameId &gt; 0); otherwise tier 2 (fingerprint match, plus the D2 veto
     /// when rosterNameId &gt; 0).
     /// LW-252 stage 6, decision-4 exception (b): on the non-exact pass with rosterNameId &lt;= 0 and

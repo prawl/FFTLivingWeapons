@@ -1,7 +1,7 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// Applies a GunSlingerPolicy decision for one roster row: the guarded write, if any, and its log
+/// Applies a GunSlingerPolicy decision for one roster row. The guarded write, if any, and its log
 /// line. Split from GunSlinger.cs to stay under the 200-line trigger.
 /// </summary>
 internal sealed partial class GunSlinger
@@ -36,7 +36,7 @@ internal sealed partial class GunSlinger
                 ModLogger.Event(LogVerb.Signature, "The wielder's other hand is spoken for; the twin weapon stands down.");
                 return true;
             case GunSlingerOffAction.WriteEmptyAndDrop:
-                // A legacy off-hand item can't rejoin a shield-occupied hand: restoring it would recreate the
+                // A legacy off-hand item can't rejoin a shield-occupied hand. Restoring it would recreate the
                 // weapon+shield state the game zaps ([twin-grant-inventory-desync]). The id is logged for support.
                 ModLogger.Warn(LogVerb.Signature, $"A shield is equipped; the wielder's earlier off-hand item (id {snap.OrigOff}) could not return alongside it and was dropped. It cannot be recovered by this mod.");
                 WriteOffHand(b, GunSlingerPolicy.EmptyOffHand);

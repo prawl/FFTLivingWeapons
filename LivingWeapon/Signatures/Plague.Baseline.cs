@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace LivingWeapon;
 
-/// <summary>Per-slot poison baseline for the Plague latch: last-seen poison bit, unit fingerprint,
+/// <summary>Per-slot poison baseline for the Plague latch. Last-seen poison bit, unit fingerprint,
 /// and when the bit last rose at each band-slot address. Poison can land a tick before or after
 /// the acted window, so the latch compares edge time to window time within a grace. A unit first
 /// seen poisoned yields no edge; a fingerprint change resets the slot.</summary>
@@ -23,7 +23,7 @@ internal sealed class PlagueBaseline
             _baseline[addr] = new BaselineEntry(fp, poisoned, edge);
             return;
         }
-        // New slot or replaced unit: no prior, so no edge.
+        // New slot or replaced unit. No prior, so no edge.
         _baseline[addr] = new BaselineEntry(fp, poisoned, NoEdge);
     }
 

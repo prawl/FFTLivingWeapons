@@ -11,7 +11,7 @@ internal static partial class Band
 {
     /// <summary>Largest amount a live level may exceed the roster level and still match the same
     /// unit. The roster keeps the pre-battle level until battle end, so exact equality hid freshly
-    /// leveled units (2026-06-10: a Phoenix Down kill by a leveled Ramza paid the Wellspring Rod).
+    /// leveled units (2026-06-10. A Phoenix Down kill by a leveled Ramza paid the Wellspring Rod).
     /// Levels only rise mid-battle, so the window is one-sided; 9 covers a long grind.</summary>
     public const int MaxLevelDrift = 9;
 
@@ -74,7 +74,7 @@ internal static partial class Band
         (int, int, int) found = default;
         long foundEntry = 0;
         bool haveFp = false;
-        bool foundReal = false;   // twin filter: prefer real-position entries
+        bool foundReal = false;   // twin filter. Prefer real-position entries
 
         for (int s = 0; s < Offsets.BandSlots; s++)
         {
@@ -85,7 +85,7 @@ internal static partial class Band
             if (mem.U8(addr + Offsets.ALevel) != level) continue;
 
             bool realPos = mem.U8(addr + Offsets.AGx) != 0 || mem.U8(addr + Offsets.AGy) != 0;
-            // twin filter: skip (0,0) entries once a real-position match exists
+            // twin filter. Skip (0,0) entries once a real-position match exists
             if (foundReal && !realPos) continue;
             if (realPos && !foundReal && haveFp) { found = default; foundEntry = 0; haveFp = false; foundReal = true; }
             if (realPos) foundReal = true;

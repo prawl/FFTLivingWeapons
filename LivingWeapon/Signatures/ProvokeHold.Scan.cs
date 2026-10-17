@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// ProvokeHold's band walks: find the marked enemy, re-locate a seen identity, list hide targets.
+/// ProvokeHold's band walks. Find the marked enemy, re-locate a seen identity, list hide targets.
 /// Split out of ProvokeHold.cs to keep it under the 200-line trigger.
 /// Identity is the (nameId, maxHp, level, brave, faith) tuple that <see cref="Band.FlagOwner"/> and
 /// <see cref="Wielder"/> also use. A nonzero nameId on both sides must agree; otherwise the
@@ -34,7 +34,7 @@ internal sealed partial class ProvokeHold
         return a.nameId == 0 || b.nameId == 0 || a.nameId == b.nameId;
     }
 
-    /// <summary>Decision 6: enemy iff the friend/foe bit (band +0x1D2 bit 0x10) is set.</summary>
+    /// <summary>Decision 6. Enemy iff the friend/foe bit (band +0x1D2 bit 0x10) is set.</summary>
     private static bool IsEnemySide(IGameMemory mem, long e) =>
         (mem.U8(e + Offsets.AFriendFoe) & Offsets.AFriendFoeEnemyBit) != 0;
 
@@ -56,7 +56,7 @@ internal sealed partial class ProvokeHold
     /// during the player's own action. The flag is the band +0x19C menu-open flag (docs/LIVE_LEDGER.md,
     /// turn/moved/acted row, 2026-07-09); LW-87 (2026-07-21, not owner-flipped) saw it hold across a
     /// status-screen detour, and LW-135 (docs/TODO.md) banks a probe. The tick census saw FlagOwner
-    /// miss a player seat on all 804 enemy-turn ticks (FLAG-BRIDGE-FAIL 804). It fails open: no owner,
+    /// miss a player seat on all 804 enemy-turn ticks (FLAG-BRIDGE-FAIL 804). It fails open. No owner,
     /// or two disagreeing owners, returns false and the gate opens.</summary>
     private static bool PlayerSideOwnsTurn(IGameMemory mem) =>
         Band.FlagOwner(mem, out long owner, out _) && !IsEnemySide(mem, owner);
@@ -70,7 +70,7 @@ internal sealed partial class ProvokeHold
     internal static bool IsAlive(IGameMemory mem, long e) =>
         mem.U16(e + Offsets.AHp) > 0 && (mem.U8(e + Offsets.ADeadStatus) & Offsets.ADeadBit) == 0;
 
-    /// <summary>R2: true iff the composed status carries any of <paramref name="disablingIds"/>
+    /// <summary>R2. True iff the composed status carries any of <paramref name="disablingIds"/>
     /// (Tuning.ProvokeDisablingStatusIds), so the hold releases instead of lingering.</summary>
     internal static bool IsDisabled(IGameMemory mem, long e, int[] disablingIds)
     {
@@ -113,7 +113,7 @@ internal sealed partial class ProvokeHold
         return true;
     }
 
-    /// <summary>Re-locate a band entry by captured identity: a nonzero nameId match wins; otherwise
+    /// <summary>Re-locate a band entry by captured identity. A nonzero nameId match wins; otherwise
     /// the first real-position fingerprint match, then a frozen (0,0) twin. Side-agnostic, used for
     /// the marked enemy each armed tick and for a flagged ally at reveal time.</summary>
     private static long LocateByIdentity(IGameMemory mem, (int nameId, int mhp, int lvl, int br, int fa) id)
@@ -189,7 +189,7 @@ internal sealed partial class ProvokeHold
     {
         if (++_unarmableTicks < Tuning.ProvokeMarkedMissTicks) return;
         _unarmableTicks = 0;
-        if (!ClearMark(_mem, entry)) return;   // unwritable page: the next run of ticks retries
+        if (!ClearMark(_mem, entry)) return;   // unwritable page. The next run of ticks retries
         var id = ReadIdentity(_mem, entry);
         var (gx, gy) = ReadTile(_mem, entry);
         ModLogger.EventWithTrace(LogVerb.Signature,
@@ -198,7 +198,7 @@ internal sealed partial class ProvokeHold
         Flight.Record("provoke", $"scrub-unarmable nameId={id.nameId} tile={gx},{gy}");
     }
 
-    /// <summary>LW-130 / AC 3c: scrub a stray Provoke mark on the player's own side. Runs every live
+    /// <summary>LW-130 / AC 3c. Scrub a stray Provoke mark on the player's own side. Runs every live
     /// tick, independent of the hold's state. The bearer is walked too. Uses the mask-scoped
     /// ClearMark (ProvokeHold.Policy.cs), since composed +0x45 also holds Dead/Undead/Charging/Jump
     /// and KillTracker reads it.</summary>

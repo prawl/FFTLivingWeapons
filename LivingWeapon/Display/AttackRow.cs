@@ -11,7 +11,7 @@ internal sealed partial class AttackRow
 
     public AttackRow(IGameMemory mem) => _mem = mem;
 
-    /// <summary>Reads the 36-byte record at LabelAddr - RecordGap and classifies its shape. Never
+    /// <summary>Reads the 36-byte record at LabelAddr, RecordGap and classifies its shape. Never
     /// writes. Unreadable when the record cannot be read at all (foreign heap layout or a freed buffer).</summary>
     internal AttackRowShape Classify(long labelAddr)
     {

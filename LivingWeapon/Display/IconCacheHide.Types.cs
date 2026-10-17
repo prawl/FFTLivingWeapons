@@ -31,7 +31,7 @@ internal readonly record struct Needle(string Text, string Surface, NeedleKind K
 /// coupling rule between <see cref="Hidden"/> and <see cref="TextureMissing"/>.</summary>
 internal enum HideOutcome { Hidden, NothingResident, TextureMissing, Postponed, Refused }
 
-/// <summary>Per-surface result: records found by the pointer sweep (*Candidates) versus classified and
+/// <summary>Per-surface result. Records found by the pointer sweep (*Candidates) versus classified and
 /// verified-written (*Hidden).</summary>
 internal readonly record struct SurfaceOutcome(
     HideOutcome Outcome, int PartsCandidates, int PartsHidden, int TexCandidates, int TexHidden);

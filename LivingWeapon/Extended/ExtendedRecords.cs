@@ -8,7 +8,7 @@ namespace LivingWeapon;
 /// catalog record and the 8-byte ITEM_WEAPON_DATA stats row. Field order, sizes and enum values
 /// follow the modloader's ITEM_COMMON_DATA.cs and ITEM_WEAPON_DATA.cs (Nenkai, read 2026-08-27),
 /// so the extended XML uses the same names as vanilla rows. Checked against the Chaos Blade
-/// (id 37) in the 1.5.2 exe on disk, 2026-08-27: catalog <c>04 16 62 82 25 04 00 05 0A 00 14 00</c>,
+/// (id 37) in the 1.5.2 exe on disk, 2026-08-27. Catalog <c>04 16 62 82 25 04 00 05 0A 00 14 00</c>,
 /// stats <c>01 8E 01 FF 28 14 00 11</c> (byte +3 of a real stats row is 0xFF).
 /// </summary>
 internal static class ExtendedRecords

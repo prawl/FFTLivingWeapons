@@ -12,7 +12,7 @@ namespace LivingWeapon;
 internal sealed partial class AnchorScout
 {
     private const int MaxAmbiguousBasesListed = 8;
-    // RosterBase 0x1411A7D10 - InventoryCountBase 0x1411A7C00 = 0x110, stable across pre-1.5/1.5/1.5.1
+    // RosterBase 0x1411A7D10, InventoryCountBase 0x1411A7C00 = 0x110, stable across pre-1.5/1.5/1.5.1
     // (Offsets.cs:103,353; docs/research/PORT_1.5_OFFSETS.md:57-58), so a roster find predicts the
     // inventory base.
     private const long InventoryCountDelta = 0x110;

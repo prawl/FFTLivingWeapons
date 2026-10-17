@@ -5,7 +5,7 @@ namespace LivingWeapon;
 /// <summary>
 /// Per-ID suffix coverage for the rotation slice, kept as a set rather than a shared cursor.
 /// A cursor clamped to each chunk's id count let a small render buffer reset the one the
-/// 120-card master text was walking, so tail ids never got painted (live: bows missed their +3).
+/// 120-card master text was walking, so tail ids never got painted (live. Bows missed their +3).
 /// </summary>
 internal sealed class SuffixRotation
 {

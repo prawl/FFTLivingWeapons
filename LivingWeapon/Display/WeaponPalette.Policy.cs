@@ -2,7 +2,7 @@ using System;
 
 namespace LivingWeapon;
 
-/// <summary>What WeaponPalette.Tick does with the two resident palette banks: nothing, restore the
+/// <summary>What WeaponPalette.Tick does with the two resident palette banks. Nothing, restore the
 /// painted palette to its snapshot, paint the desired one (full 15-entry overwrite), or restore
 /// then paint (a palette switch). See <see cref="WeaponPalettePolicy.Decide"/>.</summary>
 internal enum WeaponPaletteAction { Nothing, Restore, Paint, RestoreThenPaint }
@@ -24,7 +24,7 @@ internal enum WeaponPaletteAction { Nothing, Restore, Paint, RestoreThenPaint }
 /// | (P,W,G0) | (P,W,G1), G1 != G0 | Paint (kill-tier glow changed, same overwrite) |
 ///
 /// "none" is -1/-1 for palette and weapon, matching <see cref="WeaponMeta.Palette"/>'s default
-/// (0 is a real palette, Materia Blade's). Glow has no sentinel: tier 0 means no glow.
+/// (0 is a real palette, Materia Blade's). Glow has no sentinel. Tier 0 means no glow.
 /// </summary>
 internal static class WeaponPalettePolicy
 {
@@ -49,7 +49,7 @@ internal static class WeaponPalettePolicy
         return paintedPal != desiredPal ? WeaponPaletteAction.RestoreThenPaint : WeaponPaletteAction.Paint;
     }
 
-    /// <summary>Brightens each BGR555 channel toward white by fraction f: c' = min(31, round(c + (31-c)*f)).
+    /// <summary>Brightens each BGR555 channel toward white by fraction f. C' = min(31, round(c + (31-c)*f)).
     /// Bit 15 is always returned clear (PaintBanks owns it, LW-308). Rounds half to even to match Python's
     /// round() in tools/probes/lw305_bench_paint.py (2dbab25): at f=0.75, 0x14B8 gives 0x631D, not 0x673D.</summary>
     public static int Brighten(int code, double f)
@@ -72,7 +72,7 @@ internal static class WeaponPalettePolicy
     }
 
     /// <summary>true when a bank's current entries (1..15) match neither the first-look vanilla
-    /// snapshot nor what this runtime last wrote: a foreign writer or a bad first look. Advisory; the
+    /// snapshot nor what this runtime last wrote. A foreign writer or a bad first look. Advisory; the
     /// caller logs and keeps painting, since re-memorizing would copy a bad first look into every restore.</summary>
     public static bool SnapshotSuspect(ushort[] current, ushort[] vanilla, ushort[]? lastWritten)
     {

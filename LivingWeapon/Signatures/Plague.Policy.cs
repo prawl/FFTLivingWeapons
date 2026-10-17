@@ -24,7 +24,7 @@ internal sealed partial class Plague
     public const int MaxHpGrowthPerLatch = Band.MaxLevelDrift * 25;
 
     /// <summary>True when the fingerprint still matches the held victim after a mid-battle level-up
-    /// (LW-92, 2026-07-14: level 95 to 96, maxHp 449 to 453). Brave and faith match exactly; level
+    /// (LW-92, 2026-07-14. Level 95 to 96, maxHp 449 to 453). Brave and faith match exactly; level
     /// is bounded by Band.MaxLevelDrift and maxHp by MaxHpGrowthPerLatch, both up-only.</summary>
     public static bool SameVictim((int mhp, int lvl, int br, int fa) captured, (int mhp, int lvl, int br, int fa) current)
         => current.br == captured.br && current.fa == captured.fa
@@ -57,7 +57,7 @@ internal sealed partial class Plague
         // LW-153 same-unit check. LW-92 drift is handled earlier by the caller's VerifyOrReanchor.
         if (!Band.SameUnitAtExact(mem, addr, fp)) return;
 
-        if (!inLive) return;   // A3: no writes during debounce tail / post-battle
+        if (!inLive) return;   // A3. No writes during debounce tail / post-battle
 
         long poisonAddr = addr + Offsets.APoison;
         if (mem.Writable(poisonAddr, 1))

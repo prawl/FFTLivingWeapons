@@ -35,7 +35,7 @@ internal enum UntrackedReason : byte
 /// stamped no culprit, and the caller must continue into ResolveCredit. docs/CHANGELOG.md has the
 /// LW-150 entry for the pre-split shape.
 ///
-/// LW-233 residual: ResolveCredit peeks the delayed-actor arm instead of consuming it before the
+/// LW-233 residual. ResolveCredit peeks the delayed-actor arm instead of consuming it before the
 /// restart latch check. The arm (Tuning.DelayedActorWindow, ~12 ticks) is still much shorter than
 /// RestartSentinelPolicy.LatchTicks (90), so an arm that fires while the latch is open can expire
 /// unclaimed and fall back to the ordinary culprit. That is a miss, never a mis-credit (see
@@ -74,7 +74,7 @@ internal sealed partial class KillTracker
     // buried; that death has an unknown killer and goes pending.
     //
     // The in-period stamp covers summons resolving during the caster's own acted-period. The
-    // cross-turn case is handled in KillTracker.Delayed.cs via _untrackedArmedTicks: the arm fires
+    // cross-turn case is handled in KillTracker.Delayed.cs via _untrackedArmedTicks. The arm fires
     // at Charging-bit clear and sets this at deadStreak==1 ahead of the Count>0 branch, so a live
     // armed latch cannot absorb the summon's kill.
     private readonly UntrackedReason[] _lethalUntracked = new UntrackedReason[Offsets.BandSlots];
@@ -114,7 +114,7 @@ internal sealed partial class KillTracker
     // ([boss-canonical-nameid-stable]). If a retry re-rolls them, enemy retries become misses.
     private readonly ushort[] _creditedNameId = new ushort[Offsets.BandSlots];
 
-    // Alive-edge belt: true = identity last seen alive (creditable), false = last seen dead.
+    // Alive-edge belt. True = identity last seen alive (creditable), false = last seen dead.
     // Set true on seenAlive and on revive, false on credit or expiry without an actor.
     private readonly Dictionary<(byte lvl, byte br, byte fa, ushort mhp), bool> _identityAlive = new();
 
@@ -142,7 +142,7 @@ internal sealed partial class KillTracker
         Array.Clear(_lethalActor, 0, _lethalActor.Length);
         Array.Clear(_lethalUntracked, 0, _lethalUntracked.Length);
         Array.Clear(_lethalViaFallback, 0, _lethalViaFallback.Length);
-        Array.Clear(_victimAtEdge, 0, _victimAtEdge.Length);   // Reliquary: clear every slot's captured snapshot
+        Array.Clear(_victimAtEdge, 0, _victimAtEdge.Length);   // Reliquary. Clear every slot's captured snapshot
         Array.Clear(_prevHp, 0, _prevHp.Length);               // LW-233
         Array.Clear(_creditedWeapons, 0, _creditedWeapons.Length);
         Array.Clear(_creditedViaFallback, 0, _creditedViaFallback.Length);
@@ -150,7 +150,7 @@ internal sealed partial class KillTracker
         Array.Clear(_creditedNameId, 0, _creditedNameId.Length);   // LW-233 FINDING 0
         _identityAlive.Clear();
         _oracle.ResetBattle();   // enemy identities + the coverage tick/flag
-        _victimProbe.ResetBattle();   // P1 probe: clear every slot's alive/edge snapshots
+        _victimProbe.ResetBattle();   // P1 probe. Clear every slot's alive/edge snapshots
     }
 
     /// <summary>one band slot's per-tick memory read, taken once at the top of the
@@ -211,9 +211,9 @@ internal sealed partial class KillTracker
                 _mem.U8(addr + Offsets.ALevel),
                 _mem.U8(addr + Offsets.ABrave),
                 _mem.U8(addr + Offsets.AFaith),
-                // Dead bit: +0x45/0x20 (Doom research). U8 returns 0 on unreadable address -- safe.
+                // Dead bit +0x45/0x20 (Doom research). U8 returns 0 on unreadable address -- safe.
                 (_mem.U8(addr + Offsets.ADeadStatus) & Offsets.ADeadBit) != 0,
-                _mem.U16(addr + Offsets.ANameId));   // LW-233 FINDING 0: the presented-identity nameId half
+                _mem.U16(addr + Offsets.ANameId));   // LW-233 FINDING 0. The presented-identity nameId half
 
             if (onField) ScanFieldEvidence(s, in slot);
 
@@ -287,9 +287,9 @@ internal sealed partial class KillTracker
             _lethalActor[s] = null; _lethalUntracked[s] = UntrackedReason.None;
             _creditedWeapons[s] = null; _creditedViaFallback[s] = false;   // a stale set could misattribute a later revive
             _creditedIdentity[s] = default;   // mirrors _creditedWeapons' own clear, same reasoning
-            _creditedNameId[s] = 0;   // LW-233 FINDING 0: mirrors _creditedIdentity's own clear
-            _victimProbe.Reset(s);   // P1 probe: a slot-reuse identity swap invalidates any stale snapshot
-            _victimAtEdge[s] = default;   // Reliquary: same invalidation for the captured snapshot
+            _creditedNameId[s] = 0;   // LW-233 FINDING 0. Mirrors _creditedIdentity's own clear
+            _victimProbe.Reset(s);   // P1 probe. A slot-reuse identity swap invalidates any stale snapshot
+            _victimAtEdge[s] = default;   // Reliquary. Same invalidation for the captured snapshot
             return;
         }
         _aliveStreak[s]++;
@@ -297,11 +297,11 @@ internal sealed partial class KillTracker
         {
             _seenAlive[s] = true;
             _slotId[s] = (slot.Lvl, slot.Br, slot.Fa);
-            _identityAlive[slot.Id] = true;   // alive-edge: creditable now
+            _identityAlive[slot.Id] = true;   // alive-edge. Creditable now
         }
         if (_seenAlive[s])
         {
-            // revive after a credited death: re-enable the alive-edge for this identity
+            // revive after a credited death. Re-enable the alive-edge for this identity
             if (_deadCredited[s])
             {
                 _identityAlive[slot.Id] = true;
@@ -326,19 +326,19 @@ internal sealed partial class KillTracker
             _lethalActor[s] = null; _lethalUntracked[s] = UntrackedReason.None;
             _creditedWeapons[s] = null; _creditedViaFallback[s] = false;   // clear every seenAlive tick, mirrors _lethalActor above
             _creditedIdentity[s] = default;   // mirrors _creditedWeapons' own clear, same reasoning
-            _creditedNameId[s] = 0;   // LW-233 FINDING 0: mirrors _creditedIdentity's own clear
-            // P1 probe: a revived victim's old dead-edge snapshot is stale. Clear it before
+            _creditedNameId[s] = 0;   // LW-233 FINDING 0. Mirrors _creditedIdentity's own clear
+            // P1 probe. A revived victim's old dead-edge snapshot is stale. Clear it before
             // CaptureAlive below repopulates the alive half, since this runs every seenAlive tick.
             _victimProbe.Reset(s);
-            // Reliquary: a no-credit death never reaches CreditKill's consume, so clear here or a
+            // Reliquary. A no-credit death never reaches CreditKill's consume, so clear here or a
             // revived identity carries a stale snapshot into its next death. After a real credit
             // CreditKill has already cleared it, so this is a no-op then.
             _victimAtEdge[s] = default;
         }
-        _victimProbe.CaptureAlive(s, slot.Addr);   // P1 probe: every consistent alive on-field tick
+        _victimProbe.CaptureAlive(s, slot.Addr);   // P1 probe. Every consistent alive on-field tick
     }
 
-    /// <summary>Dispatcher for one dead slot: guard clauses, then StampDeadEdge, OracleGate,
+    /// <summary>Dispatcher for one dead slot. Guard clauses, then StampDeadEdge, OracleGate,
     /// HandleOrphanAliveEdge and ResolveCredit.</summary>
     private void ScanDeadPath(int s, bool onField, in SlotSnapshot slot, ref bool changed)
     {
@@ -354,7 +354,7 @@ internal sealed partial class KillTracker
 
         if (!OracleGate(s, in slot)) return;
 
-        // alive-edge: credit only on alive->dead transition; a frozen twin is never alive here.
+        // alive-edge. Credit only on alive->dead transition; a frozen twin is never alive here.
         // Split PRESENT-false from ABSENT. Present-false means the identity already
         // resolved this battle (credited or no-credit) or is a same-tuple mirror clone, so keep
         // blocking. Absent means the alive-edge was stamped under a different maxHp than this death
@@ -368,7 +368,7 @@ internal sealed partial class KillTracker
                 _recorder?.Invoke("kill", $"no-credit slot={s} reason=identity-already-resolved");
                 return;
             }
-            // wasAlive == true: normal creditable path; fall through below.
+            // wasAlive == true. Normal creditable path; fall through below.
         }
         else
         {
@@ -388,9 +388,9 @@ internal sealed partial class KillTracker
         // Only one branch fires per edge; they are mutually exclusive on _lastPlayerWeapons.Count.
         if (_deadStreak[s] == 1)
         {
-            _victimProbe.CaptureDeadEdge(s, slot.Addr);   // P1 probe: log-only, zero behavioral dependence
-            _victimAtEdge[s] = VictimReader.Read(_mem, slot.Addr);   // Reliquary: the behavioral capture CreditKill consumes
-            _oracle.MarkDead(slot.Id);   // LW-34 evidence: a corpse was definitionally fielded
+            _victimProbe.CaptureDeadEdge(s, slot.Addr);   // P1 probe. Log-only, zero behavioral dependence
+            _victimAtEdge[s] = VictimReader.Read(_mem, slot.Addr);   // Reliquary. The behavioral capture CreditKill consumes
+            _oracle.MarkDead(slot.Id);   // LW-34 evidence. A corpse was definitionally fielded
             // TqTeam may flip a few ticks after death, so read it at the edge. Divert only on a
             // confident non-player team (1=enemy, 2=ally/guest). Any other value (0=player, garbage,
             // or an unreadable 0) takes the normal credit path so a bad read cannot suppress a
@@ -415,7 +415,7 @@ internal sealed partial class KillTracker
                 if (nonPlayerTurn)
                     _lethalUntracked[s] = UntrackedReason.EnemyTurn;   // counter/reaction on a non-player turn, so the stale player latch did not deal this blow; no-credit (miss beats mis-credit)
                 else
-                    // Tracked actor latched on a player turn: consult the death-edge culprit
+                    // Tracked actor latched on a player turn. Consult the death-edge culprit
                     // stamp (KillTracker.Stamp.cs), which keeps the latch unless the register
                     // names a fresher, disagreeing killer.
                     StampCulprit(s);
@@ -431,7 +431,7 @@ internal sealed partial class KillTracker
             }
             else if (!nonPlayerTurn)
             {
-                // Empty latch, no untracked verdict, player turn: the pending-hole extension
+                // Empty latch, no untracked verdict, player turn. The pending-hole extension
                 // (see StampCulpritFromHypothesisOnly, KillTracker.Stamp.cs).
                 StampCulpritFromHypothesisOnly(s);
             }
@@ -513,7 +513,7 @@ internal sealed partial class KillTracker
         List<int>? delayedCandidate = delayedPeek ? _delayedActor : null;
         if (delayedCandidate == null && _lethalUntracked[s] != UntrackedReason.None)
         {
-            // Stamped during a roster player's turn with no tracked weapon. Credit nobody: a
+            // Stamped during a roster player's turn with no tracked weapon. Credit nobody. A
             // summoner/dancer/item-user's AoE kill is intentionally uncredited.
             _deadCredited[s] = true; _pending[s] = false; _identityAlive[slot.Id] = false;
             LogUntrackedBury(s);
@@ -540,7 +540,7 @@ internal sealed partial class KillTracker
             bool viaFallback = delayed == null && (_lethalActor[s] != null ? _lethalViaFallback[s] : _latchViaFallback);
             bool c = CreditKill(s, slot.Gx, slot.Gy, culprit, viaFallback, delayedOrCharged: delayed != null, identity: slot.Id);
             _deadCredited[s] = true;
-            // LW-68/D2/B5: burn the shared alive-edge only when a credit landed. A refused credit
+            // LW-68/D2/B5. Burn the shared alive-edge only when a credit landed. A refused credit
             // (no live wielder) leaves it true so a later wielder-backed kill of the same tuple can
             // still credit. The other no-credit paths adjudicated or exhausted the search, so only
             // this one needs the guard.
@@ -561,7 +561,7 @@ internal sealed partial class KillTracker
         {
             _deadCredited[s] = true; _pending[s] = false;
             _lethalActor[s] = null; _lethalUntracked[s] = UntrackedReason.None;
-            _victimAtEdge[s] = default;   // Reliquary: this no-credit path never reaches CreditKill's consume
+            _victimAtEdge[s] = default;   // Reliquary. This no-credit path never reaches CreditKill's consume
             _identityAlive[slot.Id] = false;
             _klog.Warn($"The killer of the enemy at battle slot {s} could not be determined; the kill goes uncredited.");
             ModLogger.Debug(LogVerb.Trace, $"kill expiry detail (waited {_pendingAge[s]} ticks, {_actedFalls - _pendingFalls[s]} turn edges, battle slot {s})");

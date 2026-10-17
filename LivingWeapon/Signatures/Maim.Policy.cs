@@ -7,7 +7,7 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed partial class Maim
 {
-    /// <summary>Band-relative offset of the reaction bitfield, CReaction(0x94) - BandEntry(0x1C) = 0x78 (memory reaction-suppression-cripple).</summary>
+    /// <summary>Band-relative offset of the reaction bitfield, CReaction(0x94), BandEntry(0x1C) = 0x78 (memory reaction-suppression-cripple).</summary>
     public const int ReactionBandOff = Offsets.AReaction;
 
     /// <summary>True when the signature is configured (CrippleTurns set) and the kill tier is earned.</summary>
@@ -20,7 +20,7 @@ internal sealed partial class Maim
     /// <summary>True when a new hit should re-save the bytes; while held the field is zeroed and re-saving would wipe the reaction.</summary>
     public static bool ShouldResave(bool isHeld) => !isHeld;
 
-    /// <summary>Zero all 4 reaction bytes in one WriteBytes call (LW-145 fix 2: four W8s left a torn-value window). Guarded.</summary>
+    /// <summary>Zero all 4 reaction bytes in one WriteBytes call (LW-145 fix 2. Four W8s left a torn-value window). Guarded.</summary>
     public static void HoldZero(IGameMemory mem, long addr)
     {
         long ra = addr + ReactionBandOff;
@@ -42,7 +42,7 @@ internal sealed partial class Maim
         });
     }
 
-    /// <summary>Read the 4-byte little-endian reaction field; false if unreadable (LW-145 fix 3: a 0 sentinel looked like a real
+    /// <summary>Read the 4-byte little-endian reaction field; false if unreadable (LW-145 fix 3. A 0 sentinel looked like a real
     /// all-zero field). Callers refuse to latch on false (Maim.cs).</summary>
     public static bool TryReadReactionField(IGameMemory mem, long addr, out uint value)
     {
@@ -98,7 +98,7 @@ internal sealed class MaimState
     public int TurnCount((int mhp, int lvl, int br, int fa) fp)
         => _held.TryGetValue(fp, out var e) ? e.TurnCount : 0;
 
-    /// <summary>Re-hit while held: reset the turn counter, keep the saved reaction bytes.</summary>
+    /// <summary>Re-hit while held. Reset the turn counter, keep the saved reaction bytes.</summary>
     public void Refresh((int mhp, int lvl, int br, int fa) fp)
     {
         if (_held.TryGetValue(fp, out var e)) _held[fp] = e with { TurnCount = 0 };

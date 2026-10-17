@@ -7,8 +7,8 @@ namespace LivingWeapon;
 /// </summary>
 internal static class UltimaPolicy
 {
-    /// <summary>HP% band index: 0 = 100%+, 1 = 75-99%, 2 = 50-74%, 3 = 25-49%, 4 = &lt;25%; -1 = unreadable or dead (caller leaves PA at natural).
-    /// Integer math only: boundaries hp>=maxHp, hp*4>=maxHp*3, hp*2>=maxHp, hp*4>=maxHp.</summary>
+    /// <summary>HP% band index 0 = 100%+, 1 = 75-99%, 2 = 50-74%, 3 = 25-49%, 4 = &lt;25%; -1 = unreadable or dead (caller leaves PA at natural).
+    /// Integer math only. Boundaries hp>=maxHp, hp*4>=maxHp*3, hp*2>=maxHp, hp*4>=maxHp.</summary>
     public static int Band(int hp, int maxHp)
     {
         if (maxHp <= 0 || hp <= 0) return -1;
@@ -25,7 +25,7 @@ internal static class UltimaPolicy
     public static int PaHeld(int naturalPa, int hp, int maxHp, int tier, int[][] table)
     {
         int band = Band(hp, maxHp);
-        if (band < 0) return naturalPa;   // safety: no HP reading -> don't touch PA
+        if (band < 0) return naturalPa;   // safety. No HP reading -> don't touch PA
         int pct = table[tier][band];
         return (int)System.Math.Round(naturalPa * pct / 100.0, System.MidpointRounding.AwayFromZero);
     }

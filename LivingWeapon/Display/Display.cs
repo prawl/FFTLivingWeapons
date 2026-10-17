@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Paints the equip card for every weapon in the loaded nxd: the name suffix (+/+2/+3),
+/// Paints the equip card for every weapon in the loaded nxd. The name suffix (+/+2/+3),
 /// the per-weapon "Kills NNNN" counter, and the equipped-weapon WP number.
 /// A <see cref="CardPatterns"/> set drives a byte-budgeted <see cref="DisplaySweep"/> over heap memory,
 /// and <see cref="CardSites"/> re-checks ownership anchors before writing so a freed UI buffer
@@ -38,13 +38,13 @@ internal sealed partial class Display
     private HashSet<int> _lastTargets = new();
 
     // Last maintenance PaintAll; -1 so the first Tick runs it (long.MinValue would overflow
-    // the `now - _lastMaintenanceMs` subtraction).
+    // the `now, _lastMaintenanceMs` subtraction).
     private long _lastMaintenanceMs = -1;
 
     // Generation number at the last log line so we log once per completion.
     private long _lastLoggedGen = -1;
 
-    // LW-165 stage 1: time of the first Tick, -1 until then. Engine only ticks Display after the
+    // LW-165 stage 1. Time of the first Tick, -1 until then. Engine only ticks Display after the
     // launch guard arms, so this is the armed moment; Display.PoolPaint.cs times kill-counter readiness from it.
     private long _firstTickMs = -1;
 
@@ -87,7 +87,7 @@ internal sealed partial class Display
                       + DisplaySweep.Lookback + " < maxAnchor=" + _pats.MaxAnchorLen + " + slot)");
         }
 
-        // Same check for the trailing slack: the bidirectional attribution search (CardScanner) can
+        // Same check for the trailing slack. The bidirectional attribution search (CardScanner) can
         // find a flavor after its "Kills: " hit, so the slack must fit anchor + literal + slot.
         if (!_pats.FitsTrailSlack(DisplaySweep.TrailSlack))
         {
@@ -117,11 +117,11 @@ internal sealed partial class Display
         _pendingIds.Clear();   // _sites was wiped, so pending watches would burn all CardPendingMaxBeats and log a false "gave up"
     }
 
-    /// <summary>LW-91 stage 2: in-battle repaint driven by a kill-count change alone, called on ticks
+    /// <summary>LW-91 stage 2. In-battle repaint driven by a kill-count change alone, called on ticks
     /// ShouldPaintCard skips so a mid-fight kill reaches the equip card. Recompose runs before PaintAll,
     /// as in <see cref="Tick"/>, so a story-line rotation is never one call stale. It latches
     /// RequestRescan but never steps the sweep or calls Invalidate (the pool relocate runs on
-    /// Engine's own "pool-locate" lane every tick). LW-257 commit 2: when nothing painted, it also runs
+    /// Engine's own "pool-locate" lane every tick). LW-257 commit 2. When nothing painted, it also runs
     /// the shared maintenance beat (Display.Heartbeat.cs), which may re-offer one drained pool region
     /// (Display.PoolDrain.cs). That can clear _poolCovered; on the on-field path the flag waits for the
     /// next Tick(true) to act on it.</summary>
@@ -148,8 +148,8 @@ internal sealed partial class Display
     {
         if (_firstTickMs < 0) _firstTickMs = _nowMs();
 
-        // Weapons whose name suffix we track: both mirror slots, valid ids only. No tier gate
-        // (it hid counts for sub-threshold weapons: "tier-0 never painted").
+        // Weapons whose name suffix we track. Both mirror slots, valid ids only. No tier gate
+        // (it hid counts for sub-threshold weapons, "tier-0 never painted").
         var targets = BuildTargets();
 
         // Count check covers all meta ids so unequipped weapons also trigger a rescan.
@@ -219,7 +219,7 @@ internal sealed partial class Display
         var hitIds = new HashSet<int>();
         foreach (var h in killsHits) hitIds.Add(h.Id);
 
-        // Suffix pass: targets plus all ids (pool path) or the rotation slice (sweep path).
+        // Suffix pass. Targets plus all ids (pool path) or the rotation slice (sweep path).
         var suffixIds = new HashSet<int>(_lastTargets);
         if (hitIds.Count > 0)
         {
@@ -254,7 +254,7 @@ internal sealed partial class Display
             // Paint only the new sites. the verdict rides along so a site refused on its
             // first paint (SlotShapeRefused, NotWritable) still reaches the tape. Entries accumulate in
             // _verdict until the next PaintAllTapped emits them, since emitting per chunk costs too much.
-            // Side effect: a discovery's "card" record carries the later emit time (up to
+            // Side effect. A discovery's "card" record carries the later emit time (up to
             // Display.MaintenanceMs), so the tape is ordered but not precisely timestamped.
             _sites.Paint(newSites, KillsFor, _verdict);
             // Mark the chunk hot for the next HotRescanMs interval.

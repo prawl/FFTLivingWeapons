@@ -22,7 +22,7 @@ internal sealed partial class TemplateRelocation
     /// <summary>The page all three charts live on once installed; 0 before that.</summary>
     public long PageAddr { get; private set; }
 
-    /// <summary>Null on success, else the refusal (nothing changed). Idempotent. Order as in ListRelocation.Install: check all ten
+    /// <summary>Null on success, else the refusal (nothing changed). Idempotent. Order as in ListRelocation.Install. Check all ten
     /// fields read vanilla, allocate and reach-check the page, copy the three charts onto it (D2/D3, T1/T11), then rewrite the
     /// fields, so any earlier refusal leaves the process untouched.</summary>
     public string? Install(ICodePatcher patcher, INearAllocator allocator)

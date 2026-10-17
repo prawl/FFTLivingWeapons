@@ -19,13 +19,13 @@ internal sealed partial class TemplateRelocation
     internal const int InventoryPageOffset = 0x000;
     internal const int PickerPageOffset = 0x400;
     internal const int AllItemsPageOffset = 0x800;
-    /// <summary>Bytes granted to each chart's copy: 512 words, being 510 ids, the marker, and one spare
+    /// <summary>Bytes granted to each chart's copy 512 words, being 510 ids, the marker, and one spare
     /// wall word TemplateSeat never touches (<see cref="PageRegionCapacityWords"/> covers ids plus marker, D2).</summary>
     internal const int RegionBytes = 0x400;
-    /// <summary>Page size requested from the allocator: three 0x400-byte regions plus 0x400 of headroom (D2).</summary>
+    /// <summary>Page size requested from the allocator. Three 0x400-byte regions plus 0x400 of headroom (D2).</summary>
     internal const int PageSize = 0x1000;
     /// <summary>Capacity handed to <see cref="TemplateSeat.Region"/> for a page chart (D2, v1.2). It counts the
-    /// marker slot (<see cref="TemplateSeat.Plan"/> refuses at <c>marker + n &gt; capacity - 1</c>), so 511 means
+    /// marker slot (<see cref="TemplateSeat.Plan"/> refuses at <c>marker + n &gt; capacity, 1</c>), so 511 means
     /// 510 ids plus the marker. Word 511 of the 512-word region stays outside that bound; Install's page-fill
     /// wall covers it with 0xFFFF.</summary>
     internal const int PageRegionCapacityWords = 511;
@@ -56,7 +56,7 @@ internal sealed partial class TemplateRelocation
     /// <see cref="Offsets"/> property.</summary>
     internal readonly record struct CapSite(long Addr, byte[] Vanilla, byte[] New, string Label);
 
-    /// <summary>One chart: its current base, the byte span of the game's copy, its page offset and region size,
+    /// <summary>One chart. Its current base, the byte span of the game's copy, its page offset and region size,
     /// and the word capacity <see cref="TemplateSync.Projection"/> truncates the page side to (old block word
     /// count with marker, 141 / 141 / 262, D4). OldBase is a rebased <see cref="Offsets"/> property.</summary>
     internal readonly record struct Chart(long OldBase, int SpanBytes, int PageOffset, int RegionBytes, int Capacity, string Label);
@@ -88,7 +88,7 @@ internal sealed partial class TemplateRelocation
     /// <summary>The two menu-list caps. LW-372 (D4) widens both from vanilla straight to 255/256 (skipping the
     /// LW-371 149/150 step), since ListBuilderHook truncates the stack callers fnA/fnB to
     /// <see cref="ListBuilderHook.StackCallerCap"/> (149) before they read a byte past it. The insert bound
-    /// stays cap + 1 so its walk reaches the terminator. D8: this widening and the hook install are one
+    /// stays cap + 1 so its walk reaches the terminator. D8. This widening and the hook install are one
     /// transaction, so TemplateRelocation.Restore puts both sites back to vanilla if the hook cannot arm.
     /// A property because the Addrs are rebased pins.</summary>
     internal static CapSite[] CapSites => new CapSite[]

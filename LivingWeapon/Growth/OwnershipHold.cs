@@ -1,7 +1,7 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-149 stage A: ownership-hold core shared by HoldUltima, HoldMushin and HoldAfterimage
+/// LW-149 stage A. Ownership-hold core shared by HoldUltima, HoldMushin and HoldAfterimage
 /// (GrowthEngine.Ultima/Mushin/Afterimage.cs). Each captures a stat's natural value on first
 /// sight through the LW-90 NaturalLedger, then owns the byte while cur is its last write, the
 /// natural value, or the baked restart residue; anything else is a foreign buff and is left alone.
@@ -10,8 +10,8 @@ namespace LivingWeapon;
 /// </summary>
 internal static class OwnershipHold
 {
-    /// <summary>Step outcome. Refused: byte not writable or not yet in the sane range, so the caller
-    /// skips the tick. Captured: first sight, owned this tick. Owned/Foreign: the three-token check result.</summary>
+    /// <summary>Step outcome. Refused. Byte not writable or not yet in the sane range, so the caller
+    /// skips the tick. Captured. First sight, owned this tick. Owned/Foreign. The three-token check result.</summary>
     internal enum Branch { Refused, Captured, Owned, Foreign }
 
     /// <summary>One Step report. Cur is the value the decision was made against; Natural/Baked are
@@ -34,7 +34,7 @@ internal static class OwnershipHold
         internal static readonly Result Refusal = new(Branch.Refused, 0, 0, 0);
     }
 
-    /// <summary>First-sight capture: wait for a sane reading (GrowthEngine.StatMin..StatSaneHi), then
+    /// <summary>First-sight capture. Wait for a sane reading (GrowthEngine.StatMin..StatSaneHi), then
     /// consult the LW-90 NaturalLedger so battle-restart residue is not adopted as natural. Returns
     /// false (outs zeroed) while the byte is out of range. Step checks Writable first.</summary>
     internal static bool TryCapture(IGameMemory mem, NaturalLedger ledger, long addr, StatLane lane,
@@ -48,7 +48,7 @@ internal static class OwnershipHold
         return true;
     }
 
-    /// <summary>Three-token ownership check: our last write, the natural baseline, or the baked
+    /// <summary>Three-token ownership check. Our last write, the natural baseline, or the baked
     /// restart residue. Dropping the baked clause reads our own residue as foreign (LW-90, OwnershipHoldTests).</summary>
     internal static bool OwnsCurrentValue(int cur, int lastTarget, int natural, int baked)
         => cur == lastTarget || cur == natural || (baked > 0 && cur == baked);

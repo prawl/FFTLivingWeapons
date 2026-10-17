@@ -35,7 +35,7 @@ internal sealed class HealPulse
     private readonly Dictionary<int, int> _kills;
     private readonly TurnTracker _turns;
     private readonly List<int> _hands = new();
-    private readonly ScopedLogger _slog;   // armed gate: a benched +3 weapon must not narrate on console
+    private readonly ScopedLogger _slog;   // armed gate. A benched +3 weapon must not narrate on console
     private int _lastTurns = -1;
     private bool _wasActive;
 
@@ -100,7 +100,7 @@ internal sealed class HealPulse
             var fp = (mhp: (int)_mem.U16(e + Offsets.AMaxHp), lvl: (int)_mem.U8(e + Offsets.ALevel),
                       br: (int)_mem.U8(e + Offsets.ABrave), fa: (int)_mem.U8(e + Offsets.AFaith));
             if (!allies.Contains(fp)) continue;      // never enemies (positive ally match only)
-            if (healed.Contains(fp)) continue;       // band twin: one heal per unit
+            if (healed.Contains(fp)) continue;       // band twin. One heal per unit
             int hp = _mem.U16(e + Offsets.AHp);
             int newHp = BandHeal.NewHp(hp, fp.mhp, _cfg.Amount(fp.mhp));
             if (newHp == hp) continue;               // full, or dead (never revive)

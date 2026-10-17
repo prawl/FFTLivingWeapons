@@ -49,9 +49,9 @@ internal static class TurnOwnerProbe
 
     /// <summary>One-line snapshot of every valid band slot's identity and candidate fields. The acted
     /// byte (Offsets.Acted) is a single engine global, repeated on each slot for easy comparison.
-    /// Per slot: slam (ACtSlam 0x25, hypothesis 1), turn (ACtTurn 0x09, hypothesis 3, the per-unit
+    /// Per slot. Slam (ACtSlam 0x25, hypothesis 1), turn (ACtTurn 0x09, hypothesis 3, the per-unit
     /// completed-turn CT), k (AArec kind, hypothesis 4, 5=performing/6=receiving), idx (AArec owner
-    /// seat, == seat-8). Format "turn-owner-probe: ct slots=[s0:lvl/br/fa slam=NN turn=NN k=N idx=N
+    /// seat, == seat-8). Format "turn-owner-probe. Ct slots=[s0:lvl/br/fa slam=NN turn=NN k=N idx=N
     /// acted=N, ...]".</summary>
     internal static string FormatCtSnapshot(
         IReadOnlyList<(int slot, int lvl, int br, int fa, int slam, int turn, int kind, int idx)> slots, int acted)
@@ -100,7 +100,7 @@ internal static class TurnOwnerProbe
     }
 
     /// <summary>One-line snapshot of the ActorRegister fields AttackCard also reads for its
-    /// turn-owner resolve: LastPlayerNameId, LastPlayerArrivalTick, Trusted.</summary>
+    /// turn-owner resolve. LastPlayerNameId, LastPlayerArrivalTick, Trusted.</summary>
     internal static string FormatRegisterSnapshot(ushort lastPlayerNameId, int lastPlayerArrivalTick, bool trusted)
         => $"turn-owner-probe: register nameId={lastPlayerNameId} arrivalTick={lastPlayerArrivalTick} trusted={trusted}";
 }

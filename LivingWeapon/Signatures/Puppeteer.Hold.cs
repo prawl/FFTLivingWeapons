@@ -1,7 +1,7 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// Puppeteer's possession-hold lifecycle: Drive re-asserts the agency bit each tick, Expire releases it after the
+/// Puppeteer's possession-hold lifecycle. Drive re-asserts the agency bit each tick, Expire releases it after the
 /// puppet's own turn, Release reverts it, Valid guards against a moved or freed copy. Detection and arming live in
 /// Puppeteer.cs; this half only touches an already-puppeted victim.
 /// </summary>

@@ -30,7 +30,7 @@ internal sealed class LiveNearAllocator : INearAllocator
     internal const int AllocGranule = 0x10000;
 
     /// <summary>scans up from <paramref name="nearAddr"/> first, then falls back to the window below it.
-    /// A single bottom-up pass would take the lowest free page, which under ASLR lands 2 GB - 64 KB below the image,
+    /// A single bottom-up pass would take the lowest free page, which under ASLR lands 2 GB, 64 KB below the image,
     /// out of int32 reach of its rip-relative fields (everything below a 0x7FF6... image is free). Above the image the
     /// first free page sits right past its end. Callers still run their own reach check on the result.</summary>
     public long Alloc(int size, long nearAddr)
@@ -60,13 +60,13 @@ internal sealed class LiveNearAllocator : INearAllocator
                 if (got != 0) return got;
             }
             long next = region.Base + region.Size;
-            if (next <= scan) break;   // malformed region: refuse rather than spin
+            if (next <= scan) break;   // malformed region. Refuse rather than spin
             scan = next;
         }
         return 0;
     }
 
-    /// <summary>The lowest granule-aligned address in a free region that also lies in [nearAddr - searchRange,
+    /// <summary>The lowest granule-aligned address in a free region that also lies in [nearAddr, searchRange,
     /// nearAddr + searchRange) with room for <paramref name="size"/> bytes. False if none. Exposed for tests.</summary>
     internal static bool PickAllocBase(long regionBase, long regionSize, int size,
         long nearAddr, long searchRange, int granule, out long candidate)
@@ -91,7 +91,7 @@ internal sealed class LiveNearAllocator : INearAllocator
 /// <summary>One answer from the address-space walk, a run of pages starting at <see cref="Base"/> (page-aligned, as VirtualQueryEx reports it) and whether it is free.</summary>
 internal readonly record struct MemRegion(long Base, long Size, bool Free);
 
-/// <summary>LW-388 A14: address-space seam under <see cref="LiveNearAllocator"/>, so scan order can be unit-tested
+/// <summary>LW-388 A14. Address-space seam under <see cref="LiveNearAllocator"/>, so scan order can be unit-tested
 /// against modelled layouts (ASLR, preferred base) without touching the real process.</summary>
 internal interface IRegionWalker
 {

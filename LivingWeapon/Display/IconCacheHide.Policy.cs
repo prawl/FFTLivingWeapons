@@ -74,7 +74,7 @@ internal static partial class IconCacheHidePolicy
         return map;
     }
 
-    /// <summary>Exact match only, no suffix/prefix test: <paramref name="cstr"/> is trimmed at its
+    /// <summary>Exact match only, no suffix/prefix test <paramref name="cstr"/> is trimmed at its
     /// first NUL and must equal a pending needle. No NUL in the window, or no hit, rejects.</summary>
     internal static (int Id, string Surface, NeedleKind Kind)? IsExpectedString(byte[] cstr,
         IReadOnlyDictionary<string, (int Id, string Surface, NeedleKind Kind)> lookup)
@@ -107,7 +107,7 @@ internal static partial class IconCacheHidePolicy
         return hash;
     }
 
-    /// <summary>The corrupted name pointer a hide writes: the string's address plus one, so the
+    /// <summary>The corrupted name pointer a hide writes. The string's address plus one, so the
     /// record no longer resolves to a live string.</summary>
     internal static byte[] HideNameBytes(long stringAddr) => BitConverter.GetBytes(stringAddr + 1);
 
@@ -130,7 +130,7 @@ internal static partial class IconCacheHidePolicy
 
     /// <summary>Log-line shapes. <paramref name="refusedAddr"/>/<paramref name="refusedReason"/>
     /// matter only for <see cref="HideOutcome.Refused"/> (the first texture refusal). When the
-    /// texture hid but no parts entry did, the line must not promise a redraw: the parts entries
+    /// texture hid but no parts entry did, the line must not promise a redraw. The parts entries
     /// still point at the old texture handle, so the icon keeps its art until they are recreated.</summary>
     internal static string SummaryLine(int id, string surface, SurfaceOutcome o,
         long refusedAddr = 0, string? refusedReason = null) => o.Outcome switch

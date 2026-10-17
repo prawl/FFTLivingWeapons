@@ -12,9 +12,9 @@ internal static partial class IconCacheHidePolicy
 {
     /// <summary>Pass 1 finds needle strings in one chunk. A hit must follow a NUL (or sit at byte 0 of
     /// a region with no lookback, P7/R5) and match a needle in full over up to <see cref="CStringMax"/>
-    /// bytes (R6). A3-2 (P9) each prefix searches to <c>min(buf.Length, end + prefix.Length - 1)</c>
+    /// bytes (R6). A3-2 (P9) each prefix searches to <c>min(buf.Length, end + prefix.Length, 1)</c>
     /// so a prefix straddling the end is found once, which <see cref="ChunkReader.Lookback"/> does not
-    /// cover. A4-6 (N1) reads reach at most <c>PrefixMax - 1</c> + <see cref="CStringMax"/> past the
+    /// cover. A4-6 (N1) reads reach at most <c>PrefixMax, 1</c> + <see cref="CStringMax"/> past the
     /// window, and <see cref="ChunkReaderZeroClearLength"/> notes ChunkReader.cs zero-clears that much.</summary>
     internal static void ScanChunkForStrings(byte[] buf, int lookback, int searchable, long bufBase,
         IReadOnlyDictionary<string, (int Id, string Surface, NeedleKind Kind)> lookup,

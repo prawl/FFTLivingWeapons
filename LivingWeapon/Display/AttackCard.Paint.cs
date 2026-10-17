@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// AttackCard compose and write: takes the row and tail plan from AttackCard.Resolve.cs (cursor
+/// AttackCard compose and write. Takes the row and tail plan from AttackCard.Resolve.cs (cursor
 /// only), rotates the anchor when the composed text changes, and verifies and writes each cached
 /// copy through AttackRow, evicting copies that no longer hold a known image.
 /// </summary>
@@ -76,7 +76,7 @@ internal sealed partial class AttackCard
             _recorder?.Invoke("card", $"evicted {outcome.Phrase()} labelAddr=0x{h.LabelAddr:X}");
             _hits.Remove(h);
         }
-        // Always arm: an in-flight census snapshot can predate the replacement allocation.
+        // Always arm. An in-flight census snapshot can predate the replacement allocation.
         _needsCensus = true;
     }
 
@@ -114,7 +114,7 @@ internal sealed partial class AttackCard
         {
             var shape = _attackRow.Classify(hit.LabelAddr);
             if (shape != AttackRowShape.Vanilla && shape != AttackRowShape.Ours)
-                return SyncOutcome.ShapeMismatch;   // record shape disagrees with the footprint: evict
+                return SyncOutcome.ShapeMismatch;   // record shape disagrees with the footprint. Evict
             if (!_mem.Writable(hit.DescAddr, AttackRow.FootprintBytes)) return SyncOutcome.Ok;   // retry next pass
             _attackRow.Paint(hit.LabelAddr, desiredImage, _currentRowChars);
             ModLogger.Debug(LogVerb.Display, "attack row repainted");
@@ -135,7 +135,7 @@ internal sealed partial class AttackCard
             _mem.WriteBytes(hit.DescAddr, VanillaImage);
             return SyncOutcome.Ok;
         }
-        return SyncOutcome.ForeignShape;   // foreign or unreadable shape: evict
+        return SyncOutcome.ForeignShape;   // foreign or unreadable shape. Evict
     }
 
     /// <summary>Best-effort vanilla restore for ResetBattle, run before the cache is cleared. Foreign

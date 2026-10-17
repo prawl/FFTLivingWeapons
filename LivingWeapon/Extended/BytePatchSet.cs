@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace LivingWeapon;
 
-/// <summary>One single-byte code patch: address, expected vanilla 1.5.2 byte, wanted byte, log label.</summary>
+/// <summary>One single-byte code patch. Address, expected vanilla 1.5.2 byte, wanted byte, log label.</summary>
 internal readonly record struct BytePatch(long Addr, byte Old, byte New, string Label);
 
 /// <summary>
@@ -18,7 +18,7 @@ internal sealed class BytePatchSet
     /// <summary>Null on success, else the refusal (nothing left applied).</summary>
     public string? Apply(ICodePatcher patcher, IReadOnlyList<BytePatch> patches)
     {
-        if (_applied.Count > 0) return null;   // idempotent: already applied
+        if (_applied.Count > 0) return null;   // idempotent. Already applied
         foreach (var p in patches)
         {
             if (!patcher.TryRead(p.Addr, 1, out var cur))
@@ -50,7 +50,7 @@ internal sealed class BytePatchSet
 
 /// <summary>
 /// A patch whose page is copy-protected at boot (the two damage-path caps, docs/research/ITEM_CAP_261_BREAK_JOURNEY.md
-/// blueprint piece 2). Stepped from the tick loop: waits for the vanilla byte, writes once, verifies. Already-patched counts
+/// blueprint piece 2). Stepped from the tick loop. Waits for the vanilla byte, writes once, verifies. Already-patched counts
 /// as done; a foreign byte makes it give up with one warning.
 /// </summary>
 internal sealed class PendingPatch

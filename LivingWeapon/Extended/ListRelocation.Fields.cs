@@ -40,6 +40,6 @@ internal sealed partial class ListRelocation
     /// <summary>LW-388. <see cref="Site.Addr"/> is in pin space (the preferred-base address); this is where the field sits in the running image.</summary>
     private static long Live(Site site) => ImageBase.At(site.Addr);
 
-    /// <summary>Pure: an int32 as its 4 little-endian bytes.</summary>
+    /// <summary>Pure. An int32 as its 4 little-endian bytes.</summary>
     internal static byte[] Encode(int value) => BitConverter.GetBytes(value);
 }

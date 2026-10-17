@@ -8,7 +8,7 @@ namespace LivingWeapon;
 /// Finds "Kills: " slots and ties each to its owning weapon through the flavor line, and finds
 /// weapon names with valid 2-char suffix slots. buf[0..lookback) is a prefix for anchors near the
 /// window start, hits may start in [lookback, lookback+searchable), and trailing slack lets slots finish.
-/// LW-332 split this at a real seam: this file finds hits and owners, CardScanner.Anchors.cs holds
+/// LW-332 split this at a real seam. This file finds hits and owners, CardScanner.Anchors.cs holds
 /// the candidate-selection and positional-search primitives.
 /// </summary>
 internal static partial class CardScanner
@@ -116,16 +116,16 @@ internal static partial class CardScanner
 
     /// <summary>STEP 2 (fallback). The weapon id whose flavor (same encoding) is nearest the position on
     /// either side (<see cref="NearestAnchorPosBidir"/>) within FlavorWindow, or -1. Runs when
-    /// <see cref="LayoutProbeOwner"/> finds no owner: old-layout buffers with no Grows line (e.g.
+    /// <see cref="LayoutProbeOwner"/> finds no owner. Old-layout buffers with no Grows line (e.g.
     /// CardScannerFindKillsTests.FindKills_old_backward_layout_two_contiguous_cards_still_resolves_identically),
     /// truncated copies, anything odd. <paramref name="anchors"/> adds earned lines; null is baked flavors only.
     /// The search has been bidirectional since 2026-07-06 (it took the largest backward position before),
     /// because nothing sits between a card's "Kills: " and its own flavor.
     /// Same-lane weapons bake identical Grows, so distance ties (dAll) go to the smaller dUnique, the nearest
     /// distance over unique candidates only (LW-332 round 1); no unique candidate in-window means ineligible.
-    /// LW-332 round 2 found two counterexamples to that rule alone (S1: a lane-mate's adjacent flavor beats
-    /// this weapon's farther Grows on dUnique; S2: a foreign short flavor beats it on dAll), which STEP 1 resolves.
-    /// Known residual: a copy truncated right after its Grows line has no unique anchor, so a lane-mate may get the hit.</summary>
+    /// LW-332 round 2 found two counterexamples to that rule alone (S1. A lane-mate's adjacent flavor beats
+    /// this weapon's farther Grows on dUnique; S2. A foreign short flavor beats it on dAll), which STEP 1 resolves.
+    /// Known residual. A copy truncated right after its Grows line has no unique anchor, so a lane-mate may get the hit.</summary>
     private static int FindNearestFlavor(byte[] buf, int pos, int enc, CardPatterns pats, EarnedAnchors? anchors)
     {
         int bestDAll = int.MaxValue, bestDUnique = int.MaxValue, bestId = -1;
@@ -138,7 +138,7 @@ internal static partial class CardScanner
             int dAll = Math.Abs(pAll - pos);
 
             int pUnique = NearestAnchorPosBidir(buf, pos, UniqueAnchorCandidates(entry.Id, enc, pats, anchors));
-            if (pUnique < 0) continue;   // no unique candidate in-window: ineligible to own
+            if (pUnique < 0) continue;   // no unique candidate in-window. Ineligible to own
             int dUnique = Math.Abs(pUnique - pos);
 
             if (dAll < bestDAll || (dAll == bestDAll && dUnique < bestDUnique))

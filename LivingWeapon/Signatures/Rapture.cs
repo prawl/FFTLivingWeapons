@@ -9,7 +9,7 @@ namespace LivingWeapon;
 /// restored. Save/hold/restore follows Maim; the HP gate is in Rapture.Policy.cs. The 3-turn cap
 /// was retired because its clock never ticked live (2026-06-10).
 ///
-/// Releases: HP recovery, unequip / tier loss / wielder ambiguity, wielder death (3-tick streak),
+/// Releases. HP recovery, unequip / tier loss / wielder ambiguity, wielder death (3-tick streak),
 /// and battle exit. An unlocated entry holds at the last known copy.
 ///
 /// Tick only runs the arm/recovery logic on onField ticks, since the HP changes that matter land
@@ -27,7 +27,7 @@ internal sealed partial class Rapture : ISignature
     private readonly Dictionary<int, int> _kills;
     private readonly List<int> _hands = new();
     private readonly RaptureState _state = new();
-    private readonly ScopedLogger _slog;   // armed gate: a benched +3 rod must not narrate on console
+    private readonly ScopedLogger _slog;   // armed gate. A benched +3 rod must not narrate on console
     private bool _wasActive;
     private int _deadStreak;
 
@@ -61,7 +61,7 @@ internal sealed partial class Rapture : ISignature
         }
         if (!active)
         {
-            // Unequip / tier loss / ambiguity: the player's movement comes back NOW.
+            // Unequip / tier loss / ambiguity. The player's movement comes back NOW.
             if (_state.Held) Restore("gate lost");
             return;
         }
@@ -72,10 +72,10 @@ internal sealed partial class Rapture : ISignature
         }
 
         long e = Wielder.Locate(_mem, RodOfFaithId, _hands, fp);
-        if (e != 0 && _state.Held) _state.Addr = e;   // entry relocated: retarget the restore
+        if (e != 0 && _state.Held) _state.Addr = e;   // entry relocated. Retarget the restore
         if (e == 0)
         {
-            if (_state.Held) Hold();   // unlocated: hold at the last known copy
+            if (_state.Held) Hold();   // unlocated. Hold at the last known copy
             return;
         }
 
@@ -124,7 +124,7 @@ internal sealed partial class Rapture : ISignature
         if (_state.GrantField is { } grant) WriteField(_mem, _state.Addr, grant);
     }
 
-    /// <summary>Write the saved movement bytes back and close the window. SameUnit-guarded: a
+    /// <summary>Write the saved movement bytes back and close the window. SameUnit-guarded. A
     /// stranger at the held address keeps its own movement field.</summary>
     private void Restore(string why)
     {

@@ -5,7 +5,7 @@ namespace LivingWeapon;
 /// <summary>
 /// Ultima half of GrowthEngine. Holds the Materia Blade wielder's PA at
 /// round(naturalPA × UltimaMul[tier][hpBand]), so <see cref="GrowthEngine.Routes"/> gives it the PA lane.
-/// Ownership follows HoldAfterimage: capture natural, re-apply our target after the per-turn normalize,
+/// Ownership follows HoldAfterimage. Capture natural, re-apply our target after the per-turn normalize,
 /// leave foreign values alone. Held PA can sit below natural, so a PA-down debuff equal to lastTarget
 /// or natural is mistaken for ours and overwritten. Accepted, since writes are guarded and natural-derived,
 /// reset next battle, and player PA debuffs are rare in FFT:IC. The LW-90 NaturalLedger is consulted only at capture.
@@ -25,7 +25,7 @@ internal sealed partial class GrowthEngine
         if (!OwnsPa(m)) return;
         long addr = s + Offsets.CPa;
 
-        // LW-149 stage A: capture, ledger consult and the ownership check live in OwnershipHold.
+        // LW-149 stage A. Capture, ledger consult and the ownership check live in OwnershipHold.
         bool hadRecord = _ultima.TryGetValue(addr, out var rec0);
         var step = OwnershipHold.Step(_mem, _ledger, addr, StatLane.Pa, rosterNameId, level,
                                       hadRecord, rec0.lastTarget, rec0.natural, rec0.baked);
@@ -46,7 +46,7 @@ internal sealed partial class GrowthEngine
             return;
         }
 
-        // Captured or Owned: we hold the byte.
+        // Captured or Owned. We hold the byte.
         // Log when the held multiplier moves (HP band crossed or tier earned), not every tick.
         if (target != rec.lastTarget)
         {

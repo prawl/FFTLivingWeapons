@@ -4,13 +4,13 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Gun Slinger family: roster prep + hold for every weapon flagged `gunSlinger` in meta.json
+/// Gun Slinger family. Roster prep + hold for every weapon flagged `gunSlinger` in meta.json
 /// (Outrider Pistol id 71, Arbalest id 79 "Crossfire" LW-171). When the main hand holds a flagged
 /// weapon at its earned tier, a second copy of that same weapon goes into the roster off-hand slot
 /// (ROffHand +0x18, u16) and Dual Wield (key 477, RSupport +0x0A) into the support slot, so Attack
 /// fires twice. Consent (LW-193/LW-194, 2026-08-17): an empty off-hand invites the twin, anything
 /// equipped there or in the shield slot (RShield +0x1A, read only) declines it, in every lane. Blind
-/// roster writes used to fight the game's inventory accounting: a shield was destroyed with no refund
+/// roster writes used to fight the game's inventory accounting. A shield was destroyed with no refund
 /// and an unequipped twin was refunded as a duplicate ([twin-grant-inventory-desync],
 /// docs/LIVE_LEDGER.md). Decisions go through GunSlingerPolicy's ownership check.
 ///
@@ -21,7 +21,7 @@ namespace LivingWeapon;
 /// (GunSlinger.Reconcile.cs). Dual fire is welded at battle construction, so the in-battle re-assert
 /// only keeps the twin in the roster for the battle-end commit and the next battle
 /// ([twin-dualfire-construction-bound]). The battle-end twilight hold is GunSlingerPolicy.IsTwilight.
-/// Not an ISignature: the snapshot store is cross-session and the reconcile clears on an inBattle flip.
+/// Not an ISignature. The snapshot store is cross-session and the reconcile clears on an inBattle flip.
 /// All memory goes through IGameMemory with Writable checked before every write.
 /// </summary>
 internal sealed partial class GunSlinger
@@ -35,8 +35,8 @@ internal sealed partial class GunSlinger
     private readonly IGameMemory _mem;
     private readonly GunSlingerStore _store;
     private readonly HashSet<int> _twinIds;   // every gun-slinger-flagged id, cached at construction
-    private readonly Action<string, string>? _recorder;   // flight tap: GunSlinger.Reconcile.cs's "twin-refund" record
-    private readonly Func<long> _bagCountBase;   // LW-368 round 2: GunSlinger.Reconcile.cs's sack reads
+    private readonly Action<string, string>? _recorder;   // flight tap. GunSlinger.Reconcile.cs's "twin-refund" record
+    private readonly Func<long> _bagCountBase;   // LW-368 round 2. GunSlinger.Reconcile.cs's sack reads
 
     /// <summary><paramref name="recorder"/> is the flight-ring tap (Flight.Record in production, a fake
     /// in tests) for the reconcile's "twin-refund" record. <paramref name="bagCountBase"/> is a Func
@@ -55,7 +55,7 @@ internal sealed partial class GunSlinger
         _bagCountBase = bagCountBase ?? (() => Offsets.InventoryCountBase);
     }
 
-    /// <summary>Test seam: expose the store so integration tests can verify snapshot state.</summary>
+    /// <summary>Test seam. Expose the store so integration tests can verify snapshot state.</summary>
     internal GunSlingerStore StoreForTest() => _store;
 
     /// <summary>
@@ -90,7 +90,7 @@ internal sealed partial class GunSlinger
 
             // GunSlingerStore.Get creates on read and keys by nameId, so two unseeded rows
             // (nameId 0) would share one snapshot and a restore could cross-write gear into another
-            // unit's roster row. Skipping is safe: never seen on a real save, and the next tick re-reads.
+            // unit's roster row. Skipping is safe. Never seen on a real save, and the next tick re-reads.
             if (nameId == 0) { ReconcileForgetRow(slot); continue; }
 
             var snap = _store.Get(nameId);
@@ -109,7 +109,7 @@ internal sealed partial class GunSlinger
         }
         if (dirty) _store.Save();
 
-        // Watch-only reconcile: compares this pass's facts with last pass's. Zero writes
+        // Watch-only reconcile. Compares this pass's facts with last pass's. Zero writes
         // (see GunSlinger.Reconcile.cs).
         foreach (var row in passRows)
             ReconcileRow(row.slot, row.nameId, row.mainH, row.offH, row.snap, currentSack, passRows, inBattle);

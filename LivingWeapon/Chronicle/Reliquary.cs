@@ -16,7 +16,7 @@ internal interface IDeedSink
     /// Capture checklist). Log-only; the tally still increments.</summary>
     void DeedMiss(int slot);
 
-    /// <summary>LW-167 Living Poach: the credit-moment report of <see cref="RecordDeed"/> plus the victim's band slot
+    /// <summary>LW-167 Living Poach. The credit-moment report of <see cref="RecordDeed"/> plus the victim's band slot
     /// (per-corpse dedupe key with nameId) and the kill's shape (delayed/charged credit, or turn-queue fallback),
     /// which feed stage 4's action discriminator. Default no-op so existing implementers compile unchanged.
     /// KillTracker.CreditKill calls it alongside RecordDeed; DeedFanout.cs is the only production override,
@@ -71,7 +71,7 @@ internal sealed class Reliquary : IDeedSink
                 ModLogger.Event(LogVerb.Mark, $"{name} earns the Mark of the {title}.");
                 _recorder?.Invoke("mark-earned",
                     $"weapon={weaponId} name=\"{name}\" archetype={(int)mark} title=\"{title}\"");
-                // Event key: Marks use 1000 + archetype index (BannerToast.Policy.MarkPayload), distinct from tiers (1..3) and milestones (negated).
+                // Event key. Marks use 1000 + archetype index (BannerToast.Policy.MarkPayload), distinct from tiers (1..3) and milestones (negated).
                 _toast?.Enqueue(weaponId, 1000 + (int)mark, BannerToast.MarkPayload(name, title));
             }
         }

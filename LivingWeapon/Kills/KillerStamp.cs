@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace LivingWeapon;
 
-/// <summary>LW-63 D4: flags-first killer lookup, same signature as
+/// <summary>LW-63 D4. Flags-first killer lookup, same signature as
 /// <see cref="ActorResolver.TryResolveFlagKiller"/> so KillTracker.cs can pass the method group directly.</summary>
 internal delegate bool FlagKillerLookup(out long rosterBase, out ushort nameId, out int bandSlot, out byte moved);
 
@@ -20,7 +20,7 @@ internal delegate bool FlagKillerLookup(out long rosterBase, out ushort nameId, 
 /// next-owner arrival lands after the resolve, are handled earlier by
 /// <c>ConsumeDelayedCulprit</c> (KillTracker.Delayed.cs).
 ///
-/// A miss is better than a mis-credit: with no hypothesis, or one that agrees with the latch, the
+/// A miss is better than a mis-credit. With no hypothesis, or one that agrees with the latch, the
 /// latch stands. Only a fresh, disagreeing, non-empty hypothesis overrides it, and a fresh one
 /// naming a player with no tracked weapon buries the kill.
 /// </summary>
@@ -28,7 +28,7 @@ internal sealed class KillerStamp
 {
     private readonly ActorRegister _register;
     private readonly Func<long, List<int>> _handsFromRoster;
-    // LW-63 D4: optional flags-first lookup. Null leaves the register snapshot as the only lane,
+    // LW-63 D4. Optional flags-first lookup. Null leaves the register snapshot as the only lane,
     // which is what pre-LW-63 call sites and the KillerStampTests.cs cases that omit it rely on.
     private readonly FlagKillerLookup? _flagKiller;
 
@@ -63,7 +63,7 @@ internal sealed class KillerStamp
         return true;
     }
 
-    /// <summary>LW-63 D4: tries the flags lane first, then falls back to the 4-out overload.
+    /// <summary>LW-63 D4. Tries the flags lane first, then falls back to the 4-out overload.
     /// When <see cref="_flagKiller"/> answers, <paramref name="viaFlags"/> is true,
     /// <paramref name="arrivalAge"/> is 0 (the stamp key's a==1 requirement already orders it, see
     /// ActorResolver.Flags.cs), and <paramref name="bandSlot"/> and <paramref name="moved"/>
@@ -88,14 +88,14 @@ internal sealed class KillerStamp
         return TryHypothesis(lastResolveTick, out weapons, out nameId, out arrivalAge);
     }
 
-    /// <summary>Stamp outcome: keep the latch, override with the register's player, or bury the kill.</summary>
+    /// <summary>Stamp outcome. Keep the latch, override with the register's player, or bury the kill.</summary>
     internal enum StampKind { Latch, Register, Bury }
 
     /// <summary>Pure decision logic, no memory access.</summary>
     internal static class Policy
     {
         /// <summary>No hypothesis, or one matching the latch's weapon set (order-independent): Latch.
-        /// A disagreeing hypothesis with no tracked weapons: Bury. A disagreeing non-empty one:
+        /// A disagreeing hypothesis with no tracked weapons. Bury. A disagreeing non-empty one:
         /// Register, including when the latch is empty (KillTracker.Stamp.cs StampCulpritFromHypothesisOnly).</summary>
         internal static StampKind Decide(List<int> latchWeapons, bool hasHypothesis, List<int> hypothesisWeapons)
         {

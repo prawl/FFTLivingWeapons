@@ -8,10 +8,10 @@ using System.Text;
 namespace LivingWeapon;
 
 /// <summary>
-/// DEV-only spike: duplicate the hovered unit as a decoy "Body Double" by cold-calling the engine's
+/// DEV-only spike. Duplicate the hovered unit as a decoy "Body Double" by cold-calling the engine's
 /// render-node builder, then binding the node and stamping the donor's identity. F5 spawns, Ctrl+F5 despawns.
 /// Every data lever is walled (see the history block in the class), so it drives the engine's own paths.
-/// Flow: copy the donor's combat struct into a vacant slot, enroll it in the AI registry while hidden, build
+/// Flow. Copy the donor's combat struct into a vacant slot, enroll it in the AI registry while hidden, build
 /// and bind the node, stamp identity from the donor, hold CT at 0, then lower the node from the sky.
 /// Throwaway save only. Notes on safety, usage and the Canary 1-9 history sit at the top of the class.
 /// </summary>
@@ -19,35 +19,35 @@ internal sealed class BodyDoubleSpike
 {
     // History (live runs 2026-07-10 unless dated otherwise).
     //
-    // Why not data: the override nxd cannot author AlwaysPresent (Present column masked to 0xC), the
+    // Why not data. The override nxd cannot author AlwaysPresent (Present column masked to 0xC), the
     // facing/elevation gate is dormant, and sprite/job is not the cause (Frank rebuilt as a Monk, a loaded
     // sheet, still stayed hidden). Frank (battle 435, combat slot 7, job +0x03 = 0x4E) is a vanilla
-    // hidden-reserve unit: +0x01 = 0xFF, +0x1B5 = 0, sceneNodeIdx[model] = -1. FFHacktics Event 0x47
+    // hidden-reserve unit +0x01 = 0xFF, +0x1B5 = 0, sceneNodeIdx[model] = -1. FFHacktics Event 0x47
     // AddGhostUnit registers the sprite so the engine builds a node; this spike cold-calls the builder
     // 0x14026EBEC on PATH A instead, cribbing a drawn sibling's scene-load entry so the sprite-id lookup
     // 0x14E90A5CB resolves rather than self-aborting and freeing the node. It is the reverse of despawn
     // 0x14023BFB0 (the per-unit remove).
     //
-    // Canary 1: the build alone drew a Monk for Frank, but as a shallow clone riding the sibling's identity
-    // and animation: wrong tile, not a listed unit, and the real Monks went black while it froze mid-walk.
-    // Canary 2: scene-bind body (per-slot writes 0x1401D517D..0x1401D51B6) right after the build:
+    // Canary 1. The build alone drew a Monk for Frank, but as a shallow clone riding the sibling's identity
+    // and animation. Wrong tile, not a listed unit, and the real Monks went black while it froze mid-walk.
+    // Canary 2. Scene-bind body (per-slot writes 0x1401D517D..0x1401D51B6) right after the build:
     // node+0x150 = combat ptr, combat+0x01 = slot idx (clears the 0xFF gate), node+0x11 = sprite-resource
     // index, node+0x230/0x238 = own animation objects (1-arg cold calls 0x14E8CBF78/0x14E8F2CA0), and
-    // combat+0x1B5 = 1. The node+0x270 sub-block (0x1401D51BD..0x1401D5224) is skipped: it consumes the edx
+    // combat+0x1B5 = 1. The node+0x270 sub-block (0x1401D51BD..0x1401D5224) is skipped. It consumes the edx
     // that 0x14E8F2CA0 returns beside rax, which C# cannot capture, and the builder already leaves
-    // node+0x270 workable. Result: a real listed party-guest Monk, but his turn never completed and the
+    // node+0x270 workable. Result. A real listed party-guest Monk, but his turn never completed and the
     // real Monks blacked out when animating. Canary 4 fixed the turn and shrank the black-out to a reddish
     // tint from a garbage +0x05 faction byte.
-    // Canary 3: decoy CT-hold. The scheduler grants a turn at CT >= 100 (combat +0x41, band +0x25,
+    // Canary 3. Decoy CT-hold. The scheduler grants a turn at CT >= 100 (combat +0x41, band +0x25,
     // Offsets.ACtSlam, the byte ExtraTurn writes to grant turns). The clone has no action state, so its
     // turn stalled the queue; CT is zeroed at bind and held at 0 every tick, and F5 then toggles the hold.
     // Canary 3 also dumps the sibling's and the new node (0x548 bytes each) for the black-Monk diff.
-    // Canary 4: stamps cribbed from a live player donor (combat slots 16..20): +0x1BE = 01 real-unit
+    // Canary 4. Stamps cribbed from a live player donor (combat slots 16..20): +0x1BE = 01 real-unit
     // marker (writer 0x140456444); +0x191/+0x192 roster-identity backref (FE = unassigned, which crashed
     // turn arrival at 0x14018D102, a null controller singleton, factory object id 0x151); +0x05/+0x06/+0x1EE
-    // faction/tint pair plus its mirror. The pair also routes names: Ramza's pair renamed the clone
+    // faction/tint pair plus its mirror. The pair also routes names. Ramza's pair renamed the clone
     // "Ramza". With the stamps Kerrich took turns, moved, attacked and died into a chest, no crashes.
-    // AI freeze: the enemy AI idles while a walk-visible, unenrolled clone exists. Ruled out: count
+    // AI freeze. The enemy AI idles while a walk-visible, unenrolled clone exists. Ruled out. Count
     // corruption (Canary 5's refresh 0x140284FE4 is a destructive bulk rebuild, count 46 plus ~38 phantoms;
     // never call it) and duplicate identity. CE trace (execution BPs work, data watchpoints do not):
     // dispatch 0x140213C7A runs, but subject-select 0x14020F660 takes its cache-hit path (0x14020F684 je
@@ -63,12 +63,12 @@ internal sealed class BodyDoubleSpike
     // against the host. Recon (workflow wf_5c071993-d4b): the builder derives its stamp index from arg8
     // +0x1BC with an inclusive cmp al,0x14 (0x14026EDBD) and writes SecondTable[model] (0x14026EDC3)
     // before the SceneNodeIdx stamp (0x14026EDEA); the bind is a flat 21-slot loop (bound cmp r11d,0x15 at
-    // 0x1401D523B) that assumes model == slot. The ENTD lever stays walled: no team column, Present
+    // 0x1401D523B) that assumes model == slot. The ENTD lever stays walled. No team column, Present
     // hard-masked to 0xC engine-side (OverrideEntryData.layout), and the UnitId hi-bit proxy was falsified
     // 2026-06-21 in the FFTMultiplayer team spike.
-    // Death-watch: removing (crystal-popping) the clone game-overed battle 435 twice, once with Ramza's
+    // Death-watch. Removing (crystal-popping) the clone game-overed battle 435 twice, once with Ramza's
     // identity pair and once with a generic's (live re-point, write-verified), so the defeat check is not
-    // identity-keyed and the cause is unknown (suspects: removal bookkeeping for an uncounted unit,
+    // identity-keyed and the cause is unknown (suspects. Removal bookkeeping for an uncounted unit,
     // battle-specific defeat conditions). Once the composed Dead bit sets, the crystal counter is pinned
     // at 3 (the Sanctuary counter-pin) so the removal edge never fires. KO'd is survivable.
     // Canary 8 (duplicator, 2026-07-10): F5 duplicates the hovered unit, with no pre-hidden ENTD units and
@@ -81,7 +81,7 @@ internal sealed class BodyDoubleSpike
     //   (3) cold-call the builder with a1/a2/a3 = the destination tile (they land in the node's tile key
     //       +0x88/89/8A, the AI's tile lookup; cribbing the sibling's tile here froze Canary 7's binds), arg8 = host;
     //   (4) stage-2 bind plus identity stamps from the donor (+0x191/2 pair, faction trio, real-unit marker);
-    //   (5) flourish: node world X/Y by formula (28*tile+14), Z parked at -600 and stepped +12 per tick to
+    //   (5) flourish. Node world X/Y by formula (28*tile+14), Z parked at -600 and stepped +12 per tick to
     //       the donor's altitude. The decoy CT-hold still engages at bind; F5 again releases it.
     //
     // Safety (an engine AV is uncatchable, so prevention is the only defense):
@@ -92,10 +92,10 @@ internal sealed class BodyDoubleSpike
     //  - Genuine inLive frame, foreground window, writes enabled (fingerprint guard armed). g_mode
     //    (0x142FF9E2C) must read 0 (PATH A allocate) and the render-mgr singleton (*0x140CE3250) must be non-null.
     //
-    // Usage: any battle, throwaway save. Open the menu of the unit to duplicate (the hover picks the donor),
-    // press F5 once, unpause and look up: the clone descends onto a free tile beside the donor. Watch whether
+    // Usage. Any battle, throwaway save. Open the menu of the unit to duplicate (the hover picks the donor),
+    // press F5 once, unpause and look up. The clone descends onto a free tile beside the donor. Watch whether
     // the enemy AI keeps acting. F5 again releases the CT hold; Ctrl+F5 despawns (hover, or the ghost orphan).
-    // Shift+F5 is the staged 6a/6b enroll: press 1 = 6a, press 2 = 6b, press 3 = refused (fully enrolled).
+    // Shift+F5 is the staged 6a/6b enroll. Press 1 = 6a, press 2 = 6b, press 3 = refused (fully enrolled).
     // Run spawn_probe aicensus (external, read-only) before and after for the count and registry picture.
     private const long FnNodeBuild  = 0x14026EBEC;   // render-node builder (10-arg Win64; PATH A allocates + stamps)
     private const long SceneTable   = 0x141856728;   // scene-load entry table, stride 0x20 (idx 0..6 populated)
@@ -153,7 +153,7 @@ internal sealed class BodyDoubleSpike
     private const int Slots         = 21;            // combat slots covered by BattleUnitsBase
     private const long FreshLabel   = 0x86;          // arg7 >= 16 forces the find-first-free (fresh alloc) branch
 
-    // Descent flourish: park the new node's world Z in the sky and step it to the donor's altitude each
+    // Descent flourish. Park the new node's world Z in the sky and step it to the donor's altitude each
     // tick. Idle nodes are unowned, so the animation is uncontested. World X/Y = 28*tile + 14.
     private const int WorldXOff     = 0x4C;           // node u16 world X
     private const int WorldZOff     = 0x4E;           // node u16 (signed) world Z; -12*height, Float adds one unit
@@ -161,15 +161,15 @@ internal sealed class BodyDoubleSpike
     private const short SkyZ        = -600;
     private const int DescentStep   = 12;             // one height unit per ~33ms tick
 
-    // Decoy hold: CT = combat +0x41 (band +0x25, Offsets.ACtSlam, the byte ExtraTurn slams to 100 to grant a
-    // turn). Write-only: reads are unreliable (rod-pass CT trap), so the hold never reads it back.
+    // Decoy hold. CT = combat +0x41 (band +0x25, Offsets.ACtSlam, the byte ExtraTurn slams to 100 to grant a
+    // turn). Write-only. Reads are unreliable (rod-pass CT trap), so the hold never reads it back.
     private const int CtOffset      = 0x41;
     private const int NodeSize      = 0x548;          // render-node stride (pool 0x140D30030)
     private static readonly int[] SummarySlots = { 0, 1, 2, 3, 4, 5, 6, 7, 16, 17, 18, 19, 20 };
     private static readonly byte[] ZeroCt = { 0 };
 
     // Canary 7 constants. Host vacancy is the deploy loop's empty stamp (gate +0x01 = FF at 0x140270FC5 and
-    // present +0x1B5 = FF at 0x140270FBE, workflow decode 2026-07-10). Death-watch: composed Dead = combat
+    // present +0x1B5 = FF at 0x140270FBE, workflow decode 2026-07-10). Death-watch. Composed Dead = combat
     // +0x61 bit 0x20; crystal counter = combat +0x07, pinned at 3 so the removal edge never fires.
     private const int HostLo        = 16;
     private const int HostHi        = 20;
@@ -199,14 +199,14 @@ internal sealed class BodyDoubleSpike
 
     // Ctrl+F5 despawn (agent a0239384, 2026-07-10). The ledger's "cold-call 0x14023BFB0(ecx=slot)" was wrong:
     // that address is mid-instruction in the event interpreter's opcode-0x3D wait loop (fn 0x14023A8E0, a
-    // coroutine). The mechanism is data-only: write mode 2 into the node's +0x12C flag word
+    // coroutine). The mechanism is data-only. Write mode 2 into the node's +0x12C flag word
     // ((old & ~0x30) | 0x20 = "remove me") and the per-frame node sweeper 0x14026E20C does the rest:
     // combat+0x01 = 0xFF (0x14026E2D3), combat+0x1B5 = 0x80 (0x14026E2DB), node+0x12C |= 0x30 done-mark
     // (0x14026E2B3), then leaf teardown 0x14026E16C (clears the element in-use dword and the conditional
     // model-loaded byte, unlinks the node from [0x140D3A410]). Vanilla uses the same primitive for crystal
     // and chest conversion (callers 0x1401F0A47/0x1401F25A8) and scripted removal. The sweeper is gated on
     // not-paused ([0x140C6B1C8] != 1), so the mark lands while paused and the removal completes on unpause;
-    // Tick watches for the done-mark and a timeout restores the saved +0x12C. Target: the hovered unit
+    // Tick watches for the done-mark and a timeout restores the saved +0x12C. Target. The hovered unit
     // (condensed cursor fingerprint, any team), else the unique orphan (gate FF but still back-linked via
     // +0x148, a ghost-statue sprite). sceneNodeIdx goes stale after vanilla removals; the next bind's dedup
     // sweep 0x14026EDD2 scrubs it.
@@ -216,31 +216,31 @@ internal sealed class BodyDoubleSpike
     private const int  NodeModeOff    = 0x12C;        // flag word; bits 0x30 = removal mode/done
     private const byte NodeModeRemove = 0x20;         // mode 2 = "remove me" (sweeper consumes)
     // The per-id byte table 0x140C6CFE0 (stride 9) is the "engine engaged with this unit" marker, not a busy gate; see FireDespawn.
-    private const long SpecialNodeId  = 0x140CF873C;  // dword: the CURRENT ACTOR's node id; never remove it
-    private const int  NodeWalkMax    = 64;           // list-walk bound (spawn_probe precedent)
-    // Sweeper mode-dispatch landmark at 0x14026E28B: confirms the +0x12C semantics before any write (bytes read 2026-07-10).
+    private const long SpecialNodeId  = 0x140CF873C;  // dword. The CURRENT ACTOR's node id; never remove it
+    private const int  NodeWalkMax    = 64;           // list-walk bound, same as spawn_probe
+    // Sweeper mode-dispatch landmark at 0x14026E28B. Confirms the +0x12C semantics before any write (bytes read 2026-07-10).
     private const long SweeperDispatch = 0x14026E28B;
     private static readonly byte[] SweeperDispatchBytes =
         { 0x8B, 0xCA, 0xC1, 0xE9, 0x04, 0x83, 0xE1, 0x03, 0x83, 0xE9, 0x01, 0x74, 0x5C, 0x83, 0xF9, 0x01 };
     private const int TurnFlagOff = 0x1B8;            // PSX turn flag (frame +0x1B8): nonzero = turn open
-    private const int DespawnTimeoutTicks = 300;      // ~10s at 33ms: sweeper never fired -> revert
+    private const int DespawnTimeoutTicks = 300;      // ~10s at 33ms. Sweeper never fired -> revert
 
-    // Win64: args 1-4 in rcx/rdx/r8/r9, args 5-10 on the stack at [rsp+0x20..0x48]. Widths <= 8 bytes take
+    // Win64. Args 1-4 in rcx/rdx/r8/r9, args 5-10 on the stack at [rsp+0x20..0x48]. Widths <= 8 bytes take
     // a full slot; the callee reads cl/dl/r8b/r9w and the word/dword stack fields.
     [UnmanagedFunctionPointer(CallingConvention.Winapi)]
     private delegate long NodeBuildFn(long a1, long a2, long a3, long a4, long a5,
                                       long a6, long a7, long a8, long a9, long a10);
 
-    // Anim object fetch: ecx = animByte, returns rax. 0x14E8F2CA0 also returns edx, which C# cannot capture (see the Canary 2 history).
+    // Anim object fetch. Ecx = animByte, returns rax. 0x14E8F2CA0 also returns edx, which C# cannot capture (see the Canary 2 history).
     [UnmanagedFunctionPointer(CallingConvention.Winapi)]
     private delegate long AnimFn(int animByte);
 
-    // Canary 6 enroller: rcx = combat slot ptr; edx is ignored for Kerrich (spriteset 0x80 > 0x7f skips the
+    // Canary 6 enroller. Rcx = combat slot ptr; edx is ignored for Kerrich (spriteset 0x80 > 0x7f skips the
     // edx branch at 0x140274F58). Returns the AI-data id in eax, -1 on failure.
     [UnmanagedFunctionPointer(CallingConvention.Winapi)]
     private delegate int EnrollFn(long rcx, int edx);
 
-    // 6b pair: scratch fill (-1 on bounds or vacant-row fail) and the object populator (memsets, then fills the 0x280 object).
+    // 6b pair. Scratch fill (-1 on bounds or vacant-row fail) and the object populator (memsets, then fills the 0x280 object).
     [UnmanagedFunctionPointer(CallingConvention.Winapi)]
     private delegate int ScratchFillFn(long scratch, int rowId, int mode);
     [UnmanagedFunctionPointer(CallingConvention.Winapi)]
@@ -263,16 +263,16 @@ internal sealed class BodyDoubleSpike
     private bool _bound;            // stage-2 bind completed this battle; F5 now toggles the decoy hold
     private bool _decoyHold;        // per-tick CT pin active (Frank's turn never arrives)
     private bool _stamped;          // Canary 4 stamps landed this battle; hold release is refused without them
-    private bool _boundThisBattle;  // witness: BindStage2 ran since the last battle edge; the re-arm path requires it so a mispressed F5 never pins a real unit's CT
-    private long _hostCombat;       // Canary 7: the claimed vacant player slot's combat base (0 = none yet)
+    private bool _boundThisBattle;  // witness. BindStage2 ran since the last battle edge; the re-arm path requires it so a mispressed F5 never pins a real unit's CT
+    private long _hostCombat;       // Canary 7. The claimed vacant player slot's combat base (0 = none yet)
     private byte _hostModel;        // the host's own slot index == its model id (+0x1BC fixup, +0x01 at bind)
-    private bool _deathPinned;      // death-watch latch: the crystal-counter pin engaged (one loud log)
-    private long _despawnNode;      // Ctrl+F5 pending removal: the mode-2-marked node (0 = none)
+    private bool _deathPinned;      // death-watch latch. The crystal-counter pin engaged (one loud log)
+    private long _despawnNode;      // Ctrl+F5 pending removal. The mode-2-marked node (0 = none)
     private long _despawnCombat;    // its combat base (completion check + host-state cleanup)
     private byte _despawnOldMode;   // the +0x12C byte before the mark (restored on sweeper timeout)
     private int _despawnTicks;      // ticks since the mark (timeout counter)
-    private long _donorCombat;      // Canary 8: the duplicated unit (identity stamps + registry clone source)
-    private long _descendNode;      // descent flourish: the node being lowered (0 = none)
+    private long _donorCombat;      // Canary 8. The duplicated unit (identity stamps + registry clone source)
+    private long _descendNode;      // descent flourish. The node being lowered (0 = none)
     private short _descendTarget;   // the donor's altitude the descent lands at
     private int _holdHb;
 
@@ -282,7 +282,7 @@ internal sealed class BodyDoubleSpike
         _saveDir = saveDir;
     }
 
-    /// <summary>In-battle loop tick: heartbeat, the F5 edge (reveal before the bind, hold toggle after) and the
+    /// <summary>In-battle loop tick. Heartbeat, the F5 edge (reveal before the bind, hold toggle after) and the
     /// per-tick CT pin. The cold call runs on the loop thread (as in ShowSpike/StatusSpike), paused frames only.
     /// <paramref name="inLive"/> is the caller's genuine-live predicate.</summary>
     public void Tick(bool inLive)
@@ -313,7 +313,7 @@ internal sealed class BodyDoubleSpike
             else if (inLive) Fire();
             else ModLogger.Event(LogVerb.Trace, "body-double: F5 ignored (not a settled live frame; browse/enemy frames read mode 1, try again in a paused unit menu).");
         }
-        // The hold does not gate on raw inLive: this site is only reached while the debounced battle is in, and
+        // The hold does not gate on raw inLive. This site is only reached while the debounced battle is in, and
         // raw inLive dips false on every mode-1 frame, which is when CT accrues. Teardown is ResetBattle
         // (Engine.ResetBattleState). The write target is a fixed static slot, so the wider gate adds no
         // wrong-address risk (TreasureMaster pre-gate lesson).
@@ -358,7 +358,7 @@ internal sealed class BodyDoubleSpike
         ModLogger.Event(LogVerb.Trace, "body-double: battle edge; host claim + bind + decoy hold cleared (a new battle needs a fresh F5).");
     }
 
-    /// <summary>Post-bind F5: flip the decoy hold. Release is refused unless the Canary 4 stamps landed this
+    /// <summary>Post-bind F5. Flip the decoy hold. Release is refused unless the Canary 4 stamps landed this
     /// battle, since an unstamped unit crashes on turn arrival (null controller id, 0x14018D102).</summary>
     private void ToggleHold()
     {
@@ -373,7 +373,7 @@ internal sealed class BodyDoubleSpike
             : "body-double: decoy CT-hold RELEASED: Kerrich's turns go LIVE as a controllable unit (stamps verified this battle).");
     }
 
-    /// <summary>Canary 3 decoy pin: hold the double's CT at 0 every tick. Disengages if combat +0x01 no longer
+    /// <summary>Canary 3 decoy pin. Hold the double's CT at 0 every tick. Disengages if combat +0x01 no longer
     /// reads the model id stage 2 stamped.</summary>
     private void HoldDecoy()
     {
@@ -497,7 +497,7 @@ internal sealed class BodyDoubleSpike
     {
         regIdx = -1;
         if (_hostCombat == 0) return false;
-        if (_mem.U8(_hostCombat + 0x01) == 0xFF) return false;   // planner's own skip: hidden/unbound
+        if (_mem.U8(_hostCombat + 0x01) == 0xFF) return false;   // planner's own skip. Hidden/unbound
         byte key = _mem.U8(_hostCombat + 0x02);                  // the match key vs registry word +0x2C
         for (int i = 0; i < AiRegistrySlots; i++)
         {
@@ -515,7 +515,7 @@ internal sealed class BodyDoubleSpike
     /// <summary>Canary 6 (Shift+F5), steps 6a and 6b. Cold-calls the AI-data allocator 0x140274F30 for the host
     /// slot and writes the returned id to combat +0x02; a second press builds the AI object (6b). Needs a
     /// paused unit menu (never rebuild AI state mid-planner) and a bind this battle. Refuses when already
-    /// enrolled (+0x02 != 0xFF). Throwaway save: this is a cold call into engine allocation code.</summary>
+    /// enrolled (+0x02 != 0xFF). Throwaway save. This is a cold call into engine allocation code.</summary>
     private void FireEnroll()
     {
         if (!Mem.WritesEnabled)
@@ -571,7 +571,7 @@ internal sealed class BodyDoubleSpike
             $"body-double: CANARY 6a enroll: allocated AI-data id {id}; combat+0x02 {before02:X2} -> {after02:X2}; count byte {countBefore} (untouched); registry-object match {(isMember ? $"idx {regIdx}" : "none yet")}. Unpause and watch the enemy AI; still frozen = press SHIFT+F5 again for 6b (the object build). LIVE 2026-07-10: 6a alone did NOT un-freeze, so expect to need 6b.");
     }
 
-    /// <summary>Canary 6b: build the AI object (see the constants block). Needs 6a to have run (combat +0x02 is
+    /// <summary>Canary 6b. Build the AI object (see the constants block). Needs 6a to have run (combat +0x02 is
     /// a real id whose AI-data row has the id stamp at entry+1) and no registry object matching yet. Any
     /// precondition miss is a logged refusal. Two cold calls into engine code, throwaway save.</summary>
     private void FireObjectBuild(byte id)
@@ -666,9 +666,9 @@ internal sealed class BodyDoubleSpike
             $"body-double: CANARY 6b object build: pool slot {count} (0x{obj:X}) populated for row {id:X2}, object +0x2C reads {objKey:X4}; registry[{count}] appended, count word {wordCount} -> {wordCount + 1}, count byte {count} -> {_mem.U8(AiCountByte)}; membership {(member ? $"CONFIRMED idx {regIdx}" : "STILL ABSENT (key mismatch, expected the row id)")}. Unpause and watch the enemy AI.");
     }
 
-    /// <summary>Ctrl+F5 clean despawn: resolve a target, then mode-2 mark its render node (see the Ctrl+F5
+    /// <summary>Ctrl+F5 clean despawn. Resolve a target, then mode-2 mark its render node (see the Ctrl+F5
     /// block above) so the unit and its node go together; a gate-FF poke alone strands a ghost-statue sprite.
-    /// Refuses on: no unambiguous target, Ramza (slot 16; removing him is the defeat condition), an open turn
+    /// Refuses on. No unambiguous target, Ramza (slot 16; removing him is the defeat condition), an open turn
     /// (the AI-subject pointer crash decode, 2026-07-10), the reserved node id, a removal already in flight,
     /// or a bad sweeper-dispatch landmark. One-way once the sweeper runs.</summary>
     private void FireDespawn()
@@ -718,7 +718,7 @@ internal sealed class BodyDoubleSpike
             ModLogger.Event(LogVerb.Trace, $"body-double: CTRL+F5 refused: node id {id} is the current actor ([0x140CF873C]); never remove the acting unit.");
             return;
         }
-        // No gate-byte refusal: 0x140C6CFE0+id*9 is the "engine engaged with this unit" marker (menu open or
+        // No gate-byte refusal 0x140C6CFE0+id*9 is the "engine engaged with this unit" marker (menu open or
         // hover), which the aiming flow sets on the target. Refusing on it blocked every hover-resolved
         // despawn (hit 2026-07-10), and a pull with the marker at 01 completed fine.
         byte mode = _mem.U8(node + NodeModeOff);
@@ -736,7 +736,7 @@ internal sealed class BodyDoubleSpike
             $"body-double: DESPAWN mode-2 marked on slot {slot} (node 0x{node:X}, id {id}, resolved by {how}). ONE-WAY once the sweeper runs. UNPAUSE: the sweeper is pump-gated and completes the removal on its own frame.");
     }
 
-    /// <summary>Watch a pending mark: the sweeper 0x14026E20C stamps combat+0x01 = FF and node+0x12C |= 0x30
+    /// <summary>Watch a pending mark. The sweeper 0x14026E20C stamps combat+0x01 = FF and node+0x12C |= 0x30
     /// when done. A timeout restores the saved mode byte so no half-marked node outlives the attempt.</summary>
     private void DespawnWatch()
     {
@@ -767,8 +767,8 @@ internal sealed class BodyDoubleSpike
 
     /// <summary>Despawn target resolution, fail-closed on ambiguity. The node comes from one bounded walk of
     /// the render-node list (head [0x140D3A410], node+0x148 = combat back-pointer); sceneNodeIdx goes stale
-    /// after removals so it is not trusted. Tier 1: the hovered unit, by the condensed cursor struct's
-    /// (level,hp,maxHp) fingerprint matched uniquely against visible slots. Tier 2: the unique orphan (combat
+    /// after removals so it is not trusted. Tier 1. The hovered unit, by the condensed cursor struct's
+    /// (level,hp,maxHp) fingerprint matched uniquely against visible slots. Tier 2. The unique orphan (combat
     /// gate FF, node still alive). Twin fingerprints or several orphans refuse.</summary>
     private bool ResolveDespawnTarget(out long node, out long combat, out int slot, out string how)
     {
@@ -836,7 +836,7 @@ internal sealed class BodyDoubleSpike
             }
         }
 
-        // No hover answer: the unique ghost-statue orphan (node alive, combat gate FF).
+        // No hover answer. The unique ghost-statue orphan (node alive, combat gate FF).
         var orphans = new List<(long Node, long Combat, int Slot)>(2);
         foreach (var l in linked)
             if (_mem.U8(l.Combat + 0x01) == 0xFF)
@@ -855,7 +855,7 @@ internal sealed class BodyDoubleSpike
         return false;
     }
 
-    /// <summary>A drawn player unit (combat slots 16..20) to crib the Canary 4 stamps from: +0x01 != 0xFF and a
+    /// <summary>A drawn player unit (combat slots 16..20) to crib the Canary 4 stamps from +0x01 != 0xFF and a
     /// non-zero job (unreadable memory reads 0, which the job gate refuses). A +0x02 == 01 gate was wrong,
     /// that byte is dynamic turn state (Kenrick read 01, Ramza 00, which skipped the stamps 2026-07-10). The
     /// host slot is excluded, and generics 17..20 come before Ramza (slot 16) because the identity pair
@@ -890,7 +890,7 @@ internal sealed class BodyDoubleSpike
             if (_mem.U8(combat + 0x03) == 0 && _mem.U8(combat + 0x29) == 0)
             {
                 hostSlot = slot;
-                return combat;   // zeroed: the preferred host
+                return combat;   // zeroed. The preferred host
             }
             if (residue < 0)
             {
@@ -902,7 +902,7 @@ internal sealed class BodyDoubleSpike
         return residue;
     }
 
-    /// <summary>The hovered unit is the donor: the condensed cursor struct fingerprint matched uniquely against
+    /// <summary>The hovered unit is the donor. The condensed cursor struct fingerprint matched uniquely against
     /// visible slots. Fails closed on twins and non-hover states.</summary>
     private bool ResolveDonor(out long combat, out int slot)
     {
@@ -944,7 +944,7 @@ internal sealed class BodyDoubleSpike
         return true;
     }
 
-    /// <summary>A free tile next to the donor: neighbors first, then range 2 on the four axes. Co-tile spawns
+    /// <summary>A free tile next to the donor. Neighbors first, then range 2 on the four axes. Co-tile spawns
     /// soft-lock targeting and movement. Walkability is not checked, so a wall pick is cosmetic.</summary>
     private bool FindFreeTileNear(long donor, out byte tx, out byte ty)
     {
@@ -989,7 +989,7 @@ internal sealed class BodyDoubleSpike
         return -1;
     }
 
-    /// <summary>Copy the donor's 0x200 combat struct into the host and fix the per-slot fields: +0x1BC = host
+    /// <summary>Copy the donor's 0x200 combat struct into the host and fix the per-slot fields +0x1BC = host
     /// slot (the builder's stamp index and the bind loop's model == slot rule), gate and membership FF and CT 0
     /// to keep it inert until the bind, logic tile = the free destination.</summary>
     private bool CopyDonorToHost(long donor, long host, int hostSlot, byte tx, byte ty)
@@ -1053,7 +1053,7 @@ internal sealed class BodyDoubleSpike
         _mem.WriteBytes(AiObjCountWord, BitConverter.GetBytes((ushort)(_mem.U16(AiObjCountWord) + 1)));
         _mem.WriteBytes(AiCountByte, new[] { (byte)(count + 1) });
 
-        // Canary 9: give the host the next free AI-roster index (the count of slots already below the gate
+        // Canary 9. Give the host the next free AI-roster index (the count of slots already below the gate
         // cap; real units are 0..N-1 sequential).
         int nextIdx = 0;
         for (int s = 0; s < Slots; s++)
@@ -1082,14 +1082,14 @@ internal sealed class BodyDoubleSpike
             return;
         }
 
-        // Canary 7: a host is already claimed this battle. Recovery paths only; re-copying over a live bind
+        // Canary 7. A host is already claimed this battle. Recovery paths only; re-copying over a live bind
         // would stomp the engine's state on that slot.
         if (_hostCombat != 0)
         {
             byte hGate = _mem.U8(_hostCombat + 0x01);
             int hNode = (int)_mem.U32(SceneNodeIdx + _hostModel * 4);
 
-            // Recovery re-arm: the double is bound (gate reads the host model, node exists) but the hold is off.
+            // Recovery re-arm. The double is bound (gate reads the host model, node exists) but the hold is off.
             // Re-pin without touching the engine so a transient teardown never strands a stall-capable double.
             // The host claim is the witness here, since only this spike's copy sets _hostCombat.
             if (hGate == _hostModel && hNode >= 0)
@@ -1100,7 +1100,7 @@ internal sealed class BodyDoubleSpike
                 ModLogger.Event(LogVerb.Trace, "body-double: the player-slot double is already bound; decoy CT-hold re-armed on the existing bind.");
                 return;
             }
-            // A previous F5 built the node but stage 2 aborted: bind the existing node instead of building
+            // A previous F5 built the node but stage 2 aborted. Bind the existing node instead of building
             // again, which would leak a second node under the same label.
             if (hGate == 0xFF && hNode >= 0)
             {
@@ -1120,11 +1120,11 @@ internal sealed class BodyDoubleSpike
                 ModLogger.Event(LogVerb.Trace, $"body-double: host +0x01 reads {hGate:X2} (neither hidden nor the bound {_hostModel:X2}); wrong state. Refusing.");
                 return;
             }
-            // hGate == 0xFF && hNode < 0: the copy landed but no node yet; fall through to the build.
+            // hGate == 0xFF && hNode < 0. The copy landed but no node yet; fall through to the build.
         }
         else
         {
-            // Canary 8: duplicate the hovered unit. The donor supplies body bytes, scene entry, registry object and identity; order matters (history block).
+            // Canary 8. Duplicate the hovered unit. The donor supplies body bytes, scene entry, registry object and identity; order matters (history block).
             if (!ResolveDonor(out long donor, out int donorSlot)) return;
             long host = FindVacantHost(donorSlot, out int hostSlot);
             if (host < 0)
@@ -1218,7 +1218,7 @@ internal sealed class BodyDoubleSpike
         BindStage2(after, _hostModel, entry);
     }
 
-    /// <summary>Stage 2: replicate the scene-bind body so the built node becomes the host's own (identity and
+    /// <summary>Stage 2. Replicate the scene-bind body so the built node becomes the host's own (identity and
     /// animation) instead of a sibling clone. Cold-calls only the two anim lookups; the rest are guarded
     /// writes. Then applies the Canary 4 stamps, engages the CT hold and dumps forensics. The node+0x270
     /// sub-block is skipped (see the history block).</summary>
@@ -1250,7 +1250,7 @@ internal sealed class BodyDoubleSpike
         ModLogger.Event(LogVerb.Trace,
             $"body-double: STAGE-2 bound node 0x{node:X} to the player-slot host (si {si:X2}, animByte {animByte:X2}, node+0x230 0x{r230:X}, node+0x238 0x{r238:X}); combat+0x01 -> {modelId:X2}, +0x1B5 -> 01. Unpause: the double should be a real listed Monk in the player region. WATCH THE ENEMY AI.");
 
-        // Canary 4 stamps: the duplicated unit is the source; the player-donor scan is the fallback when a
+        // Canary 4 stamps. The duplicated unit is the source; the player-donor scan is the fallback when a
         // recovery path lost the donor.
         long donor = _donorCombat != 0 ? _donorCombat : FindPlayerDonor(_hostCombat);
         if (donor > 0)
@@ -1278,15 +1278,15 @@ internal sealed class BodyDoubleSpike
                 "body-double: no drawn player donor besides the host; completeness stamps SKIPPED. The double stays a pure decoy; do NOT release the hold (an unassigned controller id crashes on turn arrival).");
         }
 
-        // Canary 3a: zero CT before unpause as the safe default, then arm the per-tick hold, while the menu
+        // Canary 3a. Zero CT before unpause as the safe default, then arm the per-tick hold, while the menu
         // still pauses the game.
         _mem.WriteBytes(_hostCombat + CtOffset, ZeroCt);
         _bound = true;
-        _boundThisBattle = true;   // the re-arm witness: only a bind made this battle may re-arm
+        _boundThisBattle = true;   // the re-arm witness. Only a bind made this battle may re-arm
         _decoyHold = true;
 
-        // Canary 8 flourish: world X/Y from 28*tile+14, Z parked in the sky; the tick loop lowers it.
-        // Transform offsets are list-node relative: list node = pool element + 8 (element+0 = in-use dword).
+        // Canary 8 flourish. World X/Y from 28*tile+14, Z parked in the sky; the tick loop lowers it.
+        // Transform offsets are list-node relative. List node = pool element + 8 (element+0 = in-use dword).
         long listNode = node + 8;
         byte dtx = _mem.U8(_hostCombat + 0x4F);
         byte dty = _mem.U8(_hostCombat + 0x50);
@@ -1306,12 +1306,12 @@ internal sealed class BodyDoubleSpike
         ModLogger.Event(LogVerb.Trace,
             $"body-double: decoy CT-hold engaged; clone parked in the heavens over ({dtx},{dty}), descending to Z {landing}. Unpause and look up. F5 again releases the hold for control.");
 
-        // Canary 3b: DBG dump of the sibling's node next to the new one. The offline diff names the fields the
+        // Canary 3b. DBG dump of the sibling's node next to the new one. The offline diff names the fields the
         // skipped node+0x270 sub-block (suspected VRAM/palette slot math) leaves different.
         DumpForensics(entry, node);
     }
 
-    /// <summary>Read-only post-bind forensics: per-slot summary, hex dumps of the sibling's and the new node,
+    /// <summary>Read-only post-bind forensics. Per-slot summary, hex dumps of the sibling's and the new node,
     /// and combat snapshots of both. Lines go to the DBG log and to a file in the save dir, because Canary 3
     /// dumps in the rotating log were lost to two post-crash relaunches.</summary>
     private void DumpForensics(long sibEntry, long frankNode)
@@ -1329,7 +1329,7 @@ internal sealed class BodyDoubleSpike
             byte gate = _mem.U8(combat + 0x01);
             byte present = _mem.U8(combat + 0x1B5);
             byte model = _mem.U8(combat + 0x1BC);
-            // Both tables hold Slots entries (SceneNodeIdx - SecondTable = 0x54 = 21*4); a vacant slot's model 0xFF would read past them.
+            // Both tables hold Slots entries (SceneNodeIdx, SecondTable = 0x54 = 21*4); a vacant slot's model 0xFF would read past them.
             string si = "n/a", nodeIdxS = "n/a", n11 = "n/a";
             if (model < Slots)
             {

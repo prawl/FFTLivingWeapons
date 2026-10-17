@@ -4,7 +4,7 @@ using System.IO;
 
 namespace LivingWeapon;
 
-/// <summary>One flight-recorder entry: elapsed ms, a type tag and a free-form payload. Immutable,
+/// <summary>One flight-recorder entry. Elapsed ms, a type tag and a free-form payload. Immutable,
 /// so copies taken under the lock are never torn.</summary>
 internal readonly struct FlightRecord
 {

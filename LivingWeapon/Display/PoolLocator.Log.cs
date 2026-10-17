@@ -11,7 +11,7 @@ internal sealed partial class PoolLocator
     // logs once. Separate from Display.PoolPaint.cs's _noPoolRegionLatched, which fires elsewhere.
     private bool _noneFoundLatched;
 
-    /// <summary>Timing line for the periodic revalidate: how long AllCachedStillPool took and the result.</summary>
+    /// <summary>Timing line for the periodic revalidate. How long AllCachedStillPool took and the result.</summary>
     private void LogRevalidate(long elapsedMs, bool stillPool) =>
         ModLogger.Debug(LogVerb.Display, $"LW37 revalidate: {elapsedMs}ms, {_cached.Count} cached region(s), stillPool={stillPool}");
 

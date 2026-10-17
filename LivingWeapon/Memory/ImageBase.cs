@@ -60,6 +60,6 @@ internal static class ImageBase
         }
     }
 
-    /// <summary>Test seam: restores Preferred.</summary>
+    /// <summary>Test seam. Restores Preferred.</summary>
     internal static void ResetForTests() => Base = Preferred;
 }

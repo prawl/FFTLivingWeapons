@@ -46,7 +46,7 @@ internal sealed partial class Rapture
         return f;
     }
 
-    /// <summary>Guarded write of a movement field image in one WriteBytes call (LW-145 fix 2: a per-byte
+    /// <summary>Guarded write of a movement field image in one WriteBytes call (LW-145 fix 2. A per-byte
     /// loop left a torn-value window). Used for both hold and restore; no-op on failure.</summary>
     public static void WriteField(IGameMemory mem, long entryAddr, byte[] field)
     {
@@ -75,7 +75,7 @@ internal sealed partial class Rapture
         => maxHp > 0 && hp > 0 && !IsBelow(hp, maxHp, pct);
 }
 
-/// <summary>The Rapture window's latch: saved pre-grant movement bytes, turn count at arm, and the last
+/// <summary>The Rapture window's latch. Saved pre-grant movement bytes, turn count at arm, and the last
 /// band-entry address (the restore target). Only the first Arm counts, since re-arming while held would
 /// save our own teleport bytes (the Maim trap).</summary>
 internal sealed class RaptureState

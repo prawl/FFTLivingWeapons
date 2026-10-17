@@ -47,7 +47,7 @@ internal static class PoolRegionSidecar
     }
 
     /// <summary>Persists <paramref name="regions"/> as PoolLocator's _cached holds them, stamped
-    /// with the current PE key. Fail-soft like KillTally.Save: a failure logs and keeps the previous
+    /// with the current PE key. Fail-soft like KillTally.Save. A failure logs and keeps the previous
     /// file, since this runs on Engine's tick thread (PoolLocator.Restart.cs Publish) and must not throw.</summary>
     internal static void Save(string path, IReadOnlyList<(long baseAddr, long size)> regions)
     {

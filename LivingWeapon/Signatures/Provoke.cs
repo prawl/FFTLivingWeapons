@@ -3,12 +3,12 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Defender's "Provoke" signature (LW-123 arc 1), modeled on ShadowBlade.cs: grants a JobCommand-injected command
+/// Defender's "Provoke" signature (LW-123 arc 1), modeled on ShadowBlade.cs. Grants a JobCommand-injected command
 /// to a tier-3 main-hand Defender wielder using the Barrage/ShadowBlade injection primitives and the shared
 /// Squire/Knight whitelist (ProvokePolicy delegates to ShadowBladePolicy). This file is the slot lifecycle plus
 /// Tick(); Provoke.Table.cs is the table lifecycle (the two byte writes repointing ability 189's effect), a
 /// separate state machine with its own arming condition.
-/// Armed by data: nothing is granted unless items.json id 33 (Defender) has a `signature` block. Armed since
+/// Armed by data. Nothing is granted unless items.json id 33 (Defender) has a `signature` block. Armed since
 /// LW-123 shipped 3565363; it shipped inert in 2.3.2 because the mark it makes castable never expires
 /// and cannot be re-applied, and ProvokeHold (arc 2a) is what clears it. ProvokeHoldTests.
 /// The_baked_meta_signature_block_agrees_with_the_ship_switch pins the block against Tuning.ProvokeEnabled
@@ -23,10 +23,10 @@ internal sealed partial class Provoke : ISignature
     private readonly IGameMemory _mem;
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly Dictionary<int, int> _kills;
-    private readonly BarrageState _state = new();   // slot lifecycle: same atomic (RecId, SlotIdx) ledger Barrage/ShadowBlade use
+    private readonly BarrageState _state = new();   // slot lifecycle. Same atomic (RecId, SlotIdx) ledger Barrage/ShadowBlade use
     private bool _wasActive;
     private int _lastUnsupportedJob = -1;
-    private bool _noSlotLogged;   // Signatures.StuckEdge latch: no empty slot nag
+    private bool _noSlotLogged;   // Signatures.StuckEdge latch. No empty slot nag
 
     public Provoke(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, IGameMemory? mem = null)
     {
@@ -70,10 +70,10 @@ internal sealed partial class Provoke : ISignature
             }
         }
 
-        // TABLE LIFECYCLE: independent of job eligibility (Provoke.Table.cs).
+        // TABLE LIFECYCLE. Independent of job eligibility (Provoke.Table.cs).
         if (wielderSlot >= 0) WriteTable(abilityId); else RestoreTable(abilityId);
 
-        // SLOT LIFECYCLE: same shape as ShadowBlade.
+        // SLOT LIFECYCLE. Same shape as ShadowBlade.
         if (wielderSlot < 0)
         {
             if (_wasActive) ModLogger.Event(LogVerb.Grant, "Provoke is no longer granted; no Defender wielder remains");
@@ -104,7 +104,7 @@ internal sealed partial class Provoke : ISignature
                 $"provoke grant (party slot {wielderSlot}, ability {abilityId}, record {recId}, learn index {jobIdx})");
         }
 
-        // Job changed mid-session: release the old record's slot before targeting the new one.
+        // Job changed mid-session. Release the old record's slot before targeting the new one.
         if (_state.RecId >= 0 && _state.RecId != recId) RestoreSlot(abilityId);
 
         long flagAddr = Barrage.AbilityBase + (long)recId * Barrage.RecSize - Barrage.FlagPrefixSize;

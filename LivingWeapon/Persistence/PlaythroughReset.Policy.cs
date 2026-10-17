@@ -1,12 +1,12 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-51 Tier-1: pure predicate for the Orbonne Prayer new-game opening dialogue, plus the debounce
+/// LW-51 Tier-1. Pure predicate for the Orbonne Prayer new-game opening dialogue, plus the debounce
 /// PlaythroughReset holds it against. Stateless; Engine.Tick supplies every input.
 /// </summary>
 internal static class PlaythroughResetPolicy
 {
-    /// <summary>Offsets.EventId during the Orbonne Prayer opening (confirmed 2026-07-08: 0xFFFF at the
+    /// <summary>Offsets.EventId during the Orbonne Prayer opening (confirmed 2026-07-08 0xFFFF at the
     /// menu, then 2 -&gt; 4 -&gt; 5 through the prologue). The prayer lasts minutes, so it is a stable anchor.</summary>
     public const int OpeningEventId = 2;
 

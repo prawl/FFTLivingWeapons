@@ -28,7 +28,7 @@ internal sealed partial class IconGlow
     private Dictionary<int, List<IconGlowEntry>> _entriesById = new();
     private bool _standDown;
     private bool _applying;
-    private bool _judgedAllOnce;   // FIX 1: true once the launch's first background apply is scheduled
+    private bool _judgedAllOnce;   // FIX 1. True once the launch's first background apply is scheduled
     private readonly Dictionary<int, int> _applied = new();
 
     // Surfaces whose hide call returned Postponed (battle in progress), retried by

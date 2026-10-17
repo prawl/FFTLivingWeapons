@@ -89,7 +89,7 @@ internal sealed partial class RestartSentinel
             _lastQualifiedNullTick = 0;
             _battleAgeTicks = 0;
             _outOfLiveStreakTicks = 0;
-            _stash.Clear();   // LW-233 fix: a stale stash must not survive the starved-bracket re-arm either
+            _stash.Clear();   // LW-233 fix. A stale stash must not survive the starved-bracket re-arm either
             justQualified = false;
         }
 
@@ -125,7 +125,7 @@ internal sealed partial class RestartSentinel
 
         if (LatchOpen)
         {
-            _latchOpenTicksRemaining = RestartSentinelPolicy.LatchTicks;   // re-openable: extend on a fresh qualifying revive
+            _latchOpenTicksRemaining = RestartSentinelPolicy.LatchTicks;   // re-openable. Extend on a fresh qualifying revive
             return RevivePresentResult.UncreditNow;
         }
 

@@ -4,7 +4,7 @@ using System.Text;
 
 namespace LivingWeapon;
 
-/// <summary>Byte-pattern helpers for the display scan: name/slot encoding + searching.</summary>
+/// <summary>Byte-pattern helpers for the display scan. Name/slot encoding + searching.</summary>
 internal static class ByteScan
 {
     /// <summary>ASCII bytes with non-ASCII chars dropped (not replaced with '?'), matching the bake;
@@ -42,9 +42,9 @@ internal static class ByteScan
         return false;
     }
 
-    /// <summary>Slot validator for the "Kills NNNN" counter: left-aligned digits padded with spaces. Char 0 must be a digit;
+    /// <summary>Slot validator for the "Kills NNNN" counter. Left-aligned digits padded with spaces. Char 0 must be a digit;
     /// chars 1..3 are digits until the first space, then only spaces. Also accepts the old all-digits form ("0042").
-    /// enc-aware: the UTF-16 high byte must be 0x00.</summary>
+    /// enc-aware. The UTF-16 high byte must be 0x00.</summary>
     public static bool KillsDigits(byte[] buf, int pos, int enc)
     {
         if (buf[pos] is < (byte)'0' or > (byte)'9') return false;

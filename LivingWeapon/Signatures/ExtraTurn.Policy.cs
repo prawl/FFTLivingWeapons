@@ -5,7 +5,7 @@ namespace LivingWeapon;
 internal sealed partial class ExtraTurn
 {
     internal const int CtOff = 0x25;            // scheduler charge-time in the band-entry frame (combat base+0x41, the field Quick writes)
-    internal const int SlamCt = 100;            // ct_probe: 11 forced turns/40s. 105 might jump the queue but is untested, so probe before raising
+    internal const int SlamCt = 100;            // ct_probe 11 forced turns/40s. 105 might jump the queue but is untested, so probe before raising
     internal const int FullCt = 100;            // "turn in progress / slam took" threshold
     internal const int ConsumeBelow = 70;       // engine pulled CT under this = a turn of theirs ended
     internal const int TookStreak = 3;          // consecutive >=FullCt reads before took latches, so an oscillating turn-end reset counts once
@@ -46,7 +46,7 @@ internal sealed partial class ExtraTurn
         return (0, took, false);
     }
 
-    /// <summary>Count pull-downs: the kill-turn's own end first (if owed), then the bonus turn's end,
+    /// <summary>Count pull-downs. The kill-turn's own end first (if owed), then the bonus turn's end,
     /// which means the extra turn was taken.</summary>
     internal static (GrantState next, bool consumed) Step(GrantState s, bool pullDown)
     {
@@ -70,7 +70,7 @@ internal sealed partial class ExtraTurn
     internal static bool RestoreCt(ReleaseReason r) => r != ReleaseReason.Consumed;
 }
 
-/// <summary>Where a Zwill killer sits in the bonus-turn grant: Arming (locate, classify) -> Owed
+/// <summary>Where a Zwill killer sits in the bonus-turn grant. Arming (locate, classify) -> Owed
 /// (kill-turn running) -> Pinning (until the bonus move ends) -> Idle.</summary>
 internal enum GrantState { Idle, Arming, Owed, Pinning }
 

@@ -116,7 +116,7 @@ internal sealed partial class Bulwark
     /// Silent when there was nothing to restore, because ResetBattle calls this on both battle edges
     /// (Bulwark.cs, A1).
     ///
-    /// LW-145 fix 5: a byte is restored only if it still reads as our vetoed form of the saved original.
+    /// LW-145 fix 5. A byte is restored only if it still reads as our vetoed form of the saved original.
     /// If something else (a level script, another mod) rewrote it, restoring would clobber that write,
     /// so the tile is skipped and logged. MaintainPlant keeps a healthy plant at the vetoed form, so
     /// this only catches foreign writes.</summary>

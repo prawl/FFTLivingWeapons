@@ -11,7 +11,7 @@ namespace LivingWeapon;
 ///
 /// One puppet at a time. After one expires the wielder waits Tuning.PuppeteerCooldownTurns GLOBAL
 /// turns (TurnTracker.GlobalTurns; a per-unit cooldown ran backwards live, see Tuning.cs). Every
-/// struck enemy is dominatable: IsDominatable does not read the job id, which is unreliable on IC.
+/// struck enemy is dominatable. IsDominatable does not read the job id, which is unreliable on IC.
 ///
 /// Arming (D1, rebuilt 2026-07-03 after Puppeteer never fired under the old latch-only gate):
 /// active = onField && IsActive(tier) && (pointerPath || latchPath). pointerPath is ActorPtr naming
@@ -29,12 +29,12 @@ namespace LivingWeapon;
 /// 2026-07-04 the pointer read a match ~24ms after an enemy hit landed on a player (gate log
 /// 00:28:21.154 / 00:28:29.200), possibly a just-struck frame. Do not fix without a counter-probe.
 ///
-/// Detection (D3/D4) uses Kobu's Evaluate/cache/rearm shape: per-tick HP drops on enemy band slots,
+/// Detection (D3/D4) uses Kobu's Evaluate/cache/rearm shape. Per-tick HP drops on enemy band slots,
 /// filtered by an additive per-battle EnemyFingerprintCache so a one-tick Readable() flap cannot drop
 /// an enemy on the drop tick. The verdict chain is inactive, not-enemy, victim-dead, holding,
 /// cooldown, gated-out, rearm-unwritable, dominated. Every verdict but rearm-unwritable consumes the
 /// event; that one calls RicochetState.Rearm so the same drop re-detects next tick. Residuals as in
-/// Kobu: a fingerprint miss consumes even on a flapped band field, and an off-field gap can pay a
+/// Kobu. A fingerprint miss consumes even on a flapped band field, and an off-field gap can pay a
 /// rearmed hit out late, never to the wrong unit.
 ///
 /// Tick skeleton differs from Kobu. A possession spans ticks, so Drive() (re-assert the agency bit)
@@ -48,17 +48,17 @@ namespace LivingWeapon;
 /// Band.MaxLevelDrift (9) above roster level after a mid-battle level-up, so a roster fingerprint
 /// would never advance the clock. Falls back to KillTracker.LastActorFingerprint, then to the
 /// GlobalTurns threshold if that is unavailable (PuppeteerState.IsExpired, null WFp branch).
-/// Known residual: if the band fingerprint rotates mid-possession (level-up), the clock never
+/// Known residual. If the band fingerprint rotates mid-possession (level-up), the clock never
 /// advances and the puppet holds until battle exit. IsExpired with a non-null WFp does not fall
 /// back to GlobalTurns (Puppeteer.Policy.cs). Do not fix without a counter-probe.
 ///
-/// On-deck if "dominated" logs but the enemy stays AI-driven: the agency byte write was confirmed
+/// On-deck if "dominated" logs but the enemy stays AI-driven. The agency byte write was confirmed
 /// once on 2026-06-18, but the FFTMP cold-enemy corroboration used the +0x1EE / band +0x1D2 pair
 /// (LIVE_LEDGER rows 46/68, "a lone +0x05 write may revert and the pair is what holds ... not yet
 /// probed"). Do not add the second write speculatively; the gate-reason and per-drop diag exist to
 /// show whether it is needed.
 ///
-/// Offsets confirmed 2026-06-18: agency flag (combat +0x05 / band -0x17) and job read (JobOff,
+/// Offsets confirmed 2026-06-18. Agency flag (combat +0x05 / band -0x17) and job read (JobOff,
 /// combat +0x03 / band -0x19) return correct per-unit values in-game.
 ///
 /// Possession-hold lifecycle (Drive/Expire/Release/Valid, PuppetFingerprint) lives in
@@ -78,8 +78,8 @@ internal sealed partial class Puppeteer : ISignature
     private readonly PuppeteerState _state;
     private readonly RicochetState _hpState;   // HP-diff baseline (same pattern as Maim/Ricochet)
     private readonly EnemyFingerprintCache _enemies;
-    private readonly Action<string, string>? _recorder;   // flight tap: dominate + release brackets (reason=own-turn/cap); null in tests/before Flight.Init
-    private string _lastGateReason = "";       // gate-edge log throttle (Larceny's pattern: log on
+    private readonly Action<string, string>? _recorder;   // flight tap. Dominate + release brackets (reason=own-turn/cap); null in tests/before Flight.Init
+    private string _lastGateReason = "";       // gate-edge log throttle (Larceny's pattern. Log on
                                                // reason change, not every 33ms tick)
 
     // Own-turn release state (LW-5, Puppeteer.Hold.cs). The puppet is held until the turn queue
@@ -140,7 +140,7 @@ internal sealed partial class Puppeteer : ISignature
 
             int turnNow = _turns.GlobalTurns;
 
-            // D5: Larceny-style gate-reason log (Larceny.cs ~76-97). AnyDeployedMainHand keeps a benched
+            // D5. Larceny-style gate-reason log (Larceny.cs ~76-97). AnyDeployedMainHand keeps a benched
             // give-all reserve from spamming; logs only when the reason changes.
             string reason = active
                 ? "ACTIVE: the next struck enemy becomes your puppet"
@@ -190,7 +190,7 @@ internal sealed partial class Puppeteer : ISignature
         else if (hp == 0) verdict = "victim-dead";
         else if (hasPuppet) verdict = "holding";
         else if (!offCooldown) verdict = "cooldown";
-        else if (!dominatable) verdict = "gated-out";   // allow-everyone: never trips; the re-gating hook
+        else if (!dominatable) verdict = "gated-out";   // allow-everyone. Never trips; the re-gating hook
         else if (!_mem.Writable(addr + AgencyOff, 1)) { verdict = "rearm-unwritable"; rearm = true; }
         else
         {
@@ -204,13 +204,13 @@ internal sealed partial class Puppeteer : ISignature
             _recorder?.Invoke("pup", $"dominate seat=0x{addr:X} nameId={(_mem.Readable(addr + Offsets.ANameId, 2) ? _mem.U16(addr + Offsets.ANameId) : 0)} mhp={fp.mhp} slot={s} job={job} gturn={_turns.GlobalTurns}");
         }
         if (rearm) _hpState.Rearm(s, hp + dmg);
-        // Origin of the per-drop gate: Patrick complained about log spam with no Galewind fielded,
+        // Origin of the per-drop gate. Patrick complained about log spam with no Galewind fielded,
         // so with none fielded the diag emits nothing, not even to the file.
         if (_verbose && (wielderEntry != 0 || Wielder.AnyDeployedMainHand(_mem, GalewindId)))
             ModLogger.Debug(LogVerb.Signature, $"puppeteer evaluated: slot {s} damage {dmg} verdict={verdict} active={active} enemyInSet={inSet} hitPoints={hp} wielderLocated={wielderEntry != 0} holdingPuppet={hasPuppet} offCooldown={offCooldown} (job {job})");
     }
 
-    /// <summary>Start a fresh possession: clear the own-turn edge state (Puppeteer.Hold.cs's release
+    /// <summary>Start a fresh possession. Clear the own-turn edge state (Puppeteer.Hold.cs's release
     /// signal). Called at every dominate and at battle reset.</summary>
     private void ResetPossession()
     {

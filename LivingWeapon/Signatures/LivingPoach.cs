@@ -85,7 +85,7 @@ internal sealed partial class LivingPoach
             string name = verdict == PoachVerdict.Common ? carcass.CommonName : carcass.RareName;
             if (WriteCarcass(weaponId, key, name))
             {
-                // LW-167 stage 3: a real Poach leaves no corpse, so despawn this one. A refusal never rolls
+                // LW-167 stage 3. A real Poach leaves no corpse, so despawn this one. A refusal never rolls
                 // back the store write. A transient refusal retries via LivingPoach.Despawn.cs's Tick; a
                 // permanent one (no longer our corpse) is not queued, CorpseDespawn.cs already logged it.
                 if (!CorpseDespawn.TryDespawn(_mem, slot, victim.NameId, out var refusal) && refusal == DespawnRefusal.Transient)
