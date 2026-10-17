@@ -1031,7 +1031,7 @@
       "identity": "Giant-slayer sword: on hit, a chance to cast Gravity, shearing off a share of the target's CURRENT HP regardless of defense — the melee counter to high-HP tanks and bosses. Trades raw WP for near-top evade (14, behind the Riposte's 16) and the %-HP proc; the swing is just the delivery. (Repurposed from the retired Living Blade+.)",
       "flavorOverride": "A dull, leaden edge that calls down a crushing weight, dragging the proudest foe down.",
       "baseline": {
-        "wp": 18,
+        "wp": 13,
         "evade": 12,
         "element": "None",
         "onHit": "None",
@@ -1104,7 +1104,7 @@
       "identity": "The line's only Holy sword (Excalibur's Holy is locked to Knight Swords). Holy element — bonus damage to Undead and dark foes, healed by Holy-absorbers. The radiant melee pick against undead/dark comps; pays a little raw WP for the element and the matchup edge. (Repurposed from the retired Living Blade base.)",
       "flavorOverride": "Hallowed steel that wakes with a dawn-white glow, scouring shadow and dead flesh away.",
       "baseline": {
-        "wp": 16,
+        "wp": 1,
         "evade": 12,
         "element": "None",
         "onHit": "None",
@@ -1307,10 +1307,10 @@
       "vanillaName": "Chaos Blade",
       "name": "Chaos Blade",
       "tier": 6,
-      "identity": "Raw-power king — highest WP in the category, lowest evade (paid defensively), with a chance to Petrify on hit. The element-less brute-force capstone; pick it to delete a target. Vanilla WP50 game-breaker cut to WP28 so it no longer strictly dominates Ragnarok. Iconic name kept; vanilla's Regen rider stripped (equipBonusId 0) so it's pure offense.",
+      "identity": "Raw-power king — highest WP in the category, lowest evade (paid defensively), with a chance to Petrify on hit. The element-less brute-force capstone; pick it to delete a target. Vanilla WP40 game-breaker cut to WP28 so it no longer strictly dominates Ragnarok. Iconic name kept; vanilla's Regen rider stripped (equipBonusId 0) so it's pure offense.",
       "flavorOverride": "A blade of living chaos; what it touches it unmakes, flesh to stone.",
       "baseline": {
-        "wp": 50,
+        "wp": 40,
         "evade": 20,
         "element": "None",
         "onHit": "Stone/Petrify proc on hit (chance) + EquipBonus rider PERMANENT REGEN",
@@ -2530,7 +2530,7 @@
       "identity": "First elemental gun: Ice, WP12 (144 base), R8. Formula-4 innate Blizzard-line cast, Faith-scaled (a high roll beats the Repeater, a low/immune roll loses). The only Ice gun: anti-Fire-creature, +25% vs Ice-weak, but Ice-absorbers heal it. Element + Faith variance is the trade for the WP jump.",
       "flavorOverride": "A gun that chambers winter itself and fires it by faith alone.",
       "baseline": {
-        "wp": 21,
+        "wp": 20,
         "evade": 5,
         "element": "Ice",
         "onHit": "Inherent chance to cast Blizzard/Blizzara/Blizzaga (Ice spell) on hit - this is the elemental-gun magic-cast, NOT a status rider.",
@@ -2561,7 +2561,7 @@
       "identity": "Fire twin of the Hailshot at IDENTICAL WP12/R8: the different element is the entire differentiator. The only Fire gun: anti-Undead, anti-Ice-creature, shreds Oiled targets; Fire-absorbers heal it. A true sidegrade, never an upgrade, picked purely for the Fire matchup.",
       "flavorOverride": "A gun that breathes furnace-heart flame, aimed by faith alone.",
       "baseline": {
-        "wp": 20,
+        "wp": 21,
         "evade": 5,
         "element": "Fire",
         "onHit": "Inherent chance to cast Fire/Fira/Firaga (Fire spell) on hit - elemental-gun magic-cast, NOT a status rider.",
@@ -2657,7 +2657,7 @@
       "identity": "Assassin's bolt — marks an elite for death. Proc 21 is Blind, not Death, so it uses Doom (id 11) instead — a countdown to a certain KO. Only Doom crossbow. Applies Doom at ~25% (formula 1); when the mark lands, the +3 Eagle Eye signature makes it resolve in 1 turn — a gamble with a lethal payoff.",
       "flavorOverride": "Its quarrel marks final dusk.",
       "baseline": {
-        "wp": 4,
+        "wp": 3,
         "evade": 5,
         "element": "None",
         "onHit": "Doom",
@@ -2780,7 +2780,7 @@
       "identity": "Combo-setup bolt — applies Oil at 100% (formula 2D), which doubles the Fire damage the target takes; pairs with any Fire attacker. Line-high 8% evade. Only Oil source.",
       "flavorOverride": "A crossbow whose bolts burst with clinging pitch, leaving the quarry slick for the spark.",
       "baseline": {
-        "wp": 5,
+        "wp": 6,
         "evade": 5,
         "element": "None",
         "onHit": "Oil",
