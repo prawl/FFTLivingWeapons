@@ -10,6 +10,28 @@ before 2026-07-21 keep their original prose.
 
 ## 2.4.0 cycle
 
+- [LW-400] SHIPPED 7d7c97c7 2026-10-17: The twin weapon grant gets its own safety switch and its
+  own line in the parts report. Plain language: the Outrider Pistol's twin and the Arbalest's
+  Crossfire share one grant that writes into the player's save from the world map, trusting two
+  small menu flags to keep out of the equipment screens. Now the grant has its own door. It waits
+  until a save loads, opens when the flags and Ramza's hand slots look right, and if they do not
+  it switches off alone with one calm warning and a seat in the parts box while everything else
+  keeps running. The grant also refuses to write on its own whenever its door is not open. The
+  report calls the part "twin weapons" so a crossbow player recognizes the line. Two other
+  report labels were reworded for players during the pass. Stage 3c of the parts model, built in
+  parallel with LW-398 and LW-399 in its own worktree. Full build: plan review, two implement
+  rounds, two verify rounds (code 8 then 9, spec capped at 5 by plan silences written back into
+  the plan). Owner live pass 2026-10-17 02:50 to 03:08, two legs on a dev build: the drill gave
+  the twin WARN two seconds after arming, twin weapons OFF with nine ON, one box naming kill
+  counting under Still working, the standdown tape with the twin record, no twin stamped, a
+  credited kill, scan exit 0; the normal launch opened the twin door two milliseconds after the
+  roster, ten ON, the twin stamped on the Status visit, a kill credited, no box, scan clean.
+  (Tech: Door.TwinPistols; LaunchGuard.Twin.cs over MenuOpenFlag and PartyBrowseFlag reading 0
+  or 1 plus slot 0 hand words at most 0x1FF or 0xFFFF, Waiting on an empty slot; GunSlinger takes
+  a required doorOpen predicate and refuses in PrepRoster with one WARN; MenuGate denies above 1;
+  LW_FORCE_TWIN_MISMATCH drill; PartsBoard takes the drill sentence as text; ledger entry
+  twin-menu-flags-zero-at-map-time UNCERTAIN, owner flip pending; commit 7d7c97c7.)
+
 - [LW-393] SHIPPED a39e629f 2026-10-17: When a game update breaks one part of the mod, only that
   part switches off and the player is told which parts still work. Plain language: the mod used
   to have one safety switch, so one failed startup check turned everything off and showed one box.
