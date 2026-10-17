@@ -43,6 +43,37 @@ public class FingerprintGuardFactoryTests
         Assert.Equal(LandmarkVerdict.Match, landmark.Probe().Verdict);
     }
 
+    // LW-397: the shared header reader behind PeBuildKey and the LivingWeapon adapter's report line.
+    [Fact]
+    public void TryReadPeBuildKey_returns_both_fields()
+    {
+        var store = new Dictionary<long, byte[]>();
+        WriteU32(store, BaseAddr + 0x3C, ELfanew);
+        WriteU32(store, BaseAddr + ELfanew + 8, 0x11111111);
+        WriteU32(store, BaseAddr + ELfanew + 0x50, 0x22222222);
+
+        Assert.True(FingerprintGuard.TryReadPeBuildKey(DictReader(store), BaseAddr, out uint tds, out uint soi));
+        Assert.Equal(0x11111111u, tds);
+        Assert.Equal(0x22222222u, soi);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void TryReadPeBuildKey_false_and_zero_outs_when_any_read_fails(int missing)
+    {
+        var store = new Dictionary<long, byte[]>();
+        WriteU32(store, BaseAddr + 0x3C, ELfanew);
+        WriteU32(store, BaseAddr + ELfanew + 8, 0x11111111);
+        WriteU32(store, BaseAddr + ELfanew + 0x50, 0x22222222);
+        store.Remove(missing switch { 0 => BaseAddr + 0x3C, 1 => BaseAddr + ELfanew + 8, _ => BaseAddr + ELfanew + 0x50 });
+
+        Assert.False(FingerprintGuard.TryReadPeBuildKey(DictReader(store), BaseAddr, out uint tds, out uint soi));
+        Assert.Equal(0u, tds);
+        Assert.Equal(0u, soi);
+    }
+
     [Theory]
     [InlineData(0xFFFFFFFF, 0xBBBBBBBB)]
     [InlineData(0xAAAAAAAA, 0xFFFFFFFF)]

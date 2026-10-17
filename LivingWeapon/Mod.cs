@@ -110,11 +110,12 @@ public class Mod : IMod
             // DEFINED whether the try above succeeded or hit the catch (never skipped), so a
             // config-read failure can't strand the console on the lazily-created default logger.
             ModLogger.LogLevel = LogLevel.Info;
-            // LW-50 stand-down drill, dev builds only: the config knob was removed 2026-07-07 so
-            // players cannot trigger a stand-down from the launcher UI. Set the environment variable
+            // LW-50 build-stamp drill, dev builds only: the config knob was removed 2026-07-07 so
+            // players cannot trigger it from the launcher UI. Set the environment variable
             // LW_FORCE_FINGERPRINT_MISMATCH to 1, or drop a marker file of that same name into the
             // mod dir (LW-83: env variables do not reach fft_enhanced through this box's launch
-            // chain), before launching a DEV build to force the mismatch.
+            // chain), before launching a DEV build to force the build stamp to read unknown (the
+            // report line and the armed-edge warning, LW-397) instead of a stand-down.
             // LW-395: LW_FORCE_SENSING_MISMATCH (same two lanes) does the same for the sensing lane
             // that gates the new-game detector.
 #if LWDEV

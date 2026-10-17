@@ -113,7 +113,7 @@ deliberately; no ad-hoc per-module prefixes. The legacy column maps the pre-face
 
 | Verb | Legacy prefix(es) | Level discipline |
 |---|---|---|
-| `startup` | bare startup lines, `DEV:` seed line, both Mod.cs hooks lines | Info; launch header + its hooks footer, plus the fingerprint guard's armed/stand-down lines, the LW-392 stall warning, title-screen wait and recovery lines, and (LW-82) the anchor scout's re-find inventory that only runs after a stand-down. |
+| `startup` | bare startup lines, `DEV:` seed line, both Mod.cs hooks lines | Info; launch header + its hooks footer, plus the fingerprint guard's armed/stand-down lines, the build stamp line and the unknown-build warning (LW-397), the LW-392 stall warning, title-screen wait and recovery lines, and (LW-82) the anchor scout's re-find inventory that only runs after a stand-down. |
 | `config` | `config:` | Info once per launch; Warning on read failure. |
 | `battle-start` | `battle: started` | Info once per battle; sentinels move to a `[trace]` companion. |
 | `battle-end` | `battle: ended` | Info once per battle; THE match-report summary line. |
@@ -136,7 +136,7 @@ arc continues separately.
 
 ## The launch header
 
-Six Info lines at every launch (seven in development builds), then the hooks footer once the
+Seven Info lines at every launch (eight in development builds), then the hooks footer once the
 loader resolves controllers. File shape shown; the console drops the `[verb]` brackets:
 
 ```
@@ -146,6 +146,7 @@ loader resolves controllers. File shape shown; the console drops the `[verb]` br
 [save]    The legends hold deeds for 4 weapons and 1 Mark (legends.json, primary).
 [startup] Living Weapons is tracking 118 weapon types.
 [startup] The runtime loop has started.
+[startup] Game build stamp: TimeDateStamp 0x6A5E4A1B, SizeOfImage 0x03F9E000; the build this mod was made for.
 [startup] Connected to the game's rendering hooks; toast pop-ups can be delivered.
 ```
 
@@ -155,7 +156,10 @@ Facts worth knowing: the version is read fail-soft from the deployed `ModConfig.
 `[save]` lines state their load SOURCE (`primary`/`backup`/`fresh`), and a backup or fresh load
 also emits a Warning; dev builds add `[startup] Development build: every weapon's tally is
 seeded...` after the tally load line. A missing hooks helper mod turns the footer into a Warning (toasts die, the mod
-runs); the runtime-loop line is the liveness canary that closes the header.
+runs); the runtime-loop line is the liveness canary that closes the header. The build stamp line (LW-397)
+is logged by LaunchGuard on its first tick, so it may print either side of the hooks footer (the
+footer comes from the loader thread); an unknown stamp words it as "not a build this mod knows"
+and a calm WARN follows when the mod arms.
 
 ## The match report
 
@@ -264,7 +268,10 @@ tier-up/milestone toast enqueue and drop (BannerToast); toast delivery into the 
 lifecycle (`"guard"`, LaunchGuard):
 the armed edge and a stand-down's landmark diag, so a stand-down archive is self-contained
 (LW-53), plus the sensing lane's own armed payload ("sensing lane armed (battle sentinels
-match; new-game detector enabled)", LW-395); and the Attack card's cursor-gate tripwire (`"card"`, AttackCard.Resolve.cs, LW-55):
+match; new-game detector enabled)", LW-395), the build stamp's two payloads ("build stamp unknown
+(TimeDateStamp 0x.., SizeOfImage 0x..; expected 0x.. / 0x..)" when the probe latches an unknown
+stamp, "armed on an unknown build (TimeDateStamp 0x.., SizeOfImage 0x..)" at the armed edge; a
+known stamp records nothing; LW-397); and the Attack card's cursor-gate tripwire (`"card"`, AttackCard.Resolve.cs, LW-55):
 one record per refused cursor answer (roster/band weapon disagreement, or a hover that is not
 yet the turn owner), deduped to once per refusal key per battle, naming the refusal kind and
 both weapon ids so a live "wrong dossier" report can be diagnosed after the fact; the equip-card

@@ -11,10 +11,13 @@ docs/research/PORT_<ver>_OFFSETS.md journal, not here.
 
 ## How you find out
 
-- The fingerprint guard fires at launch: ONE loud log line naming the failed landmark
-  (pe-build-key for a game update) plus a once-per-session message box, and the runtime stays
-  disarmed. This is the guard working, not a bug (LW-50; first real-world catch: 1.5.1,
-  2026-07-13).
+- A new game build no longer trips the guard on its own (LW-397). The startup log carries one
+  "Game build stamp ..." line saying whether the stamp is the one the mod was made for. If the
+  stamp is new but Ramza's roster row still reads right, the mod ARMS and logs one WARN, "This
+  game build is new to the mod ...". Only a moved roster row stands the mod down (ONE loud log
+  line naming ramza-roster-row plus a once-per-session message box, runtime disarmed; LW-50,
+  first real-world catch: 1.5.1, 2026-07-13). The extended inventory refuses only when one of
+  its patch sites reads different bytes than it expects.
 - Ground truth before concluding anything: read the PE header off the exe ON DISK and compare
   with LaunchGuard.cs's expected constants. A mod cannot plausibly change TimeDateStamp and
   SizeOfImage; both differing means the binary changed.

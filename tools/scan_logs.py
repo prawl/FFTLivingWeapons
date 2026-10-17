@@ -365,7 +365,9 @@ def _hdr(dev=True):
     ]
 
 
-_ARMED = "[Living Weapons] [19:10:05.100] [INFO] [startup] The game build matches all memory landmarks; Living Weapons is armed (writes were held until now)."
+_ARMED = "[Living Weapons] [19:10:05.100] [INFO] [startup] Every memory landmark matches; Living Weapons is armed (writes were held until now)."
+_STAMP_UNKNOWN = "[Living Weapons] [19:10:00.100] [INFO] [startup] Game build stamp: TimeDateStamp 0x11111111, SizeOfImage 0x22222222; not a build this mod knows (it was made for TimeDateStamp 0x6A5E4A1B, SizeOfImage 0x03F9E000). Its own checks decide what runs; see the armed or warning line that follows once a save loads."
+_UNKNOWN_BUILD_WARN = "[Living Weapons] [19:10:05.101] [WARN] [startup] This game build is new to the mod, its own checks passed, running normally. (TimeDateStamp 0x11111111, SizeOfImage 0x22222222; the mod was made for 0x6A5E4A1B / 0x03F9E000.) If kill counts stop moving or anything looks off, check the Living Weapons mod page for a newer version."
 _BATTLE = [
     "[Living Weapons] [19:11:00.000] [INFO] [battle-start] Battle started.",
     "[Living Weapons] [19:11:00.050] [DEBUG] [trace] battle-start sentinels (slot0=10 slot9=0 mode=3)",
@@ -373,7 +375,7 @@ _BATTLE = [
     "[Living Weapons] [19:12:00.000] [INFO] [battle-end] Battle ended: 1 kills credited (Windrunner 1), 0 Marks earned, 0 tiers reached; 23 turns; the kill tally and legends are saved.",
 ]
 _ERROR = "[Living Weapons] [19:11:15.000] [ERROR] [engine] One engine update was skipped; an internal error occurred: NullReferenceException at ..."
-_STANDDOWN = "[Living Weapons] [19:10:05.100] [ERROR] [startup] The game build does not match this mod's memory landmarks (pe-build-key: TimeDateStamp 0x690C1269 != 0x6A0F86A9); Living Weapons is standing down to protect your save. The mod likely needs an update for a new game patch, or another installed mod has modified the job command tables."
+_STANDDOWN = "[Living Weapons] [19:10:05.100] [ERROR] [startup] The game build does not match this mod's memory landmarks (ramza-roster-row (observed nameId=5 sprite=0x02 brave=70 faith=65 (expected nameId=1, sprite<0x80, brave<=100, faith<=100))); Living Weapons is standing down to protect your save. The mod likely needs an update for a new game patch, or another installed mod has modified the job command tables."
 _WARN = "[Living Weapons] [19:10:00.025] [WARN] [save] No kill tally on disk; starting fresh (kills.json will be created on the first save)."
 _LEGACY_ERR = "19:11:15.000 [FFTLivingWeapons] ERROR: legacy failure from a prev.log-era archive"
 _EXC_CONT = "[Living Weapons] [19:11:15.001] [ERROR]   InvalidOperationException: the set corrupted its state"
@@ -494,6 +496,12 @@ def selftest():
     # ...and a log with at least one recognized line among garbage does NOT trip it.
     r = scan_lines(["garbage line"] + _hdr())
     check("mixed: one recognized line among garbage does not trip it", "unrecognized-log" not in _codes(r))
+
+    # 17. LW-397: an unknown build stamp is a WARN, never a failure. A log carrying the unknown stamp line,
+    # the armed line and the unknown-build warning scans CLEAN (WARN lines only bump warns_seen).
+    r = scan_lines(_hdr() + [_STAMP_UNKNOWN, _ARMED, _UNKNOWN_BUILD_WARN] + _BATTLE)
+    check("unknown-build warn: clean", exit_code(r) == 0 and _codes(r) == [])
+    check("unknown-build warn: armed, not stood down, warn counted", r.armed and not r.stood_down and r.warns_seen == 1)
 
     passed = sum(1 for _, ok in cases if ok)
     for name, ok in cases:

@@ -145,7 +145,9 @@ internal sealed class FingerprintGuard
     // in-tree implementation that has since been removed): e_lfanew (u32) at
     // moduleBase+0x3C; TimeDateStamp (u32) at moduleBase+e_lfanew+8; SizeOfImage (u32) at
     // moduleBase+e_lfanew+0x50. This is generic PE/COFF header shape, not an FFT-specific magic
-    // number; the EXPECTED values for one game build are the adapter's job (LaunchGuard.cs).
+    // number; the EXPECTED values for one game build are the adapter's job (LaunchGuard.cs). The
+    // reader below is shared by the PeBuildKey landmark factory and, since LW-397, by the
+    // LivingWeapon adapter's build-stamp report line (LaunchGuard.Stamp.cs).
     private const long ELfanewOffset = 0x3C;
     private const long TimeDateStampOffset = 8;
     private const long SizeOfImageOffset = 0x50;
@@ -159,11 +161,7 @@ internal sealed class FingerprintGuard
     {
         return new GuardLandmark("pe-build-key", () =>
         {
-            if (!TryReadU32(tryRead, moduleBase + ELfanewOffset, out uint eLfanew))
-                return LandmarkVerdict.Unreadable;
-            if (!TryReadU32(tryRead, moduleBase + eLfanew + TimeDateStampOffset, out uint timeDateStamp))
-                return LandmarkVerdict.Unreadable;
-            if (!TryReadU32(tryRead, moduleBase + eLfanew + SizeOfImageOffset, out uint sizeOfImage))
+            if (!TryReadPeBuildKey(tryRead, moduleBase, out uint timeDateStamp, out uint sizeOfImage))
                 return LandmarkVerdict.Unreadable;
             if (timeDateStamp == expectedTimeDateStamp && sizeOfImage == expectedSizeOfImage)
                 return LandmarkVerdict.Match;
@@ -171,6 +169,22 @@ internal sealed class FingerprintGuard
                 $"expected TimeDateStamp=0x{expectedTimeDateStamp:X8} SizeOfImage=0x{expectedSizeOfImage:X8}, "
                 + $"observed TimeDateStamp=0x{timeDateStamp:X8} SizeOfImage=0x{sizeOfImage:X8}");
         });
+    }
+
+    /// <summary>LW-397: reads the mapped image's PE build key (the same three reads the
+    /// <see cref="PeBuildKey"/> landmark makes: e_lfanew, then TimeDateStamp and SizeOfImage).
+    /// False on any failed or short read, with both outs zero.</summary>
+    public static bool TryReadPeBuildKey(GuardTryRead tryRead, long moduleBase,
+        out uint timeDateStamp, out uint sizeOfImage)
+    {
+        timeDateStamp = 0;
+        sizeOfImage = 0;
+        if (!TryReadU32(tryRead, moduleBase + ELfanewOffset, out uint eLfanew)) return false;
+        if (!TryReadU32(tryRead, moduleBase + eLfanew + TimeDateStampOffset, out uint tds)) return false;
+        if (!TryReadU32(tryRead, moduleBase + eLfanew + SizeOfImageOffset, out uint soi)) return false;
+        timeDateStamp = tds;
+        sizeOfImage = soi;
+        return true;
     }
 
     /// <summary>A fixed byte window at <paramref name="addr"/>. A failed or short read is

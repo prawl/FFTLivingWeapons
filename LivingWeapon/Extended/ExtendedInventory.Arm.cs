@@ -10,7 +10,7 @@ namespace LivingWeapon;
 /// (<see cref="SeedBag"/>). Split
 /// from ExtendedInventory.cs in LW-371 (verifier NIT-5, 201 lines) the way ExtendedInventory.Hooks.cs
 /// already carved the detour half out in LW-351 fix round 7: the base file keeps the fields, the
-/// ctor, <c>BootArm</c> (the outer sequencing: PE-key check, this file's <c>Install</c>, the arm/
+/// ctor, <c>BootArm</c> (the outer sequencing: this file's <c>Install</c>, the arm/
 /// refuse decision), <c>WeaponRowAddr</c>, <c>Refuse</c> and the public properties;
 /// <c>ExtendedInventory.Hooks.cs</c> keeps <c>DefaultInstallHooks</c> and <c>RollBack</c>, the
 /// four-hook tail this file's <c>Install</c> ends by calling into. Same D2 install order as

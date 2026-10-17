@@ -13,6 +13,35 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.4.0)
 
+- **[LW-397] The game's build number stops being an off switch: the mod reports it and keeps running if its own checks pass** (opened 2026-10-16) [AWAITING-LIVE]
+  - Plain language: today the mod looks at the game's build number when it starts, and if it
+    is not the one the mod was made for, the WHOLE mod switches off and tells the player to wait
+    for an update. In September the game was rebuilt with nothing moved, the number changed, and
+    the mod sat dark for a month over nothing; a Nexus recipe now tells players to cut the check
+    out. After this row the build number is only REPORTED (one line in the startup log, plus one
+    calm warning if the mod runs on a build it does not know). The only startup check that can
+    still switch the mod off is Ramza's roster row, the data the mod actually writes next to.
+  - Owner ruling 2026-10-16: accept that a new build whose roster row happens to read right
+    will let the mod run with only that one check in front of its fixed-address writers, until
+    LW-398, LW-399 and LW-400 add their own checks. The approved warning sentence: "This game
+    build is new to the mod, its own checks passed, running normally."
+  - (Tech: LaunchGuard.Stamp.cs holds the probe; the pe-build-key landmark keeps its slot and
+    name but returns Match on every readable read, so LW-392's stall warning still fires on an
+    unreadable game; ExtendedInventory drops its PE key probe and relies on per-site old-byte
+    checks with full rollback; the kit lane, sensing lane and prompt hook offer stay chained to
+    the main guard's armed edge until LW-393 unchains them; the kit lane and sensing warnings
+    gain a hedge sentence on an unknown build; the card paint cache stamp gap is LW-405.)
+  - Done means: a game build the mod does not know, with Ramza's roster row reading right,
+    arms the mod and shows one startup stamp line plus one calm warning and no message box;
+    a moved roster row still switches the whole mod off exactly as before; the extended
+    inventory still arms on the normal build and still refuses (with a full rollback) when a
+    patch site reads different bytes than expected; a build the mod was made for logs the
+    stamp line and no warning.
+  - Verify: full suite green with the unknown-stamp-never-stands-down test, the stamp line and
+    warning tests, the lane hedge tests and the per-site refusal test; the owner's dev pass
+    with the drill marker file sees the stamp line, the armed line and one warning naming the
+    drill, no box, and a kill still counts; the owner's prod pass sees the stamp line say the
+    build is the one the mod was made for and no warning; scan_logs clean on both.
 - **[LW-393] When a game update breaks one part of the mod, only that part switches off and the player is told which parts still work** (opened 2026-10-16) [QUEUED]
   - Plain language: today the mod has one safety switch. If any one of its checks fails at
     startup, the whole mod stays off and the player gets one message telling them to update.
@@ -125,15 +154,6 @@ Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner dire
 A new row still lands here in the session it surfaces; slot it where its urgency
 belongs rather than at the bottom.
 
-- [LW-397] 2026-10-16: The game's build stamp should be reported, never used to switch the mod off, because a recompile with nothing moved tripped it for a month and a Nexus recipe now tells players to stub it out.
-  Stage 1b of the parts model (LW-393), lands with LW-392. Today the PE build key (TimeDateStamp
-  and SizeOfImage) is a stand-down landmark in the main guard AND the boot gate of the extended
-  inventory (ExtendedInventory.cs 106 to 112), and the prompt hook and the kit lane only step
-  after the main guard arms. After this row: one WARN line "this game build is new to the mod,
-  its own checks passed, running normally" and the stamp goes in the log header; the extended
-  arm keeps its per-site byte checks and drops the key; the kit lane and the prompt hook offer
-  unchain from the main guard's Armed edge and gate on their own checks. The Ramza row stays the
-  stand-down landmark until LW-393 gives each part its own.
 - [LW-398] 2026-10-16: The battle band and the static unit array need their own "is it still here" check, so kill counting, growth and the battle signatures can be switched off alone when one of them moves.
   Stage 3a of the parts model (LW-393). The band and the combat structs are one region measured
   from CombatAnchor (Offsets.cs 199 to 207, 361); the static unit array at 0x140899F50 is a second
@@ -159,6 +179,12 @@ belongs rather than at the bottom.
   player should do when a part reads OFF; docs/COMPATIBILITY.md gets the report format; the
   scanner's marker phrase follows the new text; docs/PATCH_REANCHOR.md's guard step names the
   new landmarks. Written last so it describes what shipped, not what was planned.
+- [LW-405] 2026-10-16: The card paint cache file is stamped with the build the mod was made for, not the build the game actually is, so since the mod can now run on a build it does not know the stamp no longer tells builds apart.
+  Found in the LW-397 review. PoolRegionSidecar.Save writes the expected constants and Load compares
+  against them (PoolRegionSidecar.cs 45, 72), never the observed header; the per-region reverify in
+  PoolLocator.WarmStart (51 to 54) plus the forced full restart are the net today. Fix: plumb
+  LaunchGuard's latched observed pair into Save and Load (Display is built before tick 1 latches it,
+  so a Func seam, not a value).
 - [LW-394] 2026-10-16: Three weapon commands mark an ability as learned in the player's save and never unmark it, so no safety switch can undo them if they ever land in the wrong place; decide whether they should clean up after themselves.
   Barrage, Shadow Blade and Provoke each set one learned bit in the roster row (Barrage.cs 247,
   ShadowBlade.cs 199, Provoke.cs 194) and hold it by design so the command stays usable. The audit

@@ -88,6 +88,8 @@ internal static class PoolRegionSidecar
     private sealed class SidecarDto
     {
         [JsonProperty("version")] public int Version { get; set; }
+        // Since LW-397 the mod can arm on an unknown build, so this key no longer tells builds
+        // apart; the per-region reverify is the guard (LW-405).
         [JsonProperty("peTimeDateStamp")] public uint PeTimeDateStamp { get; set; }
         [JsonProperty("peSizeOfImage")] public uint PeSizeOfImage { get; set; }
         [JsonProperty("regions")] public List<RegionDto> Regions { get; set; } = new();

@@ -79,7 +79,7 @@ internal sealed class Engine
     /// seeds every weapon's tally as before (false would start every tally untouched).</param>
     /// <param name="devForceFingerprintMismatch">LW-50 dev-only test knob (compiled always, wired
     /// only under #if LWDEV at the Mod.cs call site): true perturbs the expected PE build key so
-    /// LaunchGuard stands down as if the game had been patched, even though memory truly matches.
+    /// LaunchGuard reports an unknown build (report line and armed-edge warning) without standing down.
     /// Null/false is the normal path.</param>
     /// <param name="mem">LW-150 S5: injectable memory seam. Null (the default, what Mod.cs always
     /// passes) constructs a fresh <see cref="LiveMemory"/> exactly as before this param existed, so
@@ -274,15 +274,13 @@ internal sealed class Engine
         // Routes (GrowthEngine.Lanes.cs) contributes no combat-struct lane for those, so this is
         // their whole growth mechanism.
         // LW-346: the extended inventory (ids 261+). Loaded from modDir/extended_inventory here;
-        // ARMED later from InjectHooks (Mod.StartEx, still before the game runs) behind its own
-        // PE build-key landmark, because the boot arm cannot wait for LaunchGuard's roster
+        // ARMED later from InjectHooks (Mod.StartEx, still before the game runs) behind its
+        // per-site old-byte checks, because the boot arm cannot wait for LaunchGuard's roster
         // landmark (readable only once a save loads) and the menu registry is built at boot.
         // Tests inject `extended` (fakes); production builds the live seams right here. Built
         // BEFORE WpTableHold, which resolves an extended id's WP byte through it.
         _extended = extended ?? new ExtendedInventory(new LiveCodePatcher(), new LiveNearAllocator(),
-            ExtendedInventoryData.Load(modDir), ExtendedBagSidecar.Load(save.PathFor(ExtendedBagSidecar.FileName)),
-            FingerprintGuard.PeBuildKey((long a, int n, out byte[] b) => live.TryReadBytes(a, n, out b), ImageBase.Base,
-                LaunchGuard.ExpectedTimeDateStamp, LaunchGuard.ExpectedSizeOfImage).Probe);
+            ExtendedInventoryData.Load(modDir), ExtendedBagSidecar.Load(save.PathFor(ExtendedBagSidecar.FileName)));
         // LW-346 growth polish: an extended id's WP byte lives in the extended inventory's stub
         // page (the resident table has no row for it), so the hold resolves it through _extended.
         _wpTableHold = new WpTableHold(meta, _kills, live, _extended.WeaponRowAddr);
@@ -506,7 +504,7 @@ internal sealed class Engine
     public void InjectHooks(Reloaded.Hooks.Definitions.IReloadedHooks? hooks)
     {
         // LW-346: the extended inventory arms NOW, still inside mod loading and before the game
-        // runs, behind its own PE build-key landmark plus per-site old-byte checks (it cannot
+        // runs, behind its per-site old-byte checks (it cannot
         // ride LaunchGuard's handshake: the roster landmark needs a loaded save, and the menu
         // registry the new ids must be in is built at boot). A null hooks controller is passed
         // through so the refusal reason lands in the log instead of a silent no-op.

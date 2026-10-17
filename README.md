@@ -77,10 +77,12 @@ The gameplay is language-neutral by construction: the item tables carry no text,
   the cards briefly show zeroed "Kills" text; back out and re-open the menu and your numbers are
   there. Nothing is ever lost; only the first paint lags.
 - **The mod refuses to write anything until the game matches the build it expects.** At startup
-  it reads a few known landmarks in the game and holds every write until they match. If a landmark
-  reads but reads wrong (the game got a patch the mod does not know), the mod stands down for the
+  it reads a few known landmarks in the game and holds every write until they match. If Ramza's
+  roster row reads but reads wrong (the data the mod writes next to has moved), the mod stands down for the
   session and shows a message box saying the game does not look like the version the mod was
-  built for and to check the mod page for a newer version. If the landmarks cannot be read at all,
+  built for and to check the mod page for a newer version. A new game build whose stamp the mod does
+  not know is only reported: one log line and one warning saying the build is new, and the mod
+  runs normally if its own checks pass. If the landmarks cannot be read at all,
   it waits quietly and never switches on, with no message: that is what 2.3.3 and older do on the
   September game build, which is why their kill counts froze. Either way your save is untouched.
   One landmark is softer: if another mod has rewritten the job-command data (custom job mods do),

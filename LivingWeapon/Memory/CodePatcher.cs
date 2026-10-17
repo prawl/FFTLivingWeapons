@@ -11,10 +11,11 @@ namespace LivingWeapon;
 /// Ramza's roster row verifies. The extended-inventory patches MUST land before the game runs a single
 /// instruction (the rig proved the menu registry and the bag array are built once at boot,
 /// docs/research/ITEM_CAP_261_BREAK_JOURNEY.md), so they cannot wait for that edge. They are
-/// gated differently instead, and only through this seam: the caller (ExtendedItems.BootArm)
-/// verifies the PE build-key landmark FIRST, and every patch site verifies its expected OLD byte
-/// before it is written, with a full rollback when any site disagrees. A patched game changes the
-/// PE key; a moved site changes the old byte; either refusal is one log line, never a write.
+/// gated differently instead, and only through this seam: every patch site verifies its expected
+/// OLD byte before it is written, with a full rollback when any site disagrees. A moved site
+/// changes the old byte, and that refusal is one log line, never a write. (Until LW-397 the caller
+/// also required a matching PE build key; the build stamp is now only a report line, so these
+/// per-site checks are the whole gate.)
 ///
 /// SAFETY: same doctrine as Mem -- never a raw pointer deref. Reads are ReadProcessMemory on our
 /// own handle; writes lift the page to PAGE_EXECUTE_READWRITE with VirtualProtect, write through

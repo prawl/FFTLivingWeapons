@@ -126,14 +126,12 @@ public class ExtendedInventoryTests : IDisposable
         },
     };
 
-    private static Func<LandmarkReading> Match => () => new LandmarkReading(LandmarkVerdict.Match);
-
     private ExtendedInventory Build(FakeCodePatcher f, ExtendedInventoryData.LoadResult data,
-        Func<LandmarkReading>? pe = null, Func<IReloadedHooks?, string?>? hooks = null, ExtendedBagSidecar? sidecar = null,
+        Func<IReloadedHooks?, string?>? hooks = null, ExtendedBagSidecar? sidecar = null,
         FakeNearAllocator? allocator = null)
         => new(f, allocator ?? new FakeNearAllocator(), data,
             sidecar ?? ExtendedBagSidecar.Load(Path.Combine(_dir, ExtendedBagSidecar.FileName)),
-            pe ?? Match, hooks ?? (_ => null));
+            hooks ?? (_ => null));
 
     [Fact]
     public void Arms_the_whole_set_over_a_vanilla_image_and_seeds_the_bag()
@@ -270,21 +268,12 @@ public class ExtendedInventoryTests : IDisposable
     }
 
     [Fact]
-    public void Bad_data_a_wrong_build_or_an_unreadable_image_refuse_before_any_write()
+    public void Bad_data_or_a_missing_hooks_helper_refuse_before_any_write()
     {
         var f = VanillaImage();
         var bad = Build(f, new ExtendedInventoryData.LoadResult { FolderPresent = true, Errors = new[] { "id 261: no ItemWeaponData.xml row" } });
         bad.BootArm(null);
         Assert.Contains("did not validate", bad.Refusal);
-
-        var patched = Build(f, Moonblade(), pe: () => new LandmarkReading(LandmarkVerdict.Mismatch, "expected X observed Y"));
-        patched.BootArm(null);
-        Assert.Contains("does not match", patched.Refusal);
-        Assert.Contains("observed Y", patched.Refusal);
-
-        var blind = Build(f, Moonblade(), pe: () => new LandmarkReading(LandmarkVerdict.Unreadable));
-        blind.BootArm(null);
-        Assert.Contains("build-key", blind.Refusal);
 
         var noHooks = Build(f, Moonblade(), hooks: h => h == null ? "the game-hooks helper mod (reloaded.sharedlib.hooks) is not loaded" : null);
         noHooks.BootArm(null);
@@ -293,6 +282,30 @@ public class ExtendedInventoryTests : IDisposable
         // Every IMAGE byte is back to vanilla (the leaked stub pages outside the image are by design).
         var vanilla = VanillaImage().Bytes;
         Assert.Equal(vanilla, f.Bytes.Where(kv => vanilla.ContainsKey(kv.Key)).ToDictionary(kv => kv.Key, kv => kv.Value));
+    }
+
+    /// <summary>LW-397: the PE build key no longer gates the arm, so a game whose code moved is
+    /// refused by the per-site old-byte check alone. End to end: corrupt the FIRST boot patch's old
+    /// byte (read from the real table, so the test cannot drift from it), arm, and see the one-line
+    /// refusal naming the site and not one byte left written. Sibling proofs: the unit-level
+    /// refusal text (BytePatchSetTests.cs:48) and the unreadable-site refusal
+    /// (Boot_arm_refuses_cleanly_when_the_image_is_relocated_but_the_base_is_not_resolved).</summary>
+    [Fact]
+    public void A_moved_patch_site_refuses_the_whole_arm_on_its_old_byte_alone()
+    {
+        var f = VanillaImage();
+        var p = ExtendedSites.BootPatches(1)[0];   // the count-getter cap, live-rebased like BytePatchSet reads it
+        Assert.Equal((byte)0x01, p.Old);
+        f.Seed(p.Addr, 0x07);   // the byte the moved site would read instead
+        var before = Snapshot(f);
+        var inv = Build(f, Moonblade());
+
+        inv.BootArm(null);
+
+        Assert.False(inv.Armed);
+        Assert.Contains($"{p.Label}: 0x{p.Addr:X} reads 07, expected {p.Old:X2}", inv.Refusal);
+        Assert.Equal(before, f.Bytes.Where(kv => before.ContainsKey(kv.Key)).ToDictionary(kv => kv.Key, kv => kv.Value));
+        Assert.Equal((byte)0x07, f.Bytes[p.Addr]);
     }
 
     [Fact]
@@ -582,11 +595,12 @@ public class ExtendedInventoryTests : IDisposable
         ModLogger.UseNullLogger();
         using var temp = TempDirs.Create("lw_engine_ext_");
         var f = VanillaImage();
-        var inv = Build(f, Moonblade(), pe: () => new LandmarkReading(LandmarkVerdict.Unreadable));
+        f.Seed(ExtendedSites.BootPatches(1)[0].Addr, 0x07);   // LW-397: a moved first boot site refuses before any write
+        var inv = Build(f, Moonblade());
         var engine = new Engine(EngineTests.NestedModDir(temp), mem: EngineTests.HealthyMemory(), notice: (_, __) => { }, extended: inv);
         engine.InjectHooks(null);
         Assert.False(inv.Armed);
-        Assert.Contains("build-key", inv.Refusal);
+        Assert.Contains("reads 07, expected 01", inv.Refusal);
         for (int i = 0; i < 40; i++) engine.Tick();   // the two rows run and no-op
         Assert.Empty(f.Writes);
         Assert.Contains(engine.Phases, p => p.Name == "extended-caps");

@@ -20,7 +20,7 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed partial class LaunchGuard
 {
-    // PE fingerprint of the Denuvo-free 1.5.2 exe (Steam buildid 24304444, exe stamped 2026-07-20
+    // PE fingerprint (the build this mod was made for; a report line since LW-397, not a landmark) of the Denuvo-free 1.5.2 exe (Steam buildid 24304444, exe stamped 2026-07-20
     // 16:17:31 UTC, SHA256 937233F7..., installed 2026-10-15), read from the on-disk PE per
     // docs/PATCH_REANCHOR.md (docs/research/PORT_1.5.2_NODRM_OFFSETS.md). This build has ASLR
     // (DllCharacteristics 0x8160), so the PE header is read at ImageBase.Base, not a fixed address
@@ -28,7 +28,7 @@ internal sealed partial class LaunchGuard
     // (buildid 24304240, docs/research/PORT_1.5.2_OFFSETS.md), 1.5.1 0x6A3C5497 / 0x1878E000
     // (docs/research/PORT_1.5.1_OFFSETS.md), 1.5 0x6A0F86A9 / 0x190EB000
     // (docs/research/PORT_1.5_OFFSETS.md:11-15), pre-1.5 0x690C1269 / 0x156C8000 --
-    // every pair differs in BOTH fields, so either field alone would catch a rollback. PE
+    // every pair differs in BOTH fields, so either field alone tells the builds apart in the report. PE
     // FileVersion is NOT usable (reads 1.0.0.0 on every build, docs/research/PORT_1.5.md:96-98).
     // The Denuvo-free build is the same compile as the wrapped 1.5.2: every pinned RVA is unchanged,
     // only the loader contract (relocation) differs.

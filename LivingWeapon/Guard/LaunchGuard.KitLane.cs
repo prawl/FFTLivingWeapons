@@ -16,10 +16,10 @@ internal sealed partial class LaunchGuard
     /// lane itself is still Verifying (a cheap no-op every other tick, including every tick before
     /// the main guard arms and every tick after the lane reaches its own terminal state).
     ///
-    /// This ordering is LOAD-BEARING, not an optimization: the lane can only ever stand down AFTER
-    /// the main guard already proved the game build itself matches every DATA-ONLY landmark, so a
-    /// lane stand-down can never be mis-narrated as "the game updated" -- structurally, it can only
-    /// mean another installed mod rewrote the JobCommand table the weapon-granted commands share.
+    /// This ordering is LOAD-BEARING, not an optimization: the lane steps only after the main
+    /// guard armed on the roster landmark. Since LW-397 the build stamp is a report, so on an
+    /// unknown build a lane stand-down MAY be the game update itself, which is why the lane copy
+    /// carries the hedge sentence then.
     /// Engine.cs calls this once per tick, right beside the main guard's own Step().</summary>
     public void StepKitLane()
     {
@@ -87,7 +87,8 @@ internal sealed partial class LaunchGuard
         ModLogger.Warn(LogVerb.Startup,
             $"Another mod has rewritten the job command data this mod anchors its weapon-granted commands to ({diag}). "
             + "Living Weapons stays armed and everything else keeps working; the Barrage, Shadow Blade and Provoke "
-            + "command grants are disabled for this session so the two mods do not overwrite each other.");
+            + "command grants are disabled for this session so the two mods do not overwrite each other."
+            + HedgeIfUnknownBuild());   // LW-397: on a new game build the update itself may be the cause
         // Calm, owner-voice copy: NOT the game-update notice's headline or "switched itself off"
         // framing -- this mod is fine, only three optional command grants stepped back.
         _notice?.Invoke("FFT Living Weapons",
@@ -99,7 +100,7 @@ internal sealed partial class LaunchGuard
             + "Only the three weapon-granted commands (Barrage, Shadow Blade, Provoke) are switched "
             + "off this session, so the two mods do not overwrite each other. No action needed.\n\n"
             + "If you want those commands back, the only fix is removing the conflicting mod; load "
-            + "order does not change which mod wins.\n\n"
+            + "order does not change which mod wins." + HedgeIfUnknownBuild() + "\n\n"
             + "Questions? Email me at ptyrawl@gmail.com.");
         // LW-53: reuses the existing "standdown" trigger rather than inventing a new one --
         // flight_*_standdown.jsonl now covers both a full stand-down and a kit-lane stand-down; the

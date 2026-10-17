@@ -220,14 +220,23 @@ public class LaunchGuardTests
     }
 
     [Fact]
-    public void ForceMismatch_stands_down_despite_matching_memory()
+    public void ForceMismatch_arms_and_warns_unknown_build()
     {
-        var mem = HealthyMemory();
-        var guard = new LaunchGuard(mem, forceMismatch: true);
+        // LW-397: the drill perturbs the expected stamp; the stamp is a report now, never a switch.
+        WithWritesRestored(() =>
+        {
+            using var cap = LogCapture.Start();
+            var calls = new List<(string title, string text)>();
+            var guard = new LaunchGuard(HealthyMemory(), forceMismatch: true, notice: (t, x) => calls.Add((t, x)));
 
-        for (int i = 0; i < 40; i++) guard.Step();
+            for (int i = 0; i < 40; i++) guard.Step();
 
-        Assert.Equal(GuardState.StoodDown, guard.State);
+            Assert.Equal(GuardState.Armed, guard.State);
+            Assert.False(guard.BuildStampKnown);
+            string line = Assert.Single(cap.File, l => l.Contains("new to the mod"));
+            Assert.Contains("LW_FORCE_FINGERPRINT_MISMATCH", line);
+            Assert.Empty(calls);
+        });
     }
 
     [Fact]
@@ -449,42 +458,59 @@ public class LaunchGuardTests
     // stand-down self-identifies by naming the LW_FORCE_FINGERPRINT_MISMATCH flag. ---
 
     [Fact]
-    public void StandDown_record_carries_observed_and_expected_pe_key()
+    public void Unknown_stamp_line_and_warn_carry_observed_and_expected()
     {
-        var mem = HealthyMemory();
-        SeedU32Bytes(mem, ModuleBase + ELfanew + TimeDateStampOff, 0x11111111);
-        var records = new List<(string type, string payload)>();
-        var guard = new LaunchGuard(mem, forceMismatch: false, recorder: (t, p) => records.Add((t, p)));
-
-        for (int i = 0; i < 40; i++) guard.Step();
-
-        Assert.Equal(GuardState.StoodDown, guard.State);
-        Assert.Single(records);
-        Assert.Contains("0x6A5E4A1B", records[0].payload);
-        Assert.Contains("0x11111111", records[0].payload);
-    }
-
-    [Fact]
-    public void Drill_standdown_names_the_flag_in_record_and_log()
-    {
-        var mem = HealthyMemory();
-        var records = new List<(string type, string payload)>();
-        var console = new List<string>();
-        var file = new List<string>();
-        var prior = ModLogger.Instance;
-        ModLogger.Instance = new FileConsoleLogger(console.Add, file.Add);
-        try
+        WithWritesRestored(() =>
         {
-            var guard = new LaunchGuard(mem, forceMismatch: true, recorder: (t, p) => records.Add((t, p)));
+            using var cap = LogCapture.Start();
+            var mem = HealthyMemory();
+            SeedU32Bytes(mem, ModuleBase + ELfanew + TimeDateStampOff, 0x11111111);
+            var records = new List<(string type, string payload)>();
+            var guard = new LaunchGuard(mem, forceMismatch: false, recorder: (t, p) => records.Add((t, p)));
 
             for (int i = 0; i < 40; i++) guard.Step();
 
-            Assert.Equal(GuardState.StoodDown, guard.State);
-            Assert.Single(records);
-            Assert.Contains("LW_FORCE_FINGERPRINT_MISMATCH", records[0].payload);
-            Assert.Contains(file, line => line.Contains("LW_FORCE_FINGERPRINT_MISMATCH"));
-        }
-        finally { ModLogger.Instance = prior; }
+            Assert.Equal(GuardState.Armed, guard.State);
+            // The probe runs before the edge; the edge records armed, then the unknown-build line.
+            Assert.Equal(3, records.Count);
+            Assert.Contains("build stamp unknown", records[0].payload);
+            Assert.Contains("0x11111111", records[0].payload);
+            Assert.Contains("0x6A5E4A1B", records[0].payload);
+            Assert.Contains("armed (all landmarks match", records[1].payload);
+            Assert.Contains("armed on an unknown build", records[2].payload);
+            Assert.Contains("0x11111111", records[2].payload);
+            string warn = Assert.Single(cap.File, l => l.Contains("new to the mod"));
+            Assert.Contains("[WARN]", warn);
+            Assert.Contains("0x11111111", warn);
+            Assert.Contains("0x6A5E4A1B", warn);
+            // No drill: the stamp line must not mention the flag.
+            string stampLine = Assert.Single(cap.File, l => l.Contains("Game build stamp"));
+            Assert.DoesNotContain("LW_FORCE_FINGERPRINT_MISMATCH", stampLine);
+        });
+    }
+
+    [Fact]
+    public void Drill_unknown_build_names_the_flag_in_record_and_log()
+    {
+        WithWritesRestored(() =>
+        {
+            using var cap = LogCapture.Start();
+            var records = new List<(string type, string payload)>();
+            var guard = new LaunchGuard(HealthyMemory(), forceMismatch: true, recorder: (t, p) => records.Add((t, p)));
+
+            for (int i = 0; i < 40; i++) guard.Step();
+
+            Assert.Equal(GuardState.Armed, guard.State);
+            var unknownBuild = Assert.Single(records, r => r.payload.Contains("armed on an unknown build"));
+            Assert.Contains("LW_FORCE_FINGERPRINT_MISMATCH", unknownBuild.payload);
+            // Only the armed-edge record names the flag; the probe's stamp record does not.
+            var stamp = Assert.Single(records, r => r.payload.Contains("build stamp unknown"));
+            Assert.DoesNotContain("LW_FORCE_FINGERPRINT_MISMATCH", stamp.payload);
+            Assert.Single(cap.File, l => l.Contains("[WARN]") && l.Contains("LW_FORCE_FINGERPRINT_MISMATCH"));
+            // The numbers on both sides are identical under the drill, so the stamp line must say why.
+            string stampLine = Assert.Single(cap.File, l => l.Contains("Game build stamp"));
+            Assert.Contains("LW_FORCE_FINGERPRINT_MISMATCH", stampLine);
+        });
     }
 
     [Fact]
@@ -641,36 +667,123 @@ public class LaunchGuardTests
     }
 
     [Fact]
-    public void PeConflict_and_laneConflict_together_stand_down_whole_mod_lane_never_steps()
+    public void Unknown_stamp_and_lane_conflict_arm_the_mod_and_stand_down_only_the_lane()
     {
-        // Sharpened ordering test: a simultaneous PE mismatch AND a JobCommand conflict must still
-        // resolve as ONE full stand-down, never as a lane-only narration -- the lane can only ever
-        // speak once the main guard has already armed, and here it never does.
-        var mem = HealthyMemory();
-        SeedU32Bytes(mem, ModuleBase + ELfanew + TimeDateStampOff, 0x11111111);   // PE mismatch
-        long rec8 = Barrage.AbilityBase + 8L * Barrage.RecSize;
-        mem.TerrainBlocks[rec8] = new byte[] { 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA };   // simultaneous lane conflict
-        var calls = new List<(string title, string text)>();
-        var console = new List<string>();
-        var file = new List<string>();
-        var prior = ModLogger.Instance;
-        ModLogger.Instance = new FileConsoleLogger(console.Add, file.Add);
-        try
+        // LW-397: an unknown stamp no longer stands the mod down, so the lane now steps and speaks
+        // on its own; its copy carries the hedge that the game update itself may be the cause.
+        WithWritesRestored(() =>
         {
+            var mem = HealthyMemory();
+            SeedU32Bytes(mem, ModuleBase + ELfanew + TimeDateStampOff, 0x11111111);
+            long rec8 = Barrage.AbilityBase + 8L * Barrage.RecSize;
+            mem.TerrainBlocks[rec8] = new byte[] { 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA };   // simultaneous lane conflict
+            var calls = new List<(string title, string text)>();
+            using var cap = LogCapture.Start();
             var guard = new LaunchGuard(mem, forceMismatch: false, notice: (title, text) => calls.Add((title, text)));
 
             for (int i = 0; i < 40; i++) { guard.Step(); guard.StepKitLane(); }
 
-            Assert.Equal(GuardState.StoodDown, guard.State);
-            Assert.Equal(GuardState.Verifying, guard.KitLaneState);   // the lane NEVER stepped: main never armed
+            Assert.Equal(GuardState.Armed, guard.State);
+            Assert.Single(cap.File, l => l.Contains("[WARN]") && l.Contains("its own checks passed"));
+            Assert.Equal(GuardState.StoodDown, guard.KitLaneState);
 
-            Assert.Single(calls);
-            Assert.Contains("Living Weapons has switched itself off", calls[0].text);   // the game-update copy
+            var box = Assert.Single(calls);
+            Assert.Contains("found another mod editing the same game data", box.text);
+            Assert.Contains("the cause may be the game update itself", box.text);
+            string laneWarn = Assert.Single(cap.File, l => l.Contains("[WARN]") && l.Contains("jobcommand-table"));
+            Assert.Contains("the cause may be the game update itself", laneWarn);
+            Assert.DoesNotContain(cap.File, l => l.Contains("standing down to protect your save"));
+        });
+    }
 
-            Assert.Contains(file, line => line.Contains("standing down to protect your save"));
-            Assert.DoesNotContain(file, line => line.Contains("another installed mod"));
-        }
-        finally { ModLogger.Instance = prior; }
+    [Fact]
+    public void Unknown_stamp_never_stands_down()
+    {
+        // THE LOAD-BEARING TEST (LW-397): both header fields wrong, healthy roster, far past the
+        // 30-step mismatch debounce. The stamp must never switch the mod off.
+        WithWritesRestored(() =>
+        {
+            using var cap = LogCapture.Start();
+            var mem = HealthyMemory();
+            SeedU32Bytes(mem, ModuleBase + ELfanew + TimeDateStampOff, 0x11111111);
+            SeedU32Bytes(mem, ModuleBase + ELfanew + SizeOfImageOff, 0x22222222);
+            var calls = new List<(string title, string text)>();
+            var guard = new LaunchGuard(mem, forceMismatch: false, notice: (t, x) => calls.Add((t, x)));
+
+            for (int i = 0; i < 200; i++) guard.Step();
+
+            Assert.Equal(GuardState.Armed, guard.State);
+            Assert.True(Mem.WritesEnabled);
+            Assert.Empty(calls);
+            Assert.Single(cap.File, l => l.Contains("new to the mod"));
+            Assert.DoesNotContain(cap.File, l => l.Contains("standing down to protect your save"));
+        });
+    }
+
+    [Fact]
+    public void Known_stamp_logs_one_line_and_no_warn()
+    {
+        WithWritesRestored(() =>
+        {
+            using var cap = LogCapture.Start();
+            var records = new List<(string type, string payload)>();
+            var guard = new LaunchGuard(HealthyMemory(), forceMismatch: false, recorder: (t, p) => records.Add((t, p)));
+
+            for (int i = 0; i < 40; i++) guard.Step();
+
+            Assert.Equal(GuardState.Armed, guard.State);
+            Assert.True(guard.BuildStampKnown);
+            string line = Assert.Single(cap.File, l => l.Contains("Game build stamp"));
+            Assert.Contains("0x6A5E4A1B", line);
+            Assert.Contains("made for", line);
+            Assert.DoesNotContain(cap.File, l => l.Contains("new to the mod"));
+            Assert.Single(records);   // only the armed record: a known stamp records nothing
+        });
+    }
+
+    [Fact]
+    public void Stamp_line_logs_once_before_the_armed_edge()
+    {
+        WithWritesRestored(() =>
+        {
+            using var cap = LogCapture.Start();
+            var mem = HealthyMemory(level: 0);   // roster slot empty: the guard stays Verifying
+            SeedU32Bytes(mem, ModuleBase + ELfanew + TimeDateStampOff, 0x11111111);
+            var guard = new LaunchGuard(mem, forceMismatch: false);
+
+            for (int i = 0; i < 40; i++) guard.Step();
+
+            Assert.Equal(GuardState.Verifying, guard.State);
+            Assert.Single(cap.File, l => l.Contains("Game build stamp"));
+            Assert.DoesNotContain(cap.File, l => l.Contains("new to the mod"));
+
+            StageRamzaRow(mem, 12, 1, 0x02, 70, 65);
+            guard.Step();
+
+            Assert.Equal(GuardState.Armed, guard.State);
+            Assert.Single(cap.File, l => l.Contains("Game build stamp"));
+            Assert.Single(cap.File, l => l.Contains("[WARN]") && l.Contains("new to the mod"));
+        });
+    }
+
+    [Fact]
+    public void Lane_copy_has_no_hedge_on_a_known_build()
+    {
+        WithWritesRestored(() =>
+        {
+            using var cap = LogCapture.Start();
+            var mem = HealthyMemory();
+            long rec8 = Barrage.AbilityBase + 8L * Barrage.RecSize;
+            mem.TerrainBlocks[rec8] = new byte[] { 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA };
+            var calls = new List<(string title, string text)>();
+            var guard = new LaunchGuard(mem, forceMismatch: false, notice: (t, x) => calls.Add((t, x)));
+
+            for (int i = 0; i < 40; i++) { guard.Step(); guard.StepKitLane(); }
+
+            Assert.Equal(GuardState.StoodDown, guard.KitLaneState);
+            Assert.DoesNotContain("the cause may be the game update itself", Assert.Single(calls).text);
+            Assert.DoesNotContain(cap.File, l => l.Contains("the cause may be the game update itself"));
+        });
     }
 
     [Fact]
@@ -782,26 +895,21 @@ public class LaunchGuardTests
     }
 
     [Fact]
-    public void Drill_forceMismatch_still_full_stand_down_and_lane_never_speaks()
+    public void Drill_forceMismatch_arms_and_the_lanes_step_normally()
     {
-        var mem = HealthyMemory();   // all memory healthy; the drill knob perturbs the EXPECTED value, not memory
-        var calls = new List<(string title, string text)>();
-        var console = new List<string>();
-        var file = new List<string>();
-        var prior = ModLogger.Instance;
-        ModLogger.Instance = new FileConsoleLogger(console.Add, file.Add);
-        try
+        WithWritesRestored(() =>
         {
-            var guard = new LaunchGuard(mem, forceMismatch: true, notice: (title, text) => calls.Add((title, text)));
+            using var cap = LogCapture.Start();
+            var calls = new List<(string title, string text)>();
+            var guard = new LaunchGuard(HealthyMemory(), forceMismatch: true, notice: (t, x) => calls.Add((t, x)));
 
             for (int i = 0; i < 40; i++) { guard.Step(); guard.StepKitLane(); }
 
-            Assert.Equal(GuardState.StoodDown, guard.State);
-            Assert.Contains(file, line => line.Contains("LW_FORCE_FINGERPRINT_MISMATCH"));
-            Assert.Equal(GuardState.Verifying, guard.KitLaneState);   // lane never speaks: main never armed
-            Assert.Single(calls);
-        }
-        finally { ModLogger.Instance = prior; }
+            Assert.Equal(GuardState.Armed, guard.State);
+            Assert.Equal(GuardState.Armed, guard.KitLaneState);
+            Assert.Empty(calls);
+            Assert.Single(cap.File, l => l.Contains("[WARN]") && l.Contains("new to the mod"));
+        });
     }
 
     [Fact]
@@ -1337,7 +1445,14 @@ public class LaunchGuardTests
     {
         // tools/scan_logs.py STANDDOWN_MARK reads "standing down to protect your save" as a dead mod.
         foreach (var text in new[] { LaunchGuard.ImageStallWarn, LaunchGuard.ImageStallBox,
-                                     LaunchGuard.RosterWaitInfo, LaunchGuard.RecoveryInfo })
+                                     LaunchGuard.RosterWaitInfo, LaunchGuard.RecoveryInfo,
+                                     LaunchGuard.UnknownBuildWarn(0x11111111, 0x22222222), LaunchGuard.UnknownBuildHedge,
+                                     LaunchGuard.DrillStampSentence,
+                                     LaunchGuard.KnownStampLine(0x6A5E4A1B, 0x03F9E000),
+                                     LaunchGuard.UnknownStampLine(0x11111111, 0x22222222) })
+        {
             Assert.DoesNotContain("standing down to protect your save", text);
+            Assert.DoesNotContain("switched itself off", text);
+        }
     }
 }

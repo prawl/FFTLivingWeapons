@@ -348,7 +348,7 @@ public class FlightRecorderTests : IDisposable
         string? written = null;
         var rec = Make(fileWriter: (p, content) => { path = p; written = content; });
 
-        rec.Record("guard", "stand-down (pe-build-key)");
+        rec.Record("guard", "stand-down (ramza-roster-row)");
         rec.RequestFlush("standdown");
         rec.DrainPending();
 

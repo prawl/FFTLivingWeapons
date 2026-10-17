@@ -6,24 +6,24 @@ namespace LivingWeapon;
 /// LW-50: the LivingWeapon adapter over the portable <see cref="FingerprintGuard"/> core.
 ///
 /// LW-112 split this adapter into TWO independent FingerprintGuard state machines:
-///   - The MAIN guard (this file's <c>_guard</c>) checks two DATA-ONLY landmarks (owner decision:
-///     no .text code hash, see docs/TODO.md LW-50 and docs/RELEASE_SCOPE.md section 7):
-///       1. PE build key (TimeDateStamp + SizeOfImage of the mapped game image).
-///       2. Ramza's roster row shape at RosterBase slot 0.
-///     A main-guard mismatch means "the game itself changed" and stands the WHOLE mod down
-///     (writes stay disabled all session).
+///   - The MAIN guard (this file's <c>_guard</c>) has ONE stand-down landmark, a DATA-ONLY one
+///     (owner decision: no .text code hash, see docs/TODO.md LW-50 and docs/RELEASE_SCOPE.md
+///     section 7): Ramza's roster row shape at RosterBase slot 0. A mismatch there means "the
+///     data the mod writes next to has moved" and stands the WHOLE mod down (writes stay
+///     disabled all session). LW-397: the game's build stamp (PE TimeDateStamp + SizeOfImage) is
+///     still read first, but it is REPORTED, never a switch (LaunchGuard.Stamp.cs); it keeps its
+///     slot as a landmark that returns Match on every readable read so an unreadable game still
+///     feeds the LW-392 stall warning.
 ///   - The KIT-LANE guard (LaunchGuard.KitLane.cs) checks a THIRD landmark, the JobCommand
 ///     table's rec 8 / rec 9 ability-byte signature (Barrage's own anchor) -- but a mismatch there
-///     only means another installed mod (a custom job/ability mod, LW-112's motivating report)
-///     legitimately rewrote that shared table, so it disables only the three weapon-granted
-///     commands (Barrage, Shadow Blade, Provoke) and leaves everything else, including the main
-///     guard, armed and running. The lane only ever steps after the main guard arms (StepKitLane
-///     in LaunchGuard.KitLane.cs), so a lane stand-down can never be mistaken for a game update.
+///     usually means another installed mod (a custom job/ability mod, LW-112's motivating report)
+///     rewrote that shared table, so it disables only the three weapon-granted commands (Barrage,
+///     Shadow Blade, Provoke) and leaves everything else, including the main guard, running. The lane steps only after the main guard armed on the roster
+///     landmark; the stamp is a report (LW-397), so on an unknown build a lane stand-down MAY be
+///     the game update itself (hence the hedge in the lane copy).
 ///
 /// BOOT-WINDOW SAFETY (main guard only): before a save loads, Ramza's roster row reads Unreadable
-/// (never Mismatch), so the guard never stands down at the title screen. The PE-key landmark stays
-/// independent and is early-decidable: a truly patched exe stands down loudly even at the title
-/// screen. (The old JobCommand boot-window gate moved with the landmark to the kit-lane guard,
+/// (never Mismatch), so the guard never stands down at the title screen. (The old JobCommand boot-window gate moved with the landmark to the kit-lane guard,
 /// which needs none of its own: it only ever steps once the main guard -- and therefore a
 /// populated roster row -- already armed. Probe evidence 2026-07-14,
 /// tools/probes/anchorscan_feasibility_probe.py, exe backup file offset 0x67D6DB, found the
@@ -65,8 +65,9 @@ internal sealed partial class LaunchGuard
     // LW-53: flight recorder taps (mirrors TurnTracker/KillTracker/Reliquary/Puppeteer); null default keeps tests green.
     private readonly Action<string, string>? _recorder;
     private readonly Action<string>? _requestFlush;
-    // LW-83: the drill ctor arg, stashed so StandDown can self-identify a drill-forced stand-down
-    // (Mod.cs compiles this to a hard false outside LWDEV, so a player build never sets it).
+    // LW-83: the drill ctor arg, stashed for the armed-edge unknown-build report (LaunchGuard.Stamp.cs)
+    // so a drill-forced warning self-identifies (Mod.cs compiles this to a hard false outside LWDEV,
+    // so a player build never sets it).
     private readonly bool _forceMismatch;
     // LW-395: the sensing lane's fields (_sensingGuard, _expectedSlot9, _forceSensingMismatch) are
     // declared in LaunchGuard.Sensing.cs beside the lane's probe; this ctor only assigns them.
@@ -78,6 +79,9 @@ internal sealed partial class LaunchGuard
     /// <param name="recorder">LW-53: the flight ring tap (production: Flight.Record).</param>
     /// <param name="requestFlush">LW-53: the flight flush request (production: Flight.RequestFlush);
     /// only stand-down calls this, with a dedicated "standdown" trigger.</param>
+    /// <param name="forceMismatch">LW-83 dev drill (LW_FORCE_FINGERPRINT_MISMATCH): forces the build stamp
+    /// to read unknown so the report line and the armed-edge warning can be watched; it can no longer
+    /// stand the mod down (LW-397).</param>
     /// <param name="forceSensingMismatch">LW-395 dev drill (LW_FORCE_SENSING_MISMATCH): perturbs
     /// the sensing lane's expected slot9 so healthy memory reads as a mismatch.</param>
     /// <param name="forceUnreadable">LW-392 dev drill (LW_FORCE_GUARD_UNREADABLE): both main landmarks
@@ -94,17 +98,19 @@ internal sealed partial class LaunchGuard
         GuardTryRead tryRead = (long a, int n, out byte[] b) => _mem.TryReadBytes(a, n, out b);
 
         // Always-compiled dev knob (review blocker 2): perturbs the EXPECTED TimeDateStamp so a
-        // dev can prove the loud stand-down path fires without needing a real game patch. The
+        // dev can watch the unknown-build report without needing a real game patch. The
         // Mod.StartEngine call site is the only #if LWDEV point; here it stays a plain bool so
         // Release still compiles this same code path and exercises it with a hard false.
         uint expectedTimeDateStamp = forceMismatch ? ExpectedTimeDateStamp ^ 1 : ExpectedTimeDateStamp;
+        _expectedStampTds = expectedTimeDateStamp;   // LW-397: the stamp probe (LaunchGuard.Stamp.cs) compares against this
+        _stampImageBase = ImageBase.Base;
 
         // LW-392: each main landmark is wrapped so a long unreadable streak speaks once
         // (LaunchGuard.Stall.cs); DrillBlind sits inside the watcher so forced reads count.
         _forceUnreadable = forceUnreadable; _blindStepsLeft = forceUnreadable ? DrillBlindSteps : 0;
         var landmarks = new[]
         {
-            LandmarkStall.Watch(DrillBlind(FingerprintGuard.PeBuildKey(tryRead, ImageBase.Base, expectedTimeDateStamp, ExpectedSizeOfImage), spends: true),
+            LandmarkStall.Watch(DrillBlind(FingerprintGuard.Custom("pe-build-key", ProbeBuildStamp), spends: true),
                 ImageStallSteps, OnImageStalled),
             LandmarkStall.Watch(DrillBlind(FingerprintGuard.Custom("ramza-roster-row", ProbeRamzaRosterRow), spends: false),
                 RosterWaitSteps, OnRosterStalled),
@@ -156,7 +162,8 @@ internal sealed partial class LaunchGuard
         // LW-53: no flush request here; the record rides to the next battle-edge flush.
         _recorder?.Invoke("guard", "armed (all landmarks match; writes enabled)");
         ModLogger.Event(LogVerb.Startup,
-            "The game build matches all memory landmarks; Living Weapons is armed (writes were held until now).");
+            "Every memory landmark matches; Living Weapons is armed (writes were held until now).");
+        LogUnknownBuildIfAny();   // LW-397: one calm warning when the build stamp is not the one this mod was made for
         LogRecoveryIfStalled();   // LW-392: one extra line only if the stall warning fired earlier
         lock (_hookLock)
         {
@@ -171,23 +178,15 @@ internal sealed partial class LaunchGuard
         // Mem.WritesEnabled stays false: the absence of an assignment here IS the point (the
         // default state Mod.StartEngine set before construction). LW-53: record first, so a
         // later flush archives WHY the mod stood down.
-        // LW-83: a drill-forced stand-down (LW_FORCE_FINGERPRINT_MISMATCH, dev builds only; Mod.cs
-        // compiles forceMismatch to a hard false outside LWDEV, so a player build can never reach
-        // this branch) self-identifies in the payload and the log line, so an archive is never
-        // mistaken for a real game-patch mismatch.
-        string payload = _forceMismatch
-            ? $"stand-down (drill: LW_FORCE_FINGERPRINT_MISMATCH) ({diag})"
-            : $"stand-down ({diag})";
-        _recorder?.Invoke("guard", payload);
-        string drillNote = _forceMismatch
-            ? " This stand-down was forced by the LW_FORCE_FINGERPRINT_MISMATCH drill flag (dev builds only)."
-            : "";
+        // LW-397: no drill branch here any more. The LW_FORCE_FINGERPRINT_MISMATCH drill perturbs
+        // only the build stamp, and the stamp can no longer stand the mod down.
+        _recorder?.Invoke("guard", $"stand-down ({diag})");
         // LW-112: the "or another installed mod..." clause moved out. That story now provably
         // belongs to the kit-lane guard alone (JobCommand-table conflicts stand down only the
         // three weapon-granted commands, never this whole-mod path), so a reader of THIS line can
         // trust it means an actual game-build mismatch.
         ModLogger.Error(LogVerb.Startup,
-            $"The game build does not match this mod's memory landmarks ({diag}); Living Weapons is standing down to protect your save. The mod likely needs an update for a new game patch.{drillNote}");
+            $"The game build does not match this mod's memory landmarks ({diag}); Living Weapons is standing down to protect your save. The mod likely needs an update for a new game patch.");
         // One-shot alongside the log line above: FingerprintGuard.Step only reaches StandDown once
         // (StoodDown is terminal, GuardState never revisits Verifying), so this call fires exactly
         // once per session. A player who never opens the log still learns the mod went inert.

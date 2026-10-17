@@ -134,7 +134,7 @@ public class BagReplayOrderingTests : IDisposable
         // every thunk stub land one grant later than before this round; nothing here asserts a
         // specific FakeNearAllocator address, so the shift needs no other change.
         var inv = new ExtendedInventory(f, new FakeNearAllocator(), TwoItems(), sidecar,
-            () => new LandmarkReading(LandmarkVerdict.Match), _ => null);
+            _ => null);
         inv.BootArm(null);
         Assert.True(inv.Armed, inv.Refusal);
         var hooks = new SaveEdgeHooks(f, inv.Tracker, inv.Items.Select(i => i.Id).ToList(), inv.ReplayOnLoad, inv.BagCountBase);
@@ -436,9 +436,13 @@ public class BagReplayOrderingTests : IDisposable
     public void An_unarmed_inventory_writes_nothing_on_a_load_edge()
     {
         var f = ExtendedInventoryTests.VanillaImage();
+        // LW-397: the PE key no longer gates the arm, so the inventory is kept unarmed by a moved
+        // first boot site (old byte 07 instead of the expected one). That refuses BEFORE any write,
+        // which a late hooks refusal would not (it writes, then rolls back).
+        f.Seed(ExtendedSites.BootPatches(1)[0].Addr, 0x07);
         var inv = new ExtendedInventory(f, new FakeNearAllocator(), TwoItems(),
             ExtendedBagSidecar.Load(Path.Combine(_dir, "unarmed_" + ExtendedBagSidecar.FileName)),
-            () => new LandmarkReading(LandmarkVerdict.Unreadable), _ => null);
+            _ => null);
         inv.BootArm(null);
         Assert.False(inv.Armed);
 

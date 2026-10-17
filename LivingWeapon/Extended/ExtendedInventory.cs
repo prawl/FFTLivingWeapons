@@ -10,8 +10,13 @@ namespace LivingWeapon;
 /// the data layer loaded and, in Mod.StartEx (before the game runs an instruction), installs
 /// every piece the FFTHandsFree research rig proved on 1.5.2, as ONE transaction with full
 /// rollback on the first refusal:
-///   1. the PE build-key landmark must Match (the roster landmark LaunchGuard waits for cannot
-///      be read this early; a patched game refuses here with one line);
+///   1. no whole-image check gates the arm (the roster landmark LaunchGuard waits for cannot be
+///      read this early, and since LW-397 the build stamp is a report line, not a landmark): every
+///      patch site verifies its expected OLD bytes before it is written and the whole arm rolls
+///      back on the first disagreement (BytePatchSet, ExtendedCatalog, ShopFlagsMirror,
+///      ListRelocation, TemplateRelocation, AccessorEntryHook, SwingIdFallbackHook, and the five
+///      Reloaded detours' prologue landmarks); a moved site refuses with one line; a strange
+///      build stamp no longer refuses anything;
 ///   2. the boot-safe cap patches (ExtendedSites.BootPatches, old bytes verified);
 ///   3. LW-368 round 2: the two per-item byte lists (bag counts, sibling flags) copied onto a
 ///      page the mod owns and every plain-code reference to the old blocks re-pointed there
@@ -38,7 +43,6 @@ internal sealed partial class ExtendedInventory
     private readonly INearAllocator _allocator;
     private readonly ExtendedInventoryData.LoadResult _data;
     private readonly ExtendedBagSidecar _sidecar;
-    private readonly Func<LandmarkReading> _peKeyProbe;
     private readonly Func<IReloadedHooks?, string?> _installHooks;
 
     private readonly BytePatchSet _patches = new();
@@ -77,13 +81,12 @@ internal sealed partial class ExtendedInventory
     /// Reloaded.Hooks detours, returning null on success or the refusal. Null (production) uses
     /// <see cref="DefaultInstallHooks"/>, which refuses a null hooks controller.</param>
     public ExtendedInventory(ICodePatcher patcher, INearAllocator allocator, ExtendedInventoryData.LoadResult data,
-        ExtendedBagSidecar sidecar, Func<LandmarkReading> peKeyProbe, Func<IReloadedHooks?, string?>? installHooks = null)
+        ExtendedBagSidecar sidecar, Func<IReloadedHooks?, string?>? installHooks = null)
     {
         _patcher = patcher;
         _allocator = allocator;
         _data = data;
         _sidecar = sidecar;
-        _peKeyProbe = peKeyProbe;
         _installHooks = installHooks ?? DefaultInstallHooks;
         _pending = ExtendedSites.PostLoadPatches(Math.Max(1, data.Items.Count)).Select(p => new PendingPatch(p)).ToList();
     }
@@ -101,14 +104,6 @@ internal sealed partial class ExtendedInventory
         if (!_data.Ok)
         {
             Refuse("the extended-inventory tables did not validate: " + string.Join("; ", _data.Errors));
-            return;
-        }
-        var pe = _peKeyProbe();
-        if (pe.Verdict != LandmarkVerdict.Match)
-        {
-            Refuse(pe.Verdict == LandmarkVerdict.Unreadable
-                ? "the game image could not be read for the build-key check"
-                : "the game build does not match (" + pe.Detail + ")");
             return;
         }
         string? why = Install(hooks);

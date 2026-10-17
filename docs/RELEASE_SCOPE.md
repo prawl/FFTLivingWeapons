@@ -130,7 +130,7 @@ turn" became accurate with the own-turn release). Boxes stay for the owner sweep
       2026-07-28, the mod-conflict guard split: the JobCommand landmark moved to a kit-lane guard
       that disables only the weapon-granted commands when the PE key still matches; the PE key and
       roster landmarks keep the full stand-down. The in-flight ticket in docs/TODO.md carries the
-      id.)
+      id. 2026-10-16: the PE key is now a report line; only the roster row stands the mod down.)
 - [x] **Kill-tally scoping (LW-51, covers LW-29)**: decide global-forever vs per-playthrough; if
       per-playthrough, key the save files to a save identity (one-time migration) so a new game is not
       pre-maxed and playthroughs do not cross-contaminate; ensure a Reloaded mod UPDATE does not wipe

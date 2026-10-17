@@ -482,12 +482,10 @@ internal static class Offsets
     // hand-authored inflict-status table (the mark the repoint applies). Content-anchored, image-
     // static addresses -- observed live 2026-07-22 (LIVE_LEDGER row, Uncertain; docs/PROVOKE_AC.md
     // "How it works, plainly"), the same anchor class as Barrage.AbilityBase (a JobCommand table),
-    // just two tables further into the exe. COVERED BY LAUNCHGUARD INDIRECTLY BUT COMPLETELY: a
-    // patched executable fails the PE build-key landmark (LaunchGuard.Landmarks.cs
-    // ExpectedTimeDateStamp/ExpectedSizeOfImage) and the guard stands the whole mod down
-    // permanently before any write to either table happens -- these are not a separately-guarded
-    // class, only addresses that (like every other one in this file) need a re-find on a re-anchor
-    // (docs/PATCH_REANCHOR.md). The BYTE-IDENTICAL decoy mirror of the action table
+    // just two tables further into the exe. COVERED ONLY BY THE ROSTER LANDMARK until LW-399
+    // gives these tables their own vanilla-byte landmark (LW-397 demoted the PE key to a report
+    // line); these are not a separately-guarded class, and like every other address in this
+    // file they need a re-find on a re-anchor (docs/PATCH_REANCHOR.md). The BYTE-IDENTICAL decoy mirror of the action table
     // (ProvokePolicy.DecoyActionTable, Provoke.Policy.cs) is deliberately NOT pinned here: nothing
     // in the runtime ever writes it, so it is a policy-level safety constant, not a write anchor.
     public static long LiveActionTable => ImageBase.At(0x14078B2DC);   // 368 rows x 20 bytes; the copy the engine and UI both read
