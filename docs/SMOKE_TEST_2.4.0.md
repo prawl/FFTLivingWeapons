@@ -244,7 +244,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   tools/probes/static_table_file_image_probe.py`), a repainted Cutpurse under the drill, provoke
   or gun growth still WAITING a minute after Continue, a second box. (DEV OK) (covers LW-399;
   LW-251 and LW-123 each get a leg B read here) **[BLOCKER]**
-- [ ] 2.4 **Twin weapons drill (LW-400).** The twin weapon grant owns a report line and switches
+- [ ] 2.4 (LEG A PASSED 2026-10-17 on dev 62015755, owner live: armed 13:17:31, the twin WARN 1.6 s later with detail twin-menu-flags, one box naming twin weapons alone, no second pistol on the status page, Outrider Pistol claims kill number 4, the standdown tape carries the twin lane record, scan CLEAN; leg B still owed) **Twin weapons drill (LW-400).** The twin weapon grant owns a report line and switches
   off alone. Marker `LW_FORCE_TWIN_MISMATCH`, recipe legs A and B. PASS leg A: no twin WARN before
   Continue; after Continue the armed line, then one WARN starting `The twin weapon grant is paused
   for this session because the two menu flags it uses to stay out of the equipment screens do not
@@ -1209,7 +1209,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   (intended dead JP, not a broken install); Beowulf's hand holds the Lightbringer. PASS: no floating
   generic enemies, the three cards read as written. FAIL: a parade of hovering knights, vanilla
   Equip Axes text, id 31 named Nagrarok. (covers LW-188, LW-97, LW-99) **[MINOR]**
-- [ ] 11.2 (RUNNING 2026-10-17: across sitting 1 the saved logs carry zero Mark narration, zero Mark toasts and zero CharmLock, LifeSap or Wyrmblood lines; the header read 57 weapons and 66 Marks each launch, no new weapon earned a first deed; the undead half is NOT REACHED so far) **Marks stay hidden while legends grow; nothing dormant speaks.** Every launch header
+- [x] 11.2 (PASSED 2026-10-17: across sittings 1 and 2 the logs carry zero Mark narration, zero Mark toasts and zero CharmLock, LifeSap or Wyrmblood lines; the undead half on dev 62015755 at 13:19:52, Outrider Pistol felling an undead foe, moved its legends counts fourth number from 15 to 16 with lastVictim class 3, and no deed-miss record in any afternoon tape) **Marks stay hidden while legends grow; nothing dormant speaks.** Every launch header
   reads `The legends hold deeds for N weapons and M Marks (legends.json, primary)` with N growing
   across the pass; battle ends count Marks in the FILE only; zero Mark narration or toast lines
   anywhere; zero CharmLock, LifeSap or Wyrmblood lines (their lanes were deleted in LW-159, so any
