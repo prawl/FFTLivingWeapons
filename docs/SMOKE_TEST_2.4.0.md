@@ -261,7 +261,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   comes off.`; no box. FAIL: a twin WARN before Continue, an ERROR line, kill counting OFF, a box
   listing the roster parts, twin weapons WAITING a minute after Continue. (DEV OK) (covers LW-400)
   **[BLOCKER]**
-- [ ] 2.5 **No developer hotkey fires in a release build (LW-413).** A player can never trip a dev
+- [ ] 2.5 (PROD LEG PASSED 2026-10-17, prod 1c7ba75f, owner live: every F key pressed in battle, nothing on screen, zero provoke-spike, body-double, numeral or status-spike lines in the log; dev leg owed in sitting 2) **No developer hotkey fires in a release build (LW-413).** A player can never trip a dev
   key. Prod leg (sitting 1): in battle, press F6 and F5 (the two wired dev keys). PASS:
   nothing happens on screen, no `provoke-spike` line and no Provoke mark appears in the log. Dev
   leg (sitting 2): press F6 in battle; the drill fires (the log carries `provoke-spike: armed (dev)`
@@ -279,7 +279,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   `A new game was detected` line, kills.json unchanged. PASS normal leg (prod, box 6.1): the
   sensing line right after the header and a real New Game archives. FAIL: kills archived under the
   drill, or a box. (DEV OK) (covers LW-395) **[MAJOR]**
-- [ ] 2.7 **Blind drill (LW-392).** When the mod cannot read the game for a minute it says so once,
+- [ ] 2.7 (NORMAL LEG PASSED 2026-10-17, prod 1c7ba75f, owner live, the attract cutscene played during the idle: launch 10:18:43, exactly one wait line at 10:21:14, no box, no WARN, no recovery line on Continue; four Parts report lines before Continue, changing only by extended inventory and banners going WAITING to ON within 1.8 s of launch, which the box text first called a fail and now allows; drill leg owed in sitting 2) **Blind drill (LW-392).** When the mod cannot read the game for a minute it says so once,
   then recovers. Marker `LW_FORCE_GUARD_UNREADABLE`, sit on the title about 80 seconds, then
   Continue. PASS drill leg: at about 60 seconds one WARN `Living Weapons has not been able to read
   the game for about a minute, so its checks cannot run and nothing is counting yet. ...` ending
@@ -289,12 +289,10 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   (prod, 2.5 minutes on the title): exactly one wait line `Living Weapons can see the game and is
   waiting for a save to load before it runs its checks; this is normal on the title screen.` at
   about two minutes, no box, no recovery line on Continue; the only other lines after the header
-  are `Parts report:` lines identical to the first except for their timestamps (the terrain,
-  palette, poach, provoke and item checks each arming at the title reprint it, at most a handful),
+  are `Parts report:` lines, at most a handful, each differing from the one before only by a part moving from WAITING to ON (banners and extended inventory flip within a second of launch when the loader hands over its hooks; the table checks arm at the title),
   no WARN. The drill box's `game build unknown` footer is correct only there. Scan exit 0 both
   legs. FAIL: a box on the normal leg, no box by 70 seconds under the drill, a recovery line with
-  no prior warning, a wait line before 90 seconds or a second one, a Parts report line whose text
-  differs from the first before Continue. (DEV OK drill; normal leg prod) (covers LW-392)
+  no prior warning, a wait line before 90 seconds or a second one, a Parts report line before Continue in which a part moves anywhere but from WAITING to ON. (DEV OK drill; normal leg prod) (covers LW-392)
   **[MAJOR]**
 - [ ] 2.8 **Unknown build stays running (LW-397).** An unknown game build is reported, never a
   reason to stop. Marker `LW_FORCE_FINGERPRINT_MISMATCH`, launch, Continue, one kill. PASS: `Game
@@ -402,7 +400,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
 > Growth and signature rows are DEV OK unless noted (dev floors every tally to tier 3). Box 1.4
 > does NOT cover Afterimage or Ultima; each owns its own stat lane (section 9).
 
-- [x] 3.1 (PASSED 2026-10-17, owner live, DEV build of the fix ffd24810 on the real save: 883 of 883 on Ramza's first turn; log shows the first pour 679 -> 883 then two game refills each re poured before anyone acted, no refill after the first action, damage stuck at 653 of 883, scan CLEAN; re read on the prod build in sitting 1) **Knight sword fills the HP it adds (LW-416, the LW-327 regression).** A knight whose
+- [x] 3.1 (PASSED 2026-10-17, owner live, DEV build of the fix ffd24810 on the real save: 883 of 883 on Ramza's first turn; log shows the first pour 679 -> 883 then two game refills each re poured before anyone acted, no refill after the first action, damage stuck at 653 of 883, scan CLEAN; re read on prod 1c7ba75f in sitting 1 the same day: prod tier 1 raised max 679 to 747 and the top up delivered 679 -> 747 of 747 within 0.2 s of Battle started, census 747 of 747 at mid and end of battle) **Knight sword fills the HP it adds (LW-416, the LW-327 regression).** A knight whose
   grown sword raised Max HP starts the battle with the bar FULL, even when a long opening cutscene
   makes the game rebuild him more than once. Ramza with a tier 3 knight sword (the owner's save:
   Chaos Blade or Excalibur), load from the WORLD MAP, enter a story battle with a long opening
