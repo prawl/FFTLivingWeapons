@@ -2053,21 +2053,6 @@ belongs rather than at the bottom.
   are written against the production numbers {5,10,15}, not the dev numbers {1,2,3}, so a
   dev-defined gate leg needs those expectations parameterized by flavor first.
 
-- [LW-276] 2026-08-18: Three more comments quote their own file's line count in prose, the
-  exact rot LW-263 just cleaned out of the pool search files, found by the LW-263 verify round
-  sweeping wider. One is present tense and will go stale on the next edit. Fix is the same:
-  delete the numbers, keep the substance. (Tech: ActorResolver.TurnQueue.cs:7 "grown to ~452
-  lines"; CardSites.Verify.cs:7 "at 234 lines before this arc"; Display.PoolPaintLog.cs:6 "155
-  to 217 lines". Line refs will drift; grep for the quoted numbers.)
-
-- [LW-185] 2026-08-13: Thin the codebase's comments to the owner's rule: a comment must say
-  something the code cannot, capped at roughly two lines per reason, with the long history
-  moved to the right durable doc and cited by its row slug. Runs AFTER LW-183 gives ledger
-  rows their greppable slugs (the citations need somewhere precise to point) and after
-  LW-184 rewrites the engine tick (no point thinning comments that rewrite deletes). The
-  deletion test keeps the fence case: a line whose absence would invite a wrong refactor is
-  a keeper even though it repeats no fact.
-
 - [LW-140] 2026-07-27: Silent effects like Renewal's heal still show no number. A probe day
   found the engine routine that builds the floating number popup and a dev trigger fired it
   four times live (paused, unpaused, with and without the unit pointer pre-set): it returns

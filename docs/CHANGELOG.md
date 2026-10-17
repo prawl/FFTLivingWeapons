@@ -10,6 +10,23 @@ before 2026-07-21 keep their original prose.
 
 ## 2.4.0 cycle
 
+- [LW-185] SHIPPED 4e84cb0f 2026-10-16: The code comments stop reading like essays and stop
+  naming ticket numbers. Plain language: every comment in the runtime used to carry the whole
+  story of how its line came to be, which reviewer asked for what, and the ticket it belonged
+  to. Now a comment says only what the code cannot, in an engineer's voice, and git blame and
+  this changelog hold the history. The sweep ran in stages across the day (6d205af1, 34cd8ca4,
+  257cd54c for the colons and dashes, then 4e84cb0f for the 656 ticket ids). Lookups stay: a
+  ledger row slug, a probe script, a drill flag, a measured date. Three gates now hold the
+  line, dotnet format in the build, CommentBudgetContractTests freezing each file's comment
+  count and longest block, and the commit message hook. (Tech: comment lines in LivingWeapon/
+  went from about 8,700 to 8,569 in the id pass alone; the comment to code ratio across the
+  runtime is 0.41, down from 0.79 at the start of the day.)
+
+- [LW-276] SHIPPED 82e9092e 2026-10-16: No comment quotes its own file's line count any more.
+  Plain language: three headers said things like "grown to 452 lines", numbers that go stale
+  on the next edit. Two went in the comment sweep (34cd8ca4) and the last one in 82e9092e.
+  (Tech: Display.PoolPaintLog.cs header; grep for "lines)" in a comment finds nothing now.)
+
 - [LW-397] SHIPPED e00c429a 2026-10-16: The game's build number stops being an off switch: the
   mod reports it and keeps running if its own checks pass. Plain language: the mod used to read
   the game's build number at startup and, if it was not the one the mod was made for, switch the
