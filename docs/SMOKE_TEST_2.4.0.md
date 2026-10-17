@@ -355,7 +355,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   that repeats or prints while its part is ON, a parts box with no footer, `Living Weapons
   unknown` in a footer, a box found only after Alt Tab, the game minimized or input dead after OK,
   a record with no box seen or a box with no record. (DEV OK) (covers LW-406) **[MAJOR]**
-- [ ] 2.11 **Two doors down, two waves (the box rule).** When two different checks fail at
+- [x] 2.11 (PASSED 2026-10-17 on dev 62015755, owner live with screenshots: box one at the title with weapon colors alone under Paused, ten under Still being checked, both flag sentences and the footer; box two on the world map after Continue with eleven paused, three still working, no Still being checked group; Parts report eleven OFF three ON; scan CLEAN with one standdown drill warn; tapes 154801 `(1 parts off)` and 154846 `(11 parts off)`, battle start and end logged at 15:48:46 and 15:48:51) **Two doors down, two waves (the box rule).** When two different checks fail at
   different times the mod shows one box per failure wave, and the drill sentence names every flag
   that was on. Dev deploy, drop BOTH `LW_FORCE_TABLE_MISMATCH` and `LW_FORCE_ROSTER_MISMATCH`,
   launch, sit at the title ten seconds, Continue, wait ten seconds, one battle, flee. PASS: at the
