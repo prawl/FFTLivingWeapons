@@ -304,13 +304,14 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   box carries the same new build sentence after the shared hedge. FAIL: a stand down, a box on the
   plain leg, no stamp line, or a WARN or box without the new build sentence while the stamp line
   says unknown. (DEV OK) (covers LW-397) **[MAJOR]**
-- [ ] 2.9 **Kit lane drill (LW-112, two legs).** Another mod rewriting the job command table pauses
+- [ ] 2.9 (PARTIAL 2026-10-17 on dev 62015755, owner live: leg 1 passed, the job command match line at 15:56:20, armed at 15:56:35, Barrage granted to the Yoichi Bow Thief at 15:58:13, zero WARNs, zero boxes, scan CLEAN. Owed: leg 2) **Kit lane drill (LW-112, two legs).** Another mod rewriting the job command table pauses
   only the weapon commands, not the mod. The check runs once per session, from the first tick, on
   file baked data, so the TIMING of the other mod's write decides whether it is seen at all. Recipe
   "LW-112 kit-lane drill" in
   docs/DEV_TEST_RECIPES.md (a throwaway `lwdrill.jobconflict` mod carrying a changed Aim record).
   PASS leg 1 (bait, no conflict mod): the armed line, the kit lane line of box 1.3, Barrage present
-  in a tier 3 Yoichi wielder's Aim list, zero boxes, zero WARNs. PASS leg 2 (conflict mod enabled):
+  in a tier 3 Yoichi Bow Thief's action list (Barrage is Thief only; an Archer in the party shows
+  the Aim list the drill rewrites), zero boxes, zero WARNs. PASS leg 2 (conflict mod enabled):
   ONE WARN opening `The weapon commands (Barrage, Shadow Blade and Provoke)
   are paused for this session because another mod rewrote the job command data` with a
   `(detail: jobcommand-table ...)` tail, landing at the TITLE screen within a few seconds of the
