@@ -756,7 +756,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
 
 ## 6. Save integrity and persistence
 
-- [ ] 6.1 **Cold launch New Game archives and resets; Continue never trips it (LW-395 normal leg,
+- [x] 6.1 (PASSED 2026-10-17, prod 1c7ba75f, owner live from a cold launch: Continue loaded 381 kills across 121 weapons with no detection and no archive, sensing line right after the header; New Game logged Archived the previous kills.json to <save folder>rchive\kills.14.json and A new game was detected; the previous kill tally was archived and reset.; bag counts seeded for a new game; the owner read 0 kills on the Vagabond at Gariland; the opener credited nothing; Vagabond claims kill number 1; run_flavor.txt reads prod; the archive was copied back, 381 kills restored) **Cold launch New Game archives and resets; Continue never trips it (LW-395 normal leg,
   LW-368, LW-134).** From a COLD launch on prod: Continue the real save (no reset), then New Game.
   PASS: Continue logs no new game detection and no archive; `The battle sentinels read as
   expected; the new game detector is enabled.` right after the header; New Game logs `Archived the
@@ -798,7 +798,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   counts to disk`, `The extended-inventory sidecar could not be read`. FAIL: slot B showing slot
   A's count, a count back to seed after the boot, no load edge line. (DEV OK) (covers LW-353,
   LW-348) **[MAJOR]**
-- [ ] 6.4 **Save files are update safe and every deploy preserves them (LW-134, LW-297).** Across
+- [ ] 6.4 (RUNNING 2026-10-17: two deploys so far, dev 09:56 and prod 10:10, each printed the restore line with the post restore check passed and parity 506 of 506; flight holds its tapes; the header tally never dropped across sitting 1; closes after the sitting 2 and last sitting deploys) **Save files are update safe and every deploy preserves them (LW-134, LW-297).** Across
   this pass's deploys: `kills.json`, `legends.json`, `gunslinger.json` sit under the SAVE folder
   (`<Reloaded root>\User\Mods\prawl.fft.livingweapons`), the restore line prints each time (post
   restore check passed), `flight\` and its 20 tapes exist under the deployed folder afterwards, the
