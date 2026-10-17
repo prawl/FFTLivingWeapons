@@ -547,7 +547,7 @@ function Invoke-FormatGate {
     )
 
     foreach ($proj in @("LivingWeapon\LivingWeapon.csproj", "LivingWeapon.Tests\LivingWeapon.Tests.csproj")) {
-        & dotnet format "$PipelineRepoRoot\$proj" --verify-no-changes --no-restore -v q
+        & dotnet format "$PipelineRepoRoot\$proj" --verify-no-changes -v q
         if ($LASTEXITCODE -ne 0) {
             throw "REFUSING TO ${FailVerb}: $proj is not formatted (run: dotnet format $proj)."
         }

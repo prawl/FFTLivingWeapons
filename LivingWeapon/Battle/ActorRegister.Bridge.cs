@@ -7,13 +7,10 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed partial class ActorRegister
 {
-    /// <summary>A slot matches when it is occupied (RLevel 1..99), its RNameId equals
-    /// <paramref name="nameId"/>, and its (level,brave,faith) matches the entry's band bytes
-    /// (guards a possible enemy/player nameId overlap, K2 of the kill-attribution plan). One match is
-    /// Player. Several matches, or a nameId of 0 (a capture failure, the 0==0 trap), is Unknown so
-    /// callers fall through to the TQ-fingerprint body. Zero matches with a nonzero nameId gets one
-    /// <see cref="RescueCanonical"/> attempt before conceding Enemy, because the
-    /// new-game Orbonne opener's scripted player units carry a canonical nameId matching no roster row.</summary>
+    /// <summary>One occupied slot matching nameId and (level,brave,faith) is Player. Several, or a
+    /// nameId of 0 (a capture failure, the 0==0 trap), is Unknown so callers fall through to the
+    /// TQ-fingerprint body. Zero gets one <see cref="RescueCanonical"/> attempt before Enemy,
+    /// because the Orbonne opener's scripted player units carry a nameId matching no roster row.</summary>
     private RosterBridge Bridge(long entry, ushort nameId, out long rosterBase)
     {
         rosterBase = 0;
@@ -38,30 +35,14 @@ internal sealed partial class ActorRegister
         return RescueCanonical(entry, nameId, lvl, br, fa, out rosterBase);
     }
 
-    /// <summary>Called only when <see cref="Bridge"/> found zero nameId+stat
-    /// matches. Turns a zero-evidence Enemy into a positively identified Player and refuses on any
-    /// doubt. Refusal returns Enemy, not Unknown, because Unknown would fall through to the
-    /// TQ-fingerprint body and change live behavior.
-    ///
-    /// Steps
-    ///   0. Canonical signature (scripted-opener tell). The nameId equals this entry's own job byte
-    ///      (<see cref="Offsets.AJob"/>, read unguarded like ALevel/ABrave/AFaith). Only a statistical
-    ///      filter, since a re-rolled generic nameId hits its job byte about 1 in 256.
-    ///   1. Oracle exclusion (A1). If <see cref="_isOracleEnemy"/> is wired (null = off) and claims
-    ///      the (level,brave,faith,maxHp) tuple was captured enemy-side at battle start, refuse.
-    ///      Covers a canonical enemy such as a boss, but not guests, which are absent from the oracle.
-    ///   2. Fingerprint key. Exactly one occupied roster row matching level (<see cref="Band.LevelMatchesRoster"/>),
-    ///      <paramref name="br"/> and <paramref name="fa"/>, ignoring nameId. One row with <see cref="WeaponsAgree"/>
-    ///      is Unique. One row without agreement is WpnMismatch and more than one is Ambiguous, both terminal.
-    ///      Zero falls through, which is the opener case since its scripted trio never matches the roster's brave/faith.
-    ///   3. Weapon key (round 2). Count occupied rows (drift window) whose sentinel-filtered hand set
-    ///      holds the band weapon. Unarmed or zero is NoMatch, one is WeaponUnique and credits the row's
-    ///      full hand set (dual-wield credits both blades), more than one is WeaponAmbiguous.
-    ///
-    /// Accepted residual risks, visible on the tape via the rescue field. A canonical enemy or a guest
-    /// whose weapon id uniquely matches a roster row can mis-bridge, and the oracle cannot close the
-    /// guest case. Both are narrow given the canonical gate, drift and hand-set uniqueness.
-    /// </summary>
+    /// <summary>Runs only when <see cref="Bridge"/> found no nameId+stat match. It can turn that
+    /// zero-evidence Enemy into a Player, and refuses on any doubt. A refusal returns Enemy, not
+    /// Unknown, so nothing falls through to the TQ-fingerprint body. The gate is the opener's tell,
+    /// a nameId equal to the entry's own job byte, which a re-rolled generic hits about 1 in 256.
+    /// Then the oracle may refuse a tuple captured enemy-side at battle start (guests are not in
+    /// it). Then the fingerprint key, then the weapon key, each needing exactly one roster row.
+    /// Known residual, a canonical enemy or guest whose weapon uniquely matches a roster row
+    /// can mis-bridge; the rescue field on the tape shows it.</summary>
     private RosterBridge RescueCanonical(long entry, ushort nameId, int lvl, int br, int fa, out long rosterBase)
     {
         rosterBase = 0;

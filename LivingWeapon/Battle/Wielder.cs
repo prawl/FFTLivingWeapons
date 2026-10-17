@@ -13,12 +13,9 @@ internal static partial class Wielder
     /// <summary>Weapon id inside the band-entry frame. CWeapon(0x20), BandEntry(0x1C) = +0x04.</summary>
     private const int EntryWeapon = Offsets.CWeapon - Offsets.BandEntry;
 
-    /// <summary>The wielder's live band entry. Resolves the roster nameId from the hand ids and
-    /// delegates to the explicit overload below. If 2+ roster rows match it routes to
-    /// <see cref="LocateAmbiguous"/> instead. That case once resolved to the same -1 as
-    /// zero matches, which disarmed tier 2's foreign-nameId veto and let a band collider be adopted
-    /// (ledger [party-nameid-unique-key], mirror mechanism [frame-1fc-nameid-mirror]). Zero matches,
-    /// or a 2+ roster with an unseeded row, still take the old tier-2-only path with rosterNameId -1.</summary>
+    /// <summary>The wielder's live band entry. Resolves the roster nameId from the hand ids; 2+ matching
+    /// roster rows route to <see cref="LocateAmbiguous"/> (ledger [party-nameid-unique-key]), zero or an
+    /// unseeded row takes the tier-2-only path with rosterNameId -1.</summary>
     public static long Locate(IGameMemory mem, int weaponId, IReadOnlyList<int> hands,
                               (int lvl, int br, int fa) fp)
     {
@@ -28,12 +25,9 @@ internal static partial class Wielder
             : Locate(mem, weaponId, hands, fp, rosterNameId);
     }
 
-    /// <summary>Two-tier locate. Tier 1 runs when <paramref name="rosterNameId"/> is positive and
-    /// returns the frame-nameId-verified hit; if candidates existed but the tie stayed ambiguous it
-    /// returns 0 without falling to tier 2 (S6). Tier 2 is the plain fingerprint scan with a veto:
-    /// an entry whose frame nameId is nonzero and differs from rosterNameId is excluded, so an enemy
-    /// fp-collider can't be returned when the wielder's entry is absent. Composite resolvers in
-    /// Wielder.Roster.cs call this directly to skip the any-hand re-resolve.</summary>
+    /// <summary>Two-tier locate. Tier 1 runs when <paramref name="rosterNameId"/> is positive; if it saw
+    /// candidates but refused, the answer is 0 with no tier 2. Tier 2 is the plain fingerprint scan with a
+    /// veto on a nonzero foreign frame nameId, so an enemy collider is never returned for an absent wielder.</summary>
     internal static long Locate(IGameMemory mem, int weaponId, IReadOnlyList<int> hands,
                                 (int lvl, int br, int fa) fp, int rosterNameId)
     {
@@ -46,18 +40,12 @@ internal static partial class Wielder
         return LocateTier2(mem, weaponId, hands, fp, rosterNameId);
     }
 
-    /// <summary>Tier-1 predicate and tie-break. A candidate must pass <see cref="BasePredicate"/>
-    /// plus frame nameId == <paramref name="rosterNameId"/>, read unguarded as in Iai.cs ~137-140
-    /// (Mem's U16 returns 0 on an unreadable address, and 0 never matches since rosterNameId &gt; 0).
-    /// Real position beats (0,0) and exact weapon beats hand match. Unlike tier 2, the tie-break also
-    /// fires for several real-position survivors, gated by an inline nameId-homogeneity check so a
-    /// looser per-entry gate can't widen it to a mixed-identity tie.
-    /// Accepted residuals (D3, do not fix without a live counter-probe): which nameId-verified mirror
-    /// copy is returned is unknown, but holds re-apply every tick so a miss self-heals; and an enemy
-    /// matching nameId, full fp and weapon id is indistinguishable from a mirror copy.
-    /// Internal for <see cref="LocateAmbiguous"/>, which must
-    /// call it directly because the 5-arg <see cref="Locate(IGameMemory,int,IReadOnlyList{int},(int,int,int),int)"/>
-    /// falls through to tier 2 and would reopen the collider leak.</summary>
+    /// <summary>Tier 1. A candidate passes <see cref="BasePredicate"/> and its frame nameId equals
+    /// <paramref name="rosterNameId"/> (read unguarded, U16 gives 0 on a bad page and 0 never matches).
+    /// Real position beats (0,0) and exact weapon beats hand match. Unlike tier 2 the tie-break also
+    /// fires for several real-position survivors, since a shared nameId shows they are one unit's copies.
+    /// Which mirror copy comes back is unknown, but holds re-apply every tick so a miss self-heals.
+    /// Internal for <see cref="LocateAmbiguous"/>, which must not fall through to tier 2.</summary>
     internal static long LocateTier1(IGameMemory mem, int weaponId, IReadOnlyList<int> hands,
                                     (int lvl, int br, int fa) fp, int rosterNameId, out int candidatesSeen)
     {
@@ -152,11 +140,9 @@ internal static partial class Wielder
         return true;
     }
 
-    /// <summary>Append every band entry passing the weapon and fingerprint checks to
-    /// <paramref name="results"/>, with no twin filtering, for idempotent writes where covering every
-    /// copy is harmless. Resolves the roster nameId like <see cref="Locate(IGameMemory,int,IReadOnlyList{int},(int,int,int))"/>,
-    /// including its ambiguous branch (<see cref="LocateAllAmbiguous"/>), so 2+ matching roster rows don't
-    /// hand a write like SpiritualFont's to two different deployed wielders sharing a weapon.</summary>
+    /// <summary>Every band entry passing the weapon and fingerprint checks, no twin filtering, for
+    /// idempotent writes where covering every copy is harmless. Resolves the roster nameId like Locate,
+    /// ambiguous branch included, so 2+ matching roster rows never hand one write to two wielders.</summary>
     public static void LocateAll(IGameMemory mem, int weaponId, IReadOnlyList<int> hands,
                                  (int lvl, int br, int fa) fp, List<long> results)
     {
@@ -165,9 +151,8 @@ internal static partial class Wielder
         LocateAll(mem, weaponId, hands, fp, rosterNameId, results);
     }
 
-    /// <summary>Two-tier LocateAll. If tier 1 (nameId-matching copies) collects anything, that is the
-    /// result. Otherwise falls back to the tier-2 fp scan with the same veto as <see cref="LocateTier2"/>,
-    /// so a foreign-nameId collider yields an empty result rather than crediting the wrong unit.</summary>
+    /// <summary>Two-tier LocateAll. Tier 1 (nameId-matching copies) wins when it collects anything; else the
+    /// tier-2 fp scan runs with the same veto as <see cref="LocateTier2"/>, so a foreign collider yields nothing.</summary>
     internal static void LocateAll(IGameMemory mem, int weaponId, IReadOnlyList<int> hands,
                                    (int lvl, int br, int fa) fp, int rosterNameId, List<long> results)
     {
@@ -203,20 +188,5 @@ internal static partial class Wielder
     {
         for (int i = 0; i < hands.Count; i++) if (hands[i] == wid) return true;
         return false;
-    }
-
-    /// <summary>DEV diagnostic. On a Locate miss, dump every valid band entry's locate fields next to
-    /// what was wanted, so one log read names the rejecting predicate. Dev-pulse callers only.</summary>
-    public static void DumpCandidates(IGameMemory mem, IReadOnlyList<int> hands, (int lvl, int br, int fa) fp)
-    {
-        ModLogger.Debug(LogVerb.Trace, $"wielder search missed this pulse: wanted weapon id in [{string.Join(",", hands)}], brave {fp.br}, faith {fp.fa}; candidates follow");
-        for (int s = 0; s < Offsets.BandSlots; s++)
-        {
-            long e = Band.Entry(s);
-            if (!Band.IsValid(mem, e)) continue;
-            ModLogger.Debug(LogVerb.Trace, $"  candidate slot {s}: weapon {mem.U16(e + EntryWeapon)} (wanted one of [{string.Join(",", hands)}]), " +
-                     $"level {mem.U8(e + Offsets.ALevel)}, brave {mem.U8(e + Offsets.ABrave)}, faith {mem.U8(e + Offsets.AFaith)}, " +
-                     $"position ({mem.U8(e + Offsets.AGx)},{mem.U8(e + Offsets.AGy)})");
-        }
     }
 }
