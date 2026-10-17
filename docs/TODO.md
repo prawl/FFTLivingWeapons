@@ -1129,17 +1129,6 @@ belongs rather than at the bottom.
   docs/MECHANICS.md before reopening the data lane; do not retry the item.<lang>.nxd approach
   without new information.
 
-- [LW-286] 2026-08-19: Three separate checks are all sitting and waiting for whichever
-  deploy happens next, and that waiting list exists only as prose scattered across the
-  changelog and old session notes, so the next deploy can quietly drop one and nobody
-  finds out. Write the list down in one place the owner already reads at deploy time.
-  (Tech: the three riders today are LW-247's pre registered confirmation, meaning the next
-  owner approved BuildLinked runs with no icon snapshot dance and the installed icon bytes
-  must not move, 468 of 468; LW-259's eviction reserve fix, which needs a deploy plus a
-  flight tape; and LW-262's combined live pass for the cache partition. Add a deploy rider
-  checklist section to docs/VERIFY_LIVE.md, and make adding a rider part of any change
-  that pre registers a live confirmation.)
-
 - [LW-283] 2026-08-19: Several finished features passed the owner's own in game checks,
   but the official record still lists them as unproven because the paperwork was deferred
   every time and now survives only in scattered session notes. One sitting with the owner
