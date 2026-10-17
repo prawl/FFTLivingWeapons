@@ -375,7 +375,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
 - [ ] 2.12 **The new items refuse bad data (the one undrillable door a hand edit can close).** If
   the mod's own item tables are damaged, the new items pause with a plain message and nothing else
   stops. Dev deploy; in the DEPLOYED folder only (the repo copy is generated), delete one
-  `<ItemExtended ...>` row from `extended_inventory\ItemExtendedData.xml`; launch, sit at the title
+  `<ItemExtended>` block from `extended_inventory\ItemExtendedData.xml`; launch, sit at the title
   ten seconds, Continue, open the Items tab, one battle; redeploy to clean up. PASS: within seconds
   of the header one WARN `The new items are paused for this session because the item data shipped
   with this mod did not load correctly; everything else keeps working.` followed by the what to do
