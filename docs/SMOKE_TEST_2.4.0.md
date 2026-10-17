@@ -244,7 +244,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   tools/probes/static_table_file_image_probe.py`), a repainted Cutpurse under the drill, provoke
   or gun growth still WAITING a minute after Continue, a second box. (DEV OK) (covers LW-399;
   LW-251 and LW-123 each get a leg B read here) **[BLOCKER]**
-- [ ] 2.4 (LEG A PASSED 2026-10-17 on dev 62015755, owner live: armed 13:17:31, the twin WARN 1.6 s later with detail twin-menu-flags, one box naming twin weapons alone, no second pistol on the status page, Outrider Pistol claims kill number 4, the standdown tape carries the twin lane record, scan CLEAN; leg B still owed) **Twin weapons drill (LW-400).** The twin weapon grant owns a report line and switches
+- [x] 2.4 (PASSED 2026-10-17 on dev 62015755, owner live. Leg A 2026-10-17 on dev 62015755, owner live: armed 13:17:31, the twin WARN 1.6 s later with detail twin-menu-flags, one box naming twin weapons alone, no second pistol on the status page, Outrider Pistol claims kill number 4, the standdown tape carries the twin lane record, scan CLEAN. Leg B: the menu flags line in the same millisecond as the armed line, A twin weapon is equipped 1.6 s later and the owner saw the second pistol, no box, scan CLEAN) **Twin weapons drill (LW-400).** The twin weapon grant owns a report line and switches
   off alone. Marker `LW_FORCE_TWIN_MISMATCH`, recipe legs A and B. PASS leg A: no twin WARN before
   Continue; after Continue the armed line, then one WARN starting `The twin weapon grant is paused
   for this session because the two menu flags it uses to stay out of the equipment screens do not
