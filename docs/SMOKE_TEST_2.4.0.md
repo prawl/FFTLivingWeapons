@@ -290,7 +290,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   legs. FAIL: a box on the normal leg, no box by 80 seconds under the drill (the stall clock runs about a minute of unreadable steps and the box lands near 70 s after the header), a recovery line with
   no prior warning, a wait line before 90 seconds or a second one, a Parts report line before Continue in which a part moves anywhere but from WAITING to ON. (DEV OK drill; normal leg prod) (covers LW-392)
   **[MAJOR]**
-- [ ] 2.8 **Unknown build stays running (LW-397).** An unknown game build is reported, never a
+- [x] 2.8 (PASSED 2026-10-17 on dev 62015755, owner live. Main leg: the stamp line read not a build this mod knows, the armed line, one WARN This game build is new to the mod, its own checks passed, running normally, no box, Chaos Blade claims kill number 13, scan CLEAN. Patch day leg with both markers: the palette WARN carried This game build is new to the mod, so the game update itself is the likely cause. right after the shared hedge and its detail tail grew the new build clause, the owner saw the one box with the same sentence. The box text expected the two stamps to differ by one under the drill; they print the same because the drill flips only the comparison, so the text now says so) **Unknown build stays running (LW-397).** An unknown game build is reported, never a
   reason to stop. Marker `LW_FORCE_FINGERPRINT_MISMATCH`, launch, Continue, one kill. PASS: `Game
   build stamp: ...; not a build this mod knows (it was made for ...)` in the header, the armed
   line, exactly one WARN at the armed edge opening `This game build is new to the mod, its own
@@ -300,8 +300,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   sit at the title ten seconds, read, no Continue needed. PASS: the stamp line reads `not a build
   this mod knows`; the palette WARN carries `This game build is new to the mod, so the game update
   itself is the likely cause.` right after the shared hedge and its detail tail grows `; this game
-  build is new to the mod (TimeDateStamp ..., made for ...)` where the two stamps differ by one
-  (the drill flips the low bit of the expected stamp, LivingWeapon/Guard/LaunchGuard.cs); the one
+  build is new to the mod (TimeDateStamp ..., made for ...)` where under the drill the two stamps read the SAME (the drill flips only the comparison's expected stamp, LivingWeapon/Guard/LaunchGuard.cs:54, while the made for text prints the true expected constant; a real game update shows two different stamps); the one
   box carries the same new build sentence after the shared hedge. FAIL: a stand down, a box on the
   plain leg, no stamp line, or a WARN or box without the new build sentence while the stamp line
   says unknown. (DEV OK) (covers LW-397) **[MAJOR]**
