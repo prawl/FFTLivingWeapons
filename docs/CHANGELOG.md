@@ -10,6 +10,16 @@ before 2026-07-21 keep their original prose.
 
 ## 2.4.0 cycle
 
+- [LW-410] SHIPPED 6ba0a899 2026-10-17: Players can now look up any of the 143 mods on the Nexus
+  and see whether it runs next to Living Weapons. Plain language: the compatibility page had not
+  been touched since August, and 48 mods had appeared since. Each current upload's file list was
+  read and sorted into the page's existing classes: six new mods ship item rows and join the
+  do-not-pair table, thirteen ship job tables and sit under the job catch, the rest are text,
+  icons, sprites, tools or code that touches nothing we do. The page also says the mod's own
+  "Parts report:" line is where a conflict shows in game. (Tech: catalog and per-mod file lists
+  through the Nexus GraphQL endpoint plus the mod-file-manifests service, recipe in the survey
+  memory note; WotL Restoration read from a download under LW-408; mod 114 left off the page by
+  owner ruling.)
 - [LW-393] SHIPPED a39e629f 2026-10-17: When a game update breaks one part of the mod, only that
   part switches off and the player is told which parts still work. Plain language: the mod used
   to have one safety switch, so one failed startup check turned everything off and showed one box.
