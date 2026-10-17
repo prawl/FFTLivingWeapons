@@ -45,12 +45,13 @@ the technical detail lives in the indented lines under it.
 - **[LW-408] Find out whether Living Weapons runs alongside WotL Restoration and write the answer down** (opened 2026-10-17) [BUILDING]
   - Done means: a player reading docs/COMPATIBILITY.md knows what happens with both mods installed, which order to load them in, and what each mod's own log will say. Payload half done 2026-10-17: WotL Restoration 2.0.7 was downloaded and read file by file (its text tables diffed against vanilla and ours, its job table, and its decompiled code), and the verdict is written in the doc's "WotL Restoration" section: characters and events coexist, its 40 new items switch off because both mods break the 261 item cap at the same code sites and ours arms first, and Living Weapons must load last to keep its item names. (Tech: her nine accessor hooks are our ten entries; 52 of her 63 relocations and 30 of her 44 caps sit on our sites; item.en.nxd keys 261 to 267 are written by both; her JobData rows 162 to 168 are clear of ours; ability 358 Barrage is named by both.)
   - Verify: owner runs the game once with both mods enabled, WotL Restoration loading before Living Weapons. Expected: Living Weapons' parts report reads all ON (extended inventory included), WotL Restoration's log prints its "Item expansion NOT armed" line, Luso and Balthier's events still fire, the Terrastaff card reads Terrastaff with its kill counter, and Agrias's birthday hands out a Septième Sens. Owner flips this row to AWAITING-LIVE when ready and PROVEN or not after the run.
-- **[LW-416] A grown knight sword fills the HP it adds, the way a level up does** (opened 2026-10-17) [QUEUED]
+- **[LW-416] A grown knight sword fills the HP it adds, the way a level up does** (opened 2026-10-17) [BUILDING]
   - Plain language: the owner saw Ramza walk into battle at 679 of 883 HP with a grown knight
     sword. The sword raised his max HP but did not fill the new room. That feature shipped as
     LW-327 on 2026-08-26 after three owner live rounds, so this is a regression; the parts model
     (which door gates the top up write, and when it opens relative to battle start) is the
-    first suspect. R5 item 2.
+    first suspect. R5 item 2. Built 2026-10-17 on branch lw-416-knight-sword-hp (df469221),
+    rebased on main, every gate green, held off main until the owner reads 883 of 883 live.
   - (Tech: trace the LW-327 top up site, which Part and doors gate it since LW-393 and LW-398,
     and whether the write now lands after the game copies current HP from the roster or is
     refused by a door still WAITING at battle start. One battle start read of max HP and current
@@ -60,31 +61,14 @@ the technical detail lives in the indented lines under it.
     order the fix depends on; no door gating is loosened to get there.
   - Verify: full suite green with the new test; the owner loads the same save, enters a battle,
     and reads 883 of 883 (or the current max) on Ramza's first turn; scan_logs CLEAN.
-- **[LW-413] No developer hotkey can fire in a release build** (opened 2026-10-17) [QUEUED]
-  - Plain language: the owner tripped the F6 Provoke trigger during a drill. A player must never
-    be able to fire a developer key, so every hotkey poll lives behind the dev build flag and a
-    test holds the line. R5 item 4. Runs in parallel with LW-416 and LW-414 (separate files).
-  - (Tech: grep every GetAsyncKeyState and DrillTrigger key poll; each sits under #if LWDEV or a
-    Tuning.IsDev gate; a contract test scans production sources for GetAsyncKeyState outside an
-    LWDEV block and fails on any; the dev build keeps every key.)
-  - Done means: a production build contains no reachable hotkey poll; the contract test fails on
-    a key poll outside LWDEV; the dev build's drills still work.
-  - Verify: full suite green; Publish.ps1 builds; the owner presses F6 in a prod deploy during a
-    battle and nothing happens, and in a dev deploy the drill still fires.
-- **[LW-414] The seven vanilla weapon power numbers in items.json match the game file** (opened 2026-10-17) [QUEUED]
-  - Plain language: seven weapons carry a "vanilla" power number that is not what the game file
-    holds, so the analyzer's vanilla comparison reasons from wrong reference values. Data only,
-    no runtime change. R5 item 8. Runs in parallel with LW-416 and LW-413 (data files only).
-  - (Tech: the seven ids are listed in docs/LIVE_LEDGER.md under item-stats-table-filled-at-boot,
-    "7 match neither"; read the true WP from the resident item stats table in the exe file image
-    with tools/probes/static_table_file_image_probe.py, fix the baseline field of each row in
-    data/items.json, regenerate, and run analyze.py --baseline.)
-  - Done means: every weapon's baseline WP in data/items.json equals the exe file's value; the
-    proposed values are untouched; analyze.py and analyze.py --baseline both exit 0.
-  - Verify: analyze.py exit 0 both ways; generate.py output unchanged for the proposed tables;
-    a rerun of the file image probe reports 0 "match neither".
 ## Backlog
 
+- [LW-417] 2026-10-17: The HP growth code file has grown past the size where a reader can hold it in their head (253 lines). Split the Max HP lane into its own file under the new file comment cap, keeping or rewriting the LW-327 edge prose at the old lines 112 to 138, never dropping it. Owed since LW-327, grew again with LW-416.
+- [LW-418] 2026-10-17: During an opening cutscene the battle tape goes blind, because the event watcher only samples units on field frames; that blind spot made the LW-416 read a two hour job instead of a five minute one. Log one baseline line at the first field frame saying how long the watcher was blind, or add a max HP only change event.
+- [LW-419] 2026-10-17: Two weapons' vanilla notes are still half wrong after LW-414: Icebrand and Nagrarok carry the June Living Blade evade, element, formula and on hit values in their baseline blocks, and Knightslayer and Hunting Crossbow record the mod design as their vanilla on hit. The fairness checker reads these for the vanilla pass. Fix from the file image row bytes (the LW-414 probe prints them).
+- [LW-420] 2026-10-17: The build server has no game file, so nothing there can catch a vanilla note drifting again. Commit a 121 row snapshot of the vanilla weapon table (8 bytes per row, exe stamp as provenance) and have analyze.py compare every baseline against it.
+- [LW-421] 2026-10-17: Publish.ps1 sets no error preference, so a failing cmdlet inside the shared pipeline functions can be followed by a second, less clear error instead of stopping on the first; BuildLinked.ps1 already stops on the first. Set the same preference in Publish.ps1.
+- [LW-422] 2026-10-17: Latent shape seen on the LW-416 tape: if the Max HP hold ever captures the 400 of 400 placeholder body during a cutscene, the later real fill matches neither its natural nor its target and the hold goes quiet for that battle. Not seen live (the locate waited for the real body); worth a test and a log line.
 - [LW-407] 2026-10-17: Every runtime source file should open with one short sentence saying what the file is, so someone skimming file by file gets the answer at once. Demoted from Now on 2026-10-17 because it touches the first line of 76 files and must run ALONE after LW-416, LW-413 and LW-414 merge (full Done means and Verify in git history, commit 02c401b7). R5 item 1.
 - [LW-358] 2026-08-30: Re-check poaching ourselves and finally explain it to players. Demoted from Now on 2026-10-17 to make room for the parallel R5 rows; it waits only on the owner's live battle and the FAQ text (full Done means and Verify in git history, commit 02c401b7).
 Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner directed).
