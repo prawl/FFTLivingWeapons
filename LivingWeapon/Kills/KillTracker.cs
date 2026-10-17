@@ -4,31 +4,19 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Counts kills and attributes each to the acting player's weapon(s). Ported from the
-/// FFTHandsFree active-unit resolver:
-///   * STATE-BASED death -- credit a corpse exactly once (DeadCredited), reset when the
-///     slot is seen alive. Survives the move / MaxHP-flicker race that defeats naive
-///     "catch HP cross 0" detection. A corpse seen before its killer's `acted` flag
-///     latches is held PENDING (not dropped) and credited a tick later.
-///   * ATTRIBUTE BY CORPSE TEAM -- only band-slot entries whose identity was captured from
-///     the static array (inb==1, enemy-side slots) can earn a kill credit. Player corpses,
-///     guests, and any uncaptured identity are structurally excluded.
-///   * THE ACTING PLAYER's weapons come from ActorResolver (HP+MaxHP+level -> band entry
-///     -> level/brave/faith fingerprint -> roster hands). A DUAL-WIELDER latches BOTH
-///     hands, so one kill credits both blades; a hand holding a shield is never credited.
-///
-/// Memory access is injected (IGameMemory) so the attribution logic is unit-testable.
-/// The band corpse scan + alive-edge belt live in KillTracker.Corpses.cs; the enemy-side
-/// identity set is <see cref="EnemyOracle"/>.
+/// Counts kills and credits each to the acting player's weapon(s). Ported from the FFTHandsFree
+/// active-unit resolver. Death is state-based (a corpse is credited once, re-armed when the slot is
+/// seen alive); a corpse seen before its killer's `acted` flag latches is held pending. Only enemy-side
+/// band slots (inb==1, identity captured from the static array) can earn credit. Weapons come from
+/// ActorResolver (HP+MaxHP+level -> band entry -> level/brave/faith fingerprint -> roster hands); a
+/// dual-wielder credits both hands, a shield hand never. Corpse scan: KillTracker.Corpses.cs.
+/// Enemy-side identity set: <see cref="EnemyOracle"/>.
 /// </summary>
 internal sealed partial class KillTracker
 {
-    internal const int PendingTtl = 900; // ~30s wall-clock BACKSTOP at the 33ms tick: the REAL expiry is
-                                         //   two debounced acted-falling edges (a killer latches during its
-                                         //   own acted period, BEFORE its fall) -- this only catches a frozen
-                                         //   scene with no turn edges at all
-    internal const int UnfreezeTicks = 3; // acted must read 0 this long before the acted-period ends --
-                                          //   the byte transiently drifts to 0 after a confirmed action
+    internal const int PendingTtl = 900; // ~30s backstop at the 33ms tick; the real expiry is two acted-falling edges (a killer latches
+                                         //   before its own fall). This only catches a frozen scene with no turn edges.
+    internal const int UnfreezeTicks = 3; // acted must read 0 this long before the period ends; it drifts to 0 after a confirmed action
     internal const int ExpireFalls = 2;  // pending corpse expires after this many acted-falling edges uncredited
     internal const int FallbackStreak = 3; // consecutive identical non-empty resolves before the no-actor
 
@@ -40,98 +28,59 @@ internal sealed partial class KillTracker
     internal readonly bool[] _pending = new bool[Offsets.BandSlots];   // corpse seen, awaiting an actor latch
     internal readonly int[] _pendingAge = new int[Offsets.BandSlots];  // ticks a corpse has waited (backstop)
     internal readonly int[] _pendingFalls = new int[Offsets.BandSlots];// _actedFalls when the corpse went pending
-    // Register-tick birth stamp for a pending corpse (0 = not pending / not yet stamped). SAME
-    // CURRENCY as ActorRegister.Tick/ArrivalTick -- unlike _pendingAge (which only advances on
-    // onField Polls, KillTracker.Corpses.cs), this advances in lockstep with the register clock
-    // (ActorRegister.Update runs every Poll, onField or not), so it is a valid comparand against
-    // ArrivalTick even across off-field stretches (mid-battle dialogue/pause). Stamped/cleared in
-    // UpdateCorpseAnchor -- see its doc comment for why it can't be stamped from Corpses.cs.
+    // Register-tick birth stamp of a pending corpse (0 = not pending or not stamped yet). Same clock as
+    // ActorRegister.Tick/ArrivalTick; _pendingAge stalls on off-field Polls. Stamped in UpdateCorpseAnchor.
     internal readonly long[] _pendingBirthTick = new long[Offsets.BandSlots];
     internal List<int> _lastPlayerWeapons = new();   // the acting player's weapon(s); a dual-wielder latches both
     internal int _lastPlayerMainHand;                // RRHand id of the last latched actor (0 when none)
     internal (int lvl, int br, int fa) _lastActorFp; // fingerprint of the unit latched this acted-period
-    // LW-252 stage 3: the latched actor's own frame nameId, mirrored beside _lastActorFp through
-    // the same Seed/Step/Apply round trip (SeedLatchOutputs/ApplyLatchOutputs below); see
-    // ActedPeriodOutputs.LastActorNameId's doc comment for the refresh/Reset contract. 0 = no
-    // resolved identity (never-latched, ambiguous, or a first-kill-fallback latch).
+    // LW-252 stage 3: the latched actor's frame nameId, mirrored beside _lastActorFp through
+    // Seed/ApplyLatchOutputs (see ActedPeriodOutputs.LastActorNameId). 0 = no resolved identity.
     internal int _lastActorNameId;
-    // Register tick of the period's most recent SUCCESSFUL latch resolve (stamped at BOTH
-    // latch-confirm sites: the acted==1 TryResolveActingPlayer success below, and
-    // FirstKillFallback's acceptance block). KillerStamp's ordering gate compares a register
-    // arrival against this -- an arrival the latch already knew about (at or before this tick)
-    // cannot outvote it. See KillerStamp.cs.
+    // Register tick of the period's last successful latch resolve (stamped at both latch-confirm sites).
+    // KillerStamp ignores register arrivals at or before it. See KillerStamp.cs.
     internal int _lastResolveTick;
     private bool _latched;                           // a player resolved this acted-period -> frozen until it ends
-    private bool _periodOpen;                        // an acted-period is open (EDGE-GUARDED: set once per rise,
-                                                      //   cleared only on the debounced fall -- distinct from _latched,
-                                                      //   which stays false through a whole period of failed resolves)
-    internal bool _latchResolvedEmpty;              // most recent SUCCESSFUL resolve produced an EMPTY weapon set
-                                                    //   (resolved-but-untracked actor: summoner/dancer/item-user
-                                                    //   with no living weapon). Drives the FirstKillFallback bail +
-                                                    //   the untracked corpse stamp. Sticky until the next successful
-                                                    //   resolve so a later corpse stamped while untracked is correctly
-                                                    //   blocked even if the active struct drifts between turns.
+    private bool _periodOpen;                        // set once per rise, cleared on the debounced fall; stays false through failed resolves
+    internal bool _latchResolvedEmpty;              // last successful resolve gave an empty weapon set (summoner/dancer/item-user);
+                                                    //   gates the FirstKillFallback bail and the untracked corpse stamp. Sticky until the next success.
     internal int _actedFalls;                        // battle-local count of debounced acted-falling edges
     private string _actorTag = "";                   // cached "10,52" form of the latch, for event lines
     internal readonly BattleLog? _events;            // dev event timeline (damage/heal/move); null = off
-    // Flight recorder tap (optional; null/no-op default keeps every existing test green
-    // unmodified). Engine wires this to Flight.Record, and it is threaded down into the
-    // ActorRegister this class constructs so pointer transitions get tapped too.
+    // Flight recorder tap (null = off); also passed to the ActorRegister built below.
     private readonly Action<string, string>? _recorder;
-    // Reliquary P1 probe instrumentation (docs/RELIQUARY_AC.md) -- log-only victim-identity
-    // capture at three lifecycle points; see VictimProbe's doc comment. Internal (not private)
-    // so tests can inspect the wired instance's snapshots directly, matching this file's existing
-    // convention for test-observable per-slot state (e.g. _pending, _pendingAge above).
+    // Reliquary P1 probe (docs/RELIQUARY_AC.md): log-only victim-identity capture. Internal so tests can read it.
     internal readonly VictimProbe _victimProbe;
-    // Reliquary P2 probe instrumentation (docs/RELIQUARY_AC.md) -- once-per-battle both-teams
-    // identity census fired at EnemyOracle's coverage-complete edge; log/flight only, zero
-    // behavioral dependence. See BattleCensus's doc comment.
+    // Reliquary P2 probe (docs/RELIQUARY_AC.md): once-per-battle identity census at EnemyOracle's coverage-complete edge.
     internal readonly BattleCensus _census;
-    // Reliquary Phase 1 (docs/RELIQUARY_AC.md): optional deed sink CreditKill reports every
-    // credited kill's captured victim to (or a miss, if none was captured). Null default keeps
-    // every pre-Reliquary test and call site byte-identical -- see CreditKill's doc comment.
+    // Reliquary Phase 1 (docs/RELIQUARY_AC.md): optional sink CreditKill reports each credited victim (or a miss) to.
     private readonly IDeedSink? _deeds;
 
-    // Logging facelift: the audit's ARMED-GATE flag ("any Living Weapon deployed this battle"),
-    // implemented as the sticky per-battle latch the audit blesses: set the first time any
-    // resolve latches a tracked weapon (the acted-period latch or the first-kill fallback),
-    // cleared in ResetBattle. Gates the console emission of the per-corpse pending/expiry lines
-    // and the EnemyOracle coverage lines, so a battle with no Living Weapon fielded stays quiet
-    // on the console (the file still gets everything, per the two-sink doctrine).
+    // Logging facelift: sticky per-battle latch, set when any resolve latches a tracked weapon, cleared in
+    // ResetBattle. Gates console output of the per-corpse pending/expiry and EnemyOracle coverage lines;
+    // the file still gets everything.
     internal bool AnyTrackedWeaponThisBattle { get; private set; }
-    // Scoped [kill] logger over that latch; routes the GATE-ON-ARMED corpse lines.
+    // Scoped [kill] logger gated on that latch.
     private readonly ScopedLogger _klog;
 
-    // Battle-exit match-report counters (logging facelift stage 3):
-    // kills credited per weapon THIS battle (weaponId -> count); cleared in ResetBattle. The
-    // battle-end summary derives tier crossings from this delta against the lifetime tally.
+    // Battle-exit match-report counters (logging facelift stage 3): kills credited per weapon this battle,
+    // compared against the lifetime tally for tier crossings. Cleared in ResetBattle.
     internal readonly Dictionary<int, int> BattleCredits = new();
-    // Corpse credits whose culprit latch was resolved via the turn-queue fallback (not the
-    // engine actor pointer) this battle; feeds the summary's fallback-attribution clause.
-    // Cleared in ResetBattle.
+    // Credits this battle whose latch came from the turn-queue fallback (battle-end summary). Cleared in ResetBattle.
     internal int FallbackCredits { get; private set; }
-    // The most recent successful latch resolve came from the tq fallback (or the first-kill
-    // fallback), not the actor pointer; consulted by CreditKill's viaFallback argument sites.
+    // Latest latch resolve came from the tq or first-kill fallback; read by CreditKill's viaFallback sites.
     internal bool _latchViaFallback;
-    // LW-56: the credit-time live-wielder gate's truth source (CreditGate.Decide's predicate).
-    // Null (every pre-LW-56 call site, and every test that omits it) means the gate is OFF: every
-    // culprit id survives, byte-identical to the pre-LW-56 behavior. Production wires this to
-    // Wielder.HasLiveWielder over the same live memory every other roster/band consumer uses
-    // (Engine.cs).
+    // LW-56: credit-time live-wielder gate (CreditGate.Decide). Null = gate off, every culprit survives.
+    // Engine.cs wires Wielder.HasLiveWielder.
     private readonly Func<int, bool>? _hasLiveWielder;
-    // S3 (LW-150): the acted-period latch state machine (KillTracker.cs's old Poll acted-block +
-    // FirstKillFallback), extracted to ActedPeriodLatch.cs. THE MIRROR-OUTPUTS DESIGN: the latch
-    // never touches this class's fields directly -- _latchIO is the one persistent transient
-    // carrier, seeded from this class's own fields before every Step/Reset call and copied back
-    // onto them immediately after (SeedLatchOutputs/ApplyLatchOutputs below). Constructed once so
-    // Step doesn't allocate a fresh carrier every 33ms tick.
+    // LW-150 S3: acted-period latch state machine (ActedPeriodLatch.cs). It never touches this class's
+    // fields; _latchIO is seeded from them before Step/Reset and copied back after. Reused to avoid a
+    // per-tick allocation.
     private readonly ActedPeriodLatch _latch;
     private readonly ActedPeriodOutputs _latchIO = new();
 
-    // LW-233: the checkpoint-retry detector (docs/LIVE_LEDGER.md row
-    // [battle-retry-rewind-fingerprint]). Ticked once per Poll alongside _register; consulted by
-    // KillTracker.Corpses.cs's revive detection (uncredit) and ResolveCredit (latch-open dead-edge
-    // suppression). See RestartSentinel.cs for the mechanism.
+    // LW-233: checkpoint-retry detector (docs/LIVE_LEDGER.md row [battle-retry-rewind-fingerprint]), ticked
+    // per Poll; feeds revive detection in KillTracker.Corpses.cs and ResolveCredit. See RestartSentinel.cs.
     private readonly RestartSentinel _restart;
 
     public KillTracker(Dictionary<int, int> kills, IGameMemory mem, ISet<int> weapons, BattleLog? events = null,
@@ -141,10 +90,7 @@ internal sealed partial class KillTracker
         _kills = kills;
         _mem = mem;
         _recorder = recorder;
-        // LW-56 A1: EnemyOracle is constructed first (moved ahead of ActorRegister) so the
-        // oracle-exclusion lambda below closes over an already-assigned field: the lambda still
-        // reads _oracle at CALL time (mid-battle, long after this ctor returns), not at capture
-        // time, so this ordering is a compiler-friendliness nicety, not a behavioral dependency.
+        // LW-56 A1: built before ActorRegister; the exclusion lambda below reads _oracle at call time.
         _oracle = new EnemyOracle(mem, () => AnyTrackedWeaponThisBattle);
         _register = new ActorRegister(mem, recorder,
             id => _oracle.Contains(((byte)id.lvl, (byte)id.br, (byte)id.fa, (ushort)id.maxHp)));
@@ -161,52 +107,36 @@ internal sealed partial class KillTracker
         _restart = new RestartSentinel(recorder);
     }
 
-    /// <summary>LW-233: read-only exposure of this tracker's own retry-rewind detector, mirroring
-    /// <see cref="Register"/>'s test-observability convention. Callers must never mutate it
-    /// (Tick/ResetBattle stay this class's own responsibility).</summary>
+    /// <summary>LW-233: the retry-rewind detector, read-only for callers.</summary>
     internal RestartSentinel Restart => _restart;
 
-    /// <summary>Read-only exposure of this tracker's own actor-pointer ownership register
-    /// (TurnOwnerSpike under LWDEV; AttackCard no longer consumes it since the 2026-07-06
-    /// cursor-only fix): the SAME instance KillerStamp already trusts, not a second independent
-    /// register (two registers ticking the same memory would double the reads for no benefit and
-    /// risk two slightly different in-flight snapshots mid-tick). Callers must never mutate it
-    /// (Update/ResetBattle stay this class's own responsibility).</summary>
+    /// <summary>The actor-pointer ownership register (TurnOwnerSpike under LWDEV; AttackCard stopped using
+    /// it with the 2026-07-06 cursor-only fix). Same instance KillerStamp uses; callers must not mutate it.</summary>
     internal ActorRegister Register => _register;
 
-    /// <summary>LW-56 D11/A3: thin wrapper over <see cref="BattleCensus.EmitExit"/>, called by
-    /// Engine on the battle-exit edge (before the flight flush) so every exit tape carries a
-    /// fresh census regardless of whether the enter-side coverage-done census ever fired.</summary>
+    /// <summary>LW-56 D11/A3: wraps <see cref="BattleCensus.EmitExit"/>; Engine calls it on the battle-exit
+    /// edge, before the flight flush.</summary>
     internal void EmitExitCensus() => _census.EmitExit();
 
-    /// <summary>LW-31 stage-2 fix (grown in stage 3 to also surface rosterBase; retyped LW-55 to
-    /// hand back the raw <see cref="CursorAnswer"/> instead of a filtered weapon list; retyped
-    /// again LW-87 to also surface the <see cref="CursorMiss"/> stage: the ONLY resolve seam
-    /// AttackCard consumes since the 2026-07-06 cursor-only fix): this tracker's
-    /// ActorResolver.TryResolveCursorPlayer, exposed for AttackCard's dossier resolve
-    /// (AttackCard.Resolve.cs). Null Answer = no cursor answer (guard failure or ambiguity), with
-    /// Miss naming which resolve stage refused; non-null Answer = a confident resolve (Miss stays
-    /// <see cref="CursorMiss.None"/>), with the raw roster/band facts AttackCard.Resolve.cs's
-    /// CursorGate.Decide judges before any composing happens.</summary>
+    /// <summary>LW-31 stage 2/3, LW-55, LW-87: ActorResolver.TryResolveCursorPlayer for AttackCard.Resolve.cs
+    /// (its only resolve seam since the 2026-07-06 cursor-only fix). Null Answer = no answer, with Miss naming
+    /// the refusing stage; otherwise CursorGate.Decide judges the raw <see cref="CursorAnswer"/> facts
+    /// (<see cref="CursorMiss.None"/> on success).</summary>
     internal Func<(CursorAnswer? Answer, CursorMiss Miss)> ResolveCursorPlayer =>
         () => _resolver.TryResolveCursorPlayer(out var answer, out var miss) ? (answer, miss) : ((CursorAnswer?)null, miss);
 
-    /// <summary>This tracker's ActorResolver.SpriteOf, exposed for AttackCard's row-rename resolve
-    /// (LW-31 stage 3): the roster slot's SpriteSet byte (the human/monster gate).</summary>
+    /// <summary>ActorResolver.SpriteOf for AttackCard's row-rename resolve (LW-31 stage 3): the roster slot's
+    /// SpriteSet byte.</summary>
     internal Func<long, byte> SpriteOf => _resolver.SpriteOf;
 
-    /// <summary>Reset per-battle state. Call on battle enter and exit. The next Poll runs cleanly:
-    /// the seen-alive guard ensures any pre-existing corpse (never seen alive) is ineligible.</summary>
+    /// <summary>Reset per-battle state on battle enter and exit. A pre-existing corpse never seen alive stays ineligible.</summary>
     public void ResetBattle()
     {
         Array.Clear(_pending, 0, _pending.Length);
         Array.Clear(_pendingAge, 0, _pendingAge.Length);
         Array.Clear(_pendingFalls, 0, _pendingFalls.Length);
         Array.Clear(_pendingBirthTick, 0, _pendingBirthTick.Length);
-        // S3 (LW-150): the latch's own Reset (its clean-move fields) plus every acted-period
-        // mirror-output field's battle-start default, written into _latchIO and copied back --
-        // reproduces every one of the original inline assignments this replaced (including the
-        // _lastPlayerWeapons list REPLACE), see ActedPeriodLatch.Reset's doc comment.
+        // LW-150 S3: latch Reset plus battle-start defaults for the mirrored fields (see ActedPeriodLatch.Reset).
         _latch.Reset(_latchIO);
         ApplyLatchOutputs(_latchIO);
         _register.ResetBattle();
@@ -220,11 +150,8 @@ internal sealed partial class KillTracker
         _restart.ResetBattle(); // LW-233: forget any latch/null history from the prior battle
     }
 
-    /// <summary>S3 (LW-150): seed <see cref="_latchIO"/> with the CURRENT value of every
-    /// acted-period mirror-output field, immediately before handing it to
-    /// <see cref="ActedPeriodLatch.Step"/> -- the latch reads these as its inputs (e.g. whether
-    /// it is already latched, the weapon set to SameSet-compare against) exactly as the original
-    /// inline code read its own bare fields.</summary>
+    /// <summary>LW-150 S3: copy this class's acted-period fields into <see cref="_latchIO"/> before
+    /// <see cref="ActedPeriodLatch.Step"/>.</summary>
     private void SeedLatchOutputs(ActedPeriodOutputs o)
     {
         o.PeriodOpen = _periodOpen;
@@ -241,13 +168,9 @@ internal sealed partial class KillTracker
         o.AnyTrackedWeaponThisBattle = AnyTrackedWeaponThisBattle;
     }
 
-    /// <summary>S3 (LW-150): the write-back half of the mirror-outputs design -- copies every
-    /// field <see cref="_latchIO"/> now holds back onto this class's own same-named fields, the
-    /// ones every other partial/consumer/test reads. Called after both
-    /// <see cref="ActedPeriodLatch.Step"/> (from Poll) and <see cref="ActedPeriodLatch.Reset"/>
-    /// (from ResetBattle). The order of the individual assignments below is not itself observable
-    /// (nothing reads any of these fields between them -- every reader runs either before Seed or
-    /// after Apply), so it need not mirror the original inline statement order.</summary>
+    /// <summary>LW-150 S3: copy <see cref="_latchIO"/> back onto this class's fields after
+    /// <see cref="ActedPeriodLatch.Step"/> (Poll) and <see cref="ActedPeriodLatch.Reset"/> (ResetBattle).
+    /// Assignment order is unobservable.</summary>
     private void ApplyLatchOutputs(ActedPeriodOutputs o)
     {
         _periodOpen = o.PeriodOpen;
@@ -264,32 +187,24 @@ internal sealed partial class KillTracker
         AnyTrackedWeaponThisBattle = o.AnyTrackedWeaponThisBattle;
     }
 
-    /// <summary>One in-battle tick. <paramref name="onField"/> gates streak accumulation --
-    /// off-field ticks (load screens / menu flickers) don't advance alive/dead counters.
-    /// Returns true if the tally changed.</summary>
+    /// <summary>One in-battle tick. Off-field ticks (load screens, menu flickers) do not advance alive/dead
+    /// counters. Returns true if the tally changed.</summary>
     public bool Poll(bool onField)
     {
         bool changed;
 
-        _register.Update();       // ownership tracker: one read of the engine actor pointer per tick
-        // LW-233: tick the retry-rewind detector BEFORE this same tick's corpse scan, so a null
-        // observed this tick can join a revive detected later in the same Poll (Corpses.cs). The
-        // return value drains the DEFERRED-VERDICT stash (the 0ms-join fix): a revive presented
-        // last tick while the null was still mid-flight, now qualified -- apply the uncredit(s) it
-        // was waiting on right here so the tally is correct before anything else this tick reads it.
+        _register.Update();       // one actor-pointer read per tick
+        // LW-233: tick the retry detector before this tick's corpse scan so a null seen now can join a revive
+        // detected later in the same Poll. Its return drains the deferred-verdict stash (0ms-join fix): apply
+        // those uncredits before anything reads the tally.
         var restartDrained = _restart.Tick(_register.RawNullThisTick, onField);
         bool drainedChanged = restartDrained.Count > 0;
         foreach (var (drainSlot, drainWeapons, drainViaFallback) in restartDrained)
             UncreditKills(drainWeapons, drainViaFallback, drainSlot);
-        UpdateCorpseAnchor();     // V1 corpse-anchor veto, pushed to the resolver for this tick's resolves
+        UpdateCorpseAnchor();     // V1 corpse-anchor veto for this tick's resolves
 
-        // S3 (LW-150): the acted-period latch (latches the acting player's weapon(s) ONCE per
-        // acted-period, freezing until the debounced acted-falling edge) plus the first-kill
-        // fallback (no prior latch + a corpse waiting -> resolve the actor without the acted
-        // gate), both extracted to ActedPeriodLatch.cs -- see its class doc for the mechanism.
-        // Seed/Step/Apply is the mirror-outputs write-back: AnyPending() is evaluated here (the
-        // same point in the sequence FirstKillFallback used to read it from) since it is the one
-        // external input the latch needs that isn't itself a mirror-output field.
+        // LW-150 S3: acted-period latch plus first-kill fallback (ActedPeriodLatch.cs), via Seed/Step/Apply.
+        // AnyPending() is passed in because it is the one input that is not a mirrored field.
         SeedLatchOutputs(_latchIO);
         _latch.Step(_latchIO, AnyPending());
         ApplyLatchOutputs(_latchIO);
@@ -307,21 +222,17 @@ internal sealed partial class KillTracker
     /// none/ambiguous. Consumers must not cache across ticks.</summary>
     public (int lvl, int br, int fa) LastActorFingerprint => _lastActorFp;
 
-    /// <summary>LW-252 stage 3: the acting unit's own frame nameId, latched alongside
-    /// <see cref="LastActorFingerprint"/> (same refresh timing, same Reset-clears contract). 0 =
-    /// no resolved identity (never-latched, an ambiguous/enemy acted-period, or a first-kill-
-    /// fallback latch -- see <see cref="ActedPeriodLatch.Step"/>'s and FirstKillFallback's own
-    /// notes). Consumers must not cache across ticks (same caveat as every other latch field).</summary>
+    /// <summary>LW-252 stage 3: the acting unit's frame nameId, latched with <see cref="LastActorFingerprint"/>.
+    /// 0 = no resolved identity (never latched, ambiguous/enemy period, or first-kill-fallback latch; see
+    /// <see cref="ActedPeriodLatch.Step"/>). Do not cache across ticks.</summary>
     public int LastActorNameId => _lastActorNameId;
 
-    /// <summary>The acting player's weapon id(s) from the most recent latched actor.
-    /// Empty at battle start and for any turn where no player actor was resolved.
-    /// Consumers must not cache the reference across ticks (ResetBattle replaces it).</summary>
+    /// <summary>The acting player's weapon id(s) from the latest latched actor; empty at battle start or when
+    /// no player actor resolved. Do not cache across ticks (ResetBattle replaces the list).</summary>
     public List<int> LastPlayerWeapons => _lastPlayerWeapons;
 
-    /// <summary>The RRHand weapon id of the most recently latched actor, or 0 when none. A
-    /// Living Weapon earns kills in any hand, but commands its gift only from the main hand --
-    /// signature callers use this to gate activation on the main-hand weapon only.</summary>
+    /// <summary>The RRHand weapon id of the latest latched actor, or 0. A Living Weapon earns kills in any
+    /// hand but commands its gift only from the main hand; signatures gate on this.</summary>
     public int LastPlayerMainHand => _lastPlayerMainHand;
 
     internal bool AnyPending()
@@ -330,26 +241,12 @@ internal sealed partial class KillTracker
         return false;
     }
 
-    /// <summary>V1 corpse-anchor veto: refuses the register path (for every resolve this tick)
-    /// whenever any pending corpse's REGISTER-TICK birth stamp is AT OR AFTER the register's
-    /// current owner's arrival -- a killer's turn must CONTAIN the death, so an owner who arrived
-    /// at/after a corpse went pending cannot be its killer.
-    ///
-    /// Compares same-currency register ticks (<see cref="_pendingBirthTick"/> vs
-    /// <see cref="ActorRegister.ArrivalTick"/>), NOT the superseded _pendingAge/OwnershipAge pair:
-    /// _pendingAge only advances on onField Polls (KillTracker.Corpses.cs bails `if (!onField)
-    /// continue;` before it), while ActorRegister.Tick (and thus OwnershipAge) advances on every
-    /// Poll including off-field ones (Update() runs unconditionally) -- so during an off-field
-    /// stretch (mid-battle dialogue/pause) the old duration comparison under-counted the corpse's
-    /// true age and could wrongly admit a new owner. The strict `>` it used also let the exact
-    /// equality case escape; the `&lt;=` below closes that too.
-    ///
-    /// _pendingBirthTick can't be stamped from Corpses.cs (a pending flag transitions false->true
-    /// there, but that file is a fixed plan boundary for this fix) -- so it is stamped HERE, the
-    /// first Poll after a slot goes pending. Poll order is Update() -> UpdateCorpseAnchor() ->
-    /// ... -> ScanCorpses() (KillTracker.cs), so the earliest this method can OBSERVE
-    /// _pending[s]==true is the Poll immediately after ScanCorpses set it -- one register tick
-    /// later than the true birth tick, which `_register.Tick - 1` exactly recovers.</summary>
+    /// <summary>V1 corpse-anchor veto: refuses the register path for this tick's resolves when any pending
+    /// corpse's birth tick is at or after the current owner's arrival, since a killer's turn must contain
+    /// the death. Compares register ticks (<see cref="_pendingBirthTick"/> vs <see cref="ActorRegister.ArrivalTick"/>)
+    /// because _pendingAge stalls on off-field Polls (Corpses.cs bails before it) while the register clock does not.
+    /// The birth tick is stamped here, not in Corpses.cs: Poll order is Update, UpdateCorpseAnchor, ScanCorpses,
+    /// so the earliest this sees _pending[s] is one tick after it was set, hence `_register.Tick - 1`.</summary>
     private void UpdateCorpseAnchor()
     {
         bool ok = true;
@@ -368,52 +265,22 @@ internal sealed partial class KillTracker
         _resolver.SetCorpseAnchorOk(ok);
     }
 
-    /// <summary>Credit the given weapon set for a kill at band slot s (position gx,gy). LW-56:
-    /// when a live-wielder gate is wired (<see cref="_hasLiveWielder"/> non-null), the incoming
-    /// culprit list is partitioned FIRST via <see cref="CreditGate.Decide"/> into survivors
-    /// (credited normally) and refused (a stale attribution latch naming a weapon nobody on the
-    /// field currently wields, e.g. one that survived a mis-timed New Game): everything below,
-    /// the deed sink, the tally, BattleCredits, FallbackCredits, and the credit log, operates on
-    /// survivors only. A refusal never throws away the corpse silently: each refused id gets one
-    /// flight no-credit record plus one console/file ruling naming every refused weapon. Reliquary
-    /// Phase 1: reports the slot's captured victim snapshot (KillTracker.Corpses.cs's
-    /// _victimAtEdge) to the injected IDeedSink, once, then consumes it -- a missing snapshot
-    /// (docs/RELIQUARY_AC.md's missing-snapshot failure mode) still increments the tally exactly
-    /// as before, just with a DeedMiss instead of a RecordDeed. Never mutates/retains
-    /// <paramref name="weapons"/> (may alias _lastPlayerWeapons). <paramref name="viaFallback"/>
-    /// marks a credit whose culprit latch came from the turn-queue fallback rather than the
-    /// actor pointer -- it feeds the battle-end summary's fallback-attribution counter.
-    /// <paramref name="delayedOrCharged"/> (LW-167): true when this credit came from the delayed-
-    /// actor path (KillTracker.Delayed.cs's ConsumeDelayedCulprit -- a Jump or charged spellcast
-    /// that just landed); reported alongside every RecordPoachDeed call so a future consumer
-    /// (stage 4's action discriminator) can tell a delayed strike from an ordinary one. Defaults
-    /// false, matching every pre-existing call site that never passes it. <paramref name="identity"/>
-    /// (LW-233 live-drill residual, 2026-08-17): the (lvl,br,fa,maxHp) tuple this slot's kill was
-    /// credited under (KillTracker.Corpses.cs's callers pass slot.Id), stamped into
-    /// _creditedIdentity for RestartSentinel's identity-gated grace exemption.
-    ///
-    /// FINDING 4 (2026-08-17 verifier correction): the parameter DEFAULTS to the zero tuple, and
-    /// every direct-call test site that never passes it relies on that default being SAFE, not
-    /// merely inert. The real reason it is safe: the zero tuple is not a REPRESENTABLE identity in
-    /// this runtime at all. <see cref="Band.IsValid"/> (Battle/Band.cs:54-67) floors lvl, brave,
-    /// and faith at 1 and maxHp at 1 for every band entry this class ever reads a slot.Id from
-    /// (ScanCorpses skips a slot entirely, before any SlotSnapshot is even built, whenever
-    /// IsValid fails), so a real slot.Id can never carry a 0 in any of those four fields -- the
-    /// zero tuple could only ever equal ANOTHER zero tuple, never a genuine revived identity. A
-    /// stale/unset _creditedIdentity[s] is therefore inert for the SAME reason a genuinely absent
-    /// identity is safe, not because of anything about which call sites happen to reach the revive
-    /// path today -- a future caller wiring a new path through here inherits the safety
-    /// automatically, rather than silently invalidating a claim about its own call site.
-    ///
-    /// <paramref name="identity"/>'s nameId counterpart is NOT a parameter here: CreditKill stamps
-    /// _creditedNameId[s] itself, from the SAME VictimReader.Read snapshot (_victimAtEdge[s]) this
-    /// method already consumes a few lines below (see the stamp site and _creditedNameId's own
-    /// doc comment, KillTracker.Corpses.cs). The same reasoning applies to ITS zero default: 0 is
-    /// this codebase's existing "no resolved identity" sentinel everywhere a nameId is read
-    /// (KillTracker.LastActorNameId, ActorRegister.CurrentNameId), never a value a live band
-    /// entry's frame nameId is asserted to legitimately hold, so an absent/zero nameId is exactly
-    /// as safe to default-and-forget as the zero tuple above -- both fail CLOSED (a miss), never
-    /// open a latch they shouldn't.</summary>
+    /// <summary>Credit the weapon set for a kill at band slot s (position gx,gy). LW-56: with a live-wielder
+    /// gate wired, culprits are first split by <see cref="CreditGate.Decide"/>; refused ids (a stale latch
+    /// naming a weapon nobody wields, e.g. after a mis-timed New Game) get a flight no-credit record and one
+    /// log line, and everything below runs on survivors only.
+    /// Reliquary Phase 1: reports the slot's victim snapshot (_victimAtEdge, Corpses.cs) to the deed sink once,
+    /// then consumes it; no snapshot (docs/RELIQUARY_AC.md missing-snapshot case) still counts the kill, with a
+    /// DeedMiss. Does not mutate <paramref name="weapons"/> (may alias _lastPlayerWeapons).
+    /// <paramref name="viaFallback"/>: the latch came from the turn-queue fallback (battle-end summary counter).
+    /// <paramref name="delayedOrCharged"/> (LW-167): the credit came from the delayed-actor path (Delayed.cs
+    /// ConsumeDelayedCulprit), passed on to RecordPoachDeed.
+    /// <paramref name="identity"/> (LW-233 live-drill residual, 2026-08-17): the (lvl,br,fa,maxHp) the kill was
+    /// credited under, stamped into _creditedIdentity for RestartSentinel's grace exemption. The zero-tuple
+    /// default is safe (FINDING 4, 2026-08-17): <see cref="Band.IsValid"/> (Battle/Band.cs:54-67) floors lvl,
+    /// brave, faith and maxHp at 1, so no real slot.Id is zero. The victim nameId is stamped from the same
+    /// snapshot (_creditedNameId, Corpses.cs); 0 is the "no resolved identity" sentinel, so both defaults
+    /// fail closed.</summary>
     internal bool CreditKill(int s, int gx, int gy, List<int> weapons, bool viaFallback = false, bool delayedOrCharged = false,
                               (byte lvl, byte br, byte fa, ushort mhp) identity = default)
     {
@@ -433,23 +300,16 @@ internal sealed partial class KillTracker
                     _recorder?.Invoke("kill", $"no-credit slot={s} reason=no-live-wielder weapon={w}");
             }
         }
-        // LW-233: stamp the POST-CreditGate survivor set this slot was actually credited to (empty
-        // when the gate refused everyone), for RestartSentinel's revive-uncredit path
-        // (KillTracker.Corpses.cs). A fresh List copy -- `credited` may alias `weapons`, which may
-        // alias `_lastPlayerWeapons` (a mutable list this class replaces wholesale on the next
-        // acted-period resolve; retaining a reference to it would let a LATER latch silently
-        // rewrite what THIS slot thinks it was credited to).
+        // LW-233: stamp the post-gate survivor set for RestartSentinel's revive-uncredit (Corpses.cs). Copy the
+        // list: `credited` may alias _lastPlayerWeapons, which the next latch replaces.
         _creditedWeapons[s] = new List<int>(credited);
         _creditedViaFallback[s] = viaFallback;
-        _creditedIdentity[s] = identity;   // LW-233: mirrors _creditedWeapons/_creditedViaFallback's own stamp
-        LogKillDiag(s, credited);   // D4: evidence-accumulator diagnostic, zero behavioral dependence
-        _victimProbe.LogAtCredit(s);   // Reliquary P1 probe: log-only, zero behavioral dependence
+        _creditedIdentity[s] = identity;   // LW-233
+        LogKillDiag(s, credited);   // D4 diagnostic, no behavioral effect
+        _victimProbe.LogAtCredit(s);   // Reliquary P1 probe, log-only
         VictimSnapshot snap = _victimAtEdge[s];
-        // LW-233 FINDING 0 (2026-08-17): the credited victim's OWN nameId, from the SAME snapshot
-        // read just above -- no new memory access (see _creditedNameId's own doc comment,
-        // KillTracker.Corpses.cs, for why this is required IN ADDITION to _creditedIdentity's
-        // tuple). snap.Has false (no sane read at the death edge) stamps 0, the same fail-closed
-        // "unavailable" sentinel a genuinely-zero or unreadable nameId collapses to everywhere else.
+        // LW-233 FINDING 0 (2026-08-17): the victim's nameId from the same snapshot (see _creditedNameId,
+        // Corpses.cs); 0 when there was no sane read at the death edge.
         _creditedNameId[s] = snap.Has ? snap.NameId : (ushort)0;
         if (snap.Has)
             foreach (int w in credited)
@@ -459,7 +319,7 @@ internal sealed partial class KillTracker
             }
         else
             _deeds?.DeedMiss(s);
-        _victimAtEdge[s] = default;   // consume-once: this slot's next death gets a fresh capture
+        _victimAtEdge[s] = default;   // consume once
         string fell = VictimClass.FellPhrase(snap.Has, snap.Job, snap.Undead);
         if (viaFallback && credited.Count > 0) FallbackCredits++;   // one corpse = one fallback credit
         foreach (int w in credited)
@@ -467,7 +327,7 @@ internal sealed partial class KillTracker
             _kills.TryGetValue(w, out int c);
             _kills[w] = c + 1;
             BattleCredits.TryGetValue(w, out int bc);
-            BattleCredits[w] = bc + 1;   // the battle-end summary's per-weapon ledger
+            BattleCredits[w] = bc + 1;   // per-weapon ledger for the battle-end summary
             ModLogger.EventWithTrace(LogVerb.Kill,
                 $"{LogNames.Weapon(w)} claims kill number {c + 1}, felling {fell} at ({gx},{gy}).",
                 $"kill credit (weapon id {w}, victim nameId {snap.NameId}, victim job {snap.Job}, battle slot {s})");
@@ -478,19 +338,11 @@ internal sealed partial class KillTracker
         return changed;
     }
 
-    /// <summary>LW-233: the ONE inverse of CreditKill's per-weapon mutation above (the foreach at
-    /// :425-436) -- reverses exactly the weapon set a corpse was credited to when RestartSentinel's
-    /// latch proves a checkpoint retry's rewind means that victim never really died. Called from
-    /// KillTracker.Corpses.cs's revive detection (the re-arm block and the identity-swap branch),
-    /// passing the exact <c>_creditedWeapons[s]</c> CreditKill itself stamped -- so this can never
-    /// diverge from what was actually incremented. Floors each weapon's tally and BattleCredits at
-    /// 0 with a WARN if a floor would have gone negative (a bookkeeping-desync tripwire that should
-    /// never fire, since the credited set is CreditKill's own record of what it added).
-    /// FallbackCredits mirrors CreditKill's own "one corpse = one fallback credit" bookkeeping
-    /// (decremented once per call, not once per weapon). One flight record per weapon;
-    /// deliberately NO console line per weapon here -- the sentinel's own latch-open edge
-    /// (RestartSentinel.cs) already told the player once, and a line per uncredited weapon would
-    /// just be noise on top of it.</summary>
+    /// <summary>LW-233: inverse of CreditKill's per-weapon increment, for RestartSentinel's checkpoint-retry
+    /// revive (Corpses.cs re-arm block and identity-swap branch); callers pass the _creditedWeapons[s] CreditKill
+    /// stamped. Floors tallies at 0 with a WARN if that would go negative (desync tripwire). FallbackCredits drops
+    /// once per call. One flight record per weapon, no console line (RestartSentinel's latch-open edge already
+    /// told the player).</summary>
     internal void UncreditKills(IReadOnlyList<int> weapons, bool viaFallback, int slot)
     {
         foreach (int w in weapons)
@@ -515,13 +367,9 @@ internal sealed partial class KillTracker
         if (viaFallback && weapons.Count > 0 && FallbackCredits > 0) FallbackCredits--;
     }
 
-    /// <summary>D4 -- AREC kill diagnostic (evidence accumulator, ZERO behavioral dependence): read
-    /// the corpse's action record (Offsets.AArec, band-entry-relative) and log one line through the
-    /// dev BattleLog sink. Guarded read; skips silently when unreadable or when no BattleLog is
-    /// wired (BattleLog now runs in every build flavor, Debug-tier: file-always, console only
-    /// when the console level is raised to Debug). +0xB is
-    /// logged as a HYPOTHESIS (xref?=) -- see docs/LIVE_LEDGER.md's Uncertain AREC row. The credit
-    /// path in CreditKill above never consults this.</summary>
+    /// <summary>D4: AREC kill diagnostic, no effect on credit. Reads the corpse action record (Offsets.AArec)
+    /// and logs one BattleLog line; skips if unreadable or no BattleLog. +0xB is logged as a hypothesis (xref?=),
+    /// see docs/LIVE_LEDGER.md Uncertain AREC row.</summary>
     private void LogKillDiag(int s, List<int> weapons)
     {
         if (_events == null) return;

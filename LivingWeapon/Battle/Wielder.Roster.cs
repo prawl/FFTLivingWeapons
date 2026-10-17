@@ -3,28 +3,14 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Wielder's ROSTER-address-space half: resolve the SINGLE roster unit holding a weapon
-/// (fingerprint + hand item ids) purely from roster fields, with no band read. Ports
-/// ExtraTurn's proven ResolveWielder pair -- twin filter lives in the band half, Wielder.cs --
-/// behind IGameMemory so the walk is unit-testable with the fake (the live caller passes a
-/// LiveMemory; reads stay RPM-backed and fail-safe).
+/// Roster-only wielder resolution: finds the roster unit holding a weapon (fingerprint + hand ids) with no band read.
+/// Ports ExtraTurn's ResolveWielder pair; the twin filter lives in Wielder.cs. Goes through IGameMemory so tests can fake it.
 /// </summary>
 internal static partial class Wielder
 {
-    /// <summary>THE STRICT occupied-slot walk (LW-62 baseline; widened private -&gt; internal in
-    /// LW-149 stage D so callers outside this file can share it): every roster resolver in this
-    /// file, Choir's protected-support scan (Choir.cs), and RingGate's deployed-wearer check
-    /// (RingGate.cs) ride this so the slot base arithmetic and the occupancy rule (level 1..99)
-    /// cannot drift apart per caller. Rule UNCHANGED, byte-identical to before LW-149 -- only the
-    /// visibility widened. NOT the only occupied-slot rule any more (the old doc's "the ONE shared
-    /// ... seam" claim was already false before this stage -- EagleEye/Plague's roster
-    /// scans never rode this): EagleEye.ActiveTarget and
-    /// Plague.IsEquipped ride the weaker LENIENT rule instead
-    /// (<see cref="TryOccupiedSlotLenient"/>, Wielder.Occupancy.cs) -- a bare "is this roster slot
-    /// readable at all" gate with no level floor/ceiling, which is what those callers
-    /// already used before this stage; forcing them onto THIS stricter rule would silently change
-    /// their behavior (a readable-but-level-0 ghost row would stop arming their signature), so the
-    /// two rules stay named and separate rather than being unified into one.</summary>
+    /// <summary>Occupied-slot walk (LW-62; internal since LW-149 stage D), shared by the roster resolvers, Choir.cs and RingGate.cs so the
+    /// level 1..99 rule lives in one place. EagleEye.ActiveTarget and Plague.IsEquipped use <see cref="TryOccupiedSlotLenient"/>
+    /// (Wielder.Occupancy.cs, no level check) so a readable level-0 ghost row still arms them.</summary>
     internal static bool TryOccupiedSlot(IGameMemory mem, int r, out long rb, out int lvl)
     {
         rb = Offsets.RosterBase + (long)r * Offsets.RosterStride;
@@ -32,9 +18,8 @@ internal static partial class Wielder
         return lvl >= 1 && lvl <= 99;
     }
 
-    /// <summary>Appends the sentinel-filtered, de-duplicated hand ids (rh, lh, oh order) to
-    /// <paramref name="hands"/> without allocating a temp array per slot; shared by
-    /// <see cref="TryResolve"/> and <see cref="HasLiveWielder"/>.</summary>
+    /// <summary>Appends sentinel-filtered, de-duplicated hand ids (rh, lh, oh order) to <paramref name="hands"/>, no temp array per slot;
+    /// shared by <see cref="TryResolve"/> and <see cref="HasLiveWielder"/>.</summary>
     private static void CollectHands(int rh, int lh, int oh, List<int> hands)
     {
         if (rh != 0x00FF && rh != 0xFFFF && !hands.Contains(rh)) hands.Add(rh);
@@ -42,9 +27,8 @@ internal static partial class Wielder
         if (oh != 0x00FF && oh != 0xFFFF && !hands.Contains(oh)) hands.Add(oh);
     }
 
-    /// <summary>Resolve the single roster slot holding <paramref name="weaponId"/> in either hand
-    /// into its (level,brave,faith) fingerprint and its real hand item ids. False when no roster
-    /// slot -- or more than one (ambiguous) -- holds the weapon.</summary>
+    /// <summary>Resolves the one roster slot holding <paramref name="weaponId"/> in either hand into its
+    /// (level,brave,faith) fp and hand item ids. False when no slot or more than one holds it.</summary>
     public static bool TryResolve(IGameMemory mem, int weaponId,
                                   out (int lvl, int br, int fa) fp, List<int> hands)
     {
@@ -64,11 +48,9 @@ internal static partial class Wielder
         return found == 1;
     }
 
-    /// <summary>Main-hand-only variant of <see cref="TryResolve"/>: resolves only the roster slot
-    /// whose RRHand field equals <paramref name="weaponId"/>. An offhand-only match returns false.
-    /// The <paramref name="hands"/> list is populated with just the main-hand id (exact band-field
-    /// match for <see cref="Locate"/>). A Living Weapon earns kills in any hand, but commands its
-    /// gift only from the main hand.</summary>
+    /// <summary>Main-hand-only <see cref="TryResolve"/>: an offhand-only match returns false and
+    /// <paramref name="hands"/> holds just the main-hand id for <see cref="Locate"/>. A weapon earns kills in
+    /// any hand but grants its gift only from the main hand.</summary>
     public static bool TryResolveMainHand(IGameMemory mem, int weaponId,
                                           out (int lvl, int br, int fa) fp, List<int> hands)
     {
@@ -87,24 +69,16 @@ internal static partial class Wielder
         return found == 1;
     }
 
-    /// <summary>Collect EVERY deployed main-hand wielder of <paramref name="weaponId"/> into
-    /// <paramref name="results"/> (cleared first). Each result is the live band entry address,
-    /// the bearer's (lvl,br,fa) fingerprint, AND (LW-252 stage 5) that specific roster row's own
-    /// nameId -- widened from a 2-tuple so per-wielder signature holds (Iai, Mushin) can re-key
-    /// their state through WielderKeyedStore instead of the fp-only dictionary every signature
-    /// used before this stage (which shared state between fp-twins). A benched reserve (no band
-    /// entry) is silently skipped; two deployed bearers both appear. Intended for callers (Choir,
-    /// Iai, Mushin) that project independently per bearer rather than bailing on ambiguity.
-    /// D6: this loop already had each slot's OWN roster nameId in hand (rb + RNameId) for the
-    /// explicit-nameId Locate overload -- this just stops dropping it on the way out.</summary>
+    /// <summary>Collects every deployed main-hand wielder of <paramref name="weaponId"/> into <paramref name="results"/> (cleared first):
+    /// band entry address, fp, and the roster row's own nameId (LW-252 stage 5), so per-wielder holds (Iai, Mushin) can key through
+    /// WielderKeyedStore instead of the fp-only dictionary that shared state between fp-twins. Benched reserves are skipped; used by Choir, Iai, Mushin.</summary>
     public static void ResolveDeployedMainHandAll(IGameMemory mem, int weaponId,
         List<(long entry, (int lvl, int br, int fa) fp, int nameId)> results)
         => ResolveDeployedMainHandAllCore(mem, weaponId, results);
 
-    /// <summary>D7 (2026-07-04): the shared roster walk behind <see cref="ResolveDeployedMainHandAll"/>
-    /// and the nameId-carrying <see cref="ResolveDeployedMainHand(IGameMemory,int,out (int,int,int),out int)"/>
-    /// overload -- one loop, two result shapes, so the nameId a caller needs (Puppeteer's mirror-safe
-    /// pointer identity match) doesn't require a second roster scan.</summary>
+    /// <summary>Shared roster walk behind <see cref="ResolveDeployedMainHandAll"/> and the nameId-carrying
+    /// <see cref="ResolveDeployedMainHand(IGameMemory,int,out (int,int,int),out int)"/> overload, so Puppeteer's nameId match
+    /// needs no second scan (D7, 2026-07-04).</summary>
     private static void ResolveDeployedMainHandAllCore(IGameMemory mem, int weaponId,
         List<(long entry, (int lvl, int br, int fa) fp, int nameId)> results)
     {
@@ -122,23 +96,15 @@ internal static partial class Wielder
         }
     }
 
-    /// <summary>The single DEPLOYED main-hand wielder of <paramref name="weaponId"/>: scan the roster
-    /// for every slot holding it in the main hand, LOCATE each in the live band, and return the one
-    /// actually on the battlefield. A benched reserve (no band entry) or an enemy copy the dev give-all
-    /// armed is skipped, so a duplicate that isn't in THIS battle no longer creates the false ambiguity
-    /// that froze Larceny (<see cref="TryResolveMainHand"/> bailed on the raw roster count). Returns the
-    /// wielder's live band entry + its fingerprint, or 0 when zero or MORE THAN ONE deployed wielder is
-    /// found (two on-field wielders are still genuinely ambiguous -- rare; refine to the acting one later).</summary>
+    /// <summary>The single deployed main-hand wielder of <paramref name="weaponId"/>: locates each roster
+    /// main-hand holder in the live band. Benched reserves and give-all enemy copies are skipped, so they no
+    /// longer cause the false ambiguity that froze Larceny (<see cref="TryResolveMainHand"/> bailed on the raw
+    /// roster count). Returns the band entry and fp, or 0 when none or 2+ are deployed.</summary>
     public static long ResolveDeployedMainHand(IGameMemory mem, int weaponId, out (int lvl, int br, int fa) fp)
         => ResolveDeployedMainHand(mem, weaponId, out fp, out _);
 
-    /// <summary>D7 (2026-07-04): nameId-carrying sibling of the 3-arg overload above -- identical
-    /// single/ambiguous-deployed-wielder resolution, but also returns the resolved slot's OWN roster
-    /// nameId (0 when that slot's nameId read is unseeded, same fail-safe convention as every other
-    /// nameId consumer; also 0 on the zero/ambiguous-wielder return). Puppeteer's pointer-path arming
-    /// (2026-07-04 mirror-copy false-negative fix) uses this to compare the acting unit's identity
-    /// against the wielder by nameId rather than by raw band address -- see
-    /// Puppeteer.Policy.PointerNamesWielder.</summary>
+    /// <summary>Same as the 3-arg overload plus the slot's roster nameId (0 when unseeded or no single wielder). Puppeteer matches
+    /// the acting unit by nameId because mirror copies made band-address matching miss (2026-07-04, see Puppeteer.Policy.PointerNamesWielder).</summary>
     public static long ResolveDeployedMainHand(IGameMemory mem, int weaponId,
         out (int lvl, int br, int fa) fp, out int rosterNameId)
     {
@@ -150,13 +116,8 @@ internal static partial class Wielder
         return 0;
     }
 
-    /// <summary>True when AT LEAST ONE deployed unit holds <paramref name="weaponId"/> as its main
-    /// hand (a roster main-hand wielder that also has a live band entry this battle). Unlike
-    /// <see cref="ResolveDeployedMainHand"/> it does NOT bail on two wielders -- the question is only
-    /// "is this weapon in play", so a main-hand signature can suppress its gate logging for a weapon
-    /// nobody is fielding (a seeded/give-all reserve banks kills -> looks tier-eligible -> spams the
-    /// gate every turn even though it is benched). D6: reads each slot's own nameId directly, same as
-    /// <see cref="ResolveDeployedMainHandAll"/> -- no re-resolve round trip.</summary>
+    /// <summary>True when at least one deployed unit holds <paramref name="weaponId"/> in its main hand. Does not bail on two
+    /// wielders. Lets a main-hand signature skip gate logging for a benched seeded/give-all weapon.</summary>
     public static bool AnyDeployedMainHand(IGameMemory mem, int weaponId)
     {
         var hand = new List<int> { weaponId };
@@ -171,21 +132,9 @@ internal static partial class Wielder
         return false;
     }
 
-    /// <summary>LW-56: true when AT LEAST ONE roster row holding <paramref name="weaponId"/> in
-    /// ANY hand (right, left, or off) has a live band entry backing it right now: the credit
-    /// gate's existence check (does this weapon have a deployed wielder on the field at all).
-    /// Unlike <see cref="AnyDeployedMainHand"/> (main-hand only, used by the console relevance
-    /// gate), this scans all three hand fields: a corpse credit's culprit list can name a
-    /// dual-wielder's OFF-hand blade, whose live band entry's own weapon field mirrors the MAIN
-    /// hand, not the queried id, so the row's full hand set (sentinel-filtered, mirroring
-    /// <see cref="TryResolve"/>) is what gets passed to <see cref="Locate"/> rather than just
-    /// weaponId itself.
-    /// NO ambiguity bail of any kind (the reviewed blocker): an existence check does not care how
-    /// many roster rows hold the weapon, so this exhausts every occupied slot and returns true on
-    /// the FIRST slot whose Locate call finds a live band entry, rather than bailing when more
-    /// than one roster row holds the weapon (a benched duplicate copy must never poison the
-    /// answer for a genuinely deployed copy). The credit gate (<see cref="CreditGate"/>, wired
-    /// through KillTracker.CreditKill) is this method's only consumer.</summary>
+    /// <summary>True when at least one roster row holding <paramref name="weaponId"/> in any hand has a live band entry (LW-56).
+    /// Used by the credit gate (<see cref="CreditGate"/>, via KillTracker.CreditKill). Scans all three hands because a corpse credit can name
+    /// a dual-wielder's off-hand blade, whose band entry mirrors the main hand. No ambiguity bail: a benched duplicate must not hide a deployed copy.</summary>
     public static bool HasLiveWielder(IGameMemory mem, int weaponId)
     {
         for (int r = 0; r < Offsets.RosterSlots; r++)
@@ -202,14 +151,11 @@ internal static partial class Wielder
         return false;
     }
 
-    /// <summary>The arm-time identity capture for Iai's mirror-churn-proof release (rebuilt
-    /// 2026-07-01): scan the roster for the slot(s) whose main hand holds
-    /// <paramref name="weaponId"/> AND whose (level,brave,faith) match <paramref name="fp"/>,
-    /// and return that slot's roster nameId (Offsets.RNameId). Returns -1 when NO slot matches,
-    /// or when more than one matching slot carries a DISTINCT nameId (ambiguous capture) -- a
-    /// single matching slot whose nameId reads 0 (unseeded/invalid) is returned AS 0, not -1; the
-    /// caller's guard is "holdNameId &gt; 0", so both -1 and 0 mean "capture failed, fall back to
-    /// address matching" without conflating the two failure shapes in this helper.</summary>
+    /// <summary>Arm-time identity capture for Iai's mirror-churn-proof release (2026-07-01). Returns the
+    /// roster nameId (Offsets.RNameId) of the slot whose main hand holds <paramref name="weaponId"/> and whose
+    /// fp matches. Returns -1 when no slot matches or matching slots carry distinct nameIds; a single match
+    /// with nameId 0 returns 0. The caller treats both as "fall back to address matching" (guard is
+    /// holdNameId &gt; 0).</summary>
     public static int RosterNameId(IGameMemory mem, int weaponId, (int lvl, int br, int fa) fp)
     {
         ScanNameIdMatches(mem, weaponId, fp, mainHandOnly: true, out int count, out int first, out bool allSame);
@@ -217,38 +163,17 @@ internal static partial class Wielder
         return allSame ? first : -1;                                   // distinct nameIds among matches: ambiguous
     }
 
-    /// <summary>D4's any-hand sibling of <see cref="RosterNameId"/>, used by <see cref="Locate"/>'s
-    /// public (implicit-resolve) overload: match roster slots by weaponId in EITHER hand (rh/lh/oh)
-    /// AND fp equality. Returns the nameId iff EXACTLY ONE roster slot matched; returns -1 on ZERO
-    /// or MORE THAN ONE matching slot -- UNLIKE <see cref="RosterNameId"/>, this refuses even when
-    /// every matching slot carries the SAME nameId (duplicated roster nameIds are a documented live
-    /// corner, Iai.cs:74-77; a locate write must never pick between two units). RosterNameId's own
-    /// main-hand/distinct-nameId contract is UNCHANGED -- Iai's arm-time capture depends on it.
-    /// CORRECTED (LW-252): the old doc here called the -1 return a "refusal", but -1 alone refuses
-    /// nothing -- it fail-opens tier 2's foreign-nameId veto (<see cref="Locate(IGameMemory,int,IReadOnlyList{int},(int,int,int),int)"/>
-    /// only arms the veto when rosterNameId &gt; 0), which is exactly how a foreign-nameId band
-    /// collider got adopted when 2+ roster rows shared a weapon+fp (ledger
-    /// [party-nameid-unique-key] pending owner flip). This overload's signature and return value
-    /// are UNCHANGED (existing callers/tests depend on both) -- what changed is that Locate no
-    /// longer treats every -1 alike: it reads the 4-arg sibling's <c>matchCount</c> instead, so a
-    /// genuinely ambiguous roster (matchCount &gt;= 2) gets its own per-row probe
-    /// (<see cref="LocateAmbiguous"/>) rather than silently reusing the zero-match fallback.</summary>
+    /// <summary>Any-hand sibling of <see cref="RosterNameId"/> for <see cref="Locate"/>'s implicit-resolve overload. Returns the nameId
+    /// when exactly one slot matches weaponId (rh/lh/oh) and fp, else -1; refuses even when all matches share a nameId, since roster nameIds
+    /// can be duplicated (Iai.cs:74-77). -1 alone does not stop Locate (its foreign-nameId veto only arms when rosterNameId &gt; 0), which is how
+    /// a band collider got adopted when 2+ rows shared weapon+fp (ledger [party-nameid-unique-key], LW-252); callers that need to tell 0 from 2+
+    /// use the 4-arg overload (see <see cref="LocateAmbiguous"/>).</summary>
     internal static int ResolveAnyHandNameId(IGameMemory mem, int weaponId, (int lvl, int br, int fa) fp)
         => ResolveAnyHandNameId(mem, weaponId, fp, out _);
 
-    /// <summary>4-arg sibling of <see cref="ResolveAnyHandNameId(IGameMemory,int,(int,int,int))"/>
-    /// (LW-252): identical match rule and return value, but also outs the raw
-    /// <paramref name="matchCount"/> from <see cref="ScanNameIdMatches"/> so a caller can tell
-    /// "zero roster rows hold this weapon+fp" apart from "2+ roster rows hold it" -- both
-    /// collapsed onto the same -1 return above. Locate/LocateAll's public (implicit-resolve)
-    /// overloads were the FIRST callers: matchCount &gt;= 2 routes to the per-row ambiguous branch
-    /// (Wielder.cs's LocateAmbiguous/LocateAllAmbiguous) instead of falling straight to tier 2
-    /// with the veto disarmed. LW-295's WeaponPalette.Desire.cs (DesiredGlow) is a second caller,
-    /// with its OWN policy on the same matchCount: a player wielder glows whenever
-    /// matchCount &gt;= 1, ambiguity included -- unlike Locate, it never needs to pick between the
-    /// candidates, only to know a roster row (any roster row) holds this weapon+fp. Separate
-    /// arity rather than an optional out param so the existing 3-arg call sites (and the tests
-    /// pinning its exact return value) stay byte-identical.</summary>
+    /// <summary>Same rule as the 3-arg overload, plus the raw <paramref name="matchCount"/> so callers can tell zero rows from 2+
+    /// (both return -1). Locate/LocateAll send 2+ to their ambiguous branch (LW-252); WeaponPalette.Desire.cs (DesiredGlow, LW-295)
+    /// treats any matchCount &gt;= 1 as a hit.</summary>
     internal static int ResolveAnyHandNameId(IGameMemory mem, int weaponId, (int lvl, int br, int fa) fp,
         out int matchCount)
     {
@@ -256,12 +181,9 @@ internal static partial class Wielder
         return matchCount == 1 ? first : -1;                            // >1 slot: refuse regardless of nameId equality
     }
 
-    /// <summary>Shared roster walk behind <see cref="RosterNameId"/> and <see cref="ResolveAnyHandNameId"/>
-    /// (D4 -- no duplicated roster scan): count every roster slot holding <paramref name="weaponId"/>
-    /// (main hand only, or any of rh/lh/oh per <paramref name="mainHandOnly"/>) whose (level,brave,faith)
-    /// equals <paramref name="fp"/>, and report the first match's nameId plus whether every match shares
-    /// that same nameId. The two callers interpret <paramref name="count"/>/<paramref name="allSameNameId"/>
-    /// under DIFFERENT multi-match policies -- see each method's own doc comment.</summary>
+    /// <summary>Shared walk behind <see cref="RosterNameId"/> and <see cref="ResolveAnyHandNameId"/> (D4). Counts slots holding
+    /// <paramref name="weaponId"/> (main hand or any hand per <paramref name="mainHandOnly"/>) with fp equal to <paramref name="fp"/>,
+    /// and reports the first match's nameId and whether all matches share it. Each caller applies its own multi-match policy.</summary>
     private static void ScanNameIdMatches(IGameMemory mem, int weaponId, (int lvl, int br, int fa) fp,
         bool mainHandOnly, out int count, out int firstNameId, out bool allSameNameId)
     {
@@ -287,18 +209,10 @@ internal static partial class Wielder
         }
     }
 
-    /// <summary>The ambiguous branch's roster ammunition (LW-252): every row matching
-    /// <paramref name="weaponId"/> in ANY hand (rh/lh/oh) AND fp equality -- the SAME match rule
-    /// <see cref="ScanNameIdMatches"/> uses to produce <see cref="ResolveAnyHandNameId(IGameMemory,int,(int,int,int),out int)"/>'s
-    /// matchCount -- paired with that row's OWN nameId (0 = unseeded, the same fail-safe
-    /// convention as every other nameId read in this file) and its OWN sentinel-filtered hand set
-    /// (<see cref="CollectHands"/>): a same-fp twin can equip a completely different off-hand
-    /// item, so one shared hand set would be wrong for at least one row. A separate roster walk
-    /// rather than folding into <see cref="ScanNameIdMatches"/> -- that method only tracks counts
-    /// and homogeneity, it has nowhere to hang a per-row hand list -- paid for ONLY when
-    /// Locate/LocateAll's implicit-resolve overloads see matchCount &gt;= 2 (the rare genuinely-
-    /// ambiguous path; see Wielder.cs's LocateAmbiguous/LocateAllAmbiguous, the only callers).
-    /// <paramref name="rows"/> is cleared first.</summary>
+    /// <summary>Every row holding <paramref name="weaponId"/> in any hand with a matching fp, with its own nameId
+    /// (0 = unseeded) and hand set (<see cref="CollectHands"/>), since a same-fp twin can carry a different off-hand item (LW-252).
+    /// Separate from <see cref="ScanNameIdMatches"/>, which keeps no per-row list. Used by the ambiguous paths in Wielder.cs
+    /// (LocateAmbiguous/LocateAllAmbiguous). <paramref name="rows"/> is cleared first.</summary>
     internal static void CollectAmbiguousRows(IGameMemory mem, int weaponId, (int lvl, int br, int fa) fp,
         List<(long rb, int nameId, List<int> hands)> rows)
     {

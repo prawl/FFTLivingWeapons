@@ -4,31 +4,23 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-317: the multi-lane growth decision layer, split out of GrowthEngine.cs (already over the
-/// 200-line refactor trigger before this feature) because the real seam here is "deciding what
-/// to hold" (this file: <see cref="GrowthEngine.Routes"/>, the Apply plan-merge helper) versus
-/// "hold machinery" (also this file: the two new hold kinds, <see cref="GrowthEngine.HoldFlatCapped"/>
-/// and <see cref="GrowthEngine.HoldU16"/> -- GrowthEngine.cs keeps the original <c>Hold</c>).
+/// LW-317: multi-lane growth decisions, split out of GrowthEngine.cs. This file decides what to
+/// hold (<see cref="GrowthEngine.Routes"/>, the Apply merge helper) and holds the two extra hold
+/// kinds, <see cref="GrowthEngine.HoldFlatCapped"/> and <see cref="GrowthEngine.HoldU16"/>.
+/// GrowthEngine.cs keeps the original <c>Hold</c>.
 /// </summary>
 internal sealed partial class GrowthEngine
 {
-    /// <summary>One combat-struct (or resident-table-adjacent) target a weapon's baked lane
-    /// wants held, at a given tier. Addr is the absolute address; a FACTOR-based target
-    /// (Pa/Ma/Speed/the u16 MaxHp lane) reads <see cref="Factor"/> and ignores Flat/Cap==0; a
-    /// FLAT-CAPPED target (the Brave/Faith current-stat holds) reads Flat/Cap and ignores
-    /// Factor. U16 marks the one 2-byte lane (MaxHp) -- checked FIRST by both
-    /// <see cref="MergeRoute"/> and Apply's dispatch, because Cap is nonzero on both the u16
-    /// MaxHp lane AND the flat-capped u8 lanes (a bare "Cap &gt; 0" test alone cannot tell them
-    /// apart).</summary>
+    /// <summary>One address a weapon's baked lane wants held at a given tier. Factor-based
+    /// targets (Pa/Ma/Speed, u16 MaxHp) use Factor; flat-capped targets (Brave/Faith current)
+    /// use Flat/Cap. U16 marks the 2-byte MaxHp lane and is checked before Cap, since Cap is
+    /// nonzero on both MaxHp and the flat-capped lanes.</summary>
     internal readonly record struct LaneRoute(long Addr, double Factor, int Flat, int Cap, StatLane Lane, bool U16);
 
-    /// <summary>Per-hand lane decision: which <see cref="LaneRoute"/>(s) a weapon's baked
-    /// WeaponMeta.Lane wants at this tier, before Apply's per-address merge across both hands.
-    /// Ownership bails (Afterimage/Ultima/Mushin) apply PER-COMPONENT, not per-weapon: a
-    /// "pa+ma"/"pa+ma+brave" weapon whose signature owns PA (Ultima/Mushin) still routes its MA
-    /// (and Brave) components -- see Routes_MateriaBlade_UltimaOwnsPa_MaStillRoutes
-    /// (LivingWeapon.Tests). Empty/unknown lane returns an empty list, never a guess, matching
-    /// the single-lane Route this method replaces.</summary>
+    /// <summary>The <see cref="LaneRoute"/>s a weapon's baked WeaponMeta.Lane wants at this tier,
+    /// before Apply merges per address across both hands. Ownership bails (Afterimage, Ultima,
+    /// Mushin) apply per component: see Routes_MateriaBlade_UltimaOwnsPa_MaStillRoutes. An empty
+    /// or unknown lane returns an empty list.</summary>
     internal static List<LaneRoute> Routes(long s, WeaponMeta m, int tier)
     {
         var list = new List<LaneRoute>();
@@ -68,15 +60,10 @@ internal sealed partial class GrowthEngine
         return list;
     }
 
-    /// <summary>Apply's per-address merge: when two hands both route the same combat-struct byte
-    /// (dual-wielding two "pa+ma" weapons both want CPa, say), the STRONGER effect wins.
-    /// <see cref="LaneRoute.U16"/> is checked first because Cap is nonzero on BOTH the u16 MaxHp
-    /// lane (a factor-based target that also carries a ceiling) and the flat-capped u8 lanes
-    /// (Brave/Faith) -- a bare "Cap &gt; 0" test alone would compare MaxHp entries by Flat (always
-    /// 0) instead of Factor. Past that: flat-capped lanes (Cap &gt; 0) compare by Flat, every other
-    /// lane compares by Factor. The three kinds can never collide on one address by construction
-    /// (an address's lane kind is fixed by which <see cref="Routes"/> switch case can ever emit
-    /// it), so this single three-way branch is exhaustive, not a guess.</summary>
+    /// <summary>When both hands route the same address, the stronger effect wins. U16 is checked
+    /// first because MaxHp carries a Cap too; then flat-capped lanes compare Flat and the rest
+    /// compare Factor. An address's lane kind is fixed by <see cref="Routes"/>, so the kinds
+    /// never collide.</summary>
     internal static LaneRoute MergeRoute(LaneRoute existing, LaneRoute incoming)
     {
         if (existing.U16 || existing.Cap == 0)
@@ -84,25 +71,16 @@ internal sealed partial class GrowthEngine
         return incoming.Flat > existing.Flat ? incoming : existing;
     }
 
-    // addr -> (natural, target, flat, baked). Mirrors GrowthEngine.Hold's own _applied shape,
-    // but the bonus (flat, an ADD) is tracked in its OWN field rather than overloading Hold's
-    // factor field (N4): Hold's factor means "multiply", this lane's own knob means "add".
+    // addr -> (natural, target, flat, baked). Same shape as Hold's _applied, with the additive
+    // bonus kept in its own field instead of reusing Hold's multiplicative factor (N4).
     private readonly Dictionary<long, (int natural, int target, int flat, int baked)> _appliedFlat = new();
 
-    /// <summary>The "pa+ma+brave" katana lane's CURRENT-brave hold and the "wp+faith" magic-gun
-    /// lane's CURRENT-faith hold both dispatch here (Apply picks this method whenever a merged
-    /// <see cref="LaneRoute"/>'s Cap is nonzero and it is not the u16 lane). Target = max(natural,
-    /// min(natural + flat, cap)) -- ADDITIVE and never lowers the wielder's own current
-    /// brave/faith below what it already was. Threads the LW-90 NaturalLedger exactly like Hold
-    /// (FilterCapture at first sight, RecordWrite every evaluation) so a battle restart's baked
-    /// residue is recognized the same way every other capture-natural lane recognizes it.
-    ///
-    /// A cur that is neither natural, the recorded target, nor the recognized baked residue is
-    /// LEFT ALONE -- the Kobu compose rule: after a Kiyomori bearer's brave-match raise (Kobu.cs)
-    /// the byte never reads natural again this battle (Kobu writes past whatever this hold last
-    /// held), so this hold silently retires for the battle rather than fighting Kobu's own write.
-    /// The bearer's brave simply ends higher than the flat bonus alone would have given it --
-    /// harmless, and the hold resumes clean on the next battle.</summary>
+    /// <summary>Holds current brave ("pa+ma+brave") or current faith ("wp+faith"). Apply routes
+    /// here when the merged Cap is nonzero and the route is not u16. Target = max(natural,
+    /// min(natural + flat, cap)), so it never lowers the wielder's own value. Uses the LW-90
+    /// NaturalLedger like Hold (FilterCapture at first sight, RecordWrite each pass). A cur that
+    /// is not natural, the target, or the baked residue is left alone: after a Kobu brave raise
+    /// (Kobu.cs) the hold retires for the battle and resumes next battle.</summary>
     internal void HoldFlatCapped(long addr, int flat, int cap, StatLane lane, int nameId, int level)
     {
         if (!_mem.Writable(addr, 1)) return;
@@ -131,81 +109,47 @@ internal sealed partial class GrowthEngine
         _appliedFlat[addr] = (natural, target, flat, baked);
     }
 
-    // addr -> (natural, target, factor) for the u16 "hp" lane. Deliberately NOT threaded through
-    // the LW-90 NaturalLedger (decision 3, pinned by the former HoldU16_RestartResidue_DecisionPin):
-    // FilterCapture/RecordWrite are u8-shaped (target bounds 1..255, natural sane range 1..99)
-    // and widening them would churn the most battle-tested code in the repo for seven knight
-    // swords. Decision 3's ACCEPTED consequence -- across a battle-RESTART chain the held MaxHp
-    // can be re-captured as natural and creep upward -- was OVERTURNED 2026-08-26 (LW-330, see
-    // _u16WriteRecord below): it is not actually battle-scoped in practice, because the pre-battle
-    // transition itself fires several enter/exit resets before the real fight.
+    // addr -> (natural, target, factor) for the u16 "hp" lane. Not routed through the LW-90
+    // NaturalLedger (decision 3, HoldU16_RestartResidue_DecisionPin): its capture bounds are
+    // u8-shaped. Decision 3 accepted that a battle-restart chain could re-capture the held MaxHp
+    // as natural and creep up; LW-330 (2026-08-26) overturned that, see _u16WriteRecord.
     private readonly Dictionary<long, (int natural, int target, double factor)> _appliedU16 = new();
 
-    // (nameId, lane) -> the last (natural, target) this hold WROTE, keyed by roster identity
-    // rather than address (the combat-struct address is itself battle-scoped, relocating every
-    // battle). Deliberately NOT cleared by ResetBattle -- that is the entire point: owner-
-    // witnessed 2026-08-26, the battle-enter sequence fires several full enter/exit cycles before
-    // the real fight, and each exit clears _appliedU16 above while the WRITTEN max persists in
-    // game memory across them, so the next capture read the stale target as natural and
-    // compounded toward the ceiling (697 -> 906 -> 999, phantom top-up heal riding along). This
-    // record survives that reset so HoldU16 can recognize "this cur is MY last target" and
-    // recover the true natural instead.
+    // (nameId, lane) -> the last (natural, target) this hold wrote, keyed by roster identity
+    // because the combat-struct address changes every battle. Not cleared by ResetBattle: the
+    // pre-battle transition (owner-witnessed 2026-08-26) fires several enter/exit resets, each
+    // clearing _appliedU16 while the written max stays in game memory, so the next capture
+    // read the stale target as natural and compounded (697 -> 906 -> 999).
     private readonly Dictionary<(int nameId, StatLane lane), (int natural, int target)> _u16WriteRecord = new();
 
-    // (nameId, lane) -> a pending current-HP top-up INTENT (LW-330 stage 2, owner-witnessed
-    // 2026-08-26). A genuine HoldU16 capture that computes a positive current-HP delta adds
-    // its key here instead of writing the top-up on the spot; TryDeliverTopUp (below) is then
-    // called from every HoldU16 branch and clears the key the first time it finds the paired
-    // hp field readable and sane. Deliberately NOT cleared by ResetBattle -- same survival
-    // rationale as _u16WriteRecord just above: the pre-battle transition tears the transient
-    // struct back to natural mid-cycle (tape shape: healing 209, 697 -> 906 of 906, then damage
-    // 209, 906 -> 697 of 697, all before the real fight), and the intent must outlive that tear
-    // so it can still land once the REAL struct finishes settling a tick or more later. A HELD
-    // (filtered) recapture never adds a key -- that is the reset-flicker path, and adding there
-    // would revive the exact phantom heal this hold already guards against.
+    // (nameId, lane) -> pending current-HP top-up (LW-330 stage 2, 2026-08-26). A genuine
+    // HoldU16 capture with a positive delta adds its key here; TryDeliverTopUp clears it once
+    // the hp field reads sane. Not cleared by ResetBattle, since the pre-battle transition
+    // tears the struct back to natural mid-cycle (healing 209, 697 -> 906, then damage 209,
+    // 906 -> 697). A held (filtered) recapture never adds a key, or it would revive the
+    // phantom heal.
     private readonly HashSet<(int nameId, StatLane lane)> _pendingTopUp = new();
 
-    // Accepted edge cases (owner call 2026-08-25, tied to the LW-327 top-up below). (1) A tier
-    // that first rises BETWEEN battles (the kill credits after the prior battle's last growth
-    // tick) opens exactly ONE battle with the max grown but the top-up skipped -- at tier 0 the
-    // record still reads (natural, natural), so the next capture of that natural filters as HELD,
-    // not real, and the top-up never fires; self-corrects the following battle. Cosmetic, accepted.
-    // (2) This record is in-memory only and deliberately survives PlaythroughReset/battle resets;
-    // the worst stale cases (a true natural matching an old recorded target, or relaunch residue)
-    // are bounded to one mis-filtered write and self-arrest on the next real capture. Accepted.
-    // (3) A pending intent that survives a reset in the sub-second window before its first
-    // delivery could top up once after the reset; bounded to one delta, accepted.
+    // Accepted edge cases (owner call 2026-08-25, tied to the LW-327 top-up). (1) A tier that
+    // first rises between battles opens one battle with the max grown but no top-up, because
+    // the record still reads (natural, natural); it self-corrects the next battle. (2) The
+    // record is in-memory only and survives PlaythroughReset and battle resets; a stale match
+    // causes at most one mis-filtered write. (3) A pending intent surviving a reset could top
+    // up once after it; bounded to one delta.
 
-    /// <summary>Sane capture range for a first-sight u16 read: 1..1500, NOT StatSaneHi (99) --
-    /// MaxHp routinely sits in the hundreds, so the u8 lanes' sane ceiling would refuse every
-    /// real capture.</summary>
+    /// <summary>Sane first-sight u16 read range. StatSaneHi (99) is too low for MaxHp.</summary>
     internal const int U16CaptureMin = 1, U16CaptureMax = 1500;
 
-    /// <summary>Hold a u16 combat-struct field (today only Offsets.CMaxHp) at
-    /// min(round(natural × (1 + factor)), ceiling). Same capture-then-check idiom as Hold, over
-    /// IGameMemory.U16/W16 instead of U8/W8, and with NO NaturalLedger consult (decision 3,
-    /// above -- lane/level are still accepted so every hold kind shares one dispatch shape in
-    /// Apply, but this lane never reads them for that ledger). nameId IS now read for a second,
-    /// narrower purpose: keying <see cref="_u16WriteRecord"/>, the reset-surviving filter (LW-330,
-    /// owner-witnessed 2026-08-26 -- see that field's doc for the mechanism). Re-applies on
-    /// cur == natural (the engine's per-turn normalize); retargets in place when factor changes
-    /// at cur == target (a kill-tier crossed mid-battle); leaves any other reading alone (a real
-    /// HP-affecting effect this runtime must never fight) -- all three unchanged from before
-    /// LW-330. What changed: on a FIRST capture (no <see cref="_appliedU16"/> entry yet -- e.g.
-    /// right after a battle-transition reset), cur is first checked against
-    /// <see cref="_u16WriteRecord"/>; if it equals the last value THIS hold itself wrote for this
-    /// (nameId, lane), the recorded natural is used instead of cur, and no new
-    /// <see cref="_pendingTopUp"/> intent is added (it already ran for this unit's real capture,
-    /// and re-adding it is the phantom heal the live defect showed). nameId &lt;= 0 disables the
-    /// filter entirely (no identity to key on), preserving the pre-LW-330 behavior for that case,
-    /// and also means no top-up intent is ever created or delivered (nothing to key it on).
-    /// <see cref="TryDeliverTopUp"/> is called at the end of every branch above that keeps a
-    /// known applied entry (capture, held-recapture, re-apply, stable/retarget) -- stage 2 of
-    /// LW-330 (owner-witnessed 2026-08-26): the real battle's genuine capture can land at an
-    /// instant when the freshly-built combat struct's current-HP field is not yet populated, so
-    /// a single-instant top-up attempt silently loses the heal forever. Routing every branch
-    /// through TryDeliverTopUp turns that into a retry that lands on whichever later tick first
-    /// finds hp readable and sane.</summary>
+    /// <summary>Holds a u16 combat-struct field (today only Offsets.CMaxHp) at
+    /// min(round(natural * (1 + factor)), ceiling). Same capture-then-check shape as Hold, over
+    /// U16/W16, with no NaturalLedger (decision 3 above); lane and level are accepted only to
+    /// match Apply's dispatch. Re-applies at cur == natural, retargets at cur == target when
+    /// the factor changes, and leaves any other reading alone. LW-330: on a first capture, a
+    /// cur equal to <see cref="_u16WriteRecord"/>'s last target for (nameId, lane) means the
+    /// recorded natural is used and no <see cref="_pendingTopUp"/> is added. nameId &lt;= 0
+    /// skips the filter and the top-up. Every branch with a known applied entry ends in
+    /// <see cref="TryDeliverTopUp"/> so a top-up missed while hp was unpopulated retries on a
+    /// later tick.</summary>
     internal void HoldU16(long addr, double factor, int ceiling, StatLane lane, int nameId, int level)
     {
         if (!_mem.Writable(addr, 2)) return;
@@ -251,29 +195,17 @@ internal sealed partial class GrowthEngine
         if (target < 1) target = 1;
         if (_mem.U16(addr) != target) _mem.W16(addr, (ushort)target);
         _appliedU16[addr] = (natural, target, factor);
-        // Reset-surviving: recorded on EVERY write (first capture, re-apply, and retarget alike)
-        // so a mid-battle tier-up's NEW target is what a later post-reset recapture gets filtered
-        // against, not the stale pre-retarget one.
+        // Recorded on every write so a mid-battle tier-up's new target is what a later recapture is filtered against.
         if (nameId > 0) _u16WriteRecord[(nameId, lane)] = (natural, target);
     }
 
-    /// <summary>So the knight opens the battle with the grown HP real instead of reading hurt
-    /// (LW-327, owner call 2026-08-25): a Knight Sword's "hp" lane raises Max HP via HoldU16, but
-    /// current HP historically stayed put, so the unit's card read something like 679/883 the
-    /// instant the hold first captured. LW-330 stage 2 (owner-witnessed 2026-08-26) replaced the
-    /// original one-shot version of this method with a pending-intent retry: the live tape
-    /// showed a genuine capture landing at an instant when the freshly-built combat struct's
-    /// current-HP field was not yet populated by the game (read &lt; 1), so a single-instant
-    /// attempt's KO guard silently ate the heal forever. Now every HoldU16 branch that touches a
-    /// known applied entry calls this, and it only CONSUMES the caller's <see cref="_pendingTopUp"/>
-    /// intent (added once, at genuine capture) once hp reads sane -- so delivery can land one or
-    /// more ticks later than the capture that requested it, exactly the retry tonight's failure
-    /// needed. No entry in <see cref="_pendingTopUp"/> for (nameId, lane) is the common case (a
-    /// held recapture, an already-delivered capture, or nameId &lt;= 0, which never gets a key at
-    /// all) and returns immediately. The engine otherwise leaves current HP alone -- already
-    /// established in docs/LIVE_LEDGER.md's Proven section (row [maxhp-hold-attribution-safe])
-    /// -- which is exactly what lets a delivery here stick without fighting anything else that
-    /// touches the byte.</summary>
+    /// <summary>Raises current HP by the Max HP gain so a Knight Sword wielder does not open the
+    /// battle hurt (LW-327, owner call 2026-08-25). LW-330 stage 2 (2026-08-26) made it a retry:
+    /// a genuine capture can land while current HP is still unpopulated (read &lt; 1), which
+    /// used to drop the heal. It consumes the <see cref="_pendingTopUp"/> intent once hp reads
+    /// sane, and returns at once when there is none. Writing current HP is safe because the
+    /// engine otherwise leaves it alone (docs/LIVE_LEDGER.md, row
+    /// [maxhp-hold-attribution-safe]).</summary>
     private void TryDeliverTopUp(long addr, int natural, int target, StatLane lane, int nameId)
     {
         var key = (nameId, lane);

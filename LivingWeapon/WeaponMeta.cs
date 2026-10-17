@@ -5,168 +5,113 @@ using Newtonsoft.Json;
 
 namespace LivingWeapon;
 
-/// <summary>Per-weapon facts the growth + display need, baked from data/items.json
-/// at build time into meta.json (id -> WeaponMeta). Keeps the runtime free of any
-/// dependency on the dev repo.</summary>
+/// <summary>Per-weapon facts for growth and display, baked from data/items.json into
+/// meta.json (id -> WeaponMeta) so the runtime does not depend on the dev repo.</summary>
 public sealed class WeaponMeta
 {
     [JsonProperty("name")] public string Name { get; set; } = "";
     [JsonProperty("wp")] public int Wp { get; set; }
     [JsonProperty("cat")] public string Cat { get; set; } = "";
     [JsonProperty("formula")] public int Formula { get; set; }
-    // LW-317: the baked growth-lane token ("pa"/"ma"/"speed"/"hp"/"pa+ma"/"pa+ma+brave"/"wp"/
-    // "wp+faith"), mapped from docs/living_weapon_grid.csv's locked `grows` design
-    // (tools/gen_living_weapon_meta.py's lane_of; the LW-250 interim single-lane collapse is
-    // retired). GrowthEngine.Routes reads this directly instead of inferring a lane from
-    // Cat/Formula. "" (absent/stale meta) is a defense, not a real lane -- Routes treats it as
-    // no-growth rather than guessing.
+    // LW-317: growth lane ("pa", "pa+ma+brave", "wp+faith", ...) baked from docs/living_weapon_grid.csv
+    // by tools/gen_living_weapon_meta.py (lane_of). "" = no growth.
     [JsonProperty("lane")] public string Lane { get; set; } = "";
-    // The weapon's flavor line -- the stable lead of its description. The in-card Kills
-    // counter is anchored to this (the nearest flavor before a "Kills " is that weapon's).
+    // The stable lead line of the description; the in-card Kills counter anchors to it.
     [JsonProperty("flavor")] public string Flavor { get; set; } = "";
-    // LW-332: the exact tagged "Grows: ..." card line (lib.flavor.grows_line -- LW-329's inline
-    // color tag) this living weapon's description bakes. CardScanner treats it as a SECOND
-    // anchor pattern alongside Flavor, since the Grows line now sits right under the Kills
-    // scaffold (closer to it than Flavor is) once the bake moves the line up. The runtime never
-    // COMPOSES this string -- it only ever encodes what the bake already shipped; meta.json (via
-    // the Python bake, the single source of truth) carries its exact bytes. "" for any
-    // non-living id the bake might emit (a defense; every id gen_living_weapon_meta.py emits
-    // today is living).
+    // LW-332: the tagged "Grows: ..." card line (lib.flavor.grows_line, LW-329 color tag) as baked;
+    // CardScanner's second anchor beside Flavor (the Grows line sits closer to the Kills scaffold).
+    // Matched as baked. "" for non-living ids.
     [JsonProperty("growsLine")] public string GrowsLine { get; set; } = "";
-    // The iconic passive this weapon grants its wielder at a kill-tier (null for most
-    // weapons -- they are pure stat growth). Only support passives are wired; see Signatures.
+    // Passive granted at a kill tier; null for pure stat-growth weapons.
     [JsonProperty("signature")] public WeaponSignature? Signature { get; set; }
-    // LW-251 (WeaponPalette runtime): the resident palette bank index this weapon's bench colours
-    // write into, and the 15 authored BGR555 codes for entries 1..15 (entry 0, transparency, is
-    // never carried here -- see Offsets.WeaponPaletteBankA/B's own doc for the bank shape). Baked
-    // from data/weapon_colors.json (+ data/weapon_palette_overrides.json's per-weapon palette
-    // corrections) by tools/gen_living_weapon_meta.py; absent on every weapon with no authored
-    // colours, which is why the defaults below are sentinels rather than 0/empty (0 is a real,
-    // used palette index -- Materia Blade's own -- so it cannot double as "no colours").
+    // LW-251: palette bank index and 15 BGR555 codes for entries 1..15 (entry 0 is transparency; see
+    // Offsets.WeaponPaletteBankA/B), from data/weapon_colors.json + data/weapon_palette_overrides.json.
+    // Sentinel defaults because 0 is a used palette index (Materia Blade's).
     [JsonProperty("palette")] public int Palette { get; set; } = -1;
     [JsonProperty("colors")] public int[]? Colors { get; set; }
-    // LW-351: the item id this design USED to live at, when a design was moved to a different id
-    // (data/items.json `migratedFrom` -> the bake). TallyMigration reads it once per launch to
-    // carry a save's earned kills and deeds across the move, so the pairing table is DATA and no
-    // C# file names a weapon. 0 = this design never moved (every id but the moved ones).
+    // LW-351: the id this design lived at before it moved (items.json `migratedFrom`).
+    // TallyMigration carries kills and deeds across on it, so the pairing lives in data and no C# file
+    // names a weapon. 0 = never moved.
     [JsonProperty("migratedFrom")] public int MigratedFrom { get; set; }
 }
 
-/// <summary>A weapon's curated tier-grant: at kill-tier &gt;= AtTier the wielder gains the
-/// support passive AbilityId. Additive-only (Slot == "support") -- never reaction/movement,
-/// which would hijack the player's single slot. Baked from data/items.json into meta.json.</summary>
+/// <summary>A weapon's tier grant: at kill tier &gt;= AtTier the wielder gains the support
+/// passive AbilityId. Support slot only, so it never takes the player's reaction or movement slot.
+/// Baked from data/items.json into meta.json.</summary>
 public sealed class WeaponSignature
 {
     [JsonProperty("abilityId")] public int AbilityId { get; set; }
     [JsonProperty("slot")] public string Slot { get; set; } = "";
     [JsonProperty("atTier")] public int AtTier { get; set; }
-    // Short ability name painted onto the card at AtTier (e.g. "Concentration"); "" = no card display.
+    // Ability name painted on the card at AtTier; "" = none.
     [JsonProperty("displayLabel")] public string DisplayLabel { get; set; } = "";
-    // Conditional HP-gate: grant only applies while current HP is below this % of max (0 = always-on,
-    // e.g. Mortal Coil's Attack Boost while HP < 50%). Arm-and-stays once tripped (never strips a support).
+    // Applies only while HP is below this % of max (0 = always); stays armed once tripped.
     [JsonProperty("hpBelow")] public int HpBelow { get; set; }
-    // MOUNT-GATED stat grant (no support id): a flat StatBonus to Stat while the wielder is riding
-    // a chocobo (combat +0x1B4 bit 0x80, proven live 2026-06-26). Reverts on dismount/battle-exit;
-    // Speed is the only wired stat today.
+    // Flat StatBonus while mounted (combat +0x1B4 bit 0x80, found 2026-06-26); Speed only.
     [JsonProperty("stat")] public string Stat { get; set; } = "";
     [JsonProperty("statBonus")] public int StatBonus { get; set; }
     [JsonProperty("mounted")] public bool Mounted { get; set; }
-    // PUPPETEER (Galewind "Puppeteer", replaces Charm-Lock): a hit by the +3 wielder dominates the
-    // struck enemy for this many of ITS OWN turns -- the player controls its move + full skillset (the
-    // agency bit, combat +0x05 / 0x08, held set each tick), then it reverts to AI. One puppet at a time,
-    // on a Tuning.PuppeteerCooldownTurns cooldown (the wielder's own turns). 0 = not a puppeteer weapon.
+    // Puppeteer (Galewind): the struck enemy is player-controlled for this many of its turns
+    // (agency bit, combat +0x05 / 0x08), with a Tuning.PuppeteerCooldownTurns cooldown.
     [JsonProperty("puppeteerTurns")] public int PuppeteerTurns { get; set; }
-    // DOOM-HASTEN aura (Eclipsebolt "Eagle Eye"): while a unit wields this at AtTier, any Doom on an enemy
-    // has its countdown forced down to this value (proven: write band +0x59). 0 = not a doom-hasten weapon.
+    // Doom-hasten (Eclipsebolt "Eagle Eye"): enemy Doom countdown forced down to this (band +0x59).
     [JsonProperty("doomCountdownTo")] public int DoomCountdownTo { get; set; }
-    // RICOCHET aura (Stormarc "Arc Lightning"): while a unit wields this at AtTier, each damage event the
-    // wielder deals to an enemy bounces chip damage (RicochetPct % of original, floor 1) to the nearest
-    // OTHER enemy within RicochetRadius Manhattan tiles. Chip never kills (HP floor 1). 0 = not a ricochet weapon.
+    // Ricochet (Stormarc "Arc Lightning"): RicochetPct % chip (min 1, never kills) to the nearest
+    // other enemy within RicochetRadius Manhattan tiles.
     [JsonProperty("ricochetRadius")] public int RicochetRadius { get; set; }
     [JsonProperty("ricochetPct")] public int RicochetPct { get; set; }
-    // MAIM (Huntress "Maim"): struck enemies lose their reaction abilities for this many of their turns,
-    // then the saved bits restore. 0 = not a maim weapon.
+    // Maim (Huntress): struck enemies lose reaction abilities for this many of their turns.
     [JsonProperty("crippleTurns")] public int CrippleTurns { get; set; }
-    // BARRAGE (Yoichi "Barrage"): while a unit wields this at AtTier, the wielder gains Barrage (ability 358)
-    // injected into their current job's JobCommand record. 0 = not a barrage weapon.
+    // Barrage (Yoichi): injects ability 358 into the wielder's JobCommand record.
     [JsonProperty("grantCommandAbilityId")] public int GrantCommandAbilityId { get; set; }
-    // RENEWAL (Mending Staff "Renewal"): at each wielder turn edge, the wielder + allies within this
-    // many Chebyshev tiles are healed for round(maxHP * Tuning.RenewalPct) each. Silent band write.
-    // 0 = not a renewal weapon.
+    // Renewal (Mending Staff): each turn edge heals allies within this many Chebyshev tiles for
+    // round(maxHP * Tuning.RenewalPct).
     [JsonProperty("regenAuraRadius")] public int RegenAuraRadius { get; set; }
-    // CHOIR (Warlock's Staff "Choir"): holder-only. While a +3 bearer is alive and main-hand-wielding
-    // the staff, that bearer (and every other deployed +3 bearer) gets the Non-charge support bit
-    // (instant magick), held per tick and cleared on death/unequip/below-tier/battle-end. There is no
-    // adjacent-ally aura -- this is just the enabled sentinel (>0 = on). 0 = not a choir weapon.
+    // Choir (Warlock's Staff): every deployed +3 bearer holds the Non-charge support bit while one
+    // is alive with the staff. No ally aura; >0 is just the enable flag.
     [JsonProperty("instantCastRadius")] public int InstantCastRadius { get; set; }
-    // SPIRITUAL FONT (Wellspring "Spiritual Font"): at AtTier, a completed wielder turn whose grid
-    // position changed since their previous turn restores Tuning.FontHpPct of max HP and FontMpPct of
-    // max MP -- written by the RUNTIME, not via engine movement passives (the engine honors only one).
+    // Spiritual Font (Wellspring): a turn ending on a new tile restores Tuning.FontHpPct HP and
+    // Tuning.FontMpPct MP. Runtime-written because the engine honors one movement passive.
     [JsonProperty("fontOnMove")] public bool FontOnMove { get; set; }
-    // RAPTURE (Rod of Faith "Rapture"): below Tuning.RaptureHpPct of max HP, Master Teleportation
-    // (Tuning.RaptureMoveId) replaces the wielder's movement for Tuning.RaptureTurns turns, then the
-    // saved movement restores. false = not a rapture weapon.
+    // Rapture (Rod of Faith): below Tuning.RaptureHpPct HP, Master Teleportation (Tuning.RaptureMoveId)
+    // replaces movement for Tuning.RaptureTurns turns.
     [JsonProperty("raptureMove")] public bool RaptureMove { get; set; }
-    // FEIGN DEATH (Wrathblade "Feign Death"): at AtTier the wielder is held with Reraise (band
-    // +0x47/0x20) -- re-applied through the death that clears it -- so a lethal hit plays out as a
-    // real death (an AI-ignored corpse) that the engine auto-revives, animated, at ~10% HP. ONCE
-    // per battle (the bit is dropped the instant the revive is seen). false = not a feign-death weapon.
+    // Feign Death (Wrathblade): holds Reraise (band +0x47/0x20) through the death that clears it,
+    // so the engine auto-revives the wielder at about 10% HP. Once per battle.
     [JsonProperty("feignDeath")] public bool FeignDeath { get; set; }
-    // AFTERIMAGE (Swiftedge "Afterimage"): at AtTier the wielder's Speed ramps by
-    // Tuning.AfterimageSpeedPerTurn for each completed turn (capped at Tuning.AfterimageSpeedCap
-    // turns' worth) and resets to 0 when the wielder takes damage. Swiftedge's damage is Speed x WP
-    // (formula 99), so the ramp accelerates its damage. false = not an afterimage weapon.
+    // Afterimage (Swiftedge): Speed ramps by Tuning.AfterimageSpeedPerTurn per turn (cap
+    // Tuning.AfterimageSpeedCap), resets on damage. Damage is Speed x WP (formula 99).
     [JsonProperty("afterimage")] public bool Afterimage { get; set; }
-    // LARCENY (Arcanum "Larceny"): at AtTier a hit STEALS the struck enemy's highest-priority holdable
-    // buff -- cleared on the target, held on the wielder, then faded after Tuning.LarcenyHoldTurns
-    // GLOBAL turns. >0 = a larceny weapon (the enable gate; the hold duration is the global-turn knob in
-    // Tuning, not this number -- the wielder's own turn count is gameable by parking the unit). 0 = not a
-    // larceny weapon. (Runtime + the marquee buff-bit map are live-pending; only the proven
-    // Reraise/Invisible bits are wired so far -- see Larceny.Policy.cs.)
+    // Larceny (Arcanum): a hit steals the target's top holdable buff for Tuning.LarcenyHoldTurns
+    // global turns (wielder turns can be gamed by parking). Only Reraise/Invisible are wired
+    // (Larceny.Policy.cs).
     [JsonProperty("larcenyTurns")] public int LarcenyTurns { get; set; }
-    // ULTIMA (Materia Blade): always-on PA-scaling by the wielder's current HP% --
-    // round(naturalPA × UltimaMul[tier][hpBand]). Owns the PA lane (Route declines it).
-    // Faithful to FF7's Ultima Weapon: damage swells with the wielder's current HP.
-    // Tier only RAISES the whole curve (no flip); the blade is never a death trap when hurt.
+    // Ultima (Materia Blade): PA = round(naturalPA * UltimaMul[tier][hpBand]); owns the PA lane.
     [JsonProperty("ultima")] public bool Ultima { get; set; }
-    // BENEDICTION (Sanctus Staff "Benediction"): while a +3 Sanctus Staff wielder is the acting
-    // unit, any HP rise on a live ALLY during the wielder's action window (or within the grace
-    // period after) is boosted by this percentage. Computed on the observed restored HP (not the
-    // spell's nominal output), so an overheal yields no bonus. 0 = not a benediction weapon.
+    // Benediction (Sanctus Staff): ally HP restored during the wielder's action window is boosted
+    // by this percent. Uses observed HP, so overheal earns nothing.
     [JsonProperty("healBoostPct")] public int HealBoostPct { get; set; }
-    // SANCTUARY (Staff of the Magi "Sanctuary"): while a +3 Staff of the Magi bearer is alive,
-    // every fallen ALLY's crystal counter (combat +0x07 / band -0x15) is held at SanctuaryHearts
-    // (3) each tick -- the revive window never closes. false = not a sanctuary weapon.
+    // Sanctuary (Staff of the Magi): fallen allies' crystal counter (combat +0x07 / band -0x15) held at SanctuaryHearts.
     [JsonProperty("antiCrystallize")] public bool AntiCrystallize { get; set; }
-    // KOBU (Kiyomori "Kobu"): on a melee hit the wielder lands (acting-main-hand gate, mirrors Maim),
-    // if the struck foe's CURRENT brave (band +0x0F) exceeds the wielder's LIVE current brave, raise
-    // the wielder's current brave ONCE to match (cap Tuning.KobuBraveCap); no hold, no ceiling --
-    // brave falls freely between strikes. Katana formula 1: PA x Brave/100 x WP. false = not a kobu weapon.
+    // Kobu (Kiyomori): a melee hit raises the wielder's brave to the target's (band +0x0F), once,
+    // capped at Tuning.KobuBraveCap. Katana formula 1: PA x Brave/100 x WP.
     [JsonProperty("braveOneUp")] public bool BraveOneUp { get; set; }
-    // IAI (Ame-no-Murakumo "Iai"): at AtTier, each deployed main-hand wielder's scheduler CT
-    // (band +0x25) is held at 100 every tick from battle open until the wielder's first turn ends
-    // (CT pull-down detection, per-wielder; keyed on the roster fingerprint). false = not an iai weapon.
+    // Iai (Ame-no-Murakumo): wielder CT (band +0x25) held at 100 until their first turn ends.
     [JsonProperty("iai")] public bool Iai { get; set; }
-    // MUSHIN (Kiku-ichimonji "Mushin"): at AtTier, a full ROUND of stillness (no move, no action)
-    // arms ONE charge; the wielder's next attack spends it in a single boosted hit (owns the PA
-    // lane, see GrowthEngine.Mushin.cs), then the charge clears. false = not a mushin weapon.
+    // Mushin (Kiku-ichimonji): a full round of stillness arms one boosted attack (GrowthEngine.Mushin.cs).
     [JsonProperty("mushin")] public bool Mushin { get; set; }
-    // BULWARK (Sunderer "Bulwark", docs/BULWARK_AC.md): at AtTier, a full WAIT turn (no move, no
-    // act -- Mushin's exact falling-edge shape) plants the blade: the one vacant tile directly
-    // behind the wielder is barred (terrain-grid byte +6 bit 0x02) until the wielder's next turn
-    // opens, dies, or cannot be located, restored on every end including battle exit. false = not a bulwark weapon.
+    // Bulwark (Sunderer, docs/BULWARK_AC.md): a full Wait bars the vacant tile behind the wielder
+    // (terrain-grid byte +6 bit 0x02) until their next turn, death, or loss of location.
     [JsonProperty("bulwark")] public bool Bulwark { get; set; }
-    // GUN SLINGER (Blaster "Gun Slinger"): at +3 with the Blaster equipped as the main hand,
-    // writes a twin Blaster into the wielder's roster off-hand (ROffHand +0x18, u16) and Dual Wield
-    // (support Key 477) into the roster support slot (RSupport +0x0A, u16 ability Key) between
-    // battles, with snapshot+restore of the originals. NOT in-battle (no ISignature tick). false = not a gun-slinger weapon.
+    // Gun Slinger (Blaster): between battles, a twin Blaster goes in the roster off-hand
+    // (ROffHand +0x18) and Dual Wield (Key 477) in the support slot (RSupport +0x0A); restored after.
     [JsonProperty("gunSlinger")] public bool GunSlinger { get; set; }
 }
 
 internal static class MetaLoader
 {
-    /// <summary>Load meta.json from the mod directory. Missing/parse failure ->
-    /// empty map (growth falls back to PA, display shows nothing) rather than a crash.</summary>
+    /// <summary>Load meta.json from the mod directory. A missing or unparseable file gives an
+    /// empty map (growth falls back to PA, display shows nothing) instead of a crash.</summary>
     public static Dictionary<int, WeaponMeta> Load(string modDir)
     {
         try

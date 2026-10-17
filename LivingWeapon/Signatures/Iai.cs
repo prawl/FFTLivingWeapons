@@ -4,114 +4,13 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Ame-no-Murakumo's "Iai" signature: opening-turn Speed hold. At +3, every deployed
-/// main-hand wielder's Speed is held at field-max + Tuning.IaiSpeedMargin from battle-open
-/// so it goes first (turn order = Speed; ties lose). After the wielder takes its opening
-/// turn, Speed reverts to the captured natural.
-///
-/// Speed byte: entry + Offsets.ASpeed (= CSpeed 0x40 - BandEntry 0x1C = 0x24).
-/// LIVE-VERIFIED 2026-07-01: write-50 to entry+0x24 -> displayed Speed 50 + unit goes first.
-///
-/// Release detection (REBUILT 2026-07-01, positional -- the own-CT apparatus is DEAD): the
-/// engine's own ActorPtr global (Offsets.ActorPtr, resolved to a band-entry ADDRESS via
-/// Band.ActorEntry) is compared against each wielder's own band entry. Fires on arrival (the
-/// pointer transitions to the wielder's entry) OR an Acted-edge match (the flag rises 0-&gt;1
-/// while the pointer already equals the wielder's entry) -- see Iai.Policy.ReleaseSignal for the
-/// pure decision and its priming contract. The prior own-CT pull-down (entry+ACtSlam read,
-/// ClassifyCt, IaiCtHigh/IaiCtReleased) is DELETED: it re-derived the acting unit's own scheduler
-/// CT, which read cleanly on ENEMY turns (Maim still uses it) but INCONSISTENTLY
-/// on the PLAYER'S OWN actively-managed unit -- live 2026-07-01's 3-unit repro (two Ame-no-
-/// Murakumo wielders + a faster Ninja) showed one of the two wielders never observing its own
-/// CT pull-down, so it never released and stayed pinned at fieldMax+1 until the 90s wall-clock
-/// cap. ActorPtr sidesteps the read-reliability problem: it is the engine's OWN notion of "whose
-/// turn is it right now", observed 2026-07-01 by tools/probes/unitid_probe.py "watch" (see
-/// docs/LIVE_LEDGER.md's Uncertain row -- flip pending Patrick's live-verify of THIS rebuild).
-///
-/// RELEASE v2 -- IDENTITY-MATCH (same day, 2026-07-01, tools/probes/unitid_probe.py "watch"/
-/// "find"): the ADDRESS-compare release above still starves. Root cause: band seat 28 is a
-/// revolving engine MIRROR frame that clones different real units over time WITH real positions
-/// (observed carrying the Samurai's identity, then later the Ninja's, in the same battle). When
-/// it mirrors an Iai wielder, Wielder.Locate sees TWO real-position entries sharing
-/// (weapon,brave,faith) and ambiguity-bails (returns 0) -- the wielder drops out of the per-tick
-/// _wielders list. Two consequences of the OLD design, both fixed here: (a) the wielder's real
-/// arrival (its actual turn) is consumed unseen, because the release check lived INSIDE the
-/// resolved-_wielders loop and _prevActing advanced regardless; (b) the wall-clock cap ALSO lived
-/// inside that loop, so a never-resolving wielder never even capped -- a starved hold with no
-/// backstop. Fix: every unreleased HoldState now captures its roster nameId ONCE at arm time
-/// (Wielder.RosterNameId, from the roster copy) and identity-matches it against the ACTING
-/// entry's frame nameId back-reference (Offsets.ANameId, one guarded read per tick) --
-/// Iai.Policy.ReleaseSignalById. The frame nameId survives the mirror churn even when the
-/// wielder's own band-entry ADDRESS does not, because the ACTOR POINTER always names the real
-/// frame (mirrors never become the acting unit's pointer target). Release AND cap now run in one
-/// pass over every unreleased hold, AFTER the wielder-resolve/boost loop, regardless of whether
-/// that hold's wielder resolved THIS tick -- closing both (a) and (b). A hold whose nameId
-/// capture failed (Wielder.RosterNameId returned zero or negative) falls back to the original
-/// address-compare ReleaseSignal against the hold's last-known entry (HoldState.LastEntry) --
-/// degraded to v1 behavior for that hold, never worse.
-///
-/// No fingerprint re-identification for release: each wielder's band entry ADDRESS is compared
-/// directly, so two wielders with identical (maxHP,hp,level) release independently.
-///
-/// Field-max scan excludes ALL resolved Iai wielders (not just self) so two wielders do not
-/// ratchet each other's Speed upward every tick (F2). fieldMax is computed once per tick.
-///
-/// Capture-before-write: NaturalSpeed is captured once on first sane sight before the first
-/// boost. Release writes the original capture back, so even many boosted ticks leave no residue.
-///
-/// Backstop: wall-clock IaiHoldCapSeconds releases even when the pointer never resolves to a
-/// wielder's entry (safety terminator -- a permanent fast unit all battle is the worst-case miss).
-/// Fires for every unreleased hold independent of _wielders resolution (see RELEASE v2 above);
-/// its restore is always best-effort via HoldState.LastEntry (a stale address is still better
-/// than leaving a wielder permanently fast for the rest of the battle).
-///
-/// FP-TWIN COLLISION (LW-252 stage 5, 2026-08-17): two wielders sharing an IDENTICAL roster
-/// fingerprint (lvl,br,fa) used to collide on the fp-keyed <see cref="_holds"/> dictionary and
-/// share one HoldState -- CLOSED for the common case: <see cref="_holds"/> is now a
-/// <see cref="WielderKeyedStore{TState}"/>, keyed primarily on each wielder's OWN roster nameId
-/// (each <see cref="_wielders"/> tuple carries its own row's nameId since LW-252 stage 5 widened
-/// Wielder.ResolveDeployedMainHandAll), so two SEEDED fp-twins now arm and release fully
-/// independent HoldStates. REMAINING LIMITATION, MASTER-PARITY (not a regression -- this pair was
-/// never distinguishable before this stage either): a MIXED pair where at least one member's
-/// nameId never resolves (genuinely unseeded, not merely a transient 0) still shares one HoldState
-/// -- WielderKeyedStore's own law (see its class doc): without ANY readable identity for that
-/// member, there is nothing to key it apart from its twin. Vanishingly rare (the live repro's two
-/// wielders had distinct fingerprints); the release SIGNAL itself never depended on the
-/// fingerprint at all -- only the arming/hold bookkeeping does. Still covers a shared/ambiguous
-/// roster-nameId capture: Wielder.RosterNameId returns -1 when it can't uniquely identify a
-/// nameId for a hold's fp, which just routes that hold to the address-fallback path above -- never
-/// a crash, never a silent starve. And the inverse corner: two wielders with DIFFERENT
-/// fingerprints whose roster slots carry the SAME nameId (duplicated roster identities) would both
-/// identity-match the same acting unit and release together on the first one's turn --
-/// premature-release direction only (both lose the boost early; nobody is left permanently fast),
-/// so it fails safe.
-///
-/// LW-90 post-release corrective. Its premise was OBSERVED live 2026-07-21 (owner repro
-/// session) but is NOT proven: docs/LIVE_LEDGER.md files that row under Uncertain, and only
-/// the owner flips a row to Proven, so treat what follows as the working theory the corrective
-/// is built on. The theory: the engine's per-turn normalize re-paints the unit's baseline after
-/// our release, and that baseline captured our boost (Iai arms at battle open, before the
-/// snapshot), so the released boost came back in every Iai battle observed so far unless
-/// re-corrected: fresh battles ride the hold's own
-/// LastTarget, restarted ones the ledger's BakedResidue; the corrective watches both. Accepted
-/// corner: it rewrites natural over ANY byte reading exactly one of those two values for the
-/// rest of the battle, with no foreign-value discrimination -- a real Speed buff landing the
-/// wielder exactly on such a value is repeatedly stomped (guarded, natural-derived, one battle,
-/// needs the exact collision).
-///
-/// LW-71 FLAGS CORROBORATION (2026-07-11): the ActorPtr release above still parks on STRUCK
-/// units, so an enemy hitting the wielder before its own opening turn can false-release it via a
-/// parked-pointer arrival mid-enemy-turn. Every release is now corroborated against the per-unit
-/// PSX turn flag (<see cref="Band.FlagOwner"/>, LW-63, proven live manual + auto-battle
-/// 2026-07-11), which names whichever unit's turn is structurally OPEN. Iai.Policy.FlagCorroboration
-/// verdicts: CONFIRM (flag owner IS the wielder) releases alone, regardless of the legacy signal;
-/// REFUSE (flag owner is someone else) blocks release even against a firing legacy signal, the
-/// actual fix; INDETERMINATE (unresolved, e.g. a genuine zero-t battle-opening record, or an
-/// uncomparable identity) falls through to the legacy signal so release never starves. A
-/// CONFIRMED release restores Speed to the FLAG OWNER's entry, never the pointer's, since the
-/// pointer may be parked elsewhere at that exact instant. Degraded corner (cap-bounded, no worse
-/// than the pre-existing v1 address-fallback lane): a STALE LastEntry on an address-fallback hold
-/// can be falsely Refused during the wielder's real turn, because the fresh flag-owner address
-/// never matches the stale one.
+/// Ame-no-Murakumo "Iai": at +3 each deployed main-hand wielder's Speed is held at field-max + Tuning.IaiSpeedMargin from battle open so it acts first, then reverts to its captured natural after its opening turn.
+/// Speed byte is entry + Offsets.ASpeed (0x40 - 0x1C = 0x24); writing 50 showed Speed 50 and the unit went first (2026-07-01).
+/// Release (rebuilt 2026-07-01, tools/probes/unitid_probe.py "watch"/"find"; docs/LIVE_LEDGER.md row still Uncertain): ActorPtr arrival or an Acted-edge, matched by roster nameId against the acting frame's nameId (Iai.Policy.ReleaseSignalById).
+/// Band seat 28 is a mirror frame that clones real units and makes Wielder.Locate bail, so release and the IaiHoldCapSeconds cap run over every hold, resolved or not.
+/// nameId is used because the pointer always names the real frame, never the seat-28 mirror, so it survives churn when the address does not.
+/// A hold with no nameId falls back to the address compare (Iai.Policy.ReleaseSignal). An own-CT pull-down was dropped because it read unreliably on the player's own unit.
+/// The field-max scan excludes all Iai wielders (F2); natural Speed is captured once before the first boost (F5).
 /// </summary>
 internal sealed partial class Iai : ISignature
 {
@@ -125,16 +24,12 @@ internal sealed partial class Iai : ISignature
     private readonly Dictionary<int, int> _kills;
     private readonly NaturalLedger _ledger;
     private readonly List<(long entry, (int lvl, int br, int fa) fp, int nameId)> _wielders = new();
-    // LW-252 stage 5: re-keyed off WielderKeyedStore -- see its class doc for the resolution law.
-    // Closes the fp-twin collision the old fp-only dictionary carried as a documented limitation
-    // (below): two SEEDED fp-twin wielders now get independent HoldStates; a mixed pair (either
-    // member genuinely unseeded) still shares one, matching yesterday's behavior for that pair.
+    // LW-252 stage 5 (2026-08-17): keyed by nameId, fp fallback (see WielderKeyedStore). Seeded fp-twins get separate holds;
+    // a pair where either nameId never resolves still shares one, and two wielders with the same nameId release together early (fails safe).
     private readonly WielderKeyedStore<HoldState> _holds = new();
 
-    // Priming (F5, load-bearing -- see Iai.Policy.ReleaseSignal's doc comment): both
-    // previous-state values are seeded from the CURRENT read on the first evaluated tick
-    // WITHOUT evaluating a release that tick. ResetBattle clears _primed so a new battle
-    // re-primes instead of reusing a stale prior battle's pointer/Acted state.
+    // Priming (F5, see Iai.Policy.ReleaseSignal): the first evaluated tick seeds the previous-state values without releasing.
+    // ResetBattle clears _primed so a new battle does not reuse stale pointer/Acted state.
     private bool _primed;
     private long _prevActing;
     private bool _prevActed;
@@ -145,8 +40,7 @@ internal sealed partial class Iai : ISignature
         _mem   = mem ?? new LiveMemory();
         _meta  = meta;
         _kills = kills;
-        // LW-90: Engine passes the ONE shared instance (mushinArmed precedent); the default is
-        // only for tests, where a private ledger is inert unless the test drives it.
+        // LW-90: Engine passes the shared ledger; the default is for tests.
         _ledger = ledger ?? new NaturalLedger();
     }
 
@@ -166,28 +60,21 @@ internal sealed partial class Iai : ISignature
 
         Wielder.ResolveDeployedMainHandAll(_mem, AmeNoMurakumoId, _wielders);
 
-        // Collect all Iai wielder entries before the scan so the field-max excludes them all (F2):
-        // excluding only self makes two wielders ratchet each other upward to the sane clamp.
+        // Collect every Iai wielder entry first so the field-max excludes them all (F2); excluding only self lets two wielders ratchet each other up.
         var wielderEntries = new HashSet<long>(_wielders.Count);
         foreach (var (e, _, _) in _wielders) wielderEntries.Add(e);
 
         int fieldMax = ScanFieldMax(wielderEntries);
 
-        // One pointer + one Acted read per tick (not per wielder -- the engine has ONE acting
-        // unit at a time).
+        // One pointer and one Acted read per tick; the engine has one acting unit at a time.
         long acting = Band.ActorEntry(_mem);
         bool actedNow = _mem.U8(Offsets.Acted) == 1;
         bool evaluate = _primed;
         if (!_primed) { _prevActing = acting; _prevActed = actedNow; _primed = true; }
-        // One guarded read for the acting entry's frame nameId (Offsets.ANameId). U16 fail-safes
-        // to 0 on an unreadable/invalid address, which the ReleaseSignalById holdNameId>0 guard
-        // never matches (the 0==0 trap) -- see Iai.Policy.cs.
+        // U16 returns 0 on an unreadable address; ReleaseSignalById requires holdNameId > 0 so 0 never matches 0.
         int actingNameId = acting != 0 ? _mem.U16(acting + Offsets.ANameId) : 0;
 
-        // LW-71: one guarded FlagOwner walk + one guarded nameId read per tick (not per wielder),
-        // corroborating every hold's release against the per-unit PSX turn flag (structurally
-        // names whichever unit's turn is OPEN, immune to the parked-pointer bug the pointer/Acted
-        // signal above is exposed to, see the class doc comment).
+        // LW-71 (2026-07-11, flags lane LW-63): the actor pointer parks on struck units, so a hit before the wielder's turn could false-release it; the PSX turn flag names whose turn is actually open.
         bool flagResolved = Band.FlagOwner(_mem, out long flagEntry, out _);
         int flagNameId = flagResolved ? _mem.U16(flagEntry + Offsets.ANameId) : 0;
 
@@ -198,21 +85,13 @@ internal sealed partial class Iai : ISignature
         _prevActed = actedNow;
     }
 
-    /// <summary>Pass 1 (S2 extraction, mechanical -- moved verbatim out of Tick): arm/hold every
-    /// resolved wielder this tick. Capture natural once (F5), then write the clamped Speed target
-    /// every tick while unreleased; a released wielder instead gets the LW-90 post-release
-    /// corrective (see the class doc comment). <paramref name="fieldMax"/> is the scan result
-    /// computed once per tick in Tick; <paramref name="now"/> is Tick's own clock parameter.</summary>
+    /// <summary>Pass 1: arm and hold each resolved wielder (capture natural once, then write the clamped Speed every tick);
+    /// released wielders get the LW-90 corrective below.</summary>
     private void ApplyHolds(DateTime now, int fieldMax)
     {
         foreach (var (entry, fp, nameId) in _wielders)
         {
-            // LW-252 stage 5: keyed via WielderKeyedStore (nameId primary, fp fallback -- see its
-            // class doc). The factory below runs ONLY on a genuine first arm (never on an
-            // alias-adopt, so NameId capture + the arm log still fire exactly once per hold's
-            // lifetime, byte-identical to the old TryGetValue-miss branch). null = LW-252 SKIP
-            // (an ambiguous nameId-0 tick for a fp two SEEDED twins already registered): treat
-            // this wielder exactly as "not located this tick" -- no create, no re-arm, no write.
+            // LW-252 stage 5: factory runs only on a genuine first arm. null means an ambiguous nameId-0 tick while two seeded fp-twins already hold, so treat it as not located this tick.
             var state = _holds.GetOrCreate(nameId, fp, () =>
             {
                 var s = new HoldState { ArmedAt = now };
@@ -222,9 +101,7 @@ internal sealed partial class Iai : ISignature
             });
             if (state == null) continue;
 
-            // Refresh the last-known-resolved entry every tick this wielder appears in _wielders,
-            // whether or not it is still held -- the release+cap pass below needs it even on
-            // ticks where Locate ambiguity-bails (mirror churn) and _wielders comes up empty.
+            // Refresh every tick so the release/cap pass has an address even when mirror churn drops the wielder from _wielders.
             state.LastEntry = entry;
 
             long spAddr = entry + Offsets.ASpeed;
@@ -232,22 +109,9 @@ internal sealed partial class Iai : ISignature
 
             if (state.Released)
             {
-                // LW-90 post-release corrective hold. Premise OBSERVED live 2026-07-21 (the
-                // owner's repro session, 11:03-11:08 log), NOT proven: the LIVE_LEDGER row is
-                // still Uncertain, owner flip pending. The theory: the engine's per-turn
-                // normalize re-paints the unit's baseline AFTER our release, and that baseline
-                // captured our boost (Iai arms within ~100ms of battle open, before the game
-                // snapshots it), so in every Iai battle observed so far, restarted or fresh,
-                // the released boost came back
-                // unless re-corrected. Watch BOTH known-ours values for the rest of the
-                // battle: the ledger-flagged restart residue (BakedResidue) AND the hold's
-                // own last written target (LastTarget; the fresh-battle case, which the
-                // residue-only corrective missed while the owner watched Speed ride at 13).
-                // Living in the resolved-wielder loop is safe for an identified wielder: the
-                // D3 tier-1 tie-break resolves nameId-verified mirror copies instead of
-                // bailing (pinned by IaiTests.Post_release_corrective_survives_mirror_churn).
-                // Verdict extracted to Iai.Policy.OursResidue (S2); the write guard right below
-                // stays here at the call site.
+                // LW-90 corrective (observed 2026-07-21, owner repro 11:03-11:08 log, docs/LIVE_LEDGER.md row still Uncertain): the engine's per-turn normalize re-paints a baseline that captured our boost (Iai arms ~100ms after battle open), so the boost returns after release.
+                // Watch BakedResidue (restart case) and LastTarget (fresh battle) for the rest of the battle; a real Speed buff landing on either value gets overwritten.
+                // Safe inside the resolved loop because the D3 tier-1 tie-break resolves nameId-verified mirror copies (IaiTests.Post_release_corrective_survives_mirror_churn).
                 int cur0 = _mem.U8(spAddr);
                 bool ours = OursResidue(cur0, state.BakedResidue, state.LastTarget, state.NaturalSpeed);
                 if (ours && state.NaturalSpeed >= SpeedSaneMin)
@@ -263,11 +127,9 @@ internal sealed partial class Iai : ISignature
             int cur = _mem.U8(spAddr);
             if (state.NaturalSpeed < SpeedSaneMin)
             {
-                // First sight: capture before boosting (F5). Skip if cur is not sane.
+                // Capture before boosting (F5); skip if the read is not sane.
                 if (cur < SpeedSaneMin || cur > SpeedSaneMax) continue;
-                // LW-90: the ledger sees through the mod's own restart residue (a first sight
-                // that exactly equals a target recorded for this unit in the previous battle
-                // attempt); everything else passes through and refreshes the entry.
+                // LW-90: the ledger discards a first sight equal to a target recorded for this unit in the previous attempt (restart residue).
                 state.NaturalSpeed = _ledger.FilterCapture(state.NameId, StatLane.Speed, cur, fp.lvl, out int baked);
                 state.BakedResidue = baked;
                 if (baked > 0)
@@ -278,23 +140,15 @@ internal sealed partial class Iai : ISignature
 
             int raw     = Target(state.NaturalSpeed, fieldMax, Tuning.IaiSpeedMargin);
             int clamped = raw < SpeedSaneMin ? SpeedSaneMin : raw > SpeedSaneMax ? SpeedSaneMax : raw;
-            // LW-90: record every held target per evaluation (the ledger dedups), so a restarted
-            // battle's first sight of this exact value is recognized as the mod's own residue;
-            // LastTarget feeds the post-release corrective (the engine appears to normalize our
-            // boost back after release: observed 2026-07-21, LIVE_LEDGER row still Uncertain).
+            // LW-90: record each held target so a restart recognizes it as residue; LastTarget feeds the post-release corrective.
             _ledger.RecordWrite(state.NameId, StatLane.Speed, clamped);
             state.LastTarget = clamped;
             _mem.W8(spAddr, (byte)clamped);
         }
     }
 
-    /// <summary>Pass 2 (S2 extraction, mechanical -- moved verbatim out of Tick): release + cap,
-    /// one pass over EVERY unreleased hold, not just this tick's resolved _wielders (N6 FIX,
-    /// 2026-07-01) -- a mirror-churned wielder that ambiguity-bails out of _wielders must still be
-    /// able to release (identity path) and must still be able to cap (wall-clock backstop,
-    /// previously starved alongside it). All parameters are Tick locals computed once per tick,
-    /// before either pass runs; <see cref="_prevActing"/>/<see cref="_prevActed"/> stay field
-    /// reads (Tick advances them itself, after both passes).</summary>
+    /// <summary>Pass 2: release and cap over every unreleased hold, not just this tick's _wielders,
+    /// so a mirror-churned wielder can still release and still hit the wall-clock cap (N6, 2026-07-01).</summary>
     private void SweepReleases(bool evaluate, long acting, bool actedNow, int actingNameId,
         bool flagResolved, long flagEntry, int flagNameId, DateTime now)
     {
@@ -306,10 +160,8 @@ internal sealed partial class Iai : ISignature
             bool legacy = identity
                 ? ReleaseSignalById(_prevActing, acting, _prevActed, actedNow, actingNameId, state.NameId)
                 : ReleaseSignal(_prevActing, acting, _prevActed, actedNow, state.LastEntry);
-            // LW-71: corroborate the legacy pointer signal against the turn-flags owner. Identity
-            // path compares nameId (0 on either side is an unidentifiable owner, never a match,
-            // the same 0==0 trap ReleaseSignalById guards against); address path compares the
-            // flag owner's entry directly against this hold's last-known address.
+            // LW-71: corroborate the legacy signal against the turn-flag owner. Identity path compares nameId (0 is never a match); address path compares the owner's entry to LastEntry.
+            // Known corner: a stale LastEntry on an address-fallback hold can be falsely Refused on the real turn; the cap bounds it.
             FlagVerdict flags = identity
                 ? FlagCorroboration(flagResolved, ownerIdentityKnown: flagNameId > 0, ownerIsWielder: flagNameId == state.NameId)
                 : FlagCorroboration(flagResolved, ownerIdentityKnown: state.LastEntry != 0, ownerIsWielder: flagEntry == state.LastEntry);
@@ -317,15 +169,8 @@ internal sealed partial class Iai : ISignature
             bool capFired = !released && (now - state.ArmedAt).TotalSeconds >= Tuning.IaiHoldCapSeconds;
             if (!released && !capFired) continue;
 
-            // Restore address (LW-71): a flags-CONFIRMED release can fire while the pointer is
-            // parked on a DIFFERENT unit entirely, so it restores to the FLAG OWNER's entry (the
-            // wielder's real frame at this instant), never the pointer's. A legacy identity
-            // release still restores to the pointer-provided REAL entry (authoritative at exactly
-            // this instant); a legacy address-fallback release and the cap both restore to the
-            // hold's last-known entry (best-effort: a stale address is still better than leaving
-            // the wielder permanently fast for the rest of the battle). LastEntry is 0 only if a
-            // hold was somehow never armed via the _wielders loop (defensive; skip the write).
-            // Verdict extracted to Iai.Policy.RestoreAddress (S2).
+            // Restore address (LW-71): a flags-confirmed release restores to the flag owner's entry since the pointer may be parked elsewhere;
+            // an identity release uses the pointer's entry; address-fallback and cap use LastEntry (stale beats leaving the unit fast). LastEntry 0 skips the write.
             var (restoreAddr, confirmed) = RestoreAddress(released, identity, flags, flagEntry, acting, state.LastEntry);
             if (restoreAddr != 0 && state.NaturalSpeed >= SpeedSaneMin && _mem.Writable(restoreAddr, 1))
                 _mem.W8(restoreAddr, (byte)state.NaturalSpeed);
@@ -336,10 +181,8 @@ internal sealed partial class Iai : ISignature
         }
     }
 
-    /// <summary>Max Speed among all valid band entries NOT in <paramref name="wielderEntries"/>,
-    /// sane-gated to 1..99 so one garbage-high read cannot pin wielders to the clamp.
-    /// Returns 0 when every valid entry is an Iai wielder (all-Iai battle; target falls
-    /// back to max(natural, 0+margin) = natural, which is safe).</summary>
+    /// <summary>Max Speed among valid band entries not in <paramref name="wielderEntries"/>, sane-gated to 1..99 so one garbage read cannot pin wielders to the clamp.
+    /// Returns 0 when every valid entry is a wielder, so the target falls back to natural.</summary>
     private int ScanFieldMax(HashSet<long> wielderEntries)
     {
         int max = 0;
@@ -354,33 +197,20 @@ internal sealed partial class Iai : ISignature
         return max;
     }
 
-    /// <summary>Mutable per-wielder hold state, keyed via <see cref="WielderKeyedStore{TState}"/>
-    /// in <see cref="_holds"/> (LW-252 stage 5: nameId primary, fp fallback -- see its class doc).
-    /// A reference type so Tick mutates the SAME instance in place across ticks.</summary>
+    /// <summary>Mutable per-wielder hold state, stored in <see cref="_holds"/> (LW-252 stage 5). A class so Tick mutates it in place.</summary>
     private sealed class HoldState
     {
         public DateTime ArmedAt;
         /// <summary>Captured on first sane sight before the first boost; -1 = not yet captured.</summary>
         public int NaturalSpeed = -1;
-        /// <summary>LW-90: the residue value a corrected capture read (the mod's own prior
-        /// boost, baked into the restarted battle's byte); 0 = the capture was clean. While
-        /// set, the post-release corrective hold re-writes NaturalSpeed over any byte reading
-        /// exactly this value.</summary>
+        /// <summary>LW-90: the residue value a corrected capture read (the mod's own prior boost); 0 = clean. The corrective rewrites NaturalSpeed over any byte reading this.</summary>
         public int BakedResidue;
-        /// <summary>The hold's own last written target this battle; 0 = never held. The
-        /// post-release corrective's second token: the engine's normalize appears to re-paint
-        /// OUR boost after release in fresh battles too (observed 2026-07-21, LIVE_LEDGER row
-        /// still Uncertain), where BakedResidue is 0 because the capture was clean.</summary>
+        /// <summary>Last written target this battle; 0 = never held. The corrective's second token, for fresh battles where BakedResidue is 0 (observed 2026-07-21).</summary>
         public int LastTarget;
         public bool Released;
-        /// <summary>Roster nameId captured ONCE at arm time (Wielder.RosterNameId); -1 = capture
-        /// failed (ambiguous or unmatched) -- also &lt;= 0 when a single matched roster slot's own
-        /// nameId read 0 (unseeded/invalid). Either way the caller's guard is "&gt; 0"; a
-        /// non-positive value routes release/cap restore through the address-fallback path.</summary>
+        /// <summary>Roster nameId captured at arm time (Wielder.RosterNameId); -1 = capture failed, &lt;= 0 also when the slot's nameId read 0. Non-positive routes release to the address fallback.</summary>
         public int NameId = -1;
-        /// <summary>The most recent band entry this hold's wielder resolved to (updated every tick
-        /// it appears in _wielders). The address-fallback release target AND the cap's best-effort
-        /// restore address -- both survive a tick (or many) where the wielder fails to resolve.</summary>
+        /// <summary>Last band entry this hold resolved to: the address-fallback release target and the cap's restore address.</summary>
         public long LastEntry;
     }
 }

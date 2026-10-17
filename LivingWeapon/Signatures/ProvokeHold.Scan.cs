@@ -3,38 +3,30 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// ProvokeHold's band-address-space half: locate the marked enemy, re-locate any previously-seen
-/// identity, and enumerate who counts as a hide target. The real seam that keeps ProvokeHold.cs
-/// under the 200-line refactor trigger -- every raw band walk lives here, nowhere else.
-///
-/// Identity is the SAME (nameId, maxHp, level, brave, faith) tuple <see cref="Band.FlagOwner"/> and
-/// <see cref="Wielder"/> already key on elsewhere in this codebase: nameId narrows when it reads
-/// nonzero on both sides, the (maxHp,level,brave,faith) fingerprint is the fallback that also lets
-/// two nameId-unseeded twins still resolve deterministically to the FIRST real-position match.
+/// ProvokeHold's band walks: find the marked enemy, re-locate a seen identity, list hide targets.
+/// Split out of ProvokeHold.cs to keep it under the 200-line trigger.
+/// Identity is the (nameId, maxHp, level, brave, faith) tuple that <see cref="Band.FlagOwner"/> and
+/// <see cref="Wielder"/> also use. A nonzero nameId on both sides must agree; otherwise the
+/// fingerprint decides, and unseeded twins resolve to the first real-position match.
 /// </summary>
 internal sealed partial class ProvokeHold
 {
-    /// <summary>Signatures.StuckEdge latch for ScrubPlayerSideMarks' refused-write WARN (LW-130).
-    /// Declared here, not in ProvokeHold.cs, to keep that file's growth to the two call lines the
-    /// spec asked for.</summary>
+    /// <summary>Latch for ScrubPlayerSideMarks' refused-write WARN (LW-130).</summary>
     private bool _scrubRefusedLogged;
 
-    /// <summary>LW-136's debounce counter, declared here with its method for the same reason.</summary>
+    /// <summary>Debounce counter for ScrubUnarmableMark (LW-136).</summary>
     private int _unarmableTicks;
 
-    /// <summary>Every valid, on-field seat's identity tuple, read straight off its own band entry.</summary>
+    /// <summary>Identity tuple of one band entry.</summary>
     private static (int nameId, int mhp, int lvl, int br, int fa) ReadIdentity(IGameMemory mem, long e) =>
         (mem.U16(e + Offsets.ANameId), mem.U16(e + Offsets.AMaxHp), mem.U8(e + Offsets.ALevel),
          mem.U8(e + Offsets.ABrave), mem.U8(e + Offsets.AFaith));
 
-    /// <summary>The seat's board tile, for criterion 15's log lines. Lives here with every other raw
-    /// band read rather than inline in the state machine, which is this partial's whole contract.</summary>
+    /// <summary>The seat's board tile, for log lines (criterion 15).</summary>
     private static (int gx, int gy) ReadTile(IGameMemory mem, long e) =>
         (mem.U8(e + Offsets.AGx), mem.U8(e + Offsets.AGy));
 
-    /// <summary>Same identity: the (maxHp,level,brave,faith) fingerprint must match; a nameId that
-    /// reads nonzero on BOTH sides must also agree (an unseeded/zero nameId on either side trusts the
-    /// fingerprint alone, the same veto shape <see cref="Wielder"/>'s locate layer uses).</summary>
+    /// <summary>Same fingerprint, and the same nameId unless either side reads 0.</summary>
     private static bool SameIdentity((int nameId, int mhp, int lvl, int br, int fa) a,
                                      (int nameId, int mhp, int lvl, int br, int fa) b)
     {
@@ -42,83 +34,44 @@ internal sealed partial class ProvokeHold
         return a.nameId == 0 || b.nameId == 0 || a.nameId == b.nameId;
     }
 
-    /// <summary>Decision 6: enemy iff the friend/foe bit (band +0x1D2 bit 0x10) is set. Read-only.</summary>
+    /// <summary>Decision 6: enemy iff the friend/foe bit (band +0x1D2 bit 0x10) is set.</summary>
     private static bool IsEnemySide(IGameMemory mem, long e) =>
         (mem.U8(e + Offsets.AFriendFoe) & Offsets.AFriendFoeEnemyBit) != 0;
 
-    /// <summary>Does the engine's own actor pointer (Offsets.ActorPtr, via Band.ActorEntry) currently
-    /// name a band entry sharing the marked enemy's identity? Replaces reading the marked enemy's own
-    /// ATurnFlag byte, observed FLAKY live 2026-07-22 (hid 0 units one attempt, missed the turn-done
-    /// edge another -> 30s watchdog); the actor pointer names the acting unit reliably on both teams
-    /// (LIVE_LEDGER "actor pointer names the acting unit" 2026-07-01). No Band.IsValid gate on the
-    /// pointed-to entry -- mirrors Iai's own actor-nameId read (Iai.cs), which trusts Band.ActorEntry's
-    /// own pointer-shape validation and skips content sanity, since a garbage/zeroed entry can only
-    /// coincidentally collide with an already-validated marked identity. Callers must ALSO gate on
-    /// <see cref="PlayerSideOwnsTurn"/> (LW-131): the pointer PARKS ON STRUCK VICTIMS, so during a
-    /// PLAYER turn it can name the marked enemy the instant it gets hit without that ever being its
-    /// turn (see ProvokeHoldTests' Actor_pointer_parked_on_the_marked_enemy_during_a_player_turn_does_not_count_as_its_turn).</summary>
+    /// <summary>Does the engine's actor pointer (Band.ActorEntry) name an entry with the marked
+    /// enemy's identity? Reading the enemy's own ATurnFlag was flaky on 2026-07-22 (hid 0 units once,
+    /// missed the turn-done edge once, then the 30s watchdog fired). The pointer is reliable on both
+    /// teams (LIVE_LEDGER "actor pointer names the acting unit", 2026-07-01). Like Iai.cs, it skips
+    /// Band.IsValid on the pointed-to entry. Callers must also check <see cref="PlayerSideOwnsTurn"/>
+    /// (LW-131), since the pointer parks on struck victims; see ProvokeHoldTests
+    /// Actor_pointer_parked_on_the_marked_enemy_during_a_player_turn_does_not_count_as_its_turn.</summary>
     private static bool MarkedIsActor(IGameMemory mem, (int nameId, int mhp, int lvl, int br, int fa) markedId)
     {
         long actorEntry = Band.ActorEntry(mem);
         return actorEntry != 0 && SameIdentity(ReadIdentity(mem, actorEntry), markedId);
     }
 
-    /// <summary>LW-131: TickArmed's second gate half, replacing a direct read of the cursor/team
-    /// field (Offsets.TqTeam). True iff SOME player-side seat currently owns the engine's per-unit
-    /// turn flag (<see cref="Band.FlagOwner"/>), i.e. it is provably still the player's turn.
-    ///
-    /// Why not read the marked enemy's OWN ATurnFlag instead: tried and observed FLAKY live
-    /// 2026-07-22 (hid 0 units one attempt, missed the turn-done edge another -> the 30s watchdog);
-    /// see MarkedIsActor's doc comment above for the same evidence. The player-side flag read rests
-    /// on the per-unit turn/moved/acted flags row (docs/LIVE_LEDGER.md, Proven, dated 2026-07-09 --
-    /// the same row Band.cs already cites for Band.FlagOwner), which characterises band +0x19C as a
-    /// MENU-OPEN flag (set while that unit's own move/act/wait menu is up), its falling edge marking
-    /// turn end. That shape also suggests, as a plausible but unprobed explanation and nothing more,
-    /// why the enemy-side read above went flaky: a player's own turn raises that player's own menu,
-    /// so a player-side owner is a direct positive read of "the player's turn is open", whereas an
-    /// AI-driven unit never drives that menu the way a human-controlled one does. This gate
-    /// deliberately only ever asks about the player side and never leans on the flaky enemy-side
-    /// read; a probe for that explanation is banked in the LW-135 backlog row (docs/TODO.md).
-    ///
-    /// Why not delete the gate outright: the engine's actor pointer PARKS ON STRUCK VICTIMS, so a
-    /// marked enemy merely HIT during the player's own turn would otherwise read as having taken
-    /// its turn. Asking "does a player-side seat currently own the turn" closes that by
-    /// construction: an Uncertain LIVE_LEDGER row (LW-87, docs/LIVE_LEDGER.md,
-    /// observed live 2026-07-21, not owner-flipped) reports the flag holding at 1 on the ACTING unit
-    /// across a status-screen detour; if that report holds up it is still short of establishing that
-    /// the flag holds for the whole span of a turn (turn hand-offs and inter-turn gaps are untested
-    /// either way), and this gate does not need that stronger claim to work. Its best property holds
-    /// either way: it reads no cursor field at all, so it is correct whether or not Offsets.TqTeam
-    /// turns out to track the cursor (see docs/TODO.md LW-131 and its LW-135 follow-up).
-    ///
-    /// FAIL-OPEN is deliberate: if Band.FlagOwner finds nobody carrying the flag, or bails ambiguous
-    /// (two disagreeing owners), this returns false and the gate OPENS (a marked enemy caught as the
-    /// actor counts as taking its turn). That is the intended direction: a missing or enemy-owned
-    /// flag is the enemy-turn case, and it is no worse than the code this replaces -- the old
-    /// Offsets.TqTeam read already flickered to ENEMY during the PLAYER's own action resolution while
-    /// the actor pointer parked on the struck victim (an Uncertain LIVE_LEDGER row, LW-87,
-    /// docs/LIVE_LEDGER.md, observed live 2026-07-21, not owner-flipped), so the old gate had exactly
-    /// the same false-positive shape (docs/TODO.md LW-131). The best direct observation for THIS
-    /// gate's own shape is that same LW-87 row's tick census: across 804 ticks sampled on enemy
-    /// turns, Band.FlagOwner never resolved to a player-side seat ("FLAG-BRIDGE-FAIL 804 on enemy
-    /// turns, the player filter working"). An observation from an Uncertain row, not proof, but it
-    /// is exactly the "no player-side owner on an enemy turn" shape this gate relies on.</summary>
+    /// <summary>LW-131: true iff some player-side seat owns the turn flag (<see cref="Band.FlagOwner"/>),
+    /// i.e. it is still the player's turn. Replaces the Offsets.TqTeam read, which flickered to ENEMY
+    /// during the player's own action. The flag is the band +0x19C menu-open flag (docs/LIVE_LEDGER.md,
+    /// turn/moved/acted row, 2026-07-09); LW-87 (2026-07-21, not owner-flipped) saw it hold across a
+    /// status-screen detour, and LW-135 (docs/TODO.md) banks a probe. The tick census saw FlagOwner
+    /// miss a player seat on all 804 enemy-turn ticks (FLAG-BRIDGE-FAIL 804). It fails open: no owner,
+    /// or two disagreeing owners, returns false and the gate opens.</summary>
     private static bool PlayerSideOwnsTurn(IGameMemory mem) =>
         Band.FlagOwner(mem, out long owner, out _) && !IsEnemySide(mem, owner);
 
-    /// <summary>Decision 6's ghost-seat gate (criterion 7): combat +0x01 (band entry + AGateByte)
-    /// reading 0xFF marks a cutscene/ghost seat that <see cref="Band.IsValid"/> alone lets through.</summary>
+    /// <summary>Ghost-seat gate (criterion 7): combat +0x01 reading 0xFF is a cutscene/ghost seat
+    /// that <see cref="Band.IsValid"/> lets through.</summary>
     private static bool OnField(IGameMemory mem, long e) => mem.U8(e + Offsets.AGateByte) != Offsets.AGateHiddenValue;
 
-    /// <summary>Structurally dead (regardless of HP): HP reads 0, or the Dead status bit is set --
-    /// the same combined test KillTracker uses, so a status-death the 33ms poll never sees HP for is
-    /// still caught.</summary>
+    /// <summary>Dead by HP 0 or the Dead status bit, same test as KillTracker, so a status-death
+    /// the 33ms poll never saw HP for is still caught.</summary>
     internal static bool IsAlive(IGameMemory mem, long e) =>
         mem.U16(e + Offsets.AHp) > 0 && (mem.U8(e + Offsets.ADeadStatus) & Offsets.ADeadBit) == 0;
 
-    /// <summary>R2: true iff the entry's COMPOSED status carries any id in <paramref name="disablingIds"/>
-    /// (Tuning.ProvokeDisablingStatusIds) -- the provoked enemy can no longer carry out its provoked
-    /// turn (Petrify, Stop, Sleep, ...), so the hold should release rather than linger.</summary>
+    /// <summary>R2: true iff the composed status carries any of <paramref name="disablingIds"/>
+    /// (Tuning.ProvokeDisablingStatusIds), so the hold releases instead of lingering.</summary>
     internal static bool IsDisabled(IGameMemory mem, long e, int[] disablingIds)
     {
         foreach (int id in disablingIds)
@@ -130,10 +83,8 @@ internal sealed partial class ProvokeHold
         return false;
     }
 
-    /// <summary>Scan the whole band for a valid, on-field, ENEMY-side seat carrying the mark
-    /// (composed +0x45 bit 0x80). Prefers a real-position entry; returns a frozen (0,0) twin only
-    /// when no real-position candidate carries the mark. False (entry 0, identity default) when
-    /// nobody is marked.</summary>
+    /// <summary>Find a valid, on-field, enemy-side seat carrying the mark (composed +0x45 bit 0x80).
+    /// Prefers a real-position entry over a frozen (0,0) twin. False when nobody is marked.</summary>
     private static bool FindMarkedEnemy(IGameMemory mem, out long entry,
         out (int nameId, int mhp, int lvl, int br, int fa) id)
     {
@@ -162,11 +113,9 @@ internal sealed partial class ProvokeHold
         return true;
     }
 
-    /// <summary>Re-locate ANY previously-identified band entry by its captured identity: an exact
-    /// nonzero nameId match wins outright (real position or not, since nameId already proves it is
-    /// the same unit); otherwise the first real-position fingerprint match, falling back to a frozen
-    /// (0,0) twin only when no real-position candidate exists. Side-agnostic by design -- used both
-    /// to re-locate the marked enemy each armed tick and to re-locate a flagged ally at reveal time.</summary>
+    /// <summary>Re-locate a band entry by captured identity: a nonzero nameId match wins; otherwise
+    /// the first real-position fingerprint match, then a frozen (0,0) twin. Side-agnostic, used for
+    /// the marked enemy each armed tick and for a flagged ally at reveal time.</summary>
     private static long LocateByIdentity(IGameMemory mem, (int nameId, int mhp, int lvl, int br, int fa) id)
     {
         long fpReal = 0, fpAny = 0;
@@ -184,29 +133,13 @@ internal sealed partial class ProvokeHold
         return fpReal != 0 ? fpReal : fpAny;
     }
 
-    /// <summary>LW-127 (D1 revised): the CT+Speed ranking evidence for one armed tick -- everything
-    /// ActionForWithReason needs about the LOOKAHEAD half of its inputs, plus the diagnostic evidence
-    /// behind it (BLOCKER-3, adversarial review: the log/flight line this feeds must be able to tell
-    /// "the lookahead never fired" apart from "the lookahead fired but mispredicted"). Deliberately
-    /// does NOT decide the action -- that needs <see cref="_engaged"/> too (round-4 live fix, cast 3),
-    /// which is STATE the caller (TickArmed) owns and must fold in between gathering this evidence and
-    /// calling ActionForWithReason, so the engagement latch can only ever be set/cleared in ONE place.
-    /// <paramref name="markedEntry"/> is the marked enemy's own band entry, already located this tick,
-    /// or 0 when it could not be found.
-    ///
-    /// The ranking comes from <see cref="TurnOrder"/>'s CT+Speed model, ENEMY seats only (see
-    /// TurnOrder.cs for why player seats are excluded), consulted only when Tuning.ProvokeLookahead
-    /// is on; off, or when TurnOrder finds no candidate at all, <c>lookaheadFired</c> is false.
-    /// <c>markedEta</c> is computed whenever the lookahead fires and the marked seat is itself a
-    /// usable candidate, EVEN WHEN it is already the winner (markedIsNext true) -- purely for the
-    /// evidence line's sake. NULLABLE (round-3 review): a plain 0 would be ambiguous with a GENUINE
-    /// eta of 0 ("due right now") -- the two situations are opposites, and printing the same digit for
-    /// both hides exactly the rare, confusing case (BLOCKER-1's refused-seat path) the evidence line
-    /// exists to surface. Null means TryEta was never even attempted or was refused (markedEntry == 0,
-    /// or the marked seat itself fails TurnOrder's candidate filter); LogHideEdge prints a distinct
-    /// token for that case rather than a misleading 0. Instance method (not static): it needs
-    /// <see cref="_mem"/>, <see cref="_markedId"/>, and the caller-owned
-    /// <see cref="_turnOrderScratch"/> (the NIT fix: TurnOrder itself stays stateless).</summary>
+    /// <summary>LW-127 (D1 revised): the CT+Speed lookahead evidence for one armed tick, for
+    /// ActionForWithReason. It does not pick the action, since that needs <see cref="_engaged"/>,
+    /// which TickArmed owns. <paramref name="markedEntry"/> is the marked enemy's entry, or 0.
+    /// Ranking is TurnOrder's, enemy seats only, and runs only when Tuning.ProvokeLookahead is on.
+    /// <c>markedEta</c> is set whenever the lookahead fires and the marked seat is a candidate, even
+    /// if it is already next. It is null when TryEta was skipped or refused, because 0 would read as
+    /// "due right now" in the evidence line (LogHideEdge prints a distinct token for null).</summary>
     private (bool lookaheadFired, int leaderEta, int? markedEta, int nextNameId, bool markedIsNext, bool markedIsFarOff)
         GatherLookahead(long markedEntry)
     {
@@ -231,9 +164,8 @@ internal sealed partial class ProvokeHold
         return (lookaheadFired, leaderEta, markedEta, nextNameId, markedIsNext, markedIsFarOff);
     }
 
-    /// <summary>Every valid, on-field, PLAYER-side seat except the bearer's own identity (criteria
-    /// 4/8/9). A guest counts as player-side (the friend/foe bit is guest-complete, decision 6) and
-    /// is hidden alongside the party; the bearer is excluded by identity, never by seat position.</summary>
+    /// <summary>Every valid, on-field, player-side seat except the bearer (criteria 4/8/9). Guests
+    /// count as player-side (the friend/foe bit is guest-complete, decision 6). The bearer is excluded by identity, not seat position.</summary>
     private static void EnumerateHideTargets(IGameMemory mem,
         (int nameId, int mhp, int lvl, int br, int fa) bearer, List<long> results)
     {
@@ -247,20 +179,12 @@ internal sealed partial class ProvokeHold
         }
     }
 
-    /// <summary>LW-136: scrub a mark that landed on an enemy while the hold CANNOT arm, which would
-    /// otherwise strand that enemy Provoked for the whole battle. The mark never expires (Counter 0)
-    /// and the engine refuses to re-apply a status a unit already carries, so every later cast on
-    /// that enemy reads 0%; and the hold's own release path cannot clean up after a hold that never
-    /// existed. The way in that matters is TWO DEPLOYED DEFENDERS: Provoke.cs grants the command off
-    /// the first roster row holding id 33 in a main hand, while this hold resolves its bearer through
-    /// Wielder.ResolveDeployedMainHand, which returns 0 on two deployed wielders because the pair is
-    /// genuinely ambiguous. Castable command, unarmable hold.
-    ///
-    /// Debounced on Tuning.ProvokeMarkedMissTicks, the same counter the marked-enemy locate already
-    /// uses, and for the same reason: a bearer read that misses for a tick (an unreadable frame, a
-    /// mid-battle band rebuild) must not eat a mark the very next tick would have armed on. The
-    /// counter resets on every tick that arms or finds no mark at all, so only a SUSTAINED
-    /// marked-but-unarmable run scrubs.</summary>
+    /// <summary>LW-136: scrub a mark on an enemy while the hold cannot arm. The mark never expires (Counter 0)
+    /// and the engine will not re-apply it, so the enemy would stay Provoked all battle. With
+    /// two deployed defenders, Provoke.cs still grants the command off the first roster row holding
+    /// id 33, but Wielder.ResolveDeployedMainHand returns 0 for the ambiguous pair. Debounced on
+    /// Tuning.ProvokeMarkedMissTicks so one unreadable frame or band rebuild does not eat a mark
+    /// that would arm next tick; the counter resets on any tick that arms or sees no mark.</summary>
     private void ScrubUnarmableMark(long entry)
     {
         if (++_unarmableTicks < Tuning.ProvokeMarkedMissTicks) return;
@@ -274,16 +198,10 @@ internal sealed partial class ProvokeHold
         Flight.Record("provoke", $"scrub-unarmable nameId={id.nameId} tile={gx},{gy}");
     }
 
-    /// <summary>LW-130 / AC 3c: scrubs a stray Provoke mark cast on the player's own side. Called
-    /// every live tick regardless of the hold's own Idle/Armed state -- a separate clerical
-    /// fixup, not part of the hold's own state machine.
-    ///
-    /// The bearer is walked too, deliberately not excluded: a mark on it is exactly as stuck as
-    /// an ally's, and excluding it here would only re-introduce the bug for one specific seat.
-    ///
-    /// Must go through the existing mask-scoped ClearMark (ProvokeHold.Policy.cs), never a
-    /// whole-byte write: composed +0x45 is the SAME byte Dead/Undead/Charging/Jump live on, and
-    /// KillTracker's death detection reads that byte.</summary>
+    /// <summary>LW-130 / AC 3c: scrub a stray Provoke mark on the player's own side. Runs every live
+    /// tick, independent of the hold's state. The bearer is walked too. Uses the mask-scoped
+    /// ClearMark (ProvokeHold.Policy.cs), since composed +0x45 also holds Dead/Undead/Charging/Jump
+    /// and KillTracker reads it.</summary>
     private void ScrubPlayerSideMarks()
     {
         byte mask = StatusApply.StatusMask(MarkId);
@@ -306,15 +224,13 @@ internal sealed partial class ProvokeHold
                     $"provoke player-side mark scrubbed (nameId {id.nameId}, tile {gx},{gy})");
                 Flight.Record("provoke", $"scrub-player-side nameId={id.nameId} tile={gx},{gy}");
             }
-            // Remember only the FIRST refusal this tick: one line names one seat, and a second
-            // refused seat in the same tick is still covered by the same "something is stuck" fact.
+            // Keep only the first refusal this tick; one line names one seat.
             else if (!anyRefused) { anyRefused = true; refusedSeat = s; }
         }
 
-        // Signatures.StuckEdge latch (the LW-69 flood shape, same as Provoke.Table.cs's own
-        // _boundsRefusedLogged): a page that stays unwritable would otherwise re-log this WARN on
-        // every 33ms tick forever. One call per tick against the WHOLE sweep's outcome, not one
-        // per seat, so the latch tracks "is anything still stuck" rather than any single address.
+        // Signatures.StuckEdge latch (the LW-69 log flood, as in Provoke.Table.cs's
+        // _boundsRefusedLogged): one call per sweep so a page that stays unwritable does not
+        // re-log this WARN every 33ms tick.
         if (Signatures.StuckEdge(ref _scrubRefusedLogged, anyRefused))
             ModLogger.WarnWithTrace(LogVerb.Signature,
                 "Could not scrub a provoke mark off one of your own units; the guarded write was refused",
