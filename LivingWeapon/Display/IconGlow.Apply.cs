@@ -16,6 +16,7 @@ internal sealed partial class IconGlow
     private readonly HashSet<int> _unmanaged = new();
     private readonly HashSet<int> _judged = new();
     private readonly HashSet<int> _warnedOnce = new();
+    private readonly HashSet<(int Id, string Surface)> _warnedWrite = new();
 
     /// <summary>Runs on <see cref="_runBackground"/>; never throws and always clears <see cref="_applying"/>.
     /// <paramref name="judgeAllIds"/> is non-null only on the launch's first apply.</summary>
@@ -116,7 +117,7 @@ internal sealed partial class IconGlow
             }
             if (!_store.WriteDeployedTex(entry, bytes))
             {
-                WarnOnce(id, $"IconGlow failed to write icon {id} ({entry.Surface}); will retry.");
+                WarnWriteOnce(id, entry.Surface);
                 allOk = false;
                 continue;
             }
@@ -126,10 +127,20 @@ internal sealed partial class IconGlow
     }
 
     /// <summary>Builds the sentence here so every reason reads subject-first.</summary>
-    private void MarkUnmanaged(int id, string reason)
+    private void MarkUnmanaged(int id, string reason, string? detail = null)
     {
         _unmanaged.Add(id);
-        WarnOnce(id, $"IconGlow leaves icon {id} plain this launch: {reason}.");
+        WarnOnce(id, $"IconGlow leaves icon {id} plain this launch: {reason}.{DetailTail(detail)}");
+    }
+
+    private static string DetailTail(string? detail) => detail == null ? "" : $" (detail: {detail})";
+
+    /// <summary>One warn per icon file per launch, since a retry of the same file adds nothing.</summary>
+    private void WarnWriteOnce(int id, string surface)
+    {
+        lock (_lock) { if (!_warnedWrite.Add((id, surface))) return; }
+        ModLogger.Warn(LogVerb.Display,
+            $"IconGlow failed to write icon {id} ({surface}); will retry.{DetailTail(_store.LastWriteError?.Detail)}");
     }
 
     /// <summary>One warn per icon id per launch.</summary>

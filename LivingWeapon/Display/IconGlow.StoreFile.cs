@@ -20,6 +20,8 @@ internal sealed class FileIconGlowStore : IIconGlowStore
 
     public FileIconGlowStore(string modDir) => _modDir = modDir;
 
+    public IconGlowWriteError? LastWriteError { get; private set; }
+
     public IconGlowManifest? ReadManifest()
     {
         try
@@ -113,8 +115,9 @@ internal sealed class FileIconGlowStore : IIconGlowStore
 
     /// <summary>Writes to a temp file, then swaps it in. File.Replace when the destination exists,
     /// else File.Move. The temp file is always cleaned up. Never throws.</summary>
-    private static bool AtomicWrite(string path, byte[] bytes)
+    private bool AtomicWrite(string path, byte[] bytes)
     {
+        LastWriteError = null;
         string? tmp = null;
         try
         {
@@ -127,7 +130,11 @@ internal sealed class FileIconGlowStore : IIconGlowStore
             tmp = null;
             return true;
         }
-        catch { return false; }
+        catch (Exception ex)
+        {
+            LastWriteError = new IconGlowWriteError(ex.GetType().Name, ex.HResult & 0xFFFF, ex.Message);
+            return false;
+        }
         finally
         {
             if (tmp != null) { try { File.Delete(tmp); } catch { } }

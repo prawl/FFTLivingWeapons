@@ -25,7 +25,7 @@ internal sealed partial class IconGlow
 {
     // "No pac this launch" is one environment fact, so it warns once total, not once per id.
     private bool _pacUnavailableWarned;
-    // Separate from _warnedOnce, which also gates MarkUnmanaged and the loose-tex failure warning;
+    // Separate from _warnedOnce, which also gates MarkUnmanaged and the loose-tex read warning;
     // sharing it would mute a later real loose-tex failure for the same id.
     private readonly HashSet<int> _pacWarnedOnce = new();
     // Reset and read within one ApplyDiff call; _applying serializes the task so no lock.

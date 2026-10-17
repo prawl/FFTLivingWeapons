@@ -38,7 +38,7 @@ internal sealed partial class IconGlow
                 continue;   // already have a correct one
             if (!_store.WriteBaseBackup(entry, bytes))
             {
-                MarkUnmanaged(id, "could not snapshot its pristine base; refusing to overwrite what cannot be restored");
+                MarkUnmanaged(id, "could not snapshot its pristine base; refusing to overwrite what cannot be restored", _store.LastWriteError?.Detail);
                 return false;
             }
         }

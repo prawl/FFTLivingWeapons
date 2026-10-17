@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 
 namespace LivingWeapon;
@@ -24,6 +25,15 @@ internal sealed class IconGlowEntry
     [JsonProperty("baseSha1")] public string BaseSha1 { get; set; } = "";
     [JsonProperty("variants")] public Dictionary<string, string> Variants { get; set; } = new();
     [JsonProperty("variantSha1s")] public Dictionary<string, string> VariantSha1s { get; set; } = new();
+}
+
+/// <summary>Why a loose icon file write failed. Win32Code is the low 16 bits of the exception HResult,
+/// so 32 is a sharing violation and 5 is access denied.</summary>
+internal sealed record IconGlowWriteError(string ExceptionType, int Win32Code, string Message)
+{
+    public string Detail => $"{ExceptionType}, Win32 error {Win32Code}, {Flatten(Message)}";
+
+    private static string Flatten(string s) => Regex.Replace(s, @"\s*[\r\n]+\s*", " ").Trim();
 }
 
 /// <summary>File and byte access for IconGlow, as a seam so tests can fake it. Plain file I/O, no
@@ -55,6 +65,9 @@ internal interface IIconGlowStore
     /// <summary>Atomically snapshots verified-pristine bytes to glow_icons/base_backup/ before the deployed
     /// tex is overwritten. False on failure, and the caller must then refuse the overwrite.</summary>
     bool WriteBaseBackup(IconGlowEntry entry, byte[] bytes);
+
+    /// <summary>Set by a failed WriteDeployedTex or WriteBaseBackup, reset to null at the start of each.</summary>
+    IconGlowWriteError? LastWriteError { get; }
 
     /// <summary>Ledger [live-icon-repaint], 2026-09-01. Mirrors a batch of written texes into
     /// the running game's modded.pac in one pass; a per-icon pass over a 65 MB file is too slow when

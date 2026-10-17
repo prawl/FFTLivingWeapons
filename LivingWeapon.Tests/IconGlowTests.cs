@@ -78,6 +78,8 @@ public class IconGlowTests
         public readonly Dictionary<(int Id, string Surface, int Tier), byte[]> Variants = new();
         public readonly HashSet<(int Id, string Surface)> FailDeployedWrite = new();
         public readonly HashSet<(int Id, string Surface)> FailBackupWrite = new();
+        public IconGlowWriteError? FailError;
+        public IconGlowWriteError? LastWriteError { get; private set; }
         public readonly List<(int Id, string Surface, byte[] Bytes)> DeployedWrites = new();
         public readonly List<(int Id, string Surface, byte[] Bytes)> BackupWrites = new();
         /// <summary>LW-381 R2-2: one entry per <c>PatchPacBatch</c> CALL (not per item), so a test
@@ -98,16 +100,18 @@ public class IconGlowTests
 
         public bool WriteDeployedTex(IconGlowEntry entry, byte[] bytes)
         {
+            LastWriteError = null;
             DeployedWrites.Add((entry.Id, entry.Surface, bytes));
-            if (FailDeployedWrite.Contains((entry.Id, entry.Surface))) return false;
+            if (FailDeployedWrite.Contains((entry.Id, entry.Surface))) { LastWriteError = FailError; return false; }
             Deployed[(entry.Id, entry.Surface)] = bytes;
             return true;
         }
 
         public bool WriteBaseBackup(IconGlowEntry entry, byte[] bytes)
         {
+            LastWriteError = null;
             BackupWrites.Add((entry.Id, entry.Surface, bytes));
-            if (FailBackupWrite.Contains((entry.Id, entry.Surface))) return false;
+            if (FailBackupWrite.Contains((entry.Id, entry.Surface))) { LastWriteError = FailError; return false; }
             Backup[(entry.Id, entry.Surface)] = bytes;
             return true;
         }
@@ -593,6 +597,109 @@ public class IconGlowTests
         Assert.DoesNotContain((id, "card"), store.Backup.Keys);
         Assert.DoesNotContain((id, "small"), store.Backup.Keys);
         Assert.Equal(1, cap.File.Count(l => l.Contains("refusing to overwrite")));
+    }
+
+    private static readonly IconGlowWriteError SharingViolation = new("IOException", 32,
+        "The process cannot access the file because it is being used by another process.");
+
+    private static (FakeIconGlowStore Store, IconGlow Icon) FailingStore(int id, string[] surfaces, bool backup, IconGlowWriteError? error)
+    {
+        var store = new FakeIconGlowStore { FailError = error };
+        var entries = new List<IconGlowEntry>();
+        int seed = 1700 + id;
+        foreach (var surface in surfaces)
+        {
+            byte[] baseBytes = RandBytes(seed++, 10), t1 = RandBytes(seed++, 10);
+            entries.Add(MakeEntry(id, surface, baseBytes, new() { [1] = t1 }));
+            store.Deployed[(id, surface)] = baseBytes;
+            store.Variants[(id, surface, 1)] = t1;
+            (backup ? store.FailBackupWrite : store.FailDeployedWrite).Add((id, surface));
+        }
+        if (!backup) foreach (var surface in surfaces) store.Backup[(id, surface)] = store.Deployed[(id, surface)];
+        store.Manifest = new IconGlowManifest { SchemaVersion = 1, Icons = entries };
+        var kills = new Dictionary<int, int> { [id] = 5 };
+        return (store, new IconGlow("m", kills, new[] { id }, store, new NoopIconCacheHider(), a => a()));
+    }
+
+    [Fact]
+    public void WriteFailure_WarnNamesTheExceptionAndWin32Code()
+    {
+        var (_, icon) = FailingStore(61, new[] { "card" }, false, SharingViolation);
+        using var cap = LogCapture.Start();
+        icon.Tick();
+
+        var warns = cap.File.Where(l => l.Contains("failed to write icon")).ToList();
+        Assert.Single(warns);
+        Assert.Contains("failed to write icon 61 (card); will retry. (detail: IOException, Win32 error 32, The process cannot access the file", warns[0]);
+    }
+
+    [Fact]
+    public void WriteFailure_WarnsOncePerFilePerSession()
+    {
+        var (_, icon) = FailingStore(62, new[] { "card", "small" }, false, SharingViolation);
+        using var cap = LogCapture.Start();
+        icon.Tick();
+        icon.Tick();
+        icon.Tick();
+
+        var warns = cap.File.Where(l => l.Contains("failed to write icon 62")).ToList();
+        Assert.Equal(2, warns.Count);
+        Assert.Single(warns, l => l.Contains("(card)"));
+        Assert.Single(warns, l => l.Contains("(small)"));
+    }
+
+    [Fact]
+    public void SnapshotFailure_LineCarriesTheDetailTail()
+    {
+        var (_, icon) = FailingStore(63, new[] { "card" }, true, SharingViolation);
+        using var cap = LogCapture.Start();
+        icon.Tick();
+
+        Assert.Equal(1, cap.File.Count(l => l.Contains("refusing to overwrite what cannot be restored. (detail: IOException, Win32 error 32,")));
+    }
+
+    [Fact]
+    public void WriteFailure_WithoutAnErrorObjectHasNoDetailTail()
+    {
+        var (_, icon) = FailingStore(64, new[] { "card" }, false, null);
+        using var cap = LogCapture.Start();
+        icon.Tick();
+
+        var warn = Assert.Single(cap.File.Where(l => l.Contains("failed to write icon 64")));
+        Assert.DoesNotContain("(detail:", warn);
+    }
+
+    [Fact]
+    public void WriteError_DetailCollapsesLineBreaks()
+    {
+        var err = new IconGlowWriteError("IOException", 5, "Access is denied.\r\nTry again.\n");
+        Assert.Equal("IOException, Win32 error 5, Access is denied. Try again.", err.Detail);
+    }
+
+    [Fact]
+    public void RealStore_LockedDestination_ReportsWin32CodeAndRecovers()
+    {
+        var dir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "lw428_" + Guid.NewGuid().ToString("N"));
+        try
+        {
+            var entry = MakeEntry(70, "card", RandBytes(1, 10), new());
+            var store = new FileIconGlowStore(dir);
+            var dest = System.IO.Path.Combine(dir, "FFTIVC", entry.BaseRel.Replace('/', System.IO.Path.DirectorySeparatorChar));
+            System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(dest)!);
+            System.IO.File.WriteAllBytes(dest, RandBytes(2, 10));
+
+            using (new System.IO.FileStream(dest, System.IO.FileMode.Open, System.IO.FileAccess.ReadWrite, System.IO.FileShare.None))
+            {
+                Assert.False(store.WriteDeployedTex(entry, RandBytes(3, 10)));
+                Assert.NotNull(store.LastWriteError);
+                Assert.Equal(32, store.LastWriteError!.Win32Code);
+                Assert.Empty(System.IO.Directory.GetFiles(System.IO.Path.GetDirectoryName(dest)!, "*.tmp"));
+            }
+
+            Assert.True(store.WriteDeployedTex(entry, RandBytes(3, 10)));
+            Assert.Null(store.LastWriteError);
+        }
+        finally { try { System.IO.Directory.Delete(dir, true); } catch { } }
     }
 
     // ---- LW-336 adversarial-verify fix round: five findings, six new tests. See each fix's
