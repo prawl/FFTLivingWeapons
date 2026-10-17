@@ -26,7 +26,7 @@ internal sealed partial class AttackCard
     /// must also pass <see cref="CursorGate.Decide"/>, since roster hand and band weapon can disagree
     /// (stale roster row, turn-flag race). Note says why a plan is vanilla, for the compose
     /// Debug lines. After the gate, AttackRow.ComposeRow decides from the raw main hand and sprite
-    /// byte, not Hands(), which cannot tell unarmed from an untracked weapon.</summary>
+    /// byte, not Hands, which cannot tell unarmed from an untracked weapon.</summary>
     private (ComposedPlan? Plan, string Note) ComposeCurrentPlan()
     {
         var (resolved, miss) = _resolveCursor();

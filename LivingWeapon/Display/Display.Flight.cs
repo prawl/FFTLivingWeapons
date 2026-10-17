@@ -18,7 +18,7 @@ internal sealed partial class Display
     internal readonly CardVerdict? _verdict;
 
     /// <summary>Records emitted per window before EmitVerdict drops the rest. A window is one
-    /// Invalidate() cycle (battle edge, status-card reopen, new game). Dropping a storm tail is
+    /// Invalidate cycle (battle edge, status-card reopen, new game). Dropping a storm tail is
     /// fine for a flight recorder. Internal so tests can cite the cap.</summary>
     internal const int FlightRecordBudget = 64;
     private int _flightBudget;
@@ -91,7 +91,7 @@ internal sealed partial class Display
 
     /// <summary>AnnounceCoverage's flight tap (Display.PoolPaint.cs): one line per coverage latch,
     /// spending <see cref="CoverageRecordBudget"/>. Carries `suffix=` (CardSites.SuffixCount)
-    /// next to `kills=`. <paramref name="snapshot"/> is the caller's CardSites.Snapshot() copy,
+    /// next to `kills=`. <paramref name="snapshot"/> is the caller's CardSites.Snapshot copy,
     /// passed in to avoid a second one.</summary>
     private void RecordCoverageIfTapped(IReadOnlyList<(long baseAddr, long size)> regions, int killsSites, string trigger, List<CardSites.Site> snapshot)
     {

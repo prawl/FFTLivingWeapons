@@ -4,8 +4,8 @@ namespace LivingWeapon;
 
 /// <summary>
 /// Reliquary Phase 1 compose driver. Owns EarnedAnchors, the LegendStore view and the meta
-/// budgets, so Display.cs only needs a small seam to call it. CURRENT is recomposed from store
-/// state on every launch (decision 12), so it is never persisted. PREVIOUS loads from LegendStore's
+/// budgets, so Display.cs only needs a small seam to call it. Current is recomposed from store
+/// state on every launch, so it is never persisted. Previous loads from LegendStore's
 /// persisted "lastPainted", since a buffer painted before the last rotation may still be on screen.
 /// </summary>
 internal sealed class StoryLines

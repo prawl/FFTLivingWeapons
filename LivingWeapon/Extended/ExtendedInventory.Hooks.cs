@@ -17,7 +17,7 @@ internal sealed partial class ExtendedInventory
         _getterHook = new CategoryGetterHook(_patcher, ExtendedCatalog.FirstExtendedId, Items.OrderBy(i => i.Id).Select(i => i.CloneDonor).ToArray());
         string? why = _getterHook.Install(hooks);
         if (why != null) return why;
-        // Fix round 7. Seats the owned extended ids into the template before the game's rebuild, so it needs the id count.
+        // Seats the owned extended ids into the template before the game's rebuild, so it needs the id count.
         // Ownership via BagCountBase (relocated page once armed). seats into TemplateRegions.
         _orderHook = new OrderRebuildHook(_patcher, extendedCount: Items.Count, bagBase: BagCountBase, regions: () => TemplateRegions);
         why = _orderHook.Install(hooks);
@@ -27,7 +27,7 @@ internal sealed partial class ExtendedInventory
         _listBuilderHook = new ListBuilderHook(_patcher, _allocator);
         why = _listBuilderHook.Install(hooks);
         if (why != null) return why;
-        // Fix round 7. The game's per-item reset zeroed the extended bag counts after one real battle (owner 2026-08-30 23:29); the detour preserves them.
+        // The game's per-item reset zeroed the extended bag counts after one real battle (owner 2026-08-30 23:29); the detour preserves them.
         _resetHook = new InventoryResetHook(_patcher, Items.Count, bagBase: BagCountBase);
         why = _resetHook.Install(hooks);
         if (why != null) return why;

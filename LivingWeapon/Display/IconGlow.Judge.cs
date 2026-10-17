@@ -11,11 +11,11 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed partial class IconGlow
 {
-    /// <summary>First-touch classification for one id (PRISTINE, a known tier, or FOREIGN, which
-    /// marks the whole id unmanaged). PRISTINE surfaces get a base snapshot; an existing backup is
+    /// <summary>First-touch classification for one id (pristine, a known tier, or foreign, which
+    /// marks the whole id unmanaged). Pristine surfaces get a base snapshot; an existing backup is
     /// kept only if its sha1 matches <see cref="IconGlowEntry.BaseSha1"/>, since a rebake can leave
     /// a stale one. A failed snapshot marks the id unmanaged. Returns true if the surfaces are not
-    /// all one tier (DIVERGENT, see IconGlow.Apply.cs).</summary>
+    /// all one tier (divergent, see IconGlow.Apply.cs).</summary>
     private bool JudgeId(int id)
     {
         var tiers = new List<(IconGlowEntry Entry, byte[] Bytes, int Tier)>();
@@ -32,7 +32,7 @@ internal sealed partial class IconGlow
         }
         foreach (var (entry, bytes, tier) in tiers)
         {
-            if (tier != 0) continue;   // only a PRISTINE surface needs a base snapshot
+            if (tier != 0) continue;   // only a pristine surface needs a base snapshot
             var existingBackup = _store.ReadBaseBackup(entry);
             if (existingBackup != null && string.Equals(Sha1Hex(existingBackup), entry.BaseSha1, StringComparison.OrdinalIgnoreCase))
                 continue;   // already have a correct one
@@ -49,7 +49,7 @@ internal sealed partial class IconGlow
         return divergent;
     }
 
-    /// <summary>PRISTINE = 0, a recognized baked variant = that tier (1..3), anything else
+    /// <summary>Pristine = 0, a recognized baked variant = that tier (1..3), anything else
     /// (missing, wrong length, unreadable, or a hash matching neither) = null (foreign).</summary>
     private static int? ClassifyDeployed(IconGlowEntry entry, byte[]? bytes)
     {

@@ -42,16 +42,16 @@ internal sealed partial class Puppeteer
     public static bool IsActive(WeaponSignature? sig, int tier)
         => Signatures.Earned(sig, tier) && sig!.PuppeteerTurns > 0;
 
-    /// <summary>D1. The wielder is acting when the actor pointer names the wielder's band seat
+    /// <summary>The wielder is acting when the actor pointer names the wielder's band seat
     /// (<paramref name="pointerMatch"/>, same signal as TurnTracker.TryActiveViaPointer), or by the older
     /// <paramref name="latchMainHand"/> + <paramref name="actedFlag"/> fallback when the pointer is
     /// benched, ambiguous (ResolveDeployedMainHand returns 0) or invalid.</summary>
     public static bool WielderActing(bool pointerMatch, bool latchMainHand, bool actedFlag)
         => pointerMatch || (latchMainHand && actedFlag);
 
-    /// <summary>D1 revised (2026-07-04): identity-based pointer match, no memory access. Address equality
+    /// <summary>revised (2026-07-04): identity-based pointer match, no memory access. Address equality
     /// between Band.ActorEntry and Wielder.ResolveDeployedMainHand failed live (2026-07-04 gate log:
-    /// pointerMatch=False while TurnTracker matched the same actor-ptr), because the band MIRROR seat
+    /// pointerMatch=False while TurnTracker matched the same actor-ptr), because the band mirror seat
     /// puts one unit at several addresses. So compare NameId (Offsets.ANameId via the frame
     /// back-reference, as Iai's release and Wielder's tier-1 locate do) when
     /// <paramref name="wielderNameId"/> &gt; 0, and fall back to address equality when no roster

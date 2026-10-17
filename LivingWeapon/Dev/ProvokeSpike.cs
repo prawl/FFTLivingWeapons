@@ -7,7 +7,7 @@ namespace LivingWeapon;
 
 /// <summary>
 /// Dev only (2026-07-22): arms ProvokeHold without the real granted command, so the hold is
-/// testable on any save and job. Plants the mark arc 1's cast plants (composed +0x45/0x80, inflicted +0x1D3/0x80,
+/// testable on any save and job. Plants the mark Provoke.cs's cast plants (composed +0x45/0x80, inflicted +0x1D3/0x80,
 /// blank status id 0, <see cref="ProvokeHold.MarkId"/>) on an enemy with two guarded <see cref="MemBits.OrSet"/>
 /// writes. ProvokeHold gates on the mark bit, so it is unchanged by this spike.
 /// Triggers as in StatusSpike. F6 (VK 0x75) and a marker file (<c>&lt;modDir&gt;/provoke_request.txt</c>, polled
@@ -112,7 +112,7 @@ internal sealed class ProvokeSpike
         return false;
     }
 
-    /// <summary>First LIVE (HP &gt; 0) enemy-side band seat; no range restriction (see class doc).</summary>
+    /// <summary>First live (HP &gt; 0) enemy-side band seat; no range restriction (see class doc).</summary>
     private long FindFirstLiveEnemy()
     {
         for (int s = 0; s < Offsets.BandSlots; s++)

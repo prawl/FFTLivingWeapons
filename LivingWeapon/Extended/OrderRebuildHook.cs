@@ -96,7 +96,7 @@ internal sealed partial class OrderRebuildHook
     /// A failed read on either side passes through.</summary>
     internal int Process(nint table, nint list, RebuildFn original)
     {
-        try { SeatOwnedInto(table); }   // fix round 7. Owned ids go into the template FIRST
+        try { SeatOwnedInto(table); }   // Owned ids go into the template first
         catch (Exception) { /* the game's own rebuild still runs on whatever the template holds */ }
         var before = ReadListOrNull(list);
         int count = original(table, list);   // exactly once, never inside a try
@@ -110,7 +110,7 @@ internal sealed partial class OrderRebuildHook
         var after = ReadListOrNull(list);
         if (after == null) return count;
 
-        // Fix round 7. Only an id the bag still holds comes back. The previous list can carry an id
+        // Only an id the bag still holds comes back. The previous list can carry an id
         // since sold or equipped away, and re-appending it seated an empty row (2026-08-30 23:34).
         var dropped = Array.FindAll(DroppedWords(before, after), w => Owned(w & IdMask) || (w & EquippedBadge) != 0);
         if (dropped.Length == 0) return count;

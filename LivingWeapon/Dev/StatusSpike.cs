@@ -135,7 +135,7 @@ internal sealed class StatusSpike
         {
             if (!System.IO.File.Exists(_requestPath)) return;
             raw = System.IO.File.ReadAllText(_requestPath).Trim();
-            System.IO.File.Delete(_requestPath);   // delete FIRST. A request must never fire twice
+            System.IO.File.Delete(_requestPath);   // delete first. A request must never fire twice
         }
         catch (Exception ex)
         {
@@ -249,7 +249,7 @@ internal sealed class StatusSpike
     // paused since the routine sets process-shared unit-base globals. A per-frame compose race remains
     // and is accepted for a keyed single call. Fire only in a genuine inLive frame with the game
     // window foreground. If nothing applies across modes, v3 would call the VM dispatch directly.
-    // Each key has its own mode counter cycling 0 -> 1 -> 2; read livingweapon.log for APPLIED=.
+    // Each key has its own mode counter cycling 0 -> 1 -> 2; read livingweapon.log for applied=.
     private void Fire(string label, int statusId, bool corpse, ref int modeCounter)
     {
         if (!Mem.WritesEnabled)

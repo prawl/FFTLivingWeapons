@@ -7,7 +7,7 @@ namespace LivingWeapon;
 /// <summary>
 /// Schedules the cache hide (IconCacheHide.cs) that shows a pac-mirrored icon
 /// (IconGlow.Pac.cs) this session instead of after a relaunch, and retries hides a battle postponed.
-/// A hider exception never escapes <see cref="HideThisPassPatched"/> or <see cref="RunPendingHidesOnly"/> (D2/R11);
+/// A hider exception never escapes <see cref="HideThisPassPatched"/> or <see cref="RunPendingHidesOnly"/>;
 /// the pac write already succeeded, so a failure leaves the icon restart-only.
 /// </summary>
 internal sealed partial class IconGlow
@@ -31,7 +31,7 @@ internal sealed partial class IconGlow
     }
 
     /// <summary>Folds a hide call's per-surface outcomes into <see cref="_pendingHides"/>. Only
-    /// <see cref="HideOutcome.Postponed"/> stays queued (D3); other outcomes are final.</summary>
+    /// <see cref="HideOutcome.Postponed"/> stays queued; other outcomes are final.</summary>
     private void UpdatePendingHides(List<IconCacheTarget> targets, IconCacheHideResult hideResult)
     {
         lock (_lock)
@@ -45,7 +45,7 @@ internal sealed partial class IconGlow
         }
     }
 
-    /// <summary>Scheduled by IconGlow.cs Tick() under the <c>_applying</c> latch when nothing else is
+    /// <summary>Scheduled by IconGlow.cs Tick under the <c>_applying</c> latch when nothing else is
     /// pending; retries surfaces an earlier in-battle hide postponed.</summary>
     private void RunPendingHidesOnly()
     {

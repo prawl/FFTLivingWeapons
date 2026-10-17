@@ -26,7 +26,7 @@ internal sealed partial class GrowthEngine
         if (!OwnsSpeed(m)) return;
         long addr = s + Offsets.CSpeed;
 
-        // Shared via OwnershipHold. Afterimage's record advances on the FOREIGN branch too,
+        // Shared via OwnershipHold. Afterimage's record advances on the foreign branch too,
         // so the core reports the branch and this lane merges `next` itself.
         bool hadRecord = _afterimage.TryGetValue(addr, out var rec0);
         var step = OwnershipHold.Step(_mem, _ledger, addr, StatLane.Speed, rosterNameId, level,
@@ -59,7 +59,7 @@ internal sealed partial class GrowthEngine
             return;
         }
 
-        if (next.Stacks != rec.st.Stacks)                    // log each ramp STEP (and the hit-reset back to 0)
+        if (next.Stacks != rec.st.Stacks)                    // log each ramp step (and the hit-reset back to 0)
             ModLogger.Debug(LogVerb.Signature, $"stepped Afterimage: {m.Name} wielder Speed {rec.natural} -> {target} (stacks {next.Stacks} of {Tuning.AfterimageSpeedCap})");
         _ledger.RecordWrite(rosterNameId, StatLane.Speed, target);   // per evaluation
         if (step.Cur != target) _mem.W8(addr, (byte)target);

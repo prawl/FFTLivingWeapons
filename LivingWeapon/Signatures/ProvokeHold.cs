@@ -17,7 +17,7 @@ internal sealed partial class ProvokeHold : ISignature
 {
     void ISignature.Tick(in TickContext ctx) => Tick(ctx.Now, ctx.InLive);
 
-    /// <summary>The blank status id 0 arc 1 plants as its mark (ProvokePolicy's class doc).</summary>
+    /// <summary>The blank status id 0 Provoke.cs plants as its mark (ProvokePolicy's class doc).</summary>
     internal const int MarkId = 0;
 
     private enum HoldState { Idle, Armed }
@@ -259,7 +259,7 @@ internal sealed partial class ProvokeHold : ISignature
         _engaged = false;   // no stale latch into the next arm
     }
 
-    /// <summary>Placeholder (R3, criterion 18) for hiding the invisible icon without the AI-ignore
+    /// <summary>Placeholder (AC criterion 18) for hiding the invisible icon without the AI-ignore
     /// effect. The flag and icon share one bit (band +0x47/0x10) and the Phase 5 icon probe has not
     /// found a separate lever. Called on every hide/reveal transition.</summary>
     private void SuppressIcon(bool on, int hiddenCount) { }

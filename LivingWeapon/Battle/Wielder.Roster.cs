@@ -78,7 +78,7 @@ internal static partial class Wielder
 
     /// <summary>Shared roster walk behind <see cref="ResolveDeployedMainHandAll"/> and the nameId-carrying
     /// <see cref="ResolveDeployedMainHand(IGameMemory,int,out (int,int,int),out int)"/> overload, so Puppeteer's nameId match
-    /// needs no second scan (D7, 2026-07-04).</summary>
+    /// needs no second scan (2026-07-04).</summary>
     private static void ResolveDeployedMainHandAllCore(IGameMemory mem, int weaponId,
         List<(long entry, (int lvl, int br, int fa) fp, int nameId)> results)
     {
@@ -181,7 +181,7 @@ internal static partial class Wielder
         return matchCount == 1 ? first : -1;                            // >1 slot. Refuse regardless of nameId equality
     }
 
-    /// <summary>Shared walk behind <see cref="RosterNameId"/> and <see cref="ResolveAnyHandNameId"/> (D4). Counts slots holding
+    /// <summary>Shared walk behind <see cref="RosterNameId"/> and <see cref="ResolveAnyHandNameId"/>. Counts slots holding
     /// <paramref name="weaponId"/> (main hand or any hand per <paramref name="mainHandOnly"/>) with fp equal to <paramref name="fp"/>,
     /// and reports the first match's nameId and whether all matches share it. Each caller applies its own multi-match policy.</summary>
     private static void ScanNameIdMatches(IGameMemory mem, int weaponId, (int lvl, int br, int fa) fp,

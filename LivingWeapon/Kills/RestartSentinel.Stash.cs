@@ -4,7 +4,7 @@ namespace LivingWeapon;
 
 /// <summary>
 /// Deferred-verdict half of RestartSentinel. The stash state and its per-tick bookkeeping
-/// (ProcessStash), split out of RestartSentinel.cs for the 200-line trigger. Tick() and
+/// (ProcessStash), split out of RestartSentinel.cs for the 200-line trigger. Tick and
 /// PresentRevive in RestartSentinel.cs still reach into this state. See
 /// RestartSentinelPolicy.ShouldStash for why the stash exists (the 0ms-join gap).
 /// </summary>
@@ -13,13 +13,13 @@ internal sealed partial class RestartSentinel
     // Revives presented while a null is mid-flight but not yet qualified; drained or dropped by
     // ProcessStash. IdentityMatch is recorded at stash time and drained per entry, since a matching
     // entry can be exempt from grace while a mismatched one stashed the same tick is not. The
-    // credited/presented identity fields (FINDING 0 + FINDING 5, 2026-08-17) let the drain log carry
+    // credited/presented identity fields (2026-08-17) let the drain log carry
     // the same evidence as the direct-open path, which a bare IdentityMatch bool could not.
     private readonly List<(int Slot, List<int> Weapons, bool ViaFallback, int TicksRemaining, bool IdentityMatch,
                             (byte lvl, byte br, byte fa, ushort mhp) CreditedIdentity,
                             (byte lvl, byte br, byte fa, ushort mhp) PresentedIdentity,
                             ushort CreditedNameId, ushort PresentedNameId)> _stash = new();
-    // Scratch buffer for Tick()'s return value, reused because most ticks drain nothing.
+    // Scratch buffer for Tick's return value, reused because most ticks drain nothing.
     private readonly List<(int Slot, List<int> Weapons, bool ViaFallback)> _drainedThisTick = new();
 
     /// <summary>Per-entry TTL/drain. When the null streak just qualified and the entry passes its
@@ -39,7 +39,7 @@ internal sealed partial class RestartSentinel
             if (canOpen)
             {
                 _drainedThisTick.Add((e.Slot, e.Weapons, e.ViaFallback));
-                // FINDING 5 (2026-08-17): same compact identity tap as the direct-open path (IdentityTap).
+                // Finding 5 (2026-08-17): same compact identity tap as the direct-open path (IdentityTap).
                 _recorder?.Invoke("restart", $"stash-drain slot={e.Slot} {IdentityTap(e.CreditedIdentity, e.CreditedNameId, e.PresentedIdentity, e.PresentedNameId)}");
                 _stash.RemoveAt(i);
                 drainedCount++;

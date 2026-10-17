@@ -33,7 +33,7 @@ internal sealed class PoolScan
     private long _startMs;
     private int _ticks;
     private long _bytesRead;
-    private long _lastSnapshotMs = long.MinValue / 2;   // sentinel; Begin() overwrites it
+    private long _lastSnapshotMs = long.MinValue / 2;   // sentinel; Begin overwrites it
     private readonly List<(long baseAddr, long size)> _staging = new();
 
     // Region being accumulated; a region larger than one budget resumes across Steps, so its id set persists.

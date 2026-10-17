@@ -8,9 +8,9 @@ namespace LivingWeapon;
 /// <summary>
 /// One weapon's Reliquary deed record. The last victim, per-archetype kill counts (Unknown is
 /// counted but never earns a Mark), and the Marks earned in order. Legends and PendingAnnounce are
-/// Phase 2 slots kept in the schema now to avoid a later migration (decision 10). LastPainted is
+/// Phase 2 slots kept in the schema now to avoid a later migration. LastPainted is
 /// the previous composed card line, kept so a relaunch can still recognize a buffer painted
-/// before the last rotation (decision 12).</summary>
+/// before the last rotation.</summary>
 internal sealed class WeaponLegend
 {
     public ushort LastVictimNameId;
@@ -19,7 +19,7 @@ internal sealed class WeaponLegend
     public int LastVictimCls = -1;
     public readonly int[] Counts = new int[LegendStore.ArchetypeSlots];
     public List<int> Marks = new();
-    public List<string> Legends = new();            // Phase 2 slot (decision 10)
+    public List<string> Legends = new();            // Phase 2 slot
     public List<string> PendingAnnounce = new();     // Phase 2 slot
     public string? LastPainted;
 }

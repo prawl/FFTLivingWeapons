@@ -65,7 +65,7 @@ internal sealed partial class ActorResolver
         weapons = Empty;
         LastResolveSource = ResolveSource.TqFallback;
         // The flags lane goes first; it names the acting unit structurally (better evidence than the
-        // register's arrival-time snapshot, D3). Any refusal falls through to the register/turn-queue chain.
+        // register's arrival-time snapshot). Any refusal falls through to the register/turn-queue chain.
         if (FlagPathOpen && TryResolveFlagOwner(out var flagRosterBase, out _))
         {
             weapons = Hands(flagRosterBase);
@@ -213,7 +213,7 @@ internal sealed partial class ActorResolver
         fp = default;
         actorNameId = 0;
         // Flags-first (see ActorResolver.Flags.cs). Returning the flags-named entry's own fp keeps
-        // TrackDelayed's `_lastActorFp == (this slot's fp)` compare truthful when the flags lane named the committer (D5).
+        // TrackDelayed's `_lastActorFp == (this slot's fp)` compare truthful when the flags lane named the committer.
         if (FlagPathOpen && TryResolveFlagOwner(out _, out long flagEntry))
         {
             fp = (_mem.U8(flagEntry + Offsets.ALevel), _mem.U8(flagEntry + Offsets.ABrave), _mem.U8(flagEntry + Offsets.AFaith));

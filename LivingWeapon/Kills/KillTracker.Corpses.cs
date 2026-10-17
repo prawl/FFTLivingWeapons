@@ -149,7 +149,7 @@ internal sealed partial class KillTracker
         Array.Clear(_creditedNameId, 0, _creditedNameId.Length);
         _identityAlive.Clear();
         _oracle.ResetBattle();   // enemy identities + the coverage tick/flag
-        _victimProbe.ResetBattle();   // P1 probe. Clear every slot's alive/edge snapshots
+        _victimProbe.ResetBattle();   // probe. Clear every slot's alive/edge snapshots
     }
 
     /// <summary>one band slot's per-tick memory read, taken once at the top of the
@@ -168,7 +168,7 @@ internal sealed partial class KillTracker
         internal readonly bool DeadBit;
         internal readonly bool IsDead;
         // This slot's frame nameId (Offsets.ANameId, 2026-08-17). Mem.U16 returns
-        // 0 on an unreadable page, so no Readable() branch is needed, and 0 is the existing "no
+        // 0 on an unreadable page, so no Readable branch is needed, and 0 is the existing "no
         // resolved identity" value that RestartSentinel's gate fails closed on. See _creditedNameId.
         internal readonly ushort NameId;
 
@@ -287,7 +287,7 @@ internal sealed partial class KillTracker
             _creditedWeapons[s] = null; _creditedViaFallback[s] = false;   // a stale set could misattribute a later revive
             _creditedIdentity[s] = default;   // mirrors _creditedWeapons' own clear, same reasoning
             _creditedNameId[s] = 0;   // mirrors _creditedIdentity's own clear
-            _victimProbe.Reset(s);   // P1 probe. A slot-reuse identity swap invalidates any stale snapshot
+            _victimProbe.Reset(s);   // probe. A slot-reuse identity swap invalidates any stale snapshot
             _victimAtEdge[s] = default;   // Reliquary. Same invalidation for the captured snapshot
             return;
         }
@@ -326,7 +326,7 @@ internal sealed partial class KillTracker
             _creditedWeapons[s] = null; _creditedViaFallback[s] = false;   // clear every seenAlive tick, mirrors _lethalActor above
             _creditedIdentity[s] = default;   // mirrors _creditedWeapons' own clear, same reasoning
             _creditedNameId[s] = 0;   // mirrors _creditedIdentity's own clear
-            // P1 probe. A revived victim's old dead-edge snapshot is stale. Clear it before
+            // probe. A revived victim's old dead-edge snapshot is stale. Clear it before
             // CaptureAlive below repopulates the alive half, since this runs every seenAlive tick.
             _victimProbe.Reset(s);
             // Reliquary. A no-credit death never reaches CreditKill's consume, so clear here or a
@@ -334,7 +334,7 @@ internal sealed partial class KillTracker
             // CreditKill has already cleared it, so this is a no-op then.
             _victimAtEdge[s] = default;
         }
-        _victimProbe.CaptureAlive(s, slot.Addr);   // P1 probe. Every consistent alive on-field tick
+        _victimProbe.CaptureAlive(s, slot.Addr);   // probe. Every consistent alive on-field tick
     }
 
     /// <summary>Dispatcher for one dead slot. Guard clauses, then StampDeadEdge, OracleGate,
@@ -354,7 +354,7 @@ internal sealed partial class KillTracker
         if (!OracleGate(s, in slot)) return;
 
         // alive-edge. Credit only on alive->dead transition; a frozen twin is never alive here.
-        // Split PRESENT-false from ABSENT. Present-false means the identity already
+        // Split present-false from absent. Present-false means the identity already
         // resolved this battle (credited or no-credit) or is a same-tuple mirror clone, so keep
         // blocking. Absent means the alive-edge was stamped under a different maxHp than this death
         // (ScanAlivePath guarantees the same lvl/br/fa), a real uncredited enemy death.
@@ -387,14 +387,14 @@ internal sealed partial class KillTracker
         // Only one branch fires per edge; they are mutually exclusive on _lastPlayerWeapons.Count.
         if (_deadStreak[s] == 1)
         {
-            _victimProbe.CaptureDeadEdge(s, slot.Addr);   // P1 probe. Log-only, zero behavioral dependence
+            _victimProbe.CaptureDeadEdge(s, slot.Addr);   // probe. Log-only, zero behavioral dependence
             _victimAtEdge[s] = VictimReader.Read(_mem, slot.Addr);   // Reliquary. The behavioral capture CreditKill consumes
             _oracle.MarkDead(slot.Id);   // coverage evidence. A corpse was definitionally fielded
             // TqTeam may flip a few ticks after death, so read it at the edge. Divert only on a
             // confident non-player team (1=enemy, 2=ally/guest). Any other value (0=player, garbage,
             // or an unreadable 0) takes the normal credit path so a bad read cannot suppress a
             // legit player kill (docs/LIVE_LEDGER.md row 45, TqTeam fail-safe rule). A tracked
-            // delayed action still wins, since ConsumeDelayedCulprit() is checked first at credit
+            // delayed action still wins, since ConsumeDelayedCulprit is checked first at credit
             // time and the no-credit branch requires `delayed == null && _lethalUntracked[s]`.
             int team = _mem.Readable(Offsets.TurnQueue + Offsets.TqTeam, 2) ? _mem.U16(Offsets.TurnQueue + Offsets.TqTeam) : 0;
             bool nonPlayerTurn = team == 1 || team == 2;   // 1=enemy, 2=ally/guest; both are AI turns

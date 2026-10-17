@@ -6,7 +6,7 @@ namespace LivingWeapon;
 /// mode sentinels, so a game update that moved those bytes could wipe a real tally (docs/research/WRITE_SITE_AUDIT_2026-10.md item 3).
 /// Once per launch, out of battle, this lane checks that all six sentinels read the way this build holds them.
 /// Engine passes <see cref="SensingArmed"/> to the detector, which clears nothing until it is true. The per-part landmarks read it too.
-/// A stand-down only switches the detector off, as a WARN with no OS message box.
+/// A stand-down only switches the detector off, as a warn with no OS message box.
 /// In battle (mode 1..5, or BattleState.InLiveBattle) the verdict is Unreadable and never counts, since a resumed autosave can
 /// arm the guards mid-battle. Out of battle it matches the shape in docs/LIVE_LEDGER.md [sentinel-out-of-battle-tuple]
 /// (owner tape 2026-10-16) and [slot0-battle-phase-values]. Anything else is a Mismatch carrying the observed tuple.
@@ -35,7 +35,7 @@ internal sealed partial class LaunchGuard
     internal const byte SensingModePreFirstBattle = 255;
     /// <summary>Battle mode on the world map after a battle.</summary>
     internal const byte SensingModeWorldMap = 0;
-    /// <summary>slot0's small phase values (3, 5, 0x11 at battle edges and post-victory) fit a byte. The post-QUIT
+    /// <summary>slot0's small phase values (3, 5, 0x11 at battle edges and post-victory) fit a byte. The post-quit
     /// value is unverified, hence the width.</summary>
     internal const uint SensingSlot0SmallPhaseMax = 0xFF;
 

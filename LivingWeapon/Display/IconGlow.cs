@@ -9,9 +9,9 @@ namespace LivingWeapon;
 /// Out of battle, keeps each weapon's deployed equip-icon
 /// loose tex (modDir/FFTIVC/&lt;baseRel&gt;) on the glow variant for its current kill tier, plain art at tier 0.
 /// The modded.pac mirror (IconGlow.Apply.cs, IconGlow.Pac.cs) shows a change in the same session, ledger row
-/// [live-icon-repaint], PROVEN 2026-09-01. Ticked via TickGates.OutOfBattle cadence 30 (Engine.cs).
+/// [live-icon-repaint], proven 2026-09-01. Ticked via TickGates.OutOfBattle cadence 30 (Engine.cs).
 /// glow_icons/manifest.json loads lazily through <see cref="IIconGlowStore"/>; a bad manifest or schemaVersion stands
-/// the subsystem down for the launch with one WARN. Tick diffs tiers and starts the apply on <see cref="_runBackground"/>
+/// the subsystem down for the launch with one warn. Tick diffs tiers and starts the apply on <see cref="_runBackground"/>
 /// so slow disk never stalls the 33ms loop; a patched surface goes to <see cref="_hider"/>.
 /// </summary>
 internal sealed partial class IconGlow

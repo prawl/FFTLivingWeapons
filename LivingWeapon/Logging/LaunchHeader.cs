@@ -4,7 +4,7 @@ namespace LivingWeapon;
 /// pluralization is unit-tested (the inline versions printed "1 Marks"). See BattleSummary.Plural.</summary>
 internal static class LaunchHeader
 {
-    /// <summary>L3. What the DISK held, before any dev seed can inflate the counts.</summary>
+    /// <summary>L3. What the disk held, before any dev seed can inflate the counts.</summary>
     public static string ComposeTally(int totalKills, int weaponCount, string loadedFrom)
         => $"The kill tally holds {BattleSummary.Plural(totalKills, "lifetime kill")} across " +
            $"{BattleSummary.Plural(weaponCount, "weapon")} (kills.json, {loadedFrom}).";

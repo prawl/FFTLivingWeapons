@@ -132,7 +132,7 @@ internal static partial class Band
     /// names the acting unit from its own entry. Across 58 flag records in 4
     /// tapes no two units held t=1 at once. AMoved/AActed are not exclusive, and the moved byte reads
     /// up to 3, so only the ==1 test on ATurnFlag is used.
-    /// Entries at (0,0) are skipped (D2b) since a frozen band mirror can carry a stale t=1 (Mushin.cs
+    /// Entries at (0,0) are skipped since a frozen band mirror can carry a stale t=1 (Mushin.cs
     /// residual 3). Zero candidates returns false (the battle-opening edge). Several candidates with the
     /// same identity (ANameId, or the fingerprint when both are 0) return the first. Differing
     /// identities return false and the caller falls back to the register/turn-queue chain.</summary>
@@ -151,7 +151,7 @@ internal static partial class Band
             if (mem.U8(addr + Offsets.ATurnFlag) != 1) continue;
 
             bool realPos = mem.U8(addr + Offsets.AGx) != 0 || mem.U8(addr + Offsets.AGy) != 0;
-            if (!realPos) continue;   // D2b
+            if (!realPos) continue;
 
             ushort nameId = mem.U16(addr + Offsets.ANameId);
             var fp = ((int)mem.U8(addr + Offsets.ALevel), (int)mem.U8(addr + Offsets.ABrave), (int)mem.U8(addr + Offsets.AFaith));

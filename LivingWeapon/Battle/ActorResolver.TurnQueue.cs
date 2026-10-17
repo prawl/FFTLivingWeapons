@@ -7,7 +7,7 @@ namespace LivingWeapon;
 /// the roster walks FingerprintPlayer and MainHandFromRoster, and TwinFilter.
 /// A (level,brave,faith) match can collide between two roster units (a Dragoon and an Archer twin) and the old walks
 /// let the lone armed match win even when it was the wrong unit. A 2026-08-17 probe showed roster nameIds are unique per row
-/// and mirrored in the combat frame at Offsets.ANameId ([frame-1fc-nameid-mirror] PROVEN, [party-nameid-unique-key] pending
+/// and mirrored in the combat frame at Offsets.ANameId ([frame-1fc-nameid-mirror] proven, [party-nameid-unique-key] pending
 /// owner flip). The caller passes the seat's frame nameId as seatNameId and a row with another nameId is skipped;
 /// seatNameId == 0 (unreadable) disarms the check, as in Wielder.cs.
 /// </summary>

@@ -9,7 +9,7 @@ namespace LivingWeapon;
 /// time and the art lookup draws bare hands (docs/LIVE_LEDGER.md [empty-tile-hand-read-bounds]). Install
 /// rewrites the site as an E9 jmp plus two 0x90 pads into a stub that substitutes the hand id when the
 /// word is 0 and the acting unit's right hand holds one of our ids. Steps return a refusal string; Restore
-/// leaks the stub page because a game thread may be inside it (rig rule R3).
+/// leaks the stub page because a game thread may be inside it (the rig's rule).
 /// </summary>
 internal sealed class SwingIdFallbackHook
 {

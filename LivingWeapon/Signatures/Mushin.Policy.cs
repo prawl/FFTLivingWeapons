@@ -2,7 +2,7 @@ namespace LivingWeapon;
 
 /// <summary>
 /// Pure decisions for Kiku-ichimonji's "Mushin" one-shot power charge; no memory access.
-/// Mushin.cs tracks the per-wielder turn flag edges and the MOVED/ACTED read, and
+/// Mushin.cs tracks the per-wielder turn flag edges and the moved/acted read, and
 /// GrowthEngine.Mushin.cs applies <see cref="PaHeld"/> to the PA lane. A full wait turn arms one
 /// charge (0 or 1) and the wielder's next action spends it in a single boosted hit.
 /// Round 5 (2026-07-09) dropped the CT-clock apparatus of rounds 2-4 (StacksFromDeltas,

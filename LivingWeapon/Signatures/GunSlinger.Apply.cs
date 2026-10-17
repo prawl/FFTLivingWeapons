@@ -22,7 +22,7 @@ internal sealed partial class GunSlinger
                 return true;
             case GunSlingerOffAction.Write:
                 WriteOffHand(b, (ushort)mainH);
-                // Reached only when something rewrote the slot; the logged value hints at who (EMPTY means an
+                // Reached only when something rewrote the slot; the logged value hints at who (empty means an
                 // equip screen normalized the twin away).
                 ModLogger.Debug(LogVerb.Signature, $"re-equipped the twin weapon; something overwrote the off-hand slot (read {off})");
                 return false;   // snap unchanged, no persistence needed

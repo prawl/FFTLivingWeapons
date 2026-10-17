@@ -35,13 +35,13 @@ internal sealed partial class Display
     ///
     /// CardSites keeps a dead site for Tuning.CardEvictStrikes-1 maintenance beats
     /// (CardSites.Verify.cs), so the latch holds until eviction actually drops Count. A same-beat
-    /// "something looked wrong" signal was tried and reverted. It re-scanned Regions() and every region's
+    /// "something looked wrong" signal was tried and reverted. It re-scanned Regions and every region's
     /// contents (143-569ms, live-measured) on any single site's transient miss, which is routine across
     /// ~1400-2000 live sites. The tests that used to pin single-beat eviction
     /// (DisplayMaintenanceTests.Dead_sites_evicted_by_maintenance_pass_after_the_strike_window and two in
     /// DisplayPoolPaintTests.cs) now drive Tuning.CardEvictStrikes beats first.
     ///
-    /// Retune round (R1): this method only reads the published PoolLocator.CachedRegions and neither
+    /// Retune round. This method only reads the published PoolLocator.CachedRegions and neither
     /// triggers nor steps a region walk. The old synchronous PoolLocator.LocateAll here blocked for
     /// 7 to 10 seconds (live-measured). After the resumable rewrite, also stepping the locate here
     /// paid the ~45ms region snapshot about twice a tick, roughly 32 percent of one 92.2s owner-tape scan
@@ -89,7 +89,7 @@ internal sealed partial class Display
             AnnounceCoverage(regions);         // This is always a false->true edge (see field doc)
         }
         // Promoted from #if LWDEV, rate-limited by PoolCoverageLogGate (Display.PoolPaintLog.cs).
-        // Snapshot() is copied only when the gate logs.
+        // Snapshot is copied only when the gate logs.
         if (PoolCoverageLogGate(_poolCovered))
         {
             int killsIds = 0;

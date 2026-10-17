@@ -19,10 +19,10 @@ internal sealed partial class Iai
     /// ActorPtr global (replaced the deleted own-CT detector, ClassifyCt). Fallback path, used
     /// only when a hold's roster-nameId capture failed (Wielder.RosterNameId returned zero or
     /// negative); the primary path is <see cref="ReleaseSignalById"/>. Fires on either
-    ///   S1 arrival, the resolved acting entry changes to the wielder's entry. Covers wait-only
+    ///   arrival, the resolved acting entry changes to the wielder's entry. Covers wait-only
     ///     turns, where no Acted edge fires. Releasing at turn start is safe because the opening
     ///     turn is already scheduled; reverting Speed only affects next-turn scheduling.
-    ///   S2 acted edge, Acted rises 0-&gt;1 while the acting entry already equals the wielder's.
+    ///   acted edge, Acted rises 0-&gt;1 while the acting entry already equals the wielder's.
     ///     Covers the stale-equal case, where ActorPtr persists across battles and seat
     ///     addresses recur, so no arrival ever fires but the first real action does.
     /// Both are backstopped by the wall-clock cap (Tuning.IaiHoldCapSeconds) in Iai.cs.

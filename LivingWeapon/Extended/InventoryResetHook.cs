@@ -11,7 +11,7 @@ namespace LivingWeapon;
 /// rebuilds it from the save, but only for the base game's 261 items, so extended counts read x0 after
 /// every real battle (seen 2026-08-30 23:29, no load edge in between). This hook saves them before the
 /// reset and writes them back after.
-/// The wipe comes from fix round 2, which widened the loop bound (0x140284554, 0x105 -&gt; 0x105 + N) so
+/// The wipe comes from the cap patch that widened the loop bound (0x140284554, 0x105 -&gt; 0x105 + N) so
 /// the per-item state arrays cover the new ids. The loop's first pass zeroes the bag array
 /// (byte [0x1411A7C00 + id] = 0, at 0x140284561), which now includes 261+.
 /// Read from the 1.5.2 exe with capstone on 2026-08-30. The 12-byte prologue at 140284500 is

@@ -12,7 +12,7 @@ internal enum StatLane { Speed, Pa, Ma, Brave, Faith, MaxHp }
 /// Entries key on (roster nameId, stat lane) and keep Current and Prev target lists. Every hold evaluation records its target, even when the write is elided. OnBattleReset promotes Current to Prev only when Current is non-empty, since Engine.ResetBattleState fires on both battle edges.
 /// A first-sight capture that matches a recorded target, while a different accepted natural is on file at the same roster level, is restart residue. The ledger returns the accepted natural and reports the residue as an ownership token (that the post-restart normalize restores the baked value is unverified; the Iai post-release corrective hold will show).
 /// The level check matters because a boost target is often natural+1, so an ordinary level-up could land on a recorded target. Restarts never commit a level (LIVE_LEDGER "mid-battle level-up drift" row). Accepted corner, an equipment change to exactly a recorded target still deflates until the next level.
-/// Fail-open for nameId &lt;= 0 (as Iai's address fallback); an unmatched first sight is accepted as natural. Session-scoped, Clear() rides the new-game edge, so relaunch-resume-then-restart is unguarded (accepted).
+/// Fail-open for nameId &lt;= 0 (as Iai's address fallback); an unmatched first sight is accepted as natural. Session-scoped, Clear rides the new-game edge, so relaunch-resume-then-restart is unguarded (accepted).
 /// </summary>
 internal sealed class NaturalLedger
 {

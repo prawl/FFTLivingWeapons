@@ -9,16 +9,16 @@ namespace LivingWeapon;
 /// +0x05 / 0x08, band -0x17) is held set so the player controls that enemy until the wielder's own
 /// next turn (TurnTracker's per-unit acted-edge clock, as in Larceny), then it reverts to AI.
 ///
-/// One puppet at a time. After one expires the wielder waits Tuning.PuppeteerCooldownTurns GLOBAL
+/// One puppet at a time. After one expires the wielder waits Tuning.PuppeteerCooldownTurns global
 /// turns (TurnTracker.GlobalTurns; a per-unit cooldown ran backwards live, see Tuning.cs). Every
 /// struck enemy is dominatable. IsDominatable does not read the job id, which is unreliable on IC.
 ///
-/// Arming (D1, rebuilt 2026-07-03 after Puppeteer never fired under the old latch-only gate):
+/// Arming (rebuilt 2026-07-03 after Puppeteer never fired under the old latch-only gate):
 /// active = onField && IsActive(tier) && (pointerPath || latchPath). pointerPath is ActorPtr naming
 /// the wielder's own unit (Puppeteer.Policy.PointerNamesWielder), no Acted==1 needed. latchPath is
 /// the old LastPlayerMainHand == Galewind && Acted==1 test, kept as fallback. See WielderActing.
 ///
-/// D1 REVISED (2026-07-04): comparing Band.ActorEntry to the resolved main-hand entry by address
+/// Revised 2026-07-04. comparing Band.ActorEntry to the resolved main-hand entry by address
 /// false-negatived in the log (pointerMatch=False while TurnTracker attributed a turn to that actor),
 /// because the band mirror seat puts one unit at several addresses. It now compares the frame nameId
 /// (Offsets.ANameId, mirroring roster Offsets.RNameId, as Iai's release and Wielder's tier-1 locate
@@ -29,20 +29,20 @@ namespace LivingWeapon;
 /// 2026-07-04 the pointer read a match ~24ms after an enemy hit landed on a player (gate log
 /// 00:28:21.154 / 00:28:29.200), possibly a just-struck frame. Do not fix without a counter-probe.
 ///
-/// Detection (D3/D4) uses Kobu's Evaluate/cache/rearm shape. Per-tick HP drops on enemy band slots,
-/// filtered by an additive per-battle EnemyFingerprintCache so a one-tick Readable() flap cannot drop
+/// Detection uses Kobu's Evaluate/cache/rearm shape. Per-tick HP drops on enemy band slots,
+/// filtered by an additive per-battle EnemyFingerprintCache so a one-tick Readable flap cannot drop
 /// an enemy on the drop tick. The verdict chain is inactive, not-enemy, victim-dead, holding,
 /// cooldown, gated-out, rearm-unwritable, dominated. Every verdict but rearm-unwritable consumes the
 /// event; that one calls RicochetState.Rearm so the same drop re-detects next tick. Residuals as in
 /// Kobu. A fingerprint miss consumes even on a flapped band field, and an off-field gap can pay a
 /// rearmed hit out late, never to the wrong unit.
 ///
-/// Tick skeleton differs from Kobu. A possession spans ticks, so Drive() (re-assert the agency bit)
-/// and Expire() (release on the wielder's next turn) run on every path out of Tick, off-field
+/// Tick skeleton differs from Kobu. A possession spans ticks, so Drive (re-assert the agency bit)
+/// and Expire (release on the wielder's next turn) run on every path out of Tick, off-field
 /// and inactive included, or a held enemy reverts early or never releases. Kobu may return early
 /// because it holds nothing.
 ///
-/// Expiry clock (D2): the wielder fingerprint at dominate comes from the wielder's own band entry
+/// Expiry clock. The wielder fingerprint at dominate comes from the wielder's own band entry
 /// (ALevel/ABrave/AFaith), not ResolveDeployedMainHand's roster read. TurnTracker.Turns keys on
 /// band-read values (TryActiveViaPointer / TryActiveFingerprint) and band level can run up to
 /// Band.MaxLevelDrift (9) above roster level after a mid-battle level-up, so a roster fingerprint
@@ -127,10 +127,10 @@ internal sealed partial class Puppeteer : ISignature
         {
             _enemies.TickField();   // additive capture; Contains below reads the battle-stable cache
 
-            // D1 / D1 REVISED 2026-07-04. Pointer path matches by ANameId identity, see the class doc.
+            // Pointer path matches by ANameId identity, see the class doc.
             long wielderEntry = Wielder.ResolveDeployedMainHand(_mem, GalewindId, out _, out int wielderNameId);
             long actorEntry = Band.ActorEntry(_mem);
-            // Unguarded read (Iai/Wielder tier-1 pattern, D8). U16 returns 0 when unreadable and 0 never
+            // Unguarded read (Iai/Wielder tier-1 pattern). U16 returns 0 when unreadable and 0 never
             // equals a resolved wielderNameId (> 0), so a bad read means no match.
             int actorNameId = actorEntry != 0 ? _mem.U16(actorEntry + Offsets.ANameId) : 0;
             bool pointerMatch = PointerNamesWielder(actorEntry, wielderEntry, actorNameId, wielderNameId);
@@ -140,7 +140,7 @@ internal sealed partial class Puppeteer : ISignature
 
             int turnNow = _turns.GlobalTurns;
 
-            // D5. Larceny-style gate-reason log (Larceny.cs ~76-97). AnyDeployedMainHand keeps a benched
+            // Larceny-style gate-reason log (Larceny.cs ~76-97). AnyDeployedMainHand keeps a benched
             // give-all reserve from spamming; logs only when the reason changes.
             string reason = active
                 ? "ACTIVE: the next struck enemy becomes your puppet"
@@ -168,7 +168,7 @@ internal sealed partial class Puppeteer : ISignature
         Expire(puppetTurns);
     }
 
-    /// <summary>The verdict chain for one detected HP drop (D3). Eager fail-safe reads (Kobu's
+    /// <summary>The verdict chain for one detected HP drop. Eager fail-safe reads (Kobu's
     /// pattern) so the diag line always carries the full verdict context.</summary>
     private void Evaluate(int s, long addr, int dmg, int hp, (int mhp, int lvl, int br, int fa) fp,
                          long wielderEntry, bool active, int turnNow, int puppetTurns)

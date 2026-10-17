@@ -11,7 +11,7 @@ namespace LivingWeapon;
 /// A save records its bag counts under its key; a load writes them back (an unseen save gets the
 /// schema-1 legacy counts once, then the data seed). The replay runs inside the load
 /// detour (<see cref="ReplayOnLoad"/>), which also seats the menu order templates (<see cref="TemplateSeat"/>,
-/// fix rounds 5 and 8b); the tick repeats both only for a load the detour did not serve (round 8c).
+/// fix rounds 5 and 8b); the tick repeats both only for a load the detour did not serve.
 /// </summary>
 internal sealed partial class ExtendedInventory
 {

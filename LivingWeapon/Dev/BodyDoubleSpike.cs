@@ -216,7 +216,7 @@ internal sealed class BodyDoubleSpike
     private const int  NodeModeOff    = 0x12C;        // flag word; bits 0x30 = removal mode/done
     private const byte NodeModeRemove = 0x20;         // mode 2 = "remove me" (sweeper consumes)
     // The per-id byte table 0x140C6CFE0 (stride 9) is the "engine engaged with this unit" marker, not a busy gate; see FireDespawn.
-    private const long SpecialNodeId  = 0x140CF873C;  // dword. The CURRENT ACTOR's node id; never remove it
+    private const long SpecialNodeId  = 0x140CF873C;  // dword. The current actor's node id; never remove it
     private const int  NodeWalkMax    = 64;           // list-walk bound, same as spawn_probe
     // Sweeper mode-dispatch landmark at 0x14026E28B. Confirms the +0x12C semantics before any write (bytes read 2026-07-10).
     private const long SweeperDispatch = 0x14026E28B;
@@ -1186,7 +1186,7 @@ internal sealed class BodyDoubleSpike
         long a2 = _mem.U8(_hostCombat + 0x50);           // dest tile y
         long a3 = (byte)(_mem.U8(_hostCombat + 0x51) >> 7);   // layer bit
         long a4 = (ushort)(b[0x04] | (b[0x05] << 8));
-        long a5 = (ushort)(b[0x06] | (b[0x07] << 8));   // sprite-id (the donor's own LOADED sheet)
+        long a5 = (ushort)(b[0x06] | (b[0x07] << 8));   // sprite-id (the donor's own loaded sheet)
         long a6 = (ushort)(b[0x08] | (b[0x09] << 8));
         long a7 = FreshLabel;                            // force a fresh alloc, do not match the donor's node
         long a8 = _hostCombat;                           // bind the new node to the host

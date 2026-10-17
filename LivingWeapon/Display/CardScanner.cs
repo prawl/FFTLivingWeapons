@@ -19,7 +19,7 @@ internal static partial class CardScanner
     internal readonly record struct KillsHit(int Id, int Enc, int SlotPos, int FlavorPos);
 
     /// <summary>Find "Kills: " occurrences (both encodings) and resolve each owner with
-    /// <see cref="LayoutProbeOwner"/> (STEP 1), falling back to <see cref="FindNearestFlavor"/> (STEP 2).
+    /// <see cref="LayoutProbeOwner"/> (step 1), falling back to <see cref="FindNearestFlavor"/> (step 2).
     /// A hit needs a valid <see cref="Signatures.KillsMeterSlotChars"/>-wide meter slot and an owner.
     /// <paramref name="anchors"/> (Reliquary Phase 1, decision 12) adds earned lines to the flavor
     /// search; null searches baked flavors only.</summary>
@@ -84,14 +84,14 @@ internal static partial class CardScanner
         }
     }
 
-    /// <summary>STEP 1. The baked layout is fixed (Kills, meter slot, "\n", Grows line,
+    /// <summary>Step 1. The baked layout is fixed (Kills, meter slot, "\n", Grows line,
     /// "\n", flavor), so check the Grows line at G = slotPos + slotWidth + 1 char and the flavor at
     /// F = G + growsLen + 1 char. Same-lane weapons bake identical Grows, so each Grows match is
     /// checked at F against its own <see cref="UniqueAnchorCandidates"/>, and the match is the owner.
     /// Anchor prefix collisions are gated by analyze.py (check_flavor_prefix, not check_unique_flavor)
     /// and earned lines stay length-locked to the flavor (EarnedAnchors.TryEncode). The composed-line
     /// residual noted at EarnedAnchors.UniqueAnchorsFor is a case the gate cannot see.
-    /// Returns -1 (flavorPos -1) when nothing matches, and the caller falls through to STEP 2.</summary>
+    /// Returns -1 (flavorPos -1) when nothing matches, and the caller falls through to step 2.</summary>
     private static int LayoutProbeOwner(byte[] buf, int slotPos, int slotWidth, int enc,
                                         CardPatterns pats, EarnedAnchors? anchors, out int flavorPos)
     {
@@ -114,7 +114,7 @@ internal static partial class CardScanner
         return -1;
     }
 
-    /// <summary>STEP 2 (fallback). The weapon id whose flavor (same encoding) is nearest the position on
+    /// <summary>Step 2 (fallback). The weapon id whose flavor (same encoding) is nearest the position on
     /// either side (<see cref="NearestAnchorPosBidir"/>) within FlavorWindow, or -1. Runs when
     /// <see cref="LayoutProbeOwner"/> finds no owner. Old-layout buffers with no Grows line (e.g.
     /// CardScannerFindKillsTests.FindKills_old_backward_layout_two_contiguous_cards_still_resolves_identically),
@@ -124,7 +124,7 @@ internal static partial class CardScanner
     /// Same-lane weapons bake identical Grows, so distance ties (dAll) go to the smaller dUnique, the nearest
     /// distance over unique candidates only; no unique candidate in-window means ineligible.
     /// Two counterexamples to that rule alone (S1. A lane-mate's adjacent flavor beats
-    /// this weapon's farther Grows on dUnique; S2. A foreign short flavor beats it on dAll), which STEP 1 resolves.
+    /// this weapon's farther Grows on dUnique; S2. A foreign short flavor beats it on dAll), which step 1 resolves.
     /// Known residual. A copy truncated right after its Grows line has no unique anchor, so a lane-mate may get the hit.</summary>
     private static int FindNearestFlavor(byte[] buf, int pos, int enc, CardPatterns pats, EarnedAnchors? anchors)
     {

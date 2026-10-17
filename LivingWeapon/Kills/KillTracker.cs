@@ -63,7 +63,7 @@ internal sealed partial class KillTracker
     // Scoped [kill] logger gated on that latch.
     private readonly ScopedLogger _klog;
 
-    // Battle-exit match-report counters (logging facelift stage 3): kills credited per weapon this battle,
+    // Battle-exit match-report counters : kills credited per weapon this battle,
     // compared against the lifetime tally for tier crossings. Cleared in ResetBattle.
     internal readonly Dictionary<int, int> BattleCredits = new();
     // Credits this battle whose latch came from the turn-queue fallback (battle-end summary). Cleared in ResetBattle.
@@ -146,7 +146,7 @@ internal sealed partial class KillTracker
         FallbackCredits = 0;
         ResetBattleCorpses();   // clear per-battle band-scan state (Corpses.cs)
         ResetDelayed();         // clear delayed-action snapshot/arm state (Delayed.cs)
-        _census.ResetBattle();  // re-arm the P2 identity-census probe (BattleCensus.cs)
+        _census.ResetBattle();  // re-arm the identity-census probe (BattleCensus.cs)
         _restart.ResetBattle(); // forget any latch/null history from the prior battle
     }
 
@@ -204,7 +204,7 @@ internal sealed partial class KillTracker
         UpdateCorpseAnchor();     // V1 corpse-anchor veto for this tick's resolves
 
         // Acted-period latch plus first-kill fallback (ActedPeriodLatch.cs), via Seed/Step/Apply.
-        // AnyPending() is passed in because it is the one input that is not a mirrored field.
+        // AnyPending is passed in because it is the one input that is not a mirrored field.
         SeedLatchOutputs(_latchIO);
         _latch.Step(_latchIO, AnyPending());
         ApplyLatchOutputs(_latchIO);
@@ -213,7 +213,7 @@ internal sealed partial class KillTracker
 
         changed = ScanCorpses(onField) || drainedChanged;   // band corpse scan + identity capture (Corpses.cs)
 
-        _census.Tick(_oracle.CoverageDone);   // P2 probe. Fires once, right after the oracle's own tick
+        _census.Tick(_oracle.CoverageDone);   // probe. Fires once, right after the oracle's own tick
 
         return changed;
     }
@@ -277,7 +277,7 @@ internal sealed partial class KillTracker
     /// ConsumeDelayedCulprit), passed on to RecordPoachDeed.
     /// <paramref name="identity"/> (retry live-drill residual, 2026-08-17): the (lvl,br,fa,maxHp) the kill was
     /// credited under, stamped into _creditedIdentity for RestartSentinel's grace exemption. The zero-tuple
-    /// default is safe (FINDING 4, 2026-08-17): <see cref="Band.IsValid"/> (Battle/Band.cs:54-67) floors lvl,
+    /// default is safe (2026-08-17): <see cref="Band.IsValid"/> (Battle/Band.cs:54-67) floors lvl,
     /// brave, faith and maxHp at 1, so no real slot.Id is zero. The victim nameId is stamped from the same
     /// snapshot (_creditedNameId, Corpses.cs); 0 is the "no resolved identity" sentinel, so both defaults
     /// fail closed.</summary>
@@ -305,7 +305,7 @@ internal sealed partial class KillTracker
         _creditedWeapons[s] = new List<int>(credited);
         _creditedViaFallback[s] = viaFallback;
         _creditedIdentity[s] = identity;
-        LogKillDiag(s, credited);   // D4 diagnostic, no behavioral effect
+        LogKillDiag(s, credited);   // diagnostic, no behavioral effect
         _victimProbe.LogAtCredit(s);   // Reliquary P1 probe, log-only
         VictimSnapshot snap = _victimAtEdge[s];
         // The victim's nameId from the same snapshot (see _creditedNameId,
@@ -340,7 +340,7 @@ internal sealed partial class KillTracker
 
     /// <summary>inverse of CreditKill's per-weapon increment, for RestartSentinel's checkpoint-retry
     /// revive (Corpses.cs re-arm block and identity-swap branch); callers pass the _creditedWeapons[s] CreditKill
-    /// stamped. Floors tallies at 0 with a WARN if that would go negative (desync tripwire). FallbackCredits drops
+    /// stamped. Floors tallies at 0 with a warn if that would go negative (desync tripwire). FallbackCredits drops
     /// once per call. One flight record per weapon, no console line (RestartSentinel's latch-open edge already
     /// told the player).</summary>
     internal void UncreditKills(IReadOnlyList<int> weapons, bool viaFallback, int slot)
@@ -367,7 +367,7 @@ internal sealed partial class KillTracker
         if (viaFallback && weapons.Count > 0 && FallbackCredits > 0) FallbackCredits--;
     }
 
-    /// <summary>D4. AREC kill diagnostic, no effect on credit. Reads the corpse action record (Offsets.AArec)
+    /// <summary>AREC kill diagnostic, no effect on credit. Reads the corpse action record (Offsets.AArec)
     /// and logs one BattleLog line; skips if unreadable or no BattleLog. +0xB is logged as a hypothesis (xref?=),
     /// see docs/LIVE_LEDGER.md Uncertain AREC row.</summary>
     private void LogKillDiag(int s, List<int> weapons)

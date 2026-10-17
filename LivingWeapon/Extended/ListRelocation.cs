@@ -9,13 +9,13 @@ namespace LivingWeapon;
 /// beside it, so a new id past that edge reads and writes Ramza's save data. This copies both lists onto
 /// a page the mod owns and re-points the 55 code fields that name the old blocks (table in
 /// ListRelocation.Sites.cs). As in <see cref="ShopFlagsMirror"/>, every field must read vanilla before any
-/// write and a refusal restores the changed fields in reverse. It is a move (D1), so there is no resync;
+/// write and a refusal restores the changed fields in reverse. It is a move, so there is no resync;
 /// <see cref="CheckOldBlocks"/> warns once if an old block changes later. Restore puts only the 55 fields
-/// back (D5) and the page is leaked, as <see cref="INearAllocator"/> never frees.
+/// back and the page is leaked, as <see cref="INearAllocator"/> never frees.
 /// </summary>
 internal sealed partial class ListRelocation
 {
-    // Install runs on the boot thread before the game's hook threads exist (P12), but
+    // Install runs on the boot thread before the game's hook threads exist, but
     // ExtendedInventory.BagCountBase reads this from any thread once armed, so the flag is volatile
     // and written last.
     private volatile bool _installed;
@@ -38,7 +38,7 @@ internal sealed partial class ListRelocation
     private bool _warnedOnce;
 
     /// <summary>Null on success, else the refusal (nothing changed). Idempotent once installed.
-    /// Order (D3, T6) is check all 55 fields, allocate and zero the page, copy both lists, then
+    /// Order is check all 55 fields, allocate and zero the page, copy both lists, then
     /// rewrite the first field, so an earlier refusal leaves the process untouched.</summary>
     public string? Install(ICodePatcher patcher, INearAllocator allocator)
     {
@@ -82,7 +82,7 @@ internal sealed partial class ListRelocation
         return null;
     }
 
-    /// <summary>Puts every field back to its vanilla value and leaves the page alone (D5).
+    /// <summary>Puts every field back to its vanilla value and leaves the page alone.
     /// A call while not installed is a no-op success, as in <see cref="ShopFlagsMirror.Restore"/>.</summary>
     public bool Restore(ICodePatcher patcher)
     {
@@ -99,10 +99,10 @@ internal sealed partial class ListRelocation
         return ok;
     }
 
-    /// <summary>D8 hidden-writer tripwire. Compares each old block with its snapshot from the copy;
+    /// <summary>hidden-writer tripwire. Compares each old block with its snapshot from the copy;
     /// the first change returns a one-line warning naming the block, and every later call returns
     /// null. Only <see cref="ListProperBytes"/> is compared, not all of <see cref="BlockBytes"/>
-    /// (round 2b), because +0x105..+0x10F holds a live game state dword at +0x108 (read live
+    /// because +0x105..+0x10F holds a live game state dword at +0x108 (read live
     /// 2026-08-31) that changes on its own.</summary>
     public string? CheckOldBlocks(ICodePatcher patcher)
     {

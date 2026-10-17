@@ -4,7 +4,7 @@ namespace LivingWeapon;
 
 /// Reliquary repaint-through, split out of CardSites.cs to get it back under
 
-/// the 200-line trigger. It is the EarnedAnchors story-line rotation (Reliquary decision 2),
+/// the 200-line trigger. It is the EarnedAnchors story-line rotation,
 
 /// separate from the verify/paint code; the only caller is PaintSiteWithResult.
 

@@ -12,14 +12,14 @@ namespace LivingWeapon;
 ///
 /// Turn-flag mapping (tools/probes/mushin_wait_probe.py, scratchpad/psxflags_watch.log; PSX offsets
 /// from FFHacktics, frame offset = PSX + 0x32, band offset = frame offset, Offsets.BandEntry (0x1C)):
-///   TURN FLAG  PSX 0x186, frame +0x1B8, band +0x19C 1 while the move/act/wait menu is open.
-///   MOVED      PSX 0x187, frame +0x1B9, band +0x19D. Set at the move, reset by the engine at the next turn open.
-///   ACTED      PSX 0x188, frame +0x1BA, band +0x19E. Set at the action, same reset.
+///   Turn flag  PSX 0x186, frame +0x1B8, band +0x19C 1 while the move/act/wait menu is open.
+///   Moved      PSX 0x187, frame +0x1B9, band +0x19D. Set at the move, reset by the engine at the next turn open.
+///   Acted      PSX 0x188, frame +0x1BA, band +0x19E. Set at the action, same reset.
 ///   PSX 0x189, frame +0x1BB, band +0x19F is Ability Outcome (0x02 hit-by-ability, 0x01 turn-ended); unused here.
 ///
 /// Per resolved main-hand wielder (Wielder.ResolveDeployedMainHandAll) the previous turn flag is
 /// tracked per fingerprint, primed on first sight without deciding (safe mid-turn, since the engine
-/// resets MOVED/ACTED at that turn's open). On the falling edge (1 to 0) MOVED and ACTED are read
+/// resets moved/acted at that turn's open). On the falling edge (1 to 0) moved and acted are read
 /// and MushinPolicy decides. Acted consumes the charge, neither moved nor acted arms it, move-only
 /// changes nothing. Each decision is logged at Debug. No other signals are used, and every read is
 /// per-wielder-entry and guarded.
@@ -27,7 +27,7 @@ namespace LivingWeapon;
 /// Offsets. The three band offsets were local consts until they moved to Offsets.cs
 /// (ATurnFlag/AMoved/AActed); the earlier deferral was due to uncommitted tally-scoping work (bf351db).
 ///
-/// Accepted residuals (1) a reaction during the wielder's own menu window sets ACTED, turning a
+/// Accepted residuals (1) a reaction during the wielder's own menu window sets acted, turning a
 /// wait into a no-arm or consume, which fails safe; (2) auto-battle and charmed turns are untested;
 /// (3) twin/mirror frames carry frozen flags, but the twin-filtered Wielder.Locate prefers the real entry.
 ///
@@ -53,7 +53,7 @@ internal sealed partial class Mushin : ISignature
     private readonly WielderKeyedStore<Box<int>> _armed;
     private readonly List<(long entry, (int lvl, int br, int fa) fp, int nameId)> _wielders = new();
 
-    /// <summary>Per-wielder previous TURN FLAG, boxed for WielderKeyedStore (private,
+    /// <summary>Per-wielder previous turn flag, boxed for WielderKeyedStore (private,
     /// GrowthEngine never reads it). Value -1 means not yet primed, so the first observed value is
     /// captured without deciding and a legitimate 0 stays distinguishable.</summary>
     private readonly WielderKeyedStore<Box<int>> _prevTurnFlag = new();
@@ -117,7 +117,7 @@ internal sealed partial class Mushin : ISignature
         }
         int prev = flag.Value;
         flag.Value = cur;
-        if (prev != 1 || cur != 0) return;   // only the FALLING edge decides
+        if (prev != 1 || cur != 0) return;   // only the falling edge decides
 
         bool moved = _mem.Readable(entry + MovedOffset, 1) && _mem.U8(entry + MovedOffset) != 0;
         bool acted = _mem.Readable(entry + ActedOffset, 1) && _mem.U8(entry + ActedOffset) != 0;

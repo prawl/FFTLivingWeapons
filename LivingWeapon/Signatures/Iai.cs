@@ -111,7 +111,7 @@ internal sealed partial class Iai : ISignature
             {
                 // Baked-residue corrective (observed 2026-07-21, owner repro 11:03-11:08 log, docs/LIVE_LEDGER.md row still Uncertain). The engine's per-turn normalize re-paints a baseline that captured our boost (Iai arms ~100ms after battle open), so the boost returns after release.
                 // Watch BakedResidue (restart case) and LastTarget (fresh battle) for the rest of the battle; a real Speed buff landing on either value gets overwritten.
-                // Safe inside the resolved loop because the D3 tier-1 tie-break resolves nameId-verified mirror copies (IaiTests.Post_release_corrective_survives_mirror_churn).
+                // Safe inside the resolved loop because the tier-1 tie-break resolves nameId-verified mirror copies (IaiTests.Post_release_corrective_survives_mirror_churn).
                 int cur0 = _mem.U8(spAddr);
                 bool ours = OursResidue(cur0, state.BakedResidue, state.LastTarget, state.NaturalSpeed);
                 if (ours && state.NaturalSpeed >= SpeedSaneMin)

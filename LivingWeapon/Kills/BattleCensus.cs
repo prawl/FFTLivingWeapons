@@ -90,7 +90,7 @@ internal sealed class BattleCensus
                 int oh = _mem.U16(b + Offsets.ROffHand);
                 ModLogger.Debug(LogVerb.Trace, $"census: roster slot={s} nameId={nameId} level={rlvl} brave={rbrave} faith={rfaith} rHand={rh} lHand={lh} offHand={oh}");
                 // Level/brave/faith let the fingerprint rescue's fp= field be checked against
-                // the row; round 2 adds the raw hand ids for the weapon-key rescue's wpn= tap.
+                // the row; the raw hand ids follow for the weapon-key rescue's wpn= tap.
                 rosterParts.Add($"{s}:{nameId}L{rlvl}B{rbrave}F{rfaith}W{rh},{lh},{oh}");
                 rosterCount++;
             }

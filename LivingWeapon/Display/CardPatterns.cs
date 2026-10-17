@@ -98,7 +98,7 @@ internal sealed class CardPatterns
 
     /// <summary>True when the lookback fits the longest anchor plus the widest slot (the UTF-16
     /// "Kills: " literal plus a 4-char counter). This class stays immutable and unaware of EarnedAnchors
-    /// (docs/RELIQUARY_AC.md, decision 12) because EarnedAnchors.TryEncode forces each earned pattern to
+    /// (docs/RELIQUARY_AC.md) because EarnedAnchors.TryEncode forces each earned pattern to
     /// the byte length of its baked Flavor pattern, so MaxAnchorLen stays a valid bound. Display.cs's ctor
     /// checks it at startup; see DisplayStoryLineTests.FitsLookback_with_earned_patterns_registered.</summary>
     public bool FitsLookback(int lookback)

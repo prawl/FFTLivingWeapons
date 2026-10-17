@@ -16,7 +16,7 @@ internal sealed partial class ProvokeHold
     /// <summary>The armed release decision for one tick. First match wins. Bearer safety (BearerGone,
     /// BearerDead), then enemy state, then Watchdog last so a stuck hold names its real reason (AC 17).
     /// A transient locate miss (<paramref name="markedMissedOut"/> and <paramref name="markedLocated"/> both
-    /// false) falls through; the debounce (decision 11) is in the caller's miss-tick counting.</summary>
+    /// false) falls through; the debounce is in the caller's miss-tick counting.</summary>
     internal static Release ReleaseReason(bool bearerPresent, bool bearerAlive, bool markedLocated,
         bool markedDead, bool markedMissedOut, bool markedDisabled, int markedTurns, int provokeTurns,
         bool watchdogElapsed)
@@ -55,7 +55,7 @@ internal sealed partial class ProvokeHold
     /// party, an open cosmetic gap under criterion 18.
     ///
     /// Player-side ownership comes from the per-unit turn flag (<see cref="PlayerSideOwnsTurn"/>),
-    /// never a cursor field. It used to read Offsets.TqTeam, which is PLAYER while an enemy targets one, so
+    /// never a cursor field. It used to read Offsets.TqTeam, which is player while an enemy targets one, so
     /// the hold hid nobody for the whole enemy turn. PlayerSideOwnsTurn fails open (nobody owns it, or two
     /// seats disagree, returns false), so every ambiguity ends at branch 5's Hide.</summary>
     internal static HideAction ActionFor(bool engaged, bool playerSideOwnsTurn, bool markedIsActor,
@@ -79,10 +79,10 @@ internal sealed partial class ProvokeHold
     }
 
     /// <summary>Falling edge of the active flag, same as FeignDeath.TurnEnded, applied to the marked
-    /// enemy's actor-pointer match gated on an enemy turn (decision 10, ProvokeHold.MarkedIsActor).</summary>
+    /// enemy's actor-pointer match gated on an enemy turn (ProvokeHold.MarkedIsActor).</summary>
     internal static bool TurnEnded(bool wasActive, bool nowActive) => wasActive && !nowActive;
 
-    /// <summary>Accrue live battle time toward the watchdog cap (decision 11). Paused ticks add nothing,
+    /// <summary>Accrue live battle time toward the watchdog cap. Paused ticks add nothing,
     /// so a long menu or alt-tab does not burn the clock.</summary>
     internal static double AccrueWatchdog(double liveElapsed, double deltaSeconds, bool paused) =>
         paused ? liveElapsed : liveElapsed + deltaSeconds;

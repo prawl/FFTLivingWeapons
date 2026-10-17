@@ -19,7 +19,7 @@ internal sealed class Box<T>
 ///
 /// A key never rotates once assigned. Mem reads fail to 0 on transients, so deriving the key each
 /// tick would flip a unit to its fp key when nameId glitches to 0 and re-arm its state (the old
-/// FAIL-4 double-arm). Entries live in byName, byFp and a per-fp side map, and one entry can be
+/// Fail-4 double-arm). Entries live in byName, byFp and a per-fp side map, and one entry can be
 /// reachable from both byName and byFp. Nothing is removed mid-battle; <see cref="Clear"/> runs
 /// from each owner's ResetBattle.
 ///
@@ -32,7 +32,7 @@ internal sealed class Box<T>
 ///     side map, and Probe returns null.
 ///
 /// A fp-twin pair where one member never resolves a nameId still shares one byFp state, as before
-/// stage 5. A pair that both resolve nameIds gets independent states. TState is a reference type
+/// A pair that both resolve nameIds gets independent states. TState is a reference type
 /// because consumers mutate it in place.
 /// </summary>
 internal sealed class WielderKeyedStore<TState> where TState : class

@@ -8,7 +8,7 @@ namespace LivingWeapon;
 /// <summary>
 /// Per-unit roster-snapshot persistence for Gun Slinger, keyed on roster nameId (u16), saved as gunslinger.json
 /// in the mod directory. Atomic write + .bak, but the .bak holds the current generation (see Save), unlike
-/// the shared SidecarJson.SaveAtomic chain KillTally/LegendStore use. Loaded once; Save() on each change.
+/// the shared SidecarJson.SaveAtomic chain KillTally/LegendStore use. Loaded once; Save on each change.
 /// </summary>
 internal sealed class GunSlingerStore
 {
@@ -21,7 +21,7 @@ internal sealed class GunSlingerStore
         _snaps = Load(_path);
         // A key-0 snapshot predates GunSlinger.cs's nameId==0 scan guard and was
         // shared by colliding unseeded roster rows, so it cannot be attributed to a unit. Purge it, warn once, and
-        // Save() now so the warning does not repeat every launch.
+        // Save now so the warning does not repeat every launch.
         if (_snaps.Remove(0))
         {
             ModLogger.Warn(LogVerb.Save,

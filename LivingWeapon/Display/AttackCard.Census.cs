@@ -5,7 +5,7 @@ namespace LivingWeapon;
 
 /// <summary>
 /// AttackCard's locate half. The budgeted, high-address-first ScanCursor walk from AttackCardSpike, armed by
-/// Tick() whenever <c>_needsCensus</c> is set (battle enter, or an eviction in AttackCard.Paint.cs's RepaintAll).
+/// Tick whenever <c>_needsCensus</c> is set (battle enter, or an eviction in AttackCard.Paint.cs's RepaintAll).
 /// Each accepted hit is synced at once (AttackCard.Paint's SyncHit).
 /// </summary>
 internal sealed partial class AttackCard

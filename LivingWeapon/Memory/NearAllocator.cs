@@ -9,7 +9,7 @@ namespace LivingWeapon;
 /// the image base). Ported from the FFTHandsFree research rig (branch capbreak-equip, working on 1.5.2 2026-08-26/27).
 /// The live adapter walks MEM_FREE regions with VirtualQueryEx (up from the target first, then below it)
 /// and commits the first 64 KB-aligned candidate with VirtualAlloc(PAGE_EXECUTE_READWRITE). It never frees,
-/// because a stub page may be mid-execution on a game thread (the rig's rule R3). Tests inject a fake.
+/// because a stub page may be mid-execution on a game thread (the rig's rule). Tests inject a fake.
 /// </summary>
 internal interface INearAllocator
 {
@@ -26,7 +26,7 @@ internal sealed class LiveNearAllocator : INearAllocator
 
     /// <summary>Just under 2 GB, so thunk -&gt; stub and stub -&gt; image both encode as rel32.</summary>
     internal const long SearchRange = 0x7FFF0000L;
-    /// <summary>VirtualAlloc snaps a requested base DOWN to 64 KB; candidates are rounded UP first.</summary>
+    /// <summary>VirtualAlloc snaps a requested base down to 64 KB; candidates are rounded UP first.</summary>
     internal const int AllocGranule = 0x10000;
 
     /// <summary>scans up from <paramref name="nearAddr"/> first, then falls back to the window below it.

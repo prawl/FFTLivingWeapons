@@ -27,7 +27,7 @@ internal sealed class BattleState
     /// (Offsets.Slot0InBattleMarker, 0x10 on 1.5, re-anchored from the pre-1.5 0xFF) and
     /// slot9 at its stuck sentinel. Only the disarmed-to-armed edge of the pair enters. As a level
     /// signal it re-entered instantly after every exit, because both sentinels stuck on the
-    /// pre-1.5 post-quit world map (slot0 stayed 0xFF after a QUIT, probe-verified 2026-06-10; the
+    /// pre-1.5 post-quit world map (slot0 stayed 0xFF after a quit, probe-verified 2026-06-10; the
     /// 1.5 post-quit slot0 value is unverified). Live modes stay level signals. On 1.5 slot0
     /// sampled 0xFFFFFFFF at both battle-load churn edges of the 2026-07-21 log, so no early
     /// marker edge was seen there.</summary>
@@ -49,8 +49,8 @@ internal sealed class BattleState
     /// (battleMode 1/5). Re-anchored from the pre-1.5 0xFF; before that this arm was dead
     /// and the 2026-07-21 log shows the false exit it caused (enter 07:24:14, exit 07:24:22 at
     /// mode 1). Whether the marker persists through mode 1/5 stretches is inherited pre-1.5
-    /// behavior, AWAITING-LIVE (owner slow-cast eyeball); if wrong the excuse stays dead, never
-    /// wrongly live. The marker alone is not trusted, since pre-1.5 a QUIT left it stuck on the
+    /// behavior, awaiting-live (owner slow-cast eyeball); if wrong the excuse stays dead, never
+    /// wrongly live. The marker alone is not trusted, since pre-1.5 a quit left it stuck on the
     /// world map (probe-verified 2026-06-10; a victory cleared it to 0x66, and a 1.5 victory exit
     /// sampled 0x11). A marker-only frame needs an excuse for battleMode 0. Targeting modes 1/5,
     /// the pause flag, or a real event id.</summary>

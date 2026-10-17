@@ -23,7 +23,7 @@ internal sealed partial class GunSlinger
     // only after 2 consecutive passes, which covers a ~2s pop-in on the Status screen.
     private int _browseConsecutiveOnes;
 
-    /// <summary>The gate output Policy's rule 1 consumes. True means SUPPRESS (deny) every
+    /// <summary>The gate output Policy's rule 1 consumes. True means suppress (deny) every
     /// out-of-battle twin-lane write this pass.</summary>
     private bool ComputeMenuOpen()
     {

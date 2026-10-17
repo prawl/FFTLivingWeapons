@@ -105,7 +105,7 @@ internal sealed partial class Rapture : ISignature
         _state.Arm(e, saved, baselineTurns: 0, fp, grant);
         _deadStreak = 0;
         WriteField(_mem, e, grant);
-        // Once-per-window read-back; 243 teleported the player (2026-06-10). If MISS, flip
+        // Once-per-window read-back; 243 teleported the player (2026-06-10). If miss, flip
         // Tuning.RaptureMoveId to 242.
         string readback = ReadBackSet(_mem, e, Tuning.RaptureMoveId) ? "SET" : "MISS";
         ModLogger.EventWithTrace(LogVerb.Signature,

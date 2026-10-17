@@ -9,20 +9,20 @@ namespace LivingWeapon;
 /// showed the cache pinned at 2048 three times in one battle with only 726-728 kills sites; one
 /// region (0x15F800000) held 1076 sites and another (0x4F9B490000) fell from 242 to 0. Unbounded
 /// suffix copies (121 ids x 2 encodings, Display.OnChunk's allSuffixes pass) crowded out
-/// kills sites, and CoversAllMeta() (Display.PoolPaint.cs) counts only kills, so coverage never
+/// kills sites, and CoversAllMeta (Display.PoolPaint.cs) counts only kills, so coverage never
 /// latched and the nine-second whole-process search (resumable now, but still a cost) kept repeating.
 /// Admission is the only lever. No live site is evicted to make room.
 /// </summary>
 internal sealed partial class CardSites
 {
-    /// <summary>Cap on live KILLS sites, independent of the suffix cap. The old
+    /// <summary>Cap on live kills sites, independent of the suffix cap. The old
     /// per-id estimate is retired; the 2026-08-18 tape peaked at 726-728 kills sites. The extended inventory
     /// (2026-08-31) pushed it to 4096 because it adds up to 121 growing weapons
     /// (ExtendedSites.MaxExtendedCount) and CardSitesCacheTests pins ids x 2 kinds x 8 copies, so
     /// 242 ids need 3872. The list grows incrementally, so headroom costs nothing.</summary>
     internal const int MaxSites = 4096;
 
-    /// <summary>Cap on live SUFFIX sites, separate from MaxSites, so the cache can hold both
+    /// <summary>Cap on live suffix sites, separate from MaxSites, so the cache can hold both
     /// maxima at once. 121 ids x SuffixCopiesPerId is 1452, which never happens since only a few ids
     /// rotate at a time (Display.SuffixRotation's per-chunk slice).</summary>
     internal const int MaxSuffixSites = 1024;
@@ -31,7 +31,7 @@ internal sealed partial class CardSites
     /// starving every other id's suffix coverage.</summary>
     internal const int SuffixCopiesPerId = 12;
 
-    /// <summary>Minimum refused Adds between prune passes while the KILLS cache is full.</summary>
+    /// <summary>Minimum refused Adds between prune passes while the kills cache is full.</summary>
     internal const int PruneEveryRefusals = 32;
 
     /// <summary>Minimum sites a prune must evict to re-arm _pruneImmediately. PruneDeadSites is an
@@ -52,10 +52,10 @@ internal sealed partial class CardSites
     // ids that reach zero so the map cannot grow across tally resets.
     private readonly Dictionary<int, int> _suffixCountById = new();
 
-    /// <summary>Test accessor (CardSitesSuffixPartitionTests): live KILLS sites currently cached.</summary>
+    /// <summary>Test accessor (CardSitesSuffixPartitionTests): live kills sites currently cached.</summary>
     internal int KillsCount => _killsCount;
 
-    /// <summary>Test accessor and Display.PoolPaint.cs's coverage-payload source. Live SUFFIX
+    /// <summary>Test accessor and Display.PoolPaint.cs's coverage-payload source. Live suffix
     /// sites currently cached.</summary>
     internal int SuffixCount => _suffixCount;
 
@@ -63,7 +63,7 @@ internal sealed partial class CardSites
     /// uses it to show a suffix refusal leaves the kills prune rate-limit state alone.</summary>
     internal int RefusalsAtCapForTest => _refusalsAtCap;
 
-    /// <summary>Second half of Clear() (CardSites.cs); resets all admission state.</summary>
+    /// <summary>Second half of Clear (CardSites.cs); resets all admission state.</summary>
     private void ResetAdmission()
     {
         _refusalsAtCap = 0;
@@ -115,7 +115,7 @@ internal sealed partial class CardSites
     /// possibly-transient Unreadable site would otherwise keep Add failing. PaintAll's maintenance
     /// passes keep the leniency. Each evicted site reaches _onPruneEvict (null is a no-op), which
     /// Display.Flight.cs turns into a "card" flight record under the existing _flightBudget tiers.
-    /// PruneRearmFloor only decides whether the NEXT refusal skips the rate limit.</summary>
+    /// PruneRearmFloor only decides whether the next refusal skips the rate limit.</summary>
     private void PruneDeadSites()
     {
         List<Site>? toEvict = null;

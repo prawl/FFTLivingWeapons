@@ -97,9 +97,9 @@ internal sealed class WpTableHold
     }
 
     /// <summary>Before a write the byte must read the baked WP or our last target (N1). Anything else is
-    /// a foreign write, logged once and stood down for the battle. R3-6. If the foreign value appears while
+    /// a foreign write, logged once and stood down for the battle. If the foreign value appears while
     /// a hold is outstanding at this address (<paramref name="addr"/> == <see cref="_addr"/>), the writer
-    /// already overwrote our bump, so the record is cleared with no write rather than left for Restore() to
+    /// already overwrote our bump, so the record is cleared with no write rather than left for Restore to
     /// stomp back to baked. With no hold yet at this address it just refuses to write.</summary>
     private void Apply(long addr, int weaponId, int tier)
     {

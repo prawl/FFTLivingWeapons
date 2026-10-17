@@ -10,15 +10,15 @@ namespace LivingWeapon;
 /// boot-arm marker v2 (tools/probes/lw346_capbreak_bootarm.marker.v2.txt, observed 2026-08-26/27)
 /// plus the rig's CapBreakEquipHook/CapBreakDisplayHook constants; old bytes re-read from the exe 2026-08-27.
 /// Every <see cref="Site.Addr"/> is PIN space (preferred base 0x140000000); <see cref="Build"/> rebases it
-/// through <see cref="ImageBase.At"/> so each <see cref="BytePatch.Addr"/> is LIVE.
+/// through <see cref="ImageBase.At"/> so each <see cref="BytePatch.Addr"/> is live.
 /// </summary>
 internal static class ExtendedSites
 {
     /// <summary>How many extended items can exist at once. PlusN sites add N to a plain immediate or
     /// displacement byte, and eight are `lea reg,[base+6]` with a signed disp8, so
     /// 6 + 122 = 0x80 flips negative and corrupts the bound. 121 is the reviewer's decode of every PlusN
-    /// site (LW368_plan.md P11); <see cref="ExtendedInventoryData"/> and tools/generate.py refuse a larger table.
-    /// The count getter widens its HIGH byte instead (0x103 -&gt; 0x203, ids up to 515). The damage-staging
+    /// site; <see cref="ExtendedInventoryData"/> and tools/generate.py refuse a larger table.
+    /// The count getter widens its high byte instead (0x103 -&gt; 0x203, ids up to 515). The damage-staging
     /// cap's old `xor r15d,0x5E` was Denuvo obfuscation; the Denuvo-free build has plain `lea r14d,[rbp+6]`.</summary>
     public const int MaxExtendedCount = 121;
 
@@ -86,7 +86,7 @@ internal static class ExtendedSites
         // (inventory order tables; its second half 0x140286070 serves the picker tables) walks a template before
         // inserting a newly owned id at the front. The walk stops at the 0x00FF marker or the first word >= r14w,
         // where r14d comes from `45 8d 77 06` lea r14d,[r15+6] with r15d = 0xFF (0x105).
-        // Three copies 0x140285F80, 0x140286070, and 0x14039684C (round 8b; the same five inventory tables via
+        // Three copies 0x140285F80, 0x140286070, and 0x14039684C (the same five inventory tables via
         // pointer table 0x140689C38, owned-ness from the count mirror at 0x143C52740). Earlier sweeps missed them
         // because the bound sits in an r14/r15 pair rather than the lea+6 forms swept before.
         // Unwidened, an extended id ends the walk early. The insert shift starts at the stop word, so that id crawls
@@ -151,7 +151,7 @@ internal static class ExtendedSites
     private static List<BytePatch> Build(Site[] sites, int n)
     {
         var list = new List<BytePatch>(sites.Length);
-        // Site.Addr is PIN space; the patch carries the LIVE address.
+        // Site.Addr is PIN space; the patch carries the live address.
         foreach (var s in sites) list.Add(new BytePatch(ImageBase.At(s.Addr), s.Old, NewByte(s.Old, s.Kind, n), s.Label));
         return list;
     }

@@ -73,7 +73,7 @@ internal sealed class EarnedAnchors
     /// unique candidates to break ties.
     /// Known gap. Analyze.py's check_flavor_prefix sees only baked flavor, not
     /// composed lines. Composed lines are length-locked to the weapon's own flavor, entries with no
-    /// unique candidate in-window are ineligible (STEP 2), and CardSites' paint-time verify catches
+    /// unique candidate in-window are ineligible (step 2), and CardSites' paint-time verify catches
     /// a mispaint.</summary>
     public List<byte[]> UniqueAnchorsFor(int weaponId, int enc)
     {
@@ -91,7 +91,7 @@ internal sealed class EarnedAnchors
     }
 
     /// <summary>The current composed-line pattern for (weaponId, enc), or null. Used by CardSites'
-    /// repaint-through (decision 12).</summary>
+    /// repaint-through.</summary>
     public byte[]? CurrentFor(int weaponId, int enc)
     {
         if (!_current.TryGetValue(weaponId, out var cur)) return null;

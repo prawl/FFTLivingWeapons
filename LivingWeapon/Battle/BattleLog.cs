@@ -27,7 +27,7 @@ internal sealed class BattleLog
     /// <summary>Forget every baseline. Call on battle enter and exit.</summary>
     public void ResetBattle() => Array.Clear(_seen, 0, _seen.Length);
 
-    /// <summary>One pre-formatted diagnostic line, verbose-gated like <see cref="Observe"/>. KillTracker's D4 AREC
+    /// <summary>One pre-formatted diagnostic line, verbose-gated like <see cref="Observe"/>. KillTracker's AREC
     /// kill diagnostic routes here to stay decoupled from the credit path (KillTracker.CreditKill).</summary>
     public void KillDiag(string line)
     {

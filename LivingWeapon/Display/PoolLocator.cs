@@ -5,9 +5,9 @@ namespace LivingWeapon;
 
 /// <summary>
 /// Locates and caches the writable string pool regions the equip card rebuilds its description from.
-/// A cached set is re-verified in place; a miss rescans every region IGameMemory.Regions() yields and keeps each one PoolLocatorPolicy scores as pool.
+/// A cached set is re-verified in place; a miss rescans every region IGameMemory.Regions yields and keeps each one PoolLocatorPolicy scores as pool.
 /// All qualifying regions are kept, not the best one (2026-07-08): several baked copies of the descriptions exist and no static signature says which the card reads. Writes are name-gated and Writable-checked, so an extra copy is harmless.
-/// Regions() yields only committed private writable memory, so a located region is writable. That the card reads this named pool is docs/LIVE_LEDGER.md [card-materializes-from-named-pool], filed Uncertain.
+/// Regions yields only committed private writable memory, so a located region is writable. That the card reads this named pool is docs/LIVE_LEDGER.md [card-materializes-from-named-pool], filed Uncertain.
 /// The scan is resumable and byte-budgeted (<see cref="PoolScan"/>), replacing a 7 to 10 second walk on the 33ms loop. <see cref="Step"/> is driven by Engine's pool-locate lane (Display.PoolLocate.cs StepPoolLocate). <see cref="CachedRegions"/> publishes only on completion; <see cref="Invalidate"/> queues a restart and the last list stays served, marked <see cref="RegionsStale"/>. <see cref="LocateAll"/> is a synchronous test helper.
 /// PoolLocator.Restart.cs holds the restart, cadence and staleness state (Step, Invalidate, Publish); this file holds the cache and the cheap reverify.
 /// </summary>

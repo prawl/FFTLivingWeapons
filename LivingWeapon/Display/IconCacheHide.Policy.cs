@@ -16,14 +16,14 @@ namespace LivingWeapon;
 /// </summary>
 internal static partial class IconCacheHidePolicy
 {
-    internal const int PartsHeadSize = 0x60;          // targeted-read size for a parts candidate (D4)
+    internal const int PartsHeadSize = 0x60;          // targeted-read size for a parts candidate
     internal const int PartsIdOffset = 0x08;
     internal const int PartsStateOffset = 0x58;
     internal const ushort PartsExpectedState = 0x0101;
     // Bound from probe evidence (lw381_parts_cache_probe.py), not the ledger row.
     internal const uint PartsMaxId = 0x0FFFFFFF;
 
-    internal const int TexHeadSize = 0x40;            // targeted-read size for a texture candidate (D4)
+    internal const int TexHeadSize = 0x40;            // targeted-read size for a texture candidate
     internal const int TexSizeOffset = 0x28;
     internal const int TexHashOffset = 0x30;
 
@@ -45,7 +45,7 @@ internal static partial class IconCacheHidePolicy
     /// fails if that literal shrinks and stale bytes could match at a region's tail.</summary>
     internal const int ChunkReaderZeroClearLength = ChunkReader.ZeroClearLength;
 
-    /// <summary>Zeroed id/hash field written by a hide (D5).</summary>
+    /// <summary>Zeroed id/hash field written by a hide.</summary>
     internal static readonly byte[] ZeroU32 = new byte[4];
 
     /// <summary>The four strings a re-tiered icon's records can point at, id zero-padded to 3

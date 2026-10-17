@@ -5,8 +5,8 @@ namespace LivingWeapon;
 
 /// <summary>
 /// Is a given enemy seat the next to act, and how far off is another? Ports the CT+Speed
-/// clock model the 2026-07-27 phase-0 probe validated 15/15 (project() in
-/// tools/probes/provoke_lookahead_probe.py, not its leaders(), which diverges when two min-ETA
+/// clock model the 2026-07-27 phase-0 probe validated 15/15 (project in
+/// tools/probes/provoke_lookahead_probe.py, not its leaders, which diverges when two min-ETA
 /// units carry different Speeds).
 /// Player seats are excluded. ExtraTurn slams CT (band +0x25), Iai holds Speed (band +0x24), and
 /// GrowthEngine holds Speed for growth. Offsets.ACtSlam says not to trust CT for the player's own turns.
@@ -18,7 +18,7 @@ internal static class TurnOrder
     internal const int ActThreshold = 100;
 
     /// <summary>A valid, on-field, enemy-side, alive seat with sane hp/maxHp and nonzero Speed, matching the
-    /// probe's seat_valid(). One seat read hp 437 of maxHp 96 at tile (255,129), Speed 47, and skewed the
+    /// probe's seat_valid. One seat read hp 437 of maxHp 96 at tile (255,129), Speed 47, and skewed the
     /// whole prediction; zero Speed never reaches the threshold.</summary>
     private static bool IsCandidate(IGameMemory mem, long e)
     {
@@ -37,7 +37,7 @@ internal static class TurnOrder
     private static int RawEta(int ct, int speed) =>
         ct >= ActThreshold ? 0 : (int)Math.Ceiling((ActThreshold - ct) / (double)speed);
 
-    /// <summary>The probe's project() at depth 1. Every candidate waits the minimum raw ETA, then the
+    /// <summary>The probe's project at depth 1. Every candidate waits the minimum raw ETA, then the
     /// one with the highest CT acts (a further overshoot has waited longer). <paramref name="leaderEta"/>
     /// is that wait. False when no seat is a candidate. <paramref name="scratch"/> is caller-owned like
     /// ProvokeHold's _hideScratch. This type is stateless and flight/logging run off the engine thread.</summary>

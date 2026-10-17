@@ -86,7 +86,7 @@ internal sealed partial class Barrage : ISignature
                 int jobId = _mem.U8(rb + RJobId);
                 if (jobId <= 0) continue;
                 int secRec = _mem.U8(rb + RSecondary);
-                if (!IsEligibleWielder(jobId, secRec)) continue;   // THIEF-only. Primary job 83 or secondary record 14
+                if (!IsEligibleWielder(jobId, secRec)) continue;   // Thief-only. Primary job 83 or secondary record 14
                 wielderSlot = r;
                 wielderJob = jobId;
                 wielderSecondary = secRec;
@@ -130,7 +130,7 @@ internal sealed partial class Barrage : ISignature
                 $"barrage grant (party slot {wielderSlot}, record {recId}, learn index {jobIdx})");
         }
 
-        // Job changed mid-session. Release the old record's slot first; Restore() clears BarrageState.RecId so the
+        // Job changed mid-session. Release the old record's slot first; Restore clears BarrageState.RecId so the
         // lookup below re-runs FindEmptySlot on the new record.
         if (_state.RecId >= 0 && _state.RecId != recId) Restore();
 
@@ -143,7 +143,7 @@ internal sealed partial class Barrage : ISignature
             ModLogger.Debug(LogVerb.Grant, $"command record {recId} is not readable in memory yet; skipping this tick");
         if (recNotReadable) return;
 
-        // Only trust a remembered slot found in this record (the cross-record staleness Restore() handles).
+        // Only trust a remembered slot found in this record (the cross-record staleness Restore handles).
         int slotIdx = _state.RecId == recId ? _state.SlotIdx : -1;
         if (slotIdx < 0)
         {

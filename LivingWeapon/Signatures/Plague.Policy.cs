@@ -57,7 +57,7 @@ internal sealed partial class Plague
         // Same-unit check. Level drift is handled earlier by the caller's VerifyOrReanchor.
         if (!Band.SameUnitAtExact(mem, addr, fp)) return;
 
-        if (!inLive) return;   // A3. No writes during debounce tail / post-battle
+        if (!inLive) return;   // No writes during debounce tail / post-battle
 
         long poisonAddr = addr + Offsets.APoison;
         if (mem.Writable(poisonAddr, 1))

@@ -11,7 +11,7 @@ namespace LivingWeapon;
 /// is TurnOwnerSpike.cs.
 ///
 /// The attack-card dossier (AttackCard.cs) shows the previous actor's weapon at menu time, because
-/// the ActorRegister only names a unit once it acts (docs/TODO.md STAGE 2 LIVE PASS note,
+/// the ActorRegister only names a unit once it acts (the live pass note,
 /// 2026-07-05). A turn-owner signal readable at menu time is needed. Two candidates, both untested:
 ///
 /// Hypothesis 1, scheduler CT. Offsets.ACtSlam (band-entry +0x25) should sit at the ceiling for the

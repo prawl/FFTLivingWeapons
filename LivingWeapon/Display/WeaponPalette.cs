@@ -4,7 +4,7 @@ namespace LivingWeapon;
 
 /// <summary>
 /// The per-turn weapon-sprite palette repaint. A display subsystem, not an ISignature:
-/// it has its own TickPhase row and Engine.ResetBattleState calls its ResetBattle().
+/// it has its own TickPhase row and Engine.ResetBattleState calls its ResetBattle.
 /// On the acting unit's turn (<see cref="Band.FlagOwner"/>), reads its main-hand weapon id
 /// (Offsets.AWeapon) and, if meta has bench colors for it (<see cref="WeaponMeta.Palette"/>/
 /// <see cref="WeaponMeta.Colors"/>), writes entries 1..15 into both banks

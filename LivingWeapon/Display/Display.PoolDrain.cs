@@ -6,12 +6,12 @@ namespace LivingWeapon;
 /// Per-region drain check. MaybePoolPaint's aggregate short-circuit
 /// (Display.PoolPaint.cs) re-latches at whatever smaller count survives a partial loss, so if the
 /// lost copy is the one the card renders from, nothing repaints it (which region that is is not
-/// ledger-proven, see PoolLocator.cs PREMISE STATUS). <see cref="LatchRegionCounts"/> records a
+/// ledger-proven, see PoolLocator.cs premise status). <see cref="LatchRegionCounts"/> records a
 /// kills-site count per region when coverage last latched. <see cref="ReOfferDrainedRegions"/>,
 /// called only from RunMaintenance (Display.Heartbeat.cs), re-offers the regions that fell below
-/// it through ScanPoolRegion, never a full LocateAll, Regions() walk or heap sweep.
+/// it through ScanPoolRegion, never a full LocateAll, Regions walk or heap sweep.
 ///
-/// After a re-offer, coverage is re-decided by CoversAllMeta(), not re-latched. Re-latching
+/// After a re-offer, coverage is re-decided by CoversAllMeta, not re-latched. Re-latching
 /// unconditionally freezes _poolCovered=true when a whole region has relocated, which suppresses
 /// MaybePoolPaint's full-relocate fallback (it runs only while _poolCovered is false). Caught by
 /// PoolPaint_drained_pool_relocates_without_any_invalidate and

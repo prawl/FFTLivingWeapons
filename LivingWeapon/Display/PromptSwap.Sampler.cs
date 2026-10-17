@@ -7,7 +7,7 @@ namespace LivingWeapon;
 /// PromptSwap's diagnostic sampling half, split out of PromptSwap.cs for the 200-line
 /// trigger. Both samplers only observe, from TryPrepareSwap on the game's SetTextString thread,
 /// so the HashSet state needs no lock. The head sampler logs the first dozen unique decodable
-/// prompt heads. The struct sampler (step 1b) runs on every commit, so it also sees the
+/// prompt heads. The struct sampler runs on every commit, so it also sees the
 /// unreadable or undecodable rdx values that the 1.5.1 capture showed are most of them.
 /// </summary>
 internal sealed partial class PromptSwap

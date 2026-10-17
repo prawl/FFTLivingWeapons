@@ -77,7 +77,7 @@ internal sealed class ShadowBlade : ISignature
         {
             if (_wasActive) ModLogger.Event(LogVerb.Grant, "Shadow Blade is no longer granted; no eligible Sanguine Sword wielder remains");
             _wasActive = false;
-            // Eligibility is open, so the next grant may resolve to a different record. Restore() releases
+            // Eligibility is open, so the next grant may resolve to a different record. Restore releases
             // the tracked record's slot (BarrageState.RecId) and always clears.
             Restore(abilityId);
             return;
@@ -113,7 +113,7 @@ internal sealed class ShadowBlade : ISignature
         if (!_mem.Readable(flagAddr, Barrage.RecSize)) { return; }
 
         // Only trust a remembered slot found in this record (same check as Barrage.cs), even though
-        // Restore() above should already have cleared a mismatched one.
+        // Restore above should already have cleared a mismatched one.
         int slotIdx = _state.RecId == recId ? _state.SlotIdx : -1;
         if (slotIdx < 0)
         {

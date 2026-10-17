@@ -13,7 +13,7 @@ internal sealed partial class LaunchGuard
     /// <summary>steps the kit-lane guard only while the main guard is Armed and the lane is
     /// still Verifying. The build stamp is only a report, so a lane stand-down on an
     /// unknown build may be the game update itself, which is why the lane copy hedges then.
-    /// Engine.cs calls this once per tick beside the main guard's Step().</summary>
+    /// Engine.cs calls this once per tick beside the main guard's Step.</summary>
     public void StepKitLane()
     {
         if (_guard.State != GuardState.Armed) return;

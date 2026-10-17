@@ -105,7 +105,7 @@ internal sealed partial class Bulwark
 
             long addr = GridAddr(idx);
             if (!_mem.Readable(addr, 1) || !_mem.Writable(addr, 1)) continue;   // keep watching; unwritable this tick
-            byte orig = _mem.U8(addr);   // captured HERE, at raise time -- never at deferral time
+            byte orig = _mem.U8(addr);   // captured here, at raise time -- never at deferral time
             _mem.W8(addr, BulwarkPolicy.VetoedF6(orig));
             _restoreBook[idx] = orig;
             _deferred.Remove(idx);

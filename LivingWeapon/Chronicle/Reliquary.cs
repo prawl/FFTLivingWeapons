@@ -18,7 +18,7 @@ internal interface IDeedSink
 
     /// <summary>Living Poach. The credit-moment report of <see cref="RecordDeed"/> plus the victim's band slot
     /// (per-corpse dedupe key with nameId) and the kill's shape (delayed/charged credit, or turn-queue fallback),
-    /// which feed stage 4's action discriminator. Default no-op so existing implementers compile unchanged.
+    /// which feed LivingPoach's action discriminator. Default no-op so existing implementers compile unchanged.
     /// KillTracker.CreditKill calls it alongside RecordDeed; DeedFanout.cs is the only production override,
     /// forwarding to LivingPoach.</summary>
     void RecordPoachDeed(int weaponId, in VictimSnapshot victim, int slot, bool delayedOrCharged, bool viaFallback) { }
@@ -36,7 +36,7 @@ internal sealed class Reliquary : IDeedSink
     private readonly BannerToast? _toast;
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly Action<string, string>? _recorder;
-    // Marks earned this battle in earn order, for the battle-end match-report summary (logging facelift stage 3).
+    // Marks earned this battle in earn order, for the battle-end match-report summary.
     // Engine reads it at the exit edge, before ResetBattle.
     private readonly List<(int weaponId, VictimClass.Archetype mark)> _battleMarks = new();
 
@@ -46,7 +46,7 @@ internal sealed class Reliquary : IDeedSink
     /// <summary>Clear the per-battle Marks ledger. Engine calls this from ResetBattleState after the exit edge's summary is composed.</summary>
     public void ResetBattle() => _battleMarks.Clear();
 
-    /// <param name="toast">Null when BannerToasts is disabled (decision 11); the deed is still recorded in <paramref name="store"/>.</param>
+    /// <param name="toast">Null when BannerToasts is disabled; the deed is still recorded in <paramref name="store"/>.</param>
     public Reliquary(LegendStore store, BannerToast? toast, Dictionary<int, WeaponMeta> meta,
                       Action<string, string>? recorder = null)
     {
@@ -56,7 +56,7 @@ internal sealed class Reliquary : IDeedSink
         _recorder = recorder;
     }
 
-    /// <summary>Record the deed, then flight-tap and toast-announce each newly earned Mark (toast is null when disabled, decision 11). Never throws.</summary>
+    /// <summary>Record the deed, then flight-tap and toast-announce each newly earned Mark (toast is null when disabled). Never throws.</summary>
     public void RecordDeed(int weaponId, in VictimSnapshot victim)
     {
         try

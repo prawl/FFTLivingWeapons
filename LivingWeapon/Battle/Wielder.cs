@@ -35,7 +35,7 @@ internal static partial class Wielder
         {
             long hit = LocateTier1(mem, weaponId, hands, fp, rosterNameId, out int candidatesSeen);
             if (hit != 0) return hit;
-            if (candidatesSeen > 0) return 0;   // saw candidates, refused. Do not fall through (S6)
+            if (candidatesSeen > 0) return 0;   // saw candidates, refused. Do not fall through
         }
         return LocateTier2(mem, weaponId, hands, fp, rosterNameId);
     }
@@ -60,8 +60,8 @@ internal static partial class Wielder
             long e = Band.Entry(s);
             if (!Band.IsValid(mem, e)) continue;
             if (!BasePredicate(mem, e, hands, fp, out int wid)) continue;
-            int entryNameId = mem.U16(e + Offsets.ANameId);   // unguarded fail-safe read (Iai pattern, D8)
-            if (entryNameId != rosterNameId) continue;         // D1 gate (rosterNameId > 0 here. No 0==0 trap)
+            int entryNameId = mem.U16(e + Offsets.ANameId);   // unguarded fail-safe read (Iai pattern)
+            if (entryNameId != rosterNameId) continue;         // gate (rosterNameId > 0 here. No 0==0 trap)
             candidatesSeen++;
             bool realPos = mem.U8(e + Offsets.AGx) != 0 || mem.U8(e + Offsets.AGy) != 0;
             if (real && !realPos) continue;                                  // (0,0) twin loses to a live match
@@ -77,7 +77,7 @@ internal static partial class Wielder
         }
         if (exacts == 1) return exact;
         if (matches == 1) return match;
-        // Relaxed tie (D3): unlike tier 2, also fires for real-position survivors; the nameId match
+        // Relaxed tie. Unlike tier 2, also fires for real-position survivors; the nameId match
         // shows they are copies of one unit.
         if (matches > 1 && tieHomogenous) return exacts > 0 ? firstExact : firstMatch;
         return 0;
@@ -103,7 +103,7 @@ internal static partial class Wielder
             if (rosterNameId > 0)
             {
                 int entryNameId = mem.U16(e + Offsets.ANameId);
-                if (entryNameId != 0 && entryNameId != rosterNameId) continue;   // D2 veto. Foreign nonzero nameId excluded
+                if (entryNameId != 0 && entryNameId != rosterNameId) continue;   // veto. Foreign nonzero nameId excluded
             }
             bool realPos = mem.U8(e + Offsets.AGx) != 0 || mem.U8(e + Offsets.AGy) != 0;
             if (real && !realPos) continue;                                  // (0,0) twin loses to a live match
@@ -178,7 +178,7 @@ internal static partial class Wielder
             if (rosterNameId > 0)
             {
                 int entryNameId = mem.U16(e + Offsets.ANameId);
-                if (entryNameId != 0 && entryNameId != rosterNameId) continue;   // D2 veto
+                if (entryNameId != 0 && entryNameId != rosterNameId) continue;   // veto
             }
             results.Add(e);
         }

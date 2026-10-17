@@ -5,7 +5,7 @@ namespace LivingWeapon;
 
 /// <summary>
 /// Two-lane per-pass paint verdict ledger, keyed by SlotAddr rather than weapon id.
-/// Per-id aggregation hid a missing equip-card copy while Display.PoolPaint.cs CoversAllMeta() still
+/// Per-id aggregation hid a missing equip-card copy while Display.PoolPaint.cs CoversAllMeta still
 /// reported complete, since CardSites.cs sizes pools at about 5.8 copies per id.
 ///
 /// Notable lane (<see cref="Entries"/>): every outcome except AlreadyEqual, capped at <see cref="MaxEntries"/>,

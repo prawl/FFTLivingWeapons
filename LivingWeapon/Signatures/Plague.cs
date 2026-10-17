@@ -72,7 +72,7 @@ internal sealed partial class Plague : ISignature
             ModLogger.Debug(LogVerb.Signature, $"plague window {(active ? "opened: poison landing on the wielder's target during this window latches" : "closed")}");
         }
 
-        // Release all latches when Venombolt is unequipped (A4).
+        // Release all latches when Venombolt is unequipped.
         if (inLive && !IsEquipped()) { _state.Clear(); }
 
         // Fingerprints are needed for as long as a grace-window latch is still possible.
@@ -114,7 +114,7 @@ internal sealed partial class Plague : ISignature
     }
 
     /// <summary>Hold all latched victims each tick. Re-OR the poison bit, re-pin the timer.
-    /// Skips writes when <paramref name="inLive"/> is false (A3).</summary>
+    /// Skips writes when <paramref name="inLive"/> is false.</summary>
     private void Drive(bool inLive)
     {
         var toDrop = new List<long>();

@@ -20,8 +20,7 @@ namespace LivingWeapon;
 /// (re-test 4 and 5, closing disassembly 2026-08-30). So after the original returns, the detour
 /// replays the bag counts (BagReplay) and reseats a few template words (TemplateSeat), all
 /// through the guarded patcher. Engine's tick runs the same replay as an idempotent fallback
-/// and keeps the log line; its seat runs only when this detour did not serve the load edge
-/// (round 8c).
+/// and keeps the log line; its seat runs only when this detour did not serve the load edge.
 ///
 /// Landmarks (re-read from the 1.5.2 exe on disk 2026-08-27, after the first build named two
 /// entries that were not the routines it meant):

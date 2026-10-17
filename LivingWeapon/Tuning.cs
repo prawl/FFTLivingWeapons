@@ -6,13 +6,13 @@ namespace LivingWeapon;
 /// <summary>
 /// Growth tuning in one place so detection, growth, and display agree.
 /// Kill thresholds are build-flavored. A DEV build (BuildLinked.ps1 passes -p:LwDev=true, which
-/// defines LWDEV) uses {1,2,3} and seeds every weapon to DevKillSeed on load; a PRODUCTION build
+/// defines LWDEV) uses {1,2,3} and seeds every weapon to DevKillSeed on load; a production build
 /// (Publish.ps1) uses {5,10,15} and seeds nothing.
 /// </summary>
 internal static class Tuning
 {
     /// <summary>Both threshold sets are always compiled so tests can use the dev curve; LWDEV picks the active one.</summary>
-    public static readonly int[] DevThresholds = { 1, 2, 3 };    // P3 by the third kill (fast verification)
+    public static readonly int[] DevThresholds = { 1, 2, 3 };    // by the third kill (fast verification)
     public static readonly int[] ProdThresholds = { 5, 10, 15 }; // gentle ramp (2026-08-11 retune from {5,25,50}: one weapon reached 50 kills by mid-game)
 #if LWDEV
     public static readonly int[] KillThresholds = DevThresholds;
@@ -74,7 +74,7 @@ internal static class Tuning
     /// cached equip-card paint site. The old bare-bool AnchorIsLive evicted on a single unreadable frame.
     /// Sits outside the #if LWDEV split because it is a paint-cache hygiene knob, not a difficulty/pacing one.
     /// Tuned from the 2026-08-17 tape. The site count fell 836 -> 726 -> 690 over three maintenance passes
-    /// while CoversAllMeta() (Display.PoolPaint.cs) kept reporting complete, since each id has ~5.8 pool
+    /// while CoversAllMeta (Display.PoolPaint.cs) kept reporting complete, since each id has ~5.8 pool
     /// copies (CardSites.cs MaxSites). Three strikes rides that out and still evicts a dead site within a
     /// few 1000ms beats (Display.MaintenanceMs).</summary>
     public const int CardEvictStrikes = 3;
@@ -89,7 +89,7 @@ internal static class Tuning
 
     /// <summary>Display.PoolPaint.cs ReOfferDrainedRegions. Kill switch for the per-region
     /// drain re-offer. It reuses ScanPoolRegion (docs/LIVE_LEDGER.md [flavor-line-overwrite-displays],
-    /// PROVEN) on only the regions that fell short of their latch.</summary>
+    /// Proven) on only the regions that fell short of their latch.</summary>
     public const bool CardReOfferEnabled = true;
 
     /// <summary>AttackCard. How long a cached table copy may fail SyncHit verify before RepaintAll
@@ -172,7 +172,7 @@ internal static class Tuning
     /// Offsets.CFaithCurrent, capped at <see cref="FaithLaneCap"/> and never below natural.</summary>
     public static readonly int[] FaithBonus = { 0, 4, 8, 12 };
 
-    /// <summary>ceiling for the magic-gun lane's held CURRENT faith.</summary>
+    /// <summary>ceiling for the magic-gun lane's held current faith.</summary>
     public const int FaithLaneCap = 85;
 
     /// <summary>ceiling for the "hp" lane's held u16 MaxHp (Offsets.CMaxHp). HP grows on
@@ -216,7 +216,7 @@ internal static class Tuning
     public const double RaptureHpPct = 0.30;
 
     /// <summary>Rapture. The granted movement ability, 243 = Master Teleportation (ability.en key 499); the
-    /// player teleported on 2026-06-10. Fallback 242 (plain Teleport) if the arm-time read-back logs MISS.</summary>
+    /// player teleported on 2026-06-10. Fallback 242 (plain Teleport) if the arm-time read-back logs miss.</summary>
     public const int RaptureMoveId = 243;
 
     /// <summary>Feign Death (Wrathblade +3): how many of the wielder's own turns the played-dead window lasts,
@@ -372,22 +372,22 @@ internal static class Tuning
     public const int ProvokeRevealMarginTicks = 2;
 
     /// <summary>master switch for the CT+Speed turn-order lookahead (TurnOrder.cs). True runs the
-    /// five-branch rule (D1 revised, ProvokeHold.Policy.ActionFor). False skips branches 3/4, so TurnOrder is
+    /// five-branch rule (revised, ProvokeHold.Policy.ActionFor). False skips branches 3/4, so TurnOrder is
     /// never consulted and ActionFor falls to branch 5 (hide unless a player-side seat owns the turn or the
-    /// marked enemy is the current actor), the fallback the old WINDOW mode shipped. A rollback lever if the
+    /// marked enemy is the current actor), the fallback the old window mode shipped. A rollback lever if the
     /// live pass finds the ranking model unreliable.</summary>
     public const bool ProvokeLookahead = true;
 
     /// <summary>Provoke hold. The marked enemy's own completed turns (falling edge of the actor-pointer identity
-    /// match gated on an enemy turn, decision 10, see ProvokeHold.MarkedIsActor) before the hold releases as
+    /// match gated on an enemy turn, see ProvokeHold.MarkedIsActor) before the hold releases as
     /// EnemyTurnDone. The count rides the actor-pointer identity match and never the TurnQueue
     /// stat-fingerprint, which collides on identical enemies. AC 1b's target is 3; v1 ships 1.</summary>
     public const int ProvokeTurns = 1;
 
-    /// <summary>Provoke hold. Live battle-time safety cap (decision 11; accrues only while Offsets.PauseFlag
+    /// <summary>Provoke hold. Live battle-time safety cap (accrues only while Offsets.PauseFlag
     /// reads unpaused) before a stuck hold force-releases as a Watchdog. Raised 30 -> 90 on 2026-07-27. The
     /// hold armed at 04:30:40 and the marked enemy acted at about 04:31:11, so the old cap would have
-    /// released a healthy hold and logged the WARN meaning a release condition was missed. The clock accrues
+    /// released a healthy hold and logged the warn meaning a release condition was missed. The clock accrues
     /// across the whole hold, so raising ProvokeTurns above 1 needs it raised again.</summary>
     public const double ProvokeWatchdogSeconds = 90.0;
 
@@ -395,7 +395,7 @@ internal static class Tuning
     /// miss) before the hold concludes it is gone (EnemyGone) and releases. One missed tick must not release.</summary>
     public const int ProvokeMarkedMissTicks = 3;
 
-    // -- Living Poach, armed at stage 4 (2026-08-12): Engine wires wasBasicAttack to
+    // -- Living Poach, armed 2026-08-12. Engine wires wasBasicAttack to
     //    LivingPoach.ReadWasBasicAttack, so every gate below is active in production. --
 
     /// <summary>Living Poach. Damage formulas through which the vanilla Poach support (Key 471, id 215)
@@ -426,7 +426,7 @@ internal static class Tuning
     /// id. See LivingPoach.ReadWasBasicAttack.</summary>
     internal const int BasicAttackAbilityId = 0;
 
-    /// <summary>Provoke hold (R2): status ids meaning the provoked enemy cannot take its provoked turn, so the
+    /// <summary>Provoke hold. Status ids meaning the provoked enemy cannot take its provoked turn, so the
     /// hold releases instead of waiting for the watchdog. Petrify=8, Confuse=11, Stop=30, Charm=34, Sleep=35,
     /// DontAct=37. Death is already EnemyDead. Frog/Berserk/Blind/Slow/DontMove/DeathSentence are excluded
     /// because the unit still attacks the only visible target (the bearer). Read on the composed layer

@@ -6,11 +6,11 @@ namespace LivingWeapon;
 /// Defender's "Provoke" signature, modeled on ShadowBlade.cs. Grants a JobCommand-injected command
 /// to a tier-3 main-hand Defender wielder using the Barrage/ShadowBlade injection primitives and the shared
 /// Squire/Knight whitelist (ProvokePolicy delegates to ShadowBladePolicy). This file is the slot lifecycle plus
-/// Tick(); Provoke.Table.cs is the table lifecycle (the two byte writes repointing ability 189's effect), a
+/// Tick; Provoke.Table.cs is the table lifecycle (the two byte writes repointing ability 189's effect), a
 /// separate state machine with its own arming condition.
 /// Armed by data. Nothing is granted unless items.json id 33 (Defender) has a `signature` block. Armed since
 /// 3565363; it shipped inert in 2.3.2 because the mark it makes castable never expires
-/// and cannot be re-applied, and ProvokeHold (arc 2a) is what clears it. ProvokeHoldTests.
+/// and cannot be re-applied, and ProvokeHold is what clears it. ProvokeHoldTests.
 /// The_baked_meta_signature_block_agrees_with_the_ship_switch pins the block against Tuning.ProvokeEnabled
 /// (docs/PROVOKE_AC.md). The wielder scan does not filter by job, unlike ShadowBlade's; eligibility is resolved
 /// afterward for the slot half only (see Provoke.Table.cs).
@@ -70,10 +70,10 @@ internal sealed partial class Provoke : ISignature
             }
         }
 
-        // TABLE LIFECYCLE. Independent of job eligibility (Provoke.Table.cs).
+        // Table lifecycle. Independent of job eligibility (Provoke.Table.cs).
         if (wielderSlot >= 0) WriteTable(abilityId); else RestoreTable(abilityId);
 
-        // SLOT LIFECYCLE. Same shape as ShadowBlade.
+        // Slot lifecycle. Same shape as ShadowBlade.
         if (wielderSlot < 0)
         {
             if (_wasActive) ModLogger.Event(LogVerb.Grant, "Provoke is no longer granted; no Defender wielder remains");

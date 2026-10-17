@@ -27,15 +27,15 @@ internal sealed partial class PoolLocator
 
     internal readonly record struct LocateCompletion(int Regions, int Ticks, long Bytes, long ElapsedMs, string Trigger);
 
-    // Restart coalescing. Invalidate() queues a restart instead of clearing _cached and
-    // never touches a running scan, so any number of Invalidate() calls mid-scan collapse into one
+    // Restart coalescing. Invalidate queues a restart instead of clearing _cached and
+    // never touches a running scan, so any number of Invalidate calls mid-scan collapse into one
     // restart (the livelock fix, since battle edges fire several per battle). A failed revalidate
     // does not set _restartPending; it runs only with no scan in flight and falls through to
     // _scan.Begin in the same Step.
     private bool _restartPending;
     private bool _stale = true;   // true until the very first publish; RegionsStale's backing field
     private string _pendingTrigger = "first";
-    // Snapshot of _pendingTrigger taken when the scan begins, so a mid-flight Invalidate() cannot
+    // Snapshot of _pendingTrigger taken when the scan begins, so a mid-flight Invalidate cannot
     // change the trigger reported for the run in flight.
     private string _runningTrigger = "first";
     private bool _hasScannedOnce;   // true once any scan has completed, found something or not -- distinguishes "first" from "empty-retry"
@@ -74,7 +74,7 @@ internal sealed partial class PoolLocator
         {
             // The cadence gate covers both a populated and an empty cache. Without it, a scan that found
             // nothing (cold boot before the pool exists) restarted on the very next call at the full
-            // per-tick budget. A queued restart (Invalidate() or a prior failed revalidate) skips the wait.
+            // per-tick budget. A queued restart (Invalidate or a prior failed revalidate) skips the wait.
             if (!_restartPending)
             {
                 if (nowMs - _lastRevalidateMs < RevalidateMs) return null;   // not due yet
@@ -99,7 +99,7 @@ internal sealed partial class PoolLocator
             // read false while the new scan is in flight.
             _stale = true;
             _restartPending = false;
-            _runningTrigger = _pendingTrigger;   // snapshot before a later Invalidate() can move _pendingTrigger
+            _runningTrigger = _pendingTrigger;   // snapshot before a later Invalidate can move _pendingTrigger
             _scan.Begin(nowMs);
         }
 
@@ -136,16 +136,16 @@ internal sealed partial class PoolLocator
     {
         _cached.Clear();
         _cached.AddRange(regions);
-        // B1. Staleness must survive a publish while a restart is still queued. A scan running when
-        // Invalidate() lands straddles the relocation and publishes on its own, so its result is the
-        // one Invalidate() distrusted. Step clears _restartPending when it picks the restart up, so
+        // Staleness must survive a publish while a restart is still queued. A scan running when
+        // Invalidate lands straddles the relocation and publishes on its own, so its result is the
+        // one Invalidate distrusted. Step clears _restartPending when it picks the restart up, so
         // the queued scan's own publish clears staleness correctly.
         _stale = _restartPending;
         _hasScannedOnce = true;
         // Stamp the revalidate clock at publish, not at scan start. A scan can outlast RevalidateMs
         // (the live tape saw 52 to 145MB regions), and a second Step in the finishing tick would
         // otherwise run an unbudgeted AllCachedStillPool right away. MaybePoolPaint's fall-through
-        // call was removed in R1, but the guard is still tested.
+        // call was removed, but the guard is still tested.
         _lastRevalidateMs = nowMs;
         PublishGeneration++;   // commit 1B. Every publish is a "fresh region list" event
         LogRegionsFound();

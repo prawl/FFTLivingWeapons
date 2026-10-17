@@ -8,7 +8,7 @@ namespace LivingWeapon;
 /// The arm half of the boot transaction. The ordered step list (<see cref="Install"/>, with its
 /// accessor-hook helper <see cref="InstallAccessorHook"/>) and the boot placement (<see cref="SeedBag"/>).
 /// Split from ExtendedInventory.cs, as ExtendedInventory.Hooks.cs was carved out before it.
-/// Install order (D2) is cap patches, list relocation, template relocation, catalog, shops,
+/// Install order is cap patches, list relocation, template relocation, catalog, shops,
 /// accessor hooks, hooks; <c>RollBack</c> in Hooks.cs undoes it in reverse.
 /// </summary>
 internal sealed partial class ExtendedInventory

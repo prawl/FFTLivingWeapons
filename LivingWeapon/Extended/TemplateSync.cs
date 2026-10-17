@@ -8,15 +8,15 @@ namespace LivingWeapon;
 /// The relocation moves the charts the game works on, but the save field keeps its old shape (F5): the first
 /// 140 (or 261) chart words in order, extended ids included, then the marker.
 /// On save, <see cref="Project"/> runs before the game's serializer copies the old block. It reads the page,
-/// truncates to what the old block holds, and writes that in (D1/D4).
+/// truncates to what the old block holds, and writes that in.
 /// On load, <see cref="Adopt"/> runs after the game restores the old block. It copies the span back onto the page
-/// and re-applies the marker rule (D3) and the 0xFFFF wall (crash 1, finding 8) so the game's housekeeper can walk it safely.
+/// and re-applies the marker rule and the 0xFFFF wall so the game's housekeeper can walk it safely.
 /// Every write goes through the injected <see cref="ICodePatcher"/>.
 /// </summary>
 internal static class TemplateSync
 {
     /// <summary>Pure. The page's words up to (not including) the first <see cref="TemplateSeat.EndMarker"/>, in page order
-    /// with ids verbatim (a 0x4000 badge bit rides along unmasked, D4), truncated to <paramref name="capacityWords"/>, 1 ids,
+    /// with ids verbatim (a 0x4000 badge bit rides along unmasked), truncated to <paramref name="capacityWords"/>, 1 ids,
     /// then the marker. No zero-fill; <see cref="OldBlockImage"/> pads.</summary>
     public static ushort[] Projection(ushort[] pageWords, int capacityWords)
     {
@@ -38,7 +38,7 @@ internal static class TemplateSync
         return bytes;
     }
 
-    /// <summary>Pure. The marker rule (D3) plus the 0xFFFF wall (finding 8, crash 1), applied to <paramref name="span"/>
+    /// <summary>Pure. The marker rule plus the 0xFFFF wall, applied to <paramref name="span"/>
     /// (an old chart block, read verbatim) to produce a <paramref name="regionBytes"/>-long page image. Cases:
     /// (a) the span already holds a 0x00FF marker. Copied unchanged, wall after the span's words (the game's walkers stop at the marker);
     /// (b) no marker but a zero word. The marker goes into that slot, wall after the span;
@@ -65,7 +65,7 @@ internal static class TemplateSync
         return region;
     }
 
-    /// <summary>The serialize edge (D4), a no-op when not installed. Per chart. Read the page region, project it to the
+    /// <summary>The serialize edge, a no-op when not installed. Per chart. Read the page region, project it to the
     /// old block's capacity, and write it in one write that stays inside the span.
     /// Called inside <see cref="SaveEdgeHooks.SerializeCore"/>'s try, before the original runs.</summary>
     public static void Project(ICodePatcher patcher, TemplateRelocation relocation)
@@ -81,7 +81,7 @@ internal static class TemplateSync
         }
     }
 
-    /// <summary>The load edge (D4), a no-op when not installed. Per chart. Read the old block the game just restored,
+    /// <summary>The load edge, a no-op when not installed. Per chart. Read the old block the game just restored,
     /// apply the marker rule and wall, and write it to the page in one write. Called from <see cref="SaveEdgeHooks.AfterApply"/>
     /// after <see cref="SaveEdgeHooks.ReadHeader"/> succeeds and before the bag/template replay, so the seat lands on a fresh page.</summary>
     public static void Adopt(ICodePatcher patcher, TemplateRelocation relocation)

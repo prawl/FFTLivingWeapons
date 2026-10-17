@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// S3. Carries the latch state in and out of each <see cref="ActedPeriodLatch.Step"/> /
+/// Carries the latch state in and out of each <see cref="ActedPeriodLatch.Step"/> /
 /// <see cref="ActedPeriodLatch.Reset"/> call. The fields live on KillTracker; it seeds this before the call
 /// and copies back after (SeedLatchOutputs/ApplyLatchOutputs), so the latch needs no KillTracker reference.
 /// </summary>
@@ -30,7 +30,7 @@ internal sealed class ActedPeriodOutputs
 }
 
 /// <summary>
-/// S3. The acted-period latch, moved out of KillTracker.Poll and FirstKillFallback unchanged
+/// The acted-period latch, moved out of KillTracker.Poll and FirstKillFallback unchanged
 /// apart from addressing state through <see cref="ActedPeriodOutputs"/>. It latches the acting player's
 /// weapons once per acted-period. The condensed struct follows the cursor (BATTLE_COORDINATES.md) and
 /// acted stays 1 all turn, so the first successful resolve is kept until acted stays 0 for UnfreezeTicks.
@@ -58,7 +58,7 @@ internal sealed class ActedPeriodLatch
     }
 
     /// <summary>One tick of the latch, then the first-kill fallback. <paramref name="o"/> must be seeded
-    /// from KillTracker first; <paramref name="anyPending"/> is KillTracker.AnyPending().</summary>
+    /// from KillTracker first; <paramref name="anyPending"/> is KillTracker.AnyPending.</summary>
     internal void Step(ActedPeriodOutputs o, bool anyPending)
     {
         // Latch the acting player's weapons once per acted-period (see the class doc).

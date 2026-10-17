@@ -5,7 +5,7 @@ namespace LivingWeapon;
 /// <summary>
 /// Reliquary Phase 1's card-flavor composer (docs/RELIQUARY_AC.md Display section). Turns a weapon's
 /// deed ledger (LegendStore's WeaponLegend) into the story line that replaces its baked flavor, or
-/// null to keep the baked line (decision 8. No deeds recorded). Order (decision 10 defers Legends
+/// null to keep the baked line (no deeds recorded). Order (Reliquary defers Legends
 /// to Phase 2): highest-count archetype among earned Marks &gt; last victim &gt; null.
 /// Forms are tried in fixed priority A, B, C, D, not by length, so a short low-priority form cannot
 /// beat a longer one that also fits. {n} is the mark archetype's count, {k} is totalKills.

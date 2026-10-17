@@ -24,7 +24,7 @@ internal enum PacPatchResult
 
 /// <summary>
 /// Patches <c>modded.pac</c> in place (same-length overwrite) for the same-session icon
-/// repaint (ledger row [live-icon-repaint], PROVEN 2026-09-01; mechanism in IconGlow.cs). Located
+/// repaint (ledger row [live-icon-repaint], proven 2026-09-01; mechanism in IconGlow.cs). Located
 /// offsets are cached per icon so a weapon re-tiering skips the multi-MB re-scan.
 ///
 /// One instance per pac path (see <see cref="FileIconGlowStore"/>), reused for the launch. Nothing
@@ -90,7 +90,7 @@ internal sealed partial class ModdedPac
     /// <summary>One read-only <see cref="PacScan.FindBatch"/> pass locates every unresolved entry,
     /// then each is written through <see cref="WriteAndVerify"/> and its offset cached.
     ///
-    /// R2-7 (accepted): if the file shrank between the search handle closing and the write handle
+    /// Accepted residual. If the file shrank between the search handle closing and the write handle
     /// opening, the write would extend the file. The only merge that rewrites the pac runs before
     /// this process starts, and deploying while the game runs is forbidden.</summary>
     private void SearchAndPatchUnresolved(List<(string CacheKey, byte[] OldBytes, byte[] NewBytes)> unresolved, Dictionary<string, PacPatchResult> results)

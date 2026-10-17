@@ -120,7 +120,7 @@ internal static class Mem
     private const uint PAGE_NOACCESS = 0x01;
 
     /// <summary>Yields every committed, private, writable, non-guard region, which is where the
-    /// card text we paint lives. Skipping IMAGE and MAPPED memory cuts the paint scan from GBs to
+    /// card text we paint lives. Skipping image and mapped memory cuts the paint scan from GBs to
     /// the heap.</summary>
     public static IEnumerable<(long baseAddr, long size)> Regions()
     {

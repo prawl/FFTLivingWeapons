@@ -6,7 +6,7 @@ namespace LivingWeapon;
 internal sealed partial class ListBuilderHook
 {
     /// <summary>Little-endian u16 words, one per two bytes. No terminator search, since the caller
-    /// already has the valid word count (D2/Q5).</summary>
+    /// already has the valid word count.</summary>
     internal static ushort[] ToWords(byte[] bytes)
     {
         var words = new ushort[bytes.Length / 2];
@@ -14,8 +14,8 @@ internal sealed partial class ListBuilderHook
         return words;
     }
 
-    /// <summary>D2's copy-back. At most <paramref name="cap"/> of <paramref name="words"/>, then <see cref="Terminator"/>.
-    /// Empty words with cap 0 gives the bytes for the D3 pool-exhaustion refusal.</summary>
+    /// <summary>The copy-back. At most <paramref name="cap"/> of <paramref name="words"/>, then <see cref="Terminator"/>.
+    /// Empty words with cap 0 gives the bytes for the pool-exhaustion refusal.</summary>
     internal static byte[] TruncatedTail(ushort[] words, int cap)
     {
         int n = TruncatedCount(words, cap);
@@ -33,6 +33,6 @@ internal sealed partial class ListBuilderHook
     /// <summary>Entries <see cref="TruncatedTail"/> keeps, <c>min(words.Length, cap)</c>. The detour returns it as the count.</summary>
     internal static int TruncatedCount(ushort[] words, int cap) => Math.Min(words.Length, Math.Max(cap, 0));
 
-    /// <summary>D3 byte address of pool slot <paramref name="index"/> (0..<see cref="PoolSlots"/>-1) on page <paramref name="poolBase"/>.</summary>
+    /// <summary>byte address of pool slot <paramref name="index"/> (0..<see cref="PoolSlots"/>-1) on page <paramref name="poolBase"/>.</summary>
     internal static long SlotAddr(long poolBase, int index) => poolBase + (long)index * SlotBytes;
 }

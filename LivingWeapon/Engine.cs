@@ -30,7 +30,7 @@ internal sealed class Engine
     private readonly Barrage _barrage;     // ticks in and out of battle (learn-screen hold)
     private readonly ShadowBlade _shadowBlade; // ticks pre-gate like Barrage
     private readonly Provoke _provoke;     // armed via id 33's signature block
-    private readonly ProvokeHold _provokeHold;   // Reads arc 1's mark and gates on the band bit
+    private readonly ProvokeHold _provokeHold;   // Reads Provoke.cs's mark and gates on the band bit
     private readonly ISignature[] _signatures;        // every signature module, battle-exit reset order
     private readonly ISignature[] _fieldSignatures;   // the in-battle tick order (Barrage ticks pre-gate instead)
     private readonly Display _display;
@@ -120,7 +120,7 @@ internal sealed class Engine
 #endif
         _live = mem ?? new LiveMemory();   // the IGameMemory shared by every subsystem
         var live = _live;
-        // Born disarmed (Mod.StartEngine cleared Mem.WritesEnabled); Tick() holds subsystems off
+        // Born disarmed (Mod.StartEngine cleared Mem.WritesEnabled); Tick holds subsystems off
         // until the landmarks verify. recorder/requestFlush archive a stand-down to the flight ring.
         _launchGuard = new LaunchGuard(live, devForceFingerprintMismatch ?? false, notice: ResolveNotice(notice),
             recorder: Flight.Record, requestFlush: Flight.RequestFlush,
@@ -136,7 +136,7 @@ internal sealed class Engine
         // be passed. LegendStore still records. Pass `_bannerToastsEnabled ? _toast : null` to re-enable in
         // Reliquary Phase 2, together with the equip-card `legends:` below.
         _reliquary = new Reliquary(_legends, null, meta, Flight.Record);
-        // Living Poach (ARMED 2026-08-12): poach.json map plus the executor. Both gates
+        // Living Poach (armed 2026-08-12): poach.json map plus the executor. Both gates
         // read live memory (ReadKillerHasPoach; ReadWasBasicAttack per the LIVE_LEDGER row "The basic-Attack
         // discriminator"). DeedFanout (docs plan v2 point 4) lets KillTracker's single
         // IDeedSink feed both Reliquary and LivingPoach.
@@ -150,7 +150,7 @@ internal sealed class Engine
         _turns = new TurnTracker(live, Flight.Record);
         // verbose. True so the event timeline always reaches the file at Debug tier via [trace]; the
         // console stays at Info. The sink also records each ev. Line into the flight ring; the
-        // dual-emit composes here at the composition root (B2) so BattleLog never references Flight.
+        // dual-emit composes here at the composition root so BattleLog never references Flight.
         // HasLiveWielder reads the same live memory as the other roster/band consumers.
         _tracker = new KillTracker(_kills, live, new HashSet<int>(meta.Keys),
                                    new BattleLog(verbose: true, sink: s => { ModLogger.Debug(LogVerb.Trace, s); Flight.Record("ev", s); }),
@@ -165,7 +165,7 @@ internal sealed class Engine
         _barrage = new Barrage(meta, _kills, live);                 // Yoichi +3. Grant Barrage command to the wielder
         _shadowBlade = new ShadowBlade(meta, _kills, live);           // Sanguine +3. Grant Shadow Blade (HP-draining dark strike)
         _provoke = new Provoke(meta, _kills, live);                   // Defender +3. Grant Provoke (grants only while id 33 carries its signature block)
-        _provokeHold = new ProvokeHold(_kills, live);                 // The hold that reads arc 1's mark and hides the party from the provoked enemy
+        _provokeHold = new ProvokeHold(_kills, live);                 // The hold that reads Provoke.cs's mark and hides the party from the provoked enemy
         var extra = new ExtraTurn(_kills, live);                    // Zwill +3. A kill grants the killer an immediate extra turn
         var eagle = new EagleEye(meta, _kills, _tracker, live);     // Eclipsebolt +3. Hasten the wielder's OWN Doom procs to a 1-turn countdown (attributed only)
         var ricochet = new Ricochet(meta, _kills, _tracker, live);  // Stormarc +3. Bounce chip to nearest other enemy
@@ -263,7 +263,7 @@ internal sealed class Engine
         foreach (int k in keys) yield return $"{k} -> {plan[k]}";
     }
 
-    /// <summary>the declarative fan-out table Tick() steps through every tick, in order. Static
+    /// <summary>the declarative fan-out table Tick steps through every tick, in order. Static
     /// with a nullable engine so EngineTickTableTests can read Name/Gate/After without
     /// constructing an Engine; with null, Run closures must never be invoked. Pinned by
     /// EngineTests.Phases_match_the_hand_wired_tick_order.</summary>
@@ -295,7 +295,7 @@ internal sealed class Engine
                 _ => e!._iconGlow.Tick()),
             // The resumable pool-region locate, every tick in and out of battle, independent of the
             // paint paths. A synchronous walk measured 7 to 10 seconds before this arc. Heap reads only, so
-            // Always rather than InBattle. Retune round (R1/R3): the sole production driver (MaybePoolPaint no
+            // Always rather than InBattle. Retune round. The sole production driver (MaybePoolPaint no
             // longer steps it); s.NowIn picks the budget.
             new TickPhase("pool-locate", TickGates.Always, 1, false, Array.Empty<string>(),
                 s => e!._display.StepPoolLocate(s.NowIn)),
@@ -473,7 +473,7 @@ internal sealed class Engine
         int eventId = _live.U16(Offsets.EventId);   // out-of-live. Dialogue/cutscene; in-combat. NameId alias
         var now = DateTime.Now;
         // A genuine in-battle frame. Live modes, or the slot0 marker with a targeting/paused/event excuse.
-        // The marker alone lies. Pre-1.5 it stuck at 0xFF after a battle QUIT, and the 1.5 post-quit value
+        // The marker alone lies. Pre-1.5 it stuck at 0xFF after a battle quit, and the 1.5 post-quit value
         // is unverified (Offsets.Slot0InBattleMarker). Computed before BattleState.Step so
         // PlaythroughReset's detection edge can reach Step as a forced exit on the same tick.
         bool inLive = BattleState.InLiveBattle(slot0, battleMode, paused, eventId);
@@ -540,7 +540,7 @@ internal sealed class Engine
         // stale ledger re-applied stolen buffs in the new battle (2026-06-15).
         ResetBattleState();
         // Drop the pool-paint coverage latch on entry too. Defense in depth. A save-load after the
-        // previous exit's Invalidate() can swap the buffers under the latch with no exit edge to drop it.
+        // previous exit's Invalidate can swap the buffers under the latch with no exit edge to drop it.
         // A fast reload that eats the debounce gets no enter edge at all; the count-gated
         // re-check in Display.PoolPaint.cs (MaybePoolPaint) covers that. The pool scan stacks on top of
         // Flight.FlushBattleStart's archive on this tick; accepted.
@@ -550,7 +550,7 @@ internal sealed class Engine
     /// <summary>The debounced (or new-game forced) battle-exit edge body.</summary>
     private void OnBattleExit(uint slot0, uint slot9, int battleMode, bool paused, int eventId)
     {
-        // Match-report summary, composed from the per-battle counters before ResetBattleState() wipes them.
+        // Match-report summary, composed from the per-battle counters before ResetBattleState wipes them.
         // On a forced exit the tally was already archived and cleared this tick, so the summary may
         // be empty; accepted.
         string summary = BattleSummary.Compose(
@@ -564,7 +564,7 @@ internal sealed class Engine
         ResetBattleState();
         _tally.Save();               // flush on battle end
         _legends.SaveIfDirty();      // Reliquary ledger, saved with the tally
-        // S2. Flight flush is exit-only; ResetBattleState() runs on both edges, so it cannot live there.
+        // Flight flush is exit-only; ResetBattleState runs on both edges, so it cannot live there.
         Flight.FlushBattleEnd();
         _display.Invalidate();       // re-find the menu's freshly-allocated render copies
         ModLogger.NoteBattleEdge();  // console-only per-battle dedup reset (C1); file sink unaffected

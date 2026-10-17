@@ -86,7 +86,7 @@ internal sealed partial class ActorRegister
             return RosterBridge.Player;
         }
 
-        // fpMatches == 0. The weapon key (D10, round 2).
+        // fpMatches == 0. The weapon key.
         return RescueWeaponKey(bandWeapon, lvl, out rosterBase);
     }
 
@@ -114,7 +114,7 @@ internal sealed partial class ActorRegister
         return HandsHold(rh, lh, oh, bandWeapon);
     }
 
-    /// <summary>Step 3 of <see cref="RescueCanonical"/> (D10, round 2), reached when the fingerprint
+    /// <summary>Step 3 of <see cref="RescueCanonical"/>, reached when the fingerprint
     /// key found zero matches. Looks for a unique drift-window match on the band weapon alone.</summary>
     private RosterBridge RescueWeaponKey(int bandWeapon, int lvl, out long rosterBase)
     {

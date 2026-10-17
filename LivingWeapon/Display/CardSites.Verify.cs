@@ -20,7 +20,7 @@ internal sealed partial class CardSites
 
     /// <summary>True when the anchor bytes (and the kills literal for kills sites) read back as
     /// expected. Suffix sites check the weapon name only. Kills sites accept any registered anchor
-    /// for (id, enc), including Reliquary's current and previous earned lines (decision 2), so a
+    /// for (id, enc), including Reliquary's current and previous earned lines, so a
     /// stale-but-known line stays live and gets repainted forward.
     ///
     /// The flavor check runs first and returns early on anything but Live, so the "Kills: "

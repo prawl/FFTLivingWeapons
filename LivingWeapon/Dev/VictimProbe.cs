@@ -31,7 +31,7 @@ internal sealed class VictimProbe
     internal void CaptureDeadEdge(int s, long addr) => _edge[s] = Read(addr);
 
     /// <summary>Credit-point capture and log. Takes a fresh read at CreditKill time (the engine may have recycled the slot
-    /// since the edge tick, which is the P1 question), logs all three points as matching lines via ModLogger.Debug and
+    /// since the edge tick, which is the question), logs all three points as matching lines via ModLogger.Debug and
     /// fires one recorder tap carrying all three tuples.</summary>
     internal void LogAtCredit(int s)
     {

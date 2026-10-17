@@ -10,10 +10,10 @@ namespace LivingWeapon;
 /// them back, so they are save state (copies cited on <see cref="Offsets.InventoryOrderTemplate"/>
 /// and <see cref="Offsets.PickerOrderTemplate"/>) and older saves come back without the ids. The
 /// seat runs in the load detour after the bag counts replay; the tick runs it only for a load edge
-/// the detour missed (round 8c), so a whole-table repair never races the game's own edits.
+/// the detour missed, so a whole-table repair never races the game's own edits.
 /// Once the relocation arms, the live tables sit on <see cref="ExtendedInventory.TemplateRegions"/>
 /// and the Offsets constants hold only the save projection <see cref="TemplateSync"/> writes at each
-/// save edge (first 140 chart words, D4). <see cref="WeaponRegions"/> stays the vanilla pair, the
+/// save edge (first 140 chart words). <see cref="WeaponRegions"/> stays the vanilla pair, the
 /// fallback when the relocation never armed; production seats through TemplateRegions.
 /// Only owned ids are seated, as in vanilla, and seating is a no-op when the id is already there.
 /// Words are little-endian u16 ids ending in 0x00FF, unlike the 0xFFFF that <see cref="OrderRebuildHook"/>
@@ -106,7 +106,7 @@ internal static partial class TemplateSeat
 
     /// <summary>Seat <paramref name="ids"/> in both weapon templates through the guarded patcher. An
     /// unreadable template is skipped silently (the game's answer stands); a missing marker, no room or
-    /// a refused write goes to <paramref name="onRefused"/>; a table healed on the way (round 8b) goes
+    /// a refused write goes to <paramref name="onRefused"/>; a table healed on the way goes
     /// to <paramref name="onRepaired"/>. The detour passes no callbacks because it must not log on the
     /// game's own thread.</summary>
     /// <param name="regions">regions to seat into, <see cref="WeaponRegions"/> when null, else

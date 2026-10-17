@@ -21,7 +21,7 @@ namespace LivingWeapon;
 ///
 /// Detection scans every on-field tick regardless of the wielder locate, as Maim does. HP-diff
 /// tracking (RicochetState) baselines every tick, and enemies come from a per-battle additive
-/// fingerprint cache (EnemyFingerprintCache.TickField), so a one-tick Readable() flap cannot drop an
+/// fingerprint cache (EnemyFingerprintCache.TickField), so a one-tick Readable flap cannot drop an
 /// enemy on the hit tick. The first tick baselines and the next tick with an HP drop detects the hit.
 /// The wielder comes from Wielder.ResolveDeployedMainHand each tick, and a miss is a rearm-transient.
 ///
@@ -32,7 +32,7 @@ namespace LivingWeapon;
 /// hit can pay out late at the start of the next active window, never to the wrong unit.
 /// The transient-loss failure was seen 2026-07-02, an eaten strike at 10:33:36.601 against the same
 /// strike firing at 11:02:03.936 (kobu-raise-detection-diagnosis). The kobu-diag line is the
-/// instrument for any residual. ResetBattle() clears the HP baselines and cached fingerprints.
+/// instrument for any residual. ResetBattle clears the HP baselines and cached fingerprints.
 /// </summary>
 internal sealed partial class Kobu : ISignature
 {

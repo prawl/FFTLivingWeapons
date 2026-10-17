@@ -11,7 +11,7 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed partial class ProvokeHold
 {
-    /// <summary>Latch for ScrubPlayerSideMarks' refused-write WARN.</summary>
+    /// <summary>Latch for ScrubPlayerSideMarks' refused-write warn.</summary>
     private bool _scrubRefusedLogged;
 
     /// <summary>Debounce counter for ScrubUnarmableMark.</summary>
@@ -52,11 +52,11 @@ internal sealed partial class ProvokeHold
     }
 
     /// <summary>true iff some player-side seat owns the turn flag (<see cref="Band.FlagOwner"/>),
-    /// i.e. it is still the player's turn. Replaces the Offsets.TqTeam read, which flickered to ENEMY
+    /// i.e. it is still the player's turn. Replaces the Offsets.TqTeam read, which flickered to enemy
     /// during the player's own action. The flag is the band +0x19C menu-open flag (docs/LIVE_LEDGER.md,
     /// turn/moved/acted row, 2026-07-09); a 2026-07-21 session (not owner-flipped) saw it hold across a
     /// status-screen detour, and the hide/reveal arc banked a probe. The tick census saw FlagOwner
-    /// miss a player seat on all 804 enemy-turn ticks (FLAG-BRIDGE-FAIL 804). It fails open. No owner,
+    /// miss a player seat on all 804 enemy-turn ticks (flag-bridge-fail 804). It fails open. No owner,
     /// or two disagreeing owners, returns false and the gate opens.</summary>
     private static bool PlayerSideOwnsTurn(IGameMemory mem) =>
         Band.FlagOwner(mem, out long owner, out _) && !IsEnemySide(mem, owner);
@@ -70,7 +70,7 @@ internal sealed partial class ProvokeHold
     internal static bool IsAlive(IGameMemory mem, long e) =>
         mem.U16(e + Offsets.AHp) > 0 && (mem.U8(e + Offsets.ADeadStatus) & Offsets.ADeadBit) == 0;
 
-    /// <summary>R2. True iff the composed status carries any of <paramref name="disablingIds"/>
+    /// <summary>True iff the composed status carries any of <paramref name="disablingIds"/>
     /// (Tuning.ProvokeDisablingStatusIds), so the hold releases instead of lingering.</summary>
     internal static bool IsDisabled(IGameMemory mem, long e, int[] disablingIds)
     {
@@ -165,7 +165,7 @@ internal sealed partial class ProvokeHold
     }
 
     /// <summary>Every valid, on-field, player-side seat except the bearer (criteria 4/8/9). Guests
-    /// count as player-side (the friend/foe bit is guest-complete, decision 6). The bearer is excluded by identity, not seat position.</summary>
+    /// count as player-side (the friend/foe bit is guest-complete). The bearer is excluded by identity, not seat position.</summary>
     private static void EnumerateHideTargets(IGameMemory mem,
         (int nameId, int mhp, int lvl, int br, int fa) bearer, List<long> results)
     {
@@ -230,7 +230,7 @@ internal sealed partial class ProvokeHold
 
         // Signatures.StuckEdge latch (the log flood shape, as in Provoke.Table.cs's
         // _boundsRefusedLogged): one call per sweep so a page that stays unwritable does not
-        // re-log this WARN every 33ms tick.
+        // re-log this warn every 33ms tick.
         if (Signatures.StuckEdge(ref _scrubRefusedLogged, anyRefused))
             ModLogger.WarnWithTrace(LogVerb.Signature,
                 "Could not scrub a provoke mark off one of your own units; the guarded write was refused",

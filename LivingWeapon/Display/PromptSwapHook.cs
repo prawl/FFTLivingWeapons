@@ -26,7 +26,7 @@ internal sealed class PromptSwapHook
     // capacity is below 0x10, else a heap pointer at [holder+0x20]). Both its branches converge on the true
     // setter at 0x1403F1098 with the resolved char* in rdx (the variant branch at 0x1403F1068 also ends in
     // jmp 0x1403F1098). Those are 1.5.1 addresses; on 1.5.2 the setter is 0x1403F109C and the variant branch
-    // 0x1403F106C. Hooking the true setter restores the pre-1.5 swap (v10/v11). Arm() checks ExpectedPrologue
+    // 0x1403F106C. Hooking the true setter restores the pre-1.5 swap (v10/v11). Arm checks ExpectedPrologue
     // through HookLandmark first (BodyDoubleSpike.TargetReady cold-call check), so a future shift refuses with one warning.
     //
     // 1.5.2 re-anchor (2026-07-24): +4 from 0x1403F1098, the only address 1.5.2 moved. An offline exe diff
@@ -37,7 +37,7 @@ internal sealed class PromptSwapHook
     private static long FnSetTextString => ImageBase.At(0x1403F109C);
 
     // The 11-byte prologue read at FnSetTextString on 1.5.1, 2026-07-14. Push rbp; push rbx;
-    // push rdi; mov rbp,rsp; sub rsp,50h. Unchanged on 1.5.2. Checked by HookLandmark.Verify in Arm().
+    // push rdi; mov rbp,rsp; sub rsp,50h. Unchanged on 1.5.2. Checked by HookLandmark.Verify in Arm.
     private static readonly byte[] ExpectedPrologue =
         { 0x40, 0x55, 0x53, 0x57, 0x48, 0x8B, 0xEC, 0x48, 0x83, 0xEC, 0x50 };
 

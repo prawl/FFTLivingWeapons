@@ -20,7 +20,7 @@ namespace LivingWeapon;
 /// Facing (Offsets.ALayerBit low 2 bits) is read once with the layer bit at the falling turn-flag
 /// edge. A teardown zero-sweep can read facing 0 (South); that plant self-heals via ResetBattle.
 /// Grid writes persist for the whole process (stale walkability once crashed the game), so every
-/// path that ends a hold restores the saved byte, including battle exit (A1, see ResetBattle).
+/// path that ends a hold restores the saved byte, including battle exit (see ResetBattle).
 /// The ctor takes BannerToast, which Engine builds before the signature modules.
 /// </summary>
 internal sealed partial class Bulwark : ISignature
@@ -44,7 +44,7 @@ internal sealed partial class Bulwark : ISignature
     private int? _prevTurnFlag;
     private bool _planted;
     /// <summary>Grid idx -&gt; original f6 byte for the held tile (at most one, the tile behind).
-    /// Restored on release, including from <see cref="ResetBattle"/> (A1).</summary>
+    /// Restored on release, including from <see cref="ResetBattle"/>.</summary>
     private readonly Dictionary<int, byte> _restoreBook = new();
     private readonly Dictionary<int, DeferredTile> _deferred = new();
     private int _unresolvedStreak;
@@ -60,7 +60,7 @@ internal sealed partial class Bulwark : ISignature
 
     public void ResetBattle()
     {
-        // A1. Restore before clearing. Release no-ops silently when the book and deferred watch are
+        // Restore before clearing. Release no-ops silently when the book and deferred watch are
         // empty, so the enter-edge call after each exit-edge reset logs nothing.
         Release("the battle ended");
         _wasActive = false;
@@ -75,7 +75,7 @@ internal sealed partial class Bulwark : ISignature
 
         int tier = Tuning.TierOf(_kills, SundererId);
         // Returns 0 for zero or two-or-more deployed wielders (two planters would contest
-        // tiles with colliding restore books). AC criterion 3, plan amendment A2.
+        // tiles with colliding restore books). AC criterion 3.
         long entry = Wielder.ResolveDeployedMainHand(_mem, SundererId, out _);
         bool active = tier >= m.Signature.AtTier && entry != 0;
 
@@ -99,7 +99,7 @@ internal sealed partial class Bulwark : ISignature
         }
         _unresolvedStreak = 0;
 
-        // A7. A corpse never raises the turn flag, so this is the release path for death.
+        // A corpse never raises the turn flag, so this is the release path for death.
         if (_planted)
         {
             int hp = _mem.U16(entry + Offsets.AHp);

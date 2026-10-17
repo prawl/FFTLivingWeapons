@@ -10,7 +10,7 @@ namespace LivingWeapon;
 /// checks the expected bytes, allocates a page within rel32 reach, writes the trampoline at
 /// page + 0 and the stub at page + <see cref="StubOffset"/>, then overwrites the entry with a jump
 /// to the stub, NOP-padded. Restore writes the original bytes back and leaks the page, since a
-/// game thread may be inside it (rig rule R3).
+/// game thread may be inside it (the rig's rule).
 /// Callers keep volatile registers live across these calls (June r11 crash, journal 2026-06-26),
 /// so a managed Reloaded.Hooks detour is unsafe. The stubs touch only rax and rcx. The twin is
 /// SwingIdFallbackHook. Failures return a refusal string so the boot arm can roll back the

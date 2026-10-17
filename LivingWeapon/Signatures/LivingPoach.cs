@@ -6,7 +6,7 @@ namespace LivingWeapon;
 /// <summary>
 /// Living Poach executor. Consumes KillTracker's deed sink (IDeedSink.RecordPoachDeed, via
 /// DeedFanout.cs) and rolls a carcass into the Poacher's Den store; LivingPoachPolicy.Decide is the pure roll.
-/// Since stage 4 (2026-08-12) Engine wires the per-weapon delegates to <see cref="ReadWasBasicAttack"/>
+/// Since 2026-08-12 Engine wires the per-weapon delegates to <see cref="ReadWasBasicAttack"/>
 /// and <see cref="ReadKillerHasPoach"/> (LIVE_LEDGER). <see cref="RecordPoachDeed"/> refuses viaFallback and
 /// delayedOrCharged credits and allows one poach per (slot, nameId), cleared in <see cref="ResetBattle"/>.
 /// A poach also tries <see cref="CorpseDespawn.TryDespawn"/>; transient refusals retry via LivingPoach.Despawn.cs.

@@ -23,13 +23,13 @@ internal sealed partial class ListRelocation
 
     /// <summary>One field, with the vanilla int32 it must read before this mod touches it (the refusal
     /// baseline, and what <see cref="Restore"/> writes back). <see cref="Trail"/> counts immediate bytes after the
-    /// disp32 and <see cref="Off"/> is the byte offset inside the list. Both are 0 except for the ten round 2b sites.
+    /// disp32 and <see cref="Off"/> is the byte offset inside the list. Both are 0 except for the ten late-found sites.
     /// Addr is pin space, rebased through <see cref="ImageBase.At"/> at every use (ListRelocation.Live).</summary>
     internal readonly record struct Site(long Addr, SiteKind Kind, ListId List, int Vanilla, int Trail = 0, int Off = 0);
 
     /// <summary>The 55 fields, 34 <see cref="SiteKind.RipLea"/> + 21 <see cref="SiteKind.ImageRelative"/>,
-    /// 47 <see cref="ListId.Count"/> + 8 <see cref="ListId.Sibling"/> (D6/T2). The first 45 follow the probe record's
-    /// order, the last 10 are round 2b (T2b, absent from the probe record, each with <see cref="Site.Off"/> &gt; 0).</summary>
+    /// 47 <see cref="ListId.Count"/> + 8 <see cref="ListId.Sibling"/>. The first 45 follow the probe record's
+    /// order, the last 10 were found later (absent from the probe record, each with <see cref="Site.Off"/> &gt; 0).</summary>
     internal static readonly Site[] Sites =
     {
         new(0x140101001L, SiteKind.RipLea, ListId.Count, 17460219),   // lea rcx, [rip + 0x10a6bfb]
@@ -102,9 +102,9 @@ internal sealed partial class ListRelocation
     /// since the +0x108 state dword churns normally and would false-fire.</summary>
     internal const int ListProperBytes = 0x105;
 
-    /// <summary>Offset of the sibling copy inside the new page (D2, count at +0x000, sibling at +0x400).</summary>
+    /// <summary>Offset of the sibling copy inside the new page (count at +0x000, sibling at +0x400).</summary>
     internal const int SiblingPageOffset = 0x400;
 
-    /// <summary>Page size requested from the allocator (D2, 0x800 used, the rest reserved for a possible third list).</summary>
+    /// <summary>Page size requested from the allocator (0x800 used, the rest reserved for a possible third list).</summary>
     internal const int PageSize = 0x1000;
 }

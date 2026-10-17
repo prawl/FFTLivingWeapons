@@ -8,8 +8,8 @@ namespace LivingWeapon;
 /// The game keeps them in fixed tables of 140 kinds plus an end marker (141/141/262 words) and its housekeeper never checks the limit. A 141st kind lands at the front and the last word spills into the next data (the helmet chart, on the picker side).
 /// This copies the three charts onto a mod-owned page and re-points ten places in game code (three data slots, five code fields, two cap sites, listed in TemplateRelocation.Sites.cs) at 512-word regions holding 510 ids plus the marker.
 /// Like <see cref="ListRelocation"/>, every field must read vanilla before any write, and a refusal midway restores the changed fields in reverse.
-/// Unlike it, the save fields keep today's content (D4/F5), so <see cref="TemplateSync"/> keeps Project (page to old block, on save) and Adopt (old block to page, on load) live while armed.
-/// Restore puts only the ten fields back (D7) and the page is leaked, as <see cref="INearAllocator"/> does. Memory goes through <see cref="ICodePatcher"/> and <see cref="INearAllocator"/>.
+/// Unlike it, the save fields keep today's content, so <see cref="TemplateSync"/> keeps Project (page to old block, on save) and Adopt (old block to page, on load) live while armed.
+/// Restore puts only the ten fields back and the page is leaked, as <see cref="INearAllocator"/> does. Memory goes through <see cref="ICodePatcher"/> and <see cref="INearAllocator"/>.
 /// </summary>
 internal sealed partial class TemplateRelocation
 {
@@ -23,7 +23,7 @@ internal sealed partial class TemplateRelocation
     public long PageAddr { get; private set; }
 
     /// <summary>Null on success, else the refusal (nothing changed). Idempotent. Order as in ListRelocation.Install. Check all ten
-    /// fields read vanilla, allocate and reach-check the page, copy the three charts onto it (D2/D3, T1/T11), then rewrite the
+    /// fields read vanilla, allocate and reach-check the page, copy the three charts onto it, then rewrite the
     /// fields, so any earlier refusal leaves the process untouched.</summary>
     public string? Install(ICodePatcher patcher, INearAllocator allocator)
     {
@@ -99,7 +99,7 @@ internal sealed partial class TemplateRelocation
         return null;
     }
 
-    /// <summary>Puts every field back to vanilla and leaves the page alone (D7). A call while not installed succeeds, like <see cref="ListRelocation.Restore"/>.</summary>
+    /// <summary>Puts every field back to vanilla and leaves the page alone. A call while not installed succeeds, like <see cref="ListRelocation.Restore"/>.</summary>
     public bool Restore(ICodePatcher patcher)
     {
         if (!Installed) return true;
@@ -127,7 +127,7 @@ internal sealed partial class TemplateRelocation
         for (int i = written.Count - 1; i >= 0; i--) patcher.TryWrite(written[i].Addr, written[i].Old);
     }
 
-    /// <summary>D6/REACH, as in ListRelocation.CheckReach. Only the five rip fields need int32 reach (a slot holds a 64-bit pointer). Runs before any write.</summary>
+    /// <summary>Reach check, as in ListRelocation.CheckReach. Only the five rip fields need int32 reach (a slot holds a 64-bit pointer). Runs before any write.</summary>
     private static string? CheckReach(long page)
     {
         foreach (var f in RipFields)

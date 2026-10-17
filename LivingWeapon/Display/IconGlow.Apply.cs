@@ -9,7 +9,7 @@ namespace LivingWeapon;
 /// apply, IconGlow.Pac.cs mirrors to the pac, IconGlow.Judge.cs judges. Each id is judged
 /// once (<see cref="JudgeId"/>) before <see cref="ApplyId"/> writes it, all-or-nothing; a partial failure stays
 /// stale so the next diff retries. FIX 1, <c>judgeAllIds</c> on <see cref="ApplyDiff"/> (first apply) judges every
-/// manageable id to seed <c>_applied</c>; a DIVERGENT JudgeId result heals inline since a later Diff cannot notice it.
+/// manageable id to seed <c>_applied</c>; a divergent JudgeId result heals inline since a later Diff cannot notice it.
 /// </summary>
 internal sealed partial class IconGlow
 {
@@ -24,8 +24,8 @@ internal sealed partial class IconGlow
         int unmanagedBefore = _unmanaged.Count;
         int judged = 0, written = 0;
         _pacPatchedThisApply = 0;
-        _pacAlreadyCurrentThisApply = 0;   // R2-6. Counted separately from a real pac write
-        _hidesThisApply = 0;   // A3-1 (round 2): per-pass, or a pass with no hide reprints a stale count
+        _pacAlreadyCurrentThisApply = 0;   // Counted separately from a real pac write
+        _hidesThisApply = 0;   // Per-pass, or a pass with no hide reprints a stale count
         _pendingPacPatches.Clear();
         _pacPatchedThisPass.Clear();   // this pass' hide-eligible surfaces (RoutePacResult fills it)
         try
@@ -61,7 +61,7 @@ internal sealed partial class IconGlow
                 if (ApplyId(id, tier)) { lock (_lock) _applied[id] = tier; written++; }
             }
 
-            // R2-2, flush every queued pac mirror as one store call after all loose writes (see IconGlow.Pac.cs).
+            // Flush every queued pac mirror as one store call after all loose writes (see IconGlow.Pac.cs).
             FlushPacBatch();
         }
         finally
@@ -78,7 +78,7 @@ internal sealed partial class IconGlow
     /// <summary>Writes every manifest surface for this id to its deployed loose tex. Tier 0 restores the
     /// <see cref="JudgeId"/> snapshot (no-op if already plain, else unmanaged); other tiers write the baked variant.
     /// FIX 2b, an existing backup is sha1-verified first, since a mismatch past JudgeId's FIX 2a re-snapshot would
-    /// write older art back; refuse and go unmanaged. True only if every surface wrote. R2-7, <c>oldBytes</c> is read
+    /// write older art back; refuse and go unmanaged. True only if every surface wrote. <c>oldBytes</c> is read
     /// for every surface (12 to 51 KB each) so <see cref="QueuePacMirror"/> has the true bytes to search for.</summary>
     private bool ApplyId(int id, int tier)
     {
@@ -132,7 +132,7 @@ internal sealed partial class IconGlow
         WarnOnce(id, $"IconGlow leaves icon {id} plain this launch: {reason}.");
     }
 
-    /// <summary>One WARN per icon id per launch.</summary>
+    /// <summary>One warn per icon id per launch.</summary>
     private void WarnOnce(int id, string message)
     {
         lock (_lock) { if (!_warnedOnce.Add(id)) return; }

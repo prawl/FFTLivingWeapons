@@ -142,7 +142,7 @@ internal sealed partial class CardSites
     private bool PaintSite(Site s, Func<int, int> killsFor, CardVerdict? verdict)
     {
         var r = PaintSiteWithResult(s, killsFor, out var outcome, out var kills);
-        // Paint() never evicts (only PaintAll does), so evicted is always false here (CardVerdict.Note).
+        // Paint never evicts (only PaintAll does), so evicted is always false here (CardVerdict.Note).
         // PaintSiteWithResult can return Evict on this path (a Mismatch evicts on first sight), but Paint ignores it;
         // ApplyStrike already ran, and a later PaintAll over the cached site finishes the eviction.
         verdict?.Note(s.Id, s.SlotAddr, outcome, ObservedFor(s.IsKills, outcome, kills), evicted: false);

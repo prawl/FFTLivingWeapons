@@ -30,7 +30,7 @@ internal sealed partial class GrowthEngine
     private readonly Dictionary<long, (int natural, int target, double factor, int baked)> _applied = new();
     private readonly Dictionary<long, (int nat, int baked)> _timedNatural = new();   // timed-grant stat addr -> captured natural
     // roster slot -> (combat-struct base, tier 1 = nameId-exact, 2 = fingerprint fallback). The tier
-    // is cached so LocateStruct revalidates with the predicate that found it (D5/S4).
+    // is cached so LocateStruct revalidates with the predicate that found it.
     private readonly Dictionary<int, (long addr, int tier)> _structForSlot = new();
     private readonly HashSet<int> _ambiguousLogged = new();           // slots whose multi-match was already logged this battle
     private readonly HashSet<int> _fallbackLogged = new();            // slots whose tier-2 fallback was already logged this battle
@@ -80,7 +80,7 @@ internal sealed partial class GrowthEngine
         {
             long rb = Offsets.RosterBase + (long)r * Offsets.RosterStride;
             if (!_mem.Readable(rb + Offsets.RNameId, 2)) continue;          // roster slot mapped?
-            int rosterNameId = _mem.U16(rb + Offsets.RNameId);              // this slot's roster nameId (D5)
+            int rosterNameId = _mem.U16(rb + Offsets.RNameId);              // this slot's roster nameId
             int level = _mem.U8(rb + Offsets.RLevel);
             if (level < 1 || level > 99) continue;                         // empty slot
             int brave = _mem.U8(rb + Offsets.RBrave);

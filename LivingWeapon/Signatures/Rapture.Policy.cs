@@ -56,7 +56,7 @@ internal sealed partial class Rapture
     }
 
     /// <summary>True if the granted bit is set. RaptureMoveId 243 is cut content (docs/research/FOLDABLE_ABILITIES.md),
-    /// so the per-window SET/MISS log line settles whether the engine honors it (as with Spiritual Font).</summary>
+    /// so the per-window SET/miss log line settles whether the engine honors it (as with Spiritual Font).</summary>
     public static bool ReadBackSet(IGameMemory mem, long entryAddr, int moveAbilityId)
     {
         if (!Signatures.ResolveMovement(moveAbilityId, out int off, out byte mask)) return false;

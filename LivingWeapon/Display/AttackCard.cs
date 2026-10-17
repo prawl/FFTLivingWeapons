@@ -36,7 +36,7 @@ namespace LivingWeapon;
 /// Rod) on Ramza's row when two units shared a (level,hp,maxHp) fingerprint, so no cursor answer
 /// now restores vanilla. Shared-fingerprint twins are backlog (the nameId bridge helps
 /// partly). The row/tail decision (AttackRow.Policy.ComposeRow) reads the raw main hand
-/// (Offsets.RRHand) and sprite byte, since the filtered Hands() set cannot tell unarmed from an
+/// (Offsets.RRHand) and sprite byte, since the filtered Hands set cannot tell unarmed from an
 /// untracked weapon. Only the main hand is shown. A narrowing gate sits on the cursor answer
 /// (CursorGate.Decide, CursorGate.cs) and a per-battle resolve-miss tap
 /// (<see cref="CursorMiss"/>) naming which stage refused.
@@ -89,7 +89,7 @@ internal sealed partial class AttackCard
 
     private byte[]? _currentImage;   // null = vanilla is the desired state
     private int _currentRowChars;    // meaningful only when _currentImage != null
-    private byte[]? _previousImage;  // the last DISTINCT composed image before the current rotation
+    private byte[]? _previousImage;  // the last distinct composed image before the current rotation
     private long _lastMaintenanceMs = -1;
 
     public AttackCard(IGameMemory mem, Func<(CursorAnswer? Answer, CursorMiss Miss)> resolveCursor,

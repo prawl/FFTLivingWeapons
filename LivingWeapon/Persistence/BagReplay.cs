@@ -44,7 +44,7 @@ internal static class BagReplay
         var legacy = sidecar.TakeLegacy();
         if (legacy != null)
         {
-            // P4-F1 record the migrated counts under this key. Both load routines are hooked, so one load can
+            // record the migrated counts under this key. Both load routines are hooked, so one load can
             // resolve a key twice, and a bare persist let the second resolve re-seed it. RecordSave persists, so the one-shot is
             // still spent once.
             sidecar.RecordSave(key, legacy);

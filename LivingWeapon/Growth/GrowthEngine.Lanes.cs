@@ -110,7 +110,7 @@ internal sealed partial class GrowthEngine
     }
 
     // addr -> (natural, target, factor) for the u16 "hp" lane. Not routed through the
-    // NaturalLedger (decision 3, HoldU16_RestartResidue_DecisionPin): its capture bounds are
+    // NaturalLedger (HoldU16_RestartResidue_DecisionPin): its capture bounds are
     // u8-shaped. Decision 3 accepted that a battle-restart chain could re-capture the held MaxHp
     // as natural and creep up; the Venombolt poison work (2026-08-26) overturned that, see _u16WriteRecord.
     private readonly Dictionary<long, (int natural, int target, double factor)> _appliedU16 = new();
@@ -142,7 +142,7 @@ internal sealed partial class GrowthEngine
 
     /// <summary>Holds a u16 combat-struct field (today only Offsets.CMaxHp) at
     /// min(round(natural * (1 + factor)), ceiling). Same capture-then-check shape as Hold, over
-    /// U16/W16, with no NaturalLedger (decision 3 above); lane and level are accepted only to
+    /// U16/W16, with no NaturalLedger (see _appliedU16); lane and level are accepted only to
     /// match Apply's dispatch. Re-applies at cur == natural, retargets at cur == target when
     /// the factor changes, and leaves any other reading alone. on a first capture, a
     /// cur equal to <see cref="_u16WriteRecord"/>'s last target for (nameId, lane) means the

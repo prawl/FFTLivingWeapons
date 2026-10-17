@@ -37,7 +37,7 @@ internal sealed partial class LaunchGuard
     private const string DrillSentence =
         " This warning was forced by the LW_FORCE_GUARD_UNREADABLE drill flag (dev builds only).";
 
-    // Once-per-session latches (D8. One LaunchGuard per process); the drill, _blindStepsLeft > 0, makes both main probes Unreadable.
+    // Once-per-session latches (one LaunchGuard per process); the drill, _blindStepsLeft > 0, makes both main probes Unreadable.
     private bool _stallWarned;
     private bool _waitNoted;
     private readonly bool _forceUnreadable;
@@ -60,7 +60,7 @@ internal sealed partial class LaunchGuard
         _stallWarned = true;
         string drill = _forceUnreadable ? DrillSentence : "";
         _recorder?.Invoke("guard", $"stalled ({name} unreadable for about a minute)");
-        // WARN tier, no flush request. Nothing stood down, the log line is the evidence.
+        // Warn tier, no flush request. Nothing stood down, the log line is the evidence.
         ModLogger.Warn(LogVerb.Startup, ImageStallWarn + drill);
         _notice?.Invoke("FFT Living Weapons", ImageStallBox + drill);
     }

@@ -60,7 +60,7 @@ internal sealed class FileConsoleLogger : ILogger
     public void Log(LogVerb verb, string message) => Write(LogLevel.Info, verb, message);
     public void LogWarning(LogVerb verb, string message) => Write(LogLevel.Warning, verb, message);
 
-    /// <summary>Also arms the flight recorder's FlushOnce error trigger (B1). It only sets a flag; Engine drains it
+    /// <summary>Also arms the flight recorder's FlushOnce error trigger. It only sets a flag; Engine drains it
     /// via Flight.DrainPending so the game's SetTextString thread never waits on disk.</summary>
     public void LogError(LogVerb verb, string message)
     {

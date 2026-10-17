@@ -28,7 +28,7 @@ internal static class Flight
     /// <summary>Performs any flush <see cref="RequestFlush"/> queued. Call once per Engine tick.</summary>
     public static void DrainPending() => _core?.DrainPending();
 
-    /// <summary>Synchronous battle-exit flush, called from Engine's loop thread beside KillTally.Save(),
+    /// <summary>Synchronous battle-exit flush, called from Engine's loop thread beside KillTally.Save,
     /// never from the game's SetTextString thread.</summary>
     public static void FlushBattleEnd() => _core?.Flush("battle-exit");
 
@@ -38,6 +38,6 @@ internal static class Flight
     public static void FlushBattleStart() => _core?.Flush("battle-start");
 
     /// <summary>Test-only. Drops the current core so a later <see cref="Init"/> starts fresh and a test's
-    /// recorder does not leak into others. Like ModLogger.Reset().</summary>
+    /// recorder does not leak into others. Like ModLogger.Reset.</summary>
     internal static void Reset() { lock (_lock) { _core = null; } }
 }

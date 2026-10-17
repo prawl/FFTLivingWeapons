@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace LivingWeapon;
 
-/// <summary>Composes the one-line [battle-end] match report (logging facelift stage 3) from the
+/// <summary>Composes the one-line [battle-end] match report from the
 /// per-battle counters. Pure over its inputs, so it is tested without an Engine. Tier crossings
 /// are derived by comparing the tier at (lifetime, battleCredits) with the tier at lifetime.</summary>
 internal static class BattleSummary

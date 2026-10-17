@@ -71,7 +71,7 @@ internal sealed partial class GrowthEngine
             foreach (var k in drop) { _heldSupports.Remove(k); _grantLogged.Remove(k.weapon); }   // re-equip re-announces
     }
 
-    /// <summary>Read the granted bit back and log it once per weapon per battle (SET vs MISS, with
+    /// <summary>Read the granted bit back and log it once per weapon per battle (SET vs miss, with
     /// the ability named). Warns when the support is build-time-only (e.g. HP Boost) and cannot take
     /// effect live, and notes when the player's own pick matches the grant (same bit, no stack).</summary>
     private void LogGrantOnce(int weapon, string name, WeaponSignature sig, int off, byte mask, long addr,
@@ -94,9 +94,9 @@ internal sealed partial class GrowthEngine
     /// fingerprint, since the combat struct carries no HP and the static array freezes on battle
     /// restart. Returns (0,0) on no match; prefers real-position entries over (0,0) twins. Only
     /// called for HP-gated signatures.
-    /// Two tiers (D7): tier 1 (rosterNameId &gt; 0) needs an exact band nameId match; a miss falls
+    /// Two tiers. Tier 1 (rosterNameId &gt; 0) needs an exact band nameId match; a miss falls
     /// back to tier 2, the plain fingerprint scan with a veto on any entry whose nonzero nameId
-    /// differs. The nameId read is unguarded (D8, as in Iai/Wielder): Mem's U16 returns 0 when
+    /// differs. The nameId read is unguarded (as in Iai/Wielder): Mem's U16 returns 0 when
     /// unreadable, and a Readable pre-filter would leave tier 1 dead against FakeSparseMemory.</summary>
     internal static (int hp, int maxHp) ReadHp(IGameMemory mem, int level, int brave, int faith, int rosterNameId = 0)
     {
@@ -110,7 +110,7 @@ internal sealed partial class GrowthEngine
     }
 
     /// <summary>One band pass <paramref name="exact"/> is tier 1 (band nameId == rosterNameId,
-    /// only called with rosterNameId &gt; 0); otherwise tier 2 (fingerprint match, plus the D2 veto
+    /// only called with rosterNameId &gt; 0); otherwise tier 2 (fingerprint match, plus the foreign-nameId veto
     /// when rosterNameId &gt; 0).
     /// Decision-4 exception (b): on the non-exact pass with rosterNameId &lt;= 0 and
     /// two or more real-position candidates, returns (0,0) rather than guessing, as
@@ -131,13 +131,13 @@ internal sealed partial class GrowthEngine
             if (mem.U8(addr + Offsets.AFaith) != faith) continue;
             if (exact)
             {
-                int entryNameId = mem.U16(addr + Offsets.ANameId);   // unguarded fail-safe read (Iai pattern, D8)
+                int entryNameId = mem.U16(addr + Offsets.ANameId);   // unguarded fail-safe read (Iai pattern)
                 if (entryNameId != rosterNameId) continue;
             }
             else if (rosterNameId > 0)
             {
                 int entryNameId = mem.U16(addr + Offsets.ANameId);
-                if (entryNameId != 0 && entryNameId != rosterNameId) continue;   // D2 veto
+                if (entryNameId != 0 && entryNameId != rosterNameId) continue;   // veto
             }
             bool realPos = mem.U8(addr + Offsets.AGx) != 0 || mem.U8(addr + Offsets.AGy) != 0;
             if (foundReal && !realPos) continue;   // prefer real over twin
@@ -146,7 +146,7 @@ internal sealed partial class GrowthEngine
             found = true;
             if (realPos) foundReal = true;
         }
-        if (!exact && rosterNameId <= 0 && realCount >= 2) return (false, 0, 0);   // decision-4 exception (b): refuse, never guess
+        if (!exact && rosterNameId <= 0 && realCount >= 2) return (false, 0, 0);   // refuse, never guess
         return (found, result.hp, result.maxHp);
     }
 
