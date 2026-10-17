@@ -10,6 +10,28 @@ before 2026-07-21 keep their original prose.
 
 ## 2.4.0 cycle
 
+- [LW-397] SHIPPED e00c429a 2026-10-16: The game's build number stops being an off switch: the
+  mod reports it and keeps running if its own checks pass. Plain language: the mod used to read
+  the game's build number at startup and, if it was not the one the mod was made for, switch the
+  whole mod off and tell the player to wait for an update. In September the game was rebuilt
+  with nothing moved, the number changed, and the mod sat dark for a month over nothing. Now the
+  number is only reported: one startup line names it, and if the build is one the mod does not
+  know the mod still runs and logs one calm warning once its own checks pass. The only startup
+  check that can still switch the whole mod off is Ramza's roster row, the data the mod writes
+  next to. The extended inventory stops checking the build number too and relies on its per site
+  byte checks, which refuse and roll back on the first byte that reads wrong. Stage 1b of the
+  parts model (LW-393). Full build: plan review, one implement round, two verify rounds (code 9,
+  spec 8, both non vacuity halves proven by sabotage). Owner live pass 2026-10-16 19:56 to
+  20:00, two legs: the dev drill showed the stamp line, the armed line and exactly one warning
+  naming the drill, no box, and a kill counted; the prod launch showed the stamp line saying the
+  build the mod was made for, no warning, armed, extended inventory armed, log scan clean. Known
+  lag: the pool region sidecar still stamps the expected constants (LW-405), and the wider
+  README and docs pass is LW-401. (Tech: LaunchGuard.Stamp.cs probe and copy; the pe-build-key
+  landmark keeps its slot and name and returns Match on every readable read so the LW-392 stall
+  warning still fires; unknown stamp latches once, logs the stamp line, records one flight
+  entry, warns at the armed edge only; lane warnings carry a hedge on an unknown build;
+  StandDown lost its drill branch; ExtendedInventory drops the PE key probe;
+  FingerprintGuard.TryReadPeBuildKey shared by factory and report; suite 3804.)
 - [LW-392] SHIPPED eacb8761 2026-10-16: The mod now says so when it cannot find the game instead of
   staying silent. Plain language: when the mod could not read the game at all it used to retry
   quietly forever, which is how five players spent weeks guessing why their kill counts had frozen
