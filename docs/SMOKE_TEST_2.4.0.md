@@ -203,7 +203,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
 > in the display mode you actually play in (fullscreen) and one later leg windowed or borderless;
 > box 2.10 holds the box visibility reads.
 
-- [ ] 2.1 **Roster drill (LW-393).** The party data check fails; eleven parts stop, three keep
+- [x] 2.1 (PASSED 2026-10-17 on dev 62015755, owner live: leg A with the marker, title report WAITING, the ERROR with the drill sentence at Continue, eleven parts OFF, one box listing battle sensing, banners and extended inventory as still working, the prompt hook confirmed, the new items listed, the kill not credited, scan CLEAN with the standdown drill warn; leg B with the marker gone, all parts armed, no box, no new game detection, Chaos Blade claims kill number 11) **Roster drill (LW-393).** The party data check fails; eleven parts stop, three keep
   going, one box. Marker `LW_FORCE_ROSTER_MISMATCH`, recipe legs A and B. PASS leg A: title screen
   report reads battle sensing, extended inventory, banners ON and eleven parts `WAITING (waiting
   for a save to load)`; Continue gives the ERROR `The party data is not where this mod expects it,
@@ -261,7 +261,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   comes off.`; no box. FAIL: a twin WARN before Continue, an ERROR line, kill counting OFF, a box
   listing the roster parts, twin weapons WAITING a minute after Continue. (DEV OK) (covers LW-400)
   **[BLOCKER]**
-- [ ] 2.5 (PROD LEG PASSED 2026-10-17, prod 1c7ba75f, owner live: every F key pressed in battle, nothing on screen, zero provoke-spike, body-double, numeral or status-spike lines in the log; dev leg owed in sitting 2) **No developer hotkey fires in a release build (LW-413).** A player can never trip a dev
+- [x] 2.5 (PASSED 2026-10-17: prod leg on 1c7ba75f, every F key pressed in battle, nothing on screen and no dev line in the log; dev leg on 62015755, provoke-spike armed (dev) at battle start and F6 marked the first live enemy at tile (3,7), composed and inflicted) **No developer hotkey fires in a release build (LW-413).** A player can never trip a dev
   key. Prod leg (sitting 1): in battle, press F6 and F5 (the two wired dev keys). PASS:
   nothing happens on screen, no `provoke-spike` line and no Provoke mark appears in the log. Dev
   leg (sitting 2): press F6 in battle; the drill fires (the log carries `provoke-spike: armed (dev)`
