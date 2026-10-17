@@ -79,39 +79,6 @@ the technical detail lives in the indented lines under it.
 - **[LW-408] Find out whether Living Weapons runs alongside WotL Restoration and write the answer down** (opened 2026-10-17) [BUILDING]
   - Done means: a player reading docs/COMPATIBILITY.md knows what happens with both mods installed, which order to load them in, and what each mod's own log will say. Payload half done 2026-10-17: WotL Restoration 2.0.7 was downloaded and read file by file (its text tables diffed against vanilla and ours, its job table, and its decompiled code), and the verdict is written in the doc's "WotL Restoration" section: characters and events coexist, its 40 new items switch off because both mods break the 261 item cap at the same code sites and ours arms first, and Living Weapons must load last to keep its item names. (Tech: her nine accessor hooks are our ten entries; 52 of her 63 relocations and 30 of her 44 caps sit on our sites; item.en.nxd keys 261 to 267 are written by both; her JobData rows 162 to 168 are clear of ours; ability 358 Barrage is named by both.)
   - Verify: owner runs the game once with both mods enabled, WotL Restoration loading before Living Weapons. Expected: Living Weapons' parts report reads all ON (extended inventory included), WotL Restoration's log prints its "Item expansion NOT armed" line, Luso and Balthier's events still fire, the Terrastaff card reads Terrastaff with its kill counter, and Agrias's birthday hands out a Septième Sens. Owner flips this row to AWAITING-LIVE when ready and PROVEN or not after the run.
-- **[LW-406] Every "this part is paused" message reads the same way for a player** (opened 2026-10-17) [BUILDING]
-  - Plain language: when one of the mod's checks fails, the log line and the box a player
-    sees should sound like one person wrote them, say the game update or another mod may be
-    the cause, keep addresses and diagnostics out of the player sentence, and end with the
-    same what to do line. The box uses the owner's own copy (2026-10-17): "some features are
-    paused", still working first, paused second, parts not yet checked on one line of their
-    own, and when nothing is still working the headline says the mod paused itself. When
-    every part is on there is no box and the log carries one line, "Living Weapons: all
-    parts armed", once, when the last check passes. Every box ends with a footer naming the
-    mod version and the game build so a screenshot is a usable bug report, and the flight
-    tape header carries the same two facts. Owner rulings the same day: keep "another mod"
-    wording but never name one; no in battle toast as a second channel; the per part "what
-    it leaves behind" table is its own row (LW-415).
-  - (Tech: nineteen messages, the thirteen disabling WARNs, the stall WARN, two boxes, the
-    unknown build hedge, the kit lane armed line and the two Mod.cs hook lines, all built by
-    one composer in Guard/PartsCopy.cs; detail tail last; the all armed line is edge
-    triggered on the transition to every part Open and latched; the scanner's marks stay
-    and gain an all armed mark; its verbatim fixtures and the copy tests move in the same
-    commit.)
-  - Done means: every disabling WARN and both boxes end with the shared what to do line held
-    in one constant; every door carries the same hedge on every build with the stamp detail
-    only on an unknown build and only inside the detail tail; no player sentence contains a
-    hex address, a probe diagnostic or a developer label; the box reads in the owner's copy
-    with the three states (some paused, all paused, none paused) and the version plus build
-    footer; the flight header carries version and build; the kit lane armed line stops
-    claiming the commands are on before the roster door opens; a contract test drives every
-    door and pins the shape, the box forms and the footer.
-  - Verify: suite green with the copy contract tests; scan_logs selftest green and the
-    selftest covers the all armed line; the owner runs the seven drill legs in the verifier's
-    live script on a dev build (roster, table, band, twin, known build read, unknown build
-    with roster, no markers) and every WARN and box reads the same way with the shared
-    closing line, the no markers leg shows zero boxes and the single all armed line after
-    the first battle, and a screenshot of any box shows the footer.
 ## Backlog
 
 Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner directed).

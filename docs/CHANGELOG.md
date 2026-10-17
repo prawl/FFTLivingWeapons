@@ -10,6 +10,22 @@ before 2026-07-21 keep their original prose.
 
 ## 2.4.0 cycle
 
+- [LW-406] SHIPPED 5736283d 2026-10-17: Every message a player sees when part of the mod pauses
+  itself now reads the same way: what is paused, why, that a game update or another mod may
+  be the cause, and what to do, in one voice, with the technical detail last. Plain language:
+  before this each check wrote its own warning on its own night, one said update the mod, one
+  said see the box, one said wrong address, and a player could not tell a game update from a
+  mod bug. Now one composer builds all nineteen messages, the box uses the owner's own copy in
+  three states (some features paused, the mod paused itself, or no box when nothing is paused),
+  ends with the mod version and game build so a screenshot is a usable bug report, and the log
+  carries one line, Living Weapons all parts armed, once every check has passed. The kit lane
+  armed line stops claiming the commands are on before the party check. Owner live legs on the
+  dev build 2026-10-17: roster, table, band, twin, unknown build and no markers all read as
+  specified, zero boxes on a clean run. (Tech: Guard/PartsCopy.cs; PartsReport three state box
+  with footer; PartsBoard all armed edge; flight header version and build; scan_logs all armed
+  mark, selftest 60; PartsCopyContractTests; three implement rounds, two full adversarial
+  verifies, code 8 both times.)
+
 - [LW-398] SHIPPED 795f3a30 2026-10-17: The two battle memory regions get their own switches, so a
   game update that moves one of them turns off only the parts that need it. Plain language: kill
   counting, stat growth and the weapon powers that act in battle need two pieces of game memory
