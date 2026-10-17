@@ -275,7 +275,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   `A new game was detected` line, kills.json unchanged. PASS normal leg (prod, box 6.1): the
   sensing line right after the header and a real New Game archives. FAIL: kills archived under the
   drill, or a box. (DEV OK) (covers LW-395) **[MAJOR]**
-- [ ] 2.7 (NORMAL LEG PASSED 2026-10-17, prod 1c7ba75f, owner live, the attract cutscene played during the idle: launch 10:18:43, exactly one wait line at 10:21:14, no box, no WARN, no recovery line on Continue; four Parts report lines before Continue, changing only by extended inventory and banners going WAITING to ON within 1.8 s of launch, which the box text first called a fail and now allows; drill leg owed in sitting 2) **Blind drill (LW-392).** When the mod cannot read the game for a minute it says so once,
+- [x] 2.7 (PASSED 2026-10-17. NORMAL LEG 2026-10-17, prod 1c7ba75f, owner live, the attract cutscene played during the idle: launch 10:18:43, exactly one wait line at 10:21:14, no box, no WARN, no recovery line on Continue; four Parts report lines before Continue, changing only by extended inventory and banners going WAITING to ON within 1.8 s of launch, which the box text first called a fail and now allows. DRILL LEG on dev 62015755, owner live: launch 13:25:46, the cannot read WARN at 13:26:56 and the owner saw the cannot find the game box, on Continue the armed line then Living Weapons found the game after the earlier warning in the same millisecond, scan CLEAN; the box landed at 70.4 s, a hair past the 70 s the box text first allowed, so the text now allows 80) **Blind drill (LW-392).** When the mod cannot read the game for a minute it says so once,
   then recovers. Marker `LW_FORCE_GUARD_UNREADABLE`, sit on the title about 80 seconds, then
   Continue. PASS drill leg: at about 60 seconds one WARN `Living Weapons has not been able to read
   the game for about a minute, so its checks cannot run and nothing is counting yet. ...` ending
@@ -287,7 +287,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   about two minutes, no box, no recovery line on Continue; the only other lines after the header
   are `Parts report:` lines, at most a handful, each differing from the one before only by a part moving from WAITING to ON (banners and extended inventory flip within a second of launch when the loader hands over its hooks; the table checks arm at the title),
   no WARN. The drill box's `game build unknown` footer is correct only there. Scan exit 0 both
-  legs. FAIL: a box on the normal leg, no box by 70 seconds under the drill, a recovery line with
+  legs. FAIL: a box on the normal leg, no box by 80 seconds under the drill (the stall clock runs about a minute of unreadable steps and the box lands near 70 s after the header), a recovery line with
   no prior warning, a wait line before 90 seconds or a second one, a Parts report line before Continue in which a part moves anywhere but from WAITING to ON. (DEV OK drill; normal leg prod) (covers LW-392)
   **[MAJOR]**
 - [ ] 2.8 **Unknown build stays running (LW-397).** An unknown game build is reported, never a
