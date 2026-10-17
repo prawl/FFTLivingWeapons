@@ -2,18 +2,13 @@ using System;
 
 namespace LivingWeapon;
 
-/// <summary>
-/// The shared band-entry HP-heal core: the heal-sizing formula, the clamp-and-never-revive rule,
-/// and the guarded little-endian HP write. Promoted out of the former LifeSap.Policy.cs (LW-149
-/// stage G) -- Benediction, Renewal, and SpiritualFont each already borrowed LifeSap's HealAmount/
-/// NewHp/WriteHp by name for their own heal/aura/font restores, so a neutral home replaces
-/// the cross-signature borrows of one signature's name with a shared primitive. The dormant
-/// LifeSap module and its one-line forwards were deleted in LW-159.
-/// </summary>
+/// <summary>Shared band-entry HP heal core: heal sizing, the clamp-without-revive rule and the guarded
+/// HP write. Moved out of LifeSap.Policy.cs in LW-149 stage G because Benediction, Renewal and
+/// SpiritualFont borrowed it; LifeSap itself was deleted in LW-159.</summary>
 internal static class BandHeal
 {
-    /// <summary>The heal: round(maxHp * pct) away from zero, floor 1 for any positive maxHp
-    /// (a sub-1 rounding would silently dead the grant on tiny units). 0 when maxHp is junk.</summary>
+    /// <summary>round(maxHp * pct) away from zero, minimum 1 for a positive maxHp so tiny units still
+    /// heal. 0 when maxHp is junk.</summary>
     public static int HealAmount(int maxHp, double pct)
     {
         if (maxHp <= 0) return 0;
@@ -21,8 +16,8 @@ internal static class BandHeal
         return heal < 1 ? 1 : heal;
     }
 
-    /// <summary>New HP after the heal: clamped at maxHp, and a dead wielder (hp &lt;= 0) is left
-    /// alone -- a kill heal must NEVER revive (HP 0 -&gt; positive is the engine's revival signal).</summary>
+    /// <summary>HP after the heal, clamped at maxHp. A dead wielder (hp &lt;= 0) is left alone, since
+    /// 0 to positive is the engine's revival signal.</summary>
     public static int NewHp(int hp, int maxHp, int heal)
     {
         if (hp <= 0 || maxHp <= 0) return hp;
@@ -30,11 +25,9 @@ internal static class BandHeal
         return n > maxHp ? maxHp : n;
     }
 
-    /// <summary>Guarded little-endian u16 write of the wielder's HP on its band entry
-    /// (the authoritative copy -- the same field Ricochet's chip writes). Fail-safe no-op
-    /// when the page isn't writable. One W16 call (LW-145 fix 2): two separate W8 halves opened
-    /// a torn-value window a heal crossing 255 HP could transiently expose to the game's own
-    /// threads (the low byte written, the high byte not yet).</summary>
+    /// <summary>Guarded u16 write of the wielder's HP on its band entry (the field Ricochet's chip also
+    /// writes). No-op when the page is not writable. One W16 (LW-145 fix 2) because two W8 halves could
+    /// expose a torn value when a heal crosses 255 HP.</summary>
     public static void WriteHp(IGameMemory mem, long entryAddr, int newHp)
     {
         long a = entryAddr + Offsets.AHp;

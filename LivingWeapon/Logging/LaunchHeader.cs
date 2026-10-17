@@ -1,10 +1,7 @@
 namespace LivingWeapon;
 
-/// <summary>
-/// The launch header's two save-line composers (LW-22): the pure string halves of Engine's
-/// L3/L4 lines, split out so their pluralization is unit-tested. The inline originals printed
-/// "1 Marks" / "1 weapons" on singular counts; BattleSummary.Plural is the shared rule.
-/// </summary>
+/// <summary>Composers for the L3/L4 launch header save lines, split from Engine so
+/// pluralization is unit-tested (the inline versions printed "1 Marks"). See BattleSummary.Plural.</summary>
 internal static class LaunchHeader
 {
     /// <summary>L3: what the DISK held, before any dev seed can inflate the counts.</summary>

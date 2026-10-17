@@ -4,21 +4,19 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// The pure decisions behind Stormarc's "Chain Lightning" signature -- no memory access.
-/// The stateful two-pass scanner and guarded band write live in Ricochet.cs.
+/// Pure decisions for Stormarc's "Chain Lightning" signature; no memory access.
+/// The stateful scanner and band write live in Ricochet.cs.
 /// </summary>
 internal sealed partial class Ricochet
 {
-    /// <summary>A candidate bounce target: band slot, grid position, current HP, and whether it
-    /// is enemy-side (static-array fingerprint match). Only enemies are valid bounce targets.</summary>
+    /// <summary>A bounce candidate: band slot, grid position, HP, and whether it is enemy-side.</summary>
     internal readonly record struct SlotInfo(int Slot, int Gx, int Gy, int Hp, bool Enemy);
 
     /// <summary>True when the signature is configured (RicochetRadius set) and the kill tier is earned.</summary>
     public static bool IsActive(WeaponSignature? sig, int tier)
         => Signatures.Earned(sig, tier) && sig!.RicochetRadius > 0;
 
-    /// <summary>Chip damage: pct% of the original damage, integer floor. Returns 0 when original is 0.
-    /// Returns at least 1 when the original was >= 1 (a real hit always produces at least 1 chip).</summary>
+    /// <summary>Chip damage: pct% of the original, floored, minimum 1 for a real hit, 0 when dmg is 0.</summary>
     public static int ChipDamage(int dmg, int pct)
     {
         if (dmg <= 0) return 0;
@@ -26,9 +24,8 @@ internal sealed partial class Ricochet
         return chip < 1 ? 1 : chip;
     }
 
-    /// <summary>Nearest live enemy within <paramref name="radius"/> Manhattan tiles of
-    /// (<paramref name="cx"/>, <paramref name="cy"/>) not in <paramref name="excluded"/>.
-    /// Tie-break: lowest band slot. Returns null if no candidate.</summary>
+    /// <summary>Nearest live enemy within <paramref name="radius"/> Manhattan tiles of (<paramref name="cx"/>, <paramref name="cy"/>),
+    /// skipping <paramref name="excluded"/>. Lowest band slot breaks ties; null if none.</summary>
     private static SlotInfo? NearestEnemyExcluding(int cx, int cy, int radius,
         IReadOnlyList<SlotInfo> slots, ISet<int> excluded)
     {
@@ -44,18 +41,14 @@ internal sealed partial class Ricochet
         return best;
     }
 
-    /// <summary>Pick the best bounce target: nearest live OTHER enemy within <paramref name="radius"/>
-    /// Manhattan tiles of the victim. Allies are never targets. Tie-break: lower band slot.
-    /// Returns -1 if no candidate.</summary>
+    /// <summary>Nearest live enemy other than the victim within <paramref name="radius"/>. Lower band slot breaks ties; -1 if none.</summary>
     public static int PickTarget(int victimSlot, int victimGx, int victimGy, int radius,
                                   IReadOnlyList<SlotInfo> slots)
         => NearestEnemyExcluding(victimGx, victimGy, radius, slots,
                                   new HashSet<int> { victimSlot })?.Slot ?? -1;
 
-    /// <summary>Greedy chain selector: re-centers on each struck unit, never revisits a slot in
-    /// <paramref name="excluded"/> (the caller passes the victim and any already-struck slots).
-    /// Returns ordered target slots, at most <paramref name="maxHops"/>. Pure -- never mutates
-    /// the caller's excluded set.</summary>
+    /// <summary>Greedy chain that re-centers on each struck unit and skips <paramref name="excluded"/> (victim plus
+    /// already struck). Returns at most <paramref name="maxHops"/> slots; does not mutate the caller's set.</summary>
     public static IReadOnlyList<int> PickChain(int startGx, int startGy, int radius, int maxHops,
         IReadOnlyList<SlotInfo> slots, ISet<int> excluded)
     {
@@ -73,9 +66,8 @@ internal sealed partial class Ricochet
         return chain;
     }
 
-    /// <summary>Chip for a given hop index in the chain. Hop 0 = basePct% of origDmg; each
-    /// subsequent hop = decayPct% of the previous hop's chip. Floored at 1 for positive damage,
-    /// 0 when origDmg is 0.</summary>
+    /// <summary>Chip for a hop. Hop 0 is basePct% of origDmg, each later hop decayPct% of the previous chip;
+    /// minimum 1, or 0 when origDmg is 0.</summary>
     public static int ChipForHop(int origDmg, int basePct, int decayPct, int hopIndex)
     {
         int chip = ChipDamage(origDmg, basePct);
@@ -83,18 +75,14 @@ internal sealed partial class Ricochet
         return chip;
     }
 
-    /// <summary>Manhattan (taxicab) distance between two grid cells. Forwards to
-    /// <see cref="Grid.Manhattan"/> (LW-149 stage G: promoted to the shared grid-metric home so
-    /// cross-signature callers stop borrowing Ricochet's name). Kept here so Ricochet's own
-    /// tests and any missed caller keep working.</summary>
+    /// <summary>Taxicab distance; forwards to <see cref="Grid.Manhattan"/> (moved there in LW-149 stage G).</summary>
     public static int Manhattan(int x1, int y1, int x2, int y2) => Grid.Manhattan(x1, y1, x2, y2);
 
     /// <summary>New HP after applying chip: max(currentHp - chip, 1). Chip never kills.</summary>
     public static int ClampHp(int currentHp, int chip) => Math.Max(currentHp - chip, 1);
 
-    /// <summary>Write the clamped HP to the authoritative band entry as one little-endian W16
-    /// call (LW-145 fix 2: two separate W8 halves opened a torn-value window). No-ops if not
-    /// writable (fail-safe) or if HP is already at the floor.</summary>
+    /// <summary>Write the clamped HP as one little-endian W16 (LW-145 fix 2: two W8 writes left a torn-value window).
+    /// No-op if unwritable or already at the floor.</summary>
     public static void ApplyChip(IGameMemory mem, long addr, int currentHp, int chip)
     {
         int newHp = ClampHp(currentHp, chip);
@@ -105,9 +93,8 @@ internal sealed partial class Ricochet
     }
 }
 
-/// <summary>Per-slot HP tracking for the chain-lightning damage-event detector: a DROP in HP
-/// is one event (heals are ignored). The bookkeeping (baseline / consume / rearm) is the
-/// shared <see cref="HpDeltaState"/> core (LW-153); this subclass fixes the direction.</summary>
+/// <summary>Per-slot HP tracking for chain lightning: an HP drop is one event, heals are ignored.
+/// Bookkeeping is the shared <see cref="HpDeltaState"/>.</summary>
 internal sealed class RicochetState : HpDeltaState
 {
     public RicochetState(int slots) : base(slots) { }

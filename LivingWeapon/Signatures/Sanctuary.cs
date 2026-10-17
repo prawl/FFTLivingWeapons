@@ -4,32 +4,12 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Staff of the Magi's "Sanctuary" signature: while a +3 Staff of the Magi is held in the MAIN
-/// HAND and its bearer is alive and on the field, every fallen ALLY's crystal counter (combat
-/// base +0x07, band entry -0x15) is held at Tuning.SanctuaryHearts (3) each tick. The engine
-/// steps this counter 3->2->1->0 once per the dead unit's scheduled turn; at 0 the unit
-/// crystallizes (permanent loss). Sanctuary re-writes it to 3 every tick so the revive window
-/// never closes. If the bearer dies, Sanctuary lifts -- the engine resumes counting.
-///
-/// PER-TICK PIN, NOT TURN-EDGE: unlike Renewal, this fires every tick (no
-/// TurnTracker). The pin is idempotent; when the counter is already 3 no log fires (low spam).
-///
-/// BEARER-ALIVE GATE ("save the priest"): Wielder.Locate is called each tick to find the bearer.
-/// If the bearer's HP == 0, <c>active</c> goes false and no writes land. The effect is restored
-/// the tick the bearer's HP rises above 0 (a raise lands), with no per-battle state to clear.
-///
-/// DEAD-STREAK GUARD: before the counter of a fallen ally is first pinned, that ally must have
-/// read fallen (HP==0 or Dead bit set) for DeadNeeded (3) consecutive ticks. A phantom band-load
-/// transient can make a LIVE unit read HP==0 for one tick; without the guard, Sanctuary would
-/// write 3 to the crystal counter of a unit that was never actually dead. The streak is per slot
-/// and resets to 0 whenever the slot reads alive or invalid.
-///
-/// SILENT AND ENGINE-RENDERED: the DLL only holds the byte. The "3 hearts" animation that the
-/// engine normally drains is visibly paused -- no floating numbers, no status icons. The effect
-/// is natural within FFT's existing UI.
-///
-/// ALL WRITES ARE GUARDED: every W8 is preceded by Writable(addr, 1). An unwritable counter
-/// address is a silent no-op -- never a raw pointer deref.
+/// Staff of the Magi's Sanctuary signature. The engine steps a fallen unit's crystal counter
+/// (combat base +0x07, band entry -0x15) 3->2->1->0 and crystallizes it at 0. While a +3 Staff of the
+/// Magi is in the main hand and its bearer is alive on the field, this holds every fallen ally's counter
+/// at Tuning.SanctuaryHearts (3) each tick. If the bearer's HP is 0 nothing is written. An ally must read
+/// fallen for DeadNeeded (3) consecutive ticks first, because a phantom band-load can read a live unit as
+/// HP 0 for one tick. Unlike Renewal this pins every tick (no TurnTracker); writes are guarded by Writable.
 /// </summary>
 internal sealed partial class Sanctuary : ISignature
 {
@@ -77,9 +57,8 @@ internal sealed partial class Sanctuary : ISignature
                 : "The Staff of the Magi's bearer is down or unequipped; divine intervention ends.");
         }
 
-        // Ally fingerprints: computed once per tick (only when active, to avoid static-array
-        // sweep cost while inactive). Inactive ticks still maintain _deadStreak so the guard
-        // stays fresh across brief bearer-flicker intervals where active flips false then back.
+        // Ally fingerprints are computed only when active, to skip the static-array sweep. Inactive ticks still
+        // update _deadStreak so it stays fresh across brief bearer flicker.
         var allyFps = active ? Band.AllyFingerprints(_mem) : null;
 
         for (int s = 0; s < Offsets.BandSlots; s++)
@@ -93,17 +72,17 @@ internal sealed partial class Sanctuary : ISignature
 
             if (!fallen) { _deadStreak[s] = 0; continue; }
 
-            // Increment streak, capped at DeadNeeded to prevent overflow on very long corpse spans.
+            // Streak capped at DeadNeeded to avoid overflow.
             if (_deadStreak[s] < DeadNeeded) _deadStreak[s]++;
 
             if (!active) continue;                         // streak accumulates but no write while inactive
             if (_deadStreak[s] < DeadNeeded) continue;    // phantom-load guard not yet satisfied
 
-            // Ally filter: enemies are never protected (positive fingerprint match only).
+            // Allies only (positive fingerprint match).
             int mhp = _mem.U16(e + Offsets.AMaxHp);
             int lvl = _mem.U8(e + Offsets.ALevel);
-            int br  = _mem.U8(e + Offsets.ABrave);
-            int fa  = _mem.U8(e + Offsets.AFaith);
+            int br = _mem.U8(e + Offsets.ABrave);
+            int fa = _mem.U8(e + Offsets.AFaith);
             if (allyFps is null || !allyFps.Contains((mhp, lvl, br, fa))) continue;
 
             long counterAddr = e + Offsets.ACrystalHearts;

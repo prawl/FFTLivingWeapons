@@ -1,28 +1,18 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// The pure stacking logic behind Swiftedge's "Afterimage" signature -- no live state, no
-/// memory access. The stateful hold (the Speed write against the engine's per-turn normalize)
-/// lives in GrowthEngine (HoldAfterimage), exactly as HoldTimedStat does for Galewind.
-///
-/// Swiftedge's damage is Speed x WP (formula 99), so accelerating Speed accelerates its damage.
-/// At +3 the wielder gains +<see cref="Tuning.AfterimageSpeedPerTurn"/> Speed for every turn they
-/// take, stacking up to <see cref="Tuning.AfterimageSpeedCap"/> turns' worth -- and the ramp is
-/// wiped to zero the instant the wielder takes damage. Keep moving, keep blurring; get hit, start over.
+/// Pure stacking logic for Swiftedge's "Afterimage" signature (no live state, no memory access); the stateful hold is GrowthEngine.HoldAfterimage, as HoldTimedStat is for Galewind.
+/// Swiftedge's damage is Speed x WP (formula 99). At +3 the wielder gains +<see cref="Tuning.AfterimageSpeedPerTurn"/> Speed per turn taken, up to <see cref="Tuning.AfterimageSpeedCap"/> turns, and the ramp resets to zero on damage.
 /// </summary>
 internal static class AfterimagePolicy
 {
-    /// <summary>True when the signature is configured (Afterimage set) and the kill tier is earned.
-    /// Wielder resolution is main-hand-only (the gift commands from the main hand).</summary>
+    /// <summary>True when the signature is configured (Afterimage set) and the kill tier is earned. Main-hand wielder only.</summary>
     public static bool IsActive(WeaponSignature? sig, int tier)
         => Signatures.Earned(sig, tier) && sig!.Afterimage;
 
-    /// <summary>Advance the ramp from one observation.
-    /// <paramref name="turns"/> = the wielder's completed-turn count (monotonic, from TurnTracker).
-    /// <paramref name="hp"/> = the wielder's current HP (0 == unreadable: no hit, carry the last good HP).
-    /// A HIT (hp dropped below the last reading) wins the tick and resets stacks to 0 even if a turn
-    /// also completed. Otherwise each newly completed turn adds one stack, capped at <paramref name="cap"/>.
-    /// Healing (hp rose) never resets. The first observation only baselines (stacks stay 0).</summary>
+    /// <summary>Advance the ramp from one observation. <paramref name="turns"/> is the wielder's completed-turn count (TurnTracker),
+    /// <paramref name="hp"/> the current HP (0 = unreadable: carry the last good HP). A hit (hp below the last reading) resets stacks to 0 even if a turn completed;
+    /// otherwise each new turn adds a stack up to <paramref name="cap"/>. Healing never resets. The first observation only baselines.</summary>
     public static AfterimageState Step(in AfterimageState prev, int turns, int hp, int cap)
     {
         if (!prev.Seeded) return new AfterimageState(0, turns, hp, seeded: true);
@@ -45,8 +35,7 @@ internal static class AfterimagePolicy
     public static int SpeedBonus(in AfterimageState s, int perTurn) => s.Stacks * perTurn;
 }
 
-/// <summary>One wielder's Afterimage ramp: how many stacks are held, plus the last-seen turn count
-/// and HP that drive the increment/reset edges. Reset on battle exit (GrowthEngine.ResetBattle).</summary>
+/// <summary>One wielder's Afterimage ramp: stacks held plus the last-seen turn count and HP. Reset on battle exit (GrowthEngine.ResetBattle).</summary>
 internal readonly struct AfterimageState
 {
     /// <summary>Stacks currently held (0..cap); the Speed bonus is Stacks x SpeedPerTurn.</summary>

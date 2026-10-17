@@ -4,21 +4,14 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Zwill +3 "extra turn on kill", v8. On a kill credited to the Zwill, SLAM the wielder's scheduler
-/// CT (band entry +0x25 == combat base+0x41, live-proven) every tick until the bonus move is
-/// consumed. The grant is driven entirely off the killer's OWN CT: the condensed active-unit struct
-/// follows cursor HOVER (FFTHandsFree BATTLE_COORDINATES.md), so it is never consulted -- not for
-/// "is the killer acting" and not for the killer's identity. The killer IS the Zwill's roster
-/// wielder, located on the Band walk (the LIVE source -- the static array freezes on restart) by
-/// hand-weapon id + brave/faith, with the TWIN FILTER that unblocked v7: a roster unit has a frozen
-/// duplicate copy in the band at position (0,0); the live copy carries a real grid position, so a
-/// real-position match outranks a (0,0) one (live-proven: 14184F8AC at (7,4) vs twin 1418500AC).
-///
-/// The engine pulls CT below the consume floor only when a turn of that unit ENDS, and we read
-/// before every re-slam, so turn-ends are countable events (see ExtraTurn.Policy.cs). The no-signal
-/// window is a pathology timeout (healthy holds refresh it), the 90s cap guarantees termination,
-/// and every non-consumed release restores CT=0 so a parked slam can never ghost-grant a turn.
-/// Every read/write is VirtualQuery-guarded (Mem). Hardcoded weapon/tier for the prototype.
+/// Zwill +3 "extra turn on kill", v8. On a Zwill kill, slam the wielder's scheduler CT (band entry +0x25
+/// == combat base+0x41) each tick until the bonus move is consumed. The condensed active-unit struct
+/// follows cursor hover (FFTHandsFree BATTLE_COORDINATES.md), so it is never read. The wielder is found on
+/// the Band walk (the static array freezes on restart) by hand-weapon id + brave/faith. Twin filter (v7 fix):
+/// a roster unit has a frozen copy in the band at (0,0), so a real grid position wins (14184F8AC at (7,4)
+/// vs twin 1418500AC). CT drops below the consume floor only when that unit's turn ends, so turn-ends are
+/// countable (ExtraTurn.Policy.cs). The no-signal window is a pathology timeout, the 90s cap ends every
+/// grant, and non-consumed releases restore CT=0 so a parked slam cannot grant a turn. Hardcoded weapon/tier.
 /// </summary>
 internal sealed partial class ExtraTurn : ISignature
 {
@@ -43,7 +36,7 @@ internal sealed partial class ExtraTurn : ISignature
 
     internal GrantState State => _state;
     /// <summary>The located band entry address; non-zero when the wielder was found this tick.
-    /// Exposed for tests: a non-zero value confirms Locate succeeded (Band.Entry (0,0) twin scenario).</summary>
+    /// Tests use it to confirm Locate succeeded (Band.Entry (0,0) twin scenario).</summary>
     internal long LocatedBase => _base;
 
     public void ResetBattle()
@@ -56,7 +49,7 @@ internal sealed partial class ExtraTurn : ISignature
     public void Tick(DateTime now)
     {
         int count = _kills.TryGetValue(ZwillId, out int k) ? k : 0;
-        // Signatures fire from the main hand only: a Zwill in the off-hand does not arm the grant.
+        // Main hand only: a Zwill in the off-hand does not arm the grant.
         if (Tuning.TierFor(count) < AtTier || !Wielder.TryResolveMainHand(_mem, ZwillId, out _wielder, _hands))
         {
             if (_state != GrantState.Idle) Release(ReleaseReason.GateLost);
@@ -82,7 +75,6 @@ internal sealed partial class ExtraTurn : ISignature
         int ct = ReadCt();
         if (Healthy(ct)) _deadline = now.AddSeconds(NoSignalSeconds);
 
-        // Liveness: a located entry holding HP 0 for a few ticks = the killer died mid-window.
         if (_base != 0 && ReadHp() == 0) { if (++_deadStreak >= 3) { Release(ReleaseReason.KillerDead); return; } }
         else _deadStreak = 0;
 
@@ -93,7 +85,7 @@ internal sealed partial class ExtraTurn : ISignature
             if (cls is { } s)
             {
                 _state = s;
-                // Demoted to Debug (log facelift): an internal state-machine step, not match report.
+                // Debug tier (log facelift): internal state-machine step.
                 ModLogger.Debug(LogVerb.Signature, $"bonus-turn timing resolved: {(s == GrantState.Owed ? "two" : "one")} more turn ends must pass before it fires (state {s}, charge time {ct})");
             }
         }
@@ -127,7 +119,7 @@ internal sealed partial class ExtraTurn : ISignature
         _state = GrantState.Idle; _base = 0; _streak = 0; _took = false; _prevCt = -1; _deadStreak = 0;
     }
 
-    /// <summary>Console wording for a release reason (full words, no state-machine jargon).</summary>
+    /// <summary>Console wording for a release reason.</summary>
     private static string ReasonWords(ReleaseReason reason) => reason switch
     {
         ReleaseReason.Consumed => "consumed",

@@ -4,33 +4,10 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// The verified paint-site cache. Anchor patterns (name/flavor) are re-verified at paint time to
-/// detect buffer reuse. LW-257: a MISMATCHING anchor evicts on its first occurrence, same as
-/// before; an UNREADABLE anchor (a transient read failure, the dominant real-world case) is
-/// leniently retried and evicts only after Tuning.CardEvictStrikes consecutive misses
-/// (CardSites.Verify.cs's ApplyStrike) -- the two used to be indistinguishable, which is the bug
-/// this arc fixes: a single unreadable frame used to delete a live, correctly-painted site.
-/// Skip-if-equal (steady state) is NOT an eviction trigger, before or after.
-///
-/// Cap-relief prune (F1): when Add finds the KILLS cache at cap it first runs a prune pass -- re-
-/// verifying every site's anchor without painting -- to evict dead entries, then retries the
-/// admit. Rate-limited to at most one prune per PruneEveryRefusals refusals while saturated; the
-/// FIRST cap-hit after any successful prune or Clear always prunes immediately (so the
-/// status-card case never waits 32 cycles). Deliberately EXEMPT from the strike leniency above
-/// (PruneDeadSites's own doc): a cap-relief pass needs room back now, not after a strike window.
-/// LW-262 moved Add/PruneDeadSites/EvictList and their rate-limit/counter state into
-/// CardSites.Admission.cs (this file's own real seam once suffix/kills got separate caps -- see
-/// that file's class doc for the partition design and its provenance).
-///
-/// LINE COUNT: this file was 282 before the LW-262 split moved Add/PruneDeadSites/EvictList and
-/// their state into CardSites.Admission.cs (a real seam -- verifier F7: this doc used to point a
-/// reader there "for that file's own count" while Admission.cs states no count of its own; a
-/// number here would only go stale the moment either file is next edited, the exact LW-263 defect
-/// class four separate verify rounds already caught -- so neither file cites one at all).
-/// SyncFlavorToCurrent already moved out (CardSites.Reliquary.cs, a real seam); what remains here
-/// is one state machine (PaintSiteWithResult) whose seven branches each tag their own PaintOutcome
-/// for CardVerdict, which is exactly the fidelity the LW-257 arc added -- splitting that method
-/// across files would be the state-machine fragmentation the house rules warn against, not a seam.
+/// The verified paint-site cache. Anchor patterns (name/flavor) are re-verified at paint time to detect buffer reuse.
+/// A mismatching anchor evicts on first occurrence; an unreadable one evicts only after Tuning.CardEvictStrikes consecutive misses (CardSites.Verify.cs ApplyStrike), so one transient read failure no longer deletes a live site. Skip-if-equal is not an eviction trigger.
+/// Cap relief: when Add finds the kills cache at cap it re-verifies every anchor without painting, evicts dead sites and retries, at most once per PruneEveryRefusals refusals (the first cap hit after a prune or Clear prunes at once). The prune skips the strike leniency (see PruneDeadSites).
+/// LW-262 moved Add/PruneDeadSites/EvictList and their state to CardSites.Admission.cs once suffix and kills got separate caps; SyncFlavorToCurrent is in CardSites.Reliquary.cs. PaintSiteWithResult stays here as one state machine whose branches each tag a PaintOutcome for CardVerdict.
 /// </summary>
 internal sealed partial class CardSites
 {
@@ -38,25 +15,21 @@ internal sealed partial class CardSites
     /// whether this is a kills site (true) or suffix site (false).</summary>
     internal readonly record struct Site(int Id, int Enc, long SlotAddr, long AnchorAddr, bool IsKills);
 
-    // Dedup key includes Id+AnchorAddr so buffer reuse (same slot, different weapon)
-    // is NOT treated as a duplicate -- the new-owner site must be admitted.
+    // Key includes Id+AnchorAddr so buffer reuse (same slot, new weapon) is admitted.
     private readonly HashSet<(long slot, int enc, bool kills, int id, long anchor)> _keys = new();
 
     private readonly IGameMemory _mem;
     private readonly CardPatterns _pats;
-    // Reliquary Phase 1 (docs/RELIQUARY_AC.md, decision 2): the three-way anchor registry.
-    // Null for every pre-Reliquary caller/test -- kills-site verify falls back to baked-only,
-    // byte-identical to the original behavior.
+    // Reliquary Phase 1 (docs/RELIQUARY_AC.md, decision 2): three-way anchor registry.
+    // Null falls back to baked-only kills-site verify.
     private readonly EarnedAnchors? _anchors;
     private readonly List<Site> _sites = new();
-    // LW-262: fired for every site PruneDeadSites (CardSites.Admission.cs) actually evicts. Null
-    // (the default) is a pure no-op -- every existing caller/test passes none, mirroring the
-    // CardVerdict-null idiom this codebase already uses for Display's _verdict/recorder params.
+    // Fired for each site PruneDeadSites (CardSites.Admission.cs) evicts. Null is a no-op.
     private readonly Action<Site>? _onPruneEvict;
 
     public CardSites(IGameMemory mem, CardPatterns pats, EarnedAnchors? anchors = null, Action<Site>? onPruneEvict = null)
     {
-        _mem = mem;  _pats = pats;  _anchors = anchors;  _onPruneEvict = onPruneEvict;
+        _mem = mem; _pats = pats; _anchors = anchors; _onPruneEvict = onPruneEvict;
     }
 
     /// <summary>Number of sites in the cache (both kinds).</summary>
@@ -65,19 +38,13 @@ internal sealed partial class CardSites
     /// <summary>Test accessor (DisplayMaintenanceTests): a point-in-time copy of the cached sites.</summary>
     internal List<Site> Snapshot() => new(_sites);
 
-    /// <summary>Clear the cache and reset every piece of Admission state (LW-262: the rate-limit
-    /// fields plus the new per-kind counters -- CardSites.Admission.cs's own ResetAdmission owns
-    /// the second half so this method does not need to know their names).</summary>
+    /// <summary>Clears the cache and all Admission state (ResetAdmission, LW-262).</summary>
     public void Clear() { _sites.Clear(); _keys.Clear(); _strikes.Clear(); ResetAdmission(); }
 
-    /// <summary>Paint the given sites. Returns the number of writes issued. Byte-identical
-    /// signature preserved (LW-257): delegates to the verdict-taking overload with null, which
-    /// is a pure no-op ledger skip, so behavior is unchanged for every existing caller/test.</summary>
+    /// <summary>Paints the given sites; returns the number of writes. Delegates to the verdict overload with null.</summary>
     public int Paint(IEnumerable<Site> sites, Func<int, int> killsFor) => Paint(sites, killsFor, null);
 
-    /// <summary>Paint the given sites, additionally recording each one's outcome into
-    /// <paramref name="verdict"/> (null skips the ledger entirely -- no behavior change,
-    /// LW-257 commit 1).</summary>
+    /// <summary>As above, recording each site's outcome into <paramref name="verdict"/>; null skips the ledger.</summary>
     public int Paint(IEnumerable<Site> sites, Func<int, int> killsFor, CardVerdict? verdict)
     {
         int w = 0;
@@ -85,16 +52,10 @@ internal sealed partial class CardSites
         return w;
     }
 
-    /// <summary>Paint all cached sites, evicting those whose anchor verify fails. Returns the
-    /// number of writes issued. Byte-identical signature preserved (LW-257): delegates to the
-    /// verdict-taking overload with null.</summary>
+    /// <summary>Paints all cached sites, evicting those whose anchor verify fails; returns the number of writes. Delegates with a null verdict.</summary>
     public int PaintAll(Func<int, int> killsFor) => PaintAll(killsFor, null);
 
-    /// <summary>PaintAll, additionally recording each site's outcome into <paramref
-    /// name="verdict"/> (null skips the ledger entirely -- no behavior change, LW-257 commit 1).
-    /// Eviction itself is unchanged: still driven by PaintSiteWithResult's PaintResult, not by
-    /// the recorded PaintOutcome (the two are related but not the same axis -- see
-    /// PaintSiteWithResult's own doc).</summary>
+    /// <summary>PaintAll, recording each outcome into <paramref name="verdict"/> (null skips). Eviction follows PaintSiteWithResult's PaintResult, not the recorded PaintOutcome.</summary>
     public int PaintAll(Func<int, int> killsFor, CardVerdict? verdict)
     {
         int writes = 0;
@@ -102,11 +63,10 @@ internal sealed partial class CardSites
         foreach (var site in _sites)
         {
             var r = PaintSiteWithResult(site, killsFor, out var outcome, out var kills);
-            // true only when THIS call removes the site (below); a strike short of the cap is
-            // evicted:false despite an AnchorUnreadable outcome (CardVerdict.Note's own doc).
+            // true only when this call removes the site; a strike short of the cap is evicted:false (CardVerdict.Note).
             bool evicted = r == PaintResult.Evict;
             verdict?.Note(site.Id, site.SlotAddr, outcome, ObservedFor(site.IsKills, outcome, kills), evicted);
-            if (r == PaintResult.Write)  writes++;
+            if (r == PaintResult.Write) writes++;
             else if (evicted) (toEvict ??= new List<Site>()).Add(site);
         }
         if (toEvict != null) EvictList(toEvict);
@@ -117,39 +77,17 @@ internal sealed partial class CardSites
 
     private enum PaintResult { NoWrite, Write, Evict }
 
-    // Add, PruneDeadSites, and EvictList moved to CardSites.Admission.cs (LW-262).
+    // Add, PruneDeadSites, and EvictList moved to CardSites.Admission.cs.
 
-    /// <summary>CardVerdict's numeric field -- KILLS SITES ONLY. AlreadyEqual: the value the slot
-    /// was READ holding, a genuine match (skip-if-equal's own comparison). Wrote: the value just
-    /// HANDED to WriteBytes, not a verified read-back -- IGameMemory.WriteBytes returns void, and
-    /// reading the slot back to confirm would cost a new guarded read this arc's zero-syscall
-    /// budget does not spend. A suffix slot holds a tier word, never a count, so !isKills always
-    /// reports -1 (the same sentinel every refusal path already uses) rather than print a lying
-    /// "to=42" for a slot that never held 42.</summary>
+    /// <summary>CardVerdict's numeric field, kills sites only. AlreadyEqual is the value read; Wrote is the value handed to WriteBytes (void, no read-back, to avoid an extra guarded read).
+    /// Suffix slots hold a tier word, not a count, so they report -1 like the refusal paths.</summary>
     private static int ObservedFor(bool isKills, PaintOutcome outcome, int kills) =>
         isKills && outcome is PaintOutcome.Wrote or PaintOutcome.AlreadyEqual ? kills : -1;
 
-    /// <summary>Paint a single site with eviction signalling, and report WHY via <paramref
-    /// name="outcome"/> (LW-257: every early return used to collapse into an anonymous
-    /// PaintResult.NoWrite or PaintResult.Evict; this names the specific reason without changing
-    /// any of the five early-return conditions themselves). Order is verify -> flavor-sync ->
-    /// slot logic (review pin): the Reliquary repaint-through (SyncFlavorToCurrent) runs right
-    /// after a successful verify, BEFORE any of the slot-write early returns below, so a
-    /// skip-if-equal or invalid-digit NoWrite on the count slot can never suppress it.
-    ///
-    /// Eviction is no longer "any anchor failure": VerifyAnchor's tri-state feeds ApplyStrike's
-    /// leniency policy (CardSites.Verify.cs) -- a Mismatch still evicts on its first occurrence
-    /// (LW-163's contract, unweakened), but an Unreadable read now only evicts once it has
-    /// recurred Tuning.CardEvictStrikes times in a row, so a single transient miss can no longer
-    /// delete a live site (the bug this arc fixes, formerly this method's own first line: `if
-    /// (!AnchorIsLive(s)) return PaintResult.Evict;`).
-    ///
-    /// <paramref name="kills"/> (round-3 review nit): the SAME killsFor(s.Id) result every caller
-    /// needs for ObservedFor, threaded out instead of re-invoked -- calling it twice per site cost
-    /// nothing on the memory budget (killsFor is a plain dictionary lookup, never a guarded read)
-    /// but was still a pointless duplicate call the caller can avoid for free. Left at its default
-    /// (0) on every anchor-failure early return below; harmless, since ObservedFor's own outcome
-    /// gate (Wrote/AlreadyEqual only) never reads it for those outcomes regardless.</summary>
+    /// <summary>Paints one site with eviction signalling and reports the reason via <paramref name="outcome"/>.
+    /// Order is verify, flavor-sync (SyncFlavorToCurrent), then slot logic, so a skip-if-equal on the count slot cannot suppress the Reliquary repaint-through.
+    /// VerifyAnchor's tri-state feeds ApplyStrike (CardSites.Verify.cs): Mismatch evicts at once, Unreadable only after Tuning.CardEvictStrikes in a row.
+    /// <paramref name="kills"/> is the killsFor(s.Id) result threaded out for ObservedFor; it stays 0 on anchor-failure returns, which ObservedFor ignores.</summary>
     private PaintResult PaintSiteWithResult(Site s, Func<int, int> killsFor, out PaintOutcome outcome, out int kills)
     {
         kills = 0;
@@ -159,7 +97,7 @@ internal sealed partial class CardSites
             outcome = anchor == AnchorState.Mismatch ? PaintOutcome.AnchorMismatch : PaintOutcome.AnchorUnreadable;
             return ApplyStrike(s, anchor) ? PaintResult.Evict : PaintResult.NoWrite;
         }
-        ApplyStrike(s, AnchorState.Live);   // resets any accrued strikes; return value always false here
+        ApplyStrike(s, AnchorState.Live);   // resets strikes; returns false
 
         if (s.IsKills && _anchors != null) SyncFlavorToCurrent(s);
 
@@ -184,7 +122,7 @@ internal sealed partial class CardSites
         }
         else
         {
-            // Slots(enc) returns the list CardPatterns built once at ctor -- no copy per call.
+            // Slots(enc) is built once in the CardPatterns ctor.
             if (!ByteScan.MatchesAny(cur, 0, _pats.Slots(s.Enc), desired.Length))
             {
                 outcome = PaintOutcome.SlotShapeRefused;
@@ -204,21 +142,9 @@ internal sealed partial class CardSites
     private bool PaintSite(Site s, Func<int, int> killsFor, CardVerdict? verdict)
     {
         var r = PaintSiteWithResult(s, killsFor, out var outcome, out var kills);
-        // Paint() (OnChunk's freshly-discovered sites) never evicts -- only PaintAll does --
-        // so evicted is always false here (CardVerdict.Note's own doc).
-        //
-        // LW-259 doc pass: this is deliberate, not an oversight. PaintSiteWithResult can still
-        // return PaintResult.Evict from THIS call path (a freshly-discovered site can mismatch on
-        // its very first paint just like any cached one -- a Mismatch evicts on its first
-        // occurrence, no leniency, LW-163's contract -- but cannot strike OUT on that first paint:
-        // strikes start at zero, so one paint accrues at most strike 1 of Tuning.CardEvictStrikes)
-        // -- Paint() simply never acts on that verdict by removing the site here, unlike PaintAll's
-        // own toEvict/EvictList pass above. A strike still accrues (ApplyStrike already ran inside
-        // PaintSiteWithResult), it just never crosses into an actual eviction from THIS call
-        // site; only a later PaintAll pass over the (by-then-cached) site can finish the job.
-        // Consistent with PaintAll's own policy, not a second one: the two entry points share one
-        // state machine (PaintSiteWithResult) and one strike ledger, and only differ in whether
-        // the CALLER acts on an Evict result.
+        // Paint() never evicts (only PaintAll does), so evicted is always false here (CardVerdict.Note).
+        // PaintSiteWithResult can return Evict on this path (a Mismatch evicts on first sight, LW-163), but Paint() ignores it;
+        // ApplyStrike already ran, and a later PaintAll over the cached site finishes the eviction.
         verdict?.Note(s.Id, s.SlotAddr, outcome, ObservedFor(s.IsKills, outcome, kills), evicted: false);
         return r == PaintResult.Write;
     }

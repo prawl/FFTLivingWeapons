@@ -4,27 +4,16 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// The stateful turn-edge heal-pulse core that Renewal rides. Extracted in LW-153, when Dragon
-/// Rod's Wyrmblood splash was Renewal's twin (~85 token-identical hand-synced lines; a
-/// name-normalized diff left only the differences that now ride in <see cref="Config"/> --
-/// weapon id, which meta knob is the radius, the per-unit heal amount, the range metric, and
-/// the narration strings, which are behavior (the evidence chain) and stay byte-identical per
-/// weapon). Wyrmblood was deleted as dormant in LW-159, leaving Renewal.cs the one thin config
-/// over this core; the core KEEPS the module shape so a future turn-edge healing signature is
-/// one Config away, not a re-fold. Renewal.Policy.cs keeps the pure per-module rules the tests
-/// drive directly.
-///
-/// The behavior, unchanged since the fold: at each of the +3 wielder's COMPLETED-turn
-/// edges (TurnTracker's rising-Acted edge, adjacency measured from the post-move tile), heal
-/// the wielder and every ALLY in range for the config's amount of their OWN max HP, clamped at
-/// full. Allies only, positively identified against the static-array PLAYER slots; the dead
-/// are never healed (BandHeal.NewHp leaves hp 0 alone); each fingerprint heals once per pulse
-/// (band twins). Console gets ONE aggregated summary per pulse; per-ally detail is file-only.
+/// Turn-edge heal-pulse core that Renewal rides, extracted in LW-153 when Dragon Rod's Wyrmblood
+/// splash (deleted in LW-159) was its twin. Per-signature differences live in <see cref="Config"/>.
+/// At each completed-turn edge of the +3 wielder, heals the wielder and every ally in range for a
+/// fraction of their own max HP, clamped at full. Dead units are skipped and each fingerprint heals
+/// once per pulse (band twins). One console summary per pulse; per-ally detail is file-only.
+/// Pure rules are in Renewal.Policy.cs.
 /// </summary>
 internal sealed class HealPulse
 {
-    /// <summary>The per-signature differences; everything absent from here is shared by
-    /// construction. Renewal is the sole rider today (see the class doc).</summary>
+    /// <summary>Per-signature differences; Renewal is the only user today.</summary>
     internal sealed class Config
     {
         public int WeaponId;
@@ -61,10 +50,8 @@ internal sealed class HealPulse
         _slog = ModLogger.For(LogVerb.Signature, () => Wielder.AnyDeployedMainHand(_mem, _cfg.WeaponId));
     }
 
-    /// <summary>The wielder's turn edge: a PRIMED TurnTracker count climbed. -1 = unprimed
-    /// (first sight after a reset or a re-equip baselines silently). A count that DROPPED
-    /// (tracker reset under us) re-baselines instead of pulsing. THE rule; Renewal.Policy's
-    /// IsTurnEdge static delegates here (the pre-fold twins carried verbatim copies).</summary>
+    /// <summary>The wielder's turn edge, a primed TurnTracker count that climbed (-1 = unprimed, baselines silently).
+    /// A dropped count re-baselines instead of pulsing. Renewal.Policy's IsTurnEdge delegates here.</summary>
     public static bool IsTurnEdge(int lastTurns, int turns) => lastTurns >= 0 && turns > lastTurns;
 
     public void ResetBattle()
@@ -84,11 +71,8 @@ internal sealed class HealPulse
             _slog.Info(active ? _cfg.ActiveLine : _cfg.InactiveLine);
         if (!active) { _lastTurns = -1; return; }   // re-baseline on re-equip (no stale-diff pulse)
 
-        // LW-252 stage 5: query keyed by this wielder's own roster nameId, resolved off the SAME
-        // main-hand row TryResolveMainHand just matched -- Wielder.RosterNameId's -1 (capture
-        // failed/ambiguous) falls through to the fp lane exactly like 0 (unseeded) does, so no
-        // extra clamping is needed. Query key and credit key must come from the same
-        // TurnTracker/WielderKeyedStore law, or the ramp-edge detection below desyncs.
+        // LW-252 stage 5, query keyed by the wielder's roster nameId from the main-hand row TryResolveMainHand matched.
+        // A -1 nameId falls through to the fp lane like 0 does. Query and credit keys must share the TurnTracker/WielderKeyedStore law.
         int nameId = Wielder.RosterNameId(_mem, _cfg.WeaponId, fp);
         int turns = _turns.Turns(nameId, fp.lvl, fp.br, fp.fa);
         bool edge = IsTurnEdge(_lastTurns, turns);
@@ -100,11 +84,8 @@ internal sealed class HealPulse
         Pulse(_mem.U8(w + Offsets.AGx), _mem.U8(w + Offsets.AGy), _cfg.Radius(m.Signature));
     }
 
-    /// <summary>One pulse: heal every live ALLY band entry within the radius (the wielder is
-    /// its own ally at distance 0) by the config's amount of its OWN maxHp, once per
-    /// fingerprint. Console gets ONE aggregated summary per pulse; the per-ally tile/HP detail
-    /// is file-only (the old one-Info-line-per-ally shape ate the console ceiling every
-    /// wielder turn).</summary>
+    /// <summary>One pulse that heals every live ally in radius (the wielder counts at distance 0) by the config's
+    /// amount of its own maxHp, once per fingerprint. One console summary; per-ally detail is file-only.</summary>
     internal void Pulse(int wgx, int wgy, int radius)
     {
         var allies = Band.AllyFingerprints(_mem);

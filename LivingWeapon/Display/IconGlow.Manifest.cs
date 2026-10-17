@@ -5,11 +5,8 @@ using System.IO;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-381 (R14, 200-line split): IconGlow.cs is the tick-facing lifecycle (schedule the diff,
-/// schedule the apply, schedule a hide-only retry); this file is the OTHER real seam that lived
-/// in it -- loading and validating glow_icons/manifest.json once, on first tick, and never again.
-/// Manifest load and the tick loop change for entirely different reasons (a new bake vs. a new
-/// kill), so splitting them here is a real seam, not line-count evasion.
+/// LW-381 (R14, 200-line split). Loads and validates glow_icons/manifest.json once, on the first
+/// tick. Split from IconGlow.cs because a new bake and a new kill change it for different reasons.
 /// </summary>
 internal sealed partial class IconGlow
 {
@@ -49,13 +46,9 @@ internal sealed partial class IconGlow
         ModLogger.Warn(LogVerb.Display, $"IconGlow standing down: {reason}. Weapon icons will not glow this launch (data-only failure, never a crash).");
     }
 
-    /// <summary>FIX 5's tripwire: the base-backup store flattens every entry to just its base
-    /// tex FILENAME (FileIconGlowStore.BackupPath uses Path.GetFileName, ignoring the rest of
-    /// BaseRel), so two DIFFERENT ids whose baked BaseRel resolves to the same filename would
-    /// silently cross-wire each other's pristine-base snapshots. Zero collisions exist in the
-    /// real 242-entry manifest today; this guards a future bake rename from ever reaching the
-    /// store. Marks every id in a colliding group unmanaged, once, with one warn naming the
-    /// filename and every id it collided under -- never a per-icon repeat.</summary>
+    /// <summary>FIX 5 tripwire for two ids whose BaseRel resolves to the same filename, since
+    /// FileIconGlowStore.BackupPath keeps only Path.GetFileName and would cross-wire their base backups.
+    /// None collide in the 242-entry manifest today. Marks each colliding id unmanaged with one warn.</summary>
     private void RejectBasenameCollisions(List<IconGlowEntry> kept)
     {
         var idsByFilename = new Dictionary<string, List<int>>(StringComparer.OrdinalIgnoreCase);

@@ -3,14 +3,10 @@ using System;
 namespace LivingWeapon;
 
 /// <summary>
-/// Static logging facade -- ported from FFTColorCustomizer's ModLogger (Utilities/ModLogger.cs).
-/// Every call site in the runtime logs through here (ModLogger.Event/.Warn/.Error/.Debug, or a
-/// <see cref="ScopedLogger"/> from <see cref="For"/>),
-/// never against <see cref="ILogger"/> or a concrete logger directly. <see cref="Instance"/> is the
-/// test seam: <see cref="Reset"/>/<see cref="UseNullLogger"/> swap it, mirroring the injected-sink
-/// pattern the rest of the runtime already uses (KillTracker/BattleLog). Production defaults lazily
-/// to a <see cref="FileConsoleLogger"/> rooted at the modDir last passed to <see cref="Init"/>
-/// (mirrors the old Log.Init timing -- called once from Mod.cs before anything else logs).
+/// Static logging facade, ported from FFTColorCustomizer's ModLogger (Utilities/ModLogger.cs).
+/// Runtime code logs through here or through a <see cref="ScopedLogger"/> from <see cref="For"/>.
+/// <see cref="Instance"/> is the test seam (<see cref="Reset"/>, <see cref="UseNullLogger"/>). By default
+/// it lazily builds a <see cref="FileConsoleLogger"/> in the modDir given to <see cref="Init"/>.
 /// </summary>
 internal static class ModLogger
 {
@@ -18,15 +14,13 @@ internal static class ModLogger
     private static readonly object _lock = new();
     private static string? _modDir;
 
-    /// <summary>Called once from Mod.cs, before any other logging, so the lazily-created default
-    /// logger rotates/writes livingweapon.log in the right place.</summary>
+    /// <summary>Called once from Mod.cs before any other logging, so livingweapon.log lands in the right place.</summary>
     public static void Init(string modDir)
     {
         lock (_lock) { _modDir = modDir; _logger = null; }
     }
 
-    /// <summary>The active logger. Lazily creates the production <see cref="FileConsoleLogger"/>
-    /// on first use if nothing was injected/initialized yet.</summary>
+    /// <summary>The active logger; creates the production <see cref="FileConsoleLogger"/> on first use.</summary>
     public static ILogger Instance
     {
         get
@@ -39,18 +33,15 @@ internal static class ModLogger
         set { lock (_lock) { _logger = value; } }
     }
 
-    /// <summary>Console volume threshold passthrough -- see FileConsoleLogger's two-sink doc.</summary>
+    /// <summary>Console volume threshold; see FileConsoleLogger's two-sink doc.</summary>
     public static LogLevel LogLevel
     {
         get => Instance.LogLevel;
         set => Instance.LogLevel = value;
     }
 
-    // --- Typed facade. Every module logs through these: a LogVerb names the closed event-verb
-    // glossary (docs/LOGGING.md). The FILE line always carries "[verb] "; the CONSOLE line drops
-    // it at Info tier only (subject-first match-report prose) and keeps it at Warning/Error tier
-    // (bug-report triage); see FileConsoleLogger's class doc for the exact rendering split.
-    // Debug is file-only by default. ---
+    // Typed facade over the verb glossary in docs/LOGGING.md. The file line always carries "[verb] ";
+    // the console drops it at Info and keeps it at Warning/Error (see FileConsoleLogger). Debug is file-only by default.
 
     public static void Event(LogVerb verb, string message) => Instance.Log(verb, message);
     public static void Warn(LogVerb verb, string message) => Instance.LogWarning(verb, message);
@@ -58,30 +49,26 @@ internal static class ModLogger
     public static void Error(LogVerb verb, string message, Exception exception) => Instance.LogError(verb, message, exception);
     public static void Debug(LogVerb verb, string message) => Instance.LogDebug(verb, message);
 
-    /// <summary>The two-line id pattern (conflict C2): "numeric ids only in parens and only in
-    /// file lines" vs. one Write() call reaching both sinks. An Info console line free of ids,
-    /// paired with a [trace] Debug companion carrying the parenthesized ids/hex/offsets. Zero
-    /// logger-core changes: just two facade calls issued together.</summary>
+    /// <summary>Conflict C2 in the logging ledger. An id-free Info console line plus a [trace] Debug line
+    /// carrying the ids, hex and offsets, so the ids reach only the file sink.</summary>
     public static void EventWithTrace(LogVerb verb, string message, string traceDetail)
     {
         Event(verb, message);
         Debug(LogVerb.Trace, traceDetail);
     }
 
-    /// <summary>Same two-line id pattern, Warning-tier console line.</summary>
+    /// <summary>Same pairing, with a Warning-tier console line.</summary>
     public static void WarnWithTrace(LogVerb verb, string message, string traceDetail)
     {
         Warn(verb, message);
         Debug(LogVerb.Trace, traceDetail);
     }
 
-    /// <summary>A logger scoped to one verb and one "is this module armed this battle" predicate
-    /// (e.g. <c>Wielder.AnyDeployedMainHand(_mem, GalewindId)</c>). Implements every audited
-    /// GATE-ON-ARMED disposition structurally: see <see cref="ScopedLogger"/>.</summary>
+    /// <summary>A logger scoped to one verb and an "armed this battle" predicate, e.g.
+    /// <c>Wielder.AnyDeployedMainHand(_mem, GalewindId)</c>. See <see cref="ScopedLogger"/>.</summary>
     public static ScopedLogger For(LogVerb verb, Func<bool> armed) => new(verb, armed);
 
-    /// <summary>Console-only per-battle dedup reset (conflict C1): Engine calls this on both
-    /// the battle-enter and battle-exit edges. The file sink is never affected.</summary>
+    /// <summary>Resets the console-only per-battle dedup (conflict C1). Engine calls it on battle enter and exit.</summary>
     public static void NoteBattleEdge() => Instance.NoteBattleEdge();
 
     /// <summary>Test-only: drop the current logger so the next call re-creates the default.</summary>

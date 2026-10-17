@@ -3,25 +3,17 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// Rod of Faith's "Rapture" signature: when the +3 wielder's HP drops strictly below
-/// RaptureHpPct (30%) of max, Master Teleportation (Tuning.RaptureMoveId) is written and HELD
-/// in their movement-ability field (band +0x80 == combat +0x9C) UNTIL THEY RECOVER -- then the
-/// PREVIOUS movement bytes restore. The save-once/hold/restore discipline is Maim's; the HP
-/// gate is ConditionMet's integer math (Rapture.Policy.cs). The original 3-turn cap is retired:
-/// its clock never ticked live (both TurnTracker attribution and the band-CT read failed the
-/// live test, 2026-06-10), while the recovery release was player-verified the same day --
-/// "active while desperate" is the design now, and it needs no clock at all.
+/// Rod of Faith's Rapture signature. When the +3 wielder's HP drops below RaptureHpPct (30%) of
+/// max, Master Teleportation (Tuning.RaptureMoveId) is written into the movement-ability field
+/// (band +0x80, combat +0x9C) and held until they recover, then the previous movement bytes are
+/// restored. Save/hold/restore follows Maim; the HP gate is in Rapture.Policy.cs. The 3-turn cap
+/// was retired because its clock never ticked live (2026-06-10).
 ///
-/// Releases that restore the player's movement: HP recovery to/above the threshold (the
-/// emergency is over -- the next drop below it arms a fresh window), unequip / tier loss /
-/// wielder ambiguity (grant verification), wielder death (3-tick streak), and battle exit.
-/// An unlocated entry holds at the last known copy, SameUnit-guarded. Guarded writes only.
+/// Releases: HP recovery, unequip / tier loss / wielder ambiguity, wielder death (3-tick streak),
+/// and battle exit. An unlocated entry holds at the last known copy.
 ///
-/// NOTE: Rapture.Tick is intentionally gated to onField ticks for its arm/recovery logic --
-/// HP changes that trigger arm or release occur during active battlefield turns (battleMode
-/// 2/3/4), not during the player's own command menus (battleMode 1/5). This is the deliberate
-/// asymmetry with SpiritualFont, whose CT observation MUST span menu-time (inLive) because
-/// the wielder's own CT high phase sits under battleMode 1/5 while the player selects actions.
+/// Tick only runs the arm/recovery logic on onField ticks, since the HP changes that matter land
+/// during battleMode 2/3/4. SpiritualFont differs because its CT window sits under battleMode 1/5.
 /// </summary>
 internal sealed partial class Rapture : ISignature
 {
@@ -39,8 +31,7 @@ internal sealed partial class Rapture : ISignature
     private bool _wasActive;
     private int _deadStreak;
 
-    // The TurnTracker parameter is retained for wiring stability (Engine constructs every
-    // subsystem identically) but deliberately unused: the expiry clock is the wielder's own CT.
+    // The TurnTracker parameter is kept so Engine constructs every subsystem the same way; it is unused.
     public Rapture(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, TurnTracker turns, IGameMemory? mem = null)
     {
         _mem = mem ?? new LiveMemory();
@@ -106,17 +97,16 @@ internal sealed partial class Rapture : ISignature
         int maxHp = _mem.U16(e + Offsets.AMaxHp);
         if (!ShouldArm(hp, maxHp, Tuning.RaptureHpPct)) return;
 
-        // The saved bytes are the player's own movement pick; the grant image carries ONLY the
-        // teleport bit (no other movement-bit writer exists -- Spiritual Font restores HP/MP via
-        // runtime writes now, never the movement field).
+        // The grant image carries only the teleport bit, so the saved bytes are the player's own
+        // movement pick. No other movement-bit writer exists (Spiritual Font writes HP/MP at runtime).
         byte[]? saved = ReadField(_mem, e);
         byte[]? grant = FieldFor(Tuning.RaptureMoveId);
         if (saved is null || grant is null) return;
         _state.Arm(e, saved, baselineTurns: 0, fp, grant);
         _deadStreak = 0;
         WriteField(_mem, e, grant);
-        // Once-per-window read-back: 243 is proven live (player teleported, 2026-06-10); SET/MISS
-        // still logged as a sanity signal (if MISS, flip Tuning.RaptureMoveId to 242).
+        // Once-per-window read-back; 243 teleported the player (2026-06-10). If MISS, flip
+        // Tuning.RaptureMoveId to 242.
         string readback = ReadBackSet(_mem, e, Tuning.RaptureMoveId) ? "SET" : "MISS";
         ModLogger.EventWithTrace(LogVerb.Signature,
             $"The wielder dropped below thirty percent HP ({hp}/{maxHp}); Master Teleportation is theirs until they recover.",
@@ -125,20 +115,17 @@ internal sealed partial class Rapture : ISignature
             ModLogger.Warn(LogVerb.Signature, "The teleportation write did not stick; the wielder's movement may be unchanged.");
     }
 
-    /// <summary>Re-write the armed grant image at the last located entry (beats engine
-    /// re-assertion). SameUnit-guarded (Maim.Drive's discipline): band slots are fixed addresses
-    /// and units migrate, so a mismatch skips the write -- the turn-expiry clock keeps counting.
-    /// NOTE: Locate's identical-twin tie-break (units standing on tile (0,0), fix 2026-06-10)
-    /// is sufficient here -- save/hold/restore is single-address by design.</summary>
+    /// <summary>Re-write the armed grant image at the last located entry. SameUnit-guarded (as in
+    /// Maim.Drive) because band slots are fixed addresses and units migrate. Locate's twin
+    /// tie-break (fix 2026-06-10) is enough for this single-address hold.</summary>
     private void Hold()
     {
         if (_state.Addr == 0 || !SameUnit(_mem, _state.Addr, _state.Fp)) return;
         if (_state.GrantField is { } grant) WriteField(_mem, _state.Addr, grant);
     }
 
-    /// <summary>Write the saved movement bytes back and close the window. SameUnit-guarded: if a
-    /// stranger now occupies the held address, its movement field is left alone (the wielder's
-    /// own bytes re-assert from the fresh per-battle struct rebuild).</summary>
+    /// <summary>Write the saved movement bytes back and close the window. SameUnit-guarded: a
+    /// stranger at the held address keeps its own movement field.</summary>
     private void Restore(string why)
     {
         bool same = _state.Addr != 0 && SameUnit(_mem, _state.Addr, _state.Fp);

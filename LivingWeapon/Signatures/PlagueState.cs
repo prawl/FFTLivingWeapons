@@ -2,13 +2,9 @@ using System.Collections.Generic;
 
 namespace LivingWeapon;
 
-/// <summary>Per-victim tracking for the Plague latch: band address (primary key), fingerprint
-/// (validity check), last-seen CT, and addr-based operations for independent per-slot state.
-/// Multiple enemies can be poisoned simultaneously (e.g. AoE wielder). The addr key prevents
-/// two same-fingerprint units from cross-clobbering each other's CT tracking.
-/// Split out of Plague.Policy.cs (LW-92): a separately-nameable, separately-tested type, not a
-/// fabricated seam (the pure Plague.* policy statics that stayed behind have no relation to
-/// this class's mutable per-victim state).</summary>
+/// <summary>Per-victim tracking for the Plague latch, keyed by band address with a fingerprint
+/// for validity and the last-seen CT. The address key keeps two same-fingerprint victims from
+/// clobbering each other's CT. Split out of Plague.Policy.cs.</summary>
 internal sealed class PlagueState
 {
     private readonly Dictionary<long, PlagueEntry> _held = new();
@@ -22,9 +18,8 @@ internal sealed class PlagueState
     public (int mhp, int lvl, int br, int fa) FpAt(long addr)
         => _held.TryGetValue(addr, out var e) ? e.Fp : default;
 
-    /// <summary>Latch a newly poisoned victim at the given band-slot address.
-    /// No-ops if the address is already held. Seeds LastCt with the victim's current CT
-    /// to prevent a phantom augment on the first tick.</summary>
+    /// <summary>Latch a newly poisoned victim. No-ops if already held. LastCt is seeded with the
+    /// victim's current CT to avoid a phantom augment on the first tick.</summary>
     public void Latch(long addr, (int mhp, int lvl, int br, int fa) fp, int seedCt = 0)
     {
         if (_held.ContainsKey(addr)) return;
@@ -41,10 +36,9 @@ internal sealed class PlagueState
         if (_held.TryGetValue(addr, out var e)) _held[addr] = e with { LastCt = ct };
     }
 
-    /// <summary>Re-anchor the fingerprint stored for a held address to newly observed values
-    /// (a mid-battle level-up accepted by Plague.SameVictim), preserving the CT tracking state.
-    /// No-ops if the address is not held. Keeps the drift budget from accumulating across
-    /// repeated level-ups (LW-92): each accepted step re-baselines instead of stacking.</summary>
+    /// <summary>Re-anchor a held address's fingerprint after a level-up accepted by
+    /// Plague.SameVictim, keeping the CT state. No-ops if not held. Re-baselining each step
+    /// stops drift stacking across level-ups.</summary>
     public void RelatchFp(long addr, (int mhp, int lvl, int br, int fa) fp)
     {
         if (_held.TryGetValue(addr, out var e)) _held[addr] = e with { Fp = fp };

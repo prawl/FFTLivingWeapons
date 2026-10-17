@@ -3,11 +3,9 @@ using Newtonsoft.Json;
 
 namespace LivingWeapon;
 
-/// <summary>LW-295 cycle B: the pinned bake/runtime manifest schema (schemaVersion 1). One row
-/// per (weapon id, surface) -- both the 48px "small" row icon and the 100px "card" icon get their
-/// own row. Parsed with Newtonsoft (WeaponMeta.cs's own precedent). Field names are verbatim
-/// against tools/bake_glow_icons.py's writer; the two halves cannot drift because both implement
-/// to this same shape.</summary>
+/// <summary>LW-295 cycle B bake/runtime manifest (schemaVersion 1). One row per (weapon id,
+/// surface), for both the 48px "small" and 100px "card" icons. Field names match
+/// tools/bake_glow_icons.py's writer.</summary>
 internal sealed class IconGlowManifest
 {
     [JsonProperty("schemaVersion")] public int SchemaVersion { get; set; }
@@ -15,9 +13,8 @@ internal sealed class IconGlowManifest
     [JsonProperty("icons")] public List<IconGlowEntry> Icons { get; set; } = new();
 }
 
-/// <summary>One managed icon: the weapon id, which surface (card/small), where its deployed
-/// vanilla-shape base tex lives (relative to modDir/FFTIVC), and the three glow variants keyed by
-/// tier "1".."3" (tier 0 always means the plain base art -- there is no "0" variant file).</summary>
+/// <summary>One managed icon. Tier "1".."3" variants only; tier 0 is the plain base, with no "0" file.
+/// <c>BaseRel</c> is relative to modDir/FFTIVC.</summary>
 internal sealed class IconGlowEntry
 {
     [JsonProperty("id")] public int Id { get; set; }
@@ -29,59 +26,40 @@ internal sealed class IconGlowEntry
     [JsonProperty("variantSha1s")] public Dictionary<string, string> VariantSha1s { get; set; } = new();
 }
 
-/// <summary>Every file/byte access IconGlow needs, as one seam -- so the whole subsystem is
-/// testable with an in-memory fake and the production side is free to fail file-system-shaped
-/// ways (missing folder, share violation, a locked file) without ever throwing across this
-/// boundary. NO Mem/IGameMemory involvement anywhere: this is plain file I/O against the mod
-/// folder (and, for <see cref="PatchPacBatch"/>, the game's own data folder), so nothing here can
-/// raise an access violation.
-///
-/// The runtime reads and writes the DEPLOYED loose tex directly (modDir/FFTIVC/&lt;baseRel&gt;)
-/// -- the same files the launch merge re-reads next boot -- plus a pristine-base snapshot store
-/// (glow_icons/base_backup/) so a weapon that returns to tier 0 has something plain to restore,
-/// since glow_icons/ ships only the tier 1..3 variants and the deployed base gets overwritten in
-/// place. modded.pac IS back in this contract (LW-381, 2026-09-01): ledger row
-/// [live-icon-repaint] proved, owner-witnessed, that an in-place same-length pac overwrite lands
-/// live and an already-drawn icon refreshes on the next list redraw, so the loose-tex write below
-/// is now paired with a same-session pac write -- see IconGlow.Apply.cs's class remarks.</summary>
+/// <summary>File and byte access for IconGlow, as a seam so tests can fake it. Plain file I/O, no
+/// Mem/IGameMemory. Implementations return null/false on failure instead of throwing.
+/// Reads and writes the deployed loose tex (modDir/FFTIVC/&lt;baseRel&gt;), with a pristine snapshot
+/// in glow_icons/base_backup/ for tier 0 restores, since glow_icons/ ships only tier 1..3.
+/// Since LW-381 (2026-09-01) the loose-tex write is paired with a same-session modded.pac write
+/// (ledger [live-icon-repaint]); see IconGlow.Apply.cs.</summary>
 internal interface IIconGlowStore
 {
-    /// <summary>Reads and parses glow_icons/manifest.json. Null on anything short of a clean
-    /// parse (missing file, missing folder, malformed JSON, any I/O error) -- the caller treats
-    /// null as "stand down", never distinguishes the reason.</summary>
+    /// <summary>Reads and parses glow_icons/manifest.json. Null on any failure, which the caller treats
+    /// as "stand down".</summary>
     IconGlowManifest? ReadManifest();
 
-    /// <summary>Reads the entry's DEPLOYED loose tex (modDir/FFTIVC/&lt;baseRel&gt;) -- whatever
-    /// bytes are actually sitting there right now, which may legitimately be the plain base OR a
-    /// tier variant this runtime (or an earlier one) already wrote. Null on any failure.</summary>
+    /// <summary>Reads the entry's deployed loose tex (modDir/FFTIVC/&lt;baseRel&gt;). It may hold the
+    /// plain base or a tier variant written earlier. Null on failure.</summary>
     byte[]? ReadDeployedTex(IconGlowEntry entry);
 
-    /// <summary>Reads one tier's (1..3) baked glow variant for the entry. Null on any failure or
-    /// an unknown tier.</summary>
+    /// <summary>Reads one baked glow variant (tier 1..3). Null on failure or unknown tier.</summary>
     byte[]? ReadVariantTex(IconGlowEntry entry, int tier);
 
-    /// <summary>Writes bytes to the entry's DEPLOYED loose tex (modDir/FFTIVC/&lt;baseRel&gt;)
-    /// ATOMICALLY -- a torn write must never be possible, since the launch merge reads these
-    /// bytes back on the next boot. Returns false on any failure instead of throwing.</summary>
+    /// <summary>Atomically writes the entry's deployed loose tex (modDir/FFTIVC/&lt;baseRel&gt;), since the
+    /// launch merge reads it next boot. False on failure.</summary>
     bool WriteDeployedTex(IconGlowEntry entry, byte[] bytes);
 
-    /// <summary>Reads the entry's pristine-base snapshot from glow_icons/base_backup/, if one
-    /// has ever been taken. Null when no snapshot exists yet or on any failure.</summary>
+    /// <summary>Reads the pristine snapshot from glow_icons/base_backup/. Null if none or on failure.</summary>
     byte[]? ReadBaseBackup(IconGlowEntry entry);
 
-    /// <summary>Snapshots the entry's verified-pristine bytes to glow_icons/base_backup/
-    /// ATOMICALLY, before anything else may overwrite the deployed tex. Returns false on any
-    /// failure instead of throwing -- a failed snapshot must refuse the overwrite it would have
-    /// guarded, never silently proceed without one.</summary>
+    /// <summary>Atomically snapshots verified-pristine bytes to glow_icons/base_backup/ before the deployed
+    /// tex is overwritten. False on failure, and the caller must then refuse the overwrite.</summary>
     bool WriteBaseBackup(IconGlowEntry entry, byte[] bytes);
 
-    /// <summary>LW-381 R2-2: mirrors a batch of just-written deployed texes into the running
-    /// game's modded.pac in as close to ONE pass as possible (ledger [live-icon-repaint], PROVEN
-    /// 2026-09-01) -- replaces a round-1 per-surface <c>PatchPac</c> that cost one full pass PER
-    /// icon; a batch re-tier (e.g. tools/glow_bounce.py) is 242 managed entries, and one pass per
-    /// icon over a 65 MB file is the mass case this batching exists for. Returns one result per
-    /// item, keyed by (Id, Surface). Never throws; a non-Patched result is informational only and
-    /// must not fail the apply.</summary>
+    /// <summary>LW-381 R2-2 (ledger [live-icon-repaint], 2026-09-01). Mirrors a batch of written texes into
+    /// the running game's modded.pac in one pass; a per-icon pass over a 65 MB file is too slow when
+    /// tools/glow_bounce.py re-tiers all 242 entries. One result per (Id, Surface). Never throws,
+    /// and a non-Patched result is informational only.</summary>
     IReadOnlyDictionary<(int Id, string Surface), PacPatchResult> PatchPacBatch(
         IReadOnlyList<(IconGlowEntry Entry, byte[] OldBytes, byte[] NewBytes)> items);
 }

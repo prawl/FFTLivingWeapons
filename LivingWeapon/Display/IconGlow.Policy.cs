@@ -2,16 +2,14 @@ using System.Collections.Generic;
 
 namespace LivingWeapon;
 
-/// <summary>LW-295 cycle B (needle machinery retired LW-336): the pure half of the icon-glow
-/// runtime -- no I/O, no Mem, given the same inputs it always answers the same way. Two jobs:
-/// what tier does each weapon WANT (<see cref="DesiredTiers"/>), and which of those differ from
-/// what is currently applied (<see cref="Diff"/>). IconGlow.cs is the stateful half that owns the
-/// manifest and the store; IconGlow.Apply.cs owns the background judge + write.</summary>
+/// <summary>LW-295 cycle B (needle machinery retired LW-336). The pure half of the icon-glow
+/// runtime. Works out the tier each weapon wants (<see cref="DesiredTiers"/>) and which of those
+/// differ from what is applied (<see cref="Diff"/>). IconGlow.cs holds the state and
+/// IconGlow.Apply.cs does the background judge and write.</summary>
 internal static class IconGlowPolicy
 {
-    /// <summary>Every id's current kill-tier per Tuning.TierOf, independent of who (if anyone)
-    /// wields it -- unlike WeaponPalette's battle-sprite glow, the equip icon is a single asset
-    /// per weapon id with no concept of "whose turn it is", so it reflects the shared tally alone.</summary>
+    /// <summary>Current kill tier per Tuning.TierOf for every id. The equip icon is one asset
+    /// per weapon id, so unlike WeaponPalette's battle glow it ignores who wields it.</summary>
     public static Dictionary<int, int> DesiredTiers(Dictionary<int, int> kills, IEnumerable<int> ids)
     {
         var desired = new Dictionary<int, int>();
@@ -19,14 +17,9 @@ internal static class IconGlowPolicy
         return desired;
     }
 
-    /// <summary>Ids whose desired tier differs from what is currently applied. An id absent from
-    /// <paramref name="applied"/> counts as tier 0 only PROVISIONALLY: this runtime has never
-    /// touched it yet, so the diff assumes the guaranteed post-launch floor and lets the first
-    /// background apply's judge (IconGlow.Apply.cs's JudgeId) correct <c>_applied</c> from the
-    /// real deployed tex before any write happens. That judge -- not a "the pac rebuilds every
-    /// launch" assumption -- is what keeps this diff truthful; a deployed tex that already holds
-    /// the desired tier's exact bytes (e.g. a prior session, or a pre-tiered install) gets seeded
-    /// straight to that tier and produces no write at all. Empty when the two already agree.</summary>
+    /// <summary>Ids whose desired tier differs from the applied one. An id missing from
+    /// <paramref name="applied"/> counts as tier 0 until IconGlow.Apply.cs's JudgeId reads the
+    /// deployed tex and corrects <c>_applied</c>, so an already-tiered tex produces no write.</summary>
     public static Dictionary<int, int> Diff(Dictionary<int, int> applied, Dictionary<int, int> desired)
     {
         var changed = new Dictionary<int, int>();

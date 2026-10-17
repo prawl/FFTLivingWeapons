@@ -4,22 +4,14 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-123 arc 2a (rebuilt for LW-127): the runtime half that READS arc 1's mark. Arc 1 (Provoke.cs)
-/// grants the Defender's "Provoke" command, planting an inert receipt (composed +0x45/0x80 and
-/// inflicted +0x1D3/0x80, the blank status id 0) on the targeted enemy -- nothing reads it yet. This
-/// module polls the band for that mark: while up on an enemy, with a tier-3 main-hand Defender bearer
-/// deployed and alive, the hold hides every other player-side unit from the AI so the AI's only
-/// visible target is the bearer. LW-127 replaced the old SLICE/WINDOW pair with one five-branch rule
-/// (D1 revised, ProvokeHold.Policy.ActionFor): hide is the DEFAULT state, and a reveal has to be
-/// earned -- by a player-side seat owning the turn, or by TurnOrder.cs's CT+Speed lookahead showing
-/// the marked enemy is clearly further off than the leading enemy. Gates on the mark bit itself,
-/// never `meta[33].Signature` (arc 2b's data plumbing), so this same code runs whether the mark came
-/// from a real cast or the DEV planter (ProvokeSpike.cs, LWDEV).
-///
-/// Split across three partials, a real seam: this file is the state machine; ProvokeHold.Scan.cs is
-/// every band walk (plus the hide/reveal call into TurnOrder); ProvokeHold.Policy.cs is the pure
-/// decisions plus guarded bit writers, unit-tested directly. See docs/PROVOKE_AC.md for the full
-/// premise ledger.
+/// LW-123 arc 2a (rebuilt for LW-127): reads the mark that Provoke.cs plants (composed +0x45/0x80 and
+/// inflicted +0x1D3/0x80, blank status id 0) on the targeted enemy. While the mark is up and a tier-3
+/// main-hand Defender bearer is deployed and alive, every other player-side unit is hidden from the AI.
+/// Hide is the default; a reveal needs a player-side turn or TurnOrder.cs's CT+Speed lookahead showing
+/// the marked enemy is clearly further off (ProvokeHold.Policy.ActionFor, D1 revised in LW-127). Gates
+/// on the mark bit, not `meta[33].Signature`, so a real cast and the DEV planter (ProvokeSpike.cs,
+/// LWDEV) behave alike. Split: this file is the state machine, .Scan.cs the band walks, .Policy.cs the
+/// pure decisions and guarded bit writers. See docs/PROVOKE_AC.md.
 /// </summary>
 internal sealed partial class ProvokeHold : ISignature
 {
@@ -35,36 +27,26 @@ internal sealed partial class ProvokeHold : ISignature
     private readonly bool _enabled;
     private readonly int _provokeTurns;
     private readonly List<long> _hideScratch = new();
-    /// <summary>Caller-owned scratch for TurnOrder.TryNextEnemyToAct (the NIT fix from the adversarial
-    /// review): TurnOrder stays stateless -- no static mutable buffer, which would be a threading
-    /// hazard since the flight/logging paths run off the engine thread -- so this hold owns the one
-    /// reusable list, mirroring <see cref="_hideScratch"/>.</summary>
+    /// <summary>Scratch list for TurnOrder.TryNextEnemyToAct. TurnOrder keeps no static buffer because
+    /// the flight/logging paths run off the engine thread.</summary>
     private readonly List<(long e, int ct, int speed)> _turnOrderScratch = new();
 
     private HoldState _state;
     private (int nameId, int mhp, int lvl, int br, int fa) _markedId;
-    /// <summary>LW-138: has the marked enemy become the actor by a RISING edge since this hold
-    /// armed? Only then may a falling edge complete a turn. Arming happens during the Provoke cast's
-    /// own resolution, and the engine's actor pointer parks on whatever that cast targeted, so the
-    /// park visible at arm time belongs to the player's action and must never count.</summary>
+    /// <summary>true once the marked enemy became the actor by a rising edge after arming.
+    /// Only then may a falling edge complete a turn, since the actor pointer at arm time is parked
+    /// on the Provoke cast's target.</summary>
     private bool _sawFreshRise;
-    /// <summary>LW-127 round-4 live fix (cast 3): once the hold hides because the marked enemy is
-    /// next to act, or because it is genuinely acting (markedIsActor AND a FRESH rise since arming,
-    /// never the arm-tick's own stale park -- see <see cref="_sawFreshRise"/>), stay hidden
-    /// UNCONDITIONALLY until the marked enemy's turn completes. Closes the CT-payment race: CT is
-    /// paid at turn START, so on the tick the marked enemy's turn opens, TryEta reads its own CT as
-    /// having jumped away from the threshold for a few ticks until the actor pointer swings onto it,
-    /// misreading as "far off" and revealing the party inside the AI's commit window. Set from THIS
-    /// tick's signals but applied starting the FOLLOWING tick's decision (see TickArmed), so a
-    /// genuine why=next/why=actor hide still logs its own real reason the first time; cleared on the
-    /// SAME falling edge that completes a turn (<see cref="_markedTurns"/> increments), and in
-    /// EnterIdle/ResetBattle like every other per-hold field.</summary>
+    /// <summary>LW-127 round-4 (cast 3): once the marked enemy is next to act, or acting after a fresh
+    /// rise (<see cref="_sawFreshRise"/>), stay hidden until its turn completes. CT is paid at turn
+    /// start, so TryEta briefly reads the marked enemy as far off and would reveal the party inside
+    /// the AI's commit window. Set this tick, applied from the next (see TickArmed); cleared when
+    /// <see cref="_markedTurns"/> increments and in EnterIdle.</summary>
     private bool _engaged;
-    /// <summary>The marked enemy's LAST KNOWN tile (criterion 15). Held rather than re-read at
-    /// release time because the two releases that matter most, EnemyGone and EnemyDead, are exactly
-    /// the cases with no readable seat left to read it from.</summary>
+    /// <summary>The marked enemy's last known tile (criterion 15). Kept because EnemyGone and
+    /// EnemyDead leave no readable seat to re-read at release.</summary>
     private (int gx, int gy) _markedTile;
-    private HideAction? _lastAction;   // LW-135: the on-change latch behind LogHideEdge
+    private HideAction? _lastAction;   // the on-change latch behind LogHideEdge
     private bool _wasMarkedActive;
     private int _markedTurns;
     private int _markedMissTicks;
@@ -73,14 +55,10 @@ internal sealed partial class ProvokeHold : ISignature
     private readonly HashSet<(int, int, int, int, int)> _flaggedNow = new();
     private readonly HashSet<(int, int, int, int, int)> _everFlagged = new();
 
-    /// <param name="provokeTurns">Overrides Tuning.ProvokeTurns; null uses the compiled default --
-    /// isolates "still armed after one turn ends" from the release value 1 triggers immediately.</param>
-    /// <param name="enabled">Overrides <see cref="Tuning.ProvokeEnabled"/>, the feature's ship
-    /// switch; null uses the compiled default (true again, re-armed by commit 43de63e). The switch
-    /// gates SHIPPING, not the logic, so the arc 2a behavior must stay covered while the feature
-    /// waits for its live pass: ProvokeHoldTests routes every construction through its own
-    /// Hold(...) factory that passes true, which is what stops the suite going vacuous the moment
-    /// the default flips off again.</param>
+    /// <param name="provokeTurns">Overrides Tuning.ProvokeTurns; null uses the compiled default.</param>
+    /// <param name="enabled">Overrides <see cref="Tuning.ProvokeEnabled"/>, the ship switch (re-armed
+    /// by commit 43de63e); null uses the compiled default. ProvokeHoldTests builds every hold through
+    /// its Hold(...) factory with true so the suite stays meaningful if the default flips off.</param>
     public ProvokeHold(Dictionary<int, int> kills, IGameMemory? mem = null,
         int? provokeTurns = null, bool? enabled = null)
     {
@@ -90,14 +68,12 @@ internal sealed partial class ProvokeHold : ISignature
         _provokeTurns = provokeTurns ?? Tuning.ProvokeTurns;
     }
 
-    /// <summary>Both battle edges (enter + exit): reveal every identity ever flagged (ours only),
-    /// scrub a still-live mark if armed, reset every counter -- AC 12/13. A hard PROCESS kill loses
-    /// this (the flight recorder's "loses the ring" loss mode); protects same-process restarts only.</summary>
+    /// <summary>Both battle edges: reveal every identity ever flagged (ours only), scrub a live mark
+    /// if armed, reset counters (AC 12/13). A hard process kill loses this, so it only covers
+    /// same-process restarts.</summary>
     public void ResetBattle()
     {
-        // Ship switch (LW-133): inert means NO write, and that has to hold on the battle edges too,
-        // not just in Tick -- ResetBattle reveals, scrubs marks and clears state, all writes.
-        // Nothing can have been flagged while disabled, so there is nothing to undo either.
+        // LW-133 ship switch: disabled means no writes, including these edge reveals and scrubs.
         if (!_enabled) return;
         foreach (var id in _everFlagged)
         {
@@ -109,7 +85,7 @@ internal sealed partial class ProvokeHold : ISignature
             long markedEntry = LocateByIdentity(_mem, _markedId);
             if (markedEntry != 0) ClearMark(_mem, markedEntry);
         }
-        ScrubPlayerSideMarks();   // LW-130: a friendly mark stranded right before this edge too
+        ScrubPlayerSideMarks();   // a friendly mark stranded right before this edge too
         EnterIdle();
         _liveElapsed = 0;
         _flaggedNow.Clear();
@@ -118,13 +94,12 @@ internal sealed partial class ProvokeHold : ISignature
 
     public void Tick(DateTime now, bool inLive)
     {
-        // Ship switch (LW-133): before the mark scan and before ScrubPlayerSideMarks, so a disabled
-        // build neither arms nor writes. See Tuning.ProvokeEnabled for why the items.json disarm
-        // alone is not sufficient (this hold gates on the mark bit, not on meta[33].Signature).
+        // LW-133 ship switch, checked before any scan or write. See Tuning.ProvokeEnabled for why the
+        // items.json disarm alone is not enough.
         if (!_enabled) return;
         if (!inLive) return;
 
-        ScrubPlayerSideMarks();   // LW-130: independent of hold state, an ally can be provoked anytime
+        ScrubPlayerSideMarks();   // independent of hold state, an ally can be provoked anytime
 
         long bearerEntry = Wielder.ResolveDeployedMainHand(_mem, Provoke.DefenderId, out _);
         bool bearerPresent = bearerEntry != 0 && Tuning.TierOf(_kills, Provoke.DefenderId) >= 3;
@@ -146,10 +121,8 @@ internal sealed partial class ProvokeHold : ISignature
     {
         _state = HoldState.Armed;
         _markedId = id;
-        // LW-138: seed the edge state with what is TRUE right now, not with false. The cast that
-        // planted the mark has parked the actor pointer on this very enemy, so seeding false would
-        // manufacture a rising edge out of the player's own action; _sawFreshRise then keeps that
-        // park from completing a turn even so.
+        // Seed from current state, since the cast parked the actor pointer on this enemy
+        // and seeding false would fake a rising edge.
         _wasMarkedActive = MarkedIsActor(_mem, id) && !PlayerSideOwnsTurn(_mem);
         _sawFreshRise = false;
         _markedTurns = 0;
@@ -180,19 +153,14 @@ internal sealed partial class ProvokeHold : ISignature
         _lastTick = now;
         bool watchdogElapsed = WatchdogElapsed(_liveElapsed, Tuning.ProvokeWatchdogSeconds);
 
-        // LW-131 (release gate) and LW-135 (hide/reveal) both ask this one question, so it is asked
-        // ONCE per tick and shared: does a player-side seat currently own the engine's per-unit turn
-        // flag (ProvokeHold.Scan.cs)? No cursor field is read anywhere in this module. It is no
-        // longer short-circuited behind the cheaper identity check, because WindowAction below needs
-        // the answer on every armed tick regardless of who the actor is.
+        // LW-131 (release gate) and LW-135 (hide/reveal) share one read per tick: does a player-side
+        // seat own the per-unit turn flag (ProvokeHold.Scan.cs)? Needed every armed tick.
         bool playerTurn = PlayerSideOwnsTurn(_mem);
         bool markedActive = MarkedIsActor(_mem, _markedId) && !playerTurn;
-        // LW-138: a falling edge only completes a turn when the matching RISE happened after this
-        // hold armed. The park that is already underway at arm time is the Provoke cast's own, and
-        // its end is not a turn. Cleared on use so each turn needs its own rise (ProvokeTurns > 1).
+        // A falling edge completes a turn only after a rise since arming; cleared on use so
+        // each turn needs its own rise (ProvokeTurns > 1).
         if (!_wasMarkedActive && markedActive) _sawFreshRise = true;
-        // LW-127 round-4: the SAME falling edge that completes a turn clears the engagement latch --
-        // the turn that engaged it is over, so the next decision starts from a clean slate.
+        // LW-127 round-4: the falling edge that completes a turn also clears the engagement latch.
         if (TurnEnded(_wasMarkedActive, markedActive) && _sawFreshRise) { _markedTurns++; _sawFreshRise = false; _engaged = false; }
         _wasMarkedActive = markedActive;
 
@@ -201,10 +169,8 @@ internal sealed partial class ProvokeHold : ISignature
         if (reason != Release.None) { ReleaseHold(reason, markedEntry); return; }
 
         var look = GatherLookahead(markedEntry);
-        // Decide THIS tick's action using the latch as it stood BEFORE this tick's own signals are
-        // folded in -- a genuine why=next/why=actor hide still logs its own real reason the first
-        // time it fires; the latch only starts overriding the FOLLOWING tick, which is exactly the
-        // window cast 3's tape shows failing (the CT-payment misread lands a tick or more later).
+        // Decide with the latch as it stood before this tick's signals, so why=next/why=actor still
+        // logs its real reason once; the latch overrides from the following tick (the cast 3 window).
         var (action, actionReason) = ActionForWithReason(_engaged, playerTurn, markedActive, look.markedIsNext, look.markedIsFarOff);
         if (look.markedIsNext || (markedActive && _sawFreshRise)) _engaged = true;
 
@@ -219,7 +185,7 @@ internal sealed partial class ProvokeHold : ISignature
         foreach (long e in _hideScratch)
         {
             var id = ReadIdentity(_mem, e);
-            if (HasInvisible(_mem, e) && !_flaggedNow.Contains(id)) continue;   // FeignDeath's -- never touch it
+            if (HasInvisible(_mem, e) && !_flaggedNow.Contains(id)) continue;   // FeignDeath's, leave it
             if (SetInvisible(_mem, e, true)) { _flaggedNow.Add(id); _everFlagged.Add(id); }
             else ModLogger.WarnWithTrace(LogVerb.Signature, "Could not hide a unit for the provoke hold; the guarded write was refused",
                 $"provoke hide refused (nameId {id.nameId})");
@@ -258,23 +224,12 @@ internal sealed partial class ProvokeHold : ISignature
     /// <summary>The tile as both log lines and both flight records print it (criterion 15).</summary>
     private string TileText => $"{_markedTile.gx},{_markedTile.gy}";
 
-    /// <summary>One line per hide/reveal TRANSITION, never per tick (the on-change latch on
-    /// <see cref="_lastAction"/>, preserved). LW-135's evidence gap: the 2026-07-27 live tape could
-    /// say only that 0 units were ever hidden, and nothing anywhere said whether the hold had decided
-    /// to hide and found nobody, or had decided to reveal all along. That ambiguity cost a whole
-    /// battle to resolve, so the decision now leaves a trace.
-    ///
-    /// EXTENDED (BLOCKER-3, adversarial review): the trace used to carry only a unit count, which
-    /// cannot tell "the lookahead never fired" apart from "the lookahead fired but mispredicted" --
-    /// two different bug classes that need different fixes. Now it carries WHICH branch decided
-    /// (<paramref name="d"/>.reason, see ActionForWithReason) and, whenever the lookahead actually
-    /// ran, the leading enemy's ETA, the marked enemy's own ETA, and the next enemy's nameId. When
-    /// the lookahead did NOT fire, the line says so explicitly (`lookahead=fallback`) rather than
-    /// printing zeros that would look like a real (and misleadingly tied) reading. Same reasoning
-    /// applies one level deeper (round-3 review): <paramref name="d"/>.markedEta being null (TryEta
-    /// never attempted or refused, e.g. BLOCKER-1's off-field/hp&gt;maxHp seat) prints `markedEta=?`,
-    /// never `markedEta=0` -- a genuine 0 means "due right now", the opposite situation, and the
-    /// refused-seat path is exactly the rare one that would otherwise read as a real measurement.</summary>
+    /// <summary>Logs one line per hide/reveal transition via the <see cref="_lastAction"/> latch.
+    /// The 2026-07-27 tape could not tell "hid nobody" from "revealed all along". The line
+    /// carries which branch decided (<paramref name="d"/>.reason, see ActionForWithReason) and, if
+    /// the lookahead ran, both ETAs and the next enemy's nameId; otherwise `lookahead=fallback`.
+    /// A null markedEta (TryEta refused, e.g. an off-field or hp&gt;maxHp seat) prints `markedEta=?`
+    /// because a real 0 means due now.</summary>
     private void LogHideEdge((HideAction action, string reason, bool lookaheadFired, int leaderEta,
         int? markedEta, int nextNameId) d)
     {
@@ -287,8 +242,7 @@ internal sealed partial class ProvokeHold : ISignature
         ModLogger.Debug(LogVerb.Signature, d.action == HideAction.Hide
             ? $"provoke hide: {_flaggedNow.Count} unit(s) now hidden from the marked enemy ({evidence})"
             : $"provoke reveal: every unit the hold hid is visible again ({evidence})");
-        // Flight vocabulary stays FROZEN (LW-127 constraint): the EXISTING "provoke" record type,
-        // just a richer payload string, exactly like the arm/release/scrub records beside it.
+        // Flight vocabulary is frozen, so this reuses the "provoke" record type.
         Flight.Record("provoke", $"{(d.action == HideAction.Hide ? "hide" : "reveal")}-edge {evidence}");
     }
 
@@ -297,17 +251,16 @@ internal sealed partial class ProvokeHold : ISignature
         _state = HoldState.Idle;
         _markedId = default;
         _markedTile = default;
-        _unarmableTicks = 0;   // LW-136: never carry a partial run across a release or a battle edge
-        _lastAction = null;    // LW-135: the next hold logs its own first hide/reveal edge
+        _unarmableTicks = 0;   // no partial run across a release or battle edge
+        _lastAction = null;    // the next hold logs its own first hide/reveal edge
         _wasMarkedActive = false;
         _markedTurns = 0;
         _markedMissTicks = 0;
-        _engaged = false;   // LW-127 round-4: never let a stale latch survive into the next arm cycle
+        _engaged = false;   // LW-127 round-4: no stale latch into the next arm
     }
 
-    /// <summary>SEAM (R3, criterion 18): suppress the invisible ICON without the AI-ignore effect.
-    /// NO-OP placeholder -- the flag and its icon are the SAME bit (band +0x47/0x10), so this needs a
-    /// separate lever the Phase 5 icon probe has not identified yet. Called on every hide/reveal
-    /// transition so wiring the real lever later is a one-function change.</summary>
+    /// <summary>Placeholder (R3, criterion 18) for hiding the invisible icon without the AI-ignore
+    /// effect. The flag and icon share one bit (band +0x47/0x10) and the Phase 5 icon probe has not
+    /// found a separate lever. Called on every hide/reveal transition.</summary>
     private void SuppressIcon(bool on, int hiddenCount) { }
 }

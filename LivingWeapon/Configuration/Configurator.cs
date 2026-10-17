@@ -5,18 +5,15 @@ using Reloaded.Mod.Interfaces;
 namespace LivingWeapon.Configuration;
 
 /// <summary>
-/// Reloaded-II configurator for FFT Living Weapons.  Implements IConfiguratorV3 so the
-/// launcher shows a "Configure Mod" button that opens the built-in property grid for
-/// <see cref="Config"/>.  TryRunCustomConfiguration returns false, delegating UI to the
-/// Reloaded property grid (no WinForms dependency needed).
+/// Reloaded-II configurator (IConfiguratorV3) that opens the built-in property grid for <see cref="Config"/>.
 /// </summary>
 public class Configurator : IConfiguratorV3
 {
     private static readonly ConfiguratorMixin _mixin = new();
 
-    public string?              ModFolder   { get; private set; }
-    public string?              ConfigFolder { get; private set; }
-    public ConfiguratorContext  Context      { get; private set; }
+    public string? ModFolder { get; private set; }
+    public string? ConfigFolder { get; private set; }
+    public ConfiguratorContext Context { get; private set; }
 
     public IUpdatableConfigurable[] Configurations => _configurations ?? MakeConfigurations();
     private IUpdatableConfigurable[]? _configurations;
@@ -67,13 +64,10 @@ public class Configurator : IConfiguratorV3
 
     // ── IConfiguratorV1 ───────────────────────────────────────────────────────
 
-    public IConfigurable[]          GetConfigurations()              => Configurations;
-    void IConfiguratorV1.SetModDirectory(string d)                   => ModFolder = d;
+    public IConfigurable[] GetConfigurations() => Configurations;
+    void IConfiguratorV1.SetModDirectory(string d) => ModFolder = d;
 
-    /// <summary>
-    /// Returns false so Reloaded-II uses its built-in property grid.
-    /// No WinForms, no custom UI.
-    /// </summary>
+    /// <summary>Returns false so Reloaded-II uses its built-in property grid.</summary>
     public bool TryRunCustomConfiguration() => false;
 
     public TType GetConfiguration<TType>(int index) where TType : class =>

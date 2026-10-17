@@ -1,13 +1,9 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// SyncHit/SyncHitEnc2's per-copy verify outcome. Split out of AttackCard.Paint.cs so a census
-/// sweep's caller (AttackCard.Census.cs's FindHits) and a live re-verify's caller (AttackCard.Paint.cs's
-/// RepaintAll) can tell WHY a copy was not adopted/kept without either of them logging per-candidate:
-/// a census walks thousands of foreign "Attack" strings a battle, most rejected, none of them a real
-/// eviction (they were never cached). Ok covers every success path, including a transient
-/// not-yet-writable retry (next pass, not a rejection); every other value names a specific reason a
-/// caller should treat the copy as foreign/gone.
+/// SyncHit/SyncHitEnc2's per-copy verify outcome, split out of AttackCard.Paint.cs. Lets FindHits
+/// (AttackCard.Census.cs) and RepaintAll (AttackCard.Paint.cs) see why a copy was not kept without logging each
+/// candidate, since a census walks thousands of foreign "Attack" strings per battle. Ok includes a transient not-yet-writable retry.
 /// </summary>
 internal enum SyncOutcome
 {
@@ -20,8 +16,7 @@ internal enum SyncOutcome
     NonVanillaUtf16,
 }
 
-/// <summary>Short lowercase reason phrase for RepaintAll's single eviction log line. Ok is never
-/// passed here (callers only ask for a phrase when outcome != Ok).</summary>
+/// <summary>Short reason phrase for RepaintAll's eviction log line; never called with Ok.</summary>
 internal static class SyncOutcomeReason
 {
     public static string Phrase(this SyncOutcome outcome) => outcome switch

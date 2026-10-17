@@ -4,67 +4,22 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-346: the WHAT half of the extended inventory (the game knowledge), kept apart from the
-/// lifecycle in ExtendedInventory.cs the way LaunchGuard.Landmarks.cs is kept apart from
-/// LaunchGuard.cs. Every BootSites entry but two is a single-byte id CAP the 1.5.2 build
-/// hardcodes as 261 (0x105) in one encoding or another; each one is widened by the number of
-/// extended ids so the game's own loops, guards and clamps admit them (the two exceptions are a
-/// reserved-id list moved out of the way once; see NOT A CAP). Provenance per site is the FFTHandsFree
-/// boot-arm marker v2 (tools/probes/lw346_capbreak_bootarm.marker.v2.txt, every line
-/// owner-observed on 1.5.2 2026-08-26/27) plus the rig's CapBreakEquipHook/CapBreakDisplayHook
-/// constants; every old byte was re-read from the 1.5.2 exe on disk 2026-08-27.
-///
-/// WIDENING RULE: the rig widened every cap by exactly one (a single new id); this table
-/// generalises to N. A plain immediate/displacement low byte becomes old + N (LW-368 round 2,
-/// P11: eight of these sites are `lea` instructions whose displacement is a single SIGNED byte,
-/// not an imm32, so their own byte overflows past N = <see cref="MaxExtendedCount"/> = 121 --
-/// that bound, not 0xFF, is what actually caps N; <c>ExtendedInventoryData</c> and
-/// tools/generate.py both refuse a shipped table past it). One site differs: the count getter's
-/// cap is widened on its HIGH byte (0x103 -&gt; 0x203, ids up to 515, fixed). (The damage-staging
-/// cap's old <c>xor r15d,0x5E</c> encoding was Denuvo's constant obfuscation; the Denuvo-free
-/// build carries the plain <c>lea r14d,[rbp+6]</c>, a PlusN site like the rest, LW-388.)
-///
-/// ADDRESS SPACE (LW-388): every <see cref="Site.Addr"/> is PIN space, the documented
-/// preferred-base (0x140000000) address. <see cref="Build"/> rebases each one through
-/// <see cref="ImageBase.At"/>, so every <see cref="BytePatch.Addr"/> it hands out is LIVE.
-///
-/// TRAP (LW-351 fix round 3, 2026-08-30): the count getter's entry address 0x140284800 is the
-/// SECOND byte of one immediate, <c>mov r8d,0x103</c> at 0x1402847FD, whose bytes run
-/// 0x1402847FF..0x140284802. Re-reading that instruction on disk shows 0x103 and invites a
-/// second, PlusN entry on the low byte 0x1402847FF; that would widen one immediate twice. The
-/// bag accessor it gates (read/adjust 0x1411A7C00[id]) already admits ids 1..516 with the entry
-/// below: the running game read 41 b8 03 02 00 00 there on 2026-08-30 (read-only RPM, N=2).
-/// ExtendedSitesTests pins both halves.
-///
-/// NOT A CAP (LW-351 fix round 6, 2026-08-30): two sites below are a RESERVED-ITEM EQUALITY
-/// LIST, not a bound. The per-job can-equip check 0x1402886D0 (and an inlined copy of it at
-/// 0x140396F1C) tests the item id against five hardcoded ids before it ever reads the item's
-/// own job class; read from the 1.5.2 exe on disk:
-///   140288709  81 ea 06 01 00 00  sub edx, 0x106   ; id == 262 ?
-///   14028870F  74 48              je special
-///   140288711  83 ea 1a           sub edx, 0x1a    ; == 288 ?
-///   140288716  83 ea 05           sub edx, 5       ; == 293 ?
-///   14028871B  83 ea 08           sub edx, 8       ; == 301 ?
-///   140288720  83 fa 09 / 74 34   cmp edx, 9 ; je  ; == 310 ?
-///   (0x140396F52  81 e9 06 01 00 00  sub ecx, 0x106, then the same four steps)
-/// The special path admits only jobs 0xA1 and 0xA4 (unnamed rows in job.en) and answers -1
-/// ("cannot be equipped by the current job") for every other job. Vanilla never reaches it
-/// (ItemData ends at id 260), but the SECOND extended id is 262, so whichever item sits there
-/// is refused everywhere; the owner's swap experiment (261 and 262 exchanged, redeployed)
-/// showed the refusal following the id, not the item. The fix moves the list, once, out of
-/// the whole extended range: the imm32's second byte 0x01 -&gt; 0x02 makes it {518, 544, 549,
-/// 557, 566}, past EXTENDED_LAST_ID (511, tools/generate.py) and inside the 0x3FF id mask.
-/// The same byte lands for any N: this is a relocation, not a widening, and its entries say so.
+/// The game knowledge behind the extended inventory; the lifecycle is in ExtendedInventory.cs.
+/// Every BootSites entry except the two reserved-list ones is a one-byte id cap the 1.5.2 build
+/// hardcodes as 261 (0x105), widened by the extended-id count N. Provenance is the FFTHandsFree
+/// boot-arm marker v2 (tools/probes/lw346_capbreak_bootarm.marker.v2.txt, observed 2026-08-26/27)
+/// plus the rig's CapBreakEquipHook/CapBreakDisplayHook constants; old bytes re-read from the exe 2026-08-27.
+/// Every <see cref="Site.Addr"/> is PIN space (preferred base 0x140000000); <see cref="Build"/> rebases it
+/// through <see cref="ImageBase.At"/> so each <see cref="BytePatch.Addr"/> is LIVE.
 /// </summary>
 internal static class ExtendedSites
 {
-    /// <summary>How many extended items can exist at once. Plain language: past this many, the
-    /// game breaks in a way that has nothing to do with save slots or menu space -- eight of the
-    /// PlusN sites above are `lea reg,[base+6]` instructions whose displacement is a single
-    /// SIGNED byte (P11), and 6 + 122 = 0x80 flips that byte negative, corrupting the bound
-    /// instead of raising it. 121 is exact (the reviewer's live decode of every PlusN site,
-    /// LW368_plan.md P11); <see cref="ExtendedInventoryData"/> and tools/generate.py both refuse
-    /// a shipped table past it.</summary>
+    /// <summary>How many extended items can exist at once. PlusN sites add N to a plain immediate or
+    /// displacement byte (LW-368 round 2, P11), and eight are `lea reg,[base+6]` with a signed disp8, so
+    /// 6 + 122 = 0x80 flips negative and corrupts the bound. 121 is the reviewer's decode of every PlusN
+    /// site (LW368_plan.md P11); <see cref="ExtendedInventoryData"/> and tools/generate.py refuse a larger table.
+    /// The count getter widens its HIGH byte instead (0x103 -&gt; 0x203, ids up to 515). The damage-staging
+    /// cap's old `xor r15d,0x5E` was Denuvo obfuscation; the Denuvo-free build has plain `lea r14d,[rbp+6]`.</summary>
     public const int MaxExtendedCount = 121;
 
     private enum Widen { PlusN, HighByte, ShopLoop }
@@ -76,20 +31,17 @@ internal static class ExtendedSites
     /// game runs.</summary>
     private static readonly Site[] BootSites =
     {
-        // the imm32 of `mov r8d,0x103` at 0x1402847FD; see the TRAP note above.
+        // Imm32 of `mov r8d,0x103` at 0x1402847FD (bytes 0x1402847FF..0x140284802); this entry is its second byte.
+        // Do not add a PlusN on 0x1402847FF, that would widen the immediate twice (LW-351 fix round 3, 2026-08-30).
+        // The game read 41 b8 03 02 00 00 here (read-only RPM, N=2), so bag accessor 0x1411A7C00[id] admits 1..516.
+        // ExtendedSitesTests pins this.
         new(0x140284800L, 0x01, Widen.HighByte, "count-getter cap (mov r8d,0x103 -> 0x203)"),
-        // LW-351 fix round 2 (2026-08-30, re-disassembled from the 1.5.2 exe on disk): the
-        // builder family at 0x140280000-0x140290000 carries nine imm32 0x105 item-id bounds and
-        // this was the one site LW-346 missed. 0x140284553 `mov edx,0x105` loads the bound the
-        // per-item state initialiser reuses four times: it clears the id-keyed byte arrays at
-        // 0x1411A7C00 and 0x1411A7700 and seeds the id-keyed u16 array at 0x1411A7810. CORRECTED
-        // 2026-08-31 (LW-368 round 2b): the widened tail is NOT safe padding -- a live game state
-        // dword sits at +0x108 of each 0x110-byte byte-array slot (read live 2026-08-31:
-        // 0x1411A7D08 and 0x1411A7808 both carry a `cmp/mov dword` operand elsewhere in the exe,
-        // not zero-fill), so the in-place widening overlapped it from the fourth extended id on (id 264; the dword spans 264-267).
-        // The LW-368 list relocation (ListRelocation.cs) is what actually removes that overlap,
-        // by moving both byte arrays off this block entirely; the u16 array's tail is still
-        // re-zeroed by the memset at 0x1402845E0 that immediately follows it.
+        // LW-351 fix round 2 (2026-08-30): the one of nine imm32 0x105 bounds in the 0x140280000-0x140290000
+        // builder family that LW-346 missed. 0x140284553 `mov edx,0x105` is reused four times by the per-item
+        // state initialiser: it clears the byte arrays at 0x1411A7C00 and 0x1411A7700 and seeds the u16 array at 0x1411A7810.
+        // Corrected 2026-08-31 (LW-368 round 2b): the widened tail overlaps a game state dword at +0x108 of each
+        // 0x110-byte slot (0x1411A7D08 and 0x1411A7808, read 2026-08-31), from id 264 (the dword spans 264-267).
+        // The LW-368 list relocation (ListRelocation.cs) removes the overlap; the u16 tail is re-zeroed by the memset at 0x1402845E0.
         new(0x140284554L, 0x05, Widen.PlusN, "per-item state initialiser bound (mov edx,0x105)"),
         new(0x140284724L, 0x05, Widen.PlusN, "display iteration cap 1"),
         new(0x1402847C9L, 0x05, Widen.PlusN, "display iteration cap 2"),
@@ -109,71 +61,63 @@ internal static class ExtendedSites
         new(0x14028024FL, 0x05, Widen.PlusN, "hand resolver copy 2 (mov r8d,0x105)"),
         new(0x1401ED95BL, 0x04, Widen.PlusN, "attacker validity inline check, right hand (cmp ax,4)"),
         new(0x1401ED982L, 0x04, Widen.PlusN, "attacker validity inline check, left hand (cmp ax,4)"),
-        // LW-354 (2026-08-27 evening, static read): the shop BUY-list builder walks ids 0..0xFF
-        // (cmp ebx,0x100 at 0x140288FD9; this is the imm32's low byte); widened to 0x105 + N so
-        // the extended ids are candidates. Their town flags come from the ShopFlagsMirror.
+        // The shop BUY-list builder walks ids 0..0xFF (cmp ebx,0x100 at
+        // 0x140288FD9; this is the imm32's low byte), widened to 0x105 + N. Town flags come from the ShopFlagsMirror.
         new(0x140288FDBL, 0x00, Widen.ShopLoop, "shop buy-list loop bound (cmp ebx,0x100)"),
-        // LW-351 fix round 6: the reserved-item equality list in the can-equip check and its
-        // inlined twin (see the NOT A CAP note above). Each address is the SECOND byte of the
-        // `sub r32,0x106` imm32 (0x140288709 + 3; 0x140396F52 + 3): 0x106 -> 0x206, so the five
-        // reserved ids {262, 288, 293, 301, 310} become {518, 544, 549, 557, 566}. Relocated
-        // once, never widened by N (HighByte lands 0x02 for every count).
+        // LW-351 fix round 6, 2026-08-30. These two are a reserved-item equality list, not a cap. The per-job
+        // can-equip check 0x1402886D0 and its inlined copy at 0x140396F1C compare the item id against five hardcoded
+        // ids before reading the item's job class (1.5.2 exe on disk):
+        //   140288709  81 ea 06 01 00 00  sub edx, 0x106   ; id == 262 ?
+        //   14028870F  74 48              je special
+        //   140288711  83 ea 1a           sub edx, 0x1a    ; == 288 ?
+        //   140288716  83 ea 05           sub edx, 5       ; == 293 ?
+        //   14028871B  83 ea 08           sub edx, 8       ; == 301 ?
+        //   140288720  83 fa 09 / 74 34   cmp edx, 9 ; je  ; == 310 ?
+        //   (0x140396F52  81 e9 06 01 00 00  sub ecx, 0x106, then the same four steps)
+        // The special path admits only jobs 0xA1 and 0xA4 (unnamed rows in job.en) and answers -1 for every other job.
+        // Vanilla never reaches it (ItemData ends at id 260), but the second extended id is 262, so that item was refused
+        // everywhere; the 261/262 swap test showed the refusal following the id.
+        // Fix: the imm32's second byte (address +3) goes 0x01 -> 0x02, moving the list {262, 288, 293, 301, 310} to
+        // {518, 544, 549, 557, 566}, past EXTENDED_LAST_ID (511, tools/generate.py) and inside the 0x3FF id mask.
+        // A relocation, so the byte is 0x02 for any N.
         new(0x14028870CL, 0x01, Widen.HighByte, "reserved-item equality list, can-equip check (sub edx,0x106 -> 0x206)"),
         new(0x140396F55L, 0x01, Widen.HighByte, "reserved-item equality list, inlined twin (sub ecx,0x106 -> 0x206)"),
-        // LW-351 fix round 8 (2026-08-31, read from the 1.5.2 exe on disk): the owned-item
-        // template maintainer 0x140285F80 (inventory order tables; its second half 0x140286070
-        // serves the picker tables) walks a template to its end before inserting a newly owned
-        // id at the front, and that walk stops at the 0x00FF marker OR at the first word >=
-        // r14w, where r14d comes from `45 8d 77 06` lea r14d,[r15+6] with r15d = 0xFF (0x105).
-        // Three copies exist, all on the same r14/r15 pair: 0x140285F80 (inventory tables),
-        // 0x140286070 (picker tables) and 0x14039684C (round 8b; the same five inventory tables
-        // through its own pointer table 0x140689C38, owned-ness read from a transaction-time
-        // count mirror at 0x143C52740). The sibling walkers (0x140286187, 0x140285EE7) were
-        // widened by LW-346; these three were missed because their bound lives in a different
-        // register pair (r14 from r15) than the swept lea+6 forms, not because disp8 bounds
-        // were unknown (four such entries predate round 8). Unwidened, an extended id inside a
-        // template ends the walk early, with two effects. The insert's shift starts AT the stop
-        // word, so that id survives and crawls one slot right while the word to its RIGHT is
-        // overwritten, and the end marker itself is lost once the crawling id reaches it. The
-        // doubles come from the truncated walk failing to FIND the ids past the stop word, so
-        // the maintainer re-inserts ids it already lists (the owner's Sort on 2026-08-31 00:11
-        // showed five doubled shields and five vanished designs; the emulated sequence
-        // reproduces that table word for word). Each address below is the lea's disp8 byte
-        // (instruction +3). Templates already damaged are healed by TemplateSeat's repair.
+        // LW-351 fix round 8 (2026-08-31, 1.5.2 exe on disk): the owned-item template maintainer 0x140285F80
+        // (inventory order tables; its second half 0x140286070 serves the picker tables) walks a template before
+        // inserting a newly owned id at the front. The walk stops at the 0x00FF marker or the first word >= r14w,
+        // where r14d comes from `45 8d 77 06` lea r14d,[r15+6] with r15d = 0xFF (0x105).
+        // Three copies: 0x140285F80, 0x140286070, and 0x14039684C (round 8b; the same five inventory tables via
+        // pointer table 0x140689C38, owned-ness from the count mirror at 0x143C52740). Earlier sweeps missed them
+        // because the bound sits in an r14/r15 pair rather than the lea+6 forms swept before.
+        // Unwidened, an extended id ends the walk early: the insert shift starts at the stop word, so that id crawls
+        // right, overwrites its neighbor, and eventually the end marker, and ids past the stop word are not found so
+        // they get re-inserted (the Sort at 2026-08-31 00:11 showed five doubled shields and five vanished designs,
+        // reproduced by emulating the sequence). Each address is the lea's disp8 byte (instruction +3).
+        // Templates already damaged are healed by TemplateSeat's repair.
         new(0x140285FB5L, 0x06, Widen.PlusN, "owned-item template maintainer walk, inventory tables (lea r14d,[r15+6])"),
         new(0x1402860AEL, 0x06, Widen.PlusN, "owned-item template maintainer walk, picker tables (lea r14d,[r15+6])"),
         new(0x140396881L, 0x06, Widen.PlusN, "owned-item template maintainer walk, third copy (function RVA 0x39684C) over the inventory tables (lea r14d,[r15+6])"),
-        // LW-365 (2026-08-31, read from the 1.5.2 exe on disk via
-        // tools/probes/lw365_hand_resolver_scan.py): the last nine one-byte bounds in the family
-        // of routines that read "what is this unit holding". Six are further copies of the hand
-        // resolver already in this table (shape `mov edx,0xff` then `lea ecx,[rdx+6]`, disp byte
-        // = lea +2, guarding `cmp ax,dx / je skip` for an empty hand and `cmp cx,ax / ja valid`
-        // for id < 0x105): three guard word [rbx+0x20] (the fallback read is [rbx+0x22]; copies
-        // 3, 4, 6), two read a rip-relative global hand word (copies 5, 7), and copy 8 uses the
-        // variant encoding `45 8d 41 06` (lea r8d,[r9+6]) over the same guard. The remaining
-        // three are equip-slot switch guards inside the function at ~0x140306655 (a switch
-        // mapping a UI code to an equipped-item word plus a slot flag byte at [r8+0x1B]): each is
-        // `mov r10d,0xff` then `lea eax,[r10+6]` (41 8d 42 06; disp byte = lea +3), guarding
-        // `cmp ax,[r9+slot] / jbe skip` for the word at +0x1E/+0x1C/+0x1A (flags 0x20/0x40/0x80).
-        //
-        // Two more suspect sites were investigated and are NOT patched. 0x1402C8155 (the u16
-        // walker's `lea r12d,[rax+6]`) is WALLED: its 0x105 bound guards a STACK buffer -- the
-        // function memsets a 0x414-byte (0x105 dwords) frame array at 0x1402C8119, the walk
-        // accumulates into it BY ITEM ID, and the same register bounds the final per-id scan at
-        // 0x1402C81DB, so widening the byte would write past the array for extended ids (the
-        // LW-371 stack-cookie lesson); the branch also requires callee 0x140278fec(id) >= 0x64,
-        // so extended ids merely skip a strip-and-convert pass invisible to the player.
-        // The lea at 0x1402BD992 (bytes 44 8d 4e 06; opcode byte 0x1402BD993, disp8 byte
-        // 0x1402BD995) after `mov r11d,0xff` is a FALSE POSITIVE, not a cap: rsi is 1 there (mov
-        // esi,1 at 0x1402BD974, preserved across the intervening call), so the lea computes 7,
-        // the equip-slot word count for a `rep stosw` fill of 0x00FF empty markers, and the
-        // routine already masks hand ids with 0x3FF. Never patch EITHER byte: sweeps propose the
-        // opcode byte or the disp byte depending on their convention, so both are pinned absent.
-        // One more imm32 sibling, 0x1403066BE (`mov eax,0x105`, the same switch as the three
-        // guards above) is recorded, not widened: it serves the word slots at
-        // [r9+0x22]/[r9+0x26] (flags 8/2), which are not hand slots, and extended kinds are
-        // weapons-only today (ExtendedWeaponCeilingTests), so no extended id can reach it;
-        // revisit only if extended non-weapon kinds ever ship.
+        // LW-365 (2026-08-31, 1.5.2 exe on disk, tools/probes/lw365_hand_resolver_scan.py): the last nine one-byte
+        // bounds in the "what is this unit holding" routines. Six are more hand-resolver copies (`mov edx,0xff`,
+        // `lea ecx,[rdx+6]`, disp byte = lea +2, guarding `cmp ax,dx / je skip` for an empty hand and `cmp cx,ax / ja valid`
+        // for id < 0x105): copies 3, 4, 6 guard word [rbx+0x20] (fallback [rbx+0x22]), 5 and 7 read a rip-relative
+        // global hand word, and 8 uses `45 8d 41 06` (lea r8d,[r9+6]).
+        // The other three are equip-slot switch guards in the function at ~0x140306655 (UI code to equipped-item word
+        // plus slot flag byte at [r8+0x1B]): `mov r10d,0xff`, `lea eax,[r10+6]` (41 8d 42 06; disp byte = lea +3),
+        // guarding `cmp ax,[r9+slot] / jbe skip` for words +0x1E/+0x1C/+0x1A (flags 0x20/0x40/0x80).
+        // Investigated and not patched:
+        // 0x1402C8155 (the u16 walker's `lea r12d,[rax+6]`) is walled. Its 0x105 bound guards a stack buffer: the
+        // function memsets a 0x414-byte (0x105 dwords) frame array at 0x1402C8119, accumulates into it by item id, and
+        // bounds the final scan at 0x1402C81DB with the same register, so widening would write past the array (the
+        // LW-371 stack-cookie lesson). The branch also needs callee 0x140278fec(id) >= 0x64, so extended ids only skip
+        // a pass the player never sees.
+        // 0x1402BD992 (bytes 44 8d 4e 06; opcode byte 0x1402BD993, disp8 byte 0x1402BD995) after `mov r11d,0xff` is a
+        // false positive: rsi is 1 there (mov esi,1 at 0x1402BD974, kept across the call), so the lea gives 7, the
+        // equip-slot word count for a `rep stosw` fill of 0x00FF markers, and the routine already masks hand ids with
+        // 0x3FF. Neither byte is patched; sweeps name either one, so both are pinned absent.
+        // 0x1403066BE (`mov eax,0x105`, same switch) is recorded, not widened: it serves word slots [r9+0x22]/[r9+0x26]
+        // (flags 8/2), not hand slots, and extended kinds are weapons-only (ExtendedWeaponCeilingTests). Revisit if
+        // non-weapon extended kinds ship.
         new(0x1402C4EB7L, 0x06, Widen.PlusN, "hand resolver copy 3 (guards word [rbx+0x20]; fallback read [rbx+0x22])"),
         new(0x1402DE6FFL, 0x06, Widen.PlusN, "hand resolver copy 4 (guards word [rbx+0x20], second copy)"),
         new(0x1402FE436L, 0x06, Widen.PlusN, "hand resolver copy 5 (reads a rip-relative global hand word)"),
@@ -183,28 +127,22 @@ internal static class ExtendedSites
         new(0x1403066A7L, 0x06, Widen.PlusN, "equip-slot switch guard, word +0x1E (lea eax,[r10+6])"),
         new(0x14030671DL, 0x06, Widen.PlusN, "equip-slot switch guard, word +0x1C (lea eax,[r10+6])"),
         new(0x1403067ABL, 0x06, Widen.PlusN, "equip-slot switch guard, word +0x1A (lea eax,[r10+6])"),
-        // LW-388 (R2, read offline 2026-10-16 from the Denuvo-free 1.5.2 exe on disk, Steam buildid
-        // 24304444): the two damage caps that used to live in the copy-protected tail (and so were
-        // patched only after a save loaded) are plain .text on this build, so they join the boot
-        // set. The first is the eighth hand-resolver copy the pattern sweep finds (`ba ff 00 00 00`
-        // mov edx,0xff, then `8d 4a 06` lea ecx,[rdx+6], disp8 byte below), followed within 0x30
-        // bytes by two calls to Offsets.ThunkWeaponStat, the shape the journal recorded for the
-        // protected copy ("right before two weapon-stat thunk calls"). The second sits in the swing
-        // publisher whose plain entry is RVA 0x282234: `bd ff 00 00 00` mov ebp,0xff at RVA
-        // 0x282287, then `44 8d 75 06` lea r14d,[rbp+6] at RVA 0x2822A1 (disp8 byte below); it
-        // stores combat +0x20/+0x24 to the swing words at RVA 0x7B0764/0x7B0766 and substitutes the
-        // off-hand word for ids at or above the bound (`66 44 3b f0` cmp r14w,ax / `77 14` ja). That
-        // is the journal's protected copy in plain code: its `xor r15d,0x5E` with 0x58 was the
-        // protector's constant obfuscation of the same 6 (0x58 ^ 0x5E = 6).
+        // LW-388 (R2, read offline 2026-10-16 from the Denuvo-free 1.5.2 exe, Steam buildid 24304444): the two damage
+        // caps once in the copy-protected tail are plain .text on this build, so they join the boot set.
+        // First: the eighth hand-resolver copy (`ba ff 00 00 00` mov edx,0xff, then `8d 4a 06` lea ecx,[rdx+6]),
+        // followed within 0x30 bytes by two calls to Offsets.ThunkWeaponStat, matching the journal's "right before two
+        // weapon-stat thunk calls".
+        // Second: the swing publisher with plain entry RVA 0x282234: `bd ff 00 00 00` mov ebp,0xff at RVA 0x282287,
+        // `44 8d 75 06` lea r14d,[rbp+6] at RVA 0x2822A1. It stores combat +0x20/+0x24 to the swing words at RVA
+        // 0x7B0764/0x7B0766 and substitutes the off-hand word for ids at or above the bound (`66 44 3b f0` cmp r14w,ax /
+        // `77 14` ja). The old `xor r15d,0x5E` with 0x58 was the protector's obfuscation of the same 6 (0x58 ^ 0x5E = 6).
         new(0x14027F002L, 0x06, Widen.PlusN, "damage-path hand resolver (lea ecx,[rdx+6]); plain-text copy of the former protected-tail site, two weapon-stat thunk calls follow"),
         new(0x1402822A4L, 0x06, Widen.PlusN, "damage-staging cap (lea r14d,[rbp+6] after mov ebp,0xff) in the swing publisher; plain copy of the former xor r15d,0x5E site; lea bytes are 44 8d 75 06 at image offsets A1..A4, the disp8 is A4 (confirmed against the exe on disk 2026-10-16)"),
     };
 
-    /// <summary>Copy-protected sites: their pages read vanilla only after a save has loaded, so
-    /// they are stepped from the tick loop as <see cref="PendingPatch"/>es. EMPTY since LW-388:
-    /// the Denuvo-free build has no protected tail, and its two former entries are plain boot
-    /// sites above. The array and the pending machinery stay, correct with zero sites, for any
-    /// future late-mapped page.</summary>
+    /// <summary>Copy-protected sites, stepped from the tick loop as <see cref="PendingPatch"/>es once a save has
+    /// loaded. Empty since LW-388 (the Denuvo-free build has no protected tail; its two former entries are boot
+    /// sites above). The empty array and the pending machinery are kept in case a late-mapped page appears.</summary>
     private static readonly Site[] PostLoadSites = { };
 
     public static List<BytePatch> BootPatches(int extendedCount) => Build(BootSites, extendedCount);
@@ -213,7 +151,7 @@ internal static class ExtendedSites
     private static List<BytePatch> Build(Site[] sites, int n)
     {
         var list = new List<BytePatch>(sites.Length);
-        // LW-388: Site.Addr is PIN space; the patch carries the LIVE address.
+        // Site.Addr is PIN space; the patch carries the LIVE address.
         foreach (var s in sites) list.Add(new BytePatch(ImageBase.At(s.Addr), s.Old, NewByte(s.Old, s.Kind, n), s.Label));
         return list;
     }

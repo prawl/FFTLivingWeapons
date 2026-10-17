@@ -70,7 +70,7 @@ internal sealed partial class KillTracker
     internal int FallbackCredits { get; private set; }
     // Latest latch resolve came from the tq or first-kill fallback; read by CreditKill's viaFallback sites.
     internal bool _latchViaFallback;
-    // LW-56: credit-time live-wielder gate (CreditGate.Decide). Null = gate off, every culprit survives.
+    // Credit-time live-wielder gate (CreditGate.Decide). Null = gate off, every culprit survives.
     // Engine.cs wires Wielder.HasLiveWielder.
     private readonly Func<int, bool>? _hasLiveWielder;
     // LW-150 S3: acted-period latch state machine (ActedPeriodLatch.cs). It never touches this class's
@@ -79,7 +79,7 @@ internal sealed partial class KillTracker
     private readonly ActedPeriodLatch _latch;
     private readonly ActedPeriodOutputs _latchIO = new();
 
-    // LW-233: checkpoint-retry detector (docs/LIVE_LEDGER.md row [battle-retry-rewind-fingerprint]), ticked
+    // Checkpoint-retry detector (docs/LIVE_LEDGER.md row [battle-retry-rewind-fingerprint]), ticked
     // per Poll; feeds revive detection in KillTracker.Corpses.cs and ResolveCredit. See RestartSentinel.cs.
     private readonly RestartSentinel _restart;
 
@@ -107,7 +107,7 @@ internal sealed partial class KillTracker
         _restart = new RestartSentinel(recorder);
     }
 
-    /// <summary>LW-233: the retry-rewind detector, read-only for callers.</summary>
+    /// <summary>the retry-rewind detector, read-only for callers.</summary>
     internal RestartSentinel Restart => _restart;
 
     /// <summary>The actor-pointer ownership register (TurnOwnerSpike under LWDEV; AttackCard stopped using
@@ -118,7 +118,7 @@ internal sealed partial class KillTracker
     /// edge, before the flight flush.</summary>
     internal void EmitExitCensus() => _census.EmitExit();
 
-    /// <summary>LW-31 stage 2/3, LW-55, LW-87: ActorResolver.TryResolveCursorPlayer for AttackCard.Resolve.cs
+    /// <summary>LW-31 stage 2/3, LW-55, ActorResolver.TryResolveCursorPlayer for AttackCard.Resolve.cs
     /// (its only resolve seam since the 2026-07-06 cursor-only fix). Null Answer = no answer, with Miss naming
     /// the refusing stage; otherwise CursorGate.Decide judges the raw <see cref="CursorAnswer"/> facts
     /// (<see cref="CursorMiss.None"/> on success).</summary>
@@ -147,7 +147,7 @@ internal sealed partial class KillTracker
         ResetBattleCorpses();   // clear per-battle band-scan state (Corpses.cs)
         ResetDelayed();         // clear delayed-action snapshot/arm state (Delayed.cs)
         _census.ResetBattle();  // re-arm the P2 identity-census probe (BattleCensus.cs)
-        _restart.ResetBattle(); // LW-233: forget any latch/null history from the prior battle
+        _restart.ResetBattle(); // forget any latch/null history from the prior battle
     }
 
     /// <summary>LW-150 S3: copy this class's acted-period fields into <see cref="_latchIO"/> before
@@ -194,7 +194,7 @@ internal sealed partial class KillTracker
         bool changed;
 
         _register.Update();       // one actor-pointer read per tick
-        // LW-233: tick the retry detector before this tick's corpse scan so a null seen now can join a revive
+        // Tick the retry detector before this tick's corpse scan so a null seen now can join a revive
         // detected later in the same Poll. Its return drains the deferred-verdict stash (0ms-join fix): apply
         // those uncredits before anything reads the tally.
         var restartDrained = _restart.Tick(_register.RawNullThisTick, onField);
@@ -265,7 +265,7 @@ internal sealed partial class KillTracker
         _resolver.SetCorpseAnchorOk(ok);
     }
 
-    /// <summary>Credit the weapon set for a kill at band slot s (position gx,gy). LW-56: with a live-wielder
+    /// <summary>Credit the weapon set for a kill at band slot s (position gx,gy). with a live-wielder
     /// gate wired, culprits are first split by <see cref="CreditGate.Decide"/>; refused ids (a stale latch
     /// naming a weapon nobody wields, e.g. after a mis-timed New Game) get a flight no-credit record and one
     /// log line, and everything below runs on survivors only.
@@ -273,7 +273,7 @@ internal sealed partial class KillTracker
     /// then consumes it; no snapshot (docs/RELIQUARY_AC.md missing-snapshot case) still counts the kill, with a
     /// DeedMiss. Does not mutate <paramref name="weapons"/> (may alias _lastPlayerWeapons).
     /// <paramref name="viaFallback"/>: the latch came from the turn-queue fallback (battle-end summary counter).
-    /// <paramref name="delayedOrCharged"/> (LW-167): the credit came from the delayed-actor path (Delayed.cs
+    /// <paramref name="delayedOrCharged"/>: the credit came from the delayed-actor path (Delayed.cs
     /// ConsumeDelayedCulprit), passed on to RecordPoachDeed.
     /// <paramref name="identity"/> (LW-233 live-drill residual, 2026-08-17): the (lvl,br,fa,maxHp) the kill was
     /// credited under, stamped into _creditedIdentity for RestartSentinel's grace exemption. The zero-tuple
@@ -300,7 +300,7 @@ internal sealed partial class KillTracker
                     _recorder?.Invoke("kill", $"no-credit slot={s} reason=no-live-wielder weapon={w}");
             }
         }
-        // LW-233: stamp the post-gate survivor set for RestartSentinel's revive-uncredit (Corpses.cs). Copy the
+        // Stamp the post-gate survivor set for RestartSentinel's revive-uncredit (Corpses.cs). Copy the
         // list: `credited` may alias _lastPlayerWeapons, which the next latch replaces.
         _creditedWeapons[s] = new List<int>(credited);
         _creditedViaFallback[s] = viaFallback;
@@ -338,7 +338,7 @@ internal sealed partial class KillTracker
         return changed;
     }
 
-    /// <summary>LW-233: inverse of CreditKill's per-weapon increment, for RestartSentinel's checkpoint-retry
+    /// <summary>inverse of CreditKill's per-weapon increment, for RestartSentinel's checkpoint-retry
     /// revive (Corpses.cs re-arm block and identity-swap branch); callers pass the _creditedWeapons[s] CreditKill
     /// stamped. Floors tallies at 0 with a WARN if that would go negative (desync tripwire). FallbackCredits drops
     /// once per call. One flight record per weapon, no console line (RestartSentinel's latch-open edge already

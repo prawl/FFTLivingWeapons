@@ -3,11 +3,9 @@ using System;
 namespace LivingWeapon;
 
 /// <summary>
-/// Shared grid-tile metrics for signatures that reason about band positions. Promoted out of
-/// Ricochet.Policy.cs (LW-149 stage G): the then-extant Wyrmblood.Policy.InSplash (deleted as
-/// dormant in LW-159) had borrowed Ricochet's Manhattan helper by name for its own
-/// splash-radius math, a cross-signature dependency a neutral home removes. Ricochet.Policy
-/// keeps a one-line forward so its own tests and any missed caller keep working unchanged.
+/// Shared grid-tile metrics for band-position signatures. Moved out of Ricochet.Policy.cs
+/// (LW-149 stage G) after Wyrmblood.Policy.InSplash (deleted in LW-159) borrowed Ricochet's
+/// Manhattan helper. Ricochet.Policy keeps a one-line forward.
 /// </summary>
 internal static class Grid
 {

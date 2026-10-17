@@ -2,17 +2,12 @@ using System.Collections.Generic;
 
 namespace LivingWeapon;
 
-/// <summary>One single-byte code patch: the address, the byte the vanilla 1.5.2 build carries
-/// there (verified before every write), the byte we want, and a label for the log.</summary>
+/// <summary>One single-byte code patch: address, expected vanilla 1.5.2 byte, wanted byte, log label.</summary>
 internal readonly record struct BytePatch(long Addr, byte Old, byte New, string Label);
 
 /// <summary>
-/// LW-346: applies a whole set of single-byte code patches as one transaction. Two passes: first
-/// EVERY site is read and must carry its expected old byte (a single disagreement refuses the
-/// whole set with nothing written: the game moved, or another mod got there first); then every
-/// site is written, and a refused write rolls back the ones already applied, in reverse order.
-/// The rig applied and rolled back site by site (CapBreakBootArm); verify-all-first leaves fewer
-/// half-states for the log to explain.
+/// Applies single-byte code patches as one transaction. Every site must carry its expected old byte before
+/// any write (a mismatch refuses the set); a refused write rolls back earlier ones in reverse (CapBreakBootArm went site by site).
 /// </summary>
 internal sealed class BytePatchSet
 {
@@ -54,12 +49,9 @@ internal sealed class BytePatchSet
 }
 
 /// <summary>
-/// LW-346: a patch that cannot land at boot because its page is still copy-protected then (the
-/// two damage-path caps, docs/research/ITEM_CAP_261_BREAK_JOURNEY.md blueprint piece 2): stepped
-/// from the tick loop, it waits until the byte reads as VANILLA, writes once, and verifies. A
-/// byte that reads as already-patched (the research marker still armed beside this mod) counts
-/// as done; any other value is foreign and the patch gives up for the session with one warning,
-/// never overwriting what it does not recognise.
+/// A patch whose page is copy-protected at boot (the two damage-path caps, docs/research/ITEM_CAP_261_BREAK_JOURNEY.md
+/// blueprint piece 2). Stepped from the tick loop: waits for the vanilla byte, writes once, verifies. Already-patched counts
+/// as done; a foreign byte makes it give up with one warning.
 /// </summary>
 internal sealed class PendingPatch
 {
@@ -73,7 +65,7 @@ internal sealed class PendingPatch
 
     public PendingPatch(BytePatch patch) => Patch = patch;
 
-    /// <summary>One poll. Returns true exactly on the tick the state leaves Waiting.</summary>
+    /// <summary>One poll. Returns true on the tick the state leaves Waiting.</summary>
     public bool Step(ICodePatcher patcher)
     {
         if (Settled) return false;

@@ -4,36 +4,21 @@ using System.Runtime.InteropServices;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-346: the byte-patch seam for CODE pages (the extended-inventory boot arm and its thunk stubs).
-///
-/// WHY A SECOND SEAM NEXT TO <see cref="Mem"/>: Mem's writes are gated on
-/// <see cref="Mem.WritesEnabled"/>, which LaunchGuard flips true only once a save has loaded and
-/// Ramza's roster row verifies. The extended-inventory patches MUST land before the game runs a single
-/// instruction (the rig proved the menu registry and the bag array are built once at boot,
-/// docs/research/ITEM_CAP_261_BREAK_JOURNEY.md), so they cannot wait for that edge. They are
-/// gated differently instead, and only through this seam: every patch site verifies its expected
-/// OLD byte before it is written, with a full rollback when any site disagrees. A moved site
-/// changes the old byte, and that refusal is one log line, never a write. (Until LW-397 the caller
-/// also required a matching PE build key; the build stamp is now only a report line, so these
-/// per-site checks are the whole gate.)
-///
-/// SAFETY: same doctrine as Mem -- never a raw pointer deref. Reads are ReadProcessMemory on our
-/// own handle; writes lift the page to PAGE_EXECUTE_READWRITE with VirtualProtect, write through
-/// WriteProcessMemory, and restore the previous protection. Every call returns false instead of
-/// throwing: an unmapped page is a refusal, not an access violation (an AV is an uncatchable
-/// corrupted-state exception in .NET and would crash the whole game).
-///
-/// Tests inject a dictionary-backed fake; the pinned-buffer suite drives the live adapter
-/// through the real VirtualProtect/WPM path (the LiveMemory precedent).
+/// Byte-patch seam for code pages (the extended-inventory boot arm and its thunk stubs).
+/// Separate from <see cref="Mem"/> because Mem's writes wait for <see cref="Mem.WritesEnabled"/>, which LaunchGuard sets only after
+/// a save loads, but these patches must land before the game runs (menu registry and bag array are built once at boot,
+/// docs/research/ITEM_CAP_261_BREAK_JOURNEY.md). Each site verifies its expected old byte before writing and rolls back on any
+/// mismatch; a moved site is one log line, not a write. (Until LW-397 the caller also required a matching PE build key.)
+/// No raw pointer derefs: reads use ReadProcessMemory; writes lift the page to PAGE_EXECUTE_READWRITE with VirtualProtect,
+/// call WriteProcessMemory, then restore protection. Failures return false, since an AV is uncatchable in .NET.
+/// Tests inject a dictionary-backed fake; the pinned-buffer suite drives the live adapter (as for LiveMemory).
 /// </summary>
 internal interface ICodePatcher
 {
-    /// <summary>Read <paramref name="count"/> bytes at <paramref name="address"/>; false (and an
-    /// empty buffer) on any failure, never an exception.</summary>
+    /// <summary>Read <paramref name="count"/> bytes at <paramref name="address"/>; false and an empty buffer on failure.</summary>
     bool TryRead(long address, int count, out byte[] bytes);
 
-    /// <summary>Write <paramref name="bytes"/> at <paramref name="address"/>; false on any
-    /// failure (protection change refused, partial write), never an exception.</summary>
+    /// <summary>Write <paramref name="bytes"/> at <paramref name="address"/>; false on failure.</summary>
     bool TryWrite(long address, byte[] bytes);
 }
 

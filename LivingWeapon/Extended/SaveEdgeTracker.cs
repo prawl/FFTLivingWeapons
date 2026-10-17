@@ -5,22 +5,15 @@ using System.Security.Cryptography;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-353: the testable core behind the save-edge hooks. On the game's thread the detours read
-/// the save struct's header and the extended ids' live bag counts and hand them here; since
-/// LW-351 the LOAD detour also runs the bag replay (BagReplay) before it publishes its edge,
-/// because the game rebuilds its menu templates inside the load itself. Everything else (file
-/// I/O, the log line, and the idempotent second replay) runs on Engine's tick through
-/// <see cref="ExtendedInventory.StepBagSidecar"/>, which drains the two pending slots below.
-/// One pending slot each: a second edge before the tick drains the first simply supersedes it
-/// (the newer state is the truth either way).
+/// Testable core behind the save-edge hooks. The detours read the save header and the extended
+/// ids' bag counts on the game thread and hand them here. Since LW-351 the load detour also runs BagReplay
+/// before publishing its edge, because the game rebuilds its menu templates during the load. File I/O,
+/// logging and the second replay run on Engine's tick via <see cref="ExtendedInventory.StepBagSidecar"/>,
+/// which drains the two pending slots; a newer edge supersedes an undrained one.
 ///
-/// KEY: <c>pt&lt;playTimeSeconds&gt;-&lt;first 12 hex of SHA-1 over the 0xB8 header bytes&gt;</c>,
-/// with the three save-in-flight marker bytes (<see cref="Offsets.SaveHeaderVolatileOffs"/>)
-/// zeroed first: they read 0xFF at a save edge and 0x00 at rest, so an unmasked hash gave the
-/// same save two different keys and no load ever found its own counts (the owner's 2026-08-28
-/// session). The rest of the header holds the slot list's metadata (play time, chapter, party
-/// names) and the file round-trips it verbatim, so the same save yields the same key when it
-/// is later applied.
+/// The key is <c>pt&lt;playTimeSeconds&gt;-&lt;first 12 hex of SHA-1 over the 0xB8 header bytes&gt;</c> with the
+/// three save-in-flight marker bytes (<see cref="Offsets.SaveHeaderVolatileOffs"/>) zeroed first. They read
+/// 0xFF at a save edge and 0x00 at rest, so an unmasked hash gave one save two keys (seen 2026-08-28).
 /// </summary>
 internal sealed class SaveEdgeTracker
 {
@@ -28,8 +21,7 @@ internal sealed class SaveEdgeTracker
     private (string Key, Dictionary<int, int> Counts)? _pendingSave;
     private string? _pendingLoad;
 
-    /// <summary>The key of the save the game most recently serialized or applied (null before
-    /// either). Diagnostic and for the log lines; the replay never depends on it.</summary>
+    /// <summary>Key of the save the game last serialized or applied (null before either). Logs only.</summary>
     public string? CurrentKey { get; private set; }
 
     public static string KeyFromHeader(byte[] header)

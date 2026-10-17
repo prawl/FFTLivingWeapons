@@ -2,54 +2,17 @@ using System.Collections.Generic;
 
 namespace LivingWeapon;
 
-/// <summary>The combat stat bytes the capture-natural holds own. Speed/Pa/Ma are the original
-/// single-lane trio (CSpeed/CPa/CMa); Brave/Faith are LW-317's flat-capped CURRENT holds
-/// (CBraveCurrent/CFaithCurrent, threaded through this same ledger like every other u8 lane);
-/// MaxHp is LW-317's u16 hold (CMaxHp) -- named here for a consistent lane vocabulary across the
-/// codebase, but it does NOT thread NaturalLedger (see GrowthEngine.Lanes.cs's HoldU16 doc for
-/// why the u8-shaped capture/target bounds below make that the wrong seam for it).</summary>
+/// <summary>Combat stat bytes the capture-natural holds own. Speed/Pa/Ma are the original trio (CSpeed/CPa/CMa); Brave/Faith are
+/// LW-317's capped current holds (CBraveCurrent/CFaithCurrent). MaxHp (CMaxHp, LW-317) is a u16 hold named here for lane vocabulary
+/// but does not thread NaturalLedger; see HoldU16 in GrowthEngine.Lanes.cs.</summary>
 internal enum StatLane { Speed, Pa, Ma, Brave, Faith, MaxHp }
 
 /// <summary>
-/// LW-90: the cross-battle written-target memory that keeps a battle RESTART from turning the
-/// mod's own held stat boost into a unit's "natural". The game's restart rebuild can carry the
-/// held (boosted) byte (observed live 2026-07-14, the Iai opening hold; the mod's own
-/// bookkeeping read healthy both runs), so a fresh per-battle first-sight capture would adopt
-/// the boost as natural: Iai then restores the boosted value at release, and the growth-family
-/// holds compound on a polluted base across repeated restarts.
-///
-/// Mechanism: every hold EVALUATION records the target it holds (per evaluation, not per
-/// physical write: the holds elide the W8 when the byte already equals the target, and a
-/// post-restart battle starts in exactly that state). Entries are keyed by (roster nameId,
-/// stat lane) and hold a rolling two-slot target history: Current (this battle attempt) and
-/// Prev (the last attempt that recorded anything). OnBattleReset promotes Current to Prev ONLY
-/// when Current is non-empty: Engine.ResetBattleState deliberately fires on BOTH battle edges
-/// (a clean restart resets twice, and battle-load churn adds more), so an unconditional swap
-/// would wipe the history before the restarted battle's capture could consult it (the plan
-/// review's blocker). A capture whose first sight EXACTLY matches a recorded target (Prev or
-/// Current: Current covers a same-battle struct relocation re-capture) while a different
-/// accepted natural is on file AT THE SAME ROSTER LEVEL is restart residue: the ledger
-/// returns the accepted natural and reports the residue value, which the call site keeps as
-/// a recognized ownership token (if the engine's post-restart normalize restores the baked
-/// value -- plausible but UNVERIFIED inference; the Iai post-release corrective hold is the
-/// live discriminator -- a corrected hold that did not recognize it would go foreign).
-///
-/// THE LEVEL KEY (the implementation review's major): a boost target is often natural+1
-/// (10-15% factors on single-digit stats, Iai's +1 margin), so a unit's ordinary +1 level-up
-/// gain can land its NEW true natural exactly on a recorded target; without a discriminator
-/// the correction would then eat the earned point every battle, forever (the corrected hold
-/// re-records the same colliding target each time). Restarts never commit a level (the
-/// roster keeps its pre-battle level until battle END, LIVE_LEDGER "mid-battle level-up
-/// drift" row), so the accepted natural is stamped with the capture-time roster level and a
-/// correction fires only when the levels match: a level-up breaks the loop, a restart never
-/// does. Residual corner, accepted + logged: an EQUIPMENT change (no level move) to exactly
-/// a recorded target still corrects wrongly, deflating by the boost delta until the unit's
-/// next level or a different capture value.
-///
-/// Fail-open: nameId &lt;= 0 bypasses entirely (the degraded lane, mirroring Iai's
-/// address-fallback); an unmatched first sight is accepted as natural and refreshes the entry.
-/// Session-scoped: Clear() rides the new-game edge; nothing persists to disk, so a
-/// relaunch-resume-then-restart sequence is unguarded (accepted corner).
+/// LW-90. Remembers the targets the mod wrote, per battle attempt, so a battle restart cannot turn the held boost into a unit's natural (seen 2026-07-14 with the Iai opening hold). Otherwise Iai restores the boosted value and growth holds compound across restarts.
+/// Entries key on (roster nameId, stat lane) and keep Current and Prev target lists. Every hold evaluation records its target, even when the write is elided. OnBattleReset promotes Current to Prev only when Current is non-empty, since Engine.ResetBattleState fires on both battle edges.
+/// A first-sight capture that matches a recorded target, while a different accepted natural is on file at the same roster level, is restart residue. The ledger returns the accepted natural and reports the residue as an ownership token (that the post-restart normalize restores the baked value is unverified; the Iai post-release corrective hold will show).
+/// The level check matters because a boost target is often natural+1, so an ordinary level-up could land on a recorded target. Restarts never commit a level (LIVE_LEDGER "mid-battle level-up drift" row). Accepted corner, an equipment change to exactly a recorded target still deflates until the next level.
+/// Fail-open for nameId &lt;= 0 (as Iai's address fallback); an unmatched first sight is accepted as natural. Session-scoped, Clear() rides the new-game edge, so relaunch-resume-then-restart is unguarded (accepted).
 /// </summary>
 internal sealed class NaturalLedger
 {
@@ -60,22 +23,17 @@ internal sealed class NaturalLedger
     private sealed class Entry
     {
         public int AcceptedNatural = -1;
-        public int AcceptedLevel = -1;   // roster level at accept time (the level key)
+        public int AcceptedLevel = -1;   // roster level at accept time
         public List<int> Prev = new();
         public List<int> Current = new();
     }
 
     private readonly Dictionary<(int nameId, StatLane lane), Entry> _entries = new();
 
-    // LW-149 stage A: total-invocation counter for the RecordWrite-cadence pins
-    // (GrowthEngineCadenceTests.cs). Purely additive bookkeeping -- counts every call
-    // regardless of the early-return guards below, because the cadence question is "how many
-    // times did a lane call RecordWrite this tick", not "how many targets got remembered".
-    // No existing caller reads this; behavior is unchanged.
+    // LW-149 stage A: counts every RecordWrite call, early returns included, for the cadence pins in GrowthEngineCadenceTests.cs
     internal int RecordWriteCalls { get; private set; }
 
-    /// <summary>Promote Current to Prev, ONLY for entries that recorded anything this attempt.
-    /// Safe to call any number of times per transition (Engine resets on both edges).</summary>
+    /// <summary>Promote Current to Prev for entries that recorded anything this attempt. Safe to call repeatedly per transition.</summary>
     public void OnBattleReset()
     {
         foreach (var e in _entries.Values)
@@ -89,9 +47,7 @@ internal sealed class NaturalLedger
     /// <summary>Forget everything (the new-game edge).</summary>
     public void Clear() => _entries.Clear();
 
-    /// <summary>Record a target a hold computed for this unit+lane this evaluation (whether or
-    /// not the byte write was elided). Dedup within the attempt; ring-capped; no-op off the
-    /// identity lane (nameId &lt;= 0) or outside byte range.</summary>
+    /// <summary>Record the target a hold computed this evaluation, written or elided. Dedups within the attempt, ring-capped, no-op for nameId &lt;= 0 or out of byte range.</summary>
     public void RecordWrite(int nameId, StatLane lane, int target)
     {
         RecordWriteCalls++;
@@ -99,14 +55,12 @@ internal sealed class NaturalLedger
         if (!_entries.TryGetValue((nameId, lane), out var e))
             _entries[(nameId, lane)] = e = new Entry();
         if (e.Current.Contains(target)) return;
-        if (e.Current.Count >= TargetCap) e.Current.RemoveAt(0);   // ring: drop the oldest
+        if (e.Current.Count >= TargetCap) e.Current.RemoveAt(0);   // drop the oldest
         e.Current.Add(target);
     }
 
-    /// <summary>The natural to trust for a first-sight capture. <paramref name="level"/> is the
-    /// unit's roster level (the level key: corrections require it to equal the accept-time
-    /// stamp; restarts never move it, level-ups do). <paramref name="baked"/> is the residue
-    /// value when a correction fired (the caller keeps it as an ownership token), else 0.</summary>
+    /// <summary>The natural to trust for a first-sight capture. <paramref name="level"/> is the roster level; a correction needs it to
+    /// equal the accept-time stamp. <paramref name="baked"/> is the residue value when a correction fired, else 0.</summary>
     public int FilterCapture(int nameId, StatLane lane, int firstSight, int level, out int baked)
     {
         baked = 0;
@@ -119,11 +73,11 @@ internal sealed class NaturalLedger
         bool residue = (e.Prev.Contains(firstSight) || e.Current.Contains(firstSight))
                        && e.AcceptedNatural >= NaturalSaneMin && e.AcceptedNatural <= NaturalSaneMax
                        && e.AcceptedNatural != firstSight
-                       && e.AcceptedLevel == level;   // the level key: a level-up is a REAL change
+                       && e.AcceptedLevel == level;   // a level-up is a real change
         if (residue)
         {
             baked = firstSight;
-            return e.AcceptedNatural;   // deliberately NOT refreshed: restart N+1 corrects too
+            return e.AcceptedNatural;   // not refreshed, so restart N+1 corrects too
         }
         e.AcceptedNatural = firstSight;
         e.AcceptedLevel = level;

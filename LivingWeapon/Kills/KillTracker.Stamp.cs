@@ -3,50 +3,36 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Death-edge culprit-stamp policy half of KillTracker: KillTracker.Corpses.cs's deadStreak==1
-/// edge previously stamped <c>_lethalActor</c> from <c>_lastPlayerWeapons</c> (the acted-edge
-/// latch) unconditionally. Live-taped 2026-07-05: the latch can go stale between the killer's
-/// actor-pointer arrival and the corpse's death edge (the KillTracker latch only re-resolves once
-/// per acted-period, while the engine's own actor pointer keeps moving). <see cref="StampCulprit"/>
-/// consults <see cref="KillerStamp"/> (the register's last-player-arrival hypothesis, gated on
-/// strictly postdating the latch's own resolve tick -- see KillerStamp.cs for the full ordering-
-/// gate provenance) and only overrides the latch when the hypothesis is fresh AND disagrees;
-/// <see cref="StampCulpritFromHypothesisOnly"/> extends the same hypothesis to the case where
-/// there is no latch at all (an empty-latch corpse that would otherwise sit pending).
+/// Death-edge culprit stamping for KillTracker. The deadStreak==1 edge in KillTracker.Corpses.cs
+/// takes the acted-edge latch (_lastPlayerWeapons), which the 2026-07-05 tapes showed can go stale
+/// because it re-resolves once per acted-period. <see cref="StampCulprit"/> overrides it only when
+/// <see cref="KillerStamp"/>'s register hypothesis is fresh and disagrees (ordering gate in
+/// KillerStamp.cs). <see cref="StampCulpritFromHypothesisOnly"/> applies the same hypothesis when
+/// there is no latch.
 /// </summary>
 internal sealed partial class KillTracker
 {
-    // Death-edge culprit hypothesis: the register's last-player-arrival snapshot, consulted only
-    // at the deadStreak==1 stamp edge (KillTracker.Corpses.cs). Constructed in KillTracker.cs's ctor.
+    // Register's last-player-arrival snapshot, read at the deadStreak==1 stamp edge
+    // (KillTracker.Corpses.cs). Built in the KillTracker.cs ctor.
     private readonly KillerStamp _killerStamp;
 
-    /// <summary>Death-edge culprit stamp (player-turn path): consult the register's last-player
-    /// hypothesis; Latch = today's behavior byte-identical, Register = the pointer-named killer's
-    /// weapons, Bury = the killer holds no tracked weapon (miss beats mis-credit).</summary>
+    /// <summary>Death-edge stamp for the player-turn path. Latch keeps the latch, Register credits
+    /// the pointer-named killer, Bury leaves the kill uncredited when that killer holds no tracked
+    /// weapon.</summary>
     private void StampCulprit(int s)
     {
-        // THE PERIOD GATE: the hypothesis is consulted only while an acted-period is OPEN
-        // (_periodOpen, KillTracker.cs). Three reasons, in weight order:
-        // (1) Evidence scope -- both 2026-07-05 tapes' kills land inside open acted-periods:
-        //     tape 1b's period never closes (that IS the root cause this fix targets), and
-        //     tape 2's blow lands ~100ms after the acted rising edge. There is no tape of a
-        //     register override being right OUTSIDE a period.
-        // (2) The V8 pin (KillTrackerTests.FirstKillFallback_falls_back_to_pure_TQ_outside_any_
-        //     period): "the register gate is closed by construction" outside any period is the
-        //     codebase-wide invariant -- these stamp paths must live inside it, not around it.
-        // (3) An un-taped race this closes: a kill whose dead-edge slips past the period's
-        //     debounced fall (a boundary DoT death) must keep today's latch credit -- without
-        //     the gate, a fresh next-turn arrival could steal it.
+        // Only consult the hypothesis while an acted-period is open (_periodOpen, KillTracker.cs).
+        // Both 2026-07-05 tapes' kills land inside open periods, and outside one the register gate
+        // stays closed (KillTrackerTests.FirstKillFallback_falls_back_to_pure_TQ_outside_any_period).
+        // A dead-edge after the period's debounced fall keeps the latch credit.
         if (!_periodOpen)
         {
-            _lethalActor[s] = new List<int>(_lastPlayerWeapons);   // today's behavior, byte-identical
+            _lethalActor[s] = new List<int>(_lastPlayerWeapons);   // previous behavior
             _lethalViaFallback[s] = _latchViaFallback;
             return;
         }
-        // LW-63 D4: the 7-out overload consults the flags-first lane before the register
-        // snapshot; viaFlags/bandSlot/moved are the tape payload's evidence trail (review
-        // finding 5), diagnostic only -- Policy.Decide below judges purely on hypW, exactly as
-        // it always has, regardless of which lane produced it.
+        // LW-63 D4: the 7-out overload checks the flags-first lane before the register snapshot.
+        // viaFlags/bandSlot/moved are tape evidence only; Decide judges on hypW.
         bool has = _killerStamp.TryHypothesis(_lastResolveTick, out var hypW, out ushort hypName, out int age,
                                                out bool viaFlags, out int bandSlot, out byte moved);
         string tape = viaFlags ? $" src=flags t=1 m={moved} a=1" : "";
@@ -58,8 +44,8 @@ internal sealed partial class KillTracker
                 _lethalViaFallback[s] = _latchViaFallback;
                 break;
             case KillerStamp.StampKind.Register:
-                _lethalActor[s] = hypW;   // fresh list from HandsFromRoster -- never an alias into register state
-                _lethalViaFallback[s] = false;   // pointer- or flags-derived, never a fallback resolve
+                _lethalActor[s] = hypW;   // fresh list from HandsFromRoster, not an alias into register state
+                _lethalViaFallback[s] = false;   // pointer- or flags-derived
                 ModLogger.EventWithTrace(LogVerb.Credit,
                     $"Corrected the kill attribution: {source} names a fresher killer; crediting {string.Join(", ", hypW.ConvertAll(LogNames.Weapon))} instead of {string.Join(", ", _lastPlayerWeapons.ConvertAll(LogNames.Weapon))}.",
                     $"register-override detail (latch=[{string.Join(",", _lastPlayerWeapons)}] register=[{string.Join(",", hypW)}] nameId={hypName} arrival age {age} ticks, battle slot {s})");
@@ -75,18 +61,16 @@ internal sealed partial class KillTracker
         }
     }
 
-    /// <summary>Pending-hole extension (adversarial-review finding 6): a corpse whose edge falls with
-    /// an EMPTY latch would otherwise go pending and later credit from a possibly-stale future latch;
-    /// a fresh nonempty hypothesis stamps the killer now. No hypothesis / empty hypothesis = today's
-    /// behavior (pending) exactly.</summary>
+    /// <summary>A corpse whose edge falls with an empty latch would go pending and credit from a
+    /// possibly stale later latch; a fresh nonempty hypothesis stamps the killer now instead.</summary>
     private void StampCulpritFromHypothesisOnly(int s)
     {
-        if (!_periodOpen) return;   // THE PERIOD GATE -- rationale on StampCulprit above
+        if (!_periodOpen) return;   // period gate, see StampCulprit
         if (!_killerStamp.TryHypothesis(_lastResolveTick, out var hypW, out ushort hypName, out int age,
                                          out bool viaFlags, out _, out byte moved)) return;
         if (hypW.Count == 0) return;
         _lethalActor[s] = hypW;
-        _lethalViaFallback[s] = false;   // pointer- or flags-derived, never a fallback resolve
+        _lethalViaFallback[s] = false;   // pointer- or flags-derived
         string tape = viaFlags ? $" src=flags t=1 m={moved} a=1" : "";
         ModLogger.EventWithTrace(LogVerb.Credit,
             $"{(viaFlags ? "The turn-flags lane" : "The actor register")} identified the killer where no actor was latched; crediting {string.Join(", ", hypW.ConvertAll(LogNames.Weapon))}.",
@@ -94,29 +78,19 @@ internal sealed partial class KillTracker
         _recorder?.Invoke("kill", $"stamp-register-nolatch slot={s} register=[{string.Join(",", hypW)}] nameId={hypName} age={age}{tape}");
     }
 
-    /// <summary>Death-edge culprit stamp (empty-latch path, LW-1): the sibling of <see cref="StampCulprit"/>
-    /// for the callsite where the acted-period latch resolved EMPTY (KillTracker.Corpses.cs's
-    /// _latchResolvedEmpty && _latched branch). _lastPlayerWeapons is empty here by construction
-    /// (the callsite is the else-if after the Count &gt; 0 check), so Policy.Decide degenerates to:
-    /// no hypothesis, bury (today's Latch outcome); a fresh hypothesis that is ALSO empty, bury
-    /// (SameSet of two empties is a Latch outcome too, so a dancer or unarmed guest is her own
-    /// empty hypothesis and stays uncredited by design); a fresh, differing, ARMED hypothesis,
-    /// Register override (the one recovered case: Boco's Phoenix Down kill, live-confirmed
-    /// 2026-07-05). The StampKind.Bury outcome itself is unreachable here (it requires a nonempty
-    /// latch), so every non-Register outcome maps to today's ActedLatch bury, keeping behavior
-    /// byte-identical except for that one recovered case. THE PERIOD GATE mirrors the sibling
-    /// sites exactly: a closed period keeps today's bury. Doctrine: miss beats mis-credit, this
-    /// site can only turn a miss into a credit backed by a strictly fresher register arrival,
-    /// never invent one from stale state.</summary>
+    /// <summary>Death-edge stamp for the empty-latch path, where the acted-period latch
+    /// resolved empty (KillTracker.Corpses.cs, _latchResolvedEmpty &amp;&amp; _latched). Only a fresh,
+    /// differing, armed register hypothesis overrides (Boco's Phoenix Down kill, 2026-07-05);
+    /// every other outcome keeps the ActedLatch bury. A closed period keeps the bury too.</summary>
     private void StampCulpritFromEmptyLatch(int s)
     {
-        if (!_periodOpen) { _lethalUntracked[s] = UntrackedReason.ActedLatch; return; }   // THE PERIOD GATE
+        if (!_periodOpen) { _lethalUntracked[s] = UntrackedReason.ActedLatch; return; }   // closed period
         bool has = _killerStamp.TryHypothesis(_lastResolveTick, out var hypW, out ushort hypName, out int age,
                                                out bool viaFlags, out _, out byte moved);
         if (KillerStamp.Policy.Decide(_lastPlayerWeapons, has, hypW) == KillerStamp.StampKind.Register)
         {
-            _lethalActor[s] = hypW;   // fresh list from HandsFromRoster, never an alias into register state
-            _lethalViaFallback[s] = false;   // pointer- or flags-derived, never a fallback resolve
+            _lethalActor[s] = hypW;   // fresh list from HandsFromRoster, not an alias into register state
+            _lethalViaFallback[s] = false;   // pointer- or flags-derived
             string tape = viaFlags ? $" src=flags t=1 m={moved} a=1" : "";
             ModLogger.EventWithTrace(LogVerb.Credit,
                 $"Corrected a burial: {(viaFlags ? "the turn-flags lane" : "the actor register")} names an armed killer during an unarmed actor's turn; crediting {string.Join(", ", hypW.ConvertAll(LogNames.Weapon))} instead of leaving the kill uncredited.",

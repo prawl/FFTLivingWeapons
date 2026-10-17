@@ -3,27 +3,22 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// Venombolt's "Plague" signature: while a +3 Venombolt is equipped and the wielder's action
-/// poisons an enemy (poison bit edges false->true during the acted window), that enemy's poison
-/// NEVER expires and ticks harder. Mechanism PROVEN live (memory poison-status-bytes): holding
-/// bit +0x48/0x80 survived a two-healer battle at 1.75x rate.
+/// Venombolt's "Plague" signature: with a +3 Venombolt equipped, an enemy the wielder poisons
+/// keeps that poison forever and takes extra damage each turn. Mechanism: memory
+/// poison-status-bytes (holding bit +0x48/0x80 survived a two-healer battle at 1.75x rate).
 ///
-/// DETECTION: per-band-slot poison baseline is updated EVERY tick (so pre-existing poison is
-/// excluded -- a unit first seen poisoned has no edge). A victim latches when its poison-bit
-/// RISING EDGE and the wielder's acted window land within Tuning.PlagueGraceMs of each other,
-/// in either order: the engine applies poison during attack resolution, which can precede the
-/// observed window or trail it, so exact overlap missed real procs live (2026-06-10).
-/// Enemies identified by static-array fingerprint.
-/// HOLD: each tick re-OR the poison bit and re-pin the timer to 36 whenever it reads below
-/// init -- defeats both natural expiry and healer cures. Fingerprint mismatch drops the latch.
-/// AUGMENT: on each victim turn edge (CT >= 90 then &lt; 70, reading band +0x09), apply
-/// mhp*3/32 extra damage to +0x14 as a single 2-byte write, floored at 1 (the augment
-/// never kills; engine owns lethal).
-/// RELEASE: ResetBattle clears all latches; roster no longer holds 80 drops all latches;
-/// fingerprint mismatch on read drops that specific latch.
-/// LIVE GATE: when !inLive, no writes and no new latching (latches persist in memory;
-/// ResetBattle still clears them at the debounced exit).
-/// All reads/writes VirtualQuery-guarded.
+/// Detect: a per-slot poison baseline updates every tick, so pre-existing poison has no edge. A
+/// victim latches when its poison rising edge and the wielder's acted window fall within
+/// Tuning.PlagueGraceMs, in either order (the engine can apply poison before or after the
+/// observed window; exact overlap missed real procs, 2026-06-10). Enemies are matched by
+/// static-array fingerprint.
+/// Hold: each tick re-OR the poison bit and re-pin the timer to 36 when below init, which beats
+/// expiry and healer cures.
+/// Augment: on each victim turn edge (CT &gt;= 90 then &lt; 70, band +0x09) write mhp*3/32 extra
+/// damage to +0x14 as one 2-byte write, floored at 1 (never lethal).
+/// Release: ResetBattle clears all latches; a roster without id 80 drops them; a fingerprint
+/// mismatch drops that latch. Outside live battle there are no writes or new latches.
+/// All access is VirtualQuery-guarded.
 /// </summary>
 internal sealed partial class Plague : ISignature
 {
@@ -74,12 +69,10 @@ internal sealed partial class Plague : ISignature
         bool windowRecent = WithinGrace(_lastActiveMs, now, Tuning.PlagueGraceMs);
         if (ActivationEdge.Step(ref _wasActive, active))
         {
-            // Demoted to Debug (log facelift): two lines per Venombolt action is acted-window
-            // chatter, evidence rather than match report.
             ModLogger.Debug(LogVerb.Signature, $"plague window {(active ? "opened: poison landing on the wielder's target during this window latches" : "closed")}");
         }
 
-        // Release all latches immediately when Venombolt is unequipped (A4 unequip release).
+        // Release all latches when Venombolt is unequipped (A4).
         if (inLive && !IsEquipped()) { _state.Clear(); }
 
         // Fingerprints are needed for as long as a grace-window latch is still possible.
@@ -87,19 +80,15 @@ internal sealed partial class Plague : ISignature
 
         for (int s = 0; s < Offsets.BandSlots; s++)
         {
-            // LW-149: shared sanity read/bounds extracted to Band.TryReadUnit (Band.Sanity.cs)
-            // -- this loop was one of seven verbatim copies (Ricochet/Larceny/Maim/Kobu/
-            // Benediction/Puppeteer). Plague reads no HP here, so it uses the no-hp overload.
+            // Shared read/bounds in Band.TryReadUnit (Band.Sanity.cs); no hp read here.
             if (!Band.TryReadUnit(_mem, s, out long addr, out var fp)) continue;
             bool poisoned = _mem.Readable(addr + Offsets.APoison, 1)
                             && (_mem.U8(addr + Offsets.APoison) & Offsets.APoisonBit) != 0;
 
-            // A1: update baseline EVERY tick, BEFORE the latch decision (stamps edge times).
             _baseline.Update(addr, fp, poisoned, now);
 
             if (_state.IsHeldAt(addr))
             {
-                // Re-verify the held fingerprint via VerifyOrReanchor (re-anchors a drift).
                 if (!VerifyOrReanchor(addr, _state.FpAt(addr), fp)) { _state.ReleaseAt(addr); continue; }
 
                 int ct = _mem.Readable(addr + Offsets.ACtTurn, 1) ? _mem.U8(addr + Offsets.ACtTurn) : 0;
@@ -110,9 +99,8 @@ internal sealed partial class Plague : ISignature
             if (!inLive || enemyFps is null) continue;
             bool enemy = enemyFps.Contains(fp);
 
-            // Latch when the poison edge and the acted window overlap within the grace,
-            // in either order (the engine sets the bit during attack resolution, which can
-            // precede or trail the observed window).
+            // Latch when the poison edge and the acted window fall within the grace, in either
+            // order (the engine sets the bit during attack resolution).
             if (ShouldLatchNow(enemy, _state.IsHeldAt(addr), _baseline.LastEdgeMs(addr, fp),
                                _lastActiveMs, now, Tuning.PlagueGraceMs))
             {
@@ -125,16 +113,15 @@ internal sealed partial class Plague : ISignature
         Drive(inLive);
     }
 
-    /// <summary>Hold all latched victims each tick: re-OR poison bit, re-pin timer.
-    /// When <paramref name="inLive"/> is false, skips writes (A3).</summary>
+    /// <summary>Hold all latched victims each tick: re-OR the poison bit, re-pin the timer.
+    /// Skips writes when <paramref name="inLive"/> is false (A3).</summary>
     private void Drive(bool inLive)
     {
         var toDrop = new List<long>();
         foreach (long addr in _state.HeldAddrs)
         {
-            // Off-field path (Tick's onField=false branch calls Drive directly, with no
-            // band-loop pass): VerifyOrReanchor covers this path too. Drop the latch only
-            // when the unit truly left / battle reset.
+            // Also covers the off-field path, where no band loop ran. Drop only when the
+            // unit left or the battle reset.
             if (!_mem.Readable(addr + Offsets.AMaxHp, 2)) { toDrop.Add(addr); continue; }
             int mhp = _mem.U16(addr + Offsets.AMaxHp), lvl = _mem.U8(addr + Offsets.ALevel);
             int br = _mem.U8(addr + Offsets.ABrave), fa = _mem.U8(addr + Offsets.AFaith);
@@ -146,11 +133,8 @@ internal sealed partial class Plague : ISignature
         foreach (long addr in toDrop) _state.ReleaseAt(addr);
     }
 
-    /// <summary>Verify a held victim's stored fingerprint against a freshly observed one; an
-    /// accepted mid-battle drift (LW-92) re-anchors the store instead of dropping the hold.
-    /// Extracted from the on-field verify and Drive's own per-tick verify, which duplicated
-    /// this SameVictim/RelatchFp/log block verbatim. False (drop) on a genuine mismatch; the
-    /// caller applies its own drop side effect, since the two sites react differently.</summary>
+    /// <summary>Check a held victim's stored fingerprint against a fresh one; a mid-battle level-up
+    /// drift re-anchors the hold. False on a genuine mismatch; the caller drops the latch.</summary>
     private bool VerifyOrReanchor(long addr, (int mhp, int lvl, int br, int fa) captured,
                                   (int mhp, int lvl, int br, int fa) current)
     {
@@ -161,13 +145,10 @@ internal sealed partial class Plague : ISignature
         return true;
     }
 
-    /// <summary>Enemy fingerprints from the static array (mirrors Maim / EagleEye).
-    /// NOT Band.EnemyFingerprints: this scan's own mhp bound (IsValidEnemyMhp, &lt;= 1999) reads a
-    /// DIFFERENT array (the static enemy array, not the band) than Tick's band walk, so it stays
-    /// its own check. The two bounds coincide numerically (LW-145 fix 6 aligned the band walk to
-    /// the same &gt;= 2000 reject) but stay deliberately un-unified: whether exactly 2000 is a
-    /// valid mhp is an OPEN owner row in docs/LIVE_LEDGER.md, so do not fold these checks
-    /// together without the owner's live probe settling it.</summary>
+    /// <summary>Enemy fingerprints from the static array (as Maim / EagleEye). Not
+    /// Band.EnemyFingerprints, because this reads the static enemy array with its own mhp bound
+    /// (IsValidEnemyMhp, &lt;= 1999). The bounds match numerically (LW-145 fix 6) but stay separate
+    /// until the open row in docs/LIVE_LEDGER.md settles whether exactly 2000 is a valid mhp.</summary>
     private System.Collections.Generic.HashSet<(int mhp, int lvl, int br, int fa)> EnemyFingerprints()
     {
         var set = new System.Collections.Generic.HashSet<(int, int, int, int)>();
@@ -183,12 +164,10 @@ internal sealed partial class Plague : ISignature
         return set;
     }
 
-    /// <summary>True when any roster slot holds Venombolt (id 80) in RRHand or ROffHand -- NOT
-    /// RLHand, Plague's own historical hand set (LW-149: preserved caller-side, not "fixed"; see
-    /// PlagueTests' left-hand-only pin). Occupancy rides Wielder's shared LENIENT walk
-    /// (Wielder.Occupancy.cs, Readable(RNameId,2)-only, no level gate -- byte-identical to the
-    /// loop this replaced). Internal (widened from private) so the ghost-row pin can call it
-    /// directly instead of driving the whole Tick pipeline.</summary>
+    /// <summary>True when any roster slot holds Venombolt (id 80) in RRHand or ROffHand, not RLHand
+    /// (Plague's historical hand set, pinned by PlagueTests' left-hand-only test). Uses
+    /// Wielder's lenient occupancy walk (Wielder.Occupancy.cs). Internal so the ghost-row test
+    /// can call it directly.</summary>
     internal bool IsEquipped()
     {
         for (int r = 0; r < Offsets.RosterSlots; r++)

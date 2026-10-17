@@ -1,23 +1,18 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// Counts a unit's COMPLETED turns off its OWN scheduler CT (band entry
-/// +<see cref="Offsets.ACtTurn"/> = 0x09, the READ-PROVEN byte -- NOT +0x25 which is the
-/// ExtraTurn WRITE target): a turn = CT seen at/above <see cref="TurnHi"/> (the turn came)
-/// followed by CT below <see cref="TurnLo"/> (it was taken) -- Maim's victim-turn discipline
-/// (proven live). Pure and per-unit, so it is immune to the global acted-edge attribution that
-/// stalled the original TurnTracker-based expiry live (every edge credited one fingerprint;
-/// the active struct follows the CURSOR, not the turn owner). Spiritual Font's moved-turn edge
-/// rides this clock.
+/// Counts a unit's completed turns from its own scheduler CT (band entry +<see cref="Offsets.ACtTurn"/> = 0x09,
+/// not +0x25, which is the ExtraTurn write target). A turn is CT at or above <see cref="TurnHi"/> followed by
+/// CT below <see cref="TurnLo"/>, the same check Maim uses for victim turns. Per-unit, so it avoids the global
+/// acted-edge attribution that stalled the old TurnTracker expiry (the active struct follows the cursor, not the turn owner).
+/// Spiritual Font's moved-turn edge uses this clock.
 /// </summary>
 internal sealed class CtTurns
 {
     public const int TurnHi = 90;
     public const int TurnLo = 70;
 
-    /// <summary>The stateless form of the same probe, for callers that carry their own lastCt:
-    /// a completed turn = CT was (near-)full and has since reset notably lower. Used by the
-    /// Maim/Plague victim-turn counters (one definition; the thresholds above).</summary>
+    /// <summary>Stateless form for callers that keep their own lastCt. Used by the Maim and Plague victim-turn counters.</summary>
     public static bool IsTurn(int lastCt, int curCt) => lastCt >= TurnHi && curCt < TurnLo;
 
     private bool _up;

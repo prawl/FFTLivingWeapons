@@ -1,56 +1,40 @@
 namespace LivingWeapon;
 
-/// <summary>
-/// The pure decisions behind Venombolt's "Plague" signature -- no memory access.
-/// The stateful latch, hold loop, and augment writes live in Plague.cs.
-/// </summary>
+/// <summary>Pure decisions for Venombolt's Plague signature. The latch, hold loop and augment writes are in Plague.cs.</summary>
 internal sealed partial class Plague
 {
-    /// <summary>True when the struck/detected unit is an enemy (never latch allies).</summary>
+    /// <summary>True for an enemy; allies are never latched.</summary>
     public static bool ShouldLatch(bool isEnemy) => isEnemy;
 
-    /// <summary>The full latch decision: an enemy, not already held, whose poison edge and the
-    /// wielder's acted window overlap within the grace -- in EITHER order. The engine applies
-    /// poison during attack resolution, which can precede the observed acted window (actor
-    /// resolution lag) or follow it (animation tail); requiring exact overlap missed real procs
-    /// live (a chocobo cleansed a "permanent" poison because the latch never fired). Third-party
-    /// poison stays excluded: an edge with no window within the grace never latches, and
-    /// pre-existing poison has no edge at all.</summary>
+    /// <summary>Latch an unheld enemy when the poison edge and the wielder's acted window both fall
+    /// within the grace, in either order. Poison lands during attack resolution, which can come
+    /// before the acted window (actor lag) or after it (animation tail). Third-party and
+    /// pre-existing poison never latch.</summary>
     public static bool ShouldLatchNow(bool isEnemy, bool held, long lastEdgeMs, long lastActiveMs,
                                       long now, long graceMs)
         => isEnemy && !held && WithinGrace(lastEdgeMs, now, graceMs)
            && WithinGrace(lastActiveMs, now, graceMs);
 
-    /// <summary>True when an event timestamp is recent enough to count. Sentinel timestamps
-    /// (the "never happened" half-range negatives) always fail.</summary>
+    /// <summary>True when the event is within the grace. The "never happened" sentinel timestamps fail.</summary>
     public static bool WithinGrace(long eventMs, long now, long graceMs)
         => eventMs > long.MinValue / 4 && now - eventMs <= graceMs;
 
-    /// <summary>Bound on how much a held victim's maxHp may grow between re-verify checks and
-    /// still count as the SAME unit rather than a different one occupying the slot. The
-    /// 2026-07-14 live capture (LW-92) showed +4 maxHp for a single level (95 to 96, brave/faith
-    /// unchanged); sized generously against Band.MaxLevelDrift's whole allowed level budget at
-    /// 25 maxHp per level of drift, while staying far below the gap between two DIFFERENT
-    /// units' typical maxHp.</summary>
+    /// <summary>Largest maxHp growth that still counts as the same victim. The 2026-07-14 capture
+    ///  saw +4 for one level; this allows 25 per level across Band.MaxLevelDrift.</summary>
     public const int MaxHpGrowthPerLatch = Band.MaxLevelDrift * 25;
 
-    /// <summary>True when a re-verified fingerprint still identifies the SAME held victim, even
-    /// though a mid-battle level-up has drifted its level and maxHp upward (LW-92, live capture
-    /// 2026-07-14: level 95 to 96, maxHp 449 to 453, brave/faith unchanged). Brave and faith
-    /// never drift, so they stay an exact match; level is bounded by Band.MaxLevelDrift (up-only,
-    /// the same rule the credit path already uses) and maxHp by MaxHpGrowthPerLatch (up-only).
-    /// An identical tuple always satisfies this, so exact-match callers can use it unconditionally.</summary>
+    /// <summary>True when the fingerprint still matches the held victim after a mid-battle level-up
+    /// (LW-92, 2026-07-14: level 95 to 96, maxHp 449 to 453). Brave and faith match exactly; level
+    /// is bounded by Band.MaxLevelDrift and maxHp by MaxHpGrowthPerLatch, both up-only.</summary>
     public static bool SameVictim((int mhp, int lvl, int br, int fa) captured, (int mhp, int lvl, int br, int fa) current)
         => current.br == captured.br && current.fa == captured.fa
            && Band.LevelMatchesRoster(captured.lvl, current.lvl)
            && current.mhp >= captured.mhp && current.mhp - captured.mhp <= MaxHpGrowthPerLatch;
 
-    /// <summary>True when the poison timer should be re-pinned (reads below the initial value,
-    /// meaning the engine has ticked it down or a cure/expiry is in progress).</summary>
+    /// <summary>True when the timer has dropped below its initial value and needs re-pinning.</summary>
     public static bool ShouldRepin(int timer, byte init) => timer < init;
 
-    /// <summary>Apply the augment: reduce <paramref name="hp"/> by mhp*3/32 (floor 1),
-    /// returning the new HP. The augment NEVER kills; the engine owns lethal damage.</summary>
+    /// <summary>Returns <paramref name="hp"/> reduced by mhp*3/32 (at least 1), floored at 1 HP so the augment cannot kill.</summary>
     public static int AugmentDamage(int mhp, int hp)
     {
         int dmg = mhp * Tuning.PlagueExtraDamageNum / Tuning.PlagueExtraDamageDen;
@@ -59,32 +43,22 @@ internal sealed partial class Plague
         return next < 1 ? 1 : next;
     }
 
-    /// <summary>True when an mhp value belongs to a real combat unit. Serves EnemyFingerprints
-    /// only (the static enemy array scan below) -- the band-loop filter in Plague.cs's Tick
-    /// carries its own inline copy of the same shared sibling bound (see the comment at
-    /// Plague.cs:96) rather than calling this method. The two bounds coincide numerically but
-    /// stay DELIBERATELY separate checks (LW-149 unified other seams and left this one alone):
-    /// whether exactly 2000 is a valid mhp is an OPEN owner row in docs/LIVE_LEDGER.md
-    /// (Band.EnemyFingerprints accepts 2000 inclusive; this bound rejects it). Do not align the
-    /// two without the owner's live probe settling that row.</summary>
+    /// <summary>True when mhp looks like a real combat unit. Used by EnemyFingerprints only; the
+    /// band loop in Plague.cs:96 keeps its own inline copy of the bound (LW-149 left this seam
+    /// alone). Whether mhp 2000 is valid is an open row in docs/LIVE_LEDGER.md
+    /// (Band.EnemyFingerprints accepts it, this rejects it), so do not align them yet.</summary>
     public static bool IsValidEnemyMhp(int mhp) => mhp >= 1 && mhp <= 1999;
 
-    /// <summary>Drive the held poison state for one victim: re-OR the poison bit and re-pin
-    /// the timer if it has slipped below init. Fingerprint must be verified by the caller
-    /// before invoking; mismatches are handled in the main tick loop.
-    /// When <paramref name="inLive"/> is false, all writes are suppressed.
-    /// Exposed for pinned-buffer unit tests.</summary>
+    /// <summary>Re-sets the poison bit and re-pins the timer for one held victim. No writes when
+    /// <paramref name="inLive"/> is false. Exposed for pinned-buffer tests.</summary>
     public static void DriveOne(IGameMemory mem, long addr, (int mhp, int lvl, int br, int fa) fp,
                                 PlagueState state, bool inLive = true)
     {
-        // Verify fingerprint at the stored address before writing (LW-153: the shared
-        // same-unit write-safety verify; the LW-92 drift ACCEPTANCE is the caller's
-        // VerifyOrReanchor lane, which re-anchors fp before this exact check runs).
+        // LW-153 same-unit check. LW-92 drift is handled earlier by the caller's VerifyOrReanchor.
         if (!Band.SameUnitAtExact(mem, addr, fp)) return;
 
         if (!inLive) return;   // A3: no writes during debounce tail / post-battle
 
-        // Re-OR the poison bit.
         long poisonAddr = addr + Offsets.APoison;
         if (mem.Writable(poisonAddr, 1))
         {
@@ -93,7 +67,6 @@ internal sealed partial class Plague
                 mem.W8(poisonAddr, (byte)(cur | Offsets.APoisonBit));
         }
 
-        // Re-pin the timer if it has decayed below init.
         long timerAddr = addr + Offsets.APoisonTimer;
         if (mem.Readable(timerAddr, 1) && ShouldRepin(mem.U8(timerAddr), Tuning.PoisonTimerInit))
         {
@@ -102,15 +75,14 @@ internal sealed partial class Plague
         }
     }
 
-    /// <summary>Write the augment damage to +HP as a single 2-byte little-endian WriteBytes so
-    /// the engine can never read a torn (partially-written) HP value. The augment NEVER kills.
-    /// Exposed for pinned-buffer unit tests.</summary>
+    /// <summary>Writes the augmented HP as one 2-byte WriteBytes so the engine never reads a torn value.
+    /// Exposed for pinned-buffer tests.</summary>
     public static void ApplyAugment(IGameMemory mem, long addr, (int mhp, int lvl, int br, int fa) fp)
     {
         long hpAddr = addr + Offsets.AHp;
         if (!mem.Readable(hpAddr, 2)) return;
         int hp = mem.U16(hpAddr);
-        if (hp <= 0) return;   // already dead / KO'd; don't touch
+        if (hp <= 0) return;   // already KO'd
         int next = AugmentDamage(fp.mhp, hp);
         if (!mem.Writable(hpAddr, 2)) return;
         mem.WriteBytes(hpAddr, new byte[] { (byte)(next & 0xFF), (byte)((next >> 8) & 0xFF) });

@@ -4,18 +4,12 @@ using System.Linq;
 namespace LivingWeapon;
 
 /// <summary>
-/// C10 (round 2): split out of IconCacheHide.cs once C3 (refused-write reasons) and C8 (the
-/// early-out + its class doc) pushed that file past the 200-line trigger. The real seam: that
-/// file decides WHAT to hide (the sweep, classification, the coupling rule, reporting); this one
-/// is purely HOW a single already-resolved record gets overwritten and re-verified.
+/// Overwrites one already-resolved cache record. Split out of IconCacheHide.cs, which decides what to hide.
 /// </summary>
 internal sealed partial class IconCacheHide
 {
-    /// <summary>Re-verifies right before writing (classification can go stale by then), writes
-    /// through Writable+WriteBytes, then reads back and requires an exact match -- any mismatch
-    /// refuses instead of risking a half-write (D5). <paramref name="reason"/> (A3-9) names which
-    /// of the three ways this can refuse actually happened, for the Refused warn line -- "" on
-    /// success.</summary>
+    /// <summary>Re-verifies, writes via Writable+WriteBytes, then reads back and refuses on any mismatch.
+    /// <paramref name="reason"/> says why a write was refused ("" on success).</summary>
     private bool TryHideRecord(long holderAddr, long stringAddr, int fieldOffset, int headSize,
         Func<byte[], bool> passes, out string reason)
     {
@@ -46,7 +40,7 @@ internal sealed partial class IconCacheHide
             BitConverter.ToInt64(head, IconCacheHidePolicy.TexSizeOffset) == expectedLength &&
             BitConverter.ToUInt32(head, IconCacheHidePolicy.TexHashOffset) == expectedHash, out reason);
 
-    // Zeros the id at +8 only -- never +0xC, which is uncharacterized (D5).
+    // Zeros the id at +8 only; +0xC is uncharacterized.
     private bool TryHidePartsEntry(long holderAddr, long stringAddr, uint expectedId, out string reason) =>
         TryHideRecord(holderAddr, stringAddr, IconCacheHidePolicy.PartsIdOffset, IconCacheHidePolicy.PartsHeadSize, head =>
             BitConverter.ToUInt32(head, IconCacheHidePolicy.PartsIdOffset) == expectedId &&

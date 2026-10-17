@@ -3,65 +3,49 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// The pure decisions behind Yoichi Bow's "Barrage" signature, plus the guarded record read/write
-/// primitives (InjectSlot/ReleaseSlot) that take memory access as a parameter rather than an
-/// instance field -- both shapes are directly unit-testable without a live Barrage. The STATEFUL
-/// wielder scan and per-instance record bookkeeping (which slot, which record, when to call these)
-/// live in Barrage.cs.
+/// Pure decisions for Yoichi Bow's Barrage signature, plus the InjectSlot/ReleaseSlot record
+/// primitives, which take memory as a parameter so they are unit-testable. The stateful wielder scan
+/// and per-instance bookkeeping live in Barrage.cs.
 ///
-/// LIVE-PROVEN layout (2026-06-10 menu session; supersedes barrage_probe.py's "msb" flag,
-/// which is whole-u16 order and WRONG -- it rendered ability 358 as Aurablast/102):
-///   Record r: flags at ABILITY_BASE + r*25 - 3 = [ExtAb byte0][ExtAb byte1][ExtRSM],
-///   then AbilityId1..16, RSMId1..6. Extend bits are MSB-first PER BYTE:
-///   byte0 = slots 1-8 (bit7 = slot 1), byte1 = slots 9-16 (bit7 = slot 9).
-///   As the LE-composed u16 (byte0 | byte1&lt;&lt;8): slot 10 = 0x4000.
-///   Anchor: Archer rec 8 = Aim+1..+8 stored as bytes 150-157 with byte0 = 0xFF (ids 406-413).
+/// Record layout (2026-06-10 menu session; barrage_probe.py's "msb" flag is whole-u16 order and wrong,
+/// it rendered 358 as Aurablast/102). Record r has flags at ABILITY_BASE + r*25 - 3 =
+/// [ExtAb byte0][ExtAb byte1][ExtRSM], then AbilityId1..16, RSMId1..6. Extend bits are MSB-first per
+/// byte (byte0 = slots 1-8, byte1 = slots 9-16), so slot 10 = 0x4000 as an LE u16. Anchor: Archer rec 8
+/// = Aim+1..+8 as bytes 150-157 with byte0 = 0xFF (ids 406-413).
 ///
-/// Job resolution (live anchors: Archer 77 -> rec 8 menu-verified; Chemist 75 -> jobIdx 1
-/// purchase-diff-verified; FFTHandsFree CharacterData roster-job dict, PSX wheel order from 74):
-///   generic band 74..92: rec = job - 69, jobIdx = job - 74, except Dancer 92 shares
-///   jobIdx 17 with Bard (records stay distinct: Bard 22, Dance 23). Mime 93 has no
-///   learnable actions; story-canonical unique jobs / monsters / Dark Knight are unmapped.
+/// Jobs (Archer 77 -> rec 8 menu-verified, Chemist 75 -> jobIdx 1 purchase-diff-verified; source is
+/// FFTHandsFree's CharacterData roster-job dict, PSX wheel order from 74). Generic band 74..92 maps to
+/// rec = job - 69, jobIdx = job - 74; Dancer 92 shares jobIdx 17 with Bard but keeps its own record
+/// (Bard 22, Dance 23). Mime 93, unique story jobs, monsters and Dark Knight are unmapped.
 /// </summary>
 internal sealed partial class Barrage
 {
-    /// <summary>Generic Thief job id (roster +0x02). A Thief's PRIMARY command is Steal
-    /// (rec 14, a normal executor), so an injected Barrage renders + casts cleanly there --
-    /// the one job proven end-to-end. Barrage is THIEF-ONLY by design (the special-executor
-    /// jobs like Archer/Aim swallow it; see SpecialExecutorJobs). The card states "Thief Only".</summary>
+    /// <summary>Generic Thief job id (roster +0x02). Thief's primary command is Steal (rec 14), a normal
+    /// executor, so an injected Barrage casts cleanly there. Special-executor jobs swallow it (see
+    /// SpecialExecutorJobs).</summary>
     public const int ThiefJob = 83;
 
-    /// <summary>The JobCommand record id for Steal (Thief's primary command). Used as the
-    /// injection target and as the secondary-slot eligibility check: a unit with Steal mounted
-    /// as a secondary command is also eligible for the grant.</summary>
+    /// <summary>JobCommand record id for Steal; the injection target and the secondary-slot eligibility check.</summary>
     public const int ThiefRecord = 14;
 
     /// <summary>True when the signature is configured (GrantCommandAbilityId set) and the kill tier is earned.</summary>
     public static bool IsActive(WeaponSignature? sig, int tier)
         => Signatures.Earned(sig, tier) && sig!.GrantCommandAbilityId > 0;
 
-    /// <summary>A wielder qualifies for the Barrage grant when Thief is the primary job
-    /// (job 83) OR Steal is the mounted secondary command (secondary record == 14). Enforces the
-    /// card's "Thief Only" promise in code. Injection does NOT always target rec 14 -- see the
-    /// correction on <see cref="TryResolveGrant"/>: a normal-executor primary other than Thief
-    /// (e.g. a Knight) that merely has Steal mounted as its secondary still resolves via its OWN
-    /// primary record, not Steal's.</summary>
+    /// <summary>A wielder qualifies when Thief is the primary job (83) or Steal is the mounted
+    /// secondary (record 14). Matches the card's "Thief Only" text. See <see cref="TryResolveGrant"/>
+    /// for where the injection actually lands.</summary>
     public static bool IsEligibleWielder(int job, int secondaryRecord)
         => job == ThiefJob || secondaryRecord == ThiefRecord;
 
-    /// <summary>Jobs whose PRIMARY command is a special-cased executor that silently drops
-    /// foreign ability ids at confirm time (the menu label renders, targeting/preview show
-    /// positional basic-attack cosmetics, execution no-ops). OBSERVED LIVE for Aim 2026-06-10:
-    /// 358/102/146 all swallowed from rec 8 slots 1/9/10/11 on two units; the id whitelist is
-    /// code-side (no writable tier table found). Jump shares Aim's tier-row structure; Items/
-    /// Throw consult inventory; Arithmeticks has a bespoke picker — excluded conservatively.
-    /// Future Archer path: the +0x07 secondary-command route (bypasses the primary executor).</summary>
+    /// <summary>Jobs whose primary command is a special executor that silently drops foreign ability
+    /// ids at confirm time (label renders, execution no-ops). Seen for Aim 2026-06-10, where 358/102/146
+    /// were swallowed from rec 8 slots 1/9/10/11. Jump shares Aim's structure; Items/Throw read
+    /// inventory; Arithmeticks has its own picker. A future Archer path is the +0x07 secondary route.</summary>
     private static readonly int[] SpecialExecutorJobs = { 75, 77, 87, 89, 90 }; // Chemist, Archer, Dragoon, Ninja, Arithmetician
 
-    /// <summary>Resolve a roster job byte (+0x02) to its JobCommand record id and its
-    /// learned-bitfield jobIdx. Only the generic band 74..92 is mapped, MINUS the
-    /// special-executor jobs; Mime (93, nothing learnable), story-canonical unique jobs,
-    /// monsters, and Dark Knight return false.</summary>
+    /// <summary>Resolve a roster job byte (+0x02) to its JobCommand record id and learned-bitfield
+    /// jobIdx. Maps band 74..92 minus the special-executor jobs; everything else returns false.</summary>
     public static bool TryResolveJob(int job, out int recId, out int jobIdx)
     {
         recId = -1;
@@ -73,11 +57,9 @@ internal sealed partial class Barrage
         return true;
     }
 
-    /// <summary>Resolve a SECONDARY command record (roster +0x07 holds the JobCommand rec id
-    /// directly — live-read 14 with Steal mounted) to its learned jobIdx. Only normal-executor
-    /// records are grantable: the generic wheel recs minus Items 6 / Aim 8 / Jump 18 / Throw 20
-    /// / Arithmeticks 21 / Mime 24, plus the Mettle variants 25-27 (jobIdx 0; Mettle executed
-    /// 358 in the morning proof).</summary>
+    /// <summary>Resolve a secondary command record (roster +0x07 holds the JobCommand rec id) to its
+    /// learned jobIdx. Normal-executor records only: recs 5..23 minus Items 6, Aim 8, Jump 18, Throw 20,
+    /// Arithmeticks 21, plus the Mettle variants 25-27 (jobIdx 0; Mettle executed 358).</summary>
     public static bool TryResolveSecondary(int secondaryRec, out int jobIdx)
     {
         jobIdx = -1;
@@ -88,18 +70,11 @@ internal sealed partial class Barrage
         return true;
     }
 
-    /// <summary>The grant target for a wielder: the PRIMARY job's record when it's a normal
-    /// executor; otherwise fall back to the mounted SECONDARY command's record (LIVE-PROVEN
-    /// 2026-06-10: Barrage cast from Steal mounted as an Archer's secondary). False when
-    /// neither is grantable (e.g. Archer with Items secondary, or no secondary).
-    ///
-    /// NOTE this does NOT always land in rec 14 (Steal): that is only true for a Thief PRIMARY
-    /// (whose own record IS Steal) or a special-executor primary (e.g. Archer) falling back to a
-    /// Steal secondary. A normal-executor primary that merely has Steal MOUNTED as its secondary
-    /// (e.g. a Knight with Steal secondary, eligible via IsEligibleWielder's OR) resolves via its
-    /// OWN primary record instead -- Knight lands in rec 7, ignoring the mounted Steal entirely.
-    /// This is exactly how Barrage and ShadowBlade can end up sharing a record (both Knights):
-    /// see Barrage.Policy.ReleaseSlot / InjectSlot for why that is now safe.</summary>
+    /// <summary>Grant target for a wielder. Uses the primary job's record when it is a normal executor,
+    /// else the mounted secondary's record (cast from Steal as an Archer's secondary, 2026-06-10).
+    /// False when neither is grantable. The record is rec 14 (Steal) only for a Thief or for a
+    /// special-executor primary falling back to Steal. A Knight with Steal secondary resolves to its own
+    /// rec 7, so Barrage and ShadowBlade can share a record (see ReleaseSlot / InjectSlot).</summary>
     public static bool TryResolveGrant(int job, int secondaryRec, out int recId, out int jobIdx, out bool viaSecondary)
     {
         viaSecondary = false;
@@ -114,9 +89,8 @@ internal sealed partial class Barrage
         return false;
     }
 
-    /// <summary>Find the first empty action slot in a 16-byte ability array, paired with an
-    /// ExtAb u16 (LE-composed). A slot is empty when its byte is 0 AND its extend bit is 0
-    /// (byte 0 + extend bit = ability 256). Returns the 1-indexed slot (1..16) or -1.</summary>
+    /// <summary>First empty slot (1..16) or -1. A slot is empty when its byte is 0 and its extend bit
+    /// is clear (byte 0 with the bit set is ability 256).</summary>
     public static int FindEmptySlot(byte[] abilityBytes, ushort extAb)
     {
         for (int i = 0; i < 16; i++)
@@ -129,43 +103,32 @@ internal sealed partial class Barrage
     /// <summary>The byte value for the given ability id (low 8 bits).</summary>
     public static byte SlotByte(int abilityId) => (byte)(abilityId & 0xFF);
 
-    /// <summary>The extend bit for slot i (0-indexed) in the LE-composed ExtAb u16.
-    /// MSB-first PER BYTE: byte0 = slots 1-8, byte1 = slots 9-16.
-    /// Slot 1 (i=0) -> 0x0080, slot 9 (i=8) -> 0x8000, slot 10 (i=9) -> 0x4000.</summary>
+    /// <summary>Extend bit for 0-indexed slot i in the LE-composed ExtAb u16, MSB-first per byte.
+    /// Slot 1 is 0x0080, slot 9 is 0x8000, slot 10 is 0x4000.</summary>
     public static ushort ExtendBit(int slotIdx)
         => (ushort)((0x80 >> (slotIdx % 8)) << (8 * (slotIdx / 8)));
 
-    /// <summary>True when the slot still needs injection (idempotent check): for ability 358
-    /// the byte must be 102 AND the slot's own extend bit must be set.</summary>
+    /// <summary>True when the slot still needs injection; for ability 358 the byte must be 102 and the extend bit set.</summary>
     public static bool NeedsInject(byte slotByte, ushort extAb, int slotIdx)
         => slotByte != (byte)102 || (extAb & ExtendBit(slotIdx)) == 0;
 
-    /// <summary>Byte index within the 2-byte learned action bitfield for the given 1-indexed
-    /// slot. Slots 1-8 live in byte 0; slots 9-16 in byte 1 (same shape as the extend bytes).</summary>
+    /// <summary>Byte index in the 2-byte learned bitfield for a 1-indexed slot (1-8 in byte 0, 9-16 in byte 1).</summary>
     public static int LearnedByteIndex(int slotIdx1)
         => slotIdx1 <= 8 ? 0 : 1;
 
-    /// <summary>The bitmask within the learned byte for the given 1-indexed slot, MSB-first.
-    /// Slot 9 = byte1 0x80 (live-proven: the game's own Barrage purchase targets this bit).</summary>
+    /// <summary>Bitmask within the learned byte for a 1-indexed slot, MSB-first. Slot 9 is byte1 0x80,
+    /// the bit the game's own Barrage purchase targets.</summary>
     public static byte LearnedBitMask(int slotIdx1)
         => (byte)(1 << (7 - (slotIdx1 - 1) % 8));
 
-    /// <summary>Write the ability into the given slot of a JobCommand record -- but ONLY when the
-    /// slot is empty or already holds THIS SAME ability (the write-side twin of ReleaseSlot's
-    /// verify-before-write guard, checked with the same predicate: <see
-    /// cref="ShadowBladePolicy.NeedsInject"/>'s negation). Without this, a slotIdx re-applied
-    /// without a fresh FindEmptySlot call (which BarrageState.RecId's atomicity makes rare, but
-    /// does not make impossible -- e.g. the JobCommand table rebuilding a real ability into what
-    /// was our empty slot) could silently overwrite it. Callers still gate the call itself with a
-    /// NeedsInject check (only call when a write is actually wanted); this guard is what makes a
-    /// stale call safe instead of destructive.
-    /// <paramref name="flagAddr"/> = start of the 3-byte flag prefix (ExtAb b0, ExtAb b1, ExtRSM).
-    /// <paramref name="abBase"/> = start of the 16 ability bytes (flagAddr + 3).
-    /// ORs the slot's extend bit, preserving the record's other extend bits. ALL-OR-NOTHING: both
-    /// the ability byte and the 2-byte flag word are confirmed writable before either write lands,
-    /// so a guard refusal never leaves the slot byte-cleared-but-bit-left (which would render as
-    /// ability 256, a phantom FindEmptySlot never reclaims). Returns true when the write happened,
-    /// false on refusal.</summary>
+    /// <summary>Write the ability into a JobCommand record slot, but only when the slot is empty or
+    /// already holds this ability (same predicate as ReleaseSlot's guard, <see
+    /// cref="ShadowBladePolicy.NeedsInject"/> negated). A stale slotIdx, e.g. after the JobCommand table
+    /// rebuilds a real ability into our old slot, would otherwise overwrite it.
+    /// <paramref name="flagAddr"/> is the 3-byte flag prefix (ExtAb b0, b1, ExtRSM); <paramref name="abBase"/>
+    /// is the 16 ability bytes (flagAddr + 3). ORs in the slot's extend bit and keeps the others. Both
+    /// writes are confirmed writable first, so a refusal never leaves a cleared byte with its bit set
+    /// (that renders as ability 256). Returns true when written.</summary>
     public static bool InjectSlot(IGameMemory mem, long flagAddr, long abBase, int slotIdx, int abilityId)
     {
         long byteAddr = abBase + slotIdx;
@@ -185,27 +148,15 @@ internal sealed partial class Barrage
         return true;
     }
 
-    /// <summary>Remove OUR ability from the given slot, putting it back to empty (byte 0, its own
-    /// extend bit clear) -- and ONLY that slot; every other byte in the 25-byte record is left
-    /// alone. This replaces the old whole-record restore: FindEmptySlot only ever hands out a slot
-    /// that was already empty, so putting OUR slot back to empty needs no saved snapshot, and it
-    /// cannot resurrect a DIFFERENT module's injection into the same record (see BarrageTests'
-    /// two-module collision test) or wipe an ability the player legitimately owns in another slot.
-    ///
-    /// VERIFY BEFORE WRITE: release only when the slot still holds OUR ability -- checked with
-    /// <see cref="ShadowBladePolicy.NeedsInject"/>'s negation, the SAME "does this slot already
-    /// hold ability X" predicate InjectSlot's symmetric guard uses, so release and inject can never
-    /// disagree about what "ours" means. This is load-bearing: the JobCommand table rebuilds at
-    /// boot (see Barrage.cs), so a stale slotIdx can point at a REAL ability by the time release
-    /// runs; blindly zeroing it would delete it. If the slot holds anything else -- a foreign
-    /// ability, or nothing at all -- refuse and leave the record untouched.
-    ///
-    /// ALL-OR-NOTHING: both the ability byte and the 2-byte flag word are confirmed writable before
-    /// either is written, so a guard refusal never leaves a half-released slot.
-    ///
-    /// Returns true when the release happened, false on refusal. Either way the caller forgets the
-    /// slot (BarrageState.Clear): a refusal means the slot is no longer ours to track, and
-    /// remembering it would just make every later tick fight over ground we already lost.</summary>
+    /// <summary>Put OUR slot back to empty (byte 0, its extend bit clear) and leave the rest of the
+    /// 25-byte record alone. FindEmptySlot only ever hands out a slot that was already empty, so zeroing
+    /// it is the full restore and needs no saved snapshot. It also cannot resurrect another module's
+    /// injection in the same record (see BarrageTests' two-module collision test).
+    /// Refuses unless the slot still holds our ability, using the same <see
+    /// cref="ShadowBladePolicy.NeedsInject"/> negation as InjectSlot. The JobCommand table rebuilds at
+    /// boot (see Barrage.cs), so a stale slotIdx can point at a real ability. Both writes are confirmed
+    /// writable first, so a refusal never leaves a half-released slot. Returns true when released; the
+    /// caller forgets the slot either way (BarrageState.Clear).</summary>
     public static bool ReleaseSlot(IGameMemory mem, long flagAddr, long abBase, int slotIdx, int abilityId)
     {
         long byteAddr = abBase + slotIdx;

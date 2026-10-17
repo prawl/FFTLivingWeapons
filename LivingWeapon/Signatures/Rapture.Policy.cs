@@ -4,8 +4,7 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// The pure decisions behind Rod of Faith's "Rapture" signature -- no live state.
-/// The stateful arm/hold/expire orchestrator lives in Rapture.cs.
+/// Pure decisions for Rod of Faith's "Rapture" signature. The arm/hold/expire loop is in Rapture.cs.
 /// </summary>
 internal sealed partial class Rapture
 {
@@ -13,25 +12,22 @@ internal sealed partial class Rapture
     public static bool IsActive(WeaponSignature? sig, int tier)
         => Signatures.Earned(sig, tier) && sig!.RaptureMove;
 
-    /// <summary>Wielder resolution is main-hand-only: the weapon must be in RRHand to activate.
-    /// A Living Weapon earns kills in any hand, but commands its gift only from the main hand.</summary>
+    /// <summary>Main-hand only. The weapon earns kills in any hand but grants its gift only from RRHand.</summary>
     public const bool ActivatesOnMainHandOnly = true;
 
-    /// <summary>The HP gate, integer math (the proven Signatures.ConditionMet shape): true when
-    /// hp is strictly below pct of max. Safe false on junk maxHp.</summary>
+    /// <summary>True when hp is strictly below pct of max (integer math, as in Signatures.ConditionMet).
+    /// False on junk maxHp.</summary>
     public static bool IsBelow(int hp, int maxHp, double pct)
     {
         if (maxHp <= 0) return false;
         return hp * 100 < maxHp * (int)Math.Round(pct * 100);
     }
 
-    /// <summary>Arm only on a LIVING wielder below the threshold -- a corpse needs no teleport
-    /// (and HP 0 -&gt; the heal/revive machinery must never see our writes).</summary>
+    /// <summary>Arm only for a living wielder below the threshold. At HP 0 the heal/revive code owns the unit.</summary>
     public static bool ShouldArm(int hp, int maxHp, double pct) => hp > 0 && IsBelow(hp, maxHp, pct);
 
-    /// <summary>The 3-byte movement-field image holding ONLY the granted ability's bit (movement
-    /// is exactly-one-effective; the grant REPLACES the field, the restore brings the player's
-    /// pick back). Null when the id falls outside the movement field.</summary>
+    /// <summary>The 3-byte movement-field image with only the granted ability's bit set (movement takes
+    /// one effective bit, so the grant replaces the field). Null when the id is outside the field.</summary>
     public static byte[]? FieldFor(int moveAbilityId)
     {
         if (!Signatures.ResolveMovement(moveAbilityId, out int off, out byte mask)) return null;
@@ -40,8 +36,7 @@ internal sealed partial class Rapture
         return f;
     }
 
-    /// <summary>Read the wielder's current 3-byte movement field off its band entry
-    /// (+<see cref="Offsets.AMovement"/>). Null when unreadable (entry moved/freed).</summary>
+    /// <summary>Reads the wielder's 3-byte movement field (+<see cref="Offsets.AMovement"/>). Null when unreadable.</summary>
     public static byte[]? ReadField(IGameMemory mem, long entryAddr)
     {
         long a = entryAddr + Offsets.AMovement;
@@ -51,9 +46,8 @@ internal sealed partial class Rapture
         return f;
     }
 
-    /// <summary>Guarded write of a 3-byte movement field image to the band entry, one WriteBytes
-    /// call (LW-145 fix 2: a per-byte W8 loop opened a torn-value window). Used for both the
-    /// hold (teleport image) and the restore (saved image); fail-safe no-op.</summary>
+    /// <summary>Guarded write of a movement field image in one WriteBytes call (LW-145 fix 2: a per-byte
+    /// loop left a torn-value window). Used for both hold and restore; no-op on failure.</summary>
     public static void WriteField(IGameMemory mem, long entryAddr, byte[] field)
     {
         long a = entryAddr + Offsets.AMovement;
@@ -61,60 +55,50 @@ internal sealed partial class Rapture
         mem.WriteBytes(a, field);
     }
 
-    /// <summary>Read the granted movement bit back off the band entry -- true == SET. The
-    /// once-per-window live-test signal (Spiritual Font's verdict convention): RaptureMoveId 243
-    /// is CUT content per docs/research/FOLDABLE_ABILITIES.md, so whether the engine honors (or zeroes) its bit is
-    /// unverified; one armed window's SET/MISS in the log settles it. False for out-of-field ids.</summary>
+    /// <summary>True if the granted bit is set. RaptureMoveId 243 is cut content (docs/research/FOLDABLE_ABILITIES.md),
+    /// so the per-window SET/MISS log line settles whether the engine honors it (as with Spiritual Font).</summary>
     public static bool ReadBackSet(IGameMemory mem, long entryAddr, int moveAbilityId)
     {
         if (!Signatures.ResolveMovement(moveAbilityId, out int off, out byte mask)) return false;
         return (mem.U8(entryAddr + Offsets.AMovement + off) & mask) != 0;
     }
 
-    /// <summary>True while the band entry at <paramref name="entryAddr"/> still belongs to the
-    /// armed wielder: brave/faith (orig values, stable for the battle) must match the arm-time
-    /// fingerprint. Level is deliberately NOT checked (a mid-window level-up must not break the
-    /// hold). Band slots are FIXED addresses and units migrate between them (the Maim.Drive
-    /// same-unit discipline) -- every held write verifies this first, so a stale Addr can never
-    /// stamp the teleport image (or the restore bytes) onto a stranger. Zeroed/unreadable memory
-    /// reads 0 and safely mismatches.</summary>
+    /// <summary>True while the band entry still belongs to the armed wielder (brave/faith match arm time;
+    /// level is skipped so a level-up keeps the hold). Units migrate between fixed band slots (see
+    /// Maim.Drive), so every held write checks this first.</summary>
     public static bool SameUnit(IGameMemory mem, long entryAddr, (int lvl, int br, int fa) fp)
         => mem.U8(entryAddr + Offsets.ABrave) == fp.br && mem.U8(entryAddr + Offsets.AFaith) == fp.fa;
 
-    /// <summary>Early release: the wielder is alive and back AT/ABOVE the threshold -- the
-    /// emergency is over, their movement comes back now (and the hysteresis is satisfied by
-    /// definition). False on junk maxHp (a bad read must never release the window).</summary>
+    /// <summary>Early release when the wielder is alive and back at or above the threshold. False on
+    /// junk maxHp.</summary>
     public static bool HasRecovered(int hp, int maxHp, double pct)
         => maxHp > 0 && hp > 0 && !IsBelow(hp, maxHp, pct);
 }
 
-/// <summary>The Rapture window's latch: the saved (pre-grant) movement bytes, the turn count at
-/// arm time, and the last located band-entry address (the restore target -- entries relocate).
-/// NEVER-RE-SAVE invariant (the Maim trap): arming while held would capture our own teleport
-/// bytes and the restore would restore the grant; only the first Arm is honored.</summary>
+/// <summary>The Rapture window's latch: saved pre-grant movement bytes, turn count at arm, and the last
+/// band-entry address (the restore target). Only the first Arm counts, since re-arming while held would
+/// save our own teleport bytes (the Maim trap).</summary>
 internal sealed class RaptureState
 {
-    /// <summary>True while a window is live (saved bytes are held).</summary>
+    /// <summary>True while a window is live.</summary>
     public bool Held { get; private set; }
 
-    /// <summary>The wielder's own movement bytes, captured once at arm time.</summary>
+    /// <summary>The wielder's own movement bytes, captured at arm.</summary>
     public byte[]? SavedField { get; private set; }
 
-    /// <summary>The wielder's completed-turn count when the window armed.</summary>
+    /// <summary>The wielder's completed-turn count at arm.</summary>
     public int BaselineTurns { get; private set; }
 
-    /// <summary>The last located band-entry address (kept fresh each tick; restore target).</summary>
+    /// <summary>The last located band-entry address, refreshed each tick.</summary>
     public long Addr { get; set; }
 
-    /// <summary>The armed wielder's (level,brave,faith) -- every held write at Addr verifies
-    /// this fingerprint first (Rapture.SameUnit), so a migrated unit is never written.</summary>
+    /// <summary>The armed wielder's (level,brave,faith), checked by Rapture.SameUnit before every held write.</summary>
     public (int lvl, int br, int fa) Fp { get; private set; }
 
-    /// <summary>The image the window holds (the teleport bit, Rapture.FieldFor), fixed at
-    /// arm time like the saved bytes.</summary>
+    /// <summary>The image the window holds (Rapture.FieldFor), fixed at arm.</summary>
     public byte[]? GrantField { get; private set; }
 
-    /// <summary>Open the window. No-ops while held (never-re-save).</summary>
+    /// <summary>Open the window. No-op while held.</summary>
     public void Arm(long addr, byte[] savedField, int baselineTurns, (int lvl, int br, int fa) fp,
                     byte[] grant)
     {
@@ -127,7 +111,7 @@ internal sealed class RaptureState
         GrantField = (byte[])grant.Clone();
     }
 
-    /// <summary>Close the window (after the restore).</summary>
+    /// <summary>Close the window after the restore.</summary>
     public void Release()
     {
         Held = false;

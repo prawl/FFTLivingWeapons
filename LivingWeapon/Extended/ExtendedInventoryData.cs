@@ -17,26 +17,20 @@ internal sealed class ExtendedItemDef
     public byte[] CatalogRecord { get; init; } = Array.Empty<byte>();
     /// <summary>8-byte ITEM_WEAPON_DATA (ExtendedRecords.EncodeWeaponRow).</summary>
     public byte[] WeaponRow { get; init; } = Array.Empty<byte>();
-    /// <summary>Vanilla id every per-category accessor answers as (type probe, validity, range
-    /// index/base, the sibling accessors, the category getter).</summary>
+    /// <summary>Vanilla id every per-category accessor answers as.</summary>
     public int CloneDonor { get; init; }
     /// <summary>Vanilla id whose sprite/palette pair draws the swing.</summary>
     public int ArtDonor { get; init; }
-    /// <summary>Bag copies granted the first time the item is seen with no sidecar entry (LW-348).</summary>
+    /// <summary>Bag copies granted the first time the item is seen with no sidecar entry.</summary>
     public int SeedCount { get; init; }
-    /// <summary>ITEM_SHOPS_DATA.ShopFlags: the towns whose shop stocks it (LW-354); 0 = nowhere.</summary>
+    /// <summary>ITEM_SHOPS_DATA.ShopFlags: the towns whose shop stocks it; 0 = nowhere.</summary>
     public ushort ShopFlags { get; init; }
 }
 
 /// <summary>
-/// LW-346: reads <c>&lt;modDir&gt;/extended_inventory/{ItemData,ItemWeaponData,ItemExtendedData}.xml</c>
-/// (written by tools/generate.py from the `extended` rows of data/items.json, in the modloader's
-/// own row vocabulary) into <see cref="ExtendedItemDef"/>s. Validation is LOUD and total: any
-/// problem in any row makes <see cref="Load"/> return zero items plus the reasons, and the boot
-/// arm then does nothing (one log line), because a half-loaded catalog would hand the game a
-/// zero record for an id it was told exists. Ids must be contiguous from
-/// <see cref="ExtendedCatalog.FirstExtendedId"/> (the stubs index donors by id - 261).
-/// A missing folder is not an error: it is the "no extended inventory shipped" state.
+/// Reads <c>&lt;modDir&gt;/extended_inventory/{ItemData,ItemWeaponData,ItemExtendedData}.xml</c>
+/// (written by tools/generate.py from the `extended` rows of data/items.json) into <see cref="ExtendedItemDef"/>s.
+/// Any bad row makes <see cref="Load"/> return zero items plus the reasons, since a half-loaded catalog would hand the game a zero record. Ids must be contiguous from <see cref="ExtendedCatalog.FirstExtendedId"/> (the stubs index donors by id - 261). A missing folder means nothing shipped.
 /// </summary>
 internal static class ExtendedInventoryData
 {
@@ -72,9 +66,7 @@ internal static class ExtendedInventoryData
                 }
             if (ids.Count > 0 && ids[^1] > ExtendedCatalog.LastExtendedId)
                 errors.Add($"id {ids[^1]} is past the last extended slot {ExtendedCatalog.LastExtendedId}");
-            // LW-368 round 2 (P11): past this many, seven of the boot-patch sites plus one
-            // post-load site are `lea` disp8 bytes that overflow instead of widening, corrupting
-            // a bound rather than raising it.
+            // LW-368 round 2 (P11): past this count, eight disp8 lea sites overflow instead of widening.
             if (ids.Count > ExtendedSites.MaxExtendedCount)
                 errors.Add($"{ids.Count} extended items is past ExtendedSites.MaxExtendedCount ({ExtendedSites.MaxExtendedCount}): the eight disp8 lea sites cannot widen any further");
             foreach (int id in ids)
@@ -110,9 +102,15 @@ internal static class ExtendedInventoryData
             ExtendedRecords.ParseFlags(Text(w, "Elements"), ExtendedRecords.Elements, "Elements"), Byte(w, "OptionsAbilityId"));
         return new ExtendedItemDef
         {
-            Id = id, Name = Text(e, "Name"), Category = category, CatalogRecord = record, WeaponRow = row,
-            CloneDonor = clone, ArtDonor = art, SeedCount = Int(e, "SeedCount"),
-            // <Shops> is optional (an older table without it = sold nowhere), the loader's own names.
+            Id = id,
+            Name = Text(e, "Name"),
+            Category = category,
+            CatalogRecord = record,
+            WeaponRow = row,
+            CloneDonor = clone,
+            ArtDonor = art,
+            SeedCount = Int(e, "SeedCount"),
+            // <Shops> is optional; a table without it means sold nowhere.
             ShopFlags = ExtendedRecords.ParseShops(e.Element("Shops")?.Value),
         };
     }

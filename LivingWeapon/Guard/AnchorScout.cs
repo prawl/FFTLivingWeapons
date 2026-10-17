@@ -3,45 +3,32 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-82: the LivingWeapon adapter over the portable <see cref="AnchorScan"/> core. VERIFIER
-/// SCOUT, NOT HEALER (owner-locked design decision): Engine.cs calls <see cref="Tick"/> ONLY while
-/// LaunchGuard has stood down; this re-finds the registered anchors by pin-neighborhood scans,
-/// logs a re-find inventory, and influences NOTHING (no writes, no arming, no GuardState changes).
-/// Every consumer keeps trusting Offsets/Barrage's own pins; this is diagnostics only, turning a
-/// game-patch event's Phase B (docs/PATCH_REANCHOR.md) from a multi-hour live probe session into
-/// "read one log for the starting map".
+/// LivingWeapon adapter over the portable <see cref="AnchorScan"/> core. A diagnostic
+/// scout, not a healer. Engine.cs calls <see cref="Tick"/> only while LaunchGuard has stood down;
+/// it re-finds the registered anchors by pin-neighborhood scan and logs an inventory, with no
+/// writes, no arming and no GuardState changes. That gives a game-patch Phase B
+/// (docs/PATCH_REANCHOR.md) a starting map in one log.
 ///
-/// v1 anchors (first LW-82 slice): jobcommand-table (Barrage.AbilityBase, content-anchored on the
-/// rec8/rec9 ability-byte signature LaunchGuard's own landmark already uses; FILE-BAKED static
-/// image data, so it needs no save loaded, tools/probes/anchorscan_feasibility_probe.py 2026-07-14)
-/// and roster-base (Offsets.RosterBase, shape + stride + %8-alignment-anchored on Ramza's slot 0
-/// plus any populated non-Ramza row in slots +1..+3; needs a save loaded to populate rows). A
-/// roster find additionally predicts the inventory-count table as a sibling (roster - 0x110, the
-/// delta held across pre-1.5/1.5/1.5.1: Offsets.cs:103,353 + docs/research/PORT_1.5_OFFSETS.md:
-/// 57-58); see AnchorScout.Report.cs for that and every other log line's exact prose.
-///
-/// This file owns the specs, the Tick budget, and the rescan timer; AnchorScout.Report.cs owns
-/// turning a concluded verdict into log lines (a real WHAT-vs-narration seam, the LaunchGuard/
-/// Landmarks precedent).
+/// Anchors so far are jobcommand-table (Barrage.AbilityBase, anchored on the rec8/rec9
+/// ability-byte signature LaunchGuard uses; file-baked static data, so no save is needed;
+/// tools/probes/anchorscan_feasibility_probe.py 2026-07-14) and roster-base (Offsets.RosterBase,
+/// anchored on Ramza's slot 0 shape, stride and %8 alignment plus a populated non-Ramza row in
+/// slots +1..+3; needs a save loaded). A roster find also predicts the inventory-count table at
+/// roster - 0x110 (Offsets.cs:103,353 + docs/research/PORT_1.5_OFFSETS.md:57-58). Log prose is
+/// in AnchorScout.Report.cs, split from the specs and timers here.
 /// </summary>
 internal sealed partial class AnchorScout
 {
     private const string JobCommandSpecName = "jobcommand-table";
     private const string RosterBaseSpecName = "roster-base";
 
-    // Window margin: +/-0x400000 half-width vs the max observed 1.5 static delta (+0x6C3C,
-    // Offsets.LiveBattleMapId) is about 151x (tools/probes/anchorscan_feasibility_probe.py,
-    // LIVE_LEDGER 2026-07-14 rows): empirically supported for these regions, not theoretically
-    // bounded. A miss reads NotFound, which is an honest report, never a silent false success.
+    // Half-width is ~151x the max observed 1.5 static delta (+0x6C3C, Offsets.LiveBattleMapId;
+    // tools/probes/anchorscan_feasibility_probe.py, LIVE_LEDGER 2026-07-14). Empirical; a miss reads NotFound.
     private const long DefaultRegionHalfWidth = 0x400000;
-    // 2 chunks/tick x 64KB = 128KB scanned per 33ms Engine tick (Engine.PollMs): an 8MB default
-    // window scans out in roughly 64 ticks (about 2 seconds), fast without hogging the tick the
-    // guard's own Step still runs on every StoodDown tick.
+    // 2 chunks x 64KB per 33ms tick (Engine.PollMs); the 8MB window takes ~64 ticks.
     private const int DefaultChunkBytes = 0x10000;
     private const int ChunksPerTick = 2;
-    // ~450 ticks x 33ms is about 15s: covers a save loading after the guard already stood down
-    // (the roster region reads all-zero pre-save, a legitimate NotFound) and any other pre-save
-    // garbage verdict, without restarting the mod. Any concluded non-pin verdict re-arms.
+    // ~450 ticks x 33ms is about 15s, long enough for a save to load after stand-down.
     private const int RescanTicks = 450;
 
     private readonly AnchorSpec[] _specs;
@@ -69,13 +56,11 @@ internal sealed partial class AnchorScout
         for (int i = 0; i < _lastLogged.Length; i++) _lastLogged[i] = AnchorVerdict.Scanning;
     }
 
-    /// <summary>Called only while LaunchGuard is StoodDown (Engine.cs's pre-arm branch). Steps
-    /// every still-scanning spec a small budget of chunks, logs any spec whose CONCLUDED verdict
-    /// changed since it was last reported, then (once every spec has concluded) logs the re-find
-    /// summary once, re-emitting it whenever the concluded combination later changes (a rescan
-    /// upgrade). Every ~RescanTicks ticks, every spec concluded anywhere OTHER than its pin re-arms
-    /// (Reset), so a save loading after stand-down gets a fresh chance without restarting the mod.
-    /// A spec still Scanning is left alone by the rescan (nothing to re-arm).</summary>
+    /// <summary>Called only while LaunchGuard is StoodDown (Engine.cs's pre-arm branch). Steps each
+    /// scanning spec a few chunks and logs a spec's concluded verdict when it changes. Once all
+    /// have concluded it logs the re-find summary, again if the combination later changes. Every
+    /// ~RescanTicks ticks, specs concluded anywhere but the pin are reset so a save loading after
+    /// stand-down gets a fresh scan.</summary>
     public void Tick()
     {
         for (int i = 0; i < _scans.Length; i++)
@@ -119,14 +104,12 @@ internal sealed partial class AnchorScout
             pin - regionHalfWidth, pin + regionHalfWidth, baseAlignment: 1, confirm: Confirm);
     }
 
-    // Roster row layout, cited from Offsets.cs (RLevel/RSprite/RBrave/RFaith/RNameId/RosterStride):
-    // one whole-row read per slot (0x232 bytes covers up to and including RNameId's 2 bytes),
-    // never a scalar U8/U16 (a live RPM call per field would cost roughly 5x a single bulk read).
+    // Row layout from Offsets.cs. One 0x232-byte read per slot beats per-field reads (~5x).
     private const int SlotRowSize = 0x232;
     private const int PopulatedSlotFrom = 1;
     private const int PopulatedSlotTo = 3;
     private const int RamzaNameId = 1;
-    private const byte MonsterSpriteFloor = 0x80;   // mirrors LaunchGuard.Landmarks' own constant; not shared (independent adapters, one byte each)
+    private const byte MonsterSpriteFloor = 0x80;   // same value as LaunchGuard.Landmarks, kept separate
     private const int MaxBraveFaith = 100;
     private const int MaxPlausibleNameId = 1024;
 
@@ -135,22 +118,20 @@ internal sealed partial class AnchorScout
         long pin = Offsets.RosterBase;
         byte[] nameIdIsOne = { 0x01, 0x00 };   // little-endian u16 nameId==1 (Ramza), at slot 0's RNameId
         bool Confirm(long candidateBase) => ConfirmRosterRow(mem, candidateBase);
-        // Calibration (live 2026-07-14, tools/probes/anchorscan_feasibility_probe.py + the two
-        // LIVE_LEDGER AnchorScan rows): 11,869 raw {01,00} hits in the 8MB window; the shape rules
-        // alone leave 766 candidates; stride structure leaves 2; the %8 alignment demand leaves
-        // exactly the pin (both known bases are 16-aligned, pre-1.5's 0x1411A18D0 and
-        // 1.5/1.5.1's 0x1411A7D10, and the one stride-riding decoy reads %8 == 6). Alignment is
-        // checked by the core BEFORE Confirm, so ~7/8 of raw hits are rejected without a read.
+        // Calibration 2026-07-14 (tools/probes/anchorscan_feasibility_probe.py, two LIVE_LEDGER
+        // AnchorScan rows). The 8MB window has 11,869 raw {01,00} hits; shape rules leave 766,
+        // stride structure 2, and the %8 alignment leaves only the pin. Both known bases are
+        // 16-aligned (pre-1.5's 0x1411A18D0, 1.5/1.5.1's 0x1411A7D10) and the one stride-riding
+        // decoy reads %8 == 6. The core checks alignment before Confirm, rejecting ~7/8 of hits
+        // without a read.
         return new AnchorSpec(RosterBaseSpecName, nameIdIsOne, Offsets.RNameId, pin,
             pin - regionHalfWidth, pin + regionHalfWidth, baseAlignment: 8, confirm: Confirm);
     }
 
-    /// <summary>Slot 0's nameId is already guaranteed 1 by the very signature that found this
-    /// candidate; this confirms the REST of slot 0's row is a plausible unit (level/sprite/brave/
-    /// faith), then demands at least one of slots +1..+3 is populated by a non-Ramza unit (the
-    /// relaxed "any of three" rule: solo-roster or early-prologue saves where slot +1 alone might
-    /// be empty are unverified, recalibrated live 2026-07-14, still exactly the pin). A slot that
-    /// fails to read at all fails the whole confirm (fail-closed).</summary>
+    /// <summary>Slot 0's nameId is 1 by the signature that found this candidate; this checks the rest
+    /// of slot 0 is a plausible unit, then needs at least one of slots +1..+3 populated by a non-Ramza
+    /// unit (recalibrated 2026-07-14; solo or early-prologue saves are unverified). Any slot that
+    /// fails to read fails the confirm.</summary>
     private static bool ConfirmRosterRow(IGameMemory mem, long candidateBase)
     {
         if (!mem.TryReadBytes(candidateBase, SlotRowSize, out var slot0)) return false;

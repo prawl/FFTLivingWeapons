@@ -1,14 +1,9 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-167: the composition-root fan-out that lets KillTracker.CreditKill report to BOTH
-/// Reliquary (Marks) and LivingPoach (the Poach carcass drop) through the SAME single IDeedSink?
-/// seam it already had -- KillTracker.cs's own field/ctor/signature are completely untouched by
-/// this feature; only CreditKill's body gained one RecordPoachDeed call alongside RecordDeed
-/// (IDeedSink.RecordPoachDeed's default no-op keeps Reliquary itself source-untouched too, see
-/// Reliquary.cs's IDeedSink). RecordDeed/DeedMiss forward to the inner (Reliquary) sink;
-/// RecordPoachDeed forwards to LivingPoach. Engine constructs exactly ONE of these and passes it
-/// as KillTracker's `deeds:` argument.
+/// Fans KillTracker's single IDeedSink out to Reliquary (Marks) and LivingPoach (carcass drop).
+/// RecordDeed and DeedMiss forward to Reliquary, RecordPoachDeed to LivingPoach. Engine passes one
+/// instance as KillTracker's `deeds:` argument.
 /// </summary>
 internal sealed class DeedFanout : IDeedSink
 {

@@ -4,14 +4,14 @@ using System.Linq;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-381: the same-session modded.pac mirror, split out of IconGlow.Apply.cs (200-line
+/// The same-session modded.pac mirror, split out of IconGlow.Apply.cs (200-line
 /// trigger) as a real seam -- that file decides and writes the DEPLOYED loose tex (the durable
 /// half the launch merge re-reads next boot); this file is strictly a visibility bonus layered on
 /// top of an already-correct loose write, queued from <c>ApplyId</c> only after
 /// <c>WriteDeployedTex</c> has already succeeded and flushed ONCE per <c>ApplyDiff</c> pass
 /// (R2-2 -- see <see cref="FlushPacBatch"/>).
 ///
-/// WHY THIS EXISTS NOW: ledger row [live-icon-repaint], PROVEN 2026-09-01 (owner-run
+/// why this EXISTS NOW: ledger row [live-icon-repaint], PROVEN 2026-09-01 (owner-run
 /// tools/probes/live_icon_patch_probe.py, three same-process patches all landed), established
 /// that an in-place same-length overwrite of an icon's bytes inside modded.pac lands live with no
 /// exclusive lock, and that an already-drawn icon refreshes on the next list redraw (re-entering
@@ -24,7 +24,7 @@ namespace LivingWeapon;
 ///
 /// R2-2 (batching): a batch re-tier (tools/glow_bounce.py) touches all 242 managed entries in one
 /// pass; queuing every surface's mirror during <c>ApplyId</c> and flushing ONCE at the end of
-/// <c>ApplyDiff</c>, rather than calling the store per surface inline, is what turns that into ONE
+/// <c>ApplyDiff</c>, rather than calling the store per surface inline, is what turns that into one
 /// shared pass over the pac instead of 242 -- see <see cref="IIconGlowStore.PatchPacBatch"/> and
 /// <see cref="ModdedPac.PatchBatch"/> for where the actual single-pass search happens.
 ///
@@ -48,8 +48,8 @@ internal sealed partial class IconGlow
     // AlreadyCurrent result means nothing was written, so folding it into "pac-patched" would
     // report writes that never happened.
     // _pendingPacPatches accumulates every surface queued this ApplyDiff pass; FlushPacBatch
-    // drains it in ONE store call at the end of the pass.
-    // _pacPatchedThisPass (LW-381) is the subset that actually landed as PacPatchResult.Patched
+    // drains it in one store call at the end of the pass.
+    // _pacPatchedThisPass is the subset that actually landed as PacPatchResult.Patched
     // this pass -- exactly the surfaces eligible for a cache hide (RoutePacResult fills it,
     // FlushPacBatch consumes it, ApplyDiff's top-of-pass reset clears it, same lifecycle as the
     // other per-pass fields here). _hidesThisApply is this pass' count of surfaces the hider
@@ -76,9 +76,9 @@ internal sealed partial class IconGlow
         _pendingPacPatches.Add((id, entry, oldBytes, newBytes));
     }
 
-    /// <summary>R2-2: drains every surface <see cref="QueuePacMirror"/> queued this pass in ONE
+    /// <summary>R2-2: drains every surface <see cref="QueuePacMirror"/> queued this pass in one
     /// <see cref="IIconGlowStore.PatchPacBatch"/> call (a no-op, cheaply, when nothing was
-    /// queued). Called once, at the end of <see cref="ApplyDiff"/>, strictly AFTER every loose
+    /// queued). Called once, at the end of <see cref="ApplyDiff"/>, strictly after every loose
     /// write in this pass has already happened -- see the class remarks: loose-tex first, pac
     /// mirror second, never the other way round.</summary>
     private void FlushPacBatch()
@@ -94,7 +94,7 @@ internal sealed partial class IconGlow
         }
         _pendingPacPatches.Clear();
 
-        // LW-381: hand every surface that actually landed in modded.pac this pass to the cache
+        // Hand every surface that actually landed in modded.pac this pass to the cache
         // hider (IconGlow.Hide.cs), so the NEXT screen open shows it instead of the old art.
         HideThisPassPatched();
     }
@@ -108,7 +108,7 @@ internal sealed partial class IconGlow
         {
             case PacPatchResult.Patched:
                 _pacPatchedThisApply++;
-                _pacPatchedThisPass.Add((id, entry.Surface, entry));   // LW-381: hide-eligible this pass
+                _pacPatchedThisPass.Add((id, entry.Surface, entry));   // hide-eligible this pass
                 break;
             case PacPatchResult.AlreadyCurrent:
                 _pacAlreadyCurrentThisApply++;   // R2-6: nothing was written -- never counted as a write
@@ -123,7 +123,7 @@ internal sealed partial class IconGlow
                 break;
             case PacPatchResult.NotFound:
                 // R2-4: legitimately normal, not a bug. The pac's incremental launch merge reads
-                // the deployed loose tex ONCE, at launch; a weapon this runtime re-tiers AFTER
+                // the deployed loose tex ONCE, at launch; a weapon this runtime re-tiers after
                 // that merge has already run leaves the OLD bytes (the ones this search looked
                 // for) genuinely absent from the pac -- measured on the live install, 6 of 242
                 // deployed texes (the two surfaces of every weapon then above tier 0) were

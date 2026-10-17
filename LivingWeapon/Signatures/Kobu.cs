@@ -3,57 +3,36 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Kiyomori's "Kobu" signature: while a +3 Kiyomori is wielded as the main hand, whenever
-/// the wielder's action damages an enemy whose CURRENT brave (band +0x0F) exceeds the
-/// wielder's own LIVE current brave, the wielder's current brave is raised to match, ONE SHOT
-/// (capped at Tuning.KobuBraveCap). Katana formula 1: PA x Brave/100 x WP -- striking a braver
-/// foe sharpens the blade in the moment.
+/// Kiyomori's Kobu signature. When a +3 Kiyomori main hand damages an enemy whose current brave
+/// (band +0x0F) exceeds the wielder's live current brave, the wielder's brave is raised to match,
+/// once, capped at Tuning.KobuBraveCap. A single guarded write at strike time, with no hold. The
+/// basis is the wielder's live brave read that tick, so a later dip is a fresh baseline
+/// (Kobu.Policy.cs OneShotRaise).
 ///
-/// SEMANTICS: a single guarded write at strike-detection time, nothing more. No ceiling state,
-/// no hold, no re-assertion -- between strikes the wielder's brave is a normal stat, free to
-/// fall (a Brave Break etc. sticks). The comparison basis for each qualifying hit is the
-/// wielder's LIVE current brave read fresh that tick, not any remembered high-water mark: a dip
-/// below a prior raise is a legitimate new baseline for the next comparison (Kobu.Policy.cs:
-/// OneShotRaise).
+/// Premise: a one-shot current-brave write on a player unit sticks across turns, and the engine does
+/// not re-normalize it from orig (2026-07-02, probes/brave_oneshot_probe.py, LIVE_LEDGER row). That
+/// overturned the older belief in brave_probe.py's recipe text, which is why the old per-tick hold is gone.
 ///
-/// PREMISE: a one-shot current-brave write on a PLAYER unit STICKS across turns, including the
-/// unit's own actions -- the engine does NOT re-normalize it from orig. Live-verified
-/// 2026-07-02, probes/brave_oneshot_probe.py (a one-shot write held across several rounds);
-/// LIVE_LEDGER row. This CONTRADICTS the older belief (still noted in brave_probe.py's older
-/// recipe text) that a current-only one-shot gets re-normalized back up from orig on the unit's
-/// next turn -- that belief is why the old code held every tick; the hold is gone.
+/// Offsets are band-entry-relative (band_entry = combat_base + 0x1C). Current brave is +0x0F
+/// (Offsets.ABraveCurrent), read from the enemy and written once on the wielder. Orig brave is +0x0E
+/// (Offsets.ABrave), the Wielder.Locate fingerprint, so it is never written. Band +0x2B is combat
+/// +0x47, the Reraise/Invisible/Float status bitfield (Offsets.AReraise), not brave
+/// (brave-faith-current-vs-orig-offsets).
 ///
-/// ADDRESSING -- all reads/writes are BAND-ENTRY-RELATIVE (band_entry = combat_base + 0x1C):
-///   Current brave = band +0x0F (Offsets.ABraveCurrent). Read from the enemy; written once on the wielder.
-///   Orig brave    = band +0x0E (Offsets.ABrave). NEVER write: it re-normalizes, never displays,
-///                   and is the Wielder.Locate fingerprint -- writing it would break the next locate.
-///   NEVER use +0x2B off a band address: band_entry+0x2B = combat+0x47 = the Reraise/Invisible/Float
-///   STATUS bitfield (Offsets.AReraise), not brave. Proven layout: brave-faith-current-vs-orig-offsets.
+/// Detection scans every on-field tick regardless of the wielder locate, as Maim does. HP-diff
+/// tracking (RicochetState) baselines every tick, and enemies come from a per-battle additive
+/// fingerprint cache (EnemyFingerprintCache.TickField), so a one-tick Readable() flap cannot drop an
+/// enemy on the hit tick. The first tick baselines and the next tick with an HP drop detects the hit.
+/// The wielder comes from Wielder.ResolveDeployedMainHand each tick, and a miss is a rearm-transient.
 ///
-/// DETECTION: scans every on-field tick regardless of the wielder locate (Maim's shape) -- HP-diff
-///   tracking (RicochetState) baselines every on-field tick, and the enemy filter reads a per-battle
-///   ADDITIVE fingerprint cache (EnemyFingerprintCache.TickField) instead of a per-tick rebuild, so a
-///   one-tick Readable() flap on the static array cannot make an enemy vanish on the exact drop tick.
-///   One module per hit: the first tick baselines silently, the next tick with a HP drop detects the
-///   hit -- same two-tick window as Maim/Ricochet.
-/// WIELDER LOCATE: Wielder.ResolveDeployedMainHand each tick (single deployed main-hand wielder); a
-///   miss (0) no longer bails the whole tick -- it is handled per-event as a rearm-transient (below).
-/// NON-LOSSY CONSUMPTION: a detected HP drop's event is consumed (baseline moves on) EXCEPT for three
-///   DETECTABLY-transient blocks -- a fail-safe-zero brave read, an unwritable write target, or an
-///   unlocatable wielder -- where RicochetState.Rearm rolls the baseline back so the SAME drop
-///   re-detects next tick, instead of the old code's silent, permanent discard. The retry is naturally
-///   bounded: the first tick the active gate is closed consumes the rearmed delta. Two accepted
-///   residuals: (1) a fingerprint miss consumes even on a flapped band field -- indistinguishable from
-///   a genuine ally/guest hit, and rearming those would re-detect every ally hit for the whole active
-///   window; (2) an off-field gap skips the scan entirely, so a rearmed genuine hit can survive it and
-///   pay out at the START of the wielder's next active window -- late, but never to the wrong unit.
-/// PROVENANCE: the transient-loss failure mode was proven live 2026-07-02 -- an eaten strike at
-///   10:33:36.601 with the active gate open, vs the identical strike firing cleanly at 11:02:03.936
-///   (memory kobu-raise-detection-diagnosis); the kobu-diag line below is the instrument for any
-///   residual class still uncaught.
-/// RESET: ResetBattle() clears the HP baselines (RicochetState) AND the cached enemy fingerprints
-///   (EnemyFingerprintCache); there is no ceiling to clear.
-/// All reads/writes are VirtualQuery-guarded.
+/// A detected drop is consumed, except for three transient blocks (zero brave read, unwritable target,
+/// unlocatable wielder) where RicochetState.Rearm rolls the baseline back so the drop re-detects next
+/// tick. The retry ends when the active gate closes. Accepted residuals are a fingerprint miss (looks
+/// like an ally hit, and rearming would re-detect every ally hit) and an off-field gap, where a rearmed
+/// hit can pay out late at the start of the next active window, never to the wrong unit.
+/// The transient-loss failure was seen 2026-07-02, an eaten strike at 10:33:36.601 against the same
+/// strike firing at 11:02:03.936 (kobu-raise-detection-diagnosis). The kobu-diag line is the
+/// instrument for any residual. ResetBattle() clears the HP baselines and cached fingerprints.
 /// </summary>
 internal sealed partial class Kobu : ISignature
 {
@@ -92,10 +71,8 @@ internal sealed partial class Kobu : ISignature
 
         _enemies.TickField();   // additive capture; the Contains below reads the battle-stable cache
 
-        // Locate the single deployed main-hand wielder. 0 (benched / ambiguous two-wielder) is
-        // handled per-event below as a rearm-transient, NOT a whole-tick bail: the scan must keep
-        // observing baselines regardless (Maim's proven shape) or a drop during a locate gap
-        // becomes invisible forever.
+        // A 0 here (benched or two wielders) is handled per event as a rearm. Bailing the tick
+        // would hide any drop that lands during a locate gap.
         long wielderEntry = Wielder.ResolveDeployedMainHand(_mem, KiyomoriId, out _);
 
         int actedByte = _mem.U8(Offsets.Acted);
@@ -104,7 +81,7 @@ internal sealed partial class Kobu : ISignature
 
         for (int s = 0; s < Offsets.BandSlots; s++)
         {
-            // LW-149: shared sanity read/bounds extracted to Band.TryReadUnit (Band.Sanity.cs).
+            // Shared sanity read/bounds extracted to Band.TryReadUnit (Band.Sanity.cs).
             if (!Band.TryReadUnit(_mem, s, out long addr, out var fp, out int hp)) continue;
 
             int dmg = _hpState.Observe(s, hp);
@@ -117,24 +94,16 @@ internal sealed partial class Kobu : ISignature
     private void Evaluate(int s, long addr, int dmg, int hp, (int mhp, int lvl, int br, int fa) fp,
                           long wielderEntry, bool active, int actedByte, int mainHand)
     {
-        // Eager fail-safe reads so the diagnostic line always carries the full verdict context.
-        // wielderEntry == 0 makes the live read U8(0 + ABraveCurrent) -- unreadable in production,
-        // unseeded in the fake; both fail-safe to 0, which the insane-read gate below catches.
+        // Reads are fail-safe so the diag line carries the full context. With wielderEntry == 0 the
+        // live read is unreadable and returns 0, which the brave-read gate below catches.
         int struck = _mem.U8(addr + Offsets.ABraveCurrent);
         int live = _mem.U8(wielderEntry + Offsets.ABraveCurrent);
         bool inSet = _enemies.Contains(fp);
         int raised = OneShotRaise(live, struck, Tuning.KobuBraveCap);
         long target = wielderEntry + Offsets.ABraveCurrent;
 
-        // One decision chain: verdict token + action together so the diag line and the behavior
-        // cannot drift. Rearm (baseline rollback -> next tick re-detects) fires ONLY on
-        // detectably-transient blocks; every legit verdict consumes. The retry loop is naturally
-        // bounded: the first tick with active == false consumes the rearmed delta. ACCEPTED
-        // RESIDUALS: (1) a fingerprint miss consumes even if a band field flapped on the drop
-        // tick -- indistinguishable from a genuine ally/guest hit, and rearming those would
-        // re-detect every ally hit for the whole active window; (2) an off-field gap skips the
-        // scan entirely, so a rearmed genuine hit can survive it and pay out at the START of the
-        // wielder's next active window -- late, but never to the wrong unit.
+        // Verdict and action share one chain so the diag line matches the behavior. Only the
+        // transient blocks rearm; every other verdict consumes the drop.
         string verdict;
         bool rearm = false;
         if (!active) verdict = "inactive";

@@ -4,38 +4,20 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-368 round 2: lifts the extended inventory's ceiling past eleven items. Plain language: the
-/// game keeps "how many of each item you own" as one byte per item in a fixed block that ends
-/// where Ramza's own roster row begins, plus a second per-item byte list right beside it; a new
-/// item id past that edge reads and writes into Ramza's own save data instead of its own count.
-/// This class copies both lists onto a page the mod owns and re-points the 55 places in the
-/// game's code that name the old blocks (the table itself lives in ListRelocation.Sites.cs, the
-/// WHAT half of this partial), so every id up to <see cref="ExtendedSites.MaxExtendedCount"/>
-/// gets its own byte instead of borrowing Ramza's.
-///
-/// Same posture as its closest sibling, <see cref="ShopFlagsMirror"/>: every field is read back
-/// and must still carry its VANILLA value before a single byte is written (a mismatch means
-/// another patch, or a previous session's leaked page, got there first), and a refusal midway
-/// restores every field this call already changed, in reverse, before it returns. Two
-/// differences from that sibling: this is a MOVE, not a mirror (D1: every known reader/writer is
-/// re-pointed, and the old blocks go dead rather than staying in sync), and there is no live
-/// resync step, because nothing needs the old blocks to keep working once every reference to them
-/// is gone. <see cref="CheckOldBlocks"/> is the safety net for that assumption: it remembers what
-/// the two old blocks looked like the moment they were copied, and answers once, ever, the first
-/// time either one changes afterwards -- proof some reference this sweep missed is still writing
-/// there. Restore only ever puts the 55 fields back (D5): a mid-session copy-back would race
-/// whatever is running on the game's own thread, so the page itself is leaked by design, the same
-/// "never free a code/data page" rule <see cref="INearAllocator"/> already keeps.
-///
-/// Every memory access goes through the injected <see cref="ICodePatcher"/> (VirtualProtect +
-/// RPM/WPM guarded, never a raw pointer deref) and <see cref="INearAllocator"/> (never frees).
+/// LW-368 round 2: lifts the extended inventory past eleven items. The game keeps owned counts as one
+/// byte per item in a block that ends where Ramza's roster row begins, plus a second per-item byte list
+/// beside it, so a new id past that edge reads and writes Ramza's save data. This copies both lists onto
+/// a page the mod owns and re-points the 55 code fields that name the old blocks (table in
+/// ListRelocation.Sites.cs). As in <see cref="ShopFlagsMirror"/>, every field must read vanilla before any
+/// write and a refusal restores the changed fields in reverse. It is a move (D1), so there is no resync;
+/// <see cref="CheckOldBlocks"/> warns once if an old block changes later. Restore puts only the 55 fields
+/// back (D5) and the page is leaked, as <see cref="INearAllocator"/> never frees.
 /// </summary>
 internal sealed partial class ListRelocation
 {
-    // volatile (the Mem.WritesEnabled idiom): Install runs on the boot thread before the game's
-    // hook threads exist (P12), but ExtendedInventory.BagCountBase reads this from whichever
-    // thread calls it once armed, so the flag needs release/acquire semantics -- written LAST,
-    // after every other field below, so a true read here guarantees CountBase already published.
+    // Install runs on the boot thread before the game's hook threads exist (P12), but
+    // ExtendedInventory.BagCountBase reads this from any thread once armed, so the flag is volatile
+    // and written last.
     private volatile bool _installed;
 
     /// <summary>True once every field points at the new page.</summary>
@@ -56,10 +38,8 @@ internal sealed partial class ListRelocation
     private bool _warnedOnce;
 
     /// <summary>Null on success, else the refusal (nothing changed). Idempotent once installed.
-    /// Order (D3, T6): every one of the 55 fields must already read vanilla, THEN the page is
-    /// allocated and zero-filled, THEN the two lists are copied onto it, and only THEN does the
-    /// first field get rewritten -- so a refusal at any step before the last leaves every byte in
-    /// the process exactly as it was found.</summary>
+    /// Order (D3, T6) is check all 55 fields, allocate and zero the page, copy both lists, then
+    /// rewrite the first field, so an earlier refusal leaves the process untouched.</summary>
     public string? Install(ICodePatcher patcher, INearAllocator allocator)
     {
         if (Installed) return null;
@@ -98,13 +78,12 @@ internal sealed partial class ListRelocation
         PageAddr = page;
         CountBase = page;
         SiblingBase = page + SiblingPageOffset;
-        _installed = true;   // last: publishes every field above (release/acquire)
+        _installed = true;   // last, publishes the fields above
         return null;
     }
 
-    /// <summary>Puts every field back to its vanilla value; never touches the page (D5: no
-    /// copy-back, the page is leaked by design). Idempotent: a call while not installed is a
-    /// no-op success, matching <see cref="ShopFlagsMirror.Restore"/>.</summary>
+    /// <summary>Puts every field back to its vanilla value and leaves the page alone (D5).
+    /// A call while not installed is a no-op success, as in <see cref="ShopFlagsMirror.Restore"/>.</summary>
     public bool Restore(ICodePatcher patcher)
     {
         if (!Installed) return true;
@@ -120,16 +99,11 @@ internal sealed partial class ListRelocation
         return ok;
     }
 
-    /// <summary>D8's hidden-writer tripwire. Compares each old block against the snapshot taken
-    /// the moment it was copied onto the new page; the first time either one has changed since,
-    /// this returns the one-line warning naming the block -- and never again, even if the
-    /// divergence continues or a second block also drifts, because one warning is already enough
-    /// to tell the owner something still writes where nothing should. Null every other time
-    /// (not installed, nothing changed, or already warned once). Round 2b: the compare window is
-    /// <see cref="ListProperBytes"/>, not the full <see cref="BlockBytes"/> snapshot -- bytes
-    /// +0x105..+0x10F of each old block hold a live game state dword at +0x108 (read live
-    /// 2026-08-31), not list data, and comparing them would false-fire on that dword's own
-    /// ordinary churn.</summary>
+    /// <summary>D8 hidden-writer tripwire. Compares each old block with its snapshot from the copy;
+    /// the first change returns a one-line warning naming the block, and every later call returns
+    /// null. Only <see cref="ListProperBytes"/> is compared, not all of <see cref="BlockBytes"/>
+    /// (round 2b), because +0x105..+0x10F holds a live game state dword at +0x108 (read live
+    /// 2026-08-31) that changes on its own.</summary>
     public string? CheckOldBlocks(ICodePatcher patcher)
     {
         if (!Installed || _warnedOnce || _oldCountSnapshot == null || _oldSiblingSnapshot == null) return null;
@@ -144,7 +118,7 @@ internal sealed partial class ListRelocation
 
     private bool SnapshotOldBlocks(ICodePatcher patcher, out byte[] countBlock, out byte[] siblingBlock)
     {
-        siblingBlock = Array.Empty<byte>();   // assigned unconditionally: an out param must be set on every path
+        siblingBlock = Array.Empty<byte>();   // out param must be set on every path
         if (!patcher.TryRead(Offsets.BagCountArray, BlockBytes, out countBlock)) return false;
         if (!patcher.TryRead(Offsets.SiblingListArray, BlockBytes, out siblingBlock)) return false;
         _oldCountSnapshot = countBlock;
@@ -152,10 +126,8 @@ internal sealed partial class ListRelocation
         return true;
     }
 
-    /// <summary>True when <paramref name="fresh"/> (a <see cref="ListProperBytes"/>-long read)
-    /// matches the first <c>fresh.Length</c> bytes of <paramref name="snapshot"/> (a full
-    /// <see cref="BlockBytes"/>-long capture) -- lets <see cref="CheckOldBlocks"/> compare the
-    /// list proper against a snapshot that is deliberately longer than the window it watches.</summary>
+    /// <summary>True when <paramref name="fresh"/> matches the first <c>fresh.Length</c> bytes of
+    /// the longer <paramref name="snapshot"/>.</summary>
     private static bool SamePrefix(byte[] fresh, byte[] snapshot)
     {
         for (int i = 0; i < fresh.Length; i++) if (fresh[i] != snapshot[i]) return false;

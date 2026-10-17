@@ -6,80 +6,42 @@ using Reloaded.Hooks.Definitions.X64;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-372 (plan v1.2): detour on the game's shared item-list builder (<see cref="Offsets.FnListBuilder"/>),
-/// the routine whose own entry-cap byte <see cref="TemplateRelocation"/> widens to 255 (D4). Plain
-/// language: raising that cap alone is not safe for every caller. Eight call sites hand the
-/// builder one of exactly three buffers (LW-371 P16): the game's own static 256-word notepad
-/// (<see cref="Offsets.MenuListBuffer"/>, which the widened cap fits), or one of two small
-/// 152-word STACK notepads (the equip picker's weapons-only list, a shop's list) that a 255-entry
-/// write would blow straight through the stack security cookie -- an uncatchable process kill the
-/// moment a player owns 150+ weapon-class kinds. This hook lets the two small-notepad callers
-/// keep running against a buffer the widened builder cannot overrun (a mod-owned pool slot),
-/// truncates the result back down to the LW-371-proven-safe <see cref="StackCallerCap"/> (149)
-/// entries before it ever reaches their real stack buffer, and leaves every static-buffer caller
-/// completely alone.
-///
-/// D2's rule is keyed on the BUFFER the caller hands in as r9, not on which of the eight call
-/// sites is running (Q3/Q10: caller identity is left open on purpose; buffer identity is the only
-/// thing correctness depends on).
-///
-/// This file is the D2 half (buffer-routing decision, lifecycle, detour plumbing); the D3 pool
-/// slot lifecycle (acquire/release/exhaustion, the copy-back read, F1's refusal posture) lives in
-/// ListBuilderHook.Pool.cs, and the pure truncation math (byte encoding, slot-address arithmetic)
-/// in ListBuilderHook.Policy.cs -- the same three-way split OrderRebuildHook uses for its own
-/// distinct D2/seat/policy concerns. Every memory access inside the detour goes through the
-/// injected <see cref="ICodePatcher"/> (kernel-guarded, never faults).
-///
-/// D7's pool-path posture, named: the call to the original is the only statement never wrapped in
-/// a try/catch, and it sits inside a try/FINALLY WITH NO CATCH OF ITS OWN, so a game exception
-/// still propagates (nothing here swallows it) while the busy pool slot can never leak -- the
-/// InventoryResetHook idiom (guard everything, call the original unwrapped) cannot release a slot
-/// on a throw the way a bare try/catch would swallow one, and a leaked slot would eventually brick
-/// every stack-buffer menu (four slots, never refilled). The copy-back's own failures (F1, v1.2)
-/// are handled one level in, by ListBuilderHook.Pool.cs's CopyBack/CopyBackRefused.
-///
-/// LW-382: the target actually takes SIX arguments, not four. F1 (disasm, this session): the
-/// prologue pushes 7 registers then subs 0x20 from rsp, so entry-rax (rsp at entry) is
-/// rsp+0x58, and the body reads <c>byte ptr [rsp+0x88]</c> (= rax+0x30, the home slot of
-/// argument 6) at four separate branches -- it is a real per-caller mode byte, not padding. All
-/// eight call sites set it immediately before the call (a literal, or a register carrying a
-/// per-caller flag). A delegate that only declares four arguments still compiles and still
-/// runs, because the native calling convention does not check arity: the callee simply reads
-/// whatever bytes the CALLING frame happened to leave at its own [rsp+0x28]/[rsp+0x20] home
-/// slots, i.e. stack junk, in place of arguments 6 and 5. When that junk reads as "equip
-/// picker" the callee throws away every id the current wielder cannot equip -- an empty Items
-/// tab is the visible symptom. The two extra parameters below (<c>spare</c>, <c>mode</c>) are
-/// forwarded verbatim to the original on every call path; neither this hook nor the pool ever
-/// inspects them -- deciding what they mean is the callee's job, not ours.
+/// Detour on the game's shared item-list builder (<see cref="Offsets.FnListBuilder"/>), whose
+/// cap byte <see cref="TemplateRelocation"/> widens to 255 (D4). Eight call sites pass one of three
+/// buffers (LW-371 P16): the static 256-word <see cref="Offsets.MenuListBuffer"/>, or one of two 152-word
+/// stack buffers (equip picker weapons list, shop list) that 255 entries would overrun into the stack
+/// cookie. D2 keys on the buffer in r9, not the call site. Stack callers get a mod-owned pool slot and
+/// the result is cut to <see cref="StackCallerCap"/>. Pool lifecycle is in ListBuilderHook.Pool.cs and
+/// truncation math in ListBuilderHook.Policy.cs. Memory access goes through <see cref="ICodePatcher"/>.
 /// </summary>
 internal sealed partial class ListBuilderHook
 {
+    // The target takes six arguments. F1 disasm: the body reads byte ptr [rsp+0x88] (rax+0x30,
+    // home slot of argument 6) as a per-caller mode byte at four branches. Declaring only four let the
+    // callee read stack junk and drop every unequippable id (empty Items tab). spare and mode pass through untouched.
     [Function(CallingConventions.Microsoft)]
     public delegate int BuildFn(nint a, nint b, nint c, nint list, nint spare, nint mode);
 
-    /// <summary>First 16 bytes at the entry (Q2, live-read 2026-08-31, confirmed byte-identical on
-    /// the 1.5.2 exe on disk): mov rax,rsp; mov [rax+0x20],r9; two word-arg spills (mov
-    /// [rax+0x10],dx; mov [rax+8],cx -- the a/b/c parameters the function only ever reads the low
-    /// bits of); push rbx. No rip-relative field inside this window.</summary>
+    /// <summary>First 16 bytes at the entry (Q2, live-read 2026-08-31, byte-identical on the 1.5.2 exe
+    /// on disk): mov rax,rsp; mov [rax+0x20],r9; mov [rax+0x10],dx; mov [rax+8],cx; push rbx.
+    /// No rip-relative field in the window.</summary>
     public static readonly byte[] ExpectedPrologue =
         { 0x48, 0x8B, 0xC4, 0x4C, 0x89, 0x48, 0x20, 0x66, 0x89, 0x50, 0x10, 0x66, 0x89, 0x48, 0x08, 0x53 };
 
     public const ushort Terminator = 0xFFFF;
 
-    /// <summary>D2: the LW-371-proven-safe cap for a 152-word stack buffer -- cap + the picker's
-    /// two hand-item appends + terminator = (149+3)*2 = <see cref="Offsets.ListBuilderStackRoomBytes"/>
-    /// exactly (0x130, pinned by ListBuilderHookTests U1). The SAME constant the truncation copy-back
-    /// uses, never a copied literal.</summary>
+    /// <summary>D2: LW-371 cap for a 152-word stack buffer. 149 + the picker's two hand-item appends +
+    /// terminator = (149+3)*2 = <see cref="Offsets.ListBuilderStackRoomBytes"/> (0x130, pinned by
+    /// ListBuilderHookTests U1). The copy-back reuses this constant.</summary>
     public const int StackCallerCap = 149;
 
-    /// <summary>D3: four try-acquire slots on one page, for REENTRANCY, not concurrency.</summary>
+    /// <summary>D3: four slots on one page, for reentrancy rather than concurrency.</summary>
     public const int PoolSlots = 4;
 
-    /// <summary>D3: bytes per slot. A 255-entry list + terminator needs 256 words (0x200 bytes);
-    /// each slot is 2x that -- headroom, not an exact fit.</summary>
+    /// <summary>D3: bytes per slot. 255 entries + terminator need 0x200 bytes; each slot is twice that.</summary>
     public const int SlotBytes = 0x400;
 
-    /// <summary>The whole pool page requested from <see cref="INearAllocator"/> at Install time.</summary>
+    /// <summary>Pool page requested from <see cref="INearAllocator"/> at Install.</summary>
     public const int PoolBytes = PoolSlots * SlotBytes;
 
     private readonly ICodePatcher _mem;
@@ -94,17 +56,14 @@ internal sealed partial class ListBuilderHook
     public long TargetAddr { get; }
     public bool IsActive => _hook?.IsHookEnabled == true;
     public long Calls => Interlocked.Read(ref _calls);
-    /// <summary>Calls the widened builder cap already covers on its own: the caller handed in
-    /// <see cref="Offsets.MenuListBuffer"/> itself, so the hook ran the original unchanged.</summary>
+    /// <summary>Calls where the caller passed <see cref="Offsets.MenuListBuffer"/>, so the original ran unchanged.</summary>
     public long Passthroughs => Interlocked.Read(ref _passthroughs);
 
-    /// <param name="allocator">Grants the stack-caller pool page at <see cref="Install"/> time
-    /// (production). Leave null when <paramref name="poolBase"/> is already given -- the test
-    /// seam: ListBuilderHookTests drives <see cref="Process"/> directly, without ever calling
-    /// <see cref="Install"/> or touching a real <see cref="IReloadedHooks"/>.</param>
-    /// <param name="poolBase">A pre-allocated pool page address (test seam). 0 (production)
-    /// means <see cref="Install"/> must allocate one through <paramref name="allocator"/> before
-    /// the hook can arm.</param>
+    /// <param name="allocator">Grants the pool page at <see cref="Install"/> (production). Null when
+    /// <paramref name="poolBase"/> is given.</param>
+    /// <param name="poolBase">Pre-allocated pool page (test seam: ListBuilderHookTests drives
+    /// <see cref="Process"/> without <see cref="Install"/>). 0 means Install allocates one through
+    /// <paramref name="allocator"/>.</param>
     public ListBuilderHook(ICodePatcher mem, INearAllocator? allocator = null, long targetAddr = 0, long poolBase = 0)
     {
         _mem = mem;
@@ -113,14 +72,13 @@ internal sealed partial class ListBuilderHook
         TargetAddr = targetAddr == 0 ? Offsets.FnListBuilder : targetAddr;
     }
 
-    /// <summary>Pure decision: install only when the guarded read succeeded and the entry carries
-    /// <see cref="ExpectedPrologue"/> (HookLandmark.Verify's prefix compare).</summary>
+    /// <summary>Install only when the guarded read succeeded and the entry matches
+    /// <see cref="ExpectedPrologue"/> (HookLandmark.Verify prefix compare).</summary>
     internal static bool ShouldArm(bool readOk, byte[]? prologue) => readOk && HookLandmark.Verify(prologue, ExpectedPrologue);
 
     /// <summary>Null on success, else the refusal. D8: the cap-byte patches and this hook are one
-    /// transaction -- a refusal here (bad prologue, or no pool page) must roll the whole extended-
-    /// inventory arm back, which ExtendedInventory.Hooks.cs's caller already does on any non-null
-    /// return. Idempotent.</summary>
+    /// transaction, so a refusal rolls back the extended-inventory arm (ExtendedInventory.Hooks.cs does
+    /// this on any non-null return). Idempotent.</summary>
     public string? Install(IReloadedHooks hooks)
     {
         if (_hook != null) { if (!_hook.IsHookEnabled) _hook.Enable(); return null; }
@@ -151,22 +109,20 @@ internal sealed partial class ListBuilderHook
         catch (Exception ex) { SafeLog(() => ModLogger.Debug(LogVerb.Engine, "list-builder release swallowed: " + ex.Message)); }
     }
 
-    /// <summary>The whole detour body with the original injected (tests pass a lambda). D2: a
-    /// static-buffer call is a pure passthrough. Any other buffer is routed through a pool slot
-    /// (ListBuilderHook.Pool.cs) and the result truncated to <see cref="StackCallerCap"/> on the
-    /// way back to the caller's real buffer. D3/Q11: pool exhaustion never calls the original at
-    /// all -- there is no buffer left it would be safe to hand it, so the only safe answer is an
-    /// empty list. F1 (v1.2): every failure past that point -- CopyBack's own failed read/refused
-    /// write, or an exception this catch alone reaches (e.g. a throw on the read itself, before
-    /// CopyBack's own best-effort write ever runs) -- also answers with an empty list and 0, NEVER
-    /// the original's own count (its world lives in the pool slot, not the caller's buffer).</summary>
+    /// <summary>Detour body with the original injected for tests. D2: the static buffer passes through;
+    /// any other buffer goes through a pool slot (ListBuilderHook.Pool.cs) and the result is truncated to
+    /// <see cref="StackCallerCap"/>. D3/Q11: pool exhaustion returns an empty list without calling the
+    /// original. F1 (v1.2): any failure after the original ran (failed read, refused write, a throw) also
+    /// returns an empty list and 0, never the original's count, since its list sits in the pool slot.
+    /// D7: the original call has no catch but sits in try/finally, so a game exception propagates and the
+    /// slot is still released. CopyBack's own failures are handled in Pool.cs.</summary>
     internal int Process(nint a, nint b, nint c, nint list, nint spare, nint mode, BuildFn original)
     {
         Interlocked.Increment(ref _calls);
         if ((long)list == Offsets.MenuListBuffer)
         {
             Interlocked.Increment(ref _passthroughs);
-            int passCount = original(a, b, c, list, spare, mode);   // exactly once, never inside a try: the widened cap already applies here
+            int passCount = original(a, b, c, list, spare, mode);   // called once, outside any try; the widened cap applies here
             return passCount;
         }
 
@@ -175,14 +131,14 @@ internal sealed partial class ListBuilderHook
         long slotAddr = SlotAddr(_poolBase, slot);
         try
         {
-            int count = original(a, b, c, (nint)slotAddr, spare, mode);   // exactly once, never inside a try/catch (the finally is deliberate: D7's pool posture, see the class doc)
+            int count = original(a, b, c, (nint)slotAddr, spare, mode);   // called once, no catch (D7, see Process)
             try { return CopyBack(list, slotAddr, count); }
             catch (Exception) { CopyBackRefused(list, "the copy-back threw"); return 0; }   // F1: never the original's own count
         }
         finally { ReleaseSlot(slot); }   // D3: released the instant the copy-back is done, reentrant-safe
     }
 
-    // Hot-path detour: MUST NOT throw. Process guards everything but the original call itself.
+    // Hot path, must not throw. Process guards all but the original call.
     private int Detour(nint a, nint b, nint c, nint list, nint spare, nint mode) => Process(a, b, c, list, spare, mode, _hook!.OriginalFunction);
 
     private static void SafeLog(Action log)

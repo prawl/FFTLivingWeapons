@@ -3,20 +3,15 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Bulwark's terrain read/write half: PLANT (the initial write or deferred-occupied parking of
-/// the ONE behind tile), per-tick MAINTAIN (re-assert + the deferred vacancy watch), RELEASE
-/// (exact-byte restore), and the shared occupancy scan. Bulwark.cs is the trigger/edge-tracking
-/// half (ctor, gate chain, the turn-flag machinery that calls into these methods). See
-/// Bulwark.cs's class doc for the full mechanism provenance.
+/// Bulwark's terrain half. Plant writes the obstacle bit behind the wielder (or parks the tile if
+/// it is occupied), MaintainPlant re-asserts it each tick, Release restores the saved bytes.
+/// Bulwark.cs holds the trigger logic and the mechanism notes.
 /// </summary>
 internal sealed partial class Bulwark
 {
-    /// <summary>The behind tile while it is occupied (at plant time or emptied and re-filled
-    /// since): watched for two consecutive vacant ticks before being raised (AC criterion 6), and
-    /// also used to park a VACANT tile that was transiently unreadable/unwritable at plant time
-    /// (the same watch self-heals a transient memory miss). Mutable by design -- the per-tick
-    /// watch just advances/resets this in place. At most one entry exists at a time (a single
-    /// behind tile), but keyed by idx to reuse the same dictionary machinery.</summary>
+    /// <summary>A behind tile that is occupied, or vacant but unreadable at plant time. It is raised
+    /// after two consecutive vacant ticks (AC criterion 6), which also retries a transient memory miss.
+    /// Mutable; the per-tick watch updates it in place.</summary>
     private sealed class DeferredTile
     {
         public readonly int X, Y;
@@ -33,14 +28,9 @@ internal sealed partial class Bulwark
         _ => "?",
     };
 
-    /// <summary>PLANT: read the wielder's tile, layer, and facing off ONE byte read
-    /// (Offsets.ALayerBit packs both -- see Offsets.cs), sanity-gate the map dims (AC A3), then
-    /// resolve the single tile directly behind the wielder (BulwarkPolicy.BehindTile) and either
-    /// write the obstacle bit (vacant, readable, writable) or park it for the deferred vacancy
-    /// watch (occupied, OR vacant but transiently unreadable/unwritable). Off-map behind (the
-    /// wielder's back is to the map edge) plants NOTHING -- no toast, no state change. One toast
-    /// otherwise, regardless of whether the tile was written immediately or deferred -- the stance
-    /// itself is what the announcement is for.</summary>
+    /// <summary>Reads the wielder's tile, layer and facing from one byte (Offsets.ALayerBit), checks the
+    /// map dims (AC A3), and bars the tile behind the wielder, or parks it if occupied or not yet writable.
+    /// Plants nothing, and toasts nothing, when the wielder's back is to the map edge.</summary>
     private void Plant(long entry)
     {
         int raw = _mem.U8(entry + Offsets.ALayerBit);
@@ -82,10 +72,8 @@ internal sealed partial class Bulwark
             }
             else
             {
-                // Vacant but unreadable/unwritable THIS tick: park it for the deferred watch,
-                // which re-checks readability/writability on every raise attempt, so a transient
-                // miss self-heals -- with a single tile, silently skipping would make the whole
-                // stance a permanent no-op instead.
+                // Unreadable or unwritable this tick. Park it so the deferred watch retries; skipping it would
+                // leave the stance a permanent no-op.
                 _deferred[idx] = new DeferredTile(bx, by);
             }
         }
@@ -95,10 +83,8 @@ internal sealed partial class Bulwark
         _toast.Enqueue(SundererId, Tuning.BulwarkToastKey, "The Sunderer plants its blade; none may take the ground at its back.");
     }
 
-    /// <summary>Per-tick upkeep while planted: re-assert the restore-book tile if it drifted from
-    /// its vetoed value (recomputed from the SAVED original, never re-sampled), then advance the
-    /// deferred-tile vacancy watch (AC criterion 6: two consecutive vacant ticks before a raise,
-    /// original captured AT RAISE TIME, not at deferral time).</summary>
+    /// <summary>Re-asserts each restore-book tile from its saved original, then advances the deferred
+    /// vacancy watch (AC criterion 6). The original is captured at raise time.</summary>
     private void MaintainPlant()
     {
         foreach (var kv in _restoreBook)
@@ -126,21 +112,14 @@ internal sealed partial class Bulwark
         }
     }
 
-    /// <summary>RELEASE: write every restore-book original back (guarded AND ownership-verified --
-    /// see below), clear the book and the deferred watch, log once -- UNLESS there was nothing to
-    /// restore (both empty already), in which case it is a silent no-op. That silence is
-    /// load-bearing: ResetBattle (Bulwark.cs's class doc, A1) now calls this on every battle edge,
-    /// and Engine fires ResetBattle on BOTH the enter and exit edges, so a routine double-edge
-    /// reset must not narrate a release that never happened.
+    /// <summary>Writes every saved original back, clears the book and the deferred watch, and logs once.
+    /// Silent when there was nothing to restore, because ResetBattle calls this on both battle edges
+    /// (Bulwark.cs, A1).
     ///
-    /// OWNERSHIP CHECK (LW-145 fix 5): every other restore surface in the repo verifies it still
-    /// owns a byte before stamping a saved original back; this was the one that didn't. Restore
-    /// ONLY when the tile still reads as OUR vetoed form of the saved original (BulwarkPolicy.
-    /// VetoedF6(saved)) -- if another system rewrote it since we planted (a level script, another
-    /// mod's terrain edit), stamping the stale saved original back would clobber a write we no
-    /// longer own. A mismatch skips that byte and logs once; MaintainPlant already re-asserts the
-    /// vetoed form from the saved original every tick the plant is held, so this check can never
-    /// strand a healthy plant -- it only ever catches a genuine foreign write.</summary>
+    /// LW-145 fix 5: a byte is restored only if it still reads as our vetoed form of the saved original.
+    /// If something else (a level script, another mod) rewrote it, restoring would clobber that write,
+    /// so the tile is skipped and logged. MaintainPlant keeps a healthy plant at the vetoed form, so
+    /// this only catches foreign writes.</summary>
     private void Release(string reason)
     {
         bool hadState = _restoreBook.Count > 0 || _deferred.Count > 0;
@@ -166,12 +145,9 @@ internal sealed partial class Bulwark
             ModLogger.Event(LogVerb.Signature, $"The Sunderer's Bulwark releases ({reason}); the ground at its back settles back to normal.");
     }
 
-    /// <summary>Every band seat that PLAUSIBLY holds a unit or corpse, keyed by (gx,gy): a LOOSE
-    /// test (level byte 1..99, maxHp u16 1..9999 -- Band.cs's own offsets, but deliberately NOT
-    /// Band.IsValid, which also checks brave/faith and is tighter than this needs). Over-blocking
-    /// is the safe direction (AC criterion 5): a behind tile that reads occupied via a frozen-twin
-    /// mirror or a stale seat only ever loses a block it could have taken, never blocks one it
-    /// shouldn't.</summary>
+    /// <summary>Every band seat that plausibly holds a unit or corpse, keyed by (gx,gy), using a loose
+    /// level/maxHp range test rather than Band.IsValid. Over-blocking is the safe direction (AC
+    /// criterion 5): a stale seat can only cost a block, never allow a bad one.</summary>
     private HashSet<(int x, int y)> BuildOccupancy()
     {
         var occ = new HashSet<(int x, int y)>();

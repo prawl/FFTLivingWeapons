@@ -3,32 +3,22 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// Wielder's BAND-address-space half: given a roster-resolved fingerprint and hand-id set
-/// (see Wielder.Roster.cs), find that unit's LIVE band entry. Ports ExtraTurn's proven
-/// Locate pair -- twin filter included -- behind IGameMemory so the walk is unit-testable
-/// with the fake (the live caller passes a LiveMemory; reads stay RPM-backed and fail-safe).
-/// The LW-252 ambiguous-roster branch (LocateAmbiguous/LocateAllAmbiguous) lives in
-/// Wielder.Ambiguous.cs.
+/// Band-address-space half of Wielder: given a roster-resolved fingerprint and hand-id set
+/// (Wielder.Roster.cs), find that unit's live band entry. Ports ExtraTurn's Locate pair, twin
+/// filter included, behind IGameMemory so the walk is testable with the fake.
+/// The LW-252 ambiguous-roster branch is in Wielder.Ambiguous.cs.
 /// </summary>
 internal static partial class Wielder
 {
     /// <summary>Weapon id inside the band-entry frame: CWeapon(0x20) - BandEntry(0x1C) = +0x04.</summary>
     private const int EntryWeapon = Offsets.CWeapon - Offsets.BandEntry;
 
-    /// <summary>The wielder's LIVE band entry -- PUBLIC entry point, signature UNCHANGED (12
-    /// callers untouched). Resolves the roster nameId implicitly (Wielder.ResolveAnyHandNameId,
-    /// D4) and delegates to the explicit-nameId overload below -- UNLESS the any-hand scan finds
-    /// 2+ matching roster rows, in which case (LW-252) it routes to <see cref="LocateAmbiguous"/>
-    /// instead. Pre-LW-252, a 2+-match roster resolved to the SAME -1 sentinel as a 0-match
-    /// roster, which disarmed tier 2's foreign-nameId veto exactly when a real wielder was
-    /// fp-twinned with another roster row, letting an unrelated band collider get adopted
-    /// (ledger [party-nameid-unique-key] pending owner flip; mirror mechanism
-    /// [frame-1fc-nameid-mirror] PROVEN). Every existing caller that has NOT seeded a matching
-    /// roster nameId still resolves via the explicit-nameId overload below with rosterNameId -1
-    /// (0 matching roster slots, or a 2+-match roster where at least one row's own nameId is
-    /// unseeded -- LocateAmbiguous's rule (a) -- degrades to this exact path too), the identical
-    /// tier-2-only behavior that shipped before this two-tier split -- see the tier-2 doc
-    /// comment's parity note.</summary>
+    /// <summary>The wielder's live band entry. Resolves the roster nameId from the hand ids and
+    /// delegates to the explicit overload below. If 2+ roster rows match it routes to
+    /// <see cref="LocateAmbiguous"/> instead: before LW-252 that case resolved to the same -1 as
+    /// zero matches, which disarmed tier 2's foreign-nameId veto and let a band collider be adopted
+    /// (ledger [party-nameid-unique-key], mirror mechanism [frame-1fc-nameid-mirror]). Zero matches,
+    /// or a 2+ roster with an unseeded row, still take the old tier-2-only path with rosterNameId -1.</summary>
     public static long Locate(IGameMemory mem, int weaponId, IReadOnlyList<int> hands,
                               (int lvl, int br, int fa) fp)
     {
@@ -38,15 +28,12 @@ internal static partial class Wielder
             : Locate(mem, weaponId, hands, fp, rosterNameId);
     }
 
-    /// <summary>Two-tier locate (D2): TIER 1 (below) runs when <paramref name="rosterNameId"/> is
-    /// positive and returns a nonzero hit whenever the frame-nameId-verified predicate resolves
-    /// one; a tier-1 REFUSAL (candidates existed but the tie stayed genuinely ambiguous) returns 0
-    /// WITHOUT falling through to tier 2 (S6 -- matchCount-keyed, not found==0-keyed). TIER 2 is
-    /// today's fingerprint scan, veto-hardened: an entry whose frame nameId reads nonzero and
-    /// differs from <paramref name="rosterNameId"/> is excluded (closes the wrong-unit hazard --
-    /// a wielder entry absent, an enemy fp-collider present, used to hand the enemy's address to
-    /// the caller). Callers that already know a specific roster slot's nameId (the composite
-    /// resolvers in Wielder.Roster.cs, D6) call this directly to skip the any-hand re-resolve.</summary>
+    /// <summary>Two-tier locate. Tier 1 runs when <paramref name="rosterNameId"/> is positive and
+    /// returns the frame-nameId-verified hit; if candidates existed but the tie stayed ambiguous it
+    /// returns 0 without falling to tier 2 (S6). Tier 2 is the plain fingerprint scan with a veto:
+    /// an entry whose frame nameId is nonzero and differs from rosterNameId is excluded, so an enemy
+    /// fp-collider can't be returned when the wielder's entry is absent. Composite resolvers in
+    /// Wielder.Roster.cs call this directly to skip the any-hand re-resolve.</summary>
     internal static long Locate(IGameMemory mem, int weaponId, IReadOnlyList<int> hands,
                                 (int lvl, int br, int fa) fp, int rosterNameId)
     {
@@ -54,33 +41,23 @@ internal static partial class Wielder
         {
             long hit = LocateTier1(mem, weaponId, hands, fp, rosterNameId, out int candidatesSeen);
             if (hit != 0) return hit;
-            if (candidatesSeen > 0) return 0;   // saw candidates, refused: do NOT fall through (S6)
+            if (candidatesSeen > 0) return 0;   // saw candidates, refused: do not fall through (S6)
         }
         return LocateTier2(mem, weaponId, hands, fp, rosterNameId);
     }
 
-    /// <summary>D1's tier-1 predicate + D3's tier-1 tie-break. A candidate must clear the SAME
-    /// weapon/level/brave/faith gate as tier 2 (<see cref="BasePredicate"/>) PLUS frame nameId ==
-    /// <paramref name="rosterNameId"/> (read UNGUARDED per D8 -- the shipped Iai pattern, Iai.cs
-    /// ~137-140: Mem's U16 fail-safes to 0 on an unreadable address, and 0 never matches here
-    /// because this method only runs when rosterNameId &gt; 0 -- the 0==0 trap). Keeps real-
-    /// position-beats-(0,0) and exact-weapon-beats-hand-match. UNLIKE tier 2, the deterministic
-    /// tie-break also fires when multiple REAL-position candidates survive (not just frozen (0,0)
-    /// twins) -- gated by an EXPLICIT nameId-homogeneity check (S1: every tier-1 candidate already
-    /// satisfies entryNameId == rosterNameId above, but this re-verifies it inline rather than
-    /// trusting that filter "by construction", so a future loosening of the per-entry gate can't
-    /// silently widen the relaxation to a genuinely mixed-identity tie).
-    /// ACCEPTED RESIDUALS (D3, do not "fix" without a live counter-probe): (1) when the revolving
-    /// engine mirror clones a wielder, which of the nameId-verified copies this returns is a live
-    /// unknown -- holds re-apply every tick and the mirror revolves, so a mis-targeted tick self-
-    /// heals; (2) an enemy colliding on nameId AND full fp AND weapon id simultaneously is
-    /// indistinguishable from a mirror copy here -- accepted, strictly narrower than the fp+weapon
-    /// collision bail class this whole rebuild replaces.
-    /// WIDENED internal (LW-252, precedent: TryOccupiedSlot in LW-149): <see cref="LocateAmbiguous"/>
-    /// probes one collected roster row at a time with tier-1 semantics ONLY (that row's own
-    /// nameId + hand set) -- it must call this directly rather than the internal 5-arg
-    /// <see cref="Locate(IGameMemory,int,IReadOnlyList{int},(int,int,int),int)"/>, which falls
-    /// through to tier 2 on zero tier-1 candidates and would reopen the collider leak.</summary>
+    /// <summary>Tier-1 predicate and tie-break. A candidate must pass <see cref="BasePredicate"/>
+    /// plus frame nameId == <paramref name="rosterNameId"/>, read unguarded as in Iai.cs ~137-140
+    /// (Mem's U16 returns 0 on an unreadable address, and 0 never matches since rosterNameId &gt; 0).
+    /// Real position beats (0,0) and exact weapon beats hand match. Unlike tier 2, the tie-break also
+    /// fires for several real-position survivors, gated by an inline nameId-homogeneity check so a
+    /// looser per-entry gate can't widen it to a mixed-identity tie.
+    /// Accepted residuals (D3, do not fix without a live counter-probe): which nameId-verified mirror
+    /// copy is returned is unknown, but holds re-apply every tick so a miss self-heals; and an enemy
+    /// matching nameId, full fp and weapon id is indistinguishable from a mirror copy.
+    /// Internal for <see cref="LocateAmbiguous"/> (LW-252, as TryOccupiedSlot in LW-149), which must
+    /// call it directly because the 5-arg <see cref="Locate(IGameMemory,int,IReadOnlyList{int},(int,int,int),int)"/>
+    /// falls through to tier 2 and would reopen the collider leak.</summary>
     internal static long LocateTier1(IGameMemory mem, int weaponId, IReadOnlyList<int> hands,
                                     (int lvl, int br, int fa) fp, int rosterNameId, out int candidatesSeen)
     {
@@ -100,8 +77,11 @@ internal static partial class Wielder
             candidatesSeen++;
             bool realPos = mem.U8(e + Offsets.AGx) != 0 || mem.U8(e + Offsets.AGy) != 0;
             if (real && !realPos) continue;                                  // (0,0) twin loses to a live match
-            if (realPos && !real) { real = true; matches = 0; exacts = 0; exact = 0;
-                                    firstMatch = 0; firstExact = 0; tieNameId = -1; tieHomogenous = true; }
+            if (realPos && !real)
+            {
+                real = true; matches = 0; exacts = 0; exact = 0;
+                firstMatch = 0; firstExact = 0; tieNameId = -1; tieHomogenous = true;
+            }
             matches++; match = e; if (firstMatch == 0) firstMatch = e;
             if (wid == weaponId) { exacts++; exact = e; if (firstExact == 0) firstExact = e; }
             if (tieNameId == -1) tieNameId = entryNameId;
@@ -109,26 +89,22 @@ internal static partial class Wielder
         }
         if (exacts == 1) return exact;
         if (matches == 1) return match;
-        // Relaxed tie (D3): unlike tier 2, this fires for real-position survivors too -- nameId
-        // verification already proved these are copies of ONE identified unit.
+        // Relaxed tie (D3): unlike tier 2, also fires for real-position survivors; the nameId match
+        // shows they are copies of one unit.
         if (matches > 1 && tieHomogenous) return exacts > 0 ? firstExact : firstMatch;
         return 0;
     }
 
-    /// <summary>Today's fingerprint scan (byte-for-byte the pre-nameId Locate algorithm) plus D2's
-    /// veto: when <paramref name="rosterNameId"/> is positive, an entry whose frame nameId reads
-    /// NONZERO and differs from it is excluded outright -- an entry reading 0 (unseeded, or the
-    /// read failed) still passes. When rosterNameId &lt;= 0 the veto guard never triggers, so this
-    /// is exactly today's behavior (the fallback-parity property every pre-existing test proves:
-    /// every one of them resolves rosterNameId &lt;= 0, so the whole suite exercises this path
-    /// unchanged).</summary>
+    /// <summary>The fingerprint scan (the original pre-nameId algorithm) plus a veto: when
+    /// <paramref name="rosterNameId"/> is positive, an entry with a nonzero frame nameId that differs
+    /// is excluded; an entry reading 0 still passes. With rosterNameId &lt;= 0 it behaves as before.</summary>
     private static long LocateTier2(IGameMemory mem, int weaponId, IReadOnlyList<int> hands,
                                     (int lvl, int br, int fa) fp, int rosterNameId)
     {
         long match = 0, exact = 0;
         int matches = 0, exacts = 0;
         bool real = false;   // current candidates carry a real grid position
-        // Parallel tracking for the identical-twin tie-break: record all surviving candidates.
+        // Track all surviving candidates for the identical-twin tie-break.
         long firstMatch = 0, firstExact = 0;
         int tieWid = -1; bool tieHomogenous = true;   // all candidates share the same weapon id?
         for (int s = 0; s < Offsets.BandSlots; s++)
@@ -143,8 +119,11 @@ internal static partial class Wielder
             }
             bool realPos = mem.U8(e + Offsets.AGx) != 0 || mem.U8(e + Offsets.AGy) != 0;
             if (real && !realPos) continue;                                  // (0,0) twin loses to a live match
-            if (realPos && !real) { real = true; matches = 0; exacts = 0; exact = 0;   // match reset omitted: reassigned unconditionally below
-                                    firstMatch = 0; firstExact = 0; tieWid = -1; tieHomogenous = true; }
+            if (realPos && !real)
+            {
+                real = true; matches = 0; exacts = 0; exact = 0;   // match reset omitted: reassigned unconditionally below
+                firstMatch = 0; firstExact = 0; tieWid = -1; tieHomogenous = true;
+            }
             matches++; match = e; if (firstMatch == 0) firstMatch = e;
             if (wid == weaponId) { exacts++; exact = e; if (firstExact == 0) firstExact = e; }
             // Track homogeneity: all candidates must share the same weapon-id at their entry.
@@ -153,18 +132,16 @@ internal static partial class Wielder
         }
         if (exacts == 1) return exact;
         if (matches == 1) return match;
-        // Tie among (0,0) candidates only: if no real-position entry survived the filter and all
-        // survivors carry the same weapon id, they are copies of one unit standing on the corner
-        // tile -- return the first deterministically rather than refusing.
+        // Tie among (0,0) candidates only: with no real-position survivor and one shared weapon id,
+        // they are copies of one unit on the corner tile, so return the first.
         if (matches > 1 && !real && tieHomogenous)
             return (exacts > 0 ? firstExact : firstMatch);
         return 0;
     }
 
-    /// <summary>Shared per-entry gate behind both tiers: the entry's weapon id is one of the
-    /// wielder's hands, its level is roster-consistent (<see cref="Band.LevelMatchesRoster"/>),
-    /// and brave/faith exactly match <paramref name="fp"/>. Outputs the entry's own weapon id
-    /// (needed by both tiers' exact-vs-hand tie-break) when it passes.</summary>
+    /// <summary>Per-entry gate for both tiers: weapon id is one of the hands, level is
+    /// roster-consistent (<see cref="Band.LevelMatchesRoster"/>), brave/faith match <paramref name="fp"/>.
+    /// Outputs the entry's weapon id for the exact-vs-hand tie-break.</summary>
     private static bool BasePredicate(IGameMemory mem, long e, IReadOnlyList<int> hands,
                                       (int lvl, int br, int fa) fp, out int wid)
     {
@@ -175,15 +152,11 @@ internal static partial class Wielder
         return true;
     }
 
-    /// <summary>Append EVERY band entry passing the weapon + fingerprint checks to
-    /// <paramref name="results"/> (no twin filtering; no tie guard). Intended for callers that
-    /// write idempotent values and want every copy covered -- the live entry takes effect and
-    /// any frozen twins are inert. PUBLIC entry point, signature UNCHANGED: resolves the roster
-    /// nameId implicitly, same as <see cref="Locate(IGameMemory,int,IReadOnlyList{int},(int,int,int))"/>
-    /// -- INCLUDING its LW-252 ambiguous-roster branch (<see cref="LocateAllAmbiguous"/>): 2+
-    /// matching roster rows route there instead of the plain -1 scan, which has no twin filter by
-    /// design and would otherwise hand a write like SpiritualFont's to two GENUINELY DIFFERENT
-    /// deployed wielders sharing a weapon, not just to copies of one unit.</summary>
+    /// <summary>Append every band entry passing the weapon and fingerprint checks to
+    /// <paramref name="results"/>, with no twin filtering, for idempotent writes where covering every
+    /// copy is harmless. Resolves the roster nameId like <see cref="Locate(IGameMemory,int,IReadOnlyList{int},(int,int,int))"/>,
+    /// including its LW-252 branch (<see cref="LocateAllAmbiguous"/>), so 2+ matching roster rows don't
+    /// hand a write like SpiritualFont's to two different deployed wielders sharing a weapon.</summary>
     public static void LocateAll(IGameMemory mem, int weaponId, IReadOnlyList<int> hands,
                                  (int lvl, int br, int fa) fp, List<long> results)
     {
@@ -192,12 +165,9 @@ internal static partial class Wielder
         LocateAll(mem, weaponId, hands, fp, rosterNameId, results);
     }
 
-    /// <summary>Two-tier LocateAll (D2 analog): when tier 1 (nameId-matching copies only) collects
-    /// at least one entry, those are the whole result -- no tier-2 fallback for a battle where
-    /// tier 1 genuinely found copies. Otherwise falls back to tier 2 (today's fp scan, veto-
-    /// hardened exactly like <see cref="LocateTier2"/>'s veto): a foreign-nameId collider is
-    /// excluded even when it is the only fp-matching entry left (results come back empty rather
-    /// than crediting the wrong unit).</summary>
+    /// <summary>Two-tier LocateAll. If tier 1 (nameId-matching copies) collects anything, that is the
+    /// result. Otherwise falls back to the tier-2 fp scan with the same veto as <see cref="LocateTier2"/>,
+    /// so a foreign-nameId collider yields an empty result rather than crediting the wrong unit.</summary>
     internal static void LocateAll(IGameMemory mem, int weaponId, IReadOnlyList<int> hands,
                                    (int lvl, int br, int fa) fp, int rosterNameId, List<long> results)
     {
@@ -235,9 +205,8 @@ internal static partial class Wielder
         return false;
     }
 
-    /// <summary>DEV diagnostic: when Locate misses, dump every valid band entry's locate-relevant
-    /// fields next to what was wanted -- one log read names the rejecting predicate (weapon field
-    /// content, brave/faith mismatch, or the twin filter). Dev-pulse callers only.</summary>
+    /// <summary>DEV diagnostic: on a Locate miss, dump every valid band entry's locate fields next to
+    /// what was wanted, so one log read names the rejecting predicate. Dev-pulse callers only.</summary>
     public static void DumpCandidates(IGameMemory mem, IReadOnlyList<int> hands, (int lvl, int br, int fa) fp)
     {
         ModLogger.Debug(LogVerb.Trace, $"wielder search missed this pulse: wanted weapon id in [{string.Join(",", hands)}], brave {fp.br}, faith {fp.fa}; candidates follow");

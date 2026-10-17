@@ -3,49 +3,30 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// AttackCard's resolve/decide half, split out of AttackCard.Paint.cs to keep that file (the
-/// verify/write half) under the 200-line refactor trigger: a real seam, this file answers "what
-/// should the row/tail say right now" while AttackCard.Paint.cs answers "make the live copies say it".
-/// LW-55 folded the cursor-answer's narrowing-only gate check into this same seam: judging the
-/// raw facts is part of "what should the row say", not the write half's concern.
+/// AttackCard's decide half: what the row and tail should say right now. AttackCard.Paint.cs
+/// writes it. LW-55 put the cursor-answer gate check here too.
 /// </summary>
 internal sealed partial class AttackCard
 {
-    /// <summary>The desired plan for one composed (non-vanilla) tick: the full 74-byte split image
-    /// AttackRow.Policy.BuildImage produced, plus how many characters its row name occupies (needed
-    /// by AttackRow.Policy.OffsetBytes' descOff math on every write).</summary>
+    /// <summary>The plan for one composed tick: the 74-byte image from AttackRow.BuildImage and the
+    /// row name length (AttackRow.Policy.OffsetBytes needs it for descOff).</summary>
     private readonly record struct ComposedPlan(byte[] Image, int RowNameChars);
 
-    /// <summary>LW-55's tripwire dedup set: a (refusal kind, roster hand, band weapon) triple that
-    /// has already logged/recorded once this battle is never reported again, so a stuck hover does
-    /// not spam either the log or the flight ring every tick. Cleared in AttackCard.cs's
-    /// ResetBattle. Lives here (not AttackCard.cs, already at the 200-line trigger) because
-    /// reporting a refusal is part of the resolve/decide half's own job.</summary>
+    /// <summary>LW-55 dedup: each (refusal kind, roster hand, band weapon) is reported once per
+    /// battle so a stuck hover does not spam the log or flight ring. Cleared in ResetBattle.</summary>
     private readonly HashSet<(CursorRefusal Kind, int RosterHand, int BandWeapon)> _reportedRefusals = new();
 
-    /// <summary>LW-87's tripwire dedup set: each <see cref="CursorMiss"/> stage that has already
-    /// logged/recorded once this battle is never reported again, so a routine no-owner/bridge-fail
-    /// gap does not spam either the log or the flight ring every tick. Cleared in AttackCard.cs's
-    /// ResetBattle. Lives here (not AttackCard.cs, already at the 200-line trigger) because
-    /// reporting a resolve miss is part of the resolve/decide half's own job.</summary>
+    /// <summary>LW-87 dedup: each <see cref="CursorMiss"/> stage is reported once per battle.
+    /// Cleared in ResetBattle.</summary>
     private readonly HashSet<CursorMiss> _reportedMisses = new();
 
-    /// <summary>Resolve the acting unit's row+tail plan, CURSOR-ONLY (owner decision 2026-07-06;
-    /// see AttackCard.cs's class doc for the full account): when the cursor resolve does not
-    /// answer, the plan is null (restore vanilla), full stop. The register fallback stage 2 kept
-    /// here served the LAST ACTED player's weapon on another unit's turn whenever the cursor
-    /// refused an ambiguous fingerprint (the owner watched Ramza's row carry a Spark Rod), so it
-    /// is gone from this surface. LW-55 adds a second refusal source on TOP of "no cursor answer
-    /// at all": even a confident cursor answer is judged by <see cref="CursorGate.Decide"/> before
-    /// it may compose anything, since the cursor resolve's raw roster-hand/band-weapon facts can
-    /// disagree (a stale roster row, or a falling-edge race on the turn-flag byte itself, LW-87) in
-    /// ways the resolver itself cannot see. The Note half names the evidence for AttackCard.Paint.cs's compose-change Debug
-    /// lines: which weapon/provenance a plan carries, or exactly WHY the plan is vanilla. Once the
-    /// gate clears, the decision is AttackRow.Policy.ComposeRow's alone, driven off the RAW main
-    /// hand + sprite byte, never the filtered/tracked Hands() set (which cannot tell "unarmed"
-    /// from "wielding something untracked", and would miss the "Fists" case entirely). Doctrine
-    /// unchanged: a wrong dossier is worse than vanilla, so any guard or gate failure falls
-    /// through, never a guess.</summary>
+    /// <summary>Resolve the acting unit's row and tail plan from the cursor only (2026-07-06, see
+    /// AttackCard.cs). No cursor answer gives a null plan (vanilla); the old register fallback showed
+    /// the last actor's weapon (a Spark Rod on Ramza's row) and was removed. a cursor answer
+    /// must also pass <see cref="CursorGate.Decide"/>, since roster hand and band weapon can disagree
+    /// (stale roster row, LW-87 turn-flag race). Note says why a plan is vanilla, for the compose
+    /// Debug lines. After the gate, AttackRow.ComposeRow decides from the raw main hand and sprite
+    /// byte, not Hands(), which cannot tell unarmed from an untracked weapon.</summary>
     private (ComposedPlan? Plan, string Note) ComposeCurrentPlan()
     {
         var (resolved, miss) = _resolveCursor();
@@ -82,13 +63,10 @@ internal sealed partial class AttackCard
         }
     }
 
-    /// <summary>LW-55's tiered tripwire: <see cref="CursorRefusal.WeaponMismatch"/> is the genuine
-    /// anomaly this whole fix exists to catch (a wrong dossier was one tick from painting) and
-    /// gets a Warn plus a flight record; <see cref="CursorRefusal.NotTurnOwner"/> is, since LW-87's
-    /// re-anchor, a RARE falling-edge race (the flag owner's own turn-flag byte re-read low a tick
-    /// after Band.FlagOwner's walk found it high) and gets Debug plus a flight record only, never a
-    /// Warn (a benign one-tick refusal, not a genuine anomaly). Deduped to ONE report per (kind,
-    /// rosterHand, bandWeapon) key per battle via <see cref="_reportedRefusals"/>.</summary>
+    /// <summary>LW-55 tripwire. <see cref="CursorRefusal.WeaponMismatch"/> is the real anomaly (a
+    /// wrong dossier nearly painted): Warn plus flight record. <see cref="CursorRefusal.NotTurnOwner"/>
+    /// is, since LW-87, a rare one-tick turn-flag race: Debug plus flight record. Deduped via
+    /// <see cref="_reportedRefusals"/>.</summary>
     private void ReportRefusal(CursorRefusal refusal, CursorAnswer answer)
     {
         var key = (refusal, answer.RosterHand, answer.BandWeapon);
@@ -104,14 +82,9 @@ internal sealed partial class AttackCard
         _recorder?.Invoke("card", $"{refusal} {detail}");
     }
 
-    /// <summary>LW-87's resolve-stage observability tap: the FIRST occurrence of each
-    /// <see cref="CursorMiss"/> stage per battle gets one Debug line plus one flight "card" record
-    /// ("miss:&lt;stage&gt;"); every later tick with the SAME stage is silent
-    /// (<see cref="_reportedMisses"/>, cleared in AttackCard.cs's ResetBattle). NEVER a Warn:
-    /// <see cref="CursorMiss.NoOwner"/> fires in the gap between any two units' turns and
-    /// <see cref="CursorMiss.BridgeFail"/> fires on every enemy turn -- both routine, not the
-    /// genuine anomaly <see cref="ReportRefusal"/>'s WeaponMismatch tier exists to catch.
-    /// <see cref="CursorMiss.None"/> is a no-op (nothing to report on a successful resolve).</summary>
+    /// <summary>the first miss of each <see cref="CursorMiss"/> stage per battle gets a Debug
+    /// line and a flight "card" record ("miss:&lt;stage&gt;"), deduped by <see cref="_reportedMisses"/>.
+    /// Never a Warn: NoOwner fires between any two turns and BridgeFail on every enemy turn.</summary>
     private void ReportMiss(CursorMiss miss)
     {
         if (miss == CursorMiss.None) return;
@@ -122,19 +95,13 @@ internal sealed partial class AttackCard
         _recorder?.Invoke("card", $"miss:{miss}");
     }
 
-    /// <summary>Builds the Named-row plan: the tail's budget is whatever the row name leaves behind
-    /// in the shared 73-char footprint (AttackRow.Policy.FootprintChars minus the row name's own
-    /// length and its separating NUL).</summary>
+    /// <summary>Builds the Named-row plan. The tail gets the 73-char footprint minus the row name and its NUL.</summary>
     private ComposedPlan ComposeNamedPlan(string rowName, WeaponMeta m, int kills)
     {
         int tier = Tuning.TierFor(kills);
-        // LW-35 (owner direction 2026-07-06): Marks are release-hidden. The per-weapon deed
-        // collection (LegendStore/Reliquary) continues untouched, only THIS display surface stops
-        // consuming it, so markLabel is always null here.
+        // Marks are hidden from this surface; LegendStore/Reliquary still collect them.
         string? markLabel = null;
-        // CHANGE 3 (owner decision 2026-07-06): a real signature always earns a clause: either
-        // " armed" once the tier is reached, or a locked "Unlocks {label}" tease before it --
-        // rather than only ever showing once earned.
+        // A signature always gets a clause: " armed" once earned, else an "Unlocks {label}" tease (2026-07-06).
         string? sigLabel = m.Signature != null && !string.IsNullOrEmpty(m.Signature.DisplayLabel)
             ? m.Signature.DisplayLabel
             : null;

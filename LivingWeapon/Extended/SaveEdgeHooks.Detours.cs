@@ -3,24 +3,19 @@ using System;
 namespace LivingWeapon;
 
 /// <summary>
-/// The three detour bodies for <see cref="SaveEdgeHooks"/> and the AfterApply repair they share
-/// on the load path -- the HOT-PATH half, split out of SaveEdgeHooks.cs under the 200-line house
-/// guideline. Every one of these runs on the GAME's own thread, forwards to the original FIRST
-/// EXCEPT the LW-371 projection step below, which by design runs BEFORE it (see the base file's
-/// class doc for why), and never throws past its own boundary.
+/// The three detour bodies for <see cref="SaveEdgeHooks"/> plus the AfterApply repair they share
+/// on the load path, split out of SaveEdgeHooks.cs under the 200-line guideline. They run on the
+/// game's thread, call the original first (except the LW-371 projection in SerializeCore, which
+/// runs before it, see the base file's class doc) and never throw past their boundary.
 /// </summary>
 internal sealed partial class SaveEdgeHooks
 {
     private nint DetourSerialize(nint rcx, nint rdx, nint r8, nint r9)
         => SerializeCore(() => _serialize!.OriginalFunction(rcx, rdx, r8, r9));
 
-    /// <summary>The whole serialize-detour body with the native trampoline call injected (the
-    /// InventoryResetHook.Process idiom, and a test seam: tests drive this directly the way
-    /// AfterApply is already driven). LW-371: the projection runs FIRST, inside its own try -- a
-    /// fault here skips it and the game serializes whatever the old chart blocks already hold
-    /// (the pre-arc behavior, never worse) -- then <paramref name="original"/> is called exactly
-    /// once, OUTSIDE every try, then the existing post-serialize tracker work runs in its own
-    /// try.</summary>
+    /// <summary>Serialize-detour body with the native call injected so tests can drive it. LW-371 the
+    /// projection runs first in its own try (on a fault the game serializes the old chart blocks as
+    /// before), then <paramref name="original"/> is called once outside any try, then the tracker work.</summary>
     internal nint SerializeCore(Func<nint> original)
     {
         try { if (_templates != null) TemplateSync.Project(_mem, _templates); }
@@ -55,26 +50,20 @@ internal sealed partial class SaveEdgeHooks
         return ret;
     }
 
-    /// <summary>One canary per path: which of the two restore routines a real load runs through
-    /// is still unread, so the log has to name the one that actually fired.</summary>
+    /// <summary>One canary per path, since it is unknown which restore routine a real load runs.</summary>
     internal void AfterApply(bool second)
     {
         try
         {
             var hdr = ReadHeader();
             if (hdr == null) return;   // the pointer did not resolve; otherwise every call takes an edge, which is sound because both routines overwrite the bag from the struct
-            // LW-371: adopt the old chart blocks the routine below us just restored from the save
-            // struct back onto the relocated page (marker rule + wall, TemplateSync.Adopt) BEFORE
-            // the bag/template replay below, so the seat that follows always lands on a fresh page.
+            // LW-371 adopt the old chart blocks the routine below just restored from the save struct back
+            // onto the relocated page (TemplateSync.Adopt) before the bag/template replay, so the seat lands on a fresh page.
             if (_templates != null) TemplateSync.Adopt(_mem, _templates);
-            // LW-351: repair FIRST, publish the edge SECOND. The routine just below us has this
-            // instant finished overwriting the bag from the save file and restoring both menu
-            // order templates out of the save struct, so the counts and the template seats both
-            // belong here, before the game can draw a menu from either. Doing it in this order
-            // also means the tick can never take the edge before the resolution it must re-use is
-            // there (the tracker's own lock is the fence between the two threads).
-            // LW-351 stage 3 P4-F3: the replay runs in its own try so a fault in it can never
-            // suppress the edge the line right after publishes.
+            // LW-351 repair first, publish the edge second. The routine below has just overwritten the bag and
+            // restored both order templates, so counts and seats belong here before a menu can draw. This order
+            // also keeps the tick from taking the edge before the resolution it re-uses exists (the tracker's lock is the fence).
+            // LW-351 stage 3 P4-F3 the replay has its own try so a fault cannot suppress the edge published after it.
             try { _replayOnLoad?.Invoke(SaveEdgeTracker.KeyFromHeader(hdr)); }
             catch (Exception) { /* a replay fault must not cost the edge below */ }
             _tracker.OnApplied(hdr);

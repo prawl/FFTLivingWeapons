@@ -3,55 +3,19 @@ using System.Collections.Generic;
 
 namespace LivingWeapon;
 
-/// <summary>Outcome of presenting one slot's revive event to RestartSentinel. <see cref="Refuse"/>:
-/// nothing here (no credit to reverse, no retry evidence, or grace still holds) -- the caller does
-/// nothing. <see cref="UncreditNow"/>: the latch is open (just now, or already) -- the caller calls
-/// KillTracker.UncreditKills immediately. <see cref="Stashed"/> (LW-233 fix): a null is currently
-/// mid-flight but has not yet qualified -- the caller does nothing THIS tick; RestartSentinel.Tick's
-/// return value drains it later, either into an uncredit (the null qualified in time) or into
-/// nothing at all (the null broke first).</summary>
+/// <summary>Outcome of presenting one slot's revive to RestartSentinel. Refuse means do nothing.
+/// UncreditNow means call KillTracker.UncreditKills now. Stashed means a null is
+/// mid-flight and not yet qualified, so do nothing this tick; Tick's return value drains it later.</summary>
 internal enum RevivePresentResult { Refuse, UncreditNow, Stashed }
 
 /// <summary>
-/// LW-233: the checkpoint-retry detector. Losing a battle and picking retry rewinds the game IN
-/// PLACE with NO exit edge (docs/LIVE_LEDGER.md row [battle-retry-rewind-fingerprint], on `main` as
-/// of 438b173 -- not yet merged onto this branch, see this arc's own PR notes), so KillTracker's
-/// ordinary state-based death detection re-credits every revived enemy's kill a second time when
-/// it is re-killed -- permanent kill-tally inflation. This class watches two signals
-/// KillTracker.Corpses.cs already has for free (the engine actor pointer's raw-null state, via
-/// ActorRegister.RawNullThisTick, and each slot's own revive events) and opens a LATCH the tracker
-/// consults before paying out a phantom re-credit or a phantom re-kill.
-///
-/// NO memory access here (unlike most of this runtime's modules) -- every input arrives as a plain
-/// value from the caller, so this class is unit-tested directly with no fake memory at all
-/// (RestartSentinelTests.cs). The pure ShouldOpenLatch/ShouldStash decision tables, INCLUDING each
-/// constant's own tape provenance and the deferred-verdict (0ms-join) and out-of-live-rearm
-/// mechanism writeups, live in RestartSentinel.Policy.cs -- this class doc stays an index, not a
-/// second copy (a prior version duplicated that history here; it drifted out of date and is gone).
-/// THIS FILE is the core tick/latch machinery (Tick's null-streak/battle-age/out-of-live
-/// bookkeeping, PresentRevive, LogOpenEdge); RestartSentinel.Stash.cs holds the deferred-verdict
-/// stash's own per-tick TTL/drain bookkeeping (ProcessStash) -- split once the stash mechanism
-/// pushed this file past the 200-line refactor trigger.
-///
-/// THE TWO TICK INPUTS, per Tick(): rawActorNull (true only on a literal raw-zero actor pointer
-/// read, never a shape-fail or an unreadable page -- see ActorRegister.RawNullThisTick's own doc)
-/// and inLiveish (the same OnField input KillTracker.Poll already threads through). PresentRevive is
-/// called zero or more times per tick, inline from KillTracker.Corpses.cs's single-pass band scan,
-/// once per slot that just came back alive from a credited death.
-///
-/// LATCH RULE (asymmetric, per-event, plan v2): opens the moment a revive presented with
-/// wasCredited &amp;&amp; healedFromZero both true lands while a QUALIFIED null (persisted
-/// <see cref="RestartSentinelPolicy.NullPersistTicks"/> ticks) occurred at-or-before it, within
-/// <see cref="RestartSentinelPolicy.JoinWindowTicks"/>, past EITHER the battle's own opening
-/// <see cref="RestartSentinelPolicy.GraceTicks"/> OR a matching revived identity -- see
-/// RestartSentinel.Policy.cs's ShouldOpenLatch doc for why grace alone cannot discriminate a real
-/// retry from LW-108's starved-bracket hole, and see this file's PresentRevive for what "matching"
-/// means post-FINDING-0 (2026-08-17: BOTH the (lvl,br,fa,maxHp) tuple AND a nonzero nameId must
-/// agree, not the tuple alone -- docs/LIVE_LEDGER.md row [party-nameid-unique-key] proves the tuple
-/// alone has collided between real, distinct units). Once open, ANY later wasCredited+healedFromZero
-/// revive re-arms the full <see cref="RestartSentinelPolicy.LatchTicks"/> duration without needing
-/// its own fresh null-join. A status-death revive (healedFromZero false) never opens, extends, or
-/// stashes -- the named precision-first residual (a miss, never a false positive).
+/// LW-233 checkpoint-retry detector. Retrying a lost battle rewinds the game in place with no exit
+/// edge (docs/LIVE_LEDGER.md row [battle-retry-rewind-fingerprint], on main as of 438b173), so
+/// KillTracker would credit each revived enemy's kill a second time. This class watches the engine
+/// actor pointer's raw-null state (ActorRegister.RawNullThisTick) and per-slot revive events, and
+/// opens a latch the tracker checks before paying a phantom credit. It does no memory access, so
+/// RestartSentinelTests drives it directly. Decision tables and constants are in
+/// RestartSentinel.Policy.cs; the stash drain (ProcessStash) is in RestartSentinel.Stash.cs.
 /// </summary>
 internal sealed partial class RestartSentinel
 {
@@ -59,27 +23,26 @@ internal sealed partial class RestartSentinel
 
     private int _tick;
     private int _nullStreakTicks;
-    /// <summary>The tick of the most recent QUALIFIED null (persisted long enough); 0 = none since
-    /// the last ResetBattle/out-of-live re-arm.</summary>
+    /// <summary>Tick of the most recent qualified null (one that persisted long enough); 0 = none
+    /// since the last reset.</summary>
     private int _lastQualifiedNullTick;
     private int _latchOpenTicksRemaining;
     private int _battleAgeTicks;
     private int _outOfLiveStreakTicks;
 
-    // The stash's own state (_stash, _drainedThisTick) lives in RestartSentinel.Stash.cs beside
-    // ProcessStash, the logic that owns it -- Tick() (below) and PresentRevive still reach into it
-    // (clear/add/return), same cross-file field access this codebase already uses throughout
-    // KillTracker's own partial-class split (e.g. KillTracker.Corpses.cs's _creditedWeapons, read
-    // and written from KillTracker.cs's CreditKill/UncreditKills).
+    // The stash fields (_stash, _drainedThisTick) live in RestartSentinel.Stash.cs beside ProcessStash.
 
-    /// <summary>True while a credited-corpse revive should be uncredited and a fresh dead-edge
-    /// should go pending instead of crediting -- see KillTracker.Corpses.cs's two consult sites.</summary>
+    /// <summary>True while a credited-corpse revive should be uncredited and a fresh dead-edge goes
+    /// pending instead of crediting (see KillTracker.Corpses.cs). The latch opens on a revive that
+    /// was credited and healed from zero, when a qualified null (NullPersistTicks) came within
+    /// JoinWindowTicks before it and the battle is past GraceTicks or the identity matches. Later
+    /// such revives re-arm it for LatchTicks. A status-death revive never opens it (a known miss,
+    /// chosen over false positives).</summary>
     internal bool LatchOpen => _latchOpenTicksRemaining > 0;
 
     internal RestartSentinel(Action<string, string>? recorder = null) => _recorder = recorder;
 
-    /// <summary>Full reset on battle enter/exit, mirroring every other per-battle state machine in
-    /// this tracker (KillTracker.ResetBattle calls this alongside _register.ResetBattle()).</summary>
+    /// <summary>Full reset on battle enter/exit; KillTracker.ResetBattle calls this.</summary>
     internal void ResetBattle()
     {
         _tick = 0;
@@ -92,11 +55,10 @@ internal sealed partial class RestartSentinel
         _drainedThisTick.Clear();
     }
 
-    /// <summary>One tick, called once per KillTracker.Poll (mirrors ActorRegister.Update's
-    /// every-tick cadence) BEFORE that same tick's band scan presents any revives, so a null
-    /// observed this tick can join a revive detected later in the same tick. Returns every stash
-    /// entry that drained THIS tick (empty on almost every call) -- the caller (KillTracker.Poll)
-    /// applies UncreditKills to each and folds the drain into its own changed-flag return.</summary>
+    /// <summary>One tick per KillTracker.Poll, before that tick's band scan so a null seen now can join
+    /// a revive found later in the same tick. rawActorNull is true only on a literal zero actor
+    /// pointer, not a shape-fail or unreadable page. Returns the stash entries drained this tick;
+    /// the caller applies UncreditKills to each.</summary>
     internal IReadOnlyList<(int Slot, List<int> Weapons, bool ViaFallback)> Tick(bool rawActorNull, bool inLiveish)
     {
         _tick++;
@@ -138,18 +100,11 @@ internal sealed partial class RestartSentinel
         return _drainedThisTick;
     }
 
-    /// <summary>Present one slot's revive event. See <see cref="RevivePresentResult"/> for what
-    /// each outcome means and what the caller should do with it. <paramref name="creditedIdentity"/>
-    /// and <paramref name="presentedIdentity"/> are the (lvl,br,fa,maxHp) identity tuples
-    /// KillTracker.Corpses.cs already tracks (_creditedIdentity[s] at credit time, slot.Id at this
-    /// revive); <paramref name="creditedNameId"/> and <paramref name="presentedNameId"/> (FINDING 0,
-    /// 2026-08-17 verifier correction) are the matching nameId half (_creditedNameId[s], slot.NameId)
-    /// -- REQUIRED in addition to the tuple, not an alternative to it, because the tuple alone has
-    /// PROVEN twins (docs/LIVE_LEDGER.md row [party-nameid-unique-key]). All four values are passed
-    /// in rather than duplicated as sentinel-side storage, per this class's own no-duplicate-state
-    /// discipline (see the class doc's "NO memory access here" paragraph). See RestartSentinel.
-    /// Policy.cs's ShouldOpenLatch doc for why a matching identity narrowly exempts the battle-age
-    /// grace floor.</summary>
+    /// <summary>Present one slot's revive event; see <see cref="RevivePresentResult"/>. The identity
+    /// tuples are (lvl,br,fa,maxHp) from KillTracker.Corpses.cs (_creditedIdentity at credit time,
+    /// slot.Id now). The nameIds must also agree (2026-08-17), because the tuple alone has collided
+    /// between distinct units (docs/LIVE_LEDGER.md row [party-nameid-unique-key]). A matching
+    /// identity exempts the battle-age grace floor (see ShouldOpenLatch in RestartSentinel.Policy.cs).</summary>
     internal RevivePresentResult PresentRevive(int slot, List<int> weapons, bool viaFallback, bool healedFromZero,
                                                 (byte lvl, byte br, byte fa, ushort mhp) creditedIdentity,
                                                 (byte lvl, byte br, byte fa, ushort mhp) presentedIdentity,
@@ -158,18 +113,12 @@ internal sealed partial class RestartSentinel
         bool wasCredited = weapons.Count > 0;
         if (!wasCredited || !healedFromZero)
         {
-            // LW-255: the sentinel used to record nothing on a decline. PresentRevive only runs on
-            // an actual revive event (a slot whose _creditedWeapons was non-null going into this
-            // alive tick), never every idle tick, so this allocation never lands on Tick()'s own
-            // per-33ms hot path.
+            // Record declines. This only runs on a real revive event, not every idle tick.
             _recorder?.Invoke("restart", $"no-open reason={(wasCredited ? "not-healed-from-zero" : "not-credited")} slot={slot}");
             return RevivePresentResult.Refuse;
         }
 
-        // FINDING 0 (2026-08-17 verifier correction): BOTH the tuple AND a nonzero nameId must
-        // agree -- see this method's own doc and KillTracker.Corpses.cs's _creditedNameId doc
-        // comment for the full rationale. 0 (either side) means "unavailable" (unreadable or
-        // genuinely unresolved) and fails closed, same as a tuple mismatch.
+        // Tuple and a nonzero nameId must both agree; 0 on either side means unavailable and fails closed.
         bool identityMatches = creditedIdentity == presentedIdentity
             && creditedNameId != 0 && presentedNameId != 0 && creditedNameId == presentedNameId;
         string identityNote = IdentityTap(creditedIdentity, creditedNameId, presentedIdentity, presentedNameId);
@@ -187,9 +136,8 @@ internal sealed partial class RestartSentinel
         {
             string graceNote = identityMatches && _battleAgeTicks <= RestartSentinelPolicy.GraceTicks
                 ? ", grace exempted by a matching revived identity" : "";
-            // FINDING 5: identity evidence rides every open-edge flight record -- this makes the
-            // owner's next live retry drill answer, for free, the open premise FINDING 3's ledger
-            // row names (whether nameId and the tuple actually survive a retry).
+            // Identity evidence goes on every open-edge record so a retry drill shows whether
+            // nameId and the tuple survive a retry.
             LogOpenEdge($"null qualified {ticksSinceQualifiedNull} ticks before this revive, battle age {_battleAgeTicks} ticks{graceNote}, {identityNote}");
             return RevivePresentResult.UncreditNow;
         }
@@ -198,18 +146,13 @@ internal sealed partial class RestartSentinel
         {
             _stash.Add((slot, weapons, viaFallback, RestartSentinelPolicy.NullPersistTicks, identityMatches,
                         creditedIdentity, presentedIdentity, creditedNameId, presentedNameId));
-            // Punch-list item 3 (2026-08-17): a stash that never drains used to leave ZERO trace on
-            // the flight tape -- the exact silence that made the first live failure take an hour to
-            // diagnose. This record (plus RestartSentinel.Stash.cs's drop record) closes that hole;
-            // both reuse the frozen "restart" record type and this file's own IdentityTap, per the
-            // codebase's flight-vocabulary convention (never invent a new record type).
+            // Punch-list item 3 (2026-08-17): a stash that never drains used to leave no trace on the
+            // flight tape. This record and the drop record in RestartSentinel.Stash.cs fix that.
             _recorder?.Invoke("restart", $"stash slot={slot} {identityNote}");
             return RevivePresentResult.Stashed;
         }
 
-        // LW-255: best-effort refusal classification for the flight tape, not an exhaustive
-        // decision tree -- ties break in this priority order. Diagnostic only; the credit path
-        // never branches on it.
+        // Best-effort refusal reason for the flight tape; diagnostic only, ties break in this order.
         string reason = !haveQualifiedNull && _nullStreakTicks == 0 ? "no-qualified-null"
             : haveQualifiedNull && ticksSinceQualifiedNull > RestartSentinelPolicy.JoinWindowTicks ? "outside-join-window"
             : !identityMatches && _battleAgeTicks <= RestartSentinelPolicy.GraceTicks ? "grace-not-cleared"
@@ -218,9 +161,8 @@ internal sealed partial class RestartSentinel
         return RevivePresentResult.Refuse;
     }
 
-    /// <summary>Open the latch and log the one plain-language retry line plus its flight evidence.
-    /// Shared by the direct-open path (PresentRevive) and the stash-drain path (ProcessStash) so
-    /// the console wording stays a single frozen string regardless of which path fired it.</summary>
+    /// <summary>Open the latch and log the plain-language retry line plus flight evidence. Shared by
+    /// PresentRevive and ProcessStash so the console wording stays one string.</summary>
     private void LogOpenEdge(string evidence)
     {
         _latchOpenTicksRemaining = RestartSentinelPolicy.LatchTicks;
@@ -229,12 +171,9 @@ internal sealed partial class RestartSentinel
         _recorder?.Invoke("restart", $"latch open ({evidence})");
     }
 
-    /// <summary>FINDING 5 (2026-08-17): the shared compact identity-evidence tap, used by every
-    /// site that reports a credited/presented identity pair to the flight recorder (the open-edge
-    /// evidence string above, the refusal record above, and RestartSentinel.Stash.cs's per-entry
-    /// drain record) so the format never drifts between them. L/B/F/H/N mirrors this codebase's
-    /// existing terse identity-tap convention (e.g. ActorRegister.cs's `fp=L{lvl}B{br}F{fa}`,
-    /// Puppeteer.cs's `nameId={...}`).</summary>
+    /// <summary>Compact identity evidence for the flight recorder (2026-08-17), shared by the open-edge,
+    /// refusal and stash-drain records. L/B/F/H/N follows the terse taps in ActorRegister.cs
+    /// (`fp=L{lvl}B{br}F{fa}`) and Puppeteer.cs (`nameId={...}`).</summary>
     private static string IdentityTap((byte lvl, byte br, byte fa, ushort mhp) credited, ushort creditedNameId,
                                        (byte lvl, byte br, byte fa, ushort mhp) presented, ushort presentedNameId)
         => $"credited=(L{credited.lvl}B{credited.br}F{credited.fa}H{credited.mhp}N{creditedNameId}) " +

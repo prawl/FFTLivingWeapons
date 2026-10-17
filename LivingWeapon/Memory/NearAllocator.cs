@@ -4,23 +4,16 @@ using System.Runtime.InteropServices;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-346: executable memory within +-2 GB of a target address, for the accessor-hook stubs (a
-/// five-byte E9 jmp rel32 can only reach that far) and the relocated extended catalog (the
-/// accessor's <c>lea rax,[rax*4 + disp32]</c> is a signed 32-bit displacement from the image
-/// base). Ported from the FFTHandsFree research rig's INearAllocator/LiveNearAllocator
-/// (branch capbreak-equip, owner-observed working on 1.5.2 2026-08-26/27).
-///
-/// The live adapter walks MEM_FREE regions with VirtualQueryEx (upward from the target first, then
-/// the window below it, LW-388) and commits the first 64 KB-aligned candidate with
-/// VirtualAlloc(PAGE_EXECUTE_READWRITE). It never frees: a
-/// stub page may be mid-execution on a game thread at any moment, and one leaked page per
-/// process lifetime is the price of never racing it (the rig's own rule, R3). Tests inject a
-/// fake that hands back a deterministic in-window address.
+/// Executable memory within +-2 GB of a target address, for the accessor-hook stubs (a five-byte
+/// E9 jmp rel32 only reaches that far) and the relocated extended catalog (signed 32-bit displacement from
+/// the image base). Ported from the FFTHandsFree research rig (branch capbreak-equip, working on 1.5.2 2026-08-26/27).
+/// The live adapter walks MEM_FREE regions with VirtualQueryEx (up from the target first, then below it, LW-388)
+/// and commits the first 64 KB-aligned candidate with VirtualAlloc(PAGE_EXECUTE_READWRITE). It never frees,
+/// because a stub page may be mid-execution on a game thread (the rig's rule R3). Tests inject a fake.
 /// </summary>
 internal interface INearAllocator
 {
-    /// <summary>Allocate at least <paramref name="size"/> executable bytes within int32 reach of
-    /// <paramref name="nearAddr"/>. 0 when no region qualifies; never throws.</summary>
+    /// <summary>Allocates at least <paramref name="size"/> executable bytes within int32 reach of <paramref name="nearAddr"/>. Returns 0 when no region qualifies; never throws.</summary>
     long Alloc(int size, long nearAddr);
 }
 
@@ -28,8 +21,7 @@ internal sealed class LiveNearAllocator : INearAllocator
 {
     private readonly IRegionWalker _walker;
 
-    /// <param name="walker">The address-space seam; null (production) walks this process with
-    /// VirtualQueryEx/VirtualAlloc (<see cref="LiveRegionWalker"/>).</param>
+    /// <param name="walker">Address-space seam; null (production) walks this process via <see cref="LiveRegionWalker"/>.</param>
     public LiveNearAllocator(IRegionWalker? walker = null) => _walker = walker ?? new LiveRegionWalker();
 
     /// <summary>Just under 2 GB, so thunk -&gt; stub and stub -&gt; image both encode as rel32.</summary>
@@ -37,14 +29,10 @@ internal sealed class LiveNearAllocator : INearAllocator
     /// <summary>VirtualAlloc snaps a requested base DOWN to 64 KB; candidates are rounded UP first.</summary>
     internal const int AllocGranule = 0x10000;
 
-    /// <summary>LW-388 (R1): scans UP from <paramref name="nearAddr"/> first, [nearAddr, nearAddr +
-    /// SearchRange), then falls back to [nearAddr - SearchRange, nearAddr). The old single
-    /// bottom-up pass committed the lowest free page of the whole window: harmless at the
-    /// preferred base (the low address space was busy, so the page landed a few hundred MB below
-    /// the image), fatal under ASLR (everything below a 0x7FF6... image is free, so the page
-    /// landed 2 GB - 64 KB below it, out of int32 reach of the image's own rip-relative fields).
-    /// Above the image the first free page sits right past its end, close to every field. Every
-    /// caller still runs its own reach check on the result (the refusal net).</summary>
+    /// <summary>scans up from <paramref name="nearAddr"/> first, then falls back to the window below it.
+    /// A single bottom-up pass would take the lowest free page, which under ASLR lands 2 GB - 64 KB below the image,
+    /// out of int32 reach of its rip-relative fields (everything below a 0x7FF6... image is free). Above the image the
+    /// first free page sits right past its end. Callers still run their own reach check on the result.</summary>
     public long Alloc(int size, long nearAddr)
     {
         try
@@ -58,8 +46,7 @@ internal sealed class LiveNearAllocator : INearAllocator
         return 0;
     }
 
-    /// <summary>Walks [from, to) region by region and commits the first granule-aligned candidate
-    /// with room for <paramref name="size"/> bytes; 0 when none qualifies.</summary>
+    /// <summary>Walks [from, to) region by region and commits the first granule-aligned candidate with room for <paramref name="size"/> bytes; 0 when none qualifies.</summary>
     private long Scan(int size, long from, long to)
     {
         long scan = from;
@@ -79,14 +66,13 @@ internal sealed class LiveNearAllocator : INearAllocator
         return 0;
     }
 
-    /// <summary>Pure: the lowest granule-aligned address inside a free region that also lies in
-    /// [nearAddr - searchRange, nearAddr + searchRange) with room for <paramref name="size"/>
-    /// bytes. False when the region has no such address. Exposed for the unit tests.</summary>
+    /// <summary>The lowest granule-aligned address in a free region that also lies in [nearAddr - searchRange,
+    /// nearAddr + searchRange) with room for <paramref name="size"/> bytes. False if none. Exposed for tests.</summary>
     internal static bool PickAllocBase(long regionBase, long regionSize, int size,
         long nearAddr, long searchRange, int granule, out long candidate)
         => PickInWindow(regionBase, regionSize, size, nearAddr - searchRange, nearAddr + searchRange, granule, out candidate);
 
-    /// <summary>Pure: <see cref="PickAllocBase"/> over an explicit window [rangeMin, rangeMax).</summary>
+    /// <summary>Variant of <see cref="PickAllocBase"/> over an explicit window [rangeMin, rangeMax).</summary>
     internal static bool PickInWindow(long regionBase, long regionSize, int size,
         long rangeMin, long rangeMax, int granule, out long candidate)
     {
@@ -102,25 +88,21 @@ internal sealed class LiveNearAllocator : INearAllocator
     }
 }
 
-/// <summary>One answer from the address-space walk: a run of pages starting at <see cref="Base"/>
-/// (the queried address, page-aligned, the way VirtualQueryEx reports it) and whether it is free.</summary>
+/// <summary>One answer from the address-space walk, a run of pages starting at <see cref="Base"/> (page-aligned, as VirtualQueryEx reports it) and whether it is free.</summary>
 internal readonly record struct MemRegion(long Base, long Size, bool Free);
 
-/// <summary>LW-388 A14: the address-space seam under <see cref="LiveNearAllocator"/>, so the scan
-/// order can be unit-tested against modelled layouts (ASLR, preferred base) without touching the
-/// real process.</summary>
+/// <summary>LW-388 A14: address-space seam under <see cref="LiveNearAllocator"/>, so scan order can be unit-tested
+/// against modelled layouts (ASLR, preferred base) without touching the real process.</summary>
 internal interface IRegionWalker
 {
     /// <summary>The region containing <paramref name="address"/>; false ends the walk.</summary>
     bool Query(long address, out MemRegion region);
 
-    /// <summary>Reserve and commit <paramref name="size"/> executable bytes at exactly
-    /// <paramref name="address"/>; the granted base, or 0 on refusal.</summary>
+    /// <summary>Reserves and commits <paramref name="size"/> executable bytes at <paramref name="address"/>; returns the granted base, or 0 on refusal.</summary>
     long Commit(long address, int size);
 }
 
-/// <summary>The production walker: VirtualQueryEx over this process and VirtualAlloc
-/// (MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE). Never frees (see INearAllocator).</summary>
+/// <summary>Production walker over VirtualQueryEx and VirtualAlloc (MEM_RESERVE | MEM_COMMIT, PAGE_EXECUTE_READWRITE). Never frees (see INearAllocator).</summary>
 internal sealed class LiveRegionWalker : IRegionWalker
 {
     private const uint MEM_FREE = 0x10000;

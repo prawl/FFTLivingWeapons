@@ -4,42 +4,12 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-167 Living Poach -- the stateful executor. Consumes KillTracker's widened deed sink
-/// (IDeedSink.RecordPoachDeed, delivered via DeedFanout.cs) and, on an eligible corpse, rolls a
-/// carcass into the Poacher's Den store: LivingPoachPolicy.Decide is the pure gate/roll, this
-/// class gathers the inputs it needs (weapon formula from meta, species from the victim's job,
-/// the map lookup) and performs the guarded write + toast.
-///
-/// wasBasicAttack is a constructor-injected <c>Func&lt;int, bool&gt;</c>, keyed by weaponId exactly
-/// like killerHasPoach, so every pre-stage-4 executor test can still drive it directly without a
-/// live action-record fixture. ARMED (LW-167 stage 4, 2026-08-12): Engine.cs now wires it to
-/// <see cref="ReadWasBasicAttack"/>, which resolves the SAME weapon's deployed main-hand wielder
-/// (the killer) via the same lane <see cref="ReadKillerHasPoach"/> uses and reads that wielder's
-/// own action record for a basic-Attack stamp -- see <see cref="ReadWasBasicAttack"/>'s own doc for
-/// the mechanism and its LIVE_LEDGER citation. killerHasPoach is the real read already
-/// (<see cref="ReadKillerHasPoach"/>): a per-weapon delegate so each call re-locates that weapon's
-/// deployed main-hand wielder and reads its live Poach support bit, rather than a snapshot taken
-/// once at construction.
-///
-/// KILL-SHAPE REFUSALS: a credit whose slot's own kill-shape flags read viaFallback (an
-/// attribution guess, not a confirmed actor) or delayedOrCharged (a Jump/charge landing, not an
-/// ordinary blow) refuses to poach outright, regardless of what the discriminator or any other
-/// gate reads -- see the guard at the top of <see cref="RecordPoachDeed"/>.
-///
-/// PER-CORPSE DEDUPE: a dual-wielder's kill reports to this sink once per credited weapon (same
-/// battle slot + victim nameId both times) -- only the FIRST eligible report (verdict != None)
-/// consumes the corpse's one poach opportunity, win or lose the guarded write that follows.
-/// Cleared every battle in <see cref="ResetBattle"/> (Engine calls this on both battle edges,
-/// mirroring Reliquary's per-battle Marks ledger).
-///
-/// Every memory access is guarded: Readable before the current-count read, Writable before the
-/// W8, never a raw deref (house rule). Never throws.
-///
-/// STAGE 3 (LW-167): a successful poach also attempts <see cref="CorpseDespawn.TryDespawn"/> --
-/// vanilla's own Poach leaves no corpse behind, so a poached carcass shouldn't linger either. A
-/// despawn refusal never rolls back the store write/toast above it (see the ctor doc's carcass-
-/// stands note). LW-167: a TRANSIENT refusal no longer just stands -- it queues into the retry
-/// lifecycle in LivingPoach.Despawn.cs (own class doc there).
+/// LW-167 Living Poach executor. Consumes KillTracker's deed sink (IDeedSink.RecordPoachDeed, via
+/// DeedFanout.cs) and rolls a carcass into the Poacher's Den store; LivingPoachPolicy.Decide is the pure roll.
+/// Since stage 4 (2026-08-12) Engine wires the per-weapon delegates to <see cref="ReadWasBasicAttack"/>
+/// and <see cref="ReadKillerHasPoach"/> (LIVE_LEDGER). <see cref="RecordPoachDeed"/> refuses viaFallback and
+/// delayedOrCharged credits and allows one poach per (slot, nameId), cleared in <see cref="ResetBattle"/>.
+/// A poach also tries <see cref="CorpseDespawn.TryDespawn"/>; transient refusals retry via LivingPoach.Despawn.cs.
 /// </summary>
 internal sealed partial class LivingPoach
 {
@@ -66,18 +36,15 @@ internal sealed partial class LivingPoach
         _roll = roll ?? (() => rng.Next(0, 256));   // 0..255 inclusive, IRoll's live impl
     }
 
-    /// <summary>Clear the per-battle corpse dedupe latch and the LW-167 pending-despawn retry
-    /// queue. Engine calls this on both battle edges (the ResetBattleState convention every other
-    /// deed-sink consumer follows) -- a battle edge means no cross-battle writes: any corpse still
-    /// pending simply stops being retried, the same fate a normal battle exit already gives it.</summary>
+    /// <summary>Clear the per-battle corpse dedupe and the LW-167 pending-despawn queue on both
+    /// battle edges; pending corpses stop being retried.</summary>
     public void ResetBattle()
     {
         _poachedThisBattle.Clear();
         _pendingDespawns.Clear();
     }
 
-    /// <summary>The credit-moment report (IDeedSink.RecordPoachDeed's production consumer, wired
-    /// through DeedFanout.cs). Never throws.</summary>
+    /// <summary>Credit-moment report (IDeedSink.RecordPoachDeed consumer, wired through DeedFanout.cs).</summary>
     public void RecordPoachDeed(int weaponId, in VictimSnapshot victim, int slot, bool delayedOrCharged, bool viaFallback)
     {
         try
@@ -86,9 +53,7 @@ internal sealed partial class LivingPoach
             var corpseKey = (slot, victim.NameId);
             if (_poachedThisBattle.Contains(corpseKey)) return;
 
-            // Kill-shape refusals (the stage-2 verifier's recorded obligation): these override the
-            // discriminator outright, never merely feed into it -- a fallback-guessed or
-            // delayed/charged credit is never a confirmed ordinary blow, so it must never poach.
+            // Fallback and delayed/charged credits are never a confirmed ordinary blow; refuse before the discriminator.
             if (viaFallback)
             {
                 ModLogger.Debug(LogVerb.Signature, $"Living Poach refused weapon {weaponId}'s credit at battle slot {slot}: the kill's actor was a fallback attribution guess, not a confirmed basic Attack.");
@@ -102,8 +67,7 @@ internal sealed partial class LivingPoach
 
             bool dormant = _meta.TryGetValue(weaponId, out var m) && Tuning.IsDormantPoachFormula(m.Formula);
 
-            // LW-167: map-membership BY JOB ID is the whole monster gate now -- no range check,
-            // no species arithmetic (see PoachMap.cs / LivingPoach.Policy.cs class docs).
+            // Map membership by job id is the whole monster gate (see PoachMap.cs).
             PoachCarcass carcass = default;
             bool jobMapped = _map.IsLoaded && _map.TryGetJob(victim.Job, out carcass);
 
@@ -114,23 +78,16 @@ internal sealed partial class LivingPoach
             var verdict = LivingPoachPolicy.Decide(dormant, hasPoach, basicAttack, victim.Job, jobMapped, roll);
             if (verdict == PoachVerdict.None) return;
 
-            // One poach opportunity per corpse, win or lose the guarded write below.
+            // One poach opportunity per corpse, whether or not the write below succeeds.
             _poachedThisBattle.Add(corpseKey);
 
             int key = verdict == PoachVerdict.Common ? carcass.CommonKey : carcass.RareKey;
             string name = verdict == PoachVerdict.Common ? carcass.CommonName : carcass.RareName;
             if (WriteCarcass(weaponId, key, name))
             {
-                // LW-167 stage 3: vanilla fidelity -- a real Poach leaves no corpse behind (no
-                // crystal, no chest), so a poached carcass shouldn't either. A despawn refusal
-                // never rolls back the poach above: the store write and toast already landed.
-                // LW-167: a TRANSIENT refusal (the corpse is still confirmed dead and ours; only
-                // the current-actor/open-turn guard or the node resolve stood in the way) queues
-                // for retry (LivingPoach.Despawn.cs's Tick, called every engine tick) instead of
-                // standing as a one-shot miss -- a corpse left standing that way could otherwise
-                // crystallize on its own turn and hand out both the carcass and a crystal, more
-                // than vanilla ever gives. A PERMANENT refusal (no longer our corpse) is never
-                // queued: CorpseDespawn.cs already logged the specific reason.
+                // LW-167 stage 3: a real Poach leaves no corpse, so despawn this one. A refusal never rolls
+                // back the store write. A transient refusal retries via LivingPoach.Despawn.cs's Tick; a
+                // permanent one (no longer our corpse) is not queued, CorpseDespawn.cs already logged it.
                 if (!CorpseDespawn.TryDespawn(_mem, slot, victim.NameId, out var refusal) && refusal == DespawnRefusal.Transient)
                 {
                     QueuePendingDespawn(slot, victim.NameId);

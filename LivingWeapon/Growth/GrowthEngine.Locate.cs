@@ -4,11 +4,10 @@ namespace LivingWeapon;
 
 internal sealed partial class GrowthEngine
 {
-    /// <summary>Find (and cache) this player's combat struct. TWO-TIER (D2/D5): tier 1 requires an
-    /// exact frame-nameId match (skipped when rosterNameId &lt;= 0 -- roster capture failed, e.g.
-    /// an unpopulated battle type); tier 2 is today's pre-nameId fingerprint scan, veto-hardened.
-    /// A cached struct is revalidated with the SAME tier it was located at (S4) -- caching a
-    /// tier-2 struct under tier-1's stricter bar would force a full rescan every tick, forever.</summary>
+    /// <summary>Find (and cache) this player's combat struct. Tier 1 needs an exact frame-nameId
+    /// match (skipped when rosterNameId &lt;= 0, i.e. roster capture failed); tier 2 is the older
+    /// fingerprint scan with the nameId veto (D2/D5). A cached struct is revalidated at the tier it
+    /// was found at, or a tier-2 hit would force a full rescan every tick (S4).</summary>
     internal long LocateStruct(int slot, int level, int brave, int faith,
                                List<(int weapon, WeaponMeta m)> hands, int rosterNameId)
     {
@@ -18,10 +17,9 @@ internal sealed partial class GrowthEngine
         return LocateIn(slot, level, brave, faith, hands, LiveEntries(), rosterNameId);
     }
 
-    /// <summary>Revalidate a cached struct with the predicate matching the TIER it was found at
-    /// (S4): a tier-1 cache needs rosterNameId still positive and still exact-matching; a tier-2
-    /// cache (or a tier-1 cache whose roster nameId capture has since gone stale) only needs the
-    /// base fingerprint plus an inert-or-passing veto.</summary>
+    /// <summary>Revalidate a cached struct at the tier it was found at (S4). A tier-1 cache needs
+    /// an exact nameId match; tier 2 (or a tier-1 cache whose roster nameId went stale) needs the
+    /// base fingerprint plus the veto.</summary>
     private bool CacheValid((long addr, int tier) cached, int level, int brave, int faith,
                             List<(int weapon, WeaponMeta m)> hands, int rosterNameId)
     {
@@ -31,8 +29,8 @@ internal sealed partial class GrowthEngine
         return PassesVeto(_mem, cached.addr, rosterNameId);
     }
 
-    /// <summary>The live scan range: player-side slots (n = 0..+CombatSearchSlots) tagged
-    /// player, enemy-side (n = -CombatSearchSlots..-1) tagged enemy, around the anchor.</summary>
+    /// <summary>Scan range around the anchor. Player-side slots (0..CombatSearchSlots) are tagged
+    /// player, enemy-side slots (-CombatSearchSlots..-1) enemy.</summary>
     private static List<(bool isPlayer, long addr)> LiveEntries()
     {
         var list = new List<(bool, long)>(2 * Offsets.CombatSearchSlots + 1);
@@ -43,17 +41,11 @@ internal sealed partial class GrowthEngine
         return list;
     }
 
-    /// <summary>Match + tie-break + cache + throttled log over an explicit entry list -- the ONE
-    /// locate path (the live caller passes <see cref="LiveEntries"/>; tests pass pinned buffers,
-    /// so they exercise this exact code). TIER 1 (rosterNameId &gt; 0): an exact-nameId ScanEntries
-    /// pass; a ZERO-candidate result (matchCount == 0, S6 -- NOT a refused multi-match) falls
-    /// through to tier 2, while a multi-candidate refusal returns 0 WITHOUT falling through (a
-    /// transient mid-equip heterogeneous-weapon collision self-heals next tick). TIER 2 pre-
-    /// filters the entry pool by the nameId veto (<see cref="VetEntries"/>) so ScanEntries' SAME
-    /// tie-break/homogeneity logic runs unchanged between tiers (D3) -- only the pool narrows.
-    /// Trailing optional rosterNameId (default 0) keeps every pre-existing 6-arg call compiling
-    /// unchanged -- the fallback-parity property every pre-nameId test proves. Returns the
-    /// located address, or 0 on refusal.</summary>
+    /// <summary>Locate over an explicit entry list (live callers pass <see cref="LiveEntries"/>,
+    /// tests pass pinned buffers). Tier 1 runs when rosterNameId &gt; 0. Zero candidates (S6) fall
+    /// through to tier 2, but a multi-candidate refusal returns 0, since a mid-equip weapon
+    /// collision clears itself next tick. Tier 2 narrows the pool with
+    /// <see cref="VetEntries"/> and reuses the same tie-break (D3). Returns the address, or 0.</summary>
     internal long LocateIn(int slot, int level, int brave, int faith,
                            List<(int weapon, WeaponMeta m)> hands,
                            IReadOnlyList<(bool isPlayer, long addr)> entries, int rosterNameId = 0)
@@ -80,8 +72,7 @@ internal sealed partial class GrowthEngine
         {
             _structForSlot[slot] = (found, 2);
             if (!_logged) { _logged = true; ModLogger.Debug(LogVerb.Growth, $"located party slot {slot} in memory; stat growth will apply"); }
-            // Diagnostic for the "nameId unpopulated battle type" premise (D2): only fires when
-            // tier 1 actually ran and came up empty, not on every ordinary tier-2-only battle.
+            // D2: only logged when tier 1 ran and came up empty.
             if (rosterNameId > 0 && _fallbackLogged.Add(slot))
                 ModLogger.Debug(LogVerb.Growth, $"matched party slot {slot} by its stats alone, not by its engine id; the id was blank this battle (fingerprint fallback, frame nameId miss)");
             return found;
@@ -91,24 +82,17 @@ internal sealed partial class GrowthEngine
         return 0;
     }
 
-    /// <summary>True when the given slot's ambiguous-locate was already logged this battle
-    /// (throttle observability for tests; cleared by ResetBattle).</summary>
+    /// <summary>Test hook for whether this slot's ambiguous-locate warning was logged this battle.</summary>
     internal bool IsAmbiguousLogged(int slot) => _ambiguousLogged.Contains(slot);
 
-    /// <summary>True when the given slot's tier-2 fallback was already logged this battle
-    /// (throttle observability for tests; cleared by ResetBattle).</summary>
+    /// <summary>Test hook for whether this slot's tier-2 fallback was logged this battle.</summary>
     internal bool IsFallbackLogged(int slot) => _fallbackLogged.Contains(slot);
 
-    /// <summary>Test-only cache seed (mirrors GunSlinger.StoreForTest): lets a test drive
-    /// LocateStruct's revalidate path directly against a pinned buffer without needing the real
-    /// LiveEntries() addresses to be mapped in the test process.</summary>
+    /// <summary>Test-only cache seed, so a test can drive the revalidate path against a pinned buffer.</summary>
     internal void SeedStructForSlotForTest(int slot, long addr, int tier) => _structForSlot[slot] = (addr, tier);
 
-    /// <summary>D2's veto pre-filter: drop any entry whose frame nameId is a foreign nonzero
-    /// value BEFORE the plain fingerprint re-scan runs, so ScanEntries' shared tie-break logic
-    /// stays identical between tiers (D3) -- only the candidate pool narrows. Only called when
-    /// rosterNameId &gt; 0 (LocateIn skips this entirely otherwise, matching D5's fingerprint-mode-
-    /// never-touches-+0x1FC rule).</summary>
+    /// <summary>D2 veto pre-filter. Drops entries whose frame nameId is a foreign nonzero value
+    /// before the fingerprint rescan. Only called when rosterNameId &gt; 0 (D5).</summary>
     private static List<(bool isPlayer, long addr)> VetEntries(IGameMemory mem,
         IReadOnlyList<(bool isPlayer, long addr)> entries, int rosterNameId)
     {
@@ -118,12 +102,9 @@ internal sealed partial class GrowthEngine
         return vetted;
     }
 
-    /// <summary>D2's veto check for one combat-struct/frame address: when rosterNameId is
-    /// positive, an entry whose frame nameId reads NONZERO and differs from it is excluded; an
-    /// entry reading 0 (unseeded) or unreadable passes. Inert (always true) when rosterNameId
-    /// &lt;= 0. Guarded (Readable pre-filter, D8's GrowthEngine.MatchesEntry style -- this is the
-    /// same pinned-buffer/LiveMemory combat-struct territory, not the unguarded ReadHp/Wielder
-    /// band-address style).</summary>
+    /// <summary>D2 veto for one address. An entry whose frame nameId is nonzero and differs from
+    /// rosterNameId is excluded. Unseeded (0) or unreadable entries pass, and the check is inert
+    /// when rosterNameId &lt;= 0.</summary>
     private static bool PassesVeto(IGameMemory mem, long s, int rosterNameId)
     {
         if (rosterNameId <= 0) return true;
@@ -133,14 +114,11 @@ internal sealed partial class GrowthEngine
         return entryNameId == 0 || entryNameId == rosterNameId;
     }
 
-    /// <summary>The scan core: player-side pass first (exits before enemy-side is considered when
-    /// it matches), homogeneity tracked across matches, the twin tie-break applied to homogeneous
-    /// multi-matches. <paramref name="nameId"/> threads to MatchesEntry (D5): 0 = fingerprint mode
-    /// (today's exact behavior, NEVER reads the frame nameId); &gt; 0 = tier-1 exact-match mode.
-    /// Returns the pick, or 0 (with <paramref name="matchCount"/> for the caller's ambiguity log)
-    /// when nothing matches, a heterogeneous multi-match refuses, or (LW-252 stage 6) a
-    /// homogeneous multi-match with nameId &lt;= 0 has 2+ REAL-position candidates -- see
-    /// <see cref="PickHomogeneousTwin"/>'s own doc comment.</summary>
+    /// <summary>Scan core. Player side is tried first and wins if it matches, homogeneity is tracked
+    /// across matches, and homogeneous multi-matches go to the twin tie-break. nameId 0 is
+    /// fingerprint mode (never reads the frame nameId, D5); &gt; 0 is tier-1 exact match. Returns
+    /// the pick, or 0 on no match, a heterogeneous multi-match, or the LW-252 stage 6 refusal in
+    /// <see cref="PickHomogeneousTwin"/>.</summary>
     internal static long ScanEntries(IGameMemory mem, int level, int brave, int faith,
                                      List<(int weapon, WeaponMeta m)> hands,
                                      IReadOnlyList<(bool isPlayer, long addr)> entries, int nameId, out int matchCount)
@@ -165,26 +143,18 @@ internal sealed partial class GrowthEngine
         return 0;
     }
 
-    /// <summary>Convenience overload for callers that don't need the match count. Trailing
-    /// optional nameId (default 0 = fingerprint mode) keeps every pre-existing 6-arg call
-    /// compiling unchanged -- the fallback-parity property every pre-nameId test proves.</summary>
+    /// <summary>Overload for callers that don't need the match count.</summary>
     internal static long ScanEntries(IGameMemory mem, int level, int brave, int faith,
                                      List<(int weapon, WeaponMeta m)> hands,
                                      IReadOnlyList<(bool isPlayer, long addr)> entries, int nameId = 0)
         => ScanEntries(mem, level, brave, faith, hands, entries, nameId, out _);
 
-    /// <summary>Re-scan a homogeneous multi-match (all matches share the same weapon id) and
-    /// apply the twin tie-break: prefer a real-position (non-zero gx or gy) entry; if all are at
-    /// (0,0) return the first deterministically.
-    /// LW-252 stage 6, decision-4 exception (b): when <paramref name="nameId"/> &lt;= 0 (no
-    /// verified identity -- fingerprint-only matching) AND two or more REAL-position candidates
-    /// survive, REFUSE instead of picking one. A wrong-twin stat HOLD is a wrong-unit WRITE, and
-    /// the engine's per-turn normalize can bake an active hold into the save baseline (ledger
-    /// [per-turn-normalize-repaints-boosted-baseline], UNCERTAIN; LW-90) -- miss beats mis-credit.
-    /// The single-real-candidate shape and the real+(0,0)-mirror shape are UNCHANGED: this only
-    /// fires on 2+ REAL candidates, so a lone real entry (with or without a frozen (0,0) twin)
-    /// still resolves exactly as before. A verified-identity match (nameId &gt; 0, e.g. a
-    /// revolving-mirror clone under tier 1) is UNCHANGED too -- the refusal never applies there.</summary>
+    /// <summary>Twin tie-break for a homogeneous multi-match. Prefers a real-position (nonzero gx
+    /// or gy) entry, else the first at (0,0).
+    /// LW-252 stage 6: with nameId &lt;= 0 (no verified identity) and 2+ real-position candidates,
+    /// refuse. A wrong-twin hold is a wrong-unit write, and the per-turn normalize can bake a hold
+    /// into the save baseline (ledger [per-turn-normalize-repaints-boosted-baseline], UNCERTAIN;
+    /// LW-90). One real candidate, a real+(0,0) mirror pair, and any nameId &gt; 0 match resolve as before.</summary>
     private static long PickHomogeneousTwin(IGameMemory mem, int level, int brave, int faith,
                                             List<(int weapon, WeaponMeta m)> hands,
                                             IReadOnlyList<(bool isPlayer, long addr)> entries, int nameId)
@@ -211,13 +181,10 @@ internal sealed partial class GrowthEngine
         return firstReal != 0 ? firstReal : first;      // all at (0,0): return first deterministically
     }
 
-    /// <summary>True if S is a readable combat struct matching this unit (level + brave/faith +
-    /// its weapon field equals either wielded hand + sane PA/MA). <paramref name="nameId"/> (D5):
-    /// 0 = fingerprint mode -- NEVER reads s+0x1FC (S3: legacy 256-byte pinned test structs must
-    /// never be touched there); &gt; 0 = ALSO requires the frame nameId (s + BandEntry + ANameId
-    /// == s + 0x1FC) to equal it, behind its OWN Readable(addr, 2) pre-filter outside the
-    /// StructSpan guard (D8) -- unreadable in this mode fails the match (tier 2's veto may still
-    /// take the entry). Internal so tests can drive it directly via pinned buffers.</summary>
+    /// <summary>True if S is a readable combat struct matching this unit (level, brave/faith, a
+    /// weapon field equal to either wielded hand, sane PA/MA). nameId 0 is fingerprint mode and
+    /// never reads s+0x1FC (S3, legacy 256-byte pinned test structs). nameId &gt; 0 also requires
+    /// the frame nameId (s + BandEntry + ANameId) to match, behind its own Readable check (D8).</summary>
     internal static bool MatchesEntry(IGameMemory mem, long s, int level, int brave, int faith,
                                       List<(int weapon, WeaponMeta m)> hands, int nameId = 0)
     {

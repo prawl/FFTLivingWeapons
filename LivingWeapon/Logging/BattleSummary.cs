@@ -3,14 +3,9 @@ using System.Collections.Generic;
 
 namespace LivingWeapon;
 
-/// <summary>
-/// The pure battle-end match-report composer (logging facelift stage 3): turns the per-battle
-/// counters (KillTracker.BattleCredits / Reliquary.BattleMarks / the fallback-attribution count
-/// / TurnTracker.GlobalTurns) into the one [battle-end] console line. Pure over its inputs
-/// (weapon naming and tier routing are injected) so the whole shape is unit-tested without an
-/// Engine. Tier crossings are DERIVED, not counted: for each credited weapon, compare the tier
-/// at (lifetime - battleCredits) against the tier at lifetime.
-/// </summary>
+/// <summary>Composes the one-line [battle-end] match report (logging facelift stage 3) from the
+/// per-battle counters. Pure over its inputs, so it is tested without an Engine. Tier crossings
+/// are derived by comparing the tier at (lifetime - battleCredits) with the tier at lifetime.</summary>
 internal static class BattleSummary
 {
     /// <param name="battleCredits">weaponId -&gt; kills credited this battle.</param>
@@ -44,7 +39,6 @@ internal static class BattleSummary
         foreach (var kv in credited) killNames.Add($"{nameOf(kv.Key)} {kv.Value}");
         string killsClause = $"{Plural(totalKills, "kill")} credited ({string.Join(", ", killNames)})";
 
-        // Marks clause: named with their Slayer titles, in earn order.
         string marksClause;
         if (marks.Count == 0) marksClause = "0 Marks earned";
         else
@@ -55,7 +49,6 @@ internal static class BattleSummary
             marksClause = $"{Plural(marks.Count, "Mark")} earned ({string.Join(", ", markNames)})";
         }
 
-        // Tier crossings DERIVED from the credit delta against the lifetime tally.
         var crossed = new List<string>();
         foreach (var kv in credited)
         {

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-257: flight-recorder taps for the equip-card painter and the CardVerdict plumbing that
+/// Flight-recorder taps for the equip-card painter and the CardVerdict plumbing that
 /// feeds them, split out of Display.cs (CardSites.Verify.cs is the matching split). Records
 /// reuse the frozen "card" flight type (docs/LOGGING.md). Everything here is a no-op unless a
 /// recorder was passed at construction (Engine.cs passes Flight.Record; tests pass none).
@@ -19,7 +19,7 @@ internal sealed partial class Display
 
     /// <summary>Records emitted per window before EmitVerdict drops the rest. A window is one
     /// Invalidate() cycle (battle edge, status-card reopen, new game). Dropping a storm tail is
-    /// fine for a flight recorder. Internal so tests can cite the cap (LW-269).</summary>
+    /// fine for a flight recorder. Internal so tests can cite the cap.</summary>
     internal const int FlightRecordBudget = 64;
     private int _flightBudget;
 
@@ -31,7 +31,7 @@ internal sealed partial class Display
     /// <summary>Internal so a test can drive it to the cap.</summary>
     internal int _coverageBudget;
 
-    /// <summary>LW-259: site-evicted records (EmitVerdict tier 1) get their own reserve. The
+    /// <summary>site-evicted records (EmitVerdict tier 1) get their own reserve. The
     /// shared <see cref="_flightBudget"/> lasts a whole window, and routine tier-2 paint lines
     /// (about eleven kills worth) can use up all 64 before a rare late eviction is emitted.
     /// 16 is headroom, not a measured ceiling.</summary>
@@ -52,7 +52,7 @@ internal sealed partial class Display
     }
 
     /// <summary>Walks one pass's notable entries (at most 256) in priority order, as three passes:
-    /// 1. site-evicted, spending <see cref="_evictedBudget"/> (LW-259). Strikes short of the cap
+    /// 1. site-evicted, spending <see cref="_evictedBudget"/>. Strikes short of the cap
     ///    emit nothing; the Nth-strike eviction does.
     /// 2. paint, for Wrote entries on kills sites only (Observed is -1 for a suffix site, CardSites.cs
     ///    ObservedFor). Logs `to=` only; CardVerdict.Entry carries no `from=`, so the tape cannot
@@ -92,7 +92,7 @@ internal sealed partial class Display
     /// <summary>AnnounceCoverage's flight tap (Display.PoolPaint.cs): one line per coverage latch,
     /// spending <see cref="CoverageRecordBudget"/>. LW-262 added `suffix=` (CardSites.SuffixCount)
     /// next to `kills=`. <paramref name="snapshot"/> is the caller's CardSites.Snapshot() copy,
-    /// passed in to avoid a second one (LW-259).</summary>
+    /// passed in to avoid a second one.</summary>
     private void RecordCoverageIfTapped(IReadOnlyList<(long baseAddr, long size)> regions, int killsSites, string trigger, List<CardSites.Site> snapshot)
     {
         if (_recorder == null || _coverageBudget >= CoverageRecordBudget) return;
@@ -107,7 +107,7 @@ internal sealed partial class Display
         _coverageBudget++;
     }
 
-    /// <summary>LW-262: tap for CardSites' cap-relief prune (_onPruneEvict in CardSites.Admission.cs,
+    /// <summary>tap for CardSites' cap-relief prune (_onPruneEvict in CardSites.Admission.cs,
     /// wired in Display.cs). Spends the shared <see cref="_flightBudget"/>; since LW-259 its
     /// neighbors are EmitVerdict tiers 2 and 3, not tier 1. One prune can evict 1000+ dead kills
     /// sites in a burst and exhaust the 64 records, starving tier 2/3 lines for the window. That is
@@ -123,8 +123,8 @@ internal sealed partial class Display
         _flightBudget++;
     }
 
-    /// <summary>LW-261: tap for PoolLocator.Step completion (Display.PoolLocate.cs), with its own
-    /// reserve. LW-264: on a cold boot before the pool exists, the empty-retry lane completes about
+    /// <summary>tap for PoolLocator.Step completion (Display.PoolLocate.cs), with its own
+    /// reserve. on a cold boot before the pool exists, the empty-retry lane completes about
     /// once a second (LogLocateComplete, PoolLocator.Log.cs), so the cap keeps the tape readable.</summary>
     internal const int LocateRecordBudget = 8;
     internal int _locateFlightBudget;

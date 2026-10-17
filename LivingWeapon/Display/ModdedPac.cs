@@ -4,11 +4,8 @@ using System.IO;
 
 namespace LivingWeapon;
 
-/// <summary>Every outcome <see cref="ModdedPac.Patch"/> can hand back -- deliberately richer than
-/// a bool, since the caller (<see cref="IconGlow"/>) treats "the pac write didn't happen" very
-/// differently depending on WHY: an idle no-op is silent, an environment that will never have a
-/// pac (<see cref="Unavailable"/>) warns once ever, and a search-shaped failure warns once per
-/// icon (see IconGlow.Apply.cs for the exact routing).</summary>
+/// <summary>Outcome of <see cref="ModdedPac.Patch"/>. <see cref="IconGlow"/> routes each differently
+/// (see IconGlow.Apply.cs): no-op is silent, Unavailable warns once ever, search failures warn per icon.</summary>
 internal enum PacPatchResult
 {
     /// <summary>Wrote successfully and read the new bytes back byte-exact.</summary>
@@ -26,23 +23,16 @@ internal enum PacPatchResult
 }
 
 /// <summary>
-/// LW-381: the file-side half of the same-session icon repaint (ledger row [live-icon-repaint],
-/// PROVEN 2026-09-01 -- see IconGlow.cs's class remarks for the mechanism this rests on).
-/// Patches one already-open <c>modded.pac</c> in place, same-length overwrite only, and caches
-/// each successfully-located offset so repeat patches to the same logical icon (a weapon
-/// re-tiering more than once in a session) skip the multi-MB re-scan.
+/// Patches <c>modded.pac</c> in place (same-length overwrite) for the same-session icon
+/// repaint (ledger row [live-icon-repaint], PROVEN 2026-09-01; mechanism in IconGlow.cs). Located
+/// offsets are cached per icon so a weapon re-tiering skips the multi-MB re-scan.
 ///
-/// One instance is owned per pac path (see <see cref="FileIconGlowStore"/>'s lazy resolve-once
-/// construction) and reused for the life of the launch -- the cache is the entire point of that
-/// reuse. Every public entry point is wrapped so nothing here ever throws outward; a failure is a
-/// return value, never an exception, because a pac write is a same-session nicety layered on top
-/// of the loose-tex write that is already correct today (see IconGlow.Apply.cs).
+/// One instance per pac path (see <see cref="FileIconGlowStore"/>), reused for the launch. Nothing
+/// throws outward: failures are return values, since the loose-tex write is already correct
+/// without the pac write (IconGlow.Apply.cs).
 ///
-/// Split across two files (LW-381 R2-2, 200-line trigger): this file decides WHICH offset to
-/// trust for each entry and WHEN a shared <see cref="PacScan"/> pass is needed (the caching and
-/// batching policy); ModdedPac.Io.cs is the physical byte-level half -- given an offset already
-/// believed correct, read/compare/write/verify the bytes actually there. See that file's own
-/// remarks for why this is a real seam.
+/// This file picks which offset to trust and when to run a shared <see cref="PacScan"/> pass
+/// (LW-381 R2-2); ModdedPac.Io.cs does the byte-level read/compare/write/verify.
 /// </summary>
 internal sealed partial class ModdedPac
 {
@@ -53,12 +43,10 @@ internal sealed partial class ModdedPac
     internal ModdedPac(string pacPath) => _pacPath = pacPath;
 
     /// <summary>
-    /// Overwrites the single occurrence of <paramref name="oldBytes"/> in the pac with
-    /// <paramref name="newBytes"/> (same length required). <paramref name="cacheKey"/> identifies
-    /// the logical icon (see <see cref="FileIconGlowStore"/>'s <c>"{id}:{surface}"</c> key) so a
-    /// second call for the same icon can reuse a previously located offset instead of re-scanning
-    /// the whole file. A thin single-item wrapper over <see cref="PatchBatch"/>; see the class
-    /// remarks and <see cref="PacPatchResult"/> for what each outcome means to the caller.
+    /// Overwrites the single occurrence of <paramref name="oldBytes"/> with <paramref name="newBytes"/>
+    /// (same length). <paramref name="cacheKey"/> is the icon's <c>"{id}:{surface}"</c> key from
+    /// <see cref="FileIconGlowStore"/>, used to reuse a located offset. Single-item wrapper over
+    /// <see cref="PatchBatch"/>.
     /// </summary>
     internal PacPatchResult Patch(string cacheKey, byte[] oldBytes, byte[] newBytes)
     {
@@ -67,11 +55,8 @@ internal sealed partial class ModdedPac
     }
 
     /// <summary>
-    /// LW-381 R2-2: patches every <paramref name="triples"/> entry, sharing ONE pass over the pac
-    /// for whatever cannot be resolved from the offset cache. Each cache-resolved entry is
-    /// checked and (if needed) written independently first and NEVER enters the shared pass --
-    /// if every entry is cache-resolved, no pass happens at all. Never throws; see
-    /// <see cref="PacPatchResult"/> for the per-entry outcomes.
+    /// LW-381 R2-2: patches every entry, sharing one pass over the pac for those the offset cache
+    /// cannot resolve. Cache-resolved entries are handled first; if all are, no pass runs. Never throws.
     /// </summary>
     internal IReadOnlyDictionary<string, PacPatchResult> PatchBatch(IReadOnlyList<(string CacheKey, byte[] OldBytes, byte[] NewBytes)> triples)
     {
@@ -92,9 +77,7 @@ internal sealed partial class ModdedPac
             {
                 var cachedResult = TryPatchAtOffset(cached.Value, t.OldBytes, t.NewBytes, out bool staleCache);
                 if (!staleCache) { results[t.CacheKey] = cachedResult; continue; }
-                // The cache went stale (bytes there match neither old nor new -- most likely a
-                // deploy re-merged the pac mid-session): drop it and fall through to the shared
-                // pass rather than trusting a location that is demonstrably no longer valid.
+                // Stale cache (bytes match neither old nor new, likely a mid-session re-merge): drop it and search.
                 lock (_cacheLock) _offsetCache.Remove(t.CacheKey);
             }
             unresolved.Add(t);
@@ -104,18 +87,12 @@ internal sealed partial class ModdedPac
         return results;
     }
 
-    /// <summary>The shared search: ONE read-only pass (<see cref="PacScan.FindBatch"/>) locates
-    /// every still-unresolved entry's offset, then each is written through the same verified
-    /// path as the cached fast path. A successful write caches its offset for the next call on
-    /// that entry's cache key.
+    /// <summary>One read-only <see cref="PacScan.FindBatch"/> pass locates every unresolved entry,
+    /// then each is written through <see cref="WriteAndVerify"/> and its offset cached.
     ///
-    /// R2-7 (accepted, not a defect): there is a theoretical TOCTOU window between this search's
-    /// read handle closing and <see cref="WriteAndVerify"/>'s write handle opening -- if the file
-    /// shrank in between, seeking to the found offset and writing would extend the file rather
-    /// than patch it in place, the one length-changing scenario this design allows. Practically
-    /// unreachable (the launch merge that could shrink/rewrite the pac runs only before this
-    /// process starts, and deploying while the game runs is forbidden), but named here rather
-    /// than left silent.</summary>
+    /// R2-7 (accepted): if the file shrank between the search handle closing and the write handle
+    /// opening, the write would extend the file. The only merge that rewrites the pac runs before
+    /// this process starts, and deploying while the game runs is forbidden.</summary>
     private void SearchAndPatchUnresolved(List<(string CacheKey, byte[] OldBytes, byte[] NewBytes)> unresolved, Dictionary<string, PacPatchResult> results)
     {
         IReadOnlyList<long> offsets;

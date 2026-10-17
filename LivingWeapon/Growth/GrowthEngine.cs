@@ -4,28 +4,17 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Grows every PLAYER's weapon stat, holding it at round(natural*(1+factor)) through
-/// the engine's per-battle reset.
-///
-/// ROSTER-DRIVEN (not a blind sweep): for each populated roster *player* slot we read
-/// its Brave/Faith/R-hand, then locate THAT unit's combat struct in the array by
-/// fingerprint match. Consequences:
-///   - team-safe: only roster units (players) are ever grown -- never enemies, even
-///     when an enemy wields the same catalogued weapon id.
-///   - relocation-tolerant: the array base shifts per battle, so we SEARCH +/-N slots
-///     around the anchor for the fingerprint rather than trusting a fixed offset.
-///   - identity-stable: the found struct address is cached per roster slot for the
-///     battle, so natural-capture stays tied to one unit.
-/// Every speculative read AND every write is VirtualQuery-guarded (Mem.Readable/Writable)
-/// so a wrong guess or a freed page can never fault the game.
-///
-/// NOTE: the combat-struct field map (+0x20 weapon / +0x3E PA / ...) and that a write
-/// there actually moves damage are verified for Ramza; treat all-party as live-test-pending.
+/// Grows every player's weapon stat, holding it at round(natural*(1+factor)) across the
+/// per-battle reset. Roster-driven: for each populated roster player slot it reads Brave/Faith/
+/// R-hand, then finds that unit's combat struct by fingerprint, searching +/-N slots around the
+/// anchor because the array base shifts per battle. The found address is cached per slot, so
+/// enemies are never grown even when they wield the same weapon id. Reads and writes are
+/// guarded (Mem.Readable/Writable). The combat-struct field map (+0x20 weapon / +0x3E PA) is
+/// confirmed for Ramza only; all-party is still awaiting a live test.
 /// </summary>
 internal sealed partial class GrowthEngine
 {
-    // StatMin/StatSaneHi are internal (LW-149 stage A) so OwnershipHold.cs shares this ONE
-    // definition instead of duplicating the sane-range bounds; values/uses unchanged.
+    // StatMin/StatSaneHi are internal (LW-149 stage A) so OwnershipHold.cs shares the bounds.
     internal const int StatMin = 1, StatSaneHi = 99;
     private const int StatMax = 255, SigStatHi = 199;
     internal const int StructSpan = 0x41;   // bytes we touch per combat struct (0x20..0x40); internal so tests cite the real gate span instead of a drift-prone mirror
@@ -34,26 +23,21 @@ internal sealed partial class GrowthEngine
     private readonly Dictionary<int, int> _kills;
     private readonly TurnTracker _turns;
     private readonly IGameMemory _mem;
-    // LW-90: every record's `baked` (0 = none) is a restart-residue ownership token: if the
-    // engine's post-restart normalize restores the BAKED baseline rather than the true
-    // natural (plausible but UNVERIFIED inference; Iai's post-release corrective hold is the
-    // live discriminator), a corrected hold that did not recognize it would go foreign forever.
+    // `baked` (0 = none) is a restart-residue ownership token. If the post-restart normalize
+    // restores the baked baseline instead of the true natural (unverified; Iai's corrective hold is
+    // the discriminator), a hold that did not recognize it would go foreign forever.
     private readonly NaturalLedger _ledger;
     private readonly Dictionary<long, (int natural, int target, double factor, int baked)> _applied = new();
     private readonly Dictionary<long, (int nat, int baked)> _timedNatural = new();   // timed-grant stat addr -> captured natural
-    // roster slot -> (combat-struct base, tier it was located at: 1 = nameId-exact, 2 = fingerprint
-    // fallback). The tier travels with the cache so LocateStruct's revalidate uses the SAME
-    // predicate that found it (D5/S4) -- a tier-2 struct never gets held to tier-1's stricter bar.
+    // roster slot -> (combat-struct base, tier 1 = nameId-exact, 2 = fingerprint fallback). The tier
+    // is cached so LocateStruct revalidates with the predicate that found it (D5/S4).
     private readonly Dictionary<int, (long addr, int tier)> _structForSlot = new();
     private readonly HashSet<int> _ambiguousLogged = new();           // slots whose multi-match was already logged this battle
     private readonly HashSet<int> _fallbackLogged = new();            // slots whose tier-2 fallback was already logged this battle
     private bool _logged;
-    // Kiku-ichimonji's Mushin stack count: SHARED with Mushin.cs (Engine.cs constructs one
-    // WielderKeyedStore and passes it to both). LW-252 stage 5: re-keyed off WielderKeyedStore
-    // (nameId primary, fp fallback -- see its class doc; both sides derive keys through this SAME
-    // instance, closing the fp-twin collision the old fp-only dictionary carried). Defaults to a
-    // fresh (empty, so always effectively 0 stacks) store when a caller doesn't wire one, so every
-    // pre-existing positional GrowthEngine(...) call site stays untouched.
+    // Kiku-ichimonji's Mushin stack count, shared with Mushin.cs (Engine.cs passes one
+    // WielderKeyedStore to both). LW-252 stage 5: keyed by nameId, fp fallback, which closes the
+    // fp-twin collision. Defaults to an empty store so older call sites compile unchanged.
     private readonly WielderKeyedStore<Box<int>> _mushinArmed;
 
     public GrowthEngine(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, TurnTracker turns,
@@ -65,8 +49,7 @@ internal sealed partial class GrowthEngine
         _turns = turns;
         _mem = mem ?? new LiveMemory();
         _mushinArmed = mushinArmed ?? new WielderKeyedStore<Box<int>>();
-        // LW-90: Engine passes the ONE shared instance (mushinArmed precedent); the default is
-        // only for tests, where a private ledger is inert unless the test drives it.
+        // Engine passes the shared instance; the default is for tests.
         _ledger = ledger ?? new NaturalLedger();
     }
 
@@ -76,7 +59,7 @@ internal sealed partial class GrowthEngine
         _applied.Clear();
         _timedNatural.Clear();
         _timedReverted.Clear();
-        _timedUnexpectedLogged.Clear();   // LW-109: a fresh battle re-arms the flood latch
+        _timedUnexpectedLogged.Clear();   // a fresh battle re-arms the flood latch
         _afterimage.Clear();
         _ultima.Clear();
         _mushin.Clear();
@@ -85,12 +68,12 @@ internal sealed partial class GrowthEngine
         _heldSupports.Clear();   // no writes: the per-battle struct is gone/rebuilding
         _ambiguousLogged.Clear();
         _fallbackLogged.Clear();
-        _appliedFlat.Clear();    // LW-317: the flat-capped Brave/Faith lanes (GrowthEngine.Lanes.cs)
-        _appliedU16.Clear();     // LW-317: the u16 MaxHp lane (GrowthEngine.Lanes.cs)
+        _appliedFlat.Clear();    // the flat-capped Brave/Faith lanes (GrowthEngine.Lanes.cs)
+        _appliedU16.Clear();     // the u16 MaxHp lane (GrowthEngine.Lanes.cs)
         _logged = false;
     }
 
-    /// <summary>One in-battle tick: grow each player's wielded weapon(s) -- BOTH hands.</summary>
+    /// <summary>One in-battle tick: grow each player's wielded weapon(s) -- both hands.</summary>
     public void Apply()
     {
         for (int r = 0; r < Offsets.RosterSlots; r++)
@@ -103,23 +86,18 @@ internal sealed partial class GrowthEngine
             int brave = _mem.U8(rb + Offsets.RBrave);
             int faith = _mem.U8(rb + Offsets.RFaith);
 
-            // BOTH hands: a dual-wielder's OFF-HAND weapon grows + grants its signature too (KillTracker
-            // already credits both blades; growth previously read only the right hand, so an off-hand
-            // Galewind/Gloomfang silently never fired).
+            // Both hands: a dual-wielder's off-hand weapon grows and grants its signature too (KillTracker
+            // already credits both blades).
             var hands = Hands(rb);
             if (hands.Count == 0) continue;                                // unarmed / non-overhaul both hands
 
             long s = LocateStruct(r, level, brave, faith, hands, rosterNameId);
             if (s == 0) continue;
 
-            // Signatures are per-weapon (independent fields); stat growth is shared (one PA/MA/Speed),
-            // so take the strongest factor per stat across the hands rather than letting them fight.
-            // Signatures (support bits, timed stat grants) fire from the MAIN HAND only. Plain stat
-            // growth (PA/MA/Speed factor hold) applies for weapons in either hand, unchanged.
-            // A Living Weapon earns kills in any hand, but commands its gift only from the main hand.
+            // Stat growth is shared (one PA/MA/Speed), so take the strongest factor per stat across the
+            // hands. Signatures fire from the main hand only; stat growth applies from either hand.
             int pickedSupport = _mem.Readable(rb + Offsets.RSupport, 1) ? _mem.U8(rb + Offsets.RSupport) : 0;
-            // ONE RRHand snapshot per slot: re-reading per hand could let a mid-battle gear
-            // mutation land between the reads and treat both hands as main-hand for a tick.
+            // One RRHand snapshot per slot, so a mid-tick gear change cannot make both hands main-hand.
             int mainHandId = _mem.U16(rb + Offsets.RRHand);
             var plan = new Dictionary<long, LaneRoute>();
             foreach (var (weapon, m) in hands)
@@ -138,9 +116,8 @@ internal sealed partial class GrowthEngine
                     HoldUltima(s, m, tier, level, brave, faith, rosterNameId);       // Materia Blade: HP%-scaled PA hold (owns PA lane)
                     HoldMushin(s, m, tier, level, brave, faith, rosterNameId);       // Kiku-ichimonji: one-hit charged-PA hold (owns PA lane)
                 }
-                // LW-317: Routes/MergeRoute (GrowthEngine.Lanes.cs) replace the single-lane
-                // Route -- a weapon may want several combat-struct bytes at once now, so two
-                // hands sharing one address merge to the STRONGER effect, not just a higher factor.
+                // Routes/MergeRoute (GrowthEngine.Lanes.cs) let a weapon want several combat-struct
+                // bytes; hands sharing an address merge to the stronger effect.
                 foreach (var route in Routes(s, m, tier))
                     plan[route.Addr] = plan.TryGetValue(route.Addr, out var ex) ? MergeRoute(ex, route) : route;
             }
@@ -165,18 +142,12 @@ internal sealed partial class GrowthEngine
         return list;
     }
 
-    /// <summary>Hold the stat at target, surviving the per-battle reset. Re-application keys off the
-    /// captured record (not the raw value), so a grown stat &gt;99 still bumps on a tier cross, and an
-    /// unexpected value (buff/debuff/transient) is left alone rather than re-baselined.
-    /// LW-90: the first-sight capture consults the NaturalLedger (a restarted battle's byte can
-    /// carry the mod's own prior target); the per-evaluation RecordWrite (not per physical W8:
-    /// a restarted battle starts at cur == target, eliding the write) keeps chained restarts
-    /// matching; and a corrected record's baked value is a recognized re-apply token.
-    /// Internal for the LW-90 seam tests (LocateIn precedent).
-    /// LW-149 stage A: deliberately NOT converted to the OwnershipHold core (GrowthEngine.
-    /// OwnershipHold.cs) that HoldUltima/HoldMushin/HoldAfterimage now share -- the RecordWrite
-    /// below fires unconditionally (a shape the core doesn't have); see OwnershipHold.cs's class
-    /// doc and GrowthEngineCadenceTests.cs for the measured cadence that ruled it out.</summary>
+    /// <summary>Hold the stat at target across the per-battle reset. Re-application keys off the
+    /// captured record, so a grown stat &gt;99 still bumps on a tier cross, and an unexpected value
+    /// (buff/debuff) is left alone. first-sight capture consults the NaturalLedger, and
+    /// RecordWrite runs per evaluation so chained restarts match. Internal for the LW-90 seam tests.
+    /// LW-149 stage A: not converted to the OwnershipHold core (OwnershipHold.cs)
+    /// because RecordWrite fires unconditionally; see GrowthEngineCadenceTests.cs.</summary>
     internal void Hold(long addr, double factor, StatLane lane, int nameId, int level)
     {
         if (!_mem.Writable(addr, 1)) return;

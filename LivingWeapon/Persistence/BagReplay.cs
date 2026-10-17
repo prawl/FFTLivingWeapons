@@ -5,33 +5,15 @@ using System.Linq;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-351: the ONE bag-replay policy the extended inventory's two load paths share.
-///
-/// WHY TWO PATHS: the load-apply routine copies the save file's bag over the game's own count
-/// array, and that file carries counts for ids 0..260 only, so the instant a load returns every
-/// extended id reads zero. Every menu that asks whether the player owns one (the qualifying gate
-/// is bag count plus equipped count) would answer no until the mod put the counts back, and the
-/// Engine tick alone would leave that window open for up to 33 ms. The replay therefore runs
-/// inside the load detour (SaveEdgeHooks.AfterApply), on the game's own thread, right after the
-/// original returns; the Engine tick then runs the SAME resolution as an idempotent fallback, and
-/// owns the one log line. One policy called from both places, so the two orders cannot drift
-/// apart.
-///
-/// ROUND 5 CORRECTED ROUND 4's PREMISE (2026-08-30): the earlier note here said the game rebuilds
-/// its menu order templates during the load from the bag, which the closing disassembly disproved:
-/// the load-apply RESTORES both templates byte-for-byte out of the save struct and the
-/// serializer writes them back, so they are save state and no load-time rebuild reads the bag at
-/// all. Putting the counts back early is still necessary and still lands in the right place; it
-/// was never sufficient on its own, which is why the same detour moment also calls
-/// <see cref="TemplateSeat"/> with <see cref="OwnedIds"/>.
-///
-/// The resolution order is exactly what the tick has done since LW-353: the counts recorded for
-/// that save's key, else the schema-1 counts once (the pre-key migration), else the data's
-/// first-copy seed. <see cref="Resolve"/> is the only place that spends that one-shot migration,
-/// and since LW-351 stage 2 it records the migrated counts under the key it resolved them for,
-/// so a second resolve of the same key (the game's second load routine, the tick, the next
-/// launch) answers with the same counts instead of the seed. The detour still hands its
-/// <see cref="Plan"/> forward to the tick so the tick does not resolve the key a second time.
+/// LW-351 bag-replay policy shared by the extended inventory's two load paths. The save file carries counts for ids
+/// 0..260 only, so right after a load every extended id reads zero until the mod restores them. The replay runs in the
+/// load detour (SaveEdgeHooks.AfterApply) on the game's thread; the Engine tick runs the same resolution as an idempotent
+/// fallback and owns the log line. Round 5 (2026-08-30) found that the load-apply restores both menu order templates
+/// from the save struct byte for byte, so they are save state, and the detour therefore also calls <see cref="TemplateSeat"/>
+/// with <see cref="OwnedIds"/>. Resolution order since LW-353 is the counts recorded for the save's key, else the schema-1
+/// counts once (pre-key migration), else the data's first-copy seed. <see cref="Resolve"/> spends that migration and, since
+/// LW-351 stage 2, records the result under the key so a second resolve answers the same. The detour hands its
+/// <see cref="Plan"/> to the tick so the key is not resolved twice.
 /// </summary>
 internal static class BagReplay
 {
@@ -45,8 +27,7 @@ internal static class BagReplay
             Source = source;
         }
 
-        /// <summary>The save key this plan was resolved for (the tick only re-uses a plan whose
-        /// key matches the load edge it is draining).</summary>
+        /// <summary>The save key this plan was resolved for; the tick reuses a plan only when it matches the load edge.</summary>
         public string Key { get; }
 
         public IReadOnlyDictionary<int, int> Counts { get; }
@@ -55,20 +36,17 @@ internal static class BagReplay
         public string Source { get; }
     }
 
-    /// <summary>Resolve the counts for a loaded save's key. This SPENDS the schema-1 one-shot when
-    /// that is the answer (and persists the fact), so it must run once per load edge, not once per
-    /// path.</summary>
+    /// <summary>Resolve the counts for a loaded save's key. Spends the schema-1 one-shot when that is the answer, so run it
+    /// once per load edge, not once per path.</summary>
     public static Plan Resolve(ExtendedBagSidecar sidecar, IReadOnlyList<ExtendedItemDef> items, string key)
     {
         if (sidecar.TryGetSave(key, out var known)) return new Plan(key, known, "its own recorded counts");
         var legacy = sidecar.TakeLegacy();
         if (legacy != null)
         {
-            // P4-F1 (LW-351 stage 2): record the migrated counts UNDER THIS KEY, not merely
-            // "spent". Both of the game's load routines are hooked, so one logical load can
-            // resolve the same key twice; with a bare persist the second resolve found the key
-            // unknown and re-seeded it, throwing the migrated counts away between one routine
-            // and the next. RecordSave persists, so the one-shot is still spent exactly once.
+            // P4-F1 (LW-351 stage 2) record the migrated counts under this key. Both load routines are hooked, so one load can
+            // resolve a key twice, and a bare persist let the second resolve re-seed it. RecordSave persists, so the one-shot is
+            // still spent once.
             sidecar.RecordSave(key, legacy);
             return new Plan(key, legacy, "the pre-LW-353 counts (one-time migration)");
         }
@@ -80,12 +58,10 @@ internal static class BagReplay
     public static int CountFor(Plan plan, ExtendedItemDef item)
         => plan.Counts.TryGetValue(item.Id, out int c) ? c : item.SeedCount;
 
-    /// <summary>Write the plan into the bag: one guarded byte per extended id, nothing else.
-    /// <paramref name="bagBase"/> is <see cref="ExtendedInventory.BagCountBase"/> (LW-368 round
-    /// 2: the relocated page once the list relocation armed, else the vanilla block) -- every
-    /// caller passes it explicitly rather than defaulting, so a stale base can never sneak in
-    /// silently. <paramref name="onRefused"/> is null on the detour path, which must not log on
-    /// the game's thread; the tick passes its warning.</summary>
+    /// <summary>Write the plan into the bag, one guarded byte per extended id. <paramref name="bagBase"/> is
+    /// <see cref="ExtendedInventory.BagCountBase"/> (LW-368 round 2, the relocated page once armed, else the vanilla block),
+    /// passed explicitly so a stale base cannot slip in. <paramref name="onRefused"/> is null on the detour path, which
+    /// must not log on the game's thread; the tick passes its warning.</summary>
     public static void Apply(ICodePatcher patcher, IReadOnlyList<ExtendedItemDef> items, Plan plan, long bagBase,
         Action<ExtendedItemDef, int>? onRefused = null)
     {
@@ -96,9 +72,8 @@ internal static class BagReplay
         }
     }
 
-    /// <summary>LW-351 fix round 5: the extended ids this plan leaves the player owning at least
-    /// one of, ascending. Those are the ids <see cref="TemplateSeat"/> seats in the menu order
-    /// templates, because a template lists items the player owns and nothing else.</summary>
+    /// <summary>LW-351 fix round 5, the extended ids this plan leaves the player owning, ascending. These are what
+    /// <see cref="TemplateSeat"/> seats in the menu order templates.</summary>
     public static IReadOnlyList<int> OwnedIds(Plan plan, IReadOnlyList<ExtendedItemDef> items)
         => items.Where(i => CountFor(plan, i) > 0).Select(i => i.Id).OrderBy(id => id).ToList();
 

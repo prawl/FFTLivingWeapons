@@ -3,35 +3,22 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Sanguine Sword's "Shadow Blade" signature: grant the wielder Gaffgarion's Shadow Blade -- a ranged
-/// dark strike that absorbs the foe's HP -- via JobCommand injection. It REUSES every proven Barrage
-/// primitive (the table-layout consts + TryResolveGrant / FindEmptySlot / ExtendBit / SlotByte /
-/// InjectSlot / ReleaseSlot / learned-bit math + BarrageState); the shipped Barrage module is not
-/// touched. Only three things differ from Barrage and live here:
-///   - the granted ability is read from meta (GrantCommandAbilityId), not hardcoded to 358;
-///   - eligibility is a WHITELIST of sword skill-sets -- Squire/Knight (records 5/7) -- reached via
-///     the wielder's primary job OR a mounted secondary command (ShadowBladePolicy.TryResolveGrant),
-///     where Barrage is Thief-only; the resolution is otherwise identical;
-///   - the idempotent-inject check is general for any id (ShadowBladePolicy.NeedsInject).
+/// Sanguine Sword's "Shadow Blade" signature. Grants the wielder Gaffgarion's Shadow Blade (a ranged
+/// dark strike that absorbs HP) through JobCommand injection, reusing Barrage's primitives and
+/// BarrageState. It differs from Barrage in three ways.
+///   - The ability id comes from meta (GrantCommandAbilityId), not a hardcoded 358.
+///   - Eligibility is a whitelist of Squire/Knight (records 5/7), reached through the primary job or a
+///     mounted secondary command (ShadowBladePolicy.TryResolveGrant). Barrage is Thief-only.
+///   - The idempotent inject check works for any id (ShadowBladePolicy.NeedsInject).
 ///
-/// FOLLOW-UP SEAM: the find/inject/release/hold orchestration below is structurally Barrage's. Once
-/// Shadow Blade is live-verified, the shared core should be extracted into one helper both call --
-/// deferred deliberately, so a blind refactor can't regress the SHIPPED Barrage path.
+/// The find/inject/release/hold flow is structurally Barrage's. Once Shadow Blade is verified, extract
+/// the shared core, so the shipped Barrage path is not refactored blind.
 ///
-/// LIVE-PENDING (only a deploy can settle, the same class Barrage needed): does Shadow Blade render
-/// with its real menu NAME (the blank-name risk -- it has a table name, so it SHOULD), and does
-/// every resolvable job actually EXECUTE it (the special-executor swallow)? All reads/writes are
-/// VirtualQuery-guarded. Ending the grant releases ONLY the one slot we injected (verified at
-/// release time to still hold our ability), so a wrong guess reverts cleanly without touching
-/// anything else in the record -- see ReleaseSlot.
-///
-/// SHARED RECORD, NOW SAFE: the grant can target either whitelisted record 5 or 7, the SAME two
-/// Barrage can land in when a non-Thief primary has Steal mounted as a secondary (see the
-/// TryResolveGrant correction in Barrage.Policy.cs), and Provoke (a forthcoming Knight-sword
-/// signature) is slated for record 7 too. Slot-scoped release is what makes that safe: each module
-/// only ever writes and releases its OWN slot, so two grants sharing a record can never see or
-/// disturb each other's -- and neither can drop an ability the player (or another mod) legitimately
-/// owns in a different slot of that same record.
+/// Still pending a deploy. Does it render with its real menu name, and does every resolvable job
+/// execute it? Release clears only the slot we injected (checked to still hold our ability), so a
+/// wrong guess reverts cleanly. Records 5 and 7 are shared with Barrage (Steal as a secondary, see
+/// Barrage.Policy.cs) and with the planned Provoke, so each module writes and releases only its own
+/// slot and the grants cannot disturb each other or an ability the player owns in another slot.
 /// </summary>
 internal sealed class ShadowBlade : ISignature
 {
@@ -90,10 +77,8 @@ internal sealed class ShadowBlade : ISignature
         {
             if (_wasActive) ModLogger.Event(LogVerb.Grant, "Shadow Blade is no longer granted; no eligible Sanguine Sword wielder remains");
             _wasActive = false;
-            // Eligibility is OPEN (unlike Barrage's fixed Thief path), so the NEXT grant can resolve
-            // to a DIFFERENT record -- Restore() releases the slot in the record we're actually
-            // tracking (BarrageState.RecId) and always clears, so nothing stale survives to be
-            // misapplied against whichever record comes next.
+            // Eligibility is open, so the next grant may resolve to a different record. Restore() releases
+            // the tracked record's slot (BarrageState.RecId) and always clears.
             Restore(abilityId);
             return;
         }
@@ -127,9 +112,8 @@ internal sealed class ShadowBlade : ISignature
         long abBase = Barrage.AbilityBase + (long)recId * Barrage.RecSize;
         if (!_mem.Readable(flagAddr, Barrage.RecSize)) { return; }
 
-        // Find or verify the injection slot. Only trust a remembered slot when it was found in
-        // THIS record -- see the matching comment in Barrage.cs for why this check survives even
-        // though Restore() above should already have cleared a mismatched record.
+        // Only trust a remembered slot found in this record (same check as Barrage.cs), even though
+        // Restore() above should already have cleared a mismatched one.
         int slotIdx = _state.RecId == recId ? _state.SlotIdx : -1;
         if (slotIdx < 0)
         {
@@ -160,12 +144,9 @@ internal sealed class ShadowBlade : ISignature
         HoldLearnedBit(wielderSlot, jobIdx, slotIdx + 1);
     }
 
-    /// <summary>Release our injected slot (if any) and forget it, unconditionally -- called
-    /// whenever the grant ends or the wielder's job changes records. <paramref name="abilityId"/>
-    /// is passed in (read from meta at the top of Tick) rather than re-read here, so a missing meta
-    /// key can never make this silently no-op the way a second dictionary lookup could. See
-    /// Barrage.Restore (same shape, ability id hardcoded there) and BarrageState.Clear for why
-    /// clearing happens unconditionally, even when the release below is refused.</summary>
+    /// <summary>Release our injected slot (if any) and forget it, whenever the grant ends or the job changes
+    /// records. <paramref name="abilityId"/> is passed in from Tick's meta read so a missing key cannot
+    /// no-op it. State is cleared even if the release is refused (see Barrage.Restore, BarrageState.Clear).</summary>
     private void Restore(int abilityId)
     {
         int recId = _state.RecId;

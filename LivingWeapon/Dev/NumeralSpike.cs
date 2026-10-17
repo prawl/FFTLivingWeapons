@@ -5,70 +5,19 @@ using System.Runtime.InteropServices;
 namespace LivingWeapon;
 
 /// <summary>
-/// DEV-ONLY spike: cold-call the engine's floating NUMBER-POPUP builder so the mod can put a
-/// numeral on screen on command. Shipped effects are currently SILENT (Renewal heals adjacent
-/// allies every turn edge and the player sees nothing, LIVE_LEDGER's Renewal row), and every
-/// data-side lever for this has now been closed by measurement, not by guesswork:
-///
-///   - 0x1407832BE holds the last displayed number (damage AND heal, so it is the general value,
-///     not a damage field). It has EXACTLY ONE reference in the whole 362 MB image: its own
-///     write at 0x140228412. Nothing reads it. Write-only mirror, dead as a lever.
-///   - The per-unit record is real (combat +0x1C4 u16 took 224 on a 224 hit, corroborated by HP
-///     +0x30 falling 408 -> 184 and the outcome byte +0x1BB flipping to 0x02), and its neighbours
-///     +0x1D8 / +0x1E5 latch alongside it. Writing all three on an idle unit drew NOTHING
-///     (owner live 2026-07-27), so they are outputs too. The draw is event-driven, not polled.
-///
-/// So the remaining lever is the routine itself, which is the same place the spawn arc ended up.
-///
-/// TARGET: FnNumberPopup 0x140227CF8. Located by CE what-writes on 0x1407832BE (one hit,
-/// 0x140228410 `mov [1407832BE],dx`), then static disasm outward: nearest int3 padding gives the
-/// entry, and `callers` reports EXACTLY ONE call site, 0x140228CF5. Corroborating evidence that
-/// this is the number builder and not a bystander: the sibling global 0x140808550 is written at
-/// EIGHT distinct sites inside the same function (eight kinds of number), the function indexes
-/// units via `lea rcx,[0x141853CE0]` + `shl rax,9` (BattleUnitsBase and its 0x200 stride), and it
-/// expands a 4-byte entry at [r15 + r10*4] into four u16 slots at [r14+0xC/0xE/0x10/0x12], which
-/// is the four digits.
-///
-/// THE ARGUMENTS ARE CRIBBED, NOT DERIVED. Owner CE breakpoint at the call site, one hit,
-/// 2026-07-27:
-///     rcx = 0x142FF5498   presentation object (the call site computes it as rsi + 0x408)
-///     rdx = 0x1407DC908   layout/style table (baked: 960/320/400 plus rects)
-///     r8  = 0x1408018E8   static
-///     r9  = 0x1407B3520   layout array + 0x40 (the caller walks it at 0xC stride)
-/// All four are inside the fixed image (base 0x140000000, no ASLR), so unlike the spawn arc's
-/// node builder this needs NO runtime pointer discovery. That is the whole reason this spike is
-/// worth trying before anything more elaborate.
-///
-/// WHICH UNIT gets the number is NOT an argument: at the write instruction the function's base
-/// pointer was combat slot 16 + 0x1BE, and 0x1C4 == that + 6, so the value is read out of a unit
-/// the routine selects for itself. This spike therefore writes the target's +0x1C4 immediately
-/// before calling and reports whether the number that appeared matches. If a numeral appears on
-/// the WRONG unit, the selection global is the next thing to find (0x142FF3CF8 held a combat-slot
-/// pointer at the earlier capture and is the first suspect); that is a useful result, not a
-/// failure.
-///
-/// SAFETY (crash-capable: an internal engine AV is uncatchable in .NET, so prevention is the only
-/// defense; this follows StatusSpike's hardening line for line):
-///  - Landmark the prologue at the pinned address before EVERY fire. The bytes are the ones the
-///    static disasm read at 0x140227CF8; a patched or moved routine becomes a logged refusal.
-///  - Fire only on a genuine inLive frame, only while PAUSED (PauseFlag == 1), and only when the
-///    game window is foreground, so a global key state cannot fire a cold call while alt-tabbed.
-///  - Every cribbed argument is re-checked for readability at fire time. A stale one refuses.
-///  - The target unit must pass a sanity gate (level and HP in range) before we write its +0x1C4,
-///    and the original u16 is restored after the call whatever happens.
-///
-/// CANARY DISCIPLINE (denuvo-hook-launch-fragility): the FIRST press each launch proves the call
-/// frame is alive and non-crashing. A first cold call of a game function can be dead for a whole
-/// launch or can crash; a dead game is a restart, the standard spike tax. THROWAWAY SAVE ONLY.
-///
-/// USAGE: in a live battle, open a unit's menu so the game is paused, then press F8. F8 keeps
-/// clear of the rest of the wired key map (F2/F4 StatusSpike, F5/Shift+F5 BodyDoubleSpike, F6
-/// ProvokeSpike). A request-file lane (numeral_request.txt, "slot[,value]") exists for the
-/// same reason StatusSpike has one: this box's function keys are a scarce, half-eaten resource
-/// (F3 is eaten on this box) and environment variables do not survive the game's launch chain.
+/// Dev-only spike that cold-calls FnNumberPopup (0x140227CF8) to put a numeral on screen on command; Renewal
+/// heals currently show nothing (LIVE_LEDGER Renewal row). The data side is closed: 0x1407832BE (last displayed
+/// number) has one reference, its own write at 0x140228412, and the per-unit field combat +0x1C4 (HP +0x30 fell
+/// 408 -> 184, outcome byte +0x1BB flipped to 0x02, +0x1D8/+0x1E5 latch with it) drew nothing when written on an
+/// idle unit (2026-07-27), so those are outputs. Press F8 in a paused live battle, or queue numeral_request.txt
+/// ("slot[,value]"). Throwaway save only; the first press each launch is the canary (denuvo-hook-launch-fragility).
 /// </summary>
 internal sealed class NumeralSpike
 {
+    // Found by CE what-writes on 0x1407832BE (one hit, 0x140228410 mov [1407832BE],dx), then static disasm outward from the
+    // nearest int3 padding. Sole call site 0x140228CF5. Sibling global 0x140808550 is written at eight sites in it, it indexes
+    // units via lea rcx,[0x141853CE0] + shl rax,9 (0x200 stride), and expands a 4-byte entry at [r15+r10*4] into four u16
+    // digit slots at [r14+0xC/0xE/0x10/0x12].
     private const long FnNumberPopup = 0x140227CF8;
 
     /// <summary>The entry's prologue, read statically from the exe on disk 2026-07-27:
@@ -76,35 +25,23 @@ internal sealed class NumeralSpike
     private static readonly byte[] PopupPrologue =
         { 0x48, 0x89, 0x5C, 0x24, 0x10, 0x55, 0x56, 0x57, 0x41, 0x54, 0x41, 0x55 };
 
-    // Cribbed from a live call, owner CE breakpoint at 0x140228CF5, 2026-07-27. See the class doc.
+    // Cribbed from an owner CE breakpoint at the call site 0x140228CF5 (one hit, 2026-07-27). rcx is rsi + 0x408 there,
+    // rdx is the baked layout table (960/320/400 plus rects), r9 is the layout array + 0x40 (walked at 0xC stride).
+    // All four sit in the fixed image, so no runtime pointer discovery is needed.
     private const long ArgPresentation = 0x142FF5498;   // rcx
     private const long ArgLayoutTable  = 0x1407DC908;   // rdx
     private const long ArgStatic3      = 0x1408018E8;   // r8
     private const long ArgLayoutArray  = 0x1407B3520;   // r9
 
-    /// <summary>Per-unit displayed-number field (combat-struct relative), found by the unitsweep
-    /// diff on a known 224 hit and independently predicted by the disasm as [rbp+6] where rbp was
-    /// the unit's base + 0x1BE.</summary>
+    /// <summary>Per-unit displayed-number field (combat +0x1C4), found by the unitsweep diff on a known 224 hit;
+    /// the disasm predicts [rbp+6] with rbp = unit base + 0x1BE.</summary>
     private const int CNumberValue = 0x1C4;
 
-    // ---- v2 (2026-07-27, after fire #1 returned clean but drew nothing) ----
-    //
-    // Fire #1 exonerated the call frame (no crash) and static re-derivation exonerated r8 (the
-    // caller never sets it before the call: a DEAD argument, leftover from the previous call's
-    // internals -- so the real contract is rcx/rdx/r9). The two remaining suspects, each with an
-    // opt-in request flag so the default stays the hardened v1 path:
-    //
-    //  "live"  -- fire WITHOUT the pause requirement. Natural popups never spawn while paused,
-    //             so a paused fire may be built and dropped (or expire) before a frame renders
-    //             it. Precedent for an unpaused loop-thread cold call drawing: ShowSpike's
-    //             ColdSpawn. The reentrancy risk the pause gate existed for is accepted for an
-    //             explicit opt-in experiment on a throwaway save.
-    //  "actor" -- pre-set the SELECTION GLOBAL before the call and restore it after.
-    //             FnNumberPopup derives its unit from [0x142FF3CF8] (disasm 0x140228504:
-    //             mov rbp,[0x142FF3CF8]; at the live writer break rbp read 0x141855E9E ==
-    //             combat slot 16 base + 0x1BE). Between actions that global is stale/null,
-    //             which is exactly the old ledger wall's "transient argument read once at
-    //             event time". The write is unit base + 0x1BE for the requested slot.
+    // v2 (2026-07-27): fire #1 returned clean but drew nothing, and r8 is a dead argument (the caller never sets it),
+    // so the live contract is rcx/rdx/r9. Two opt-in request flags test the remaining suspects:
+    // "live" fires without the pause requirement, since natural popups never spawn while paused (precedent: ShowSpike ColdSpawn).
+    // "actor" pre-sets the selection global FnNumberPopup reads (disasm 0x140228504: mov rbp,[0x142FF3CF8]; at the writer
+    // break rbp was 0x141855E9E, slot 16 base + 0x1BE) and restores it afterward.
     private const long ActorGlobal = 0x142FF3CF8;
     private const int ActorBias = 0x1BE;   // the global stores unitBase + 0x1BE, not unitBase
 
@@ -116,8 +53,8 @@ internal sealed class NumeralSpike
     [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(nint hWnd, out uint pid);
     [DllImport("kernel32.dll")] private static extern uint GetCurrentProcessId();
 
-    // F8. Current wired key map: F2/F4 StatusSpike, F5/Shift+F5 BodyDoubleSpike, F6 ProvokeSpike
-    // (LW-67 deleted the old Flavor/Header/AttackCard spikes that used to squat on F6).
+    // F8 is clear of F2/F4 StatusSpike, F5/Shift+F5 BodyDoubleSpike and F6 ProvokeSpike (LW-67 deleted the old spikes on F6).
+    // The request-file lane exists because F3 is eaten on this box and env vars do not survive the game's launch chain.
     private const int VkF8 = 0x77;
 
     private const string RequestFileName = "numeral_request.txt";
@@ -137,8 +74,8 @@ internal sealed class NumeralSpike
         _requestPath = string.IsNullOrEmpty(modDir) ? null : System.IO.Path.Combine(modDir, RequestFileName);
     }
 
-    /// <summary>In-battle loop tick: heartbeat, key edge, request-file lane. The cold call runs on
-    /// this loop thread, which ShowSpike.ColdSpawn already proved can draw.</summary>
+    /// <summary>In-battle loop tick: heartbeat, key edge, request-file lane. The cold call runs on this
+    /// loop thread, as ShowSpike.ColdSpawn does.</summary>
     public void Tick(bool inLive)
     {
         if (!_announced)
@@ -154,10 +91,8 @@ internal sealed class NumeralSpike
         if (_hbTick % 15 == 0) PollRequest();
     }
 
-    /// <summary>Consume a queued "slot[,value]" request and fire the identical hardened path. The
-    /// file is deleted BEFORE it is acted on, so a stale request can never re-fire on a later
-    /// launch, and a malformed one is reported rather than guessed at: the one thing worse than
-    /// ignoring a request is cold-calling the engine with a number we invented.</summary>
+    /// <summary>Consume a queued "slot[,value]" request and fire. The file is deleted before it is acted on,
+    /// so a stale request cannot re-fire on a later launch; a malformed one is logged and ignored.</summary>
     private void PollRequest()
     {
         if (_requestPath == null) return;
@@ -208,9 +143,9 @@ internal sealed class NumeralSpike
         return pid == GetCurrentProcessId();
     }
 
-    /// <summary>Every precondition that can be checked without calling. Each failure is a logged
-    /// refusal, never a crash: the alternative is transferring control to a wrong address inside
-    /// the game's own process.</summary>
+    /// <summary>Every precondition checkable without calling. Each failure is a logged refusal.
+    /// Follows StatusSpike's hardening: prologue landmark at the pinned address (bytes read statically at 0x140227CF8),
+    /// pause required unless "live", and every cribbed argument re-checked for readability.</summary>
     private bool TargetReady(string label, bool skipPause)
     {
         if (!Mem.WritesEnabled)
@@ -250,16 +185,14 @@ internal sealed class NumeralSpike
         return true;
     }
 
-    /// <summary>Write the target's number field, cold-call the popup builder, restore the field.
-    /// The restore runs in a finally so a throwing call still leaves the unit as we found it;
-    /// note that an engine-side access violation is uncatchable and no finally saves us from it,
-    /// which is precisely why TargetReady refuses on every checkable doubt.</summary>
+    /// <summary>Write the target's number field, cold-call the popup builder, restore the field in a finally.
+    /// The routine picks its own unit (no argument for it), so a numeral over the wrong unit points at the selection
+    /// global 0x142FF3CF8. An engine-side AV is uncatchable, so TargetReady refuses on any doubt.</summary>
     private void Fire(string label, int slot, int value, bool live, bool actor)
     {
         if (!TargetReady(label, skipPause: live)) return;
 
-        // StatusApply.BattleUnitsBase is the same slot-0 origin the popup routine itself uses
-        // (its `lea rcx,[0x141853CE0]` + `shl rax,9`), which is NOT our band-seat convention.
+        // Same slot-0 origin the popup routine uses (lea rcx,[0x141853CE0], shl rax,9), not our band-seat convention.
         long unit = StatusApply.BattleUnitsBase + (long)slot * Offsets.CombatStride;
         if (!Mem.Readable(unit, Offsets.CombatStride))
         {
@@ -283,9 +216,7 @@ internal sealed class NumeralSpike
             Mem.W16(unit + CNumberValue, (ushort)value);
             if (actor)
             {
-                // Pre-set the selection global to this unit (the global stores unitBase + 0x1BE,
-                // per the live writer break where rbp read slot-16 base + 0x1BE). Restored below
-                // whatever happens, so a stale value never outlives the experiment.
+                // The global stores unitBase + 0x1BE (rbp at the writer break was slot 16 base + 0x1BE). Restored in finally.
                 if (Mem.Readable(ActorGlobal, 8) && Mem.Writable(ActorGlobal, 8))
                 {
                     originalActor = Mem.U64(ActorGlobal);
@@ -298,8 +229,7 @@ internal sealed class NumeralSpike
                     ModLogger.Error(LogVerb.Trace, $"numeral-spike: {label} actor global 0x{ActorGlobal:X} not writable; firing without it.");
                 }
             }
-            // unchecked: the address is a 64-bit constant above int range, and this process is
-            // always x64 (net8.0-windows against a 64-bit game), so the nint cast is exact.
+            // unchecked: the address is a 64-bit constant above int range; the process is x64, so the nint cast is exact.
             var fn = Marshal.GetDelegateForFunctionPointer<NumberPopupFn>(unchecked((nint)FnNumberPopup));
             fn(ArgPresentation, ArgLayoutTable, ArgStatic3, ArgLayoutArray);
             ModLogger.Event(LogVerb.Trace, $"numeral-spike: {label} returned without crashing. Look at the field: a numeral means this flag combination is the missing state; note WHICH unit it appeared over.");

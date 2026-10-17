@@ -4,26 +4,17 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-317: the turn-scoped resident item-stats WP write for the "wp"/"wp+faith" gun lanes
-/// (the three plain guns and three magic guns Routes contributes NO combat-struct lane for --
-/// see GrowthEngine.Lanes.cs's Routes, "wp" case). While the acting unit is a PLAYER wielding a
-/// wp/wp+faith gun at tier &gt; 0, holds the resident stats-table WP byte (Offsets.ItemStatsBase)
-/// at bakedWP + Tuning.WpBonus[tier]; restores the baked value the instant that stops being true.
-///
-/// Shape mirrors WeaponPalette's desire/restore split (Band.FlagOwner acting-unit resolve, a
-/// desired-vs-painted decision, a restore path) with the FAIL-SAFE INVERTED (N1): WeaponPalette
-/// HOLDS on a FlagOwner refusal (a stale colour beats a wrong one), but a stale WP bump is LIVE
-/// DAMAGE for every same-id wielder including enemies, so refusal here leans toward RESTORE.
-/// A short refusal is still tolerated (the restore lands once <see cref="Tuning.WpUnresolvedRestoreTicks"/> consecutive unresolved ticks accrue) -- a
-/// transient band-scan gap between turns must not yank a healthy hold mid-turn, mirroring
-/// Tuning.BulwarkUnresolvedTicks / Tuning.ProvokeMarkedMissTicks' own "one miss is not a
-/// pattern" precedent -- but any CLEAN signal (an enemy's turn, a different weapon, tier 0, a
-/// genuine battle exit, or ResetBattle) restores immediately, no grace.
-///
-/// Accepted blast radius (documented, not a bug): an enemy REACTION shot with the same gun id,
-/// landing inside the wielder's own turn window, sees the bump too -- rare, bounded by the
-/// cadence-1 restore, and cheaper to accept than adding a same-shot attribution check this
-/// table cannot make (the byte has no idea WHO is about to fire it).
+/// LW-317. Turn-scoped write to the resident item-stats WP byte for the "wp"/"wp+faith" guns (the three
+/// plain and three magic guns that Routes gives no combat-struct lane, see GrowthEngine.Lanes.cs). While the
+/// acting unit is a player wielding one at tier &gt; 0, holds the byte (Offsets.ItemStatsBase) at
+/// bakedWP + Tuning.WpBonus[tier] and restores the baked value as soon as that stops being true.
+/// Follows WeaponPalette's desire/restore split with the fail-safe inverted (N1). WeaponPalette holds
+/// on a FlagOwner refusal, but a stale WP bump is live damage for every wielder of that id, enemies
+/// included, so refusal here leans toward restore. A short gap is tolerated (<see cref="Tuning.WpUnresolvedRestoreTicks"/>
+/// unresolved ticks, like Tuning.BulwarkUnresolvedTicks) so a band-scan gap between turns does not drop a
+/// healthy hold. Clean signals (enemy turn, other weapon, tier 0, battle exit, ResetBattle) restore at once.
+/// Accepted: an enemy reaction shot with the same gun id inside the wielder's turn sees the bump too.
+/// It is rare, bounded by the cadence-1 restore, and this table cannot tell who fires.
 /// </summary>
 internal sealed class WpTableHold
 {
@@ -37,16 +28,13 @@ internal sealed class WpTableHold
     private byte _target;         // the last value WE actually wrote (== _baked until the first write)
     private int _unresolvedTicks;
 
-    // Ids stood down for the rest of THIS battle after a foreign-writer read (the WeaponPalette
-    // suspect-check precedent, WeaponPalette.cs's _suspectWarned): a byte reading neither the
-    // baked WP nor our own held target belongs to someone else, and re-fighting it every tick is
-    // worse than one loud warning and standing clear.
+    // Ids stood down for the rest of this battle after a foreign-writer read (as WeaponPalette's
+    // _suspectWarned). A byte matching neither the baked WP nor our target belongs to someone else.
     private readonly HashSet<int> _standDown = new();
 
-    // LW-346 growth polish: an extended-inventory id (261+) has no row in the resident stats table
-    // (its 8-byte row lives in the mod's own weapon-stat stub page); this resolver answers that
-    // row's address, or -1 for an id that is not an armed extended item. Null = no extended
-    // inventory (tests, and the pre-LW-346 shape): such ids are refused, never guessed.
+    // LW-346 growth polish. Extended ids (261+) have no row in the resident stats table; their 8-byte
+    // row is in the mod's weapon-stat stub page. Returns that address, or -1 if not an armed extended
+    // item. Null (tests, pre-LW-346) refuses such ids.
     private readonly Func<int, long>? _extendedRowAddr;
 
     public WpTableHold(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, IGameMemory mem,
@@ -80,19 +68,17 @@ internal sealed class WpTableHold
         Apply(addr, weaponId, tier);
     }
 
-    /// <summary>Resolve the acting PLAYER unit via the WeaponPalette.Desire player filter
-    /// (Wielder.ResolveAnyHandNameId, matchCount &gt;= 1): a roster row must actually wield
-    /// <paramref name="weaponId"/> at the acting entry's own fingerprint, or this is an enemy
-    /// sharing the same catalogued gun id, never a bump candidate.</summary>
+    /// <summary>Uses WeaponPalette.Desire's player filter (Wielder.ResolveAnyHandNameId, matchCount &gt;= 1).
+    /// A roster row must wield <paramref name="weaponId"/> at this entry's fingerprint, else it is an enemy
+    /// sharing the gun id.</summary>
     private bool Wants(long entry, int weaponId, out int tier)
     {
         tier = 0;
         var fp = ((int)_mem.U8(entry + Offsets.ALevel), (int)_mem.U8(entry + Offsets.ABrave), (int)_mem.U8(entry + Offsets.AFaith));
         Wielder.ResolveAnyHandNameId(_mem, weaponId, fp, out int matchCount);
-        if (matchCount == 0) return false;   // no roster row wields it at this fingerprint -- an enemy
-        // LW-346: an extended-inventory id has no row in the resident table (its stats row lives in
-        // the mod's own stub page); indexing past ItemStatsRows would write into the EquipBonus
-        // table behind it, so such an id is only ever served through the extended-row resolver.
+        if (matchCount == 0) return false;   // no roster row wields it at this fingerprint, so an enemy
+        // Indexing past ItemStatsRows would write into the EquipBonus table behind it, so
+        // extended ids are served only through the extended-row resolver.
         if (weaponId >= Offsets.ItemStatsRows && _extendedRowAddr == null) return false;
         if (!_meta.TryGetValue(weaponId, out var m) || (m.Lane != "wp" && m.Lane != "wp+faith")) return false;
         tier = Tuning.TierOf(_kills, weaponId);
@@ -110,16 +96,11 @@ internal sealed class WpTableHold
         return row < 0 ? -1 : row + Offsets.ItemStatsWpOff;
     }
 
-    /// <summary>Write discipline (N1): before ANY write, the byte must read either the baked WP
-    /// or the target WE last held it at -- anything else is a foreign write this hold must never
-    /// stomp, logged once and stood down for the battle (the foreign-writer guard, the
-    /// WeaponPalette suspect-check pattern). Rev 3 ruling R3-6: when the foreign value is found
-    /// WHILE a hold is outstanding at this address (<paramref name="addr"/> == <see cref="_addr"/>),
-    /// the foreign writer has already overwritten our bump -- nothing of ours is outstanding
-    /// anymore, so the record is CLEARED with no write, rather than left standing for a later
-    /// Restore() to stomp the foreign value back to baked. The pre-hold foreign case (no record
-    /// yet at this address) has nothing to clear and keeps its existing refuse-to-write
-    /// behavior.</summary>
+    /// <summary>Before a write the byte must read the baked WP or our last target (N1). Anything else is
+    /// a foreign write, logged once and stood down for the battle. R3-6. If the foreign value appears while
+    /// a hold is outstanding at this address (<paramref name="addr"/> == <see cref="_addr"/>), the writer
+    /// already overwrote our bump, so the record is cleared with no write rather than left for Restore() to
+    /// stomp back to baked. With no hold yet at this address it just refuses to write.</summary>
     private void Apply(long addr, int weaponId, int tier)
     {
         if (!_mem.Writable(addr, 1)) return;
@@ -143,10 +124,8 @@ internal sealed class WpTableHold
         _addr = addr; _weaponId = weaponId; _baked = baked; _target = newTarget;
     }
 
-    /// <summary>Physical restore with a read-back verify -- the resident item-stats table gets NO
-    /// battle-load refresh (unlike WeaponPalette's banks, which a fresh battle load re-populates
-    /// from the loaded file), so every path that ends this hold's window must write the baked
-    /// value back for real.</summary>
+    /// <summary>Restores with a read-back check. The resident item-stats table is not refreshed on battle
+    /// load (unlike WeaponPalette's banks), so every path that ends the window writes the baked value back.</summary>
     private void Restore()
     {
         if (_addr == -1) return;

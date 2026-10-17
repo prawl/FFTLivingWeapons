@@ -7,8 +7,8 @@ namespace LivingWeapon;
 /// <summary>Byte-pattern helpers for the display scan: name/slot encoding + searching.</summary>
 internal static class ByteScan
 {
-    /// <summary>ASCII bytes with non-ASCII chars DROPPED (not replaced with '?'). Matches the
-    /// bake; Encoding.ASCII would emit 0x3F and silently never match an accented name.</summary>
+    /// <summary>ASCII bytes with non-ASCII chars dropped (not replaced with '?'), matching the bake;
+    /// Encoding.ASCII would emit 0x3F and never match an accented name.</summary>
     public static byte[] Ascii(string s)
     {
         var sb = new StringBuilder(s.Length);
@@ -42,14 +42,11 @@ internal static class ByteScan
         return false;
     }
 
-    /// <summary>Slot validator for the "Kills NNNN" counter: left-aligned digits padded with spaces.
-    /// Char 0 must be an ASCII digit; chars 1..3 are digits until the first space, then only spaces
-    /// (a digit after a space = not our slot). This is a strict superset of the old all-digits form
-    /// ("0042"-era buffers still validate). enc-aware: UTF-16 high byte must be 0x00 for every
-    /// char (covers both digits and the 0x20 space).</summary>
+    /// <summary>Slot validator for the "Kills NNNN" counter: left-aligned digits padded with spaces. Char 0 must be a digit;
+    /// chars 1..3 are digits until the first space, then only spaces. Also accepts the old all-digits form ("0042").
+    /// enc-aware: the UTF-16 high byte must be 0x00.</summary>
     public static bool KillsDigits(byte[] buf, int pos, int enc)
     {
-        // char 0 must be a digit
         if (buf[pos] is < (byte)'0' or > (byte)'9') return false;
         if (enc == 2 && buf[pos + 1] != 0) return false;
         bool seenSpace = false;
@@ -73,17 +70,11 @@ internal static class ByteScan
         return true;
     }
 
-    /// <summary>Slot validator for the equip card's tier-progress METER body ("0/5 to +   ",
-    /// "14/15 to +3", "55         ", and the LW-311 baked placeholder "-/- to +   ", width chars
-    /// wide, Signatures.KillsMeterSlotChars in production). Char 0 must be an ASCII digit or '-'
-    /// (a painted meter's count always leads with a digit; an UNPAINTED card leads with the baked
-    /// dash, which this validator must admit or a cold-boot card is never found); every char
-    /// across the WHOLE width is restricted to the meter's own alphabet (digits, '-', '/', ' ',
-    /// '+', and the two letters of "to") so a stale unrelated buffer past a short literal never
-    /// misreads as valid. enc-aware: UTF-16 high byte must be 0x00 for every char. Bounds-safe:
-    /// false if [pos, pos + width*enc) does not fit in buf. Additive: KillsDigits above is
-    /// untouched (stays test-only after CardScanner/CardSites move to this wider
-    /// validator).</summary>
+    /// <summary>Slot validator for the equip card's tier-progress meter body ("0/5 to +   ", "14/15 to +3", "55         ",
+    /// and the LW-311 baked placeholder "-/- to +   "), width chars wide (Signatures.KillsMeterSlotChars in production).
+    /// Char 0 must be a digit or '-' (an unpainted card leads with the baked dash, or a cold-boot card is never found).
+    /// Every char must be in the meter alphabet (digits, '-', '/', ' ', '+', "to"). enc-aware (UTF-16 high byte 0x00);
+    /// false if [pos, pos + width*enc) does not fit in buf.</summary>
     public static bool MeterSlotDigits(byte[] buf, int pos, int enc, int width)
     {
         if (pos < 0 || pos + width * enc > buf.Length) return false;
@@ -100,9 +91,8 @@ internal static class ByteScan
         return true;
     }
 
-    /// <summary>Find all occurrences of needle in buf within [from, toExclusive), appending
-    /// absolute positions where the match STARTS. The needle itself may extend past toExclusive
-    /// as long as it fits in buf. Empty needle yields no hits.</summary>
+    /// <summary>Find all occurrences of needle in buf within [from, toExclusive), appending absolute
+    /// start positions. The needle may extend past toExclusive if it fits in buf. Empty needle yields no hits.</summary>
     public static void FindAll(byte[] buf, byte[] needle, int from, int toExclusive,
                                List<int> hits)
     {

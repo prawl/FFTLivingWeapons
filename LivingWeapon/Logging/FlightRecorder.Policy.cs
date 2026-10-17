@@ -7,14 +7,12 @@ using Newtonsoft.Json;
 namespace LivingWeapon;
 
 /// <summary>
-/// FlightRecorder's PURE decision half (the 200-line refactor seam) -- filename sanitizing, JSONL
-/// serialization, and the retention-selection logic, all plain functions of their inputs with no
-/// lock, no clock, and no IO. FlightRecorder.cs (the stateful runtime half) calls into these.
+/// Pure half of FlightRecorder (the 200-line seam). It holds filename sanitizing, JSONL serialization
+/// and retention selection, with no lock, clock or IO. FlightRecorder.cs calls into these.
 /// </summary>
 internal sealed partial class FlightRecorder
 {
-    /// <summary>Ring contents in insertion (oldest-first) order. Caller holds <c>_lock</c>; this
-    /// just linearizes the circular buffer into a plain array (no IO, no lock of its own).</summary>
+    /// <summary>Linearizes the circular buffer oldest-first. Caller holds <c>_lock</c>.</summary>
     private FlightRecord[] Linearize()
     {
         if (_count < Capacity)
@@ -32,9 +30,8 @@ internal sealed partial class FlightRecorder
 
     private static string SafeTrigger(string trigger) => string.IsNullOrEmpty(trigger) ? "flush" : trigger;
 
-    /// <summary>JSONL body: a header line (wall-clock + elapsedMs at flush time, S5) followed by
-    /// one compact JSON object per record ({t, e, d}). Newtonsoft.Json only (S4) -- no hand-rolled
-    /// escaping, so hostile payloads (quotes, backslashes, newlines, brackets) round-trip exactly.</summary>
+    /// <summary>JSONL body. A header line (wall-clock + elapsedMs at flush time, S5), then one compact
+    /// JSON object per record ({t, e, d}). Newtonsoft.Json only (S4), so hostile payloads round-trip.</summary>
     private static string Serialize(FlightRecord[] records, DateTime wall, long flushElapsed)
     {
         var sb = new StringBuilder();
@@ -56,10 +53,8 @@ internal sealed partial class FlightRecorder
         return sb.ToString();
     }
 
-    /// <summary>Which of <paramref name="existing"/> archive paths to delete so at most
-    /// <paramref name="retentionCount"/> remain: everything beyond the newest N, oldest-first.
-    /// Filenames sort chronologically (yyyyMMdd_HHmmss right after the flight_ prefix), so a
-    /// plain ordinal sort is a valid oldest-first order -- pure given its inputs, no IO.</summary>
+    /// <summary>Paths in <paramref name="existing"/> to delete, keeping the newest <paramref name="retentionCount"/>.
+    /// Filenames sort chronologically (yyyyMMdd_HHmmss after flight_), so an ordinal sort works.</summary>
     private static List<string> SelectForDeletion(IEnumerable<string> existing, int retentionCount)
     {
         var files = existing.ToList();

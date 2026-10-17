@@ -3,38 +3,29 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Shared helpers for reading auth-band entries. The band stays live through battle
-/// restarts (the static array freezes; the band does not). Entry layout mirrors the
-/// static-array A* offsets (ALevel 0x0D, ABrave 0x0E, etc.). Live-proven: fresh
-/// corpse 0/539 visible only in the band; Ramza's real grid position only there.
+/// Helpers for reading auth-band entries. The band stays live through battle restarts while
+/// the static array freezes. Entry layout mirrors the static-array A* offsets (ALevel 0x0D,
+/// ABrave 0x0E, etc.). A fresh corpse (0/539) is visible only in the band, as is Ramza's grid position.
 /// </summary>
 internal static partial class Band
 {
-    /// <summary>How far a LIVE level may exceed the ROSTER level and still identify the same
-    /// unit. The roster keeps the pre-battle level until battle end while live structs update
-    /// on a mid-battle level-up -- exact equality made freshly-leveled units invisible to
-    /// every roster-keyed identification (live 2026-06-10: a Phoenix Down kill by a leveled-up
-    /// Ramza paid out to the Wellspring Rod through the stale actor latch, and a leveled
-    /// wielder silently dropped their growth and signatures). Levels only go UP mid-battle,
-    /// so the window is one-sided; 9 bounds even an absurd grinding session within a battle
-    /// without reopening the enemy-collision hole the level checks exist to close.</summary>
+    /// <summary>Largest amount a live level may exceed the roster level and still match the same
+    /// unit. The roster keeps the pre-battle level until battle end, so exact equality hid freshly
+    /// leveled units (2026-06-10: a Phoenix Down kill by a leveled Ramza paid the Wellspring Rod).
+    /// Levels only rise mid-battle, so the window is one-sided; 9 covers a long grind.</summary>
     public const int MaxLevelDrift = 9;
 
-    /// <summary>True when a LIVE level is consistent with a unit whose ROSTER level was
-    /// recorded pre-battle: equal, or above by at most <see cref="MaxLevelDrift"/>.</summary>
+    /// <summary>True when a live level fits a unit whose roster level was recorded pre-battle.</summary>
     public static bool LevelMatchesRoster(int rosterLevel, int liveLevel)
         => liveLevel >= rosterLevel && liveLevel - rosterLevel <= MaxLevelDrift;
 
     /// <summary>Base address for band slot s (s = 0..BandSlots-1, mapping n=-24..+24).</summary>
     public static long Entry(int s) => Offsets.BandReadBase + (long)s * Offsets.CombatStride;
 
-    /// <summary>Resolve the engine's own ActorPtr global (Offsets.ActorPtr) to the acting unit's
-    /// band entry address, or 0 when the pointer is invalid: zero, below FrameReadBase, not
-    /// stride-aligned to a whole seat, or naming a seat outside BandSlots. Live-proven
-    /// 2026-07-01 (tools/probes/unitid_probe.py "watch"): the pointer named each acting wielder's
-    /// own seat during a 2x id-42 repro at the exact instant the turn-queue fingerprint was
-    /// ambiguous. Callers apply their own <see cref="IsValid"/> where they need field sanity --
-    /// this only validates the POINTER shape, not the pointed-to entry's contents.</summary>
+    /// <summary>Resolves the engine's ActorPtr global (Offsets.ActorPtr) to the acting unit's band
+    /// entry address, or 0 when the pointer is zero, below FrameReadBase, not seat-aligned, or outside
+    /// BandSlots. Checked 2026-07-01 with tools/probes/unitid_probe.py "watch" on a 2x id-42 repro.
+    /// Only the pointer shape is validated, not the entry contents.</summary>
     public static long ActorEntry(IGameMemory mem)
     {
         ulong ptr = mem.U64(Offsets.ActorPtr);
@@ -48,9 +39,8 @@ internal static partial class Band
         return frame + Offsets.BandEntry;
     }
 
-    /// <summary>True iff the band entry at <paramref name="addr"/> has sane field values.
-    /// brave/faith reach 100 via Praise/Steel -- the upper bound is 100, not 99.
-    /// AInBattle (+0x12) reads 0 for live enemies: do NOT gate on it in the band.</summary>
+    /// <summary>True when the band entry at <paramref name="addr"/> has sane field values.
+    /// Brave/faith reach 100 via Praise/Steel. AInBattle (+0x12) reads 0 for live enemies, so it is not tested.</summary>
     public static bool IsValid(IGameMemory mem, long addr)
     {
         int lvl = mem.U8(addr + Offsets.ALevel);
@@ -66,17 +56,12 @@ internal static partial class Band
         return gx <= 30 && gy <= 30;
     }
 
-    /// <summary>The active (TurnQueue) unit's full identity: its (level,brave,faith) fingerprint
-    /// and the winning REAL-position band-entry address, from a single band walk matching the
-    /// condensed active-unit struct's maxHp+hp+level (Offsets.TurnQueue). Never resolves by
-    /// nameId (TqNameId is a sequential battle index, a collision trap, see Offsets.TurnQueue's
-    /// doc comment). Twin-filtered: a frozen (0,0) duplicate loses to any real-position match.
-    /// Returns false when the queue itself is garbage (maxHp 0 or &gt;= 2000, level outside
-    /// 1..99), no band entry matches, or the match is genuinely AMBIGUOUS (surviving candidates
-    /// carry DISTINCT fingerprints, miss beats mis-credit). Twin entries sharing the SAME
-    /// fingerprint are fine. Ported verbatim from TurnTracker.TryActiveFingerprint (which now
-    /// delegates here) so every own-turn-detecting signature (FeignDeath, Puppeteer, Mushin,
-    /// TurnTracker itself) shares one walk.</summary>
+    /// <summary>The active (TurnQueue) unit's (level,brave,faith) fingerprint and its band entry
+    /// address, from one band walk matching the queue's maxHp, hp and level (Offsets.TurnQueue).
+    /// Does not use nameId (TqNameId is a sequential battle index, see Offsets.TurnQueue). A frozen
+    /// (0,0) duplicate loses to a real-position match. Returns false on a garbage queue, no match, or
+    /// candidates with distinct fingerprints (a miss beats a mis-credit). Twins with the same
+    /// fingerprint are fine. Moved from TurnTracker.TryActiveFingerprint, which delegates here.</summary>
     public static bool ActiveOwner(IGameMemory mem, out (int lvl, int br, int fa) fp, out long entry)
     {
         fp = default;
@@ -100,7 +85,7 @@ internal static partial class Band
             if (mem.U8(addr + Offsets.ALevel) != level) continue;
 
             bool realPos = mem.U8(addr + Offsets.AGx) != 0 || mem.U8(addr + Offsets.AGy) != 0;
-            // twin filter: skip (0,0) entries if we already have a real-position match
+            // twin filter: skip (0,0) entries once a real-position match exists
             if (foundReal && !realPos) continue;
             if (realPos && !foundReal && haveFp) { found = default; foundEntry = 0; haveFp = false; foundReal = true; }
             if (realPos) foundReal = true;
@@ -115,23 +100,18 @@ internal static partial class Band
         return true;
     }
 
-    /// <summary>ENEMY fingerprints from the static array (slots 0..EnemySlotMax) -- the shared
-    /// enemy-side oracle behind EagleEye/Maim/Ricochet. Shared caveat: the static
-    /// array FREEZES on battle restart (capture already happened).
-    /// NOTE: the mhp bound here is 2000 INCLUSIVE -- the bound every live-proven scan shipped
-    /// with -- and deliberately differs from <see cref="IsValid"/>'s exclusive (&gt;= 2000)
-    /// band-entry bound. Documented drift; do not align it without a live probe.</summary>
+    /// <summary>Enemy fingerprints from the static array (slots 0..EnemySlotMax), the oracle behind
+    /// EagleEye/Maim/Ricochet. The array freezes on battle restart. The mhp bound is inclusive 2000,
+    /// unlike the exclusive bound in <see cref="IsValid"/>; align them only after a probe.</summary>
     public static HashSet<(int mhp, int lvl, int br, int fa)> EnemyFingerprints(IGameMemory mem)
         => Fingerprints(mem, 0, Offsets.EnemySlotMax);
 
-    /// <summary>PLAYER-side fingerprints from the static array (slots above EnemySlotMax) --
-    /// the positive ally oracle (Renewal's aura filter, Benediction's boost filter). Same freeze
-    /// caveat and the same inclusive-2000 mhp bound as <see cref="EnemyFingerprints"/>.</summary>
+    /// <summary>Player-side fingerprints from the static array (slots above EnemySlotMax), used by
+    /// Renewal and Benediction. Same freeze caveat and mhp bound as <see cref="EnemyFingerprints"/>.</summary>
     public static HashSet<(int mhp, int lvl, int br, int fa)> AllyFingerprints(IGameMemory mem)
         => Fingerprints(mem, Offsets.EnemySlotMax + 1, Offsets.NSlots - 1);
 
-    /// <summary>One static-array sweep: every slot in [first..last] with a sane fingerprint
-    /// (filters phantoms -- level 0 / garbage). HashSet = one entry per unit.</summary>
+    /// <summary>One static-array sweep over [first..last], skipping phantom slots (level 0, garbage).</summary>
     private static HashSet<(int mhp, int lvl, int br, int fa)> Fingerprints(IGameMemory mem, int first, int last)
     {
         var set = new HashSet<(int, int, int, int)>();
@@ -147,27 +127,15 @@ internal static partial class Band
         return set;
     }
 
-    /// <summary>LW-63: the per-unit PSX turn-flags owner (band +0x19C ATurnFlag, PROVEN LIVE
-    /// 2026-07-09) -- names the acting unit STRUCTURALLY, unlike the engine actor pointer (which
-    /// parks on struck victims and mirror-seat units; the parked-pointer mis-credit this fix
-    /// closes, docs/TODO.md LW-63). Walks every band slot for entries with ATurnFlag == 1 (the
-    /// exclusive-ownership byte: across 58 flags records over 4 real tapes, never two t=1 units
-    /// in one record; AMoved/AActed are NOT exclusive this way -- many units read a1 alongside
-    /// the true owner between their own turns, so only t may be tested this way, and only via
-    /// the ==1 test: the moved byte reads raw values up to 3, so no flag byte may ever be
-    /// treated as a plain boolean).
-    ///
-    /// REAL POSITION IS MANDATORY (D2b, the blocker fix): a frozen (0,0) band mirror can carry a
-    /// stale t=1 (Mushin.cs residual 3) with no external anchor to catch it, so a (0,0) entry is
-    /// simply never a candidate here -- it can neither win alone nor create ambiguity against a
-    /// same-identity real-position twin.
-    ///
-    /// Among the remaining (real-position, t=1) candidates: zero -> false (a zero-t record is a
-    /// real, tape-verified case -- the battle-opening edge -- not a bug). One -> that entry wins.
-    /// Two or more with the SAME identity (ANameId when both are nonzero, else the (level,brave,
-    /// faith) fingerprint) -> the first wins (a duplicate, not a disagreement). Two or more with
-    /// DIFFERENT identities -> false: an ambiguous flags read must never be guessed between
-    /// (miss beats mis-credit) -- the caller falls through to the register/turn-queue chain.</summary>
+    /// <summary>the unit that owns the PSX turn flags (band +0x19C ATurnFlag, 2026-07-09).
+    /// Unlike the engine actor pointer, which parks on struck victims and mirror-seat units, this
+    /// names the acting unit from its own entry (docs/TODO.md LW-63). Across 58 flag records in 4
+    /// tapes no two units held t=1 at once. AMoved/AActed are not exclusive, and the moved byte reads
+    /// up to 3, so only the ==1 test on ATurnFlag is used.
+    /// Entries at (0,0) are skipped (D2b) since a frozen band mirror can carry a stale t=1 (Mushin.cs
+    /// residual 3). Zero candidates returns false (the battle-opening edge). Several candidates with the
+    /// same identity (ANameId, or the fingerprint when both are 0) return the first. Differing
+    /// identities return false and the caller falls back to the register/turn-queue chain.</summary>
     public static bool FlagOwner(IGameMemory mem, out long entry, out int slot)
     {
         entry = 0;
@@ -183,7 +151,7 @@ internal static partial class Band
             if (mem.U8(addr + Offsets.ATurnFlag) != 1) continue;
 
             bool realPos = mem.U8(addr + Offsets.AGx) != 0 || mem.U8(addr + Offsets.AGy) != 0;
-            if (!realPos) continue;   // D2b: never a candidate, so it can't win alone or create ambiguity
+            if (!realPos) continue;   // D2b
 
             ushort nameId = mem.U16(addr + Offsets.ANameId);
             var fp = ((int)mem.U8(addr + Offsets.ALevel), (int)mem.U8(addr + Offsets.ABrave), (int)mem.U8(addr + Offsets.AFaith));
@@ -196,9 +164,8 @@ internal static partial class Band
             }
 
             bool sameIdentity = (foundNameId == 0 && nameId == 0) ? foundFp == fp : foundNameId == nameId;
-            if (!sameIdentity) { entry = 0; slot = -1; return false; }   // two disagreeing t=1 owners -> ambiguous
-            // same identity duplicate (a twin) -> the first candidate already won; keep scanning
-            // in case a later, genuinely different owner turns up.
+            if (!sameIdentity) { entry = 0; slot = -1; return false; }   // two disagreeing owners -> ambiguous
+            // same identity (a twin): the first already won; keep scanning for a different owner
         }
         return found;
     }

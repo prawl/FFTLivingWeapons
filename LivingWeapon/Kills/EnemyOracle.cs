@@ -4,29 +4,20 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// The enemy-identity team oracle: which (level, brave, faith, maxHp) identities belong to the
-/// enemy side. Only identities in here can earn a kill credit -- player corpses, guests, and any
-/// uncaptured identity are structurally excluded.
+/// Which (level, brave, faith, maxHp) identities belong to the enemy side. Only these can earn a
+/// kill credit, so player corpses, guests and uncaptured identities are excluded.
 ///
-/// IDENTITY CAPTURE: static-array slots s &lt;= EnemySlotMax supply identities each onField tick,
-/// by SANE FIELDS -- NOT the inBattle flag. Live (2026-06-09): that u16 pulses 0/1 per unit
-/// mid-battle (half the live enemies read 0 at any instant), so gating on it dropped those
-/// enemies from the oracle and their kills were refused. The slot-sign carries the team
-/// semantics; the bounds exclude the junk slots. Additive: never removes during a battle (the
-/// array is live at battle start; a restart freezes it but the capture already happened;
-/// post-restart reinforcements are a logged, accepted gap).
+/// Capture reads static-array slots up to EnemySlotMax each onField tick and filters by sane field
+/// values. The inBattle flag is unusable: it pulses 0/1 per unit mid-battle (2026-06-09), which
+/// dropped half the enemies. Capture only adds during a battle; post-restart reinforcements are a
+/// logged, accepted gap.
 ///
-/// COVERAGE CHECK (LW-34, tape-evidenced 2026-07-11): the array capture above ALSO picks up
-/// conditional-spawn phantom identities the encounter defines but never fields; they carry sane
-/// stats, full HP, and real tiles, so no field-sanity filter can tell them from a real enemy.
-/// Only SCHEDULER PARTICIPATION discriminates. So the once-per-battle coverage line counts only
-/// EVIDENCED identities: captured ids fed by KillTracker.Corpses.cs's band walk via
-/// <see cref="MarkFielded"/> (CT slam or turn-flag participation, debounced) and
-/// <see cref="MarkDead"/> (a corpse was definitionally fielded), never every captured array
-/// identity. Never-evidenced ids are silently excluded from both the total and the line, logged
-/// only as a Debug count. Pure logging; retries on an interval until it passes cleanly. Mid-battle
-/// walk-in reinforcements arriving AFTER the line has latched are not re-counted (it prints once
-/// per battle, unchanged), but they still enter <see cref="_enemyIds"/> normally and credit fine.
+/// The coverage check (LW-34, 2026-07-11) logs once per battle that all enemies are accounted for.
+/// The array also holds conditional-spawn phantoms that look like real enemies, and only scheduler
+/// participation tells them apart, so only identities marked by <see cref="MarkFielded"/> or
+/// <see cref="MarkDead"/> (fed by KillTracker.Corpses.cs's band walk) are counted. Others are
+/// excluded and logged as a Debug count. Reinforcements arriving after the line latches are not
+/// re-counted but still credit normally.
 /// </summary>
 internal sealed class EnemyOracle
 {
@@ -34,34 +25,27 @@ internal sealed class EnemyOracle
 
     private readonly IGameMemory _mem;
     private readonly HashSet<(byte lvl, byte br, byte fa, ushort mhp)> _enemyIds = new();
-    // LW-34: additive evidence sets fed by KillTracker.Corpses.cs's band walk. An id in EITHER
-    // set counts toward coverage; an id in neither is a never-scheduled phantom, excluded from
-    // the total entirely (see the class doc).
+    // Evidence sets fed by KillTracker.Corpses.cs's band walk. An id in neither is a
+    // phantom and is left out of the total (see the class doc).
     private readonly HashSet<(byte lvl, byte br, byte fa, ushort mhp)> _fielded = new();
     private readonly HashSet<(byte lvl, byte br, byte fa, ushort mhp)> _died = new();
-    // The fielded-evidence total from the PREVIOUS CheckCoverage call (0 = none yet). A clean
-    // pass only latches when it agrees with this; see CheckCoverage's doc comment.
+    // Total from the previous CheckCoverage call (0 = none yet); a pass latches only if it agrees.
     private int _prevTotal;
 
     private int _coveragePollsLeft = CoverageInterval;
     private bool _coverageDone;
-    // Facelift: coverage lines are console-gated on "a Living Weapon is deployed this battle"
-    // (KillTracker's sticky latch); the file still gets everything via ScopedLogger's demotion.
-    // LW-75: the armed latch nearly always rises AFTER the success line latches (live-measured
-    // 97s late, 2026-07-11), so a demoted success line is remembered and pushed to the console
-    // once when the latch later rises in the same battle (see TickField).
+    // Facelift: coverage lines reach the console only once a Living Weapon is deployed; the file gets
+    // everything via ScopedLogger's demotion. the armed latch usually rises after the success
+    // line latches (97s late, 2026-07-11), so a demoted success line is kept and replayed (see TickField).
     private readonly ScopedLogger _slog;
     private readonly Func<bool> _armed;
     private string? _pendingConsoleLine;
-    // Once-per-identity-per-battle dedup for the unseen-enemy Warning: CheckCoverage re-runs
-    // every ~5 seconds until it passes, so a permanently-missing enemy would otherwise re-log
-    // (console AND file) for the whole battle. Cleared in ResetBattle.
+    // Dedup for the unseen-enemy Warning, since CheckCoverage retries every ~5s. Cleared in ResetBattle.
     private readonly HashSet<(byte lvl, byte br, byte fa, ushort mhp)> _warnedUnseen = new();
-    // The failure variant logs once per battle at Info; retries demote to Debug.
+    // The failure line logs once per battle at Info; retries go to Debug.
     private bool _coverageFailLogged;
 
-    /// <param name="armed">"Any Living Weapon deployed this battle" (KillTracker's sticky
-    /// latch). Null = always armed (test convenience; production always injects).</param>
+    /// <param name="armed">KillTracker's "Living Weapon deployed this battle" latch; null means always armed (tests).</param>
     public EnemyOracle(IGameMemory mem, Func<bool>? armed = null)
     {
         _mem = mem;
@@ -69,26 +53,20 @@ internal sealed class EnemyOracle
         _slog = ModLogger.For(LogVerb.Credit, _armed);
     }
 
-    /// <summary>True when the identity was captured from an enemy-side array slot.</summary>
+    /// <summary>True if the identity was captured from an enemy-side array slot.</summary>
     public bool Contains((byte lvl, byte br, byte fa, ushort mhp) id) => _enemyIds.Contains(id);
 
-    /// <summary>LW-34 evidence: KillTracker.Corpses.cs calls this once a band seat's scheduler
-    /// participation (CT slam nonzero or turn flag ==1) has held for its 3-tick debounce, with
-    /// the realPos filter already applied by the caller. Additive; harmless on an id this oracle
-    /// never captured (e.g. a player's own fingerprint), since CheckCoverage only ever
-    /// intersects this set against <see cref="_enemyIds"/>.</summary>
+    /// <summary>LW-34 evidence: called once a band seat's scheduler participation (CT slam nonzero or
+    /// turn flag ==1) has held for 3 ticks. Harmless for ids never captured, since CheckCoverage
+    /// intersects this set with <see cref="_enemyIds"/>.</summary>
     public void MarkFielded((byte lvl, byte br, byte fa, ushort mhp) id) => _fielded.Add(id);
 
-    /// <summary>LW-34 evidence: KillTracker.Corpses.cs calls this at a slot's dead-edge stamp (a
-    /// corpse was definitionally fielded), independent of <see cref="MarkFielded"/> so a
-    /// credited kill still counts as evidenced even if the corpse later crystallizes or becomes
-    /// a chest and leaves the band before the next coverage check.</summary>
+    /// <summary>LW-34 evidence: called at a slot's dead-edge stamp. Separate from
+    /// <see cref="MarkFielded"/> so a kill still counts if the corpse leaves the band first.</summary>
     public void MarkDead((byte lvl, byte br, byte fa, ushort mhp) id) => _died.Add(id);
 
-    /// <summary>True once <see cref="CheckCoverage"/> has confirmed every EVIDENCED captured
-    /// enemy identity is visible in the band (or died): the once-per-battle "kill: all N enemies
-    /// accounted for" edge. Read-only exposure for BattleCensus's fire trigger
-    /// (docs/RELIQUARY_AC.md P2).</summary>
+    /// <summary>True once <see cref="CheckCoverage"/> has seen every evidenced enemy in the band or
+    /// dead. BattleCensus uses it as a trigger (docs/RELIQUARY_AC.md P2).</summary>
     public bool CoverageDone => _coverageDone;
 
     public void ResetBattle()
@@ -104,8 +82,7 @@ internal sealed class EnemyOracle
         _pendingConsoleLine = null;
     }
 
-    /// <summary>One onField tick: capture identities, and run the once-per-battle coverage
-    /// check when its interval comes due.</summary>
+    /// <summary>One onField tick: capture identities and run the coverage check when due.</summary>
     public void TickField()
     {
         Capture();
@@ -114,9 +91,7 @@ internal sealed class EnemyOracle
             CheckCoverage();
             _coveragePollsLeft = CoverageInterval;
         }
-        // LW-75: the armed latch usually rises long after the success line latches, so once it
-        // does, push the once-demoted line to the console exactly one time; the file already
-        // holds the original Debug copy from CheckCoverage.
+        // Replay the demoted success line to the console once the armed latch rises.
         if (_coverageDone && _pendingConsoleLine != null && SafeArmed())
         {
             ModLogger.Event(LogVerb.Credit, _pendingConsoleLine);
@@ -124,8 +99,7 @@ internal sealed class EnemyOracle
         }
     }
 
-    /// <summary>Fail-safe armed probe, mirroring ScopedLogger.SafeArmed: never let a throwing
-    /// predicate kill the tick.</summary>
+    /// <summary>Like ScopedLogger.SafeArmed: a throwing predicate must not kill the tick.</summary>
     private bool SafeArmed()
     {
         try { return _armed(); } catch { return false; }
@@ -146,7 +120,7 @@ internal sealed class EnemyOracle
         }
     }
 
-    /// <summary>True when a captured identity is currently visible as a valid band entry.</summary>
+    /// <summary>True if a captured identity is currently a valid band entry.</summary>
     private bool BandVisible((byte lvl, byte br, byte fa, ushort mhp) id)
     {
         for (int s = 0; s < Offsets.BandSlots; s++)
@@ -161,20 +135,12 @@ internal sealed class EnemyOracle
         return false;
     }
 
-    /// <summary>Coverage invariant (LW-34 v2): only EVIDENCED captured identities (MarkFielded
-    /// or MarkDead, see the class doc) count toward total/found; a never-evidenced id is a
-    /// never-scheduled phantom, excluded entirely (logged only as a Debug count on the latching
-    /// pass). A MarkDead id counts as found unconditionally (a credited corpse may legitimately
-    /// leave the band). A MarkFielded-only id must still be band-visible; if not, the reworded
-    /// unseen Warn fires (deduped).
-    ///
-    /// LATCH STABILITY: because evidence comes FROM the same band walk this check reads, a clean
-    /// pass is nearly self-satisfying, so latching on the very first one would freeze a partial
-    /// count while evidence is still arriving. The pass only LATCHES (prints the Info line, sets
-    /// <see cref="_coverageDone"/>) when found == total, total &gt; 0, AND total matches the
-    /// PREVIOUS check's total: two consecutive checks agreeing. A changed total (evidence grew)
-    /// updates the remembered total and defers to the next retry with no line printed; total == 0
-    /// defers silently (no "All 0" line).</summary>
+    /// <summary>Coverage check (LW-34 v2). Only evidenced identities count. A MarkDead id counts as
+    /// found (the corpse may have left the band); a MarkFielded-only id must still be band-visible
+    /// or the unseen Warn fires, deduped. Evidence comes from the same band walk this reads, so the
+    /// first clean pass would latch a partial count. It latches (Info line, <see cref="_coverageDone"/>)
+    /// only when found == total, total &gt; 0 and the total matches the previous check. A changed or
+    /// zero total defers silently.</summary>
     private void CheckCoverage()
     {
         int total = 0, found = 0, excluded = 0;
@@ -188,8 +154,7 @@ internal sealed class EnemyOracle
             if (BandVisible(id)) { found++; continue; }
             if (_warnedUnseen.Add(id))
             {
-                // A real Warning now (was Info with an embedded "WARN" token), deduped to once
-                // per identity per battle; the fingerprint numerics ride a Debug companion.
+                // The fingerprint numerics ride a Debug companion.
                 _slog.Warn("A fielded enemy is no longer visible in the battle band; its kills may go uncredited.");
                 ModLogger.Debug(LogVerb.Trace, $"unseen-enemy detail (level={id.lvl} brave={id.br} faith={id.fa} maximum hit points={id.mhp})");
             }
@@ -205,9 +170,7 @@ internal sealed class EnemyOracle
             if (!stableTotal) return;   // the fielded count just grew: wait for one more agreeing pass
             string line = $"All {total} enemies are accounted for; kill credit will be reliable this battle.";
             _slog.Info(line);
-            // LW-75: only the success latch line gets the once-per-battle console promotion; the
-            // failure line below keeps today's behavior (it already prints at Info once per
-            // battle and demotes on retries, independent of the armed latch).
+            // Only the success line gets the console replay.
             if (!SafeArmed()) _pendingConsoleLine = line;
             ModLogger.Debug(LogVerb.Trace, $"coverage detail: {excluded} captured identities excluded as never-scheduled");
             _coverageDone = true;
@@ -221,7 +184,7 @@ internal sealed class EnemyOracle
         }
         else
         {
-            // Retry heartbeat: file evidence only, never console (the first failure already spoke).
+            // Retry heartbeat for the file only; the first failure already spoke.
             ModLogger.Debug(LogVerb.Credit, $"coverage retry: only {found} of {total} enemies accounted for so far");
         }
     }

@@ -4,44 +4,32 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// PromptSwap's diagnostic sampling half (LW-89), split out once it pushed PromptSwap.cs past
-/// the 200-line trigger: a real seam, not an evasion, since "decide whether/what to swap" and
-/// "record what the live process actually looks like so a human can read it back later" are two
-/// different responsibilities that happen to share TryPrepareSwap's one entry point. Both
-/// samplers are pure observers, called from TryPrepareSwap on the game's own SetTextString
-/// thread (see PromptSwap's class doc), so the HashSet state here needs no lock either.
-///
-/// The HEAD sampler (shipped first) logs the first dozen unique decodable prompt heads a
-/// session ever sees, keyed on the decoded text. The STRUCT sampler (step 1b) is strictly wider:
-/// it runs on every commit regardless of whether the head read or the ASCII decode succeeded, so
-/// it is the one that can actually see an unreadable or undecodable rdx, which the live 1.5.1
-/// capture showed is most of them.
+/// PromptSwap's diagnostic sampling half, split out of PromptSwap.cs for the 200-line
+/// trigger. Both samplers only observe, from TryPrepareSwap on the game's SetTextString thread,
+/// so the HashSet state needs no lock. The head sampler logs the first dozen unique decodable
+/// prompt heads. The struct sampler (step 1b) runs on every commit, so it also sees the
+/// unreadable or undecodable rdx values that the 1.5.1 capture showed are most of them.
 /// </summary>
 internal sealed partial class PromptSwap
 {
-    // Sampler bound: at most this many sample lines can ever reach the log in one session, so a
-    // text-heavy session cannot flood the file (the LW-69 lesson). A dozen is plenty: the facing
-    // prompt lands within the first few prompt commits of any battle turn.
+    // Cap on head sample lines per session, so a text-heavy session cannot flood the log (the
+    // LW-69 lesson). The facing prompt appears within the first few commits of a turn.
     private const int SampleCap = 12;
 
-    // Struct sampler bound (LW-89 step 1b): independent cap from SampleCap above. Six is enough
-    // to see every shape a session's prompt traffic takes (facing prompt, tile prompt, unit name,
-    // ...) without risking the same log flood the head sampler was already built to avoid.
+    // Struct sampler cap (LW-89 step 1b), independent of SampleCap. Six covers the shapes seen
+    // (facing prompt, tile prompt, unit name, ...).
     private const int StructSampleCap = 6;
 
-    // Bytes dumped for the struct sample: enough to cover the hypothesized capacity-check field
-    // at +0x18 with headroom, plus a look-behind in case textPtr itself sits a few bytes off the
-    // true string-object base.
+    // Bytes dumped for the struct sample: the hypothesized capacity-check field at +0x18 plus
+    // headroom, and a look-behind in case textPtr sits off the string-object base.
     private const int StructRawLen = 32;
     private const int StructPreLen = 8;
     private const int DerefLen = 16;
 
-    // A candidate below this is treated as a plausible user-mode pointer (well under the
-    // canonical 48-bit user/kernel split); zero or anything at/above it is not worth chasing.
+    // Candidates below this are plausible user-mode pointers (under the 48-bit user/kernel split).
     private const long PlausiblePointerMax = 0x7FFFFFFFFFFF;
 
-    // Sampler state: only ever touched from TryPrepareSwap, which itself only ever runs on the
-    // game's own SetTextString thread (see the class doc), so no lock is needed here either.
+    // Only touched from TryPrepareSwap, which runs on the SetTextString thread, so no lock.
     private readonly HashSet<string> _sampledHeads = new();
     private readonly HashSet<string> _sampledStructs = new();
 
@@ -52,13 +40,10 @@ internal sealed partial class PromptSwap
             ModLogger.Debug(LogVerb.Toast, $"prompt head sample {_sampledHeads.Count} of {SampleCap}: \"{text}\"");
     }
 
-    /// <summary>LW-89 step 1b: dumps a bounded window around textPtr (a look-behind, the raw
-    /// bytes, and the three offsets the capacity-check hypothesis cares about, plus a one-level
-    /// pointer-chase off the first of those) to the log at Debug tier, one line per unique
-    /// 16-byte pattern seen at textPtr, up to StructSampleCap lines a session. A read failure at
-    /// textPtr does not exempt it from the bound (see the "unreadable" key below): a session that
-    /// never gets a readable rdx would otherwise burn every remaining call re-logging the exact
-    /// same failure forever.</summary>
+    /// <summary>LW-89 step 1b: logs at Debug a bounded window around textPtr (look-behind, raw bytes,
+    /// the three capacity-check offsets, one pointer-chase), one line per unique 16-byte pattern, up
+    /// to StructSampleCap a session. An unreadable textPtr counts against the cap via the
+    /// "unreadable" key, so a persistent failure cannot log forever.</summary>
     private void SampleStruct(long textPtr)
     {
         if (_sampledStructs.Count >= StructSampleCap) return;
@@ -96,8 +81,7 @@ internal sealed partial class PromptSwap
             $"pre={preHex} raw={rawHex} q0={q0Str} q10={q10Str} q18={q18Str} deref={derefStr}");
     }
 
-    /// <summary>Renders each byte as its printable ASCII char (0x20 to 0x7E) or a dot, the same
-    /// dot-for-non-printable convention a hex editor's side pane uses.</summary>
+    /// <summary>Renders each byte as printable ASCII (0x20 to 0x7E) or a dot.</summary>
     private static string RenderPrintable(byte[] bytes)
     {
         var chars = new char[bytes.Length];

@@ -5,28 +5,12 @@ using System.IO;
 namespace LivingWeapon;
 
 /// <summary>
-/// Production <see cref="ILogger"/>. TWO-SINK semantics: the one deliberate divergence from
-/// FFTColorCustomizer's ConsoleLogger (which gates one console+file tee behind a single
-/// threshold). The FILE sink (livingweapon.log, rotated per launch to livingweapon.prev.log the
-/// same way the old Log class did, millisecond timestamps) writes EVERY message, Debug tier
-/// included, UNCONDITIONALLY. The CONSOLE sink only writes messages at or above
-/// <see cref="LogLevel"/>, and (logging facelift conflict C1) additionally suppresses a line
-/// whose (level, verb, message) identity already appeared once this battle; <see cref="NoteBattleEdge"/>
-/// resets that seen-set on both battle edges. The FILE sink is never deduped: the evidence chain
-/// every live diagnosis has leaned on is never thinner than the console.
-///
-/// RENDERING SPLIT (owner format delta, post-review): the FILE line always carries the verb:
-/// <c>[Living Weapons] [HH:mm:ss.fff] [LEVEL] [verb] description</c>. The CONSOLE line drops the
-/// "[verb] " segment at Info tier only, rendering subject-first prose for the match report a
-/// player actually reads: <c>[Living Weapons] [HH:mm:ss.fff] [LEVEL] description</c>. Warning and
-/// Error console lines keep the verb (a bug-report console paste needs it for triage), and so
-/// does a Debug line that reaches the console when the level is raised to Debug (a diagnostic tier, not curated
-/// narrative).
-///
-/// The console dedup key is the SEMANTIC identity (level, verb, message) computed before any
-/// rendering happens, never the rendered console string: two different verbs sharing the same
-/// Info-tier sentence render identical console text (the verb is hidden there), but they are
-/// different events and both must reach the console.
+/// Production <see cref="ILogger"/> with two sinks. The file sink (livingweapon.log, rotated per launch to
+/// livingweapon.prev.log) gets every message, Debug included. The console sink gets messages at or above
+/// <see cref="LogLevel"/> and skips a repeat of the same (level, verb, message) until <see cref="NoteBattleEdge"/>
+/// clears the seen-set (logging facelift C1). File lines carry the verb. Info console lines omit it so the match
+/// report reads as plain prose, while Warning, Error and raised-level Debug console lines keep it for triage.
+/// Dedup keys on the (level, verb, message) identity, since two verbs can render the same Info text.
 /// </summary>
 internal sealed class FileConsoleLogger : ILogger
 {
@@ -36,32 +20,19 @@ internal sealed class FileConsoleLogger : ILogger
     private readonly Action<string> _fileSink;
     private readonly HashSet<(LogLevel level, LogVerb? verb, string message)> _consoleSeenThisBattle = new();
 
-    /// <summary>Guards the whole body of <see cref="Write"/> and <see cref="NoteBattleEdge"/>.
-    /// Two threads call into this logger: the game's own SetTextString thread (PromptSwapHook.Detour
-    /// logs mid-toast delivery) and the Engine background loop's own thread (every subsystem's
-    /// routine logging, plus NoteBattleEdge itself on both battle edges). <see cref="_consoleSeenThisBattle"/>
-    /// is a plain HashSet, not a concurrent collection: Add (from Write) and Clear (from
-    /// NoteBattleEdge) racing across those two threads with no lock is undefined behavior, not
-    /// merely a race on which entry wins, and it is not hypothetical (an unlocked stress run of
-    /// FileConsoleLoggerThreadSafetyTests reliably corrupted the set, throwing
-    /// IndexOutOfRangeException out of Clear and InvalidOperationException("...corrupted its
-    /// state") out of Add). Locking the entire Write body, not just the HashSet touch, also
-    /// keeps a line's file half and console half from interleaving with another thread's line,
-    /// and closes a second hazard: two threads calling the production file sink
-    /// (File.AppendAllText) at the same moment can collide on the file handle, one throwing a
-    /// sharing-violation IOException that Write's own try/catch swallows, silently dropping that
-    /// thread's line from livingweapon.log, the one sink every live diagnosis depends on being
-    /// complete.</summary>
+    /// <summary>Guards <see cref="Write"/> and <see cref="NoteBattleEdge"/>. The game's SetTextString thread
+    /// (PromptSwapHook.Detour) and the Engine loop thread both log, and a racing Add and Clear corrupted the
+    /// HashSet in FileConsoleLoggerThreadSafetyTests. Locking the whole body also keeps a line's file and
+    /// console halves together and stops concurrent File.AppendAllText calls from dropping a line on a
+    /// sharing violation.</summary>
     private readonly object _gate = new();
 
     public LogLevel LogLevel { get; set; } = LogLevel.Info;
 
-    /// <summary>Production ctor: rotates modDir/livingweapon.log -> livingweapon.prev.log once,
-    /// then wires the real console + file sinks.</summary>
+    /// <summary>Rotates modDir/livingweapon.log to livingweapon.prev.log, then wires the console and file sinks.</summary>
     public FileConsoleLogger(string modDir) : this(SafeConsoleWrite, MakeFileSink(modDir)) { }
 
-    /// <summary>Test seam: inject fake sinks so tests never touch the real console or
-    /// filesystem. Internal (not private): LivingWeapon.Tests drives this directly.</summary>
+    /// <summary>Test seam that takes fake sinks. Internal so LivingWeapon.Tests can call it.</summary>
     internal FileConsoleLogger(Action<string> consoleSink, Action<string> fileSink)
     {
         _consoleSink = consoleSink;
@@ -70,10 +41,8 @@ internal sealed class FileConsoleLogger : ILogger
 
     private static void SafeConsoleWrite(string m) { try { Console.WriteLine(m); } catch { } }
 
-    /// <summary>Rotate any prior session's log out of the way, then return a closure that
-    /// appends one timestamped line per call. Rotation failures (locked file, read-only mod
-    /// dir, ...) degrade to "no file sink" rather than throwing: console logging must survive
-    /// a broken deploy folder.</summary>
+    /// <summary>Rotates the prior session's log, then returns a sink that appends one timestamped line per call.
+    /// A failed rotation (locked file, read-only mod dir) leaves no file sink so console logging survives.</summary>
     private static Action<string> MakeFileSink(string modDir)
     {
         string file = Path.Combine(modDir, "livingweapon.log");
@@ -91,10 +60,8 @@ internal sealed class FileConsoleLogger : ILogger
     public void Log(LogVerb verb, string message) => Write(LogLevel.Info, verb, message);
     public void LogWarning(LogVerb verb, string message) => Write(LogLevel.Warning, verb, message);
 
-    /// <summary>Also arms the flight recorder's FlushOnce error trigger (B1): a flag-only
-    /// request, no I/O happens on this call/thread. The Engine loop drains it on its next tick
-    /// (Flight.DrainPending), so an Error logged from the game's own SetTextString thread
-    /// (PromptSwapHook.Detour) never stalls on disk I/O here.</summary>
+    /// <summary>Also arms the flight recorder's FlushOnce error trigger (B1). It only sets a flag; Engine drains it
+    /// via Flight.DrainPending so the game's SetTextString thread never waits on disk.</summary>
     public void LogError(LogVerb verb, string message)
     {
         Write(LogLevel.Error, verb, message);
@@ -116,13 +83,8 @@ internal sealed class FileConsoleLogger : ILogger
         lock (_gate) { _consoleSeenThisBattle.Clear(); }
     }
 
-    /// <summary>The two-sink core. FILE gets every call unconditionally, always with the verb
-    /// bracket when one was supplied. CONSOLE gets a line only when <paramref name="level"/> is
-    /// at/above the configured threshold AND the (level, verb, message) identity has not already
-    /// been shown once this battle; the console line drops the verb bracket at Info tier only
-    /// (see the class doc's rendering split). The whole body runs under <see cref="_gate"/>: see
-    /// that field's doc for why (two racing threads, HashSet corruption, the swallowed-write
-    /// hazard).</summary>
+    /// <summary>The two-sink core. The file always gets the line. The console gets it when the level passes the
+    /// threshold and the identity is new this battle. Runs under <see cref="_gate"/>.</summary>
     private void Write(LogLevel level, LogVerb? verb, string message)
     {
         lock (_gate)

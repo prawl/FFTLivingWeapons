@@ -1,20 +1,16 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// Puppeteer's possession-hold lifecycle: re-assert the agency bit every tick (Drive), release it
-/// after the puppet takes its OWN turn (Expire), and the guarded revert (Release) + copy-moved/freed
-/// guard (Valid) both share. The latch-acquisition half (Tick/Evaluate, the detection + arming gate)
-/// lives in Puppeteer.cs -- a real seam: this half only ever touches an ALREADY-puppeted victim, the
-/// other half only ever decides whether to START puppeting one.
+/// Puppeteer's possession-hold lifecycle: Drive re-asserts the agency bit each tick, Expire releases it after the
+/// puppet's own turn, Release reverts it, Valid guards against a moved or freed copy. Detection and arming live in
+/// Puppeteer.cs; this half only touches an already-puppeted victim.
 /// </summary>
 internal sealed partial class Puppeteer
 {
     /// <summary>The fingerprint of the active puppet, or null (test/inspection hook).</summary>
     internal (int mhp, int lvl, int br, int fa)? PuppetFingerprint => _state.Fingerprint;
 
-    /// <summary>Hold the agency bit SET each tick (beats the engine re-deriving it). Release timing is
-    /// Expire's job; Drive only keeps the puppet under player control and drops it if the seat's copy
-    /// moved or was freed.</summary>
+    /// <summary>Hold the agency bit set each tick. Drops the puppet if the seat's copy moved or was freed; release timing is Expire's.</summary>
     private void Drive()
     {
         if (!_state.HasPuppet) return;
@@ -24,21 +20,15 @@ internal sealed partial class Puppeteer
         SetAgency(_mem, addr, true);
     }
 
-    /// <summary>Release after the puppet takes its OWN <paramref name="puppetTurns"/> turn(s). An own
-    /// turn = the engine turn-owner queue names the puppet (QueueNamesPuppet) across an acted
-    /// rising..falling edge: the rising edge opens the period, the falling edge completes it. This is
-    /// LW-7-immune (the queue is read directly, not via the mis-crediting actor pointer) and it fixes
-    /// BOTH failure modes of the old wielder-clock (2026-07-07 tapes: it released on the wrong unit's
-    /// turn -- early when the puppet was not the next actor, late when it was fast). The GlobalTurns
-    /// CAP (IsCapped) is the backstop should the queue signal never fire live -- the puppet is bounded
-    /// to at most PuppeteerWielderlessFallbackTurns global turns, never to battle exit.</summary>
+    /// <summary>Release after the puppet takes its own <paramref name="puppetTurns"/> turn(s). An own turn is the turn-owner
+    /// queue naming the puppet (QueueNamesPuppet) across an acted rising..falling edge. Reading the queue directly avoids
+    /// the LW-7 mis-crediting actor pointer, which made the old wielder-clock release on the wrong unit (2026-07-07 tapes).
+    /// IsCapped bounds the hold to PuppeteerWielderlessFallbackTurns global turns if the queue signal never fires.</summary>
     private void Expire(int puppetTurns)
     {
         if (!_state.HasPuppet) return;
 
-        // Edge-detect the puppet's own turn. Skip garbage acted reads (a transient 0xFF was observed
-        // on tape) so they cannot fake a rising/falling edge. Preview-cycling of the queue carries no
-        // acted pulse, so it can never open a period here.
+        // Skip garbage acted reads (a transient 0xFF was seen on tape); queue preview-cycling carries no acted pulse.
         int rawActed = _mem.U8(Offsets.Acted);
         if (rawActed is 0 or 1)
         {
@@ -56,10 +46,8 @@ internal sealed partial class Puppeteer
         ModLogger.Event(LogVerb.Signature, "Puppet control ended after the enemy took its turn; it reverts to its own side.");
     }
 
-    /// <summary>True when the engine turn-owner queue (Offsets.TurnQueue, the struct
-    /// TurnTracker.TryActiveFingerprint matches) names the active puppet: its max HP and level equal
-    /// the puppet's own fingerprint. Read directly, so it is immune to the LW-7 credit collapse that
-    /// dumps every turn onto the wielder.</summary>
+    /// <summary>True when the turn-owner queue (Offsets.TurnQueue, matched by TurnTracker.TryActiveFingerprint) names the
+    /// active puppet by max HP and level. Immune to the LW-7 credit collapse.</summary>
     private bool QueueNamesPuppet()
     {
         if (_state.Fingerprint is not { } p) return false;
@@ -67,8 +55,8 @@ internal sealed partial class Puppeteer
             && _mem.U16(Offsets.TurnQueue + Offsets.TqLevel) == p.lvl;
     }
 
-    /// <summary>Clear the agency bit on the active puppet (revert to AI) and drop the latch. The cooldown
-    /// clock is preserved. No-op when nothing is puppeted.</summary>
+    /// <summary>Clear the agency bit on the active puppet (revert to AI) and drop the latch; the cooldown clock is kept.
+    /// No-op if nothing is puppeted.</summary>
     private void Release()
     {
         if (!_state.HasPuppet) return;
@@ -78,6 +66,5 @@ internal sealed partial class Puppeteer
         _state.Release();
     }
 
-    // The same-unit write-safety verify lives in Band.SameUnitAtExact (LW-153, was a private
-    // token-identical copy here).
+    // The same-unit write-safety check lives in Band.SameUnitAtExact.
 }

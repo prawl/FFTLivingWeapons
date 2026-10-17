@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-317: multi-lane growth decisions, split out of GrowthEngine.cs. This file decides what to
+/// Multi-lane growth decisions, split out of GrowthEngine.cs. This file decides what to
 /// hold (<see cref="GrowthEngine.Routes"/>, the Apply merge helper) and holds the two extra hold
 /// kinds, <see cref="GrowthEngine.HoldFlatCapped"/> and <see cref="GrowthEngine.HoldU16"/>.
 /// GrowthEngine.cs keeps the original <c>Hold</c>.
@@ -144,7 +144,7 @@ internal sealed partial class GrowthEngine
     /// min(round(natural * (1 + factor)), ceiling). Same capture-then-check shape as Hold, over
     /// U16/W16, with no NaturalLedger (decision 3 above); lane and level are accepted only to
     /// match Apply's dispatch. Re-applies at cur == natural, retargets at cur == target when
-    /// the factor changes, and leaves any other reading alone. LW-330: on a first capture, a
+    /// the factor changes, and leaves any other reading alone. on a first capture, a
     /// cur equal to <see cref="_u16WriteRecord"/>'s last target for (nameId, lane) means the
     /// recorded natural is used and no <see cref="_pendingTopUp"/> is added. nameId &lt;= 0
     /// skips the filter and the top-up. Every branch with a known applied entry ends in

@@ -3,62 +3,39 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// The mount-gated flat-stat half of GrowthEngine (Cavalier's Charge's while-mounted
-/// Speed +3), split to its own partial per the LW-90 plan
-/// (the seam mirroring the Afterimage/Ultima/Mushin partials). Capture-natural-then-hold with
-/// the shared NaturalLedger consulted at capture, and -- unique to this hold, which REVERTS
-/// mid-battle when its window closes -- a post-revert corrective sentinel: if the capture was
-/// corrected (the battle opened on the mod's own restart residue) and the engine's normalize
-/// later restores that residue AFTER the revert, the sentinel re-writes the true natural for
-/// the rest of the battle (the Iai post-release corrective hold's sibling; same unverified
-/// normalize premise, same discriminator role).
-///
-/// Known residual (backlog LW-100): correction happens only at an ACTIVE capture, so a
-/// restarted battle whose rider opens DISMOUNTED cannot see through the baked residue until
-/// the player mounts (bounded, non-compounding, the pre-fix one-battle failure shape); and a
-/// clean remount capture deliberately drops the corrective sentinel (a clean read implies
-/// the baseline was already natural, an inference riding the same unverified premise).
+/// Mount-gated flat-stat partial of GrowthEngine (Cavalier's Charge, Speed +3 while mounted), split
+/// out per the LW-90 plan like the Afterimage/Ultima/Mushin partials. Captures natural and holds it,
+/// consulting the shared NaturalLedger at capture. This hold reverts mid-battle when its window closes,
+/// so it keeps a post-revert sentinel. If the capture was corrected (the battle opened on the mod's
+/// restart residue) and normalize restores that residue after the revert, the sentinel rewrites the
+/// true natural. It parallels Iai's post-release corrective hold and rests on the same unverified
+/// assumption about normalize.
+/// Known gap (backlog LW-100). Correction only happens at an active capture, so a restarted battle
+/// whose rider opens dismounted keeps the residue until the player mounts (bounded, does not compound).
+/// A clean remount capture drops the sentinel, assuming a clean read means the baseline was natural.
 /// </summary>
 internal sealed partial class GrowthEngine
 {
-    // Post-revert corrective sentinels: stat addr -> (corrected natural, baked residue).
-    // Populated only by a corrected-capture hold whose window closed; cleared per battle.
+    // Post-revert sentinels, stat addr -> (corrected natural, baked residue). Set when a corrected
+    // capture's window closes; cleared per battle.
     private readonly Dictionary<long, (int nat, int baked)> _timedReverted = new();
 
-    // LW-109: addresses whose window-closed byte read something genuinely unexpected (not the
-    // boosted value, not the baked residue, not natural) THIS battle, so the once-per-battle
-    // Debug line below doesn't flood (this runs on the growth cadence, the LW-69 flood shape).
-    // Cleared the moment the revert finally lands (or a fresh capture supersedes it), and by
-    // the per-battle ResetBattle, so a later recurrence -- in this battle or the next -- logs
-    // again rather than staying silently latched forever.
+    // Addresses that already logged an unexpected window-closed read this battle (not boosted,
+    // baked or natural), so the Debug line fires once instead of flooding on the growth cadence (the
+    // LW-69 shape). Cleared when the revert lands, on a fresh capture, and per battle.
     private readonly HashSet<long> _timedUnexpectedLogged = new();
 
-    /// <summary>Hold the MOUNT-GATED flat stat bonus (Cavalier's Charge's Speed +3 while riding
-    /// a chocobo), then revert on dismount. Captures natural on first sight while active and re-applies natural+bonus
-    /// against the per-turn normalize; once the window passes, restores the captured natural and stops
-    /// tracking. Only ever writes natural or natural+bonus (both guarded) -- worst case a buff lingers
-    /// a turn (and resets next battle), never a corrupt value. Speed is the only wired stat today.
-    /// LW-90: the capture consults the NaturalLedger (rosterNameId keys it, 0 = the degraded bypass
-    /// lane; level is the ledger's level key); a corrected record's baked residue is recognized at
-    /// re-apply, revert, AND after the revert via the corrective sentinel above.
-    /// LW-109: the window-closed branch used to drop its record UNCONDITIONALLY, even when the
-    /// byte read neither the boosted value nor the baked residue (so the revert write was
-    /// skipped) -- abandoning the hold, with no corrective sentinel armed on a clean capture, for
-    /// the rest of the battle. It now keeps the record when the reading is genuinely unexpected,
-    /// mirroring the ordinary Hold path's retry-next-tick behavior; the per-battle reset is the
-    /// backstop that keeps a permanently-wrong reading from leaking past the battle.
-    /// LW-110: capture/boost/re-apply/revert were silent at every log level, so the absence of a
-    /// line proved nothing about this lane (the trap the LW-100 live pass fell into). All four now
-    /// log at Debug, only on the write they actually perform.
-    /// LW-149 stage A: DELIBERATELY EXCLUDED from the OwnershipHold core that HoldUltima/HoldMushin/
-    /// HoldAfterimage now share. This is a genuinely different machine, not a near-clone: it
-    /// REVERTS mid-battle when its window closes, keeps a post-revert corrective sentinel
-    /// (_timedReverted) that outlives the main record, latches on an unexpected window-closed
-    /// reading (_timedUnexpectedLogged, LW-109) rather than just leaving the byte alone, and drops
-    /// its record entirely on a clean revert rather than updating it. The core's four-branch
-    /// capture-or-check shape has no branch for "revert" or "keep watching after the record is
-    /// gone" -- wrapping it would either lose behavior or grow the core into this method's own
-    /// shape, which defeats the point of sharing it.</summary>
+    /// <summary>Holds the mount-gated Speed bonus while riding, then reverts on dismount. Captures natural
+    /// on first sight, re-applies natural+bonus against the per-turn normalize, and restores natural once
+    /// the window closes. Writes are guarded and only ever natural or natural+bonus. Speed is the only wired stat.
+    /// LW-90. The capture consults the NaturalLedger (rosterNameId keys it, 0 = degraded bypass lane,
+    /// level is the level key). A baked residue is recognized at re-apply, at revert, and after revert via the sentinel.
+    /// LW-109. A window-closed read matching none of boosted, baked or natural keeps the record and retries
+    /// next tick (it used to drop it). ResetBattle is the backstop.
+    /// LW-110. Capture, boost, re-apply and revert log at Debug, only when they write.
+    /// LW-149 stage A. Excluded from the OwnershipHold core shared by HoldUltima/HoldMushin/HoldAfterimage,
+    /// because it reverts, keeps _timedReverted past the record, and latches unexpected reads
+    /// (_timedUnexpectedLogged), none of which fit the core's capture-or-check branches.</summary>
     internal void HoldTimedStat(long s, WeaponSignature sig, int tier, int rosterNameId = 0,
                                 int level = 0)
     {
@@ -72,7 +49,7 @@ internal sealed partial class GrowthEngine
             int boosted = Clamp(rec.nat + sig.StatBonus);
             if (active)
             {
-                _ledger.RecordWrite(rosterNameId, StatLane.Speed, boosted);   // per evaluation (LW-90)
+                _ledger.RecordWrite(rosterNameId, StatLane.Speed, boosted);   // per evaluation
                 if (cur == rec.nat || (rec.baked > 0 && cur == rec.baked))
                 {
                     _mem.W8(addr, (byte)boosted);   // re-apply after a normalize (possibly to the baked residue)
@@ -90,13 +67,12 @@ internal sealed partial class GrowthEngine
                 }
                 if (reverted || alreadyNatural)
                 {
-                    // Either the revert write just landed, or there was nothing to revert (the
-                    // byte already reads natural) -- both are SUCCESS, not the LW-109 retry case.
+                    // The revert landed or the byte already reads natural. Both are done, not the LW-109 retry case.
                     if (rec.baked > 0) _timedReverted[addr] = rec;   // keep watching for the residue
                     _timedNatural.Remove(addr);
                     _timedUnexpectedLogged.Remove(addr);   // a fresh recurrence later logs again
                 }
-                else if (_timedUnexpectedLogged.Add(addr))   // LW-109: genuinely unexpected -- keep the record
+                else if (_timedUnexpectedLogged.Add(addr))   // unexpected reading, keep the record
                 {
                     string expected = rec.baked > 0
                         ? $"boosted {boosted}, baked residue {rec.baked}, or natural {rec.nat}"
@@ -122,7 +98,7 @@ internal sealed partial class GrowthEngine
         }
         else if (_timedReverted.TryGetValue(addr, out var rev) && cur == rev.baked)
         {
-            // Post-revert corrective: the engine normalized the residue back after our revert.
+            // The engine normalized the residue back after our revert.
             _mem.W8(addr, (byte)rev.nat);
             ModLogger.Debug(LogVerb.Growth, $"timed-stat: restart residue re-corrected post-revert ({rev.baked} -> {rev.nat})");
         }

@@ -1,22 +1,16 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// The pure decisions behind Galewind's "Puppeteer" signature -- no memory access.
-/// The stateful latch, agency-bit hold, CT-based turn count, cooldown, and restore live in Puppeteer.cs.
+/// Pure decisions behind Galewind's Puppeteer signature, no memory access.
+/// State, latch, agency hold, turn count, cooldown and restore live in Puppeteer.cs.
 /// </summary>
 internal sealed partial class Puppeteer
 {
     // ---- target gate: who can be puppeted ----
-    // ⚠ ALLOW-EVERYONE (2026-06-18, user request "I want to control everyone"): the job gate is OFF.
-    // It earned its retirement live -- a real 828-HP enemy (a boss) read job 37 at combat +0x03, BELOW
-    // the old GenericJobLo (74) floor, so the floor was refusing to puppet a genuine enemy. The job byte
-    // is NOT a reliable unit filter on the IC build (it reads story/special ids well outside the
-    // human/monster bands). The REAL filter is upstream in Puppeteer.cs's verdict chain: the "not-enemy"
-    // verdict (EnemyFingerprintCache.Contains) restricts to enemies, and the fingerprint gates
-    // (maxHp 1..1999, lvl 1..99, brave/faith 1..100, took damage > 0) already prove it's a fielded
-    // combatant -- so any struck enemy is a valid puppet regardless of its job id. (ShouldLatch below
-    // remains the pure hook for that enemy test.) The band helpers below (IsGenericHumanJob /
-    // IsMonsterJob) are kept intact so a narrower gate can be reinstated in one line (see IsDominatable).
+    // The job gate is off (2026-06-18): a real 828-HP boss read job 37 at combat +0x03, below the
+    // old GenericJobLo (74) floor, and the job byte is unreliable on the IC build. The enemy check
+    // (EnemyFingerprintCache.Contains) and the fingerprint gates in Puppeteer.cs do the filtering.
+    // The band helpers below stay so a narrower gate can return in IsDominatable.
 
     /// <summary>Lowest generic-human job id (Squire) on the live IC job byte (roster +0x02 / combat +0x03).</summary>
     public const int GenericJobLo = 74;   // 0x4A
@@ -30,21 +24,16 @@ internal sealed partial class Puppeteer
     /// <summary>First monster-class job id (just above the human band).</summary>
     public const int MonsterJobLo = 96;    // 0x60
 
-    /// <summary>Top of the monster band -- excludes 0x91 Construct 8 and the 0xA0+ named-character jobs.</summary>
+    /// <summary>Top of the monster band, excludes 0x91 Construct 8 and the 0xA0+ named-character jobs.</summary>
     public const int MonsterJobHi = 144;   // 0x90
 
-    /// <summary>True when the job id is a monster class. The band (96-144) already excludes 0x91
-    /// Construct 8 and the 0xA0+ named-character jobs (see MonsterJobHi); the IC Lucavi job list
-    /// was never mapped, so this helper cannot tell a boss-monster / Lucavi job apart from a plain
-    /// one. IsDominatable does not call it (ALLOW-EVERYONE, see the class doc above); it is kept
-    /// only so a narrower IsDominatable gate can be reinstated in one line.</summary>
+    /// <summary>True when the job id is a monster class. The band (96-144) excludes 0x91 Construct 8
+    /// and the 0xA0+ named-character jobs; the IC Lucavi job list was never mapped.</summary>
     public static bool IsMonsterJob(int jobId) => jobId >= MonsterJobLo && jobId <= MonsterJobHi;
 
-    /// <summary>The Puppeteer target gate. ⚠ ALLOW-EVERYONE: every struck enemy is dominatable -- the
-    /// job id is not consulted (it reads unreliable story/special ids on the IC build; a real boss read
-    /// 37, below the old 74 floor). The enemy + fingerprint gates in Puppeteer.cs are the real filter.
-    /// To reinstate a narrower gate, swap the body to e.g. <c>IsGenericHumanJob(jobId) ||
-    /// IsMonsterJob(jobId)</c> (the <paramref name="jobId"/> is still passed in for that purpose).</summary>
+    /// <summary>The Puppeteer target gate. Every struck enemy is dominatable and the job id is ignored
+    /// (a boss read 37, below the old 74 floor). To narrow it, use <c>IsGenericHumanJob(jobId) ||
+    /// IsMonsterJob(jobId)</c>; <paramref name="jobId"/> is still passed for that.</summary>
     public static bool IsDominatable(int jobId) => true;
 
     // ---- activation + latch + cooldown decisions ----
@@ -53,30 +42,20 @@ internal sealed partial class Puppeteer
     public static bool IsActive(WeaponSignature? sig, int tier)
         => Signatures.Earned(sig, tier) && sig!.PuppeteerTurns > 0;
 
-    /// <summary>D1: the wielder-acting gate is the OR of two independent signals. <paramref
-    /// name="pointerMatch"/> is the engine's own actor pointer naming the wielder's OWN band seat
-    /// (Band.ActorEntry == the deployed main-hand wielder's entry, Wielder.ResolveDeployedMainHand) --
-    /// it does NOT require <paramref name="actedFlag"/>: the pointer itself IS the engine's own
-    /// "whose turn is it" signal (the same precedent TurnTracker.TryActiveViaPointer and Iai's release
-    /// detection both rely on). <paramref name="latchMainHand"/> + <paramref name="actedFlag"/> is
-    /// today's mechanism, preserved verbatim as the fallback for a benched pointer, a two-wielder
-    /// ambiguity (ResolveDeployedMainHand returns 0), or an invalid pointer. Strictly widens the old
-    /// latch-only gate -- no shared latch consumer (Signatures.IsActingMainHand) is narrowed.</summary>
+    /// <summary>D1: the wielder is acting when the actor pointer names the wielder's band seat
+    /// (<paramref name="pointerMatch"/>, same signal as TurnTracker.TryActiveViaPointer), or by the older
+    /// <paramref name="latchMainHand"/> + <paramref name="actedFlag"/> fallback when the pointer is
+    /// benched, ambiguous (ResolveDeployedMainHand returns 0) or invalid.</summary>
     public static bool WielderActing(bool pointerMatch, bool latchMainHand, bool actedFlag)
         => pointerMatch || (latchMainHand && actedFlag);
 
-    /// <summary>D1 REVISED (2026-07-04): identity-based pointer match, no memory access. Plain address
-    /// equality between Band.ActorEntry and Wielder.ResolveDeployedMainHand's entry was LIVE-
-    /// FALSIFIED (2026-07-04 gate log: pointerMatch=False while TurnTracker attributed the same
-    /// actor-ptr in the same window) -- the revolving band MIRROR seat means one unit legitimately
-    /// exists at multiple band addresses, so the two resolvers can each return a DIFFERENT copy of
-    /// the SAME unit and never compare equal by address. NameId identity via the frame back-reference
-    /// (Offsets.ANameId, mirroring the roster nameId Offsets.RNameId -- the same mirror-safe bridge
-    /// Iai's release and Wielder's tier-1 locate already use) is authoritative whenever the wielder's
-    /// OWN roster nameId resolved (<paramref name="wielderNameId"/> &gt; 0): compare <paramref
-    /// name="actorNameId"/> against it instead of the two addresses. Address equality remains ONLY as
-    /// the fallback for the nameId-unavailable case (an unseeded roster nameId, wielderNameId &lt;= 0)
-    /// -- the pre-2026-07-04 behavior, unchanged for every caller that never seeded one.</summary>
+    /// <summary>D1 revised (2026-07-04): identity-based pointer match, no memory access. Address equality
+    /// between Band.ActorEntry and Wielder.ResolveDeployedMainHand failed live (2026-07-04 gate log:
+    /// pointerMatch=False while TurnTracker matched the same actor-ptr), because the band MIRROR seat
+    /// puts one unit at several addresses. So compare NameId (Offsets.ANameId via the frame
+    /// back-reference, as Iai's release and Wielder's tier-1 locate do) when
+    /// <paramref name="wielderNameId"/> &gt; 0, and fall back to address equality when no roster
+    /// nameId was seeded.</summary>
     public static bool PointerNamesWielder(long actorEntry, long wielderEntry, int actorNameId, int wielderNameId)
         => actorEntry != 0 && wielderEntry != 0
            && (wielderNameId > 0 ? actorNameId == wielderNameId : actorEntry == wielderEntry);
@@ -86,30 +65,25 @@ internal sealed partial class Puppeteer
 
     /// <summary>True when the wielder may apply a NEW puppet: at least <paramref name="cooldownTurns"/>
     /// of the wielder's own turns have elapsed since the last puppet. The current &lt; last guard handles
-    /// a battle restart (the wielder turn counter reset below the stored stamp) -- treat as off cooldown.</summary>
+    /// a battle restart (the wielder turn counter reset below the stored stamp), treat as off cooldown.</summary>
     public static bool OffCooldown(int currentWielderTurn, int lastPuppetWielderTurn, int cooldownTurns)
         => currentWielderTurn < lastPuppetWielderTurn
            || currentWielderTurn - lastPuppetWielderTurn >= cooldownTurns;
 
     // ---- the agency flag (the runtime hold target) ----
-    // Combat base +0x05, bit 0x08: SET = human (the action menu opens), CLEAR = AI. OBSERVED live
-    // 2026-06-18 (Ramza read 0x0B with the bit set; enemies read 0x50 clear; setting it on an enemy
-    // opened the player menu for it). Band-relative: the band entry sits at combat base +0x1C, so
-    // combat +0x05 == band -0x17 (cf. Offsets.ACrystalHearts -0x15 == combat +0x07).
+    // Agency flag: combat +0x05, bit 0x08 set = human (action menu opens), clear = AI. Observed
+    // 2026-06-18 (Ramza read 0x0B, enemies 0x50; setting it on an enemy opened the player menu).
+    // The band entry sits at combat +0x1C, so combat +0x05 is band -0x17 (cf. Offsets.ACrystalHearts).
     internal const int AgencyOff = -0x17;
     internal const byte AgencyBit = 0x08;
 
-    // The victim's job id (for the log line + the re-gating hook). Promoted to Offsets.AJob
-    // (LW-149 stage H): kept here as a one-line alias so Puppeteer.cs:227 and every existing test
-    // call site that references Puppeteer.JobOff keep working unchanged. See Offsets.AJob for the
-    // full provenance (combat base +0x03, CONFIRMED live 2026-06-18) and the "only negative offset
-    // in this section" warning.
+    // The victim's job id, for the log line and re-gating. Promoted to Offsets.AJob (LW-149 stage H);
+    // this alias keeps Puppeteer.cs:227 and existing tests compiling. See Offsets.AJob for provenance.
     internal const int JobOff = Offsets.AJob;
 
     /// <summary>Guarded single-bit RMW of the agency flag at <paramref name="bandAddr"/> + AgencyOff:
-    /// OR-set (on) or AND-clear (off) ONLY bit 0x08, leaving the rest of the byte intact (its other bits
-    /// are engine state). VirtualQuery-guarded -- a non-writable address is a no-op. The per-tick hold
-    /// primitive.</summary>
+    /// sets or clears only bit 0x08 (the rest is engine state). A non-writable address is a no-op.
+    /// This is the per-tick hold.</summary>
     public static void SetAgency(IGameMemory mem, long bandAddr, bool on)
     {
         long a = bandAddr + AgencyOff;
@@ -120,17 +94,11 @@ internal sealed partial class Puppeteer
     }
 }
 
-/// <summary>Per-battle state for Puppeteer: exactly ONE active puppet at a time (the latch) plus the
-/// battle-turn stamp of the last puppet (the cooldown clock). A single-lock shape,
-/// not Maim's dictionary -- only one enemy is dominated at a time. No memory access.
-///
-/// RELEASE: the puppet is held until it takes its OWN turn, detected LIVE in Puppeteer.Hold.cs by
-/// the turn queue naming the puppet at an acted turn boundary (the LW-5 round-2/3 tape, 2026-07-07:
-/// the shipped wielder-clock released on the wrong unit's turn, early or late, because LW-7 dumps
-/// turn credit onto the wielder). This state only holds the CAP: release no later than
-/// PuppeteerWielderlessFallbackTurns GlobalTurns after dominate (IsCapped), the backstop in case the
-/// queue signal never fires live.
-/// </summary>
+/// <summary>Per-battle state for Puppeteer: one active puppet (the latch) plus the turn stamp of the
+/// last puppet (the cooldown clock). No memory access. Release on the puppet's own turn is detected in
+/// Puppeteer.Hold.cs (LW-5 round-2/3 tape, 2026-07-07; the old wielder clock released on the wrong
+/// unit's turn because LW-7 dumps turn credit onto the wielder). This state holds only the cap,
+/// PuppeteerWielderlessFallbackTurns GlobalTurns after dominate (IsCapped).</summary>
 internal sealed class PuppeteerState
 {
     private PuppeteerEntry? _puppet;          // the currently dominated victim, or null
@@ -155,8 +123,7 @@ internal sealed class PuppeteerState
            && (_lastPuppetWielderTurn is not int last
                || Puppeteer.OffCooldown(currentWielderTurn, last, cooldownTurns));
 
-    /// <summary>Dominate a new victim. Stamps the GlobalTurns baseline (for the release CAP) and the
-    /// cooldown clock (also GlobalTurns).</summary>
+    /// <summary>Dominate a new victim and stamp the release-cap baseline and the cooldown clock.</summary>
     public void Puppet(long addr, (int mhp, int lvl, int br, int fa) fp, int currentWielderTurn,
                        int globalBaseline)
     {
@@ -164,10 +131,9 @@ internal sealed class PuppeteerState
         _lastPuppetWielderTurn = currentWielderTurn;
     }
 
-    /// <summary>The LW-5 safety CAP: true once GlobalTurns has advanced <paramref name="capTurns"/>
-    /// past the dominate baseline. The sole time-based release, a backstop for the case where the
-    /// live turn-queue "own turn" signal never fires (Puppeteer.Hold.cs owns the normal release).
-    /// Bounds a puppet to at most capTurns global turns, never to battle exit.</summary>
+    /// <summary>The LW-5 safety cap: true once GlobalTurns has advanced <paramref name="capTurns"/>
+    /// past the dominate baseline. A backstop if the turn-queue "own turn" signal never fires
+    /// (Puppeteer.Hold.cs handles the normal release).</summary>
     public bool IsCapped(int globalTurnsNow, int capTurns)
         => _puppet is { } p && globalTurnsNow - p.GlobalBaseline >= capTurns;
 

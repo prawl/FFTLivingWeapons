@@ -6,29 +6,19 @@ using Newtonsoft.Json;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-324: pool_regions.json, PoolLocator's warm-start seed sidecar (SaveLocation.SaveDir,
-/// alongside kills.json -- survives a mod-folder-replace update). Schema mirrors PoolLocator's
-/// own _cached shape exactly: one (baseAddr, size) tuple per region, plus the PE build key the
-/// sidecar was written under (LaunchGuard.ExpectedTimeDateStamp/ExpectedSizeOfImage, sourced
-/// from there and never recomputed here) -- a game patch re-anchor changes those constants, so a
-/// sidecar written by a stale build is rejected wholesale rather than seeding addresses a
-/// patched process no longer shares the same layout with.
-///
-/// Written via the shared SidecarJson.SaveAtomic chain (KillTally.Save/LegendStore.SaveIfDirty's
-/// own precedent). Read tolerant of every failure shape (missing file, malformed JSON, an
-/// unrecognized schema version, a PE key mismatch) -- Load NEVER throws, always answering an
-/// empty result instead, so a warm start with nothing usable degrades to exactly today's cold
-/// scan (PoolLocator.WarmStart.cs's SeedFromSidecar seeds nothing and the ordinary full locate
-/// runs unchanged).
+/// Pool_regions.json, PoolLocator's warm-start seed (SaveLocation.SaveDir, next to
+/// kills.json, so it survives a mod-folder replace). One (baseAddr, size) tuple per region as in
+/// PoolLocator's _cached, plus the PE build key from LaunchGuard.ExpectedTimeDateStamp/
+/// ExpectedSizeOfImage. A sidecar written under a different key is rejected whole. Written via
+/// SidecarJson.SaveAtomic like KillTally.Save and LegendStore.SaveIfDirty. Load never throws; any
+/// failure returns empty, which falls back to the cold scan (PoolLocator.WarmStart.cs SeedFromSidecar).
 /// </summary>
 internal static class PoolRegionSidecar
 {
     internal const int SchemaVersion = 1;
 
-    /// <summary>Load's own answer: the persisted region list, or empty when nothing usable was
-    /// found. Never distinguishes the reason to the caller -- every empty result is treated the
-    /// same way (seed nothing, let the ordinary cold scan run); the reason still lands in the
-    /// file-only Debug line below for anyone reading the log.</summary>
+    /// <summary>The persisted region list, or empty when nothing usable was found. The reason is
+    /// only in the Debug log line; callers treat every empty result alike.</summary>
     internal readonly record struct LoadResult(IReadOnlyList<(long baseAddr, long size)> Regions);
 
     private static readonly LoadResult EmptyResult = new(Array.Empty<(long, long)>());
@@ -56,12 +46,9 @@ internal static class PoolRegionSidecar
         }
     }
 
-    /// <summary>Persist <paramref name="regions"/> exactly as PoolLocator's own _cached holds
-    /// them, stamped with the CURRENT build's PE key (LaunchGuard's constants, never
-    /// recomputed). Atomic via the shared SidecarJson chain. Fail-soft, mirroring
-    /// KillTally.Save/LegendStore.SaveIfDirty exactly: a failed save logs and leaves the
-    /// previous file intact rather than throwing -- this runs on Engine's own tick thread
-    /// (PoolLocator.Restart.cs's Publish), which must never raise.</summary>
+    /// <summary>Persists <paramref name="regions"/> as PoolLocator's _cached holds them, stamped
+    /// with the current PE key. Fail-soft like KillTally.Save: a failure logs and keeps the previous
+    /// file, since this runs on Engine's tick thread (PoolLocator.Restart.cs Publish) and must not throw.</summary>
     internal static void Save(string path, IReadOnlyList<(long baseAddr, long size)> regions)
     {
         try
@@ -89,7 +76,7 @@ internal static class PoolRegionSidecar
     {
         [JsonProperty("version")] public int Version { get; set; }
         // Since LW-397 the mod can arm on an unknown build, so this key no longer tells builds
-        // apart; the per-region reverify is the guard (LW-405).
+        // apart; the per-region reverify is the guard.
         [JsonProperty("peTimeDateStamp")] public uint PeTimeDateStamp { get; set; }
         [JsonProperty("peSizeOfImage")] public uint PeSizeOfImage { get; set; }
         [JsonProperty("regions")] public List<RegionDto> Regions { get; set; } = new();

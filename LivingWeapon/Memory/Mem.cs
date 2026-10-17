@@ -5,31 +5,18 @@ using System.Runtime.InteropServices;
 namespace LivingWeapon;
 
 /// <summary>
-/// In-process memory access -- but every read and write goes through
-/// Read/WriteProcessMemory on our OWN process handle, NOT a raw pointer deref.
-///
-/// This is the single most important safety property of the runtime. RPM/WPM
-/// validate the range in the kernel and return false on an unmapped/freed page;
-/// a raw pointer deref AVs instead, and an access violation is an UNCATCHABLE
-/// corrupted-state exception in .NET -> it crashes the whole game. The external
-/// Python companion never crashed the game for exactly this reason (it used
-/// RPM/WPM); doing the same in-process gives us the same fail-safe behavior. A
-/// TOCTOU race (page freed between guard and access) now degrades to a caught
-/// exception or a no-op, never a crash.
-///
-/// VirtualQuery (Readable/Writable/Regions) stays as a cheap pre-filter so we skip
-/// obvious misses without a syscall, but it is NOT the safety net -- RPM/WPM are.
+/// In-process memory access through Read/WriteProcessMemory on our own process handle, never a
+/// raw pointer deref. RPM/WPM fail cleanly on an unmapped page, while a raw deref raises an
+/// access violation that .NET cannot catch and the game dies. A page freed between guard and
+/// access degrades to an exception or a no-op. VirtualQuery (Readable/Writable/Regions) is only a
+/// cheap pre-filter.
 /// </summary>
 internal static class Mem
 {
-    /// <summary>LW-50 write gate: production flips this FALSE in Mod.StartEngine, before the
-    /// Engine (and its FastHold thread) is constructed, and only LaunchGuard's Armed edge flips it
-    /// back true. Default TRUE keeps every existing pinned-buffer suite unchanged: the whole test
-    /// assembly already runs serialized ([assembly: CollectionBehavior(DisableTestParallelization
-    /// = true)], TestLoggingSetup.cs:12), so a test that flips this false restores it in a
-    /// finally. Volatile: read on the engine's background loop thread, written from the same
-    /// thread's LaunchGuard.Step edge in production, but the field is shared state, not
-    /// thread-confined by construction.</summary>
+    /// <summary>LW-50 write gate. Production sets it false in Mod.StartEngine before the Engine
+    /// (and its FastHold thread) exists; LaunchGuard's Armed edge sets it true. Defaults true so the
+    /// pinned-buffer tests are unchanged (tests run serialized, TestLoggingSetup.cs:12, and restore
+    /// it in a finally). Volatile because it is shared state.</summary>
     internal static volatile bool WritesEnabled = true;
 
     private static readonly nint Self = GetCurrentProcess();
@@ -84,8 +71,7 @@ internal static class Mem
         WriteProcessMemory(Self, (nint)a, s, 2, out _);
     }
 
-    // scalar reads reuse a per-thread buffer (the engine loop is single-threaded);
-    // a failed/freed read returns 0 rather than faulting.
+    // Scalar reads reuse a per-thread buffer; a failed read returns 0.
     private static bool ReadScalar(long a, int n)
     {
         var s = _scratch ??= new byte[8];
@@ -97,9 +83,8 @@ internal static class Mem
     public static uint U32(long a) => ReadScalar(a, 4)
         ? (uint)(_scratch![0] | (_scratch[1] << 8) | (_scratch[2] << 16) | (_scratch[3] << 24)) : 0u;
 
-    /// <summary>One atomic 8-byte RPM read (_scratch is byte[8], so ReadScalar(a,8) is safe).
-    /// Used for engine pointer globals (Offsets.ActorPtr) where a torn 8x1-byte composite could
-    /// mix two pointer values mid-transition.</summary>
+    /// <summary>One 8-byte read, for pointer globals like Offsets.ActorPtr where byte-wise reads
+    /// could tear across a pointer change.</summary>
     public static ulong U64(long a)
     {
         if (!ReadScalar(a, 8)) return 0UL;
@@ -108,11 +93,11 @@ internal static class Mem
         return v;
     }
 
-    // little-endian parsers over a byte[] buffer (used by the region scan)
+    // Little-endian parsers for the region scan.
     public static ushort U16(byte[] b, int o) => (ushort)(b[o] | (b[o + 1] << 8));
     public static uint U32(byte[] b, int o) => (uint)(b[o] | (b[o + 1] << 8) | (b[o + 2] << 16) | (b[o + 3] << 24));
 
-    // ---- cheap pre-filter (skip a syscall on obviously-unmapped addresses) ----
+    // ---- cheap pre-filter ----
     public static bool Readable(long addr, int len) => Probe(addr, len, false);
     public static bool Writable(long addr, int len) => Probe(addr, len, true);
 
@@ -134,11 +119,9 @@ internal static class Mem
     private const uint PAGE_GUARD = 0x100;
     private const uint PAGE_NOACCESS = 0x01;
 
-    /// <summary>Yield (base, size) for every committed, PRIVATE, writable, non-guard region --
-    /// the process heap where the game's UI render copies (the card text we paint) live. Skips
-    /// module (IMAGE) and file-backed (MAPPED) memory: the display can't write there and the
-    /// card text is never there, so excluding them shrinks the paint scan from GBs to the heap
-    /// (much faster, which is what lets the counter refresh near-instantly).</summary>
+    /// <summary>Yields every committed, private, writable, non-guard region, which is where the
+    /// card text we paint lives. Skipping IMAGE and MAPPED memory cuts the paint scan from GBs to
+    /// the heap.</summary>
     public static IEnumerable<(long baseAddr, long size)> Regions()
     {
         long addr = 0;

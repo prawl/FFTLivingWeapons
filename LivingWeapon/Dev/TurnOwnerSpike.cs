@@ -5,35 +5,13 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// DEV-ONLY passive recorder. Built to answer LW-31 stage 2's live-pass blocker (which weapon
-/// dossier the Attack card should resolve at menu-open time); that question is answered and
-/// shipped (docs/CHANGELOG.md:932, LW-31 SHIPPED 2b2f5b4 2026-07-07). It still ticks in Engine as
-/// a passive correlation recorder: its only prospective consumer is LW-139's turn-order rebuild
-/// (docs/TODO.md); if LW-139 declines it, unwiring is the follow-up.
-/// Unlike its sibling spikes (HeaderSpike/AttackCardSpike), this one is PASSIVE: no keybind, no
-/// heap scan, no write. It exists purely to log evidence for an offline adjudication; see
-/// TurnOwnerProbe.cs's class doc for the full purpose, the two hypotheses, and the correlation
-/// method (lining this instrument's tapes up against AttackCard.Paint.cs's own "attack-card desc
-/// repainted" log line, which marks a menu-hover moment).
-///
-/// Ticks in-battle only (Engine.cs's in-battle spike block): the Abilities menu this research
-/// targets only exists in battle, so an out-of-battle tick would just waste reads. Throttled to
-/// at most <see cref="SamplesPerSecond"/> samples/second via TurnOwnerProbe.ShouldSample, so a
-/// long recorded battle does not flood the log with redundant ticks between real changes.
-///
-/// Each sample reads three channels and logs one Trace line PER CHANNEL, and only when that
-/// channel's own value changed since its last logged value (TurnOwnerProbe.Changed; change-only,
-/// mirrors the sibling spikes' revert watches):
-///
-/// 1. Band CT: every valid band slot (Band.Entry + Band.IsValid, the same loop shape
-///    KillTracker.Corpses.ScanCorpses walks), each slot's CT at band+0x25 (Offsets.ACtSlam) and
-///    identity (level/brave/faith), plus the single global acted byte (Offsets.Acted, the same
-///    field KillTracker gates its acted-period latch on).
-/// 2. Cursor-follower struct: 64 guarded bytes at Offsets.TurnQueue, the condensed active-unit
-///    struct hypothesis 2 is testing.
-/// 3. Register baseline: the injected ActorRegister's LastPlayerNameId/LastPlayerArrivalTick/
-///    Trusted, the SAME register instance KillerStamp and AttackCard already trust (no second
-///    register is constructed here).
+/// Dev-only passive recorder for LW-31 stage 2 (which weapon dossier the Attack card resolves at menu-open),
+/// shipped 2b2f5b4 on 2026-07-07 (docs/CHANGELOG.md:932). It still ticks as a correlation recorder for LW-139's
+/// turn-order rebuild (docs/TODO.md); unwire it if LW-139 declines. TurnOwnerProbe.cs documents the two hypotheses
+/// and how the tapes line up with AttackCard.Paint.cs's "attack-card desc repainted" log line.
+/// In-battle only, throttled to <see cref="SamplesPerSecond"/>. One Trace line per channel, only on change
+/// (TurnOwnerProbe.Changed). Channels are band CT per slot at band+0x25 (Offsets.ACtSlam) plus the acted byte
+/// (Offsets.Acted), the 64-byte cursor-follower struct at Offsets.TurnQueue, and the ActorRegister baseline.
 /// </summary>
 internal sealed class TurnOwnerSpike
 {
@@ -57,7 +35,7 @@ internal sealed class TurnOwnerSpike
             "turn-owner-probe: armed (passive, no keybind; records band CT, the cursor-follower struct, and the actor register on change, throttled to 4 samples per second)");
     }
 
-    /// <summary>In-battle tick, throttled internally. See the class doc for the three channels.</summary>
+    /// <summary>In-battle tick, throttled internally.</summary>
     public void Tick()
     {
         long now = Environment.TickCount64;
@@ -69,8 +47,7 @@ internal sealed class TurnOwnerSpike
         SampleRegister();
     }
 
-    /// <summary>Hypothesis 1: the band CT channel, one line for every valid slot's identity and
-    /// CT, plus the global acted byte.</summary>
+    /// <summary>Hypothesis 1, band CT per valid slot plus the acted byte.</summary>
     private void SampleBandCt()
     {
         int acted = _mem.U8(Offsets.Acted);
@@ -96,8 +73,7 @@ internal sealed class TurnOwnerSpike
         ModLogger.Debug(LogVerb.Trace, snapshot);
     }
 
-    /// <summary>Hypothesis 2: the cursor-follower struct, read whole (guarded) rather than
-    /// field-by-field, so an unexpected byte still shows up in the dump.</summary>
+    /// <summary>Hypothesis 2, the cursor struct read whole so unexpected bytes show in the dump.</summary>
     private void SampleCursorStruct()
     {
         if (!_mem.TryReadBytes(Offsets.TurnQueue, CursorReadLen, out var buf))
@@ -117,8 +93,7 @@ internal sealed class TurnOwnerSpike
         ModLogger.Debug(LogVerb.Trace, TurnOwnerProbe.FormatCursorDump(buf));
     }
 
-    /// <summary>The register baseline this instrument watches purely for the correlation tape;
-    /// it never mutates the register (Update/ResetBattle stay KillTracker's own responsibility).</summary>
+    /// <summary>Register baseline for the correlation tape; read-only.</summary>
     private void SampleRegister()
     {
         string snapshot = TurnOwnerProbe.FormatRegisterSnapshot(

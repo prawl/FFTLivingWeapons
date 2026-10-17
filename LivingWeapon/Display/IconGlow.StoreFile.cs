@@ -6,24 +6,15 @@ using Newtonsoft.Json;
 
 namespace LivingWeapon;
 
-/// <summary>Production <see cref="IIconGlowStore"/>: glow_icons/ (including its base_backup/
-/// snapshot subfolder) and the deployed FFTIVC tree both live under modDir. Every method is
-/// wrapped so a failure anywhere (missing folder, a locked file, a permissions error) surfaces as
-/// null/false, never a throw -- IconGlow's whole contract depends on this seam never raising.
-/// Both write paths go through <see cref="AtomicWrite"/>: write to a sibling temp file, then swap
-/// it into place, so a crash or a share violation mid-write can never leave a torn file for the
-/// next launch's merge (or a later ReadBaseBackup) to read back.
-///
-/// Split out of IconGlow.Store.cs (LW-381, 200-line trigger): that file now holds only the
-/// contract (<see cref="IIconGlowStore"/>) and the manifest DTOs, a real seam from this file's
-/// one production adapter.</summary>
+/// <summary>Production <see cref="IIconGlowStore"/> over modDir (glow_icons/, its base_backup/
+/// subfolder, and the deployed FFTIVC tree). Every method returns null/false on failure and never
+/// throws. Writes go through <see cref="AtomicWrite"/> so a crash cannot leave a torn file.
+/// Split from IconGlow.Store.cs (LW-381, 200-line trigger), which keeps the interface and DTOs.</summary>
 internal sealed class FileIconGlowStore : IIconGlowStore
 {
     private readonly string _modDir;
 
-    // Lazily resolved once (see ResolvePac): null/null means "not tried yet", non-null _pac
-    // means resolution succeeded, and _pacResolutionFailed latches a failed resolution so a
-    // missing/relocated install is never re-probed on every icon, every tick.
+    // Resolved lazily; _pacResolutionFailed latches a failure so a missing install is not re-probed every tick.
     private ModdedPac? _pac;
     private bool _pacResolutionFailed;
 
@@ -66,11 +57,9 @@ internal sealed class FileIconGlowStore : IIconGlowStore
 
     public bool WriteBaseBackup(IconGlowEntry entry, byte[] bytes) => AtomicWrite(BackupPath(entry), bytes);
 
-    /// <summary>LW-381 R2-2: delegates the actual search/write/verify to <see cref="ModdedPac"/>,
-    /// which this method resolves and reuses across the whole launch (its offset cache is the
-    /// point of reusing one instance). The cache key is per (id, surface) -- the same pairing
-    /// <see cref="DeployedPath"/> and <see cref="BackupPath"/> already key on. Everything not
-    /// resolved from that cache shares ONE pass over the pac via <see cref="ModdedPac.PatchBatch"/>.</summary>
+    /// <summary>LW-381 R2-2. Delegates to <see cref="ModdedPac"/>, resolved once per launch so its
+    /// offset cache is reused. The cache key is (id, surface), matching <see cref="DeployedPath"/>
+    /// and <see cref="BackupPath"/>. Uncached items share one pass via <see cref="ModdedPac.PatchBatch"/>.</summary>
     public IReadOnlyDictionary<(int Id, string Surface), PacPatchResult> PatchPacBatch(
         IReadOnlyList<(IconGlowEntry Entry, byte[] OldBytes, byte[] NewBytes)> items)
     {
@@ -84,8 +73,7 @@ internal sealed class FileIconGlowStore : IIconGlowStore
             return results;
         }
 
-        // Build each item's cache key once and keep it alongside the item, so the lookup below
-        // can never drift from the key the triple was actually searched under.
+        // Key built once per item so the lookup below uses the key the item was searched under.
         var keyed = items.Select(it => (Key: $"{it.Entry.Id}:{it.Entry.Surface}", it.Entry, it.OldBytes, it.NewBytes)).ToList();
         var byKey = pac.PatchBatch(keyed.Select(k => (k.Key, k.OldBytes, k.NewBytes)).ToList());
         foreach (var k in keyed)
@@ -93,14 +81,10 @@ internal sealed class FileIconGlowStore : IIconGlowStore
         return results;
     }
 
-    /// <summary>modDir is <c>&lt;game&gt;\Reloaded\Mods\&lt;modId&gt;</c>, so the game root is
-    /// three parents up. THIS DERIVATION IS NOT A PROVEN PREMISE (a Reloaded-II install can live
-    /// outside the game folder) -- any null parent, or a pac that does not exist at the derived
-    /// path, latches <see cref="_pacResolutionFailed"/> so every later call returns
-    /// <see cref="PacPatchResult.Unavailable"/> without re-probing the file system. Wrapped like
-    /// every other method here: <see cref="DirectoryInfo"/>/<see cref="Path.Combine"/> can throw
-    /// on a malformed path, and this class's whole contract is that nothing it does throws
-    /// outward.</summary>
+    /// <summary>modDir is <c>&lt;game&gt;\Reloaded\Mods\&lt;modId&gt;</c>, so the game root is three
+    /// parents up. That is unproven, since a Reloaded-II install can live outside the game folder. A
+    /// null parent or a missing pac latches <see cref="_pacResolutionFailed"/> and later calls return
+    /// <see cref="PacPatchResult.Unavailable"/>. Wrapped because path APIs can throw.</summary>
     private ModdedPac? ResolvePac()
     {
         if (_pac != null) return _pac;
@@ -127,11 +111,8 @@ internal sealed class FileIconGlowStore : IIconGlowStore
     private string BackupPath(IconGlowEntry entry) =>
         Path.Combine(_modDir, "glow_icons", "base_backup", Path.GetFileName(entry.BaseRel));
 
-    /// <summary>Write-to-temp-then-swap: never leaves <paramref name="path"/> partially
-    /// written. File.Replace is preferred (single atomic filesystem op when the destination
-    /// exists); a delete+move fallback covers the cases File.Replace itself can refuse (no
-    /// existing destination, cross-volume). The temp file is always cleaned up, success or
-    /// failure. Never throws.</summary>
+    /// <summary>Writes to a temp file, then swaps it in. File.Replace when the destination exists,
+    /// else File.Move. The temp file is always cleaned up. Never throws.</summary>
     private static bool AtomicWrite(string path, byte[] bytes)
     {
         string? tmp = null;

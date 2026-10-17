@@ -5,9 +5,9 @@ using System.IO;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-381 (R2-1/R2-2 fix round): the pure needle-search core behind <see cref="ModdedPac"/>.
+/// The pure needle-search core behind <see cref="ModdedPac"/>.
 /// Streams a haystack (modded.pac is roughly 65 MB) in fixed-size chunks instead of loading it
-/// whole, and reuses ONE window buffer across the whole scan rather than allocating a fresh one
+/// whole, and reuses one window buffer across the whole scan rather than allocating a fresh one
 /// per chunk.
 ///
 /// WHAT CHUNKING ACTUALLY BUYS -- corrected here after the round-1 comment claimed it "keeps the
@@ -19,7 +19,7 @@ namespace LivingWeapon;
 /// <see cref="MemoryStream"/> with no file system involved. Getting (a) right requires reusing
 /// the window buffer across iterations: the round-1 shape allocated a fresh window array per
 /// chunk, which for a single-icon patch produced roughly 69 MB of LOH garbage -- MORE than the
-/// 65 MB read it existed to avoid -- and LOH collections are gen2 and STOP EVERY MANAGED THREAD,
+/// 65 MB read it existed to avoid -- and LOH collections are gen2 and STOP every MANAGED THREAD,
 /// Engine's 33 ms tick loop included. This class allocates its window buffer once per call and
 /// refills it in place every iteration.
 ///
@@ -56,7 +56,7 @@ internal static class PacScan
 
     /// <summary>
     /// Scans <paramref name="stream"/> from its current position to its end for a single
-    /// occurrence of EACH needle in <paramref name="needles"/>, in ONE sequential pass -- the
+    /// occurrence of EACH needle in <paramref name="needles"/>, in one sequential pass -- the
     /// R2-2 fix: a per-needle loop over <see cref="FindSingle"/> re-reads the whole stream once
     /// per needle (242 managed icons over a 65 MB pac is ~15.7 GB of reads for one full re-tier),
     /// where this walks the stream once regardless of needle count. Returns one result per
@@ -88,7 +88,7 @@ internal static class PacScan
         if (chunkSize < maxNeedleLen) chunkSize = maxNeedleLen;
         int overlapLen = maxNeedleLen - 1;
 
-        // ONE reusable window buffer for the whole scan (R2-1): sized for one full chunk plus the
+        // one reusable window buffer for the whole scan (R2-1): sized for one full chunk plus the
         // largest needle's overlap, allocated once and refilled in place every iteration.
         byte[] window = new byte[chunkSize + overlapLen];
         long windowAbsoluteStart = streamStart;

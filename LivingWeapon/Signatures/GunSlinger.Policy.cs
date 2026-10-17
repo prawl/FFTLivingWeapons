@@ -14,9 +14,9 @@ internal enum GunSlingerSuppAction { Leave, SnapshotAndWrite, Write, Restore }
 /// </summary>
 internal sealed class GunSlingerSnap
 {
-    public bool HasOff    { get; set; }
+    public bool HasOff { get; set; }
     public ushort OrigOff { get; set; }
-    public bool HasSupp   { get; set; }
+    public bool HasSupp { get; set; }
     public ushort OrigSupp { get; set; }
 }
 
@@ -27,7 +27,7 @@ internal sealed class GunSlingerSnap
 /// Empty sentinels: off-hand 0x00FF or 0xFFFF; shield 255 (seen on an empty slot), 0xFFFF, or 0
 /// (see <see cref="IsEmptyShield"/>). The support slot is a u16 ability key at +0x0A (reaction +0x08,
 /// movement +0x0C) and reads 0 when empty. Dual Wield is Key 477 (support id 221 + 256, seen
-/// 2026-08-12, LW-168: a low-byte 221 write rendered "Toadja", Key 221). Support values are
+/// 2026-08-12, a low-byte 221 write rendered "Toadja", Key 221). Support values are
 /// snapshotted and restored as full u16s so the true empty (0) round-trips.
 /// A flagged twin id in the off-hand is ours only with <see cref="GunSlingerSnap.HasOff"/>
 /// (<see cref="IsOurs"/>); without it the weapon is the player's. Any other non-empty value is a

@@ -1,30 +1,17 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-167 Living Poach -- the KILLER-SIGNAL reads: two stateless, static, per-weapon memory reads
-/// that resolve "whoever is deployed as this weapon's main-hand wielder right now" via
-/// Wielder.ResolveDeployedMainHand and read one live fact off that wielder's band entry. Split out
-/// of LivingPoach.cs (the stateful per-corpse executor: dedupe latch, store write, toast) as a real
-/// seam -- these two methods take no instance state, share only the killer-resolve lane, and are
-/// consumed as constructor-injected delegates rather than called from RecordPoachDeed directly, so
-/// they read as their own unit even though the executor is what wires them in.
-///
-/// SCOPE CAVEAT both reads inherit from the resolve lane: the lane finds the weapon's single
-/// deployed MAIN-HAND wielder. A credit naming an OFF-hand copy of the weapon resolves either
-/// nobody (fail closed) or, when a different deployed unit main-hands the same id, THAT unit --
-/// whose signals are then read in the true killer's stead. Deep-tail conjunction (two copies of
-/// one dormant weapon split across hands plus Poach on the resolved unit), inherited from the
-/// attribution layer by design; the fail-closed default keeps every ordinary miss an under-poach.
+/// LW-167 Living Poach killer-signal reads: two stateless per-weapon reads off the deployed
+/// main-hand wielder (Wielder.ResolveDeployedMainHand). Split from LivingPoach.cs, which holds the
+/// stateful executor; the executor receives these as injected delegates.
+/// Both inherit the resolve lane's limit. A credit naming an off-hand copy resolves to nobody, or
+/// to a different unit main-handing the same id, so the miss direction is an under-poach.
 /// </summary>
 internal sealed partial class LivingPoach
 {
-    /// <summary>The killer's real Poach read: locate <paramref name="weaponId"/>'s single deployed
-    /// main-hand wielder (Wielder.ResolveDeployedMainHand -- the same locate Choir/Kobu/Bulwark
-    /// use) and read its live combat-struct support bitfield for the Poach bit (id 215, combat
-    /// +0x98 byte 2 mask 0x40 via Signatures.SupportBit -- the band-relative address is
-    /// Offsets.ASupport + that same (byteOffset, mask), the identity Choir already relies on).
-    /// Locate unavailable (zero or ambiguous deployed wielders) -&gt; false, FAIL CLOSED: a poach
-    /// must never fire on a guess about who's holding the weapon.</summary>
+    /// <summary>Reads the Poach support bit (id 215, combat +0x98 byte 2, mask 0x40) off the
+    /// weapon's deployed main-hand wielder. Zero or ambiguous wielders return false so a poach
+    /// never fires on a guess.</summary>
     internal static bool ReadKillerHasPoach(IGameMemory mem, int weaponId)
     {
         long entry = Wielder.ResolveDeployedMainHand(mem, weaponId, out _);
@@ -35,18 +22,12 @@ internal sealed partial class LivingPoach
         return (mem.U8(addr) & mask) != 0;
     }
 
-    /// <summary>LW-167 stage 4 -- the real basic-Attack discriminator (LIVE_LEDGER's "The
-    /// basic-Attack discriminator (LW-167 stage 4)" row, 2026-08-12, owner probe
-    /// tools/probes/arec_watch.py). Resolves the KILLER via the SAME lane
-    /// <see cref="ReadKillerHasPoach"/> uses (Wielder.ResolveDeployedMainHand -- <paramref
-    /// name="weaponId"/>'s single deployed main-hand wielder), then reads that wielder's own
-    /// per-unit action record (Offsets.AArec) at the credit moment: kind (+0xA) ==
-    /// <see cref="Offsets.ArecKindPerforming"/> (this unit's own pending action, not a struck
-    /// victim's stale stamp) AND abil (+0x2) == <see cref="Tuning.BasicAttackAbilityId"/> (0)
-    /// together mean the pending action was the basic Attack command. Every failure path
-    /// (unresolvable killer, an unreadable record, or a reading that names an ability instead)
-    /// fails closed to false and logs the specific reason -- a false here can only ever
-    /// under-poach, never double-poach alongside vanilla's own Poach support.</summary>
+    /// <summary>LW-167 stage 4 basic-Attack discriminator (LIVE_LEDGER "The basic-Attack
+    /// discriminator (LW-167 stage 4)", 2026-08-12, probe tools/probes/arec_watch.py). Reads the
+    /// killer's action record (Offsets.AArec) and is true only when kind (+0xA) is
+    /// <see cref="Offsets.ArecKindPerforming"/> and abil (+0x2) is
+    /// <see cref="Tuning.BasicAttackAbilityId"/> (0). Every failure returns false and logs why, so a
+    /// miss can only under-poach, never double-poach with vanilla's Poach support.</summary>
     internal static bool ReadWasBasicAttack(IGameMemory mem, int weaponId)
     {
         long entry = Wielder.ResolveDeployedMainHand(mem, weaponId, out _);

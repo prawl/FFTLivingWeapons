@@ -5,12 +5,7 @@ using Newtonsoft.Json;
 
 namespace LivingWeapon;
 
-/// <summary>
-/// LW-351 stage 3 V8-4: the FILE-FORMAT half of <see cref="ExtendedBagSidecar"/>, split out of the
-/// base file under the 200-line house guideline -- schema parsing, the schema-1-to-2 migration,
-/// and the on-disk <see cref="Dto"/> shape it deserialises into. The base file keeps the fields,
-/// construction, and the read/write API the rest of the mod calls.
-/// </summary>
+/// <summary>LW-351 stage 3 V8-4: file-format half of <see cref="ExtendedBagSidecar"/>, split out under the 200-line guideline. Holds schema parsing, the schema-1-to-2 migration and the on-disk <see cref="Dto"/>.</summary>
 internal sealed partial class ExtendedBagSidecar
 {
     public static ExtendedBagSidecar Load(string path, int maxSaves = MaxSaves)

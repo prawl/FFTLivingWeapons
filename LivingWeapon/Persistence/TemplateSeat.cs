@@ -4,73 +4,42 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-351 fix round 5: put the extended item ids the player OWNS back into the game's two weapon
-/// menu order templates.
-///
-/// WHY THIS EXISTS: the party inventory and the unit equip picker each build their weapon list
-/// from a fixed table of item ids (<see cref="Offsets.InventoryOrderTemplate"/> and
-/// <see cref="Offsets.PickerOrderTemplate"/>), and an id the table does not name is never listed.
-/// Those tables are not rebuilt from the item data on a load: the load-apply routine restores
-/// them byte-for-byte out of the save struct and the serializer writes them back, so they are
-/// save state (the copies both ways are cited on the Offsets constants above). Every save the
-/// owner has was written before an extended id ever seated, so every load restores tables without
-/// it, and no amount of bag replaying can change that. The mod therefore seats the ids itself, in
-/// the same load-detour moment that replays the bag counts, once the game's own restore has run.
-///
-/// LW-371 UPDATE: the paragraph above is the pre-relocation picture, still true when the
-/// template relocation has not armed. Once it HAS armed, the templates the game actually works
-/// on no longer live at the two Offsets constants above -- they live on the mod's own page
-/// (<see cref="ExtendedInventory.TemplateRegions"/>), and <see cref="Offsets.InventoryOrderTemplate"/>
-/// / <see cref="Offsets.PickerOrderTemplate"/> hold only the save-field projection
-/// <see cref="TemplateSync"/> writes at each save edge (the first 140 chart words in page order,
-/// extended ids included, D4) -- the save's staging area, not live game state. <see
-/// cref="WeaponRegions"/> below stays the VANILLA pair unconditionally: it is what
-/// <see cref="ExtendedInventory.TemplateRegions"/> falls back to when the relocation never armed,
-/// and every caller here still reaches it by default, but production always seats through
-/// <c>TemplateRegions</c> instead so a seat lands wherever the game is actually reading from.
-///
-/// This is the LW-346 hand-proven poke made systematic: that probe wrote the new id over the end
-/// marker and put the marker one word later, and the owner watched both menus list the item.
-///
-/// SELF-PERPETUATING, STILL RUN EVERY TIME: because the serializer copies the template region
-/// back into the save struct, the first save written after a seat carries the seated table, and
-/// every later load restores it already seated. The seat still runs on every load: it is a no-op
-/// when the id is already there. The load detour runs it on the game's own thread the moment the
-/// load routine returns; the tick runs it only as the fallback for a load edge the detour did not
-/// serve (round 8c), so a whole-table repair never races the game's own template edits.
-///
-/// VANILLA SEMANTICS ARE KEPT: only ids the player owns at least one of are seated, because a
-/// template lists owned items. An extended item the player has none of stays out, exactly as a
-/// vanilla item with an empty bag count does.
-///
-/// The word format is the game's: little-endian u16 item ids ending in a 0x00FF marker. NOTE the
-/// menu LISTS <see cref="OrderRebuildHook"/> repairs end in 0xFFFF instead; the two terminators
-/// are not interchangeable.
+/// LW-351 fix round 5: seat the extended item ids the player owns into the game's two weapon order
+/// templates (party inventory and unit equip picker). An id the table does not name is never listed.
+/// The load routine restores the tables byte-for-byte from the save struct and the serializer writes
+/// them back, so they are save state (copies cited on <see cref="Offsets.InventoryOrderTemplate"/>
+/// and <see cref="Offsets.PickerOrderTemplate"/>) and older saves come back without the ids. The
+/// seat runs in the load detour after the bag counts replay; the tick runs it only for a load edge
+/// the detour missed (round 8c), so a whole-table repair never races the game's own edits.
+/// Once the relocation arms, the live tables sit on <see cref="ExtendedInventory.TemplateRegions"/>
+/// and the Offsets constants hold only the save projection <see cref="TemplateSync"/> writes at each
+/// save edge (first 140 chart words, D4). <see cref="WeaponRegions"/> stays the vanilla pair, the
+/// fallback when the relocation never armed; production seats through TemplateRegions.
+/// Only owned ids are seated, as in vanilla, and seating is a no-op when the id is already there.
+/// Words are little-endian u16 ids ending in 0x00FF, unlike the 0xFFFF that <see cref="OrderRebuildHook"/>
+/// list repairs use. Descends from the LW-346 hand poke that moved the end marker one word later.
 /// </summary>
 internal static partial class TemplateSeat
 {
-    /// <summary>The word both templates end on (NOT the lists' 0xFFFF).</summary>
+    /// <summary>The word both templates end on (the lists use 0xFFFF).</summary>
     public const ushort EndMarker = 0x00FF;
 
     /// <summary>One order template: where it starts, how many u16 words the game gives it, and
     /// the words a log line calls it by.</summary>
     internal readonly record struct Region(long Addr, int CapacityWords, string Label);
 
-    /// <summary>The two weapon templates, in the order they are seated. Addr is LIVE (rebased
-    /// <see cref="Offsets"/> properties), so this is a property building a fresh array, never a
-    /// static readonly field that would bake the image base at type-init (LW-388); it is compared
-    /// against the live rcx in OrderRebuildHook.Seat.</summary>
+    /// <summary>The two weapon templates, in seating order. A property building a fresh array, since
+    /// Addr is rebased live and a static readonly would bake the image base at type-init.
+    /// Compared against the live rcx in OrderRebuildHook.Seat.</summary>
     internal static Region[] WeaponRegions => new Region[]
     {
         new(Offsets.InventoryOrderTemplate, Offsets.InventoryOrderTemplateWords, "the inventory order template"),
         new(Offsets.PickerOrderTemplate, Offsets.PickerOrderTemplateWords, "the equip-picker order template"),
     };
 
-    /// <summary>What one template needs: the word index the write starts at, the bytes to write
-    /// there (the missing ids followed by the moved end marker, or, after a repair, the whole
-    /// table from word 0 through the new marker with <see cref="Repaired"/> saying what was
-    /// healed), or a refusal to be logged. Nothing to do is <see cref="Bytes"/> null with no
-    /// refusal.</summary>
+    /// <summary>What one template needs: the start word index, the bytes to write (missing ids plus the
+    /// moved end marker, or after a repair the whole table with <see cref="Repaired"/> saying what was
+    /// healed), or a refusal to log. Nothing to do is <see cref="Bytes"/> null with no refusal.</summary>
     internal readonly record struct Seating(int WordIndex, byte[]? Bytes, string? Refusal, string? Repaired = null)
     {
         public bool Writes => Bytes != null && Bytes.Length > 0;
@@ -78,18 +47,13 @@ internal static partial class TemplateSeat
         public static Seating Refuse(string why) => new(0, null, why);
     }
 
-    /// <summary>Pure: read <paramref name="region"/> as u16 words up to its end marker and work
-    /// out what has to be written so every id in <paramref name="ids"/> is listed ahead of that
-    /// marker. Missing ids are appended in ascending id order, the marker moves that many words
-    /// on, and nothing is ever written past <paramref name="capacityWords"/>. Words are compared
-    /// on the game's 0x3FF id mask (the menu LISTS carry flag bits above it; these tables do not
-    /// today, and a flagged copy still names the same item), the same rule the repair applies
-    /// when it collapses doubles.</summary>
-    /// <param name="firstStaleId">LW-367: forwarded to <see cref="ScanTable"/> -- a word whose
-    /// masked id is at or past this bound is dropped as stale rather than kept. Defaults to
-    /// <see cref="int.MaxValue"/> so every legacy caller and test keeps today's behavior
-    /// byte-for-byte; production callers pass <see cref="ExtendedCatalog.FirstExtendedId"/> plus
-    /// the armed extended count.</param>
+    /// <summary>Pure: read <paramref name="region"/> as u16 words up to its end marker and work out what
+    /// to write so every id in <paramref name="ids"/> is listed. Missing ids are appended ascending, the
+    /// marker moves on, and nothing is written past <paramref name="capacityWords"/>. Words compare on
+    /// the game's 0x3FF id mask (menu lists carry flag bits above it), as the repair's dedupe does.</summary>
+    /// <param name="firstStaleId">forwarded to <see cref="ScanTable"/>; a word whose masked id is
+    /// at or past this bound is dropped as stale. Defaults to <see cref="int.MaxValue"/>; production
+    /// passes <see cref="ExtendedCatalog.FirstExtendedId"/> plus the armed extended count.</param>
     public static Seating Plan(byte[] region, int capacityWords, IReadOnlyList<int> ids, int firstStaleId = int.MaxValue)
     {
         if (region == null) return Seating.Nothing;
@@ -98,9 +62,8 @@ internal static partial class TemplateSeat
         var scan = ScanTable(region, words, firstStaleId);
         if (scan.Refusal != null) return Seating.Refuse(scan.Refusal);
 
-        // Round 8c: listed-ness is judged on the game's own 0x3FF id mask, the same rule the
-        // repair's dedupe uses; judging it on the raw word would drop a flagged double and then
-        // re-add the id, forever, one write per pass.
+        // Round 8c: listed-ness uses the 0x3FF mask like the repair's dedupe; the raw word would drop
+        // a flagged double and re-add the id forever.
         var listed = new HashSet<int>();
         foreach (ushort w in scan.Body) listed.Add(w & 0x3FF);
         var missing = new List<int>();
@@ -111,8 +74,8 @@ internal static partial class TemplateSeat
         if (scan.Repaired == null)
         {
             if (missing.Count == 0) return Seating.Nothing;
-            // The ids take marker..marker+missing.Count-1 and the moved marker takes the word
-            // after, so the last word touched must still be inside the region.
+            // The ids take marker..marker+missing.Count-1 and the moved marker the next word, which
+            // must stay inside the region.
             if (scan.Marker + missing.Count > capacityWords - 1)
                 return Seating.Refuse($"it already fills {scan.Marker} of its {capacityWords} words, so there is no room for {missing.Count} more id(s) and its end marker");
             return new Seating(scan.Marker, Encode(missing), null);
@@ -141,28 +104,20 @@ internal static partial class TemplateSeat
         return bytes;
     }
 
-    /// <summary>Seat <paramref name="ids"/> in both weapon templates through the guarded patcher.
-    /// A template that cannot be read is left alone silently (the order-rebuild hook's posture: a
-    /// failed read means the game's answer stands); a template with no end marker, no room, or a
-    /// refused write reports through <paramref name="onRefused"/>; a table healed on the way
-    /// (round 8b) reports through <paramref name="onRepaired"/>. The detour path passes no
-    /// logging callback, because it must not log on the game's own thread.</summary>
-    /// <param name="regions">LW-371: the regions to seat into -- <see cref="WeaponRegions"/> (the
-    /// vanilla pair) when null or omitted, else <see cref="ExtendedInventory.TemplateRegions"/>
-    /// (the relocated page's regions once armed). Every production caller passes the latter; the
-    /// default keeps every pre-existing test and caller compiling unchanged.</param>
-    /// <param name="firstStaleId">LW-367: forwarded to <see cref="Plan"/> -- a word whose masked
-    /// id is at or past this bound is dropped as stale on every repair. Defaults to
-    /// <see cref="int.MaxValue"/> so every legacy caller keeps today's behavior byte-for-byte;
-    /// production callers pass <see cref="ExtendedCatalog.FirstExtendedId"/> plus the armed
-    /// extended count.</param>
+    /// <summary>Seat <paramref name="ids"/> in both weapon templates through the guarded patcher. An
+    /// unreadable template is skipped silently (the game's answer stands); a missing marker, no room or
+    /// a refused write goes to <paramref name="onRefused"/>; a table healed on the way (round 8b) goes
+    /// to <paramref name="onRepaired"/>. The detour passes no callbacks because it must not log on the
+    /// game's own thread.</summary>
+    /// <param name="regions">regions to seat into, <see cref="WeaponRegions"/> when null, else
+    /// <see cref="ExtendedInventory.TemplateRegions"/>. Production passes the latter.</param>
+    /// <param name="firstStaleId">forwarded to <see cref="Plan"/>, as there.</param>
     public static void Apply(ICodePatcher patcher, IReadOnlyList<int> ids,
         Action<string>? onRefused = null, Action<string>? onSeated = null, Action<string>? onRepaired = null,
         Region[]? regions = null, int firstStaleId = int.MaxValue)
     {
-        // Round 8c: no early return on an empty owned list. The seat half is then a no-op, but
-        // the repair half must still run: a damaged table on a save whose player owns no
-        // extended item at all is exactly the crash shape (id-0 rows from a marker-less table).
+        // Round 8c: no early return on an empty list; a damaged table on a save with no extended items
+        // still needs the repair (id-0 rows from a marker-less table crash).
         ids ??= Array.Empty<int>();
         foreach (var region in regions ?? WeaponRegions)
         {

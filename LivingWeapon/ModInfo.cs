@@ -4,16 +4,13 @@ using Newtonsoft.Json.Linq;
 namespace LivingWeapon;
 
 /// <summary>
-/// Deployment facts about the running mod, read fail-soft from the files deployed beside the
-/// DLL. The launch header's L1 line reads <see cref="ReadVersion"/> ("ModVersion" from
-/// modDir/ModConfig.json, the Reloaded manifest that ships with every install, dev deploy and
-/// Publish zip alike). Any read/parse failure yields "unknown", never a throw: the header must
-/// print even from a broken deploy folder.
+/// Deployment facts read from the files beside the DLL. The launch header's L1 line uses
+/// <see cref="ReadVersion"/> (ModVersion from modDir/ModConfig.json). Read failures yield
+/// "unknown" so the header still prints from a broken deploy folder.
 /// </summary>
 internal static class ModInfo
 {
-    /// <summary>The deployed mod's version string, or "unknown" when ModConfig.json is missing,
-    /// unreadable, or carries no ModVersion.</summary>
+    /// <summary>The deployed mod version, or "unknown" if ModConfig.json is missing, unreadable or lacks ModVersion.</summary>
     public static string ReadVersion(string modDir)
     {
         try

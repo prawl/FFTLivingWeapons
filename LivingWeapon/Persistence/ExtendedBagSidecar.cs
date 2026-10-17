@@ -5,32 +5,21 @@ using Newtonsoft.Json;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-348 / LW-353: extended_inventory.json, the bag counts of the extended-inventory ids
-/// (261+), kept by the mod because the save file cannot hold them (the save serialises exactly
-/// 261 count bytes; docs/LIVE_LEDGER.md [capbreak-save-roundtrip-1-5-2]). Lives in
-/// SaveLocation.SaveDir beside kills.json.
+/// LW-348 / extended_inventory.json holds the bag counts of the extended ids (261+),
+/// because the save only serialises 261 count bytes (docs/LIVE_LEDGER.md
+/// [capbreak-save-roundtrip-1-5-2]). Lives in SaveLocation.SaveDir beside kills.json.
 ///
-/// SCHEMA 2 (LW-353, 2026-08-27): counts are keyed PER SAVE. The key is derived from the save
-/// struct's own header at the moment the game serialises it (SaveEdgeTracker.KeyFromHeader),
-/// the counts are those of that instant, and the same key is read back when the game applies
-/// that save, so loading slot B never sees slot A's items and loading an older save of the same
-/// slot gets that save's own counts. The owner's test 2 (2026-08-27 18:53) is what schema 1's
-/// one global file, recorded continuously, failed: a load's own clear was written to disk as a
-/// sale. Schema 1 files migrate their single count map into <see cref="TakeLegacy"/>, a one-shot
-/// fallback for the first load whose key is unknown (the saves that predate the keys).
+/// Schema 2 (LW-353, 2026-08-27) keys counts per save, using the key from the save header at
+/// serialise time (SaveEdgeTracker.KeyFromHeader). Schema 1's single global file failed the owner's
+/// test 2 (2026-08-27 18:53), where a load's own clear was recorded as a sale. A schema 1 file
+/// migrates into <see cref="TakeLegacy"/>, handed to the first load with an unknown key.
 ///
-/// Bounded: <see cref="MaxSaves"/> keys are kept and the least recently USED one goes first
-/// (LW-351 fix round 7, 2026-08-30: the old cap of 64 with oldest-written eviction let one
-/// evening of battle autosaves, two to four keys per fight, push the owner's real save out, so
-/// his pt2775 load came back "never seen" and its counts were replaced by the seed). A load that
-/// finds its key moves that key to the back of the line; entries are a few bytes each, so a
-/// thousand of them is still a small file. Load never throws; Update is fail-soft.
+/// Capped at <see cref="MaxSaves"/> keys, evicting the least recently used. The old cap of 64
+/// evicted oldest-written, and an evening of battle autosaves pushed out the owner's real save
+/// (pt2775; LW-351 fix round 7, 2026-08-30). A load that finds its key moves it to the back.
 ///
-/// TWO THREADS since LW-351: Engine's tick records a save here, and the game's OWN thread reads
-/// here from inside the load detour (the replay has to beat the game's menu-template rebuild).
-/// The maps are plain Dictionary/List and SidecarJson writes through a fixed .tmp path, so both
-/// are locked: <c>_gate</c> guards the in-memory state and <c>_ioGate</c> serialises the disk
-/// write, and _gate is never held across the I/O so a load edge cannot wait on a disk write.
+/// Two threads: Engine's tick records saves and the game's thread reads from the load
+/// detour. <c>_gate</c> guards the maps, <c>_ioGate</c> serialises the write and never nests I/O.
 /// </summary>
 internal sealed partial class ExtendedBagSidecar
 {
@@ -66,13 +55,10 @@ internal sealed partial class ExtendedBagSidecar
     {
         lock (_gate)
         {
-            // Safe to hand the stored map out by reference: RecordSave replaces an entry with a
-            // fresh dictionary, it never mutates one that was already handed out.
+            // Handing out the stored map is safe because RecordSave replaces entries, never mutates.
             if (_saves.TryGetValue(key, out var c))
             {
-                // A used key goes to the back of the line, so a save the player keeps loading is
-                // never the one the cap throws away. In memory only: the next RecordSave persists
-                // the order, and a read on the game's own thread must not touch the disk.
+                // Move the used key to the back (memory only, game thread; RecordSave persists it).
                 _order.Remove(key);
                 _order.Add(key);
                 counts = c;
@@ -83,8 +69,8 @@ internal sealed partial class ExtendedBagSidecar
         return false;
     }
 
-    /// <summary>The schema-1 counts, handed out ONCE (the first unknown-key load after the
-    /// migration inherits them; every later unknown key gets the data seed).</summary>
+    /// <summary>The schema-1 counts, handed out once to the first unknown-key load; later unknown
+    /// keys get the data seed.</summary>
     public Dictionary<int, int>? TakeLegacy()
     {
         lock (_gate)
@@ -95,9 +81,8 @@ internal sealed partial class ExtendedBagSidecar
         }
     }
 
-    /// <summary>Record the counts the game just serialised under <paramref name="key"/> and
-    /// persist atomically (SidecarJson chain). Fail-soft: a failed write logs and leaves the
-    /// previous file intact.</summary>
+    /// <summary>Records the counts the game just serialised under <paramref name="key"/> and
+    /// persists atomically. A failed write logs and leaves the previous file intact.</summary>
     public void RecordSave(string key, IReadOnlyDictionary<int, int> counts)
     {
         lock (_gate)
@@ -114,8 +99,8 @@ internal sealed partial class ExtendedBagSidecar
         Persist();
     }
 
-    /// <summary>Persist after the legacy counts were consumed, so they are not handed out twice
-    /// across launches.</summary>
+    /// <summary>Persists after the legacy counts were taken, so they are not handed out again
+    /// next launch.</summary>
     public void PersistAfterLegacyTaken() => Persist();
 
     private void Persist()

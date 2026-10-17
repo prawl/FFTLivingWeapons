@@ -3,13 +3,12 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// The signature half of GrowthEngine: the iconic ability/stat a weapon GRANTS at its kill-tier,
-/// held on the combat struct alongside the stat growth. Three flavors:
-///   - support bit (always-on or HP-gated) -- OR-in at +0x98 (Signatures.ResolveSupport/ConditionMet);
-///   - timed flat stat (first-N-turns) -- write + revert a Speed bonus, gated by TurnTracker.
-/// Every write is VirtualQuery-guarded (Mem.Writable) and only ever OR-sets a bit or writes a
-/// captured-natural-derived value, so a wrong guess can never corrupt a stat (worst case a buff
-/// lingers one battle, which the fresh per-battle combat struct clears).
+/// The signature half of GrowthEngine: the ability or stat a weapon grants at its kill tier, held
+/// on the combat struct beside the stat growth. Two kinds:
+///   - support bit (always-on or HP-gated), OR-ed in at +0x98 (Signatures.ResolveSupport/ConditionMet);
+///   - timed flat stat (first-N-turns), a Speed bonus written then reverted, gated by TurnTracker.
+/// Writes are guarded (Mem.Writable) and only OR-set a bit or write a value derived from the
+/// captured natural, so a wrong guess lingers at most one battle (the next combat struct is fresh).
 /// </summary>
 internal sealed partial class GrowthEngine
 {
@@ -23,32 +22,27 @@ internal sealed partial class GrowthEngine
         _heldSupports = new();
 
     /// <summary>Hold this weapon's signature support passive on the combat struct, once its
-    /// kill-tier is earned -- OR-in the bit each tick to beat the engine's per-turn normalize,
-    /// exactly as the stat hold does. Guarded write; the hold itself never clears (kills only
-    /// climb, and the struct is rebuilt fresh each battle) -- ReleaseUnequipped strips the bit
-    /// if the weapon leaves the wielder's hands mid-battle.
-    /// pickedSupport: the player's chosen roster support id (Offsets.RSupport); used to emit the
-    /// redundancy note when the wielder already has the same support equipped (default 0 = unknown).</summary>
+    /// <summary>Hold this weapon's signature support passive once its kill tier is earned: OR the
+    /// bit in each tick to beat the engine's per-turn normalize. ReleaseUnequipped strips it if the
+    /// weapon leaves the wielder's hands mid-battle. pickedSupport is the player's chosen roster
+    /// support id (Offsets.RSupport), used for the redundancy note (0 = unknown).</summary>
     private void HoldSignature(long s, int rosterSlot, int weapon, string name, WeaponSignature? sig, int tier,
                                 int hp, int maxHp, int brave, int faith, int pickedSupport = 0)
     {
         if (!Signatures.ResolveSupport(sig, tier, out int off, out byte mask)) return;
         if (!Signatures.ConditionMet(sig, hp, maxHp)) return;   // HP-gate; no-op for always-on signatures
         long addr = s + Offsets.CSupport + off;
-        // Latch + announce only a CONFIRMED set: OrSet's read-back fails on an unwritable page
-        // AND on the teardown race where the write doesn't stick -- either way, no latch, no
-        // log, retry next tick (so the once-per-battle grant log is never burned on a miss).
+        // Latch and announce only a confirmed set: OrSet's read-back fails on an unwritable page or
+        // a teardown race, and then we retry next tick so the once-per-battle log is not burned.
         if (!MemBits.OrSet(addr, mask, out _)) return;
         _heldSupports[(rosterSlot, weapon)] = (s, off, mask, sig!.AbilityId, brave, faith);
         LogGrantOnce(weapon, name, sig!, off, mask, addr, pickedSupport);
     }
 
-    /// <summary>Mid-battle unequip release (the grant-verification half the OR-only hold lacks):
-    /// when a latched weapon no longer sits in its wielder's roster hands, AND-clear the granted
-    /// support bit -- unless it is the player's own picked support (never strip their choice), and
-    /// only while the latched struct still fingerprint-matches (units migrate between fixed slots;
-    /// the Maim.Drive discipline). An unreadable/emptied roster slot keeps the latch (transient or
-    /// battle teardown -- the fresh per-battle struct clears it anyway).</summary>
+    /// <summary>Mid-battle unequip release: when a latched weapon is no longer in its wielder's
+    /// roster hands, clear the granted bit, unless it is the player's own picked support. Only
+    /// clears while the latched struct still fingerprint-matches (units migrate between fixed
+    /// slots; same rule as Maim.Drive). An unreadable roster slot keeps the latch.</summary>
     private void ReleaseUnequipped()
     {
         if (_heldSupports.Count == 0) return;
@@ -77,11 +71,9 @@ internal sealed partial class GrowthEngine
             foreach (var k in drop) { _heldSupports.Remove(k); _grantLogged.Remove(k.weapon); }   // re-equip re-announces
     }
 
-    /// <summary>Read the granted bit back and announce it once per weapon per battle: confirms the
-    /// write landed (SET vs MISS) and decodes the ability by name -- the clean test signal that
-    /// replaces eyeballing a memory diff. Warns when the support is build-time-only (e.g. HP Boost),
-    /// whose live bit can't take effect, so a dud signature is obvious in the log. When the player's
-    /// picked support matches the grant, emits a redundancy note (same bit -> no stack).</summary>
+    /// <summary>Read the granted bit back and log it once per weapon per battle (SET vs MISS, with
+    /// the ability named). Warns when the support is build-time-only (e.g. HP Boost) and cannot take
+    /// effect live, and notes when the player's own pick matches the grant (same bit, no stack).</summary>
     private void LogGrantOnce(int weapon, string name, WeaponSignature sig, int off, byte mask, long addr,
                                int pickedSupport = 0)
     {
@@ -98,17 +90,14 @@ internal sealed partial class GrowthEngine
             ModLogger.Event(LogVerb.Grant, $"The wielder already chose {sig.DisplayLabel} as their support; the weapon's grant adds nothing (pick a different support to benefit).");
     }
 
-    /// <summary>Read a unit's (currentHP, maxHP) from the BAND by its (level,brave,faith)
-    /// fingerprint -- the combat struct doesn't carry HP, and the static array freezes on
-    /// battle restart (stale HP breaks the HP-gated guard after a restart). Returns (0,0)
-    /// if no band slot matches. Only called for conditional (HP-gated) signatures.
-    /// Prefers real-position entries over (0,0) twins.
-    /// TWO-TIER (D7): tier 1 (rosterNameId &gt; 0) requires an exact band-entry nameId match;
-    /// a miss falls back to tier 2 (today's plain fingerprint scan, veto-hardened -- an entry
-    /// whose nameId reads NONZERO and differs from rosterNameId is excluded). Per D8, the
-    /// nameId read is UNGUARDED (the shipped Iai/Wielder pattern): Mem's U16 fail-safes to 0 on
-    /// an unreadable address, and a guarded Readable pre-filter would make tier 1 permanently
-    /// dead against FakeSparseMemory's allowlist-true-only fake in every test.</summary>
+    /// <summary>Read a unit's (currentHP, maxHP) from the band by its (level, brave, faith)
+    /// fingerprint, since the combat struct carries no HP and the static array freezes on battle
+    /// restart. Returns (0,0) on no match; prefers real-position entries over (0,0) twins. Only
+    /// called for HP-gated signatures.
+    /// Two tiers (D7): tier 1 (rosterNameId &gt; 0) needs an exact band nameId match; a miss falls
+    /// back to tier 2, the plain fingerprint scan with a veto on any entry whose nonzero nameId
+    /// differs. The nameId read is unguarded (D8, as in Iai/Wielder): Mem's U16 returns 0 when
+    /// unreadable, and a Readable pre-filter would leave tier 1 dead against FakeSparseMemory.</summary>
     internal static (int hp, int maxHp) ReadHp(IGameMemory mem, int level, int brave, int faith, int rosterNameId = 0)
     {
         if (rosterNameId > 0)
@@ -120,16 +109,13 @@ internal sealed partial class GrowthEngine
         return (hp2, maxHp2);
     }
 
-    /// <summary>One full band pass under either mode: <paramref name="exact"/> = tier 1 (requires
-    /// the band entry's nameId == rosterNameId, unguarded read; only called with rosterNameId
-    /// &gt; 0); !exact = tier 2 (today's fingerprint match, plus the D2 veto when rosterNameId
-    /// &gt; 0 -- a foreign nonzero nameId excludes the entry, 0/unseeded passes).
-    /// LW-252 stage 6, decision-4 exception (b): on the non-exact pass, when rosterNameId &lt;= 0
-    /// (no verified identity at all) AND two or more REAL-position candidates survive, returns
-    /// the miss value ((0,0)) instead of picking one -- the same refusal
-    /// GrowthEngine.Locate.cs's PickHomogeneousTwin applies, for the same reason (a wrong-unit HP
-    /// read feeds a wrong-unit HP-gated hold). Every consumer already treats (0,0) as "no info"
-    /// (GrowthEngine.cs, Ultima.cs, Afterimage.cs), so this degrades to an ordinary miss.</summary>
+    /// <summary>One band pass: <paramref name="exact"/> is tier 1 (band nameId == rosterNameId,
+    /// only called with rosterNameId &gt; 0); otherwise tier 2 (fingerprint match, plus the D2 veto
+    /// when rosterNameId &gt; 0).
+    /// LW-252 stage 6, decision-4 exception (b): on the non-exact pass with rosterNameId &lt;= 0 and
+    /// two or more real-position candidates, returns (0,0) rather than guessing, as
+    /// GrowthEngine.Locate.cs's PickHomogeneousTwin does. Consumers (GrowthEngine.cs, Ultima.cs,
+    /// Afterimage.cs) treat (0,0) as no info.</summary>
     private static (bool found, int hp, int maxHp) ReadHpScan(IGameMemory mem, int level, int brave, int faith,
                                                               int rosterNameId, bool exact)
     {

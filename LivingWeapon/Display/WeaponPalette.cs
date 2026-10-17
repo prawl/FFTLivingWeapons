@@ -3,62 +3,41 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-251: the per-turn weapon-sprite palette repaint. NOT an ISignature -- a display subsystem
-/// (its own TickPhase row, an explicit ResetBattle() call from Engine.ResetBattleState, the
-/// AttackCard.ResetBattle() precedent), because its job is cosmetic (which colours a swing shows),
-/// not a kill-tier gameplay grant.
-///
+/// The per-turn weapon-sprite palette repaint. A display subsystem, not an ISignature:
+/// it has its own TickPhase row and Engine.ResetBattleState calls its ResetBattle().
 /// On the acting unit's turn (<see cref="Band.FlagOwner"/>), reads its main-hand weapon id
-/// (Offsets.AWeapon) and, if meta carries authored bench colours for it
-/// (<see cref="WeaponMeta.Palette"/>/<see cref="WeaponMeta.Colors"/>), writes those 15 codes
-/// (entries 1..15; entry 0, transparency, is structurally out of the write window -- the write
-/// always starts at the palette's own +2 byte offset) into BOTH resident palette banks
-/// (Offsets.WeaponPaletteBankA/B) at that weapon's palette index, restoring the pre-first-paint
-/// snapshot when the acting unit/weapon no longer wants that palette. See
-/// WeaponPalette.Policy.cs's WeaponPalettePolicy.Decide for the full seven-row decision table this
-/// class only executes; this file is the stateful (memory-touching) half. LW-295's "what glow
-/// tier do we want" reads live in the WeaponPalette.Desire.cs partial (a separate seam: this file
-/// is "how the banks are painted", Desire.cs is "what do we want painted").
-///
-/// FlagOwner refusal (between turns, an ambiguous read, battle opening) HOLDS the current painted
-/// state -- no restore, no write -- the same fail-safe direction every other FlagOwner-driven
-/// module in this repo takes: a wrong colour would be worse than a merely stale one.
+/// (Offsets.AWeapon) and, if meta has bench colors for it (<see cref="WeaponMeta.Palette"/>/
+/// <see cref="WeaponMeta.Colors"/>), writes entries 1..15 into both banks
+/// (Offsets.WeaponPaletteBankA/B), restoring the first-paint snapshot when it no longer applies.
+/// A FlagOwner refusal holds the current state (a stale color beats a wrong one). The decision
+/// table is WeaponPalettePolicy.Decide; the LW-295 glow-tier read is in WeaponPalette.Desire.cs.
 /// </summary>
 internal sealed partial class WeaponPalette
 {
-    /// <summary>~1s at the 33ms engine tick (mirrors GunSlinger's own in-battle re-assert
-    /// cadence, TickGates "gunslinger" row): self-heals a starved bracket where a battle-load or
-    /// some other writer wipes the banks without this class ever seeing a battle edge.</summary>
+    /// <summary>About 1s at the 33ms tick. Re-asserts the paint in case a battle load wiped the
+    /// banks without a battle edge reaching this class (same cadence as GunSlinger, TickGates).</summary>
     internal const int ReassertTicks = 30;
 
-    // A property, not a static readonly array (LW-388): both banks are rebased pins, and a field
+    // A property, not a static readonly array: both banks are rebased pins, and a field
     // would freeze the image base at type-init.
     private static long[] Banks => new[] { Offsets.WeaponPaletteBankA, Offsets.WeaponPaletteBankB };
 
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly IGameMemory _mem;
 
-    /// <summary>LW-295: the shared kill tally (Engine._kills), held by reference like every other
-    /// subsystem -- WeaponPalette.Desire.cs's DesiredGlow keys the acting wielder's glow tier off
-    /// it.</summary>
+    /// <summary>the shared kill tally (Engine._kills); Desire.cs keys the glow tier off it.</summary>
     private readonly Dictionary<int, int> _kills;
 
-    /// <summary>Session-lifetime, NOT cleared by ResetBattle -- a battle load re-copies the same
-    /// vanilla file bytes into the banks (Offsets.WeaponPaletteBankA/B's own doc), so the FIRST
-    /// paint of a given session already captured the true vanilla bytes and a later battle's
-    /// "vanilla" is identical. Keyed by (bank, palette); each value holds entries 1..15, captured
-    /// the first time that pair is ever painted this session, before the write.</summary>
+    /// <summary>Session lifetime, not cleared by ResetBattle: a battle load re-copies the vanilla
+    /// file into the banks (see Offsets.WeaponPaletteBankA/B), so the first capture stays valid.
+    /// Keyed by (bank, palette); entries 1..15, captured before the first paint of that pair.</summary>
     private readonly Dictionary<(long bank, int pal), ushort[]> _vanilla = new();
 
-    /// <summary>LW-308: what this runtime last actually wrote per (bank, palette) -- entries
-    /// 1..15 with their carried bit 15s -- so a later paint can tell "still our colours" from
-    /// "someone else's bytes". Session lifetime like _vanilla (after a battle load the banks read
-    /// as vanilla, which the suspect check accepts on its own).</summary>
+    /// <summary>what this runtime last wrote per (bank, palette), entries 1..15 with their
+    /// bit 15s, to tell "still our colors" from a foreign write. Session lifetime like _vanilla.</summary>
     private readonly Dictionary<(long bank, int pal), ushort[]> _lastWritten = new();
 
-    /// <summary>LW-308: (bank, palette) pairs already warned about this battle, so a foreign
-    /// writer produces ONE loud line per surface per battle instead of a re-assert-cadence
-    /// spam.</summary>
+    /// <summary>pairs already warned about this battle, so a foreign writer logs once.</summary>
     private readonly HashSet<(long bank, int pal)> _suspectWarned = new();
 
     private int _paintedPal = -1;
@@ -115,27 +94,21 @@ internal sealed partial class WeaponPalette
         }
     }
 
-    /// <summary>Battle-enter AND battle-exit edge (Engine.ResetBattleState fires on both, the
-    /// AttackCard.ResetBattle precedent): the banks were just refreshed from the loaded file, so
-    /// the latch is stale by definition. _vanilla is session lifetime and is deliberately NOT
-    /// cleared here.</summary>
+    /// <summary>Battle enter and exit edge: the banks were just refreshed from the file, so the
+    /// latch is stale. _vanilla is session lifetime and stays.</summary>
     public void ResetBattle()
     {
         _paintedPal = -1;
         _paintedWeapon = -1;
         _paintedGlow = 0;
         _ticksUnchanged = 0;
-        _suspectWarned.Clear();   // LW-308: a new battle earns a fresh (single) warning per surface
+        _suspectWarned.Clear();   // a new battle earns a fresh (single) warning per surface
     }
 
     /// <summary>Writes <paramref name="codes"/> (entries 1..15) into both banks at
-    /// <paramref name="pal"/>, carrying each entry's CURRENT bit 15 (never inventing it) and
-    /// capturing the pre-write snapshot the first time this (bank, pal) pair is ever painted this
-    /// session. A bank that fails TryReadBytes this tick is skipped entirely: no write, no
-    /// snapshot (the other bank still paints). Must never mutate <paramref name="codes"/> itself
-    /// -- at tier 0 BrightenAll hands this the shared session-lifetime meta Colors array by
-    /// reference, so a mutation here would corrupt the baked meta for the rest of the
-    /// session.</summary>
+    /// <paramref name="pal"/>, keeping each entry's current bit 15, and snapshots the pair on its
+    /// first paint. A bank whose read fails is skipped. Must not mutate <paramref name="codes"/>:
+    /// at tier 0 it is the shared meta Colors array.</summary>
     private void PaintBanks(int pal, int weaponId, int[] codes)
     {
         foreach (long bank in Banks)
@@ -155,10 +128,9 @@ internal sealed partial class WeaponPalette
             }
             else
             {
-                // LW-308: on every later paint, sanity-check the bank against the snapshot and
-                // our own last write. A mismatch with BOTH means a foreign writer or a bad first
-                // look; say so loudly (once per battle per surface) and keep the ORIGINAL
-                // snapshot -- re-memorizing would launder the wrong bytes into every restore.
+                // On later paints, compare the bank to the snapshot and our last write. Matching
+                // neither means a foreign writer or a bad first look; warn once per battle per surface and
+                // keep the original snapshot so restores don't launder the wrong bytes.
                 var now = new ushort[15];
                 for (int i = 1; i <= 15; i++) now[i - 1] = cur[i];
                 _lastWritten.TryGetValue(key, out var last);
@@ -172,9 +144,8 @@ internal sealed partial class WeaponPalette
             var written = new ushort[15];
             for (int i = 1; i <= 15; i++)
             {
-                // Carry bit 15 from the bank, never invent it -- and strip it from the baked code
-                // (LW-308): the bank is the ONLY legitimate source of that bit, so a corrupt baked
-                // value cannot smuggle it in.
+                // Carry bit 15 from the bank and strip it from the baked code, so a corrupt
+                // baked value cannot set it.
                 ushort code = (ushort)((cur[i] & 0x8000) | (codes[i - 1] & 0x7FFF));
                 written[i - 1] = code;
                 outBytes[(i - 1) * 2] = (byte)(code & 0xFF);
@@ -186,9 +157,8 @@ internal sealed partial class WeaponPalette
         ModLogger.Debug(LogVerb.Display, $"Painted weapon {weaponId} into palette {pal}.");
     }
 
-    /// <summary>Writes each bank's pre-first-paint snapshot back verbatim (its own bit 15s
-    /// included) -- no read needed. A bank with no snapshot (never painted this session) is left
-    /// untouched.</summary>
+    /// <summary>Writes each bank's first-paint snapshot back, bit 15s included. A bank with no
+    /// snapshot is left alone.</summary>
     private void RestoreBanks(int pal, int weaponId)
     {
         foreach (long bank in Banks)

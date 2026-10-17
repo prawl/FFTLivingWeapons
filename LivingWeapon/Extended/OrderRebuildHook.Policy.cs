@@ -2,13 +2,11 @@ using System.Collections.Generic;
 
 namespace LivingWeapon;
 
-/// <summary>Pure, testable half of <see cref="OrderRebuildHook"/>: list parsing, the dropped-word
-/// diff, and the re-append byte encoding. No hook or memory dependency.</summary>
+/// <summary>Pure half of <see cref="OrderRebuildHook"/>: list parsing, dropped-word diff, re-append encoding.</summary>
 internal sealed partial class OrderRebuildHook
 {
-    /// <summary>Little-endian u16 words up to (not including) the first <see cref="Terminator"/>.
-    /// Null when no terminator is found inside the buffer (fail-safe: the caller passes through);
-    /// an empty list (terminator first) is an empty array.</summary>
+    /// <summary>Little-endian u16 words up to the first <see cref="Terminator"/>. Null when the buffer has none
+    /// (caller passes through); empty array when the terminator comes first.</summary>
     public static ushort[]? ParseList(byte[] bytes)
     {
         int max = bytes.Length / 2;
@@ -24,9 +22,7 @@ internal sealed partial class OrderRebuildHook
         return null;
     }
 
-    /// <summary>The words of <paramref name="input"/> whose masked id (<c>w &amp; IdMask</c>) is
-    /// absent from <paramref name="output"/>, in input order, each id at most once (first
-    /// occurrence wins, its flag bits preserved).</summary>
+    /// <summary>Words of <paramref name="input"/> whose masked id (<c>w &amp; IdMask</c>) is absent from <paramref name="output"/>, first occurrence wins.</summary>
     public static ushort[] DroppedWords(ushort[] input, ushort[] output)
     {
         var present = new HashSet<int>();
@@ -42,8 +38,7 @@ internal sealed partial class OrderRebuildHook
         return dropped.ToArray();
     }
 
-    /// <summary><paramref name="dropped"/> as little-endian words followed by the terminator: the
-    /// exact tail written over the rebuilt list's own terminator.</summary>
+    /// <summary><paramref name="dropped"/> as little-endian words plus the terminator.</summary>
     public static byte[] TailBytes(ushort[] dropped)
     {
         var tail = new byte[dropped.Length * 2 + 2];

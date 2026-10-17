@@ -6,54 +6,38 @@ using Reloaded.Hooks.Definitions.X64;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-353: the native half of the save edges (untestable by construction, the PromptSwapHook
-/// posture): three Reloaded.Hooks detours behind prologue landmarks. The two LOAD detours forward
-/// to the original FIRST and then, once the struct is applied, read the save struct's header
-/// through the guarded patcher and hand it to <see cref="SaveEdgeTracker"/>; the SERIALIZE detour
-/// has forwarded to the original first that way, too, since LW-353 -- but since LW-371 (below) it
-/// first projects the three relocated chart blocks BEFORE forwarding, so the struct the original
-/// serializes already carries the projection, and only reads the header AFTER, once the struct is
-/// complete. A detour never throws and never logs on the hot path beyond the once-per-session
-/// canaries.
+/// Native half of the save edges (untestable, like PromptSwapHook). Three
+/// Reloaded.Hooks detours behind prologue landmarks. The two load detours forward to the
+/// original, then read the save struct header through the guarded patcher and hand it to
+/// <see cref="SaveEdgeTracker"/>. Since LW-371 the serialize detour first projects the three
+/// relocated chart blocks (<see cref="TemplateSync.Project"/>), then forwards and reads the
+/// header. Detours never throw and log only the once-per-session canaries.
 ///
-/// LW-351 CHANGES ONE POSTURE ON PURPOSE: the load detours write game memory, and LW-371 gives the
-/// serialize detour the same license -- it now writes too, projecting the relocated page down into
-/// the three old chart blocks (<see cref="TemplateSync.Project"/>) BEFORE forwarding to the
-/// original, so the game's own struct copy (right after) serializes exactly what the projection
-/// just wrote. The routine the load detours wrap
-/// undoes two things the extended items need on its way past: it copies the save file's bag over
-/// the game's count array (that file carries ids 0..260, so every extended id lands on zero) and
-/// it RESTORES both menu order templates byte-for-byte out of the save struct (0x14021B4BD /
-/// 0x14021B5BB), which for any save written before a new id ever seated means a table that will
-/// never name it. Round 4 (re-test 4) proved the first half, round 5 (re-test 5 plus the closing
-/// disassembly, 2026-08-30) proved the second: nothing in the load path rebuilds those templates
-/// from the item data, so an owned-but-unworn new item could never be listed or equipped. Both
-/// repairs therefore happen right here, after the original returns: N bounded one-byte writes into
-/// the bag-count array (BagReplay) plus at most a few words into each order template
-/// (TemplateSeat), all through the guarded patcher, and nothing else. Engine's tick still runs the
-/// same replay afterwards as an idempotent fallback and keeps the one log line (BagReplay holds
-/// the resolution both paths share); the seat it runs only when this detour did not serve the
-/// load edge (round 8c), and the detour's repair and refusal notes reach the log through it.
+/// The load detours also write game memory (the serialize detour too, since LW-371).
+/// The routine they wrap copies the save's bag over the count array (the file carries ids
+/// 0..260, so extended ids land on zero) and restores both menu order templates from the save
+/// struct (0x14021B4BD / 0x14021B5BB). Nothing in the load path rebuilds them from item data
+/// (re-test 4 and 5, closing disassembly 2026-08-30). So after the original returns, the detour
+/// replays the bag counts (BagReplay) and reseats a few template words (TemplateSeat), all
+/// through the guarded patcher. Engine's tick runs the same replay as an idempotent fallback
+/// and keeps the log line; its seat runs only when this detour did not serve the load edge
+/// (round 8c).
 ///
-/// Landmarks (re-read from the 1.5.2 exe on disk 2026-08-27 late night, after the first build
-/// named two entries that were not the routines it meant):
+/// Landmarks (re-read from the 1.5.2 exe on disk 2026-08-27, after the first build named two
+/// entries that were not the routines it meant):
 ///   save-serialize 0x140218F78: 48 89 5C 24 08 48 89 6C 24 20 56 57 41 54 41 56
 ///   load-apply     0x14021B0E8: 48 8B C4 48 89 58 08 48 89 68 10 48 89 70 18 48
 ///   load-restore-b 0x14021DE98: 48 89 5C 24 08 48 89 6C 24 10 48 89 74 24 18 57
-/// Every save caller reaches the serializer through the wrapper 0x14021B070's tail jump, so that
-/// one entry covers manual saves and the autosave. The load-apply sits at the byte right after
-/// that jump. The async file-op stepper 0x14021DDF0 is deliberately NOT hooked: it is called
-/// twice a frame while a save OR a load is in flight, so a load edge taken from it would fire on
-/// saves too. The struct pointer normally holds the static image buffer 0x142C81C80
-/// (Offsets.SaveStructStatic), so the header read after the original returns is the struct that
-/// routine just filled or applied.
-/// Signatures are unknown beyond "Microsoft x64, up to four register args"; the detours forward
-/// rcx/rdx/r8/r9 verbatim and return the original's rax, the same contract PromptSwapHook uses.
+/// Every save caller reaches the serializer through the wrapper 0x14021B070's tail jump, so one
+/// entry covers manual saves and autosave. The load-apply sits at the byte after that jump. The
+/// async file-op stepper 0x14021DDF0 is not hooked: it runs twice a frame during a save or a
+/// load, so a load edge taken from it would fire on saves too. The struct pointer normally holds
+/// the static image buffer 0x142C81C80 (Offsets.SaveStructStatic), so the header read after the
+/// original returns is the struct just filled or applied.
+/// Signatures are unknown (Microsoft x64, up to four args), so the detours forward rcx/rdx/r8/r9
+/// and return rax, as PromptSwapHook does.
 ///
-/// This file is construction, Install/Release and the two read helpers (ReadHeader/ReadCounts);
-/// the three detour bodies and AfterApply are split into SaveEdgeHooks.Detours.cs under the
-/// 200-line house guideline (the same lifecycle/hot-path seam ExtendedInventory.cs and
-/// ExtendedInventory.Hooks.cs already use).
+/// The detour bodies and AfterApply are in SaveEdgeHooks.Detours.cs (200-line limit).
 /// </summary>
 internal sealed partial class SaveEdgeHooks
 {
@@ -67,25 +51,19 @@ internal sealed partial class SaveEdgeHooks
     private readonly ICodePatcher _mem;
     private readonly SaveEdgeTracker _tracker;
     private readonly IReadOnlyList<int> _extendedIds;
-    private readonly Action<string>? _replayOnLoad;   // LW-351: the bag replay, by save key
+    private readonly Action<string>? _replayOnLoad;   // the bag replay, by save key
     private readonly long _bagBase;   // LW-368 round 2: ExtendedInventory.BagCountBase, set at construction
-    private readonly TemplateRelocation? _templates;   // LW-371: null = no template sync (every pre-existing caller)
+    private readonly TemplateRelocation? _templates;   // null = no template sync (every pre-existing caller)
     private IHook<EdgeFn>? _serialize, _apply, _applyB;
     private EdgeFn? _k1, _k2, _k3;   // GC anchors: the native thunks must outlive us
     private bool _canarySave, _canaryLoadA, _canaryLoadB;
 
     public bool IsActive => _serialize?.IsHookEnabled == true && _apply?.IsHookEnabled == true && _applyB?.IsHookEnabled == true;
 
-    /// <param name="bagBase">LW-368 round 2: where the bag bytes live -- <see
-    /// cref="ExtendedInventory.BagCountBase"/> in production (the relocated page once armed,
-    /// else the vanilla block); defaults to the vanilla block so every pre-existing caller keeps
-    /// compiling unchanged.</param>
-    /// <param name="templates">LW-371: the template relocation, so the serialize detour can
-    /// project the page down into the old chart blocks and the load detour can adopt the restored
-    /// blocks back onto the page (<see cref="TemplateSync"/>). Null (the default) is a no-op on
-    /// both edges -- <see cref="TemplateSync.Project"/>/<see cref="TemplateSync.Adopt"/> only run
-    /// when given a non-null, installed relocation -- so every pre-existing caller keeps compiling
-    /// and behaving unchanged.</param>
+    /// <param name="bagBase">LW-368 round 2: where the bag bytes live (<see
+    /// cref="ExtendedInventory.BagCountBase"/> in production); defaults to the vanilla block.</param>
+    /// <param name="templates">for <see cref="TemplateSync"/> project/adopt. Null makes
+    /// both edges no-ops.</param>
     public SaveEdgeHooks(ICodePatcher mem, SaveEdgeTracker tracker, IReadOnlyList<int> extendedIds,
         Action<string>? replayOnLoad = null, long bagBase = 0, TemplateRelocation? templates = null)
     {
@@ -148,9 +126,8 @@ internal sealed partial class SaveEdgeHooks
         return _mem.TryRead(ptr + Offsets.SaveHeaderKeyOff, Offsets.SaveHeaderKeyLen, out var hdr) ? hdr : null;
     }
 
-    /// <summary>Internal (not private): a test seam, the same idiom <see cref="AfterApply"/>
-    /// already uses to bypass the native trampoline. Reads through <see cref="_bagBase"/>
-    /// (LW-368 round 2).</summary>
+    /// <summary>Internal as a test seam, like <see cref="AfterApply"/>. Reads through
+    /// <see cref="_bagBase"/> (LW-368 round 2).</summary>
     internal Dictionary<int, int> ReadCounts()
     {
         var counts = new Dictionary<int, int>();

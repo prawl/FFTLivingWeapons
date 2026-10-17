@@ -1,8 +1,8 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// The pure decisions behind Warlock's Staff's "Choir" signature -- no memory access.
-/// The stateful per-tick bearer writer lives in Choir.cs.
+/// Pure decisions for Warlock's Staff's "Choir" signature, no memory access.
+/// The per-tick bearer writer is in Choir.cs.
 /// </summary>
 internal sealed partial class Choir
 {
@@ -10,7 +10,6 @@ internal sealed partial class Choir
     public static bool IsActive(WeaponSignature? sig, int tier)
         => Signatures.Earned(sig, tier) && sig!.InstantCastRadius > 0;
 
-    /// <summary>Wielder resolution is main-hand-only: the weapon must be in RRHand to activate.
-    /// A Living Weapon earns kills in any hand, but commands its gift only from the main hand.</summary>
+    /// <summary>Main-hand only: the weapon must be in RRHand. Kills count from any hand.</summary>
     public const bool ActivatesOnMainHandOnly = true;
 }

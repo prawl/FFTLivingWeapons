@@ -3,57 +3,34 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// Umbral Rod's "Spiritual Font" signature. T1 weapons carry no signatures; this was moved
-/// from Wellspring Rod (id 51, tier 1) to Umbral Rod (id 56, tier 3) for that reason.
-/// At each tick (inLive, active, located via Wielder.LocateAll): reads the wielder's
-/// current (gx, gy) from the first located band entry and feeds it to a MoveWatch
-/// state machine. When MoveWatch confirms a stable position change (new tile held for
-/// StabilityTicks=3 consecutive ticks), the RUNTIME restores Tuning.FontHpPct of max HP
-/// (BandHeal.NewHp: floor 1, clamp at full, never revive) and Tuning.FontMpPct of max MP
-/// (NewMp: floor 1, clamp at maxMp; never into a corpse). Rate-capped at one fire per
-/// RateCap=90 ticks (~3 s). Move-only turns NOW PAY (the old gap is closed).
-///
-/// TRIGGER HISTORY: four prior designs failed live:
-///   (1) Global TurnTracker acted-edge -- the active struct at 0x14077D2A0 follows the CURSOR,
-///       not the turn owner; mis-credited every edge to whoever the cursor rested on.
-///   (2) Band +0x25 (ACtSlam) CT read -- that byte is ExtraTurn's write target and never
-///       ticked reliably for reads; zero transitions observed across full player turns.
-///   (3) Band +0x09 (ACtTurn) CT read -- also never reached >= 90 across full player turns
-///       in the watcher, even with sampling extended to all live-battle ticks.
-///   (4) Actor latch (KillTracker.LastPlayerWeapons) rising edge -- live log showed it fired
-///       for action 1 ("action edge 1 ... baseline") then the SECOND player action produced
-///       NO latch line, NO turn line, NOTHING -- the global Acted flag (0x14077CA8C) pulses
-///       unreliably (the documented condensed-struct-follows-cursor / pulse trap family).
-///       Also cost kill credits when shared with KillTracker. Every engine-bookkeeping signal
-///       has now failed; position-poll needs no engine cooperation.
-/// Position-poll design: the pure MoveWatch class (SpiritualFont.Policy.cs) maintains a
-/// position snapshot and a 3-tick stability gate with a 90-tick rate cap. No engine flags.
-///
-/// MP SAFETY: the band +0x18/+0x1A (mp/maxMp) pair is LIVE-VERIFIED on screen 2026-06-10.
-/// Every MP write is gated behind a per-battle layout validation (MpLayoutOk, pure + tested):
-/// on the first field tick with >= 2 valid band units, every valid unit's mp/maxMp must read
-/// sane or MP writes stay disabled for the battle (the HP half still fires). Each MP write is
-/// re-read and logged SET/MISS. All writes guarded (Mem).
+/// Umbral Rod's Spiritual Font signature, moved from Wellspring Rod (id 51, tier 1) to Umbral Rod
+/// (id 56, tier 3) because tier 1 weapons carry no signatures. When the wielder's tile changes and
+/// holds for 3 ticks (MoveWatch, SpiritualFont.Policy.cs), it restores Tuning.FontHpPct of max HP
+/// and Tuning.FontMpPct of max MP, at most once per 90 ticks (about 3 s). Position polling is used
+/// because four engine-flag triggers failed in play: the global TurnTracker struct at 0x14077D2A0
+/// follows the cursor, band +0x25 and +0x09 CT reads never ticked reliably, and the KillTracker
+/// actor latch missed the second action because the Acted flag at 0x14077CA8C pulses unreliably.
+/// The MP offsets (band +0x18/+0x1A) were checked on screen 2026-06-10, and MP writes stay off for
+/// a battle unless MpLayoutOk passes on the first field tick with 2 or more valid units.
 /// </summary>
 internal sealed partial class SpiritualFont : ISignature
 {
     void ISignature.Tick(in TickContext ctx) => Tick(ctx.OnField, ctx.InLive);
     private const int UmbralId = 56;
 
-    private readonly IGameMemory _mem;   // injected (LiveMemory in production; fakes in tests)
+    private readonly IGameMemory _mem;
 
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly Dictionary<int, int> _kills;
-    // KillTracker parameter retained for Engine wiring stability (nothing read from it here).
     private readonly List<int> _hands = new();
     private readonly List<long> _locateAllBuf = new();   // reused buffer for LocateAll calls
     private readonly MoveWatch _watch = new();
-    private readonly ScopedLogger _slog;   // armed gate: a benched +3 rod must not narrate on console
+    private readonly ScopedLogger _slog;   // armed gate: a benched +3 rod stays quiet
     private int _moveCount;                // moves fired this battle (for logging)
     private bool _wasActive;
-    private int _pulseTicks;             // DEV PULSE clock (Tuning.FontDevPulse; ~10s at 33ms)
-    private bool _wasLocated;            // diagnostic: located-state change is logged once per flip
-    private bool _mpChecked;             // per-battle MP layout verdict latched?
+    private int _pulseTicks;             // Tuning.FontDevPulse clock
+    private bool _wasLocated;            // logs located-state flips once
+    private bool _mpChecked;             // MP layout verdict latched
     private bool _mpOk;
 
     public SpiritualFont(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, KillTracker tracker, IGameMemory? mem = null)
@@ -62,7 +39,7 @@ internal sealed partial class SpiritualFont : ISignature
         _meta = meta;
         _kills = kills;
         _slog = ModLogger.For(LogVerb.Signature, () => Wielder.AnyDeployedMainHand(_mem, UmbralId));
-        // tracker not stored: no latch machinery remains. Parameter kept so Engine.cs wires cleanly.
+        // tracker is unused; the parameter stays so Engine.cs wiring does not change.
     }
 
     public void ResetBattle()
@@ -90,18 +67,15 @@ internal sealed partial class SpiritualFont : ISignature
         }
         if (!active)
         {
-            _watch.Reset();   // unequip: re-baseline the MoveWatch
+            _watch.Reset();   // unequipped: re-baseline
             return;
         }
 
-        // Validate the MP-write offsets ONCE per battle -- but only now that a rod-wielder is
-        // confirmed, so a battle with no Umbral Rod equipped does no band sampling and stays silent.
-        if (onField && !_mpChecked) ValidateMpLayout();   // band most coherent on field ticks; latches once
+        // Only validate once a rod wielder is confirmed, so battles without the rod never sample the band.
+        if (onField && !_mpChecked) ValidateMpLayout();
 
-        // DEV PULSE: trigger bypass -- force a replenish every ~10s (300 ticks) so the band
-        // addressing + HP write + provisional MP pair can be verified ON SCREEN, independent
-        // of any edge detection. External RPM probes are Denuvo-walled; this is the instrument.
-        // Verified live 2026-06-10: dev-pulse replenish visibly raised HP, clamped at max.
+        // Dev pulse: force a replenish every 300 ticks (about 10 s) to check the band addressing and
+        // writes on screen without movement. Checked 2026-06-10.
         if (Tuning.FontDevPulse && ++_pulseTicks >= 300)
         {
             _pulseTicks = 0;
@@ -110,10 +84,10 @@ internal sealed partial class SpiritualFont : ISignature
             ModLogger.Debug(LogVerb.Signature, $"font development pulse {(_locateAllBuf.Count == 0 ? "could not locate the wielder" : "forcing a replenish to verify the writes")}");
             if (_locateAllBuf.Count > 0)
             {
-                long pe = _locateAllBuf[0];   // move #0: no MoveWatch fire, but still worth logging where
+                long pe = _locateAllBuf[0];   // move 0: not a MoveWatch fire
                 ReplenishAll(_locateAllBuf, 0, _mem.U8(pe + Offsets.AGx), _mem.U8(pe + Offsets.AGy));
             }
-            else Wielder.DumpCandidates(_mem, _hands, fp);   // name the rejecting predicate
+            else Wielder.DumpCandidates(_mem, _hands, fp);   // names the rejecting predicate
         }
 
         _locateAllBuf.Clear();
@@ -124,25 +98,21 @@ internal sealed partial class SpiritualFont : ISignature
             _wasLocated = nowLocated;
             ModLogger.Debug(LogVerb.Signature, $"font wielder {(_wasLocated ? "found; tracking its position" : "not found this tick; skipping")}");
         }
-        if (_locateAllBuf.Count == 0) return;   // unlocated: skip; MoveWatch keeps its baseline
+        if (_locateAllBuf.Count == 0) return;   // MoveWatch keeps its baseline
 
-        long e = _locateAllBuf[0];   // read position from the first entry (live or frozen -- same tile)
+        long e = _locateAllBuf[0];   // first entry; live and frozen copies share the tile
         int gx = _mem.U8(e + Offsets.AGx), gy = _mem.U8(e + Offsets.AGy);
         bool fire = _watch.Observe(gx, gy);
-        if (_watch.IsFresh) ModLogger.Debug(LogVerb.Signature, $"font is watching the wielder's position for movement (currently at tile ({gx},{gy}))");   // first sighting log
+        if (_watch.IsFresh) ModLogger.Debug(LogVerb.Signature, $"font is watching the wielder's position for movement (currently at tile ({gx},{gy}))");
         if (!fire) return;
 
         _moveCount++;
         ReplenishAll(_locateAllBuf, _moveCount, gx, gy);
     }
 
-    /// <summary>One moved-turn restore written to every located twin (idempotent -- the live
-    /// copy takes effect, frozen twins are inert). HP/MP amounts computed once from the first
-    /// entry; HP written to all entries, MP written to all entries but read-back checked on the
-    /// first only (avoids repeat checks on the frozen copy). HP half always (clamped, never
-    /// revives); MP half only for a LIVING wielder while layout validation passed (MpHalfAllowed).
-    /// ONE console line per replenish, HP and MP merged (the old separate MP line doubled the
-    /// console per move); the trigger tile and twin-copy count ride the trace companion.</summary>
+    /// <summary>Restores HP and MP on every located twin; amounts come from the first entry and the
+    /// MP read-back checks only that one. HP is clamped and never revives, MP needs a living
+    /// wielder and a passed layout check (MpHalfAllowed). Logs one console line per replenish.</summary>
     private void ReplenishAll(List<long> entries, int move, int gx, int gy)
     {
         long first = entries[0];
@@ -150,7 +120,7 @@ internal sealed partial class SpiritualFont : ISignature
         int newHp = BandHeal.NewHp(hp, maxHp, BandHeal.HealAmount(maxHp, Tuning.FontHpPct));
         foreach (long ent in entries) if (newHp != hp) BandHeal.WriteHp(_mem, ent, newHp);
         int mpRestored = 0;
-        if (MpHalfAllowed(hp, _mpOk))   // layout unproven OR a dead wielder: no MP write
+        if (MpHalfAllowed(hp, _mpOk))   // no MP write when the layout is unchecked or the wielder is dead
         {
             int mp = _mem.U16(first + Offsets.AMp), maxMp = _mem.U16(first + Offsets.AMaxMp);
             int newMp = NewMp(mp, maxMp, BandHeal.HealAmount(maxMp, Tuning.FontMpPct));
@@ -168,9 +138,8 @@ internal sealed partial class SpiritualFont : ISignature
             $"font move detail (tile ({gx},{gy}), {entries.Count} copies updated)");
     }
 
-    /// <summary>The per-battle gate on the provisional MP offsets: sample every valid band unit's
-    /// mp/maxMp and latch the pure verdict once &gt;= 2 units are visible (fewer: retry next tick).
-    /// On fail, MP writes stay off for the whole battle -- the HP half is unaffected.</summary>
+    /// <summary>Samples mp/maxMp of every valid band unit and latches the MpLayoutOk verdict once
+    /// 2 or more units are visible. On failure MP writes stay off for the battle; HP is unaffected.</summary>
     private void ValidateMpLayout()
     {
         var samples = new List<(int mp, int maxMp)>();
@@ -180,7 +149,7 @@ internal sealed partial class SpiritualFont : ISignature
             if (!Band.IsValid(_mem, ent)) continue;
             samples.Add((_mem.U16(ent + Offsets.AMp), _mem.U16(ent + Offsets.AMaxMp)));
         }
-        if (samples.Count < 2) return;   // band not populated yet -- validate on a later tick
+        if (samples.Count < 2) return;   // band not populated yet; retry next tick
         _mpChecked = true;
         _mpOk = MpLayoutOk(samples);
         if (_mpOk) ModLogger.Event(LogVerb.Signature, $"MP restore is confirmed for this battle (checked {samples.Count} units); HP and MP will both be restored.");

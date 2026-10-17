@@ -4,59 +4,49 @@ using System.Linq;
 namespace LivingWeapon;
 
 /// <summary>
-/// The hot-chunk set for the display sweep: chunk-aligned addresses that recently yielded
-/// paint sites, re-offered on a short cadence ahead of the background walk. Owns the whole
-/// lifetime policy in one place: LRU cap eviction on Mark, TTL expiry (chunks not re-marked
-/// within HotTtlMs drain out automatically), the pass cadence (HotRescanMs clock or an
-/// explicit rescan request), and the rotation cursor that keeps a tight byte budget from
-/// permanently starving any chunk.
+/// Chunk-aligned addresses that recently yielded paint sites, re-offered ahead of the background walk.
+/// Handles LRU cap eviction, TTL expiry, pass cadence, and a rotation cursor so a tight budget starves no chunk.
 /// </summary>
 internal sealed class HotChunkSet
 {
-    public const long HotRescanMs  = 250;
-    public const int  MaxHotChunks = 64;
-    public const long HotTtlMs     = 10_000;
+    public const long HotRescanMs = 250;
+    public const int MaxHotChunks = 64;
+    public const long HotTtlMs = 10_000;
 
-    // chunk-aligned address -> last Mark timestamp (ms)
-    // Eviction is LRU (oldest lastMarked) when count exceeds MaxHotChunks.
+    // chunk-aligned address -> last Mark time (ms); LRU eviction past MaxHotChunks
     private readonly Dictionary<long, long> _chunks = new();
 
-    // rotation cursor: index into the sorted chunk list at which the hot pass resumes
-    // so no chunk is permanently starved when the budget allows fewer than MaxHotChunks.
+    // index into the sorted chunk list where the next pass resumes
     private int _cursor = 0;
 
-    // hot phase timing -- sentinel far enough back to be "overdue" at t=0
+    // starts far enough back to be overdue at t=0
     private long _lastPassMs = long.MinValue / 2;
     private bool _rescanRequested = false;
 
     public int Count => _chunks.Count;
 
-    /// <summary>Record that a chunk at the given address yielded paint sites; keep it in
-    /// the set and refresh its TTL so live chunks never expire.
-    /// Resets the hot-rescan countdown so the consumer gets HotRescanMs before the next pass.</summary>
+    /// <summary>Record that a chunk yielded paint sites and refresh its TTL.</summary>
     public void Mark(long chunkStart, long now)
     {
         bool wasEmpty = _chunks.Count == 0;
         _chunks[chunkStart] = now;
 
-        // Evict the chunk with the oldest lastMarked timestamp when over the cap.
+        // Over the cap, drop the oldest-marked chunk.
         while (_chunks.Count > MaxHotChunks)
         {
             long oldest = _chunks.MinBy(kv => kv.Value).Key;
             _chunks.Remove(oldest);
         }
 
-        // Start the countdown from this mark so caller gets a full HotRescanMs before re-offer.
+        // Start the rescan countdown from this mark.
         if (wasEmpty) _lastPassMs = now;
     }
 
     /// <summary>A count or target change: rescan hot chunks on the next pass regardless of clock.</summary>
     public void RequestRescan() => _rescanRequested = true;
 
-    /// <summary>True when a hot pass is due (explicit request or HotRescanMs elapsed) AND the
-    /// set is non-empty; stamps the pass time and consumes the rescan request. The request is
-    /// consumed even when the set is empty, so a queued rescan never fires spuriously against
-    /// chunks marked later.</summary>
+    /// <summary>True when a pass is due (rescan request or HotRescanMs elapsed) and the set is non-empty; stamps the
+    /// pass time. The request is consumed even when the set is empty.</summary>
     public bool TryBeginPass(long now)
     {
         bool due = _rescanRequested || (now - _lastPassMs >= HotRescanMs);
@@ -70,8 +60,7 @@ internal sealed class HotChunkSet
         return true;
     }
 
-    /// <summary>Evict chunks whose last Mark is older than HotTtlMs, so a region that stops
-    /// yielding hits drains out of the set automatically.</summary>
+    /// <summary>Drop chunks whose last Mark is older than HotTtlMs.</summary>
     public void EvictExpired(long now)
     {
         var toRemove = new List<long>();
@@ -80,9 +69,8 @@ internal sealed class HotChunkSet
         foreach (long addr in toRemove) _chunks.Remove(addr);
     }
 
-    /// <summary>The chunks in ascending address order, with the rotation cursor wrapped into
-    /// range. The caller iterates (Cursor + i) % Count and reports each chunk it actually
-    /// processed via NoteProcessed.</summary>
+    /// <summary>Chunks in ascending address order, cursor wrapped into range. Callers iterate (Cursor + i) % Count
+    /// and report each processed chunk via NoteProcessed.</summary>
     public List<long> SortedSnapshot()
     {
         var list = new List<long>(_chunks.Keys);
@@ -94,8 +82,7 @@ internal sealed class HotChunkSet
     /// <summary>Rotation start index for this pass (wrapped into range by SortedSnapshot).</summary>
     public int Cursor => _cursor;
 
-    /// <summary>Advance the rotation cursor so the next pass picks up where this one left off.
-    /// Dead or budget-skipped chunks do not advance it.</summary>
+    /// <summary>Advance the cursor past idx. Dead or budget-skipped chunks do not advance it.</summary>
     public void NoteProcessed(int idx, int count) => _cursor = (idx + 1) % count;
 
     /// <summary>Drop a chunk whose read failed (its region is gone).</summary>

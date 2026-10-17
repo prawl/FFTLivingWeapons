@@ -3,26 +3,12 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Warlock's Staff's "Choir" signature -- HOLDER-ONLY. While a +3 Warlock's Staff is held
-/// in the MAIN HAND and at least one bearer is alive and on the field, each live bearer gets
-/// the Non-charge support bit (id 227, band +0x7F mask 0x04) OR-set per tick so their magick
-/// casts instantly. SET is ADDRESS-DIRECT onto the entry returned by
-/// Wielder.ResolveDeployedMainHandAll -- no adjacent-ally aura.
-///
-/// BAND-KEYED _granted: the fingerprint stored in _granted is READ FROM THE BAND ENTRY
-/// (mhp, lvl, br, fa via _mem reads on `entry`), NOT from the roster fp tuple. This ensures
-/// the clear path matches later band scans even after a mid-battle level-up (roster lvl stays
-/// pre-battle; band lvl drifts up). A roster-keyed _granted would miss the drifted band fp
-/// and leave the bit stuck on an unequipped bearer.
-///
-/// CLEAR PATH: band scan checks _granted (band-read fp). Stale entries (bearer dropped, died,
-/// below tier, battle ended) are cleared via ClearBit on each matching band entry.
-///
-/// PROTECTED UNITS: a unit whose OWN roster support == InstantCastSupportId is never set or
-/// cleared -- their innate bit is theirs; it is excluded from winners so _granted never owns it.
-///
-/// ALL WRITES ARE GUARDED: SetBit and ClearBit pre-check Readable+Writable. An unaddressable
-/// byte is a silent no-op -- never a raw deref.
+/// Warlock's Staff "Choir" signature, holder only. While a +3 Warlock's Staff is in the main hand and a bearer
+/// is alive on the field, each bearer gets the Non-charge support bit (id 227, band +0x7F mask 0x04) OR-set per
+/// tick so magick casts instantly. The set is address-direct on entries from Wielder.ResolveDeployedMainHandAll.
+/// _granted is keyed by the band-read fingerprint (mhp, lvl, br, fa), not the roster one, so the clear path
+/// still matches after a mid-battle level-up drifts the band level. A unit whose own roster support is
+/// InstantCastSupportId is never set or cleared. SetBit and ClearBit pre-check Readable and Writable.
 /// </summary>
 internal sealed partial class Choir : ISignature
 {
@@ -33,18 +19,14 @@ internal sealed partial class Choir : ISignature
     private readonly IGameMemory _mem;
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly Dictionary<int, int> _kills;
-    // LW-252 stage 5: ResolveDeployedMainHandAll's result widened to carry each bearer's own
-    // nameId; Choir has no per-wielder state keyed off it (its _granted set is band-read-fp-
-    // keyed, see the class doc) so the third element is simply ignored below -- zero behavior
-    // change (ChoirTests stay green unmodified).
+    // LW-252 stage 5: the bearer tuple carries nameId; Choir ignores it since _granted is band-fp keyed.
     private readonly List<(long entry, (int lvl, int br, int fa) fp, int nameId)> _bearers = new();
     private bool _wasActive;
 
-    // Fingerprints (band-read: mhp,lvl,br,fa) of bearer band entries whose Non-charge bit
-    // Choir granted this battle. Used for per-entry revert on unequip/death/battle-end.
+    // Band-read fingerprints of bearers whose Non-charge bit Choir set this battle.
     private readonly HashSet<(int mhp, int lvl, int br, int fa)> _granted = new();
 
-    // Non-charge bit encoding, resolved once at construction (id 227, base 198 -> byte 3, mask 0x04)
+    // Non-charge bit encoding (id 227, base 198 -> byte 3, mask 0x04), resolved at construction
     private readonly int _ncByteOff;
     private readonly byte _ncMask;
 
@@ -60,7 +42,7 @@ internal sealed partial class Choir : ISignature
     {
         _granted.Clear();
         _wasActive = false;
-        // No bit restore -- the per-battle combat struct is rebuilt; Sanctuary precedent.
+        // No bit restore, the combat struct is rebuilt each battle.
     }
 
     public void Tick(bool onField)
@@ -70,7 +52,6 @@ internal sealed partial class Choir : ISignature
 
         int tier = Tuning.TierOf(_kills, WarlockStaffId);
 
-        // Every deployed main-hand bearer; a dead bearer must not project.
         Wielder.ResolveDeployedMainHandAll(_mem, WarlockStaffId, _bearers);
         int aliveBearers = 0;
         foreach (var (entry, _, _) in _bearers)
@@ -87,15 +68,15 @@ internal sealed partial class Choir : ISignature
 
         if (!active)
         {
-            // REVERT ALL: clear the Non-charge bit on every band entry Choir owns
+            // Inactive: clear the bit on every band entry Choir granted
             for (int s = 0; s < Offsets.BandSlots; s++)
             {
                 long e = Band.Entry(s);
                 if (!Band.IsValid(_mem, e)) continue;
                 int mhp = _mem.U16(e + Offsets.AMaxHp);
                 int lvl = _mem.U8(e + Offsets.ALevel);
-                int br  = _mem.U8(e + Offsets.ABrave);
-                int fa  = _mem.U8(e + Offsets.AFaith);
+                int br = _mem.U8(e + Offsets.ABrave);
+                int fa = _mem.U8(e + Offsets.AFaith);
                 if (_granted.Contains((mhp, lvl, br, fa)))
                     LarcenyPolicy.ClearBit(_mem, e, Offsets.ASupport + _ncByteOff, _ncMask);
             }
@@ -103,20 +84,17 @@ internal sealed partial class Choir : ISignature
             return;
         }
 
-        // Units who picked Non-charge themselves -> never touch their bit.
+        // Units who picked Non-charge themselves are left alone.
         var protectedBF = new HashSet<(int br, int fa)>();
         for (int r = 0; r < Offsets.RosterSlots; r++)
         {
-            // LW-149 stage D: migrated onto Wielder's shared STRICT occupied-slot walk
-            // (Wielder.Roster.cs) -- same rb arithmetic, same level 1..99 rule, byte-identical.
+            // LW-149 stage D: uses Wielder's shared strict occupied-slot walk (Wielder.Roster.cs).
             if (!Wielder.TryOccupiedSlot(_mem, r, out long rb, out _)) continue;
             if (_mem.U8(rb + Offsets.RSupport) == Tuning.InstantCastSupportId)
                 protectedBF.Add((_mem.U8(rb + Offsets.RBrave), _mem.U8(rb + Offsets.RFaith)));
         }
 
-        // HOLDER-ONLY: SET address-direct on each alive, non-self-Non-charge bearer. Record the
-        // band-read fingerprint (NOT the roster fp.lvl) so the clear path matches later band scans
-        // even after a mid-battle level-up (band lvl drifts up; roster lvl stays pre-battle).
+        // Set the bit on each live bearer without their own Non-charge, recording the band-read fingerprint.
         var winners = new HashSet<(int mhp, int lvl, int br, int fa)>();
         foreach (var (entry, fp, _) in _bearers)
         {
@@ -124,22 +102,22 @@ internal sealed partial class Choir : ISignature
             if (protectedBF.Contains((fp.br, fp.fa))) continue;          // self-picked Non-charge -> leave to them
             int mhp = _mem.U16(entry + Offsets.AMaxHp);
             int lvl = _mem.U8(entry + Offsets.ALevel);
-            int br  = _mem.U8(entry + Offsets.ABrave);
-            int fa  = _mem.U8(entry + Offsets.AFaith);
+            int br = _mem.U8(entry + Offsets.ABrave);
+            int fa = _mem.U8(entry + Offsets.AFaith);
             LarcenyPolicy.SetBit(_mem, entry, Offsets.ASupport + _ncByteOff, _ncMask);
             winners.Add((mhp, lvl, br, fa));
         }
 
-        // CLEAR stale: band entries Choir owned last tick that are no longer winners.
+        // Clear bits on band entries Choir granted last tick that are no longer winners.
         for (int s = 0; s < Offsets.BandSlots; s++)
         {
             long e = Band.Entry(s);
             if (!Band.IsValid(_mem, e)) continue;
             int mhp = _mem.U16(e + Offsets.AMaxHp);
             int lvl = _mem.U8(e + Offsets.ALevel);
-            int br  = _mem.U8(e + Offsets.ABrave);
-            int fa  = _mem.U8(e + Offsets.AFaith);
-            if (protectedBF.Contains((br, fa))) continue;     // player's own Non-charge -- never touch
+            int br = _mem.U8(e + Offsets.ABrave);
+            int fa = _mem.U8(e + Offsets.AFaith);
+            if (protectedBF.Contains((br, fa))) continue;     // the player's own Non-charge, leave it
             var fp4 = (mhp, lvl, br, fa);
             if (winners.Contains(fp4)) continue;              // still a winner (already set address-direct)
             if (_granted.Contains(fp4))

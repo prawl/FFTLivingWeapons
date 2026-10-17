@@ -5,23 +5,12 @@ using System.Threading;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-50's OS-level stand-down notice: a player who never opens livingweapon.log still learns the
-/// mod went inert. COPY-FILE PORTABILITY CONTRACT (mirrors FingerprintGuard.cs): zero project
-/// dependencies (no Offsets, no ModLogger, no IGameMemory, no Reloaded types), so a sibling mod
-/// adopts it by copying this one file.
-///
-/// NEVER-BLOCK, NEVER-THROW CONTRACT: <see cref="Show"/> fires from LaunchGuard's stand-down edge,
-/// which runs on the Engine tick loop thread. That same loop thread drains the flight recorder's
-/// pending flush on its NEXT tick (FlightRecorder.DrainPending, called once per Engine tick); the
-/// stand-down requests its own dedicated "standdown" flush as its last step (LW-53,
-/// LaunchGuard.StandDown), rather than riding the error-tier FlushOnce trigger, so the archive
-/// lands even when an earlier unrelated error already burnt that latch. FlightRecorder.Flush is a
-/// documented never-throw doctrine (FlightRecorder.cs: "Never throws and never calls ModLogger...
-/// every failure here is swallowed") precisely so a flush failure cannot stall the engine loop. A
-/// message box that BLOCKED that same thread (MessageBoxW is modal and does not return until
-/// dismissed) or THREW out of the stand-down path would stall that evidence write just as badly,
-/// so Show hands the dialog to its own background thread and swallows every exception, both
-/// around starting that thread and inside it.
+/// LW-50 OS-level stand-down notice: a player who never opens livingweapon.log still learns the
+/// mod went inert. Zero project dependencies (as FingerprintGuard.cs), so a sibling mod can copy this file.
+/// <see cref="Show"/> runs on the Engine tick thread from LaunchGuard's stand-down edge, and that thread
+/// also drains the flight recorder (FlightRecorder.DrainPending; LW-53, LaunchGuard.StandDown). A modal
+/// MessageBoxW or an exception there would stall that evidence write, so Show uses its own background
+/// thread and swallows every exception.
 /// </summary>
 internal static class StandDownNotice
 {
@@ -36,8 +25,7 @@ internal static class StandDownNotice
     private const uint MB_TOPMOST = 0x00040000;
     private const uint Flags = MB_OK | MB_ICONWARNING | MB_TOPMOST | MB_SETFOREGROUND;
 
-    /// <summary>Raises a native message box on a dedicated background thread and returns
-    /// immediately; never blocks the caller and never throws (see the class doctrine above).</summary>
+    /// <summary>Raises a native message box on a background thread and returns at once; never blocks or throws.</summary>
     public static void Show(string title, string text)
     {
         try

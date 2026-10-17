@@ -1,22 +1,23 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// CardSites' Reliquary-specific repaint-through (LW-257 commit 1's line-count response: split
-/// out once CardSites.cs's own growth was measured to have left it further over the 200-line
-/// trigger than the arc found it, not just crossed it -- see CardSites.cs's class doc for the
-/// arithmetic). SyncFlavorToCurrent has exactly one caller (PaintSiteWithResult, CardSites.cs)
-/// and is entirely about the EarnedAnchors story-line rotation (Reliquary decision 2), a concern
-/// orthogonal to the verify/paint machinery CardSites.cs and CardSites.Verify.cs share -- a real
-/// seam, not an artificial slice of one state machine across files.
+
+/// Reliquary repaint-through, split out of CardSites.cs in LW-257 commit 1 to get it back under
+
+/// the 200-line trigger. It is the EarnedAnchors story-line rotation (Reliquary decision 2),
+
+/// separate from the verify/paint code; the only caller is PaintSiteWithResult.
+
 /// </summary>
+
 internal sealed partial class CardSites
 {
-    /// <summary>Reliquary decision 2's repaint-through: if a CURRENT earned line is registered
-    /// for this site's weapon and the on-screen anchor bytes don't already match it, overwrite
-    /// them (exact length, Writable-gated, skip-if-equal). This is what lets a site that verified
-    /// via the PREVIOUS anchor (a stale-but-known line) converge to the current story on its very
-    /// next paint, instead of freezing at whatever text it happened to verify against. No store
-    /// writes here -- painting never touches LegendStore.</summary>
+    /// <summary>If a current earned line is registered for this weapon and the on-screen anchor
+
+    /// bytes differ, overwrite them (same length, Writable-gated). Lets a site that verified
+
+    /// against the previous anchor converge on its next paint. Never touches LegendStore.</summary>
+
     private void SyncFlavorToCurrent(Site s)
     {
         byte[]? current = _anchors!.CurrentFor(s.Id, s.Enc);

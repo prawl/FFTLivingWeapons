@@ -36,7 +36,7 @@ internal enum RescueOutcome
 /// WHICH roster player owns that frame is not mirror-safe on its own; the frame nameId
 /// back-reference (<see cref="Offsets.ANameId"/>, Proven ledger row) bridges pointer to roster.
 ///
-/// The register does NOT read weapons -- identity only (single responsibility; weapon semantics
+/// The register does not read weapons -- identity only (single responsibility; weapon semantics
 /// stay in ActorResolver, which owns the tracked-weapon set).
 ///
 /// <see cref="Update"/> runs every tick, including OFF-FIELD ticks (menu-flicker arrivals). This
@@ -122,7 +122,7 @@ internal sealed partial class ActorRegister
     /// gates its hypothesis on this being STRICTLY newer than the latch's own resolve tick.</summary>
     public int LastPlayerArrivalTick { get; private set; }
 
-    /// <summary>LW-233: true only when the RAW U64 read of <see cref="Offsets.ActorPtr"/> is
+    /// <summary>true only when the RAW U64 read of <see cref="Offsets.ActorPtr"/> is
     /// LITERALLY ZERO this tick. Deliberately distinct from <see cref="CurrentEntry"/> (and
     /// <see cref="Band.ActorEntry"/>, which it wraps): that path folds a raw-zero pointer and a
     /// nonzero-but-bad-shape pointer into the same 0 return (Band.cs's own doc), which is fine for
@@ -174,7 +174,7 @@ internal sealed partial class ActorRegister
     public void Update()
     {
         Tick++;
-        // LW-233: RawNullThisTick's own guarded read, ahead of (and independent from) the
+        // RawNullThisTick's own guarded read, ahead of (and independent from) the
         // Band.ActorEntry resolve below -- see the property's doc for why the two must not share
         // Band.ActorEntry's folded-zero return.
         RawNullThisTick = _mem.Readable(Offsets.ActorPtr, 8) && _mem.U64(Offsets.ActorPtr) == 0;

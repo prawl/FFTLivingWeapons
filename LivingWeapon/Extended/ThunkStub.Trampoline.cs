@@ -3,34 +3,20 @@ using System.Collections.Generic;
 
 namespace LivingWeapon;
 
-/// <summary>
-/// LW-388 R12: the entry trampoline half of <see cref="ThunkStub"/>. Split from the id-rewrite
-/// stubs because it is a different job: those stubs invent new answers for ids past the vanilla
-/// cap, while this emitter RE-EXECUTES game code. When an accessor entry is overwritten with our
-/// five-byte jump, the instructions it held (the "stolen" bytes) must still run for every id the
-/// stub passes through; the trampoline is that copy, followed by a jump back into the original
-/// function just past the stolen span. The twin of what SwingIdFallbackHook does for its site.
-/// </summary>
+/// <summary>LW-388 R12: the entry-trampoline half of <see cref="ThunkStub"/>. The instructions an accessor-entry jump overwrites still have to run,
+/// so this emits a copy of them plus a jump back past the stolen span, like SwingIdFallbackHook does for its site.</summary>
 internal static partial class ThunkStub
 {
-    /// <summary>Upper bound on an entry trampoline. The largest real shape is 34 bytes (4 stolen
-    /// + 6 call + 2 skip + 8 address + 14 return jump); 0x40 leaves the stub a fixed home.</summary>
+    /// <summary>Upper bound on an entry trampoline; the largest real shape is 34 bytes (4 stolen + 6 call + 2 skip + 8 address + 14 return jump).</summary>
     public const int EntryTrampolineMaxSize = 0x40;
 
-    /// <summary>
-    /// Builds the trampoline for an accessor entry at <paramref name="entryAddr"/> (LIVE address)
-    /// whose first bytes <paramref name="stolen"/> (at least five, the size of our jump) are
-    /// replaced by the hook. <paramref name="callAt"/> is the offset of one <c>E8 rel32</c> call
-    /// inside the stolen bytes, or -1 when there is none. A rel32 is only valid at its own
-    /// address, so a stolen call is rewritten as an absolute indirect call:
+    /// <summary>Builds the trampoline for the accessor entry at <paramref name="entryAddr"/> (live address). <paramref name="stolen"/> (at least five bytes)
+    /// is what the hook overwrites and <paramref name="callAt"/> the offset of an <c>E8 rel32</c> call in it, or -1. A rel32 only works at its own address, so the call becomes an absolute indirect call:
     /// <code>
     /// stolen[0..callAt) | FF 15 02 00 00 00 (call [rip+2]) | EB 08 (skip the address) | target:8
     /// | stolen[callAt+5..) | FF 25 00 00 00 00 (jmp [rip+0]) | entryAddr + stolen.Length:8
     /// </code>
-    /// The callee returns to the <c>EB 08</c>, which hops over the address bytes. Stack depth at
-    /// the call equals the original's because everything before it ran verbatim. The target is
-    /// decoded from the stolen rel32, which is relocation-invariant, so it comes out live.
-    /// </summary>
+    /// The callee returns to the <c>EB 08</c>, which hops over the address.</summary>
     public static byte[] EmitEntryTrampoline(long entryAddr, byte[] stolen, int callAt)
     {
         if (stolen == null || stolen.Length < 5)

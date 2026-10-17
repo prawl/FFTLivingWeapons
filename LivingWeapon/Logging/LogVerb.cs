@@ -3,11 +3,8 @@ using System;
 namespace LivingWeapon;
 
 /// <summary>
-/// The closed event-verb glossary for every log line the runtime emits. docs/LOGGING.md commits
-/// a verb table that must match this enum one-for-one (LogContractTests pins the two in
-/// lockstep, parsing the doc the same way MetaSchemaTests walks up from the test bin dir). The
-/// set is CLOSED: a new subsystem reuses one of these verbs, or the facelift doc gets amended
-/// deliberately; no ad-hoc per-module prefixes.
+/// Closed glossary of event verbs for log lines. docs/LOGGING.md carries a matching verb
+/// table, and LogContractTests keeps the two in lockstep. New subsystems reuse a verb.
 /// </summary>
 internal enum LogVerb
 {
@@ -30,9 +27,7 @@ internal enum LogVerb
     Trace,
 }
 
-/// <summary>Enum member -&gt; the literal kebab-case bracket token rendered in log lines and
-/// committed in docs/LOGGING.md's verb table. One-to-one; the enum's declaration order need not
-/// match the doc table's grouping.</summary>
+/// <summary>Enum member to the kebab-case bracket token used in log lines and docs/LOGGING.md.</summary>
 internal static class LogVerbToken
 {
     public static string Token(this LogVerb verb) => verb switch

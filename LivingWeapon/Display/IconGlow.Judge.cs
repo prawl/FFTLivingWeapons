@@ -5,23 +5,17 @@ using System.Linq;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-381 R2-2 (200-line split from IconGlow.Apply.cs): the first-touch CLASSIFICATION half of
-/// the judge/apply pair described in that file's class remarks -- given an id's currently
-/// deployed bytes, decide what tier they represent (or that they are foreign) and seed
-/// <c>_applied</c> truthfully, all BEFORE any write is ever considered. <see cref="ApplyId"/> (in
-/// IconGlow.Apply.cs) is the other half: given a tier already decided, write it. A real seam:
-/// judging never touches <c>WriteDeployedTex</c>/<c>PatchPac</c>, applying never re-derives a
-/// tier from a hash.
+/// LW-381 R2-2, split from IconGlow.Apply.cs. Classifies an id's deployed bytes (tier or foreign)
+/// and seeds <c>_applied</c> before any write. <see cref="ApplyId"/> in IconGlow.Apply.cs writes
+/// a tier already decided; judging never writes and applying never re-derives a tier.
 /// </summary>
 internal sealed partial class IconGlow
 {
-    /// <summary>First-touch classification for one id: PRISTINE, a known tier, or FOREIGN (any
-    /// FOREIGN surface marks the whole id unmanaged). Every PRISTINE surface is then snapshotted
-    /// before the id is trusted (FIX 2a: an existing backup is kept only when its own sha1
-    /// matches <see cref="IconGlowEntry.BaseSha1"/> -- a rebake can leave an old one behind, and
-    /// judge time is the only healable moment, so a stale/missing backup is (re)written here); a
-    /// failed snapshot marks the id unmanaged. Returns true iff surfaces were NOT all one tier
-    /// (DIVERGENT, see IconGlow.Apply.cs's class remarks).</summary>
+    /// <summary>First-touch classification for one id (PRISTINE, a known tier, or FOREIGN, which
+    /// marks the whole id unmanaged). PRISTINE surfaces get a base snapshot; an existing backup is
+    /// kept only if its sha1 matches <see cref="IconGlowEntry.BaseSha1"/>, since a rebake can leave
+    /// a stale one. A failed snapshot marks the id unmanaged. Returns true if the surfaces are not
+    /// all one tier (DIVERGENT, see IconGlow.Apply.cs).</summary>
     private bool JudgeId(int id)
     {
         var tiers = new List<(IconGlowEntry Entry, byte[] Bytes, int Tier)>();

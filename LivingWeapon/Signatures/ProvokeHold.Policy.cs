@@ -1,28 +1,22 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// The pure decisions behind the Provoke hold -- release priority, the hide/reveal choice, the
-/// turn-edge test, the watchdog accumulator, and the guarded status/HP-style bit writers -- with no
-/// battle state of their own, so they're unit-tested directly. Mirrors FeignDeath.Policy.cs's split
-/// exactly: the stateful orchestrator (ProvokeHold.cs) does nothing but read facts, call these, and
-/// apply the actions returned.
+/// Pure decisions behind the Provoke hold (release priority, hide/reveal, turn edge, watchdog, guarded
+/// bit writers), unit-tested directly. Same split as FeignDeath.Policy.cs; ProvokeHold.cs reads facts,
+/// calls these, and applies the result.
 /// </summary>
 internal sealed partial class ProvokeHold
 {
-    /// <summary>Why the hold let go. Ordered by <see cref="ReleaseReason"/>'s own priority (safety
-    /// first, Watchdog last so a real reason always wins when both are true -- AC 17).</summary>
+    /// <summary>Why the hold let go, in priority order with Watchdog last (AC 17).</summary>
     internal enum Release { None, BearerGone, BearerDead, EnemyDead, EnemyGone, EnemyDisabled, EnemyTurnDone, Watchdog }
 
     /// <summary>What to do to every player-side-but-bearer unit this tick.</summary>
     internal enum HideAction { Hide, Reveal }
 
-    /// <summary>The armed release decision for one tick. Priority (first match wins): bearer safety
-    /// (BearerGone, BearerDead) beats every enemy-state reason, which beats Watchdog last -- so a
-    /// stuck-but-explicable hold always names its REAL reason rather than the watchdog catch-all
-    /// (AC 17). EnemyDead/EnemyGone/EnemyDisabled all require the provoked enemy's own state; a
-    /// transient locate miss (<paramref name="markedMissedOut"/> false, <paramref name="markedLocated"/>
-    /// false) falls through to EnemyTurnDone/Watchdog untouched -- the debounce (decision 11's
-    /// sibling) lives in the caller's miss-tick counting, not here.</summary>
+    /// <summary>The armed release decision for one tick. First match wins: bearer safety (BearerGone,
+    /// BearerDead), then enemy state, then Watchdog last so a stuck hold names its real reason (AC 17).
+    /// A transient locate miss (<paramref name="markedMissedOut"/> and <paramref name="markedLocated"/> both
+    /// false) falls through; the debounce (decision 11) is in the caller's miss-tick counting.</summary>
     internal static Release ReleaseReason(bool bearerPresent, bool bearerAlive, bool markedLocated,
         bool markedDead, bool markedMissedOut, bool markedDisabled, int markedTurns, int provokeTurns,
         bool watchdogElapsed)
@@ -37,73 +31,42 @@ internal sealed partial class ProvokeHold
         return Release.None;
     }
 
-    /// <summary>LW-127 (D1 revised, RE-ORDERED after the 2026-07-27 live pass failed both casts --
-    /// see the session ledger and <see cref="ProvokeHoldTests.Marked_enemy_next_stays_hidden_even_on_a_player_turn_live_2026_07_27"/>,
-    /// then GAINED THE ENGAGEMENT LATCH after cast 3's follow-up failure -- see
-    /// <see cref="ProvokeHoldTests.Marked_enemys_own_ct_payment_does_not_reveal_the_party_live_2026_07_27_cast3"/>):
-    /// the whole hide/reveal decision for one armed tick, evaluated in order -- first match wins.
-    /// HIDE IS THE DEFAULT STATE; A REVEAL MUST BE EARNED (branch 5 is the fallback, not merely the
-    /// case of an unreadable band walk):
+    /// <summary>the hide/reveal decision for one armed tick, first match wins. Hide is the default
+    /// and a reveal has to be earned. Re-ordered after the 2026-07-27 live pass failed both casts (see
+    /// <see cref="ProvokeHoldTests.Marked_enemy_next_stays_hidden_even_on_a_player_turn_live_2026_07_27"/>),
+    /// then given the engagement latch after cast 3 (see
+    /// <see cref="ProvokeHoldTests.Marked_enemys_own_ct_payment_does_not_reveal_the_party_live_2026_07_27_cast3"/>).
     ///
-    ///   0. <paramref name="engaged"/>               -&gt; Hide, unconditionally, no matter what the
-    ///      other four inputs say (STATE, not a ranking read -- see ProvokeHold._engaged). Cast 3's
-    ///      tape: CT is paid at turn START, so the instant the marked enemy's turn opens, its own CT
-    ///      drops by the threshold and TryEta misreads it as far off for a few ticks until the actor
-    ///      pointer swings onto it -- branch 4 (far-off) was being fooled by the very event it exists
-    ///      to wait for. The latch is set by the STATEFUL caller once the hold has genuinely hidden
-    ///      because the marked enemy was next or truly acting, and held through exactly that window.
-    ///   1. <paramref name="markedIsActor"/>        -&gt; Hide (its own turn; already gated on NOT a
-    ///      player turn by the caller, see ProvokeHold.MarkedIsActor/TickArmed's `markedActive`).
-    ///   2. <paramref name="markedIsNext"/>          -&gt; Hide (the run-up: hidden before its turn
-    ///      opens, TurnOrder.TryNextEnemyToAct's whole point. MOVED ABOVE playerSideOwnsTurn: the
-    ///      live tape showed the marked enemy still genuinely next (markedEta == leaderEta) when a
-    ///      player-side seat's own turn opened and revealed the party anyway; the player's turn then
-    ///      ended, the marked enemy's turn opened immediately, and the AI committed against a fully
-    ///      visible party -- the exact race this feature exists to win, lost).
-    ///   3. <paramref name="playerSideOwnsTurn"/>  -&gt; Reveal (criterion 5: your menus can target
-    ///      your own units).
-    ///   4. <paramref name="markedIsFarOff"/>        -&gt; Reveal (the marked enemy is CLEARLY
-    ///      further away than the leading enemy -- Tuning.ProvokeRevealMarginTicks is the margin, so
-    ///      a one-position ordering error still leaves the party hidden).
-    ///   5. anything else                            -&gt; Hide (today's whole-phase fallback: an
-    ///      unusable CT/Speed read, a close call under the margin, or no enemy candidate at all).
+    ///   0. <paramref name="engaged"/> -&gt; Hide. CT is paid at turn start, so when the marked enemy's turn
+    ///      opens its CT drops and TryEta reads it as far off until the actor pointer catches up. The
+    ///      stateful caller sets the latch once the hold hid for next/acting (ProvokeHold._engaged).
+    ///   1. <paramref name="markedIsActor"/> -&gt; Hide (caller already gated on not a player turn, see
+    ///      ProvokeHold.MarkedIsActor and TickArmed's markedActive).
+    ///   2. <paramref name="markedIsNext"/> -&gt; Hide (TurnOrder.TryNextEnemyToAct). Above
+    ///      playerSideOwnsTurn because the tape showed a player seat's turn revealing the party while the
+    ///      marked enemy was still next, and the AI then committed against a visible party.
+    ///   3. <paramref name="playerSideOwnsTurn"/> -&gt; Reveal (criterion 5).
+    ///   4. <paramref name="markedIsFarOff"/> -&gt; Reveal when clearly further than the leading enemy by
+    ///      Tuning.ProvokeRevealMarginTicks, so a one-position ordering error stays hidden.
+    ///   5. otherwise -&gt; Hide (unusable CT/Speed read, a close call, or no enemy candidate).
     ///
-    /// WHY MOVING BRANCH 3 BELOW 1/2 IS SAFE: criterion 5 exists so the player can still target their
-    /// own units during their own turn. It is NOT actually load-bearing for that -- docs/LIVE_LEDGER.md
-    /// records a live-confirmed fact (2026-07-22) that a flagged (Invisible-bit) ally CAN still be
-    /// targeted normally, so the old reveal-on-player-turn was buying nothing while it was active, and
-    /// costing the whole feature whenever it coincided with the marked enemy being next. The only
-    /// remaining cost of staying hidden through a player turn is the status icon over the party's
-    /// heads, which criterion 18 already accepts as an open, un-fixed cosmetic gap.
+    /// Moving branch 3 below 1 and 2 is safe because docs/LIVE_LEDGER.md records (2026-07-22) that a
+    /// flagged (Invisible-bit) ally can still be targeted. The only cost is the status icon over the
+    /// party, an open cosmetic gap under criterion 18.
     ///
-    /// LW-135 history, still relevant to why player-side ownership is read from the per-unit turn
-    /// flag (<see cref="PlayerSideOwnsTurn"/>) and never a cursor field: this function used to read
-    /// Offsets.TqTeam, the condensed TurnQueue struct's team field. During an enemy's action the
-    /// cursor sits on the PLAYER unit being targeted, so that field read PLAYER, this returned
-    /// Reveal, and the hold hid NOBODY for the entire enemy turn -- the goaded goblin attacked an
-    /// ally exactly as if the mod were absent. PlayerSideOwnsTurn reads no cursor field at all, and
-    /// FAILS OPEN (nobody owns the flag, or two seats disagree, both return false), so branch 3 can
-    /// only fire on a genuinely positive read; every other ambiguity falls through to branch 5's
-    /// Hide default, same bias-to-hidden shape as before.</summary>
+    /// Player-side ownership comes from the per-unit turn flag (<see cref="PlayerSideOwnsTurn"/>),
+    /// never a cursor field. It used to read Offsets.TqTeam, which is PLAYER while an enemy targets one, so
+    /// the hold hid nobody for the whole enemy turn. PlayerSideOwnsTurn fails open (nobody owns it, or two
+    /// seats disagree, returns false), so every ambiguity ends at branch 5's Hide.</summary>
     internal static HideAction ActionFor(bool engaged, bool playerSideOwnsTurn, bool markedIsActor,
         bool markedIsNext, bool markedIsFarOff)
         => ActionForWithReason(engaged, playerSideOwnsTurn, markedIsActor, markedIsNext, markedIsFarOff).action;
 
-    /// <summary>ActionFor plus a diagnostic tag naming WHICH branch decided, for things that cannot
-    /// be told apart from the HideAction alone (adversarial review, BLOCKER-3 and the T2 SHOULD-FIX;
-    /// then cast 3's engagement latch): the owner's live pass needs to tell "the lookahead never
-    /// fired" apart from "the lookahead fired but mispredicted", a test needs to tell "branch 2
-    /// genuinely fired" apart from "branch 5 coincidentally produced the same Hide" -- which matters
-    /// because branch 4 can PROVABLY never fire when the marked enemy genuinely wins TurnOrder's
-    /// ranking (its own raw ETA is then always exactly the shared leader ETA, so the margin check
-    /// never trips), making branch 2 and branch 5 permanently outcome-identical for a "marked is
-    /// next" fixture -- and now the tape needs to tell "engaged is holding the hide through a
-    /// misprediction" apart from a genuine why=next/why=actor/why=far-off read, which is exactly why
-    /// an engaged Hide reports its OWN reason ("engaged") rather than reusing whatever next/actor/
-    /// far-off would have said, even when one of those is ALSO true underneath. Delegates to the
-    /// SAME branch order as <see cref="ActionFor"/> (this is the one place that order is written down
-    /// -- ActionFor calls back into this, never the reverse) so the reason can never drift from the
-    /// real decision.</summary>
+    /// <summary>ActionFor plus a tag naming which branch decided. The live pass needs to tell a lookahead
+    /// that never fired from one that mispredicted, and tests need to tell branch 2 from branch 5 (both Hide;
+    /// branch 4 cannot fire when the marked enemy wins TurnOrder's ranking). An engaged Hide reports
+    /// "engaged" even when next/actor/far-off is also true. ActionFor calls this, so the branch order lives
+    /// in one place.</summary>
     internal static (HideAction action, string reason) ActionForWithReason(bool engaged,
         bool playerSideOwnsTurn, bool markedIsActor, bool markedIsNext, bool markedIsFarOff)
     {
@@ -115,36 +78,28 @@ internal sealed partial class ProvokeHold
         return (HideAction.Hide, "fallback");
     }
 
-    /// <summary>One completed turn: WAS the active unit last tick, is NOT now -- the falling edge.
-    /// Identical shape to FeignDeath.TurnEnded, reused here against the marked enemy's actor-pointer
-    /// identity match gated on an enemy turn (decision 10, see ProvokeHold.MarkedIsActor) instead of
-    /// the wielder's active-unit match.</summary>
+    /// <summary>Falling edge of the active flag, same as FeignDeath.TurnEnded, applied to the marked
+    /// enemy's actor-pointer match gated on an enemy turn (decision 10, ProvokeHold.MarkedIsActor).</summary>
     internal static bool TurnEnded(bool wasActive, bool nowActive) => wasActive && !nowActive;
 
-    /// <summary>Accrue live battle time toward the watchdog cap (decision 11): add the tick's elapsed
-    /// delta only when the tick was UNPAUSED; a paused tick returns <paramref name="liveElapsed"/>
-    /// unchanged so a long menu or alt-tab never burns down the clock.</summary>
+    /// <summary>Accrue live battle time toward the watchdog cap (decision 11). Paused ticks add nothing,
+    /// so a long menu or alt-tab does not burn the clock.</summary>
     internal static double AccrueWatchdog(double liveElapsed, double deltaSeconds, bool paused) =>
         paused ? liveElapsed : liveElapsed + deltaSeconds;
 
     /// <summary>True once the accrued live time reaches the watchdog cap.</summary>
     internal static bool WatchdogElapsed(double liveElapsed, double capSeconds) => liveElapsed >= capSeconds;
 
-    // ---- guarded writers (exercised against a PinnedBuf in tests; the real RPM/WPM guard runs) ----
+    // ---- guarded writers (tests run them against a PinnedBuf) ----
 
-    /// <summary>OR/AND the Invisible bit (+0x47/0x10), mirroring FeignDeath.SetStatusBit but
-    /// returning whether the byte now reads the wanted state: false ONLY when a NEEDED write was
-    /// refused (Writable false), so a refusal can log distinctly instead of being silently
-    /// swallowed (AC 17). True (no-op) when the bit already reads the wanted state.</summary>
+    /// <summary>OR/AND the Invisible bit (+0x47/0x10) like FeignDeath.SetStatusBit. False only when a needed
+    /// write was refused, so the refusal can be logged (AC 17).</summary>
     internal static bool SetInvisible(IGameMemory mem, long entry, bool on) =>
         TrySetBit(mem, entry + Offsets.AInvisible, Offsets.AInvisibleBit, on);
 
-    /// <summary>Scrub the id-0 mark off BOTH layers, composed FIRST then inflicted (criterion 3b).
-    /// Mask-scoped RMW only, never a byte write: composed +0x45 is the SAME byte Dead/Undead/Jump/
-    /// Charging live on, and KillTracker reads it for death detection -- a whole-byte write there is
-    /// a real kill-attribution bug, not a style nit. Returns true only when BOTH writes landed (or
-    /// were already clear); a caller that gets false knows the mark is still live somewhere and may
-    /// retry next tick.</summary>
+    /// <summary>Scrub the id-0 mark from both layers, composed first then inflicted (criterion 3b). Mask
+    /// RMW only, because composed +0x45 also holds Dead/Undead/Jump/Charging and KillTracker reads it for
+    /// death detection. True only when both writes landed or were already clear.</summary>
     internal static bool ClearMark(IGameMemory mem, long entry)
     {
         int by = StatusApply.StatusByte(MarkId);
@@ -154,15 +109,13 @@ internal sealed partial class ProvokeHold
         return composed && inflicted;
     }
 
-    /// <summary>True iff the Invisible bit is currently set (read-only). Used to detect "already
-    /// invisible before we ever touched it" -- FeignDeath's own hold, which the Provoke hold must
-    /// never set OR clear (criterion 11).</summary>
+    /// <summary>Read-only test of the Invisible bit, to detect FeignDeath's own hold, which Provoke must
+    /// never set or clear (criterion 11).</summary>
     internal static bool HasInvisible(IGameMemory mem, long entry) =>
         (mem.U8(entry + Offsets.AInvisible) & Offsets.AInvisibleBit) != 0;
 
-    /// <summary>Guarded OR/AND of a single status bit. Returns true iff the byte reads the wanted
-    /// state afterward (no change needed, or the write landed); false only when a NEEDED write was
-    /// refused (Writable false on that page).</summary>
+    /// <summary>Guarded OR/AND of one status bit. True iff the byte reads the wanted state afterward;
+    /// false only when a needed write was refused (Writable false).</summary>
     private static bool TrySetBit(IGameMemory mem, long addr, int mask, bool on)
     {
         int cur = mem.U8(addr);

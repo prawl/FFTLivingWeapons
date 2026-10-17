@@ -1,8 +1,7 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// The pure decisions behind Eagle Eye -- no memory access, so they're unit-tested directly.
-/// The stateful band scan + countdown write lives in EagleEye.cs.
+/// The pure decisions behind Eagle Eye; the stateful scan and write live in EagleEye.cs.
 /// </summary>
 internal sealed partial class EagleEye
 {
@@ -15,12 +14,8 @@ internal sealed partial class EagleEye
         return sig.DoomCountdownTo;
     }
 
-    /// <summary>LW-95: hasten only a Doom RISING EDGE (doomed &amp;&amp; !wasDoomed) that is
-    /// ATTRIBUTED to the wielder's own action (the caller's actingMainHand + actedByte==1 gate),
-    /// and only ever write DOWN (countdown still above target). Fires once per Doom appearance,
-    /// only when the acting main hand was the Eclipsebolt during its acted period; a pre-existing
-    /// Doom (no edge) or a foe Doomed by any other source (another weapon's proc, an enemy cast)
-    /// is left alone -- fail-closed toward the design: the bow's own May-inflict-Doom procs only.</summary>
+    /// <summary>hasten only a Doom rising edge (doomed &amp;&amp; !wasDoomed) attributed to the wielder's own
+    /// action (actingMainHand and actedByte==1), and only write down. Pre-existing Doom or Doom from other sources is left alone.</summary>
     public static bool ShouldHasten(bool doomed, bool wasDoomed, int countdown, int target, bool attributed) =>
         doomed && !wasDoomed && attributed && countdown > target;
 }

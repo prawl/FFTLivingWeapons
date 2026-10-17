@@ -5,32 +5,24 @@ using Newtonsoft.Json;
 
 namespace LivingWeapon;
 
-/// <summary>One monster job's Poach carcass drop pair: the common and rare inventory item keys +
-/// display names poach.json ships for that job id.</summary>
+/// <summary>One monster job's Poach carcass drop pair (common and rare item keys and names) from poach.json.</summary>
 internal readonly record struct PoachCarcass(int CommonKey, string CommonName, int RareKey, string RareName);
 
 /// <summary>
-/// Loads LivingWeapon/poach.json (LW-167; tools/extract_poach_map.py's committed output --
-/// the Job sheet's own Unknown10/Unknown11 columns carry each MONSTER JOB ID's PoachItem
-/// common/rare {key, name} directly, keyed by job id) from the mod directory, mirroring
-/// MetaLoader/GunSlingerStore's modDir-rooted load pattern.
+/// Loads LivingWeapon/poach.json from the mod directory (LW-167, output of tools/extract_poach_map.py). The
+/// Job sheet's Unknown10/Unknown11 columns carry each monster job id's common/rare PoachItem {key, name},
+/// so the map is keyed by job id. Human jobs have no entry, which makes membership the whole monster gate.
+/// A live pass refused a Black Chocobo at job 95, falsifying the old job byte - 95
+/// species index.
 ///
-/// LW-167 (2026-08-12): the map used to be keyed by a derived "species index" (victim job byte -
-/// 95); a live pass falsified that arithmetic (a Black Chocobo at job 95 was refused) and it is
-/// gone. Map-membership BY JOB ID is now the entire monster gate -- human jobs simply have no
-/// entry.
-///
-/// DISARM ON FAILURE, NOT CRASH-OR-LIMP: a missing or corrupt file leaves <see cref="IsLoaded"/>
-/// false and every <see cref="TryGetJob"/> lookup false -- LivingPoach checks this before ever
-/// consulting the map, so a broken deploy quietly refuses to poach against garbage data rather
-/// than crash or fabricate a drop. Exactly ONE Warning is logged (the map loads once at
-/// construction and never reloads mid-session, so there is no risk of this spamming the tick loop).
+/// A missing or corrupt file leaves <see cref="IsLoaded"/> false and every <see cref="TryGetJob"/> false,
+/// so LivingPoach declines to poach instead of crashing or inventing a drop. One Warning is logged.
 /// </summary>
 internal sealed class PoachMap
 {
     private readonly Dictionary<int, PoachCarcass> _jobs = new();
 
-    /// <summary>True when poach.json parsed cleanly and carried at least one usable job entry.</summary>
+    /// <summary>True when poach.json parsed and carried at least one usable job entry.</summary>
     public bool IsLoaded { get; }
 
     public PoachMap(string modDir)
@@ -60,8 +52,7 @@ internal sealed class PoachMap
         }
     }
 
-    /// <summary>Look up one monster job's carcass pair by its job id. False (and a default record)
-    /// when the map never loaded, or this job has no entry (including every human job).</summary>
+    /// <summary>Looks up a monster job's carcass pair. False when the map never loaded or the job has no entry.</summary>
     public bool TryGetJob(int jobId, out PoachCarcass carcass) => _jobs.TryGetValue(jobId, out carcass);
 
     private sealed class PoachDoc

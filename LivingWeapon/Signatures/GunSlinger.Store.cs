@@ -6,11 +6,9 @@ using Newtonsoft.Json;
 namespace LivingWeapon;
 
 /// <summary>
-/// Per-unit roster-snapshot persistence for Gun Slinger. Keys on roster nameId (u16).
-/// Saved as gunslinger.json in the mod directory; atomic write + .bak with CURRENT-generation
-/// bak semantics (see Save's doc; deliberately NOT KillTally/LegendStore's shared
-/// SidecarJson.SaveAtomic chain). Loaded once at construction; Save() is called each time a
-/// snapshot changes.
+/// Per-unit roster-snapshot persistence for Gun Slinger, keyed on roster nameId (u16), saved as gunslinger.json
+/// in the mod directory. Atomic write + .bak, but the .bak holds the current generation (see Save), unlike
+/// the shared SidecarJson.SaveAtomic chain KillTally/LegendStore use. Loaded once; Save() on each change.
 /// </summary>
 internal sealed class GunSlingerStore
 {
@@ -21,12 +19,9 @@ internal sealed class GunSlingerStore
     {
         _path = Path.Combine(modDir, "gunslinger.json");
         _snaps = Load(_path);
-        // LW-252 decision-4 exception (a): a key-0 snapshot can only exist from BEFORE
-        // GunSlinger.cs's own nameId==0 scan guard shipped -- it was shared between whichever
-        // unseeded roster rows happened to collide on it, so its original-gear record cannot be
-        // safely attributed to either unit anymore. Purge it, warn ONCE (naming the hazard and
-        // the recovery the affected unit needs), and force a Save() immediately so the warning
-        // fires once EVER, not once per launch (Load never wrote back on its own).
+        // LW-252 decision-4 exception (a): a key-0 snapshot predates GunSlinger.cs's nameId==0 scan guard and was
+        // shared by colliding unseeded roster rows, so it cannot be attributed to a unit. Purge it, warn once, and
+        // Save() now so the warning does not repeat every launch.
         if (_snaps.Remove(0))
         {
             ModLogger.Warn(LogVerb.Save,
@@ -45,13 +40,10 @@ internal sealed class GunSlingerStore
         return snap;
     }
 
-    /// <summary>Atomic save: write tmp; move tmp over the primary; then write the SAME json to
-    /// .bak. Unlike KillTally/LegendStore's shared SidecarJson.SaveAtomic (whose .bak holds the
-    /// PREVIOUS generation via a prior-primary copy), there is no prior-copy step at all: this
-    /// .bak deliberately holds the CURRENT generation, so a single save cycle leaves it valid
-    /// for the fallback Load path. Deliberately NOT folded onto the shared chain (LW-153):
-    /// folding would change which generation the fallback sees. A failed save logs and leaves
-    /// the prior file intact.</summary>
+    /// <summary>Atomic save: write tmp, move it over the primary, then write the same json to .bak.
+    /// The .bak holds the current generation (SidecarJson.SaveAtomic's holds the previous one), so one save
+    /// leaves a valid fallback. Not folded onto the shared chain: that would change which generation
+    /// the fallback sees. A failed save logs and leaves the prior file intact.</summary>
     public void Save()
     {
         try
@@ -63,7 +55,6 @@ internal sealed class GunSlingerStore
             var tmp = _path + ".tmp";
             File.WriteAllText(tmp, json);
             File.Move(tmp, _path, true);
-            // Keep .bak in sync so the fallback load path always has a good copy.
             File.WriteAllText(_path + ".bak", json);
         }
         catch (Exception ex) { ModLogger.Error(LogVerb.Save, "Could not save the gun-slinger gear snapshots: " + ex.Message); }
@@ -88,22 +79,27 @@ internal sealed class GunSlingerStore
         return new Dictionary<int, GunSlingerSnap>();
     }
 
-    // DTO for JSON serialization (avoid exposing GunSlingerSnap's property names directly)
+    // DTO for JSON serialization
     private sealed class SnapDto
     {
-        [JsonProperty("hasOff")]   public bool HasOff   { get; set; }
-        [JsonProperty("origOff")]  public int  OrigOff  { get; set; }
-        [JsonProperty("hasSupp")]  public bool HasSupp  { get; set; }
-        [JsonProperty("origSupp")] public int  OrigSupp { get; set; }
+        [JsonProperty("hasOff")] public bool HasOff { get; set; }
+        [JsonProperty("origOff")] public int OrigOff { get; set; }
+        [JsonProperty("hasSupp")] public bool HasSupp { get; set; }
+        [JsonProperty("origSupp")] public int OrigSupp { get; set; }
 
         public static SnapDto From(GunSlingerSnap s) => new()
         {
-            HasOff = s.HasOff, OrigOff = s.OrigOff, HasSupp = s.HasSupp, OrigSupp = s.OrigSupp
+            HasOff = s.HasOff,
+            OrigOff = s.OrigOff,
+            HasSupp = s.HasSupp,
+            OrigSupp = s.OrigSupp
         };
 
         public GunSlingerSnap ToSnap() => new()
         {
-            HasOff = HasOff, OrigOff = (ushort)OrigOff, HasSupp = HasSupp,
+            HasOff = HasOff,
+            OrigOff = (ushort)OrigOff,
+            HasSupp = HasSupp,
             OrigSupp = GunSlingerPolicy.MigrateLegacySupp(OrigSupp)
         };
     }

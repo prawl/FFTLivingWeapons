@@ -4,63 +4,28 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-261: the resumable, byte-budgeted whole-process pool-region walk PoolLocator drives. What
-/// <see cref="DisplaySweep"/> is to Display's own paint pipeline, this is to PoolLocator: a
-/// composed class (not a partial -- there is no shared state to split, just one self-contained
-/// walk), owning an ADDRESS cursor stepped a bounded number of bytes per <see cref="Step"/> call
-/// so it can resume across many Engine ticks instead of blocking one tick for the whole walk (a
-/// live measurement clocked the old synchronous PoolLocator.LocateAll at 7 to 10 seconds on this
-/// exact background loop).
-///
-/// Cursor choice, and why it is deliberately NOT <see cref="ScanCursor"/>: ScanCursor's
-/// RegionCursor carries a region INDEX, meaningful only against the frozen list it was built
-/// from. A live measurement (eight successive locates inside one battle) proved the region list
-/// is not stable during a scan -- it grows, gains new regions, and existing regions expand in
-/// place, all within a single multi-second walk. Reusing that cursor here would import the exact
-/// bug the measurement predicts: a region-index cursor silently resolves against whatever list
-/// happens to be current when it is dereferenced, which can drift out from under an index taken
-/// many ticks earlier. An address cursor plus a periodically refreshed <see
-/// cref="ChunkReader.Snapshot"/> (round 5 verify, F2: NOT a fresh one every Step -- <see
-/// cref="SnapshotRefreshMs"/>'s own doc has the cadence; DisplaySweep.cs's own idiom for its
-/// background phase was per-call, this is not) still self-heals: it only ever asks "is there work
-/// at or after this address", never "what is region N", so a region committed after the scan
-/// started is picked up as of whichever Step is next due to refresh, as long as its extent
-/// reaches at or past the cursor then.
-///
-/// Every qualifying region (not just the "best" one -- PoolLocator's own class doc explains why)
-/// is staged as the walk finds it. The staging list is private to one in-flight scan and is
-/// handed to the caller only in the Complete summary; a caller that publishes straight from a
-/// Step result therefore can never publish a partial scan.
+/// The resumable, byte-budgeted whole-process pool-region walk that PoolLocator drives. It keeps an
+/// address cursor stepped a bounded number of bytes per <see cref="Step"/> so the walk spans many Engine ticks
+/// (the old synchronous LocateAll took 7 to 10 seconds on the background loop). The cursor is not
+/// <see cref="ScanCursor"/>: a region index goes stale because the region list grows and expands mid-scan
+/// (seen across eight locates in one battle). An address cursor with a periodically refreshed
+/// <see cref="ChunkReader.Snapshot"/> (<see cref="SnapshotRefreshMs"/>) only asks for work at or after
+/// an address, so late regions are still picked up. Every qualifying region is staged and handed back only in
+/// the Complete result, so a partial scan is never published.
 /// </summary>
 internal sealed class PoolScan
 {
-    /// <summary>One Step's outcome. Regions is empty and meaningless while Complete is false --
-    /// callers must never treat an in-progress result as a (possibly partial) region list.</summary>
+    /// <summary>One Step's outcome. Regions is empty until Complete is true.</summary>
     internal readonly record struct StepResult(bool Complete,
         IReadOnlyList<(long baseAddr, long size)> Regions, int Ticks, long Bytes, long ElapsedMs);
 
     private readonly CardPatterns _pats;
     private readonly ChunkReader _reader;
 
-    /// <summary>Retune round (live tape 2026-08-18, owner pass): a full VirtualQueryEx region walk
-    /// measured ~45ms against the running game process (5519 regions enumerated, 1362 kept; three
-    /// trials 44.9 to 45.9ms cross-process -- tools/probes/vq_walk_cost.py is the tracked
-    /// instrument, round 5 verify F7). Step used to re-snapshot on EVERY call, and R1 of this same
-    /// retune round (the single production driver) had ALSO just removed the second call site
-    /// that used to double that cost, so what the tape actually measured (six completions logged
-    /// that day: 647/645/631/651/681/689 ticks, 65.4 to 101.7s wall clock, 100.5 to 157.7ms per
-    /// Step) was the OLD every-call-snapshot design running through the SOLE remaining driver.
-    /// Round 5 verify correction: that per-Step figure is NOT ~60 percent snapshot cost -- 647
-    /// ticks x ~45ms is ~29.1s, about 32 percent of the 92.2s scan (about 29 percent of the 101.7s
-    /// one); the rest is per-chunk read+scan plus whatever else shares the engine's own tick. THIS
-    /// cadence is what actually removes most of that ~29 to 32 percent (R1 alone would not have --
-    /// one driver instead of two means MORE ticks per scan, not fewer; R1's own win is per-tick
-    /// latency and total CPU, not scan wall time). Region committed after a scan started is still
-    /// eventually seen (a live region list changes on the order of 40 to 90 seconds between new
-    /// pool regions on the same tape, never every second), just not necessarily within this window
-    /// -- the tradeoff this constant makes explicit: a region committed just above the cursor
-    /// inside the 1s window can be passed over THIS scan; the RevalidateMs periodic reverify and
-    /// the next scan both heal it.</summary>
+    /// <summary>Minimum gap between region snapshots (retune, tape 2026-08-18). One VirtualQueryEx walk costs
+    /// about 45ms (5519 regions, 1362 kept; tools/probes/vq_walk_cost.py). Snapshotting every Step cost about 29s
+    /// (32 percent) of a 92.2s scan (647 ticks). A region committed inside the window can be missed by this
+    /// scan; the RevalidateMs reverify and the next scan pick it up.</summary>
     internal const long SnapshotRefreshMs = 1000;
 
     private bool _running;
@@ -68,12 +33,10 @@ internal sealed class PoolScan
     private long _startMs;
     private int _ticks;
     private long _bytesRead;
-    private long _lastSnapshotMs = long.MinValue / 2;   // sentinel: DisplaySweep.cs's own idiom -- Begin() always overwrites this before it matters
+    private long _lastSnapshotMs = long.MinValue / 2;   // sentinel; Begin() overwrites it
     private readonly List<(long baseAddr, long size)> _staging = new();
 
-    // The region currently being accumulated. A region larger than one Step's budget resumes
-    // mid-region across many Step calls, so the distinct-weapon-id set for "the region the
-    // cursor is inside right now" has to survive between calls, not just within one.
+    // Region being accumulated; a region larger than one budget resumes across Steps, so its id set persists.
     private long _curRegionBase = -1;
     private long _curRegionEnd;
     private readonly HashSet<int> _curIds = new();
@@ -100,17 +63,12 @@ internal sealed class PoolScan
         _curRegionBase = -1;
         _curRegionEnd = 0;
         _curIds.Clear();
-        _reader.Snapshot();          // ALWAYS fresh at the start of a scan, regardless of cadence
+        _reader.Snapshot();          // fresh at scan start, ignoring the cadence
         _lastSnapshotMs = nowMs;
     }
 
-    /// <summary>Advance the walk by at most budgetBytes (plus the one chunk DisplaySweep's own
-    /// contract always spends to guarantee forward progress) and report whether it has finished.
-    /// Re-snapshots Regions() only once <see cref="SnapshotRefreshMs"/> has elapsed since the last
-    /// one (that constant's own doc has the live-measured cost this cadence exists to bound) --
-    /// the self-heal described in the class doc still applies, just on that cadence rather than
-    /// every call: a region committed since the last snapshot is visible here, as of whichever
-    /// Step call is next due to refresh, as long as it reaches at or past the cursor.</summary>
+    /// <summary>Advance the walk by at most budgetBytes (plus the one chunk that guarantees progress) and
+    /// report whether it finished. Re-snapshots only after <see cref="SnapshotRefreshMs"/>.</summary>
     public StepResult Step(long budgetBytes, long nowMs)
     {
         _ticks++;
@@ -125,14 +83,14 @@ internal sealed class PoolScan
         foreach (var (rbase, rsize) in _reader.Regions)
         {
             long rend = rbase + rsize;
-            if (rend <= _cursor) continue;   // region entirely before the cursor: already covered
+            if (rend <= _cursor) continue;   // already covered
 
             if (rbase != _curRegionBase)
             {
                 FinalizeCurrentRegion();
                 _curRegionBase = rbase;
             }
-            _curRegionEnd = rend;   // refresh even on a resumed region: it may have grown in place
+            _curRegionEnd = rend;   // the region may have grown in place
 
             long chunkStart = Math.Max(rbase, _cursor);
             while (chunkStart < rend)
@@ -150,17 +108,12 @@ internal sealed class PoolScan
                 remaining -= read;
                 chunkStart += ChunkReader.ChunkSize;
             }
-            // Deliberately NOT `_cursor = chunkStart` here (DisplaySweep.cs's own background-phase
-            // loop has this exact shape): _cursor is updated ONLY on the early-return budget-
-            // exhausted branch above. Left stale after a region completes normally within this
-            // same Step call, the NEXT region's own `Math.Max(rbase, _cursor)` still resolves
-            // correctly (regions are ascending, non-overlapping, so a stale low cursor can never
-            // wrongly skip a later region) -- updating it here instead would advance it past
-            // whatever gap sits between this region and the next, so the very next region's own
-            // `rend <= _cursor` guard would see a cursor already past its end and skip it outright.
+            // _cursor is set only on the budget-exhausted return above. Advancing it here would skip the
+            // next region whenever a gap separates it from this one; a stale low cursor is harmless because
+            // regions are ascending and non-overlapping.
         }
 
-        // Every region visible in THIS snapshot has been consumed up to its own end: done.
+        // Every region in this snapshot has been consumed.
         FinalizeCurrentRegion();
         _running = false;
         return new StepResult(true, _staging, _ticks, _bytesRead, nowMs - _startMs);
@@ -168,9 +121,8 @@ internal sealed class PoolScan
 
     private StepResult InProgress() => new(false, Array.Empty<(long, long)>(), _ticks, _bytesRead, 0);
 
-    /// <summary>Stage the region the cursor just left, if it attributed at least one distinct
-    /// weapon id (PoolLocator.ScanRegion's own "isPool" rule), and reset the accumulator for
-    /// whatever region comes next.</summary>
+    /// <summary>Stage the region the cursor just left if it attributed a distinct weapon id
+    /// (PoolLocator.ScanRegion's isPool rule), then reset the accumulator.</summary>
     private void FinalizeCurrentRegion()
     {
         if (_curRegionBase < 0) return;

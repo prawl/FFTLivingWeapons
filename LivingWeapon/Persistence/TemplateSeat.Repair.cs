@@ -3,39 +3,22 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-351 round 8b (2026-08-31): the REPAIR half of <see cref="TemplateSeat"/>.
-///
-/// WHY: three copies of the game's owned-item template maintainer walked a template with a
-/// bound of 261, so an extended id inside the table ended the walk early and every insert
-/// doubled the id's neighbor and destroyed the word after it, and once the crawling id reached
-/// the end marker the marker was lost too (owner-observed 2026-08-31: five doubled shields, an
-/// inventory table with 129 ids and zeros where its marker had been, empty rows, a crash).
-/// Widening the three bounds (ExtendedSites, fix rounds 8 and 8b) stops new damage but heals
-/// nothing: the game's rebuild re-emits a list word for every doubled template entry and writes
-/// the list back, and its maintainer deletes only ids the player owns none of. So every seat
-/// scans the table first and rewrites it when it is damaged.
-///
-/// RULES, each pinned by a test: a doubled id keeps its first occurrence; a zero word goes (id 0
-/// is never an entry, the menu shows it as an empty row); a table with no 0x00FF marker gets
-/// one at its first zero word and everything past that word is dropped as stale; a table with
-/// neither marker nor zero word is refused, not guessed at; a clean table is untouched. LW-367: a
-/// word whose masked id is at or past the caller's armed range is dropped too, ahead of the
-/// doubled-id dedupe -- a saved chart can carry the id of a design that has since been removed or
-/// was never armed on this build, and such a word left in place ends the game's own maintainer
-/// walk early exactly like the doubled-id damage above.
+/// LW-351 round 8b (2026-08-31), the repair side of <see cref="TemplateSeat"/>. Three copies of the game's
+/// template maintainer walked with a bound of 261, so an extended id ended the walk early, doubled its
+/// neighbor and could destroy the end marker (seen as doubled shields, a 129-id table and a crash).
+/// The widened bounds in ExtendedSites stop new damage but heal nothing, so each seat scans first.
+/// Rules, each pinned by a test. A doubled id keeps its first occurrence. A zero word goes (id 0 shows as an empty row).
+/// A table with no 0x00FF marker gets one at its first zero word and the rest is dropped; with neither it is refused.
+/// LW-367 a word at or past the armed id range is dropped before the dedupe, since it ends the game's walk early too.
 /// </summary>
 internal static partial class TemplateSeat
 {
-    /// <summary>What a scan found: the surviving words in order, where the marker is (or will
-    /// be), what was healed (null when nothing), or why the table cannot be read as a list.</summary>
+    /// <summary>What a scan found. The surviving words, the marker position, what was healed (null if nothing), or why the table cannot be read.</summary>
     internal readonly record struct Scan(List<ushort> Body, int Marker, string? Repaired, string? Refusal);
 
-    /// <summary>Pure: read <paramref name="words"/> u16 words of <paramref name="region"/> and
-    /// apply the repair rules above.</summary>
-    /// <param name="firstStaleId">LW-367: a word whose masked id is at or past this bound is
-    /// dropped as stale instead of kept. Defaults to <see cref="int.MaxValue"/> so every legacy
-    /// caller and test keeps today's behavior byte-for-byte; production callers pass
-    /// <see cref="ExtendedCatalog.FirstExtendedId"/> plus the armed extended count.</param>
+    /// <summary>Pure. Reads <paramref name="words"/> u16 words of <paramref name="region"/> and applies the repair rules above.</summary>
+    /// <param name="firstStaleId">LW-367 ids at or past this bound are dropped as stale. The default keeps legacy callers
+    /// unchanged; production passes <see cref="ExtendedCatalog.FirstExtendedId"/> plus the armed extended count.</param>
     internal static Scan ScanTable(byte[] region, int words, int firstStaleId = int.MaxValue)
     {
         var raw = new List<ushort>(words);
@@ -65,9 +48,8 @@ internal static partial class TemplateSeat
         foreach (ushort w in raw)
         {
             if (w == 0) { zeros++; continue; }
-            int id = w & 0x3FF;   // the game's own id mask; the templates carry no flag bits today
-            // LW-367: a stale word is dropped before the dedupe ever sees it, so it never marks
-            // its masked id as seen (and so never counts as a double either).
+            int id = w & 0x3FF;   // the game's id mask; templates carry no flag bits today
+            // LW-367 stale words go before the dedupe, so they never count as doubles.
             if (id >= firstStaleId) { stale.Add(id.ToString()); continue; }
             if (!seen.Add(id)) { doubled.Add(id.ToString()); continue; }
             body.Add(w);

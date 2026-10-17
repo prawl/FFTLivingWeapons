@@ -3,13 +3,9 @@ using System;
 namespace LivingWeapon;
 
 /// <summary>
-/// A per-module logger scoped to one <see cref="LogVerb"/> and one "is this module armed"
-/// predicate (e.g. <c>Wielder.AnyDeployedMainHand(mem, GalewindId)</c>). Built by
-/// <see cref="ModLogger.For"/>. Implements every audited GATE-ON-ARMED disposition
-/// structurally: <see cref="Info"/> and <see cref="Warn"/> demote to Debug (file-only by
-/// default) when the module is not armed this battle, instead of every signature module
-/// hand-rolling its own "if (armed) Event else Debug" branch. <see cref="Debug"/> is never
-/// gated: file-only evidence is always worth keeping regardless of armed state.
+/// Per-module logger bound to one <see cref="LogVerb"/> and an "is this module armed" predicate,
+/// built by <see cref="ModLogger.For"/>. <see cref="Info"/> and <see cref="Warn"/> drop to Debug
+/// (file-only by default) when the module is not armed this battle; <see cref="Debug"/> is never gated.
 /// </summary>
 internal readonly struct ScopedLogger
 {
@@ -29,20 +25,19 @@ internal readonly struct ScopedLogger
         else ModLogger.Debug(_verb, message);
     }
 
-    /// <summary>Warning when armed, else demoted to Debug (file-only by default): an unarmed
-    /// module's degraded state is not worth a console warning nobody fielded the weapon for.</summary>
+    /// <summary>Warning when armed, else Debug. An unarmed module's degraded state is not
+    /// worth a console warning.</summary>
     public void Warn(string message)
     {
         if (SafeArmed()) ModLogger.Warn(_verb, message);
         else ModLogger.Debug(_verb, message);
     }
 
-    /// <summary>Always Debug (file-only by default), armed or not: the evidence chain.</summary>
+    /// <summary>Always Debug (file-only by default), armed or not.</summary>
     public void Debug(string message) => ModLogger.Debug(_verb, message);
 
-    /// <summary>Armed predicates read live memory (Wielder.AnyDeployedMainHand et al.); never
-    /// let a probe throw and silently kill the whole log call, mirroring the project's
-    /// fail-safe Mem philosophy.</summary>
+    /// <summary>Armed predicates read live memory (e.g. Wielder.AnyDeployedMainHand), so a
+    /// throwing probe counts as not armed instead of killing the log call.</summary>
     private bool SafeArmed()
     {
         try { return _armed(); } catch { return false; }

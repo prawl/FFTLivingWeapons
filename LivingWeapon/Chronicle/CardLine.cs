@@ -3,55 +3,38 @@ using System;
 namespace LivingWeapon;
 
 /// <summary>
-/// Reliquary Phase 1's pure card-flavor composer (docs/RELIQUARY_AC.md Display section). Turns
-/// a weapon's deed ledger (LegendStore's WeaponLegend view) into the story-line replacement for
-/// its baked flavor -- or null, meaning "keep the baked line" (decision 8: no deeds recorded ->
-/// always null).
-///
-/// TOTAL ORDER (Phase 1; decision 10 descopes the Legends branch to Phase 2): highest-count
-/// archetype AMONG EARNED MARKS (a count alone never qualifies -- only a threshold-crossed
-/// entry in Marks) &gt; last-victim (any recorded deed, even below every Mark threshold) &gt; null.
-///
-/// Forms are tried in FIXED PRIORITY (A, B, C, D -- NOT sorted by length), so a narrow budget can
-/// never invert the total order by letting a lower-priority form "win" merely because it is
-/// shorter than a higher-priority one that would also have fit:
+/// Reliquary Phase 1's card-flavor composer (docs/RELIQUARY_AC.md Display section). Turns a weapon's
+/// deed ledger (LegendStore's WeaponLegend) into the story line that replaces its baked flavor, or
+/// null to keep the baked line (decision 8: no deeds recorded). Order (decision 10 defers Legends
+/// to Phase 2): highest-count archetype among earned Marks &gt; last victim &gt; null.
+/// Forms are tried in fixed priority A, B, C, D, not by length, so a short low-priority form cannot
+/// beat a longer one that also fits. {n} is the mark archetype's count, {k} is totalKills.
 ///   A: "{name}, {title}: {n} {noun} felled; last, {a(n) victimNoun}."
 ///   B: "{name}, {title}: {n} {noun} felled."
-///   C: "{name}: {k} felled; last, {a(n) victimNoun}."   (no earned mark, or A/B don't fit)
+///   C: "{name}: {k} felled; last, {a(n) victimNoun}."
 ///   D: "{name}: {k} felled."
-///   none fits -> null (also when there ARE deeds but no form fits the budget -- see
-///   CardLineTests.Sasukes_blade_26_budget_is_always_null).
-/// The separator is ": " (owner wording pass 2026-07-05, superseding the earlier ASCII " -- ";
-/// a real em dash remains impossible here -- ByteScan.Ascii DROPS non-ASCII, which would desync
-/// the two encodings' byte lengths, see <see cref="IsPaintable"/>).
-/// {n} = the chosen mark archetype's count; {k} = totalKills (the tally, not a deed count).
-/// The result is RIGHT-PADDED with spaces to exactly budgetChars.
+/// None fitting gives null (CardLineTests.Sasukes_blade_26_budget_is_always_null). The result is
+/// right-padded to budgetChars. The separator is ": " (wording pass 2026-07-05); an em dash would be
+/// dropped by ByteScan.Ascii and desync the encodings, see <see cref="IsPaintable"/>.
 /// </summary>
 internal static class CardLine
 {
-    // The 5-digit headroom guard: a weapon composes AT ALL only if its budget can hold form D at
-    // a 5-digit kill count -- "{name}" + ": " (2) + 5 digits + " felled." (8). Every form only
-    // LENGTHENS as the count gains digits, so without this a weapon whose budget sits within 4
-    // chars of its form-D minimum would compose at low counts and go null once the count grows a
-    // digit -- and there is NO repaint-back-to-baked path, so that non-null -> null transition
-    // would strand a stale line on the card forever. The guard converts every such window weapon
-    // to "never composes" (baked stays -- Sasuke's Blade, budget 26 < 14+15, is the one real
-    // case in today's meta.json), making the no-rollover property hold BY CONSTRUCTION instead
-    // of by data luck (CardLineTests.Digit_headroom_property_all_121 drives both extremes).
+    // A weapon composes only if its budget holds form D at a 5-digit kill count: name + ": " (2) +
+    // 5 digits + " felled." (8). Forms only lengthen as the count grows, and nothing repaints back to
+    // the baked line, so a non-null to null flip would strand a stale line. Sasuke's Blade (budget 26 <
+    // 14+15) is the one weapon this excludes today. CardLineTests.Digit_headroom_property_all_121 covers it.
     private const int FormDFixedChars = 2 + 8;   // the ": " separator + " felled."
     private const int DigitHeadroom = 5;
 
     public static string? Compose(string weaponName, int totalKills, WeaponLegend legend, int budgetChars)
     {
-        // Decision 8: no deed has ever been recorded for this weapon -> always null (baked stays).
+        // Decision 8: no deed recorded, so the baked line stays.
         if (legend.LastVictimCls < 0) return null;
 
-        // The 5-digit headroom guard (see the class-level constants' comment).
+        // Headroom guard (see the constants above).
         if (budgetChars < weaponName.Length + FormDFixedChars + DigitHeadroom) return null;
 
-        // Tie-break by Archetype ENUM ORDER (VictimClass.BestMark's contract): a strictly higher
-        // count always wins; on an exact tie, only the new candidate wins if its enum value is
-        // LOWER than the incumbent's. Shared with AttackCard.cs's dossier compose (LW-31).
+        // Ties go to the lower Archetype enum value (VictimClass.BestMark, shared with AttackCard.cs, LW-31).
         VictimClass.Archetype? bestMark = VictimClass.BestMark(legend, out int bestCount);
 
         bool undead = legend.LastVictimCls == (int)VictimClass.Archetype.Undead;
@@ -75,8 +58,7 @@ internal static class CardLine
         return null;
     }
 
-    /// <summary>Right-pad to exactly budgetChars and return it iff the raw candidate fits AND
-    /// the padded result is paintable; null (never a truncated/garbled candidate) otherwise.</summary>
+    /// <summary>Right-pads to budgetChars and returns it if the candidate fits and is paintable, else null.</summary>
     private static string? TryPad(string candidate, int budgetChars)
     {
         if (candidate.Length > budgetChars) return null;
@@ -84,13 +66,9 @@ internal static class CardLine
         return IsPaintable(padded, budgetChars) ? padded : null;
     }
 
-    /// <summary>True iff s is exactly budgetChars long and every char is printable ASCII
-    /// (0x20..0x7E). Asserted (via TryPad, above) on every non-null Compose return --
-    /// ByteScan.Ascii DROPS non-ASCII chars when baking the 8-bit encoding, which would desync
-    /// the 8-bit and UTF-16LE pattern lengths CardPatterns/EarnedAnchors rely on being equal
-    /// (load-bearing). The ASCII range check also excludes an em dash (U+2014, far above 0x7E)
-    /// without needing to embed that character in this file -- Compose's own templates emit only
-    /// the ASCII ": " separator (owner wording pass 2026-07-05).</summary>
+    /// <summary>True when s is budgetChars long and all printable ASCII (0x20..0x7E). ByteScan.Ascii drops
+    /// non-ASCII chars, which would desync the 8-bit and UTF-16LE pattern lengths that CardPatterns/EarnedAnchors
+    /// need equal. The range also rules out an em dash (U+2014).</summary>
     public static bool IsPaintable(string s, int budgetChars)
     {
         if (s.Length != budgetChars) return false;

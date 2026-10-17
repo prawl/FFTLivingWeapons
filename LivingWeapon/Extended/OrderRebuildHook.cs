@@ -6,24 +6,17 @@ using Reloaded.Hooks.Definitions.X64;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-346: detour on the game's item-list rebuild routine (<see cref="Offsets.FnOrderRebuild"/>).
-/// Several menu lists (Inventory tabs, the equip picker, the "Acquired" sort) are rebuilt from
-/// fixed display-order tables that no new item id is in, so the routine silently drops it. This
-/// hook lets the game's own rebuild run first, then re-appends whatever word(s) it dropped onto
-/// the end of the list, in their original order, ahead of the terminator, and corrects the
-/// returned count. Ported from the FFTHandsFree rig's OrderRebuildHook (b1abd77), whose live
-/// pass the owner watched on all three list paths 2026-08-26 23:05.
+/// Detour on the game's item-list rebuild routine (<see cref="Offsets.FnOrderRebuild"/>).
+/// Menu lists (Inventory tabs, equip picker, "Acquired" sort) are rebuilt from fixed order tables
+/// that contain no new item id, so the routine drops it. The hook lets the rebuild run, re-appends
+/// the dropped words before the terminator and corrects the count. Ported from the FFTHandsFree
+/// rig's OrderRebuildHook (b1abd77), watched on all three list paths 2026-08-26 23:05.
 ///
-/// Contract of the target: <c>int Rebuild(nint table /*rcx*/, nint list /*rdx*/)</c>; the list
-/// is u16 words (<c>id | flags</c>, bit 14 = E-badge) terminated by 0xFFFF; the routine copies
-/// list words into a stack temp in table order, memcpys the temp back over the list (the output
-/// is a SUBSET of the input, never longer), writes 0xFFFF after it and returns the words kept.
-/// Entry bytes read live 2026-08-26 and confirmed on the 1.5.2 exe on disk 2026-08-27
-/// (<see cref="ExpectedPrologue"/>, ret+CC padding before the entry).
-///
-/// Pure list parsing/diffing lives in OrderRebuildHook.Policy.cs. Every memory access inside the
-/// detour goes through the injected <see cref="ICodePatcher"/> (kernel-guarded, never faults);
-/// the call to the original is the only thing never wrapped.
+/// Target: <c>int Rebuild(nint table /*rcx*/, nint list /*rdx*/)</c> over u16 words
+/// (<c>id | flags</c>, bit 14 = E-badge) ending in 0xFFFF. It keeps a subset of the input in table
+/// order and returns the count kept. Entry bytes read 2026-08-26, confirmed on the 1.5.2 exe on
+/// disk 2026-08-27 (<see cref="ExpectedPrologue"/>, ret+CC padding before the entry). Parsing lives
+/// in OrderRebuildHook.Policy.cs; memory access goes through <see cref="ICodePatcher"/>.
 /// </summary>
 internal sealed partial class OrderRebuildHook
 {
@@ -33,27 +26,15 @@ internal sealed partial class OrderRebuildHook
     /// <summary>First 10 bytes at the entry: mov [rsp+8],rbx; mov [rsp+18h],rbp.</summary>
     public static readonly byte[] ExpectedPrologue = { 0x48, 0x89, 0x5C, 0x24, 0x08, 0x48, 0x89, 0x6C, 0x24, 0x18 };
 
-    /// <summary>Upper bound on words read per call. LW-372 (D5): the shared list builder's own
-    /// entry cap widens to 255 (256 words with the terminator) for every caller the widened cap
-    /// applies to directly -- the game's own static 256-word notepad, and (via ListBuilderHook's
-    /// truncation) a passthrough for anything that already fit -- so the re-append fallback here
-    /// must be able to parse a full-size rebuilt list again: 260 words, 4 words of headroom over
-    /// the 256 a 255-entry list plus terminator needs.
-    /// Honest note (v1.1): reading MaxWords*2 = 520 bytes off the STATIC buffer
-    /// (<see cref="Offsets.MenuListBuffer"/>, itself only 512 bytes / 256 words) overshoots it by
-    /// 8 mapped bytes into the neighbor object at +0x200. This is benign, not a bug to "fix": the
-    /// terminator inside the real list is always found first (<see cref="ParseList"/> stops
-    /// there), the read itself is guarded (<see cref="ICodePatcher"/>, never faults), and the 8
-    /// stray bytes are only ever examined as words if no terminator turns up at all -- in which
-    /// case ParseList already returns null and Process passes the game's own answer through
-    /// unchanged.</summary>
+    /// <summary>Upper bound on words read per call. LW-372 (D5) widens the list builder's cap to 255
+    /// entries, so 260 words leaves 4 of headroom. Reading 520 bytes off the 512-byte static buffer
+    /// (<see cref="Offsets.MenuListBuffer"/>) overshoots by 8 mapped bytes at +0x200; benign, since the
+    /// read is guarded and <see cref="ParseList"/> stops at the terminator (null if none).</summary>
     public const int MaxWords = 260;
     public const ushort Terminator = 0xFFFF;
     public const int IdMask = 0x3FF;
-    /// <summary>Bit 14 of a list word: the game's E badge, set while every copy of the item is
-    /// worn. LW-351 round 7 verify (2026-08-30): a design whose only copies are equipped reads
-    /// bag 0 yet is still owned, so the owned-only re-append must honor the badge too or the
-    /// rebuild orphans it until a copy returns to the bag.</summary>
+    /// <summary>Bit 14 of a list word: the E badge, set while every copy is worn. LW-351 round 7
+    /// (2026-08-30): all-equipped designs read bag 0 but are owned, so re-append honors the badge.</summary>
     public const int EquippedBadge = 0x4000;
 
     private readonly ICodePatcher _mem;
@@ -68,16 +49,12 @@ internal sealed partial class OrderRebuildHook
     public long Reappended => Interlocked.Read(ref _reappended);
 
     /// <param name="extendedCount">N, the armed extended ids 261..261+N-1 the seat-before-rebuild
-    /// step (OrderRebuildHook.Seat.cs) may seat; 0 = no seating, the re-append fallback only.</param>
-    /// <param name="bagBase">LW-368 round 2: where the bag bytes live -- <see
-    /// cref="ExtendedInventory.BagCountBase"/> in production (the relocated page once armed,
-    /// else the vanilla block); defaults to the vanilla block so every pre-existing caller keeps
-    /// compiling unchanged.</param>
-    /// <param name="regions">LW-371: where the two weapon order templates live right now -- <see
-    /// cref="ExtendedInventory.TemplateRegions"/> in production (the relocated page's regions once
-    /// the template relocation armed); null (the default) falls back to
-    /// <see cref="TemplateSeat.WeaponRegions"/> at call time, so every pre-existing caller keeps
-    /// compiling and behaving unchanged.</param>
+    /// step (OrderRebuildHook.Seat.cs) may seat; 0 = no seating, re-append fallback only.</param>
+    /// <param name="bagBase">LW-368 round 2: where the bag bytes live, <see
+    /// cref="ExtendedInventory.BagCountBase"/> in production. Defaults to the vanilla block.</param>
+    /// <param name="regions">where the two weapon order templates live, <see
+    /// cref="ExtendedInventory.TemplateRegions"/> in production. Null falls back to
+    /// <see cref="TemplateSeat.WeaponRegions"/> at call time.</param>
     public OrderRebuildHook(ICodePatcher mem, long targetAddr = 0, int extendedCount = 0,
         long bagBase = 0, Func<TemplateSeat.Region[]>? regions = null)
     {
@@ -114,9 +91,9 @@ internal sealed partial class OrderRebuildHook
         catch (Exception ex) { SafeLog(() => ModLogger.Debug(LogVerb.Engine, "order-rebuild release swallowed: " + ex.Message)); }
     }
 
-    /// <summary>The whole detour body with the original injected (tests pass a lambda): read the
-    /// list before and after the game's own rebuild, re-append what it dropped, return the
-    /// corrected count. A failed read on either side is a silent passthrough.</summary>
+    /// <summary>The detour body with the original injected (tests pass a lambda): read the list
+    /// before and after the game's rebuild, re-append what it dropped, return the corrected count.
+    /// A failed read on either side passes through.</summary>
     internal int Process(nint table, nint list, RebuildFn original)
     {
         try { SeatOwnedInto(table); }   // fix round 7: owned ids go into the template FIRST
@@ -133,12 +110,11 @@ internal sealed partial class OrderRebuildHook
         var after = ReadListOrNull(list);
         if (after == null) return count;
 
-        // Fix round 7: only an id the bag still holds comes back. The previous list can carry an
-        // id the player has since sold or equipped away; re-appending it seated a row the game
-        // had no item for (the owner's "empty item in my inventory list", 2026-08-30 23:34).
+        // Fix round 7: only an id the bag still holds comes back. The previous list can carry an id
+        // since sold or equipped away, and re-appending it seated an empty row (2026-08-30 23:34).
         var dropped = Array.FindAll(DroppedWords(before, after), w => Owned(w & IdMask) || (w & EquippedBadge) != 0);
         if (dropped.Length == 0) return count;
-        // The write must never exceed the input's own footprint, even if a table lists an id twice.
+        // Never write past the input's own footprint, even if a table lists an id twice.
         if (after.Length + dropped.Length > before.Length)
         {
             SafeLog(() => ModLogger.Warn(LogVerb.Engine,
@@ -160,7 +136,7 @@ internal sealed partial class OrderRebuildHook
     private ushort[]? ReadListOrNull(nint list)
         => _mem.TryRead((long)list, MaxWords * 2, out var bytes) ? ParseList(bytes) : null;
 
-    // Hot-path detour: MUST NOT throw. Process guards everything but the original call itself.
+    // Hot-path detour: must not throw. Process guards everything but the original call.
     private int Detour(nint table, nint list)
     {
         Interlocked.Increment(ref _calls);

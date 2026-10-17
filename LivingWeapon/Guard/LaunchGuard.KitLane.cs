@@ -3,24 +3,17 @@ using System;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-112 seam: the kit-lane guard's behavior, split out of LaunchGuard.cs/LaunchGuard.Landmarks.cs
-/// under the same 200-line precedent as the LW-83 split. A custom job/ability mod that legitimately
-/// rewrites the JobCommand rec8/rec9 bytes used to false-positive the MAIN guard's "the game
-/// updated" stand-down (LW-112's bug report); this second, independent FingerprintGuard instance
-/// isolates that landmark so a conflict there only ever disables the three weapon-granted commands
-/// (Barrage, Shadow Blade, Provoke) it anchors, never the whole mod.
+/// The kit-lane guard, split out of LaunchGuard.cs/LaunchGuard.Landmarks.cs (200-line trigger, as in
+/// the LW-83 split). A custom job/ability mod that rewrites the JobCommand rec8/rec9 bytes used to trip the main
+/// guard's game-update stand-down. This second FingerprintGuard instance isolates that landmark, so a conflict
+/// only disables the three weapon-granted commands it anchors (Barrage, Shadow Blade, Provoke).
 /// </summary>
 internal sealed partial class LaunchGuard
 {
-    /// <summary>LW-112: steps the kit-lane guard, but ONLY while the main guard is Armed and the
-    /// lane itself is still Verifying (a cheap no-op every other tick, including every tick before
-    /// the main guard arms and every tick after the lane reaches its own terminal state).
-    ///
-    /// This ordering is LOAD-BEARING, not an optimization: the lane steps only after the main
-    /// guard armed on the roster landmark. Since LW-397 the build stamp is a report, so on an
-    /// unknown build a lane stand-down MAY be the game update itself, which is why the lane copy
-    /// carries the hedge sentence then.
-    /// Engine.cs calls this once per tick, right beside the main guard's own Step().</summary>
+    /// <summary>steps the kit-lane guard only while the main guard is Armed and the lane is
+    /// still Verifying. Since LW-397 the build stamp is only a report, so a lane stand-down on an
+    /// unknown build may be the game update itself, which is why the lane copy hedges then.
+    /// Engine.cs calls this once per tick beside the main guard's Step().</summary>
     public void StepKitLane()
     {
         if (_guard.State != GuardState.Armed) return;
@@ -30,9 +23,8 @@ internal sealed partial class LaunchGuard
 
     private LandmarkReading ProbeKitLaneTable()
     {
-        // No roster-level boot-window gate here (contrast ProbeRamzaRosterRow's own internal gate,
-        // LaunchGuard.Landmarks.cs): StepKitLane above never calls Step() until the main guard is
-        // Armed, which itself required a populated Ramza row, so this probe never runs pre-save.
+        // No boot-window gate (unlike ProbeRamzaRosterRow, LaunchGuard.Landmarks.cs): StepKitLane only
+        // steps after the main guard armed, which needs a populated Ramza row.
         bool ok8 = _mem.TryReadBytes(Rec8Addr, Rec8Sig.Length, out var buf8) && buf8.Length >= Rec8Sig.Length;
         bool ok9 = _mem.TryReadBytes(Rec9Addr, Rec9Sig.Length, out var buf9) && buf9.Length >= Rec9Sig.Length;
         if (!ok8 || !ok9) return LandmarkVerdict.Unreadable;   // a failed/short read is transient: streak resets, benign
@@ -40,20 +32,15 @@ internal sealed partial class LaunchGuard
         string? d8 = DescribeKitLaneMismatch(buf8, Rec8Sig, "rec8");
         string? d9 = DescribeKitLaneMismatch(buf9, Rec9Sig, "rec9");
         if (d8 is null && d9 is null) return LandmarkVerdict.Match;
-        // LW-83 precedent: only the mismatching rec(s) contribute their inner detail.
+        // Only the mismatching rec(s) contribute detail.
         string detail = d8 is not null && d9 is not null ? $"{d8}; {d9}" : (d8 ?? d9)!;
         return new LandmarkReading(LandmarkVerdict.Mismatch, detail);
     }
 
-    /// <summary>Null on a match. WHY an all-zero window is a Mismatch here, diverging from
-    /// FingerprintGuard.ByteSignature's own all-zero-is-Unreadable rule (FingerprintGuard.cs): that
-    /// core rule is a boot-window escape for a table region the engine has not built yet. This
-    /// probe never runs pre-arm (StepKitLane's gate above), and post-arm the JobCommand table is
-    /// file-baked, mapped, non-zero image data (LaunchGuard.Landmarks.cs's Rec8Sig/Rec9Sig
-    /// provenance comment), so an all-zero window at this point can only mean another mod blanked
-    /// the row. Treating that as Unreadable would leave the lane retrying forever with no message
-    /// ever surfacing -- the exact silent-absence confusion LW-112 exists to kill -- so it reads as
-    /// a Mismatch instead, with its own distinct diagnostic.</summary>
+    /// <summary>Null on a match. An all-zero window is a Mismatch here, unlike FingerprintGuard.ByteSignature's
+    /// all-zero-is-Unreadable boot-window rule: this probe runs post-arm, when the file-baked table (see
+    /// Rec8Sig/Rec9Sig in LaunchGuard.Landmarks.cs) can only be zero if another mod blanked it, and Unreadable
+    /// would retry forever with no message (the LW-112 bug).</summary>
     private static string? DescribeKitLaneMismatch(byte[] observed, byte[] expected, string recName)
     {
         bool allZero = true;
@@ -77,20 +64,16 @@ internal sealed partial class LaunchGuard
 
     private void KitLaneStandDown(string diag)
     {
-        // Same ordering as the main StandDown (LaunchGuard.cs): record FIRST so a later flush
-        // archives WHY, then the log line, then the notice, then the flush request LAST.
+        // Same order as the main StandDown (LaunchGuard.cs): record, log, notice, flush request.
         _recorder?.Invoke("guard", $"kit-lane stand-down ({diag})");
-        // WARNING tier, not Error: the mod is NOT down, so this must never read as a full stand-down
-        // (and must never contain the phrase "standing down to protect your save" --
-        // tools/scan_logs.py:59 classifies that exact phrase as one, and would misreport a healthy
-        // mod as dead).
+        // Warn, not Error: the mod stays up. The text must avoid "standing down to protect your save",
+        // which tools/scan_logs.py:59 classifies as a full stand-down.
         ModLogger.Warn(LogVerb.Startup,
             $"Another mod has rewritten the job command data this mod anchors its weapon-granted commands to ({diag}). "
             + "Living Weapons stays armed and everything else keeps working; the Barrage, Shadow Blade and Provoke "
             + "command grants are disabled for this session so the two mods do not overwrite each other."
-            + HedgeIfUnknownBuild());   // LW-397: on a new game build the update itself may be the cause
-        // Calm, owner-voice copy: NOT the game-update notice's headline or "switched itself off"
-        // framing -- this mod is fine, only three optional command grants stepped back.
+            + HedgeIfUnknownBuild());   // on a new game build the update itself may be the cause
+        // Calm copy: only three optional command grants stepped back.
         _notice?.Invoke("FFT Living Weapons",
             "Living Weapons found another mod editing the same game data\n\n"
             + "Another installed mod (usually a custom job or ability mod) changed the game's job "
@@ -102,9 +85,8 @@ internal sealed partial class LaunchGuard
             + "If you want those commands back, the only fix is removing the conflicting mod; load "
             + "order does not change which mod wins." + HedgeIfUnknownBuild() + "\n\n"
             + "Questions? Email me at ptyrawl@gmail.com.");
-        // LW-53: reuses the existing "standdown" trigger rather than inventing a new one --
-        // flight_*_standdown.jsonl now covers both a full stand-down and a kit-lane stand-down; the
-        // record payload's "kit-lane" marker (above) is what tells the two shapes apart on replay.
+        // Reuses the "standdown" trigger; the "kit-lane" marker in the record payload tells the
+        // two shapes apart on replay.
         _requestFlush?.Invoke("standdown");
     }
 }

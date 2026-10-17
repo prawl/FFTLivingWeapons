@@ -3,51 +3,31 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// CardSites' anchor-verify half (LW-257 commit 1, the 200-line seam: CardSites.cs was already
-/// at 234 lines before this arc). Converts the old bare-bool AnchorIsLive/KillsAnchorMatches pair
-/// into a tri-state (<see cref="AnchorState"/>) plus the per-site strike bookkeeping that makes a
-/// single transient unreadable read survivable: the bug this arc fixes is that CardSites.cs:184
-/// (pre-fix) turned ANY false -- a genuine buffer-reuse mismatch or a one-tick unreadable memory
-/// glitch alike -- into an eviction on the very first occurrence.
+/// CardSites anchor verification, split out of CardSites.cs for the 200-line limit.
+/// Returns a tri-state (<see cref="AnchorState"/>) with per-site strikes, so one transient
+/// unreadable read no longer evicts a site (CardSites.cs:184 did before the fix).
 /// </summary>
 internal sealed partial class CardSites
 {
-    /// <summary>Live: the anchor (and, for kills sites, the "Kills: " literal) reads back exactly
-    /// as expected. Mismatch: the read succeeded but the bytes are wrong -- the buffer was
-    /// genuinely reused for something else, which is never transient. Unreadable: the read itself
-    /// failed -- the dominant transient case (a save-load window, a heap generation boundary) this
-    /// arc stops treating as equivalent to Mismatch.</summary>
+    /// <summary>Live: the anchor reads back as expected. Mismatch: the read succeeded but the
+    /// bytes differ (buffer reused, never transient). Unreadable: the read failed (save-load
+    /// window, heap generation boundary).</summary>
     internal enum AnchorState { Live, Mismatch, Unreadable }
 
-    /// <summary>Consecutive-Unreadable strike count per site. Absent (TryGetValue miss) means
-    /// zero. Never holds a Mismatch count -- Mismatch evicts on its first occurrence (LW-163's
-    /// existing contract, unweakened by this arc) and clears any strikes the site had accrued, so
-    /// there is never a reason to remember a Mismatch count.</summary>
+    /// <summary>Consecutive Unreadable count per site; absent means zero. Mismatch evicts at once
+    ///  and clears the entry, so it is never stored.</summary>
     private readonly Dictionary<Site, int> _strikes = new();
 
-    /// <summary>True when the site's anchor bytes (and kills literal for kills sites) are
-    /// readable and match the expected pattern. Shared by PruneDeadSites and
-    /// PaintSiteWithResult so there is no duplicated verify logic. Suffix sites verify against
-    /// the weapon NAME only (unchanged by Reliquary). Kills sites verify against ANY registered
-    /// anchor for (id, enc) -- baked, or (when Reliquary's EarnedAnchors is wired) the current
-    /// and previous earned lines too (decision 2): a site holding a stale-but-known line is
-    /// live, never evicted, so its next paint can repaint it forward instead of freezing it.
+    /// <summary>True when the anchor bytes (and the kills literal for kills sites) read back as
+    /// expected. Suffix sites check the weapon name only. Kills sites accept any registered anchor
+    /// for (id, enc), including Reliquary's current and previous earned lines (decision 2), so a
+    /// stale-but-known line stays live and gets repainted forward.
     ///
-    /// Read pattern is UNCHANGED from the pre-tri-state code (LW-257 commit 1 adds zero new
-    /// _mem calls, per the spec's cost budget): the kills-site flavor half is checked FIRST and
-    /// this method returns immediately on anything but Live from it, WITHOUT ever attempting the
-    /// "Kills: " literal read.
-    ///
-    /// THIS IS A DELIBERATE DEVIATION, not a neutral optimization: a readable-but-WRONG flavor
-    /// anchor (Mismatch) evicts immediately even though the never-attempted "Kills: " literal read
-    /// might have come back Unreadable. A readable-but-wrong anchor is strong positive evidence
-    /// the buffer was genuinely reused for something else -- exactly the case LW-163's contract
-    /// says should evict on the spot -- so spending a second read only to learn the other half
-    /// MIGHT have been unreadable would just delay a correct eviction by up to
-    /// Tuning.CardEvictStrikes maintenance beats for no benefit. Mismatch wins over a hypothetical
-    /// Unreadable on the untried second half; see CardSitesVerifyTests.cs's
-    /// A_readable_but_wrong_flavor_evicts_even_though_the_kills_literal_would_have_been_unreadable
-    /// for the pinned mixed case.</summary>
+    /// The flavor check runs first and returns early on anything but Live, so the "Kills: "
+    /// literal is not read after a wrong flavor. A readable-but-wrong anchor means the buffer was
+    /// reused (LW-163 evicts at once), and a second read would only delay that by up to
+    /// Tuning.CardEvictStrikes beats. Pinned by CardSitesVerifyTests.cs
+    /// A_readable_but_wrong_flavor_evicts_even_though_the_kills_literal_would_have_been_unreadable.</summary>
     private AnchorState VerifyAnchor(Site s)
     {
         if (!_pats.TryGet(s.Id, s.Enc, out var pat)) return AnchorState.Mismatch;
@@ -69,11 +49,9 @@ internal sealed partial class CardSites
         return ByteEq(ck, kl) ? AnchorState.Live : AnchorState.Mismatch;
     }
 
-    /// <summary>Kills-site flavor-anchor tri-state: baked Flavor + Grows (LW-332) when _anchors
-    /// is null (the production path today -- Engine.cs wires legends: null); otherwise ANY of
-    /// EarnedAnchors.AnchorsFor's set (baked, current, previous, Grows). Delegates to <see
-    /// cref="MatchAnyAnchor"/>. Mirrors the original bool KillsAnchorMatches this replaces,
-    /// read-for-read wherever every candidate still shares one length.</summary>
+    /// <summary>Flavor-anchor state for a kills site: baked Flavor + Grows when _anchors
+    /// is null (production today, Engine.cs wires legends: null), else everything
+    /// EarnedAnchors.AnchorsFor returns. Delegates to <see cref="MatchAnyAnchor"/>.</summary>
     private AnchorState VerifyKillsFlavor(Site s, CardPatterns.Entry pat)
     {
         if (_anchors == null)
@@ -87,18 +65,11 @@ internal sealed partial class CardSites
         return MatchAnyAnchor(s, _anchors.AnchorsFor(s.Id, s.Enc));
     }
 
-    /// <summary>Match the bytes at s.AnchorAddr against ANY of the given candidates, reading once
-    /// per DISTINCT candidate byte length rather than assuming a single shared length. Before
-    /// LW-332, every candidate set the anchors!=null branch saw genuinely shared one length --
-    /// EarnedAnchors enforces current/previous equal-length to baked Flavor by construction --
-    /// so a single read at candidates[0].Length always sufficed. LW-332 appended the baked Grows
-    /// pattern to that same set (and to the null-anchors fallback) with its OWN, generally
-    /// DIFFERENT, length: since FlavorPos can now resolve to the Grows line's position
-    /// (Display.cs:335 via CardScanner's bidirectional search), a site's AnchorAddr may hold
-    /// EITHER length, so both must be tried. In practice this is still exactly ONE read for
-    /// every pre-Grows fixture (every candidate shares a length) and at most two once Grows is
-    /// in play. Live on the first byte match; Unreadable only when EVERY distinct length failed
-    /// to read; Mismatch otherwise (including the empty-candidates case).</summary>
+    /// <summary>Match the bytes at s.AnchorAddr against any candidate, reading once per distinct
+    /// candidate length. LW-332 added the baked Grows pattern, whose length differs from Flavor,
+    /// and FlavorPos can now resolve to the Grows line (Display.cs:335, CardScanner's
+    /// bidirectional search), so both lengths must be tried. Live on the first match; Unreadable
+    /// only when every read failed; Mismatch otherwise, including an empty candidate list.</summary>
     private AnchorState MatchAnyAnchor(Site s, IReadOnlyList<byte[]> candidates)
     {
         if (candidates.Count == 0) return AnchorState.Mismatch;
@@ -117,16 +88,10 @@ internal sealed partial class CardSites
         return readSomething ? AnchorState.Mismatch : AnchorState.Unreadable;
     }
 
-    /// <summary>The leniency policy (LW-257, load-bearing): decides whether THIS pass should
-    /// evict the site, and maintains <see cref="_strikes"/> accordingly. Live resets the count --
-    /// a successful verify proves the site is fine right now, so a later blip starts counting
-    /// from zero rather than wherever an earlier, unrelated blip left off (a non-resetting counter
-    /// is a slow leak that reaches the cap over minutes even though every individual read mostly
-    /// succeeds). Mismatch evicts on the very first occurrence and clears any strikes -- LW-163's
-    /// existing contract, unweakened: a genuinely reused buffer is never a transient condition, so
-    /// there is nothing to wait out. Unreadable increments and only asks for eviction once the
-    /// count reaches <see cref="Tuning.CardEvictStrikes"/> (3) -- see that constant's own doc for
-    /// the tape this threshold is tuned from.</summary>
+    /// <summary>Decides whether this pass evicts the site and updates <see cref="_strikes"/>.
+    /// Live clears the count so an old blip does not accumulate. Mismatch evicts immediately and
+    /// clears it. Unreadable evicts only at <see cref="Tuning.CardEvictStrikes"/> (3);
+    /// see that constant for the tape the threshold comes from.</summary>
     private bool ApplyStrike(Site s, AnchorState state)
     {
         switch (state)

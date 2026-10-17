@@ -4,38 +4,16 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-371: lifts the 140-kinds-at-once ceiling on the two weapon menu order templates (and moves
-/// the picker's "every owned item" chart alongside, a third instance of the same shape). Plain
-/// language: the game lists the weapons and shields you carry from two fixed-size tables that hold
-/// at most 140 kinds plus an end marker, and the game's own chart housekeeper never checks that
-/// limit -- a 141st kind is shoved in at the front and the last word falls off the end into
-/// whatever data sits next (on the picker side, the helmet chart). This class copies all three
-/// charts onto a page the mod owns and re-points the ten places in the game's code that name the
-/// old blocks -- three DATA slots, five CODE fields and two CAP SITES (the table lives in
-/// TemplateRelocation.Sites.cs, the WHAT half of this partial) -- so every walker, inserter and
-/// deleter now runs against 512-word regions holding 510 ids + the marker, instead of the old
-/// 141/141/262-word blocks holding 140/140/261 ids + the marker. Same posture as its closest
-/// sibling, <see cref="ListRelocation"/>: every
-/// field is read back and must still carry its VANILLA value before a single byte is written, and
-/// a refusal midway restores every field this call already changed, in reverse, before it returns.
-///
-/// UNLIKE ListRelocation this is not a pure move: the save file's fields keep today's content (the
-/// owner's v1.1 ruling, D4/F5), so the two edges the sync half owns (<see cref="TemplateSync"/>)
-/// stay live for as long as the relocation is armed -- Project on save (page -&gt; old block, before
-/// the game copies the old block into the struct) and Adopt on load (old block -&gt; page, after the
-/// game restores the old block from the struct). Restore only ever puts the ten fields back (D7): a
-/// mid-session copy-back would race whatever the game's own threads are doing to the page, so the
-/// page itself is leaked by design, the same "never free a code/data page" rule
-/// <see cref="INearAllocator"/> already keeps.
-///
-/// Every memory access goes through the injected <see cref="ICodePatcher"/> (VirtualProtect +
-/// RPM/WPM guarded, never a raw pointer deref) and <see cref="INearAllocator"/> (never frees).
+/// LW-371 lifts the 140-kinds ceiling on the two weapon menu order templates and the picker's all-items chart.
+/// The game keeps them in fixed tables of 140 kinds plus an end marker (141/141/262 words) and its housekeeper never checks the limit. A 141st kind lands at the front and the last word spills into the next data (the helmet chart, on the picker side).
+/// This copies the three charts onto a mod-owned page and re-points ten places in game code (three data slots, five code fields, two cap sites, listed in TemplateRelocation.Sites.cs) at 512-word regions holding 510 ids plus the marker.
+/// Like <see cref="ListRelocation"/>, every field must read vanilla before any write, and a refusal midway restores the changed fields in reverse.
+/// Unlike it, the save fields keep today's content (D4/F5), so <see cref="TemplateSync"/> keeps Project (page to old block, on save) and Adopt (old block to page, on load) live while armed.
+/// Restore puts only the ten fields back (D7) and the page is leaked, as <see cref="INearAllocator"/> does. Memory goes through <see cref="ICodePatcher"/> and <see cref="INearAllocator"/>.
 /// </summary>
 internal sealed partial class TemplateRelocation
 {
-    // volatile (the ListRelocation idiom): written LAST, after every other field below, so a true
-    // read here guarantees PageAddr already published (release/acquire semantics) to whichever
-    // thread calls Regions/Installed once armed.
+    // volatile, written last so a true read means PageAddr is already published
     private volatile bool _installed;
 
     /// <summary>True once every field points at the new page.</summary>
@@ -44,17 +22,13 @@ internal sealed partial class TemplateRelocation
     /// <summary>The page all three charts live on once installed; 0 before that.</summary>
     public long PageAddr { get; private set; }
 
-    /// <summary>Null on success, else the refusal (nothing changed). Idempotent once installed.
-    /// Order (mirrors ListRelocation.Install): every one of the ten fields must already read
-    /// vanilla, THEN the page is allocated and reach-checked, THEN the three charts are copied onto
-    /// it (D2/D3, one write per chart, before the first field write -- T1/T11), and only THEN does
-    /// the first field get rewritten -- so a refusal at any step before the last leaves every byte
-    /// in the process exactly as it was found.</summary>
+    /// <summary>Null on success, else the refusal (nothing changed). Idempotent. Order as in ListRelocation.Install: check all ten
+    /// fields read vanilla, allocate and reach-check the page, copy the three charts onto it (D2/D3, T1/T11), then rewrite the
+    /// fields, so any earlier refusal leaves the process untouched.</summary>
     public string? Install(ICodePatcher patcher, INearAllocator allocator)
     {
         if (Installed) return null;
-        // LW-388: one snapshot of each LIVE table per call (they are properties that build a
-        // fresh array on every read).
+        // Snapshot each live table once per call, the properties build a fresh array per read
         var slots = Slots;
         var capSites = CapSites;
         var charts = Charts;
@@ -121,13 +95,11 @@ internal sealed partial class TemplateRelocation
         }
 
         PageAddr = page;
-        _installed = true;   // last: publishes PageAddr above (release/acquire)
+        _installed = true;   // last, publishes PageAddr
         return null;
     }
 
-    /// <summary>Puts every field back to its vanilla value; never touches the page (D7: no
-    /// copy-back, the page is leaked by design). Idempotent: a call while not installed is a no-op
-    /// success, matching <see cref="ListRelocation.Restore"/>.</summary>
+    /// <summary>Puts every field back to vanilla and leaves the page alone (D7). A call while not installed succeeds, like <see cref="ListRelocation.Restore"/>.</summary>
     public bool Restore(ICodePatcher patcher)
     {
         if (!Installed) return true;
@@ -139,12 +111,9 @@ internal sealed partial class TemplateRelocation
         return ok;
     }
 
-    /// <summary>The two weapon-chart regions in effect right now, for <see cref="TemplateSeat"/>
-    /// and <see cref="OrderRebuildHook"/>: the page regions (capacity <see
-    /// cref="PageRegionCapacityWords"/>) once installed, else the vanilla pair
-    /// (<see cref="TemplateSeat.WeaponRegions"/>). The all-items chart is never a
-    /// <see cref="TemplateSeat.Region"/> -- nothing seats extended ids into it directly, it only
-    /// follows the game's own housekeeper through <see cref="TemplateSync"/>.</summary>
+    /// <summary>The two weapon-chart regions in effect, for <see cref="TemplateSeat"/> and <see cref="OrderRebuildHook"/>. The page regions (capacity
+    /// <see cref="PageRegionCapacityWords"/>) once installed, else <see cref="TemplateSeat.WeaponRegions"/>. The all-items chart is not a
+    /// <see cref="TemplateSeat.Region"/>, it only follows the game's housekeeper through <see cref="TemplateSync"/>.</summary>
     public TemplateSeat.Region[] Regions => Installed
         ? new[]
         {
@@ -158,9 +127,7 @@ internal sealed partial class TemplateRelocation
         for (int i = written.Count - 1; i >= 0; i--) patcher.TryWrite(written[i].Addr, written[i].Old);
     }
 
-    /// <summary>D6/REACH, same doctrine as ListRelocation.CheckReach: only the five rip fields need
-    /// int32 reach (a slot holds a full 64-bit pointer, so it always reaches). Checked before
-    /// anything is written, not even the page fill.</summary>
+    /// <summary>D6/REACH, as in ListRelocation.CheckReach. Only the five rip fields need int32 reach (a slot holds a 64-bit pointer). Runs before any write.</summary>
     private static string? CheckReach(long page)
     {
         foreach (var f in RipFields)
@@ -172,19 +139,14 @@ internal sealed partial class TemplateRelocation
         return null;
     }
 
-    /// <summary>Pure: the int32 one rip field must hold to reach <paramref name="page"/>'s
-    /// all-items copy, offset by <see cref="RipField.Off"/>. Callers that write the result must go
-    /// through <see cref="CheckReach"/> first (<see cref="Install"/> does); this itself truncates
-    /// unconditionally.</summary>
+    /// <summary>The int32 a rip field must hold to reach the page's all-items copy, offset by <see cref="RipField.Off"/>.
+    /// Truncates without checking, so <see cref="Install"/> runs <see cref="CheckReach"/> first.</summary>
     internal static int NewField(RipField f, long page) => (int)(page + AllItemsPageOffset + f.Off - (Live(f) + 4));
 
-    /// <summary>LW-388: <see cref="RipField.Addr"/> is PIN space; this is where the field sits in
-    /// the running image. Every read, write and rip distance goes through it.</summary>
+    /// <summary>LW-388. <see cref="RipField.Addr"/> is PIN space; this is the field's address in the running image.</summary>
     private static long Live(RipField f) => ImageBase.At(f.Addr);
 
-    /// <summary>Pure: LW-372 (D4) -- a <see cref="CapSite"/>'s verify-read compares a variable
-    /// number of bytes now (1 for the builder cap, 4 for the insert bound), so the fixed single-byte
-    /// compare Install used before this widening is a plain array-equality helper instead.</summary>
+    /// <summary>LW-372 (D4). A <see cref="CapSite"/> verify-read is 1 byte (builder cap) or 4 (insert bound), so compare whole arrays.</summary>
     private static bool BytesEqual(byte[] a, byte[] b)
     {
         if (a.Length != b.Length) return false;

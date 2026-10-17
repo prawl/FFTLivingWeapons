@@ -3,25 +3,12 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Decision 12 (the anchor-rotation rule, docs/RELIQUARY_AC.md/RELIQUARY_P1_PLAN.md) -- the
-/// heart of the three-way card anchor: per weapon id, the runtime holds [baked, CURRENT composed
-/// line, PREVIOUS distinct composed line]. The pair rotates ONLY on a compose-change edge (via
-/// <see cref="SetCurrent"/>) -- NEVER at paint time (AnchorsFor is a pure read). A site painted
-/// with a stale-but-known line (the previous one) verifies live and gets repainted to current,
-/// rather than being evicted and freezing that buffer's Kills counter (CardSites.cs).
-///
-/// Both encodings (ASCII / UTF-16LE) are computed eagerly and REQUIRED to equal the baked Flavor
-/// pattern's byte length for that encoding -- a mismatch refuses the update entirely (logged,
-/// mirrors FlavorSpike.cs:109-116's defensive length check) rather than risk a mis-sized write
-/// that would corrupt whatever bytes follow the flavor line in the card buffer.
-///
-/// Engine-thread only: no locking. Display/Engine's tick loop is single-threaded; this class is
-/// not safe to call from any other thread.
-///
-/// LW-332: AnchorsFor also appends the weapon's baked Grows line LAST (verify-only -- there is
-/// no CURRENT/PREVIOUS rotation for it, it never changes). UniqueAnchorsFor exposes the same set
-/// WITHOUT Grows, for CardScanner's two-key ownership rule (same-lane weapons bake byte-identical
-/// Grows lines, so a shared Grows match alone must never decide ownership).
+/// Decision 12 (docs/RELIQUARY_AC.md): per weapon id, holds [baked, current composed line,
+/// previous distinct composed line] as the card anchors. The pair rotates only on a
+/// compose-change edge via SetCurrent, never at paint time, so a site painted with the previous
+/// line still verifies and is repainted instead of evicted (CardSites.cs). Encoded lines must
+/// match the baked Flavor length in both encodings (ASCII, UTF-16LE); a mismatch refuses the
+/// update, as FlavorSpike.cs:109-116 does. Engine-thread only, no locking.
 /// </summary>
 internal sealed class EarnedAnchors
 {
@@ -38,14 +25,9 @@ internal sealed class EarnedAnchors
 
     public EarnedAnchors(CardPatterns pats) { _pats = pats; }
 
-    /// <summary>Rotate on a genuine compose-change: previous := old current, current := line.
-    /// Dedup: a line identical to the CURRENT one is a no-op (returns null, no rotation) -- a
-    /// repeated compose of the same content must not manufacture a spurious rotation. Enforces
-    /// the encoded-length invariant (see class doc); a mismatch refuses the whole update and
-    /// logs, leaving the existing anchors untouched.
-    /// Returns the line just evicted FROM current INTO previous (for LegendStore.RotatePainted
-    /// to persist as "lastPainted"), or null when nothing rotated (dedup, first-ever compose, or
-    /// a refused/mismatched update).</summary>
+    /// <summary>Rotate on a compose-change: previous := old current, current := line. An identical
+    /// line is a no-op, and a length mismatch is refused and logged. Returns the evicted line (for
+    /// LegendStore.RotatePainted's "lastPainted"), or null if nothing rotated.</summary>
     public string? SetCurrent(int weaponId, string line)
     {
         if (_current.TryGetValue(weaponId, out var existing) && existing.Line == line)
@@ -60,28 +42,24 @@ internal sealed class EarnedAnchors
         return evictedToPrevious;
     }
 
-    /// <summary>Startup seeding (StoryLines.SeedAtStartup): set CURRENT directly, no rotation
-    /// semantics, no return value. Same length enforcement as SetCurrent; a mismatch is a no-op
-    /// (logged) rather than a crash on a stale/corrupt legends.json.</summary>
+    /// <summary>Startup seeding (StoryLines.SeedAtStartup): sets current with no rotation. A bad
+    /// length is logged and ignored so a stale legends.json cannot crash.</summary>
     public void SeedCurrent(int weaponId, string? line)
     {
         if (line == null) return;
         if (TryEncode(weaponId, line, out var entry)) _current[weaponId] = entry;
     }
 
-    /// <summary>Startup seeding: set PREVIOUS directly from LegendStore's persisted "lastPainted"
-    /// line. Same contract as <see cref="SeedCurrent"/>.</summary>
+    /// <summary>Startup seeding of previous from LegendStore's persisted "lastPainted" line.
+    /// Same rules as <see cref="SeedCurrent"/>.</summary>
     public void SeedPrevious(int weaponId, string? line)
     {
         if (line == null) return;
         if (TryEncode(weaponId, line, out var entry)) _previous[weaponId] = entry;
     }
 
-    /// <summary>The live anchor set for (weaponId, enc): baked FIRST (always present, if this
-    /// weapon has a non-empty baked flavor), then current (if any), then previous (if any AND
-    /// distinct from current -- dedup keeps the scanner from registering the same byte pattern
-    /// twice), then the baked Grows line LAST (LW-332, if non-empty). Empty for a weapon id with
-    /// no baked pattern at all.</summary>
+    /// <summary>Anchor set for (weaponId, enc): baked, then current, then previous if distinct
+    /// from current, then the baked Grows line. Empty if the weapon has no baked pattern.</summary>
     public List<byte[]> AnchorsFor(int weaponId, int enc)
     {
         var list = UniqueAnchorsFor(weaponId, enc);
@@ -90,20 +68,13 @@ internal sealed class EarnedAnchors
         return list;
     }
 
-    /// <summary>LW-332: the SAME set as <see cref="AnchorsFor"/> minus the baked Grows pattern --
-    /// same-lane weapons bake byte-IDENTICAL Grows lines, so CardScanner's two-key ownership rule
-    /// (FindNearestFlavor) needs each entry's UNIQUE candidates (flavor + earned lines) to break
-    /// a tie a shared Grows byte match alone can never resolve; a Grows-only "match" must never
-    /// confer ownership by itself.
-    ///
-    /// LW-332 round 3 accepted residual: analyze.py's FLAVOR PREFIX gate (check_flavor_prefix)
-    /// only sees BAKED flavor, not the current/previous composed lines this method also returns
-    /// -- it cannot gate runtime content. Narrow in practice: TryEncode length-locks every
-    /// composed line to the SAME weapon's own baked flavor byte-length, so a cross-weapon F
-    /// collision through composed content needs a coincidental same-length prefix match, is
-    /// bounded by STEP 2's rule that an entry WITH NO unique candidate in-window is ineligible,
-    /// and any mispaint it did cause would still be caught by CardSites' paint-time verify. No
-    /// code change for this round.</summary>
+    /// <summary><see cref="AnchorsFor"/> minus the baked Grows line. Same-lane weapons bake
+    /// identical Grows lines, so CardScanner's two-key ownership rule (FindNearestFlavor) needs the
+    /// unique candidates to break ties.
+    /// Known gap (LW-332 round 3): analyze.py's check_flavor_prefix sees only baked flavor, not
+    /// composed lines. Composed lines are length-locked to the weapon's own flavor, entries with no
+    /// unique candidate in-window are ineligible (STEP 2), and CardSites' paint-time verify catches
+    /// a mispaint.</summary>
     public List<byte[]> UniqueAnchorsFor(int weaponId, int enc)
     {
         var list = new List<byte[]>(3);
@@ -119,9 +90,8 @@ internal sealed class EarnedAnchors
         return list;
     }
 
-    /// <summary>The CURRENT composed-line pattern for (weaponId, enc), or null if none is
-    /// registered. Used by CardSites' repaint-through (decision 12) -- distinct from
-    /// AnchorsFor's whole verify set (baked + current + previous).</summary>
+    /// <summary>The current composed-line pattern for (weaponId, enc), or null. Used by CardSites'
+    /// repaint-through (decision 12).</summary>
     public byte[]? CurrentFor(int weaponId, int enc)
     {
         if (!_current.TryGetValue(weaponId, out var cur)) return null;

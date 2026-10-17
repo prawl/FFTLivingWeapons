@@ -11,10 +11,10 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed partial class ProvokeHold
 {
-    /// <summary>Latch for ScrubPlayerSideMarks' refused-write WARN (LW-130).</summary>
+    /// <summary>Latch for ScrubPlayerSideMarks' refused-write WARN.</summary>
     private bool _scrubRefusedLogged;
 
-    /// <summary>Debounce counter for ScrubUnarmableMark (LW-136).</summary>
+    /// <summary>Debounce counter for ScrubUnarmableMark.</summary>
     private int _unarmableTicks;
 
     /// <summary>Identity tuple of one band entry.</summary>
@@ -43,7 +43,7 @@ internal sealed partial class ProvokeHold
     /// missed the turn-done edge once, then the 30s watchdog fired). The pointer is reliable on both
     /// teams (LIVE_LEDGER "actor pointer names the acting unit", 2026-07-01). Like Iai.cs, it skips
     /// Band.IsValid on the pointed-to entry. Callers must also check <see cref="PlayerSideOwnsTurn"/>
-    /// (LW-131), since the pointer parks on struck victims; see ProvokeHoldTests
+    /// , since the pointer parks on struck victims; see ProvokeHoldTests
     /// Actor_pointer_parked_on_the_marked_enemy_during_a_player_turn_does_not_count_as_its_turn.</summary>
     private static bool MarkedIsActor(IGameMemory mem, (int nameId, int mhp, int lvl, int br, int fa) markedId)
     {
@@ -51,7 +51,7 @@ internal sealed partial class ProvokeHold
         return actorEntry != 0 && SameIdentity(ReadIdentity(mem, actorEntry), markedId);
     }
 
-    /// <summary>LW-131: true iff some player-side seat owns the turn flag (<see cref="Band.FlagOwner"/>),
+    /// <summary>true iff some player-side seat owns the turn flag (<see cref="Band.FlagOwner"/>),
     /// i.e. it is still the player's turn. Replaces the Offsets.TqTeam read, which flickered to ENEMY
     /// during the player's own action. The flag is the band +0x19C menu-open flag (docs/LIVE_LEDGER.md,
     /// turn/moved/acted row, 2026-07-09); LW-87 (2026-07-21, not owner-flipped) saw it hold across a
@@ -133,7 +133,7 @@ internal sealed partial class ProvokeHold
         return fpReal != 0 ? fpReal : fpAny;
     }
 
-    /// <summary>LW-127 (D1 revised): the CT+Speed lookahead evidence for one armed tick, for
+    /// <summary>the CT+Speed lookahead evidence for one armed tick, for
     /// ActionForWithReason. It does not pick the action, since that needs <see cref="_engaged"/>,
     /// which TickArmed owns. <paramref name="markedEntry"/> is the marked enemy's entry, or 0.
     /// Ranking is TurnOrder's, enemy seats only, and runs only when Tuning.ProvokeLookahead is on.
@@ -179,7 +179,7 @@ internal sealed partial class ProvokeHold
         }
     }
 
-    /// <summary>LW-136: scrub a mark on an enemy while the hold cannot arm. The mark never expires (Counter 0)
+    /// <summary>scrub a mark on an enemy while the hold cannot arm. The mark never expires (Counter 0)
     /// and the engine will not re-apply it, so the enemy would stay Provoked all battle. With
     /// two deployed defenders, Provoke.cs still grants the command off the first roster row holding
     /// id 33, but Wielder.ResolveDeployedMainHand returns 0 for the ambiguous pair. Debounced on

@@ -5,19 +5,15 @@ using System.Linq;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-381 second half: schedules and runs the cache hide (IconCacheHide.cs) that makes a
-/// pac-mirrored icon (IconGlow.Pac.cs) visible THIS session instead of only after a relaunch --
-/// split out as its own file because it is a distinct concern from the pac-mirror batching next
-/// door: that file decides WHAT to write into modded.pac, this one decides WHAT to hide and WHEN
-/// to retry a hide a battle interrupted. Fail-soft by design (D2/R11): a hider exception can
-/// never surface past <see cref="HideThisPassPatched"/> or <see cref="RunPendingHidesOnly"/> --
-/// the loose write and the pac write already succeeded before either ever runs, so a failed hide
-/// just means "still restart-only this session", same as any other pac-mirror hiccup.
+/// LW-381 second half: schedules the cache hide (IconCacheHide.cs) that shows a pac-mirrored icon
+/// (IconGlow.Pac.cs) this session instead of after a relaunch, and retries hides a battle postponed.
+/// A hider exception never escapes <see cref="HideThisPassPatched"/> or <see cref="RunPendingHidesOnly"/> (D2/R11);
+/// the pac write already succeeded, so a failure leaves the icon restart-only.
 /// </summary>
 internal sealed partial class IconGlow
 {
-    /// <summary>Called once, at the end of <see cref="FlushPacBatch"/>: hands every surface that
-    /// actually landed in modded.pac THIS pass (<c>_pacPatchedThisPass</c>) to <see cref="_hider"/>.</summary>
+    /// <summary>Hands every surface that landed in modded.pac this pass to <see cref="_hider"/>.
+    /// Called at the end of <see cref="FlushPacBatch"/>.</summary>
     private void HideThisPassPatched()
     {
         if (_pacPatchedThisPass.Count == 0) return;
@@ -34,10 +30,8 @@ internal sealed partial class IconGlow
         }
     }
 
-    /// <summary>Shared by <see cref="HideThisPassPatched"/> and <see cref="RunPendingHidesOnly"/>:
-    /// folds a hide call's per-surface outcomes into <see cref="_pendingHides"/> -- only
-    /// <see cref="HideOutcome.Postponed"/> survives in the set (D3); every other outcome is
-    /// terminal for that surface and leaves it.</summary>
+    /// <summary>Folds a hide call's per-surface outcomes into <see cref="_pendingHides"/>. Only
+    /// <see cref="HideOutcome.Postponed"/> stays queued (D3); other outcomes are final.</summary>
     private void UpdatePendingHides(List<IconCacheTarget> targets, IconCacheHideResult hideResult)
     {
         lock (_lock)
@@ -51,9 +45,8 @@ internal sealed partial class IconGlow
         }
     }
 
-    /// <summary>Scheduled by IconGlow.cs's Tick() (under the shared <c>_applying</c> latch) only
-    /// when there is nothing else to apply and <see cref="_pendingHides"/> is non-empty --
-    /// retries a surface an earlier in-battle hide attempt had to postpone.</summary>
+    /// <summary>Scheduled by IconGlow.cs Tick() under the <c>_applying</c> latch when nothing else is
+    /// pending; retries surfaces an earlier in-battle hide postponed.</summary>
     private void RunPendingHidesOnly()
     {
         try

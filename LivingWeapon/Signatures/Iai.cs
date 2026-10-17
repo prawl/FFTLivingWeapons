@@ -37,10 +37,10 @@ internal sealed partial class Iai : ISignature
     public Iai(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills,
                IGameMemory? mem = null, NaturalLedger? ledger = null)
     {
-        _mem   = mem ?? new LiveMemory();
-        _meta  = meta;
+        _mem = mem ?? new LiveMemory();
+        _meta = meta;
         _kills = kills;
-        // LW-90: Engine passes the shared ledger; the default is for tests.
+        // Engine passes the shared ledger; the default is for tests.
         _ledger = ledger ?? new NaturalLedger();
     }
 
@@ -74,7 +74,7 @@ internal sealed partial class Iai : ISignature
         // U16 returns 0 on an unreadable address; ReleaseSignalById requires holdNameId > 0 so 0 never matches 0.
         int actingNameId = acting != 0 ? _mem.U16(acting + Offsets.ANameId) : 0;
 
-        // LW-71 (2026-07-11, flags lane LW-63): the actor pointer parks on struck units, so a hit before the wielder's turn could false-release it; the PSX turn flag names whose turn is actually open.
+        // The actor pointer parks on struck units, so a hit before the wielder's turn could false-release it; the PSX turn flag names whose turn is actually open.
         bool flagResolved = Band.FlagOwner(_mem, out long flagEntry, out _);
         int flagNameId = flagResolved ? _mem.U16(flagEntry + Offsets.ANameId) : 0;
 
@@ -129,7 +129,7 @@ internal sealed partial class Iai : ISignature
             {
                 // Capture before boosting (F5); skip if the read is not sane.
                 if (cur < SpeedSaneMin || cur > SpeedSaneMax) continue;
-                // LW-90: the ledger discards a first sight equal to a target recorded for this unit in the previous attempt (restart residue).
+                // The ledger discards a first sight equal to a target recorded for this unit in the previous attempt (restart residue).
                 state.NaturalSpeed = _ledger.FilterCapture(state.NameId, StatLane.Speed, cur, fp.lvl, out int baked);
                 state.BakedResidue = baked;
                 if (baked > 0)
@@ -138,9 +138,9 @@ internal sealed partial class Iai : ISignature
                         $"iai: restart residue corrected at capture (read {baked}, natural {state.NaturalSpeed})");
             }
 
-            int raw     = Target(state.NaturalSpeed, fieldMax, Tuning.IaiSpeedMargin);
+            int raw = Target(state.NaturalSpeed, fieldMax, Tuning.IaiSpeedMargin);
             int clamped = raw < SpeedSaneMin ? SpeedSaneMin : raw > SpeedSaneMax ? SpeedSaneMax : raw;
-            // LW-90: record each held target so a restart recognizes it as residue; LastTarget feeds the post-release corrective.
+            // Record each held target so a restart recognizes it as residue; LastTarget feeds the post-release corrective.
             _ledger.RecordWrite(state.NameId, StatLane.Speed, clamped);
             state.LastTarget = clamped;
             _mem.W8(spAddr, (byte)clamped);
@@ -160,7 +160,7 @@ internal sealed partial class Iai : ISignature
             bool legacy = identity
                 ? ReleaseSignalById(_prevActing, acting, _prevActed, actedNow, actingNameId, state.NameId)
                 : ReleaseSignal(_prevActing, acting, _prevActed, actedNow, state.LastEntry);
-            // LW-71: corroborate the legacy signal against the turn-flag owner. Identity path compares nameId (0 is never a match); address path compares the owner's entry to LastEntry.
+            // Corroborate the legacy signal against the turn-flag owner. Identity path compares nameId (0 is never a match); address path compares the owner's entry to LastEntry.
             // Known corner: a stale LastEntry on an address-fallback hold can be falsely Refused on the real turn; the cap bounds it.
             FlagVerdict flags = identity
                 ? FlagCorroboration(flagResolved, ownerIdentityKnown: flagNameId > 0, ownerIsWielder: flagNameId == state.NameId)
@@ -169,7 +169,7 @@ internal sealed partial class Iai : ISignature
             bool capFired = !released && (now - state.ArmedAt).TotalSeconds >= Tuning.IaiHoldCapSeconds;
             if (!released && !capFired) continue;
 
-            // Restore address (LW-71): a flags-confirmed release restores to the flag owner's entry since the pointer may be parked elsewhere;
+            // Restore address: a flags-confirmed release restores to the flag owner's entry since the pointer may be parked elsewhere;
             // an identity release uses the pointer's entry; address-fallback and cap use LastEntry (stale beats leaving the unit fast). LastEntry 0 skips the write.
             var (restoreAddr, confirmed) = RestoreAddress(released, identity, flags, flagEntry, acting, state.LastEntry);
             if (restoreAddr != 0 && state.NaturalSpeed >= SpeedSaneMin && _mem.Writable(restoreAddr, 1))
@@ -203,7 +203,7 @@ internal sealed partial class Iai : ISignature
         public DateTime ArmedAt;
         /// <summary>Captured on first sane sight before the first boost; -1 = not yet captured.</summary>
         public int NaturalSpeed = -1;
-        /// <summary>LW-90: the residue value a corrected capture read (the mod's own prior boost); 0 = clean. The corrective rewrites NaturalSpeed over any byte reading this.</summary>
+        /// <summary>the residue value a corrected capture read (the mod's own prior boost); 0 = clean. The corrective rewrites NaturalSpeed over any byte reading this.</summary>
         public int BakedResidue;
         /// <summary>Last written target this battle; 0 = never held. The corrective's second token, for fresh battles where BakedResidue is 0 (observed 2026-07-21).</summary>
         public int LastTarget;

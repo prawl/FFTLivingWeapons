@@ -3,19 +3,11 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Mending Staff's "Renewal" signature: at each of the +3 wielder's turn edges, the wielder
-/// AND every ALLY within RegenAuraRadius CHEBYSHEV tiles are healed for
-/// round(maxHP * Tuning.RenewalPct) of their OWN max HP, clamped at full. A SILENT band HP
-/// write -- no status icon, no floating number; the Regen status bit is never touched.
-///
-/// CHEBYSHEV (not Manhattan): radius 1 covers all 8 surrounding tiles, including diagonals.
-/// A deliberate choice, pinned by RenewalTests' diagonal-reach test on the shared core's
-/// injected metric.
-///
-/// The stateful machinery (activation edge, completed-turn edge, wielder locate, the ally
-/// heal loop, the aggregated narration) is the shared <see cref="HealPulse"/> core (LW-153;
-/// its class doc carries the extraction story); this class is the Renewal config over it,
-/// and Renewal.Policy.cs keeps the pure per-module rules.
+/// Mending Staff "Renewal": at each +3 wielder turn edge, the wielder and every ally within
+/// RegenAuraRadius (Chebyshev, so radius 1 includes diagonals; RenewalTests pins this) heal
+/// round(maxHP * Tuning.RenewalPct) of their own max HP, clamped at full. The band HP write is
+/// silent: no status icon or number, Regen bit untouched.
+/// Config over the shared <see cref="HealPulse"/> core; pure rules are in Renewal.Policy.cs.
 /// </summary>
 internal sealed partial class Renewal : ISignature
 {
@@ -47,7 +39,6 @@ internal sealed partial class Renewal : ISignature
 
     public void ResetBattle() => _pulse.ResetBattle();
 
-    // internal for test reach: RenewalTests' pulse pins drive
-    // the shared loop directly through this module's own config.
+    // internal so RenewalTests can drive the pulse loop directly.
     internal void Aura(int wgx, int wgy, int radius, int turn) => _pulse.Pulse(wgx, wgy, radius);
 }

@@ -3,22 +3,15 @@ using System;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-368 round 2b: the pure field-arithmetic half of ListRelocation, split out once the table's
-/// growth (45 -> 55 sites, plus round 2b's <see cref="ListRelocation.Site.Trail"/>/<see
-/// cref="ListRelocation.Site.Off"/>) pushed ListRelocation.cs past the 200-line refactor trigger.
-/// Same partial class as ListRelocation.cs (the lifecycle: Install/Restore/the tripwire) and
-/// ListRelocation.Sites.cs (the table); all three reach every name here by plain name. Kept
-/// beside the table on purpose -- this is the arithmetic the table exists to feed.
+/// LW-368 round 2b. The field arithmetic of ListRelocation, split out when the table (45 -> 55 sites, plus
+/// <see cref="ListRelocation.Site.Trail"/> and <see cref="ListRelocation.Site.Off"/>) pushed ListRelocation.cs past 200 lines.
+/// Same partial class as ListRelocation.cs (lifecycle) and ListRelocation.Sites.cs (table).
 /// </summary>
 internal sealed partial class ListRelocation
 {
-    /// <summary>D6/REACH (v2.4, verifier finding b1): the allocator's window is 2 GB around the
-    /// image base, but the FIRST free region inside that window can land anywhere in it -- on
-    /// some machine, possibly more than 2 GB from a given site or from the image base itself.
-    /// Checked here, before anything is written (not even the zero-fill), against the FULL
-    /// 64-bit distance every field would otherwise need, so a truncating (int) cast in
-    /// <see cref="NewField"/> can never silently point a field at garbage. Null when every one
-    /// of the 55 fields still reaches.</summary>
+    /// <summary>D6/REACH (v2.4, verifier finding b1). The allocator window is 2 GB around the image base, but the first
+    /// free region can land anywhere in it. Checks the full 64-bit distance of every field before anything is written,
+    /// so the int cast in <see cref="NewField"/> cannot truncate. Null when all 55 fields reach.</summary>
     private static string? CheckReach(long page)
     {
         foreach (var site in Sites)
@@ -30,20 +23,13 @@ internal sealed partial class ListRelocation
         return null;
     }
 
-    /// <summary>Pure (D6): the int32 one field must hold to reach <paramref name="page"/>'s copy
-    /// of its own list, at <see cref="Site.Off"/> inside it (0 for every field but round 2b's
-    /// ten). A <see cref="SiteKind.RipLea"/> field measures from the next instruction -- its own
-    /// address + 4, plus <see cref="Site.Trail"/> more for any immediate operand that trails the
-    /// disp32; a <see cref="SiteKind.ImageRelative"/> field measures from the image base. Both
-    /// terms are LIVE (LW-388): the rip term from the field's rebased address, the image term
-    /// from <see cref="ImageBase.Base"/>, because the game loads the LIVE image base into the
-    /// register those instructions index from, so an RVA-space displacement is measured from it.
-    /// Callers that write the result must go through <see cref="CheckReach"/> first
-    /// (<see cref="ListRelocation.Install"/> does) -- this itself truncates unconditionally.</summary>
+    /// <summary>Pure (D6). The int32 a field must hold to reach <paramref name="page"/>'s copy of its list, at <see cref="Site.Off"/> inside it.
+    /// A <see cref="SiteKind.RipLea"/> field measures from its own address + 4 + <see cref="Site.Trail"/>; a
+    /// <see cref="SiteKind.ImageRelative"/> field from the image base. Both are live, since the game indexes from the live base.
+    /// Truncates unconditionally, so callers run <see cref="CheckReach"/> first (<see cref="ListRelocation.Install"/> does).</summary>
     internal static int NewField(Site site, long page) => (int)Distance(site, page);
 
-    /// <summary>The un-truncated form of <see cref="NewField"/>'s distance, shared with
-    /// <see cref="CheckReach"/> so the two can never compute it differently.</summary>
+    /// <summary>The un-truncated distance behind <see cref="NewField"/>, shared with <see cref="CheckReach"/>.</summary>
     private static long Distance(Site site, long page)
     {
         long listBase = page + (site.List == ListId.Count ? 0 : SiblingPageOffset);
@@ -51,9 +37,7 @@ internal sealed partial class ListRelocation
         return site.Kind == SiteKind.RipLea ? newTarget - (Live(site) + 4 + site.Trail) : newTarget - ImageBase.Base;
     }
 
-    /// <summary>LW-388: <see cref="Site.Addr"/> is PIN space (the documented preferred-base
-    /// address); this is where the field sits in the running image. Every read, write and rip
-    /// distance goes through it.</summary>
+    /// <summary>LW-388. <see cref="Site.Addr"/> is in pin space (the preferred-base address); this is where the field sits in the running image.</summary>
     private static long Live(Site site) => ImageBase.At(site.Addr);
 
     /// <summary>Pure: an int32 as its 4 little-endian bytes.</summary>

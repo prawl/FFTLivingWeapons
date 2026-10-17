@@ -3,13 +3,11 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// The pure decisions behind Huntress's "Maim" signature -- no memory access.
-/// The stateful victim-latch, hold-zero loop, and CT-based expiry live in Maim.cs.
+/// The pure decisions behind Huntress's "Maim" signature, no memory access. Latch state and expiry live in Maim.cs.
 /// </summary>
 internal sealed partial class Maim
 {
-    /// <summary>Band-relative offset of the reaction bitfield (4 bytes, u32 little-endian).
-    /// Derived: CReaction(0x94) - BandEntry(0x1C) = 0x78. Proven live (memory reaction-suppression-cripple).</summary>
+    /// <summary>Band-relative offset of the reaction bitfield, CReaction(0x94) - BandEntry(0x1C) = 0x78 (memory reaction-suppression-cripple).</summary>
     public const int ReactionBandOff = Offsets.AReaction;
 
     /// <summary>True when the signature is configured (CrippleTurns set) and the kill tier is earned.</summary>
@@ -19,13 +17,10 @@ internal sealed partial class Maim
     /// <summary>True when the struck unit is an enemy (never latch allies).</summary>
     public static bool ShouldLatch(bool isEnemy) => isEnemy;
 
-    /// <summary>True when the held victim should have its saved bytes re-fetched on a new hit.
-    /// The trap: if already held, the reaction field is ZEROED -- re-reading it would save zeros
-    /// and the restore would wipe the reaction permanently. Never re-save while a hold is active.</summary>
+    /// <summary>True when a new hit should re-save the bytes; while held the field is zeroed and re-saving would wipe the reaction.</summary>
     public static bool ShouldResave(bool isHeld) => !isHeld;
 
-    /// <summary>Write zeros to the victim's reaction field -- all 4 bytes, one WriteBytes call
-    /// (LW-145 fix 2: four separate W8s opened a torn-value window). VirtualQuery-guarded.</summary>
+    /// <summary>Zero all 4 reaction bytes in one WriteBytes call (LW-145 fix 2: four W8s left a torn-value window). Guarded.</summary>
     public static void HoldZero(IGameMemory mem, long addr)
     {
         long ra = addr + ReactionBandOff;
@@ -33,8 +28,7 @@ internal sealed partial class Maim
         mem.WriteBytes(ra, new byte[4]);
     }
 
-    /// <summary>Write the original reaction bytes back, one WriteBytes call (LW-145 fix 2: four
-    /// separate W8s opened a torn-value window). VirtualQuery-guarded.</summary>
+    /// <summary>Write the saved reaction bytes back in one WriteBytes call (LW-145 fix 2, same torn-value window). Guarded.</summary>
     public static void Restore(IGameMemory mem, long addr, uint saved)
     {
         long ra = addr + ReactionBandOff;
@@ -48,11 +42,8 @@ internal sealed partial class Maim
         });
     }
 
-    /// <summary>Read the 4-byte reaction field at <paramref name="addr"/> (little-endian). False
-    /// on an unreadable address -- LW-145 fix 3: the old 0-sentinel-on-failure was silently
-    /// indistinguishable from a REAL all-zero reaction field, so it got latched, saved, and later
-    /// restored as "the victim's reaction", wiping a real one for the battle. Callers MUST refuse
-    /// to latch on false (see Maim.cs's latch site).</summary>
+    /// <summary>Read the 4-byte little-endian reaction field; false if unreadable (LW-145 fix 3: a 0 sentinel looked like a real
+    /// all-zero field). Callers refuse to latch on false (Maim.cs).</summary>
     public static bool TryReadReactionField(IGameMemory mem, long addr, out uint value)
     {
         value = 0;
@@ -64,10 +55,7 @@ internal sealed partial class Maim
     }
 }
 
-/// <summary>Per-victim tracking for the Maim latch: save address, fingerprint, saved reaction bytes,
-/// turn counter, and last CT. Designed so multiple enemies can be maimed simultaneously (one per hit
-/// during the acted period). The never-re-save trap: Latch no-ops when IsHeld is already true for the
-/// same fingerprint -- the saved field holds original bytes, not the zeros we're currently writing.</summary>
+/// <summary>Per-victim Maim tracking so several enemies can be maimed at once. Latch no-ops while held, since the live field then holds our zeros.</summary>
 internal sealed class MaimState
 {
     private readonly Dictionary<(int mhp, int lvl, int br, int fa), MaimEntry> _held = new();
@@ -75,9 +63,7 @@ internal sealed class MaimState
     /// <summary>True when this fingerprint is currently being held.</summary>
     public bool IsHeld((int mhp, int lvl, int br, int fa) fp) => _held.ContainsKey(fp);
 
-    /// <summary>Latch a newly maimed victim. No-ops if the fingerprint is already held (never-re-save).
-    /// <paramref name="seedCt"/> is the victim's CURRENT charge-time at latch: seeding LastCt with it
-    /// (rather than a sentinel like 255) stops the first CT sample from registering a phantom turn.</summary>
+    /// <summary>Latch a maimed victim; no-op if already held. <paramref name="seedCt"/> is the current CT, so the first sample counts no phantom turn.</summary>
     public void Latch(long addr, (int mhp, int lvl, int br, int fa) fp, uint savedReaction, int seedCt = 0)
     {
         if (_held.ContainsKey(fp)) return;   // never overwrite while a hold is active

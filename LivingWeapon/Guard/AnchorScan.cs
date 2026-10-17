@@ -4,25 +4,17 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Portable anchor re-find scan core (LW-82). COPY-FILE PORTABILITY CONTRACT (the
-/// FingerprintGuard.cs / HookLandmark.cs pattern): this file has zero project dependencies (no
-/// Offsets, no ModLogger, no IGameMemory, no Mem, no Flight, no Reloaded types, no Barrage, no
-/// LaunchGuard), so a sibling mod adopts the mechanism by copying this one file, not by
-/// referencing a shared library. All game knowledge (which bytes, which addresses, what a hit
-/// means) lives in the adapter that builds an <see cref="AnchorSpec"/>; this core only knows how
-/// to walk a byte region looking for one.
-///
-/// SINGLE-THREAD CONTRACT (mirrors FingerprintGuard.Step): an <see cref="AnchorScan"/> instance is
-/// meant to be driven by <see cref="AnchorScan.Step"/> from one host loop thread only. It keeps no
-/// locks and offers no thread-safety guarantee beyond that.
+/// Portable anchor re-find scan core. Like FingerprintGuard.cs and HookLandmark.cs it has
+/// no project dependencies, so a sibling mod can copy the file. Game knowledge lives in the adapter
+/// that builds an <see cref="AnchorSpec"/>. Not thread-safe: drive <see cref="AnchorScan.Step"/>
+/// from one host loop thread.
 /// </summary>
 internal delegate bool AnchorTryRead(long addr, int len, out byte[] buf);
 
 internal enum AnchorVerdict { Scanning, FoundAtPin, FoundElsewhere, Ambiguous, NotFound }
 
-/// <summary>One anchor's search parameters: the byte signature to scan a region for, where the
-/// anchor's own base sits relative to a signature hit, its previously known (pinned) address, the
-/// region to search, an alignment pre-filter, and an optional confirm predicate.</summary>
+/// <summary>One anchor's search parameters: signature, base offset from a hit, pinned address,
+/// region, alignment filter and optional confirm predicate.</summary>
 internal sealed class AnchorSpec
 {
     public string Name { get; }
@@ -32,13 +24,11 @@ internal sealed class AnchorSpec
     public long PinnedAddress { get; }
     public long RegionLo { get; }
     public long RegionHi { get; }
-    /// <summary>1 = no alignment requirement. A candidate base failing
-    /// <c>base % BaseAlignment != 0</c> is rejected BEFORE <see cref="Confirm"/> ever runs, so a
-    /// misaligned hit costs zero reads beyond the signature scan itself.</summary>
+    /// <summary>1 = no alignment requirement. A misaligned base is rejected before
+    /// <see cref="Confirm"/> runs, so it costs no extra reads.</summary>
     public int BaseAlignment { get; }
-    /// <summary>Null always confirms (no check beyond the signature match and the alignment
-    /// filter). Non-null lets the adapter demand a further whole-row read at the candidate base
-    /// before it counts as a hit.</summary>
+    /// <summary>Null always confirms. Otherwise the adapter can require a whole-row read at the
+    /// candidate base before it counts as a hit.</summary>
     public Func<long, bool>? Confirm { get; }
 
     public AnchorSpec(string name, byte[] signature, int signatureOffset, long pinnedAddress,
@@ -55,19 +45,13 @@ internal sealed class AnchorSpec
     }
 }
 
-/// <summary>One spec's incremental scan: <see cref="Step"/> reads one chunk at a time so a caller
-/// can budget scan work across many host-loop ticks instead of blocking on a multi-megabyte region
-/// scan in a single call.
+/// <summary>One spec's incremental scan. <see cref="Step"/> reads one chunk per call so the
+/// caller can spread a large region across host-loop ticks.
 ///
-/// NO DEDUP SET (deliberate; a prior "overlap doubles a hit" draft was falsified by this
-/// arithmetic): each Step reads <c>[cursor, cursor + chunkBytes + Signature.Length - 1)</c> so a
-/// signature straddling the chunk boundary is still found (the tail overlap), then advances the
-/// cursor by exactly <c>chunkBytes</c>. A match is only ATTRIBUTED to the current chunk when its
-/// start position falls in <c>[cursor, cursor + chunkBytes)</c>: a match starting in the overlap
-/// tail belongs to the NEXT chunk's own window and is skipped here, where it cannot be found again
-/// (the next chunk's read starts exactly at that boundary, past the match's start). Consecutive
-/// chunks' attributed match-start ranges are therefore disjoint by construction: no hit is ever
-/// counted twice, and none is missed at a boundary.</summary>
+/// No dedup set is needed. Each Step reads <c>[cursor, cursor + chunkBytes + Signature.Length - 1)</c>
+/// so a signature straddling a chunk boundary is found, but only matches starting in
+/// <c>[cursor, cursor + chunkBytes)</c> count for this chunk. The next chunk owns the overlap
+/// tail, so no hit is counted twice or missed.</summary>
 internal sealed class AnchorScan
 {
     private readonly AnchorSpec _spec;
@@ -88,8 +72,7 @@ internal sealed class AnchorScan
     public IReadOnlyList<long> Bases => _bases;
     public int UnreadableChunks { get; private set; }
 
-    /// <summary>Re-arms the scan from the region's start: clears every collected base, the
-    /// unreadable-chunk count, and returns Verdict to Scanning.</summary>
+    /// <summary>Restarts from the region start, clearing bases and the unreadable count.</summary>
     public void Reset()
     {
         _cursor = _spec.RegionLo;
@@ -98,9 +81,8 @@ internal sealed class AnchorScan
         Verdict = AnchorVerdict.Scanning;
     }
 
-    /// <summary>Scans one chunk. Returns true while region remains to scan (Verdict stays
-    /// Scanning); returns false once the region is exhausted, at which point Verdict is final.
-    /// A call after Verdict is already final is a no-op that returns false.</summary>
+    /// <summary>Scans one chunk. True while region remains; false once Verdict is final
+    /// (further calls are no-ops).</summary>
     public bool Step()
     {
         if (Verdict != AnchorVerdict.Scanning) return false;
@@ -113,7 +95,7 @@ internal sealed class AnchorScan
         }
 
         int sigLen = _spec.Signature.Length;
-        // Tail CLAMPED at RegionHi: never read (or even ask to read) past the region's end.
+        // Clamp the tail at RegionHi so we never read past the region.
         int readLen = (int)Math.Min(_chunkBytes + sigLen - 1, remaining);
         long attributedEnd = Math.Min(_cursor + _chunkBytes, _spec.RegionHi);
 

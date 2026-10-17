@@ -14,7 +14,7 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed partial class Display
 {
-    private const long BudgetInBattle    = 8L  * 1024 * 1024;
+    private const long BudgetInBattle = 8L * 1024 * 1024;
     private const long BudgetOutOfBattle = 16L * 1024 * 1024;
 
     /// <summary>Cadence for the maintenance PaintAll call that drains dead sites and
@@ -22,19 +22,19 @@ internal sealed partial class Display
     internal const long MaintenanceMs = 1000;
 
     private readonly Dictionary<int, WeaponMeta> _meta;
-    private readonly Dictionary<int, int>        _kills;
-    private readonly IGameMemory                 _mem;
-    private  readonly CardPatterns                _pats;  // card-pattern set consumed by Display painting
-    internal readonly DisplaySweep                _sweep;  // DisplayPoolPaintTests reads Generation/IsComplete (LW-37 skip proof)
-    internal readonly CardSites                  _sites;  // DisplayMaintenanceTests reads Count
-    private readonly WpScratchPainter            _wpScratch;
-    private readonly Func<long>                  _nowMs;
+    private readonly Dictionary<int, int> _kills;
+    private readonly IGameMemory _mem;
+    private readonly CardPatterns _pats;  // card-pattern set consumed by Display painting
+    internal readonly DisplaySweep _sweep;  // DisplayPoolPaintTests reads Generation/IsComplete (LW-37 skip proof)
+    internal readonly CardSites _sites;  // DisplayMaintenanceTests reads Count
+    private readonly WpScratchPainter _wpScratch;
+    private readonly Func<long> _nowMs;
     // Reliquary Phase 1 (docs/RELIQUARY_AC.md): card-story composer. Null when no LegendStore
     // is wired, which falls back to baked-only anchor verification. Internal for tests.
     internal readonly StoryLines? _stories;
 
     private readonly Dictionary<int, int> _lastCounts = new();
-    private readonly SuffixRotation       _rotation = new();
+    private readonly SuffixRotation _rotation = new();
     private HashSet<int> _lastTargets = new();
 
     // Last maintenance PaintAll; -1 so the first Tick runs it (long.MinValue would overflow
@@ -53,27 +53,27 @@ internal sealed partial class Display
     /// release flag. Engine passes Tuning.PoolPaintEnabled.</param>
     /// <param name="recorder">LW-257 flight-recorder tap; null emits no flight lines (see Display.Flight.cs).
     /// Engine passes Flight.Record.</param>
-    /// <param name="poolRegionSidecarPath">LW-324: path of pool_regions.json, passed to PoolLocator. Null
+    /// <param name="poolRegionSidecarPath">path of pool_regions.json, passed to PoolLocator. Null
     /// disables the warm-start seed and its write on completion.</param>
     public Display(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, IGameMemory mem,
                    Func<long>? nowMs = null, LegendStore? legends = null, bool? poolPaint = null,
                    Action<string, string>? recorder = null, string? poolRegionSidecarPath = null)
     {
-        _meta      = meta;
-        _kills     = kills;
-        _mem       = mem;
-        _nowMs     = nowMs ?? (() => Environment.TickCount64);
-        _pats      = new CardPatterns(meta);
-        _poolPaint   = poolPaint ?? false;
+        _meta = meta;
+        _kills = kills;
+        _mem = mem;
+        _nowMs = nowMs ?? (() => Environment.TickCount64);
+        _pats = new CardPatterns(meta);
+        _poolPaint = poolPaint ?? false;
         _poolLocator = new PoolLocator(mem, _pats, _nowMs, poolRegionSidecarPath);
-        _sweep     = new DisplaySweep(mem, _nowMs);
+        _sweep = new DisplaySweep(mem, _nowMs);
         // StoryLines owns EarnedAnchors, so build it before CardSites, which takes them. SeedAtStartup
         // recomposes each weapon's line from persisted deeds so the first paint is already current.
-        _stories   = legends != null ? new StoryLines(legends, meta, kills, _pats) : null;
+        _stories = legends != null ? new StoryLines(legends, meta, kills, _pats) : null;
         _stories?.SeedAtStartup();
-        // LW-262: eviction tap for the cap-relief prune. Safe to wire before _recorder is
+        // Eviction tap for the cap-relief prune. Safe to wire before _recorder is
         // assigned below, since OnSitePruned only reads it when invoked later.
-        _sites     = new CardSites(mem, _pats, _stories?.Anchors, OnSitePruned);
+        _sites = new CardSites(mem, _pats, _stories?.Anchors, OnSitePruned);
         _wpScratch = new WpScratchPainter(mem, meta, KillsFor);
 
         // The sweep's lookback prefix must hold the longest anchor plus the widest slot, or a card
@@ -88,7 +88,7 @@ internal sealed partial class Display
         }
 
         // Same check for the trailing slack: the bidirectional attribution search (CardScanner) can
-        // find a flavor AFTER its "Kills: " hit, so the slack must fit anchor + literal + slot.
+        // find a flavor after its "Kills: " hit, so the slack must fit anchor + literal + slot.
         if (!_pats.FitsTrailSlack(DisplaySweep.TrailSlack))
         {
             ModLogger.Error(LogVerb.Display, "The equip-card painter is misconfigured and may fail to paint kill counters near a chunk boundary.");
@@ -96,7 +96,7 @@ internal sealed partial class Display
                       + DisplaySweep.TrailSlack + " < maxAnchor=" + _pats.MaxAnchorLen + " + slot)");
         }
 
-        // LW-257: Display.Flight.cs owns the tap. _verdict stays null without a recorder.
+        // Display.Flight.cs owns the tap. _verdict stays null without a recorder.
         _recorder = recorder;
         _verdict = recorder != null ? new CardVerdict() : null;
     }
@@ -110,17 +110,17 @@ internal sealed partial class Display
         _lastTargets = new HashSet<int>();
         _poolCovered = false;
         _poolLocator.Invalidate();
-        _flightBudget = 0;     // LW-257: a new coverage/cache window gets a fresh record budget
-        _coverageBudget = 0;   // LW-257 (F3): its own reserve, reset on the same window boundary
-        _locateFlightBudget = 0;   // LW-261: the locate-complete tap's own reserve, same window boundary
-        _evictedBudget = 0;    // LW-259: tier 1's own reserve, reset on the same window boundary
-        _pendingIds.Clear();   // LW-257: _sites was wiped, so pending watches would burn all CardPendingMaxBeats and log a false "gave up"
+        _flightBudget = 0;     // a new coverage/cache window gets a fresh record budget
+        _coverageBudget = 0;   // its own reserve, reset on the same window boundary
+        _locateFlightBudget = 0;   // the locate-complete tap's own reserve, same window boundary
+        _evictedBudget = 0;    // tier 1's own reserve, reset on the same window boundary
+        _pendingIds.Clear();   // _sites was wiped, so pending watches would burn all CardPendingMaxBeats and log a false "gave up"
     }
 
     /// <summary>LW-91 stage 2: in-battle repaint driven by a kill-count change alone, called on ticks
     /// ShouldPaintCard skips so a mid-fight kill reaches the equip card. Recompose runs before PaintAll,
     /// as in <see cref="Tick"/>, so a story-line rotation is never one call stale. It latches
-    /// RequestRescan but never steps the sweep or calls Invalidate (LW-261: the pool relocate runs on
+    /// RequestRescan but never steps the sweep or calls Invalidate (the pool relocate runs on
     /// Engine's own "pool-locate" lane every tick). LW-257 commit 2: when nothing painted, it also runs
     /// the shared maintenance beat (Display.Heartbeat.cs), which may re-offer one drained pool region
     /// (Display.PoolDrain.cs). That can clear _poolCovered; on the on-field path the flag waits for the
@@ -182,7 +182,7 @@ internal sealed partial class Display
         if (!(_poolPaint && MaybePoolPaint()))
         {
             long budget = inBattle ? BudgetInBattle : BudgetOutOfBattle;
-            // allSuffixes stays false (LW-59) to keep the sweep's per-chunk cost unchanged; pinned by
+            // allSuffixes stays false to keep the sweep's per-chunk cost unchanged; pinned by
             // DisplayPoolPaintTests.Sweep_path_still_limits_suffix_search_to_targets_plus_rotation.
             _sweep.Tick(budget, (buf, lookback, searchable, bufBaseAddr) => OnChunk(buf, lookback, searchable, bufBaseAddr, allSuffixes: false));
         }
@@ -235,7 +235,7 @@ internal sealed partial class Display
 
         foreach (var h in killsHits)
         {
-            long slotAddr   = bufBaseAddr + h.SlotPos;
+            long slotAddr = bufBaseAddr + h.SlotPos;
             long anchorAddr = h.FlavorPos >= 0 ? bufBaseAddr + h.FlavorPos : slotAddr;
             var site = new CardSites.Site(h.Id, h.Enc, slotAddr, anchorAddr, IsKills: true);
             if (_sites.Add(site)) newSites.Add(site);
@@ -243,7 +243,7 @@ internal sealed partial class Display
 
         foreach (var h in suffixHits)
         {
-            long slotAddr   = bufBaseAddr + h.SlotPos;
+            long slotAddr = bufBaseAddr + h.SlotPos;
             long anchorAddr = bufBaseAddr + h.NamePos;
             var site = new CardSites.Site(h.Id, h.Enc, slotAddr, anchorAddr, IsKills: false);
             if (_sites.Add(site)) newSites.Add(site);
@@ -251,7 +251,7 @@ internal sealed partial class Display
 
         if (newSites.Count > 0)
         {
-            // Paint only the new sites. LW-257 (F4): the verdict rides along so a site refused on its
+            // Paint only the new sites. the verdict rides along so a site refused on its
             // first paint (SlotShapeRefused, NotWritable) still reaches the tape. Entries accumulate in
             // _verdict until the next PaintAllTapped emits them, since emitting per chunk costs too much.
             // Side effect: a discovery's "card" record carries the later emit time (up to

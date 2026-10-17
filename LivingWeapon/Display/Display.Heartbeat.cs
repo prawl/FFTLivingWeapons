@@ -74,7 +74,7 @@ internal sealed partial class Display
     /// <summary>Judge each id in <see cref="_pendingIds"/> against this beat's verdict. An id clears
     /// when it settled at a site inside a located, non-stale pool region. With an empty or stale region
     /// list (<see cref="PoolLocator.CachedRegions"/>), any settled site clears it, since the fresh paint
-    /// may sit outside the old regions (LW-261: Invalidate() no longer clears the cache). The sweep path
+    /// may sit outside the old regions (Invalidate() no longer clears the cache). The sweep path
     /// (poolPaint false) takes the same branch.
     /// DisplayHeartbeatTests.ProcessPending_after_invalidate_still_settles_ids_painted_at_new_addresses pins it.
     ///

@@ -6,17 +6,12 @@ using Reloaded.Hooks.Definitions.X64;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-346: detour on the plain (non-thunk) item category getter at
-/// <see cref="Offsets.FnCategoryGetter"/>. The party inventory's list build filters every owned
-/// id through this getter right after the total-owned getter, and a new id only passes the
-/// Weapons tab when the getter answers with a weapon's group code, so ids in the extended range
-/// are answered AS their donor (the rig's "cathook 0x1402890C0 37" marker line, owner-observed
-/// listing the Moonblade 2026-08-26 20:55). Its callers were not observed keeping
-/// volatile registers live across the call, so a managed detour is safe here (the PromptSwapHook
-/// precedent), behind a prologue landmark; the ten accessors in ExtendedDonorThunks are function
-/// entries too but take the native AccessorEntryHook for the r11 reason:
-/// <see cref="ExpectedPrologue"/> = <c>sub rsp,28h; movzx r11d,cx; mov eax,3FFh</c>, read on the
-/// 1.5.2 exe on disk 2026-08-27 with ret+CC padding immediately before it.
+/// Detour on the item category getter at <see cref="Offsets.FnCategoryGetter"/>. A new id
+/// only shows on the Weapons tab if the getter returns a weapon group code, so extended ids answer
+/// as their donor (rig marker "cathook 0x1402890C0 37", Moonblade listed 2026-08-26 20:55). A
+/// managed detour is safe as its callers keep no volatile registers live (as PromptSwapHook); the
+/// ExtendedDonorThunks accessors use AccessorEntryHook for the r11 reason. Prologue
+/// <c>sub rsp,28h; movzx r11d,cx; mov eax,3FFh</c> read from the 1.5.2 exe 2026-08-27.
 /// </summary>
 internal sealed class CategoryGetterHook
 {
@@ -47,8 +42,7 @@ internal sealed class CategoryGetterHook
         TargetAddr = targetAddr == 0 ? Offsets.FnCategoryGetter : targetAddr;
     }
 
-    /// <summary>Pure decision: the donor to answer as for the raw rcx the game passed, or -1 to
-    /// pass rcx through untouched (ids below lo, past the donor table, or never extended).</summary>
+    /// <summary>The donor to answer as for the raw rcx, or -1 to pass it through untouched.</summary>
     internal static int Resolve(long rcx, int lo, int[] donors)
     {
         int id = (int)(rcx & ThunkStub.IdMask);
@@ -80,7 +74,7 @@ internal sealed class CategoryGetterHook
         catch (Exception) { /* swallowed: release must never throw */ }
     }
 
-    // Hot path: no logging, no allocation, never throws. Passthrough forwards the ORIGINAL rcx.
+    // Hot path: no logging or allocation, never throws.
     private nint Detour(nint rcx)
     {
         Interlocked.Increment(ref _calls);

@@ -4,31 +4,23 @@ namespace LivingWeapon;
 
 /// <summary>
 /// Huntress's "Maim" signature: while a +3 Huntress is equipped and the wielder's action damages
-/// an ENEMY, that enemy loses its reaction abilities (combat +0x94, band +0x78, 4 bytes held to
-/// zero) for 3 of its turns, then the saved bits restore. PROVEN primitives (memory
-/// reaction-suppression-cripple): hold-zero at +0x94 suppressed Counter through 5 hits; one-shot
-/// restore brought it back. Re-hit refreshes the window. Allies are never latched.
-///
-/// DETECTION: mirrors Ricochet's HP-diff victim pattern -- per-tick HP drops on enemy band slots
-/// during the +3 wielder's acted period. Enemy-side filter = static-array fingerprints.
-/// LATCH: on first hit, read and save the 4-byte reaction field ONCE (never re-save while held --
-/// the field is zeroed while held; re-reading it would restore zeros, losing the reaction).
-/// HOLD: zero the field each tick while the latch is live.
-/// EXPIRY: count the victim's turns off its CT (+0x25 = band ACtSlam, the proven enemy-turn read),
-/// read from the stored HeldAddr each tick in Drive (never from a band scan -- avoids CT thrash when
-/// a frozen twin shares the fingerprint); after crippleTurns victim-turns the saved bytes restore.
-/// BATTLE EXIT: restore all latches and clear (mirrors Ricochet).
-/// All reads/writes are VirtualQuery-guarded.
+/// an enemy, that enemy loses its reaction abilities (combat +0x94, band +0x78, 4 bytes held to
+/// zero) for 3 of its turns, then the saved bits restore. Hold-zero at +0x94 suppressed Counter
+/// through 5 hits and a one-shot restore brought it back (memory reaction-suppression-cripple).
+/// A re-hit refreshes the window; allies are never latched.
+/// Victims are found by per-tick HP drops on enemy band slots during the wielder's acted period
+/// (as in Ricochet), enemy side by static-array fingerprint. The reaction field is saved once on
+/// first hit, since re-reading it while held would save zeros. Expiry counts the victim's turns off
+/// its CT (+0x25 = band ACtSlam) at the stored HeldAddr; battle exit restores all latches.
+/// Reads and writes are VirtualQuery-guarded.
 /// </summary>
 internal sealed partial class Maim : ISignature
 {
     void ISignature.Tick(in TickContext ctx) => Tick(ctx.OnField);
     private const int HuntressId = 89;
-    // The victim's LIVE scheduler charge-time, band-entry-relative. Counting a unit's completed turns
-    // reads THIS byte (== Offsets.ACtSlam, == combat base+0x41 -- the one that reads cleanly for
-    // enemy turns). NOT band +0x09 (Offsets.ACtTurn): a live probe (2026-06-17) proved +0x09 stays
-    // flat 0 for enemies and never crosses the turn threshold, so the old read never counted a turn
-    // and the latch never expired (the maim-never-unlatched bug).
+    // Victim's live scheduler CT, band-entry-relative (== Offsets.ACtSlam == combat base+0x41).
+    // Not band +0x09 (Offsets.ACtTurn): a 2026-06-17 probe showed it stays 0 for enemies, so the
+    // latch never expired (the maim-never-unlatched bug).
     private const int LiveCtOff = 0x25;
 
     private readonly IGameMemory _mem;   // injected (LiveMemory in production; fakes in tests)
@@ -63,11 +55,10 @@ internal sealed partial class Maim : ISignature
     {
         if (!_meta.TryGetValue(HuntressId, out var m) || m.Signature is null) { Drive(); return; }
         int tier = Tuning.TierOf(_kills, HuntressId);
-        // Latching a NEW victim is a your-turn (on-field) event -- the wielder must be the acting unit.
-        // But counting a held victim's turns, holding its reaction to zero, and expiring the latch all
-        // run EVERY in-battle tick: an enemy's CT crosses 90->below-70 during ITS OWN turn, which is an
-        // enemy-turn (off-field) frame. The old `if (!onField) return` gate never sampled that edge,
-        // so the latch never expired (proven live 2026-06-17 -- a maim outlasted 3+ victim turns).
+        // Latching a new victim needs the wielder on field, but counting a held victim's turns,
+        // holding its reaction at zero and expiring the latch run every in-battle tick: an enemy's
+        // CT crosses 90 to below 70 during its own off-field turn (a maim outlasted 3+ victim turns,
+        // 2026-06-17).
         bool active = onField && IsActive(m.Signature, tier)
                       && Signatures.IsActingMainHand(_tracker.LastPlayerMainHand, HuntressId)
                       && _mem.U8(Offsets.Acted) == 1;
@@ -78,16 +69,14 @@ internal sealed partial class Maim : ISignature
 
         int crippleTurns = m.Signature.CrippleTurns;
 
-        // Scan band: observe HP diffs and latch new victims. Runs ONLY on-field: the wielder's hit
-        // lands during the on-field attack animation, so Observe must baseline and detect the drop
-        // in the same on-field window. Running Observe off-field would eat the HP delta during the
-        // animation, leaving nothing to detect when the acted window reopens.
+        // Observe HP diffs and latch new victims, on-field only: the hit lands during the on-field
+        // attack animation, so baseline and detection must share that window.
         if (onField)
         {
             var enemyFps = active ? Band.EnemyFingerprints(_mem) : null;
             for (int s = 0; s < Offsets.BandSlots; s++)
             {
-                // LW-149: shared sanity read/bounds extracted to Band.TryReadUnit (Band.Sanity.cs).
+                // Shared sanity read/bounds extracted to Band.TryReadUnit (Band.Sanity.cs).
                 if (!Band.TryReadUnit(_mem, s, out long addr, out var fp, out int hp)) continue;
 
                 int dmg = _hpState.Observe(s, hp);
@@ -98,13 +87,10 @@ internal sealed partial class Maim : ISignature
 
                 if (!_state.IsHeld(fp))
                 {
-                    // First hit: read the LIVE reaction before we zero it, and seed the turn counter with
-                    // the victim's CURRENT CT so the first sample is never mistaken for a completed turn.
-                    // A failed read must NEVER latch a fake 0 as "the saved reaction" -- ExpireAll/
-                    // RestoreAll would later write that 0 back and wipe a REAL reaction for the battle.
-                    // Refuse the latch instead: no suppression this strike, fail-safe -- there is
-                    // nothing to retry (the HP-diff event is already spent), unlike Kobu's rearm-read
-                    // refusal, which rolls the baseline back for a next-tick retry.
+                    // First hit: save the live reaction before zeroing it and seed the turn counter
+                    // with the victim's current CT. A failed read refuses the latch, since saving a
+                    // fake 0 would later wipe a real reaction. There is nothing to retry because the
+                    // HP-diff event is spent (Kobu's rearm-read refusal rolls back for a retry).
                     if (!TryReadReactionField(_mem, addr, out uint saved)) continue;
                     _state.Latch(addr, fp, saved, _mem.U8(addr + LiveCtOff));
                     ModLogger.EventWithTrace(LogVerb.Signature,
@@ -124,20 +110,19 @@ internal sealed partial class Maim : ISignature
         ExpireAll(crippleTurns);
     }
 
-    /// <summary>Hold all active latches to zero each tick (beats engine re-assertion). Also counts
-    /// each held victim's turns off its own CT at the stored address (read from HeldAddr, never from
-    /// a band scan, so a duplicate/twin band entry with a different CT cannot thrash the count).</summary>
+    /// <summary>Hold all latches at zero each tick. Also counts each held victim's turns off its CT
+    /// at HeldAddr (not a band scan), so a twin band entry with a different CT cannot thrash the
+    /// count.</summary>
     private void Drive()
     {
         foreach (var fp in _state.Held)
         {
             long addr = _state.HeldAddr(fp);
-            // Copy moved/freed, or a stranger sits at the held address now (LW-153: the shared
-            // same-unit write-safety verify).
+            // Copy moved or freed, or another unit sits at the held address (LW-153 same-unit
+            // write-safety check).
             if (!Band.SameUnitAtExact(_mem, addr, fp)) continue;
-            // Count the victim's own turns off its live charge-time at the stored address. Reading
-            // from HeldAddr (not a slot scan) means a frozen twin at a different address cannot
-            // thrash LastCt and produce spurious turn counts.
+            // Count turns from HeldAddr, not a slot scan, so a frozen twin at another address
+            // cannot thrash LastCt.
             int ct = _mem.U8(addr + LiveCtOff);
             if (CtTurns.IsTurn(_state.LastCt(fp), ct)) _state.CountTurn(fp);
             _state.UpdateCt(fp, ct);

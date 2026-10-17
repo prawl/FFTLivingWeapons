@@ -4,19 +4,13 @@ namespace LivingWeapon;
 
 /// <summary>
 /// Arcanum's "Larceny" signature: while a +3 Arcanum is the acting wielder's main hand, each enemy
-/// its action damages has its highest-priority holdable buff STOLEN -- stripped from the foe and
-/// held on the wielder for LarcenyHoldTurns of the wielder's OWN turns, then dropped.
-///
-/// DETECTION mirrors Maim/Ricochet: per-tick HP drops on enemy band slots during the wielder's
-/// acted period (enemy-fingerprint filtered). WIELDER ATTRIBUTION is per-fingerprint: each
-/// Arcanum holder's (level,brave,faith) identifies it uniquely; KillTracker.LastActorFingerprint
-/// (latched by TryResolveActingFingerprint once per acted-period, outside the SameSet guard) names
-/// which one acted, so TWO deployed Arcanum holders are fully supported. EXPIRY counts the WIELDER'S
-/// OWN completed turns via TurnTracker.Turns for its fingerprint (the proven acted-edge per-unit
-/// counter). No wall-clock backstop: a deployed wielder always takes turns, and battle exit clears
-/// any remainder. SAFETY: the buff is only granted+held on the wielder if it did NOT already have
-/// it, so expiry never strips the wielder's own enchantment; the foe's bit is always stripped (a
-/// dispel at worst). All reads/writes are VirtualQuery-guarded (LarcenyPolicy.SetBit/ClearBit).
+/// its action damages loses its highest-priority holdable buff, which the wielder then holds for
+/// LarcenyHoldTurns of its own turns. Enemies are detected by per-tick HP drops during the acted
+/// period (enemy-fingerprint filtered), and the wielder by fingerprint via
+/// KillTracker.LastActorFingerprint (latched by TryResolveActingFingerprint), so two Arcanum
+/// holders work. Expiry counts the wielder's completed turns (TurnTracker.Turns); battle exit
+/// clears any remainder. The buff is held only if the wielder lacked it, so expiry never strips
+/// its own enchantment. Reads and writes go through LarcenyPolicy.SetBit/ClearBit.
 /// </summary>
 internal sealed class Larceny : ISignature
 {
@@ -71,13 +65,11 @@ internal sealed class Larceny : ISignature
         if (!_meta.TryGetValue(ArcanumId, out var m) || m.Signature is null) return;
         int tier = Tuning.TierOf(_kills, ArcanumId);
 
-        // Resolve the acting wielder by fingerprint. KillTracker.LastActorFingerprint is latched
-        // once per acted-period outside the SameSet guard, so it updates even when two Arcanum
-        // holders share weapon set {30} and SameSet between them is always true.
+        // KillTracker.LastActorFingerprint is latched once per acted period outside the SameSet
+        // guard, so it still updates when two Arcanum holders share weapon set {30}.
         var actorFp = _tracker.LastActorFingerprint;
-        // LW-252 stage 5: the SAME latch's own nameId (KillTracker.LastActorNameId, stage 3) --
-        // threaded through to LarcenyHoldings so two fp-twin Arcanum holders get independent
-        // ledgers instead of sharing one.
+        // LW-252 stage 5: the same latch's nameId (KillTracker.LastActorNameId) gives fp-twin
+        // holders separate ledgers in LarcenyHoldings.
         int actorNameId = _tracker.LastActorNameId;
         bool tierOk = LarcenyPolicy.IsActive(m.Signature, tier);
         bool actingMain = Signatures.IsActingMainHand(_tracker.LastPlayerMainHand, ArcanumId);
@@ -85,10 +77,8 @@ internal sealed class Larceny : ISignature
         long actingAddr = (tierOk && actingMain && actedByte == 1 && actorFp != default) ? Locate(actorFp) : 0;
         bool active = tierOk && actingMain && actedByte == 1 && actingAddr != 0;
 
-        // Only log the gate when a +3 Arcanum is actually FIELDED this battle. A weapon that merely
-        // banked kills reads tier-eligible (tier(t3)=True) and otherwise churns the gate reason every
-        // turn, spamming the log for a weapon nobody is holding. `active` already implies a deployed
-        // wielder, so short-circuit past the roster scan when it is true.
+        // Log the gate only when an Arcanum is deployed; a weapon that merely banked kills reads
+        // tier-eligible and would churn the reason each turn. `active` implies a deployed wielder.
         if (active || Wielder.AnyDeployedMainHand(_mem, ArcanumId))
         {
             string reason = active
@@ -105,12 +95,11 @@ internal sealed class Larceny : ISignature
 
         for (int s = 0; s < Offsets.BandSlots; s++)
         {
-            // LW-149: shared sanity read/bounds extracted to Band.TryReadUnit (Band.Sanity.cs).
+            // Shared sanity read/bounds extracted to Band.TryReadUnit (Band.Sanity.cs).
             if (!Band.TryReadUnit(_mem, s, out long addr, out var fp, out int hp)) continue;
 
             int dmg = _hpState.Observe(s, hp);
-            // Snapshot this slot's holdable buff EVERY tick; the steal uses the PRE-hit snapshot as cheap
-            // insurance against any same-tick clear racing the damage read.
+            // Snapshot each tick; the steal uses the pre-hit copy in case a clear races the damage read.
             var nowBuff = LarcenyPolicy.Pick(off => _mem.Readable(addr + off, 1) ? _mem.U8(addr + off) : (byte)0);
             var preHit = _preHit[s];
             _preHit[s] = nowBuff;
@@ -118,13 +107,12 @@ internal sealed class Larceny : ISignature
             if (!active || dmg <= 0 || enemyFps is null) continue;
             if (!LarcenyPolicy.ShouldLatch(enemyFps.Contains(fp))) continue;
 
-            var buff = preHit ?? nowBuff;   // the buff the foe had BEFORE the hit (the live one may be gone)
+            var buff = preHit ?? nowBuff;   // the buff the foe had before the hit (the live one may be gone)
             if (buff is null) continue;     // foe carried no holdable buff
             var key = (buff.Value.Off, buff.Value.Mask);
 
-            // One decision per struck foe -- so a single action that hits SEVERAL buffed enemies steals
-            // each buff from only one of them, dispels duplicates the wielder already owns, and never
-            // strips a copy it has already stolen (LarcenyPolicy.Decide).
+            // One decision per struck foe: a multi-hit action steals each buff from one enemy,
+            // dispels duplicates the wielder owns, and skips a copy already stolen (LarcenyPolicy.Decide).
             bool wielderHas = LarcenyPolicy.HasBit(_mem, actingAddr, key.Item1, key.Item2);
             var action = LarcenyPolicy.Decide(_holdings.IsHeld(actorNameId, actorFp, key), wielderHas);
             if (action == LarcenyAction.Skip) continue;   // already wearing this buff -- leave the foe's copy

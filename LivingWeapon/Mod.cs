@@ -9,9 +9,8 @@ using Reloaded.Mod.Interfaces.Internal;
 namespace LivingWeapon;
 
 /// <summary>
-/// Reloaded-II entry point. Runs in-process inside FFT_enhanced.exe. Reloaded
-/// instantiates this type and the constructor fires, so we start the engine
-/// there (Start is also wired, guarded, in case a host prefers it).
+/// Reloaded-II entry point, running in-process inside FFT_enhanced.exe. The constructor starts the engine;
+/// Start is also wired, guarded, in case a host prefers it.
 /// </summary>
 public class Mod : IMod
 {
@@ -26,10 +25,8 @@ public class Mod : IMod
         InjectReloadedHooks(modLoader);
     }
 
-    /// <summary>IModV2 route: Reloaded-II 2.4.0 prefers StartEx when present; controllers
-    /// (IReloadedHooks from reloaded.sharedlib.hooks) are only resolvable here, never in the
-    /// constructor (mirrors FFTHandsFree.Mod). Fail-soft: without hooks the production
-    /// banner-toast callout delivery degrades; everything else runs.</summary>
+    /// <summary>IModV2 route, preferred by Reloaded-II 2.4.0. IReloadedHooks (from reloaded.sharedlib.hooks) only resolves here,
+    /// not in the constructor. Without hooks the banner-toast delivery degrades and everything else runs.</summary>
     public void StartEx(IModLoaderV1 loaderApi, IModConfigV1 modConfig)
     {
         StartEngine();
@@ -48,9 +45,9 @@ public class Mod : IMod
             }
             else
             {
-                // Degraded but coping (the audit's Warning promotion): toasts die, the mod runs.
+                // Toasts die, the mod runs.
                 ModLogger.Warn(LogVerb.Startup, "The game-hooks helper mod (reloaded.sharedlib.hooks) is not loaded; toast pop-ups will not be delivered.");
-                _engine?.InjectHooks(null);   // LW-346: lets the extended inventory log WHY it stays off
+                _engine?.InjectHooks(null);   // lets the extended inventory log why it stays off
             }
         }
         catch (Exception ex)
@@ -69,31 +66,25 @@ public class Mod : IMod
             string modDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)
                             ?? Environment.CurrentDirectory;
             ModLogger.Init(modDir);
-            Flight.Init(modDir);   // the black-box event ring -- must exist before anything else can Record
-            // LW-387 (ported by LW-388): the Denuvo-free build is ASLR-relocated. Resolve the live
-            // image base ONCE, here, before the Engine (and its 33ms thread) exists; every pinned
-            // address rebases through it, so nothing above this line may touch Offsets.
+            Flight.Init(modDir);   // the black-box event ring, must exist before anything can Record
+            // LW-387 (ported by LW-388) The Denuvo-free build is ASLR-relocated. Resolve the live image base before the Engine
+            // and its 33ms thread exist; every pinned address rebases through it, so nothing above this line may touch Offsets.
             if (ImageBase.TryResolveLive(out long liveBase) && ImageBase.Set(liveBase))
                 ModLogger.Event(LogVerb.Startup, $"Game image base 0x{ImageBase.Base:X} (preferred 0x{ImageBase.Preferred:X}, delta 0x{ImageBase.Delta:X}); every pinned address is rebased onto it.");
             else
                 ModLogger.Warn(LogVerb.Startup, $"Could not read the game image base; using the preferred base 0x{ImageBase.Preferred:X}. If the game loaded elsewhere the startup guard will never arm.");
-            // Launch header L1 (logging facelift): version from the deployed ModConfig.json
-            // (fail-soft), flavor from the compiled Tuning.BuildFlavor const (the binary's own
-            // truth, never build_flavor.txt).
+            // Launch header L1 (logging facelift). Version comes from the deployed ModConfig.json (fail-soft), flavor from the
+            // compiled Tuning.BuildFlavor, not build_flavor.txt.
             ModLogger.Event(LogVerb.Startup,
                 $"Living Weapons version {ModInfo.ReadVersion(modDir)} ({Tuning.BuildFlavor} build) is starting inside fft_enhanced.exe.");
 
-            // Load mod config fail-soft: any read failure falls back to the Tuning default (true).
-            // The Reloaded launcher writes the user's edits to <Reloaded>/User/Mods/<ModId>/Config.json,
-            // NOT to the deployed mod folder -- so we must read the user file when it exists (mirrors
-            // FFTColorCustomizer.GetUserConfigPath), falling back to modDir/Config.json (the shipped
-            // default) before the user has opened the config UI.
-            // LW-10 (2026-08-14): with Treasure Master removed the mod exposes NO player-facing
-            // settings at all, so nothing is read out of the config. The file is still loaded so a
-            // corrupt one warns the player instead of failing silently, and so the resolved path is
-            // logged. Toasts (always on), dev-seeding (the LWDEV compile flag) and console
-            // verbosity (Info) keep their compiled Tuning defaults, as they have since LW-52.
-            string configPath     = Path.Combine(modDir, "Config.json");   // overwritten below on success
+            // Config load is fail-soft and falls back to the Tuning default. Reloaded writes user edits to
+            // <Reloaded>/User/Mods/<ModId>/Config.json, so that file is preferred over modDir/Config.json (as in
+            // FFTColorCustomizer.GetUserConfigPath).
+            // LW-10 (2026-08-14) removed Treasure Master and with it every player-facing setting, so nothing is read out of the
+            // config. It is still loaded so a corrupt file warns and the path is logged. Toasts, dev seeding (LWDEV, LW-52) and
+            // console verbosity keep their compiled Tuning defaults.
+            string configPath = Path.Combine(modDir, "Config.json");   // overwritten below on success
             try
             {
                 configPath = ResolveConfigPath(modDir);
@@ -101,23 +92,18 @@ public class Mod : IMod
             }
             catch (Exception cfgEx)
             {
-                // Warning, not Error (the audit's demotion): defaults cope, and a mere config
-                // typo must not burn the launch's one FlushOnce flight archive.
+                // Warn rather than Error, so a config typo does not use up the launch's one FlushOnce flight archive.
                 ModLogger.Warn(LogVerb.Config,
                     $"Your settings could not be read; using defaults: {cfgEx.Message}");
             }
-            // Console at Info; the log FILE always carries every line unconditionally (docs/LOGGING.md).
-            // DEFINED whether the try above succeeded or hit the catch (never skipped), so a
-            // config-read failure can't strand the console on the lazily-created default logger.
+            // Console at Info; the log file takes every line regardless (docs/LOGGING.md). Set outside the try so a config
+            // failure cannot leave the console on the lazily created default logger.
             ModLogger.LogLevel = LogLevel.Info;
-            // LW-50 build-stamp drill, dev builds only: the config knob was removed 2026-07-07 so
-            // players cannot trigger it from the launcher UI. Set the environment variable
-            // LW_FORCE_FINGERPRINT_MISMATCH to 1, or drop a marker file of that same name into the
-            // mod dir (LW-83: env variables do not reach fft_enhanced through this box's launch
-            // chain), before launching a DEV build to force the build stamp to read unknown (the
-            // report line and the armed-edge warning, LW-397) instead of a stand-down.
-            // LW-395: LW_FORCE_SENSING_MISMATCH (same two lanes) does the same for the sensing lane
-            // that gates the new-game detector.
+            // LW-50 build-stamp drill, dev builds only. Set the environment variable LW_FORCE_FINGERPRINT_MISMATCH to 1, or drop a
+            // marker file of that name in the mod dir (LW-83, env variables do not reach fft_enhanced here), before launching a
+            // DEV build to force the build stamp to read unknown (report line and armed-edge warning, LW-397). The config knob was
+            // removed 2026-07-07 so players cannot trigger it.
+            // LW-395 LW_FORCE_SENSING_MISMATCH (same two lanes) does the same for the sensing lane that gates the new-game detector.
 #if LWDEV
             bool devForceFingerprintMismatch = DrillTrigger.DrillRequested(modDir);
             bool devForceSensingMismatch = DrillTrigger.DrillRequested(modDir, DrillTrigger.SensingFlagName);
@@ -130,12 +116,10 @@ public class Mod : IMod
             ModLogger.Event(LogVerb.Config,
                 $"Configuration loaded: LogLevel={ModLogger.LogLevel} (from {configPath})");
 
-            // LW-50: born disarmed, before the Engine (and its FastHold background thread) exists.
-            // Only LaunchGuard's Armed edge (inside Engine.Tick, via the guard's onArmed callback)
-            // flips this back true.
+            // LW-50 born disarmed, before the Engine and its FastHold thread exist. Only LaunchGuard's Armed edge (Engine.Tick,
+            // onArmed callback) sets this back to true.
             Mem.WritesEnabled = false;
-            // LW-52: bannerToasts and devSeedKills are no longer config-driven; omitting them lets
-            // the Engine ctor fall back to its Tuning defaults (toasts on; dev-seed under LWDEV).
+            // LW-52 bannerToasts and devSeedKills are no longer config-driven; the Engine ctor uses its Tuning defaults.
             _engine = new Engine(modDir, devForceFingerprintMismatch: devForceFingerprintMismatch,
                 devForceSensingMismatch: devForceSensingMismatch, devForceGuardUnreadable: devForceGuardUnreadable);
             _engine.Start();
@@ -146,15 +130,13 @@ public class Mod : IMod
         }
     }
 
-    /// <summary>The mod namespace (the folder name under both Mods/ and User/Mods/). Internal,
-    /// not private: LW-51's SaveLocation reuses it to resolve the update-safe save dir.</summary>
+    /// <summary>The mod namespace (folder name under Mods/ and User/Mods/). Internal because LW-51's SaveLocation reuses it.</summary>
     internal const string ModId = "prawl.fft.livingweapons";
 
     /// <summary>
-    /// The config the DLL should read. The Reloaded launcher saves user edits to
-    /// &lt;Reloaded&gt;/User/Mods/&lt;ModId&gt;/Config.json (modDir is Mods/&lt;ModId&gt;, two
-    /// levels under the Reloaded root). Prefer that file when it exists; otherwise fall back to
-    /// the shipped default in modDir. Any path error returns the modDir path (FromFile is fail-soft).
+    /// The config path to read. Reloaded saves user edits to &lt;Reloaded&gt;/User/Mods/&lt;ModId&gt;/Config.json (modDir is
+    /// Mods/&lt;ModId&gt;, two levels under the root); use that when it exists, else the shipped default in modDir.
+    /// Any path error returns the modDir path.
     /// </summary>
     private static string ResolveConfigPath(string modDir)
     {

@@ -6,13 +6,11 @@ using Newtonsoft.Json;
 namespace LivingWeapon;
 
 /// <summary>
-/// One weapon's Reliquary deed record: the most recent victim, per-archetype kill counts
-/// (Unknown counted too, but never earns a Mark), the archetype indices earned as Marks (in
-/// earn order), and two Phase 2 storage-only slots (legends, pendingAnnounce -- decision 10:
-/// the compose branch is descoped to Phase 2, but the schema carries the slot now so Phase 2
-/// needs no breaking migration). LastPainted is decision 12's anchor-rotation state: the
-/// PREVIOUS distinct composed card line, persisted so a relaunch's three-way anchor can still
-/// recognize a buffer painted before the last rotation.</summary>
+/// One weapon's Reliquary deed record: the last victim, per-archetype kill counts (Unknown is
+/// counted but never earns a Mark), and the Marks earned in order. Legends and PendingAnnounce are
+/// Phase 2 slots kept in the schema now to avoid a later migration (decision 10). LastPainted is
+/// the previous composed card line, kept so a relaunch can still recognize a buffer painted
+/// before the last rotation (decision 12).</summary>
 internal sealed class WeaponLegend
 {
     public ushort LastVictimNameId;
@@ -21,36 +19,32 @@ internal sealed class WeaponLegend
     public int LastVictimCls = -1;
     public readonly int[] Counts = new int[LegendStore.ArchetypeSlots];
     public List<int> Marks = new();
-    public List<string> Legends = new();            // Phase 2 storage slot only (decision 10)
-    public List<string> PendingAnnounce = new();     // Phase 2 plumbing only
+    public List<string> Legends = new();            // Phase 2 slot (decision 10)
+    public List<string> PendingAnnounce = new();     // Phase 2 slot
     public string? LastPainted;
 }
 
 /// <summary>
-/// Reliquary Phase 1 deed ledger (docs/RELIQUARY_AC.md): legends.json, sibling of kills.json.
-/// Persistence mirrors KillTally's exact prior-copy-to-.bak save ordering (KillTally.cs:64-76)
-/// -- legends are permanent facts, so the prior-generation fallback is the right trade -- PLUS a
-/// corrupt-load warning + flight record KillTally's own silent catch lacks (the AC requires
-/// evidence of a corrupt load, not just a quiet fallback).
+/// Reliquary Phase 1 deed ledger (docs/RELIQUARY_AC.md), stored in legends.json beside kills.json.
+/// Saves follow KillTally's prior-copy-to-.bak order (KillTally.cs:64-76). Unlike KillTally, a
+/// corrupt load also logs a warning and a flight record, as the AC requires.
 /// </summary>
 internal sealed class LegendStore
 {
-    /// <summary>Fixed width of <see cref="WeaponLegend.Counts"/> -- one slot per VictimClass.Archetype
-    /// value (including Unknown).</summary>
+    /// <summary>Width of <see cref="WeaponLegend.Counts"/>: one slot per VictimClass.Archetype, Unknown included.</summary>
     internal const int ArchetypeSlots = 5;
 
     private readonly string _path;
     private readonly Dictionary<int, WeaponLegend> _legends;
     private bool _dirty;
 
-    /// <summary>Where the load actually came from: "primary", "backup", or "fresh" (no readable
-    /// file). Feeds the launch header's [save] legends line (logging facelift stage 3).</summary>
+    /// <summary>Where the load came from: "primary", "backup", or "fresh". Feeds the launch header's [save] legends line.</summary>
     public string LoadedFrom { get; }
 
-    /// <summary>Weapons carrying at least one recorded deed (the launch header's count).</summary>
+    /// <summary>Weapons with at least one recorded deed.</summary>
     public int WeaponCount => _legends.Count;
 
-    /// <summary>Total Marks earned across all weapons (the launch header's count).</summary>
+    /// <summary>Total Marks earned across all weapons.</summary>
     public int TotalMarks
     {
         get
@@ -68,10 +62,8 @@ internal sealed class LegendStore
         LoadedFrom = loadedFrom;
     }
 
-    /// <summary>Load legends.json at modDir, falling back to .bak, then an empty store (fresh
-    /// install) -- never throws. Mirrors KillTally.Load's [path, .bak, empty] chain, but a
-    /// corrupt file logs one ModLogger.LogWarning line + one Flight.Record tap (KillTally's own
-    /// catch is silent -- do not copy that here).</summary>
+    /// <summary>Loads legends.json from modDir, then .bak, then an empty store; never throws. A corrupt
+    /// file logs a warning and a Flight.Record tap.</summary>
     public static LegendStore Load(string modDir)
     {
         string path = Path.Combine(modDir, "legends.json");
@@ -100,11 +92,8 @@ internal sealed class LegendStore
     /// <summary>True if this weapon has ever had a deed recorded.</summary>
     public bool Has(int weaponId) => _legends.ContainsKey(weaponId);
 
-    /// <summary>LW-351: hand the deed map to <see cref="TallyMigration.MoveLegends"/> so a design
-    /// that changed item id keeps the deeds it earned. The POLICY lives there (pure, unit-tested
-    /// against a plain dictionary); this is only the seam that reaches the private map and marks
-    /// the store dirty, so the next SaveIfDirty writes it (previous generation to .bak). Returns
-    /// how many old ids moved.</summary>
+    /// <summary>lets <see cref="TallyMigration.MoveLegends"/> move deeds when an item id
+    /// changes. Marks the store dirty and returns how many old ids moved.</summary>
     public int Migrate(IReadOnlyDictionary<int, int> plan)
     {
         int moved = TallyMigration.MoveLegends(plan, _legends);
@@ -112,17 +101,12 @@ internal sealed class LegendStore
         return moved;
     }
 
-    /// <summary>Read view for the composer (CardLine/StoryLines): the weapon's current deed
-    /// state, or a fresh (empty) WeaponLegend for a weapon with no deeds yet -- never null, so
-    /// callers don't need a separate Has() guard just to read defaults.</summary>
+    /// <summary>Read view for the composer (CardLine/StoryLines). Returns an empty WeaponLegend, never null, for a weapon with no deeds.</summary>
     public WeaponLegend Get(int weaponId) =>
         _legends.TryGetValue(weaponId, out var w) ? w : new WeaponLegend();
 
-    /// <summary>Record one kill's deed: classifies the victim (VictimClass.Classify), updates
-    /// lastVictim to this (the MOST RECENT) kill, and increments that archetype's count. Returns
-    /// every archetype that just crossed Tuning.MarkThresholds[0] for the FIRST time (a mark
-    /// already earned is never re-returned; Unknown never earns a Mark, per Classify's contract).
-    /// Marks the store dirty.</summary>
+    /// <summary>Records one kill: classifies the victim, sets lastVictim, and bumps that archetype's
+    /// count. Returns archetypes that first crossed Tuning.MarkThresholds[0] on this kill.</summary>
     public List<VictimClass.Archetype> RecordDeed(int weaponId, VictimSnapshot victim)
     {
         if (!_legends.TryGetValue(weaponId, out var w))
@@ -149,9 +133,8 @@ internal sealed class LegendStore
         return earned;
     }
 
-    /// <summary>Decision 12 (the anchor-rotation rule): persist the PREVIOUS distinct composed
-    /// card line for a weapon ("lastPainted" in the schema) -- called by StoryLines ONLY on a
-    /// compose-change edge, never at paint time. Marks the store dirty.</summary>
+    /// <summary>Decision 12: stores the previous composed card line ("lastPainted"). StoryLines calls
+    /// it on a compose-change edge, not at paint time.</summary>
     public void RotatePainted(int weaponId, string? previous)
     {
         if (!_legends.TryGetValue(weaponId, out var w))
@@ -160,11 +143,9 @@ internal sealed class LegendStore
         _dirty = true;
     }
 
-    /// <summary>Persist iff something changed since the last save, via the shared
-    /// <see cref="SidecarJson.SaveAtomic"/> chain (LW-153; was an inline copy of KillTally's
-    /// exact ordering). A failed save logs and leaves the previous primary+.bak intact; dirty
-    /// stays set so the next save edge retries. Never throws (this runs on Engine's tick
-    /// thread).</summary>
+    /// <summary>Saves via <see cref="SidecarJson.SaveAtomic"/> when dirty. A failed save logs,
+    /// keeps the old primary and .bak, and stays dirty for a retry. Never throws, since it runs on
+    /// Engine's tick thread.</summary>
     public void SaveIfDirty()
     {
         if (!_dirty) return;
@@ -179,8 +160,7 @@ internal sealed class LegendStore
     }
 }
 
-// ---- JSON DTOs (mirrors GunSlingerStore's SnapDto idiom: keep the wire schema decoupled from
-// the mutable runtime type's field names) ----
+// JSON DTOs, like GunSlingerStore's SnapDto, keep the wire schema apart from the runtime field names.
 
 internal sealed class LastVictimDto
 {
@@ -202,7 +182,9 @@ internal sealed class WeaponLegendDto
     {
         LastVictim = w.LastVictimCls < 0 ? null : new LastVictimDto
         {
-            NameId = w.LastVictimNameId, Job = w.LastVictimJob, Cls = w.LastVictimCls,
+            NameId = w.LastVictimNameId,
+            Job = w.LastVictimJob,
+            Cls = w.LastVictimCls,
         },
         Counts = w.Counts,
         Marks = w.Marks,

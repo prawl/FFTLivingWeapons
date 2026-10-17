@@ -218,7 +218,6 @@ public class DocsContractTests
     /// fixed, and never add an entry to hide a new one.</summary>
     private static readonly HashSet<(string File, string Path)> KnownPreexistingDanglingRefs = new()
     {
-        ("EarnedAnchors.cs", "docs/RELIQUARY_AC.md/RELIQUARY_P1_PLAN.md"),
         ("CardLineTests.cs", "docs/RELIQUARY_P1_PLAN.md"),
         ("StoryLinesTests.cs", "docs/RELIQUARY_P1_PLAN.md"),
         ("MECHANICS.md", "docs/UNIMPLEMENTED_MECHANICS.md"),

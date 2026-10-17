@@ -12,13 +12,11 @@ internal sealed partial class SpiritualFont
     public static bool IsActive(WeaponSignature? sig, int tier)
         => Signatures.Earned(sig, tier) && sig!.FontOnMove;
 
-    /// <summary>Wielder resolution is main-hand-only: the weapon must be in RRHand to activate.
-    /// A Living Weapon earns kills in any hand, but commands its gift only from the main hand.</summary>
+    /// <summary>Main-hand only: the weapon must be in RRHand to activate, though kills count from any hand.</summary>
     public const bool ActivatesOnMainHandOnly = true;
 
-    /// <summary>New MP after the gain: clamped at maxMp. UNLIKE the HP half, mp 0 still gains --
-    /// an empty pool is not a corpse (HP 0 -&gt; positive is the engine's revival signal; MP has
-    /// no such semantics). No-op on junk maxMp or a non-positive gain.</summary>
+    /// <summary>New MP after the gain, clamped at maxMp. Unlike the HP half, mp 0 still gains (HP 0
+    /// to positive is the revival signal). No-op on junk maxMp or a non-positive gain.</summary>
     public static int NewMp(int mp, int maxMp, int gain)
     {
         if (maxMp <= 0 || gain <= 0) return mp;
@@ -26,17 +24,13 @@ internal sealed partial class SpiritualFont
         return n > maxMp ? maxMp : n;
     }
 
-    /// <summary>The MP half runs only for a LIVING wielder on a layout-proven battle: a wielder
-    /// who moved and then died before their turn edge (trap tile, counter-kill) gains NOTHING --
-    /// the HP half already no-ops at hp 0 (BandHeal.NewHp never revives), and MP must not be
-    /// written into a corpse either, even though MP carries no revival semantics.</summary>
+    /// <summary>The MP half runs only for a living wielder on a validated layout. One who died
+    /// after moving gains nothing, matching the HP half (BandHeal.NewHp never revives).</summary>
     public static bool MpHalfAllowed(int hp, bool mpOk) => mpOk && hp > 0;
 
-    /// <summary>The PURE per-battle layout validation gating EVERY MP write: the band +0x18/+0x1A
-    /// pair is PROVISIONAL (never live-verified), so before the first MP write of a battle the
-    /// whole band must look like MP -- at least 2 sampled units, mp &lt;= maxMp AND maxMp &lt;= 999
-    /// for ALL of them, and maxMp &gt;= 1 for at least one (an all-zero sweep proves nothing).
-    /// A fail means HP-only for that battle; the HP half is never gated.</summary>
+    /// <summary>Per-battle layout check gating every MP write. The band +0x18/+0x1A pair is
+    /// provisional and unconfirmed, so require at least 2 sampled units, mp &lt;= maxMp and
+    /// maxMp &lt;= 999 for all, and maxMp &gt;= 1 for one. A fail means HP-only that battle.</summary>
     public static bool MpLayoutOk(IReadOnlyList<(int mp, int maxMp)> units)
     {
         if (units.Count < 2) return false;
@@ -49,10 +43,8 @@ internal sealed partial class SpiritualFont
         return anyPool;
     }
 
-    /// <summary>Guarded little-endian u16 write of the wielder's MP on its band entry (the
-    /// provisional +0x18). Fail-safe no-op when the page isn't writable -- BandHeal.WriteHp's
-    /// shape. The caller re-reads afterwards and logs SET/MISS. One W16 call (LW-145 fix 2):
-    /// two separate W8 halves opened a torn-value window (BandHeal.WriteHp's same fix).</summary>
+    /// <summary>Guarded u16 write of the wielder's MP at the provisional +0x18 on its band entry;
+    /// no-op if not writable. One W16 avoids a torn value between two W8 halves (LW-145 fix 2, as BandHeal.WriteHp).</summary>
     public static void WriteMp(IGameMemory mem, long entryAddr, int newMp)
     {
         long a = entryAddr + Offsets.AMp;
@@ -60,32 +52,18 @@ internal sealed partial class SpiritualFont
         mem.W16(a, (ushort)newMp);
     }
 
-    // -------------------------------------------------------------------------
-    // MoveWatch: pure position-poll state machine.
-    //
-    // Per tick (in-battle, active, located): caller feeds the current (gx, gy).
-    //   • FIRST sighting / after reset: baselines silently -- never fires.
-    //   • CHANGE detected: must be stable for StabilityTicks consecutive ticks
-    //     before firing -- rides out mid-animation position pulses and the
-    //     documented (0,0)-flicker on the live band.
-    //   • After firing: suppressed for RateCap ticks (~3 s at 33 ms) to give
-    //     one-move-per-turn semantics. Knockback / teleport also pays (intended;
-    //     vanilla fonts pay on any movement).
-    //   • RESET (unequip / battle end): returns to the fresh state.
-    // -------------------------------------------------------------------------
+    // MoveWatch: position-poll state machine. The first sighting baselines silently. A new tile must
+    // hold for StabilityTicks ticks before it fires (rides out mid-animation pulses and the (0,0)
+    // flicker on the live band), then RateCap suppresses further fires. Knockback and teleport also
+    // pay, like vanilla fonts.
 
-    /// <summary>Consecutive-tick stability required before treating a new position as final.
-    /// Filters the documented mid-animation band-position flicker.</summary>
+    /// <summary>Consecutive ticks a new position must hold before it counts; filters band flicker.</summary>
     public const int StabilityTicks = 3;
 
-    /// <summary>After a fire, suppress further fires for this many ticks (~3 s at 33 ms).
-    /// One move per turn is the realistic cadence; this also limits knockback spam.</summary>
+    /// <summary>Ticks to suppress fires after one (~3 s at 33 ms), giving one move per turn.</summary>
     public const int RateCap = 90;
 
-    /// <summary>
-    /// Pure position-poll state machine for the "Spiritual Font" moved-turn trigger.
-    /// No memory access; all state is internal so the caller owns the lifetime.
-    /// </summary>
+    /// <summary>Position-poll state machine for the Spiritual Font moved-turn trigger.</summary>
     internal sealed class MoveWatch
     {
         private enum State { Fresh, Stable, Candidate, Cooldown }
@@ -106,16 +84,14 @@ internal sealed partial class SpiritualFont
             _coolTicks = 0;
         }
 
-        /// <summary>Feed the current tile. Returns true exactly once per completed move
-        /// (after 3 stable ticks on a new tile, outside the post-fire cooldown).</summary>
+        /// <summary>Feed the current tile. True once per completed move.</summary>
         public bool Observe(int gx, int gy)
         {
-            // Cooldown: tick down; no fire; still accept a stable position as the new baseline.
+            // Cooldown: count down, never fire.
             if (_state == State.Cooldown)
             {
                 if (--_coolTicks <= 0) _state = State.Stable;
-                // While cooling down, keep the snapshot current so a second consecutive move
-                // is detected cleanly once the rate cap expires.
+                // Keep the baseline current so a second move registers after the cap.
                 AcceptBaseline(gx, gy);
                 return false;
             }
@@ -128,31 +104,28 @@ internal sealed partial class SpiritualFont
                 return false;
             }
 
-            // State.Stable or State.Candidate:
             if (gx == _baseGx && gy == _baseGy)
             {
-                // Returned to the baseline (or no movement at all): cancel any candidate.
+                // Back at baseline: cancel any candidate.
                 _stabCount = 0;
                 _candGx = _candGy = 0;
                 _state = State.Stable;
                 return false;
             }
 
-            // New position differs from the baseline.
             if (_state == State.Stable || (gx != _candGx || gy != _candGy))
             {
-                // Start (or restart) stability count for this candidate.
+                // Start or restart the stability count.
                 _candGx = gx; _candGy = gy;
                 _stabCount = 1;
                 _state = State.Candidate;
                 return false;
             }
 
-            // Continuing stability on the same candidate.
             _stabCount++;
             if (_stabCount >= StabilityTicks)
             {
-                // Stable move confirmed: fire and enter cooldown.
+                // Confirmed: fire and enter cooldown.
                 _baseGx = gx; _baseGy = gy;
                 _stabCount = 0;
                 _candGx = _candGy = 0;
@@ -163,16 +136,15 @@ internal sealed partial class SpiritualFont
             return false;
         }
 
-        /// <summary>Snapshot the current position as the baseline without firing (used
-        /// during cooldown so back-to-back moves are detected correctly afterward).</summary>
+        /// <summary>Set the baseline without firing (used during cooldown).</summary>
         private void AcceptBaseline(int gx, int gy) { _baseGx = gx; _baseGy = gy; }
 
         // Exposed for tests only.
-        internal bool IsFresh    => _state == State.Fresh;
-        internal bool IsStable   => _state == State.Stable;
+        internal bool IsFresh => _state == State.Fresh;
+        internal bool IsStable => _state == State.Stable;
         internal bool IsCandidate => _state == State.Candidate;
         internal bool IsCooldown => _state == State.Cooldown;
-        internal int  CoolTicks  => _coolTicks;
-        internal int  StabCount  => _stabCount;
+        internal int CoolTicks => _coolTicks;
+        internal int StabCount => _stabCount;
     }
 }

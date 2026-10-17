@@ -6,31 +6,17 @@ using System.Runtime.InteropServices;
 namespace LivingWeapon;
 
 /// <summary>
-/// DEV-ONLY (LW-123 arc 2a, owner-decided 2026-07-22): arm ProvokeHold without needing the real
-/// granted command at all, which is what keeps the hold testable on any save, on any job, with no
-/// grown Defender in the party. Plants the SAME mark arc 1's real cast plants -- composed
-/// +0x45/0x80 and inflicted +0x1D3/0x80, the
-/// blank status id 0 (<see cref="ProvokeHold.MarkId"/>) -- on an enemy, via two guarded bit writes
-/// (<see cref="MemBits.OrSet"/>, never an unguarded deref). ProvokeHold itself gates on the mark bit,
-/// not on this class, so the production hold engine is unchanged by this spike's presence.
-///
-/// TWO trigger lanes, StatusSpike's precedent: the F6 key (VK 0x75) and a marker-file lane
-/// (<c>&lt;modDir&gt;/provoke_request.txt</c>, polled every ~0.5s, deleted on read so a stale
-/// request can never re-fire). Moved off F3 to F6 2026-07-22: F3 never registered on the owner's
-/// box (this machine has a history of eaten F keys, owner-reported), and F6 is now free -- LW-67
-/// stripped the old Flavor/Header/AttackCard F6 spikes, so the earlier "F6 is taken" note (and the
-/// stale twin in BodyDoubleSpike) was wrong. No env vars: they do not survive this game's launch chain.
-///
-/// TARGET SELECTION: the HOVERED enemy if a cursor read is available -- while paused, the condensed
-/// TurnQueue struct tracks the unit under the cursor (memory "condensed-struct-follows-hover"),
-/// matched to an enemy band seat by maxHp+level -- else the FIRST live enemy via a plain enemy-side
-/// band scan. Deliberately NOT StatusSpike.FindEnemy: that helper is cold-call-scoped to callable
-/// engine slots (band seats 8..28); this spike makes no cold call, so every band seat is fair game.
-///
-/// GUARDS (StatusSpike's discipline, minus the cold-call-specific ones this spike does not need: no
-/// TargetReady prologue check, no paused-menu reentrancy requirement -- a guarded byte write is not a
-/// cold call): fires only while <see cref="Mem.WritesEnabled"/>, only during a genuine inLive frame,
-/// and only while the game window is foreground (never while alt-tabbed).
+/// Dev only (LW-123 arc 2a, 2026-07-22): arms ProvokeHold without the real granted command, so the hold is
+/// testable on any save and job. Plants the mark arc 1's cast plants (composed +0x45/0x80, inflicted +0x1D3/0x80,
+/// blank status id 0, <see cref="ProvokeHold.MarkId"/>) on an enemy with two guarded <see cref="MemBits.OrSet"/>
+/// writes. ProvokeHold gates on the mark bit, so it is unchanged by this spike.
+/// Triggers as in StatusSpike: F6 (VK 0x75) and a marker file (<c>&lt;modDir&gt;/provoke_request.txt</c>, polled
+/// ~0.5s, deleted on read). Moved off F3 on 2026-07-22 because F3 never registered on the owner's box; F6 is
+/// free since LW-67 stripped the old F6 spikes. No env vars: they do not survive the game's launch chain.
+/// Target: the hovered enemy if available (while paused, the condensed TurnQueue struct tracks the cursor,
+/// memory "condensed-struct-follows-hover", matched to a band seat by maxHp+level), else the first live enemy.
+/// Not StatusSpike.FindEnemy, which is scoped to cold-callable seats 8..28; this spike makes no cold call.
+/// Fires only while <see cref="Mem.WritesEnabled"/>, in a genuine inLive frame, with the game foreground.
 /// </summary>
 internal sealed class ProvokeSpike
 {
@@ -53,9 +39,8 @@ internal sealed class ProvokeSpike
         _requestPath = string.IsNullOrEmpty(modDir) ? null : Path.Combine(modDir, "provoke_request.txt");
     }
 
-    /// <summary>In-battle loop tick: heartbeat, the F6 edge, and the ~0.5s marker-file poll. Mirrors
-    /// StatusSpike.Tick's shape exactly (armed announce, heartbeat, then key/request checks gated on
-    /// a genuine inLive frame).</summary>
+    /// <summary>In-battle loop tick: heartbeat, the F6 edge, and the ~0.5s marker-file poll, same shape
+    /// as StatusSpike.Tick.</summary>
     public void Tick(bool inLive)
     {
         if (!_announced)
@@ -71,9 +56,8 @@ internal sealed class ProvokeSpike
         if (_hbTick % 15 == 0) PollRequest();   // ~0.5s: responsive without hammering the disk
     }
 
-    /// <summary>Consume a queued request file (any content -- presence alone is the trigger, unlike
-    /// StatusSpike's id-carrying requests: the mark is always the same blank status). Deleted FIRST
-    /// so a stale request can never fire twice; a delete/read failure is a logged no-op.</summary>
+    /// <summary>Consume a queued request file (presence alone is the trigger). Deleted first so a stale
+    /// request cannot fire twice; a delete/read failure is a logged no-op.</summary>
     private void PollRequest()
     {
         if (_requestPath == null) return;
@@ -107,8 +91,8 @@ internal sealed class ProvokeSpike
     }
 
     /// <summary>While paused, the condensed TurnQueue struct tracks the unit under the cursor
-    /// (memory "condensed-struct-follows-hover"): match it to an enemy band seat by maxHp+level. Any
-    /// out-of-band read (not paused, or a garbage struct) simply misses -- no target, not a crash.</summary>
+    /// (memory "condensed-struct-follows-hover"); match it to an enemy band seat by maxHp+level. An
+    /// out-of-band read just misses.</summary>
     private bool TryFindHoveredEnemy(out long entry)
     {
         entry = 0;
@@ -128,9 +112,7 @@ internal sealed class ProvokeSpike
         return false;
     }
 
-    /// <summary>Plain enemy-side band scan for the first LIVE (HP &gt; 0) seat -- every seat is fair
-    /// game (no cold-call-scoped range restriction; see the class doc for why that differs from
-    /// StatusSpike.FindEnemy).</summary>
+    /// <summary>First LIVE (HP &gt; 0) enemy-side band seat; no range restriction (see class doc).</summary>
     private long FindFirstLiveEnemy()
     {
         for (int s = 0; s < Offsets.BandSlots; s++)

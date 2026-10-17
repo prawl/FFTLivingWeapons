@@ -6,26 +6,12 @@ namespace LivingWeapon;
 internal enum BattleEdge { None, Entered, Exited }
 
 /// <summary>
-/// The battle in/out state machine, pure (no Mem) so it's fully unit-tested. Enter is INSTANT;
-/// exit is DEBOUNCED, which is the load-bearing fix:
-///   * battleMode is a cursor-tile-class encoder, NOT an "on battlefield" flag -- move-browsing
-///     reads 1 for seconds every turn, Paused reads 0, and mid-battle dialogue reads 0 with a real
-///     eventId. So a momentary out-of-live read is normal mid-combat and must NOT end the battle.
-///   * the slot9 sentinel both STICKS on the post-battle world map (so it can't mark the end) and
-///     can DROP mid-battle (so its loss can't mark the end either).
-/// Enter fires the instant any enter signal appears; exit needs SUSTAINED out-of-live time
-/// (<see cref="ExitDebounceSeconds"/>), with pause and real-event ticks SUSPENDING the timer (a
-/// pause mid-world-map must not reset progress; a pause mid-battle must never accumulate). An
-/// in-live tick zeroes the accumulator. The stuck-sentinel world map is sustained out-of-live, so
-/// exit fires there -- giving the next battle a clean Enter + reset. Time comes only from the
-/// passed-in DateTime (tests feed synthetic clocks; the machine never reads the wall clock).
-///
-/// LW-56: <see cref="Step"/> also takes an optional forceExit flag, a dedicated bypass around
-/// both the instant-enter and debounced-exit machinery: it exits IMMEDIATELY, on the same tick,
-/// independent of that tick's own In-Live reading (an in-session New Game never fires an ordinary
-/// exit edge, since real events suspend the debounce, so the one production caller,
-/// PlaythroughReset's own detection edge, needs a way to flush stale per-battle state without
-/// waiting out the debounce or depending on the tick's own sentinels/mode reading out-of-live).
+/// The battle in/out state machine, pure (no Mem) so it is unit-tested. Enter is instant, exit is
+/// debounced. battleMode encodes the cursor-tile class rather than "on battlefield" (move-browsing
+/// reads 1, Paused reads 0, mid-battle dialogue reads 0 with a real eventId), and the slot9 sentinel
+/// sticks on the post-battle world map yet can drop mid-battle, so neither can mark the end alone.
+/// Exit needs <see cref="ExitDebounceSeconds"/> of out-of-live time; pause and real-event ticks
+/// suspend the timer and an in-live tick zeroes it. Time comes from the passed-in DateTime.
 /// </summary>
 internal sealed class BattleState
 {
@@ -38,99 +24,79 @@ internal sealed class BattleState
     private bool _pairWasArmed;                    // last observed sentinel-pair state (for the edge)
 
     /// <summary>Both battle sentinels armed at once: slot0 at the in-battle marker
-    /// (Offsets.Slot0InBattleMarker, 0x10 on 1.5; re-anchored from the retired pre-1.5 0xFF by
-    /// LW-42) with slot9 at its stuck sentinel. A LEVEL read of this pair cannot mean "a battle
-    /// is starting": BOTH sentinels stuck on the pre-1.5 post-quit world map (slot0 stayed 0xFF
-    /// after a battle QUIT, probe-verified 2026-06-10; slot9 always sticks; the 1.5 post-quit
-    /// slot0 value is unverified), which made a level-triggered pair re-enter instantly after
-    /// every exit (a 4-second enter/exit metronome). Only the disarmed->armed EDGE of the pair
-    /// enters; live modes stay level signals (a real battle reads a live mode the moment the
-    /// battlefield loads, and on 1.5 slot0 sampled 0xFFFFFFFF at both battle-load churn edges
-    /// of the 2026-07-21 log, so no early marker edge was observed there).</summary>
+    /// (Offsets.Slot0InBattleMarker, 0x10 on 1.5, re-anchored from the pre-1.5 0xFF by LW-42) and
+    /// slot9 at its stuck sentinel. Only the disarmed-to-armed edge of the pair enters. As a level
+    /// signal it re-entered instantly after every exit, because both sentinels stuck on the
+    /// pre-1.5 post-quit world map (slot0 stayed 0xFF after a QUIT, probe-verified 2026-06-10; the
+    /// 1.5 post-quit slot0 value is unverified). Live modes stay level signals. On 1.5 slot0
+    /// sampled 0xFFFFFFFF at both battle-load churn edges of the 2026-07-21 log, so no early
+    /// marker edge was seen there.</summary>
     internal static bool PairArmed(uint slot0, uint slot9) =>
         slot0 == Offsets.Slot0InBattleMarker && slot9 == 0xFFFFFFFF;
 
-    /// <summary>The instant battle-enter signal: a fresh sentinel-pair arm (edge, computed by
-    /// the caller) OR any live battlefield mode. battleMode reads 0 on the world map / menus and
-    /// 2/3/4 on a live battlefield (Offsets.BattleMode, "3-in-battle / 0-on-map"), so a live mode
-    /// is a safe enter trigger with no world-map false positive. This mirrors InLiveBattle's own
-    /// live-mode set: a frame InLiveBattle already calls in-battle must also be able to ENTER the
-    /// battle. The former "mode 3 only enters when slot0==0xFF" qualifier was a 1.0-era guard whose
-    /// 0xFF marker never appears in 1.5 (the marker reads 0x10), so it silently dropped the enter
-    /// edge whenever a battle re-entered from the world map at mode 3 (LW-40, observed live
-    /// 2026-07-07: probe read slot0=0x10 / mode=3, InLiveBattle true but EnterSignal false).</summary>
+    /// <summary>The instant battle-enter signal: a fresh sentinel-pair arm (edge, computed by the
+    /// caller) or any live battlefield mode. battleMode reads 0 on the world map and menus and 2/3/4
+    /// on a live battlefield (Offsets.BattleMode), so a live mode has no world-map false positive.
+    /// This matches InLiveBattle's live-mode set. A former "mode 3 only enters when slot0==0xFF"
+    /// qualifier dropped the enter edge on 1.5, where the marker reads 0x10 (LW-40, seen
+    /// 2026-07-07 with slot0=0x10 / mode=3).</summary>
     internal static bool EnterSignal(bool pairRisingEdge, int battleMode) =>
         pairRisingEdge || battleMode == 2 || battleMode == 3 || battleMode == 4;
 
-    /// <summary>A genuine in-battle frame, for feeding the charm heartbeat and gating every module
-    /// that writes battle memory. battleMode 2/3/4 covers active-turn frames. The slot0 in-battle
-    /// marker (Offsets.Slot0InBattleMarker, 0x10 on 1.5) covers the frames where gating on {2,3,4}
-    /// alone starves the beat: cast/attack targeting and enemy turns (battleMode 1/5). LW-42
-    /// re-anchored the marker test from the pre-1.5 0xFF, which never appears on 1.5, so this
-    /// whole excuse arm had been dead: the 2026-07-21 log's battle-load churn (enter 07:24:14,
-    /// false exit 07:24:22 at mode 1, ~7.6s apart with no excuse available) is that bug firing,
-    /// pre-live there, but the same mechanism mid-battle resets the kill tracker. The marker's
-    /// persistence through mode-1/5 stretches is inherited pre-1.5 behavior, AWAITING-LIVE
-    /// (owner slow-cast eyeball); wrong means dead excuse (the old behavior), never wrongly
-    /// live. The marker CANNOT be trusted alone: pre-1.5, QUITTING left it STUCK on the world
-    /// map (probe-verified 2026-06-10; a victory cleared it to 0x66, and on 1.5 a victory exit
-    /// sampled 0x11) and the 1.5 post-quit value is unverified, so a marker-only frame counts
-    /// as live only with an EXCUSE for battleMode reading 0: targeting modes 1/5, the pause
-    /// flag, or a real event id (mid-battle dialogue).</summary>
+    /// <summary>A genuine in-battle frame, for the charm heartbeat and every module that writes
+    /// battle memory. battleMode 2/3/4 covers active-turn frames. The slot0 marker
+    /// (Offsets.Slot0InBattleMarker, 0x10 on 1.5) covers cast/attack targeting and enemy turns
+    /// (battleMode 1/5). LW-42 re-anchored it from the pre-1.5 0xFF; before that this arm was dead
+    /// and the 2026-07-21 log shows the false exit it caused (enter 07:24:14, exit 07:24:22 at
+    /// mode 1). Whether the marker persists through mode 1/5 stretches is inherited pre-1.5
+    /// behavior, AWAITING-LIVE (owner slow-cast eyeball); if wrong the excuse stays dead, never
+    /// wrongly live. The marker alone is not trusted, since pre-1.5 a QUIT left it stuck on the
+    /// world map (probe-verified 2026-06-10; a victory cleared it to 0x66, and a 1.5 victory exit
+    /// sampled 0x11). A marker-only frame needs an excuse for battleMode 0: targeting modes 1/5,
+    /// the pause flag, or a real event id.</summary>
     public static bool InLiveBattle(uint slot0, int battleMode, bool paused, int eventId) =>
         battleMode == 2 || battleMode == 3 || battleMode == 4
         || (slot0 == Offsets.Slot0InBattleMarker && (battleMode == 1 || battleMode == 5
                               || paused || IsRealEvent(eventId)));
 
-    /// <summary>On the live battlefield: in battle AND a live mode. slot9 stays stuck on the
-    /// world-map party menu, so it can't tell combat from a menu; battleMode can (2/3/4 = live
-    /// battlefield, 0 = world map / menus).</summary>
+    /// <summary>On the live battlefield: in battle and a live mode. slot9 stays stuck on the world-map
+    /// party menu, so battleMode (2/3/4 live, 0 map/menus) tells combat from a menu.</summary>
     public static bool OnField(bool inBattle, int battleMode) =>
         inBattle && (battleMode == 2 || battleMode == 3 || battleMode == 4);
 
-    /// <summary>The in-battle "Status" card (a paused, stable menu) is open -- the equip card
-    /// with the Kills line, safe to paint mid-battle. Open status card = paused submenu in the
-    /// action-menu context (battleMode 3). menuCursor is the card's own cursor once open (not 3),
-    /// so don't gate on it.</summary>
+    /// <summary>The in-battle Status card (a paused, stable menu) is open, so the equip card with the
+    /// Kills line can be painted. That is battleMode 3 with paused and a submenu open; menuCursor is
+    /// the card's own cursor once open, so it is not gated on.</summary>
     public static bool StatusCardOpen(bool inBattle, int battleMode, bool paused, bool submenuOpen) =>
         inBattle && battleMode == 3 && paused && submenuOpen;
 
-    /// <summary>Paint the equip card this tick? Either the in-battle status card is open, or we
-    /// have been OFF the live battlefield for the settle window (battleMode 0 = world-map party
-    /// menu / post-battle). RPM/WPM make the scan/paint fail-safe, so painting in a churny menu
-    /// can't crash; the settle window just avoids needless work during a mid-combat flicker.</summary>
+    /// <summary>Paint the equip card this tick? When the status card is open, or after being off the
+    /// live battlefield for the settle window. The settle window only avoids work during a
+    /// mid-combat flicker; RPM/WPM already make painting fail-safe.</summary>
     public static bool ShouldPaintCard(bool statusCardOpen, bool onField, double secondsOffField, double settleSeconds) =>
         statusCardOpen || (!onField && secondsOffField > settleSeconds);
 
-    /// <summary>A battle map is currently on screen -- the broad gate used by the pre-gate
-    /// module. True when slot9 is the stuck in-battle sentinel AND battleMode is non-zero.
-    /// Covers the formation/unit-placement screen (mode 1), your turn (modes 2/3/4), enemy turns
-    /// and animations (mode 1), and cast targeting (mode 5). False on the world map / party menu
-    /// (mode 0) regardless of whether slot9 is still stuck from a prior battle.
-    /// Preferred over InLiveBattle for a pre-gate module: avoids the mode-1 flicker that
-    /// previously reset the stability counter on every enemy turn.</summary>
+    /// <summary>A battle map is on screen, the broad gate for the pre-gate module: slot9 stuck and
+    /// battleMode non-zero. That covers formation (mode 1), your turn (2/3/4), enemy turns (1) and
+    /// cast targeting (5), and is false on the world map even if slot9 is stuck. Preferred over
+    /// InLiveBattle there to avoid the mode-1 flicker on enemy turns.</summary>
     public static bool BattleDisplayed(uint slot9, int battleMode) =>
         slot9 == 0xFFFFFFFFu && battleMode != 0;
 
-    /// <summary>A real story event/cutscene suspends the exit timer. Contract: any nonzero id except
-    /// 0xFFFF is a real event. The 0xFFFF sentinel is present on every confirmed real battle exit
-    /// (log 2026-06-10: both exits show event=65535); it is NOT a story event. Zero is excluded --
-    /// unknown semantics, preserves existing behavior. The old 1..399 band was guesswork: live
-    /// evidence on 2026-06-10 showed event 401 mid-battle -- with NO visible dialogue, so some
-    /// special screen or animation carries it -- defeating the band, faking an exit, and dropping
-    /// a kill credit. The nameId alias only occurs DURING combat (in-live), which already zeroes
-    /// the accumulator before the event check, so any out-of-live nonzero id that reaches here is
-    /// a genuine event screen of some kind.</summary>
+    /// <summary>A real story event suspends the exit timer: any nonzero id except 0xFFFF. 0xFFFF is
+    /// present on every confirmed battle exit (log 2026-06-10, event=65535). Zero is excluded
+    /// (unknown semantics). The old 1..399 band was a guess; event 401 showed up mid-battle on
+    /// 2026-06-10 with no visible dialogue, faked an exit and dropped a kill credit. The nameId
+    /// alias only occurs in-live, which zeroes the accumulator first, so any out-of-live nonzero
+    /// id reaching here is a genuine event screen.</summary>
     internal static bool IsRealEvent(int e) => e >= 1 && e != 0xFFFF;
 
-    /// <summary>Step once per engine tick with raw reads; returns the edge that fired this tick.
-    /// <paramref name="forceExit"/> (LW-56, default false): when true, exits INSTANTLY, bypassing
-    /// the debounce entirely, and takes precedence over an in-live reading on this same tick by
-    /// design (the one production caller, PlaythroughReset's own detection edge, is itself gated
-    /// !inLive by PlaythroughResetPolicy.IsOpeningOutOfBattle, so the two conditions never
-    /// actually coincide in production; the precedence is still pinned here so the insertion
-    /// point below cannot silently move under the in-live early-return). A no-op while not In
-    /// (the !In branch below runs first and never observes it).</summary>
+    /// <summary>Step once per engine tick with raw reads; returns the edge that fired.
+    /// <paramref name="forceExit"/> exits on the same tick, bypassing the debounce and winning
+    /// over an in-live reading; PlaythroughReset uses it because an in-session New Game fires no
+    /// ordinary exit edge. Its only caller is gated !inLive, so the precedence never coincides in
+    /// production, but is pinned so the insertion point cannot move under the in-live early-return.
+    /// A no-op while not In.</summary>
     public BattleEdge Step(uint slot0, uint slot9, int battleMode, bool paused, int eventId, DateTime now,
                            bool forceExit = false)
     {
@@ -147,20 +113,18 @@ internal sealed class BattleState
             return BattleEdge.Entered;
         }
 
-        // LW-56: forced exit bypasses the debounce entirely and wins over an in-live reading on
-        // this same tick (see this method's own doc comment for the precedence rationale).
+        // Forced exit bypasses the debounce and wins over an in-live reading.
         if (forceExit)
         {
             In = false;
             _haveLastTick = false;
-            // Pair snapshot mirrors the debounced-exit block below: a pair stuck armed through
-            // the transition must not read as a fresh enter edge on the next tick.
+            // Snapshot the pair so one stuck armed through the transition is not a fresh enter edge next tick.
             _pairWasArmed = PairArmed(slot0, slot9);
             return BattleEdge.Exited;
         }
 
-        // In: an in-live tick zeroes the accumulator; out-of-live ticks accumulate ONLY when neither
-        // paused nor in a real event (both suspend without resetting). Delta comes from the clock param.
+        // In: an in-live tick zeroes the accumulator; out-of-live ticks accumulate only when neither
+        // paused nor in a real event.
         TimeSpan delta = _haveLastTick && now > _lastTick ? now - _lastTick : TimeSpan.Zero;
         _lastTick = now;
         _haveLastTick = true;
@@ -175,8 +139,7 @@ internal sealed class BattleState
         {
             In = false;
             _haveLastTick = false;
-            // Snapshot the pair state AT the exit: a pair that armed mid-battle and is still
-            // stuck must not read as a fresh edge on the next out-of-battle tick.
+            // Snapshot the pair at exit so one still stuck is not a fresh edge on the next tick.
             _pairWasArmed = PairArmed(slot0, slot9);
             return BattleEdge.Exited;
         }

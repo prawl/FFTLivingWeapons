@@ -1,87 +1,47 @@
 namespace LivingWeapon;
 
-/// <summary>Which stage refused a <see cref="ActorResolver.TryResolveCursorPlayer"/> call, so
-/// AttackCard.Resolve.cs's resolve-miss tap (LW-87) can log/tape WHICH stage without re-deriving
-/// it from raw facts. Ordered the same as the resolve's own stage order.</summary>
+/// <summary>Which stage refused a <see cref="ActorResolver.TryResolveCursorPlayer"/> call, so the
+/// resolve-miss tap in AttackCard.Resolve.cs can log it. Listed in stage order.</summary>
 internal enum CursorMiss
 {
-    /// <summary>The resolve succeeded; nothing to report. Never itself reported (a resolve call
-    /// always leaves this at None on success, or overwrites it with a real refusal on
-    /// failure).</summary>
+    /// <summary>The resolve succeeded.</summary>
     None,
 
-    /// <summary><see cref="Band.FlagOwner"/> itself refused: either NO band entry currently reads
-    /// ATurnFlag==1 at a real position (the battle-opening edge, or the gap between any two
-    /// units' turns), OR two or more DISAGREEING t=1 entries were found (a genuinely ambiguous
-    /// flags read). Folded into one stage deliberately: <c>Band.FlagOwner</c>'s own bool return
-    /// cannot distinguish the two internally (both are "no safe candidate to answer with"), and
-    /// splitting them would need a second out-param on <c>Band.FlagOwner</c> with three more call
-    /// sites to update for a distinction no caller currently needs. EXPECTED AND ROUTINE between
-    /// any two units' turns; not itself a sign of a problem.</summary>
+    /// <summary><see cref="Band.FlagOwner"/> refused: no band entry has ATurnFlag==1 at a real position,
+    /// or several disagreeing ones do. FlagOwner's bool cannot tell the two apart, so they share a stage.
+    /// Routine between turns.</summary>
     NoOwner,
 
-    /// <summary>The flag owner's own frame nameId back-reference (<see cref="Offsets.ANameId"/>)
-    /// reads 0: a capture failure (the frame slot's identity back-reference has not been written
-    /// yet, or was never captured). Fails closed rather than guess.</summary>
+    /// <summary>The flag owner's frame nameId (<see cref="Offsets.ANameId"/>) reads 0, so its identity was
+    /// not captured yet. Fails closed.</summary>
     NameIdZero,
 
     /// <summary>The flag owner's (nameId,level,brave,faith) bridge matched zero, or more than one,
-    /// roster row. EXPECTED AND ROUTINE on every enemy turn (an enemy's identity never appears in
-    /// the roster at all) and on any genuinely duplicated roster identity; see
-    /// ActorResolver.Flags.cs's ACCEPTED RESIDUAL doctrine.</summary>
+    /// <summary>The (nameId,level,brave,faith) bridge matched zero or several roster rows. Routine on every
+    /// enemy turn; see the accepted residual in ActorResolver.Flags.cs.</summary>
     BridgeFail,
 }
 
 /// <summary>
-/// LW-87 (docs/TODO.md): the pre-action cursor resolve AttackCard's dossier needs, re-anchored on
-/// the PSX turn-flags owner (<see cref="Band.FlagOwner"/>, LW-63's exclusive ATurnFlag walk)
-/// instead of the condensed turn-queue struct (<see cref="Offsets.TurnQueue"/>) this file read
-/// through 2026-07-14. That struct FOLLOWS THE CURSOR, not the turn: the owner's own repro showed
-/// the Attack row blanking to vanilla the instant a T-status detour moved the struct onto another
-/// unit mid-turn, even though the acting unit's own move/act/wait menu was still open the whole
-/// time. docs/LIVE_LEDGER.md's 2026-07-21 hover-follower row (instrument:
-/// tools/probes/cursor_resolve_probe.py) is the live evidence this re-anchor rests on.
-///
-/// Deliberately separate from <see cref="ActorResolver.TryResolveActingPlayer"/>'s register-first
-/// preamble: that method answers "who committed this action" (kill attribution, correct once an
-/// action has landed), while this one answers "whose turn is open right now" (right the instant
-/// the Abilities menu is hovered, before any action is chosen). This method shares its resolve
-/// shape with <see cref="ActorResolver.TryResolveFlagOwner"/> (ActorResolver.Flags.cs) -- both
-/// walk <see cref="Band.FlagOwner"/> then bridge the winning entry's frame nameId to a roster row
-/// via the same <see cref="TryBridgeCursorToRoster"/> helper -- but answers with per-STAGE
-/// observability (<see cref="CursorMiss"/>) instead of a single collapsed bool, since
-/// AttackCard.Resolve.cs's resolve-miss tap needs to know WHICH stage refused, not merely that one
-/// did.
-///
-/// THE ROSTER BRIDGE IS THE PLAYER FILTER (ActorResolver.Flags.cs's own doctrine, generalized
-/// here): an enemy's or an unbridged guest's turn is not a fault of this method's own gates, it is
-/// <see cref="CursorMiss.BridgeFail"/>, EXPECTED and routine on every enemy turn (the ACCEPTED
-/// RESIDUAL, ActorResolver.Flags.cs's own class doc). An AI-controlled ROSTER unit's turn (a
-/// Charmed/Confused/Berserk party member; the LWDEV Body Double clone bridging to its donor) DOES
-/// compose that unit's own dossier here -- correct-for-the-acting-unit, a documented delta from
-/// the old struct's behavior, not a hole.
-///
-/// RAW FACTS ONLY (LW-55, unchanged by this re-anchor): a successful resolve returns a
-/// <see cref="CursorAnswer"/> carrying the matched roster slot's raw right-hand weapon id, that
-/// SAME unit's own equipped weapon read off its band entry (<see cref="Offsets.AWeapon"/>), and
-/// its turn-open flag (<see cref="Offsets.ATurnFlag"/>, RE-READ here rather than assumed 1: a
-/// falling-edge race between <c>Band.FlagOwner</c>'s walk and this read can legitimately yield 0,
-/// one benign refused tick that <see cref="CursorGate.Decide"/>'s gate B still catches -- this is
-/// gate B's own remaining job, not something this resolve shortcuts to a constant), and the
-/// matched band entry's own slot index: exactly what was read, no doctrine applied here.
-/// <see cref="CursorGate.Decide"/> (consulted by AttackCard.Resolve.cs, never by this class) is
-/// the only place those facts are judged. There is no register-based fallback: that path was
-/// removed 2026-07-06, and a refused resolve since then composes vanilla, full stop.
+/// The pre-action cursor resolve for AttackCard's dossier. It reads the PSX turn-flags
+/// owner (<see cref="Band.FlagOwner"/>, LW-63) instead of the condensed turn-queue struct
+/// (<see cref="Offsets.TurnQueue"/>) used until 2026-07-14, which follows the cursor rather than the turn and
+/// blanked the Attack row to vanilla when a T-status detour moved it. Evidence: the 2026-07-21 hover-follower
+/// row in docs/LIVE_LEDGER.md (tools/probes/cursor_resolve_probe.py). Answers whose turn is open now, unlike
+/// <see cref="ActorResolver.TryResolveActingPlayer"/>, which answers who committed an action. Same shape as
+/// <see cref="ActorResolver.TryResolveFlagOwner"/> (ActorResolver.Flags.cs) but reports the refusing stage.
+/// The roster bridge filters out enemies and unbridged guests (<see cref="CursorMiss.BridgeFail"/>); AI-controlled
+/// roster units (Charmed/Confused/Berserk, the LWDEV Body Double clone) get their own dossier.
+/// Raw facts only: roster hand, band weapon (<see cref="Offsets.AWeapon"/>), turn flag and band slot.
+/// The flag is re-read because it can fall between the FlagOwner walk and this read; <see cref="CursorGate.Decide"/>
+/// gate B catches that and judges all the facts. No register fallback since 2026-07-06.
 /// </summary>
 internal sealed partial class ActorResolver
 {
-    /// <summary>True (with <paramref name="answer"/> populated, <paramref name="miss"/> left at
-    /// <see cref="CursorMiss.None"/>) only when ALL of: (1) <see cref="Band.FlagOwner"/> names
-    /// exactly one real-position band entry with its turn-flag currently set; (2) that entry's
-    /// frame nameId back-reference is nonzero; (3) the nameId bridges to EXACTLY ONE roster slot
-    /// agreeing on (level,brave,faith). False otherwise, with <paramref name="answer"/> left
-    /// default and <paramref name="miss"/> naming which stage refused: the caller (AttackCard.
-    /// Resolve.cs) composes vanilla rather than trust a guess.</summary>
+    /// <summary>True when <see cref="Band.FlagOwner"/> names one real-position entry with its turn flag set,
+    /// its frame nameId is nonzero, and the nameId bridges to exactly one roster slot on
+    /// (level,brave,faith). Otherwise false with <paramref name="miss"/> naming the refusing stage, and the
+    /// caller composes vanilla.</summary>
     public bool TryResolveCursorPlayer(out CursorAnswer answer, out CursorMiss miss)
     {
         answer = default;
@@ -116,12 +76,9 @@ internal sealed partial class ActorResolver
         return true;
     }
 
-    /// <summary>ActorRegister.Bridge's own proven pattern (nameId narrows, level+brave+faith
-    /// confirms), reused here against a BAND entry instead of the register's CurrentEntry.
-    /// Exactly one agreeing roster slot returns true; zero (no bridge) or more than one (a
-    /// duplicated nameId) returns false. Shared by <see cref="TryResolveCursorPlayer"/> and
-    /// <see cref="ActorResolver.TryResolveFlagOwner"/>/<see cref="ActorResolver.TryResolveFlagKiller"/>
-    /// (ActorResolver.Flags.cs) -- one bridge implementation, three callers.</summary>
+    /// <summary>ActorRegister.Bridge's pattern (nameId narrows, level+brave+faith confirms) applied to a band
+    /// entry. True only for exactly one agreeing roster slot. Shared with <see cref="ActorResolver.TryResolveFlagOwner"/>
+    /// and <see cref="ActorResolver.TryResolveFlagKiller"/> (ActorResolver.Flags.cs).</summary>
     private bool TryBridgeCursorToRoster(ushort frameNameId, int level, int br, int fa, out long rosterBase)
     {
         rosterBase = 0;

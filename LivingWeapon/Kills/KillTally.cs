@@ -6,14 +6,10 @@ using Newtonsoft.Json;
 namespace LivingWeapon;
 
 /// <summary>
-/// The per-weapon kill tally and its persistence (atomic write + .bak). The tally is the
-/// count the whole runtime keys on; losing it loses the player's progress, hence the
-/// paranoia: saves go tmp -> backup -> move, and a load falls back to the .bak when the
-/// primary is missing or corrupt.
-///
-/// <see cref="Kills"/> is the ONE mutable dictionary every subsystem shares by reference
-/// (KillTracker credits into it, growth/signatures/display read it) -- the instance must
-/// never be replaced after construction, only mutated.
+/// The per-weapon kill tally and its persistence. Saves go tmp -> backup -> move, and a load falls
+/// back to the .bak when the primary is missing or corrupt.
+/// <see cref="Kills"/> is the one dictionary every subsystem shares by reference, so it is mutated
+/// and never replaced after construction.
 /// </summary>
 internal sealed class KillTally
 {
@@ -22,8 +18,8 @@ internal sealed class KillTally
     /// <summary>The shared id -> kill-count map. Mutate, never replace.</summary>
     public Dictionary<int, int> Kills { get; }
 
-    /// <summary>Where the load actually came from: "primary", "backup", or "fresh" (no readable
-    /// file). Feeds the launch header's [save] kill-tally line (logging facelift stage 3).</summary>
+    /// <summary>Where the load came from ("primary", "backup" or "fresh"). Feeds the launch
+    /// header's [save] kill-tally line.</summary>
     public string LoadedFrom { get; }
 
     private KillTally(string path, Dictionary<int, int> kills, string loadedFrom)
@@ -44,14 +40,10 @@ internal sealed class KillTally
         }
     }
 
-    /// <summary>Load the tally at <paramref name="path"/>, falling back to its .bak; a missing
-    /// or corrupt pair yields an empty tally (a fresh install), never a crash. A backup or fresh
-    /// outcome logs a Warning (the facelift closed KillTally's old silent-catch consistency gap
-    /// against LegendStore.Load, which always reported its corrupt-load fallbacks). Schema
-    /// validation (LW-51 Tier-1, KillsSchema.TryParse) treats a structurally-invalid file
-    /// (not a JSON object) exactly like the old corrupt-file case (fall through to .bak, then
-    /// fresh), but sanitizes a well-formed object entry-by-entry instead of failing the whole
-    /// load on one bad row.</summary>
+    /// <summary>Load the tally at <paramref name="path"/>, falling back to its .bak. A missing or
+    /// corrupt pair yields an empty tally, not a crash, and a backup or fresh result logs a Warning.
+    /// A file that is not a JSON object falls through to the .bak (LW-51 Tier-1, KillsSchema.TryParse);
+    /// a well-formed object is sanitized entry by entry so one bad row does not fail the load.</summary>
     public static KillTally Load(string path)
     {
         foreach (var p in new[] { path, path + ".bak" })
@@ -73,9 +65,8 @@ internal sealed class KillTally
         return new KillTally(path, new Dictionary<int, int>(), "fresh");
     }
 
-    /// <summary>Persist atomically via the shared <see cref="SidecarJson.SaveAtomic"/> chain
-    /// (LW-153; was an inline copy of the same three lines). A failed save logs and leaves the
-    /// previous file intact.</summary>
+    /// <summary>Persist via the shared <see cref="SidecarJson.SaveAtomic"/> chain. A failed
+    /// save logs and leaves the previous file intact.</summary>
     public void Save()
     {
         try

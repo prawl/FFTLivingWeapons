@@ -4,41 +4,30 @@ using System.IO;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-83: the two-lane trigger for the LW-50 stand-down drill. Lane one is the environment
-/// variable (kept for boxes where variable inheritance into the game process works); lane two is
-/// a marker FILE named after the flag, living in the mod dir next to the DLL, because env
-/// variables do not reach fft_enhanced through this box's launch chain (owner-verified
-/// 2026-07-14). BuildLinked's clean step deletes the marker on every deploy, so it cannot linger
-/// across builds. ALWAYS COMPILED, mirroring the LaunchGuard forceMismatch precedent (a plain
-/// bool, no #if in this class), so Release builds compile and exercise the same code path; the
-/// only conditional is the Mod.cs call site, which compiles to const false outside LWDEV, so
-/// players can never trigger the drill through either lane.
+/// Two-lane trigger for the LW-50 stand-down drill. Lane one is the environment variable; lane two is a marker file named after the flag in the mod dir,
+/// because env variables do not reach fft_enhanced through this box's launch chain (2026-07-14). BuildLinked's clean step deletes the marker on every deploy.
+/// Always compiled, like the LaunchGuard forceMismatch; only the Mod.cs call site is conditional (const false outside LWDEV), so players cannot trigger the drill.
 /// </summary>
 internal static class DrillTrigger
 {
     internal const string FlagName = "LW_FORCE_FINGERPRINT_MISMATCH";
 
-    /// <summary>LW-395: the sensing lane's drill flag, same two lanes (env "1" or a marker file
-    /// of this name in the mod dir). Forces the sensing lane's mismatch on healthy memory.</summary>
+    /// <summary>the sensing lane's drill flag; forces its mismatch on healthy memory.</summary>
     internal const string SensingFlagName = "LW_FORCE_SENSING_MISMATCH";
 
-    /// <summary>LW-392: the blind-guard drill flag, same two lanes. Makes the main guard's
-    /// landmarks read Unreadable for a while on healthy memory, so the stall warning and then the
-    /// recovery line can be watched without a real unreadable game.</summary>
+    /// <summary>the blind-guard drill flag; makes the main guard's landmarks read Unreadable for a while so the stall warning and recovery line can be watched.</summary>
     internal const string UnreadableFlagName = "LW_FORCE_GUARD_UNREADABLE";
 
-    /// <summary>General form: any flag name through the injected env and file-existence reads, so
-    /// tests never touch the real process environment. The env lane matches exactly "1"; any other
-    /// value (including "0" and "true") is not a request. A flag's marker file never satisfies a
-    /// different flag.</summary>
+    /// <summary>Any flag name through injected env and file-existence reads, so tests never touch the real environment.
+    /// The env lane matches only "1"; a flag's marker file never satisfies a different flag.</summary>
     internal static bool DrillRequested(string modDir, string flagName, Func<string, string?> getEnv, Func<string, bool> fileExists)
         => getEnv(flagName) == "1" || fileExists(Path.Combine(modDir, flagName));
 
-    /// <summary>Test seam for the original (fingerprint) flag.</summary>
+    /// <summary>Test seam for the fingerprint flag.</summary>
     internal static bool DrillRequested(string modDir, Func<string, string?> getEnv, Func<string, bool> fileExists)
         => DrillRequested(modDir, FlagName, getEnv, fileExists);
 
-    /// <summary>Production convenience overload over the real environment and filesystem.</summary>
+    /// <summary>Production overload over the real environment and filesystem.</summary>
     internal static bool DrillRequested(string modDir)
         => DrillRequested(modDir, FlagName);
 

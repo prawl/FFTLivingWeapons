@@ -4,40 +4,31 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Reliquary Phase 1's deed-recording contract (docs/RELIQUARY_AC.md) -- the seam
-/// KillTracker.CreditKill calls into at the credit edge (KillTracker.cs). Kept as an interface
-/// (rather than a concrete Reliquary reference) so KillTracker's tests can inject a fake and
-/// assert calls without constructing a real LegendStore/BannerToast pair.
+/// Deed-recording seam for Reliquary Phase 1 (docs/RELIQUARY_AC.md), called by KillTracker.CreditKill
+/// at the credit edge (KillTracker.cs). An interface so KillTracker tests can inject a fake.
 /// </summary>
 internal interface IDeedSink
 {
     /// <summary>Record one credited kill's deed on a weapon.</summary>
     void RecordDeed(int weaponId, in VictimSnapshot victim);
 
-    /// <summary>A kill was credited but no victim snapshot was ever captured for this slot (the
-    /// missing-snapshot failure mode, docs/RELIQUARY_AC.md's Capture checklist) -- log-only, no
-    /// deed recorded, tally still increments exactly as before Reliquary existed.</summary>
+    /// <summary>A kill was credited but no victim snapshot was captured for this slot (docs/RELIQUARY_AC.md
+    /// Capture checklist). Log-only; the tally still increments.</summary>
     void DeedMiss(int slot);
 
-    /// <summary>LW-167 Living Poach: the SAME credit-moment report as <see cref="RecordDeed"/>,
-    /// widened with what LivingPoach additionally needs -- the victim's band slot (its per-corpse
-    /// dedupe key alongside the victim's nameId) and the kill's shape (a delayed/charged-action
-    /// credit, or one resolved via the turn-queue fallback rather than the actor pointer; both
-    /// feed stage 4's action discriminator, unconsulted before then). DEFAULT NO-OP: every
-    /// pre-existing IDeedSink implementer (Reliquary, and every test fake) is untouched by this
-    /// widening -- C# interface default methods mean nobody has to override it to keep compiling.
-    /// KillTracker.CreditKill calls this alongside RecordDeed for every credited weapon whose slot
-    /// captured a victim snapshot; DeedFanout.cs is the only production override, forwarding to
-    /// LivingPoach.</summary>
+    /// <summary>LW-167 Living Poach: the credit-moment report of <see cref="RecordDeed"/> plus the victim's band slot
+    /// (per-corpse dedupe key with nameId) and the kill's shape (delayed/charged credit, or turn-queue fallback),
+    /// which feed stage 4's action discriminator. Default no-op so existing implementers compile unchanged.
+    /// KillTracker.CreditKill calls it alongside RecordDeed; DeedFanout.cs is the only production override,
+    /// forwarding to LivingPoach.</summary>
     void RecordPoachDeed(int weaponId, in VictimSnapshot victim, int slot, bool delayedOrCharged, bool viaFallback) { }
 }
 
 /// <summary>
-/// The Reliquary composition seam: LegendStore (persistence) + BannerToast (Mark announce,
-/// wired in Phase 1 stage 3) + meta (weapon names for toast wording) + an optional flight
-/// recorder tap, wired together at KillTracker's credit edge via <see cref="IDeedSink"/>. Never
-/// throws -- a Reliquary failure must never take down kill crediting or the tally. No IO of its
-/// own: LegendStore.SaveIfDirty runs only at Engine's own save sites (battle-exit + on-change).
+/// Composes LegendStore (persistence), BannerToast (Mark announce), meta (weapon names for toast wording)
+/// and an optional flight recorder tap at KillTracker's credit edge via <see cref="IDeedSink"/>.
+/// Never throws, so a failure cannot take down kill crediting. No IO of its own; LegendStore.SaveIfDirty
+/// runs at Engine's save sites.
 /// </summary>
 internal sealed class Reliquary : IDeedSink
 {
@@ -45,20 +36,17 @@ internal sealed class Reliquary : IDeedSink
     private readonly BannerToast? _toast;
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly Action<string, string>? _recorder;
-    // Marks earned THIS battle, in earn order -- feeds the battle-end match-report summary
-    // (logging facelift stage 3). Engine reads it at the exit edge (before ResetBattle wipes it).
+    // Marks earned this battle in earn order, for the battle-end match-report summary (logging facelift stage 3).
+    // Engine reads it at the exit edge, before ResetBattle.
     private readonly List<(int weaponId, VictimClass.Archetype mark)> _battleMarks = new();
 
     /// <summary>Marks earned this battle (earn order). Cleared by <see cref="ResetBattle"/>.</summary>
     public IReadOnlyList<(int weaponId, VictimClass.Archetype mark)> BattleMarks => _battleMarks;
 
-    /// <summary>Clear the per-battle Marks ledger. Engine calls this from ResetBattleState
-    /// (both battle edges), AFTER the exit edge's summary composed from it.</summary>
+    /// <summary>Clear the per-battle Marks ledger. Engine calls this from ResetBattleState after the exit edge's summary is composed.</summary>
     public void ResetBattle() => _battleMarks.Clear();
 
-    /// <param name="toast">Null when BannerToasts is disabled (decision 11): Engine passes
-    /// `_bannerToastsEnabled ? _toast : null` so a disabled config leaves the Mark-announce path
-    /// fully inert (the deed is still recorded in <paramref name="store"/> regardless).</param>
+    /// <param name="toast">Null when BannerToasts is disabled (decision 11); the deed is still recorded in <paramref name="store"/>.</param>
     public Reliquary(LegendStore store, BannerToast? toast, Dictionary<int, WeaponMeta> meta,
                       Action<string, string>? recorder = null)
     {
@@ -68,8 +56,7 @@ internal sealed class Reliquary : IDeedSink
         _recorder = recorder;
     }
 
-    /// <summary>Record the deed in the store, then flight-tap + toast-announce every
-    /// newly-earned Mark (toast is null when disabled -- decision 11). Never throws.</summary>
+    /// <summary>Record the deed, then flight-tap and toast-announce each newly earned Mark (toast is null when disabled, decision 11). Never throws.</summary>
     public void RecordDeed(int weaponId, in VictimSnapshot victim)
     {
         try
@@ -80,23 +67,19 @@ internal sealed class Reliquary : IDeedSink
                 _battleMarks.Add((weaponId, mark));   // the battle-end summary's Marks ledger
                 string name = _meta.TryGetValue(weaponId, out var m) ? m.Name : $"weapon {weaponId}";
                 string title = VictimClass.MarkTitle(mark);
-                // The console match-report line the audit found MISSING: an earned Mark used to
-                // surface only via flight tap + toast.
+                // Console match-report line for each earned Mark.
                 ModLogger.Event(LogVerb.Mark, $"{name} earns the Mark of the {title}.");
                 _recorder?.Invoke("mark-earned",
                     $"weapon={weaponId} name=\"{name}\" archetype={(int)mark} title=\"{title}\"");
-                // Event-key convention (BannerToast.Policy.MarkPayload's doc comment): Marks own
-                // 1000 + archetype index, distinct from tiers (1..3) and milestones (negated).
+                // Event key: Marks use 1000 + archetype index (BannerToast.Policy.MarkPayload), distinct from tiers (1..3) and milestones (negated).
                 _toast?.Enqueue(weaponId, 1000 + (int)mark, BannerToast.MarkPayload(name, title));
             }
         }
         catch (Exception ex) { ModLogger.Error(LogVerb.Mark, "Recording the kill's deed failed: " + ex.Message); }
     }
 
-    /// <summary>A kill was credited with no captured victim snapshot -- log-only (mirrors the
-    /// no-credit tap idiom, KillTracker.Corpses.cs:195): one Warning (a permanent deed was lost
-    /// while the tally still counted -- degraded but coping, and armed by construction since it
-    /// only fires on credited kills) + one flight record, never a deed. Never throws.</summary>
+    /// <summary>A kill was credited with no captured victim snapshot. Log-only like the no-credit tap
+    /// (KillTracker.Corpses.cs:195): one Warning and one flight record, no deed (the tally still counted). Never throws.</summary>
     public void DeedMiss(int slot)
     {
         try

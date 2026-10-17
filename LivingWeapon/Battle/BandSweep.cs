@@ -4,12 +4,9 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// The shared authoritative-copy sweep behind EagleEye: chunked RPM reads of the
-/// +/-1MB window around the combat anchor, scanning every byte offset for a 2-byte AMaxHp match
-/// against the candidate fingerprints, then confirming level/brave/faith at the struct-relative
-/// offsets. The byMhp candidate grouping and the chunk/overlap loop live HERE, once; the caller
-/// supplies only its per-hit body (EagleEye: doom check +
-/// guarded write-down). The sweep is heavy -- callers throttle it (~every 6th tick), not this class.
+/// Shared sweep behind EagleEye: chunked reads of the +/-1MB window around the combat anchor, matching
+/// 2-byte AMaxHp against candidate fingerprints and confirming level/brave/faith at the struct-relative
+/// offsets. The caller supplies the per-hit body. Heavy, so callers throttle it (about every 6th tick).
 /// </summary>
 internal static class BandSweep
 {
@@ -19,16 +16,12 @@ internal static class BandSweep
     /// <summary>Bytes per TryReadBytes chunk.</summary>
     public const int Chunk = 0x40000;
 
-    /// <summary>Overlap tail read past each chunk so a struct straddling a chunk boundary is
-    /// still fully addressable from the chunk it starts in.</summary>
+    /// <summary>Bytes read past each chunk so a struct straddling a boundary stays addressable.</summary>
     public const int Overlap = 0x80;
 
-    /// <summary>Run one sweep. For every buffer position whose AMaxHp u16 matches a candidate's
-    /// mhp AND whose level/brave/faith bytes confirm that candidate, invoke <paramref name="onHit"/>
-    /// with (absAddr = the struct's absolute base address, buf = the chunk buffer, baseIdx = the
-    /// struct's base index within buf, fp = the matched fingerprint), then move to the next
-    /// position -- at most one candidate can match a position (same-mhp candidates are deduped
-    /// and differ in level/brave/faith). No-op when there are no candidates.</summary>
+    /// <summary>Calls <paramref name="onHit"/> for each position whose AMaxHp matches a candidate and whose
+    /// level/brave/faith confirm it, passing (absAddr = struct base address, buf = chunk buffer, baseIdx =
+    /// struct base index in buf, fp = matched fingerprint). At most one candidate matches a position.</summary>
     public static void ForEachFingerprintHit(IGameMemory mem,
         IEnumerable<(int mhp, int lvl, int br, int fa)> fps,
         Action<long, byte[], int, (int mhp, int lvl, int br, int fa)> onHit)

@@ -1,12 +1,9 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-31 stage 3's runtime half (AttackRow.Policy.cs's class doc has the full record geometry,
-/// live-proven 2026-07-06): owns EVERY read/write of the live 36-byte Attack-command record.
-/// Stateless per call, shape-based, no per-hit memory of its own, AttackCard.cs holds the
-/// cache/anchor state (the current/previous split images) and calls these methods once per synced
-/// hit. Mirrors the Iai.Policy.cs / Iai.cs split's shape (the stateful orchestrator lives
-/// elsewhere; this class is the pure-shape-gated I/O boundary).
+/// LW-31 stage 3 runtime half. Reads and writes the live 36-byte Attack-command record (geometry
+/// in AttackRow.Policy.cs, proven 2026-07-06). Stateless per call; AttackCard.cs holds the
+/// cache/anchor state and calls these once per synced hit.
 /// </summary>
 internal sealed partial class AttackRow
 {
@@ -14,9 +11,8 @@ internal sealed partial class AttackRow
 
     public AttackRow(IGameMemory mem) => _mem = mem;
 
-    /// <summary>Reads the 36-byte record at LabelAddr - RecordGap and classifies its shape. NEVER
-    /// writes. Unreadable when the record address itself cannot be read at all (a genuinely foreign
-    /// heap layout, or a race with the buffer being freed).</summary>
+    /// <summary>Reads the 36-byte record at LabelAddr - RecordGap and classifies its shape. Never
+    /// writes. Unreadable when the record cannot be read at all (foreign heap layout or a freed buffer).</summary>
     internal AttackRowShape Classify(long labelAddr)
     {
         long recordAddr = labelAddr - RecordGap;
@@ -28,15 +24,11 @@ internal sealed partial class AttackRow
         return AttackRowShape.Foreign;
     }
 
-    /// <summary>Writes a fresh split image: the caller has already verified the label bytes and
-    /// that <paramref name="image"/> is a legal 74-byte footprint payload (AttackRow.Policy.BuildImage
-    /// already enforces the length; this method trusts its caller on that, mirroring every other
-    /// guarded-write site in this codebase). Writes the desc footprint FIRST, then the record's
-    /// {nameOff, descOff} pair as ONE 8-byte write (the opposite order from <see cref="Restore"/>),
-    /// so a read caught mid-transition never sees a record pointing at a still-vanilla footprint or
-    /// vice versa in the wrong direction for each operation's own safe half. Only writes when
-    /// <see cref="Classify"/> reads Vanilla or Ours (never Foreign/Unreadable); returns false
-    /// (untouched) otherwise, or when either target span is not currently writable.</summary>
+    /// <summary>Writes a fresh split image. The caller has verified the label bytes and the
+    /// 74-byte payload (AttackRow.Policy.BuildImage enforces the length). Writes the desc footprint
+    /// first, then the {nameOff, descOff} pair as one 8-byte write, the reverse of
+    /// <see cref="Restore"/>, so a mid-transition read never sees a record pointing at the wrong text.
+    /// Only writes when <see cref="Classify"/> reads Vanilla or Ours; false otherwise or when a target is unwritable.</summary>
     internal bool Paint(long labelAddr, byte[] image, int rowNameChars)
     {
         var shape = Classify(labelAddr);
@@ -52,13 +44,10 @@ internal sealed partial class AttackRow
         return true;
     }
 
-    /// <summary>Restores vanilla: only when <see cref="Classify"/> reads Ours. Writes the vanilla
-    /// {nameOff, descOff} pair FIRST, then the flat vanilla 74-byte image: the opposite write order
-    /// from <see cref="Paint"/>, the "strand killer" shape, since a record still Ours-shaped after
-    /// this can never point at anything but the vanilla text once both writes land. When Classify
-    /// reads Vanilla, the record is already correct and a text-only restore (if the footprint holds
-    /// something other than vanilla) is the CALLER's decision, not this method's; see
-    /// AttackCard.Paint.cs's SyncHit. Never writes on Foreign/Unreadable.</summary>
+    /// <summary>Restores vanilla, only when <see cref="Classify"/> reads Ours. Writes the vanilla
+    /// offset pair first, then the 74-byte vanilla image (reverse of <see cref="Paint"/>), so a
+    /// record still Ours-shaped never points at anything but vanilla text. A Vanilla record needs
+    /// no write; any text-only restore is the caller's call (AttackCard.Paint.cs SyncHit).</summary>
     internal bool Restore(long labelAddr)
     {
         if (Classify(labelAddr) != AttackRowShape.Ours) return false;

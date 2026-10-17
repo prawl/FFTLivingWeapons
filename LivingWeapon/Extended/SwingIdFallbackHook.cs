@@ -3,19 +3,13 @@ using System;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-365: the stateful half of the swing-id fallback (<see cref="ThunkStub.EmitSwingIdFallbackStub"/>
-/// is the pure byte half), AccessorEntryHook's twin for a mid-instruction jump instead of a five-byte
-/// accessor thunk. The swing-prep routine copies the standing swing-id word into the animation
-/// record with a 7-byte movzx at <see cref="Offsets.FnSwingPrepIdCopy"/>; for a moved id that word
-/// is 0 at swing time, so the art lookup draws bare hands (docs/LIVE_LEDGER.md
-/// [empty-tile-hand-read-bounds]). Install rewrites the site to a 5-byte E9 jmp plus two 0x90 pad
-/// bytes (the site is 7 bytes, not 5, so two pad bytes fill the gap) into a stub that reads the
-/// standing word and, only when it is 0 AND the acting unit's right hand holds one of our ids,
-/// substitutes the hand id before returning to the original code right after the site.
-///
-/// Same contract as AccessorEntryHook: every step returns a refusal string instead of throwing, Install
-/// is idempotent, Restore puts the seven original bytes back and deliberately leaks the stub page
-/// (a game thread may be inside it; the rig's rule R3).
+/// Stateful half of the swing-id fallback (<see cref="ThunkStub.EmitSwingIdFallbackStub"/> emits the
+/// bytes), AccessorEntryHook's twin for a mid-instruction jump. The swing-prep routine copies the swing-id
+/// word with a 7-byte movzx at <see cref="Offsets.FnSwingPrepIdCopy"/>; for a moved id the word is 0 at swing
+/// time and the art lookup draws bare hands (docs/LIVE_LEDGER.md [empty-tile-hand-read-bounds]). Install
+/// rewrites the site as an E9 jmp plus two 0x90 pads into a stub that substitutes the hand id when the
+/// word is 0 and the acting unit's right hand holds one of our ids. Steps return a refusal string; Restore
+/// leaks the stub page because a game thread may be inside it (rig rule R3).
 /// </summary>
 internal sealed class SwingIdFallbackHook
 {
@@ -32,8 +26,7 @@ internal sealed class SwingIdFallbackHook
         SiteAddr = siteAddr == 0 ? Offsets.FnSwingPrepIdCopy : siteAddr;   // 0 = the live pin (a rebased pin cannot be a default value)
     }
 
-    /// <summary>Installs the redirect for extended ids [lo, lo + count - 1]. Idempotent: a second
-    /// call while installed is a no-op success. Returns null on success, else the refusal.</summary>
+    /// <summary>Installs the redirect for extended ids [lo, lo + count - 1]. Idempotent; returns null or the refusal.</summary>
     public string? Install(ICodePatcher patcher, INearAllocator allocator, int lo, int count)
     {
         if (Installed) return null;
@@ -68,8 +61,7 @@ internal sealed class SwingIdFallbackHook
         return null;
     }
 
-    /// <summary>Puts the seven original site bytes back. Idempotent; the stub page is never
-    /// freed. Returns false only when the write itself was refused.</summary>
+    /// <summary>Puts the seven original site bytes back. Idempotent; false only if the write was refused.</summary>
     public bool Restore(ICodePatcher patcher)
     {
         if (!Installed) return true;
@@ -78,7 +70,7 @@ internal sealed class SwingIdFallbackHook
         return ok;
     }
 
-    /// <summary>True iff a readable 7-byte buffer exactly matches <see cref="ExpectedSite"/>.</summary>
+    /// <summary>True if a readable 7-byte buffer matches <see cref="ExpectedSite"/>.</summary>
     internal static bool ShouldArm(bool readOk, byte[]? site)
         => readOk && site != null && site.Length == ExpectedSite.Length && site.AsSpan().SequenceEqual(ExpectedSite);
 }

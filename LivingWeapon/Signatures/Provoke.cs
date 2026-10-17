@@ -3,34 +3,17 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Defender's "Provoke" signature -- LW-123 arc 1. Modeled on ShadowBlade.cs (the closest existing
-/// pattern): grant a JobCommand-injected command to a tier-3 main-hand Defender wielder, reusing
-/// the proven Barrage/ShadowBlade injection primitives (TryResolveGrant/FindEmptySlot/InjectSlot/
-/// ReleaseSlot/BarrageState) and the shared Squire/Knight whitelist (ProvokePolicy delegates to
-/// ShadowBladePolicy -- see that class's doc for why). Split across two partials, a real seam
-/// (not a line-count dodge): this file is the SLOT lifecycle (JobCommand injection, exactly
-/// ShadowBlade's shape) plus the orchestrating Tick(); Provoke.Table.cs is the TABLE lifecycle
-/// (the two byte writes that repoint ability 189's effect), a genuinely separate state machine
-/// with its own arming condition -- see the class doc there for why the two cannot share one.
-///
-/// ARMED OR INERT IS A DATA QUESTION, not a code one: this module grants nothing unless
-/// items.json id 33 (Defender) carries a `signature` block, since it ticks, finds no
-/// meta.Signature, and returns. It is ARMED today (LW-123 shipped 3565363): id 33 carries the
-/// block and Tuning.ProvokeEnabled is true, so a tier-3 main-hand Defender wielder really is
-/// granted the command and this module really does repoint the table. It shipped INERT before
-/// that (2.3.2 removed the block, LW-133) because the mark it makes castable NEVER EXPIRES and
-/// CANNOT BE RE-APPLIED, so arming it before the hold engine existed would have stranded the
-/// mark on whatever it was cast at; ProvokeHold (arc 2a) is what clears it again. The pairing is
-/// machine-checked (ProvokeHoldTests.The_baked_meta_signature_block_agrees_with_the_ship_switch
-/// pins the block against Tuning.ProvokeEnabled, so the grant can never be live while the hold
-/// is switched off; see docs/PROVOKE_AC.md). Tests supply their own meta dictionary (exactly
-/// like ShadowBladeTests), so this module stays fully covered either way, without touching
-/// data/items.json.
-///
-/// The wielder scan below does NOT filter by job eligibility (unlike ShadowBlade's scan, where
-/// IsEligible and TryResolveGrant are the same check): it finds any valid Defender main-hand
-/// wielder, and eligibility is resolved separately afterward, only for the slot half -- see
-/// Provoke.Table.cs's class doc for why the table half must stay job-agnostic.
+/// Defender's "Provoke" signature (LW-123 arc 1), modeled on ShadowBlade.cs: grants a JobCommand-injected command
+/// to a tier-3 main-hand Defender wielder using the Barrage/ShadowBlade injection primitives and the shared
+/// Squire/Knight whitelist (ProvokePolicy delegates to ShadowBladePolicy). This file is the slot lifecycle plus
+/// Tick(); Provoke.Table.cs is the table lifecycle (the two byte writes repointing ability 189's effect), a
+/// separate state machine with its own arming condition.
+/// Armed by data: nothing is granted unless items.json id 33 (Defender) has a `signature` block. Armed since
+/// LW-123 shipped 3565363; it shipped inert in 2.3.2 because the mark it makes castable never expires
+/// and cannot be re-applied, and ProvokeHold (arc 2a) is what clears it. ProvokeHoldTests.
+/// The_baked_meta_signature_block_agrees_with_the_ship_switch pins the block against Tuning.ProvokeEnabled
+/// (docs/PROVOKE_AC.md). The wielder scan does not filter by job, unlike ShadowBlade's; eligibility is resolved
+/// afterward for the slot half only (see Provoke.Table.cs).
 /// </summary>
 internal sealed partial class Provoke : ISignature
 {
@@ -56,9 +39,8 @@ internal sealed partial class Provoke : ISignature
     {
         _wasActive = false;   // session-long grant; the injected slot (BarrageState) persists across battles
         _noSlotLogged = false;
-        // The table repoint is ALSO session-long (keyed on wielder existence every tick, not on
-        // battle edges -- Provoke ticks pre-gate, in and out of battle like Barrage/ShadowBlade),
-        // so nothing here touches the table half's bookkeeping.
+        // The table repoint is also session-long (keyed on wielder existence every tick, pre-gate), so
+        // nothing here touches it.
     }
 
     public void Tick()
@@ -68,7 +50,7 @@ internal sealed partial class Provoke : ISignature
         int abilityId = m.Signature.GrantCommandAbilityId;
         bool active = ProvokePolicy.IsActive(m.Signature, tier);
 
-        // Find ANY tier-3 main-hand Defender wielder -- job-agnostic (see class doc).
+        // Any tier-3 main-hand Defender wielder, job-agnostic (see class doc).
         int wielderSlot = -1, wielderJob = -1, wielderSecondary = -1;
         if (active)
         {
@@ -88,7 +70,7 @@ internal sealed partial class Provoke : ISignature
             }
         }
 
-        // TABLE LIFECYCLE: independent of job eligibility, see Provoke.Table.cs's class doc.
+        // TABLE LIFECYCLE: independent of job eligibility (Provoke.Table.cs).
         if (wielderSlot >= 0) WriteTable(abilityId); else RestoreTable(abilityId);
 
         // SLOT LIFECYCLE: same shape as ShadowBlade.
@@ -158,9 +140,8 @@ internal sealed partial class Provoke : ISignature
         HoldLearnedBit(wielderSlot, jobIdx, slotIdx + 1);
     }
 
-    /// <summary>Release our injected slot (if any) and forget it, unconditionally -- the slot
-    /// lifecycle only. See ShadowBlade.Restore (same shape) for why clearing happens even when the
-    /// release below is refused.</summary>
+    /// <summary>Release our injected slot (if any) and forget it even if the release is refused; slot
+    /// lifecycle only. See ShadowBlade.Restore.</summary>
     private void RestoreSlot(int abilityId)
     {
         int recId = _state.RecId;

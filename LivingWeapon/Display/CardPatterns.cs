@@ -4,17 +4,14 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Pre-encoded per-weapon search patterns built once at startup. Each weapon
-/// has an Entry for enc=1 (ASCII) and enc=2 (UTF-16LE), holding the encoded
-/// Name, Flavor, and the literal "Kills: " and valid 2-char suffix slots.
-/// Zero allocation after construction; all lookups are O(1).
+/// Per-weapon search patterns encoded once at startup, for enc=1 (ASCII) and enc=2 (UTF-16LE): Name,
+/// Flavor and Grows, plus the "Kills: " literal and the valid 2-char suffix slots.
 /// </summary>
 internal sealed class CardPatterns
 {
     /// <summary>
-    /// An (id, enc) -> (Name, Flavor, Grows) pattern set. Name, Flavor, and Grows are the
-    /// encoded byte sequences CardScanner searches for via ByteScan.FindAll. Grows (LW-332) is
-    /// the baked "Grows: ..." line -- empty for any id with no baked GrowsLine.
+    /// An (id, enc) pattern set that CardScanner searches via ByteScan.FindAll. Grows is the
+    /// baked "Grows: ..." line, empty for ids with no GrowsLine.
     /// </summary>
     internal readonly record struct Entry(int Id, int Enc, byte[] Name, byte[] Flavor, byte[] Grows);
 
@@ -31,16 +28,16 @@ internal sealed class CardPatterns
     {
         var entries = new List<Entry>();
 
-        // Build Name and Flavor patterns for each (id, enc) pair.
+        // Name, Flavor and Grows patterns for each (id, enc).
         foreach (var kv in meta)
         {
             int id = kv.Key;
-            // Coalesce nulls that Newtonsoft can produce from explicit JSON null values.
+            // Newtonsoft can produce nulls from explicit JSON nulls.
             string name = kv.Value.Name ?? "";
             string flavor = kv.Value.Flavor ?? "";
             string grows = kv.Value.GrowsLine ?? "";
 
-            // Skip if name is empty (flavor/grows may be empty).
+            // Flavor and grows may be empty; name may not.
             if (string.IsNullOrEmpty(name))
                 continue;
 
@@ -63,10 +60,8 @@ internal sealed class CardPatterns
 
         Entries = entries.AsReadOnly();
 
-        // MaxAnchorLen: maximum over encoded BYTE lengths (not char counts). UTF-16LE
-        // doubles every char, so computing from chars would understate by 2x for that enc.
-        // LW-332: Grows is included alongside Name/Flavor -- it is searched exactly like Flavor
-        // (CardScanner.AnchorCandidates) and can be the longer pattern for some lanes.
+        // Max over encoded byte lengths, since UTF-16LE doubles the char count. Grows counts too,
+        // as it is searched like Flavor (CardScanner.AnchorCandidates).
         foreach (var e in entries)
         {
             _maxAnchorLen = Math.Max(_maxAnchorLen, e.Name.Length);
@@ -74,11 +69,11 @@ internal sealed class CardPatterns
             _maxAnchorLen = Math.Max(_maxAnchorLen, e.Grows.Length);
         }
 
-        // Cache the encoded "Kills: " literal (7 chars = 7 for enc=1, 14 for enc=2).
+        // Encoded "Kills: " literal.
         _killsAscii = ByteScan.Ascii("Kills: ");
         _killsUtf16 = ByteScan.Utf16("Kills: ");
 
-        // Cache the encoded slot values from Tuning.Suffix.
+        // Encoded suffix slots from Tuning.Suffix.
         _slotsAscii = ByteScan.Slots(1, Tuning.Suffix);
         _slotsUtf16 = ByteScan.Slots(2, Tuning.Suffix);
     }
@@ -96,41 +91,27 @@ internal sealed class CardPatterns
     }
 
     /// <summary>
-    /// The maximum BYTE length over all encoded Name, Flavor, and Grows (LW-332) arrays (both
-    /// enc=1 and enc=2). UTF-16LE doubles every char, so UTF-16 patterns are
-    /// the largest. Display's startup invariant checks this against the sweep
-    /// lookback (via <see cref="FitsLookback"/>) so every anchor + slot fits
-    /// the chunk-boundary prefix.
+    /// Max byte length over every encoded Name, Flavor and Grows array, both encodings.
+    /// Display's startup check compares it to the sweep lookback via <see cref="FitsLookback"/>.
     /// </summary>
     public int MaxAnchorLen => _maxAnchorLen;
 
-    /// <summary>True when the given sweep lookback fits the longest anchor plus the widest
-    /// slot (the UTF-16 "Kills: " literal + 4-char counter outweighs the 2-char suffix).
-    ///
-    /// Reliquary Phase 1 note (docs/RELIQUARY_AC.md, decision 12): this class stays IMMUTABLE
-    /// and unaware of EarnedAnchors -- an earned/current/previous composed-line pattern is
-    /// enforced (EarnedAnchors.TryEncode) to have the SAME encoded byte length as its weapon's
-    /// baked Flavor pattern here, so MaxAnchorLen (computed once, from baked Name/Flavor/Grows)
-    /// remains a valid upper bound even once earned lines are registered. See Display.cs's ctor
-    /// for where this invariant is exercised at startup, and
-    /// DisplayStoryLineTests.FitsLookback_with_earned_patterns_registered for the test.</summary>
+    /// <summary>True when the lookback fits the longest anchor plus the widest slot (the UTF-16
+    /// "Kills: " literal plus a 4-char counter). This class stays immutable and unaware of EarnedAnchors
+    /// (docs/RELIQUARY_AC.md, decision 12) because EarnedAnchors.TryEncode forces each earned pattern to
+    /// the byte length of its baked Flavor pattern, so MaxAnchorLen stays a valid bound. Display.cs's ctor
+    /// checks it at startup; see DisplayStoryLineTests.FitsLookback_with_earned_patterns_registered.</summary>
     public bool FitsLookback(int lookback)
     {
         int widestSlot = Math.Max(Kills(2).Length + Signatures.KillsMeterSlotChars * 2, 2 * 2);
         return lookback >= _maxAnchorLen + widestSlot;
     }
 
-    /// <summary>True when the given trailing slack (ChunkReader.TrailSlack / DisplaySweep.TrailSlack)
-    /// fits the worst-case FORWARD reach a new-layout card needs: the bidirectional attribution
-    /// search (CardScanner) can now find a weapon's flavor (or, since LW-332, its Grows line --
-    /// whichever anchor sits AFTER "Kills: ") after its "Kills: " hit (the Reliquary Phase-2
-    /// equip-meter layout, docs/TODO.md), so the trailing slack (not just the leading Lookback
-    /// prefix FitsLookback guards) must hold the widest anchor (MaxAnchorLen, which already
-    /// includes Grows) plus the Kills literal plus the meter slot, all in UTF-16 (the widest
-    /// encoding), plus the "\n\n" gap between the slot and the next card's own leading bytes.
-    /// Mirrors FitsLookback for the forward direction; see Display's ctor for where this is
-    /// exercised at startup (log-and-continue, same posture as FitsLookback: a too-short slack
-    /// only degrades painting, never crashes).</summary>
+    /// <summary>True when the trailing slack (ChunkReader.TrailSlack / DisplaySweep.TrailSlack) covers the
+    /// forward reach of a new-layout card, where the bidirectional search in CardScanner can find the flavor
+    /// (or the LW-332 Grows line) after "Kills: " (the equip-meter layout, docs/TODO.md). That is the widest
+    /// anchor plus the Kills literal plus the meter slot in UTF-16, plus the "\n\n" gap to the next card.
+    /// A short slack only degrades painting, so Display's ctor logs and continues.</summary>
     public bool FitsTrailSlack(int trailSlack)
     {
         int worstCase = _maxAnchorLen + Kills(2).Length + Signatures.KillsMeterSlotChars * 2 + 4;

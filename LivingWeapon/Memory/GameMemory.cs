@@ -3,24 +3,19 @@ using System.Collections.Generic;
 
 namespace LivingWeapon;
 
-/// <summary>
-/// The slice of memory access the gameplay logic needs, behind an interface so the
-/// logic (kill attribution, etc.) is unit-testable with a fake memory -- no live game.
-/// LiveMemory is the production adapter over the RPM/WPM-backed <see cref="Mem"/>.
-/// Extended with bulk-read and display-paint methods so the seam covers the display
-/// paint path too (ByteScan, which needs region enumeration and bulk reads).
-/// </summary>
+/// <summary>Memory access the gameplay logic needs, behind an interface so kill attribution and the
+/// display paint path (ByteScan) can be unit-tested with a fake. LiveMemory is the production
+/// adapter over the RPM/WPM-backed <see cref="Mem"/>.</summary>
 internal interface IGameMemory
 {
     byte U8(long addr);
     ushort U16(long addr);
-    /// <summary>Read a 4-byte little-endian value composed from two U16 reads -- fine for a
-    /// single-threaded test fake. LiveMemory overrides with the atomic Mem.U32 (one RPM call).</summary>
+    /// <summary>4-byte little-endian read from two U16 reads. LiveMemory overrides with the
+    /// single-call Mem.U32.</summary>
     uint U32(long addr) => (uint)(U16(addr) | (U16(addr + 2) << 16));
-    /// <summary>Read an 8-byte little-endian value (used for engine pointer globals, e.g.
-    /// Offsets.ActorPtr). Default composes eight U8 reads -- fine for a single-threaded test fake
-    /// (no tearing risk). LiveMemory overrides with one atomic Mem.U64 (a single RPM call): an
-    /// 8x1-byte composite could tear mid-transition in production and mix two pointer values.</summary>
+    /// <summary>8-byte little-endian read (engine pointer globals, e.g. Offsets.ActorPtr). The default
+    /// composes eight U8 reads; LiveMemory overrides with one Mem.U64 call so a read cannot tear
+    /// mid-transition.</summary>
     ulong U64(long addr)
     {
         ulong v = 0;
@@ -32,15 +27,13 @@ internal interface IGameMemory
         buf = new byte[len];
         return false;
     }
-    /// <summary>Read len bytes, throwing on a failed/partial read (Mem.ReadBytes' contract;
-    /// callers that scan catch it). Default routes through TryReadBytes so fakes inherit the
-    /// same throw-on-failure shape; LiveMemory delegates to Mem.ReadBytes.</summary>
+    /// <summary>Reads len bytes, throwing on a failed or partial read like Mem.ReadBytes. Fakes inherit
+    /// the throw through TryReadBytes.</summary>
     byte[] ReadBytes(long addr, int len)
         => TryReadBytes(addr, len, out var buf) ? buf : throw new InvalidOperationException("ReadProcessMemory failed");
     int ReadInto(long addr, byte[] buf, int len) => 0;
     void WriteBytes(long addr, byte[] data) { }
-    /// <summary>Write a single byte to <paramref name="addr"/>. Default no-op (test fakes
-    /// override; LiveMemory delegates to Mem.W8).</summary>
+    /// <summary>Writes one byte. Default no-op; LiveMemory delegates to Mem.W8.</summary>
     void W8(long addr, byte value) { }
     void W16(long addr, ushort value) { }
     bool Readable(long addr, int len) => false;

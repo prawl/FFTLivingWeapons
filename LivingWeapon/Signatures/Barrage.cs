@@ -3,49 +3,24 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// Yoichi Bow's "Barrage" signature: while a +3 Yoichi Bow wielder exists in the roster,
-/// ability 358 (Barrage, 4-arrow volley) is injected into their current job's JobCommand
-/// record and held there. The table rebuilds at boot, so the injection is re-asserted each
-/// tick (idempotent: NeedsInject only writes when the slot is wrong). Ticked in AND out of
-/// battle -- the learn screen and pre-battle menus read the table live.
-///
-/// SLOT-SCOPED, NOT RECORD-SCOPED: no snapshot of the record is ever taken. FindEmptySlot only
-/// ever hands out a slot that was already empty, so ending the grant just means putting THAT ONE
-/// slot back to empty (Barrage.Policy.ReleaseSlot) -- verified at release time to still hold our
-/// ability. This is what lets a second signature (ShadowBlade) share the same record: each module
-/// only ever touches its own slot, so the two are mutually invisible, and it is also what stops a
-/// stray whole-record restore from dropping an ability the player (or another mod) legitimately
-/// put in the record after we injected. BarrageState.RecId/SlotIdx move as one atomic pair (see
-/// Barrage.State.cs) and are cleared on EVERY path that ends a grant, so a later grant always
-/// re-verifies emptiness instead of trusting a remembered index.
-///
-/// LEARNED BIT: HELD each tick (re-set whenever clear) and NEVER cleared. Set-once is not
-/// enough: the learn menu's purchase flow writes the learned block back from a stale
-/// snapshot and wipes externally-set bits (observed live 2026-06-10, High Ether purchase).
-/// The wipe risk only matters while the menu is open; the 33ms hold closes it.
-///
-/// JOB RESOLUTION (live-anchored, see Barrage.Policy.cs): roster job byte +0x02; generic
-/// band 74..92 -> rec = job-69, learned jobIdx = job-74 (Dancer 92 shares jobIdx 17).
-/// Unmapped (story-canonical uniques like Mettle/Aimed Shot, Mime, monsters, Dark Knight):
-/// log once per job id and no-op -- noted in the bows CSV as a known gap.
-///
-/// All reads/writes are VirtualQuery-guarded (Mem.Writable/Readable).
+/// Yoichi Bow signature: while a +3 Yoichi Bow wielder is in the roster, ability 358 (Barrage, 4-arrow volley) is injected into their job's JobCommand
+/// record and re-asserted every tick, in and out of battle (the table rebuilds at boot and the learn screen and pre-battle menus read it live).
+/// Only the empty slot we filled is touched (Barrage.Policy.ReleaseSlot), so ShadowBlade can share the record and abilities others add survive.
+/// BarrageState.RecId/SlotIdx (Barrage.State.cs) move as a pair and clear on every path that ends a grant.
+/// The learned bit is held set, never cleared: the learn menu's purchase writeback wiped it (seen 2026-06-10, High Ether purchase).
+/// Jobs (Barrage.Policy.cs): roster byte +0x02, band 74..92 -> rec = job-69, learned jobIdx = job-74 (Dancer 92 shares jobIdx 17). Unmapped jobs
+/// (Mettle/Aimed Shot uniques, Mime, monsters, Dark Knight) log once per job id and no-op; noted in the bows CSV.
 /// </summary>
 internal sealed partial class Barrage : ISignature
 {
     void ISignature.Tick(in TickContext ctx) => Tick();
-    // ABILITY_BASE: record 0's AbilityId1 byte. Flags sit at ABILITY_BASE + rec*25 - 3.
-    // 1.5 RE-FOUND LIVE 2026-06-17 (tools/probes/jobcommand_find_probe.py, READ-ONLY): the
-    // recompile moved the JobCommand table +0x5080 (the most dangerous WRITE anchor in the port).
-    // Located by the rec 8 Aim (bytes 150-157) + rec 9 Martial Arts (bytes 100-107) signature,
-    // 25 bytes apart -- UNIQUE hit; the whole table then read coherently (Steal rec 14 = 108-115,
-    // Iaido rec 19, Machinist rec 37 = 213-215), so "stale-but-valid" is ruled out. Delta is
-    // NON-MONOTONIC vs the +0x6000 of the 0x14077 region -- found by signature, NOT interpolated.
-    // Pinned by BarrageTests.AbilityBase_is_pinned_to_the_verified_1_5_table_base.
-    // (was 0x140679436 - 27*25 = 0x140679193 pre-1.5.)
-    // internal (not private): ShadowBlade reuses these table-layout constants + the static helpers
-    // below to grant Shadow Blade through the same proven JobCommand injection -- the Barrage logic
-    // itself is untouched. (The shared inject/restore core is a future extraction, see ShadowBlade.cs.)
+    // ABILITY_BASE: record 0's AbilityId1 byte; flags sit at ABILITY_BASE + rec*25 - 3.
+    // 1.5 re-found 2026-06-17 (tools/probes/jobcommand_find_probe.py, read-only): the recompile moved the JobCommand table +0x5080.
+    // Found by the rec 8 Aim (bytes 150-157) + rec 9 Martial Arts (bytes 100-107) signature, 25 bytes apart, a unique hit; the rest of
+    // the table read coherently (Steal rec 14 = 108-115, Iaido rec 19, Machinist rec 37 = 213-215). The delta is not monotonic vs the
+    // +0x6000 of the 0x14077 region, so it was found, not interpolated (was 0x140679436 - 27*25 = 0x140679193 pre-1.5).
+    // Pinned by BarrageTests.AbilityBase_is_pinned_to_the_verified_1_5_table_base. Internal because ShadowBlade reuses these
+    // constants and helpers (shared inject/restore core is a future extraction, see ShadowBlade.cs).
     internal static long AbilityBase => ImageBase.At(0x14067E213L);
     internal const int RecSize = 25;         // bytes per record (3 flags + 16 abilities + 6 RSM)
     internal const int FlagPrefixSize = 3;   // ExtAb u16 + ExtRSM u8
@@ -55,7 +30,7 @@ internal sealed partial class Barrage : ISignature
     internal const int RJobId = 0x02;
     // Roster secondary command at +0x07 = the JobCommand rec id (live-read 14 = Steal).
     internal const int RSecondary = 0x07;
-    // Roster learned bitfield at +0x32 + jobIdx*3 (jobIdx from TryResolveJob, NOT the job id).
+    // Roster learned bitfield at +0x32 + jobIdx*3 (jobIdx from TryResolveJob, not the job id).
     internal const int RLearnedBase = 0x32;
     internal const int LearnedStride = 3;
 
@@ -82,8 +57,7 @@ internal sealed partial class Barrage : ISignature
 
     public void ResetBattle()
     {
-        // No release on battle exit: the grant is session-long while the bow stays equipped.
-        // The injected slot (BarrageState) persists across battles within one session.
+        // No release on battle exit: the grant lasts the session while the bow stays equipped.
         _wasActive = false;
         _recNotReadableLogged = false;
         _noSlotLogged = false;
@@ -112,7 +86,7 @@ internal sealed partial class Barrage : ISignature
                 int jobId = _mem.U8(rb + RJobId);
                 if (jobId <= 0) continue;
                 int secRec = _mem.U8(rb + RSecondary);
-                if (!IsEligibleWielder(jobId, secRec)) continue;   // THIEF-ONLY: primary job 83 or secondary record 14
+                if (!IsEligibleWielder(jobId, secRec)) continue;   // THIEF-only: primary job 83 or secondary record 14
                 wielderSlot = r;
                 wielderJob = jobId;
                 wielderSecondary = secRec;
@@ -156,25 +130,20 @@ internal sealed partial class Barrage : ISignature
                 $"barrage grant (party slot {wielderSlot}, record {recId}, learn index {jobIdx})");
         }
 
-        // Job changed mid-session: release the old record's slot before targeting the new one.
-        // BarrageState.RecId doubles as "the record our current slot belongs to"; Restore() clears
-        // it, so the slot lookup below naturally re-runs FindEmptySlot against the new record.
+        // Job changed mid-session: release the old record's slot first; Restore() clears BarrageState.RecId so the
+        // lookup below re-runs FindEmptySlot on the new record.
         if (_state.RecId >= 0 && _state.RecId != recId) Restore();
 
         long flagAddr = AbilityBase + (long)recId * RecSize - FlagPrefixSize;
         long abBase = AbilityBase + (long)recId * RecSize;
 
-        // Sane-bounds check before ANY write. Debug tier + a once-per-transition latch: this can
-        // hold true for many consecutive ticks while the table is still loading, and even a
-        // file-only line would bloat livingweapon.log at 33ms cadence otherwise.
+        // Bounds check before any write. Debug tier with a once-per-transition latch: this can hold for many 33ms ticks while the table loads.
         bool recNotReadable = !_mem.Readable(flagAddr, RecSize);
         if (Signatures.StuckEdge(ref _recNotReadableLogged, recNotReadable))
             ModLogger.Debug(LogVerb.Grant, $"command record {recId} is not readable in memory yet; skipping this tick");
         if (recNotReadable) return;
 
-        // Find or verify the injection slot. Only trust a remembered slot when it was found in
-        // THIS record -- guards the same cross-record staleness Restore() above already handles,
-        // belt-and-suspenders against the exact hazard BarrageState.Set/Clear exist to prevent.
+        // Only trust a remembered slot found in this record (the cross-record staleness Restore() handles).
         int slotIdx = _state.RecId == recId ? _state.SlotIdx : -1;
         if (slotIdx < 0)
         {
@@ -203,14 +172,12 @@ internal sealed partial class Barrage : ISignature
         if (NeedsInject(curByte, curExt, slotIdx))
             InjectSlot(_mem, flagAddr, abBase, slotIdx, BarrageAbilityId);
 
-        // Hold the learned bit (re-set whenever clear; NEVER cleared by us).
+        // Hold the learned bit (re-set whenever clear, never cleared).
         HoldLearnedBit(wielderSlot, jobIdx, slotIdx + 1);   // 1-indexed slot for learned math
     }
 
-    /// <summary>Release our injected slot (if any) and forget it, unconditionally -- called
-    /// whenever the grant ends (no eligible wielder, an unsupported job) or the wielder's job
-    /// changes to a different record. See BarrageState.Clear for why clearing happens even when the
-    /// release below is refused.</summary>
+    /// <summary>Releases our injected slot (if any) and forgets it, even if the release is refused (see BarrageState.Clear).
+    /// Called when the grant ends or the wielder's job changes record.</summary>
     private void Restore()
     {
         int recId = _state.RecId;
@@ -232,9 +199,7 @@ internal sealed partial class Barrage : ISignature
         _state.Clear();
     }
 
-    /// <summary>Hold the learned bit for the given 1-indexed action slot in the wielder's roster
-    /// (jobIdx triple). Re-sets whenever clear -- the learn menu's purchase writeback can wipe
-    /// externally-set bits. Never cleared by us.</summary>
+    /// <summary>Holds the learned bit for the 1-indexed action slot in the wielder's roster (jobIdx triple), re-setting it whenever clear.</summary>
     private void HoldLearnedBit(int rosterSlot, int jobIdx, int slotIdx1)
     {
         long rb = Offsets.RosterBase + (long)rosterSlot * Offsets.RosterStride;

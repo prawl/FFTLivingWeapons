@@ -4,19 +4,17 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-82 seam: the NARRATION half of <see cref="AnchorScout"/> (the LaunchGuard/Landmarks WHAT-
-/// vs-lifecycle precedent). Turns a concluded <see cref="AnchorScan"/> verdict into its console
-/// sentence + trace companion (<see cref="ModLogger.EventWithTrace"/>, reusing <see
-/// cref="LogVerb.Startup"/>: no new verb), and composes the once-then-change-gated summary line.
-/// Every console sentence here is subject-first and hex-free (LogContractTests' lexical fence);
-/// every numeric/hex detail rides the trace companion only.
+/// Console narration for <see cref="AnchorScout"/>. Turns an <see cref="AnchorScan"/>
+/// verdict into a console sentence plus a trace line (<see cref="ModLogger.EventWithTrace"/>,
+/// <see cref="LogVerb.Startup"/>) and builds the summary line. Console text is hex-free
+/// (LogContractTests); hex detail goes in the trace.
 /// </summary>
 internal sealed partial class AnchorScout
 {
     private const int MaxAmbiguousBasesListed = 8;
-    // Offsets.RosterBase (0x1411A7D10) - Offsets.InventoryCountBase (0x1411A7C00) = 0x110; the
-    // delta held across pre-1.5/1.5/1.5.1 (Offsets.cs:103,353; docs/research/PORT_1.5_OFFSETS.md:
-    // 57-58), so a roster find predicts the inventory-count table's base without its own scan.
+    // RosterBase 0x1411A7D10 - InventoryCountBase 0x1411A7C00 = 0x110, stable across pre-1.5/1.5/1.5.1
+    // (Offsets.cs:103,353; docs/research/PORT_1.5_OFFSETS.md:57-58), so a roster find predicts the
+    // inventory base.
     private const long InventoryCountDelta = 0x110;
 
     private void LogVerdict(AnchorSpec spec, AnchorScan scan)
@@ -64,9 +62,7 @@ internal sealed partial class AnchorScout
             $"anchor {spec.Name}: ambiguous (bases {string.Join(", ", listed)}, {scan.Bases.Count} total)");
     }
 
-    /// <summary>Only the roster-base spec has a known sibling to predict; fires alongside its own
-    /// FoundAtPin/FoundElsewhere line (never for Ambiguous or NotFound, which have no single base
-    /// to predict from).</summary>
+    /// <summary>Only the roster-base spec has a sibling to predict; runs after FoundAtPin/FoundElsewhere.</summary>
     private static void MaybeLogSibling(AnchorSpec spec, AnchorScan scan)
     {
         if (spec.Name != RosterBaseSpecName) return;
@@ -76,9 +72,8 @@ internal sealed partial class AnchorScout
             $"sibling prediction: inventory-count base at 0x{inventoryBase:X} (roster - 0x110; delta held across pre-1.5/1.5/1.5.1)");
     }
 
-    /// <summary>Logs the re-find summary once every spec has concluded (none left Scanning), then
-    /// re-emits it whenever the concluded COMBINATION later changes (a rescan upgrade); an
-    /// unchanged combination on a later Tick logs nothing further.</summary>
+    /// <summary>Logs the summary once every spec has concluded, and again if the combination changes
+    /// (a rescan upgrade).</summary>
     private void MaybeLogSummary()
     {
         foreach (var scan in _scans)

@@ -4,17 +4,11 @@ using System.IO;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-51: resolves the update-safe save directory (Reloaded/User/Mods/&lt;ModId&gt;) and runs a
-/// one-time, strictly non-destructive migration of each legacy save file (kills.json,
-/// legends.json, gunslinger.json) out of the deploy mod dir the first time it is seen there.
-/// A plain mod-folder-replace update wipes the deploy dir; the save dir survives because
-/// Reloaded never touches User/Mods on an update (the same directory Config.json already lives
-/// in, per Mod.ResolveConfigPath).
-///
-/// The migration is copy-only (never delete, never overwrite): a pre-existing dest file is left
-/// completely alone, and the legacy source is left in place too, so nothing is ever destroyed.
-/// Every public member is fail-soft (never throws), because SaveLocation is constructed inside
-/// Engine's constructor, and Mod.StartEngine's catch turns any ctor exception into a dead mod.
+/// Resolves the update-safe save directory (Reloaded/User/Mods/&lt;ModId&gt;) and copies each legacy
+/// save file (kills.json, legends.json, gunslinger.json) out of the deploy mod dir the first time it is seen.
+/// A mod-folder-replace update wipes the deploy dir, while User/Mods survives and already holds Config.json
+/// (see Mod.ResolveConfigPath). Migration is copy-only, and members are fail-soft because Engine's constructor
+/// builds this and Mod.StartEngine turns a constructor exception into a dead mod.
 /// </summary>
 internal sealed class SaveLocation
 {
@@ -35,12 +29,9 @@ internal sealed class SaveLocation
     public string PathFor(string fileName) => Path.Combine(_saveDir, fileName);
 
     /// <summary>
-    /// One-time non-destructive migration of <paramref name="fileName"/> (and its independent
-    /// ".bak" sibling) from the legacy deploy dir into <see cref="SaveDir"/>. Idempotent: once a
-    /// dest file exists, later calls are a no-op for that file. Fail-soft: any exception is
-    /// logged and swallowed, never thrown. Always returns <see cref="PathFor"/>'s path for
-    /// <paramref name="fileName"/>, migrated or not, so a caller can pass the result straight to
-    /// a store's Load without checking the outcome.
+    /// Migrates <paramref name="fileName"/> and its ".bak" sibling from the legacy deploy dir into
+    /// <see cref="SaveDir"/>. Idempotent and fail-soft. Always returns the <see cref="PathFor"/> path so a
+    /// caller can pass it straight to a store's Load.
     /// </summary>
     public string Migrate(string fileName)
     {
@@ -49,9 +40,7 @@ internal sealed class SaveLocation
         try
         {
             bool copied = AtomicCopyIfAbsent(legacy, dest);
-            // Independent guard: an orphan .bak (legacy primary missing, e.g. a corrupt-primary
-            // recovery mid-flight) still migrates on its own, matching KillTally.Load's own
-            // [primary, .bak] fallback chain.
+            // An orphan .bak still migrates alone, matching KillTally.Load's [primary, .bak] fallback.
             AtomicCopyIfAbsent(legacy + ".bak", dest + ".bak");
             if (copied) ModLogger.Event(LogVerb.Save, $"Migrated {fileName} to the update-safe save folder.");
         }
@@ -63,15 +52,10 @@ internal sealed class SaveLocation
     }
 
     /// <summary>
-    /// LW-51 Tier-1: strictly non-destructive archive of <paramref name="fileName"/> (and its
-    /// independent ".bak" sibling) out of <see cref="SaveDir"/>, into a "archive" subdirectory,
-    /// as "&lt;stem&gt;.&lt;N&gt;&lt;ext&gt;" where N is one past the highest existing archived
-    /// index for that stem. Uses File.Move(..., overwrite: false) ONLY: a name collision throws
-    /// and is swallowed by the fail-soft catch below, never clobbering an existing archived file;
-    /// no File.Delete anywhere. FAIL-CLOSED: if an existing archived name for this stem cannot be
-    /// parsed back to its index, this bails out entirely (no move at all) rather than guessing a
-    /// starting index that name might already secretly claim. A no-op when the primary source
-    /// file does not exist (nothing to archive). Fail-soft: never throws.
+    /// LW-51 Tier-1: moves <paramref name="fileName"/> and its ".bak" sibling out of <see cref="SaveDir"/> into an
+    /// "archive" subdirectory as "&lt;stem&gt;.&lt;N&gt;&lt;ext&gt;", N one past the highest archived index. File.Move
+    /// without overwrite and no File.Delete, so a name collision throws and is swallowed. If an existing
+    /// archived name can't be parsed it bails out with no move. No-op when the source is missing. Never throws.
     /// </summary>
     public void Archive(string fileName)
     {
@@ -100,11 +84,9 @@ internal sealed class SaveLocation
         }
     }
 
-    /// <summary>One past the highest existing "&lt;stem&gt;.N&lt;ext&gt;" index already in
-    /// <paramref name="archiveDir"/> for <paramref name="fileName"/>'s stem, or 1 when none exist.
-    /// Throws (so <see cref="Archive"/>'s catch fails the whole call closed) if any matching file
-    /// name's index segment cannot be parsed (guessing past an unparseable existing name risks
-    /// re-using an index that name secretly already claims).</summary>
+    /// <summary>One past the highest "&lt;stem&gt;.N&lt;ext&gt;" index in <paramref name="archiveDir"/> for
+    /// <paramref name="fileName"/>'s stem, or 1 when none exist. Throws on an unparseable index so
+    /// <see cref="Archive"/> bails out instead of risking a reused index.</summary>
     private static int NextArchiveIndex(string archiveDir, string fileName)
     {
         string ext = Path.GetExtension(fileName);
@@ -125,14 +107,9 @@ internal sealed class SaveLocation
     }
 
     /// <summary>
-    /// Copies src to dest only when dest is absent and src exists; otherwise a no-op. Copies
-    /// through a scratch ".migrating.tmp" file first, then moves that over dest, so an
-    /// interrupted copy (crash, disk full, process kill mid-write) never leaves a partial dest
-    /// behind: a partial dest would satisfy the "dest absent" guard forever and permanently block
-    /// migrating the still-intact legacy file. A stale leftover ".migrating.tmp" from a prior
-    /// interrupted attempt is simply overwritten by the next attempt's copy (self-healing).
-    /// Non-destructive: an existing dest is never opened, read, or touched. Returns true iff it
-    /// copied.
+    /// Copies src to dest when dest is absent and src exists. Goes through a ".migrating.tmp" file so an
+    /// interrupted copy can't leave a partial dest that would block migration forever. A stale tmp is
+    /// overwritten next time. Returns true if it copied.
     /// </summary>
     private static bool AtomicCopyIfAbsent(string src, string dest)
     {
@@ -144,12 +121,9 @@ internal sealed class SaveLocation
     }
 
     /// <summary>
-    /// Mirrors Mod.ResolveConfigPath's walk but resolves a directory: modDir is assumed to be
-    /// two levels under the Reloaded root (Mods/&lt;ModId&gt;), so the root is
-    /// modDir's grandparent, and the save dir is &lt;root&gt;/User/Mods/&lt;ModId&gt;. Uses the
-    /// manifest ModId constant (Mod.ModId), not modDir's own folder name: Reloaded keys
-    /// User/Mods on the manifest id, and that is where Config.json already lives. Any null step
-    /// or exception falls back to modDir unchanged (never throws).
+    /// Same walk as Mod.ResolveConfigPath, for a directory. modDir sits two levels under the Reloaded root
+    /// (Mods/&lt;ModId&gt;), so the save dir is &lt;root&gt;/User/Mods/&lt;ModId&gt;. It uses Mod.ModId because Reloaded
+    /// keys User/Mods on the manifest id. Any null step or exception falls back to modDir.
     /// </summary>
     private static string ResolveSaveDir(string modDir)
     {

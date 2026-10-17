@@ -5,23 +5,18 @@ using System.Threading;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-351 fix round 7 (2026-08-30): the seat-before-rebuild step and the ownership filter.
-/// Plainly: the game rebuilds its item menus from a saved order list, and a new item bought this
-/// session is not on that list until the next save is loaded, so the rebuild kept dropping it;
-/// the old answer (re-append whatever was dropped, afterwards) failed whenever the rebuilt list
-/// was shorter than the previous one (the footprint guard, logged five times on the 23:22-23:34
-/// stage-2 pass) and could also re-append an id the player no longer owned (a phantom row).
-/// Now, when the table the game hands the rebuild is one of the two weapon order templates,
-/// every extended id whose bag byte is non-zero is seated into that template FIRST (the same
-/// <see cref="TemplateSeat"/> policy the load edge uses), so the game's own rebuild lists it in
-/// template order and sizes its own list; the re-append stays as a fallback but only for ids
-/// the bag holds.
+/// LW-351 fix round 7 (2026-08-30). Seats owned extended ids into the weapon order templates before
+/// the game rebuilds its menus. A new item bought this session is not in the saved order list, so
+/// the rebuild dropped it, and the old after-the-fact re-append failed when the rebuilt list was
+/// shorter (the footprint guard, five times in the 23:22-23:34 stage-2 pass) or re-added an unowned
+/// id. Seating first via <see cref="TemplateSeat"/>, as the load edge does, lets the game size its
+/// own list. The re-append stays as a fallback for owned ids only.
 /// </summary>
 internal sealed partial class OrderRebuildHook
 {
     private readonly int _extendedCount;
     private readonly long _bagBase;   // LW-368 round 2: ExtendedInventory.BagCountBase, set at construction
-    private readonly Func<TemplateSeat.Region[]>? _regions;   // LW-371: ExtendedInventory.TemplateRegions, set at construction
+    private readonly Func<TemplateSeat.Region[]>? _regions;   // ExtendedInventory.TemplateRegions, set at construction
     private long _seated;
     private long _seatRefusals;
     private bool _refusalWarned;
@@ -35,8 +30,7 @@ internal sealed partial class OrderRebuildHook
     /// <summary>Templates healed in place (doubled ids collapsed, a lost marker restored) ahead of a rebuild.</summary>
     public long Repaired => Interlocked.Read(ref _repaired);
 
-    /// <summary>The extended ids the bag holds at least one of, ascending; empty when none or
-    /// when the bag is unreadable.</summary>
+    /// <summary>Extended ids the bag holds at least one of, ascending; empty if none or unreadable.</summary>
     private List<int> OwnedExtendedIds()
     {
         var owned = new List<int>();
@@ -48,13 +42,11 @@ internal sealed partial class OrderRebuildHook
         return owned;
     }
 
-    /// <summary>True when the game's bag array holds at least one of <paramref name="id"/>; an
-    /// unreadable byte counts as not owned (never seat or re-append on a guess).</summary>
+    /// <summary>True when the bag holds at least one of <paramref name="id"/>; unreadable counts as not owned.</summary>
     private bool Owned(int id) => _mem.TryRead(_bagBase + id, 1, out var b) && b[0] != 0;
 
-    /// <summary>Seat the owned extended ids into <paramref name="table"/> when it is one of the
-    /// two weapon order templates; any other table is left alone (the detour also serves lists
-    /// whose templates this mod knows nothing about).</summary>
+    /// <summary>Seat owned extended ids into <paramref name="table"/> if it is a weapon order template;
+    /// other tables are left alone.</summary>
     private void SeatOwnedInto(nint table)
     {
         var regions = _regions?.Invoke() ?? TemplateSeat.WeaponRegions;
@@ -63,12 +55,10 @@ internal sealed partial class OrderRebuildHook
         foreach (var r in regions)
             if (r.Addr == (long)table) { region = r; known = true; break; }
         if (!known) return;
-        // Round 8c: an empty owned list no longer returns early; the repair half of Plan must
-        // still see the table (a doubled or marker-less template is damage whoever owns what).
+        // Round 8c, no early return on an empty owned list since Plan still repairs a doubled or marker-less template.
         var owned = OwnedExtendedIds();
         if (!_mem.TryRead(region.Addr, region.CapacityWords * 2, out var bytes)) return;
-        // LW-367: anything at or past the armed range is stale (a removed design, a stunt
-        // leftover) and gets dropped by the repair rather than kept.
+        // LW-367 ids at or past the armed range are stale and get dropped by the repair.
         var seat = TemplateSeat.Plan(bytes, region.CapacityWords, owned, ExtendedCatalog.FirstExtendedId + _extendedCount);
         if (seat.Refusal != null) { Refused($"{region.Label} at 0x{region.Addr:X} could not take the owned new item(s) before the menu rebuild ({seat.Refusal})."); return; }
         if (!seat.Writes) return;

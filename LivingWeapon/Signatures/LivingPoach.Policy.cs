@@ -6,38 +6,20 @@ namespace LivingWeapon;
 internal enum PoachVerdict { None, Common, Rare }
 
 /// <summary>
-/// LW-167 Living Poach -- the pure eligibility + roll-split policy (docs plan v2's "Locked
-/// design"). No memory access: LivingPoach.cs is the stateful executor that gathers these inputs
-/// (from the widened deed sink, the injected killer-support/action-shape delegates, and its own
-/// PoachMap/meta lookups) and acts on the verdict this returns.
-///
-/// Every gate in <see cref="Decide"/> is an INDEPENDENT AND -- a false anywhere is None, never a
-/// partial poach. Two of the four are double-fire guards against vanilla's own Poach support:
-/// <c>weaponIsDormantFormula</c> (a weapon on a vanilla-readable formula must never also fire this
-/// runtime feature -- vanilla already procs through it) and <c>wasBasicAttack</c> (vanilla poaches
-/// an ABILITY kill too, owner-observed live 2026-08-12, so an ability kill must never double-poach
-/// beside it). ARMED (LW-167 stage 4, 2026-08-12): Engine now wires <c>wasBasicAttack</c> to
-/// <see cref="LivingPoach.ReadWasBasicAttack"/>, the real per-credit action-record discriminator --
-/// see LivingPoach.cs's ctor doc -- so this gate reads a live signal in production, same as the
-/// other three.
-///
-/// LW-167 (2026-08-12): the old <c>SpeciesOf</c>/<c>JobInMonsterRange</c> arithmetic (species =
-/// victim job byte - 95, monsters band 96..144) is gone -- a live pass falsified it (a Black
-/// Chocobo at job 95 was refused). The game's Job sheet carries each monster job's PoachItem
-/// common/rare Keys directly (tools/extract_poach_map.py decodes them straight off Job-en); human
-/// jobs carry 0/0 there. So <paramref name="jobMapped"/> (poach.json map-membership by the
-/// victim's own job id, PoachMap.TryGetJob) IS the whole monster gate now, no range check needed.
+/// LW-167 Living Poach pure eligibility and roll-split policy. LivingPoach.cs gathers the inputs and acts
+/// on the verdict. Every gate in <see cref="Decide"/> must pass or the result is None. Two guard against
+/// double-firing with vanilla Poach, <c>weaponIsDormantFormula</c> and <c>wasBasicAttack</c> (vanilla also
+/// poaches ability kills, seen 2026-08-12), armed in LW-167 stage 4 via <see cref="LivingPoach.ReadWasBasicAttack"/>.
+/// The old SpeciesOf/JobInMonsterRange arithmetic (job byte - 95) was dropped 2026-08-12 after a Black Chocobo
+/// at job 95 was refused. <paramref name="jobMapped"/> (poach.json map, tools/extract_poach_map.py) is the monster gate.
 /// </summary>
 internal static class LivingPoachPolicy
 {
-    /// <summary>Roll 0..255: below this is Common, at/above is Rare -- 225/256 common, 31/256
-    /// rare (ffhacktics-documented split; corrects the folk 224/32 belief).</summary>
+    /// <summary>Roll 0..255. Below this is Common, at or above is Rare (225/256 vs 31/256, the ffhacktics split, not the folk 224/32).</summary>
     internal const int RollCommonThreshold = 225;
 
-    /// <summary>The whole eligibility+roll decision in one call. <paramref name="jobMapped"/> is
-    /// PoachMap.TryGetJob(victimJob, ...) -- the sole monster-eligibility gate (see class doc).
-    /// <paramref name="roll"/> is 0..255 (the caller's injected roll seam, kept out of this pure
-    /// function so it stays testable).</summary>
+    /// <summary>The whole eligibility and roll decision. <paramref name="jobMapped"/> is PoachMap.TryGetJob(victimJob, ...);
+    /// <paramref name="roll"/> is 0..255 from the caller's injected seam.</summary>
     internal static PoachVerdict Decide(bool weaponIsDormantFormula, bool killerHasPoach, bool wasBasicAttack,
         int victimJob, bool jobMapped, int roll)
     {
@@ -48,9 +30,8 @@ internal static class LivingPoachPolicy
         return roll < RollCommonThreshold ? PoachVerdict.Common : PoachVerdict.Rare;
     }
 
-    /// <summary>Strip a trailing <c>&lt;Icon=...&gt;</c> markup tag (poach.json's rare-variant
-    /// name suffix, e.g. "Chocobo Carcass&lt;Icon=103&gt;") for plain-text display surfaces
-    /// (the toast). A name carrying no markup passes through unchanged.</summary>
+    /// <summary>Strip a trailing <c>&lt;Icon=...&gt;</c> tag (poach.json's rare-variant suffix, e.g. "Chocobo Carcass&lt;Icon=103&gt;")
+    /// for plain-text surfaces like the toast.</summary>
     internal static string StripIconMarkup(string name)
     {
         int i = name.IndexOf("<Icon=", StringComparison.Ordinal);

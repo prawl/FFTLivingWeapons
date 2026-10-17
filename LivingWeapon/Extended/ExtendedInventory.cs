@@ -6,36 +6,13 @@ using Reloaded.Hooks.Definitions;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-346: the extended inventory's composition root and boot-arm lifecycle. Takes the items
-/// the data layer loaded and, in Mod.StartEx (before the game runs an instruction), installs
-/// every piece the FFTHandsFree research rig proved on 1.5.2, as ONE transaction with full
-/// rollback on the first refusal:
-///   1. no whole-image check gates the arm (the roster landmark LaunchGuard waits for cannot be
-///      read this early, and since LW-397 the build stamp is a report line, not a landmark): every
-///      patch site verifies its expected OLD bytes before it is written and the whole arm rolls
-///      back on the first disagreement (BytePatchSet, ExtendedCatalog, ShopFlagsMirror,
-///      ListRelocation, TemplateRelocation, AccessorEntryHook, SwingIdFallbackHook, and the five
-///      Reloaded detours' prologue landmarks); a moved site refuses with one line; a strange
-///      build stamp no longer refuses anything;
-///   2. the boot-safe cap patches (ExtendedSites.BootPatches, old bytes verified);
-///   3. LW-368 round 2: the two per-item byte lists (bag counts, sibling flags) copied onto a
-///      page the mod owns and every plain-code reference to the old blocks re-pointed there
-///      (ListRelocation.cs), so the ceiling past which id N reads Ramza's own roster row is
-///      gone and every later step below resolves a bag byte through <see cref="BagCountBase"/>;
-///   4. the relocated catalog filled with our records;
-///   5. the accessor entry hooks: the weapon-stat entry answers with our own stat rows, the
-///      nine per-category thunks answer as each item's clone/art donor;
-///   6. the category-getter, order-rebuild, list-builder (LW-372), reset and save-edge hooks
-///      (Reloaded.Hooks, prologue landmarks);
-///   7. the bag counts (sidecar value, else the data's first-copy seed), written at
-///      <see cref="BagCountBase"/>.
-/// Then <see cref="Armed"/> is true and the tick half (ExtendedInventory.Tick.cs) owns the two
-/// copy-protected caps and the bag sidecar. With no extended rows shipped, everything above is
-/// skipped with one Debug line: the mod behaves exactly as before this system existed.
-///
-/// The step list itself (<c>Install</c>, <c>InstallAccessorHook</c>, <c>SeedBag</c>) lives in
-/// ExtendedInventory.Arm.cs (LW-371, verifier NIT-5); this file keeps the fields, the ctor, this
-/// sequencing method, the properties and <see cref="Refuse"/>.
+/// LW-346 extended inventory composition root and boot-arm lifecycle. BootArm runs in Mod.StartEx as one
+/// transaction that rolls back on the first refusal. No whole-image check gates it (the roster landmark is
+/// unreadable that early, and since LW-397 the build stamp is a report line), so each patch site verifies
+/// its old bytes before writing. Steps are in ExtendedInventory.Arm.cs: cap patches, the LW-368
+/// round 2 list relocation (bag counts then live at <see cref="BagCountBase"/>), catalog fill, accessor
+/// hooks, category/order/list-builder/reset/save-edge hooks, then the bag seed. The tick half is
+/// ExtendedInventory.Tick.cs. With no extended rows shipped the whole arm is skipped with one Debug line.
 /// </summary>
 internal sealed partial class ExtendedInventory
 {
@@ -52,33 +29,27 @@ internal sealed partial class ExtendedInventory
     private readonly ShopFlagsMirror _shops = new();   // LW-354
     private readonly List<AccessorEntryHook> _accessorHooks = new();
     private AccessorEntryHook? _weaponStatHook;   // the row stub: its page holds every extended id's 8-byte stats row
-    private SwingIdFallbackHook? _swingIdFallback;   // LW-365: empty-tile swing art falls back to the hand id
+    private SwingIdFallbackHook? _swingIdFallback;   // empty-tile swing art falls back to the hand id
     private CategoryGetterHook? _getterHook;
     private OrderRebuildHook? _orderHook;
     private ListBuilderHook? _listBuilderHook;   // LW-372
     private InventoryResetHook? _resetHook;   // LW-351 fix round 7
     private SaveEdgeHooks? _saveHooks;   // LW-353
-    /// <summary>LW-353: the save/load edge core the hooks feed and the tick drains. Tests drive it directly.</summary>
+    /// <summary>the save/load edge core the hooks feed and the tick drains. Tests drive it directly.</summary>
     public SaveEdgeTracker Tracker { get; } = new();
 
     public IReadOnlyList<ExtendedItemDef> Items => _data.Items;
     public bool Armed { get; private set; }
     /// <summary>Why the last BootArm did not arm (null once armed, or when nothing is shipped).</summary>
     public string? Refusal { get; private set; }
-    /// <summary>LW-368 round 2: where the per-item bag counts live right now -- the relocated
-    /// page once the list relocation armed, else <see cref="Offsets.BagCountArray"/> (the
-    /// vanilla block). Every reader/writer of a bag byte resolves its base through this, never
-    /// the raw offset, so a relocation refusal falls back to the vanilla block transparently.</summary>
+    /// <summary>LW-368 round 2: where the bag counts live now, the relocated page if it armed, else
+    /// <see cref="Offsets.BagCountArray"/>. Resolve every bag byte through this so a refused relocation falls back.</summary>
     public long BagCountBase => _relocation.Installed ? _relocation.CountBase : Offsets.BagCountArray;
-    /// <summary>LW-371: the two weapon order-template regions in effect right now -- the
-    /// relocated page's regions once the template relocation armed, else the vanilla pair. Every
-    /// seat (boot replay, load replay, the order-rebuild hook) reads through this, never
-    /// <see cref="TemplateSeat.WeaponRegions"/> directly, so a relocation refusal falls back to the
-    /// vanilla tables transparently.</summary>
+    /// <summary>the weapon order-template regions in effect, relocated if that armed, else the
+    /// vanilla pair. Read through this, not <see cref="TemplateSeat.WeaponRegions"/>.</summary>
     public TemplateSeat.Region[] TemplateRegions => _templates.Regions;
 
-    /// <param name="installHooks">Test seam (internal): the step that installs the two
-    /// Reloaded.Hooks detours, returning null on success or the refusal. Null (production) uses
+    /// <param name="installHooks">Test seam for the Reloaded.Hooks install step; null uses
     /// <see cref="DefaultInstallHooks"/>, which refuses a null hooks controller.</param>
     public ExtendedInventory(ICodePatcher patcher, INearAllocator allocator, ExtendedInventoryData.LoadResult data,
         ExtendedBagSidecar sidecar, Func<IReloadedHooks?, string?>? installHooks = null)
@@ -91,8 +62,7 @@ internal sealed partial class ExtendedInventory
         _pending = ExtendedSites.PostLoadPatches(Math.Max(1, data.Items.Count)).Select(p => new PendingPatch(p)).ToList();
     }
 
-    /// <summary>Runs once from Engine.InjectHooks (Mod.StartEx). Idempotent. Null hooks = the
-    /// hooks helper mod is absent: nothing is armed, one warning says why.</summary>
+    /// <summary>Runs once from Engine.InjectHooks (Mod.StartEx) and is idempotent. Null hooks means the helper mod is absent, so nothing arms.</summary>
     public void BootArm(IReloadedHooks? hooks)
     {
         if (Armed) return;
@@ -119,11 +89,9 @@ internal sealed partial class ExtendedInventory
             + (_pending.Count == 0 ? "." : $"; {_pending.Count} damage cap(s) wait for the first save to load."));
     }
 
-    /// <summary>The address of an extended id's 8-byte ITEM_WEAPON_DATA row inside the weapon-stat
-    /// stub page (what the game's weapon-stat accessor returns for that id), or -1 when the
-    /// inventory is not armed or the id is not one of ours. WpTableHold writes its turn-scoped
-    /// WP bump there for a wp/wp+faith-lane extended weapon (the resident table has no row for
-    /// these ids, Offsets.ItemStatsRows). Same 8-byte layout as the resident table: Power at +4.</summary>
+    /// <summary>Address of an extended id's 8-byte ITEM_WEAPON_DATA row in the weapon-stat stub page, or -1
+    /// when unarmed or not ours. WpTableHold writes its WP bump there (Offsets.ItemStatsRows has no row for
+    /// these ids). Same layout as the resident table, Power at +4.</summary>
     public long WeaponRowAddr(int id)
     {
         if (!Armed || _weaponStatHook == null || !_weaponStatHook.Installed) return -1;

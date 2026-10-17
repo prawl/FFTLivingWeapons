@@ -4,35 +4,14 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Wrathblade's "Feign Death" signature (+3): a lethal hit on the wielder becomes a comedy of playing
-/// dead. The wielder flops as a corpse (the real death animation plays), then -- for ~2 turns -- acts
-/// while prone and IGNORED by the AI, before the finishing blow drops and the engine's OWN Reraise
-/// stands them back up, animated, at ~10% HP. ONCE per battle.
-///
-/// The lifecycle (FeignDeath.Policy.cs <see cref="Step"/> is the pure state machine; this half only
-/// reads facts, calls Step, and applies the guarded writes):
-///   Watching -- armed and alive, waiting for the lethal hit (HP 0 or the dead bit).
-///   Possum   -- clear the dead bit + hold HP at 1 (prone but alive, so it still takes turns) and hold
-///               Invisible (+0x47/0x10, re-stamped: it breaks when the wielder is HIT -- corrected
-///               2026-07-22, this line used to say "the instant the unit acts", which is measurably
-///               wrong; see the Offsets.AInvisible block and the LIVE_LEDGER orphan-flag row. The
-///               re-stamp is still required, because a prone wielder among enemies gets hit) so the AI
-///               skips it. Single-target enemies ignore it; AoE splash can still reach it. Lasts 2 of
-///               the wielder's turns, counted off the active-unit struct (the band CT byte is too noisy
-///               to count); FeignPossumSeconds is an idle-only safety cap.
-///   Finish   -- keep playing dead (still prone + Invisible) until the wielder is UP NEXT in the queue,
-///               THEN deal the finishing blow: drop Invisible, hold Reraise (+0x47/0x20), HP -> 0 AND
-///               the dead bit set (the engine does NOT flag dead on a memory HP write, so Reraise needs
-///               the bit). Striking only at up-next keeps the dead-and-scheduled window to a sliver --
-///               killing earlier crashed the engine, killing mid-turn left a stuck dead-but-active turn.
-///   Recover  -- the engine raised the wielder: drop Reraise, HOLD the dead/KO bit CLEARED for
-///               FeignRecoverSeconds so the stand-up leaves no hearts / skipped turn, then spent.
-///
-/// OBSERVED LIVE 2026-06-14 end to end in-game (real combat death, 2 turns acting while the AI ignores
-/// it, animated stand-up at 10% HP with the KO state cleared). SYNERGY (why Wrathblade):
-/// its damage = the wielder's MISSING HP (formula 67) -- reviving at ~10% leaves ~90% missing, loading
-/// the blade to near-max. Reraise is applied ONLY at the finishing blow, never the whole battle, so
-/// the status icon is not on show during play. Every read/write is guarded (Writable + W8/WriteBytes).
+/// Wrathblade's "Feign Death" signature (+3). A lethal hit on the wielder makes it flop as a corpse, act prone
+/// for ~2 turns while the AI ignores it, then take a finishing blow so the engine's own Reraise stands it up
+/// at ~10% HP. Once per battle. Wrathblade damage is the wielder's missing HP (formula 67), so the revive
+/// leaves ~90% missing and loads the blade. Observed in game 2026-06-14. FeignDeath.Policy.cs <see cref="Step"/>
+/// is the pure state machine; this half reads facts and applies the guarded writes. Phases run Watching,
+/// Possum (prone, HP held at 1, Invisible held), Finish (finishing blow at up-next), Recover (dead bit held
+/// cleared for FeignRecoverSeconds so the stand-up leaves no hearts or skipped turn). Reraise is applied only
+/// at the finishing blow, so its status icon is not shown during play.
 /// </summary>
 internal sealed partial class FeignDeath : ISignature
 {
@@ -43,9 +22,8 @@ internal sealed partial class FeignDeath : ISignature
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly Dictionary<int, int> _kills;
     private readonly List<int> _hands = new();
-    // GATE-ON-ARMED (log facelift): TryResolveMainHand is roster-wide, so a benched +3 Wrathblade
-    // arms the active/inactive edge; the scoped logger keeps those lines off the console unless a
-    // deployed unit actually wields it this battle.
+    // Gate on armed (log facelift). TryResolveMainHand is roster-wide, so a benched +3 Wrathblade would arm the
+    // edge. The scoped logger keeps those lines off the console unless a deployed unit wields it.
     private readonly ScopedLogger _slog;
     private bool _wasActive;
     private bool _spent;          // once-per-battle: the played-dead cycle has run its course
@@ -55,8 +33,7 @@ internal sealed partial class FeignDeath : ISignature
     private DateTime _recoverStart;
     private bool _finishKilled;   // the finishing blow (HP -> 0) has been dealt
     private bool _finishWasDead;  // the finish death registered -> awaiting the revive edge
-    // Wielder's OWN turns during possum, counted off the active-unit struct (TurnQueue): a turn ends
-    // when the wielder stops being the active unit. (The band CT byte is too noisy to count reliably.)
+    // The wielder's own possum turns, counted off the active-unit struct (TurnQueue). The band CT byte is too noisy.
     private bool _wasActiveWielder;   // was the wielder the engine's active unit last tick (turn-edge count)
     private int _possumTurnCount;     // wielder's completed turns this possum
 
@@ -98,8 +75,8 @@ internal sealed partial class FeignDeath : ISignature
         bool dead = (_mem.U8(e + Offsets.ADeadStatus) & Offsets.ADeadBit) != 0;
         if (hp > 0 && !dead) _sawAlive = true;
 
-        // Once spent, the only thing to do is watch for a re-arm: a battle restart ("Retry") reloads
-        // too fast for the debounced exit edge to reset us, but it puts the wielder back at full HP.
+        // Once spent, only watch for a re-arm. A retry reloads faster than the debounced exit edge can reset us,
+        // but it restores full HP.
         if (_spent)
         {
             if (ShouldRearm(_spent, hp, _mem.U16(e + Offsets.AMaxHp), dead))
@@ -110,10 +87,8 @@ internal sealed partial class FeignDeath : ISignature
             else return;
         }
 
-        // Count the wielder's completed turns off the ENGINE'S ACTIVE-UNIT struct (TurnQueue), NOT the
-        // noisy +0x25 CT: a turn ends when the wielder stops being the active unit. The active struct
-        // cleanly identifies who's acting; the CT byte was jumpy and undercounted, so the count kept
-        // missing turns and falling to the 90s safety cap (the "6 turns" overrun). Wall clock = idle cap.
+        // Count possum turns off the engine's active-unit struct (TurnQueue). The +0x25 CT byte was jumpy and
+        // undercounted, which ran into the 90s safety cap (the "6 turns" overrun). Wall clock is only the idle cap.
         bool possumDone = false;
         if (_phase == Phase.Possum)
         {
@@ -128,12 +103,9 @@ internal sealed partial class FeignDeath : ISignature
                          || Elapsed(_possumStart, now, Tuning.FeignPossumSeconds);
         }
         bool recoverElapsed = _phase == Phase.Recover && Elapsed(_recoverStart, now, Tuning.FeignRecoverSeconds);
-        // At the finishing-blow instant we need two facts (each read only here, once per feign):
-        //   otherAllyAlive -- don't manufacture a party wipe by killing the last unit up.
-        //   upNext         -- only strike once the wielder has climbed back to "up next" (high CT,
-        //                     another unit still active). Killing it earlier left it dead-and-scheduled
-        //                     for a long climb, which crashed the engine; striking at up-next means the
-        //                     corpse exists only a sliver before its turn auto-raises it.
+        // At the finishing blow, otherAllyAlive avoids a party wipe from killing the last unit up, and upNext
+        // waits until the wielder is not active and at high CT. Killing earlier left it dead and scheduled for
+        // a long climb, which crashed the engine.
         bool atBlow = _phase == Phase.Finish && !_finishKilled;
         bool otherAllyAlive = !atBlow || OtherAllyAlive(e);
         bool upNext = !atBlow
@@ -141,6 +113,10 @@ internal sealed partial class FeignDeath : ISignature
 
         var act = Step(_phase, hp, dead, _sawAlive, possumDone, recoverElapsed, _finishKilled, _finishWasDead, otherAllyAlive, upNext);
 
+        // Invisible (+0x47/0x10) is re-stamped each tick. It breaks when the wielder is hit, not when it acts
+        // (corrected 2026-07-22; see the Offsets.AInvisible block and the LIVE_LEDGER orphan-flag row).
+        // The finishing blow drops Invisible, holds Reraise (+0x47/0x20), and sets HP 0 plus the dead bit,
+        // since the engine does not flag dead on a memory HP write. Killing mid-turn left a stuck dead turn.
         if (act.Invisible is bool inv) SetInvisible(_mem, e, inv);
         if (act.Reraise is bool rr) SetReraise(_mem, e, rr);
         if (act.Dead is bool dd) SetDead(_mem, e, dd);
@@ -160,12 +136,8 @@ internal sealed partial class FeignDeath : ISignature
         }
     }
 
-    /// <summary>True when the engine's CURRENT active unit (the condensed turn struct at TurnQueue) is
-    /// the wielder -- matched by max-HP + level. Used to count the wielder's possum turns (a turn ends
-    /// when it stops matching) and to gate the finishing blow to the "up next" window: we strike only
-    /// while it is NOT active but at high CT, so the corpse is dead-and-scheduled for a sliver before
-    /// its turn auto-raises it (killing it far from its turn crashed the engine; mid-turn left a stuck
-    /// dead-but-active turn).</summary>
+    /// <summary>True when the engine's current active unit (the condensed turn struct at TurnQueue) is the
+    /// wielder, matched by max-HP and level. Used to count possum turns and to time the finishing blow.</summary>
     private bool ActiveUnitIsWielder(long wielder)
     {
         int wmhp = _mem.U16(wielder + Offsets.AMaxHp), wlvl = _mem.U8(wielder + Offsets.ALevel);
@@ -173,12 +145,9 @@ internal sealed partial class FeignDeath : ISignature
             && _mem.U16(Offsets.TurnQueue + Offsets.TqLevel) == wlvl;
     }
 
-    /// <summary>True iff at least one OTHER player unit is alive in the band -- a real-position entry
-    /// (not a frozen (0,0) twin) matching a player fingerprint, with live HP &gt; 0 and the dead bit
-    /// clear, whose identity differs from the wielder's (so the wielder and its own twin are excluded).
-    /// Gates the finishing blow: force-killing the LAST standing unit would be a party wipe (game over)
-    /// before Reraise could fire. Errs SAFE -- any miscount lands on "no other ally" (degrade to
-    /// survival), never on a false "ally alive" that would risk the wipe.</summary>
+    /// <summary>True when another player unit is alive in the band: a real-position entry (not a (0,0) twin)
+    /// matching a player fingerprint, HP above 0, dead bit clear, and not the wielder or its twin. Guards the
+    /// finishing blow against a party wipe. A miscount lands on "no other ally", which degrades to survival.</summary>
     private bool OtherAllyAlive(long wielder)
     {
         int wMhp = _mem.U16(wielder + Offsets.AMaxHp), wLvl = _mem.U8(wielder + Offsets.ALevel);

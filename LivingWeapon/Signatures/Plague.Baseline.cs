@@ -2,25 +2,19 @@ using System.Collections.Generic;
 
 namespace LivingWeapon;
 
-/// <summary>Per-slot poison baseline for the Plague latch. Tracks the last-seen poison-bit
-/// state, the unit fingerprint, and WHEN the bit last rose (false->true) at each band-slot
-/// address; updated every tick regardless of the acted window. The timestamp is what makes the
-/// latch tolerant of engine timing: poison is applied during attack resolution, which can land
-/// a tick before the acted window is observed open or after it closes, so the latch matches
-/// edge-time against window-time within a grace instead of requiring exact overlap.
-/// A unit first seen already poisoned never yields an edge (pre-existing poison is excluded);
-/// a fingerprint change (unit replaced) resets the slot.</summary>
+/// <summary>Per-slot poison baseline for the Plague latch: last-seen poison bit, unit fingerprint,
+/// and when the bit last rose at each band-slot address. Poison can land a tick before or after
+/// the acted window, so the latch compares edge time to window time within a grace. A unit first
+/// seen poisoned yields no edge; a fingerprint change resets the slot.</summary>
 internal sealed class PlagueBaseline
 {
-    /// <summary>"No edge ever observed" sentinel: far enough below zero that grace arithmetic
-    /// can never reach it, far enough above long.MinValue that subtraction cannot overflow.</summary>
+    /// <summary>"No edge seen" sentinel, kept above long.MinValue so subtraction cannot overflow.</summary>
     public const long NoEdge = long.MinValue / 2;
 
     private readonly Dictionary<long, BaselineEntry> _baseline = new();
 
-    /// <summary>Record the current poison state for a band slot, stamping the edge time when the
-    /// bit transitions false->true with a valid same-unit prior. Call every tick for every valid
-    /// band entry, before any latch decision.</summary>
+    /// <summary>Record the poison state for a slot, stamping the time on a false->true edge for the
+    /// same unit. Call every tick before any latch decision.</summary>
     public void Update(long addr, (int mhp, int lvl, int br, int fa) fp, bool poisoned, long nowMs)
     {
         if (_baseline.TryGetValue(addr, out var prev) && prev.Fp.Equals(fp))
@@ -29,12 +23,11 @@ internal sealed class PlagueBaseline
             _baseline[addr] = new BaselineEntry(fp, poisoned, edge);
             return;
         }
-        // New slot or replaced unit: no valid prior, so no edge -- conservative by design.
+        // New slot or replaced unit: no prior, so no edge.
         _baseline[addr] = new BaselineEntry(fp, poisoned, NoEdge);
     }
 
-    /// <summary>When the poison bit last rose at this slot for this unit, or <see cref="NoEdge"/>
-    /// when never observed (slot unknown, unit replaced, or first seen already poisoned).</summary>
+    /// <summary>When the poison bit last rose for this unit, or <see cref="NoEdge"/> if never seen.</summary>
     public long LastEdgeMs(long addr, (int mhp, int lvl, int br, int fa) fp)
         => _baseline.TryGetValue(addr, out var e) && e.Fp.Equals(fp) ? e.LastEdgeMs : NoEdge;
 

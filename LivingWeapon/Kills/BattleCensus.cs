@@ -4,50 +4,20 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Reliquary P2 probe instrument (docs/RELIQUARY_AC.md P2) -- once-per-battle both-teams identity
-/// census at the oracle coverage-complete edge; read-only; exists so a named boss's nameId can be
-/// checked for uniqueness/stability/player-pool collisions without killing every unit.
-///
-/// TRIGGER: <see cref="EnemyOracle.CoverageDone"/> -- the "kill: all N enemies accounted for" edge,
-/// observed live to fire reliably ~5s into battle (EnemyOracle.CheckCoverage). Firing on this existing
-/// edge means the census never needs its own timer: it rides a trigger that is already known-solid.
-/// Fires EXACTLY ONCE per battle via <see cref="Tick"/> (armed/fired flag, not a re-derived edge
-/// test: once <see cref="EnemyOracle.CoverageDone"/> goes true it stays true for the rest of the
-/// battle, so a simple fired-once latch is equivalent to a strict false-&gt;true transition test and
-/// simpler to reason about). Wired from KillTracker.Poll, right after ScanCorpses so the oracle has
-/// ticked this frame before <see cref="Tick"/> reads it.
-///
-/// LW-56 D11/A3: <see cref="Tick"/>'s trigger never fires at all when oracle coverage never
-/// completes (an over-count keeps CheckCoverage from ever passing cleanly), so a battle can run
-/// its whole length with zero census records. <see cref="EmitExit"/> is the repair: it runs the
-/// census UNCONDITIONALLY, bypassing the fired latch, called by Engine on the battle-exit edge
-/// (before the flight flush) so every exit tape carries a fresh census regardless of whether
-/// <see cref="Tick"/> ever fired. A battle where both run produces two census records; that is a
-/// count change, not a type change (the record type stays "census").
-///
-/// Two read-only, guarded passes (never throws -- mirrors VictimProbe/FlavorSpike's try/catch shape):
-///   BAND   -- every valid band slot (<see cref="Band.IsValid"/>), both teams as the live auth-band
-///             frames stand this tick: nameId, job byte, level/brave/faith, hp/maxHp, grid position.
-///   ROSTER -- every occupied roster slot (RLevel 1..99 -- the same occupied-check
-///             ActorRegister.Bridge uses): RNameId, level, brave, faith, and (LW-56 round 2) the
-///             RAW u16 reads of all three hand slots, sentinels included exactly as memory held
-///             them (`{slot}:{nameId}L{level}B{brave}F{faith}W{rHand},{lHand},{offHand}`, e.g.
-///             "0:1L99B89F76W80,65535,65535"): the player-pool side of the P2 collision check,
-///             and the exact evidence the weapon-key rescue's `wpn=` tape field can be
-///             cross-checked against.
-/// Logged one ModLogger.Debug line per slot (file-only unless the console level is raised to Debug), plus ONE bounded
-/// flight-recorder tap for the whole census -- a per-slot tap would flood the bounded 4096-record
-/// ring for what is fundamentally one event.
+/// Reliquary P2 probe (docs/RELIQUARY_AC.md P2). Read-only identity census of both teams, taken once per
+/// battle when <see cref="EnemyOracle.CoverageDone"/> goes true (the "all N enemies accounted for" edge,
+/// EnemyOracle.CheckCoverage, about 5s into battle), so a boss nameId can be checked for uniqueness and
+/// player-pool collisions. <see cref="Tick"/> is wired from KillTracker.Poll after ScanCorpses. LW-56 D11/A3
+/// adds <see cref="EmitExit"/>, which runs the census on the battle-exit edge even if coverage never
+/// completed; a battle where both run logs two records. Two guarded passes over the band (nameId, job,
+/// level/brave/faith, hp, grid position) and the roster (the same, plus the raw hand slots, LW-56 round 2).
+/// One Debug line per slot and a single flight tap for the whole census.
 /// </summary>
 internal sealed class BattleCensus
 {
-    // Keep the single flight record compact regardless of how many slots are occupied -- the
-    // ring is bounded (FlightRecorder, 4096 records) and a full-roster, full-band battle could
-    // otherwise produce a payload far larger than every other tap in the file. Raised 1400 -> 1800
-    // (LW-56 round 2) when the roster part grew a W{rHand},{lHand},{offHand} tail: a fully
-    // populated battle (max band + 20 roster rows, every hand slot at its widest raw reading) now
-    // runs noticeably larger than the pre-round-2 ~1.2k chars, and the new tail lands AFTER the
-    // band part, so the old cap would have truncated it away on exactly the busiest battles.
+    // Caps the flight record (the ring holds 4096). Raised 1400 -> 1800 in LW-56 round 2, when the
+    // roster part gained the W{rHand},{lHand},{offHand} tail that lands after the band part and would
+    // be truncated first on a full battle.
     private const int MaxPayloadChars = 1800;
 
     private readonly IGameMemory _mem;
@@ -61,9 +31,8 @@ internal sealed class BattleCensus
         _recorder = recorder;
     }
 
-    /// <summary>One tick: runs the census the first time <paramref name="coverageDone"/> reads true
-    /// this battle, then goes inert (no-op) for every subsequent call until <see cref="ResetBattle"/>
-    /// re-arms it.</summary>
+    /// <summary>Runs the census the first time <paramref name="coverageDone"/> reads true this
+    /// battle, then does nothing until <see cref="ResetBattle"/>.</summary>
     public void Tick(bool coverageDone)
     {
         if (_fired || !coverageDone) return;
@@ -74,9 +43,8 @@ internal sealed class BattleCensus
     /// <summary>Re-arm for the next battle.</summary>
     public void ResetBattle() => _fired = false;
 
-    /// <summary>LW-56 D11/A3: run the census unconditionally, bypassing <see cref="_fired"/>.
-    /// Called on the battle-exit edge so an exit tape always carries a fresh census, whether or
-    /// not <see cref="Tick"/> ever fired this battle.</summary>
+    /// <summary>LW-56 D11/A3: run the census regardless of <see cref="_fired"/>, on the battle-exit
+    /// edge, so the exit tape always has one.</summary>
     internal void EmitExit() => RunCensus();
 
     private void RunCensus()
@@ -121,12 +89,8 @@ internal sealed class BattleCensus
                 int lh = _mem.U16(b + Offsets.RLHand);
                 int oh = _mem.U16(b + Offsets.ROffHand);
                 ModLogger.Debug(LogVerb.Trace, $"census: roster slot={s} nameId={nameId} level={rlvl} brave={rbrave} faith={rfaith} rHand={rh} lHand={lh} offHand={oh}");
-                // LW-56: level+brave+faith ride alongside nameId so a stale roster is visible on
-                // tape by all four fields together (not nameId alone), and so the fingerprint
-                // rescue's fp=L{level}B{brave}F{faith} can be cross-checked against the exact
-                // roster row a tape names. Round 2: the raw hand ids (sentinels included, exactly
-                // what memory held) so the weapon-key rescue's wpn= tap can be cross-checked
-                // against the exact row it claims to have matched.
+                // Level/brave/faith let the fingerprint rescue's fp= field be checked against
+                // the row; round 2 adds the raw hand ids for the weapon-key rescue's wpn= tap.
                 rosterParts.Add($"{s}:{nameId}L{rlvl}B{rbrave}F{rfaith}W{rh},{lh},{oh}");
                 rosterCount++;
             }
@@ -139,8 +103,7 @@ internal sealed class BattleCensus
         }
         catch (Exception ex)
         {
-            // Warning, not Error: a read-only probe failing degrades evidence, it breaks nothing,
-            // and it must not burn the launch's one FlushOnce flight archive.
+            // Warn, not Error, so a failed probe does not use up the launch's one FlushOnce archive.
             ModLogger.Warn(LogVerb.Trace, "The identity census failed and was skipped: " + ex.Message);
         }
     }

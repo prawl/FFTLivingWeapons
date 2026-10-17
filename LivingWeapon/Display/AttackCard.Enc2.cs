@@ -1,23 +1,14 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// The enc==2 (UTF16) dead path, split out of AttackCard.Paint.cs to keep that file under the
-/// 200-line refactor trigger. AttackRow's record mechanism is enc1-only (AttackRow.Policy.cs's
-/// class doc); the live census has found zero enc2 "Attack" catalogs, so this exists purely as a
-/// safety net in case one ever appears. An enc2 copy NEVER receives a composed image; its only
-/// possible fate is vanilla-restore, mirroring the flat-text write AttackCard used before stage 3's
-/// split-image mechanism existed, but now scoped to "vanilla only" instead of "whatever the desired
-/// plan says" (the desired plan may be a split image today, which has no meaning for a flat-text
-/// UTF16 buffer).
+/// The enc==2 (UTF16) path, split out of AttackCard.Paint.cs for the 200-line trigger. AttackRow's
+/// record mechanism is enc1-only (AttackRow.Policy.cs), and the census has found no enc2 "Attack"
+/// catalogs, so this is a safety net. An enc2 copy never gets a composed image, only a vanilla restore.
 /// </summary>
 internal sealed partial class AttackCard
 {
-    /// <summary>Verify the label, then require the desc to ALREADY read vanilla to keep this copy
-    /// cached: an enc2 catalog is never a candidate for the split-image treatment, so unlike the
-    /// enc1 path's three-way anchor, there is nothing else it could legitimately hold. Rejects
-    /// (zero writes) on a label mismatch, an unreadable desc, or any non-vanilla text: the
-    /// rejection itself performs no restore attempt here; RestoreVanillaBestEffortEnc2 is the only
-    /// place that ever attempts to write this branch's vanilla text back.</summary>
+    /// <summary>Verify the label, then require the desc to already read vanilla. Rejects with zero writes
+    /// on a label mismatch, an unreadable desc, or non-vanilla text; only RestoreVanillaBestEffortEnc2 writes.</summary>
     private SyncOutcome SyncHitEnc2(Hit hit)
     {
         byte[] labelPattern = AttackCardProbeText.Pattern(2);
@@ -34,10 +25,8 @@ internal sealed partial class AttackCard
         return SyncOutcome.Ok;   // already vanilla; enc2 never receives a composed write
     }
 
-    /// <summary>Best-effort vanilla restore for an enc2 copy: attempts a flat vanilla-text write ONLY
-    /// when the current text is not already vanilla (a drift that happened between this hit's last
-    /// SyncHitEnc2 pass and battle exit). Never writes offset/record bytes: enc2 catalogs have no
-    /// meaningful record to touch here.</summary>
+    /// <summary>Best-effort flat vanilla-text write for an enc2 copy, only when the text drifted since the
+    /// last SyncHitEnc2 pass. Does not touch offset/record bytes.</summary>
     private void RestoreVanillaBestEffortEnc2(Hit hit)
     {
         byte[] labelPattern = AttackCardProbeText.Pattern(2);

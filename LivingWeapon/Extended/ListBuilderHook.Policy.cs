@@ -2,14 +2,11 @@ using System;
 
 namespace LivingWeapon;
 
-/// <summary>Pure, testable half of <see cref="ListBuilderHook"/>: byte/word conversion, the
-/// truncation copy-back and the pool slot-address arithmetic. No hook or memory dependency.</summary>
+/// <summary>Pure half of <see cref="ListBuilderHook"/> (byte/word conversion, truncation copy-back, pool slot addresses).</summary>
 internal sealed partial class ListBuilderHook
 {
-    /// <summary>Little-endian u16 words, one pair per two bytes. No terminator search: the caller
-    /// already knows how many valid words came back (D2/Q5 -- every builder caller trusts the
-    /// routine's own returned count rather than re-scanning for the terminator itself, and this
-    /// hook does the same).</summary>
+    /// <summary>Little-endian u16 words, one per two bytes. No terminator search, since the caller
+    /// already has the valid word count (D2/Q5).</summary>
     internal static ushort[] ToWords(byte[] bytes)
     {
         var words = new ushort[bytes.Length / 2];
@@ -17,9 +14,8 @@ internal sealed partial class ListBuilderHook
         return words;
     }
 
-    /// <summary>D2's copy-back: at most <paramref name="cap"/> of <paramref name="words"/>, in
-    /// order, followed by <see cref="Terminator"/>. The exact bytes written into a stack caller's
-    /// buffer, and (words: empty, cap: 0) the exact bytes for the D3 pool-exhaustion refusal.</summary>
+    /// <summary>D2's copy-back. At most <paramref name="cap"/> of <paramref name="words"/>, then <see cref="Terminator"/>.
+    /// Empty words with cap 0 gives the bytes for the D3 pool-exhaustion refusal.</summary>
     internal static byte[] TruncatedTail(ushort[] words, int cap)
     {
         int n = TruncatedCount(words, cap);
@@ -34,11 +30,9 @@ internal sealed partial class ListBuilderHook
         return bytes;
     }
 
-    /// <summary>How many entries <see cref="TruncatedTail"/> keeps: <c>min(words.Length, cap)</c>,
-    /// the value the detour hands back to the caller in place of the original's own count.</summary>
+    /// <summary>Entries <see cref="TruncatedTail"/> keeps, <c>min(words.Length, cap)</c>. The detour returns it as the count.</summary>
     internal static int TruncatedCount(ushort[] words, int cap) => Math.Min(words.Length, Math.Max(cap, 0));
 
-    /// <summary>D3: the byte address of pool slot <paramref name="index"/> (0..<see cref="PoolSlots"/>-1)
-    /// on the page <paramref name="poolBase"/>.</summary>
+    /// <summary>D3 byte address of pool slot <paramref name="index"/> (0..<see cref="PoolSlots"/>-1) on page <paramref name="poolBase"/>.</summary>
     internal static long SlotAddr(long poolBase, int index) => poolBase + (long)index * SlotBytes;
 }

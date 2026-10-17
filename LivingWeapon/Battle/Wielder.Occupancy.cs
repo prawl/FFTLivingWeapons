@@ -1,26 +1,15 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// Wielder's SECOND occupied-slot rule (LW-149 stage D). Alongside the STRICT walk in
-/// Wielder.Roster.cs (<see cref="Wielder.TryOccupiedSlot"/>, level 1..99), a handful of
-/// signature activation gates historically used a weaker LENIENT rule: a roster slot counts as
-/// "occupied" whenever its nameId field is READABLE at all (Readable(RNameId, 2)), with no level
-/// floor or ceiling. Splitting this into its own named helper -- rather than silently folding
-/// these callers onto the strict rule, or leaving the loop copy-pasted per caller -- keeps their
-/// existing behavior byte-identical: a roster slot with a readable-but-invalid (e.g. 0) level
-/// today still arms EagleEye/Plague's activation gate, and must keep doing so. Kept in
-/// its own file (rather than folded into the already-long Wielder.Roster.cs) so this real seam
-/// stays a real seam, not line-count evasion.
+/// Lenient occupied-slot rule for Wielder (LW-149 stage D). The strict walk in Wielder.Roster.cs
+/// (<see cref="Wielder.TryOccupiedSlot"/>) needs level 1..99; a few signature gates have always used this
+/// weaker check, so it gets its own helper and their behavior stays unchanged.
 /// </summary>
 internal static partial class Wielder
 {
-    /// <summary>The LENIENT occupied-slot walk: true iff <c>Readable(rb + RNameId, 2)</c>, with NO
-    /// level gate. Ridden by EagleEye.ActiveTarget and
-    /// Plague.IsEquipped (LW-149 stage D migration) -- the exact rule each used before the
-    /// migration, only named and shared now instead of copy-pasted per caller. Do NOT add a level
-    /// check here: that would silently re-tighten these callers onto the strict rule (see
-    /// the ghost-row pin tests in EagleEyeTests/PlagueTests, which exist precisely
-    /// to catch that regression).</summary>
+    /// <summary>True when the slot's nameId is readable, with no level gate. Used by EagleEye.ActiveTarget
+    /// and Plague.IsEquipped. A level check here would move them onto the strict rule; the ghost-row
+    /// tests in EagleEyeTests/PlagueTests catch that.</summary>
     internal static bool TryOccupiedSlotLenient(IGameMemory mem, int r, out long rb)
     {
         rb = Offsets.RosterBase + (long)r * Offsets.RosterStride;

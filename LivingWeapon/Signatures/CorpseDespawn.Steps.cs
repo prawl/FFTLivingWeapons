@@ -1,15 +1,13 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// CorpseDespawn.cs's four guarded steps (a)-(d) -- split out as a real seam once DespawnRefusal
-/// classification pushed the file over the 200-line trigger: TryDespawn (CorpseDespawn.cs) is the
-/// entry point/dispatch that a caller reads top-to-bottom; these are the guarded primitives it
-/// calls in sequence, each independently readable without the dispatch wrapping it.
+/// CorpseDespawn.cs's four guarded steps (a)-(d), split out past the 200-line trigger once
+/// DespawnRefusal classification was added. TryDespawn dispatches and these are the primitives it calls in order.
 /// </summary>
 internal static partial class CorpseDespawn
 {
-    /// <summary>(a) STALENESS: re-verify right before touching anything -- still Dead, the same
-    /// nameId (slot reuse), and not already the engine's own crystal/chest conversion.</summary>
+    /// <summary>(a) Staleness. Re-verify before touching anything: still Dead, same nameId (slot reuse),
+    /// and not already an engine chest conversion.</summary>
     private static bool StillOurCorpse(IGameMemory mem, long entry, int bandSlot, ushort expectedNameId)
     {
         if (!mem.Readable(entry + Offsets.ADeadStatus, 1) || (mem.U8(entry + Offsets.ADeadStatus) & Offsets.ADeadBit) == 0)
@@ -30,15 +28,10 @@ internal static partial class CorpseDespawn
         return true;
     }
 
-    /// <summary>(b) NODE RESOLVE: bounded walk of the render-node list from its head, matching
-    /// each node's combat back-pointer (builder-written) against <paramref name="frame"/> -- the
-    /// corpse's own combat frame address. Guarded reads only; the walk is capped at
-    /// Offsets.DespawnNodeWalkMax so a corrupted/looped list still terminates.
-    /// <paramref name="unreadable"/> distinguishes the two distinct false-return reasons (the
-    /// caller logs a truthful message for each): true only when the walk bailed on an unreadable
-    /// node prefix; false (with no match) when the walk exhausted every node/hit the cap without
-    /// finding one -- previously both surfaced as the same "no render node backreferences"
-    /// message, which was a lie on the unreadable path.</summary>
+    /// <summary>(b) Node resolve. Walk the render-node list from its head (capped at
+    /// Offsets.DespawnNodeWalkMax so a looped list ends), matching each node's builder-written combat
+    /// back-pointer to <paramref name="frame"/>. <paramref name="unreadable"/> is true only when the walk
+    /// hit an unreadable node prefix, so the caller can log that apart from "no node found".</summary>
     private static bool TryResolveNode(IGameMemory mem, long frame, out long node, out bool unreadable)
     {
         node = 0;
@@ -61,8 +54,8 @@ internal static partial class CorpseDespawn
         return false;
     }
 
-    /// <summary>(c) GUARDS from the Proven row: never the current actor's node, never a unit
-    /// whose turn is open.</summary>
+    /// <summary>(c) Guards from the Proven row. Never the current actor's node, never a unit whose turn
+    /// is open.</summary>
     private static bool GuardsClear(IGameMemory mem, long entry, long node, int bandSlot)
     {
         if (!mem.Readable(node + Offsets.DespawnNodeIdOff, 1) || !mem.Readable(Offsets.DespawnCurrentActorNodeId, 4))
@@ -89,14 +82,10 @@ internal static partial class CorpseDespawn
         return true;
     }
 
-    /// <summary>(d) THE WRITE: one guarded read-modify-write of the flag byte. ONE attempt --
-    /// success or refusal, never retried. BYTE-wide, matching the Proven row's own instrument at
-    /// node +0x12C (bits 0x30 and value 0x20 both live in the low byte; BodyDoubleSpike.cs's dev
-    /// spike reads/writes this same single byte, never a 4-byte word). Also carries the dev
-    /// spike's own in-flight guard (BodyDoubleSpike.cs
-    /// DespawnMark, ~line 869-874): if the byte already reads any of bits 0x30, a removal is
-    /// already in flight on this node (ours from a prior attempt, or the engine's own sweeper
-    /// mid-cycle) -- writing over it would stomp that in-flight state, so refuse instead.</summary>
+    /// <summary>(d) The write. One guarded read-modify-write of the flag byte, single attempt, no retry.
+    /// Byte-wide at node +0x12C (bits 0x30, value 0x20), as in the Proven row and BodyDoubleSpike.cs.
+    /// Refuses when any of bits 0x30 is already set (BodyDoubleSpike.cs DespawnMark, ~line 869-874),
+    /// since a removal is already in flight, ours or the engine's sweeper.</summary>
     private static bool WriteRemoval(IGameMemory mem, long node, int bandSlot)
     {
         long addr = node + Offsets.DespawnNodeModeOff;

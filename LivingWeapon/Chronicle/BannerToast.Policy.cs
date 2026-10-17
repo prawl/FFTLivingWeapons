@@ -3,14 +3,12 @@ using System;
 namespace LivingWeapon;
 
 /// <summary>
-/// Pure decisions behind the tier-up toast wording + tier-cross detection -- no memory access.
-/// The stateful driver (prime, queue, poll, edge-detect) lives in BannerToast.cs.
+/// Pure toast wording and tier-cross detection. The stateful driver is in BannerToast.cs.
 /// </summary>
 internal sealed partial class BannerToast
 {
-    /// <summary>English ordinal suffix for a positive kill count (1st, 2nd, 3rd, 4th, ..., the
-    /// 11th/12th/13th exception, 21st/22nd/23rd, ...). A zero or negative count (never expected
-    /// from a live kill tally, but the tally is player-inspectable JSON) falls back to "th".</summary>
+    /// <summary>English ordinal suffix, with the 11th-13th exception. Zero or negative gives "th"
+    /// since the tally is player-editable JSON.</summary>
     public static string OrdinalSuffix(int n)
     {
         if (n <= 0) return "th";
@@ -25,12 +23,10 @@ internal sealed partial class BannerToast
         };
     }
 
-    /// <summary>The locked toast wording. Tier 3 with a signature weapon announces the unlock;
-    /// every other crossing announces the grown NAME -- the weapon's name plus Tuning.Suffix
-    /// (the card-painting array: "  "/"+ "/"+2"/"+3") trimmed of its padding, so tier 1 reads
-    /// "grown to Ravager+", matching the card's own painted name. No trailing bang on the
-    /// grown-to arm: a suffix followed by "!" read as punctuation soup ("+!") -- user-locked
-    /// wording, 2026-07-04 (supersedes the 2026-07-02 lock).</summary>
+    /// <summary>Toast wording. Tier 3 with a signature weapon announces the unlock; every other
+    /// crossing announces the grown name (weapon name plus the trimmed Tuning.Suffix, so tier 1
+    /// reads "grown to Ravager+"). The grown-to arm has no trailing "!" because "+!" read as
+    /// punctuation soup (wording locked 2026-07-04, superseding 2026-07-02).</summary>
     public static string Payload(string name, int tier, int kills, string? sigLabel)
     {
         int t = Math.Clamp(tier, 1, 3);
@@ -40,22 +36,18 @@ internal sealed partial class BannerToast
         return $"{name} has gained its {kills}{suffix} kill and has grown to {name}{Tuning.Suffix[t].Trim()}";
     }
 
-    /// <summary>A crossing fires ONE toast at the HIGHEST new tier -- a tally jump (dev seeding,
-    /// fast-forwarded battles) that skips a tier must not queue one toast per skipped tier.
-    /// Returns 0 (no toast) when newTier has not advanced past prevTier.</summary>
+    /// <summary>Returns the highest new tier, so a tally jump that skips tiers (dev seeding,
+    /// fast-forwarded battles) queues one toast. Returns 0 when newTier has not advanced.</summary>
     public static int CrossedTier(int prevTier, int newTier)
         => newTier > prevTier ? newTier : 0;
 
-    /// <summary>Weapon Chronicle kill-count milestones, DESCENDING so the scan below finds the
-    /// HIGHEST crossed milestone first. 1 is first blood.</summary>
+    /// <summary>Weapon Chronicle kill milestones, descending so the scan finds the highest
+    /// crossed one first. 1 is first blood.</summary>
     private static readonly int[] Milestones = { 1000, 500, 250, 100, 1 };
 
-    /// <summary>A crossing fires ONE toast at the HIGHEST milestone crossed -- mirrors
-    /// CrossedTier's jump semantics: a tally jump that skips a milestone announces only the
-    /// highest, never one toast per skipped milestone. First blood (1) only fires from a true
-    /// zero start -- the construction prime baselines already-loaded tallies, and the dev-seed
-    /// floor (Tuning.DevKillSeed, 3) sits above 1, so a seeded weapon never announces first
-    /// blood. Returns 0 (no toast) when no milestone was crossed.</summary>
+    /// <summary>Returns the highest milestone crossed, so a jump announces only that one. First
+    /// blood only fires from a true zero start: the construction prime baselines loaded tallies and
+    /// the dev-seed floor (Tuning.DevKillSeed, 3) sits above 1. Returns 0 when none was crossed.</summary>
     public static int CrossedMilestone(int prevKills, int newKills)
     {
         foreach (int m in Milestones)
@@ -63,9 +55,8 @@ internal sealed partial class BannerToast
         return 0;
     }
 
-    /// <summary>The locked Weapon Chronicle milestone wording (cite: weapon-chronicle-design,
-    /// 2026-07-02). The default arm is unreachable against the fixed Milestones table above --
-    /// kept as a safe fallback rather than an exception.</summary>
+    /// <summary>Weapon Chronicle milestone wording (weapon-chronicle-design, 2026-07-02). The
+    /// default arm is unreachable and exists as a fallback.</summary>
     public static string MilestonePayload(string name, int milestone) => milestone switch
     {
         1 => $"{name} draws first blood!",
@@ -76,10 +67,8 @@ internal sealed partial class BannerToast
         _ => $"{name} has felled {milestone} foes!",
     };
 
-    /// <summary>The locked wording for a first-blood kill that ALSO crosses a tier in the same
-    /// DetectCrossings pass -- the two events merge into one toast rather than queuing twice
-    /// (only possible for milestone 1; higher milestones can never coincide with a fresh weapon's
-    /// first kill). Mirrors Payload's tier-3-signature-unlock arm.</summary>
+    /// <summary>Wording for a first-blood kill that also crosses a tier in one DetectCrossings
+    /// pass, merged into one toast.</summary>
     public static string FirstBloodTierPayload(string name, int tier, string? sigLabel)
     {
         int t = Math.Clamp(tier, 1, 3);
@@ -88,15 +77,12 @@ internal sealed partial class BannerToast
         return $"{name} draws first blood and has grown to {name}{Tuning.Suffix[t].Trim()}";
     }
 
-    /// <summary>Reliquary Phase 1 (docs/RELIQUARY_AC.md): the locked wording for a newly-earned
-    /// Mark toast. Reliquary.cs enqueues this at key 1000 + (int)archetype.
+    /// <summary>Reliquary Phase 1 (docs/RELIQUARY_AC.md) Mark toast wording, enqueued by
+    /// Reliquary.cs at key 1000 + (int)archetype.
     ///
-    /// EVENT-KEY CONVENTION across the whole toast queue (the tuple's `tier` slot doubles as the
-    /// queue-dedupe key everywhere it's used): tiers own 1..3 (CrossedTier); Weapon Chronicle
-    /// milestones own the NEGATED milestone values (CrossedMilestone: -1, -100, -250, -500,
-    /// -1000); Reliquary Marks own 1000 + (int)VictimClass.Archetype (1000..1003 -- Unknown,
-    /// index 4, never earns a Mark); Phase 2 Legends reserve 2000+ (not yet emitted).
-    /// BannerToastTests.Event_key_space_is_pairwise_distinct is the property test that guards
-    /// this never collides as new event kinds are added.</summary>
+    /// The tuple's `tier` slot doubles as the queue-dedupe key. Tiers own 1..3, Weapon Chronicle
+    /// milestones own the negated milestone values (-1, -100, -250, -500, -1000), Reliquary Marks own
+    /// 1000..1003 (Unknown, index 4, never earns a Mark), and Phase 2 Legends reserve 2000+.
+    /// BannerToastTests.Event_key_space_is_pairwise_distinct guards against collisions.</summary>
     public static string MarkPayload(string name, string title) => $"{name} has earned its Mark: {title}!";
 }

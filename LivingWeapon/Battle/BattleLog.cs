@@ -3,18 +3,11 @@ using System;
 namespace LivingWeapon;
 
 /// <summary>
-/// The battle-event timeline. KillTracker already reads every unit slot's HP and grid position
-/// each 33ms tick; this diffs those readings and emits one timestamped line per change (damage,
-/// heal, move), tagged with the latched actor's weapon(s). Makes "what the game did" vs "when we
-/// saw it" comparable at tick granularity. Kills, turn edges, and grant transitions stay
-/// always-on in their own subsystems. The sink is injected so tests capture lines without a logger.
-///
-/// LOGGING OVERHAUL NOTE: Engine now constructs this with verbose=true unconditionally and
-/// sink=ModLogger.LogDebug -- the ev: timeline is ALWAYS captured to livingweapon.log (Debug tier
-/// writes the file unconditionally), and never reaches the console (LW-52 removed the VerboseLog
-/// knob; the console is fixed at Info). This deliberately turns the timeline ON in every build (it
-/// used to be a DEV-only const); the black-box evidence chain wants the data, the Debug tier keeps
-/// it off the console by default.
+/// The battle-event timeline. KillTracker reads each slot's HP and grid position every 33ms tick; this diffs
+/// the readings and emits one timestamped line per change (damage, heal, move), tagged with the latched
+/// actor's weapons. The sink is injected so tests capture lines without a logger. Engine passes verbose=true
+/// and ModLogger.LogDebug, so the ev: timeline always lands in livingweapon.log (Debug writes the file
+/// unconditionally) and never on the console (LW-52 removed the VerboseLog knob).
 /// </summary>
 internal sealed class BattleLog
 {
@@ -34,17 +27,15 @@ internal sealed class BattleLog
     /// <summary>Forget every baseline. Call on battle enter and exit.</summary>
     public void ResetBattle() => Array.Clear(_seen, 0, _seen.Length);
 
-    /// <summary>One pre-formatted diagnostic line (verbose-gated, same as <see cref="Observe"/>).
-    /// KillTracker's D4 AREC kill diagnostic routes through here rather than owning its own sink,
-    /// so it stays zero-coupled to the credit path -- see KillTracker.CreditKill.</summary>
+    /// <summary>One pre-formatted diagnostic line, verbose-gated like <see cref="Observe"/>. KillTracker's D4 AREC
+    /// kill diagnostic routes here to stay decoupled from the credit path (KillTracker.CreditKill).</summary>
     public void KillDiag(string line)
     {
         if (!_verbose) return;
         _sink(line);
     }
 
-    /// <summary>One valid slot reading per tick. The first sighting of a slot baselines silently;
-    /// after that, any HP or position change is one event line.</summary>
+    /// <summary>First sighting of a slot baselines silently; after that any HP or position change is one line.</summary>
     public void Observe(int slot, int hp, int maxHp, int gx, int gy, string actor)
     {
         if (!_verbose) return;

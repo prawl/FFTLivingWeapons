@@ -4,26 +4,17 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Eclipsebolt's "Eagle Eye" signature: while a +3 Eclipsebolt is equipped by any roster unit,
-/// a Doom that APPEARS while the Eclipsebolt wielder's own action is resolving (acting main hand
-/// id 78 during the acted period, the Larceny/Benediction last-actor lane) is hastened -- its
-/// countdown is forced down to 1, so the mark resolves on the victim's next turn instead of three
-/// turns out. LW-95: a Doom from any other source (another weapon's proc, an enemy cast) is
-/// observed as a baseline and left alone -- live evidence was Mortal Coil (id 8) proccing Doom
-/// while a +3 Eclipsebolt merely sat fielded, and Eagle Eye hastened it anyway. Accepted residual:
-/// attribution is action-level, so a Doom landing on an enemy from a non-wielder source during the
-/// wielder's own acted period would attribute falsely (charm-tier obscurity, accepted).
+/// Eclipsebolt's "Eagle Eye" signature. While a +3 Eclipsebolt is equipped by any roster unit, a
+/// Doom that appears during the wielder's own action (main hand id 78 in the acted period, the
+/// Larceny/Benediction last-actor lane) has its countdown forced down to 1. Doom from any
+/// other source is recorded as a baseline and left alone, after Mortal Coil (id 8) was hastened
+/// while a +3 Eclipsebolt merely sat fielded. Attribution is action-level, so a foreign Doom landing
+/// during the wielder's acted period would be misattributed (accepted).
 ///
-/// PROVEN live (memory doom-status-bytes): the authoritative unit copy (0x14184xxxx, static-array
-/// layout) carries Doom at base+0x49 (mask 0x01) and the countdown at base+0x59 (init 3, -1 per
-/// the victim's turn, death at 0); the head-counter re-renders LIVE from the byte -- no cosmetic
-/// seam (unlike poison's tint). Undead no-op Doom's expiry, so the engine simply declines the
-/// kill -- no special-casing here.
-///
-/// Idempotent: only an enemy whose countdown is STILL above the target (1) is written, so once
-/// hastened we never touch it again -- the engine ticks it 1 -> 0 -> death untouched. Only ENEMIES
-/// are scanned (a Doomed ally is never sped up). Enemy-scan + auth-copy read (BandSweep).
-/// Every read/write is VirtualQuery-guarded.
+/// The authoritative unit copy (0x14184xxxx, static-array layout) carries Doom at base+0x49
+/// (mask 0x01) and the countdown at base+0x59 (init 3, -1 per victim turn, death at 0), per memory
+/// doom-status-bytes. The head counter re-renders from the byte and Undead no-op the expiry. Only
+/// enemies are scanned, and only a countdown above the target is written.
 /// </summary>
 internal sealed partial class EagleEye : ISignature
 {
@@ -37,11 +28,10 @@ internal sealed partial class EagleEye : ISignature
     private readonly Dictionary<int, WeaponMeta> _meta;
     private readonly Dictionary<int, int> _kills;
     private readonly KillTracker _tracker;
-    // GATE-ON-ARMED (log facelift): ActiveTarget scans ROSTER main hands, so a benched +3
-    // Eclipsebolt arms the edge; the scoped logger keeps it off the console unless deployed.
+    // ActiveTarget scans roster main hands, so a benched +3 Eclipsebolt arms the edge; the scoped
+    // logger hides it unless deployed.
     private readonly ScopedLogger _slog;
-    // LW-95: per-enemy Doom baseline (keyed by authoritative-copy address) so Hasten can tell a
-    // fresh appearance (rising edge) from a Doom that was already sitting on the foe.
+    // Per-enemy Doom baseline keyed by authoritative-copy address, to detect a rising edge.
     private readonly Dictionary<long, bool> _wasDoomed = new();
     private bool _wasActive;
     private int _tick, _hastened;
@@ -69,10 +59,8 @@ internal sealed partial class EagleEye : ISignature
         if (target > 0 && _tick++ % 6 == 0) Hasten(target);   // band scan is heavy -> ~every 200ms
     }
 
-    /// <summary>DoomCountdownTo if a +3 Eclipsebolt is equipped by any roster unit, else 0
-    /// (signature gate, then a roster sweep for the weapon).
-    /// Internal (LW-149 stage D, widened from private): lets the ghost-row pin test call this
-    /// directly rather than driving the whole Tick pipeline. Behavior unchanged.</summary>
+    /// <summary>The Doom countdown target if a +3 Eclipsebolt is equipped by any roster unit, else 0.
+    /// Internal so the ghost-row pin test (LW-149 stage D) can call it directly.</summary>
     internal int ActiveTarget()
     {
         if (!_meta.TryGetValue(EclipseboltId, out var m)) return 0;
@@ -80,22 +68,19 @@ internal sealed partial class EagleEye : ISignature
         if (target <= 0) return 0;
         for (int r = 0; r < Offsets.RosterSlots; r++)
         {
-            // LW-149 stage D: migrated onto Wielder's shared LENIENT occupied-slot walk
-            // (Wielder.Occupancy.cs) -- same Readable(RNameId,2)-only rule this loop used before
-            // (no level gate), now named and shared instead of copy-pasted (also used by
-            // Plague.IsEquipped). Byte-identical.
+            // LW-149 stage D: shared lenient occupied-slot walk (Wielder.Occupancy.cs, also used by
+            // Plague.IsEquipped), no level gate.
             if (!Wielder.TryOccupiedSlotLenient(_mem, r, out long rb)) continue;
-            // Signatures fire from the main hand only: an offhand Eclipsebolt does not hasten Doom.
+            // Main hand only.
             if (_mem.U16(rb + Offsets.RRHand) == EclipseboltId)
                 return target;
         }
         return 0;
     }
 
-    /// <summary>One band pass (the shared BandSweep): only a Doom RISING EDGE attributed to the
-    /// Eclipsebolt wielder's own action (mirrors Larceny.cs's actingMain + actedByte==1 gate),
-    /// whose countdown is still above the target, gets that countdown written down to the
-    /// target. The attribution gate is computed ONCE per sweep, not per enemy.</summary>
+    /// <summary>One BandSweep pass. A Doom rising edge attributed to the wielder's own action (the
+    /// Larceny.cs actingMain + actedByte==1 gate) with a countdown above the target is written
+    /// down to it. Attribution is computed once per sweep.</summary>
     private void Hasten(int target)
     {
         bool attributed = Signatures.IsActingMainHand(_tracker.LastPlayerMainHand, EclipseboltId)
@@ -110,14 +95,13 @@ internal sealed partial class EagleEye : ISignature
 
             if (doomed && !was && !attributed)
             {
-                // Edge-only, so this cannot flood: it fires once when a foreign Doom appears, then
-                // the baseline above holds it quiet for the rest of the mark's life.
+                // Fires once per foreign Doom; the baseline keeps it quiet afterwards.
                 ModLogger.Debug(LogVerb.Signature, $"a level {fp.lvl} enemy's Doom appeared outside the Eclipsebolt wielder's own action (lastActed mainHand id={_tracker.LastPlayerMainHand}); its countdown ({cd}) is left alone");
                 return;
             }
             if (!ShouldHasten(doomed, was, cd, target, attributed)) return;
             long cdAddr = addr + DoomCountdownOff;
-            // re-read under the write guard (the buffered cd can be stale by now); only ever WRITE DOWN.
+            // Re-read under the write guard since the buffered cd can be stale; only write down.
             if (_mem.Writable(cdAddr, 1) && _mem.U8(cdAddr) > target)
             {
                 _mem.W8(cdAddr, (byte)target);

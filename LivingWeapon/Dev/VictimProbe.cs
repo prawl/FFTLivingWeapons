@@ -3,17 +3,12 @@ using System;
 namespace LivingWeapon;
 
 /// <summary>
-/// Reliquary P1 probe instrumentation (docs/RELIQUARY_AC.md's Phase 0, "P1 -- victim snapshot
-/// integrity"). Log-only: zero behavioral effect on kill crediting, pending, oracle, or streak
-/// logic -- KillTracker calls into this purely to observe.
-///
-/// Captures a corpse's identity -- nameId (Offsets.ANameId), job byte (Offsets.AJob), and the
-/// undead bit (Offsets.ADeadStatus &amp; Offsets.AUndeadBit) -- at three lifecycle points so a later
-/// live run can compare them and answer which point reads sane victim identity on a corpse:
-///   (a) ALIVE  -- every consistent alive on-field tick (KillTracker.Corpses.cs's ScanCorpses).
-///   (b) EDGE   -- the tick a slot's dead-streak first starts (deadStreak == 1).
-///   (c) CREDIT -- a FRESH read taken at CreditKill time (KillTracker.cs), logged alongside the
-///       alive/edge snapshots already on file so a human can diff all three in one place.
+/// Reliquary P1 probe (docs/RELIQUARY_AC.md Phase 0, "P1 -- victim snapshot integrity"). Log-only; KillTracker calls it to observe.
+/// Captures a corpse's nameId (Offsets.ANameId), job byte (Offsets.AJob) and undead bit
+/// (Offsets.ADeadStatus &amp; Offsets.AUndeadBit) at three points so a live run can compare them:
+///   (a) alive: every consistent alive on-field tick (KillTracker.Corpses.cs ScanCorpses).
+///   (b) edge: the tick a slot's dead-streak first starts (deadStreak == 1).
+///   (c) credit: a fresh read at CreditKill time (KillTracker.cs), logged beside the other two.
 /// </summary>
 internal sealed class VictimProbe
 {
@@ -29,19 +24,15 @@ internal sealed class VictimProbe
         _recorder = recorder;
     }
 
-    /// <summary>Alive-point capture for band slot s at band-entry address addr. Called from
-    /// ScanCorpses on every consistent alive on-field tick (KillTracker.Corpses.cs).</summary>
+    /// <summary>Alive-point capture for band slot s at address addr, from ScanCorpses each consistent alive tick.</summary>
     internal void CaptureAlive(int s, long addr) => _alive[s] = Read(addr);
 
-    /// <summary>Dead-edge capture for band slot s at band-entry address addr. Called from
-    /// ScanCorpses when a slot's dead-streak first starts (deadStreak == 1).</summary>
+    /// <summary>Dead-edge capture for band slot s at address addr, from ScanCorpses when deadStreak == 1.</summary>
     internal void CaptureDeadEdge(int s, long addr) => _edge[s] = Read(addr);
 
-    /// <summary>Credit-point capture + log. Takes a FRESH read at CreditKill time (the slot may
-    /// have been reused/recycled by the engine since the edge tick -- that is exactly the question
-    /// P1 is asking), then logs all three capture points as structurally identical lines through
-    /// ModLogger.Debug (so a human can diff them) and fires ONE recorder tap carrying all three
-    /// tuples together.</summary>
+    /// <summary>Credit-point capture and log. Takes a fresh read at CreditKill time (the engine may have recycled the slot
+    /// since the edge tick, which is the P1 question), logs all three points as matching lines via ModLogger.Debug and
+    /// fires one recorder tap carrying all three tuples.</summary>
     internal void LogAtCredit(int s)
     {
         VictimSnapshot credit = VictimReader.Read(_mem, Band.Entry(s));
@@ -62,17 +53,14 @@ internal sealed class VictimProbe
     private static string Tuple(VictimSnapshot snap)
         => $"(nameId={snap.NameId},job={snap.Job},undead={(snap.Undead ? 1 : 0)},has={(snap.Has ? 1 : 0)})";
 
-    /// <summary>Guarded three-field read -- delegates to the shared <see cref="VictimReader"/>
-    /// (extracted from this method; see its doc comment for the guard rationale) so this probe's
-    /// log-only capture and KillTracker.Corpses.cs's Phase 1 behavioral capture never disagree on
-    /// what "a sane read" means.</summary>
+    /// <summary>Guarded three-field read via the shared <see cref="VictimReader"/>, so this probe and
+    /// KillTracker.Corpses.cs's Phase 1 capture agree on what a sane read is.</summary>
     private VictimSnapshot Read(long addr) => VictimReader.Read(_mem, addr);
 
     internal VictimSnapshot AliveSnapshot(int s) => _alive[s];
     internal VictimSnapshot EdgeSnapshot(int s) => _edge[s];
 
-    /// <summary>Clear both snapshots for one slot -- called on identity change (a new unit reused
-    /// the slot) and on revive (the old death's snapshot is stale once the victim is alive again).</summary>
+    /// <summary>Clear both snapshots for one slot on identity change or revive.</summary>
     internal void Reset(int s)
     {
         _alive[s] = default;

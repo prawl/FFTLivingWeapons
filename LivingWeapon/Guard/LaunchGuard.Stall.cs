@@ -1,31 +1,26 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-392 seam: the STALL half of the main guard. Before this row, a mod that could not read the
-/// game at all (LW-387's symptom: five Nexus reports of "kill counts never move") retried
-/// silently forever. <see cref="LandmarkStall"/> decorates the two main landmarks and calls the
-/// handlers below once per long unreadable streak; this file holds the thresholds, the copy, the
-/// once-per-session latches, and the dev blind drill (LW_FORCE_GUARD_UNREADABLE). Nothing here
-/// writes game memory or changes what the core guard decides.
+/// The stall half of the main guard. Before it, a mod that could not read the game (LW-387's
+/// "kill counts never move" reports) retried silently forever. <see cref="LandmarkStall"/> wraps the two
+/// main landmarks and calls the handlers below once per long unreadable streak. Also holds the thresholds,
+/// copy, latches and the LW_FORCE_GUARD_UNREADABLE blind drill.
 /// </summary>
 internal sealed partial class LaunchGuard
 {
-    // Step counts, at the 33 ms Engine tick (Engine.cs PollMs). Ticks can stretch, so the real
-    // times are approximate; the copy says "about a minute".
-    /// <summary>1800 steps * 33 ms = 59.4 s: the image (PE) landmark unreadable this long means the mod cannot read the game.</summary>
+    // Steps are 33 ms Engine ticks (Engine.cs PollMs); real times are approximate.
+    /// <summary>1800 steps * 33 ms = 59.4 s: image (PE) landmark unreadable this long means the mod cannot read the game.</summary>
     internal const int ImageStallSteps = 1800;
-    /// <summary>3600 steps * 33 ms = 118.8 s: the roster row empty this long on a readable game is the ordinary title screen, noted calmly.</summary>
+    /// <summary>3600 steps * 33 ms = 118.8 s: roster row empty this long on a readable game is the ordinary title screen.</summary>
     internal const int RosterWaitSteps = 3600;
-    /// <summary>2400 steps * 33 ms = 79.2 s: the drill's blind window; long enough for the image warning (1800) to fire, short enough that a Continue afterwards arms within the same minute.</summary>
+    /// <summary>2400 steps * 33 ms = 79.2 s: drill blind window, past the image warning (1800) but short enough that a Continue still arms within the minute.</summary>
     internal const int DrillBlindSteps = 2400;
 
-    // Roster-probe Detail on an Unreadable verdict (LaunchGuard.Landmarks.cs): tells a mapped-but-
-    // empty slot (title screen) apart from a page the mod cannot read at all.
+    // Roster-probe Detail on an Unreadable verdict (LaunchGuard.Landmarks.cs): empty slot (title screen) vs unreadable page.
     internal const string RosterSlotEmpty = "slot empty";
     internal const string RosterPageUnreadable = "page unreadable";
 
-    // Owner-approved copy, 2026-10-16. None contains the phrase tools/scan_logs.py reads as a
-    // full stand-down ("standing down to protect your save").
+    // Copy approved 2026-10-16. None contains the phrase tools/scan_logs.py reads as a full stand-down ("standing down to protect your save").
     internal const string ImageStallWarn =
         "Living Weapons has not been able to read the game for about a minute, so none of its checks can run and nothing is counting yet. "
         + "It will keep trying. If this message stays and kill counts never move, the mod and the game version probably do not match; see the box for how to get help.";
@@ -42,16 +37,13 @@ internal sealed partial class LaunchGuard
     private const string DrillSentence =
         " This warning was forced by the LW_FORCE_GUARD_UNREADABLE drill flag (dev builds only).";
 
-    // Once-per-session latches (D8: one LaunchGuard per process).
+    // Once-per-session latches (D8: one LaunchGuard per process); drill: _blindStepsLeft > 0 makes both main probes Unreadable.
     private bool _stallWarned;
     private bool _waitNoted;
-    // Drill state: while _blindStepsLeft > 0 both main probes report Unreadable.
     private readonly bool _forceUnreadable;
     private int _blindStepsLeft;
 
-    /// <summary>Drill decorator, applied INSIDE the stall watcher so the forced Unreadable
-    /// readings count toward the stall. The PE landmark is probed first every Step, so it alone
-    /// spends the blind budget (<paramref name="spends"/>); the roster landmark only checks it.</summary>
+    /// <summary>Drill decorator inside the stall watcher; only the PE landmark, probed first, spends the blind budget (<paramref name="spends"/>).</summary>
     private GuardLandmark DrillBlind(GuardLandmark inner, bool spends) => new(inner.Name, () =>
     {
         if (_blindStepsLeft > 0)

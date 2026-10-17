@@ -5,17 +5,11 @@ using Reloaded.Hooks.Definitions;
 namespace LivingWeapon;
 
 /// <summary>
-/// The arm half of the boot transaction: the ordered step list (<see cref="Install"/>, its
-/// accessor-hook helper <see cref="InstallAccessorHook"/>) and the boot placement
-/// (<see cref="SeedBag"/>). Split
-/// from ExtendedInventory.cs in LW-371 (verifier NIT-5, 201 lines) the way ExtendedInventory.Hooks.cs
-/// already carved the detour half out in LW-351 fix round 7: the base file keeps the fields, the
-/// ctor, <c>BootArm</c> (the outer sequencing: this file's <c>Install</c>, the arm/
-/// refuse decision), <c>WeaponRowAddr</c>, <c>Refuse</c> and the public properties;
-/// <c>ExtendedInventory.Hooks.cs</c> keeps <c>DefaultInstallHooks</c> and <c>RollBack</c>, the
-/// four-hook tail this file's <c>Install</c> ends by calling into. Same D2 install order as
-/// always: cap patches -&gt; list relocation -&gt; TEMPLATE relocation -&gt; catalog -&gt; shops -&gt;
-/// accessor hooks -&gt; hooks; <c>RollBack</c> (Hooks.cs) undoes it in reverse.
+/// The arm half of the boot transaction: the ordered step list (<see cref="Install"/>, with its
+/// accessor-hook helper <see cref="InstallAccessorHook"/>) and the boot placement (<see cref="SeedBag"/>).
+/// Split from ExtendedInventory.cs in LW-371, as ExtendedInventory.Hooks.cs was carved out in LW-351.
+/// Install order (D2) is cap patches, list relocation, template relocation, catalog, shops,
+/// accessor hooks, hooks; <c>RollBack</c> in Hooks.cs undoes it in reverse.
 /// </summary>
 internal sealed partial class ExtendedInventory
 {
@@ -24,14 +18,12 @@ internal sealed partial class ExtendedInventory
         int n = Items.Count;
         string? why = _patches.Apply(_patcher, ExtendedSites.BootPatches(n));
         if (why != null) return why;
-        // LW-368 round 2 (D3): the list relocation lands right after the boot cap patches and
-        // before everything else, so every later step that touches a bag byte can resolve its
-        // base through BagCountBase from the moment it runs.
+        // LW-368 round 2 (D3): the list relocation goes right after the cap patches so later steps
+        // can resolve bag bytes through BagCountBase.
         why = _relocation.Install(_patcher, _allocator);
         if (why != null) return why;
-        // LW-371: the template relocation lands right after the list relocation, before the
-        // catalog -- D2's install order (cap patches -> list relocation -> TEMPLATE relocation ->
-        // catalog -> shops -> accessor hooks -> hooks). TemplateRegions resolves through it from here on.
+        // The template relocation follows the list relocation, before the catalog.
+        // TemplateRegions resolves through it from here on.
         why = _templates.Install(_patcher, _allocator);
         if (why != null) return why;
         why = _catalog.Install(_patcher, _allocator, Items.Select(i => (i.Id, i.CatalogRecord)).ToList());
@@ -54,8 +46,8 @@ internal sealed partial class ExtendedInventory
             if (why != null) return why;
         }
 
-        // LW-365: the swing-id fallback needs the accessor hooks (they are what makes an extended id
-        // drawable), so it lands right after them and before the detours.
+        // The swing-id fallback needs the accessor hooks (they make an extended id drawable),
+        // so it goes right after them and before the detours.
         var fallback = new SwingIdFallbackHook();
         why = fallback.Install(_patcher, _allocator, lo, Items.Count);
         if (why != null) return why;
@@ -71,9 +63,9 @@ internal sealed partial class ExtendedInventory
         return why;
     }
 
-    /// <summary>Boot placement: the data seed for every extended id. No save is loaded at boot,
-    /// so this is the bag a NEW game starts with; a loaded save replays its own recorded counts
-    /// through the load edge (ExtendedInventory.Tick.cs, LW-353).</summary>
+    /// <summary>Boot placement: the data seed for every extended id. No save is loaded at boot, so
+    /// this is a new game's bag; a loaded save replays its own counts through the load edge
+    /// (ExtendedInventory.Tick.cs, LW-353).</summary>
     private void SeedBag()
     {
         foreach (var item in Items)

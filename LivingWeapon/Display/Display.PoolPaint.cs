@@ -3,88 +3,52 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-37: pool-anchored in-place equip-card Kills paint. The write, compose, attribution, and
-/// foreign-refusal all come from the EXISTING private OnChunk (Display.cs); this partial only
-/// adds the orchestration: locate the writable UE string pool, scan it ONCE via OnChunk, and
-/// skip the whole-heap DisplaySweep once every tracked id has a live kills site.
+/// Pool-anchored in-place equip-card Kills paint. Write, compose, attribution and
+/// foreign-refusal come from the private OnChunk (Display.cs). This partial locates the writable
+/// UE string pool, scans it once via OnChunk, and skips the heap DisplaySweep once every tracked id has a kills site.
 /// </summary>
 internal sealed partial class Display
 {
     private readonly bool _poolPaint;
-    // internal (not private): DisplayPoolLocateBudgetTests' LW-266 budget test reads
-    // PublishGeneration off this field as its completions-actually-happened premise, the same
-    // test-accessor convention Display.Flight.cs documents (_verdict, _coverageBudget, etc).
+    // Internal so DisplayPoolLocateBudgetTests can read PublishGeneration off it,
+    // same test-accessor habit as Display.Flight.cs.
     internal readonly PoolLocator _poolLocator;
     private bool _poolCovered;
-    // LW-163: the site count the cache held the moment coverage last latched true. While
-    // _poolCovered is true, nothing else in this Tick offers a site to the pool cache (the
-    // sweep and the pool scan below are both skipped), so the cache can only ever SHRINK, via
-    // a maintenance/count-change PaintAll evicting a site whose anchor no longer verifies (a
-    // save-load reallocated the buffer it pointed at). An unchanged count therefore means
-    // unchanged coverage; a changed count is the drained-cache signal the re-check below acts on.
+    // Site count in the cache when coverage last latched true. While covered nothing else
+    // offers sites to the cache, so it can only shrink (PaintAll evicts a site whose anchor stopped
+    // verifying, e.g. after a save-load). Same count means same coverage; a lower count triggers the re-check below.
     private int _countAtCoverage;
 
-    // LW-165 stage 1: latches true the first time pool coverage goes false->true this process
-    // launch, and never resets (deliberately independent of _poolCovered's own per-window
-    // resets). Gates AnnounceCoverage's Info vs. Debug split below: the FIRST latch is the
-    // "kill counters just went live" moment the owner needs a stopwatch on; every LATER
-    // false->true edge (a post-Invalidate re-latch, e.g. battle exit/enter or the LW-163
-    // drained-cache heal) is a re-coverage, not first light, and stays Debug/file-only.
+    // LW-165 stage 1: true once pool coverage has gone false->true in this launch. Never reset, so it
+    // is independent of _poolCovered. The first latch logs at Info (kill counters went live);
+    // later re-latches (Invalidate, the LW-163 drained-cache heal) stay Debug.
     private bool _coverageAnnounced;
 
-    // LW-257: the StuckEdge/coverage-transition log gates (NoPoolRegionLogGate/
-    // ReArmNoPoolRegionLog/PoolCoverageLogGate, called below) live in Display.PoolPaintLog.cs --
-    // a real seam once this file crossed the 200-line trigger; see that file's class doc.
-    // Commit 1B's own cadence-gate state (ShouldRunFullPoolScan, PoolScanPassesForTest) lives in
-    // Display.PoolPaintCadence.cs by the same precedent -- WHEN to run the full-region scan is a
-    // different concern from what ScanPoolRegion below actually does, mirroring PoolLocator.cs
-    // vs. PoolLocator.Restart.cs's own cache-vs-cadence split.
+    // The StuckEdge and coverage-transition log gates (NoPoolRegionLogGate, ReArmNoPoolRegionLog,
+    // PoolCoverageLogGate) live in Display.PoolPaintLog.cs. The cadence state for the full-region scan
+    // (ShouldRunFullPoolScan, PoolScanPassesForTest) lives in Display.PoolPaintCadence.cs.
 
-    /// <summary>True if the sweep should be skipped this Tick. Locates the pool at most once
-    /// per coverage window: a cached "already covering" flag short-circuits every subsequent
-    /// call SO LONG AS the live site cache still covers every tracked id. The short-circuit is
-    /// no longer a one-way latch (LW-163): a cheap count compare against the cache's size at the
-    /// moment coverage latched detects a shrink (the only way it can move while covered, see
-    /// _countAtCoverage's own comment); a shrink that still covers everything just re-latches at
-    /// the new count, and a shrink that drains coverage below every tracked id clears the latch
-    /// so the locate/scan below runs again on this same Tick. A save-load that frees the buffers
-    /// the cached sites point into is exactly that drain: CardSites.PaintAll's anchor re-verify
-    /// evicts the dead sites first (maintenance or count-change PaintAll, both ahead of this call
-    /// in Display.Tick), this method sees the smaller count next, and re-locates instead of
-    /// staying blind until Invalidate() is called from somewhere else.
+    /// <summary>True if the sweep should be skipped this Tick. Once coverage latches, a count compare
+    /// against _countAtCoverage short-circuits later calls. A shrink that still covers every
+    /// tracked id re-latches at the new count; a shrink below that clears the latch and the scan runs
+    /// again, which is how a save-load that frees the cached buffers recovers.
     ///
-    /// LW-257: CardSites' anchor-verify leniency (CardSites.Verify.cs) means a genuinely dead
-    /// site now survives Tuning.CardEvictStrikes-1 maintenance beats before PaintAll actually
-    /// evicts it, so the count compare below stays latched (by design) for those beats too --
-    /// this method only re-locates once eviction has actually happened and Count has actually
-    /// dropped, exactly as it did before this arc. A same-beat "something looked wrong" signal
-    /// was tried in-tree and deliberately reverted (no doc row states this -- the rationale lives
-    /// only here, next to the code it explains): it re-scanned Regions() plus every
-    /// region's full contents (143-569ms, live-measured) on ANY single site's
-    /// transient miss, which happens routinely across ~1400-2000 live sites, trading a rare
-    /// whole-id-lost heal for a frequent single-site one -- backwards from this arc's own cost
-    /// budget. The three tests that used to pin single-beat eviction (DisplayMaintenanceTests.
-    /// Dead_sites_evicted_by_maintenance_pass_after_the_strike_window and two in
-    /// DisplayPoolPaintTests.cs) now drive Tuning.CardEvictStrikes beats before asserting the
-    /// heal, matching this method's real behavior instead of the pre-fix one.
+    /// CardSites keeps a dead site for Tuning.CardEvictStrikes-1 maintenance beats
+    /// (CardSites.Verify.cs), so the latch holds until eviction actually drops Count. A same-beat
+    /// "something looked wrong" signal was tried and reverted. It re-scanned Regions() and every region's
+    /// contents (143-569ms, live-measured) on any single site's transient miss, which is routine across
+    /// ~1400-2000 live sites. The tests that used to pin single-beat eviction
+    /// (DisplayMaintenanceTests.Dead_sites_evicted_by_maintenance_pass_after_the_strike_window and two in
+    /// DisplayPoolPaintTests.cs) now drive Tuning.CardEvictStrikes beats first.
     ///
-    /// Retune round (R1): this method no longer triggers or blocks on a region walk at all, and
-    /// no longer steps it either -- it only ever READS the currently-published result
-    /// (PoolLocator.CachedRegions). The old synchronous PoolLocator.LocateAll call that used to
-    /// sit here blocked this same call path for 7 to 10 seconds, live-measured; the LW-261 rewrite
-    /// made that walk resumable and budgeted, but this method ALSO calling StepPoolLocate (so a
-    /// bare Display driven only by Tick() could still make progress) meant production paid the
-    /// scan's own ~45ms region-snapshot cost roughly twice a tick. Round 5 verify correction: that
-    /// double payment was NOT ~60 percent of a scan (an earlier version of this doc said so) -- it
-    /// was about 32 percent of one 92.2s owner-tape scan, about 29 percent of a 101.7s one
-    /// (PoolScan.cs's SnapshotRefreshMs doc has the six-completion arithmetic). Removing THIS call
-    /// site does not itself shorten a scan's wall time either -- one driver instead of two means
-    /// MORE engine ticks per scan, not fewer; this change's own win is per-tick latency (nothing
-    /// else on the loop waits behind a doubled cost) and total CPU, while SnapshotRefreshMs (the
-    /// cadence) and the battle-aware budget are what actually cut the wall-clock number. Engine's
-    /// own "pool-locate" tick lane (Display.PoolLocate.cs's StepPoolLocate) is now the SOLE
-    /// driver; a bare Display under test has to step it explicitly in its own drive loop
-    /// (CardFixtures.TickWithPoolLocate).</summary>
+    /// Retune round (R1): this method only reads the published PoolLocator.CachedRegions and neither
+    /// triggers nor steps a region walk. The old synchronous PoolLocator.LocateAll here blocked for
+    /// 7 to 10 seconds (live-measured). After the LW-261 resumable rewrite, also stepping the locate here
+    /// paid the ~45ms region snapshot about twice a tick, roughly 32 percent of one 92.2s owner-tape scan
+    /// and 29 percent of a 101.7s one (arithmetic in PoolScan.cs SnapshotRefreshMs). Removing it does not
+    /// shorten scan wall time, SnapshotRefreshMs and the battle-aware budget do that. Engine's "pool-locate"
+    /// lane (Display.PoolLocate.cs StepPoolLocate) is the only driver, so a bare Display under test steps
+    /// it itself (CardFixtures.TickWithPoolLocate).</summary>
     private bool MaybePoolPaint()
     {
         if (!_poolPaint) return false;
@@ -98,41 +62,34 @@ internal sealed partial class Display
         var regions = _poolLocator.CachedRegions;
         if (regions.Count == 0)
         {
-            // LW-257: promoted from #if LWDEV, rate-limited via NoPoolRegionLogGate (item 7,
-            // Display.PoolPaintLog.cs): a persistent no-pool state logs its transition once.
+            // Promoted from #if LWDEV, rate-limited by NoPoolRegionLogGate (Display.PoolPaintLog.cs).
             if (NoPoolRegionLogGate())
                 ModLogger.Debug(LogVerb.Display, "LW37 paint: no named-pool region located; sweep fallback");
             return false;
         }
         ReArmNoPoolRegionLog();   // the next drought gets its own transition line
 
-        // Commit 1B: paint EVERY name-bearing baked region, but only on a genuine trigger
-        // (ShouldRunFullPoolScan's own doc) -- skipping this on an off-cadence tick leaves
-        // _poolCovered's re-check below re-deriving the SAME answer from the unchanged _sites
-        // cache (harmless), and simply falls through to the sweep fallback (Display.cs's Tick)
-        // for this one tick instead of repainting a region nothing new was found in.
+        // Commit 1B: scan every name-bearing baked region, but only when ShouldRunFullPoolScan allows.
+        // On an off-cadence tick the sites cache is unchanged and Tick falls through to the sweep.
         if (ShouldRunFullPoolScan())
         {
             long t0 = _nowMs();
             foreach (var (rbase, rsize) in regions) ScanPoolRegion(rbase, rsize);
             PoolScanPassesForTest++;
-            // Distinct prefix ("LW37 region-scan:", not "LW37 paint:") so this line's own text
-            // never collides with PoolCoverageLogGate's pre-existing "LW37 paint: N region(s),
-            // kills sites=..." summary below -- DisplayPoolPaintTests.Persistent_partial_
-            // coverage_logs_the_summary_line_once_not_every_tick filters on that exact phrase.
+            // Prefix differs from "LW37 paint:" because DisplayPoolPaintTests.Persistent_partial_coverage_logs_the_summary_line_once_not_every_tick
+            // filters on that phrase.
             ModLogger.Debug(LogVerb.Display, $"LW37 region-scan: took {_nowMs() - t0}ms across {regions.Count} region(s)");
         }
 
         _poolCovered = CoversAllMeta();
         if (_poolCovered)
         {
-            _countAtCoverage = _sites.Count;   // LW-163: snapshot the count the re-check above compares against
+            _countAtCoverage = _sites.Count;   // snapshot the count the re-check above compares against
             LatchRegionCounts(regions);        // LW-257 commit 2: this beat's per-region baseline (own doc)
             AnnounceCoverage(regions);         // LW-165 stage 1: this is always a false->true edge (see field doc)
         }
-        // LW-257: promoted from #if LWDEV, rate-limited via PoolCoverageLogGate (Display.
-        // PoolPaintLog.cs -- see its own doc for what drives repeated fall-through). The
-        // Snapshot() copy is paid ONLY when the gate actually logs.
+        // Promoted from #if LWDEV, rate-limited by PoolCoverageLogGate (Display.PoolPaintLog.cs).
+        // Snapshot() is copied only when the gate logs.
         if (PoolCoverageLogGate(_poolCovered))
         {
             int killsIds = 0;
@@ -142,38 +99,27 @@ internal sealed partial class Display
         return _poolCovered;
     }
 
-    /// <summary>LW-165 stage 1: called only from the false->true coverage-latch site above (the
-    /// re-check inside the short-circuit at the top of <see cref="MaybePoolPaint"/> re-latches an
-    /// ALREADY-true _poolCovered and never reaches here -- it is a coverage continuation, not a
-    /// transition). The first call of the process launch is the "kill counters just went live"
-    /// moment: logs at Info, with the paint-spot count and how long it took since Display's own
-    /// first Tick (Engine only starts ticking Display after the launch guard arms, so that stamp
-    /// times the gap the owner actually feels). Every later call (a post-Invalidate re-latch, e.g.
-    /// battle exit/enter or the LW-163 drained-cache heal) logs at Debug instead: still evidence
-    /// in the file, never console noise.</summary>
+    /// <summary>LW-165 stage 1: called from the false->true latch site above only; the re-latch in the
+    /// short-circuit at the top of <see cref="MaybePoolPaint"/> never reaches here. The first call of a
+    /// launch is the "kill counters just went live" moment, logged at Info with the paint-spot count and
+    /// the time since Display's first Tick (Engine ticks Display only after the launch guard arms).
+    /// Later calls (post-Invalidate re-latch, LW-163 drained-cache heal) log at Debug.</summary>
     private void AnnounceCoverage(IReadOnlyList<(long baseAddr, long size)> regions)
     {
-        // LW-259 ride-along: ONE snapshot for the whole call chain -- killsSites below AND the
-        // flight tap's per-region breakdown (RecordCoverageIfTapped) both used to take their OWN
-        // full CardSites.Snapshot() copy, paying the list-copy cost twice per call whenever a
-        // recorder was actually wired. Behavior-identical: RecordCoverageIfTapped's early-return
-        // (no recorder wired, or its own budget already spent) still means the copy is only ever
-        // used when it's actually going to be read.
+        // One snapshot shared by killsSites and the flight tap (RecordCoverageIfTapped),
+        // which each used to copy their own.
         var snapshot = _sites.Snapshot();
         int killsSites = 0;
         foreach (var s in snapshot) if (s.IsKills) killsSites++;
 
-        // LW-257: captured before _coverageAnnounced flips, for both branches below and the
-        // flight tap's own "trigger" field.
+        // Captured before _coverageAnnounced flips; used by both branches and the flight tap.
         string trigger = _coverageAnnounced ? "re-latch" : "first";
 
         if (!_coverageAnnounced)
         {
             _coverageAnnounced = true;
             double seconds = _firstTickMs < 0 ? 0.0 : (_nowMs() - _firstTickMs) / 1000.0;
-            // LW-257: _sites.Count (every cached site, kills AND suffix) appended so headroom
-            // against CardSites.MaxSites (2048) is readable straight off this line instead of
-            // needing a second, separate measurement pass. The cap itself is untouched.
+            // _sites.Count (kills and suffix sites) is appended so headroom against CardSites.MaxSites (2048) is readable from this line.
             ModLogger.Event(LogVerb.Display,
                 $"The kill counters are live on the equip cards: {killsSites} paint spots across {regions.Count} pool region(s), {seconds:0.0}s after the mod armed. ({_sites.Count}/{CardSites.MaxSites} cache slots in use)");
         }
@@ -183,31 +129,20 @@ internal sealed partial class Display
                 $"pool coverage re-established: {killsSites} spots across {regions.Count} region(s) ({_sites.Count}/{CardSites.MaxSites} cache slots in use)");
         }
 
-        RecordCoverageIfTapped(regions, killsSites, trigger, snapshot);   // LW-257: Flight.Record tap, Display.Flight.cs
+        RecordCoverageIfTapped(regions, killsSites, trigger, snapshot);   // Flight.Record tap, Display.Flight.cs
     }
 
-    /// <summary>Walk the located pool region in chunks (ChunkReader's own Lookback/TrailSlack
-    /// bounds, exactly like DisplaySweep's background walk) and feed each chunk to the
-    /// EXISTING private OnChunk: the pool path registers sites through the identical
-    /// discovery, write-discipline, and foreign-refusal code the whole-heap sweep uses.
+    /// <summary>Walk the located pool region in chunks (ChunkReader Lookback/TrailSlack bounds, as in
+    /// DisplaySweep) and feed each chunk to OnChunk, so the pool path shares the sweep's discovery,
+    /// write discipline and foreign-refusal code.
     ///
-    /// allSuffixes: true (LW-59): a text-bearing chunk (one with a kills hit) searches every
-    /// tracked id's suffix, not just the rotation slice, so a tally reset can never leave a
-    /// stale +N behind for lack of that id's turn in the rotation. Honest cost accounting: this
-    /// is roughly 121 ids x 2 encodings of vectorized FindAll passes over each text-bearing
-    /// pool chunk. The observed live pools are small, but a real pool can exceed ChunkSize
-    /// (PoolLocator's own caveat), so the worst case is that many passes over a full 4MB chunk,
-    /// roughly tens of ms per such chunk, landing on the ENGINE'S OWN background loop (never
-    /// the game thread) at the ticks that already run this scan: battle-exit Invalidate, a
-    /// paused status-card Invalidate, the battle-enter Invalidate (LW-163, Engine.cs), or the
-    /// drained-cache re-latch above (LW-163: the count-gated re-check clearing _poolCovered),
-    /// which can also land mid-battle during an off-field settle stretch rather than only at an
-    /// edge, where hold-reassert/kill-poll latency does not bite.
-    /// Residual accepted risk: if kills coverage never latches (a future weapon absent from
-    /// every pool region), that text-chunk cost recurs per tick. That never-latch state is a
-    /// pre-existing failure mode (it already re-scans all regions AND runs the sweep every
-    /// tick today) and is observable in the "LW37 paint" coverage line (MaybePoolPaint below) --
-    /// unconditional Debug since LW-257; LWDEV-only before that promotion.</summary>
+    /// allSuffixes: true searches every tracked id's suffix in a text-bearing chunk, not just the
+    /// rotation slice, so a tally reset cannot leave a stale +N. Cost is about 121 ids x 2 encodings of
+    /// FindAll passes per such chunk, tens of ms for a full 4MB chunk, on Engine's background loop and not
+    /// the game thread. It runs on battle-exit, paused status-card and battle-enter Invalidate (LW-163,
+    /// Engine.cs) and on the drained-cache re-latch, which can land mid-battle during an off-field settle.
+    /// If kills coverage never latches (a weapon absent from every pool region) that cost recurs per tick.
+    /// That failure already existed and shows in the "LW37 paint" coverage line (Debug since LW-257).</summary>
     private void ScanPoolRegion(long regionBase, long regionSize)
     {
         var reader = new ChunkReader(_mem);

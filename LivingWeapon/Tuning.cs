@@ -4,42 +4,32 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Living-Weapon growth tuning. Kept in one place so detection, growth, and display agree.
-///
-/// Kill thresholds are build-gated: a DEV build (BuildLinked.ps1 passes -p:LwDev=true, which
-/// defines LWDEV) uses {1,2,3} so a weapon hits P3 in three kills, AND pre-seeds every weapon
-/// to DevKillSeed (3 == P3) on load -- so every +3 signature is live the moment the weapon is
-/// equipped. A PRODUCTION build (Publish.ps1, no flag) uses the real curve {5,10,15} and seeds nothing.
+/// Growth tuning in one place so detection, growth, and display agree.
+/// Kill thresholds are build-flavored: a DEV build (BuildLinked.ps1 passes -p:LwDev=true, which
+/// defines LWDEV) uses {1,2,3} and seeds every weapon to DevKillSeed on load; a PRODUCTION build
+/// (Publish.ps1) uses {5,10,15} and seeds nothing.
 /// </summary>
 internal static class Tuning
 {
-    /// <summary>Both threshold sets, ALWAYS compiled (so a test can reason about the dev curve even
-    /// though tests compile under prod). The active one is selected by the LWDEV flag below.</summary>
+    /// <summary>Both threshold sets are always compiled so tests can use the dev curve; LWDEV picks the active one.</summary>
     public static readonly int[] DevThresholds = { 1, 2, 3 };    // P3 by the third kill (fast verification)
-    public static readonly int[] ProdThresholds = { 5, 10, 15 }; // gentle ramp (2026-08-11 retune): the
-        // owner's first full playthrough reached 50 kills on only ONE weapon by mid-game, so most
-        // weapons never awakened under the old {5,25,50} curve
+    public static readonly int[] ProdThresholds = { 5, 10, 15 }; // gentle ramp (2026-08-11 retune from {5,25,50}: one weapon reached 50 kills by mid-game)
 #if LWDEV
     public static readonly int[] KillThresholds = DevThresholds;
-    /// <summary>The binary's own build flavor, for the launch header (logging facelift). A
-    /// compiled const, NOT build_flavor.txt: that file is BuildLinked's deploy-time guard
-    /// marker, absent in a Publish-zip install and possibly stale against the running DLL.</summary>
+    /// <summary>The binary's own build flavor, for the launch header. A const rather than build_flavor.txt,
+    /// which is BuildLinked's deploy-time marker and can be absent or stale.</summary>
     public const string BuildFlavor = "development";
     /// <summary>DEV: floor every known weapon to <see cref="DevKillSeed"/> kills on load.</summary>
     public const bool DevSeedAllKills = true;
-    /// <summary>DEV: pool-anchored in-place equip-card Kills paint (LW-37). Once the writable
-    /// UE string pool is located and fully covers every tracked weapon id, the per-paint
-    /// whole-heap DisplaySweep is skipped. Mechanism observed live 2026-07-07 (memory
-    /// lw37-equip-card-redirect-walled) AND observed live 2026-07-08 through this exact code path
-    /// (card reads the live count, sweep retired, foreign surfaces untouched). Enabled in both
-    /// build flavors; Engine reads this flag, tests default to the sweep path independent of it.</summary>
+    /// <summary>DEV: pool-anchored in-place equip-card Kills paint. Once the writable UE string pool
+    /// covers every tracked weapon id, the per-paint DisplaySweep is skipped. Observed 2026-07-07 (memory
+    /// lw37-equip-card-redirect-walled) and 2026-07-08. Both flavors enable it; tests default to the sweep path.</summary>
     public const bool PoolPaintEnabled = true;
     /// <summary>DEV: per-tick battle-event timeline (damage/heal/move) in the log.</summary>
     public const bool VerboseEvents = true;
-    /// <summary>DEV pulse RETIRED 2026-06-10 after it verified the full write path on screen
-    /// (band addressing + HP write + MP pair, watched live). Flip back to true only to re-run
-    /// that experiment -- while true it force-heals every ~10s and drowns out the real trigger.
-    /// External probes are Denuvo-walled, so the DLL remains the only instrument for it.</summary>
+    /// <summary>DEV pulse retired 2026-06-10 after it verified the write path (band addressing, HP write, MP pair).
+    /// Set true only to rerun that experiment; while true it force-heals every ~10s. External probes are
+    /// Denuvo-walled, so the DLL is the only instrument.</summary>
     public const bool FontDevPulse = false;
 #else
     public static readonly int[] KillThresholds = ProdThresholds;
@@ -47,9 +37,8 @@ internal static class Tuning
     public const string BuildFlavor = "production";
     /// <summary>Production seeds nothing -- the wielder earns every tier.</summary>
     public const bool DevSeedAllKills = false;
-    /// <summary>Pool paint replaces the whole-heap DisplaySweep for the equip-card Kills meter.
-    /// Live-verified 2026-07-08 in a DEV build (card reads the live count, sweep retired, foreign
-    /// surfaces untouched); enabled in release too (see the LWDEV twin).</summary>
+    /// <summary>Pool paint replaces the whole-heap DisplaySweep for the equip-card Kills meter; see the LWDEV
+    /// twin (checked 2026-07-08 in a DEV build).</summary>
     public const bool PoolPaintEnabled = true;
     /// <summary>Production logs stay lean: kills/turns/grants only, no per-tick events.</summary>
     public const bool VerboseEvents = false;
@@ -57,119 +46,80 @@ internal static class Tuning
     public const bool FontDevPulse = false;
 #endif
 
-    /// <summary>LW-295: the kill-tier glow look test. A grown weapon's authored palette is
-    /// brightened toward white in WeaponPalette, one step per kill tier (indexed 0..3). LOOK-TEST
-    /// KNOBS, not a tuned production curve -- these are the probe's committed defaults, carried
-    /// over unchanged pending the owner's live look-test pass (deferred by explicit owner call,
-    /// 2026-08-24); same in both build flavors. Mirrors tools/probes/lw305_bench_paint.py's
-    /// GLOW_TIER (commit 2dbab25).</summary>
+    /// <summary>kill-tier glow look test. WeaponPalette brightens a grown weapon's palette toward white,
+    /// one step per tier (index 0..3). Defaults carried over from tools/probes/lw305_bench_paint.py GLOW_TIER
+    /// (commit 2dbab25), untuned pending the look-test (deferred 2026-08-24). Same in both flavors.</summary>
     public static readonly double[] GlowFactors = { 0.0, 0.25, 0.50, 0.75 };
 
-    /// <summary>DEV seed floor: every weapon starts at least this many kills. 3 (== P3 under the dev
-    /// thresholds) so every +3 signature is live the moment the weapon is equipped.</summary>
+    /// <summary>DEV seed floor: 3 == P3 under the dev thresholds, so every +3 signature is live on equip.</summary>
     public const int DevKillSeed = 3;
 
-    /// <summary>Reliquary Phase 1 (docs/RELIQUARY_AC.md): the per-archetype kill count at which a
-    /// weapon earns that archetype's Mark (Slayer title). Both curves ALWAYS compiled (mirrors
-    /// DevThresholds/ProdThresholds above) so a test can reason about the dev curve even though
-    /// tests compile under prod; the active one is selected by LWDEV below. A single-element
-    /// array -- unlike the 3-tier kill curve, a Mark is earned once (no P1/P2/P3 progression).</summary>
+    /// <summary>Reliquary Phase 1 (docs/RELIQUARY_AC.md): per-archetype kill count that earns that archetype's
+    /// Mark (Slayer title). Both curves are always compiled and LWDEV picks one. A single element, since a
+    /// Mark is earned once.</summary>
     public static readonly int[] DevMarkThresholds = { 2 };     // fast in-game verification
-    public static readonly int[] ProdMarkThresholds = { 10 };   // PLACEHOLDER -- deferred balance pass;
-        // scaled down 25 -> 10 alongside the 2026-08-11 kill-curve retune (still a placeholder, not tuned)
+    public static readonly int[] ProdMarkThresholds = { 10 }; // placeholder, scaled 25 -> 10 with the 2026-08-11 retune; balance pass deferred
 #if LWDEV
     public static readonly int[] MarkThresholds = DevMarkThresholds;
 #else
     public static readonly int[] MarkThresholds = ProdMarkThresholds;
 #endif
 
-    /// <summary>Reliquary Phase 1: headroom for VictimClass.Archetype's non-Unknown count (today
-    /// 4: Caster/Human/Monster/Undead). 6 leaves room for the AC's deferred dragon/species
-    /// archetypes without a re-tune; enforced by a unit test (TuningTests.MaxArchetypes_...).</summary>
+    /// <summary>Reliquary Phase 1: headroom for VictimClass.Archetype's non-Unknown count (4 today:
+    /// Caster/Human/Monster/Undead), leaving room for the AC's deferred dragon/species archetypes.
+    /// Enforced by TuningTests.MaxArchetypes_...</summary>
     public const int MaxArchetypes = 6;
 
-    /// <summary>CardSites (LW-257 commit 1): consecutive Unreadable anchor-verify misses a
-    /// cached equip-card paint site may accrue before PaintAll evicts it. A transient unreadable
-    /// read must not permanently delete a live site -- the bug this constant exists to fix: the
-    /// pre-LW-257 verify (CardSites.cs's old bare-bool AnchorIsLive) treated a single unreadable
-    /// frame identically to a genuine buffer-reuse mismatch and evicted on the spot. Outside the
-    /// #if LWDEV split, unlike the kill-tier thresholds above -- this is a paint-cache hygiene
-    /// knob, not a difficulty/pacing one, so both build flavors share it. Tuned from the
-    /// 2026-08-17 tape: across three successive maintenance passes the live cache's site count
-    /// fell 836 -> 726 -> 690 while Display.PoolPaint.cs's CoversAllMeta() reported coverage
-    /// "complete" throughout (each weapon id keeps roughly 5.8 pool copies on average,
-    /// CardSites.cs's own MaxSites sizing comment, so losing one copy per id never trips that
-    /// per-id check). Three strikes survives that observed multi-pass drain pattern while still
-    /// evicting a genuinely dead site within a few maintenance beats (Display.MaintenanceMs is
-    /// 1000ms each) rather than holding it forever.</summary>
+    /// <summary>CardSites (LW-257 commit 1): consecutive Unreadable anchor-verify misses before PaintAll evicts a
+    /// cached equip-card paint site. The old bare-bool AnchorIsLive evicted on a single unreadable frame.
+    /// Sits outside the #if LWDEV split because it is a paint-cache hygiene knob, not a difficulty/pacing one.
+    /// Tuned from the 2026-08-17 tape: the site count fell 836 -> 726 -> 690 over three maintenance passes
+    /// while CoversAllMeta() (Display.PoolPaint.cs) kept reporting complete, since each id has ~5.8 pool
+    /// copies (CardSites.cs MaxSites). Three strikes rides that out and still evicts a dead site within a
+    /// few 1000ms beats (Display.MaintenanceMs).</summary>
     public const int CardEvictStrikes = 3;
 
-    /// <summary>Display.Heartbeat.cs (LW-257 commit 2): maintenance beats (Display.MaintenanceMs
-    /// apart, ~1s each) a changed weapon id may sit WATCHED in the pending set before
-    /// RunMaintenance gives up and drops it (one Debug line). This is a watchdog cap, not a retry
-    /// budget (correction, round 2 review -- an earlier version of this doc described "extra
-    /// skip-if-equal passes" that do not exist: RunMaintenance runs the exact same single PaintAll
-    /// every beat whether or not anything is pending, so a pending id costs no extra paint work at
-    /// all). What this constant actually bounds is how long the runtime keeps asking "has this id
-    /// settled somewhere trustworthy yet" before concluding it will not and saying so on the log,
-    /// for the one load-bearing premise the pending-set clear predicate leans on -- which located
-    /// pool region the card actually materializes from, docs/LIVE_LEDGER.md's
-    /// [card-materializes-from-named-pool] row, filed Uncertain 2026-08-17. If that premise were
-    /// ever wrong, an id would never settle inside a located region despite a real paint existing
-    /// somewhere else, and this cap is what turns that into a bounded, logged give-up instead of a
-    /// permanently growing watchlist.</summary>
+    /// <summary>Display.Heartbeat.cs (LW-257 commit 2): maintenance beats (Display.MaintenanceMs, ~1s) a changed
+    /// weapon id may stay in the pending set before RunMaintenance drops it with one Debug line. A watchdog
+    /// cap, not a retry budget. It bounds the wait on the premise behind the pending-clear predicate, which
+    /// pool region the card materializes from (docs/LIVE_LEDGER.md [card-materializes-from-named-pool], filed
+    /// Uncertain 2026-08-17). If that premise is wrong an id never settles, and this turns that into a logged
+    /// give-up.</summary>
     public const int CardPendingMaxBeats = 10;
 
-    /// <summary>Display.PoolPaint.cs's ReOfferDrainedRegions (LW-257 commit 2): kill switch for
-    /// the per-region drain re-offer, mirroring PoolPaintEnabled's own on-by-default convention.
-    /// Default ON -- the mechanism reuses ScanPoolRegion byte for byte (the same discovery/write/
-    /// foreign-refusal path the initial pool scan already runs, docs/LIVE_LEDGER.md's PROVEN
-    /// [flavor-line-overwrite-displays] row), scoped to only the specific region(s) a per-region
-    /// site-count compare found short of its own latch -- never a full relocate, never a
-    /// whole-heap sweep -- so its blast radius is bounded the same way the rest of this arc's
-    /// writes already are.</summary>
+    /// <summary>Display.PoolPaint.cs ReOfferDrainedRegions (LW-257 commit 2): kill switch for the per-region
+    /// drain re-offer. It reuses ScanPoolRegion (docs/LIVE_LEDGER.md [flavor-line-overwrite-displays],
+    /// PROVEN) on only the regions that fell short of their latch.</summary>
     public const bool CardReOfferEnabled = true;
 
-    /// <summary>AttackCard (LW-91): how long a cached table copy may fail its SyncHit verify
-    /// before RepaintAll evicts it, instead of the old instant-evict-then-re-census. SyncHit for
-    /// an already-cached hit runs only inside RepaintAll -- a compose-change edge, or the 1000ms
-    /// maintenance cadence (AttackCard.MaintenanceMs) -- so steady state is about one verify pass
-    /// per second; the census that will find any genuine replacement is already armed the moment
-    /// the strike episode starts (RepaintAll's episode-start term), so this window is off the
-    /// recovery critical path. 3000ms costs a genuinely dead buffer only about three guarded
-    /// reads before it is dropped, while covering the transient live-buffer misread that was the
-    /// dominant failure on the 2026-07-21 recon tape (a real handle re-verified clean within a
-    /// couple of passes, well under this window).</summary>
+    /// <summary>AttackCard: how long a cached table copy may fail SyncHit verify before RepaintAll
+    /// evicts it (formerly instant evict, then re-census). SyncHit on a cached hit runs only in RepaintAll
+    /// (compose-change edge or the 1000ms AttackCard.MaintenanceMs), and the census is already armed when the
+    /// strike episode starts, so the window is off the recovery path. 3000ms covers the transient misread on
+    /// the 2026-07-21 recon tape (a real handle re-verified within a couple of passes).</summary>
     public const long AttackCardEvictAfterMs = 3000;
 
-    /// <summary>Ticks an armed delayed actor (Dragoon Jump / charged action) survives before it
-    /// decays. The bit-clear == kill-lands; credit fires at deadStreak >= DeadNeeded (3), so ~3-4
-    /// ticks of margin covers the gap between landing and corpse confirmation. Kept TIGHT (12 ticks
-    /// ~400ms at 33ms) so an unrelated later kill cannot consume the armed actor.</summary>
+    /// <summary>Ticks an armed delayed actor (Dragoon Jump / charged action) survives before decaying. Credit
+    /// fires at deadStreak >= DeadNeeded (3), so ~3-4 ticks of margin covers landing to corpse confirmation.
+    /// Kept tight (12 ticks, ~400ms at 33ms) so an unrelated later kill cannot consume it.</summary>
     public const int DelayedActorWindow = 12;
 
-    /// <summary>Arm window (ticks) for the UNTRACKED cross-turn charge (summoner's summon) no-credit
-    /// stamp. DELIBERATELY wider than DelayedActorWindow: the untracked arm only ever sets the
-    /// no-credit verdict (it never credits a weapon), so a wide window can at worst MISS an unrelated
-    /// armed kill that matures inside it -- never mis-credit. Wider hedges the unproven gap between the
-    /// summon's Charging-bit clear and the lethal-damage HP->0 edge (the Jump window is tuned tight
-    /// against over-CREDIT, which does not apply here). TUNE from the live charging_probe.py measurement
-    /// of the bit-clear -> death gap.</summary>
+    /// <summary>Arm window (ticks) for the untracked cross-turn charge (summoner's summon) no-credit stamp.
+    /// Wider than DelayedActorWindow because this arm only sets the no-credit verdict, so a wide window can
+    /// miss a kill but never mis-credit. It hedges the unmeasured gap between the Charging-bit clear and the
+    /// lethal HP->0 edge. Tune from the charging_probe.py measurement.</summary>
     public const int UntrackedDelayedWindow = 45;   // ~1.5s at the 33ms tick
 
-    /// <summary>KillerStamp (death-edge culprit stamp, KillerStamp.cs): coarse staleness BACKSTOP
-    /// for the register hypothesis (register ticks == KillTracker.Poll calls, ~33ms nominal /
-    /// ~130ms effective). The PRIMARY gate is ordering (the arrival must be strictly after the
-    /// latch's own resolve tick); this window is a secondary hedge only. Observed killer
-    /// arrival-&gt;edge gaps were 2-8 ticks across every verified tape kill, so 90 is deliberately
-    /// loose -- tune from the stamp-override flight taps.</summary>
+    /// <summary>KillerStamp (KillerStamp.cs): coarse staleness backstop for the register hypothesis (register
+    /// ticks == KillTracker.Poll calls, ~33ms nominal, ~130ms effective). Ordering is the primary gate (arrival
+    /// strictly after the latch's resolve tick). Killer arrival-&gt;edge gaps were 2-8 ticks on every verified
+    /// tape kill, so 90 is loose. Tune from the stamp-override flight taps.</summary>
     public const int RegisterKillWindow = 90;
 
     /// <summary>kills -> tier (0..3) against the active thresholds, checked high to low.</summary>
     public static int TierFor(int kills) => TierForIn(kills, KillThresholds);
 
-    /// <summary>The weapon's current tier straight off the shared kill tally (0 when untallied).
-    /// The one lookup every signature module and the growth router key on.</summary>
+    /// <summary>The weapon's current tier off the shared kill tally (0 when untallied).</summary>
     public static int TierOf(Dictionary<int, int> kills, int weaponId) =>
         TierFor(kills.TryGetValue(weaponId, out int k) ? k : 0);
 
@@ -177,11 +127,9 @@ internal static class Tuning
     public static int TierForIn(int kills, int[] thresholds) =>
         kills >= thresholds[2] ? 3 : kills >= thresholds[1] ? 2 : kills >= thresholds[0] ? 1 : 0;
 
-    /// <summary>The kill count needed to reach the tier just past <paramref name="kills"/>'s current
-    /// one, against the active thresholds. Null at max tier (3): there is nowhere further to
-    /// climb. Backs the Attack card's tier-progress meter (AttackCardTail.ComposeTail): threading it
-    /// through TierFor's own tier math keeps the meter's "X to next" number from ever drifting out
-    /// of sync with the tier boundaries it displays.</summary>
+    /// <summary>Kills needed for the tier after <paramref name="kills"/>'s, against the active thresholds; null
+    /// at max tier. Backs the Attack card's tier-progress meter (AttackCardTail.ComposeTail) and reuses
+    /// TierFor's math so the meter cannot drift from the tier boundaries.</summary>
     public static int? NextThresholdFor(int kills) => NextThresholdForIn(kills, KillThresholds);
 
     /// <summary>NextThresholdFor against a given threshold set (lets tests check the dev curve).</summary>
@@ -191,64 +139,54 @@ internal static class Tuning
         return tier >= 3 ? null : thresholds[tier];
     }
 
-    /// <summary>DEV ONLY: floor every known weapon's kill count to <paramref name="floor"/>. Purely
-    /// additive -- never lowers an already-higher count (so a weapon that actually climbed past it
-    /// keeps its progress). Lets every weapon sit at max tier for fast in-game testing.</summary>
+    /// <summary>DEV only: floor every known weapon's kill count to <paramref name="floor"/>. Never lowers a
+    /// higher count.</summary>
     public static void SeedKills(IEnumerable<int> weaponIds, Dictionary<int, int> kills, int floor)
     {
         foreach (int id in weaponIds)
             if (!kills.TryGetValue(id, out int k) || k < floor) kills[id] = floor;
     }
 
-    /// <summary>tier -> bonus as a fraction of the wielder's natural stat (PA / MA).
-    /// Deliberately CONSERVATIVE: an investment mechanic must start under-tuned, because nerfing
-    /// earned (kill-grown) power is the most-hated kind of nerf. Easier to buff up than claw back.</summary>
+    /// <summary>tier -> bonus as a fraction of the wielder's natural stat (PA / MA). Starts conservative since
+    /// nerfing earned power is the most-hated kind of nerf; easier to buff than claw back.</summary>
     public static readonly double[] Factor = { 0.00, 0.10, 0.20, 0.30 };
 
-    /// <summary>Speed grows gentler still -- it double-dips (damage AND turn frequency).</summary>
+    /// <summary>Speed grows gentler since it adds both damage and turn frequency.</summary>
     public static readonly double[] SpeedFactor = { 0.00, 0.05, 0.10, 0.15 };
 
-    /// <summary>LW-317: tier -> multiplicative bonus for the "pa+ma"/"pa+ma+brave" multi-lane
-    /// weapons (the nine Poles, Materia Blade, Terrastaff, the ten Katanas, Sasori). Owner-locked
-    /// as its OWN curve rather than a reuse of <see cref="Factor"/> -- a two/three-stat weapon
-    /// earning the single-stat rate on each stat would out-grow the single-lane design.</summary>
+    /// <summary>tier -> multiplier for the "pa+ma"/"pa+ma+brave" multi-lane weapons (nine Poles,
+    /// Materia Blade, Terrastaff, ten Katanas, Sasori). Its own curve, since the single-stat rate on each of
+    /// two or three stats would out-grow the single-lane design.</summary>
     public static readonly double[] MultiFactor = { 0.00, 0.07, 0.13, 0.20 };
 
-    /// <summary>LW-317: tier -> flat CURRENT-brave bonus the "pa+ma+brave" katana lane holds at
-    /// Offsets.CBraveCurrent (min(natural + bonus, <see cref="BraveLaneCap"/>), never below
-    /// natural).</summary>
+    /// <summary>tier -> flat current-brave bonus the "pa+ma+brave" katana lane holds at
+    /// Offsets.CBraveCurrent, capped at <see cref="BraveLaneCap"/> and never below natural.</summary>
     public static readonly int[] BraveBonus = { 0, 4, 8, 12 };
 
-    /// <summary>LW-317: ceiling for the katana lane's held CURRENT brave. A DISTINCT constant
-    /// from <see cref="KobuBraveCap"/> even though both currently read 97 -- Kobu's cap belongs
-    /// to Kiyomori's one-shot compose-driven raise (KobuPolicy), this one to the flat-bonus hold
-    /// every "pa+ma+brave" katana carries regardless of signature; do not collapse them into one
-    /// shared const.</summary>
+    /// <summary>ceiling for the katana lane's held current brave. Separate from <see cref="KobuBraveCap"/>
+    /// although both are 97: Kobu's cap belongs to Kiyomori's compose-driven raise (KobuPolicy), this one to the
+    /// flat-bonus hold every "pa+ma+brave" katana carries.</summary>
     public const int BraveLaneCap = 97;
 
-    /// <summary>LW-317: tier -> flat CURRENT-faith bonus the "wp+faith" magic-gun lane holds at
-    /// Offsets.CFaithCurrent (min(natural + bonus, <see cref="FaithLaneCap"/>), never below
-    /// natural).</summary>
+    /// <summary>tier -> flat current-faith bonus the "wp+faith" magic-gun lane holds at
+    /// Offsets.CFaithCurrent, capped at <see cref="FaithLaneCap"/> and never below natural.</summary>
     public static readonly int[] FaithBonus = { 0, 4, 8, 12 };
 
-    /// <summary>LW-317: ceiling for the magic-gun lane's held CURRENT faith.</summary>
+    /// <summary>ceiling for the magic-gun lane's held CURRENT faith.</summary>
     public const int FaithLaneCap = 85;
 
-    /// <summary>LW-317: ceiling for the "hp" lane's held u16 MaxHp (Offsets.CMaxHp). HP grows on
-    /// the existing <see cref="Factor"/> array (the same curve PA/MA use) -- this only caps the
-    /// result, since a Knight Sword's target can otherwise land well past what the u16 field
-    /// should ever realistically carry.</summary>
+    /// <summary>ceiling for the "hp" lane's held u16 MaxHp (Offsets.CMaxHp). HP grows on
+    /// <see cref="Factor"/>; this only caps the result, since a Knight Sword's target can land well past a
+    /// sane u16 value.</summary>
     public const int HpCeiling = 999;
 
-    /// <summary>LW-317: tier -> flat WP bonus WpTableHold writes into the resident item-stats
-    /// table (Offsets.ItemStatsBase) for the turn-scoped "wp"/"wp+faith" gun lanes -- restored to
-    /// the baked WP the instant the wielder's turn is no longer active.</summary>
+    /// <summary>tier -> flat WP bonus WpTableHold writes into the resident item-stats table
+    /// (Offsets.ItemStatsBase) for the turn-scoped "wp"/"wp+faith" gun lanes; restored to the baked WP when
+    /// the wielder's turn ends.</summary>
     public static readonly int[] WpBonus = { 0, 1, 2, 3 };
 
-    /// <summary>LW-317: consecutive Band.FlagOwner-unresolved ticks (a transient band-scan gap,
-    /// not a clean "someone else's turn" signal) a live WpTableHold bump may survive before the
-    /// hold concludes the gap is real and restores the baked WP -- the same "one missed tick is
-    /// not a pattern" precedent as BulwarkUnresolvedTicks / ProvokeMarkedMissTicks.</summary>
+    /// <summary>consecutive Band.FlagOwner-unresolved ticks (a transient band-scan gap) a WpTableHold
+    /// bump survives before the baked WP is restored; same rule as BulwarkUnresolvedTicks.</summary>
     internal const int WpUnresolvedRestoreTicks = 3;
 
     /// <summary>tier -> the 2-char name suffix painted on the card ("  " renders as nothing).</summary>
@@ -258,120 +196,99 @@ internal static class Tuning
     /// healed per wielder turn edge (round away-from-zero, floor 1).</summary>
     public const double RenewalPct = 0.10;
 
-    /// <summary>Spiritual Font (Umbral Rod +3): fraction of max HP the wielder regains at a
-    /// completed-turn edge where their grid position changed (the runtime writes the restore
-    /// itself -- the engine honors only ONE movement passive, so the font bits are retired).</summary>
+    /// <summary>Spiritual Font (Umbral Rod +3): fraction of max HP regained at a completed-turn edge where the
+    /// grid position changed. The runtime writes the restore itself since the engine honors only one movement
+    /// passive, so the font bits are retired.</summary>
     public const double FontHpPct = 0.10;
 
-    /// <summary>Spiritual Font: fraction of max MP regained on the same moved-turn edge. MP writes
-    /// ride the band +0x18/+0x1A pair (live-verified 2026-06-10), gated per battle (SpiritualFont.MpLayoutOk).</summary>
+    /// <summary>Spiritual Font: fraction of max MP regained on the same edge. MP writes ride the band
+    /// +0x18/+0x1A pair (checked 2026-06-10), gated per battle by SpiritualFont.MpLayoutOk.</summary>
     public const double FontMpPct = 0.10;
 
-    /// <summary>Plague (Venombolt +3): how far apart (ms) the poison-bit edge and the wielder's
-    /// acted window may land and still latch. The engine applies poison during attack resolution,
-    /// which can precede the observed window (actor-resolution lag) or trail it (animation tail);
-    /// a strict same-tick overlap missed every proc live (2026-06-10: four open windows, zero
-    /// latches, a chocobo cleansed the "permanent" poison).</summary>
+    /// <summary>Plague (Venombolt +3): how far apart (ms) the poison-bit edge and the wielder's acted window may
+    /// land and still latch. The engine applies poison during attack resolution, which can precede the observed
+    /// window (actor-resolution lag) or trail it (animation tail). A strict same-tick overlap missed every proc
+    /// on 2026-06-10 (four open windows, zero latches).</summary>
     public const long PlagueGraceMs = 2000;
 
-    /// <summary>Rapture (Rod of Faith +3): the window arms when the wielder's HP drops strictly
-    /// below this fraction of max. Held UNTIL RECOVERY (no turn cap -- the 3-turn clock was
-    /// retired 2026-06-10: the band CT it read never ticked live, while the recovery release
-    /// was player-verified the same session).</summary>
+    /// <summary>Rapture (Rod of Faith +3): the window arms when HP drops below this fraction of max and holds
+    /// until recovery. The 3-turn clock was retired 2026-06-10 since the band CT it read never ticked.</summary>
     public const double RaptureHpPct = 0.30;
 
-    /// <summary>Rapture: the granted movement ability -- 243 = Master Teleportation (ability.en
-    /// key 499). CONFIRMED LIVE 2026-06-10: the player teleported, so the engine honors the bit.
-    /// Fallback: flip to 242 (plain Teleport) if the arm-time read-back ever logs MISS.</summary>
+    /// <summary>Rapture: the granted movement ability, 243 = Master Teleportation (ability.en key 499); the
+    /// player teleported on 2026-06-10. Fallback: 242 (plain Teleport) if the arm-time read-back logs MISS.</summary>
     public const int RaptureMoveId = 243;
 
-    /// <summary>Feign Death (Wrathblade +3): how many of the wielder's OWN turns the played-dead
-    /// window lasts, counted off its live CT at band +0x25 (Offsets.ACtSlam). PROVEN 2026-06-14: a
-    /// shadow count tracked active turns cleanly (1@16s, 2@22s, 3@31s). The wielder's +0x09 reads flat
-    /// 0 (the Rapture wall); +0x25 reads clean during ACTIVE play and only freezes when the player
-    /// sits idle -- which a real battle never does mid-turn.</summary>
+    /// <summary>Feign Death (Wrathblade +3): how many of the wielder's own turns the played-dead window lasts,
+    /// counted off its CT at band +0x25 (Offsets.ACtSlam). A shadow count tracked active turns cleanly on
+    /// 2026-06-14 (1@16s, 2@22s, 3@31s). The +0x09 reads flat 0 (the Rapture wall); +0x25 only freezes when
+    /// the player idles.</summary>
     public const int FeignPossumTurns = 2;
 
-    /// <summary>Feign Death: the wielder's CT (+0x25) at which it counts as "up next in the queue" --
-    /// climbed toward its turn, another unit still active. The finishing blow waits for this so the
-    /// force-killed corpse is dead-and-scheduled for only a bounded climb before its turn fires the
-    /// Reraise (a 90-step dead-climb from CT ~10 CRASHED the engine 2026-06-14; an 8-step from CT 92
-    /// revived cleanly). The wielder's climbing CT reads noisy/variable (peaks seen 55-92), so a HIGH
-    /// threshold (75) skips low-reading climbs -> the wielder burns several alive turns before the
-    /// strike lands. 50 strikes on the FIRST climb toward turn 3 (~50-step dead-climb) -- the bet is
-    /// that window is still short enough to dodge the crash. Tune up if it crashes, down if too slow.</summary>
+    /// <summary>Feign Death: the wielder's CT (+0x25) at which it counts as up next. The finishing blow waits
+    /// for it so the corpse climbs only a bounded distance before Reraise fires (a 90-step climb from CT ~10
+    /// crashed the engine on 2026-06-14; 8 steps from CT 92 revived cleanly). CT reads noisy (peaks 55-92) and
+    /// 75 burned several alive turns, so 50 strikes on the first climb toward turn 3. Tune up if it crashes.</summary>
     public const int FeignUpNextCt = 50;
 
-    /// <summary>Feign Death: wall-clock SAFETY CAP on the played-dead window -- only fires if the CT
-    /// stops advancing (the player idles), so the possum can never last forever. The turn count
-    /// (<see cref="FeignPossumTurns"/>) is the real lever.</summary>
+    /// <summary>Feign Death: wall-clock cap on the played-dead window, firing only if CT stops advancing (the
+    /// player idles). <see cref="FeignPossumTurns"/> is the normal limit.</summary>
     public const double FeignPossumSeconds = 90.0;
 
-    /// <summary>Feign Death: after the engine raises the wielder (Reraise fires at CT 100), hold the
-    /// dead/KO bit CLEARED for this long so the stand-up leaves no corpse head-marker (hearts) and no
-    /// skipped turn -- the bit-clear must out-last the engine's revive bookkeeping. 3s observed live
-    /// 2026-06-14.</summary>
+    /// <summary>Feign Death: after the engine raises the wielder (Reraise fires at CT 100), hold the dead/KO bit
+    /// cleared this long so the stand-up leaves no corpse head-marker (hearts) and no skipped turn. The clear
+    /// must out-last the engine's revive bookkeeping; 3s observed 2026-06-14.</summary>
     public const double FeignRecoverSeconds = 3.0;
 
-    /// <summary>Iai (Ame-no-Murakumo +3): how far above the field-max Speed to hold the wielder's
-    /// Speed at battle-open. 1 = strictly above (ties lose; +1 secures the opening turn) while
-    /// keeping the post-turn refill rate slow enough for the 33 ms poll to safely revert before
-    /// a second turn is granted (flat 99 makes the refill race unwinnable at ~30 ms/refill).</summary>
+    /// <summary>Iai (Ame-no-Murakumo +3): how far above the field-max Speed to hold the wielder at battle-open.
+    /// 1 is strictly above (ties lose), and keeps the post-turn refill slow enough for the 33 ms poll to revert
+    /// before a second turn is granted (a flat 99 makes that race unwinnable at ~30 ms/refill).</summary>
     public const int IaiSpeedMargin = 1;
 
-    /// <summary>Iai: upper sane bound for Speed reads and write targets. Reads above this from the
-    /// field-max scan are discarded (one garbage-high read cannot pin the wielder to the clamp).
-    /// Write targets are clamped to 1..IaiSpeedSaneMax before every guarded W8 call.</summary>
+    /// <summary>Iai: upper sane bound for Speed reads (higher field-max reads are discarded) and writes (clamped
+    /// to 1..IaiSpeedSaneMax before every guarded W8 call).</summary>
     public const int IaiSpeedSaneMax = 99;
 
-    /// <summary>Iai (Ame-no-Murakumo +3): wall-clock safety cap on the opening-turn Speed hold.
-    /// Backstops the pointer-based release (Iai.Policy.ReleaseSignal, rebuilt 2026-07-01): the
-    /// stale-equal+wait-only double-corner (neither an arrival nor an acted-edge ever fires) and
-    /// a twin-address mismatch (Wielder.Locate resolved a frozen (0,0) copy) both leave the
-    /// pointer never matching the wielder's entry -- this cap guarantees the hold terminates
-    /// anyway rather than pinning the wielder fastest for the whole battle.</summary>
+    /// <summary>Iai (Ame-no-Murakumo +3): wall-clock cap on the opening-turn Speed hold. Backstops the
+    /// pointer-based release (Iai.Policy.ReleaseSignal, rebuilt 2026-07-01), which never fires in two cases:
+    /// the stale-equal+wait-only double-corner, and a twin-address mismatch (Wielder.Locate resolved a frozen
+    /// (0,0) copy). Without the cap the wielder stays fastest all battle.</summary>
     public const double IaiHoldCapSeconds = 90.0;
 
-    /// <summary>Afterimage (Swiftedge +3): flat Speed gained per completed wielder turn while the
-    /// ramp is intact. Swiftedge's damage is Speed x WP (formula 99), so each stack is +1xWP damage;
-    /// a legible flat number beats a percentage on a card.</summary>
+    /// <summary>Afterimage (Swiftedge +3): flat Speed gained per completed wielder turn while the ramp is
+    /// intact. Swiftedge's damage is Speed x WP (formula 99), so each stack adds 1xWP.</summary>
     public const int AfterimageSpeedPerTurn = 1;
 
-    /// <summary>Afterimage: the most stacks the ramp can hold (turns' worth). Caps the Speed swing at
-    /// AfterimageSpeedPerTurn x this -- 5 keeps a fully-ramped Swiftedge fast but not unbounded.</summary>
+    /// <summary>Afterimage: the most stacks the ramp holds. Caps the Speed swing at AfterimageSpeedPerTurn x
+    /// this.</summary>
     public const int AfterimageSpeedCap = 5;
 
-    /// <summary>Larceny (Arcanum +3): how many of the WIELDER's OWN completed turns a stolen buff is
-    /// worn before it fades -- counted by TurnTracker.Turns for the wielder's fingerprint (the proven
-    /// acted-edge per-unit counter). The GLOBAL-turn clock this replaced did not expire the buff in a
-    /// normal fight (haste hung on, 2026-06-16); a deployed wielder always takes turns, so no wall-clock
-    /// backstop is needed. 3 matches the card text ("wear 3 turns"). THE live-tune knob.</summary>
+    /// <summary>Larceny (Arcanum +3): how many of the wielder's own completed turns a stolen buff lasts, counted
+    /// by TurnTracker.Turns for the wielder's fingerprint. The global-turn clock it replaced left haste on in a
+    /// normal fight (2026-06-16). 3 matches the card text ("wear 3 turns"). Live-tune knob.</summary>
     public const int LarcenyHoldTurns = 3;
 
-    /// <summary>Puppeteer (Galewind +3): after a puppet is applied, the wielder cannot dominate another
-    /// enemy until this many GLOBAL turns (any unit's turn -- TurnTracker.GlobalTurns) have passed since
-    /// the dominate. At 4: the dominate turn, then 3 turns where it cannot fire, then it re-arms on the
-    /// 4th turn. The anti-snowball cap. (Global turns, NOT the wielder's own turns -- the acting
-    /// fingerprint flickered to the puppet, so a wielder-keyed cooldown ran backwards.)</summary>
+    /// <summary>Puppeteer (Galewind +3): after a puppet is applied, the wielder cannot dominate another enemy
+    /// until this many global turns (any unit's turn, TurnTracker.GlobalTurns) have passed since the dominate.
+    /// At 4: the dominate turn, three turns where it cannot fire, then it re-arms on the 4th. Anti-snowball cap.
+    /// Global rather than wielder turns, since the acting fingerprint flickered to the puppet and a
+    /// wielder-keyed cooldown ran backwards.</summary>
     public const int PuppeteerCooldownTurns = 4;
 
-    /// <summary>Puppeteer (Galewind +3): fallback release clock when the acting wielder could not be
-    /// fingerprinted at dominate time (LastActorFingerprint was default). In that rare case the
-    /// wielder-turn clock has no fp to ride, so the possession expires after this many GLOBAL turns
-    /// (~one full round). Bounds the possession safely without a per-unit clock.</summary>
+    /// <summary>Puppeteer (Galewind +3): fallback release clock when the wielder could not be fingerprinted at
+    /// dominate time (LastActorFingerprint was default); the possession expires after this many global turns.</summary>
     public const int PuppeteerWielderlessFallbackTurns = 12;
 
     // ── Toasts ────────────────────────────────────────────────────────
 
-    /// <summary>Compiled BannerToasts default, now the SOLE source since LW-52 removed the launcher
-    /// toggle: Mod.cs no longer passes a config value, so Engine's ctor falls back to this constant.
-    /// Default ON: the tier-up callout toast (BannerToast.cs) is the headline feature, always on.</summary>
+    /// <summary>Compiled BannerToasts default and sole source since LW-52 removed the launcher toggle (Engine's
+    /// ctor falls back to it). On, since the tier-up callout toast (BannerToast.cs) is the headline feature.</summary>
     public const bool BannerToasts = true;
 
-    /// <summary>Ultima (Materia Blade): tier (row 0..3) Ã— HP% band (col 100 / 75-99 / 50-74 / 25-49 /
-    /// &lt;25) -> PA multiplier PERCENT. round(naturalPA Ã— pct/100) is the held PA. Always-on (every
-    /// tier); the kill tier only RAISES the whole curve so a +3 blade isn't a death trap when hurt.
-    /// Faithful to FF7's Ultima Weapon: damage swells with the wielder's current HP.</summary>
+    /// <summary>Ultima (Materia Blade): tier (row 0..3) x HP% band (col 100 / 75-99 / 50-74 / 25-49 /
+    /// &lt;25) -> PA multiplier percent; the held PA is round(naturalPA x pct/100). Applies at every tier, and
+    /// the kill tier raises the curve so a +3 blade is not a death trap when hurt. Modeled on FF7's Ultima
+    /// Weapon.</summary>
     public static readonly int[][] UltimaMul =
     {
         new[] { 115, 110, 80, 70, 50 },  // +0  (0-4 kills)
@@ -380,182 +297,139 @@ internal static class Tuning
         new[] { 130, 120, 90, 80, 60 },  // +3  (15+)
     };
 
-    /// <summary>Plague (Venombolt +3): engine deals mhp/8 per-poison-tick; the runtime adds
-    /// mhp*<see cref="PlagueExtraDamageNum"/>/<see cref="PlagueExtraDamageDen"/> on each
-    /// victim turn, making the effective rate 1.75x (= 1 + 3/4 â‰ˆ 7/8 + 3/32*7). Floored at 1
-    /// so the augment never lands the kill.</summary>
+    /// <summary>Plague (Venombolt +3): the engine deals mhp/8 per poison tick; the runtime adds
+    /// mhp*<see cref="PlagueExtraDamageNum"/>/<see cref="PlagueExtraDamageDen"/> on each victim turn, for an
+    /// effective 1.75x (1 + 3/4). Floored at 1 so the augment never lands the kill.</summary>
     public const int PlagueExtraDamageNum = 3;
     public const int PlagueExtraDamageDen = 32;
 
-    /// <summary>Poison timer initial value written by the engine on application.
-    /// The runtime re-stamps this whenever the timer reads below it, defeating natural expiry
-    /// and cures. Proven live (memory poison-status-bytes): held through a two-healer battle.</summary>
+    /// <summary>Poison timer initial value written by the engine on application. The runtime re-stamps it
+    /// whenever the timer reads lower, defeating natural expiry and cures; held through a two-healer battle
+    /// (memory poison-status-bytes).</summary>
     public const byte PoisonTimerInit = 36;
 
-    /// <summary>Sanctuary (Staff of the Magi +3): the value held in the crystal counter (band -0x15
-    /// / combat +0x07) while the bearer is alive -- keeps fallen allies permanently revivable.</summary>
+    /// <summary>Sanctuary (Staff of the Magi +3): value held in the crystal counter (band -0x15 / combat
+    /// +0x07) while the bearer is alive, keeping fallen allies revivable.</summary>
     public const byte SanctuaryHearts = 3;
 
-    /// <summary>Bulwark (Sunderer +3, docs/BULWARK_AC.md A7): consecutive ticks the wielder may
-    /// fail to resolve (Wielder.ResolveDeployedMainHand returning 0 -- benched, or the LW-136
-    /// two-deployed refusal) before an active plant releases on its own. A single missed tick
-    /// alone must never tear down a genuine hold.</summary>
+    /// <summary>Bulwark (Sunderer +3, docs/BULWARK_AC.md A7): consecutive ticks the wielder may fail to resolve
+    /// (Wielder.ResolveDeployedMainHand returning 0, benched or the LW-136 two-deployed refusal) before an
+    /// active plant releases. One missed tick must not tear down a hold.</summary>
     public const int BulwarkUnresolvedTicks = 10;
 
-    /// <summary>Bulwark (Sunderer +3): the BannerToast dedupe/event key reserved for the plant
-    /// announcement. BannerToast's EVENT-KEY CONVENTION (see BannerToast.cs) already spends the
-    /// tier slot two ways -- real tier crossings use 1..3, Weapon Chronicle milestones use the
-    /// NEGATED milestone -- so a plant toast needs its own key outside both ranges. 4 is free:
-    /// tiers 1..3 and every milestone (negative) are already taken.</summary>
+    /// <summary>Bulwark (Sunderer +3): BannerToast event key for the plant announcement. Tiers use 1..3 and
+    /// Chronicle milestones are negated (BannerToast.cs), so 4 is the next free key.</summary>
     public const int BulwarkToastKey = 4;
 
-    /// <summary>Choir (Warlock's Staff +3): the support ability OR-set on adjacent allies so their magick casts instantly -- 227 = Non-charge (ability.en key 483), live-proven calc-gated. Swiftspell (226, half-charge) is the milder alt.</summary>
+    /// <summary>Choir (Warlock's Staff +3): support ability OR-set on adjacent allies so their magick casts
+    /// instantly, 227 = Non-charge (ability.en key 483), calc-gated. Swiftspell (226, half-charge) is the
+    /// milder alternative.</summary>
     public const int InstantCastSupportId = 227;
 
-    /// <summary>Chain Lightning (Stormarc +3): maximum units the bolt arcs through after the
-    /// primary hit. Each hop re-centers on the struck unit and picks the nearest unhit enemy.</summary>
+    /// <summary>Chain Lightning (Stormarc +3): maximum arcs after the primary hit; each hop re-centers on the
+    /// struck unit and picks the nearest unhit enemy.</summary>
     public const int RicochetMaxHops = 3;
 
-    /// <summary>Chain Lightning (Stormarc +3): each hop deals this percent of the PREVIOUS
-    /// hop's chip damage. Applies after the base ricochetPct, so damage decays each arc.</summary>
+    /// <summary>Chain Lightning (Stormarc +3): each hop deals this percent of the previous hop's chip damage,
+    /// applied after the base ricochetPct.</summary>
     public const int RicochetHopDecayPct = 60;
 
-    /// <summary>Mushin (Kiku-ichimonji +3): the PA-factor bonus added on top of the wielder's tier
-    /// factor for the one charged hit after a full wait turn (no move, no act, judged by
-    /// MushinPolicy.ShouldArm on the literal PSX turn-flag design, LW-4 round 5). One charge =
-    /// round(natural*2.05) PA at tier 3, about 1.6x a normal +3 swing, for one whole forgone turn:
-    /// the per-charge rate stays the same investment-mechanic bias as <see cref="Factor"/> (easier
-    /// to buff up than claw back an earned mechanic).</summary>
+    /// <summary>Mushin (Kiku-ichimonji +3): PA-factor bonus on top of the tier factor for the one charged hit
+    /// after a full wait turn (no move, no act, MushinPolicy.ShouldArm on the PSX turn flags, LW-4 round 5).
+    /// One charge is round(natural*2.05) PA at tier 3, about 1.6x a normal +3 swing.</summary>
     public const double MushinBonus = 0.75;
 
-    /// <summary>Mushin (Kiku-ichimonji +3): the charge is a single bool (0 or 1), never higher:
-    /// one full wait, one charged hit, matching the card's literal text. Named MaxStacks (not
-    /// "Cap") because MushinPolicy.PaHeld stays generic over an arbitrary stack count; only the
-    /// runtime caller (GrowthEngine.Mushin.cs) ever passes 1.</summary>
+    /// <summary>Mushin (Kiku-ichimonji +3): the charge is a single bool (one wait, one hit). Named MaxStacks
+    /// because MushinPolicy.PaHeld is generic over a stack count; only GrowthEngine.Mushin.cs passes 1.</summary>
     public const int MushinMaxStacks = 1;
 
-    /// <summary>Mushin (Kiku-ichimonji +3): the kill tier at which the full-wait charge unlocks.
-    /// Matches every other Living Weapon capstone signature (Iai, Kobu, ...), the tier-3 payoff.</summary>
+    /// <summary>Mushin (Kiku-ichimonji +3): kill tier at which the full-wait charge unlocks, like the other capstones.</summary>
     public const int MushinAtTier = 3;
 
-    /// <summary>Kobu (Kiyomori +3): ceiling for the wielder's current brave (band +0x0F).
-    /// 97 keeps it below the engine's Pray/Steel hard cap (100) while still out-braving
-    /// nearly any foe -- a unit at 98-100 is unbeatably brave but Kobu won't fully match
-    /// it (acceptable: the blade is never fully "bought" by one ultra-brave target).</summary>
+    /// <summary>Kobu (Kiyomori +3): ceiling for the wielder's current brave (band +0x0F). 97 stays below the
+    /// engine's Pray/Steel hard cap (100) while out-braving nearly any foe.</summary>
     public const int KobuBraveCap = 97;
 
-    // -- Provoke hold (LW-123 arc 2a): docs/PROVOKE_AC.md / the arc 2a plan's "Locked design
-    //    decisions". Arc 1 (Provoke.cs) plants the mark; this knob set tunes the hold that reads it. --
+    // -- Provoke hold (LW-123 arc 2a): docs/PROVOKE_AC.md. Arc 1 (Provoke.cs) plants the mark; these knobs
+    //    tune the hold that reads it. --
 
-    /// <summary>THE SHIP SWITCH for the whole Provoke feature (LW-133). False = the hold is wholly
-    /// inert: it never arms, hides nobody, and performs no write at all, not even the every-tick
-    /// player-side mark scrub. True = armed, which is what LW-123's acceptance pass needs.
+    /// <summary>Ship switch for the whole Provoke feature. False makes the hold inert: it never arms,
+    /// hides nobody, and writes nothing, including the per-tick player-side mark scrub.
     ///
-    /// History, because the switch exists for a reason that has not gone away: 2.3.2 was a
-    /// game-compatibility release and shipped this false, since nobody had played Provoke and
-    /// docs/PROVOKE_AC.md had never been run. Deleting the Defender's items.json signature block is
-    /// what stops the COMMAND being granted, but it does NOT stop this hold, which deliberately
-    /// gates on the MARK BIT rather than on meta[33].Signature (arc 2b's data plumbing was pending
-    /// when it was written). So the data edit alone leaves the hold live, and any enemy found
-    /// carrying status id 0 would hide the party for a player whose Defender reached tier 3 -- and
-    /// tier is earned from KILLS, independently of the signature block. That rests on "vanilla
-    /// never sets status id 0", still an UNVERIFIED premise: the cast-nothing control battle that
-    /// would settle it (docs/PROVOKE_AC.md) has not been run. Until it has, any release that means
-    /// to carry Provoke to players is resting on that premise, and any release that does not must
-    /// set this false again rather than relying on the data edit alone.
-    ///
-    /// Flipping it is a deliberate three-part edit either way, not a flag flip: this switch, the
-    /// id 33 signature block in data/items.json (re-bake meta after), and tools/patch_names.py so
-    /// the equip card matches what the weapon actually grants. ProvokeHoldTests pins the value AND
-    /// pins this switch against the baked signature block, so the code and data halves cannot
-    /// drift apart; tools/audit_nxd_bakes.py covers the card text.</summary>
+    /// 2.3.2 shipped this false because docs/PROVOKE_AC.md had not been run. Removing the Defender's
+    /// items.json signature block stops the command but not the hold, which gates on the mark bit rather
+    /// than meta[33].Signature (arc 2b's plumbing was pending). An enemy carrying status id 0 would hide the
+    /// party for a tier-3 Defender; that rests on the unverified premise that vanilla never sets id 0 (the
+    /// cast-nothing control battle in docs/PROVOKE_AC.md has not been run). Flipping it takes three edits:
+    /// this switch, the id 33 signature block in data/items.json (re-bake meta), and tools/patch_names.py.
+    /// ProvokeHoldTests pins the value against the baked block; tools/audit_nxd_bakes.py covers the card text.</summary>
     public const bool ProvokeEnabled = true;
 
-    /// <summary>LW-127 (D1 revised, branch 4): how much further off the leading enemy's ETA must be
-    /// than the marked enemy's own ETA before the hold reveals -- "clearly further away", not a photo
-    /// finish, so a one-position ordering error in TurnOrder's ranking still leaves the party hidden.
-    /// A const like every Tuning knob below, so changing it is a rebuild, never a runtime toggle.</summary>
+    /// <summary>how much further off the leading enemy's ETA must be than the
+    /// marked enemy's own before the hold reveals. "Clearly further away" rather than a photo finish, so a
+    /// one-position ordering error in TurnOrder's ranking still leaves the party hidden. A const, so changing
+    /// it is a rebuild.</summary>
     public const int ProvokeRevealMarginTicks = 2;
 
-    /// <summary>LW-127: the master switch for the CT+Speed turn-order lookahead (TurnOrder.cs). True
-    /// runs the full five-branch rule (D1 revised, ProvokeHold.Policy.ActionFor); false skips
-    /// branches 3/4 entirely -- TurnOrder is never consulted, so ActionFor always falls to its
-    /// branch 5 default (hide unless a player-side seat owns the turn or the marked enemy is the
-    /// current actor), which is the same fallback shape the old WINDOW mode shipped. A rollback
-    /// lever, not a player option: if the live pass finds the ranking model unreliable, flipping this
-    /// off restores the known fallback without reverting the whole feature. A const, so flipping it
-    /// is a rebuild, not a runtime toggle.</summary>
+    /// <summary>master switch for the CT+Speed turn-order lookahead (TurnOrder.cs). True runs the
+    /// five-branch rule (D1 revised, ProvokeHold.Policy.ActionFor). False skips branches 3/4, so TurnOrder is
+    /// never consulted and ActionFor falls to branch 5 (hide unless a player-side seat owns the turn or the
+    /// marked enemy is the current actor), the fallback the old WINDOW mode shipped. A rollback lever if the
+    /// live pass finds the ranking model unreliable.</summary>
     public const bool ProvokeLookahead = true;
 
-    /// <summary>Provoke hold: the marked enemy's own completed turns (the falling edge of the
-    /// actor-pointer identity match gated on an enemy turn, decision 10 -- see
-    /// ProvokeHold.MarkedIsActor; never the TurnQueue stat-fingerprint, which collides on identical
-    /// enemies) before the hold releases as EnemyTurnDone. AC 1b's target is 3; v1 ships 1.</summary>
+    /// <summary>Provoke hold: the marked enemy's own completed turns (falling edge of the actor-pointer identity
+    /// match gated on an enemy turn, decision 10, see ProvokeHold.MarkedIsActor) before the hold releases as
+    /// EnemyTurnDone. The count rides the actor-pointer identity match and never the TurnQueue
+    /// stat-fingerprint, which collides on identical enemies. AC 1b's target is 3; v1 ships 1.</summary>
     public const int ProvokeTurns = 1;
 
-    /// <summary>Provoke hold: LIVE battle-time safety cap (decision 11 -- accrued only on ticks where
-    /// Offsets.PauseFlag reads unpaused, so a long menu/deliberation never burns down the clock) before
-    /// an armed-but-stuck hold force-releases as a Watchdog.
-    ///
-    /// RAISED 30 -> 90 on 2026-07-27, measured rather than guessed. The owner's live pass armed the
-    /// hold at 04:30:40 and the marked enemy did not take its turn until roughly 04:31:11, 31
-    /// seconds later, because a shout lands during YOUR turn and the goaded enemy can sit most of a
-    /// round away in the queue. Under the old cap that healthy hold would have force-released about
-    /// a second before the enemy acted, and logged the WARN that means "a release condition was
-    /// missed" -- a permanent false bug report on a working feature. This cap exists for a hold that
-    /// is genuinely stuck (the Invisible bit never expires on its own), not for one that is merely
-    /// waiting, and every real release path (turn done, death, disable, bearer loss, battle end)
-    /// fires long before it. Raising ProvokeTurns above 1 would need this raised again, since the
-    /// clock accrues across the WHOLE hold, not per turn.</summary>
+    /// <summary>Provoke hold: live battle-time safety cap (decision 11; accrues only while Offsets.PauseFlag
+    /// reads unpaused) before a stuck hold force-releases as a Watchdog. Raised 30 -> 90 on 2026-07-27: the
+    /// hold armed at 04:30:40 and the marked enemy acted at about 04:31:11, so the old cap would have
+    /// released a healthy hold and logged the WARN meaning a release condition was missed. The clock accrues
+    /// across the whole hold, so raising ProvokeTurns above 1 needs it raised again.</summary>
     public const double ProvokeWatchdogSeconds = 90.0;
 
-    /// <summary>Provoke hold: consecutive ticks the marked enemy may fail to re-locate (a transient
-    /// band-scan miss -- an unreadable frame for a tick, say) before the hold concludes it is genuinely
-    /// gone (EnemyGone) and releases. One missed tick alone must never release the hold.</summary>
+    /// <summary>Provoke hold: consecutive ticks the marked enemy may fail to re-locate (a transient band-scan
+    /// miss) before the hold concludes it is gone (EnemyGone) and releases. One missed tick must not release.</summary>
     public const int ProvokeMarkedMissTicks = 3;
 
-    // -- Living Poach (LW-167): docs plan v2's "Locked design". ARMED at stage 4 (2026-08-12):
-    //    Engine now wires wasBasicAttack to LivingPoach.ReadWasBasicAttack, the real per-credit
-    //    action-record discriminator, so every gate below is live in production. --
+    // -- Living Poach, armed at stage 4 (2026-08-12): Engine wires wasBasicAttack to
+    //    LivingPoach.ReadWasBasicAttack, so every gate below is active in production. --
 
-    /// <summary>LW-167 Living Poach: damage formulas the game's own vanilla Poach support (Key
-    /// 471, live id 215) is DORMANT (owner-observed formula matrix, LW-166) through -- a weapon
-    /// shipping on any of these can never let VANILLA poach it, so this is exactly the set the
-    /// runtime feature is allowed to arm on
-    /// (owner-observed live 2026-08-12, LW-166's formula matrix; the keystone double-fire guard --
-    /// see LivingPoachPolicy.Decide's doc). MUST equal tools/lib/flavor.py's own DORMANT_FORMULAS:
-    /// analyze.py's lockstep gate (check_dormant_poach_formulas_lockstep) pins the two together so
-    /// this Python/C# pair can never drift apart.</summary>
+    /// <summary>LW-167 Living Poach: damage formulas through which the vanilla Poach support (Key 471, id 215)
+    /// is dormant (formula matrix, LW-166, observed 2026-08-12). A weapon on one of these cannot be poached by
+    /// vanilla, so the runtime feature may arm only on this set (the double-fire guard, see
+    /// LivingPoachPolicy.Decide). Must equal DORMANT_FORMULAS in tools/lib/flavor.py;
+    /// check_dormant_poach_formulas_lockstep in analyze.py pins the pair.</summary>
     internal static readonly int[] DormantPoachFormulas = { 45, 46, 47, 48, 67, 69, 99 };
 
-    /// <summary>True when <paramref name="formula"/> is one of <see cref="DormantPoachFormulas"/>
-    /// -- the keystone gate LivingPoach checks before ever considering a poach.</summary>
+    /// <summary>True when <paramref name="formula"/> is in <see cref="DormantPoachFormulas"/>; LivingPoach
+    /// checks it before considering a poach.</summary>
     internal static bool IsDormantPoachFormula(int formula) => Array.IndexOf(DormantPoachFormulas, formula) >= 0;
 
-    /// <summary>LW-167 Living Poach: the BannerToast dedupe/event key reserved for a successful
-    /// poach's carcass announcement. Outside every other reserved key: tiers 1..3, Bulwark's 4
-    /// (<see cref="BulwarkToastKey"/>), and every negated Weapon Chronicle milestone.</summary>
+    /// <summary>LW-167 Living Poach: BannerToast event key reserved for a successful poach's carcass
+    /// announcement. Distinct from tiers 1..3, <see cref="BulwarkToastKey"/> (4), and the negated Chronicle
+    /// milestones.</summary>
     internal const int PoachToastKey = 5;
 
-    /// <summary>LW-167 Living Poach: the killer's Poach SUPPORT ability id (live id 215 = Key 471
-    /// - 256, owner-observed live 2026-08-12) -- fed through Signatures.SupportBit the same way
-    /// Choir's InstantCastSupportId is, to find the (byteOffset, mask) in the 4-byte support
-    /// bitfield (Offsets.CSupport / Offsets.ASupport).</summary>
+    /// <summary>LW-167 Living Poach: the killer's Poach support ability id (Key 471 - 256, observed 2026-08-12),
+    /// fed through Signatures.SupportBit like Choir's InstantCastSupportId to find the (byteOffset, mask) in
+    /// the 4-byte support bitfield (Offsets.CSupport / Offsets.ASupport).</summary>
     internal const int PoachSupportAbilityId = 215;
 
-    /// <summary>LW-167 stage 4: the Offsets.ArecAbil value meaning "the killer's action record
-    /// names the basic Attack command, not an ability" -- LIVE_LEDGER's "The basic-Attack
-    /// discriminator (LW-167 stage 4)" row (2026-08-12, owner probe tools/probes/arec_watch.py):
-    /// a kind==5 (performing) stamp with abil==0 held from before the fatal blow through the
-    /// credit moment on every observed basic-Attack kill, while an ability kill (Rend Weapon,
-    /// id 141) held its own ability id the whole way. See LivingPoach.ReadWasBasicAttack.</summary>
+    /// <summary>LW-167 stage 4: Offsets.ArecAbil value meaning the killer's action record names the basic Attack
+    /// command, not an ability (docs/LIVE_LEDGER.md "The basic-Attack discriminator (LW-167 stage 4)" row,
+    /// 2026-08-12, probe tools/probes/arec_watch.py). A kind==5 stamp with abil==0 held from before the fatal
+    /// blow through credit on every basic-Attack kill, while an ability kill (Rend Weapon, id 141) held its own
+    /// id. See LivingPoach.ReadWasBasicAttack.</summary>
     internal const int BasicAttackAbilityId = 0;
 
-    /// <summary>Provoke hold (R2, owner round-2 feedback): status ids that mean the provoked enemy can
-    /// no longer carry out its provoked turn, so the hold releases rather than linger to the watchdog.
-    /// Petrify=8, Confuse=11, Stop=30, Charm=34, Sleep=35, DontAct=37 -- Death is already EnemyDead;
-    /// Frog/Berserk/Blind/Slow/DontMove/DeathSentence are deliberately EXCLUDED because the disabled
-    /// unit still attacks the only visible target (the bearer), so the provoke still lands. Read on the
-    /// COMPOSED layer (StatusApply.Composed + StatusByte/StatusMask(id)).</summary>
+    /// <summary>Provoke hold (R2): status ids meaning the provoked enemy cannot take its provoked turn, so the
+    /// hold releases instead of waiting for the watchdog: Petrify=8, Confuse=11, Stop=30, Charm=34, Sleep=35,
+    /// DontAct=37. Death is already EnemyDead. Frog/Berserk/Blind/Slow/DontMove/DeathSentence are excluded
+    /// because the unit still attacks the only visible target (the bearer). Read on the composed layer
+    /// (StatusApply.Composed + StatusByte/StatusMask(id)).</summary>
     public static readonly int[] ProvokeDisablingStatusIds = { 8, 11, 30, 34, 35, 37 };
 }

@@ -21,7 +21,7 @@ internal sealed partial class ActorResolver
     private int _periodStartTick = -1;     // -1 = not currently inside an acted-period
     private bool _corpseAnchorOk = true;   // KillTracker's per-tick corpse-anchor veto (V1)
 
-    /// <summary>Which path answered the last credit-worthy resolve: flags lane (LW-63), register, or
+    /// <summary>Which path answered the last credit-worthy resolve: flags lane, register, or
     /// turn-queue fallback. Feeds the latch log tag and KillTracker's fallback counters.</summary>
     internal ResolveSource LastResolveSource { get; private set; }
 
@@ -64,7 +64,7 @@ internal sealed partial class ActorResolver
     {
         weapons = Empty;
         LastResolveSource = ResolveSource.TqFallback;
-        // LW-63: the flags lane goes first; it names the acting unit structurally (better evidence than the
+        // The flags lane goes first; it names the acting unit structurally (better evidence than the
         // register's arrival-time snapshot, D3). Any refusal falls through to the register/turn-queue chain.
         if (FlagPathOpen && TryResolveFlagOwner(out var flagRosterBase, out _))
         {
@@ -102,7 +102,7 @@ internal sealed partial class ActorResolver
 
             bool realPos = _mem.U8(addr + Offsets.AGx) != 0 || _mem.U8(addr + Offsets.AGy) != 0;
             int actorWeapon = _mem.U16(addr + Offsets.AWeapon);
-            int seatNameId = _mem.U16(addr + Offsets.ANameId);   // LW-252: this seat's own identity, for the roster veto
+            int seatNameId = _mem.U16(addr + Offsets.ANameId);   // this seat's own identity, for the roster veto
             if (!FingerprintPlayer(level, _mem.U8(addr + Offsets.ABrave), _mem.U8(addr + Offsets.AFaith), actorWeapon, seatNameId, out var w))
                 continue;   // not a roster unit -> enemy entry
 
@@ -151,7 +151,7 @@ internal sealed partial class ActorResolver
     /// A Living Weapon earns kills in any hand but commands its gift only from the main hand.</summary>
     public int ResolveActingMainHand()
     {
-        // LW-63: flags-first, same as TryResolveActingPlayer (see ActorResolver.Flags.cs).
+        // Flags-first, same as TryResolveActingPlayer (see ActorResolver.Flags.cs).
         if (FlagPathOpen && TryResolveFlagOwner(out var flagRosterBase, out _))
         {
             ushort flagRrHand = _mem.U16(flagRosterBase + Offsets.RRHand);
@@ -178,12 +178,12 @@ internal sealed partial class ActorResolver
             long addr = Band.Entry(s);
             if (!Band.IsValid(_mem, addr)) continue;
             if (_mem.U16(addr + Offsets.AMaxHp) != maxHp) continue;
-            if (_mem.U16(addr + Offsets.AHp)    != hp)    continue;
-            if (_mem.U8(addr  + Offsets.ALevel) != level) continue;
+            if (_mem.U16(addr + Offsets.AHp) != hp) continue;
+            if (_mem.U8(addr + Offsets.ALevel) != level) continue;
 
             bool realPos = _mem.U8(addr + Offsets.AGx) != 0 || _mem.U8(addr + Offsets.AGy) != 0;
             int actorWeapon = _mem.U16(addr + Offsets.AWeapon);
-            int seatNameId = _mem.U16(addr + Offsets.ANameId);   // LW-252: this seat's own identity, for the roster veto
+            int seatNameId = _mem.U16(addr + Offsets.ANameId);   // this seat's own identity, for the roster veto
             int rh = MainHandFromRoster(level, _mem.U8(addr + Offsets.ABrave), _mem.U8(addr + Offsets.AFaith), actorWeapon, seatNameId);
             if (rh == 0) continue;
 
@@ -212,7 +212,7 @@ internal sealed partial class ActorResolver
     {
         fp = default;
         actorNameId = 0;
-        // LW-63: flags-first (see ActorResolver.Flags.cs). Returning the flags-named entry's own fp keeps
+        // Flags-first (see ActorResolver.Flags.cs). Returning the flags-named entry's own fp keeps
         // TrackDelayed's `_lastActorFp == (this slot's fp)` compare truthful when the flags lane named the committer (D5).
         if (FlagPathOpen && TryResolveFlagOwner(out _, out long flagEntry))
         {
@@ -241,8 +241,8 @@ internal sealed partial class ActorResolver
             long addr = Band.Entry(s);
             if (!Band.IsValid(_mem, addr)) continue;
             if (_mem.U16(addr + Offsets.AMaxHp) != maxHp) continue;
-            if (_mem.U16(addr + Offsets.AHp)    != hp)    continue;
-            if (_mem.U8(addr  + Offsets.ALevel) != level) continue;
+            if (_mem.U16(addr + Offsets.AHp) != hp) continue;
+            if (_mem.U8(addr + Offsets.ALevel) != level) continue;
 
             bool realPos = _mem.U8(addr + Offsets.AGx) != 0 || _mem.U8(addr + Offsets.AGy) != 0;
             var verdict = twin.Step(realPos, haveAccumulation: haveFp);
@@ -267,10 +267,10 @@ internal sealed partial class ActorResolver
         return true;
     }
 
-    /// <summary>The roster fingerprint match both roster walks share (LW-154): does roster slot
+    /// <summary>The roster fingerprint match both roster walks share: does roster slot
     /// <paramref name="b"/> belong to a unit with this live (level,brave,faith)? Level uses the level-drift rule
     /// (exact equality once disarmed main-hand signatures after a mid-battle level-up). Extend here when the
-    /// fingerprint grows (LW-39); ActorRegister.Bridge.cs keeps its own copy, so touch both.</summary>
+    /// fingerprint grows; ActorRegister.Bridge.cs keeps its own copy, so touch both.</summary>
     private bool RosterFpMatches(long b, int level, int brave, int faith)
         => Band.LevelMatchesRoster(_mem.U8(b + Offsets.RLevel), level)
         && _mem.U8(b + Offsets.RBrave) == brave

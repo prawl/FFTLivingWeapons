@@ -132,7 +132,7 @@ internal static partial class Wielder
         return false;
     }
 
-    /// <summary>True when at least one roster row holding <paramref name="weaponId"/> in any hand has a live band entry (LW-56).
+    /// <summary>True when at least one roster row holding <paramref name="weaponId"/> in any hand has a live band entry.
     /// Used by the credit gate (<see cref="CreditGate"/>, via KillTracker.CreditKill). Scans all three hands because a corpse credit can name
     /// a dual-wielder's off-hand blade, whose band entry mirrors the main hand. No ambiguity bail: a benched duplicate must not hide a deployed copy.</summary>
     public static bool HasLiveWielder(IGameMemory mem, int weaponId)
@@ -172,7 +172,7 @@ internal static partial class Wielder
         => ResolveAnyHandNameId(mem, weaponId, fp, out _);
 
     /// <summary>Same rule as the 3-arg overload, plus the raw <paramref name="matchCount"/> so callers can tell zero rows from 2+
-    /// (both return -1). Locate/LocateAll send 2+ to their ambiguous branch (LW-252); WeaponPalette.Desire.cs (DesiredGlow, LW-295)
+    /// (both return -1). Locate/LocateAll send 2+ to their ambiguous branch; WeaponPalette.Desire.cs (DesiredGlow, LW-295)
     /// treats any matchCount &gt;= 1 as a hit.</summary>
     internal static int ResolveAnyHandNameId(IGameMemory mem, int weaponId, (int lvl, int br, int fa) fp,
         out int matchCount)
@@ -210,7 +210,7 @@ internal static partial class Wielder
     }
 
     /// <summary>Every row holding <paramref name="weaponId"/> in any hand with a matching fp, with its own nameId
-    /// (0 = unseeded) and hand set (<see cref="CollectHands"/>), since a same-fp twin can carry a different off-hand item (LW-252).
+    /// (0 = unseeded) and hand set (<see cref="CollectHands"/>), since a same-fp twin can carry a different off-hand item.
     /// Separate from <see cref="ScanNameIdMatches"/>, which keeps no per-row list. Used by the ambiguous paths in Wielder.cs
     /// (LocateAmbiguous/LocateAllAmbiguous). <paramref name="rows"/> is cleared first.</summary>
     internal static void CollectAmbiguousRows(IGameMemory mem, int weaponId, (int lvl, int br, int fa) fp,

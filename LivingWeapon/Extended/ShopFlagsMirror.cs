@@ -4,20 +4,12 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-354: lets a town shop stock an extended-inventory item. The shop buy-list builder reads
-/// each candidate id's town flags from the game's 256-row ITEM_SHOPS_DATA table
-/// (<see cref="Offsets.ShopFlagsTable"/>); an id past 255 has no row there, and the builder's
-/// own loop stops at 255 anyway (that cap is widened by ExtendedSites). This class gives the
-/// builder a MIRROR of the table that has rows past 255: a page we own holding a live copy of
-/// the 512 vanilla bytes plus our own flags for ids 261+, and the builder's two references to
-/// the table (a rip-relative lea for the high-byte walker, an image-relative disp32 for the
-/// low-byte read) re-pointed at it.
-///
-/// Mirror, not move: the modloader and other mods keep writing the ORIGINAL table (the loader
-/// applies every mod's ItemShopsData at OnAllModsLoaded, after this arm), and the game's other
-/// reader (the new-stock badge scan) keeps reading it; <see cref="Sync"/> copies the vanilla
-/// 512 bytes into the mirror whenever they change, from the tick loop, so a partner mod's shop
-/// edits still land. The mirror rows for ids 256+ are ours alone.
+/// Lets a town shop stock an extended-inventory item. The shop buy-list builder reads town flags from the 256-row ITEM_SHOPS_DATA table
+/// (<see cref="Offsets.ShopFlagsTable"/>), which has no rows past 255 (the builder's loop cap is widened by ExtendedSites). This class gives the builder a mirror page
+/// holding a live copy of the 512 vanilla bytes plus our flags for ids 261+, and re-points the builder's two references to the table at it
+/// (a rip-relative lea for the high byte, an image-relative disp32 for the low byte).
+/// The original table stays in place: the modloader and other mods keep writing it (at OnAllModsLoaded, after this arm) and the new-stock badge scan reads it.
+/// <see cref="Sync"/> recopies it into the mirror when it changes, so partner shop edits still land.
 /// </summary>
 internal sealed class ShopFlagsMirror
 {
@@ -49,8 +41,7 @@ internal sealed class ShopFlagsMirror
         long buf = allocator.Alloc(PageSize, ImageBase.Base);
         if (buf == 0) return "shops: no page within reach of the image base";
         long newRel = (buf + 1) - Offsets.ShopBuilderHighByteLeaNextIp;
-        // LW-388: rbp holds the LIVE image base at the low-byte read, so the disp32 is an RVA
-        // measured from ImageBase.Base.
+        // Rbp holds the live image base at the low-byte read, so the disp32 is an RVA.
         long newDisp = buf - ImageBase.Base;
         if (newRel < int.MinValue || newRel > int.MaxValue || newDisp < int.MinValue || newDisp > int.MaxValue)
             return $"shops: mirror 0x{buf:X} is out of rel32/disp32 reach";
@@ -71,8 +62,7 @@ internal sealed class ShopFlagsMirror
         return null;
     }
 
-    /// <summary>Copy the vanilla 512 bytes into the mirror when they differ from the last copy.
-    /// Returns true when a copy was written. Cheap enough for a 30-tick cadence.</summary>
+    /// <summary>Copy the vanilla 512 bytes into the mirror when they differ from the last copy; true when a copy was written.</summary>
     public bool Sync(ICodePatcher patcher)
     {
         if (!Installed) return false;

@@ -15,22 +15,14 @@ internal readonly record struct RegionCursor(int RegionIndex, long NextAddr, boo
 }
 
 /// <summary>
-/// Pure region-ordering/cursor-resumption seam for the LW-27/LW-31 dev spikes' incremental
-/// census walk (docs/TODO.md). A one-shot 512MB gulp per keypress burned its whole budget
-/// scanning LOW addresses (this game's committed heap is enormous below the UI text arenas)
-/// before ever reaching the HIGH addresses where the real on-screen strings live (owner's Cheat
-/// Engine hits: 0x4D9BFBF253, 0x4EDBAB64B0, 0x4F5BFA5CF5), and the resulting multi-hundred-ms
-/// synchronous block on the shared Engine tick thread was long enough to swallow a sibling
-/// spike's F6 keypress edge entirely (see AttackCardSpike.cs's class doc for the full account).
-/// <see cref="SortDescending"/> makes the walk hit the high addresses first; <see cref="NextSlice"/>
-/// advances a bounded amount of work per call so a single Tick never blocks for long, and a
-/// caller-held <see cref="RegionCursor"/> lets the walk resume exactly where it left off across
-/// many Tick calls until the whole snapshot has been covered.
+/// Region ordering and cursor resumption for the LW-27/LW-31 dev spikes' incremental census walk (docs/TODO.md).
+/// A one-shot 512MB scan spent its budget on low addresses and blocked the shared Engine tick long enough to
+/// swallow a sibling spike's F6 keypress (see AttackCardSpike.cs). The live strings sit high (Cheat Engine hits
+/// 0x4D9BFBF253, 0x4EDBAB64B0, 0x4F5BFA5CF5), so SortDescending walks high first and NextSlice bounds the work per call.
 /// </summary>
 internal static class ScanCursor
 {
-    /// <summary>Regions ordered by base address, highest first. Copies rather than mutating the
-    /// input list (a ChunkReader snapshot may be read elsewhere).</summary>
+    /// <summary>Regions ordered by base address, highest first. Returns a copy.</summary>
     internal static List<(long rbase, long rsize)> SortDescending(IEnumerable<(long rbase, long rsize)> regions)
     {
         var sorted = new List<(long rbase, long rsize)>(regions);
@@ -38,12 +30,8 @@ internal static class ScanCursor
         return sorted;
     }
 
-    /// <summary>Returns the next slice of chunk-aligned reads to perform (each a (regionBase,
-    /// regionEnd, chunkStart) tuple, ready for ChunkReader.ReadInRegion), advancing cursor by
-    /// roughly budgetBytes of region coverage. Always returns at least one chunk when any work
-    /// remains, even if budgetBytes is smaller than one chunk, so the walk always makes forward
-    /// progress. Returns an empty list once the cursor is (or becomes) done; a done cursor is
-    /// never un-done by a later call.</summary>
+    /// <summary>Next slice of chunk-aligned (regionBase, regionEnd, chunkStart) reads for ChunkReader.ReadInRegion,
+    /// advancing cursor by about budgetBytes. Returns at least one chunk while work remains, empty once done.</summary>
     internal static List<(long rbase, long rend, long chunkStart)> NextSlice(
         IReadOnlyList<(long rbase, long rsize)> regions, ref RegionCursor cursor, long budgetBytes)
     {
@@ -67,16 +55,13 @@ internal static class ScanCursor
             addr += ChunkReader.ChunkSize;
         }
 
-        // Normalize past any region(s) the last chunk just exhausted so Done is accurate
-        // immediately, rather than one call late (a caller checking cursor.Done right after this
-        // call must see the true end of the walk, not "one more empty call away from it").
+        // Skip regions the last chunk exhausted so Done is accurate right away.
         SkipExhausted(regions, ref idx, ref addr);
         cursor = idx >= regions.Count ? new RegionCursor(idx, 0, true) : new RegionCursor(idx, addr, false);
         return slice;
     }
 
-    /// <summary>Advances past any region(s) already fully covered by addr, landing idx/addr on
-    /// the next region with work left (or idx == regions.Count when none remains).</summary>
+    /// <summary>Advances past fully covered regions to the next with work left (idx == regions.Count when none).</summary>
     private static void SkipExhausted(IReadOnlyList<(long rbase, long rsize)> regions, ref int idx, ref long addr)
     {
         while (idx < regions.Count && addr >= regions[idx].rbase + regions[idx].rsize)

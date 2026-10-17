@@ -13,23 +13,23 @@ public sealed class WeaponMeta
     [JsonProperty("wp")] public int Wp { get; set; }
     [JsonProperty("cat")] public string Cat { get; set; } = "";
     [JsonProperty("formula")] public int Formula { get; set; }
-    // LW-317: growth lane ("pa", "pa+ma+brave", "wp+faith", ...) baked from docs/living_weapon_grid.csv
+    // Growth lane ("pa", "pa+ma+brave", "wp+faith", ...) baked from docs/living_weapon_grid.csv
     // by tools/gen_living_weapon_meta.py (lane_of). "" = no growth.
     [JsonProperty("lane")] public string Lane { get; set; } = "";
     // The stable lead line of the description; the in-card Kills counter anchors to it.
     [JsonProperty("flavor")] public string Flavor { get; set; } = "";
-    // LW-332: the tagged "Grows: ..." card line (lib.flavor.grows_line, LW-329 color tag) as baked;
+    // The tagged "Grows: ..." card line (lib.flavor.grows_line, LW-329 color tag) as baked;
     // CardScanner's second anchor beside Flavor (the Grows line sits closer to the Kills scaffold).
     // Matched as baked. "" for non-living ids.
     [JsonProperty("growsLine")] public string GrowsLine { get; set; } = "";
     // Passive granted at a kill tier; null for pure stat-growth weapons.
     [JsonProperty("signature")] public WeaponSignature? Signature { get; set; }
-    // LW-251: palette bank index and 15 BGR555 codes for entries 1..15 (entry 0 is transparency; see
+    // Palette bank index and 15 BGR555 codes for entries 1..15 (entry 0 is transparency; see
     // Offsets.WeaponPaletteBankA/B), from data/weapon_colors.json + data/weapon_palette_overrides.json.
     // Sentinel defaults because 0 is a used palette index (Materia Blade's).
     [JsonProperty("palette")] public int Palette { get; set; } = -1;
     [JsonProperty("colors")] public int[]? Colors { get; set; }
-    // LW-351: the id this design lived at before it moved (items.json `migratedFrom`).
+    // The id this design lived at before it moved (items.json `migratedFrom`).
     // TallyMigration carries kills and deeds across on it, so the pairing lives in data and no C# file
     // names a weapon. 0 = never moved.
     [JsonProperty("migratedFrom")] public int MigratedFrom { get; set; }

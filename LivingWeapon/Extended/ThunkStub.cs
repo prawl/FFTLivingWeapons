@@ -3,29 +3,19 @@ using System;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-346: the pure byte emitters for the accessor entry hooks. The game reaches every per-item
-/// accessor (weapon stats, validity, type probe, range index, sprite/palette pair, ...) through
-/// ten fixed addresses: on the Denuvo build each was a five-byte <c>E9 jmp rel32</c> thunk into
-/// copy-protected code, on the Denuvo-free build (LW-388 R12, read on disk 2026-10-16) each is the
-/// function entry itself, hooked via AccessorEntryHook with a trampoline (ThunkStub.Trampoline.cs).
-/// Redirecting the address to a tiny stub we own lets ids past the vanilla cap (261..511) answer as a chosen DONOR item, or, for the
-/// weapon-stat accessor, answer with a row we author. The FFTHandsFree rig's constant-donor stub
-/// (ThunkRedirect.EmitCloneStub, owner-observed on 1.5.2) is generalised here to a per-id table
-/// so each new item names its own donors (docs/research/ITEM_CAP_261_BREAK_JOURNEY.md, the
-/// 2026-08-27 03:20 blueprint, piece 3).
-///
-/// REGISTER CONTRACT (the June r11 lesson, journal 2026-06-26 session 3): the originals are tiny
-/// leaves the compiler trusts to leave every register but rax/rcx alone, so the stubs touch
-/// ONLY rax (the return register, clobbered by any call) and rcx (the id argument they replace);
-/// rdx (the type probe's second argument) and r8..r11 pass through untouched. No stack, no
-/// flags a caller could depend on across a call.
-///
-/// Layouts are fixed-offset so a unit test can pin them byte for byte (see ThunkStubTests).
+/// Byte emitters for the accessor entry hooks. The game reaches each per-item accessor
+/// (weapon stats, validity, type probe, range index, sprite/palette pair) through ten fixed
+/// addresses. On the Denuvo build each was an <c>E9 jmp rel32</c> thunk; on the Denuvo-free build
+/// (LW-388 R12, read on disk 2026-10-16) each is the function entry, hooked via AccessorEntryHook
+/// with a trampoline (ThunkStub.Trampoline.cs). The stubs let ids 261..511 answer as a donor item
+/// or an authored weapon row. Generalised from FFTHandsFree ThunkRedirect.EmitCloneStub; see
+/// docs/research/ITEM_CAP_261_BREAK_JOURNEY.md (2026-08-27 03:20 blueprint, piece 3).
+/// Stubs touch only rax and rcx (the originals are leaves, June r11 lesson, journal 2026-06-26
+/// session 3). Layouts are fixed-offset so ThunkStubTests can pin them byte for byte.
 /// </summary>
 internal static partial class ThunkStub
 {
-    /// <summary>The accessors mask their id argument with 0x3FF (list words carry flag bits above
-    /// bit 9); the stubs mask the same way before the range check.</summary>
+    /// <summary>The accessors mask ids with 0x3FF (list words carry flag bits above bit 9); the stubs do too.</summary>
     public const int IdMask = 0x3FF;
 
     public const int DonorStubHeader = 0x32;   // bytes before the donor table
@@ -33,14 +23,8 @@ internal static partial class ThunkStub
     public const int RowSize = 8;              // ITEM_WEAPON_DATA (fftivc.utility.modloader) is 8 bytes
 
     /// <summary>
-    /// Donor stub: ids in [lo, lo + donors.Length) are rewritten to <c>donors[id - lo]</c> in ecx
-    /// before jumping to <paramref name="originalTarget"/>; every other id passes through with
-    /// rcx untouched.
-    /// <code>
-    /// 00 mov eax,ecx | 02 and eax,3FFh | 07 cmp eax,lo | 0C jb pass | 0E cmp eax,hi | 13 ja pass
-    /// 15 sub eax,lo | 1A lea rcx,[rip+table] | 21 mov ecx,[rcx+rax*4]
-    /// 24 pass: jmp [rip+0] | 2A target:8 | 32 table: 4*n
-    /// </code>
+    /// Ids in [lo, lo + donors.Length) are rewritten to <c>donors[id - lo]</c> in ecx, then it jumps to
+    /// <paramref name="originalTarget"/>; other ids pass through.
     /// </summary>
     public static byte[] EmitDonorStub(int lo, int[] donors, long originalTarget)
     {
@@ -57,15 +41,9 @@ internal static partial class ThunkStub
     }
 
     /// <summary>
-    /// Row stub (the weapon-stat accessor): ids in [lo, lo + rows.Length) RETURN a pointer to
-    /// their own 8-byte row inside the stub page (rows[id - lo]); every other id jumps to
-    /// <paramref name="originalTarget"/> untouched. The row bytes are ITEM_WEAPON_DATA exactly as
-    /// the game's own table holds them (Offsets.ItemStatsBase rows, 8 bytes, Power at +4).
-    /// <code>
-    /// 00 mov eax,ecx | 02 and eax,3FFh | 07 cmp eax,lo | 0C jb pass | 0E cmp eax,hi | 13 ja pass
-    /// 15 sub eax,lo | 1A shl rax,3 | 1E lea rcx,[rip+rows] | 25 add rax,rcx | 28 ret
-    /// 29 pass: jmp [rip+0] | 2F target:8 | 37 pad | 38 rows: 8*n
-    /// </code>
+    /// Weapon-stat accessor: ids in [lo, lo + rows.Length) return a pointer to their own 8-byte
+    /// ITEM_WEAPON_DATA row in the stub page (Offsets.ItemStatsBase layout, Power at +4); other ids
+    /// jump to <paramref name="originalTarget"/>.
     /// </summary>
     public static byte[] EmitRowStub(int lo, byte[][] rows, long originalTarget)
     {
@@ -92,19 +70,16 @@ internal static partial class ThunkStub
 
     /// <summary>
     /// LW-365 swing-id fallback stub, planted over the 7-byte movzx at Offsets.FnSwingPrepIdCopy.
-    /// Register contract: rax is the instruction's own destination (free), rsi = acting slot &lt;&lt; 9
-    /// (live, read-only), flags are dead across the site (the next compare is <c>cmp</c> at +0x1C).
+    /// rax is the instruction's destination, rsi (acting slot &lt;&lt; 9) is read-only, flags are dead
+    /// (the next compare is <c>cmp</c> at +0x1C).
     /// <code>
     /// 00 mov rax,standing(imm64) | 0A movzx eax,word [rax] | 0D test ax,ax | 10 jnz done(+0x20)
     /// 12 mov rax,handsBase(imm64) | 1C movzx eax,word [rax+rsi] | 20 cmp eax,lo | 25 jb zero(+0x09)
     /// 27 cmp eax,hi | 2C ja zero(+0x02) | 2E jmp done(+0x02) | 30 zero: xor eax,eax
     /// 32 done: jmp [rip+0] | 38 return:8   (total 0x40)
     /// </code>
-    /// Unlike <see cref="EmitDonorStub"/>/<see cref="EmitRowStub"/>, the hand word is compared
-    /// UNMASKED: the 0x3FF mask exists for menu LIST words that carry flag bits above bit 9, but
-    /// the combat struct's CWeapon (+0x20) is a plain u16 item id (GrowthEngine.Locate compares
-    /// it unmasked against roster ids), and any stray high bit would already fall outside [lo, hi]
-    /// and take the zero arm, i.e. vanilla behavior, so no mask is applied here.
+    /// The hand word is compared unmasked: CWeapon (+0x20) is a plain u16 id (GrowthEngine.Locate
+    /// compares it unmasked too), and a stray high bit falls outside [lo, hi] and takes the zero arm.
     /// </summary>
     public static byte[] EmitSwingIdFallbackStub(long standingWord, long handsBase, int lo, int hi, long returnAddr)
     {
@@ -129,8 +104,7 @@ internal static partial class ThunkStub
         return s;
     }
 
-    /// <summary>True iff <paramref name="entry5"/> is an <c>E9 rel32</c> jump; decodes its absolute
-    /// destination (thunk + 5 + rel32).</summary>
+    /// <summary>True iff <paramref name="entry5"/> is an <c>E9 rel32</c> jump; decodes its target.</summary>
     public static bool IsJmpRel32(byte[]? entry5, long thunkAddr, out long target)
     {
         target = 0;
@@ -140,8 +114,7 @@ internal static partial class ThunkStub
     }
 
     /// <summary>The five bytes that turn the thunk at <paramref name="thunkAddr"/> into a jump to
-    /// <paramref name="stubAddr"/>; null when the stub is out of rel32 reach (the allocator's
-    /// contract makes that a bug, but a null here is a refusal, never a wild jump).</summary>
+    /// <paramref name="stubAddr"/>; null when the stub is out of rel32 reach.</summary>
     public static byte[]? EncodeThunkJmp(long thunkAddr, long stubAddr)
     {
         long delta = stubAddr - thunkAddr - 5;

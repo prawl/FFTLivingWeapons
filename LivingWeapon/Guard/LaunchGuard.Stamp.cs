@@ -1,30 +1,12 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-397 seam: the BUILD STAMP half of the main guard. The game's build stamp (the PE header's
-/// TimeDateStamp and SizeOfImage) used to be a stand-down landmark: any stamp the mod was not
-/// built against switched the WHOLE mod off. In 2026-09 the game was recompiled with nothing
-/// moved (docs/CHANGELOG.md, LW-387 row), the stamp changed, and the mod went dark over nothing.
-/// By owner ruling (docs/TODO.md, LW-397 row) the stamp is now REPORTED and never used as a
-/// switch: one startup log line says what the game is, and when the mod arms on a stamp it does
-/// not know it adds one calm warning. The only main-guard landmark that can stand the mod down is
-/// Ramza's roster row (LaunchGuard.Landmarks.cs).
-///
-/// The first landmark keeps its name and slot in the main guard so the LW-392 stall decorator
-/// still watches an unreadable game exactly as before. <see cref="ProbeBuildStamp"/> returns
-/// Unreadable on a failed read and Match on EVERY readable one, known stamp or not.
-///
-/// THREADING: the latch fields are written and read on the Engine tick thread only (Step runs
-/// there and the armed edge runs inside Step), so they carry no volatile or lock. When a later
-/// row reads them from another thread (LW-393's per-part write gates), that row must add the
-/// publication it needs.
-///
-/// LATCH: the first readable read decides known-or-not for the whole process (one LaunchGuard per
-/// process, the same permanence argument as the stall latches in LaunchGuard.Stall.cs).
-///
-/// INVARIANT: the armed edge can only run after the stamp landmark returned Match, which needs a
-/// readable read, so <c>_stampRead</c> is always true by then. <see cref="LogUnknownBuildIfAny"/>
-/// still early-returns on a false latch rather than assume it.
+/// The build-stamp landmark of the main guard. The PE TimeDateStamp and SizeOfImage used to stand the
+/// whole mod down on an unknown build. The 2026-09 recompile moved nothing but changed the stamp
+/// (docs/CHANGELOG.md, LW-387 row) and the mod went dark, so the stamp is now only reported (docs/TODO.md,
+/// LW-397 row) and only Ramza's roster row (LaunchGuard.Landmarks.cs) can stand the mod down.
+/// <see cref="ProbeBuildStamp"/> keeps the first landmark's slot for the LW-392 stall decorator and returns
+/// Unreadable or Match, never Mismatch. <see cref="LogUnknownBuildIfAny"/> still checks the latch.
 /// </summary>
 internal sealed partial class LaunchGuard
 {
@@ -36,11 +18,12 @@ internal sealed partial class LaunchGuard
     internal const string DrillStampSentence =
         " This warning was forced by the LW_FORCE_FINGERPRINT_MISMATCH drill flag (dev builds only).";
 
-    // The EXPECTED TimeDateStamp the probe compares against (drill-perturbed by the ctor), and the
-    // image base the header is read from (captured at construction, as the old landmark did).
+    // Expected TimeDateStamp (drill-perturbed by the ctor) and the image base the header is read from.
     private readonly uint _expectedStampTds;
     private readonly long _stampImageBase;
-    // Latched by the first readable read (see the class doc).
+    // Latched by the first readable read, which decides known-or-not for the process. Written on the
+    // Engine tick thread only, so no lock; LW-393's per-part write gates must add publication if they
+    // read these from another thread.
     private uint _stampTds;
     private uint _stampSoi;
     private bool _stampRead;
@@ -91,9 +74,9 @@ internal sealed partial class LaunchGuard
             ModLogger.Event(LogVerb.Startup, KnownStampLine(tds, soi));
             return;
         }
-        // Record only when something is off (the LW-392 precedent): a known stamp adds no record.
+        // Record only when something is off: a known stamp adds no record.
         _recorder?.Invoke("guard", $"build stamp unknown ({StampText(tds, soi)}; expected 0x{ExpectedTimeDateStamp:X8} / 0x{ExpectedSizeOfImage:X8})");
-        // Under the drill both sides of the comparison print identical numbers, so the line says why.
+        // Under the drill both sides print identical numbers, so the line says why.
         ModLogger.Event(LogVerb.Startup, UnknownStampLine(tds, soi) + (_forceMismatch ? DrillStampSentence : ""));
     }
 

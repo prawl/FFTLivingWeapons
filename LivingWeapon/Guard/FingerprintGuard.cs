@@ -4,15 +4,11 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Portable startup fingerprint guard core (LW-50). COPY-FILE PORTABILITY CONTRACT: this file has
-/// zero project dependencies (no Offsets, no ModLogger, no IGameMemory, no Flight, no Reloaded
-/// types), so a sibling mod adopts the mechanism by copying this one file, not by referencing a
-/// shared library or NuGet package (owner decision: no package route).
+/// Portable startup fingerprint guard core. It has no project dependencies (no Offsets,
+/// ModLogger, IGameMemory, Flight or Reloaded types), so a sibling mod can copy this one file.
 ///
-/// SINGLE-THREAD CONTRACT: <see cref="FingerprintGuard.Step"/> is meant to be called from one host
-/// loop thread only. Making the armed/stood-down verdict visible to OTHER threads (e.g. a
-/// cross-thread write-gate flag) is the ADAPTER's job, not this core's: the core keeps no locks
-/// and offers no thread-safety guarantee beyond "called from one thread, one Step at a time."
+/// <see cref="FingerprintGuard.Step"/> must be called from a single host loop thread. The core keeps
+/// no locks; publishing the armed/stood-down verdict to other threads is the adapter's job.
 /// </summary>
 internal delegate bool GuardTryRead(long addr, int len, out byte[] buf);
 
@@ -20,12 +16,10 @@ internal enum LandmarkVerdict { Unreadable, Match, Mismatch }
 
 internal enum GuardState { Verifying, Armed, StoodDown }
 
-/// <summary>LW-83: one landmark's verdict PLUS, on a Mismatch only, the observed-vs-expected
-/// evidence behind it (Detail is null for Match; the core reads it only on Mismatch, but an Unreadable
-/// may carry a reason an adapter's own wrapper reads, LW-392). The implicit operator from a bare
-/// <see cref="LandmarkVerdict"/> is load-bearing: every probe that has no detail to offer (Match,
-/// Unreadable, or a Custom landmark that never composes one) keeps returning a bare verdict with
-/// no call-site change.</summary>
+/// <summary>one landmark's verdict, plus the observed-vs-expected evidence on a Mismatch.
+/// Detail is null for Match; an Unreadable may carry a reason that only an adapter reads.
+/// The implicit conversion from <see cref="LandmarkVerdict"/> lets probes with no detail return a
+/// bare verdict.</summary>
 internal readonly struct LandmarkReading
 {
     public LandmarkVerdict Verdict { get; }
@@ -40,11 +34,8 @@ internal readonly struct LandmarkReading
     public static implicit operator LandmarkReading(LandmarkVerdict verdict) => new(verdict);
 }
 
-/// <summary>One fact the guard checks: a name (for diagnostics) and a probe that reads live
-/// memory and returns a landmark reading. A probe never throws: a failed read is Unreadable, not
-/// an exception. <see cref="LandmarkReading.Detail"/> carries the observed-vs-expected mismatch
-/// evidence (LW-83), or, since LW-392, an optional reason on an Unreadable verdict that only the
-/// adapter reads; it is null on a Match.</summary>
+/// <summary>One fact the guard checks: a diagnostic name and a probe that reads live memory. A probe
+/// does not throw; a failed read is Unreadable. See <see cref="LandmarkReading.Detail"/>.</summary>
 internal sealed class GuardLandmark
 {
     public string Name { get; }
@@ -58,17 +49,13 @@ internal sealed class GuardLandmark
 }
 
 /// <summary>
-/// Retry-until-decidable arming state machine. Born <see cref="GuardState.Verifying"/>; every
-/// <see cref="Step"/> probes every landmark fresh (no cross-Step latching of a single landmark's
-/// verdict). All landmarks Match in one Step: arms permanently. Any landmark Mismatches: a
-/// consecutive-mismatch counter increments; a Step with zero mismatches (all Match, all
-/// Unreadable, or a Match/Unreadable mix) resets the counter to zero, so an isolated transient
-/// mismatch never accumulates toward stand-down. At <c>mismatchDebounce</c> CONSECUTIVE
-/// mismatching Steps the guard stands down PERMANENTLY and never probes again.
+/// Retry-until-decidable arming state machine. Starts <see cref="GuardState.Verifying"/> and probes
+/// every landmark fresh on each <see cref="Step"/>. One Step with all landmarks matching arms it.
+/// Each Step with a mismatch bumps a consecutive counter; a Step without one resets it. At
+/// <c>mismatchDebounce</c> consecutive mismatching Steps it stands down.
 ///
-/// Armed and StoodDown are both terminal: once armed, stays armed for the whole session even
-/// though a legitimate in-session write can change a landmark's bytes after arming (e.g.
-/// Barrage's JobCommand injection). Re-verifying after arming is deliberately out of scope.
+/// Armed and StoodDown are terminal. It does not re-verify after arming, since a legitimate
+/// in-session write (e.g. Barrage's JobCommand injection) can change a landmark's bytes.
 /// </summary>
 internal sealed class FingerprintGuard
 {
@@ -104,9 +91,7 @@ internal sealed class FingerprintGuard
             {
                 case LandmarkVerdict.Mismatch:
                     anyMismatch = true;
-                    // LW-83: fold the observed-vs-expected evidence into the entry when the probe
-                    // offered one; a bare-verdict probe (still legal via the implicit operator)
-                    // keeps the old name-only entry.
+                    // Include the probe's evidence when it gave any, else just the name.
                     (mismatched ??= new List<string>()).Add(
                         reading.Detail is null ? landmark.Name : $"{landmark.Name} ({reading.Detail})");
                     break;
@@ -134,28 +119,24 @@ internal sealed class FingerprintGuard
         if (_mismatchStreak >= _mismatchDebounce)
         {
             State = GuardState.StoodDown;
-            // "; " not ", ": a landmark's detail can itself contain commas (LW-83).
+            // Joined with "; " because a landmark's detail can contain commas.
             _onStandDown(string.Join("; ", mismatched!));
         }
     }
 
     // ---- static landmark factories ----
 
-    // PE header layout (independently re-derived, and cross-checked at the time against a second
-    // in-tree implementation that has since been removed): e_lfanew (u32) at
-    // moduleBase+0x3C; TimeDateStamp (u32) at moduleBase+e_lfanew+8; SizeOfImage (u32) at
-    // moduleBase+e_lfanew+0x50. This is generic PE/COFF header shape, not an FFT-specific magic
-    // number; the EXPECTED values for one game build are the adapter's job (LaunchGuard.cs). The
-    // reader below is shared by the PeBuildKey landmark factory and, since LW-397, by the
-    // LivingWeapon adapter's build-stamp report line (LaunchGuard.Stamp.cs).
+    // Standard PE header offsets. e_lfanew (u32) is at moduleBase+0x3C, TimeDateStamp (u32) at
+    // moduleBase+e_lfanew+8, SizeOfImage (u32) at moduleBase+e_lfanew+0x50. The expected values for
+    // a game build live in the adapter (LaunchGuard.cs). Also used, since LW-397, by the build-stamp
+    // report line (LaunchGuard.Stamp.cs).
     private const long ELfanewOffset = 0x3C;
     private const long TimeDateStampOffset = 8;
     private const long SizeOfImageOffset = 0x50;
 
-    /// <summary>A landmark over the mapped image's PE build key (TimeDateStamp + SizeOfImage): a
-    /// failed or short read at any of the three fields is Unreadable (the image may not be
-    /// mapped/readable yet); otherwise both fields equal is Match, else Mismatch with a detail
-    /// naming both fields' expected and observed values (LW-83).</summary>
+    /// <summary>Landmark over the image's PE build key (TimeDateStamp + SizeOfImage). A failed or
+    /// short read is Unreadable; a differing value is a Mismatch whose detail lists expected and
+    /// observed values.</summary>
     public static GuardLandmark PeBuildKey(GuardTryRead tryRead, long moduleBase,
         uint expectedTimeDateStamp, uint expectedSizeOfImage)
     {
@@ -171,9 +152,8 @@ internal sealed class FingerprintGuard
         });
     }
 
-    /// <summary>LW-397: reads the mapped image's PE build key (the same three reads the
-    /// <see cref="PeBuildKey"/> landmark makes: e_lfanew, then TimeDateStamp and SizeOfImage).
-    /// False on any failed or short read, with both outs zero.</summary>
+    /// <summary>reads the PE build key, the same three reads as <see cref="PeBuildKey"/>.
+    /// Returns false with both outs zero on any failed or short read.</summary>
     public static bool TryReadPeBuildKey(GuardTryRead tryRead, long moduleBase,
         out uint timeDateStamp, out uint sizeOfImage)
     {
@@ -187,12 +167,9 @@ internal sealed class FingerprintGuard
         return true;
     }
 
-    /// <summary>A fixed byte window at <paramref name="addr"/>. A failed or short read is
-    /// Unreadable and never indexes past the returned buffer's length. An ALL-ZERO buffer is also
-    /// Unreadable, not Mismatch: the documented boot-window escape for a table region the engine
-    /// has not built yet (uninitialized process memory reads as zero, not as foreign bytes). A
-    /// Mismatch's detail carries the expected and observed byte windows, hyphen-hex formatted
-    /// (LW-83).</summary>
+    /// <summary>A fixed byte window at <paramref name="addr"/>. A failed or short read is Unreadable.
+    /// An all-zero buffer is also Unreadable, since a table the engine has not built yet reads as
+    /// zero during boot. A Mismatch detail shows expected and observed bytes as hyphen-hex.</summary>
     public static GuardLandmark ByteSignature(GuardTryRead tryRead, long addr, byte[] expected, string name)
     {
         return new GuardLandmark(name, () =>
@@ -212,9 +189,8 @@ internal sealed class FingerprintGuard
         });
     }
 
-    /// <summary>An arbitrary game-knowledge probe (e.g. the Ramza roster row shape, or a
-    /// boot-window-guarded composite of other windows). The core stays agnostic: this is how the
-    /// adapter plugs game-specific logic in without the core ever seeing a game offset.</summary>
+    /// <summary>A game-specific probe supplied by the adapter (e.g. the Ramza roster row shape), so
+    /// the core never sees a game offset.</summary>
     public static GuardLandmark Custom(string name, Func<LandmarkReading> probe) => new(name, probe);
 
     private static bool TryReadU32(GuardTryRead tryRead, long addr, out uint value)

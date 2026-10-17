@@ -4,15 +4,12 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-346: the pure encoders that turn an extended item's data-layer fields into the two binary
-/// records the game reads: the 12-byte ITEM_COMMON_DATA catalog record and the 8-byte
-/// ITEM_WEAPON_DATA stats row. Field order, sizes and every enum value are the modloader's own
-/// (fftivc.utility.modloader.Interfaces/Tables/Structures/ITEM_COMMON_DATA.cs and
-/// ITEM_WEAPON_DATA.cs, Nenkai, read 2026-08-27), which is also why the extended XML the data
-/// layer emits uses those same names: anyone who can edit a vanilla item row can author one of
-/// ours. Checked against the live bytes of the Chaos Blade (id 37) read from the 1.5.2 exe on
-/// disk 2026-08-27: catalog <c>04 16 62 82 25 04 00 05 0A 00 14 00</c>, stats
-/// <c>01 8E 01 FF 28 14 00 11</c> (byte +3 of a real stats row is 0xFF, mirrored here).
+/// Pure encoders for an extended item's two binary records, the 12-byte ITEM_COMMON_DATA
+/// catalog record and the 8-byte ITEM_WEAPON_DATA stats row. Field order, sizes and enum values
+/// follow the modloader's ITEM_COMMON_DATA.cs and ITEM_WEAPON_DATA.cs (Nenkai, read 2026-08-27),
+/// so the extended XML uses the same names as vanilla rows. Checked against the Chaos Blade
+/// (id 37) in the 1.5.2 exe on disk, 2026-08-27: catalog <c>04 16 62 82 25 04 00 05 0A 00 14 00</c>,
+/// stats <c>01 8E 01 FF 28 14 00 11</c> (byte +3 of a real stats row is 0xFF).
 /// </summary>
 internal static class ExtendedRecords
 {
@@ -23,57 +20,126 @@ internal static class ExtendedRecords
 
     public static readonly IReadOnlyDictionary<string, int> Categories = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
     {
-        ["None"] = 0, ["Knife"] = 1, ["NinjaBlade"] = 2, ["Sword"] = 3, ["KnightSword"] = 4, ["Katana"] = 5,
-        ["Axe"] = 6, ["Rod"] = 7, ["Staff"] = 8, ["Flail"] = 9, ["Gun"] = 10, ["Crossbow"] = 11, ["Bow"] = 12,
-        ["Instrument"] = 13, ["Book"] = 14, ["Polearm"] = 15, ["Pole"] = 16, ["Bag"] = 17, ["Cloth"] = 18,
-        ["Shield"] = 19, ["Helmet"] = 20, ["Hat"] = 21, ["HairAdornment"] = 22, ["Armor"] = 23, ["Clothing"] = 24,
-        ["Robe"] = 25, ["Shoes"] = 26, ["Armguard"] = 27, ["Ring"] = 28, ["Armlet"] = 29, ["Cloak"] = 30,
-        ["Perfume"] = 31, ["Throwing"] = 32, ["Bomb"] = 33, ["Item"] = 34,
+        ["None"] = 0,
+        ["Knife"] = 1,
+        ["NinjaBlade"] = 2,
+        ["Sword"] = 3,
+        ["KnightSword"] = 4,
+        ["Katana"] = 5,
+        ["Axe"] = 6,
+        ["Rod"] = 7,
+        ["Staff"] = 8,
+        ["Flail"] = 9,
+        ["Gun"] = 10,
+        ["Crossbow"] = 11,
+        ["Bow"] = 12,
+        ["Instrument"] = 13,
+        ["Book"] = 14,
+        ["Polearm"] = 15,
+        ["Pole"] = 16,
+        ["Bag"] = 17,
+        ["Cloth"] = 18,
+        ["Shield"] = 19,
+        ["Helmet"] = 20,
+        ["Hat"] = 21,
+        ["HairAdornment"] = 22,
+        ["Armor"] = 23,
+        ["Clothing"] = 24,
+        ["Robe"] = 25,
+        ["Shoes"] = 26,
+        ["Armguard"] = 27,
+        ["Ring"] = 28,
+        ["Armlet"] = 29,
+        ["Cloak"] = 30,
+        ["Perfume"] = 31,
+        ["Throwing"] = 32,
+        ["Bomb"] = 33,
+        ["Item"] = 34,
     };
 
     public static readonly IReadOnlyDictionary<string, byte> TypeFlags = new Dictionary<string, byte>(StringComparer.OrdinalIgnoreCase)
     {
-        ["ImmuneToStealBreak"] = 1, ["Rare"] = 2, ["Unused_2"] = 4, ["Accessory"] = 8,
-        ["Armor"] = 16, ["Headgear"] = 32, ["Shield"] = 64, ["Weapon"] = 128,
+        ["ImmuneToStealBreak"] = 1,
+        ["Rare"] = 2,
+        ["Unused_2"] = 4,
+        ["Accessory"] = 8,
+        ["Armor"] = 16,
+        ["Headgear"] = 32,
+        ["Shield"] = 64,
+        ["Weapon"] = 128,
     };
 
     public static readonly IReadOnlyDictionary<string, byte> ShopAvailability = new Dictionary<string, byte>(StringComparer.OrdinalIgnoreCase)
     {
-        ["Blank"] = 0, ["Chapter1_Start"] = 1, ["Chapter1_EnterIgros"] = 2, ["Chapter1_SaveElmdor"] = 3,
-        ["Chapter1_KillMiluda"] = 4, ["Chapter2_Start"] = 5, ["Chapter2_SaveOvelia"] = 6, ["Chapter2_MeetDraclau"] = 7,
-        ["Chapter2_SaveAgrias"] = 8, ["Chapter3_Start"] = 9, ["Chapter3_Zalmo"] = 10, ["Chapter3_MeetVelius"] = 11,
-        ["Chapter3_SaveRafa"] = 12, ["Chapter4_Start"] = 13, ["Chapter4_Bethla"] = 14, ["Chapter4_KillElmdor"] = 15,
-        ["Chapter4_KillZalbag"] = 16, ["Unknown17"] = 17, ["Unknown18"] = 18, ["Unknown19"] = 19, ["Unknown20"] = 20,
+        ["Blank"] = 0,
+        ["Chapter1_Start"] = 1,
+        ["Chapter1_EnterIgros"] = 2,
+        ["Chapter1_SaveElmdor"] = 3,
+        ["Chapter1_KillMiluda"] = 4,
+        ["Chapter2_Start"] = 5,
+        ["Chapter2_SaveOvelia"] = 6,
+        ["Chapter2_MeetDraclau"] = 7,
+        ["Chapter2_SaveAgrias"] = 8,
+        ["Chapter3_Start"] = 9,
+        ["Chapter3_Zalmo"] = 10,
+        ["Chapter3_MeetVelius"] = 11,
+        ["Chapter3_SaveRafa"] = 12,
+        ["Chapter4_Start"] = 13,
+        ["Chapter4_Bethla"] = 14,
+        ["Chapter4_KillElmdor"] = 15,
+        ["Chapter4_KillZalbag"] = 16,
+        ["Unknown17"] = 17,
+        ["Unknown18"] = 18,
+        ["Unknown19"] = 19,
+        ["Unknown20"] = 20,
     };
 
     public static readonly IReadOnlyDictionary<string, byte> AttackFlags = new Dictionary<string, byte>(StringComparer.OrdinalIgnoreCase)
     {
-        ["Striking"] = 128, ["Lunging"] = 64, ["Direct"] = 32, ["Arc"] = 16,
-        ["TwoSwords"] = 8, ["TwoHands"] = 4, ["Throwable"] = 2, ["ForcedTwoHands"] = 1,
+        ["Striking"] = 128,
+        ["Lunging"] = 64,
+        ["Direct"] = 32,
+        ["Arc"] = 16,
+        ["TwoSwords"] = 8,
+        ["TwoHands"] = 4,
+        ["Throwable"] = 2,
+        ["ForcedTwoHands"] = 1,
     };
 
     public static readonly IReadOnlyDictionary<string, byte> Elements = new Dictionary<string, byte>(StringComparer.OrdinalIgnoreCase)
     {
-        ["Fire"] = 128, ["Lightning"] = 64, ["Ice"] = 32, ["Wind"] = 16,
-        ["Earth"] = 8, ["Water"] = 4, ["Holy"] = 2, ["Dark"] = 1,
+        ["Fire"] = 128,
+        ["Lightning"] = 64,
+        ["Ice"] = 32,
+        ["Wind"] = 16,
+        ["Earth"] = 8,
+        ["Water"] = 4,
+        ["Holy"] = 2,
+        ["Dark"] = 1,
     };
 
-    /// <summary>ITEM_SHOPS_DATA.ShopFlags (u16, the modloader's ItemShopsData names): which towns
-    /// stock the item. LW-354.
-    ///
-    /// DO NOT "FIX" THE ORDER. The list looks upside down (the first town is the HIGH bit) and it
-    /// is meant to: the shop row is one u16, the game's Buy-list builder reads its two bytes the
-    /// other way round, and numbering the towns from bit 15 down cancels that swap exactly. The
-    /// two wrongs are what make an author's plain-English `shops` string land on the right towns,
-    /// so re-numbering this table from bit 0 up silently moves every item to a different set of
-    /// shops. Authors only ever think in the names below (LW-351 authored the first non-Dorter
-    /// list through them).</summary>
+    /// <summary>ITEM_SHOPS_DATA.ShopFlags (u16, modloader ItemShopsData names): which towns stock
+    /// the item. LW-354. Do not reorder. The first town takes the high bit because the Buy-list
+    /// builder reads the u16's two bytes swapped, and numbering from bit 15 cancels that, so a
+    /// plain-English `shops` string lands on the right towns (LW-351 authored through these names).</summary>
     public static readonly IReadOnlyDictionary<string, ushort> Shops = new Dictionary<string, ushort>(StringComparer.OrdinalIgnoreCase)
     {
-        ["Gollund"] = 1 << 15, ["Dorter"] = 1 << 14, ["Zaland"] = 1 << 13, ["Goug"] = 1 << 12,
-        ["Warjilis"] = 1 << 11, ["Bervenia"] = 1 << 10, ["SalGhidos"] = 1 << 9, ["Unused"] = 1 << 8,
-        ["Lesalia"] = 1 << 7, ["Riovanes"] = 1 << 6, ["Eagrose"] = 1 << 5, ["Lionel"] = 1 << 4,
-        ["Limberry"] = 1 << 3, ["Zeltennia"] = 1 << 2, ["Gariland"] = 1 << 1, ["Yardrow"] = 1 << 0,
+        ["Gollund"] = 1 << 15,
+        ["Dorter"] = 1 << 14,
+        ["Zaland"] = 1 << 13,
+        ["Goug"] = 1 << 12,
+        ["Warjilis"] = 1 << 11,
+        ["Bervenia"] = 1 << 10,
+        ["SalGhidos"] = 1 << 9,
+        ["Unused"] = 1 << 8,
+        ["Lesalia"] = 1 << 7,
+        ["Riovanes"] = 1 << 6,
+        ["Eagrose"] = 1 << 5,
+        ["Lionel"] = 1 << 4,
+        ["Limberry"] = 1 << 3,
+        ["Zeltennia"] = 1 << 2,
+        ["Gariland"] = 1 << 1,
+        ["Yardrow"] = 1 << 0,
     };
 
     /// <summary>Parses a ShopFlags list ("Dorter, Gariland"; "None" or empty = 0).</summary>

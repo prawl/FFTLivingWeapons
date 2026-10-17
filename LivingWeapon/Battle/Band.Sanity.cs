@@ -1,32 +1,17 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-149 stage B: the shared per-band-slot sanity read every signature module's per-tick
-/// band walk duplicated verbatim (Plague, Ricochet, Larceny, Maim, Kobu, Benediction,
-/// Puppeteer) -- compute the slot's entry address, guard the maxHp read, then reject an
-/// insane/phantom slot: maxHp outside 1..1999 (the band-entry EXCLUSIVE bound at 2000 --
-/// see <see cref="Band.EnemyFingerprints"/>'s doc for why it deliberately differs from the static-array
-/// fingerprint sweep's INCLUSIVE 2000; this extraction does not touch that separate bound),
-/// level outside 1..99, or brave/faith outside 1..100.
-///
-/// Two overloads: the four-field core (mhp,lvl,br,fa) every one of the seven callers reads,
-/// and an hp-reading sibling for the six callers (all but Plague) that also read the guarded
-/// current-HP field identically (fail-safe 0 when AHp is unreadable). Plague reads no HP in
-/// its band walk, so it uses the narrower overload rather than widen its own read surface.
-///
-/// Anything a caller does beyond this shared core (Ricochet's gx/gy &gt; 30 reject, Puppeteer's
-/// job byte, Larceny's holdable-buff snapshot, ...) stays caller-side: this helper is exactly
-/// the six-line block every copy shared, nothing more.
-///
-/// LW-153 adds the read side's write-safety twin below: <see cref="SameUnitAtExact"/>, the
-/// verify every held write runs before re-squeezing a stored band address.
+/// LW-149 stage B: the shared per-band-slot sanity read that the signature modules' band walks (Plague, Ricochet,
+/// Larceny, Maim, Kobu, Benediction, Puppeteer) used to duplicate. It guards the maxHp read, then rejects phantom slots:
+/// maxHp outside 1..1999 (exclusive bound, see <see cref="Band.EnemyFingerprints"/> for why it differs from the static-array
+/// sweep's inclusive 2000), level outside 1..99, or brave/faith outside 1..100. The hp-reading overload serves every caller but Plague.
+/// Per-module extras (Ricochet's gx/gy &gt; 30 reject, Puppeteer's job byte, Larceny's buff snapshot) stay caller-side.
+/// LW-153 adds <see cref="SameUnitAtExact"/>, the check every held write runs before re-squeezing a stored band address.
 /// </summary>
 internal static partial class Band
 {
-    /// <summary>Read and sanity-check band slot <paramref name="slot"/>'s core fingerprint
-    /// fields. Returns false (no further reads attempted) when maxHp is unreadable or any
-    /// field fails its bound. <paramref name="addr"/> is always <see cref="Entry"/> for this
-    /// slot regardless of outcome; <paramref name="fp"/> is default on a false return.</summary>
+    /// <summary>Reads and sanity-checks band slot <paramref name="slot"/>'s core fingerprint fields. False (no further reads) when maxHp is
+    /// unreadable or a field fails its bound. <paramref name="addr"/> is always the slot's <see cref="Entry"/>; <paramref name="fp"/> is default on false.</summary>
     internal static bool TryReadUnit(IGameMemory mem, int slot, out long addr,
                                      out (int mhp, int lvl, int br, int fa) fp)
     {
@@ -41,8 +26,7 @@ internal static partial class Band
         return true;
     }
 
-    /// <summary>TryReadUnit plus the guarded current-HP read the six HP-reading callers all
-    /// perform identically. Used by every caller but Plague.</summary>
+    /// <summary>TryReadUnit plus the guarded current-HP read, for every caller but Plague.</summary>
     internal static bool TryReadUnit(IGameMemory mem, int slot, out long addr,
                                      out (int mhp, int lvl, int br, int fa) fp, out int hp)
     {
@@ -51,21 +35,12 @@ internal static partial class Band
         return true;
     }
 
-    /// <summary>The same-unit WRITE-SAFETY predicate its three consumers (Puppeteer's
-    /// hold, Maim's drive, Plague's drive) verify before re-squeezing a stored band address
-    /// (LW-153): is the unit at <paramref name="addr"/>
-    /// still EXACTLY the one whose fingerprint was captured at latch time? Guards the maxHp
-    /// read, then demands all four fields equal. Band slots are fixed addresses and units
-    /// migrate between them, so a stale address must read as a stranger and be skipped, never
-    /// written. Was token-identical in Puppeteer.Hold.Valid and inlined in
-    /// Maim.Drive and Plague.DriveOne.
-    ///
-    /// EXACT is in the name on purpose: two lookalikes are DIFFERENT rules and must NOT fold
-    /// in. Rapture.SameUnit is brave/faith-only with fail-safe reads (level-exempt by design),
-    /// and PlaguePolicy.SameVictim is LW-92 drift-tolerant (accepts a bounded mid-battle
-    /// level-up). The LW-92 lesson is why one home matters: if exact-match ever proves too
-    /// strict for another module, the call gets decided HERE once, not re-discovered per
-    /// copy.</summary>
+    /// <summary>Same-unit write-safety check used by Puppeteer's hold, Maim's drive and Plague's drive before re-squeezing a
+    /// stored band address. Is the unit at <paramref name="addr"/> still the one whose fingerprint was captured at latch time? Reads maxHp
+    /// under guard, then requires all four fields equal. Band slots are fixed addresses and units migrate between them, so a stale
+    /// address must read as a stranger and be skipped. Replaces the copies in Puppeteer.Hold.Valid, Maim.Drive and Plague.DriveOne.
+    /// Two lookalikes are different rules and stay separate. Rapture.SameUnit is brave/faith-only with fail-safe reads, and
+    /// PlaguePolicy.SameVictim is LW-92 drift-tolerant (accepts a bounded mid-battle level-up).</summary>
     internal static bool SameUnitAtExact(IGameMemory mem, long addr, (int mhp, int lvl, int br, int fa) fp)
     {
         if (!mem.Readable(addr + Offsets.AMaxHp, 2)) return false;

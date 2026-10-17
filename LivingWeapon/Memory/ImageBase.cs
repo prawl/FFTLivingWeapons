@@ -5,13 +5,10 @@ using System.Runtime.InteropServices;
 namespace LivingWeapon;
 
 /// <summary>
-/// The live image base of fft_enhanced.exe. Every pinned game address in this mod is documented and stored as
-/// a PREFERRED-BASE absolute (image base 0x140000000, the only base the game ever had while Denuvo-wrapped).
-/// The Denuvo-free build (2026-10-15, Steam buildid 24304444) turned ASLR on, so the image now loads at a
-/// random base each launch; At(pin) rebases a documented pin onto the live image. Default Base is Preferred
-/// so unit tests and tools keep reading the documented numbers unchanged. Mod.StartEngine resolves the live
-/// base ONCE before the Engine (and its background thread) exists; nothing else writes it (LW-387,
-/// docs/research/PORT_1.5.2_NODRM_OFFSETS.md). Dependency-free by design: no Mem, no ModLogger, no Reloaded types.
+/// Live image base of fft_enhanced.exe. Pins are documented as preferred-base absolutes (0x140000000).
+/// The Denuvo-free build (2026-10-15, Steam buildid 24304444) enabled ASLR, so At(pin) rebases a pin
+/// onto the live image. Mod.StartEngine sets it once before the Engine thread starts (LW-387,
+/// docs/research/PORT_1.5.2_NODRM_OFFSETS.md).
 /// </summary>
 internal static class ImageBase
 {
@@ -26,8 +23,7 @@ internal static class ImageBase
     /// <summary>Rebase a documented preferred-base absolute onto the live image.</summary>
     public static long At(long preferredAbsolute) => preferredAbsolute + Delta;
 
-    /// <summary>Accepts a plausible module base (positive, 64KB-aligned: the PE section/allocation
-    /// granularity); returns false and leaves Base untouched otherwise.</summary>
+    /// <summary>Accepts a positive 64KB-aligned module base; otherwise returns false and leaves Base alone.</summary>
     public static bool Set(long liveBase)
     {
         if (liveBase <= 0 || (liveBase & 0xFFFF) != 0) return false;
@@ -35,14 +31,11 @@ internal static class ImageBase
         return true;
     }
 
-    // GetModuleHandleW(NULL) returns the calling process's exe base by definition (kernel32).
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode)]
     private static extern IntPtr GetModuleHandleW(string? lpModuleName);
 
-    /// <summary>Resolves the live exe base. Primary: GetModuleHandleW(null), which is the exe base by
-    /// definition, needs no module enumeration and has no transient failure mode. Fallback:
-    /// Process.GetCurrentProcess().MainModule?.BaseAddress (precedent: FFTColorCustomizer
-    /// ModInitializer). False on a zero/null result or any exception; never throws, liveBase is 0 then.</summary>
+    /// <summary>Resolves the live exe base via GetModuleHandleW(null), falling back to
+    /// Process.MainModule (as FFTColorCustomizer ModInitializer does). False on null/zero or exception.</summary>
     public static bool TryResolveLive(out long liveBase)
     {
         liveBase = 0;

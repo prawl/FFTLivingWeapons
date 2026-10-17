@@ -2,12 +2,8 @@ using System.Collections.Generic;
 
 namespace LivingWeapon;
 
-/// <summary>
-/// Human-readable labels for weapon and job ids, used in log messages.
-/// Weapon names come from the meta map loaded at startup; job names are hardcoded
-/// from the verified PSX-wheel mapping (74..93 generic band, plus known specials).
-/// All lookups degrade gracefully: an unknown id yields "weapon N" or "job N".
-/// </summary>
+/// <summary>Labels for weapon and job ids in log messages. Weapon names come from the startup meta map;
+/// job names are hardcoded from the PSX wheel mapping (74..93 plus specials).</summary>
 internal static class LogNames
 {
     private static IReadOnlyDictionary<int, WeaponMeta> _meta
@@ -41,7 +37,7 @@ internal static class LogNames
         { 160, "Dark Knight" },
     };
 
-    /// <summary>Called once at engine startup so weapon names are available for logging.</summary>
+    /// <summary>Called at engine startup so weapon names are available.</summary>
     public static void Init(IReadOnlyDictionary<int, WeaponMeta> meta)
     {
         _meta = meta;

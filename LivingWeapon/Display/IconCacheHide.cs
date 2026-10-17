@@ -6,34 +6,12 @@ using Holder = (long HolderAddr, long StringAddr, int Id, string Surface, Living
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-381 second half: hides a re-tiered icon's TWO drawn-icon cache records so the next menu
-/// screen the player opens reloads it from modded.pac instead of showing the old art
-/// (LIVE_LEDGER <c>[icon-cache-hide-reload]</c>, PROVEN 2026-09-01, owner live). Plain language:
-/// once an icon has been drawn, the game remembers it in two places -- a "parts" record (name
-/// plus a loaded-state flag) and a texture record (.tex path, byte size, a hash) -- and never
-/// asks the file again while either stands. IconGlow.Pac.cs already writes the new glow into
-/// modded.pac within seconds of a tier change; this class makes the NEXT screen open notice it.
-///
-/// COUPLING RULE (load-bearing, ledger-verified): hide both records or neither. Hiding only the
-/// parts record makes the icon vanish, then come back STALE (its reload finds the still-resident
-/// texture record and re-links to the OLD art). So a texture record hides FIRST, and a surface's
-/// parts entries are only ever hidden once its own texture record actually did
-/// (<see cref="IconCacheHidePolicy.DecideOutcome"/>).
-///
-/// A hide is a same-length in-place corruption (name pointer +1, id/hash zeroed) -- never a free
-/// or a move; the game reclaims a hidden slot on its own (P6). Two full memory passes per
-/// <see cref="Hide"/> call regardless of target count (D4; see <see cref="SweepStrings"/> and
-/// <see cref="SweepPointers"/>, <see cref="ForEachChunk"/> for the in-battle abort) -- EXCEPT
-/// pass 1 finding nothing at all (A3-13): nothing for pass 2 to look up, so it is skipped rather
-/// than paying for a second full walk guaranteed to find no candidate. The writes themselves
-/// (A3-12, IconCacheHide.Write.cs -- the real seam C10 split out once C3/C8 pushed this file past
-/// 200 lines) are a handful of targeted reads/writes on already-resolved addresses, re-verified
-/// before AND after -- cheap enough that the in-battle guard is deliberately NOT re-checked
-/// there; only the two chunked sweeps re-check it. A4-1: this is a ruling, not a claim of
-/// perfection -- every memory access goes through the guarded seam, the one thing that can still
-/// throw is the first-call 4 MB reader allocation (<see cref="OutOfMemoryException"/>), and
-/// both <c>Hide</c> call paths (the pac-flush hide and the pending-hide retry, both in
-/// IconGlow.Hide.cs) catch <see cref="Exception"/> around their own call.
+/// LW-381 second half. Hides a re-tiered icon's two drawn-icon cache records (parts and texture) so the next menu
+/// screen reloads it from modded.pac (written by IconGlow.Pac.cs). LIVE_LEDGER <c>[icon-cache-hide-reload]</c>, PROVEN 2026-09-01.
+/// Hide both records or neither: parts alone makes the icon vanish and return stale, so the texture hides first and
+/// parts only after it did (<see cref="IconCacheHidePolicy.DecideOutcome"/>). A hide is a same-length in-place edit (name pointer +1, id/hash zeroed).
+/// <see cref="Hide"/> makes two passes (<see cref="SweepStrings"/>, <see cref="SweepPointers"/>; <see cref="ForEachChunk"/> aborts in battle) and skips pass 2 if pass 1 finds nothing.
+/// Writes are in IconCacheHide.Write.cs. Only the first-call 4 MB reader allocation (<see cref="OutOfMemoryException"/>) can throw; both callers in IconGlow.Hide.cs catch it.
 /// </summary>
 internal sealed partial class IconCacheHide : IIconCacheHider
 {
@@ -41,14 +19,11 @@ internal sealed partial class IconCacheHide : IIconCacheHider
     private readonly Func<bool> _inBattle;
     private ChunkReader? _reader;   // D8: private, lazy -- never shared with Display's own sweep
 
-    // Warn-once-per-launch: TextureMissing keys by id alone (D7); a refused write keys by
-    // (id, surface), the granularity a live reader can actually act on.
+    // Warn once per launch. TextureMissing keys by id, a refused write by (id, surface).
     private readonly HashSet<int> _textureMissingWarnedOnce = new();
     private readonly HashSet<(int Id, string Surface)> _refusedWarnedOnce = new();
-    // A4-3: a SEPARATE once-per-(id, surface)-per-launch set for a refused PARTS write -- this
-    // never changes the surface's outcome (the coupling rule already succeeded once texHidden >
-    // 0), so it is Debug, not Warn, and lives apart from _refusedWarnedOnce (that one is keyed to
-    // the Refused outcome itself, i.e. no texture record could be written at all).
+    // Once per (id, surface) per launch for a refused parts write. Debug only, since the surface
+    // already succeeded once a texture hid.
     private readonly HashSet<(int Id, string Surface)> _partsRefusedWarnedOnce = new();
 
     internal IconCacheHide(IGameMemory mem, Func<bool> inBattle)
@@ -84,8 +59,7 @@ internal sealed partial class IconCacheHide : IIconCacheHider
         return result;
     }
 
-    /// <summary>One fresh region snapshot per call (one Regions() call per pass, not per target);
-    /// D3's "before starting and once per chunk" collapse into the one in-battle check below.</summary>
+    /// <summary>Takes one region snapshot per call and stops at the first chunk where the game is in battle.</summary>
     private bool ForEachChunk(Action<byte[], int, int, long> onChunk)
     {
         _reader!.Snapshot();
@@ -103,7 +77,7 @@ internal sealed partial class IconCacheHide : IIconCacheHider
         return true;
     }
 
-    /// <summary>PASS 1 -- per-chunk scan logic is pure, see <see cref="IconCacheHidePolicy.ScanChunkForStrings"/>.</summary>
+    /// <summary>Pass 1. The per-chunk scan is pure, see <see cref="IconCacheHidePolicy.ScanChunkForStrings"/>.</summary>
     private bool SweepStrings(IReadOnlyDictionary<string, (int Id, string Surface, NeedleKind Kind)> lookup,
         out Dictionary<long, (int Id, string Surface, NeedleKind Kind)> stringMap)
     {
@@ -114,7 +88,7 @@ internal sealed partial class IconCacheHide : IIconCacheHider
         return ok;
     }
 
-    /// <summary>PASS 2 -- per-chunk scan logic is pure, see <see cref="IconCacheHidePolicy.ScanChunkForPointers"/>.</summary>
+    /// <summary>Pass 2. The per-chunk scan is pure, see <see cref="IconCacheHidePolicy.ScanChunkForPointers"/>.</summary>
     private bool SweepPointers(Dictionary<long, (int Id, string Surface, NeedleKind Kind)> stringMap,
         out List<Holder> holders)
     {
@@ -125,8 +99,7 @@ internal sealed partial class IconCacheHide : IIconCacheHider
         return ok;
     }
 
-    /// <summary>Classification + the coupling rule for one target: texture records go first;
-    /// parts are attempted only once a texture write actually succeeded.</summary>
+    /// <summary>Hides one target's texture records first, then its parts entries only if a texture hid.</summary>
     private void ClassifyAndWrite(IconCacheTarget t, List<Holder> holders, IconCacheHideResult result)
     {
         var parts = holders.Where(h => h.Id == t.Id && h.Surface == t.Surface && h.Kind == NeedleKind.PartsUri).ToList();
@@ -144,8 +117,7 @@ internal sealed partial class IconCacheHide : IIconCacheHider
             if (TryHideTexRecord(h.HolderAddr, h.StringAddr, t.Entry.Length, hash, out var reason)) texHidden++;
             else
             {
-                // A3-9: keep only the FIRST refusal's address/reason -- the only outcome that
-                // ever surfaces it (Refused, see DecideOutcome) needs just the one to be useful.
+                // Keep only the first refusal's address and reason, which is all Refused reports.
                 if (!anyTexRefused) { refusedAddr = h.HolderAddr; refusedReason = reason; }
                 anyTexRefused = true;
             }
@@ -159,11 +131,8 @@ internal sealed partial class IconCacheHide : IIconCacheHider
                 if (!_mem.TryReadBytes(h.HolderAddr, IconCacheHidePolicy.PartsHeadSize, out var head)) continue;
                 uint id = IconCacheHidePolicy.ClassifyPartsEntry(head);
                 if (id == 0) continue;
-                // A3-11: a lone parts-write refusal no longer downgrades this surface (texHidden >
-                // 0 already satisfied the coupling rule) -- PartsHidden < PartsCandidates in the
-                // Hidden summary line already shows the gap. A4-3: the reason is not discarded
-                // though -- it is real information, so it surfaces on its own once-per-(id,
-                // surface) Debug line instead.
+                // A lone parts refusal does not downgrade the surface (a texture already hid). The gap shows as
+                // PartsHidden < PartsCandidates in the summary line, and the reason goes to a once-per-surface Debug line.
                 if (TryHidePartsEntry(h.HolderAddr, h.StringAddr, id, out var partsReason)) partsHidden++;
                 else if (_partsRefusedWarnedOnce.Add((t.Id, t.Surface)))
                     ModLogger.Debug(LogVerb.Display,

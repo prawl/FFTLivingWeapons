@@ -3,31 +3,21 @@ using System;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-371: the pure policy half of the template relocation, plus the two edge operations that keep
-/// the save file's old chart blocks and the page's live charts in sync while
-/// <see cref="TemplateRelocation"/> is armed.
-///
-/// WHY BOTH DIRECTIONS EXIST (D1/D4): the relocation moves the charts the GAME WORKS ON, but the
-/// owner's ruling (F5) keeps the SAVE FIELD'S content unchanged in shape -- the first 140 (or 261)
-/// chart words in order, extended ids included, then the marker. So on save, <see cref="Project"/>
-/// runs BEFORE the game's own serializer copies the old block into the struct: it reads the page,
-/// truncates to what the old block can hold, and writes that projection into the old block, so the
-/// struct ends up with exactly what a chart of that size would have saved before this arc ever
-/// existed (positions kept across loads, order preserved -- the owner's v1.1 ruling, D4). On load,
-/// <see cref="Adopt"/> runs AFTER the game's own load-apply restores the old block from the struct:
-/// it copies that restored span back onto the page and re-applies the marker rule (D3) and the
-/// 0xFFFF wall (crash 1's fix, finding 8) so the page is always safe for the game's own housekeeper
-/// to walk, insert into or delete from the instant the load returns.
-///
-/// Every write goes through the injected <see cref="ICodePatcher"/>, never a raw pointer deref.
+/// The pure policy for the template relocation, plus the two edge operations that keep the save
+/// file's old chart blocks and the page's live charts in sync while <see cref="TemplateRelocation"/> is armed.
+/// The relocation moves the charts the game works on, but the save field keeps its old shape (F5): the first
+/// 140 (or 261) chart words in order, extended ids included, then the marker.
+/// On save, <see cref="Project"/> runs before the game's serializer copies the old block: it reads the page,
+/// truncates to what the old block holds, and writes that in (D1/D4).
+/// On load, <see cref="Adopt"/> runs after the game restores the old block: it copies the span back onto the page
+/// and re-applies the marker rule (D3) and the 0xFFFF wall (crash 1, finding 8) so the game's housekeeper can walk it safely.
+/// Every write goes through the injected <see cref="ICodePatcher"/>.
 /// </summary>
 internal static class TemplateSync
 {
-    /// <summary>Pure: the page's words up to (not including) its first <see
-    /// cref="TemplateSeat.EndMarker"/>, IN PAGE ORDER, any id kept verbatim (extended ids included,
-    /// a 0x4000 badge bit if one is ever present rides along unmasked -- D4), truncated to
-    /// <paramref name="capacityWords"/> - 1 ids, then the marker appended. No zero-fill: the
-    /// caller (<see cref="OldBlockImage"/>) owns padding out to the old block's own span.</summary>
+    /// <summary>Pure: the page's words up to (not including) the first <see cref="TemplateSeat.EndMarker"/>, in page order
+    /// with ids verbatim (a 0x4000 badge bit rides along unmasked, D4), truncated to <paramref name="capacityWords"/> - 1 ids,
+    /// then the marker. No zero-fill; <see cref="OldBlockImage"/> pads.</summary>
     public static ushort[] Projection(ushort[] pageWords, int capacityWords)
     {
         int end = Array.IndexOf(pageWords, TemplateSeat.EndMarker);
@@ -39,9 +29,8 @@ internal static class TemplateSync
         return result;
     }
 
-    /// <summary>Pure: <paramref name="projection"/> as little-endian words, zero-filled out to
-    /// exactly <paramref name="spanBytes"/> -- the old block's own fixed size, never exceeded
-    /// (T6b: the projection is already truncated to fit, so this never writes past the span).</summary>
+    /// <summary>Pure: <paramref name="projection"/> as little-endian words, zero-filled to <paramref name="spanBytes"/>,
+    /// the old block's size (T6b: the projection is already truncated, so it never exceeds the span).</summary>
     public static byte[] OldBlockImage(ushort[] projection, int spanBytes)
     {
         var bytes = new byte[spanBytes];
@@ -49,15 +38,11 @@ internal static class TemplateSync
         return bytes;
     }
 
-    /// <summary>Pure: the marker rule (D3) plus the 0xFFFF wall (finding 8, crash 1), applied to
-    /// <paramref name="span"/> (an old chart block, read verbatim) to produce a
-    /// <paramref name="regionBytes"/>-long page region image. Three cases: (a) the span already
-    /// carries a 0x00FF marker somewhere inside it -- copied unchanged, wall starts right after the
-    /// span's own words (whatever trails the marker inside the span, if anything, is harmless: the
-    /// game's own marker-seeking walkers already stop before it); (b) no marker but a zero word --
-    /// the marker is written into that zero slot in place, wall starts after the span's own words;
-    /// (c) every word a nonzero non-marker id (the overflowed shape of finding 10) -- the marker is
-    /// appended one word past the span, wall starts right after THAT marker word.</summary>
+    /// <summary>Pure: the marker rule (D3) plus the 0xFFFF wall (finding 8, crash 1), applied to <paramref name="span"/>
+    /// (an old chart block, read verbatim) to produce a <paramref name="regionBytes"/>-long page image. Cases:
+    /// (a) the span already holds a 0x00FF marker: copied unchanged, wall after the span's words (the game's walkers stop at the marker);
+    /// (b) no marker but a zero word: the marker goes into that slot, wall after the span;
+    /// (c) every word a nonzero non-marker id (the overflow shape, finding 10): marker appended one word past the span, wall right after it.</summary>
     public static byte[] RegionImage(byte[] span, int regionBytes)
     {
         int spanWords = span.Length / 2;
@@ -80,10 +65,9 @@ internal static class TemplateSync
         return region;
     }
 
-    /// <summary>The serialize edge (D4): no-op when not installed. For each chart, read its page
-    /// region, project it down to the old block's own capacity, and write that projection into the
-    /// old block -- ONE write per chart, never a byte past its span. Called from inside
-    /// <see cref="SaveEdgeHooks.SerializeCore"/>'s own try, before the original runs.</summary>
+    /// <summary>The serialize edge (D4), a no-op when not installed. Per chart: read the page region, project it to the
+    /// old block's capacity, and write it in one write that stays inside the span.
+    /// Called inside <see cref="SaveEdgeHooks.SerializeCore"/>'s try, before the original runs.</summary>
     public static void Project(ICodePatcher patcher, TemplateRelocation relocation)
     {
         if (!relocation.Installed) return;
@@ -97,11 +81,9 @@ internal static class TemplateSync
         }
     }
 
-    /// <summary>The load edge (D4): no-op when not installed. For each chart, read the old block
-    /// the game just restored from the save struct and write it, marker-ruled and walled, onto the
-    /// page -- ONE write per chart. Called from <see cref="SaveEdgeHooks.AfterApply"/> right after
-    /// <see cref="SaveEdgeHooks.ReadHeader"/> succeeds and before the bag/template replay, so the
-    /// seat that follows always lands on a fresh page.</summary>
+    /// <summary>The load edge (D4), a no-op when not installed. Per chart: read the old block the game just restored,
+    /// apply the marker rule and wall, and write it to the page in one write. Called from <see cref="SaveEdgeHooks.AfterApply"/>
+    /// after <see cref="SaveEdgeHooks.ReadHeader"/> succeeds and before the bag/template replay, so the seat lands on a fresh page.</summary>
     public static void Adopt(ICodePatcher patcher, TemplateRelocation relocation)
     {
         if (!relocation.Installed) return;
