@@ -10,6 +10,35 @@ before 2026-07-21 keep their original prose.
 
 ## 2.4.0 cycle
 
+- [LW-398] SHIPPED 795f3a30 2026-10-17: The two battle memory regions get their own switches, so a
+  game update that moves one of them turns off only the parts that need it. Plain language: kill
+  counting, stat growth and the weapon powers that act in battle need two pieces of game memory
+  that only exist while a battle is on, the live unit data and the battle's unit list. Nothing
+  checked those were still where the mod thought. Now each has its own check that waits for the
+  first battle (the report lists the three parts as WAITING until then), arms the moment the shape
+  is right, and if the shape stays wrong for about twenty seconds with the cursor on the field it
+  switches off only those three parts with one warning and the usual box. The formation screen and
+  cutscenes cannot trip it, since a mismatch counts only on field frames. The Backlog's idea of
+  matching HP against the party row was dropped for the level, bravery, faith and name match every
+  locate already uses. Stage 3a of the parts model, built in parallel with LW-399 and LW-400 and
+  merged last. Full build: plan review with two blockers (the array door's cache died when the band
+  door armed first; counting mismatches on every live frame would have shut the core down on a slow
+  formation screen), two implement rounds, two verify rounds (code 9 and 9, spec capped at 5 by
+  plan silences written back into the plan). Owner live pass 2026-10-17 03:49 to 04:01, two legs on
+  a dev build: under the drill the unit list armed within a millisecond of battle start with one
+  grace line, the band WARN carried the drill tag, one box with three parts off and card paint and
+  bulwark still working, a kill credited nothing, scan exit 0; the normal launch, with thirty
+  seconds on the formation screen first, armed both doors in the same millisecond as battle start,
+  no grace line, fourteen ON, the kill credited, zero warnings, no box. (Tech: Door.Band and
+  Door.StaticArray in LaunchGuard.BattleDoors.cs and BattleProbes.cs over the pure
+  BattleRegionShape; StepBattleDoors(inLive, onField) after the roster door opens, one band read
+  per step while a door still has work, the array matched against the same step's band and
+  stopped once the band stood down; a Match arms on any live step, a Mismatch counts only on
+  OnField steps after a 600 step grace; TickGates.KillCounting, StatGrowth and BandSignatures;
+  LW_FORCE_BAND_MISMATCH drill; offline probe tools/probes/band_array_file_image_probe.py; ledger
+  entry band-and-array-zero-until-battle-load UNCERTAIN, owner flip pending; code 795f3a30,
+  merge with main 9e823a6e.)
+
 - [LW-399] SHIPPED 8ef2913b 2026-10-17: Each of the five game tables the mod writes into gets its
   own "is it still here" check before the first write. Plain language: the mod writes into five
   fixed places in the game's memory (the ground behind a Sunderer, the weapon color palettes, the
