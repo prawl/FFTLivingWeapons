@@ -1149,7 +1149,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   Terrastaff reading as Moonblade in the RIGHT order, a kill counter lost on ids 261 to 267,
   extended inventory OFF, an event that no longer fires, a crash or an uncredited kill in the
   wrong order. (covers LW-408; docs half in B16 with LW-410, LW-169) **[MAJOR]**
-- [ ] 10.2 **Two launches, two bases (LW-387, LW-388, LW-132).** ASLR moves the game each launch and
+- [ ] 10.2 (OPEN 2026-10-17: every launch of sitting 1 read base 0x7FF65FC60000 and each armed and credited a kill; the base only moves across a Windows restart, so one launch after a reboot closes this box) **Two launches, two bases (LW-387, LW-388, LW-132).** ASLR moves the game each launch and
   the mod follows. Compare the `Game image base` line across two launches with a Windows restart between them (Windows picks a module's random base once per boot, so every launch inside one boot reads the same base). PASS: the
   base differs at least once and both launches armed and credited a kill. FAIL: a crash at boot, a
   thunk entry landmark refusal, extended inventory not armed on either launch. (DEV OK) (covers
@@ -1213,7 +1213,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   (intended dead JP, not a broken install); Beowulf's hand holds the Lightbringer. PASS: no floating
   generic enemies, the three cards read as written. FAIL: a parade of hovering knights, vanilla
   Equip Axes text, id 31 named Nagrarok. (covers LW-188, LW-97, LW-99) **[MINOR]**
-- [ ] 11.2 **Marks stay hidden while legends grow; nothing dormant speaks.** Every launch header
+- [ ] 11.2 (RUNNING 2026-10-17: across sitting 1 the saved logs carry zero Mark narration, zero Mark toasts and zero CharmLock, LifeSap or Wyrmblood lines; the header read 57 weapons and 66 Marks each launch, no new weapon earned a first deed; the undead half is NOT REACHED so far) **Marks stay hidden while legends grow; nothing dormant speaks.** Every launch header
   reads `The legends hold deeds for N weapons and M Marks (legends.json, primary)` with N growing
   across the pass; battle ends count Marks in the FILE only; zero Mark narration or toast lines
   anywhere; zero CharmLock, LifeSap or Wyrmblood lines (their lanes were deleted in LW-159, so any
