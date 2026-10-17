@@ -18,6 +18,9 @@ internal static class DrillTrigger
     /// <summary>the blind-guard drill flag; makes the main guard's landmarks read Unreadable for a while so the stall warning and recovery line can be watched.</summary>
     internal const string UnreadableFlagName = "LW_FORCE_GUARD_UNREADABLE";
 
+    /// <summary>the roster landmark's drill flag; forces a populated healthy row to read as a mismatch so the parts report can be watched.</summary>
+    internal const string RosterFlagName = "LW_FORCE_ROSTER_MISMATCH";
+
     /// <summary>Any flag name through injected env and file-existence reads, so tests never touch the real environment.
     /// The env lane matches only "1"; a flag's marker file never satisfies a different flag.</summary>
     internal static bool DrillRequested(string modDir, string flagName, Func<string, string?> getEnv, Func<string, bool> fileExists)

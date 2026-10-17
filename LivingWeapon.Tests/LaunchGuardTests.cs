@@ -6,19 +6,17 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-50's LivingWeapon adapter over FingerprintGuard, split by LW-112 into two independent state
-/// machines. The MAIN guard checks two data-only landmarks (PE build key, Ramza's roster row
-/// shape); a mismatch there stands the WHOLE mod down (writes stay disabled all session). The
-/// KIT-LANE guard owns the third landmark, the JobCommand rec8/rec9 ability-byte signature: it only
-/// ever steps once the main guard has already armed, and a lane mismatch disables ONLY the three
-/// weapon-granted commands (Barrage, Shadow Blade, Provoke) while the mod itself stays armed and
-/// everything else keeps working. Post-arm, an all-zero rec8/rec9 window is a Mismatch ("blanked"),
-/// not a boot-window escape: the lane never probes before a save has populated the roster (that
-/// gate lives on the main guard's own roster landmark), so by the time it runs an all-zero read can
-/// only mean another mod blanked the row, never an unbuilt table. Only a genuine read failure
-/// (module not mapped yet, a short read) still reads Unreadable. The always-compiled forceMismatch
-/// knob, the Mem.WritesEnabled arming edge, and the deferred hook-arm handshake are all main-guard
-/// concerns, unaffected by the split.
+/// LW-50's LivingWeapon adapter over FingerprintGuard, split by LW-112 and unchained by LW-393 into
+/// three independent state machines. The MAIN guard checks two data-only landmarks (PE build key,
+/// Ramza's roster row shape); a mismatch there stands the roster door down (writes stay disabled all
+/// session). The KIT-LANE guard owns the JobCommand rec8/rec9 ability-byte signature and the SENSING
+/// lane owns the six battle sentinels. Both lanes step from the first tick and no longer wait for the
+/// main guard to arm. A lane mismatch closes only its own door (the weapon-granted commands, or the
+/// new game detector) while everything else keeps working. Post-arm semantics are unchanged for the
+/// kit lane: an all-zero rec8/rec9 window is a Mismatch (blanked), not a boot window, because that
+/// table is file baked static data. Only a genuine read failure still reads Unreadable. No guard
+/// raises a box on a closure any more; the parts board does (PartsBoardTests), except the LW-392
+/// stall box, which stays the main guard's own.
 ///
 /// FakeSparseMemory.TryReadBytes serves any read fully contained in a registered TerrainBlocks
 /// entry (LW-82 widened this from exact-address-only), so every PE and JobCommand read here is
@@ -276,70 +274,33 @@ public class LaunchGuardTests
     }
 
     [Fact]
-    public void HookArm_offered_before_arm_fires_on_armed_edge_exactly_once()
+    public void StandDown_never_invokes_the_notice_itself()
     {
-        var mem = HealthyMemory();
-        var guard = new LaunchGuard(mem, forceMismatch: false);
-        int armCount = 0;
-        guard.OfferHookArm(() => armCount++);
-        Assert.Equal(0, armCount);
-
-        guard.Step();
-
-        Assert.Equal(GuardState.Armed, guard.State);
-        Assert.Equal(1, armCount);
-
-        guard.Step();
-        Assert.Equal(1, armCount);
-    }
-
-    [Fact]
-    public void HookArm_offered_after_arm_fires_immediately()
-    {
-        var mem = HealthyMemory();
-        var guard = new LaunchGuard(mem, forceMismatch: false);
-        guard.Step();
-        Assert.Equal(GuardState.Armed, guard.State);
-
-        int armCount = 0;
-        guard.OfferHookArm(() => armCount++);
-
-        Assert.Equal(1, armCount);
-    }
-
-    [Fact]
-    public void HookArm_never_fires_when_stood_down()
-    {
-        var mem = HealthyMemory(nameId: 5);   // mismatch
-        var guard = new LaunchGuard(mem, forceMismatch: false);
-        for (int i = 0; i < 40; i++) guard.Step();
-        Assert.Equal(GuardState.StoodDown, guard.State);
-
-        int armCount = 0;
-        guard.OfferHookArm(() => armCount++);
-
-        Assert.Equal(0, armCount);
-    }
-
-    [Fact]
-    public void StandDown_invokes_notice_exactly_once()
-    {
+        // LW-393: the box moved to the parts board, which shows one per closure wave.
         var mem = HealthyMemory(nameId: 5);   // mismatch
         var calls = new List<(string title, string text)>();
         var guard = new LaunchGuard(mem, forceMismatch: false, notice: (title, text) => calls.Add((title, text)));
-
         for (int i = 0; i < 40; i++) guard.Step();
         Assert.Equal(GuardState.StoodDown, guard.State);
 
-        for (int i = 0; i < 20; i++) guard.Step();   // stand-down is terminal: no repeat notice
+        for (int i = 0; i < 20; i++) guard.Step();
 
-        Assert.Single(calls);
-        Assert.Equal("FFT Living Weapons", calls[0].title);
-        Assert.Contains("livingweapon.log", calls[0].text);
-        Assert.Contains("ptyrawl@gmail.com", calls[0].text);
-        // Owner-authored copy, 2026-07-14: pin the headline and the attach-your-logs ask.
-        Assert.Contains("Living Weapons has switched itself off", calls[0].text);
-        Assert.Contains("attach your logs", calls[0].text);
+        Assert.Empty(calls);
+    }
+
+    [Fact]
+    public void Roster_stand_down_error_line_names_the_parts_and_keeps_the_scanner_phrase()
+    {
+        using var cap = LogCapture.Start();
+        var guard = new LaunchGuard(HealthyMemory(nameId: 5), forceMismatch: false);
+
+        for (int i = 0; i < 40; i++) guard.Step();
+
+        string line = Assert.Single(cap.File, l => l.Contains("[ERROR]"));
+        Assert.Contains("standing down to protect your save", line);
+        Assert.Contains("the parts that need it are standing down to protect your save", line);
+        Assert.Contains("see the Parts report line for what still runs", line);
+        Assert.DoesNotContain("LW_FORCE_", line);
     }
 
     [Fact]
@@ -645,10 +606,7 @@ public class LaunchGuardTests
                 Assert.False(guard.KitLaneArmed);
                 Assert.Equal(GuardState.StoodDown, guard.KitLaneState);
 
-                Assert.Single(calls);
-                Assert.Contains("Living Weapons found another mod editing the same game data", calls[0].text);
-                Assert.DoesNotContain("switched itself off", calls[0].text);
-                Assert.DoesNotContain("standing down to protect your save", calls[0].text);
+                Assert.Empty(calls);   // the parts board boxes now, never the guard
 
                 Assert.Contains(records, r => r.type == "guard" && r.payload.Contains("kit-lane"));
                 Assert.Single(triggers);
@@ -687,9 +645,8 @@ public class LaunchGuardTests
             Assert.Single(cap.File, l => l.Contains("[WARN]") && l.Contains("its own checks passed"));
             Assert.Equal(GuardState.StoodDown, guard.KitLaneState);
 
-            var box = Assert.Single(calls);
-            Assert.Contains("found another mod editing the same game data", box.text);
-            Assert.Contains("the cause may be the game update itself", box.text);
+            Assert.Empty(calls);
+            Assert.Equal(LaunchGuard.UnknownBuildHedge, guard.BuildHedge);
             string laneWarn = Assert.Single(cap.File, l => l.Contains("[WARN]") && l.Contains("jobcommand-table"));
             Assert.Contains("the cause may be the game update itself", laneWarn);
             Assert.DoesNotContain(cap.File, l => l.Contains("standing down to protect your save"));
@@ -781,7 +738,8 @@ public class LaunchGuardTests
             for (int i = 0; i < 40; i++) { guard.Step(); guard.StepKitLane(); }
 
             Assert.Equal(GuardState.StoodDown, guard.KitLaneState);
-            Assert.DoesNotContain("the cause may be the game update itself", Assert.Single(calls).text);
+            Assert.Empty(calls);
+            Assert.Equal("", guard.BuildHedge);
             Assert.DoesNotContain(cap.File, l => l.Contains("the cause may be the game update itself"));
         });
     }
@@ -859,8 +817,7 @@ public class LaunchGuardTests
 
             Assert.Equal(GuardState.StoodDown, guard.KitLaneState);
             Assert.False(guard.KitLaneArmed);
-            Assert.Single(calls);
-            Assert.DoesNotContain("standing down to protect your save", calls[0].text);
+            Assert.Empty(calls);
             Assert.Contains(records, r => r.type == "guard" && r.payload.Contains("kit-lane") && r.payload.Contains("all zero"));
         }
         finally { Mem.WritesEnabled = prevWrites; }
@@ -938,8 +895,10 @@ public class LaunchGuardTests
                 for (int i = 0; i < 30; i++) guard.StepKitLane();
 
                 Assert.Equal(GuardState.StoodDown, guard.KitLaneState);
-                Assert.Single(calls);
-                Assert.DoesNotContain("standing down to protect your save", calls[0].text);
+                Assert.Empty(calls);
+                var closed = PartsReportTests.AllOpen();
+                closed[Door.KitLane] = guard.KitLaneDoor;
+                Assert.DoesNotContain("standing down to protect your save", PartsReport.ComposeBox(closed, "", guard.BuildHedge));
                 Assert.DoesNotContain(file, line => line.Contains("standing down to protect your save"));
             }
             finally { ModLogger.Instance = prior; }
@@ -1091,9 +1050,9 @@ public class LaunchGuardTests
             var rig = NewSensingRig(mem);
             rig.Guard.Step();
 
-            StepSensingN(rig.Guard, 29);
+            StepSensingN(rig.Guard, LaunchGuard.SensingBootGraceSteps + 29);
             Assert.Equal(GuardState.Verifying, rig.Guard.SensingState);
-            rig.Guard.StepSensing();   // exactly MismatchDebounce (30) mismatching steps
+            rig.Guard.StepSensing();   // the boot grace, then exactly MismatchDebounce (30) mismatching steps
 
             Assert.Equal(GuardState.StoodDown, rig.Guard.SensingState);
             Assert.False(rig.Guard.SensingArmed);
@@ -1125,7 +1084,7 @@ public class LaunchGuardTests
             var rig = NewSensingRig(mem);
             rig.Guard.Step();
 
-            StepSensingN(rig.Guard, 30);
+            StepSensingN(rig.Guard, LaunchGuard.SensingBootGraceSteps + 30);
 
             if (mismatch)
             {
@@ -1158,21 +1117,382 @@ public class LaunchGuardTests
     }
 
     [Fact]
-    public void Sensing_lane_never_steps_before_the_main_guard_arms()
+    public void Sensing_lane_arms_with_the_roster_row_empty()
     {
+        // LW-393: the lane no longer waits for the roster door. The stamp latch is the only wait.
         WithWritesRestored(() =>
         {
             var mem = HealthyMemory(level: 0);   // unpopulated roster: the main guard keeps retrying
-            StageSentinels(mem, 1u, 1u, 7, 9, 5, 5);   // would be a Mismatch if the lane ever stepped
+            StageSentinels(mem, 0xFFFFFFFFu, 0xFFFFFFFFu, 255, 0xFFFF, 0, 0);
+            var rig = NewSensingRig(mem);
+            rig.Guard.Step();   // latches the build stamp, cannot arm
+
+            rig.Guard.StepSensing();
+
+            Assert.Equal(GuardState.Verifying, rig.Guard.State);
+            Assert.True(rig.Guard.SensingArmed);
+            Assert.False(Mem.WritesEnabled);
+        });
+    }
+
+    [Fact]
+    public void Sensing_lane_waits_while_the_build_stamp_has_not_been_read()
+    {
+        WithWritesRestored(() =>
+        {
+            var mem = HealthyMemory();
+            StageSentinels(mem, 0xFFFFFFFFu, 0xFFFFFFFFu, 255, 0xFFFF, 0, 0);
+            var rig = NewSensingRig(mem);   // the main guard never steps, so the image was never read
+
+            StepSensingN(rig.Guard, 400);
+
+            Assert.Equal(GuardState.Verifying, rig.Guard.SensingState);
+            Assert.Empty(rig.Records);
+            Assert.Equal(DoorState.Waiting, rig.Guard.SensingDoor.State);
+
+            rig.Guard.Step();
+            rig.Guard.StepSensing();
+            Assert.True(rig.Guard.SensingArmed);
+        });
+    }
+
+    [Fact]
+    public void Sensing_boot_grace_holds_a_mismatch_then_lets_it_count()
+    {
+        WithWritesRestored(() =>
+        {
+            using var cap = LogCapture.Start();
+            var mem = HealthyMemory();
+            StageSentinels(mem, 0xFFFFFFFFu, 1u, 255, 0xFFFF, 0, 0);   // foreign slot9
             var rig = NewSensingRig(mem);
             rig.Guard.Step();
 
-            StepSensingN(rig.Guard, 35);
-
-            Assert.Equal(GuardState.Verifying, rig.Guard.State);
+            StepSensingN(rig.Guard, LaunchGuard.SensingBootGraceSteps + 29);   // 300 held, then 29 counted
             Assert.Equal(GuardState.Verifying, rig.Guard.SensingState);
-            Assert.Empty(rig.Records);
-            Assert.Empty(rig.Flushes);
+            Assert.DoesNotContain(rig.Records, r => r.payload.Contains("sensing stand-down"));
+            Assert.Single(cap.File, l => l.Contains("boot grace"));
+
+            rig.Guard.StepSensing();
+
+            Assert.Equal(GuardState.StoodDown, rig.Guard.SensingState);
+        });
+    }
+
+    [Fact]
+    public void Sensing_boot_grace_still_arms_a_matching_tuple_at_once()
+    {
+        WithWritesRestored(() =>
+        {
+            var mem = HealthyMemory();
+            StageSentinels(mem, 0xFFFFFFFFu, 0xFFFFFFFFu, 255, 0xFFFF, 0, 0);
+            var rig = NewSensingRig(mem);
+            rig.Guard.Step();
+
+            rig.Guard.StepSensing();
+
+            Assert.True(rig.Guard.SensingArmed);
+        });
+    }
+
+    [Fact]
+    public void Sensing_stall_watcher_stays_silent_through_a_live_battle()
+    {
+        WithWritesRestored(() =>
+        {
+            using var cap = LogCapture.Start();
+            var mem = HealthyMemory();
+            StageSentinels(mem, 0x10u, 0xFFFFFFFFu, 3, 271, 0, 0);   // a live battle: Unreadable by design
+            var rig = NewSensingRig(mem);
+            rig.Guard.Step();
+
+            StepSensingN(rig.Guard, LaunchGuard.DoorWaitSteps + 50);
+
+            Assert.DoesNotContain(cap.File, l => l.Contains("has not been able to read its data"));
+            Assert.Equal(GuardState.Verifying, rig.Guard.SensingState);
+        });
+    }
+
+    [Fact]
+    public void Sensing_stall_watcher_stays_silent_through_the_boot_grace()
+    {
+        WithWritesRestored(() =>
+        {
+            using var cap = LogCapture.Start();
+            var mem = HealthyMemory();
+            StageSentinels(mem, 0xFFFFFFFFu, 1u, 255, 0xFFFF, 0, 0);   // a mismatch held as unreadable
+            var rig = NewSensingRig(mem);
+            rig.Guard.Step();
+
+            StepSensingN(rig.Guard, LaunchGuard.SensingBootGraceSteps);
+
+            Assert.DoesNotContain(cap.File, l => l.Contains("has not been able to read its data"));
+        });
+    }
+
+    [Fact]
+    public void Sensing_genuinely_unreadable_block_logs_the_timed_line_once_and_never_boxes()
+    {
+        WithWritesRestored(() =>
+        {
+            using var cap = LogCapture.Start();
+            var mem = HealthyMemory();
+            StageSentinels(mem, 0xFFFFFFFFu, 0xFFFFFFFFu, 255, 0xFFFF, 0, 0);
+            mem.TerrainBlocks.Remove(Offsets.BattleMode);
+            var rig = NewSensingRig(mem);
+            rig.Guard.Step();
+
+            StepSensingN(rig.Guard, LaunchGuard.DoorWaitSteps - 1);
+            Assert.DoesNotContain(cap.File, l => l.Contains("has not been able to read its data"));
+            StepSensingN(rig.Guard, 1 + 200);
+
+            string line = Assert.Single(cap.File, l => l.Contains("has not been able to read its data"));
+            Assert.Contains("[INFO]", line);
+            Assert.Contains("battle sentinel check", line);
+            Assert.Contains("battle sensing", line);
+            Assert.DoesNotContain("standing down to protect your save", line);
+            Assert.Empty(rig.Notices);
+        });
+    }
+
+    [Fact]
+    public void KitLane_arms_with_the_roster_row_empty()
+    {
+        WithWritesRestored(() =>
+        {
+            var mem = HealthyMemory(level: 0);
+            var guard = new LaunchGuard(mem, forceMismatch: false);
+
+            guard.StepKitLane();
+
+            Assert.Equal(GuardState.Verifying, guard.State);
+            Assert.Equal(GuardState.Armed, guard.KitLaneState);
+            Assert.True(guard.KitLaneArmed);
+        });
+    }
+
+    [Fact]
+    public void KitLane_unreadable_for_the_door_window_logs_its_timed_line_once_and_stays_quiet_below_it()
+    {
+        WithWritesRestored(() =>
+        {
+            using var cap = LogCapture.Start();
+            var mem = HealthyMemory();
+            mem.TerrainBlocks.Remove(Barrage.AbilityBase + 8L * Barrage.RecSize);
+            var calls = new List<(string title, string text)>();
+            var guard = new LaunchGuard(mem, forceMismatch: false, notice: (t, x) => calls.Add((t, x)));
+
+            for (int i = 0; i < LaunchGuard.DoorWaitSteps - 1; i++) guard.StepKitLane();
+            Assert.DoesNotContain(cap.File, l => l.Contains("has not been able to read its data"));
+            for (int i = 0; i < 300; i++) guard.StepKitLane();
+
+            string line = Assert.Single(cap.File, l => l.Contains("has not been able to read its data"));
+            Assert.Contains("job command check", line);
+            Assert.Contains("weapon commands", line);
+            Assert.DoesNotContain("standing down to protect your save", line);
+            Assert.Empty(calls);
+            Assert.Equal(DoorState.Waiting, guard.KitLaneDoor.State);
+        });
+    }
+
+    // ---- LW-393: the roster drill and the door readings ----------------------------------------
+
+    private const string RosterDrillFlag = "LW_FORCE_ROSTER_MISMATCH";
+
+    [Fact]
+    public void Roster_drill_stands_a_healthy_row_down_after_the_debounce_and_names_its_flag()
+    {
+        WithWritesRestored(() =>
+        {
+            using var cap = LogCapture.Start();
+            var records = new List<(string type, string payload)>();
+            var calls = new List<(string title, string text)>();
+            var guard = new LaunchGuard(HealthyMemory(), forceMismatch: false, forceRosterMismatch: true,
+                notice: (t, x) => calls.Add((t, x)), recorder: (t, p) => records.Add((t, p)));
+
+            for (int i = 0; i < 29; i++) guard.Step();
+            Assert.Equal(GuardState.Verifying, guard.State);
+            guard.Step();
+
+            Assert.Equal(GuardState.StoodDown, guard.State);
+            Assert.False(Mem.WritesEnabled);
+            var rec = Assert.Single(records, r => r.payload.Contains("stand-down"));
+            Assert.Contains(RosterDrillFlag, rec.payload);
+            string line = Assert.Single(cap.File, l => l.Contains("[ERROR]"));
+            Assert.Contains(RosterDrillFlag, line);
+            Assert.Contains("This stand down was forced by the LW_FORCE_ROSTER_MISMATCH drill flag (dev builds only).", line);
+            Assert.Empty(calls);
+            Assert.Contains(RosterDrillFlag, guard.RosterDoor.Reason);
+        });
+    }
+
+    [Fact]
+    public void Roster_drill_on_a_healthy_row_gives_the_bare_drill_detail()
+    {
+        WithWritesRestored(() =>
+        {
+            var records = new List<(string type, string payload)>();
+            var guard = new LaunchGuard(HealthyMemory(), forceMismatch: false, forceRosterMismatch: true,
+                recorder: (t, p) => records.Add((t, p)));
+
+            for (int i = 0; i < 30; i++) guard.Step();
+
+            var rec = Assert.Single(records, r => r.payload.Contains("stand-down"));
+            Assert.Contains("(drill: " + RosterDrillFlag + ")", rec.payload);
+            Assert.DoesNotContain("observed", rec.payload);
+        });
+    }
+
+    [Fact]
+    public void Roster_drill_on_a_wrong_row_keeps_the_observed_fields_and_adds_the_drill_tag()
+    {
+        WithWritesRestored(() =>
+        {
+            var records = new List<(string type, string payload)>();
+            var guard = new LaunchGuard(HealthyMemory(nameId: 5), forceMismatch: false, forceRosterMismatch: true,
+                recorder: (t, p) => records.Add((t, p)));
+
+            for (int i = 0; i < 30; i++) guard.Step();
+
+            var rec = Assert.Single(records, r => r.payload.Contains("stand-down"));
+            Assert.Contains("observed nameId=5", rec.payload);
+            Assert.Contains("; drill: " + RosterDrillFlag, rec.payload);
+        });
+    }
+
+    [Fact]
+    public void Roster_drill_waits_for_a_populated_row_like_a_real_mismatch_would()
+    {
+        WithWritesRestored(() =>
+        {
+            var guard = new LaunchGuard(HealthyMemory(level: 0), forceMismatch: false, forceRosterMismatch: true);
+
+            for (int i = 0; i < 100; i++) guard.Step();
+
+            Assert.Equal(GuardState.Verifying, guard.State);
+        });
+    }
+
+    [Fact]
+    public void Roster_drill_never_touches_the_other_lanes()
+    {
+        WithWritesRestored(() =>
+        {
+            var mem = HealthyMemory();
+            StageSentinels(mem, 0xFFFFFFFFu, 0xFFFFFFFFu, 255, 0xFFFF, 0, 0);
+            var guard = new LaunchGuard(mem, forceMismatch: false, forceRosterMismatch: true);
+            for (int i = 0; i < 40; i++) { guard.Step(); guard.StepKitLane(); guard.StepSensing(); }
+
+            Assert.Equal(GuardState.StoodDown, guard.State);
+            Assert.True(guard.KitLaneArmed);
+            Assert.True(guard.SensingArmed);
+        });
+    }
+
+    [Fact]
+    public void Real_roster_stand_down_names_no_drill_flag_anywhere()
+    {
+        WithWritesRestored(() =>
+        {
+            using var cap = LogCapture.Start();
+            var records = new List<(string type, string payload)>();
+            var guard = new LaunchGuard(HealthyMemory(nameId: 5), forceMismatch: false, recorder: (t, p) => records.Add((t, p)));
+
+            for (int i = 0; i < 40; i++) guard.Step();
+
+            Assert.Equal(GuardState.StoodDown, guard.State);
+            Assert.DoesNotContain(cap.File, l => l.Contains("LW_FORCE_"));
+            Assert.DoesNotContain(records, r => r.payload.Contains("LW_FORCE_"));
+            Assert.DoesNotContain("LW_FORCE_", guard.RosterDoor.Reason);
+        });
+    }
+
+    [Fact]
+    public void Roster_door_reads_waiting_then_open_then_closed_with_stable_reasons()
+    {
+        WithWritesRestored(() =>
+        {
+            var mem = HealthyMemory(level: 0);
+            mem.TerrainBlocks[Offsets.RosterBase + Offsets.RLevel] = new byte[] { 0 };   // mapped zero, the title screen
+            var guard = new LaunchGuard(mem, forceMismatch: false);
+            Assert.Equal(DoorState.Waiting, guard.RosterDoor.State);
+            Assert.Equal("waiting for a save to load", guard.RosterDoor.Reason);
+
+            guard.Step();
+            Assert.Equal(DoorState.Waiting, guard.RosterDoor.State);
+            Assert.Equal("waiting for a save to load", guard.RosterDoor.Reason);
+            Assert.False(guard.RosterDoor.FailedCheck);
+
+            StageRamzaRow(mem, 12, 1, 0x02, 70, 65);
+            guard.Step();
+            Assert.Equal(DoorState.Open, guard.RosterDoor.State);
+
+            var bad = new LaunchGuard(HealthyMemory(nameId: 5), forceMismatch: false);
+            for (int i = 0; i < 40; i++) bad.Step();
+            Assert.Equal(DoorState.Closed, bad.RosterDoor.State);
+            Assert.True(bad.RosterDoor.FailedCheck);
+            Assert.Equal("the party data is not where this mod expects it", bad.RosterDoor.Reason);
+        });
+    }
+
+    [Fact]
+    public void Roster_door_reads_the_game_cannot_be_read_yet_when_the_page_is_unreadable()
+    {
+        WithWritesRestored(() =>
+        {
+            var guard = new LaunchGuard(HealthyMemory(level: 0), forceMismatch: false);   // level byte not mappable
+
+            guard.Step();
+
+            Assert.Equal(DoorState.Waiting, guard.RosterDoor.State);
+            Assert.Equal("the game cannot be read yet", guard.RosterDoor.Reason);
+        });
+    }
+
+    [Fact]
+    public void Kit_lane_and_sensing_doors_read_per_state_and_only_the_kit_lane_closure_is_a_failed_check()
+    {
+        WithWritesRestored(() =>
+        {
+            var mem = HealthyMemory();
+            StageSentinels(mem, 0xFFFFFFFFu, 1u, 255, 0xFFFF, 0, 0);   // foreign slot9
+            long rec8 = Barrage.AbilityBase + 8L * Barrage.RecSize;
+            mem.TerrainBlocks[rec8] = new byte[] { 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA, 0xAA };
+            var guard = new LaunchGuard(mem, forceMismatch: false);
+
+            Assert.Equal(DoorState.Waiting, guard.KitLaneDoor.State);
+            Assert.Equal("the job command check has not run yet", guard.KitLaneDoor.Reason);
+            Assert.Equal(DoorState.Waiting, guard.SensingDoor.State);
+            Assert.Equal("the battle sentinel check has not run yet", guard.SensingDoor.Reason);
+
+            guard.Step();
+            for (int i = 0; i < 30; i++) guard.StepKitLane();
+            StepSensingN(guard, LaunchGuard.SensingBootGraceSteps + 30);
+
+            Assert.Equal(DoorState.Closed, guard.KitLaneDoor.State);
+            Assert.True(guard.KitLaneDoor.FailedCheck);
+            Assert.Equal("another mod rewrote the job command data", guard.KitLaneDoor.Reason);
+            Assert.Equal(DoorState.Closed, guard.SensingDoor.State);
+            Assert.False(guard.SensingDoor.FailedCheck);
+            Assert.Equal("the battle sentinels read wrong, so only the new game detector is off", guard.SensingDoor.Reason);
+        });
+    }
+
+    [Fact]
+    public void Kit_lane_and_sensing_doors_read_open_on_healthy_memory()
+    {
+        WithWritesRestored(() =>
+        {
+            var mem = HealthyMemory();
+            StageSentinels(mem, 0xFFFFFFFFu, 0xFFFFFFFFu, 255, 0xFFFF, 0, 0);
+            var guard = new LaunchGuard(mem, forceMismatch: false);
+
+            guard.Step();
+            guard.StepKitLane();
+            guard.StepSensing();
+
+            Assert.Equal(DoorState.Open, guard.RosterDoor.State);
+            Assert.Equal(DoorState.Open, guard.KitLaneDoor.State);
+            Assert.Equal(DoorState.Open, guard.SensingDoor.State);
         });
     }
 
@@ -1206,7 +1526,7 @@ public class LaunchGuardTests
             var rig = NewSensingRig(mem, forceSensingMismatch: true);
             rig.Guard.Step();
 
-            StepSensingN(rig.Guard, 30);
+            StepSensingN(rig.Guard, LaunchGuard.SensingBootGraceSteps + 30);
 
             Assert.Equal(GuardState.StoodDown, rig.Guard.SensingState);
             Assert.Contains(rig.Records, r => r.payload.Contains("LW_FORCE_SENSING_MISMATCH"));
@@ -1229,7 +1549,7 @@ public class LaunchGuardTests
             var rig = NewSensingRig(mem);
             rig.Guard.Step();
 
-            StepSensingN(rig.Guard, 30);
+            StepSensingN(rig.Guard, LaunchGuard.SensingBootGraceSteps + 30);
 
             Assert.Equal(GuardState.StoodDown, rig.Guard.SensingState);
             Assert.Contains(cap.File, l => l.Contains("battle sentinels do not read the way this mod expects"));
@@ -1250,7 +1570,7 @@ public class LaunchGuardTests
             var rig = NewSensingRig(mem);
             rig.Guard.Step();
 
-            StepSensingN(rig.Guard, 30);
+            StepSensingN(rig.Guard, LaunchGuard.SensingBootGraceSteps + 30);
 
             Assert.Equal(GuardState.StoodDown, rig.Guard.SensingState);
             string line = Assert.Single(cap.File, l => l.Contains("The battle sentinels do not read the way this mod expects"));

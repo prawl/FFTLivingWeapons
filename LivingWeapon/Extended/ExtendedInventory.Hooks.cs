@@ -11,9 +11,11 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed partial class ExtendedInventory
 {
+    internal const string NoHooksRefusal = "the game-hooks helper mod (reloaded.sharedlib.hooks) is not loaded";
+
     private string? DefaultInstallHooks(IReloadedHooks? hooks)
     {
-        if (hooks == null) return "the game-hooks helper mod (reloaded.sharedlib.hooks) is not loaded";
+        if (hooks == null) return NoHooksRefusal;
         _getterHook = new CategoryGetterHook(_patcher, ExtendedCatalog.FirstExtendedId, Items.OrderBy(i => i.Id).Select(i => i.CloneDonor).ToArray());
         string? why = _getterHook.Install(hooks);
         if (why != null) return why;

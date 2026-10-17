@@ -57,6 +57,13 @@ internal sealed class PromptSwapHook
     private IHook<SetTextStringFn>? _hook;
     private SetTextStringFn? _keepalive;      // GC anchor (the native thunk must outlive us)
     private bool _canary;
+    private readonly DoorCell _door = new(DoorReading.Waiting("the loader has not handed over its hooks yet"));
+
+    /// <summary>The banners part's door, written by the loader thread and read by the engine tick.</summary>
+    public DoorReading Door => _door.Value;
+
+    /// <summary>The loader gave no hooks, so the detour can never arm. An absence, not a failed check.</summary>
+    public void MarkNoHooks() => _door.Set(DoorReading.Absent("the loader gave no hooks"));
 
     public PromptSwapHook(PromptSwap swap, IGameMemory mem)
     {
@@ -74,6 +81,7 @@ internal sealed class PromptSwapHook
         bool readOk = _mem.TryReadBytes(FnSetTextString, ExpectedPrologue.Length, out var prologue);
         if (!ShouldArm(readOk, prologue))
         {
+            _door.Set(DoorReading.Failed("the game's prompt system is not where this mod expects it"));
             ModLogger.Warn(LogVerb.Toast,
                 $"The prompt hook target 0x{FnSetTextString:X} does not match the expected prologue (game patched or wrong address); tier-up toasts are disabled this session.");
             return;
@@ -82,10 +90,12 @@ internal sealed class PromptSwapHook
         {
             _keepalive = Detour;
             _hook = hooks.CreateHook<SetTextStringFn>(_keepalive, FnSetTextString).Activate();
+            _door.Set(DoorReading.Open());
             ModLogger.Event(LogVerb.Toast, "Connected to the game's prompt system; tier-up toasts can now be delivered.");
         }
         catch (Exception ex)
         {
+            _door.Set(DoorReading.Failed("the game's prompt system could not be connected to"));
             ModLogger.Error(LogVerb.Toast, "Could not connect to the game's prompt system; tier-up toasts will not be delivered: " + ex.Message);
         }
     }

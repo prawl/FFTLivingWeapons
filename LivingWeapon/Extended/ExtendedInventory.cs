@@ -21,6 +21,7 @@ internal sealed partial class ExtendedInventory
     private readonly ExtendedInventoryData.LoadResult _data;
     private readonly ExtendedBagSidecar _sidecar;
     private readonly Func<IReloadedHooks?, string?> _installHooks;
+    private readonly bool _defaultInstall;
 
     private readonly BytePatchSet _patches = new();
     private readonly ListRelocation _relocation = new();
@@ -40,6 +41,9 @@ internal sealed partial class ExtendedInventory
 
     public IReadOnlyList<ExtendedItemDef> Items => _data.Items;
     public bool Armed { get; private set; }
+    private readonly DoorCell _door = new(DoorReading.Waiting("the loader has not handed over its hooks yet"));
+    /// <summary>The extended inventory part's door, written by the boot arm thread and read by the engine tick.</summary>
+    public DoorReading Door => _door.Value;
     /// <summary>Why the last BootArm did not arm (null once armed, or when nothing is shipped).</summary>
     public string? Refusal { get; private set; }
     /// <summary>Where the bag counts live now, the relocated page if it armed, else
@@ -58,6 +62,7 @@ internal sealed partial class ExtendedInventory
         _allocator = allocator;
         _data = data;
         _sidecar = sidecar;
+        _defaultInstall = installHooks == null;
         _installHooks = installHooks ?? DefaultInstallHooks;
         _pending = ExtendedSites.PostLoadPatches(Math.Max(1, data.Items.Count)).Select(p => new PendingPatch(p)).ToList();
     }
@@ -69,6 +74,7 @@ internal sealed partial class ExtendedInventory
         if (!_data.FolderPresent || (_data.Ok && _data.Items.Count == 0))
         {
             ModLogger.Debug(LogVerb.Startup, "No extended-inventory items are shipped; the extended inventory stays off.");
+            _door.Set(DoorReading.Absent("no new items are shipped in this build"));
             return;
         }
         if (!_data.Ok)
@@ -76,11 +82,13 @@ internal sealed partial class ExtendedInventory
             Refuse("the extended-inventory tables did not validate: " + string.Join("; ", _data.Errors));
             return;
         }
+        if (hooks == null && _defaultInstall) { Refuse(NoHooksRefusal, failedCheck: false); return; }
         string? why = Install(hooks);
         if (why != null) { RollBack(); Refuse(why); return; }
         SeedBag();
         Armed = true;
         Refusal = null;
+        _door.Set(DoorReading.Open());
         ModLogger.Event(LogVerb.Startup,
             $"Extended inventory armed: {Items.Count} new item(s) [{string.Join(", ", Items.Select(i => $"{i.Name} (id {i.Id})"))}], "
             + $"{_patches.AppliedCount} cap patches, {_accessorHooks.Count} accessor redirects, swing-id fallback armed, 5 hooks (menu list builder hooked), shop table mirrored, "
@@ -100,9 +108,10 @@ internal sealed partial class ExtendedInventory
         return _weaponStatHook.StubAddr + ThunkStub.RowStubHeader + (long)i * ThunkStub.RowSize;
     }
 
-    private void Refuse(string why)
+    private void Refuse(string why, bool failedCheck = true)
     {
         Refusal = why;
+        _door.Set(failedCheck ? DoorReading.Failed(why) : DoorReading.Absent("the loader gave no hooks"));
         ModLogger.Warn(LogVerb.Startup, $"The extended inventory is NOT armed this session ({why}); the new items will not exist in the game until this is resolved.");
     }
 }

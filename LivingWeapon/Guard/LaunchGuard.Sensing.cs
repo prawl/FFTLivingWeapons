@@ -4,9 +4,9 @@ namespace LivingWeapon;
 /// The sensing lane, a third FingerprintGuard instance shaped like the kit lane (LaunchGuard.KitLane.cs).
 /// <see cref="PlaythroughReset"/> archives and empties kills.json after a one second hold of the event id and battle
 /// mode sentinels, so a game update that moved those bytes could wipe a real tally (docs/research/WRITE_SITE_AUDIT_2026-10.md item 3).
-/// Once per launch, out of battle, this lane checks that all six sentinels read the way this build holds them.
-/// Engine passes <see cref="SensingArmed"/> to the detector, which clears nothing until it is true. The per-part landmarks read it too.
-/// A stand-down only switches the detector off, as a warn with no OS message box.
+/// Once per launch, out of battle, this lane checks that all six sentinels read the way this build holds them. It steps from the first
+/// tick once the build stamp was read, and holds a mismatch as unreadable for the first SensingBootGraceSteps steps in case the game is still starting.
+/// Engine passes <see cref="SensingArmed"/> to the detector, which clears nothing until it is true. A stand-down only switches the detector off, as a warn with no box.
 /// In battle (mode 1..5, or BattleState.InLiveBattle) the verdict is Unreadable and never counts, since a resumed autosave can
 /// arm the guards mid-battle. Out of battle it matches the shape in docs/LIVE_LEDGER.md [sentinel-out-of-battle-tuple]
 /// (owner tape 2026-10-16) and [slot0-battle-phase-values]. Anything else is a Mismatch carrying the observed tuple.
@@ -40,18 +40,19 @@ internal sealed partial class LaunchGuard
     internal const uint SensingSlot0SmallPhaseMax = 0xFF;
 
     /// <summary>True once the sensing lane verified the battle sentinels. Engine passes it to
-    /// <see cref="PlaythroughReset.Observe"/>, and the per-part landmarks read it for their own gate.</summary>
+    /// <see cref="PlaythroughReset.Observe"/>.</summary>
     public bool SensingArmed => _sensingGuard.Armed;
 
     /// <summary>Test/diagnostic seam, mirrors <see cref="State"/>.</summary>
     internal GuardState SensingState => _sensingGuard.State;
 
-    /// <summary>Steps the lane once the main guard is Armed and the lane is still Verifying (same ordering as
-    /// <see cref="StepKitLane"/>). Engine calls it each tick beside StepKitLane.</summary>
+    /// <summary>Steps the lane while it is Verifying, once the image was readable (the stamp latch).
+    /// Engine calls it each tick beside StepKitLane.</summary>
     public void StepSensing()
     {
-        if (_guard.State != GuardState.Armed) return;
+        if (!_stampRead) return;
         if (_sensingGuard.State != GuardState.Verifying) return;
+        _sensingSteps++;
         _sensingGuard.Step();
     }
 
@@ -78,7 +79,7 @@ internal sealed partial class LaunchGuard
         // The bare marker is not enough, since 0x10/0x11 sticks on the world map after a victory with mode 0, unpaused,
         // event 0xFFFF (docs/LIVE_LEDGER.md [slot0-battle-phase-values]) and keying on it would stall the lane.
         if ((mode >= 1 && mode <= 5) || BattleState.InLiveBattle(slot0, mode, pause == 1, eventId))
-            return LandmarkVerdict.Unreadable;
+            return new LandmarkReading(LandmarkVerdict.Unreadable, SensingBattleLive);
 
         // Family (b): the out-of-battle shape.
         bool ok = (mode == SensingModeWorldMap || mode == SensingModePreFirstBattle)

@@ -16,6 +16,10 @@ internal sealed class TickPhaseState
     public bool NowIn;
     public bool BattleStatus;
     public bool KitLaneArmed;
+    /// <summary>The roster door is open, so Mem writes are enabled. The battle gates fold it in.</summary>
+    public bool RosterOpen;
+    /// <summary>Whether a part's every door is open. Fail closed until the engine fills it.</summary>
+    public Func<Part, bool> PartOn = _ => false;
 
     /// <summary>Written by the kill-poll row, read by the toast and save-on-change rows (<c>after ["kill-poll"]</c>).</summary>
     public bool Changed;
@@ -27,9 +31,10 @@ internal sealed class TickPhaseState
 internal static class TickGates
 {
     public static readonly Func<TickPhaseState, bool> Always = _ => true;
-    public static readonly Func<TickPhaseState, bool> KitLane = s => s.KitLaneArmed;
-    public static readonly Func<TickPhaseState, bool> InBattle = s => s.NowIn;
-    public static readonly Func<TickPhaseState, bool> OutOfBattle = s => !s.NowIn;
+    public static readonly Func<TickPhaseState, bool> KitLane = s => s.RosterOpen && s.KitLaneArmed;
+    public static readonly Func<TickPhaseState, bool> InBattle = s => s.NowIn && s.RosterOpen;
+    public static readonly Func<TickPhaseState, bool> OutOfBattle = s => !s.NowIn && s.RosterOpen;
+    public static readonly Func<TickPhaseState, bool> TwinPistols = s => s.PartOn(Part.TwinPistols);
 }
 
 /// <summary>
@@ -44,10 +49,11 @@ internal sealed class TickPhase
     public readonly bool FiresOnFirstPass;
     public readonly string[] After;
     public readonly Action<TickPhaseState> Run;
+    public readonly Part Part;
     private int _count;
 
     public TickPhase(string name, Func<TickPhaseState, bool> gate, int everyNTicks,
-        bool firesOnFirstPass, string[] after, Action<TickPhaseState> run)
+        bool firesOnFirstPass, string[] after, Action<TickPhaseState> run, Part part)
     {
         Name = name;
         Gate = gate;
@@ -55,6 +61,7 @@ internal sealed class TickPhase
         FiresOnFirstPass = firesOnFirstPass;
         After = after;
         Run = run;
+        Part = part;
     }
 
     /// <summary>Advance and maybe run this row for one tick. A failing gate does nothing and does not

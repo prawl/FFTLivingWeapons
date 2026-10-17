@@ -13,12 +13,16 @@ probing session).
 WHAT COUNTS AS A FAILURE (exit 1):
   * any [ERROR] line in the newest livingweapon.log (every error site in the mod is a catch block or
     a genuine misconfiguration; none fire on a healthy run -- see docs/LOGGING.md "Tier meanings"),
-  * a fingerprint-guard STAND-DOWN (LaunchGuard.cs: "...standing down to protect your save"): the mod
-    switched itself off, so nothing it does this session is trustworthy -- reported distinctly from a
-    generic error because the remedy is different (rebuild the fingerprint for the new game build),
+  * a roster-door STAND-DOWN (LaunchGuard.cs: "...the parts that need it are standing down to protect your
+    save"): the parts that need the party data switched off, so what they do this session is not
+    trustworthy -- reported distinctly from a generic error because the remedy is different (rebuild the
+    fingerprint for the new game build). A stand-down the LW_FORCE_ROSTER_MISMATCH drill forced carries
+    "drill: LW_FORCE_" and is only a WARN (standdown-drill), so the owner's drill scan stays clean,
   * NOT ARMED despite a battle: the log shows a battle ran but the guard never emitted its armed edge
     (LaunchGuard.cs: "...Living Weapons is armed") and never stood down -- writes stayed disabled, so
     the mod was silently inert through gameplay.
+
+The last "Parts report:" line (PartsReport.PartsMark) is printed in the summary as context.
 
 WARN lines never fail the scan (they are "degraded but coping" per docs/LOGGING.md: locate misses,
 fresh-start save notices, readback misses); they are surfaced as context only.
@@ -60,13 +64,15 @@ PREV_LOG_NAME = "livingweapon.prev.log"
 # copy edit to the surrounding sentence does not silently blind the scanner.
 ARMED_MARK = "Living Weapons is armed"                 # LaunchGuard.ArmedEdge (INFO [startup])
 STANDDOWN_MARK = "standing down to protect your save"  # LaunchGuard.StandDown (ERROR [startup])
+DRILL_MARK = "drill: LW_FORCE_"                        # the dev drill's tag inside a stand-down diag (LaunchGuard.Doors.cs)
+PARTS_MARK = "Parts report:"                           # PartsReport.PartsMark (PartsBoard, INFO [startup])
 STARTUP_MARK = "is starting inside"                    # Mod.cs launch header (INFO [startup])
 
 # Findings carry a machine code (for the selftest / recipes) plus a human line.
 Finding = namedtuple("Finding", ["severity", "code", "lineno", "text"])  # severity: "fail" | "warn"
 ScanResult = namedtuple("ScanResult", [
     "findings", "n_lines", "errors_seen", "warns_seen",
-    "startup", "armed", "stood_down", "battle",
+    "startup", "armed", "stood_down", "battle", "parts",
 ])
 
 # Current post-facelift file line: "[Living Weapons] [HH:mm:ss.fff] [LEVEL] ...".
@@ -98,6 +104,16 @@ def is_armed(line):
     return ARMED_MARK in line
 
 
+def is_drill(line):
+    return DRILL_MARK in line
+
+
+def parts_text(line):
+    """The report from the mark onward, or None when this line is not a parts report."""
+    i = line.find(PARTS_MARK)
+    return line[i:].strip() if i >= 0 else None
+
+
 def is_battle(line):
     # File lines carry the verb bracket; also match the console-shape sentence for robustness.
     return ("[battle-start]" in line or "[battle-end]" in line
@@ -121,9 +137,13 @@ def scan_lines(lines, allow=(), require_battle=False):
     warns_seen = 0
     classified_seen = 0
     startup = armed = stood_down = battle = False
+    parts = ""
 
     for i, line in enumerate(lines, start=1):
         level = line_level(line)
+        report = parts_text(line)
+        if report is not None:
+            parts = report
         if level is not None:
             classified_seen += 1
         if is_startup_header(line):
@@ -133,13 +153,21 @@ def scan_lines(lines, allow=(), require_battle=False):
         if is_battle(line):
             battle = True
 
+        if is_standdown(line) and is_drill(line):
+            # A dev drill forced this stand-down on purpose: surface it, never fail the scan on it.
+            stood_down = True
+            findings.append(Finding("warn", "standdown-drill", i,
+                                    "stand-down forced by a dev drill flag (expected under the drill): "
+                                    + line.strip()))
+            continue
+
         if is_standdown(line):
             # The stand-down is itself an ERROR line, but report it once and distinctly (its remedy
             # differs from a generic crash): do NOT also count it as a generic runtime error below.
             stood_down = True
             findings.append(Finding("fail", "stand-down", i,
-                                    "fingerprint-guard stand-down: the mod switched itself OFF this "
-                                    "session (writes disabled). Rebuild the fingerprint for the "
+                                    "roster-door stand-down: the parts that need the party data switched "
+                                    "OFF this session (writes disabled). Rebuild the fingerprint for the "
                                     "current game build. Line: " + line.strip()))
             continue
 
@@ -183,7 +211,7 @@ def scan_lines(lines, allow=(), require_battle=False):
 
     return ScanResult(findings=findings, n_lines=len(lines), errors_seen=errors_seen,
                       warns_seen=warns_seen, startup=startup, armed=armed,
-                      stood_down=stood_down, battle=battle)
+                      stood_down=stood_down, battle=battle, parts=parts)
 
 
 def exit_code(result):
@@ -263,6 +291,8 @@ def report_lines(result, path, note, extra_findings=(), quiet=False):
     lines.append(f"  startup header: {yn(result.startup)}   armed: {yn(result.armed)}   "
                  f"battle: {yn(result.battle)}   stand-down: {yn(result.stood_down)}")
     lines.append(f"  warnings: {result.warns_seen}   errors: {result.errors_seen}")
+    if result.parts:
+        lines.append(f"  last parts report: {result.parts}")
     if warns:
         lines.append("CONTEXT:")
         lines.extend(f"  [warn] {f.text}{loc(f)}" for f in warns)
@@ -375,7 +405,10 @@ _BATTLE = [
     "[Living Weapons] [19:12:00.000] [INFO] [battle-end] Battle ended: 1 kills credited (Windrunner 1), 0 Marks earned, 0 tiers reached; 23 turns; the kill tally and legends are saved.",
 ]
 _ERROR = "[Living Weapons] [19:11:15.000] [ERROR] [engine] One engine update was skipped; an internal error occurred: NullReferenceException at ..."
-_STANDDOWN = "[Living Weapons] [19:10:05.100] [ERROR] [startup] The game build does not match this mod's memory landmarks (ramza-roster-row (observed nameId=5 sprite=0x02 brave=70 faith=65 (expected nameId=1, sprite<0x80, brave<=100, faith<=100))); Living Weapons is standing down to protect your save. The mod likely needs an update for a new game patch, or another installed mod has modified the job command tables."
+_STANDDOWN = "[Living Weapons] [19:10:05.100] [ERROR] [startup] The game build does not match this mod's memory landmarks (ramza-roster-row (observed nameId=5 sprite=0x02 brave=70 faith=65 (expected nameId=1, sprite<0x80, brave<=100, faith<=100))); the parts that need it are standing down to protect your save; see the Parts report line for what still runs. The mod likely needs an update for a new game patch."
+_STANDDOWN_DRILL = "[Living Weapons] [19:10:05.100] [ERROR] [startup] The game build does not match this mod's memory landmarks (ramza-roster-row (drill: LW_FORCE_ROSTER_MISMATCH)); the parts that need it are standing down to protect your save; see the Parts report line for what still runs. The mod likely needs an update for a new game patch. This stand down was forced by the LW_FORCE_ROSTER_MISMATCH drill flag (dev builds only)."
+_PARTS_ON = "[Living Weapons] [19:10:05.200] [INFO] [startup] Parts report: battle sensing ON; kill counting ON; stat growth ON; card paint ON; band signatures ON; static table signatures ON; weapon commands ON; banners ON (connected; nothing to announce while kill counting is off); extended inventory ON; twin pistols ON"
+_PARTS_DRILL = "[Living Weapons] [19:10:05.300] [INFO] [startup] Parts report: battle sensing ON; kill counting OFF (the party data is not where this mod expects it, forced by the LW_FORCE_ROSTER_MISMATCH drill); stat growth OFF (the party data is not where this mod expects it, forced by the LW_FORCE_ROSTER_MISMATCH drill); banners ON; extended inventory ON"
 _WARN = "[Living Weapons] [19:10:00.025] [WARN] [save] No kill tally on disk; starting fresh (kills.json will be created on the first save)."
 _LEGACY_ERR = "19:11:15.000 [FFTLivingWeapons] ERROR: legacy failure from a prev.log-era archive"
 _EXC_CONT = "[Living Weapons] [19:11:15.001] [ERROR]   InvalidOperationException: the set corrupted its state"
@@ -502,6 +535,24 @@ def selftest():
     r = scan_lines(_hdr() + [_STAMP_UNKNOWN, _ARMED, _UNKNOWN_BUILD_WARN] + _BATTLE)
     check("unknown-build warn: clean", exit_code(r) == 0 and _codes(r) == [])
     check("unknown-build warn: armed, not stood down, warn counted", r.armed and not r.stood_down and r.warns_seen == 1)
+
+    # 18. LW-393: the roster stand-down wording still reads as a stand-down, a drill-forced one is only a WARN,
+    # and the last parts report line rides along as context.
+    r = scan_lines(_hdr() + [_STANDDOWN])
+    check("roster standdown wording: still stand-down", _codes(r) == ["stand-down"] and exit_code(r) == 1 and r.stood_down)
+    r = scan_lines(_hdr() + [_STANDDOWN_DRILL])
+    check("drill standdown: warn code only", _codes(r) == ["standdown-drill"])
+    check("drill standdown: exit 0 and flagged stood down", exit_code(r) == 0 and r.stood_down and r.errors_seen == 0)
+    r = scan_lines(_hdr() + [_STANDDOWN_DRILL] + _BATTLE)
+    check("drill standdown+battle: still no not-armed", _codes(r) == ["standdown-drill"])
+    r = scan_lines(_hdr() + [_PARTS_ON, _ARMED, _PARTS_DRILL] + _BATTLE)
+    check("parts: the LAST report is kept", r.parts.startswith("Parts report: battle sensing ON; kill counting OFF"))
+    plines, _ = report_lines(r, "x.log", None, ())
+    check("parts: printed in the summary", any("last parts report: Parts report:" in l for l in plines))
+    r = scan_lines(_hdr() + [_ARMED] + _BATTLE)
+    plines, _ = report_lines(r, "x.log", None, ())
+    check("parts: nothing printed when the log has none", r.parts == "" and not any("last parts report" in l for l in plines))
+    check("parts: an INFO parts line is never an error", scan_lines(_hdr() + [_PARTS_ON, _ARMED] + _BATTLE).errors_seen == 0)
 
     passed = sum(1 for _, ok in cases if ok)
     for name, ok in cases:

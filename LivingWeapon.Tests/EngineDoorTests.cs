@@ -1,0 +1,169 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using LivingWeapon;
+using Xunit;
+
+namespace LivingWeapon.Tests;
+
+/// <summary>
+/// LW-393: the engine over the parts registry. The doors step independently from the first tick, a closed
+/// roster door no longer freezes the tick, a part behind a closed door is never ticked, and one report line
+/// plus one box per closure wave reach the player. Every test runs the real Engine over FakeSparseMemory.
+/// </summary>
+public class EngineDoorTests
+{
+    private const string TwinMeta =
+        "{\"200\":{\"name\":\"Twin Test Pistol\",\"wp\":7,\"cat\":\"Gun\",\"formula\":3,\"signature\":{\"abilityId\":0,\"slot\":\"\",\"atTier\":3,\"gunSlinger\":true}}}";
+
+    private static Engine Build(TempDirs temp, FakeSparseMemory mem, List<(string title, string text)>? notices = null,
+        bool drill = false, bool withTwinMeta = false)
+    {
+        string modDir = EngineTests.NestedModDir(temp);
+        if (withTwinMeta) File.WriteAllText(Path.Combine(modDir, "meta.json"), TwinMeta);
+        return new Engine(modDir, devSeedKills: false, devForceRosterMismatch: drill, mem: mem,
+            notice: (t, x) => notices?.Add((t, x)));
+    }
+
+    private static void Idle(FakeSparseMemory mem)
+        => EngineTests.StageSentinelsBothStores(mem, 0xFFFFFFFFu, 0xFFFFFFFFu, 255, 0xFFFF, 0, 0);
+
+    private static void Ticks(Engine e, int n) { for (int i = 0; i < n; i++) e.Tick(); }
+
+    [Fact]
+    public void Lanes_arm_before_the_roster_door()
+    {
+        bool prev = Mem.WritesEnabled;
+        try
+        {
+            Mem.WritesEnabled = false;
+            using var temp = TempDirs.Create("lw_door_lanes_");
+            var mem = EngineTests.HealthyMemory(level: 0);   // no save loaded, the roster row is empty
+            Idle(mem);
+            var engine = Build(temp, mem);
+
+            Ticks(engine, 400);
+
+            Assert.Equal(GuardState.Verifying, engine.Guard.State);
+            Assert.True(engine.Guard.KitLaneArmed);
+            Assert.True(engine.Guard.SensingArmed);
+            Assert.False(Mem.WritesEnabled);
+            Assert.Contains("battle sensing ON", engine.Board.LastLine);
+            Assert.Contains("kill counting WAITING", engine.Board.LastLine);
+        }
+        finally { Mem.WritesEnabled = prev; }
+    }
+
+    [Fact]
+    public void Tick_keeps_sensing_while_the_roster_door_is_closed()
+    {
+        bool prev = Mem.WritesEnabled;
+        try
+        {
+            Mem.WritesEnabled = false;
+            using var temp = TempDirs.Create("lw_door_closed_");
+            var mem = EngineTests.HealthyMemory(nameId: 5);   // Ramza's row reads wrong
+            Idle(mem);
+            var engine = Build(temp, mem);
+
+            Ticks(engine, 40);
+            Assert.Equal(GuardState.StoodDown, engine.Guard.State);
+            int before = mem.ReadCount[Offsets.Slot0];
+
+            Ticks(engine, 10);
+
+            Assert.True(mem.ReadCount[Offsets.Slot0] > before, "the tick returned early after the roster stand down");
+            Assert.False(Mem.WritesEnabled);
+        }
+        finally { Mem.WritesEnabled = prev; }
+    }
+
+    [Fact]
+    public void Closed_roster_never_ticks_the_gunslinger_row_and_an_open_one_does()
+    {
+        bool prev = Mem.WritesEnabled;
+        try
+        {
+            Mem.WritesEnabled = false;
+            long offHand = Offsets.RosterBase + Offsets.ROffHand;
+
+            // Control, so the closed half cannot pass vacuously. A healthy roster reads the off-hand word.
+            using var tempOpen = TempDirs.Create("lw_door_gun_open_");
+            var open = EngineTests.HealthyMemory();
+            Idle(open);
+            Ticks(Build(tempOpen, open, withTwinMeta: true), 100);
+            Assert.True(open.ReadCount.ContainsKey(offHand), "control engine never reached the gunslinger row");
+
+            using var tempClosed = TempDirs.Create("lw_door_gun_closed_");
+            var closed = EngineTests.HealthyMemory(nameId: 5);
+            Idle(closed);
+            var engine = Build(tempClosed, closed, withTwinMeta: true);
+            Ticks(engine, 100);
+
+            Assert.Equal(GuardState.StoodDown, engine.Guard.State);
+            Assert.False(closed.ReadCount.ContainsKey(offHand));
+        }
+        finally { Mem.WritesEnabled = prev; }
+    }
+
+    [Fact]
+    public void One_parts_report_line_reaches_the_logger_per_door_edge()
+    {
+        bool prev = Mem.WritesEnabled;
+        try
+        {
+            Mem.WritesEnabled = false;
+            using var temp = TempDirs.Create("lw_door_lines_");
+            using var cap = LogCapture.Start();
+            var mem = EngineTests.HealthyMemory();
+            Idle(mem);
+            var notices = new List<(string title, string text)>();
+            var engine = Build(temp, mem, notices);
+
+            Ticks(engine, 60);
+            Assert.Equal(1, cap.File.Count(l => l.Contains(PartsReport.PartsMark)));   // roster, lanes open, hooks and extended still waiting
+
+            engine.InjectHooks(null);   // no loader hooks, no extended items shipped: two absences
+            Ticks(engine, 60);
+
+            Assert.Equal(2, cap.File.Count(l => l.Contains(PartsReport.PartsMark)));
+            Assert.Empty(notices);   // absences and an all clear never box
+        }
+        finally { Mem.WritesEnabled = prev; }
+    }
+
+    [Fact]
+    public void Roster_drill_through_the_engine_boxes_once_with_the_roster_parts_off_and_the_rest_listed()
+    {
+        bool prev = Mem.WritesEnabled;
+        try
+        {
+            Mem.WritesEnabled = false;
+            using var temp = TempDirs.Create("lw_door_drill_");
+            var mem = EngineTests.HealthyMemory();
+            Idle(mem);
+            var notices = new List<(string title, string text)>();
+            var engine = Build(temp, mem, notices, drill: true);
+
+            Ticks(engine, 30 + PartsBoard.SettleSteps + 60);
+
+            Assert.Equal(GuardState.StoodDown, engine.Guard.State);
+            Assert.False(Mem.WritesEnabled);
+            var box = Assert.Single(notices);
+            string text = box.text;
+            int working = text.IndexOf("Still working:", StringComparison.Ordinal);
+            int off = text.IndexOf("Switched off:", StringComparison.Ordinal);
+            int waiting = text.IndexOf("Still waiting:", StringComparison.Ordinal);
+            Assert.True(working >= 0 && off > working && waiting > off);
+            Assert.InRange(text.IndexOf("battle sensing", StringComparison.Ordinal), working, off);
+            Assert.InRange(text.IndexOf("kill counting", StringComparison.Ordinal), off, waiting);
+            Assert.InRange(text.IndexOf("twin pistols", StringComparison.Ordinal), off, waiting);
+            Assert.True(text.IndexOf("banners", waiting, StringComparison.Ordinal) > waiting);
+            Assert.True(text.IndexOf("extended inventory", waiting, StringComparison.Ordinal) > waiting);
+            Assert.Contains("LW_FORCE_ROSTER_MISMATCH", text);
+            Assert.Equal(1, engine.Board.BoxCount);
+        }
+        finally { Mem.WritesEnabled = prev; }
+    }
+}

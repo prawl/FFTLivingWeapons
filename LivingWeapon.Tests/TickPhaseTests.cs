@@ -16,7 +16,7 @@ public class TickPhaseTests
     public void Step_runs_only_when_the_gate_passes()
     {
         int runs = 0;
-        var phase = new TickPhase("t", _ => false, 1, false, Array.Empty<string>(), _ => runs++);
+        var phase = new TickPhase("t", _ => false, 1, false, Array.Empty<string>(), _ => runs++, Part.KillCounting);
         var s = new TickPhaseState();
 
         phase.Step(s);
@@ -32,7 +32,7 @@ public class TickPhaseTests
         // (the fourth Step call), not the third call (which was the gate-failing one).
         bool gateOpen = true;
         int runs = 0;
-        var phase = new TickPhase("t", _ => gateOpen, 3, false, Array.Empty<string>(), _ => runs++);
+        var phase = new TickPhase("t", _ => gateOpen, 3, false, Array.Empty<string>(), _ => runs++, Part.KillCounting);
         var s = new TickPhaseState();
 
         phase.Step(s);   // pass 1
@@ -51,7 +51,7 @@ public class TickPhaseTests
     public void FiresOnFirstPass_true_fires_on_passes_1_then_1_plus_N()
     {
         int runs = 0;
-        var phase = new TickPhase("t", _ => true, 3, true, Array.Empty<string>(), _ => runs++);
+        var phase = new TickPhase("t", _ => true, 3, true, Array.Empty<string>(), _ => runs++, Part.KillCounting);
         var s = new TickPhaseState();
         var fireAtPass = new List<int>();
 
@@ -68,7 +68,7 @@ public class TickPhaseTests
     public void FiresOnFirstPass_false_fires_on_passes_N_then_2N()
     {
         int runs = 0;
-        var phase = new TickPhase("t", _ => true, 3, false, Array.Empty<string>(), _ => runs++);
+        var phase = new TickPhase("t", _ => true, 3, false, Array.Empty<string>(), _ => runs++, Part.KillCounting);
         var s = new TickPhaseState();
         var fireAtPass = new List<int>();
 
@@ -85,7 +85,7 @@ public class TickPhaseTests
     public void EveryNTicks_1_fires_every_passing_tick()
     {
         int runs = 0;
-        var phase = new TickPhase("t", _ => true, 1, false, Array.Empty<string>(), _ => runs++);
+        var phase = new TickPhase("t", _ => true, 1, false, Array.Empty<string>(), _ => runs++, Part.KillCounting);
         var s = new TickPhaseState();
 
         phase.Step(s);
@@ -93,5 +93,14 @@ public class TickPhaseTests
         phase.Step(s);
 
         Assert.Equal(3, runs);
+    }
+
+    [Fact]
+    public void The_part_parameter_is_required_so_a_forgotten_row_fails_to_compile()
+    {
+        var ctor = Assert.Single(typeof(TickPhase).GetConstructors());
+        var part = Assert.Single(ctor.GetParameters(), p => p.Name == "part");
+
+        Assert.False(part.IsOptional);
     }
 }

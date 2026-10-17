@@ -33,6 +33,7 @@ internal sealed class Engine
     private readonly ProvokeHold _provokeHold;   // Reads Provoke.cs's mark and gates on the band bit
     private readonly ISignature[] _signatures;        // every signature module, battle-exit reset order
     private readonly ISignature[] _fieldSignatures;   // the in-battle tick order (Barrage ticks pre-gate instead)
+    private readonly Part[] _fieldParts;              // _fieldSignatures[i]'s part, same index
     private readonly Display _display;
     private readonly AttackCard _attackCard;   // The Attack-menu desc dossier painter
     private readonly WeaponPalette _weaponPalette;   // the per-turn weapon-sprite palette repaint
@@ -52,7 +53,10 @@ internal sealed class Engine
     private readonly TickPhaseState _tickState = new();
     private readonly GunSlinger _gunSlinger = null!;
     private readonly IGameMemory _live = null!;   // assigned in ctor, used by Tick
-    private readonly LaunchGuard _launchGuard;   // gates every write until landmarks verify
+    private readonly LaunchGuard _launchGuard;   // the three door guards; its roster edge enables Mem writes
+    private readonly PartsBoard _board;   // the parts report line and its box per closure wave
+    private readonly Dictionary<Door, DoorReading> _readings = new();   // the five doors, refilled every tick
+    private readonly bool _devForceRoster;
     private readonly AnchorScout _anchorScout;   // verifier scout, ticks only once StoodDown; writes nothing
     private readonly BannerToast _toast;
     private readonly bool _bannerToastsEnabled;
@@ -72,17 +76,17 @@ internal sealed class Engine
     /// <param name="devForceFingerprintMismatch">Dev knob. Perturbs the expected PE build key so LaunchGuard
     /// reports an unknown build without standing down. Compiled always, wired under #if LWDEV in Mod.cs.</param>
     /// <param name="mem">Injectable memory seam. Null builds a <see cref="LiveMemory"/>; tests pass a fake.</param>
-    /// <param name="notice">Stand-down notice for LaunchGuard. Null falls back to
-    /// <see cref="StandDownNotice.Show"/>; tests pass a no-op so no Win32 dialog opens.</param>
+    /// <param name="notice">The box for the parts board and the stall warning. Null falls back to <see cref="StandDownNotice.Show"/>; tests pass a no-op.</param>
     /// <param name="extended">the extended inventory. Null builds the live one; tests inject fakes.</param>
     /// <param name="devForceSensingMismatch">Dev drill (LW_FORCE_SENSING_MISMATCH, dev builds only): forces the
     /// sensing lane to read a mismatch so the refuse-to-clear path can be watched.</param>
+    /// <param name="devForceRosterMismatch">Dev drill (LW_FORCE_ROSTER_MISMATCH, dev builds only) under which a healthy roster row reads wrong.</param>
     /// <param name="devForceGuardUnreadable">Dev drill (LW_FORCE_GUARD_UNREADABLE, dev builds only): the startup
     /// guard reads blind for about eighty seconds so the cannot-find-the-game warning and recovery line can be watched.</param>
     public Engine(string modDir, bool? bannerToasts = null, bool? devSeedKills = null,
         bool? devForceFingerprintMismatch = null, IGameMemory? mem = null, Action<string, string>? notice = null,
         ExtendedInventory? extended = null, bool? devForceSensingMismatch = null,
-        bool? devForceGuardUnreadable = null)
+        bool? devForceGuardUnreadable = null, bool? devForceRosterMismatch = null)
     {
         // Save files live in the update-safe Reloaded/User/Mods/<ModId> dir so a mod-folder
         // replace cannot wipe them. Each store migrates its legacy file there before first load.
@@ -91,7 +95,7 @@ internal sealed class Engine
         ModLogger.Event(LogVerb.Save, $"Save files live at {save.SaveDir}.");
 
         _tally = KillTally.Load(save.Migrate("kills.json"));
-        // Observe runs every tick post-arm, gated on the same inLive as the other modules.
+        // Observe runs every tick from the first, gated on the same inLive as the other modules.
         // The call sits ahead of BattleState.Step so its detection edge can force an exit.
         _playthroughReset = new PlaythroughReset(save, _tally);
         _kills = _tally.Kills;
@@ -120,12 +124,16 @@ internal sealed class Engine
 #endif
         _live = mem ?? new LiveMemory();   // the IGameMemory shared by every subsystem
         var live = _live;
-        // Born disarmed (Mod.StartEngine cleared Mem.WritesEnabled); Tick holds subsystems off
-        // until the landmarks verify. recorder/requestFlush archive a stand-down to the flight ring.
+        // Born disarmed (Mod.StartEngine cleared Mem.WritesEnabled); the roster edge turns writes on.
+        // recorder/requestFlush archive a stand-down to the flight ring.
         _launchGuard = new LaunchGuard(live, devForceFingerprintMismatch ?? false, notice: ResolveNotice(notice),
             recorder: Flight.Record, requestFlush: Flight.RequestFlush,
             forceSensingMismatch: devForceSensingMismatch ?? false,
-            forceUnreadable: devForceGuardUnreadable ?? false);
+            forceUnreadable: devForceGuardUnreadable ?? false,
+            forceRosterMismatch: devForceRosterMismatch ?? false);
+        _devForceRoster = devForceRosterMismatch ?? false;
+        _board = new PartsBoard(ResolveNotice(notice), Flight.Record);
+        _tickState.PartOn = PartOn;
         // Read-only scout that ticks only while StoodDown; it never arms or writes (a scout, never a healer).
         _anchorScout = new AnchorScout(live);
         _bannerToastsEnabled = bannerToasts ?? Tuning.BannerToasts;
@@ -190,6 +198,7 @@ internal sealed class Engine
         // tick order excludes Barrage, which ticks pre-gate so learn screens are covered.
         _signatures = new ISignature[] { extra, eagle, ricochet, maim, kobu, iai, mushin, larceny, puppeteer, plague, _barrage, _shadowBlade, _provoke, _provokeHold, renewal, rapture, font, feign, benediction, sanctuary, choir, bulwark };
         _fieldSignatures = new ISignature[] { extra, eagle, ricochet, maim, kobu, iai, mushin, larceny, puppeteer, plague, _provokeHold, renewal, rapture, font, feign, benediction, sanctuary, choir, bulwark };
+        _fieldParts = Array.ConvertAll(_fieldSignatures, SignatureParts.Of);
         save.Migrate("gunslinger.json");
         // Sack reads follow the extended inventory's bag base once it arms. The lambda
         // captures _extended, assigned below, and only runs later on a PrepRoster pass after BootArm.
@@ -274,90 +283,91 @@ internal sealed class Engine
             // Ticks in and out of battle (learn screen reads the JobCommand table live). Gated on the
             // kit-lane guard so another mod rewriting the table disables only this trio.
             new TickPhase("kit-barrage", TickGates.KitLane, 1, false, Array.Empty<string>(),
-                _ => e!._barrage.Tick()),
+                _ => e!._barrage.Tick(), Part.WeaponCommands),
             new TickPhase("kit-shadowblade", TickGates.KitLane, 1, false, Array.Empty<string>(),
-                _ => e!._shadowBlade.Tick()),
+                _ => e!._shadowBlade.Tick(), Part.WeaponCommands),
             // FindEmptySlot claims the first empty JobCommand slot, so Provoke must tick after Barrage and
             // Shadow Blade (see BarrageShadowBladeCollisionTests).
             new TickPhase("kit-provoke", TickGates.KitLane, 1, false, new[] { "kit-barrage", "kit-shadowblade" },
-                _ => e!._provoke.Tick()),
+                _ => e!._provoke.Tick(), Part.WeaponCommands),
 
             // Pre-gate; re-asserts a snapshotted twin in battle but never snapshots/restores there. Observed
             // 2026-07-04 (twin fires twice in battle). Cadence 30 (~1s). secondsOffField reads the same _lastField as the "paint" phase (the twilight guard,
             // GunSlingerPolicy.IsTwilight).
-            new TickPhase("gunslinger", TickGates.Always, 30, false, Array.Empty<string>(),
-                s => e!._gunSlinger.PrepRoster(inBattle: s.NowIn, secondsOffField: (s.Now - e._lastField).TotalSeconds)),
+            new TickPhase("gunslinger", TickGates.TwinPistols, 30, false, Array.Empty<string>(),
+                s => e!._gunSlinger.PrepRoster(inBattle: s.NowIn, secondsOffField: (s.Now - e._lastField).TotalSeconds),
+                Part.TwinPistols),
             new TickPhase("display-out", TickGates.OutOfBattle, 1, false, Array.Empty<string>(),
-                _ => e!._display.Tick(false)),
+                _ => e!._display.Tick(false), Part.CardPaint),
             // Out-of-battle equip-icon loose-tex sync (IconGlow.cs). Cadence 30 because kills
             // only change in battle and a slow disk read must not run every 33ms.
             new TickPhase("icon-glow", TickGates.OutOfBattle, 30, false, Array.Empty<string>(),
-                _ => e!._iconGlow.Tick()),
+                _ => e!._iconGlow.Tick(), Part.CardPaint),
             // The resumable pool-region locate, every tick in and out of battle, independent of the
             // paint paths. A synchronous walk measured 7 to 10 seconds before this arc. Heap reads only, so
             // Always rather than InBattle. Retune round. The sole production driver (MaybePoolPaint no
             // longer steps it); s.NowIn picks the budget.
             new TickPhase("pool-locate", TickGates.Always, 1, false, Array.Empty<string>(),
-                s => e!._display.StepPoolLocate(s.NowIn)),
+                s => e!._display.StepPoolLocate(s.NowIn), Part.CardPaint),
             // Extended inventory post-load half (ExtendedInventory.Tick.cs): the two damage caps settle
             // once their pages read vanilla (after a save loads) and new-id bag counts ride the sidecar.
             // Cadence 30 (~1s). Always gate because the bag changes out of battle (shops) and in it (steal,
             // break); both rows no-op until the boot arm armed.
             new TickPhase("extended-caps", TickGates.Always, 30, false, Array.Empty<string>(),
-                _ => e!._extended.StepPostLoadCaps()),
+                _ => e!._extended.StepPostLoadCaps(), Part.ExtendedInventory),
             new TickPhase("extended-bag", TickGates.Always, 30, false, Array.Empty<string>(),
-                _ => e!._extended.StepBagSidecar(e._live)),
+                _ => e!._extended.StepBagSidecar(e._live), Part.ExtendedInventory),
             // Keep the shop-table mirror's vanilla half following the game's table (512-byte compare).
             new TickPhase("extended-shops", TickGates.Always, 30, false, Array.Empty<string>(),
-                _ => e!._extended.StepShopSync()),
+                _ => e!._extended.StepShopSync(), Part.ExtendedInventory),
 
             // Every tick so a fast-forward death's brief hp==0 window is not missed.
             new TickPhase("kill-poll", TickGates.InBattle, 1, false, Array.Empty<string>(),
-                s => s.Changed = e!._tracker.Poll(s.OnField)),
+                s => s.Changed = e!._tracker.Poll(s.OnField), Part.KillCounting),
             new TickPhase("turn-poll", TickGates.InBattle, 1, false, Array.Empty<string>(),
-                _ => e!._turns.Poll()),
+                _ => e!._turns.Poll(), Part.KillCounting),
             new TickPhase("field-signatures", TickGates.InBattle, 1, false, new[] { "kill-poll", "turn-poll" },
                 s =>
                 {
                     var ctx = new TickContext(s.Now, s.OnField, s.InLive, s.BattleDisplayed);
-                    foreach (var sig in e!._fieldSignatures) sig.Tick(in ctx);
-                }),
+                    SignatureParts.TickOpen(e!._fieldSignatures, e._fieldParts, s.PartOn, in ctx);
+                }, Part.BandSignatures),
             // Retries a corpse whose despawn refused and pins its crystal counter (like Sanctuary).
             new TickPhase("living-poach", TickGates.InBattle, 1, false, Array.Empty<string>(),
-                _ => e!._livingPoach.Tick()),
+                _ => e!._livingPoach.Tick(), Part.StaticTableSignatures),
             // Growth holds stats; every 3rd tick (~100ms) is plenty.
             new TickPhase("growth", TickGates.InBattle, 3, true, Array.Empty<string>(),
-                _ => e!._growth.Apply()),
+                _ => e!._growth.Apply(), Part.StatGrowth),
             // Not onField-gated. The facing prompt can render during mode-1 cast animations. Delivery fires from the game's own hook.
             new TickPhase("toast", TickGates.InBattle, 1, false, new[] { "kill-poll" },
-                s => e!._toast.Tick(s.Changed)),
+                s => e!._toast.Tick(s.Changed), Part.KillCounting),
             // The Attack-menu desc dossier painter.
             new TickPhase("attack-card", TickGates.InBattle, 1, false, Array.Empty<string>(),
-                _ => e!._attackCard.Tick()),
+                _ => e!._attackCard.Tick(), Part.CardPaint),
             // The per-turn weapon-sprite palette repaint (WeaponPalette.cs).
             new TickPhase("weapon-palette", TickGates.InBattle, 1, false, Array.Empty<string>(),
-                s => e!._weaponPalette.Tick(s.InLive)),
+                s => e!._weaponPalette.Tick(s.InLive), Part.StaticTableSignatures),
             // The turn-scoped WP write for the "wp"/"wp+faith" gun lanes (WpTableHold.cs).
             new TickPhase("wp-table-hold", TickGates.InBattle, 1, false, Array.Empty<string>(),
-                s => e!._wpTableHold.Tick(s.InLive)),
+                s => e!._wpTableHold.Tick(s.InLive), Part.StaticTableSignatures),
         };
 #if LWDEV
         // Dev-only passive/cold-call research instruments, in-battle only (see each Spike class's
         // own doc for its F-key / request-file lane); compiled out of Release entirely.
         phases.Add(new TickPhase("turn-owner-spike", TickGates.InBattle, 1, false, Array.Empty<string>(),
-            _ => e!._turnOwnerSpike.Tick()));
+            _ => e!._turnOwnerSpike.Tick(), Part.BandSignatures));
         phases.Add(new TickPhase("status-spike", TickGates.InBattle, 1, false, Array.Empty<string>(),
-            s => e!._statusSpike.Tick(s.InLive)));
+            s => e!._statusSpike.Tick(s.InLive), Part.BandSignatures));
         phases.Add(new TickPhase("body-double-spike", TickGates.InBattle, 1, false, Array.Empty<string>(),
-            s => e!._bodyDoubleSpike.Tick(s.InLive)));
+            s => e!._bodyDoubleSpike.Tick(s.InLive), Part.BandSignatures));
         phases.Add(new TickPhase("provoke-spike", TickGates.InBattle, 1, false, Array.Empty<string>(),
-            s => e!._provokeSpike.Tick(s.InLive)));
+            s => e!._provokeSpike.Tick(s.InLive), Part.BandSignatures));
         phases.Add(new TickPhase("numeral-spike", TickGates.InBattle, 1, false, Array.Empty<string>(),
-            s => e!._numeralSpike.Tick(s.InLive)));
+            s => e!._numeralSpike.Tick(s.InLive), Part.BandSignatures));
 #endif
         // Reads Changed from kill-poll; saves the tally and the Reliquary ledger when a kill landed.
         phases.Add(new TickPhase("save-on-change", TickGates.InBattle, 1, false, new[] { "kill-poll" },
-            s => { if (s.Changed) { e!._tally.Save(); e._legends.SaveIfDirty(); } }));
+            s => { if (s.Changed) { e!._tally.Save(); e._legends.SaveIfDirty(); } }, Part.KillCounting));
         // slot9 is still the battle sentinel; once off-field a beat (battleMode 0. World-map menu or post-battle), paint the card.
         phases.Add(new TickPhase("paint", TickGates.InBattle, 1, false, Array.Empty<string>(),
             s =>
@@ -366,7 +376,7 @@ internal sealed class Engine
                     e._display.Tick(true);
                 else
                     e._display.PaintCountsIfChanged();   // A mid-battle kill still follows onto the equip card
-            }));
+            }, Part.CardPaint));
 
         return phases.ToArray();
     }
@@ -381,6 +391,27 @@ internal sealed class Engine
     /// (Barrage, ShadowBlade, Provoke), which still appear in <see cref="SignatureResetOrder"/>.</summary>
     internal IReadOnlyList<Type> FieldTickOrder => Array.ConvertAll(_fieldSignatures, s => s.GetType());
 
+    /// <summary>Test seam. The startup guard.</summary>
+    internal LaunchGuard Guard => _launchGuard;
+
+    /// <summary>Test seam. The parts board.</summary>
+    internal PartsBoard Board => _board;
+
+    private bool PartOn(Part part) => PartsReport.IsOn(part, _readings);
+
+    private void ObserveDoors()
+    {
+        _readings[Door.Roster] = _launchGuard.RosterDoor;
+        _readings[Door.KitLane] = _launchGuard.KitLaneDoor;
+        _readings[Door.Sensing] = _launchGuard.SensingDoor;
+        _readings[Door.PromptHook] = _promptSwapHook.Door;
+        _readings[Door.ExtendedArm] = _extended.Door;
+        _board.Observe(_readings, _launchGuard.BuildHedge, _devForceRoster);
+    }
+
+    /// <summary>Test seam. The part of each entry in <see cref="FieldTickOrder"/>.</summary>
+    internal IReadOnlyList<Part> FieldParts => _fieldParts;
+
     /// <summary>Test seam. The tick fan-out table. Pinned by EngineTests.</summary>
     internal IReadOnlyList<TickPhase> Phases => _phases;
 
@@ -392,10 +423,10 @@ internal sealed class Engine
         // it cannot wait for LaunchGuard (the roster landmark needs a loaded save, and the menu registry is
         // built at boot). A null hooks is passed through so the refusal reason is logged.
         _extended.BootArm(hooks);
-        if (hooks == null) return;
-        // Arm through LaunchGuard's hook handshake so the hook waits for the Armed edge, or never
-        // fires if the guard stands down.
-        if (_bannerToastsEnabled) _launchGuard.OfferHookArm(() => _promptSwapHook.Arm(hooks));
+        if (!_bannerToastsEnabled) return;
+        // Arm at once. The hook's own prologue check refuses a moved target, so it needs no roster gate.
+        if (hooks == null) _promptSwapHook.MarkNoHooks();
+        else _promptSwapHook.Arm(hooks);
     }
 
     public void Start()
@@ -451,18 +482,12 @@ internal sealed class Engine
     {
         Flight.DrainPending();   // cheap flag check every tick; the actual I/O (if any is pending) runs here, never on the requester's thread
 
-        // Before any landmark verifies, only retry the guard. once permanently stood down,
-        // the read-only anchor scout ticks instead (diagnostics only). A still-Verifying guard ticks neither.
-        if (!_launchGuard.Armed)
-        {
-            _launchGuard.Step();
-            if (_launchGuard.State == GuardState.StoodDown) _anchorScout.Tick();
-            return;
-        }
-        // The kit-lane guard steps only after the main guard armed.
+        // The three guards step on their own from the first tick. A stood down roster door only starts the read-only scout.
+        _launchGuard.Step();
         _launchGuard.StepKitLane();
-        // The sensing lane (battle-sentinel verification) gates the new-game detector below.
         _launchGuard.StepSensing();
+        if (_launchGuard.State == GuardState.StoodDown) _anchorScout.Tick();
+        ObserveDoors();
 
         uint slot0 = _live.U32(Offsets.Slot0);
         uint slot9 = _live.U32(Offsets.Slot9);
@@ -521,6 +546,7 @@ internal sealed class Engine
         _tickState.NowIn = nowIn;
         _tickState.BattleStatus = battleStatus;
         _tickState.KitLaneArmed = _launchGuard.KitLaneArmed;
+        _tickState.RosterOpen = _launchGuard.Armed;
         _tickState.Changed = false;
         foreach (var p in _phases) p.Step(_tickState);
     }

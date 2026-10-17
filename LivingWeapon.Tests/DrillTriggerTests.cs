@@ -128,4 +128,44 @@ public class DrillTriggerTests
         Assert.False(DrillTrigger.DrillRequested(ModDir, DrillTrigger.FlagName, Env(null), p => p == path));
         Assert.False(DrillTrigger.DrillRequested(ModDir, DrillTrigger.SensingFlagName, Env(null), p => p == path));
     }
+
+    // --- LW-393: the fourth drill flag (the roster landmark's), same two lanes ---
+
+    [Fact]
+    public void Roster_flag_name_is_pinned()
+    {
+        Assert.Equal("LW_FORCE_ROSTER_MISMATCH", DrillTrigger.RosterFlagName);
+    }
+
+    [Fact]
+    public void Roster_flag_env_set_to_1_requests_the_drill_and_satisfies_no_other_flag()
+    {
+        string? Get(string name) => name == DrillTrigger.RosterFlagName ? "1" : null;
+        Assert.True(DrillTrigger.DrillRequested(ModDir, DrillTrigger.RosterFlagName, Get, NoFile));
+        Assert.False(DrillTrigger.DrillRequested(ModDir, DrillTrigger.FlagName, Get, NoFile));
+        Assert.False(DrillTrigger.DrillRequested(ModDir, DrillTrigger.SensingFlagName, Get, NoFile));
+        Assert.False(DrillTrigger.DrillRequested(ModDir, DrillTrigger.UnreadableFlagName, Get, NoFile));
+    }
+
+    [Fact]
+    public void Roster_flag_marker_file_requests_the_drill_and_no_other_flags_file_satisfies_it()
+    {
+        string path = Path.Combine(ModDir, DrillTrigger.RosterFlagName);
+        Assert.True(DrillTrigger.DrillRequested(ModDir, DrillTrigger.RosterFlagName, Env(null), p => p == path));
+        foreach (var other in new[] { DrillTrigger.FlagName, DrillTrigger.SensingFlagName, DrillTrigger.UnreadableFlagName })
+        {
+            Assert.False(DrillTrigger.DrillRequested(ModDir, DrillTrigger.RosterFlagName, Env(null),
+                p => p == Path.Combine(ModDir, other)));
+            Assert.False(DrillTrigger.DrillRequested(ModDir, other, Env(null), p => p == path));
+        }
+    }
+
+    [Fact]
+    public void Roster_flag_production_overload_sees_a_real_marker_file()
+    {
+        using var temp = TempDirs.Create("lw_drill_");
+        File.WriteAllText(Path.Combine(temp.Dir, DrillTrigger.RosterFlagName), "");
+
+        Assert.True(DrillTrigger.DrillRequested(temp.Dir, DrillTrigger.RosterFlagName));
+    }
 }

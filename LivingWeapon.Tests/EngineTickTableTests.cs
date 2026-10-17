@@ -66,10 +66,10 @@ public class EngineTickTableTests
         // carry TickGates.InBattle by reference.
         var nonBattle = new HashSet<string>
         {
-            "kit-barrage",      // KitLane gate: learn screens/menus read the JobCommand table outside battle; the kit-lane guard (LW-112) is its write gate
+            "kit-barrage",      // KitLane gate: learn screens/menus read the JobCommand table outside battle; roster open AND the kit-lane guard armed is its write gate
             "kit-shadowblade",  // KitLane gate: same lane as kit-barrage
             "kit-provoke",      // KitLane gate: same lane as kit-barrage
-            "gunslinger",       // Always gate: writes roster equipment, not battle memory; snapshot/restore self-gates on s.NowIn
+            "gunslinger",       // TwinPistols gate (LW-393): writes roster equipment, not battle memory, and only while the roster door is open; snapshot/restore self-gates on s.NowIn
             "display-out",      // OutOfBattle gate: paints the equip card into menu buffers, not battle memory
             "icon-glow",        // OutOfBattle gate: LW-295 cycle B, plain file I/O against modded.pac, no memory touched at all
             "pool-locate",      // Always gate: reads heap memory only (finding pool regions); the paint that consumes the result stays InBattle/OutOfBattle-gated separately
@@ -107,5 +107,49 @@ public class EngineTickTableTests
         Assert.NotNull(row);
         Assert.Same(TickGates.Always, row!.Gate);
         Assert.Equal(1, row.EveryNTicks);
+    }
+
+    // ---- LW-393: the gates now carry the roster door and the per part predicate ----
+
+    private static TickPhaseState State(bool nowIn, bool rosterOpen, bool kitArmed = false, Func<Part, bool>? partOn = null)
+        => new() { NowIn = nowIn, RosterOpen = rosterOpen, KitLaneArmed = kitArmed, PartOn = partOn ?? (_ => false) };
+
+    [Fact]
+    public void Battle_gates_need_the_roster_door_open()
+    {
+        Assert.True(TickGates.InBattle(State(nowIn: true, rosterOpen: true)));
+        Assert.False(TickGates.InBattle(State(nowIn: true, rosterOpen: false)));
+        Assert.True(TickGates.OutOfBattle(State(nowIn: false, rosterOpen: true)));
+        Assert.False(TickGates.OutOfBattle(State(nowIn: false, rosterOpen: false)));
+        Assert.False(TickGates.InBattle(State(nowIn: false, rosterOpen: true)));
+        Assert.False(TickGates.OutOfBattle(State(nowIn: true, rosterOpen: true)));
+    }
+
+    [Fact]
+    public void The_kit_lane_gate_needs_the_roster_door_and_the_lane()
+    {
+        Assert.True(TickGates.KitLane(State(false, rosterOpen: true, kitArmed: true)));
+        Assert.False(TickGates.KitLane(State(false, rosterOpen: false, kitArmed: true)));
+        Assert.False(TickGates.KitLane(State(false, rosterOpen: true, kitArmed: false)));
+    }
+
+    [Fact]
+    public void The_always_gate_ignores_every_door_and_the_twin_pistols_gate_asks_for_its_part()
+    {
+        Assert.True(TickGates.Always(State(false, rosterOpen: false)));
+        Assert.True(TickGates.TwinPistols(State(false, false, partOn: p => p == Part.TwinPistols)));
+        Assert.False(TickGates.TwinPistols(State(false, true, partOn: p => p != Part.TwinPistols)));
+    }
+
+    [Fact]
+    public void Every_row_declares_the_part_it_belongs_to_and_the_part_matches_its_name_family()
+    {
+        var rows = Engine.BuildPhases(null);
+        foreach (var row in rows.Where(r => r.Name.StartsWith("kit-")))
+            Assert.Equal(Part.WeaponCommands, row.Part);
+        foreach (var row in rows.Where(r => r.Name.StartsWith("extended-")))
+            Assert.Equal(Part.ExtendedInventory, row.Part);
+        Assert.Equal(Part.TwinPistols, rows.Single(r => r.Name == "gunslinger").Part);
+        Assert.Same(TickGates.TwinPistols, rows.Single(r => r.Name == "gunslinger").Gate);
     }
 }

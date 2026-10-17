@@ -22,7 +22,7 @@ internal sealed partial class LaunchGuard
 
     // Copy approved 2026-10-16. None contains the phrase tools/scan_logs.py reads as a full stand-down ("standing down to protect your save").
     internal const string ImageStallWarn =
-        "Living Weapons has not been able to read the game for about a minute, so none of its checks can run and nothing is counting yet. "
+        "Living Weapons has not been able to read the game for about a minute, so the checks that need it cannot run and nothing is counting yet. "
         + "It will keep trying. If this message stays and kill counts never move, the mod and the game version probably do not match; see the box for how to get help.";
     internal const string ImageStallBox =
         "Living Weapons cannot find the game yet\n\n"

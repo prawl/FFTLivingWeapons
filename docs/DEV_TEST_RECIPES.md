@@ -249,6 +249,51 @@ can watch the warning and then the recovery.
 tools/scan_logs.py stays clean on both legs (neither new WARN carries the stand-down phrase).
 **Cleanup:** redeploy; the marker is wiped.
 
+## LW-393 roster drill: watch one broken part switch off while the rest keep working (owner, two legs)
+
+Plain language: the mod is now ten parts, each with its own switch. This drill makes the party data
+check read wrong on a healthy game, so you can watch the seven parts that need the party data switch
+off, the three that do not keep running, and exactly one message box tell you which is which.
+
+**Leg A, the drill.**
+1. Close the game. Run a DEV deploy (plain BuildLinked; add -Force when the install is prod flavored). A
+   dev build SEEDS every weapon's tally, so back up kills.json first if the real one matters. On a dev build the battle exit edge also rewrites
+   kills.json with the seeded tally (a file write, not game memory).
+2. Drop an empty marker file named `LW_FORCE_ROSTER_MISMATCH` into the deployed mod dir (next to the
+   DLL). BuildLinked wipes it on the next deploy. The env variable lane exists but does not reach the
+   game on this box.
+3. Launch and sit on the title screen. Expect a few "Parts report:" lines in livingweapon.log. The last
+   one before you press anything reads battle sensing ON, extended inventory ON, banners ON, and the
+   seven roster parts (kill counting, stat growth, card paint, band signatures, static table
+   signatures, weapon commands, twin pistols) WAITING with "waiting for a save to load". Note the time
+   of the line that first shows battle sensing ON. On a clean boot it comes within a second of the
+   launch header, and there must be no DBG line ending in "(boot grace)" before it (a held mismatch
+   leaves only that line and no flight record; it is the evidence the new boot-time sentinel check is
+   safe; docs/LIVE_LEDGER.md [sentinels-file-backed-idle-at-map-time]).
+4. Press Continue. Within a few seconds expect the ERROR line "...the parts that need it are standing
+   down to protect your save..." ending with the sentence naming LW_FORCE_ROSTER_MISMATCH, then one
+   new "Parts report:" line with the seven roster parts OFF and the other three still ON.
+5. About three seconds later expect exactly ONE message box. It lists "Still working" (battle sensing,
+   extended inventory, banners), "Switched off" (the seven), and no second box ever appears. Bait: the
+   box must name banners and extended inventory as still working.
+6. Enter a battle and make a kill. Expect no kill counted, no stat change and no card counter. The prompt
+   hook arms at boot, so the line "The prompt hook is confirmed working" appears anywhere in the log and
+   most likely before the first battle. Open the
+   shop or the inventory and confirm the extended items are listed with their counts.
+7. Notes. The battle exit edge still saves kills.json (a file write, and on a dev build the seeded
+   tally) and the flight archive. The new game detector now watches from the title screen on, but it
+   still clears nothing until the sensing check has passed.
+8. Run `python tools/scan_logs.py`. Expect exit 0 with one warn, standdown-drill, and the last parts
+   report printed in the summary.
+
+**Leg B, normal.** Delete the marker (or redeploy), relaunch, press Continue. Expect the last
+"Parts report:" line to read ON for all ten parts, no box, a kill counting as usual, and scan_logs CLEAN.
+PASS signature: no new game detection line and no kills.json archive on a plain Continue.
+
+**Leg C, optional.** Cold launch and start a New Game. The new game is still detected (kills archived),
+now that the sensing check arms before the roster.
+**Cleanup:** redeploy; the marker is wiped.
+
 ## Add an extended-inventory item (a brand-new weapon past id 260, LW-346)
 
 Plain language: a new weapon is one row in `data/items.json` plus four generated icon files;

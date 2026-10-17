@@ -102,11 +102,9 @@ public class EngineTests
             // sentinel reads route through it, because Engine's ctor now aliases `live` to `_live`.
             var engine = new Engine(modDir, mem: mem, notice: (t, x) => notices.Add((t, x)));
 
-            // Tick 1: guard is Verifying -> Step() arms it (HealthyMemory matches every landmark,
-            // mirroring LaunchGuardTests.RamzaRow_valid_is_match's single-Step arm) but Tick()
-            // still returns early THIS call (Engine.cs's guard block always returns once it ran
-            // Step this tick, win or lose). From tick 2 on, Armed is already true, so Tick() falls
-            // through the guard block into the seven sentinel reads. healthy-but-unstaged
+            // Tick 1: the guard is Verifying -> Step() arms it (HealthyMemory matches every landmark,
+            // mirroring LaunchGuardTests.RamzaRow_valid_is_match's single-Step arm), and since LW-393
+            // the tick carries on into the seven sentinel reads in the same call. healthy-but-unstaged
             // battle/pause/submenu/event addresses all read 0 -> InLiveBattle is false -> Tick()
             // takes the out-of-battle branch every time (never mutates a save, no battle to be in).
             for (int i = 0; i < 5; i++) engine.Tick();
@@ -208,40 +206,40 @@ public class EngineTests
             // After rides the per-row pin since LW-186: the data-invariant tests read the static
             // BuildPhases(null) table, so pinning After VALUES here on the instance is what keeps
             // the two views provably the same shape (the belt the deleted After walk left behind).
-            var expected = new List<(string Name, Func<TickPhaseState, bool> Gate, int EveryNTicks, bool FiresOnFirstPass, string[] After)>
+            var expected = new List<(string Name, Func<TickPhaseState, bool> Gate, int EveryNTicks, bool FiresOnFirstPass, string[] After, Part Part)>
             {
-                ("kit-barrage", TickGates.KitLane, 1, false, Array.Empty<string>()),
-                ("kit-shadowblade", TickGates.KitLane, 1, false, Array.Empty<string>()),
-                ("kit-provoke", TickGates.KitLane, 1, false, new[] { "kit-barrage", "kit-shadowblade" }),
-                ("gunslinger", TickGates.Always, 30, false, Array.Empty<string>()),
-                ("display-out", TickGates.OutOfBattle, 1, false, Array.Empty<string>()),
-                ("icon-glow", TickGates.OutOfBattle, 30, false, Array.Empty<string>()),
-                ("pool-locate", TickGates.Always, 1, false, Array.Empty<string>()),
-                ("extended-caps", TickGates.Always, 30, false, Array.Empty<string>()),
-                ("extended-bag", TickGates.Always, 30, false, Array.Empty<string>()),
-                ("extended-shops", TickGates.Always, 30, false, Array.Empty<string>()),
-                ("kill-poll", TickGates.InBattle, 1, false, Array.Empty<string>()),
-                ("turn-poll", TickGates.InBattle, 1, false, Array.Empty<string>()),
-                ("field-signatures", TickGates.InBattle, 1, false, new[] { "kill-poll", "turn-poll" }),
-                ("living-poach", TickGates.InBattle, 1, false, Array.Empty<string>()),
-                ("growth", TickGates.InBattle, 3, true, Array.Empty<string>()),
-                ("toast", TickGates.InBattle, 1, false, new[] { "kill-poll" }),
-                ("attack-card", TickGates.InBattle, 1, false, Array.Empty<string>()),
-                ("weapon-palette", TickGates.InBattle, 1, false, Array.Empty<string>()),
-                ("wp-table-hold", TickGates.InBattle, 1, false, Array.Empty<string>()),
+                ("kit-barrage", TickGates.KitLane, 1, false, Array.Empty<string>(), Part.WeaponCommands),
+                ("kit-shadowblade", TickGates.KitLane, 1, false, Array.Empty<string>(), Part.WeaponCommands),
+                ("kit-provoke", TickGates.KitLane, 1, false, new[] { "kit-barrage", "kit-shadowblade" }, Part.WeaponCommands),
+                ("gunslinger", TickGates.TwinPistols, 30, false, Array.Empty<string>(), Part.TwinPistols),
+                ("display-out", TickGates.OutOfBattle, 1, false, Array.Empty<string>(), Part.CardPaint),
+                ("icon-glow", TickGates.OutOfBattle, 30, false, Array.Empty<string>(), Part.CardPaint),
+                ("pool-locate", TickGates.Always, 1, false, Array.Empty<string>(), Part.CardPaint),
+                ("extended-caps", TickGates.Always, 30, false, Array.Empty<string>(), Part.ExtendedInventory),
+                ("extended-bag", TickGates.Always, 30, false, Array.Empty<string>(), Part.ExtendedInventory),
+                ("extended-shops", TickGates.Always, 30, false, Array.Empty<string>(), Part.ExtendedInventory),
+                ("kill-poll", TickGates.InBattle, 1, false, Array.Empty<string>(), Part.KillCounting),
+                ("turn-poll", TickGates.InBattle, 1, false, Array.Empty<string>(), Part.KillCounting),
+                ("field-signatures", TickGates.InBattle, 1, false, new[] { "kill-poll", "turn-poll" }, Part.BandSignatures),
+                ("living-poach", TickGates.InBattle, 1, false, Array.Empty<string>(), Part.StaticTableSignatures),
+                ("growth", TickGates.InBattle, 3, true, Array.Empty<string>(), Part.StatGrowth),
+                ("toast", TickGates.InBattle, 1, false, new[] { "kill-poll" }, Part.KillCounting),
+                ("attack-card", TickGates.InBattle, 1, false, Array.Empty<string>(), Part.CardPaint),
+                ("weapon-palette", TickGates.InBattle, 1, false, Array.Empty<string>(), Part.StaticTableSignatures),
+                ("wp-table-hold", TickGates.InBattle, 1, false, Array.Empty<string>(), Part.StaticTableSignatures),
             };
 #if LWDEV
-            expected.AddRange(new (string, Func<TickPhaseState, bool>, int, bool, string[])[]
+            expected.AddRange(new (string, Func<TickPhaseState, bool>, int, bool, string[], Part)[]
             {
-                ("turn-owner-spike", TickGates.InBattle, 1, false, Array.Empty<string>()),
-                ("status-spike", TickGates.InBattle, 1, false, Array.Empty<string>()),
-                ("body-double-spike", TickGates.InBattle, 1, false, Array.Empty<string>()),
-                ("provoke-spike", TickGates.InBattle, 1, false, Array.Empty<string>()),
-                ("numeral-spike", TickGates.InBattle, 1, false, Array.Empty<string>()),
+                ("turn-owner-spike", TickGates.InBattle, 1, false, Array.Empty<string>(), Part.BandSignatures),
+                ("status-spike", TickGates.InBattle, 1, false, Array.Empty<string>(), Part.BandSignatures),
+                ("body-double-spike", TickGates.InBattle, 1, false, Array.Empty<string>(), Part.BandSignatures),
+                ("provoke-spike", TickGates.InBattle, 1, false, Array.Empty<string>(), Part.BandSignatures),
+                ("numeral-spike", TickGates.InBattle, 1, false, Array.Empty<string>(), Part.BandSignatures),
             });
 #endif
-            expected.Add(("save-on-change", TickGates.InBattle, 1, false, new[] { "kill-poll" }));
-            expected.Add(("paint", TickGates.InBattle, 1, false, Array.Empty<string>()));
+            expected.Add(("save-on-change", TickGates.InBattle, 1, false, new[] { "kill-poll" }, Part.KillCounting));
+            expected.Add(("paint", TickGates.InBattle, 1, false, Array.Empty<string>(), Part.CardPaint));
 
             Assert.Equal(expected.Count, engine.Phases.Count);
             for (int i = 0; i < expected.Count; i++)
@@ -252,6 +250,7 @@ public class EngineTests
                 Assert.Equal(expected[i].EveryNTicks, row.EveryNTicks);
                 Assert.Equal(expected[i].FiresOnFirstPass, row.FiresOnFirstPass);
                 Assert.Equal(expected[i].After, row.After);
+                Assert.Equal(expected[i].Part, row.Part);
             }
         }
         finally { ModLogger.UseNullLogger(); }
@@ -276,7 +275,7 @@ public class EngineTests
             using var tempIn = TempDirs.Create("lw_engine_regime_in_");
             var memIn = HealthyMemory();
             var engineIn = new Engine(NestedModDir(tempIn), mem: memIn, notice: (_, __) => { });
-            engineIn.Tick();   // arms the guard (mirrors the sentinel test); phases don't run this tick.
+            engineIn.Tick();   // arms the guard (mirrors the sentinel test); the sentinels are still idle, so no battle yet.
             // Stage the in-battle regime: battleMode 3 alone satisfies both BattleState.EnterSignal
             // (instant enter) and BattleState.InLiveBattle; slot9 stuck at its sentinel matches the
             // documented in-battle pair (Offsets.Slot9's own doc comment).
@@ -355,7 +354,7 @@ public class EngineTests
     // Stages the six sentinels in BOTH stores: TerrainBlocks (what the sensing probe's
     // TryReadBytes reads) and the U16s/U8s dictionaries (what Engine.Tick's U32/U16/U8 reads
     // compose from; the interface-default U32 is two U16 reads, FakeSparseMemory.cs).
-    private static void StageSentinelsBothStores(FakeSparseMemory mem, uint slot0, uint slot9, byte mode,
+    internal static void StageSentinelsBothStores(FakeSparseMemory mem, uint slot0, uint slot9, byte mode,
         ushort eventId, byte pause, byte submenu)
     {
         SeedU32Bytes(mem, Offsets.Slot0, slot0);
@@ -392,7 +391,8 @@ public class EngineTests
         StageSentinelsBothStores(mem, 0xFFFFFFFFu, 0xFFFFFFFFu, 255, 0xFFFF, 0, 0);
         var engine = new Engine(modDir, devSeedKills: false, devForceSensingMismatch: drill, mem: mem, notice: (_, __) => { });
 
-        for (int i = 0; i < 40; i++) engine.Tick();
+        // The drill's mismatch is held through the sensing boot grace, then needs its debounce to stand the lane down.
+        for (int i = 0; i < LaunchGuard.SensingBootGraceSteps + 40; i++) engine.Tick();
         StageSentinelsBothStores(mem, 0xFFFFFFFFu, 0xFFFFFFFFu, 0, 2, 0, 1);
         for (int i = 0; i < PlaythroughResetPolicy.HoldTicks + 5; i++) engine.Tick();
 

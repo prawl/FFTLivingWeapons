@@ -5,7 +5,7 @@ namespace LivingWeapon;
 
 /// <summary>
 /// Tick half of <see cref="ExtendedInventory"/> (Engine phases "extended-caps", "extended-bag",
-/// "extended-shops", every 30th tick, once LaunchGuard armed). Steps the post-load cap patches (none
+/// "extended-shops", every 30th tick from the first). Steps the post-load cap patches (none
 /// on the Denuvo-free build, which patches both damage caps at boot), follows the game's save edges,
 /// refreshes the shop-table mirror and runs the relocation tripwire.
 /// A save records its bag counts under its key; a load writes them back (an unseen save gets the

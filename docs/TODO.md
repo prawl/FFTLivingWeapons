@@ -13,7 +13,7 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.4.0)
 
-- **[LW-393] When a game update breaks one part of the mod, only that part switches off and the player is told which parts still work** (opened 2026-10-16) [QUEUED]
+- **[LW-393] When a game update breaks one part of the mod, only that part switches off and the player is told which parts still work** (opened 2026-10-16) [BUILDING]
   - Plain language: today the mod has one safety switch. If any one of its checks fails at
     startup, the whole mod stays off and the player gets one message telling them to update.
     The September game update tripped that switch over nothing (the game was recompiled,
@@ -156,6 +156,25 @@ belongs rather than at the bottom.
   PoolLocator.WarmStart (51 to 54) plus the forced full restart are the net today. Fix: plumb
   LaunchGuard's latched observed pair into Save and Load (Display is built before tick 1 latches it,
   so a Func seam, not a value).
+- [LW-406] 2026-10-17: Every message the mod shows a player when a part switches off should read the same way, be written for a player and not a developer, and end with the same plain "what to do now" line.
+  The last stage of the parts model, after LW-401. Owner feedback 2026-10-17 after reading the
+  guard copy: only the unknown build path says the cause may be the game update itself, yet that
+  doubt applies at every door; the recovery pointer differs by door (roster says update the mod,
+  the stall watcher says see the box, the kit lane and the prompt hook say nothing a player can
+  act on); the prompt hook warning says "wrong address", which reads as the mod's own bug to a
+  player who cannot tell. Done looks like one shared closing sentence on every disabling WARN and
+  every box, the game update hedge on every door, developer detail (addresses, diags) kept to the
+  log tail or DBG, and a test that pins the shared sentence on each door's copy.
+- [LW-407] 2026-10-17: Every runtime source file should open with one short sentence saying what the file is, so someone skimming file by file gets the answer at once and the detail follows.
+  Owner feedback 2026-10-17 after the comment thinning. The one line purpose already exists in
+  almost every file's type summary; in 76 of 296 files it is buried mid paragraph or runs past
+  110 characters (ListBuilderHook.cs opens with a 147 character compound), and two files have
+  no type summary (AssemblyInfo.cs, GrowthEngine.Locate.cs). Scout script prints each file's
+  first summary sentence with its length; hand pass on the 76; then one rule in
+  CommentBudgetContractTests pins the first summary sentence of every production file at or
+  under the chosen cap (110 catches the 76, 90 catches about 20 more) and ending in a period.
+  Moving a sentence changes no comment counts, so the frozen baseline does not fight it. Runs
+  after LW-393 ships.
 - [LW-394] 2026-10-16: Three weapon commands mark an ability as learned in the player's save and never unmark it, so no safety switch can undo them if they ever land in the wrong place; decide whether they should clean up after themselves.
   Barrage, Shadow Blade and Provoke each set one learned bit in the roster row (Barrage.cs 247,
   ShadowBlade.cs 199, Provoke.cs 194) and hold it by design so the command stays usable. The audit
