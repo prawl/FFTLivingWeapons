@@ -76,6 +76,13 @@ the technical detail lives in the indented lines under it.
   - Verify: full suite green; the owner's live battle shows either the "The weapon's
     spirit claims the carcass" log line with the Den count matching, or the named
     discriminator or gate-reason line in livingweapon.log; the owner reads the FAQ text.
+- **[LW-408] Find out whether Living Weapons runs alongside WotL Restoration and write the answer down** (opened 2026-10-17) [BUILDING]
+  - Done means: a player reading docs/COMPATIBILITY.md knows what happens with both mods installed, which order to load them in, and what each mod's own log will say. Payload half done 2026-10-17: WotL Restoration 2.0.7 was downloaded and read file by file (its text tables diffed against vanilla and ours, its job table, and its decompiled code), and the verdict is written in the doc's "WotL Restoration" section: characters and events coexist, its 40 new items switch off because both mods break the 261 item cap at the same code sites and ours arms first, and Living Weapons must load last to keep its item names. (Tech: her nine accessor hooks are our ten entries; 52 of her 63 relocations and 30 of her 44 caps sit on our sites; item.en.nxd keys 261 to 267 are written by both; her JobData rows 162 to 168 are clear of ours; ability 358 Barrage is named by both.)
+  - Verify: owner runs the game once with both mods enabled, WotL Restoration loading before Living Weapons. Expected: Living Weapons' parts report reads all ON (extended inventory included), WotL Restoration's log prints its "Item expansion NOT armed" line, Luso and Balthier's events still fire, the Terrastaff card reads Terrastaff with its kill counter, and Agrias's birthday hands out a Septième Sens. Owner flips this row to AWAITING-LIVE when ready and PROVEN or not after the run.
+- **[LW-410] Bring the compatibility page up to date with every mod published since August** (opened 2026-10-17) [BUILDING]
+  - Done means: a player can look up any of the 143 mods on the Nexus (48 new since the 2026-08-12 survey, 12 older ones updated) and find its class on docs/COMPATIBILITY.md, and the page says that the mod's own "Parts report:" line is where a conflict shows in game. Classification by archive listing through the Nexus file manifest service (the old file-preview metadata endpoint is dead for every upload since August), WotL Restoration by download, mod 114 deliberately left off the page while the owner settles a direct arrangement with its author. (Tech: recipe in the mod-compat-survey memory note; per-mod results summarized in the doc's provenance footer.)
+  - Verify: DocsContractTests and TodoContractTests green; the page's counts (13 incompatible, 48 new, 13 job-table mods, 6 item-row mods) match the survey; owner reads the WotL Restoration section and the short version once and agrees it says what the code says.
+
 ## Backlog
 
 Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner directed).
@@ -132,6 +139,18 @@ belongs rather than at the bottom.
   under the chosen cap (110 catches the 76, 90 catches about 20 more) and ending in a period.
   Moving a sentence changes no comment counts, so the frozen baseline does not fight it. Runs
   after LW-393 ships.
+- [LW-409] 2026-10-17: A player mentioned "the double cast thing" as if it were a known bug, and nobody knows what they meant; find the comment, ask, and either file the bug or close this.
+  Owner recalled the comment 2026-10-17 ("figured there'd be updates coming just didn't know if
+  you'd spotted the double cast thing"). No feedback row, no ledger row, no changelog entry
+  mentions a double cast. Thread found 2026-10-17 (Discord, 2026-04-02, Tal, EpicBrownie, Nyzer):
+  other modders explain that the game's dual wield hit count routine, the one that sets two
+  attacks when a unit dual wields, is hardcoded by weapon formula id, so a custom formula does
+  not get the second strike and a cast formula fired through it casts twice. Why it touches us:
+  the rebalance moved many weapons onto formulas that routine may not list (45, 47, 48, 67, 69,
+  99, and the formula 4 magick guns and rods), and the twin weapon grant hands out Dual Wield.
+  So a living weapon under Dual Wield may swing once instead of twice, or a formula 4 gun or rod
+  may fire its spell twice. Live check first: Ninja with Dual Wield and two Blaze Guns, then two
+  Hushblades, count strikes and casts; then read the routine Tal names.
 - [LW-394] 2026-10-16: Three weapon commands mark an ability as learned in the player's save and never unmark it, so no safety switch can undo them if they ever land in the wrong place; decide whether they should clean up after themselves.
   Barrage, Shadow Blade and Provoke each set one learned bit in the roster row (Barrage.cs 247,
   ShadowBlade.cs 199, Provoke.cs 194) and hold it by design so the command stays usable. The audit
@@ -164,15 +183,17 @@ belongs rather than at the bottom.
   the same route is the question. Walled items that would reopen: the hijack recipe's
   rename-and-re-effect limit, the parked Bloodpact channel, every "needs its own ability" idea
   in docs/MECHANICS.md. Starts as a probe, not a build.
-- [LW-403] 2026-10-16: The file that remembers how many of each new weapon the player owns is tied to the save folder, so restoring an old save or copying saves between slots can hand a player the wrong counts; tie it to the save itself instead.
-  Not for 2.4.0. Today Persistence/ExtendedBagSidecar (LW-348) keys by save directory and
-  replays after load. The stronger identity, seen in ZeroDS's ExpandedSaveStore: key the sidecar
-  by the hash of the native save payload plus the slot, keep the previous generation under a
-  history folder, and write only after the game's own save completes (their hook sites 0x32B94,
-  0x32E60, 0x33DF0 are candidates to confirm against our SaveEdgeHooks). Done looks like: a
-  restored backup save gets the counts it had when it was written, a copied slot gets its own
-  counts, and a mod-less launch still loads clean. Pair with LW-390's reopen list only if the
-  save hooks move.
+- [LW-403] 2026-10-16: The file that remembers how many of each new weapon the player owns lives beside the mod, so moving saves to another computer or losing the mod folder loses the counts; find out whether the counts can live inside the save file itself.
+  Not for 2.4.0. Corrected 2026-10-17: the sidecar is ALREADY keyed per save (LW-353, a hash of
+  the save header taken when the game serializes), so slots never share counts and an older save
+  of the same slot gets its own; the first version of this row said otherwise and was wrong. What
+  remains is where the file lives. Lead from WotL Restoration 2.0.7 (DanaCrysalis, read 2026-10-17):
+  her mod writes its 55 extra counts INTO the save struct, at the block the game-variables pointer
+  0x14078DAE8 points to plus 0x2FC, 59 bytes behind a four byte magic header, mirrored every 50 ms
+  from a background thread and once more on the serializer hook 0x140218F78 (the same entry our
+  SaveEdgeHooks use). If that region is truly spare and survives the load sanitizer, our counts
+  could ride the save file and the sidecar becomes a backup. Verify first that vanilla saves hold
+  zeros there and that no routine clears it; her ItemSites.cs and ItemExpansion.cs are the map.
 - [LW-404] 2026-10-16: Every time the mod needs to step into the middle of one of the game's routines it gets a hand-built, one-of-a-kind patch, which is slow to write and easy to get wrong; adopt one general "stop here, hand me the registers, let me change them, carry on" tool for new sites, and keep the hand-built fast paths where they are.
   Not for 2.4.0. Today a new code-site hook means a bespoke byte layout in ThunkStub.cs or a
   one-off like SwingIdFallbackHook, each with its own register contract pinned by tests.
@@ -188,6 +209,17 @@ belongs rather than at the bottom.
   hooked through it with a unit test on the context round-trip and an owner live pass showing
   no stutter.
 
+- [LW-411] 2026-10-17: WotL Restoration and Living Weapons both add items past the game's 261 and both claim ids 261 to 267, so a player can only ever have one mod's new items; work out with its author how the two can share the space.
+  Not for 2.4.0. Read 2026-10-17 from WotL Restoration 2.0.7's code: her ItemExpansion hooks the
+  same nine accessor entries (0x1402B8BCC through 0x1402B8EBC), re-points the same bag array
+  0x1411A7C00 and the same three order-chart slots, and widens 44 caps, 30 of them ours. Her
+  verify step refuses when our bytes are already there (ours arms in StartEx, hers after all mods
+  load), so today ours wins and her 40 items vanish with a log line. Options to put to Dana:
+  an id range split (her 268 to 313 never collide; only 261 to 267 do), one side chaining to the
+  other's accessor stubs instead of refusing, or a shared cap-break library both load. Also tell
+  her the two list caps her bounds table skips (0x140288CC3 and 0x14028631A, the 149 and 150
+  stack-buffer limits) are the past-149-kinds crash Tal described. Related: LW-403 (her in-save
+  count tail), docs/COMPATIBILITY.md WotL Restoration section.
 - [LW-386] 2026-09-01: The Poacher's Den is handing players items the mod never meant it to, and one
   player saw four katanas where two dragons' carcasses belong. Plain language: a Discord player on
   the public 2.3.3 build poached Blue and Red Dragons and the Den listed and produced Asura, Kotetsu,
@@ -1387,7 +1419,10 @@ belongs rather than at the bottom.
   non English counters per LW-101), 66 clean; GenericJobs (id 34) source audited clean; the
   per mod verdicts for the middle bucket live only as classes, the durable record is
   docs/COMPATIBILITY.md.
-
+  2026-10-17 survey refresh: Knight Overhaul (Nexus 113) rewrites the Knight command record, the
+  record Shadow Blade injects into, and the kit lane watches only records 8 and 9, so that pairing
+  degrades Shadow Blade with no in-game notice. docs/COMPATIBILITY.md says so plainly; a third
+  watched record is the fix this row already names.
 - [LW-235] 2026-08-14: The mod has no way to learn which weapons players actually use, and the
   one time real user logs arrived they answered nothing. Owner question 2026-08-14: which
   weapons are used and which are ignored. The six submitted Reloaded console logs contain ZERO
