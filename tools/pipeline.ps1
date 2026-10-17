@@ -554,6 +554,20 @@ function Invoke-FormatGate {
     }
 }
 
+function Assert-ReleaseDllHasNoKeyRead {
+    # A dev hotkey import in a release DLL means a player could press it. The UTF-8 form is the
+    # P/Invoke name in the assembly metadata, the UTF-16 form would be a .NET string literal naming it.
+    param([Parameter(Mandatory = $true)][string]$DllPath)
+    $latin1 = [System.Text.Encoding]::GetEncoding(28591)
+    $fullPath = (Resolve-Path -LiteralPath $DllPath).ProviderPath
+    $text = $latin1.GetString([System.IO.File]::ReadAllBytes($fullPath))
+    $utf8 = $latin1.GetString([System.Text.Encoding]::UTF8.GetBytes("GetAsyncKeyState"))
+    $utf16 = $latin1.GetString([System.Text.Encoding]::Unicode.GetBytes("GetAsyncKeyState"))
+    if ($text.Contains($utf8) -or $text.Contains($utf16)) {
+        throw "REFUSING TO PUBLISH: $fullPath carries GetAsyncKeyState (a dev hotkey compiled into a release build)."
+    }
+}
+
 function Invoke-LivingWeaponPublish {
     # Build the Living Weapon runtime into $OutDir. The framework-dependent
     # publish emits LivingWeapon.dll, Newtonsoft.Json.dll, LivingWeapon.deps.json
@@ -584,5 +598,9 @@ function Invoke-LivingWeaponPublish {
     & dotnet @publishArgs
     if ($LASTEXITCODE -ne 0) {
         throw "dotnet publish failed (exit $LASTEXITCODE)."
+    }
+
+    if (-not $Dev) {
+        Assert-ReleaseDllHasNoKeyRead -DllPath (Join-Path $OutDir "LivingWeapon.dll")
     }
 }
