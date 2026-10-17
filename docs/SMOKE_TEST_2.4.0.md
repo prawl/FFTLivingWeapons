@@ -265,11 +265,10 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   at battle start and a mark lands on the hovered enemy). FAIL: any dev key doing anything on prod,
   or the dev drill dead on dev. The offline half (no GetAsyncKeyState string in the prod DLL) is
   box B5. **[BLOCKER]**
-- [ ] 2.6 **Sensing drill (LW-395).** The new game detector refuses to clear kills until the battle
+- [x] 2.6 (PASSED 2026-10-17 on dev 62015755, owner live: launch 13:23:24, the boot grace DBG line at once, the sensing WARN with the drill sentence at 13:23:49 (25 s after the header, which the box text first tied to the armed line and now ties to the launch), no box, battle sensing OFF and only the new game detector off; a New Game logged A new game signal was seen but the battle sentinel check has not passed, so the kill tally was left untouched, no new game line, kills.json still 384, archive count still 17, scan CLEAN; the normal leg is box 6.1) **Sensing drill (LW-395).** The new game detector refuses to clear kills until the battle
   sentinel check passes. Marker `LW_FORCE_SENSING_MISMATCH`; Continue from a WORLD MAP save, never a
   mid battle autosave (the lane waits silently while a battle is live and the drill looks dead).
-  PASS drill leg: within two seconds of
-  the armed line one WARN `The new game detector is paused for this session because the game's
+  PASS drill leg: about 25 seconds after the launch header (the sensing lane starts at boot, holds a mismatch through its boot grace, then debounces; the armed line is not its clock) one WARN `The new game detector is paused for this session because the game's
   battle status data does not read the way this mod expects; ...` with the drill sentence, no box;
   a New Game through the prayer logs `A new game signal was seen but the battle sentinel check has
   not passed, so the kill tally was left untouched (nothing archived, nothing cleared).`, no
