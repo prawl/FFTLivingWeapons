@@ -19,7 +19,7 @@ public class IconCacheHideTests
 {
     /// <summary>Appends a fake heap image and returns absolute addresses for each piece written.
     /// Every string is preceded by a NUL (the pass-1 start rule) unless explicitly noted.</summary>
-    private sealed class MemBuilder
+    internal sealed class MemBuilder
     {
         private readonly List<byte> _bytes = new();
         public long Base { get; }

@@ -6,17 +6,24 @@ namespace LivingWeapon;
 
 /// <summary>
 /// Schedules the icon cache hide (IconCacheHide.cs) and retries hides a battle postponed.
-/// The hide shows a pac-mirrored icon (IconGlow.Pac.cs) this session instead of after a relaunch.
+/// Off by default, so a pac-mirrored icon (IconGlow.Pac.cs) shows its new art after a relaunch.
 /// A hider exception never escapes <see cref="HideThisPassPatched"/> or <see cref="RunPendingHidesOnly"/>;
 /// the pac write already succeeded, so a failure leaves the icon restart-only.
 /// </summary>
 internal sealed partial class IconGlow
 {
+    internal static string KeptArtLine(int n) => $"IconGlow: left the drawn art on {n} icon surface(s); the new art shows from the next launch.";
+
     /// <summary>Hands every surface that landed in modded.pac this pass to <see cref="_hider"/>.
     /// Called at the end of <see cref="FlushPacBatch"/>.</summary>
     private void HideThisPassPatched()
     {
         if (_pacPatchedThisPass.Count == 0) return;
+        if (!_hideDrawnIcons)
+        {
+            ModLogger.Debug(LogVerb.Display, KeptArtLine(_pacPatchedThisPass.Count));
+            return;
+        }
         var targets = _pacPatchedThisPass.Select(p => new IconCacheTarget(p.Id, p.Surface, p.Entry)).ToList();
         try
         {

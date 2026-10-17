@@ -1026,7 +1026,7 @@ public class IconGlowTests
 
         var kills = new Dictionary<int, int> { [id22] = 5, [id51] = 5 };   // both tier 1
         var hider = new RecordingIconCacheHider();
-        var icon = new IconGlow("m", kills, new[] { id22, id51 }, store, hider, a => a());
+        var icon = new IconGlow("m", kills, new[] { id22, id51 }, store, hider, a => a(), hideDrawnIcons: true);
 
         icon.Tick();
 
@@ -1051,7 +1051,7 @@ public class IconGlowTests
 
         var kills = new Dictionary<int, int> { [id] = 5 };
         var hider = new RecordingIconCacheHider();
-        var icon = new IconGlow("m", kills, new[] { id }, store, hider, a => a());
+        var icon = new IconGlow("m", kills, new[] { id }, store, hider, a => a(), hideDrawnIcons: true);
 
         icon.Tick();
 
@@ -1070,7 +1070,7 @@ public class IconGlowTests
         store.Variants[(id, "card", 1)] = t1;
 
         var kills = new Dictionary<int, int> { [id] = 5 };   // tier 1
-        var icon = new IconGlow("m", kills, new[] { id }, store, new ThrowingIconCacheHider(), a => a());
+        var icon = new IconGlow("m", kills, new[] { id }, store, new ThrowingIconCacheHider(), a => a(), hideDrawnIcons: true);
 
         using var cap = LogCapture.Start();
         var ex = Record.Exception(() => icon.Tick());
@@ -1112,7 +1112,7 @@ public class IconGlowTests
 
         var kills = new Dictionary<int, int> { [id] = 5 };   // tier 1
         var captured = new List<Action>();
-        var icon = new IconGlow("m", kills, new[] { id }, store, hider, a => captured.Add(a));
+        var icon = new IconGlow("m", kills, new[] { id }, store, hider, a => captured.Add(a), hideDrawnIcons: true);
 
         icon.Tick();                     // schedules the normal apply
         Assert.Single(captured);
@@ -1130,5 +1130,106 @@ public class IconGlowTests
         icon.Tick();                       // pending set is now empty -> nothing scheduled
         Assert.Empty(captured);
         Assert.Equal(2, hider.Calls.Count);   // no further hider calls
+    }
+
+    // ---- LW-423: the cache hide is off in production. Fixture replays the 10:12:42 heap of
+    // sitting 1: icon 37 small had 3 live parts entries and 1 texture record, the card had parts
+    // entries and no texture record. ----
+
+    private const int Lw423Id = 37;
+
+    private static FakeHeap DrawnSmallIconHeap(out IconCacheHide hide)
+    {
+        var b = new IconCacheHideTests.MemBuilder(0x3_0000_0000);
+        var needles = IconCacheHidePolicy.Needles(Lw423Id);
+        long cardUri = b.WriteCString(needles[0].Text);
+        long smallUri = b.WriteCString(needles[2].Text);
+        long smallTex = b.WriteCString(needles[3].Text);
+        b.WritePartsEntry(cardUri, 0x100001, 0x0101);
+        for (uint i = 0; i < 3; i++) b.WritePartsEntry(smallUri, 0x380067 + i, 0x0101);
+        for (int i = 0; i < 8; i++) b.WritePartsEntry(smallUri, 0, 0x0000);
+        b.WriteTexRecord(smallTex, 12384, 0x11112222);
+        for (int i = 0; i < 40; i++) b.WriteStrayPointer(smallTex);
+        var heap = new FakeHeap((b.Base, b.ToArray()));
+        hide = new IconCacheHide(heap, () => false);
+        return heap;
+    }
+
+    private static FakeIconGlowStore Lw423Store(out byte[] cardBase, out byte[] smallBase)
+    {
+        var store = new FakeIconGlowStore();
+        cardBase = RandBytes(4001, 51296);
+        smallBase = RandBytes(4002, 12384);
+        var c1 = RandBytes(4003, 51296); var c2 = RandBytes(4004, 51296);
+        var s1 = RandBytes(4005, 12384); var s2 = RandBytes(4006, 12384);
+        var cardEntry = MakeEntry(Lw423Id, "card", cardBase, new() { [1] = c1, [2] = c2 });
+        var smallEntry = MakeEntry(Lw423Id, "small", smallBase, new() { [1] = s1, [2] = s2 });
+        store.Manifest = new IconGlowManifest { SchemaVersion = 1, Icons = new() { cardEntry, smallEntry } };
+        store.Deployed[(Lw423Id, "card")] = cardBase;
+        store.Deployed[(Lw423Id, "small")] = smallBase;
+        store.Variants[(Lw423Id, "card", 1)] = c1;
+        store.Variants[(Lw423Id, "card", 2)] = c2;
+        store.Variants[(Lw423Id, "small", 1)] = s1;
+        store.Variants[(Lw423Id, "small", 2)] = s2;
+        return store;
+    }
+
+    [Fact]
+    public void TierChangeAfterTheSmallIconWasDrawn_LeavesTheGameCacheUntouched_ReplaysSitting1()
+    {
+        var heap = DrawnSmallIconHeap(out var hide);
+        var store = Lw423Store(out _, out _);
+        var kills = new Dictionary<int, int> { [Lw423Id] = 8 };   // tier 1
+        var icon = new IconGlow("m", kills, new[] { Lw423Id }, store, hide, a => a());
+
+        using var cap = LogCapture.Start(LogLevel.Debug);
+        icon.Tick();
+
+        Assert.Equal(store.Variants[(Lw423Id, "card", 1)], store.Deployed[(Lw423Id, "card")]);
+        Assert.Equal(store.Variants[(Lw423Id, "small", 1)], store.Deployed[(Lw423Id, "small")]);
+        Assert.Single(store.PatchPacBatchCalls);
+        Assert.Equal(2, store.PatchPacBatchCalls[0].Count);
+        Assert.Equal(0, heap.Writes);
+        Assert.DoesNotContain(cap.File, l => l.Contains("IconCacheHide: icon 37"));
+        Assert.Equal(1, cap.File.Count(l => l.EndsWith(IconGlow.KeptArtLine(2))));
+    }
+
+    [Fact]
+    public void MidSessionTierRise_AfterTheSmallIconWasDrawn_LeavesTheGameCacheUntouched()
+    {
+        var heap = DrawnSmallIconHeap(out var hide);
+        var store = Lw423Store(out _, out _);
+        var kills = new Dictionary<int, int> { [Lw423Id] = 5 };   // tier 1
+        var icon = new IconGlow("m", kills, new[] { Lw423Id }, store, hide, a => a());
+        icon.Tick();
+
+        kills[Lw423Id] = 10;   // tier 2
+        using var cap = LogCapture.Start(LogLevel.Debug);
+        icon.Tick();
+
+        Assert.Equal(0, heap.Writes);
+        Assert.Equal(store.Variants[(Lw423Id, "card", 2)], store.Deployed[(Lw423Id, "card")]);
+        Assert.Equal(store.Variants[(Lw423Id, "small", 2)], store.Deployed[(Lw423Id, "small")]);
+        Assert.Equal(2, store.PatchPacBatchCalls.Count);
+        Assert.Equal(1, cap.File.Count(l => l.EndsWith(IconGlow.KeptArtLine(2))));
+    }
+
+    [Fact]
+    public void PlaythroughResetDrop_WritesBaseAndLeavesTheGameCacheUntouched()
+    {
+        var heap = DrawnSmallIconHeap(out var hide);
+        var store = Lw423Store(out var cardBase, out var smallBase);
+        var kills = new Dictionary<int, int> { [Lw423Id] = 10 };
+        var icon = new IconGlow("m", kills, new[] { Lw423Id }, store, hide, a => a());
+        icon.Tick();
+
+        kills.Clear();   // PlaythroughReset clears the tally in place
+        using var cap = LogCapture.Start(LogLevel.Debug);
+        icon.Tick();
+
+        Assert.Equal(cardBase, store.Deployed[(Lw423Id, "card")]);
+        Assert.Equal(smallBase, store.Deployed[(Lw423Id, "small")]);
+        Assert.Equal(0, heap.Writes);
+        Assert.Equal(1, cap.File.Count(l => l.EndsWith(IconGlow.KeptArtLine(2))));
     }
 }

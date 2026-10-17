@@ -246,8 +246,8 @@ internal sealed class Engine
             Latch(() => _tableDoors.ItemStats, "The gun's growth was not applied; the item data is not where this mod expects it."));
         // Icon glow (retargeted to the deployed loose tex): keeps each weapon's equip icon
         // (modDir/FFTIVC/<baseRel>) synced to its kill tier; file I/O goes through FileIconGlowStore.
-        // IconCacheHide makes a pac-mirrored tier change visible this session (see IconCacheHide.cs); it reads
-        // _tickState.NowIn live so it sees the current battle status.
+        // IconCacheHide stays wired for a later re-arm; IconGlow holds it off by default, see IconGlow.Hide.cs.
+        // It reads _tickState.NowIn live so it sees the current battle status.
         _iconGlow = new IconGlow(modDir, _kills, meta.Keys, new FileIconGlowStore(modDir),
             new IconCacheHide(live, () => _tickState.NowIn));
 #if LWDEV
