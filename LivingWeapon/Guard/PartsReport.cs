@@ -33,10 +33,16 @@ internal static class PartsReport
     internal const string SomePausedBody =
         "Most of the mod is running normally. A few parts found the game data in a different place than expected, "
         + "so they have paused themselves rather than risk your save.";
+    internal const string SomePausedPlainBody =
+        "Most of the mod is running normally. A part of it found a problem in the files Living Weapons shipped with, "
+        + "so it has paused itself rather than risk your save. Reinstalling Living Weapons usually fixes this.";
     internal const string AllPausedHeadline = "Living Weapons has paused itself for this session";
     internal const string AllPausedBody =
         "The mod found the game data in a different place than expected on every check, "
         + "so nothing is running rather than risk your save.";
+    internal const string AllPausedPlainBody =
+        "The mod found a problem in the files Living Weapons shipped with, "
+        + "so nothing is running rather than risk your save. Reinstalling Living Weapons usually fixes this.";
     private const string SaveIsFine = " Your game and save are fine.";
 
     /// <summary>The last line of every box, so a screenshot says which mod and which game it came from.</summary>
@@ -129,15 +135,24 @@ internal static class PartsReport
     {
         bool anyWorking = false;
         foreach (var row in Rows) anyWorking |= Status(row.Part, readings).State == DoorState.Open;
+        bool updateCanExplain = false;
+        foreach (var reading in readings.Values)
+            updateCanExplain |= reading.State == DoorState.Closed && reading.FailedCheck && !reading.Plain;
         var sb = new StringBuilder();
         sb.Append(anyWorking ? SomePausedHeadline : AllPausedHeadline).Append("\n\n");
-        sb.Append(anyWorking ? SomePausedBody : AllPausedBody).Append("\n\n");
+        sb.Append(anyWorking ? (updateCanExplain ? SomePausedBody : SomePausedPlainBody)
+                             : (updateCanExplain ? AllPausedBody : AllPausedPlainBody)).Append("\n\n");
         AppendGroup(sb, "Still working:", DoorState.Open, readings);
         AppendGroup(sb, "Paused this session:", DoorState.Closed, readings);
         AppendGroup(sb, "Still being checked (as the game loads and your first battle starts):", DoorState.Waiting, readings);
-        sb.Append(PartsCopy.Hedge);
-        if (hedge.Length > 0) sb.Append(' ').Append(hedge.Trim());
-        sb.Append(SaveIsFine).Append("\n\n").Append(PartsCopy.WhatToDoBox);
+        if (updateCanExplain)
+        {
+            sb.Append(PartsCopy.Hedge);
+            if (hedge.Length > 0) sb.Append(' ').Append(hedge.Trim());
+            sb.Append(SaveIsFine);
+        }
+        else sb.Append(SaveIsFine.TrimStart());
+        sb.Append("\n\n").Append(PartsCopy.WhatToDoBox);
         if (drillSentence.Length > 0) sb.Append("\n\n").Append(drillSentence);
         if (footer.Length > 0) sb.Append("\n\n").Append(footer);
         return sb.ToString();

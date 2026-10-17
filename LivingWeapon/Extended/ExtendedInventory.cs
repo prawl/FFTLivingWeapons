@@ -81,7 +81,7 @@ internal sealed partial class ExtendedInventory
         {
             string errors = string.Join("; ", _data.Errors);
             Refuse("the extended-inventory tables did not validate: " + errors,
-                DoorReading.Failed("the new item data shipped with this build did not validate"),
+                DoorReading.FailedPlain("the new item data shipped with this build did not validate"),
                 PartsCopy.DisabledPlain("The new items are paused for this session because the item data shipped with this mod did not load correctly; everything else keeps working.", errors));
             return;
         }

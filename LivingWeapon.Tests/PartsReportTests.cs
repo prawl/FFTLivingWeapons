@@ -633,4 +633,84 @@ public class PartsReportTests
         foreach (var door in PartsReport.DoorsOf(Part.StatGrowth))
             Assert.Contains(door, killCounting);
     }
+
+    private const string PlainReason = "the new item data shipped with this build did not validate";
+    private const string MovedReason = "the game code the new items plug into is not where this mod expects it";
+
+    private static int Occurrences(string text, string part)
+    {
+        int n = 0;
+        for (int i = text.IndexOf(part, StringComparison.Ordinal); i >= 0; i = text.IndexOf(part, i + part.Length, StringComparison.Ordinal)) n++;
+        return n;
+    }
+
+    [Fact]
+    public void A_damaged_shipped_file_alone_gets_the_plain_box_with_no_update_blame()
+    {
+        var r = AllOpen();
+        r[Door.ExtendedArm] = DoorReading.FailedPlain(PlainReason);
+
+        string box = Box(r, "", LaunchGuard.UnknownBuildHedge);
+
+        Assert.DoesNotContain(PartsCopy.Hedge, box);
+        Assert.DoesNotContain(LaunchGuard.UnknownBuildHedge, box);
+        Assert.DoesNotContain(PartsReport.SomePausedBody, box);
+        Assert.Contains(PartsReport.SomePausedPlainBody, box);
+        Assert.Equal(1, Occurrences(box, "Your game and save are fine."));
+        Assert.DoesNotContain(" Your game", box);
+    }
+
+    [Fact]
+    public void A_moved_game_code_failure_keeps_the_update_hedge_and_body()
+    {
+        var r = AllOpen();
+        r[Door.ExtendedArm] = DoorReading.Failed(MovedReason);
+
+        string box = Box(r, "", LaunchGuard.UnknownBuildHedge);
+
+        Assert.Equal(1, Occurrences(box, PartsCopy.Hedge));
+        Assert.Contains(PartsReport.SomePausedBody, box);
+        Assert.DoesNotContain(PartsReport.SomePausedPlainBody, box);
+    }
+
+    [Fact]
+    public void A_plain_failure_beside_a_real_failure_keeps_the_hedge()
+    {
+        var r = AllOpen();
+        r[Door.ExtendedArm] = DoorReading.FailedPlain(PlainReason);
+        r[Door.KitLane] = DoorReading.Failed(MovedReason);
+
+        string box = Box(r, "", LaunchGuard.UnknownBuildHedge);
+
+        Assert.Equal(1, Occurrences(box, PartsCopy.Hedge));
+        Assert.Contains(PartsReport.SomePausedBody, box);
+    }
+
+    [Fact]
+    public void A_plain_failure_beside_an_absence_stays_plain()
+    {
+        var r = AllOpen();
+        r[Door.ExtendedArm] = DoorReading.FailedPlain(PlainReason);
+        r[Door.PromptHook] = DoorReading.Absent("the loader gave no hooks");
+
+        string box = Box(r, "", LaunchGuard.UnknownBuildHedge);
+
+        Assert.DoesNotContain(PartsCopy.Hedge, box);
+        Assert.Contains(PartsReport.SomePausedPlainBody, box);
+    }
+
+    [Fact]
+    public void Everything_paused_with_only_a_plain_failure_uses_the_all_paused_plain_body()
+    {
+        var r = new Dictionary<Door, DoorReading>();
+        foreach (Door d in Enum.GetValues(typeof(Door))) r[d] = DoorReading.Absent("nothing shipped");
+        r[Door.ExtendedArm] = DoorReading.FailedPlain(PlainReason);
+
+        string box = Box(r, "", LaunchGuard.UnknownBuildHedge);
+
+        Assert.StartsWith(PartsReport.AllPausedHeadline, box);
+        Assert.Contains(PartsReport.AllPausedPlainBody, box);
+        Assert.DoesNotContain(PartsCopy.Hedge, box);
+        Assert.DoesNotContain(PartsReport.AllPausedBody, box);
+    }
 }

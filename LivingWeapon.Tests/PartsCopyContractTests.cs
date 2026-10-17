@@ -259,6 +259,21 @@ public class PartsCopyContractTests
     }
 
     [Fact]
+    public void The_plain_box_carries_the_box_what_to_do_once_and_no_hedge_or_hex_before_the_footer()
+    {
+        var plain = PartsReportTests.AllOpen();
+        plain[Door.ExtendedArm] = DoorReading.FailedPlain("the new item data shipped with this build did not validate");
+
+        string box = PartsReport.ComposeBox(plain, "", LaunchGuard.UnknownBuildHedge, Foot);
+
+        Assert.Equal(1, Count(box, PartsCopy.WhatToDoBox));
+        Assert.Equal(0, Count(box, PartsCopy.WhatToDo));
+        Assert.Equal(0, Count(box, PartsCopy.Hedge));
+        Assert.EndsWith("\n\n" + Foot, box);
+        Assert.DoesNotContain("0x", box.Substring(0, box.Length - Foot.Length));
+    }
+
+    [Fact]
     public void The_cap_warnings_keep_the_developer_label_and_the_address_out_of_the_player_sentence()
     {
         var patch = new BytePatch(0x14027F002L, 0x06, 0x07, "shop-path sibling getter cap");
@@ -336,6 +351,8 @@ public class PartsCopyContractTests
             Assert.DoesNotContain(PartsCopy.Hedge, validate);
             Assert.EndsWith("(detail: id 261: no row)", validate);
             Assert.Equal("the new item data shipped with this build did not validate", inv.Door.Reason);
+            Assert.True(inv.Door.Plain);
+            Assert.True(inv.Door.FailedCheck);
 
             using var cap2 = LogCapture.Start();
             new ExtendedInventory(ExtendedInventoryTests.VanillaImage(), new FakeNearAllocator(), ExtendedInventoryDoorTests.Moonblade(),

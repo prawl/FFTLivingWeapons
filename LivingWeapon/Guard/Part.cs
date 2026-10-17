@@ -31,17 +31,20 @@ internal readonly struct DoorReading
     public DoorState State { get; }
     public string Reason { get; }
     public bool FailedCheck { get; }
+    public bool Plain { get; }
 
-    private DoorReading(DoorState state, string reason, bool failedCheck)
+    private DoorReading(DoorState state, string reason, bool failedCheck, bool plain = false)
     {
         State = state;
         Reason = reason;
         FailedCheck = failedCheck;
+        Plain = plain;
     }
 
     public static DoorReading Waiting(string reason) => new(DoorState.Waiting, reason, false);
     public static DoorReading Open() => new(DoorState.Open, "", false);
     public static DoorReading Failed(string reason) => new(DoorState.Closed, reason, true);
+    public static DoorReading FailedPlain(string reason) => new(DoorState.Closed, reason, true, plain: true);
     public static DoorReading Absent(string reason) => new(DoorState.Closed, reason, false);
 }
 

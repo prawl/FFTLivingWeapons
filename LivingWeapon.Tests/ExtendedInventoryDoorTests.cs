@@ -71,6 +71,7 @@ public class ExtendedInventoryDoorTests : IDisposable
         Assert.NotNull(inv.Refusal);
         Assert.Equal("the game code the new items plug into is not where this mod expects it", inv.Door.Reason);
         Assert.DoesNotContain("0x", inv.Door.Reason);
+        Assert.False(inv.Door.Plain);
     }
 
     [Fact]
