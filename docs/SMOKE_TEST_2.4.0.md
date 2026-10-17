@@ -372,7 +372,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   three boxes, a drill paragraph naming one flag only, weapon colors missing from the second box,
   a second record reading anything but `(11 parts off)`.
   (DEV OK) (covers LW-406 the wave half) **[MAJOR]**
-- [ ] 2.12 **The new items refuse bad data (the one undrillable door a hand edit can close).** If
+- [ ] 2.12 (PARTIAL 2026-10-17 on dev 62015755, owner live, Ravager row deleted: the WARN at 15:51:17 plain with no hedge and the detail `id 262: row without an ItemExtendedData.xml entry`, no armed line, extended inventory OFF with the shipped data reason, one box with extended inventory alone under Paused, thirteen ON after Continue, Chaos Blade kill credited at 15:54:32, no crash, scan CLEAN. FAIL on the box: it still says parts found the game data in a different place and carries the update hedge, logged as LW-430; retest after the fix) **The new items refuse bad data (the one undrillable door a hand edit can close).** If
   the mod's own item tables are damaged, the new items pause with a plain message and nothing else
   stops. Dev deploy; in the DEPLOYED folder only (the repo copy is generated), delete one
   `<ItemExtended>` block from `extended_inventory\ItemExtendedData.xml`; launch, sit at the title
