@@ -606,4 +606,46 @@ public class ExtendedInventoryTests : IDisposable
         Assert.Contains(engine.Phases, p => p.Name == "extended-caps");
         Assert.Contains(engine.Phases, p => p.Name == "extended-bag");
     }
+
+    [Fact]
+    public void StepBagSidecar_reports_a_drained_load_once()
+    {
+        var f = VanillaImage();
+        var inv = Build(f, Moonblade());
+        inv.BootArm(null);
+        Assert.True(inv.Armed);
+        inv.Tracker.OnApplied(SaveEdgeTrackerTests.Header(10));
+        Assert.True(inv.StepBagSidecar(new FakeSparseMemory()));
+        Assert.False(inv.StepBagSidecar(new FakeSparseMemory()));
+
+        var unarmed = VanillaImage();
+        unarmed.Seed(ExtendedSites.BootPatches(1)[0].Addr, 0x07);
+        var refused = Build(unarmed, Moonblade());
+        refused.BootArm(null);
+        refused.Tracker.OnApplied(SaveEdgeTrackerTests.Header(10));
+        Assert.False(refused.StepBagSidecar(new FakeSparseMemory()));
+    }
+
+    [Fact]
+    public void A_drained_save_load_invalidates_the_card_painter()
+    {
+        ModLogger.UseNullLogger();
+        using var temp = TempDirs.Create("lw_engine_load_");
+        var f = VanillaImage();
+        var inv = Build(f, Moonblade());
+        inv.BootArm(null);
+        Assert.True(inv.Armed);
+        var engine = new Engine(EngineTests.NestedModDir(temp), mem: EngineTests.HealthyMemory(), notice: (_, __) => { }, extended: inv);
+        var row = engine.Phases.First(p => p.Name == "extended-bag");
+
+        engine.DisplayForTest._poolLocator.SeedForTest((0x50_0000_0000L, 4096));
+        Assert.False(engine.DisplayForTest._poolLocator.RegionsStale);
+        inv.Tracker.OnApplied(SaveEdgeTrackerTests.Header(10));
+        row.Run(new TickPhaseState());
+        Assert.True(engine.DisplayForTest._poolLocator.RegionsStale);
+
+        engine.DisplayForTest._poolLocator.SeedForTest((0x50_0000_0000L, 4096));
+        row.Run(new TickPhaseState());
+        Assert.False(engine.DisplayForTest._poolLocator.RegionsStale);
+    }
 }

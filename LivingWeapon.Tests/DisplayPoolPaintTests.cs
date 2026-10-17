@@ -609,32 +609,25 @@ public class DisplayPoolPaintTests
         CardFixtures.WriteCardForwardWithName(newBuf, nextStart2, "BowY", "Arrow never sleeps");
         f.Heap.AddRegion(newBase, newBuf, writable: true);
 
-        // Retune round (R1): PoolLocator's own independent RevalidateMs reverify (driven every
-        // beat now by TickWithPoolLocate, standing in for Engine's own "pool-locate" phase) is no
-        // longer gated behind Display's OWN strike-cap eviction schedule -- it notices the removed
-        // region and republishes CachedRegions on the FIRST beat that crosses RevalidateMs after
-        // the drain. That relocate is ALSO this beat's own CardSites strike #1 against the now-
-        // dead OLD sites (their anchor read fails, but CardSites.Verify.cs's leniency means one
-        // strike alone does not evict) -- so MaybePoolPaint's cheap site-COUNT short-circuit still
-        // holds (nothing evicted yet) and does not re-scan the freshly-republished region or
-        // repaint the card until CardSites actually evicts, CardEvictStrikes beats in, exactly as
-        // before this retune round. Only WHEN Regions() gets called moved earlier; WHEN the card
-        // repaints did not -- F6 (round 5 verify): that second half was previously asserted only
-        // in this comment, never in code (a verifier mutation of CardSites.Verify.cs's ApplyStrike
-        // to evict on the FIRST strike left this test green), so the NotEqual checks below pin it
-        // directly: the new site must NOT yet read the painted meter until the strike cap beat.
+        // Retune round R1. PoolLocator's own RevalidateMs reverify, driven every beat by
+        // TickWithPoolLocate in place of Engine's pool-locate phase, notices the removed region and
+        // republishes CachedRegions on the first beat that crosses RevalidateMs after the drain.
+        // That beat is also CardSites strike 1 against the dead old sites, and one strike does not
+        // evict. A publish while covered now scans the fresh list the same beat, so the card
+        // repaints at its new address right away. The old sites are only evicted CardEvictStrikes
+        // beats in, and the Equal checks below pin the same beat repaint.
         clock.Ms += Display.MaintenanceMs + 1;
         CardFixtures.TickWithPoolLocate(display, false);   // strike 1: PoolLocator relocates and republishes THIS beat
         int callsAfterRelocate = spy.RegionsCalls;
         Assert.True(callsAfterRelocate > callsAfterCoverage, "PoolLocator's own revalidate must have re-scanned Regions() once the region vanished");
-        Assert.NotEqual(Signatures.KillsMeterSlot(7), ReadAscii(f.Heap, newBase + slotA2, Signatures.KillsMeterSlotChars));
+        Assert.Equal(Signatures.KillsMeterSlot(7), ReadAscii(f.Heap, newBase + slotA2, Signatures.KillsMeterSlotChars));
 
         for (int beat = 1; beat < Tuning.CardEvictStrikes - 1; beat++)
         {
             clock.Ms += Display.MaintenanceMs + 1;
             CardFixtures.TickWithPoolLocate(display, false);
             Assert.Equal(callsAfterRelocate, spy.RegionsCalls);   // PoolLocator's cache is already fresh: nothing further to revalidate
-            Assert.NotEqual(Signatures.KillsMeterSlot(7), ReadAscii(f.Heap, newBase + slotA2, Signatures.KillsMeterSlotChars));
+            Assert.Equal(Signatures.KillsMeterSlot(7), ReadAscii(f.Heap, newBase + slotA2, Signatures.KillsMeterSlotChars));
         }
 
         clock.Ms += Display.MaintenanceMs + 1;

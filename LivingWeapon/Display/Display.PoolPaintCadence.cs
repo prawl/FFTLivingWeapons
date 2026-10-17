@@ -20,6 +20,9 @@ internal sealed partial class Display
     /// whole-heap sweep fallback in Display.cs's Tick.</summary>
     internal int PoolScanPassesForTest;
 
+    /// <summary>Test accessor for the coverage latch, beside <see cref="PoolScanPassesForTest"/>.</summary>
+    internal bool PoolCoveredForTest => _poolCovered;
+
     /// <summary>True when the full-region scan in MaybePoolPaint should run. The located region list
     /// is new since the last scan (PoolLocator.Restart.cs's PublishGeneration), or MaintenanceMs has
     /// elapsed. ReOfferDrainedRegions' single-region scans (Display.PoolDrain.cs) are not gated by

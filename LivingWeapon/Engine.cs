@@ -335,7 +335,7 @@ internal sealed class Engine
             new TickPhase("extended-caps", TickGates.Always, 30, false, Array.Empty<string>(),
                 _ => e!._extended.StepPostLoadCaps(), Part.ExtendedInventory),
             new TickPhase("extended-bag", TickGates.Always, 30, false, Array.Empty<string>(),
-                _ => e!._extended.StepBagSidecar(e._live), Part.ExtendedInventory),
+                _ => { if (e!._extended.StepBagSidecar(e._live)) e.OnSaveLoaded(); }, Part.ExtendedInventory),
             // Keep the shop-table mirror's vanilla half following the game's table (512-byte compare).
             new TickPhase("extended-shops", TickGates.Always, 30, false, Array.Empty<string>(),
                 _ => e!._extended.StepShopSync(), Part.ExtendedInventory),
@@ -453,6 +453,9 @@ internal sealed class Engine
 
     /// <summary>Test seam. The part of each entry in <see cref="FieldTickOrder"/>.</summary>
     internal IReadOnlyList<Part> FieldParts => _fieldParts;
+
+    /// <summary>Test seam. The equip card painter.</summary>
+    internal Display DisplayForTest => _display;
 
     /// <summary>Test seam. The tick fan-out table. Pinned by EngineTests.</summary>
     internal IReadOnlyList<TickPhase> Phases => _phases;
@@ -616,6 +619,13 @@ internal sealed class Engine
         // re-check in Display.PoolPaint.cs (MaybePoolPaint) covers that. The pool scan stacks on top of
         // Flight.FlushBattleStart's archive on this tick; accepted.
         _display.Invalidate();
+    }
+
+    /// <summary>A drained save load. The menu may have rebuilt its card text, so the painter looks again.</summary>
+    private void OnSaveLoaded()
+    {
+        _display.Invalidate();
+        ModLogger.Debug(LogVerb.Display, "a save loaded; the equip card painter is finding the card text again");
     }
 
     /// <summary>The debounced (or new-game forced) battle-exit edge body.</summary>

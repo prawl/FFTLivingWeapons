@@ -92,16 +92,18 @@ internal sealed partial class ExtendedInventory
 
     /// <summary>drain the save edges, load first so a save that followed a load in the same
     /// 30-tick window records the replayed counts. <paramref name="mem"/> is unused and kept as the
-    /// tick-loop seam.</summary>
-    public void StepBagSidecar(IGameMemory mem)
+    /// tick-loop seam. True exactly when this call drained a load.</summary>
+    public bool StepBagSidecar(IGameMemory mem)
     {
-        if (!Armed) return;
+        bool loaded = false;
+        if (!Armed) return false;
         // Hidden-writer tripwire. Two block reads per 30 ticks; it is the only
         // detector for a code reference the relocation's static sweep missed.
         string? tripwire = _relocation.CheckOldBlocks(_patcher);
         if (tripwire != null) ModLogger.Warn(LogVerb.Save, tripwire);
         if (Tracker.TryTakePendingLoad(out string loadKey))
         {
+            loaded = true;
             var fromDetour = _detourReplay;
             _detourReplay = null;
             bool detourServed = fromDetour != null && fromDetour.Key == loadKey;
@@ -130,5 +132,6 @@ internal sealed partial class ExtendedInventory
             ModLogger.Event(LogVerb.Save, $"A save was written (key {saveKey}); extended-inventory bag counts recorded for it: "
                 + string.Join(", ", Items.Select(i => $"{i.Name} x{(saved.TryGetValue(i.Id, out int c) ? c : 0)}")) + ".");
         }
+        return loaded;
     }
 }

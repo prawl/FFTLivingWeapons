@@ -14,9 +14,9 @@ internal sealed partial class Display
     // same test-accessor habit as Display.Flight.cs.
     internal readonly PoolLocator _poolLocator;
     private bool _poolCovered;
-    // Site count in the cache when coverage last latched true. While covered nothing else
-    // offers sites to the cache, so it can only shrink (PaintAll evicts a site whose anchor stopped
-    // verifying, e.g. after a save-load). Same count means same coverage; a lower count triggers the re-check below.
+    // Site count in the cache when coverage last latched true. While covered only a fresh region list or the
+    // drained region re offer adds sites, and each re latches this count, so otherwise it can only shrink as PaintAll
+    // evicts a site whose anchor stopped verifying. Same count means same coverage; a lower count re checks below.
     private int _countAtCoverage;
 
     // True once pool coverage has gone false->true in this launch. Never reset, so it
@@ -52,6 +52,7 @@ internal sealed partial class Display
     private bool MaybePoolPaint()
     {
         if (!_poolPaint) return false;
+        if (_poolCovered && _poolLocator.PublishGeneration != _lastScannedGeneration) _poolCovered = false;
         if (_poolCovered)
         {
             if (_sites.Count == _countAtCoverage) return true;                 // cheap steady-state. One int compare
