@@ -216,7 +216,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   kill credited, no new game detection on Continue. FAIL: a second box, extended items missing
   under the drill, a kills.json archive on a plain Continue. (DEV OK) (covers LW-393, LW-406)
   **[BLOCKER]**
-- [ ] 2.2 (REAL WORLD FALSE CLOSE 2026-10-17 in sitting 1: a New Game tutorial battle closed the band door on healthy memory, detail none mirrors a party row (rows checked 1), and showed the box; LW-425 owns the fix; re run this box and the tutorial leg after it lands) **Band door drill (LW-398).** Kill counting, stat growth and the battle powers wait for
+- [ ] 2.2 (REAL WORLD FALSE CLOSE 2026-10-17 in sitting 1, FIXED by LW-425 46db4966 and owner read on a cold launch the same day, tutorial waits quietly and Gariland arms; the drill legs A, B and D still owed in sitting 2: a New Game tutorial battle closed the band door on healthy memory, detail none mirrors a party row (rows checked 1), and showed the box; LW-425 owns the fix; re run this box and the tutorial leg after it lands) **Band door drill (LW-398).** Kill counting, stat growth and the battle powers wait for
   the first battle and switch off alone under the drill. Marker `LW_FORCE_BAND_MISMATCH`, recipe
   legs A, B and D (D is mandatory). PASS leg A: before battle the three read `WAITING (waiting for
   the first battle)`; within a second of `Battle started.` the unit list armed Event and one DBG
@@ -771,7 +771,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   (stop, restore from kills.json.bak before another battle saves over it, and clean `archive\`),
   an empty starting inventory, a stamp file missing or reading `dev`. (prod) (covers LW-395 normal
   leg, LW-368 new game leg, LW-134 stamp eyeball) **[BLOCKER]**
-- [ ] 6.2 (FILE HALF PASSED 2026-10-17, prod 1c7ba75f: one move line at launch, kills.json has no 48 key and Terrastaff 3 + 9 = 12, kills.json.bak holds 48 = 9 and Terrastaff 3; the line lists all seven id pairs, which the PASS text must allow; card read blocked by LW-424, blank counts after Continue; second launch owed) **A 2.3.x player's axe kills move to the new weapon on the first launch (LW-351 upgrade
+- [ ] 6.2 (CARD READ UNBLOCKED by LW-424 15699259, owner read a painted count right after Continue on the dev build; the Terrastaff card read of 12 on prod and the second launch still owed; FILE HALF PASSED 2026-10-17, prod 1c7ba75f: one move line at launch, kills.json has no 48 key and Terrastaff 3 + 9 = 12, kills.json.bak holds 48 = 9 and Terrastaff 3; the line lists all seven id pairs, which the PASS text must allow; card read blocked by LW-424, blank counts after Continue; second launch owed) **A 2.3.x player's axe kills move to the new weapon on the first launch (LW-351 upgrade
   leg).** Every returning player's first 2.4.0 launch does this before anything else: the
   Terrastaff kills they grew for weeks are filed under the Battle Axe's old number (48) and must
   move to 261 once, with nothing lost. The owner's save migrated 2026-08-30, so this box stages
@@ -894,7 +894,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   Grows below the prose, a phrase on a non growing item, a `No Poaching.` line, a famous card with
   vanilla text only, a counter mispaint. (DEV OK) (covers LW-332, LW-322, LW-328, LW-166; LW-322 is
   the R5 grows text live pass) **[MAJOR]**
-- [ ] 7.2 (FAILED 2026-10-17 in sitting 1, owner live on prod 1c7ba75f: after a dev launch had seeded Chaos Blade to tier 3 and the prod launch dropped it to tier 1, Ramza's battle status page drew the Chaos Blade+ list row with no picture while the card kept its art; second sighting; LW-423 owns the fix, re run this box after it lands) **Glow rims follow the tally, no halo (LW-381, LW-383, LW-336, LW-295, LW-356, LW-287).**
+- [ ] 7.2 (PARTIAL 2026-10-17 after LW-423 efa0dae2: owner read both status pages with no blank row and the rim after a relaunch, every launch hide 0; the reset leg and the two same tier weapons leg still owed; FIRST RUN FAILED 2026-10-17 in sitting 1, owner live on prod 1c7ba75f: after a dev launch had seeded Chaos Blade to tier 3 and the prod launch dropped it to tier 1, Ramza's battle status page drew the Chaos Blade+ list row with no picture while the card kept its art; second sighting; LW-423 owns the fix, re run this box after it lands) **Glow rims follow the tally, no halo (LW-381, LW-383, LW-336, LW-295, LW-356, LW-287).**
   A weapon that crosses a tier in battle wears its new rim after the next relaunch, and no icon is ever blank in between (owner ruling 2026-10-17: the cache hide is off for 2.4.0, same session rims are LW-427); rims come off after a tally reset; extended weapons rim like vanilla ones; enemies
   never brighten. Dev build, a weapon one kill short of a tier, win, open the inventory; two weapons
   at one tier with one drawn before the battle; a Warbrand at tier 1+ beside a below tier design;
