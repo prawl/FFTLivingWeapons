@@ -992,7 +992,8 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
 ## 9. The thirty signature tour (LW-325) plus Provoke, Bulwark, Living Poach and the twins
 
 > Every signature weapon at its tier once (the 30 signature blocks in data/items.json; the +3
-> ability column of docs/living_weapon_grid.csv names them). Watch the FILE for the once per
+> ability column of docs/living_weapon_grid.csv names 29 of them; Materia Blade, id 32, is the
+> always on Ultima with an empty +3 cell). Watch the FILE for the once per
 > battle narration. Each defect found gets its own Backlog row; LW-326 (Puppeteer reliability) is
 > already open. All boxes DEV OK unless noted. Boxes 9.1, 9.3 and 9.5 to 9.11 together ARE the
 > LW-325 tour; 9.2 and 9.4 are the Provoke and Bulwark edge legs.
@@ -1301,7 +1302,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   `sed -n '21,22p' LivingWeapon/Guard/LaunchGuard.Landmarks.cs`. PASS: every probe exit 0 and
   reporting stamp `0x6A5E4A1B` size `0x03F9E000`; the sentinels file backed as docs/LIVE_LEDGER.md
   records (slot0 and slot9 `ff ff ff ff`, mode `ff`); the five static table sites matching their
-  vanilla bytes; the band and array spans zero until the game writes them; the static table
+  vanilla bytes; the band span reads zero until the game writes it (the probe line ends "0 of 25088 bytes file backed, 0 nonzero, 0 outside any section") and the static unit array span is fully file backed with exactly four nonzero bytes, ff ff ff ff at 0x14089AB98 to 0x14089AB9B (the probe line ends "15360 of 15360 bytes file backed, 4 nonzero, 0 outside any section"); the static table
   probe's item stats line ends `== neither 0` and its "rows where the file matches neither
   baseline nor proposed" list is empty (the LW-414 fix); Landmarks.cs reads
   `ExpectedTimeDateStamp = 0x6A5E4A1B` and `ExpectedSizeOfImage = 0x03F9E000`; the
@@ -1353,10 +1354,10 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   no ids; `python tools\icon_preview.py anchors`; `python tools\icon_preview.py silhouettes`;
   `grep -n "SHIP_GLOW_RIM = False" tools/recolor_icons.py`. PASS: selftest exit 0 with no
   `SELFTEST FAILURES:` line and no `SELFTEST SKIP (game files absent)` line on this box; verify
-  prints `468 comparisons: 0 mismatched, 0 missing`; compare prints `OK: nothing moved outside the
+  prints `454 comparisons: 0 mismatched, 0 missing` (227 recolored items, two surfaces each; the seven axes and flails back on the game's own art and the seven extended ids 261 to 267, baked by tools/bake_extended_icon_parts.py, sit outside this count); compare prints `OK: nothing moved outside the
   0 item(s) named by --expect`; anchors prints `OK: every reserved name is within 40 degrees of its
   own art`; silhouettes exit 0; the grep hits. FAIL: any mismatched count, a `FAIL:` line, a SKIP
-  line on the dev box, SHIP_GLOW_RIM true. (covers LW-247, LW-236 the 468 of 468 gate, LW-227,
+  line on the dev box, SHIP_GLOW_RIM true. (covers LW-247, LW-236 the 454 of 454 gate, LW-227,
   LW-243, LW-240, LW-287 offline half) **[MAJOR]**
 - [ ] B14 **Deploy parity and the flavor guard's test, at release time (LW-297, LW-134).** With the
   game closed and the prod deploy from box 1.1 in place, in the release sitting with the owner's
@@ -1374,8 +1375,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   PASS: ids 261 to 267 are Terrastaff, Ravager, Sunderer, Warbrand, Bloodlash, Climhazzard, Sasori;
   261 to 263 list Lesalia, Riovanes, Eagrose, Lionel, Limberry, Zeltennia and 264 to 267 list
   Dorter, Warjilis, SalGhidos, Riovanes, Eagrose, Lionel, Limberry, Zeltennia, with the milestones
-  box 4.6 names and seedCount 0 on all seven; exactly 30 items carry a signature block and their
-  ids match the +3 column of docs/living_weapon_grid.csv; id 92 Siren's Lyre onHitAbilityId 243
+  box 4.6 names and seedCount 0 on all seven; exactly 30 items carry a signature block; 29 of their ids fill the "+3 ability" column of docs/living_weapon_grid.csv and the thirtieth, Materia Blade (id 32), is the tier 0 always on Ultima whose grid row carries P3 "Ultima" and an empty "+3 ability" cell (analyze.py's P3 ABILITY GRID LOCKSTEP row is the mechanical check); id 92 Siren's Lyre onHitAbilityId 243
   and id 95 Glarebound Tome 234; id 31 named Lightbringer with identity opening `The line's only
   Holy sword`; id 108 proposed.evade 22; Sunsteel Helm (149) rider `Jump+1` and card ending `Jump
   +1.`; Empyrean Robe (206) rider `immune Silence` and card ending `Wards against Silence.`; the
@@ -1724,7 +1724,7 @@ only ids: LW-42, LW-60, LW-80, LW-87, LW-88, LW-90, LW-91, LW-94, LW-95, LW-96, 
 | LW-230 | A 7.7 | neutral haze on shields and helmets |
 | LW-231 | A 7.7 | smooth hats and crossbows, crisp helmets |
 | LW-233 | A 5.5, A 5.10 | Retry does not pay twice; the quit door is 5.10 |
-| LW-236 | B13, A 7.3, A 7.4 | 58 smoke fuming icons re made by the eight family passes; B13's 468 of 468 is the gate, the knife, ninja blade, book, bag, katana, cloth, staff and pole walks are the live read |
+| LW-236 | B13, A 7.3, A 7.4 | 58 smoke fuming icons re made by the eight family passes; B13's 454 of 454 is the gate, the knife, ninja blade, book, bag, katana, cloth, staff and pole walks are the live read |
 | LW-240 | B13 | shared silhouette gate; no live surface |
 | LW-243 | B13 | reserved name anchor gate; no live surface |
 | LW-247 | A 1.1, B13 | ramp engine, byte identical deploy |
