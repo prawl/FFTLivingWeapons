@@ -16,6 +16,8 @@ namespace LivingWeapon.Tests;
 /// </summary>
 public class GunSlingerConsentTests
 {
+    private static bool DoorOpen() => true;
+
     private const int BlasterId = 76;
     private const int OutriderPistolId = 71;
     private const int ArbalestId = 79;
@@ -233,7 +235,7 @@ public class GunSlingerConsentTests
         var kills = new Dictionary<int, int> { [BlasterId] = Tuning.ProdThresholds[2] };
         SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId, off: EmptyU16, supp: 0);
 
-        var gs = new GunSlinger(MakeGunMeta(), kills, dir, mem);
+        var gs = new GunSlinger(MakeGunMeta(), kills, dir, DoorOpen, mem);
         gs.PrepRoster();   // grant: off-hand = BlasterId, HasOff = true, OrigOff = EMPTY
         long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
         Assert.True(gs.StoreForTest().Get(1).HasOff);
@@ -283,7 +285,7 @@ public class GunSlingerConsentTests
         };
         SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: OutriderPistolId, off: EmptyU16, supp: 0);
 
-        var gs = new GunSlinger(MakeTwoGunMeta(), kills, dir, mem);
+        var gs = new GunSlinger(MakeTwoGunMeta(), kills, dir, DoorOpen, mem);
         gs.PrepRoster();   // grant
 
         long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
@@ -319,7 +321,7 @@ public class GunSlingerConsentTests
         var kills = new Dictionary<int, int> { [BlasterId] = Tuning.ProdThresholds[2] };
         SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId, off: EmptyU16, supp: 0);
 
-        var gs = new GunSlinger(MakeGunMeta(), kills, dir, mem);
+        var gs = new GunSlinger(MakeGunMeta(), kills, dir, DoorOpen, mem);
         gs.PrepRoster();   // grant
 
         long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
@@ -355,7 +357,7 @@ public class GunSlingerConsentTests
         // SnapshotAndWrite, isolated from anything else the debounce/gate machinery might touch.
         SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId, off: EmptyU16, supp: 0);
 
-        var gs = new GunSlinger(MakeGunMeta(), kills, dir, mem);
+        var gs = new GunSlinger(MakeGunMeta(), kills, dir, DoorOpen, mem);
         long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
 
         // A single-pass flicker on the very first (cold-start) read: the byte reads 1 for exactly
@@ -395,7 +397,7 @@ public class GunSlingerConsentTests
         mem.MarkWritable(b + Offsets.RSupport, 2);
         // Deliberately do NOT mark Offsets.MenuOpenFlag readable -- unreadable must suppress.
 
-        var gs = new GunSlinger(MakeGunMeta(), kills, dir, mem);
+        var gs = new GunSlinger(MakeGunMeta(), kills, dir, DoorOpen, mem);
         gs.PrepRoster();
 
         Assert.False(mem.WrittenU16.ContainsKey(b + Offsets.ROffHand),
@@ -436,7 +438,7 @@ public class GunSlingerConsentTests
         // rh: 1 (unflagged) -- mainIsGS is false, so this exercises rule 2b, not rule 3a.
         SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: 1, off: (ushort)BlasterId, supp: 0, shield: 128);
 
-        var gs = new GunSlinger(MakeGunMeta(), kills, dir, mem);
+        var gs = new GunSlinger(MakeGunMeta(), kills, dir, DoorOpen, mem);
         var snap = gs.StoreForTest().Get(1);
         snap.HasOff = true;
         snap.OrigOff = 150;   // a legacy real off-hand item from before this fix shipped
@@ -493,7 +495,7 @@ public class GunSlingerConsentTests
         var kills = new Dictionary<int, int> { [BlasterId] = Tuning.ProdThresholds[2] };
         SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId, off: EmptyU16, supp: 0);
 
-        var gs = new GunSlinger(MakeGunMeta(), kills, dir, mem);
+        var gs = new GunSlinger(MakeGunMeta(), kills, dir, DoorOpen, mem);
         gs.PrepRoster();   // out of battle: grant
 
         long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
@@ -569,7 +571,7 @@ public class GunSlingerConsentTests
         var kills = new Dictionary<int, int> { [OutriderPistolId] = Tuning.ProdThresholds[2] };
         SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: OutriderPistolId, off: EmptyU16, supp: 0);
 
-        var gs = new GunSlinger(MakeTwoGunMeta(), kills, dir, mem);
+        var gs = new GunSlinger(MakeTwoGunMeta(), kills, dir, DoorOpen, mem);
         long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
 
         // Run-4 timeline: grant on the free map.
@@ -635,7 +637,7 @@ public class GunSlingerConsentTests
         var kills = new Dictionary<int, int> { [BlasterId] = Tuning.ProdThresholds[2] };
         SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId, off: EmptyU16, supp: 0);
 
-        var gs = new GunSlinger(MakeGunMeta(), kills, dir, mem);
+        var gs = new GunSlinger(MakeGunMeta(), kills, dir, DoorOpen, mem);
         gs.PrepRoster();   // out of battle: grant (twin stamped)
 
         long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
@@ -675,7 +677,7 @@ public class GunSlingerConsentTests
         var kills = new Dictionary<int, int> { [BlasterId] = Tuning.ProdThresholds[2] };
         SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId, off: EmptyU16, supp: 0);
 
-        var gs = new GunSlinger(MakeGunMeta(), kills, dir, mem);
+        var gs = new GunSlinger(MakeGunMeta(), kills, dir, DoorOpen, mem);
         gs.PrepRoster();   // out of battle: grant
 
         long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
@@ -688,5 +690,33 @@ public class GunSlingerConsentTests
 
         Assert.True(mem.WrittenU16.ContainsKey(b + Offsets.ROffHand), "a brief mid-battle off-field flicker must not starve the re-assert");
         Assert.Equal((ushort)BlasterId, mem.WrittenU16[b + Offsets.ROffHand]);
+    }
+
+    [Fact]
+    public void Menu_byte_above_one_denies_like_unreadable()
+    {
+        long b = Offsets.RosterBase;
+        var kills = new Dictionary<int, int> { [BlasterId] = Tuning.ProdThresholds[2] };
+
+        foreach (byte menu in new byte[] { 2, 7 })
+        {
+            using var temp = TempDirs.Create("gs_test_");
+            var mem = new FakeSparseMemory();
+            SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId, off: EmptyU16, supp: 0);
+            SetMenu(mem, menu);
+            var gs = new GunSlinger(MakeGunMeta(), kills, temp.Dir, DoorOpen, mem);
+
+            gs.PrepRoster();
+            gs.PrepRoster();
+
+            Assert.Empty(mem.WrittenU16);
+        }
+
+        using var control = TempDirs.Create("gs_test_");
+        var cmem = new FakeSparseMemory();
+        SeedRosterSlot(cmem, slot: 0, nameId: 1, level: 30, rh: BlasterId, off: EmptyU16, supp: 0);
+        SetMenu(cmem, 0);
+        new GunSlinger(MakeGunMeta(), kills, control.Dir, DoorOpen, cmem).PrepRoster();
+        Assert.Equal((ushort)BlasterId, cmem.WrittenU16[b + Offsets.ROffHand]);
     }
 }

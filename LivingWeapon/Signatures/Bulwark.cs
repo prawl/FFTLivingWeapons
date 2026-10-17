@@ -49,8 +49,14 @@ internal sealed partial class Bulwark : ISignature
     private readonly Dictionary<int, DeferredTile> _deferred = new();
     private int _unresolvedStreak;
 
-    public Bulwark(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, BannerToast toast, IGameMemory? mem = null)
+    private readonly DoorLatch? _latch;
+
+    internal DoorLatch? Latch => _latch;
+
+    public Bulwark(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, BannerToast toast, IGameMemory? mem = null,
+        DoorLatch? latch = null)
     {
+        _latch = latch;
         _mem = mem ?? new LiveMemory();
         _meta = meta;
         _kills = kills;

@@ -209,4 +209,43 @@ public class DrillTriggerTests
 
         Assert.True(DrillTrigger.DrillRequested(temp.Dir, DrillTrigger.BandFlagName));
     }
+
+    [Fact]
+    public void Twin_flag_name_is_pinned()
+    {
+        Assert.Equal("LW_FORCE_TWIN_MISMATCH", DrillTrigger.TwinFlagName);
+    }
+
+    [Fact]
+    public void Twin_flag_never_satisfies_or_is_satisfied_by_the_roster_flag()
+    {
+        string? GetTwin(string name) => name == DrillTrigger.TwinFlagName ? "1" : null;
+        string? GetRoster(string name) => name == DrillTrigger.RosterFlagName ? "1" : null;
+        Assert.True(DrillTrigger.DrillRequested(ModDir, DrillTrigger.TwinFlagName, GetTwin, NoFile));
+        Assert.False(DrillTrigger.DrillRequested(ModDir, DrillTrigger.RosterFlagName, GetTwin, NoFile));
+        Assert.False(DrillTrigger.DrillRequested(ModDir, DrillTrigger.TwinFlagName, GetRoster, NoFile));
+
+        string twinFile = Path.Combine(ModDir, DrillTrigger.TwinFlagName);
+        string rosterFile = Path.Combine(ModDir, DrillTrigger.RosterFlagName);
+        Assert.True(DrillTrigger.DrillRequested(ModDir, DrillTrigger.TwinFlagName, Env(null), p => p == twinFile));
+        Assert.False(DrillTrigger.DrillRequested(ModDir, DrillTrigger.RosterFlagName, Env(null), p => p == twinFile));
+        Assert.False(DrillTrigger.DrillRequested(ModDir, DrillTrigger.TwinFlagName, Env(null), p => p == rosterFile));
+    }
+
+    // --- LW-399: the table doors' flag, same two lanes ---
+
+    [Fact]
+    public void Table_flag_env_and_marker_file_request_the_drill_and_satisfy_no_other_flag()
+    {
+        string? Get(string name) => name == DrillTrigger.TableFlagName ? "1" : null;
+        Assert.Equal("LW_FORCE_TABLE_MISMATCH", DrillTrigger.TableFlagName);
+        Assert.True(DrillTrigger.DrillRequested(ModDir, DrillTrigger.TableFlagName, Get, NoFile));
+        foreach (string other in new[] { DrillTrigger.FlagName, DrillTrigger.SensingFlagName, DrillTrigger.UnreadableFlagName, DrillTrigger.RosterFlagName })
+            Assert.False(DrillTrigger.DrillRequested(ModDir, other, Get, NoFile));
+
+        string marker = Path.Combine(ModDir, DrillTrigger.TableFlagName);
+        Assert.True(DrillTrigger.DrillRequested(ModDir, DrillTrigger.TableFlagName, Env(null), p => p == marker));
+        foreach (string other in new[] { DrillTrigger.FlagName, DrillTrigger.SensingFlagName, DrillTrigger.UnreadableFlagName, DrillTrigger.RosterFlagName })
+            Assert.False(DrillTrigger.DrillRequested(ModDir, other, Env(null), p => p == marker));
+    }
 }

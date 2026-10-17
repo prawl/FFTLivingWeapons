@@ -21,7 +21,7 @@ namespace LivingWeapon;
 /// (GunSlinger.Reconcile.cs). Dual fire is welded at battle construction, so the in-battle re-assert
 /// only keeps the twin in the roster for the battle-end commit and the next battle
 /// ([twin-dualfire-construction-bound]). The battle-end twilight hold is GunSlingerPolicy.IsTwilight.
-/// Not an ISignature. The snapshot store is cross-session and the reconcile clears on an inBattle flip.
+/// Not an ISignature, and it refuses to run while its door is closed. The snapshot store is cross-session and the reconcile clears on an inBattle flip.
 /// All memory goes through IGameMemory with Writable checked before every write.
 /// </summary>
 internal sealed partial class GunSlinger
@@ -37,13 +37,15 @@ internal sealed partial class GunSlinger
     private readonly HashSet<int> _twinIds;   // every gun-slinger-flagged id, cached at construction
     private readonly Action<string, string>? _recorder;   // flight tap. GunSlinger.Reconcile.cs's "twin-refund" record
     private readonly Func<long> _bagCountBase;   // GunSlinger.Reconcile.cs's sack reads
+    private readonly Func<bool> _doorOpen;
+    private bool _doorClosedNoted;
 
     /// <summary><paramref name="recorder"/> is the flight-ring tap (Flight.Record in production, a fake
     /// in tests) for the reconcile's "twin-refund" record. <paramref name="bagCountBase"/> is a Func
     /// because Engine builds GunSlinger before <c>ExtendedInventory.BagCountBase</c> is known.
-    /// It defaults to the vanilla block.</summary>
+    /// It defaults to the vanilla block. <paramref name="doorOpen"/> is the parts registry answer for the twin weapons part.</summary>
     public GunSlinger(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills,
-                      string modDir, IGameMemory? mem = null, Action<string, string>? recorder = null,
+                      string modDir, Func<bool> doorOpen, IGameMemory? mem = null, Action<string, string>? recorder = null,
                       Func<long>? bagCountBase = null)
     {
         _meta = meta;
@@ -51,6 +53,7 @@ internal sealed partial class GunSlinger
         _mem = mem ?? new LiveMemory();
         _store = new GunSlingerStore(modDir);
         _twinIds = ResolveTwinIds(meta);
+        _doorOpen = doorOpen;
         _recorder = recorder;
         _bagCountBase = bagCountBase ?? (() => Offsets.InventoryCountBase);
     }
@@ -70,6 +73,7 @@ internal sealed partial class GunSlinger
     /// </summary>
     public void PrepRoster(bool inBattle = false, double secondsOffField = 0.0)
     {
+        if (!_doorOpen()) { NoteDoorClosed(); return; }
         if (_twinIds.Count == 0) return;   // no GunSlinger weapon in meta
 
         bool menuOpen = ComputeMenuOpen();
@@ -114,6 +118,14 @@ internal sealed partial class GunSlinger
         foreach (var row in passRows)
             ReconcileRow(row.slot, row.nameId, row.mainH, row.offH, row.snap, currentSack, passRows, inBattle);
         ReconcileCommitSack(currentSack, inBattle);
+    }
+
+    private void NoteDoorClosed()
+    {
+        if (_doorClosedNoted) return;
+        _doorClosedNoted = true;
+        ModLogger.Warn(LogVerb.Signature,
+            "The twin weapon grant was asked to run while its check had not passed; nothing was written and it stays idle until the check passes.");
     }
 
     private static HashSet<int> ResolveTwinIds(Dictionary<int, WeaponMeta> meta)

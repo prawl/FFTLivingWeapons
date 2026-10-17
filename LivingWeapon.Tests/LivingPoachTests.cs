@@ -1119,4 +1119,53 @@ public class LivingPoachTests : IDisposable
         var actual = new HashSet<long>(mem.Written.Keys);
         Assert.Equal(expected, actual);
     }
+
+    // ── LW-399: the store door latch and the key bound ────────────────────────
+
+    [Fact]
+    public void A_closed_store_door_refuses_the_carcass_write()
+    {
+        var mem = new FakeSparseMemory();
+        var map = new PoachMap(MakePoachJson(TestJobId, TestCommonKey, "Chocobo Carcass", TestRareKey, "x"));
+        var meta = DormantMeta();
+        MakeStoreSlot(mem, TestCommonKey, current: 5);
+        var door = DoorReading.Failed("the Poacher's Den store is not where this mod expects it");
+        var latch = new DoorLatch(() => door, "A carcass was not added to the Poacher's Den.");
+        var poach = new LivingPoach(meta, map, mem, new BannerToast(meta, new Dictionary<int, int>(), enabled: true),
+            _ => true, _ => true, () => 0, latch);
+        long addr = Offsets.PoachStoreBase + (TestCommonKey - 1);
+
+        poach.RecordPoachDeed(PoachWeaponId, new VictimSnapshot(true, 42, TestVictimJob, false), slot: 0, false, false);
+
+        Assert.Same(latch, poach.Latch);
+        Assert.False(mem.Written.ContainsKey(addr));
+        Assert.Equal((byte)5, mem.U8(addr));
+
+        door = DoorReading.Open();
+        poach.RecordPoachDeed(PoachWeaponId, new VictimSnapshot(true, 43, TestVictimJob, false), slot: 1, false, false);
+
+        Assert.Equal((byte)6, mem.U8(addr));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(97)]
+    public void Key_outside_1_to_96_is_refused_before_any_address_is_derived(int key)
+    {
+        using var cap = LogCapture.Start(LogLevel.Debug);
+        var mem = new FakeSparseMemory();
+        var map = new PoachMap(MakePoachJson(TestJobId, key, "Out Of Range", TestRareKey, "x"));
+        var meta = DormantMeta();
+        long addr = Offsets.PoachStoreBase + (key - 1);
+        mem.ReadableAddrs.Add(addr);
+        mem.WritableAddrs.Add(addr);
+        mem.U8s[addr] = 7;
+        var poach = MakePoach(mem, map, meta, roll: 0);
+
+        poach.RecordPoachDeed(PoachWeaponId, new VictimSnapshot(true, 42, TestVictimJob, false), slot: 0, false, false);
+
+        Assert.False(mem.ReadCount.ContainsKey(addr));
+        Assert.Empty(mem.Written);
+        Assert.Contains(cap.File, l => l.Contains("[DEBUG]") && l.Contains("outside"));
+    }
 }

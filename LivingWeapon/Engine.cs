@@ -53,10 +53,12 @@ internal sealed class Engine
     private readonly TickPhaseState _tickState = new();
     private readonly GunSlinger _gunSlinger = null!;
     private readonly IGameMemory _live = null!;   // assigned in ctor, used by Tick
-    private readonly LaunchGuard _launchGuard;   // the five door guards; its roster edge enables Mem writes
+    private readonly LaunchGuard _launchGuard;   // the six door guards; its roster edge enables Mem writes
+    private readonly TableDoors _tableDoors;   // the five table doors, independent of the roster door
+    private readonly Bulwark _bulwark;
+    private readonly string _drillSentence;
     private readonly PartsBoard _board;   // the parts report line and its box per closure wave
-    private readonly Dictionary<Door, DoorReading> _readings = new();   // the seven doors, refilled every tick
-    private readonly string _drillSentence;   // the drill sentences for the flags that are on, joined, for the box
+    private readonly Dictionary<Door, DoorReading> _readings = new();   // the thirteen doors, refilled every tick
     private readonly AnchorScout _anchorScout;   // verifier scout, ticks only once StoodDown; writes nothing
     private readonly BannerToast _toast;
     private readonly bool _bannerToastsEnabled;
@@ -78,16 +80,16 @@ internal sealed class Engine
     /// <param name="mem">Injectable memory seam. Null builds a <see cref="LiveMemory"/>; tests pass a fake.</param>
     /// <param name="notice">The box for the parts board and the stall warning. Null falls back to <see cref="StandDownNotice.Show"/>; tests pass a no-op.</param>
     /// <param name="extended">the extended inventory. Null builds the live one; tests inject fakes.</param>
-    /// <param name="devForceSensingMismatch">Dev drill (LW_FORCE_SENSING_MISMATCH, dev builds only): forces the
-    /// sensing lane to read a mismatch so the refuse-to-clear path can be watched.</param>
+    /// <param name="devForceSensingMismatch">Dev drill (LW_FORCE_SENSING_MISMATCH, dev builds only) under which the sensing lane reads a mismatch.</param>
     /// <param name="devForceRosterMismatch">Dev drill (LW_FORCE_ROSTER_MISMATCH, dev builds only) under which a healthy roster row reads wrong.</param>
     /// <param name="devForceGuardUnreadable">Dev drill (LW_FORCE_GUARD_UNREADABLE, dev builds only): the startup
     /// guard reads blind for about eighty seconds so the cannot-find-the-game warning and recovery line can be watched.</param>
+    /// <param name="devForceTwinMismatch">Dev drill (LW_FORCE_TWIN_MISMATCH, dev builds only) under which the twin weapon door reads wrong once a save is loaded.</param>
     public Engine(string modDir, bool? bannerToasts = null, bool? devSeedKills = null,
         bool? devForceFingerprintMismatch = null, IGameMemory? mem = null, Action<string, string>? notice = null,
         ExtendedInventory? extended = null, bool? devForceSensingMismatch = null,
         bool? devForceGuardUnreadable = null, bool? devForceRosterMismatch = null,
-        bool? devForceBandMismatch = null)
+        bool? devForceTwinMismatch = null, bool? devForceTableMismatch = null, bool? devForceBandMismatch = null)
     {
         // Save files live in the update-safe Reloaded/User/Mods/<ModId> dir so a mod-folder
         // replace cannot wipe them. Each store migrates its legacy file there before first load.
@@ -132,10 +134,16 @@ internal sealed class Engine
             forceSensingMismatch: devForceSensingMismatch ?? false,
             forceUnreadable: devForceGuardUnreadable ?? false,
             forceRosterMismatch: devForceRosterMismatch ?? false,
+            forceTwinMismatch: devForceTwinMismatch ?? false,
             forceBandMismatch: devForceBandMismatch ?? false);
-        string rosterDrill = devForceRosterMismatch == true ? PartsReport.RosterDrillSentence : "";
-        string bandDrill = devForceBandMismatch == true ? PartsReport.BandDrillSentence : "";
-        _drillSentence = rosterDrill.Length > 0 && bandDrill.Length > 0 ? rosterDrill + " " + bandDrill : rosterDrill + bandDrill;
+        _tableDoors = new TableDoors(live, () => _launchGuard.BuildHedge, () => _launchGuard.Armed,
+            Flight.Record, Flight.RequestFlush, devForceTableMismatch ?? false);
+        _drillSentence = string.Join(" ", Array.FindAll(new[]
+        {
+            PartsReport.DrillSentence(devForceRosterMismatch == true, devForceTwinMismatch == true),
+            devForceBandMismatch == true ? PartsReport.BandDrillSentence : "",
+            devForceTableMismatch == true ? PartsReport.TableDrillSentence : "",
+        }, x => x.Length > 0));
         _board = new PartsBoard(ResolveNotice(notice), Flight.Record);
         _tickState.PartOn = PartOn;
         // Read-only scout that ticks only while StoodDown; it never arms or writes (a scout, never a healer).
@@ -155,7 +163,8 @@ internal sealed class Engine
         var poachMap = new PoachMap(modDir);
         _livingPoach = new LivingPoach(meta, poachMap, live, _toast,
             killerHasPoach: id => LivingPoach.ReadKillerHasPoach(live, id),
-            wasBasicAttack: id => LivingPoach.ReadWasBasicAttack(live, id));
+            wasBasicAttack: id => LivingPoach.ReadWasBasicAttack(live, id),
+            latch: Latch(() => _tableDoors.PoachStore, "A carcass was not added to the Poacher's Den; the store is not where this mod expects it, so your save is left alone."));
         var deeds = new DeedFanout(_reliquary, _livingPoach);
         _promptSwap = new PromptSwap(_toast, live);
         _promptSwapHook = new PromptSwapHook(_promptSwap, live);
@@ -176,7 +185,9 @@ internal sealed class Engine
         _growth = new GrowthEngine(meta, _kills, _turns, live, mushinArmed, _naturalLedger);
         _barrage = new Barrage(meta, _kills, live);                 // Yoichi +3. Grant Barrage command to the wielder
         _shadowBlade = new ShadowBlade(meta, _kills, live);           // Sanguine +3. Grant Shadow Blade (HP-draining dark strike)
-        _provoke = new Provoke(meta, _kills, live);                   // Defender +3. Grant Provoke (grants only while id 33 carries its signature block)
+        // Defender +3. Grant Provoke (grants only while id 33 carries its signature block)
+        _provoke = new Provoke(meta, _kills, live,
+            Latch(() => _tableDoors.ProvokeTables, "Provoke's effect was not set up; the ability data is not where this mod expects it."));
         _provokeHold = new ProvokeHold(_kills, live);                 // The hold that reads Provoke.cs's mark and hides the party from the provoked enemy
         var extra = new ExtraTurn(_kills, live);                    // Zwill +3. A kill grants the killer an immediate extra turn
         var eagle = new EagleEye(meta, _kills, _tracker, live);     // Eclipsebolt +3. Hasten the wielder's OWN Doom procs to a 1-turn countdown (attributed only)
@@ -197,7 +208,9 @@ internal sealed class Engine
         var choir = new Choir(meta, _kills, live);                       // Warlock's Staff +3. Adjacent allies cast magick instantly (Non-charge aura)
         // Sunderer +3. A full-wait turn bars the tile at the wielder's back (docs/BULWARK_AC.md).
         // Built after _toast, which it takes.
-        var bulwark = new Bulwark(meta, _kills, _toast, live);
+        _bulwark = new Bulwark(meta, _kills, _toast, live,
+            Latch(() => _tableDoors.TerrainGrid, "The Sunderer's blade wall was not planted; the terrain data it writes is not where this mod expects it, so that write is skipped this session."));
+        var bulwark = _bulwark;
         // Order matters. Reset runs extra..font with Barrage between Plague and Renewal. The in-battle
         // tick order excludes Barrage, which ticks pre-gate so learn screens are covered.
         _signatures = new ISignature[] { extra, eagle, ricochet, maim, kobu, iai, mushin, larceny, puppeteer, plague, _barrage, _shadowBlade, _provoke, _provokeHold, renewal, rapture, font, feign, benediction, sanctuary, choir, bulwark };
@@ -206,7 +219,7 @@ internal sealed class Engine
         save.Migrate("gunslinger.json");
         // Sack reads follow the extended inventory's bag base once it arms. The lambda
         // captures _extended, assigned below, and only runs later on a PrepRoster pass after BootArm.
-        _gunSlinger = new GunSlinger(meta, _kills, save.SaveDir, live, recorder: Flight.Record, bagCountBase: () => _extended!.BagCountBase);
+        _gunSlinger = new GunSlinger(meta, _kills, save.SaveDir, () => PartOn(Part.TwinPistols), live, recorder: Flight.Record, bagCountBase: () => _extended!.BagCountBase);
         // Marks are release-hidden on the equip card too, so legends is null here (the
         // Attack card already skips the deed ledger via AttackCard.Resolve markLabel=null). Pass legends as _legends
         // to re-enable in Reliquary Phase 2, which rebuilds StoryLines/EarnedAnchors (the three-way anchor, decision 2).
@@ -218,7 +231,8 @@ internal sealed class Engine
                                       _tracker.SpriteOf, meta, _kills, Flight.Record);
         // Per-turn weapon-sprite palette repaint. takes the kill tally so authored colors
         // glow brighter at each kill tier.
-        _weaponPalette = new WeaponPalette(meta, live, _kills);
+        _weaponPalette = new WeaponPalette(meta, live, _kills,
+            Latch(() => _tableDoors.PaletteBanks, "Weapon colors were not repainted; the palette data is not where this mod expects it."));
         // The extended inventory (ids 261+), loaded from modDir/extended_inventory. Armed later from
         // InjectHooks (still before the game runs) because the boot arm cannot wait for LaunchGuard's roster
         // landmark (readable only once a save loads) and the menu registry is built at boot. Built before
@@ -228,7 +242,8 @@ internal sealed class Engine
         // Turn-scoped WP write for the "wp"/"wp+faith" gun lanes; GrowthEngine.Lanes.cs gives them no
         // combat-struct lane, so this is their whole growth. an extended id's WP byte lives in the
         // extended inventory's stub page, so the hold resolves it there.
-        _wpTableHold = new WpTableHold(meta, _kills, live, _extended.WeaponRowAddr);
+        _wpTableHold = new WpTableHold(meta, _kills, live, _extended.WeaponRowAddr,
+            Latch(() => _tableDoors.ItemStats, "The gun's growth was not applied; the item data is not where this mod expects it."));
         // Icon glow (retargeted to the deployed loose tex): keeps each weapon's equip icon
         // (modDir/FFTIVC/<baseRel>) synced to its kill tier; file I/O goes through FileIconGlowStore.
         // IconCacheHide makes a pac-mirrored tier change visible this session (see IconCacheHide.cs); it reads
@@ -292,8 +307,8 @@ internal sealed class Engine
                 _ => e!._shadowBlade.Tick(), Part.WeaponCommands),
             // FindEmptySlot claims the first empty JobCommand slot, so Provoke must tick after Barrage and
             // Shadow Blade (see BarrageShadowBladeCollisionTests).
-            new TickPhase("kit-provoke", TickGates.KitLane, 1, false, new[] { "kit-barrage", "kit-shadowblade" },
-                _ => e!._provoke.Tick(), Part.WeaponCommands),
+            new TickPhase("kit-provoke", TickGates.Provoke, 1, false, new[] { "kit-barrage", "kit-shadowblade" },
+                _ => e!._provoke.Tick(), Part.Provoke),
 
             // Pre-gate; re-asserts a snapshotted twin in battle but never snapshots/restores there. Observed
             // 2026-07-04 (twin fires twice in battle). Cadence 30 (~1s). secondsOffField reads the same _lastField as the "paint" phase (the twilight guard,
@@ -337,8 +352,8 @@ internal sealed class Engine
                     SignatureParts.TickOpen(e!._fieldSignatures, e._fieldParts, s.PartOn, in ctx);
                 }, Part.BandSignatures),
             // Retries a corpse whose despawn refused and pins its crystal counter (like Sanctuary).
-            new TickPhase("living-poach", TickGates.InBattle, 1, false, Array.Empty<string>(),
-                _ => e!._livingPoach.Tick(), Part.StaticTableSignatures),
+            new TickPhase("living-poach", TickGates.PoachDen, 1, false, Array.Empty<string>(),
+                _ => e!._livingPoach.Tick(), Part.PoachDen),
             // Growth holds stats; every 3rd tick (~100ms) is plenty.
             new TickPhase("growth", TickGates.StatGrowth, 3, true, Array.Empty<string>(),
                 _ => e!._growth.Apply(), Part.StatGrowth),
@@ -349,11 +364,11 @@ internal sealed class Engine
             new TickPhase("attack-card", TickGates.InBattle, 1, false, Array.Empty<string>(),
                 _ => e!._attackCard.Tick(), Part.CardPaint),
             // The per-turn weapon-sprite palette repaint (WeaponPalette.cs).
-            new TickPhase("weapon-palette", TickGates.InBattle, 1, false, Array.Empty<string>(),
-                s => e!._weaponPalette.Tick(s.InLive), Part.StaticTableSignatures),
+            new TickPhase("weapon-palette", TickGates.WeaponColors, 1, false, Array.Empty<string>(),
+                s => e!._weaponPalette.Tick(s.InLive), Part.WeaponColors),
             // The turn-scoped WP write for the "wp"/"wp+faith" gun lanes (WpTableHold.cs).
-            new TickPhase("wp-table-hold", TickGates.InBattle, 1, false, Array.Empty<string>(),
-                s => e!._wpTableHold.Tick(s.InLive), Part.StaticTableSignatures),
+            new TickPhase("wp-table-hold", TickGates.GunGrowth, 1, false, Array.Empty<string>(),
+                s => e!._wpTableHold.Tick(s.InLive), Part.GunGrowth),
         };
 #if LWDEV
         // Dev-only passive/cold-call research instruments, in-battle only (see each Spike class's
@@ -401,6 +416,21 @@ internal sealed class Engine
     /// <summary>Test seam. The parts board.</summary>
     internal PartsBoard Board => _board;
 
+    /// <summary>Test seam. The table doors.</summary>
+    internal TableDoors Tables => _tableDoors;
+
+    /// <summary>Test seam. The latch each table writer carries, keyed by writer.</summary>
+    internal IReadOnlyDictionary<string, DoorLatch?> WriterLatches => new Dictionary<string, DoorLatch?>
+    {
+        ["bulwark"] = _bulwark.Latch,
+        ["palette"] = _weaponPalette.Latch,
+        ["poach"] = _livingPoach.Latch,
+        ["provoke"] = _provoke.Latch,
+        ["gun"] = _wpTableHold.Latch,
+    };
+
+    private static DoorLatch Latch(Func<DoorReading> door, string refusal) => new(door, refusal);
+
     private bool PartOn(Part part) => PartsReport.IsOn(part, _readings);
 
     private void ObserveDoors()
@@ -410,6 +440,12 @@ internal sealed class Engine
         _readings[Door.Sensing] = _launchGuard.SensingDoor;
         _readings[Door.PromptHook] = _promptSwapHook.Door;
         _readings[Door.ExtendedArm] = _extended.Door;
+        _readings[Door.TwinPistols] = _launchGuard.TwinPistolsDoor;
+        _readings[Door.TerrainGrid] = _tableDoors.TerrainGrid;
+        _readings[Door.PaletteBanks] = _tableDoors.PaletteBanks;
+        _readings[Door.PoachStore] = _tableDoors.PoachStore;
+        _readings[Door.ProvokeTables] = _tableDoors.ProvokeTables;
+        _readings[Door.ItemStats] = _tableDoors.ItemStats;
         _readings[Door.Band] = _launchGuard.BandDoor;
         _readings[Door.StaticArray] = _launchGuard.StaticArrayDoor;
         _board.Observe(_readings, _launchGuard.BuildHedge, _drillSentence);
@@ -488,10 +524,12 @@ internal sealed class Engine
     {
         Flight.DrainPending();   // cheap flag check every tick; the actual I/O (if any is pending) runs here, never on the requester's thread
 
-        // The three guards step on their own from the first tick. A stood down roster door only starts the read-only scout.
+        // The four guards step on their own from the first tick. A stood down roster door only starts the read-only scout.
         _launchGuard.Step();
         _launchGuard.StepKitLane();
         _launchGuard.StepSensing();
+        _launchGuard.StepTwin();
+        _tableDoors.Step();
         if (_launchGuard.State == GuardState.StoodDown) _anchorScout.Tick();
 
         uint slot0 = _live.U32(Offsets.Slot0);

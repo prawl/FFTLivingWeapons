@@ -21,6 +21,8 @@ namespace LivingWeapon.Tests;
 /// </summary>
 public class GunSlingerTests
 {
+    private static bool DoorOpen() => true;
+
     // LW-193: shared defaults for the Stage-2 Policy call sites below -- a "consenting" out-of-
     // battle world: no menu open, no shield in the way, and a twinIds set containing whichever
     // single weapon id that test's `twin` argument uses (76, the Blaster, throughout Stage-2).
@@ -373,7 +375,7 @@ public class GunSlingerTests
         SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId,
                        off: EmptyU16, supp: 0);
 
-        var gs = new GunSlinger(MakeGunMeta(), kills, dir, mem);
+        var gs = new GunSlinger(MakeGunMeta(), kills, dir, DoorOpen, mem);
         gs.PrepRoster();
 
         long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
@@ -401,7 +403,7 @@ public class GunSlingerTests
         SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId,
                        off: 100, supp: 463);
 
-        var gs = new GunSlinger(MakeGunMeta(), kills, dir, mem);
+        var gs = new GunSlinger(MakeGunMeta(), kills, dir, DoorOpen, mem);
         gs.PrepRoster();
 
         long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
@@ -428,7 +430,7 @@ public class GunSlingerTests
         SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId,
                        off: EmptyU16, supp: 463);
 
-        var gs = new GunSlinger(MakeGunMeta(), kills, dir, mem);
+        var gs = new GunSlinger(MakeGunMeta(), kills, dir, DoorOpen, mem);
         gs.PrepRoster();  // snapshot (OrigOff = EMPTY) + write twin/Dual Wield
 
         // Now switch to a different main-hand weapon
@@ -463,7 +465,7 @@ public class GunSlingerTests
         SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId,
                        off: EmptyU16, supp: 0);   // NO support ability equipped
 
-        var gs = new GunSlinger(MakeGunMeta(), kills, dir, mem);
+        var gs = new GunSlinger(MakeGunMeta(), kills, dir, DoorOpen, mem);
         gs.PrepRoster();
 
         long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
@@ -500,7 +502,7 @@ public class GunSlingerTests
         var kills = new Dictionary<int, int> { [BlasterId] = Tuning.ProdThresholds[2] };
         SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId,
                        off: EmptyU16, supp: 0);
-        var gs = new GunSlinger(MakeGunMeta(), kills, dir, mem);
+        var gs = new GunSlinger(MakeGunMeta(), kills, dir, DoorOpen, mem);
         gs.PrepRoster();   // out of battle: snapshot + write twin (snap.HasOff now true)
 
         long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
@@ -527,7 +529,7 @@ public class GunSlingerTests
         var kills = new Dictionary<int, int> { [BlasterId] = Tuning.ProdThresholds[2] };
         SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId,
                        off: 100, supp: 463);   // a REAL off-hand, no prior snapshot
-        var gs = new GunSlinger(MakeGunMeta(), kills, dir, mem);
+        var gs = new GunSlinger(MakeGunMeta(), kills, dir, DoorOpen, mem);
 
         gs.PrepRoster(inBattle: true);   // in battle: must leave everything alone
 
@@ -556,7 +558,7 @@ public class GunSlingerTests
         var kills = new Dictionary<int, int> { [BlasterId] = Tuning.ProdThresholds[2] };
         SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId,
                        off: EmptyU16, supp: 0);
-        var gs = new GunSlinger(MakeGunMeta(), kills, dir, mem);
+        var gs = new GunSlinger(MakeGunMeta(), kills, dir, DoorOpen, mem);
         gs.PrepRoster();   // out of battle: snapshot established (OrigOff = EMPTY)
 
         long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
@@ -583,7 +585,7 @@ public class GunSlingerTests
         SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId,
                        off: EmptyU16, supp: 0);
 
-        var gs = new GunSlinger(MakeGunMeta(), kills, dir, mem);
+        var gs = new GunSlinger(MakeGunMeta(), kills, dir, DoorOpen, mem);
         gs.PrepRoster();
 
         long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
@@ -643,7 +645,7 @@ public class GunSlingerTests
         SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: OutriderPistolId, off: EmptyU16, supp: 0);
         SeedRosterSlot(mem, slot: 1, nameId: 2, level: 30, rh: ArbalestId, off: EmptyU16, supp: 0);
 
-        var gs = new GunSlinger(MakeTwoGunMeta(), kills, dir, mem);
+        var gs = new GunSlinger(MakeTwoGunMeta(), kills, dir, DoorOpen, mem);
         gs.PrepRoster();
 
         long bA = Offsets.RosterBase + 0 * Offsets.RosterStride;
@@ -682,7 +684,7 @@ public class GunSlingerTests
         SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: ArbalestId,
                        off: (ushort)OutriderPistolId, supp: DualWieldKey);
 
-        var gs = new GunSlinger(MakeTwoGunMeta(), kills, dir, mem);
+        var gs = new GunSlinger(MakeTwoGunMeta(), kills, dir, DoorOpen, mem);
         var snap = gs.StoreForTest().Get(nameId: 1);
         snap.HasOff = true;
         snap.OrigOff = 100;   // the real gear from before Gun Slinger ever engaged
@@ -713,7 +715,7 @@ public class GunSlingerTests
         };
         SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: ArbalestId, off: 111, supp: 0);
 
-        var gs = new GunSlinger(MakeTwoGunMeta(), kills, dir, mem);
+        var gs = new GunSlinger(MakeTwoGunMeta(), kills, dir, DoorOpen, mem);
         gs.PrepRoster();
 
         long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
@@ -744,7 +746,7 @@ public class GunSlingerTests
         SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: ArbalestId,
                        off: (ushort)OutriderPistolId, supp: 0);
 
-        var gs = new GunSlinger(MakeTwoGunMeta(), kills, dir, mem);
+        var gs = new GunSlinger(MakeTwoGunMeta(), kills, dir, DoorOpen, mem);
         gs.PrepRoster();
 
         long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
@@ -789,7 +791,7 @@ public class GunSlingerTests
         SeedRosterSlot(mem, slot: 0, nameId: 0, level: 30, rh: BlasterId, off: 100, supp: 0);
         SeedRosterSlot(mem, slot: 1, nameId: 0, level: 30, rh: BlasterId, off: 200, supp: 0);
 
-        var gs = new GunSlinger(MakeGunMeta(), kills, dir, mem);
+        var gs = new GunSlinger(MakeGunMeta(), kills, dir, DoorOpen, mem);
         gs.PrepRoster();
 
         long bA = Offsets.RosterBase + 0 * Offsets.RosterStride;
@@ -838,5 +840,43 @@ public class GunSlingerTests
         string onDisk = File.ReadAllText(primary);
         Assert.DoesNotContain("\"0\":", onDisk);
         Assert.Contains("\"1\":", onDisk);
+    }
+
+    [Fact]
+    public void PrepRoster_writes_nothing_while_the_twin_door_is_closed_and_writes_when_open()
+    {
+        long b = Offsets.RosterBase;
+        var kills = new Dictionary<int, int> { [BlasterId] = Tuning.ProdThresholds[2] };
+
+        using (var temp = TempDirs.Create("gs_test_"))
+        using (var cap = LogCapture.Start())
+        {
+            var mem = new FakeSparseMemory();
+            SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId, off: EmptyU16, supp: 0);
+            var gs = new GunSlinger(MakeGunMeta(), kills, temp.Dir, () => false, mem);
+
+            gs.PrepRoster();
+            gs.PrepRoster();
+
+            Assert.Empty(mem.WrittenU16);
+            Assert.False(gs.StoreForTest().Get(1).HasOff);
+            Assert.False(gs.StoreForTest().Get(1).HasSupp);
+            Assert.False(File.Exists(Path.Combine(temp.Dir, "gunslinger.json")));
+            Assert.Single(cap.File, l => l.Contains("[WARN]") && l.Contains("twin weapon grant was asked to run"));
+        }
+
+        using (var temp = TempDirs.Create("gs_test_"))
+        using (var cap = LogCapture.Start())
+        {
+            var mem = new FakeSparseMemory();
+            SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId, off: EmptyU16, supp: 0);
+            var gs = new GunSlinger(MakeGunMeta(), kills, temp.Dir, () => true, mem);
+
+            gs.PrepRoster();
+
+            Assert.Equal((ushort)BlasterId, mem.WrittenU16[b + Offsets.ROffHand]);
+            Assert.Equal(DualWieldKey, mem.WrittenU16[b + Offsets.RSupport]);
+            Assert.DoesNotContain(cap.File, l => l.Contains("asked to run"));
+        }
     }
 }

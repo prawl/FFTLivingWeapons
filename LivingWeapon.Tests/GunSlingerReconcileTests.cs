@@ -12,6 +12,8 @@ namespace LivingWeapon.Tests;
 /// </summary>
 public class GunSlingerReconcileTests
 {
+    private static bool DoorOpen() => true;
+
     private const int BlasterId = 76;
     private const int OutriderPistolId = 71;
     private const int ArbalestId = 79;
@@ -101,7 +103,7 @@ public class GunSlingerReconcileTests
         var mem = new FakeSparseMemory();
         var kills = new Dictionary<int, int> { [BlasterId] = Tuning.ProdThresholds[2] };
         SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId, off: EmptyU16, supp: 0);
-        var gs = new GunSlinger(MakeGunMeta(), kills, dir, mem);
+        var gs = new GunSlinger(MakeGunMeta(), kills, dir, DoorOpen, mem);
         gs.PrepRoster();   // grant
 
         long b = RowAddr(0);
@@ -206,7 +208,7 @@ public class GunSlingerReconcileTests
         SeedRosterSlot(mem, slot, nameId, level: 30, rh: (ushort)twinId, off: EmptyU16, supp: 0);
         SetSack(mem, twinId, startingSack);
         var flight = new List<(string type, string payload)>();
-        var gs = new GunSlinger(meta, kills, dir, mem, recorder: (t, p) => flight.Add((t, p)));
+        var gs = new GunSlinger(meta, kills, dir, DoorOpen, mem, recorder: (t, p) => flight.Add((t, p)));
         gs.PrepRoster();   // pass 1: grant fires; row memory bootstraps OffTwinId=0 (pre-grant raw read)
         gs.PrepRoster();   // pass 2: off now reads the twin; row memory re-baselines OffTwinId=twin
         long b = RowAddr(slot);
@@ -312,7 +314,7 @@ public class GunSlingerReconcileTests
         SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: (ushort)OutriderPistolId, off: 200, supp: 0);
         SetSack(mem, OutriderPistolId, 7);
         var flight = new List<(string type, string payload)>();
-        var gs = new GunSlinger(MakeTwoGunMeta(), kills, temp.Dir, mem, recorder: (t, p) => flight.Add((t, p)));
+        var gs = new GunSlinger(MakeTwoGunMeta(), kills, temp.Dir, DoorOpen, mem, recorder: (t, p) => flight.Add((t, p)));
         gs.PrepRoster();
         gs.PrepRoster();
 
@@ -333,7 +335,7 @@ public class GunSlingerReconcileTests
         SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: 1 /* unflagged */, off: (ushort)OutriderPistolId, supp: 0);
         SetSack(mem, OutriderPistolId, 7);
         var flight = new List<(string type, string payload)>();
-        var gs = new GunSlinger(MakeTwoGunMeta(), kills, temp.Dir, mem, recorder: (t, p) => flight.Add((t, p)));
+        var gs = new GunSlinger(MakeTwoGunMeta(), kills, temp.Dir, DoorOpen, mem, recorder: (t, p) => flight.Add((t, p)));
         gs.PrepRoster();   // never touched (rule 5: player-owned dual-wield build) -- HasOff stays false
         gs.PrepRoster();
 
@@ -415,7 +417,7 @@ public class GunSlingerReconcileTests
         var mem = new FakeSparseMemory();
         var kills = new Dictionary<int, int> { [BlasterId] = Tuning.ProdThresholds[2] };
         SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId, off: EmptyU16, supp: 0);
-        var gs = new GunSlinger(MakeGunMeta(), kills, temp.Dir, mem);
+        var gs = new GunSlinger(MakeGunMeta(), kills, temp.Dir, DoorOpen, mem);
 
         // Grant at Status (menu closed is the free-map default here).
         gs.PrepRoster();
@@ -469,7 +471,7 @@ public class GunSlingerReconcileTests
         var mem = new FakeSparseMemory();
         var kills = new Dictionary<int, int> { [BlasterId] = Tuning.ProdThresholds[2] };
         SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId, off: 100, supp: 0);   // real off-hand item
-        var gs = new GunSlinger(MakeGunMeta(), kills, temp.Dir, mem);
+        var gs = new GunSlinger(MakeGunMeta(), kills, temp.Dir, DoorOpen, mem);
         long b = RowAddr(0);
 
         gs.PrepRoster();
@@ -493,7 +495,7 @@ public class GunSlingerReconcileTests
         var mem = new FakeSparseMemory();
         var kills = new Dictionary<int, int> { [BlasterId] = Tuning.ProdThresholds[2] };
         SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId, off: EmptyU16, supp: 0);
-        var gs = new GunSlinger(MakeGunMeta(), kills, temp.Dir, mem);
+        var gs = new GunSlinger(MakeGunMeta(), kills, temp.Dir, DoorOpen, mem);
         gs.PrepRoster();   // grant
 
         long b = RowAddr(0);
@@ -515,7 +517,7 @@ public class GunSlingerReconcileTests
         // off happens to equal the flagged id, but no grant is on record -- a coincidental
         // player-owned dual-wield build.
         SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId, off: (ushort)BlasterId, supp: 0);
-        var gs = new GunSlinger(MakeGunMeta(), kills, temp.Dir, mem);
+        var gs = new GunSlinger(MakeGunMeta(), kills, temp.Dir, DoorOpen, mem);
 
         gs.PrepRoster();
 
@@ -540,7 +542,7 @@ public class GunSlingerReconcileTests
         mem.ReadableAddrs.Add(altBase + OutriderPistolId);
         mem.U8s[altBase + OutriderPistolId] = 7;
         var flight = new List<(string type, string payload)>();
-        var gs = new GunSlinger(MakeTwoGunMeta(), kills, temp.Dir, mem, recorder: (t, p) => flight.Add((t, p)), bagCountBase: () => altBase);
+        var gs = new GunSlinger(MakeTwoGunMeta(), kills, temp.Dir, DoorOpen, mem, recorder: (t, p) => flight.Add((t, p)), bagCountBase: () => altBase);
         gs.PrepRoster();   // pass 1: grant fires; row memory bootstraps OffTwinId=0 (pre-grant raw read)
         gs.PrepRoster();   // pass 2: off now reads the twin; row memory re-baselines OffTwinId=twin
 

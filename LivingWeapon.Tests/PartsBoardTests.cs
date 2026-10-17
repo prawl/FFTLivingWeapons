@@ -208,4 +208,56 @@ public class PartsBoardTests
         Assert.Empty(rig.Notices);
         Assert.False(rig.Board.WaveOpen);
     }
+
+    [Fact]
+    public void A_twin_closure_boxes_once_and_carries_the_sentence_it_was_given()
+    {
+        using var cap = LogCapture.Start();
+        var rig = new Rig();
+        rig.Tick(10);
+        rig.R[Door.TwinPistols] = DoorReading.Failed("the menu flags the twin weapon grant relies on do not read as expected");
+
+        rig.Tick(PartsBoard.SettleSteps + 1, "", PartsReport.TwinDrillSentence);
+
+        var box = Assert.Single(rig.Notices);
+        Assert.EndsWith(PartsReport.TwinDrillSentence, box.text);
+        Assert.Contains("Switched off: twin weapons", box.text);
+        rig.Tick(5000, "", PartsReport.TwinDrillSentence);
+        Assert.Single(rig.Notices);
+        Assert.Equal(1, rig.Board.BoxCount);
+    }
+
+    [Fact]
+    public void A_palette_door_closure_boxes_once_with_the_sentence_in_the_box()
+    {
+        using var cap = LogCapture.Start();
+        var rig = new Rig();
+        rig.Tick(5);
+        rig.R[Door.PaletteBanks] = DoorReading.Failed("the weapon palette is not where this mod expects it");
+
+        rig.Tick(PartsBoard.SettleSteps, drill: PartsReport.TableDrillSentence);
+        Assert.Empty(rig.Notices);
+        rig.Tick(1, drill: PartsReport.TableDrillSentence);
+
+        var box = Assert.Single(rig.Notices);
+        Assert.Contains("weapon colors", box.text);
+        Assert.EndsWith(PartsReport.TableDrillSentence, box.text);
+        Assert.Contains(rig.Records, r => r.payload == "parts box shown (1 parts off)");
+        rig.Tick(500, drill: PartsReport.TableDrillSentence);
+        Assert.Single(rig.Notices);
+    }
+
+    [Fact]
+    public void An_empty_drill_sentence_adds_nothing_to_the_box()
+    {
+        using var cap = LogCapture.Start();
+        var rig = new Rig();
+        rig.R[Door.ItemStats] = DoorReading.Failed("the item data is not where this mod expects it");
+
+        rig.Tick(PartsBoard.SettleSteps + 1);
+
+        var box = Assert.Single(rig.Notices);
+        Assert.DoesNotContain("LW_FORCE_", box.text);
+        Assert.Equal(PartsReport.ComposeBox(rig.R, "", ""), box.text);
+    }
 }

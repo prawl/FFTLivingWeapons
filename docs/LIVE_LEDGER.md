@@ -1862,6 +1862,8 @@ A cut ability (id 189) can be renamed, granted as a real learned player command,
 
 **Date:** 2026-07-22
 
+**Addendum 2026-10-17 (LW-399, offline file image read, not a live capture):** "hardcoded in the exe" holds for the DECOY copy only. In the exe file the live copy at `0x14078B2DC` is a template, every one of its 368 rows reading `FF FF FF FF` then sixteen zero bytes, and the engine fills it at boot from the ability data; the decoy at `0x14078961C` carries the filled bytes (row 189 byte +15 = `0x2D`). The `FF FF FF FF` row markers survive the fill. Read by tools/probes/static_table_file_image_probe.py against stamp 0x6A5E4A1B. See [action-table-live-copy-filled-at-boot].
+
 </details>
 
 ### [invented-status-id0-mark] A status can be INVENTED: blank StatusEffectData id 0 applies at 100% and performs nothing; Wall REJECTED (makes bearer invincible)
@@ -2310,6 +2312,22 @@ The claim that a matching PE build key combined with a rec8/rec9 landmark mismat
 **Evidence:** desk analysis 2026-07-28 + the 2026-07-21 player field report (CustomJOB_ITEM alongside this mod popped the stand-down box naming landmark 2 while the game had not updated); the pre-registered two-leg conflict-mod drill (docs/DEV_TEST_RECIPES.md, LW-112 section) is the owner's pending live proof
 
 **Date:** 2026-07-28
+
+</details>
+
+### [twin-menu-flags-zero-at-map-time] The two menu flags and Ramza's hand words read zero or one and plausible item ids on a loaded save, so the twin weapon door can check them once at Continue (LW-400)
+
+The claim that the world map menu byte (0x140D508D0) and the party browse byte (0x140D408E2) only ever read 0 or 1, and that Ramza's right hand, off hand, shield and support words on a loaded save read at most 0x1FF or exactly 0xFFFF, is Uncertain: the file image half is checked offline and the live half is one save per earlier ledger row, with the first full read of this row waiting on the owner's LW-400 legs (2026-10-17).
+
+<details><summary>How we got here</summary>
+
+**Claim (original wording):** Both menu flags sit in the exe's .data past its raw data, so they read zero from module map time and are always mapped; on a loaded save they hold only 0 or 1; slot 0 of the roster holds hand words that are item ids (at most 511 = 0x1FF) or an empty sentinel (0, 255, 0xFFFF) and a support key under 512. The twin weapon door arms on that, stands down on anything else, and reads WAITING while slot 0's level is 0.
+
+**Mechanism:** tools/probes/twin_flags_file_image_probe.py against the 1.5.2 Denuvo-free exe (stamp 0x6A5E4A1B, size 0x03F9E000): MenuOpenFlag 0x140D508D0 and PartyBrowseFlag 0x140D408E2 are past the raw data of .data (raw 0x1A3A00 of virtual 0x35A87FC), zero until written, inside the mapped span; the roster fields are the same. Mem.TryReadBytes is a raw ReadProcessMemory with no Readable pre filter, so a mapped but unreadable page reads false and the probe reports "menu flags unreadable", never a crash. Item ids end at ExtendedCatalog.LastExtendedId (511); every known roster key (Poach 471, Dual Wield 477, Non-charge 483, Master Teleportation 499) is id plus 256 and under 512.
+
+**Evidence:** the offline probe output above, re-derived independently from the PE section table in the plan review; the ledger rows [worldmap-menu-open-byte] and [party-browse-screen-byte] (one save, one session each, tapes lw193_menusig_20260817_063908.log and lw193_menusig_20260817_110948.log) for the 0 or 1 values. Unobserved for the menu byte: title screen, story dialogs, the world map modal box, mid battle menus; for the browse byte: the Equipment and Abilities sub pickers, formation, battle. The door reads the flags only at arming time, so the live read that matters is the twin lane armed line in the same second as the roster armed line on Continue (docs/DEV_TEST_RECIPES.md, LW-400 recipe, Leg B). A twin warning naming a flag value or a hand word falsifies this row on that save. A value of 2 or more after arming is handled by the grant's own menu gate, which denies on it.
+
+**Date:** 2026-10-17
 
 </details>
 
@@ -2976,6 +2994,37 @@ What the doors rest on: eleven of the eighteen band signature modules read the s
 
 **Date:** 2026-10-17
 
+### [action-table-live-copy-filled-at-boot] The live ability action table is a template in the exe file and the game fills it at boot, so row 189 reads the decoy copy's bytes (byte +15 = 0x2D) once a save has loaded
+
+The claim (LW-399, 2026-10-17) is Uncertain: the static half is read offline from the exe file, the fill timing and the exact 0x2D at runtime are not yet isolated live.
+
+<details><summary>How we got here</summary>
+
+**Claim (original wording):** After boot the live action table row 189 holds the decoy copy's file bytes, in particular byte +15 = 0x2D and a non zero fill in +4..+17, and the `FF FF FF FF` row markers survive the fill.
+
+**Mechanism:** the live table at `0x14078B2DC` is `FF FF FF FF` plus sixteen zeros on all 368 rows in the file (one distinct row pattern, no direct code reference), and the decoy at `0x14078961C` carries the filled bytes. The ProvokeTables door pins the markers and reads a row 189 with no non zero byte outside +15 as "not loaded yet"; Provoke's capture compares byte +15 to 0x2D.
+
+**Evidence:** offline only: tools/probes/static_table_file_image_probe.py against stamp 0x6A5E4A1B (the decoy row 189 reads `FF FF FF FF 05 00 00 01 11 12 00 00 38 00 00 2D 00 00 00 00`), plus the 2026-07-22 live read of row 189 recorded in [cut-ability-provoke-recipe] (range 5, formula 56, MP 0, CT 0, inflict 0x2D). Owner live check pending: a repeated identical Parts report line on the title screen, or the flight record table door armed (provoke-tables), marks the fill; after Continue provoke reads ON with no data reason, and a Defender wielder gets the grant line with no capture refusal warning.
+
+**Date:** 2026-10-17
+
+</details>
+
+### [item-stats-table-filled-at-boot] The resident item stats table is vanilla in the exe file and the game fills it at boot (or at save load) from the modloader's item data, so the pinned non gun rows read their rebalanced values once loaded
+
+The claim (LW-399, 2026-10-17) is Uncertain: the file image is read offline and the runtime table is inherited from [wp-table-write-live-damage], but the fill timing is not yet observed.
+
+<details><summary>How we got here</summary>
+
+**Claim (original wording):** The item stats table at `0x14080F690` is vanilla in the file and holds the mod's rebalanced WP at runtime, so the game fills it at boot or at save load from the nxd the modloader overrides.
+
+**Mechanism:** 121 weapon ids compared against data/items.json: 72 match the baseline only, 42 match both, none match the proposed value only, 7 match neither (baseline typos, LW-414). The ItemStats door pins the addressing instruction at `0x1402B8CBC` and treats eight non gun rows reading their vanilla bytes as "not loaded yet".
+
+**Evidence:** offline only: tools/probes/static_table_file_image_probe.py against stamp 0x6A5E4A1B, plus the inherited live proof [wp-table-write-live-damage]. Owner live check pending: note the timestamp of the flight record table door armed (item-stats), or of the repeated Parts report line on the title screen, against the Continue press; before or after Continue is accepted.
+
+**Date:** 2026-10-17
+
+</details>
 ## Contradicted, probe before building on these
 
 ### [icon-refresh-unreliable] RETRACTED 2026-09-01: the "leave the list and come back" icon refresh is REAL and reproducible; this row's contradiction did not hold

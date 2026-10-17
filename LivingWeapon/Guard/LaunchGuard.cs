@@ -3,14 +3,13 @@ using System;
 namespace LivingWeapon;
 
 /// <summary>
-/// The LivingWeapon adapter over the portable <see cref="FingerprintGuard"/>. It holds five independent guards, each feeding a door
-/// of the parts registry. The main guard checks Ramza's roster row at RosterBase slot 0, a data only landmark, and its armed edge is
-/// what enables Mem writes. The kit lane (LaunchGuard.KitLane.cs) checks the JobCommand table, the sensing lane
-/// (LaunchGuard.Sensing.cs) checks the battle sentinels and the band and static array doors (LaunchGuard.BattleDoors.cs) check the
-/// two battle regions once a battle is live. The build stamp is only reported (LaunchGuard.Stamp.cs). Before a save loads the roster
-/// row reads Unreadable, never Mismatch, so the title screen stands nothing down. Armed and stood down are terminal, since Barrage
-/// legitimately edits the JobCommand region afterward. Edges record into the flight ring and a stand down requests a "standdown"
-/// flush. Boxes belong to the parts board. Door readings, lane timers and the roster drill live in LaunchGuard.Doors.cs.
+/// The LivingWeapon adapter over the portable <see cref="FingerprintGuard"/>. It holds six independent guards and each one
+/// feeds a door of the parts registry. The main guard checks Ramza's roster row at RosterBase slot 0, a data only landmark, and
+/// its armed edge is what enables Mem writes. The kit lane (LaunchGuard.KitLane.cs) checks the JobCommand table, the sensing lane
+/// (LaunchGuard.Sensing.cs) checks the battle sentinels, the twin lane (LaunchGuard.Twin.cs) checks the menu flags, and the band
+/// and static array doors (LaunchGuard.BattleDoors.cs) check the two battle regions once a battle is live. The build stamp is
+/// only reported (LaunchGuard.Stamp.cs). Before a save loads the roster row reads Unreadable, never Mismatch. Armed and
+/// stood down are terminal. Boxes belong to the parts board; door readings and the roster drill live in LaunchGuard.Doors.cs.
 /// </summary>
 internal sealed partial class LaunchGuard
 {
@@ -32,14 +31,16 @@ internal sealed partial class LaunchGuard
     /// <param name="forceSensingMismatch">Dev drill LW_FORCE_SENSING_MISMATCH. Makes healthy sentinels read as a mismatch.</param>
     /// <param name="forceUnreadable">Dev drill LW_FORCE_GUARD_UNREADABLE. Both main landmarks read Unreadable for DrillBlindSteps.</param>
     /// <param name="forceRosterMismatch">Dev drill LW_FORCE_ROSTER_MISMATCH. A populated healthy roster row reads as a mismatch.</param>
+    /// <param name="forceTwinMismatch">Dev drill LW_FORCE_TWIN_MISMATCH. Once a save is loaded the menu flag check reads as a mismatch.</param>
     public LaunchGuard(IGameMemory mem, bool forceMismatch, Action<string, string>? notice = null,
         Action<string, string>? recorder = null, Action<string>? requestFlush = null,
         bool forceSensingMismatch = false, bool forceUnreadable = false, bool forceRosterMismatch = false,
-        bool forceBandMismatch = false)
+        bool forceTwinMismatch = false, bool forceBandMismatch = false)
     {
         _mem = mem;
         _forceMismatch = forceMismatch;
         _forceRosterMismatch = forceRosterMismatch;
+        _forceTwinMismatch = forceTwinMismatch;
         _forceBandMismatch = forceBandMismatch;
         _notice = notice;
         _recorder = recorder;
@@ -61,6 +62,8 @@ internal sealed partial class LaunchGuard
         };
         _guard = new FingerprintGuard(landmarks, StandDown, ArmedEdge, MismatchDebounce);
         _kitLaneGuard = new FingerprintGuard(new[] { KitLaneLandmark() }, KitLaneStandDown, KitLaneArmedEdge, MismatchDebounce);
+
+        _twinGuard = new FingerprintGuard(new[] { TwinLandmark() }, TwinStandDown, TwinArmedEdge, MismatchDebounce);
 
         _forceSensingMismatch = forceSensingMismatch;
         _expectedSlot9 = forceSensingMismatch ? SensingSentinelIdle ^ 1 : SensingSentinelIdle;

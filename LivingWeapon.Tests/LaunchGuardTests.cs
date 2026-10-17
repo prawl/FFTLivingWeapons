@@ -69,8 +69,17 @@ public class LaunchGuardTests
         StagePeHealthy(mem);
         StageJobCommandHealthy(mem);
         StageRamzaRow(mem, level, nameId, sprite, brave, faith);
+        StageTwinFlags(mem, 0, 0);
         return mem;
     }
+
+    private static void StageTwinFlags(FakeSparseMemory mem, byte menu, byte browse)
+    {
+        mem.TerrainBlocks[Offsets.MenuOpenFlag] = new byte[] { menu };
+        mem.TerrainBlocks[Offsets.PartyBrowseFlag] = new byte[] { browse };
+    }
+
+    private static void StepTwinN(LaunchGuard g, int n) { for (int i = 0; i < n; i++) g.StepTwin(); }
 
     // LW-387 (ported by LW-388): the Denuvo-free 1.5.2 build loads at a random (ASLR) base. These
     // stage the PE header, Ramza's roster row and the JobCommand bytes at addresses that FOLLOW the
@@ -1478,7 +1487,7 @@ public class LaunchGuardTests
     }
 
     [Fact]
-    public void Kit_lane_and_sensing_doors_read_open_on_healthy_memory()
+    public void Kit_lane_sensing_and_twin_doors_read_open_on_healthy_memory()
     {
         WithWritesRestored(() =>
         {
@@ -1489,10 +1498,12 @@ public class LaunchGuardTests
             guard.Step();
             guard.StepKitLane();
             guard.StepSensing();
+            guard.StepTwin();
 
             Assert.Equal(DoorState.Open, guard.RosterDoor.State);
             Assert.Equal(DoorState.Open, guard.KitLaneDoor.State);
             Assert.Equal(DoorState.Open, guard.SensingDoor.State);
+            Assert.Equal(DoorState.Open, guard.TwinPistolsDoor.State);
         });
     }
 
@@ -1774,5 +1785,195 @@ public class LaunchGuardTests
             Assert.DoesNotContain("standing down to protect your save", text);
             Assert.DoesNotContain("switched itself off", text);
         }
+    }
+
+    // The twin weapon door (LW-400).
+
+    private const string TwinDrillFlag = "LW_FORCE_TWIN_MISMATCH";
+    private const string ScannerPhrase = "standing down to protect your save";
+
+    private static FakeSparseMemory EmptySlotMemory()
+    {
+        var mem = HealthyMemory(level: 0);
+        mem.TerrainBlocks[Offsets.RosterBase + Offsets.RLevel] = new byte[] { 0 };   // mapped zero, the title screen
+        return mem;
+    }
+
+    [Fact]
+    public void Twin_door_waits_while_the_roster_row_is_empty()
+    {
+        using var cap = LogCapture.Start();
+        var guard = new LaunchGuard(EmptySlotMemory(), forceMismatch: false);
+
+        StepTwinN(guard, 400);
+
+        Assert.Equal(GuardState.Verifying, guard.TwinState);
+        Assert.Equal(DoorState.Waiting, guard.TwinPistolsDoor.State);
+        Assert.Equal("waiting for a save to load", guard.TwinPistolsDoor.Reason);
+        Assert.DoesNotContain(cap.File, l => l.Contains("menu flag check"));
+    }
+
+    [Fact]
+    public void Twin_door_arms_on_a_healthy_save_with_flags_zero_or_one()
+    {
+        using var cap = LogCapture.Start();
+        var records = new List<(string type, string payload)>();
+        var guard = new LaunchGuard(HealthyMemory(), forceMismatch: false, recorder: (t, p) => records.Add((t, p)));
+
+        guard.StepTwin();
+        guard.StepTwin();
+
+        Assert.Equal(GuardState.Armed, guard.TwinState);
+        Assert.Equal(DoorState.Open, guard.TwinPistolsDoor.State);
+        Assert.Single(records, r => r.payload.Contains("twin lane armed"));
+        Assert.Single(cap.File, l => l.Contains("The menu flags read as expected; the twin weapon grant is enabled."));
+
+        var ones = HealthyMemory();
+        StageTwinFlags(ones, 1, 1);
+        var guard2 = new LaunchGuard(ones, forceMismatch: false);
+        guard2.StepTwin();
+        Assert.Equal(GuardState.Armed, guard2.TwinState);
+    }
+
+    [Fact]
+    public void Twin_door_stands_down_on_an_implausible_flag()
+    {
+        using var cap = LogCapture.Start();
+        var records = new List<(string type, string payload)>();
+        var flushes = new List<string>();
+        var mem = HealthyMemory();
+        StageTwinFlags(mem, 7, 0);
+        var guard = new LaunchGuard(mem, forceMismatch: false, recorder: (t, p) => records.Add((t, p)),
+            requestFlush: flushes.Add);
+
+        StepTwinN(guard, 29);
+        Assert.Equal(GuardState.Verifying, guard.TwinState);
+        guard.StepTwin();
+
+        Assert.Equal(GuardState.StoodDown, guard.TwinState);
+        Assert.Equal(DoorState.Closed, guard.TwinPistolsDoor.State);
+        Assert.True(guard.TwinPistolsDoor.FailedCheck);
+        Assert.Equal(LaunchGuard.TwinClosedReason, guard.TwinPistolsDoor.Reason);
+        string warn = Assert.Single(cap.File, l => l.Contains("[WARN]"));
+        Assert.Contains("menu flag reads 7", warn);
+        Assert.DoesNotContain(ScannerPhrase, warn);
+        Assert.DoesNotContain("LW_FORCE_", warn);
+        Assert.Single(records, r => r.payload.Contains("twin lane stand-down"));
+        Assert.Equal(new[] { "standdown" }, flushes);
+    }
+
+    [Fact]
+    public void Twin_door_stands_down_on_an_out_of_range_hand_word()
+    {
+        using var cap = LogCapture.Start();
+        var mem = HealthyMemory();
+        mem.U16s[Offsets.RosterBase + Offsets.ROffHand] = 0x1234;
+        var guard = new LaunchGuard(mem, forceMismatch: false);
+
+        StepTwinN(guard, 30);
+
+        Assert.Equal(GuardState.StoodDown, guard.TwinState);
+        string warn = Assert.Single(cap.File, l => l.Contains("[WARN]"));
+        Assert.Contains("off hand reads 0x1234", warn);
+
+        foreach (ushort ok in new ushort[] { 0, 255, 0x1FF, 0xFFFF })
+        {
+            var good = HealthyMemory();
+            good.U16s[Offsets.RosterBase + Offsets.ROffHand] = ok;
+            good.U16s[Offsets.RosterBase + Offsets.RSupport] = ok;
+            var g = new LaunchGuard(good, forceMismatch: false);
+            g.StepTwin();
+            Assert.Equal(GuardState.Armed, g.TwinState);
+        }
+    }
+
+    [Fact]
+    public void Twin_flags_unreadable_keeps_waiting_and_speaks_once()
+    {
+        using var cap = LogCapture.Start();
+        var mem = HealthyMemory();
+        mem.TerrainBlocks.Remove(Offsets.MenuOpenFlag);
+        mem.TerrainBlocks.Remove(Offsets.PartyBrowseFlag);
+        var guard = new LaunchGuard(mem, forceMismatch: false);
+
+        StepTwinN(guard, LaunchGuard.DoorWaitSteps);
+        Assert.Single(cap.File, l => l.Contains("menu flag check has not been able to read"));
+        StepTwinN(guard, 3600 - LaunchGuard.DoorWaitSteps);
+
+        string line = Assert.Single(cap.File, l => l.Contains("menu flag check has not been able to read"));
+        Assert.Contains("twin weapons stays WAITING", line);
+        Assert.DoesNotContain(ScannerPhrase, line);
+        Assert.Equal(DoorState.Waiting, guard.TwinPistolsDoor.State);
+        Assert.Equal("the menu flags cannot be read yet", guard.TwinPistolsDoor.Reason);
+
+        using var cap2 = LogCapture.Start();
+        var blind = new LaunchGuard(HealthyMemory(level: 0), forceMismatch: false);   // roster page unreadable
+        StepTwinN(blind, 3600);
+        Assert.DoesNotContain(cap2.File, l => l.Contains("menu flag check"));
+    }
+
+    [Fact]
+    public void Twin_drill_fires_only_on_a_populated_row()
+    {
+        using var cap = LogCapture.Start();
+        var mem = EmptySlotMemory();
+        var guard = new LaunchGuard(mem, forceMismatch: false, forceTwinMismatch: true);
+
+        StepTwinN(guard, 100);
+        Assert.Equal(GuardState.Verifying, guard.TwinState);
+
+        mem.U8s[Offsets.RosterBase + Offsets.RLevel] = 12;
+        StepTwinN(guard, 29);
+        Assert.Equal(GuardState.Verifying, guard.TwinState);
+        guard.StepTwin();
+
+        Assert.Equal(GuardState.StoodDown, guard.TwinState);
+        Assert.Contains("drill: " + TwinDrillFlag, Assert.Single(cap.File, l => l.Contains("[WARN]")));
+        Assert.Contains(TwinDrillFlag, guard.TwinPistolsDoor.Reason);
+
+        using var cap2 = LogCapture.Start();
+        var real = HealthyMemory();
+        StageTwinFlags(real, 7, 0);
+        var realGuard = new LaunchGuard(real, forceMismatch: false);
+        StepTwinN(realGuard, 30);
+        Assert.DoesNotContain(cap2.File, l => l.Contains("LW_FORCE_"));
+        Assert.DoesNotContain("LW_FORCE_", realGuard.TwinPistolsDoor.Reason);
+    }
+
+    [Fact]
+    public void Twin_door_reads_per_detail_with_stable_reasons()
+    {
+        var empty = new LaunchGuard(EmptySlotMemory(), forceMismatch: false);
+        Assert.Equal("the menu flag check has not run yet", empty.TwinPistolsDoor.Reason);
+        empty.StepTwin();
+        Assert.Equal("waiting for a save to load", empty.TwinPistolsDoor.Reason);
+
+        var blind = new LaunchGuard(HealthyMemory(level: 0), forceMismatch: false);
+        blind.StepTwin();
+        Assert.Equal("the game cannot be read yet", blind.TwinPistolsDoor.Reason);
+
+        var noFlags = HealthyMemory();
+        noFlags.TerrainBlocks.Remove(Offsets.MenuOpenFlag);
+        var unreadable = new LaunchGuard(noFlags, forceMismatch: false);
+        unreadable.StepTwin();
+        Assert.Equal("the menu flags cannot be read yet", unreadable.TwinPistolsDoor.Reason);
+        Assert.False(unreadable.TwinPistolsDoor.FailedCheck);
+
+        var bad = HealthyMemory();
+        StageTwinFlags(bad, 0, 9);
+        var closed = new LaunchGuard(bad, forceMismatch: false);
+        StepTwinN(closed, 30);
+        Assert.True(closed.TwinPistolsDoor.FailedCheck);
+        Assert.Equal(DoorState.Closed, closed.TwinPistolsDoor.State);
+    }
+
+    [Fact]
+    public void Twin_texts_never_speak_the_scanner_stand_down_phrase()
+    {
+        var mem = HealthyMemory();
+        StageTwinFlags(mem, 7, 7);
+        using var cap = LogCapture.Start();
+        StepTwinN(new LaunchGuard(mem, forceMismatch: true, forceTwinMismatch: true), 30);
+        Assert.DoesNotContain(cap.File, l => l.Contains(ScannerPhrase));
     }
 }

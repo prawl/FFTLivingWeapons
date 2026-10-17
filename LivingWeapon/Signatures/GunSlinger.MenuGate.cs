@@ -5,7 +5,7 @@ namespace LivingWeapon;
 /// evaporation write is gone (see GunSlinger.cs); the duplication defense is the watch-only reconcile
 /// in GunSlinger.Reconcile.cs. Produces <c>menuOpen</c> for PrepRoster's call into GunSlingerPolicy rule 1.
 ///
-/// Out-of-battle twin-lane writes are allowed only when <c>menuReadable &amp;&amp; (menuRaw == 0 ||
+/// Out-of-battle twin-lane writes are allowed only when <c>menuReadable &amp;&amp; menuRaw &lt;= 1 &amp;&amp; (menuRaw == 0 ||
 /// (browseReadable &amp;&amp; browseRaw == 1 &amp;&amp; browseStable))</c>. Any unreadable byte denies, and
 /// <c>menuOpen</c> is the negation. In-battle lanes and the twilight hold are untouched, since rule 1
 /// only suppresses when !inBattle.
@@ -44,6 +44,7 @@ internal sealed partial class GunSlinger
     {
         if (!_mem.Readable(Offsets.MenuOpenFlag, 1)) return (false, true);
         byte raw = _mem.U8(Offsets.MenuOpenFlag);
+        if (raw > 1) return (false, true);   // a byte outside 0 or 1 is read as unreadable
 
         if (_lastMenuRaw == null)
         {

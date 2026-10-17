@@ -28,8 +28,13 @@ internal sealed partial class Provoke : ISignature
     private int _lastUnsupportedJob = -1;
     private bool _noSlotLogged;   // Signatures.StuckEdge latch. No empty slot nag
 
-    public Provoke(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, IGameMemory? mem = null)
+    private readonly DoorLatch? _latch;
+
+    internal DoorLatch? Latch => _latch;
+
+    public Provoke(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, IGameMemory? mem = null, DoorLatch? latch = null)
     {
+        _latch = latch;
         _mem = mem ?? new LiveMemory();
         _meta = meta;
         _kills = kills;
@@ -46,6 +51,7 @@ internal sealed partial class Provoke : ISignature
     public void Tick()
     {
         if (!_meta.TryGetValue(DefenderId, out var m) || m.Signature is null) return;
+        if (_latch is { } door && !door.Allows()) return;
         int tier = Tuning.TierOf(_kills, DefenderId);
         int abilityId = m.Signature.GrantCommandAbilityId;
         bool active = ProvokePolicy.IsActive(m.Signature, tier);

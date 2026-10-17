@@ -1,6 +1,6 @@
 namespace LivingWeapon;
 
-/// <summary>The ten switchable parts of the mod, in report order. Dependency free.</summary>
+/// <summary>The fourteen switchable parts of the mod, in report order. Dependency free.</summary>
 internal enum Part
 {
     Sensing,
@@ -8,15 +8,19 @@ internal enum Part
     StatGrowth,
     CardPaint,
     BandSignatures,
-    StaticTableSignatures,
     WeaponCommands,
     Banners,
     ExtendedInventory,
     TwinPistols,
+    Bulwark,
+    WeaponColors,
+    GunGrowth,
+    PoachDen,
+    Provoke,
 }
 
-/// <summary>The seven checks that feed the parts registry, in the order a part lists them.</summary>
-internal enum Door { Roster, KitLane, Sensing, PromptHook, ExtendedArm, Band, StaticArray }
+/// <summary>The thirteen checks that feed the parts registry, in the order a part lists them.</summary>
+internal enum Door { Roster, KitLane, Sensing, PromptHook, ExtendedArm, TwinPistols, TerrainGrid, PaletteBanks, PoachStore, ProvokeTables, ItemStats, Band, StaticArray }
 
 internal enum DoorState { Waiting, Open, Closed }
 

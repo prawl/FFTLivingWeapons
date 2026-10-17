@@ -21,7 +21,12 @@ internal static class DrillTrigger
     /// <summary>the roster landmark's drill flag; forces a populated healthy row to read as a mismatch so the parts report can be watched.</summary>
     internal const string RosterFlagName = "LW_FORCE_ROSTER_MISMATCH";
 
-    /// <summary>the band door's drill flag; forces a healthy band to read as a mismatch so the battle doors can be watched.</summary>
+    /// <summary>the twin weapon door's drill flag; forces its menu flag check wrong once a save is loaded.</summary>
+    internal const string TwinFlagName = "LW_FORCE_TWIN_MISMATCH";
+
+    /// <summary>the table doors' drill flag; forces the palette door to read a mismatch on healthy memory.</summary>
+    internal const string TableFlagName = "LW_FORCE_TABLE_MISMATCH";
+
     internal const string BandFlagName = "LW_FORCE_BAND_MISMATCH";
 
     /// <summary>Any flag name through injected env and file-existence reads, so tests never touch the real environment.

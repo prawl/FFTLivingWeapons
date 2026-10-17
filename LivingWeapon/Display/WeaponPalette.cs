@@ -45,8 +45,14 @@ internal sealed partial class WeaponPalette
     private int _paintedGlow;
     private int _ticksUnchanged;
 
-    public WeaponPalette(Dictionary<int, WeaponMeta> meta, IGameMemory mem, Dictionary<int, int> kills)
+    private readonly DoorLatch? _latch;
+
+    internal DoorLatch? Latch => _latch;
+
+    public WeaponPalette(Dictionary<int, WeaponMeta> meta, IGameMemory mem, Dictionary<int, int> kills,
+        DoorLatch? latch = null)
     {
+        _latch = latch;
         _meta = meta;
         _mem = mem;
         _kills = kills;
@@ -70,6 +76,9 @@ internal sealed partial class WeaponPalette
 
         var action = WeaponPalettePolicy.Decide(_paintedPal, _paintedWeapon, _paintedGlow,
             desiredPal, desiredWeapon, desiredGlow, _ticksUnchanged, ReassertTicks);
+
+        if (action is WeaponPaletteAction.Paint or WeaponPaletteAction.RestoreThenPaint && _latch is { } door && !door.Allows())
+            return;   // a refusal holds like a FlagOwner refusal, no write and no latch change
 
         switch (action)
         {

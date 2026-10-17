@@ -3,7 +3,7 @@ using System;
 namespace LivingWeapon;
 
 /// <summary>
-/// The door side of the guards. It turns each guard's state into a reading for the parts registry,
+/// The door side of the six guards. It turns each guard's state into a reading for the parts registry,
 /// wraps the lane landmarks with their stall watchers and the sensing boot grace, and holds the roster drill.
 /// </summary>
 internal sealed partial class LaunchGuard
@@ -22,6 +22,9 @@ internal sealed partial class LaunchGuard
     internal const string KitLaneClosedReason = "another mod rewrote the job command data";
     internal const string SensingWaitingReason = "the battle sentinel check has not run yet";
     internal const string SensingClosedReason = "the battle sentinels read wrong, so only the new game detector is off";
+    internal const string TwinFlagsUnreadableReason = "the menu flags cannot be read yet";
+    internal const string TwinNotRunReason = "the menu flag check has not run yet";
+    internal const string TwinClosedReason = "the menu flags the twin weapon grant relies on do not read as expected";
     private const string RosterDrillDetail = "drill: " + DrillTrigger.RosterFlagName;
 
     private readonly bool _forceRosterMismatch;
@@ -47,6 +50,20 @@ internal sealed partial class LaunchGuard
         GuardState.Armed => DoorReading.Open(),
         GuardState.StoodDown => DoorReading.Failed(KitLaneClosedReason),
         _ => DoorReading.Waiting(KitLaneWaitingReason),
+    };
+
+    internal DoorReading TwinPistolsDoor => _twinGuard.State switch
+    {
+        GuardState.Armed => DoorReading.Open(),
+        GuardState.StoodDown => DoorReading.Failed(TwinClosedReason
+            + (_forceTwinMismatch ? ", forced by the " + DrillTrigger.TwinFlagName + " drill" : "")),
+        _ => DoorReading.Waiting(_twinDetail switch
+        {
+            RosterSlotEmpty => RosterWaitingReason,
+            RosterPageUnreadable => RosterUnreadableReason,
+            TwinFlagsUnreadable => TwinFlagsUnreadableReason,
+            _ => TwinNotRunReason,
+        }),
     };
 
     // The sensing closure only switches the new game detector off, so it never counts as a failed check.

@@ -308,7 +308,7 @@ public class CommentBudgetContractTests
         { "LivingWeapon/PacScan.cs", (38, 12) },
         { "LivingWeapon/Part.cs", (6, 2) },
         { "LivingWeapon/PartsBoard.cs", (6, 5) },
-        { "LivingWeapon/PartsReport.cs", (9, 4) },
+        { "LivingWeapon/PartsReport.cs", (8, 4) },
         { "LivingWeapon/PaintOutcome.cs", (8, 6) },
         { "LivingWeapon/Plague.Baseline.cs", (10, 4) },
         { "LivingWeapon/Plague.Policy.cs", (23, 4) },

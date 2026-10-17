@@ -7,7 +7,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-393: the pure parts report. Seven door readings in, ten parts out with ON, OFF or WAITING and a
+/// LW-393: the pure parts report. Thirteen door readings in, fourteen parts out with ON, OFF or WAITING and a
 /// plain reason, plus the one box text. Order assertions use index positions, never Contains alone.
 /// </summary>
 public class PartsReportTests
@@ -19,14 +19,21 @@ public class PartsReportTests
         [Door.Sensing] = DoorReading.Open(),
         [Door.PromptHook] = DoorReading.Open(),
         [Door.ExtendedArm] = DoorReading.Open(),
+        [Door.TwinPistols] = DoorReading.Open(),
+        [Door.TerrainGrid] = DoorReading.Open(),
+        [Door.PaletteBanks] = DoorReading.Open(),
+        [Door.PoachStore] = DoorReading.Open(),
+        [Door.ProvokeTables] = DoorReading.Open(),
+        [Door.ItemStats] = DoorReading.Open(),
         [Door.Band] = DoorReading.Open(),
         [Door.StaticArray] = DoorReading.Open(),
     };
 
     private static readonly string[] Labels =
     {
-        "battle sensing", "kill counting", "stat growth", "card paint", "band signatures",
-        "static table signatures", "weapon commands", "banners", "extended inventory", "twin weapons",
+        "battle sensing", "kill counting", "stat growth", "card paint", "weapon powers in battle (Maim, Plague and the rest)",
+        "weapon commands", "banners", "extended inventory", "twin weapons",
+        "bulwark", "weapon colors", "gun growth", "poach den", "provoke",
     };
 
     [Fact]
@@ -58,19 +65,20 @@ public class PartsReportTests
 
         Assert.DoesNotContain("OFF", line);
         Assert.DoesNotContain("WAITING", line);
-        Assert.Equal(10, line.Split("ON").Length - 1);
+        Assert.Equal(14, line.Split("ON").Length - 1);
     }
 
     [Fact]
-    public void Roster_closed_turns_the_seven_roster_parts_off_and_keeps_the_rest_on()
+    public void Roster_closed_turns_the_eleven_roster_parts_off_and_keeps_the_rest_on()
     {
         var r = AllOpen();
         r[Door.Roster] = DoorReading.Failed("the party data is not where this mod expects it");
 
-        string[] off = { "kill counting", "stat growth", "card paint", "band signatures",
-                         "static table signatures", "weapon commands", "twin weapons" };
+        string[] off = { "kill counting", "stat growth", "card paint", "weapon powers in battle (Maim, Plague and the rest)",
+                         "weapon commands", "twin weapons", "bulwark", "weapon colors", "gun growth", "poach den", "provoke" };
         foreach (var part in new[] { Part.KillCounting, Part.StatGrowth, Part.CardPaint, Part.BandSignatures,
-                                     Part.StaticTableSignatures, Part.WeaponCommands, Part.TwinPistols })
+                                     Part.WeaponCommands, Part.TwinPistols, Part.Bulwark, Part.WeaponColors,
+                                     Part.GunGrowth, Part.PoachDen, Part.Provoke })
         {
             var (state, reason) = PartsReport.Status(part, r);
             Assert.Equal(DoorState.Closed, state);
@@ -78,6 +86,8 @@ public class PartsReportTests
         }
         foreach (var part in new[] { Part.Sensing, Part.Banners, Part.ExtendedInventory })
             Assert.Equal(DoorState.Open, PartsReport.Status(part, r).State);
+        r[Door.TwinPistols] = DoorReading.Failed("menu flags");
+        Assert.Equal("the party data is not where this mod expects it", PartsReport.Status(Part.TwinPistols, r).Reason);
 
         string line = PartsReport.ComposeLine(r);
         foreach (var label in off)
@@ -96,7 +106,7 @@ public class PartsReportTests
     }
 
     [Fact]
-    public void Kit_lane_closed_alone_turns_only_weapon_commands_off()
+    public void Kit_lane_closed_alone_turns_only_the_two_kit_lane_parts_off()
     {
         var r = AllOpen();
         r[Door.KitLane] = DoorReading.Failed("another mod rewrote the job command data");
@@ -104,8 +114,9 @@ public class PartsReportTests
         string line = PartsReport.ComposeLine(r);
 
         Assert.Contains("weapon commands OFF (another mod rewrote the job command data)", line);
-        Assert.Single(line.Split("OFF").Skip(1));
-        Assert.Equal(9, line.Split("ON").Length - 1);
+        Assert.Contains("provoke OFF (another mod rewrote the job command data)", line);
+        Assert.Equal(2, line.Split("OFF").Length - 1);
+        Assert.Equal(12, line.Split("ON").Length - 1);
     }
 
     [Fact]
@@ -157,6 +168,8 @@ public class PartsReportTests
 
         foreach (var label in Labels)
             Assert.Equal(box.IndexOf(label, StringComparison.Ordinal), box.LastIndexOf(label, StringComparison.Ordinal));
+        foreach (var label in Labels)
+            Assert.True(box.IndexOf(label, StringComparison.Ordinal) >= 0, label + " is missing from the box");
         int still = box.IndexOf("Still working", StringComparison.Ordinal);
         int off = box.IndexOf("Switched off", StringComparison.Ordinal);
         int waiting = box.IndexOf("Still waiting", StringComparison.Ordinal);
@@ -223,6 +236,12 @@ public class PartsReportTests
             [Door.Sensing] = DoorReading.Failed("x"),
             [Door.PromptHook] = DoorReading.Failed("x"),
             [Door.ExtendedArm] = DoorReading.Failed("x"),
+            [Door.TwinPistols] = DoorReading.Failed("x"),
+            [Door.TerrainGrid] = DoorReading.Failed("x"),
+            [Door.PaletteBanks] = DoorReading.Failed("x"),
+            [Door.PoachStore] = DoorReading.Failed("x"),
+            [Door.ProvokeTables] = DoorReading.Failed("x"),
+            [Door.ItemStats] = DoorReading.Failed("x"),
             [Door.Band] = DoorReading.Failed("x"),
             [Door.StaticArray] = DoorReading.Failed("x"),
         };
@@ -250,8 +269,8 @@ public class PartsReportTests
             Assert.Equal(DoorState.Closed, state);
             Assert.Equal(LaunchGuard.BandClosedReason, reason);
         }
-        foreach (var part in new[] { Part.Sensing, Part.CardPaint, Part.StaticTableSignatures, Part.WeaponCommands,
-                                     Part.Banners, Part.ExtendedInventory, Part.TwinPistols })
+        foreach (var part in new[] { Part.Sensing, Part.CardPaint, Part.WeaponCommands, Part.Banners, Part.ExtendedInventory,
+                                     Part.TwinPistols, Part.Bulwark, Part.WeaponColors, Part.GunGrowth, Part.PoachDen, Part.Provoke })
             Assert.Equal(DoorState.Open, PartsReport.Status(part, r).State);
 
         string line = PartsReport.ComposeLine(r);
@@ -271,7 +290,7 @@ public class PartsReportTests
         Assert.Equal(DoorState.Closed, PartsReport.Status(Part.BandSignatures, r).State);
         Assert.Equal(DoorState.Open, PartsReport.Status(Part.StatGrowth, r).State);
         Assert.Equal(DoorState.Open, PartsReport.Status(Part.CardPaint, r).State);
-        Assert.Equal(DoorState.Open, PartsReport.Status(Part.StaticTableSignatures, r).State);
+        Assert.Equal(DoorState.Open, PartsReport.Status(Part.Bulwark, r).State);
     }
 
     [Fact]
@@ -311,7 +330,7 @@ public class PartsReportTests
 
         string box = PartsReport.ComposeBox(r, "", "");
 
-        Assert.Contains("Still waiting: kill counting, stat growth, band signatures (waiting for the first battle).", box);
+        Assert.Contains($"Still waiting: kill counting, stat growth, {L(Part.BandSignatures)} (waiting for the first battle).", box);
     }
 
     [Fact]
@@ -319,5 +338,181 @@ public class PartsReportTests
     {
         Assert.Contains(DrillTrigger.BandFlagName, PartsReport.BandDrillSentence);
         Assert.Equal("twin weapons", L(Part.TwinPistols));
+    }
+
+    [Fact]
+    public void Box_lists_working_parts_without_their_notes()
+    {
+        var r = AllOpen();
+        r[Door.Roster] = DoorReading.Failed("party data moved");
+
+        string box = PartsReport.ComposeBox(r, "", "");
+
+        Assert.Contains("Still working: battle sensing, extended inventory; banners (quiet while kill counting is off).", box);
+        Assert.DoesNotContain("nothing to announce", box);
+    }
+
+    [Fact]
+    public void Box_collapses_a_waiting_group_that_shares_one_reason()
+    {
+        var r = AllOpen();
+        r[Door.Roster] = DoorReading.Waiting("waiting for a save to load");
+        r[Door.KitLane] = DoorReading.Failed("job command data rewritten");
+
+        string box = PartsReport.ComposeBox(r, "", "");
+
+        Assert.Contains("Still waiting: the other 9 parts (waiting for a save to load).", box);
+        Assert.DoesNotContain("Still waiting: kill counting", box);
+    }
+
+    [Fact]
+    public void Box_keeps_the_waiting_list_when_reasons_differ()
+    {
+        var r = AllOpen();
+        r[Door.Roster] = DoorReading.Waiting("waiting for a save to load");
+        r[Door.PromptHook] = DoorReading.Waiting("the loader has not handed over its hooks yet");
+        r[Door.KitLane] = DoorReading.Failed("job command data rewritten");
+
+        string box = PartsReport.ComposeBox(r, "", "");
+
+        Assert.Contains("banners (the loader has not handed over its hooks yet)", box);
+        Assert.Contains("kill counting, stat growth", box);
+        Assert.DoesNotContain("the other", box);
+    }
+
+    [Fact]
+    public void Box_names_a_small_waiting_group_even_when_it_shares_one_reason()
+    {
+        var r = AllOpen();
+        r[Door.PromptHook] = DoorReading.Waiting("the loader has not handed over its hooks yet");
+        r[Door.ExtendedArm] = DoorReading.Waiting("the loader has not handed over its hooks yet");
+        r[Door.KitLane] = DoorReading.Failed("job command data rewritten");
+
+        string box = PartsReport.ComposeBox(r, "", "");
+
+        Assert.Contains("Still waiting: banners, extended inventory (the loader has not handed over its hooks yet).", box);
+        Assert.DoesNotContain("the other", box);
+    }
+
+    [Fact]
+    public void Twin_door_closed_alone_switches_off_only_twin_weapons()
+    {
+        var r = AllOpen();
+        r[Door.TwinPistols] = DoorReading.Failed("the menu flags the twin weapon grant relies on do not read as expected");
+
+        var off = Enum.GetValues<Part>().Where(p => PartsReport.Status(p, r).State == DoorState.Closed).ToArray();
+
+        Assert.Equal(new[] { Part.TwinPistols }, off);
+        Assert.Equal("the menu flags the twin weapon grant relies on do not read as expected",
+            PartsReport.Status(Part.TwinPistols, r).Reason);
+        Assert.True(PartsReport.IsOn(Part.KillCounting, r));
+        string line = PartsReport.ComposeLine(r);
+        Assert.Contains("twin weapons OFF (the menu flags", line);
+        Assert.Contains("kill counting ON", line);
+        Assert.Equal(13, line.Split("ON").Length - 1);
+    }
+
+    [Fact]
+    public void Twin_door_waiting_with_the_roster_open_reads_twin_weapons_waiting_with_the_twin_reason()
+    {
+        var r = AllOpen();
+        r[Door.TwinPistols] = DoorReading.Waiting("the menu flags cannot be read yet");
+
+        var (state, reason) = PartsReport.Status(Part.TwinPistols, r);
+
+        Assert.Equal(DoorState.Waiting, state);
+        Assert.Equal("the menu flags cannot be read yet", reason);
+        Assert.Contains("twin weapons WAITING (the menu flags cannot be read yet)", PartsReport.ComposeLine(r));
+        Assert.True(PartsReport.IsOn(Part.KillCounting, r));
+    }
+
+    [Fact]
+    public void Drill_sentence_joins_the_roster_sentence_first_and_the_twin_sentence_second()
+    {
+        Assert.Equal("", PartsReport.DrillSentence(false, false));
+        Assert.Equal(PartsReport.RosterDrillSentence, PartsReport.DrillSentence(true, false));
+        Assert.Equal(PartsReport.TwinDrillSentence, PartsReport.DrillSentence(false, true));
+        Assert.Equal(PartsReport.RosterDrillSentence + " " + PartsReport.TwinDrillSentence,
+            PartsReport.DrillSentence(true, true));
+        Assert.Contains("LW_FORCE_TWIN_MISMATCH", PartsReport.TwinDrillSentence);
+        Assert.DoesNotContain("LW_FORCE_ROSTER_MISMATCH", PartsReport.TwinDrillSentence);
+    }
+
+    // ---- LW-399: the five table parts ----
+
+    [Fact]
+    public void The_fourteen_labels_appear_in_the_table_order_by_index_with_twin_weapons_at_eight()
+    {
+        Assert.Equal(14, Labels.Length);
+        Assert.Equal("twin weapons", Labels[8]);
+        Assert.Equal(14, Enum.GetValues<Part>().Length);
+        string line = PartsReport.ComposeLine(AllOpen());
+        Assert.DoesNotContain("twin pistols", line);
+        Assert.DoesNotContain("static table signatures", line);
+    }
+
+    [Theory]
+    [InlineData("Bulwark", "TerrainGrid", "bulwark", "the terrain data is not where this mod expects it")]
+    [InlineData("WeaponColors", "PaletteBanks", "weapon colors", "the weapon palette is not where this mod expects it")]
+    [InlineData("GunGrowth", "ItemStats", "gun growth", "the item data is not where this mod expects it")]
+    [InlineData("PoachDen", "PoachStore", "poach den", "the Poacher's Den store is not where this mod expects it")]
+    [InlineData("Provoke", "ProvokeTables", "provoke", "the ability data is not where this mod expects it")]
+    public void A_table_door_closed_alone_turns_only_its_part_off_with_its_reason(string partName, string doorName, string label, string reason)
+    {
+        var part = Enum.Parse<Part>(partName);
+        var door = Enum.Parse<Door>(doorName);
+        var r = AllOpen();
+        r[door] = DoorReading.Failed(reason);
+
+        Assert.Equal((DoorState.Closed, reason), PartsReport.Status(part, r));
+        foreach (var other in Enum.GetValues<Part>().Where(p => p != part))
+            Assert.Equal(DoorState.Open, PartsReport.Status(other, r).State);
+        string line = PartsReport.ComposeLine(r);
+        Assert.Contains($"{label} OFF ({reason})", line);
+        Assert.Equal(1, line.Split("OFF").Length - 1);
+    }
+
+    [Fact]
+    public void Provoke_closed_leaves_weapon_commands_on()
+    {
+        var r = AllOpen();
+        r[Door.ProvokeTables] = DoorReading.Failed("the ability data is not where this mod expects it");
+        Assert.Equal(DoorState.Open, PartsReport.Status(Part.WeaponCommands, r).State);
+        Assert.Contains("weapon commands ON", PartsReport.ComposeLine(r));
+    }
+
+    [Fact]
+    public void Provoke_waits_on_the_ability_data_reason_while_weapon_commands_is_on()
+    {
+        var r = AllOpen();
+        r[Door.ProvokeTables] = DoorReading.Waiting("waiting for the game to load its ability data");
+        Assert.Equal((DoorState.Waiting, "waiting for the game to load its ability data"), PartsReport.Status(Part.Provoke, r));
+        Assert.Equal(DoorState.Open, PartsReport.Status(Part.WeaponCommands, r).State);
+    }
+
+    [Fact]
+    public void The_box_groups_a_lone_closed_table_part_under_switched_off_by_itself()
+    {
+        var r = AllOpen();
+        r[Door.PaletteBanks] = DoorReading.Failed("the weapon palette is not where this mod expects it");
+
+        string box = PartsReport.ComposeBox(r, "", "");
+
+        int off = box.IndexOf("Switched off:", StringComparison.Ordinal);
+        Assert.True(off >= 0);
+        string offLine = box.Substring(off, box.IndexOf('\n', off) - off);
+        Assert.Contains("weapon colors (the weapon palette is not where this mod expects it)", offLine);
+        Assert.DoesNotContain("gun growth", offLine);
+        Assert.DoesNotContain("Still waiting:", box);
+    }
+
+    [Fact]
+    public void The_table_drill_sentence_is_the_flag_text_and_appears_only_when_given()
+    {
+        Assert.Equal("This closure was forced by the LW_FORCE_TABLE_MISMATCH drill flag (dev builds only).", PartsReport.TableDrillSentence);
+        var r = AllOpen();
+        r[Door.PaletteBanks] = DoorReading.Failed("x");
+        Assert.DoesNotContain("LW_FORCE_TABLE_MISMATCH", PartsReport.ComposeBox(r, "", ""));
+        Assert.Contains("LW_FORCE_TABLE_MISMATCH", PartsReport.ComposeBox(r, PartsReport.TableDrillSentence, ""));
     }
 }

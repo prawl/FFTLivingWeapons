@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// The stateful half of the parts report. Engine hands it the door readings every tick. It logs
+/// The stateful half of the parts report. Engine hands it the thirteen door readings every tick. It logs
 /// one report line whenever any door changes STATE (a reason only change is not an edge) and shows one
 /// box per closure wave, so a late failure is never hidden behind an earlier box.
 /// </summary>

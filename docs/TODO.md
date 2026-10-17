@@ -103,39 +103,44 @@ the technical detail lives in the indented lines under it.
     in the exe image.)
   - Done means: a player on a healthy game sees no change except that the Parts report lists the
     three parts as WAITING (waiting for the first battle) until the first battle starts, and all
-    ten ON within a second of it, including a battle with a long opening cutscene and a long stay
+    fourteen ON within a second of it, including a battle with a long opening cutscene and a long stay
     on the formation screen; with the band drill marker the band check switches off kill counting,
     stat growth and band signatures about twenty seconds after the cursor first lands on the field
-    with one warning line and one box that names the seven parts still working, while the unit list
+    with one warning line and one box that names the eleven parts still working, while the unit list
     check arms normally; no kill is counted and no stat is held while the band check is off; every
     gate green (build with 0 warnings, tests, analyze, format on both projects, scan_logs selftest).
   - Verify: owner live, three legs on a dev build. Leg A with the LW_FORCE_BAND_MISMATCH marker: the
     array armed line within a second of "Battle started.", one "(battle grace)" DBG line, the band
     WARN about twenty one seconds after the cursor lands on the field and never while still on the
-    formation screen, one Parts report line with three OFF, exactly one box with the seven under
+    formation screen, one Parts report line with three OFF, exactly one box with the eleven under
     Still working, a kill that credits nothing, scan_logs exit 0. Leg B without the marker: both
-    armed lines within a second of "Battle started.", no grace line, all ten ON, a kill credited,
+    armed lines within a second of "Battle started.", no grace line, all fourteen ON, a kill credited,
     scan CLEAN. Leg D, a story battle with a long cutscene and thirty seconds on the formation
-    screen: no grace line, no warning, no box, all ten ON by the first player turn. Ledger row
+    screen: no grace line, no warning, no box, all fourteen ON by the first player turn. Ledger row
     band-and-array-zero-until-battle-load written UNCERTAIN; the owner flips it after Legs B and D.
 
+- **[LW-408] Find out whether Living Weapons runs alongside WotL Restoration and write the answer down** (opened 2026-10-17) [BUILDING]
+  - Done means: a player reading docs/COMPATIBILITY.md knows what happens with both mods installed, which order to load them in, and what each mod's own log will say. Payload half done 2026-10-17: WotL Restoration 2.0.7 was downloaded and read file by file (its text tables diffed against vanilla and ours, its job table, and its decompiled code), and the verdict is written in the doc's "WotL Restoration" section: characters and events coexist, its 40 new items switch off because both mods break the 261 item cap at the same code sites and ours arms first, and Living Weapons must load last to keep its item names. (Tech: her nine accessor hooks are our ten entries; 52 of her 63 relocations and 30 of her 44 caps sit on our sites; item.en.nxd keys 261 to 267 are written by both; her JobData rows 162 to 168 are clear of ours; ability 358 Barrage is named by both.)
+  - Verify: owner runs the game once with both mods enabled, WotL Restoration loading before Living Weapons. Expected: Living Weapons' parts report reads all ON (extended inventory included), WotL Restoration's log prints its "Item expansion NOT armed" line, Luso and Balthier's events still fire, the Terrastaff card reads Terrastaff with its kill counter, and Agrias's birthday hands out a Septième Sens. Owner flips this row to AWAITING-LIVE when ready and PROVEN or not after the run.
 ## Backlog
 
 Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner directed).
 A new row still lands here in the session it surfaces; slot it where its urgency
 belongs rather than at the bottom.
 
-- [LW-399] 2026-10-16: The five places the mod writes into fixed game tables with no check in front (Bulwark's terrain grid, the weapon palette banks, the poach den store, Provoke's two tables, the WP table hold) each get a vanilla byte check before the first write.
-  Stage 3b of the parts model (LW-393). These are the harmful-write class from the audit: on a
-  moved table they author bytes into foreign memory, and the poach store is save state. Each gets a
-  FingerprintGuard.ByteSignature over a known vanilla span (sourced the way Rec8Sig was, by a probe
-  script against the backup exe) and the writer refuses while its door is closed. Provoke.Table
-  also compares its captured original against vanilla instead of trusting whatever it read.
-- [LW-400] 2026-10-16: The twin pistol grant writes into the player's save from outside battle with only the main guard in front of it; give it its own door and a line in the report.
-  Stage 3c of the parts model (LW-393). GunSlinger is not a signature: it ticks on the Always
-  gate in and out of battle (Engine.cs 368) and writes the roster off-hand and support fields
-  (GunSlinger.Apply.cs 83 to 90). Its door is the roster landmark plus the two menu flags it
-  already fails toward suppression on; the report lists it as "twin pistols".
+- [LW-412] 2026-10-17: Before the release, look at every living weapon swung in battle and confirm its colour is the one we meant, because the first colour seen after the table doors landed looked off to the owner.
+  Owner note 2026-10-17 during the LW-399 Leg B pass: the Cutpurse repainted, so the weapon colors
+  part works, but the shade did not look right. Suspects already on file: the palette map may be
+  one item off (LW-305) and the broader in battle recolor edge pass has never run (LW-339). Done
+  looks like one sitting with each weapon class swung once, a screenshot per class against the
+  authored colour in data/items.json, and a fix or a retraction for each mismatch.
+- [LW-413] 2026-10-17: Make sure no developer hotkey can fire in a release build, with a test that holds it, because the owner tripped the F6 Provoke trigger during a drill.
+  Owner note 2026-10-17 during the LW-399 Leg B pass on a dev build. Today every key poll lives in
+  the dev spikes under LivingWeapon/Dev (BodyDoubleSpike, NumeralSpike, ProvokeSpike, StatusSpike),
+  each behind #if LWDEV, so a Publish build carries none. Done looks like a contract test that
+  scans the runtime for GetAsyncKeyState and virtual key constants and fails if any sits outside
+  an LWDEV block, plus one owner read of a prod build's log showing no spike lines after an F6.
+  LW-67 stripped the F6 services in July; this row keeps them stripped.
 - [LW-401] 2026-10-16: The README, the compatibility notes and the logging guide must describe the new behavior: the mod no longer refuses everything until the build matches; it checks each part and reports which are on.
   Exits with the last stage of the parts model. Today README's Good to know bullet says the mod
   "holds every write until the landmarks match" and docs/LOGGING.md and tools/scan_logs.py key on
@@ -168,6 +173,28 @@ belongs rather than at the bottom.
   under the chosen cap (110 catches the 76, 90 catches about 20 more) and ending in a period.
   Moving a sentence changes no comment counts, so the frozen baseline does not fight it. Runs
   after LW-393 ships.
+- [LW-409] 2026-10-17: A player mentioned "the double cast thing" as if it were a known bug, and nobody knows what they meant; find the comment, ask, and either file the bug or close this.
+  Owner recalled the comment 2026-10-17 ("figured there'd be updates coming just didn't know if
+  you'd spotted the double cast thing"). No feedback row, no ledger row, no changelog entry
+  mentions a double cast. Thread found 2026-10-17 (Discord, 2026-04-02, Tal, EpicBrownie, Nyzer):
+  other modders explain that the game's dual wield hit count routine, the one that sets two
+  attacks when a unit dual wields, is hardcoded by weapon formula id, so a custom formula does
+  not get the second strike and a cast formula fired through it casts twice. Why it touches us:
+  the rebalance moved many weapons onto formulas that routine may not list (45, 47, 48, 67, 69,
+  99, and the formula 4 magick guns and rods), and the twin weapon grant hands out Dual Wield.
+  So a living weapon under Dual Wield may swing once instead of twice, or a formula 4 gun or rod
+  may fire its spell twice. Live check first: Ninja with Dual Wield and two Blaze Guns, then two
+  Hushblades, count strikes and casts; then read the routine Tal names.
+- [LW-414] 2026-10-17: Seven of the "vanilla" weapon power numbers in data/items.json do not match what the game file actually holds, so the vanilla comparison the analyzer offers reasons from wrong reference values for those seven.
+  Surfaced by the LW-399 probe (tools/probes/static_table_file_image_probe.py) reading the item
+  stats table out of the installed exe, stamp 0x6A5E4A1B. Baseline wp versus the file: id 29
+  Icebrand 18 vs 13, id 31 Nagrarok 16 vs 1, id 37 Chaos Blade 50 vs 40, id 74 Glacial Gun 21 vs
+  20, id 75 Blaze Gun 20 vs 21, id 78 Knightslayer 4 vs 3, id 81 Hunting Crossbow 5 vs 6. The
+  74 and 75 element bytes (Ice, Fire) show the names are not swapped, so these are typos in the
+  reference column, not an id mapping fault. Only `baseline` is wrong; `proposed` is what ships
+  and is untouched. Done looks like the seven baseline values corrected in items.json, the
+  generator re-run, analyze.py and analyze.py --baseline green, and a contract test that reads
+  the eight LW-399 pinned rows plus these seven from the exe when it is present.
 - [LW-394] 2026-10-16: Three weapon commands mark an ability as learned in the player's save and never unmark it, so no safety switch can undo them if they ever land in the wrong place; decide whether they should clean up after themselves.
   Barrage, Shadow Blade and Provoke each set one learned bit in the roster row (Barrage.cs 247,
   ShadowBlade.cs 199, Provoke.cs 194) and hold it by design so the command stays usable. The audit
@@ -200,15 +227,17 @@ belongs rather than at the bottom.
   the same route is the question. Walled items that would reopen: the hijack recipe's
   rename-and-re-effect limit, the parked Bloodpact channel, every "needs its own ability" idea
   in docs/MECHANICS.md. Starts as a probe, not a build.
-- [LW-403] 2026-10-16: The file that remembers how many of each new weapon the player owns is tied to the save folder, so restoring an old save or copying saves between slots can hand a player the wrong counts; tie it to the save itself instead.
-  Not for 2.4.0. Today Persistence/ExtendedBagSidecar (LW-348) keys by save directory and
-  replays after load. The stronger identity, seen in ZeroDS's ExpandedSaveStore: key the sidecar
-  by the hash of the native save payload plus the slot, keep the previous generation under a
-  history folder, and write only after the game's own save completes (their hook sites 0x32B94,
-  0x32E60, 0x33DF0 are candidates to confirm against our SaveEdgeHooks). Done looks like: a
-  restored backup save gets the counts it had when it was written, a copied slot gets its own
-  counts, and a mod-less launch still loads clean. Pair with LW-390's reopen list only if the
-  save hooks move.
+- [LW-403] 2026-10-16: The file that remembers how many of each new weapon the player owns lives beside the mod, so moving saves to another computer or losing the mod folder loses the counts; find out whether the counts can live inside the save file itself.
+  Not for 2.4.0. Corrected 2026-10-17: the sidecar is ALREADY keyed per save (LW-353, a hash of
+  the save header taken when the game serializes), so slots never share counts and an older save
+  of the same slot gets its own; the first version of this row said otherwise and was wrong. What
+  remains is where the file lives. Lead from WotL Restoration 2.0.7 (DanaCrysalis, read 2026-10-17):
+  her mod writes its 55 extra counts INTO the save struct, at the block the game-variables pointer
+  0x14078DAE8 points to plus 0x2FC, 59 bytes behind a four byte magic header, mirrored every 50 ms
+  from a background thread and once more on the serializer hook 0x140218F78 (the same entry our
+  SaveEdgeHooks use). If that region is truly spare and survives the load sanitizer, our counts
+  could ride the save file and the sidecar becomes a backup. Verify first that vanilla saves hold
+  zeros there and that no routine clears it; her ItemSites.cs and ItemExpansion.cs are the map.
 - [LW-404] 2026-10-16: Every time the mod needs to step into the middle of one of the game's routines it gets a hand-built, one-of-a-kind patch, which is slow to write and easy to get wrong; adopt one general "stop here, hand me the registers, let me change them, carry on" tool for new sites, and keep the hand-built fast paths where they are.
   Not for 2.4.0. Today a new code-site hook means a bespoke byte layout in ThunkStub.cs or a
   one-off like SwingIdFallbackHook, each with its own register contract pinned by tests.
@@ -224,6 +253,17 @@ belongs rather than at the bottom.
   hooked through it with a unit test on the context round-trip and an owner live pass showing
   no stutter.
 
+- [LW-411] 2026-10-17: WotL Restoration and Living Weapons both add items past the game's 261 and both claim ids 261 to 267, so a player can only ever have one mod's new items; work out with its author how the two can share the space.
+  Not for 2.4.0. Read 2026-10-17 from WotL Restoration 2.0.7's code: her ItemExpansion hooks the
+  same nine accessor entries (0x1402B8BCC through 0x1402B8EBC), re-points the same bag array
+  0x1411A7C00 and the same three order-chart slots, and widens 44 caps, 30 of them ours. Her
+  verify step refuses when our bytes are already there (ours arms in StartEx, hers after all mods
+  load), so today ours wins and her 40 items vanish with a log line. Options to put to Dana:
+  an id range split (her 268 to 313 never collide; only 261 to 267 do), one side chaining to the
+  other's accessor stubs instead of refusing, or a shared cap-break library both load. Also tell
+  her the two list caps her bounds table skips (0x140288CC3 and 0x14028631A, the 149 and 150
+  stack-buffer limits) are the past-149-kinds crash Tal described. Related: LW-403 (her in-save
+  count tail), docs/COMPATIBILITY.md WotL Restoration section.
 - [LW-386] 2026-09-01: The Poacher's Den is handing players items the mod never meant it to, and one
   player saw four katanas where two dragons' carcasses belong. Plain language: a Discord player on
   the public 2.3.3 build poached Blue and Red Dragons and the Den listed and produced Asura, Kotetsu,
@@ -1423,7 +1463,10 @@ belongs rather than at the bottom.
   non English counters per LW-101), 66 clean; GenericJobs (id 34) source audited clean; the
   per mod verdicts for the middle bucket live only as classes, the durable record is
   docs/COMPATIBILITY.md.
-
+  2026-10-17 survey refresh: Knight Overhaul (Nexus 113) rewrites the Knight command record, the
+  record Shadow Blade injects into, and the kit lane watches only records 8 and 9, so that pairing
+  degrades Shadow Blade with no in-game notice. docs/COMPATIBILITY.md says so plainly; a third
+  watched record is the fix this row already names.
 - [LW-235] 2026-08-14: The mod has no way to learn which weapons players actually use, and the
   one time real user logs arrived they answered nothing. Owner question 2026-08-14: which
   weapons are used and which are ignored. The six submitted Reloaded console logs contain ZERO

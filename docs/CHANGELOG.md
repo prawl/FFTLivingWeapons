@@ -10,6 +10,68 @@ before 2026-07-21 keep their original prose.
 
 ## 2.4.0 cycle
 
+- [LW-399] SHIPPED 8ef2913b 2026-10-17: Each of the five game tables the mod writes into gets its
+  own "is it still here" check before the first write. Plain language: the mod writes into five
+  fixed places in the game's memory (the ground behind a Sunderer, the weapon color palettes, the
+  Poacher's Den shelf, Provoke's ability data and the gun power numbers), and nothing checked they
+  were still what the mod expected. Now each has its own check and its own line in the parts
+  report (bulwark, weapon colors, gun growth, poach den, provoke), a failed check switches off only
+  that writer with one warning and the usual box, and Provoke refuses to repoint an ability whose
+  data does not read the way the game ships it. The checks ask only whether a table is still where
+  the game keeps it, never whether its numbers match this mod's, so an item or ability mod switches
+  nothing off. Behavior change to know: the parts report grows from ten lines to fourteen, and
+  right after a save loads provoke and gun growth can read WAITING for a moment until the game has
+  filled its ability and item data (two seconds on the owner's pass). Stage 3b of the parts model,
+  built in parallel with LW-398 and LW-400 in its own worktree. Full build: plan review with one
+  blocker (the first item door compared values to this mod's own numbers, so a rebalance mod would
+  have switched gun growth off), two implement rounds, two verify rounds (code 8 and 8, spec capped
+  at 5 by plan silences written back into the plan). Owner live pass 2026-10-17 03:11 to 03:17,
+  two legs on a dev build: the drill gave the palette WARN one second after the launch header,
+  weapon colors OFF alone with four other table doors armed, one box naming weapon colors alone,
+  a dagger swinging plain steel, provoke and gun growth ON two seconds after Continue, scan exit 0;
+  the normal launch read fourteen ON, zero warnings, no box, the dagger repainted, scan clean. The
+  owner noted the repainted shade looked off (LW-412) and that the F6 dev trigger must stay out of
+  release builds (LW-413). (Tech: Guard/TableDoors.cs and TableDoors.Probes.cs, five
+  FingerprintGuard doors over code sites and row markers read from the installed exe by
+  tools/probes/static_table_file_image_probe.py, stamp 0x6A5E4A1B; DoorLatch at every writer's
+  first write with an Engine test that each carries one; Part.StaticTableSignatures split into
+  bulwark, weapon colors, gun growth, poach den plus Part.Provoke; LW_FORCE_TABLE_MISMATCH drill as
+  a decorator on the palette door; timed lines on the two boot filled doors count only while the
+  roster door is open; the two UNCERTAIN ledger entries on fill timing are the owner's to flip;
+  commit 8ef2913b.)
+
+- [LW-400] SHIPPED 7d7c97c7 2026-10-17: The twin weapon grant gets its own safety switch and its
+  own line in the parts report. Plain language: the Outrider Pistol's twin and the Arbalest's
+  Crossfire share one grant that writes into the player's save from the world map, trusting two
+  small menu flags to keep out of the equipment screens. Now the grant has its own door. It waits
+  until a save loads, opens when the flags and Ramza's hand slots look right, and if they do not
+  it switches off alone with one calm warning and a seat in the parts box while everything else
+  keeps running. The grant also refuses to write on its own whenever its door is not open. The
+  report calls the part "twin weapons" so a crossbow player recognizes the line. Two other
+  report labels were reworded for players during the pass. Stage 3c of the parts model, built in
+  parallel with LW-398 and LW-399 in its own worktree. Full build: plan review, two implement
+  rounds, two verify rounds (code 8 then 9, spec capped at 5 by plan silences written back into
+  the plan). Owner live pass 2026-10-17 02:50 to 03:08, two legs on a dev build: the drill gave
+  the twin WARN two seconds after arming, twin weapons OFF with nine ON, one box naming kill
+  counting under Still working, the standdown tape with the twin record, no twin stamped, a
+  credited kill, scan exit 0; the normal launch opened the twin door two milliseconds after the
+  roster, ten ON, the twin stamped on the Status visit, a kill credited, no box, scan clean.
+  (Tech: Door.TwinPistols; LaunchGuard.Twin.cs over MenuOpenFlag and PartyBrowseFlag reading 0
+  or 1 plus slot 0 hand words at most 0x1FF or 0xFFFF, Waiting on an empty slot; GunSlinger takes
+  a required doorOpen predicate and refuses in PrepRoster with one WARN; MenuGate denies above 1;
+  LW_FORCE_TWIN_MISMATCH drill; PartsBoard takes the drill sentence as text; ledger entry
+  twin-menu-flags-zero-at-map-time UNCERTAIN, owner flip pending; commit 7d7c97c7.)
+
+- [LW-410] SHIPPED 6ba0a899 2026-10-17: Players can now look up any of the 143 mods on the Nexus
+  and see whether it runs next to Living Weapons. Plain language: the compatibility page had not
+  been touched since August, and 48 mods had appeared since. Each current upload's file list was
+  read and sorted into the page's existing classes: six new mods ship item rows and join the
+  do-not-pair table, thirteen ship job tables and sit under the job catch, the rest are text,
+  icons, sprites, tools or code that touches nothing we do. The page also says the mod's own
+  "Parts report:" line is where a conflict shows in game. (Tech: catalog and per-mod file lists
+  through the Nexus GraphQL endpoint plus the mod-file-manifests service, recipe in the survey
+  memory note; WotL Restoration read from a download under LW-408; mod 114 left off the page by
+  owner ruling.)
 - [LW-393] SHIPPED a39e629f 2026-10-17: When a game update breaks one part of the mod, only that
   part switches off and the player is told which parts still work. Plain language: the mod used
   to have one safety switch, so one failed startup check turned everything off and showed one box.

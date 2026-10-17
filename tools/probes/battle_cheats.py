@@ -59,6 +59,10 @@ import ctypes.wintypes as w
 import struct
 import sys
 import time
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from lib.livebase import open_game, PREFERRED_BASE  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Process / memory constants  (all from LivingWeapon/Offsets.cs)
@@ -912,7 +916,20 @@ def _selftest() -> bool:
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
+def _rebase_pins() -> None:
+    """The game loads at a random base since the copy protection came off. Every uppercase
+    absolute in this file is a preferred base address, so shift them all onto the live image."""
+    _, _, base = open_game()
+    delta = base - PREFERRED_BASE
+    g = globals()
+    for k, v in list(g.items()):
+        if k.isupper() and isinstance(v, int) and 0x140000000 <= v < 0x150000000:
+            g[k] = v + delta
+    print(f"live base 0x{base:X}, pins shifted by 0x{delta:X}")
+
+
 def main() -> None:
+    _rebase_pins()
     args = sys.argv[1:]
 
     if not args or args[0] in ("-h", "--help", "help"):
