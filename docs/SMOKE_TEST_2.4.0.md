@@ -402,7 +402,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
 > Growth and signature rows are DEV OK unless noted (dev floors every tally to tier 3). Box 1.4
 > does NOT cover Afterimage or Ultima; each owns its own stat lane (section 9).
 
-- [ ] 3.1 **Knight sword fills the HP it adds (LW-416, the LW-327 regression).** A knight whose
+- [x] 3.1 (PASSED 2026-10-17, owner live, DEV build of the fix ffd24810 on the real save: 883 of 883 on Ramza's first turn; log shows the first pour 679 -> 883 then two game refills each re poured before anyone acted, no refill after the first action, damage stuck at 653 of 883, scan CLEAN; re read on the prod build in sitting 1) **Knight sword fills the HP it adds (LW-416, the LW-327 regression).** A knight whose
   grown sword raised Max HP starts the battle with the bar FULL, even when a long opening cutscene
   makes the game rebuild him more than once. Ramza with a tier 3 knight sword (the owner's save:
   Chaos Blade or Excalibur), load from the WORLD MAP, enter a story battle with a long opening
@@ -1241,7 +1241,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
 
 ## B. Build and release gates, offline proofs
 
-- [ ] B1 **The whole suite is green, with a count.** `dotnet build LivingWeapon.Tests\LivingWeapon.Tests.csproj -c Release`
+- [x] B1 (PASSED 2026-10-17 on main cdafa581 after all three rows merged: build 0 warnings, Passed 4134, Failed 0) **The whole suite is green, with a count.** `dotnet build LivingWeapon.Tests\LivingWeapon.Tests.csproj -c Release`
   then `dotnet test LivingWeapon.Tests\LivingWeapon.Tests.csproj -c Release`. Run it on main AFTER
   the three parallel rows (LW-416, LW-413, LW-414) and their ledger exits have landed there; main
   already carries the ProofClaim baseline fix for docs/TODO.md at 7 (committed 2026-10-17), so the
@@ -1252,7 +1252,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   only and refactor row: LW-147, LW-149, LW-150, LW-151, LW-152, LW-153, LW-154, LW-155, LW-157,
   LW-158, LW-160, LW-182, LW-186, LW-260, LW-265, LW-266, LW-267, LW-269, LW-375, LW-391, LW-145)
   **[BLOCKER]**
-- [ ] B2 **The docs and the ledgers pass their own gates (LW-102, LW-169, LW-183, LW-278, LW-275,
+- [x] B2 (PASSED 2026-10-17 on 6016d943: DocsContractTests 24, TodoContractTests 38, 175 ledger slugs) **The docs and the ledgers pass their own gates (LW-102, LW-169, LW-183, LW-278, LW-275,
   LW-256, LW-60).** `dotnet test LivingWeapon.Tests\LivingWeapon.Tests.csproj -c Release --filter "FullyQualifiedName~DocsContractTests"`
   and the same with `TodoContractTests`. PASS: both green, which proves this file is in the top
   level allow list and carries its CONTRACT stamp, every doc path reference in the repo resolves,
@@ -1262,7 +1262,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   a slug (`grep -c "^### \[" docs/LIVE_LEDGER.md` reads 175 or more), and no work row hides under
   Walled or Format in docs/TODO.md. FAIL: either filter red. (covers LW-102, LW-169, LW-183,
   LW-278, LW-275, LW-256, LW-60) **[BLOCKER]**
-- [ ] B3 **The dominance gate and its sibling gates, both ways (LW-363, LW-352, LW-166, LW-333,
+- [x] B3 (PASSED 2026-10-17 on 6016d943: analyze.py exit 0 both ways, no deferral, spriteIdOverride 0) **The dominance gate and its sibling gates, both ways (LW-363, LW-352, LW-166, LW-333,
   LW-293, LW-414).** `python tools\analyze.py` then `python tools\analyze.py --baseline`. PASS: both
   exit 0 with `PASS: no item is strictly dominated` and NO `(1 owner-ruled deferral` tail
   (`grep -n "DOMINANCE_DEFERRED = {}" tools/analyze.py` hits); the GROWS PHRASE, CLAIMS, POACH
@@ -1271,11 +1271,11 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   `grep -c spriteIdOverride data/items.json` reads 0. FAIL: any nonzero exit, a deferral tail, a red
   gate row. (covers LW-363, LW-352, LW-166 source half, LW-333 offline half, LW-293, LW-150, LW-414
   the analyze half) **[BLOCKER]**
-- [ ] B4 **The thresholds and switches read as the release intends (LW-161, LW-133).**
+- [x] B4 (PASSED 2026-10-17: Dev {1,2,3}, Prod {5,10,15}, ProvokeEnabled true) **The thresholds and switches read as the release intends (LW-161, LW-133).**
   `grep -n "Thresholds = \|ProvokeEnabled" LivingWeapon/Tuning.cs`. PASS: `DevThresholds = { 1, 2,
   3 }`, `ProdThresholds = { 5, 10, 15 }`, `ProvokeEnabled = true`. FAIL: any other numbers or false.
   (covers LW-161 offline half, LW-133) **[BLOCKER]**
-- [ ] B5 **The prod DLL carries no dev lever (LW-413 offline half, LW-155).**
+- [x] B5 (PASSED 2026-10-17 on 6016d943: prod publish carries every dev string 0, DrillTrigger 1, production 2) **The prod DLL carries no dev lever (LW-413 offline half, LW-155).**
   `dotnet publish LivingWeapon\LivingWeapon.csproj -c Release -o $env:TEMP\lw240dll` (the
   worktree's own output, never the Mods folder), then
   `python -I -c "import pathlib,os;b=pathlib.Path(os.environ['TEMP'],'lw240dll','LivingWeapon.dll').read_bytes();[print(s,b.count(s.encode())+b.count(s.encode('utf-16-le'))) for s in ['GetAsyncKeyState','ProvokeSpike','provoke-spike','StatusSpike','NumeralSpike','BodyDoubleSpike','DrillTrigger','development','production']]"`.
@@ -1285,7 +1285,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   `production` reads 1 or more; the LW-413 contract test (every GetAsyncKeyState poll under `#if
   LWDEV`) green inside B1. FAIL: any dev string above 0, which means a hotkey poll shipped, or
   `production` at 0. (covers LW-413, LW-155) **[BLOCKER]**
-- [ ] B6 **Publish.ps1 packages a clean prod zip into a scratch folder.**
+- [ ] B6 (PARTIAL 2026-10-17: every clause passed on 6016d943 except the version, which reads 2.3.4 until the ModVersion bump; re run at release) **Publish.ps1 packages a clean prod zip into a scratch folder.**
   `.\Publish.ps1 -OutputPath $env:TEMP\lw240` (the staging folder is `Publish\prawl.fft.livingweapons`
   under the repo; the Mods folder is never touched). PASS: exit 0; package verify PASS on every
   `$RequiredModFiles` row (meta.json, glow_icons/manifest.json, the 7 tables with
@@ -1295,7 +1295,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   ModConfig.json reads `"ModVersion": "2.4.0"` with `fftivc.utility.modloader` and
   `reloaded.sharedlib.hooks` under ModDependencies. FAIL: any missing required file, a parked
   artifact, a 2.3.4 version in the zip. (covers the Publish half of LW-297) **[BLOCKER]**
-- [ ] B7 **The exe on disk still matches every pinned landmark (LW-387, LW-388, LW-391, LW-132,
+- [x] B7 (PASSED 2026-10-17 on 6016d943 after the 402fc94d pass line fix: stamp 0x6A5E4A1B, every pinned site file backed, == neither 0) **The exe on disk still matches every pinned landmark (LW-387, LW-388, LW-391, LW-132,
   LW-393, LW-398, LW-399, LW-414).** `python -I tools/probes/sentinel_file_image_probe.py`,
   `python -I tools/probes/static_table_file_image_probe.py`,
   `python -I tools/probes/band_array_file_image_probe.py` against the installed exe, and
@@ -1309,7 +1309,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   ImageLiteralContractTests green inside B1. FAIL: any probe reporting a differing byte or a new
   stamp (then docs/PATCH_REANCHOR.md is the runbook, not this pass). (covers LW-387, LW-388,
   LW-391, LW-132 offline halves, LW-414 the probe half) **[BLOCKER]**
-- [ ] B8 **Version, dependencies, workflow, tag (LW-104, LW-286).**
+- [ ] B8 (PARTIAL 2026-10-17: CI green on 39d25a42, action versions pinned; ModVersion 2.4.0, the v2.4.0 tag and the riders home owed at release, the riders home landed in cb9a6e85) **Version, dependencies, workflow, tag (LW-104, LW-286).**
   `grep -n ModVersion mod/ModConfig.json`; `grep -n "uses:" .github/workflows/release.yml`;
   `gh run list --workflow release.yml --limit 1` then `gh run view <id>`; `git tag --list v2.4.0`
   after the pass closes. PASS: `"ModVersion": "2.4.0"` (it reads 2.3.4 at authoring); checkout@v7,
@@ -1318,7 +1318,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   the pass close commit; the deploy riders have their docs/VERIFY_LIVE.md home (LW-286). FAIL: a
   stale version, an action at v4 or v5, a deprecation annotation, no tag. (covers LW-104, LW-286;
   the LW-281 banner upload is an owner action, GO/NO-GO item 11) **[BLOCKER]**
-- [ ] B9 **No comment claims proof it does not have (LW-107, LW-106, LW-105).**
+- [x] B9 (PASSED 2026-10-17 on 6016d943: filter green, sabotage turned exactly the baseline Fact red naming Plague.cs, restored clean) **No comment claims proof it does not have (LW-107, LW-106, LW-105).**
   `dotnet test LivingWeapon.Tests\LivingWeapon.Tests.csproj -c Release --filter "FullyQualifiedName~ProofClaimContractTests"`,
   plus `grep -rn "PROVEN" LivingWeapon/Signatures/Iai.cs`. Non vacuity once per release: copy
   LivingWeapon/Signatures/Plague.cs to `%TEMP%` first, add one of the six phrases ClaimRegex pins (LivingWeapon.Tests/ProofClaimContractTests.cs line 59; the upper case word PROVEN followed by the word LIVE is the usual one) to one comment
@@ -1327,7 +1327,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   tree). PASS: green on the untouched tree; the grep returns no proof claim; the sabotage turns
   exactly `Proof_claim_counts_match_the_frozen_baseline` red naming Plague.cs. FAIL: the sabotage
   stays green. (covers LW-107, LW-106, LW-105) **[MAJOR]**
-- [ ] B10 **Comments and formatting hold their frozen shape (LW-185, LW-276, LW-263, LW-264).**
+- [x] B10 (PASSED 2026-10-17 on 6016d943: comment budget green, both format verifies exit 0) **Comments and formatting hold their frozen shape (LW-185, LW-276, LW-263, LW-264).**
   `dotnet test LivingWeapon.Tests\LivingWeapon.Tests.csproj -c Release --filter "FullyQualifiedName~CommentBudgetContractTests"`,
   `dotnet format LivingWeapon\LivingWeapon.csproj --verify-no-changes`,
   `dotnet format LivingWeapon.Tests\LivingWeapon.Tests.csproj --verify-no-changes`, and
@@ -1335,7 +1335,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   gates exit 0, the grep prints nothing (a line count quoted inside a comment is the LW-276 defect).
   FAIL: a frozen file's comment count or longest block grew, a format diff, a grep hit. (covers
   LW-185, LW-276, LW-263, LW-264) **[MAJOR]**
-- [ ] B11 **The bake tools agree with each other (LW-156, LW-159, LW-250, LW-308).**
+- [x] B11 (PASSED 2026-10-17 on 6016d943: selftest 35/35, regen leaves git clean, 121 lanes) **The bake tools agree with each other (LW-156, LW-159, LW-250, LW-308).**
   `python tools\generate.py`, `python tools\gen_living_weapon_meta.py`,
   `python tools\gen_living_weapon_meta.py --selftest`, then `git status --short LivingWeapon/meta.json
   mod/FFTIVC` and `grep -c '"lane"' LivingWeapon/meta.json`. PASS: every command exit 0, meta.json
@@ -1343,11 +1343,11 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   pass, the lane count reads 121 (the 121 rows carrying `grows` in data/items.json). FAIL: any
   nonzero exit, a diff, or a lane count that is not 121. (covers LW-156, LW-159, LW-250 offline
   half, LW-308 offline half) **[MAJOR]**
-- [ ] B12 **The scanners refuse false passes (LW-148).** `python tools\scan_logs.py --selftest` and
+- [x] B12 (PASSED 2026-10-17: scan_logs selftest 60/60, --bogus exit 2) **The scanners refuse false passes (LW-148).** `python tools\scan_logs.py --selftest` and
   `python tools\parse_flight.py --bogus`. PASS: `scan_logs selftest: 60/60 passed.`; parse_flight
   raises `unknown flag: --bogus`. FAIL: a lower count, or a bogus flag accepted. (covers LW-148)
   **[MAJOR]**
-- [ ] B13 **The icon gates: every shipped icon equals its approved picture (LW-247, LW-236, LW-227,
+- [x] B13 (PASSED 2026-10-17 on 6016d943 after the 402fc94d pass line fix: 454 comparisons, 0 mismatched, 0 missing) **The icon gates: every shipped icon equals its approved picture (LW-247, LW-236, LW-227,
   LW-243, LW-240, LW-287).** On the dev box (game files and the texture tool present):
   `python tools\recolor_icons.py --selftest`; `python tools\icon_preview.py preview` with NO ids,
   then `python tools\icon_preview.py verify`; `python tools\icon_preview.py compare --expect` with
@@ -1359,7 +1359,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   own art`; silhouettes exit 0; the grep hits. FAIL: any mismatched count, a `FAIL:` line, a SKIP
   line on the dev box, SHIP_GLOW_RIM true. (covers LW-247, LW-236 the 454 of 454 gate, LW-227,
   LW-243, LW-240, LW-287 offline half) **[MAJOR]**
-- [ ] B14 **Deploy parity and the flavor guard's test, at release time (LW-297, LW-134).** With the
+- [ ] B14 (PARTIAL 2026-10-17: DeployGuardTests 8/8; the -VerifyOnly read and the flavor refusal run at release) **Deploy parity and the flavor guard's test, at release time (LW-297, LW-134).** With the
   game closed and the prod deploy from box 1.1 in place, in the release sitting with the owner's
   go ahead: `.\BuildLinked.ps1 -VerifyOnly` (deploys nothing, hashes the install against the repo)
   and `dotnet test LivingWeapon.Tests\LivingWeapon.Tests.csproj -c Release --filter "FullyQualifiedName~DeployGuardTests"`
@@ -1368,7 +1368,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   red guard test. NOTE: the live refusal itself (a plain BuildLinked over prod) is box 1.1's last
   step, where the owner already has the shell open. (covers LW-297, LW-134 guard test half)
   **[MAJOR]**
-- [ ] B15 **data/items.json says what the cards and the tour expect (LW-351, LW-354, LW-355, LW-99,
+- [x] B15 (PASSED 2026-10-17 on 6016d943 after the 402fc94d pass line fix: 30 signatures, 29 grid +3 cells plus Materia Blade) **data/items.json says what the cards and the tour expect (LW-351, LW-354, LW-355, LW-99,
   LW-363, LW-188, LW-10, LW-97, LW-96, LW-325).**
   `python -I -c "import json,sys,re;sys.path.insert(0,'tools');from lib import flavor;d=json.load(open('data/items.json',encoding='utf-8'));it=d['items'] if isinstance(d,dict) and 'items' in d else d;[print(i['id'],i['name'],i['extended'].get('shops'),i['extended'].get('shopAvailability'),i['extended'].get('seedCount')) for i in it if 261<=i['id']<=267];print('signatures',sum(1 for i in it if i.get('signature')));[print(i['id'],i['name'],i['proposed'].get('onHitAbilityId'),i['proposed'].get('evade'),i['proposed'].get('rider'),repr(flavor.assemble_desc(i))) for i in it if i['id'] in (31,92,95,108,149,206,212,222,237,260)];L=lambda i:len(re.sub('<[^>]+>','',flavor.assemble_desc(i)));print(sorted(((L(i),i['id'],i['name']) for i in it),reverse=True)[:6])"`,
   then `grep -n "460" tools\patch_ability_names.py` and `grep -n "RosterSlots" LivingWeapon\Offsets.cs`.
@@ -1387,7 +1387,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   Faith 201, Arcanum 201, Claymore 201 and Graviton 200 (box 7.6); the 460 grep hits (the Equip Axes cell); Offsets.cs reads
   `RosterSlots = 50`. FAIL: any value off. (covers LW-351 offline half, LW-354 data half, LW-355,
   LW-99, LW-363, LW-188, LW-10, LW-97, LW-96 offline half, LW-325 the list) **[MAJOR]**
-- [ ] B16 **The docs describe the parts model the code ships (LW-401, LW-410, LW-406, LW-169,
+- [ ] B16 (PARTIAL 2026-10-17: greps and wording read passed on 6016d943; door pin passed on cdafa581, DoorsOf hits once in production and in the superset test, filter 45/45, the swap sabotage turned exactly that test red and the copy restore re greened; the LOGGING.md hooks quote is a paraphrase, fix before release) **The docs describe the parts model the code ships (LW-401, LW-410, LW-406, LW-169,
   LW-272).** `grep -rn "holds every write\|switches itself off\|until the landmarks match" README.md
   docs/ --exclude=CHANGELOG.md --exclude=SMOKE_TEST_2.4.0.md --exclude-dir=archive` (the changelog
   quotes the retired phrase in its exit row by design); `grep -n "Parts report" README.md docs/COMPATIBILITY.md docs/LOGGING.md
@@ -1407,7 +1407,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   without the bullet, a wording drift, no DoorsOf hit after the merge, the filter red, or a
   sabotage that stays green. (covers LW-401, LW-410, LW-406 offline half, LW-169, LW-272 offline
   half, LW-416 the door pin) **[MAJOR]**
-- [ ] B17 **The preservation list and the save folder agree on where every save side file lives
+- [x] B17 (PASSED 2026-10-17 on 6016d943: six preserved names, save side files through SaveLocation) **The preservation list and the save folder agree on where every save side file lives
   (LW-348, LW-134).** The deploy preserves only the legacy copies in the deployed folder; the real
   save side files live in the save folder a deploy never touches, so nothing is lost either way.
   `sed -n '78,85p' tools/pipeline.ps1`; `grep -n '"User", "Mods"' LivingWeapon/Persistence/SaveLocation.cs`;
@@ -1471,7 +1471,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   it off in the console Properties once before sitting 1 and the read is repeated). FAIL: HandsFree
   enabled, an item rebalance mod enabled, the list missing from the doc, QuickEdit still `0x1` at
   sitting 1. **[MAJOR]**
-- [ ] B21 **The previous session's rescued log and tapes read back clean.** The 2026-10-17 drill
+- [x] B21 (PASSED 2026-10-17: rescued log 794 lines, 0 errors, CLEAN, 20 of 20 tapes parse) **The previous session's rescued log and tapes read back clean.** The 2026-10-17 drill
   sitting's `livingweapon.log`, `livingweapon.prev.log` and 20 flight tapes were rescued before the
   next deploy wiped them, to a folder under `%TEMP%` (a temp folder; it may be gone by the release
   sitting, in which case this box reads the current log the same way). `python tools/scan_logs.py
