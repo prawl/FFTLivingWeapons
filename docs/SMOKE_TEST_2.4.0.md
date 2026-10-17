@@ -771,7 +771,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   (stop, restore from kills.json.bak before another battle saves over it, and clean `archive\`),
   an empty starting inventory, a stamp file missing or reading `dev`. (prod) (covers LW-395 normal
   leg, LW-368 new game leg, LW-134 stamp eyeball) **[BLOCKER]**
-- [ ] 6.2 (CARD READ UNBLOCKED by LW-424 15699259, owner read a painted count right after Continue on the dev build; the Terrastaff card read of 12 on prod and the second launch still owed; FILE HALF PASSED 2026-10-17, prod 1c7ba75f: one move line at launch, kills.json has no 48 key and Terrastaff 3 + 9 = 12, kills.json.bak holds 48 = 9 and Terrastaff 3; the line lists all seven id pairs, which the PASS text must allow; card read blocked by LW-424, blank counts after Continue; second launch owed) **A 2.3.x player's axe kills move to the new weapon on the first launch (LW-351 upgrade
+- [x] 6.2 (PASSED 2026-10-17 on prod 62015755: the file half as recorded at 10:25, one move line then, kills.json without 48 and the .bak holding 48 = 9; the owner read the Terrastaff card at 12 of 15 to +3 with +2 in its name right after Continue; the later launches printed no move line) **A 2.3.x player's axe kills move to the new weapon on the first launch (LW-351 upgrade
   leg).** Every returning player's first 2.4.0 launch does this before anything else: the
   Terrastaff kills they grew for weeks are filed under the Battle Axe's old number (48) and must
   move to 261 once, with nothing lost. The owner's save migrated 2026-08-30, so this box stages
