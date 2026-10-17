@@ -10,6 +10,28 @@ before 2026-07-21 keep their original prose.
 
 ## 2.4.0 cycle
 
+- [LW-393] SHIPPED a39e629f 2026-10-17: When a game update breaks one part of the mod, only that
+  part switches off and the player is told which parts still work. Plain language: the mod used
+  to have one safety switch, so one failed startup check turned everything off and showed one box.
+  Now each part has its own switch. The log carries a Parts report line every time a check changes
+  state, naming all ten parts as ON, OFF or WAITING with a plain reason, and one short box per
+  closure wave says what still works and what switched off. Banners and the extended inventory
+  no longer wait for the party data check; the job command and battle sentinel checks run from
+  the first tick. Stage 2 of the parts model; LW-398, LW-399, LW-400, LW-401, LW-406 and LW-407
+  follow. Full build: plan review, two implement rounds, two verify rounds (code 8 and 8, spec
+  capped at 5 by plan silences that were written back into the plan), then owner text fixes.
+  Owner live pass 2026-10-17 00:40 to 00:52, two legs on a dev build: the roster drill showed
+  sensing, banners and extended ON at boot, the seven roster parts OFF on Continue with the drill
+  sentence, exactly one box (flight tape, 7 parts off), a battle with no credit, the prompt hook
+  canary before the battle, extended items listed; the normal launch read all ten ON, no box, a
+  Chaos Blade kill credited, no new game detection on Continue, scan clean both legs. The owner
+  cut the box copy to 148 words during the pass. Ledger row sentinels-file-backed-idle-at-map-time
+  flipped PROVEN. (Tech: Part.cs, PartsReport.cs, PartsBoard.cs, SignatureParts.cs,
+  LaunchGuard.Doors.cs; Engine.Tick with no early return; TickGates fold RosterOpen; TwinPistols
+  gate; OfferHookArm deleted; PromptSwapHook and ExtendedInventory doors; sensing stamp wait and
+  300 step boot grace; lane stall lines; LW_FORCE_ROSTER_MISMATCH drill; scan_logs standdown-drill
+  warn and last parts line; commits bf3ed2ba and a39e629f.)
+
 - [LW-185] SHIPPED 4e84cb0f 2026-10-16: The code comments stop reading like essays and stop
   naming ticket numbers. Plain language: every comment in the runtime used to carry the whole
   story of how its line came to be, which reviewer asked for what, and the ticket it belonged

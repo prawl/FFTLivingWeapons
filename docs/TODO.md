@@ -13,49 +13,6 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.4.0)
 
-- **[LW-393] When a game update breaks one part of the mod, only that part switches off and the player is told which parts still work** (opened 2026-10-16) [BUILDING]
-  - Plain language: today the mod has one safety switch. If any one of its checks fails at
-    startup, the whole mod stays off and the player gets one message telling them to update.
-    The September game update tripped that switch over nothing (the game was recompiled,
-    nothing moved) and players lost the whole mod for a month. The owner ruled 2026-10-16: a
-    mod that breaks in parts beats a tower that falls at once. Each part gets its own check
-    and its own switch, and the startup report lists every part as ON or OFF with the reason.
-  - Premise work, same day, both banked in docs/research/WRITE_SITE_AUDIT_2026-10.md: a
-    write-site audit (129 write sites in 59 files, ten agents) and an adversarial check of the
-    dependency model drawn from it. Four corrections from that check drive the design: the
-    game build key is the real global switch and also gates the extended inventory, the
-    banners and the weapon commands; the band and the combat structs are ONE pinned region
-    while the static unit array at 0x140899F50 is a second the first model missed; a shared
-    sensing layer (battle sentinels, EventId, TurnQueue, ActorPtr, Acted) sits under every
-    part; and the harmful-write class is five static-table writers plus GunSlinger's roster
-    stamps, everything else failing closed by fingerprint.
-  - Parts for the report: battle sensing, kill counting, stat growth, card paint, band
-    signatures, static-table signatures, weapon commands, banners, extended inventory, twin
-    pistols. The build is split into one row per green-gated stage; THIS row is the middle
-    stage only: the parts registry, a per-module gate inside the signature loop, and the
-    report, built over the gates that already exist (kit lane, prompt hook, extended arm, the
-    roster row). Order of the rows: LW-395 (sensing landmark and the kills.json reset guard),
-    LW-392 (the timed warning), LW-397 (build key becomes a report line), this row, LW-398
-    (band and static array landmarks), LW-399 (vanilla byte landmarks at the five static
-    tables), LW-400 (GunSlinger gets a door), LW-401 (README and docs say what the guard does
-    now). Each row has its own finish line; this one's drill forces the roster landmark wrong.
-  - (Tech: FingerprintGuard core reusable per door (KitLane is the template); PE key becomes
-    a report line, never a stand-down; ExtendedInventory's arm drops the PE key gate and
-    keeps per-site bytes; PromptSwapHook's OfferHookArm and the kit lane step unchain from
-    the main guard's Armed edge; TickGates gain one predicate per part; the field-signatures
-    row gates per module; StandDownNotice aggregates into one box; Unreadable gets a timed
-    log line per door; scan_logs STANDDOWN_MARK phrase kept or updated with the scanner.)
-  - Done means: on a dev build with the roster landmark deliberately forced wrong, the log and
-    the once-per-session box list every part with ON or OFF and a plain reason, the parts that
-    do not need the roster keep running (banners fire, extended items list), nothing is
-    written where a check failed, and on the normal build every part reports ON; the three
-    existing gates (kit lane, prompt hook, extended arm) still refuse exactly as before; the
-    battle sensing line sits above every part. Landmarks beyond the roster and the existing
-    gates are LW-398, LW-399 and LW-400, not this row.
-  - Verify: full suite green with the per-door landmark tests, the registry and report tests,
-    and a test that a part behind a closed door is never ticked; the owner's live drill on a
-    dev build with the forced-wrong landmark reads the report and sees the surviving parts
-    work, then the owner's normal prod pass reads all ON; scan_logs clean on both.
 - **[LW-323] A weapon's level-up announcement never shows up a battle late anymore** (opened 2026-08-25) [AWAITING-LIVE]
   - BUILT and adversarially verified 2026-08-26 (code 9 of 10, zero code findings; suite
     3332 green), owner live pass outstanding. The owner saw "Stoneshooter has grown to
