@@ -92,12 +92,6 @@ belongs rather than at the bottom.
   populated in battle, so the landmark arms on first battle entry and must report "waiting" until
   then. Shape ideas from the audit: a slot whose level, HP and max HP agree with the roster row the
   band says it mirrors; Band.IsValid already encodes most of it.
-- [LW-399] 2026-10-16: The five places the mod writes into fixed game tables with no check in front (Bulwark's terrain grid, the weapon palette banks, the poach den store, Provoke's two tables, the WP table hold) each get a vanilla byte check before the first write.
-  Stage 3b of the parts model (LW-393). These are the harmful-write class from the audit: on a
-  moved table they author bytes into foreign memory, and the poach store is save state. Each gets a
-  FingerprintGuard.ByteSignature over a known vanilla span (sourced the way Rec8Sig was, by a probe
-  script against the backup exe) and the writer refuses while its door is closed. Provoke.Table
-  also compares its captured original against vanilla instead of trusting whatever it read.
 - [LW-412] 2026-10-17: Before the release, look at every living weapon swung in battle and confirm its colour is the one we meant, because the first colour seen after the table doors landed looked off to the owner.
   Owner note 2026-10-17 during the LW-399 Leg B pass: the Cutpurse repainted, so the weapon colors
   part works, but the shade did not look right. Suspects already on file: the palette map may be
@@ -155,6 +149,16 @@ belongs rather than at the bottom.
   So a living weapon under Dual Wield may swing once instead of twice, or a formula 4 gun or rod
   may fire its spell twice. Live check first: Ninja with Dual Wield and two Blaze Guns, then two
   Hushblades, count strikes and casts; then read the routine Tal names.
+- [LW-414] 2026-10-17: Seven of the "vanilla" weapon power numbers in data/items.json do not match what the game file actually holds, so the vanilla comparison the analyzer offers reasons from wrong reference values for those seven.
+  Surfaced by the LW-399 probe (tools/probes/static_table_file_image_probe.py) reading the item
+  stats table out of the installed exe, stamp 0x6A5E4A1B. Baseline wp versus the file: id 29
+  Icebrand 18 vs 13, id 31 Nagrarok 16 vs 1, id 37 Chaos Blade 50 vs 40, id 74 Glacial Gun 21 vs
+  20, id 75 Blaze Gun 20 vs 21, id 78 Knightslayer 4 vs 3, id 81 Hunting Crossbow 5 vs 6. The
+  74 and 75 element bytes (Ice, Fire) show the names are not swapped, so these are typos in the
+  reference column, not an id mapping fault. Only `baseline` is wrong; `proposed` is what ships
+  and is untouched. Done looks like the seven baseline values corrected in items.json, the
+  generator re-run, analyze.py and analyze.py --baseline green, and a contract test that reads
+  the eight LW-399 pinned rows plus these seven from the exe when it is present.
 - [LW-394] 2026-10-16: Three weapon commands mark an ability as learned in the player's save and never unmark it, so no safety switch can undo them if they ever land in the wrong place; decide whether they should clean up after themselves.
   Barrage, Shadow Blade and Provoke each set one learned bit in the roster row (Barrage.cs 247,
   ShadowBlade.cs 199, Provoke.cs 194) and hold it by design so the command stays usable. The audit

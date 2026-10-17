@@ -36,10 +36,14 @@ internal sealed class WpTableHold
     // row is in the mod's weapon-stat stub page. Returns that address, or -1 if not an armed extended
     // item. Null (tests, no extended inventory) refuses such ids.
     private readonly Func<int, long>? _extendedRowAddr;
+    private readonly DoorLatch? _latch;
+
+    internal DoorLatch? Latch => _latch;
 
     public WpTableHold(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, IGameMemory mem,
-        Func<int, long>? extendedRowAddr = null)
+        Func<int, long>? extendedRowAddr = null, DoorLatch? latch = null)
     {
+        _latch = latch;
         _meta = meta;
         _kills = kills;
         _mem = mem;
@@ -103,6 +107,7 @@ internal sealed class WpTableHold
     /// stomp back to baked. With no hold yet at this address it just refuses to write.</summary>
     private void Apply(long addr, int weaponId, int tier)
     {
+        if (weaponId < Offsets.ItemStatsRows && _latch is { } door && !door.Allows()) return;
         if (!_mem.Writable(addr, 1)) return;
         if (!_meta.TryGetValue(weaponId, out var m)) return;
         byte baked = (byte)m.Wp;

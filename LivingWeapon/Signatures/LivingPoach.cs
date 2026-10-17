@@ -22,10 +22,14 @@ internal sealed partial class LivingPoach
     private readonly Func<int> _roll;
 
     private readonly HashSet<(int slot, ushort nameId)> _poachedThisBattle = new();
+    private readonly DoorLatch? _latch;
+
+    internal DoorLatch? Latch => _latch;
 
     public LivingPoach(Dictionary<int, WeaponMeta> meta, PoachMap map, IGameMemory mem, BannerToast toast,
-        Func<int, bool> killerHasPoach, Func<int, bool> wasBasicAttack, Func<int>? roll = null)
+        Func<int, bool> killerHasPoach, Func<int, bool> wasBasicAttack, Func<int>? roll = null, DoorLatch? latch = null)
     {
+        _latch = latch;
         _meta = meta;
         _map = map;
         _mem = mem;
@@ -99,6 +103,12 @@ internal sealed partial class LivingPoach
 
     private bool WriteCarcass(int weaponId, int key, string name)
     {
+        if (key < 1 || key > Offsets.PoachStoreKeys)
+        {
+            ModLogger.Debug(LogVerb.Signature, $"Living Poach refused key {key}: it is outside the Den store's 1 to {Offsets.PoachStoreKeys}.");
+            return false;
+        }
+        if (_latch is { } door && !door.Allows()) return false;
         long addr = Offsets.PoachStoreBase + (key - 1);
         if (!_mem.Readable(addr, 1))
         {

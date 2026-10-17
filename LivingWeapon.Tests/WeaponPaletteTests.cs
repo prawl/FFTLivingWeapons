@@ -1109,4 +1109,33 @@ public class WeaponPaletteTests
             for (int i = 1; i <= 15; i++) Assert.Equal(expected[i - 1], after[i] & 0x7FFF);
         }
     }
+
+    // ================= LW-399: the palette door latch =================
+
+    [Fact]
+    public void A_closed_palette_door_holds_the_first_paint()
+    {
+        var door = DoorReading.Failed("the weapon palette is not where this mod expects it");
+        var latch = new DoorLatch(() => door, "Weapon colors were not repainted.");
+        var mem = new FakeSparseMemory();
+        SeatOwner(mem, Slot, 9);
+        foreach (long bank in Banks) StageBank(mem, bank, 4, SeedBank());
+        var wp = new WeaponPalette(Meta(9, 4), mem, new Dictionary<int, int>(), latch);
+
+        for (int i = 0; i < 10; i++) wp.Tick(true);
+
+        Assert.Same(latch, wp.Latch);
+        Assert.Empty(mem.WrittenBytes);
+        Assert.Equal(SeedBank(), ReadBank(mem, BankA, 4));
+
+        door = DoorReading.Open();
+        wp.Tick(true);
+
+        foreach (long bank in Banks)
+            Assert.Contains(mem.WrittenBytes, w => w.addr == Tgt(bank, 4) + 2 && w.bytes.Length == 30);
+        // The snapshot was taken at the first paint that ran, so a later restore puts the vanilla bytes back.
+        mem.U16s[Band.Entry(Slot) + Offsets.AWeapon] = 12345;
+        wp.Tick(true);
+        foreach (long bank in Banks) Assert.Equal(SeedBank(), ReadBank(mem, bank, 4));
+    }
 }

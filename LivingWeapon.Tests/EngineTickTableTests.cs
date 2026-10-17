@@ -79,7 +79,8 @@ public class EngineTickTableTests
         };
 
         var rows = Engine.BuildPhases(null);
-        var unGated = rows.Where(r => !ReferenceEquals(r.Gate, TickGates.InBattle))
+        var battleGates = new[] { TickGates.InBattle, TickGates.WeaponColors, TickGates.GunGrowth, TickGates.PoachDen };   // the three table parts also fold in NowIn
+        var unGated = rows.Where(r => !battleGates.Any(g => ReferenceEquals(r.Gate, g)))
                           .Select(r => r.Name).ToHashSet();
 
         // Set equality, both directions: a battle row escaping its gate fails the first assert;
@@ -145,11 +146,31 @@ public class EngineTickTableTests
     public void Every_row_declares_the_part_it_belongs_to_and_the_part_matches_its_name_family()
     {
         var rows = Engine.BuildPhases(null);
-        foreach (var row in rows.Where(r => r.Name.StartsWith("kit-")))
+        foreach (var row in rows.Where(r => r.Name.StartsWith("kit-") && r.Name != "kit-provoke"))
             Assert.Equal(Part.WeaponCommands, row.Part);
+        Assert.Equal(Part.Provoke, rows.Single(r => r.Name == "kit-provoke").Part);
+        Assert.Same(TickGates.Provoke, rows.Single(r => r.Name == "kit-provoke").Gate);
         foreach (var row in rows.Where(r => r.Name.StartsWith("extended-")))
             Assert.Equal(Part.ExtendedInventory, row.Part);
         Assert.Equal(Part.TwinPistols, rows.Single(r => r.Name == "gunslinger").Part);
         Assert.Same(TickGates.TwinPistols, rows.Single(r => r.Name == "gunslinger").Gate);
+    }
+
+    [Fact]
+    public void The_table_part_gates_need_their_part_and_the_battle_except_provoke_which_needs_only_its_part()
+    {
+        var cases = new (Func<TickPhaseState, bool> Gate, Part Part, bool NeedsBattle)[]
+        {
+            (TickGates.WeaponColors, Part.WeaponColors, true),
+            (TickGates.GunGrowth, Part.GunGrowth, true),
+            (TickGates.PoachDen, Part.PoachDen, true),
+            (TickGates.Provoke, Part.Provoke, false),
+        };
+        foreach (var (gate, part, needsBattle) in cases)
+        {
+            Assert.True(gate(State(nowIn: true, rosterOpen: true, partOn: p => p == part)));
+            Assert.False(gate(State(nowIn: true, rosterOpen: true, partOn: p => p != part)));
+            Assert.Equal(!needsBattle, gate(State(nowIn: false, rosterOpen: true, partOn: p => p == part)));
+        }
     }
 }

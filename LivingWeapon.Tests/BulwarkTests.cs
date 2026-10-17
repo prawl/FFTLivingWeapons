@@ -56,7 +56,7 @@ public class BulwarkTests
 
     private static (FakeSparseMemory mem, Dictionary<int, int> kills, BannerToast toast, Bulwark bulwark, long wielderEntry)
         Build(int kills = -1, int wx = 5, int wy = 5, int mapW = 11, int mapH = 12, int layerBit = 0, int facing = 0,
-              Dictionary<int, WeaponMeta>? meta = null)
+              Dictionary<int, WeaponMeta>? meta = null, DoorLatch? latch = null)
     {
         var mem = new FakeSparseMemory();
         meta ??= Meta();
@@ -74,7 +74,7 @@ public class BulwarkTests
         mem.U8s[wielderEntry + Offsets.ALayerBit] = (byte)((layerBit << 7) | facing);
 
         var toast = new BannerToast(meta, killDict, enabled: true);
-        var bulwark = new Bulwark(meta, killDict, toast, mem);
+        var bulwark = new Bulwark(meta, killDict, toast, mem, latch);
         return (mem, killDict, toast, bulwark, wielderEntry);
     }
 
@@ -527,4 +527,29 @@ public class BulwarkTests
     [Fact]
     public void The_sunderer_lives_at_its_extended_id_since_the_move()
         => Assert.Equal(263, Bulwark.SundererId);
+
+    // ================= LW-399: the terrain door latch =================
+
+    [Fact]
+    public void A_closed_terrain_door_plants_nothing()
+    {
+        var door = DoorReading.Failed("the terrain data is not where this mod expects it");
+        var latch = new DoorLatch(() => door, "The Sunderer's blade wall was not planted.");
+        var (mem, kills, toast, bulwark, entry) = Build(wx: 5, wy: 5, latch: latch);
+        int idx = Idx(5, 6, 11);
+        StageTerrain(mem, idx, 0x20);
+
+        RunFullWaitCycle(bulwark, mem, entry);
+
+        Assert.Same(latch, bulwark.Latch);
+        Assert.Empty(mem.Written);
+        Assert.Equal((byte)0x20, mem.U8(GridAddr(idx)));
+        Assert.Empty(toast._queue);
+
+        door = DoorReading.Open();
+        RunFullWaitCycle(bulwark, mem, entry);
+
+        Assert.Equal((byte)0x22, mem.U8(GridAddr(idx)));   // a refused plant left the turn a no-op, so the next full wait plants
+        Assert.Single(toast._queue);
+    }
 }
