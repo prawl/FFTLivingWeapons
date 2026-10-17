@@ -362,4 +362,55 @@ public class FlightRecorderTests : IDisposable
         Assert.Equal("guard", (string)rec1["e"]!);
         Assert.Contains("stand-down", (string)rec1["d"]!);
     }
+
+    [Fact]
+    public void The_header_says_unknown_for_version_and_build_until_they_are_set_and_carries_the_latest_at_flush()
+    {
+        var written = new List<string>();
+        var rec = Make(fileWriter: (_, content) => written.Add(content));
+
+        rec.Record("t", "one");
+        rec.Flush("a");
+        rec.SetBuildInfo("7.7.7", "0x6A5E4A1B");
+        rec.Record("t", "two");
+        rec.Flush("b");
+
+        var first = JObject.Parse(written[0].Split('\n')[0]);
+        Assert.Equal("unknown", (string)first["version"]!);
+        Assert.Equal("unknown", (string)first["build"]!);
+        var second = JObject.Parse(written[1].Split('\n')[0]);
+        Assert.Equal("7.7.7", (string)second["version"]!);
+        Assert.Equal("0x6A5E4A1B", (string)second["build"]!);
+        Assert.True((bool)second["hdr"]!);
+    }
+
+    [Fact]
+    public void The_facade_applies_build_info_set_before_and_after_Init_and_a_null_keeps_the_old_value()
+    {
+        Flight.Reset();
+        try
+        {
+            Flight.SetBuildInfo(version: "7.7.7");
+            var dir = TempDir();
+            Flight.Init(dir);
+            Flight.SetBuildInfo(build: "0x6A5E4A1B");
+            Flight.Record("t", "x");
+            Flight.FlushBattleEnd();
+
+            string file = Directory.GetFiles(Path.Combine(dir, "flight"), "flight_*.jsonl").Single();
+            var header = JObject.Parse(File.ReadAllLines(file)[0]);
+            Assert.Equal("7.7.7", (string)header["version"]!);
+            Assert.Equal("0x6A5E4A1B", (string)header["build"]!);
+        }
+        finally { Flight.Reset(); }
+    }
+
+    [Fact]
+    public void Reset_forgets_the_build_info()
+    {
+        Flight.SetBuildInfo("7.7.7", "0x1");
+        Flight.Reset();
+
+        Assert.Equal(("unknown", "unknown"), Flight.BuildInfo);
+    }
 }

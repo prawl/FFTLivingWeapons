@@ -37,6 +37,10 @@ internal sealed partial class LaunchGuard
     /// <summary>The unknown build hedge, or empty when the build is known. The parts board appends it to its box.</summary>
     internal string BuildHedge => HedgeIfUnknownBuild();
 
+    /// <summary>The stamp numbers for the detail clause of a stand down line, or empty when the build is known.</summary>
+    internal string BuildDetail => _stampRead && !_stampKnown
+        ? $"; this game build is new to the mod ({StampText(_stampTds, _stampSoi)}, made for {MadeForText()})" : "";
+
     internal DoorReading RosterDoor => _guard.State switch
     {
         GuardState.Armed => DoorReading.Open(),

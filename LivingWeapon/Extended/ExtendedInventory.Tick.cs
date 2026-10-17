@@ -31,6 +31,17 @@ internal sealed partial class ExtendedInventory
     public bool CapsSettled => _pending.All(p => p.Settled);
     public IReadOnlyList<PendingPatch> PendingCaps => _pending;
 
+    // The label and the address stay in the detail tail, where only a bug report needs them.
+    internal static string CapWarn(PendingPatch p)
+    {
+        string where = $"{p.Patch.Label} at 0x{p.Patch.Addr:X}";
+        return p.State == PendingPatch.Phase.Foreign
+            ? "A spot in the game's item code was already changed by something else, so it is left alone and the new items may punch instead of swinging."
+                + PartsCopy.Detail($"{where} reads {p.Observed:X2}")
+            : "A spot in the game's item code could not be changed, so the new items may punch instead of swinging."
+                + PartsCopy.Detail($"{where} refused the write");
+    }
+
     /// <summary>Step the copy-protected caps. No-op until armed or once all are settled.</summary>
     public void StepPostLoadCaps()
     {
@@ -47,10 +58,8 @@ internal sealed partial class ExtendedInventory
                     ModLogger.Event(LogVerb.Engine, $"Extended inventory: the {p.Patch.Label} cap was already widened by something else (the research rig?); leaving it.");
                     break;
                 case PendingPatch.Phase.Foreign:
-                    ModLogger.Warn(LogVerb.Engine, $"Extended inventory: the {p.Patch.Label} cap at 0x{p.Patch.Addr:X} reads {p.Observed:X2}, neither vanilla nor ours; not touching it, so the new items may punch instead of swing.");
-                    break;
                 case PendingPatch.Phase.Unwritable:
-                    ModLogger.Warn(LogVerb.Engine, $"Extended inventory: the {p.Patch.Label} cap at 0x{p.Patch.Addr:X} refused the write; the new items may punch instead of swing.");
+                    ModLogger.Warn(LogVerb.Engine, CapWarn(p));
                     break;
             }
         }

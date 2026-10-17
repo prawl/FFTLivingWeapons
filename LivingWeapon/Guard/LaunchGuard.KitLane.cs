@@ -56,7 +56,7 @@ internal sealed partial class LaunchGuard
     {
         _recorder?.Invoke("guard", "kit lane armed (JobCommand table matches; weapon-granted commands enabled)");
         ModLogger.Event(LogVerb.Startup,
-            "The JobCommand table matches this mod's own anchor; the weapon-granted commands (Barrage, Shadow Blade, Provoke) are enabled.");
+            "The job command data matches this mod's own copy; the weapon commands (Barrage, Shadow Blade and Provoke) have passed their check and run once the party data check passes too.");
     }
 
     private void KitLaneStandDown(string diag)
@@ -65,11 +65,9 @@ internal sealed partial class LaunchGuard
         _recorder?.Invoke("guard", $"kit-lane stand-down ({diag})");
         // Warn, not Error, since the mod stays up. The text must avoid "standing down to protect your save",
         // which tools/scan_logs.py classifies as a full stand-down.
-        ModLogger.Warn(LogVerb.Startup,
-            $"Another mod has rewritten the job command data this mod anchors its weapon-granted commands to ({diag}). "
-            + "Living Weapons stays armed and everything else keeps working; the Barrage, Shadow Blade and Provoke "
-            + "command grants are disabled for this session so the two mods do not overwrite each other."
-            + HedgeIfUnknownBuild());   // on a new game build the update itself may be the cause
+        ModLogger.Warn(LogVerb.Startup, PartsCopy.Disabled(
+            "The weapon commands (Barrage, Shadow Blade and Provoke) are paused for this session because another mod rewrote the job command data this mod needs, and the two mods would otherwise overwrite each other; the rest of Living Weapons keeps working.",
+            HedgeIfUnknownBuild(), "", diag + BuildDetail));
         // Reuses the "standdown" trigger; the "kit-lane" marker in the record payload tells the
         // two shapes apart on replay.
         _requestFlush?.Invoke("standdown");

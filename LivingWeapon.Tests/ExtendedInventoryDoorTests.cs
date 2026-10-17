@@ -16,7 +16,7 @@ public class ExtendedInventoryDoorTests : IDisposable
     public ExtendedInventoryDoorTests() => Directory.CreateDirectory(_dir);
     public void Dispose() { try { Directory.Delete(_dir, true); } catch { } }
 
-    private static ExtendedInventoryData.LoadResult Moonblade() => new()
+    internal static ExtendedInventoryData.LoadResult Moonblade() => new()
     {
         FolderPresent = true,
         Items = new[]
@@ -97,7 +97,7 @@ public class ExtendedInventoryDoorTests : IDisposable
         Assert.Equal(DoorState.Closed, inv.Door.State);
         Assert.False(inv.Door.FailedCheck);
         Assert.Equal("the loader gave no hooks", inv.Door.Reason);
-        Assert.Contains(cap.File, l => l.Contains("[WARN]") && l.Contains("is NOT armed this session"));
+        Assert.Contains(cap.File, l => l.Contains("[WARN]") && l.Contains("game-hooks helper mod"));
     }
 
     [Fact]

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Reflection;
 using LivingWeapon;
@@ -62,7 +63,7 @@ public class LaunchGuardTests
         mem.U8s[rb + Offsets.RFaith] = (byte)faith;
     }
 
-    private static FakeSparseMemory HealthyMemory(int level = 12, int nameId = 1, byte sprite = 0x02,
+    internal static FakeSparseMemory HealthyMemory(int level = 12, int nameId = 1, byte sprite = 0x02,
         int brave = 70, int faith = 65)
     {
         var mem = new FakeSparseMemory();
@@ -73,7 +74,7 @@ public class LaunchGuardTests
         return mem;
     }
 
-    private static void StageTwinFlags(FakeSparseMemory mem, byte menu, byte browse)
+    internal static void StageTwinFlags(FakeSparseMemory mem, byte menu, byte browse)
     {
         mem.TerrainBlocks[Offsets.MenuOpenFlag] = new byte[] { menu };
         mem.TerrainBlocks[Offsets.PartyBrowseFlag] = new byte[] { browse };
@@ -657,7 +658,9 @@ public class LaunchGuardTests
             Assert.Empty(calls);
             Assert.Equal(LaunchGuard.UnknownBuildHedge, guard.BuildHedge);
             string laneWarn = Assert.Single(cap.File, l => l.Contains("[WARN]") && l.Contains("jobcommand-table"));
-            Assert.Contains("the cause may be the game update itself", laneWarn);
+            Assert.Contains(PartsCopy.Hedge, laneWarn);
+            Assert.Contains(LaunchGuard.UnknownBuildHedge, laneWarn);
+            Assert.True(laneWarn.IndexOf("0x11111111", System.StringComparison.Ordinal) > laneWarn.IndexOf("(detail:", System.StringComparison.Ordinal));
             Assert.DoesNotContain(cap.File, l => l.Contains("standing down to protect your save"));
         });
     }
@@ -733,7 +736,7 @@ public class LaunchGuardTests
     }
 
     [Fact]
-    public void Lane_copy_has_no_hedge_on_a_known_build()
+    public void Lane_copy_carries_no_stamp_detail_on_a_known_build()
     {
         WithWritesRestored(() =>
         {
@@ -749,7 +752,10 @@ public class LaunchGuardTests
             Assert.Equal(GuardState.StoodDown, guard.KitLaneState);
             Assert.Empty(calls);
             Assert.Equal("", guard.BuildHedge);
-            Assert.DoesNotContain(cap.File, l => l.Contains("the cause may be the game update itself"));
+            Assert.Equal("", guard.BuildDetail);
+            string laneWarn = Assert.Single(cap.File, l => l.Contains("[WARN]") && l.Contains("jobcommand-table"));
+            Assert.DoesNotContain("TimeDateStamp", laneWarn);
+            Assert.DoesNotContain(LaunchGuard.UnknownBuildHedge, laneWarn);
         });
     }
 
@@ -792,7 +798,7 @@ public class LaunchGuardTests
                 Assert.Equal(GuardState.Armed, guard.KitLaneState);
                 Assert.True(guard.KitLaneArmed);
                 Assert.Empty(calls);
-                Assert.Contains(file, line => line.Contains("weapon-granted commands") && line.Contains("enabled"));
+                Assert.Contains(file, line => line.Contains("weapon commands (Barrage, Shadow Blade and Provoke) have passed their check") && line.Contains("once the party data check passes too"));
             }
             finally { ModLogger.Instance = prior; }
         }
@@ -907,7 +913,7 @@ public class LaunchGuardTests
                 Assert.Empty(calls);
                 var closed = PartsReportTests.AllOpen();
                 closed[Door.KitLane] = guard.KitLaneDoor;
-                Assert.DoesNotContain("standing down to protect your save", PartsReport.ComposeBox(closed, "", guard.BuildHedge));
+                Assert.DoesNotContain("standing down to protect your save", PartsReport.ComposeBox(closed, "", guard.BuildHedge, ""));
                 Assert.DoesNotContain(file, line => line.Contains("standing down to protect your save"));
             }
             finally { ModLogger.Instance = prior; }
@@ -950,7 +956,7 @@ public class LaunchGuardTests
     // The lane verifies the six battle sentinels once per launch, out of battle only. Staged through
     // TerrainBlocks because the probe reads them with TryReadBytes (a failed read is Unreadable).
 
-    private static void StageSentinels(FakeSparseMemory mem, uint slot0, uint slot9, byte mode,
+    internal static void StageSentinels(FakeSparseMemory mem, uint slot0, uint slot9, byte mode,
         ushort eventId, byte pause, byte submenu)
     {
         SeedU32Bytes(mem, Offsets.Slot0, slot0);
@@ -1563,7 +1569,7 @@ public class LaunchGuardTests
             StepSensingN(rig.Guard, LaunchGuard.SensingBootGraceSteps + 30);
 
             Assert.Equal(GuardState.StoodDown, rig.Guard.SensingState);
-            Assert.Contains(cap.File, l => l.Contains("battle sentinels do not read the way this mod expects"));
+            Assert.Contains(cap.File, l => l.Contains("battle status data does not read the way this mod expects"));
             Assert.DoesNotContain(cap.File, l => l.Contains("standing down to protect your save"));
             Assert.DoesNotContain(cap.File, l => l.Contains("LW_FORCE_"));
             Assert.DoesNotContain(rig.Records, r => r.payload.Contains("LW_FORCE_"));
@@ -1584,7 +1590,7 @@ public class LaunchGuardTests
             StepSensingN(rig.Guard, LaunchGuard.SensingBootGraceSteps + 30);
 
             Assert.Equal(GuardState.StoodDown, rig.Guard.SensingState);
-            string line = Assert.Single(cap.File, l => l.Contains("The battle sentinels do not read the way this mod expects"));
+            string line = Assert.Single(cap.File, l => l.Contains("battle status data does not read the way this mod expects"));
             Assert.Contains("[WARN]", line);
             Assert.DoesNotContain("[ERROR]", line);
         });
@@ -1599,13 +1605,13 @@ public class LaunchGuardTests
         public readonly List<(string type, string payload)> Records = new();
     }
 
-    private static StallRig NewStallRig(FakeSparseMemory mem, bool forceUnreadable = false)
+    private static StallRig NewStallRig(FakeSparseMemory mem, bool forceUnreadable = false, string? version = null)
     {
         var rig = new StallRig();
         rig.Guard = new LaunchGuard(mem, forceMismatch: false,
             notice: (t, x) => rig.Notices.Add((t, x)),
             recorder: (t, p) => rig.Records.Add((t, p)),
-            forceUnreadable: forceUnreadable);
+            forceUnreadable: forceUnreadable, version: version);
         return rig;
     }
 
@@ -1975,5 +1981,104 @@ public class LaunchGuardTests
         using var cap = LogCapture.Start();
         StepTwinN(new LaunchGuard(mem, forceMismatch: true, forceTwinMismatch: true), 30);
         Assert.DoesNotContain(cap.File, l => l.Contains(ScannerPhrase));
+    }
+
+    private const string StallFooter = "Living Weapons 7.7.7, game build unknown";
+
+    [Fact]
+    public void The_stall_box_is_headline_first_paragraph_hedge_what_to_do_then_the_footer()
+    {
+        WithWritesRestored(() =>
+        {
+            using var cap = LogCapture.Start();
+            var rig = NewStallRig(new FakeSparseMemory(), version: "7.7.7");
+
+            StepN(rig.Guard, LaunchGuard.ImageStallSteps + 1);
+
+            string box = Assert.Single(rig.Notices).text;
+            Assert.Equal(LaunchGuard.ImageStallBox + "\n\n" + StallFooter, box);
+            Assert.EndsWith(PartsCopy.WhatToDoBox + "\n\n" + StallFooter, box);
+            Assert.Contains(PartsCopy.Hedge + "\n\n" + PartsCopy.WhatToDoBox, box);
+            Assert.DoesNotContain("0x", box);
+        });
+    }
+
+    [Fact]
+    public void The_stall_box_puts_the_drill_sentence_before_the_footer_as_its_own_paragraph()
+    {
+        WithWritesRestored(() =>
+        {
+            using var cap = LogCapture.Start();
+            var rig = NewStallRig(HealthyMemory(), forceUnreadable: true, version: "7.7.7");
+
+            StepN(rig.Guard, LaunchGuard.ImageStallSteps + 1);
+
+            string box = Assert.Single(rig.Notices).text;
+            Assert.EndsWith("\n\nThis warning was forced by the LW_FORCE_GUARD_UNREADABLE drill flag (dev builds only).\n\n" + StallFooter, box);
+        });
+    }
+
+    [Fact]
+    public void The_stall_box_has_no_footer_paragraph_when_no_footer_is_wired()
+    {
+        WithWritesRestored(() =>
+        {
+            using var cap = LogCapture.Start();
+            var rig = NewStallRig(new FakeSparseMemory());
+
+            StepN(rig.Guard, LaunchGuard.ImageStallSteps + 1);
+
+            Assert.Equal(LaunchGuard.ImageStallBox, Assert.Single(rig.Notices).text);
+        });
+    }
+
+    [Fact]
+    public void The_build_footer_stamp_is_unknown_until_the_header_is_read_then_the_zero_padded_stamp()
+    {
+        WithWritesRestored(() =>
+        {
+            using var cap = LogCapture.Start();
+            var guard = new LaunchGuard(HealthyMemory(), forceMismatch: false, version: "7.7.7");
+            Assert.Equal("unknown", guard.BuildFooterStamp);
+            Assert.Equal("Living Weapons 7.7.7, game build unknown", guard.Footer);
+
+            guard.Step();
+
+            Assert.Equal($"0x{LaunchGuard.ExpectedTimeDateStamp:X8}", guard.BuildFooterStamp);
+            Assert.Equal($"Living Weapons 7.7.7, game build 0x{LaunchGuard.ExpectedTimeDateStamp:X8}", guard.Footer);
+            Assert.Equal("", new LaunchGuard(HealthyMemory(), forceMismatch: false).Footer);
+        });
+    }
+
+    [Fact]
+    public void The_build_footer_stamp_reports_the_real_stamp_on_an_unknown_build()
+    {
+        WithWritesRestored(() =>
+        {
+            using var cap = LogCapture.Start();
+            var guard = new LaunchGuard(HealthyMemory(), forceMismatch: true);
+
+            guard.Step();
+
+            Assert.Equal($"0x{LaunchGuard.ExpectedTimeDateStamp:X8}", guard.BuildFooterStamp);
+            Assert.Equal(false, guard.BuildStampKnown);
+        });
+    }
+
+    [Fact]
+    public void Latching_the_stamp_hands_the_build_to_the_flight_header()
+    {
+        WithWritesRestored(() =>
+        {
+            Flight.Reset();
+            try
+            {
+                Flight.SetBuildInfo(version: "7.7.7");
+                var guard = new LaunchGuard(HealthyMemory(), forceMismatch: false);
+                guard.Step();
+                Assert.Equal(("7.7.7", $"0x{LaunchGuard.ExpectedTimeDateStamp:X8}"), Flight.BuildInfo);
+            }
+            finally { Flight.Reset(); }
+        });
     }
 }

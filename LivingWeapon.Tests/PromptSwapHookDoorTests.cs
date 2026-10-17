@@ -10,7 +10,7 @@ namespace LivingWeapon.Tests;
 /// </summary>
 public class PromptSwapHookDoorTests
 {
-    private static PromptSwapHook NewHook(FakeSparseMemory mem)
+    internal static PromptSwapHook NewHook(FakeSparseMemory mem)
     {
         var toast = new BannerToast(new Dictionary<int, WeaponMeta>(), new Dictionary<int, int>(), true);
         return new PromptSwapHook(new PromptSwap(toast, mem), mem);
@@ -37,7 +37,7 @@ public class PromptSwapHookDoorTests
         Assert.Equal(DoorState.Closed, hook.Door.State);
         Assert.True(hook.Door.FailedCheck);
         Assert.Equal("the game's prompt system is not where this mod expects it", hook.Door.Reason);
-        Assert.Contains(cap.File, l => l.Contains("[WARN]") && l.Contains("does not match the expected prologue"));
+        Assert.Contains(cap.File, l => l.Contains("[WARN]") && l.Contains("prompt code is not where this mod expects it"));
     }
 
     [Fact]

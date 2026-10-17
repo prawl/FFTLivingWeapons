@@ -15,7 +15,7 @@ public class BattleDoorTests
 {
     private const int Debounce = 30;
 
-    private sealed class Rig
+    internal sealed class Rig
     {
         public readonly FakeSparseMemory Mem;
         public readonly LaunchGuard G;
@@ -138,11 +138,11 @@ public class BattleDoorTests
         rig.Field();
 
         Assert.Equal(GuardState.StoodDown, rig.G.BandState);
-        var warn = Assert.Single(cap.File, l => l.Contains("[WARN]") && l.Contains("does not read the way this mod expects"));
+        var warn = Assert.Single(cap.File, l => l.Contains("[WARN]") && l.Contains("live battle unit data is not where this mod expects it"));
         Assert.Contains("no unit shapes in the live battle data", warn);
         Assert.DoesNotContain("standing down to protect your save", warn);
         Assert.DoesNotContain("LW_FORCE_BAND_MISMATCH", warn);
-        Assert.Contains("Kill counting, stat growth and the band signatures are switched off for this session", warn);
+        Assert.Contains("Kill counting, stat growth and the weapon powers in battle are paused for this session", warn);
         Assert.Equal(1, rig.Armed("band stand-down (band-region (no unit shapes in the live battle data))"));
         Assert.Equal("standdown", Assert.Single(rig.Flushes));
         var door = rig.G.BandDoor;
@@ -277,9 +277,9 @@ public class BattleDoorTests
 
         Assert.Equal(DoorState.Open, rig.G.BandDoor.State);
         Assert.Equal(GuardState.StoodDown, rig.G.StaticArrayState);
-        var warn = Assert.Single(cap.File, l => l.Contains("[WARN]") && l.Contains("battle unit list does not read the way"));
+        var warn = Assert.Single(cap.File, l => l.Contains("[WARN]") && l.Contains("battle unit list is not where this mod expects it"));
         Assert.Contains("no unit shapes in the battle unit list", warn);
-        Assert.Contains("Kill counting and the band signatures are switched off for this session; stat growth and the other parts keep working.", warn);
+        Assert.Contains("Kill counting and the weapon powers in battle are paused for this session because the battle unit list is not where this mod expects it; stat growth and the other parts keep working.", warn);
         Assert.DoesNotContain("standing down to protect your save", warn);
         Assert.Equal(1, rig.Armed("static array stand-down (static-array (no unit shapes in the battle unit list))"));
         var door = rig.G.StaticArrayDoor;
@@ -319,7 +319,7 @@ public class BattleDoorTests
         Assert.Equal(GuardState.StoodDown, rig.G.BandState);
         var door = rig.G.BandDoor;
         Assert.Contains("forced by the LW_FORCE_BAND_MISMATCH drill", door.Reason);
-        var warn = Assert.Single(cap.File, l => l.Contains("[WARN]") && l.Contains("does not read the way this mod expects"));
+        var warn = Assert.Single(cap.File, l => l.Contains("[WARN]") && l.Contains("live battle unit data is not where this mod expects it"));
         Assert.Contains("drill: LW_FORCE_BAND_MISMATCH", warn);
         Assert.Contains(PartsReport.BandDrillSentence, warn);
         Assert.Contains(rig.Records, r => r.payload.Contains("drill: LW_FORCE_BAND_MISMATCH"));

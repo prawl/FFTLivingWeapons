@@ -46,6 +46,9 @@ internal sealed partial class FlightRecorder
     private int _head;    // next write index
     private int _count;   // records currently held (<= Capacity)
 
+    private string _version = "unknown";
+    private string _build = "unknown";
+
     private bool _pendingFlush;
     private string _pendingTrigger = "";
     private bool _errorFlushArmed;   // only the first "error" request per launch flushes
@@ -66,6 +69,12 @@ internal sealed partial class FlightRecorder
         _fileWriter = fileWriter ?? DefaultWrite;
         _lister = lister ?? DefaultList;
         _deleter = deleter ?? DefaultDelete;
+    }
+
+    /// <summary>The version and game build every later file header carries.</summary>
+    public void SetBuildInfo(string version, string build)
+    {
+        lock (_lock) { _version = version; _build = build; }
     }
 
     /// <summary>Records currently held in the ring.</summary>
@@ -102,8 +111,10 @@ internal sealed partial class FlightRecorder
         {
             DateTime wall = _wallClock();
             long flushElapsed = _clock();
+            string version, build;
+            lock (_lock) { version = _version; build = _build; }
             string path = Path.Combine(_flightDir, $"flight_{wall:yyyyMMdd_HHmmss}_{SafeTrigger(trigger)}.jsonl");
-            _fileWriter(path, Serialize(snapshot, wall, flushElapsed));
+            _fileWriter(path, Serialize(snapshot, wall, flushElapsed, version, build));
             PruneRetention();
         }
         catch { /* swallow -- a flush failure must never throw or call ModLogger (B1: re-entrancy) */ }

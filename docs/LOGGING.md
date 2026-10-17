@@ -317,8 +317,9 @@ durable evidence a re-anchor session reads.
 
 **Where files land:** `<modDir>/flight/flight_<yyyyMMdd_HHmmss>_<trigger>.jsonl`, one compact
 JSON object per line (Newtonsoft.Json; no hand-rolled escaping). The first line of every file is
-a header object (`{"hdr": true, "wall": "...", "t": <elapsedMs>}`) carrying the wall-clock time
-and the recorder's own elapsedMs at flush, so a file's records can be cross-referenced against
+a header object (`{"hdr": true, "wall": "...", "t": <elapsedMs>, "version": "...", "build": "..."}`) carrying
+the wall-clock time, the recorder's own elapsedMs at flush, the mod version and the game build (the
+TimeDateStamp, or "unknown" before the guard has read it), so a file's records can be cross-referenced against
 `livingweapon.log`'s `[HH:mm:ss.fff]` timestamps (millisecond precision was preserved through
 the facelift for exactly this join). Every other line is `{"t": <elapsedMs>, "e": "<type>",
 "d": "<payload>"}`.

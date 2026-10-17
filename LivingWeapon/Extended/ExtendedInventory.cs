@@ -79,12 +79,27 @@ internal sealed partial class ExtendedInventory
         }
         if (!_data.Ok)
         {
-            Refuse("the extended-inventory tables did not validate: " + string.Join("; ", _data.Errors));
+            string errors = string.Join("; ", _data.Errors);
+            Refuse("the extended-inventory tables did not validate: " + errors,
+                DoorReading.Failed("the new item data shipped with this build did not validate"),
+                PartsCopy.DisabledPlain("The new items are paused for this session because the item data shipped with this mod did not load correctly; everything else keeps working.", errors));
             return;
         }
-        if (hooks == null && _defaultInstall) { Refuse(NoHooksRefusal, failedCheck: false); return; }
+        if (hooks == null && _defaultInstall)
+        {
+            Refuse(NoHooksRefusal, DoorReading.Absent("the loader gave no hooks"),
+                "The new items are paused for this session because the game-hooks helper mod (reloaded.sharedlib.hooks) is not enabled; everything else keeps working. " + PartsCopy.HooksWhatToDo);
+            return;
+        }
         string? why = Install(hooks);
-        if (why != null) { RollBack(); Refuse(why); return; }
+        if (why != null)
+        {
+            RollBack();
+            // The boot arm has no build hedge because it runs from the loader handshake and never reads the guard.
+            Refuse(why, DoorReading.Failed("the game code the new items plug into is not where this mod expects it"),
+                PartsCopy.Disabled("The new items are paused for this session because the game code they plug into is not where this mod expects it; everything else keeps working.", "", "", why));
+            return;
+        }
         SeedBag();
         Armed = true;
         Refusal = null;
@@ -108,13 +123,11 @@ internal sealed partial class ExtendedInventory
         return _weaponStatHook.StubAddr + ThunkStub.RowStubHeader + (long)i * ThunkStub.RowSize;
     }
 
-    private void Refuse(string why, bool failedCheck = true)
+    private void Refuse(string why, DoorReading door, string line)
     {
         Refusal = why;
-        // The box shows the door's reason, so the raw install diagnostic stays in the log line below.
-        _door.Set(failedCheck
-            ? DoorReading.Failed("the game code the new items plug into is not where this mod expects it")
-            : DoorReading.Absent("the loader gave no hooks"));
-        ModLogger.Warn(LogVerb.Startup, $"The extended inventory is NOT armed this session ({why}); the new items will not exist in the game until this is resolved.");
+        // The box shows the door's reason, so the raw install diagnostic stays in the log line.
+        _door.Set(door);
+        ModLogger.Warn(LogVerb.Startup, line);
     }
 }

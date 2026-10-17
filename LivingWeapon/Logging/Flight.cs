@@ -12,11 +12,31 @@ internal static class Flight
 {
     private static readonly object _lock = new();
     private static FlightRecorder? _core;
+    private static string _version = "unknown";
+    private static string _build = "unknown";
 
     /// <summary>Constructs the real recorder rooted at modDir/flight/. Called once from Mod.StartEngine after ModLogger.Init.</summary>
     public static void Init(string modDir)
     {
-        lock (_lock) { _core = new FlightRecorder(modDir); }
+        lock (_lock)
+        {
+            _core = new FlightRecorder(modDir);
+            _core.SetBuildInfo(_version, _build);
+        }
+    }
+
+    internal static (string Version, string Build) BuildInfo { get { lock (_lock) return (_version, _build); } }
+
+    /// <summary>Stamps the version and the game build into every later file header. A null argument keeps the old value,
+    /// and values set before <see cref="Init"/> ride into the recorder it builds.</summary>
+    public static void SetBuildInfo(string? version = null, string? build = null)
+    {
+        lock (_lock)
+        {
+            _version = version ?? _version;
+            _build = build ?? _build;
+            _core?.SetBuildInfo(_version, _build);
+        }
     }
 
     /// <summary>Append one on-change event. No-op before <see cref="Init"/>.</summary>
@@ -39,5 +59,5 @@ internal static class Flight
 
     /// <summary>Test-only. Drops the current core so a later <see cref="Init"/> starts fresh and a test's
     /// recorder does not leak into others. Like ModLogger.Reset.</summary>
-    internal static void Reset() { lock (_lock) { _core = null; } }
+    internal static void Reset() { lock (_lock) { _core = null; _version = "unknown"; _build = "unknown"; } }
 }

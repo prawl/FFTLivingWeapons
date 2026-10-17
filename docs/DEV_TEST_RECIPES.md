@@ -184,15 +184,19 @@ ExtendReactionSupportMovementIdFlagBits elements must be present BEFORE their id
 "--" inside any XML comment; either mistake makes the modloader silently drop the whole table and
 the leg proves nothing (failure signature: Archer shows vanilla Aim and NO WARN appears).
 Enable it in Reloaded-II, relaunch, load the same save. PASS = ALL of:
-1. The "armed" line still appears (mod ON), then ~1s later ONE WARN naming jobcommand-table with
-   expected 96-97-... observed 64-65-... bytes.
-2. Exactly one box, headline "Living Weapons found another mod editing the same game data". NO
-   "switched itself off" box; no "standing down to protect your save" anywhere in the log.
+1. The "armed" line still appears (mod ON), then ~1s later ONE WARN that opens "The weapon commands
+   (Barrage, Shadow Blade and Provoke) are paused for this session because another mod rewrote the job
+   command data" and ends with a "(detail: jobcommand-table ...)" clause holding expected 96-97-...
+   observed 64-65-... bytes.
+2. Exactly one box, headline "Living Weapons: some features are paused", with weapon commands
+   and provoke under "Paused this session", the shared hedge and what to do paragraphs, and the
+   "Living Weapons <version>, game build 0x..." footer as its last line. NO "switched itself off" box;
+   no "standing down to protect your save" anywhere in the log.
 3. Barrage ABSENT from the Yoichi wielder's commands; a kill still bumps the tally (growth alive).
 4. flight_*_standdown.jsonl carries a guard record containing "kit-lane stand-down".
-FAILURE MAP: game-update box = discriminator failed; two boxes = ordering broke; WARN but Barrage
-still grantable = the Engine lane gate is not wired; frozen tally = the lane verdict leaked into
-Mem.WritesEnabled.
+FAILURE MAP: two boxes = the closure wave logic broke; no footer = the engine did not hand the board
+its version; WARN but Barrage still grantable = the Engine lane gate is not wired; frozen tally = the
+lane verdict leaked into Mem.WritesEnabled.
 **Cleanup:** disable + delete lwdrill.jobconflict, relaunch, confirm the lane-armed line and
 Barrage return.
 
@@ -209,9 +213,11 @@ game so you can watch the detector refuse.
    the DLL). BuildLinked wipes it on the next deploy. The env variable lane exists but does not
    reach the game on this box.
 3. Launch, press Continue to the world map. Expect, within about 2 seconds of the "Living Weapons
-   is armed" line, ONE WARN: "The battle sentinels do not read the way this mod expects (...)"
-   ending with the sentence naming LW_FORCE_SENSING_MISMATCH. No message box. Kill counting and
-   everything else keep working.
+   is armed" line, ONE WARN: "The new game detector is paused for this session because the game's battle status data does
+   not read the way this mod expects" carrying the drill sentence naming LW_FORCE_SENSING_MISMATCH
+   after its "What to do" line and ending "(detail: battle-sentinels (...))" with NO drill tag in the
+   tail, because this drill flips the expected slot9 value instead of tagging its diag. No message
+   box. Kill counting and everything else keep working.
 4. Start a New Game and let the prayer dialogue run. Expect, about 1 second in, the WARN "A new game
    signal was seen but the battle sentinel check has not passed, so the kill tally was left
    untouched", NO "A new game was detected" line, no archive folder entry, and kills.json unchanged.
@@ -239,7 +245,8 @@ can watch the warning and then the recovery.
    reach the game on this box.
 3. Launch and sit on the TITLE screen. At about 60 seconds expect ONE WARN "Living Weapons has not
    been able to read the game for about a minute ..." ending with the sentence naming
-   LW_FORCE_GUARD_UNREADABLE, and ONE message box "Living Weapons cannot find the game yet".
+   LW_FORCE_GUARD_UNREADABLE, and ONE message box "Living Weapons cannot find the game yet" ending with the footer
+   ("Living Weapons <version>, game build unknown").
 4. At about 80 seconds the drill releases silently. Press Continue on a save: expect the usual
    "Living Weapons is armed" line, then "Living Weapons found the game after the earlier warning".
 5. Normal-build leg: BuildLinked -Prod, launch, sit on the title screen for 2.5 minutes. Expect
@@ -271,10 +278,11 @@ off, the three that do not keep running, and exactly one message box tell you wh
    leaves only that line and no flight record; it is the evidence the new boot-time sentinel check is
    safe; docs/LIVE_LEDGER.md [sentinels-file-backed-idle-at-map-time]).
 4. Press Continue. Within a few seconds expect the ERROR line "...the parts that need it are standing
-   down to protect your save..." ending with the sentence naming LW_FORCE_ROSTER_MISMATCH, then one
+   down to protect your save..." carrying the drill sentence for LW_FORCE_ROSTER_MISMATCH after its "What to do" line,
+   before the "(detail: ...)" tail, then one
    new "Parts report:" line with the eleven roster parts OFF and the other three still ON.
 5. About three seconds later expect exactly ONE message box. It lists "Still working" (battle sensing,
-   extended inventory, banners), "Switched off" (the eleven), and no second box ever appears. Bait: the
+   extended inventory, banners), "Paused this session" (the eleven), and no second box ever appears. Bait: the
    box must name banners and extended inventory as still working.
 6. Enter a battle and make a kill. Expect no kill counted, no stat change and no card counter. The prompt
    hook arms at boot, so the line "The prompt hook is confirmed working" appears anywhere in the log and
@@ -308,8 +316,10 @@ launch and press Continue.
 2. Enter a battle and place the party. Within a second of "Battle started." expect the Event line "The
    battle unit list reads as expected..." and one DBG line ending "(battle grace)" for the band.
 3. About twenty one seconds after the cursor first lands on the field (time on the formation screen does
-   not count) expect the WARN line "The live battle unit data does not read the way this mod expects
-   (...drill: LW_FORCE_BAND_MISMATCH)..." ending with the drill sentence, then one "Parts report:" line with
+   not count) expect the WARN line "Kill counting, stat growth and the weapon powers in battle are paused for
+   this session because the live battle unit data is not where this mod expects it..." carrying the drill
+   sentence after its "What to do" line and ending "(detail: band-region (drill: LW_FORCE_BAND_MISMATCH))",
+   then one "Parts report:" line with
    the three OFF and eleven ON, and about three seconds later exactly ONE box. Bait: static table
    signatures and card paint must be under Still working, and the unit list armed line must be in the log.
 4. Make a kill. Expect no "credited" line and no card counter change.
@@ -342,12 +352,14 @@ back up kills.json first, a dev build seeds the tally). Drop an empty marker fil
 1. Title screen. The last "Parts report:" line reads twin weapons WAITING (waiting for a save to load)
    with the other roster parts, and battle sensing, banners and extended inventory ON. FAIL: a twin
    WARN before Continue (the drill fired on an empty slot).
-2. Press Continue. Within a second expect the armed line, then one Parts report line with kill counting ON and twin weapons WAITING (the menu flag check has not run yet) (the one second debounce; expected, not a FAIL), then about one second later one WARN starting "The two menu flags the
-   twin weapon grant uses" and ending with the sentence naming LW_FORCE_TWIN_MISMATCH, then one report line
+2. Press Continue. Within a second expect the armed line, then one Parts report line with kill counting ON and twin weapons WAITING (the menu flag check has not run yet) (the one second debounce; expected, not a FAIL), then about one second later one WARN starting "The twin weapon grant is paused for this session
+   because the two menu flags it uses to stay out of the equipment screens do not read the way this mod
+   expects", with the drill sentence after its "What to do" line and the line ending
+   "(detail: twin-menu-flags (drill: LW_FORCE_TWIN_MISMATCH))", then one report line
    with twin weapons OFF and nine parts ON. FAIL: an ERROR line, any line containing "standing down to
    protect your save", or kill counting OFF.
 3. About three seconds later exactly ONE box. "Still working" lists kill counting, stat growth, card paint
-   and the rest; "Switched off" lists twin weapons alone; the drill sentence names LW_FORCE_TWIN_MISMATCH.
+   and the rest; "Paused this session" lists twin weapons alone; the drill sentence names LW_FORCE_TWIN_MISMATCH.
    Bait: a box with the seven roster parts off means the wrong door closed.
 4. Pick a unit whose off hand and shield slot are empty and who carries no twin from an earlier session,
    and equip a tier 3 Outrider Pistol (or Arbalest) on them through the Equipment screen. Open the party
@@ -395,8 +407,9 @@ everything else keep working. The second leg is the normal game, where all five 
    BuildLinked wipes it on the next deploy. The env variable lane exists but does not reach the game on
    this box.
 3. Launch and sit on the title screen. Within about two seconds of the launch header expect ONE WARN:
-   "The weapon palette check failed (palette-clear-site (drill: LW_FORCE_TABLE_MISMATCH)). Weapon colors
-   are off this session; everything else keeps working." PASS: the line exists, names the drill, prints no
+   "Weapon colors are paused for this session because the weapon palette is not where this mod expects it;
+   everything else keeps working." followed by the shared hedge and "What to do" lines, the drill sentence,
+   and "(detail: palette-clear-site (drill: LW_FORCE_TABLE_MISMATCH))". PASS: the line exists, names the drill, prints no
    expected bytes (nothing really differed) and does not contain "standing down to protect your save".
    FAIL: no WARN within ten seconds (the door never stepped or the flag was not read), a WARN naming any
    other door (a real closure, stop and read its diag), or a diag that prints expected and observed hex
@@ -408,9 +421,10 @@ everything else keep working. The second leg is the normal game, where all five 
    (ability data for provoke, item data for gun growth) are not named while the party data is missing, but
    each time one of them finishes the line is printed again unchanged. Note the timestamp of any repeated
    identical line at the title screen: that is the game filling its ability or item data before Continue.
-5. About three seconds after the WARN: exactly ONE box. Switched off names weapon colors alone (the weapon palette is not where this mod expects it, forced by the LW_FORCE_TABLE_MISMATCH drill), Still
-   working names battle sensing, banners and extended inventory, Still waiting names the other ten (waiting for a save to load), and the last sentence is the table drill sentence. Bait: the box must NOT
-   list any part but weapon colors under Switched off. FAIL: a second box at any point in the leg.
+5. About three seconds after the WARN: exactly ONE box. "Paused this session" names weapon colors alone, "Still
+   working" names battle sensing, banners and extended inventory, "Still being checked (as the game loads and your first battle starts)" names the other ten,
+   the table drill sentence comes after the what to do paragraphs, and the footer is the last line. Bait: the box must NOT
+   list any part but weapon colors under "Paused this session", and it carries no reasons. FAIL: a second box at any point in the leg.
 6. Press Continue. A new "Parts report:" line: every part ON except weapon colors OFF (fourteen names,
    twin weapons among them), unless provoke or gun growth still read WAITING with their data reasons. No
    new box. No timed line within the next two minutes while you set up the battle. If gun growth or provoke
@@ -471,8 +485,8 @@ everything else (tables, name row, glow rims, the runtime) follows from the buil
    gate's shop-sold checker reads only vanilla shop data and is blind to the extended `shops`
    field, so `Shop` there goes red).
 6. **Build.** `.\BuildLinked.ps1 -Prod` (or the dev flavor). The boot line must read
-   `Extended inventory armed: N new item(s) [...]`; a `NOT armed this session (...)` warning names
-   the refusal. The runtime needs nothing per item: growth, kills, toasts, the card, the shop
+   `Extended inventory armed: N new item(s) [...]`; a warning starting "The new items are paused for this
+   session" names the refusal, with the raw diagnostic in its trailing "(detail: ...)" clause. The runtime needs nothing per item: growth, kills, toasts, the card, the shop
    mirror and the per-save bag counts all key off the id.
 
 Removing an item: delete its row, re-run 2-5 (delete its icon files and glow variants by hand;

@@ -122,18 +122,18 @@ internal sealed partial class TableDoors
 
     private static long RowAddr(int row) => Offsets.LiveActionTable + (long)row * ProvokePolicy.ActionStride;
 
-    private static string TerrainStandDownText(string diag)
-        => $"The terrain data check failed ({diag}). The Sunderer's Bulwark is off this session so the mod never writes a wall into memory it does not understand; everything else keeps working.";
+    private const string TerrainStandDownText =
+        "The Sunderer's Bulwark is paused for this session because the terrain data is not where this mod expects it; everything else keeps working.";
 
-    private static string PaletteStandDownText(string diag)
-        => $"The weapon palette check failed ({diag}). Weapon colors are off this session; everything else keeps working.";
+    private const string PaletteStandDownText =
+        "Weapon colors are paused for this session because the weapon palette is not where this mod expects it; everything else keeps working.";
 
-    private static string PoachStandDownText(string diag)
-        => $"The Poacher's Den store check failed ({diag}). Living Poach is off this session so a carcass is never written into the wrong place in your save; everything else keeps working.";
+    private const string PoachStandDownText =
+        "Living Poach is paused for this session because the Poacher's Den store is not where this mod expects it, so a carcass is never written into the wrong place in your save; everything else keeps working.";
 
-    private static string ProvokeStandDownText(string diag)
-        => $"The ability data check failed ({diag}). Provoke is off this session so its effect is never pointed at data this mod does not recognize; everything else keeps working.";
+    private const string ProvokeStandDownText =
+        "Provoke is paused for this session because the ability data is not where this mod expects it; everything else keeps working.";
 
-    private static string ItemStandDownText(string diag)
-        => $"The item data check failed ({diag}). The six guns' growth is off this session; everything else keeps working.";
+    private const string ItemStandDownText =
+        "The six guns' growth is paused for this session because the item data is not where this mod expects it; everything else keeps working.";
 }

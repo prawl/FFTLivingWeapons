@@ -11,6 +11,8 @@ namespace LivingWeapon.Tests;
 /// </summary>
 public class PartsBoardTests
 {
+    private const string Footer = "Living Weapons 9.9.9, game build 0x6A5E4A1B";
+
     private sealed class Rig
     {
         public readonly List<(string title, string text)> Notices = new();
@@ -22,9 +24,13 @@ public class PartsBoardTests
 
         public void Tick(int n = 1, string hedge = "", string drill = "")
         {
-            for (int i = 0; i < n; i++) Board.Observe(R, hedge, drill);
+            for (int i = 0; i < n; i++) Board.Observe(R, hedge, drill, () => Footer);
         }
     }
+
+    private const string AllArmed = "Living Weapons: all parts armed.";
+
+    private static int AllArmedLines(LogCapture cap) => cap.File.Count(l => l.Contains(AllArmed));
 
     private static int ReportLines(LogCapture cap) => cap.File.Count(l => l.Contains(PartsReport.PartsMark));
 
@@ -62,7 +68,7 @@ public class PartsBoardTests
         Assert.StartsWith("parts report changed (", rec.payload);
         Assert.Equal(PartsReport.ComposeLine(rig.R), rig.Board.LastLine);
 
-        rig.R[Door.Roster] = DoorReading.Open();
+        rig.R[Door.KitLane] = DoorReading.Waiting("the job command check has not run yet");
         rig.Tick();
 
         Assert.Equal(2, ReportLines(cap));
@@ -89,7 +95,7 @@ public class PartsBoardTests
 
         var box = Assert.Single(rig.Notices);
         Assert.Equal("FFT Living Weapons", box.title);
-        Assert.Equal(PartsReport.ComposeBox(rig.R, "", ""), box.text);
+        Assert.Equal(PartsReport.ComposeBox(rig.R, "", "", Footer), box.text);
         Assert.Contains("kill counting", box.text);
         Assert.Contains("weapon commands", box.text);
         Assert.False(rig.Board.WaveOpen);
@@ -115,7 +121,7 @@ public class PartsBoardTests
         rig.Tick(PartsBoard.SettleSteps + 1);
 
         Assert.Equal(2, rig.Notices.Count);
-        Assert.Contains("roster closed", rig.Notices[1].text);
+        Assert.Contains("Paused this session:\n  kill counting", rig.Notices[1].text);
         Assert.Equal(2, rig.Board.BoxCount);
     }
 
@@ -162,7 +168,7 @@ public class PartsBoardTests
         rig.Tick(PartsBoard.SettleSteps + 1, LaunchGuard.UnknownBuildHedge, drill: PartsReport.RosterDrillSentence);
 
         var box = Assert.Single(rig.Notices);
-        Assert.Equal(PartsReport.ComposeBox(rig.R, PartsReport.RosterDrillSentence, LaunchGuard.UnknownBuildHedge), box.text);
+        Assert.Equal(PartsReport.ComposeBox(rig.R, PartsReport.RosterDrillSentence, LaunchGuard.UnknownBuildHedge, Footer), box.text);
     }
 
     [Fact]
@@ -173,7 +179,7 @@ public class PartsBoardTests
         var r = PartsReportTests.AllOpen();
         r[Door.Roster] = DoorReading.Failed("x");
 
-        for (int i = 0; i < PartsBoard.SettleSteps + 2; i++) board.Observe(r, "", "");
+        for (int i = 0; i < PartsBoard.SettleSteps + 2; i++) board.Observe(r, "", "", () => "");
 
         Assert.Equal(1, board.BoxCount);
     }
@@ -190,7 +196,7 @@ public class PartsBoardTests
         rig.Tick(500, drill: PartsReport.BandDrillSentence);
 
         var box = Assert.Single(rig.Notices);
-        Assert.Equal(PartsReport.ComposeBox(rig.R, PartsReport.BandDrillSentence, ""), box.text);
+        Assert.Equal(PartsReport.ComposeBox(rig.R, PartsReport.BandDrillSentence, "", Footer), box.text);
         Assert.Contains("LW_FORCE_BAND_MISMATCH", box.text);
         Assert.Equal(1, rig.Board.BoxCount);
     }
@@ -220,8 +226,8 @@ public class PartsBoardTests
         rig.Tick(PartsBoard.SettleSteps + 1, "", PartsReport.TwinDrillSentence);
 
         var box = Assert.Single(rig.Notices);
-        Assert.EndsWith(PartsReport.TwinDrillSentence, box.text);
-        Assert.Contains("Switched off: twin weapons", box.text);
+        Assert.EndsWith(PartsReport.TwinDrillSentence + "\n\n" + Footer, box.text);
+        Assert.Contains("Paused this session:\n  twin weapons\n", box.text);
         rig.Tick(5000, "", PartsReport.TwinDrillSentence);
         Assert.Single(rig.Notices);
         Assert.Equal(1, rig.Board.BoxCount);
@@ -241,7 +247,7 @@ public class PartsBoardTests
 
         var box = Assert.Single(rig.Notices);
         Assert.Contains("weapon colors", box.text);
-        Assert.EndsWith(PartsReport.TableDrillSentence, box.text);
+        Assert.EndsWith(PartsReport.TableDrillSentence + "\n\n" + Footer, box.text);
         Assert.Contains(rig.Records, r => r.payload == "parts box shown (1 parts off)");
         rig.Tick(500, drill: PartsReport.TableDrillSentence);
         Assert.Single(rig.Notices);
@@ -258,6 +264,90 @@ public class PartsBoardTests
 
         var box = Assert.Single(rig.Notices);
         Assert.DoesNotContain("LW_FORCE_", box.text);
-        Assert.Equal(PartsReport.ComposeBox(rig.R, "", ""), box.text);
+        Assert.Equal(PartsReport.ComposeBox(rig.R, "", "", Footer), box.text);
+    }
+
+    [Fact]
+    public void The_board_logs_the_all_armed_line_once_on_the_transition_instead_of_the_parts_list()
+    {
+        using var cap = LogCapture.Start();
+        var rig = new Rig();
+        rig.R[Door.Roster] = DoorReading.Waiting("waiting for a save to load");
+        rig.Tick(5);
+        Assert.Equal(1, ReportLines(cap));
+        Assert.Equal(0, AllArmedLines(cap));
+
+        rig.R[Door.Roster] = DoorReading.Open();
+        rig.Tick();
+
+        string line = Assert.Single(cap.File, l => l.Contains(AllArmed));
+        Assert.Contains("[INFO]", line);
+        Assert.Equal(1, ReportLines(cap));
+        Assert.Equal(PartsReport.ComposeLine(rig.R), rig.Board.LastLine);
+
+        rig.Tick(500);
+        Assert.Equal(1, AllArmedLines(cap));
+        Assert.Equal(1, ReportLines(cap));
+    }
+
+    [Fact]
+    public void The_all_armed_flight_record_keeps_the_full_parts_list_payload()
+    {
+        using var cap = LogCapture.Start();
+        var rig = new Rig();
+
+        rig.Tick();
+
+        var rec = Assert.Single(rig.Records);
+        Assert.Equal("parts report changed (" + PartsReport.ComposeLine(rig.R) + ")", rec.payload);
+        Assert.Equal(1, AllArmedLines(cap));
+    }
+
+    [Fact]
+    public void A_second_batch_of_unchanged_readings_is_held_by_the_unchanged_tick_gate()
+    {
+        using var cap = LogCapture.Start();
+        var rig = new Rig();
+        rig.Tick(3);
+
+        rig.R[Door.Band] = DoorReading.Open();
+        rig.R[Door.StaticArray] = DoorReading.Open();
+        rig.Tick(3);
+
+        Assert.Equal(1, AllArmedLines(cap));
+        Assert.Single(rig.Records);
+    }
+
+    [Fact]
+    public void A_later_closure_logs_the_parts_list_again_and_the_all_armed_line_returns_on_the_next_transition()
+    {
+        using var cap = LogCapture.Start();
+        var rig = new Rig();
+        rig.Tick(3);
+        Assert.Equal(1, AllArmedLines(cap));
+
+        rig.R[Door.Roster] = DoorReading.Failed("the party data is not where this mod expects it");
+        rig.Tick();
+        Assert.Equal(1, ReportLines(cap));
+        Assert.Equal(1, AllArmedLines(cap));
+
+        rig.R[Door.Roster] = DoorReading.Open();
+        rig.Tick();
+
+        Assert.Equal(2, AllArmedLines(cap));
+        Assert.Equal(1, ReportLines(cap));
+    }
+
+    [Fact]
+    public void The_box_ends_with_the_footer_the_caller_supplies_at_fire_time()
+    {
+        using var cap = LogCapture.Start();
+        var rig = new Rig();
+        rig.R[Door.Roster] = DoorReading.Failed("the party data is not where this mod expects it");
+
+        rig.Tick(PartsBoard.SettleSteps + 1);
+
+        var box = Assert.Single(rig.Notices);
+        Assert.EndsWith("\n\n" + Footer, box.text);
     }
 }

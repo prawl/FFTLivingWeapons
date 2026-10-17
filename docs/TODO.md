@@ -79,6 +79,39 @@ the technical detail lives in the indented lines under it.
 - **[LW-408] Find out whether Living Weapons runs alongside WotL Restoration and write the answer down** (opened 2026-10-17) [BUILDING]
   - Done means: a player reading docs/COMPATIBILITY.md knows what happens with both mods installed, which order to load them in, and what each mod's own log will say. Payload half done 2026-10-17: WotL Restoration 2.0.7 was downloaded and read file by file (its text tables diffed against vanilla and ours, its job table, and its decompiled code), and the verdict is written in the doc's "WotL Restoration" section: characters and events coexist, its 40 new items switch off because both mods break the 261 item cap at the same code sites and ours arms first, and Living Weapons must load last to keep its item names. (Tech: her nine accessor hooks are our ten entries; 52 of her 63 relocations and 30 of her 44 caps sit on our sites; item.en.nxd keys 261 to 267 are written by both; her JobData rows 162 to 168 are clear of ours; ability 358 Barrage is named by both.)
   - Verify: owner runs the game once with both mods enabled, WotL Restoration loading before Living Weapons. Expected: Living Weapons' parts report reads all ON (extended inventory included), WotL Restoration's log prints its "Item expansion NOT armed" line, Luso and Balthier's events still fire, the Terrastaff card reads Terrastaff with its kill counter, and Agrias's birthday hands out a Septième Sens. Owner flips this row to AWAITING-LIVE when ready and PROVEN or not after the run.
+- **[LW-406] Every "this part is paused" message reads the same way for a player** (opened 2026-10-17) [BUILDING]
+  - Plain language: when one of the mod's checks fails, the log line and the box a player
+    sees should sound like one person wrote them, say the game update or another mod may be
+    the cause, keep addresses and diagnostics out of the player sentence, and end with the
+    same what to do line. The box uses the owner's own copy (2026-10-17): "some features are
+    paused", still working first, paused second, parts not yet checked on one line of their
+    own, and when nothing is still working the headline says the mod paused itself. When
+    every part is on there is no box and the log carries one line, "Living Weapons: all
+    parts armed", once, when the last check passes. Every box ends with a footer naming the
+    mod version and the game build so a screenshot is a usable bug report, and the flight
+    tape header carries the same two facts. Owner rulings the same day: keep "another mod"
+    wording but never name one; no in battle toast as a second channel; the per part "what
+    it leaves behind" table is its own row (LW-415).
+  - (Tech: nineteen messages, the thirteen disabling WARNs, the stall WARN, two boxes, the
+    unknown build hedge, the kit lane armed line and the two Mod.cs hook lines, all built by
+    one composer in Guard/PartsCopy.cs; detail tail last; the all armed line is edge
+    triggered on the transition to every part Open and latched; the scanner's marks stay
+    and gain an all armed mark; its verbatim fixtures and the copy tests move in the same
+    commit.)
+  - Done means: every disabling WARN and both boxes end with the shared what to do line held
+    in one constant; every door carries the same hedge on every build with the stamp detail
+    only on an unknown build and only inside the detail tail; no player sentence contains a
+    hex address, a probe diagnostic or a developer label; the box reads in the owner's copy
+    with the three states (some paused, all paused, none paused) and the version plus build
+    footer; the flight header carries version and build; the kit lane armed line stops
+    claiming the commands are on before the roster door opens; a contract test drives every
+    door and pins the shape, the box forms and the footer.
+  - Verify: suite green with the copy contract tests; scan_logs selftest green and the
+    selftest covers the all armed line; the owner runs the seven drill legs in the verifier's
+    live script on a dev build (roster, table, band, twin, known build read, unknown build
+    with roster, no markers) and every WARN and box reads the same way with the shared
+    closing line, the no markers leg shows zero boxes and the single all armed line after
+    the first battle, and a screenshot of any box shows the footer.
 ## Backlog
 
 Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner directed).
@@ -111,15 +144,6 @@ belongs rather than at the bottom.
   PoolLocator.WarmStart (51 to 54) plus the forced full restart are the net today. Fix: plumb
   LaunchGuard's latched observed pair into Save and Load (Display is built before tick 1 latches it,
   so a Func seam, not a value).
-- [LW-406] 2026-10-17: Every message the mod shows a player when a part switches off should read the same way, be written for a player and not a developer, and end with the same plain "what to do now" line.
-  The last stage of the parts model, after LW-401. Owner feedback 2026-10-17 after reading the
-  guard copy: only the unknown build path says the cause may be the game update itself, yet that
-  doubt applies at every door; the recovery pointer differs by door (roster says update the mod,
-  the stall watcher says see the box, the kit lane and the prompt hook say nothing a player can
-  act on); the prompt hook warning says "wrong address", which reads as the mod's own bug to a
-  player who cannot tell. Done looks like one shared closing sentence on every disabling WARN and
-  every box, the game update hedge on every door, developer detail (addresses, diags) kept to the
-  log tail or DBG, and a test that pins the shared sentence on each door's copy.
 - [LW-407] 2026-10-17: Every runtime source file should open with one short sentence saying what the file is, so someone skimming file by file gets the answer at once and the detail follows.
   Owner feedback 2026-10-17 after the comment thinning. The one line purpose already exists in
   almost every file's type summary; in 76 of 296 files it is buried mid paragraph or runs past
@@ -152,6 +176,24 @@ belongs rather than at the bottom.
   and is untouched. Done looks like the seven baseline values corrected in items.json, the
   generator re-run, analyze.py and analyze.py --baseline green, and a contract test that reads
   the eight LW-399 pinned rows plus these seven from the exe when it is present.
+- [LW-415] 2026-10-17: Every write the mod makes into the game should say which of three buckets it belongs to, battle, process or save, so a part that dies mid action can never leave the save changed without someone knowing who puts it back.
+  Owner design 2026-10-17: a required WriteScope argument on the Mem write funnel (Battle,
+  Process, Save, no default, so a new write site that names no bucket does not compile); the
+  Save scope takes a recovery reference (a sidecar, a re assert edge, HeldByDesign with a
+  reason, or NoRecovery) and a contract test lists every NoRecovery and HeldByDesign; a range
+  floor in Mem refuses a Battle scoped write into a save backed range (roster, the persisted
+  static tables) and logs once, with a test driving each module through the fake memory and
+  asserting no refusal fired; a DocsContractTest holds the per part bucket table in
+  docs/MECHANICS.md in lockstep with the Save scoped sites in code; one line in
+  docs/PATCH_REANCHOR.md for the case where a Process region becomes save backed after a game
+  patch. Fold rulings: the orchestrator folds docs/research/WRITE_SITE_AUDIT_2026-10.md's 129
+  site rows into the per part table inline; a skeptic verifies bucket 3 and every "no
+  recovery" row against the code; buckets 1 and 2 stand on the audit's word. Lands after
+  LW-406.
+- [LW-416] 2026-10-17: A grown knight sword raises Ramza's max HP but does not fill the new room, so he walks into battle at 679 of 883 HP; the extra HP should arrive full, the way a level up does.
+  Owner sighting 2026-10-17 on the dev build during the LW-406 live legs. Not yet traced: whether
+  the max HP write lands before the game copies current HP from the roster, or whether current HP
+  is never touched at all. Expect to settle it with one battle start read of both fields.
 - [LW-394] 2026-10-16: Three weapon commands mark an ability as learned in the player's save and never unmark it, so no safety switch can undo them if they ever land in the wrong place; decide whether they should clean up after themselves.
   Barrage, Shadow Blade and Provoke each set one learned bit in the roster row (Barrage.cs 247,
   ShadowBlade.cs 199, Provoke.cs 194) and hold it by design so the command stays usable. The audit

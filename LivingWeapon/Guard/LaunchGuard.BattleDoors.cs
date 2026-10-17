@@ -115,16 +115,18 @@ internal sealed partial class LaunchGuard
     {
         _recorder?.Invoke("guard", $"band stand-down ({diag})");
         string drillNote = _forceBandMismatch ? " " + PartsReport.BandDrillSentence : "";
-        ModLogger.Warn(LogVerb.Startup,
-            $"The live battle unit data does not read the way this mod expects ({diag}). Kill counting, stat growth and the band signatures are switched off for this session so nothing is written to the wrong place; the other parts keep working.{HedgeIfUnknownBuild()}{drillNote}");
+        ModLogger.Warn(LogVerb.Startup, PartsCopy.Disabled(
+            "Kill counting, stat growth and the weapon powers in battle are paused for this session because the live battle unit data is not where this mod expects it; nothing is written to the wrong place, and the other parts keep working.",
+            HedgeIfUnknownBuild(), drillNote, diag + BuildDetail));
         _requestFlush?.Invoke("standdown");
     }
 
     private void ArrayStandDown(string diag)
     {
         _recorder?.Invoke("guard", $"static array stand-down ({diag})");
-        ModLogger.Warn(LogVerb.Startup,
-            $"The battle unit list does not read the way this mod expects ({diag}). Kill counting and the band signatures are switched off for this session; stat growth and the other parts keep working.{HedgeIfUnknownBuild()}");
+        ModLogger.Warn(LogVerb.Startup, PartsCopy.Disabled(
+            "Kill counting and the weapon powers in battle are paused for this session because the battle unit list is not where this mod expects it; stat growth and the other parts keep working.",
+            HedgeIfUnknownBuild(), "", diag + BuildDetail));
         _requestFlush?.Invoke("standdown");
     }
 }

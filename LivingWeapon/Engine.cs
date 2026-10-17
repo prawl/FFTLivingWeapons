@@ -135,8 +135,8 @@ internal sealed class Engine
             forceUnreadable: devForceGuardUnreadable ?? false,
             forceRosterMismatch: devForceRosterMismatch ?? false,
             forceTwinMismatch: devForceTwinMismatch ?? false,
-            forceBandMismatch: devForceBandMismatch ?? false);
-        _tableDoors = new TableDoors(live, () => _launchGuard.BuildHedge, () => _launchGuard.Armed,
+            forceBandMismatch: devForceBandMismatch ?? false, version: ModInfo.ReadVersion(modDir));
+        _tableDoors = new TableDoors(live, () => _launchGuard.BuildHedge, () => _launchGuard.BuildDetail, () => _launchGuard.Armed,
             Flight.Record, Flight.RequestFlush, devForceTableMismatch ?? false);
         _drillSentence = string.Join(" ", Array.FindAll(new[]
         {
@@ -448,7 +448,7 @@ internal sealed class Engine
         _readings[Door.ItemStats] = _tableDoors.ItemStats;
         _readings[Door.Band] = _launchGuard.BandDoor;
         _readings[Door.StaticArray] = _launchGuard.StaticArrayDoor;
-        _board.Observe(_readings, _launchGuard.BuildHedge, _drillSentence);
+        _board.Observe(_readings, _launchGuard.BuildHedge, _drillSentence, () => _launchGuard.Footer);
     }
 
     /// <summary>Test seam. The part of each entry in <see cref="FieldTickOrder"/>.</summary>

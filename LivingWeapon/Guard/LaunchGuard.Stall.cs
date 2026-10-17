@@ -22,14 +22,15 @@ internal sealed partial class LaunchGuard
 
     // Copy approved 2026-10-16. None contains the phrase tools/scan_logs.py reads as a full stand-down ("standing down to protect your save").
     internal const string ImageStallWarn =
-        "Living Weapons has not been able to read the game for about a minute, so the checks that need it cannot run and nothing is counting yet. "
-        + "It will keep trying. If this message stays and kill counts never move, the mod and the game version probably do not match; see the box for how to get help.";
+        "Living Weapons has not been able to read the game for about a minute, so its checks cannot run and nothing is counting yet. "
+        + "It will keep trying. If this message stays and kill counts never move, the mod and the game version probably do not match. "
+        + PartsCopy.WhatToDo;
     internal const string ImageStallBox =
         "Living Weapons cannot find the game yet\n\n"
         + "The mod has been running for a minute but has not been able to read the game's memory where it expects it. "
         + "Your game is fine and nothing has been changed; the mod is just not doing anything yet.\n\n"
-        + "This usually means the game updated and the mod needs a matching update. Check the Living Weapons mod page for a newer version.\n\n"
-        + "If a newer version does not fix it, email me at ptyrawl@gmail.com and attach livingweapon.log (Open Folder on the mod's page in Reloaded-II). I will sort it out.";
+        + PartsCopy.Hedge + "\n\n"
+        + PartsCopy.WhatToDoBox;
     internal const string RosterWaitInfo =
         "Living Weapons can see the game and is waiting for a save to load before it runs its checks; this is normal on the title screen.";
     internal const string RecoveryInfo =
@@ -54,6 +55,12 @@ internal sealed partial class LaunchGuard
         return inner.Probe();
     });
 
+    private string StallBoxText(string drill)
+    {
+        string footer = Footer;
+        return ImageStallBox + (drill.Length > 0 ? "\n\n" + drill.Trim() : "") + (footer.Length > 0 ? "\n\n" + footer : "");
+    }
+
     private void OnImageStalled(string name, string? detail)
     {
         if (_stallWarned) return;
@@ -62,7 +69,7 @@ internal sealed partial class LaunchGuard
         _recorder?.Invoke("guard", $"stalled ({name} unreadable for about a minute)");
         // Warn tier, no flush request. Nothing stood down, the log line is the evidence.
         ModLogger.Warn(LogVerb.Startup, ImageStallWarn + drill);
-        _notice?.Invoke("FFT Living Weapons", ImageStallBox + drill);
+        _notice?.Invoke("FFT Living Weapons", StallBoxText(drill));
     }
 
     private void OnRosterStalled(string name, string? detail)

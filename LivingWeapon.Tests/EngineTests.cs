@@ -454,7 +454,7 @@ public class EngineTests
 
     // ---- LW-399: every table writer carries the latch of its own door ----
 
-    private static Engine LatchEngine(TempDirs temp, long? flippedSite)
+    internal static Engine LatchEngine(TempDirs temp, long? flippedSite)
     {
         var mem = HealthyMemory(level: 0);
         TableDoorsTests.StageAll(mem);

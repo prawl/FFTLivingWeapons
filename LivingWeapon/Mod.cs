@@ -46,13 +46,15 @@ public class Mod : IMod
             else
             {
                 // Toasts die, the mod runs.
-                ModLogger.Warn(LogVerb.Startup, "The game-hooks helper mod (reloaded.sharedlib.hooks) is not loaded; toast pop-ups will not be delivered.");
+                ModLogger.Warn(LogVerb.Startup,
+                    "Banners (the pop-ups that announce a weapon leveling up) are paused for this session because the game-hooks helper mod (reloaded.sharedlib.hooks) is not enabled. " + PartsCopy.HooksWhatToDo);
                 _engine?.InjectHooks(null);   // lets the extended inventory log why it stays off
             }
         }
         catch (Exception ex)
         {
-            ModLogger.Error(LogVerb.Startup, "Failed to connect to the game's rendering hooks; toast pop-ups will not be delivered: " + ex.Message);
+            ModLogger.Error(LogVerb.Startup, PartsCopy.DisabledPlain(
+                "Banners (the pop-ups that announce a weapon leveling up) are paused for this session because the mod could not reach the game-hooks helper.", ex.Message));
             try { _engine?.InjectHooks(null); } catch { }
         }
     }
@@ -72,11 +74,15 @@ public class Mod : IMod
             if (ImageBase.TryResolveLive(out long liveBase) && ImageBase.Set(liveBase))
                 ModLogger.Event(LogVerb.Startup, $"Game image base 0x{ImageBase.Base:X} (preferred 0x{ImageBase.Preferred:X}, delta 0x{ImageBase.Delta:X}); every pinned address is rebased onto it.");
             else
-                ModLogger.Warn(LogVerb.Startup, $"Could not read the game image base; using the preferred base 0x{ImageBase.Preferred:X}. If the game loaded elsewhere the startup guard will never arm.");
+                ModLogger.Warn(LogVerb.Startup,
+                    "Could not find where the game loaded in memory, so the mod is guessing the usual place. If the game loaded somewhere else, the startup check never passes and nothing will count."
+                    + PartsCopy.Detail($"using the preferred base 0x{ImageBase.Preferred:X}"));
             // Launch header L1 (logging facelift). Version comes from the deployed ModConfig.json (fail-soft), flavor from the
             // compiled Tuning.BuildFlavor, not build_flavor.txt.
+            string version = ModInfo.ReadVersion(modDir);
+            Flight.SetBuildInfo(version: version);
             ModLogger.Event(LogVerb.Startup,
-                $"Living Weapons version {ModInfo.ReadVersion(modDir)} ({Tuning.BuildFlavor} build) is starting inside fft_enhanced.exe.");
+                $"Living Weapons version {version} ({Tuning.BuildFlavor} build) is starting inside fft_enhanced.exe.");
 
             // Config load is fail-soft and falls back to the Tuning default. Reloaded writes user edits to
             // <Reloaded>/User/Mods/<ModId>/Config.json, so that file is preferred over modDir/Config.json (as in

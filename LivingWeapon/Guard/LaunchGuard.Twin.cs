@@ -95,11 +95,9 @@ internal sealed partial class LaunchGuard
         _recorder?.Invoke("guard", $"twin lane stand-down ({diag})");
         string drillNote = _forceTwinMismatch ? " " + PartsReport.TwinDrillSentence : "";
         // Warn, not Error, and the copy avoids the scanner's full stand down phrase.
-        ModLogger.Warn(LogVerb.Startup,
-            $"The two menu flags the twin weapon grant uses to stay out of the equipment screens do not read the way this mod expects ({diag}). "
-            + "The twin weapon grant is switched off for this session so it can never stamp gear while you are editing equipment; "
-            + "kill counting and everything else keep working."
-            + HedgeIfUnknownBuild() + drillNote);
+        ModLogger.Warn(LogVerb.Startup, PartsCopy.Disabled(
+            "The twin weapon grant is paused for this session because the two menu flags it uses to stay out of the equipment screens do not read the way this mod expects; kill counting and everything else keep working.",
+            HedgeIfUnknownBuild(), drillNote, diag + BuildDetail));
         _requestFlush?.Invoke("standdown");
     }
 }

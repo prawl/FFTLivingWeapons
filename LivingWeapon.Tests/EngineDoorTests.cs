@@ -21,6 +21,7 @@ public class EngineDoorTests
         bool drill = false, bool withTwinMeta = false, bool bandDrill = false, bool twinDrill = false, bool tableDrill = false)
     {
         string modDir = EngineTests.NestedModDir(temp);
+        File.WriteAllText(Path.Combine(modDir, "ModConfig.json"), "{\"ModVersion\": \"7.7.7\"}");
         if (withTwinMeta) File.WriteAllText(Path.Combine(modDir, "meta.json"), TwinMeta);
         return new Engine(modDir, devSeedKills: false, devForceRosterMismatch: drill, devForceBandMismatch: bandDrill, devForceTwinMismatch: twinDrill,
             devForceTableMismatch: tableDrill, mem: mem, notice: (t, x) => notices?.Add((t, x)));
@@ -154,8 +155,8 @@ public class EngineDoorTests
             var box = Assert.Single(notices);
             string text = box.text;
             int working = text.IndexOf("Still working:", StringComparison.Ordinal);
-            int off = text.IndexOf("Switched off:", StringComparison.Ordinal);
-            int waiting = text.IndexOf("Still waiting:", StringComparison.Ordinal);
+            int off = text.IndexOf("Paused this session:", StringComparison.Ordinal);
+            int waiting = text.IndexOf("Still being checked (as the game loads and your first battle starts):", StringComparison.Ordinal);
             Assert.True(working >= 0 && off > working && waiting > off);
             Assert.InRange(text.IndexOf("battle sensing", StringComparison.Ordinal), working, off);
             Assert.InRange(text.IndexOf("kill counting", StringComparison.Ordinal), off, waiting);
@@ -163,6 +164,9 @@ public class EngineDoorTests
             Assert.True(text.IndexOf("banners", waiting, StringComparison.Ordinal) > waiting);
             Assert.True(text.IndexOf("extended inventory", waiting, StringComparison.Ordinal) > waiting);
             Assert.Contains("LW_FORCE_ROSTER_MISMATCH", text);
+            string lastLine = text.Substring(text.LastIndexOf("\n\n", StringComparison.Ordinal) + 2);
+            Assert.StartsWith("Living Weapons 7.7.7, game build ", lastLine);
+            Assert.True(text.IndexOf("LW_FORCE_ROSTER_MISMATCH", StringComparison.Ordinal) < text.LastIndexOf(lastLine, StringComparison.Ordinal));
             Assert.Equal(1, engine.Board.BoxCount);
         }
         finally { Mem.WritesEnabled = prev; }
@@ -284,9 +288,9 @@ public class EngineDoorTests
             var box = Assert.Single(notices);
             string text = box.text;
             int working = text.IndexOf("Still working:", StringComparison.Ordinal);
-            int off = text.IndexOf("Switched off:", StringComparison.Ordinal);
+            int off = text.IndexOf("Paused this session:", StringComparison.Ordinal);
             Assert.True(working >= 0 && off > working);
-            string offLine = text.Substring(off, text.IndexOf('\n', off) - off);
+            string offLine = text.Substring(off, text.IndexOf("\n\n", off, StringComparison.Ordinal) - off);
             foreach (var part in new[] { Part.CardPaint, Part.WeaponCommands })
                 Assert.InRange(text.IndexOf(PartsReport.LabelOf(part), StringComparison.Ordinal), working, off);
             foreach (var part in new[] { Part.TwinPistols, Part.Bulwark })
@@ -354,10 +358,10 @@ public class EngineDoorTests
             var box = Assert.Single(notices);
             string text = box.text;
             int working = text.IndexOf("Still working:", StringComparison.Ordinal);
-            int off = text.IndexOf("Switched off:", StringComparison.Ordinal);
+            int off = text.IndexOf("Paused this session:", StringComparison.Ordinal);
             Assert.True(working >= 0 && off > working);
-            Assert.Contains("Switched off: twin weapons", text);
-            Assert.DoesNotContain("kill counting", text.Substring(off, text.IndexOf('\n', off) - off));
+            Assert.Contains("Paused this session:\n  twin weapons\n", text);
+            Assert.DoesNotContain("kill counting", text.Substring(off, text.IndexOf("\n\n", off, StringComparison.Ordinal) - off));
             Assert.Contains("LW_FORCE_TWIN_MISMATCH", text);
             Assert.DoesNotContain("LW_FORCE_ROSTER_MISMATCH", text);
             Assert.Equal(1, engine.Board.BoxCount);
@@ -436,9 +440,9 @@ public class EngineDoorTests
             Ticks(engine, 30 + PartsBoard.SettleSteps + 80);
 
             var box = Assert.Single(notices);
-            int off = box.text.IndexOf("Switched off:", StringComparison.Ordinal);
+            int off = box.text.IndexOf("Paused this session:", StringComparison.Ordinal);
             Assert.True(off >= 0);
-            string offLine = box.text.Substring(off, box.text.IndexOf('\n', off) - off);
+            string offLine = box.text.Substring(off, box.text.IndexOf("\n\n", off, StringComparison.Ordinal) - off);
             Assert.Contains("weapon colors", offLine);
             foreach (string other in new[] { "bulwark", "gun growth", "poach den", "provoke", "kill counting", "twin weapons" })
                 Assert.DoesNotContain(other, offLine);

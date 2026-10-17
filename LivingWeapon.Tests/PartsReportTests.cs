@@ -29,6 +29,11 @@ public class PartsReportTests
         [Door.StaticArray] = DoorReading.Open(),
     };
 
+    private const string Foot = "Living Weapons 9.9.9, game build 0x6A5E4A1B";
+
+    private static string Box(Dictionary<Door, DoorReading> r, string drill = "", string hedge = "", string footer = Foot)
+        => PartsReport.ComposeBox(r, drill, hedge, footer);
+
     private static readonly string[] Labels =
     {
         "battle sensing", "kill counting", "stat growth", "card paint", "weapon powers in battle (Maim, Plague and the rest)",
@@ -164,15 +169,15 @@ public class PartsReportTests
         r[Door.Roster] = DoorReading.Failed("party data moved");
         r[Door.PromptHook] = DoorReading.Waiting("no hooks yet");
 
-        string box = PartsReport.ComposeBox(r, "", "");
+        string box = Box(r);
 
         foreach (var label in Labels)
             Assert.Equal(box.IndexOf(label, StringComparison.Ordinal), box.LastIndexOf(label, StringComparison.Ordinal));
         foreach (var label in Labels)
             Assert.True(box.IndexOf(label, StringComparison.Ordinal) >= 0, label + " is missing from the box");
         int still = box.IndexOf("Still working", StringComparison.Ordinal);
-        int off = box.IndexOf("Switched off", StringComparison.Ordinal);
-        int waiting = box.IndexOf("Still waiting", StringComparison.Ordinal);
+        int off = box.IndexOf("Paused this session", StringComparison.Ordinal);
+        int waiting = box.IndexOf("Still being checked (as the game loads and your first battle starts)", StringComparison.Ordinal);
         Assert.True(still >= 0 && off > still && waiting > off);
         Assert.InRange(box.IndexOf("battle sensing", StringComparison.Ordinal), still, off);
         Assert.InRange(box.IndexOf("extended inventory", StringComparison.Ordinal), still, off);
@@ -187,13 +192,13 @@ public class PartsReportTests
         var r = AllOpen();
         r[Door.Roster] = DoorReading.Failed("party data moved");
 
-        string plain = PartsReport.ComposeBox(r, "", "");
-        string loud = PartsReport.ComposeBox(r, PartsReport.RosterDrillSentence, LaunchGuard.UnknownBuildHedge);
+        string plain = Box(r);
+        string loud = Box(r, PartsReport.RosterDrillSentence, LaunchGuard.UnknownBuildHedge);
 
         Assert.DoesNotContain("LW_FORCE_", plain);
-        Assert.DoesNotContain("the cause may be the game update itself", plain);
+        Assert.DoesNotContain(LaunchGuard.UnknownBuildHedge.Trim(), plain);
         Assert.Contains("LW_FORCE_ROSTER_MISMATCH", loud);
-        Assert.Contains("the cause may be the game update itself", loud);
+        Assert.Contains(LaunchGuard.UnknownBuildHedge.Trim(), loud);
     }
 
     [Fact]
@@ -202,14 +207,16 @@ public class PartsReportTests
         var r = AllOpen();
         r[Door.Roster] = DoorReading.Failed("party data moved");
 
-        string box = PartsReport.ComposeBox(r, "", "");
+        string box = Box(r);
 
-        Assert.Contains("switched off some of its parts", box);
-        Assert.Contains("attach your logs", box);
+        Assert.StartsWith("Living Weapons: some features are paused\n\n", box);
+        Assert.Contains(PartsCopy.WhatToDoBox, box);
         Assert.Contains("ptyrawl@gmail.com", box);
         Assert.Contains("livingweapon.log", box);
         Assert.DoesNotContain("standing down to protect your save", box);
         Assert.DoesNotContain("switched itself off", box);
+        Assert.DoesNotContain("switched off", box);
+        Assert.DoesNotContain("Switched off", box);
     }
 
     [Fact]
@@ -218,11 +225,11 @@ public class PartsReportTests
         var r = AllOpen();
         r[Door.Roster] = DoorReading.Failed("the party data is not where this mod expects it");
 
-        string box = PartsReport.ComposeBox(r, "", "");
+        string box = Box(r);
 
         Assert.Contains("Still working:", box);
-        Assert.Contains("Switched off:", box);
-        Assert.DoesNotContain("Still waiting:", box);
+        Assert.Contains("Paused this session:", box);
+        Assert.DoesNotContain("Still being checked (as the game loads and your first battle starts):", box);
         Assert.DoesNotContain(": nothing", box);
     }
 
@@ -246,10 +253,11 @@ public class PartsReportTests
             [Door.StaticArray] = DoorReading.Failed("x"),
         };
 
-        string box = PartsReport.ComposeBox(r, "", "");
+        string box = Box(r);
 
         Assert.DoesNotContain("Still working:", box);
         Assert.DoesNotContain(": nothing", box);
+        Assert.StartsWith(PartsReport.AllPausedHeadline + "\n\n" + PartsReport.AllPausedBody + "\n\n", box);
     }
 
     // ---- LW-398: the band and static array doors ----
@@ -328,9 +336,10 @@ public class PartsReportTests
         r[Door.Band] = DoorReading.Waiting(LaunchGuard.BattleWaitingReason);
         r[Door.StaticArray] = DoorReading.Waiting(LaunchGuard.BattleWaitingReason);
 
-        string box = PartsReport.ComposeBox(r, "", "");
+        string box = Box(r);
 
-        Assert.Contains($"Still waiting: kill counting, stat growth, {L(Part.BandSignatures)} (waiting for the first battle).", box);
+        Assert.Contains($"Still being checked (as the game loads and your first battle starts):\n  kill counting, stat growth, {L(Part.BandSignatures)}\n\n", box);
+        Assert.DoesNotContain("waiting for the first battle", box);
     }
 
     [Fact]
@@ -346,37 +355,41 @@ public class PartsReportTests
         var r = AllOpen();
         r[Door.Roster] = DoorReading.Failed("party data moved");
 
-        string box = PartsReport.ComposeBox(r, "", "");
+        string box = Box(r);
 
-        Assert.Contains("Still working: battle sensing, extended inventory; banners (quiet while kill counting is off).", box);
+        Assert.Contains("Still working:\n  battle sensing, banners, extended inventory\n\n", box);
         Assert.DoesNotContain("nothing to announce", box);
+        Assert.DoesNotContain("quiet while", box);
     }
 
     [Fact]
-    public void Box_collapses_a_waiting_group_that_shares_one_reason()
+    public void Box_lists_every_waiting_part_by_name_and_never_the_reason()
     {
         var r = AllOpen();
         r[Door.Roster] = DoorReading.Waiting("waiting for a save to load");
         r[Door.KitLane] = DoorReading.Failed("job command data rewritten");
 
-        string box = PartsReport.ComposeBox(r, "", "");
+        string box = Box(r);
 
-        Assert.Contains("Still waiting: the other 9 parts (waiting for a save to load).", box);
-        Assert.DoesNotContain("Still waiting: kill counting", box);
+        Assert.Contains("Still being checked (as the game loads and your first battle starts):\n  kill counting, stat growth, card paint,", box);
+        Assert.DoesNotContain("the other", box);
+        Assert.DoesNotContain("waiting for a save to load", box);
+        Assert.DoesNotContain("job command data rewritten", box);
     }
 
     [Fact]
-    public void Box_keeps_the_waiting_list_when_reasons_differ()
+    public void Box_keeps_one_waiting_list_when_reasons_differ()
     {
         var r = AllOpen();
         r[Door.Roster] = DoorReading.Waiting("waiting for a save to load");
         r[Door.PromptHook] = DoorReading.Waiting("the loader has not handed over its hooks yet");
         r[Door.KitLane] = DoorReading.Failed("job command data rewritten");
 
-        string box = PartsReport.ComposeBox(r, "", "");
+        string box = Box(r);
 
-        Assert.Contains("banners (the loader has not handed over its hooks yet)", box);
+        Assert.DoesNotContain("the loader has not handed over its hooks yet", box);
         Assert.Contains("kill counting, stat growth", box);
+        Assert.Contains("banners", box);
         Assert.DoesNotContain("the other", box);
     }
 
@@ -388,9 +401,9 @@ public class PartsReportTests
         r[Door.ExtendedArm] = DoorReading.Waiting("the loader has not handed over its hooks yet");
         r[Door.KitLane] = DoorReading.Failed("job command data rewritten");
 
-        string box = PartsReport.ComposeBox(r, "", "");
+        string box = Box(r);
 
-        Assert.Contains("Still waiting: banners, extended inventory (the loader has not handed over its hooks yet).", box);
+        Assert.Contains("Still being checked (as the game loads and your first battle starts):\n  banners, extended inventory\n\n", box);
         Assert.DoesNotContain("the other", box);
     }
 
@@ -496,14 +509,14 @@ public class PartsReportTests
         var r = AllOpen();
         r[Door.PaletteBanks] = DoorReading.Failed("the weapon palette is not where this mod expects it");
 
-        string box = PartsReport.ComposeBox(r, "", "");
+        string box = Box(r);
 
-        int off = box.IndexOf("Switched off:", StringComparison.Ordinal);
+        int off = box.IndexOf("Paused this session:\n", StringComparison.Ordinal);
         Assert.True(off >= 0);
-        string offLine = box.Substring(off, box.IndexOf('\n', off) - off);
-        Assert.Contains("weapon colors (the weapon palette is not where this mod expects it)", offLine);
-        Assert.DoesNotContain("gun growth", offLine);
-        Assert.DoesNotContain("Still waiting:", box);
+        string offLine = box.Substring(off, box.IndexOf("\n\n", off, StringComparison.Ordinal) - off);
+        Assert.Equal("Paused this session:\n  weapon colors", offLine);
+        Assert.DoesNotContain("the weapon palette is not where", box);
+        Assert.DoesNotContain("Still being checked (as the game loads and your first battle starts):", box);
     }
 
     [Fact]
@@ -512,7 +525,103 @@ public class PartsReportTests
         Assert.Equal("This closure was forced by the LW_FORCE_TABLE_MISMATCH drill flag (dev builds only).", PartsReport.TableDrillSentence);
         var r = AllOpen();
         r[Door.PaletteBanks] = DoorReading.Failed("x");
-        Assert.DoesNotContain("LW_FORCE_TABLE_MISMATCH", PartsReport.ComposeBox(r, "", ""));
-        Assert.Contains("LW_FORCE_TABLE_MISMATCH", PartsReport.ComposeBox(r, PartsReport.TableDrillSentence, ""));
+        Assert.DoesNotContain("LW_FORCE_TABLE_MISMATCH", Box(r));
+        Assert.Contains("LW_FORCE_TABLE_MISMATCH", Box(r, PartsReport.TableDrillSentence));
+    }
+
+    [Fact]
+    public void The_box_copy_constants_are_the_owner_copy()
+    {
+        Assert.Equal("Living Weapons: some features are paused", PartsReport.SomePausedHeadline);
+        Assert.Equal("Most of the mod is running normally. A few parts found the game data in a different place than expected, so they have paused themselves rather than risk your save.", PartsReport.SomePausedBody);
+        Assert.Equal("Living Weapons has paused itself for this session", PartsReport.AllPausedHeadline);
+        Assert.Equal("The mod found the game data in a different place than expected on every check, so nothing is running rather than risk your save.", PartsReport.AllPausedBody);
+        Assert.Equal("This usually means the game just updated, or another mod changed the same data.", PartsCopy.Hedge);
+        Assert.Equal("What to do: check the Living Weapons mod page for a newer version; if you installed another mod recently, try a run without it; still stuck, email ptyrawl@gmail.com and attach livingweapon.log.", PartsCopy.WhatToDo);
+        Assert.Equal("What to do: check the Living Weapons mod page for a newer version. If you installed another mod recently, try a run without it.\n\nStill stuck? Email ptyrawl@gmail.com and attach livingweapon.log (Open Folder on the mod's page in Reloaded-II).", PartsCopy.WhatToDoBox);
+    }
+
+    [Fact]
+    public void Some_paused_box_reads_in_the_owner_copy_from_top_to_bottom()
+    {
+        var r = AllOpen();
+        r[Door.PaletteBanks] = DoorReading.Failed("the weapon palette is not where this mod expects it");
+        r[Door.Band] = DoorReading.Waiting(LaunchGuard.BattleWaitingReason);
+
+        string box = Box(r, PartsReport.TableDrillSentence, LaunchGuard.UnknownBuildHedge);
+
+        string expected =
+            "Living Weapons: some features are paused\n\n"
+            + PartsReport.SomePausedBody + "\n\n"
+            + "Still working:\n  battle sensing, card paint, weapon commands, banners, extended inventory, twin weapons, bulwark, gun growth, poach den, provoke\n\n"
+            + "Paused this session:\n  weapon colors\n\n"
+            + "Still being checked (as the game loads and your first battle starts):\n  kill counting, stat growth, " + L(Part.BandSignatures) + "\n\n"
+            + PartsCopy.Hedge + LaunchGuard.UnknownBuildHedge + " Your game and save are fine.\n\n"
+            + PartsCopy.WhatToDoBox + "\n\n"
+            + PartsReport.TableDrillSentence + "\n\n"
+            + Foot;
+        Assert.Equal(expected, box);
+    }
+
+    [Fact]
+    public void Some_paused_box_without_a_build_hedge_or_drill_has_neither_gap()
+    {
+        var r = AllOpen();
+        r[Door.PaletteBanks] = DoorReading.Failed("x");
+
+        string box = Box(r);
+
+        Assert.Contains(PartsCopy.Hedge + " Your game and save are fine.\n\n" + PartsCopy.WhatToDoBox + "\n\n" + Foot, box);
+        Assert.EndsWith(Foot, box);
+        Assert.DoesNotContain("\n\n\n", box);
+    }
+
+    [Fact]
+    public void All_paused_box_has_its_own_headline_and_no_working_block()
+    {
+        var r = AllOpen();
+        foreach (Door d in Enum.GetValues(typeof(Door))) r[d] = DoorReading.Failed("x");
+        r[Door.Band] = DoorReading.Waiting("w");
+
+        string box = Box(r);
+
+        Assert.StartsWith("Living Weapons has paused itself for this session\n\n" + PartsReport.AllPausedBody + "\n\n", box);
+        Assert.DoesNotContain("Still working:", box);
+        Assert.DoesNotContain("some features are paused", box);
+        Assert.Contains("Paused this session:\n  ", box);
+        Assert.Contains(PartsCopy.WhatToDoBox, box);
+        Assert.EndsWith(Foot, box);
+    }
+
+    [Fact]
+    public void The_box_footer_is_the_last_line_and_the_only_place_a_hex_number_appears()
+    {
+        var r = AllOpen();
+        r[Door.Roster] = DoorReading.Failed("x");
+
+        string box = Box(r, PartsReport.RosterDrillSentence, LaunchGuard.UnknownBuildHedge);
+
+        Assert.EndsWith("\n\n" + Foot, box);
+        Assert.DoesNotContain("0x", box.Substring(0, box.Length - Foot.Length));
+        Assert.Equal(box.Length - Foot.Length, box.LastIndexOf(Foot, StringComparison.Ordinal));
+        Assert.True(box.IndexOf(PartsReport.RosterDrillSentence, StringComparison.Ordinal) < box.IndexOf(Foot, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void An_empty_footer_leaves_no_trailing_blank_lines()
+    {
+        var r = AllOpen();
+        r[Door.Roster] = DoorReading.Failed("x");
+
+        string box = Box(r, footer: "");
+
+        Assert.EndsWith(PartsCopy.WhatToDoBox, box);
+    }
+
+    [Fact]
+    public void The_footer_names_the_version_and_the_build()
+    {
+        Assert.Equal("Living Weapons 2.4.0, game build 0x6A5E4A1B", PartsReport.Footer("2.4.0", "0x6A5E4A1B"));
+        Assert.Equal("Living Weapons unknown, game build unknown", PartsReport.Footer("unknown", "unknown"));
     }
 }

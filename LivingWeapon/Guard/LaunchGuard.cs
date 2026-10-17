@@ -21,12 +21,14 @@ internal sealed partial class LaunchGuard
     // Flight recorder taps. Null keeps tests quiet.
     private readonly Action<string, string>? _recorder;
     private readonly Action<string>? _requestFlush;
+    private readonly string? _version;
     // Kept for the armed edge unknown build report (LaunchGuard.Stamp.cs). Mod.cs compiles it to false outside LWDEV.
     private readonly bool _forceMismatch;
 
     /// <param name="notice">The OS level box, used by the stall warning only. Null means no box, so unit tests never pop one.</param>
     /// <param name="recorder">the flight ring tap (production. Flight.Record).</param>
     /// <param name="requestFlush">the flight flush request (production. Flight.RequestFlush).</param>
+    /// <param name="version">the mod version for the box footer. Null leaves the boxes without a footer.</param>
     /// <param name="forceMismatch">Dev drill LW_FORCE_FINGERPRINT_MISMATCH. Makes the build stamp read unknown. It cannot stand anything down.</param>
     /// <param name="forceSensingMismatch">Dev drill LW_FORCE_SENSING_MISMATCH. Makes healthy sentinels read as a mismatch.</param>
     /// <param name="forceUnreadable">Dev drill LW_FORCE_GUARD_UNREADABLE. Both main landmarks read Unreadable for DrillBlindSteps.</param>
@@ -35,7 +37,7 @@ internal sealed partial class LaunchGuard
     public LaunchGuard(IGameMemory mem, bool forceMismatch, Action<string, string>? notice = null,
         Action<string, string>? recorder = null, Action<string>? requestFlush = null,
         bool forceSensingMismatch = false, bool forceUnreadable = false, bool forceRosterMismatch = false,
-        bool forceTwinMismatch = false, bool forceBandMismatch = false)
+        bool forceTwinMismatch = false, bool forceBandMismatch = false, string? version = null)
     {
         _mem = mem;
         _forceMismatch = forceMismatch;
@@ -45,6 +47,7 @@ internal sealed partial class LaunchGuard
         _notice = notice;
         _recorder = recorder;
         _requestFlush = requestFlush;
+        _version = version;
 
         // Plain bool so Release compiles this path too. Perturbs the expected TimeDateStamp to watch the unknown build report
         // without a real patch. Only the Mod.StartEngine call site is #if LWDEV.
@@ -103,8 +106,9 @@ internal sealed partial class LaunchGuard
         // Mem.WritesEnabled stays false (Mod.StartEngine set it before construction). Record first so a later flush archives why.
         _recorder?.Invoke("guard", $"stand-down ({diag})");
         string drillNote = _forceRosterMismatch ? " " + PartsReport.RosterDrillSentence : "";
-        ModLogger.Error(LogVerb.Startup,
-            $"The game build does not match this mod's memory landmarks ({diag}); the parts that need it are standing down to protect your save; see the Parts report line for what still runs. The mod likely needs an update for a new game patch.{drillNote}");
+        ModLogger.Error(LogVerb.Startup, PartsCopy.Disabled(
+            "The party data is not where this mod expects it, so the parts that need it are standing down to protect your save; see the Parts report line for what still runs.",
+            HedgeIfUnknownBuild(), drillNote, diag + BuildDetail));
         // Requested last and named "standdown". An earlier error may have burnt the "error" FlushOnce latch and
         // battle edges never fire pre arm (last writer wins on the pending trigger, FlightRecorder.cs).
         _requestFlush?.Invoke("standdown");

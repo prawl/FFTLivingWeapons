@@ -82,8 +82,9 @@ internal sealed class PromptSwapHook
         if (!ShouldArm(readOk, prologue))
         {
             _door.Set(DoorReading.Failed("the game's prompt system is not where this mod expects it"));
-            ModLogger.Warn(LogVerb.Toast,
-                $"The prompt hook target 0x{FnSetTextString:X} does not match the expected prologue (game patched or wrong address); tier-up toasts are disabled this session.");
+            ModLogger.Warn(LogVerb.Toast, PartsCopy.Disabled(
+                "Banners (the pop-ups that announce a weapon leveling up) are paused for this session because the game's prompt code is not where this mod expects it; everything else keeps working.",
+                "", "", $"target 0x{FnSetTextString:X} " + (readOk ? "prologue mismatch" : "unreadable")));
             return;
         }
         try
@@ -96,7 +97,10 @@ internal sealed class PromptSwapHook
         catch (Exception ex)
         {
             _door.Set(DoorReading.Failed("the game's prompt system could not be connected to"));
-            ModLogger.Error(LogVerb.Toast, "Could not connect to the game's prompt system; tier-up toasts will not be delivered: " + ex.Message);
+            // Warn like every other closed door, since the mod keeps running and an error would burn the launch's one flight archive.
+            ModLogger.Warn(LogVerb.Toast, PartsCopy.Disabled(
+                "Banners (the pop-ups that announce a weapon leveling up) are paused for this session because the mod could not connect to the game's prompt code; everything else keeps working.",
+                "", "", ex.Message));
         }
     }
 

@@ -13,7 +13,8 @@ internal sealed partial class TableDoors
     private const int MismatchDebounce = 30;
 
     private readonly IGameMemory _mem;
-    private readonly Func<string> _hedge;
+    private readonly Func<string> _buildHedge;
+    private readonly Func<string> _buildDetail;
     private readonly Func<bool> _rosterOpen;
     private readonly Action<string, string>? _recorder;
     private readonly Action<string>? _requestFlush;
@@ -26,20 +27,22 @@ internal sealed partial class TableDoors
     private bool _abilityStallNoted;
     private bool _itemStallNoted;
 
-    /// <param name="hedge">The unknown build hedge appended to each stand-down warning, empty on a known build.</param>
+    /// <param name="buildHedge">The unknown build sentence for each stand-down warning, empty on a known build.</param>
+    /// <param name="buildDetail">The stamp numbers for the detail clause of each warning, empty on a known build.</param>
     /// <param name="rosterOpen">Whether the roster door is open. The fill watchers count only then.</param>
     /// <param name="forceMismatch">Dev drill LW_FORCE_TABLE_MISMATCH. The palette door reads a mismatch on healthy memory.</param>
-    public TableDoors(IGameMemory mem, Func<string> hedge, Func<bool> rosterOpen,
+    public TableDoors(IGameMemory mem, Func<string> buildHedge, Func<string> buildDetail, Func<bool> rosterOpen,
         Action<string, string>? recorder = null, Action<string>? requestFlush = null, bool forceMismatch = false)
     {
         _mem = mem;
-        _hedge = hedge;
+        _buildHedge = buildHedge;
+        _buildDetail = buildDetail;
         _rosterOpen = rosterOpen;
         _recorder = recorder;
         _requestFlush = requestFlush;
         _forceMismatch = forceMismatch;
         _terrain = Guard("terrain-grid", Terrain(), TerrainStandDownText);
-        _palette = Guard("palette-banks", Palette(), PaletteStandDownText);
+        _palette = Guard("palette-banks", Palette(), PaletteStandDownText, PartsReport.TableDrillSentence);
         _poach = Guard("poach-store", Poach(), PoachStandDownText);
         _provoke = Guard("provoke-tables", ProvokeLandmarks(), ProvokeStandDownText);
         _items = Guard("item-stats", ItemLandmarks(), ItemStandDownText);
@@ -73,12 +76,13 @@ internal sealed partial class TableDoors
         _ => DoorReading.Waiting(waiting),
     };
 
-    private FingerprintGuard Guard(string door, GuardLandmark[] landmarks, Func<string, string> standDownText)
+    private FingerprintGuard Guard(string door, GuardLandmark[] landmarks, string standDownText, string drill = "")
         => new(landmarks,
             diag =>
             {
                 _recorder?.Invoke("guard", $"table door stand-down ({door}: {diag})");
-                ModLogger.Warn(LogVerb.Startup, standDownText(diag) + _hedge());
+                ModLogger.Warn(LogVerb.Startup,
+                    PartsCopy.Disabled(standDownText, _buildHedge(), drill.Length > 0 && _forceMismatch ? " " + drill : "", diag + _buildDetail()));
                 _requestFlush?.Invoke("standdown");
             },
             () => _recorder?.Invoke("guard", $"table door armed ({door})"),

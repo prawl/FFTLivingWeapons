@@ -241,8 +241,8 @@ launch's log rotates to `livingweapon.prev.log`) must contain a line starting:
 Extended inventory armed: N new item(s) [...names...]
 ```
 
-(the counts after the item list vary by build). A `NOT armed this session (<which landmark>: ...)`
-warning names exactly what refused; the whole extended inventory arms or none of it does. In
+(the counts after the item list vary by build). A warning starting "The new items are paused for this session"
+names what refused, with the raw reason in its trailing "(detail: ...)" clause; the whole extended inventory arms or none of it does. In
 game, check: the item lists on the Items tab, equips, swings its donor's art, its card shows
 name/description/Kills line, the named shop stocks it (and other towns do not), and a save/load
 round trip keeps its bag count (counts are keyed per save, so each save slot remembers its own).

@@ -115,8 +115,9 @@ internal sealed partial class LaunchGuard
             : "";
         // Warning tier, and avoid the phrase tools/scan_logs.py STANDDOWN_MARK looks for, so it does not read
         // as a full stand-down.
-        ModLogger.Warn(LogVerb.Startup,
-            $"The battle sentinels do not read the way this mod expects ({diag}). The new game detector is switched off for this session so the kill tally can never be cleared by mistake; kill counting and everything else keep working.{HedgeIfUnknownBuild()}{drillNote}");
+        ModLogger.Warn(LogVerb.Startup, PartsCopy.Disabled(
+            "The new game detector is paused for this session because the game's battle status data does not read the way this mod expects; the only effect is that the kill tally is never cleared automatically when you start a new game, and everything else keeps working.",
+            HedgeIfUnknownBuild(), drillNote, diag + BuildDetail));
         _requestFlush?.Invoke("standdown");
     }
 }

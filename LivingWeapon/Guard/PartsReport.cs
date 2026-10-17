@@ -29,10 +29,21 @@ internal static class PartsReport
     internal const string BandDrillSentence =
         "This stand down was forced by the LW_FORCE_BAND_MISMATCH drill flag (dev builds only).";
 
+    internal const string SomePausedHeadline = "Living Weapons: some features are paused";
+    internal const string SomePausedBody =
+        "Most of the mod is running normally. A few parts found the game data in a different place than expected, "
+        + "so they have paused themselves rather than risk your save.";
+    internal const string AllPausedHeadline = "Living Weapons has paused itself for this session";
+    internal const string AllPausedBody =
+        "The mod found the game data in a different place than expected on every check, "
+        + "so nothing is running rather than risk your save.";
+    private const string SaveIsFine = " Your game and save are fine.";
+
+    /// <summary>The last line of every box, so a screenshot says which mod and which game it came from.</summary>
+    internal static string Footer(string version, string stamp) => $"Living Weapons {version}, game build {stamp}";
+
     private const string BannersNote = "connected; nothing to announce while kill counting is off";
 
-
-    private const string BannersBoxNote = "quiet while kill counting is off";
 
     private readonly struct Row
     {
@@ -112,55 +123,30 @@ internal static class PartsReport
         return sb.ToString();
     }
 
-    public static string ComposeBox(IReadOnlyDictionary<Door, DoorReading> readings, string drillSentence, string hedge)
+    public static string ComposeBox(IReadOnlyDictionary<Door, DoorReading> readings, string drillSentence, string hedge, string footer)
     {
+        bool anyWorking = false;
+        foreach (var row in Rows) anyWorking |= Status(row.Part, readings).State == DoorState.Open;
         var sb = new StringBuilder();
-        sb.Append("Living Weapons has switched off some of its parts\n\n");
-        sb.Append("Something the mod needs is not where it expected. That usually means the game just updated, "
-            + "or another mod changed it.");
+        sb.Append(anyWorking ? SomePausedHeadline : AllPausedHeadline).Append("\n\n");
+        sb.Append(anyWorking ? SomePausedBody : AllPausedBody).Append("\n\n");
+        AppendGroup(sb, "Still working:", DoorState.Open, readings);
+        AppendGroup(sb, "Paused this session:", DoorState.Closed, readings);
+        AppendGroup(sb, "Still being checked (as the game loads and your first battle starts):", DoorState.Waiting, readings);
+        sb.Append(PartsCopy.Hedge);
         if (hedge.Length > 0) sb.Append(' ').Append(hedge.Trim());
-        sb.Append(" Anything that failed its check stays off until you close the game, so the mod cannot change "
-            + "the wrong thing in your game. The next launch checks again. Your game runs as normal.\n\n");
-        AppendGroup(sb, "Still working:", DoorState.Open, readings, inBox: true);
-        AppendGroup(sb, "Switched off:", DoorState.Closed, readings, inBox: true);
-        AppendGroup(sb, "Still waiting:", DoorState.Waiting, readings, inBox: true, collapse: true);
-        sb.Append("What to do: check the Living Weapons mod page for a newer version. If you added another mod "
-            + "recently, try without it. Still stuck? Email me at ptyrawl@gmail.com and attach your logs (Open "
-            + "Folder on the mod's page in Reloaded-II, the file is livingweapon.log).");
+        sb.Append(SaveIsFine).Append("\n\n").Append(PartsCopy.WhatToDoBox);
         if (drillSentence.Length > 0) sb.Append("\n\n").Append(drillSentence);
+        if (footer.Length > 0) sb.Append("\n\n").Append(footer);
         return sb.ToString();
     }
 
-    private static void AppendGroup(StringBuilder sb, string heading, DoorState want,
-        IReadOnlyDictionary<Door, DoorReading> readings, bool inBox, bool collapse = false)
+    private static void AppendGroup(StringBuilder sb, string heading, DoorState want, IReadOnlyDictionary<Door, DoorReading> readings)
     {
-        // Parts sharing one reason are listed together and the reason is given once.
-        var byDetail = new List<(string Detail, List<string> Labels)>();
+        var labels = new List<string>();
         foreach (var row in Rows)
-        {
-            var (state, reason) = Status(row.Part, readings);
-            if (state != want) continue;
-            string detail = Detail(row, state, reason, readings);
-            if (inBox && detail == BannersNote) detail = BannersBoxNote;
-            int i = byDetail.FindIndex(g => g.Detail == detail);
-            if (i < 0) byDetail.Add((detail, new List<string> { row.Label }));
-            else byDetail[i].Labels.Add(row.Label);
-        }
-        if (byDetail.Count == 0) return;
-        var clauses = new List<string>();
-        if (collapse && byDetail.Count == 1 && byDetail[0].Labels.Count > 3)
-        {
-            // Ten names behind one reason read as noise, so the count stands in for the list.
-            clauses.Add($"the other {byDetail[0].Labels.Count} parts ({byDetail[0].Detail})");
-        }
-        else
-        {
-            foreach (var (detail, labels) in byDetail)
-            {
-                string joined = string.Join(", ", labels);
-                clauses.Add(detail.Length > 0 ? $"{joined} ({detail})" : joined);
-            }
-        }
-        sb.Append(heading).Append(' ').Append(string.Join("; ", clauses)).Append('.').Append("\n\n");
+            if (Status(row.Part, readings).State == want) labels.Add(row.Label);
+        if (labels.Count == 0) return;
+        sb.Append(heading).Append("\n  ").Append(string.Join(", ", labels)).Append("\n\n");
     }
 }

@@ -4,14 +4,17 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// The stateful half of the parts report. Engine hands it the thirteen door readings every tick. It logs
-/// one report line whenever any door changes STATE (a reason only change is not an edge) and shows one
-/// box per closure wave, so a late failure is never hidden behind an earlier box.
+/// The stateful half of the parts report. Engine hands it the thirteen door readings every tick. It logs one
+/// report line whenever any door changes STATE (a reason only change is not an edge), or the single all armed line
+/// once every part is on (its latch matters only once a door can re verify), and shows one box per closure wave, so a late failure is never hidden behind an earlier box.
 /// </summary>
 internal sealed class PartsBoard
 {
     /// <summary>Ticks a wave stays open collecting closures before its box shows (about three seconds).</summary>
     internal const int SettleSteps = 90;
+
+    /// <summary>The scanner reads this line as the latest parts state.</summary>
+    internal const string AllArmedLine = "Living Weapons: all parts armed.";
 
     private static readonly Door[] AllDoors = (Door[])Enum.GetValues(typeof(Door));
 
@@ -19,6 +22,7 @@ internal sealed class PartsBoard
     private readonly Action<string, string>? _recorder;
     private readonly DoorState[] _last = new DoorState[AllDoors.Length];
     private bool _seen;
+    private bool _allArmed;
     private long _tick;
     private long _waveOpenedAt;
 
@@ -32,7 +36,7 @@ internal sealed class PartsBoard
         _recorder = recorder;
     }
 
-    public void Observe(IReadOnlyDictionary<Door, DoorReading> readings, string hedge, string drillSentence)
+    public void Observe(IReadOnlyDictionary<Door, DoorReading> readings, string hedge, string drillSentence, Func<string> footer)
     {
         _tick++;
         bool changed = !_seen;
@@ -51,18 +55,22 @@ internal sealed class PartsBoard
         }
         _seen = true;
 
-        if (changed) LogLine(readings);
-        if (WaveOpen && _tick - _waveOpenedAt >= SettleSteps) ShowBox(readings, hedge, drillSentence);
+        if (changed) LogChange(readings);
+        if (WaveOpen && _tick - _waveOpenedAt >= SettleSteps) ShowBox(readings, hedge, drillSentence, footer());
     }
 
-    private void LogLine(IReadOnlyDictionary<Door, DoorReading> readings)
+    private void LogChange(IReadOnlyDictionary<Door, DoorReading> readings)
     {
         LastLine = PartsReport.ComposeLine(readings);
-        ModLogger.Event(LogVerb.Startup, LastLine);
+        bool allOn = true;
+        foreach (Part part in Enum.GetValues(typeof(Part))) allOn &= PartsReport.IsOn(part, readings);
+        if (!allOn) ModLogger.Event(LogVerb.Startup, LastLine);
+        else if (!_allArmed) ModLogger.Event(LogVerb.Startup, AllArmedLine);
+        _allArmed = allOn;
         _recorder?.Invoke("guard", $"parts report changed ({LastLine})");
     }
 
-    private void ShowBox(IReadOnlyDictionary<Door, DoorReading> readings, string hedge, string drillSentence)
+    private void ShowBox(IReadOnlyDictionary<Door, DoorReading> readings, string hedge, string drillSentence, string footer)
     {
         WaveOpen = false;
         BoxCount++;
@@ -71,6 +79,6 @@ internal sealed class PartsBoard
             if (PartsReport.Status(part, readings).State == DoorState.Closed) off++;
         _recorder?.Invoke("guard", $"parts box shown ({off} parts off)");
         _notice?.Invoke("FFT Living Weapons",
-            PartsReport.ComposeBox(readings, drillSentence, hedge));
+            PartsReport.ComposeBox(readings, drillSentence, hedge, footer));
     }
 }

@@ -38,7 +38,7 @@ Usage:
   python tools/scan_logs.py --mod-dir "D:/Mods/prawl.fft.livingweapons"
   python tools/scan_logs.py --flight            # also inspect the newest flight/*.jsonl archive
   python tools/scan_logs.py --require-battle     # also fail if no battle ran in this log
-  python tools/scan_logs.py --allow "prompt system"   # suppress a known-benign error substring (repeatable)
+  python tools/scan_logs.py --allow "engine update"   # suppress a known-benign error substring (repeatable)
   python tools/scan_logs.py --selftest          # run the built-in tests; no game/files needed
 
 Exit codes: 0 = clean, 1 = runtime failure(s) found, 2 = could not run (no log / bad args).
@@ -66,6 +66,7 @@ ARMED_MARK = "Living Weapons is armed"                 # LaunchGuard.ArmedEdge (
 STANDDOWN_MARK = "standing down to protect your save"  # LaunchGuard.StandDown (ERROR [startup])
 DRILL_MARK = "drill: LW_FORCE_"                        # the dev drill's tag inside a stand-down diag (LaunchGuard.Doors.cs)
 PARTS_MARK = "Parts report:"                           # PartsReport.PartsMark (PartsBoard, INFO [startup])
+ALL_ARMED_MARK = "all parts armed"                     # PartsBoard.AllArmedLine, logged once instead of the list when every part is on
 STARTUP_MARK = "is starting inside"                    # Mod.cs launch header (INFO [startup])
 
 # Findings carry a machine code (for the selftest / recipes) plus a human line.
@@ -109,9 +110,12 @@ def is_drill(line):
 
 
 def parts_text(line):
-    """The report from the mark onward, or None when this line is not a parts report."""
+    """The parts state from its mark onward (the report list, or the single all armed line), else None."""
     i = line.find(PARTS_MARK)
-    return line[i:].strip() if i >= 0 else None
+    if i >= 0:
+        return line[i:].strip()
+    j = line.find(ALL_ARMED_MARK)
+    return line[line.rfind("Living Weapons:", 0, j):].strip() if j >= 0 and "Living Weapons:" in line[:j] else None
 
 
 def is_battle(line):
@@ -397,7 +401,7 @@ def _hdr(dev=True):
 
 _ARMED = "[Living Weapons] [19:10:05.100] [INFO] [startup] Every memory landmark matches; Living Weapons is armed (writes were held until now)."
 _STAMP_UNKNOWN = "[Living Weapons] [19:10:00.100] [INFO] [startup] Game build stamp: TimeDateStamp 0x11111111, SizeOfImage 0x22222222; not a build this mod knows (it was made for TimeDateStamp 0x6A5E4A1B, SizeOfImage 0x03F9E000). Its own checks decide what runs; see the armed or warning line that follows once a save loads."
-_UNKNOWN_BUILD_WARN = "[Living Weapons] [19:10:05.101] [WARN] [startup] This game build is new to the mod, its own checks passed, running normally. (TimeDateStamp 0x11111111, SizeOfImage 0x22222222; the mod was made for 0x6A5E4A1B / 0x03F9E000.) If kill counts stop moving or anything looks off, check the Living Weapons mod page for a newer version."
+_UNKNOWN_BUILD_WARN = "[Living Weapons] [19:10:05.101] [WARN] [startup] This game build is new to the mod, its own checks passed, running normally. If kill counts stop moving or anything looks off, check the Living Weapons mod page for a newer version. (detail: TimeDateStamp 0x11111111, SizeOfImage 0x22222222; the mod was made for 0x6A5E4A1B / 0x03F9E000)"
 _BATTLE = [
     "[Living Weapons] [19:11:00.000] [INFO] [battle-start] Battle started.",
     "[Living Weapons] [19:11:00.050] [DEBUG] [trace] battle-start sentinels (slot0=10 slot9=0 mode=3)",
@@ -405,11 +409,12 @@ _BATTLE = [
     "[Living Weapons] [19:12:00.000] [INFO] [battle-end] Battle ended: 1 kills credited (Windrunner 1), 0 Marks earned, 0 tiers reached; 23 turns; the kill tally and legends are saved.",
 ]
 _ERROR = "[Living Weapons] [19:11:15.000] [ERROR] [engine] One engine update was skipped; an internal error occurred: NullReferenceException at ..."
-_STANDDOWN = "[Living Weapons] [19:10:05.100] [ERROR] [startup] The game build does not match this mod's memory landmarks (ramza-roster-row (observed nameId=5 sprite=0x02 brave=70 faith=65 (expected nameId=1, sprite<0x80, brave<=100, faith<=100))); the parts that need it are standing down to protect your save; see the Parts report line for what still runs. The mod likely needs an update for a new game patch."
-_STANDDOWN_DRILL = "[Living Weapons] [19:10:05.100] [ERROR] [startup] The game build does not match this mod's memory landmarks (ramza-roster-row (drill: LW_FORCE_ROSTER_MISMATCH)); the parts that need it are standing down to protect your save; see the Parts report line for what still runs. The mod likely needs an update for a new game patch. This stand down was forced by the LW_FORCE_ROSTER_MISMATCH drill flag (dev builds only)."
+_STANDDOWN = "[Living Weapons] [19:10:05.100] [ERROR] [startup] The party data is not where this mod expects it, so the parts that need it are standing down to protect your save; see the Parts report line for what still runs. This usually means the game just updated, or another mod changed the same data. What to do: check the Living Weapons mod page for a newer version; if you installed another mod recently, try a run without it; still stuck, email ptyrawl@gmail.com and attach livingweapon.log. (detail: ramza-roster-row (observed nameId=5 sprite=0x02 brave=70 faith=65 (expected nameId=1, sprite<0x80, brave<=100, faith<=100)))"
+_STANDDOWN_DRILL = "[Living Weapons] [19:10:05.100] [ERROR] [startup] The party data is not where this mod expects it, so the parts that need it are standing down to protect your save; see the Parts report line for what still runs. This usually means the game just updated, or another mod changed the same data. What to do: check the Living Weapons mod page for a newer version; if you installed another mod recently, try a run without it; still stuck, email ptyrawl@gmail.com and attach livingweapon.log. This stand down was forced by the LW_FORCE_ROSTER_MISMATCH drill flag (dev builds only). (detail: ramza-roster-row (drill: LW_FORCE_ROSTER_MISMATCH))"
 _PARTS_ON = "[Living Weapons] [19:10:05.200] [INFO] [startup] Parts report: battle sensing ON; kill counting ON; stat growth ON; card paint ON; weapon powers in battle (Maim, Plague and the rest) ON; weapon commands ON; banners ON (connected; nothing to announce while kill counting is off); extended inventory ON; twin weapons ON; bulwark ON; weapon colors ON; gun growth ON; poach den ON; provoke ON"
+_ALL_ARMED = "[Living Weapons] [19:10:05.400] [INFO] [startup] Living Weapons: all parts armed."
 _PARTS_DRILL = "[Living Weapons] [19:10:05.300] [INFO] [startup] Parts report: battle sensing ON; kill counting OFF (the party data is not where this mod expects it, forced by the LW_FORCE_ROSTER_MISMATCH drill); stat growth OFF (the party data is not where this mod expects it, forced by the LW_FORCE_ROSTER_MISMATCH drill); banners ON; extended inventory ON"
-_BAND_DRILL_WARN = "[Living Weapons] [19:12:00.000] [WARN] [startup] The live battle unit data does not read the way this mod expects (band-region (drill: LW_FORCE_BAND_MISMATCH)). Kill counting, stat growth and the band signatures are switched off for this session so nothing is written to the wrong place; the other parts keep working. This stand down was forced by the LW_FORCE_BAND_MISMATCH drill flag (dev builds only)."
+_BAND_DRILL_WARN = "[Living Weapons] [19:12:00.000] [WARN] [startup] Kill counting, stat growth and the weapon powers in battle are paused for this session because the live battle unit data is not where this mod expects it; nothing is written to the wrong place, and the other parts keep working. This usually means the game just updated, or another mod changed the same data. What to do: check the Living Weapons mod page for a newer version; if you installed another mod recently, try a run without it; still stuck, email ptyrawl@gmail.com and attach livingweapon.log. This stand down was forced by the LW_FORCE_BAND_MISMATCH drill flag (dev builds only). (detail: band-region (drill: LW_FORCE_BAND_MISMATCH))"
 _WARN = "[Living Weapons] [19:10:00.025] [WARN] [save] No kill tally on disk; starting fresh (kills.json will be created on the first save)."
 _LEGACY_ERR = "19:11:15.000 [FFTLivingWeapons] ERROR: legacy failure from a prev.log-era archive"
 _EXC_CONT = "[Living Weapons] [19:11:15.001] [ERROR]   InvalidOperationException: the set corrupted its state"
@@ -555,12 +560,24 @@ def selftest():
     check("parts: nothing printed when the log has none", r.parts == "" and not any("last parts report" in l for l in plines))
     check("parts: an INFO parts line is never an error", scan_lines(_hdr() + [_PARTS_ON, _ARMED] + _BATTLE).errors_seen == 0)
 
+    # 18b. LW-406: the single all armed line replaces the parts list once every part is on. It is never an error,
+    # and it counts as the latest parts state, so a closure that follows it wins and one that precedes it loses.
+    r = scan_lines(_hdr() + [_PARTS_DRILL, _ARMED, _ALL_ARMED] + _BATTLE)
+    check("all armed: an INFO all armed line is never an error", r.errors_seen == 0 and _codes(r) == [])
+    check("all armed: the all armed line is kept as the last parts state", r.parts == "Living Weapons: all parts armed.")
+    plines, _ = report_lines(r, "x.log", None, ())
+    check("all armed: printed in the summary", any("last parts report: Living Weapons: all parts armed." in l for l in plines))
+    r = scan_lines(_hdr() + [_ALL_ARMED, _PARTS_DRILL] + _BATTLE)
+    check("all armed: a later parts report replaces it", r.parts.startswith("Parts report: battle sensing ON; kill counting OFF"))
+    check("all armed: the mark is not the armed mark", not is_armed(_ALL_ARMED) and parts_text(_ALL_ARMED) is not None)
+
     # 19. LW-398: a band door WARN under the drill carries the drill tag but not the stand-down phrase, so it is
     # a plain WARN and never a stand-down or a drill stand-down finding.
     r = scan_lines(_hdr() + [_ARMED, _BAND_DRILL_WARN] + _BATTLE)
     check("band drill warn: no finding at all", _codes(r) == [] and exit_code(r) == 0)
     check("band drill warn: counted as a plain warn, not a stand-down", r.warns_seen == 1 and not r.stood_down)
     check("band drill warn: the drill tag is seen, the stand-down phrase is not", is_drill(_BAND_DRILL_WARN) and not is_standdown(_BAND_DRILL_WARN))
+    check("band drill warn: the fixture tail is the live drill shape", _BAND_DRILL_WARN.endswith("(detail: band-region (drill: LW_FORCE_BAND_MISMATCH))"))
 
     passed = sum(1 for _, ok in cases if ok)
     for name, ok in cases:

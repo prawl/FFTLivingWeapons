@@ -83,7 +83,11 @@ The gameplay is language-neutral by construction: the item tables carry no text,
   the mod runs normally if its own checks pass. If it cannot read the game at all it says so after
   about a minute and keeps trying. Your save is never touched in any of these cases. If another mod
   has rewritten the job command data (custom job mods do), only the three weapon granted commands
-  switch off, Barrage, Shadow Blade and Provoke, with a calmer box saying so.
+  pause, Barrage, Shadow Blade and Provoke, and the same box lists them under "Paused this session".
+  Every such message uses the same wording, says the game update or another mod may be the cause, and
+  ends with the same what to do line. Every box ends with the mod version and the game build, so a
+  screenshot of it is a usable bug report, and when every part is running the log says so once with
+  "Living Weapons: all parts armed."
 - **For bug reports, send the log.** It is `livingweapon.log` in the mod's folder under `Reloaded/Mods`;
   each launch rotates the previous one to `livingweapon.prev.log`, so grab it right after the session
   where things went wrong. [`docs/LOGGING.md`](docs/LOGGING.md) explains what is in it.

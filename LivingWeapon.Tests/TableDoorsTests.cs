@@ -19,10 +19,11 @@ public class TableDoorsTests
         public readonly List<string> Flushes = new();
         public bool RosterOpen = true;
         public string Hedge = "";
+        public string Detail = "";
         public TableDoors Doors = null!;
 
         public void Build(bool drill = false)
-            => Doors = new TableDoors(Mem, () => Hedge, () => RosterOpen,
+            => Doors = new TableDoors(Mem, () => Hedge, () => Detail, () => RosterOpen,
                 (t, x) => Flight.Add((t, x)), f => Flushes.Add(f), drill);
 
         public void Step(int n = 1) { for (int i = 0; i < n; i++) Doors.Step(); }
@@ -186,7 +187,11 @@ public class TableDoorsTests
         string warn = Assert.Single(cap.File, l => l.Contains("[WARN]"));
         Assert.Contains("expected", warn);
         Assert.Contains("observed", warn);
-        Assert.EndsWith(LaunchGuard.UnknownBuildHedge, warn);
+        int hedge = warn.IndexOf(PartsCopy.Hedge, StringComparison.Ordinal);
+        int build = warn.IndexOf(LaunchGuard.UnknownBuildHedge, StringComparison.Ordinal);
+        int what = warn.IndexOf(PartsCopy.WhatToDo, StringComparison.Ordinal);
+        int detail = warn.IndexOf("(detail:", StringComparison.Ordinal);
+        Assert.True(hedge >= 0 && hedge < build && build < what && what < detail);
         Assert.DoesNotContain("standing down to protect your save", warn);
         Assert.Contains(rig.Flight, f => f.type == "guard" && f.text.StartsWith("table door stand-down"));
         Assert.Contains("standdown", rig.Flushes);

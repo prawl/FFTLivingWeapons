@@ -3,7 +3,7 @@
 The flight recorder (LivingWeapon/Logging/FlightRecorder.cs) flushes an always-on bounded ring of
 on-change events to <modDir>/flight/flight_<yyyyMMdd_HHmmss>_<trigger>.jsonl on the battle-exit
 edge or the first ModLogger.LogError of a launch (see docs/LOGGING.md, "Flight recorder"). Each
-file is JSONL: a header line ({"hdr": true, "wall": "...", "t": <elapsedMs>}) followed by one
+file is JSONL: a header line ({"hdr": true, "wall": "...", "t": <elapsedMs>, "version": "...", "build": "..."}) followed by one
 compact JSON object per record ({"t": <elapsedMs>, "e": "<type>", "d": "<payload>"}).
 
 This prints each record as "+N.NNNs [type] payload", relative to the header's elapsedMs anchor.
@@ -45,7 +45,8 @@ def load_records(path):
 
 def print_timeline(header, records, grep=None):
     t0 = header.get("t", 0)
-    print(f"header: wall={header.get('wall', '?')} elapsedMs={t0}")
+    extra = f" version={header['version']} build={header.get('build', '?')}" if "version" in header else ""
+    print(f"header: wall={header.get('wall', '?')} elapsedMs={t0}{extra}")
     if grep:
         print(f"(filtering to type == {grep!r})")
     shown = 0

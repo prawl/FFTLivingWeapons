@@ -10,10 +10,10 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed partial class LaunchGuard
 {
-    /// <summary>Appended to the kit-lane and sensing stand-down copy only when the build is unknown:
-    /// on a new build the cause may be the game update itself, not another installed mod.</summary>
+    /// <summary>Appended to every stand-down line only when the build is unknown:
+    /// on a new build the game update itself is the likely cause.</summary>
     internal const string UnknownBuildHedge =
-        " This game build is new to the mod, so the cause may be the game update itself rather than another installed mod.";
+        " This game build is new to the mod, so the game update itself is the likely cause.";
     /// <summary>Appended to the armed-edge warning when the LW_FORCE_FINGERPRINT_MISMATCH drill forced the unknown stamp.</summary>
     internal const string DrillStampSentence =
         " This warning was forced by the LW_FORCE_FINGERPRINT_MISMATCH drill flag (dev builds only).";
@@ -33,6 +33,12 @@ internal sealed partial class LaunchGuard
     /// build this mod was made for.</summary>
     internal bool? BuildStampKnown => _stampRead ? _stampKnown : null;
 
+    /// <summary>The last line of every box, or empty when the mod version was not handed in.</summary>
+    internal string Footer => _version == null ? "" : PartsReport.Footer(_version, BuildFooterStamp);
+
+    /// <summary>The build for a box footer and the flight header.</summary>
+    internal string BuildFooterStamp => _stampRead ? $"0x{_stampTds:X8}" : "unknown";
+
     internal static string StampText(uint tds, uint soi) => $"TimeDateStamp 0x{tds:X8}, SizeOfImage 0x{soi:X8}";
 
     private static string MadeForText() => StampText(ExpectedTimeDateStamp, ExpectedSizeOfImage);
@@ -46,8 +52,8 @@ internal sealed partial class LaunchGuard
 
     internal static string UnknownBuildWarn(uint tds, uint soi) =>
         "This game build is new to the mod, its own checks passed, running normally. "
-        + $"({StampText(tds, soi)}; the mod was made for 0x{ExpectedTimeDateStamp:X8} / 0x{ExpectedSizeOfImage:X8}.) "
-        + "If kill counts stop moving or anything looks off, check the Living Weapons mod page for a newer version.";
+        + "If kill counts stop moving or anything looks off, check the Living Weapons mod page for a newer version."
+        + PartsCopy.Detail($"{StampText(tds, soi)}; the mod was made for 0x{ExpectedTimeDateStamp:X8} / 0x{ExpectedSizeOfImage:X8}");
 
     private string HedgeIfUnknownBuild() => _stampRead && !_stampKnown ? UnknownBuildHedge : "";
 
@@ -69,6 +75,7 @@ internal sealed partial class LaunchGuard
         _stampSoi = soi;
         _stampKnown = tds == _expectedStampTds && soi == ExpectedSizeOfImage;
         _stampRead = true;
+        Flight.SetBuildInfo(build: BuildFooterStamp);
         if (_stampKnown)
         {
             ModLogger.Event(LogVerb.Startup, KnownStampLine(tds, soi));

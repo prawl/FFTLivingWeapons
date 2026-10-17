@@ -30,9 +30,9 @@ internal sealed partial class FlightRecorder
 
     private static string SafeTrigger(string trigger) => string.IsNullOrEmpty(trigger) ? "flush" : trigger;
 
-    /// <summary>JSONL body. A header line (wall-clock + elapsedMs at flush time), then one compact
+    /// <summary>JSONL body. A header line (wall-clock, elapsedMs, mod version and game build at flush time), then one compact
     /// JSON object per record ({t, e, d}). Newtonsoft.Json only, so hostile payloads round-trip.</summary>
-    private static string Serialize(FlightRecord[] records, DateTime wall, long flushElapsed)
+    private static string Serialize(FlightRecord[] records, DateTime wall, long flushElapsed, string version, string build)
     {
         var sb = new StringBuilder();
         sb.Append(JsonConvert.SerializeObject(new Dictionary<string, object>
@@ -40,6 +40,8 @@ internal sealed partial class FlightRecorder
             ["hdr"] = true,
             ["wall"] = wall.ToString("yyyy-MM-dd HH:mm:ss.fff"),
             ["t"] = flushElapsed,
+            ["version"] = version,
+            ["build"] = build,
         })).Append('\n');
         foreach (var r in records)
         {
