@@ -251,7 +251,7 @@ internal sealed class BodyDoubleSpike
     [DllImport("user32.dll")] private static extern nint GetForegroundWindow();
     [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(nint hWnd, out uint pid);
     [DllImport("kernel32.dll")] private static extern uint GetCurrentProcessId();
-    private const int VkF5 = 0x74;   // reveal + hold toggle. F6 is ProvokeSpike's; ShowSpike also claims F5/F8 but is not wired in Engine (LW-67 deleted the old F6 spikes).
+    private const int VkF5 = 0x74;   // reveal + hold toggle. F6 is ProvokeSpike's; ShowSpike also claims F5/F8 but is not wired in Engine (the old F6 spikes are deleted).
     private const int VkShift = 0x10; // Shift+F5 = staged enroll. ShowSpike.cs's key doc records F3/F7/F9 as eaten by the LL hook and F8 as stopped-registering on this box, so F5 with a Shift gate avoids untested keys.
     private const int VkCtrl = 0x11;  // Ctrl+F5 = clean despawn; same scarce-key reasoning as Shift.
 

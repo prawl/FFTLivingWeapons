@@ -24,7 +24,7 @@ internal sealed partial class Plague
     public const int MaxHpGrowthPerLatch = Band.MaxLevelDrift * 25;
 
     /// <summary>True when the fingerprint still matches the held victim after a mid-battle level-up
-    /// (LW-92, 2026-07-14. Level 95 to 96, maxHp 449 to 453). Brave and faith match exactly; level
+    /// (2026-07-14. Level 95 to 96, maxHp 449 to 453). Brave and faith match exactly; level
     /// is bounded by Band.MaxLevelDrift and maxHp by MaxHpGrowthPerLatch, both up-only.</summary>
     public static bool SameVictim((int mhp, int lvl, int br, int fa) captured, (int mhp, int lvl, int br, int fa) current)
         => current.br == captured.br && current.fa == captured.fa
@@ -44,7 +44,7 @@ internal sealed partial class Plague
     }
 
     /// <summary>True when mhp looks like a real combat unit. Used by EnemyFingerprints only; the
-    /// band loop in Plague.cs:96 keeps its own inline copy of the bound (LW-149 left this seam
+    /// band loop in Plague.cs:96 keeps its own inline copy of the bound (the dedup pass left this seam
     /// alone). Whether mhp 2000 is valid is an open row in docs/LIVE_LEDGER.md
     /// (Band.EnemyFingerprints accepts it, this rejects it), so do not align them yet.</summary>
     public static bool IsValidEnemyMhp(int mhp) => mhp >= 1 && mhp <= 1999;
@@ -54,7 +54,7 @@ internal sealed partial class Plague
     public static void DriveOne(IGameMemory mem, long addr, (int mhp, int lvl, int br, int fa) fp,
                                 PlagueState state, bool inLive = true)
     {
-        // LW-153 same-unit check. LW-92 drift is handled earlier by the caller's VerifyOrReanchor.
+        // Same-unit check. Level drift is handled earlier by the caller's VerifyOrReanchor.
         if (!Band.SameUnitAtExact(mem, addr, fp)) return;
 
         if (!inLive) return;   // A3. No writes during debounce tail / post-battle

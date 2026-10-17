@@ -28,7 +28,7 @@ internal readonly record struct AttackRecord(uint NameOff, uint DescOff, uint Po
 }
 
 /// <summary>
-/// LW-31 stage 3, pure half (docs/TODO.md, 2026-07-06). The Attack row and hover title share one string driven by a
+/// The Attack row pure half (2026-07-06). The Attack row and hover title share one string driven by a
 /// JobCommand text-catalog record at <c>LabelAddr, RecordGap</c> (enc==1 census hit, AttackCard.Census.cs): nine u32
 /// <c>{nameOff, descOff, poolHeadOff, id, poolHead8Off, 0, 0, 0, ordinal}</c>, vanilla <c>{0x1FC1, 0x1FC8, 0x1FC0, 1, 0x1FC8}</c>.
 /// Vanilla nameOff equals <see cref="AttackRow.RecordGap"/> and points at the "Attack" label, which stays untouched as the race-guard anchor.

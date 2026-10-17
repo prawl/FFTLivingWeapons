@@ -1,19 +1,19 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-83 seam. The expected-value constants and the roster-row probe of <see cref="LaunchGuard"/>, split out of
+/// The expected-value constants and the roster-row probe of <see cref="LaunchGuard"/>, split out of
 /// LaunchGuard.cs so that file keeps the lifecycle code. Same partial class.
-/// For LW-392 the roster probe's Unreadable verdict carries a Detail (slot empty vs page unreadable) that
+/// The roster probe's Unreadable verdict carries a Detail (slot empty vs page unreadable) that
 /// LaunchGuard.Stall.cs uses to word the long-wait message.
-/// For LW-112 the JobCommand rec8/rec9 constants stay here although the kit-lane guard (LaunchGuard.KitLane.cs)
+/// The JobCommand rec8/rec9 constants stay here although the kit-lane guard (LaunchGuard.KitLane.cs)
 /// reads them, since AnchorScout reuses the two signature arrays as its re-find spec.
 /// </summary>
 internal sealed partial class LaunchGuard
 {
     // PE build key of the Denuvo-free 1.5.2 exe (Steam buildid 24304444, stamped 2026-07-20 16:17:31 UTC,
     // SHA256 937233F7..., installed 2026-10-15), read from the on-disk PE per docs/PATCH_REANCHOR.md
-    // (docs/research/PORT_1.5.2_NODRM_OFFSETS.md). A report line since LW-397. This build has ASLR (DllCharacteristics
-    // 0x8160), so the header is read at ImageBase.Base (LW-387, ported by LW-388). Earlier builds (stamp / size):
+    // (docs/research/PORT_1.5.2_NODRM_OFFSETS.md). A report line, never a switch. This build has ASLR (DllCharacteristics
+    // 0x8160), so the header is read at ImageBase.Base. Earlier builds (stamp / size):
     // Denuvo 1.5.2 0x6A5EA53C / 0x18D78000 (buildid 24304240, docs/research/PORT_1.5.2_OFFSETS.md), 1.5.1 0x6A3C5497 /
     // 0x1878E000 (docs/research/PORT_1.5.1_OFFSETS.md), 1.5 0x6A0F86A9 / 0x190EB000 (docs/research/PORT_1.5_OFFSETS.md:11-15),
     // pre-1.5 0x690C1269 / 0x156C8000. Both fields differ on every pair. PE FileVersion reads 1.0.0.0 on every build
@@ -47,7 +47,7 @@ internal sealed partial class LaunchGuard
         long rb = Offsets.RosterBase;
         int level = _mem.U8(rb + Offsets.RLevel);
         if (level < 1 || level > 99)   // unpopulated slot (title screen) or an unreadable page
-            // LW-392 a mapped zero byte is the ordinary title screen (slot empty); only an unreadable page is "page unreadable" (LaunchGuard.Stall.cs).
+            // A mapped zero byte is the ordinary title screen (slot empty); only an unreadable page is "page unreadable" (LaunchGuard.Stall.cs).
             return new LandmarkReading(LandmarkVerdict.Unreadable,
                 _mem.TryReadBytes(rb + Offsets.RLevel, 1, out _) ? RosterSlotEmpty : RosterPageUnreadable);
 

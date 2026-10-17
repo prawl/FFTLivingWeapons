@@ -3,7 +3,7 @@ namespace LivingWeapon;
 /// <summary>
 /// Commit 1B. When MaybePoolPaint's full-region ScanPoolRegion pass should run, split out of
 /// Display.PoolPaint.cs. The pass used to run on every Tick that reached the fall-through while
-/// coverage stayed unlatched, 130 to 480ms per pass on a live tape. LW-262's cache partition
+/// coverage stayed unlatched, 130 to 480ms per pass on a live tape. The cache partition
 /// should make that state rare; this bounds it anyway.
 /// </summary>
 internal sealed partial class Display

@@ -90,7 +90,7 @@ internal sealed partial class Display
     }
 
     /// <summary>AnnounceCoverage's flight tap (Display.PoolPaint.cs): one line per coverage latch,
-    /// spending <see cref="CoverageRecordBudget"/>. LW-262 added `suffix=` (CardSites.SuffixCount)
+    /// spending <see cref="CoverageRecordBudget"/>. Carries `suffix=` (CardSites.SuffixCount)
     /// next to `kills=`. <paramref name="snapshot"/> is the caller's CardSites.Snapshot() copy,
     /// passed in to avoid a second one.</summary>
     private void RecordCoverageIfTapped(IReadOnlyList<(long baseAddr, long size)> regions, int killsSites, string trigger, List<CardSites.Site> snapshot)
@@ -108,7 +108,7 @@ internal sealed partial class Display
     }
 
     /// <summary>tap for CardSites' cap-relief prune (_onPruneEvict in CardSites.Admission.cs,
-    /// wired in Display.cs). Spends the shared <see cref="_flightBudget"/>; since LW-259 its
+    /// wired in Display.cs). Spends the shared <see cref="_flightBudget"/>; its
     /// neighbors are EmitVerdict tiers 2 and 3, not tier 1. One prune can evict 1000+ dead kills
     /// sites in a burst and exhaust the 64 records, starving tier 2/3 lines for the window. That is
     /// accepted. Kills prunes should be rare (2026-08-18 tape peaked at 726-728 of 2048) and suffix

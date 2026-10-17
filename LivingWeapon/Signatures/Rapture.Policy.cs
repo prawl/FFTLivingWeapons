@@ -46,7 +46,7 @@ internal sealed partial class Rapture
         return f;
     }
 
-    /// <summary>Guarded write of a movement field image in one WriteBytes call (LW-145 fix 2. A per-byte
+    /// <summary>Guarded write of a movement field image in one WriteBytes call (a per-byte
     /// loop left a torn-value window). Used for both hold and restore; no-op on failure.</summary>
     public static void WriteField(IGameMemory mem, long entryAddr, byte[] field)
     {

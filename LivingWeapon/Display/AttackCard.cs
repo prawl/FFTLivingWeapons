@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-31 stage 3 painter (docs/TODO.md). In battle the Abilities menu's Attack row renames to the
+/// The Attack-menu painter. In battle the Abilities menu's Attack row renames to the
 /// acting unit's living weapon ("Fists" if unarmed), and the hover-card desc beside it carries the
 /// tier-progress meter (AttackCardTail.cs, 2026-07-06). Locate machinery follows AttackCardSpike
 /// (budgeted ScanCursor walk, high addresses first). This file holds construction and lifecycle,
@@ -26,19 +26,19 @@ namespace LivingWeapon;
 /// re-censused later. The cache is tiny (about six copies), so a full re-census is cheap. enc==2
 /// (UTF16) catalogs never take a composed write, only vanilla restore (none seen in the census).
 ///
-/// Turn owner is cursor-only (2026-07-06, LW-31; re-anchored 2026-07-21, LW-87).
+/// Turn owner is cursor-only (2026-07-06; re-anchored 2026-07-21).
 /// AttackCard.Resolve.cs's ComposeCurrentPlan uses ActorResolver.TryResolveCursorPlayer alone, which
-/// LW-87 moved from the condensed turn-queue struct (Offsets.TurnQueue, used through 2026-07-14) to
-/// the PSX turn-flags owner (Band.FlagOwner, as LW-63's kill-credit lane) plus the roster bridge.
+/// the re-anchor moved from the condensed turn-queue struct (Offsets.TurnQueue, used through 2026-07-14) to
+/// the PSX turn-flags owner (Band.FlagOwner, the kill-credit lane) plus the roster bridge.
 /// The struct follows the cursor, not the turn, and a T-status detour blanked the row mid-turn
 /// (docs/LIVE_LEDGER.md, 2026-07-21 hover-follower row). See ActorResolver.Cursor.cs. The old
 /// ActorRegister.LastPlayer* fallback is gone. On 2026-07-06 it put another unit's weapon (a Spark
 /// Rod) on Ramza's row when two units shared a (level,hp,maxHp) fingerprint, so no cursor answer
-/// now restores vanilla. Shared-fingerprint twins are backlog LW-39 (LW-87's nameId bridge helps
+/// now restores vanilla. Shared-fingerprint twins are backlog (the nameId bridge helps
 /// partly). The row/tail decision (AttackRow.Policy.ComposeRow) reads the raw main hand
 /// (Offsets.RRHand) and sprite byte, since the filtered Hands() set cannot tell unarmed from an
-/// untracked weapon. Only the main hand is shown. LW-55 adds a narrowing gate on the cursor answer
-/// (CursorGate.Decide, CursorGate.cs) and LW-87 a per-battle resolve-miss tap
+/// untracked weapon. Only the main hand is shown. A narrowing gate sits on the cursor answer
+/// (CursorGate.Decide, CursorGate.cs) and a per-battle resolve-miss tap
 /// (<see cref="CursorMiss"/>) naming which stage refused.
 /// </summary>
 internal sealed partial class AttackCard
@@ -125,7 +125,7 @@ internal sealed partial class AttackCard
     }
 
     /// <summary>Battle-enter and battle-exit edge. Restores vanilla to cached copies best-effort and
-    /// resets compose state. LW-38 keeps the copy cache warm so the next battle needs no fresh census;
+    /// resets compose state. The copy cache stays warm so the next battle needs no fresh census;
     /// the next RepaintAll SyncHit pass re-verifies each copy and evicts stale ones. A census is
     /// re-armed when the cache is empty, when a sweep was aborted before Finish, or when one
     /// was already pending.</summary>
@@ -146,7 +146,7 @@ internal sealed partial class AttackCard
     /// <summary>Test accessor. Number of cached table copies.</summary>
     internal int HitCountForTests => _hits.Count;
 
-    /// <summary>Test accessor. Cached hits mid strike-episode (LW-91, last SyncHit failed, not yet evicted).</summary>
+    /// <summary>Test accessor. Cached hits mid strike-episode (last SyncHit failed, not yet evicted).</summary>
     internal int StrikingCountForTests
     {
         get

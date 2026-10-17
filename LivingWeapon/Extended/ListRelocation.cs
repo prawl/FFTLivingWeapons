@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-368 round 2. Lifts the extended inventory past eleven items. The game keeps owned counts as one
+/// Lifts the extended inventory past eleven items. The game keeps owned counts as one
 /// byte per item in a block that ends where Ramza's roster row begins, plus a second per-item byte list
 /// beside it, so a new id past that edge reads and writes Ramza's save data. This copies both lists onto
 /// a page the mod owns and re-points the 55 code fields that name the old blocks (table in

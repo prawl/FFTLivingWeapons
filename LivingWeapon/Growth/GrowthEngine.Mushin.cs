@@ -12,20 +12,20 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed partial class GrowthEngine
 {
-    // PA addr -> (captured natural, last value we wrote as the ownership token, LW-90 baked restart residue also recognized).
+    // PA addr -> (captured natural, last value we wrote as the ownership token, baked restart residue also recognized).
     private readonly Dictionary<long, (int natural, int lastTarget, int baked)> _mushin = new();
 
     /// <summary>True when this weapon's signature is Mushin; it owns the PA lane at every tier (Route declines it).</summary>
     internal static bool OwnsMushin(WeaponMeta m) => m.Signature is { Mushin: true };
 
     /// <summary>Holds the wielder's PA at MushinPolicy.PaHeld(natural, tier, effectiveStacks). Main hand only; guarded, fail-safe no-op.
-    /// rosterNameId feeds the LW-90 NaturalLedger. Internal for the LW-90 seam tests.</summary>
+    /// rosterNameId feeds the NaturalLedger. Internal for the ledger seam tests.</summary>
     internal void HoldMushin(long s, WeaponMeta m, int tier, int level, int brave, int faith, int rosterNameId = 0)
     {
         if (!OwnsMushin(m)) return;
         long addr = s + Offsets.CPa;
 
-        // LW-149 stage A, shared with HoldUltima/HoldAfterimage via OwnershipHold.
+        // Shared with HoldUltima/HoldAfterimage via OwnershipHold.
         bool hadRecord = _mushin.TryGetValue(addr, out var rec0);
         var step = OwnershipHold.Step(_mem, _ledger, addr, StatLane.Pa, rosterNameId, level,
                                       hadRecord, rec0.lastTarget, rec0.natural, rec0.baked);
@@ -38,7 +38,7 @@ internal sealed partial class GrowthEngine
             ModLogger.Debug(LogVerb.Growth, $"mushin: restart residue corrected at capture (read {step.Baked}, natural {step.Natural})");
 
         var fp = (level, brave, faith);
-        // LW-252 stage 5. Probe is read-only and resolves like Mushin.cs's writer; null (no stacks yet, or an ambiguous nameId-0 twin) reads as 0.
+        // Probe is read-only and resolves like Mushin.cs's writer; null (no stacks yet, or an ambiguous nameId-0 twin) reads as 0.
         int stacks = _mushinArmed.Probe(rosterNameId, fp)?.Value ?? 0;
         int effectiveStacks = MushinPolicy.EffectiveStacks(stacks, tier, m.Signature!.AtTier);
         int target = Clamp(MushinPolicy.PaHeld(rec.natural, tier, Tuning.Factor, effectiveStacks, Tuning.MushinBonus));

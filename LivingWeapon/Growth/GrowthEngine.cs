@@ -14,7 +14,7 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed partial class GrowthEngine
 {
-    // StatMin/StatSaneHi are internal (LW-149 stage A) so OwnershipHold.cs shares the bounds.
+    // StatMin/StatSaneHi are internal so OwnershipHold.cs shares the bounds.
     internal const int StatMin = 1, StatSaneHi = 99;
     private const int StatMax = 255, SigStatHi = 199;
     internal const int StructSpan = 0x41;   // bytes we touch per combat struct (0x20..0x40); internal so tests cite the real gate span instead of a drift-prone mirror
@@ -36,7 +36,7 @@ internal sealed partial class GrowthEngine
     private readonly HashSet<int> _fallbackLogged = new();            // slots whose tier-2 fallback was already logged this battle
     private bool _logged;
     // Kiku-ichimonji's Mushin stack count, shared with Mushin.cs (Engine.cs passes one
-    // WielderKeyedStore to both). LW-252 stage 5. Keyed by nameId, fp fallback, which closes the
+    // WielderKeyedStore to both). Keyed by nameId, fp fallback, which closes the
     // fp-twin collision. Defaults to an empty store so older call sites compile unchanged.
     private readonly WielderKeyedStore<Box<int>> _mushinArmed;
 
@@ -145,8 +145,8 @@ internal sealed partial class GrowthEngine
     /// <summary>Hold the stat at target across the per-battle reset. Re-application keys off the
     /// captured record, so a grown stat &gt;99 still bumps on a tier cross, and an unexpected value
     /// (buff/debuff) is left alone. first-sight capture consults the NaturalLedger, and
-    /// RecordWrite runs per evaluation so chained restarts match. Internal for the LW-90 seam tests.
-    /// LW-149 stage A. Not converted to the OwnershipHold core (OwnershipHold.cs)
+    /// RecordWrite runs per evaluation so chained restarts match. Internal for the ledger seam tests.
+    /// Not converted to the OwnershipHold core (OwnershipHold.cs)
     /// because RecordWrite fires unconditionally; see GrowthEngineCadenceTests.cs.</summary>
     internal void Hold(long addr, double factor, StatLane lane, int nameId, int level)
     {

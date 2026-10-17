@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace LivingWeapon;
 
-/// <summary>LW-295 cycle B bake/runtime manifest (schemaVersion 1). One row per (weapon id,
+/// <summary>The icon-glow bake/runtime manifest (schemaVersion 1). One row per (weapon id,
 /// surface), for both the 48px "small" and 100px "card" icons. Field names match
 /// tools/bake_glow_icons.py's writer.</summary>
 internal sealed class IconGlowManifest
@@ -30,7 +30,7 @@ internal sealed class IconGlowEntry
 /// Mem/IGameMemory. Implementations return null/false on failure instead of throwing.
 /// Reads and writes the deployed loose tex (modDir/FFTIVC/&lt;baseRel&gt;), with a pristine snapshot
 /// in glow_icons/base_backup/ for tier 0 restores, since glow_icons/ ships only tier 1..3.
-/// Since LW-381 (2026-09-01) the loose-tex write is paired with a same-session modded.pac write
+/// Since 2026-09-01 the loose-tex write is paired with a same-session modded.pac write
 /// (ledger [live-icon-repaint]); see IconGlow.Apply.cs.</summary>
 internal interface IIconGlowStore
 {
@@ -56,7 +56,7 @@ internal interface IIconGlowStore
     /// tex is overwritten. False on failure, and the caller must then refuse the overwrite.</summary>
     bool WriteBaseBackup(IconGlowEntry entry, byte[] bytes);
 
-    /// <summary>LW-381 R2-2 (ledger [live-icon-repaint], 2026-09-01). Mirrors a batch of written texes into
+    /// <summary>Ledger [live-icon-repaint], 2026-09-01. Mirrors a batch of written texes into
     /// the running game's modded.pac in one pass; a per-icon pass over a 65 MB file is too slow when
     /// tools/glow_bounce.py re-tiers all 242 entries. One result per (Id, Surface). Never throws,
     /// and a non-Patched result is informational only.</summary>

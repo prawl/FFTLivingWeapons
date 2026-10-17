@@ -13,7 +13,7 @@ internal readonly struct TickContext
     public bool InLive { get; }
     /// <summary>A battle map is on screen (<see cref="BattleState.BattleDisplayed"/>); looser than InLive, it survives
     /// between-turn mode-0 lulls. Pre-gate modules gate their typed Tick on this, and their ISignature.Tick shim must
-    /// delegate here (LW-145 fix 4. The shim once wired InLive, a dormant trap since Engine calls the typed Tick).</summary>
+    /// delegate here (the shim once wired InLive, a dormant trap since Engine calls the typed Tick).</summary>
     public bool BattleDisplayed { get; }
 
     public TickContext(DateTime now, bool onField, bool inLive, bool battleDisplayed)

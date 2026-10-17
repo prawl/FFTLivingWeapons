@@ -2,7 +2,7 @@ namespace LivingWeapon;
 
 /// <summary>
 
-/// Reliquary repaint-through, split out of CardSites.cs in LW-257 commit 1 to get it back under
+/// Reliquary repaint-through, split out of CardSites.cs to get it back under
 
 /// the 200-line trigger. It is the EarnedAnchors story-line rotation (Reliquary decision 2),
 

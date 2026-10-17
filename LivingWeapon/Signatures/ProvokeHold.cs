@@ -4,11 +4,11 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-123 arc 2a (rebuilt for LW-127): reads the mark that Provoke.cs plants (composed +0x45/0x80 and
+/// Reads the mark that Provoke.cs plants (composed +0x45/0x80 and
 /// inflicted +0x1D3/0x80, blank status id 0) on the targeted enemy. While the mark is up and a tier-3
 /// main-hand Defender bearer is deployed and alive, every other player-side unit is hidden from the AI.
 /// Hide is the default; a reveal needs a player-side turn or TurnOrder.cs's CT+Speed lookahead showing
-/// the marked enemy is clearly further off (ProvokeHold.Policy.ActionFor, D1 revised in LW-127). Gates
+/// the marked enemy is clearly further off (ProvokeHold.Policy.ActionFor). Gates
 /// on the mark bit, not `meta[33].Signature`, so a real cast and the DEV planter (ProvokeSpike.cs,
 /// LWDEV) behave alike. Split. This file is the state machine, .Scan.cs the band walks, .Policy.cs the
 /// pure decisions and guarded bit writers. See docs/PROVOKE_AC.md.
@@ -37,7 +37,7 @@ internal sealed partial class ProvokeHold : ISignature
     /// Only then may a falling edge complete a turn, since the actor pointer at arm time is parked
     /// on the Provoke cast's target.</summary>
     private bool _sawFreshRise;
-    /// <summary>LW-127 round-4 (cast 3): once the marked enemy is next to act, or acting after a fresh
+    /// <summary>Once the marked enemy is next to act, or acting after a fresh
     /// rise (<see cref="_sawFreshRise"/>), stay hidden until its turn completes. CT is paid at turn
     /// start, so TryEta briefly reads the marked enemy as far off and would reveal the party inside
     /// the AI's commit window. Set this tick, applied from the next (see TickArmed); cleared when
@@ -73,7 +73,7 @@ internal sealed partial class ProvokeHold : ISignature
     /// same-process restarts.</summary>
     public void ResetBattle()
     {
-        // LW-133 ship switch. Disabled means no writes, including these edge reveals and scrubs.
+        // Ship switch. Disabled means no writes, including these edge reveals and scrubs.
         if (!_enabled) return;
         foreach (var id in _everFlagged)
         {
@@ -94,7 +94,7 @@ internal sealed partial class ProvokeHold : ISignature
 
     public void Tick(DateTime now, bool inLive)
     {
-        // LW-133 ship switch, checked before any scan or write. See Tuning.ProvokeEnabled for why the
+        // Ship switch, checked before any scan or write. See Tuning.ProvokeEnabled for why the
         // items.json disarm alone is not enough.
         if (!_enabled) return;
         if (!inLive) return;
@@ -109,7 +109,7 @@ internal sealed partial class ProvokeHold : ISignature
         if (_state == HoldState.Idle)
         {
             if (!FindMarkedEnemy(_mem, out long foundEntry, out var foundId)) { _unarmableTicks = 0; return; }
-            if (!bearerPresent || !bearerAlive) { ScrubUnarmableMark(foundEntry); return; }   // LW-136
+            if (!bearerPresent || !bearerAlive) { ScrubUnarmableMark(foundEntry); return; }
             _unarmableTicks = 0;
             Arm(foundId, foundEntry, now);
         }
@@ -153,14 +153,14 @@ internal sealed partial class ProvokeHold : ISignature
         _lastTick = now;
         bool watchdogElapsed = WatchdogElapsed(_liveElapsed, Tuning.ProvokeWatchdogSeconds);
 
-        // LW-131 (release gate) and LW-135 (hide/reveal) share one read per tick. Does a player-side
+        // The release gate and the hide/reveal share one read per tick. Does a player-side
         // seat own the per-unit turn flag (ProvokeHold.Scan.cs)? Needed every armed tick.
         bool playerTurn = PlayerSideOwnsTurn(_mem);
         bool markedActive = MarkedIsActor(_mem, _markedId) && !playerTurn;
         // A falling edge completes a turn only after a rise since arming; cleared on use so
         // each turn needs its own rise (ProvokeTurns > 1).
         if (!_wasMarkedActive && markedActive) _sawFreshRise = true;
-        // LW-127 round-4. The falling edge that completes a turn also clears the engagement latch.
+        // The falling edge that completes a turn also clears the engagement latch.
         if (TurnEnded(_wasMarkedActive, markedActive) && _sawFreshRise) { _markedTurns++; _sawFreshRise = false; _engaged = false; }
         _wasMarkedActive = markedActive;
 
@@ -256,7 +256,7 @@ internal sealed partial class ProvokeHold : ISignature
         _wasMarkedActive = false;
         _markedTurns = 0;
         _markedMissTicks = 0;
-        _engaged = false;   // LW-127 round-4. No stale latch into the next arm
+        _engaged = false;   // no stale latch into the next arm
     }
 
     /// <summary>Placeholder (R3, criterion 18) for hiding the invisible icon without the AI-ignore

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-193 refund reconcile, watch-only (an armed write-back was rejected in plan review, since a false
+/// Twin refund reconcile, watch-only (an armed write-back was rejected in plan review, since a false
 /// positive could destroy a real pistol). Replaces the menu-open evaporation edge as the duplication
 /// defense. Shape from tools/probes/tapes/lw193_watch_20260817_055131.log. An equip while our twin is
 /// off-hand makes the game return it, so its sack count (InventoryCountBase + id) rises. Logs one Info
@@ -40,7 +40,7 @@ internal sealed partial class GunSlinger
         if (inBattle) return null;
 
         var sack = new Dictionary<int, byte>();
-        long bagBase = _bagCountBase();   // LW-368 round 2. The relocated page once armed, else the vanilla block
+        long bagBase = _bagCountBase();   // The relocated page once armed, else the vanilla block
         foreach (int id in _twinIds)
         {
             long addr = bagBase + id;

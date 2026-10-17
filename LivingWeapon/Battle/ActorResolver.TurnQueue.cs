@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// ActorResolver's turn-queue lane (LW-252 stage 2 split off ActorResolver.cs for the 200-line rule): TryReadTqActor,
+/// ActorResolver's turn-queue lane, split off ActorResolver.cs for the 200-line rule. TryReadTqActor,
 /// the roster walks FingerprintPlayer and MainHandFromRoster, and TwinFilter.
 /// A (level,brave,faith) match can collide between two roster units (a Dragoon and an Archer twin) and the old walks
 /// let the lone armed match win even when it was the wrong unit. A 2026-08-17 probe showed roster nameIds are unique per row
@@ -58,7 +58,7 @@ internal sealed partial class ActorResolver
     /// <summary>RRHand weapon id of the acting unit's roster slot, or 0 when not a roster unit, ambiguous or unarmed.
     /// A tracked <paramref name="actorWeapon"/> matching a slot's RRHand wins; otherwise exactly one armed slot gives its RRHand.
     /// An unarmed actor with its own empty-hands slot returns 0 instead of borrowing a twin's RRHand.
-    /// <paramref name="seatNameId"/> is the LW-252 check from <see cref="FingerprintPlayer"/>; the shared rule is <see cref="RosterFpMatches"/>.</summary>
+    /// <paramref name="seatNameId"/> is the check from <see cref="FingerprintPlayer"/>; the shared rule is <see cref="RosterFpMatches"/>.</summary>
     private int MainHandFromRoster(int level, int brave, int faith, int actorWeapon, int seatNameId)
     {
         bool weaponTracked = actorWeapon != 0 && actorWeapon != 0xFFFF && _weapons.Contains(actorWeapon);

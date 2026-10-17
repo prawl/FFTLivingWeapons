@@ -15,7 +15,7 @@ internal readonly record struct RegionCursor(int RegionIndex, long NextAddr, boo
 }
 
 /// <summary>
-/// Region ordering and cursor resumption for the LW-27/LW-31 dev spikes' incremental census walk (docs/TODO.md).
+/// Region ordering and cursor resumption for the dev spikes' incremental census walk.
 /// A one-shot 512MB scan spent its budget on low addresses and blocked the shared Engine tick long enough to
 /// swallow a sibling spike's F6 keypress (see AttackCardSpike.cs). The live strings sit high (Cheat Engine hits
 /// 0x4D9BFBF253, 0x4EDBAB64B0, 0x4F5BFA5CF5), so SortDescending walks high first and NextSlice bounds the work per call.

@@ -31,7 +31,7 @@ internal sealed partial class KillTracker
             _lethalViaFallback[s] = _latchViaFallback;
             return;
         }
-        // LW-63 D4. The 7-out overload checks the flags-first lane before the register snapshot.
+        // The 7-out overload checks the flags-first lane before the register snapshot.
         // viaFlags/bandSlot/moved are tape evidence only; Decide judges on hypW.
         bool has = _killerStamp.TryHypothesis(_lastResolveTick, out var hypW, out ushort hypName, out int age,
                                                out bool viaFlags, out int bandSlot, out byte moved);

@@ -70,7 +70,7 @@ internal static class Tuning
     /// Enforced by TuningTests.MaxArchetypes_...</summary>
     public const int MaxArchetypes = 6;
 
-    /// <summary>CardSites (LW-257 commit 1): consecutive Unreadable anchor-verify misses before PaintAll evicts a
+    /// <summary>CardSites. Consecutive Unreadable anchor-verify misses before PaintAll evicts a
     /// cached equip-card paint site. The old bare-bool AnchorIsLive evicted on a single unreadable frame.
     /// Sits outside the #if LWDEV split because it is a paint-cache hygiene knob, not a difficulty/pacing one.
     /// Tuned from the 2026-08-17 tape. The site count fell 836 -> 726 -> 690 over three maintenance passes
@@ -79,7 +79,7 @@ internal static class Tuning
     /// few 1000ms beats (Display.MaintenanceMs).</summary>
     public const int CardEvictStrikes = 3;
 
-    /// <summary>Display.Heartbeat.cs (LW-257 commit 2): maintenance beats (Display.MaintenanceMs, ~1s) a changed
+    /// <summary>Display.Heartbeat.cs. Maintenance beats (Display.MaintenanceMs, ~1s) a changed
     /// weapon id may stay in the pending set before RunMaintenance drops it with one Debug line. A watchdog
     /// cap, not a retry budget. It bounds the wait on the premise behind the pending-clear predicate, which
     /// pool region the card materializes from (docs/LIVE_LEDGER.md [card-materializes-from-named-pool], filed
@@ -87,7 +87,7 @@ internal static class Tuning
     /// give-up.</summary>
     public const int CardPendingMaxBeats = 10;
 
-    /// <summary>Display.PoolPaint.cs ReOfferDrainedRegions (LW-257 commit 2): kill switch for the per-region
+    /// <summary>Display.PoolPaint.cs ReOfferDrainedRegions. Kill switch for the per-region
     /// drain re-offer. It reuses ScanPoolRegion (docs/LIVE_LEDGER.md [flavor-line-overwrite-displays],
     /// PROVEN) on only the regions that fell short of their latch.</summary>
     public const bool CardReOfferEnabled = true;
@@ -281,7 +281,7 @@ internal static class Tuning
 
     // ── Toasts ────────────────────────────────────────────────────────
 
-    /// <summary>Compiled BannerToasts default and sole source since LW-52 removed the launcher toggle (Engine's
+    /// <summary>Compiled BannerToasts default and sole source now that the launcher toggle is gone (Engine's
     /// ctor falls back to it). On, since the tier-up callout toast (BannerToast.cs) is the headline feature.</summary>
     public const bool BannerToasts = true;
 
@@ -313,7 +313,7 @@ internal static class Tuning
     public const byte SanctuaryHearts = 3;
 
     /// <summary>Bulwark (Sunderer +3, docs/BULWARK_AC.md A7): consecutive ticks the wielder may fail to resolve
-    /// (Wielder.ResolveDeployedMainHand returning 0, benched or the LW-136 two-deployed refusal) before an
+    /// (Wielder.ResolveDeployedMainHand returning 0, benched or the two-deployed refusal) before an
     /// active plant releases. One missed tick must not tear down a hold.</summary>
     public const int BulwarkUnresolvedTicks = 10;
 
@@ -335,7 +335,7 @@ internal static class Tuning
     public const int RicochetHopDecayPct = 60;
 
     /// <summary>Mushin (Kiku-ichimonji +3): PA-factor bonus on top of the tier factor for the one charged hit
-    /// after a full wait turn (no move, no act, MushinPolicy.ShouldArm on the PSX turn flags, LW-4 round 5).
+    /// after a full wait turn (no move, no act, MushinPolicy.ShouldArm on the PSX turn flags).
     /// One charge is round(natural*2.05) PA at tier 3, about 1.6x a normal +3 swing.</summary>
     public const double MushinBonus = 0.75;
 
@@ -350,7 +350,7 @@ internal static class Tuning
     /// engine's Pray/Steel hard cap (100) while out-braving nearly any foe.</summary>
     public const int KobuBraveCap = 97;
 
-    // -- Provoke hold (LW-123 arc 2a): docs/PROVOKE_AC.md. Arc 1 (Provoke.cs) plants the mark; these knobs
+    // -- Provoke hold. Docs/PROVOKE_AC.md. Arc 1 (Provoke.cs) plants the mark; these knobs
     //    tune the hold that reads it. --
 
     /// <summary>Ship switch for the whole Provoke feature. False makes the hold inert. It never arms,
@@ -398,8 +398,8 @@ internal static class Tuning
     // -- Living Poach, armed at stage 4 (2026-08-12): Engine wires wasBasicAttack to
     //    LivingPoach.ReadWasBasicAttack, so every gate below is active in production. --
 
-    /// <summary>LW-167 Living Poach. Damage formulas through which the vanilla Poach support (Key 471, id 215)
-    /// is dormant (formula matrix, LW-166, observed 2026-08-12). A weapon on one of these cannot be poached by
+    /// <summary>Living Poach. Damage formulas through which the vanilla Poach support (Key 471, id 215)
+    /// is dormant (formula matrix, observed 2026-08-12). A weapon on one of these cannot be poached by
     /// vanilla, so the runtime feature may arm only on this set (the double-fire guard, see
     /// LivingPoachPolicy.Decide). Must equal DORMANT_FORMULAS in tools/lib/flavor.py;
     /// check_dormant_poach_formulas_lockstep in analyze.py pins the pair.</summary>
@@ -409,18 +409,18 @@ internal static class Tuning
     /// checks it before considering a poach.</summary>
     internal static bool IsDormantPoachFormula(int formula) => Array.IndexOf(DormantPoachFormulas, formula) >= 0;
 
-    /// <summary>LW-167 Living Poach. BannerToast event key reserved for a successful poach's carcass
+    /// <summary>Living Poach. BannerToast event key reserved for a successful poach's carcass
     /// announcement. Distinct from tiers 1..3, <see cref="BulwarkToastKey"/> (4), and the negated Chronicle
     /// milestones.</summary>
     internal const int PoachToastKey = 5;
 
-    /// <summary>LW-167 Living Poach. The killer's Poach support ability id (Key 471, 256, observed 2026-08-12),
+    /// <summary>Living Poach. The killer's Poach support ability id (Key 471, 256, observed 2026-08-12),
     /// fed through Signatures.SupportBit like Choir's InstantCastSupportId to find the (byteOffset, mask) in
     /// the 4-byte support bitfield (Offsets.CSupport / Offsets.ASupport).</summary>
     internal const int PoachSupportAbilityId = 215;
 
-    /// <summary>LW-167 stage 4. Offsets.ArecAbil value meaning the killer's action record names the basic Attack
-    /// command, not an ability (docs/LIVE_LEDGER.md "The basic-Attack discriminator (LW-167 stage 4)" row,
+    /// <summary>Offsets.ArecAbil value meaning the killer's action record names the basic Attack
+    /// command, not an ability (docs/LIVE_LEDGER.md "The basic-Attack discriminator" row,
     /// 2026-08-12, probe tools/probes/arec_watch.py). A kind==5 stamp with abil==0 held from before the fatal
     /// blow through credit on every basic-Attack kill, while an ability kill (Rend Weapon, id 141) held its own
     /// id. See LivingPoach.ReadWasBasicAttack.</summary>

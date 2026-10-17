@@ -13,7 +13,7 @@ internal sealed partial class WeaponPalette
     /// whether any row wields <paramref name="weaponId"/> at that fingerprint. Judges on matchCount
     /// &gt;= 1, not the -1 return of <see cref="Wielder.ResolveAnyHandNameId(IGameMemory,int,(int,int,int),out int)"/>,
     /// which is -1 for both zero and 2+ matches; 2+ is still a party unit. Zero matches means an
-    /// enemy (or an ally/guest on a roster row, an accepted residual, LW-295 build plan R3) and
+    /// enemy (or an ally/guest on a roster row, an accepted residual) and
     /// returns tier 0, plain.</summary>
     private int DesiredGlow(IGameMemory mem, long entry, int weaponId)
     {

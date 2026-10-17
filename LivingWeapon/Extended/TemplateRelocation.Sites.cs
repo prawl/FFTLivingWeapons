@@ -7,7 +7,7 @@ namespace LivingWeapon;
 /// ListRelocation.Sites.cs is split from ListRelocation.cs; this file is the table, that one the lifecycle.
 /// Findings 1, 4 and 5 of LW371_plan.md were re-derived with tools/probes/lw371_order_template_relocate.py --scan.
 /// The caps went 159 -> 151 (GS cookie) -> 149 (fnA's two hand-item appends, see CapSites).
-/// LW-372 (D4) widens the cap values to 255/256, so <see cref="CapSite"/> holds byte arrays.
+/// The cap values widen to 255/256, so <see cref="CapSite"/> holds byte arrays.
 /// </summary>
 internal sealed partial class TemplateRelocation
 {
@@ -46,12 +46,12 @@ internal sealed partial class TemplateRelocation
     /// the offset from that chart's page target, 0 for four fields and -0x1E6 for the shared rsi base, whose reads
     /// at [rsi+rcx*2+0x1E6] and [rsi+rcx*2+0x1E8] must still land on the page copy. No site has a trailing
     /// immediate, so there is no Trail field. Addr is a preferred-base literal rebased through
-    /// <see cref="ImageBase.At"/> at use (LW-388, TemplateRelocation.Live); Vanilla is a rip displacement and
+    /// <see cref="ImageBase.At"/> at use (TemplateRelocation.Live); Vanilla is a rip displacement and
     /// does not relocate.</summary>
     internal readonly record struct RipField(long Addr, int Vanilla, int Off, string Label);
 
     /// <summary>One menu-list-cap site (finding 5, D5): the immediate of a six-byte `cmp reg,imm32`, either the
-    /// low byte (builder cap, max 0xFF) or the full imm32 (insert bound, LW-372 D4 value 0x100). Vanilla and New
+    /// low byte (builder cap, max 0xFF) or the full imm32 (insert bound, value 0x100). Vanilla and New
     /// have equal length, and that length is the byte count Install and Restore use. Addr is a rebased
     /// <see cref="Offsets"/> property.</summary>
     internal readonly record struct CapSite(long Addr, byte[] Vanilla, byte[] New, string Label);
@@ -85,8 +85,8 @@ internal sealed partial class TemplateRelocation
         new(0x1402862CEL, 0x015EE454, 0, "lea rcx feeding the rebuild call at RVA 0x2862D2 (type 8 by the disassembly; types 6/7 branch to RVA 0x286342) (site RVA 0x2862CB)"),
     };
 
-    /// <summary>The two menu-list caps. LW-372 (D4) widens both from vanilla straight to 255/256 (skipping the
-    /// LW-371 149/150 step), since ListBuilderHook truncates the stack callers fnA/fnB to
+    /// <summary>The two menu-list caps. Both widen from vanilla straight to 255/256 (skipping the
+    /// earlier 149/150 step), since ListBuilderHook truncates the stack callers fnA/fnB to
     /// <see cref="ListBuilderHook.StackCallerCap"/> (149) before they read a byte past it. The insert bound
     /// stays cap + 1 so its walk reaches the terminator. D8. This widening and the hook install are one
     /// transaction, so TemplateRelocation.Restore puts both sites back to vanilla if the hook cannot arm.

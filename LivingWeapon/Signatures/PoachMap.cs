@@ -9,7 +9,7 @@ namespace LivingWeapon;
 internal readonly record struct PoachCarcass(int CommonKey, string CommonName, int RareKey, string RareName);
 
 /// <summary>
-/// Loads LivingWeapon/poach.json from the mod directory (LW-167, output of tools/extract_poach_map.py). The
+/// Loads LivingWeapon/poach.json from the mod directory (output of tools/extract_poach_map.py). The
 /// Job sheet's Unknown10/Unknown11 columns carry each monster job id's common/rare PoachItem {key, name},
 /// so the map is keyed by job id. Human jobs have no entry, which makes membership the whole monster gate.
 /// A live pass refused a Black Chocobo at job 95, falsifying the old job byte, 95

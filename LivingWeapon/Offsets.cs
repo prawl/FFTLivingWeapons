@@ -2,8 +2,8 @@ namespace LivingWeapon;
 
 /// <summary>
 /// Game addresses. Each pin is its preferred-base absolute (image base 0x140000000), resolved through
-/// <see cref="ImageBase.At"/> because the Denuvo-free build (2026-10-15) turned ASLR on (LW-387 on the 2.3.4
-/// hotfix, ported by LW-388; docs/research/PORT_1.5.2_NODRM_OFFSETS.md). Pins are static properties, never
+/// <see cref="ImageBase.At"/> because the Denuvo-free build (2026-10-15) turned ASLR on (the 2.3.4
+/// hotfix, then main; docs/research/PORT_1.5.2_NODRM_OFFSETS.md). Pins are static properties, never
 /// const or static readonly (ImageLiteralContractTests checks both). Sources are
 /// FFTHandsFree/docs/BATTLE_MEMORY_MAP.md and the BattleTracker the detection logic is ported from.
 ///
@@ -22,7 +22,7 @@ namespace LivingWeapon;
 internal static class Offsets
 {
     // --- in-battle flags ---
-    public static long Slot0 => ImageBase.At(0x140782A30);   // 1.5 CONFIRMED +0x6000 (was 0x14077CA30): u32 battle-phase word; four edge samples 2026-07-21 + LW-40 probe (LIVE_LEDGER 1.5 slot0 battle-phases row)
+    public static long Slot0 => ImageBase.At(0x140782A30);   // 1.5 CONFIRMED +0x6000 (was 0x14077CA30): u32 battle-phase word; four edge samples 2026-07-21 + the re-entry probe (LIVE_LEDGER 1.5 slot0 battle-phases row)
     public static long Slot9 => ImageBase.At(0x140782A54);   // 1.5 CONFIRMED +0x6000 (was 0x14077CA54): 0xFFFFFFFF at all four battle edges on the same log Slot0 and Slot9 both stay 0xFFFFFFFF from the title screen until the first battle (LIVE_LEDGER [sentinel-out-of-battle-tuple]).
 
     /// <summary>The slot0 in-battle marker on 1.5 (pre-1.5 it was 0xFF, sentinel_probe.py 2026-06-10). Samples
@@ -33,7 +33,7 @@ internal static class Offsets
     public static long Acted => ImageBase.At(0x140782A8C);   // 1.5 CONFIRMED (was 0x14077CA8C): rising edge = an action completed; TurnTracker/KillTracker ship on it (log 2026-07-01)
     // u16 event file number in cutscenes/dialogue; aliases the active unit's nameId during combat
     // animations, so only read it out of live battle. 0xFFFF at the menu, then 2 -> 4 -> 5 through the
-    // Orbonne prologue; PlaythroughReset.Policy.OpeningEventId (2) anchors LW-51 Tier-1.
+    // Orbonne prologue; PlaythroughReset.Policy.OpeningEventId (2) anchors the new-game detector.
     public static long EventId => ImageBase.At(0x140782A94); // 1.5 CONFIRMED live 2026-07-08 (was 0x14077CA94)
 
     /// <summary>Pointer to the ACTING unit's combat FRAME base (see <see cref="FrameReadBase"/>; frame + <see
@@ -99,7 +99,7 @@ internal static class Offsets
     public const int ACtTurn = 0x09;
     /// <summary>u8 band-relative job id (PSX "Current Job", combat base +0x03). Negative, so it reaches below
     /// BandEntry (0x1C); ACrystalHearts and AGateByte are negative too. Promoted from Puppeteer.Policy's JobOff
-    /// (LW-149 stage H), now an alias. Confirmed 2026-06-18 (Ramza 83 Thief, party Dark Knight 94, Goblin 99,
+    /// and now an alias. Confirmed 2026-06-18 (Ramza 83 Thief, party Dark Knight 94, Goblin 99,
     /// Bonesnatch 110), but bosses read story ids like 37, so Puppeteer.IsDominatable does not filter on
     /// it.</summary>
     public const int AJob = -0x19;
@@ -122,8 +122,8 @@ internal static class Offsets
     public const int RRHand = 0x14;   // u16 right-hand weapon id (FFTPatcher-canonical, == items.json id)
     public const int RLHand = 0x16;   // u16 left-hand weapon id; 0xFF/0xFFFF when empty (stays empty in practice)
     public const int ROffHand = 0x18;  // u16 dual-wield OFF-HAND weapon. FFTHandsFree mislabels it "reserved"; a roster dump showed the 2nd weapon lands here (+0x16 stays empty, shields go to +0x1A).
-    public const int RShield = 0x1A;   // u16 equipped SHIELD id, separate from ROffHand (2026-06-21 dual-gun roster dump). GunSlinger's twin grant writes only +0x18 and never reads this; LW-193 (gear loss) probes here.
-    public const int RSupport = 0x0A;   // u16 picked support ability KEY (empty = 0; Dual Wield = 477 = id 221 + 256; reaction +0x08 / movement +0x0C siblings; LW-168 2026-08-12). FFTHandsFree's "u8 id" was the low byte
+    public const int RShield = 0x1A;   // u16 equipped SHIELD id, separate from ROffHand (2026-06-21 dual-gun roster dump). GunSlinger's twin grant writes only +0x18 and never reads this; the gear-loss reconcile probes here.
+    public const int RSupport = 0x0A;   // u16 picked support ability KEY (empty = 0; Dual Wield = 477 = id 221 + 256; reaction +0x08 / movement +0x0C siblings; 2026-08-12). FFTHandsFree's "u8 id" was the low byte
     public const int RLevel = 0x1D;   // u8  (0 / empty slot guard)
     public const int RBrave = 0x1E;   // u8  (fingerprint to find this unit's combat struct)
     public const int RFaith = 0x1F;   // u8
@@ -247,9 +247,9 @@ internal static class Offsets
     // docs/LIVE_LEDGER.md "Per-unit turn/moved/acted flags (the full-wait read)" row (owner pass 2026-07-09:
     // Mushin BANK on a still wait, SPENT on the strike); FFHacktics PSX struct 0x186-0x189, mapped by
     // tools/probes/mushin_wait_probe.py (scratchpad/psxflags_watch.log). PSX offset + 0x32 = frame offset,
-    // minus BandEntry(0x1C) = band offset. Promoted from Mushin.cs (LW-55 stage 1).
+    // minus BandEntry(0x1C) = band offset. Promoted from Mushin.cs.
     /// <summary>1 while the unit's move/act/wait menu is open; 0-&gt;1 at turn open, 1-&gt;0 at turn
-    /// end. The falling edge is Mushin's turn-end trigger and LW-55's CursorGate gate B.</summary>
+    /// end. The falling edge is Mushin's turn-end trigger and CursorGate gate B.</summary>
     public const int ATurnFlag = 0x19C;   // u8
     /// <summary>0-&gt;1 at the unit's move; the engine resets it at that unit's next turn open.</summary>
     public const int AMoved = 0x19D;   // u8
@@ -266,8 +266,8 @@ internal static class Offsets
     /// Sub-offsets +0x0 idx (engine index == seat-8), +0x2 abil u16 (<see cref="ArecAbil"/>), +0xA kind (<see
     /// cref="ArecKind"/>, 5=performing/6=receiving), +0xB xref (victim&lt;-&gt;attacker, unproven and refuted
     /// as a kill-attribution shortcut; docs/LIVE_LEDGER.md Uncertain AREC row). KillTracker.CreditKill only
-    /// logs it (Tuning.VerboseEvents); the production reader is LW-167 stage 4's LivingPoach.ReadWasBasicAttack
-    /// on the KILLER's record (LIVE_LEDGER "The basic-Attack discriminator (LW-167 stage 4)" row, 2026-08-12).
+    /// logs it (Tuning.VerboseEvents); the production reader is LivingPoach.ReadWasBasicAttack
+    /// on the KILLER's record (LIVE_LEDGER "The basic-Attack discriminator" row, 2026-08-12).
     /// Guarded reads.</summary>
     public const int AArec = 0x184;
     /// <summary>u16 AArec-relative ability id 0 (<see cref="LivingWeapon.Tuning.BasicAttackAbilityId"/>) is
@@ -344,17 +344,17 @@ internal static class Offsets
     /// garbage read.</summary>
     public static long MapDimsWH => ImageBase.At(0x140C6AD6A);
 
-    // --- Provoke (LW-123 arc 1): the ability ACTION table (InflictStatus repoint target) and the hand-authored
+    // --- Provoke. The ability ACTION table (InflictStatus repoint target) and the hand-authored
     // inflict-status table it applies. Content-anchored, image-static addresses observed 2026-07-22
     // (LIVE_LEDGER row, Uncertain; docs/PROVOKE_AC.md "How it works, plainly"), the same class as
-    // Barrage.AbilityBase (a JobCommand table). Covered only by the roster landmark until LW-399 gives them
-    // their own vanilla-byte landmark (LW-397 demoted the PE key to a report line); they need a re-find on a
+    // Barrage.AbilityBase (a JobCommand table). Covered only by the roster landmark until the per-part work gives them
+    // their own vanilla-byte landmark (the PE key is a report line now); they need a re-find on a
     // re-anchor (docs/PATCH_REANCHOR.md). The byte-identical decoy mirror of the action table
     // (ProvokePolicy.DecoyActionTable, Provoke.Policy.cs) is not pinned. Nothing writes it.
     public static long LiveActionTable => ImageBase.At(0x14078B2DC);   // 368 rows x 20 bytes; the copy the engine and UI both read
     public static long InflictTable => ImageBase.At(0x14080FBA0);      // 128 rows x 6 bytes, [mode][s0..s4], mode byte FIRST
 
-    // --- Provoke hold (LW-123 arc 2a): side membership and the ghost-seat gate, both read-only. ---
+    // --- Provoke hold. Side membership and the ghost-seat gate, both read-only. ---
     /// <summary>u8 band-relative friend/foe byte (= combat +0x1EE). <see cref="AFriendFoeEnemyBit"/>
     /// set = enemy, clear = ally. The guardian probe (2026-07-22) read it clear on all 6 player-side
     /// seats, 5 of them guests outside the classic party seat range, so read side from this bit and
@@ -376,7 +376,7 @@ internal static class Offsets
     // and a mid-battle mod write survives that (owner-observed 2026-08-12).
     public static long PoachStoreBase => ImageBase.At(0x1411A7A1B);
 
-    // --- Corpse despawn (LW-167 stage 3): the engine's render-node removal, promoted from BodyDoubleSpike.cs's
+    // --- Corpse despawn. The engine's render-node removal, promoted from BodyDoubleSpike.cs's
     // Ctrl+F5 dev instrument (LivingWeapon/Dev/BodyDoubleSpike.cs, #if LWDEV) into CorpseDespawn.cs.
     // docs/LIVE_LEDGER.md "DESPAWN any unit mid-battle, sprite and all" (Proven, owner pass 2026-07-10, flip
     // 2026-07-21): writing mode 2 into the node's flag word lets the per-frame node sweeper (0x14026E20C)
@@ -393,7 +393,7 @@ internal static class Offsets
 
     /// <summary>The composed-status byte holding the chest/crystal conversion bit. Status byte 1 (ADeadStatus +
     /// 1 = 0x46, == StatusApply.Composed + StatusApply.StatusByte(id)), composed ids 8-15 MSB-first. Treasure
-    /// (id 15; LW-58's pop-signature evidence, docs/LIVE_LEDGER.md) is one of them and Blind/Darkness (id 13)
+    /// (id 15; the pop-signature evidence, docs/LIVE_LEDGER.md) is one of them and Blind/Darkness (id 13)
     /// shares the byte, so test <see cref="ACorpseChestBitMask"/>, not the byte. A Blinded unconverted corpse
     /// reads it nonzero (owner-caught 2026-08-12, CorpseDespawn.cs's staleness check false-positived on
     /// it).</summary>
@@ -430,12 +430,12 @@ internal static class Offsets
     public static long WeaponPaletteBankB => ImageBase.At(0x140D35950);
     public const int WeaponPaletteStride = 32;   // bytes per palette (16 u16 entries)
 
-    // --- LW-317 multi-lane growth. The CURRENT-brave/CURRENT-faith holds, the u16 MaxHp hold, and the
+    // --- Multi-lane growth. The CURRENT-brave/CURRENT-faith holds, the u16 MaxHp hold, and the
     // turn-scoped resident item-stats WP write. sid == id (the row-index identity WpTableHold assumes) is also
     // checked at bake time by tools/gen_living_weapon_meta.py's check_wp_sid_identity for every "wp"/"wp+faith"
     // weapon.
     /// <summary>u16 combat-struct MaxHp (== AMaxHp 0x16 + BandEntry 0x1C; CHp 0x30 is current HP).
-    /// HoldU16 touches only this field, except the LW-327 top-up (GrowthEngine.Lanes.cs), which raises
+    /// HoldU16 touches only this field, except the Knight Sword top-up (GrowthEngine.Lanes.cs), which raises
     /// CHp by the delta once per real battle so a grown weapon opens at full HP. PROVEN 2026-08-25,
     /// ledger [maxhp-hold-attribution-safe]: a raised MaxHp hold leaves kill attribution alone.</summary>
     public const int CMaxHp = 0x32;   // u16
@@ -455,13 +455,13 @@ internal static class Offsets
     public const int ItemStatsStride = 8;
     public const int ItemStatsWpOff = 4;
     /// <summary>Row count of the resident item-stats table (ItemWeaponData has 128 rows; EquipBonus starts
-    /// right after it at 0x14080FEA0). An extended id (261+, LW-346) has no row here (its stats live in the
+    /// right after it at 0x14080FEA0). An extended id (261+) has no row here (its stats live in the
     /// mod's stub page), so writers must stop at this bound or land in EquipBonus.</summary>
     public const int ItemStatsRows = 128;
 
-    // --- LW-346 extended inventory (the 261 item-cap break ported from the FFTHandsFree rig) ---
+    // --- Extended inventory (the 261 item-cap break ported from the FFTHandsFree rig) ---
     // Re-anchored for 1.5.2 on 2026-08-26 (the equip/display cluster slid -0x78 and the accessor cluster -0x74 from 1.5.0;
-    // data bases unchanged), checked against the exe on disk 2026-08-27. LW-388 R12. The ten "Thunk*" addresses
+    // data bases unchanged), checked against the exe on disk 2026-08-27. The ten "Thunk*" addresses
     // were E9 thunks only on the Denuvo build; the Denuvo-free exe (buildid 24304444, read 2026-10-16) has the
     // function entries themselves, so ExtendedDonorThunks pins their real first bytes and AccessorEntryHook
     // steals them (the names keep "Thunk" for the tests and docs that cite them). Provenance per site:
@@ -494,7 +494,7 @@ internal static class Offsets
     /// no row for a new id.</summary>
     public static long ThunkWeaponStat => ImageBase.At(0x1402B8C74L);
     public static long ThunkValidity => ImageBase.At(0x1402B8EBCL);
-    public static long ThunkTypeProbe => ImageBase.At(0x1402B8EE8L);   // (id, dataType): LW-347's shield eviction
+    public static long ThunkTypeProbe => ImageBase.At(0x1402B8EE8L);   // (id, dataType): the shield eviction
     public static long ThunkRangeIndex => ImageBase.At(0x1402B8BCCL);  // -1 for a new id = "not a weapon" = the punch
     public static long ThunkSpritePair => ImageBase.At(0x1402B8E60L);  // the swing art record
     public static long ThunkRangeBase => ImageBase.At(0x1402B8C0CL);
@@ -505,7 +505,7 @@ internal static class Offsets
     /// <summary>Plain function entries hooked with Reloaded.Hooks behind a prologue landmark.</summary>
     public static long FnCategoryGetter => ImageBase.At(0x1402890C0L);   // inventory list-build filter (called at 0x140288BF5)
     public static long FnOrderRebuild => ImageBase.At(0x140285DF0L);     // display-order rebuild (drops ids its table lacks)
-    public static long FnInventoryReset => ImageBase.At(0x140284500L);   // per-item state reset. Zeroes the bag array below its widened bound (LW-351 R7)
+    public static long FnInventoryReset => ImageBase.At(0x140284500L);   // per-item state reset. Zeroes the bag array below its widened bound
 
     /// <summary>the swing-prep routine 0x140281CE8 copies the standing swing-id word into
     /// the animation record here, `0F B7 05 00 E7 52 00` = movzx eax, word [rip+0x52E700]
@@ -579,7 +579,7 @@ internal static class Offsets
     /// follow the pointer.</summary>
     public static long SaveStructStatic => ImageBase.At(0x142C81C80L);
 
-    // --- LW-351 fix round 5. The two weapon menu ORDER TEMPLATES (2026-08-30, disassembled from the
+    // --- The two weapon menu ORDER TEMPLATES (2026-08-30, disassembled from the
     // 1.5.2 exe on disk; re-derive with tools/probes/lw351_order_template_probe.py --disk). They set
     // which item ids the party inventory and the unit equip picker will list. They are save state:
     // the load-apply (FnSaveApply) restores both from the save struct and the serializer
@@ -657,26 +657,26 @@ internal static class Offsets
     // holds them at 149 through a mod-owned pool and leaves static-buffer callers unchanged. See LW372_plan.md
     // (Q2, Q3, D1-D4).
     /// <summary>The shared list builder's own entry (Q2, read 2026-08-31 on the 1.5.2 exe on disk; corrected
-    /// LW-382 by disasm): <c>int Fn(nint a, nint b, nint c, nint list, nint spare, nint mode)</c> (Microsoft
+    /// by disasm): <c>int Fn(nint a, nint b, nint c, nint list, nint spare, nint mode)</c> (Microsoft
     /// x64; a/b/c are cx/dx/r8b widths read only in their low bits, list = r9 the output buffer; args 5/6 are
     /// stack arguments at the caller's [rsp+0x20]/[rsp+0x28]). Prologue. Mov rax,rsp; mov [rax+0x20],r9; two
     /// word-arg spills (see <see cref="ListBuilderHook.ExpectedPrologue"/>). 15 bytes, no rip-relative field in
-    /// the stolen window. LW-382 F1. The prologue pushes 7 registers then subs 0x20, so entry rsp (rax) is
+    /// the stolen window. The prologue pushes 7 registers then subs 0x20, so entry rsp (rax) is
     /// rsp+0x58 and argument 6's home slot is rax+0x30. The body reads <c>byte ptr [rsp+0x88]</c> (= rax+0x30)
     /// at 0x140288BCA, 0x140288C61, 0x140288C8D and 0x140288CA1, four branches on the mode byte. It also reads
     /// <c>[rsp+0x78]</c> (= rax+0x20, argument 4, the list buffer) and <c>[rsp+0x68]</c> (= rax+0x10, argument
     /// 2), which cross-checks the frame arithmetic against two arguments of known identity. No
     /// <c>[rsp+0x80]</c> (= rax+0x28, argument 5) read exists in the body; the hook forwards argument 5 as
-    /// given. LW-382 F2. All eight call sites set argument 6 right before <c>call 0x140288b94</c> at their own
+    /// given. All eight call sites set argument 6 right before <c>call 0x140288b94</c> at their own
     /// <c>[rsp+0x28]</c>, e.g. 0x14028774D (<c>mov byte [rsp+0x28],3</c>, call at 0x14028775E) and 0x14036C45E
-    /// (<c>mov byte [rsp+0x28],r9b</c>). LW-382 F3. The mode byte, from the callee's branches. <c>== 3</c> at
+    /// (<c>mov byte [rsp+0x28],r9b</c>). The mode byte, from the callee's branches. <c>== 3</c> at
     /// 0x140288BCA reads ownership from the bag count alone (0x1402847F8) instead of count plus sibling flag
     /// (0x140287530); <c>== 0</c> at 0x140288C61 jumps to 0x140288CB6, skipping the can-equip filter; <c>&gt;=
     /// 2</c> at 0x140288C8D drops the id when can-equip (0x1402886D0) answers -1; <c>== 1</c> at 0x140288CA1
     /// sets bit 14 (the grey E badge) and keeps the row. A wrong "equip picker" mode discards every id the
     /// wielder cannot equip. </summary>
     public static long FnListBuilder => ImageBase.At(0x140288B94L);
-    /// <summary>The game's static 256-word menu list buffer (LW-371 finding 5(e): 37 plain-code sites read/lea
+    /// <summary>The game's static 256-word menu list buffer (37 plain-code sites read/lea
     /// it, all at +0, none through a stack temp). D2's hook rule runs the widened (255-entry) builder unchanged
     /// only against this address; anything else passed as r9 (a stack buffer, or a caller this sweep never met)
     /// goes through <see cref="ListBuilderHook"/>'s mod-owned pool and is truncated back to <see

@@ -5,7 +5,7 @@ using System.Threading;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-351 fix round 7 (2026-08-30). Seats owned extended ids into the weapon order templates before
+/// Seats owned extended ids into the weapon order templates before
 /// the game rebuilds its menus. A new item bought this session is not in the saved order list, so
 /// the rebuild dropped it, and the old after-the-fact re-append failed when the rebuilt list was
 /// shorter (the footprint guard, five times in the 23:22-23:34 stage-2 pass) or re-added an unowned
@@ -15,7 +15,7 @@ namespace LivingWeapon;
 internal sealed partial class OrderRebuildHook
 {
     private readonly int _extendedCount;
-    private readonly long _bagBase;   // LW-368 round 2. ExtendedInventory.BagCountBase, set at construction
+    private readonly long _bagBase;   // ExtendedInventory.BagCountBase, set at construction
     private readonly Func<TemplateSeat.Region[]>? _regions;   // ExtendedInventory.TemplateRegions, set at construction
     private long _seated;
     private long _seatRefusals;
@@ -58,7 +58,7 @@ internal sealed partial class OrderRebuildHook
         // Round 8c, no early return on an empty owned list since Plan still repairs a doubled or marker-less template.
         var owned = OwnedExtendedIds();
         if (!_mem.TryRead(region.Addr, region.CapacityWords * 2, out var bytes)) return;
-        // LW-367 ids at or past the armed range are stale and get dropped by the repair.
+        // Ids at or past the armed range are stale and get dropped by the repair.
         var seat = TemplateSeat.Plan(bytes, region.CapacityWords, owned, ExtendedCatalog.FirstExtendedId + _extendedCount);
         if (seat.Refusal != null) { Refused($"{region.Label} at 0x{region.Addr:X} could not take the owned new item(s) before the menu rebuild ({seat.Refusal})."); return; }
         if (!seat.Writes) return;

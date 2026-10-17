@@ -3,12 +3,12 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>Combat stat bytes the capture-natural holds own. Speed/Pa/Ma are the original trio (CSpeed/CPa/CMa); Brave/Faith are
-/// LW-317's capped current holds (CBraveCurrent/CFaithCurrent). MaxHp (CMaxHp, LW-317) is a u16 hold named here for lane vocabulary
+/// the capped current holds (CBraveCurrent/CFaithCurrent). MaxHp (CMaxHp) is a u16 hold named here for lane vocabulary
 /// but does not thread NaturalLedger; see HoldU16 in GrowthEngine.Lanes.cs.</summary>
 internal enum StatLane { Speed, Pa, Ma, Brave, Faith, MaxHp }
 
 /// <summary>
-/// LW-90. Remembers the targets the mod wrote, per battle attempt, so a battle restart cannot turn the held boost into a unit's natural (seen 2026-07-14 with the Iai opening hold). Otherwise Iai restores the boosted value and growth holds compound across restarts.
+/// Remembers the targets the mod wrote, per battle attempt, so a battle restart cannot turn the held boost into a unit's natural (seen 2026-07-14 with the Iai opening hold). Otherwise Iai restores the boosted value and growth holds compound across restarts.
 /// Entries key on (roster nameId, stat lane) and keep Current and Prev target lists. Every hold evaluation records its target, even when the write is elided. OnBattleReset promotes Current to Prev only when Current is non-empty, since Engine.ResetBattleState fires on both battle edges.
 /// A first-sight capture that matches a recorded target, while a different accepted natural is on file at the same roster level, is restart residue. The ledger returns the accepted natural and reports the residue as an ownership token (that the post-restart normalize restores the baked value is unverified; the Iai post-release corrective hold will show).
 /// The level check matters because a boost target is often natural+1, so an ordinary level-up could land on a recorded target. Restarts never commit a level (LIVE_LEDGER "mid-battle level-up drift" row). Accepted corner, an equipment change to exactly a recorded target still deflates until the next level.
@@ -30,7 +30,7 @@ internal sealed class NaturalLedger
 
     private readonly Dictionary<(int nameId, StatLane lane), Entry> _entries = new();
 
-    // LW-149 stage A. Counts every RecordWrite call, early returns included, for the cadence pins in GrowthEngineCadenceTests.cs
+    // Counts every RecordWrite call, early returns included, for the cadence pins in GrowthEngineCadenceTests.cs
     internal int RecordWriteCalls { get; private set; }
 
     /// <summary>Promote Current to Prev for entries that recorded anything this attempt. Safe to call repeatedly per transition.</summary>

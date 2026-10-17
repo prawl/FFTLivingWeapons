@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-295 cycle B (display LW-336, modded.pac write LW-381). Out of battle, keeps each weapon's deployed equip-icon
+/// Out of battle, keeps each weapon's deployed equip-icon
 /// loose tex (modDir/FFTIVC/&lt;baseRel&gt;) on the glow variant for its current kill tier, plain art at tier 0.
 /// The modded.pac mirror (IconGlow.Apply.cs, IconGlow.Pac.cs) shows a change in the same session, ledger row
 /// [live-icon-repaint], PROVEN 2026-09-01. Ticked via TickGates.OutOfBattle cadence 30 (Engine.cs).
@@ -64,7 +64,7 @@ internal sealed partial class IconGlow
         Dictionary<int, int> changed;
         lock (_lock) changed = IconGlowPolicy.Diff(_applied, desired);
 
-        // LW-336 fix 1. An id whose desired tier is 0 never shows up in Diff (unseeded counts as 0), so a
+        // An id whose desired tier is 0 never shows up in Diff (unseeded counts as 0), so a
         // tiered tex left by an earlier session would stay rimmed. The launch's first apply therefore
         // judges every manageable id; a real mismatch is written by the next tick's ordinary diff.
         // PlaythroughReset clears Engine._kills in place, so the next diff sees tier 0 and self-heals.

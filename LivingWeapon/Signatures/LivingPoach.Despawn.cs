@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-167 corpse-despawn retry (live pass 2026-08-12). A vanilla-poached corpse yields neither crystal
+/// Corpse-despawn retry (live pass 2026-08-12). A vanilla-poached corpse yields neither crystal
 /// nor chest, so a transient refusal from CorpseDespawn.cs is queued here per band slot and retried by
 /// Engine.Tick (LivingPoach is not an ISignature) until TryDespawn succeeds, reads Permanent, or
 /// <see cref="PendingTickCap"/> gives up with one Warn. While pending, the crystal counter is pinned

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-351 fix round 5. Seat the extended item ids the player owns into the game's two weapon order
+/// Seat the extended item ids the player owns into the game's two weapon order
 /// templates (party inventory and unit equip picker). An id the table does not name is never listed.
 /// The load routine restores the tables byte-for-byte from the save struct and the serializer writes
 /// them back, so they are save state (copies cited on <see cref="Offsets.InventoryOrderTemplate"/>
@@ -17,7 +17,7 @@ namespace LivingWeapon;
 /// fallback when the relocation never armed; production seats through TemplateRegions.
 /// Only owned ids are seated, as in vanilla, and seating is a no-op when the id is already there.
 /// Words are little-endian u16 ids ending in 0x00FF, unlike the 0xFFFF that <see cref="OrderRebuildHook"/>
-/// list repairs use. Descends from the LW-346 hand poke that moved the end marker one word later.
+/// list repairs use. Descends from the hand poke that moved the end marker one word later.
 /// </summary>
 internal static partial class TemplateSeat
 {

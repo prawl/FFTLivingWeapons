@@ -19,7 +19,7 @@ internal sealed class GunSlingerStore
     {
         _path = Path.Combine(modDir, "gunslinger.json");
         _snaps = Load(_path);
-        // LW-252 decision-4 exception (a): a key-0 snapshot predates GunSlinger.cs's nameId==0 scan guard and was
+        // A key-0 snapshot predates GunSlinger.cs's nameId==0 scan guard and was
         // shared by colliding unseeded roster rows, so it cannot be attributed to a unit. Purge it, warn once, and
         // Save() now so the warning does not repeat every launch.
         if (_snaps.Remove(0))

@@ -29,7 +29,7 @@ internal static class RestartSentinelPolicy
     internal const int GraceTicks = 150;
 
     /// <summary>Consecutive off-field ticks that close the latch and re-arm the grace. Covers the
-    /// LW-108 starved-bracket hole, where a fast battle-to-battle transition fires no ResetBattle
+    /// starved-bracket hole, where a fast battle-to-battle transition fires no ResetBattle
     /// so battle age alone cannot be trusted.</summary>
     internal const int OutOfLiveRearmTicks = 60;
 
@@ -42,14 +42,14 @@ internal static class RestartSentinelPolicy
     /// is past its grace or the revived identity matches. Callers pass the null's age as of this
     /// event, so a later null cannot satisfy an earlier revive.
     ///
-    /// The identity exemption (LW-233 live drill, 2026-08-17) exists because grace alone cannot
-    /// separate a retry from the LW-108 hole. The death to game-over screen sits off field for
+    /// The identity exemption (live drill, 2026-08-17) exists because grace alone cannot
+    /// separate a retry from the starved-bracket hole. The death to game-over screen sits off field for
     /// ~8.75s, so the out-of-live re-arm (<see cref="OutOfLiveRearmTicks"/>, ~2s) fires repeatedly
     /// and battle age is back to ~25-30 ticks, far under <see cref="GraceTicks"/>, when the revive lands.
     ///
     /// The caller (RestartSentinel.PresentRevive) requires the (lvl,br,fa,maxHp) tuple and a nonzero
     /// nameId to both agree, since docs/LIVE_LEDGER.md row [party-nameid-unique-key] shows the tuple
-    /// alone collides (LW-252 moved the other identity checks off it). The exemption covers the grace
+    /// alone collides (the other identity checks moved off it). The exemption covers the grace
     /// floor only. Whether a retry keeps a revived unit's nameId is unproven
     /// ([retry-preserves-credited-identity]), so some real retries may be missed. A miss costs
     /// nothing a player feels, while a false positive destroys an earned kill.</summary>

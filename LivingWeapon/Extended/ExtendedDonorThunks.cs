@@ -7,7 +7,7 @@ internal readonly record struct AccessorEntry(long Addr, string Label, byte[] Ex
 
 /// <summary>
 /// Split out of ExtendedSites.cs when the byte-patch table passed ~200 lines.
-/// LW-388 R12. On the Denuvo build each of these ten addresses held a five-byte <c>E9 rel32</c> thunk
+/// On the Denuvo build each of these ten addresses held a five-byte <c>E9 rel32</c> thunk
 /// into the protected tail. On the Denuvo-free build they are plain function entries, so the hook
 /// steals real instructions (see <see cref="AccessorEntryHook"/>). Expected bytes were read from the
 /// Denuvo-free exe on disk 2026-10-16 (Steam buildid 24304444). The two call entries both call the

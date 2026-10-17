@@ -1,7 +1,7 @@
 namespace LivingWeapon;
 
 /// <summary>Which resolve path answered this call. The turn-queue fallback, the engine
-/// actor-pointer register, or the per-unit turn-flags lane (LW-63, this file). A flags-sourced
+/// actor-pointer register, or the per-unit turn-flags lane (this file). A flags-sourced
 /// latch counts as pointer-quality evidence in KillTracker's fallback counters, like a register one.</summary>
 internal enum ResolveSource { TqFallback, Register, Flags }
 
@@ -18,8 +18,8 @@ internal enum ResolveSource { TqFallback, Register, Flags }
 /// t1 m0 a0, so a==1 excludes the next owner during the 3-tick period-close debounce. When the
 /// killer's a byte has not risen yet the key refuses and KillerStamp's register lane governs.
 /// Both keys answer only when the entry bridges to exactly one roster row via
-/// <see cref="TryBridgeCursorToRoster"/> (generalized, since LW-62 flags roster-walk proliferation).
-/// Any other outcome falls through to the register/turn-queue chain, which keeps the LW-56 rescue.
+/// <see cref="TryBridgeCursorToRoster"/>.
+/// Any other outcome falls through to the register/turn-queue chain, which keeps the canonical rescue.
 /// Accepted residual (D2) is that on an enemy turn a parked Player-bridged register can still latch,
 /// guarded downstream by the TqTeam death-edge bury and CreditGate. Gating (D3) is only
 /// <see cref="FlagPathOpen"/>, because flags are instantaneous and cannot go stale like a pointer.
@@ -31,7 +31,7 @@ internal sealed partial class ActorResolver
 
     /// <summary>Latch key (D1, t==1 only). Resolves <see cref="Band.FlagOwner"/>'s winning entry to
     /// one roster row. On any refusal it returns false with outs left 0, so the caller's fall-through
-    /// chain runs. LW-87 sibling <see cref="ActorResolver.TryResolveCursorPlayer"/> repeats this shape
+    /// chain runs. Its sibling <see cref="ActorResolver.TryResolveCursorPlayer"/> repeats this shape
     /// because it needs the band slot and the <see cref="CursorMiss"/> stage; keep the two in step and
     /// keep <see cref="TryBridgeCursorToRoster"/> shared.</summary>
     internal bool TryResolveFlagOwner(out long rosterBase, out long entry)

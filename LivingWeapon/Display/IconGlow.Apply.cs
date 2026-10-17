@@ -5,8 +5,8 @@ using System.Security.Cryptography;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-336. Writes the deployed loose tex that the launch merge re-reads next boot. IconGlow.cs decides whether to
-/// apply, IconGlow.Pac.cs mirrors to the pac, IconGlow.Judge.cs judges (LW-381 R2-2). Each id is judged
+/// Writes the deployed loose tex that the launch merge re-reads next boot. IconGlow.cs decides whether to
+/// apply, IconGlow.Pac.cs mirrors to the pac, IconGlow.Judge.cs judges. Each id is judged
 /// once (<see cref="JudgeId"/>) before <see cref="ApplyId"/> writes it, all-or-nothing; a partial failure stays
 /// stale so the next diff retries. FIX 1, <c>judgeAllIds</c> on <see cref="ApplyDiff"/> (first apply) judges every
 /// manageable id to seed <c>_applied</c>; a DIVERGENT JudgeId result heals inline since a later Diff cannot notice it.

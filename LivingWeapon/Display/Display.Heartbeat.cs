@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-257 commit 2. Maintenance-beat plumbing shared by <see cref="Display.Tick"/> and
+/// Maintenance-beat plumbing shared by <see cref="Display.Tick"/> and
 /// <see cref="Display.PaintCountsIfChanged"/>, so the on-field path (Engine.cs calls only
 /// PaintCountsIfChanged there) repaints once a second too. Split from Display.cs (over the 200-line trigger).
 /// Every beat runs one PaintAll regardless of what is pending; the pending set only watches whether each
@@ -67,7 +67,7 @@ internal sealed partial class Display
             ProcessPending(verdict);
         }
 
-        // LW-257 commit 2 (spec 2.2): pool-paint only; no-op until coverage has latched once.
+        // Pool-paint only; no-op until coverage has latched once.
         if (_poolPaint && _poolCovered) ReOfferDrainedRegions();
     }
 

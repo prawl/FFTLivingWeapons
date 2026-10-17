@@ -1,9 +1,9 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-149 stage A. Ownership-hold core shared by HoldUltima, HoldMushin and HoldAfterimage
+/// Ownership-hold core shared by HoldUltima, HoldMushin and HoldAfterimage
 /// (GrowthEngine.Ultima/Mushin/Afterimage.cs). Each captures a stat's natural value on first
-/// sight through the LW-90 NaturalLedger, then owns the byte while cur is its last write, the
+/// sight through the NaturalLedger, then owns the byte while cur is its last write, the
 /// natural value, or the baked restart residue; anything else is a foreign buff and is left alone.
 /// GrowthEngine.Hold records to the ledger before the ownership check, so it stays hand-rolled
 /// (GrowthEngineCadenceTests.cs). GrowthEngine.TimedStat.cs is a different machine (mid-battle revert).
@@ -35,7 +35,7 @@ internal static class OwnershipHold
     }
 
     /// <summary>First-sight capture. Wait for a sane reading (GrowthEngine.StatMin..StatSaneHi), then
-    /// consult the LW-90 NaturalLedger so battle-restart residue is not adopted as natural. Returns
+    /// consult the NaturalLedger so battle-restart residue is not adopted as natural. Returns
     /// false (outs zeroed) while the byte is out of range. Step checks Writable first.</summary>
     internal static bool TryCapture(IGameMemory mem, NaturalLedger ledger, long addr, StatLane lane,
                                     int rosterNameId, int level, out int natural, out int baked)
@@ -49,7 +49,7 @@ internal static class OwnershipHold
     }
 
     /// <summary>Three-token ownership check. Our last write, the natural baseline, or the baked
-    /// restart residue. Dropping the baked clause reads our own residue as foreign (LW-90, OwnershipHoldTests).</summary>
+    /// restart residue. Dropping the baked clause reads our own residue as foreign (OwnershipHoldTests).</summary>
     internal static bool OwnsCurrentValue(int cur, int lastTarget, int natural, int baked)
         => cur == lastTarget || cur == natural || (baked > 0 && cur == baked);
 

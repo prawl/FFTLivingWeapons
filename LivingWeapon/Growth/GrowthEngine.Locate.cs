@@ -117,7 +117,7 @@ internal sealed partial class GrowthEngine
     /// <summary>Scan core. Player side is tried first and wins if it matches, homogeneity is tracked
     /// across matches, and homogeneous multi-matches go to the twin tie-break. nameId 0 is
     /// fingerprint mode (never reads the frame nameId, D5); &gt; 0 is tier-1 exact match. Returns
-    /// the pick, or 0 on no match, a heterogeneous multi-match, or the LW-252 stage 6 refusal in
+    /// the pick, or 0 on no match, a heterogeneous multi-match, or the refusal in
     /// <see cref="PickHomogeneousTwin"/>.</summary>
     internal static long ScanEntries(IGameMemory mem, int level, int brave, int faith,
                                      List<(int weapon, WeaponMeta m)> hands,
@@ -151,10 +151,10 @@ internal sealed partial class GrowthEngine
 
     /// <summary>Twin tie-break for a homogeneous multi-match. Prefers a real-position (nonzero gx
     /// or gy) entry, else the first at (0,0).
-    /// LW-252 stage 6. With nameId &lt;= 0 (no verified identity) and 2+ real-position candidates,
+    /// With nameId &lt;= 0 (no verified identity) and 2+ real-position candidates,
     /// refuse. A wrong-twin hold is a wrong-unit write, and the per-turn normalize can bake a hold
-    /// into the save baseline (ledger [per-turn-normalize-repaints-boosted-baseline], UNCERTAIN;
-    /// LW-90). One real candidate, a real+(0,0) mirror pair, and any nameId &gt; 0 match resolve as before.</summary>
+    /// into the save baseline (ledger [per-turn-normalize-repaints-boosted-baseline], UNCERTAIN).
+    /// One real candidate, a real+(0,0) mirror pair, and any nameId &gt; 0 match resolve as before.</summary>
     private static long PickHomogeneousTwin(IGameMemory mem, int level, int brave, int faith,
                                             List<(int weapon, WeaponMeta m)> hands,
                                             IReadOnlyList<(bool isPlayer, long addr)> entries, int nameId)

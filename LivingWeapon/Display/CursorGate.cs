@@ -1,12 +1,12 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-55 answer of <see cref="CursorGate.Decide"/> before <see cref="AttackCard"/> composes anything.
+/// Answer of <see cref="CursorGate.Decide"/> before <see cref="AttackCard"/> composes anything.
 /// <see cref="None"/> lets the caller proceed; the other two are refusals, split by log tier.
 ///   <see cref="NotTurnOwner"/> gate B failed, <see cref="Offsets.ATurnFlag"/> of the matched band entry is not 1. Since the
-///     LW-87 re-anchor onto <see cref="Band.FlagOwner"/> this is a rare falling-edge race, so Debug tier.
+///     re-anchor onto <see cref="Band.FlagOwner"/> this is a rare falling-edge race, so Debug tier.
 ///   <see cref="WeaponMismatch"/> gate A failed, the roster right-hand weapon disagrees with the band entry's weapon.
-///     A genuine anomaly (the bug LW-55 closes), Warn tier.
+///     A genuine anomaly (the wrong-dossier bug this gate closes), Warn tier.
 /// </summary>
 internal enum CursorRefusal { None, NotTurnOwner, WeaponMismatch }
 
@@ -19,7 +19,7 @@ internal enum CursorRefusal { None, NotTurnOwner, WeaponMismatch }
 internal readonly record struct CursorAnswer(long RosterBase, int RosterHand, int BandWeapon, byte TurnFlag, int BandSlot);
 
 /// <summary>
-/// LW-55 cross-checks applied before the Attack card trusts a dossier. They can only turn a compose into a refusal, never
+/// Cross-checks applied before the Attack card trusts a dossier. They can only turn a compose into a refusal, never
 /// supply a display value (AttackCard.Resolve.cs composes off the roster hand once they clear), since a wrong dossier is
 /// worse than vanilla. Gate B runs first, so a benign re-read race is not mistaken for a weapon anomaly. The band entry's
 /// <see cref="Offsets.ATurnFlag"/> must read 1, else <see cref="CursorRefusal.NotTurnOwner"/>. Gate A needs the roster

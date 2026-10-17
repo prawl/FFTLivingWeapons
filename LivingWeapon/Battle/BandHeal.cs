@@ -3,8 +3,8 @@ using System;
 namespace LivingWeapon;
 
 /// <summary>Shared band-entry HP heal core. Heal sizing, the clamp-without-revive rule and the guarded
-/// HP write. Moved out of LifeSap.Policy.cs in LW-149 stage G because Benediction, Renewal and
-/// SpiritualFont borrowed it; LifeSap itself was deleted in LW-159.</summary>
+/// HP write. Moved out of LifeSap.Policy.cs because Benediction, Renewal and
+/// SpiritualFont borrowed it; LifeSap itself was deleted later.</summary>
 internal static class BandHeal
 {
     /// <summary>round(maxHp * pct) away from zero, minimum 1 for a positive maxHp so tiny units still
@@ -26,7 +26,7 @@ internal static class BandHeal
     }
 
     /// <summary>Guarded u16 write of the wielder's HP on its band entry (the field Ricochet's chip also
-    /// writes). No-op when the page is not writable. One W16 (LW-145 fix 2) because two W8 halves could
+    /// writes). No-op when the page is not writable. One W16 because two W8 halves could
     /// expose a torn value when a heal crosses 255 HP.</summary>
     public static void WriteHp(IGameMemory mem, long entryAddr, int newHp)
     {

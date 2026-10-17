@@ -118,7 +118,7 @@ internal sealed partial class Maim : ISignature
         foreach (var fp in _state.Held)
         {
             long addr = _state.HeldAddr(fp);
-            // Copy moved or freed, or another unit sits at the held address (LW-153 same-unit
+            // Copy moved or freed, or another unit sits at the held address (same-unit
             // write-safety check).
             if (!Band.SameUnitAtExact(_mem, addr, fp)) continue;
             // Count turns from HeldAddr, not a slot scan, so a frozen twin at another address

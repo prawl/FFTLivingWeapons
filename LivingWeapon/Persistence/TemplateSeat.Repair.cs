@@ -3,13 +3,13 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-351 round 8b (2026-08-31), the repair side of <see cref="TemplateSeat"/>. Three copies of the game's
+/// The repair side of <see cref="TemplateSeat"/> (2026-08-31). Three copies of the game's
 /// template maintainer walked with a bound of 261, so an extended id ended the walk early, doubled its
 /// neighbor and could destroy the end marker (seen as doubled shields, a 129-id table and a crash).
 /// The widened bounds in ExtendedSites stop new damage but heal nothing, so each seat scans first.
 /// Rules, each pinned by a test. A doubled id keeps its first occurrence. A zero word goes (id 0 shows as an empty row).
 /// A table with no 0x00FF marker gets one at its first zero word and the rest is dropped; with neither it is refused.
-/// LW-367 a word at or past the armed id range is dropped before the dedupe, since it ends the game's walk early too.
+/// A word at or past the armed id range is dropped before the dedupe, since it ends the game's walk early too.
 /// </summary>
 internal static partial class TemplateSeat
 {
@@ -17,7 +17,7 @@ internal static partial class TemplateSeat
     internal readonly record struct Scan(List<ushort> Body, int Marker, string? Repaired, string? Refusal);
 
     /// <summary>Pure. Reads <paramref name="words"/> u16 words of <paramref name="region"/> and applies the repair rules above.</summary>
-    /// <param name="firstStaleId">LW-367 ids at or past this bound are dropped as stale. The default keeps legacy callers
+    /// <param name="firstStaleId">Ids at or past this bound are dropped as stale. The default keeps legacy callers
     /// unchanged; production passes <see cref="ExtendedCatalog.FirstExtendedId"/> plus the armed extended count.</param>
     internal static Scan ScanTable(byte[] region, int words, int firstStaleId = int.MaxValue)
     {
@@ -49,7 +49,7 @@ internal static partial class TemplateSeat
         {
             if (w == 0) { zeros++; continue; }
             int id = w & 0x3FF;   // the game's id mask; templates carry no flag bits today
-            // LW-367 stale words go before the dedupe, so they never count as doubles.
+            // Stale words go before the dedupe, so they never count as doubles.
             if (id >= firstStaleId) { stale.Add(id.ToString()); continue; }
             if (!seen.Add(id)) { doubled.Add(id.ToString()); continue; }
             body.Add(w);

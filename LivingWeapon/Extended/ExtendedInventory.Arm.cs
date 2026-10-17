@@ -7,7 +7,7 @@ namespace LivingWeapon;
 /// <summary>
 /// The arm half of the boot transaction. The ordered step list (<see cref="Install"/>, with its
 /// accessor-hook helper <see cref="InstallAccessorHook"/>) and the boot placement (<see cref="SeedBag"/>).
-/// Split from ExtendedInventory.cs in LW-371, as ExtendedInventory.Hooks.cs was carved out in LW-351.
+/// Split from ExtendedInventory.cs, as ExtendedInventory.Hooks.cs was carved out before it.
 /// Install order (D2) is cap patches, list relocation, template relocation, catalog, shops,
 /// accessor hooks, hooks; <c>RollBack</c> in Hooks.cs undoes it in reverse.
 /// </summary>
@@ -18,7 +18,7 @@ internal sealed partial class ExtendedInventory
         int n = Items.Count;
         string? why = _patches.Apply(_patcher, ExtendedSites.BootPatches(n));
         if (why != null) return why;
-        // LW-368 round 2 (D3): the list relocation goes right after the cap patches so later steps
+        // The list relocation goes right after the cap patches so later steps
         // can resolve bag bytes through BagCountBase.
         why = _relocation.Install(_patcher, _allocator);
         if (why != null) return why;
@@ -65,7 +65,7 @@ internal sealed partial class ExtendedInventory
 
     /// <summary>Boot placement. The data seed for every extended id. No save is loaded at boot, so
     /// this is a new game's bag; a loaded save replays its own counts through the load edge
-    /// (ExtendedInventory.Tick.cs, LW-353).</summary>
+    /// (ExtendedInventory.Tick.cs).</summary>
     private void SeedBag()
     {
         foreach (var item in Items)

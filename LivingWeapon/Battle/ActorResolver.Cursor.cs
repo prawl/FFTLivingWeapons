@@ -24,7 +24,7 @@ internal enum CursorMiss
 
 /// <summary>
 /// The pre-action cursor resolve for AttackCard's dossier. It reads the PSX turn-flags
-/// owner (<see cref="Band.FlagOwner"/>, LW-63) instead of the condensed turn-queue struct
+/// owner (<see cref="Band.FlagOwner"/>) instead of the condensed turn-queue struct
 /// (<see cref="Offsets.TurnQueue"/>) used until 2026-07-14, which follows the cursor rather than the turn and
 /// blanked the Attack row to vanilla when a T-status detour moved it. Evidence. The 2026-07-21 hover-follower
 /// row in docs/LIVE_LEDGER.md (tools/probes/cursor_resolve_probe.py). Answers whose turn is open now, unlike

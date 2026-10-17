@@ -1,11 +1,11 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-395. The sensing lane, a third FingerprintGuard instance shaped like the kit lane (LaunchGuard.KitLane.cs).
+/// The sensing lane, a third FingerprintGuard instance shaped like the kit lane (LaunchGuard.KitLane.cs).
 /// <see cref="PlaythroughReset"/> archives and empties kills.json after a one second hold of the event id and battle
 /// mode sentinels, so a game update that moved those bytes could wipe a real tally (docs/research/WRITE_SITE_AUDIT_2026-10.md item 3).
 /// Once per launch, out of battle, this lane checks that all six sentinels read the way this build holds them.
-/// Engine passes <see cref="SensingArmed"/> to the detector, which clears nothing until it is true. LW-393 reads it too.
+/// Engine passes <see cref="SensingArmed"/> to the detector, which clears nothing until it is true. The per-part landmarks read it too.
 /// A stand-down only switches the detector off, as a WARN with no OS message box.
 /// In battle (mode 1..5, or BattleState.InLiveBattle) the verdict is Unreadable and never counts, since a resumed autosave can
 /// arm the guards mid-battle. Out of battle it matches the shape in docs/LIVE_LEDGER.md [sentinel-out-of-battle-tuple]
@@ -40,7 +40,7 @@ internal sealed partial class LaunchGuard
     internal const uint SensingSlot0SmallPhaseMax = 0xFF;
 
     /// <summary>True once the sensing lane verified the battle sentinels. Engine passes it to
-    /// <see cref="PlaythroughReset.Observe"/>, LW-393 reads it for its own gate.</summary>
+    /// <see cref="PlaythroughReset.Observe"/>, and the per-part landmarks read it for their own gate.</summary>
     public bool SensingArmed => _sensingGuard.Armed;
 
     /// <summary>Test/diagnostic seam, mirrors <see cref="State"/>.</summary>

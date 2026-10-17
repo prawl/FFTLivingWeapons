@@ -5,10 +5,10 @@ using System.Threading;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-50 OS-level stand-down notice. A player who never opens livingweapon.log still learns the
+/// OS-level stand-down notice. A player who never opens livingweapon.log still learns the
 /// mod went inert. Zero project dependencies (as FingerprintGuard.cs), so a sibling mod can copy this file.
 /// <see cref="Show"/> runs on the Engine tick thread from LaunchGuard's stand-down edge, and that thread
-/// also drains the flight recorder (FlightRecorder.DrainPending; LW-53, LaunchGuard.StandDown). A modal
+/// also drains the flight recorder (FlightRecorder.DrainPending; LaunchGuard.StandDown). A modal
 /// MessageBoxW or an exception there would stall that evidence write, so Show uses its own background
 /// thread and swallows every exception.
 /// </summary>

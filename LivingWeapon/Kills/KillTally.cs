@@ -42,7 +42,7 @@ internal sealed class KillTally
 
     /// <summary>Load the tally at <paramref name="path"/>, falling back to its .bak. A missing or
     /// corrupt pair yields an empty tally, not a crash, and a backup or fresh result logs a Warning.
-    /// A file that is not a JSON object falls through to the .bak (LW-51 Tier-1, KillsSchema.TryParse);
+    /// A file that is not a JSON object falls through to the .bak (KillsSchema.TryParse);
     /// a well-formed object is sanitized entry by entry so one bad row does not fail the load.</summary>
     public static KillTally Load(string path)
     {

@@ -7,7 +7,7 @@ namespace LivingWeapon;
 /// the readings and emits one timestamped line per change (damage, heal, move), tagged with the latched
 /// actor's weapons. The sink is injected so tests capture lines without a logger. Engine passes verbose=true
 /// and ModLogger.LogDebug, so the ev. Timeline always lands in livingweapon.log (Debug writes the file
-/// unconditionally) and never on the console (LW-52 removed the VerboseLog knob).
+/// unconditionally) and never on the console (the VerboseLog knob is gone).
 /// </summary>
 internal sealed class BattleLog
 {

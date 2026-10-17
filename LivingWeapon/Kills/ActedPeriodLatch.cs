@@ -16,7 +16,7 @@ internal sealed class ActedPeriodOutputs
     internal List<int> LastPlayerWeapons = new();
     internal int LastPlayerMainHand;
     internal (int lvl, int br, int fa) LastActorFp;
-    // LW-252 stage 3. The acting unit's frame nameId, refreshed beside LastActorFp (outside the !SameSet
+    // The acting unit's frame nameId, refreshed beside LastActorFp (outside the !SameSet
     // guard) so TrackDelayed can compare identity by nameId. 0 means none was resolved (never latched,
     // ambiguous or enemy period, or the first-kill fallback).
     internal int LastActorNameId;
@@ -88,7 +88,7 @@ internal sealed class ActedPeriodLatch
                     o.LatchViaFallback = _resolver.LastResolveSource == ResolveSource.TqFallback;
                     // Refresh the acting fingerprint on the latch edge, outside the !SameSet guard. Two Arcanum
                     // holders share weapon set {30}, so inside it a handoff never updated it (the Larceny bug).
-                    // LW-252 stage 3. The nameId refreshes at the same place and for the same reason, so a
+                    // The nameId refreshes at the same place and for the same reason, so a
                     // same-set handoff does not leave the previous wielder's identity behind.
                     bool resolvedFp = _resolver.TryResolveActingFingerprint(out var afp, out var actorNameId);
                     o.LastActorFp = resolvedFp ? afp : default;
@@ -98,7 +98,7 @@ internal sealed class ActedPeriodLatch
                         o.LastPlayerWeapons = ws;
                         o.LastPlayerMainHand = ws.Count > 0 ? _resolver.ResolveActingMainHand() : 0;
                         o.ActorTag = string.Join(",", ws);
-                        // Source tag is a three-way since LW-63 added the turn-flags lane.
+                        // Source tag is a three-way since the turn-flags lane was added.
                         string src = _resolver.LastResolveSource switch
                         {
                             ResolveSource.Flags => "the turn flags",
@@ -150,7 +150,7 @@ internal sealed class ActedPeriodLatch
         {
             o.LastPlayerWeapons = ws;
             o.LastPlayerMainHand = _resolver.ResolveActingMainHand();
-            // LW-252 stage 3. LastActorNameId stays 0 here. This path only runs when the acted path never
+            // LastActorNameId stays 0 here. This path only runs when the acted path never
             // latched this battle, so there is no identity, and TrackDelayed falls back to the fingerprint.
             o.ActorTag = string.Join(",", ws);
             o.LastResolveTick = _register.Tick;   // KillerStamp's ordering-gate comparand (KillerStamp.cs)
@@ -175,7 +175,7 @@ internal sealed class ActedPeriodLatch
         o.LastPlayerWeapons = new();
         o.LastPlayerMainHand = 0;
         o.LastActorFp = default;
-        o.LastActorNameId = 0;   // LW-252 stage 3. Clears beside LastActorFp
+        o.LastActorNameId = 0;   // Clears beside LastActorFp
         o.LastResolveTick = 0;
         o.Latched = false;
         o.PeriodOpen = false;

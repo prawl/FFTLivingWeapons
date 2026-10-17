@@ -8,7 +8,7 @@ namespace LivingWeapon;
 /// </summary>
 internal static partial class Wielder
 {
-    /// <summary>Occupied-slot walk (LW-62; internal since LW-149 stage D), shared by the roster resolvers, Choir.cs and RingGate.cs so the
+    /// <summary>Occupied-slot walk, shared by the roster resolvers, Choir.cs and RingGate.cs so the
     /// level 1..99 rule lives in one place. EagleEye.ActiveTarget and Plague.IsEquipped use <see cref="TryOccupiedSlotLenient"/>
     /// (Wielder.Occupancy.cs, no level check) so a readable level-0 ghost row still arms them.</summary>
     internal static bool TryOccupiedSlot(IGameMemory mem, int r, out long rb, out int lvl)
@@ -70,7 +70,7 @@ internal static partial class Wielder
     }
 
     /// <summary>Collects every deployed main-hand wielder of <paramref name="weaponId"/> into <paramref name="results"/> (cleared first):
-    /// band entry address, fp, and the roster row's own nameId (LW-252 stage 5), so per-wielder holds (Iai, Mushin) can key through
+    /// band entry address, fp, and the roster row's own nameId, so per-wielder holds (Iai, Mushin) can key through
     /// WielderKeyedStore instead of the fp-only dictionary that shared state between fp-twins. Benched reserves are skipped; used by Choir, Iai, Mushin.</summary>
     public static void ResolveDeployedMainHandAll(IGameMemory mem, int weaponId,
         List<(long entry, (int lvl, int br, int fa) fp, int nameId)> results)
@@ -166,13 +166,13 @@ internal static partial class Wielder
     /// <summary>Any-hand sibling of <see cref="RosterNameId"/> for <see cref="Locate"/>'s implicit-resolve overload. Returns the nameId
     /// when exactly one slot matches weaponId (rh/lh/oh) and fp, else -1; refuses even when all matches share a nameId, since roster nameIds
     /// can be duplicated (Iai.cs:74-77). -1 alone does not stop Locate (its foreign-nameId veto only arms when rosterNameId &gt; 0), which is how
-    /// a band collider got adopted when 2+ rows shared weapon+fp (ledger [party-nameid-unique-key], LW-252); callers that need to tell 0 from 2+
+    /// a band collider got adopted when 2+ rows shared weapon+fp (ledger [party-nameid-unique-key]); callers that need to tell 0 from 2+
     /// use the 4-arg overload (see <see cref="LocateAmbiguous"/>).</summary>
     internal static int ResolveAnyHandNameId(IGameMemory mem, int weaponId, (int lvl, int br, int fa) fp)
         => ResolveAnyHandNameId(mem, weaponId, fp, out _);
 
     /// <summary>Same rule as the 3-arg overload, plus the raw <paramref name="matchCount"/> so callers can tell zero rows from 2+
-    /// (both return -1). Locate/LocateAll send 2+ to their ambiguous branch; WeaponPalette.Desire.cs (DesiredGlow, LW-295)
+    /// (both return -1). Locate/LocateAll send 2+ to their ambiguous branch; WeaponPalette.Desire.cs (DesiredGlow)
     /// treats any matchCount &gt;= 1 as a hit.</summary>
     internal static int ResolveAnyHandNameId(IGameMemory mem, int weaponId, (int lvl, int br, int fa) fp,
         out int matchCount)

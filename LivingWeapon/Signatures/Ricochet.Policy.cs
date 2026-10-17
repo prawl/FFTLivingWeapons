@@ -75,13 +75,13 @@ internal sealed partial class Ricochet
         return chip;
     }
 
-    /// <summary>Taxicab distance; forwards to <see cref="Grid.Manhattan"/> (moved there in LW-149 stage G).</summary>
+    /// <summary>Taxicab distance; forwards to <see cref="Grid.Manhattan"/>.</summary>
     public static int Manhattan(int x1, int y1, int x2, int y2) => Grid.Manhattan(x1, y1, x2, y2);
 
     /// <summary>New HP after applying chip. Max(currentHp, chip, 1). Chip never kills.</summary>
     public static int ClampHp(int currentHp, int chip) => Math.Max(currentHp - chip, 1);
 
-    /// <summary>Write the clamped HP as one little-endian W16 (LW-145 fix 2. Two W8 writes left a torn-value window).
+    /// <summary>Write the clamped HP as one little-endian W16 (two W8 writes left a torn-value window).
     /// No-op if unwritable or already at the floor.</summary>
     public static void ApplyChip(IGameMemory mem, long addr, int currentHp, int chip)
     {

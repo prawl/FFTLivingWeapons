@@ -4,10 +4,10 @@ using System.Text;
 namespace LivingWeapon;
 
 /// <summary>
-/// Pure helpers for the TurnOwnerSpike passive recorder. It was built for LW-31 stage 2, which
-/// shipped (docs/CHANGELOG.md:932, LW-31 SHIPPED 2b2f5b4 2026-07-07). It still ticks in Engine as a
-/// correlation recorder, and its only likely consumer is LW-139's turn-order rebuild (docs/TODO.md);
-/// if LW-139 declines, unwire it. The #if LWDEV shell that does the memory reads and Trace logging
+/// Pure helpers for the TurnOwnerSpike passive recorder. It was built for the Attack-menu painter, which
+/// shipped 2b2f5b4 on 2026-07-07. It still ticks in Engine as a
+/// correlation recorder, and its only likely consumer is the turn-order rebuild in the backlog;
+/// if that declines, unwire it. The #if LWDEV shell that does the memory reads and Trace logging
 /// is TurnOwnerSpike.cs.
 ///
 /// The attack-card dossier (AttackCard.cs) shows the previous actor's weapon at menu time, because

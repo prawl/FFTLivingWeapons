@@ -19,7 +19,7 @@ internal sealed class PromptSwapHook
     // 1.5.1 re-anchor (2026-07-14, docs/research/PORT_1.5.1_OFFSETS.md): the 1.5 address 0x14028F79C became a
     // mid-function branch target (code shifted -0x4C) and the detour crashed the game on the first battle prompt.
     // The corrected entry 0x14028F750 looked plausible (ret + CC padding at 0x14028F74D, clean prologue), but
-    // disassembly (LW-89 step 2, tools/probes/disasm.py, 2026-07-14) showed a dispatch wrapper taking
+    // disassembly (tools/probes/disasm.py, 2026-07-14) showed a dispatch wrapper taking
     // (holder in rcx, flag byte in dl), so rdx was caller garbage and no toast delivered on 1.5.1.
     //
     // The wrapper resolves the text from a std::string at holder+0x20 (size +0x30, capacity +0x38; inline when
@@ -36,7 +36,7 @@ internal sealed class PromptSwapHook
     // The old address now holds `00 00 00 cc` padding, so a blind hook there would corrupt it.
     private static long FnSetTextString => ImageBase.At(0x1403F109C);
 
-    // The 11-byte prologue read at FnSetTextString on 1.5.1, 2026-07-14 (LW-89 step 2): push rbp; push rbx;
+    // The 11-byte prologue read at FnSetTextString on 1.5.1, 2026-07-14. Push rbp; push rbx;
     // push rdi; mov rbp,rsp; sub rsp,50h. Unchanged on 1.5.2. Checked by HookLandmark.Verify in Arm().
     private static readonly byte[] ExpectedPrologue =
         { 0x40, 0x55, 0x53, 0x57, 0x48, 0x8B, 0xEC, 0x48, 0x83, 0xEC, 0x50 };
@@ -65,8 +65,8 @@ internal sealed class PromptSwapHook
         _payloadPin = GCHandle.Alloc(_payloadBuf, GCHandleType.Pinned);
     }
 
-    /// <summary>Install the detour. Idempotent; called from Engine.InjectHooks (toasts are on since LW-52).
-    /// This is the only tap on the address (the ShowSpike instrument was removed in LW-67). Refuses with one
+    /// <summary>Install the detour. Idempotent; called from Engine.InjectHooks (toasts are always on).
+    /// This is the only tap on the address (the ShowSpike instrument is gone). Refuses with one
     /// Warn if the target does not carry ExpectedPrologue (the 1.5.1 crash) or the read fails.</summary>
     public void Arm(IReloadedHooks hooks)
     {

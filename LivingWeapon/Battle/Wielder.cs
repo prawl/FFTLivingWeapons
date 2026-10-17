@@ -6,7 +6,7 @@ namespace LivingWeapon;
 /// Band-address-space half of Wielder. Given a roster-resolved fingerprint and hand-id set
 /// (Wielder.Roster.cs), find that unit's live band entry. Ports ExtraTurn's Locate pair, twin
 /// filter included, behind IGameMemory so the walk is testable with the fake.
-/// The LW-252 ambiguous-roster branch is in Wielder.Ambiguous.cs.
+/// The ambiguous-roster branch is in Wielder.Ambiguous.cs.
 /// </summary>
 internal static partial class Wielder
 {
@@ -15,7 +15,7 @@ internal static partial class Wielder
 
     /// <summary>The wielder's live band entry. Resolves the roster nameId from the hand ids and
     /// delegates to the explicit overload below. If 2+ roster rows match it routes to
-    /// <see cref="LocateAmbiguous"/> instead. Before LW-252 that case resolved to the same -1 as
+    /// <see cref="LocateAmbiguous"/> instead. That case once resolved to the same -1 as
     /// zero matches, which disarmed tier 2's foreign-nameId veto and let a band collider be adopted
     /// (ledger [party-nameid-unique-key], mirror mechanism [frame-1fc-nameid-mirror]). Zero matches,
     /// or a 2+ roster with an unseeded row, still take the old tier-2-only path with rosterNameId -1.</summary>
@@ -55,7 +55,7 @@ internal static partial class Wielder
     /// Accepted residuals (D3, do not fix without a live counter-probe): which nameId-verified mirror
     /// copy is returned is unknown, but holds re-apply every tick so a miss self-heals; and an enemy
     /// matching nameId, full fp and weapon id is indistinguishable from a mirror copy.
-    /// Internal for <see cref="LocateAmbiguous"/> (LW-252, as TryOccupiedSlot in LW-149), which must
+    /// Internal for <see cref="LocateAmbiguous"/>, which must
     /// call it directly because the 5-arg <see cref="Locate(IGameMemory,int,IReadOnlyList{int},(int,int,int),int)"/>
     /// falls through to tier 2 and would reopen the collider leak.</summary>
     internal static long LocateTier1(IGameMemory mem, int weaponId, IReadOnlyList<int> hands,
@@ -155,7 +155,7 @@ internal static partial class Wielder
     /// <summary>Append every band entry passing the weapon and fingerprint checks to
     /// <paramref name="results"/>, with no twin filtering, for idempotent writes where covering every
     /// copy is harmless. Resolves the roster nameId like <see cref="Locate(IGameMemory,int,IReadOnlyList{int},(int,int,int))"/>,
-    /// including its LW-252 branch (<see cref="LocateAllAmbiguous"/>), so 2+ matching roster rows don't
+    /// including its ambiguous branch (<see cref="LocateAllAmbiguous"/>), so 2+ matching roster rows don't
     /// hand a write like SpiritualFont's to two different deployed wielders sharing a weapon.</summary>
     public static void LocateAll(IGameMemory mem, int weaponId, IReadOnlyList<int> hands,
                                  (int lvl, int br, int fa) fp, List<long> results)

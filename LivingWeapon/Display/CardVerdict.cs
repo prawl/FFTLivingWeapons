@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Two-lane per-pass paint verdict ledger (LW-257 commit 1), keyed by SlotAddr rather than weapon id.
+/// Two-lane per-pass paint verdict ledger, keyed by SlotAddr rather than weapon id.
 /// Per-id aggregation hid a missing equip-card copy while Display.PoolPaint.cs CoversAllMeta() still
 /// reported complete, since CardSites.cs sizes pools at about 5.8 copies per id.
 ///
@@ -13,7 +13,7 @@ namespace LivingWeapon;
 /// nearly all AlreadyEqual, which filled a shared cap with the same prefix every pass.
 ///
 /// Settled lane (<see cref="Settled"/>): unbounded (Id, SlotAddr) set of every Wrote and AlreadyEqual,
-/// queried by id and predicate, never enumerated. It backs the LW-257 commit 2 pending-set clear.
+/// queried by id and predicate, never enumerated. It backs the pending-set clear.
 /// </summary>
 internal sealed class CardVerdict
 {
@@ -62,7 +62,7 @@ internal sealed class CardVerdict
     }
 
     /// <summary>True if <paramref name="id"/> settled (Wrote or AlreadyEqual) at any site this pass
-    /// whose address satisfies <paramref name="addrPredicate"/>. Used by the LW-257 commit 2 pending-set clear.</summary>
+    /// whose address satisfies <paramref name="addrPredicate"/>. Used by the pending-set clear.</summary>
     public bool Settled(int id, Func<long, bool> addrPredicate)
     {
         foreach (var (sid, addr) in _settled)

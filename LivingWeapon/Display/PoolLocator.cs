@@ -39,7 +39,7 @@ internal sealed partial class PoolLocator
         _regionSidecarPath = regionSidecarPath;
     }
 
-    /// <summary>Test only. Blocks until the whole scan finishes, the freeze LW-261 removed; production calls <see cref="Step"/> from a tick (Display.PoolLocate.cs StepPoolLocate).
+    /// <summary>Test only. Blocks until the whole scan finishes, the freeze the resumable rewrite removed; production calls <see cref="Step"/> from a tick (Display.PoolLocate.cs StepPoolLocate).
     /// Returns the cache without rescanning when every region still reads as pool and no restart is queued.</summary>
     internal IReadOnlyList<(long baseAddr, long size)> LocateAll()
     {

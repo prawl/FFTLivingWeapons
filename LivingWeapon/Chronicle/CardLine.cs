@@ -34,7 +34,7 @@ internal static class CardLine
         // Headroom guard (see the constants above).
         if (budgetChars < weaponName.Length + FormDFixedChars + DigitHeadroom) return null;
 
-        // Ties go to the lower Archetype enum value (VictimClass.BestMark, shared with AttackCard.cs, LW-31).
+        // Ties go to the lower Archetype enum value (VictimClass.BestMark, shared with AttackCard.cs).
         VictimClass.Archetype? bestMark = VictimClass.BestMark(legend, out int bestCount);
 
         bool undead = legend.LastVictimCls == (int)VictimClass.Archetype.Undead;

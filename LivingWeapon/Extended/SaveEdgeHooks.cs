@@ -9,11 +9,11 @@ namespace LivingWeapon;
 /// Native half of the save edges (untestable, like PromptSwapHook). Three
 /// Reloaded.Hooks detours behind prologue landmarks. The two load detours forward to the
 /// original, then read the save struct header through the guarded patcher and hand it to
-/// <see cref="SaveEdgeTracker"/>. Since LW-371 the serialize detour first projects the three
+/// <see cref="SaveEdgeTracker"/>. The serialize detour first projects the three
 /// relocated chart blocks (<see cref="TemplateSync.Project"/>), then forwards and reads the
 /// header. Detours never throw and log only the once-per-session canaries.
 ///
-/// The load detours also write game memory (the serialize detour too, since LW-371).
+/// The load detours also write game memory (the serialize detour too, for the projection).
 /// The routine they wrap copies the save's bag over the count array (the file carries ids
 /// 0..260, so extended ids land on zero) and restores both menu order templates from the save
 /// struct (0x14021B4BD / 0x14021B5BB). Nothing in the load path rebuilds them from item data
@@ -52,7 +52,7 @@ internal sealed partial class SaveEdgeHooks
     private readonly SaveEdgeTracker _tracker;
     private readonly IReadOnlyList<int> _extendedIds;
     private readonly Action<string>? _replayOnLoad;   // the bag replay, by save key
-    private readonly long _bagBase;   // LW-368 round 2. ExtendedInventory.BagCountBase, set at construction
+    private readonly long _bagBase;   // ExtendedInventory.BagCountBase, set at construction
     private readonly TemplateRelocation? _templates;   // null = no template sync (every pre-existing caller)
     private IHook<EdgeFn>? _serialize, _apply, _applyB;
     private EdgeFn? _k1, _k2, _k3;   // GC anchors. The native thunks must outlive us
@@ -60,7 +60,7 @@ internal sealed partial class SaveEdgeHooks
 
     public bool IsActive => _serialize?.IsHookEnabled == true && _apply?.IsHookEnabled == true && _applyB?.IsHookEnabled == true;
 
-    /// <param name="bagBase">LW-368 round 2. Where the bag bytes live (<see
+    /// <param name="bagBase">Where the bag bytes live (<see
     /// cref="ExtendedInventory.BagCountBase"/> in production); defaults to the vanilla block.</param>
     /// <param name="templates">for <see cref="TemplateSync"/> project/adopt. Null makes
     /// both edges no-ops.</param>
@@ -127,7 +127,7 @@ internal sealed partial class SaveEdgeHooks
     }
 
     /// <summary>Internal as a test seam, like <see cref="AfterApply"/>. Reads through
-    /// <see cref="_bagBase"/> (LW-368 round 2).</summary>
+    /// <see cref="_bagBase"/>.</summary>
     internal Dictionary<int, int> ReadCounts()
     {
         var counts = new Dictionary<int, int>();

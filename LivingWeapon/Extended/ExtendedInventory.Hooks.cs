@@ -4,10 +4,10 @@ using Reloaded.Hooks.Definitions;
 namespace LivingWeapon;
 
 /// <summary>
-/// The detour half of the arm. The five Reloaded.Hooks detours (category getter, menu-order rebuild, LW-372 list-builder,
+/// The detour half of the arm. The five Reloaded.Hooks detours (category getter, menu-order rebuild, list-builder,
 /// inventory reset, save edges) in install order, plus the reverse-order rollback. Split from ExtendedInventory.cs in
-/// LW-351 fix round 7 (2026-08-30). `Install` lives in ExtendedInventory.Arm.cs, tick logic in .Tick.cs.
-/// RollBack restores the template relocation first, then the list relocation (D2/LW-371).
+/// 2026-08-30. `Install` lives in ExtendedInventory.Arm.cs, tick logic in .Tick.cs.
+/// RollBack restores the template relocation first, then the list relocation.
 /// </summary>
 internal sealed partial class ExtendedInventory
 {
@@ -18,7 +18,7 @@ internal sealed partial class ExtendedInventory
         string? why = _getterHook.Install(hooks);
         if (why != null) return why;
         // Fix round 7. Seats the owned extended ids into the template before the game's rebuild, so it needs the id count.
-        // LW-368 round 2. Ownership via BagCountBase (relocated page once armed). seats into TemplateRegions.
+        // Ownership via BagCountBase (relocated page once armed). seats into TemplateRegions.
         _orderHook = new OrderRebuildHook(_patcher, extendedCount: Items.Count, bagBase: BagCountBase, regions: () => TemplateRegions);
         why = _orderHook.Install(hooks);
         if (why != null) return why;
@@ -52,7 +52,7 @@ internal sealed partial class ExtendedInventory
         _shops.Restore(_patcher);
         _catalog.Restore(_patcher);
         _templates.Restore(_patcher);   // undo right before the catalog, its install successor
-        _relocation.Restore(_patcher);   // LW-368 round 2. Undo right before the boot cap patches, its install neighbor
+        _relocation.Restore(_patcher);   // Undo right before the boot cap patches, its install neighbor
         _patches.Rollback(_patcher);
     }
 }

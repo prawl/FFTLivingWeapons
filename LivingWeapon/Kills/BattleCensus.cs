@@ -7,15 +7,15 @@ namespace LivingWeapon;
 /// Reliquary P2 probe (docs/RELIQUARY_AC.md P2). Read-only identity census of both teams, taken once per
 /// battle when <see cref="EnemyOracle.CoverageDone"/> goes true (the "all N enemies accounted for" edge,
 /// EnemyOracle.CheckCoverage, about 5s into battle), so a boss nameId can be checked for uniqueness and
-/// player-pool collisions. <see cref="Tick"/> is wired from KillTracker.Poll after ScanCorpses. LW-56 D11/A3
-/// adds <see cref="EmitExit"/>, which runs the census on the battle-exit edge even if coverage never
+/// player-pool collisions. <see cref="Tick"/> is wired from KillTracker.Poll after ScanCorpses.
+/// <see cref="EmitExit"/> runs the census on the battle-exit edge even if coverage never
 /// completed; a battle where both run logs two records. Two guarded passes over the band (nameId, job,
-/// level/brave/faith, hp, grid position) and the roster (the same, plus the raw hand slots, LW-56 round 2).
+/// level/brave/faith, hp, grid position) and the roster (the same, plus the raw hand slots).
 /// One Debug line per slot and a single flight tap for the whole census.
 /// </summary>
 internal sealed class BattleCensus
 {
-    // Caps the flight record (the ring holds 4096). Raised 1400 -> 1800 in LW-56 round 2, when the
+    // Caps the flight record (the ring holds 4096). Raised 1400 -> 1800 when the
     // roster part gained the W{rHand},{lHand},{offHand} tail that lands after the band part and would
     // be truncated first on a full battle.
     private const int MaxPayloadChars = 1800;
@@ -43,7 +43,7 @@ internal sealed class BattleCensus
     /// <summary>Re-arm for the next battle.</summary>
     public void ResetBattle() => _fired = false;
 
-    /// <summary>LW-56 D11/A3. Run the census regardless of <see cref="_fired"/>, on the battle-exit
+    /// <summary>Run the census regardless of <see cref="_fired"/>, on the battle-exit
     /// edge, so the exit tape always has one.</summary>
     internal void EmitExit() => RunCensus();
 

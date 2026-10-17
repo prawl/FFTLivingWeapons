@@ -53,7 +53,7 @@ internal sealed class NumeralSpike
     [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(nint hWnd, out uint pid);
     [DllImport("kernel32.dll")] private static extern uint GetCurrentProcessId();
 
-    // F8 is clear of F2/F4 StatusSpike, F5/Shift+F5 BodyDoubleSpike and F6 ProvokeSpike (LW-67 deleted the old spikes on F6).
+    // F8 is clear of F2/F4 StatusSpike, F5/Shift+F5 BodyDoubleSpike and F6 ProvokeSpike (the old spikes on F6 are deleted).
     // The request-file lane exists because F3 is eaten on this box and env vars do not survive the game's launch chain.
     private const int VkF8 = 0x77;
 

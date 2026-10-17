@@ -6,7 +6,7 @@ namespace LivingWeapon;
 
 /// <summary>
 /// Testable core behind the save-edge hooks. The detours read the save header and the extended
-/// ids' bag counts on the game thread and hand them here. Since LW-351 the load detour also runs BagReplay
+/// ids' bag counts on the game thread and hand them here. The load detour also runs BagReplay
 /// before publishing its edge, because the game rebuilds its menu templates during the load. File I/O,
 /// logging and the second replay run on Engine's tick via <see cref="ExtendedInventory.StepBagSidecar"/>,
 /// which drains the two pending slots; a newer edge supersedes an undrained one.

@@ -19,9 +19,9 @@ internal sealed partial class Display
     // verifying, e.g. after a save-load). Same count means same coverage; a lower count triggers the re-check below.
     private int _countAtCoverage;
 
-    // LW-165 stage 1. True once pool coverage has gone false->true in this launch. Never reset, so it
+    // True once pool coverage has gone false->true in this launch. Never reset, so it
     // is independent of _poolCovered. The first latch logs at Info (kill counters went live);
-    // later re-latches (Invalidate, the LW-163 drained-cache heal) stay Debug.
+    // later re-latches (Invalidate, the drained-cache heal) stay Debug.
     private bool _coverageAnnounced;
 
     // The StuckEdge and coverage-transition log gates (NoPoolRegionLogGate, ReArmNoPoolRegionLog,
@@ -43,7 +43,7 @@ internal sealed partial class Display
     ///
     /// Retune round (R1): this method only reads the published PoolLocator.CachedRegions and neither
     /// triggers nor steps a region walk. The old synchronous PoolLocator.LocateAll here blocked for
-    /// 7 to 10 seconds (live-measured). After the LW-261 resumable rewrite, also stepping the locate here
+    /// 7 to 10 seconds (live-measured). After the resumable rewrite, also stepping the locate here
     /// paid the ~45ms region snapshot about twice a tick, roughly 32 percent of one 92.2s owner-tape scan
     /// and 29 percent of a 101.7s one (arithmetic in PoolScan.cs SnapshotRefreshMs). Removing it does not
     /// shorten scan wall time, SnapshotRefreshMs and the battle-aware budget do that. Engine's "pool-locate"
@@ -85,8 +85,8 @@ internal sealed partial class Display
         if (_poolCovered)
         {
             _countAtCoverage = _sites.Count;   // snapshot the count the re-check above compares against
-            LatchRegionCounts(regions);        // LW-257 commit 2. This beat's per-region baseline (own doc)
-            AnnounceCoverage(regions);         // LW-165 stage 1. This is always a false->true edge (see field doc)
+            LatchRegionCounts(regions);        // This beat's per-region baseline (own doc)
+            AnnounceCoverage(regions);         // This is always a false->true edge (see field doc)
         }
         // Promoted from #if LWDEV, rate-limited by PoolCoverageLogGate (Display.PoolPaintLog.cs).
         // Snapshot() is copied only when the gate logs.
@@ -99,11 +99,11 @@ internal sealed partial class Display
         return _poolCovered;
     }
 
-    /// <summary>LW-165 stage 1. Called from the false->true latch site above only; the re-latch in the
+    /// <summary>Called from the false->true latch site above only; the re-latch in the
     /// short-circuit at the top of <see cref="MaybePoolPaint"/> never reaches here. The first call of a
     /// launch is the "kill counters just went live" moment, logged at Info with the paint-spot count and
     /// the time since Display's first Tick (Engine ticks Display only after the launch guard arms).
-    /// Later calls (post-Invalidate re-latch, LW-163 drained-cache heal) log at Debug.</summary>
+    /// Later calls (post-Invalidate re-latch, drained-cache heal) log at Debug.</summary>
     private void AnnounceCoverage(IReadOnlyList<(long baseAddr, long size)> regions)
     {
         // One snapshot shared by killsSites and the flight tap (RecordCoverageIfTapped),
@@ -139,10 +139,10 @@ internal sealed partial class Display
     /// allSuffixes. True searches every tracked id's suffix in a text-bearing chunk, not just the
     /// rotation slice, so a tally reset cannot leave a stale +N. Cost is about 121 ids x 2 encodings of
     /// FindAll passes per such chunk, tens of ms for a full 4MB chunk, on Engine's background loop and not
-    /// the game thread. It runs on battle-exit, paused status-card and battle-enter Invalidate (LW-163,
+    /// the game thread. It runs on battle-exit, paused status-card and battle-enter Invalidate (see
     /// Engine.cs) and on the drained-cache re-latch, which can land mid-battle during an off-field settle.
     /// If kills coverage never latches (a weapon absent from every pool region) that cost recurs per tick.
-    /// That failure already existed and shows in the "LW37 paint" coverage line (Debug since LW-257).</summary>
+    /// That failure already existed and shows in the "LW37 paint" coverage line (Debug tier).</summary>
     private void ScanPoolRegion(long regionBase, long regionSize)
     {
         var reader = new ChunkReader(_mem);

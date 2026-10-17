@@ -50,7 +50,7 @@ internal static class WeaponPalettePolicy
     }
 
     /// <summary>Brightens each BGR555 channel toward white by fraction f. C' = min(31, round(c + (31-c)*f)).
-    /// Bit 15 is always returned clear (PaintBanks owns it, LW-308). Rounds half to even to match Python's
+    /// Bit 15 is always returned clear (PaintBanks owns it). Rounds half to even to match Python's
     /// round() in tools/probes/lw305_bench_paint.py (2dbab25): at f=0.75, 0x14B8 gives 0x631D, not 0x673D.</summary>
     public static int Brighten(int code, double f)
     {

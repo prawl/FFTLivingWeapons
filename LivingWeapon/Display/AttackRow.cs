@@ -1,7 +1,7 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-31 stage 3 runtime half. Reads and writes the live 36-byte Attack-command record (geometry
+/// The Attack row runtime half. Reads and writes the live 36-byte Attack-command record (geometry
 /// in AttackRow.Policy.cs, proven 2026-07-06). Stateless per call; AttackCard.cs holds the
 /// cache/anchor state and calls these once per synced hit.
 /// </summary>

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace LivingWeapon;
 
-/// <summary>LW-388 R12. The entry-trampoline half of <see cref="ThunkStub"/>. The instructions an accessor-entry jump overwrites still have to run,
+/// <summary>The entry-trampoline half of <see cref="ThunkStub"/>. The instructions an accessor-entry jump overwrites still have to run,
 /// so this emits a copy of them plus a jump back past the stolen span, like SwingIdFallbackHook does for its site.</summary>
 internal static partial class ThunkStub
 {

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-317. Turn-scoped write to the resident item-stats WP byte for the "wp"/"wp+faith" guns (the three
+/// Turn-scoped write to the resident item-stats WP byte for the "wp"/"wp+faith" guns (the three
 /// plain and three magic guns that Routes gives no combat-struct lane, see GrowthEngine.Lanes.cs). While the
 /// acting unit is a player wielding one at tier &gt; 0, holds the byte (Offsets.ItemStatsBase) at
 /// bakedWP + Tuning.WpBonus[tier] and restores the baked value as soon as that stops being true.
@@ -32,9 +32,9 @@ internal sealed class WpTableHold
     // _suspectWarned). A byte matching neither the baked WP nor our target belongs to someone else.
     private readonly HashSet<int> _standDown = new();
 
-    // LW-346 growth polish. Extended ids (261+) have no row in the resident stats table; their 8-byte
+    // Extended ids (261+) have no row in the resident stats table; their 8-byte
     // row is in the mod's weapon-stat stub page. Returns that address, or -1 if not an armed extended
-    // item. Null (tests, pre-LW-346) refuses such ids.
+    // item. Null (tests, no extended inventory) refuses such ids.
     private readonly Func<int, long>? _extendedRowAddr;
 
     public WpTableHold(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, IGameMemory mem,

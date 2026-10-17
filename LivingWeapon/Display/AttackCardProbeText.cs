@@ -4,7 +4,7 @@ using System.Text;
 namespace LivingWeapon;
 
 /// <summary>
-/// Pure half of the LW-31 Attack-menu census instrument (docs/TODO.md Now section, stage 1). A
+/// Pure half of the Attack-menu census instrument. A
 /// dev-build one-shot scans the heap for the standalone C-string "Attack" (the Abilities submenu
 /// row label), whose hover-card Description follows it in the same packed table (2026-07-05:
 /// writing past the label's 6 chars eats its NUL and bleeds into the desc). When the desc has
@@ -41,7 +41,7 @@ internal static class AttackCardProbeText
     internal static byte[] PayloadWithTerminator(int enc) => EncodeWithTerminator(Payload, enc);
 
     /// <summary>Encode any string plus one encoded NUL terminator. General form of
-    /// <see cref="PayloadWithTerminator"/>, used by AttackCard.cs (LW-31's production painter).</summary>
+    /// <see cref="PayloadWithTerminator"/>, used by AttackCard.cs (the production painter).</summary>
     internal static byte[] EncodeWithTerminator(string s, int enc)
     {
         byte[] textBytes = ByteScan.Enc(s, enc);

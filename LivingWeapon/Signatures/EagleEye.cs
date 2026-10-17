@@ -60,7 +60,7 @@ internal sealed partial class EagleEye : ISignature
     }
 
     /// <summary>The Doom countdown target if a +3 Eclipsebolt is equipped by any roster unit, else 0.
-    /// Internal so the ghost-row pin test (LW-149 stage D) can call it directly.</summary>
+    /// Internal so the ghost-row pin test can call it directly.</summary>
     internal int ActiveTarget()
     {
         if (!_meta.TryGetValue(EclipseboltId, out var m)) return 0;
@@ -68,7 +68,7 @@ internal sealed partial class EagleEye : ISignature
         if (target <= 0) return 0;
         for (int r = 0; r < Offsets.RosterSlots; r++)
         {
-            // LW-149 stage D. Shared lenient occupied-slot walk (Wielder.Occupancy.cs, also used by
+            // Shared lenient occupied-slot walk (Wielder.Occupancy.cs, also used by
             // Plague.IsEquipped), no level gate.
             if (!Wielder.TryOccupiedSlotLenient(_mem, r, out long rb)) continue;
             // Main hand only.

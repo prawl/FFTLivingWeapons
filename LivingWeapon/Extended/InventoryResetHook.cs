@@ -6,7 +6,7 @@ using Reloaded.Hooks.Definitions.X64;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-351 fix round 7 (2026-08-30). Detour on the game's per-item inventory reset
+/// Detour on the game's per-item inventory reset
 /// (<see cref="Offsets.FnInventoryReset"/>, 0x140284500). The routine wipes the owned-count table and
 /// rebuilds it from the save, but only for the base game's 261 items, so extended counts read x0 after
 /// every real battle (seen 2026-08-30 23:29, no load edge in between). This hook saves them before the
@@ -51,7 +51,7 @@ internal sealed class InventoryResetHook
     public long Restores => Interlocked.Read(ref _restores);
 
     /// <param name="extendedCount">N, the armed extended ids 261..261+N-1 whose bag bytes are kept.</param>
-    /// <param name="bagBase">LW-368 round 2. Where the bag bytes live, <see
+    /// <param name="bagBase">Where the bag bytes live, <see
     /// cref="ExtendedInventory.BagCountBase"/> in production (relocated page once armed). Defaults to the vanilla block.</param>
     public InventoryResetHook(ICodePatcher mem, int extendedCount, long targetAddr = 0, long bagBase = 0)
     {

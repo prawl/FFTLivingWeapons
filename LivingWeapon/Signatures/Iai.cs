@@ -24,7 +24,7 @@ internal sealed partial class Iai : ISignature
     private readonly Dictionary<int, int> _kills;
     private readonly NaturalLedger _ledger;
     private readonly List<(long entry, (int lvl, int br, int fa) fp, int nameId)> _wielders = new();
-    // LW-252 stage 5 (2026-08-17): keyed by nameId, fp fallback (see WielderKeyedStore). Seeded fp-twins get separate holds;
+    // Keyed by nameId, fp fallback (see WielderKeyedStore). Seeded fp-twins get separate holds;
     // a pair where either nameId never resolves still shares one, and two wielders with the same nameId release together early (fails safe).
     private readonly WielderKeyedStore<HoldState> _holds = new();
 
@@ -86,12 +86,12 @@ internal sealed partial class Iai : ISignature
     }
 
     /// <summary>Pass 1. Arm and hold each resolved wielder (capture natural once, then write the clamped Speed every tick);
-    /// released wielders get the LW-90 corrective below.</summary>
+    /// released wielders get the baked-residue corrective below.</summary>
     private void ApplyHolds(DateTime now, int fieldMax)
     {
         foreach (var (entry, fp, nameId) in _wielders)
         {
-            // LW-252 stage 5. Factory runs only on a genuine first arm. null means an ambiguous nameId-0 tick while two seeded fp-twins already hold, so treat it as not located this tick.
+            // Factory runs only on a genuine first arm. null means an ambiguous nameId-0 tick while two seeded fp-twins already hold, so treat it as not located this tick.
             var state = _holds.GetOrCreate(nameId, fp, () =>
             {
                 var s = new HoldState { ArmedAt = now };
@@ -109,7 +109,7 @@ internal sealed partial class Iai : ISignature
 
             if (state.Released)
             {
-                // LW-90 corrective (observed 2026-07-21, owner repro 11:03-11:08 log, docs/LIVE_LEDGER.md row still Uncertain). The engine's per-turn normalize re-paints a baseline that captured our boost (Iai arms ~100ms after battle open), so the boost returns after release.
+                // Baked-residue corrective (observed 2026-07-21, owner repro 11:03-11:08 log, docs/LIVE_LEDGER.md row still Uncertain). The engine's per-turn normalize re-paints a baseline that captured our boost (Iai arms ~100ms after battle open), so the boost returns after release.
                 // Watch BakedResidue (restart case) and LastTarget (fresh battle) for the rest of the battle; a real Speed buff landing on either value gets overwritten.
                 // Safe inside the resolved loop because the D3 tier-1 tie-break resolves nameId-verified mirror copies (IaiTests.Post_release_corrective_survives_mirror_churn).
                 int cur0 = _mem.U8(spAddr);
@@ -197,7 +197,7 @@ internal sealed partial class Iai : ISignature
         return max;
     }
 
-    /// <summary>Mutable per-wielder hold state, stored in <see cref="_holds"/> (LW-252 stage 5). A class so Tick mutates it in place.</summary>
+    /// <summary>Mutable per-wielder hold state, stored in <see cref="_holds"/>. A class so Tick mutates it in place.</summary>
     private sealed class HoldState
     {
         public DateTime ArmedAt;

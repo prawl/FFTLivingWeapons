@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-56 credit-time live-wielder gate for a corpse's culprit weapon list. Narrowing only, like
+/// Credit-time live-wielder gate for a corpse's culprit weapon list. Narrowing only, like
 /// <see cref="CursorGate"/>. It can refuse a credit but never add or redirect one. It closes the case
 /// where a stale attribution latch survives into a new battle and credits a weapon nobody carries.
 /// The live truth comes in as a predicate, so the class stays pure and truth-table testable.

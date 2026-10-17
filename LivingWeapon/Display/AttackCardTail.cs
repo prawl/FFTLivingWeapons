@@ -1,11 +1,11 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-31 stage 3 (docs/TODO.md). Composes the description tail after the row name that AttackRow.Policy.ComposeRow already set.
+/// Composes the description tail after the row name that AttackRow.Policy.ComposeRow already set.
 /// The head is a kill meter, "Kills: {kills}/{nextThreshold} to {nextSuffix}" below max tier (via <see cref="Tuning.NextThresholdForIn"/>), plain "Kills: {kills}" at max (2026-07-06).
 /// The signature clause is disabled (2026-07-07); <see cref="ComposeTail"/> forces it null and the params stay so re-enabling is a one-line revert. Its old faces were "{sigLabel} armed" when earned and "Unlocks {sigLabel}" when locked.
 /// Clauses join with <see cref="ClauseSep"/> and the tail never ends in a period (2026-07-06 complaint about the "+." ending). GenericTail and FistTail are fixed sentences and keep theirs.
-/// Priority is head, Mark (LW-35 hides it at the call site), then signature. Trailing clauses drop whole when they overflow budgetChars, which the caller derives from AttackRow.Policy.FootprintChars minus the row name and its NUL.
+/// Priority is head, Mark (hidden at the call site for release), then signature. Trailing clauses drop whole when they overflow budgetChars, which the caller derives from AttackRow.Policy.FootprintChars minus the row name and its NUL.
 /// GenericTail fires only when the head alone does not fit. Fist rows (AttackRow.Policy.RowKind.Fist) skip this method and use FistTail.
 /// </summary>
 internal static class AttackCardTail

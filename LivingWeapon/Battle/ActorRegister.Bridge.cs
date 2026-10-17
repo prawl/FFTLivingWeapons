@@ -12,7 +12,7 @@ internal sealed partial class ActorRegister
     /// (guards a possible enemy/player nameId overlap, K2 of the kill-attribution plan). One match is
     /// Player. Several matches, or a nameId of 0 (a capture failure, the 0==0 trap), is Unknown so
     /// callers fall through to the TQ-fingerprint body. Zero matches with a nonzero nameId gets one
-    /// <see cref="RescueCanonical"/> attempt (LW-56 fault 2) before conceding Enemy, because the
+    /// <see cref="RescueCanonical"/> attempt before conceding Enemy, because the
     /// new-game Orbonne opener's scripted player units carry a canonical nameId matching no roster row.</summary>
     private RosterBridge Bridge(long entry, ushort nameId, out long rosterBase)
     {
@@ -38,7 +38,7 @@ internal sealed partial class ActorRegister
         return RescueCanonical(entry, nameId, lvl, br, fa, out rosterBase);
     }
 
-    /// <summary>LW-56 fault 2 (D10, A1). Called only when <see cref="Bridge"/> found zero nameId+stat
+    /// <summary>Called only when <see cref="Bridge"/> found zero nameId+stat
     /// matches. Turns a zero-evidence Enemy into a positively identified Player and refuses on any
     /// doubt. Refusal returns Enemy, not Unknown, because Unknown would fall through to the
     /// TQ-fingerprint body and change live behavior.
@@ -112,7 +112,7 @@ internal sealed partial class ActorRegister
     /// <summary>True when neither hand-side sentinel (0x00FF/0xFFFF) applies to <paramref name="id"/>.</summary>
     private static bool Held(int id) => id != 0x00FF && id != 0xFFFF;
 
-    /// <summary>True when the band-weapon read is an unarmed sentinel (0, 0xFF, 0xFFFF; see the LW-55
+    /// <summary>True when the band-weapon read is an unarmed sentinel (0, 0xFF, 0xFFFF; see
     /// CursorGate).</summary>
     private static bool IsUnarmedWeapon(int bandWeapon) => bandWeapon == 0 || bandWeapon == 0xFF || bandWeapon == 0xFFFF;
 

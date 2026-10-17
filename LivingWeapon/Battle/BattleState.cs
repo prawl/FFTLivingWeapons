@@ -24,7 +24,7 @@ internal sealed class BattleState
     private bool _pairWasArmed;                    // last observed sentinel-pair state (for the edge)
 
     /// <summary>Both battle sentinels armed at once. Slot0 at the in-battle marker
-    /// (Offsets.Slot0InBattleMarker, 0x10 on 1.5, re-anchored from the pre-1.5 0xFF by LW-42) and
+    /// (Offsets.Slot0InBattleMarker, 0x10 on 1.5, re-anchored from the pre-1.5 0xFF) and
     /// slot9 at its stuck sentinel. Only the disarmed-to-armed edge of the pair enters. As a level
     /// signal it re-entered instantly after every exit, because both sentinels stuck on the
     /// pre-1.5 post-quit world map (slot0 stayed 0xFF after a QUIT, probe-verified 2026-06-10; the
@@ -38,7 +38,7 @@ internal sealed class BattleState
     /// caller) or any live battlefield mode. battleMode reads 0 on the world map and menus and 2/3/4
     /// on a live battlefield (Offsets.BattleMode), so a live mode has no world-map false positive.
     /// This matches InLiveBattle's live-mode set. A former "mode 3 only enters when slot0==0xFF"
-    /// qualifier dropped the enter edge on 1.5, where the marker reads 0x10 (LW-40, seen
+    /// qualifier dropped the enter edge on 1.5, where the marker reads 0x10 (seen
     /// 2026-07-07 with slot0=0x10 / mode=3).</summary>
     internal static bool EnterSignal(bool pairRisingEdge, int battleMode) =>
         pairRisingEdge || battleMode == 2 || battleMode == 3 || battleMode == 4;
@@ -46,7 +46,7 @@ internal sealed class BattleState
     /// <summary>A genuine in-battle frame, for the charm heartbeat and every module that writes
     /// battle memory. battleMode 2/3/4 covers active-turn frames. The slot0 marker
     /// (Offsets.Slot0InBattleMarker, 0x10 on 1.5) covers cast/attack targeting and enemy turns
-    /// (battleMode 1/5). LW-42 re-anchored it from the pre-1.5 0xFF; before that this arm was dead
+    /// (battleMode 1/5). Re-anchored from the pre-1.5 0xFF; before that this arm was dead
     /// and the 2026-07-21 log shows the false exit it caused (enter 07:24:14, exit 07:24:22 at
     /// mode 1). Whether the marker persists through mode 1/5 stretches is inherited pre-1.5
     /// behavior, AWAITING-LIVE (owner slow-cast eyeball); if wrong the excuse stays dead, never

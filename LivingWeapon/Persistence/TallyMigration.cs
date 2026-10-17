@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-351. When a weapon's design moves to a new item id, its kills move with it. The Terrastaff
+/// When a weapon's design moves to a new item id, its kills move with it. The Terrastaff
 /// used to sit in the Battle Axe's slot and now has its own id, so a save with 40 kills on the old
 /// id shows 40 on the new one.
 /// The pairing is data. An items.json row carries <c>migratedFrom</c>, the bake copies it into

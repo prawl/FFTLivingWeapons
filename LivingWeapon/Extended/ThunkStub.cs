@@ -6,7 +6,7 @@ namespace LivingWeapon;
 /// Byte emitters for the accessor entry hooks. The game reaches each per-item accessor
 /// (weapon stats, validity, type probe, range index, sprite/palette pair) through ten fixed
 /// addresses. On the Denuvo build each was an <c>E9 jmp rel32</c> thunk; on the Denuvo-free build
-/// (LW-388 R12, read on disk 2026-10-16) each is the function entry, hooked via AccessorEntryHook
+/// (read on disk 2026-10-16) each is the function entry, hooked via AccessorEntryHook
 /// with a trampoline (ThunkStub.Trampoline.cs). The stubs let ids 261..511 answer as a donor item
 /// or an authored weapon row. Generalised from FFTHandsFree ThunkRedirect.EmitCloneStub; see
 /// docs/research/ITEM_CAP_261_BREAK_JOURNEY.md (2026-08-27 03:20 blueprint, piece 3).
@@ -69,7 +69,7 @@ internal static partial class ThunkStub
     public const int SwingIdStubSize = 0x40;
 
     /// <summary>
-    /// LW-365 swing-id fallback stub, planted over the 7-byte movzx at Offsets.FnSwingPrepIdCopy.
+    /// Swing-id fallback stub, planted over the 7-byte movzx at Offsets.FnSwingPrepIdCopy.
     /// rax is the instruction's destination, rsi (acting slot &lt;&lt; 9) is read-only, flags are dead
     /// (the next compare is <c>cmp</c> at +0x1C).
     /// <code>

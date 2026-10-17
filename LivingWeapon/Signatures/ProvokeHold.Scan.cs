@@ -54,8 +54,8 @@ internal sealed partial class ProvokeHold
     /// <summary>true iff some player-side seat owns the turn flag (<see cref="Band.FlagOwner"/>),
     /// i.e. it is still the player's turn. Replaces the Offsets.TqTeam read, which flickered to ENEMY
     /// during the player's own action. The flag is the band +0x19C menu-open flag (docs/LIVE_LEDGER.md,
-    /// turn/moved/acted row, 2026-07-09); LW-87 (2026-07-21, not owner-flipped) saw it hold across a
-    /// status-screen detour, and LW-135 (docs/TODO.md) banks a probe. The tick census saw FlagOwner
+    /// turn/moved/acted row, 2026-07-09); a 2026-07-21 session (not owner-flipped) saw it hold across a
+    /// status-screen detour, and the hide/reveal arc banked a probe. The tick census saw FlagOwner
     /// miss a player seat on all 804 enemy-turn ticks (FLAG-BRIDGE-FAIL 804). It fails open. No owner,
     /// or two disagreeing owners, returns false and the gate opens.</summary>
     private static bool PlayerSideOwnsTurn(IGameMemory mem) =>
@@ -198,7 +198,7 @@ internal sealed partial class ProvokeHold
         Flight.Record("provoke", $"scrub-unarmable nameId={id.nameId} tile={gx},{gy}");
     }
 
-    /// <summary>LW-130 / AC 3c. Scrub a stray Provoke mark on the player's own side. Runs every live
+    /// <summary>Scrub a stray Provoke mark on the player's own side. Runs every live
     /// tick, independent of the hold's state. The bearer is walked too. Uses the mask-scoped
     /// ClearMark (ProvokeHold.Policy.cs), since composed +0x45 also holds Dead/Undead/Charging/Jump
     /// and KillTracker reads it.</summary>
@@ -228,7 +228,7 @@ internal sealed partial class ProvokeHold
             else if (!anyRefused) { anyRefused = true; refusedSeat = s; }
         }
 
-        // Signatures.StuckEdge latch (the LW-69 log flood, as in Provoke.Table.cs's
+        // Signatures.StuckEdge latch (the log flood shape, as in Provoke.Table.cs's
         // _boundsRefusedLogged): one call per sweep so a page that stays unwritable does not
         // re-log this WARN every 33ms tick.
         if (Signatures.StuckEdge(ref _scrubRefusedLogged, anyRefused))

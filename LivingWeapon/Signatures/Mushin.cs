@@ -24,14 +24,14 @@ namespace LivingWeapon;
 /// changes nothing. Each decision is logged at Debug. No other signals are used, and every read is
 /// per-wielder-entry and guarded.
 ///
-/// Offsets. The three band offsets were local consts until LW-55 stage 1 moved them to Offsets.cs
-/// (ATurnFlag/AMoved/AActed); the earlier deferral was due to uncommitted LW-51 work (bf351db).
+/// Offsets. The three band offsets were local consts until they moved to Offsets.cs
+/// (ATurnFlag/AMoved/AActed); the earlier deferral was due to uncommitted tally-scoping work (bf351db).
 ///
 /// Accepted residuals (1) a reaction during the wielder's own menu window sets ACTED, turning a
 /// wait into a no-arm or consume, which fails safe; (2) auto-battle and charmed turns are untested;
 /// (3) twin/mirror frames carry frozen flags, but the twin-filtered Wielder.Locate prefers the real entry.
 ///
-/// The armed store is shared with GrowthEngine (built once in Engine.cs). LW-252 stage 5 keyed it
+/// The armed store is shared with GrowthEngine (built once in Engine.cs). It is keyed
 /// via <see cref="WielderKeyedStore{TState}"/> (nameId primary, fp fallback) so two seeded
 /// Kiku-ichimonji wielders sharing (lvl,br,fa) no longer cross-arm; a mixed pair still shares one
 /// count. _prevTurnFlag uses its own private store.
@@ -42,7 +42,7 @@ internal sealed partial class Mushin : ISignature
 
     private const int KikuIchimonjiId = 45;
 
-    /// <summary>Aliases onto the Offsets.cs trio (LW-55 stage 1); see Offsets.cs for the PSX provenance.</summary>
+    /// <summary>Aliases onto the Offsets.cs trio; see Offsets.cs for the PSX provenance.</summary>
     private const int TurnFlagOffset = Offsets.ATurnFlag;
     private const int MovedOffset = Offsets.AMoved;
     private const int ActedOffset = Offsets.AActed;
@@ -53,7 +53,7 @@ internal sealed partial class Mushin : ISignature
     private readonly WielderKeyedStore<Box<int>> _armed;
     private readonly List<(long entry, (int lvl, int br, int fa) fp, int nameId)> _wielders = new();
 
-    /// <summary>Per-wielder previous TURN FLAG, boxed for WielderKeyedStore (LW-252 stage 5; private,
+    /// <summary>Per-wielder previous TURN FLAG, boxed for WielderKeyedStore (private,
     /// GrowthEngine never reads it). Value -1 means not yet primed, so the first observed value is
     /// captured without deciding and a legitimate 0 stays distinguishable.</summary>
     private readonly WielderKeyedStore<Box<int>> _prevTurnFlag = new();
@@ -105,7 +105,7 @@ internal sealed partial class Mushin : ISignature
         if (!_mem.Readable(entry + TurnFlagOffset, 1)) return;
         int cur = _mem.U8(entry + TurnFlagOffset);
 
-        // LW-252 stage 5. Keyed via WielderKeyedStore (nameId primary, fp fallback). null means an
+        // Keyed via WielderKeyedStore (nameId primary, fp fallback). null means an
         // ambiguous nameId-0 tick for a fp two seeded twins already hold; skip this wielder this tick.
         var flag = _prevTurnFlag.GetOrCreate(nameId, fp, () => new Box<int> { Value = -1 });
         if (flag == null) return;

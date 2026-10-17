@@ -27,7 +27,7 @@ internal sealed partial class Bulwark : ISignature
 {
     void ISignature.Tick(in TickContext ctx) => Tick(ctx.OnField);
 
-    /// <summary>The Sunderer's item id. It was 264 from LW-351 stage 2 (2026-08-30), when it left the
+    /// <summary>The Sunderer's item id. It was 264 from 2026-08-30, when it left the
     /// Slasher's slot (50) for an extended id, then 263 after the Moonblade's removal (2026-08-31).
     /// A save's tally follows it (TallyMigration, meta.json migratedFrom). BulwarkTests pins it.</summary>
     internal const int SundererId = 263;
@@ -39,7 +39,7 @@ internal sealed partial class Bulwark : ISignature
     private readonly ScopedLogger _slog;   // armed gate keeps a benched or below-tier Sunderer off the console
 
     private bool _wasActive;
-    /// <summary>Previous turn flag. LW-136 allows a single wielder, so one nullable int suffices;
+    /// <summary>Previous turn flag. Only a single wielder is allowed, so one nullable int suffices;
     /// null means not yet primed, as in Mushin.cs.</summary>
     private int? _prevTurnFlag;
     private bool _planted;

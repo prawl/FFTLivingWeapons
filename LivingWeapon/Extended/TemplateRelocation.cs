@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-371 lifts the 140-kinds ceiling on the two weapon menu order templates and the picker's all-items chart.
+/// Lifts the 140-kinds ceiling on the two weapon menu order templates and the picker's all-items chart.
 /// The game keeps them in fixed tables of 140 kinds plus an end marker (141/141/262 words) and its housekeeper never checks the limit. A 141st kind lands at the front and the last word spills into the next data (the helmet chart, on the picker side).
 /// This copies the three charts onto a mod-owned page and re-points ten places in game code (three data slots, five code fields, two cap sites, listed in TemplateRelocation.Sites.cs) at 512-word regions holding 510 ids plus the marker.
 /// Like <see cref="ListRelocation"/>, every field must read vanilla before any write, and a refusal midway restores the changed fields in reverse.
@@ -143,10 +143,10 @@ internal sealed partial class TemplateRelocation
     /// Truncates without checking, so <see cref="Install"/> runs <see cref="CheckReach"/> first.</summary>
     internal static int NewField(RipField f, long page) => (int)(page + AllItemsPageOffset + f.Off - (Live(f) + 4));
 
-    /// <summary>LW-388. <see cref="RipField.Addr"/> is PIN space; this is the field's address in the running image.</summary>
+    /// <summary><see cref="RipField.Addr"/> is PIN space; this is the field's address in the running image.</summary>
     private static long Live(RipField f) => ImageBase.At(f.Addr);
 
-    /// <summary>LW-372 (D4). A <see cref="CapSite"/> verify-read is 1 byte (builder cap) or 4 (insert bound), so compare whole arrays.</summary>
+    /// <summary>A <see cref="CapSite"/> verify-read is 1 byte (builder cap) or 4 (insert bound), so compare whole arrays.</summary>
     private static bool BytesEqual(byte[] a, byte[] b)
     {
         if (a.Length != b.Length) return false;

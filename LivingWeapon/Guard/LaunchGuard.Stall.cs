@@ -1,7 +1,7 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// The stall half of the main guard. Before it, a mod that could not read the game (LW-387's
+/// The stall half of the main guard. Before it, a mod that could not read the game (the
 /// "kill counts never move" reports) retried silently forever. <see cref="LandmarkStall"/> wraps the two
 /// main landmarks and calls the handlers below once per long unreadable streak. Also holds the thresholds,
 /// copy, latches and the LW_FORCE_GUARD_UNREADABLE blind drill.

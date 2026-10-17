@@ -10,7 +10,7 @@ namespace LivingWeapon;
 /// <see cref="WeaponMeta.Colors"/>), writes entries 1..15 into both banks
 /// (Offsets.WeaponPaletteBankA/B), restoring the first-paint snapshot when it no longer applies.
 /// A FlagOwner refusal holds the current state (a stale color beats a wrong one). The decision
-/// table is WeaponPalettePolicy.Decide; the LW-295 glow-tier read is in WeaponPalette.Desire.cs.
+/// table is WeaponPalettePolicy.Decide; the glow-tier read is in WeaponPalette.Desire.cs.
 /// </summary>
 internal sealed partial class WeaponPalette
 {

@@ -147,7 +147,7 @@ internal sealed partial class Plague : ISignature
 
     /// <summary>Enemy fingerprints from the static array (as Maim / EagleEye). Not
     /// Band.EnemyFingerprints, because this reads the static enemy array with its own mhp bound
-    /// (IsValidEnemyMhp, &lt;= 1999). The bounds match numerically (LW-145 fix 6) but stay separate
+    /// (IsValidEnemyMhp, &lt;= 1999). The bounds match numerically but stay separate
     /// until the open row in docs/LIVE_LEDGER.md settles whether exactly 2000 is a valid mhp.</summary>
     private System.Collections.Generic.HashSet<(int mhp, int lvl, int br, int fa)> EnemyFingerprints()
     {

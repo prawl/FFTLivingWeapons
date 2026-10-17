@@ -1,7 +1,7 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// CardSites.PaintSiteWithResult's per-site verdict (LW-257 commit 1), shaped like SyncOutcome
+/// CardSites.PaintSiteWithResult's per-site verdict, shaped like SyncOutcome
 /// (SyncOutcome.cs). It replaces the old AnchorIsLive bool and PaintResult.NoWrite, which made a
 /// transient unreadable anchor look like a buffer-reuse mismatch and evicted the site on the first miss.
 /// Wrote and AlreadyEqual keep the site cached; every other value names why it was refused or evicted.

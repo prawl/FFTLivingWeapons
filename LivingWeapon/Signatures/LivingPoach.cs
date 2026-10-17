@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-167 Living Poach executor. Consumes KillTracker's deed sink (IDeedSink.RecordPoachDeed, via
+/// Living Poach executor. Consumes KillTracker's deed sink (IDeedSink.RecordPoachDeed, via
 /// DeedFanout.cs) and rolls a carcass into the Poacher's Den store; LivingPoachPolicy.Decide is the pure roll.
 /// Since stage 4 (2026-08-12) Engine wires the per-weapon delegates to <see cref="ReadWasBasicAttack"/>
 /// and <see cref="ReadKillerHasPoach"/> (LIVE_LEDGER). <see cref="RecordPoachDeed"/> refuses viaFallback and
@@ -36,7 +36,7 @@ internal sealed partial class LivingPoach
         _roll = roll ?? (() => rng.Next(0, 256));   // 0..255 inclusive, IRoll's live impl
     }
 
-    /// <summary>Clear the per-battle corpse dedupe and the LW-167 pending-despawn queue on both
+    /// <summary>Clear the per-battle corpse dedupe and the pending-despawn queue on both
     /// battle edges; pending corpses stop being retried.</summary>
     public void ResetBattle()
     {
@@ -85,7 +85,7 @@ internal sealed partial class LivingPoach
             string name = verdict == PoachVerdict.Common ? carcass.CommonName : carcass.RareName;
             if (WriteCarcass(weaponId, key, name))
             {
-                // LW-167 stage 3. A real Poach leaves no corpse, so despawn this one. A refusal never rolls
+                // A real Poach leaves no corpse, so despawn this one. A refusal never rolls
                 // back the store write. A transient refusal retries via LivingPoach.Despawn.cs's Tick; a
                 // permanent one (no longer our corpse) is not queued, CorpseDespawn.cs already logged it.
                 if (!CorpseDespawn.TryDespawn(_mem, slot, victim.NameId, out var refusal) && refusal == DespawnRefusal.Transient)

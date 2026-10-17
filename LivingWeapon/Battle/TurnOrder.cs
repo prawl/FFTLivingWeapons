@@ -10,7 +10,7 @@ namespace LivingWeapon;
 /// units carry different Speeds).
 /// Player seats are excluded. ExtraTurn slams CT (band +0x25), Iai holds Speed (band +0x24), and
 /// GrowthEngine holds Speed for growth. Offsets.ACtSlam says not to trust CT for the player's own turns.
-/// Stateless. Each call walks the band fresh, so LW-139 can reuse it.
+/// Stateless. Each call walks the band fresh, so a turn-order rebuild can reuse it.
 /// </summary>
 internal static class TurnOrder
 {

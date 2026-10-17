@@ -4,7 +4,7 @@ namespace LivingWeapon;
 
 /// <summary>
 /// Shared grid-tile metrics for band-position signatures. Moved out of Ricochet.Policy.cs
-/// (LW-149 stage G) after Wyrmblood.Policy.InSplash (deleted in LW-159) borrowed Ricochet's
+/// after Wyrmblood.Policy.InSplash (since deleted) borrowed Ricochet's
 /// Manhattan helper. Ricochet.Policy keeps a one-line forward.
 /// </summary>
 internal static class Grid

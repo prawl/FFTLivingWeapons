@@ -1,7 +1,7 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-167 Living Poach killer-signal reads. Two stateless per-weapon reads off the deployed
+/// Living Poach killer-signal reads. Two stateless per-weapon reads off the deployed
 /// main-hand wielder (Wielder.ResolveDeployedMainHand). Split from LivingPoach.cs, which holds the
 /// stateful executor; the executor receives these as injected delegates.
 /// Both inherit the resolve lane's limit. A credit naming an off-hand copy resolves to nobody, or
@@ -22,8 +22,8 @@ internal sealed partial class LivingPoach
         return (mem.U8(addr) & mask) != 0;
     }
 
-    /// <summary>LW-167 stage 4 basic-Attack discriminator (LIVE_LEDGER "The basic-Attack
-    /// discriminator (LW-167 stage 4)", 2026-08-12, probe tools/probes/arec_watch.py). Reads the
+    /// <summary>Basic-Attack discriminator (LIVE_LEDGER "The basic-Attack
+    /// discriminator", 2026-08-12, probe tools/probes/arec_watch.py). Reads the
     /// killer's action record (Offsets.AArec) and is true only when kind (+0xA) is
     /// <see cref="Offsets.ArecKindPerforming"/> and abil (+0x2) is
     /// <see cref="Tuning.BasicAttackAbilityId"/> (0). Every failure returns false and logs why, so a

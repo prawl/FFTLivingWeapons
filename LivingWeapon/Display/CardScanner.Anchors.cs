@@ -4,14 +4,14 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// CardScanner's anchor candidate selection and nearest-anchor byte searches (LW-332, split from
+/// CardScanner's anchor candidate selection and nearest-anchor byte searches (split from
 /// CardScanner.cs for the 200-line trigger). FindNearestFlavor uses the Nearest* searches and
 /// LayoutProbeOwner uses MatchesExactlyAt.
 /// </summary>
 internal static partial class CardScanner
 {
     /// <summary>Anchor patterns for a weapon id at this encoding. EarnedAnchors' full set when
-    /// wired, else the baked Flavor and Grows patterns (LW-332; either may be empty).</summary>
+    /// wired, else the baked Flavor and Grows patterns (either may be empty).</summary>
     private static IReadOnlyList<byte[]> AnchorCandidates(int id, int enc, CardPatterns pats, EarnedAnchors? anchors)
     {
         if (anchors != null) return anchors.AnchorsFor(id, enc);
@@ -70,7 +70,7 @@ internal static partial class CardScanner
         return best;
     }
 
-    /// <summary>True if buf at pos equals pattern, bounds-checked. LW-332 round 2's exact-layout
+    /// <summary>True if buf at pos equals pattern, bounds-checked. The exact-layout
     /// probe, which computes G/F from the Kills hit's geometry and so needs no window search.</summary>
     private static bool MatchesExactlyAt(byte[] buf, int pos, byte[] pattern)
     {

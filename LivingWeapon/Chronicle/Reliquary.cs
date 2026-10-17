@@ -16,7 +16,7 @@ internal interface IDeedSink
     /// Capture checklist). Log-only; the tally still increments.</summary>
     void DeedMiss(int slot);
 
-    /// <summary>LW-167 Living Poach. The credit-moment report of <see cref="RecordDeed"/> plus the victim's band slot
+    /// <summary>Living Poach. The credit-moment report of <see cref="RecordDeed"/> plus the victim's band slot
     /// (per-corpse dedupe key with nameId) and the kill's shape (delayed/charged credit, or turn-queue fallback),
     /// which feed stage 4's action discriminator. Default no-op so existing implementers compile unchanged.
     /// KillTracker.CreditKill calls it alongside RecordDeed; DeedFanout.cs is the only production override,

@@ -57,19 +57,19 @@ internal sealed partial class Iai
     /// The <paramref name="holdNameId"/> &gt; 0 guard stops a failed capture (-1, or a roster slot
     /// whose nameId reads 0) from matching an equally invalid acting read of 0. A failed capture
     /// sends the caller to the <see cref="ReleaseSignal"/> fallback (Iai.cs).
-    /// Also an LW-71 (2026-07-11) legacy lane, see <see cref="ReleaseDecision"/>.</summary>
+    /// Also a legacy lane (2026-07-11), see <see cref="ReleaseDecision"/>.</summary>
     internal static bool ReleaseSignalById(long prevActing, long curActing, bool prevActed,
         bool curActed, int actingNameId, int holdNameId)
         => holdNameId > 0 && actingNameId == holdNameId && curActing != 0
            && (curActing != prevActing || (curActed && !prevActed));
 
-    /// <summary>LW-71 verdict on the turn-flags check (Band.FlagOwner, LW-63). Confirm means the
+    /// <summary>Verdict on the turn-flags check (Band.FlagOwner). Confirm means the
     /// flag owner is this hold's wielder and the hold releases. Refuse means the owner is a
     /// different unit and the hold stays, which is the parked-pointer fix. Indeterminate means the
     /// read did not resolve or the identity cannot be compared, and the legacy signal decides.</summary>
     internal enum FlagVerdict { Confirm, Refuse, Indeterminate }
 
-    /// <summary>LW-71 verdict function over Band.FlagOwner, the per-unit PSX turn flag that names
+    /// <summary>Verdict function over Band.FlagOwner, the per-unit PSX turn flag that names
     /// whichever unit's turn is open and so is immune to the parked-pointer bug.
     /// <paramref name="ownerResolved"/> false is Indeterminate (Band.FlagOwner folds a zero-t
     /// battle-opening record and a disagreeing multiple into false, and neither may starve a
@@ -83,7 +83,7 @@ internal sealed partial class Iai
         return ownerIsWielder ? FlagVerdict.Confirm : FlagVerdict.Refuse;
     }
 
-    /// <summary>LW-71 release composer. Confirm releases regardless of the legacy signal. Refuse
+    /// <summary>Release composer. Confirm releases regardless of the legacy signal. Refuse
     /// blocks the release even when the legacy signal fired, so a parked-pointer arrival during
     /// another unit's open turn cannot release. Indeterminate passes the legacy signal through.
     /// The wall-clock cap (Tuning.IaiHoldCapSeconds, Iai.cs) backstops all three.</summary>
@@ -91,7 +91,7 @@ internal sealed partial class Iai
         => flags == FlagVerdict.Confirm || (flags == FlagVerdict.Indeterminate && legacySignal);
 
     /// <summary>Extracted from Tick's post-release corrective hold. Does the current Speed byte
-    /// look like our own boost coming back (the LW-90 theory, the engine's per-turn normalize
+    /// look like our own boost coming back (the theory, the engine's per-turn normalize
     /// re-paints a baseline that captured the hold), so it should be reset to natural? Checks
     /// the restart residue (<paramref name="bakedResidue"/>) and the hold's last written target
     /// (<paramref name="lastTarget"/>).

@@ -4,8 +4,8 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Turn-edge heal-pulse core that Renewal rides, extracted in LW-153 when Dragon Rod's Wyrmblood
-/// splash (deleted in LW-159) was its twin. Per-signature differences live in <see cref="Config"/>.
+/// Turn-edge heal-pulse core that Renewal rides, extracted when Dragon Rod's Wyrmblood
+/// splash (since deleted) was its twin. Per-signature differences live in <see cref="Config"/>.
 /// At each completed-turn edge of the +3 wielder, heals the wielder and every ally in range for a
 /// fraction of their own max HP, clamped at full. Dead units are skipped and each fingerprint heals
 /// once per pulse (band twins). One console summary per pulse; per-ally detail is file-only.
@@ -71,7 +71,7 @@ internal sealed class HealPulse
             _slog.Info(active ? _cfg.ActiveLine : _cfg.InactiveLine);
         if (!active) { _lastTurns = -1; return; }   // re-baseline on re-equip (no stale-diff pulse)
 
-        // LW-252 stage 5, query keyed by the wielder's roster nameId from the main-hand row TryResolveMainHand matched.
+        // Query keyed by the wielder's roster nameId from the main-hand row TryResolveMainHand matched.
         // A -1 nameId falls through to the fp lane like 0 does. Query and credit keys must share the TurnTracker/WielderKeyedStore law.
         int nameId = Wielder.RosterNameId(_mem, _cfg.WeaponId, fp);
         int turns = _turns.Turns(nameId, fp.lvl, fp.br, fp.fa);

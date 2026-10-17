@@ -9,7 +9,7 @@ namespace LivingWeapon;
 internal enum RevivePresentResult { Refuse, UncreditNow, Stashed }
 
 /// <summary>
-/// LW-233 checkpoint-retry detector. Retrying a lost battle rewinds the game in place with no exit
+/// Checkpoint-retry detector. Retrying a lost battle rewinds the game in place with no exit
 /// edge (docs/LIVE_LEDGER.md row [battle-retry-rewind-fingerprint], on main as of 438b173), so
 /// KillTracker would credit each revived enemy's kill a second time. This class watches the engine
 /// actor pointer's raw-null state (ActorRegister.RawNullThisTick) and per-slot revive events, and
@@ -89,7 +89,7 @@ internal sealed partial class RestartSentinel
             _lastQualifiedNullTick = 0;
             _battleAgeTicks = 0;
             _outOfLiveStreakTicks = 0;
-            _stash.Clear();   // LW-233 fix. A stale stash must not survive the starved-bracket re-arm either
+            _stash.Clear();   // a stale stash must not survive the starved-bracket re-arm either
             justQualified = false;
         }
 

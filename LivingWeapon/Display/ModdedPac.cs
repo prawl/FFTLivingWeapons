@@ -31,8 +31,8 @@ internal enum PacPatchResult
 /// throws outward. Failures are return values, since the loose-tex write is already correct
 /// without the pac write (IconGlow.Apply.cs).
 ///
-/// This file picks which offset to trust and when to run a shared <see cref="PacScan"/> pass
-/// (LW-381 R2-2); ModdedPac.Io.cs does the byte-level read/compare/write/verify.
+/// This file picks which offset to trust and when to run a shared <see cref="PacScan"/> pass;
+/// ModdedPac.Io.cs does the byte-level read/compare/write/verify.
 /// </summary>
 internal sealed partial class ModdedPac
 {
@@ -55,7 +55,7 @@ internal sealed partial class ModdedPac
     }
 
     /// <summary>
-    /// LW-381 R2-2. Patches every entry, sharing one pass over the pac for those the offset cache
+    /// Patches every entry, sharing one pass over the pac for those the offset cache
     /// cannot resolve. Cache-resolved entries are handled first; if all are, no pass runs. Never throws.
     /// </summary>
     internal IReadOnlyDictionary<string, PacPatchResult> PatchBatch(IReadOnlyList<(string CacheKey, byte[] OldBytes, byte[] NewBytes)> triples)

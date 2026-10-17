@@ -5,7 +5,7 @@ using System.Linq;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-381 R2-2, split from IconGlow.Apply.cs. Classifies an id's deployed bytes (tier or foreign)
+/// Split from IconGlow.Apply.cs. Classifies an id's deployed bytes (tier or foreign)
 /// and seeds <c>_applied</c> before any write. <see cref="ApplyId"/> in IconGlow.Apply.cs writes
 /// a tier already decided; judging never writes and applying never re-derives a tier.
 /// </summary>

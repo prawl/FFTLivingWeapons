@@ -5,7 +5,7 @@ using Newtonsoft.Json;
 
 namespace LivingWeapon;
 
-/// <summary>LW-351 stage 3 V8-4. File-format half of <see cref="ExtendedBagSidecar"/>, split out under the 200-line guideline. Holds schema parsing, the schema-1-to-2 migration and the on-disk <see cref="Dto"/>.</summary>
+/// <summary>File-format half of <see cref="ExtendedBagSidecar"/>, split out under the 200-line guideline. Holds schema parsing, the schema-1-to-2 migration and the on-disk <see cref="Dto"/>.</summary>
 internal sealed partial class ExtendedBagSidecar
 {
     public static ExtendedBagSidecar Load(string path, int maxSaves = MaxSaves)

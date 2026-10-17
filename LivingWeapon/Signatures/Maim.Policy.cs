@@ -20,7 +20,7 @@ internal sealed partial class Maim
     /// <summary>True when a new hit should re-save the bytes; while held the field is zeroed and re-saving would wipe the reaction.</summary>
     public static bool ShouldResave(bool isHeld) => !isHeld;
 
-    /// <summary>Zero all 4 reaction bytes in one WriteBytes call (LW-145 fix 2. Four W8s left a torn-value window). Guarded.</summary>
+    /// <summary>Zero all 4 reaction bytes in one WriteBytes call (four W8s left a torn-value window). Guarded.</summary>
     public static void HoldZero(IGameMemory mem, long addr)
     {
         long ra = addr + ReactionBandOff;
@@ -28,7 +28,7 @@ internal sealed partial class Maim
         mem.WriteBytes(ra, new byte[4]);
     }
 
-    /// <summary>Write the saved reaction bytes back in one WriteBytes call (LW-145 fix 2, same torn-value window). Guarded.</summary>
+    /// <summary>Write the saved reaction bytes back in one WriteBytes call (same torn-value window). Guarded.</summary>
     public static void Restore(IGameMemory mem, long addr, uint saved)
     {
         long ra = addr + ReactionBandOff;
@@ -42,7 +42,7 @@ internal sealed partial class Maim
         });
     }
 
-    /// <summary>Read the 4-byte little-endian reaction field; false if unreadable (LW-145 fix 3. A 0 sentinel looked like a real
+    /// <summary>Read the 4-byte little-endian reaction field; false if unreadable (a 0 sentinel looked like a real
     /// all-zero field). Callers refuse to latch on false (Maim.cs).</summary>
     public static bool TryReadReactionField(IGameMemory mem, long addr, out uint value)
     {

@@ -21,7 +21,7 @@ internal sealed partial class Provoke
     private byte _origActionByte;
     private readonly byte[] _origInflictRow = new byte[ProvokePolicy.InflictStride];
 
-    // Latch for the bounds refusal below (LW-69 flood shape): without it a bad ability id in
+    // Latch for the bounds refusal below (the log flood shape): without it a bad ability id in
     // items.json would warn every tick. Same pattern as Barrage's _noSlotLogged.
     private bool _boundsRefusedLogged;
 

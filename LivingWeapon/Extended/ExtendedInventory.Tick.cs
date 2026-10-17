@@ -6,10 +6,10 @@ namespace LivingWeapon;
 /// <summary>
 /// Tick half of <see cref="ExtendedInventory"/> (Engine phases "extended-caps", "extended-bag",
 /// "extended-shops", every 30th tick, once LaunchGuard armed). Steps the post-load cap patches (none
-/// since LW-388, the Denuvo-free build patches both damage caps at boot), follows the game's save edges
-/// , refreshes the shop-table mirror and runs the LW-368 round 2 relocation tripwire (D8).
+/// on the Denuvo-free build, which patches both damage caps at boot), follows the game's save edges,
+/// refreshes the shop-table mirror and runs the relocation tripwire.
 /// A save records its bag counts under its key; a load writes them back (an unseen save gets the
-/// schema-1 legacy counts once, then the data seed). Since LW-351 the replay runs inside the load
+/// schema-1 legacy counts once, then the data seed). The replay runs inside the load
 /// detour (<see cref="ReplayOnLoad"/>), which also seats the menu order templates (<see cref="TemplateSeat"/>,
 /// fix rounds 5 and 8b); the tick repeats both only for a load the detour did not serve (round 8c).
 /// </summary>
@@ -87,7 +87,7 @@ internal sealed partial class ExtendedInventory
     public void StepBagSidecar(IGameMemory mem)
     {
         if (!Armed) return;
-        // LW-368 round 2 (D8) hidden-writer tripwire. Two block reads per 30 ticks; it is the only
+        // Hidden-writer tripwire. Two block reads per 30 ticks; it is the only
         // detector for a code reference the relocation's static sweep missed.
         string? tripwire = _relocation.CheckOldBlocks(_patcher);
         if (tripwire != null) ModLogger.Warn(LogVerb.Save, tripwire);

@@ -4,14 +4,14 @@ namespace LivingWeapon;
 
 /// <summary>
 /// The LivingWeapon adapter over the portable <see cref="FingerprintGuard"/>. The main guard has one stand-down landmark,
-/// a DATA-only one (owner decision. No .text code hash, see docs/TODO.md LW-50 and docs/RELEASE_SCOPE.md section 7): Ramza's
+/// a DATA-only one (owner decision. No .text code hash, see docs/RELEASE_SCOPE.md section 7): Ramza's
 /// roster row shape at RosterBase slot 0. A mismatch stands the whole mod down for the session. the build stamp (PE
 /// TimeDateStamp + SizeOfImage) is read first but only reported (LaunchGuard.Stamp.cs); its slot returns Match on any readable
-/// read so an unreadable game still feeds the LW-392 stall warning (<see cref="LandmarkStall"/>, LaunchGuard.Stall.cs).
+/// read so an unreadable game still feeds the stall warning (<see cref="LandmarkStall"/>, LaunchGuard.Stall.cs).
 /// Before a save loads the roster row reads Unreadable, never Mismatch, so the title screen never stands down. Once armed, a guard
 /// never re-verifies, because Barrage legitimately edits the JobCommand region afterward. armed and stand-down edges
 /// record into the flight ring, and a stand-down requests a "standdown" flush. lifecycle lives here, the landmark constants
-/// and Probe in LaunchGuard.Landmarks.cs; LW-112 kit lane in LaunchGuard.KitLane.cs.
+/// and Probe in LaunchGuard.Landmarks.cs; the kit lane in LaunchGuard.KitLane.cs.
 /// </summary>
 internal sealed partial class LaunchGuard
 {
@@ -40,12 +40,12 @@ internal sealed partial class LaunchGuard
     /// <param name="recorder">the flight ring tap (production. Flight.Record).</param>
     /// <param name="requestFlush">the flight flush request (production. Flight.RequestFlush);
     /// only stand-down calls this, with a dedicated "standdown" trigger.</param>
-    /// <param name="forceMismatch">LW-83 dev drill (LW_FORCE_FINGERPRINT_MISMATCH): forces the build stamp
+    /// <param name="forceMismatch">Dev drill (LW_FORCE_FINGERPRINT_MISMATCH): forces the build stamp
     /// to read unknown so the report line and the armed-edge warning can be watched; it can no longer
     /// stand the mod down.</param>
-    /// <param name="forceSensingMismatch">LW-395 dev drill (LW_FORCE_SENSING_MISMATCH): perturbs
+    /// <param name="forceSensingMismatch">Dev drill (LW_FORCE_SENSING_MISMATCH): perturbs
     /// the sensing lane's expected slot9 so healthy memory reads as a mismatch.</param>
-    /// <param name="forceUnreadable">LW-392 dev drill (LW_FORCE_GUARD_UNREADABLE): both main landmarks
+    /// <param name="forceUnreadable">Dev drill (LW_FORCE_GUARD_UNREADABLE): both main landmarks
     /// read Unreadable for DrillBlindSteps so the stall warning and the recovery line can be watched.</param>
     public LaunchGuard(IGameMemory mem, bool forceMismatch, Action<string, string>? notice = null,
         Action<string, string>? recorder = null, Action<string>? requestFlush = null,

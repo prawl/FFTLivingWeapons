@@ -22,7 +22,7 @@ internal sealed partial class Puppeteer
 
     /// <summary>Release after the puppet takes its own <paramref name="puppetTurns"/> turn(s). An own turn is the turn-owner
     /// queue naming the puppet (QueueNamesPuppet) across an acted rising..falling edge. Reading the queue directly avoids
-    /// the LW-7 mis-crediting actor pointer, which made the old wielder-clock release on the wrong unit (2026-07-07 tapes).
+    /// the mis-crediting actor pointer, which made the old wielder-clock release on the wrong unit (2026-07-07 tapes).
     /// IsCapped bounds the hold to PuppeteerWielderlessFallbackTurns global turns if the queue signal never fires.</summary>
     private void Expire(int puppetTurns)
     {
@@ -47,7 +47,7 @@ internal sealed partial class Puppeteer
     }
 
     /// <summary>True when the turn-owner queue (Offsets.TurnQueue, matched by TurnTracker.TryActiveFingerprint) names the
-    /// active puppet by max HP and level. Immune to the LW-7 credit collapse.</summary>
+    /// active puppet by max HP and level. Immune to the auto-battle credit collapse.</summary>
     private bool QueueNamesPuppet()
     {
         if (_state.Fingerprint is not { } p) return false;

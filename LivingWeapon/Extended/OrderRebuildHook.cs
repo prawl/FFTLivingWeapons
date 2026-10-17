@@ -26,15 +26,15 @@ internal sealed partial class OrderRebuildHook
     /// <summary>First 10 bytes at the entry. Mov [rsp+8],rbx; mov [rsp+18h],rbp.</summary>
     public static readonly byte[] ExpectedPrologue = { 0x48, 0x89, 0x5C, 0x24, 0x08, 0x48, 0x89, 0x6C, 0x24, 0x18 };
 
-    /// <summary>Upper bound on words read per call. LW-372 (D5) widens the list builder's cap to 255
+    /// <summary>Upper bound on words read per call. The list builder's cap is widened to 255
     /// entries, so 260 words leaves 4 of headroom. Reading 520 bytes off the 512-byte static buffer
     /// (<see cref="Offsets.MenuListBuffer"/>) overshoots by 8 mapped bytes at +0x200; benign, since the
     /// read is guarded and <see cref="ParseList"/> stops at the terminator (null if none).</summary>
     public const int MaxWords = 260;
     public const ushort Terminator = 0xFFFF;
     public const int IdMask = 0x3FF;
-    /// <summary>Bit 14 of a list word. The E badge, set while every copy is worn. LW-351 round 7
-    /// (2026-08-30): all-equipped designs read bag 0 but are owned, so re-append honors the badge.</summary>
+    /// <summary>Bit 14 of a list word. The E badge, set while every copy is worn. Found
+    /// 2026-08-30, all-equipped designs read bag 0 but are owned, so re-append honors the badge.</summary>
     public const int EquippedBadge = 0x4000;
 
     private readonly ICodePatcher _mem;
@@ -50,7 +50,7 @@ internal sealed partial class OrderRebuildHook
 
     /// <param name="extendedCount">N, the armed extended ids 261..261+N-1 the seat-before-rebuild
     /// step (OrderRebuildHook.Seat.cs) may seat; 0 = no seating, re-append fallback only.</param>
-    /// <param name="bagBase">LW-368 round 2. Where the bag bytes live, <see
+    /// <param name="bagBase">Where the bag bytes live, <see
     /// cref="ExtendedInventory.BagCountBase"/> in production. Defaults to the vanilla block.</param>
     /// <param name="regions">where the two weapon order templates live, <see
     /// cref="ExtendedInventory.TemplateRegions"/> in production. Null falls back to

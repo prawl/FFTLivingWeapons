@@ -13,7 +13,7 @@ namespace LivingWeapon;
 /// </summary>
 internal static class Mem
 {
-    /// <summary>LW-50 write gate. Production sets it false in Mod.StartEngine before the Engine
+    /// <summary>The write gate. Production sets it false in Mod.StartEngine before the Engine
     /// (and its FastHold thread) exists; LaunchGuard's Armed edge sets it true. Defaults true so the
     /// pinned-buffer tests are unchanged (tests run serialized, TestLoggingSetup.cs:12, and restore
     /// it in a finally). Volatile because it is shared state.</summary>

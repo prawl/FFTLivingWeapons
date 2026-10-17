@@ -66,7 +66,7 @@ internal static class ExtendedInventoryData
                 }
             if (ids.Count > 0 && ids[^1] > ExtendedCatalog.LastExtendedId)
                 errors.Add($"id {ids[^1]} is past the last extended slot {ExtendedCatalog.LastExtendedId}");
-            // LW-368 round 2 (P11): past this count, eight disp8 lea sites overflow instead of widening.
+            // Past this count, eight disp8 lea sites overflow instead of widening.
             if (ids.Count > ExtendedSites.MaxExtendedCount)
                 errors.Add($"{ids.Count} extended items is past ExtendedSites.MaxExtendedCount ({ExtendedSites.MaxExtendedCount}): the eight disp8 lea sites cannot widen any further");
             foreach (int id in ids)

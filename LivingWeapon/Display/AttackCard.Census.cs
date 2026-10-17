@@ -16,7 +16,7 @@ internal sealed partial class AttackCard
         // not evicted and re-adopted.
         _rejectedThisCensus = 0;
         _sweepCompleted = false;
-        _nextIsRepaint = true;   // the tick right after Arm always repaints first (LW-57 anti-starvation)
+        _nextIsRepaint = true;   // the tick right after Arm always repaints first (anti-starvation)
         _reader.Snapshot();
         _regionsDesc = ScanCursor.SortDescending(_reader.Regions);
         _cursor = RegionCursor.AtStart(_regionsDesc);
@@ -65,7 +65,7 @@ internal sealed partial class AttackCard
 
             long labelAddr = bufBase + pos;
             // An already-cached candidate is skipped silently, before ReadDesc and SyncHit. It must
-            // not touch _rejectedThisCensus, or the LW-69 aggregate line (rejected == foreign) would drift.
+            // not touch _rejectedThisCensus, or the aggregate line (rejected == foreign) would drift.
             if (_hits.Exists(h => h.LabelAddr == labelAddr)) continue;
             int descPos = AttackCardProbeText.DescStart(pos, enc);
             long descAddr = bufBase + descPos;
@@ -73,7 +73,7 @@ internal sealed partial class AttackCard
             // enc1. Every image is AttackRow.FootprintBytes (AttackRow.Policy.BuildImage), the vanilla
             // desc's 73-char footprint, so there is no observed length to pin; SyncHit does the byte-exact
             // 74-byte known-image check.
-            // enc2. Dead path (no live catalogs; AttackCard.Enc2.cs). Keeps the original LW-33 pin logic:
+            // enc2. Dead path (no live catalogs; AttackCard.Enc2.cs). Keeps the original pin logic:
             // its only write is vanilla-restore, so it needs the true observed length.
             int cachedFootprint;
             if (enc == 1)

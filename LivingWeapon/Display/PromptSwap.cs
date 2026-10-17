@@ -12,16 +12,15 @@ namespace LivingWeapon;
 ///
 /// On 1.5.1 (2026-07-14, docs/research/PORT_1.5.1_OFFSETS.md) the patch shifted the code by -0x4C, so the
 /// 1.5 entry 0x14028F79C became mid-function and detouring it crashed the game. 0x14028F750 (after the
-/// ret + CC padding at 0x14028F74D) looked like the new entry, but LW-89 step 2 showed it is a dispatch
-/// wrapper (holder in rcx, flag byte in dl), which is why the first LW-89 head samples were garbage.
+/// ret + CC padding at 0x14028F74D) looked like the new entry, but disassembly showed it is a dispatch
+/// wrapper (holder in rcx, flag byte in dl), which is why the first head samples were garbage.
 /// The wrapper reads a string object at holder+0x20 (size +0x30, capacity +0x38, inline text when
 /// capacity is below 0x10, else a heap pointer at [holder+0x20]) and passes the char* in rdx to the
 /// text setter at 0x1403F1098 (1.5.2 moved it +4 to 0x1403F109C, PromptSwapHook.FnSetTextString).
 /// PromptSwapHook hooks that setter behind a HookLandmark.Verify prologue check. The 1.5.1 text
 /// "Select a facing direction and press F to confirm." still matches FacingPromptPrefix.
-/// TryPrepareSwap logs the first dozen unique prompt heads at Debug tier (LW-89 sampler), and
-/// PromptSwap.Sampler.cs (split out past the 200-line trigger) dumps a window around textPtr
-/// (LW-89 step 1b).
+/// TryPrepareSwap logs the first dozen unique prompt heads at Debug tier (the sampler), and
+/// PromptSwap.Sampler.cs (split out past the 200-line trigger) dumps a window around textPtr.
 internal sealed partial class PromptSwap
 {
     // EN-only because the mod's text layer is EN (french-nxd override is walled, docs/LIVE_LEDGER.md);
@@ -51,7 +50,7 @@ internal sealed partial class PromptSwap
         payload = "";
         if (textPtr == 0) return false;
 
-        // LW-89 step 1b. Runs before the head decode so unreadable or undecodable commits are dumped
+        // Runs before the head decode so unreadable or undecodable commits are dumped
         // too (see SampleStruct, PromptSwap.Sampler.cs).
         SampleStruct(textPtr);
 

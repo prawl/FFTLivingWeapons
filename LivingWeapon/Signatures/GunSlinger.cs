@@ -5,10 +5,10 @@ namespace LivingWeapon;
 
 /// <summary>
 /// Gun Slinger family. Roster prep + hold for every weapon flagged `gunSlinger` in meta.json
-/// (Outrider Pistol id 71, Arbalest id 79 "Crossfire" LW-171). When the main hand holds a flagged
+/// (Outrider Pistol id 71, Arbalest id 79 "Crossfire"). When the main hand holds a flagged
 /// weapon at its earned tier, a second copy of that same weapon goes into the roster off-hand slot
 /// (ROffHand +0x18, u16) and Dual Wield (key 477, RSupport +0x0A) into the support slot, so Attack
-/// fires twice. Consent (LW-193/LW-194, 2026-08-17): an empty off-hand invites the twin, anything
+/// fires twice. Consent (2026-08-17): an empty off-hand invites the twin, anything
 /// equipped there or in the shield slot (RShield +0x1A, read only) declines it, in every lane. Blind
 /// roster writes used to fight the game's inventory accounting. A shield was destroyed with no refund
 /// and an unequipped twin was refunded as a duplicate ([twin-grant-inventory-desync],
@@ -36,12 +36,12 @@ internal sealed partial class GunSlinger
     private readonly GunSlingerStore _store;
     private readonly HashSet<int> _twinIds;   // every gun-slinger-flagged id, cached at construction
     private readonly Action<string, string>? _recorder;   // flight tap. GunSlinger.Reconcile.cs's "twin-refund" record
-    private readonly Func<long> _bagCountBase;   // LW-368 round 2. GunSlinger.Reconcile.cs's sack reads
+    private readonly Func<long> _bagCountBase;   // GunSlinger.Reconcile.cs's sack reads
 
     /// <summary><paramref name="recorder"/> is the flight-ring tap (Flight.Record in production, a fake
     /// in tests) for the reconcile's "twin-refund" record. <paramref name="bagCountBase"/> is a Func
-    /// because Engine builds GunSlinger before <c>ExtendedInventory.BagCountBase</c> is known (LW-368
-    /// round 2). It defaults to the vanilla block.</summary>
+    /// because Engine builds GunSlinger before <c>ExtendedInventory.BagCountBase</c> is known.
+    /// It defaults to the vanilla block.</summary>
     public GunSlinger(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills,
                       string modDir, IGameMemory? mem = null, Action<string, string>? recorder = null,
                       Func<long>? bagCountBase = null)

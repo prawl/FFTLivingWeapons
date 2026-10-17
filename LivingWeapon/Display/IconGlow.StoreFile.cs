@@ -9,7 +9,7 @@ namespace LivingWeapon;
 /// <summary>Production <see cref="IIconGlowStore"/> over modDir (glow_icons/, its base_backup/
 /// subfolder, and the deployed FFTIVC tree). Every method returns null/false on failure and never
 /// throws. Writes go through <see cref="AtomicWrite"/> so a crash cannot leave a torn file.
-/// Split from IconGlow.Store.cs (LW-381, 200-line trigger), which keeps the interface and DTOs.</summary>
+/// Split from IconGlow.Store.cs, which keeps the interface and DTOs.</summary>
 internal sealed class FileIconGlowStore : IIconGlowStore
 {
     private readonly string _modDir;
@@ -57,7 +57,7 @@ internal sealed class FileIconGlowStore : IIconGlowStore
 
     public bool WriteBaseBackup(IconGlowEntry entry, byte[] bytes) => AtomicWrite(BackupPath(entry), bytes);
 
-    /// <summary>LW-381 R2-2. Delegates to <see cref="ModdedPac"/>, resolved once per launch so its
+    /// <summary>Delegates to <see cref="ModdedPac"/>, resolved once per launch so its
     /// offset cache is reused. The cache key is (id, surface), matching <see cref="DeployedPath"/>
     /// and <see cref="BackupPath"/>. Uncached items share one pass via <see cref="ModdedPac.PatchBatch"/>.</summary>
     public IReadOnlyDictionary<(int Id, string Surface), PacPatchResult> PatchPacBatch(

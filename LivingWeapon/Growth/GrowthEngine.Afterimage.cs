@@ -13,20 +13,20 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed partial class GrowthEngine
 {
-    // speed addr -> (natural, ramp state, last value we wrote as the ownership token, LW-90 baked restart residue)
+    // speed addr -> (natural, ramp state, last value we wrote as the ownership token, baked restart residue)
     private readonly Dictionary<long, (int natural, AfterimageState st, int lastTarget, int baked)> _afterimage = new();
 
     /// <summary>True when the weapon's signature is Afterimage. It owns Speed at every tier, so Route declines that lane.</summary>
     internal static bool OwnsSpeed(WeaponMeta m) => m.Signature is { Afterimage: true };
 
     /// <summary>Hold Swiftedge's Speed. Tier growth plus the +3 Afterimage ramp. Main-hand only, guarded, fail-safe.
-    /// rosterNameId (D7) feeds ReadHp's locate and the LW-90 NaturalLedger. Internal for the LW-90 seam tests.</summary>
+    /// rosterNameId feeds ReadHp's locate and the NaturalLedger. Internal for the ledger seam tests.</summary>
     internal void HoldAfterimage(long s, WeaponMeta m, int tier, int level, int brave, int faith, int rosterNameId)
     {
         if (!OwnsSpeed(m)) return;
         long addr = s + Offsets.CSpeed;
 
-        // LW-149 stage A, shared via OwnershipHold. Afterimage's record advances on the FOREIGN branch too,
+        // Shared via OwnershipHold. Afterimage's record advances on the FOREIGN branch too,
         // so the core reports the branch and this lane merges `next` itself.
         bool hadRecord = _afterimage.TryGetValue(addr, out var rec0);
         var step = OwnershipHold.Step(_mem, _ledger, addr, StatLane.Speed, rosterNameId, level,
@@ -42,7 +42,7 @@ internal sealed partial class GrowthEngine
         AfterimageState next;
         if (AfterimagePolicy.IsActive(m.Signature, tier))
         {
-            // LW-252 stage 5, key by the same rosterNameId TurnTracker credits under. A mismatch would freeze the ramp,
+            // Key by the same rosterNameId TurnTracker credits under. A mismatch would freeze the ramp,
             // so never use the bare fp overload.
             int turns = _turns.Turns(rosterNameId, level, brave, faith);
             int hp = ReadHp(_mem, level, brave, faith, rosterNameId).hp;   // 0 if no band match -> policy treats as unreadable

@@ -1,12 +1,12 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-149 stage B. The shared per-band-slot sanity read that the signature modules' band walks (Plague, Ricochet,
+/// The shared per-band-slot sanity read that the signature modules' band walks (Plague, Ricochet,
 /// Larceny, Maim, Kobu, Benediction, Puppeteer) used to duplicate. It guards the maxHp read, then rejects phantom slots:
 /// maxHp outside 1..1999 (exclusive bound, see <see cref="Band.EnemyFingerprints"/> for why it differs from the static-array
 /// sweep's inclusive 2000), level outside 1..99, or brave/faith outside 1..100. The hp-reading overload serves every caller but Plague.
 /// Per-module extras (Ricochet's gx/gy &gt; 30 reject, Puppeteer's job byte, Larceny's buff snapshot) stay caller-side.
-/// LW-153 adds <see cref="SameUnitAtExact"/>, the check every held write runs before re-squeezing a stored band address.
+/// <see cref="SameUnitAtExact"/> is the check every held write runs before re-squeezing a stored band address.
 /// </summary>
 internal static partial class Band
 {
@@ -40,7 +40,7 @@ internal static partial class Band
     /// under guard, then requires all four fields equal. Band slots are fixed addresses and units migrate between them, so a stale
     /// address must read as a stranger and be skipped. Replaces the copies in Puppeteer.Hold.Valid, Maim.Drive and Plague.DriveOne.
     /// Two lookalikes are different rules and stay separate. Rapture.SameUnit is brave/faith-only with fail-safe reads, and
-    /// PlaguePolicy.SameVictim is LW-92 drift-tolerant (accepts a bounded mid-battle level-up).</summary>
+    /// PlaguePolicy.SameVictim is drift-tolerant (accepts a bounded mid-battle level-up).</summary>
     internal static bool SameUnitAtExact(IGameMemory mem, long addr, (int mhp, int lvl, int br, int fa) fp)
     {
         if (!mem.Readable(addr + Offsets.AMaxHp, 2)) return false;

@@ -8,7 +8,7 @@ namespace LivingWeapon;
 /// <summary>
 /// Detour on the game's shared item-list builder (<see cref="Offsets.FnListBuilder"/>), whose
 /// cap byte <see cref="TemplateRelocation"/> widens to 255 (D4). Eight call sites pass one of three
-/// buffers (LW-371 P16): the static 256-word <see cref="Offsets.MenuListBuffer"/>, or one of two 152-word
+/// buffers. The static 256-word <see cref="Offsets.MenuListBuffer"/>, or one of two 152-word
 /// stack buffers (equip picker weapons list, shop list) that 255 entries would overrun into the stack
 /// cookie. D2 keys on the buffer in r9, not the call site. Stack callers get a mod-owned pool slot and
 /// the result is cut to <see cref="StackCallerCap"/>. Pool lifecycle is in ListBuilderHook.Pool.cs and
@@ -30,7 +30,7 @@ internal sealed partial class ListBuilderHook
 
     public const ushort Terminator = 0xFFFF;
 
-    /// <summary>D2. LW-371 cap for a 152-word stack buffer. 149 + the picker's two hand-item appends +
+    /// <summary>Cap for a 152-word stack buffer. 149 + the picker's two hand-item appends +
     /// terminator = (149+3)*2 = <see cref="Offsets.ListBuilderStackRoomBytes"/> (0x130, pinned by
     /// ListBuilderHookTests U1). The copy-back reuses this constant.</summary>
     public const int StackCallerCap = 149;

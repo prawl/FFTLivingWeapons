@@ -8,16 +8,16 @@ namespace LivingWeapon;
 /// Tape flight_20260818_011921_battle-exit.jsonl (coordinator-relayed, not a tracked artifact)
 /// showed the cache pinned at 2048 three times in one battle with only 726-728 kills sites; one
 /// region (0x15F800000) held 1076 sites and another (0x4F9B490000) fell from 242 to 0. Unbounded
-/// suffix copies (121 ids x 2 encodings, Display.OnChunk's allSuffixes pass, LW-59) crowded out
+/// suffix copies (121 ids x 2 encodings, Display.OnChunk's allSuffixes pass) crowded out
 /// kills sites, and CoversAllMeta() (Display.PoolPaint.cs) counts only kills, so coverage never
-/// latched and the nine-second whole-process search (LW-261 cut its cost) kept repeating.
+/// latched and the nine-second whole-process search (resumable now, but still a cost) kept repeating.
 /// Admission is the only lever. No live site is evicted to make room.
 /// </summary>
 internal sealed partial class CardSites
 {
-    /// <summary>Cap on live KILLS sites, independent of the suffix cap since LW-262. LW-59's
-    /// per-id estimate is retired; the 2026-08-18 tape peaked at 726-728 kills sites. LW-368
-    /// (2026-08-31) raised it to 4096 because the extended inventory adds up to 121 growing weapons
+    /// <summary>Cap on live KILLS sites, independent of the suffix cap. The old
+    /// per-id estimate is retired; the 2026-08-18 tape peaked at 726-728 kills sites. The extended inventory
+    /// (2026-08-31) pushed it to 4096 because it adds up to 121 growing weapons
     /// (ExtendedSites.MaxExtendedCount) and CardSitesCacheTests pins ids x 2 kinds x 8 copies, so
     /// 242 ids need 3872. The list grows incrementally, so headroom costs nothing.</summary>
     internal const int MaxSites = 4096;
@@ -45,7 +45,7 @@ internal sealed partial class CardSites
     private bool _pruneImmediately = true; // true after Clear or a prune that met PruneRearmFloor
 
     // Per-kind live counts, kept incrementally because Add is on the hot discovery path
-    // (Display.OnChunk) and an O(sites) scan per Add would undo LW-261.
+    // (Display.OnChunk) and an O(sites) scan per Add would undo the resumable locate's savings.
     private int _killsCount;
     private int _suffixCount;
     // Per-id suffix count, both encodings pooled. A missing key means zero; EvictList removes
@@ -111,7 +111,7 @@ internal sealed partial class CardSites
     }
 
     /// <summary>Evict every cached site (either kind) whose anchor is dead. Only Add's kills branch
-    /// calls it. It bypasses the LW-257 strike leniency because it must free room right now, and a
+    /// calls it. It bypasses the strike leniency because it must free room right now, and a
     /// possibly-transient Unreadable site would otherwise keep Add failing. PaintAll's maintenance
     /// passes keep the leniency. Each evicted site reaches _onPruneEvict (null is a no-op), which
     /// Display.Flight.cs turns into a "card" flight record under the existing _flightBudget tiers.
@@ -131,7 +131,7 @@ internal sealed partial class CardSites
     }
 
     /// <summary>Remove sites from _sites, _keys, _strikes (no stale strike counts for a later
-    /// site with the same key) and the LW-262 per-kind counters, so capacity freed by either eviction
+    /// site with the same key) and the per-kind counters, so capacity freed by either eviction
     /// path (this prune or PaintAll's strike evict) is available to the next Add of either kind.</summary>
     private void EvictList(List<Site> list)
     {

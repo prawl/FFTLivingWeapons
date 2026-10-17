@@ -26,7 +26,7 @@ internal sealed partial class BannerToast
     // Bulwark (Sunderer +3, docs/BULWARK_AC.md) reserves key 4 (Tuning.BulwarkToastKey) so its direct Enqueue cannot collide.
     internal readonly List<(int weaponId, int tier, string payload)> _queue = new();
 
-    /// <param name="enabled">Always on since LW-52 removed the toggle (Engine passes Tuning.BannerToasts); kept for the enabled-gate tests.</param>
+    /// <param name="enabled">Always on now that the toggle is gone (Engine passes Tuning.BannerToasts); kept for the enabled-gate tests.</param>
     /// <remarks>Engine constructs this after the LWDEV dev-seed floors every tally, so snapshotting here baselines the seeded kills
     /// and no toast fires (Prime_never_fires_on_seeded_tally, Prime_swallows_milestones_on_preloaded_tally).</remarks>
     public BannerToast(Dictionary<int, WeaponMeta> meta, Dictionary<int, int> kills, bool enabled)
@@ -46,7 +46,7 @@ internal sealed partial class BannerToast
         }
     }
 
-    /// <summary>called on the PlaythroughReset new-game edge (same as Display.Invalidate, LW-59). drops pending
+    /// <summary>called on the PlaythroughReset new-game edge (same as Display.Invalidate). drops pending
     /// toasts first, since they belong to the old playthrough. Then re-primes _tiers/_counts against the cleared kills without
     /// enqueuing. _tiers/_counts are loop-thread-only, so no lock.</summary>
     public void Rebaseline()

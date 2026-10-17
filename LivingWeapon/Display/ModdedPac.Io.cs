@@ -3,7 +3,7 @@ using System.IO;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-381 (200-line split from <see cref="ModdedPac"/>): reads, compares, writes and verifies the bytes at an
+/// Split from <see cref="ModdedPac"/>. Reads, compares, writes and verifies the bytes at an
 /// offset already believed correct. ModdedPac.cs decides which offset to trust and when to fall back to a
 /// <see cref="PacScan"/> search. The two halves fail differently (stale cache vs. share violation).
 /// </summary>

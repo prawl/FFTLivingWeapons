@@ -21,7 +21,7 @@ internal sealed partial class AttackCard
 
         if (curText != AttackCardText.VanillaDesc) return SyncOutcome.NonVanillaUtf16;
 
-        hit.DescChars = AttackCardText.DefaultBudgetChars;   // LW-33 re-pin. A full live read just confirmed vanilla
+        hit.DescChars = AttackCardText.DefaultBudgetChars;   // re-pin. A full live read just confirmed vanilla
         return SyncOutcome.Ok;   // already vanilla; enc2 never receives a composed write
     }
 

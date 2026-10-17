@@ -5,14 +5,14 @@ using System.Linq;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-351 bag-replay policy shared by the extended inventory's two load paths. The save file carries counts for ids
+/// Bag-replay policy shared by the extended inventory's two load paths. The save file carries counts for ids
 /// 0..260 only, so right after a load every extended id reads zero until the mod restores them. The replay runs in the
 /// load detour (SaveEdgeHooks.AfterApply) on the game's thread; the Engine tick runs the same resolution as an idempotent
 /// fallback and owns the log line. Round 5 (2026-08-30) found that the load-apply restores both menu order templates
 /// from the save struct byte for byte, so they are save state, and the detour therefore also calls <see cref="TemplateSeat"/>
-/// with <see cref="OwnedIds"/>. Resolution order since LW-353 is the counts recorded for the save's key, else the schema-1
-/// counts once (pre-key migration), else the data's first-copy seed. <see cref="Resolve"/> spends that migration and, since
-/// LW-351 stage 2, records the result under the key so a second resolve answers the same. The detour hands its
+/// with <see cref="OwnedIds"/>. Resolution order is the counts recorded for the save's key, else the schema-1
+/// counts once (pre-key migration), else the data's first-copy seed. <see cref="Resolve"/> spends that migration and
+/// records the result under the key so a second resolve answers the same. The detour hands its
 /// <see cref="Plan"/> to the tick so the key is not resolved twice.
 /// </summary>
 internal static class BagReplay
@@ -44,11 +44,11 @@ internal static class BagReplay
         var legacy = sidecar.TakeLegacy();
         if (legacy != null)
         {
-            // P4-F1 (LW-351 stage 2) record the migrated counts under this key. Both load routines are hooked, so one load can
+            // P4-F1 record the migrated counts under this key. Both load routines are hooked, so one load can
             // resolve a key twice, and a bare persist let the second resolve re-seed it. RecordSave persists, so the one-shot is
             // still spent once.
             sidecar.RecordSave(key, legacy);
-            return new Plan(key, legacy, "the pre-LW-353 counts (one-time migration)");
+            return new Plan(key, legacy, "the legacy counts (one-time migration)");
         }
         return new Plan(key, items.ToDictionary(i => i.Id, i => i.SeedCount),
             "the first-copy seed (this save was never seen with the mod running)");
@@ -59,7 +59,7 @@ internal static class BagReplay
         => plan.Counts.TryGetValue(item.Id, out int c) ? c : item.SeedCount;
 
     /// <summary>Write the plan into the bag, one guarded byte per extended id. <paramref name="bagBase"/> is
-    /// <see cref="ExtendedInventory.BagCountBase"/> (LW-368 round 2, the relocated page once armed, else the vanilla block),
+    /// <see cref="ExtendedInventory.BagCountBase"/> (the relocated page once armed, else the vanilla block),
     /// passed explicitly so a stale base cannot slip in. <paramref name="onRefused"/> is null on the detour path, which
     /// must not log on the game's thread; the tick passes its warning.</summary>
     public static void Apply(ICodePatcher patcher, IReadOnlyList<ExtendedItemDef> items, Plan plan, long bagBase,
@@ -72,7 +72,7 @@ internal static class BagReplay
         }
     }
 
-    /// <summary>LW-351 fix round 5, the extended ids this plan leaves the player owning, ascending. These are what
+    /// <summary>The extended ids this plan leaves the player owning, ascending. These are what
     /// <see cref="TemplateSeat"/> seats in the menu order templates.</summary>
     public static IReadOnlyList<int> OwnedIds(Plan plan, IReadOnlyList<ExtendedItemDef> items)
         => items.Where(i => CountFor(plan, i) > 0).Select(i => i.Id).OrderBy(id => id).ToList();

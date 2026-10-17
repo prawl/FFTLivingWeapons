@@ -6,10 +6,10 @@ namespace LivingWeapon;
 internal enum PoachVerdict { None, Common, Rare }
 
 /// <summary>
-/// LW-167 Living Poach pure eligibility and roll-split policy. LivingPoach.cs gathers the inputs and acts
+/// Living Poach pure eligibility and roll-split policy. LivingPoach.cs gathers the inputs and acts
 /// on the verdict. Every gate in <see cref="Decide"/> must pass or the result is None. Two guard against
 /// double-firing with vanilla Poach, <c>weaponIsDormantFormula</c> and <c>wasBasicAttack</c> (vanilla also
-/// poaches ability kills, seen 2026-08-12), armed in LW-167 stage 4 via <see cref="LivingPoach.ReadWasBasicAttack"/>.
+/// poaches ability kills, seen 2026-08-12), armed via <see cref="LivingPoach.ReadWasBasicAttack"/>.
 /// The old SpeciesOf/JobInMonsterRange arithmetic (job byte, 95) was dropped 2026-08-12 after a Black Chocobo
 /// at job 95 was refused. <paramref name="jobMapped"/> (poach.json map, tools/extract_poach_map.py) is the monster gate.
 /// </summary>

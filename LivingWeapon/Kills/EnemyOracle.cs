@@ -12,7 +12,7 @@ namespace LivingWeapon;
 /// dropped half the enemies. Capture only adds during a battle; post-restart reinforcements are a
 /// logged, accepted gap.
 ///
-/// The coverage check (LW-34, 2026-07-11) logs once per battle that all enemies are accounted for.
+/// The coverage check (2026-07-11) logs once per battle that all enemies are accounted for.
 /// The array also holds conditional-spawn phantoms that look like real enemies, and only scheduler
 /// participation tells them apart, so only identities marked by <see cref="MarkFielded"/> or
 /// <see cref="MarkDead"/> (fed by KillTracker.Corpses.cs's band walk) are counted. Others are
@@ -56,12 +56,12 @@ internal sealed class EnemyOracle
     /// <summary>True if the identity was captured from an enemy-side array slot.</summary>
     public bool Contains((byte lvl, byte br, byte fa, ushort mhp) id) => _enemyIds.Contains(id);
 
-    /// <summary>LW-34 evidence. Called once a band seat's scheduler participation (CT slam nonzero or
+    /// <summary>Coverage evidence. Called once a band seat's scheduler participation (CT slam nonzero or
     /// turn flag ==1) has held for 3 ticks. Harmless for ids never captured, since CheckCoverage
     /// intersects this set with <see cref="_enemyIds"/>.</summary>
     public void MarkFielded((byte lvl, byte br, byte fa, ushort mhp) id) => _fielded.Add(id);
 
-    /// <summary>LW-34 evidence. Called at a slot's dead-edge stamp. Separate from
+    /// <summary>Coverage evidence. Called at a slot's dead-edge stamp. Separate from
     /// <see cref="MarkFielded"/> so a kill still counts if the corpse leaves the band first.</summary>
     public void MarkDead((byte lvl, byte br, byte fa, ushort mhp) id) => _died.Add(id);
 
@@ -135,7 +135,7 @@ internal sealed class EnemyOracle
         return false;
     }
 
-    /// <summary>Coverage check (LW-34 v2). Only evidenced identities count. A MarkDead id counts as
+    /// <summary>Coverage check. Only evidenced identities count. A MarkDead id counts as
     /// found (the corpse may have left the band); a MarkFielded-only id must still be band-visible
     /// or the unseen Warn fires, deduped. Evidence comes from the same band walk this reads, so the
     /// first clean pass would latch a partial count. It latches (Info line, <see cref="_coverageDone"/>)

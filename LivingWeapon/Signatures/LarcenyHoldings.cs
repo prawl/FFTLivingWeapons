@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Per-wielder steal ledger for Larceny. LW-252 stage 5. Keyed by <see cref="WielderKeyedStore{TState}"/> (nameId
+/// Per-wielder steal ledger for Larceny. Keyed by <see cref="WielderKeyedStore{TState}"/> (nameId
 /// primary, fp fallback), so two Arcanum holders sharing a (level, brave, faith) fingerprint expire their own
 /// stolen buffs separately. The fp-only overloads delegate with nameId 0; callers with a real nameId should use
 /// the nameId-aware ones so query and credit keys match (Larceny.cs does). Memory is injected for tests.
@@ -22,7 +22,7 @@ internal sealed class LarcenyHoldings
     /// <summary>True while this buff is latched for the wielder fingerprint (fp lane, nameId 0).</summary>
     public bool IsHeld((int lvl, int br, int fa) fp, (int off, byte mask) key) => IsHeld(0, fp, key);
 
-    /// <summary>LW-252 stage 5. NameId-aware IsHeld. Read-only, never creates a ledger.</summary>
+    /// <summary>NameId-aware IsHeld. Read-only, never creates a ledger.</summary>
     public bool IsHeld(int nameId, (int lvl, int br, int fa) fp, (int off, byte mask) key)
         => _byWielder.Probe(nameId, fp) is { } s && s.IsHeld(key);
 
@@ -31,7 +31,7 @@ internal sealed class LarcenyHoldings
     public void Steal((int lvl, int br, int fa) fp, long wielderAddr, (int off, byte mask) key, int stolenTurn)
         => Steal(0, fp, wielderAddr, key, stolenTurn);
 
-    /// <summary>LW-252 stage 5. NameId-aware Steal. An ambiguous nameId-0 tick for a fp that two seeded twins share
+    /// <summary>NameId-aware Steal. An ambiguous nameId-0 tick for a fp that two seeded twins share
     /// (GetOrCreate returns null) skips the steal, bit included, since an untracked hold that never expires is
     /// worse than a missed steal.</summary>
     public void Steal(int nameId, (int lvl, int br, int fa) fp, long wielderAddr, (int off, byte mask) key, int stolenTurn)
@@ -55,11 +55,11 @@ internal sealed class LarcenyHoldings
     }
 
     /// <summary>Drop expired stolen buffs per wielder, counting that wielder's own turns (fp lane, nameId 0).
-    /// LW-252 stage 5. Emptied ledgers are not pruned mid-battle (WielderKeyedStore rule); Clear() wipes them at battle end.</summary>
+    /// Emptied ledgers are not pruned mid-battle (WielderKeyedStore rule); Clear wipes them at battle end.</summary>
     public void Expire(Func<(int, int, int), long> locate, Func<(int, int, int), int> turnsOf, int holdTurns)
         => Expire(locate, (_, fp) => turnsOf(fp), holdTurns);
 
-    /// <summary>LW-252 stage 5. NameId-aware Expire. <paramref name="turnsOf"/> gets each held wielder's own nameId
+    /// <summary>NameId-aware Expire. <paramref name="turnsOf"/> gets each held wielder's own nameId
     /// (captured at ledger creation), so the turn query matches the credit key even when another wielder is acting.</summary>
     public void Expire(Func<(int, int, int), long> locate, Func<int, (int, int, int), int> turnsOf, int holdTurns)
     {

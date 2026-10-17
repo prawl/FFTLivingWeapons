@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace LivingWeapon;
 
-/// <summary>LW-295 cycle B (needle machinery retired LW-336). The pure half of the icon-glow
+/// <summary>The pure half of the icon-glow
 /// runtime. Works out the tier each weapon wants (<see cref="DesiredTiers"/>) and which of those
 /// differ from what is applied (<see cref="Diff"/>). IconGlow.cs holds the state and
 /// IconGlow.Apply.cs does the background judge and write.</summary>

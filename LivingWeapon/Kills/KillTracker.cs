@@ -34,7 +34,7 @@ internal sealed partial class KillTracker
     internal List<int> _lastPlayerWeapons = new();   // the acting player's weapon(s); a dual-wielder latches both
     internal int _lastPlayerMainHand;                // RRHand id of the last latched actor (0 when none)
     internal (int lvl, int br, int fa) _lastActorFp; // fingerprint of the unit latched this acted-period
-    // LW-252 stage 3. The latched actor's frame nameId, mirrored beside _lastActorFp through
+    // The latched actor's frame nameId, mirrored beside _lastActorFp through
     // Seed/ApplyLatchOutputs (see ActedPeriodOutputs.LastActorNameId). 0 = no resolved identity.
     internal int _lastActorNameId;
     // Register tick of the period's last successful latch resolve (stamped at both latch-confirm sites).
@@ -73,7 +73,7 @@ internal sealed partial class KillTracker
     // Credit-time live-wielder gate (CreditGate.Decide). Null = gate off, every culprit survives.
     // Engine.cs wires Wielder.HasLiveWielder.
     private readonly Func<int, bool>? _hasLiveWielder;
-    // LW-150 S3. Acted-period latch state machine (ActedPeriodLatch.cs). It never touches this class's
+    // Acted-period latch state machine (ActedPeriodLatch.cs). It never touches this class's
     // fields; _latchIO is seeded from them before Step/Reset and copied back after. Reused to avoid a
     // per-tick allocation.
     private readonly ActedPeriodLatch _latch;
@@ -90,12 +90,12 @@ internal sealed partial class KillTracker
         _kills = kills;
         _mem = mem;
         _recorder = recorder;
-        // LW-56 A1. Built before ActorRegister; the exclusion lambda below reads _oracle at call time.
+        // Built before ActorRegister; the exclusion lambda below reads _oracle at call time.
         _oracle = new EnemyOracle(mem, () => AnyTrackedWeaponThisBattle);
         _register = new ActorRegister(mem, recorder,
             id => _oracle.Contains(((byte)id.lvl, (byte)id.br, (byte)id.fa, (ushort)id.maxHp)));
         _resolver = new ActorResolver(mem, weapons, _register);
-        // LW-63 D4. The flags-first hypothesis lane, consulted ahead of the register snapshot.
+        // The flags-first hypothesis lane, consulted ahead of the register snapshot.
         _killerStamp = new KillerStamp(_register, _resolver.HandsFromRoster, _resolver.TryResolveFlagKiller);
         _latch = new ActedPeriodLatch(mem, _resolver, _register, recorder);
         _events = events;
@@ -114,18 +114,18 @@ internal sealed partial class KillTracker
     /// it with the 2026-07-06 cursor-only fix). Same instance KillerStamp uses; callers must not mutate it.</summary>
     internal ActorRegister Register => _register;
 
-    /// <summary>LW-56 D11/A3. Wraps <see cref="BattleCensus.EmitExit"/>; Engine calls it on the battle-exit
+    /// <summary>Wraps <see cref="BattleCensus.EmitExit"/>; Engine calls it on the battle-exit
     /// edge, before the flight flush.</summary>
     internal void EmitExitCensus() => _census.EmitExit();
 
-    /// <summary>LW-31 stage 2/3, LW-55, ActorResolver.TryResolveCursorPlayer for AttackCard.Resolve.cs
+    /// <summary>ActorResolver.TryResolveCursorPlayer for AttackCard.Resolve.cs
     /// (its only resolve seam since the 2026-07-06 cursor-only fix). Null Answer = no answer, with Miss naming
     /// the refusing stage; otherwise CursorGate.Decide judges the raw <see cref="CursorAnswer"/> facts
     /// (<see cref="CursorMiss.None"/> on success).</summary>
     internal Func<(CursorAnswer? Answer, CursorMiss Miss)> ResolveCursorPlayer =>
         () => _resolver.TryResolveCursorPlayer(out var answer, out var miss) ? (answer, miss) : ((CursorAnswer?)null, miss);
 
-    /// <summary>ActorResolver.SpriteOf for AttackCard's row-rename resolve (LW-31 stage 3): the roster slot's
+    /// <summary>ActorResolver.SpriteOf for AttackCard's row-rename resolve. The roster slot's
     /// SpriteSet byte.</summary>
     internal Func<long, byte> SpriteOf => _resolver.SpriteOf;
 
@@ -136,7 +136,7 @@ internal sealed partial class KillTracker
         Array.Clear(_pendingAge, 0, _pendingAge.Length);
         Array.Clear(_pendingFalls, 0, _pendingFalls.Length);
         Array.Clear(_pendingBirthTick, 0, _pendingBirthTick.Length);
-        // LW-150 S3. Latch Reset plus battle-start defaults for the mirrored fields (see ActedPeriodLatch.Reset).
+        // Latch Reset plus battle-start defaults for the mirrored fields (see ActedPeriodLatch.Reset).
         _latch.Reset(_latchIO);
         ApplyLatchOutputs(_latchIO);
         _register.ResetBattle();
@@ -150,7 +150,7 @@ internal sealed partial class KillTracker
         _restart.ResetBattle(); // forget any latch/null history from the prior battle
     }
 
-    /// <summary>LW-150 S3. Copy this class's acted-period fields into <see cref="_latchIO"/> before
+    /// <summary>Copy this class's acted-period fields into <see cref="_latchIO"/> before
     /// <see cref="ActedPeriodLatch.Step"/>.</summary>
     private void SeedLatchOutputs(ActedPeriodOutputs o)
     {
@@ -159,7 +159,7 @@ internal sealed partial class KillTracker
         o.LastPlayerWeapons = _lastPlayerWeapons;
         o.LastPlayerMainHand = _lastPlayerMainHand;
         o.LastActorFp = _lastActorFp;
-        o.LastActorNameId = _lastActorNameId;   // LW-252 stage 3. Seeds beside LastActorFp
+        o.LastActorNameId = _lastActorNameId;   // Seeds beside LastActorFp
         o.LatchResolvedEmpty = _latchResolvedEmpty;
         o.LatchViaFallback = _latchViaFallback;
         o.LastResolveTick = _lastResolveTick;
@@ -168,7 +168,7 @@ internal sealed partial class KillTracker
         o.AnyTrackedWeaponThisBattle = AnyTrackedWeaponThisBattle;
     }
 
-    /// <summary>LW-150 S3. Copy <see cref="_latchIO"/> back onto this class's fields after
+    /// <summary>Copy <see cref="_latchIO"/> back onto this class's fields after
     /// <see cref="ActedPeriodLatch.Step"/> (Poll) and <see cref="ActedPeriodLatch.Reset"/> (ResetBattle).
     /// Assignment order is unobservable.</summary>
     private void ApplyLatchOutputs(ActedPeriodOutputs o)
@@ -178,7 +178,7 @@ internal sealed partial class KillTracker
         _lastPlayerWeapons = o.LastPlayerWeapons;
         _lastPlayerMainHand = o.LastPlayerMainHand;
         _lastActorFp = o.LastActorFp;
-        _lastActorNameId = o.LastActorNameId;   // LW-252 stage 3. Applies beside LastActorFp
+        _lastActorNameId = o.LastActorNameId;   // Applies beside LastActorFp
         _latchResolvedEmpty = o.LatchResolvedEmpty;
         _latchViaFallback = o.LatchViaFallback;
         _lastResolveTick = o.LastResolveTick;
@@ -203,7 +203,7 @@ internal sealed partial class KillTracker
             UncreditKills(drainWeapons, drainViaFallback, drainSlot);
         UpdateCorpseAnchor();     // V1 corpse-anchor veto for this tick's resolves
 
-        // LW-150 S3. Acted-period latch plus first-kill fallback (ActedPeriodLatch.cs), via Seed/Step/Apply.
+        // Acted-period latch plus first-kill fallback (ActedPeriodLatch.cs), via Seed/Step/Apply.
         // AnyPending() is passed in because it is the one input that is not a mirrored field.
         SeedLatchOutputs(_latchIO);
         _latch.Step(_latchIO, AnyPending());
@@ -222,7 +222,7 @@ internal sealed partial class KillTracker
     /// none/ambiguous. Consumers must not cache across ticks.</summary>
     public (int lvl, int br, int fa) LastActorFingerprint => _lastActorFp;
 
-    /// <summary>LW-252 stage 3. The acting unit's frame nameId, latched with <see cref="LastActorFingerprint"/>.
+    /// <summary>The acting unit's frame nameId, latched with <see cref="LastActorFingerprint"/>.
     /// 0 = no resolved identity (never latched, ambiguous/enemy period, or first-kill-fallback latch; see
     /// <see cref="ActedPeriodLatch.Step"/>). Do not cache across ticks.</summary>
     public int LastActorNameId => _lastActorNameId;
@@ -275,7 +275,7 @@ internal sealed partial class KillTracker
     /// <paramref name="viaFallback"/>: the latch came from the turn-queue fallback (battle-end summary counter).
     /// <paramref name="delayedOrCharged"/>: the credit came from the delayed-actor path (Delayed.cs
     /// ConsumeDelayedCulprit), passed on to RecordPoachDeed.
-    /// <paramref name="identity"/> (LW-233 live-drill residual, 2026-08-17): the (lvl,br,fa,maxHp) the kill was
+    /// <paramref name="identity"/> (retry live-drill residual, 2026-08-17): the (lvl,br,fa,maxHp) the kill was
     /// credited under, stamped into _creditedIdentity for RestartSentinel's grace exemption. The zero-tuple
     /// default is safe (FINDING 4, 2026-08-17): <see cref="Band.IsValid"/> (Battle/Band.cs:54-67) floors lvl,
     /// brave, faith and maxHp at 1, so no real slot.Id is zero. The victim nameId is stamped from the same
@@ -304,11 +304,11 @@ internal sealed partial class KillTracker
         // list, `credited` may alias _lastPlayerWeapons, which the next latch replaces.
         _creditedWeapons[s] = new List<int>(credited);
         _creditedViaFallback[s] = viaFallback;
-        _creditedIdentity[s] = identity;   // LW-233
+        _creditedIdentity[s] = identity;
         LogKillDiag(s, credited);   // D4 diagnostic, no behavioral effect
         _victimProbe.LogAtCredit(s);   // Reliquary P1 probe, log-only
         VictimSnapshot snap = _victimAtEdge[s];
-        // LW-233 FINDING 0 (2026-08-17): the victim's nameId from the same snapshot (see _creditedNameId,
+        // The victim's nameId from the same snapshot (see _creditedNameId,
         // Corpses.cs); 0 when there was no sane read at the death edge.
         _creditedNameId[s] = snap.Has ? snap.NameId : (ushort)0;
         if (snap.Has)

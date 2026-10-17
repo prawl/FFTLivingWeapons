@@ -129,7 +129,7 @@ internal static partial class Band
 
     /// <summary>the unit that owns the PSX turn flags (band +0x19C ATurnFlag, 2026-07-09).
     /// Unlike the engine actor pointer, which parks on struck victims and mirror-seat units, this
-    /// names the acting unit from its own entry (docs/TODO.md LW-63). Across 58 flag records in 4
+    /// names the acting unit from its own entry. Across 58 flag records in 4
     /// tapes no two units held t=1 at once. AMoved/AActed are not exclusive, and the moved byte reads
     /// up to 3, so only the ==1 test on ATurnFlag is used.
     /// Entries at (0,0) are skipped (D2b) since a frozen band mirror can carry a stale t=1 (Mushin.cs

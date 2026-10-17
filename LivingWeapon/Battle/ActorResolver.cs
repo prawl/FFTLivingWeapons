@@ -9,7 +9,7 @@ namespace LivingWeapon;
 /// the real-position entry over its (0,0) mirror, whose HP goes stale.
 /// The register answers first (kill-attribution plan, 2026-07-01) when ownership predates the acted-period and the
 /// corpse anchor allows it; otherwise the turn-queue walk runs, with its hover-trap and level+100-flake exposure.
-/// Roster walks live in ActorResolver.TurnQueue.cs (LW-252 stage 2) and veto rows whose Offsets.ANameId
+/// Roster walks live in ActorResolver.TurnQueue.cs and veto rows whose Offsets.ANameId
 /// disagrees ([frame-1fc-nameid-mirror], [party-nameid-unique-key]).
 /// </summary>
 internal sealed partial class ActorResolver
@@ -25,7 +25,7 @@ internal sealed partial class ActorResolver
     /// turn-queue fallback. Feeds the latch log tag and KillTracker's fallback counters.</summary>
     internal ResolveSource LastResolveSource { get; private set; }
 
-    /// <summary>True when the last resolve came from the register path (the flags lane, LW-63, is neither).</summary>
+    /// <summary>True when the last resolve came from the register path (the flags lane is neither).</summary>
     public bool LastResolveViaRegister => LastResolveSource == ResolveSource.Register;
 
     public ActorResolver(IGameMemory mem, ISet<int> weapons, ActorRegister? register = null)
@@ -132,11 +132,11 @@ internal sealed partial class ActorResolver
     /// (KillTracker.Stamp.cs); weapon semantics stay in this class.</summary>
     internal List<int> HandsFromRoster(long rosterBase) => Hands(rosterBase);
 
-    /// <summary>LW-31 stage 3. Raw right-hand id, no tracked-weapon filter. The 0/0xFF/0xFFFF sentinels tell
+    /// <summary>Raw right-hand id, no tracked-weapon filter. The 0/0xFF/0xFFFF sentinels tell
     /// unarmed from untracked gear (AttackRow.Policy.ComposeRow).</summary>
     public int RawMainHand(long rosterBase) => _mem.U16(rosterBase + Offsets.RRHand);
 
-    /// <summary>LW-31 stage 3. The roster slot's SpriteSet byte (Offsets.RSprite), the human/monster gate for
+    /// <summary>The roster slot's SpriteSet byte (Offsets.RSprite), the human/monster gate for
     /// the "Fists" row decision (AttackRow.Policy.HumanSprite).</summary>
     public byte SpriteOf(long rosterBase) => _mem.U8(rosterBase + Offsets.RSprite);
 
@@ -205,7 +205,7 @@ internal sealed partial class ActorResolver
     public bool TryResolveActingFingerprint(out (int lvl, int br, int fa) fp)
         => TryResolveActingFingerprint(out fp, out _);
 
-    /// <summary>Also outs the acting unit's frame nameId (Offsets.ANameId, LW-252 stage 3), so KillTracker's
+    /// <summary>Also outs the acting unit's frame nameId (Offsets.ANameId), so KillTracker's
     /// delayed-action committer compare (TrackDelayed, KillTracker.Delayed.cs) can check identity by nameId
     /// ([frame-1fc-nameid-mirror], [party-nameid-unique-key]). <paramref name="actorNameId"/> is 0 on any unresolved path.</summary>
     public bool TryResolveActingFingerprint(out (int lvl, int br, int fa) fp, out int actorNameId)

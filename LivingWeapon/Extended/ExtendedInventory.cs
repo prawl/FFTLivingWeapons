@@ -6,11 +6,11 @@ using Reloaded.Hooks.Definitions;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-346 extended inventory composition root and boot-arm lifecycle. BootArm runs in Mod.StartEx as one
+/// Extended inventory composition root and boot-arm lifecycle. BootArm runs in Mod.StartEx as one
 /// transaction that rolls back on the first refusal. No whole-image check gates it (the roster landmark is
-/// unreadable that early, and since LW-397 the build stamp is a report line), so each patch site verifies
-/// its old bytes before writing. Steps are in ExtendedInventory.Arm.cs. Cap patches, the LW-368
-/// round 2 list relocation (bag counts then live at <see cref="BagCountBase"/>), catalog fill, accessor
+/// unreadable that early, and the build stamp is a report line), so each patch site verifies
+/// its old bytes before writing. Steps are in ExtendedInventory.Arm.cs. Cap patches, the
+/// list relocation (bag counts then live at <see cref="BagCountBase"/>), catalog fill, accessor
 /// hooks, category/order/list-builder/reset/save-edge hooks, then the bag seed. The tick half is
 /// ExtendedInventory.Tick.cs. With no extended rows shipped the whole arm is skipped with one Debug line.
 /// </summary>
@@ -23,18 +23,18 @@ internal sealed partial class ExtendedInventory
     private readonly Func<IReloadedHooks?, string?> _installHooks;
 
     private readonly BytePatchSet _patches = new();
-    private readonly ListRelocation _relocation = new();   // LW-368 round 2
-    private readonly TemplateRelocation _templates = new();   // LW-371
+    private readonly ListRelocation _relocation = new();
+    private readonly TemplateRelocation _templates = new();
     private readonly ExtendedCatalog _catalog = new();
-    private readonly ShopFlagsMirror _shops = new();   // LW-354
+    private readonly ShopFlagsMirror _shops = new();
     private readonly List<AccessorEntryHook> _accessorHooks = new();
     private AccessorEntryHook? _weaponStatHook;   // the row stub. Its page holds every extended id's 8-byte stats row
     private SwingIdFallbackHook? _swingIdFallback;   // empty-tile swing art falls back to the hand id
     private CategoryGetterHook? _getterHook;
     private OrderRebuildHook? _orderHook;
-    private ListBuilderHook? _listBuilderHook;   // LW-372
-    private InventoryResetHook? _resetHook;   // LW-351 fix round 7
-    private SaveEdgeHooks? _saveHooks;   // LW-353
+    private ListBuilderHook? _listBuilderHook;
+    private InventoryResetHook? _resetHook;
+    private SaveEdgeHooks? _saveHooks;
     /// <summary>the save/load edge core the hooks feed and the tick drains. Tests drive it directly.</summary>
     public SaveEdgeTracker Tracker { get; } = new();
 
@@ -42,7 +42,7 @@ internal sealed partial class ExtendedInventory
     public bool Armed { get; private set; }
     /// <summary>Why the last BootArm did not arm (null once armed, or when nothing is shipped).</summary>
     public string? Refusal { get; private set; }
-    /// <summary>LW-368 round 2. Where the bag counts live now, the relocated page if it armed, else
+    /// <summary>Where the bag counts live now, the relocated page if it armed, else
     /// <see cref="Offsets.BagCountArray"/>. Resolve every bag byte through this so a refused relocation falls back.</summary>
     public long BagCountBase => _relocation.Installed ? _relocation.CountBase : Offsets.BagCountArray;
     /// <summary>the weapon order-template regions in effect, relocated if that armed, else the

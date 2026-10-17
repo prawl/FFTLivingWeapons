@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-252 stage 5. Reference-type box so a value (e.g. an int turn counter) can be a
+/// Reference-type box so a value (e.g. an int turn counter) can be a
 /// <see cref="WielderKeyedStore{TState}"/> state. Callers sharing a Box share its value.
 /// </summary>
 internal sealed class Box<T>
@@ -13,7 +13,7 @@ internal sealed class Box<T>
 }
 
 /// <summary>
-/// LW-252 stage 5. Per-wielder state keyed on roster nameId, with the (level,brave,faith)
+/// Per-wielder state keyed on roster nameId, with the (level,brave,faith)
 /// fingerprint as a fallback. Replaces the fp-only keying that Iai, Larceny, Mushin and TurnTracker
 /// used, which shared state between fp-twin units.
 ///

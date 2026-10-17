@@ -52,7 +52,7 @@ internal sealed partial class KillTracker
             byte fa = _mem.U8(addr + Offsets.AFaith);
 
             // Snapshot at commit. Bit set, latch exists, and this seat is the latched actor, not a bystander.
-            // LW-252 stage 3. CommitterMatches prefers nameId equality once both sides have one.
+            // CommitterMatches prefers nameId equality once both sides have one.
             if (delayed && _chargeWeapons[s] == null
                 && _lastPlayerWeapons.Count > 0
                 && CommitterMatches(addr, lvl, br, fa))
@@ -83,7 +83,7 @@ internal sealed partial class KillTracker
         }
     }
 
-    /// <summary>LW-252 stage 3. Does band seat <paramref name="addr"/> identify the latched actor? Compares nameId
+    /// <summary>Does band seat <paramref name="addr"/> identify the latched actor? Compares nameId
     /// (Offsets.ANameId) when both <see cref="_lastActorNameId"/> and the seat's own are &gt; 0, which separates fp-twin committers
     /// (ledger [frame-1fc-nameid-mirror], [party-nameid-unique-key]). Otherwise falls back to the (level,brave,faith) compare.
     /// lvl/br/fa are the bytes TrackDelayed already read from <paramref name="addr"/>.</summary>

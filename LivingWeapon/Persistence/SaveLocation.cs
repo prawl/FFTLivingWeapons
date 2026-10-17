@@ -52,7 +52,7 @@ internal sealed class SaveLocation
     }
 
     /// <summary>
-    /// LW-51 Tier-1. Moves <paramref name="fileName"/> and its ".bak" sibling out of <see cref="SaveDir"/> into an
+    /// Moves <paramref name="fileName"/> and its ".bak" sibling out of <see cref="SaveDir"/> into an
     /// "archive" subdirectory as "&lt;stem&gt;.&lt;N&gt;&lt;ext&gt;", N one past the highest archived index. File.Move
     /// without overwrite and no File.Delete, so a name collision throws and is swallowed. If an existing
     /// archived name can't be parsed it bails out with no move. No-op when the source is missing. Never throws.

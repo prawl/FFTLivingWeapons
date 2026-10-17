@@ -67,7 +67,7 @@ public class Mod : IMod
                             ?? Environment.CurrentDirectory;
             ModLogger.Init(modDir);
             Flight.Init(modDir);   // the black-box event ring, must exist before anything can Record
-            // LW-387 (ported by LW-388) The Denuvo-free build is ASLR-relocated. Resolve the live image base before the Engine
+            // The Denuvo-free build is ASLR-relocated. Resolve the live image base before the Engine
             // and its 33ms thread exist; every pinned address rebases through it, so nothing above this line may touch Offsets.
             if (ImageBase.TryResolveLive(out long liveBase) && ImageBase.Set(liveBase))
                 ModLogger.Event(LogVerb.Startup, $"Game image base 0x{ImageBase.Base:X} (preferred 0x{ImageBase.Preferred:X}, delta 0x{ImageBase.Delta:X}); every pinned address is rebased onto it.");
@@ -81,8 +81,8 @@ public class Mod : IMod
             // Config load is fail-soft and falls back to the Tuning default. Reloaded writes user edits to
             // <Reloaded>/User/Mods/<ModId>/Config.json, so that file is preferred over modDir/Config.json (as in
             // FFTColorCustomizer.GetUserConfigPath).
-            // LW-10 (2026-08-14) removed Treasure Master and with it every player-facing setting, so nothing is read out of the
-            // config. It is still loaded so a corrupt file warns and the path is logged. Toasts, dev seeding (LWDEV, LW-52) and
+            // Treasure Master's removal (2026-08-14) took every player-facing setting, so nothing is read out of the
+            // config. It is still loaded so a corrupt file warns and the path is logged. Toasts, dev seeding (LWDEV) and
             // console verbosity keep their compiled Tuning defaults.
             string configPath = Path.Combine(modDir, "Config.json");   // overwritten below on success
             try
@@ -99,11 +99,11 @@ public class Mod : IMod
             // Console at Info; the log file takes every line regardless (docs/LOGGING.md). Set outside the try so a config
             // failure cannot leave the console on the lazily created default logger.
             ModLogger.LogLevel = LogLevel.Info;
-            // LW-50 build-stamp drill, dev builds only. Set the environment variable LW_FORCE_FINGERPRINT_MISMATCH to 1, or drop a
-            // marker file of that name in the mod dir (LW-83, env variables do not reach fft_enhanced here), before launching a
-            // DEV build to force the build stamp to read unknown (report line and armed-edge warning, LW-397). The config knob was
+            // Build-stamp drill, dev builds only. Set the environment variable LW_FORCE_FINGERPRINT_MISMATCH to 1, or drop a
+            // marker file of that name in the mod dir (env variables do not reach fft_enhanced here), before launching a
+            // DEV build to force the build stamp to read unknown (report line and armed-edge warning). The config knob was
             // removed 2026-07-07 so players cannot trigger it.
-            // LW-395 LW_FORCE_SENSING_MISMATCH (same two lanes) does the same for the sensing lane that gates the new-game detector.
+            // LW_FORCE_SENSING_MISMATCH (same two lanes) does the same for the sensing lane that gates the new-game detector.
 #if LWDEV
             bool devForceFingerprintMismatch = DrillTrigger.DrillRequested(modDir);
             bool devForceSensingMismatch = DrillTrigger.DrillRequested(modDir, DrillTrigger.SensingFlagName);
@@ -116,10 +116,10 @@ public class Mod : IMod
             ModLogger.Event(LogVerb.Config,
                 $"Configuration loaded: LogLevel={ModLogger.LogLevel} (from {configPath})");
 
-            // LW-50 born disarmed, before the Engine and its FastHold thread exist. Only LaunchGuard's Armed edge (Engine.Tick,
+            // Born disarmed, before the Engine and its FastHold thread exist. Only LaunchGuard's Armed edge (Engine.Tick,
             // onArmed callback) sets this back to true.
             Mem.WritesEnabled = false;
-            // LW-52 bannerToasts and devSeedKills are no longer config-driven; the Engine ctor uses its Tuning defaults.
+            // bannerToasts and devSeedKills are no longer config-driven; the Engine ctor uses its Tuning defaults.
             _engine = new Engine(modDir, devForceFingerprintMismatch: devForceFingerprintMismatch,
                 devForceSensingMismatch: devForceSensingMismatch, devForceGuardUnreadable: devForceGuardUnreadable);
             _engine.Start();
@@ -130,7 +130,7 @@ public class Mod : IMod
         }
     }
 
-    /// <summary>The mod namespace (folder name under Mods/ and User/Mods/). Internal because LW-51's SaveLocation reuses it.</summary>
+    /// <summary>The mod namespace (folder name under Mods/ and User/Mods/). Internal because SaveLocation reuses it.</summary>
     internal const string ModId = "prawl.fft.livingweapons";
 
     /// <summary>

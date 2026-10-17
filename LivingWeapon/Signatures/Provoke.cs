@@ -3,13 +3,13 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Defender's "Provoke" signature (LW-123 arc 1), modeled on ShadowBlade.cs. Grants a JobCommand-injected command
+/// Defender's "Provoke" signature, modeled on ShadowBlade.cs. Grants a JobCommand-injected command
 /// to a tier-3 main-hand Defender wielder using the Barrage/ShadowBlade injection primitives and the shared
 /// Squire/Knight whitelist (ProvokePolicy delegates to ShadowBladePolicy). This file is the slot lifecycle plus
 /// Tick(); Provoke.Table.cs is the table lifecycle (the two byte writes repointing ability 189's effect), a
 /// separate state machine with its own arming condition.
 /// Armed by data. Nothing is granted unless items.json id 33 (Defender) has a `signature` block. Armed since
-/// LW-123 shipped 3565363; it shipped inert in 2.3.2 because the mark it makes castable never expires
+/// 3565363; it shipped inert in 2.3.2 because the mark it makes castable never expires
 /// and cannot be re-applied, and ProvokeHold (arc 2a) is what clears it. ProvokeHoldTests.
 /// The_baked_meta_signature_block_agrees_with_the_ship_switch pins the block against Tuning.ProvokeEnabled
 /// (docs/PROVOKE_AC.md). The wielder scan does not filter by job, unlike ShadowBlade's; eligibility is resolved

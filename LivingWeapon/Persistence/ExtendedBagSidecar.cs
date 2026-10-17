@@ -5,18 +5,18 @@ using Newtonsoft.Json;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-348 / extended_inventory.json holds the bag counts of the extended ids (261+),
+/// extended_inventory.json holds the bag counts of the extended ids (261+),
 /// because the save only serialises 261 count bytes (docs/LIVE_LEDGER.md
 /// [capbreak-save-roundtrip-1-5-2]). Lives in SaveLocation.SaveDir beside kills.json.
 ///
-/// Schema 2 (LW-353, 2026-08-27) keys counts per save, using the key from the save header at
+/// Schema 2 (2026-08-27) keys counts per save, using the key from the save header at
 /// serialise time (SaveEdgeTracker.KeyFromHeader). Schema 1's single global file failed the owner's
 /// test 2 (2026-08-27 18:53), where a load's own clear was recorded as a sale. A schema 1 file
 /// migrates into <see cref="TakeLegacy"/>, handed to the first load with an unknown key.
 ///
 /// Capped at <see cref="MaxSaves"/> keys, evicting the least recently used. The old cap of 64
 /// evicted oldest-written, and an evening of battle autosaves pushed out the owner's real save
-/// (pt2775; LW-351 fix round 7, 2026-08-30). A load that finds its key moves it to the back.
+/// (pt2775; 2026-08-30). A load that finds its key moves it to the back.
 ///
 /// Two threads. Engine's tick records saves and the game's thread reads from the load
 /// detour. <c>_gate</c> guards the maps, <c>_ioGate</c> serialises the write and never nests I/O.

@@ -3,7 +3,7 @@ using System;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-368 round 2b. The field arithmetic of ListRelocation, split out when the table (45 -> 55 sites, plus
+/// The field arithmetic of ListRelocation, split out when the table (45 -> 55 sites, plus
 /// <see cref="ListRelocation.Site.Trail"/> and <see cref="ListRelocation.Site.Off"/>) pushed ListRelocation.cs past 200 lines.
 /// Same partial class as ListRelocation.cs (lifecycle) and ListRelocation.Sites.cs (table).
 /// </summary>
@@ -37,7 +37,7 @@ internal sealed partial class ListRelocation
         return site.Kind == SiteKind.RipLea ? newTarget - (Live(site) + 4 + site.Trail) : newTarget - ImageBase.Base;
     }
 
-    /// <summary>LW-388. <see cref="Site.Addr"/> is in pin space (the preferred-base address); this is where the field sits in the running image.</summary>
+    /// <summary><see cref="Site.Addr"/> is in pin space (the preferred-base address); this is where the field sits in the running image.</summary>
     private static long Live(Site site) => ImageBase.At(site.Addr);
 
     /// <summary>Pure. An int32 as its 4 little-endian bytes.</summary>

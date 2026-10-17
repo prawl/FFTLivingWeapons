@@ -1,7 +1,7 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// Pure helpers for the status-apply pipeline (LW-58, decoded 2026-07-09 from CE captures and disasm; see docs/LIVE_LEDGER.md's
+/// Pure helpers for the status-apply pipeline (decoded 2026-07-09 from CE captures and disasm; see docs/LIVE_LEDGER.md's
 /// status-system row and tools/probes/spawn_probe.py). 40 status ids (0..39) sit in 5-byte MSB-first bitfields, three layers per unit
 /// (band-entry-relative): pending-add, inflicted, and composed (inflicted OR innate, re-derived every frame).
 /// StatusSpike's v1 target (FnApplyStatuses = 0x150BF66DC) died 2026-07-22 (prologue mismatch), so v2 decodes the dispatch thunk at

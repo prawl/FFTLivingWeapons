@@ -15,7 +15,7 @@ namespace LivingWeapon;
 internal static class ExtendedSites
 {
     /// <summary>How many extended items can exist at once. PlusN sites add N to a plain immediate or
-    /// displacement byte (LW-368 round 2, P11), and eight are `lea reg,[base+6]` with a signed disp8, so
+    /// displacement byte, and eight are `lea reg,[base+6]` with a signed disp8, so
     /// 6 + 122 = 0x80 flips negative and corrupts the bound. 121 is the reviewer's decode of every PlusN
     /// site (LW368_plan.md P11); <see cref="ExtendedInventoryData"/> and tools/generate.py refuse a larger table.
     /// The count getter widens its HIGH byte instead (0x103 -&gt; 0x203, ids up to 515). The damage-staging
@@ -32,16 +32,16 @@ internal static class ExtendedSites
     private static readonly Site[] BootSites =
     {
         // Imm32 of `mov r8d,0x103` at 0x1402847FD (bytes 0x1402847FF..0x140284802); this entry is its second byte.
-        // Do not add a PlusN on 0x1402847FF, that would widen the immediate twice (LW-351 fix round 3, 2026-08-30).
+        // Do not add a PlusN on 0x1402847FF, that would widen the immediate twice (bit on 2026-08-30).
         // The game read 41 b8 03 02 00 00 here (read-only RPM, N=2), so bag accessor 0x1411A7C00[id] admits 1..516.
         // ExtendedSitesTests pins this.
         new(0x140284800L, 0x01, Widen.HighByte, "count-getter cap (mov r8d,0x103 -> 0x203)"),
-        // LW-351 fix round 2 (2026-08-30): the one of nine imm32 0x105 bounds in the 0x140280000-0x140290000
-        // builder family that LW-346 missed. 0x140284553 `mov edx,0x105` is reused four times by the per-item
+        // Found 2026-08-30, the one of nine imm32 0x105 bounds in the 0x140280000-0x140290000
+        // builder family the first pass missed. 0x140284553 `mov edx,0x105` is reused four times by the per-item
         // state initialiser. It clears the byte arrays at 0x1411A7C00 and 0x1411A7700 and seeds the u16 array at 0x1411A7810.
-        // Corrected 2026-08-31 (LW-368 round 2b): the widened tail overlaps a game state dword at +0x108 of each
+        // Corrected 2026-08-31. The widened tail overlaps a game state dword at +0x108 of each
         // 0x110-byte slot (0x1411A7D08 and 0x1411A7808, read 2026-08-31), from id 264 (the dword spans 264-267).
-        // The LW-368 list relocation (ListRelocation.cs) removes the overlap; the u16 tail is re-zeroed by the memset at 0x1402845E0.
+        // The list relocation (ListRelocation.cs) removes the overlap; the u16 tail is re-zeroed by the memset at 0x1402845E0.
         new(0x140284554L, 0x05, Widen.PlusN, "per-item state initialiser bound (mov edx,0x105)"),
         new(0x140284724L, 0x05, Widen.PlusN, "display iteration cap 1"),
         new(0x1402847C9L, 0x05, Widen.PlusN, "display iteration cap 2"),
@@ -64,7 +64,7 @@ internal static class ExtendedSites
         // The shop BUY-list builder walks ids 0..0xFF (cmp ebx,0x100 at
         // 0x140288FD9; this is the imm32's low byte), widened to 0x105 + N. Town flags come from the ShopFlagsMirror.
         new(0x140288FDBL, 0x00, Widen.ShopLoop, "shop buy-list loop bound (cmp ebx,0x100)"),
-        // LW-351 fix round 6, 2026-08-30. These two are a reserved-item equality list, not a cap. The per-job
+        // Found 2026-08-30. These two are a reserved-item equality list, not a cap. The per-job
         // can-equip check 0x1402886D0 and its inlined copy at 0x140396F1C compare the item id against five hardcoded
         // ids before reading the item's job class (1.5.2 exe on disk):
         //   140288709  81 ea 06 01 00 00  sub edx, 0x106   ; id == 262 ?
@@ -82,7 +82,7 @@ internal static class ExtendedSites
         // A relocation, so the byte is 0x02 for any N.
         new(0x14028870CL, 0x01, Widen.HighByte, "reserved-item equality list, can-equip check (sub edx,0x106 -> 0x206)"),
         new(0x140396F55L, 0x01, Widen.HighByte, "reserved-item equality list, inlined twin (sub ecx,0x106 -> 0x206)"),
-        // LW-351 fix round 8 (2026-08-31, 1.5.2 exe on disk): the owned-item template maintainer 0x140285F80
+        // Found 2026-08-31 (1.5.2 exe on disk). The owned-item template maintainer 0x140285F80
         // (inventory order tables; its second half 0x140286070 serves the picker tables) walks a template before
         // inserting a newly owned id at the front. The walk stops at the 0x00FF marker or the first word >= r14w,
         // where r14d comes from `45 8d 77 06` lea r14d,[r15+6] with r15d = 0xFF (0x105).
@@ -97,7 +97,7 @@ internal static class ExtendedSites
         new(0x140285FB5L, 0x06, Widen.PlusN, "owned-item template maintainer walk, inventory tables (lea r14d,[r15+6])"),
         new(0x1402860AEL, 0x06, Widen.PlusN, "owned-item template maintainer walk, picker tables (lea r14d,[r15+6])"),
         new(0x140396881L, 0x06, Widen.PlusN, "owned-item template maintainer walk, third copy (function RVA 0x39684C) over the inventory tables (lea r14d,[r15+6])"),
-        // LW-365 (2026-08-31, 1.5.2 exe on disk, tools/probes/lw365_hand_resolver_scan.py): the last nine one-byte
+        // Found 2026-08-31 (1.5.2 exe on disk, tools/probes/lw365_hand_resolver_scan.py). The last nine one-byte
         // bounds in the "what is this unit holding" routines. Six are more hand-resolver copies (`mov edx,0xff`,
         // `lea ecx,[rdx+6]`, disp byte = lea +2, guarding `cmp ax,dx / je skip` for an empty hand and `cmp cx,ax / ja valid`
         // for id < 0x105): copies 3, 4, 6 guard word [rbx+0x20] (fallback [rbx+0x22]), 5 and 7 read a rip-relative
@@ -109,7 +109,7 @@ internal static class ExtendedSites
         // 0x1402C8155 (the u16 walker's `lea r12d,[rax+6]`) is walled. Its 0x105 bound guards a stack buffer. The
         // function memsets a 0x414-byte (0x105 dwords) frame array at 0x1402C8119, accumulates into it by item id, and
         // bounds the final scan at 0x1402C81DB with the same register, so widening would write past the array (the
-        // LW-371 stack-cookie lesson). The branch also needs callee 0x140278fec(id) >= 0x64, so extended ids only skip
+        // stack-cookie lesson). The branch also needs callee 0x140278fec(id) >= 0x64, so extended ids only skip
         // a pass the player never sees.
         // 0x1402BD992 (bytes 44 8d 4e 06; opcode byte 0x1402BD993, disp8 byte 0x1402BD995) after `mov r11d,0xff` is a
         // false positive. Rsi is 1 there (mov esi,1 at 0x1402BD974, kept across the call), so the lea gives 7, the
@@ -127,7 +127,7 @@ internal static class ExtendedSites
         new(0x1403066A7L, 0x06, Widen.PlusN, "equip-slot switch guard, word +0x1E (lea eax,[r10+6])"),
         new(0x14030671DL, 0x06, Widen.PlusN, "equip-slot switch guard, word +0x1C (lea eax,[r10+6])"),
         new(0x1403067ABL, 0x06, Widen.PlusN, "equip-slot switch guard, word +0x1A (lea eax,[r10+6])"),
-        // LW-388 (R2, read offline 2026-10-16 from the Denuvo-free 1.5.2 exe, Steam buildid 24304444): the two damage
+        // Read offline 2026-10-16 from the Denuvo-free 1.5.2 exe (Steam buildid 24304444). The two damage
         // caps once in the copy-protected tail are plain .text on this build, so they join the boot set.
         // First. The eighth hand-resolver copy (`ba ff 00 00 00` mov edx,0xff, then `8d 4a 06` lea ecx,[rdx+6]),
         // followed within 0x30 bytes by two calls to Offsets.ThunkWeaponStat, matching the journal's "right before two
@@ -141,7 +141,7 @@ internal static class ExtendedSites
     };
 
     /// <summary>Copy-protected sites, stepped from the tick loop as <see cref="PendingPatch"/>es once a save has
-    /// loaded. Empty since LW-388 (the Denuvo-free build has no protected tail; its two former entries are boot
+    /// loaded. Empty on the Denuvo-free build (no protected tail; its two former entries are boot
     /// sites above). The empty array and the pending machinery are kept in case a late-mapped page appears.</summary>
     private static readonly Site[] PostLoadSites = { };
 

@@ -71,7 +71,7 @@ internal static class ByteScan
     }
 
     /// <summary>Slot validator for the equip card's tier-progress meter body ("0/5 to +   ", "14/15 to +3", "55         ",
-    /// and the LW-311 baked placeholder "-/- to +   "), width chars wide (Signatures.KillsMeterSlotChars in production).
+    /// and the baked placeholder "-/- to +   "), width chars wide (Signatures.KillsMeterSlotChars in production).
     /// Char 0 must be a digit or '-' (an unpainted card leads with the baked dash, or a cold-boot card is never found).
     /// Every char must be in the meter alphabet (digits, '-', '/', ' ', '+', "to"). enc-aware (UTF-16 high byte 0x00);
     /// false if [pos, pos + width*enc) does not fit in buf.</summary>

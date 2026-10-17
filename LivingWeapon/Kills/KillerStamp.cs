@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace LivingWeapon;
 
-/// <summary>LW-63 D4. Flags-first killer lookup, same signature as
+/// <summary>Flags-first killer lookup, same signature as
 /// <see cref="ActorResolver.TryResolveFlagKiller"/> so KillTracker.cs can pass the method group directly.</summary>
 internal delegate bool FlagKillerLookup(out long rosterBase, out ushort nameId, out int bandSlot, out byte moved);
 
@@ -28,8 +28,8 @@ internal sealed class KillerStamp
 {
     private readonly ActorRegister _register;
     private readonly Func<long, List<int>> _handsFromRoster;
-    // LW-63 D4. Optional flags-first lookup. Null leaves the register snapshot as the only lane,
-    // which is what pre-LW-63 call sites and the KillerStampTests.cs cases that omit it rely on.
+    // Optional flags-first lookup. Null leaves the register snapshot as the only lane,
+    // which is what the older call sites and the KillerStampTests.cs cases that omit it rely on.
     private readonly FlagKillerLookup? _flagKiller;
 
     public KillerStamp(ActorRegister register, Func<long, List<int>> handsFromRoster, FlagKillerLookup? flagKiller = null)
@@ -63,7 +63,7 @@ internal sealed class KillerStamp
         return true;
     }
 
-    /// <summary>LW-63 D4. Tries the flags lane first, then falls back to the 4-out overload.
+    /// <summary>Tries the flags lane first, then falls back to the 4-out overload.
     /// When <see cref="_flagKiller"/> answers, <paramref name="viaFlags"/> is true,
     /// <paramref name="arrivalAge"/> is 0 (the stamp key's a==1 requirement already orders it, see
     /// ActorResolver.Flags.cs), and <paramref name="bandSlot"/> and <paramref name="moved"/>

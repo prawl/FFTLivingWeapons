@@ -4,7 +4,7 @@ using System.IO;
 namespace LivingWeapon;
 
 /// <summary>
-/// Two-lane trigger for the LW-50 stand-down drill. Lane one is the environment variable; lane two is a marker file named after the flag in the mod dir,
+/// Two-lane trigger for the stand-down drill. Lane one is the environment variable; lane two is a marker file named after the flag in the mod dir,
 /// because env variables do not reach fft_enhanced through this box's launch chain (2026-07-14). BuildLinked's clean step deletes the marker on every deploy.
 /// Always compiled, like the LaunchGuard forceMismatch; only the Mod.cs call site is conditional (const false outside LWDEV), so players cannot trigger the drill.
 /// </summary>

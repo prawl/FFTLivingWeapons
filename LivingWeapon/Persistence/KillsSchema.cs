@@ -4,7 +4,7 @@ using Newtonsoft.Json.Linq;
 namespace LivingWeapon;
 
 /// <summary>
-/// Validates kills.json (LW-51 tier 1). Takes JSON text and returns a sanitized id to kill-count map.
+/// Validates kills.json. Takes JSON text and returns a sanitized id to kill-count map.
 /// Input that is not a JSON object is a hard failure, treated like a corrupt file (fall back to .bak, then fresh).
 /// Bad entries inside a valid object are dropped and counted, so one stray row cannot wipe the tally.
 /// </summary>

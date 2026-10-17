@@ -119,9 +119,9 @@ internal static class ExtendedRecords
     };
 
     /// <summary>ITEM_SHOPS_DATA.ShopFlags (u16, modloader ItemShopsData names): which towns stock
-    /// the item. LW-354. Do not reorder. The first town takes the high bit because the Buy-list
+    /// the item. Do not reorder. The first town takes the high bit because the Buy-list
     /// builder reads the u16's two bytes swapped, and numbering from bit 15 cancels that, so a
-    /// plain-English `shops` string lands on the right towns (LW-351 authored through these names).</summary>
+    /// plain-English `shops` string lands on the right towns (the axes and flails are authored through these names).</summary>
     public static readonly IReadOnlyDictionary<string, ushort> Shops = new Dictionary<string, ushort>(StringComparer.OrdinalIgnoreCase)
     {
         ["Gollund"] = 1 << 15,

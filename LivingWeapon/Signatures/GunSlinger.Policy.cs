@@ -21,7 +21,7 @@ internal sealed class GunSlingerSnap
 }
 
 /// <summary>
-/// Pure decisions for the Gun Slinger roster prep (LW-193/LW-194 consent model). No memory access;
+/// Pure decisions for the Gun Slinger roster prep (the consent model). No memory access;
 /// the caller supplies every input. An empty off-hand invites the twin; anything the player put in
 /// the off-hand or shield slot declines it, and no write lands on a player-held item in any lane.
 /// Empty sentinels. Off-hand 0x00FF or 0xFFFF; shield 255 (seen on an empty slot), 0xFFFF, or 0
@@ -38,7 +38,7 @@ internal static class GunSlingerPolicy
     private const ushort EmptyOffH1 = 0x00FF;   // 255
     private const ushort EmptyOffH2 = 0xFFFF;   // 65535
 
-    /// <summary>Sentinel written when clearing a slot (LW-193 WriteEmptyAndDrop): 255, what the game
+    /// <summary>Sentinel written when clearing a slot (WriteEmptyAndDrop): 255, what the game
     /// wrote when it cleared a shield (tape lw193_watch_20260817_055131.log, 05:53:06 "sh 128 to 255").</summary>
     internal const ushort EmptyOffHand = EmptyOffH1;
 

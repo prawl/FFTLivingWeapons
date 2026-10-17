@@ -7,8 +7,8 @@ namespace LivingWeapon;
 /// <summary>
 /// Live image base of fft_enhanced.exe. Pins are documented as preferred-base absolutes (0x140000000).
 /// The Denuvo-free build (2026-10-15, Steam buildid 24304444) enabled ASLR, so At(pin) rebases a pin
-/// onto the live image. Mod.StartEngine sets it once before the Engine thread starts (LW-387,
-/// docs/research/PORT_1.5.2_NODRM_OFFSETS.md).
+/// onto the live image. Mod.StartEngine sets it once before the Engine thread starts
+/// (docs/research/PORT_1.5.2_NODRM_OFFSETS.md).
 /// </summary>
 internal static class ImageBase
 {

@@ -109,7 +109,7 @@ internal sealed class CardPatterns
 
     /// <summary>True when the trailing slack (ChunkReader.TrailSlack / DisplaySweep.TrailSlack) covers the
     /// forward reach of a new-layout card, where the bidirectional search in CardScanner can find the flavor
-    /// (or the LW-332 Grows line) after "Kills: " (the equip-meter layout, docs/TODO.md). That is the widest
+    /// (or the Grows line) after "Kills: " (the equip-meter layout). That is the widest
     /// anchor plus the Kills literal plus the meter slot in UTF-16, plus the "\n\n" gap to the next card.
     /// A short slack only degrades painting, so Display's ctor logs and continues.</summary>
     public bool FitsTrailSlack(int trailSlack)

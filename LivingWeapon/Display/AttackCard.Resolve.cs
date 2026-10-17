@@ -4,7 +4,7 @@ namespace LivingWeapon;
 
 /// <summary>
 /// AttackCard's decide half. What the row and tail should say right now. AttackCard.Paint.cs
-/// writes it. LW-55 put the cursor-answer gate check here too.
+/// writes it. The cursor-answer gate check sits here too.
 /// </summary>
 internal sealed partial class AttackCard
 {
@@ -12,11 +12,11 @@ internal sealed partial class AttackCard
     /// row name length (AttackRow.Policy.OffsetBytes needs it for descOff).</summary>
     private readonly record struct ComposedPlan(byte[] Image, int RowNameChars);
 
-    /// <summary>LW-55 dedup. Each (refusal kind, roster hand, band weapon) is reported once per
+    /// <summary>Refusal dedup. Each (refusal kind, roster hand, band weapon) is reported once per
     /// battle so a stuck hover does not spam the log or flight ring. Cleared in ResetBattle.</summary>
     private readonly HashSet<(CursorRefusal Kind, int RosterHand, int BandWeapon)> _reportedRefusals = new();
 
-    /// <summary>LW-87 dedup. Each <see cref="CursorMiss"/> stage is reported once per battle.
+    /// <summary>Miss dedup. Each <see cref="CursorMiss"/> stage is reported once per battle.
     /// Cleared in ResetBattle.</summary>
     private readonly HashSet<CursorMiss> _reportedMisses = new();
 
@@ -24,7 +24,7 @@ internal sealed partial class AttackCard
     /// AttackCard.cs). No cursor answer gives a null plan (vanilla); the old register fallback showed
     /// the last actor's weapon (a Spark Rod on Ramza's row) and was removed. a cursor answer
     /// must also pass <see cref="CursorGate.Decide"/>, since roster hand and band weapon can disagree
-    /// (stale roster row, LW-87 turn-flag race). Note says why a plan is vanilla, for the compose
+    /// (stale roster row, turn-flag race). Note says why a plan is vanilla, for the compose
     /// Debug lines. After the gate, AttackRow.ComposeRow decides from the raw main hand and sprite
     /// byte, not Hands(), which cannot tell unarmed from an untracked weapon.</summary>
     private (ComposedPlan? Plan, string Note) ComposeCurrentPlan()
@@ -63,9 +63,9 @@ internal sealed partial class AttackCard
         }
     }
 
-    /// <summary>LW-55 tripwire. <see cref="CursorRefusal.WeaponMismatch"/> is the real anomaly (a
+    /// <summary>Tripwire. <see cref="CursorRefusal.WeaponMismatch"/> is the real anomaly (a
     /// wrong dossier nearly painted): Warn plus flight record. <see cref="CursorRefusal.NotTurnOwner"/>
-    /// is, since LW-87, a rare one-tick turn-flag race. Debug plus flight record. Deduped via
+    /// is, since the FlagOwner re-anchor, a rare one-tick turn-flag race. Debug plus flight record. Deduped via
     /// <see cref="_reportedRefusals"/>.</summary>
     private void ReportRefusal(CursorRefusal refusal, CursorAnswer answer)
     {

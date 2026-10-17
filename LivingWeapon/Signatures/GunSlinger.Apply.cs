@@ -9,8 +9,8 @@ internal sealed partial class GunSlinger
     private bool ApplyOffHand(long b, ushort off, ushort shield, bool mainIsGS, int mainH,
         GunSlingerSnap snap, bool menuOpen, bool inBattle, double secondsOffField)
     {
-        // twin = the wielder's own main-hand weapon, so each unit twins with what it wields (LW-171:
-        // several weapons can be flagged at once).
+        // twin = the wielder's own main-hand weapon, so each unit twins with what it wields
+        // (several weapons can be flagged at once).
         var action = GunSlingerPolicy.DesiredOffHand(mainIsGS, mainH, off, shield, snap, menuOpen, inBattle, _twinIds, secondsOffField);
         switch (action)
         {

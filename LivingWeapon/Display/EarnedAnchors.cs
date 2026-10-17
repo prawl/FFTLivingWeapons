@@ -71,7 +71,7 @@ internal sealed class EarnedAnchors
     /// <summary><see cref="AnchorsFor"/> minus the baked Grows line. Same-lane weapons bake
     /// identical Grows lines, so CardScanner's two-key ownership rule (FindNearestFlavor) needs the
     /// unique candidates to break ties.
-    /// Known gap (LW-332 round 3): analyze.py's check_flavor_prefix sees only baked flavor, not
+    /// Known gap. Analyze.py's check_flavor_prefix sees only baked flavor, not
     /// composed lines. Composed lines are length-locked to the weapon's own flavor, entries with no
     /// unique candidate in-window are ineligible (STEP 2), and CardSites' paint-time verify catches
     /// a mispaint.</summary>

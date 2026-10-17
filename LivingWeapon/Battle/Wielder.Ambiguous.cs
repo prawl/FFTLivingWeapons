@@ -3,17 +3,17 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-252 ambiguous-roster seam, split from Wielder.cs. The public Locate/LocateAll overloads route
+/// The ambiguous-roster seam, split from Wielder.cs. The public Locate/LocateAll overloads route
 /// here when ResolveAnyHandNameId finds 2+ roster rows sharing weaponId+fp.
 /// </summary>
 internal static partial class Wielder
 {
-    /// <summary>LW-252 per-row disambiguation for the implicit-resolve Locate overload. The old
+    /// <summary>Per-row disambiguation for the implicit-resolve Locate overload. The old
     /// shared -1 sentinel could not tell this case from "nobody", which let tier 2's veto go inert
     /// and return a foreign-nameId collider. Each collected row is probed with
     /// <see cref="LocateTier1"/> under its own nameId and hands (the 5-arg Locate would fall through
     /// to tier 2 and reopen that leak). Rule (a), any row with nameId &lt;= 0 means the 0==0 trap
-    /// in <see cref="LocateTier1"/> applies, so fall back to the pre-LW-252 -1 path. Rule (b), exactly
+    /// in <see cref="LocateTier1"/> applies, so fall back to the old -1 path. Rule (b), exactly
     /// one row resolving is the answer; two or zero refuse.</summary>
     private static long LocateAmbiguous(IGameMemory mem, int weaponId, IReadOnlyList<int> hands,
                                         (int lvl, int br, int fa) fp)

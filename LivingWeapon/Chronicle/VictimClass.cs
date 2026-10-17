@@ -100,7 +100,7 @@ internal static class VictimClass
     }
 
     /// <summary>The highest-count archetype among earned marks (legend.Marks); a count alone never qualifies, only a threshold-crossed entry.
-    /// Ties go to the lower enum value. Shared by CardLine.Compose (equip-card story line) and LW-31's Attack-menu dossier (AttackCard.cs).
+    /// Ties go to the lower enum value. Shared by CardLine.Compose (equip-card story line) and the Attack-menu dossier (AttackCard.cs).
     /// Returns null (count -1) when no Mark is earned.</summary>
     public static Archetype? BestMark(WeaponLegend legend, out int count)
     {

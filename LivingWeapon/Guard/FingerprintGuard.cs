@@ -128,7 +128,7 @@ internal sealed class FingerprintGuard
 
     // Standard PE header offsets. e_lfanew (u32) is at moduleBase+0x3C, TimeDateStamp (u32) at
     // moduleBase+e_lfanew+8, SizeOfImage (u32) at moduleBase+e_lfanew+0x50. The expected values for
-    // a game build live in the adapter (LaunchGuard.cs). Also used, since LW-397, by the build-stamp
+    // a game build live in the adapter (LaunchGuard.cs). Also used by the build-stamp
     // report line (LaunchGuard.Stamp.cs).
     private const long ELfanewOffset = 0x3C;
     private const long TimeDateStampOffset = 8;

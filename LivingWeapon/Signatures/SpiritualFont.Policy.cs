@@ -44,7 +44,7 @@ internal sealed partial class SpiritualFont
     }
 
     /// <summary>Guarded u16 write of the wielder's MP at the provisional +0x18 on its band entry;
-    /// no-op if not writable. One W16 avoids a torn value between two W8 halves (LW-145 fix 2, as BandHeal.WriteHp).</summary>
+    /// no-op if not writable. One W16 avoids a torn value between two W8 halves (as BandHeal.WriteHp).</summary>
     public static void WriteMp(IGameMemory mem, long entryAddr, int newMp)
     {
         long a = entryAddr + Offsets.AMp;

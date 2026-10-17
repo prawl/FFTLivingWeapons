@@ -3,9 +3,9 @@ namespace LivingWeapon;
 /// <summary>
 /// The build-stamp landmark of the main guard. The PE TimeDateStamp and SizeOfImage used to stand the
 /// whole mod down on an unknown build. The 2026-09 recompile moved nothing but changed the stamp
-/// (docs/CHANGELOG.md, LW-387 row) and the mod went dark, so the stamp is now only reported (docs/TODO.md,
-/// LW-397 row) and only Ramza's roster row (LaunchGuard.Landmarks.cs) can stand the mod down.
-/// <see cref="ProbeBuildStamp"/> keeps the first landmark's slot for the LW-392 stall decorator and returns
+/// (docs/CHANGELOG.md) and the mod went dark, so the stamp is now only reported
+/// and only Ramza's roster row (LaunchGuard.Landmarks.cs) can stand the mod down.
+/// <see cref="ProbeBuildStamp"/> keeps the first landmark's slot for the stall decorator and returns
 /// Unreadable or Match, never Mismatch. <see cref="LogUnknownBuildIfAny"/> still checks the latch.
 /// </summary>
 internal sealed partial class LaunchGuard
@@ -22,7 +22,7 @@ internal sealed partial class LaunchGuard
     private readonly uint _expectedStampTds;
     private readonly long _stampImageBase;
     // Latched by the first readable read, which decides known-or-not for the process. Written on the
-    // Engine tick thread only, so no lock; LW-393's per-part write gates must add publication if they
+    // Engine tick thread only, so no lock; the per-part write gates must add publication if they
     // read these from another thread.
     private uint _stampTds;
     private uint _stampSoi;

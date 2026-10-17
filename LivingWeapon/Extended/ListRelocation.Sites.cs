@@ -1,7 +1,7 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-368 round 2 / 2b. The 55 places in the game's code that name the two per-item byte lists
+/// The 55 places in the game's code that name the two per-item byte lists
 /// (<see cref="Offsets.BagCountArray"/> and <see cref="Offsets.SiblingListArray"/>), plus the types
 /// <see cref="ListRelocation.Install"/> needs to rewrite them. This file is the table and ListRelocation.cs
 /// has the lifecycle, same split as ExtendedSites.cs. Each field is a 4-byte distance. A rip `lea` measures
@@ -94,7 +94,7 @@ internal sealed partial class ListRelocation
     };
 
     /// <summary>Bytes copied per list onto the new page. 0x105 list proper (<see cref="ListProperBytes"/>) plus an
-    /// 0xB-byte tail holding a live game state dword at +0x108 (not padding, corrected 2026-08-31, LW-368 round 2b).
+    /// 0xB-byte tail holding a live game state dword at +0x108 (not padding, corrected 2026-08-31).
     /// The full 0x110 is copied so that dword rides along.</summary>
     internal const int BlockBytes = 0x110;
 

@@ -4,14 +4,14 @@ namespace LivingWeapon;
 
 /// <summary>
 /// The kit-lane guard, split out of LaunchGuard.cs/LaunchGuard.Landmarks.cs (200-line trigger, as in
-/// the LW-83 split). A custom job/ability mod that rewrites the JobCommand rec8/rec9 bytes used to trip the main
+/// the landmarks split). A custom job/ability mod that rewrites the JobCommand rec8/rec9 bytes used to trip the main
 /// guard's game-update stand-down. This second FingerprintGuard instance isolates that landmark, so a conflict
 /// only disables the three weapon-granted commands it anchors (Barrage, Shadow Blade, Provoke).
 /// </summary>
 internal sealed partial class LaunchGuard
 {
     /// <summary>steps the kit-lane guard only while the main guard is Armed and the lane is
-    /// still Verifying. Since LW-397 the build stamp is only a report, so a lane stand-down on an
+    /// still Verifying. The build stamp is only a report, so a lane stand-down on an
     /// unknown build may be the game update itself, which is why the lane copy hedges then.
     /// Engine.cs calls this once per tick beside the main guard's Step().</summary>
     public void StepKitLane()
@@ -40,7 +40,7 @@ internal sealed partial class LaunchGuard
     /// <summary>Null on a match. An all-zero window is a Mismatch here, unlike FingerprintGuard.ByteSignature's
     /// all-zero-is-Unreadable boot-window rule. This probe runs post-arm, when the file-baked table (see
     /// Rec8Sig/Rec9Sig in LaunchGuard.Landmarks.cs) can only be zero if another mod blanked it, and Unreadable
-    /// would retry forever with no message (the LW-112 bug).</summary>
+    /// would retry forever with no message (the bug the kit lane fixed).</summary>
     private static string? DescribeKitLaneMismatch(byte[] observed, byte[] expected, string recName)
     {
         bool allZero = true;

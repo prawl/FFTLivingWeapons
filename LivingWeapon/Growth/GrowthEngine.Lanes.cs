@@ -77,7 +77,7 @@ internal sealed partial class GrowthEngine
 
     /// <summary>Holds current brave ("pa+ma+brave") or current faith ("wp+faith"). Apply routes
     /// here when the merged Cap is nonzero and the route is not u16. Target = max(natural,
-    /// min(natural + flat, cap)), so it never lowers the wielder's own value. Uses the LW-90
+    /// min(natural + flat, cap)), so it never lowers the wielder's own value. Uses the
     /// NaturalLedger like Hold (FilterCapture at first sight, RecordWrite each pass). A cur that
     /// is not natural, the target, or the baked residue is left alone. After a Kobu brave raise
     /// (Kobu.cs) the hold retires for the battle and resumes next battle.</summary>
@@ -109,10 +109,10 @@ internal sealed partial class GrowthEngine
         _appliedFlat[addr] = (natural, target, flat, baked);
     }
 
-    // addr -> (natural, target, factor) for the u16 "hp" lane. Not routed through the LW-90
+    // addr -> (natural, target, factor) for the u16 "hp" lane. Not routed through the
     // NaturalLedger (decision 3, HoldU16_RestartResidue_DecisionPin): its capture bounds are
     // u8-shaped. Decision 3 accepted that a battle-restart chain could re-capture the held MaxHp
-    // as natural and creep up; LW-330 (2026-08-26) overturned that, see _u16WriteRecord.
+    // as natural and creep up; the Venombolt poison work (2026-08-26) overturned that, see _u16WriteRecord.
     private readonly Dictionary<long, (int natural, int target, double factor)> _appliedU16 = new();
 
     // (nameId, lane) -> the last (natural, target) this hold wrote, keyed by roster identity
@@ -122,7 +122,7 @@ internal sealed partial class GrowthEngine
     // read the stale target as natural and compounded (697 -> 906 -> 999).
     private readonly Dictionary<(int nameId, StatLane lane), (int natural, int target)> _u16WriteRecord = new();
 
-    // (nameId, lane) -> pending current-HP top-up (LW-330 stage 2, 2026-08-26). A genuine
+    // (nameId, lane) -> pending current-HP top-up (2026-08-26). A genuine
     // HoldU16 capture with a positive delta adds its key here; TryDeliverTopUp clears it once
     // the hp field reads sane. Not cleared by ResetBattle, since the pre-battle transition
     // tears the struct back to natural mid-cycle (healing 209, 697 -> 906, then damage 209,
@@ -130,7 +130,7 @@ internal sealed partial class GrowthEngine
     // phantom heal.
     private readonly HashSet<(int nameId, StatLane lane)> _pendingTopUp = new();
 
-    // Accepted edge cases (owner call 2026-08-25, tied to the LW-327 top-up). (1) A tier that
+    // Accepted edge cases (owner call 2026-08-25, tied to the Knight Sword top-up). (1) A tier that
     // first rises between battles opens one battle with the max grown but no top-up, because
     // the record still reads (natural, natural); it self-corrects the next battle. (2) The
     // record is in-memory only and survives PlaythroughReset and battle resets; a stale match
@@ -200,7 +200,7 @@ internal sealed partial class GrowthEngine
     }
 
     /// <summary>Raises current HP by the Max HP gain so a Knight Sword wielder does not open the
-    /// battle hurt (LW-327, owner call 2026-08-25). LW-330 stage 2 (2026-08-26) made it a retry:
+    /// battle hurt (owner call 2026-08-25). Made a retry on 2026-08-26:
     /// a genuine capture can land while current HP is still unpopulated (read &lt; 1), which
     /// used to drop the heal. It consumes the <see cref="_pendingTopUp"/> intent once hp reads
     /// sane, and returns at once when there is none. Writing current HP is safe because the

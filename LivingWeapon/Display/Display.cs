@@ -25,7 +25,7 @@ internal sealed partial class Display
     private readonly Dictionary<int, int> _kills;
     private readonly IGameMemory _mem;
     private readonly CardPatterns _pats;  // card-pattern set consumed by Display painting
-    internal readonly DisplaySweep _sweep;  // DisplayPoolPaintTests reads Generation/IsComplete (LW-37 skip proof)
+    internal readonly DisplaySweep _sweep;  // DisplayPoolPaintTests reads Generation/IsComplete (pool-paint skip proof)
     internal readonly CardSites _sites;  // DisplayMaintenanceTests reads Count
     private readonly WpScratchPainter _wpScratch;
     private readonly Func<long> _nowMs;
@@ -44,14 +44,14 @@ internal sealed partial class Display
     // Generation number at the last log line so we log once per completion.
     private long _lastLoggedGen = -1;
 
-    // LW-165 stage 1. Time of the first Tick, -1 until then. Engine only ticks Display after the
+    // Time of the first Tick, -1 until then. Engine only ticks Display after the
     // launch guard arms, so this is the armed moment; Display.PoolPaint.cs times kill-counter readiness from it.
     private long _firstTickMs = -1;
 
     /// <param name="legends">Reliquary Phase 1 deed ledger (docs/RELIQUARY_AC.md); null skips card-story composing.</param>
-    /// <param name="poolPaint">LW-37 gate; null means false (whole-heap sweep) so tests are independent of the
+    /// <param name="poolPaint">Pool-paint gate; null means false (whole-heap sweep) so tests are independent of the
     /// release flag. Engine passes Tuning.PoolPaintEnabled.</param>
-    /// <param name="recorder">LW-257 flight-recorder tap; null emits no flight lines (see Display.Flight.cs).
+    /// <param name="recorder">Flight-recorder tap; null emits no flight lines (see Display.Flight.cs).
     /// Engine passes Flight.Record.</param>
     /// <param name="poolRegionSidecarPath">path of pool_regions.json, passed to PoolLocator. Null
     /// disables the warm-start seed and its write on completion.</param>
@@ -117,11 +117,11 @@ internal sealed partial class Display
         _pendingIds.Clear();   // _sites was wiped, so pending watches would burn all CardPendingMaxBeats and log a false "gave up"
     }
 
-    /// <summary>LW-91 stage 2. In-battle repaint driven by a kill-count change alone, called on ticks
+    /// <summary>In-battle repaint driven by a kill-count change alone, called on ticks
     /// ShouldPaintCard skips so a mid-fight kill reaches the equip card. Recompose runs before PaintAll,
     /// as in <see cref="Tick"/>, so a story-line rotation is never one call stale. It latches
     /// RequestRescan but never steps the sweep or calls Invalidate (the pool relocate runs on
-    /// Engine's own "pool-locate" lane every tick). LW-257 commit 2. When nothing painted, it also runs
+    /// Engine's own "pool-locate" lane every tick). When nothing painted, it also runs
     /// the shared maintenance beat (Display.Heartbeat.cs), which may re-offer one drained pool region
     /// (Display.PoolDrain.cs). That can clear _poolCovered; on the on-field path the flag waits for the
     /// next Tick(true) to act on it.</summary>
@@ -207,7 +207,7 @@ internal sealed partial class Display
     /// Called by the sweep (or the pool path, Display.PoolPaint.cs) for each offered chunk. Registers
     /// kills and suffix sites and paints only the newly added ones, avoiding a verify storm on every hit chunk.
     /// Suffix search covers the targets plus a rotation slice of ids with kills hits (<see cref="SuffixRotation"/>).
-    /// With <paramref name="allSuffixes"/> (pool path, LW-59) every tracked id is searched, because pool
+    /// With <paramref name="allSuffixes"/> (pool path) every tracked id is searched, because pool
     /// suffix bytes can go stale independent of the tally reset and a small pool chunk is cheap.
     /// </summary>
     private void OnChunk(byte[] buf, int lookback, int searchable, long bufBaseAddr, bool allSuffixes)
@@ -277,7 +277,7 @@ internal sealed partial class Display
             targets.Add(id);
     }
 
-    // CheckAndSnapshotCounts lives in Display.Heartbeat.cs (LW-257 commit 2); it also stages changed ids into the pending set.
+    // CheckAndSnapshotCounts lives in Display.Heartbeat.cs; it also stages changed ids into the pending set.
 
     internal int KillsFor(int id) => _kills.TryGetValue(id, out int k) ? k : 0;
 }

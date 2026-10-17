@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-257 commit 2. Per-region drain check. MaybePoolPaint's aggregate short-circuit
+/// Per-region drain check. MaybePoolPaint's aggregate short-circuit
 /// (Display.PoolPaint.cs) re-latches at whatever smaller count survives a partial loss, so if the
 /// lost copy is the one the card renders from, nothing repaints it (which region that is is not
 /// ledger-proven, see PoolLocator.cs PREMISE STATUS). <see cref="LatchRegionCounts"/> records a
@@ -39,7 +39,7 @@ internal sealed partial class Display
             _regionCountAtCoverage[region] = CountKillsSitesIn(snapshot, region.baseAddr, region.size);
     }
 
-    // Internal for the LW-260 pin. DisplayHeartbeatTests checks that a site at rbase+rsize is
+    // Internal for the heartbeat pin. DisplayHeartbeatTests checks that a site at rbase+rsize is
     // outside the region (same test-accessor style as PoolLocator.Restart.cs's ProgressLogEveryTicks).
     internal static int CountKillsSitesIn(List<CardSites.Site> snapshot, long rbase, long rsize)
     {

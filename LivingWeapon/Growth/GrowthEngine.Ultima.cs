@@ -8,24 +8,24 @@ namespace LivingWeapon;
 /// Ownership follows HoldAfterimage. Capture natural, re-apply our target after the per-turn normalize,
 /// leave foreign values alone. Held PA can sit below natural, so a PA-down debuff equal to lastTarget
 /// or natural is mistaken for ours and overwritten. Accepted, since writes are guarded and natural-derived,
-/// reset next battle, and player PA debuffs are rare in FFT:IC. The LW-90 NaturalLedger is consulted only at capture.
+/// reset next battle, and player PA debuffs are rare in FFT:IC. The NaturalLedger is consulted only at capture.
 /// </summary>
 internal sealed partial class GrowthEngine
 {
-    // PA addr -> (captured natural, last value we wrote, LW-90 baked restart residue).
+    // PA addr -> (captured natural, last value we wrote, baked restart residue).
     private readonly Dictionary<long, (int natural, int lastTarget, int baked)> _ultima = new();
 
     /// <summary>True when this weapon's signature is Ultima; Route then declines the PA lane.</summary>
     internal static bool OwnsPa(WeaponMeta m) => m.Signature is { Ultima: true };
 
     /// <summary>Hold PA at round(naturalPA × UltimaMul[tier][hpBand]). No tier gate, tier only picks the curve.
-    /// Main hand only. rosterNameId feeds ReadHp's locate and the LW-90 NaturalLedger. Internal for the LW-90 seam tests.</summary>
+    /// Main hand only. rosterNameId feeds ReadHp's locate and the NaturalLedger. Internal for the ledger seam tests.</summary>
     internal void HoldUltima(long s, WeaponMeta m, int tier, int level, int brave, int faith, int rosterNameId)
     {
         if (!OwnsPa(m)) return;
         long addr = s + Offsets.CPa;
 
-        // LW-149 stage A. Capture, ledger consult and the ownership check live in OwnershipHold.
+        // Capture, ledger consult and the ownership check live in OwnershipHold.
         bool hadRecord = _ultima.TryGetValue(addr, out var rec0);
         var step = OwnershipHold.Step(_mem, _ledger, addr, StatLane.Pa, rosterNameId, level,
                                       hadRecord, rec0.lastTarget, rec0.natural, rec0.baked);

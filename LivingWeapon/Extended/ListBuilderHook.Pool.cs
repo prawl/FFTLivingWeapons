@@ -73,7 +73,7 @@ internal sealed partial class ListBuilderHook
         if (_exhaustionWarned) return;
         _exhaustionWarned = true;
         SafeLog(() => ModLogger.Warn(LogVerb.Engine,
-            "Every list-builder pool slot was busy at once (never observed before this session); a menu briefly listed nothing, nothing was corrupted (LW-372 D3)."));
+            "Every list-builder pool slot was busy at once (never observed before this session); a menu briefly listed nothing, nothing was corrupted."));
     }
 
     internal int AcquireSlot()

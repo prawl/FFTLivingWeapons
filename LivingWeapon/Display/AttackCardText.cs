@@ -3,7 +3,7 @@ using System;
 namespace LivingWeapon;
 
 /// <summary>
-/// Vanilla Attack description text and its footprint budget (LW-31, docs/TODO.md).
+/// Vanilla Attack description text and its footprint budget.
 /// AttackRow.Policy.ComposeRow and AttackCardTail.ComposeTail build the composed row and
 /// description; this class holds the shared facts. <see cref="DefaultBudgetChars"/> is the
 /// budget and AttackCard.cs builds its vanilla plan from <see cref="VanillaDesc"/>.

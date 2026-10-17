@@ -45,8 +45,8 @@ internal sealed class Larceny : ISignature
     private long Locate((int lvl, int br, int fa) fp)
         => Wielder.Locate(_mem, ArcanumId, _arcHand, fp);
 
-    /// <summary>Completed turns this battle for the wielder identified by nameId (LW-252 stage 5:
-    /// falls back to the fp lane when nameId is 0/unresolved -- see TurnTracker.Turns).</summary>
+    /// <summary>Completed turns this battle for the wielder identified by nameId (falls back to the
+    /// fp lane when nameId is 0/unresolved, see TurnTracker.Turns).</summary>
     private int Turns(int nameId, (int lvl, int br, int fa) fp)
         => _turns.Turns(nameId, fp.lvl, fp.br, fp.fa);
 
@@ -68,7 +68,7 @@ internal sealed class Larceny : ISignature
         // KillTracker.LastActorFingerprint is latched once per acted period outside the SameSet
         // guard, so it still updates when two Arcanum holders share weapon set {30}.
         var actorFp = _tracker.LastActorFingerprint;
-        // LW-252 stage 5. The same latch's nameId (KillTracker.LastActorNameId) gives fp-twin
+        // The same latch's nameId (KillTracker.LastActorNameId) gives fp-twin
         // holders separate ledgers in LarcenyHoldings.
         int actorNameId = _tracker.LastActorNameId;
         bool tierOk = LarcenyPolicy.IsActive(m.Signature, tier);

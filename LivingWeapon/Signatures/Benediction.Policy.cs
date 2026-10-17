@@ -29,7 +29,7 @@ internal sealed partial class Benediction
 }
 
 /// <summary>Per-slot HP tracking for the heal detector. A rise in HP is one heal event, drops are
-/// ignored. Bookkeeping is the shared <see cref="HpDeltaState"/> core (LW-153, formerly a
+/// ignored. Bookkeeping is the shared <see cref="HpDeltaState"/> core (formerly a
 /// sign-flipped copy of <see cref="RicochetState"/>); this subclass fixes the direction.</summary>
 internal sealed class HealState : HpDeltaState
 {

@@ -7,7 +7,7 @@ namespace LivingWeapon;
 /// The verified paint-site cache. Anchor patterns (name/flavor) are re-verified at paint time to detect buffer reuse.
 /// A mismatching anchor evicts on first occurrence; an unreadable one evicts only after Tuning.CardEvictStrikes consecutive misses (CardSites.Verify.cs ApplyStrike), so one transient read failure no longer deletes a live site. Skip-if-equal is not an eviction trigger.
 /// Cap relief. When Add finds the kills cache at cap it re-verifies every anchor without painting, evicts dead sites and retries, at most once per PruneEveryRefusals refusals (the first cap hit after a prune or Clear prunes at once). The prune skips the strike leniency (see PruneDeadSites).
-/// LW-262 moved Add/PruneDeadSites/EvictList and their state to CardSites.Admission.cs once suffix and kills got separate caps; SyncFlavorToCurrent is in CardSites.Reliquary.cs. PaintSiteWithResult stays here as one state machine whose branches each tag a PaintOutcome for CardVerdict.
+/// Add/PruneDeadSites/EvictList and their state live in CardSites.Admission.cs since suffix and kills got separate caps; SyncFlavorToCurrent is in CardSites.Reliquary.cs. PaintSiteWithResult stays here as one state machine whose branches each tag a PaintOutcome.
 /// </summary>
 internal sealed partial class CardSites
 {
@@ -38,7 +38,7 @@ internal sealed partial class CardSites
     /// <summary>Test accessor (DisplayMaintenanceTests): a point-in-time copy of the cached sites.</summary>
     internal List<Site> Snapshot() => new(_sites);
 
-    /// <summary>Clears the cache and all Admission state (ResetAdmission, LW-262).</summary>
+    /// <summary>Clears the cache and all Admission state (ResetAdmission).</summary>
     public void Clear() { _sites.Clear(); _keys.Clear(); _strikes.Clear(); ResetAdmission(); }
 
     /// <summary>Paints the given sites; returns the number of writes. Delegates to the verdict overload with null.</summary>
@@ -143,7 +143,7 @@ internal sealed partial class CardSites
     {
         var r = PaintSiteWithResult(s, killsFor, out var outcome, out var kills);
         // Paint() never evicts (only PaintAll does), so evicted is always false here (CardVerdict.Note).
-        // PaintSiteWithResult can return Evict on this path (a Mismatch evicts on first sight, LW-163), but Paint() ignores it;
+        // PaintSiteWithResult can return Evict on this path (a Mismatch evicts on first sight), but Paint ignores it;
         // ApplyStrike already ran, and a later PaintAll over the cached site finishes the eviction.
         verdict?.Note(s.Id, s.SlotAddr, outcome, ObservedFor(s.IsKills, outcome, kills), evicted: false);
         return r == PaintResult.Write;

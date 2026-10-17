@@ -25,7 +25,7 @@ internal sealed partial class CardSites
     ///
     /// The flavor check runs first and returns early on anything but Live, so the "Kills: "
     /// literal is not read after a wrong flavor. A readable-but-wrong anchor means the buffer was
-    /// reused (LW-163 evicts at once), and a second read would only delay that by up to
+    /// reused (a Mismatch evicts at once), and a second read would only delay that by up to
     /// Tuning.CardEvictStrikes beats. Pinned by CardSitesVerifyTests.cs
     /// A_readable_but_wrong_flavor_evicts_even_though_the_kills_literal_would_have_been_unreadable.</summary>
     private AnchorState VerifyAnchor(Site s)
@@ -66,7 +66,7 @@ internal sealed partial class CardSites
     }
 
     /// <summary>Match the bytes at s.AnchorAddr against any candidate, reading once per distinct
-    /// candidate length. LW-332 added the baked Grows pattern, whose length differs from Flavor,
+    /// candidate length. The baked Grows pattern's length differs from Flavor,
     /// and FlavorPos can now resolve to the Grows line (Display.cs:335, CardScanner's
     /// bidirectional search), so both lengths must be tried. Live on the first match; Unreadable
     /// only when every read failed; Mismatch otherwise, including an empty candidate list.</summary>

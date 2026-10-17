@@ -15,7 +15,7 @@ internal sealed partial class Renewal
     /// <summary>The weapon must be in RRHand to activate. Kills count from any hand, but the gift fires only from the main hand.</summary>
     public const bool ActivatesOnMainHandOnly = true;
 
-    /// <summary>Delegates to <see cref="HealPulse.IsTurnEdge"/> (LW-153 dedup) so the policy surface reads per-module.</summary>
+    /// <summary>Delegates to <see cref="HealPulse.IsTurnEdge"/> so the policy surface reads per-module.</summary>
     public static bool IsTurnEdge(int lastTurns, int turns) => HealPulse.IsTurnEdge(lastTurns, turns);
 
     /// <summary>max(|dx|, |dy|), so diagonals count as 1.</summary>

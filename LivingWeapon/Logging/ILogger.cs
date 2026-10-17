@@ -6,7 +6,7 @@ namespace LivingWeapon;
 /// Logging interface, ported from FFTColorCustomizer's ILogger/ModLogger split (ColorMod/Interfaces/ILogger.cs,
 /// ColorMod/Utilities/ModLogger.cs). <see cref="ModLogger"/> is the static facade, <see cref="FileConsoleLogger"/>
 /// the production implementation, <see cref="NullLogger"/> the test one. Mod.cs pins LogLevel to Info at startup
-/// (LW-52 removed the VerboseLog knob); raise it to Debug there for live diagnosis.
+/// (the VerboseLog knob is gone); raise it to Debug there for live diagnosis.
 /// </summary>
 internal interface ILogger
 {
@@ -14,7 +14,7 @@ internal interface ILogger
     LogLevel LogLevel { get; set; }
 
     // Verb-aware entry points. The file line always carries "[verb] "; the console carries it only at Warning/Error,
-    // and Info lines render subject-first (see FileConsoleLogger). The verb-less members were deleted in LW-155;
+    // and Info lines render subject-first (see FileConsoleLogger). The verb-less members are deleted;
     // LogContractTests trips if one returns.
 
     /// <summary>Info tier. File "[LEVEL] [verb] message", console "[LEVEL] message".</summary>

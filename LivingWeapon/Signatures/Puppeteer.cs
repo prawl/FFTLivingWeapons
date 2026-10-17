@@ -82,7 +82,7 @@ internal sealed partial class Puppeteer : ISignature
     private string _lastGateReason = "";       // gate-edge log throttle (Larceny's pattern. Log on
                                                // reason change, not every 33ms tick)
 
-    // Own-turn release state (LW-5, Puppeteer.Hold.cs). The puppet is held until the turn queue
+    // Own-turn release state (Puppeteer.Hold.cs). The puppet is held until the turn queue
     // (Offsets.TurnQueue) names it across an acted edge. Reset per possession.
     private bool _pWasActed;
     private bool _pTurnActive;

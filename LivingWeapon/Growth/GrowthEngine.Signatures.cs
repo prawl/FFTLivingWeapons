@@ -112,7 +112,7 @@ internal sealed partial class GrowthEngine
     /// <summary>One band pass <paramref name="exact"/> is tier 1 (band nameId == rosterNameId,
     /// only called with rosterNameId &gt; 0); otherwise tier 2 (fingerprint match, plus the D2 veto
     /// when rosterNameId &gt; 0).
-    /// LW-252 stage 6, decision-4 exception (b): on the non-exact pass with rosterNameId &lt;= 0 and
+    /// Decision-4 exception (b): on the non-exact pass with rosterNameId &lt;= 0 and
     /// two or more real-position candidates, returns (0,0) rather than guessing, as
     /// GrowthEngine.Locate.cs's PickHomogeneousTwin does. Consumers (GrowthEngine.cs, Ultima.cs,
     /// Afterimage.cs) treat (0,0) as no info.</summary>

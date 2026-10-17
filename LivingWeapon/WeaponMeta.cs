@@ -18,7 +18,7 @@ public sealed class WeaponMeta
     [JsonProperty("lane")] public string Lane { get; set; } = "";
     // The stable lead line of the description; the in-card Kills counter anchors to it.
     [JsonProperty("flavor")] public string Flavor { get; set; } = "";
-    // The tagged "Grows: ..." card line (lib.flavor.grows_line, LW-329 color tag) as baked;
+    // The tagged "Grows: ..." card line (lib.flavor.grows_line, color tag) as baked;
     // CardScanner's second anchor beside Flavor (the Grows line sits closer to the Kills scaffold).
     // Matched as baked. "" for non-living ids.
     [JsonProperty("growsLine")] public string GrowsLine { get; set; } = "";

@@ -77,7 +77,7 @@ internal sealed partial class Puppeteer
     internal const int AgencyOff = -0x17;
     internal const byte AgencyBit = 0x08;
 
-    // The victim's job id, for the log line and re-gating. Promoted to Offsets.AJob (LW-149 stage H);
+    // The victim's job id, for the log line and re-gating. Promoted to Offsets.AJob;
     // this alias keeps Puppeteer.cs:227 and existing tests compiling. See Offsets.AJob for provenance.
     internal const int JobOff = Offsets.AJob;
 
@@ -96,8 +96,8 @@ internal sealed partial class Puppeteer
 
 /// <summary>Per-battle state for Puppeteer. One active puppet (the latch) plus the turn stamp of the
 /// last puppet (the cooldown clock). No memory access. Release on the puppet's own turn is detected in
-/// Puppeteer.Hold.cs (LW-5 round-2/3 tape, 2026-07-07; the old wielder clock released on the wrong
-/// unit's turn because LW-7 dumps turn credit onto the wielder). This state holds only the cap,
+/// Puppeteer.Hold.cs (2026-07-07 tapes; the old wielder clock released on the wrong
+/// unit's turn because auto-battle dumps turn credit onto the wielder). This state holds only the cap,
 /// PuppeteerWielderlessFallbackTurns GlobalTurns after dominate (IsCapped).</summary>
 internal sealed class PuppeteerState
 {
@@ -131,7 +131,7 @@ internal sealed class PuppeteerState
         _lastPuppetWielderTurn = currentWielderTurn;
     }
 
-    /// <summary>The LW-5 safety cap. True once GlobalTurns has advanced <paramref name="capTurns"/>
+    /// <summary>The safety cap. True once GlobalTurns has advanced <paramref name="capTurns"/>
     /// past the dominate baseline. A backstop if the turn-queue "own turn" signal never fires
     /// (Puppeteer.Hold.cs handles the normal release).</summary>
     public bool IsCapped(int globalTurnsNow, int capTurns)

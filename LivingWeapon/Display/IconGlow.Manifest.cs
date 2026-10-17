@@ -5,7 +5,7 @@ using System.IO;
 namespace LivingWeapon;
 
 /// <summary>
-/// LW-381 (R14, 200-line split). Loads and validates glow_icons/manifest.json once, on the first
+/// Loads and validates glow_icons/manifest.json once, on the first
 /// tick. Split from IconGlow.cs because a new bake and a new kill change it for different reasons.
 /// </summary>
 internal sealed partial class IconGlow
