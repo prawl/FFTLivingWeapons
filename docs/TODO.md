@@ -79,6 +79,24 @@ the technical detail lives in the indented lines under it.
 - **[LW-408] Find out whether Living Weapons runs alongside WotL Restoration and write the answer down** (opened 2026-10-17) [BUILDING]
   - Done means: a player reading docs/COMPATIBILITY.md knows what happens with both mods installed, which order to load them in, and what each mod's own log will say. Payload half done 2026-10-17: WotL Restoration 2.0.7 was downloaded and read file by file (its text tables diffed against vanilla and ours, its job table, and its decompiled code), and the verdict is written in the doc's "WotL Restoration" section: characters and events coexist, its 40 new items switch off because both mods break the 261 item cap at the same code sites and ours arms first, and Living Weapons must load last to keep its item names. (Tech: her nine accessor hooks are our ten entries; 52 of her 63 relocations and 30 of her 44 caps sit on our sites; item.en.nxd keys 261 to 267 are written by both; her JobData rows 162 to 168 are clear of ours; ability 358 Barrage is named by both.)
   - Verify: owner runs the game once with both mods enabled, WotL Restoration loading before Living Weapons. Expected: Living Weapons' parts report reads all ON (extended inventory included), WotL Restoration's log prints its "Item expansion NOT armed" line, Luso and Balthier's events still fire, the Terrastaff card reads Terrastaff with its kill counter, and Agrias's birthday hands out a Septième Sens. Owner flips this row to AWAITING-LIVE when ready and PROVEN or not after the run.
+- **[LW-401] The docs describe the mod that ships, one that pauses parts, not one that refuses everything** (opened 2026-10-16) [BUILDING]
+  - Plain language: the README still says the mod "holds every write until the landmarks match"
+    and switches itself off when Ramza's row reads wrong. Since LW-393 the mod checks each part
+    on its own, pauses only the parts whose check failed, prints one Parts report line, and since
+    LW-406 speaks in one voice with a box in three states and a single "all parts armed" line. The
+    README, the compatibility notes, the logging guide and the re anchor runbook must say that.
+  - (Tech: README Good to know bullet; docs/COMPATIBILITY.md the Parts report bullet; docs/LOGGING.md
+    the startup verb row, the launch header example, a new Parts report section, and the standdown
+    trigger paragraph that still claims Engine.Tick's pre arm early return holds every module off;
+    docs/PATCH_REANCHOR.md lines that say only a moved roster row stands the mod down.)
+  - Done means: no doc claims the mod refuses every write or switches itself off whole on a roster
+    mismatch; each of the four docs describes the per part check, the Parts report line, the three
+    box states, the paused wording and the all parts armed line, in words that match the shipped
+    strings; DocsContractTests and TodoContractTests green; an adversarial reader finds no sentence
+    in the four docs that contradicts the code.
+  - Verify: grep the four docs for "holds every write", "switches itself off for the session",
+    "pre-arm early return" and "Only a moved roster row" and find none; the owner reads the README
+    bullet once.
 ## Backlog
 
 Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner directed).
@@ -98,13 +116,6 @@ belongs rather than at the bottom.
   scans the runtime for GetAsyncKeyState and virtual key constants and fails if any sits outside
   an LWDEV block, plus one owner read of a prod build's log showing no spike lines after an F6.
   LW-67 stripped the F6 services in July; this row keeps them stripped.
-- [LW-401] 2026-10-16: The README, the compatibility notes and the logging guide must describe the new behavior: the mod no longer refuses everything until the build matches; it checks each part and reports which are on.
-  Exits with the last stage of the parts model. Today README's Good to know bullet says the mod
-  "holds every write until the landmarks match" and docs/LOGGING.md and tools/scan_logs.py key on
-  the stand-down phrase. After the build: the README describes the per-part report and what a
-  player should do when a part reads OFF; docs/COMPATIBILITY.md gets the report format; the
-  scanner's marker phrase follows the new text; docs/PATCH_REANCHOR.md's guard step names the
-  new landmarks. Written last so it describes what shipped, not what was planned.
 - [LW-405] 2026-10-16: The card paint cache file is stamped with the build the mod was made for, not the build the game actually is, so since the mod can now run on a build it does not know the stamp no longer tells builds apart.
   Found in the LW-397 review. PoolRegionSidecar.Save writes the expected constants and Load compares
   against them (PoolRegionSidecar.cs 45, 72), never the observed header; the per-region reverify in

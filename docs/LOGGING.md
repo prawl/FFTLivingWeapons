@@ -113,7 +113,7 @@ deliberately; no ad-hoc per-module prefixes. The legacy column maps the pre-face
 
 | Verb | Legacy prefix(es) | Level discipline |
 |---|---|---|
-| `startup` | bare startup lines, `DEV:` seed line, both Mod.cs hooks lines | Info; launch header + its hooks footer, plus the fingerprint guard's armed/stand-down lines, the build stamp line and the unknown-build warning (LW-397), the LW-392 stall warning, title-screen wait and recovery lines, the LW-393 "Parts report:" line (one per door state change) and the two lane waiting lines, the LW-400 twin lane's armed line, stand-down warning and waiting line, the five table door stand-down WARNs and the two table waiting lines (LW-399, the ability data and item data checks) and the band and unit list armed lines (LW-398, "The live battle unit data reads as expected..." and "The battle unit list reads as expected..."), and (LW-82) the anchor scout's re-find inventory that only runs after a stand-down. | ,
+| `startup` | bare startup lines, `DEV:` seed line, both Mod.cs hooks lines | Info; launch header + its hooks footer, plus the fingerprint guard's armed/stand-down lines, the build stamp line and the unknown-build warning (LW-397), the LW-392 stall warning, title-screen wait and recovery lines, the LW-393 "Parts report:" line (one per door state change) and the two lane waiting lines, the LW-400 twin lane's armed line, stand-down warning and waiting line, the five table door stand-down WARNs and the two table waiting lines (LW-399, the ability data and item data checks) and the band and unit list armed lines (LW-398, "The live battle unit data reads as expected..." and "The battle unit list reads as expected..."), and (LW-82) the anchor scout's re-find inventory that only runs after a stand-down, the LW-406 one voice shape on every disabling WARN under this verb (the banners door warns under `toast`; what is paused and why, the hedge, the shared what to do sentence, an optional drill sentence, then a "(detail: ...)" tail) and the "Living Weapons: all parts armed." state line that replaces the Parts report list once every part reads ON. |
 | `config` | `config:` | Info once per launch; Warning on read failure. |
 | `battle-start` | `battle: started` | Info once per battle; sentinels move to a `[trace]` companion. |
 | `battle-end` | `battle: ended` | Info once per battle; THE match-report summary line. |
@@ -136,8 +136,10 @@ arc continues separately.
 
 ## The launch header
 
-Seven Info lines at every launch (eight in development builds), then the hooks footer once the
-loader resolves controllers. File shape shown; the console drops the `[verb]` brackets:
+Eight Info lines at every launch (nine in development builds), then the hooks footer once the
+loader resolves controllers, then the first "Parts report:" line from the first tick (which may
+print either side of the footer, same as the stamp line). File shape shown; the console drops the
+`[verb]` brackets:
 
 ```
 [startup] Living Weapons version 2.2.2 (production build) is starting inside fft_enhanced.exe.
@@ -148,7 +150,12 @@ loader resolves controllers. File shape shown; the console drops the `[verb]` br
 [startup] The runtime loop has started.
 [startup] Game build stamp: TimeDateStamp 0x6A5E4A1B, SizeOfImage 0x03F9E000; the build this mod was made for.
 [startup] Connected to the game's rendering hooks; toast pop-ups can be delivered.
+[startup] Parts report: battle sensing ON; kill counting WAITING (waiting for a save to load); ...
 ```
+
+After the header the parts report takes over (next section): one "Parts report:" line per door
+state change, most parts WAITING until a save loads, and once every part reads ON the single line
+"Living Weapons: all parts armed." instead of the list.
 
 Facts worth knowing: the version is read fail-soft from the deployed `ModConfig.json`
 ("unknown" if unreadable); the flavor is the compiled `Tuning.BuildFlavor` const (never
@@ -160,6 +167,47 @@ runs); the runtime-loop line is the liveness canary that closes the header. The 
 is logged by LaunchGuard on its first tick, so it may print either side of the hooks footer (the
 footer comes from the loader thread); an unknown stamp words it as "not a build this mod knows"
 and a calm WARN follows when the mod arms.
+
+## The parts report and its box
+
+Since LW-393 the mod is fourteen parts, each gated by its own checks (doors): battle sensing, kill
+counting, stat growth, card paint, the weapon powers in battle, weapon commands, banners, the
+extended inventory, twin weapons, bulwark, weapon colors, gun growth, poach den and provoke. A door
+checks the memory a part depends on at startup, at save load, or in a live battle (the band and
+unit list doors: a match arms on the first live frame, a mismatch counts only after about twenty
+seconds of the cursor on the field, counted across battles). A door that fails pauses only the
+parts that need it, for the session; doors never re-verify after arming.
+
+What the log shows: one `[startup] Parts report: <part> ON|OFF|WAITING (<reason>); ...` line on
+every door state change, then, the moment every part reads ON, one `Living Weapons: all parts
+armed.` line in its place (edge triggered, once). Every door that checks the game logs ONE
+disabling WARN when it closes (the roster door an ERROR, which keeps the scanner's "standing down
+to protect your save" phrase; a closed table door adds one refusal WARN the first time a writer
+asks it; an absence, no loader hooks or no shipped items, logs nothing or a Debug line) in one
+shape (LW-406): what is paused and why, in player words; "This usually means the game just updated,
+or another mod changed the same data."; the shared "What to do: ..." sentence; a drill sentence when
+a dev drill forced it; and last a "(detail: <probe diag>)" tail that holds every address, byte and
+stamp. Nothing technical ever sits before the tail. The two loader refusals are the exceptions:
+bad shipped item data drops the hedge, and missing loader hooks swaps the what to do for "enable
+reloaded.sharedlib.hooks" and has no tail. The banners door warns under the `toast` verb.
+
+The box (PartsBoard, one per closure wave, about three seconds after the first failed check so the
+other verdicts land) has three states. Some parts still work: headline "Living Weapons: some
+features are paused", then "Still working:", "Paused this session:" and, when any part has not been
+checked yet, "Still being checked (as the game loads and your first battle starts):", each a plain
+list of part names with no reasons (the log line has them). No part still works: headline
+"Living Weapons has paused itself for this session" and no "Still working" block. Nothing paused:
+no box at all. Every box ends with the hedge (plus the unknown build sentence when the stamp is
+new), "Your game and save are fine.", the two paragraph what to do, the drill sentence when one
+applies, and the footer `Living Weapons <version>, game build 0x<TimeDateStamp>` (or `game build
+unknown` before the stamp was read), so a screenshot is a usable bug report. The same version and
+build ride in every flight file header.
+
+`tools/scan_logs.py` keys on six marks: "is starting inside" (the launch header), "Living Weapons
+is armed" (the roster door opened),
+"standing down to protect your save" (the roster door closed), "drill: LW_FORCE_" inside a detail
+tail (a dev drill), "Parts report:" (the list line) and "all parts armed" (the state line); its
+summary prints the last parts state.
 
 ## The match report
 
@@ -338,15 +386,19 @@ actual serialize+write+retention-prune runs later from `Flight.DrainPending()`, 
 Engine tick. This matters because `PromptSwapHook.Detour` logs errors on the game's own
 `SetTextString` thread before forwarding, a synchronous flush there would stall the game's own
 prompt commit. (d) a dedicated `"standdown"` trigger (`Flight.RequestFlush("standdown")`,
-requested LAST inside `LaunchGuard.StandDown`, LW-53): a fingerprint-guard stand-down happens
-before any battle edge is reachable (`Engine.Tick`'s pre-arm early return holds every other
-module off) and the launch's error FlushOnce token can already be burnt by an earlier unrelated
-error (a Mod.cs hooks failure, an Engine.cs tick-loop catch) whose flush drained an empty ring;
-a trigger other than `"error"` bypasses that latch entirely and the archive lands as
-`flight_*_standdown.jsonl`. The same trigger also fires on a kit-lane stand-down (LW-112, a
-conflicting mod's JobCommand-table edit disabling only the three weapon-granted commands); the
-record's payload text ("stand-down" vs "kit-lane stand-down") is what tells the two shapes apart.
-LW-395 adds a third shape: a sensing-lane stand-down (the battle sentinels did not read the way
+requested LAST inside `LaunchGuard.StandDown`, LW-53): a roster stand-down happens at save load,
+before any battle edge is reachable for the parts it pauses (since LW-393 each part is gated on
+its own doors, so the other parts keep ticking), and the launch's error FlushOnce token can
+already be burnt by an earlier unrelated error (a Mod.cs hooks failure, an Engine.cs tick-loop
+catch) whose flush drained an empty ring; a trigger other than `"error"` bypasses that latch
+entirely and the archive lands as `flight_*_standdown.jsonl`. The same trigger fires on every
+guard door closure: the kit lane (LW-112, a conflicting mod's JobCommand-table edit disabling only
+the three weapon-granted commands), the twin lane (LW-400), the five table doors (LW-399) and the
+band and unit list doors (LW-398, inside a live battle); the two loader handshake doors (banners
+and the extended inventory) warn without a flush. The record's payload text ("stand-down",
+"kit-lane stand-down", "twin lane stand-down", "table door stand-down (<door>: ...)", "band
+stand-down", "static array stand-down") is what tells the shapes apart.
+The sensing lane (LW-395) is one more shape: a sensing-lane stand-down (the battle sentinels did not read the way
 the mod expects, so only the new-game detector is switched off) records "sensing stand-down (...)"
 with the full observed sentinel tuple, and carries "(drill: LW_FORCE_SENSING_MISMATCH)" after the
 words "sensing stand-down" when a dev drill forced it.

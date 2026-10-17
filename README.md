@@ -76,18 +76,24 @@ The gameplay is language-neutral by construction: the item tables carry no text,
   the development branch (one session measured 34 seconds). If you open the party menu sooner,
   the cards briefly show zeroed "Kills" text; back out and re-open the menu and your numbers are
   there. Nothing is ever lost; only the first paint lags.
-- **The mod checks the game before it writes anything.** At startup it reads a few known spots in
-  the game's memory and holds every write until they look right. If Ramza's roster row reads wrong,
-  the mod switches itself off for the session and shows a box telling you to check for a newer
-  version. A game build the mod has never seen is only reported, one log line and one warning, and
-  the mod runs normally if its own checks pass. If it cannot read the game at all it says so after
-  about a minute and keeps trying. Your save is never touched in any of these cases. If another mod
-  has rewritten the job command data (custom job mods do), only the three weapon granted commands
-  pause, Barrage, Shadow Blade and Provoke, and the same box lists them under "Paused this session".
-  Every such message uses the same wording, says the game update or another mod may be the cause, and
-  ends with the same what to do line. Every box ends with the mod version and the game build, so a
-  screenshot of it is a usable bug report, and when every part is running the log says so once with
-  "Living Weapons: all parts armed."
+- **The mod checks the game before it writes anything, one part at a time.** Each of its fourteen
+  parts (kill counting, stat growth, the weapon powers in battle, weapon commands, banners, the
+  extended inventory and the rest) checks the spot in the game's memory it depends on, at startup,
+  when a save loads, or when your first battle starts. A part whose check passes runs. A part whose
+  check fails pauses for the session, along with any other part that leans on the same spot, and
+  everything else keeps running. The log prints one "Parts report:" line naming every part as ON,
+  OFF or WAITING with the reason, and the first time every part has passed it prints
+  "Living Weapons: all parts armed." instead. When a check fails you also get a
+  box, "Living Weapons: some features are paused", listing what still works, what is paused, and
+  what to do (check the mod page for a newer version, try without a mod you installed recently, or
+  email me with the log). If nothing is still working the box says the mod has paused itself.
+  Every such message says the game update or another mod may be the cause, and every box ends
+  with the mod version and the game build, so a screenshot of it is a usable bug report. A game
+  build the mod has
+  never seen is only reported; the mod runs normally if its checks pass. If it cannot read the game
+  at all it says so after about a minute and keeps trying. Your save is never touched in any of
+  these cases. A custom job mod that rewrites the job command data pauses only the three weapon
+  granted commands, Barrage, Shadow Blade and Provoke.
 - **For bug reports, send the log.** It is `livingweapon.log` in the mod's folder under `Reloaded/Mods`;
   each launch rotates the previous one to `livingweapon.prev.log`, so grab it right after the session
   where things went wrong. [`docs/LOGGING.md`](docs/LOGGING.md) explains what is in it.

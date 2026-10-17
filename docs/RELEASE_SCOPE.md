@@ -483,6 +483,29 @@ this paragraph is the pointer that says so.
 - [ ] analyze.py exit 0; dotnet test green; Publish.ps1 clean PROD; changelog exits for
       everything above; ModVersion 2.4.0 and the matching tag.
 
+### R5. Close-out order and FEATURE FREEZE (owner ruling 2026-10-17)
+
+Plain version: the owner has been trying to ship this version for months. From today nothing
+new enters the 2.4.0 gate. Bugs found on the way get a backlog row and, if they break something
+a player sees, join the order below; everything else waits for 2.5.0. The guard arc (LW-393,
+LW-400, LW-399, LW-398, LW-406) shipped 2026-10-16 and 2026-10-17 and is the reason the parts
+model exists; it is done. The order, worked top to bottom, one at a time:
+
+1. LW-401 docs catch up and LW-407 file summaries, the last two guard arc rows (in flight).
+2. LW-416 the knight sword HP top up. LW-327 shipped it 2026-08-26 with three live rounds, so
+   this is a regression and the parts model is the first suspect.
+3. LW-323 the stale toast fix, built, owner live pass only.
+4. LW-413 no developer hotkey can fire in a release build.
+5. LW-412 the weapon color smoke test (LW-339 is the fuller pass if 412 finds anything).
+6. LW-325 the thirty signature tour, plus fixes for what it finds.
+7. Furniture: ModVersion 2.4.0 and the tag, LW-286, LW-281, and the changelog exits.
+8. One sitting each, cheap: galleries LW-198, LW-205, LW-210, LW-212, then LW-322 and LW-320,
+   and LW-414 the seven baseline numbers.
+
+Pushed to 2.5.0 by the same ruling: LW-415 the write scope buckets, the R1 cosmetics (LW-329,
+LW-335, the hue true ups), LW-340, LW-324, and every research row. LW-358 and LW-408 stay in
+Now because both wait only on the owner.
+
 ---
 
 ## 2.4.0 OUT of scope (explicit, so nothing drifts back in)

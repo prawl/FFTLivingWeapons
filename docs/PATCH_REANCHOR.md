@@ -14,10 +14,15 @@ docs/research/PORT_<ver>_OFFSETS.md journal, not here.
 - A new game build no longer trips the guard on its own (LW-397). The startup log carries one
   "Game build stamp ..." line saying whether the stamp is the one the mod was made for. If the
   stamp is new but Ramza's roster row still reads right, the mod ARMS and logs one WARN, "This
-  game build is new to the mod ...". Only a moved roster row stands the mod down (ONE loud log
-  line naming ramza-roster-row plus a once-per-session message box, runtime disarmed; LW-50,
-  first real-world catch: 1.5.1, 2026-07-13). The extended inventory refuses only when one of
-  its patch sites reads different bytes than it expects.
+  game build is new to the mod ...". A moved roster row pauses only the eleven parts that need it
+  (ONE loud log line naming ramza-roster-row in its "(detail: ...)" tail, plus one box,
+  "Living Weapons: some features are paused", while battle sensing, banners (connected, with
+  nothing to announce) and the extended inventory keep running; LW-50 and LW-393, first real-world
+  catch: 1.5.1, 2026-07-13). Every other door (the job command table, the battle sentinels, the
+  menu flags, the five tables, the band and the unit list, the prompt hook and the extended
+  inventory's patch sites) pauses only its own parts with the same one voice warning (LW-406),
+  and the "Parts report:" line names which. The extended inventory refuses only when one of its
+  patch sites reads different bytes than it expects.
 - Ground truth before concluding anything: read the PE header off the exe ON DISK and compare
   with LaunchGuard.cs's expected constants. A mod cannot plausibly change TimeDateStamp and
   SizeOfImage; both differing means the binary changed.
@@ -33,8 +38,8 @@ docs/research/PORT_<ver>_OFFSETS.md journal, not here.
   Denuvo-free build (Steam buildid 24304444) kept every internal position but turned ASLR on
   (DllCharacteristics 0x8160: DYNAMIC_BASE + HIGH_ENTROPY_VA, a real .reloc section), so the image
   no longer loads at 0x140000000. Symptom: the guard's PE landmark reads UNREADABLE, not Mismatch,
-  so there is NO loud line and NO box; the mod simply never arms and players report kill counts
-  that stopped. Step 1 therefore also records DllCharacteristics and the section count; a 12MB
+  so no door closes and nothing arms; after about a minute the LW-392 stall warning and its box
+  ("Living Weapons cannot find the game yet") fire, and players report kill counts that stopped. Step 1 therefore also records DllCharacteristics and the section count; a 12MB
   exe with seven standard sections is the unprotected shape. The mod now resolves every address
   through ImageBase.At(pin) against the live main-module base, so a base move alone needs no
   re-anchor; an RVA move still does.
@@ -176,7 +181,9 @@ outcomes per probe before running (found / ambiguous / not-found and what each m
 ## Step 6: deploy and live-verify (owner go-ahead, owner eyes)
 
 1. Kill fft_enhanced.exe, BuildLinked (dev first is fine; the flavor guard rules apply).
-2. Guard arms ("Living Weapons is armed") seconds after a save loads; NO stand-down.
+2. Guard arms ("Living Weapons is armed") seconds after a save loads; NO stand-down, and after the
+   first battle's band and unit list doors arm, "Living Weapons: all parts armed." once (provided
+   no other part reads OFF in the Parts report).
 3. One battle round-trip: a kill credits with victim identity, battle exits clean, card paints.
 4. python tools/scan_logs.py --require-battle --flight exits 0.
 5. Bank the per-patch ledger to docs/research/PORT_<ver>_OFFSETS.md (STATUS: JOURNAL), flip
@@ -184,10 +191,7 @@ outcomes per probe before running (found / ambiguous / not-found and what each m
 
 ## Step 7: aux-module scope calls (price them, ask the owner)
 
-- Treasure Master: auto-disarms on its own build key; its flag data is ~1500 rebased absolute
-  addresses. Re-anchor cost is a rebase run (tools/treasure_rebase.py, two ground-truth
-  recaptures) vs leaving it disarmed. With removal planned (LW-10), stay-disarmed is the
-  default recommendation.
+- Treasure Master: removed in LW-10 (2026-08-14); nothing to re-anchor.
 - Dormant modules: none currently; the dormant-module cleanup shipped as LW-159.
 - Dev spikes are LWDEV-only: re-anchor lazily, when next used.
 

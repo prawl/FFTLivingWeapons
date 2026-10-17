@@ -19,11 +19,15 @@ Weapons, open a GitHub issue on this repository.
   game language or an English text mod hides the kill counter on weapon cards.
 - Everything else works fine. About two thirds of the catalog had no catch at all.
 - Modding tools are fine. The game never loads a tool, only what people make with it.
-- Since version 2.4.0 the mod prints one "Parts report:" line at startup. It lists each part
-  as ON, OFF or WAITING with a reason. When another mod gets in the way you see it there as
-  one part OFF with the reason next to it, for example "weapon commands OFF" after a job mod
-  rewrote the command table, and everything else keeps running. When this page says the mod
-  will tell you, that is the line to look at.
+- Since version 2.4.0 the mod checks each of its parts on its own and prints one "Parts report:"
+  line in the log. It lists each part as ON, OFF or WAITING with a reason. When another mod gets
+  in the way you see it there as one part OFF with the reason next to it, for example
+  "weapon commands OFF (another mod rewrote the job command data)", and everything else keeps
+  running; once every part has passed the line reads "Living Weapons: all parts armed." You also
+  get a box, "Living Weapons: some features are paused", that lists what still works and what is
+  paused, says the game update or another mod may be the cause, and ends with what to do and the
+  mod version plus game build. When this page says the mod will tell you, that line and that box
+  are what it means.
 
 ## Will not work together
 
