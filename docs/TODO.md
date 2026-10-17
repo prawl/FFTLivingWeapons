@@ -61,10 +61,6 @@ the technical detail lives in the indented lines under it.
     order the fix depends on; no door gating is loosened to get there.
   - Verify: full suite green with the new test; the owner loads the same save, enters a battle,
     and reads 883 of 883 (or the current max) on Ramza's first turn; scan_logs CLEAN.
-- **[LW-407] Every runtime source file opens with one short sentence saying what it is** (opened 2026-10-17) [BUILDING]
-  - Every runtime source file should open with one short sentence saying what the file is, so someone skimming file by file gets the answer at once.
-  - Done means: every production file under LivingWeapon/ opens its first summary with a sentence of at most 110 characters ending in a period, AssemblyInfo.cs opens with a one line comment, and a contract test fails the moment a file breaks that.
-  - Verify: full suite green with the new test; the scout prints only the exempt AssemblyInfo.cs; one sabotage (lengthen one first sentence past 110) turns exactly the new Fact red.
 ## Backlog
 
 - [LW-417] 2026-10-17: The HP growth code file has grown past the size where a reader can hold it in their head (253 lines). Split the Max HP lane into its own file under the new file comment cap, keeping or rewriting the LW-327 edge prose at the old lines 112 to 138, never dropping it. Owed since LW-327, grew again with LW-416.
