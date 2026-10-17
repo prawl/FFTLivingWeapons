@@ -45,22 +45,6 @@ the technical detail lives in the indented lines under it.
 - **[LW-408] Find out whether Living Weapons runs alongside WotL Restoration and write the answer down** (opened 2026-10-17) [BUILDING]
   - Done means: a player reading docs/COMPATIBILITY.md knows what happens with both mods installed, which order to load them in, and what each mod's own log will say. Payload half done 2026-10-17: WotL Restoration 2.0.7 was downloaded and read file by file (its text tables diffed against vanilla and ours, its job table, and its decompiled code), and the verdict is written in the doc's "WotL Restoration" section: characters and events coexist, its 40 new items switch off because both mods break the 261 item cap at the same code sites and ours arms first, and Living Weapons must load last to keep its item names. (Tech: her nine accessor hooks are our ten entries; 52 of her 63 relocations and 30 of her 44 caps sit on our sites; item.en.nxd keys 261 to 267 are written by both; her JobData rows 162 to 168 are clear of ours; ability 358 Barrage is named by both.)
   - Verify: owner runs the game once with both mods enabled, WotL Restoration loading before Living Weapons. Expected: Living Weapons' parts report reads all ON (extended inventory included), WotL Restoration's log prints its "Item expansion NOT armed" line, Luso and Balthier's events still fire, the Terrastaff card reads Terrastaff with its kill counter, and Agrias's birthday hands out a Septième Sens. Owner flips this row to AWAITING-LIVE when ready and PROVEN or not after the run.
-- **[LW-416] A grown knight sword fills the HP it adds, the way a level up does** (opened 2026-10-17) [BUILDING]
-  - Plain language: the owner saw Ramza walk into battle at 679 of 883 HP with a grown knight
-    sword. The sword raised his max HP but did not fill the new room. That feature shipped as
-    LW-327 on 2026-08-26 after three owner live rounds, so this is a regression; the parts model
-    (which door gates the top up write, and when it opens relative to battle start) is the
-    first suspect. R5 item 2. Built 2026-10-17 on branch lw-416-knight-sword-hp (df469221),
-    rebased on main, every gate green, held off main until the owner reads 883 of 883 live.
-  - (Tech: trace the LW-327 top up site, which Part and doors gate it since LW-393 and LW-398,
-    and whether the write now lands after the game copies current HP from the roster or is
-    refused by a door still WAITING at battle start. One battle start read of max HP and current
-    HP on the dev build settles the order. Fix with the falsifying case pinned as a test.)
-  - Done means: at battle start a unit holding a grown knight sword reads current HP equal to
-    the raised max HP; the regression's cause is named in the changelog row; a test pins the
-    order the fix depends on; no door gating is loosened to get there.
-  - Verify: full suite green with the new test; the owner loads the same save, enters a battle,
-    and reads 883 of 883 (or the current max) on Ramza's first turn; scan_logs CLEAN.
 ## Backlog
 
 - [LW-417] 2026-10-17: The HP growth code file has grown past the size where a reader can hold it in their head (253 lines). Split the Max HP lane into its own file under the new file comment cap, keeping or rewriting the LW-327 edge prose at the old lines 112 to 138, never dropping it. Owed since LW-327, grew again with LW-416.

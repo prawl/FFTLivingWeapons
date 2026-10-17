@@ -56,7 +56,6 @@ here in the same commit.
 | LW-247 icon bytes | A plain owner approved BuildLinked with no icon snapshot dance; the installed icon bytes do not move (the icon verify reads 0 mismatched) | docs/SMOKE_TEST_2.4.0.md boxes 1.1 and B13 |
 | LW-259 eviction reserve | The card painter's black box keeps recording through a long battle; the flight tape carries the reserve records | docs/SMOKE_TEST_2.4.0.md box 5.7 |
 | LW-262 cache partition | Coverage latches and stays latched; the suffix count never passes 1024 (see the pre registered note below) | docs/SMOKE_TEST_2.4.0.md box 5.7 |
-| LW-416 knight sword fill | Dev build from the lw-416-knight-sword-hp worktree; Ramza reads 883 of 883 on his first turn after the full opening cutscene | docs/SMOKE_TEST_2.4.0.md box 3.1 |
 | LW-413 release hotkeys | F6 in a prod deploy during battle does nothing; in a dev deploy the drill fires | docs/SMOKE_TEST_2.4.0.md box 2.5 |
 | LW-323 stale toast | A tier crossed then the battle ended fast shows no ghost toast in the next battle | docs/TODO.md LW-323 Verify |
 
