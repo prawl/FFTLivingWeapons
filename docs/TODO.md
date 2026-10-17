@@ -42,45 +42,51 @@ the technical detail lives in the indented lines under it.
     hammer; and the owner's two live reads: a tier crossed then the battle ended fast
     shows NO ghost toast in the next battle (drop line on the log, record on the tape),
     and a tier crossed with a Wait prompt still to come delivers in-battle as always.
-- **[LW-358] Re-check poaching ourselves and finally explain it to players** (opened 2026-08-30) [QUEUED]
-  - Plain language: a player's Ninja with the Poach ability could not poach anything while
-    the mod was on; turning the mod off on the same save made poaching work again. That
-    on/off pattern is exactly what the mod predicts for the fifteen reworked weapons whose
-    poach rides the mod's own runtime cure, so either the cure quietly broke or the player
-    was never told how it works (the promised FAQ entry was never written). The player went
-    quiet before sending the one finished battle that would have named the answer, so the
-    owner ruled 2026-08-30: stop waiting, re-verify poaching end to end on the current game
-    version ourselves, and write the FAQ either way.
-  - Evidence banked 2026-08-30 before the player went quiet: the log proves the mod armed
-    normally (prod 2.3.3) and the Ninja is Ramza holding only Hushblade (id 4, one of the
-    fifteen, left hand empty); twenty flight tapes hold five full battles with zero kills
-    by any of the fifteen weapons, and both captures were taken mid-battle, so no Living
-    Poach attempt was ever recorded. The evidence neither clears nor convicts the cure.
-  - (Tech: prime suspect is the basic-Attack discriminator premise, killer's action record
-    kind==Offsets.ArecKindPerforming and abil==0 at the credit moment
-    (LivingPoach.Signals.cs ReadWasBasicAttack), live-proven 2026-08-12 on game 1.5.1 and
-    never re-proven on 1.5.2. The player's corpse-side kill-diagnostics show plain-Attack
-    kills reading all zeros while ability kills stamp kind=5 plus the ability id; that is
-    the victim's record, not the killer's, so it is a hint, not a conviction. While in
-    there: ReadKillerHasPoach (support bit at combat +0x98) and the PoachMap job lookup
-    refuse silently today and deserve gate-reason log lines. Player evidence copies live
-    in the session scratchpad (player_poach_livingweapon_20260830.log, flight zip); the
-    report is in docs/USER_FEEDBACK.md under 2026-08-30.)
-  - Done means: the owner runs one live battle on the current game build killing a
-    poachable regular monster with a plain Attack from a dormant-formula weapon whose
-    wielder has Poach, and either the carcass lands (cure healthy on 1.5.2, fault was
-    elsewhere) or the log names the failing gate and that fault is fixed with its
-    falsifying case pinned as a test; and the player-facing poach FAQ entry exists
-    (README or docs) covering the fifteen weapons, the plain-Attack-only rule, and
-    LW-174's five story monsters the cure cannot see.
-  - Verify: full suite green; the owner's live battle shows either the "The weapon's
-    spirit claims the carcass" log line with the Den count matching, or the named
-    discriminator or gate-reason line in livingweapon.log; the owner reads the FAQ text.
 - **[LW-408] Find out whether Living Weapons runs alongside WotL Restoration and write the answer down** (opened 2026-10-17) [BUILDING]
   - Done means: a player reading docs/COMPATIBILITY.md knows what happens with both mods installed, which order to load them in, and what each mod's own log will say. Payload half done 2026-10-17: WotL Restoration 2.0.7 was downloaded and read file by file (its text tables diffed against vanilla and ours, its job table, and its decompiled code), and the verdict is written in the doc's "WotL Restoration" section: characters and events coexist, its 40 new items switch off because both mods break the 261 item cap at the same code sites and ours arms first, and Living Weapons must load last to keep its item names. (Tech: her nine accessor hooks are our ten entries; 52 of her 63 relocations and 30 of her 44 caps sit on our sites; item.en.nxd keys 261 to 267 are written by both; her JobData rows 162 to 168 are clear of ours; ability 358 Barrage is named by both.)
   - Verify: owner runs the game once with both mods enabled, WotL Restoration loading before Living Weapons. Expected: Living Weapons' parts report reads all ON (extended inventory included), WotL Restoration's log prints its "Item expansion NOT armed" line, Luso and Balthier's events still fire, the Terrastaff card reads Terrastaff with its kill counter, and Agrias's birthday hands out a Septième Sens. Owner flips this row to AWAITING-LIVE when ready and PROVEN or not after the run.
+- **[LW-416] A grown knight sword fills the HP it adds, the way a level up does** (opened 2026-10-17) [QUEUED]
+  - Plain language: the owner saw Ramza walk into battle at 679 of 883 HP with a grown knight
+    sword. The sword raised his max HP but did not fill the new room. That feature shipped as
+    LW-327 on 2026-08-26 after three owner live rounds, so this is a regression; the parts model
+    (which door gates the top up write, and when it opens relative to battle start) is the
+    first suspect. R5 item 2.
+  - (Tech: trace the LW-327 top up site, which Part and doors gate it since LW-393 and LW-398,
+    and whether the write now lands after the game copies current HP from the roster or is
+    refused by a door still WAITING at battle start. One battle start read of max HP and current
+    HP on the dev build settles the order. Fix with the falsifying case pinned as a test.)
+  - Done means: at battle start a unit holding a grown knight sword reads current HP equal to
+    the raised max HP; the regression's cause is named in the changelog row; a test pins the
+    order the fix depends on; no door gating is loosened to get there.
+  - Verify: full suite green with the new test; the owner loads the same save, enters a battle,
+    and reads 883 of 883 (or the current max) on Ramza's first turn; scan_logs CLEAN.
+- **[LW-413] No developer hotkey can fire in a release build** (opened 2026-10-17) [QUEUED]
+  - Plain language: the owner tripped the F6 Provoke trigger during a drill. A player must never
+    be able to fire a developer key, so every hotkey poll lives behind the dev build flag and a
+    test holds the line. R5 item 4. Runs in parallel with LW-416 and LW-414 (separate files).
+  - (Tech: grep every GetAsyncKeyState and DrillTrigger key poll; each sits under #if LWDEV or a
+    Tuning.IsDev gate; a contract test scans production sources for GetAsyncKeyState outside an
+    LWDEV block and fails on any; the dev build keeps every key.)
+  - Done means: a production build contains no reachable hotkey poll; the contract test fails on
+    a key poll outside LWDEV; the dev build's drills still work.
+  - Verify: full suite green; Publish.ps1 builds; the owner presses F6 in a prod deploy during a
+    battle and nothing happens, and in a dev deploy the drill still fires.
+- **[LW-414] The seven vanilla weapon power numbers in items.json match the game file** (opened 2026-10-17) [QUEUED]
+  - Plain language: seven weapons carry a "vanilla" power number that is not what the game file
+    holds, so the analyzer's vanilla comparison reasons from wrong reference values. Data only,
+    no runtime change. R5 item 8. Runs in parallel with LW-416 and LW-413 (data files only).
+  - (Tech: the seven ids are listed in docs/LIVE_LEDGER.md under item-stats-table-filled-at-boot,
+    "7 match neither"; read the true WP from the resident item stats table in the exe file image
+    with tools/probes/static_table_file_image_probe.py, fix the baseline field of each row in
+    data/items.json, regenerate, and run analyze.py --baseline.)
+  - Done means: every weapon's baseline WP in data/items.json equals the exe file's value; the
+    proposed values are untouched; analyze.py and analyze.py --baseline both exit 0.
+  - Verify: analyze.py exit 0 both ways; generate.py output unchanged for the proposed tables;
+    a rerun of the file image probe reports 0 "match neither".
 ## Backlog
 
+- [LW-407] 2026-10-17: Every runtime source file should open with one short sentence saying what the file is, so someone skimming file by file gets the answer at once. Demoted from Now on 2026-10-17 because it touches the first line of 76 files and must run ALONE after LW-416, LW-413 and LW-414 merge (full Done means and Verify in git history, commit 02c401b7). R5 item 1.
+- [LW-358] 2026-08-30: Re-check poaching ourselves and finally explain it to players. Demoted from Now on 2026-10-17 to make room for the parallel R5 rows; it waits only on the owner's live battle and the FAQ text (full Done means and Verify in git history, commit 02c401b7).
 Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner directed).
 A new row still lands here in the session it surfaces; slot it where its urgency
 belongs rather than at the bottom.
@@ -91,29 +97,12 @@ belongs rather than at the bottom.
   one item off (LW-305) and the broader in battle recolor edge pass has never run (LW-339). Done
   looks like one sitting with each weapon class swung once, a screenshot per class against the
   authored colour in data/items.json, and a fix or a retraction for each mismatch.
-- [LW-413] 2026-10-17: Make sure no developer hotkey can fire in a release build, with a test that holds it, because the owner tripped the F6 Provoke trigger during a drill.
-  Owner note 2026-10-17 during the LW-399 Leg B pass on a dev build. Today every key poll lives in
-  the dev spikes under LivingWeapon/Dev (BodyDoubleSpike, NumeralSpike, ProvokeSpike, StatusSpike),
-  each behind #if LWDEV, so a Publish build carries none. Done looks like a contract test that
-  scans the runtime for GetAsyncKeyState and virtual key constants and fails if any sits outside
-  an LWDEV block, plus one owner read of a prod build's log showing no spike lines after an F6.
-  LW-67 stripped the F6 services in July; this row keeps them stripped.
 - [LW-405] 2026-10-16: The card paint cache file is stamped with the build the mod was made for, not the build the game actually is, so since the mod can now run on a build it does not know the stamp no longer tells builds apart.
   Found in the LW-397 review. PoolRegionSidecar.Save writes the expected constants and Load compares
   against them (PoolRegionSidecar.cs 45, 72), never the observed header; the per-region reverify in
   PoolLocator.WarmStart (51 to 54) plus the forced full restart are the net today. Fix: plumb
   LaunchGuard's latched observed pair into Save and Load (Display is built before tick 1 latches it,
   so a Func seam, not a value).
-- [LW-407] 2026-10-17: Every runtime source file should open with one short sentence saying what the file is, so someone skimming file by file gets the answer at once and the detail follows.
-  Owner feedback 2026-10-17 after the comment thinning. The one line purpose already exists in
-  almost every file's type summary; in 76 of 296 files it is buried mid paragraph or runs past
-  110 characters (ListBuilderHook.cs opens with a 147 character compound), and two files have
-  no type summary (AssemblyInfo.cs, GrowthEngine.Locate.cs). Scout script prints each file's
-  first summary sentence with its length; hand pass on the 76; then one rule in
-  CommentBudgetContractTests pins the first summary sentence of every production file at or
-  under the chosen cap (110 catches the 76, 90 catches about 20 more) and ending in a period.
-  Moving a sentence changes no comment counts, so the frozen baseline does not fight it. Runs
-  after LW-393 ships.
 - [LW-409] 2026-10-17: A player mentioned "the double cast thing" as if it were a known bug, and nobody knows what they meant; find the comment, ask, and either file the bug or close this.
   Owner recalled the comment 2026-10-17 ("figured there'd be updates coming just didn't know if
   you'd spotted the double cast thing"). No feedback row, no ledger row, no changelog entry
@@ -126,16 +115,6 @@ belongs rather than at the bottom.
   So a living weapon under Dual Wield may swing once instead of twice, or a formula 4 gun or rod
   may fire its spell twice. Live check first: Ninja with Dual Wield and two Blaze Guns, then two
   Hushblades, count strikes and casts; then read the routine Tal names.
-- [LW-414] 2026-10-17: Seven of the "vanilla" weapon power numbers in data/items.json do not match what the game file actually holds, so the vanilla comparison the analyzer offers reasons from wrong reference values for those seven.
-  Surfaced by the LW-399 probe (tools/probes/static_table_file_image_probe.py) reading the item
-  stats table out of the installed exe, stamp 0x6A5E4A1B. Baseline wp versus the file: id 29
-  Icebrand 18 vs 13, id 31 Nagrarok 16 vs 1, id 37 Chaos Blade 50 vs 40, id 74 Glacial Gun 21 vs
-  20, id 75 Blaze Gun 20 vs 21, id 78 Knightslayer 4 vs 3, id 81 Hunting Crossbow 5 vs 6. The
-  74 and 75 element bytes (Ice, Fire) show the names are not swapped, so these are typos in the
-  reference column, not an id mapping fault. Only `baseline` is wrong; `proposed` is what ships
-  and is untouched. Done looks like the seven baseline values corrected in items.json, the
-  generator re-run, analyze.py and analyze.py --baseline green, and a contract test that reads
-  the eight LW-399 pinned rows plus these seven from the exe when it is present.
 - [LW-415] 2026-10-17: Every write the mod makes into the game should say which of three buckets it belongs to, battle, process or save, so a part that dies mid action can never leave the save changed without someone knowing who puts it back.
   Owner design 2026-10-17: a required WriteScope argument on the Mem write funnel (Battle,
   Process, Save, no default, so a new write site that names no bucket does not compile); the
@@ -150,10 +129,6 @@ belongs rather than at the bottom.
   site rows into the per part table inline; a skeptic verifies bucket 3 and every "no
   recovery" row against the code; buckets 1 and 2 stand on the audit's word. Lands after
   LW-406.
-- [LW-416] 2026-10-17: A grown knight sword raises Ramza's max HP but does not fill the new room, so he walks into battle at 679 of 883 HP; the extra HP should arrive full, the way a level up does.
-  Owner sighting 2026-10-17 on the dev build during the LW-406 live legs. Not yet traced: whether
-  the max HP write lands before the game copies current HP from the roster, or whether current HP
-  is never touched at all. Expect to settle it with one battle start read of both fields.
 - [LW-394] 2026-10-16: Three weapon commands mark an ability as learned in the player's save and never unmark it, so no safety switch can undo them if they ever land in the wrong place; decide whether they should clean up after themselves.
   Barrage, Shadow Blade and Provoke each set one learned bit in the roster row (Barrage.cs 247,
   ShadowBlade.cs 199, Provoke.cs 194) and hold it by design so the command stays usable. The audit
