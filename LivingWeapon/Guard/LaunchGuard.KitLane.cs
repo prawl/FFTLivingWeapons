@@ -6,7 +6,7 @@ namespace LivingWeapon;
 /// The kit-lane guard, a second FingerprintGuard instance for the weapon-granted commands.
 /// Split out of LaunchGuard.cs and LaunchGuard.Landmarks.cs under the 200-line trigger. A custom job or ability mod that
 /// rewrites the JobCommand rec8/rec9 bytes used to trip the main guard's game-update stand-down. A conflict here disables
-/// only the three weapon-granted commands it anchors (Barrage, Shadow Blade, Provoke). It steps from the first tick.
+/// only the three weapon-granted commands it anchors (Barrage, Shadow Blade, Provoke). It judges once a save has loaded.
 /// </summary>
 internal sealed partial class LaunchGuard
 {
@@ -19,12 +19,20 @@ internal sealed partial class LaunchGuard
         _kitLaneGuard.Step();
     }
 
+    internal const string KitLaneTableUnreadable = "job command table unreadable";
+
     private LandmarkReading ProbeKitLaneTable()
     {
-        // No boot-window gate, unlike ProbeRamzaRosterRow. The rec8/rec9 pair is file baked image data.
+        // Waits for a loaded save because the mod loader writes this table after our first tick.
+        long rb = Offsets.RosterBase;
+        int level = _mem.U8(rb + Offsets.RLevel);
+        if (level < 1 || level > 99)
+            return new LandmarkReading(LandmarkVerdict.Unreadable,
+                _mem.TryReadBytes(rb + Offsets.RLevel, 1, out _) ? RosterSlotEmpty : RosterPageUnreadable);
+
         bool ok8 = _mem.TryReadBytes(Rec8Addr, Rec8Sig.Length, out var buf8) && buf8.Length >= Rec8Sig.Length;
         bool ok9 = _mem.TryReadBytes(Rec9Addr, Rec9Sig.Length, out var buf9) && buf9.Length >= Rec9Sig.Length;
-        if (!ok8 || !ok9) return LandmarkVerdict.Unreadable;   // a failed/short read is transient. Streak resets, benign
+        if (!ok8 || !ok9) return new LandmarkReading(LandmarkVerdict.Unreadable, KitLaneTableUnreadable);   // a failed/short read is transient. Streak resets, benign
 
         string? d8 = DescribeKitLaneMismatch(buf8, Rec8Sig, "rec8");
         string? d9 = DescribeKitLaneMismatch(buf9, Rec9Sig, "rec9");

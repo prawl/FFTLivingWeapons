@@ -33,7 +33,7 @@ public class EngineDoorTests
     private static void Ticks(Engine e, int n) { for (int i = 0; i < n; i++) e.Tick(); }
 
     [Fact]
-    public void Lanes_arm_before_the_roster_door()
+    public void Sensing_arms_before_the_roster_door_and_the_kit_lane_waits_for_a_save()
     {
         bool prev = Mem.WritesEnabled;
         try
@@ -47,12 +47,91 @@ public class EngineDoorTests
             Ticks(engine, 400);
 
             Assert.Equal(GuardState.Verifying, engine.Guard.State);
-            Assert.True(engine.Guard.KitLaneArmed);
+            Assert.Equal(GuardState.Verifying, engine.Guard.KitLaneState);
             Assert.True(engine.Guard.SensingArmed);
             Assert.False(Mem.WritesEnabled);
             Assert.Contains("battle sensing ON", engine.Board.LastLine);
             Assert.Contains("kill counting WAITING", engine.Board.LastLine);
             Assert.Contains("twin weapons WAITING", engine.Board.LastLine);
+        }
+        finally { Mem.WritesEnabled = prev; }
+    }
+
+    private static FakeSparseMemory TitleMemory()
+    {
+        var mem = EngineTests.HealthyMemory(level: 0);
+        mem.TerrainBlocks[Offsets.RosterBase + Offsets.RLevel] = new byte[] { 0 };   // mapped zero, the title screen
+        Idle(mem);
+        return mem;
+    }
+
+    private static void RewriteRec8(FakeSparseMemory mem)
+        => mem.TerrainBlocks[Barrage.AbilityBase + 8L * Barrage.RecSize] = new byte[] { 0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6A, 0x6B };
+
+    [Fact]
+    public void Kit_lane_catches_a_job_command_table_rewritten_after_the_first_tick_before_the_save_loads()
+    {
+        bool prev = Mem.WritesEnabled;
+        try
+        {
+            Mem.WritesEnabled = false;
+            using var temp = TempDirs.Create("lw_door_kit_late_");
+            using var cap = LogCapture.Start();
+            var mem = TitleMemory();
+            var notices = new List<(string title, string text)>();
+            var engine = Build(temp, mem, notices);
+
+            Ticks(engine, 60);
+            RewriteRec8(mem);
+            Ticks(engine, 60);
+            mem.U8s[Offsets.RosterBase + Offsets.RLevel] = 12;
+            Ticks(engine, 30 + PartsBoard.SettleSteps + 30);
+
+            string warn = Assert.Single(cap.File, l => l.Contains("[WARN]") && l.Contains("jobcommand-table"));
+            Assert.Contains("rec8: expected 96-97-98-99-9A-9B-9C-9D, observed 64-65-66-67-68-69-6A-6B", warn);
+            Assert.Equal(DoorState.Closed, engine.Guard.KitLaneDoor.State);
+            Assert.True(engine.Guard.KitLaneDoor.FailedCheck);
+            Assert.False(engine.Guard.KitLaneArmed);
+            Assert.Equal(GuardState.StoodDown, engine.Guard.KitLaneState);
+            Assert.True(engine.Guard.Armed);
+            var box = Assert.Single(notices);
+            int off = box.text.IndexOf("Paused this session:", StringComparison.Ordinal);
+            Assert.True(off >= 0);
+            int end = box.text.IndexOf("\n\n", off, StringComparison.Ordinal);
+            string paused = box.text.Substring(off, end - off);
+            Assert.Contains("weapon commands", paused);
+            Assert.Contains("provoke", paused);
+            Assert.Contains("weapon commands OFF (another mod rewrote the job command data)", engine.Board.LastLine);
+            Assert.Contains("provoke OFF (another mod rewrote the job command data)", engine.Board.LastLine);
+            Assert.DoesNotContain(cap.File, l => l.Contains("The job command data matches"));
+        }
+        finally { Mem.WritesEnabled = prev; }
+    }
+
+    // Fallback form of the write ordering proof. Both kit write gates need KitLaneArmed, so it must stay false until the verdict.
+    [Fact]
+    public void Kit_lane_never_arms_between_the_save_load_and_the_warn()
+    {
+        bool prev = Mem.WritesEnabled;
+        try
+        {
+            Mem.WritesEnabled = false;
+            using var temp = TempDirs.Create("lw_door_kit_order_");
+            using var cap = LogCapture.Start();
+            var mem = TitleMemory();
+            var engine = Build(temp, mem);
+
+            Ticks(engine, 60);
+            RewriteRec8(mem);
+            Ticks(engine, 60);
+            mem.U8s[Offsets.RosterBase + Offsets.RLevel] = 12;
+            for (int i = 0; i < 60; i++)
+            {
+                engine.Tick();
+                Assert.False(engine.Guard.KitLaneArmed, "the kit lane armed before its verdict at tick " + i);
+            }
+
+            Assert.Contains(cap.File, l => l.Contains("[WARN]") && l.Contains("jobcommand-table"));
         }
         finally { Mem.WritesEnabled = prev; }
     }

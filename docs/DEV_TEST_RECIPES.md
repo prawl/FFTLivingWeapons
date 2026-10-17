@@ -170,7 +170,7 @@ RESTART-ONLY; kill fft_enhanced.exe before deploys.
 **Leg 1, BAIT (no conflict mod).** Dev deploy (plain BuildLinked, NOT -Prod: Barrage needs the bow
 at tier +3, and only the dev flavour seeds every weapon there), launch, load a save, put a Yoichi
 Bow (id 90) on a Thief (Barrage is Thief only) and keep an Archer in the party. Expect in livingweapon.log: the "Living Weapons is armed" line AND the kit-lane line "The
-JobCommand table matches" with Barrage present in the Thief's action list, zero boxes, zero WARNs.
+job command data matches this mod's own copy" (it lands within a second after the armed line, after Continue, not on the title screen) with Barrage present in the Thief's action list, zero boxes, zero WARNs.
 Without this leg a broken lane that never arms would look identical to a working conflict verdict.
 
 **Leg 2, CONFLICT.** Create `$env:RELOADEDIIMODS\lwdrill.jobconflict\` with a minimal

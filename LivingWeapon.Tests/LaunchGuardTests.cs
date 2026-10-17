@@ -11,7 +11,7 @@ namespace LivingWeapon.Tests;
 /// three independent state machines. The MAIN guard checks two data-only landmarks (PE build key,
 /// Ramza's roster row shape); a mismatch there stands the roster door down (writes stay disabled all
 /// session). The KIT-LANE guard owns the JobCommand rec8/rec9 ability-byte signature and the SENSING
-/// lane owns the six battle sentinels. Both lanes step from the first tick and no longer wait for the
+/// lane owns the six battle sentinels. Both lanes step from the first tick, the kit lane judges only once a save has loaded, and neither waits for the
 /// main guard to arm. A lane mismatch closes only its own door (the weapon-granted commands, or the
 /// new game detector) while everything else keeps working. Post-arm semantics are unchanged for the
 /// kit lane: an all-zero rec8/rec9 window is a Mismatch (blanked), not a boot window, because that
@@ -1270,17 +1270,61 @@ public class LaunchGuardTests
     }
 
     [Fact]
-    public void KitLane_arms_with_the_roster_row_empty()
+    public void KitLane_waits_for_a_loaded_save_and_then_judges()
     {
         WithWritesRestored(() =>
         {
             var mem = HealthyMemory(level: 0);
+            mem.TerrainBlocks[Offsets.RosterBase + Offsets.RLevel] = new byte[] { 0 };   // mapped zero, the title screen
             var guard = new LaunchGuard(mem, forceMismatch: false);
 
+            for (int i = 0; i < 200; i++) guard.StepKitLane();
+
+            Assert.Equal(GuardState.Verifying, guard.KitLaneState);
+            Assert.False(guard.KitLaneArmed);
+            Assert.Equal(DoorState.Waiting, guard.KitLaneDoor.State);
+            Assert.Equal(LaunchGuard.KitLaneWaitingReason, guard.KitLaneDoor.Reason);
+
+            mem.U8s[Offsets.RosterBase + Offsets.RLevel] = 12;
             guard.StepKitLane();
 
-            Assert.Equal(GuardState.Verifying, guard.State);
             Assert.Equal(GuardState.Armed, guard.KitLaneState);
+            Assert.True(guard.KitLaneArmed);
+        });
+    }
+
+    [Fact]
+    public void KitLane_title_wait_never_logs_the_stall_line()
+    {
+        WithWritesRestored(() =>
+        {
+            using var cap = LogCapture.Start();
+            var mem = HealthyMemory(level: 0);
+            mem.TerrainBlocks[Offsets.RosterBase + Offsets.RLevel] = new byte[] { 0 };
+            var guard = new LaunchGuard(mem, forceMismatch: false);
+
+            for (int i = 0; i < LaunchGuard.DoorWaitSteps + 300; i++) guard.StepKitLane();
+
+            Assert.Equal(GuardState.Verifying, guard.KitLaneState);
+            Assert.DoesNotContain(cap.File, l => l.Contains("has not been able to read its data"));
+        });
+    }
+
+    [Fact]
+    public void Title_first_roster_drill_keeps_the_kit_lane_independent()
+    {
+        WithWritesRestored(() =>
+        {
+            var mem = HealthyMemory(level: 0);
+            mem.TerrainBlocks[Offsets.RosterBase + Offsets.RLevel] = new byte[] { 0 };
+            var guard = new LaunchGuard(mem, forceMismatch: false, forceRosterMismatch: true);
+            for (int i = 0; i < 40; i++) { guard.Step(); guard.StepKitLane(); }
+            Assert.Equal(GuardState.Verifying, guard.KitLaneState);
+
+            mem.U8s[Offsets.RosterBase + Offsets.RLevel] = 12;
+            for (int i = 0; i < 40; i++) { guard.Step(); guard.StepKitLane(); }
+
+            Assert.Equal(GuardState.StoodDown, guard.State);
             Assert.True(guard.KitLaneArmed);
         });
     }

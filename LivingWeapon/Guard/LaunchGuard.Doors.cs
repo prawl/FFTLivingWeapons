@@ -101,7 +101,8 @@ internal sealed partial class LaunchGuard
     });
 
     private GuardLandmark KitLaneLandmark() => LandmarkStall.Watch(
-        FingerprintGuard.Custom("jobcommand-table", ProbeKitLaneTable), DoorWaitSteps, OnKitLaneStalled);
+        FingerprintGuard.Custom("jobcommand-table", ProbeKitLaneTable), DoorWaitSteps, OnKitLaneStalled,
+        r => r.Detail == KitLaneTableUnreadable);
 
     // Both waits read Unreadable on purpose, so they must not feed the stall timer.
     private GuardLandmark SensingLandmark() => LandmarkStall.Watch(
