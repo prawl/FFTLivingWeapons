@@ -56,7 +56,7 @@ public class ExtendedInventoryDoorTests : IDisposable
     }
 
     [Fact]
-    public void An_install_refusal_closes_the_door_as_a_failed_check_with_the_refusal_text()
+    public void An_install_refusal_closes_the_door_as_a_failed_check_with_a_player_reason()
     {
         var f = ExtendedInventoryTests.VanillaImage();
         f.Seed(ExtendedSites.BootPatches(1)[0].Addr, 0x07);   // a moved first boot site refuses before any write
@@ -67,7 +67,10 @@ public class ExtendedInventoryDoorTests : IDisposable
         Assert.False(inv.Armed);
         Assert.Equal(DoorState.Closed, inv.Door.State);
         Assert.True(inv.Door.FailedCheck);
-        Assert.Equal(inv.Refusal, inv.Door.Reason);
+        // The raw diagnostic (addresses, bytes) stays on Refusal for the log; the door carries plain words for the box.
+        Assert.NotNull(inv.Refusal);
+        Assert.Equal("the game code the new items plug into is not where this mod expects it", inv.Door.Reason);
+        Assert.DoesNotContain("0x", inv.Door.Reason);
     }
 
     [Fact]

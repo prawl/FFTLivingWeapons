@@ -17,6 +17,9 @@ internal static class PartsReport
 
     private const string BannersNote = "connected; nothing to announce while kill counting is off";
 
+
+    private const string BannersBoxNote = "quiet while kill counting is off";
+
     private readonly struct Row
     {
         public readonly Part Part;
@@ -92,21 +95,23 @@ internal static class PartsReport
     {
         var sb = new StringBuilder();
         sb.Append("Living Weapons has switched off some of its parts\n\n");
-        sb.Append("Part of what the mod needs is not where it expected, usually because the game just got an update "
-            + "or another installed mod changed the same data. The parts below that failed stay off this session "
-            + "to keep your save safe. Your game runs normally.\n\n");
-        AppendGroup(sb, "Still working:", DoorState.Open, readings);
-        AppendGroup(sb, "Switched off:", DoorState.Closed, readings);
-        AppendGroup(sb, "Still waiting:", DoorState.Waiting, readings);
-        sb.Append("Fix: look for a newer Living Weapons on its mod page. Still stuck? Email me at ptyrawl@gmail.com "
-            + "and attach your logs (Open Folder on the mod's page in Reloaded-II, the file is livingweapon.log).");
-        if (hedge.Length > 0) sb.Append("\n\n").Append(hedge.TrimStart());
+        sb.Append("Something the mod needs is not where it expected. That usually means the game just updated, "
+            + "or another mod changed it.");
+        if (hedge.Length > 0) sb.Append(' ').Append(hedge.Trim());
+        sb.Append(" Anything that failed its check stays off until you close the game, so the mod cannot change "
+            + "the wrong thing in your game. The next launch checks again. Your game runs as normal.\n\n");
+        AppendGroup(sb, "Still working:", DoorState.Open, readings, inBox: true);
+        AppendGroup(sb, "Switched off:", DoorState.Closed, readings, inBox: true);
+        AppendGroup(sb, "Still waiting:", DoorState.Waiting, readings, inBox: true, collapse: true);
+        sb.Append("What to do: check the Living Weapons mod page for a newer version. If you added another mod "
+            + "recently, try without it. Still stuck? Email me at ptyrawl@gmail.com and attach your logs (Open "
+            + "Folder on the mod's page in Reloaded-II, the file is livingweapon.log).");
         if (drillSentence.Length > 0) sb.Append("\n\n").Append(drillSentence);
         return sb.ToString();
     }
 
     private static void AppendGroup(StringBuilder sb, string heading, DoorState want,
-        IReadOnlyDictionary<Door, DoorReading> readings)
+        IReadOnlyDictionary<Door, DoorReading> readings, bool inBox, bool collapse = false)
     {
         // Parts sharing one reason are listed together and the reason is given once.
         var byDetail = new List<(string Detail, List<string> Labels)>();
@@ -115,16 +120,25 @@ internal static class PartsReport
             var (state, reason) = Status(row.Part, readings);
             if (state != want) continue;
             string detail = Detail(row, state, reason, readings);
+            if (inBox && detail == BannersNote) detail = BannersBoxNote;
             int i = byDetail.FindIndex(g => g.Detail == detail);
             if (i < 0) byDetail.Add((detail, new List<string> { row.Label }));
             else byDetail[i].Labels.Add(row.Label);
         }
         if (byDetail.Count == 0) return;
         var clauses = new List<string>();
-        foreach (var (detail, labels) in byDetail)
+        if (collapse && byDetail.Count == 1 && byDetail[0].Labels.Count > 3)
         {
-            string joined = string.Join(", ", labels);
-            clauses.Add(detail.Length > 0 ? $"{joined} ({detail})" : joined);
+            // Ten names behind one reason read as noise, so the count stands in for the list.
+            clauses.Add($"the other {byDetail[0].Labels.Count} parts ({byDetail[0].Detail})");
+        }
+        else
+        {
+            foreach (var (detail, labels) in byDetail)
+            {
+                string joined = string.Join(", ", labels);
+                clauses.Add(detail.Length > 0 ? $"{joined} ({detail})" : joined);
+            }
         }
         sb.Append(heading).Append(' ').Append(string.Join("; ", clauses)).Append('.').Append("\n\n");
     }

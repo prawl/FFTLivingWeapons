@@ -155,6 +155,8 @@ public class PartsReportTests
 
         foreach (var label in Labels)
             Assert.Equal(box.IndexOf(label, StringComparison.Ordinal), box.LastIndexOf(label, StringComparison.Ordinal));
+        foreach (var label in Labels)
+            Assert.True(box.IndexOf(label, StringComparison.Ordinal) >= 0, label + " is missing from the box");
         int still = box.IndexOf("Still working", StringComparison.Ordinal);
         int off = box.IndexOf("Switched off", StringComparison.Ordinal);
         int waiting = box.IndexOf("Still waiting", StringComparison.Ordinal);
@@ -227,5 +229,58 @@ public class PartsReportTests
 
         Assert.DoesNotContain("Still working:", box);
         Assert.DoesNotContain(": nothing", box);
+    }
+    [Fact]
+    public void Box_lists_working_parts_without_their_notes()
+    {
+        var r = AllOpen();
+        r[Door.Roster] = DoorReading.Failed("party data moved");
+
+        string box = PartsReport.ComposeBox(r, "", "");
+
+        Assert.Contains("Still working: battle sensing, extended inventory; banners (quiet while kill counting is off).", box);
+        Assert.DoesNotContain("nothing to announce", box);
+    }
+
+    [Fact]
+    public void Box_collapses_a_waiting_group_that_shares_one_reason()
+    {
+        var r = AllOpen();
+        r[Door.Roster] = DoorReading.Waiting("waiting for a save to load");
+        r[Door.KitLane] = DoorReading.Failed("job command data rewritten");
+
+        string box = PartsReport.ComposeBox(r, "", "");
+
+        Assert.Contains("Still waiting: the other 6 parts (waiting for a save to load).", box);
+        Assert.DoesNotContain("Still waiting: kill counting", box);
+    }
+
+    [Fact]
+    public void Box_keeps_the_waiting_list_when_reasons_differ()
+    {
+        var r = AllOpen();
+        r[Door.Roster] = DoorReading.Waiting("waiting for a save to load");
+        r[Door.PromptHook] = DoorReading.Waiting("the loader has not handed over its hooks yet");
+        r[Door.KitLane] = DoorReading.Failed("job command data rewritten");
+
+        string box = PartsReport.ComposeBox(r, "", "");
+
+        Assert.Contains("banners (the loader has not handed over its hooks yet)", box);
+        Assert.Contains("kill counting, stat growth", box);
+        Assert.DoesNotContain("the other", box);
+    }
+
+    [Fact]
+    public void Box_names_a_small_waiting_group_even_when_it_shares_one_reason()
+    {
+        var r = AllOpen();
+        r[Door.PromptHook] = DoorReading.Waiting("the loader has not handed over its hooks yet");
+        r[Door.ExtendedArm] = DoorReading.Waiting("the loader has not handed over its hooks yet");
+        r[Door.KitLane] = DoorReading.Failed("job command data rewritten");
+
+        string box = PartsReport.ComposeBox(r, "", "");
+
+        Assert.Contains("Still waiting: banners, extended inventory (the loader has not handed over its hooks yet).", box);
+        Assert.DoesNotContain("the other", box);
     }
 }

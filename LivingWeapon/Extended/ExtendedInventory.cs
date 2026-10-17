@@ -111,7 +111,10 @@ internal sealed partial class ExtendedInventory
     private void Refuse(string why, bool failedCheck = true)
     {
         Refusal = why;
-        _door.Set(failedCheck ? DoorReading.Failed(why) : DoorReading.Absent("the loader gave no hooks"));
+        // The box shows the door's reason, so the raw install diagnostic stays in the log line below.
+        _door.Set(failedCheck
+            ? DoorReading.Failed("the game code the new items plug into is not where this mod expects it")
+            : DoorReading.Absent("the loader gave no hooks"));
         ModLogger.Warn(LogVerb.Startup, $"The extended inventory is NOT armed this session ({why}); the new items will not exist in the game until this is resolved.");
     }
 }
