@@ -807,7 +807,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   it is. PASS: zero silent loss all pass. FAIL: any lost preserved item (capture the deploy
   transcript and stop deploying until understood; LW-28 is the open backlog row). (covers LW-134,
   LW-297 restore half) **[MAJOR]**
-- [ ] 6.5 **A brand new install starts clean (the first launch ever).** A player who has never run
+- [x] 6.5 (PASSED 2026-10-17, prod 1c7ba75f, owner launch with the save folder renamed aside: Save files live at the Reloaded User\Mods folder, one WARN No kill tally was found on disk; starting fresh., tally 0 across 0 (kills.json, fresh), legends 0 and 0 (legends.json, fresh), sidecar none (first run), 0 save(s) known, Extended inventory armed 7, zero ERROR, no box, scan CLEAN; the folder came back holding run_flavor.txt reading prod plus pool_regions.json and its .bak, which the box text first missed and now allows; Config.json is read from the deployed folder when the save folder has none) **A brand new install starts clean (the first launch ever).** A player who has never run
   the mod gets a save folder, a stamp and a working header with nothing on disk to read, and no
   error. Game closed, prod deploy in place: rename the WHOLE save folder
   `<Reloaded root>\User\Mods\prawl.fft.livingweapons` to `prawl.fft.livingweapons.aside`. Launch,
@@ -817,7 +817,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   starting fresh.`, `The kill tally holds 0 lifetime kills across 0 weapons (kills.json, fresh).`,
   `The legends hold deeds for 0 weapons and 0 Marks (legends.json, fresh).`, the extended seed
   line ending `(sidecar: none (first run), 0 save(s) known).`, `Extended inventory armed: 7 new
-  item(s)`; the folder exists again holding `run_flavor.txt` reading `prod` and no other file of the mod's
+  item(s)`; the folder exists again holding `run_flavor.txt` reading `prod` plus the card painter's `pool_regions.json` and its `.bak` (written within seconds as the painter finds the game's text pools) and no other file of the mod's
   (Reloaded-II may recreate its own `ModUserConfig.json` there; that file and a `Config.json` the
   launcher writes are Reloaded's, not a defect, and both came along in the rename);
   zero ERROR lines; no box; `python tools/scan_logs.py` exit 0 (one warn counted). NOT a failure:
@@ -827,7 +827,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   not run`, any box. (DEV OK for the header half: a dev build seeds the tally in memory only and
   writes nothing while you sit on the title) (covers LW-134 the stamp on a fresh folder)
   **[MAJOR]**
-- [ ] 6.6 **The new player's first hour: New Game on an empty tally, first blood, a guest's kill
+- [x] 6.6 (PASSED 2026-10-17, prod 1c7ba75f, owner live with the save folder aside: New Game on the empty tally printed no new game line and no archive; the opener ended Battle ended: no kills were credited; Gariland logged Vagabond claims kill number 1 then delivered Vagabond draws first blood! 3 s later, kills.json read {"19":1}; the guest's kill logged slain by a player carrying no Living Weapon, uncredited; the battle ended 5 kills credited (Vagabond 5), 1 tier reached; the save edge hook confirmed, the save key pt543-0a45852bfb5b was written and the relaunch Continue loaded that same key with every design at x0; zero ERROR; the real folder is back) **The new player's first hour: New Game on an empty tally, first blood, a guest's kill
   (LW-368 and LW-395, the empty tally variant).** The first hour of every new player: a New Game
   with nothing on disk, the Orbonne opener, Gariland, kill number one with Ramza's sword (every
   chapter one weapon grows), the first toast the mod ever shows, and Delita or Argath killing
