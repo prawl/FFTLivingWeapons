@@ -502,6 +502,8 @@ model exists; it is done. The order, worked top to bottom, one at a time:
 7a. LW-425 the false pause box on the tutorial battle, found in smoke sitting 1; a new player's first fight, so it goes first. SHIPPED 2026-10-17.
 7b. LW-423 the blank list icon after a glow tier change, found in smoke sitting 1 (owner ruling 2026-10-17: turn the cache hide off for 2.4.0, same session rims move to LW-427 for 2.5.0) (a player sees it, so it joins the order under the freeze rule). SHIPPED 2026-10-17.
 7c. LW-424 the blank kill counts on the cards after Continue, found in smoke sitting 1. SHIPPED 2026-10-17.
+7d. LW-431 the job command check that runs before the mod loader writes, so a custom job mod is never caught; found in smoke box 2.9 leg 2. A player with a job mod sees the weapon commands fight it, so it joins the order under the freeze rule. SHIPPED 2026-10-17.
+7e. LW-430 the pop up box that blames a game update when the mod's own item file is damaged; found in smoke box 2.12. A player reads that box, so it joins the order under the freeze rule. SHIPPED 2026-10-17.
 8. One sitting each, cheap: galleries LW-198, LW-205, LW-210, LW-212, then LW-322 and LW-320,
    and LW-414 the seven baseline numbers.
 

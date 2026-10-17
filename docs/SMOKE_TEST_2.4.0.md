@@ -304,29 +304,33 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   box carries the same new build sentence after the shared hedge. FAIL: a stand down, a box on the
   plain leg, no stamp line, or a WARN or box without the new build sentence while the stamp line
   says unknown. (DEV OK) (covers LW-397) **[MAJOR]**
-- [ ] 2.9 (PARTIAL 2026-10-17 on dev 62015755, owner live: leg 1 passed, the job command match line at 15:56:20, armed at 15:56:35, Barrage granted to the Yoichi Bow Thief at 15:58:13, zero WARNs, zero boxes, scan CLEAN. Leg 2 FAILED 2026-10-17: the drill table landed (the Archer showed Monk moves, the Reloaded log wrote JobCommandData ID 8 at 15:59:44) but the kit lane had passed at 15:59:42.951, so no WARN, no box and Barrage still on the Thief; logged as LW-431, retest after the fix) **Kit lane drill (LW-112, two legs).** Another mod rewriting the job command table pauses
-  only the weapon commands, not the mod. The check runs once per session, from the first tick, on
-  file baked data, so the TIMING of the other mod's write decides whether it is seen at all. Recipe
-  "LW-112 kit-lane drill" in
+- [x] 2.9 (PASSED 2026-10-17, owner live, dev deploy of the LW-431 fix (624926a9 plus the uncommitted LW-430/LW-431 tree) with bluemage enabled: leg 1 the loader applied JobCommandData at 16:49:15, armed 16:49:48.606, kit lane match 16:49:48.607, Barrage granted to the Yoichi Thief 16:50:04, no kit lane WARN; leg 2 drill ID 8 applied 16:52:03, armed 16:52:29.122, kit lane WARN 16:52:30.615 with `rec8: expected 96-97-98-99-9A-9B-9C-9D, observed 64-65-66-67-68-69-6A-6B`, one box (tape `parts box shown (2 parts off)`, owner screenshot 16.52.47), `kit-lane stand-down` on flight_20261017_165230_standdown, Barrage gone, Archer Aim shows Monk moves, Chaos Blade kill 15 at 16:55:04. Earlier PARTIAL on dev 62015755: leg 1 passed, the job command match line at 15:56:20, armed at 15:56:35, Barrage granted to the Yoichi Bow Thief at 15:58:13, zero WARNs, zero boxes, scan CLEAN. Leg 2 FAILED 2026-10-17: the drill table landed (the Archer showed Monk moves, the Reloaded log wrote JobCommandData ID 8 at 15:59:44) but the kit lane had passed at 15:59:42.951, so no WARN, no box and Barrage still on the Thief; logged as LW-431, retest after the fix) **Kit lane drill (LW-112, two legs).** Another mod rewriting the job command table pauses
+  only the weapon commands, not the mod. The check runs once per session and waits until a save
+  has loaded (LW-431), so the mod loader has already written the other mod's table when it looks.
+  Recipe "LW-112 kit-lane drill" in
   docs/DEV_TEST_RECIPES.md (a throwaway `lwdrill.jobconflict` mod carrying a changed Aim record).
-  PASS leg 1 (bait, no conflict mod): the armed line, the kit lane line of box 1.3, Barrage present
-  in a tier 3 Yoichi Bow Thief's action list (Barrage is Thief only; an Archer in the party shows
-  the Aim list the drill rewrites), zero boxes, zero WARNs. PASS leg 2 (conflict mod enabled):
-  ONE WARN opening `The weapon commands (Barrage, Shadow Blade and Provoke)
-  are paused for this session because another mod rewrote the job command data` with a
-  `(detail: jobcommand-table ...)` tail, landing at the TITLE screen within a few seconds of the
-  launch header (before Continue), exactly one box with weapon commands and provoke under Paused
-  this session, the roster parts under `Still being checked (as the game loads and your first
-  battle starts):` and the footer last; after Continue the armed line and a Parts report with
-  weapon commands OFF and provoke OFF beside twelve ON; Barrage ABSENT from the Yoichi wielder, a
-  kill still bumps the tally, `flight_*_standdown.jsonl` carries `kit-lane stand-down`. FAIL: two
-  boxes for this one closure, no footer, Barrage still grantable under the WARN, a frozen tally, a
-  WARN that first appears only after Continue (the table was written late; same cause, partial
-  catch), or (leg 2 traps) the Archer shows vanilla Aim with no WARN, which means the modloader
-  dropped the drill table and the leg proved nothing, and the Archer shows the changed Aim with
-  Barrage still grantable and NO kit lane WARN anywhere, which means the lane armed on vanilla bytes
-  before the modloader wrote the table (a design limit of a once per session check; file a Backlog
-  row and do not ship a doc that claims the conflict is caught). Cleanup: disable and delete the
+  Keep fftivc.jobs.bluemage ENABLED for both legs; that launch's Reloaded log must show an
+  `Applying JobCommandData` line or the leg proves nothing.
+  PASS leg 1 (bait, no conflict mod): on the title no kit lane line and no WARN, the Parts report
+  shows `weapon commands WAITING (waiting for a save to load)`; after Continue the armed line, then
+  within about a second the kit lane line of box 1.3, Barrage present in a tier 3 Yoichi Bow
+  Thief's action list (Barrage is Thief only; an Archer in the party shows the Aim list the drill
+  rewrites), zero boxes, zero WARNs. PASS leg 2 (conflict mod enabled): on the title no kit lane
+  line, no WARN, weapon commands and provoke WAITING; after Continue the armed line, then within
+  about a second and a half ONE WARN opening `The weapon commands (Barrage, Shadow Blade and
+  Provoke) are paused for this session because another mod rewrote the job command data` with a
+  `(detail: jobcommand-table (rec8: expected 96-97-98-99-9A-9B-9C-9D, observed 64-65-66-67-68-69-6A-6B))`
+  tail, a Parts report with weapon commands OFF and provoke OFF, then a few seconds later exactly
+  one box with weapon commands and provoke under Paused this session, kill counting, stat growth
+  and weapon powers under `Still being checked (as the game loads and your first battle starts):`,
+  the rest under Still working, and the footer last; Barrage ABSENT from the Yoichi wielder, the
+  Archer shows Monk moves in Aim, a kill still bumps the tally, `flight_*_standdown.jsonl` carries
+  `kit-lane stand-down`. FAIL: the job command match line anywhere in leg 2, two boxes for this one
+  closure, no footer, Barrage still grantable under the WARN, a frozen tally, no WARN within five
+  seconds of the armed line, any kit lane WARN or box in leg 1 (the loader's own writeback changed
+  the checked bytes, which would hit every player with a job command mod), or (leg 2 trap) the
+  Archer shows vanilla Aim with no WARN, which means the modloader dropped the drill table and the
+  leg proved nothing. Cleanup: disable and delete the
   drill mod. (DEV OK) (covers LW-112, the only guard lane whose drill is a throwaway mod rather
   than a marker file) **[MAJOR]**
 - [ ] 2.10 (PARTIAL 2026-10-17 on dev 62015755, owner live: windowed leg passed in the 2.11 run, both boxes on screen over the game without Alt Tab, OK returned focus, keyboard and controller worked; the palette WARN and roster ERROR carry hedge, what to do, drill sentence and detail tail last, zero old wording; box records equal boxes seen. Owed: the fullscreen leg, and the kit lane box from 2.9) **Every paused message reads the same way, and the box is really seen (LW-406).** Across
@@ -373,7 +377,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   three boxes, a drill paragraph naming one flag only, weapon colors missing from the second box,
   a second record reading anything but `(11 parts off)`.
   (DEV OK) (covers LW-406 the wave half) **[MAJOR]**
-- [ ] 2.12 (PARTIAL 2026-10-17 on dev 62015755, owner live, Ravager row deleted: the WARN at 15:51:17 plain with no hedge and the detail `id 262: row without an ItemExtendedData.xml entry`, no armed line, extended inventory OFF with the shipped data reason, one box with extended inventory alone under Paused, thirteen ON after Continue, Chaos Blade kill credited at 15:54:32, no crash, scan CLEAN. FAIL on the box: it still says parts found the game data in a different place and carries the update hedge, logged as LW-430; retest after the fix) **The new items refuse bad data (the one undrillable door a hand edit can close).** If
+- [x] 2.12 (PASSED 2026-10-17, owner live, box retest on the dev deploy of the LW-430 fix (624926a9 plus the uncommitted LW-430/LW-431 tree), Ravager block deleted from the deployed file: WARN at 16:56:15 unchanged and plain, owner screenshot 16.56.28 shows the box body `A part of it found a problem in the files Living Weapons shipped with ... Reinstalling Living Weapons usually fixes this.`, no update hedge, no `different place`, `Your game and save are fine.` once, extended inventory alone under Paused; deployed file restored byte equal to the repo copy. Earlier PARTIAL on dev 62015755, Ravager row deleted: the WARN at 15:51:17 plain with no hedge and the detail `id 262: row without an ItemExtendedData.xml entry`, no armed line, extended inventory OFF with the shipped data reason, one box with extended inventory alone under Paused, thirteen ON after Continue, Chaos Blade kill credited at 15:54:32, no crash, scan CLEAN. FAIL on the box: it still says parts found the game data in a different place and carries the update hedge, logged as LW-430; retest after the fix) **The new items refuse bad data (the one undrillable door a hand edit can close).** If
   the mod's own item tables are damaged, the new items pause with a plain message and nothing else
   stops. Dev deploy; in the DEPLOYED folder only (the repo copy is generated), delete one
   `<ItemExtended>` block from `extended_inventory\ItemExtendedData.xml`; launch, sit at the title
@@ -383,7 +387,9 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   and a `(detail: ...)` tail carrying `row without an ItemExtendedData.xml entry`, with NO `This
   usually means the game just updated` sentence; no `Extended inventory armed` line; the Parts
   report reads `extended inventory OFF (the new item data shipped with this build did not
-  validate)`; one box with extended inventory alone under Paused this session, battle sensing and
+  validate)`; one box (LW-430) whose body reads `A part of it found a problem in the files Living
+  Weapons shipped with ... Reinstalling Living Weapons usually fixes this.` with no `different place`
+  and no update hedge anywhere in it, extended inventory alone under Paused this session, battle sensing and
   banners under Still working, the roster parts under Still being checked; after Continue thirteen
   ON, ids 261 to 267 absent from every list, no crash, a kill credits. FAIL: an `Extended
   inventory armed` line (the validation let a missing row through), two boxes, the hedge sentence
