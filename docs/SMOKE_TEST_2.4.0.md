@@ -304,7 +304,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   box carries the same new build sentence after the shared hedge. FAIL: a stand down, a box on the
   plain leg, no stamp line, or a WARN or box without the new build sentence while the stamp line
   says unknown. (DEV OK) (covers LW-397) **[MAJOR]**
-- [ ] 2.9 (PARTIAL 2026-10-17 on dev 62015755, owner live: leg 1 passed, the job command match line at 15:56:20, armed at 15:56:35, Barrage granted to the Yoichi Bow Thief at 15:58:13, zero WARNs, zero boxes, scan CLEAN. Owed: leg 2) **Kit lane drill (LW-112, two legs).** Another mod rewriting the job command table pauses
+- [ ] 2.9 (PARTIAL 2026-10-17 on dev 62015755, owner live: leg 1 passed, the job command match line at 15:56:20, armed at 15:56:35, Barrage granted to the Yoichi Bow Thief at 15:58:13, zero WARNs, zero boxes, scan CLEAN. Leg 2 FAILED 2026-10-17: the drill table landed (the Archer showed Monk moves, the Reloaded log wrote JobCommandData ID 8 at 15:59:44) but the kit lane had passed at 15:59:42.951, so no WARN, no box and Barrage still on the Thief; logged as LW-431, retest after the fix) **Kit lane drill (LW-112, two legs).** Another mod rewriting the job command table pauses
   only the weapon commands, not the mod. The check runs once per session, from the first tick, on
   file baked data, so the TIMING of the other mod's write decides whether it is seen at all. Recipe
   "LW-112 kit-lane drill" in
