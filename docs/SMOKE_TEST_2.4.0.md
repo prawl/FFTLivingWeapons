@@ -333,7 +333,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   leg proved nothing. Cleanup: disable and delete the
   drill mod. (DEV OK) (covers LW-112, the only guard lane whose drill is a throwaway mod rather
   than a marker file) **[MAJOR]**
-- [ ] 2.10 (PARTIAL 2026-10-17 on dev 62015755, owner live: windowed leg passed in the 2.11 run, both boxes on screen over the game without Alt Tab, OK returned focus, keyboard and controller worked; the palette WARN and roster ERROR carry hedge, what to do, drill sentence and detail tail last, zero old wording; box records equal boxes seen. Owed: the fullscreen leg, and the kit lane box from 2.9) **Every paused message reads the same way, and the box is really seen (LW-406).** Across
+- [ ] 2.10 (PARTIAL 2026-10-17 on dev 62015755, owner live: windowed leg passed in the 2.11 run, both boxes on screen over the game without Alt Tab, OK returned focus, keyboard and controller worked; the palette WARN and roster ERROR carry hedge, what to do, drill sentence and detail tail last, zero old wording; box records equal boxes seen. Kit lane box seen windowed 2026-10-17 in box 2.9 leg 2 on the LW-431 fix (owner screenshot 16.52.47, tape `parts box shown (2 parts off)`, hedge then `Your game and save are fine.`, two paragraph what to do, footer last). Owed: the fullscreen leg only) **Every paused message reads the same way, and the box is really seen (LW-406).** Across
   every drill above, each DOOR closing WARN or ERROR has the same shape: what paused and why in
   player words, `This usually means the game just updated, or another mod changed the same data.`,
   `What to do: check the Living Weapons mod page for a newer version; ...`, the drill sentence, then
