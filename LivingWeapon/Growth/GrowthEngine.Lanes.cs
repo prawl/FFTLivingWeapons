@@ -167,6 +167,18 @@ internal sealed partial class GrowthEngine
             {
                 WriteU16Target(addr, e.natural, factor, ceiling, lane, nameId);
                 var applied = _appliedU16[addr];
+                bool openingRefill = TryReadHp(addr, out int hpNow) && hpNow == e.natural;
+                bool before = _turns.GlobalTurns == 0;
+                // the game rebuilding the unit before anyone acted, so the one shot comes back
+                bool rearm = openingRefill && before && nameId > 0 && applied.target > applied.natural;
+                if (rearm) _pendingTopUp.Add((nameId, lane));
+                if (openingRefill && _refillLines < RefillLineCap)
+                {
+                    _refillLines++;
+                    string when = before ? "before anyone acted" : "after the first action";
+                    string fate = rearm ? "top-up re-armed" : "hp left alone";
+                    ModLogger.Debug(LogVerb.Growth, $"the game refilled party unit {nameId} to {e.natural} of {e.natural} {when}; max HP held back to {applied.target}, {fate}");
+                }
                 TryDeliverTopUp(addr, applied.natural, applied.target, lane, nameId);
             }
             return;   // anything else. Leave it
@@ -183,7 +195,11 @@ internal sealed partial class GrowthEngine
             WriteU16Target(addr, natural, factor, ceiling, lane, nameId);
             var applied = _appliedU16[addr];
             if (!held && nameId > 0 && applied.target > applied.natural)
+            {
                 _pendingTopUp.Add((nameId, lane));   // genuine capture. Intent to top up (delivered below, now or later)
+                TryReadHp(addr, out int hpSeen);
+                ModLogger.Debug(LogVerb.Growth, $"HP top-up armed for party unit {nameId}; max HP {applied.natural} raised to {applied.target}, current HP reads {hpSeen}");
+            }
             TryDeliverTopUp(addr, applied.natural, applied.target, lane, nameId);
         }
     }
@@ -197,6 +213,17 @@ internal sealed partial class GrowthEngine
         _appliedU16[addr] = (natural, target, factor);
         // Recorded on every write so a mid-battle tier-up's new target is what a later recapture is filtered against.
         if (nameId > 0) _u16WriteRecord[(nameId, lane)] = (natural, target);
+    }
+
+    private int _refillLines;
+    private const int RefillLineCap = 8;
+
+    private bool TryReadHp(long maxAddr, out int hp)
+    {
+        long hpAddr = maxAddr - (Offsets.CMaxHp - Offsets.CHp);
+        bool ok = _mem.Readable(hpAddr, 2);
+        hp = ok ? _mem.U16(hpAddr) : -1;
+        return ok;
     }
 
     /// <summary>Raises current HP by the Max HP gain so a Knight Sword wielder does not open the
@@ -216,7 +243,11 @@ internal sealed partial class GrowthEngine
         int hp = _mem.U16(hpAddr);
         if (hp < 1 || hp > natural) return;   // 0 == KO'd; above natural is anomalous -- stay pending, retry
         int newHp = Math.Min(hp + delta, target);
-        if (newHp > hp) _mem.W16(hpAddr, (ushort)newHp);
+        if (newHp > hp)
+        {
+            _mem.W16(hpAddr, (ushort)newHp);
+            ModLogger.Debug(LogVerb.Growth, $"HP top-up delivered to party unit {nameId}; current HP {hp} -> {newHp} of {target}");
+        }
         _pendingTopUp.Remove(key);   // delivered
     }
 }

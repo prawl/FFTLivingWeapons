@@ -617,4 +617,153 @@ public class GrowthEngineLanesTests
         engine.HoldU16(maxAddr, Tuning.Factor[3], Tuning.HpCeiling, StatLane.MaxHp, nameId: 1, level: 10);
         Assert.Equal((ushort)906, mem.U16s[hpAddr]);
     }
+
+    // ================= LW-416: the game refills the unit more than once before anyone acts =================
+
+    private static (FakeSparseMemory mem, long maxAddr, long hpAddr) Seat(long baseAddr)
+    {
+        var mem = new FakeSparseMemory();
+        long maxAddr = baseAddr + Offsets.CMaxHp;
+        long hpAddr = baseAddr + Offsets.CHp;
+        mem.MarkWritable(maxAddr, 2);
+        mem.MarkWritable(hpAddr, 2);
+        mem.MarkReadable(hpAddr, 2);
+        return (mem, maxAddr, hpAddr);
+    }
+
+    private static void Hold(GrowthEngine engine, long maxAddr, int nameId = 1)
+        => engine.HoldU16(maxAddr, Tuning.Factor[3], Tuning.HpCeiling, StatLane.MaxHp, nameId, level: 99);
+
+    private static int HpWrites(FakeSparseMemory mem, long hpAddr)
+    {
+        int n = 0;
+        foreach (var a in mem.WriteOrder) if (a == hpAddr) n++;
+        return n;
+    }
+
+    private static void GameRefills(FakeSparseMemory mem, long maxAddr, long hpAddr)
+    {
+        mem.U16s[maxAddr] = 679;
+        mem.U16s[hpAddr] = 679;
+    }
+
+    [Fact]
+    public void HoldU16_TopUp_RearmsWhenTheGameRefillsBeforeAnyoneActs()
+    {
+        var (mem, maxAddr, hpAddr) = Seat(0xE100);
+        mem.U16s[maxAddr] = 679;
+        mem.U16s[hpAddr] = 400;
+        var engine = NewEngine(mem);
+
+        Hold(engine, maxAddr);
+        Assert.Equal((ushort)883, mem.U16s[maxAddr]);
+        Assert.Equal((ushort)604, mem.U16s[hpAddr]);   // the early one shot, spent on a half built body
+
+        GameRefills(mem, maxAddr, hpAddr);
+        Hold(engine, maxAddr);
+
+        Assert.Equal((ushort)883, mem.U16s[maxAddr]);
+        Assert.Equal((ushort)883, mem.U16s[hpAddr]);
+    }
+
+    [Fact]
+    public void HoldU16_TopUp_RearmsOnEveryRefillBeforeAnyoneActs()
+    {
+        var (mem, maxAddr, hpAddr) = Seat(0xE200);
+        mem.U16s[maxAddr] = 679;
+        mem.U16s[hpAddr] = 400;
+        var engine = NewEngine(mem);
+
+        Hold(engine, maxAddr);
+        GameRefills(mem, maxAddr, hpAddr);
+        Hold(engine, maxAddr);
+        GameRefills(mem, maxAddr, hpAddr);
+        Hold(engine, maxAddr);
+
+        Assert.Equal(3, HpWrites(mem, hpAddr));
+        Assert.Equal((ushort)883, mem.U16s[hpAddr]);
+        Assert.Equal((ushort)883, mem.U16s[maxAddr]);
+    }
+
+    [Fact]
+    public void HoldU16_TopUp_RefillAfterFirstAction_HoldsMaxOnly()
+    {
+        var (mem, maxAddr, hpAddr) = Seat(0xE300);
+        mem.U16s[maxAddr] = 679;
+        mem.U16s[hpAddr] = 679;
+        var turns = new TurnTracker(mem);
+        var engine = new GrowthEngine(new Dictionary<int, WeaponMeta>(), new Dictionary<int, int>(), turns, mem);
+
+        Hold(engine, maxAddr);
+        Assert.Equal((ushort)883, mem.U16s[hpAddr]);
+        Assert.Equal(1, HpWrites(mem, hpAddr));
+
+        mem.U8s[Offsets.Acted] = 1;
+        turns.Poll();
+        Assert.Equal(1, turns.GlobalTurns);
+
+        GameRefills(mem, maxAddr, hpAddr);
+        Hold(engine, maxAddr);
+
+        Assert.Equal((ushort)883, mem.U16s[maxAddr]);
+        Assert.Equal((ushort)679, mem.U16s[hpAddr]);
+        Assert.Equal(1, HpWrites(mem, hpAddr));   // the LW-327 rule at the window edge
+    }
+
+    [Fact]
+    public void HoldU16_TopUp_RefillWithHurtHp_DoesNotRearm()
+    {
+        var (mem, maxAddr, hpAddr) = Seat(0xE400);
+        mem.U16s[maxAddr] = 679;
+        mem.U16s[hpAddr] = 679;
+        var engine = NewEngine(mem);
+        Hold(engine, maxAddr);
+
+        mem.U16s[maxAddr] = 679;
+        mem.U16s[hpAddr] = 500;
+        Hold(engine, maxAddr);
+        Assert.Equal((ushort)883, mem.U16s[maxAddr]);
+        Assert.Equal((ushort)500, mem.U16s[hpAddr]);
+
+        mem.U16s[hpAddr] = 600;
+        Hold(engine, maxAddr);
+        Assert.Equal((ushort)600, mem.U16s[hpAddr]);   // no intent lingered
+        Assert.Equal(1, HpWrites(mem, hpAddr));
+    }
+
+    // Regression guard for the existing LW-327 retry path, it passes without the LW-416 change.
+    [Fact]
+    public void HoldU16_TopUp_RefillWhileStillPending_DeliversOnce()
+    {
+        var (mem, maxAddr, hpAddr) = Seat(0xE500);
+        mem.U16s[maxAddr] = 679;
+        mem.U16s[hpAddr] = 0;
+        var engine = NewEngine(mem);
+
+        Hold(engine, maxAddr);
+        Assert.Equal(0, HpWrites(mem, hpAddr));
+
+        GameRefills(mem, maxAddr, hpAddr);
+        Hold(engine, maxAddr);
+
+        Assert.Equal((ushort)883, mem.U16s[hpAddr]);
+        Assert.Equal(1, HpWrites(mem, hpAddr));
+    }
+
+    [Fact]
+    public void HoldU16_TopUp_NameIdZero_NeverRearms()
+    {
+        var (mem, maxAddr, hpAddr) = Seat(0xE600);
+        mem.U16s[maxAddr] = 679;
+        mem.U16s[hpAddr] = 679;
+        var engine = NewEngine(mem);
+
+        Hold(engine, maxAddr, nameId: 0);
+        GameRefills(mem, maxAddr, hpAddr);
+        Hold(engine, maxAddr, nameId: 0);
+
+        Assert.Equal((ushort)883, mem.U16s[maxAddr]);
+        Assert.Equal((ushort)679, mem.U16s[hpAddr]);
+        Assert.Equal(0, HpWrites(mem, hpAddr));
+    }
 }

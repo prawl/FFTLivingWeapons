@@ -624,4 +624,13 @@ public class PartsReportTests
         Assert.Equal("Living Weapons 2.4.0, game build 0x6A5E4A1B", PartsReport.Footer("2.4.0", "0x6A5E4A1B"));
         Assert.Equal("Living Weapons unknown, game build unknown", PartsReport.Footer("unknown", "unknown"));
     }
+
+    [Fact]
+    public void KillCounting_DoorSet_ContainsEveryStatGrowthDoor()
+    {
+        // The re arm window of the knight sword top up reads the turn clock, which only runs under kill counting.
+        var killCounting = PartsReport.DoorsOf(Part.KillCounting);
+        foreach (var door in PartsReport.DoorsOf(Part.StatGrowth))
+            Assert.Contains(door, killCounting);
+    }
 }

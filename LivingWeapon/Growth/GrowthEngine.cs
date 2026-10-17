@@ -70,6 +70,7 @@ internal sealed partial class GrowthEngine
         _fallbackLogged.Clear();
         _appliedFlat.Clear();    // the flat-capped Brave/Faith lanes (GrowthEngine.Lanes.cs)
         _appliedU16.Clear();     // the u16 MaxHp lane (GrowthEngine.Lanes.cs)
+        _refillLines = 0;
         _logged = false;
     }
 

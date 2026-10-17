@@ -89,6 +89,8 @@ internal static class PartsReport
         return (DoorState.Open, "");
     }
 
+    internal static IReadOnlyList<Door> DoorsOf(Part part) => RowOf(part).Doors;
+
     /// <summary>The user facing label of a part, as the report and the box print it.</summary>
     internal static string LabelOf(Part part) => RowOf(part).Label;
 
