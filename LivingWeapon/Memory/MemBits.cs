@@ -1,9 +1,9 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// Guarded single-bit writes on live game memory, taking the (byteOffset, mask) results of the
-/// <see cref="Signatures"/> encoders. Both ops return false and write nothing on an unwritable
-/// page or a failed pre-read, so a bad read can never be taken for a zero byte.
+/// Guarded single-bit writes on live game memory.
+/// They take the (byteOffset, mask) results of the <see cref="Signatures"/> encoders. Both ops return false and write
+/// nothing on an unwritable page or a failed pre-read, so a bad read can never be taken for a zero byte.
 /// </summary>
 internal static class MemBits
 {

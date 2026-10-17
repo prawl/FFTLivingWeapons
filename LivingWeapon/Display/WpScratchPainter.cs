@@ -3,8 +3,8 @@ using System.Collections.Generic;
 
 namespace LivingWeapon;
 
-/// <summary>Paints boosted WP onto the equip card scratch byte, keyed by the mirror weapon on screen
-/// (slot 0 keying painted Ramza's boost on every unit).</summary>
+/// <summary>Paints boosted WP onto the equip card scratch byte.
+/// It keys by the mirror weapon on screen (slot 0 keying painted Ramza's boost on every unit).</summary>
 internal sealed class WpScratchPainter
 {
     private readonly IGameMemory _mem;

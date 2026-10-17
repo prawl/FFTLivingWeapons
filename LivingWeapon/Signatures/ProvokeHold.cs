@@ -4,12 +4,12 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Reads the mark that Provoke.cs plants (composed +0x45/0x80 and
-/// inflicted +0x1D3/0x80, blank status id 0) on the targeted enemy. While the mark is up and a tier-3
-/// main-hand Defender bearer is deployed and alive, every other player-side unit is hidden from the AI.
-/// Hide is the default; a reveal needs a player-side turn or TurnOrder.cs's CT+Speed lookahead showing
-/// the marked enemy is clearly further off (ProvokeHold.Policy.ActionFor). Gates
-/// on the mark bit, not `meta[33].Signature`, so a real cast and the DEV planter (ProvokeSpike.cs,
+/// The Provoke hold, which hides the party from the AI while Provoke's mark is up.
+/// It reads the mark that Provoke.cs plants (composed +0x45/0x80 and inflicted +0x1D3/0x80, blank status id 0)
+/// on the targeted enemy. While the mark is up and a tier-3 main-hand Defender bearer is deployed and alive,
+/// every other player-side unit is hidden from the AI. Hide is the default; a reveal needs a player-side turn
+/// or TurnOrder.cs's CT+Speed lookahead showing the marked enemy is clearly further off (ProvokeHold.Policy.ActionFor).
+/// Gates on the mark bit, not `meta[33].Signature`, so a real cast and the DEV planter (ProvokeSpike.cs,
 /// LWDEV) behave alike. Split. This file is the state machine, .Scan.cs the band walks, .Policy.cs the
 /// pure decisions and guarded bit writers. See docs/PROVOKE_AC.md.
 /// </summary>

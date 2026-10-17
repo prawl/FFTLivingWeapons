@@ -4,12 +4,11 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Turn-edge heal-pulse core that Renewal rides, extracted when Dragon Rod's Wyrmblood
-/// splash (since deleted) was its twin. Per-signature differences live in <see cref="Config"/>.
-/// At each completed-turn edge of the +3 wielder, heals the wielder and every ally in range for a
-/// fraction of their own max HP, clamped at full. Dead units are skipped and each fingerprint heals
-/// once per pulse (band twins). One console summary per pulse; per-ally detail is file-only.
-/// Pure rules are in Renewal.Policy.cs.
+/// The turn-edge heal-pulse core that Renewal rides.
+/// Per-signature differences live in <see cref="Config"/>. At each completed-turn edge of the +3 wielder, heals the wielder
+/// and every ally in range for a fraction of their own max HP, clamped at full. Dead units are skipped and each fingerprint
+/// heals once per pulse (band twins). One console summary per pulse; per-ally detail is file-only. Pure rules are in
+/// Renewal.Policy.cs.
 /// </summary>
 internal sealed class HealPulse
 {

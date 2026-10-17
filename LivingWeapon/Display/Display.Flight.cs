@@ -4,8 +4,8 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Flight-recorder taps for the equip-card painter and the CardVerdict plumbing that
-/// feeds them, split out of Display.cs (CardSites.Verify.cs is the matching split). Records
+/// Flight-recorder taps for the equip-card painter and the CardVerdict plumbing that feeds them.
+/// Split out of Display.cs (CardSites.Verify.cs is the matching split). Records
 /// reuse the frozen "card" flight type (docs/LOGGING.md). Everything here is a no-op unless a
 /// recorder was passed at construction (Engine.cs passes Flight.Record; tests pass none).
 /// </summary>

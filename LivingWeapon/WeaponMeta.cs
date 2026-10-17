@@ -5,8 +5,8 @@ using Newtonsoft.Json;
 
 namespace LivingWeapon;
 
-/// <summary>Per-weapon facts for growth and display, baked from data/items.json into
-/// meta.json (id -> WeaponMeta) so the runtime does not depend on the dev repo.</summary>
+/// <summary>Per-weapon facts for growth and display, read from meta.json.
+/// Baked from data/items.json (id -> WeaponMeta) so the runtime does not depend on the dev repo.</summary>
 public sealed class WeaponMeta
 {
     [JsonProperty("name")] public string Name { get; set; } = "";

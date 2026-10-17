@@ -3,8 +3,8 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Warm-starts the region cache from a persisted sidecar (PoolRegionSidecar, pool_regions.json)
-/// across launches and keeps the sidecar in sync as the locator republishes.
+/// Warm-starts the pool locator's region cache from a saved sidecar file across launches.
+/// The sidecar (PoolRegionSidecar, pool_regions.json) stays in sync as the locator republishes.
 /// SeedFromSidecar runs once, from the first <see cref="Step"/>, before the cold scan begins (PoolLocator.Restart.cs).
 /// It never marks the locate complete, so the cold scan still runs and republishes; seeding only adds early paint.
 /// MaybeSaveSidecar is called from Publish (PoolLocator.Restart.cs) and skips the write when the regions

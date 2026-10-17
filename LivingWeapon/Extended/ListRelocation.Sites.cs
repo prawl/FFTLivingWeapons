@@ -1,16 +1,15 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// The 55 places in the game's code that name the two per-item byte lists
-/// (<see cref="Offsets.BagCountArray"/> and <see cref="Offsets.SiblingListArray"/>), plus the types
-/// <see cref="ListRelocation.Install"/> needs to rewrite them. This file is the table and ListRelocation.cs
-/// has the lifecycle, same split as ExtendedSites.cs. Each field is a 4-byte distance. A rip `lea` measures
-/// from the next instruction, an `[idx + rXX + disp32]` field is an RVA from the image base. Round 2b's ten
-/// `mov [rip+disp], imm` sites have an immediate after the disp32 (<see cref="Site.Trail"/>) and hit a byte
-/// inside the list (<see cref="Site.Off"/>). The first 45 rows come from tools/probes/lw368_count_list_relocate_undo.json.done
-/// (owner check 2026-08-31 02:40-02:55, docs/LIVE_LEDGER.md row [item-count-lists-relocatable]), pinned by T2b.
-/// The last 10 are the new-game starting-inventory seed in the routine at 0x1402842E8 (read live 2026-08-31),
-/// which the round-2 sweep missed.
+/// The table of 55 game-code sites that name the two per-item byte lists, plus the types to rewrite them.
+/// The lists are <see cref="Offsets.BagCountArray"/> and <see cref="Offsets.SiblingListArray"/>, and
+/// <see cref="ListRelocation.Install"/> rewrites them. This file is the table and ListRelocation.cs has the lifecycle, same
+/// split as ExtendedSites.cs. Each field is a 4-byte distance. A rip `lea` measures from the next instruction, an
+/// `[idx + rXX + disp32]` field is an RVA from the image base. Round 2b's ten `mov [rip+disp], imm` sites have an immediate
+/// after the disp32 (<see cref="Site.Trail"/>) and hit a byte inside the list (<see cref="Site.Off"/>). The first 45 rows
+/// come from tools/probes/lw368_count_list_relocate_undo.json.done (owner check 2026-08-31 02:40-02:55, docs/LIVE_LEDGER.md
+/// row [item-count-lists-relocatable]), pinned by T2b. The last 10 are the new-game starting-inventory seed in the routine
+/// at 0x1402842E8 (read live 2026-08-31), which the round-2 sweep missed.
 /// </summary>
 internal sealed partial class ListRelocation
 {

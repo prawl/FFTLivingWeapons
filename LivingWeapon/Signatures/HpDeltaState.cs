@@ -3,8 +3,8 @@ using System;
 namespace LivingWeapon;
 
 /// <summary>
-/// Per-slot HP-delta event tracking, shared by the damage-event and heal-event detectors
-/// (<see cref="RicochetState"/> and <see cref="HealState"/> were copies with the subtraction flipped).
+/// Tracks per-slot HP-delta events, shared by the damage-event and heal-event detectors.
+/// <see cref="RicochetState"/> and <see cref="HealState"/> were copies with the subtraction flipped.
 /// A slot's first sighting baselines silently; after that a delta in the subclass's direction is one
 /// positive event and every observation re-baselines. <see cref="Delta"/> sets the direction.
 /// </summary>

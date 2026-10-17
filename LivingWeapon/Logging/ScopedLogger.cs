@@ -3,8 +3,8 @@ using System;
 namespace LivingWeapon;
 
 /// <summary>
-/// Per-module logger bound to one <see cref="LogVerb"/> and an "is this module armed" predicate,
-/// built by <see cref="ModLogger.For"/>. <see cref="Info"/> and <see cref="Warn"/> drop to Debug
+/// Per-module logger bound to one <see cref="LogVerb"/>, built by <see cref="ModLogger.For"/>.
+/// It also takes an "is this module armed" predicate. <see cref="Info"/> and <see cref="Warn"/> drop to Debug
 /// (file-only by default) when the module is not armed this battle; <see cref="Debug"/> is never gated.
 /// </summary>
 internal readonly struct ScopedLogger

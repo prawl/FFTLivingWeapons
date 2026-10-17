@@ -4,10 +4,10 @@ using System.IO;
 namespace LivingWeapon;
 
 /// <summary>
-/// Stamps the running build's flavor ("dev"/"prod") into the update-safe save dir so BuildLinked's
-/// deploy guard (Resolve-DeployedFlavor, tools/pipeline.ps1) has a last-run record when build_flavor.txt is
-/// missing or stale (a hand-extracted prod zip, or a dev build -Force-deployed over prod). The value comes
-/// from the compiled-in <see cref="Tuning.BuildFlavor"/>; a torn or garbage file reads as absent.
+/// Stamps the build flavor ("dev" or "prod") into the update-safe save dir.
+/// BuildLinked's deploy guard (Resolve-DeployedFlavor, tools/pipeline.ps1) reads it as a last-run record
+/// when build_flavor.txt is missing or stale (a hand-extracted prod zip, or a dev build -Force-deployed over prod).
+/// The value comes from the compiled-in <see cref="Tuning.BuildFlavor"/>; a torn or garbage file reads as absent.
 /// </summary>
 internal static class FlavorStamp
 {

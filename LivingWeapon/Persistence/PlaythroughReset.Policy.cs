@@ -1,8 +1,8 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// Pure predicate for the Orbonne Prayer new-game opening dialogue, plus the debounce
-/// PlaythroughReset holds it against. Stateless; Engine.Tick supplies every input.
+/// Pure predicate for the Orbonne Prayer new-game opening dialogue, plus its debounce.
+/// PlaythroughReset applies the debounce to it. Stateless; Engine.Tick supplies every input.
 /// </summary>
 internal static class PlaythroughResetPolicy
 {

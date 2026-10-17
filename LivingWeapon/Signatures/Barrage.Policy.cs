@@ -3,9 +3,9 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Pure decisions for Yoichi Bow's Barrage signature, plus the InjectSlot/ReleaseSlot record
-/// primitives, which take memory as a parameter so they are unit-testable. The stateful wielder scan
-/// and per-instance bookkeeping live in Barrage.cs.
+/// Pure decisions for Yoichi Bow's Barrage signature.
+/// It also holds the InjectSlot/ReleaseSlot record primitives, which take memory as a parameter so they are unit-testable.
+/// The stateful wielder scan and per-instance bookkeeping live in Barrage.cs.
 ///
 /// Record layout (2026-06-10 menu session; barrage_probe.py's "msb" flag is whole-u16 order and wrong,
 /// it rendered 358 as Aurablast/102). Record r has flags at ABILITY_BASE + r*25, 3 =

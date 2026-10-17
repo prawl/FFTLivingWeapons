@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Ame-no-Murakumo "Iai": at +3 each deployed main-hand wielder's Speed is held at field-max + Tuning.IaiSpeedMargin from battle open so it acts first, then reverts to its captured natural after its opening turn.
+/// Ame-no-Murakumo "Iai" makes its wielder act first in battle. At +3 each deployed main-hand wielder's Speed is held at field-max + Tuning.IaiSpeedMargin from battle open so it acts first, then reverts to its captured natural after its opening turn.
 /// Speed byte is entry + Offsets.ASpeed (0x40, 0x1C = 0x24); writing 50 showed Speed 50 and the unit went first (2026-07-01).
 /// Release (rebuilt 2026-07-01, tools/probes/unitid_probe.py "watch"/"find"; docs/LIVE_LEDGER.md row still Uncertain): ActorPtr arrival or an Acted-edge, matched by roster nameId against the acting frame's nameId (Iai.Policy.ReleaseSignalById).
 /// Band seat 28 is a mirror frame that clones real units and makes Wielder.Locate bail, so release and the IaiHoldCapSeconds cap run over every hold, resolved or not.

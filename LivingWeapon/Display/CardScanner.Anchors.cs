@@ -4,8 +4,8 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// CardScanner's anchor candidate selection and nearest-anchor byte searches (split from
-/// CardScanner.cs for the 200-line trigger). FindNearestFlavor uses the Nearest* searches and
+/// Anchor candidate selection and nearest-anchor byte searches for CardScanner.
+/// Split from CardScanner.cs for the 200-line trigger. FindNearestFlavor uses the Nearest* searches and
 /// LayoutProbeOwner uses MatchesExactlyAt.
 /// </summary>
 internal static partial class CardScanner

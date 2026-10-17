@@ -3,10 +3,10 @@ using System;
 namespace LivingWeapon;
 
 /// <summary>
-/// Logging interface, ported from FFTColorCustomizer's ILogger/ModLogger split (ColorMod/Interfaces/ILogger.cs,
-/// ColorMod/Utilities/ModLogger.cs). <see cref="ModLogger"/> is the static facade, <see cref="FileConsoleLogger"/>
-/// the production implementation, <see cref="NullLogger"/> the test one. Mod.cs pins LogLevel to Info at startup
-/// (the VerboseLog knob is gone); raise it to Debug there for live diagnosis.
+/// Logging interface that all of the mod's loggers implement.
+/// Ported from FFTColorCustomizer's ILogger/ModLogger split. <see cref="ModLogger"/> is the static facade,
+/// <see cref="FileConsoleLogger"/> the production implementation, <see cref="NullLogger"/> the test one. Mod.cs pins
+/// LogLevel to Info at startup (the VerboseLog knob is gone); raise it to Debug there for live diagnosis.
 /// </summary>
 internal interface ILogger
 {

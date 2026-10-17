@@ -4,8 +4,8 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Carries the latch state in and out of each <see cref="ActedPeriodLatch.Step"/> /
-/// <see cref="ActedPeriodLatch.Reset"/> call. The fields live on KillTracker; it seeds this before the call
+/// Carries the acted-period latch state across each call to <see cref="ActedPeriodLatch.Step"/>.
+/// The same applies to <see cref="ActedPeriodLatch.Reset"/>. The fields live on KillTracker; it seeds this before the call
 /// and copies back after (SeedLatchOutputs/ApplyLatchOutputs), so the latch needs no KillTracker reference.
 /// </summary>
 internal sealed class ActedPeriodOutputs

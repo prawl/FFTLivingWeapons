@@ -1,9 +1,9 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// Pure HP%-scaling logic for the Materia Blade's "Ultima" signature (FF7 Ultima Weapon): the PA multiplier peaks at full HP and falls as the wielder gets hurt.
-/// The kill tier raises the whole curve (Tuning.UltimaMul), so a hurt wielder is weaker than a fresh one at the same tier but stronger than a fresh one at a lower tier.
-/// The stateful hold lives in GrowthEngine (HoldUltima), like HoldAfterimage for Swiftedge.
+/// Pure HP%-scaling logic for the Materia Blade's "Ultima" signature, modeled on FF7's Ultima Weapon.
+/// The PA multiplier peaks at full HP and falls as the wielder gets hurt. The kill tier raises the whole curve (Tuning.UltimaMul), so a hurt wielder is weaker than a
+/// fresh one at the same tier but stronger than a fresh one at a lower tier. The stateful hold lives in GrowthEngine (HoldUltima), like HoldAfterimage for Swiftedge.
 /// </summary>
 internal static class UltimaPolicy
 {

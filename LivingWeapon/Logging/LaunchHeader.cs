@@ -1,7 +1,7 @@
 namespace LivingWeapon;
 
-/// <summary>Composers for the L3/L4 launch header save lines, split from Engine so
-/// pluralization is unit-tested (the inline versions printed "1 Marks"). See BattleSummary.Plural.</summary>
+/// <summary>Composers for the L3/L4 launch header save lines, split out of Engine.
+/// Pluralization is unit-tested here (the inline versions printed "1 Marks"). See BattleSummary.Plural.</summary>
 internal static class LaunchHeader
 {
     /// <summary>L3. What the disk held, before any dev seed can inflate the counts.</summary>

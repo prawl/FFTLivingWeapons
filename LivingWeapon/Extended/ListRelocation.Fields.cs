@@ -3,9 +3,9 @@ using System;
 namespace LivingWeapon;
 
 /// <summary>
-/// The field arithmetic of ListRelocation, split out when the table (45 -> 55 sites, plus
-/// <see cref="ListRelocation.Site.Trail"/> and <see cref="ListRelocation.Site.Off"/>) pushed ListRelocation.cs past 200 lines.
-/// Same partial class as ListRelocation.cs (lifecycle) and ListRelocation.Sites.cs (table).
+/// The field arithmetic of ListRelocation, kept in its own partial file.
+/// Split out when the 55-site table pushed ListRelocation.cs past 200 lines. Same partial class as ListRelocation.cs
+/// (lifecycle) and ListRelocation.Sites.cs (table).
 /// </summary>
 internal sealed partial class ListRelocation
 {

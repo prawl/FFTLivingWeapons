@@ -3,15 +3,14 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// Umbral Rod's Spiritual Font signature, moved from Wellspring Rod (id 51, tier 1) to Umbral Rod
-/// (id 56, tier 3) because tier 1 weapons carry no signatures. When the wielder's tile changes and
-/// holds for 3 ticks (MoveWatch, SpiritualFont.Policy.cs), it restores Tuning.FontHpPct of max HP
-/// and Tuning.FontMpPct of max MP, at most once per 90 ticks (about 3 s). Position polling is used
-/// because four engine-flag triggers failed in play. The global TurnTracker struct at 0x14077D2A0
-/// follows the cursor, band +0x25 and +0x09 CT reads never ticked reliably, and the KillTracker
-/// actor latch missed the second action because the Acted flag at 0x14077CA8C pulses unreliably.
-/// The MP offsets (band +0x18/+0x1A) were checked on screen 2026-06-10, and MP writes stay off for
-/// a battle unless MpLayoutOk passes on the first field tick with 2 or more valid units.
+/// Umbral Rod's Spiritual Font signature, which restores HP and MP as the wielder changes tile.
+/// It moved from Wellspring Rod (id 51, tier 1) to Umbral Rod (id 56, tier 3) because tier 1 weapons carry no signatures.
+/// When the wielder's tile changes and holds for 3 ticks (MoveWatch, SpiritualFont.Policy.cs), it restores Tuning.FontHpPct
+/// of max HP and Tuning.FontMpPct of max MP, at most once per 90 ticks (about 3 s). Position polling is used because four
+/// engine-flag triggers failed in play. The global TurnTracker struct at 0x14077D2A0 follows the cursor, band +0x25 and
+/// +0x09 CT reads never ticked reliably, and the KillTracker actor latch missed the second action because the Acted flag at
+/// 0x14077CA8C pulses unreliably. The MP offsets (band +0x18/+0x1A) were checked on screen 2026-06-10, and MP writes stay
+/// off for a battle unless MpLayoutOk passes on the first field tick with 2 or more valid units.
 /// </summary>
 internal sealed partial class SpiritualFont : ISignature
 {

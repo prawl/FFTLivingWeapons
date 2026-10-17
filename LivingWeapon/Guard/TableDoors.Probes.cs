@@ -3,8 +3,8 @@ using System;
 namespace LivingWeapon;
 
 /// <summary>
-/// The landmarks, fill probes, stall handlers and texts of <see cref="TableDoors"/>, split out of
-/// TableDoors.cs so that file keeps the lifecycle. Same partial class.
+/// The landmarks, fill probes, stall handlers and texts of <see cref="TableDoors"/>.
+/// It is split out of TableDoors.cs so that file keeps the lifecycle. Same partial class.
 /// </summary>
 internal sealed partial class TableDoors
 {

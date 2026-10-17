@@ -3,8 +3,8 @@ using System.Collections.Generic;
 
 namespace LivingWeapon;
 
-/// <summary>Memory access the gameplay logic needs, behind an interface so kill attribution and the
-/// display paint path (ByteScan) can be unit-tested with a fake. LiveMemory is the production
+/// <summary>The memory access the gameplay logic needs, behind an interface.
+/// That lets kill attribution and the display paint path (ByteScan) be unit-tested with a fake. LiveMemory is the production
 /// adapter over the RPM/WPM-backed <see cref="Mem"/>.</summary>
 internal interface IGameMemory
 {

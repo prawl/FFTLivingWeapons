@@ -4,9 +4,9 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Chunked reads for the display sweep, one shared buffer (lookback prefix + chunk + trailing slack)
-/// filled from a per-Tick region snapshot so a hot pass avoids a VirtualQueryEx walk per chunk.
-/// Both sweep phases read through here.
+/// Chunked memory reads for the display sweep, through one shared buffer.
+/// The buffer holds a lookback prefix + chunk + trailing slack, filled from a per-Tick region snapshot so a hot pass avoids
+/// a VirtualQueryEx walk per chunk. Both sweep phases read through here.
 /// </summary>
 internal sealed class ChunkReader
 {

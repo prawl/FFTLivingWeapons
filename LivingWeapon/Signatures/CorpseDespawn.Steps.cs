@@ -1,8 +1,8 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// CorpseDespawn.cs's four guarded steps (a)-(d), split out past the 200-line trigger once
-/// DespawnRefusal classification was added. TryDespawn dispatches and these are the primitives it calls in order.
+/// The four guarded steps (a)-(d) behind CorpseDespawn.cs.
+/// Split out under the 200-line trigger. TryDespawn dispatches and these are the primitives it calls in order.
 /// </summary>
 internal static partial class CorpseDespawn
 {

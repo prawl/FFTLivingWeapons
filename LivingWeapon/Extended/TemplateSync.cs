@@ -3,15 +3,14 @@ using System;
 namespace LivingWeapon;
 
 /// <summary>
-/// The pure policy for the template relocation, plus the two edge operations that keep the save
-/// file's old chart blocks and the page's live charts in sync while <see cref="TemplateRelocation"/> is armed.
-/// The relocation moves the charts the game works on, but the save field keeps its old shape (F5): the first
-/// 140 (or 261) chart words in order, extended ids included, then the marker.
-/// On save, <see cref="Project"/> runs before the game's serializer copies the old block. It reads the page,
-/// truncates to what the old block holds, and writes that in.
-/// On load, <see cref="Adopt"/> runs after the game restores the old block. It copies the span back onto the page
-/// and re-applies the marker rule and the 0xFFFF wall so the game's housekeeper can walk it safely.
-/// Every write goes through the injected <see cref="ICodePatcher"/>.
+/// The pure policy for the template relocation, plus the two save and load edge operations.
+/// The edge operations keep the save file's old chart blocks and the page's live charts in sync while
+/// <see cref="TemplateRelocation"/> is armed. The relocation moves the charts the game works on, but the save field keeps
+/// its old shape (F5), which is the first 140 (or 261) chart words in order, extended ids included, then the marker. On
+/// save, <see cref="Project"/> runs before the game's serializer copies the old block. It reads the page, truncates to what
+/// the old block holds, and writes that in. On load, <see cref="Adopt"/> runs after the game restores the old block. It
+/// copies the span back onto the page and re-applies the marker rule and the 0xFFFF wall so the game's housekeeper can walk
+/// it safely. Every write goes through the injected <see cref="ICodePatcher"/>.
 /// </summary>
 internal static class TemplateSync
 {

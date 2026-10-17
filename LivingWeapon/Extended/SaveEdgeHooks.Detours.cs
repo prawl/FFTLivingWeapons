@@ -3,8 +3,8 @@ using System;
 namespace LivingWeapon;
 
 /// <summary>
-/// The three detour bodies for <see cref="SaveEdgeHooks"/> plus the AfterApply repair they share
-/// on the load path, split out of SaveEdgeHooks.cs under the 200-line guideline. They run on the
+/// The three save-edge detour bodies of <see cref="SaveEdgeHooks"/>, split out of SaveEdgeHooks.cs.
+/// They also hold the AfterApply repair they share on the load path, split under the 200-line guideline. They run on the
 /// game's thread, call the original first (except the template projection in SerializeCore, which
 /// runs before it, see the base file's class doc) and never throw past their boundary.
 /// </summary>

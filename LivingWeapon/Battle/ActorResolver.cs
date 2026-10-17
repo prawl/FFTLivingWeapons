@@ -3,10 +3,10 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Resolves the acting player's weapons (both hands): HP+MaxHP+level (not the condensed nameId, which is
-/// unreliable) -> band entry (live; the static array freezes on battle restart) -> (level,brave,faith) ->
-/// roster hands. Empty on no match, an enemy, or ambiguity; a miss beats a mis-credit. The twin filter prefers
-/// the real-position entry over its (0,0) mirror, whose HP goes stale.
+/// Finds the weapons in both hands of the player who is acting.
+/// It matches HP+MaxHP+level (not the condensed nameId, which is unreliable) -> band entry (live; the static array
+/// freezes on battle restart) -> (level,brave,faith) -> roster hands. Empty on no match, an enemy, or ambiguity;
+/// a miss beats a mis-credit. The twin filter prefers the real-position entry over its (0,0) mirror, whose HP goes stale.
 /// The register answers first (kill-attribution plan, 2026-07-01) when ownership predates the acted-period and the
 /// corpse anchor allows it; otherwise the turn-queue walk runs, with its hover-trap and level+100-flake exposure.
 /// Roster walks live in ActorResolver.TurnQueue.cs and veto rows whose Offsets.ANameId

@@ -1,8 +1,8 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// Pure stacking logic for Swiftedge's "Afterimage" signature (no live state, no memory access); the stateful hold is GrowthEngine.HoldAfterimage, as HoldTimedStat is for Galewind.
-/// Swiftedge's damage is Speed x WP (formula 99). At +3 the wielder gains +<see cref="Tuning.AfterimageSpeedPerTurn"/> Speed per turn taken, up to <see cref="Tuning.AfterimageSpeedCap"/> turns, and the ramp resets to zero on damage.
+/// Pure stacking logic for Swiftedge's "Afterimage" signature, with no live state and no memory access. The stateful hold is GrowthEngine.HoldAfterimage, as HoldTimedStat is for Galewind.
+/// Swiftedge's damage is Speed x WP (formula 99). At +3 the wielder gains +<see cref="Tuning.AfterimageSpeedPerTurn"/> Speed per turn, up to <see cref="Tuning.AfterimageSpeedCap"/> turns, and damage resets it.
 /// </summary>
 internal static class AfterimagePolicy
 {

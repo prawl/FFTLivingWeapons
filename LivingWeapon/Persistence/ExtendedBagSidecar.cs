@@ -5,9 +5,9 @@ using Newtonsoft.Json;
 namespace LivingWeapon;
 
 /// <summary>
-/// extended_inventory.json holds the bag counts of the extended ids (261+),
-/// because the save only serialises 261 count bytes (docs/LIVE_LEDGER.md
-/// [capbreak-save-roundtrip-1-5-2]). Lives in SaveLocation.SaveDir beside kills.json.
+/// Remembers the bag counts of the extended item ids (261+) in extended_inventory.json.
+/// The save only serialises 261 count bytes (docs/LIVE_LEDGER.md [capbreak-save-roundtrip-1-5-2]).
+/// Lives in SaveLocation.SaveDir beside kills.json.
 ///
 /// Schema 2 (2026-08-27) keys counts per save, using the key from the save header at
 /// serialise time (SaveEdgeTracker.KeyFromHeader). Schema 1's single global file failed the owner's

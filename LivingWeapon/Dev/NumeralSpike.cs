@@ -5,8 +5,8 @@ using System.Runtime.InteropServices;
 namespace LivingWeapon;
 
 /// <summary>
-/// Dev-only spike that cold-calls FnNumberPopup (0x140227CF8) to put a numeral on screen on command; Renewal
-/// heals currently show nothing (LIVE_LEDGER Renewal row). The data side is closed 0x1407832BE (last displayed
+/// Dev-only spike that cold-calls FnNumberPopup (0x140227CF8) to put a numeral on screen on command.
+/// Renewal heals currently show nothing (LIVE_LEDGER Renewal row). The data side is closed 0x1407832BE (last displayed
 /// number) has one reference, its own write at 0x140228412, and the per-unit field combat +0x1C4 (HP +0x30 fell
 /// 408 -> 184, outcome byte +0x1BB flipped to 0x02, +0x1D8/+0x1E5 latch with it) drew nothing when written on an
 /// idle unit (2026-07-27), so those are outputs. Press F8 in a paused live battle, or queue numeral_request.txt

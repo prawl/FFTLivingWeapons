@@ -4,8 +4,8 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Seat the extended item ids the player owns into the game's two weapon order
-/// templates (party inventory and unit equip picker). An id the table does not name is never listed.
+/// Seats the owned extended item ids into the game's two weapon order templates.
+/// The templates are the party inventory and the unit equip picker. An id the table does not name is never listed.
 /// The load routine restores the tables byte-for-byte from the save struct and the serializer writes
 /// them back, so they are save state (copies cited on <see cref="Offsets.InventoryOrderTemplate"/>
 /// and <see cref="Offsets.PickerOrderTemplate"/>) and older saves come back without the ids. The

@@ -1,8 +1,8 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// Ownership-hold core shared by HoldUltima, HoldMushin and HoldAfterimage
-/// (GrowthEngine.Ultima/Mushin/Afterimage.cs). Each captures a stat's natural value on first
+/// Ownership-hold core shared by three GrowthEngine holds, HoldUltima, HoldMushin and HoldAfterimage.
+/// See GrowthEngine.Ultima/Mushin/Afterimage.cs. Each captures a stat's natural value on first
 /// sight through the NaturalLedger, then owns the byte while cur is its last write, the
 /// natural value, or the baked restart residue; anything else is a foreign buff and is left alone.
 /// GrowthEngine.Hold records to the ledger before the ownership check, so it stays hand-rolled

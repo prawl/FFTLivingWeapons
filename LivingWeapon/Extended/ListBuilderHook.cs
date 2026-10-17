@@ -6,13 +6,13 @@ using Reloaded.Hooks.Definitions.X64;
 namespace LivingWeapon;
 
 /// <summary>
-/// Detour on the game's shared item-list builder (<see cref="Offsets.FnListBuilder"/>), whose
-/// cap byte <see cref="TemplateRelocation"/> widens to 255. Eight call sites pass one of three
-/// buffers. The static 256-word <see cref="Offsets.MenuListBuffer"/>, or one of two 152-word
-/// stack buffers (equip picker weapons list, shop list) that 255 entries would overrun into the stack
-/// cookie. The hook keys on the buffer in r9, not the call site. Stack callers get a mod-owned pool slot and
-/// the result is cut to <see cref="StackCallerCap"/>. Pool lifecycle is in ListBuilderHook.Pool.cs and
-/// truncation math in ListBuilderHook.Policy.cs. Memory access goes through <see cref="ICodePatcher"/>.
+/// Detour on the game's shared item-list builder, so a widened list cannot overrun a caller's stack buffer.
+/// <see cref="Offsets.FnListBuilder"/> is that builder, and its cap byte <see cref="TemplateRelocation"/> widens to 255.
+/// Eight call sites pass one of three buffers, the static 256-word <see cref="Offsets.MenuListBuffer"/> or one of two
+/// 152-word stack buffers (equip picker weapons list, shop list) that 255 entries would overrun into the stack cookie. The
+/// hook keys on the buffer in r9, not the call site. Stack callers get a mod-owned pool slot and the result is cut to
+/// <see cref="StackCallerCap"/>. Pool lifecycle is in ListBuilderHook.Pool.cs and truncation math in
+/// ListBuilderHook.Policy.cs. Memory access goes through <see cref="ICodePatcher"/>.
 /// </summary>
 internal sealed partial class ListBuilderHook
 {

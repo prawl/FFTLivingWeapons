@@ -2,7 +2,7 @@ using System;
 
 namespace LivingWeapon;
 
-/// <summary>Null <see cref="ILogger"/> that <see cref="ModLogger.UseNullLogger"/> swaps in so tests never touch the console or filesystem.</summary>
+/// <summary>Null <see cref="ILogger"/> for tests. <see cref="ModLogger.UseNullLogger"/> swaps it in so they never touch the console or filesystem.</summary>
 internal sealed class NullLogger : ILogger
 {
     public static readonly NullLogger Instance = new();

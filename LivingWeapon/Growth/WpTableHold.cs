@@ -4,8 +4,8 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Turn-scoped write to the resident item-stats WP byte for the "wp"/"wp+faith" guns (the three
-/// plain and three magic guns that Routes gives no combat-struct lane, see GrowthEngine.Lanes.cs). While the
+/// Turn-scoped write to the resident item-stats WP byte for the "wp" and "wp+faith" guns.
+/// These are the three plain and three magic guns that Routes gives no combat-struct lane, see GrowthEngine.Lanes.cs. While the
 /// acting unit is a player wielding one at tier &gt; 0, holds the byte (Offsets.ItemStatsBase) at
 /// bakedWP + Tuning.WpBonus[tier] and restores the baked value as soon as that stops being true.
 /// Follows WeaponPalette's desire/restore split with the fail-safe inverted (N1). WeaponPalette holds

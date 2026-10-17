@@ -4,8 +4,8 @@ using System.Threading;
 namespace LivingWeapon;
 
 /// <summary>
-/// Pool-slot lifecycle for <see cref="ListBuilderHook"/>: try-acquire/release per slot, and the
-/// copy-back that truncates a slot's list into the caller's buffer. Several slots exist for reentrancy
+/// Pool slots for <see cref="ListBuilderHook"/>, with a try-acquire and release for each slot.
+/// The copy-back truncates a slot's list into the caller's buffer. Several slots exist for reentrancy
 /// on one thread, not concurrency. If all are busy the answer is an empty list, counted and
 /// Warned once per session.
 ///

@@ -1,11 +1,11 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// Counts a unit's completed turns from its own scheduler CT (band entry +<see cref="Offsets.ACtTurn"/> = 0x09,
-/// not +0x25, which is the ExtraTurn write target). A turn is CT at or above <see cref="TurnHi"/> followed by
-/// CT below <see cref="TurnLo"/>, the same check Maim uses for victim turns. Per-unit, so it avoids the global
-/// acted-edge attribution that stalled the old TurnTracker expiry (the active struct follows the cursor, not the turn owner).
-/// Spiritual Font's moved-turn edge uses this clock.
+/// Counts a unit's completed turns from its own scheduler CT.
+/// It reads band entry +<see cref="Offsets.ACtTurn"/> = 0x09, not +0x25, which is the ExtraTurn write target. A turn is CT
+/// at or above <see cref="TurnHi"/> followed by CT below <see cref="TurnLo"/>, the same check Maim uses for victim turns.
+/// Per-unit, so it avoids the global acted-edge attribution that stalled the old TurnTracker expiry (the active struct
+/// follows the cursor, not the turn owner). Spiritual Font's moved-turn edge uses this clock.
 /// </summary>
 internal sealed class CtTurns
 {

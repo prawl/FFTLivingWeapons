@@ -6,8 +6,8 @@ using Newtonsoft.Json;
 namespace LivingWeapon;
 
 /// <summary>
-/// Pool_regions.json, PoolLocator's warm-start seed (SaveLocation.SaveDir, next to
-/// kills.json, so it survives a mod-folder replace). One (baseAddr, size) tuple per region as in
+/// Persists PoolLocator's warm-start seed in pool_regions.json (SaveLocation.SaveDir, next to kills.json).
+/// It sits there so it survives a mod-folder replace. One (baseAddr, size) tuple per region as in
 /// PoolLocator's _cached, plus the PE build key from LaunchGuard.ExpectedTimeDateStamp/
 /// ExpectedSizeOfImage. A sidecar written under a different key is rejected whole. Written via
 /// SidecarJson.SaveAtomic like KillTally.Save and LegendStore.SaveIfDirty. Load never throws; any

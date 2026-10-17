@@ -7,8 +7,8 @@ using System.Text;
 namespace LivingWeapon;
 
 /// <summary>
-/// Pure classification and formatting rules for <see cref="IconCacheHide"/>, with no
-/// <see cref="IGameMemory"/> so they are plain unit tests. Offsets come from LIVE_LEDGER row
+/// Pure classification and formatting rules for <see cref="IconCacheHide"/>.
+/// They use no <see cref="IGameMemory"/>, so they are plain unit tests. Offsets come from LIVE_LEDGER row
 /// <c>[icon-cache-hide-reload]</c>: a parts entry is 0x70 bytes (name ptr +0, interned id u32 +8,
 /// state u16 +0x58 == 0x0101 once loaded, several entries can share a name); a texture record has
 /// name ptr +0, .tex byte size u64 +0x28, path-hash u32 +0x30. The byte-buffer scanners live in

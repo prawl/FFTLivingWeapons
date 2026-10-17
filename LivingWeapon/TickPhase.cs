@@ -3,9 +3,9 @@ using System;
 namespace LivingWeapon;
 
 /// <summary>
-/// Per-tick blackboard filled once by Engine.Tick's prologue (every field, including Changed, so a
-/// gate-skipped kill-poll row cannot leave a stale true) and read or written by each
-/// <see cref="TickPhase"/> row. Reused for the engine's lifetime.
+/// The per-tick blackboard shared by the Engine.Tick phase rows.
+/// Engine.Tick's prologue fills every field once, including Changed, so a gate-skipped kill-poll row cannot leave a stale true.
+/// Each <see cref="TickPhase"/> row reads or writes it. Reused for the engine's lifetime.
 /// </summary>
 internal sealed class TickPhaseState
 {

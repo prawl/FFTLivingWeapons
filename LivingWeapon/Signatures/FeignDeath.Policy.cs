@@ -1,10 +1,10 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// The played-dead state machine and the guarded status/HP writes, kept free of battle state so they
-/// can be unit-tested. FeignDeath.cs reads the wielder's facts, calls <see cref="Step"/> and applies
-/// the result. Ported from a throwaway probe where re-stamping the dead bit through the revive left a
-/// hearts/skipped-turn corpse, and never stamping it left no death for Reraise to undo.
+/// The played-dead state machine and the guarded status/HP writes.
+/// Kept free of battle state so they can be unit-tested. FeignDeath.cs reads the wielder's facts, calls
+/// <see cref="Step"/> and applies the result. Ported from a throwaway probe where re-stamping the dead bit through
+/// the revive left a hearts/skipped-turn corpse, and never stamping it left no death for Reraise to undo.
 /// </summary>
 internal sealed partial class FeignDeath
 {

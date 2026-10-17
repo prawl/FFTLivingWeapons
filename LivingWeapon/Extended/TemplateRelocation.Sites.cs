@@ -1,13 +1,13 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// The ten-field map <see cref="TemplateRelocation.Install"/> rewrites (three pointer-table
-/// slots, five rip-relative int32 fields, two menu-list-cap sites) plus the three chart descriptors
-/// the lifecycle and <see cref="TemplateSync"/> read. Split from TemplateRelocation.cs the way
-/// ListRelocation.Sites.cs is split from ListRelocation.cs; this file is the table, that one the lifecycle.
-/// Findings 1, 4 and 5 of LW371_plan.md were re-derived with tools/probes/lw371_order_template_relocate.py --scan.
-/// The caps went 159 -> 151 (GS cookie) -> 149 (fnA's two hand-item appends, see CapSites).
-/// The cap values widen to 255/256, so <see cref="CapSite"/> holds byte arrays.
+/// The site table for <see cref="TemplateRelocation"/>, split out of TemplateRelocation.cs.
+/// It holds the ten-field map <see cref="TemplateRelocation.Install"/> rewrites (three pointer-table slots, five
+/// rip-relative int32 fields, two menu-list-cap sites) plus the three chart descriptors the lifecycle and
+/// <see cref="TemplateSync"/> read. ListRelocation.Sites.cs is split from ListRelocation.cs the same way, this file being
+/// the table and that one the lifecycle. Findings 1, 4 and 5 of LW371_plan.md were re-derived with
+/// tools/probes/lw371_order_template_relocate.py --scan. The caps went 159 -> 151 (GS cookie) -> 149 (fnA's two hand-item
+/// appends, see CapSites). The cap values widen to 255/256, so <see cref="CapSite"/> holds byte arrays.
 /// </summary>
 internal sealed partial class TemplateRelocation
 {

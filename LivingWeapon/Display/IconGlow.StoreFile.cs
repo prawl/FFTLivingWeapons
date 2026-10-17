@@ -6,10 +6,10 @@ using Newtonsoft.Json;
 
 namespace LivingWeapon;
 
-/// <summary>Production <see cref="IIconGlowStore"/> over modDir (glow_icons/, its base_backup/
-/// subfolder, and the deployed FFTIVC tree). Every method returns null/false on failure and never
-/// throws. Writes go through <see cref="AtomicWrite"/> so a crash cannot leave a torn file.
-/// Split from IconGlow.Store.cs, which keeps the interface and DTOs.</summary>
+/// <summary>Production <see cref="IIconGlowStore"/> that keeps its files under modDir.
+/// That covers glow_icons/, its base_backup/ subfolder, and the deployed FFTIVC tree. Every method returns null or false on
+/// failure and never throws. Writes go through <see cref="AtomicWrite"/> so a crash cannot leave a torn file. Split from
+/// IconGlow.Store.cs, which keeps the interface and DTOs.</summary>
 internal sealed class FileIconGlowStore : IIconGlowStore
 {
     private readonly string _modDir;

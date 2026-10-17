@@ -3,13 +3,13 @@ using System;
 namespace LivingWeapon;
 
 /// <summary>
-/// Stateful half of the swing-id fallback (<see cref="ThunkStub.EmitSwingIdFallbackStub"/> emits the
-/// bytes), AccessorEntryHook's twin for a mid-instruction jump. The swing-prep routine copies the swing-id
-/// word with a 7-byte movzx at <see cref="Offsets.FnSwingPrepIdCopy"/>; for a moved id the word is 0 at swing
-/// time and the art lookup draws bare hands (docs/LIVE_LEDGER.md [empty-tile-hand-read-bounds]). Install
-/// rewrites the site as an E9 jmp plus two 0x90 pads into a stub that substitutes the hand id when the
-/// word is 0 and the acting unit's right hand holds one of our ids. Steps return a refusal string; Restore
-/// leaks the stub page because a game thread may be inside it (the rig's rule).
+/// Stateful half of the swing-id fallback, which stops a moved item id from swinging bare hands.
+/// <see cref="ThunkStub.EmitSwingIdFallbackStub"/> emits the bytes, and this is AccessorEntryHook's twin for a
+/// mid-instruction jump. The swing-prep routine copies the swing-id word with a 7-byte movzx at
+/// <see cref="Offsets.FnSwingPrepIdCopy"/>; for a moved id the word is 0 at swing time and the art lookup draws bare hands
+/// (docs/LIVE_LEDGER.md [empty-tile-hand-read-bounds]). Install rewrites the site as an E9 jmp plus two 0x90 pads into a
+/// stub that substitutes the hand id when the word is 0 and the acting unit's right hand holds one of our ids. Steps return
+/// a refusal string; Restore leaks the stub page because a game thread may be inside it (the rig's rule).
 /// </summary>
 internal sealed class SwingIdFallbackHook
 {

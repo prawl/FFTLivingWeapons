@@ -1,7 +1,7 @@
 namespace LivingWeapon;
 
-/// <summary>Which stage refused a <see cref="ActorResolver.TryResolveCursorPlayer"/> call, so the
-/// resolve-miss tap in AttackCard.Resolve.cs can log it. Listed in stage order.</summary>
+/// <summary>Names the stage that refused a <see cref="ActorResolver.TryResolveCursorPlayer"/> call.
+/// The resolve-miss tap in AttackCard.Resolve.cs logs it. Listed in stage order.</summary>
 internal enum CursorMiss
 {
     /// <summary>The resolve succeeded.</summary>

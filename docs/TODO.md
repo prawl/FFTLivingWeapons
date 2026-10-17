@@ -61,6 +61,10 @@ the technical detail lives in the indented lines under it.
     order the fix depends on; no door gating is loosened to get there.
   - Verify: full suite green with the new test; the owner loads the same save, enters a battle,
     and reads 883 of 883 (or the current max) on Ramza's first turn; scan_logs CLEAN.
+- **[LW-407] Every runtime source file opens with one short sentence saying what it is** (opened 2026-10-17) [BUILDING]
+  - Every runtime source file should open with one short sentence saying what the file is, so someone skimming file by file gets the answer at once.
+  - Done means: every production file under LivingWeapon/ opens its first summary with a sentence of at most 110 characters ending in a period, AssemblyInfo.cs opens with a one line comment, and a contract test fails the moment a file breaks that.
+  - Verify: full suite green with the new test; the scout prints only the exempt AssemblyInfo.cs; one sabotage (lengthen one first sentence past 110) turns exactly the new Fact red.
 ## Backlog
 
 - [LW-417] 2026-10-17: The HP growth code file has grown past the size where a reader can hold it in their head (253 lines). Split the Max HP lane into its own file under the new file comment cap, keeping or rewriting the LW-327 edge prose at the old lines 112 to 138, never dropping it. Owed since LW-327, grew again with LW-416.
@@ -69,7 +73,6 @@ the technical detail lives in the indented lines under it.
 - [LW-420] 2026-10-17: The build server has no game file, so nothing there can catch a vanilla note drifting again. Commit a 121 row snapshot of the vanilla weapon table (8 bytes per row, exe stamp as provenance) and have analyze.py compare every baseline against it.
 - [LW-421] 2026-10-17: Publish.ps1 sets no error preference, so a failing cmdlet inside the shared pipeline functions can be followed by a second, less clear error instead of stopping on the first; BuildLinked.ps1 already stops on the first. Set the same preference in Publish.ps1.
 - [LW-422] 2026-10-17: Latent shape seen on the LW-416 tape: if the Max HP hold ever captures the 400 of 400 placeholder body during a cutscene, the later real fill matches neither its natural nor its target and the hold goes quiet for that battle. Not seen live (the locate waited for the real body); worth a test and a log line.
-- [LW-407] 2026-10-17: Every runtime source file should open with one short sentence saying what the file is, so someone skimming file by file gets the answer at once. Demoted from Now on 2026-10-17 because it touches the first line of 76 files and must run ALONE after LW-416, LW-413 and LW-414 merge (full Done means and Verify in git history, commit 02c401b7). R5 item 1.
 - [LW-358] 2026-08-30: Re-check poaching ourselves and finally explain it to players. Demoted from Now on 2026-10-17 to make room for the parallel R5 rows; it waits only on the owner's live battle and the FAQ text (full Done means and Verify in git history, commit 02c401b7).
 Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner directed).
 A new row still lands here in the session it surfaces; slot it where its urgency

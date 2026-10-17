@@ -3,8 +3,8 @@ using System.Collections.Generic;
 
 namespace LivingWeapon;
 
-/// <summary>Flags-first killer lookup, same signature as
-/// <see cref="ActorResolver.TryResolveFlagKiller"/> so KillTracker.cs can pass the method group directly.</summary>
+/// <summary>Flags-first killer lookup for KillTracker.cs.
+/// It matches <see cref="ActorResolver.TryResolveFlagKiller"/>, so KillTracker.cs can pass the method group directly.</summary>
 internal delegate bool FlagKillerLookup(out long rosterBase, out ushort nameId, out int bandSlot, out byte moved);
 
 /// <summary>

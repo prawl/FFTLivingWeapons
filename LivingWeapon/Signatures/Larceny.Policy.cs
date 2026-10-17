@@ -3,8 +3,8 @@ using System.Collections.Generic;
 
 namespace LivingWeapon;
 
-/// <summary>The per-struck-foe outcome of a Larceny hit (see <see cref="LarcenyPolicy.Decide"/>):
-/// leave a duplicate alone, strip-without-keeping, or steal-and-hold.</summary>
+/// <summary>The outcome of a Larceny hit on one struck foe (see <see cref="LarcenyPolicy.Decide"/>).
+/// The result is to leave a duplicate alone, strip-without-keeping, or steal-and-hold.</summary>
 internal enum LarcenyAction { Skip, Dispel, Steal }
 
 /// <summary>

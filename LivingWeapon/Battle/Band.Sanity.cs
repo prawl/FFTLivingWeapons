@@ -1,12 +1,12 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// The shared per-band-slot sanity read that the signature modules' band walks (Plague, Ricochet,
-/// Larceny, Maim, Kobu, Benediction, Puppeteer) used to duplicate. It guards the maxHp read, then rejects phantom slots:
-/// maxHp outside 1..1999 (exclusive bound, see <see cref="Band.EnemyFingerprints"/> for why it differs from the static-array
-/// sweep's inclusive 2000), level outside 1..99, or brave/faith outside 1..100. The hp-reading overload serves every caller but Plague.
-/// Per-module extras (Ricochet's gx/gy &gt; 30 reject, Puppeteer's job byte, Larceny's buff snapshot) stay caller-side.
-/// <see cref="SameUnitAtExact"/> is the check every held write runs before re-squeezing a stored band address.
+/// Shared sanity read for one band slot, used by the signature modules' band walks.
+/// Plague, Ricochet, Larceny, Maim, Kobu, Benediction and Puppeteer used to duplicate it. It guards the maxHp read, then rejects
+/// phantom slots with maxHp outside 1..1999 (exclusive bound, see <see cref="Band.EnemyFingerprints"/> for why it differs from
+/// the static-array sweep's inclusive 2000), level outside 1..99, or brave/faith outside 1..100. The hp-reading overload serves
+/// every caller but Plague. Per-module extras (Ricochet's gx/gy &gt; 30 reject, Puppeteer's job byte, Larceny's buff snapshot)
+/// stay caller-side. <see cref="SameUnitAtExact"/> is the check every held write runs before re-squeezing a stored band address.
 /// </summary>
 internal static partial class Band
 {

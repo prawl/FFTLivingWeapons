@@ -5,8 +5,8 @@ using System.Runtime.InteropServices;
 namespace LivingWeapon;
 
 /// <summary>
-/// Dev-only spike (ShowSpike tradition) that cold-calls the engine's status apply routine so the
-/// engine inflicts the status itself. External writes to the composed/inflicted/pending fields were
+/// Dev-only spike that cold-calls the engine's status apply routine so the engine inflicts the status itself.
+/// It follows the ShowSpike tradition. External writes to the composed/inflicted/pending fields were
 /// closed lanes on 2026-07-09 (spawn_probe.py tapes). Target is FnApplyStatuses 0x150BF66DC (CE
 /// what-writes + disasm 2026-07-09), ecx = battle-stats slot, edx = mode. A pending-add bit is written
 /// and the routine called at once. Same shape as ShowSpike.ColdSpawn (2026-07-03). Fires only with a

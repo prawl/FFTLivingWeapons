@@ -6,8 +6,8 @@ using Newtonsoft.Json;
 namespace LivingWeapon;
 
 /// <summary>
-/// Per-unit roster-snapshot persistence for Gun Slinger, keyed on roster nameId (u16), saved as gunslinger.json
-/// in the mod directory. Atomic write + .bak, but the .bak holds the current generation (see Save), unlike
+/// Saves Gun Slinger's per-unit roster snapshots to gunslinger.json in the mod directory.
+/// Keyed on roster nameId (u16). Atomic write + .bak, but the .bak holds the current generation (see Save), unlike
 /// the shared SidecarJson.SaveAtomic chain KillTally/LegendStore use. Loaded once; Save on each change.
 /// </summary>
 internal sealed class GunSlingerStore

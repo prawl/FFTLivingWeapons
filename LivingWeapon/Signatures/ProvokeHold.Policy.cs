@@ -1,9 +1,9 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// Pure decisions behind the Provoke hold (release priority, hide/reveal, turn edge, watchdog, guarded
-/// bit writers), unit-tested directly. Same split as FeignDeath.Policy.cs; ProvokeHold.cs reads facts,
-/// calls these, and applies the result.
+/// Pure decisions behind the Provoke hold, unit-tested directly.
+/// They cover release priority, hide/reveal, turn edge, watchdog and the guarded bit writers. Same split as
+/// FeignDeath.Policy.cs; ProvokeHold.cs reads facts, calls these, and applies the result.
 /// </summary>
 internal sealed partial class ProvokeHold
 {

@@ -6,8 +6,8 @@ using Holder = (long HolderAddr, long StringAddr, int Id, string Surface, Living
 namespace LivingWeapon;
 
 /// <summary>
-/// Hides a re-tiered icon's two drawn-icon cache records (parts and texture) so the next menu
-/// screen reloads it from modded.pac (written by IconGlow.Pac.cs). LIVE_LEDGER <c>[icon-cache-hide-reload]</c>, proven 2026-09-01.
+/// Hides a re-tiered icon's two drawn-icon cache records (parts and texture).
+/// The next menu screen then reloads it from modded.pac (written by IconGlow.Pac.cs). LIVE_LEDGER <c>[icon-cache-hide-reload]</c>, proven 2026-09-01.
 /// Hide both records or neither. Parts alone makes the icon vanish and return stale, so the texture hides first and
 /// parts only after it did (<see cref="IconCacheHidePolicy.DecideOutcome"/>). A hide is a same-length in-place edit (name pointer +1, id/hash zeroed).
 /// <see cref="Hide"/> makes two passes (<see cref="SweepStrings"/>, <see cref="SweepPointers"/>; <see cref="ForEachChunk"/> aborts in battle) and skips pass 2 if pass 1 finds nothing.

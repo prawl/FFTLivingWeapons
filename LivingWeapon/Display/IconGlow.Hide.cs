@@ -5,8 +5,8 @@ using System.Linq;
 namespace LivingWeapon;
 
 /// <summary>
-/// Schedules the cache hide (IconCacheHide.cs) that shows a pac-mirrored icon
-/// (IconGlow.Pac.cs) this session instead of after a relaunch, and retries hides a battle postponed.
+/// Schedules the icon cache hide (IconCacheHide.cs) and retries hides a battle postponed.
+/// The hide shows a pac-mirrored icon (IconGlow.Pac.cs) this session instead of after a relaunch.
 /// A hider exception never escapes <see cref="HideThisPassPatched"/> or <see cref="RunPendingHidesOnly"/>;
 /// the pac write already succeeded, so a failure leaves the icon restart-only.
 /// </summary>

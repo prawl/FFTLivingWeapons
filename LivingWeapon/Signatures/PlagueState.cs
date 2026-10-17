@@ -2,9 +2,9 @@ using System.Collections.Generic;
 
 namespace LivingWeapon;
 
-/// <summary>Per-victim tracking for the Plague latch, keyed by band address with a fingerprint
-/// for validity and the last-seen CT. The address key keeps two same-fingerprint victims from
-/// clobbering each other's CT. Split out of Plague.Policy.cs.</summary>
+/// <summary>Per-victim tracking for the Plague latch, keyed by band address.
+/// Each entry carries a fingerprint for validity and the last-seen CT. The address key keeps two
+/// same-fingerprint victims from clobbering each other's CT. Split out of Plague.Policy.cs.</summary>
 internal sealed class PlagueState
 {
     private readonly Dictionary<long, PlagueEntry> _held = new();

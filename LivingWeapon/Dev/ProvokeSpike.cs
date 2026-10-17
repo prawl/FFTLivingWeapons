@@ -6,17 +6,17 @@ using System.Runtime.InteropServices;
 namespace LivingWeapon;
 
 /// <summary>
-/// Dev only (2026-07-22): arms ProvokeHold without the real granted command, so the hold is
-/// testable on any save and job. Plants the mark Provoke.cs's cast plants (composed +0x45/0x80, inflicted +0x1D3/0x80,
-/// blank status id 0, <see cref="ProvokeHold.MarkId"/>) on an enemy with two guarded <see cref="MemBits.OrSet"/>
-/// writes. ProvokeHold gates on the mark bit, so it is unchanged by this spike.
-/// Triggers as in StatusSpike. F6 (VK 0x75) and a marker file (<c>&lt;modDir&gt;/provoke_request.txt</c>, polled
-/// ~0.5s, deleted on read). Moved off F3 on 2026-07-22 because F3 never registered on the owner's box; F6 is
-/// free since the old F6 spikes were stripped. No env vars. They do not survive the game's launch chain.
-/// Target. The hovered enemy if available (while paused, the condensed TurnQueue struct tracks the cursor,
-/// memory "condensed-struct-follows-hover", matched to a band seat by maxHp+level), else the first live enemy.
-/// Not StatusSpike.FindEnemy, which is scoped to cold-callable seats 8..28; this spike makes no cold call.
-/// Fires only while <see cref="Mem.WritesEnabled"/>, in a genuine inLive frame, with the game foreground.
+/// Dev-only spike that arms ProvokeHold without the real granted command (added 2026-07-22).
+/// That makes the hold testable on any save and job. Plants the mark Provoke.cs's cast plants (composed +0x45/0x80,
+/// inflicted +0x1D3/0x80, blank status id 0, <see cref="ProvokeHold.MarkId"/>) on an enemy with two guarded
+/// <see cref="MemBits.OrSet"/> writes. ProvokeHold gates on the mark bit, so it is unchanged by this spike. Triggers as in
+/// StatusSpike. F6 (VK 0x75) and a marker file (<c>&lt;modDir&gt;/provoke_request.txt</c>, polled ~0.5s, deleted on read).
+/// Moved off F3 on 2026-07-22 because F3 never registered on the owner's box; F6 is free since the old F6 spikes were
+/// stripped. No env vars. They do not survive the game's launch chain. The target is the hovered enemy if available (while
+/// paused, the condensed TurnQueue struct tracks the cursor, memory "condensed-struct-follows-hover", matched to a band seat
+/// by maxHp+level), else the first live enemy. Not StatusSpike.FindEnemy, which is scoped to cold-callable seats 8..28; this
+/// spike makes no cold call. Fires only while <see cref="Mem.WritesEnabled"/>, in a genuine inLive frame, with the game
+/// foreground.
 /// </summary>
 internal sealed class ProvokeSpike
 {

@@ -3,8 +3,8 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Mount-gated flat-stat partial of GrowthEngine (Cavalier's Charge, Speed +3 while mounted), split
-/// out like the Afterimage/Ultima/Mushin partials. Captures natural and holds it,
+/// Mount-gated flat-stat partial of GrowthEngine, used for Cavalier's Charge (Speed +3 while mounted).
+/// It is split out like the Afterimage/Ultima/Mushin partials. It captures natural and holds it,
 /// consulting the shared NaturalLedger at capture. This hold reverts mid-battle when its window closes,
 /// so it keeps a post-revert sentinel. If the capture was corrected (the battle opened on the mod's
 /// restart residue) and normalize restores that residue after the revert, the sentinel rewrites the

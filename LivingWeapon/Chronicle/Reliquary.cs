@@ -4,8 +4,8 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Deed-recording seam for Reliquary Phase 1 (docs/RELIQUARY_AC.md), called by KillTracker.CreditKill
-/// at the credit edge (KillTracker.cs). An interface so KillTracker tests can inject a fake.
+/// The seam that records deeds for Reliquary Phase 1 (docs/RELIQUARY_AC.md).
+/// KillTracker.CreditKill calls it at the credit edge (KillTracker.cs). An interface so KillTracker tests can inject a fake.
 /// </summary>
 internal interface IDeedSink
 {

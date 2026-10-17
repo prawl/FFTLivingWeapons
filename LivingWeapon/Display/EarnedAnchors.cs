@@ -3,8 +3,8 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Decision 12 (docs/RELIQUARY_AC.md): per weapon id, holds [baked, current composed line,
-/// previous distinct composed line] as the card anchors. The pair rotates only on a
+/// Holds the card anchors for each weapon id (decision 12 in docs/RELIQUARY_AC.md).
+/// Each id keeps [baked, current composed line, previous distinct composed line]. The pair rotates only on a
 /// compose-change edge via SetCurrent, never at paint time, so a site painted with the previous
 /// line still verifies and is repainted instead of evicted (CardSites.cs). Encoded lines must
 /// match the baked Flavor length in both encodings (ASCII, UTF-16LE); a mismatch refuses the

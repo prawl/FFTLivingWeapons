@@ -4,8 +4,8 @@ using System.IO;
 namespace LivingWeapon;
 
 /// <summary>
-/// Resolves the update-safe save directory (Reloaded/User/Mods/&lt;ModId&gt;) and copies each legacy
-/// save file (kills.json, legends.json, gunslinger.json) out of the deploy mod dir the first time it is seen.
+/// Finds the update-safe save directory (Reloaded/User/Mods/&lt;ModId&gt;) and migrates legacy saves into it.
+/// Each legacy file (kills.json, legends.json, gunslinger.json) is copied out of the deploy mod dir the first time it is seen.
 /// A mod-folder-replace update wipes the deploy dir, while User/Mods survives and already holds Config.json
 /// (see Mod.ResolveConfigPath). Migration is copy-only, and members are fail-soft because Engine's constructor
 /// builds this and Mod.StartEngine turns a constructor exception into a dead mod.

@@ -1,8 +1,8 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// The expected-value constants and the roster-row probe of <see cref="LaunchGuard"/>, split out of
-/// LaunchGuard.cs so that file keeps the lifecycle code. Same partial class.
+/// The expected-value constants and the roster-row probe of <see cref="LaunchGuard"/>.
+/// It is split out of LaunchGuard.cs so that file keeps the lifecycle code. Same partial class.
 /// The roster probe's Unreadable verdict carries a Detail (slot empty vs page unreadable) that
 /// LaunchGuard.Stall.cs uses to word the long-wait message.
 /// The JobCommand rec8/rec9 constants stay here although the kit-lane guard (LaunchGuard.KitLane.cs)

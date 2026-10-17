@@ -5,13 +5,13 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Dev-only passive recorder for the Attack-menu painter (which weapon dossier the Attack card resolves at menu-open),
-/// shipped 2b2f5b4 on 2026-07-07. It still ticks as a correlation recorder for the backlog's
-/// turn-order rebuild; unwire it if that declines. TurnOwnerProbe.cs documents the two hypotheses
-/// and how the tapes line up with AttackCard.Paint.cs's "attack-card desc repainted" log line.
-/// In-battle only, throttled to <see cref="SamplesPerSecond"/>. One Trace line per channel, only on change
-/// (TurnOwnerProbe.Changed). Channels are band CT per slot at band+0x25 (Offsets.ACtSlam) plus the acted byte
-/// (Offsets.Acted), the 64-byte cursor-follower struct at Offsets.TurnQueue, and the ActorRegister baseline.
+/// Dev-only recorder that logs which weapon dossier the Attack card resolves at menu-open.
+/// It is passive, serves the Attack-menu painter, and shipped 2b2f5b4 on 2026-07-07. It still ticks as a correlation
+/// recorder for the backlog's turn-order rebuild; unwire it if that declines. TurnOwnerProbe.cs documents the two hypotheses
+/// and how the tapes line up with AttackCard.Paint.cs's "attack-card desc repainted" log line. In-battle only, throttled to
+/// <see cref="SamplesPerSecond"/>. One Trace line per channel, only on change (TurnOwnerProbe.Changed). Channels are band CT
+/// per slot at band+0x25 (Offsets.ACtSlam) plus the acted byte (Offsets.Acted), the 64-byte cursor-follower struct at
+/// Offsets.TurnQueue, and the ActorRegister baseline.
 /// </summary>
 internal sealed class TurnOwnerSpike
 {

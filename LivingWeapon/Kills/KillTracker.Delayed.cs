@@ -4,8 +4,8 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Credits a delayed action (Dragoon Jump, summon or dance charge) to the unit that committed it, since an intervening
-/// unit's acted-period overwrites the actor latch before the action lands. Tracks the per-slot delayed-action bit
+/// Credits a delayed action (Dragoon Jump, summon or dance charge) to the unit that committed it.
+/// An intervening unit's acted-period overwrites the actor latch before the action lands. It tracks the per-slot delayed-action bit
 /// (ADelayedActionMask 0x0C = Jump 0x04 | Charging 0x08), both observed 2026-06-26 (tools/probes/actor_attrib_probe.py,
 /// charging_probe.py, status_probe.py; docs/LIVE_LEDGER.md). Tracked path. Snapshot weapons at commit (0->1), arm on landing (1->0).
 /// Untracked path (no living weapon): same edges, but a matured kill stamps _lethalUntracked so it earns no credit; a tracked

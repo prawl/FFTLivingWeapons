@@ -3,12 +3,12 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Pure decisions for Sanguine Sword's Shadow Blade signature, which grants the wielder Gaffgarion's
-/// HP-absorbing dark strike through the same JobCommand injection that ships Barrage, reusing its table
-/// primitives. Two differences from Barrage live here. Eligibility is a whitelist of sword command sets
-/// (Squire/Knight, via the primary job or a mounted secondary) plus Ramza's story sword forms, and
-/// NeedsInject takes any ability id. Still to confirm in game. That the granted ability shows its real
-/// name and that every resolvable job executes it. The stateful runtime (ShadowBlade.cs) is the next step.
+/// Pure decisions for Sanguine Sword's Shadow Blade signature.
+/// It grants the wielder Gaffgarion's HP-absorbing dark strike through the same JobCommand injection that
+/// ships Barrage, reusing its table primitives. Two differences from Barrage live here. Eligibility is a
+/// whitelist of sword command sets (Squire/Knight, via the primary job or a mounted secondary) plus Ramza's
+/// story sword forms, and NeedsInject takes any ability id. Still to confirm in game is that the granted ability
+/// shows its real name and that every resolvable job executes it. The stateful runtime (ShadowBlade.cs) is the next step.
 /// </summary>
 internal static class ShadowBladePolicy
 {

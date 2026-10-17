@@ -4,10 +4,9 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Is a given enemy seat the next to act, and how far off is another? Ports the CT+Speed
-/// clock model the 2026-07-27 phase-0 probe validated 15/15 (project in
-/// tools/probes/provoke_lookahead_probe.py, not its leaders, which diverges when two min-ETA
-/// units carry different Speeds).
+/// Tells whether a given enemy seat is next to act, and how far off another seat is.
+/// It ports the CT+Speed clock model the 2026-07-27 phase-0 probe validated 15/15 (project in
+/// tools/probes/provoke_lookahead_probe.py, not its leaders, which diverges when two min-ETA units carry different Speeds).
 /// Player seats are excluded. ExtraTurn slams CT (band +0x25), Iai holds Speed (band +0x24), and
 /// GrowthEngine holds Speed for growth. Offsets.ACtSlam says not to trust CT for the player's own turns.
 /// Stateless. Each call walks the band fresh, so a turn-order rebuild can reuse it.

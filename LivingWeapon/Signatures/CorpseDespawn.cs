@@ -1,7 +1,7 @@
 ﻿namespace LivingWeapon;
 
-/// <summary>classifies a TryDespawn refusal for the retry lifecycle (LivingPoach.Despawn.cs);
-/// see CorpseDespawn's class doc.</summary>
+/// <summary>Why a TryDespawn attempt was refused, which tells the retry lifecycle what to do.
+/// The retry lifecycle is in LivingPoach.Despawn.cs; see CorpseDespawn's class doc.</summary>
 internal enum DespawnRefusal
 {
     /// <summary>No refusal -- TryDespawn returned true.</summary>

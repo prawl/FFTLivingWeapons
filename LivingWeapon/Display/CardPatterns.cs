@@ -4,8 +4,8 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Per-weapon search patterns encoded once at startup, for enc=1 (ASCII) and enc=2 (UTF-16LE): Name,
-/// Flavor and Grows, plus the "Kills: " literal and the valid 2-char suffix slots.
+/// Per-weapon search patterns for the equip card, encoded once at startup.
+/// They cover enc=1 (ASCII) and enc=2 (UTF-16LE) for Name, Flavor and Grows, plus "Kills: " and the 2-char suffix slots.
 /// </summary>
 internal sealed class CardPatterns
 {

@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 namespace LivingWeapon;
 
 /// <summary>
-/// Out of battle, keeps each weapon's deployed equip-icon
-/// loose tex (modDir/FFTIVC/&lt;baseRel&gt;) on the glow variant for its current kill tier, plain art at tier 0.
+/// Keeps each weapon's equip icon on the glow variant for its current kill tier, plain art at tier 0.
+/// Out of battle it works on the deployed loose tex (modDir/FFTIVC/&lt;baseRel&gt;).
 /// The modded.pac mirror (IconGlow.Apply.cs, IconGlow.Pac.cs) shows a change in the same session, ledger row
 /// [live-icon-repaint], proven 2026-09-01. Ticked via TickGates.OutOfBattle cadence 30 (Engine.cs).
 /// glow_icons/manifest.json loads lazily through <see cref="IIconGlowStore"/>; a bad manifest or schemaVersion stands

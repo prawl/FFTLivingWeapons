@@ -3,9 +3,9 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Maintenance-beat plumbing shared by <see cref="Display.Tick"/> and
-/// <see cref="Display.PaintCountsIfChanged"/>, so the on-field path (Engine.cs calls only
-/// PaintCountsIfChanged there) repaints once a second too. Split from Display.cs (over the 200-line trigger).
+/// The repaint beat shared by <see cref="Display.Tick"/> and <see cref="Display.PaintCountsIfChanged"/>.
+/// It lets the on-field path (Engine.cs calls only PaintCountsIfChanged there) repaint once a second too.
+/// Split from Display.cs (over the 200-line trigger).
 /// Every beat runs one PaintAll regardless of what is pending; the pending set only watches whether each
 /// changed id settled at a trusted site. After Tuning.CardPendingMaxBeats beats it logs one Debug line and
 /// stops watching. An id that never settles would falsify [card-materializes-from-named-pool] (docs/LIVE_LEDGER.md).

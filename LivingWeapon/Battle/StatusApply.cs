@@ -1,13 +1,13 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// Pure helpers for the status-apply pipeline (decoded 2026-07-09 from CE captures and disasm; see docs/LIVE_LEDGER.md's
-/// status-system row and tools/probes/spawn_probe.py). 40 status ids (0..39) sit in 5-byte MSB-first bitfields, three layers per unit
-/// (band-entry-relative): pending-add, inflicted, and composed (inflicted OR innate, re-derived every frame).
+/// Pure helpers for the status-apply pipeline, decoded 2026-07-09 from CE captures and disasm.
+/// See docs/LIVE_LEDGER.md's status-system row and tools/probes/spawn_probe.py. 40 status ids (0..39) sit in 5-byte MSB-first bitfields,
+/// three layers per unit (band-entry-relative) named pending-add, inflicted, and composed (inflicted OR innate, re-derived every frame).
 /// StatusSpike's v1 target (FnApplyStatuses = 0x150BF66DC) died 2026-07-22 (prologue mismatch), so v2 decodes the dispatch thunk at
 /// 0x1401FB064 each launch and landmark-verifies the destination (StatusSpike.cs v2 block). Argument order (id + 1, mode, slot) is inferred.
-/// The slot argument indexes the battle-stats array at BattleUnitsBase 0x141853CE0 (stride 0x200). Band seats anchor on CombatAnchor 0x141855CE0
-/// = BattleUnitsBase + 0x2000 (16 slots), so engine slot = seat, 8; the first enemy (seat 8) is slot 0 (census 2026-07-09).
+/// The slot argument indexes the battle-stats array at BattleUnitsBase 0x141853CE0 (stride 0x200). Band seats anchor on CombatAnchor
+/// 0x141855CE0 = BattleUnitsBase + 0x2000 (16 slots), so engine slot = seat, 8; the first enemy (seat 8) is slot 0 (census 2026-07-09).
 /// </summary>
 internal static class StatusApply
 {

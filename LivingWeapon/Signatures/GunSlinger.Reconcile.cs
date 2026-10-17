@@ -3,12 +3,12 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Twin refund reconcile, watch-only (an armed write-back was rejected in plan review, since a false
-/// positive could destroy a real pistol). Replaces the menu-open evaporation edge as the duplication
-/// defense. Shape from tools/probes/tapes/lw193_watch_20260817_055131.log. An equip while our twin is
-/// off-hand makes the game return it, so its sack count (InventoryCountBase + id) rises. Logs one Info
-/// line plus a "twin-refund" flight record. Main-hand change and other rows holding the twin are
-/// recorded, not used to filter. No memory writes (GunSlingerConsentTests.cs relies on that).
+/// Watch-only reconcile of the twin pistol refund.
+/// An armed write-back was rejected in plan review, since a false positive could destroy a real pistol. Replaces the
+/// menu-open evaporation edge as the duplication defense. Shape from tools/probes/tapes/lw193_watch_20260817_055131.log. An
+/// equip while our twin is off-hand makes the game return it, so its sack count (InventoryCountBase + id) rises. Logs one
+/// Info line plus a "twin-refund" flight record. Main-hand change and other rows holding the twin are recorded, not used to
+/// filter. No memory writes (GunSlingerConsentTests.cs relies on that).
 /// </summary>
 internal sealed partial class GunSlinger
 {

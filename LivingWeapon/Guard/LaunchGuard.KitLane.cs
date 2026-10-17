@@ -3,10 +3,10 @@ using System;
 namespace LivingWeapon;
 
 /// <summary>
-/// The kit-lane guard, split out of LaunchGuard.cs/LaunchGuard.Landmarks.cs (200-line trigger, as in
-/// the landmarks split). A custom job/ability mod that rewrites the JobCommand rec8/rec9 bytes used to trip the main
-/// guard's game-update stand-down. This second FingerprintGuard instance isolates that landmark, so a conflict
-/// only disables the three weapon-granted commands it anchors (Barrage, Shadow Blade, Provoke). It steps from the first tick.
+/// The kit-lane guard, a second FingerprintGuard instance for the weapon-granted commands.
+/// Split out of LaunchGuard.cs and LaunchGuard.Landmarks.cs under the 200-line trigger. A custom job or ability mod that
+/// rewrites the JobCommand rec8/rec9 bytes used to trip the main guard's game-update stand-down. A conflict here disables
+/// only the three weapon-granted commands it anchors (Barrage, Shadow Blade, Provoke). It steps from the first tick.
 /// </summary>
 internal sealed partial class LaunchGuard
 {

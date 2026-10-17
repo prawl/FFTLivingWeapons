@@ -462,4 +462,84 @@ public class CommentBudgetContractTests
             "\n\nIf the growth is earned, the owner raises the row; otherwise cut the comment.\n" +
             (rows.Count == 0 ? "" : "\nRows that moved (paste over the baseline entries):\n" + string.Join("\n", rows)));
     }
+
+    private const int MaxFirstSentence = 110;
+
+    /// <summary>Files with no summary block, each with the reason it is exempt.</summary>
+    private static readonly Dictionary<string, string> NoSummaryExempt = new(StringComparer.Ordinal)
+    {
+        { "AssemblyInfo.cs", "assembly attributes only, no type to summarize" },
+    };
+
+    /// <summary>The first sentence of the first summary block, whitespace collapsed, or null when
+    /// the file has none. Xml tags stay as written because the skimmer reads the raw source.</summary>
+    internal static string? FirstSummarySentence(string fileText)
+    {
+        var m = Regex.Match(fileText, @"///\s*<summary>(.*?)</summary>", RegexOptions.Singleline);
+        if (!m.Success) return null;
+        string text = Regex.Replace(Regex.Replace(m.Groups[1].Value, @"\s*///\s*", " "), @"\s+", " ").Trim();
+        return Regex.Split(text, @"(?<=[.!?])\s", RegexOptions.None)[0];
+    }
+
+    private static bool IsShortSentence(string sentence)
+        => sentence.Length <= MaxFirstSentence && sentence.EndsWith('.');
+
+    [Theory]
+    [InlineData("/// <summary>Counts kills.</summary>", "Counts kills.", true)]
+    [InlineData("/// <summary>Counts kills. More detail follows.</summary>", "Counts kills.", true)]
+    [InlineData("/// <summary>Counts kills</summary>", "Counts kills", false)]
+    [InlineData("/// <summary>Opens the door, e.g. the front one. Then more.</summary>", "Opens the door, e.g.", true)]
+    [InlineData("/// <summary>Reads <see cref=\"X\"/> now.</summary>", "Reads <see cref=\"X\"/> now.", true)]
+    [InlineData("/// <summary>\n/// Counts\n///   the kills.\n/// </summary>", "Counts the kills.", true)]
+    [InlineData("class C { }", null, false)]
+    public void First_summary_sentence_follows_the_definition(string fileText, string? expected, bool passes)
+    {
+        string? got = FirstSummarySentence(fileText);
+        Assert.Equal(expected, got);
+        if (got is not null) Assert.Equal(passes, IsShortSentence(got));
+    }
+
+    [Fact]
+    public void First_summary_sentence_of_exactly_110_characters_passes_and_111_fails()
+    {
+        string at110 = new string('a', 109) + ".";
+        Assert.True(IsShortSentence(FirstSummarySentence($"/// <summary>{at110}</summary>")!));
+        Assert.False(IsShortSentence(FirstSummarySentence($"/// <summary>a{at110}</summary>")!));
+    }
+
+    [Fact]
+    public void Every_production_file_opens_with_a_short_first_sentence()
+    {
+        var bad = new List<string>();
+        foreach (var (key, path) in ProductionFiles(RepoRoot()))
+        {
+            string name = key["LivingWeapon/".Length..];
+            string? first = FirstSummarySentence(File.ReadAllText(path));
+            if (first is null)
+            {
+                if (!NoSummaryExempt.ContainsKey(name)) bad.Add($"{key} (no summary block)");
+            }
+            else if (!IsShortSentence(first)) bad.Add($"{key} ({first.Length} chars) {first}");
+        }
+        Assert.True(bad.Count == 0,
+            $"{bad.Count} files need a first summary sentence of at most {MaxFirstSentence} characters ending in a period.\n" +
+            string.Join("\n", bad));
+    }
+
+    [Fact]
+    public void AssemblyInfo_opens_with_a_one_line_comment()
+    {
+        string path = Path.Combine(RepoRoot(), "LivingWeapon", "AssemblyInfo.cs");
+        string first = File.ReadAllLines(path).First(l => l.Trim().Length > 0).Trim();
+        Assert.True(first.StartsWith("// ") && first.Length <= MaxFirstSentence,
+            $"AssemblyInfo.cs must open with a one line comment of at most {MaxFirstSentence} characters, found {first}");
+    }
+
+    [Fact]
+    public void Every_summary_exemption_names_a_real_production_file()
+    {
+        var names = ProductionFiles(RepoRoot()).Select(p => Path.GetFileName(p.FullPath)).ToHashSet(StringComparer.Ordinal);
+        var stale = NoSummaryExempt.Keys.Where(k => !names.Contains(k)).ToList();
+        Assert.True(stale.Count == 0, "Stale exemptions " + string.Join(", ", stale));
+    }
 }

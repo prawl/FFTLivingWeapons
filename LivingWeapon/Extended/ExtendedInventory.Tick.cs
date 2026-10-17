@@ -4,9 +4,9 @@ using System.Linq;
 namespace LivingWeapon;
 
 /// <summary>
-/// Tick half of <see cref="ExtendedInventory"/> (Engine phases "extended-caps", "extended-bag",
-/// "extended-shops", every 30th tick from the first). Steps the post-load cap patches (none
-/// on the Denuvo-free build, which patches both damage caps at boot), follows the game's save edges,
+/// The per-tick half of <see cref="ExtendedInventory"/>, which follows the game's save edges.
+/// It runs as Engine phases "extended-caps", "extended-bag" and "extended-shops", every 30th tick from the first.
+/// It steps the post-load cap patches (none on the Denuvo-free build, which patches both damage caps at boot),
 /// refreshes the shop-table mirror and runs the relocation tripwire.
 /// A save records its bag counts under its key; a load writes them back (an unseen save gets the
 /// schema-1 legacy counts once, then the data seed). The replay runs inside the load

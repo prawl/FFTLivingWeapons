@@ -3,8 +3,8 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// The band door and the static array door, two guards that only step inside a live battle once the roster
-/// door is open. A match arms on any live frame. A mismatch counts only on field frames after a grace.
+/// The band door and the static array door, two launch guards that step only inside a live battle.
+/// They start once the roster door is open. A match arms on any live frame. A mismatch counts only on field frames after a grace.
 /// The probes live in LaunchGuard.BattleProbes.cs.
 /// </summary>
 internal sealed partial class LaunchGuard

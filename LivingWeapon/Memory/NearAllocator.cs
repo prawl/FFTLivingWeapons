@@ -4,12 +4,12 @@ using System.Runtime.InteropServices;
 namespace LivingWeapon;
 
 /// <summary>
-/// Executable memory within +-2 GB of a target address, for the accessor-hook stubs (a five-byte
-/// E9 jmp rel32 only reaches that far) and the relocated extended catalog (signed 32-bit displacement from
-/// the image base). Ported from the FFTHandsFree research rig (branch capbreak-equip, working on 1.5.2 2026-08-26/27).
-/// The live adapter walks MEM_FREE regions with VirtualQueryEx (up from the target first, then below it)
-/// and commits the first 64 KB-aligned candidate with VirtualAlloc(PAGE_EXECUTE_READWRITE). It never frees,
-/// because a stub page may be mid-execution on a game thread (the rig's rule). Tests inject a fake.
+/// Finds executable memory within +-2 GB of a target address, for the hook stubs and the moved catalog.
+/// A five-byte E9 jmp rel32 only reaches that far, and the relocated extended catalog needs a signed 32-bit displacement
+/// from the image base. Ported from the FFTHandsFree research rig (branch capbreak-equip, working on 1.5.2 2026-08-26/27).
+/// The live adapter walks MEM_FREE regions with VirtualQueryEx (up from the target first, then below it) and commits the
+/// first 64 KB-aligned candidate with VirtualAlloc(PAGE_EXECUTE_READWRITE). It never frees, because a stub page may be
+/// mid-execution on a game thread (the rig's rule). Tests inject a fake.
 /// </summary>
 internal interface INearAllocator
 {

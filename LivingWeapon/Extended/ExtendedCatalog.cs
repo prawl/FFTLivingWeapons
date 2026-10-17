@@ -4,8 +4,8 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Relocates the game's extended item catalog (ids 256..260, the "+" items) into a buffer
-/// this mod owns and fills slots past 260 with our own 12-byte records. The accessor at
+/// Relocates the game's extended item catalog (ids 256..260, the "+" items) into a buffer this mod owns.
+/// It fills slots past 260 with our own 12-byte records. The accessor at
 /// 0x1402B8C44 reaches ids &gt;= 256 via <c>lea rax,[rax*4 + disp32]</c>; rewriting the disp32
 /// at <see cref="Offsets.ExtCatalogDisp32"/> points it at our buffer and leaves the accessor native
 /// (a managed detour clobbered r11 in the FFTHandsFree rig. Docs/research/ITEM_CAP_261_BREAK_JOURNEY.md,
