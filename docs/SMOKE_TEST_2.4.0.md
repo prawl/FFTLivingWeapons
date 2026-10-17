@@ -153,7 +153,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   ... holds a PROD-flavored install` and exits 1 before touching a file. FAIL: any red stage, a
   differing file in the parity report, a missing preserved file afterwards, or a green dev deploy
   over prod. (covers LW-297, LW-247, LW-134 refusal half) **[BLOCKER]**
-- [ ] 1.2 **Launch header on the Denuvo free build.** The mod knows where the game landed and
+- [ ] 1.2 (PARTIAL 2026-10-17, prod 1c7ba75f, owner launch: image base 0x7FF65FC60000 delta 0x7FF51FC60000 rebased; production build; Save files live at the Reloaded User\Mods folder; kills.json and legends.json primary; stamp 0x6A5E4A1B the build this mod was made for; Extended inventory armed 7 new items. Version reads 2.3.4 until the ModVersion bump, the one clause owed) **Launch header on the Denuvo free build.** The mod knows where the game landed and
   which build it is. Launch, read the top of `livingweapon.log`. PASS: line one `Game image base
   0x... (preferred 0x140000000, delta 0x...); every pinned address is rebased onto it.` with a
   nonzero delta; `Living Weapons version 2.4.0 (production build) is starting inside
@@ -167,7 +167,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   mod knows", a version other than 2.4.0, "development build", a `Save files live at` path inside
   `$env:RELOADEDIIMODS`, or no extended inventory armed line. (covers LW-387, LW-388, LW-397,
   LW-132) **[BLOCKER]**
-- [ ] 1.3 **Every part arms, no box.** Continue a save, enter a battle. PASS: `Every memory
+- [x] 1.3 (PASSED 2026-10-17, prod 1c7ba75f, owner live: kit lane and sensing lines at 10:12:07, sensing within 0.2 s of the header, zero boot grace lines; armed 10:12:23 after Continue; all parts armed at 10:13:06.602 with Battle started at .603; no box, no stand down) **Every part arms, no box.** Continue a save, enter a battle. PASS: `Every memory
   landmark matches; Living Weapons is armed (writes were held until now).` within seconds of
   Continue, then `Living Weapons: all parts armed.` within a second of `Battle started.`; zero
   message boxes; no `standing down to protect your save`; the kit lane line `The job command data
@@ -181,13 +181,13 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   sensing when Continue resumed a mid battle autosave (it waits by design until the first out of
   battle frame; box 5.10 leg B is that read). (covers LW-393 leg B, LW-406 all armed line)
   **[BLOCKER]**
-- [ ] 1.4 **One battle round trip.** A kill counts and shows on the card. PASS: `Battle started.`,
+- [x] 1.4 (PASSED 2026-10-17, prod 1c7ba75f, owner live: Chaos Blade claims kill number 9, felling a human at (1,10); Battle ended, 1 kill credited (Chaos Blade 1), 0 Marks earned, 0 tiers reached, 6 turns; the owner read the card count go up) **One battle round trip.** A kill counts and shows on the card. PASS: `Battle started.`,
   the credit line `<weapon> claims kill number N, felling <victim> at (x,y).`, a battle end summary
   of the shape `Battle ended: 1 kill credited (Chaos Blade 1), 0 Marks earned, 0 tiers reached; 3
   turns; the kill tally and legends are saved.` (the numbers and names vary; `kill` and `kills`
   pluralize), and the equip card shows `Kills: N/T to +` with the new count. FAIL: `Battle ended:
   no kills were credited` after a living weapon kill, or a card that never paints. **[BLOCKER]**
-- [ ] 1.5 **Scan green.** The closing scan finds nothing wrong with the sitting. `python
+- [x] 1.5 (PASSED 2026-10-17: scan_logs --require-battle --flight exit 0, RESULT CLEAN, 0 warnings, 0 errors, last parts report all parts armed, tape flight_20261017_101537_battle-exit) **Scan green.** The closing scan finds nothing wrong with the sitting. `python
   tools/scan_logs.py --require-battle --flight`. PASS: exit 0, the summary reads `last parts
   report: Living Weapons: all parts armed.`, 0 errors. FAIL: exit 1 or 2. **[BLOCKER]**
 
