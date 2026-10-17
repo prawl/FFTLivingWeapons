@@ -1,7 +1,7 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// Pool-paint log rate-limit gates, split out of Display.PoolPaint.cs when it crossed the 200-line trigger (155 to 217 lines).
+/// Pool-paint log rate-limit gates, split out of Display.PoolPaint.cs when it crossed the 200-line trigger.
 /// Sits beside Display.Flight.cs; this file emits plain ModLogger.Debug lines, not Flight.Record taps. MaybePoolPaint reads two gates.
 ///, NoPoolRegionLogGate / ReArmNoPoolRegionLog. Signatures.StuckEdge over "no named-pool region located"; fires on entry,
 ///   silent while stuck, re-arms once a region is found.
