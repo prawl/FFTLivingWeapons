@@ -266,4 +266,51 @@ public class WpTableHoldTests
         hold.Tick(inLive: true);   // refusal tick 3 of 3: grace exhausted -> restore
         Assert.Equal((byte)16, mem.U8s[addr]);
     }
+
+    // ---- LW-399: the item door latch ----
+
+    [Fact]
+    public void A_closed_item_door_never_bumps_a_vanilla_row()
+    {
+        const int gunId = 73;
+        var mem = new FakeSparseMemory();
+        SeatOwner(mem, Slot, gunId);
+        SeatMatchingRoster(mem, 0, gunId);
+        long addr = StatsAddr(gunId);
+        mem.MarkWritable(addr, 1);
+        mem.U8s[addr] = 16;
+        var door = DoorReading.Failed("the item data is not where this mod expects it");
+        var latch = new DoorLatch(() => door, "The gun's growth was not applied.");
+        var hold = new WpTableHold(Meta(gunId, "wp", wp: 16), KillsAtTier3(gunId), mem, latch: latch);
+
+        for (int i = 0; i < 10; i++) hold.Tick(inLive: true);
+
+        Assert.Same(latch, hold.Latch);
+        Assert.Empty(mem.WriteOrder);
+        Assert.Equal((byte)16, mem.U8s[addr]);
+
+        door = DoorReading.Open();
+        hold.Tick(inLive: true);
+
+        Assert.Equal((byte)19, mem.U8s[addr]);
+    }
+
+    [Fact]
+    public void An_extended_row_is_not_gated_by_the_item_door()
+    {
+        const int extId = ExtendedCatalog.FirstExtendedId;
+        const long row = 0x150000038L;
+        var mem = new FakeSparseMemory();
+        SeatOwner(mem, Slot, extId);
+        SeatMatchingRoster(mem, 0, extId);
+        long addr = row + Offsets.ItemStatsWpOff;
+        mem.MarkWritable(addr, 1);
+        mem.U8s[addr] = 16;
+        var latch = new DoorLatch(() => DoorReading.Failed("the item data is not where this mod expects it"), "refused");
+        var hold = new WpTableHold(Meta(extId, "wp", wp: 16), KillsAtTier3(extId), mem, id => id == extId ? row : -1, latch);
+
+        hold.Tick(inLive: true);
+
+        Assert.Equal((byte)19, mem.U8s[addr]);
+    }
 }

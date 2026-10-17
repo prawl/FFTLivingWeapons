@@ -210,7 +210,7 @@ public class EngineTests
             {
                 ("kit-barrage", TickGates.KitLane, 1, false, Array.Empty<string>(), Part.WeaponCommands),
                 ("kit-shadowblade", TickGates.KitLane, 1, false, Array.Empty<string>(), Part.WeaponCommands),
-                ("kit-provoke", TickGates.KitLane, 1, false, new[] { "kit-barrage", "kit-shadowblade" }, Part.WeaponCommands),
+                ("kit-provoke", TickGates.Provoke, 1, false, new[] { "kit-barrage", "kit-shadowblade" }, Part.Provoke),
                 ("gunslinger", TickGates.TwinPistols, 30, false, Array.Empty<string>(), Part.TwinPistols),
                 ("display-out", TickGates.OutOfBattle, 1, false, Array.Empty<string>(), Part.CardPaint),
                 ("icon-glow", TickGates.OutOfBattle, 30, false, Array.Empty<string>(), Part.CardPaint),
@@ -221,12 +221,12 @@ public class EngineTests
                 ("kill-poll", TickGates.InBattle, 1, false, Array.Empty<string>(), Part.KillCounting),
                 ("turn-poll", TickGates.InBattle, 1, false, Array.Empty<string>(), Part.KillCounting),
                 ("field-signatures", TickGates.InBattle, 1, false, new[] { "kill-poll", "turn-poll" }, Part.BandSignatures),
-                ("living-poach", TickGates.InBattle, 1, false, Array.Empty<string>(), Part.StaticTableSignatures),
+                ("living-poach", TickGates.PoachDen, 1, false, Array.Empty<string>(), Part.PoachDen),
                 ("growth", TickGates.InBattle, 3, true, Array.Empty<string>(), Part.StatGrowth),
                 ("toast", TickGates.InBattle, 1, false, new[] { "kill-poll" }, Part.KillCounting),
                 ("attack-card", TickGates.InBattle, 1, false, Array.Empty<string>(), Part.CardPaint),
-                ("weapon-palette", TickGates.InBattle, 1, false, Array.Empty<string>(), Part.StaticTableSignatures),
-                ("wp-table-hold", TickGates.InBattle, 1, false, Array.Empty<string>(), Part.StaticTableSignatures),
+                ("weapon-palette", TickGates.WeaponColors, 1, false, Array.Empty<string>(), Part.WeaponColors),
+                ("wp-table-hold", TickGates.GunGrowth, 1, false, Array.Empty<string>(), Part.GunGrowth),
             };
 #if LWDEV
             expected.AddRange(new (string, Func<TickPhaseState, bool>, int, bool, string[], Part)[]
@@ -435,5 +435,52 @@ public class EngineTests
             }
         }
         finally { Mem.WritesEnabled = prevWrites; }
+    }
+
+    // ---- LW-399: every table writer carries the latch of its own door ----
+
+    private static Engine LatchEngine(TempDirs temp, long? flippedSite)
+    {
+        var mem = HealthyMemory(level: 0);
+        TableDoorsTests.StageAll(mem);
+        if (flippedSite is long site) TableDoorsTests.Flip(mem, site);
+        return new Engine(NestedModDir(temp), devSeedKills: false, mem: mem, notice: (_, __) => { });
+    }
+
+    [Fact]
+    public void Every_table_writer_carries_its_door_latch()
+    {
+        ModLogger.UseNullLogger();
+        try
+        {
+            string[] writers = { "bulwark", "palette", "poach", "provoke", "gun" };
+            long[] sites =
+            {
+                TableSignatures.TerrainVetoTestSite, TableSignatures.PaletteClearSite, TableSignatures.PoachStoreSiteA,
+                TableSignatures.InflictTableSite, TableSignatures.ItemStatsSite,
+            };
+
+            using (var temp = TempDirs.Create("lw_engine_latch_base_"))
+            {
+                var engine = LatchEngine(temp, null);
+                for (int i = 0; i < 3; i++) engine.Tick();
+                foreach (var w in writers)
+                {
+                    var latch = engine.WriterLatches[w];
+                    Assert.NotNull(latch);
+                    Assert.True(latch!.Allows(), w);
+                }
+            }
+
+            for (int d = 0; d < writers.Length; d++)
+            {
+                using var temp = TempDirs.Create("lw_engine_latch_" + writers[d] + "_");
+                var engine = LatchEngine(temp, sites[d]);
+                for (int i = 0; i < 31; i++) engine.Tick();
+                for (int w = 0; w < writers.Length; w++)
+                    Assert.Equal(w != d, engine.WriterLatches[writers[w]]!.Allows());
+            }
+        }
+        finally { ModLogger.UseNullLogger(); }
     }
 }

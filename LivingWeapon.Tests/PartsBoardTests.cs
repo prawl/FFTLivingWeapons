@@ -20,7 +20,7 @@ public class PartsBoardTests
 
         public Rig() { Board = new PartsBoard((t, x) => Notices.Add((t, x)), (t, p) => Records.Add((t, p))); }
 
-        public void Tick(int n = 1, string hedge = "", bool drill = false)
+        public void Tick(int n = 1, string hedge = "", string drill = "")
         {
             for (int i = 0; i < n; i++) Board.Observe(R, hedge, drill);
         }
@@ -159,7 +159,7 @@ public class PartsBoardTests
         var rig = new Rig();
         rig.R[Door.Roster] = DoorReading.Failed("the party data is not where this mod expects it");
 
-        rig.Tick(PartsBoard.SettleSteps + 1, LaunchGuard.UnknownBuildHedge, drill: true);
+        rig.Tick(PartsBoard.SettleSteps + 1, LaunchGuard.UnknownBuildHedge, drill: PartsReport.RosterDrillSentence);
 
         var box = Assert.Single(rig.Notices);
         Assert.Equal(PartsReport.ComposeBox(rig.R, PartsReport.RosterDrillSentence, LaunchGuard.UnknownBuildHedge), box.text);
@@ -173,8 +173,42 @@ public class PartsBoardTests
         var r = PartsReportTests.AllOpen();
         r[Door.Roster] = DoorReading.Failed("x");
 
-        for (int i = 0; i < PartsBoard.SettleSteps + 2; i++) board.Observe(r, "", false);
+        for (int i = 0; i < PartsBoard.SettleSteps + 2; i++) board.Observe(r, "", "");
 
         Assert.Equal(1, board.BoxCount);
+    }
+
+    [Fact]
+    public void A_palette_door_closure_boxes_once_with_the_sentence_in_the_box()
+    {
+        using var cap = LogCapture.Start();
+        var rig = new Rig();
+        rig.Tick(5);
+        rig.R[Door.PaletteBanks] = DoorReading.Failed("the weapon palette is not where this mod expects it");
+
+        rig.Tick(PartsBoard.SettleSteps, drill: PartsReport.TableDrillSentence);
+        Assert.Empty(rig.Notices);
+        rig.Tick(1, drill: PartsReport.TableDrillSentence);
+
+        var box = Assert.Single(rig.Notices);
+        Assert.Contains("weapon colors", box.text);
+        Assert.EndsWith(PartsReport.TableDrillSentence, box.text);
+        Assert.Contains(rig.Records, r => r.payload == "parts box shown (1 parts off)");
+        rig.Tick(500, drill: PartsReport.TableDrillSentence);
+        Assert.Single(rig.Notices);
+    }
+
+    [Fact]
+    public void An_empty_drill_sentence_adds_nothing_to_the_box()
+    {
+        using var cap = LogCapture.Start();
+        var rig = new Rig();
+        rig.R[Door.ItemStats] = DoorReading.Failed("the item data is not where this mod expects it");
+
+        rig.Tick(PartsBoard.SettleSteps + 1);
+
+        var box = Assert.Single(rig.Notices);
+        Assert.DoesNotContain("LW_FORCE_", box.text);
+        Assert.Equal(PartsReport.ComposeBox(rig.R, "", ""), box.text);
     }
 }

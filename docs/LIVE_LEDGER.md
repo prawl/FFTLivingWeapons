@@ -1862,6 +1862,8 @@ A cut ability (id 189) can be renamed, granted as a real learned player command,
 
 **Date:** 2026-07-22
 
+**Addendum 2026-10-17 (LW-399, offline file image read, not a live capture):** "hardcoded in the exe" holds for the DECOY copy only. In the exe file the live copy at `0x14078B2DC` is a template, every one of its 368 rows reading `FF FF FF FF` then sixteen zero bytes, and the engine fills it at boot from the ability data; the decoy at `0x14078961C` carries the filled bytes (row 189 byte +15 = `0x2D`). The `FF FF FF FF` row markers survive the fill. Read by tools/probes/static_table_file_image_probe.py against stamp 0x6A5E4A1B. See [action-table-live-copy-filled-at-boot].
+
 </details>
 
 ### [invented-status-id0-mark] A status can be INVENTED: blank StatusEffectData id 0 applies at 100% and performs nothing; Wall REJECTED (makes bearer invincible)
@@ -2963,6 +2965,38 @@ Uncertain as of 2026-08-17 (evidence re-derived independently from banked tapes;
 **Recorded caveats:** (1) "a real Raise never relocates its target" is UNVERIFIABLE from these tapes: no genuine revive occurs anywhere in them, so the Raise-vs-restart discriminator rests on the zero-false-positive record, not on an observed Raise. (2) A third candidate signal, a same-instant multi-slot move cluster, fired at all three restores but also once at battle-start deployment, so it only serves gated away from battle enter. (3) A long battleMode-0 spell does NOT discriminate (12.6 and 13.2 s non-retry spells exist on the same tapes); mode 0 to 3 within ~16 ms of the restore is confirming context only. (4) One restore printed a heal to 69 of a unit whose true max reads 72 elsewhere; never key a detector on healed-to-max. (5) Flight records are on-change, so a unit rewound onto its current values leaves no record; the runtime's per-tick sampling sees more than the tape does.
 
 **Date:** 2026-08-17
+
+</details>
+
+### [action-table-live-copy-filled-at-boot] The live ability action table is a template in the exe file and the game fills it at boot, so row 189 reads the decoy copy's bytes (byte +15 = 0x2D) once a save has loaded
+
+The claim (LW-399, 2026-10-17) is Uncertain: the static half is read offline from the exe file, the fill timing and the exact 0x2D at runtime are not yet isolated live.
+
+<details><summary>How we got here</summary>
+
+**Claim (original wording):** After boot the live action table row 189 holds the decoy copy's file bytes, in particular byte +15 = 0x2D and a non zero fill in +4..+17, and the `FF FF FF FF` row markers survive the fill.
+
+**Mechanism:** the live table at `0x14078B2DC` is `FF FF FF FF` plus sixteen zeros on all 368 rows in the file (one distinct row pattern, no direct code reference), and the decoy at `0x14078961C` carries the filled bytes. The ProvokeTables door pins the markers and reads a row 189 with no non zero byte outside +15 as "not loaded yet"; Provoke's capture compares byte +15 to 0x2D.
+
+**Evidence:** offline only: tools/probes/static_table_file_image_probe.py against stamp 0x6A5E4A1B (the decoy row 189 reads `FF FF FF FF 05 00 00 01 11 12 00 00 38 00 00 2D 00 00 00 00`), plus the 2026-07-22 live read of row 189 recorded in [cut-ability-provoke-recipe] (range 5, formula 56, MP 0, CT 0, inflict 0x2D). Owner live check pending: a repeated identical Parts report line on the title screen, or the flight record table door armed (provoke-tables), marks the fill; after Continue provoke reads ON with no data reason, and a Defender wielder gets the grant line with no capture refusal warning.
+
+**Date:** 2026-10-17
+
+</details>
+
+### [item-stats-table-filled-at-boot] The resident item stats table is vanilla in the exe file and the game fills it at boot (or at save load) from the modloader's item data, so the pinned non gun rows read their rebalanced values once loaded
+
+The claim (LW-399, 2026-10-17) is Uncertain: the file image is read offline and the runtime table is inherited from [wp-table-write-live-damage], but the fill timing is not yet observed.
+
+<details><summary>How we got here</summary>
+
+**Claim (original wording):** The item stats table at `0x14080F690` is vanilla in the file and holds the mod's rebalanced WP at runtime, so the game fills it at boot or at save load from the nxd the modloader overrides.
+
+**Mechanism:** 121 weapon ids compared against data/items.json: 72 match the baseline only, 42 match both, none match the proposed value only, 7 match neither (baseline typos, LW-408). The ItemStats door pins the addressing instruction at `0x1402B8CBC` and treats eight non gun rows reading their vanilla bytes as "not loaded yet".
+
+**Evidence:** offline only: tools/probes/static_table_file_image_probe.py against stamp 0x6A5E4A1B, plus the inherited live proof [wp-table-write-live-damage]. Owner live check pending: note the timestamp of the flight record table door armed (item-stats), or of the repeated Parts report line on the title screen, against the Continue press; before or after Continue is accepted.
+
+**Date:** 2026-10-17
 
 </details>
 

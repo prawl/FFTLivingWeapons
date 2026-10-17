@@ -29,10 +29,10 @@ internal static class SignatureParts
         [typeof(Benediction)] = Part.BandSignatures,
         [typeof(Sanctuary)] = Part.BandSignatures,
         [typeof(Choir)] = Part.BandSignatures,
-        [typeof(Bulwark)] = Part.StaticTableSignatures,
+        [typeof(Bulwark)] = Part.Bulwark,
         [typeof(Barrage)] = Part.WeaponCommands,
         [typeof(ShadowBlade)] = Part.WeaponCommands,
-        [typeof(Provoke)] = Part.WeaponCommands,
+        [typeof(Provoke)] = Part.Provoke,
     };
 
     public static Part Of(ISignature signature)

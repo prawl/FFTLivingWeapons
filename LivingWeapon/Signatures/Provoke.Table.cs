@@ -1,3 +1,5 @@
+using System;
+
 namespace LivingWeapon;
 
 /// <summary>
@@ -21,6 +23,8 @@ internal sealed partial class Provoke
     private byte _origActionByte;
     private readonly byte[] _origInflictRow = new byte[ProvokePolicy.InflictStride];
 
+    private bool _vanillaRefusedLogged;
+
     // Latch for the bounds refusal below (the log flood shape): without it a bad ability id in
     // items.json would warn every tick. Same pattern as Barrage's _noSlotLogged.
     private bool _boundsRefusedLogged;
@@ -42,7 +46,7 @@ internal sealed partial class Provoke
 
         long actionAddr = ProvokePolicy.ActionInflictAddr(abilityId);
         long inflictAddr = ProvokePolicy.InflictRowAddr(ProvokePolicy.ProvokeInflictRow);
-        CaptureOriginal(actionAddr, inflictAddr);
+        CaptureOriginal(abilityId, actionAddr, inflictAddr);
 
         // Never write bytes we cannot restore. If the capture was partial, bail.
         if (!_tableCaptured) return;
@@ -91,14 +95,30 @@ internal sealed partial class Provoke
         if (allRestored) _tableCaptured = false;
     }
 
-    /// <summary>Snapshot the pre-repoint bytes once, and only when every byte is readable.</summary>
-    private void CaptureOriginal(long actionAddr, long inflictAddr)
+    /// <summary>Snapshot the pre-repoint bytes once, only when every byte is readable and the bytes are the
+    /// ones the game ships. Anything else is another mod's data, so nothing is captured or written.</summary>
+    private void CaptureOriginal(int abilityId, long actionAddr, long inflictAddr)
     {
         if (_tableCaptured || !_mem.Readable(actionAddr, 1)) return;
         for (int i = 0; i < ProvokePolicy.InflictStride; i++)
             if (!_mem.Readable(inflictAddr + i, 1)) return;
-        _origActionByte = _mem.U8(actionAddr);
-        for (int i = 0; i < ProvokePolicy.InflictStride; i++) _origInflictRow[i] = _mem.U8(inflictAddr + i);
+        byte action = _mem.U8(actionAddr);
+        var row = new byte[ProvokePolicy.InflictStride];
+        for (int i = 0; i < row.Length; i++) row[i] = _mem.U8(inflictAddr + i);
+
+        bool pinned = ProvokePolicy.VanillaInflictIndexByAbility.TryGetValue(abilityId, out byte vanilla);
+        if (!pinned || action != vanilla || !row.AsSpan().SequenceEqual(ProvokePolicy.VanillaInflictRow29))
+        {
+            if (Signatures.StuckEdge(ref _vanillaRefusedLogged, true))
+                ModLogger.Warn(LogVerb.Grant,
+                    "Provoke's effect was not set up; the ability data it would repoint does not read the way the game ships it "
+                    + $"(observed action byte 0x{action:X2} and inflict row {BitConverter.ToString(row)}, "
+                    + (pinned ? $"expected 0x{vanilla:X2} and {BitConverter.ToString(ProvokePolicy.VanillaInflictRow29)}" : $"no pinned value for ability {abilityId}") + ").");
+            return;
+        }
+        Signatures.StuckEdge(ref _vanillaRefusedLogged, false);
+        _origActionByte = action;
+        row.CopyTo(_origInflictRow, 0);
         _tableCaptured = true;
     }
 

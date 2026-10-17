@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace LivingWeapon;
 
 /// <summary>
@@ -64,6 +66,12 @@ internal static class ProvokePolicy
     /// <summary>True when the row is inside the inflict-status table (0..InflictRows-1). Currently
     /// always true for the constant row; kept to pair with <see cref="IsValidAbilityId"/>.</summary>
     public static bool IsValidInflictRow(int row) => row >= 0 && row < InflictRows;
+
+    /// <summary>The InflictStatus byte each repointable ability ships with, read from the decoy file image.</summary>
+    public static readonly Dictionary<int, byte> VanillaInflictIndexByAbility = new() { [ProvokeAbilityId] = 0x2D };
+
+    /// <summary>Inflict row 29 as the game file ships it, six zero bytes.</summary>
+    public static readonly byte[] VanillaInflictRow29 = new byte[InflictStride];
 
     /// <summary>True when the InflictStatus byte does not yet point at <see cref="ProvokeInflictRow"/>.</summary>
     public static bool NeedsActionWrite(byte currentByte) => currentByte != (byte)ProvokeInflictRow;

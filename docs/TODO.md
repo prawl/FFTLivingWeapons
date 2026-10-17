@@ -76,6 +76,44 @@ the technical detail lives in the indented lines under it.
   - Verify: full suite green; the owner's live battle shows either the "The weapon's
     spirit claims the carcass" log line with the Den count matching, or the named
     discriminator or gate-reason line in livingweapon.log; the owner reads the FAQ text.
+- **[LW-399] Each of the five game tables the mod writes into gets its own "is it still here" check before the first write** (opened 2026-10-16) [BUILDING]
+  - Plain language: the mod writes into five fixed places in the game's memory (the ground
+    behind a Sunderer, the weapon color palettes, the Poacher's Den shelf, Provoke's ability
+    data and the six guns' power numbers). Today nothing checks those places are still what the
+    mod expects before the first write, so a game update that moves one of them would have the
+    mod scribbling into whatever lives there now. After this row each place has its own check,
+    shows up in the Parts report by name (bulwark, weapon colors, gun growth, poach den,
+    provoke), a failed check switches off only that writer with one warning and the usual box,
+    and Provoke refuses to repoint an ability whose data does not read the way the game ships it.
+    The checks ask only whether the table is still where the game keeps it, never whether its
+    numbers match this mod's, so an item or ability mod that retunes those numbers switches
+    nothing off; the one visible change for a player is that, right after a save loads,
+    provoke and gun growth can read WAITING until the game has loaded its ability and item data,
+    then ON (on the title screen every roster part waits for a save, as before).
+  - (Tech: five FingerprintGuard doors in Guard/TableDoors.cs fed by spans read from the
+    installed Steam exe, fft_enhanced.exe stamp 0x6A5E4A1B size 0x03F9E000, by
+    tools/probes/static_table_file_image_probe.py, a deviation from the Backlog row's "backup
+    exe" and "vanilla data span" wording because three tables are zero in the file and the two
+    with data are legitimately overridden by other mods; every door pins the game's own
+    addressing instructions in .text (reloc free), the ability door adds the FF FF FF FF row
+    markers at rows 188 to 190 and reads a zero row 189 as "not loaded yet", the item door reads
+    eight non gun vanilla rows as "not loaded yet"; DoorLatch at each writer's first write with
+    an Engine test that every writer carries one; Part.StaticTableSignatures split into four
+    parts plus Part.Provoke; the twin pistols label becomes twin weapons; drill
+    LW_FORCE_TABLE_MISMATCH on the palette door as a decorator; LandmarkStall timed lines on the
+    two boot-filled doors, counting only while the roster door is open; Provoke's capture
+    compares to the pinned 0x2D and six zero inflict row with a WARN and no box.)
+  - Done means: on a healthy game every new part reads ON once a save loads, nothing boxes and
+    nothing warns; under the dev drill the weapon colors part alone reads OFF, exactly one box
+    names it under Switched off, a palette weapon swings in plain steel while a gun's growth
+    still applies; each of the five writers has a unit test proving its first write is refused
+    while its door is closed and lands once it opens, and an Engine test proves each carries its
+    latch; Provoke's capture refuses a non vanilla action byte; the suite, analyze, format and
+    scan_logs gates are green on every stage commit.
+  - Verify: owner live pass per docs/DEV_TEST_RECIPES.md "LW-399 table door drill" (two legs,
+    the PASS and FAIL signatures of the plan's section 8), then the two UNCERTAIN ledger
+    entries ([action-table-live-copy-filled-at-boot], [item-stats-table-filled-at-boot]) are the
+    owner's to flip.
 ## Backlog
 
 Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner directed).
@@ -89,12 +127,6 @@ belongs rather than at the bottom.
   populated in battle, so the landmark arms on first battle entry and must report "waiting" until
   then. Shape ideas from the audit: a slot whose level, HP and max HP agree with the roster row the
   band says it mirrors; Band.IsValid already encodes most of it.
-- [LW-399] 2026-10-16: The five places the mod writes into fixed game tables with no check in front (Bulwark's terrain grid, the weapon palette banks, the poach den store, Provoke's two tables, the WP table hold) each get a vanilla byte check before the first write.
-  Stage 3b of the parts model (LW-393). These are the harmful-write class from the audit: on a
-  moved table they author bytes into foreign memory, and the poach store is save state. Each gets a
-  FingerprintGuard.ByteSignature over a known vanilla span (sourced the way Rec8Sig was, by a probe
-  script against the backup exe) and the writer refuses while its door is closed. Provoke.Table
-  also compares its captured original against vanilla instead of trusting whatever it read.
 - [LW-400] 2026-10-16: The twin pistol grant writes into the player's save from outside battle with only the main guard in front of it; give it its own door and a line in the report.
   Stage 3c of the parts model (LW-393). GunSlinger is not a signature: it ticks on the Always
   gate in and out of battle (Engine.cs 368) and writes the roster off-hand and support fields
@@ -132,6 +164,16 @@ belongs rather than at the bottom.
   under the chosen cap (110 catches the 76, 90 catches about 20 more) and ending in a period.
   Moving a sentence changes no comment counts, so the frozen baseline does not fight it. Runs
   after LW-393 ships.
+- [LW-408] 2026-10-17: Seven of the "vanilla" weapon power numbers in data/items.json do not match what the game file actually holds, so the vanilla comparison the analyzer offers reasons from wrong reference values for those seven.
+  Surfaced by the LW-399 probe (tools/probes/static_table_file_image_probe.py) reading the item
+  stats table out of the installed exe, stamp 0x6A5E4A1B. Baseline wp versus the file: id 29
+  Icebrand 18 vs 13, id 31 Nagrarok 16 vs 1, id 37 Chaos Blade 50 vs 40, id 74 Glacial Gun 21 vs
+  20, id 75 Blaze Gun 20 vs 21, id 78 Knightslayer 4 vs 3, id 81 Hunting Crossbow 5 vs 6. The
+  74 and 75 element bytes (Ice, Fire) show the names are not swapped, so these are typos in the
+  reference column, not an id mapping fault. Only `baseline` is wrong; `proposed` is what ships
+  and is untouched. Done looks like the seven baseline values corrected in items.json, the
+  generator re-run, analyze.py and analyze.py --baseline green, and a contract test that reads
+  the eight LW-399 pinned rows plus these seven from the exe when it is present.
 - [LW-394] 2026-10-16: Three weapon commands mark an ability as learned in the player's save and never unmark it, so no safety switch can undo them if they ever land in the wrong place; decide whether they should clean up after themselves.
   Barrage, Shadow Blade and Provoke each set one learned bit in the roster row (Barrage.cs 247,
   ShadowBlade.cs 199, Provoke.cs 194) and hold it by design so the command stays usable. The audit

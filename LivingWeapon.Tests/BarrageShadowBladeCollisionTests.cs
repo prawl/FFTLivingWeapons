@@ -244,6 +244,7 @@ public class BarrageShadowBladeCollisionTests
         long inflictAddr = ProvokePolicy.InflictRowAddr(ProvokePolicy.ProvokeInflictRow);
         m.ReadableAddrs.Add(actionAddr);
         m.WritableAddrs.Add(actionAddr);
+        m.U8s[actionAddr] = ProvokePolicy.VanillaInflictIndexByAbility[ProvokePolicy.ProvokeAbilityId];
         for (int i = 0; i < ProvokePolicy.InflictStride; i++)
         {
             m.ReadableAddrs.Add(inflictAddr + i);
@@ -294,6 +295,6 @@ public class BarrageShadowBladeCollisionTests
         m.U16s[Offsets.RosterBase + 2 * Offsets.RosterStride + Offsets.RRHand] = 0xFFFF;
         TickProvoke();
         Assert.Equal(new byte[Barrage.RecSize], buf);
-        Assert.Equal((byte)0, m.U8(actionAddr));
+        Assert.Equal((byte)0x2D, m.U8(actionAddr));
     }
 }

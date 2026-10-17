@@ -88,7 +88,7 @@ GROUPS = {
     ],
     "Game-patch re-anchoring": [
         "exe_reanchor_scan.py", "rip_xref_reanchor.py", "anchorscan_feasibility_probe.py",
-        "display_probe.py",
+        "display_probe.py", "static_table_file_image_probe.py", "sentinel_file_image_probe.py",
     ],
     "Data and doc one-shots (no game process needed)": [
         "add_dmg_col.py", "merge_grid.py", "merge_rods.py", "verify_descs.py",

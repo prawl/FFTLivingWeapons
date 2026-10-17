@@ -251,8 +251,8 @@ tools/scan_logs.py stays clean on both legs (neither new WARN carries the stand-
 
 ## LW-393 roster drill: watch one broken part switch off while the rest keep working (owner, two legs)
 
-Plain language: the mod is now ten parts, each with its own switch. This drill makes the party data
-check read wrong on a healthy game, so you can watch the seven parts that need the party data switch
+Plain language: the mod is now fourteen parts, each with its own switch. This drill makes the party data
+check read wrong on a healthy game, so you can watch the eleven parts that need the party data switch
 off, the three that do not keep running, and exactly one message box tell you which is which.
 
 **Leg A, the drill.**
@@ -264,17 +264,17 @@ off, the three that do not keep running, and exactly one message box tell you wh
    game on this box.
 3. Launch and sit on the title screen. Expect a few "Parts report:" lines in livingweapon.log. The last
    one before you press anything reads battle sensing ON, extended inventory ON, banners ON, and the
-   seven roster parts (kill counting, stat growth, card paint, band signatures, static table
-   signatures, weapon commands, twin pistols) WAITING with "waiting for a save to load". Note the time
+   eleven roster parts (kill counting, stat growth, card paint, band signatures, weapon commands,
+   twin weapons, bulwark, weapon colors, gun growth, poach den, provoke) WAITING with "waiting for a save to load". Note the time
    of the line that first shows battle sensing ON. On a clean boot it comes within a second of the
    launch header, and there must be no DBG line ending in "(boot grace)" before it (a held mismatch
    leaves only that line and no flight record; it is the evidence the new boot-time sentinel check is
    safe; docs/LIVE_LEDGER.md [sentinels-file-backed-idle-at-map-time]).
 4. Press Continue. Within a few seconds expect the ERROR line "...the parts that need it are standing
    down to protect your save..." ending with the sentence naming LW_FORCE_ROSTER_MISMATCH, then one
-   new "Parts report:" line with the seven roster parts OFF and the other three still ON.
+   new "Parts report:" line with the eleven roster parts OFF and the other three still ON.
 5. About three seconds later expect exactly ONE message box. It lists "Still working" (battle sensing,
-   extended inventory, banners), "Switched off" (the seven), and no second box ever appears. Bait: the
+   extended inventory, banners), "Switched off" (the eleven), and no second box ever appears. Bait: the
    box must name banners and extended inventory as still working.
 6. Enter a battle and make a kill. Expect no kill counted, no stat change and no card counter. The prompt
    hook arms at boot, so the line "The prompt hook is confirmed working" appears anywhere in the log and
@@ -287,11 +287,74 @@ off, the three that do not keep running, and exactly one message box tell you wh
    report printed in the summary.
 
 **Leg B, normal.** Delete the marker (or redeploy), relaunch, press Continue. Expect the last
-"Parts report:" line to read ON for all ten parts, no box, a kill counting as usual, and scan_logs CLEAN.
+"Parts report:" line to read ON for all fourteen parts, no box, a kill counting as usual, and scan_logs CLEAN.
 PASS signature: no new game detection line and no kills.json archive on a plain Continue.
 
 **Leg C, optional.** Cold launch and start a New Game. The new game is still detected (kills archived),
 now that the sensing check arms before the roster.
+**Cleanup:** redeploy; the marker is wiped.
+
+## LW-399 table door drill: watch the weapon colors switch off alone (owner, two legs)
+
+Plain language: five places the mod writes into the game's memory (the ground behind a Sunderer, the
+weapon color palettes, the Poacher's Den shelf, Provoke's ability data, the six guns' power numbers)
+each have their own "is it still here" check now. This drill makes the weapon palette check read wrong
+on a healthy game, so you can watch weapon colors switch off by themselves, one box say so, and
+everything else keep working. The second leg is the normal game, where all five checks must pass quietly.
+
+**Leg A, the drill.**
+1. Close the game. Run a DEV deploy (plain BuildLinked; add -Force when the install is prod flavored). A
+   dev build SEEDS every weapon's tally, so back up kills.json first if the real one matters.
+2. Drop an empty marker file named `LW_FORCE_TABLE_MISMATCH` into the deployed mod dir (next to the DLL).
+   BuildLinked wipes it on the next deploy. The env variable lane exists but does not reach the game on
+   this box.
+3. Launch and sit on the title screen. Within about two seconds of the launch header expect ONE WARN:
+   "The weapon palette check failed (palette-clear-site (drill: LW_FORCE_TABLE_MISMATCH)). Weapon colors
+   are off this session; everything else keeps working." PASS: the line exists, names the drill, prints no
+   expected bytes (nothing really differed) and does not contain "standing down to protect your save".
+   FAIL: no WARN within ten seconds (the door never stepped or the flag was not read), a WARN naming any
+   other door (a real closure, stop and read its diag), or a diag that prints expected and observed hex
+   under the drill (the palette site really differs on this install).
+4. The next "Parts report:" line reads weapon colors OFF (the weapon palette is not where this mod expects
+   it, forced by the LW_FORCE_TABLE_MISMATCH drill). Every part that needs the party data (bulwark, poach
+   den, provoke, gun growth and the rest) reads WAITING (waiting for a save to load), because the party
+   data door is the first door in each of those rows. Battle sensing is ON. The two boot filled checks
+   (ability data for provoke, item data for gun growth) are not named while the party data is missing, but
+   each time one of them finishes the line is printed again unchanged. Note the timestamp of any repeated
+   identical line at the title screen: that is the game filling its ability or item data before Continue.
+5. About three seconds after the WARN: exactly ONE box. Switched off names weapon colors alone (the weapon palette is not where this mod expects it, forced by the LW_FORCE_TABLE_MISMATCH drill), Still
+   working names battle sensing, banners and extended inventory, Still waiting names the other ten (waiting for a save to load), and the last sentence is the table drill sentence. Bait: the box must NOT
+   list any part but weapon colors under Switched off. FAIL: a second box at any point in the leg.
+6. Press Continue. A new "Parts report:" line: every part ON except weapon colors OFF (fourteen names,
+   twin weapons among them), unless provoke or gun growth still read WAITING with their data reasons. No
+   new box. No timed line within the next two minutes while you set up the battle. If gun growth or provoke
+   still read WAITING a minute after Continue, the timed line names which. That is a P9 or P6 FAIL of the
+   plan, record it and continue the leg.
+7. Enter a battle with a dev-seeded Cutpurse (id 1, palette 14) and a Stoneshooter (id 73). PASS: the
+   Cutpurse swing draws plain steel (no repaint, the bait you can see), the Stoneshooter's shot carries its
+   +3 WP bump (gun growth ON; compare the damage forecast with the gun's card WP), a Sunderer full wait still
+   plants if you carry one (bulwark ON). FAIL: a repainted Cutpurse (the row gate or latch is not holding).
+8. Run `python tools/scan_logs.py`. PASS: exit 0 and no stand-down finding (the drill WARN is a plain WARN,
+   not a stand-down line, so no standdown-drill code is expected here).
+
+**Leg B, normal.** Delete the marker (or redeploy), relaunch, sit on the title screen.
+9. First "Parts report:" lines: battle sensing ON, banners ON, extended inventory ON, every other part WAITING (waiting for a save to load), the same first line the LW-393 recipe expects. A second line identical to the first a moment later is a table door arming (the ability or item data filled in); note its timestamp.
+   No WARN of any kind from the table checks. No box. This is the live proof that all five code sites match
+   the installed exe. Any WARN here that names a table check means that site differs on this install (or
+   something patched it): stop, run `python -I tools/probes/static_table_file_image_probe.py`, compare the
+   stamp, and find the patcher before anything else.
+10. Continue: all fourteen parts ON in one line; no box; no timed line.
+11. Battle: the Cutpurse repaints in its color (weapon colors ON), the Stoneshooter bump holds, a Defender
+    wielder gets the Provoke grant line with NO "Provoke's effect was not set up" WARN (the only live proof
+    of the pinned 0x2D). scan_logs CLEAN.
+
+FAIL meanings. "provoke OFF (the ability data is not where this mod expects it)" with a Mismatch detail: a
+row marker or the inflict site differs on this build; read the observed bytes and stop. "Provoke's effect was
+not set up; the ability data it would repoint does not read the way the game ships it (observed ...,
+expected 0x2D ...)": the pinned action byte is wrong for this install, re-derive it from the ability data
+file offline; the door and every other part are unaffected. "gun growth OFF (the item data is not where this
+mod expects it)": the item site differs; stop and probe.
+
 **Cleanup:** redeploy; the marker is wiped.
 
 ## Add an extended-inventory item (a brand-new weapon past id 260, LW-346)

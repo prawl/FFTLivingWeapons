@@ -33,6 +33,7 @@ internal sealed partial class Bulwark
     /// Plants nothing, and toasts nothing, when the wielder's back is to the map edge.</summary>
     private void Plant(long entry)
     {
+        if (_latch is { } door && !door.Allows()) return;
         int raw = _mem.U8(entry + Offsets.ALayerBit);
         int layerBit = (raw >> 7) & 1;
         int facing = raw & 0x03;

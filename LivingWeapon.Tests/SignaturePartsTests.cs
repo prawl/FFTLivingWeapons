@@ -39,7 +39,7 @@ public class SignaturePartsTests
         var ctx = new TickContext(DateTime.Now, true, true, true);
 
         SignatureParts.TickOpen(new ISignature[] { band, stat },
-            new[] { Part.BandSignatures, Part.StaticTableSignatures },
+            new[] { Part.BandSignatures, Part.Bulwark },
             p => p == Part.BandSignatures, in ctx);
 
         Assert.Equal(1, band.Ticks);
@@ -56,10 +56,10 @@ public class SignaturePartsTests
         Assert.Equal(engine.FieldTickOrder.Count, engine.FieldParts.Count);
         for (int i = 0; i < engine.FieldTickOrder.Count; i++)
         {
-            var expected = engine.FieldTickOrder[i] == typeof(Bulwark) ? Part.StaticTableSignatures : Part.BandSignatures;
+            var expected = engine.FieldTickOrder[i] == typeof(Bulwark) ? Part.Bulwark : Part.BandSignatures;
             Assert.Equal(expected, engine.FieldParts[i]);
         }
-        Assert.Contains(Part.StaticTableSignatures, engine.FieldParts);
+        Assert.Contains(Part.Bulwark, engine.FieldParts);
     }
 
     [Fact]
@@ -75,5 +75,12 @@ public class SignaturePartsTests
 
         Assert.Equal(Part.WeaponCommands,
             SignatureParts.Of(new Barrage(new Dictionary<int, WeaponMeta>(), new Dictionary<int, int>(), mem)));
+    }
+
+    [Fact]
+    public void Provoke_maps_to_its_own_part_not_weapon_commands()
+    {
+        Assert.Equal(Part.Provoke,
+            SignatureParts.Of(new Provoke(new Dictionary<int, WeaponMeta>(), new Dictionary<int, int>(), new FakeSparseMemory())));
     }
 }

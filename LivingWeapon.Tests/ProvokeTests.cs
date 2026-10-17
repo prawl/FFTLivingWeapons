@@ -55,10 +55,12 @@ public class ProvokeTests
         long inflictAddr = ProvokePolicy.InflictRowAddr(ProvokePolicy.ProvokeInflictRow);
         m.ReadableAddrs.Add(actionAddr);
         m.WritableAddrs.Add(actionAddr);
+        if (ProvokePolicy.VanillaInflictIndexByAbility.TryGetValue(abilityId, out byte vanilla)) m.U8s[actionAddr] = vanilla;
         for (int i = 0; i < ProvokePolicy.InflictStride; i++)
         {
             m.ReadableAddrs.Add(inflictAddr + i);
             m.WritableAddrs.Add(inflictAddr + i);
+            m.U8s[inflictAddr + i] = ProvokePolicy.VanillaInflictRow29[i];
         }
     }
 
@@ -120,16 +122,14 @@ public class ProvokeTests
         SeatWielder(m, rosterSlot: 0, rhand: DefenderId, job: KnightJob);
         StageTable(m);
 
-        long actionAddr = ProvokePolicy.ActionInflictAddr(ProvokeAbilityId);
-        long inflictAddr = ProvokePolicy.InflictRowAddr(ProvokePolicy.ProvokeInflictRow);
-        m.U8s[actionAddr] = (byte)ProvokePolicy.ProvokeInflictRow;
-        for (int i = 0; i < ProvokePolicy.InflictStride; i++)
-            m.U8s[inflictAddr + i] = ProvokePolicy.DesiredInflictRow[i];
-
         var provoke = new Provoke(Meta(), MaxKills(), m);
         provoke.Tick();
+        int writesAfterFirst = m.WriteOrder.Count;
+        Assert.True(writesAfterFirst > 0);
+        provoke.Tick();
+        provoke.Tick();
 
-        Assert.Empty(m.Written);
+        Assert.Equal(writesAfterFirst, m.WriteOrder.Count);
     }
 
     // --- Test 5: refusal ---
@@ -143,6 +143,7 @@ public class ProvokeTests
         long actionAddr = ProvokePolicy.ActionInflictAddr(ProvokeAbilityId);
         long inflictAddr = ProvokePolicy.InflictRowAddr(ProvokePolicy.ProvokeInflictRow);
         m.ReadableAddrs.Add(actionAddr);
+        m.U8s[actionAddr] = ProvokePolicy.VanillaInflictIndexByAbility[ProvokeAbilityId];
         for (int i = 0; i < ProvokePolicy.InflictStride; i++) m.ReadableAddrs.Add(inflictAddr + i);
         // Deliberately NOT marked writable.
 
@@ -245,7 +246,7 @@ public class ProvokeTests
         Assert.Equal((byte)0, buf[Barrage.FlagPrefixSize + 2]);     // our slot released
         Assert.Equal((byte)102, buf[Barrage.FlagPrefixSize + 0]);   // Barrage's slot untouched
         Assert.Equal((byte)165, buf[Barrage.FlagPrefixSize + 1]);   // Shadow Blade's slot untouched
-        Assert.Equal((byte)0, m.U8(actionAddr));                    // action byte restored to its captured original (0, unseeded)
+        Assert.Equal((byte)0x2D, m.U8(actionAddr));                 // action byte restored to its captured vanilla original
         for (int i = 0; i < ProvokePolicy.InflictStride; i++)
             Assert.Equal((byte)0, m.U8(inflictAddr + i));           // inflict row restored to its captured original
     }
@@ -321,6 +322,7 @@ public class ProvokeTests
         long inflictAddr = ProvokePolicy.InflictRowAddr(ProvokePolicy.ProvokeInflictRow);
         m.ReadableAddrs.Add(actionAddr);
         m.WritableAddrs.Add(actionAddr);
+        m.U8s[actionAddr] = 0x2D;
         for (int i = 0; i < ProvokePolicy.InflictStride; i++)
         {
             if (i == 3) continue;   // the one byte left unreadable -- capture must fail because of it
@@ -352,16 +354,12 @@ public class ProvokeTests
 
         long actionAddr = ProvokePolicy.ActionInflictAddr(ProvokeAbilityId);
         long inflictAddr = ProvokePolicy.InflictRowAddr(ProvokePolicy.ProvokeInflictRow);
-        m.U8s[actionAddr] = 0;   // wrong: wants ProvokeInflictRow (29)
-        for (int i = 0; i < ProvokePolicy.InflictStride; i++)
-            m.U8s[inflictAddr + i] = 0xFF;   // wrong for every index (desired is 0x80,0x80,0,0,0,0)
-
         var provoke = new Provoke(Meta(), MaxKills(), m);
         provoke.Tick();
 
         int actionWriteIdx = m.WriteOrder.IndexOf(actionAddr);
         Assert.True(actionWriteIdx >= 0, "expected a write to the action byte");
-        for (int i = 0; i < ProvokePolicy.InflictStride; i++)
+        for (int i = 0; i < 2; i++)   // the vanilla row is all zero, so only the two bytes that become 0x80 need a write
         {
             int inflictWriteIdx = m.WriteOrder.IndexOf(inflictAddr + i);
             Assert.True(inflictWriteIdx >= 0, $"expected a write to inflict-row byte {i}");
@@ -409,7 +407,7 @@ public class ProvokeTests
         StageTable(m);
 
         var provoke = new Provoke(Meta(), MaxKills(), m);
-        provoke.Tick();   // grant: captures the (unseeded, zero) originals and repoints the table
+        provoke.Tick();   // grant: captures the vanilla originals and repoints the table
 
         long actionAddr = ProvokePolicy.ActionInflictAddr(ProvokeAbilityId);
         long inflictAddr = ProvokePolicy.InflictRowAddr(ProvokePolicy.ProvokeInflictRow);
@@ -432,7 +430,7 @@ public class ProvokeTests
         m.WritableAddrs.Add(actionAddr);
         provoke.Tick();
 
-        Assert.Equal((byte)0, m.U8(actionAddr));
+        Assert.Equal((byte)0x2D, m.U8(actionAddr));
     }
 
     // --- Hardening 2: the bounds refusal logs once, not every tick ---
@@ -456,5 +454,102 @@ public class ProvokeTests
         finally { ModLogger.UseNullLogger(); }
 
         Assert.Equal(1, file.Count(l => l.Contains("out of range")));
+    }
+
+    // --- LW-399: the door latch and the vanilla compare ---
+
+    [Fact]
+    public void Table_writer_refuses_while_its_door_is_closed_and_writes_once_it_opens()
+    {
+        using var cap = LogCapture.Start();
+        var m = new FakeSparseMemory();
+        long flagAddr = Barrage.AbilityBase + (long)KnightRecord * Barrage.RecSize - Barrage.FlagPrefixSize;
+        long abBase = Barrage.AbilityBase + (long)KnightRecord * Barrage.RecSize;
+        var buf = new byte[Barrage.RecSize];
+        m.TerrainBlocks[flagAddr] = buf;
+        m.MarkReadable(flagAddr, Barrage.RecSize);
+        for (int i = 0; i < Barrage.FlagPrefixSize; i++) m.WritableAddrs.Add(flagAddr + i);
+        for (int i = 0; i < Barrage.AbilityCount; i++) m.WritableAddrs.Add(abBase + i);
+        SeatWielder(m, rosterSlot: 0, rhand: DefenderId, job: KnightJob);
+        StageTable(m);
+        void Sync() { for (int i = 0; i < buf.Length; i++) buf[i] = m.U8(flagAddr + i); }
+
+        var door = DoorReading.Failed("the ability data is not where this mod expects it");
+        var latch = new DoorLatch(() => door, "Provoke's effect was not set up; the ability data is not where this mod expects it.");
+        var provoke = new Provoke(Meta(), MaxKills(), m, latch);
+        for (int i = 0; i < 10; i++) { Sync(); provoke.Tick(); Sync(); }
+
+        long actionAddr = ProvokePolicy.ActionInflictAddr(ProvokeAbilityId);
+        long inflictAddr = ProvokePolicy.InflictRowAddr(ProvokePolicy.ProvokeInflictRow);
+        Assert.Same(latch, provoke.Latch);
+        Assert.False(m.Written.ContainsKey(actionAddr));
+        for (int i = 0; i < ProvokePolicy.InflictStride; i++) Assert.False(m.Written.ContainsKey(inflictAddr + i));
+        Assert.Equal((byte)0, buf[Barrage.FlagPrefixSize + 0]);   // no slot injection either
+        Assert.Empty(m.Written);
+        Assert.Single(cap.File, l => l.Contains("[WARN]") && l.Contains("Provoke's effect was not set up"));
+
+        door = DoorReading.Open();
+        Sync(); provoke.Tick(); Sync();
+
+        Assert.Equal((byte)ProvokePolicy.ProvokeInflictRow, m.U8(actionAddr));
+        Assert.Equal(new byte[] { 0x80, 0x80, 0x00, 0x00, 0x00, 0x00 },
+            Enumerable.Range(0, ProvokePolicy.InflictStride).Select(i => m.U8(inflictAddr + i)).ToArray());
+        Assert.Equal((byte)189, buf[Barrage.FlagPrefixSize + 0]);
+    }
+
+    [Fact]
+    public void Capture_refuses_when_the_action_byte_is_not_vanilla()
+    {
+        using var cap = LogCapture.Start();
+        var m = new FakeSparseMemory();
+        SeatWielder(m, rosterSlot: 0, rhand: DefenderId, job: KnightJob);
+        StageTable(m);
+        long actionAddr = ProvokePolicy.ActionInflictAddr(ProvokeAbilityId);
+        m.U8s[actionAddr] = 0x30;
+
+        var provoke = new Provoke(Meta(), MaxKills(), m);
+        for (int i = 0; i < 5; i++) provoke.Tick();
+
+        Assert.Empty(m.Written);
+        string warn = Assert.Single(cap.File, l => l.Contains("[WARN]") && l.Contains("Provoke's effect was not set up"));
+        Assert.Contains("0x30", warn);
+        Assert.Contains("0x2D", warn);
+
+        m.U8s[actionAddr] = 0x2D;   // an ability mod that restored the game's own byte
+        provoke.Tick();
+        Assert.Equal((byte)ProvokePolicy.ProvokeInflictRow, m.Written[actionAddr]);
+    }
+
+    [Fact]
+    public void Capture_refuses_when_the_inflict_row_is_not_vanilla()
+    {
+        using var cap = LogCapture.Start();
+        var m = new FakeSparseMemory();
+        SeatWielder(m, rosterSlot: 0, rhand: DefenderId, job: KnightJob);
+        StageTable(m);
+        long inflictAddr = ProvokePolicy.InflictRowAddr(ProvokePolicy.ProvokeInflictRow);
+        m.U8s[inflictAddr + 2] = 0x40;
+
+        var provoke = new Provoke(Meta(), MaxKills(), m);
+        for (int i = 0; i < 5; i++) provoke.Tick();
+
+        Assert.Empty(m.Written);
+        Assert.Single(cap.File, l => l.Contains("[WARN]") && l.Contains("Provoke's effect was not set up"));
+    }
+
+    [Fact]
+    public void Capture_refuses_an_ability_id_with_no_vanilla_pin()
+    {
+        using var cap = LogCapture.Start();
+        var m = new FakeSparseMemory();
+        SeatWielder(m, rosterSlot: 0, rhand: DefenderId, job: KnightJob);
+        const int unpinned = 190;
+        StageTable(m, abilityId: unpinned);
+
+        var provoke = new Provoke(MetaWithAbilityId(unpinned), MaxKills(), m);
+        provoke.Tick();
+
+        Assert.Empty(m.Written);
+        Assert.Single(cap.File, l => l.Contains("[WARN]") && l.Contains("Provoke's effect was not set up"));
     }
 }

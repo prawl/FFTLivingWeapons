@@ -347,9 +347,8 @@ internal static class Offsets
     // --- Provoke. The ability action table (InflictStatus repoint target) and the hand-authored
     // inflict-status table it applies. Content-anchored, image-static addresses observed 2026-07-22
     // (LIVE_LEDGER row, Uncertain; docs/PROVOKE_AC.md "How it works, plainly"), the same class as
-    // Barrage.AbilityBase (a JobCommand table). Covered only by the roster landmark until the per-part work gives them
-    // their own vanilla-byte landmark (the PE key is a report line now); they need a re-find on a
-    // re-anchor (docs/PATCH_REANCHOR.md). The byte-identical decoy mirror of the action table
+    // Barrage.AbilityBase (a JobCommand table). The table doors (TableSignatures, TableDoors.cs) pin the game's own
+    // instructions that address them; those need a re-find on a re-anchor (docs/PATCH_REANCHOR.md). The byte-identical decoy mirror of the action table
     // (ProvokePolicy.DecoyActionTable, Provoke.Policy.cs) is not pinned. Nothing writes it.
     public static long LiveActionTable => ImageBase.At(0x14078B2DC);   // 368 rows x 20 bytes; the copy the engine and UI both read
     public static long InflictTable => ImageBase.At(0x14080FBA0);      // 128 rows x 6 bytes, [mode][s0..s4], mode byte first
@@ -375,6 +374,7 @@ internal static class Offsets
     // carcass in the Den). A mid-battle poach does not write the array; the engine increments it at battle end,
     // and a mid-battle mod write survives that (owner-observed 2026-08-12).
     public static long PoachStoreBase => ImageBase.At(0x1411A7A1B);
+    public const int PoachStoreKeys = 96;
 
     // --- Corpse despawn. The engine's render-node removal, promoted from BodyDoubleSpike.cs's
     // Ctrl+F5 dev instrument (LivingWeapon/Dev/BodyDoubleSpike.cs, #if LWDEV) into CorpseDespawn.cs.
