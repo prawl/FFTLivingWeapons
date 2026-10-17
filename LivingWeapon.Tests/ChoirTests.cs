@@ -32,10 +32,10 @@ namespace LivingWeapon.Tests;
 public class ChoirTests
 {
     private const int WarlockStaffId = 60;
-    private const int NonChargeId    = 227;
+    private const int NonChargeId = 227;
 
     private const int NcByteOff = 3;
-    private const byte NcMask   = 0x04;
+    private const byte NcMask = 0x04;
     private const int NcBandOff = Offsets.ASupport + NcByteOff;  // == 0x7F
 
     private static WeaponSignature ChoirSig(int atTier = 3, int radius = 1) =>
@@ -131,10 +131,10 @@ public class ChoirTests
         int lvl, int br, int fa, int mainHandId = WarlockStaffId, int rsupport = 0)
     {
         long rb = Offsets.RosterBase + (long)rosterSlot * Offsets.RosterStride;
-        mem.U8s[rb + Offsets.RLevel]   = (byte)lvl;
-        mem.U8s[rb + Offsets.RBrave]   = (byte)br;
-        mem.U8s[rb + Offsets.RFaith]   = (byte)fa;
-        mem.U16s[rb + Offsets.RRHand]  = (ushort)mainHandId;
+        mem.U8s[rb + Offsets.RLevel] = (byte)lvl;
+        mem.U8s[rb + Offsets.RBrave] = (byte)br;
+        mem.U8s[rb + Offsets.RFaith] = (byte)fa;
+        mem.U16s[rb + Offsets.RRHand] = (ushort)mainHandId;
         mem.U8s[rb + Offsets.RSupport] = (byte)rsupport;
     }
 
@@ -154,7 +154,10 @@ public class ChoirTests
         {
             [WarlockStaffId] = new WeaponMeta
             {
-                Name = "Warlock's Staff", Wp = 3, Cat = "Staff", Formula = 1,
+                Name = "Warlock's Staff",
+                Wp = 3,
+                Cat = "Staff",
+                Formula = 1,
                 Flavor = "Bound with a warlock's hex",
                 Signature = ChoirSig()
             }
@@ -352,7 +355,10 @@ public class ChoirTests
         {
             [WarlockStaffId] = new WeaponMeta
             {
-                Name = "Warlock's Staff", Wp = 3, Cat = "Staff", Formula = 1,
+                Name = "Warlock's Staff",
+                Wp = 3,
+                Cat = "Staff",
+                Formula = 1,
                 Flavor = "Bound with a warlock's hex",
                 Signature = ChoirSig()
             }
@@ -393,7 +399,7 @@ public class ChoirTests
         // Tick 2: protected bearer "dies"; their innate bit must NOT be cleared
         mem.U16s[protectedEntry + Offsets.AHp] = 0;
         mem.U8s[protectedEntry + NcBandOff] = NcMask;   // still set from their own pick
-        mem.U8s[canaryEntry + NcBandOff]    = 0;        // canary: let SetBit write so IsSet works
+        mem.U8s[canaryEntry + NcBandOff] = 0;        // canary: let SetBit write so IsSet works
         mem.Written.Clear();
 
         choir.Tick(onField: true);
@@ -440,7 +446,10 @@ public class ChoirTests
         {
             [WarlockStaffId] = new WeaponMeta
             {
-                Name = "Warlock's Staff", Wp = 3, Cat = "Staff", Formula = 1,
+                Name = "Warlock's Staff",
+                Wp = 3,
+                Cat = "Staff",
+                Formula = 1,
                 Flavor = "Bound with a warlock's hex",
                 Signature = ChoirSig()
             }
@@ -468,7 +477,10 @@ public class ChoirTests
         {
             [WarlockStaffId] = new WeaponMeta
             {
-                Name = "Warlock's Staff", Wp = 3, Cat = "Staff", Formula = 1,
+                Name = "Warlock's Staff",
+                Wp = 3,
+                Cat = "Staff",
+                Formula = 1,
                 Flavor = "Bound with a warlock's hex",
                 Signature = ChoirSig()
             }
@@ -518,7 +530,10 @@ public class ChoirTests
         {
             [WarlockStaffId] = new WeaponMeta
             {
-                Name = "Warlock's Staff", Wp = 3, Cat = "Staff", Formula = 1,
+                Name = "Warlock's Staff",
+                Wp = 3,
+                Cat = "Staff",
+                Formula = 1,
                 Flavor = "Bound with a warlock's hex",
                 Signature = ChoirSig()
             }
@@ -557,7 +572,10 @@ public class ChoirTests
         {
             [WarlockStaffId] = new WeaponMeta
             {
-                Name = "Warlock's Staff", Wp = 3, Cat = "Staff", Formula = 1,
+                Name = "Warlock's Staff",
+                Wp = 3,
+                Cat = "Staff",
+                Formula = 1,
                 Flavor = "Bound with a warlock's hex",
                 Signature = ChoirSig()
             }
@@ -590,8 +608,8 @@ public class ChoirTests
 
         Assert.True(IsSet(mem, bearerA), "bearer A must get the bit");
         Assert.True(IsSet(mem, bearerB), "bearer B must get the bit");
-        Assert.False(IsSet(mem, allyA),  "ally adjacent to bearer A must NOT get the bit (holder-only)");
-        Assert.False(IsSet(mem, allyB),  "ally adjacent to bearer B must NOT get the bit (holder-only)");
+        Assert.False(IsSet(mem, allyA), "ally adjacent to bearer A must NOT get the bit (holder-only)");
+        Assert.False(IsSet(mem, allyB), "ally adjacent to bearer B must NOT get the bit (holder-only)");
     }
 
     // ---- NEW-B: two deployed bearers, one unequips -> that bearer's bit cleared, other stays ----
@@ -604,7 +622,10 @@ public class ChoirTests
         {
             [WarlockStaffId] = new WeaponMeta
             {
-                Name = "Warlock's Staff", Wp = 3, Cat = "Staff", Formula = 1,
+                Name = "Warlock's Staff",
+                Wp = 3,
+                Cat = "Staff",
+                Formula = 1,
                 Flavor = "Bound with a warlock's hex",
                 Signature = ChoirSig()
             }
@@ -641,8 +662,8 @@ public class ChoirTests
         // Tick 2: only bearer A remains
         choir.Tick(onField: true);
 
-        Assert.True(IsSet(mem, bearerA),      "tick 2: bearer A still holds staff -> bit stays set");
-        Assert.True(IsCleared(mem, bearerB),  "tick 2: bearer B unequipped -> bit must be cleared");
+        Assert.True(IsSet(mem, bearerA), "tick 2: bearer A still holds staff -> bit stays set");
+        Assert.True(IsCleared(mem, bearerB), "tick 2: bearer B unequipped -> bit must be cleared");
     }
 
     // ---- NEW-C: two staves -> exactly 2 winners (the two bearers) ----
@@ -655,7 +676,10 @@ public class ChoirTests
         {
             [WarlockStaffId] = new WeaponMeta
             {
-                Name = "Warlock's Staff", Wp = 3, Cat = "Staff", Formula = 1,
+                Name = "Warlock's Staff",
+                Wp = 3,
+                Cat = "Staff",
+                Formula = 1,
                 Flavor = "Bound with a warlock's hex",
                 Signature = ChoirSig()
             }

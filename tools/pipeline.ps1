@@ -538,6 +538,22 @@ function Invoke-UnitTestGate {
     }
 }
 
+function Invoke-FormatGate {
+    # Style gate: dotnet format in verify mode on both projects. Whitespace and the
+    # .editorconfig rules only; it rewrites nothing. Run "dotnet format" by hand to fix a red.
+    param(
+        [Parameter(Mandatory = $true)][ValidateSet('DEPLOY', 'PACKAGE')]
+        [string]$FailVerb
+    )
+
+    foreach ($proj in @("LivingWeapon\LivingWeapon.csproj", "LivingWeapon.Tests\LivingWeapon.Tests.csproj")) {
+        & dotnet format "$PipelineRepoRoot\$proj" --verify-no-changes --no-restore -v q
+        if ($LASTEXITCODE -ne 0) {
+            throw "REFUSING TO ${FailVerb}: $proj is not formatted (run: dotnet format $proj)."
+        }
+    }
+}
+
 function Invoke-LivingWeaponPublish {
     # Build the Living Weapon runtime into $OutDir. The framework-dependent
     # publish emits LivingWeapon.dll, Newtonsoft.Json.dll, LivingWeapon.deps.json

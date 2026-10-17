@@ -21,7 +21,11 @@ public class GunSlingerReconcileTests
     {
         [BlasterId] = new WeaponMeta
         {
-            Name = "Blaster", Wp = 15, Cat = "Gun", Formula = 4, Flavor = "magickal firearm",
+            Name = "Blaster",
+            Wp = 15,
+            Cat = "Gun",
+            Formula = 4,
+            Flavor = "magickal firearm",
             Signature = new WeaponSignature { AtTier = 3, GunSlinger = true, DisplayLabel = "Gun Slinger" }
         }
     };
@@ -30,12 +34,20 @@ public class GunSlingerReconcileTests
     {
         [OutriderPistolId] = new WeaponMeta
         {
-            Name = "Outrider Pistol", Wp = 7, Cat = "Gun", Formula = 3, Flavor = "wheel-lock",
+            Name = "Outrider Pistol",
+            Wp = 7,
+            Cat = "Gun",
+            Formula = 3,
+            Flavor = "wheel-lock",
             Signature = new WeaponSignature { AtTier = 3, GunSlinger = true, DisplayLabel = "Gun Slinger" }
         },
         [ArbalestId] = new WeaponMeta
         {
-            Name = "Arbalest", Wp = 7, Cat = "Crossbow", Formula = 1, Flavor = "steel arbalest",
+            Name = "Arbalest",
+            Wp = 7,
+            Cat = "Crossbow",
+            Formula = 1,
+            Flavor = "steel arbalest",
             Signature = new WeaponSignature { AtTier = 3, GunSlinger = true, DisplayLabel = "Crossfire" }
         }
     };
@@ -44,12 +56,12 @@ public class GunSlingerReconcileTests
         ushort nameId, byte level, ushort rh, ushort off, ushort supp, ushort shield = 0xFFFF)
     {
         long b = Offsets.RosterBase + slot * Offsets.RosterStride;
-        mem.U16s[b + Offsets.RNameId]  = nameId;
-        mem.U8s[b + Offsets.RLevel]    = level;
-        mem.U16s[b + Offsets.RRHand]   = rh;
+        mem.U16s[b + Offsets.RNameId] = nameId;
+        mem.U8s[b + Offsets.RLevel] = level;
+        mem.U16s[b + Offsets.RRHand] = rh;
         mem.U16s[b + Offsets.ROffHand] = off;
         mem.U16s[b + Offsets.RSupport] = supp;
-        mem.U16s[b + Offsets.RShield]  = shield;
+        mem.U16s[b + Offsets.RShield] = shield;
         mem.MarkWritable(b + Offsets.ROffHand, 2);
         mem.MarkWritable(b + Offsets.RSupport, 2);
         mem.ReadableAddrs.Add(Offsets.MenuOpenFlag);

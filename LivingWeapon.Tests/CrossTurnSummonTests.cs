@@ -129,7 +129,7 @@ public class CrossTurnSummonTests
 
         // Two DISTINCT-identity enemies seen alive (distinct lvl/br/fa/mhp so the alive-edge
         // belt credits them independently rather than frozen-twin-dedup'ing the second).
-        SetEnemy(m, EnemySlot,     hp: 300, maxHp: 400, level: 10, brave: 50, faith: 50);
+        SetEnemy(m, EnemySlot, hp: 300, maxHp: 400, level: 10, brave: 50, faith: 50);
         SetEnemy(m, EnemySlot + 1, hp: 280, maxHp: 380, level: 12, brave: 55, faith: 45);
         Settle(t, 3);   // both seenAlive
 
@@ -144,7 +144,7 @@ public class CrossTurnSummonTests
         t.Poll(true);
 
         // Both enemies die simultaneously inside the window.
-        SetUnit(m, EnemySlot,     hp: 0);
+        SetUnit(m, EnemySlot, hp: 0);
         SetUnit(m, EnemySlot + 1, hp: 0, maxHp: 380, level: 12, brave: 55, faith: 45);
         t.Poll(true);   // deadStreak=1 for both; both _lethalUntracked stamped (after edit)
         t.Poll(true);   // deadStreak=2

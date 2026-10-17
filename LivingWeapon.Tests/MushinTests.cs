@@ -64,7 +64,10 @@ public class MushinTests
         {
             [KikuId] = new WeaponMeta
             {
-                Name = "Kiku-ichimonji", Wp = 13, Cat = "Katana", Formula = 2,
+                Name = "Kiku-ichimonji",
+                Wp = 13,
+                Cat = "Katana",
+                Formula = 2,
                 Flavor = "chrysanthemum-hilt blade",
                 Signature = new WeaponSignature { AtTier = Tuning.MushinAtTier, Mushin = true, DisplayLabel = "Mushin" }
             }
@@ -168,8 +171,8 @@ public class MushinTests
         SetFlags(mem, wielderEntry, 0, 0, 0);
         mushin.Tick(true);   // prime
         SetArmed(armed, fp, 1);   // pre-armed: the discriminating precondition. A wrong implementation
-                              // that checks "moved" before "acted" would leave this SURVIVING
-                              // (the L-3 shape) instead of correctly consuming it.
+                                  // that checks "moved" before "acted" would leave this SURVIVING
+                                  // (the L-3 shape) instead of correctly consuming it.
 
         SetFlags(mem, wielderEntry, 1, 0, 0);
         mushin.Tick(true);
@@ -424,7 +427,10 @@ public class MushinTests
         {
             [KikuId] = new WeaponMeta
             {
-                Name = "Kiku-ichimonji", Wp = 13, Cat = "Katana", Formula = 2,
+                Name = "Kiku-ichimonji",
+                Wp = 13,
+                Cat = "Katana",
+                Formula = 2,
                 Flavor = "chrysanthemum-hilt blade",
                 Signature = new WeaponSignature { AtTier = Tuning.MushinAtTier, Mushin = true, DisplayLabel = "Mushin" }
             }

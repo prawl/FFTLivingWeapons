@@ -106,7 +106,10 @@ public class KobuTests
         {
             [KiyomoriId] = new WeaponMeta
             {
-                Name = "Kiyomori", Wp = 11, Cat = "Katana", Formula = 1,
+                Name = "Kiyomori",
+                Wp = 11,
+                Cat = "Katana",
+                Formula = 1,
                 Flavor = "exquisitely crafted katana",
                 Signature = KobuSig()
             }

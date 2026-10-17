@@ -201,8 +201,8 @@ public class FlightRecorderTests : IDisposable
         Assert.Null(ex);          // never escapes
         Assert.Equal(1, calls);   // never recurses / retries within the same call
         Assert.Equal(0, rec.Count);   // the ring was already swapped out before the sink ran (S3) --
-                                       // a failed write loses that batch, but the live ring is empty
-                                       // and perfectly usable afterward, not corrupted or stuck:
+                                      // a failed write loses that batch, but the live ring is empty
+                                      // and perfectly usable afterward, not corrupted or stuck:
         rec.Record("t", "c");
         Assert.Equal(1, rec.Count);
         var ex2 = Record.Exception(() => rec.Flush("boom-again"));

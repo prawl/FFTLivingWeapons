@@ -1201,7 +1201,7 @@ public class KillTrackerTests
         // Player B: level 50, brave 60, faith 55 -- different fingerprint, same weapon.
         SetRoster(m, slot: 4, level: 50, brave: 60, faith: 55, weapon: 30);
         SetUnit(m, Wilham, hp: 352, maxHp: 352, level: 99, brave: 89, faith: 76);
-        SetUnit(m, Ramza,  hp: 400, maxHp: 400, level: 50, brave: 60, faith: 55);
+        SetUnit(m, Ramza, hp: 400, maxHp: 400, level: 50, brave: 60, faith: 55);
 
         // Player A acts first.
         SetActive(m, hp: 352, maxHp: 352, level: 99, acted: 1);

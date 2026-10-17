@@ -15,7 +15,7 @@ public class DisplayMutationGapTests
     // ─── Shared fixture addresses ─────────────────────────────────────────────
 
     private const long StaticsBase = 0x80_0000_0000L;
-    private const long SourceBase  = 0x81_0000_0000L;
+    private const long SourceBase = 0x81_0000_0000L;
 
     /// <summary>Build a 3-weapon meta dict (ids 10, 11, 12) with unique names, flavors,
     /// and nonzero kill counts so no assertion is vacuous against the baked "0   "
@@ -41,19 +41,19 @@ public class DisplayMutationGapTests
     [Fact]
     public void C1_empty_target_set_kills_slots_still_painted()
     {
-        var meta  = BuildMeta();
+        var meta = BuildMeta();
         // Distinct nonzero counts so asserted values differ from the baked "0   ".
         var kills = new Dictionary<int, int> { { 10, 7 }, { 11, 13 }, { 12, 5 } };
         var clock = new TestClock();
 
         var src = new byte[512];
-        var cA = CardFixtures.WriteCard(src, 0,   "BladeA", "Forged under winter stars");
+        var cA = CardFixtures.WriteCard(src, 0, "BladeA", "Forged under winter stars");
         var cB = CardFixtures.WriteCard(src, 150, "BladeB", "Tempered in salt and fury");
         var cC = CardFixtures.WriteCard(src, 300, "BladeC", "Old iron knows no mercy");
 
         // Both mirror slots empty: MirrorWeapon=0, MirrorOffHand=0xFFFF
         var statics = new byte[64];
-        statics[0] = 0;    statics[1] = 0;       // MirrorWeapon = 0 (invalid)
+        statics[0] = 0; statics[1] = 0;       // MirrorWeapon = 0 (invalid)
         statics[2] = 0xFF; statics[3] = 0xFF;     // MirrorOffHand = 0xFFFF (invalid)
         statics[4] = 10;
 
@@ -63,9 +63,9 @@ public class DisplayMutationGapTests
         CardFixtures.DrainGeneration(display, clock, 600);
 
         // Kills slots must be painted with actual counts, not the initial unpainted placeholder.
-        Assert.Equal(Signatures.KillsMeterSlot(7),  ReadSlot(heap, SourceBase, cA.killsSlotPos, Signatures.KillsMeterSlotChars));
+        Assert.Equal(Signatures.KillsMeterSlot(7), ReadSlot(heap, SourceBase, cA.killsSlotPos, Signatures.KillsMeterSlotChars));
         Assert.Equal(Signatures.KillsMeterSlot(13), ReadSlot(heap, SourceBase, cB.killsSlotPos, Signatures.KillsMeterSlotChars));
-        Assert.Equal(Signatures.KillsMeterSlot(5),  ReadSlot(heap, SourceBase, cC.killsSlotPos, Signatures.KillsMeterSlotChars));
+        Assert.Equal(Signatures.KillsMeterSlot(5), ReadSlot(heap, SourceBase, cC.killsSlotPos, Signatures.KillsMeterSlotChars));
     }
 
     // ─── C2: budget wiring is honored (long.MaxValue mutation) ───────────────
@@ -77,7 +77,7 @@ public class DisplayMutationGapTests
     [Fact]
     public void C2_budget_caps_progress_card_in_last_chunk_not_painted_in_one_tick()
     {
-        var meta  = BuildMeta();
+        var meta = BuildMeta();
         var kills = new Dictionary<int, int> { { 10, 7 }, { 11, 0 }, { 12, 0 } };
         var clock = new TestClock();
 
@@ -144,7 +144,7 @@ public class DisplayMutationGapTests
     [Fact]
     public void C3_utf16_card_painted_through_display_tick()
     {
-        var meta  = BuildMeta();
+        var meta = BuildMeta();
         var kills = new Dictionary<int, int> { { 10, 9 }, { 11, 0 }, { 12, 0 } };
         var clock = new TestClock();
 
@@ -193,7 +193,7 @@ public class DisplayMutationGapTests
     [Fact]
     public void C4_invalidate_with_relocated_region_discovers_new_card()
     {
-        var meta  = BuildMeta();
+        var meta = BuildMeta();
         var kills = new Dictionary<int, int> { { 10, 7 }, { 11, 0 }, { 12, 0 } };
         var clock = new TestClock();
 
@@ -250,10 +250,10 @@ public class DisplayMutationGapTests
         for (int id = 20; id < 40; id++)
             meta[id] = new WeaponMeta
             {
-                Name    = $"Wep{id:D2}",
-                Flavor  = $"Flavor for weapon number {id:D2} goes here",
-                Wp      = 10,
-                Cat     = "Sword",
+                Name = $"Wep{id:D2}",
+                Flavor = $"Flavor for weapon number {id:D2} goes here",
+                Wp = 10,
+                Cat = "Sword",
                 Formula = 1,
             };
 
@@ -271,7 +271,7 @@ public class DisplayMutationGapTests
             cardMeta[i] = (sp, ks);
         }
 
-        long srcBase  = 0x85_0000_0000L;
+        long srcBase = 0x85_0000_0000L;
         long statBase = 0x86_0000_0000L;
         var statics = new byte[64];
         statics[0] = 20; statics[1] = 0; // mirror = id 20
@@ -304,13 +304,13 @@ public class DisplayMutationGapTests
     [Fact]
     public void C6a_invalidate_then_tick_repaints_all_three_slots()
     {
-        var meta  = BuildMeta();
+        var meta = BuildMeta();
         // Distinct nonzero counts so none assert against the baked "0   ".
         var kills = new Dictionary<int, int> { { 10, 7 }, { 11, 13 }, { 12, 5 } };
         var clock = new TestClock();
 
         var src = new byte[512];
-        var cA = CardFixtures.WriteCard(src, 0,   "BladeA", "Forged under winter stars");
+        var cA = CardFixtures.WriteCard(src, 0, "BladeA", "Forged under winter stars");
         var cB = CardFixtures.WriteCard(src, 150, "BladeB", "Tempered in salt and fury");
         var cC = CardFixtures.WriteCard(src, 300, "BladeC", "Old iron knows no mercy");
 
@@ -340,9 +340,9 @@ public class DisplayMutationGapTests
         CardFixtures.DrainGeneration(display, clock, 600);
 
         // Assert ALL three kill slots repainted with their distinct nonzero counts.
-        Assert.Equal(Signatures.KillsMeterSlot(7),  ReadSlot(heap, srcAddr, cA.killsSlotPos, meterWidth));
+        Assert.Equal(Signatures.KillsMeterSlot(7), ReadSlot(heap, srcAddr, cA.killsSlotPos, meterWidth));
         Assert.Equal(Signatures.KillsMeterSlot(13), ReadSlot(heap, srcAddr, cB.killsSlotPos, meterWidth));
-        Assert.Equal(Signatures.KillsMeterSlot(5),  ReadSlot(heap, srcAddr, cC.killsSlotPos, meterWidth));
+        Assert.Equal(Signatures.KillsMeterSlot(5), ReadSlot(heap, srcAddr, cC.killsSlotPos, meterWidth));
         // Target (id 10, 7 kills < prod threshold[0]=5 -- wait, 7 >= 5 → tier 1 = "+").
         Assert.Equal("+ ", ReadSlot(heap, srcAddr, cA.suffixPos, 2));
     }
@@ -352,7 +352,7 @@ public class DisplayMutationGapTests
     [Fact]
     public void C6b_tier_zero_subthreshold_count_paints_count_and_blank_suffix()
     {
-        var meta  = BuildMeta();
+        var meta = BuildMeta();
         // 3 kills < prod threshold[0]=5 → tier 0; kills slot must show "3   "; suffix "  ".
         var kills = new Dictionary<int, int> { { 10, 3 }, { 11, 0 }, { 12, 0 } };
         var clock = new TestClock();
@@ -364,7 +364,7 @@ public class DisplayMutationGapTests
         statics[0] = 10; statics[1] = 0;
         statics[4] = 12;
 
-        long srcBase  = 0x87_0000_0000L;
+        long srcBase = 0x87_0000_0000L;
         long statBase = 0x88_0000_0000L;
         var heap = new FakeHeap((srcBase, src), (statBase, statics));
         var display = CardFixtures.MakeDisplay(meta, kills, heap, statBase, clock);
@@ -389,10 +389,10 @@ public class DisplayMutationGapTests
         var pats = new CardPatterns(meta);
 
         var parts = new List<byte>();
-        var flavorB  = ByteScan.Enc("Sharp", 1);
-        var fillerB  = ByteScan.Enc(" stuff\n\n", 1);
-        var killsB   = ByteScan.Enc("Kills: ", 1);
-        var slotB    = ByteScan.Enc(Signatures.KillsMeterSlot(0), 1);
+        var flavorB = ByteScan.Enc("Sharp", 1);
+        var fillerB = ByteScan.Enc(" stuff\n\n", 1);
+        var killsB = ByteScan.Enc("Kills: ", 1);
+        var slotB = ByteScan.Enc(Signatures.KillsMeterSlot(0), 1);
 
         parts.AddRange(flavorB);
         parts.AddRange(fillerB);
@@ -562,7 +562,7 @@ public class DisplayMutationGapTests
     [Fact]
     public void C9_cross_chunk_boundary_card_painted_at_correct_address()
     {
-        var meta  = BuildMeta();
+        var meta = BuildMeta();
         var kills = new Dictionary<int, int> { { 10, 11 }, { 11, 0 }, { 12, 0 } };
         var clock = new TestClock();
 
@@ -576,15 +576,15 @@ public class DisplayMutationGapTests
         long regionBase = 0x70_0000_0000L;
         var regionData = new byte[regionSize];
 
-        string name   = "BladeA";
+        string name = "BladeA";
         string flavor = "Forged under winter stars";
 
-        byte[] nameB   = ByteScan.Ascii(name);
-        byte[] sufB    = ByteScan.Ascii("  ");
-        byte[] padB    = ByteScan.Ascii("   ");
-        byte[] flvB    = ByteScan.Ascii(flavor);
-        byte[] nnB     = ByteScan.Ascii("\n\nKills: ");
-        byte[] kB      = ByteScan.Ascii(Signatures.KillsMeterSlot(0));
+        byte[] nameB = ByteScan.Ascii(name);
+        byte[] sufB = ByteScan.Ascii("  ");
+        byte[] padB = ByteScan.Ascii("   ");
+        byte[] flvB = ByteScan.Ascii(flavor);
+        byte[] nnB = ByteScan.Ascii("\n\nKills: ");
+        byte[] kB = ByteScan.Ascii(Signatures.KillsMeterSlot(0));
 
         // Place flavor so it ends exactly at (chunkSize - 1), i.e. last byte of chunk 0.
         // flvB.Length bytes ending at chunkSize-1 means starting at chunkSize - flvB.Length.
@@ -594,11 +594,11 @@ public class DisplayMutationGapTests
         int nameStart = flavorStart - blockLen;
         Assert.True(nameStart >= 0, "Fixture: not enough room in chunk 0 for name+suffix+pad+flavor");
 
-        Array.Copy(nameB, 0, regionData, nameStart,  nameB.Length);
+        Array.Copy(nameB, 0, regionData, nameStart, nameB.Length);
         int suffixOff = nameStart + nameB.Length;
-        Array.Copy(sufB,  0, regionData, suffixOff,   sufB.Length);
-        Array.Copy(padB,  0, regionData, suffixOff + sufB.Length, padB.Length);
-        Array.Copy(flvB,  0, regionData, flavorStart, flvB.Length);
+        Array.Copy(sufB, 0, regionData, suffixOff, sufB.Length);
+        Array.Copy(padB, 0, regionData, suffixOff + sufB.Length, padB.Length);
+        Array.Copy(flvB, 0, regionData, flavorStart, flvB.Length);
         // flavor ends at index chunkSize-1 (inclusive).
 
         // "Kills: " starts at the very beginning of chunk 1.

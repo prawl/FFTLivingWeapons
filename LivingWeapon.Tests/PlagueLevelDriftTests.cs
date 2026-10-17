@@ -109,8 +109,12 @@ public class PlagueLevelDriftTests
     {
         [VenomboltId] = new WeaponMeta
         {
-            Name = "Venombolt", Wp = 9, Cat = "Rod", Formula = 1,
-            Flavor = "a venomous rod", Signature = PlagueSig()
+            Name = "Venombolt",
+            Wp = 9,
+            Cat = "Rod",
+            Formula = 1,
+            Flavor = "a venomous rod",
+            Signature = PlagueSig()
         }
     };
 

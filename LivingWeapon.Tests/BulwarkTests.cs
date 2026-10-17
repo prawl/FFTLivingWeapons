@@ -43,7 +43,10 @@ public class BulwarkTests
         {
             [SundererId] = new WeaponMeta
             {
-                Name = "Sunderer", Wp = 13, Cat = "KnightSword", Formula = 46,
+                Name = "Sunderer",
+                Wp = 13,
+                Cat = "KnightSword",
+                Formula = 46,
                 Flavor = "spiteful edge",
                 Signature = bulwark
                     ? new WeaponSignature { AtTier = atTier, Bulwark = true, DisplayLabel = "Bulwark" }

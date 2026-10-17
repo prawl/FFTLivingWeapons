@@ -85,7 +85,7 @@ public class MaimTests
         // Arrange: a pinned buffer holding a real reaction value.
         // Latch the victim, then immediately try to latch again with zeros held.
         using var unit = PinnedBuf.Of(256);
-        unit.Bytes[Maim.ReactionBandOff]     = 0xAB;
+        unit.Bytes[Maim.ReactionBandOff] = 0xAB;
         unit.Bytes[Maim.ReactionBandOff + 1] = 0xCD;
         unit.Bytes[Maim.ReactionBandOff + 2] = 0xEF;
         unit.Bytes[Maim.ReactionBandOff + 3] = 0x01;
@@ -149,7 +149,7 @@ public class MaimTests
     private static PinnedBuf MakeUnit(uint reaction)
     {
         var unit = PinnedBuf.Of(256);
-        unit.Bytes[Maim.ReactionBandOff]     = (byte)(reaction & 0xFF);
+        unit.Bytes[Maim.ReactionBandOff] = (byte)(reaction & 0xFF);
         unit.Bytes[Maim.ReactionBandOff + 1] = (byte)((reaction >> 8) & 0xFF);
         unit.Bytes[Maim.ReactionBandOff + 2] = (byte)((reaction >> 16) & 0xFF);
         unit.Bytes[Maim.ReactionBandOff + 3] = (byte)(reaction >> 24);
@@ -236,8 +236,12 @@ public class MaimTests
         {
             [HuntressId] = new WeaponMeta
             {
-                Name = "Huntress", Wp = 8, Cat = "Bow", Formula = 2,
-                Flavor = "A hunter's bow", Signature = MaimSig(crippleTurns: crippleTurns, atTier: 3)
+                Name = "Huntress",
+                Wp = 8,
+                Cat = "Bow",
+                Formula = 2,
+                Flavor = "A hunter's bow",
+                Signature = MaimSig(crippleTurns: crippleTurns, atTier: 3)
             }
         };
         var kills = new Dictionary<int, int> { [HuntressId] = Tuning.ProdThresholds[2] };   // tier 3
@@ -443,7 +447,7 @@ public class MaimTests
         // If the band loop reads both slots' CT the lastCt will thrash 50<->100 and fire
         // IsTurn(100, 50) on most ticks -> 3 spurious counts -> early restore.
         mem.U8s[victim + LiveCtOff] = 50;
-        mem.U8s[twin   + LiveCtOff] = 100;
+        mem.U8s[twin + LiveCtOff] = 100;
         for (int i = 0; i < 8; i++) maim.Tick(onField: false);
 
         Assert.Equal(0u, ReadReactionAt(mem, victim));  // still suppressed: twin must not thrash count

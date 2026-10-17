@@ -87,7 +87,7 @@ public class RenewalTests
     {
         int amount100 = BandHeal.HealAmount(100, 0.10);   // = 10
         Assert.Equal(100, BandHeal.NewHp(95, 100, amount100));   // clamped at full
-        Assert.Equal(0,   BandHeal.NewHp(0,  100, amount100));   // dead stays dead
+        Assert.Equal(0, BandHeal.NewHp(0, 100, amount100));   // dead stays dead
     }
 
     // ---- Main-hand-only activation contract ----
@@ -163,7 +163,7 @@ public class RenewalTests
     {
         var m = PulseRig(out var r);
         long first = SeatAt(m, slot: 30, gx: 6, gy: 5, hp: 200);
-        long twin  = SeatAt(m, slot: 31, gx: 5, gy: 6, hp: 200);   // same fp, also in radius
+        long twin = SeatAt(m, slot: 31, gx: 5, gy: 6, hp: 200);   // same fp, also in radius
         r.Aura(wgx: 5, wgy: 5, radius: 1, turn: 1);
         Assert.Equal((ushort)ExpectedHealed(200), m.U16s[first + Offsets.AHp]);
         Assert.Equal((ushort)200, m.U16s[twin + Offsets.AHp]);     // one heal per fingerprint

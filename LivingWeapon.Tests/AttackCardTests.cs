@@ -73,7 +73,10 @@ public class AttackCardTests
         [ZwillId] = new WeaponMeta { Name = "Zwill Straightblade", Wp = 14, Cat = "Knight Sword", Formula = 1 },
         [PeacemakerId] = new WeaponMeta
         {
-            Name = "Peacemaker", Wp = 8, Cat = "Gun", Formula = 1,
+            Name = "Peacemaker",
+            Wp = 8,
+            Cat = "Gun",
+            Formula = 1,
             Signature = new WeaponSignature { DisplayLabel = "Gun Slinger", AtTier = 3 },
         },
     };

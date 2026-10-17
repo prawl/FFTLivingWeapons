@@ -240,11 +240,11 @@ public class SignaturesTests
     // --- KillsSlot: left-aligned digits in a fixed 4-char slot ---
 
     [Theory]
-    [InlineData(0,     "0   ")]   // single digit -> digit then 3 spaces
-    [InlineData(7,     "7   ")]
-    [InlineData(42,    "42  ")]   // two digits -> 2 spaces
-    [InlineData(137,   "137 ")]   // three digits -> 1 space
-    [InlineData(1337,  "1337")]   // four digits -> exactly full
+    [InlineData(0, "0   ")]   // single digit -> digit then 3 spaces
+    [InlineData(7, "7   ")]
+    [InlineData(42, "42  ")]   // two digits -> 2 spaces
+    [InlineData(137, "137 ")]   // three digits -> 1 space
+    [InlineData(1337, "1337")]   // four digits -> exactly full
     [InlineData(12345, "2345")]   // wraps at 10000: 12345 % 10000 = 2345
     public void KillsSlot_formats_correctly(int count, string expected)
     {
@@ -263,7 +263,7 @@ public class SignaturesTests
     // the fixed-width invariant. Clamp to non-negative before the modulo.
 
     [Theory]
-    [InlineData(-1,     "0   ")]   // -1 clamps to 0
+    [InlineData(-1, "0   ")]   // -1 clamps to 0
     [InlineData(-12345, "0   ")]   // any negative -> "0   "
     public void KillsSlot_negative_clamps_to_zero(int count, string expected)
     {

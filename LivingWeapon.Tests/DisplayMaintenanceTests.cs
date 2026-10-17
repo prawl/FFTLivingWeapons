@@ -15,7 +15,7 @@ public class DisplayMaintenanceTests
     // ─── Fixture (mirrors DisplayTests, but narrower scope) ───────────────────
 
     private const long StaticsBase = 0x50_0000_0000L;
-    private const long SourceBase  = 0x60_0000_0000L;
+    private const long SourceBase = 0x60_0000_0000L;
 
     private static Dictionary<int, WeaponMeta> BuildMeta() => new()
     {
@@ -29,7 +29,7 @@ public class DisplayMaintenanceTests
         BuildFixture(Dictionary<int, int> kills, int mirrorId = 10)
     {
         var meta = BuildMeta();
-        var src  = new byte[512];
+        var src = new byte[512];
         var card = CardFixtures.WriteCard(src, 0, "SwordA", "Bright edge of dawn");
 
         var statics = new byte[16];
@@ -38,7 +38,7 @@ public class DisplayMaintenanceTests
         statics[4] = 12; // WpScratch natural
 
         var heap = new FakeHeap((SourceBase, src), (StaticsBase, statics));
-        var clock   = new TestClock();
+        var clock = new TestClock();
         var display = CardFixtures.MakeDisplay(meta, kills, heap, StaticsBase, clock);
         return (heap, card, display, clock);
     }
@@ -59,7 +59,7 @@ public class DisplayMaintenanceTests
     [Fact]
     public void Stale_slot_repainted_within_maintenance_cadence()
     {
-        var kills  = new Dictionary<int, int> { { 10, 9 } };
+        var kills = new Dictionary<int, int> { { 10, 9 } };
         var (heap, card, display, clock) = BuildFixture(kills);
 
         int meterWidth = Signatures.KillsMeterSlotChars;
@@ -110,7 +110,7 @@ public class DisplayMaintenanceTests
     [Fact]
     public void Dead_sites_evicted_by_maintenance_pass_after_the_strike_window()
     {
-        var kills   = new Dictionary<int, int> { { 10, 5 } };
+        var kills = new Dictionary<int, int> { { 10, 5 } };
         var (heap, card, display, clock) = BuildFixture(kills);
 
         // Drain until the card is discovered (may register enc=1 + enc=2 sites).

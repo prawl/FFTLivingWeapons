@@ -270,7 +270,7 @@ public class CardSitesSuffixPartitionTests
 
         byte[] flavorBytes = ByteScan.Ascii("A fine blade");
         byte[] prefixBytes = ByteScan.Ascii("Kills: ");
-        byte[] slotBytes   = ByteScan.Ascii("0   ");
+        byte[] slotBytes = ByteScan.Ascii("0   ");
 
         int extraBase = cap * anchorStride;
         for (int i = 0; i < cap; i++)
@@ -340,7 +340,7 @@ public class CardSitesSuffixPartitionTests
 
         byte[] flavorBytes = ByteScan.Ascii("A fine blade");
         byte[] prefixBytes = ByteScan.Ascii("Kills: ");
-        byte[] slotBytes   = ByteScan.Ascii("0   ");
+        byte[] slotBytes = ByteScan.Ascii("0   ");
 
         int extraBase = cap * anchorStride;
         for (int i = 0; i < cap; i++)

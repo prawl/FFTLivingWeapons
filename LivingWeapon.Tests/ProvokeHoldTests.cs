@@ -794,7 +794,7 @@ public class ProvokeHoldTests
         hold.Tick(t0, true);   // arms (marked not active)
 
         PointActorAtEnemyTurn(m, 11);   // the TWIN becomes the actor on an enemy turn -- its fp
-                                         // collides with the marked enemy, but nameId (501 vs 500) must not
+                                        // collides with the marked enemy, but nameId (501 vs 500) must not
         hold.Tick(t0.AddMilliseconds(33), true);
         ClearActor(m);   // the TWIN's turn ends -- must not count as the marked enemy's
         hold.Tick(t0.AddMilliseconds(66), true);

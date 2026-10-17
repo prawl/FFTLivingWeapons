@@ -16,7 +16,7 @@ public class DisplayHeartbeatTests
     // ─── T7/T8: the on-field path (PaintCountsIfChanged) gets the shared beat ─────
 
     private const long StaticsBase = 0x78_0000_0000L;
-    private const long SourceBase  = 0x79_0000_0000L;
+    private const long SourceBase = 0x79_0000_0000L;
 
     private static Dictionary<int, WeaponMeta> BuildMeta() => new()
     {
@@ -217,7 +217,7 @@ public class DisplayHeartbeatTests
         CardFixtures.TickWithPoolLocate(display, false);   // locates+covers the original pool region
 
         display.Invalidate();   // battle-edge style: RegionsStale flips true; CachedRegions keeps
-                                 // serving the OLD (poolBase) list until a fresh scan republishes
+                                // serving the OLD (poolBase) list until a fresh scan republishes
 
         // A relocated card at a brand-new address, OUTSIDE the (now stale) cached region -- the
         // battle-exit shape (menu buffers reallocated). Registered directly, mirroring

@@ -15,7 +15,7 @@ namespace LivingWeapon.Tests;
 /// </summary>
 public class DisplayFlightTests
 {
-    private const long SourceBase  = 0x72_0000_0000L;
+    private const long SourceBase = 0x72_0000_0000L;
     private const long StaticsBase = 0x73_0000_0000L;
 
     private static Dictionary<int, WeaponMeta> BuildMeta() => new()
@@ -66,7 +66,7 @@ public class DisplayFlightTests
         var display = CardFixtures.MakeDisplay(meta, kills, heap, StaticsBase, clock);   // no recorder
 
         Assert.Null(display._verdict);   // the allocation path (Display's ctor) is skipped entirely,
-                                          // not merely "no taps fire" -- pins the existing behavior
+                                         // not merely "no taps fire" -- pins the existing behavior
 
         // Regression safety: real paint activity with no recorder at all must still behave
         // exactly as every pre-LW-257 test already proves, and must not allocate a ledger later.
@@ -365,7 +365,7 @@ public class DisplayFlightTests
         CardFixtures.DrainGeneration(display, clock, 500);
 
         display._evictedBudget = Display.EvictedRecordBudget;   // simulate "already exhausted";
-                                                                  // _flightBudget keeps its headroom
+                                                                // _flightBudget keeps its headroom
 
         kills[10] = 8;
         display.PaintCountsIfChanged();   // routes through PaintAllTapped -> CardSites.PaintAll(verdict)
@@ -527,7 +527,7 @@ public class DisplayFlightTests
         // paint lane spends, not a private reserve.
         int writesBefore = heap.Writes;
         display.PaintCountsIfChanged();   // kills[10]=5 vs empty _lastCounts reads as a change,
-                                           // so it paints through PaintAllTapped
+                                          // so it paints through PaintAllTapped
         Assert.Equal(writesBefore + 1, heap.Writes);   // the paint genuinely wrote
         Assert.DoesNotContain(recorded, r => r.type == "card" && r.payload.StartsWith("paint id=10"));
         // ^ suppressed: the prune above already exhausted the shared budget for this window.

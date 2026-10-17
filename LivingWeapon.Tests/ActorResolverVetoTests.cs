@@ -35,7 +35,7 @@ public class ActorResolverVetoTests
 
     private static void SetActive(FakeSparseMemory m, int hp, int maxHp, int level)
     {
-        m.U16s[Offsets.TurnQueue + Offsets.TqHp]    = (ushort)hp;
+        m.U16s[Offsets.TurnQueue + Offsets.TqHp] = (ushort)hp;
         m.U16s[Offsets.TurnQueue + Offsets.TqMaxHp] = (ushort)maxHp;
         m.U16s[Offsets.TurnQueue + Offsets.TqLevel] = (ushort)level;
     }

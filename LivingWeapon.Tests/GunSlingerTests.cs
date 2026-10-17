@@ -331,7 +331,10 @@ public class GunSlingerTests
     {
         [BlasterId] = new WeaponMeta
         {
-            Name = "Blaster", Wp = 15, Cat = "Gun", Formula = 4,
+            Name = "Blaster",
+            Wp = 15,
+            Cat = "Gun",
+            Formula = 4,
             Flavor = "magickal firearm",
             Signature = new WeaponSignature { AtTier = 3, GunSlinger = true, DisplayLabel = "Gun Slinger" }
         }
@@ -342,11 +345,11 @@ public class GunSlingerTests
         ushort nameId, byte level, ushort rh, ushort off, ushort supp)
     {
         long b = Offsets.RosterBase + slot * Offsets.RosterStride;
-        mem.U16s[b + Offsets.RNameId]   = nameId;
-        mem.U8s[b + Offsets.RLevel]     = level;
-        mem.U16s[b + Offsets.RRHand]    = rh;
-        mem.U16s[b + Offsets.ROffHand]  = off;
-        mem.U16s[b + Offsets.RSupport]  = supp;
+        mem.U16s[b + Offsets.RNameId] = nameId;
+        mem.U8s[b + Offsets.RLevel] = level;
+        mem.U16s[b + Offsets.RRHand] = rh;
+        mem.U16s[b + Offsets.ROffHand] = off;
+        mem.U16s[b + Offsets.RSupport] = supp;
         // Mark off-hand and support writable
         mem.MarkWritable(b + Offsets.ROffHand, 2);   // production gates the u16 twin write with n=2 (GunSlinger.cs WriteOffHand)
         mem.MarkWritable(b + Offsets.RSupport, 2);   // production gates the u16 support write with n=2 (GunSlinger.cs WriteSupport)
@@ -430,7 +433,7 @@ public class GunSlingerTests
 
         // Now switch to a different main-hand weapon
         long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
-        mem.U16s[b + Offsets.RRHand]   = 77;         // different gun
+        mem.U16s[b + Offsets.RRHand] = 77;         // different gun
         mem.U16s[b + Offsets.ROffHand] = BlasterId;  // twin still there
         mem.U16s[b + Offsets.RSupport] = DualWieldKey;
 
@@ -603,13 +606,19 @@ public class GunSlingerTests
     {
         [OutriderPistolId] = new WeaponMeta
         {
-            Name = "Outrider Pistol", Wp = 7, Cat = "Gun", Formula = 3,
+            Name = "Outrider Pistol",
+            Wp = 7,
+            Cat = "Gun",
+            Formula = 3,
             Flavor = "wheel-lock",
             Signature = new WeaponSignature { AtTier = 3, GunSlinger = true, DisplayLabel = "Gun Slinger" }
         },
         [ArbalestId] = new WeaponMeta
         {
-            Name = "Arbalest", Wp = 7, Cat = "Crossbow", Formula = 1,
+            Name = "Arbalest",
+            Wp = 7,
+            Cat = "Crossbow",
+            Formula = 1,
             Flavor = "steel arbalest",
             Signature = new WeaponSignature { AtTier = 3, GunSlinger = true, DisplayLabel = "Crossfire" }
         }

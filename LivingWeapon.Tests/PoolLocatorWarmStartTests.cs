@@ -85,9 +85,9 @@ public class PoolLocatorWarmStartTests
         Assert.Equal(intactBase, locator.CachedRegions[0].baseAddr);
         Assert.DoesNotContain(locator.CachedRegions, r => r.baseAddr == staleBase);
         Assert.Equal(1, locator.PublishGeneration);   // the seed's own bump -- ScanPoolRegion
-                                                       // (Display.PoolPaintCadence's ShouldRunFullPoolScan)
-                                                       // treats this as a fresh publish on the very
-                                                       // next paint call, with zero full-locate progress.
+                                                      // (Display.PoolPaintCadence's ShouldRunFullPoolScan)
+                                                      // treats this as a fresh publish on the very
+                                                      // next paint call, with zero full-locate progress.
 
         // ── Phase 2 (the trap test): the seed never marks the locate complete -- keep stepping
         // and the ordinary full scan must still run against LIVE memory and republish on its own. ──

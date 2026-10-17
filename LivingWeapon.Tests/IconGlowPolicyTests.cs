@@ -21,8 +21,13 @@ public class IconGlowPolicyTests
     {
         var kills = new Dictionary<int, int>
         {
-            [1] = 0, [2] = 5, [3] = 10, [4] = 15,   // tier boundaries: 0/1/2/3
-            [5] = 4, [6] = 9, [7] = 14,              // one kill short of each boundary: 0/1/2
+            [1] = 0,
+            [2] = 5,
+            [3] = 10,
+            [4] = 15,   // tier boundaries: 0/1/2/3
+            [5] = 4,
+            [6] = 9,
+            [7] = 14,              // one kill short of each boundary: 0/1/2
         };
         var desired = IconGlowPolicy.DesiredTiers(kills, new[] { 1, 2, 3, 4, 5, 6, 7 });
 

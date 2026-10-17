@@ -75,7 +75,11 @@ public class WielderKeyedStoreConsumerTests
         {
             [WeaponId] = new WeaponMeta
             {
-                Name = "Mending Staff", Wp = 8, Cat = "Staff", Formula = 6, Flavor = "renewal staff",
+                Name = "Mending Staff",
+                Wp = 8,
+                Cat = "Staff",
+                Formula = 6,
+                Flavor = "renewal staff",
                 Signature = new WeaponSignature { AtTier = 3, RegenAuraRadius = 1, DisplayLabel = "Renewal" }
             }
         };
@@ -135,7 +139,11 @@ public class WielderKeyedStoreConsumerTests
         var engine = new GrowthEngine(new Dictionary<int, WeaponMeta>(), new Dictionary<int, int>(), turns, mem);
         var m = new WeaponMeta
         {
-            Name = "Swiftedge", Wp = 10, Cat = "Sword", Formula = 99, Flavor = "afterimage blade",
+            Name = "Swiftedge",
+            Wp = 10,
+            Cat = "Sword",
+            Formula = 99,
+            Flavor = "afterimage blade",
             Signature = new WeaponSignature { AtTier = 3, Afterimage = true, DisplayLabel = "Afterimage" }
         };
         const long structBase = 0x7200_0000;
@@ -172,7 +180,11 @@ public class WielderKeyedStoreConsumerTests
         {
             [AmeNoMurakumoId] = new WeaponMeta
             {
-                Name = "Ame-no-Murakumo", Wp = 10, Cat = "Katana", Formula = 1, Flavor = "gathering-storm blade",
+                Name = "Ame-no-Murakumo",
+                Wp = 10,
+                Cat = "Katana",
+                Formula = 1,
+                Flavor = "gathering-storm blade",
                 Signature = new WeaponSignature { AtTier = 3, Iai = true, DisplayLabel = "Iai" }
             }
         };
@@ -228,7 +240,11 @@ public class WielderKeyedStoreConsumerTests
         {
             [AmeNoMurakumoId] = new WeaponMeta
             {
-                Name = "Ame-no-Murakumo", Wp = 10, Cat = "Katana", Formula = 1, Flavor = "gathering-storm blade",
+                Name = "Ame-no-Murakumo",
+                Wp = 10,
+                Cat = "Katana",
+                Formula = 1,
+                Flavor = "gathering-storm blade",
                 Signature = new WeaponSignature { AtTier = 3, Iai = true, DisplayLabel = "Iai" }
             }
         };

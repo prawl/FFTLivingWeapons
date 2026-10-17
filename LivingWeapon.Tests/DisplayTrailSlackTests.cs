@@ -46,9 +46,9 @@ public class DisplayTrailSlackTests
         // paint-round-trip assertion below is non-vacuous: it only passes if Display actually
         // discovered and repainted the slot, not because the fixture happened to pre-seed the
         // expected answer.
-        byte[] slotB  = ByteScan.Enc(Signatures.KillsMeterSlot(0), enc);
-        byte[] nnB    = ByteScan.Enc("\n\n", enc);
-        byte[] flvB   = ByteScan.Enc(flavor, enc);
+        byte[] slotB = ByteScan.Enc(Signatures.KillsMeterSlot(0), enc);
+        byte[] nnB = ByteScan.Enc("\n\n", enc);
+        byte[] flvB = ByteScan.Enc(flavor, enc);
 
         // Place "Kills: " so its OWN literal ends exactly at the chunk-0/chunk-1 boundary:
         // the meter slot, the blank line, and the entire flavor all land PAST chunkSize, in the

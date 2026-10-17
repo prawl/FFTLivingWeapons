@@ -61,9 +61,9 @@ namespace LivingWeapon.Tests;
 internal sealed class FakeSparseMemory : IGameMemory
 {
     public readonly Dictionary<long, ushort> U16s = new();
-    public readonly Dictionary<long, byte>   U8s  = new();
-    public readonly HashSet<long> WritableAddrs   = new();
-    public readonly Dictionary<long, byte>   Written = new();
+    public readonly Dictionary<long, byte> U8s = new();
+    public readonly HashSet<long> WritableAddrs = new();
+    public readonly Dictionary<long, byte> Written = new();
     public readonly Dictionary<long, ushort> WrittenU16 = new();
     public readonly List<(long addr, byte[] bytes)> WrittenBytes = new();
     public Action<long, byte[]>? OnWrite;
@@ -82,9 +82,9 @@ internal sealed class FakeSparseMemory : IGameMemory
     public bool StrictRangeChecks = true;
 
     // TreasureMaster extensions
-    public readonly HashSet<long>             ReadableAddrs  = new();
-    public readonly Dictionary<long, byte[]>  TerrainBlocks  = new();
-    public readonly Dictionary<long, int>     ReadCount      = new();
+    public readonly HashSet<long> ReadableAddrs = new();
+    public readonly Dictionary<long, byte[]> TerrainBlocks = new();
+    public readonly Dictionary<long, int> ReadCount = new();
 
     public byte U8(long a)
     {
@@ -196,8 +196,8 @@ internal sealed class FakeSparseMemory : IGameMemory
     /// serve U8-composed readers only.</summary>
     public void SeedU32(long addr, uint value)
     {
-        U8s[addr + 0] = (byte)(value        & 0xFF);
-        U8s[addr + 1] = (byte)((value >> 8)  & 0xFF);
+        U8s[addr + 0] = (byte)(value & 0xFF);
+        U8s[addr + 1] = (byte)((value >> 8) & 0xFF);
         U8s[addr + 2] = (byte)((value >> 16) & 0xFF);
         U8s[addr + 3] = (byte)((value >> 24) & 0xFF);
         ReadableAddrs.Add(addr);

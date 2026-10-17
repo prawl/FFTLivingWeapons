@@ -211,8 +211,13 @@ public class WeaponPaletteTests
         {
             [weaponId] = new WeaponMeta
             {
-                Name = "Test Weapon", Wp = 5, Cat = "Sword", Formula = 1, Flavor = "f",
-                Palette = palette, Colors = colors ?? Codes(),
+                Name = "Test Weapon",
+                Wp = 5,
+                Cat = "Sword",
+                Formula = 1,
+                Flavor = "f",
+                Palette = palette,
+                Colors = colors ?? Codes(),
             }
         };
 

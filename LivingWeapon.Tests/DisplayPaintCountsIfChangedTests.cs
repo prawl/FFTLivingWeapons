@@ -18,7 +18,7 @@ namespace LivingWeapon.Tests;
 public class DisplayPaintCountsIfChangedTests : IDisposable
 {
     private const long StaticsBase = 0x42_0000_0000L;
-    private const long SourceBase  = 0x43_0000_0000L;
+    private const long SourceBase = 0x43_0000_0000L;
 
     private readonly List<TempDirs> _tempDirs = new();
 

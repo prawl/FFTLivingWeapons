@@ -35,11 +35,11 @@ public class DisplayPoolPaintTrailSlackTests
         long regionBase = 0x92_0000_0000L;
         var regionData = new byte[regionSize];
 
-        byte[] nameB  = ByteScan.Enc("Excalibur", enc);
+        byte[] nameB = ByteScan.Enc("Excalibur", enc);
         byte[] killsB = ByteScan.Enc("Kills: ", enc);
-        byte[] slotB  = ByteScan.Enc(Signatures.KillsMeterSlot(0), enc);   // unpainted placeholder
-        byte[] nnB    = ByteScan.Enc("\n\n", enc);
-        byte[] flvB   = ByteScan.Enc(flavor, enc);
+        byte[] slotB = ByteScan.Enc(Signatures.KillsMeterSlot(0), enc);   // unpainted placeholder
+        byte[] nnB = ByteScan.Enc("\n\n", enc);
+        byte[] flvB = ByteScan.Enc(flavor, enc);
 
         // "Kills: " ends exactly at the chunk-0/chunk-1 boundary: the meter slot, blank line,
         // and the entire flavor all land past chunkSize, in TrailSlack territory. The owner NAME

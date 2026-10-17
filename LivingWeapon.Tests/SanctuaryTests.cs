@@ -97,8 +97,12 @@ public class SanctuaryTests
         {
             [MagiStaffId] = new WeaponMeta
             {
-                Name = "Staff of the Magi", Wp = 7, Cat = "Staff", Formula = 1,
-                Flavor = "An ordinary-looking wooden stick", Signature = SancSig()
+                Name = "Staff of the Magi",
+                Wp = 7,
+                Cat = "Staff",
+                Formula = 1,
+                Flavor = "An ordinary-looking wooden stick",
+                Signature = SancSig()
             }
         };
         var kills = new Dictionary<int, int>

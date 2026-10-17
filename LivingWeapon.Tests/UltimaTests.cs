@@ -143,7 +143,7 @@ public class UltimaTests
     public void OwnsPa_TrueOnlyWhenUltimaFlagSet()
     {
         var mYes = new WeaponMeta { Signature = new WeaponSignature { Ultima = true } };
-        var mNo  = new WeaponMeta { Signature = new WeaponSignature { Ultima = false } };
+        var mNo = new WeaponMeta { Signature = new WeaponSignature { Ultima = false } };
         var mNull = new WeaponMeta { Signature = null };
         Assert.True(GrowthEngine.OwnsPa(mYes));
         Assert.False(GrowthEngine.OwnsPa(mNo));

@@ -14,7 +14,10 @@ public class CavalierChargeTests
 {
     private static readonly WeaponSignature MountedSig = new()
     {
-        AtTier = 3, Mounted = true, Stat = "Speed", StatBonus = 3
+        AtTier = 3,
+        Mounted = true,
+        Stat = "Speed",
+        StatBonus = 3
     };
 
     private static GrowthEngine MakeEngine(FakeSparseMemory mem)

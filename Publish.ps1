@@ -390,6 +390,8 @@ try {
 
     # Step 3: Unit tests (TDD gate; runs AFTER meta-gen because the tests read
     # LivingWeapon/meta.json)
+    Write-Status "Checking formatting (dotnet format, verify only)..." "Cyan"
+    Invoke-FormatGate -FailVerb PACKAGE
     Write-Status "Running unit tests (LivingWeapon.Tests)..." "Cyan"
     Invoke-UnitTestGate -FailVerb PACKAGE
 

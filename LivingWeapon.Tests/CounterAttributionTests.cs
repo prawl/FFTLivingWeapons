@@ -18,7 +18,7 @@ public class CounterAttributionTests
 {
     private static readonly HashSet<int> Weapons = new() { 35, 90 };
 
-    private const int ArmedWeapon  = 35;   // player A's weapon -- the stale latch at counter time
+    private const int ArmedWeapon = 35;   // player A's weapon -- the stale latch at counter time
     private const int JumperWeapon = 90;   // jumper P's weapon -- delayed-action path (T3)
 
     // Player band slot (player-side: index >= SlotsBack=20)

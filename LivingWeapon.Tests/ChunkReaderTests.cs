@@ -13,7 +13,7 @@ namespace LivingWeapon.Tests;
 /// </summary>
 public class ChunkReaderTests
 {
-    private const long BigBase   = 0xB0_0000_0000L;
+    private const long BigBase = 0xB0_0000_0000L;
     private const long ShortBase = 0xB1_0000_0000L;
 
     [Fact]

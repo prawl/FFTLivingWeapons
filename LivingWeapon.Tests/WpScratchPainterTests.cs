@@ -32,9 +32,9 @@ public class WpScratchPainterTests
 
         var heap = new FakeHeap((StaticsBase, statics, writable));
         var mem = new OffsetRemapMem(heap,
-            mirrorWeaponAddr:  StaticsBase + 0,
+            mirrorWeaponAddr: StaticsBase + 0,
             mirrorOffHandAddr: StaticsBase + 2,
-            wpScratchAddr:     StaticsBase + 4);
+            wpScratchAddr: StaticsBase + 4);
         return (heap, new WpScratchPainter(mem, BuildMeta(), killsFor));
     }
 
@@ -113,9 +113,9 @@ public class WpScratchPainterTests
         // No heap region at all: every guarded read misses; Paint must be a safe no-op.
         var heap = new FakeHeap(Array.Empty<(long, byte[])>());
         var mem = new OffsetRemapMem(heap,
-            mirrorWeaponAddr:  StaticsBase + 0,
+            mirrorWeaponAddr: StaticsBase + 0,
             mirrorOffHandAddr: StaticsBase + 2,
-            wpScratchAddr:     StaticsBase + 4);
+            wpScratchAddr: StaticsBase + 4);
         var painter = new WpScratchPainter(mem, BuildMeta(), _ => 50);
 
         var ex = Record.Exception(() => painter.Paint());

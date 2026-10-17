@@ -117,10 +117,10 @@ public class KillTrackerFixturesTests
         {
             long s = Offsets.ArrayReadBase + (long)bandSlot * Offsets.ArrayStride;
             m.U16s[s + Offsets.AInBattle] = 1;
-            m.U8s[s + Offsets.ALevel]     = (byte)level;
-            m.U8s[s + Offsets.ABrave]     = (byte)brave;
-            m.U8s[s + Offsets.AFaith]     = (byte)faith;
-            m.U16s[s + Offsets.AMaxHp]    = (ushort)maxHp;
+            m.U8s[s + Offsets.ALevel] = (byte)level;
+            m.U8s[s + Offsets.ABrave] = (byte)brave;
+            m.U8s[s + Offsets.AFaith] = (byte)faith;
+            m.U16s[s + Offsets.AMaxHp] = (ushort)maxHp;
         }
     }
 

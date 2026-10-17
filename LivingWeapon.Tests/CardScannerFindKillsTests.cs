@@ -239,7 +239,7 @@ public class CardScannerFindKillsTests
         var buf = new byte[400];
         var (killsPosA, flavorPosA) = CardFixtures.WriteCardForward(buf, 0, "A sharp blade");
         int cardBGap = 20; // small gap so a reverted backward-only search would misattribute B's
-                            // hit to A's flavor instead of dropping/finding B's own (below) flavor.
+                           // hit to A's flavor instead of dropping/finding B's own (below) flavor.
         int nextCardStart = flavorPosA + ByteScan.Enc("A sharp blade", 1).Length + cardBGap;
         var (killsPosB, flavorPosB) = CardFixtures.WriteCardForward(buf, nextCardStart, "B holy relic");
 

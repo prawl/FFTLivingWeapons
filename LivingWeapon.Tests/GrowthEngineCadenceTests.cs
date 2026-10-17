@@ -46,7 +46,11 @@ public class GrowthEngineCadenceTests
         var (engine, mem, ledger) = Build();
         var m = new WeaponMeta
         {
-            Name = "Materia Blade", Wp = 10, Cat = "Sword", Formula = 1, Flavor = "ultima blade",
+            Name = "Materia Blade",
+            Wp = 10,
+            Cat = "Sword",
+            Formula = 1,
+            Flavor = "ultima blade",
             Signature = new WeaponSignature { AtTier = 3, Ultima = true, DisplayLabel = "Ultima" }
         };
         long addr = StructBase + Offsets.CPa;
@@ -74,7 +78,11 @@ public class GrowthEngineCadenceTests
         var (engine, mem, ledger) = Build();
         var m = new WeaponMeta
         {
-            Name = "Kiku-ichimonji", Wp = 10, Cat = "Katana", Formula = 1, Flavor = "stillness blade",
+            Name = "Kiku-ichimonji",
+            Wp = 10,
+            Cat = "Katana",
+            Formula = 1,
+            Flavor = "stillness blade",
             Signature = new WeaponSignature { AtTier = 3, Mushin = true, DisplayLabel = "Mushin" }
         };
         long addr = StructBase + Offsets.CPa;
@@ -100,7 +108,11 @@ public class GrowthEngineCadenceTests
         var (engine, mem, ledger) = Build();
         var m = new WeaponMeta
         {
-            Name = "Swiftedge", Wp = 10, Cat = "Sword", Formula = 99, Flavor = "afterimage blade",
+            Name = "Swiftedge",
+            Wp = 10,
+            Cat = "Sword",
+            Formula = 99,
+            Flavor = "afterimage blade",
             Signature = new WeaponSignature { AtTier = 3, Afterimage = true, DisplayLabel = "Afterimage" }
         };
         long addr = StructBase + Offsets.CSpeed;
@@ -139,7 +151,7 @@ public class GrowthEngineCadenceTests
 
         mem.U8s[addr] = 250;   // a foreign value
         engine.Hold(addr, 0.15, StatLane.Speed, NameId, 30);   // foreign tick: STILL +1 (the same stale-target call fires
-                                                                // BEFORE the ownership check even looks at cur==250)
+                                                               // BEFORE the ownership check even looks at cur==250)
         Assert.Equal(3, ledger.RecordWriteCalls);
     }
 }

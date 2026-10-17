@@ -36,13 +36,13 @@ public class GrowthEngineTests
         var s = PinnedBuf.Of(256);
         var buf = s.Bytes;
         // weapon at CWeapon (0x20), u16 LE
-        buf[Offsets.CWeapon]     = (byte)(weapon & 0xFF);
+        buf[Offsets.CWeapon] = (byte)(weapon & 0xFF);
         buf[Offsets.CWeapon + 1] = (byte)((weapon >> 8) & 0xFF);
         // level at CLevel (0x29)
-        buf[Offsets.CLevel]  = (byte)level;
+        buf[Offsets.CLevel] = (byte)level;
         // brave/faith at CBrave/CFaith
-        buf[Offsets.CBrave]  = (byte)brave;
-        buf[Offsets.CFaith]  = (byte)faith;
+        buf[Offsets.CBrave] = (byte)brave;
+        buf[Offsets.CFaith] = (byte)faith;
         // PA/MA at CPa/CMa (must be in 1..199)
         buf[Offsets.CPa] = (byte)pa;
         buf[Offsets.CMa] = (byte)ma;
@@ -70,17 +70,17 @@ public class GrowthEngineTests
     {
         var s = PinnedBuf.Of(0x200);
         var buf = s.Bytes;
-        buf[Offsets.CWeapon]     = (byte)(weapon & 0xFF);
+        buf[Offsets.CWeapon] = (byte)(weapon & 0xFF);
         buf[Offsets.CWeapon + 1] = (byte)((weapon >> 8) & 0xFF);
-        buf[Offsets.CLevel]  = (byte)level;
-        buf[Offsets.CBrave]  = (byte)brave;
-        buf[Offsets.CFaith]  = (byte)faith;
+        buf[Offsets.CLevel] = (byte)level;
+        buf[Offsets.CBrave] = (byte)brave;
+        buf[Offsets.CFaith] = (byte)faith;
         buf[Offsets.CPa] = (byte)pa;
         buf[Offsets.CMa] = (byte)ma;
         buf[Offsets.AGx] = (byte)gx;
         buf[Offsets.AGy] = (byte)gy;
         int nameOff = Offsets.BandEntry + Offsets.ANameId;   // == 0x1FC
-        buf[nameOff]     = (byte)(nameId & 0xFF);
+        buf[nameOff] = (byte)(nameId & 0xFF);
         buf[nameOff + 1] = (byte)((nameId >> 8) & 0xFF);
         return s;
     }
@@ -133,7 +133,7 @@ public class GrowthEngineTests
     public void ScanStructEntries_returns_player_slot_when_only_player_matches()
     {
         using var player = PinnedStruct(weapon: 10, level: 30, brave: 65, faith: 58);
-        using var enemy  = PinnedStruct(weapon: 10, level: 99, brave: 65, faith: 58);  // enemy: different level
+        using var enemy = PinnedStruct(weapon: 10, level: 99, brave: 65, faith: 58);  // enemy: different level
         // player slot (isPlayer=true), enemy slot (isPlayer=false)
         var entries = new[] { (isPlayer: false, addr: enemy.Addr), (isPlayer: true, addr: player.Addr) };
         long result = GrowthEngine.ScanEntries(Live, 30, 65, 58, MakeHands(10), entries);
@@ -146,7 +146,7 @@ public class GrowthEngineTests
         // Player-side preference: when both a player and an enemy slot match, take the player
         // (the player-side pass fires first and exits the outer loop before enemy-side is checked).
         using var player = PinnedStruct(weapon: 10, level: 30, brave: 65, faith: 58);
-        using var enemy  = PinnedStruct(weapon: 10, level: 30, brave: 65, faith: 58);
+        using var enemy = PinnedStruct(weapon: 10, level: 30, brave: 65, faith: 58);
         var entries = new[] { (isPlayer: true, addr: player.Addr), (isPlayer: false, addr: enemy.Addr) };
         long result = GrowthEngine.ScanEntries(Live, 30, 65, 58, MakeHands(10), entries);
         Assert.Equal(player.Addr, result);
@@ -181,7 +181,7 @@ public class GrowthEngineTests
         // The real-position entry should win -- this is the regression for the static-array
         // battle-restart freeze phenomenon (live copy at real pos, frozen copy at (0,0)).
         using var frozen = PinnedStruct(weapon: 10, level: 30, brave: 65, faith: 58, gx: 0, gy: 0);
-        using var live   = PinnedStruct(weapon: 10, level: 30, brave: 65, faith: 58, gx: 4, gy: 7);
+        using var live = PinnedStruct(weapon: 10, level: 30, brave: 65, faith: 58, gx: 4, gy: 7);
         var entries = new[] { (isPlayer: true, addr: frozen.Addr), (isPlayer: true, addr: live.Addr) };
         long result = GrowthEngine.ScanEntries(Live, 30, 65, 58, MakeHands(10), entries);
         Assert.Equal(live.Addr, result);
@@ -575,7 +575,7 @@ public class GrowthEngineTests
         // non-vacuity: the collider is the one at a REAL position, so a fp-only scan (no nameId
         // awareness) would wrongly prefer IT over the origin-bound wielder. Only the nameId-exact
         // gate exists to keep the collider out of the candidate pool entirely.
-        using var wielder  = PinnedStruct200(weapon: 10, level: 30, brave: 65, faith: 58, nameId: 298);
+        using var wielder = PinnedStruct200(weapon: 10, level: 30, brave: 65, faith: 58, nameId: 298);
         using var collider = PinnedStruct200(weapon: 10, level: 30, brave: 65, faith: 58, nameId: 918, gx: 9, gy: 9);
         var entries = new[] { (isPlayer: true, addr: wielder.Addr), (isPlayer: true, addr: collider.Addr) };
         long result = GrowthEngine.ScanEntries(Live, 30, 65, 58, MakeHands(10), entries, nameId: 298, out int matchCount);
@@ -589,7 +589,7 @@ public class GrowthEngineTests
         // Player-side pass exits the scan before the enemy-side entry is even considered --
         // unchanged from today's order, now proven under the nameId-exact predicate too.
         using var player = PinnedStruct200(weapon: 10, level: 30, brave: 65, faith: 58, nameId: 298);
-        using var enemy  = PinnedStruct200(weapon: 10, level: 30, brave: 65, faith: 58, nameId: 298);
+        using var enemy = PinnedStruct200(weapon: 10, level: 30, brave: 65, faith: 58, nameId: 298);
         var entries = new[] { (isPlayer: false, addr: enemy.Addr), (isPlayer: true, addr: player.Addr) };
         long result = GrowthEngine.ScanEntries(Live, 30, 65, 58, MakeHands(10), entries, nameId: 298);
         Assert.Equal(player.Addr, result);
@@ -619,7 +619,7 @@ public class GrowthEngineTests
         // pick) while the wielder's own zero-nameId entry sits at the origin -- so a fp-only
         // scan (no veto) would wrongly return the collider. The veto must exclude it BEFORE the
         // tie-break ever runs.
-        using var collider  = PinnedStruct200(weapon: 10, level: 30, brave: 65, faith: 58, nameId: 918, gx: 9, gy: 9);
+        using var collider = PinnedStruct200(weapon: 10, level: 30, brave: 65, faith: 58, nameId: 918, gx: 9, gy: 9);
         using var zeroEntry = PinnedStruct200(weapon: 10, level: 30, brave: 65, faith: 58, nameId: 0);
         var engine = NewEngine();
         var entries = new[] { (isPlayer: true, addr: collider.Addr), (isPlayer: true, addr: zeroEntry.Addr) };
@@ -657,7 +657,7 @@ public class GrowthEngineTests
         // byte today's scan -- confirms the vet-then-rescan restructuring left the player-first
         // pass order alone.
         using var player = PinnedStruct200(weapon: 10, level: 30, brave: 65, faith: 58, nameId: 0);
-        using var enemy  = PinnedStruct200(weapon: 10, level: 30, brave: 65, faith: 58, nameId: 0);
+        using var enemy = PinnedStruct200(weapon: 10, level: 30, brave: 65, faith: 58, nameId: 0);
         var engine = NewEngine();
         var entries = new[] { (isPlayer: false, addr: enemy.Addr), (isPlayer: true, addr: player.Addr) };
         long result = engine.LocateIn(0, 30, 65, 58, MakeHands(10), entries);

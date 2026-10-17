@@ -18,14 +18,14 @@ internal static class MemSeats
         m.U8s[rb + Offsets.RLevel] = (byte)lvl;
         m.U8s[rb + Offsets.RBrave] = (byte)br;
         m.U8s[rb + Offsets.RFaith] = (byte)fa;
-        m.U16s[rb + Offsets.RRHand]   = (ushort)rh;
-        m.U16s[rb + Offsets.RLHand]   = (ushort)lh;
+        m.U16s[rb + Offsets.RRHand] = (ushort)rh;
+        m.U16s[rb + Offsets.RLHand] = (ushort)lh;
         m.U16s[rb + Offsets.ROffHand] = (ushort)oh;
-        m.U16s[rb + Offsets.RNameId]  = (ushort)nameId;   // default 0 == old unseeded-read behavior
+        m.U16s[rb + Offsets.RNameId] = (ushort)nameId;   // default 0 == old unseeded-read behavior
         // LW-31 stage 3: SpriteSet byte (Offsets.RSprite == roster +0x00). Default 0 is well under
         // 0x80 (AttackRow.Policy.HumanSprite), matching every pre-existing call site's implicit
         // "ordinary human" assumption unaffected.
-        m.U8s[rb + Offsets.RSprite]  = (byte)sprite;
+        m.U8s[rb + Offsets.RSprite] = (byte)sprite;
     }
 
     /// <summary>Seed a band entry's frame nameId back-reference (Offsets.ANameId, band-entry-
@@ -44,15 +44,15 @@ internal static class MemSeats
     {
         long e = Band.Entry(bandIdx);
         m.U16s[e + (Offsets.CWeapon - Offsets.BandEntry)] = (ushort)weapon;
-        m.U8s[e + Offsets.ALevel]  = (byte)lvl;
-        m.U8s[e + Offsets.ABrave]  = (byte)br;
-        m.U8s[e + Offsets.AFaith]  = (byte)fa;
-        m.U8s[e + Offsets.AGx]     = (byte)gx;
-        m.U8s[e + Offsets.AGy]     = (byte)gy;
-        m.U16s[e + Offsets.AHp]    = (ushort)hp;
+        m.U8s[e + Offsets.ALevel] = (byte)lvl;
+        m.U8s[e + Offsets.ABrave] = (byte)br;
+        m.U8s[e + Offsets.AFaith] = (byte)fa;
+        m.U8s[e + Offsets.AGx] = (byte)gx;
+        m.U8s[e + Offsets.AGy] = (byte)gy;
+        m.U16s[e + Offsets.AHp] = (ushort)hp;
         m.U16s[e + Offsets.AMaxHp] = (ushort)maxHp;
         m.U8s[e + Offsets.ACtTurn] = (byte)ctTurn;
-        m.U8s[e + Offsets.ASpeed]  = (byte)speed;
+        m.U8s[e + Offsets.ASpeed] = (byte)speed;
         // LW-127: ACtSlam (band +0x25) is the field TurnOrder.cs reads for the CT+Speed turn-order
         // ranking. Nullable and additive-only: every existing caller leaves it unwritten, exactly as
         // before (an unseeded FakeSparseMemory read already returns 0, so leaving it null is not

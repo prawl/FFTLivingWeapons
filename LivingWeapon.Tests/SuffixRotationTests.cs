@@ -53,7 +53,7 @@ public class SuffixRotationTests
         var rot = new SuffixRotation();
         var ids = Enumerable.Range(100, SuffixRotation.RotationSlice + 3).ToArray();
 
-        var first  = rot.Take(ids, NoTargets);
+        var first = rot.Take(ids, NoTargets);
         var second = rot.Take(ids, NoTargets);
 
         // The second call must pick exactly the ids the first one did not cover.
@@ -99,7 +99,7 @@ public class SuffixRotationTests
         // cursor the 20-card master text was walking, so tail ids never painted.
         // With per-ID coverage, interleaving a small chunk must not re-cover big-chunk ids.
         var rot = new SuffixRotation();
-        var big   = Enumerable.Range(100, SuffixRotation.RotationSlice * 2).ToArray();
+        var big = Enumerable.Range(100, SuffixRotation.RotationSlice * 2).ToArray();
         var small = new[] { 900, 901 };
 
         var covered = new HashSet<int>(rot.Take(big, NoTargets));

@@ -121,7 +121,7 @@ public class WielderTests
         // Dual-wield: exact-match rank resolves before the twin-tie path fires.
         const int Other = Weapon + 1;
         var m = new FakeSparseMemory();
-        MemSeats.SeatBand(m, 25, Other,  lvl: 99, br: 89, fa: 76, gx: 0, gy: 0);
+        MemSeats.SeatBand(m, 25, Other, lvl: 99, br: 89, fa: 76, gx: 0, gy: 0);
         MemSeats.SeatBand(m, 28, Weapon, lvl: 99, br: 89, fa: 76, gx: 0, gy: 0);
         long e = Wielder.Locate(m, Weapon, new[] { Weapon, Other }, (99, 89, 76));
         Assert.Equal(Band.Entry(28), e);

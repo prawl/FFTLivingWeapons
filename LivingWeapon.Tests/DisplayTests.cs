@@ -20,7 +20,7 @@ public class DisplayTests
     // â”€â”€â”€ Fixture helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     private const long StaticsBase = 0x10_0000_0000L;
-    private const long SourceBase  = 0x20_0000_0000L;
+    private const long SourceBase = 0x20_0000_0000L;
 
     /// <summary>Build a 3-weapon meta dict (ids 10, 11, 12) with unique names and flavors.</summary>
     private static Dictionary<int, WeaponMeta> BuildMeta() => new()
@@ -43,7 +43,7 @@ public class DisplayTests
         BuildFixture(int mirrorId, byte naturalWp)
     {
         var src = new byte[512];
-        var cA = CardFixtures.WriteCard(src, 0,   "SwordA", "Bright edge of dawn");
+        var cA = CardFixtures.WriteCard(src, 0, "SwordA", "Bright edge of dawn");
         var cB = CardFixtures.WriteCard(src, 150, "SwordB", "Cold iron remembers");
         var cC = CardFixtures.WriteCard(src, 300, "SwordC", "Rust never forgives");
 
@@ -57,7 +57,7 @@ public class DisplayTests
         statics[4] = naturalWp;
 
         var heap = new FakeHeap(
-            (SourceBase,  src),
+            (SourceBase, src),
             (StaticsBase, statics));
 
         return (heap, src, cA, cB, cC);
@@ -76,7 +76,7 @@ public class DisplayTests
     [Fact]
     public void Shared_kills_regression_each_weapon_gets_its_own_count()
     {
-        var meta  = BuildMeta();
+        var meta = BuildMeta();
         var kills = new Dictionary<int, int> { { 10, 9 }, { 11, 7 }, { 12, 0 } };
         var clock = new TestClock();
         var (heap, _, cA, cB, cC) = BuildFixture(mirrorId: 10, naturalWp: 12);
@@ -97,7 +97,7 @@ public class DisplayTests
     {
         // Prod thresholds {5,20,50}: 3 kills < 5 -> tier 0.
         // Old code gated on tier > 0 and silently skipped painting those weapons.
-        var meta  = BuildMeta();
+        var meta = BuildMeta();
         var kills = new Dictionary<int, int> { { 10, 3 }, { 11, 0 }, { 12, 0 } };
         var clock = new TestClock();
         var (heap, _, cA, _, _) = BuildFixture(mirrorId: 10, naturalWp: 12);
@@ -115,7 +115,7 @@ public class DisplayTests
     [Fact]
     public void Mid_session_kill_bump_repaints_count()
     {
-        var meta  = BuildMeta();
+        var meta = BuildMeta();
         var kills = new Dictionary<int, int> { { 10, 5 }, { 11, 0 }, { 12, 0 } };
         var clock = new TestClock();
         var (heap, _, cA, _, _) = BuildFixture(mirrorId: 10, naturalWp: 12);
@@ -139,7 +139,7 @@ public class DisplayTests
     [Fact]
     public void Invalidate_then_tick_repaints_correct_counts()
     {
-        var meta  = BuildMeta();
+        var meta = BuildMeta();
         var kills = new Dictionary<int, int> { { 10, 2 }, { 11, 3 }, { 12, 1 } };
         var clock = new TestClock();
         var (heap, _, cA, cB, cC) = BuildFixture(mirrorId: 10, naturalWp: 12);
@@ -167,7 +167,7 @@ public class DisplayTests
     [Fact]
     public void Suffix_target_weapon_at_tier2_gets_plus2_suffix()
     {
-        var meta  = BuildMeta();
+        var meta = BuildMeta();
         // Prod thresholds {5,10,15}: 12 kills = tier 2 -> "+2"
         var kills = new Dictionary<int, int> { { 10, 12 }, { 11, 0 }, { 12, 0 } };
         var clock = new TestClock();
@@ -182,7 +182,7 @@ public class DisplayTests
     [Fact]
     public void Non_target_suffix_slot_not_corrupted_by_other_weapons_count()
     {
-        var meta  = BuildMeta();
+        var meta = BuildMeta();
         var kills = new Dictionary<int, int> { { 10, 50 }, { 11, 0 }, { 12, 0 } };
         var clock = new TestClock();
         var (heap, _, cA, cB, _) = BuildFixture(mirrorId: 10, naturalWp: 12);
@@ -201,7 +201,7 @@ public class DisplayTests
     [Fact]
     public void WpScratch_written_when_primed_with_natural_wp()
     {
-        var meta  = BuildMeta();
+        var meta = BuildMeta();
         // id 10, Wp=12; 50 kills = tier 3 -> Factor=0.30 -> boosted = round(12*1.30)=16
         var kills = new Dictionary<int, int> { { 10, 50 }, { 11, 0 }, { 12, 0 } };
         var clock = new TestClock();
@@ -218,7 +218,7 @@ public class DisplayTests
     [Fact]
     public void WpScratch_untouched_when_primed_with_unrelated_value()
     {
-        var meta  = BuildMeta();
+        var meta = BuildMeta();
         var kills = new Dictionary<int, int> { { 10, 50 }, { 11, 0 }, { 12, 0 } };
         var clock = new TestClock();
         // Prime scratch with a value that is neither natural WP (12) nor the boosted value
@@ -236,14 +236,14 @@ public class DisplayTests
     [Fact]
     public void Single_tick_does_not_throw_against_multi_chunk_region()
     {
-        var meta  = BuildMeta();
+        var meta = BuildMeta();
         var kills = new Dictionary<int, int> { { 10, 0 }, { 11, 0 }, { 12, 0 } };
 
         // Three-chunk region so the sweep has multiple chunks to walk
         long bigBase = 0x30_0000_0000L;
-        int bigSize  = DisplaySweep.ChunkSize * 3;
-        var bigData  = new byte[bigSize];
-        var statics  = new byte[64];
+        int bigSize = DisplaySweep.ChunkSize * 3;
+        var bigData = new byte[bigSize];
+        var statics = new byte[64];
 
         var heap = new FakeHeap((bigBase, bigData), (StaticsBase, statics));
         var clock = new TestClock();

@@ -86,12 +86,12 @@ public class ByteScanTests
     //     above is untouched and stays test-only after CardScanner/CardSites move to this one. ---
 
     private const int MeterWidth = 11; // Signatures.KillsMeterSlotChars; kept a literal here so this
-                                        // suite doesn't itself depend on the production constant.
+                                       // suite doesn't itself depend on the production constant.
 
     [Theory]
     [InlineData("0/5 to +   ")]    // tier-0 body, padded (11 chars)
     [InlineData("49/50 to +3")]    // two-digit count body, no padding needed (11 chars); the
-                                    // production widest sub-max is now "14/15 to +3" under {5,10,15}
+                                   // production widest sub-max is now "14/15 to +3" under {5,10,15}
     [InlineData("55         ")]    // max-tier bare count, padded (11 chars)
     [InlineData("-/- to +   ")]    // LW-311: the baked neutral scaffold (dashes, runtime absent/not yet painted)
     public void MeterSlotDigits_ascii_accepts_valid(string slot)

@@ -166,7 +166,11 @@ public class PuppeteerTests
         {
             [GalewindId] = new WeaponMeta
             {
-                Name = "Galewind", Wp = 8, Cat = "Knife", Formula = 1, Flavor = "A windswept dagger",
+                Name = "Galewind",
+                Wp = 8,
+                Cat = "Knife",
+                Formula = 1,
+                Flavor = "A windswept dagger",
                 Signature = new WeaponSignature { AtTier = 3, PuppeteerTurns = puppetTurns, DisplayLabel = "Puppeteer" }
             }
         };
@@ -186,8 +190,8 @@ public class PuppeteerTests
         // Set the turn queue to the WIELDER so TryResolveActingPlayer + TryResolveActingFingerprint
         // both return the wielder's fingerprint (lvl, br, fa).
         mem.U16s[Offsets.TurnQueue + Offsets.TqMaxHp] = (ushort)WielderMaxHp;
-        mem.U16s[Offsets.TurnQueue + Offsets.TqHp]    = (ushort)WielderHp;
-        mem.U16s[Offsets.TurnQueue + Offsets.TqLevel]  = (ushort)WielderLevel;
+        mem.U16s[Offsets.TurnQueue + Offsets.TqHp] = (ushort)WielderHp;
+        mem.U16s[Offsets.TurnQueue + Offsets.TqLevel] = (ushort)WielderLevel;
         mem.U8s[Offsets.Acted] = 1;  // the wielder is acting
 
         // Settle the KillTracker so it latches the wielder's fingerprint as LastActorFingerprint.
@@ -241,8 +245,8 @@ public class PuppeteerTests
         int mhp, int lvl, int br, int fa, int hp)
     {
         mem.U16s[Offsets.TurnQueue + Offsets.TqMaxHp] = (ushort)mhp;
-        mem.U16s[Offsets.TurnQueue + Offsets.TqHp]    = (ushort)hp;
-        mem.U16s[Offsets.TurnQueue + Offsets.TqLevel]  = (ushort)lvl;
+        mem.U16s[Offsets.TurnQueue + Offsets.TqHp] = (ushort)hp;
+        mem.U16s[Offsets.TurnQueue + Offsets.TqLevel] = (ushort)lvl;
 
         mem.U8s[Offsets.Acted] = 0; pup.Tick(onField: false);               // pre-turn: acted low, queue named
         mem.U8s[Offsets.Acted] = 1; turns.Poll(); pup.Tick(onField: false);  // acted RISING: credit + own-turn opens (puppet only)
@@ -656,7 +660,11 @@ public class PuppeteerTests
         {
             [GalewindId] = new WeaponMeta
             {
-                Name = "Galewind", Wp = 8, Cat = "Knife", Formula = 1, Flavor = "A windswept dagger",
+                Name = "Galewind",
+                Wp = 8,
+                Cat = "Knife",
+                Formula = 1,
+                Flavor = "A windswept dagger",
                 Signature = new WeaponSignature { AtTier = 3, PuppeteerTurns = 1, DisplayLabel = "Puppeteer" }
             }
         };
@@ -666,7 +674,7 @@ public class PuppeteerTests
         const int nameId = 42;
         const int wLvl = 60, wBr = 80, wFa = 55, wMhp = 350, wHp = 350;
         const int FirstCopySlot = 10, SecondCopySlot = 15;   // FirstCopySlot < SecondCopySlot: tier-1's
-                                                              // homogeneous tie-break returns the FIRST.
+                                                             // homogeneous tie-break returns the FIRST.
 
         MemSeats.SeatRoster(mem, slot: 5, lvl: wLvl, br: wBr, fa: wFa, rh: GalewindId, nameId: nameId);
 
@@ -714,7 +722,11 @@ public class PuppeteerTests
         {
             [GalewindId] = new WeaponMeta
             {
-                Name = "Galewind", Wp = 8, Cat = "Knife", Formula = 1, Flavor = "A windswept dagger",
+                Name = "Galewind",
+                Wp = 8,
+                Cat = "Knife",
+                Formula = 1,
+                Flavor = "A windswept dagger",
                 Signature = new WeaponSignature { AtTier = 3, PuppeteerTurns = 1, DisplayLabel = "Puppeteer" }
             }
         };

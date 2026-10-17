@@ -58,9 +58,9 @@ public class RicochetTests
     [Theory]
     [InlineData(10, 50, 5)]    // basic 50%
     [InlineData(11, 50, 5)]    // floor: 11*50/100 = 5
-    [InlineData(1,  50, 1)]    // minimum 1
-    [InlineData(2,  50, 1)]    // 2*50/100 = 1
-    [InlineData(0,  50, 0)]    // 0 damage => 0 chip (no event)
+    [InlineData(1, 50, 1)]    // minimum 1
+    [InlineData(2, 50, 1)]    // 2*50/100 = 1
+    [InlineData(0, 50, 0)]    // 0 damage => 0 chip (no event)
     [InlineData(100, 50, 50)]
     [InlineData(200, 50, 100)]
     public void ChipDamage_is_floor_pct_minimum_1_when_nonzero(int dmg, int pct, int expected)
@@ -148,10 +148,10 @@ public class RicochetTests
 
     [Theory]
     [InlineData(100, 50, 50)]   // normal
-    [InlineData(10,  10,  1)]   // chip would exactly kill -> clamp to 1
-    [InlineData(5,   10,  1)]   // chip exceeds hp -> clamp to 1
-    [InlineData(2,    1,  1)]   // chip 1 on hp 2 -> hp 1 (fine)
-    [InlineData(1,    1,  1)]   // already at 1 -> stays 1
+    [InlineData(10, 10, 1)]   // chip would exactly kill -> clamp to 1
+    [InlineData(5, 10, 1)]   // chip exceeds hp -> clamp to 1
+    [InlineData(2, 1, 1)]   // chip 1 on hp 2 -> hp 1 (fine)
+    [InlineData(1, 1, 1)]   // already at 1 -> stays 1
     public void ClampHp_never_goes_below_1(int currentHp, int chip, int expectedNewHp)
         => Assert.Equal(expectedNewHp, Ricochet.ClampHp(currentHp, chip));
 
@@ -240,9 +240,9 @@ public class RicochetTests
         buf[Offsets.ALevel] = (byte)lvl;
         buf[Offsets.ABrave] = (byte)br;
         buf[Offsets.AFaith] = (byte)fa;
-        buf[Offsets.AMaxHp]     = (byte)(maxHp & 0xFF);
+        buf[Offsets.AMaxHp] = (byte)(maxHp & 0xFF);
         buf[Offsets.AMaxHp + 1] = (byte)((maxHp >> 8) & 0xFF);
-        buf[Offsets.AHp]     = (byte)(hp & 0xFF);
+        buf[Offsets.AHp] = (byte)(hp & 0xFF);
         buf[Offsets.AHp + 1] = (byte)((hp >> 8) & 0xFF);
         buf[Offsets.AGx] = (byte)gx;
         buf[Offsets.AGy] = (byte)gy;

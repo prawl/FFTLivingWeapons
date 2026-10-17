@@ -28,7 +28,7 @@ namespace LivingWeapon.Tests;
 public class IaiTests
 {
     private const int AmeNoMurakumoId = 42;
-    private const int OtherWeaponId   = 56;
+    private const int OtherWeaponId = 56;
 
     // ---- Policy tests (pure): ShouldHold + Target ----
 
@@ -147,7 +147,10 @@ public class IaiTests
         {
             [AmeNoMurakumoId] = new WeaponMeta
             {
-                Name = "Ame-no-Murakumo", Wp = 10, Cat = "Katana", Formula = 1,
+                Name = "Ame-no-Murakumo",
+                Wp = 10,
+                Cat = "Katana",
+                Formula = 1,
                 Flavor = "gathering-storm blade",
                 Signature = new WeaponSignature { AtTier = 3, Iai = true, DisplayLabel = "Iai" }
             }
@@ -337,12 +340,15 @@ public class IaiTests
     [Fact]
     public void MirrorChurn_release_still_fires_via_identity()
     {
-        var mem  = new FakeSparseMemory();
+        var mem = new FakeSparseMemory();
         var meta = new Dictionary<int, WeaponMeta>
         {
             [AmeNoMurakumoId] = new WeaponMeta
             {
-                Name = "Ame-no-Murakumo", Wp = 10, Cat = "Katana", Formula = 1,
+                Name = "Ame-no-Murakumo",
+                Wp = 10,
+                Cat = "Katana",
+                Formula = 1,
                 Flavor = "gathering-storm blade",
                 Signature = new WeaponSignature { AtTier = 3, Iai = true, DisplayLabel = "Iai" }
             }
@@ -399,12 +405,15 @@ public class IaiTests
     [Fact]
     public void Cap_fires_even_when_wielder_never_resolves()
     {
-        var mem  = new FakeSparseMemory();
+        var mem = new FakeSparseMemory();
         var meta = new Dictionary<int, WeaponMeta>
         {
             [AmeNoMurakumoId] = new WeaponMeta
             {
-                Name = "Ame-no-Murakumo", Wp = 10, Cat = "Katana", Formula = 1,
+                Name = "Ame-no-Murakumo",
+                Wp = 10,
+                Cat = "Katana",
+                Formula = 1,
                 Flavor = "gathering-storm blade",
                 Signature = new WeaponSignature { AtTier = 3, Iai = true, DisplayLabel = "Iai" }
             }
@@ -456,12 +465,15 @@ public class IaiTests
         // unrelated seat's frame nameId, are ALSO left unseeded (both read 0): if the identity
         // path ever ran with a failed (0) capture, a 0==0 match against either seat would fire a
         // spurious release. It must not -- only the address-fallback path may release.
-        var mem  = new FakeSparseMemory();
+        var mem = new FakeSparseMemory();
         var meta = new Dictionary<int, WeaponMeta>
         {
             [AmeNoMurakumoId] = new WeaponMeta
             {
-                Name = "Ame-no-Murakumo", Wp = 10, Cat = "Katana", Formula = 1,
+                Name = "Ame-no-Murakumo",
+                Wp = 10,
+                Cat = "Katana",
+                Formula = 1,
                 Flavor = "gathering-storm blade",
                 Signature = new WeaponSignature { AtTier = 3, Iai = true, DisplayLabel = "Iai" }
             }
@@ -544,12 +556,15 @@ public class IaiTests
     [Fact]
     public void MultiWielder_NoEscalation_many_ticks()
     {
-        var mem  = new FakeSparseMemory();
+        var mem = new FakeSparseMemory();
         var meta = new Dictionary<int, WeaponMeta>
         {
             [AmeNoMurakumoId] = new WeaponMeta
             {
-                Name = "Ame-no-Murakumo", Wp = 10, Cat = "Katana", Formula = 1,
+                Name = "Ame-no-Murakumo",
+                Wp = 10,
+                Cat = "Katana",
+                Formula = 1,
                 Flavor = "gathering-storm blade",
                 Signature = new WeaponSignature { AtTier = 3, Iai = true, DisplayLabel = "Iai" }
             }
@@ -578,7 +593,7 @@ public class IaiTests
 
         int spdA = mem.U8s[entryA + Offsets.ASpeed];
         int spdB = mem.U8s[entryB + Offsets.ASpeed];
-        int cap  = 10 + Tuning.IaiSpeedMargin;
+        int cap = 10 + Tuning.IaiSpeedMargin;
 
         Assert.True(spdA <= cap, $"Wielder A Speed {spdA} exceeded field-max+margin={cap} -- escalation bug (F2)");
         Assert.True(spdB <= cap, $"Wielder B Speed {spdB} exceeded field-max+margin={cap} -- escalation bug (F2)");
@@ -596,12 +611,15 @@ public class IaiTests
         // Non-vacuity: any fingerprint-based release, or a release that fires for EVERY
         // wielder on ANY pointer transition, fails this -- it either releases both when only
         // A's turn arrives, or misses A because the pointer briefly reads an enemy frame.
-        var mem  = new FakeSparseMemory();
+        var mem = new FakeSparseMemory();
         var meta = new Dictionary<int, WeaponMeta>
         {
             [AmeNoMurakumoId] = new WeaponMeta
             {
-                Name = "Ame-no-Murakumo", Wp = 10, Cat = "Katana", Formula = 1,
+                Name = "Ame-no-Murakumo",
+                Wp = 10,
+                Cat = "Katana",
+                Formula = 1,
                 Flavor = "gathering-storm blade",
                 Signature = new WeaponSignature { AtTier = 3, Iai = true, DisplayLabel = "Iai" }
             }
@@ -741,12 +759,15 @@ public class IaiTests
     [Fact]
     public void Enemy_turn_no_release()
     {
-        var mem  = new FakeSparseMemory();
+        var mem = new FakeSparseMemory();
         var meta = new Dictionary<int, WeaponMeta>
         {
             [AmeNoMurakumoId] = new WeaponMeta
             {
-                Name = "Ame-no-Murakumo", Wp = 10, Cat = "Katana", Formula = 1,
+                Name = "Ame-no-Murakumo",
+                Wp = 10,
+                Cat = "Katana",
+                Formula = 1,
                 Flavor = "gathering-storm blade",
                 Signature = new WeaponSignature { AtTier = 3, Iai = true, DisplayLabel = "Iai" }
             }
@@ -911,12 +932,15 @@ public class IaiTests
     [Fact]
     public void Gate_offhand_only_no_write()
     {
-        var mem  = new FakeSparseMemory();
+        var mem = new FakeSparseMemory();
         var meta = new Dictionary<int, WeaponMeta>
         {
             [AmeNoMurakumoId] = new WeaponMeta
             {
-                Name = "Ame-no-Murakumo", Wp = 10, Cat = "Katana", Formula = 1,
+                Name = "Ame-no-Murakumo",
+                Wp = 10,
+                Cat = "Katana",
+                Formula = 1,
                 Flavor = "gathering-storm blade",
                 Signature = new WeaponSignature { AtTier = 3, Iai = true, DisplayLabel = "Iai" }
             }
@@ -941,10 +965,10 @@ public class IaiTests
     [Fact]
     public void Gate_missing_meta_no_crash_no_write()
     {
-        var mem   = new FakeSparseMemory();
-        var meta  = new Dictionary<int, WeaponMeta>();
+        var mem = new FakeSparseMemory();
+        var meta = new Dictionary<int, WeaponMeta>();
         var kills = new Dictionary<int, int> { [AmeNoMurakumoId] = Tuning.ProdThresholds[2] };
-        var iai   = new Iai(meta, kills, mem);
+        var iai = new Iai(meta, kills, mem);
 
         iai.Tick(onField: true, DateTime.UtcNow);
 
@@ -956,18 +980,21 @@ public class IaiTests
     [Fact]
     public void Gate_null_signature_no_crash_no_write()
     {
-        var mem  = new FakeSparseMemory();
+        var mem = new FakeSparseMemory();
         var meta = new Dictionary<int, WeaponMeta>
         {
             [AmeNoMurakumoId] = new WeaponMeta
             {
-                Name = "Ame-no-Murakumo", Wp = 10, Cat = "Katana", Formula = 1,
+                Name = "Ame-no-Murakumo",
+                Wp = 10,
+                Cat = "Katana",
+                Formula = 1,
                 Flavor = "gathering-storm blade",
                 Signature = null
             }
         };
         var kills = new Dictionary<int, int> { [AmeNoMurakumoId] = Tuning.ProdThresholds[2] };
-        var iai   = new Iai(meta, kills, mem);
+        var iai = new Iai(meta, kills, mem);
 
         iai.Tick(onField: true, DateTime.UtcNow);
 
@@ -1035,12 +1062,15 @@ public class IaiTests
         //
         // NON-VACUITY: this test MUST fail against the unmodified (pre-LW-71) Tick, which
         // releases on the pointer arrival alone with no turn-flags corroboration at all.
-        var mem  = new FakeSparseMemory();
+        var mem = new FakeSparseMemory();
         var meta = new Dictionary<int, WeaponMeta>
         {
             [AmeNoMurakumoId] = new WeaponMeta
             {
-                Name = "Ame-no-Murakumo", Wp = 10, Cat = "Katana", Formula = 1,
+                Name = "Ame-no-Murakumo",
+                Wp = 10,
+                Cat = "Katana",
+                Formula = 1,
                 Flavor = "gathering-storm blade",
                 Signature = new WeaponSignature { AtTier = 3, Iai = true, DisplayLabel = "Iai" }
             }
@@ -1090,12 +1120,15 @@ public class IaiTests
         //
         // NON-VACUITY: this test MUST fail against the unmodified (pre-LW-71) Tick, which never
         // releases without a firing legacy pointer signal.
-        var mem  = new FakeSparseMemory();
+        var mem = new FakeSparseMemory();
         var meta = new Dictionary<int, WeaponMeta>
         {
             [AmeNoMurakumoId] = new WeaponMeta
             {
-                Name = "Ame-no-Murakumo", Wp = 10, Cat = "Katana", Formula = 1,
+                Name = "Ame-no-Murakumo",
+                Wp = 10,
+                Cat = "Katana",
+                Formula = 1,
                 Flavor = "gathering-storm blade",
                 Signature = new WeaponSignature { AtTier = 3, Iai = true, DisplayLabel = "Iai" }
             }

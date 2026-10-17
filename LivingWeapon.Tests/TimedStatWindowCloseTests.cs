@@ -19,7 +19,10 @@ public class TimedStatWindowCloseTests
 {
     private static readonly WeaponSignature Sig = new()
     {
-        AtTier = 3, StatBonus = 3, Stat = "Speed", Mounted = true
+        AtTier = 3,
+        StatBonus = 3,
+        Stat = "Speed",
+        Mounted = true
     };
 
     private static GrowthEngine MakeEngine(FakeSparseMemory mem)

@@ -72,7 +72,11 @@ public class EagleEyeTests
         {
             [EclipseboltId] = new WeaponMeta
             {
-                Name = "Eclipsebolt", Wp = 9, Cat = "Bow", Formula = 1, Flavor = "a doom-tipped bolt",
+                Name = "Eclipsebolt",
+                Wp = 9,
+                Cat = "Bow",
+                Formula = 1,
+                Flavor = "a doom-tipped bolt",
                 Signature = new WeaponSignature { AtTier = 3, DoomCountdownTo = 1, Slot = "" }
             }
         };

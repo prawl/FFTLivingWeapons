@@ -14,7 +14,7 @@ namespace LivingWeapon.Tests;
 public class DisplayRotationTests
 {
     private const long StaticsBase3 = 0x70_0000_0000L;
-    private const long SourceBase3  = 0x71_0000_0000L;
+    private const long SourceBase3 = 0x71_0000_0000L;
 
     /// <summary>Build a meta with 20 weapons (ids 20-39).</summary>
     private static Dictionary<int, WeaponMeta> BuildLargeMeta()
@@ -23,10 +23,10 @@ public class DisplayRotationTests
         for (int id = 20; id < 40; id++)
             d[id] = new WeaponMeta
             {
-                Name    = $"Wp{id:D2}",
-                Flavor  = $"Flavor text number {id:D2} here",
-                Wp      = 10,
-                Cat     = "Sword",
+                Name = $"Wp{id:D2}",
+                Flavor = $"Flavor text number {id:D2} here",
+                Wp = 10,
+                Cat = "Sword",
                 Formula = 1,
             };
         return d;
@@ -34,20 +34,20 @@ public class DisplayRotationTests
 
     private static byte[] WriteCardToBuffer(byte[] buf, int pos, string name, string flavor)
     {
-        byte[] nameB   = ByteScan.Ascii(name);
-        byte[] suffix  = ByteScan.Ascii("  ");
-        byte[] pad     = ByteScan.Ascii("   ");
+        byte[] nameB = ByteScan.Ascii(name);
+        byte[] suffix = ByteScan.Ascii("  ");
+        byte[] pad = ByteScan.Ascii("   ");
         byte[] flavorB = ByteScan.Ascii(flavor);
-        byte[] nn      = ByteScan.Ascii("\n\nKills: ");
-        byte[] kills   = ByteScan.Ascii(Signatures.KillsMeterSlot(0));
+        byte[] nn = ByteScan.Ascii("\n\nKills: ");
+        byte[] kills = ByteScan.Ascii(Signatures.KillsMeterSlot(0));
 
         int at = pos;
-        Array.Copy(nameB,   0, buf, at, nameB.Length);   at += nameB.Length;
-        Array.Copy(suffix,  0, buf, at, suffix.Length);  at += suffix.Length;
-        Array.Copy(pad,     0, buf, at, pad.Length);     at += pad.Length;
+        Array.Copy(nameB, 0, buf, at, nameB.Length); at += nameB.Length;
+        Array.Copy(suffix, 0, buf, at, suffix.Length); at += suffix.Length;
+        Array.Copy(pad, 0, buf, at, pad.Length); at += pad.Length;
         Array.Copy(flavorB, 0, buf, at, flavorB.Length); at += flavorB.Length;
-        Array.Copy(nn,      0, buf, at, nn.Length);      at += nn.Length;
-        Array.Copy(kills,   0, buf, at, kills.Length);
+        Array.Copy(nn, 0, buf, at, nn.Length); at += nn.Length;
+        Array.Copy(kills, 0, buf, at, kills.Length);
         return buf;
     }
 
@@ -198,7 +198,7 @@ public class DisplayRotationTests
 
         // After discovery, count writes over a fixed Tick window
         // Kill all counts so steady-state has nothing to rewrite
-        foreach (int id in new int[]{20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39})
+        foreach (int id in new int[] { 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39 })
             kills[id] = 5; // unchanged
 
         int writesBefore = heap.Writes;

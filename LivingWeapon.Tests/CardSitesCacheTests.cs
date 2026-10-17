@@ -184,25 +184,25 @@ public class CardSitesCacheTests
 
         // Build a buffer large enough for cap distinct anchor positions (IsKills=false: only
         // the weapon NAME is checked, no kills-literal read needed).
-        byte[] nameBytes   = ByteScan.Ascii("Sword");
-        int    anchorStride = nameBytes.Length + 4;   // stride > name length
-        int    bufSize      = cap * anchorStride + 256;
-        var    buf          = new byte[bufSize];
+        byte[] nameBytes = ByteScan.Ascii("Sword");
+        int anchorStride = nameBytes.Length + 4;   // stride > name length
+        int bufSize = cap * anchorStride + 256;
+        var buf = new byte[bufSize];
 
         // Write the name bytes at every anchor position so all anchor reads succeed.
         for (int i = 0; i < cap; i++)
             Array.Copy(nameBytes, 0, buf, i * anchorStride, nameBytes.Length);
 
-        var heap  = new FakeHeap((0x1000L, buf, writable: true));
+        var heap = new FakeHeap((0x1000L, buf, writable: true));
         var sites = new CardSites(heap, pats);
 
         // Fill to cap with live-anchor suffix sites (distinct SlotAddr/AnchorAddr, no dedup),
         // spread across many synthetic ids so SuffixCopiesPerId never binds first.
         for (int i = 0; i < cap; i++)
         {
-            long slotAddr   = 0x2000_0000L + i;      // distinct; slot not read at Add time
+            long slotAddr = 0x2000_0000L + i;      // distinct; slot not read at Add time
             long anchorAddr = 0x1000L + i * anchorStride;
-            int  id         = 1 + (i % 200);
+            int id = 1 + (i % 200);
             var site = new CardSites.Site(Id: id, Enc: 1, SlotAddr: slotAddr, AnchorAddr: anchorAddr, IsKills: false);
             Assert.True(sites.Add(site), $"slot {i} must be accepted");
         }

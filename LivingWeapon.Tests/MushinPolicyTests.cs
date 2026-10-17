@@ -170,8 +170,8 @@ public class MushinPolicyTests
     [Fact]
     public void OwnsMushin_TrueOnlyWhenMushinFlagSet()
     {
-        var mYes  = new WeaponMeta { Signature = new WeaponSignature { Mushin = true } };
-        var mNo   = new WeaponMeta { Signature = new WeaponSignature { Mushin = false } };
+        var mYes = new WeaponMeta { Signature = new WeaponSignature { Mushin = true } };
+        var mNo = new WeaponMeta { Signature = new WeaponSignature { Mushin = false } };
         var mNull = new WeaponMeta { Signature = null };
         Assert.True(GrowthEngine.OwnsMushin(mYes));
         Assert.False(GrowthEngine.OwnsMushin(mNo));

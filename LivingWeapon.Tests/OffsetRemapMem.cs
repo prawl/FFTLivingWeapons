@@ -22,21 +22,21 @@ internal sealed class OffsetRemapMem : IGameMemory
 
     private long Remap(long addr)
     {
-        if (addr == Offsets.MirrorWeapon)  return _mwAddr;
+        if (addr == Offsets.MirrorWeapon) return _mwAddr;
         if (addr == Offsets.MirrorOffHand) return _moAddr;
-        if (addr == Offsets.WpScratch)     return _wsAddr;
+        if (addr == Offsets.WpScratch) return _wsAddr;
         return addr;
     }
 
-    public byte   U8(long addr)                                    => _inner.U8(Remap(addr));
-    public ushort U16(long addr)                                   => _inner.U16(Remap(addr));
-    public bool   TryReadBytes(long addr, int len, out byte[] buf) => _inner.TryReadBytes(Remap(addr), len, out buf);
-    public int    ReadInto(long addr, byte[] buf, int len)         => _inner.ReadInto(Remap(addr), buf, len);
-    public void   WriteBytes(long addr, byte[] data)               => _inner.WriteBytes(Remap(addr), data);
-    public void   W8(long addr, byte v)                            => _inner.W8(Remap(addr), v);
-    public void   W16(long addr, ushort v)                         => _inner.W16(Remap(addr), v);
-    public bool   Readable(long addr, int len)                     => _inner.Readable(Remap(addr), len);
-    public bool   Writable(long addr, int len)                     => _inner.Writable(Remap(addr), len);
+    public byte U8(long addr) => _inner.U8(Remap(addr));
+    public ushort U16(long addr) => _inner.U16(Remap(addr));
+    public bool TryReadBytes(long addr, int len, out byte[] buf) => _inner.TryReadBytes(Remap(addr), len, out buf);
+    public int ReadInto(long addr, byte[] buf, int len) => _inner.ReadInto(Remap(addr), buf, len);
+    public void WriteBytes(long addr, byte[] data) => _inner.WriteBytes(Remap(addr), data);
+    public void W8(long addr, byte v) => _inner.W8(Remap(addr), v);
+    public void W16(long addr, ushort v) => _inner.W16(Remap(addr), v);
+    public bool Readable(long addr, int len) => _inner.Readable(Remap(addr), len);
+    public bool Writable(long addr, int len) => _inner.Writable(Remap(addr), len);
     public System.Collections.Generic.IEnumerable<(long baseAddr, long size)> Regions()
         => _inner.Regions();
 }

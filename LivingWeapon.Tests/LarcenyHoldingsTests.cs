@@ -20,7 +20,7 @@ public class LarcenyHoldingsTests
 
     // Buff keys used in tests.
     private static readonly (int off, byte mask) Reraise = (Offsets.AReraise, Offsets.AReraiseBit);
-    private static readonly (int off, byte mask) Regen   = (Offsets.ARegen,   Offsets.ARegenBit);
+    private static readonly (int off, byte mask) Regen = (Offsets.ARegen, Offsets.ARegenBit);
 
     [Fact]
     public void Steal_sets_the_bit_on_the_right_wielders_buffer_and_IsHeld_true()
@@ -82,8 +82,8 @@ public class LarcenyHoldingsTests
         h.Steal(FpA, bufA.Addr, Reraise, stolenTurn: 0);
         h.Steal(FpB, bufB.Addr, Reraise, stolenTurn: 0);
 
-        Func<(int, int, int), long>  locate   = fp => fp == FpA ? bufA.Addr : (fp == FpB ? bufB.Addr : 0);
-        Func<(int, int, int), int>   turnsOf  = fp => fp == FpA ? turnsA : turnsB;
+        Func<(int, int, int), long> locate = fp => fp == FpA ? bufA.Addr : (fp == FpB ? bufB.Addr : 0);
+        Func<(int, int, int), int> turnsOf = fp => fp == FpA ? turnsA : turnsB;
 
         // After 2 turns for A, nothing expires yet.
         turnsA = 2;
@@ -137,13 +137,13 @@ public class LarcenyHoldingsTests
         var h = new LarcenyHoldings(Live);
 
         h.Steal(FpA, bufA.Addr, Reraise, stolenTurn: 0);
-        h.Steal(FpA, bufA.Addr, Regen,   stolenTurn: 0);
+        h.Steal(FpA, bufA.Addr, Regen, stolenTurn: 0);
         h.Steal(FpB, bufB.Addr, Reraise, stolenTurn: 0);
 
         h.ReleaseAll(fp => fp == FpA ? bufA.Addr : (fp == FpB ? bufB.Addr : 0));
 
         Assert.Equal(0, bufA.Bytes[Offsets.AReraise] & Offsets.AReraiseBit);
-        Assert.Equal(0, bufA.Bytes[Offsets.ARegen]   & Offsets.ARegenBit);
+        Assert.Equal(0, bufA.Bytes[Offsets.ARegen] & Offsets.ARegenBit);
         Assert.Equal(0, bufB.Bytes[Offsets.AReraise] & Offsets.AReraiseBit);
     }
 }

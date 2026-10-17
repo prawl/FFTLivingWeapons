@@ -62,12 +62,12 @@ public class BenedictionTests
 
     [Theory]
     [InlineData(100, 30, 30)]    // 100 * 30 / 100 = 30
-    [InlineData(10,  30, 3)]     // floor: 10*30/100 = 3
-    [InlineData(3,   30, 0)]     // 3*30/100 = 0 (rounds to 0 by floor) -> 0 (delta < floor threshold)
-    [InlineData(4,   30, 1)]     // 4*30/100 = 1 -> floor 1 minimum when delta >= 1 AND pct result >= 1
-    [InlineData(0,   30, 0)]     // no heal event -> 0
+    [InlineData(10, 30, 3)]     // floor: 10*30/100 = 3
+    [InlineData(3, 30, 0)]     // 3*30/100 = 0 (rounds to 0 by floor) -> 0 (delta < floor threshold)
+    [InlineData(4, 30, 1)]     // 4*30/100 = 1 -> floor 1 minimum when delta >= 1 AND pct result >= 1
+    [InlineData(0, 30, 0)]     // no heal event -> 0
     [InlineData(200, 30, 60)]
-    [InlineData(100, 0,  0)]     // pct 0 -> 0
+    [InlineData(100, 0, 0)]     // pct 0 -> 0
     public void BonusHeal_is_floor_pct_of_delta(int delta, int pct, int expected)
         => Assert.Equal(expected, Benediction.BonusHeal(delta, pct));
 
@@ -219,8 +219,12 @@ public class BenedictionTests
         {
             [Benediction.SanctusStaffId] = new WeaponMeta
             {
-                Name = "Sanctus Staff", Wp = 5, Cat = "Staff", Formula = 1,
-                Flavor = "A gilded stave", Signature = BeneSig()
+                Name = "Sanctus Staff",
+                Wp = 5,
+                Cat = "Staff",
+                Formula = 1,
+                Flavor = "A gilded stave",
+                Signature = BeneSig()
             }
         };
         var kills = new Dictionary<int, int>
@@ -345,7 +349,7 @@ public class BenedictionTests
         using var buf = PinnedBuf.Of(256);
         buf.Bytes[Offsets.AHp] = 0;
         buf.Bytes[Offsets.AHp + 1] = 0;
-        buf.Bytes[Offsets.AMaxHp]     = 0xE8; // maxHp = 1000 little-endian
+        buf.Bytes[Offsets.AMaxHp] = 0xE8; // maxHp = 1000 little-endian
         buf.Bytes[Offsets.AMaxHp + 1] = 0x03;
         BandHeal.WriteHp(Live, buf.Addr, newHp: 512);
         int hp = buf.Bytes[Offsets.AHp] | (buf.Bytes[Offsets.AHp + 1] << 8);

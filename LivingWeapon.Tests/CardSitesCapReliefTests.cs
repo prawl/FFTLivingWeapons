@@ -62,7 +62,7 @@ public class CardSitesCapReliefTests
         for (int i = 0; i < cap; i++)
         {
             long deadAnchor = 0xDEAD_0000_0000L + i;
-            long deadSlot   = 0xDEAD_1000_0000L + i;
+            long deadSlot = 0xDEAD_1000_0000L + i;
             var dead = new CardSites.Site(1, 1, deadSlot, deadAnchor, IsKills: true);
             Assert.True(sites.Add(dead), $"pre-fill slot {i} should be accepted");
         }
@@ -74,7 +74,7 @@ public class CardSitesCapReliefTests
 
         Assert.True(admitted, "new valid site must be admitted after prune");
         Assert.True(sites.Count < cap, "prune must have reduced Count below MaxSites");
-        Assert.True(sites.Count > 0,   "live site must remain after prune");
+        Assert.True(sites.Count > 0, "live site must remain after prune");
     }
 
     // ─── T2: cache full of live sites -> refuse, rate-limited ────────────────
@@ -100,7 +100,7 @@ public class CardSitesCapReliefTests
 
         byte[] flavorBytes = ByteScan.Ascii("A fine blade");
         byte[] prefixBytes = ByteScan.Ascii("Kills: ");
-        byte[] slotBytes   = ByteScan.Ascii("0   ");
+        byte[] slotBytes = ByteScan.Ascii("0   ");
 
         // Write all anchors, prefix, and slots into buf so every site is LIVE.
         int extraBase = cap * anchorStride;
@@ -110,8 +110,8 @@ public class CardSitesCapReliefTests
             Array.Copy(flavorBytes, 0, buf, anchorPos, flavorBytes.Length);
         }
         // Kills literal + slot for every site (packed together after the anchor block).
-        Array.Copy(prefixBytes, 0, buf, extraBase,                    prefixBytes.Length);
-        Array.Copy(slotBytes,   0, buf, extraBase + prefixBytes.Length, slotBytes.Length);
+        Array.Copy(prefixBytes, 0, buf, extraBase, prefixBytes.Length);
+        Array.Copy(slotBytes, 0, buf, extraBase + prefixBytes.Length, slotBytes.Length);
 
         var heap = new FakeHeap((0x1000L, buf, writable: true));
         var sites = new CardSites(heap, pats);

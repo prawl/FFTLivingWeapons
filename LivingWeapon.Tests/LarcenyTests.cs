@@ -168,12 +168,12 @@ public class LarcenyTests
     {
         // already stole this buff -> leave duplicate foes' copies alone (Skip); "held" wins even if
         // the bit somehow reads clear (defensive).
-        Assert.Equal(LarcenyAction.Skip,   LarcenyPolicy.Decide(alreadyHeld: true,  wielderHasBuff: true));
-        Assert.Equal(LarcenyAction.Skip,   LarcenyPolicy.Decide(alreadyHeld: true,  wielderHasBuff: false));
+        Assert.Equal(LarcenyAction.Skip, LarcenyPolicy.Decide(alreadyHeld: true, wielderHasBuff: true));
+        Assert.Equal(LarcenyAction.Skip, LarcenyPolicy.Decide(alreadyHeld: true, wielderHasBuff: false));
         // the wielder already owns it (its OWN buff) -> strip the foe but never latch (Dispel).
         Assert.Equal(LarcenyAction.Dispel, LarcenyPolicy.Decide(alreadyHeld: false, wielderHasBuff: true));
         // a free buff -> strip the foe + grant + latch on the wielder (Steal).
-        Assert.Equal(LarcenyAction.Steal,  LarcenyPolicy.Decide(alreadyHeld: false, wielderHasBuff: false));
+        Assert.Equal(LarcenyAction.Steal, LarcenyPolicy.Decide(alreadyHeld: false, wielderHasBuff: false));
     }
 
     [Fact]
@@ -198,7 +198,7 @@ public class LarcenyTests
     {
         var ledger = new LarcenyState();
         var reraise = (Offsets.AReraise, Offsets.AReraiseBit);
-        var regen   = (Offsets.ARegen, Offsets.ARegenBit);
+        var regen = (Offsets.ARegen, Offsets.ARegenBit);
 
         // Foe 1 has Reraise -> Steal.
         Assert.Equal(LarcenyAction.Steal, LarcenyPolicy.Decide(ledger.IsHeld(reraise), wielderHasBuff: false));
@@ -275,7 +275,10 @@ public class LarcenyTests
         {
             [ArcanumId] = new WeaponMeta
             {
-                Name = "Arcanum", Wp = 12, Cat = "Ninja Blade", Formula = 1,
+                Name = "Arcanum",
+                Wp = 12,
+                Cat = "Ninja Blade",
+                Formula = 1,
                 Flavor = "blade of forbidden sigils",
                 Signature = new WeaponSignature { AtTier = 3, LarcenyTurns = 3, DisplayLabel = "Larceny" }
             }

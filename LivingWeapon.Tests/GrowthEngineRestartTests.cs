@@ -111,7 +111,11 @@ public class GrowthEngineRestartTests
         var (engine, mem, ledger) = Build();
         var m = new WeaponMeta
         {
-            Name = "Swiftedge", Wp = 10, Cat = "Sword", Formula = 99, Flavor = "afterimage blade",
+            Name = "Swiftedge",
+            Wp = 10,
+            Cat = "Sword",
+            Formula = 99,
+            Flavor = "afterimage blade",
             Signature = new WeaponSignature { AtTier = 3, Afterimage = true, DisplayLabel = "Afterimage" }
         };
         long addr = StructBase + Offsets.CSpeed;
@@ -142,7 +146,11 @@ public class GrowthEngineRestartTests
         var (engine, mem, ledger) = Build();
         var m = new WeaponMeta
         {
-            Name = "Materia Blade", Wp = 10, Cat = "Sword", Formula = 1, Flavor = "ultima blade",
+            Name = "Materia Blade",
+            Wp = 10,
+            Cat = "Sword",
+            Formula = 1,
+            Flavor = "ultima blade",
             Signature = new WeaponSignature { AtTier = 3, Ultima = true, DisplayLabel = "Ultima" }
         };
         long addr = StructBase + Offsets.CPa;
@@ -179,7 +187,11 @@ public class GrowthEngineRestartTests
         var (engine, mem, ledger) = Build();
         var m = new WeaponMeta
         {
-            Name = "Kiku-ichimonji", Wp = 10, Cat = "Katana", Formula = 1, Flavor = "stillness blade",
+            Name = "Kiku-ichimonji",
+            Wp = 10,
+            Cat = "Katana",
+            Formula = 1,
+            Flavor = "stillness blade",
             Signature = new WeaponSignature { AtTier = 3, Mushin = true, DisplayLabel = "Mushin" }
         };
         long addr = StructBase + Offsets.CPa;

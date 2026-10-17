@@ -60,9 +60,9 @@ public class CardScannerGrowsAnchorTests
     public void FindKills_packed_pool_a_flavor_does_not_steal_bs_kills_once_grows_is_registered(int enc)
     {
         const string flavorA = "A blade of dependable make"; // 26 chars: deliberately LONGER than
-                                                               // B's fixed Kills->Grows gap (7+11+1=19
-                                                               // chars), so B's OWN Grows anchor must
-                                                               // win on raw distance alone.
+                                                             // B's fixed Kills->Grows gap (7+11+1=19
+                                                             // chars), so B's OWN Grows anchor must
+                                                             // win on raw distance alone.
         const string flavorB = "B holy relic";
         var meta = CardScannerFixtures.BuildMetaMapWithGrows(
             (1, "Sword", flavorA, PaGrows),
@@ -103,8 +103,8 @@ public class CardScannerGrowsAnchorTests
     public void FindKills_packed_pool_short_foreign_flavor_does_not_steal_bs_kills(int enc)
     {
         const string flavorA = "Storm-wired."; // 12 chars: shorter than the fixed 19-char
-                                                 // Kills->Grows gap, so it beats B's own (fixed,
-                                                 // farther) Grows anchor on raw distance alone.
+                                               // Kills->Grows gap, so it beats B's own (fixed,
+                                               // farther) Grows anchor on raw distance alone.
         const string flavorB = "B holy relic";
         var meta = CardScannerFixtures.BuildMetaMapWithGrows(
             (1, "Sword", flavorA, PaGrows),
@@ -144,11 +144,11 @@ public class CardScannerGrowsAnchorTests
     public void FindKills_packed_pool_same_lane_a_flavor_does_not_steal_bs_kills(int enc)
     {
         const string flavorA = "A blade of dependable make"; // 26 chars: between the fixed 19-char
-                                                               // Kills->Grows gap and B's own 61-char
-                                                               // (19 + 41-char Grows + 1) Kills->flavor
-                                                               // gap -- the exact window that makes
-                                                               // round-1's dAll TIE on the shared
-                                                               // (same-lane) Grows bytes.
+                                                             // Kills->Grows gap and B's own 61-char
+                                                             // (19 + 41-char Grows + 1) Kills->flavor
+                                                             // gap -- the exact window that makes
+                                                             // round-1's dAll TIE on the shared
+                                                             // (same-lane) Grows bytes.
         const string flavorB = "B holy relic";
         var meta = CardScannerFixtures.BuildMetaMapWithGrows(
             (1, "Sword", flavorA, PaGrows),

@@ -171,6 +171,8 @@ try {
     Invoke-TablePipeline -FailVerb DEPLOY
 
     # --- [2/5] Unit tests (TDD gate; after meta-gen, which the tests read) ---
+    Write-Host "[2/5] Checking formatting (dotnet format, verify only)..." -ForegroundColor Yellow
+    Invoke-FormatGate -FailVerb DEPLOY
     Write-Host "[2/5] Running unit tests (LivingWeapon.Tests)..." -ForegroundColor Yellow
     Invoke-UnitTestGate -FailVerb DEPLOY
 

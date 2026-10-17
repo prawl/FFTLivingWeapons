@@ -74,10 +74,10 @@ public class PlagueTests
     [InlineData(32, 10, 7)]    // 32*3/32=3, 10-3=7
     [InlineData(64, 20, 14)]   // 64*3/32=6, 20-6=14
     [InlineData(100, 20, 11)]  // 100*3/32=9, 20-9=11
-    [InlineData(1,   1, 1)]    // mhp*3/32=0 -> augment floor 1 -> 1-1=0 -> floor 1
-    [InlineData(2,   2, 1)]    // mhp*3/32=0 -> augment floor 1 -> 2-1=1
-    [InlineData(10,  5, 4)]    // 10*3/32=0 -> augment floor 1 -> 5-1=4
-    [InlineData(32,  1, 1)]    // augment(3) >= hp(1) -> floor 1, never 0
+    [InlineData(1, 1, 1)]    // mhp*3/32=0 -> augment floor 1 -> 1-1=0 -> floor 1
+    [InlineData(2, 2, 1)]    // mhp*3/32=0 -> augment floor 1 -> 2-1=1
+    [InlineData(10, 5, 4)]    // 10*3/32=0 -> augment floor 1 -> 5-1=4
+    [InlineData(32, 1, 1)]    // augment(3) >= hp(1) -> floor 1, never 0
     public void AugmentDamage_mhp_3_32_floored_at_1(int mhp, int hp, int expectedHp)
         => Assert.Equal(expectedHp, Plague.AugmentDamage(mhp, hp));
 
@@ -101,10 +101,10 @@ public class PlagueTests
     // ------------------------------------------------------------------ (4) IsTurn
     [Theory]
     [InlineData(100, 10, true)]
-    [InlineData(95, 0,  true)]
+    [InlineData(95, 0, true)]
     [InlineData(90, 69, true)]
     [InlineData(90, 70, false)]   // not a big enough drop
-    [InlineData(80, 5,  false)]   // wasn't full when it dropped
+    [InlineData(80, 5, false)]   // wasn't full when it dropped
     [InlineData(100, 100, false)] // still full
     [InlineData(0, 0, false)]
     public void IsTurn_detects_a_CT_reset_from_full(int last, int cur, bool expected)
@@ -115,7 +115,7 @@ public class PlagueTests
     [InlineData(36, false)]   // at init, no re-pin needed
     [InlineData(37, false)]   // above init (shouldn't occur, but must be safe)
     [InlineData(35, true)]    // below init -> re-pin
-    [InlineData(0,  true)]    // expired -> re-pin
+    [InlineData(0, true)]    // expired -> re-pin
     public void ShouldRepin_triggers_only_below_init(int timer, bool expected)
         => Assert.Equal(expected, Plague.ShouldRepin(timer, Tuning.PoisonTimerInit));
 
@@ -133,16 +133,16 @@ public class PlagueTests
         var entry = PinnedBuf.Of(256);
         var buf = entry.Bytes;
         // AHp (+0x14), AMaxHp (+0x16), ALevel (+0x0D), ABrave (+0x0E), AFaith (+0x10)
-        buf[Offsets.AHp]       = hp;
-        buf[Offsets.AHp + 1]   = 0;
-        buf[Offsets.AMaxHp]    = (byte)(fp.mhp & 0xFF);
+        buf[Offsets.AHp] = hp;
+        buf[Offsets.AHp + 1] = 0;
+        buf[Offsets.AMaxHp] = (byte)(fp.mhp & 0xFF);
         buf[Offsets.AMaxHp + 1] = (byte)((fp.mhp >> 8) & 0xFF);
-        buf[Offsets.ALevel]    = (byte)fp.lvl;
-        buf[Offsets.ABrave]    = (byte)fp.br;
-        buf[Offsets.AFaith]    = (byte)fp.fa;
-        buf[Offsets.APoison]   = poisoned ? (byte)(buf[Offsets.APoison] | Offsets.APoisonBit) : (byte)0;
+        buf[Offsets.ALevel] = (byte)fp.lvl;
+        buf[Offsets.ABrave] = (byte)fp.br;
+        buf[Offsets.AFaith] = (byte)fp.fa;
+        buf[Offsets.APoison] = poisoned ? (byte)(buf[Offsets.APoison] | Offsets.APoisonBit) : (byte)0;
         buf[Offsets.APoisonTimer] = timer;
-        buf[Offsets.ACtTurn]   = ct;
+        buf[Offsets.ACtTurn] = ct;
         return entry;
     }
 
@@ -505,8 +505,12 @@ public class PlagueTests
         {
             [VenomboltId] = new WeaponMeta
             {
-                Name = "Venombolt", Wp = 9, Cat = "Rod", Formula = 1,
-                Flavor = "a venomous rod", Signature = PlagueSig()
+                Name = "Venombolt",
+                Wp = 9,
+                Cat = "Rod",
+                Formula = 1,
+                Flavor = "a venomous rod",
+                Signature = PlagueSig()
             }
         };
         var kills = new Dictionary<int, int> { [VenomboltId] = Tuning.ProdThresholds[2] };   // tier 3

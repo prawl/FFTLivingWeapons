@@ -29,8 +29,8 @@ public class SummonerAttributionTests
     private static readonly HashSet<int> Weapons = new() { 35, 73, 90 };
 
     // Tracked weapon ids
-    private const int ArmedWeapon  = 35;   // pre-summoner actor A
-    private const int BWeapon      = 73;   // later armed unit B (T2/T3)
+    private const int ArmedWeapon = 35;   // pre-summoner actor A
+    private const int BWeapon = 73;   // later armed unit B (T2/T3)
     private const int JumperWeapon = 90;   // delayed-action jumper P (T4)
 
     // Untracked weapon (not in Weapons -> empty hands on resolve)
@@ -383,12 +383,12 @@ public class SummonerAttributionTests
 
         // Two DISTINCT-identity enemies seen alive (distinct lvl/br/fa/mhp so the alive-edge belt
         // credits each independently rather than frozen-twin-dedup'ing the second).
-        SetEnemy(m, EnemySlot,     hp: 300, maxHp: 400, level: 10, brave: 50, faith: 50);
+        SetEnemy(m, EnemySlot, hp: 300, maxHp: 400, level: 10, brave: 50, faith: 50);
         SetEnemy(m, EnemySlot + 1, hp: 280, maxHp: 380, level: 12, brave: 55, faith: 45);
         Settle(t, 3);   // both seenAlive
 
         // Both die on the same poll while S is still latched (acted=1) -> both stamped _lethalUntracked.
-        SetEnemy(m, EnemySlot,     hp: 0, maxHp: 400, level: 10, brave: 50, faith: 50);
+        SetEnemy(m, EnemySlot, hp: 0, maxHp: 400, level: 10, brave: 50, faith: 50);
         SetEnemy(m, EnemySlot + 1, hp: 0, maxHp: 380, level: 12, brave: 55, faith: 45);
         Settle(t, 3);   // both deadStreak 1->3 -> both no-credit
 

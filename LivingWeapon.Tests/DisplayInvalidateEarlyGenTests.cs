@@ -13,7 +13,7 @@ namespace LivingWeapon.Tests;
 public class DisplayInvalidateEarlyGenTests
 {
     private const long StaticsBase2 = 0x60_0000_0000L;
-    private const long SourceBase2  = 0x61_0000_0000L;
+    private const long SourceBase2 = 0x61_0000_0000L;
 
     private static Dictionary<int, WeaponMeta> BuildMeta() => new()
     {
@@ -49,7 +49,7 @@ public class DisplayInvalidateEarlyGenTests
     [Fact]
     public void Target_change_triggers_early_generation_after_min_gap()
     {
-        var meta  = BuildMeta();
+        var meta = BuildMeta();
         var kills = new Dictionary<int, int> { { 10, 7 }, { 11, 0 } };
         var clock = new TestClock();
 
@@ -61,11 +61,11 @@ public class DisplayInvalidateEarlyGenTests
         // Statics region: MirrorWeapon=10, MirrorOffHand=0, WpScratch=8
         var statics = new byte[64];
         statics[0] = 10; statics[1] = 0;
-        statics[2] = 0;  statics[3] = 0;
+        statics[2] = 0; statics[3] = 0;
         statics[4] = 8;
 
         var heap = new FakeHeap(
-            (SourceBase2,  padded),
+            (SourceBase2, padded),
             (StaticsBase2, statics));
 
         var display = CardFixtures.MakeDisplay(meta, kills, heap, StaticsBase2, clock);

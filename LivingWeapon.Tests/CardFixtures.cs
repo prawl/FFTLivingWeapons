@@ -29,25 +29,25 @@ internal static class CardFixtures
         string pad = "   ", string filler = "", string? slot = null)
     {
         slot ??= DefaultMeterSlot();
-        byte[] nameB   = ByteScan.Enc(name, enc);
-        byte[] sufB    = ByteScan.Enc("  ", enc);
-        byte[] padB    = ByteScan.Enc(pad, enc);
-        byte[] flvB    = ByteScan.Enc(flavor, enc);
-        byte[] fillB   = ByteScan.Enc(filler, enc);
-        byte[] nnB     = ByteScan.Enc("\n\nKills: ", enc);
-        byte[] kB      = ByteScan.Enc(slot, enc);
+        byte[] nameB = ByteScan.Enc(name, enc);
+        byte[] sufB = ByteScan.Enc("  ", enc);
+        byte[] padB = ByteScan.Enc(pad, enc);
+        byte[] flvB = ByteScan.Enc(flavor, enc);
+        byte[] fillB = ByteScan.Enc(filler, enc);
+        byte[] nnB = ByteScan.Enc("\n\nKills: ", enc);
+        byte[] kB = ByteScan.Enc(slot, enc);
 
         int at = pos;
         Array.Copy(nameB, 0, buf, at, nameB.Length); at += nameB.Length;
         int suffixPos = at;
-        Array.Copy(sufB,  0, buf, at, sufB.Length);  at += sufB.Length;
-        Array.Copy(padB,  0, buf, at, padB.Length);  at += padB.Length;
+        Array.Copy(sufB, 0, buf, at, sufB.Length); at += sufB.Length;
+        Array.Copy(padB, 0, buf, at, padB.Length); at += padB.Length;
         int flavorPos = at;
-        Array.Copy(flvB,  0, buf, at, flvB.Length);  at += flvB.Length;
+        Array.Copy(flvB, 0, buf, at, flvB.Length); at += flvB.Length;
         Array.Copy(fillB, 0, buf, at, fillB.Length); at += fillB.Length;
-        Array.Copy(nnB,   0, buf, at, nnB.Length);   at += nnB.Length;
+        Array.Copy(nnB, 0, buf, at, nnB.Length); at += nnB.Length;
         int killsSlotPos = at;
-        Array.Copy(kB,    0, buf, at, kB.Length);
+        Array.Copy(kB, 0, buf, at, kB.Length);
         return (suffixPos, flavorPos, killsSlotPos);
     }
 
@@ -60,7 +60,7 @@ internal static class CardFixtures
         slot ??= DefaultMeterSlot();
         byte[] flavorB = ByteScan.Enc(flavor, enc);
         byte[] prefixB = ByteScan.Enc("Kills: ", enc);
-        byte[] slotB   = ByteScan.Enc(slot, enc);
+        byte[] slotB = ByteScan.Enc(slot, enc);
         Array.Copy(flavorB, 0, buf, anchorPos, flavorB.Length);
         int killsPos = anchorPos + flavorB.Length + gap;
         Array.Copy(prefixB, 0, buf, killsPos, prefixB.Length);
@@ -79,9 +79,9 @@ internal static class CardFixtures
     {
         slot ??= DefaultMeterSlot();
         byte[] killsB = ByteScan.Enc("Kills: ", enc);
-        byte[] slotB  = ByteScan.Enc(slot, enc);
-        byte[] nnB    = ByteScan.Enc("\n\n", enc);
-        byte[] flvB   = ByteScan.Enc(flavor, enc);
+        byte[] slotB = ByteScan.Enc(slot, enc);
+        byte[] nnB = ByteScan.Enc("\n\n", enc);
+        byte[] flvB = ByteScan.Enc(flavor, enc);
 
         int at = pos;
         Array.Copy(killsB, 0, buf, at, killsB.Length); at += killsB.Length;
@@ -101,10 +101,10 @@ internal static class CardFixtures
     {
         slot ??= DefaultMeterSlot();
         byte[] killsB = ByteScan.Enc("Kills: ", enc);
-        byte[] slotB  = ByteScan.Enc(slot, enc);
-        byte[] nB     = ByteScan.Enc("\n", enc);
+        byte[] slotB = ByteScan.Enc(slot, enc);
+        byte[] nB = ByteScan.Enc("\n", enc);
         byte[] growsB = ByteScan.Enc(growsLine, enc);
-        byte[] flvB   = ByteScan.Enc(flavor, enc);
+        byte[] flvB = ByteScan.Enc(flavor, enc);
 
         int at = pos;
         Array.Copy(killsB, 0, buf, at, killsB.Length); at += killsB.Length;
@@ -128,12 +128,12 @@ internal static class CardFixtures
         byte[] buf, int pos, string name, string flavor, int enc = 1, string? slot = null)
     {
         slot ??= DefaultMeterSlot();
-        byte[] nameB  = ByteScan.Enc(name, enc);
-        byte[] sufB   = ByteScan.Enc("  ", enc);
-        byte[] nnkB   = ByteScan.Enc("\n\nKills: ", enc);
-        byte[] slotB  = ByteScan.Enc(slot, enc);
-        byte[] nnB    = ByteScan.Enc("\n\n", enc);
-        byte[] flvB   = ByteScan.Enc(flavor, enc);
+        byte[] nameB = ByteScan.Enc(name, enc);
+        byte[] sufB = ByteScan.Enc("  ", enc);
+        byte[] nnkB = ByteScan.Enc("\n\nKills: ", enc);
+        byte[] slotB = ByteScan.Enc(slot, enc);
+        byte[] nnB = ByteScan.Enc("\n\n", enc);
+        byte[] flvB = ByteScan.Enc(flavor, enc);
 
         int at = pos;
         Array.Copy(nameB, 0, buf, at, nameB.Length); at += nameB.Length;
@@ -164,9 +164,9 @@ internal static class CardFixtures
                                         Action<string, string>? recorder = null)
     {
         var wrapped = new OffsetRemapMem(heap,
-            mirrorWeaponAddr:  staticsBase,
+            mirrorWeaponAddr: staticsBase,
             mirrorOffHandAddr: staticsBase + 2,
-            wpScratchAddr:     staticsBase + 4);
+            wpScratchAddr: staticsBase + 4);
         return new Display(meta, kills, wrapped, clock.Func, legends, poolPaint, recorder);
     }
 
