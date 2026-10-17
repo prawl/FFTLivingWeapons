@@ -2,7 +2,7 @@
 
 **Your weapon is a character. It grows as it kills, and the gear around it is rebalanced so it never becomes vendor trash.**
 
-> **Which version is this?** This README describes the development version on GitHub. The current release is **2.3.4**, which has the item rebalance and the living weapons but not the new extended-inventory items, and still carries the dormant Treasure Master module (its dataset predates the current game build, so the Scholar's Ring does nothing), removed on the development branch; where the two differ, both numbers are given below.
+> **Which version is this?** This README describes the development version on GitHub. The current release is **2.3.4**. It has the item rebalance and the living weapons but not the new extended inventory items, and it still carries the dormant Treasure Master module, which does nothing on the current game build. Where the two differ, both numbers are given below.
 
 A Reloaded-II mod for Final Fantasy Tactics: The Ivalice Chronicles, with two layers that build and ship together over Nenkai's `fftivc.utility.modloader`:
 
@@ -21,7 +21,7 @@ This pays off harder the more the rest of your install ramps up. Under enemy-buf
 
 ## Features
 
-- **Living weapons that grow as they kill.** Each weapon tracks its own kills, lifts the wielder's PA/MA/Speed at 5, 10 and 15 kills, and shows the count on the equip card. Iconic weapons gain signature on-hit and aura effects (Charm, Barrage, extra turns, doom, life-steal, healing auras, and more), so the weapon you commit to becomes uniquely yours. In 2.3.4 every weapon grows, including the seven designs that sit in the axe and flail slots (Terrastaff, Ravager, Sunderer, Warbrand, Bloodlash, Climhazzard, Sasori). On the development branch those seven moved to new ids (261 to 267) and the real Battle Axe, Giant's Axe, Slasher, Iron Flail, Flail of Flame, Morning Star and Scorpion Tail came back at their vanilla numbers, with no growth.
+- **Living weapons that grow as they kill.** Each weapon tracks its own kills, lifts the wielder's PA, MA or Speed at 5, 10 and 15 kills, and shows the count on the equip card. Iconic weapons wake up signature abilities, Charm, Barrage, extra turns, doom, life steal, healing auras and more, so the weapon you commit to becomes yours. In 2.3.4 every weapon grows, including the seven designs that sit in the axe and flail slots (Terrastaff, Ravager, Sunderer, Warbrand, Bloodlash, Climhazzard, Sasori). On the development branch those seven moved to ids 261 to 267 and the vanilla axes and flails came back at their own numbers, with no growth.
 - **An extended inventory: brand-new weapons past the game's 261-item limit** (development branch only, not in the 2.3.4 release). The game only knows
   261 items; the mod adds more (seven today, ids 261 to 267), listed in every menu, sold in the
   towns its data names, equipped and swung in battle, growing and glowing like the rest, and remembered
@@ -76,18 +76,14 @@ The gameplay is language-neutral by construction: the item tables carry no text,
   the development branch (one session measured 34 seconds). If you open the party menu sooner,
   the cards briefly show zeroed "Kills" text; back out and re-open the menu and your numbers are
   there. Nothing is ever lost; only the first paint lags.
-- **The mod refuses to write anything until the game matches the build it expects.** At startup
-  it reads a few known landmarks in the game and holds every write until they match. If Ramza's
-  roster row reads but reads wrong (the data the mod writes next to has moved), the mod stands down for the
-  session and shows a message box saying the game does not look like the version the mod was
-  built for and to check the mod page for a newer version. A new game build whose stamp the mod does
-  not know is only reported: one log line and one warning saying the build is new, and the mod
-  runs normally if its own checks pass. If the landmarks cannot be read at all,
-  it waits quietly and never switches on, with no message: that is what 2.3.3 and older do on the
-  September game build, which is why their kill counts froze. Either way your save is untouched.
-  One landmark is softer: if another mod has rewritten the job-command data (custom job mods do),
-  the mod stays on and switches off only the three weapon-granted commands (Barrage, Shadow Blade,
-  Provoke), with a calmer box saying exactly that.
+- **The mod checks the game before it writes anything.** At startup it reads a few known spots in
+  the game's memory and holds every write until they look right. If Ramza's roster row reads wrong,
+  the mod switches itself off for the session and shows a box telling you to check for a newer
+  version. A game build the mod has never seen is only reported, one log line and one warning, and
+  the mod runs normally if its own checks pass. If it cannot read the game at all it says so after
+  about a minute and keeps trying. Your save is never touched in any of these cases. If another mod
+  has rewritten the job command data (custom job mods do), only the three weapon granted commands
+  switch off, Barrage, Shadow Blade and Provoke, with a calmer box saying so.
 - **For bug reports, send the log.** It is `livingweapon.log` in the mod's folder under `Reloaded/Mods`;
   each launch rotates the previous one to `livingweapon.prev.log`, so grab it right after the session
   where things went wrong. [`docs/LOGGING.md`](docs/LOGGING.md) explains what is in it.
@@ -117,11 +113,23 @@ data/items.json             # the only hand-edited source: every item's stats, n
 python tools/generate.py        # emit the modloader tables from items.json
 python tools/analyze.py         # prove no item is strictly dominated (gates deploy/release)
 dotnet test LivingWeapon.Tests\LivingWeapon.Tests.csproj   # the runtime's xUnit suite
-.\BuildLinked.ps1               # DEV: generate + gate + meta + self-tests + xUnit + build the DLL + deploy into your Reloaded Mods folder (kills a running fft_enhanced.exe first; refuses on any red step)
-.\Publish.ps1                   # PROD: generate + gate + meta + self-tests + xUnit + build the DLL + package the release zip (no deploy, never touches the game; refuses on any red step)
+.\BuildLinked.ps1               # DEV: generate + gate + meta + self-tests + format check + xUnit + build the DLL + deploy into your Reloaded Mods folder (refuses on any red step)
+.\Publish.ps1                   # PROD: the same steps, then package the release zip instead of deploying (never touches the game)
 ```
 
-The package carries the Reloaded manifest (`ModConfig.json`), the runtime and its data (`LivingWeapon.dll`, `LivingWeapon.deps.json`, `Newtonsoft.Json.dll`, `meta.json` with every growing weapon's facts, `poach.json` for Living Poach, and in 2.3.4 only `treasure.json` for Treasure Master), 7 sparse modloader XMLs (`ItemData`, `ItemWeaponData`, `ItemArmorData`, `ItemShieldData`, `ItemAccessoryData`, `ItemEquipBonusData`, plus `JobData` for the widened generic-job equip lists and class-evade floor), three nxd text files (the full-table `item.en.nxd` for names and descriptions, the cell-merged `ability.en.nxd` for the Barrage text, the Provoke text and the Equip Axes wording, and `uistatuseffect.en.nxd` for the Provoked mark's name), and the menu-icon `.tex` pairs (234 pairs in 2.3.4; 241 on the development branch). The development branch adds the extended inventory's three tables under `extended_inventory/` (read by the DLL at boot, not by the modloader), 14 `.utexpt` icon-parts files for the new ids, and 726 glow-rim icon variants plus their `manifest.json` under `glow_icons/`.
+Both scripts refuse to deploy or package on any red step. Beyond the item gate and the unit tests, two
+style gates run every time. `dotnet format` must have nothing to change, and the comment budget test
+keeps comments short, one comment line per three code lines for a new file, no block over eight lines,
+no colon or dash inside a comment sentence, and no comment that argues instead of informs.
+
+What the package carries.
+
+- The Reloaded manifest, `ModConfig.json`.
+- The runtime and its data. `LivingWeapon.dll`, `LivingWeapon.deps.json`, `Newtonsoft.Json.dll`, `meta.json` with every growing weapon's facts, `poach.json` for Living Poach, and in 2.3.4 only `treasure.json` for Treasure Master.
+- Seven sparse modloader XMLs. `ItemData`, `ItemWeaponData`, `ItemArmorData`, `ItemShieldData`, `ItemAccessoryData`, `ItemEquipBonusData`, plus `JobData` for the widened generic job equip lists and the class evade floor.
+- Three nxd text files. The full table `item.en.nxd` for names and descriptions, the cell merged `ability.en.nxd` for the Barrage, Provoke and Equip Axes text, and `uistatuseffect.en.nxd` for the Provoked mark's name.
+- The menu icon `.tex` pairs, 234 in 2.3.4 and 241 on the development branch.
+- Development branch only. The extended inventory's three tables under `extended_inventory/` (read by the DLL at boot, not by the modloader), 14 `.utexpt` icon parts files for the new ids, and 726 glow rim icon variants with their `manifest.json` under `glow_icons/`.
 
 The game's own code no longer sits at one fixed address (ASLR since the Denuvo-free build), so every game address the DLL knows is written as its documented number and rebased against the live image at startup; [`docs/PATCH_REANCHOR.md`](docs/PATCH_REANCHOR.md) is the runbook for the next game patch.
 
