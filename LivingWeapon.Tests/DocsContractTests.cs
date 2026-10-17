@@ -47,7 +47,7 @@ public class DocsContractTests
         "BULWARK_AC.md", "CHANGELOG.md", "COMPATIBILITY.md", "DESIGN.md", "DEV_TEST_RECIPES.md",
         "EXTENDED_INVENTORY_GUIDE.md", "LIVE_LEDGER.md", "LOGGING.md",
         "MECHANICS.md", "PATCH_REANCHOR.md", "PROVOKE_AC.md", "RELEASE_SCOPE.md", "RELIQUARY_AC.md",
-        "RELIQUARY_DESIGN.md", "TODO.md", "USER_FEEDBACK.md",
+        "RELIQUARY_DESIGN.md", "SMOKE_TEST_2.4.0.md", "TODO.md", "USER_FEEDBACK.md",
         "VERIFY_LIVE.md",
     };
 
