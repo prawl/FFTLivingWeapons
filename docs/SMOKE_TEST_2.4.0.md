@@ -142,7 +142,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
 > Goal: a clean prod deploy, the new launch header, every part ON after the first battle, one kill
 > round trip, green scan. Every box here is a BLOCKER.
 
-- [ ] 1.1 **Deploy prod, and the dev guard refuses to stomp it.** The install is a release build,
+- [x] 1.1 (PASSED 2026-10-17 on main 1c7ba75f: BuildLinked -Prod every stage green, 4134 tests, parity 506/506 byte identical, preservation restore and post restore check passed, build_flavor.txt prod; the plain run printed REFUSING TO DEPLOY ... holds a PROD-flavored install, evidence source marker, exit 1, DLL timestamp unchanged) **Deploy prod, and the dev guard refuses to stomp it.** The install is a release build,
   nothing it preserves was lost, and a careless dev deploy over it is refused. `.\BuildLinked.ps1
   -Prod`: every stage green (generate, analyze gate, meta bake, meta selftest, names selftest,
   scan_logs selftest, recolor selftest, deploy parity selftest, format gate, full test suite, DLL
@@ -896,7 +896,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   Grows below the prose, a phrase on a non growing item, a `No Poaching.` line, a famous card with
   vanilla text only, a counter mispaint. (DEV OK) (covers LW-332, LW-322, LW-328, LW-166; LW-322 is
   the R5 grows text live pass) **[MAJOR]**
-- [ ] 7.2 **Glow rims follow the tally, no halo (LW-381, LW-383, LW-336, LW-295, LW-356, LW-287).**
+- [ ] 7.2 (FAILED 2026-10-17 in sitting 1, owner live on prod 1c7ba75f: after a dev launch had seeded Chaos Blade to tier 3 and the prod launch dropped it to tier 1, Ramza's battle status page drew the Chaos Blade+ list row with no picture while the card kept its art; second sighting; LW-423 owns the fix, re run this box after it lands) **Glow rims follow the tally, no halo (LW-381, LW-383, LW-336, LW-295, LW-356, LW-287).**
   A weapon that crosses a tier in battle wears its new rim on the first inventory open afterwards,
   no restart; rims come off after a tally reset; extended weapons rim like vanilla ones; enemies
   never brighten. Dev build, a weapon one kill short of a tier, win, open the inventory; two weapons
@@ -907,7 +907,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   judged N icons, wrote N (...)` with a hide count of at least 1; no colored halo outside any
   weapon, shield or helm sprite (the vanilla haze stays). FAIL: a rim only after relaunch, a stale
   rim after reset, an enemy brightened, `IconGlow cannot locate modded.pac this launch`, `IconGlow
-  standing down`, or a tinted ring around an icon. (DEV OK) (covers LW-381, LW-383, LW-336, LW-295,
+  standing down`, a tinted ring around an icon, or a blank list icon after a tier change between launches, up or down (LW-423). (DEV OK) (covers LW-381, LW-383, LW-336, LW-295,
   LW-356, LW-287) **[MAJOR]**
 - [ ] 7.3 **The four owed galleries (LW-198, LW-205, LW-210, LW-212).** The knives, ninja blades,
   books and bags were built and gated 2026-08-16 and have waited on the owner's eye since. Items
