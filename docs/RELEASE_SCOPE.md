@@ -399,10 +399,10 @@ recorded in the OUT section rather than edited away.
       rounds a machine could have pruned.
 
 ### 6. Deploy riders (BLOCKER, they only get one chance)
-- [ ] **The rider checklist itself (LW-286)**: three checks have been waiting for whichever
+- [x] **The rider checklist itself (LW-286)** (SHIPPED cb9a6e85 2026-10-17, docs/VERIFY_LIVE.md Deploy riders): three checks have been waiting for whichever
       deploy happens next, recorded only as scattered prose. They get a home in
       docs/VERIFY_LIVE.md before the deploy, not after it.
-- [ ] **No drift check, restated TWICE (LW-286, confirms LW-247, amended 2026-08-19 by LW-287)**:
+- [x] **No drift check, restated TWICE (LW-286, confirms LW-247, amended 2026-08-19 by LW-287)** (re homed 2026-10-17: the confirmation is now the LW-247 row of docs/VERIFY_LIVE.md Deploy riders, checked by smoke boxes 1.1 and B13):
       the original pre registration said the installed icon bytes must not move at all, 468 of
       468. That was written before this cut existed and it collides with a deploy whose entire
       purpose is to move icon bytes. The first restatement said the 150 already final ramp items
@@ -413,9 +413,9 @@ recorded in the OUT section rather than edited away.
       layer, and nothing else in their pictures changes; every non ramp item outside the newly
       reworked set stays byte identical. The first half is what the halo on versus halo off
       render proves item by item; the second is what compare --expect proves.
-- [ ] **Flight recorder eviction fix (LW-286, confirms LW-259)**: the one undeployed runtime
+- [x] **Flight recorder eviction fix (LW-286, confirms LW-259)** (re homed 2026-10-17: now the LW-259 row of docs/VERIFY_LIVE.md Deploy riders, checked by smoke box 5.7): the one undeployed runtime
       change in the tree; needs a deploy plus a tape read after a long battle.
-- [ ] **Cache partition combined pass (LW-286, confirms LW-262)**.
+- [x] **Cache partition combined pass (LW-286, confirms LW-262)** (re homed 2026-10-17: now the LW-262 row of docs/VERIFY_LIVE.md Deploy riders, checked by smoke box 5.7).
 - [ ] **Deploy flavour**: the install is DEV flavoured, which seeds every weapon's kill tally.
       Fine for judging art, wrong for anything read as release ready, so any pass meant to stand
       as a release check runs a prod flavoured build.
@@ -478,7 +478,7 @@ this paragraph is the pointer that says so.
 - [ ] The grows-text live pass (LW-322) and the power audit read (LW-320).
 
 ### R4. Ship furniture
-- [ ] Deploy riders get their VERIFY_LIVE.md home (LW-286) before the next deploy.
+- [x] Deploy riders get their VERIFY_LIVE.md home (LW-286) before the next deploy (SHIPPED cb9a6e85 2026-10-17).
 - [ ] Download page banner re-rendered after the final art state (LW-281).
 - [ ] analyze.py exit 0; dotnet test green; Publish.ps1 clean PROD; changelog exits for
       everything above; ModVersion 2.4.0 and the matching tag.
