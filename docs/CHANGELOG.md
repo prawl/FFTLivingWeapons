@@ -10,6 +10,19 @@ before 2026-07-21 keep their original prose.
 
 ## 2.4.0 cycle
 
+- [LW-401] SHIPPED 96db5a3a 2026-10-17: The README, the compatibility notes, the logging guide and the
+  re anchor runbook now describe the mod that ships, one that checks each part on its own and
+  pauses only what failed, instead of one that refuses every write until the build matches.
+  Plain language: the README still told players the mod "holds every write until the landmarks
+  match" and switches itself off whole when Ramza's row reads wrong, which has been false since
+  the parts model; now every doc says each part checks its own spot, the log prints one Parts
+  report line and one "all parts armed" line, and the box comes in three states with a version
+  and build footer. An adversarial reader checked every changed sentence against the code and
+  its seventeen findings were applied before the commit. (Tech: README Good to know bullet;
+  docs/COMPATIBILITY.md the Parts report bullet; docs/LOGGING.md the startup verb row, launch
+  header, a new parts report section and the standdown trigger paragraph; docs/PATCH_REANCHOR.md
+  the how you find out bullet, the ASLR symptom and step 6; docs/RELEASE_SCOPE.md section R5.)
+
 - [LW-406] SHIPPED 5736283d 2026-10-17: Every message a player sees when part of the mod pauses
   itself now reads the same way: what is paused, why, that a game update or another mod may
   be the cause, and what to do, in one voice, with the technical detail last. Plain language:
