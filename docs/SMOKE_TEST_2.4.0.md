@@ -453,7 +453,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   flat, a roster stat one below the vanilla level up value, the hold never re applied after the
   level up, or the WARN `...'s resident WP byte reads ..., matching neither the baked value`.
   (DEV OK) (covers LW-317, LW-316, LW-250, LW-249) **[MAJOR]**
-- [ ] 3.3 **Prod thresholds live (LW-161).** Tiers come at 5, 10 and 15 kills on a release build.
+- [x] 3.3 (PASSED 2026-10-17, prod 1c7ba75f, owner live, run on the second tier instead of the first because the Cutpurse could not land a kill: Chaos Blade at 9 claims kill number 10 at 10:31:04, toast delivered 1.4 s later `Chaos Blade has gained its 10th kill and has grown to Chaos Blade+2`, owner read the card and the +2 name; max HP rose mid battle as the hp lane retargets on a tier up, which is the designed hold) **Prod thresholds live (LW-161).** Tiers come at 5, 10 and 15 kills on a release build.
   Sitting 1, after the kills.json edit the sitting plan describes (one living weapon set to 4):
   score one kill with that weapon. PASS: the card reads `Kills: 5/10 to +2`, the name wears `+1`,
   the tier up banner delivers via the facing prompt (the toast positive control, LW-323's second
