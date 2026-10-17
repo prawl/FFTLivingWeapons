@@ -98,6 +98,19 @@ belongs rather than at the bottom.
   FingerprintGuard.ByteSignature over a known vanilla span (sourced the way Rec8Sig was, by a probe
   script against the backup exe) and the writer refuses while its door is closed. Provoke.Table
   also compares its captured original against vanilla instead of trusting whatever it read.
+- [LW-412] 2026-10-17: Before the release, look at every living weapon swung in battle and confirm its colour is the one we meant, because the first colour seen after the table doors landed looked off to the owner.
+  Owner note 2026-10-17 during the LW-399 Leg B pass: the Cutpurse repainted, so the weapon colors
+  part works, but the shade did not look right. Suspects already on file: the palette map may be
+  one item off (LW-305) and the broader in battle recolor edge pass has never run (LW-339). Done
+  looks like one sitting with each weapon class swung once, a screenshot per class against the
+  authored colour in data/items.json, and a fix or a retraction for each mismatch.
+- [LW-413] 2026-10-17: Make sure no developer hotkey can fire in a release build, with a test that holds it, because the owner tripped the F6 Provoke trigger during a drill.
+  Owner note 2026-10-17 during the LW-399 Leg B pass on a dev build. Today every key poll lives in
+  the dev spikes under LivingWeapon/Dev (BodyDoubleSpike, NumeralSpike, ProvokeSpike, StatusSpike),
+  each behind #if LWDEV, so a Publish build carries none. Done looks like a contract test that
+  scans the runtime for GetAsyncKeyState and virtual key constants and fails if any sits outside
+  an LWDEV block, plus one owner read of a prod build's log showing no spike lines after an F6.
+  LW-67 stripped the F6 services in July; this row keeps them stripped.
 - [LW-400] 2026-10-16: The twin pistol grant writes into the player's save from outside battle with only the main guard in front of it; give it its own door and a line in the report.
   Stage 3c of the parts model (LW-393). GunSlinger is not a signature: it ticks on the Always
   gate in and out of battle (Engine.cs 368) and writes the roster off-hand and support fields
