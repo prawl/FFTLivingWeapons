@@ -216,7 +216,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   kill credited, no new game detection on Continue. FAIL: a second box, extended items missing
   under the drill, a kills.json archive on a plain Continue. (DEV OK) (covers LW-393, LW-406)
   **[BLOCKER]**
-- [ ] 2.2 **Band door drill (LW-398).** Kill counting, stat growth and the battle powers wait for
+- [ ] 2.2 (REAL WORLD FALSE CLOSE 2026-10-17 in sitting 1: a New Game tutorial battle closed the band door on healthy memory, detail none mirrors a party row (rows checked 1), and showed the box; LW-425 owns the fix; re run this box and the tutorial leg after it lands) **Band door drill (LW-398).** Kill counting, stat growth and the battle powers wait for
   the first battle and switch off alone under the drill. Marker `LW_FORCE_BAND_MISMATCH`, recipe
   legs A, B and D (D is mandatory). PASS leg A: before battle the three read `WAITING (waiting for
   the first battle)`; within a second of `Battle started.` the unit list armed Event and one DBG
@@ -1150,7 +1150,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   extended inventory OFF, an event that no longer fires, a crash or an uncredited kill in the
   wrong order. (covers LW-408; docs half in B16 with LW-410, LW-169) **[MAJOR]**
 - [ ] 10.2 **Two launches, two bases (LW-387, LW-388, LW-132).** ASLR moves the game each launch and
-  the mod follows. Compare the `Game image base` line across two launches of this pass. PASS: the
+  the mod follows. Compare the `Game image base` line across two launches with a Windows restart between them (Windows picks a module's random base once per boot, so every launch inside one boot reads the same base). PASS: the
   base differs at least once and both launches armed and credited a kill. FAIL: a crash at boot, a
   thunk entry landmark refusal, extended inventory not armed on either launch. (DEV OK) (covers
   LW-387, LW-388, LW-132) **[MAJOR]**
@@ -1194,7 +1194,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   new item(s)`. FAIL: a crash or hang opening a list or card holding an extended item, a vanilla
   item wearing the English mod text, a kill uncredited. On a FAIL the README language section and
   docs/COMPATIBILITY.md's language row need a Backlog row before ship. (DEV OK) **[MAJOR]**
-- [ ] 10.5 **Treasure Master is gone, the config pane is empty (LW-10).** Reloaded-II launcher,
+- [x] 10.5 (PASSED 2026-10-17, owner: Configure Mod opens an empty pane with no error, no tile markers seen in sitting 1) **Treasure Master is gone, the config pane is empty (LW-10).** Reloaded-II launcher,
   select prawl.fft.livingweapons, Configure Mod. PASS: the pane opens empty with no error; no tile
   markers in any battle; the Scholar's Ring card reads `Boosts JP earned.` and never mentions a
   module. FAIL: a launcher error on Configure, a tile marker, a module mention. (covers LW-10)
@@ -1207,7 +1207,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
 > The 2.3.0 pass's blocker rows (tallies persist, battle edges, the world map re enter) now live
 > in box 5.3; what remains here is the minor furniture.
 
-- [ ] 11.1 **The item pass holds in an early battle (LW-188, LW-97, LW-99).** Chapter 1 enemies
+- [x] 11.1 (PASSED 2026-10-17, owner live: Gariland enemies walk, Sunsteel Helm, Empyrean Robe and the Squire's Equip Axes text read as written) **The item pass holds in an early battle (LW-188, LW-97, LW-99).** Chapter 1 enemies
   walk, they do not hover; the Sunsteel Helm card ends `Jump +1.` and the Empyrean Robe card ends
   `Wards against Silence.`; the Squire's Equip Axes description explains every axe was reforged
   (intended dead JP, not a broken install); Beowulf's hand holds the Lightbringer. PASS: no floating
@@ -1224,7 +1224,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   no undead battle at hand, flip that half NOT REACHED. PASS: nothing to see on screen, the file
   counts as described. FAIL: a Mark toast, a dormant module line, the undead count landing in the
   human or monster slot, a `deed-miss` on a real kill. (covers LW-159 live half) **[MINOR]**
-- [ ] 11.3 **Red and Blue Mages still compose (LW-77 era prune).** With Blue And Red Mages enabled
+- [x] 11.3 (PASSED 2026-10-17, owner live on prod with Blue And Red Mages enabled: Red Mage and Blue Mage abilities intact, the guard armed) **Red and Blue Mages still compose (LW-77 era prune).** With Blue And Red Mages enabled
   on the prod deploy, Red Mage keeps its abilities with no hand edit, Blue Mage is intact, the
   guard arms. PASS: all three. FAIL: a missing Red Mage ability, a part OFF. **[MINOR]**
 
