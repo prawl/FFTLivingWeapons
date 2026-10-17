@@ -10,6 +10,36 @@ before 2026-07-21 keep their original prose.
 
 ## 2.4.0 cycle
 
+- [LW-399] SHIPPED 8ef2913b 2026-10-17: Each of the five game tables the mod writes into gets its
+  own "is it still here" check before the first write. Plain language: the mod writes into five
+  fixed places in the game's memory (the ground behind a Sunderer, the weapon color palettes, the
+  Poacher's Den shelf, Provoke's ability data and the gun power numbers), and nothing checked they
+  were still what the mod expected. Now each has its own check and its own line in the parts
+  report (bulwark, weapon colors, gun growth, poach den, provoke), a failed check switches off only
+  that writer with one warning and the usual box, and Provoke refuses to repoint an ability whose
+  data does not read the way the game ships it. The checks ask only whether a table is still where
+  the game keeps it, never whether its numbers match this mod's, so an item or ability mod switches
+  nothing off. Behavior change to know: the parts report grows from ten lines to fourteen, and
+  right after a save loads provoke and gun growth can read WAITING for a moment until the game has
+  filled its ability and item data (two seconds on the owner's pass). Stage 3b of the parts model,
+  built in parallel with LW-398 and LW-400 in its own worktree. Full build: plan review with one
+  blocker (the first item door compared values to this mod's own numbers, so a rebalance mod would
+  have switched gun growth off), two implement rounds, two verify rounds (code 8 and 8, spec capped
+  at 5 by plan silences written back into the plan). Owner live pass 2026-10-17 03:11 to 03:17,
+  two legs on a dev build: the drill gave the palette WARN one second after the launch header,
+  weapon colors OFF alone with four other table doors armed, one box naming weapon colors alone,
+  a dagger swinging plain steel, provoke and gun growth ON two seconds after Continue, scan exit 0;
+  the normal launch read fourteen ON, zero warnings, no box, the dagger repainted, scan clean. The
+  owner noted the repainted shade looked off (LW-412) and that the F6 dev trigger must stay out of
+  release builds (LW-413). (Tech: Guard/TableDoors.cs and TableDoors.Probes.cs, five
+  FingerprintGuard doors over code sites and row markers read from the installed exe by
+  tools/probes/static_table_file_image_probe.py, stamp 0x6A5E4A1B; DoorLatch at every writer's
+  first write with an Engine test that each carries one; Part.StaticTableSignatures split into
+  bulwark, weapon colors, gun growth, poach den plus Part.Provoke; LW_FORCE_TABLE_MISMATCH drill as
+  a decorator on the palette door; timed lines on the two boot filled doors count only while the
+  roster door is open; the two UNCERTAIN ledger entries on fill timing are the owner's to flip;
+  commit 8ef2913b.)
+
 - [LW-393] SHIPPED a39e629f 2026-10-17: When a game update breaks one part of the mod, only that
   part switches off and the player is told which parts still work. Plain language: the mod used
   to have one safety switch, so one failed startup check turned everything off and showed one box.

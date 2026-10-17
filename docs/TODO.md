@@ -76,44 +76,6 @@ the technical detail lives in the indented lines under it.
   - Verify: full suite green; the owner's live battle shows either the "The weapon's
     spirit claims the carcass" log line with the Den count matching, or the named
     discriminator or gate-reason line in livingweapon.log; the owner reads the FAQ text.
-- **[LW-399] Each of the five game tables the mod writes into gets its own "is it still here" check before the first write** (opened 2026-10-16) [BUILDING]
-  - Plain language: the mod writes into five fixed places in the game's memory (the ground
-    behind a Sunderer, the weapon color palettes, the Poacher's Den shelf, Provoke's ability
-    data and the six guns' power numbers). Today nothing checks those places are still what the
-    mod expects before the first write, so a game update that moves one of them would have the
-    mod scribbling into whatever lives there now. After this row each place has its own check,
-    shows up in the Parts report by name (bulwark, weapon colors, gun growth, poach den,
-    provoke), a failed check switches off only that writer with one warning and the usual box,
-    and Provoke refuses to repoint an ability whose data does not read the way the game ships it.
-    The checks ask only whether the table is still where the game keeps it, never whether its
-    numbers match this mod's, so an item or ability mod that retunes those numbers switches
-    nothing off; the one visible change for a player is that, right after a save loads,
-    provoke and gun growth can read WAITING until the game has loaded its ability and item data,
-    then ON (on the title screen every roster part waits for a save, as before).
-  - (Tech: five FingerprintGuard doors in Guard/TableDoors.cs fed by spans read from the
-    installed Steam exe, fft_enhanced.exe stamp 0x6A5E4A1B size 0x03F9E000, by
-    tools/probes/static_table_file_image_probe.py, a deviation from the Backlog row's "backup
-    exe" and "vanilla data span" wording because three tables are zero in the file and the two
-    with data are legitimately overridden by other mods; every door pins the game's own
-    addressing instructions in .text (reloc free), the ability door adds the FF FF FF FF row
-    markers at rows 188 to 190 and reads a zero row 189 as "not loaded yet", the item door reads
-    eight non gun vanilla rows as "not loaded yet"; DoorLatch at each writer's first write with
-    an Engine test that every writer carries one; Part.StaticTableSignatures split into four
-    parts plus Part.Provoke; the twin pistols label becomes twin weapons; drill
-    LW_FORCE_TABLE_MISMATCH on the palette door as a decorator; LandmarkStall timed lines on the
-    two boot-filled doors, counting only while the roster door is open; Provoke's capture
-    compares to the pinned 0x2D and six zero inflict row with a WARN and no box.)
-  - Done means: on a healthy game every new part reads ON once a save loads, nothing boxes and
-    nothing warns; under the dev drill the weapon colors part alone reads OFF, exactly one box
-    names it under Switched off, a palette weapon swings in plain steel while a gun's growth
-    still applies; each of the five writers has a unit test proving its first write is refused
-    while its door is closed and lands once it opens, and an Engine test proves each carries its
-    latch; Provoke's capture refuses a non vanilla action byte; the suite, analyze, format and
-    scan_logs gates are green on every stage commit.
-  - Verify: owner live pass per docs/DEV_TEST_RECIPES.md "LW-399 table door drill" (two legs,
-    the PASS and FAIL signatures of the plan's section 8), then the two UNCERTAIN ledger
-    entries ([action-table-live-copy-filled-at-boot], [item-stats-table-filled-at-boot]) are the
-    owner's to flip.
 ## Backlog
 
 Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner directed).
