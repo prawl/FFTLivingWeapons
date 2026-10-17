@@ -76,19 +76,55 @@ the technical detail lives in the indented lines under it.
   - Verify: full suite green; the owner's live battle shows either the "The weapon's
     spirit claims the carcass" log line with the Den count matching, or the named
     discriminator or gate-reason line in livingweapon.log; the owner reads the FAQ text.
+- **[LW-398] The two battle memory regions get their own switches, so a game update that moves one of them turns off only the parts that need it** (opened 2026-10-16) [BUILDING]
+  - Plain language: kill counting, stat growth and the battle signatures need two pieces of game
+    memory that only exist while a battle is on, the live unit data of the battle and the battle's
+    unit list. Today they hang off the party data check alone, so if an update moves one of those
+    two regions nothing says so; the parts just quietly stop. After this row each region has its own
+    check. Until the first battle the Parts report lists the three parts as WAITING (waiting for the
+    first battle). In the first battle each check reads its region, switches the parts on the moment
+    the shape is the one the mod expects, or, once the player's cursor has been on a live field for
+    about twenty seconds with the shape still wrong, switches off only the parts that need it with a
+    warning line and the one parts box. The formation screen and cutscenes can never trip it. The
+    Backlog's idea of matching HP and max HP against the party row was dropped: the band's HP moves
+    every turn while the party row's does not, so the check uses the level, bravery, faith and name
+    match every existing locate already needs. Stage 3a of the parts model (LW-393).
+  - (Tech: Door.Band and Door.StaticArray as FingerprintGuard instances in
+    LaunchGuard.BattleDoors.cs with the two probes in LaunchGuard.BattleProbes.cs; StepBattleDoors(
+    inLive, onField) runs once the roster door is Open, reads the 49 band frames from FrameReadBase
+    in one TryReadBytes per step only while a door still has work and parses them with the pure BattleRegionShape for both probes; the
+    band probe matches the parsed entries against occupied roster rows by Wielder's own tier 1 and
+    tier 2 rule; the array probe is one TryReadBytes of the 30 slots from ArrayReadBase matched
+    against the same step's band entries and stops stepping once the band door stood down; a Match
+    arms on any InLiveBattle step, a Mismatch counts only on OnField steps after a 600 field step
+    grace, then the 30 step debounce closes at Warn tier with the kit lane's record, log, flush
+    order; TickGates.KillCounting, StatGrowth and BandSignatures fold PartOn; LW_FORCE_BAND_MISMATCH
+    drill; offline premise probe tools/probes/band_array_file_image_probe.py shows both spans zero
+    in the exe image.)
+  - Done means: a player on a healthy game sees no change except that the Parts report lists the
+    three parts as WAITING (waiting for the first battle) until the first battle starts, and all
+    ten ON within a second of it, including a battle with a long opening cutscene and a long stay
+    on the formation screen; with the band drill marker the band check switches off kill counting,
+    stat growth and band signatures about twenty seconds after the cursor first lands on the field
+    with one warning line and one box that names the seven parts still working, while the unit list
+    check arms normally; no kill is counted and no stat is held while the band check is off; every
+    gate green (build with 0 warnings, tests, analyze, format on both projects, scan_logs selftest).
+  - Verify: owner live, three legs on a dev build. Leg A with the LW_FORCE_BAND_MISMATCH marker: the
+    array armed line within a second of "Battle started.", one "(battle grace)" DBG line, the band
+    WARN about twenty one seconds after the cursor lands on the field and never while still on the
+    formation screen, one Parts report line with three OFF, exactly one box with the seven under
+    Still working, a kill that credits nothing, scan_logs exit 0. Leg B without the marker: both
+    armed lines within a second of "Battle started.", no grace line, all ten ON, a kill credited,
+    scan CLEAN. Leg D, a story battle with a long cutscene and thirty seconds on the formation
+    screen: no grace line, no warning, no box, all ten ON by the first player turn. Ledger row
+    band-and-array-zero-until-battle-load written UNCERTAIN; the owner flips it after Legs B and D.
+
 ## Backlog
 
 Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner directed).
 A new row still lands here in the session it surfaces; slot it where its urgency
 belongs rather than at the bottom.
 
-- [LW-398] 2026-10-16: The battle band and the static unit array need their own "is it still here" check, so kill counting, growth and the battle signatures can be switched off alone when one of them moves.
-  Stage 3a of the parts model (LW-393). The band and the combat structs are one region measured
-  from CombatAnchor (Offsets.cs 199 to 207, 361); the static unit array at 0x140899F50 is a second
-  (Offsets.cs 89 to 95) read by the kill oracle and several signature fingerprints. Both are only
-  populated in battle, so the landmark arms on first battle entry and must report "waiting" until
-  then. Shape ideas from the audit: a slot whose level, HP and max HP agree with the roster row the
-  band says it mirrors; Band.IsValid already encodes most of it.
 - [LW-399] 2026-10-16: The five places the mod writes into fixed game tables with no check in front (Bulwark's terrain grid, the weapon palette banks, the poach den store, Provoke's two tables, the WP table hold) each get a vanilla byte check before the first write.
   Stage 3b of the parts model (LW-393). These are the harmful-write class from the audit: on a
   moved table they author bytes into foreign memory, and the poach store is save state. Each gets a

@@ -35,6 +35,9 @@ internal static class TickGates
     public static readonly Func<TickPhaseState, bool> InBattle = s => s.NowIn && s.RosterOpen;
     public static readonly Func<TickPhaseState, bool> OutOfBattle = s => !s.NowIn && s.RosterOpen;
     public static readonly Func<TickPhaseState, bool> TwinPistols = s => s.PartOn(Part.TwinPistols);
+    public static readonly Func<TickPhaseState, bool> KillCounting = s => s.NowIn && s.PartOn(Part.KillCounting);
+    public static readonly Func<TickPhaseState, bool> StatGrowth = s => s.NowIn && s.PartOn(Part.StatGrowth);
+    public static readonly Func<TickPhaseState, bool> BandSignatures = s => s.NowIn && s.PartOn(Part.BandSignatures);
 }
 
 /// <summary>

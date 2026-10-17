@@ -15,8 +15,8 @@ internal enum Part
     TwinPistols,
 }
 
-/// <summary>The five checks that feed the parts registry, in the order a part lists them.</summary>
-internal enum Door { Roster, KitLane, Sensing, PromptHook, ExtendedArm }
+/// <summary>The seven checks that feed the parts registry, in the order a part lists them.</summary>
+internal enum Door { Roster, KitLane, Sensing, PromptHook, ExtendedArm, Band, StaticArray }
 
 internal enum DoorState { Waiting, Open, Closed }
 

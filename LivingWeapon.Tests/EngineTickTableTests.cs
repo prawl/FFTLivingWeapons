@@ -58,12 +58,12 @@ public class EngineTickTableTests
     }
 
     [Fact]
-    public void Rows_outside_the_non_battle_allowlist_gate_on_InBattle()
+    public void Rows_outside_the_non_battle_allowlist_gate_on_one_of_the_four_battle_gates()
     {
         // Run is an opaque closure, so "reaches a battle-memory write path" cannot be read off
         // the row itself. The reviewable artifact is therefore this allowlist: every row ALLOWED
         // to run outside battle, each with the reason it is safe there. Everything else must
-        // carry TickGates.InBattle by reference.
+        // carry TickGates.InBattle or one of the three per part battle gates by reference.
         var nonBattle = new HashSet<string>
         {
             "kit-barrage",      // KitLane gate: learn screens/menus read the JobCommand table outside battle; roster open AND the kit-lane guard armed is its write gate
@@ -79,7 +79,8 @@ public class EngineTickTableTests
         };
 
         var rows = Engine.BuildPhases(null);
-        var unGated = rows.Where(r => !ReferenceEquals(r.Gate, TickGates.InBattle))
+        var battleGates = new[] { TickGates.InBattle, TickGates.KillCounting, TickGates.StatGrowth, TickGates.BandSignatures };
+        var unGated = rows.Where(r => !battleGates.Any(g => ReferenceEquals(r.Gate, g)))
                           .Select(r => r.Name).ToHashSet();
 
         // Set equality, both directions: a battle row escaping its gate fails the first assert;
@@ -87,10 +88,10 @@ public class EngineTickTableTests
         // second, so the allowlist cannot quietly outlive the table it describes.
         var escaped = unGated.Except(nonBattle).ToList();
         Assert.True(escaped.Count == 0,
-            $"rows not on the non-battle allowlist and not gated on TickGates.InBattle: {string.Join(", ", escaped)}");
+            $"rows not on the non-battle allowlist and not gated on a battle gate: {string.Join(", ", escaped)}");
         var stale = nonBattle.Except(unGated).ToList();
         Assert.True(stale.Count == 0,
-            $"stale allowlist entries (no matching row, or the row now gates on InBattle): {string.Join(", ", stale)}");
+            $"stale allowlist entries (no matching row, or the row now gates on a battle gate): {string.Join(", ", stale)}");
     }
 
     /// <summary>LW-261 test 9: the resumable pool-locate scan's own tick lane exists, gated
@@ -151,5 +152,26 @@ public class EngineTickTableTests
             Assert.Equal(Part.ExtendedInventory, row.Part);
         Assert.Equal(Part.TwinPistols, rows.Single(r => r.Name == "gunslinger").Part);
         Assert.Same(TickGates.TwinPistols, rows.Single(r => r.Name == "gunslinger").Gate);
+    }
+
+    // ---- LW-398: the three per part battle gates ----
+
+    [Theory]
+    [InlineData("KillCounting")]
+    [InlineData("StatGrowth")]
+    [InlineData("BandSignatures")]
+    public void The_per_part_battle_gates_need_a_battle_and_their_part(string partName)
+    {
+        var part = Enum.Parse<Part>(partName);
+        var gate = part switch
+        {
+            Part.KillCounting => TickGates.KillCounting,
+            Part.StatGrowth => TickGates.StatGrowth,
+            _ => TickGates.BandSignatures,
+        };
+
+        Assert.True(gate(State(nowIn: true, rosterOpen: true, partOn: p => p == part)));
+        Assert.False(gate(State(nowIn: false, rosterOpen: true, partOn: _ => true)));
+        Assert.False(gate(State(nowIn: true, rosterOpen: true, partOn: p => p != part)));
     }
 }

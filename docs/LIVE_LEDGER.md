@@ -2966,6 +2966,16 @@ Uncertain as of 2026-08-17 (evidence re-derived independently from banked tapes;
 
 </details>
 
+### [band-and-array-zero-until-battle-load] The live battle unit data and the battle unit list hold nothing until a battle fills them (UNCERTAIN, static half proven offline, timing half unobserved)
+
+Plain language: the mod keeps two lists of the units in a fight, the live unit data (the band) and the battle's unit list (the static array). Both are blank in the game file itself and, by every consumer's experience so far, stay blank until the formation screen writes them. That is why their checks cannot run at launch the way the other checks do: there is nothing to compare against until a battle exists. Each of the two checks therefore waits for the first battle, arms the moment its list looks the way the mod expects, and only after the player's cursor has sat on a live field for about twenty seconds with the list still wrong does it switch off the parts that need it.
+
+Status: UNCERTAIN, owner flip pending. The static half is proven by tools/probes/band_array_file_image_probe.py against the 1.5.2 Denuvo-free exe (stamp 0x6A5E4A1B, size 0x03F9E000). The band span (FrameReadBase 0x141852CE0, 49 frames, 25,088 bytes) has 0 of 25,088 bytes backed by the file and 0 nonzero, because it sits past the raw data of .data. The array span (ArrayReadBase 0x140897950, 30 slots, 15,360 bytes) is fully file backed and all zero except four bytes at slot 25 offsets 0x48 to 0x4B, which read 0xFF (status bytes; level, brave, faith and max HP of that slot are zero, so the shape reader drops it). So there is no vanilla byte to compare, and a pin that moved reads zero forever in battle. The dynamic half is unobserved as a timed fact: that by the first field frame (or inside the 600 field step grace) at least one player unit passes the band bounds and mirrors its roster row, and that the array holds a tuple that also appears as a band entry, in every battle including the session's first, a resumed mid battle autosave and a battle with a long opening cutscene. The owner's Leg B reads the two armed lines against "Battle started." and Leg D reads a story battle with a long cutscene.
+
+What the doors rest on: eleven of the eighteen band signature modules read the static array (nine directly, two through the enemy fingerprint cache), which is why band signatures need both doors. Doors arm on any live frame and count a mismatch only on field frames after the grace, so the formation screen, cutscenes and the pre battle enter and exit churn can never close one. A held mismatch leaves only a debug line ending "(battle grace)" and no flight record. The doors never re verify in later battles, because the two pins are static addresses that cannot move inside a session and every consumer already validates contents on every read.
+
+**Date:** 2026-10-17
+
 ## Contradicted, probe before building on these
 
 ### [icon-refresh-unreliable] RETRACTED 2026-09-01: the "leave the list and come back" icon refresh is REAL and reproducible; this row's contradiction did not hold

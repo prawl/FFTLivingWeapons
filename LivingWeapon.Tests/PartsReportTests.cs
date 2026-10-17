@@ -7,7 +7,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-393: the pure parts report. Five door readings in, ten parts out with ON, OFF or WAITING and a
+/// LW-393: the pure parts report. Seven door readings in, ten parts out with ON, OFF or WAITING and a
 /// plain reason, plus the one box text. Order assertions use index positions, never Contains alone.
 /// </summary>
 public class PartsReportTests
@@ -19,12 +19,14 @@ public class PartsReportTests
         [Door.Sensing] = DoorReading.Open(),
         [Door.PromptHook] = DoorReading.Open(),
         [Door.ExtendedArm] = DoorReading.Open(),
+        [Door.Band] = DoorReading.Open(),
+        [Door.StaticArray] = DoorReading.Open(),
     };
 
     private static readonly string[] Labels =
     {
         "battle sensing", "kill counting", "stat growth", "card paint", "band signatures",
-        "static table signatures", "weapon commands", "banners", "extended inventory", "twin pistols",
+        "static table signatures", "weapon commands", "banners", "extended inventory", "twin weapons",
     };
 
     [Fact]
@@ -66,7 +68,7 @@ public class PartsReportTests
         r[Door.Roster] = DoorReading.Failed("the party data is not where this mod expects it");
 
         string[] off = { "kill counting", "stat growth", "card paint", "band signatures",
-                         "static table signatures", "weapon commands", "twin pistols" };
+                         "static table signatures", "weapon commands", "twin weapons" };
         foreach (var part in new[] { Part.KillCounting, Part.StatGrowth, Part.CardPaint, Part.BandSignatures,
                                      Part.StaticTableSignatures, Part.WeaponCommands, Part.TwinPistols })
         {
@@ -116,7 +118,7 @@ public class PartsReportTests
 
         Assert.Equal(DoorState.Waiting, state);
         Assert.Equal("waiting for a save to load", reason);
-        Assert.Contains("twin pistols WAITING (waiting for a save to load)", PartsReport.ComposeLine(r));
+        Assert.Contains("twin weapons WAITING (waiting for a save to load)", PartsReport.ComposeLine(r));
     }
 
     [Fact]
@@ -162,7 +164,7 @@ public class PartsReportTests
         Assert.InRange(box.IndexOf("battle sensing", StringComparison.Ordinal), still, off);
         Assert.InRange(box.IndexOf("extended inventory", StringComparison.Ordinal), still, off);
         Assert.InRange(box.IndexOf("kill counting", StringComparison.Ordinal), off, waiting);
-        Assert.InRange(box.IndexOf("twin pistols", StringComparison.Ordinal), off, waiting);
+        Assert.InRange(box.IndexOf("twin weapons", StringComparison.Ordinal), off, waiting);
         Assert.True(box.IndexOf("banners", waiting, StringComparison.Ordinal) > waiting);
     }
 
@@ -221,11 +223,101 @@ public class PartsReportTests
             [Door.Sensing] = DoorReading.Failed("x"),
             [Door.PromptHook] = DoorReading.Failed("x"),
             [Door.ExtendedArm] = DoorReading.Failed("x"),
+            [Door.Band] = DoorReading.Failed("x"),
+            [Door.StaticArray] = DoorReading.Failed("x"),
         };
 
         string box = PartsReport.ComposeBox(r, "", "");
 
         Assert.DoesNotContain("Still working:", box);
         Assert.DoesNotContain(": nothing", box);
+    }
+
+    // ---- LW-398: the band and static array doors ----
+
+    private static string L(Part part) => PartsReport.LabelOf(part);
+
+    [Fact]
+    public void Band_closed_turns_off_kill_counting_growth_and_band_signatures_and_leaves_the_rest_on()
+    {
+        var r = AllOpen();
+        r[Door.Band] = DoorReading.Failed(LaunchGuard.BandClosedReason);
+
+        var off = new[] { Part.KillCounting, Part.StatGrowth, Part.BandSignatures };
+        foreach (var part in off)
+        {
+            var (state, reason) = PartsReport.Status(part, r);
+            Assert.Equal(DoorState.Closed, state);
+            Assert.Equal(LaunchGuard.BandClosedReason, reason);
+        }
+        foreach (var part in new[] { Part.Sensing, Part.CardPaint, Part.StaticTableSignatures, Part.WeaponCommands,
+                                     Part.Banners, Part.ExtendedInventory, Part.TwinPistols })
+            Assert.Equal(DoorState.Open, PartsReport.Status(part, r).State);
+
+        string line = PartsReport.ComposeLine(r);
+        foreach (var part in off)
+            Assert.Contains($"{L(part)} OFF ({LaunchGuard.BandClosedReason})", line);
+        Assert.Contains($"{L(Part.TwinPistols)} ON", line);
+        Assert.Contains($"{L(Part.CardPaint)} ON", line);
+    }
+
+    [Fact]
+    public void Static_array_closed_turns_off_kill_counting_and_band_signatures_and_keeps_growth_on()
+    {
+        var r = AllOpen();
+        r[Door.StaticArray] = DoorReading.Failed(LaunchGuard.ArrayClosedReason);
+
+        Assert.Equal(DoorState.Closed, PartsReport.Status(Part.KillCounting, r).State);
+        Assert.Equal(DoorState.Closed, PartsReport.Status(Part.BandSignatures, r).State);
+        Assert.Equal(DoorState.Open, PartsReport.Status(Part.StatGrowth, r).State);
+        Assert.Equal(DoorState.Open, PartsReport.Status(Part.CardPaint, r).State);
+        Assert.Equal(DoorState.Open, PartsReport.Status(Part.StaticTableSignatures, r).State);
+    }
+
+    [Fact]
+    public void Band_waiting_with_the_roster_open_shows_the_three_parts_waiting_with_the_first_battle_reason()
+    {
+        var r = AllOpen();
+        r[Door.Band] = DoorReading.Waiting(LaunchGuard.BattleWaitingReason);
+        r[Door.StaticArray] = DoorReading.Waiting(LaunchGuard.BattleWaitingReason);
+
+        string line = PartsReport.ComposeLine(r);
+
+        foreach (var part in new[] { Part.KillCounting, Part.StatGrowth, Part.BandSignatures })
+            Assert.Contains($"{L(part)} WAITING (waiting for the first battle)", line);
+        Assert.Contains("banners ON (connected; nothing to announce while kill counting is off)", line);
+        Assert.Contains($"{L(Part.CardPaint)} ON", line);
+    }
+
+    [Fact]
+    public void Roster_closed_outranks_a_waiting_band()
+    {
+        var r = AllOpen();
+        r[Door.Roster] = DoorReading.Failed("roster closed");
+        r[Door.Band] = DoorReading.Waiting(LaunchGuard.BattleWaitingReason);
+
+        var (state, reason) = PartsReport.Status(Part.KillCounting, r);
+
+        Assert.Equal(DoorState.Closed, state);
+        Assert.Equal("roster closed", reason);
+    }
+
+    [Fact]
+    public void Box_groups_the_three_waiting_parts_under_one_reason()
+    {
+        var r = AllOpen();
+        r[Door.Band] = DoorReading.Waiting(LaunchGuard.BattleWaitingReason);
+        r[Door.StaticArray] = DoorReading.Waiting(LaunchGuard.BattleWaitingReason);
+
+        string box = PartsReport.ComposeBox(r, "", "");
+
+        Assert.Contains("Still waiting: kill counting, stat growth, band signatures (waiting for the first battle).", box);
+    }
+
+    [Fact]
+    public void The_band_drill_sentence_names_its_flag_and_the_twin_label_is_twin_weapons()
+    {
+        Assert.Contains(DrillTrigger.BandFlagName, PartsReport.BandDrillSentence);
+        Assert.Equal("twin weapons", L(Part.TwinPistols));
     }
 }

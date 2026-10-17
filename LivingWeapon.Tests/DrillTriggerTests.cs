@@ -168,4 +168,45 @@ public class DrillTriggerTests
 
         Assert.True(DrillTrigger.DrillRequested(temp.Dir, DrillTrigger.RosterFlagName));
     }
+
+    // --- LW-398: the fifth drill flag (the band door's), same two lanes ---
+
+    [Fact]
+    public void Band_flag_name_is_pinned()
+    {
+        Assert.Equal("LW_FORCE_BAND_MISMATCH", DrillTrigger.BandFlagName);
+    }
+
+    [Fact]
+    public void Band_flag_env_set_to_1_requests_the_drill_and_satisfies_no_other_flag_in_either_direction()
+    {
+        string? Get(string name) => name == DrillTrigger.BandFlagName ? "1" : null;
+        string? GetRoster(string name) => name == DrillTrigger.RosterFlagName ? "1" : null;
+        Assert.True(DrillTrigger.DrillRequested(ModDir, DrillTrigger.BandFlagName, Get, NoFile));
+        Assert.False(DrillTrigger.DrillRequested(ModDir, DrillTrigger.RosterFlagName, Get, NoFile));
+        Assert.False(DrillTrigger.DrillRequested(ModDir, DrillTrigger.BandFlagName, GetRoster, NoFile));
+    }
+
+    [Fact]
+    public void Band_flag_marker_file_requests_the_drill_and_no_other_flags_file_satisfies_it()
+    {
+        string path = Path.Combine(ModDir, DrillTrigger.BandFlagName);
+        Assert.True(DrillTrigger.DrillRequested(ModDir, DrillTrigger.BandFlagName, Env(null), p => p == path));
+        foreach (var other in new[] { DrillTrigger.FlagName, DrillTrigger.SensingFlagName,
+                                      DrillTrigger.UnreadableFlagName, DrillTrigger.RosterFlagName })
+        {
+            Assert.False(DrillTrigger.DrillRequested(ModDir, DrillTrigger.BandFlagName, Env(null),
+                p => p == Path.Combine(ModDir, other)));
+            Assert.False(DrillTrigger.DrillRequested(ModDir, other, Env(null), p => p == path));
+        }
+    }
+
+    [Fact]
+    public void Band_flag_production_overload_sees_a_real_marker_file()
+    {
+        using var temp = TempDirs.Create("lw_drill_");
+        File.WriteAllText(Path.Combine(temp.Dir, DrillTrigger.BandFlagName), "");
+
+        Assert.True(DrillTrigger.DrillRequested(temp.Dir, DrillTrigger.BandFlagName));
+    }
 }

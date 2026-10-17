@@ -86,6 +86,12 @@ internal sealed class FakeSparseMemory : IGameMemory
     public readonly Dictionary<long, byte[]> TerrainBlocks = new();
     public readonly Dictionary<long, int> ReadCount = new();
 
+    /// <summary>Every TryReadBytes call, served or not.</summary>
+    public int TryReadBytesCount;
+
+    /// <summary>TryReadBytes calls by requested base address, served or not.</summary>
+    public readonly Dictionary<long, int> TryReadBytesAt = new();
+
     public byte U8(long a)
     {
         ReadCount[a] = ReadCount.TryGetValue(a, out int c) ? c + 1 : 1;
@@ -171,6 +177,8 @@ internal sealed class FakeSparseMemory : IGameMemory
     // any existing exact-base caller's behavior.
     public bool TryReadBytes(long addr, int len, out byte[] buf)
     {
+        TryReadBytesCount++;
+        TryReadBytesAt[addr] = TryReadBytesAt.TryGetValue(addr, out int calls) ? calls + 1 : 1;
         buf = new byte[len];
         foreach (var pair in TerrainBlocks)
         {

@@ -265,7 +265,7 @@ off, the three that do not keep running, and exactly one message box tell you wh
 3. Launch and sit on the title screen. Expect a few "Parts report:" lines in livingweapon.log. The last
    one before you press anything reads battle sensing ON, extended inventory ON, banners ON, and the
    seven roster parts (kill counting, stat growth, card paint, band signatures, static table
-   signatures, weapon commands, twin pistols) WAITING with "waiting for a save to load". Note the time
+   signatures, weapon commands, twin weapons) WAITING with "waiting for a save to load". Note the time
    of the line that first shows battle sensing ON. On a clean boot it comes within a second of the
    launch header, and there must be no DBG line ending in "(boot grace)" before it (a held mismatch
    leaves only that line and no flight record; it is the evidence the new boot-time sentinel check is
@@ -287,11 +287,49 @@ off, the three that do not keep running, and exactly one message box tell you wh
    report printed in the summary.
 
 **Leg B, normal.** Delete the marker (or redeploy), relaunch, press Continue. Expect the last
-"Parts report:" line to read ON for all ten parts, no box, a kill counting as usual, and scan_logs CLEAN.
+"Parts report:" line to read ON for all ten parts once the first battle has started, no box, a kill counting as usual, and scan_logs CLEAN.
 PASS signature: no new game detection line and no kills.json archive on a plain Continue.
 
 **Leg C, optional.** Cold launch and start a New Game. The new game is still detected (kills archived),
 now that the sensing check arms before the roster.
+**Cleanup:** redeploy; the marker is wiped.
+
+## Band door drill and the two battle doors (LW-398)
+
+Plain language: kill counting, stat growth and the battle signatures need the live battle unit data
+(the band) and the battle unit list. Each has its own check that waits for the first battle. The
+drill forces the band check wrong so you can watch it switch off just those three parts.
+
+**Leg A, the drill.** Close the game, run a DEV deploy (back up kills.json if it matters; add -Force on
+a prod flavored install), drop an empty file named `LW_FORCE_BAND_MISMATCH` into the deployed mod dir,
+launch and press Continue.
+1. Before any battle the last "Parts report:" line reads kill counting, stat growth and band signatures
+   WAITING (waiting for the first battle), the other seven ON, and no box appears.
+2. Enter a battle and place the party. Within a second of "Battle started." expect the Event line "The
+   battle unit list reads as expected..." and one DBG line ending "(battle grace)" for the band.
+3. About twenty one seconds after the cursor first lands on the field (time on the formation screen does
+   not count) expect the WARN line "The live battle unit data does not read the way this mod expects
+   (...drill: LW_FORCE_BAND_MISMATCH)..." ending with the drill sentence, then one "Parts report:" line with
+   the three OFF and seven ON, and about three seconds later exactly ONE box. Bait: static table
+   signatures and card paint must be under Still working, and the unit list armed line must be in the log.
+4. Make a kill. Expect no "credited" line and no card counter change.
+5. FAIL meanings: a box inside the first twenty seconds on the field means the grace is not in front of
+   the drill; a WARN while still on the formation screen means the count runs on every live frame instead
+   of field frames; two boxes means the unit list closed too; no "(battle grace)" line means the drill sits
+   outside the grace. `python tools/scan_logs.py` exits 0 with no stand-down finding.
+
+**Leg B, normal.** Delete the marker, relaunch, Continue, enter a battle. Expect both armed Event lines
+within a second of "Battle started.", no "(battle grace)" DBG line anywhere, the next "Parts report:"
+line all ten ON, a kill credited, a visible growth hold on a seeded dev build, scan CLEAN.
+
+**Leg C, optional.** Save mid battle, quit to title, Continue into the battle. Both doors arm within
+seconds of the roster door with no grace line.
+
+**Leg D, mandatory.** A story battle with a long opening cutscene, sitting on the formation screen for at
+least thirty seconds before deploying. Expect no "(battle grace)" line, no WARN, no box, both armed lines
+(the band door must be Open by the first player turn), all ten ON, a kill credited. Note which frame any
+failure landed on.
+
 **Cleanup:** redeploy; the marker is wiped.
 
 ## Add an extended-inventory item (a brand-new weapon past id 260, LW-346)

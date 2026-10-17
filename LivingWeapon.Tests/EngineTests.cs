@@ -218,12 +218,12 @@ public class EngineTests
                 ("extended-caps", TickGates.Always, 30, false, Array.Empty<string>(), Part.ExtendedInventory),
                 ("extended-bag", TickGates.Always, 30, false, Array.Empty<string>(), Part.ExtendedInventory),
                 ("extended-shops", TickGates.Always, 30, false, Array.Empty<string>(), Part.ExtendedInventory),
-                ("kill-poll", TickGates.InBattle, 1, false, Array.Empty<string>(), Part.KillCounting),
-                ("turn-poll", TickGates.InBattle, 1, false, Array.Empty<string>(), Part.KillCounting),
+                ("kill-poll", TickGates.KillCounting, 1, false, Array.Empty<string>(), Part.KillCounting),
+                ("turn-poll", TickGates.KillCounting, 1, false, Array.Empty<string>(), Part.KillCounting),
                 ("field-signatures", TickGates.InBattle, 1, false, new[] { "kill-poll", "turn-poll" }, Part.BandSignatures),
                 ("living-poach", TickGates.InBattle, 1, false, Array.Empty<string>(), Part.StaticTableSignatures),
-                ("growth", TickGates.InBattle, 3, true, Array.Empty<string>(), Part.StatGrowth),
-                ("toast", TickGates.InBattle, 1, false, new[] { "kill-poll" }, Part.KillCounting),
+                ("growth", TickGates.StatGrowth, 3, true, Array.Empty<string>(), Part.StatGrowth),
+                ("toast", TickGates.KillCounting, 1, false, new[] { "kill-poll" }, Part.KillCounting),
                 ("attack-card", TickGates.InBattle, 1, false, Array.Empty<string>(), Part.CardPaint),
                 ("weapon-palette", TickGates.InBattle, 1, false, Array.Empty<string>(), Part.StaticTableSignatures),
                 ("wp-table-hold", TickGates.InBattle, 1, false, Array.Empty<string>(), Part.StaticTableSignatures),
@@ -231,14 +231,14 @@ public class EngineTests
 #if LWDEV
             expected.AddRange(new (string, Func<TickPhaseState, bool>, int, bool, string[], Part)[]
             {
-                ("turn-owner-spike", TickGates.InBattle, 1, false, Array.Empty<string>(), Part.BandSignatures),
-                ("status-spike", TickGates.InBattle, 1, false, Array.Empty<string>(), Part.BandSignatures),
-                ("body-double-spike", TickGates.InBattle, 1, false, Array.Empty<string>(), Part.BandSignatures),
-                ("provoke-spike", TickGates.InBattle, 1, false, Array.Empty<string>(), Part.BandSignatures),
-                ("numeral-spike", TickGates.InBattle, 1, false, Array.Empty<string>(), Part.BandSignatures),
+                ("turn-owner-spike", TickGates.BandSignatures, 1, false, Array.Empty<string>(), Part.BandSignatures),
+                ("status-spike", TickGates.BandSignatures, 1, false, Array.Empty<string>(), Part.BandSignatures),
+                ("body-double-spike", TickGates.BandSignatures, 1, false, Array.Empty<string>(), Part.BandSignatures),
+                ("provoke-spike", TickGates.BandSignatures, 1, false, Array.Empty<string>(), Part.BandSignatures),
+                ("numeral-spike", TickGates.BandSignatures, 1, false, Array.Empty<string>(), Part.BandSignatures),
             });
 #endif
-            expected.Add(("save-on-change", TickGates.InBattle, 1, false, new[] { "kill-poll" }, Part.KillCounting));
+            expected.Add(("save-on-change", TickGates.KillCounting, 1, false, new[] { "kill-poll" }, Part.KillCounting));
             expected.Add(("paint", TickGates.InBattle, 1, false, Array.Empty<string>(), Part.CardPaint));
 
             Assert.Equal(expected.Count, engine.Phases.Count);
@@ -276,6 +276,14 @@ public class EngineTests
             var memIn = HealthyMemory();
             var engineIn = new Engine(NestedModDir(tempIn), mem: memIn, notice: (_, __) => { });
             engineIn.Tick();   // arms the guard (mirrors the sentinel test); the sentinels are still idle, so no battle yet.
+            // The battle fan-out rows sit behind the band and array doors, so stage a band unit that mirrors
+            // Ramza's row and an array slot that matches it.
+            var band = BattleRegionShapeTests.EmptyBand();
+            BattleRegionShapeTests.PutBand(band, 3, 12, 70, 65, 300, 300, nameId: 1);
+            var arr = BattleRegionShapeTests.EmptyArray();
+            BattleRegionShapeTests.PutArray(arr, 4, 300, 12, 70, 65);
+            memIn.TerrainBlocks[Offsets.FrameReadBase] = band;
+            memIn.TerrainBlocks[Offsets.ArrayReadBase] = arr;
             // Stage the in-battle regime: battleMode 3 alone satisfies both BattleState.EnterSignal
             // (instant enter) and BattleState.InLiveBattle; slot9 stuck at its sentinel matches the
             // documented in-battle pair (Offsets.Slot9's own doc comment).

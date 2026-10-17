@@ -409,6 +409,7 @@ _STANDDOWN = "[Living Weapons] [19:10:05.100] [ERROR] [startup] The game build d
 _STANDDOWN_DRILL = "[Living Weapons] [19:10:05.100] [ERROR] [startup] The game build does not match this mod's memory landmarks (ramza-roster-row (drill: LW_FORCE_ROSTER_MISMATCH)); the parts that need it are standing down to protect your save; see the Parts report line for what still runs. The mod likely needs an update for a new game patch. This stand down was forced by the LW_FORCE_ROSTER_MISMATCH drill flag (dev builds only)."
 _PARTS_ON = "[Living Weapons] [19:10:05.200] [INFO] [startup] Parts report: battle sensing ON; kill counting ON; stat growth ON; card paint ON; band signatures ON; static table signatures ON; weapon commands ON; banners ON (connected; nothing to announce while kill counting is off); extended inventory ON; twin pistols ON"
 _PARTS_DRILL = "[Living Weapons] [19:10:05.300] [INFO] [startup] Parts report: battle sensing ON; kill counting OFF (the party data is not where this mod expects it, forced by the LW_FORCE_ROSTER_MISMATCH drill); stat growth OFF (the party data is not where this mod expects it, forced by the LW_FORCE_ROSTER_MISMATCH drill); banners ON; extended inventory ON"
+_BAND_DRILL_WARN = "[Living Weapons] [19:12:00.000] [WARN] [startup] The live battle unit data does not read the way this mod expects (band-region (drill: LW_FORCE_BAND_MISMATCH)). Kill counting, stat growth and the band signatures are switched off for this session so nothing is written to the wrong place; the other parts keep working. This stand down was forced by the LW_FORCE_BAND_MISMATCH drill flag (dev builds only)."
 _WARN = "[Living Weapons] [19:10:00.025] [WARN] [save] No kill tally on disk; starting fresh (kills.json will be created on the first save)."
 _LEGACY_ERR = "19:11:15.000 [FFTLivingWeapons] ERROR: legacy failure from a prev.log-era archive"
 _EXC_CONT = "[Living Weapons] [19:11:15.001] [ERROR]   InvalidOperationException: the set corrupted its state"
@@ -553,6 +554,13 @@ def selftest():
     plines, _ = report_lines(r, "x.log", None, ())
     check("parts: nothing printed when the log has none", r.parts == "" and not any("last parts report" in l for l in plines))
     check("parts: an INFO parts line is never an error", scan_lines(_hdr() + [_PARTS_ON, _ARMED] + _BATTLE).errors_seen == 0)
+
+    # 19. LW-398: a band door WARN under the drill carries the drill tag but not the stand-down phrase, so it is
+    # a plain WARN and never a stand-down or a drill stand-down finding.
+    r = scan_lines(_hdr() + [_ARMED, _BAND_DRILL_WARN] + _BATTLE)
+    check("band drill warn: no finding at all", _codes(r) == [] and exit_code(r) == 0)
+    check("band drill warn: counted as a plain warn, not a stand-down", r.warns_seen == 1 and not r.stood_down)
+    check("band drill warn: the drill tag is seen, the stand-down phrase is not", is_drill(_BAND_DRILL_WARN) and not is_standdown(_BAND_DRILL_WARN))
 
     passed = sum(1 for _, ok in cases if ok)
     for name, ok in cases:

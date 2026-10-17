@@ -20,7 +20,7 @@ public class PartsBoardTests
 
         public Rig() { Board = new PartsBoard((t, x) => Notices.Add((t, x)), (t, p) => Records.Add((t, p))); }
 
-        public void Tick(int n = 1, string hedge = "", bool drill = false)
+        public void Tick(int n = 1, string hedge = "", string drill = "")
         {
             for (int i = 0; i < n; i++) Board.Observe(R, hedge, drill);
         }
@@ -159,7 +159,7 @@ public class PartsBoardTests
         var rig = new Rig();
         rig.R[Door.Roster] = DoorReading.Failed("the party data is not where this mod expects it");
 
-        rig.Tick(PartsBoard.SettleSteps + 1, LaunchGuard.UnknownBuildHedge, drill: true);
+        rig.Tick(PartsBoard.SettleSteps + 1, LaunchGuard.UnknownBuildHedge, drill: PartsReport.RosterDrillSentence);
 
         var box = Assert.Single(rig.Notices);
         Assert.Equal(PartsReport.ComposeBox(rig.R, PartsReport.RosterDrillSentence, LaunchGuard.UnknownBuildHedge), box.text);
@@ -173,8 +173,39 @@ public class PartsBoardTests
         var r = PartsReportTests.AllOpen();
         r[Door.Roster] = DoorReading.Failed("x");
 
-        for (int i = 0; i < PartsBoard.SettleSteps + 2; i++) board.Observe(r, "", false);
+        for (int i = 0; i < PartsBoard.SettleSteps + 2; i++) board.Observe(r, "", "");
 
         Assert.Equal(1, board.BoxCount);
+    }
+
+    [Fact]
+    public void A_closed_band_reading_boxes_once_after_the_settle_window_with_the_band_drill_sentence()
+    {
+        using var cap = LogCapture.Start();
+        var rig = new Rig();
+        rig.Tick(10);
+
+        rig.R[Door.Band] = DoorReading.Failed(LaunchGuard.BandClosedReason);
+        rig.Tick(PartsBoard.SettleSteps + 1, drill: PartsReport.BandDrillSentence);
+        rig.Tick(500, drill: PartsReport.BandDrillSentence);
+
+        var box = Assert.Single(rig.Notices);
+        Assert.Equal(PartsReport.ComposeBox(rig.R, PartsReport.BandDrillSentence, ""), box.text);
+        Assert.Contains("LW_FORCE_BAND_MISMATCH", box.text);
+        Assert.Equal(1, rig.Board.BoxCount);
+    }
+
+    [Fact]
+    public void A_waiting_band_never_boxes()
+    {
+        using var cap = LogCapture.Start();
+        var rig = new Rig();
+        rig.R[Door.Band] = DoorReading.Waiting(LaunchGuard.BattleWaitingReason);
+        rig.R[Door.StaticArray] = DoorReading.Waiting(LaunchGuard.ArrayFailedFirstReason);
+
+        rig.Tick(PartsBoard.SettleSteps * 3);
+
+        Assert.Empty(rig.Notices);
+        Assert.False(rig.Board.WaveOpen);
     }
 }

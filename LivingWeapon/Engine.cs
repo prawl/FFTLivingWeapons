@@ -53,10 +53,10 @@ internal sealed class Engine
     private readonly TickPhaseState _tickState = new();
     private readonly GunSlinger _gunSlinger = null!;
     private readonly IGameMemory _live = null!;   // assigned in ctor, used by Tick
-    private readonly LaunchGuard _launchGuard;   // the three door guards; its roster edge enables Mem writes
+    private readonly LaunchGuard _launchGuard;   // the five door guards; its roster edge enables Mem writes
     private readonly PartsBoard _board;   // the parts report line and its box per closure wave
-    private readonly Dictionary<Door, DoorReading> _readings = new();   // the five doors, refilled every tick
-    private readonly bool _devForceRoster;
+    private readonly Dictionary<Door, DoorReading> _readings = new();   // the seven doors, refilled every tick
+    private readonly string _drillSentence;   // the drill sentences for the flags that are on, joined, for the box
     private readonly AnchorScout _anchorScout;   // verifier scout, ticks only once StoodDown; writes nothing
     private readonly BannerToast _toast;
     private readonly bool _bannerToastsEnabled;
@@ -86,7 +86,8 @@ internal sealed class Engine
     public Engine(string modDir, bool? bannerToasts = null, bool? devSeedKills = null,
         bool? devForceFingerprintMismatch = null, IGameMemory? mem = null, Action<string, string>? notice = null,
         ExtendedInventory? extended = null, bool? devForceSensingMismatch = null,
-        bool? devForceGuardUnreadable = null, bool? devForceRosterMismatch = null)
+        bool? devForceGuardUnreadable = null, bool? devForceRosterMismatch = null,
+        bool? devForceBandMismatch = null)
     {
         // Save files live in the update-safe Reloaded/User/Mods/<ModId> dir so a mod-folder
         // replace cannot wipe them. Each store migrates its legacy file there before first load.
@@ -130,8 +131,11 @@ internal sealed class Engine
             recorder: Flight.Record, requestFlush: Flight.RequestFlush,
             forceSensingMismatch: devForceSensingMismatch ?? false,
             forceUnreadable: devForceGuardUnreadable ?? false,
-            forceRosterMismatch: devForceRosterMismatch ?? false);
-        _devForceRoster = devForceRosterMismatch ?? false;
+            forceRosterMismatch: devForceRosterMismatch ?? false,
+            forceBandMismatch: devForceBandMismatch ?? false);
+        string rosterDrill = devForceRosterMismatch == true ? PartsReport.RosterDrillSentence : "";
+        string bandDrill = devForceBandMismatch == true ? PartsReport.BandDrillSentence : "";
+        _drillSentence = rosterDrill.Length > 0 && bandDrill.Length > 0 ? rosterDrill + " " + bandDrill : rosterDrill + bandDrill;
         _board = new PartsBoard(ResolveNotice(notice), Flight.Record);
         _tickState.PartOn = PartOn;
         // Read-only scout that ticks only while StoodDown; it never arms or writes (a scout, never a healer).
@@ -322,9 +326,9 @@ internal sealed class Engine
                 _ => e!._extended.StepShopSync(), Part.ExtendedInventory),
 
             // Every tick so a fast-forward death's brief hp==0 window is not missed.
-            new TickPhase("kill-poll", TickGates.InBattle, 1, false, Array.Empty<string>(),
+            new TickPhase("kill-poll", TickGates.KillCounting, 1, false, Array.Empty<string>(),
                 s => s.Changed = e!._tracker.Poll(s.OnField), Part.KillCounting),
-            new TickPhase("turn-poll", TickGates.InBattle, 1, false, Array.Empty<string>(),
+            new TickPhase("turn-poll", TickGates.KillCounting, 1, false, Array.Empty<string>(),
                 _ => e!._turns.Poll(), Part.KillCounting),
             new TickPhase("field-signatures", TickGates.InBattle, 1, false, new[] { "kill-poll", "turn-poll" },
                 s =>
@@ -336,10 +340,10 @@ internal sealed class Engine
             new TickPhase("living-poach", TickGates.InBattle, 1, false, Array.Empty<string>(),
                 _ => e!._livingPoach.Tick(), Part.StaticTableSignatures),
             // Growth holds stats; every 3rd tick (~100ms) is plenty.
-            new TickPhase("growth", TickGates.InBattle, 3, true, Array.Empty<string>(),
+            new TickPhase("growth", TickGates.StatGrowth, 3, true, Array.Empty<string>(),
                 _ => e!._growth.Apply(), Part.StatGrowth),
             // Not onField-gated. The facing prompt can render during mode-1 cast animations. Delivery fires from the game's own hook.
-            new TickPhase("toast", TickGates.InBattle, 1, false, new[] { "kill-poll" },
+            new TickPhase("toast", TickGates.KillCounting, 1, false, new[] { "kill-poll" },
                 s => e!._toast.Tick(s.Changed), Part.KillCounting),
             // The Attack-menu desc dossier painter.
             new TickPhase("attack-card", TickGates.InBattle, 1, false, Array.Empty<string>(),
@@ -354,19 +358,19 @@ internal sealed class Engine
 #if LWDEV
         // Dev-only passive/cold-call research instruments, in-battle only (see each Spike class's
         // own doc for its F-key / request-file lane); compiled out of Release entirely.
-        phases.Add(new TickPhase("turn-owner-spike", TickGates.InBattle, 1, false, Array.Empty<string>(),
+        phases.Add(new TickPhase("turn-owner-spike", TickGates.BandSignatures, 1, false, Array.Empty<string>(),
             _ => e!._turnOwnerSpike.Tick(), Part.BandSignatures));
-        phases.Add(new TickPhase("status-spike", TickGates.InBattle, 1, false, Array.Empty<string>(),
+        phases.Add(new TickPhase("status-spike", TickGates.BandSignatures, 1, false, Array.Empty<string>(),
             s => e!._statusSpike.Tick(s.InLive), Part.BandSignatures));
-        phases.Add(new TickPhase("body-double-spike", TickGates.InBattle, 1, false, Array.Empty<string>(),
+        phases.Add(new TickPhase("body-double-spike", TickGates.BandSignatures, 1, false, Array.Empty<string>(),
             s => e!._bodyDoubleSpike.Tick(s.InLive), Part.BandSignatures));
-        phases.Add(new TickPhase("provoke-spike", TickGates.InBattle, 1, false, Array.Empty<string>(),
+        phases.Add(new TickPhase("provoke-spike", TickGates.BandSignatures, 1, false, Array.Empty<string>(),
             s => e!._provokeSpike.Tick(s.InLive), Part.BandSignatures));
-        phases.Add(new TickPhase("numeral-spike", TickGates.InBattle, 1, false, Array.Empty<string>(),
+        phases.Add(new TickPhase("numeral-spike", TickGates.BandSignatures, 1, false, Array.Empty<string>(),
             s => e!._numeralSpike.Tick(s.InLive), Part.BandSignatures));
 #endif
         // Reads Changed from kill-poll; saves the tally and the Reliquary ledger when a kill landed.
-        phases.Add(new TickPhase("save-on-change", TickGates.InBattle, 1, false, new[] { "kill-poll" },
+        phases.Add(new TickPhase("save-on-change", TickGates.KillCounting, 1, false, new[] { "kill-poll" },
             s => { if (s.Changed) { e!._tally.Save(); e._legends.SaveIfDirty(); } }, Part.KillCounting));
         // slot9 is still the battle sentinel; once off-field a beat (battleMode 0. World-map menu or post-battle), paint the card.
         phases.Add(new TickPhase("paint", TickGates.InBattle, 1, false, Array.Empty<string>(),
@@ -406,7 +410,9 @@ internal sealed class Engine
         _readings[Door.Sensing] = _launchGuard.SensingDoor;
         _readings[Door.PromptHook] = _promptSwapHook.Door;
         _readings[Door.ExtendedArm] = _extended.Door;
-        _board.Observe(_readings, _launchGuard.BuildHedge, _devForceRoster);
+        _readings[Door.Band] = _launchGuard.BandDoor;
+        _readings[Door.StaticArray] = _launchGuard.StaticArrayDoor;
+        _board.Observe(_readings, _launchGuard.BuildHedge, _drillSentence);
     }
 
     /// <summary>Test seam. The part of each entry in <see cref="FieldTickOrder"/>.</summary>
@@ -487,7 +493,6 @@ internal sealed class Engine
         _launchGuard.StepKitLane();
         _launchGuard.StepSensing();
         if (_launchGuard.State == GuardState.StoodDown) _anchorScout.Tick();
-        ObserveDoors();
 
         uint slot0 = _live.U32(Offsets.Slot0);
         uint slot9 = _live.U32(Offsets.Slot9);
@@ -523,6 +528,8 @@ internal sealed class Engine
         BattleEdge edge = _battle.Step(slot0, slot9, battleMode, paused, eventId, now, forceExit: newGame);
         bool nowIn = _battle.In;
         bool onField = BattleState.OnField(nowIn, battleMode);
+        _launchGuard.StepBattleDoors(inLive, onField);
+        ObserveDoors();
         if (onField) _lastField = now;
         bool battleDisplayed = BattleState.BattleDisplayed(slot9, battleMode);
         if (edge == BattleEdge.Entered) OnBattleEnter(slot0, slot9, battleMode);

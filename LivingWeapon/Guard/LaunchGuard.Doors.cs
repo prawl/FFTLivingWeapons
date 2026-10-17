@@ -3,7 +3,7 @@ using System;
 namespace LivingWeapon;
 
 /// <summary>
-/// The door side of the three guards. It turns each guard's state into a reading for the parts registry,
+/// The door side of the guards. It turns each guard's state into a reading for the parts registry,
 /// wraps the lane landmarks with their stall watchers and the sensing boot grace, and holds the roster drill.
 /// </summary>
 internal sealed partial class LaunchGuard

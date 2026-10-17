@@ -4,7 +4,7 @@ using System.Text;
 namespace LivingWeapon;
 
 /// <summary>
-/// The pure half of the parts report. Five door readings in, one status per part out, composed into the
+/// The pure half of the parts report. Seven door readings in, one status per part out, composed into the
 /// single log line and the single box text. Dependency free like FingerprintGuard.
 /// </summary>
 internal static class PartsReport
@@ -14,6 +14,9 @@ internal static class PartsReport
 
     internal const string RosterDrillSentence =
         "This stand down was forced by the LW_FORCE_ROSTER_MISMATCH drill flag (dev builds only).";
+
+    internal const string BandDrillSentence =
+        "This stand down was forced by the LW_FORCE_BAND_MISMATCH drill flag (dev builds only).";
 
     private const string BannersNote = "connected; nothing to announce while kill counting is off";
 
@@ -28,15 +31,15 @@ internal static class PartsReport
     private static readonly Row[] Rows =
     {
         new(Part.Sensing, "battle sensing", Door.Sensing),
-        new(Part.KillCounting, "kill counting", Door.Roster),
-        new(Part.StatGrowth, "stat growth", Door.Roster),
+        new(Part.KillCounting, "kill counting", Door.Roster, Door.Band, Door.StaticArray),
+        new(Part.StatGrowth, "stat growth", Door.Roster, Door.Band),
         new(Part.CardPaint, "card paint", Door.Roster),
-        new(Part.BandSignatures, "band signatures", Door.Roster),
+        new(Part.BandSignatures, "band signatures", Door.Roster, Door.Band, Door.StaticArray),
         new(Part.StaticTableSignatures, "static table signatures", Door.Roster),
         new(Part.WeaponCommands, "weapon commands", Door.Roster, Door.KitLane),
         new(Part.Banners, "banners", Door.PromptHook),
         new(Part.ExtendedInventory, "extended inventory", Door.ExtendedArm),
-        new(Part.TwinPistols, "twin pistols", Door.Roster),
+        new(Part.TwinPistols, "twin weapons", Door.Roster),
     };
 
     private static Row RowOf(Part part)
@@ -56,6 +59,9 @@ internal static class PartsReport
             if (readings[door].State == DoorState.Waiting) return (DoorState.Waiting, readings[door].Reason);
         return (DoorState.Open, "");
     }
+
+    /// <summary>The user facing label of a part, as the report and the box print it.</summary>
+    internal static string LabelOf(Part part) => RowOf(part).Label;
 
     public static bool IsOn(Part part, IReadOnlyDictionary<Door, DoorReading> readings)
         => Status(part, readings).State == DoorState.Open;

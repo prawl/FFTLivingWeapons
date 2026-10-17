@@ -18,11 +18,11 @@ public class EngineDoorTests
         "{\"200\":{\"name\":\"Twin Test Pistol\",\"wp\":7,\"cat\":\"Gun\",\"formula\":3,\"signature\":{\"abilityId\":0,\"slot\":\"\",\"atTier\":3,\"gunSlinger\":true}}}";
 
     private static Engine Build(TempDirs temp, FakeSparseMemory mem, List<(string title, string text)>? notices = null,
-        bool drill = false, bool withTwinMeta = false)
+        bool drill = false, bool withTwinMeta = false, bool bandDrill = false)
     {
         string modDir = EngineTests.NestedModDir(temp);
         if (withTwinMeta) File.WriteAllText(Path.Combine(modDir, "meta.json"), TwinMeta);
-        return new Engine(modDir, devSeedKills: false, devForceRosterMismatch: drill, mem: mem,
+        return new Engine(modDir, devSeedKills: false, devForceRosterMismatch: drill, devForceBandMismatch: bandDrill, mem: mem,
             notice: (t, x) => notices?.Add((t, x)));
     }
 
@@ -158,11 +158,145 @@ public class EngineDoorTests
             Assert.True(working >= 0 && off > working && waiting > off);
             Assert.InRange(text.IndexOf("battle sensing", StringComparison.Ordinal), working, off);
             Assert.InRange(text.IndexOf("kill counting", StringComparison.Ordinal), off, waiting);
-            Assert.InRange(text.IndexOf("twin pistols", StringComparison.Ordinal), off, waiting);
+            Assert.InRange(text.IndexOf("twin weapons", StringComparison.Ordinal), off, waiting);
             Assert.True(text.IndexOf("banners", waiting, StringComparison.Ordinal) > waiting);
             Assert.True(text.IndexOf("extended inventory", waiting, StringComparison.Ordinal) > waiting);
             Assert.Contains("LW_FORCE_ROSTER_MISMATCH", text);
             Assert.Equal(1, engine.Board.BoxCount);
+        }
+        finally { Mem.WritesEnabled = prev; }
+    }
+
+    // ---- LW-398: the band and static array doors through the engine ----
+
+    private static void OnField(FakeSparseMemory mem)
+        => EngineTests.StageSentinelsBothStores(mem, 0x10, 0xFFFFFFFFu, 3, 0xFFFF, 0, 0);
+
+    private static FakeSparseMemory BattleMemory()
+    {
+        var mem = EngineTests.HealthyMemory();
+        var band = BattleRegionShapeTests.EmptyBand();
+        BattleRegionShapeTests.PutBand(band, 3, 12, 70, 65, 300, 300, nameId: 1);
+        var arr = BattleRegionShapeTests.EmptyArray();
+        BattleRegionShapeTests.PutArray(arr, 4, 300, 12, 70, 65);
+        mem.TerrainBlocks[Offsets.FrameReadBase] = band;
+        mem.TerrainBlocks[Offsets.ArrayReadBase] = arr;
+        Idle(mem);
+        return mem;
+    }
+
+    [Fact]
+    public void Closed_band_door_never_ticks_the_kill_poll_row_while_the_roster_is_open()
+    {
+        bool prev = Mem.WritesEnabled;
+        try
+        {
+            Mem.WritesEnabled = false;
+            using var temp = TempDirs.Create("lw_door_band_closed_");
+            var mem = BattleMemory();
+            var engine = Build(temp, mem, bandDrill: true);
+            Ticks(engine, 40);   // the roster and the lanes arm on the idle world map
+            OnField(mem);
+
+            Ticks(engine, LaunchGuard.BattleGraceSteps + 30 + 5);
+
+            var band = engine.Guard.BandDoor;
+            Assert.Equal(DoorState.Closed, band.State);
+            Assert.True(band.FailedCheck);
+            Assert.Equal(DoorState.Open, engine.Guard.StaticArrayDoor.State);
+            int acted = mem.ReadCount.GetValueOrDefault(Offsets.Acted);
+            int actor = mem.ReadCount.GetValueOrDefault(Offsets.ActorPtr);
+
+            Ticks(engine, 20);
+
+            Assert.Equal(acted, mem.ReadCount.GetValueOrDefault(Offsets.Acted));
+            Assert.Equal(actor, mem.ReadCount.GetValueOrDefault(Offsets.ActorPtr));
+        }
+        finally { Mem.WritesEnabled = prev; }
+    }
+
+    [Fact]
+    public void Open_band_door_ticks_the_kill_poll_row()
+    {
+        bool prev = Mem.WritesEnabled;
+        try
+        {
+            Mem.WritesEnabled = false;
+            using var temp = TempDirs.Create("lw_door_band_open_");
+            var mem = BattleMemory();
+            var engine = Build(temp, mem);
+            Ticks(engine, 40);
+            OnField(mem);
+            Ticks(engine, 10);
+
+            Assert.Equal(DoorState.Open, engine.Guard.BandDoor.State);
+            Assert.Equal(DoorState.Open, engine.Guard.StaticArrayDoor.State);
+            int acted = mem.ReadCount.GetValueOrDefault(Offsets.Acted);
+            int actor = mem.ReadCount.GetValueOrDefault(Offsets.ActorPtr);
+
+            Ticks(engine, 20);
+
+            Assert.True(mem.ReadCount.GetValueOrDefault(Offsets.Acted) > acted, "turn-poll did not tick");
+            Assert.True(mem.ReadCount.GetValueOrDefault(Offsets.ActorPtr) > actor, "kill-poll did not tick");
+        }
+        finally { Mem.WritesEnabled = prev; }
+    }
+
+    [Fact]
+    public void Before_the_first_battle_the_report_lists_the_three_parts_waiting()
+    {
+        bool prev = Mem.WritesEnabled;
+        try
+        {
+            Mem.WritesEnabled = false;
+            using var temp = TempDirs.Create("lw_door_prebattle_");
+            var mem = BattleMemory();
+            var engine = Build(temp, mem);
+
+            Ticks(engine, 40);
+
+            Assert.Equal(GuardState.Armed, engine.Guard.State);
+            Assert.Contains("kill counting WAITING (waiting for the first battle)", engine.Board.LastLine);
+            Assert.Contains("stat growth WAITING (waiting for the first battle)", engine.Board.LastLine);
+            Assert.Contains("band signatures WAITING (waiting for the first battle)", engine.Board.LastLine);
+            Assert.Contains("card paint ON", engine.Board.LastLine);
+        }
+        finally { Mem.WritesEnabled = prev; }
+    }
+
+    [Fact]
+    public void Band_drill_through_the_engine_boxes_once_with_three_parts_off_and_the_rest_listed()
+    {
+        bool prev = Mem.WritesEnabled;
+        try
+        {
+            Mem.WritesEnabled = false;
+            using var temp = TempDirs.Create("lw_door_band_drill_");
+            var mem = BattleMemory();
+            var notices = new List<(string title, string text)>();
+            var engine = Build(temp, mem, notices, bandDrill: true);
+            Ticks(engine, 40);
+            OnField(mem);
+
+            Ticks(engine, LaunchGuard.BattleGraceSteps + 30 + PartsBoard.SettleSteps + 60);
+
+            var box = Assert.Single(notices);
+            string text = box.text;
+            int working = text.IndexOf("Still working:", StringComparison.Ordinal);
+            int off = text.IndexOf("Switched off:", StringComparison.Ordinal);
+            Assert.True(working >= 0 && off > working);
+            foreach (var part in new[] { Part.CardPaint, Part.WeaponCommands, Part.TwinPistols, Part.StaticTableSignatures })
+                Assert.InRange(text.IndexOf(PartsReport.LabelOf(part), StringComparison.Ordinal), working, off);
+            foreach (var part in new[] { Part.KillCounting, Part.StatGrowth, Part.BandSignatures })
+                Assert.True(text.IndexOf(PartsReport.LabelOf(part), off, StringComparison.Ordinal) > off);
+            Assert.Contains("LW_FORCE_BAND_MISMATCH", text);
+            Assert.DoesNotContain("LW_FORCE_ROSTER_MISMATCH", text);
+            Assert.Equal(1, engine.Board.BoxCount);
+
+            Ticks(engine, 300);
+
+            Assert.Equal(1, engine.Board.BoxCount);
+            Assert.Single(notices);
         }
         finally { Mem.WritesEnabled = prev; }
     }
