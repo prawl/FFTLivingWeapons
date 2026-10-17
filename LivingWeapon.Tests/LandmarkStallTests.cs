@@ -120,4 +120,33 @@ public class LandmarkStallTests
         Assert.Throws<ArgumentOutOfRangeException>(() =>
             LandmarkStall.Watch(Scripted(new Queue<LandmarkReading>()), steps, (_, _) => { }));
     }
+
+    [Fact]
+    public void S6_an_unreadable_the_predicate_excludes_resets_the_streak_and_never_counts()
+    {
+        // LW-393: the sensing lane's "battle live" and "boot grace" waits are Unreadable by design.
+        int fired = 0;
+        var script = new Queue<LandmarkReading>();
+        for (int i = 0; i < 3; i++) script.Enqueue(new LandmarkReading(LandmarkVerdict.Unreadable, "real"));
+        for (int i = 0; i < 10; i++) script.Enqueue(new LandmarkReading(LandmarkVerdict.Unreadable, "battle live"));
+        for (int i = 0; i < 3; i++) script.Enqueue(new LandmarkReading(LandmarkVerdict.Unreadable, "real"));
+        var wrapped = LandmarkStall.Watch(Scripted(script), 5, (_, _) => fired++, r => r.Detail != "battle live");
+
+        for (int i = 0; i < 16; i++) wrapped.Probe();
+
+        Assert.Equal(0, fired);   // 3 real, a reset, 3 real: never 5 in a row
+    }
+
+    [Fact]
+    public void S7_without_a_predicate_every_unreadable_counts()
+    {
+        int fired = 0;
+        var script = new Queue<LandmarkReading>();
+        for (int i = 0; i < 5; i++) script.Enqueue(new LandmarkReading(LandmarkVerdict.Unreadable, "battle live"));
+        var wrapped = LandmarkStall.Watch(Scripted(script), 5, (_, _) => fired++);
+
+        for (int i = 0; i < 5; i++) wrapped.Probe();
+
+        Assert.Equal(1, fired);
+    }
 }
