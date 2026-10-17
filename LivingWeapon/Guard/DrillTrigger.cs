@@ -21,6 +21,9 @@ internal static class DrillTrigger
     /// <summary>the roster landmark's drill flag; forces a populated healthy row to read as a mismatch so the parts report can be watched.</summary>
     internal const string RosterFlagName = "LW_FORCE_ROSTER_MISMATCH";
 
+    /// <summary>the twin weapon door's drill flag; forces its menu flag check wrong once a save is loaded.</summary>
+    internal const string TwinFlagName = "LW_FORCE_TWIN_MISMATCH";
+
     /// <summary>Any flag name through injected env and file-existence reads, so tests never touch the real environment.
     /// The env lane matches only "1"; a flag's marker file never satisfies a different flag.</summary>
     internal static bool DrillRequested(string modDir, string flagName, Func<string, string?> getEnv, Func<string, bool> fileExists)

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// The stateful half of the parts report. Engine hands it the five door readings every tick. It logs
+/// The stateful half of the parts report. Engine hands it the six door readings every tick. It logs
 /// one report line whenever any door changes STATE (a reason only change is not an edge) and shows one
 /// box per closure wave, so a late failure is never hidden behind an earlier box.
 /// </summary>
@@ -32,7 +32,7 @@ internal sealed class PartsBoard
         _recorder = recorder;
     }
 
-    public void Observe(IReadOnlyDictionary<Door, DoorReading> readings, string hedge, bool drillOn)
+    public void Observe(IReadOnlyDictionary<Door, DoorReading> readings, string hedge, string drillSentence)
     {
         _tick++;
         bool changed = !_seen;
@@ -52,7 +52,7 @@ internal sealed class PartsBoard
         _seen = true;
 
         if (changed) LogLine(readings);
-        if (WaveOpen && _tick - _waveOpenedAt >= SettleSteps) ShowBox(readings, hedge, drillOn);
+        if (WaveOpen && _tick - _waveOpenedAt >= SettleSteps) ShowBox(readings, hedge, drillSentence);
     }
 
     private void LogLine(IReadOnlyDictionary<Door, DoorReading> readings)
@@ -62,7 +62,7 @@ internal sealed class PartsBoard
         _recorder?.Invoke("guard", $"parts report changed ({LastLine})");
     }
 
-    private void ShowBox(IReadOnlyDictionary<Door, DoorReading> readings, string hedge, bool drillOn)
+    private void ShowBox(IReadOnlyDictionary<Door, DoorReading> readings, string hedge, string drillSentence)
     {
         WaveOpen = false;
         BoxCount++;
@@ -71,6 +71,6 @@ internal sealed class PartsBoard
             if (PartsReport.Status(part, readings).State == DoorState.Closed) off++;
         _recorder?.Invoke("guard", $"parts box shown ({off} parts off)");
         _notice?.Invoke("FFT Living Weapons",
-            PartsReport.ComposeBox(readings, drillOn ? PartsReport.RosterDrillSentence : "", hedge));
+            PartsReport.ComposeBox(readings, drillSentence, hedge));
     }
 }

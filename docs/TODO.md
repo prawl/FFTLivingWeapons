@@ -111,11 +111,6 @@ belongs rather than at the bottom.
   scans the runtime for GetAsyncKeyState and virtual key constants and fails if any sits outside
   an LWDEV block, plus one owner read of a prod build's log showing no spike lines after an F6.
   LW-67 stripped the F6 services in July; this row keeps them stripped.
-- [LW-400] 2026-10-16: The twin pistol grant writes into the player's save from outside battle with only the main guard in front of it; give it its own door and a line in the report.
-  Stage 3c of the parts model (LW-393). GunSlinger is not a signature: it ticks on the Always
-  gate in and out of battle (Engine.cs 368) and writes the roster off-hand and support fields
-  (GunSlinger.Apply.cs 83 to 90). Its door is the roster landmark plus the two menu flags it
-  already fails toward suppression on; the report lists it as "twin pistols".
 - [LW-401] 2026-10-16: The README, the compatibility notes and the logging guide must describe the new behavior: the mod no longer refuses everything until the build matches; it checks each part and reports which are on.
   Exits with the last stage of the parts model. Today README's Good to know bullet says the mod
   "holds every write until the landmarks match" and docs/LOGGING.md and tools/scan_logs.py key on

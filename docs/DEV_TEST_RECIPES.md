@@ -264,8 +264,8 @@ off, the three that do not keep running, and exactly one message box tell you wh
    game on this box.
 3. Launch and sit on the title screen. Expect a few "Parts report:" lines in livingweapon.log. The last
    one before you press anything reads battle sensing ON, extended inventory ON, banners ON, and the
-   seven roster parts (kill counting, stat growth, card paint, band signatures, static table
-   signatures, weapon commands, twin pistols) WAITING with "waiting for a save to load". Note the time
+   seven roster parts (kill counting, stat growth, card paint, weapon powers in battle (Maim, Plague and the rest), static table
+   signatures, weapon commands, twin weapons) WAITING with "waiting for a save to load". Note the time
    of the line that first shows battle sensing ON. On a clean boot it comes within a second of the
    launch header, and there must be no DBG line ending in "(boot grace)" before it (a held mismatch
    leaves only that line and no flight record; it is the evidence the new boot-time sentinel check is
@@ -292,6 +292,57 @@ PASS signature: no new game detection line and no kills.json archive on a plain 
 
 **Leg C, optional.** Cold launch and start a New Game. The new game is still detected (kills archived),
 now that the sensing check arms before the roster.
+**Cleanup:** redeploy; the marker is wiped.
+
+## LW-400 twin weapons drill: watch the twin weapon grant switch off while the rest keep working (owner, two legs)
+
+Plain language: the twin weapon grant (the Outrider Pistol's twin and the Arbalest's Crossfire) now has
+its own switch. This drill makes its menu flag check read wrong on a healthy game, so you can watch that
+one part switch off, the other nine keep running, and exactly one message box say so.
+
+**Leg A, the drill.** Close the game. Run a DEV deploy (plain BuildLinked; add -Force over a prod install;
+back up kills.json first, a dev build seeds the tally). Drop an empty marker file named
+`LW_FORCE_TWIN_MISMATCH` into the deployed mod dir next to the DLL. BuildLinked wipes it on the next deploy.
+1. Title screen. The last "Parts report:" line reads twin weapons WAITING (waiting for a save to load)
+   with the other roster parts, and battle sensing, banners and extended inventory ON. FAIL: a twin
+   WARN before Continue (the drill fired on an empty slot).
+2. Press Continue. Within a second expect the armed line, then one Parts report line with kill counting ON and twin weapons WAITING (the menu flag check has not run yet) (the one second debounce; expected, not a FAIL), then about one second later one WARN starting "The two menu flags the
+   twin weapon grant uses" and ending with the sentence naming LW_FORCE_TWIN_MISMATCH, then one report line
+   with twin weapons OFF and nine parts ON. FAIL: an ERROR line, any line containing "standing down to
+   protect your save", or kill counting OFF.
+3. About three seconds later exactly ONE box. "Still working" lists kill counting, stat growth, card paint
+   and the rest; "Switched off" lists twin weapons alone; the drill sentence names LW_FORCE_TWIN_MISMATCH.
+   Bait: a box with the seven roster parts off means the wrong door closed.
+4. Pick a unit whose off hand and shield slot are empty and who carries no twin from an earlier session,
+   and equip a tier 3 Outrider Pistol (or Arbalest) on them through the Equipment screen. Open the party
+   root, visit Status, enter and back out of Equipment and Abilities. PASS: no twin appears and no
+   "A twin weapon is equipped" line logs. A different unit that already carried a stamped twin and Dual
+   Wield keeps both for this session, because the un equip restore is idle while the door is closed; that
+   is expected and the next session with the door open cleans it up.
+5. Enter a battle and make a kill. PASS: the kill is credited and the card counter paints.
+6. Run `python tools/scan_logs.py`. Expect exit 0, zero fail codes, the twin WARN counted as a plain
+   warning. The twin stand down requests its own flight flush, so open the newest `flight_<date>_standdown.jsonl` in
+   the mod dir's flight folder (written within a tick of Continue): it carries "twin lane stand-down
+   (twin-menu-flags (drill: LW_FORCE_TWIN_MISMATCH))" and a "parts report changed" record with twin weapons
+   OFF. The record "parts box shown (1 parts off)" is written about three seconds later and rides the next
+   tape, the first battle enter flush (a pre battle churn tape is fine). Read either with
+   `python tools/parse_flight.py <file>`.
+
+**Leg B, normal.** Delete the marker (or redeploy), relaunch, press Continue.
+1. The last "Parts report:" line reads ON for all ten parts and the INFO line "The menu flags read as expected; the twin weapon grant is enabled." sits within the
+   same second as the roster armed line. FAIL A: a twin WARN within a few seconds of Continue naming a menu
+   flag value or a hand word. The door closed because a rule failed; stop and report the exact values in the
+   WARN. FAIL B: twin weapons still WAITING a minute after Continue with the line "The menu flag check has
+   not been able to read its data for about a minute". The flag pages are unreadable; report it with the
+   roster door's state from the same report line.
+2. Party root, Status, back out of Equipment and Abilities with the pistol wielder. The twin appears and
+   "A twin weapon is equipped" logs.
+3. A battle kill credits, scan_logs reads CLEAN, no box.
+
+**Leg C, optional.** Run the read only watch `python tools/probes/menu_signal_probe.py` over the two flag
+bytes through title, Continue, world map, party root, Status, each Equipment and Abilities tab and picker,
+shop, save menu, a story dialog, formation, battle, victory map and quit to title. PASS: every sample is 0
+or 1. A value of 2 or more anywhere is recorded against the ledger entry twin-menu-flags-zero-at-map-time.
 **Cleanup:** redeploy; the marker is wiped.
 
 ## Add an extended-inventory item (a brand-new weapon past id 260, LW-346)

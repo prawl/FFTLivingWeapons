@@ -4,7 +4,7 @@ using System.Text;
 namespace LivingWeapon;
 
 /// <summary>
-/// The pure half of the parts report. Five door readings in, one status per part out, composed into the
+/// The pure half of the parts report. Six door readings in, one status per part out, composed into the
 /// single log line and the single box text. Dependency free like FingerprintGuard.
 /// </summary>
 internal static class PartsReport
@@ -14,6 +14,14 @@ internal static class PartsReport
 
     internal const string RosterDrillSentence =
         "This stand down was forced by the LW_FORCE_ROSTER_MISMATCH drill flag (dev builds only).";
+
+    internal const string TwinDrillSentence =
+        "This stand down was forced by the LW_FORCE_TWIN_MISMATCH drill flag (dev builds only).";
+
+    /// <summary>The drill sentences for the flags that are on, roster first.</summary>
+    internal static string DrillSentence(bool roster, bool twin)
+        => roster && twin ? RosterDrillSentence + " " + TwinDrillSentence
+         : roster ? RosterDrillSentence : twin ? TwinDrillSentence : "";
 
     private const string BannersNote = "connected; nothing to announce while kill counting is off";
 
@@ -34,12 +42,12 @@ internal static class PartsReport
         new(Part.KillCounting, "kill counting", Door.Roster),
         new(Part.StatGrowth, "stat growth", Door.Roster),
         new(Part.CardPaint, "card paint", Door.Roster),
-        new(Part.BandSignatures, "band signatures", Door.Roster),
-        new(Part.StaticTableSignatures, "static table signatures", Door.Roster),
+        new(Part.BandSignatures, "weapon powers in battle (Maim, Plague and the rest)", Door.Roster),
+        new(Part.StaticTableSignatures, "weapon powers that edit game tables (Bulwark, Provoke)", Door.Roster),
         new(Part.WeaponCommands, "weapon commands", Door.Roster, Door.KitLane),
         new(Part.Banners, "banners", Door.PromptHook),
         new(Part.ExtendedInventory, "extended inventory", Door.ExtendedArm),
-        new(Part.TwinPistols, "twin pistols", Door.Roster),
+        new(Part.TwinPistols, "twin weapons", Door.Roster, Door.TwinPistols),
     };
 
     private static Row RowOf(Part part)

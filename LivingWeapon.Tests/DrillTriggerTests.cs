@@ -168,4 +168,26 @@ public class DrillTriggerTests
 
         Assert.True(DrillTrigger.DrillRequested(temp.Dir, DrillTrigger.RosterFlagName));
     }
+
+    [Fact]
+    public void Twin_flag_name_is_pinned()
+    {
+        Assert.Equal("LW_FORCE_TWIN_MISMATCH", DrillTrigger.TwinFlagName);
+    }
+
+    [Fact]
+    public void Twin_flag_never_satisfies_or_is_satisfied_by_the_roster_flag()
+    {
+        string? GetTwin(string name) => name == DrillTrigger.TwinFlagName ? "1" : null;
+        string? GetRoster(string name) => name == DrillTrigger.RosterFlagName ? "1" : null;
+        Assert.True(DrillTrigger.DrillRequested(ModDir, DrillTrigger.TwinFlagName, GetTwin, NoFile));
+        Assert.False(DrillTrigger.DrillRequested(ModDir, DrillTrigger.RosterFlagName, GetTwin, NoFile));
+        Assert.False(DrillTrigger.DrillRequested(ModDir, DrillTrigger.TwinFlagName, GetRoster, NoFile));
+
+        string twinFile = Path.Combine(ModDir, DrillTrigger.TwinFlagName);
+        string rosterFile = Path.Combine(ModDir, DrillTrigger.RosterFlagName);
+        Assert.True(DrillTrigger.DrillRequested(ModDir, DrillTrigger.TwinFlagName, Env(null), p => p == twinFile));
+        Assert.False(DrillTrigger.DrillRequested(ModDir, DrillTrigger.RosterFlagName, Env(null), p => p == twinFile));
+        Assert.False(DrillTrigger.DrillRequested(ModDir, DrillTrigger.TwinFlagName, Env(null), p => p == rosterFile));
+    }
 }

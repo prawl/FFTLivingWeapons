@@ -104,17 +104,19 @@ public class Mod : IMod
             // DEV build to force the build stamp to read unknown (report line and armed-edge warning). The config knob was
             // removed 2026-07-07 so players cannot trigger it.
             // LW_FORCE_SENSING_MISMATCH (same two lanes) does the same for the sensing lane that gates the new-game detector.
-            // LW_FORCE_GUARD_UNREADABLE blinds the startup guard and LW_FORCE_ROSTER_MISMATCH forces the roster landmark wrong.
+            // LW_FORCE_GUARD_UNREADABLE blinds the startup guard and LW_FORCE_ROSTER_MISMATCH forces the roster landmark wrong and LW_FORCE_TWIN_MISMATCH the twin menu flags.
 #if LWDEV
             bool devForceFingerprintMismatch = DrillTrigger.DrillRequested(modDir);
             bool devForceSensingMismatch = DrillTrigger.DrillRequested(modDir, DrillTrigger.SensingFlagName);
             bool devForceGuardUnreadable = DrillTrigger.DrillRequested(modDir, DrillTrigger.UnreadableFlagName);
             bool devForceRosterMismatch = DrillTrigger.DrillRequested(modDir, DrillTrigger.RosterFlagName);
+            bool devForceTwinMismatch = DrillTrigger.DrillRequested(modDir, DrillTrigger.TwinFlagName);
 #else
             const bool devForceFingerprintMismatch = false;
             const bool devForceSensingMismatch = false;
             const bool devForceGuardUnreadable = false;
             const bool devForceRosterMismatch = false;
+            const bool devForceTwinMismatch = false;
 #endif
             ModLogger.Event(LogVerb.Config,
                 $"Configuration loaded: LogLevel={ModLogger.LogLevel} (from {configPath})");
@@ -125,7 +127,7 @@ public class Mod : IMod
             // bannerToasts and devSeedKills are no longer config-driven; the Engine ctor uses its Tuning defaults.
             _engine = new Engine(modDir, devForceFingerprintMismatch: devForceFingerprintMismatch,
                 devForceSensingMismatch: devForceSensingMismatch, devForceGuardUnreadable: devForceGuardUnreadable,
-                devForceRosterMismatch: devForceRosterMismatch);
+                devForceRosterMismatch: devForceRosterMismatch, devForceTwinMismatch: devForceTwinMismatch);
             _engine.Start();
         }
         catch (Exception ex)
