@@ -20,6 +20,64 @@ isolated live) · **CONTRADICTED** (evidence points both ways, probe before buil
 
 ## Proven
 
+### [twin-menu-flags-zero-at-map-time] The two menu flags and Ramza's hand words read zero or one and plausible item ids on a loaded save, so the twin weapon door can check them once at Continue (PROVEN 2026-10-17, owner live, the two LW-400 legs)
+
+The claim that the world map menu byte (0x140D508D0) and the party browse byte (0x140D408E2) only ever read 0 or 1, and that Ramza's right hand, off hand, shield and support words on a loaded save read at most 0x1FF or exactly 0xFFFF, is PROVEN, owner flip 2026-10-17 after the two LW-400 live legs on the dev build. The twin lane armed in the same second as the roster door on Continue, no twin warning named a flag value or a hand word, and the twin weapons part read ON. The file image half is checked offline and the earlier live half is one save per earlier ledger row.
+
+<details><summary>How we got here</summary>
+
+**Claim (original wording):** Both menu flags sit in the exe's .data past its raw data, so they read zero from module map time and are always mapped; on a loaded save they hold only 0 or 1; slot 0 of the roster holds hand words that are item ids (at most 511 = 0x1FF) or an empty sentinel (0, 255, 0xFFFF) and a support key under 512. The twin weapon door arms on that, stands down on anything else, and reads WAITING while slot 0's level is 0.
+
+**Mechanism:** tools/probes/twin_flags_file_image_probe.py against the 1.5.2 Denuvo-free exe (stamp 0x6A5E4A1B, size 0x03F9E000): MenuOpenFlag 0x140D508D0 and PartyBrowseFlag 0x140D408E2 are past the raw data of .data (raw 0x1A3A00 of virtual 0x35A87FC), zero until written, inside the mapped span; the roster fields are the same. Mem.TryReadBytes is a raw ReadProcessMemory with no Readable pre filter, so a mapped but unreadable page reads false and the probe reports "menu flags unreadable", never a crash. Item ids end at ExtendedCatalog.LastExtendedId (511); every known roster key (Poach 471, Dual Wield 477, Non-charge 483, Master Teleportation 499) is id plus 256 and under 512.
+
+**Evidence:** the offline probe output above, re-derived independently from the PE section table in the plan review; the ledger rows [worldmap-menu-open-byte] and [party-browse-screen-byte] (one save, one session each, tapes lw193_menusig_20260817_063908.log and lw193_menusig_20260817_110948.log) for the 0 or 1 values. Unobserved for the menu byte: title screen, story dialogs, the world map modal box, mid battle menus; for the browse byte: the Equipment and Abilities sub pickers, formation, battle. The door reads the flags only at arming time, so the live read that matters is the twin lane armed line in the same second as the roster armed line on Continue (docs/DEV_TEST_RECIPES.md, LW-400 recipe, Leg B). A twin warning naming a flag value or a hand word falsifies this row on that save. A value of 2 or more after arming is handled by the grant's own menu gate, which denies on it.
+
+**Date:** 2026-10-17
+
+</details>
+
+### [band-and-array-zero-until-battle-load] The live battle unit data and the battle unit list hold nothing until a battle fills them (PROVEN 2026-10-17, owner live, the two LW-398 legs plus the offline file image probe)
+
+Plain language: the mod keeps two lists of the units in a fight, the live unit data (the band) and the battle's unit list (the static array). Both are blank in the game file itself and, by every consumer's experience so far, stay blank until the formation screen writes them. That is why their checks cannot run at launch the way the other checks do: there is nothing to compare against until a battle exists. Each of the two checks therefore waits for the first battle, arms the moment its list looks the way the mod expects, and only after the player's cursor has sat on a live field for about twenty seconds with the list still wrong does it switch off the parts that need it.
+
+Status: PROVEN, owner flip 2026-10-17 after the two LW-398 live legs on the dev build. Leg B read both armed lines against "Battle started." and Leg D read a story battle with a long opening cutscene, with no door closing and no battle grace line turning into a mismatch. The static half is proven by tools/probes/band_array_file_image_probe.py against the 1.5.2 Denuvo-free exe (stamp 0x6A5E4A1B, size 0x03F9E000). The band span (FrameReadBase 0x141852CE0, 49 frames, 25,088 bytes) has 0 of 25,088 bytes backed by the file and 0 nonzero, because it sits past the raw data of .data. The array span (ArrayReadBase 0x140897950, 30 slots, 15,360 bytes) is fully file backed and all zero except four bytes at slot 25 offsets 0x48 to 0x4B, which read 0xFF (status bytes; level, brave, faith and max HP of that slot are zero, so the shape reader drops it). So there is no vanilla byte to compare, and a pin that moved reads zero forever in battle. The dynamic half, now observed on those two legs, is that by the first field frame (or inside the 600 field step grace) at least one player unit passes the band bounds and mirrors its roster row, and that the array holds a tuple that also appears as a band entry, in every battle including the session's first, a resumed mid battle autosave and a battle with a long opening cutscene. The session's first battle and a resumed mid battle autosave were covered by the LW-398 legs; a later contradicting battle reopens this row.
+
+What the doors rest on: eleven of the eighteen band signature modules read the static array (nine directly, two through the enemy fingerprint cache), which is why band signatures need both doors. Doors arm on any live frame and count a mismatch only on field frames after the grace, so the formation screen, cutscenes and the pre battle enter and exit churn can never close one. A held mismatch leaves only a debug line ending "(battle grace)" and no flight record. The doors never re verify in later battles, because the two pins are static addresses that cannot move inside a session and every consumer already validates contents on every read.
+
+**Date:** 2026-10-17
+
+### [action-table-live-copy-filled-at-boot] The live ability action table is a template in the exe file and the game fills it at boot, so row 189 reads the decoy copy's bytes (byte +15 = 0x2D) once a save has loaded (PROVEN 2026-10-17, owner live, the two LW-399 legs)
+
+The claim (LW-399, 2026-10-17) is PROVEN, owner flip 2026-10-17 after the two LW-399 live legs on the dev build. After Continue the provoke part read ON with no data reason and a Defender wielder got the grant line with no capture refusal warning. The static half is read offline from the exe file.
+
+<details><summary>How we got here</summary>
+
+**Claim (original wording):** After boot the live action table row 189 holds the decoy copy's file bytes, in particular byte +15 = 0x2D and a non zero fill in +4..+17, and the `FF FF FF FF` row markers survive the fill.
+
+**Mechanism:** the live table at `0x14078B2DC` is `FF FF FF FF` plus sixteen zeros on all 368 rows in the file (one distinct row pattern, no direct code reference), and the decoy at `0x14078961C` carries the filled bytes. The ProvokeTables door pins the markers and reads a row 189 with no non zero byte outside +15 as "not loaded yet"; Provoke's capture compares byte +15 to 0x2D.
+
+**Evidence:** offline probe plus the owner's live legs: tools/probes/static_table_file_image_probe.py against stamp 0x6A5E4A1B (the decoy row 189 reads `FF FF FF FF 05 00 00 01 11 12 00 00 38 00 00 2D 00 00 00 00`), plus the 2026-07-22 live read of row 189 recorded in [cut-ability-provoke-recipe] (range 5, formula 56, MP 0, CT 0, inflict 0x2D). Live check done 2026-10-17 by the owner: a repeated identical Parts report line on the title screen, or the flight record table door armed (provoke-tables), marks the fill; after Continue provoke reads ON with no data reason, and a Defender wielder gets the grant line with no capture refusal warning.
+
+**Date:** 2026-10-17
+
+</details>
+
+### [item-stats-table-filled-at-boot] The resident item stats table is vanilla in the exe file and the game fills it at boot (or at save load) from the modloader's item data, so the pinned non gun rows read their rebalanced values once loaded (PROVEN 2026-10-17, owner live, the two LW-399 legs)
+
+The claim (LW-399, 2026-10-17) is PROVEN, owner flip 2026-10-17 after the two LW-399 live legs on the dev build. The item stats table door armed and the item stats part read ON after Continue. The file image is read offline and the runtime table is inherited from [wp-table-write-live-damage].
+
+<details><summary>How we got here</summary>
+
+**Claim (original wording):** The item stats table at `0x14080F690` is vanilla in the file and holds the mod's rebalanced WP at runtime, so the game fills it at boot or at save load from the nxd the modloader overrides.
+
+**Mechanism:** 121 weapon ids compared against data/items.json: 72 match the baseline only, 42 match both, none match the proposed value only, 7 match neither (baseline typos, LW-414). The ItemStats door pins the addressing instruction at `0x1402B8CBC` and treats eight non gun rows reading their vanilla bytes as "not loaded yet".
+
+**Evidence:** offline probe plus the owner's live legs: tools/probes/static_table_file_image_probe.py against stamp 0x6A5E4A1B, plus the inherited live proof [wp-table-write-live-damage]. Live check done 2026-10-17 by the owner: the timestamp of the flight record table door armed (item-stats), or of the repeated Parts report line on the title screen, against the Continue press; before or after Continue is accepted.
+
+**Date:** 2026-10-17
+
+</details>
+
 ### [sentinels-file-backed-idle-at-map-time] The six battle sentinels already hold their idle values (or zero) in the exe file image, so the sensing lane can start probing at the first tick without reading a false mismatch during boot (PROVEN 2026-10-17, owner live, two cold launches plus the offline file image probe)
 
 Plain language: the mod watches six bytes in the game to tell a battle from the menus. Before this row it only started checking them after a save loaded. LW-393 lets that check start the moment the mod does, so the question is whether those bytes can read something odd while the game is still starting up. Read straight out of the game file on disk, four of the six already sit at their idle values and the other two sit past the stored data, so they read zero until the game writes them. Both shapes are things the lane accepts. What nobody has seen is the game's own start-up code rewriting them to something else before the title screen.
@@ -2315,22 +2373,6 @@ The claim that a matching PE build key combined with a rec8/rec9 landmark mismat
 
 </details>
 
-### [twin-menu-flags-zero-at-map-time] The two menu flags and Ramza's hand words read zero or one and plausible item ids on a loaded save, so the twin weapon door can check them once at Continue (LW-400)
-
-The claim that the world map menu byte (0x140D508D0) and the party browse byte (0x140D408E2) only ever read 0 or 1, and that Ramza's right hand, off hand, shield and support words on a loaded save read at most 0x1FF or exactly 0xFFFF, is Uncertain: the file image half is checked offline and the live half is one save per earlier ledger row, with the first full read of this row waiting on the owner's LW-400 legs (2026-10-17).
-
-<details><summary>How we got here</summary>
-
-**Claim (original wording):** Both menu flags sit in the exe's .data past its raw data, so they read zero from module map time and are always mapped; on a loaded save they hold only 0 or 1; slot 0 of the roster holds hand words that are item ids (at most 511 = 0x1FF) or an empty sentinel (0, 255, 0xFFFF) and a support key under 512. The twin weapon door arms on that, stands down on anything else, and reads WAITING while slot 0's level is 0.
-
-**Mechanism:** tools/probes/twin_flags_file_image_probe.py against the 1.5.2 Denuvo-free exe (stamp 0x6A5E4A1B, size 0x03F9E000): MenuOpenFlag 0x140D508D0 and PartyBrowseFlag 0x140D408E2 are past the raw data of .data (raw 0x1A3A00 of virtual 0x35A87FC), zero until written, inside the mapped span; the roster fields are the same. Mem.TryReadBytes is a raw ReadProcessMemory with no Readable pre filter, so a mapped but unreadable page reads false and the probe reports "menu flags unreadable", never a crash. Item ids end at ExtendedCatalog.LastExtendedId (511); every known roster key (Poach 471, Dual Wield 477, Non-charge 483, Master Teleportation 499) is id plus 256 and under 512.
-
-**Evidence:** the offline probe output above, re-derived independently from the PE section table in the plan review; the ledger rows [worldmap-menu-open-byte] and [party-browse-screen-byte] (one save, one session each, tapes lw193_menusig_20260817_063908.log and lw193_menusig_20260817_110948.log) for the 0 or 1 values. Unobserved for the menu byte: title screen, story dialogs, the world map modal box, mid battle menus; for the browse byte: the Equipment and Abilities sub pickers, formation, battle. The door reads the flags only at arming time, so the live read that matters is the twin lane armed line in the same second as the roster armed line on Continue (docs/DEV_TEST_RECIPES.md, LW-400 recipe, Leg B). A twin warning naming a flag value or a hand word falsifies this row on that save. A value of 2 or more after arming is handled by the grant's own menu gate, which denies on it.
-
-**Date:** 2026-10-17
-
-</details>
-
 ### [per-turn-normalize-repaints-boosted-baseline] Engine per-turn normalize re-paints a stat baseline INCLUDING a mod boost active at battle open (LW-90)
 
 Uncertain claim that the game snapshots stats at battle open with a mod boost baked in, so every later normalize restores the boosted baseline unless the mod re-corrects it; evidenced by log lines and owner eyewitness on 2026-07-21, when the LastTarget corrective prong shipped.
@@ -2984,47 +3026,6 @@ Uncertain as of 2026-08-17 (evidence re-derived independently from banked tapes;
 
 </details>
 
-### [band-and-array-zero-until-battle-load] The live battle unit data and the battle unit list hold nothing until a battle fills them (UNCERTAIN, static half proven offline, timing half unobserved)
-
-Plain language: the mod keeps two lists of the units in a fight, the live unit data (the band) and the battle's unit list (the static array). Both are blank in the game file itself and, by every consumer's experience so far, stay blank until the formation screen writes them. That is why their checks cannot run at launch the way the other checks do: there is nothing to compare against until a battle exists. Each of the two checks therefore waits for the first battle, arms the moment its list looks the way the mod expects, and only after the player's cursor has sat on a live field for about twenty seconds with the list still wrong does it switch off the parts that need it.
-
-Status: UNCERTAIN, owner flip pending. The static half is proven by tools/probes/band_array_file_image_probe.py against the 1.5.2 Denuvo-free exe (stamp 0x6A5E4A1B, size 0x03F9E000). The band span (FrameReadBase 0x141852CE0, 49 frames, 25,088 bytes) has 0 of 25,088 bytes backed by the file and 0 nonzero, because it sits past the raw data of .data. The array span (ArrayReadBase 0x140897950, 30 slots, 15,360 bytes) is fully file backed and all zero except four bytes at slot 25 offsets 0x48 to 0x4B, which read 0xFF (status bytes; level, brave, faith and max HP of that slot are zero, so the shape reader drops it). So there is no vanilla byte to compare, and a pin that moved reads zero forever in battle. The dynamic half is unobserved as a timed fact: that by the first field frame (or inside the 600 field step grace) at least one player unit passes the band bounds and mirrors its roster row, and that the array holds a tuple that also appears as a band entry, in every battle including the session's first, a resumed mid battle autosave and a battle with a long opening cutscene. The owner's Leg B reads the two armed lines against "Battle started." and Leg D reads a story battle with a long cutscene.
-
-What the doors rest on: eleven of the eighteen band signature modules read the static array (nine directly, two through the enemy fingerprint cache), which is why band signatures need both doors. Doors arm on any live frame and count a mismatch only on field frames after the grace, so the formation screen, cutscenes and the pre battle enter and exit churn can never close one. A held mismatch leaves only a debug line ending "(battle grace)" and no flight record. The doors never re verify in later battles, because the two pins are static addresses that cannot move inside a session and every consumer already validates contents on every read.
-
-**Date:** 2026-10-17
-
-### [action-table-live-copy-filled-at-boot] The live ability action table is a template in the exe file and the game fills it at boot, so row 189 reads the decoy copy's bytes (byte +15 = 0x2D) once a save has loaded
-
-The claim (LW-399, 2026-10-17) is Uncertain: the static half is read offline from the exe file, the fill timing and the exact 0x2D at runtime are not yet isolated live.
-
-<details><summary>How we got here</summary>
-
-**Claim (original wording):** After boot the live action table row 189 holds the decoy copy's file bytes, in particular byte +15 = 0x2D and a non zero fill in +4..+17, and the `FF FF FF FF` row markers survive the fill.
-
-**Mechanism:** the live table at `0x14078B2DC` is `FF FF FF FF` plus sixteen zeros on all 368 rows in the file (one distinct row pattern, no direct code reference), and the decoy at `0x14078961C` carries the filled bytes. The ProvokeTables door pins the markers and reads a row 189 with no non zero byte outside +15 as "not loaded yet"; Provoke's capture compares byte +15 to 0x2D.
-
-**Evidence:** offline only: tools/probes/static_table_file_image_probe.py against stamp 0x6A5E4A1B (the decoy row 189 reads `FF FF FF FF 05 00 00 01 11 12 00 00 38 00 00 2D 00 00 00 00`), plus the 2026-07-22 live read of row 189 recorded in [cut-ability-provoke-recipe] (range 5, formula 56, MP 0, CT 0, inflict 0x2D). Owner live check pending: a repeated identical Parts report line on the title screen, or the flight record table door armed (provoke-tables), marks the fill; after Continue provoke reads ON with no data reason, and a Defender wielder gets the grant line with no capture refusal warning.
-
-**Date:** 2026-10-17
-
-</details>
-
-### [item-stats-table-filled-at-boot] The resident item stats table is vanilla in the exe file and the game fills it at boot (or at save load) from the modloader's item data, so the pinned non gun rows read their rebalanced values once loaded
-
-The claim (LW-399, 2026-10-17) is Uncertain: the file image is read offline and the runtime table is inherited from [wp-table-write-live-damage], but the fill timing is not yet observed.
-
-<details><summary>How we got here</summary>
-
-**Claim (original wording):** The item stats table at `0x14080F690` is vanilla in the file and holds the mod's rebalanced WP at runtime, so the game fills it at boot or at save load from the nxd the modloader overrides.
-
-**Mechanism:** 121 weapon ids compared against data/items.json: 72 match the baseline only, 42 match both, none match the proposed value only, 7 match neither (baseline typos, LW-414). The ItemStats door pins the addressing instruction at `0x1402B8CBC` and treats eight non gun rows reading their vanilla bytes as "not loaded yet".
-
-**Evidence:** offline only: tools/probes/static_table_file_image_probe.py against stamp 0x6A5E4A1B, plus the inherited live proof [wp-table-write-live-damage]. Owner live check pending: note the timestamp of the flight record table door armed (item-stats), or of the repeated Parts report line on the title screen, against the Continue press; before or after Continue is accepted.
-
-**Date:** 2026-10-17
-
-</details>
 ## Contradicted, probe before building on these
 
 ### [icon-refresh-unreliable] RETRACTED 2026-09-01: the "leave the list and come back" icon refresh is REAL and reproducible; this row's contradiction did not hold
