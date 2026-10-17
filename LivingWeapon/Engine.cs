@@ -559,14 +559,14 @@ internal sealed class Engine
         // it), leaving stale painted suffix bytes in the equip-card pool for the cleared tally to inherit.
         // Invalidate here is idempotent and harmless if the forced-exit edge also invalidates. the
         // same edge re-baselines the toast queue so a post-reset first kill is not read as a rollback.
-        if (newGame) { _display.Invalidate(); _toast.Rebaseline(); }
+        if (newGame) { _display.Invalidate(); _toast.Rebaseline(); _launchGuard.NoteNewGame(); }
         if (reset == ResetVerdict.Fired) _naturalLedger.Clear();   // a new game's units share nameIds with the old save's; stale residue must not correct them
         // Enter is instant; exit is debounced (battleMode flickers, slot9 sticks) unless forceExit fires
         // (a detected new game). nowIn is sticky through mid-battle dips.
         BattleEdge edge = _battle.Step(slot0, slot9, battleMode, paused, eventId, now, forceExit: newGame);
         bool nowIn = _battle.In;
         bool onField = BattleState.OnField(nowIn, battleMode);
-        _launchGuard.StepBattleDoors(inLive, onField);
+        _launchGuard.StepBattleDoors(inLive, onField, edge == BattleEdge.Entered);
         ObserveDoors();
         if (onField) _lastField = now;
         bool battleDisplayed = BattleState.BattleDisplayed(slot9, battleMode);

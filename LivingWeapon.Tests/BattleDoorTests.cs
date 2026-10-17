@@ -24,9 +24,9 @@ public class BattleDoorTests
         public readonly byte[] Band = BattleRegionShapeTests.EmptyBand();
         public readonly byte[] Arr = BattleRegionShapeTests.EmptyArray();
 
-        public Rig(bool drill = false, bool rosterArmed = true, int level = 12)
+        public Rig(bool drill = false, bool rosterArmed = true, int level = 12, int brave = 70, int faith = 65)
         {
-            Mem = EngineTests.HealthyMemory(level: level);
+            Mem = EngineTests.HealthyMemory(level: level, brave: brave, faith: faith);
             Mem.TerrainBlocks[Offsets.FrameReadBase] = Band;
             Mem.TerrainBlocks[Offsets.ArrayReadBase] = Arr;
             G = new LaunchGuard(Mem, forceMismatch: false, recorder: (t, p) => Records.Add((t, p)),
@@ -39,9 +39,11 @@ public class BattleDoorTests
 
         public void Populate(int slot = 4) => BattleRegionShapeTests.PutArray(Arr, slot, 300, 12, 70, 65);
 
-        public void Field(int n = 1) { for (int i = 0; i < n; i++) G.StepBattleDoors(true, true); }
+        public void Field(int n = 1) { for (int i = 0; i < n; i++) G.StepBattleDoors(true, true, false); }
 
-        public void Live(int n = 1) { for (int i = 0; i < n; i++) G.StepBattleDoors(true, false); }
+        public void NewBattle(int n = 1) { G.StepBattleDoors(true, true, true); Field(n - 1); }
+
+        public void Live(int n = 1) { for (int i = 0; i < n; i++) G.StepBattleDoors(true, false, false); }
 
         public int Reads(long at) => Mem.TryReadBytesAt.TryGetValue(at, out int c) ? c : 0;
 
@@ -59,7 +61,7 @@ public class BattleDoorTests
         var rig = new Rig();
         int before = rig.Mem.TryReadBytesCount;
 
-        for (int i = 0; i < 1000; i++) rig.G.StepBattleDoors(false, false);
+        for (int i = 0; i < 1000; i++) rig.G.StepBattleDoors(false, false, false);
 
         Assert.Equal(GuardState.Verifying, rig.G.BandState);
         Assert.Equal(GuardState.Verifying, rig.G.StaticArrayState);

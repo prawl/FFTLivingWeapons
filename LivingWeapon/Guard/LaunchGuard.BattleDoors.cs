@@ -11,6 +11,7 @@ internal sealed partial class LaunchGuard
 {
     /// <summary>About twenty seconds of the player's cursor on a live field, counted across battles.</summary>
     internal const int BattleGraceSteps = 600;
+    internal const int NoMirrorBattleLimit = 3;
     internal const string BattleWaitingReason = "waiting for the first battle";
     internal const string BattleCheckingReason = "checking the battle data";
     internal const string ArrayFailedFirstReason = "the live battle unit data check failed first";
@@ -26,6 +27,11 @@ internal sealed partial class LaunchGuard
     private bool _stepOnField;
     private bool _battleStepped;
     private List<BattleRegionShape.Unit>? _stepBand;
+    private List<(int mhp, int lvl, int br, int fa)>? _stepArray;
+    private bool _stepArrayRead;
+    private int _noMirrorBattles;
+    private bool _noMirrorCounted;
+    private bool _noMirrorNoted;
     private bool _bandGraceNoted;
     private bool _arrayGraceNoted;
 
@@ -48,12 +54,15 @@ internal sealed partial class LaunchGuard
         _ => DoorReading.Waiting(_bandGuard.State == GuardState.StoodDown ? ArrayFailedFirstReason : WaitingReason),
     };
 
+    internal void NoteNewGame() => _noMirrorBattles = 0;
+
     private string WaitingReason => _battleStepped ? BattleCheckingReason : BattleWaitingReason;
 
     /// <summary>Engine calls this once per tick after the battle state is known. The band is read and parsed once
     /// per step for both probes, because a guard never runs its probe again once it is terminal.</summary>
-    public void StepBattleDoors(bool inLive, bool onField)
+    public void StepBattleDoors(bool inLive, bool onField, bool entered)
     {
+        if (entered) _noMirrorCounted = false;
         if (!inLive || !_guard.Armed) return;
         bool bandWork = _bandGuard.State == GuardState.Verifying;
         bool arrayWork = _arrayGuard.State == GuardState.Verifying && _bandGuard.State != GuardState.StoodDown;
@@ -62,6 +71,7 @@ internal sealed partial class LaunchGuard
         _battleStepped = true;
         _stepOnField = onField;
         if (onField) _fieldSteps++;
+        _stepArrayRead = false;
         _stepBand = _mem.TryReadBytes(Offsets.FrameReadBase, Offsets.BandSlots * Offsets.CombatStride, out var frames)
             ? BattleRegionShape.ParseBand(frames) : null;
         _bandGuard.Step();
