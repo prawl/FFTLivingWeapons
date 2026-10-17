@@ -895,15 +895,14 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   vanilla text only, a counter mispaint. (DEV OK) (covers LW-332, LW-322, LW-328, LW-166; LW-322 is
   the R5 grows text live pass) **[MAJOR]**
 - [ ] 7.2 (FAILED 2026-10-17 in sitting 1, owner live on prod 1c7ba75f: after a dev launch had seeded Chaos Blade to tier 3 and the prod launch dropped it to tier 1, Ramza's battle status page drew the Chaos Blade+ list row with no picture while the card kept its art; second sighting; LW-423 owns the fix, re run this box after it lands) **Glow rims follow the tally, no halo (LW-381, LW-383, LW-336, LW-295, LW-356, LW-287).**
-  A weapon that crosses a tier in battle wears its new rim on the first inventory open afterwards,
-  no restart; rims come off after a tally reset; extended weapons rim like vanilla ones; enemies
+  A weapon that crosses a tier in battle wears its new rim after the next relaunch, and no icon is ever blank in between (owner ruling 2026-10-17: the cache hide is off for 2.4.0, same session rims are LW-427); rims come off after a tally reset; extended weapons rim like vanilla ones; enemies
   never brighten. Dev build, a weapon one kill short of a tier, win, open the inventory; two weapons
   at one tier with one drawn before the battle; a Warbrand at tier 1+ beside a below tier design;
   a battle with a player bow and an enemy bow of the same id; then a tally reset and relaunch. PASS:
-  rim on the first open, both same tier weapons rimmed, three rim strengths across tiers 1, 2, 3,
+  after a relaunch the new rim shows and both same tier weapons are rimmed, every list and card icon drew art before the relaunch, three rim strengths across tiers 1, 2, 3,
   Warbrand rimmed and the plain design plain, enemy bow plain, rims gone after reset; log `IconGlow:
-  judged N icons, wrote N (...)` with a hide count of at least 1; no colored halo outside any
-  weapon, shield or helm sprite (the vanilla haze stays). FAIL: a rim only after relaunch, a stale
+  judged N icons, wrote N (...)` with a hide count of 0; no colored halo outside any
+  weapon, shield or helm sprite (the vanilla haze stays). FAIL: a blank icon on any screen, a rim missing after the relaunch, a stale
   rim after reset, an enemy brightened, `IconGlow cannot locate modded.pac this launch`, `IconGlow
   standing down`, a tinted ring around an icon, or a blank list icon after a tier change between launches, up or down (LW-423). (DEV OK) (covers LW-381, LW-383, LW-336, LW-295,
   LW-356, LW-287) **[MAJOR]**
