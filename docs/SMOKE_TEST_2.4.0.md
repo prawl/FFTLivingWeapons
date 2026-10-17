@@ -229,17 +229,14 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   on the formation screen): no WARN, no box, both armed lines, fourteen ON. FAIL: a box inside the
   first twenty field seconds, a WARN on the formation screen, two boxes for this one closure (a
   second box here means the unit list closed too). (DEV OK) (covers LW-398) **[BLOCKER]**
-- [ ] 2.3 **Table door drill (LW-399).** Five fixed game tables each own a check; the weapon palette
+- [ ] 2.3 (LEG A PASSED 2026-10-17 on dev 62015755, owner live: the palette WARN 1.6 s after the header with detail palette-clear-site (drill: LW_FORCE_TABLE_MISMATCH), one box seen, every other part ON after Continue, the Cutpurse acted at 13:11:46 and swung plain steel, scan CLEAN; the box text expected a refusal line that cannot print while the part is OFF and now says so; the Stoneshooter and Sunderer reads and leg B still owed) **Table door drill (LW-399).** Five fixed game tables each own a check; the weapon palette
   check fails alone. Marker `LW_FORCE_TABLE_MISMATCH`, recipe legs A and B. PASS leg A: within two
   seconds of the header one WARN `Weapon colors are paused for this session because the weapon
   palette is not where this mod expects it; everything else keeps working.` ending `(detail:
   palette-clear-site (drill: LW_FORCE_TABLE_MISMATCH))` with no expected bytes printed; report
   reads weapon colors OFF and the roster parts WAITING; exactly one box naming weapon colors alone
   under Paused this session; after Continue every part ON but weapon colors; in battle a seeded
-  Cutpurse (id 1) swings PLAIN steel and the file carries exactly one `Weapon colors were not
-  repainted; the palette data is not where this mod expects it.` on that first colored swing (a
-  one line latch refusal with no hedge or detail tail, by design, printed once while the part is
-  OFF), the Stoneshooter (id 73) shot carries its +3 WP bump, a
+  Cutpurse (id 1) swings PLAIN steel and the file carries NO palette write line (the weapon colors phase never ticks while its part is OFF, so the latch refusal `Weapon colors were not repainted; ...` cannot print here; it only guards the race where the part is ON and the door closes underneath), the Stoneshooter (id 73) shot carries its +3 WP bump, a
   Sunderer full wait still plants; scan exit 0 with no stand down finding. PASS leg B: no table
   WARN of any kind at the title, fourteen ON after Continue, the Cutpurse REPAINTS, the Stoneshooter
   bump holds, a Defender wielder gets the Provoke grant with no `Provoke's effect was not set up`
