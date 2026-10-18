@@ -175,3 +175,15 @@ owner's Treasure Master spinoff holds rank 1).
   build sits under [LW-386] in docs/TODO.md (five carcasses whose reward changed weapon
   type, and 39 carcass descriptions naming the vanilla item while the Den hands out the
   mod's renamed one).
+
+
+<!-- From Adonis -->
+FIRST THINGS FIRST Give Fairy Harp Back charm.. you accidently tookvit away and it needs it.
+
+One harp can grant the user access to ramza’s tail wind ability allowing them to give a unit extra speed - Tailwind
+
+Blood string harp - u should keep this as stealing HP. A long range hp suck is unique so maybe the level 3 can have the use used the blood suck skill from elmore changing the unit enemy a vampire - Vampires Call
+
+And the final one hmmm maybe just can use the ability that the tree’s have that heal MP but have them make it AOE ? - MANA MELODY
+
+Oh and dont forget to let Dancers be able to equip harps as well we talked about that as well 
