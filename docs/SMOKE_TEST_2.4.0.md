@@ -883,7 +883,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
 
 ## 7. Equip cards, the Grows line, glow icons, galleries (data rows take effect on RESTART)
 
-- [ ] 7.1 **The Grows line and the famous names (LW-332, LW-322, LW-328, LW-166).** Every living
+- [x] 7.1 (PASSED 2026-10-18 on prod of a38eb35b, owner live with eight screenshots, every weapon staged at 7 kills: Cutpurse Kills 7/10 to +2 then Grows: Speed., Outrider Pistol Kills: 15 then Grows: Weapon Power., Chaos Blade and Excalibur Grows: HP. with their Petrify and Holy lines, Materia Blade Grows: Physical & Magick Attack. with both Ultima scaling lines, Slumber Rod the pole lane, Murasame the katana lane with Bravery, Battle Axe a plain card with no Kills and no Grows line; each card's text matched tools/lib/flavor.assemble_desc for its row; no No Poaching line seen; the two kill counter clause rests on box 1.4 and the 13:17 fight the same day; the DLC Akademy Blade and the game's own second Materia Blade+ row are not mod rows, owner ruling) **The Grows line and the famous names (LW-332, LW-322, LW-328, LW-166).** Every living
   weapon card says in words what it grows, right under Kills. Open a knife, a pole, a katana, a
   gun, a knight sword, the Excalibur, the Materia Blade, the Cutpurse and one vanilla non growing
   item. PASS: line one `Kills: N/T to +`, line two `Grows: ...` matching that weapon's lane in

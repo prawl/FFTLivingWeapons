@@ -475,7 +475,7 @@ this paragraph is the pointer that says so.
 - [ ] Galleries: knives (LW-198), ninja blades (LW-205), books (LW-210), bags (LW-212).
 - [x] The Grows-line reads (LW-332): same-lane fast-flip plus one credit battle. Owner
       live pass 2026-08-31 (SHIPPED 08937d7 in the changelog).
-- [ ] The grows-text live pass (LW-322) and the power audit read (LW-320).
+- [ ] The grows-text live pass (LW-322) and the power audit read (LW-320). (LW-322 half PASSED 2026-10-18, smoke box 7.1, eight cards read on prod; the LW-320 ruling is still the owner's.)
 
 ### R4. Ship furniture
 - [x] Deploy riders get their VERIFY_LIVE.md home (LW-286) before the next deploy (SHIPPED cb9a6e85 2026-10-17).
@@ -524,7 +524,7 @@ model exists; it is done. The order, worked top to bottom, one at a time:
 7l. (SHIPPED 6b6d320f 2026-10-18, owner live run 07:35 to 08:36 passed all four pre registered legs) LW-442 the new glow ring fix waiting its turn while a menu is still loading its icons. Without the guard a player can see an icon blank for a moment, or in theory trip the menu's own loading, when a ring change lands right after a screen change, so it joins the order under the freeze rule. Built and gated 2026-10-18, owner race test owed.
 7m. LW-445 a few icons keep their old glow ring until restart after a tier change, found in the LW-412 sitting 2026-10-18 (a player sees it, so it joins the order under the freeze rule). Built and gated 2026-10-18. SHIPPED a38eb35b, owner live pass 2026-10-18 13:29 on prod, 130 of 130 failed writes landed on the first retry.
 8. One sitting each, cheap: galleries LW-198, LW-205, LW-210, LW-212, then LW-322 and LW-320,
-   and LW-414 the seven baseline numbers.
+   and LW-414 the seven baseline numbers. (LW-322 live pass done 2026-10-18, smoke box 7.1.)
 
 Pushed to 2.5.0 by the same ruling: LW-429 the Gariland band warning (owner, 2026-10-18, long standing and harmless), LW-415 the write scope buckets, the R1 cosmetics (LW-329,
 LW-335, the hue true ups), LW-340, LW-324, and every research row. LW-358 folded into the
