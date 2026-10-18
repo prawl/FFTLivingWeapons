@@ -692,6 +692,169 @@ public class GunSlingerConsentTests
         Assert.Equal((ushort)BlasterId, mem.WrittenU16[b + Offsets.ROffHand]);
     }
 
+    // ── LW-426: the stand down line must read for a player who still dual wields on their own,
+    // and no twin write may follow a stand down until the hand is empty again. ──────────────────
+
+    [Fact]
+    public void StandDownLine_threeShapes_readForThePlayer_withADetailTail()
+    {
+        string shield = GunSlinger.StandDownLine(off: EmptyU16, shield: 128, mainH: OutriderPistolId, lentDualWield: true);
+        Assert.StartsWith("A shield is equipped", shield);
+        Assert.Contains("the Dual Wield this mod lent them goes back too", shield);
+        Assert.Contains("(detail: off hand 65535, shield 128, main hand item 71)", shield);
+
+        string own = GunSlinger.StandDownLine(off: 200, shield: EmptyU16, mainH: OutriderPistolId, lentDualWield: false);
+        Assert.StartsWith("You already carry a second weapon in that off hand", own);
+        Assert.Contains("your own pick", own);
+        Assert.Contains("the game's own dual wield still swings both", own);
+        Assert.Contains("(detail: off hand 200, shield 65535, main hand item 71)", own);
+
+        string lent = GunSlinger.StandDownLine(off: 200, shield: EmptyU16, mainH: OutriderPistolId, lentDualWield: true);
+        Assert.StartsWith("You already carry a second weapon in that off hand", lent);
+        Assert.Contains("goes back too, so whether they swing twice is now the game's call", lent);
+        Assert.DoesNotContain("still swings both", lent);
+
+        string empty = GunSlinger.StandDownLine(off: 255, shield: 0, mainH: 77, lentDualWield: false);
+        Assert.StartsWith("The twin weapon has left the off hand and nothing of yours was there", empty);
+        Assert.Contains("this mod lent them no Dual Wield", empty);
+
+        foreach (string line in new[] { shield, own, lent, empty })
+        {
+            Assert.DoesNotContain("spoken for", line);
+            Assert.DoesNotContain("standing down to protect your save", line);
+        }
+    }
+
+    [Fact]
+    public void StandDown_ownDualWield_noTwinWriteFollows_untilTheHandEmptiesAgain()
+    {
+        using var temp = TempDirs.Create("gs_test_");
+        string dir = temp.Dir;
+
+        var mem = new FakeSparseMemory();
+        var kills = new Dictionary<int, int> { [OutriderPistolId] = Tuning.ProdThresholds[2] };
+        // The player picked Dual Wield themselves before the grant, so the support lane never
+        // snapshots (rule 4) and the Dual Wield is theirs to keep.
+        SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: OutriderPistolId, off: EmptyU16, supp: DualWieldKeyForTest);
+
+        var gs = new GunSlinger(MakeTwoGunMeta(), kills, dir, DoorOpen, mem);
+        gs.PrepRoster();   // grant: the twin lands, HasOff true, HasSupp false
+        long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
+        Assert.Equal((ushort)OutriderPistolId, mem.U16s[b + Offsets.ROffHand]);
+        Assert.False(gs.StoreForTest().Get(1).HasSupp);
+
+        // The player swaps the conjured twin for their own second gun (an unflagged one).
+        mem.U16s[b + Offsets.ROffHand] = 75;
+        mem.WrittenU16.Clear();
+        using (var cap = LogCapture.Start())
+        {
+            gs.PrepRoster();
+            var line = Assert.Single(cap.File, l => l.Contains("[INFO]") && l.Contains("twin weapon trick"));
+            Assert.Contains("You already carry a second weapon in that off hand", line);
+            Assert.Contains("the game's own dual wield still swings both", line);
+            Assert.Contains("(detail: off hand 75, shield 65535, main hand item 71)", line);
+        }
+        Assert.False(mem.WrittenU16.ContainsKey(b + Offsets.ROffHand), "the stand down pass writes no twin");
+        Assert.False(mem.WrittenU16.ContainsKey(b + Offsets.RSupport), "the player's own Dual Wield is never touched");
+        Assert.False(gs.StoreForTest().Get(1).HasOff);
+
+        // Every later lane, out of battle, mid battle, and through the twilight, stays silent and
+        // writes nothing while the player's gun sits there.
+        using (var cap = LogCapture.Start())
+        {
+            gs.PrepRoster(inBattle: false);
+            gs.PrepRoster(inBattle: true, secondsOffField: 0.0);
+            gs.PrepRoster(inBattle: true, secondsOffField: 3.0);
+            gs.PrepRoster(inBattle: false);
+            Assert.DoesNotContain(cap.File, l => l.Contains("[INFO]") && l.Contains("[signature]"));
+        }
+        Assert.Empty(mem.WrittenU16);
+        Assert.Equal((ushort)75, mem.U16s[b + Offsets.ROffHand]);
+
+        // Only an emptied hand brings the twin back, and that pass announces itself as a fresh grant.
+        mem.U16s[b + Offsets.ROffHand] = EmptyU16;
+        using (var cap = LogCapture.Start())
+        {
+            gs.PrepRoster();
+            Assert.Single(cap.File, l => l.Contains("A twin weapon is equipped"));
+        }
+        Assert.Equal((ushort)OutriderPistolId, mem.WrittenU16[b + Offsets.ROffHand]);
+    }
+
+    [Fact]
+    public void StandDown_lentDualWield_handsItBackTheSamePass_andSaysSo()
+    {
+        using var temp = TempDirs.Create("gs_test_");
+        string dir = temp.Dir;
+
+        var mem = new FakeSparseMemory();
+        var kills = new Dictionary<int, int> { [OutriderPistolId] = Tuning.ProdThresholds[2] };
+        SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: OutriderPistolId, off: EmptyU16, supp: 0);
+
+        var gs = new GunSlinger(MakeTwoGunMeta(), kills, dir, DoorOpen, mem);
+        gs.PrepRoster();   // grant: twin plus the lent Dual Wield
+        long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
+        Assert.Equal(DualWieldKeyForTest, mem.U16s[b + Offsets.RSupport]);
+        Assert.True(gs.StoreForTest().Get(1).HasSupp);
+
+        mem.U16s[b + Offsets.ROffHand] = 75;
+        mem.WrittenU16.Clear();
+        using var cap = LogCapture.Start();
+        gs.PrepRoster();
+
+        var line = Assert.Single(cap.File, l => l.Contains("[INFO]") && l.Contains("twin weapon trick"));
+        Assert.Contains("the Dual Wield this mod lent them goes back too", line);
+        Assert.False(mem.WrittenU16.ContainsKey(b + Offsets.ROffHand));
+        Assert.Equal((ushort)0, mem.WrittenU16[b + Offsets.RSupport]);
+        Assert.False(gs.StoreForTest().Get(1).HasSupp);
+    }
+
+    [Fact]
+    public void StandDown_shieldAndEmptyHandShapes_nameTheirOwnReason()
+    {
+        using var temp = TempDirs.Create("gs_test_");
+        string dir = temp.Dir;
+
+        var mem = new FakeSparseMemory();
+        var kills = new Dictionary<int, int> { [OutriderPistolId] = Tuning.ProdThresholds[2] };
+        SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: OutriderPistolId, off: EmptyU16, supp: 0);
+        var gs = new GunSlinger(MakeTwoGunMeta(), kills, dir, DoorOpen, mem);
+        long b = Offsets.RosterBase + 0 * Offsets.RosterStride;
+
+        // Shape 1: the game cleared the twin and the player equipped a shield.
+        gs.PrepRoster();
+        mem.U16s[b + Offsets.ROffHand] = EmptyU16;
+        mem.U16s[b + Offsets.RShield] = 128;
+        mem.WrittenU16.Clear();
+        using (var cap = LogCapture.Start())
+        {
+            gs.PrepRoster();
+            var line = Assert.Single(cap.File, l => l.Contains("[INFO]") && l.Contains("twin weapon trick"));
+            Assert.StartsWith("A shield is equipped", line[line.IndexOf("A shield")..]);
+            Assert.Contains("(detail: off hand 65535, shield 128, main hand item 71)", line);
+        }
+        Assert.False(mem.WrittenU16.ContainsKey(b + Offsets.ROffHand));
+        Assert.False(mem.WrittenU16.ContainsKey(b + Offsets.RShield));
+
+        // Shape 2: a fresh grant, then the player swaps the main hand away and the game clears the twin.
+        mem.U16s[b + Offsets.RShield] = EmptyU16;
+        mem.U16s[b + Offsets.ROffHand] = EmptyU16;
+        gs.PrepRoster();
+        Assert.True(gs.StoreForTest().Get(1).HasOff);
+        mem.U16s[b + Offsets.RRHand] = 77;
+        mem.U16s[b + Offsets.ROffHand] = EmptyU16;
+        mem.WrittenU16.Clear();
+        using (var cap = LogCapture.Start())
+        {
+            gs.PrepRoster();
+            var line = Assert.Single(cap.File, l => l.Contains("[INFO]") && l.Contains("twin weapon trick"));
+            Assert.Contains("The twin weapon has left the off hand and nothing of yours was there", line);
+            Assert.Contains("(detail: off hand 65535, shield 65535, main hand item 77)", line);
+        }
+        Assert.False(mem.WrittenU16.ContainsKey(b + Offsets.ROffHand));
+        Assert.False(gs.StoreForTest().Get(1).HasOff);
+    }
+
     [Fact]
     public void Menu_byte_above_one_denies_like_unreadable()
     {

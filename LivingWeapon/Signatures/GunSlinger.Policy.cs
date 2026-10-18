@@ -44,11 +44,11 @@ internal static class GunSlingerPolicy
 
     /// <summary>True for 255 or 65535. A raw 0 is treated as garbage and declines the grant
     /// via <see cref="IsPlayerItem"/>.</summary>
-    private static bool IsEmptyOff(ushort v) => v == EmptyOffH1 || v == EmptyOffH2;
+    internal static bool IsEmptyOff(ushort v) => v == EmptyOffH1 || v == EmptyOffH2;
 
     /// <summary>True when the shield slot counts as empty. Also accepts 0, so a never-written
     /// shield byte does not veto the grant forever.</summary>
-    private static bool IsEmptyShield(ushort v) => v == 0 || IsEmptyOff(v);
+    internal static bool IsEmptyShield(ushort v) => v == 0 || IsEmptyOff(v);
 
     /// <summary>Ours. Off holds any flagged twin id (a swap between two flagged weapons leaves the
     /// old twin there) and a grant is on record. HasOff is the ownership marker.</summary>

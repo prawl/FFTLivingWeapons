@@ -1067,8 +1067,10 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   without buying, then back on the party screen press Best Fit on a Sunderer wielder. PASS: `A
   twin weapon is equipped in the wielder's off-hand; ...` on the empty hand at the Status visit;
   Attack fires twice in a battle entered with the twin already stamped; a shield equipped there
-  gives `The wielder's other hand is spoken for; the twin weapon stands down.` and the shield is
-  never lost; unequipping the source gives `The twin weapon is removed; the wielder's original
+  gives `A shield is equipped, so the twin weapon trick stays out of the way for this unit; ...`
+  and the shield is never lost; a second gun the player puts in the off hand by hand gives `You
+  already carry a second weapon in that off hand, so the twin weapon trick stays out of the way;
+  ...` and both guns still fire on the player's own Dual Wield (LW-426); unequipping the source gives `The twin weapon is removed; the wielder's original
   off-hand gear is restored.` and the support slot is BLANK (no Toadja); the twin weapon's card
   teaches the empty hand rule; leg (a) fires ONE shot that battle with no stamp line during it and
   no warning, and the next battle entered from the map after a Status visit fires twice (this buys
