@@ -6,7 +6,7 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed partial class GunSlinger
 {
-    private bool ApplyOffHand(long b, ushort off, ushort shield, bool mainIsGS, int mainH,
+    private bool ApplyOffHand(long b, ushort off, ushort shield, ushort supp, bool mainIsGS, int mainH,
         GunSlingerSnap snap, bool menuOpen, bool inBattle, double secondsOffField)
     {
         // twin = the wielder's own main-hand weapon, so each unit twins with what it wields
@@ -33,7 +33,7 @@ internal sealed partial class GunSlinger
                 return true;
             case GunSlingerOffAction.StandDownNoWrite:
                 snap.HasOff = false;
-                ModLogger.Event(LogVerb.Signature, StandDownLine(off, shield, mainH, snap.HasSupp));
+                ModLogger.Event(LogVerb.Signature, StandDownLine(off, shield, mainH, supp, snap.OrigOff, snap.HasSupp));
                 return true;
             case GunSlingerOffAction.WriteEmptyAndDrop:
                 // A legacy off-hand item can't rejoin a shield-occupied hand. Restoring it would recreate the
@@ -71,21 +71,26 @@ internal sealed partial class GunSlinger
         }
     }
 
-    /// <summary>The stand down line in the player's voice, one shape per reason. A player who filled the
-    /// hand themselves still dual wields on the game's own rule, so the old wording read as refusing something
-    /// this mod never controlled. ApplySupport hands a lent Dual Wield back the same pass, so the tail can say so.</summary>
-    internal static string StandDownLine(ushort off, ushort shield, int mainH, bool lentDualWield)
+    /// <summary>The stand down line, one shape per reason. A wielder who filled the hand themselves still
+    /// dual wields on the game's own rule, so the old wording read as refusing something this mod never
+    /// controlled. ApplySupport hands a lent Dual Wield back the same pass, so the line can say so.</summary>
+    internal static string StandDownLine(ushort off, ushort shield, int mainH, ushort supp, ushort origOff, bool lentDualWield)
     {
-        string tail = $"(detail: off hand {off}, shield {shield}, main hand item {mainH})";
-        string lent = lentDualWield ? "the Dual Wield this mod lent them goes back too" : "this mod lent them no Dual Wield";
+        bool earlierEmpty = GunSlingerPolicy.IsEmptyOff(origOff);
+        string tail = $"(detail: off hand {off}, shield {shield}, main hand item {mainH}, support {supp}"
+                    + (earlierEmpty ? ")" : $", earlier off hand item {origOff})");
+        string lent = lentDualWield ? " and the Dual Wield this mod lent goes back" : "";
+        string earlier = earlierEmpty ? "" : "; the wielder's earlier off hand item is not put back";
         if (!GunSlingerPolicy.IsEmptyShield(shield))
-            return $"A shield is equipped, so the twin weapon trick stays out of the way for this unit; {lent} {tail}";
+            return $"A shield is equipped, so the twin weapon steps aside{lent}{earlier} {tail}";
         if (GunSlingerPolicy.IsEmptyOff(off))
-            return $"The twin weapon has left the off hand and nothing of yours was there, so the twin weapon trick lets go of this unit; {lent} {tail}";
-        string swing = lentDualWield
-            ? "the Dual Wield this mod lent them goes back too, so whether they swing twice is now the game's call"
-            : "the Dual Wield they carry is your own pick, so the game's own dual wield still swings both";
-        return $"You already carry a second weapon in that off hand, so the twin weapon trick stays out of the way; {swing} {tail}";
+            return earlierEmpty
+                ? $"The twin weapon has left the off hand and nothing of the wielder's was there, so the twin weapon steps aside{lent} {tail}"
+                : $"The twin weapon has left the off hand, so the twin weapon steps aside{lent}{earlier} {tail}";
+        string swing = !lentDualWield && supp == DualWieldKey
+            ? "the game's own Dual Wield still swings both"
+            : "the game decides whether both swing";
+        return $"The wielder already carries a second weapon of their own in the off hand, so the twin weapon steps aside{lent}; {swing}{earlier} {tail}";
     }
 
     private void WriteOffHand(long b, ushort value)

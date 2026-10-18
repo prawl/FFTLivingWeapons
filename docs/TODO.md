@@ -53,20 +53,23 @@ the technical detail lives in the indented lines under it.
     mod (it stepped aside) but read as a verdict about the game, which still swung both weapons on
     the player's own Dual Wield. The same line also fired when a shield was the reason and when the
     hand was simply empty after a weapon swap, which is not "spoken for" at all.
-  - The line now comes in three shapes, each in the player's voice with a detail tail: a second
-    weapon of your own ("You already carry a second weapon in that off hand, so the twin weapon
-    trick stays out of the way; the Dual Wield they carry is your own pick, so the game's own dual
-    wield still swings both"), a shield ("A shield is equipped, so the twin weapon trick stays out
-    of the way for this unit"), and an emptied hand ("The twin weapon has left the off hand and
-    nothing of yours was there, so the twin weapon trick lets go of this unit"). When the mod had
-    lent the Dual Wield, the line says it goes back too and that the game now decides.
+  - The line now comes in three shapes, same voice as its neighbours, each with a detail tail: a
+    second weapon of the wielder's own ("The wielder already carries a second weapon of their own
+    in the off hand, so the twin weapon steps aside; the game's own Dual Wield still swings both",
+    said only when the support slot really reads Dual Wield, else "the game decides whether both
+    swing"), a shield ("A shield is equipped, so the twin weapon steps aside"), and an emptied
+    hand ("The twin weapon has left the off hand and nothing of the wielder's was there, so the
+    twin weapon steps aside", or, when an older store remembers a real earlier item, that the
+    item is not put back, named in the tail). When the mod had lent the Dual Wield, the line says
+    it goes back.
   - No logic defect. A new test drives the stand down through every later lane (world map, mid
     battle, the battle end twilight) and proves no twin write follows until the hand is empty
     again, and that the write which then lands announces itself as a fresh grant. (Tech:
     GunSlinger.StandDownLine in GunSlinger.Apply.cs, StandDownNoWrite clears HasOff so every
-    later pass takes Leave; the support lane restores a lent Key 477 in the same pass by rules 2,
-    3 and 5; the four LW-426 tests sit in GunSlingerConsentTests.cs; scan_logs.py lists none of
-    these lines and its stand down landmark is the guard's own sentence.)
+    later pass takes Leave; the support lane restores a lent Key 477 in the same pass by
+    DesiredSupport's rules 2 and 3; the four LW-426 tests sit in GunSlingerConsentTests.cs;
+    scan_logs.py lists none of these lines and its stand down landmark is the guard's own
+    sentence.)
   - Done means: a player reading livingweapon.log while dual wielding their own two guns sees a
     line that says the trick stepped aside and their own Dual Wield still swings both, never one
     that reads as a refusal; the shield and emptied hand shapes name their own reason; the old

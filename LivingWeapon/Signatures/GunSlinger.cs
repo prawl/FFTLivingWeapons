@@ -106,7 +106,7 @@ internal sealed partial class GunSlinger
                          && tier >= (m.Signature?.AtTier ?? 99);
             ushort shield = _mem.U16(b + Offsets.RShield);   // Read only -- feeds consent, never written
 
-            dirty |= ApplyOffHand(b, offH, shield, mainIsGS, mainH, snap, menuOpen, inBattle, secondsOffField);
+            dirty |= ApplyOffHand(b, offH, shield, supp, mainIsGS, mainH, snap, menuOpen, inBattle, secondsOffField);
             dirty |= ApplySupport(b, supp, offH, shield, mainIsGS, snap, menuOpen, inBattle, secondsOffField);
 
             passRows.Add((slot, nameId, mainH, offH, snap));

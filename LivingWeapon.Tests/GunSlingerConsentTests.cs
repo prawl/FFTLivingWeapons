@@ -698,30 +698,33 @@ public class GunSlingerConsentTests
     [Fact]
     public void StandDownLine_threeShapes_readForThePlayer_withADetailTail()
     {
-        string shield = GunSlinger.StandDownLine(off: EmptyU16, shield: 128, mainH: OutriderPistolId, lentDualWield: true);
-        Assert.StartsWith("A shield is equipped", shield);
-        Assert.Contains("the Dual Wield this mod lent them goes back too", shield);
-        Assert.Contains("(detail: off hand 65535, shield 128, main hand item 71)", shield);
+        string shield = GunSlinger.StandDownLine(off: EmptyU16, shield: 128, mainH: OutriderPistolId, supp: DualWieldKeyForTest, origOff: EmptyU16, lentDualWield: true);
+        Assert.Equal("A shield is equipped, so the twin weapon steps aside and the Dual Wield this mod lent goes back (detail: off hand 65535, shield 128, main hand item 71, support 477)", shield);
 
-        string own = GunSlinger.StandDownLine(off: 200, shield: EmptyU16, mainH: OutriderPistolId, lentDualWield: false);
-        Assert.StartsWith("You already carry a second weapon in that off hand", own);
-        Assert.Contains("your own pick", own);
-        Assert.Contains("the game's own dual wield still swings both", own);
-        Assert.Contains("(detail: off hand 200, shield 65535, main hand item 71)", own);
+        string own = GunSlinger.StandDownLine(off: 200, shield: EmptyU16, mainH: OutriderPistolId, supp: DualWieldKeyForTest, origOff: EmptyU16, lentDualWield: false);
+        Assert.Equal("The wielder already carries a second weapon of their own in the off hand, so the twin weapon steps aside; the game's own Dual Wield still swings both (detail: off hand 200, shield 65535, main hand item 71, support 477)", own);
 
-        string lent = GunSlinger.StandDownLine(off: 200, shield: EmptyU16, mainH: OutriderPistolId, lentDualWield: true);
-        Assert.StartsWith("You already carry a second weapon in that off hand", lent);
-        Assert.Contains("goes back too, so whether they swing twice is now the game's call", lent);
-        Assert.DoesNotContain("still swings both", lent);
+        // Not lent and no Dual Wield read in the support slot: no claim about who swings.
+        string ownNoDw = GunSlinger.StandDownLine(off: 200, shield: EmptyU16, mainH: OutriderPistolId, supp: 0, origOff: EmptyU16, lentDualWield: false);
+        Assert.Contains("the twin weapon steps aside; the game decides whether both swing (detail:", ownNoDw);
+        Assert.DoesNotContain("still swings both", ownNoDw);
 
-        string empty = GunSlinger.StandDownLine(off: 255, shield: 0, mainH: 77, lentDualWield: false);
-        Assert.StartsWith("The twin weapon has left the off hand and nothing of yours was there", empty);
-        Assert.Contains("this mod lent them no Dual Wield", empty);
+        string lent = GunSlinger.StandDownLine(off: 200, shield: EmptyU16, mainH: OutriderPistolId, supp: DualWieldKeyForTest, origOff: EmptyU16, lentDualWield: true);
+        Assert.Equal("The wielder already carries a second weapon of their own in the off hand, so the twin weapon steps aside and the Dual Wield this mod lent goes back; the game decides whether both swing (detail: off hand 200, shield 65535, main hand item 71, support 477)", lent);
 
-        foreach (string line in new[] { shield, own, lent, empty })
+        string empty = GunSlinger.StandDownLine(off: 255, shield: 0, mainH: 77, supp: 0, origOff: 255, lentDualWield: false);
+        Assert.Equal("The twin weapon has left the off hand and nothing of the wielder's was there, so the twin weapon steps aside (detail: off hand 255, shield 0, main hand item 77, support 0)", empty);
+
+        // A legacy store with a real earlier item never claims the hand held nothing of the wielder's.
+        string legacy = GunSlinger.StandDownLine(off: 255, shield: 0, mainH: 77, supp: 0, origOff: 150, lentDualWield: true);
+        Assert.Equal("The twin weapon has left the off hand, so the twin weapon steps aside and the Dual Wield this mod lent goes back; the wielder's earlier off hand item is not put back (detail: off hand 255, shield 0, main hand item 77, support 0, earlier off hand item 150)", legacy);
+
+        foreach (string line in new[] { shield, own, ownNoDw, lent, empty, legacy })
         {
             Assert.DoesNotContain("spoken for", line);
             Assert.DoesNotContain("standing down to protect your save", line);
+            Assert.DoesNotContain("you", line.Split("(detail:")[0].ToLowerInvariant().Split(' '));
+            Assert.True(line.Split("(detail:")[0].Split(' ', System.StringSplitOptions.RemoveEmptyEntries).Length < 40, line);
         }
     }
 
@@ -749,10 +752,10 @@ public class GunSlingerConsentTests
         using (var cap = LogCapture.Start())
         {
             gs.PrepRoster();
-            var line = Assert.Single(cap.File, l => l.Contains("[INFO]") && l.Contains("twin weapon trick"));
-            Assert.Contains("You already carry a second weapon in that off hand", line);
-            Assert.Contains("the game's own dual wield still swings both", line);
-            Assert.Contains("(detail: off hand 75, shield 65535, main hand item 71)", line);
+            var line = Assert.Single(cap.File, l => l.Contains("[INFO]") && l.Contains("the twin weapon steps aside"));
+            Assert.Contains("The wielder already carries a second weapon of their own in the off hand", line);
+            Assert.Contains("the game's own Dual Wield still swings both", line);
+            Assert.Contains("(detail: off hand 75, shield 65535, main hand item 71, support 477)", line);
         }
         Assert.False(mem.WrittenU16.ContainsKey(b + Offsets.ROffHand), "the stand down pass writes no twin");
         Assert.False(mem.WrittenU16.ContainsKey(b + Offsets.RSupport), "the player's own Dual Wield is never touched");
@@ -802,8 +805,9 @@ public class GunSlingerConsentTests
         using var cap = LogCapture.Start();
         gs.PrepRoster();
 
-        var line = Assert.Single(cap.File, l => l.Contains("[INFO]") && l.Contains("twin weapon trick"));
-        Assert.Contains("the Dual Wield this mod lent them goes back too", line);
+        var line = Assert.Single(cap.File, l => l.Contains("[INFO]") && l.Contains("the twin weapon steps aside"));
+        Assert.Contains("and the Dual Wield this mod lent goes back; the game decides whether both swing", line);
+        Assert.DoesNotContain("still swings both", line);
         Assert.False(mem.WrittenU16.ContainsKey(b + Offsets.ROffHand));
         Assert.Equal((ushort)0, mem.WrittenU16[b + Offsets.RSupport]);
         Assert.False(gs.StoreForTest().Get(1).HasSupp);
@@ -829,9 +833,9 @@ public class GunSlingerConsentTests
         using (var cap = LogCapture.Start())
         {
             gs.PrepRoster();
-            var line = Assert.Single(cap.File, l => l.Contains("[INFO]") && l.Contains("twin weapon trick"));
-            Assert.StartsWith("A shield is equipped", line[line.IndexOf("A shield")..]);
-            Assert.Contains("(detail: off hand 65535, shield 128, main hand item 71)", line);
+            var line = Assert.Single(cap.File, l => l.Contains("[INFO]") && l.Contains("the twin weapon steps aside"));
+            Assert.Contains("A shield is equipped, so the twin weapon steps aside and the Dual Wield this mod lent goes back", line);
+            Assert.Contains("(detail: off hand 65535, shield 128, main hand item 71, support 477)", line);
         }
         Assert.False(mem.WrittenU16.ContainsKey(b + Offsets.ROffHand));
         Assert.False(mem.WrittenU16.ContainsKey(b + Offsets.RShield));
@@ -847,9 +851,9 @@ public class GunSlingerConsentTests
         using (var cap = LogCapture.Start())
         {
             gs.PrepRoster();
-            var line = Assert.Single(cap.File, l => l.Contains("[INFO]") && l.Contains("twin weapon trick"));
-            Assert.Contains("The twin weapon has left the off hand and nothing of yours was there", line);
-            Assert.Contains("(detail: off hand 65535, shield 65535, main hand item 77)", line);
+            var line = Assert.Single(cap.File, l => l.Contains("[INFO]") && l.Contains("the twin weapon steps aside"));
+            Assert.Contains("The twin weapon has left the off hand and nothing of the wielder's was there, so the twin weapon steps aside and the Dual Wield this mod lent goes back", line);
+            Assert.Contains("(detail: off hand 65535, shield 65535, main hand item 77, support 477)", line);
         }
         Assert.False(mem.WrittenU16.ContainsKey(b + Offsets.ROffHand));
         Assert.False(gs.StoreForTest().Get(1).HasOff);
