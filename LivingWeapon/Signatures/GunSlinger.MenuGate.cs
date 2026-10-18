@@ -5,7 +5,7 @@ namespace LivingWeapon;
 /// evaporation write is gone (see GunSlinger.cs); the duplication defense is the watch-only reconcile
 /// in GunSlinger.Reconcile.cs. Produces <c>menuOpen</c> for PrepRoster's call into GunSlingerPolicy rule 1.
 ///
-/// Out-of-battle twin-lane writes are allowed only when <c>menuReadable &amp;&amp; menuRaw &lt;= 1 &amp;&amp; (menuRaw == 0 ||
+/// Out-of-battle twin-lane writes are allowed only when <c>menuReadable &amp;&amp; (menuRaw == 0 ||
 /// (browseReadable &amp;&amp; browseRaw == 1 &amp;&amp; browseStable))</c>. Any unreadable byte denies, and
 /// <c>menuOpen</c> is the negation. In-battle lanes and the twilight hold are untouched, since rule 1
 /// only suppresses when !inBattle.
@@ -16,7 +16,7 @@ internal sealed partial class GunSlinger
     // "gunslinger" tick phase runs every 30 ticks at 33ms) before suppression clears, so the town-exit
     // fade's 500ms double-pulse ([worldmap-menu-open-byte]) only delays a grant. The first read baselines
     // silently so single-call tests need no warm-up.
-    private byte? _lastMenuRaw;
+    private bool? _lastMenuOpen;
     private int _passesSinceFlip;
 
     // Browse-byte stability. The byte is unprobed on the Equip & Abilities sub-pickers, so a 1 is trusted
@@ -37,25 +37,24 @@ internal sealed partial class GunSlinger
         return !writeAllowedViaBrowse;
     }
 
-    /// <summary>Reads Offsets.MenuOpenFlag with the 3-pass debounce. Readability is returned apart from
-    /// the value. An unreadable pass leaves the debounce state untouched, and the caller denies on
-    /// readability alone, so the returned open value is unused then.</summary>
+    /// <summary>Reads Offsets.MenuOpenFlag with the 3-pass debounce. The byte is byte 4 of a pointer in
+    /// the game's per frame record list, 1 on the old fixed base and 246 under ASLR, so any nonzero
+    /// value is an open menu. An unreadable pass leaves the debounce state untouched.</summary>
     private (bool readable, bool debouncedOpen) ReadMenuDebounced()
     {
         if (!_mem.Readable(Offsets.MenuOpenFlag, 1)) return (false, true);
-        byte raw = _mem.U8(Offsets.MenuOpenFlag);
-        if (raw > 1) return (false, true);   // a byte outside 0 or 1 is read as unreadable
+        bool open = _mem.U8(Offsets.MenuOpenFlag) != 0;
 
-        if (_lastMenuRaw == null)
+        if (_lastMenuOpen == null)
         {
             // First read. Baseline as settled so a fresh instance needs no warm-up passes.
-            _lastMenuRaw = raw;
+            _lastMenuOpen = open;
             _passesSinceFlip = 3;
         }
-        else if (raw != _lastMenuRaw.Value)
+        else if (open != _lastMenuOpen.Value)
         {
             // A flip starts the 3-pass suppression window.
-            _lastMenuRaw = raw;
+            _lastMenuOpen = open;
             _passesSinceFlip = 0;
         }
         else if (_passesSinceFlip < 3)
@@ -65,7 +64,7 @@ internal sealed partial class GunSlinger
             _passesSinceFlip++;
         }
 
-        return (true, raw == 1 || _passesSinceFlip < 3);
+        return (true, open || _passesSinceFlip < 3);
     }
 
     /// <summary>Reads Offsets.PartyBrowseFlag and counts consecutive passes reading 1, capped at 2. A 0

@@ -1885,14 +1885,29 @@ public class LaunchGuardTests
         Assert.Equal(GuardState.Armed, guard2.TwinState);
     }
 
+    // LW-439: the menu byte is byte 4 of a pointer in the game's per frame record list (1 under the
+    // old fixed base, 246 under the ASLR base 0x7FF65FC60000), so the door accepts any value there
+    // and only the browse byte, a real 0 or 1 flag, can fault.
     [Fact]
-    public void Twin_door_stands_down_on_an_implausible_flag()
+    public void Twin_door_arms_with_the_menu_byte_at_246()
+    {
+        var mem = HealthyMemory();
+        StageTwinFlags(mem, 246, 0);
+        var guard = new LaunchGuard(mem, forceMismatch: false);
+
+        guard.StepTwin();
+
+        Assert.Equal(GuardState.Armed, guard.TwinState);
+    }
+
+    [Fact]
+    public void Twin_door_stands_down_on_an_implausible_browse_flag()
     {
         using var cap = LogCapture.Start();
         var records = new List<(string type, string payload)>();
         var flushes = new List<string>();
         var mem = HealthyMemory();
-        StageTwinFlags(mem, 7, 0);
+        StageTwinFlags(mem, 0, 7);
         var guard = new LaunchGuard(mem, forceMismatch: false, recorder: (t, p) => records.Add((t, p)),
             requestFlush: flushes.Add);
 
@@ -1905,7 +1920,7 @@ public class LaunchGuardTests
         Assert.True(guard.TwinPistolsDoor.FailedCheck);
         Assert.Equal(LaunchGuard.TwinClosedReason, guard.TwinPistolsDoor.Reason);
         string warn = Assert.Single(cap.File, l => l.Contains("[WARN]"));
-        Assert.Contains("menu flag reads 7", warn);
+        Assert.Contains("browse flag reads 7", warn);
         Assert.DoesNotContain(ScannerPhrase, warn);
         Assert.DoesNotContain("LW_FORCE_", warn);
         Assert.Single(records, r => r.payload.Contains("twin lane stand-down"));
@@ -1983,7 +1998,7 @@ public class LaunchGuardTests
 
         using var cap2 = LogCapture.Start();
         var real = HealthyMemory();
-        StageTwinFlags(real, 7, 0);
+        StageTwinFlags(real, 0, 7);
         var realGuard = new LaunchGuard(real, forceMismatch: false);
         StepTwinN(realGuard, 30);
         Assert.DoesNotContain(cap2.File, l => l.Contains("LW_FORCE_"));
@@ -2021,7 +2036,7 @@ public class LaunchGuardTests
     public void Twin_texts_never_speak_the_scanner_stand_down_phrase()
     {
         var mem = HealthyMemory();
-        StageTwinFlags(mem, 7, 7);
+        StageTwinFlags(mem, 0, 7);
         using var cap = LogCapture.Start();
         StepTwinN(new LaunchGuard(mem, forceMismatch: true, forceTwinMismatch: true), 30);
         Assert.DoesNotContain(cap.File, l => l.Contains(ScannerPhrase));

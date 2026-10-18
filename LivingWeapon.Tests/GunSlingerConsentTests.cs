@@ -859,13 +859,16 @@ public class GunSlingerConsentTests
         Assert.False(gs.StoreForTest().Get(1).HasOff);
     }
 
+    // LW-439: the menu byte is byte 4 of a pointer inside the game's per frame record list, so it
+    // read 1 under the old fixed image base and 246 (0xF6) under the ASLR base 0x7FF65FC60000.
+    // Any nonzero value means a menu is open; only 0 means closed.
     [Fact]
-    public void Menu_byte_above_one_denies_like_unreadable()
+    public void Menu_byte_any_nonzero_reads_as_open()
     {
         long b = Offsets.RosterBase;
         var kills = new Dictionary<int, int> { [BlasterId] = Tuning.ProdThresholds[2] };
 
-        foreach (byte menu in new byte[] { 2, 7 })
+        foreach (byte menu in new byte[] { 1, 2, 7, 246 })
         {
             using var temp = TempDirs.Create("gs_test_");
             var mem = new FakeSparseMemory();
@@ -885,5 +888,32 @@ public class GunSlingerConsentTests
         SetMenu(cmem, 0);
         new GunSlinger(MakeGunMeta(), kills, control.Dir, DoorOpen, cmem).PrepRoster();
         Assert.Equal((ushort)BlasterId, cmem.WrittenU16[b + Offsets.ROffHand]);
+    }
+
+    // The discriminator between "open" and "unreadable": an unreadable pass leaves the debounce
+    // untouched, so a later 0 would write at once; an open pass baselines open, so a later 0 waits
+    // the three settle passes exactly as a 1 did. Sabotage: treat 246 as unreadable again and the
+    // write lands on the first closed pass, which goes red here.
+    [Fact]
+    public void Menu_byte_246_then_closed_keeps_the_three_pass_debounce()
+    {
+        using var temp = TempDirs.Create("gs_test_");
+        long b = Offsets.RosterBase;
+        var kills = new Dictionary<int, int> { [BlasterId] = Tuning.ProdThresholds[2] };
+        var mem = new FakeSparseMemory();
+        SeedRosterSlot(mem, slot: 0, nameId: 1, level: 30, rh: BlasterId, off: EmptyU16, supp: 0);
+        SetMenu(mem, 246);
+        var gs = new GunSlinger(MakeGunMeta(), kills, temp.Dir, DoorOpen, mem);
+        gs.PrepRoster();
+        Assert.Empty(mem.WrittenU16);
+
+        SetMenu(mem, 0);
+        for (int pass = 1; pass <= 3; pass++)
+        {
+            gs.PrepRoster();
+            Assert.False(mem.WrittenU16.ContainsKey(b + Offsets.ROffHand), $"closed pass {pass} is still inside the debounce window");
+        }
+        gs.PrepRoster();
+        Assert.Equal((ushort)BlasterId, mem.WrittenU16[b + Offsets.ROffHand]);
     }
 }

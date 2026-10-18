@@ -405,7 +405,7 @@ public class EngineDoorTests
 
             using var tempClosed = TempDirs.Create("lw_door_twin_closed_");
             var closed = EngineTests.HealthyMemory();
-            EngineTests.StageTwinFlags(closed, 7, 0);
+            EngineTests.StageTwinFlags(closed, 0, 7);
             Idle(closed);
             var engine = Build(tempClosed, closed, withTwinMeta: true);
             Ticks(engine, 100);

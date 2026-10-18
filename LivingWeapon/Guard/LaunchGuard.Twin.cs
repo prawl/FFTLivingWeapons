@@ -3,8 +3,10 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// The twin weapon guard. It checks the two menu flags the twin grant reads to stay out of the equipment screens
-/// and the hand words of Ramza's roster row, once a save has loaded. It steps from the first tick and is terminal.
+/// The twin weapon guard. It checks that the two menu bytes the twin grant reads are readable, that the browse
+/// byte is 0 or 1, and the hand words of Ramza's roster row, once a save has loaded. It steps from the first tick
+/// and is terminal. The menu byte has no range, it is byte 4 of a pointer in the game's per frame record list
+/// (1 on the old fixed base, 246 under ASLR), so only an unreadable page can hold the door on it.
 /// </summary>
 internal sealed partial class LaunchGuard
 {
@@ -42,8 +44,8 @@ internal sealed partial class LaunchGuard
             return new LandmarkReading(LandmarkVerdict.Unreadable, TwinFlagsUnreadable);
 
         var faults = new List<string>();
-        if (menu[0] > 1 || browse[0] > 1)
-            faults.Add($"menu flag reads {menu[0]}, browse flag reads {browse[0]} (expected 0 or 1 each)");
+        if (browse[0] > 1)
+            faults.Add($"browse flag reads {browse[0]} (expected 0 or 1)");
         AddHandFault(faults, "right hand", rb + Offsets.RRHand);
         AddHandFault(faults, "off hand", rb + Offsets.ROffHand);
         AddHandFault(faults, "shield", rb + Offsets.RShield);

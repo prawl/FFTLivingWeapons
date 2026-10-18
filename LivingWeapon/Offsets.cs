@@ -409,7 +409,7 @@ internal static class Offsets
     // Sibling 0x140D508EC tracks it and 0x140D50916 is its inverse (neither promoted). See
     // [worldmap-menu-open-byte] (LIVE_LEDGER.md, Uncertain as of 2026-08-17, owner flip pending). An unreadable
     // byte counts as open in GunSlinger.cs, so it fails toward not writing.
-    public static long MenuOpenFlag => ImageBase.At(0x140D508D0);   // u8
+    public static long MenuOpenFlag => ImageBase.At(0x140D508D0);   // u8, byte 4 of a pointer in the frame record list, 0 closed and any nonzero open
 
     // --- Gun Slinger / Crossfire twin-grant consent, owner-AC round. The party-browse stamp. Reads 1
     // on the party overview root and the Character Status page; 0 in E&A (all three tabs), the save menu, shop,

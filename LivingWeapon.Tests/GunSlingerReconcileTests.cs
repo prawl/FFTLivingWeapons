@@ -173,6 +173,24 @@ public class GunSlingerReconcileTests
         Assert.Equal((ushort)BlasterId, mem.WrittenU16[b + Offsets.ROffHand]);
     }
 
+    // LW-439: under ASLR the menu byte reads 246 with a menu open (byte 4 of the relocated image
+    // base), and the ESC-from-E&A re-stamp must still land through the stable browse screen.
+    [Fact]
+    public void BrowseGate_menu246_browseStable_stampsOnTheSecondConsecutivePass()
+    {
+        using var temp = TempDirs.Create("gs_test_");
+        var (gs, mem, b) = GrantThenClearOffHand(temp.Dir);
+
+        SetMenu(mem, 246);
+        SetBrowse(mem, 1);
+        gs.PrepRoster();   // browse pass 1
+        mem.WrittenU16.Clear();
+        gs.PrepRoster();   // browse pass 2, stable
+
+        Assert.True(mem.WrittenU16.ContainsKey(b + Offsets.ROffHand), "a 246 menu byte is an open menu, and a stable browse screen unlocks the re-assert");
+        Assert.Equal((ushort)BlasterId, mem.WrittenU16[b + Offsets.ROffHand]);
+    }
+
     [Fact]
     public void BrowseGate_menuUnreadable_browseStable_stillDenies_doubleFailSafe()
     {

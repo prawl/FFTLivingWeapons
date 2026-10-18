@@ -22,7 +22,7 @@ isolated live) · **CONTRADICTED** (evidence points both ways, probe before buil
 
 ### [twin-menu-flags-zero-at-map-time] The two menu flags and Ramza's hand words read zero or one and plausible item ids on a loaded save, so the twin weapon door can check them once at Continue (PROVEN 2026-10-17, owner live, the two LW-400 legs)
 
-The claim that the world map menu byte (0x140D508D0) and the party browse byte (0x140D408E2) only ever read 0 or 1, and that Ramza's right hand, off hand, shield and support words on a loaded save read at most 0x1FF or exactly 0xFFFF, is PROVEN, owner flip 2026-10-17 after the two LW-400 live legs on the dev build. The twin lane armed in the same second as the roster door on Continue, no twin warning named a flag value or a hand word, and the twin weapons part read ON. The file image half is checked offline and the earlier live half is one save per earlier ledger row.
+The claim that the world map menu byte (0x140D508D0) and the party browse byte (0x140D408E2) only ever read 0 or 1, and that Ramza's right hand, off hand, shield and support words on a loaded save read at most 0x1FF or exactly 0xFFFF, is PROVEN, owner flip 2026-10-17 after the two LW-400 live legs on the dev build. The twin lane armed in the same second as the roster door on Continue, no twin warning named a flag value or a hand word, and the twin weapons part read ON. The file image half is checked offline and the earlier live half is one save per earlier ledger row. Correction 2026-10-18 under LW-439, the menu byte half of this claim no longer holds on the Denuvo free build, where it reads 246 with a menu open, because it is byte 4 of a pointer (see [worldmap-menu-open-byte]); the door now accepts any value there and faults only on the browse byte, and what this row's status should read after that is the owner's call.
 
 <details><summary>How we got here</summary>
 
@@ -2929,11 +2929,13 @@ Uncertain as of 2026-08-12: a player report says cards render factory-reset afte
 
 </details>
 
-### [worldmap-menu-open-byte] A byte at 0x140D508D0 reads 1 exactly while a world-map menu (party, equip, shop, save) is open, 0 on the free map, during travel, and through the whole formation and battle-load flow
+### [worldmap-menu-open-byte] The byte at 0x140D508D0 is byte 4 of a pointer inside the game's per frame record list, 0 with no world map menu open and nonzero while one is open (1 on the old fixed base, 246 under ASLR)
 
-Uncertain as of 2026-08-17 (evidence strong, owner flip pending): found this session for the LW-193 consent rewrite, which wants the twin grant suppressed exactly while the player can touch equipment. The byte flipped 0 to 1 on every menu open and back on every close across a scripted torture tour, stayed 0 across four world-map travel hops, and stayed 0 through formation screens and battle loading in four separate battle runs.
+UNCERTAIN as of 2026-10-18 (offline static analysis plus one live read, owner flip pending). The August reading below stands for the 0 and 1 values it saw, but the byte is not a flag. It sits at +0x20 of the first of two 0xE800 byte per frame record buffers (base 0x140D508B0, bump allocated through the cursor 0x143846598 by five begin frame sites), inside a qword at +0x1C of the first record. Byte 4 of a pointer into the game image is 0x01 on the fixed base 0x140000000 and 0xF6 (246) on the base 0x7FF65FC60000 the 2026-10-17 launches recorded, which is exactly the 246 the LW-427 tape read with the party menu open on 2026-10-18 (lw427_cache_watch_20261018_022334.jsonl, 0 with it closed). No instruction in the exe addresses the byte directly. The readers now use the rule 0 closed and any nonzero open (GunSlinger.MenuGate.cs, LaunchGuard.Twin.cs). The live read that settles the pointer reading is tools/probes/lw439_menu_byte_probe.py, which should show the qword at 0x140D508CC as an address inside the game image while a menu is open and a 0 byte with it closed.
 
 <details><summary>How we got here</summary>
+
+**Top line until 2026-10-18:** Uncertain as of 2026-08-17 (evidence strong, owner flip pending): found this session for the LW-193 consent rewrite, which wants the twin grant suppressed exactly while the player can touch equipment. The byte flipped 0 to 1 on every menu open and back on every close across a scripted torture tour, stayed 0 across four world-map travel hops, and stayed 0 through formation screens and battle loading in four separate battle runs.
 
 **Claim:** 0x140D508D0 (u8) is a world-map "a menu panel is open" flag suitable as the twin grant's suppression gate; PauseFlag and SubmenuFlag cannot serve (both are battle-scope status-card signals per their own doc comments, re-confirmed reading 0 in every world-map menu state this session).
 

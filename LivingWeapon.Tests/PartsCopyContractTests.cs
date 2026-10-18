@@ -60,7 +60,7 @@ public class PartsCopyContractTests
     {
         using var cap = LogCapture.Start();
         var mem = LaunchGuardTests.HealthyMemory();
-        LaunchGuardTests.StageTwinFlags(mem, 2, 0);
+        LaunchGuardTests.StageTwinFlags(mem, 0, 2);
         var guard = new LaunchGuard(mem, forceMismatch: false);
         for (int i = 0; i < Debounce; i++) guard.StepTwin();
         return OnlyLine(cap, "WARN");
