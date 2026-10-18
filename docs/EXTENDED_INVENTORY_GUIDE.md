@@ -67,8 +67,10 @@ signature needs none.
 - **Enemies cannot carry an extended id yet** (the encounter table stores item ids as one byte;
   giving enemies new items is a separate planned feature).
 - **Uninstalling is clean loss, not a crash**: a save holding a new item loads fine without the
-  mod; the hand is emptied and the item is gone, and it comes back with its saved bag count when
-  the mod returns (details in `docs/COMPATIBILITY.md`).
+  mod; the hand is emptied and the item is gone, and it comes back when the mod returns, with its
+  saved bag count if the player did not save while the mod was off (a save written without the
+  mod gets a new key the sidecar never saw, so the counts start over from the first-copy seed;
+  details in `docs/COMPATIBILITY.md`).
 
 ## The worked example
 

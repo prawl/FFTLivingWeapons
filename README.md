@@ -2,12 +2,12 @@
 
 **Your weapon is a character. It grows as it kills, and the gear around it is rebalanced so it never becomes vendor trash.**
 
-> **Which version is this?** This README describes the development version on GitHub. The current release is **2.3.4**. It has the item rebalance and the living weapons but not the new extended inventory items, and it still carries the dormant Treasure Master module, which does nothing on the current game build. Where the two differ, both numbers are given below.
+> **Which version is this?** This README describes version **2.4.0**. If your installed copy is 2.3.x, read "Updating from 2.3.x" under Install first: seven weapons change hands.
 
 A Reloaded-II mod for Final Fantasy Tactics: The Ivalice Chronicles, with two layers that build and ship together over Nenkai's `fftivc.utility.modloader`:
 
 - **Living Weapons (DLL).** Every weapon counts its own kills and lifts the wielder's stats as the tally climbs; the iconic weapons awaken unique signature abilities. The running count is painted right onto the equip card.
-- **The item rebalance (data).** All 234 equippable items reworked into sidegrades instead of a tier ladder (227 on the development branch, see Features), with a programmatic gate that proves no item is ever strictly dominated.
+- **The item rebalance (data).** 227 of the 234 equippable items reworked into sidegrades instead of a tier ladder (the seven vanilla axes and flails are back at their own numbers, see Features), with a programmatic gate that proves no item is ever strictly dominated.
 
 See [`docs/DESIGN.md`](docs/DESIGN.md) for the full design rationale.
 
@@ -21,14 +21,14 @@ This pays off harder the more the rest of your install ramps up. Under enemy-buf
 
 ## Features
 
-- **Living weapons that grow as they kill.** Each weapon tracks its own kills, lifts the wielder's PA, MA or Speed at 5, 10 and 15 kills, and shows the count on the equip card. Iconic weapons wake up signature abilities, Charm, Barrage, extra turns, doom, life steal, healing auras and more, so the weapon you commit to becomes yours. In 2.3.4 every weapon grows, including the seven designs that sit in the axe and flail slots (Terrastaff, Ravager, Sunderer, Warbrand, Bloodlash, Climhazzard, Sasori). On the development branch those seven moved to ids 261 to 267 and the vanilla axes and flails came back at their own numbers, with no growth.
-- **An extended inventory: brand-new weapons past the game's 261-item limit** (development branch only, not in the 2.3.4 release). The game only knows
+- **Living weapons that grow as they kill.** Each weapon tracks its own kills, lifts the wielder's PA, MA or Speed at 5, 10 and 15 kills, and shows the count on the equip card. Iconic weapons wake up signature abilities, Charm, Barrage, extra turns, doom, life steal, healing auras and more, so the weapon you commit to becomes yours. Every weapon grows except the seven vanilla axes and flails, which are back at their own numbers and do not grow; the seven designs that used to sit in their slots (Terrastaff, Ravager, Sunderer, Warbrand, Bloodlash, Climhazzard, Sasori) are their own items now, ids 261 to 267, and grow like the rest.
+- **An extended inventory: brand-new weapons past the game's 261-item limit.** The game only knows
   261 items; the mod adds more (seven today, ids 261 to 267), listed in every menu, sold in the
   towns its data names, equipped and swung in battle, growing and glowing like the rest, and remembered
   per save. Everything about a new item is one row in `data/items.json`
   ([`docs/EXTENDED_INVENTORY_GUIDE.md`](docs/EXTENDED_INVENTORY_GUIDE.md) is the authoring guide).
-- **All 234 equippable items reworked** across every category (227 on the development branch, except those seven):
-  - **Weapons: 121 vanilla-range**; the development branch adds 7 extended ids on top
+- **227 of the 234 equippable items reworked** across every category (the seven vanilla axes and flails excepted):
+  - **Weapons: 121 vanilla-range**, plus the 7 extended ids on top
   - **Shields: 16**
   - **Head: 28** (Helmet 13, Hat 12, Hair Adornment 3)
   - **Body: 36** (Clothing 14, Armor 14, Robe 8)
@@ -54,11 +54,19 @@ This pays off harder the more the rest of your install ramps up. Under enemy-buf
 4. Enable **FFT Living Weapons** in the mod list. Both dependencies are normally fetched automatically if missing.
 5. **Restart the game.** The item rebalance (tables, text, base icons) applies on launch, not live; the Living Weapon runtime (kill tracking, growth, signatures, the equip-card counter, the glow rings on weapon icons) runs in-process while you play.
 
+### Updating from 2.3.x
+
+Seven weapons change hands in 2.4.0, so read this before you load an old save.
+
+- **The axes and flails in your bag are the game's own again.** In 2.3.4 the Battle Axe, Giant's Axe, Slasher, Iron Flail, Flail of Flame, Morning Star and Scorpion Tail slots held seven designs of ours (Terrastaff, Ravager, Sunderer, Warbrand, Bloodlash, Climhazzard, Sasori). Those slots are the vanilla axes and flails now, with the game's own art and no Kills line, and they do not grow.
+- **The seven designs are separate weapons now**, ids 261 to 267, bought in shops. Terrastaff, Ravager and Sunderer are sold in Eagrose, Lesalia, Lionel, Riovanes, Limberry and Zeltennia, unlocking after Miluda falls, at the start of Chapter 4, and after Bethla Garrison. Warbrand, Bloodlash, Climhazzard and Sasori are sold in Dorter, Eagrose, Warjilis, Lionel, Sal Ghidos, Riovanes, Limberry and Zeltennia, unlocking after Elmdor falls, at the start of Chapter 3, after Rafa is rescued, and at the start of Chapter 4. A new game starts with none of them.
+- **Your kills move with the design.** On the first 2.4.0 launch, the kills you grew on a 2.3.4 Terrastaff (filed under the Battle Axe's number) move to the new Terrastaff once and show on its card; the log says so in one line. The same goes for the other six. The vanilla axe shows no Kills line.
+
 ## Compatibility: disable conflicting item mods
 
 **This is the authoritative item mod.** It rewrites the full item tables, and enemies equip from those same tables, so it must own them outright. **Disable any other item-rebalance / equipment mod**, including Regabond's Rebalance and the War of the Lions Equipment Replacer; no load order fixes an item-table clash.
 
-Non-item mods coexist with it in general: a job mod costs at most the three weapon-granted commands, a text mod at most some display text, and everything else runs alongside untouched (Generic Jobs is verified clean). [`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md) holds the compatibility notes, with verdicts for the mods checked so far (surveyed as of August 2026). Run `python tools/scan_conflicts.py` to list any installed mods that edit the same item IDs.
+Non-item mods coexist with it in general: a job mod costs at most the three weapon-granted commands, a text mod at most some display text, and everything else runs alongside untouched (Generic Jobs is verified clean). [`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md) holds the compatibility notes, with verdicts for the mods checked so far (143 mods surveyed as of October 2026). Run `python tools/scan_conflicts.py` to list any installed mods that edit the same item IDs.
 
 ## Language support
 
@@ -71,12 +79,12 @@ The gameplay is language-neutral by construction: the item tables carry no text,
 
 ## Good to know
 
-- **Kill counts appear about ten seconds after loading a save.** The mod switches on the moment
-  a save finishes loading; the card counter paints about ten seconds later on 2.3.4, longer on
-  the development branch (one session measured 34 seconds). If you open the party menu sooner,
-  the cards briefly show zeroed "Kills" text; back out and re-open the menu and your numbers are
-  there. Nothing is ever lost; only the first paint lags.
-- **The mod checks the game before it writes anything, one part at a time.** Each of its fourteen
+- **Kill counts appear shortly after loading a save.** The mod switches on the moment a save
+  finishes loading; the card counter paints some seconds later.
+  If you open the party menu sooner, the cards show "Kills: -/- to +" until the paint lands; back
+  out and re-open the menu and your numbers are there. Nothing is ever lost; only the first paint
+  lags.
+- **The mod checks the game before it writes anything, one part at a time.** Each of its thirteen
   parts (kill counting, stat growth, the weapon powers in battle, weapon commands, banners, the
   extended inventory and the rest) checks the spot in the game's memory it depends on, at startup,
   when a save loads, or when your first battle starts. A part whose check passes runs. A part whose
@@ -97,11 +105,12 @@ The gameplay is language-neutral by construction: the item tables carry no text,
 - **For bug reports, send the log.** It is `livingweapon.log` in the mod's folder under `Reloaded/Mods`;
   each launch rotates the previous one to `livingweapon.prev.log`, so grab it right after the session
   where things went wrong. [`docs/LOGGING.md`](docs/LOGGING.md) explains what is in it.
-- **Removing the mod loses the extended-inventory weapons cleanly** (development branch only). The game cannot know an item past
+- **Removing the mod loses the extended-inventory weapons cleanly.** The game cannot know an item past
   its own 261 without the mod running: a save that holds one still loads fine, the unit's hand is
   simply emptied and the item is gone from the bag. Unequip or sell them first if you plan to
   uninstall; if an inventory list then looks short, sort it once and it repairs itself. Reinstall and
-  they come back with their saved counts.
+  they come back with their saved counts, as long as you did not save while the mod was off; a save
+  written without the mod starts the new weapons over at zero.
 - **Dual-wielding doubles the growth.** A kill while wielding two weapons credits both of them,
   not just one, so pairing two Living Weapons together is the fastest way to grow a pair at once.
   A shield equipped in either hand never earns credit; only a real weapon does.
@@ -138,11 +147,11 @@ no colon or dash inside a comment sentence, and no comment that argues instead o
 What the package carries.
 
 - The Reloaded manifest, `ModConfig.json`.
-- The runtime and its data. `LivingWeapon.dll`, `LivingWeapon.deps.json`, `Newtonsoft.Json.dll`, `meta.json` with every growing weapon's facts, `poach.json` for Living Poach, and in 2.3.4 only `treasure.json` for Treasure Master.
+- The runtime and its data. `LivingWeapon.dll`, `LivingWeapon.deps.json`, `Newtonsoft.Json.dll`, `meta.json` with every growing weapon's facts, and `poach.json` for Living Poach.
 - Seven sparse modloader XMLs. `ItemData`, `ItemWeaponData`, `ItemArmorData`, `ItemShieldData`, `ItemAccessoryData`, `ItemEquipBonusData`, plus `JobData` for the widened generic job equip lists and the class evade floor.
 - Three nxd text files. The full table `item.en.nxd` for names and descriptions, the cell merged `ability.en.nxd` for the Barrage, Provoke and Equip Axes text, and `uistatuseffect.en.nxd` for the Provoked mark's name.
-- The menu icon `.tex` pairs, 234 in 2.3.4 and 241 on the development branch.
-- Development branch only. The extended inventory's three tables under `extended_inventory/` (read by the DLL at boot, not by the modloader), 14 `.utexpt` icon parts files for the new ids, and 726 glow rim icon variants with their `manifest.json` under `glow_icons/`.
+- The menu icon `.tex` pairs, 241 of them.
+- The extended inventory's three tables under `extended_inventory/` (read by the DLL at boot, not by the modloader), 14 `.utexpt` icon parts files for the new ids, and 726 glow rim icon variants with their `manifest.json` under `glow_icons/`.
 
 The game's own code no longer sits at one fixed address (ASLR since the Denuvo-free build), so every game address the DLL knows is written as its documented number and rebased against the live image at startup; [`docs/PATCH_REANCHOR.md`](docs/PATCH_REANCHOR.md) is the runbook for the next game patch.
 

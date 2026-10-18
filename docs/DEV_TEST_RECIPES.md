@@ -109,6 +109,7 @@ launch rhythm, icons show their correct rims starting the SECOND launch after a 
 To tour the tiers: quit the game, then
 
     python tools\glow_bounce.py 7      # 0 = plain, 7 = tier 1, 12 = tier 2, 15 = tier 3
+    python tools\probes\lw445_tally_stage.py --write   # about thirty weapons to one tier, the rest untouched; dry run without --write (LW-445)
 
 `glow_bounce.py` only sets EVERY living weapon's kills.json tally to that value (cards
 read it too); with the hook armed it shows on the next screen open, otherwise the two launch rhythm applies, launch once to let the runtime
@@ -288,7 +289,7 @@ tools/scan_logs.py stays clean on both legs (neither new WARN carries the stand-
 
 ## LW-393 roster drill: watch one broken part switch off while the rest keep working (owner, two legs)
 
-Plain language: the mod is now fourteen parts, each with its own switch. This drill makes the party data
+Plain language: the mod is now a set of parts, each with its own switch (fourteen on a dev build, thirteen in release, where LW-446 compiles weapon colors out; every count below is the dev count). This drill makes the party data
 check read wrong on a healthy game, so you can watch the eleven parts that need the party data switch
 off, the three that do not keep running, and exactly one message box tell you which is which.
 

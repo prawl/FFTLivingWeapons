@@ -170,9 +170,11 @@ and a calm WARN follows when the mod arms.
 
 ## The parts report and its box
 
-Since LW-393 the mod is fourteen parts, each gated by its own checks (doors): battle sensing, kill
-counting, stat growth, card paint, the weapon powers in battle, weapon commands, banners, the
-extended inventory, twin weapons, bulwark, weapon colors, gun growth, poach den and provoke. A door
+Since LW-393 the mod is a set of parts, each gated by its own checks (doors). A release build has
+thirteen, in report order: battle sensing, kill counting, stat growth, card paint, the weapon
+powers in battle, weapon commands, banners, the extended inventory, twin weapons, bulwark, gun
+growth, poach den and provoke. A dev build adds weapon colors after bulwark (fourteen; the painter
+is compiled out of release by LW-446 and its door still runs unreported as a canary). A door
 checks the memory a part depends on at startup, at save load, or in a live battle (the band and
 unit list doors: a match arms on the first live frame, a mismatch counts only after about twenty
 seconds of the cursor on the field, counted across battles). A door that fails pauses only the
@@ -188,8 +190,9 @@ shape (LW-406): what is paused and why, in player words; "This usually means the
 or another mod changed the same data."; the shared "What to do: ..." sentence; a drill sentence when
 a dev drill forced it; and last a "(detail: <probe diag>)" tail that holds every address, byte and
 stamp. Nothing technical ever sits before the tail. The two loader refusals are the exceptions:
-bad shipped item data drops the hedge, and missing loader hooks swaps the what to do for "enable
-reloaded.sharedlib.hooks" and has no tail. The banners door warns under the `toast` verb.
+bad shipped item data drops the hedge, and missing loader hooks swaps the what to do for "What to
+do: enable the reloaded.sharedlib.hooks mod in Reloaded-II and launch the game again." and has no
+tail. The banners door warns under the `toast` verb.
 
 The box (PartsBoard, one per closure wave, about three seconds after the first failed check so the
 other verdicts land) has three states. Some parts still work: headline "Living Weapons: some
