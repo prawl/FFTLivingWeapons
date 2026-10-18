@@ -25,6 +25,9 @@ from lib.livebase import open_game, rebase  # noqa: E402
 WORD_BUF = 0x141811470   # Offsets.MenuListBuffer
 UI_ROOT = 0x143CD9DA8
 WATCH = (95, 96, 97, 98)
+# The per tab order chart pointer arrays (inventory, picker); tab 0 is the weapons chart, which the
+# mod relocates onto its own page (TemplateRelocation), so the pointer is followed, never assumed.
+CHART_ARRAYS = (("inventory chart", 0x14067F498), ("picker chart", 0x14067FA90))
 
 _k32 = ctypes.windll.kernel32
 _k32.ReadProcessMemory.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_size_t,
@@ -59,6 +62,15 @@ def main():
     badged = [(k, w & 0x3FF, hex(w)) for k, w in enumerate(words[:n]) if w & 0xFC00]
     print("  words with flag bits (E badge is bit 14): %s" % badged)
     print("  order: %s" % ids)
+    for label, arr in CHART_ARRAYS:
+        p = q(h, rebase(arr, base))
+        cb = rd(h, p, 600) if p else b""
+        cw = list(struct.unpack("<%dH" % (len(cb) // 2), cb))
+        marks = [i for i, x in enumerate(cw) if x == 0x00FF]
+        cids = cw[:marks[0]] if marks else cw
+        print("%s tab 0 at 0x%X: %d entries, marker at %s, books %s, duplicates %s" % (
+            label, p, len(cids), marks[:2], [i for i in WATCH if i in cids],
+            sorted({x for x in cids if cids.count(x) > 1})))
     root = q(h, rebase(UI_ROOT, base))
     a = q(h, root + 0x10) if root else 0
     menu = q(h, a + 0x140) if a else 0
