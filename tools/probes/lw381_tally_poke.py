@@ -45,6 +45,7 @@ USAGE (game running)
 """
 import ctypes
 import json
+import os
 import struct
 import sys
 from pathlib import Path
@@ -73,6 +74,58 @@ def decode(buf, off):
     return struct.unpack_from("<IiiI", buf, off)
 
 
+CACHE = Path(os.environ.get("TEMP", ".")) / "lw381_tally_poke_cache.json"
+
+
+def verify_at(h, addr, want_id, pairs):
+    """Re checks one cached entry address: the entry still decodes to want_id and enough
+    neighbours still match the tally file. Returns (value, good) or None."""
+    lo = addr - SPAN * ENTRY
+    buf = read(h, lo, (2 * SPAN + 1) * ENTRY)
+    if not buf:
+        return None
+    e = decode(buf, SPAN * ENTRY)
+    if e is None or e[0] != want_id or e[2] != want_id or e[3] > 0xFFFF:
+        return None
+    good = 0
+    for j in range(-SPAN, SPAN + 1):
+        if j == 0:
+            continue
+        n2 = decode(buf, (SPAN + j) * ENTRY)
+        if n2 and n2[0] == n2[2] and pairs.get(n2[2]) == n2[3]:
+            good += 1
+    return (e[3], good) if good >= MIN_NEIGHBOURS else None
+
+
+def cached_hits(h, pid, want_id, pairs):
+    """The entry addresses the last sweep found for this id and pid, re verified in place.
+    A miss on any of them means a GC moved the array, so the caller sweeps again."""
+    try:
+        doc = json.loads(CACHE.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+    if doc.get("pid") != pid:
+        return []
+    out = []
+    for addr in doc.get("ids", {}).get(str(want_id), []):
+        v = verify_at(h, addr, want_id, pairs)
+        if v is None:
+            return []
+        out.append((addr, v[0], v[1]))
+    return out
+
+
+def remember_hits(pid, want_id, hits):
+    try:
+        doc = json.loads(CACHE.read_text(encoding="utf-8")) if CACHE.exists() else {}
+    except (OSError, ValueError):
+        doc = {}
+    if doc.get("pid") != pid:
+        doc = {"pid": pid, "ids": {}}
+    doc.setdefault("ids", {})[str(want_id)] = [a for a, _, _ in hits]
+    CACHE.write_text(json.dumps(doc), encoding="utf-8")
+
+
 def main():
     argv = [a for a in sys.argv[1:] if not a.startswith("--")]
     dry = "--dry-run" in sys.argv
@@ -95,8 +148,10 @@ def main():
     # The value the LIVE dictionary holds may differ from the file (the file may have been
     # edited, or a battle may have run since). Accept any plausible count for the target key
     # and let the neighbours prove the array.
-    hits = []
-    for base, size, mtype in regions(h):
+    hits = cached_hits(h, pid, want_id, pairs)
+    if hits:
+        print(f"cache hit: {len(hits)} entry address(es) from the last sweep still verify, no sweep needed")
+    for base, size, mtype in ([] if hits else regions(h)):
         if mtype != 0x20000:          # MEM_PRIVATE only; the managed heap is private
             continue
         off = 0
@@ -126,6 +181,7 @@ def main():
         print("mod is not armed. Re-run; if it keeps failing the layout assumption is wrong.")
         k32.CloseHandle(h); sys.exit(1)
 
+    remember_hits(pid, want_id, hits)
     print(f"{'address':<16} {'current':>7} {'corroborating neighbours':>26}")
     for addr, val, good in hits:
         print(f"0x{addr:<14X} {val:>7} {good:>26}")
