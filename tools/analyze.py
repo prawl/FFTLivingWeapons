@@ -1179,7 +1179,11 @@ VANILLA_ROW_BYTES = 8
 # element byte (LIVE_LEDGER provoke row) agree on every bit.
 _ELEMENT_BITS = {"Fire": 0x80, "Lightning": 0x40, "Ice": 0x20, "Wind": 0x10,
                  "Earth": 0x08, "Water": 0x04, "Holy": 0x02, "Dark": 0x01}
-_FORMULA_NOTE = re.compile(r"Formula(?: field)?\s*[= ]\s*(\d+)")
+_FORMULA_NOTE = re.compile(r"Formula(?: field)?\s*[= ]\s*(\d+)(?![xX\d])")
+# The status words a proc note can claim. A row with no proc byte procs nothing on any formula.
+_STATUS_CLAIM = re.compile(r"\b(Blind|Darkness|Silence|Sleep|Poison|Petrif\w*|Doom|Toad|Frog|Confus\w*|"
+                           r"Charm|Slow|Stop|Immobiliz\w*|Disable|Oil|Berserk|Chicken|Faith|Innocent|"
+                           r"Reraise|Haste|Protect|Shell|Regen|Float|Reflect|Invisible)\b", re.I)
 _LAUNCH_GUARD_STAMP = re.compile(r"ExpectedTimeDateStamp\s*=\s*0x([0-9A-Fa-f]+)")
 
 
@@ -1187,7 +1191,13 @@ def load_vanilla_weapon_rows(path=VANILLA_ROWS_PATH):
     """The committed snapshot; a missing file is a loud failure, never a silent pass."""
     if not path.exists():
         raise SystemExit(f"GATE INPUT MISSING: {path} (vanilla weapon rows; run tools/snapshot_vanilla_weapon_rows.py)")
-    return json.loads(path.read_text(encoding="utf-8"))
+    try:
+        doc = json.loads(path.read_text(encoding="utf-8"))
+    except ValueError as ex:
+        raise SystemExit(f"GATE INPUT MALFORMED: {path} is not json ({ex}); rerun tools/snapshot_vanilla_weapon_rows.py")
+    if not isinstance(doc, dict) or not isinstance(doc.get("rows"), dict):
+        raise SystemExit(f"GATE INPUT MALFORMED: {path} has no rows object; rerun tools/snapshot_vanilla_weapon_rows.py")
+    return doc
 
 
 def _launch_guard_text():
@@ -1198,8 +1208,8 @@ def _launch_guard_text():
 
 
 def baseline_formula(value):
-    """A baseline formula note is an int or prose carrying its number ('4 (decimal) - gun',
-    'Knight Sword (...); XML Formula field=1'); None when no number can be read."""
+    """A baseline formula note is an int or prose carrying its decimal number ('4 (decimal) - gun',
+    'Knight Sword (...); XML Formula field=1'); None when no number can be read, a hex form included."""
     if isinstance(value, bool):
         return None
     if isinstance(value, int):
@@ -1221,9 +1231,11 @@ def baseline_elements(value):
 def check_vanilla_weapon_rows(items, snapshot, guard_text):
     """Every weapon id in the snapshot has a baseline and the reverse; each baseline's wp, evade,
     range (missing means 1, the proposed default), formula, element and on hit ability match the
-    row; the on hit prose opens with None exactly when a plain formula 1 row carries no proc byte
-    (the LW-419 shapes: a design proc written up as vanilla, a real proc hidden under None); and
-    the snapshot's exe stamp is LaunchGuard's. Returns [(item, [problem, ...])]."""
+    row (the attack flags and pad bytes have no baseline field and are not compared); the on hit
+    prose opens with None when a plain formula 1 row carries no proc byte, and names no status
+    when any row carries none (the LW-419 shapes: a design proc written up as vanilla, a real
+    proc hidden under None); and the snapshot's exe stamp is LaunchGuard's.
+    Returns [(item, [problem, ...])]."""
     bad = []
     meta = snapshot.get("_meta", {})
     rows = snapshot.get("rows", {})
@@ -1250,7 +1262,7 @@ def check_vanilla_weapon_rows(items, snapshot, guard_text):
         it, b = by_id[iid], by_id[iid]["baseline"]
         try:
             row = bytes.fromhex(rows[str(iid)])
-        except ValueError:
+        except (ValueError, TypeError):
             row = b""
         if len(row) != VANILLA_ROW_BYTES:
             bad.append((it, [f"snapshot row is not {VANILLA_ROW_BYTES} bytes: {rows[str(iid)]!r}"]))
@@ -1264,7 +1276,9 @@ def check_vanilla_weapon_rows(items, snapshot, guard_text):
         if b.get("range", 1) != rng:
             probs.append(f"range: note {b.get('range', 1)}, game {rng}")
         f = baseline_formula(b.get("formula"))
-        if f != formula:
+        if f is None:
+            probs.append(f"formula: note {b.get('formula')!r} carries no decimal number, game {formula}")
+        elif f != formula:
             probs.append(f"formula: note {b.get('formula')!r} reads {f}, game {formula}")
         if baseline_elements(b.get("element")) != elem:
             probs.append(f"element: note {b.get('element')!r}, game bits 0x{elem:02X}")
@@ -1276,6 +1290,8 @@ def check_vanilla_weapon_rows(items, snapshot, guard_text):
             probs.append(f"onHit: the game procs ability {proc} but the note says {note!r}")
         if not proc and formula == 1 and not none_note:
             probs.append(f"onHit: the row has no on hit ability (plain formula 1) but the note claims {note!r}")
+        elif not proc and not none_note and _STATUS_CLAIM.search(note):
+            probs.append(f"onHit: the row has no on hit ability (formula {formula}) but the note claims a status: {note!r}")
         if probs:
             bad.append((it, probs))
     return bad
@@ -1445,6 +1461,14 @@ def selftest():
           probs([item(onHit="Blind", onHitAbilityId=21)], snap("04 20 01 ff 03 05 00 15")) == [])
     check("a formula other than 1 may describe itself in the on hit note with no proc byte",
           probs([item(onHit="Absorb HP", formula=6)], snap("04 20 06 ff 03 05 00 00")) == [])
+    check("a status claimed on a formula 6 row with no proc byte is a finding",
+          any("claims a status" in p for p in probs([item(onHit="Blind 25% on hit", formula=6)],
+                                                     snap("04 20 06 ff 03 05 00 00"))))
+    check("a hex formula note is reported as unreadable, not as 0",
+          any("no decimal number" in p for p in probs([item(formula="XML Formula field=0x01")], snap())))
+    check("a row given as a list, not hex text, is a finding",
+          any("8 bytes" in p for p in probs([item()], {"_meta": {"exeTimeDateStamp": "0x6A5E4A1B"},
+                                                        "rows": {"78": ["04"]}})))
 
     check("a snapshot row with no baseline is a finding",
           any("no weapon baseline" in p for p in probs([], snap())))
@@ -1591,8 +1615,9 @@ def main():
              check_fn=lambda: check_p3_signame_grid(items),
              pass_msg="PASS: every grid 'P3' cell names the ability the card shows.",
              format_failure=_fmt_drift_probs, sets_rc=True),
-        dict(header="VANILLA ROWS (LW-420: every weapon baseline matches the game's own row bytes in "
-                    "data/vanilla_weapon_rows.json, snapshot stamp matches LaunchGuard)",
+        dict(header="VANILLA ROWS (LW-420: every weapon baseline matches the game's own row in "
+                    "data/vanilla_weapon_rows.json on wp, evade, range, formula, element and on hit; "
+                    "snapshot stamp matches LaunchGuard)",
              check_fn=lambda: check_vanilla_weapon_rows(items, load_vanilla_weapon_rows(), _launch_guard_text()),
              pass_msg="PASS: every weapon baseline matches the vanilla row snapshot.",
              format_failure=_fmt_drift_probs, sets_rc=True),

@@ -21,11 +21,13 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from lib import offsets
 from lib.paths import ROOT, STEAM_FFT
 from lib.pe_image import pe_identity, read_span, sections
 
 OUT = ROOT / "data" / "vanilla_weapon_rows.json"
-TABLE_VA = 0x14080F690
+# Read from Offsets.cs so a re-anchor that moves the table moves this tool with it.
+TABLE_VA = offsets.load()["ItemStatsBase"]
 ROW_SIZE = 8
 FIRST_ID, LAST_ID = 1, 121
 LAYOUT = ["range", "attackFlags", "formula", "pad", "wp", "evade", "elements", "onHitAbilityId"]
@@ -43,7 +45,7 @@ def snapshot(data):
         rows[str(iid)] = row.hex(" ")
     return {
         "_meta": {
-            "source": "fft_enhanced.exe file image, ItemWeaponData at VA 0x14080F690 (Offsets.ItemStatsBase), row index = item id",
+            "source": f"fft_enhanced.exe file image, ItemWeaponData at VA 0x{TABLE_VA:X} (Offsets.ItemStatsBase), row index = item id",
             "exeTimeDateStamp": f"0x{tds:08X}",
             "exeSizeOfImage": f"0x{soi:08X}",
             "rowBytes": ROW_SIZE,

@@ -1109,7 +1109,7 @@
         "wp": 1,
         "evade": 50,
         "element": "None",
-        "onHit": "Toad (ability 16)",
+        "onHit": "Toad (item options 16)",
         "onHitAbilityId": 16,
         "formula": 1
       },
@@ -2678,7 +2678,7 @@
         "wp": 3,
         "evade": 5,
         "element": "None",
-        "onHit": "Blind (ability 21)",
+        "onHit": "Blind (item options 21)",
         "onHitAbilityId": 21,
         "formula": 1,
         "range": 4

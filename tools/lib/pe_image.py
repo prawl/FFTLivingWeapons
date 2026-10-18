@@ -10,7 +10,17 @@ import struct
 IMAGE_BASE = 0x140000000
 
 
+def require_pe(data):
+    """Refuses anything but a PE image with a readable header, one line instead of a struct traceback."""
+    if len(data) < 0x40 or data[:2] != b"MZ":
+        raise SystemExit("not a PE image (no MZ header)")
+    e_lfanew = struct.unpack_from("<I", data, 0x3C)[0]
+    if e_lfanew + 0x18 > len(data) or data[e_lfanew:e_lfanew + 4] != b"PE" + bytes(2):
+        raise SystemExit("not a PE image (no PE signature)")
+
+
 def pe_identity(data):
+    require_pe(data)
     """(TimeDateStamp, SizeOfImage) of a PE image held in memory."""
     e_lfanew = struct.unpack_from("<I", data, 0x3C)[0]
     tds = struct.unpack_from("<I", data, e_lfanew + 8)[0]
