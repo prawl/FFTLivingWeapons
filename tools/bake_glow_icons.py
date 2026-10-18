@@ -117,6 +117,9 @@ OUTER_TRIM = 0.5
 GLOW_TRIM = 0.7  # 0.85 -> 0.7 (owner 2026-08-26: the 15% pass measured real, 653
                  # differing rim pixels, but read as identical by eye; +3 ring now
                  # ~60% opacity instead of 74%)
+# The HP lane (the knight swords) read too faint on gold blades in the smoke pass.
+# Its inner band was capped brown and the thin outer band hid it, so width is what makes it read.
+LANE_RIM_OVERRIDES = {"hp": {"deep": (235, 93, 0), "outer_trim": 1.0, "glow_trim": 1.3}}
 # (pac subfolder, filename prefix, surface tag, fixed tex byte length). Same four surfaces
 # process() loops over; sizes are the shipped tex sizes (0xC860 / 0x3060), verified against a
 # real deployed file at the start of this arc.
@@ -169,6 +172,14 @@ _LANE_BY_ID = {it["id"]: it["grows"].lower() for it in load_items()["items"]
                if it.get("grows")}
 
 
+def rim_params(lane):
+    """Returns deep, bright, outer_trim and glow_trim for a lane. A lane override wins where
+    present, otherwise the lane_glow pair and the global trims apply."""
+    o = LANE_RIM_OVERRIDES.get(lane, {})
+    return (o.get("deep", LANE_GLOW[lane]["deep"]), LANE_GLOW[lane]["bright"],
+            o.get("outer_trim", OUTER_TRIM), o.get("glow_trim", GLOW_TRIM))
+
+
 def _glow_variant(body, tint, item_id, rim_scale):
     """Mirrors ramp_render's own post-body glow tail (recolor_icons.py: inside ramp_render,
     everything from `if not glow: return body` onward) so a (id, surface) body can be decoded
@@ -178,16 +189,16 @@ def _glow_variant(body, tint, item_id, rim_scale):
     sitting: lane hues at pop strength, pink over green): the rim wears the weapon's LANE
     pair from tools/lib/lane_glow.py -- deep inner ring, bright outer falloff -- instead of
     the LW-295 identity color. A rims.json row still contributes its per-weapon ALPHAS
-    (rim geometry stays owner-tuned per weapon); only its rgb is superseded."""
-    deep = LANE_GLOW[_LANE_BY_ID[item_id]]["deep"]
-    bright = LANE_GLOW[_LANE_BY_ID[item_id]]["bright"]
+    (rim geometry stays owner-tuned per weapon); only its rgb is superseded.
+    A lane may override its colors and trims through rim_params."""
+    deep, bright, outer_trim, glow_trim = rim_params(_LANE_BY_ID[item_id])
     rim = ri.RAMP_RIMS.get(str(item_id))
     inner_a = rim["inner_a"] if rim else 170
     outer_a = rim["outer_a"] if rim else 80
     return ri.ramp_glow(body, tint, inner_a=inner_a,
-                        outer_a=int(round(outer_a * OUTER_TRIM)), third_a=0,
+                        outer_a=int(round(outer_a * outer_trim)), third_a=0,
                         rim_rgb=deep, outer_rgb=bright,
-                        rim_scale=rim_scale * GLOW_TRIM)
+                        rim_scale=rim_scale * glow_trim)
 
 
 def encode_tex(img, out_path, tag):
@@ -329,14 +340,31 @@ def _pin_rim_scale_identity():
     return failures
 
 
+def _pin_rim_params():
+    """Needs no game files. Only the HP lane overrides the rim look and every other lane is
+    exactly its lane_glow pair with the global trims."""
+    failures = []
+    want_hp = ((235, 93, 0), LANE_GLOW["hp"]["bright"], 1.0, 1.3)
+    if rim_params("hp") != want_hp:
+        failures.append(f"rim_params('hp') {rim_params('hp')!r} != {want_hp!r}")
+    for lane, pair in LANE_GLOW.items():
+        if lane == "hp":
+            continue
+        want = (pair["deep"], pair["bright"], OUTER_TRIM, GLOW_TRIM)
+        if rim_params(lane) != want:
+            failures.append(f"rim_params({lane!r}) {rim_params(lane)!r} != {want!r}")
+    return failures
+
+
 def selftest():
-    failures = _pin_rim_scale_identity()
+    failures = _pin_rim_params()
+    failures += _pin_rim_scale_identity()
     if failures:
         print("SELFTEST FAIL:")
         for f in failures:
             print(f"  - {f}")
         return 1
-    print("SELFTEST PASS: rim_scale=1.0 identity pin (ids 1, 115)")
+    print("SELFTEST PASS: lane rim params, rim_scale=1.0 identity pin (ids 1, 115)")
     return 0
 
 
