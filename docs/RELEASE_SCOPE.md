@@ -520,7 +520,7 @@ model exists; it is done. The order, worked top to bottom, one at a time:
 8. One sitting each, cheap: galleries LW-198, LW-205, LW-210, LW-212, then LW-322 and LW-320,
    and LW-414 the seven baseline numbers.
 
-Pushed to 2.5.0 by the same ruling: LW-415 the write scope buckets, the R1 cosmetics (LW-329,
+Pushed to 2.5.0 by the same ruling: LW-429 the Gariland band warning (owner, 2026-10-18, long standing and harmless), LW-415 the write scope buckets, the R1 cosmetics (LW-329,
 LW-335, the hue true ups), LW-340, LW-324, and every research row. LW-358 and LW-408 stay in
 Now because both wait only on the owner.
 
