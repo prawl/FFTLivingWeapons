@@ -749,7 +749,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   climbs, growth on one wielder only, a staff healing from both rows, the trick firing for one
   unit only, a crash on the picker. Owner ruling owed on the result: whether "two wielders, no
   grant" deserves one calm log line (a Backlog row, not a fix). (DEV OK) **[MAJOR]**
-- [ ] 5.12 **The fast reload loop (LW-163).** Reload means the world map's Load menu inside the same
+- [x] 5.12 (PASSED 2026-10-18 on prod of a38eb35b, owner live, kills.json staged at 7 for every weapon and 15 for the Outrider Pistol: the same save loaded twice read 7 of 10 on the cards, a different slot read Cleaver+ at 7 of 10 with its ring, the first save loaded again read Outrider Pistol+3 at 15, every read matching the file, no frozen or zero counter) **The fast reload loop (LW-163).** Reload means the world map's Load menu inside the same
   session, not a relaunch: load a save, open the card, load the same save again, then a different
   save, then the first again, opening the card each time. PASS: the Kills line matches kills.json
   every time. FAIL: a frozen or zero looking counter until a tier up. (DEV OK) (covers LW-163)
