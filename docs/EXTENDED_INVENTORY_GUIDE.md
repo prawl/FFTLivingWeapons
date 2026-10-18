@@ -125,18 +125,18 @@ The `extended` block, field by field:
 | `shopAvailability` | The story gate on the shop listing; `Blank` means no gate: the item sells in its listed towns from day one | Owner ruling (recorded on the LW-351 task row): a real item never ships `Blank`; give it an availability window matching its tier. The removed Moonblade proof item was the only row that ever shipped Blank |
 | `palette` / `spriteId` | Bytes +0/+1 of the item's 12-byte catalog record (menu-side fields) | Copy the donor's pair. These do NOT control the battle swing's art or color; that resolves through `artDonor` |
 | `requiredLevel`, `typeFlags`, `price` | More catalog record fields | `typeFlags: "Weapon"`; price is the shop price |
-| `iconSource` (on the row, not in `extended`) | The vanilla id whose SHIPPED, already-recolored icon it copies | Pick an icon that reads right on the card; the donor must already have baked glow variants, or the icon bake stops and tells you to run `tools/bake_glow_icons.py` first |
+| `iconSource` (on the row, not in `extended`) | The vanilla id whose SHIPPED, already-recolored icon it copies | Pick an icon that reads right on the card |
 | `migratedFrom` (on the row, not in `extended`) | Only for a design that MOVED here from another id: the id it used to live at. The bake copies it to `meta.json` and the runtime carries a save's earned kills and deeds across the move, once | Set it to the old id (Terrastaff carries `48`). Omit it on a genuinely net-new item. The move only fires while the old id has no living-weapon row of its own, so it is safe to redesign that slot later |
 
 **Trap, `iconSource` on a moved design:** it names a SHIPPED picture, so it copies whatever that
 id ships at bake time. The Terrastaff's `iconSource` is 48, and the id-48 icon was its own art on
 the day it was baked but is the vanilla Battle Axe's art now (the same holds for every moved
-design: 262 to 267 name 49, 50 and 67 to 70). Re-running `tools/bake_extended_icon_parts.py`
-with no ids would therefore repaint the moved designs with axes and flails. Since stage 2 the
-bake takes the ids to touch on its command line (`python tools/bake_extended_icon_parts.py 268`)
-and refuses an id that is not an extended row; bake only the row you are adding, check the
-result, and if a design ever has to diverge from its old picture for good, give it its own
-recolor rather than a donor.
+design: 262 to 267 name 49, 50 and 67 to 70). The bake copies the plain
+icon only when the file is absent, so a rerun with no ids is safe and keeps every shipped picture.
+To re-pick a picture, delete that id's two plain `.tex` files and rerun with its id. The bake
+takes the ids to touch on its command line (`python tools/bake_extended_icon_parts.py 268`) and
+refuses an id that is not an extended row. If a design ever has to diverge from its old picture
+for good, give it its own recolor rather than a donor.
 
 If the item carries a stat rider (PA+1 and kin), `proposed.equipBonusId` names its EquipBonus
 row, which also feeds the catalog record; the rider prose gates check it.
@@ -183,8 +183,8 @@ python tools\bake_extended_icon_parts.py
 ```
 
 Byte-copies the `iconSource` donor's `.tex` pair, writes the two `.utexpt` parts files (the
-game's own archive has none past id 260; the card renders blank without them), copies the donor's
-three glow-rim tier variants and updates `glow_icons/manifest.json`. This must run BEFORE the
+game's own archive has none past id 260; the card renders blank without them), draws the three
+glow-rim tier variants from the item's own icon in its lane color and updates `glow_icons/manifest.json`. The plain icon is copied only when absent. This must run BEFORE the
 table generation: `generate.py` checks the icon files exist. Extended items stay outside the
 icon-recolor program (`recolor_icons.py` skips them by design); a custom look is a polish task,
 not part of adding the item.

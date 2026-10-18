@@ -115,7 +115,7 @@ for _it in load_items()["items"]:
     # LW-346: an extended-inventory row (ids 261+) is outside the tint programme: it ships a
     # byte copy of its iconSource donor's already-recolored pair (tools/bake_extended_icon_parts.py),
     # the way it borrows the donor's swing art, so it never enters the racks, the halo sample or
-    # the bright-v2 pins. Its own treatment is LW-346 item 11 polish.
+    # the bright-v2 pins. Its glow rims are drawn by bake_glow_icons from that pair.
     if _it.get("extended"):
         continue
     if _it.get("iconTint"):

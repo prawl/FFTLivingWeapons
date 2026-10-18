@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 """
 Bake glow-rim icon variants for every living weapon (LW-295 Cycle B, stage B1: the BAKE half).
+The set is every growing weapon in 1..121 plus the extended-inventory rows.
 
 A weapon that has grown glows on its equip icon too (the sprite half is Cycle A). This is the
-OFFLINE half: for every weapon id (tools/lib/categories.py WEAPON_CATS via items.json, exactly
-ids 1-121, never a non-weapon), for both icon surfaces (card 100x100 / small 48x48), bake three
+OFFLINE half: for every weapon id (tools/lib/categories.py WEAPON_CATS via items.json, ids 1-121 plus
+the extended rows, never a non-weapon), for both icon surfaces (card 100x100 / small 48x48), bake three
 glow-rim intensity variants keyed by kill tier, using the parked rim machinery in
 tools/recolor_icons.py (SHIP_GLOW_RIM stays False; the shipped base bake is untouched by a
 single byte). Output lands in LivingWeapon/glow_icons/ alongside one manifest.json, which the
@@ -15,7 +16,8 @@ Recipe per (item_id, surface), mirroring recolor_icons.process()'s own encode re
 (recolor_icons.py, process()) WITHOUT calling process() itself (it writes the shipped mod
 tree; this writes glow_icons/ instead):
   1. render the shipped RIMLESS body via the production route: ri.ramp_render(item_id, tint,
-     surface, glow=False). Pixel-identical to the shipped (glow-off) bake -- same code path,
+     surface, glow=False). An extended row has no ramp treatment, so its body is its own shipped
+     plain icon decoded from the mod tree. Pixel-identical to the shipped (glow-off) bake -- same code path,
      same vanilla decode (VANILLA tex -> FF16Tools tex-conv -> DDS -> Pillow).
   2. for each tier 1..3, apply the rim as an ADDED layer at the tier's scaled intensity by
      mirroring ramp_render's own post-body glow tail (its `if not glow: return body` branch
@@ -57,7 +59,7 @@ verify gate; the runtime may ignore them.
 
 Subcommands:
   python tools/bake_glow_icons.py bake [--from N] [--to N] [--force]
-      Bakes weapon ids in [--from, --to] (default the full 1..121 set). IDEMPOTENT/RESUMABLE:
+      Bakes weapon ids in [--from, --to] (default the full set, 1..121 plus the extended rows). IDEMPOTENT/RESUMABLE:
       an (id, surface) whose three tier files already exist is skipped (no re-decode, no
       re-encode) unless --force. Safe to run in id-range slices across several invocations --
       each shells out to FF16Tools up to (2 decodes + 6 encodes) x range-size times, and a
@@ -83,6 +85,7 @@ import json
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -91,6 +94,7 @@ from lib.items import load_items
 from lib.lane_glow import lane_glow
 from lib.paths import ROOT, FF16
 import recolor_icons as ri
+from PIL import Image
 
 OUT_DIR = ROOT / "LivingWeapon" / "glow_icons"
 MANIFEST_PATH = OUT_DIR / "manifest.json"
@@ -127,8 +131,8 @@ SURFACES = [
 
 def weapon_ids():
     """The exact bake set: tools/lib/categories.py WEAPON_CATS via items.json. Hard assert (the
-    owner rule this whole file exists to enforce): never a non-weapon id, never anything outside
-    1..121."""
+    owner rule this whole file exists to enforce): never a non-weapon id, and nothing outside
+    1..121 except the extended rows."""
     rows = load_items()["items"]
     # LW-351: a glow rim is a KILL-TIER rim, so an item that opts out of the Living Weapon
     # system (noGrowth -- the restored vanilla axes and flails) can never earn one. It also has
@@ -166,6 +170,39 @@ def variant_name(pfx, item_id, tier):
 LANE_GLOW = lane_glow()
 _LANE_BY_ID = {it["id"]: it["grows"].lower() for it in load_items()["items"]
                if it.get("grows")}
+_EXTENDED_IDS = frozenset(it["id"] for it in load_items()["items"] if it.get("extended"))
+_NO_TINT = (0.0, 0.0, 1.0)  # ramp_glow unpacks a tint but the lane supplies the rim color here
+
+
+def body_route(item_id):
+    """Where a rimless body comes from. Ramp ids have a treatment row, extended ids have none
+    and use their own shipped plain icon."""
+    if item_id in ri.RAMP_IDS:
+        return "ramp"
+    if item_id in _EXTENDED_IDS:
+        return "shipped"
+    raise SystemExit(f"id {item_id} has no glow body route (not a ramp id, not an extended row)")
+
+
+def tint_for(item_id):
+    return ri.ICON_TINTS[item_id] if body_route(item_id) == "ramp" else _NO_TINT
+
+
+def decode_shipped(sub, pfx, item_id):
+    """The shipped plain icon as RGBA. Decodes in a temp dir so WORK and the base file are untouched."""
+    src = base_tex_path(sub, pfx, item_id)
+    stem = f"{pfx}_{item_id:03d}_uitx"
+    with tempfile.TemporaryDirectory(prefix="lw_shipped_") as td:
+        tex = Path(td) / f"{stem}.tex"
+        shutil.copy(src, tex)
+        subprocess.run([str(FF16), "tex-conv", "-i", str(tex)], capture_output=True)
+        return Image.open(Path(td) / f"{stem}.dds").convert("RGBA").copy()
+
+
+def body_for(item_id, sub, pfx, surface):
+    if body_route(item_id) == "ramp":
+        return ri.ramp_render(item_id, ri.ICON_TINTS[item_id], surface, glow=False)
+    return decode_shipped(sub, pfx, item_id)
 
 
 def rim_params(lane):
@@ -220,13 +257,13 @@ def bake_range(ids, force=False):
     skipped_files = 0
     decodes = 0
     for item_id in ids:
-        tint = ri.ICON_TINTS[item_id]
+        tint = tint_for(item_id)
         for sub, pfx, surface, size in SURFACES:
             out_paths = {t: OUT_DIR / variant_name(pfx, item_id, t) for t in TIER_SCALES}
             if not force and all(p.exists() for p in out_paths.values()):
                 skipped_files += len(out_paths)
                 continue
-            body = ri.ramp_render(item_id, tint, surface, glow=False)
+            body = body_for(item_id, sub, pfx, surface)
             decodes += 1
             for tier, scale in TIER_SCALES.items():
                 out_path = out_paths[tier]
@@ -360,15 +397,77 @@ def _pin_rim_params():
     return failures
 
 
+def _pin_body_routes():
+    """Needs no game files. Every glow id has exactly one body route."""
+    failures = []
+    for i in weapon_ids():
+        if body_route(i) not in ("ramp", "shipped"):
+            failures.append(f"id {i} has no body route")
+    for i in sorted(_EXTENDED_IDS):
+        if body_route(i) != "shipped":
+            failures.append(f"extended id {i} routes {body_route(i)!r}, want 'shipped'")
+    for i in sorted(ri.RAMP_IDS):
+        if body_route(i) != "ramp":
+            failures.append(f"ramp id {i} routes {body_route(i)!r}, want 'ramp'")
+    try:
+        body_route(10 ** 6)
+        failures.append("an id with no route must be refused")
+    except SystemExit:
+        pass
+    return failures
+
+
+def _pin_tint_dead_on_glow_path():
+    """Needs no game files. The lane supplies the rim color, so the tint must not matter."""
+    body = Image.new("RGBA", (24, 24), (0, 0, 0, 0))
+    body.paste((200, 60, 40, 255), (8, 8, 16, 16))
+    a = _glow_variant(body, (0.5, 0.9, 1.0), 33, 1.0)
+    b = _glow_variant(body, _NO_TINT, 33, 1.0)
+    return [] if a.tobytes() == b.tobytes() else ["the tint changed a glow variant"]
+
+
+def _pin_rebake_matches_committed(ids):
+    """A fresh rebake from each id's own art must equal the committed variants byte for byte.
+    This is what catches a donor copy coming back under any name."""
+    failures = []
+    manifest = json.loads(MANIFEST_PATH.read_text(encoding="utf-8"))
+    by_key = {(e["id"], e["surface"]): e for e in manifest["icons"]}
+    for item_id in ids:
+        if body_route(item_id) == "ramp" and not ri._ramp_game_files_available():
+            print(f"SKIP (game files absent): rebake pin for id {item_id}")
+            continue
+        if not FF16.exists():
+            print(f"SKIP (FF16Tools absent): rebake pin for id {item_id}")
+            continue
+        for sub, pfx, surface, _ in SURFACES:
+            body = body_for(item_id, sub, pfx, surface)
+            entry = by_key.get((item_id, surface))
+            for tier, scale in TIER_SCALES.items():
+                with tempfile.TemporaryDirectory(prefix="lw_pin_") as td:
+                    out = Path(td) / "v.tex"
+                    encode_tex(_glow_variant(body, tint_for(item_id), item_id, scale), out,
+                               f"_pin_{pfx}_{item_id:03d}_t{tier}")
+                    got = sha1_bytes(out.read_bytes())
+                disk = sha1_bytes((OUT_DIR / variant_name(pfx, item_id, tier)).read_bytes())
+                if got != disk:
+                    failures.append(f"id {item_id} {surface} tier {tier}: committed file is not the rebake from its own art")
+                if entry is None or entry["variantSha1s"][str(tier)] != got:
+                    failures.append(f"id {item_id} {surface} tier {tier}: manifest sha1 is not the rebake")
+    return failures
+
+
 def selftest():
     failures = _pin_rim_params()
+    failures += _pin_body_routes()
+    failures += _pin_tint_dead_on_glow_path()
+    failures += _pin_rebake_matches_committed([33, 262])
     failures += _pin_rim_scale_identity()
     if failures:
         print("SELFTEST FAIL:")
         for f in failures:
             print(f"  - {f}")
         return 1
-    print("SELFTEST PASS: lane rim params, rim_scale=1.0 identity pin (ids 1, 115)")
+    print("SELFTEST PASS: lane rim params, body routes, tint-dead pin, rebake pin (ids 33, 262), rim_scale=1.0 identity pin (ids 1, 115)")
     return 0
 
 
@@ -425,6 +524,9 @@ def verify():
                 failures.append(f"id {item_id} {surface} tier {tier}: variantSha1 mismatch")
 
     failures.extend(_pin_rim_scale_identity())
+    failures.extend(_pin_body_routes())
+    failures.extend(_pin_tint_dead_on_glow_path())
+    failures.extend(_pin_rebake_matches_committed([33] + sorted(_EXTENDED_IDS)))
 
     if failures:
         print(f"VERIFY FAIL ({len(failures)} issue(s)):")
@@ -449,7 +551,7 @@ def main():
 
     p_bake = sub.add_parser("bake")
     p_bake.add_argument("--from", dest="frm", type=int, default=1)
-    p_bake.add_argument("--to", dest="to", type=int, default=121)
+    p_bake.add_argument("--to", dest="to", type=int, default=None)
     p_bake.add_argument("--force", action="store_true",
                         help="re-bake even if the output file already exists")
 
@@ -462,21 +564,12 @@ def main():
         if not ri._ramp_game_files_available():
             print("BAKE ABORTED: VANILLA tex tree or FF16Tools CLI not found on this box.")
             return 1
-        ids = [i for i in weapon_ids() if args.frm <= i <= args.to]
-        # LW-346: an extended-inventory weapon ships its plain icon (tools/recolor_icons.py) but
-        # has no LW-247 ramp treatment row (data/icon_ramp/treatments.json is emitted from the
-        # census replay, which never saw it), and the rim tail is a ramp-engine feature. Skip it
-        # loudly rather than abort the whole bake; the runtime treats a missing manifest entry
-        # as tier 0 (no rim). Rims for extended ids are LW-346 item 11 follow-up work.
-        unramped = [i for i in ids if i not in ri.RAMP_IDS]
-        if unramped:
-            print(f"SKIPPED {len(unramped)} extended-inventory id(s) with no ramp treatment row "
-                  f"(plain icon ships, no glow rims yet): {unramped}")
-            ids = [i for i in ids if i in ri.RAMP_IDS]
+        hi = args.to if args.to is not None else max(weapon_ids())
+        ids = [i for i in weapon_ids() if args.frm <= i <= hi]
         if not ids:
-            print(f"No rampable weapon ids in range [{args.frm}, {args.to}]")
-            return 0 if unramped else 1
-        print(f"Baking {len(ids)} weapon id(s) in [{args.frm}, {args.to}]"
+            print(f"No weapon ids in range [{args.frm}, {hi}]")
+            return 1
+        print(f"Baking {len(ids)} weapon id(s) in [{args.frm}, {hi}]"
               + (" (--force)" if args.force else "") + " ...")
         bake_range(ids, force=args.force)
         return 0

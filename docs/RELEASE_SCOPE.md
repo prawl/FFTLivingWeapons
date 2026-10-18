@@ -480,6 +480,12 @@ this paragraph is the pointer that says so.
 ### R4. Ship furniture
 - [x] Deploy riders get their VERIFY_LIVE.md home (LW-286) before the next deploy (SHIPPED cb9a6e85 2026-10-17).
 - [ ] Download page banner re-rendered after the final art state (LW-281).
+- [ ] Release note: after updating, play for a bit, then restart the game once so glow rings and
+      tier names show. A ring a weapon earns while you play shows the next time you start the game.
+      If an icon still looks wrong, restart again. (The game keeps every icon it drew for the whole
+      session, the mod swaps icon files a few seconds after a save loads, and LW-428's late retry
+      can leave one icon stale for a launch; owner ruled 2026-10-18 that the note covers it and
+      LW-428 stays out of R5. Same session rings return under LW-427.)
 - [ ] analyze.py exit 0; dotnet test green; Publish.ps1 clean PROD; changelog exits for
       everything above; ModVersion 2.4.0 and the matching tag.
 

@@ -4,9 +4,10 @@
 Plain language: a menu icon is TWO files per surface, the picture (`ei_<id>_uitx.tex`) and a
 92/96-byte parts file (`.utexpt`) that names that picture's own path. An extended item ships
 a byte copy of its iconSource donor's ALREADY-RECOLORED picture (the donor's shipped .tex in
-the mod tree), the way it borrows the donor's swing art: it stays outside the LW-247 tint
-programme (tools/recolor_icons.py skips `extended` rows, whose racks and pins are sized to the
-vanilla-range weapons). Its own treatment is LW-346 item 11 polish. Vanilla ids ship their parts files inside
+the mod tree), the way it borrows the donor's swing art, copied only when the id has no picture
+yet. It stays outside the LW-247 tint programme (tools/recolor_icons.py skips `extended` rows,
+whose racks and pins are sized to the vanilla-range weapons). Its glow rims are drawn by
+tools/bake_glow_icons.py from that shipped picture in the row's lane color. Vanilla ids ship their parts files inside
 the game's pac; a new id has none, so the game's icon load gives up ("not found/empty" in the
 modloader log) and the card shows a blank. Proven live on id 261 2026-08-26 (owner screenshot,
 docs/research/ITEM_CAP_261_BREAK_JOURNEY.md "ICONS SOLVED"): copy any donor pair and byte-patch
@@ -41,9 +42,13 @@ from lib.paths import ROOT, STEAM_FFT
 
 ICON_PAC = STEAM_FFT / "data" / "enhanced" / "0008.pac"
 MOD_ICON = ROOT / "mod" / "FFTIVC" / "data" / "enhanced" / "ui" / "ffto" / "icon"
-GLOW_DIR = ROOT / "LivingWeapon" / "glow_icons"
 SURFACES = (("equip_item", "ei"), ("equip_item_s", "ei_s"))
 DONOR_ID = 37   # Chaos Blade: the pair proven live on id 261; any vanilla weapon's pair has the same layout
+
+
+def should_copy_plain(target):
+    """The donor picture only seeds an id that has none. Donors can turn vanilla later."""
+    return not target.exists()
 
 
 def parts_inner_path(sub, pfx, item_id):
@@ -102,33 +107,27 @@ def main():
         for it in ext:
             icon_donor = it.get("iconSource") or it["extended"]["cloneDonor"]
             for sub, pfx in SURFACES:
-                donor_tex = MOD_ICON / sub / "texture" / f"{pfx}_{icon_donor:03d}_uitx.tex"
-                if not donor_tex.exists():
-                    raise SystemExit(f"id {it['id']} ({it['name']}): icon donor {icon_donor} has no shipped "
-                                     f"{donor_tex.name} in the mod tree (run tools/recolor_icons.py first)")
                 tex = MOD_ICON / sub / "texture" / f"{pfx}_{it['id']:03d}_uitx.tex"
-                tex.write_bytes(donor_tex.read_bytes())
-                print(f"  wrote {tex.relative_to(ROOT)} ({tex.stat().st_size} bytes, byte copy of id {icon_donor})")
+                if should_copy_plain(tex):
+                    donor_tex = MOD_ICON / sub / "texture" / f"{pfx}_{icon_donor:03d}_uitx.tex"
+                    if not donor_tex.exists():
+                        raise SystemExit(f"id {it['id']} ({it['name']}): icon donor {icon_donor} has no shipped "
+                                         f"{donor_tex.name} in the mod tree (run tools/recolor_icons.py first)")
+                    tex.write_bytes(donor_tex.read_bytes())
+                    print(f"  wrote {tex.relative_to(ROOT)} ({tex.stat().st_size} bytes, byte copy of id {icon_donor})")
+                else:
+                    print(f"  kept {tex.relative_to(ROOT)} (already shipped; never overwritten from a donor)")
                 out = MOD_ICON / sub / "textureparts" / f"{pfx}_{it['id']:03d}_uitx.utexpt"
                 out.parent.mkdir(parents=True, exist_ok=True)
                 out.write_bytes(patch_parts(donors[(sub, pfx)], sub, pfx, DONOR_ID, it["id"]))
                 print(f"  wrote {out.relative_to(ROOT)} ({out.stat().st_size} bytes, from id {DONOR_ID})")
-                # Glow rims (LW-295/LW-336): the donor's three baked tier variants, byte-copied
-                # under the new id, so the runtime's icon sync rims the extended item like any
-                # weapon (its base tex IS the donor's, so the donor's variants are exact).
-                for tier in (1, 2, 3):
-                    src = GLOW_DIR / f"{pfx}_{icon_donor:03d}_uitx_t{tier}.tex"
-                    if not src.exists():
-                        raise SystemExit(f"id {it['id']} ({it['name']}): icon donor {icon_donor} has no glow variant "
-                                         f"{src.name} (run tools/bake_glow_icons.py bake --from {icon_donor} --to {icon_donor})")
-                    dst = GLOW_DIR / f"{pfx}_{it['id']:03d}_uitx_t{tier}.tex"
-                    dst.write_bytes(src.read_bytes())
-                    print(f"  wrote {dst.relative_to(ROOT)} (byte copy of id {icon_donor}'s tier {tier})")
-    # The glow manifest entries for the extended ids (sha1s of the copies), via the glow bake's own
-    # upsert so the schema can never drift between the two writers.
-    from bake_glow_icons import update_manifest
-    update_manifest([it["id"] for it in ext])
-    print(f"  manifest upserted for {[it['id'] for it in ext]}")
+    from bake_glow_icons import bake_range, weapon_ids
+    glow = set(weapon_ids())
+    ids = [it["id"] for it in ext]
+    todo = [i for i in ids if i in glow]
+    if len(todo) != len(ids):
+        print(f"  no glow rims for {[i for i in ids if i not in glow]} (not in the glow set)")
+    bake_range(todo, force=True)
     return 0
 
 
@@ -159,7 +158,14 @@ def selftest():
         raise AssertionError("an id that is not an extended row must be refused")
     except ValueError:
         pass
-    print("bake_extended_icon_parts selftest: 5/5 passed.")
+    with tempfile.TemporaryDirectory() as td:
+        missing = Path(td) / "absent.tex"
+        assert should_copy_plain(missing) is True          # a new id gets its donor picture once
+        missing.write_bytes(b"x")
+        assert should_copy_plain(missing) is False         # a shipped picture is never overwritten
+    assert not hasattr(sys.modules[__name__], "GLOW_DIR")
+    assert ("_uitx" + "_t") not in Path(__file__).read_text(encoding="utf-8")   # no tier file name survives here
+    print("bake_extended_icon_parts selftest: 7/7 passed.")
     return 0
 
 

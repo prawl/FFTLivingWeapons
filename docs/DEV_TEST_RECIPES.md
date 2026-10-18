@@ -473,8 +473,9 @@ everything else (tables, name row, glow rims, the runtime) follows from the buil
    `iconSource` (the vanilla id whose SHIPPED, already-recolored icon it copies).
 2. **Icons.** `python tools/bake_extended_icon_parts.py`: byte-copies the donor's `.tex` pair, writes
    the two `.utexpt` parts files (the game's pac has none past 260; the card is blank without them),
-   copies the donor's three glow-rim variants and upserts `glow_icons/manifest.json`. Extended rows
-   stay OUTSIDE the tint programme (`recolor_icons.py` skips them; their own look is item 11 polish).
+   draws the three glow rims from the item's own icon in its lane color and upserts
+   `glow_icons/manifest.json`. The plain icon is copied only when absent. Extended rows stay OUTSIDE
+   the tint programme (`recolor_icons.py` skips them).
 3. **Tables.** `python tools/generate.py` (validates the row, writes `mod/extended_inventory/*.xml`;
    these are read by the DLL at boot, never by the modloader) then `python tools/analyze.py`
    (the claims gate included; read its exit code DIRECTLY, never through a pipe).
