@@ -964,7 +964,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
 > under the dev flag, so the only thing to check on prod is that the cut holds. No sprite color
 > reads belong in this document.
 
-- [ ] 8.1 (environment note, B20 2026-10-18: FFTColorCustomizer, paxtrick.fft.colorcustomizer, is enabled and loads first in every sitting of this pass) **A prod build never mentions weapon colors and swings everything in vanilla steel
+- [x] 8.1 (PASSED 2026-10-18 on prod of 855a00eb, owner live: every Parts report line of the launch names the thirteen parts in order with weapon colors absent, the Select-String returns only the report lines, zero Painted, Restored or Palette lines, the owner swung the Cutpurse at 12:43 and read plain steel with a screenshot, Battle ended 12:45:43, scan CLEAN; environment note from B20: FFTColorCustomizer, paxtrick.fft.colorcustomizer, is enabled and loads first in every sitting of this pass) **A prod build never mentions weapon colors and swings everything in vanilla steel
   (LW-446).** After a sitting on prod, run
   `Select-String -Path "$env:RELOADEDIIMODS\prawl.fft.livingweapons\livingweapon.log" -Pattern 'Parts report:|weapon colors|Painted weapon|Restored weapon|Palette .* bank|Weapon colors'`.
   PASS: every `Parts report:` line names exactly thirteen parts in this order, battle sensing,

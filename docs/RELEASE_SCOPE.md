@@ -504,7 +504,7 @@ model exists; it is done. The order, worked top to bottom, one at a time:
    this is a regression and the parts model is the first suspect.
 3. LW-323 the stale toast fix, built, owner live pass only.
 4. LW-413 no developer hotkey can fire in a release build.
-5. LW-446 the weapon color cut (owner ruling 2026-10-18: battle sprite colors leave 2.4.0 and return in 2.5.0 as LW-447 after a design session; LW-412 exited WONTFIX).
+5. LW-446 the weapon color cut (owner ruling 2026-10-18: battle sprite colors leave 2.4.0 and return in 2.5.0 as LW-447 after a design session; LW-412 exited WONTFIX). SHIPPED 855a00eb 2026-10-18, owner live pass on prod the same day (smoke box 8.1).
 6. LW-325 the thirty signature tour, plus fixes for what it finds.
 7. Furniture: ModVersion 2.4.0 and the tag, LW-286, the changelog exits, and the Nexus page (owner, at publish time; LW-281 and LW-358 folded into it 2026-10-18).
 7a. LW-425 the false pause box on the tutorial battle, found in smoke sitting 1; a new player's first fight, so it goes first.
