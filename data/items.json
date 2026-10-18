@@ -178,7 +178,7 @@
         "evade": 5,
         "element": "None",
         "onHit": "Silence",
-        "onHitAbilityId": 0,
+        "onHitAbilityId": 10,
         "formula": 1
       },
       "proposed": {
@@ -566,6 +566,7 @@
         "evade": 5,
         "element": "None",
         "onHit": "Disable (Don't Act) — VANILLA. ** Regabonds CHANGED to Silence (OptionsAbilityId=10) **",
+        "onHitAbilityId": 13,
         "formula": "1 (PA*WP melee)"
       },
       "proposed": {
@@ -594,9 +595,9 @@
       "flavorOverride": "A legendary ninja's sword, quick as rumor and twice as hard to trace.",
       "baseline": {
         "wp": 14,
-        "evade": 10,
+        "evade": 15,
         "element": "None",
-        "onHit": "Stop (vanilla)",
+        "onHit": "None",
         "formula": "1 (PA*WP melee)"
       },
       "proposed": {
@@ -625,7 +626,7 @@
       "flavorOverride": "Forged for the Iga clans; no trick to it but speed and a perfect edge.",
       "baseline": {
         "wp": 15,
-        "evade": 15,
+        "evade": 10,
         "element": "None",
         "onHit": "None",
         "formula": "1 (PA*WP melee)"
@@ -1032,10 +1033,11 @@
       "flavorOverride": "A dull, leaden edge that calls down a crushing weight, dragging the proudest foe down.",
       "baseline": {
         "wp": 13,
-        "evade": 12,
-        "element": "None",
-        "onHit": "None",
-        "formula": 1
+        "evade": 10,
+        "element": "Ice",
+        "onHit": "chance to cast Blizzara on hit (ability 25)",
+        "onHitAbilityId": 25,
+        "formula": 2
       },
       "proposed": {
         "wp": 12,
@@ -1105,9 +1107,10 @@
       "flavorOverride": "Hallowed steel that wakes with a dawn-white glow, scouring shadow and dead flesh away.",
       "baseline": {
         "wp": 1,
-        "evade": 12,
+        "evade": 50,
         "element": "None",
-        "onHit": "None",
+        "onHit": "Toad (ability 16)",
+        "onHitAbilityId": 16,
         "formula": 1
       },
       "proposed": {
@@ -1148,7 +1151,7 @@
         "wp": 10,
         "evade": 10,
         "element": "None",
-        "onHit": "Absorb MP",
+        "onHit": "None (the Absorb MP is this mod's design)",
         "onHitAbilityId": 0,
         "formula": 1
       },
@@ -1250,9 +1253,9 @@
       "baseline": {
         "wp": 21,
         "evade": 35,
-        "element": "Holy",
+        "element": "None",
         "onHit": "None (rider only); ABSORBS Holy",
-        "formula": "Knight Sword (PA*Brave/100*WP); XML Formula field=1, Elements=Holy"
+        "formula": "Knight Sword (PA*Brave/100*WP); XML Formula field=1, Elements=None in the game row"
       },
       "proposed": {
         "wp": 21,
@@ -1314,6 +1317,7 @@
         "evade": 20,
         "element": "None",
         "onHit": "Stone/Petrify proc on hit (chance) + EquipBonus rider PERMANENT REGEN",
+        "onHitAbilityId": 17,
         "formula": "Knight Sword (PA*Brave/100*WP); XML Formula field=1"
       },
       "proposed": {
@@ -1729,6 +1733,7 @@
         "evade": 0,
         "element": "None",
         "onHit": "Slow (chance) — OptionsAbilityId 18 in Regabonds; Game8 IVC confirms 'chance of inflicting Slow'",
+        "onHitAbilityId": 18,
         "formula": "1 (Weapon formula; Axe random Rdm(1..PA)*WP)"
       },
       "proposed": {
@@ -1788,7 +1793,8 @@
         "evade": 20,
         "element": "Lightning",
         "onHit": "chance to cast Thunder spell on hit",
-        "formula": "1 (+Element flag; Regabonds uses Formula 2 cast)"
+        "onHitAbilityId": 20,
+        "formula": "2 (casts the element spell on hit)"
       },
       "proposed": {
         "wp": 5,
@@ -1821,7 +1827,8 @@
         "evade": 20,
         "element": "Fire",
         "onHit": "chance to cast Fire spell on hit",
-        "formula": "1 (+Element flag; Regabonds uses Formula 2 cast)"
+        "onHitAbilityId": 16,
+        "formula": "2 (casts the element spell on hit)"
       },
       "proposed": {
         "wp": 5,
@@ -1854,7 +1861,8 @@
         "evade": 20,
         "element": "Ice",
         "onHit": "chance to cast Blizzard spell on hit",
-        "formula": "1 (+Element flag; Regabonds uses Formula 2 cast)"
+        "onHitAbilityId": 24,
+        "formula": "2 (casts the element spell on hit)"
       },
       "proposed": {
         "wp": 5,
@@ -1887,6 +1895,7 @@
         "evade": 20,
         "element": "None (Poison)",
         "onHit": "inflicts Poison on hit",
+        "onHitAbilityId": 19,
         "formula": "1 (PA*WP melee)"
       },
       "proposed": {
@@ -1920,7 +1929,7 @@
         "wp": 4,
         "evade": 20,
         "element": "None",
-        "onHit": "EquipBonus MA+2 (passive)",
+        "onHit": "None (EquipBonus MA+2 passive)",
         "formula": "1 (PA*WP melee)"
       },
       "proposed": {
@@ -1997,6 +2006,7 @@
         "evade": 20,
         "element": "None",
         "onHit": "chance to inflict Faith on target on hit; EquipBonus permanent Faith on wielder",
+        "onHitAbilityId": 20,
         "formula": "1 (PA*WP melee)"
       },
       "proposed": {
@@ -2070,6 +2080,7 @@
         "evade": 15,
         "element": "None",
         "onHit": "chance to REMOVE Doom on hit (cure rider)",
+        "onHitAbilityId": 28,
         "formula": "1 (PA*WP melee)"
       },
       "proposed": {
@@ -2180,7 +2191,7 @@
         "wp": 4,
         "evade": 15,
         "element": "None",
-        "onHit": "EquipBonus MA+1 (passive)",
+        "onHit": "None (EquipBonus MA+1 passive)",
         "formula": "1 (PA*WP melee)"
       },
       "proposed": {
@@ -2254,8 +2265,8 @@
       "baseline": {
         "wp": 6,
         "evade": 15,
-        "element": "Lightning",
-        "onHit": "EquipBonus Phys+2 / Mag+1 (dual passive)",
+        "element": "None",
+        "onHit": "None (EquipBonus Phys+2 / Mag+1 dual passive)",
         "formula": "1 (PA*WP melee)"
       },
       "proposed": {
@@ -2288,7 +2299,7 @@
         "wp": 7,
         "evade": 15,
         "element": "None",
-        "onHit": "EquipBonus MA+1 (passive); highest staff WP",
+        "onHit": "None (EquipBonus MA+1 passive; highest staff WP)",
         "formula": "1 (PA*WP melee)"
       },
       "proposed": {
@@ -2355,6 +2366,7 @@
         "evade": 0,
         "element": "Fire",
         "onHit": "Chance to cast Fira (OptionsAbilityId 17). Game8 IVC: 'chance of casting Fira'",
+        "onHitAbilityId": 17,
         "formula": "2 (Elemental weapon formula — REQUIRED to carry Fire element; NOT formula 1)"
       },
       "proposed": {
@@ -2434,7 +2446,8 @@
         "evade": 5,
         "element": "None",
         "onHit": "None",
-        "formula": "3 (decimal) - gun physical, damage = WP*WP, ignores PA/Speed"
+        "formula": "3 (decimal) - gun physical, damage = WP*WP, ignores PA/Speed",
+        "range": 8
       },
       "proposed": {
         "wp": 7,
@@ -2471,7 +2484,8 @@
         "evade": 5,
         "element": "None",
         "onHit": "None",
-        "formula": "3 (decimal) - gun physical, damage = WP*WP, ignores PA/Speed"
+        "formula": "3 (decimal) - gun physical, damage = WP*WP, ignores PA/Speed",
+        "range": 8
       },
       "proposed": {
         "wp": 9,
@@ -2502,7 +2516,8 @@
         "evade": 5,
         "element": "None",
         "onHit": "None on TARGET. DRAWBACK: wielder starts battle in Stone (Petrify) status.",
-        "formula": "3 (decimal) - gun physical, damage = WP*WP, ignores PA/Speed"
+        "formula": "3 (decimal) - gun physical, damage = WP*WP, ignores PA/Speed",
+        "range": 8
       },
       "proposed": {
         "wp": 16,
@@ -2534,7 +2549,8 @@
         "evade": 5,
         "element": "Ice",
         "onHit": "Inherent chance to cast Blizzard/Blizzara/Blizzaga (Ice spell) on hit - this is the elemental-gun magic-cast, NOT a status rider.",
-        "formula": "4 (decimal) - elemental gun, damage = WP*WP, Ice-element via Elements field"
+        "formula": "4 (decimal) - elemental gun, damage = WP*WP, Ice-element via Elements field",
+        "range": 8
       },
       "proposed": {
         "wp": 12,
@@ -2565,7 +2581,8 @@
         "evade": 5,
         "element": "Fire",
         "onHit": "Inherent chance to cast Fire/Fira/Firaga (Fire spell) on hit - elemental-gun magic-cast, NOT a status rider.",
-        "formula": "4 (decimal) - elemental gun, damage = WP*WP, Fire-element via Elements field"
+        "formula": "4 (decimal) - elemental gun, damage = WP*WP, Fire-element via Elements field",
+        "range": 8
       },
       "proposed": {
         "wp": 12,
@@ -2596,7 +2613,8 @@
         "evade": 5,
         "element": "Lightning",
         "onHit": "Inherent chance to cast Thunder/Thundara/Thundaga (Lightning spell) on hit - elemental-gun magic-cast, NOT a status rider.",
-        "formula": "4 (decimal) - elemental gun, damage = WP*WP, Lightning-element via Elements field"
+        "formula": "4 (decimal) - elemental gun, damage = WP*WP, Lightning-element via Elements field",
+        "range": 8
       },
       "proposed": {
         "wp": 15,
@@ -2629,7 +2647,7 @@
         "onHit": "None",
         "onHitAbilityId": 0,
         "formula": 1,
-        "range": 3
+        "range": 4
       },
       "proposed": {
         "wp": 4,
@@ -2660,8 +2678,8 @@
         "wp": 3,
         "evade": 5,
         "element": "None",
-        "onHit": "Doom",
-        "onHitAbilityId": 11,
+        "onHit": "Blind (ability 21)",
+        "onHitAbilityId": 21,
         "formula": 1,
         "range": 4
       },
@@ -2783,8 +2801,8 @@
         "wp": 6,
         "evade": 5,
         "element": "None",
-        "onHit": "Oil",
-        "onHitAbilityId": 101,
+        "onHit": "None",
+        "onHitAbilityId": 0,
         "formula": 1,
         "range": 4
       },
@@ -2888,7 +2906,7 @@
         "onHit": "None",
         "onHitAbilityId": 0,
         "formula": 1,
-        "range": 6
+        "range": 5
       },
       "proposed": {
         "wp": 5,
@@ -2922,7 +2940,7 @@
         "onHit": "None",
         "onHitAbilityId": 0,
         "formula": 1,
-        "range": 6
+        "range": 5
       },
       "proposed": {
         "wp": 4,
@@ -2953,10 +2971,10 @@
         "wp": 6,
         "evade": 0,
         "element": "Lightning",
-        "onHit": "None",
-        "onHitAbilityId": 0,
-        "formula": 1,
-        "range": 6
+        "onHit": "chance to cast Thundara on hit (ability 21)",
+        "onHitAbilityId": 21,
+        "formula": 2,
+        "range": 5
       },
       "proposed": {
         "wp": 5,
@@ -2999,7 +3017,7 @@
         "onHit": "None",
         "onHitAbilityId": 0,
         "formula": 1,
-        "range": 7
+        "range": 5
       },
       "proposed": {
         "wp": 7,
@@ -3033,7 +3051,7 @@
         "onHit": "None",
         "onHitAbilityId": 0,
         "formula": 1,
-        "range": 6
+        "range": 5
       },
       "proposed": {
         "wp": 6,
@@ -3067,7 +3085,7 @@
         "onHit": "None",
         "onHitAbilityId": 0,
         "formula": 1,
-        "range": 6
+        "range": 5
       },
       "proposed": {
         "wp": 8,
@@ -3109,7 +3127,7 @@
         "onHit": "None",
         "onHitAbilityId": 0,
         "formula": 1,
-        "range": 6
+        "range": 5
       },
       "proposed": {
         "wp": 12,
@@ -3147,11 +3165,11 @@
       "baseline": {
         "wp": 16,
         "evade": 0,
-        "element": "Holy",
+        "element": "None",
         "onHit": "None",
         "onHitAbilityId": 0,
         "formula": 1,
-        "range": 7
+        "range": 5
       },
       "proposed": {
         "wp": 16,
@@ -3181,9 +3199,11 @@
       "baseline": {
         "wp": 10,
         "evade": 10,
-        "element": "Wind",
+        "element": "None",
         "onHit": "Confuse (Confusion)",
-        "formula": "1"
+        "onHitAbilityId": 23,
+        "formula": "1",
+        "range": 3
       },
       "proposed": {
         "wp": 6,
@@ -3214,7 +3234,8 @@
         "evade": 10,
         "element": "None",
         "onHit": "Absorb HP (Formula 6 — heals attacker for damage dealt)",
-        "formula": "6"
+        "formula": "6",
+        "range": 3
       },
       "proposed": {
         "wp": 7,
@@ -3245,7 +3266,9 @@
         "evade": 10,
         "element": "None",
         "onHit": "Charm (Confusion-family; NOT Sleep in vanilla)",
-        "formula": "7"
+        "onHitAbilityId": 24,
+        "formula": 1,
+        "range": 3
       },
       "proposed": {
         "wp": 8,
@@ -3275,8 +3298,9 @@
         "wp": 7,
         "evade": 15,
         "element": "None",
-        "onHit": "Casts Trepidation (AoE Bravery-down; vanilla Foxbird) — Formula 2",
-        "formula": "2"
+        "onHit": "None",
+        "formula": 1,
+        "range": 3
       },
       "proposed": {
         "wp": 5,
@@ -3306,8 +3330,9 @@
         "wp": 8,
         "evade": 15,
         "element": "None",
-        "onHit": "Casts Fervor (vanilla Death Sentence / Praise-family) — Formula 2",
-        "formula": "2"
+        "onHit": "None",
+        "formula": 1,
+        "range": 3
       },
       "proposed": {
         "wp": 7,
@@ -3337,8 +3362,9 @@
         "wp": 9,
         "evade": 15,
         "element": "None",
-        "onHit": "Casts Induration (Petrify; vanilla 'stone seal') — Formula 2",
-        "formula": "2"
+        "onHit": "None",
+        "formula": 1,
+        "range": 3
       },
       "proposed": {
         "wp": 7,
@@ -3368,8 +3394,9 @@
         "wp": 11,
         "evade": 15,
         "element": "None",
-        "onHit": "Casts Harmony (Dispel / CancelStatus) — Formula 2",
-        "formula": "2"
+        "onHit": "None",
+        "formula": 1,
+        "range": 3
       },
       "proposed": {
         "wp": 10,
@@ -3400,7 +3427,8 @@
         "evade": 10,
         "element": "None",
         "onHit": "None",
-        "formula": "1 (PA*WP)"
+        "formula": "1 (PA*WP)",
+        "range": 2
       },
       "proposed": {
         "wp": 7,
@@ -3431,7 +3459,8 @@
         "evade": 10,
         "element": "None",
         "onHit": "None",
-        "formula": "1 (PA*WP)"
+        "formula": "1 (PA*WP)",
+        "range": 2
       },
       "proposed": {
         "wp": 9,
@@ -3462,7 +3491,8 @@
         "evade": 10,
         "element": "None",
         "onHit": "None",
-        "formula": "1 (PA*WP)"
+        "formula": "1 (PA*WP)",
+        "range": 2
       },
       "proposed": {
         "wp": 8,
@@ -3493,7 +3523,8 @@
         "evade": 10,
         "element": "None",
         "onHit": "None",
-        "formula": "1 (PA*WP)"
+        "formula": "1 (PA*WP)",
+        "range": 2
       },
       "proposed": {
         "wp": 9,
@@ -3524,7 +3555,8 @@
         "evade": 10,
         "element": "None",
         "onHit": "None",
-        "formula": "1 (PA*WP)"
+        "formula": "1 (PA*WP)",
+        "range": 2
       },
       "proposed": {
         "wp": 11,
@@ -3555,7 +3587,9 @@
         "evade": 10,
         "element": "Holy",
         "onHit": "25% cast Holy (instant, no MP, unreflectable)",
-        "formula": "1 (PA*WP) + Holy-element + 25% Holy proc"
+        "onHitAbilityId": 15,
+        "formula": "2 (casts Holy on hit)",
+        "range": 2
       },
       "proposed": {
         "wp": 12,
@@ -3596,7 +3630,8 @@
         "evade": 10,
         "element": "None",
         "onHit": "None",
-        "formula": "1 (PA*WP)"
+        "formula": "1 (PA*WP)",
+        "range": 2
       },
       "proposed": {
         "wp": 15,
@@ -3627,7 +3662,8 @@
         "evade": 10,
         "element": "None",
         "onHit": "None",
-        "formula": "1 (PA*WP)"
+        "formula": "1 (PA*WP)",
+        "range": 2
       },
       "proposed": {
         "wp": 13,
@@ -3659,7 +3695,8 @@
         "evade": 20,
         "element": "None",
         "onHit": "None",
-        "formula": "1 (PA*WP)"
+        "formula": "1 (PA*WP)",
+        "range": 2
       },
       "proposed": {
         "wp": 6,
@@ -3690,7 +3727,8 @@
         "evade": 20,
         "element": "None",
         "onHit": "None",
-        "formula": "1 (PA*WP)"
+        "formula": "1 (PA*WP)",
+        "range": 2
       },
       "proposed": {
         "wp": 8,
@@ -3721,7 +3759,8 @@
         "evade": 20,
         "element": "None",
         "onHit": "None",
-        "formula": "1 (PA*WP)"
+        "formula": "1 (PA*WP)",
+        "range": 2
       },
       "proposed": {
         "wp": 8,
@@ -3752,7 +3791,8 @@
         "evade": 20,
         "element": "None",
         "onHit": "None",
-        "formula": "1 (PA*WP)"
+        "formula": "1 (PA*WP)",
+        "range": 2
       },
       "proposed": {
         "wp": 9,
@@ -3782,8 +3822,10 @@
         "wp": 10,
         "evade": 20,
         "element": "None",
-        "onHit": "None",
-        "formula": "1 (PA*WP)"
+        "onHit": "proc on hit (ability 25; status name not confirmed here)",
+        "onHitAbilityId": 25,
+        "formula": "1 (PA*WP)",
+        "range": 2
       },
       "proposed": {
         "wp": 12,
@@ -3814,7 +3856,8 @@
         "evade": 20,
         "element": "None",
         "onHit": "None",
-        "formula": "1 (PA*WP)"
+        "formula": "1 (PA*WP)",
+        "range": 2
       },
       "proposed": {
         "wp": 10,
@@ -3844,8 +3887,10 @@
         "wp": 12,
         "evade": 20,
         "element": "None",
-        "onHit": "None",
-        "formula": "1 (PA*WP)"
+        "onHit": "proc on hit (ability 26; status name not confirmed here)",
+        "onHitAbilityId": 26,
+        "formula": "1 (PA*WP)",
+        "range": 2
       },
       "proposed": {
         "wp": 14,
@@ -3876,7 +3921,8 @@
         "evade": 20,
         "element": "None",
         "onHit": "None",
-        "formula": "2 (MA*WP) — uses Magic Attack, NOT PA"
+        "formula": "1 (XML Formula field; the MA scaling comes from the weapon type)",
+        "range": 2
       },
       "proposed": {
         "wp": 14,
@@ -4030,8 +4076,9 @@
         "wp": 8,
         "evade": 50,
         "element": "None",
-        "onHit": "Frog / Toad (opt101 as Formula-1 item-option)",
-        "formula": "1"
+        "onHit": "None",
+        "formula": "1",
+        "range": 2
       },
       "proposed": {
         "wp": 7,
@@ -4062,7 +4109,8 @@
         "evade": 50,
         "element": "None",
         "onHit": "None (pure stat — Formula 1)",
-        "formula": "1"
+        "formula": "1",
+        "range": 2
       },
       "proposed": {
         "wp": 8,
@@ -4093,7 +4141,8 @@
         "evade": 50,
         "element": "None",
         "onHit": "None (pure stat — Formula 1)",
-        "formula": "1"
+        "formula": "1",
+        "range": 2
       },
       "proposed": {
         "wp": 9,
