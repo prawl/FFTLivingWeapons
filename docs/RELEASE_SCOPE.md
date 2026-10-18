@@ -505,7 +505,8 @@ model exists; it is done. The order, worked top to bottom, one at a time:
 7d. LW-431 the job command check that runs before the mod loader writes, so a custom job mod is never caught; found in smoke box 2.9 leg 2. A player with a job mod sees the weapon commands fight it, so it joins the order under the freeze rule. SHIPPED 2026-10-17.
 7e. LW-430 the pop up box that blames a game update when the mod's own item file is damaged; found in smoke box 2.12. A player reads that box, so it joins the order under the freeze rule. SHIPPED 2026-10-17.
 7f. LW-432 the knight sword glow ring that is too faint to see on the equip list; found in smoke box 7.2's follow up gallery walk. A player sees it, so it joins the order under the freeze rule. SHIPPED 2026-10-17.
-7g. LW-433 the two extended knight swords, Ravager and Sunderer, that still wear an old axe glow rim; found in the LW-432 verify. A player sees it, so it joins the order under the freeze rule and the owner wants it in 2.4.0.
+7g. LW-433 the seven extended weapons, ids 261 to 267, whose glow rims are copies from other icons and miss the new rims; found in the LW-432 verify. A player sees it, so it joins the order under the freeze rule and the owner wants it in 2.4.0.
+7h. LW-434 the glow ring that is too faint to see on the small list icon for every weapon; found in the glow lab after LW-432. A player sees it, so it joins the order under the freeze rule.
 8. One sitting each, cheap: galleries LW-198, LW-205, LW-210, LW-212, then LW-322 and LW-320,
    and LW-414 the seven baseline numbers.
 

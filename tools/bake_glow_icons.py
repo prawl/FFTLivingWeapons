@@ -104,22 +104,18 @@ SCHEMA_VERSION = 1
 # over powering, tone it down by like 10 or 15%'; 1.3 = -13%, and the inner ring
 # drops off full 255 opacity, 170*1.3=221).
 TIER_SCALES = {1: 0.6, 2: 1.0, 3: 1.3}
-# Rim WIDTH trim (owner Atlas feedback 2026-08-26 late: "make the width of the glow
-# smaller"): the falloff band keeps its color at half strength and the 3px third band
-# (a rims.json per-weapon widener) is dropped everywhere, so the rim reads as a crisp
-# ring with a whisper of falloff instead of a 2-3px halo. Inner band untouched.
-OUTER_TRIM = 0.5
-# Global intensity trim (owner 2026-08-26, second tuning pass: "make the glow a
-# little less intense instead of lowering the width"): every tier's resolved rim
-# scale is multiplied by this, so the whole ladder dims 15% while tier ratios and
-# rim width stay exactly as shipped. A width pass-2 (OUTER_TRIM 0.25) was started
-# and reverted for this in the same breath.
-GLOW_TRIM = 0.7  # 0.85 -> 0.7 (owner 2026-08-26: the 15% pass measured real, 653
-                 # differing rim pixels, but read as identical by eye; +3 ring now
-                 # ~60% opacity instead of 74%)
-# The HP lane (the knight swords) read too faint on gold blades in the smoke pass.
-# Its inner band was capped brown and the thin outer band hid it, so width is what makes it read.
-LANE_RIM_OVERRIDES = {"hp": {"deep": (235, 93, 0), "outer_trim": 1.0, "glow_trim": 1.3}}
+# The rim was too faint at true size on the list icon, so the outer band runs full width.
+OUTER_TRIM = 1.0
+# Strength multiplier that makes a +1 ring readable on the list icon.
+GLOW_TRIM = 1.3
+# Green and cyan cannot stand out on the cream panel, so their rim is darker than their text color.
+# Yellow stays as is because a darker yellow merges with the icon outline and stops reading as a glow.
+# The hp inner ring is lifted because the capped orange read brown on gold blades.
+LANE_RIM_OVERRIDES = {
+    "hp": {"deep": (235, 93, 0)},
+    "speed": {"deep": (0, 133, 45), "bright": (0, 166, 56)},
+    "pa+ma+brave": {"deep": (0, 133, 120), "bright": (0, 166, 149)},
+}
 # (pac subfolder, filename prefix, surface tag, fixed tex byte length). Same four surfaces
 # process() loops over; sizes are the shipped tex sizes (0xC860 / 0x3060), verified against a
 # real deployed file at the start of this arc.
@@ -173,11 +169,11 @@ _LANE_BY_ID = {it["id"]: it["grows"].lower() for it in load_items()["items"]
 
 
 def rim_params(lane):
-    """Returns deep, bright, outer_trim and glow_trim for a lane. A lane override wins where
-    present, otherwise the lane_glow pair and the global trims apply."""
+    """Returns deep, bright, outer_trim and glow_trim for a lane. An override color wins where
+    present, otherwise the lane_glow color applies, and the trims are always global."""
     o = LANE_RIM_OVERRIDES.get(lane, {})
-    return (o.get("deep", LANE_GLOW[lane]["deep"]), LANE_GLOW[lane]["bright"],
-            o.get("outer_trim", OUTER_TRIM), o.get("glow_trim", GLOW_TRIM))
+    return (o.get("deep", LANE_GLOW[lane]["deep"]), o.get("bright", LANE_GLOW[lane]["bright"]),
+            OUTER_TRIM, GLOW_TRIM)
 
 
 def _glow_variant(body, tint, item_id, rim_scale):
@@ -190,7 +186,7 @@ def _glow_variant(body, tint, item_id, rim_scale):
     pair from tools/lib/lane_glow.py -- deep inner ring, bright outer falloff -- instead of
     the LW-295 identity color. A rims.json row still contributes its per-weapon ALPHAS
     (rim geometry stays owner-tuned per weapon); only its rgb is superseded.
-    A lane may override its colors and trims through rim_params."""
+    A lane may override its colors through rim_params."""
     deep, bright, outer_trim, glow_trim = rim_params(_LANE_BY_ID[item_id])
     rim = ri.RAMP_RIMS.get(str(item_id))
     inner_a = rim["inner_a"] if rim else 170
@@ -341,16 +337,24 @@ def _pin_rim_scale_identity():
 
 
 def _pin_rim_params():
-    """Needs no game files. Only the HP lane overrides the rim look and every other lane is
-    exactly its lane_glow pair with the global trims."""
+    """Needs no game files. Three lanes override the rim colors and every other lane is
+    exactly its lane_glow pair, all with the global trims."""
     failures = []
-    want_hp = ((235, 93, 0), LANE_GLOW["hp"]["bright"], 1.0, 1.3)
-    if rim_params("hp") != want_hp:
-        failures.append(f"rim_params('hp') {rim_params('hp')!r} != {want_hp!r}")
+    overrides = {
+        "hp": ((235, 93, 0), LANE_GLOW["hp"]["bright"]),
+        "speed": ((0, 133, 45), (0, 166, 56)),
+        "pa+ma+brave": ((0, 133, 120), (0, 166, 149)),
+    }
+    if (OUTER_TRIM, GLOW_TRIM) != (1.0, 1.3):
+        failures.append(f"trims {(OUTER_TRIM, GLOW_TRIM)!r} != (1.0, 1.3)")
+    for lane, (deep, bright) in overrides.items():
+        want = (deep, bright, 1.0, 1.3)
+        if rim_params(lane) != want:
+            failures.append(f"rim_params({lane!r}) {rim_params(lane)!r} != {want!r}")
     for lane, pair in LANE_GLOW.items():
-        if lane == "hp":
+        if lane in overrides:
             continue
-        want = (pair["deep"], pair["bright"], OUTER_TRIM, GLOW_TRIM)
+        want = (pair["deep"], pair["bright"], 1.0, 1.3)
         if rim_params(lane) != want:
             failures.append(f"rim_params({lane!r}) {rim_params(lane)!r} != {want!r}")
     return failures
