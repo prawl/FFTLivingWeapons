@@ -39,8 +39,10 @@ internal sealed partial class IconCacheHide : IIconCacheHider
         _reader ??= new ChunkReader(_mem);
 
         var lookup = IconCacheHidePolicy.BuildNeedleLookup(targets);
+        _overCap = false;
         if (!SweepStrings(lookup, out var stringMap))
         {
+            WarnIfOverCap();
             foreach (var t in targets) Report(t, new SurfaceOutcome(HideOutcome.Postponed, 0, 0, 0, 0), result);
             return result;
         }
@@ -51,12 +53,23 @@ internal sealed partial class IconCacheHide : IIconCacheHider
         }
         if (!SweepPointers(stringMap, out var holders))
         {
+            WarnIfOverCap();
             foreach (var t in targets) Report(t, new SurfaceOutcome(HideOutcome.Postponed, 0, 0, 0, 0), result);
             return result;
         }
 
         foreach (var t in targets) ClassifyAndWrite(t, holders, result);
         return result;
+    }
+
+    private bool _overCap;
+    private bool _capWarned;
+
+    private void WarnIfOverCap()
+    {
+        if (!_overCap || _capWarned) return;
+        _capWarned = true;
+        ModLogger.Warn(LogVerb.Display, "The icon cache sweep found an implausible number of records; this pass is skipped.");
     }
 
     /// <summary>Takes one region snapshot per call and stops at the first chunk where the game is in battle.</summary>
@@ -68,7 +81,7 @@ internal sealed partial class IconCacheHide : IIconCacheHider
             long rend = rbase + rsize;
             for (long chunkStart = rbase; chunkStart < rend; chunkStart += ChunkReader.ChunkSize)
             {
-                if (_inBattle()) return false;
+                if (_inBattle() || _overCap) return false;
                 int read = _reader.ReadInRegion(chunkStart, rbase, rend, out int lookback, out int searchable);
                 if (read == 0) continue;
                 onChunk(_reader.Buf, lookback, searchable, chunkStart - lookback);
@@ -83,7 +96,10 @@ internal sealed partial class IconCacheHide : IIconCacheHider
     {
         var map = new Dictionary<long, (int, string, NeedleKind)>();
         bool ok = ForEachChunk((buf, lookback, searchable, bufBase) =>
-            IconCacheHidePolicy.ScanChunkForStrings(buf, lookback, searchable, bufBase, lookup, map));
+        {
+            IconCacheHidePolicy.ScanChunkForStrings(buf, lookback, searchable, bufBase, lookup, map);
+            _overCap = IconCacheHidePolicy.OverCap(map.Count, 0);
+        }) && !_overCap;
         stringMap = map;
         return ok;
     }
@@ -94,7 +110,10 @@ internal sealed partial class IconCacheHide : IIconCacheHider
     {
         var list = new List<Holder>();
         bool ok = ForEachChunk((buf, lookback, searchable, bufBase) =>
-            IconCacheHidePolicy.ScanChunkForPointers(buf, lookback, searchable, bufBase, stringMap, list));
+        {
+            IconCacheHidePolicy.ScanChunkForPointers(buf, lookback, searchable, bufBase, stringMap, list);
+            _overCap = IconCacheHidePolicy.OverCap(0, list.Count);
+        }) && !_overCap;
         holders = list;
         return ok;
     }

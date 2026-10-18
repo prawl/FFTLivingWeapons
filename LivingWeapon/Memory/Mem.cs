@@ -112,6 +112,28 @@ internal static class Mem
         return addr >= b && addr + len <= e;
     }
 
+    // The sweeps' own result lists live in the GC heap, so reading it feeds each sweep the last one's garbage.
+    internal static bool ShouldSweep(long regionAllocBase, long gcAllocBase)
+        => gcAllocBase == 0 || regionAllocBase != gcAllocBase;
+
+    private static readonly Lazy<long> GcBase = new(FindGcHeapAllocationBase);
+    internal static long GcHeapAllocationBase => GcBase.Value;
+
+    private static long FindGcHeapAllocationBase()
+    {
+        var probe = new byte[64];
+        var h = GCHandle.Alloc(probe, GCHandleType.Pinned);
+        try
+        {
+            if (VirtualQueryEx(Self, h.AddrOfPinnedObject(), out var mbi, (uint)Marshal.SizeOf<MEMORY_BASIC_INFORMATION>()) != 0
+                && (long)mbi.AllocationBase != 0)
+                return (long)mbi.AllocationBase;
+        }
+        finally { h.Free(); }
+        ModLogger.Debug(LogVerb.Startup, "Mem could not find the managed heap reservation, so sweeps read it too.");
+        return 0;
+    }
+
     private const uint MEM_COMMIT = 0x1000;
     private const uint MEM_PRIVATE = 0x20000;
     private const uint WRITABLE = 0x04 | 0x08 | 0x40 | 0x80;   // RW | WriteCopy | ExecRW | ExecWriteCopy
@@ -127,6 +149,7 @@ internal static class Mem
         long addr = 0;
         MEMORY_BASIC_INFORMATION mbi;   // first touched via `out mbi` below; no initializer needed
         int mbiSize = Marshal.SizeOf<MEMORY_BASIC_INFORMATION>();
+        long gcBase = GcHeapAllocationBase;
         while (addr < 0x7FFF_FFFF_0000)
         {
             if (VirtualQueryEx(Self, (nint)addr, out mbi, (uint)mbiSize) == 0)
@@ -135,7 +158,7 @@ internal static class Mem
             long size = (long)mbi.RegionSize;
             long next = b + size;
             if (mbi.State == MEM_COMMIT && mbi.Type == MEM_PRIVATE && (mbi.Protect & WRITABLE) != 0
-                && (mbi.Protect & (PAGE_GUARD | PAGE_NOACCESS)) == 0)
+                && (mbi.Protect & (PAGE_GUARD | PAGE_NOACCESS)) == 0 && ShouldSweep((long)mbi.AllocationBase, gcBase))
                 yield return (b, size);
             addr = next > addr ? next : addr + 0x1000;
         }

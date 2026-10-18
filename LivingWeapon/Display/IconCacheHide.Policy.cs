@@ -116,6 +116,10 @@ internal static partial class IconCacheHidePolicy
     /// <see cref="HideOutcome.TextureMissing"/>, or <see cref="HideOutcome.Refused"/> if a write was
     /// attempted and failed. Once <paramref name="texHidden"/> is nonzero a refused write elsewhere
     /// on the surface no longer downgrades it.</summary>
+    internal const int MaxStrings = 2000;
+    internal const int MaxHolders = 20000;
+    internal static bool OverCap(int strings, int holders) => strings > MaxStrings || holders > MaxHolders;
+
     internal static SurfaceOutcome DecideOutcome(int partsCandidates, int texCandidates, int liveTex,
         int texHidden, int partsHidden, bool anyTexRefused)
     {

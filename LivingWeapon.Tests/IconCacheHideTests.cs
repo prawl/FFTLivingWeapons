@@ -210,6 +210,35 @@ public class IconCacheHideTests
     }
 
     [Fact]
+    public void OverCap_TripsPastTheStringAndHolderCaps()
+    {
+        Assert.Equal(2000, IconCacheHidePolicy.MaxStrings);
+        Assert.Equal(20000, IconCacheHidePolicy.MaxHolders);
+        Assert.False(IconCacheHidePolicy.OverCap(2000, 20000));
+        Assert.True(IconCacheHidePolicy.OverCap(2001, 0));
+        Assert.True(IconCacheHidePolicy.OverCap(0, 20001));
+    }
+
+    [Fact]
+    public void Hide_PastTheStringCap_PostponesEveryTarget_AndWarnsOncePerLaunch()
+    {
+        const int id = 30;
+        var b = new MemBuilder(0x2_9000_0000);
+        string uri = IconCacheHidePolicy.Needles(id)[0].Text;
+        for (int i = 0; i < IconCacheHidePolicy.MaxStrings + 1; i++) b.WriteCString(uri);
+        var heap = new FakeHeap((b.Base, b.ToArray()));
+        var hider = new IconCacheHide(heap, () => false);
+        var targets = new[] { new IconCacheTarget(id, "card", Entry(id, "card", 100)) };
+        using var cap = LogCapture.Start(LogLevel.Debug);
+
+        Assert.Equal(HideOutcome.Postponed, hider.Hide(targets).Get(id, "card")!.Value.Outcome);
+        Assert.Equal(HideOutcome.Postponed, hider.Hide(targets).Get(id, "card")!.Value.Outcome);
+
+        Assert.Equal(0, heap.Writes);
+        Assert.Equal(1, cap.File.Count(l => l.Contains("found an implausible number of records")));
+    }
+
+    [Fact]
     public void DecideOutcome_LiveRecordsDecideTextureMissing_NoLiveRecordHidesParts()
     {
         Assert.Equal(HideOutcome.TextureMissing, IconCacheHidePolicy.DecideOutcome(2, 1, 1, 0, 0, false).Outcome);
