@@ -66,7 +66,6 @@ the technical detail lives in the indented lines under it.
 - [LW-417] 2026-10-17: The HP growth code file has grown past the size where a reader can hold it in their head (253 lines). Split the Max HP lane into its own file under the new file comment cap, keeping or rewriting the LW-327 edge prose at the old lines 112 to 138, never dropping it. Owed since LW-327, grew again with LW-416.
 - [LW-418] 2026-10-17: During an opening cutscene the battle tape goes blind, because the event watcher only samples units on field frames; that blind spot made the LW-416 read a two hour job instead of a five minute one. Log one baseline line at the first field frame saying how long the watcher was blind, or add a max HP only change event.
 - [LW-422] 2026-10-17: Latent shape seen on the LW-416 tape: if the Max HP hold ever captures the 400 of 400 placeholder body during a cutscene, the later real fill matches neither its natural nor its target and the hold goes quiet for that battle. Not seen live (the locate waited for the real body); worth a test and a log line.
-- [LW-358] 2026-08-30: Re-check poaching ourselves and finally explain it to players. Demoted from Now on 2026-10-17 to make room for the parallel R5 rows; it waits only on the owner's live battle and the FAQ text (full Done means and Verify in git history, commit 02c401b7).
 Rows are ordered by priority, highest first (full re-sort 2026-08-24, owner directed).
 A new row still lands here in the session it surfaces; slot it where its urgency
 belongs rather than at the bottom.
@@ -1191,14 +1190,6 @@ belongs rather than at the bottom.
   the parser half is this row. (Tech: ReleaseScopeContractTests.ExtractInSectionLines; either
   bound the region at the next "## " header of any kind, or give each cut its own IN header,
   and add a pin proving an OUT bullet is not an IN box.)
-
-- [LW-281] 2026-08-19: The picture on the mod's download page still shows the old icon
-  colours, so anyone browsing sees art the mod no longer ships. (Tech: the banner is
-  rendered by tools/make_banner.py from the installed icon cache and nobody re rendered it
-  after the LW-247 ramp port rebaked roughly 300 icons; rerun it after any bake that
-  changes icon art and make that rerun a step of the icon pass itself rather than a
-  separate chore anyone can forget. Nexus draws the title text, so the image carries art
-  only.)
 
 - [LW-309] 2026-08-24: The ability data channel we parked after it corrupted the game in June
   is safe to reopen, and a stranger proved it. The Knight Overhaul mod on Nexus ships the exact

@@ -504,10 +504,13 @@ model exists; it is done. The order, worked top to bottom, one at a time:
 4. LW-413 no developer hotkey can fire in a release build.
 5. LW-412 the weapon color smoke test (LW-339 is the fuller pass if 412 finds anything).
 6. LW-325 the thirty signature tour, plus fixes for what it finds.
-7. Furniture: ModVersion 2.4.0 and the tag, LW-286, LW-281, and the changelog exits.
-7a. LW-425 the false pause box on the tutorial battle, found in smoke sitting 1; a new player's first fight, so it goes first. SHIPPED 2026-10-17.
-7b. LW-423 the blank list icon after a glow tier change, found in smoke sitting 1 (owner ruling 2026-10-17: turn the cache hide off for 2.4.0, same session rims move to LW-427 for 2.5.0) (a player sees it, so it joins the order under the freeze rule). SHIPPED 2026-10-17.
-7c. LW-424 the blank kill counts on the cards after Continue, found in smoke sitting 1. SHIPPED 2026-10-17.
+7. Furniture: ModVersion 2.4.0 and the tag, LW-286, the changelog exits, and the Nexus page (owner, at publish time; LW-281 and LW-358 folded into it 2026-10-18).
+7a. LW-425 the false pause box on the tutorial battle, found in smoke sitting 1; a new player's first fight, so it goes first.
+ SHIPPED 2026-10-17.
+7b. LW-423 the blank list icon after a glow tier change, found in smoke sitting 1 (owner ruling 2026-10-17: turn the cache hide off for 2.4.0, same session rims move to LW-427 for 2.5.0) (a player sees it, so it joins the order under the freeze rule).
+ SHIPPED 2026-10-17.
+7c. LW-424 the blank kill counts on the cards after Continue, found in smoke sitting 1.
+ SHIPPED 2026-10-17.
 7d. LW-431 the job command check that runs before the mod loader writes, so a custom job mod is never caught; found in smoke box 2.9 leg 2. A player with a job mod sees the weapon commands fight it, so it joins the order under the freeze rule. SHIPPED 2026-10-17.
 7e. LW-430 the pop up box that blames a game update when the mod's own item file is damaged; found in smoke box 2.12. A player reads that box, so it joins the order under the freeze rule. SHIPPED 2026-10-17.
 7f. LW-432 the knight sword glow ring that is too faint to see on the equip list; found in smoke box 7.2's follow up gallery walk. A player sees it, so it joins the order under the freeze rule. SHIPPED 2026-10-17.
