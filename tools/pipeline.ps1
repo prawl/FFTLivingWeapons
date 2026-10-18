@@ -460,6 +460,15 @@ function Invoke-TablePipeline {
         throw "REFUSING TO ${FailVerb}: at least one item is strictly dominated (see above)."
     }
 
+    # LW-420: analyze.py's own regression cases for the vanilla rows gate (a baseline note drifting
+    # from the game's row bytes). Those failure lanes only fire when a note is wrong, so nothing
+    # else exercises them; the selftest proves the gate still bites before it judges the data.
+    Write-Host "  -> tools/analyze.py --selftest (the vanilla rows gate's regression cases)..."
+    & python "$PipelineRepoRoot\tools\analyze.py" --selftest
+    if ($LASTEXITCODE -ne 0) {
+        throw "REFUSING TO ${FailVerb}: analyze.py --selftest failed (exit $LASTEXITCODE)."
+    }
+
     # Bake the runtime's per-weapon facts so the DLL build (and the unit tests,
     # which read LivingWeapon/meta.json) pick up a fresh copy.
     Write-Host "  -> tools/gen_living_weapon_meta.py (items.json -> meta.json)..."

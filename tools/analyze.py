@@ -1165,6 +1165,122 @@ def _check_obtain(it, row):
     return probs
 
 
+# ---- LW-420: VANILLA ROWS (every weapon baseline is held to the game's own row bytes) ----
+# data/vanilla_weapon_rows.json is the vanilla ItemWeaponData table read out of the exe file
+# image by tools/snapshot_vanilla_weapon_rows.py, 8 bytes a row (range, attack flags, formula,
+# pad, wp, evade, elements, on hit ability), rows 1 to 121. The --baseline pass judges fairness
+# against the baseline notes, and those notes drifted twice (LW-414 seven WP numbers, LW-419
+# four weapons' evade, element, formula and proc) with nothing on the build server to catch it.
+# The snapshot's exe stamp is held to LaunchGuard's expected build so a game patch forces a
+# fresh read in the re-anchor commit (docs/PATCH_REANCHOR.md step 5).
+VANILLA_ROWS_PATH = ROOT / "data" / "vanilla_weapon_rows.json"
+VANILLA_ROW_BYTES = 8
+# ITEM_WEAPON_DATA element bits, the ExtendedRecords.Elements table and the action table's
+# element byte (LIVE_LEDGER provoke row) agree on every bit.
+_ELEMENT_BITS = {"Fire": 0x80, "Lightning": 0x40, "Ice": 0x20, "Wind": 0x10,
+                 "Earth": 0x08, "Water": 0x04, "Holy": 0x02, "Dark": 0x01}
+_FORMULA_NOTE = re.compile(r"Formula(?: field)?\s*[= ]\s*(\d+)")
+_LAUNCH_GUARD_STAMP = re.compile(r"ExpectedTimeDateStamp\s*=\s*0x([0-9A-Fa-f]+)")
+
+
+def load_vanilla_weapon_rows(path=VANILLA_ROWS_PATH):
+    """The committed snapshot; a missing file is a loud failure, never a silent pass."""
+    if not path.exists():
+        raise SystemExit(f"GATE INPUT MISSING: {path} (vanilla weapon rows; run tools/snapshot_vanilla_weapon_rows.py)")
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _launch_guard_text():
+    try:
+        return (ROOT / "LivingWeapon" / "Guard" / "LaunchGuard.Landmarks.cs").read_text(encoding="utf-8")
+    except OSError as ex:
+        return f"// unreadable: {ex}"
+
+
+def baseline_formula(value):
+    """A baseline formula note is an int or prose carrying its number ('4 (decimal) - gun',
+    'Knight Sword (...); XML Formula field=1'); None when no number can be read."""
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value
+    text = str(value or "")
+    m = re.match(r"\s*(\d+)", text) or _FORMULA_NOTE.search(text)
+    return int(m.group(1)) if m else None
+
+
+def baseline_elements(value):
+    """Element bits named in a baseline element note; 'None (Poison)' names no element."""
+    bits = 0
+    for name, bit in _ELEMENT_BITS.items():
+        if re.search(r"\b" + name + r"\b", str(value or "")):
+            bits |= bit
+    return bits
+
+
+def check_vanilla_weapon_rows(items, snapshot, guard_text):
+    """Every weapon id in the snapshot has a baseline and the reverse; each baseline's wp, evade,
+    range (missing means 1, the proposed default), formula, element and on hit ability match the
+    row; the on hit prose opens with None exactly when a plain formula 1 row carries no proc byte
+    (the LW-419 shapes: a design proc written up as vanilla, a real proc hidden under None); and
+    the snapshot's exe stamp is LaunchGuard's. Returns [(item, [problem, ...])]."""
+    bad = []
+    meta = snapshot.get("_meta", {})
+    rows = snapshot.get("rows", {})
+    m = _LAUNCH_GUARD_STAMP.search(guard_text or "")
+    try:
+        snap_stamp = int(str(meta.get("exeTimeDateStamp", "")), 16)
+    except ValueError:
+        snap_stamp = None
+    if not m:
+        bad.append(({"id": "-", "name": "LaunchGuard.Landmarks.cs"},
+                    ["ExpectedTimeDateStamp = 0x... not found (vacuous-pass guard)"]))
+    elif snap_stamp != int(m.group(1), 16):
+        bad.append(({"id": "-", "name": VANILLA_ROWS_PATH.name},
+                    [f"snapshot exe stamp {meta.get('exeTimeDateStamp')!r} != LaunchGuard ExpectedTimeDateStamp "
+                     f"0x{m.group(1).upper()}; rerun tools/snapshot_vanilla_weapon_rows.py in the re-anchor commit"]))
+    by_id = {it["id"]: it for it in items
+             if it.get("category") in WEAPON_CATS and "baseline" in it and it["id"] < 128}
+    snap_ids = {int(k) for k in rows}
+    for iid in sorted(snap_ids - set(by_id)):
+        bad.append(({"id": iid, "name": "?"}, ["snapshot row has no weapon baseline in items.json"]))
+    for iid in sorted(set(by_id) - snap_ids):
+        bad.append((by_id[iid], ["weapon baseline has no snapshot row"]))
+    for iid in sorted(set(by_id) & snap_ids):
+        it, b = by_id[iid], by_id[iid]["baseline"]
+        try:
+            row = bytes.fromhex(rows[str(iid)])
+        except ValueError:
+            row = b""
+        if len(row) != VANILLA_ROW_BYTES:
+            bad.append((it, [f"snapshot row is not {VANILLA_ROW_BYTES} bytes: {rows[str(iid)]!r}"]))
+            continue
+        rng, formula, wp, evade, elem, proc = row[0], row[2], row[4], row[5], row[6], row[7]
+        probs = []
+        if b.get("wp") != wp:
+            probs.append(f"wp: note {b.get('wp')}, game {wp}")
+        if b.get("evade") != evade:
+            probs.append(f"evade: note {b.get('evade')}, game {evade}")
+        if b.get("range", 1) != rng:
+            probs.append(f"range: note {b.get('range', 1)}, game {rng}")
+        f = baseline_formula(b.get("formula"))
+        if f != formula:
+            probs.append(f"formula: note {b.get('formula')!r} reads {f}, game {formula}")
+        if baseline_elements(b.get("element")) != elem:
+            probs.append(f"element: note {b.get('element')!r}, game bits 0x{elem:02X}")
+        if (b.get("onHitAbilityId") or 0) != proc:
+            probs.append(f"onHitAbilityId: note {b.get('onHitAbilityId') or 0}, game {proc}")
+        note = str(b.get("onHit") or "").strip()
+        none_note = note.lower().startswith("none")
+        if proc and none_note:
+            probs.append(f"onHit: the game procs ability {proc} but the note says {note!r}")
+        if not proc and formula == 1 and not none_note:
+            probs.append(f"onHit: the row has no on hit ability (plain formula 1) but the note claims {note!r}")
+        if probs:
+            bad.append((it, probs))
+    return bad
+
+
 def fmt(it, key, nf):
     s = it[key]
     axes = " ".join(f"{ax}{s[ax]}" for ax in NUMERIC_AXES if ax in s)
@@ -1269,6 +1385,86 @@ def _fmt_drift_probs(v):
     for a, probs in v:
         for prob in probs:
             print(f"  DRIFT id{a['id']} {a.get('name')}: {prob}")
+
+
+def selftest():
+    """Built-in regression cases for the VANILLA ROWS gate (LW-420), small in-memory fixtures
+    only, no game file. Mirrors gen_living_weapon_meta.py --selftest's check()/report shape.
+    Every failing case asserts the finding's wording, so a check that went quiet fails here."""
+    cases = []
+
+    def check(name, cond):
+        cases.append((name, bool(cond)))
+
+    def item(iid=78, **baseline):
+        base = {"wp": 3, "evade": 5, "element": "None", "onHit": "None", "formula": 1, "range": 4}
+        base.update(baseline)
+        return {"id": iid, "name": "Eclipsebolt", "vanillaName": "Knightslayer", "category": "Crossbow",
+                "baseline": base, "proposed": {}}
+
+    def snap(row="04 20 01 ff 03 05 00 00", iid=78, stamp="0x6A5E4A1B"):
+        return {"_meta": {"exeTimeDateStamp": stamp}, "rows": {str(iid): row}}
+
+    guard = "    internal const uint ExpectedTimeDateStamp = 0x6A5E4A1B;\n"
+
+    def probs(items, snapshot, guard_text=guard):
+        return [p for _, ps in check_vanilla_weapon_rows(items, snapshot, guard_text) for p in ps]
+
+    check("clean: a baseline matching its row passes", probs([item()], snap()) == [])
+    no_range = item(iid=1)
+    del no_range["baseline"]["range"]
+    check("clean: a missing range key means 1, like the proposed default",
+          probs([no_range], snap("01 8a 01 ff 03 05 00 00", iid=1)) == [])
+
+    check("wp drift is named", any(p.startswith("wp:") for p in probs([item(wp=4)], snap())))
+    check("evade drift is named", any(p.startswith("evade:") for p in probs([item(evade=10)], snap())))
+    check("range drift is named", any(p.startswith("range:") for p in probs([item(range=3)], snap())))
+    check("an element the row lacks is named",
+          any(p.startswith("element:") for p in probs([item(element="Holy")], snap())))
+    check("an element the row carries is matched by name",
+          probs([item(element="Ice")], snap("04 20 01 ff 03 05 20 00")) == [])
+    check("a status word inside the element note is not an element",
+          probs([item(element="None (Poison)")], snap()) == [])
+
+    check("a prose formula note reads its number: 'XML Formula field=1'",
+          probs([item(formula="Knight Sword (PA*Brave/100*WP); XML Formula field=1")], snap()) == [])
+    check("a prose formula note reads its leading number: '4 (decimal) - elemental gun'",
+          probs([item(formula="4 (decimal) - elemental gun")], snap("04 20 04 ff 03 05 00 00")) == [])
+    check("a formula note with no number is a finding",
+          any(p.startswith("formula:") for p in probs([item(formula="Knight Sword")], snap())))
+    check("formula drift is named",
+          any(p.startswith("formula:") for p in probs([item(formula=2)], snap())))
+
+    hidden = probs([item()], snap("04 20 01 ff 03 05 00 15"))
+    check("a proc the row carries under a None note is named twice (id and prose)",
+          any(p.startswith("onHitAbilityId:") for p in hidden) and any(p.startswith("onHit:") for p in hidden))
+    claimed = probs([item(onHit="Oil", onHitAbilityId=101)], snap())
+    check("a proc the note claims but the row lacks is named twice (id and prose)",
+          any(p.startswith("onHitAbilityId:") for p in claimed) and any(p.startswith("onHit:") for p in claimed))
+    check("a proc note with the right id passes",
+          probs([item(onHit="Blind", onHitAbilityId=21)], snap("04 20 01 ff 03 05 00 15")) == [])
+    check("a formula other than 1 may describe itself in the on hit note with no proc byte",
+          probs([item(onHit="Absorb HP", formula=6)], snap("04 20 06 ff 03 05 00 00")) == [])
+
+    check("a snapshot row with no baseline is a finding",
+          any("no weapon baseline" in p for p in probs([], snap())))
+    check("a baseline with no snapshot row is a finding",
+          any("no snapshot row" in p for p in probs([item()], snap(iid=79))))
+    check("a malformed row is a finding",
+          any("8 bytes" in p for p in probs([item()], snap("04 20 01 ff 03 05 00"))))
+
+    check("a snapshot stamp off LaunchGuard's expected build is a finding",
+          any("ExpectedTimeDateStamp" in p for p in probs([item()], snap(stamp="0x6A5E4A1C"))))
+    check("a guard file without the constant is a finding",
+          any("ExpectedTimeDateStamp" in p for p in probs([item()], snap(), guard_text="// nothing here")))
+    check("a stamp match plus clean rows is clean", probs([item()], snap()) == [])
+
+    passed = sum(1 for _, ok in cases if ok)
+    for name, ok in cases:
+        if not ok:
+            print(f"  FAIL: {name}")
+    print(f"analyze selftest: {passed}/{len(cases)} passed.")
+    return 0 if passed == len(cases) else 1
 
 
 def main():
@@ -1395,6 +1591,11 @@ def main():
              check_fn=lambda: check_p3_signame_grid(items),
              pass_msg="PASS: every grid 'P3' cell names the ability the card shows.",
              format_failure=_fmt_drift_probs, sets_rc=True),
+        dict(header="VANILLA ROWS (LW-420: every weapon baseline matches the game's own row bytes in "
+                    "data/vanilla_weapon_rows.json, snapshot stamp matches LaunchGuard)",
+             check_fn=lambda: check_vanilla_weapon_rows(items, load_vanilla_weapon_rows(), _launch_guard_text()),
+             pass_msg="PASS: every weapon baseline matches the vanilla row snapshot.",
+             format_failure=_fmt_drift_probs, sets_rc=True),
     ]
 
     rc = 0
@@ -1412,4 +1613,6 @@ def main():
 
 
 if __name__ == "__main__":
+    if "--selftest" in sys.argv[1:]:
+        sys.exit(selftest())
     main()

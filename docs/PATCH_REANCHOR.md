@@ -177,6 +177,10 @@ outcomes per probe before running (found / ambiguous / not-found and what each m
   moved, they are game-design data and usually survive) IN THE SAME COMMIT. Never flip the
   guard constants alone: the guard exists precisely to stop old offsets running on a new build.
 - Bump every pin from Step 3.2 in the same commit. Both gates green.
+- Re-read the vanilla weapon table from the new exe in the same commit
+  (`python tools/snapshot_vanilla_weapon_rows.py` rewrites data/vanilla_weapon_rows.json);
+  analyze.py holds that file's exe stamp to LaunchGuard's expected build, so a stale snapshot
+  goes red at the gate rather than quietly judging the new build against old bytes.
 
 ## Step 6: deploy and live-verify (owner go-ahead, owner eyes)
 
