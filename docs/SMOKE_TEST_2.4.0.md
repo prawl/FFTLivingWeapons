@@ -484,7 +484,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
 
 ## 4. The extended inventory (ids 261 to 267; recipes in docs/EXTENDED_INVENTORY_GUIDE.md)
 
-- [ ] 4.1 **A weapon past id 260 is a real item (LW-346, LW-347, LW-365, LW-388 walk).** The
+- [x] 4.1 (PASSED 2026-10-18 on prod of a38eb35b, owner live: Warbrand listed, equipped on the formation screen with a shield beside it, the empty tile swing drew the blade, the enemy swing dealt damage and killed (weaken cheat, enemies at 1 HP), Warbrand claims kill number 8 once, the card painted 8, saved, quit, cold boot at 15:35, the load placed Warbrand x1 from the saved counts and the row listed it, no swing-id fallback refusal. CORRECTION to this box's text: the "cap is widened" line cannot print on the Denuvo free build, its pending list is empty (ExtendedSites.cs), the damage dealt is the read. FOUND beside it: the flee after the battle lost one Warbrand copy, filed as LW-452, the formation equip plus flee rewind) **A weapon past id 260 is a real item (LW-346, LW-347, LW-365, LW-388 walk).** The
   owner's 13 step Warbrand (264) walk: list, equip on the formation screen, a shield in the off
   hand, swing at an empty tile, swing at an enemy, kill, card, save, quit, cold boot, load. PASS:
   every step; the shield stays beside the Warbrand; the empty tile swing draws the blade (not bare
@@ -935,7 +935,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   the five cards carry the clause, the harp badge is absent, and when the proc fires it is Confuse
   (lyre) and Blind (tome). FAIL: a card with no cast clause, Charm or Intimidate on a proc, a
   stray badge. (DEV OK) (covers LW-331, LW-355, LW-352) **[MINOR]**
-- [ ] 7.6 (PARTIAL 2026-10-18 on prod of a38eb35b, owner live on the Equipment and Abilities picker with screenshots: Hushblade, Claymore, Graviton, Arcanum, Rod of Faith, Staff of the Magi and Kiku-ichimonji each draw their whole card inside the frame with no blank line under Kills, nine lines at most; the Holy Lance is not in the owner's bag and there is no give all rig on this build, so it rests on the CARD HEIGHT gate (B3) and on the Hushblade, which is one character longer; the cold boot dash read is owed on the next launch) **Tallest cards fit, dashes before the paint (LW-333, LW-311).** Open the six longest
+- [x] 7.6 (PASSED 2026-10-18 on prod of a38eb35b, owner live on the Equipment and Abilities picker with screenshots: Hushblade, Claymore, Graviton, Arcanum, Rod of Faith, Staff of the Magi and Kiku-ichimonji each draw their whole card inside the frame with no blank line under Kills, nine lines at most; the Holy Lance is not in the owner's bag and there is no give all rig on this build, so it rests on the CARD HEIGHT gate (B3) and on the Hushblade, which is one character longer; cold boot leg at 15:40 on a fresh launch with every weapon staged at 15, the first card opened read 15 at once with no literal zero and no dash state visible, the paint landed before the eye could catch it) **Tallest cards fit, dashes before the paint (LW-333, LW-311).** Open the six longest
   cards by assembled text with the color tags stripped, Hushblade (4), Holy Lance (104), Rod of
   Faith (58), Arcanum (30), Claymore (22) and Graviton (29), plus the Staff of the Magi (66, the
   most lines under a plain 33 character wrap) and the Kiku-ichimonji (45): description plus Kills
