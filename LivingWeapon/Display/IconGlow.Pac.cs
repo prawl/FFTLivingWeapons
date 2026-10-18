@@ -33,7 +33,7 @@ internal sealed partial class IconGlow
     private int _pacPatchedThisApply;
     private int _pacAlreadyCurrentThisApply;
     private int _hidesThisApply;   // surfaces the hider reported Hidden this pass, for the summary line
-    private readonly List<(int Id, IconGlowEntry Entry, byte[] OldBytes, byte[] NewBytes)> _pendingPacPatches = new();   // queued this pass, FlushPacBatch drains it
+    private readonly List<(int Id, IconGlowEntry Entry, byte[] OldBytes, byte[] NewBytes, byte[]? PriorTarget)> _pendingPacPatches = new();   // queued this pass, FlushPacBatch drains it
     private readonly List<(int Id, string Surface, IconGlowEntry Entry)> _pacPatchedThisPass = new();   // landed as Patched this pass, the cache-hide set
 
     /// <summary>Queues the bytes a successful WriteDeployedTex just wrote for the pac mirror. Nothing
@@ -42,9 +42,10 @@ internal sealed partial class IconGlow
     /// last case keeps a pristine id's first write silent.</summary>
     private void QueuePacMirror(int id, IconGlowEntry entry, byte[]? oldBytes, byte[] newBytes)
     {
-        if (oldBytes == null || oldBytes.Length != entry.Length) return;
+        if (oldBytes == null || oldBytes.Length != entry.Length) { DropRetryUnreadable(id, entry.Surface); return; }
         if (oldBytes.SequenceEqual(newBytes)) return;
-        _pendingPacPatches.Add((id, entry, oldBytes, newBytes));
+        var plan = ResolveAgainstRetry(id, entry.Surface, oldBytes, newBytes);
+        if (plan.Queue) _pendingPacPatches.Add((id, entry, plan.OldBytes, newBytes, plan.PriorTarget));
     }
 
     /// <summary>Drains everything <see cref="QueuePacMirror"/> queued this pass in one
@@ -52,14 +53,15 @@ internal sealed partial class IconGlow
     /// every loose write. Loose tex first, pac second, never the other way round.</summary>
     private void FlushPacBatch()
     {
+        RequeuePacRetries();
         if (_pendingPacPatches.Count == 0) return;
 
-        var items = _pendingPacPatches.Select(p => (p.Entry, p.OldBytes, p.NewBytes)).ToList();
+        var items = _pendingPacPatches.Select(p => (p.Entry, p.OldBytes, p.NewBytes, p.PriorTarget)).ToList();
         var results = _store.PatchPacBatch(items);
         foreach (var p in _pendingPacPatches)
         {
             var result = results.TryGetValue((p.Id, p.Entry.Surface), out var r) ? r : PacPatchResult.Failed;
-            RoutePacResult(p.Id, p.Entry, result);
+            RoutePacResult(p.Id, p.Entry, p.OldBytes, p.NewBytes, p.PriorTarget, result);
         }
         _pendingPacPatches.Clear();
 
@@ -70,16 +72,29 @@ internal sealed partial class IconGlow
 
     /// <summary>Routes one result. NotFound is steady state, not a failure, and AlreadyCurrent
     /// counts apart from a real write.</summary>
-    private void RoutePacResult(int id, IconGlowEntry entry, PacPatchResult result)
+    private void RoutePacResult(int id, IconGlowEntry entry, byte[] oldBytes, byte[] newBytes, byte[]? priorTarget, PacPatchResult result)
     {
+        if (result == PacPatchResult.Failed)
+        {
+            RoutePacFailed(id, entry, oldBytes, newBytes, priorTarget);
+            return;
+        }
+        if (result == PacPatchResult.Unavailable) CountUnavailableRetry(id, entry.Surface);
+        var retried = result == PacPatchResult.Unavailable ? null : TakeRetry(id, entry.Surface);
+        int onRetry = retried?.Attempts ?? 0;
         switch (result)
         {
             case PacPatchResult.Patched:
+                if (retried != null)
+                    ModLogger.Debug(LogVerb.Display, $"IconGlow mirrored icon {id} ({entry.Surface}) into modded.pac on retry {onRetry}.");
                 _pacPatchedThisApply++;
                 _pacPatchedThisPass.Add((id, entry.Surface, entry));   // hide-eligible this pass
                 break;
             case PacPatchResult.AlreadyCurrent:
                 _pacAlreadyCurrentThisApply++;   // nothing was written
+                if (retried == null) break;
+                _pacPatchedThisPass.Add((id, entry.Surface, entry));
+                ModLogger.Debug(LogVerb.Display, $"IconGlow mirrored icon {id} ({entry.Surface}) into modded.pac on retry {onRetry} (the earlier write had landed).");
                 break;
             case PacPatchResult.Unavailable:
                 if (!_pacUnavailableWarned)
@@ -89,6 +104,9 @@ internal sealed partial class IconGlow
                         "IconGlow cannot locate modded.pac this launch (Reloaded-II may be installed outside the game folder); icon tier changes stay restart-only this session. The deployed loose tex is unaffected.");
                 }
                 break;
+            case PacPatchResult.NotFound when retried != null:
+                WarnPacOnce(id, $"IconGlow could not mirror icon {id} ({entry.Surface}) into modded.pac this session; after a failed write the file holds neither the old nor the new art ({LastPacDetail(id, entry.Surface)}); it will still show correctly after a restart.");
+                break;
             case PacPatchResult.NotFound:
                 // The launch merge reads the loose tex once at launch, so an icon re-tiered after
                 // that merge has its old bytes absent from the pac. Measured live, 6 of 242
@@ -97,7 +115,7 @@ internal sealed partial class IconGlow
                 ModLogger.Debug(LogVerb.Display,
                     $"IconGlow found no modded.pac occurrence to mirror icon {id} ({entry.Surface}) into this session (expected when this session re-tiered the icon after the launch merge already ran); it will still show correctly after a restart.");
                 break;
-            default:   // Ambiguous and Failed are unexpected, on the dedicated warn set
+            default:   // Ambiguous is unexpected, on the dedicated warn set
                 WarnPacOnce(id, $"IconGlow could not mirror icon {id} ({entry.Surface}) into modded.pac this session ({result}); it will still show correctly after a restart.");
                 break;
         }

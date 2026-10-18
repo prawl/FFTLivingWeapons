@@ -74,6 +74,8 @@ internal interface IIconGlowStore
     /// tools/glow_bounce.py re-tiers all 242 entries. One result per (Id, Surface). Never throws,
     /// and a non-Patched result is informational only.</summary>
     IReadOnlyDictionary<(int Id, string Surface), PacPatchResult> PatchPacBatch(
-        IReadOnlyList<(IconGlowEntry Entry, byte[] OldBytes, byte[] NewBytes)> items);
+        IReadOnlyList<(IconGlowEntry Entry, byte[] OldBytes, byte[] NewBytes, byte[]? PriorTarget)> items);
+
+    IconGlowWriteError? LastPacError(int id, string surface);
 }
 

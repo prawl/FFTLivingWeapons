@@ -63,7 +63,7 @@ internal sealed class FileIconGlowStore : IIconGlowStore
     /// offset cache is reused. The cache key is (id, surface), matching <see cref="DeployedPath"/>
     /// and <see cref="BackupPath"/>. Uncached items share one pass via <see cref="ModdedPac.PatchBatch"/>.</summary>
     public IReadOnlyDictionary<(int Id, string Surface), PacPatchResult> PatchPacBatch(
-        IReadOnlyList<(IconGlowEntry Entry, byte[] OldBytes, byte[] NewBytes)> items)
+        IReadOnlyList<(IconGlowEntry Entry, byte[] OldBytes, byte[] NewBytes, byte[]? PriorTarget)> items)
     {
         var results = new Dictionary<(int, string), PacPatchResult>();
         if (items.Count == 0) return results;
@@ -76,12 +76,14 @@ internal sealed class FileIconGlowStore : IIconGlowStore
         }
 
         // Key built once per item so the lookup below uses the key the item was searched under.
-        var keyed = items.Select(it => (Key: $"{it.Entry.Id}:{it.Entry.Surface}", it.Entry, it.OldBytes, it.NewBytes)).ToList();
-        var byKey = pac.PatchBatch(keyed.Select(k => (k.Key, k.OldBytes, k.NewBytes)).ToList());
+        var keyed = items.Select(it => (Key: $"{it.Entry.Id}:{it.Entry.Surface}", it.Entry, it.OldBytes, it.NewBytes, it.PriorTarget)).ToList();
+        var byKey = pac.PatchBatch(keyed.Select(k => (k.Key, k.OldBytes, k.NewBytes, k.PriorTarget)).ToList());
         foreach (var k in keyed)
             results[(k.Entry.Id, k.Entry.Surface)] = byKey.TryGetValue(k.Key, out var r) ? r : PacPatchResult.Failed;
         return results;
     }
+
+    public IconGlowWriteError? LastPacError(int id, string surface) => _pac?.LastFailure($"{id}:{surface}");
 
     /// <summary>modDir is <c>&lt;game&gt;\Reloaded\Mods\&lt;modId&gt;</c>, so the game root is three
     /// parents up. That is unproven, since a Reloaded-II install can live outside the game folder. A

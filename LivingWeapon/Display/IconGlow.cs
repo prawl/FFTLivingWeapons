@@ -81,8 +81,14 @@ internal sealed partial class IconGlow
         {
             // A surface postponed by an in-battle hide still needs a retry (RunPendingHidesOnly
             // in IconGlow.Hide.cs), run under the same _applying latch.
-            bool hasPendingHides;
-            lock (_lock) hasPendingHides = _pendingHides.Count > 0;
+            bool hasPendingHides, hasPacRetries;
+            lock (_lock) { hasPendingHides = _pendingHides.Count > 0; hasPacRetries = _pacRetry.Count > 0; }
+            if (hasPacRetries)
+            {
+                lock (_lock) _applying = true;
+                _runBackground(RunPacRetriesOnly);
+                return;
+            }
             if (!hasPendingHides) return;
             lock (_lock) _applying = true;
             _runBackground(RunPendingHidesOnly);

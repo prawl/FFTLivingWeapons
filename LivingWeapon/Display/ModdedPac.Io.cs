@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 
 namespace LivingWeapon;
@@ -12,7 +13,7 @@ internal sealed partial class ModdedPac
     /// <summary>Cached-offset fast path. Read the bytes at <c>offset</c> and act on what is there.
     /// <paramref name="stale"/> is true only when they match neither old nor new, the cue for a full search.
     /// Any I/O failure (FileShare, truncated file mid-session) is final.</summary>
-    private PacPatchResult TryPatchAtOffset(long offset, byte[] oldBytes, byte[] newBytes, out bool stale)
+    private PacPatchResult TryPatchAtOffset(string cacheKey, long offset, byte[] oldBytes, byte[] newBytes, byte[]? priorTarget, out bool stale)
     {
         stale = false;
         try
@@ -21,36 +22,46 @@ internal sealed partial class ModdedPac
             if (offset < 0 || offset + oldBytes.Length > stream.Length) { stale = true; return PacPatchResult.Failed; }
             stream.Position = offset;
             var atOffset = ReadExactly(stream, oldBytes.Length);
-            if (atOffset == null) return PacPatchResult.Failed;
+            if (atOffset == null) return Fail(cacheKey, "ShortRead", 0, "could not read the full entry at the cached offset");
 
-            if (BytesEqual(atOffset, newBytes)) return PacPatchResult.AlreadyCurrent;
-            if (!BytesEqual(atOffset, oldBytes)) { stale = true; return PacPatchResult.Failed; }
+            if (BytesEqual(atOffset, newBytes)) { ClearFailure(cacheKey); return PacPatchResult.AlreadyCurrent; }
+            if (!BytesEqual(atOffset, oldBytes) && (priorTarget == null || !BytesEqual(atOffset, priorTarget))) { stale = true; return PacPatchResult.Failed; }
         }
         catch { return PacPatchResult.Unavailable; }
 
-        return WriteAndVerify(offset, newBytes);
+        return WriteAndVerify(cacheKey, offset, newBytes);
     }
 
     /// <summary>Write at the offset, flush to disk (<see cref="FileStream.Flush(bool)"/> with
     /// <c>flushToDisk. True</c>, the probe's flush + fsync), then reopen and compare. Never throws; any
     /// failure returns <see cref="PacPatchResult.Failed"/>.</summary>
-    private PacPatchResult WriteAndVerify(long offset, byte[] newBytes)
+    private PacPatchResult WriteAndVerify(string cacheKey, long offset, byte[] newBytes)
     {
+        string stage = "write open";
         try
         {
             using (var writeStream = new FileStream(_pacPath, FileMode.Open, FileAccess.Write, FileShare.ReadWrite))
             {
                 writeStream.Position = offset;
+                stage = "write";
                 writeStream.Write(newBytes, 0, newBytes.Length);
+                stage = "flush";
                 writeStream.Flush(flushToDisk: true);
             }
 
+            stage = "verify open";
             using var verifyStream = new FileStream(_pacPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            stage = "verify read";
             verifyStream.Position = offset;
             var readBack = ReadExactly(verifyStream, newBytes.Length);
-            return readBack != null && BytesEqual(readBack, newBytes) ? PacPatchResult.Patched : PacPatchResult.Failed;
+            if (readBack == null)
+                return Fail(cacheKey, "ShortRead", 0, "at verify read, could not read the full entry back after the write");
+            if (!BytesEqual(readBack, newBytes))
+                return Fail(cacheKey, "ReadbackMismatch", 0, "at verify read, the bytes read back after the write did not match");
+            ClearFailure(cacheKey);
+            return PacPatchResult.Patched;
         }
-        catch { return PacPatchResult.Failed; }
+        catch (Exception ex) { return Fail(cacheKey, ex.GetType().Name, ex.HResult & 0xFFFF, $"at {stage}, {ex.Message}"); }
     }
 
     private static byte[]? ReadExactly(Stream stream, int count)

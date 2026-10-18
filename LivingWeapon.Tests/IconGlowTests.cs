@@ -85,13 +85,21 @@ public class IconGlowTests
         /// <summary>LW-381 R2-2: one entry per <c>PatchPacBatch</c> CALL (not per item), so a test
         /// can assert how many times the store was actually invoked -- the whole point of the
         /// batching fix is fewer, larger calls rather than one call per icon.</summary>
-        public readonly List<IReadOnlyList<(IconGlowEntry Entry, byte[] OldBytes, byte[] NewBytes)>> PatchPacBatchCalls = new();
+        public readonly List<IReadOnlyList<(IconGlowEntry Entry, byte[] OldBytes, byte[] NewBytes, byte[]? PriorTarget)>> PatchPacBatchCalls = new();
         public PacPatchResult PatchPacResult = PacPatchResult.Patched;
         /// <summary>LW-381: a per-(id,surface) override on top of the single canned
         /// <see cref="PatchPacResult"/> -- lets a test make ONE surface land Patched while a
         /// sibling in the SAME batch call lands something else (T10's "hider only sees the
         /// actually-patched surfaces" case).</summary>
         public readonly Dictionary<(int Id, string Surface), PacPatchResult> PatchPacResultOverride = new();
+        public readonly Dictionary<(int Id, string Surface), IconGlowWriteError> PacErrors = new();
+        /// <summary>LW-445: the result for every item of the Nth call (1 based), under the per-surface
+        /// override and over the canned result, so a test can fail call 1 and land call 2.</summary>
+        public Func<int, PacPatchResult>? PatchPacResultByCall;
+        /// <summary>LW-445: PatchPacBatch throws on this call (1 based) and every later one when above zero.</summary>
+        public int ThrowFromCall;
+
+        public IconGlowWriteError? LastPacError(int id, string surface) => PacErrors.TryGetValue((id, surface), out var e) ? e : null;
 
         public IconGlowManifest? ReadManifest() => Manifest;
         public byte[]? ReadDeployedTex(IconGlowEntry entry) => Deployed.TryGetValue((entry.Id, entry.Surface), out var b) ? b : null;
@@ -117,14 +125,16 @@ public class IconGlowTests
         }
 
         public IReadOnlyDictionary<(int Id, string Surface), PacPatchResult> PatchPacBatch(
-            IReadOnlyList<(IconGlowEntry Entry, byte[] OldBytes, byte[] NewBytes)> items)
+            IReadOnlyList<(IconGlowEntry Entry, byte[] OldBytes, byte[] NewBytes, byte[]? PriorTarget)> items)
         {
             PatchPacBatchCalls.Add(items);
+            if (ThrowFromCall > 0 && PatchPacBatchCalls.Count >= ThrowFromCall) throw new InvalidOperationException("store boom");
             var results = new Dictionary<(int, string), PacPatchResult>();
             foreach (var item in items)
             {
                 var key = (item.Entry.Id, item.Entry.Surface);
-                results[key] = PatchPacResultOverride.TryGetValue(key, out var r) ? r : PatchPacResult;
+                results[key] = PatchPacResultOverride.TryGetValue(key, out var r) ? r
+                    : PatchPacResultByCall != null ? PatchPacResultByCall(PatchPacBatchCalls.Count) : PatchPacResult;
             }
             return results;
         }
@@ -1002,11 +1012,13 @@ public class IconGlowTests
         kills[id] = 10;   // tier 2 -- a genuinely different apply, reaches the pac mirror again
         icon.Tick();
         Assert.Equal(t2, store.Deployed[(id, "card")]);
+        for (int n = 0; n < IconGlow.PacRetryCap; n++) icon.Tick();   // a Failed mirror warns only once its retries run out
 
-        // The pac mirror really did fire on BOTH ticks (proving the second tick was not a no-op
+        // The pac mirror really did fire on BOTH tier changes (proving the second tick was not a no-op
         // that trivially "didn't repeat" the warning), yet only ONE warning was ever emitted.
-        Assert.Equal(2, store.PatchPacBatchCalls.Count);
-        Assert.Equal(1, cap.File.Count(l => l.Contains($"icon {id}") && l.Contains("modded.pac")));
+        int retryCalls = result == PacPatchResult.Failed ? IconGlow.PacRetryCap : 0;
+        Assert.Equal(2 + retryCalls, store.PatchPacBatchCalls.Count);
+        Assert.Equal(1, cap.File.Count(l => l.Contains("[WARN]") && l.Contains($"icon {id}") && l.Contains("modded.pac")));
     }
 
     // ---- R2-4: NotFound is expected steady state (this session's own re-tier can run after the
@@ -1121,15 +1133,316 @@ public class IconGlowTests
         var icon = new IconGlow("m", kills, new[] { id }, store, new NoopIconCacheHider(), a => a());
 
         using var cap = LogCapture.Start();
-        icon.Tick();   // pac mirror fails (Failed) -- one warning, on the pac-dedicated set
+        icon.Tick();   // pac mirror fails (Failed) and is re queued
+        for (int n = 0; n < IconGlow.PacRetryCap; n++) icon.Tick();   // the retries exhaust, one warning, on the pac-dedicated set
 
         kills[id] = 10;   // tier 2 -- now the LOOSE write itself fails: a genuinely different bug
         store.FailDeployedWrite.Add((id, "card"));
         icon.Tick();
 
-        Assert.Equal(1, cap.File.Count(l => l.Contains($"icon {id}") && l.Contains("modded.pac")));
+        Assert.Equal(1, cap.File.Count(l => l.Contains("[WARN]") && l.Contains($"icon {id}") && l.Contains("modded.pac")));
         Assert.Equal(1, cap.File.Count(l => l.Contains($"icon {id}") && l.Contains("failed to write")));
     }
+
+    // ---- LW-445: a Failed pac mirror is re queued, retried on later ticks up to the cap, and a retry
+    // that lands feeds the cache hide like any patched surface. ----
+
+    private static (FakeIconGlowStore Store, IconGlowEntry Entry, byte[] Base, byte[] T1, byte[] T2) PacRetryRig(int id, int seed)
+    {
+        var store = new FakeIconGlowStore();
+        byte[] baseBytes = RandBytes(seed, 10), t1 = RandBytes(seed + 1, 10), t2 = RandBytes(seed + 2, 10);
+        var entry = MakeEntry(id, "card", baseBytes, new() { [1] = t1, [2] = t2 });
+        store.Manifest = new IconGlowManifest { SchemaVersion = 1, Icons = new() { entry } };
+        store.Deployed[(id, "card")] = baseBytes;
+        store.Variants[(id, "card", 1)] = t1;
+        store.Variants[(id, "card", 2)] = t2;
+        return (store, entry, baseBytes, t1, t2);
+    }
+
+    private static void RunCaptured(List<Action> captured)
+    {
+        var batch = captured.ToList();
+        captured.Clear();
+        foreach (var a in batch) a();
+    }
+
+    [Fact]
+    public void PacMirror_Failed_IsRequeuedAndRetriedOnALaterTick()
+    {
+        const int id = 80;
+        var (store, _, _, _, _) = PacRetryRig(id, 3000);
+        store.PatchPacResultByCall = n => n == 1 ? PacPatchResult.Failed : PacPatchResult.Patched;
+        var kills = new Dictionary<int, int> { [id] = 5 };   // tier 1
+        var captured = new List<Action>();
+        var icon = new IconGlow("m", kills, new[] { id }, store, new NoopIconCacheHider(), a => captured.Add(a));
+
+        icon.Tick();
+        RunCaptured(captured);
+        Assert.Equal(1, icon.PendingPacRetries);
+
+        icon.Tick();
+        Assert.Single(captured);
+        RunCaptured(captured);
+
+        Assert.Equal(2, store.PatchPacBatchCalls.Count);
+        var first = store.PatchPacBatchCalls[0].Single();
+        var second = store.PatchPacBatchCalls[1].Single();
+        Assert.Equal(first.OldBytes, second.OldBytes);
+        Assert.Equal(first.NewBytes, second.NewBytes);
+        Assert.Equal(0, icon.PendingPacRetries);
+    }
+
+    [Fact]
+    public void PacMirror_RetryLands_HidesThatSurface_AndStopsRetrying()
+    {
+        const int id = 81;
+        var (store, _, _, _, _) = PacRetryRig(id, 3010);
+        store.PatchPacResultByCall = n => n == 1 ? PacPatchResult.Failed : PacPatchResult.Patched;
+        var kills = new Dictionary<int, int> { [id] = 5 };
+        var captured = new List<Action>();
+        var hider = new RecordingIconCacheHider();
+        var icon = new IconGlow("m", kills, new[] { id }, store, hider, a => captured.Add(a), hideDrawnIcons: true, healer: new NoopIconCacheHealer { Armed = true });
+
+        using var cap = LogCapture.Start();
+        icon.Tick();
+        RunCaptured(captured);
+        Assert.Empty(hider.Calls);   // nothing landed, nothing to hide
+
+        icon.Tick();
+        RunCaptured(captured);
+
+        var call = Assert.Single(hider.Calls);
+        var target = Assert.Single(call);
+        Assert.Equal((id, "card"), (target.Id, target.Surface));
+        Assert.Equal(1, cap.File.Count(l => l.Contains("on retry 1")));
+
+        icon.Tick();
+        Assert.Empty(captured);
+        Assert.Equal(2, store.PatchPacBatchCalls.Count);
+    }
+
+    [Fact]
+    public void PacMirror_FailedPastCap_WarnsOnceWithReason_AndStopsRetrying()
+    {
+        const int id = 82;
+        var (store, _, _, _, _) = PacRetryRig(id, 3020);
+        store.PatchPacResult = PacPatchResult.Failed;
+        store.PacErrors[(id, "card")] = new IconGlowWriteError("IOException", 32, "sharing violation");
+        var kills = new Dictionary<int, int> { [id] = 5 };
+        var captured = new List<Action>();
+        var icon = new IconGlow("m", kills, new[] { id }, store, new NoopIconCacheHider(), a => captured.Add(a));
+
+        using var cap = LogCapture.Start();
+        icon.Tick();
+        RunCaptured(captured);
+        for (int i = 0; i < IconGlow.PacRetryCap; i++)
+        {
+            icon.Tick();
+            RunCaptured(captured);
+        }
+
+        Assert.Equal(IconGlow.PacRetryCap + 1, store.PatchPacBatchCalls.Count);
+        var warns = cap.File.Where(l => l.Contains("[WARN]") && l.Contains($"icon {id}") && l.Contains("modded.pac")).ToList();
+        var warn = Assert.Single(warns);
+        Assert.Contains("after 6 tries", warn);
+        Assert.Contains("Win32 error 32", warn);
+        var retries = cap.File.Where(l => l.Contains("[DEBUG]") && l.Contains("retrying on a later pass")).ToList();
+        Assert.Equal(IconGlow.PacRetryCap, retries.Count);
+        Assert.All(retries, l => Assert.Contains("Win32 error 32", l));
+
+        icon.Tick();
+        Assert.Empty(captured);
+        Assert.Equal(0, icon.PendingPacRetries);
+    }
+
+    [Fact]
+    public void PacMirror_TierChangeWhileRetryPending_CarriesPriorTarget()
+    {
+        const int id = 83;
+        var (store, _, baseBytes, t1, t2) = PacRetryRig(id, 3030);
+        store.PatchPacResultByCall = n => n == 1 ? PacPatchResult.Failed : PacPatchResult.Patched;
+        var kills = new Dictionary<int, int> { [id] = 5 };   // tier 1
+        var captured = new List<Action>();
+        var icon = new IconGlow("m", kills, new[] { id }, store, new NoopIconCacheHider(), a => captured.Add(a));
+
+        icon.Tick();
+        RunCaptured(captured);
+        Assert.Equal(1, icon.PendingPacRetries);
+
+        kills[id] = 10;   // tier 2 before the retry ran
+        icon.Tick();
+        RunCaptured(captured);
+
+        Assert.Equal(2, store.PatchPacBatchCalls.Count);
+        var item = Assert.Single(store.PatchPacBatchCalls[1]);
+        Assert.Equal(baseBytes, item.OldBytes);
+        Assert.Equal(t2, item.NewBytes);
+        Assert.Equal(t1, item.PriorTarget);
+        Assert.Equal(0, icon.PendingPacRetries);
+    }
+
+    [Fact]
+    public void PacMirror_RetryFindsEarlierWriteLanded_HidesWithoutRewriting()
+    {
+        const int id = 85;
+        var (store, _, _, _, _) = PacRetryRig(id, 3050);
+        store.PatchPacResultByCall = n => n == 1 ? PacPatchResult.Failed : PacPatchResult.AlreadyCurrent;
+        var kills = new Dictionary<int, int> { [id] = 5 };
+        var captured = new List<Action>();
+        var hider = new RecordingIconCacheHider();
+        var icon = new IconGlow("m", kills, new[] { id }, store, hider, a => captured.Add(a), hideDrawnIcons: true, healer: new NoopIconCacheHealer { Armed = true });
+
+        using var cap = LogCapture.Start();
+        icon.Tick();
+        RunCaptured(captured);
+        Assert.Empty(hider.Calls);
+
+        icon.Tick();
+        RunCaptured(captured);
+
+        var target = Assert.Single(Assert.Single(hider.Calls));
+        Assert.Equal((id, "card"), (target.Id, target.Surface));
+        Assert.Equal(1, cap.File.Count(l => l.Contains("on retry 1 (the earlier write had landed)")));
+        Assert.Equal(0, icon.PendingPacRetries);
+
+        icon.Tick();
+        Assert.Empty(captured);
+        Assert.Equal(2, store.PatchPacBatchCalls.Count);
+    }
+
+    [Fact]
+    public void PacMirror_NotFoundOnRetry_WarnsOnceWithDetail()
+    {
+        const int id = 86;
+        var (store, _, _, _, _) = PacRetryRig(id, 3060);
+        store.PatchPacResultByCall = n => n == 1 ? PacPatchResult.Failed : PacPatchResult.NotFound;
+        store.PacErrors[(id, "card")] = new IconGlowWriteError("IOException", 32, "at flush, sharing violation");
+        var kills = new Dictionary<int, int> { [id] = 5 };
+        var captured = new List<Action>();
+        var icon = new IconGlow("m", kills, new[] { id }, store, new NoopIconCacheHider(), a => captured.Add(a));
+
+        using var cap = LogCapture.Start();
+        icon.Tick();
+        RunCaptured(captured);
+        icon.Tick();
+        RunCaptured(captured);
+
+        var warn = Assert.Single(cap.File.Where(l => l.Contains("[WARN]") && l.Contains($"icon {id}")));
+        Assert.Contains("neither the old nor the new art", warn);
+        Assert.Contains("sharing violation", warn);
+        Assert.Equal(0, icon.PendingPacRetries);
+
+        icon.Tick();
+        Assert.Empty(captured);
+        Assert.Equal(2, store.PatchPacBatchCalls.Count);
+    }
+
+    [Fact]
+    public void PacMirror_RetryPassThrows_WarnsOncePastCap_AndClears()
+    {
+        const int id = 87;
+        var (store, _, _, _, _) = PacRetryRig(id, 3070);
+        store.PatchPacResultByCall = n => PacPatchResult.Failed;
+        store.ThrowFromCall = 2;
+        var kills = new Dictionary<int, int> { [id] = 5 };
+        var captured = new List<Action>();
+        var icon = new IconGlow("m", kills, new[] { id }, store, new NoopIconCacheHider(), a => captured.Add(a));
+
+        using var cap = LogCapture.Start();
+        icon.Tick();
+        RunCaptured(captured);
+        Assert.Equal(1, icon.PendingPacRetries);
+        for (int i = 0; i < IconGlow.PacRetryCap; i++)
+        {
+            icon.Tick();
+            RunCaptured(captured);
+        }
+
+        var warn = Assert.Single(cap.File.Where(l => l.Contains("[WARN]") && l.Contains($"icon {id}")));
+        Assert.Contains("the retry pass kept failing (6 tries)", warn);
+        Assert.Equal(0, icon.PendingPacRetries);
+        icon.Tick();
+        Assert.Empty(captured);
+    }
+
+    [Fact]
+    public void PacMirror_UnavailableOnRetry_CountsAnAttempt_AndDropsSilentlyPastCap()
+    {
+        const int id = 88;
+        var (store, _, _, _, _) = PacRetryRig(id, 3080);
+        store.PatchPacResultByCall = n => n == 1 ? PacPatchResult.Failed : PacPatchResult.Unavailable;
+        var kills = new Dictionary<int, int> { [id] = 5 };
+        var captured = new List<Action>();
+        var icon = new IconGlow("m", kills, new[] { id }, store, new NoopIconCacheHider(), a => captured.Add(a));
+
+        using var cap = LogCapture.Start();
+        icon.Tick();
+        RunCaptured(captured);
+        for (int i = 0; i < IconGlow.PacRetryCap; i++)
+        {
+            icon.Tick();
+            RunCaptured(captured);
+        }
+
+        Assert.Equal(0, icon.PendingPacRetries);
+        Assert.Empty(cap.File.Where(l => l.Contains("[WARN]") && l.Contains($"icon {id}") && l.Contains("after")));
+        Assert.Equal(IconGlow.PacRetryCap + 1, store.PatchPacBatchCalls.Count);
+        icon.Tick();
+        Assert.Empty(captured);
+        Assert.Equal(IconGlow.PacRetryCap + 1, store.PatchPacBatchCalls.Count);
+    }
+
+    [Fact]
+    public void PacMirror_RetryCarriedByANormalPass()
+    {
+        const int idA = 89, idB = 90;
+        var store = new FakeIconGlowStore();
+        byte[] baseA = RandBytes(3090, 10), a1 = RandBytes(3091, 10), baseB = RandBytes(3092, 10), b1 = RandBytes(3093, 10);
+        var entryA = MakeEntry(idA, "card", baseA, new() { [1] = a1 });
+        var entryB = MakeEntry(idB, "card", baseB, new() { [1] = b1 });
+        store.Manifest = new IconGlowManifest { SchemaVersion = 1, Icons = new() { entryA, entryB } };
+        store.Deployed[(idA, "card")] = baseA;
+        store.Deployed[(idB, "card")] = baseB;
+        store.Variants[(idA, "card", 1)] = a1;
+        store.Variants[(idB, "card", 1)] = b1;
+        store.PatchPacResultByCall = n => n == 1 ? PacPatchResult.Failed : PacPatchResult.Patched;
+        var kills = new Dictionary<int, int> { [idA] = 5, [idB] = 0 };
+        var captured = new List<Action>();
+        var hider = new RecordingIconCacheHider();
+        var icon = new IconGlow("m", kills, new[] { idA, idB }, store, hider, a => captured.Add(a), hideDrawnIcons: true, healer: new NoopIconCacheHealer { Armed = true });
+
+        icon.Tick();
+        RunCaptured(captured);
+        Assert.Equal(1, icon.PendingPacRetries);
+        Assert.Empty(hider.Calls);
+
+        kills[idB] = 5;
+        icon.Tick();
+        RunCaptured(captured);
+
+        Assert.Equal(2, store.PatchPacBatchCalls.Count);
+        Assert.Equal(new[] { idA, idB }, store.PatchPacBatchCalls[1].Select(i => i.Entry.Id).OrderBy(x => x).ToArray());
+        Assert.Equal(0, icon.PendingPacRetries);
+        var hidden = hider.Calls.SelectMany(c => c).Select(t => t.Id).OrderBy(x => x).ToArray();
+        Assert.Equal(new[] { idA, idB }, hidden);
+    }
+
+    [Fact]
+    public void PacMirror_AmbiguousIsNotRetried()
+    {
+        const int id = 84;
+        var (store, _, _, _, _) = PacRetryRig(id, 3040);
+        store.PatchPacResult = PacPatchResult.Ambiguous;
+        var kills = new Dictionary<int, int> { [id] = 5 };
+        var icon = new IconGlow("m", kills, new[] { id }, store, new NoopIconCacheHider(), a => a());
+
+        using var cap = LogCapture.Start();
+        icon.Tick();
+
+        Assert.Equal(0, icon.PendingPacRetries);
+        Assert.Equal(1, cap.File.Count(l => l.Contains("[WARN]") && l.Contains($"icon {id}") && l.Contains("modded.pac")));
+    }
+
 
     // ---- LW-381 second half: IconGlow hands only the surfaces that actually landed in
     // modded.pac this pass to the cache hider (T10), a throwing hider never touches the apply's

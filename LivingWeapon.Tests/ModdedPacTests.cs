@@ -49,6 +49,69 @@ public class ModdedPacTests : IDisposable
     }
 
     [Fact]
+    public void PatchBatch_WriteOpenRefused_RecordsFailureDetail()
+    {
+        byte[] oldBytes = { 0x01, 0x02, 0x03, 0x04 };
+        byte[] newBytes = { 0x11, 0x12, 0x13, 0x14 };
+        var content = Filler(100);
+        Array.Copy(oldBytes, 0, content, 40, oldBytes.Length);
+        WriteFile(content);
+        var pac = new ModdedPac(_path);
+
+        PacPatchResult refused;
+        // A read handle that shares only reads lets the search open through but refuses the write open.
+        using (new FileStream(_path, FileMode.Open, FileAccess.Read, FileShare.Read))
+            refused = pac.Patch("key1", oldBytes, newBytes);
+
+        Assert.Equal(PacPatchResult.Failed, refused);
+        Assert.Equal("IOException", pac.LastFailure("key1")?.ExceptionType);
+        Assert.StartsWith("at write open, ", pac.LastFailure("key1")?.Message);
+
+        Assert.Equal(PacPatchResult.Patched, pac.Patch("key1", oldBytes, newBytes));
+        Assert.Null(pac.LastFailure("key1"));
+    }
+
+    [Fact]
+    public void PatchBatch_RetryAfterLandedWrite_ReportsAlreadyCurrent()
+    {
+        byte[] oldBytes = { 0x01, 0x02, 0x03, 0x04 };
+        byte[] newBytes = { 0x11, 0x12, 0x13, 0x14 };
+        var content = Filler(100);
+        Array.Copy(newBytes, 0, content, 40, newBytes.Length);   // the write landed but was never verified
+        WriteFile(content);
+        var pac = new ModdedPac(_path);
+
+        var first = pac.PatchBatch(new (string, byte[], byte[], byte[]?)[] { ("key1", oldBytes, newBytes, null) });
+        Assert.Equal(PacPatchResult.AlreadyCurrent, first["key1"]);
+
+        // A second copy of the new bytes makes any fresh search Ambiguous, so AlreadyCurrent proves the cached offset answered.
+        var twice = new byte[content.Length + newBytes.Length];
+        Array.Copy(content, twice, content.Length);
+        Array.Copy(newBytes, 0, twice, content.Length, newBytes.Length);
+        File.WriteAllBytes(_path, twice);
+
+        var second = pac.PatchBatch(new (string, byte[], byte[], byte[]?)[] { ("key1", oldBytes, newBytes, null) });
+        Assert.Equal(PacPatchResult.AlreadyCurrent, second["key1"]);
+    }
+
+    [Fact]
+    public void PatchBatch_PriorTargetNeedle_WritesWhenPacHoldsIt()
+    {
+        byte[] baseBytes = { 0x01, 0x02, 0x03, 0x04 };
+        byte[] tier1 = { 0x11, 0x12, 0x13, 0x14 };
+        byte[] tier2 = { 0x21, 0x22, 0x23, 0x24 };
+        var content = Filler(100);
+        Array.Copy(tier1, 0, content, 40, tier1.Length);
+        WriteFile(content);
+        var pac = new ModdedPac(_path);
+
+        var results = pac.PatchBatch(new (string, byte[], byte[], byte[]?)[] { ("key1", baseBytes, tier2, tier1) });
+
+        Assert.Equal(PacPatchResult.Patched, results["key1"]);
+        Assert.Equal(tier2, new ArraySegment<byte>(ReadFile(), 40, 4).ToArray());
+    }
+
+    [Fact]
     public void Patch_LengthMismatch_ReturnsFailed_LeavesFileUnchanged()
     {
         byte[] oldBytes = { 0x01, 0x02, 0x03, 0x04 };
@@ -205,10 +268,10 @@ public class ModdedPacTests : IDisposable
         File.WriteAllBytes(_path, extended);
 
         byte[] secondX = { 0x41, 0x42, 0x43, 0x44 };
-        var results = pac.PatchBatch(new (string, byte[], byte[])[]
+        var results = pac.PatchBatch(new (string, byte[], byte[], byte[]?)[]
         {
-            ("keyX", newX, secondX),   // cache-resolved
-            ("keyY", oldY, newY),      // unresolved -- needs the shared pass
+            ("keyX", newX, secondX, null),   // cache-resolved
+            ("keyY", oldY, newY, null),      // unresolved -- needs the shared pass
         });
 
         Assert.Equal(PacPatchResult.Patched, results["keyX"]);
