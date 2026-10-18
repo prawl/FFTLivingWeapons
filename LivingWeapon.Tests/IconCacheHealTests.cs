@@ -68,27 +68,6 @@ public class IconCacheHealTests
 
     // ---- the pure decision ----
 
-    [Fact]
-    public void ShouldHeal_AStackKey_PassesThrough_EvenWhenEverythingElseSaysHeal()
-    {
-        long keyInStack = Stack.Low + 0x40;
-        Assert.Equal(HealVerdict.PassThrough, IconCacheHealPolicy.ShouldHeal(0, 1, false, keyInStack, Stack, true));
-        Assert.Equal(HealVerdict.Heal, IconCacheHealPolicy.ShouldHeal(0, 1, false, HeapKey, Stack, true));
-    }
-
-    [Theory]
-    [InlineData(0xE000, 1, false, true, true, false)]    // a hit
-    [InlineData(0, 0, false, true, true, false)]         // nothing tracked
-    [InlineData(0, 1, true, true, true, false)]          // the loader's own inner lookup
-    [InlineData(0, 1, false, false, true, false)]        // untracked name
-    [InlineData(0, 1, false, true, true, true)]          // the full combination
-    public void ShouldHeal_TruthTable(long entry, int tracked, bool healing, bool nameTracked, bool heapKey, bool heals)
-    {
-        long key = heapKey ? HeapKey : Stack.Low + 8;
-        var v = IconCacheHealPolicy.ShouldHeal((nint)entry, tracked, healing, key, Stack, nameTracked);
-        Assert.Equal(heals ? HealVerdict.Heal : HealVerdict.PassThrough, v);
-    }
-
     [Theory]
     [InlineData(0x1000L, 120)]
     [InlineData(0x1FF0L, 16)]
@@ -332,6 +311,165 @@ public class IconCacheHealTests
         Assert.Equal(0, heal.Detour((nint)Manager, (nint)HeapKey));
 
         Assert.Equal(1, cap.File.Count(l => l.Contains("IconCacheHeal")));
+    }
+
+    // ---- the builder guard ----
+
+    [Fact]
+    public void Detour_AFaultOnACachedHit_StillHandsBackTheEntry()
+    {
+        var heal = new IconCacheHeal(new FakeHeap(Array.Empty<(long, byte[])>()),
+            () => throw new InvalidOperationException("stack limits gone"));
+        heal.BindForTest((m, k) => (nint)Entry, (m, u, f) => 1);
+        heal.Track(new[] { Name });
+
+        Assert.Equal((nint)Entry, heal.Detour((nint)Manager, (nint)HeapKey));
+    }
+
+    private static Rig ClockedRig(out Func<long> now, out Action<long> set)
+    {
+        long t = 10_000;
+        var rig = new Rig();
+        rig.Heal.Clock = () => Volatile.Read(ref t);
+        now = () => Volatile.Read(ref t);
+        set = v => Volatile.Write(ref t, v);
+        return rig;
+    }
+
+    [Fact]
+    public void BuilderWindow_IsTwentyFiveHundredMs_AndOutlastsTheMeasuredInventoryBurst()
+    {
+        const int measuredBurstMs = 1770;
+        Assert.Equal(2500, IconCacheHealPolicy.BuilderWindowMs);
+        Assert.True(IconCacheHealPolicy.BuilderWindowMs > measuredBurstMs);
+    }
+
+    [Fact]
+    public void Detour_AHeapMissRightAfterAStackKeyLookup_IsDeferredWithNoLoadAndNoAttempt()
+    {
+        var rig = ClockedRig(out _, out var set);
+        rig.Look(StackKey);
+        set(10_000 + 1770);
+
+        Assert.Equal(0, rig.Look());
+
+        Assert.Empty(rig.LoadCalls);
+        Assert.Equal(0, rig.Heal.AttemptCount((nint)Manager, Name));
+        Assert.Equal(0, rig.Heal.Healed + rig.Heal.Refused);
+    }
+
+    [Fact]
+    public void Detour_ADeferredMiss_HealsOnceTheWindowHasPassed()
+    {
+        var rig = ClockedRig(out _, out var set);
+        rig.Look(StackKey);
+        set(10_000 + IconCacheHealPolicy.BuilderWindowMs - 1);
+        Assert.Equal(0, rig.Look());
+        set(10_000 + IconCacheHealPolicy.BuilderWindowMs);
+
+        Assert.Equal((nint)Entry, rig.Look());
+        Assert.Single(rig.LoadCalls);
+    }
+
+    [Fact]
+    public void Detour_TheWindowIsPerManager()
+    {
+        var rig = ClockedRig(out _, out _);
+        rig.Look(StackKey, Manager + 0x1000);
+
+        Assert.Equal((nint)Entry, rig.Look());
+    }
+
+    [Fact]
+    public void Detour_AHeapKeyHit_NeverStamps()
+    {
+        var rig = ClockedRig(out _, out _);
+        rig.Loaded = true;
+        Assert.Equal((nint)Entry, rig.Look());
+        rig.Loaded = false;
+
+        Assert.Equal((nint)Entry, rig.Look());   // healed at once, so the hit left no stamp
+        Assert.Single(rig.LoadCalls);
+    }
+
+    [Fact]
+    public void Detour_AStackKeyHit_StampsToo()
+    {
+        var rig = ClockedRig(out _, out _);
+        rig.Loaded = true;
+        rig.Look(StackKey);
+        rig.Loaded = false;
+
+        Assert.Equal(0, rig.Look());
+        Assert.Empty(rig.LoadCalls);
+    }
+
+    [Fact]
+    public void Detour_NothingTracked_StillStamps_SoAHideCanWaitForQuiet()
+    {
+        var rig = new Rig(track: false);
+        long t = 10_000;
+        rig.Heal.Clock = () => t;
+        Assert.True(rig.Heal.BuildersQuiet);
+
+        rig.Look(StackKey);
+        Assert.False(rig.Heal.BuildersQuiet);
+
+        t = 10_000 + IconCacheHealPolicy.BuilderWindowMs - 1;
+        Assert.False(rig.Heal.BuildersQuiet);
+        t = 10_000 + IconCacheHealPolicy.BuilderWindowMs;
+        Assert.True(rig.Heal.BuildersQuiet);
+    }
+
+    [Fact]
+    public void Detour_AHeapKeyLookup_NeverMakesBuildersBusy()
+    {
+        var rig = new Rig(track: false);
+        rig.Heal.Clock = () => 10_000;
+        rig.Look();
+        rig.Loaded = true;
+        rig.Look();
+        Assert.True(rig.Heal.BuildersQuiet);
+    }
+
+    [Fact]
+    public void Detour_ManyDeferredMisses_LogOneLinePerManagerAndNamePerWindow()
+    {
+        var rig = ClockedRig(out _, out var set);
+        using var cap = LogCapture.Start(LogLevel.Debug);
+        rig.Look(StackKey);
+        for (int i = 0; i < 5; i++) rig.Look();
+        Assert.Equal(1, cap.File.Count(l => l.Contains("heal deferred")));
+
+        set(10_000 + 2000);
+        rig.Look(StackKey);   // a fresh stamp starts a fresh window
+        set(10_000 + 4400);
+        rig.Look();
+        Assert.Equal(2, cap.File.Count(l => l.Contains("heal deferred")));
+    }
+
+    [Fact]
+    public void Detour_DeferralsNeverEatTheAttemptCap()
+    {
+        var rig = ClockedRig(out _, out var set);
+        rig.LoadSucceeds = false;
+        rig.Look(StackKey);
+        for (int i = 0; i < 10; i++) rig.Look();
+        set(10_000 + 2500);
+
+        for (int i = 0; i < 3; i++) rig.Look();
+
+        Assert.Equal(3, rig.LoadCalls.Count);
+    }
+
+    [Fact]
+    public void Detour_TheLoadersOwnInnerLookup_PaysNothingExtra()
+    {
+        var rig = ClockedRig(out _, out _);
+        rig.OnLoad = () => rig.Look(StackKey);   // the loader's inner lookup, on the healing thread
+
+        Assert.Equal((nint)Entry, rig.Look());
+        Assert.Equal(1, rig.Heal.Healed);
     }
 
     // ---- the page edge ----

@@ -1472,4 +1472,74 @@ public class IconGlowTests
         Assert.Single(hider.TrackedAtHide);
         Assert.Empty(captured);
     }
+
+    [Fact]
+    public void BusyBuilders_PostponeTheHide_UntilQuiet_WithNoTrackAndNoHiderCall()
+    {
+        var healer = new NoopIconCacheHealer { Armed = true, BuildersQuiet = false };
+        var hider = new RecordingIconCacheHider();
+        var store = Lw423Store(out _, out _);
+        var kills = new Dictionary<int, int> { [Lw423Id] = 8 };
+        var captured = new List<Action>();
+        var icon = new IconGlow("m", kills, new[] { Lw423Id }, store, hider, a => captured.Add(a), hideDrawnIcons: true, healer: healer);
+        using var cap = LogCapture.Start(LogLevel.Debug);
+
+        icon.Tick();
+        captured[0](); captured.Clear();
+        icon.Tick();
+        captured[0](); captured.Clear();           // a retry while still busy
+
+        Assert.Empty(hider.Calls);
+        Assert.Empty(healer.Tracked);
+        Assert.Equal(1, cap.File.Count(l => l.Contains("hide waits, a screen is still loading")));
+
+        healer.BuildersQuiet = true;
+        icon.Tick();
+        captured[0](); captured.Clear();
+
+        Assert.Single(hider.Calls);
+        Assert.NotEmpty(healer.Tracked);
+    }
+
+    [Fact]
+    public void ParkedHide_WaitingOverTenSeconds_LogsOneStarvationLinePerLaunch()
+    {
+        var healer = new NoopIconCacheHealer { Armed = true, BuildersQuiet = false };
+        var store = Lw423Store(out _, out _);
+        var kills = new Dictionary<int, int> { [Lw423Id] = 8 };
+        var captured = new List<Action>();
+        long now = 1_000;
+        var icon = new IconGlow("m", kills, new[] { Lw423Id }, store, new RecordingIconCacheHider(), a => captured.Add(a), hideDrawnIcons: true, healer: healer);
+        icon.Clock = () => now;
+        using var cap = LogCapture.Start(LogLevel.Debug);
+
+        icon.Tick(); captured[0](); captured.Clear();
+        now = 10_900;
+        icon.Tick(); captured[0](); captured.Clear();
+        Assert.Equal(0, cap.File.Count(l => l.Contains("have waited")));
+
+        now = 12_000;
+        icon.Tick(); captured[0](); captured.Clear();
+        now = 30_000;
+        icon.Tick(); captured[0](); captured.Clear();
+
+        Assert.Equal(1, cap.File.Count(l => l.Contains("have waited 11 seconds for the menus to go quiet")));
+    }
+
+    [Fact]
+    public void PendingRetry_ThatHides_LogsTheHiddenCount()
+    {
+        var healer = new NoopIconCacheHealer { Armed = true, BuildersQuiet = false };
+        var store = Lw423Store(out _, out _);
+        var kills = new Dictionary<int, int> { [Lw423Id] = 8 };
+        var captured = new List<Action>();
+        var icon = new IconGlow("m", kills, new[] { Lw423Id }, store, new RecordingIconCacheHider(), a => captured.Add(a), hideDrawnIcons: true, healer: healer);
+        using var cap = LogCapture.Start(LogLevel.Debug);
+
+        icon.Tick(); captured[0](); captured.Clear();
+        healer.BuildersQuiet = true;
+        icon.Tick(); captured[0](); captured.Clear();
+
+        Assert.Equal(1, cap.File.Count(l => l.Contains("pending retry, hide: 2 surface(s) hidden.")));
+    }
 }

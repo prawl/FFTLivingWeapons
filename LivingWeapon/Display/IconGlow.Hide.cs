@@ -25,6 +25,7 @@ internal sealed partial class IconGlow
             return;
         }
         var targets = _pacPatchedThisPass.Select(p => new IconCacheTarget(p.Id, p.Surface, p.Entry)).ToList();
+        if (WaitForQuiet(targets, announce: true)) return;
         try
         {
             _healer!.Track(PartsUris(targets));
@@ -36,6 +37,35 @@ internal sealed partial class IconGlow
         {
             ModLogger.Debug(LogVerb.Display, "IconCacheHide threw while hiding this pass' pac-patched icons; they stay restart-only this session.");
         }
+    }
+
+    private const long StarvedAfterMs = 10_000;
+    private long _parkedSinceMs = long.MinValue;
+    private bool _starvedLogged;
+
+    internal Func<long> Clock { get; set; } = () => Environment.TickCount64;
+
+    /// <summary>Parks the targets while a screen is loading. True means the hide must not run now.</summary>
+    private bool WaitForQuiet(List<IconCacheTarget> targets, bool announce)
+    {
+        if (_healer!.BuildersQuiet)
+        {
+            _parkedSinceMs = long.MinValue;
+            return false;
+        }
+        long now = Clock();
+        lock (_lock)
+        {
+            foreach (var t in targets) _pendingHides.Add((t.Id, t.Surface));
+            if (_parkedSinceMs == long.MinValue) _parkedSinceMs = now;
+        }
+        if (announce) ModLogger.Debug(LogVerb.Display, "IconGlow: hide waits, a screen is still loading.");
+        if (!_starvedLogged && now - _parkedSinceMs > StarvedAfterMs)
+        {
+            _starvedLogged = true;
+            ModLogger.Event(LogVerb.Display, $"Same session glow rings have waited {(now - _parkedSinceMs) / 1000} seconds for the menus to go quiet; they show after the next quiet moment.");
+        }
+        return true;
     }
 
     private bool CanHide => _hideDrawnIcons && _healer?.Armed == true;
@@ -90,8 +120,12 @@ internal sealed partial class IconGlow
                 ModLogger.Debug(LogVerb.Display, KeptArtLine(targets.Count));
                 return;
             }
+            if (WaitForQuiet(targets, announce: false)) return;
             _healer!.Track(PartsUris(targets));
-            UpdatePendingHides(targets, _hider.Hide(targets));
+            var result = _hider.Hide(targets);
+            UpdatePendingHides(targets, result);
+            int hidden = targets.Count(t => result.Get(t.Id, t.Surface)?.Outcome == HideOutcome.Hidden);
+            if (hidden > 0) ModLogger.Debug(LogVerb.Display, $"IconGlow: pending retry, hide: {hidden} surface(s) hidden.");
         }
         catch (Exception)
         {

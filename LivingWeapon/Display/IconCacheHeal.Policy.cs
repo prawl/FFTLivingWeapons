@@ -4,8 +4,6 @@ using System.Text;
 
 namespace LivingWeapon;
 
-internal enum HealVerdict { PassThrough, Heal }
-
 /// <summary>
 /// Pure decisions for <see cref="IconCacheHeal"/>, so the hot path rules are plain unit tests.
 /// </summary>
@@ -13,21 +11,14 @@ internal static class IconCacheHealPolicy
 {
     internal const int MaxNameBytes = 120;
     internal const int MaxAttempts = 3;
+    // The longest measured screen build was 1770 ms, with margin.
+    internal const int BuilderWindowMs = 2500;
     // 121 weapons, two surfaces each.
     internal const int TrackCap = 242;
     private const int PageSize = 4096;
 
     internal static bool IsStackKey(long keyAddr, (long Low, long High) stack)
         => keyAddr >= stack.Low && keyAddr < stack.High;
-
-    /// <summary>The cheap checks, run before the key is read. Maintenance callers build their key
-    /// on the stack, draw consumers keep theirs on the heap.</summary>
-    internal static bool MayHeal(nint entry, int trackedCount, bool healing, long keyAddr, (long Low, long High) stack)
-        => entry == 0 && trackedCount > 0 && !healing && !IsStackKey(keyAddr, stack);
-
-    internal static HealVerdict ShouldHeal(nint entry, int trackedCount, bool healing, long keyAddr,
-        (long Low, long High) stack, bool nameTracked)
-        => nameTracked && MayHeal(entry, trackedCount, healing, keyAddr, stack) ? HealVerdict.Heal : HealVerdict.PassThrough;
 
     /// <summary>First read stops at the page edge so a name beside unmapped memory still reads.</summary>
     internal static int FirstReadLength(long namePtr)
@@ -47,6 +38,8 @@ internal static class IconCacheHealPolicy
         Array.Copy(second, 0, all, first.Length, end2);
         return Encoding.ASCII.GetString(all);
     }
+
+    internal static bool InBuilderWindow(long nowMs, long seenMs) => nowMs - seenMs < BuilderWindowMs;
 
     internal static bool AttemptsExhausted(int attempts) => attempts >= MaxAttempts;
 

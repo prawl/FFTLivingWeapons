@@ -132,13 +132,13 @@ internal sealed partial class IconCacheHeal : IIconCacheHealer
             try { NoteFirstCall(); }
             catch (Exception) { }
         }
-        if (entry != 0 || _trackedCount == 0) return entry;
-        try { return Heal(manager, key); }
+        if (_healing) return entry;
+        try { return Guarded(manager, key, entry); }
         catch (Exception ex)
         {
             if (Interlocked.Exchange(ref _warned, 1) == 0)
                 ModLogger.Warn(LogVerb.Display, $"IconCacheHeal hit an internal error and left the icon alone ({ex.GetType().Name}).");
-            return 0;
+            return entry;
         }
     }
 
@@ -150,8 +150,6 @@ internal sealed partial class IconCacheHeal : IIconCacheHealer
 
     private nint Heal(nint manager, nint key)
     {
-        if (_healing) return 0;
-        if (!IconCacheHealPolicy.MayHeal(0, _trackedCount, false, key, _stack())) return 0;
         string? name = ReadName(key, out nint namePtr);
         if (name == null) return 0;
         lock (_lock)
@@ -159,6 +157,7 @@ internal sealed partial class IconCacheHeal : IIconCacheHealer
             if (!_tracked.Contains(name)) return 0;
             nint again = CallOriginal(manager, key);
             if (again != 0) return again;
+            if (BuilderBusy(manager, name)) return 0;
             _attempts.TryGetValue((manager, name), out int tries);
             if (IconCacheHealPolicy.AttemptsExhausted(tries)) return 0;
             _attempts[(manager, name)] = ++tries;

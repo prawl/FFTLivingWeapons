@@ -66,11 +66,12 @@ internal sealed partial class IconCacheHeal
     {
         string? name = ReadName(key, out _);
         if (name == null || !name.Contains(IconNeedle)) return;
+        string kind = IconCacheHealPolicy.IsStackKey(key, _stack()) ? "stack" : "heap";
         if (entry != 0)
         {
-            lock (_seenHits) { if (!_seenHits.Add($"{(long)manager:X}|{name}")) return; }
+            lock (_seenHits) { if (!_seenHits.Add($"{(long)manager:X}|{kind}|{name}")) return; }
         }
-        ModLogger.Debug(LogVerb.Display, $"IconCacheHeal lookup cache=0x{(long)manager:X} thread={Environment.CurrentManagedThreadId} {IconCacheHealPolicy.Tail(name)} -> {(entry == 0 ? "MISS" : "hit")}");
+        ModLogger.Debug(LogVerb.Display, $"IconCacheHeal lookup cache=0x{(long)manager:X} thread={Environment.CurrentManagedThreadId} key={kind} {IconCacheHealPolicy.Tail(name)} -> {(entry == 0 ? "MISS" : "hit")}");
     }
 
     private void FlushCost()
