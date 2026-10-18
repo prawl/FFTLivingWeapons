@@ -111,21 +111,21 @@ internal static partial class IconCacheHidePolicy
     /// record no longer resolves to a live string.</summary>
     internal static byte[] HideNameBytes(long stringAddr) => BitConverter.GetBytes(stringAddr + 1);
 
-    /// <summary>Coupling rule (see <see cref="IconCacheHide"/>'s class remarks): parts entries count
-    /// as hidden only after a texture record was hidden. Otherwise the surface reports
-    /// <see cref="HideOutcome.TextureMissing"/>, or <see cref="HideOutcome.Refused"/> if a texture
-    /// write was attempted and failed. Once <paramref name="texHidden"/> is nonzero a refused write
-    /// elsewhere on the surface no longer downgrades it; Refused means no texture record could be
-    /// written.</summary>
-    internal static SurfaceOutcome DecideOutcome(int partsCandidates, int texCandidates,
+    /// <summary>Parts entries hide after a texture record hid, or when no live texture record exists
+    /// (the reload then reads the file). A live record that did not hide is
+    /// <see cref="HideOutcome.TextureMissing"/>, or <see cref="HideOutcome.Refused"/> if a write was
+    /// attempted and failed. Once <paramref name="texHidden"/> is nonzero a refused write elsewhere
+    /// on the surface no longer downgrades it.</summary>
+    internal static SurfaceOutcome DecideOutcome(int partsCandidates, int texCandidates, int liveTex,
         int texHidden, int partsHidden, bool anyTexRefused)
     {
-        if (partsCandidates == 0 && texCandidates == 0)
-            return new SurfaceOutcome(HideOutcome.NothingResident, 0, 0, 0, 0);
-        if (texHidden == 0)
-            return new SurfaceOutcome(anyTexRefused ? HideOutcome.Refused : HideOutcome.TextureMissing,
-                partsCandidates, 0, texCandidates, 0);
-        return new SurfaceOutcome(HideOutcome.Hidden, partsCandidates, partsHidden, texCandidates, texHidden);
+        if (texHidden > 0 || (liveTex == 0 && partsHidden > 0))
+            return new SurfaceOutcome(HideOutcome.Hidden, partsCandidates, partsHidden, texCandidates, texHidden);
+        if (anyTexRefused)
+            return new SurfaceOutcome(HideOutcome.Refused, partsCandidates, 0, texCandidates, 0);
+        if (liveTex > 0)
+            return new SurfaceOutcome(HideOutcome.TextureMissing, partsCandidates, 0, texCandidates, 0);
+        return new SurfaceOutcome(HideOutcome.NothingResident, 0, 0, 0, 0);
     }
 
     /// <summary>Log-line shapes. <paramref name="refusedAddr"/>/<paramref name="refusedReason"/>
@@ -135,6 +135,8 @@ internal static partial class IconCacheHidePolicy
     internal static string SummaryLine(int id, string surface, SurfaceOutcome o,
         long refusedAddr = 0, string? refusedReason = null) => o.Outcome switch
         {
+            HideOutcome.Hidden when o.TexHidden == 0 =>
+                $"IconCacheHide: icon {id} {surface}: no live texture record, the reload reads the file; {o.PartsHidden} parts entries hidden.",
             HideOutcome.Hidden when o.PartsHidden > 0 =>
                 $"IconCacheHide: icon {id} {surface}: {o.PartsHidden} of {o.PartsCandidates} parts entries and {o.TexHidden} of {o.TexCandidates} texture records hidden; the next menu open redraws it.",
             HideOutcome.Hidden =>

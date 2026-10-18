@@ -179,6 +179,37 @@ public class IconCacheHealTests
     }
 
     [Fact]
+    public void Detour_SuccessfulHeals_NeverUseUpTheAttemptCap()
+    {
+        var rig = new Rig();
+        for (int i = 0; i < 4; i++)
+        {
+            rig.Loaded = false;
+            Assert.Equal((nint)Entry, rig.Look());
+        }
+
+        Assert.Equal(4, rig.LoadCalls.Count);
+        Assert.Equal(0, rig.Heal.AttemptCount((nint)Manager, Name));
+    }
+
+    [Fact]
+    public void Detour_ASuccessResetsTheConsecutiveFailures()
+    {
+        var rig = new Rig { LoadSucceeds = false };
+        for (int i = 0; i < 2; i++) rig.Look();
+        rig.LoadSucceeds = true;
+        Assert.Equal((nint)Entry, rig.Look());
+        rig.LoadSucceeds = false;
+        rig.Loaded = false;
+        for (int i = 0; i < 2; i++) rig.Look();
+        rig.LoadSucceeds = true;
+        rig.Loaded = false;
+
+        Assert.Equal((nint)Entry, rig.Look());
+        Assert.Equal(6, rig.LoadCalls.Count);
+    }
+
+    [Fact]
     public void Detour_CountsAttemptsPerManager()
     {
         var rig = new Rig { LoadSucceeds = false };

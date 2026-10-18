@@ -167,7 +167,7 @@ internal sealed partial class IconCacheHeal : IIconCacheHealer
             try { accepted = _load!(manager, namePtr, 0) != 0; }
             finally { _healing = false; }
             nint healed = CallOriginal(manager, key);
-            if (healed != 0) _healed++; else _refused++;
+            if (healed != 0) { _healed++; _attempts.Remove((manager, name)); } else _refused++;
             TraceHeal(manager, name, accepted, healed != 0);
             if (healed == 0 && IconCacheHealPolicy.AttemptsExhausted(tries))
                 ModLogger.Warn(LogVerb.Display, $"IconCacheHeal gave up on {IconCacheHealPolicy.Tail(name)} for cache 0x{(long)manager:X} after {tries} tries; it shows old art until a relaunch.");

@@ -165,10 +165,10 @@ public class IconCacheHideTests
     }
 
     // ---- T2 (COUPLING): a surface with clean parts candidates but NO texture record writes
-    // nothing for that surface (TextureMissing); the sibling surface in the same call is fine. ----
+    // texture hides its parts entries anyway, because the reload then reads the file. ----
 
     [Fact]
-    public void Hide_Coupling_NoTextureRecord_LeavesPartsUntouched_SiblingSurfaceUnaffected()
+    public void Hide_NoLiveTextureRecord_StillHidesParts_SiblingSurfaceUnaffected()
     {
         const int id = 23;
         var b = new MemBuilder(0x2_0000_0000);
@@ -195,19 +195,57 @@ public class IconCacheHideTests
 
         Assert.Equal(HideOutcome.Hidden, result.Get(id, "card")!.Value.Outcome);
         var small = result.Get(id, "small")!.Value;
-        Assert.Equal(HideOutcome.TextureMissing, small.Outcome);
-        Assert.Equal(0, small.PartsHidden);
+        Assert.Equal(HideOutcome.Hidden, small.Outcome);
+        Assert.Equal(2, small.PartsHidden);
+        Assert.Equal(0, small.TexCandidates);
         Assert.Equal(0, small.TexHidden);
 
-        // card's 1 parts entry + 1 texture record hid (4 writes); small's 2 parts entries untouched
-        Assert.Equal(4, heap.Writes);
         var original = b.ToArray();
         foreach (var addr in new[] { smallPart1, smallPart2 })
         {
             int off = (int)(addr - b.Base);
-            var untouched = Head(heap, addr, IconCacheHidePolicy.PartsHeadSize);
-            Assert.Equal(original.Skip(off).Take(untouched.Length).ToArray(), untouched);
+            var after = Head(heap, addr, IconCacheHidePolicy.PartsHeadSize);
+            Assert.NotEqual(original.Skip(off).Take(after.Length).ToArray(), after);
         }
+    }
+
+    [Fact]
+    public void DecideOutcome_LiveRecordsDecideTextureMissing_NoLiveRecordHidesParts()
+    {
+        Assert.Equal(HideOutcome.TextureMissing, IconCacheHidePolicy.DecideOutcome(2, 1, 1, 0, 0, false).Outcome);
+        Assert.Equal(HideOutcome.Refused, IconCacheHidePolicy.DecideOutcome(2, 1, 1, 0, 0, true).Outcome);
+        Assert.Equal(HideOutcome.Hidden, IconCacheHidePolicy.DecideOutcome(2, 1, 0, 0, 2, false).Outcome);
+        Assert.Equal(HideOutcome.NothingResident, IconCacheHidePolicy.DecideOutcome(0, 0, 0, 0, 0, false).Outcome);
+        Assert.Equal(HideOutcome.NothingResident, IconCacheHidePolicy.DecideOutcome(0, 1, 0, 0, 0, false).Outcome);
+    }
+
+    [Fact]
+    public void SummaryLine_NoLiveTextureRecord_SaysTheReloadReadsTheFile()
+    {
+        var o = IconCacheHidePolicy.DecideOutcome(2, 1, 0, 0, 2, false);
+        Assert.Contains("no live texture record, the reload reads the file; 2 parts entries hidden", IconCacheHidePolicy.SummaryLine(7, "card", o));
+    }
+
+    [Fact]
+    public void Hide_AnAlreadyHiddenTextureRecord_DoesNotBlockTheParts()
+    {
+        const int id = 24;
+        var b = new MemBuilder(0x2_8000_0000);
+        var needles = IconCacheHidePolicy.Needles(id);
+        long cardUri = b.WriteCString(needles[0].Text);
+        long cardTex = b.WriteCString(needles[1].Text);
+        long part = b.WritePartsEntry(cardUri, 0x380067, 0x0101);
+        b.WriteTexRecord(cardTex, 100, 0);
+
+        var heap = new FakeHeap((b.Base, b.ToArray()));
+        var result = new IconCacheHide(heap, () => false).Hide(new[] { new IconCacheTarget(id, "card", Entry(id, "card", 100)) });
+
+        var card = result.Get(id, "card")!.Value;
+        Assert.Equal(HideOutcome.Hidden, card.Outcome);
+        Assert.Equal(1, card.PartsHidden);
+        Assert.Equal(0, card.TexHidden);
+        Assert.NotEqual(b.ToArray().Skip((int)(part - b.Base)).Take(IconCacheHidePolicy.PartsHeadSize).ToArray(),
+            Head(heap, part, IconCacheHidePolicy.PartsHeadSize));
     }
 
     // ---- T3: Needles/IsExpectedString pure behavior, plus the pass-1 "preceded by NUL" rule
@@ -368,10 +406,9 @@ public class IconCacheHideTests
         var hider = new IconCacheHide(heap, () => false);
         var result = hider.Hide(new[] { new IconCacheTarget(id, "card", Entry(id, "card", 10)) });
 
-        // No texture record exists in this fixture -- coupling means TextureMissing, but the
-        // PartsCandidates count proves the record was actually FOUND across the boundary.
+        // No texture record exists in this fixture, so the parts entry hides on its own.
         var card = result.Get(id, "card")!.Value;
-        Assert.Equal(HideOutcome.TextureMissing, card.Outcome);
+        Assert.Equal(HideOutcome.Hidden, card.Outcome);
         Assert.Equal(1, card.PartsCandidates);
     }
 

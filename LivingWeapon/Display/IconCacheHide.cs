@@ -105,7 +105,7 @@ internal sealed partial class IconCacheHide : IIconCacheHider
         var parts = holders.Where(h => h.Id == t.Id && h.Surface == t.Surface && h.Kind == NeedleKind.PartsUri).ToList();
         var texes = holders.Where(h => h.Id == t.Id && h.Surface == t.Surface && h.Kind == NeedleKind.TexPath).ToList();
 
-        int texHidden = 0;
+        int texHidden = 0, liveTex = 0;
         bool anyTexRefused = false;
         long refusedAddr = 0;
         string refusedReason = "";
@@ -114,6 +114,7 @@ internal sealed partial class IconCacheHide : IIconCacheHider
             if (!_mem.TryReadBytes(h.HolderAddr, IconCacheHidePolicy.TexHeadSize, out var head)) continue;
             uint hash = IconCacheHidePolicy.ClassifyTexRecord(head, t.Entry.Length);
             if (hash == 0) continue;
+            liveTex++;
             if (TryHideTexRecord(h.HolderAddr, h.StringAddr, t.Entry.Length, hash, out var reason)) texHidden++;
             else
             {
@@ -124,7 +125,7 @@ internal sealed partial class IconCacheHide : IIconCacheHider
         }
 
         int partsHidden = 0;
-        if (texHidden > 0)   // Coupling. Never touch a parts entry unless a texture actually hid
+        if (texHidden > 0 || (liveTex == 0 && !anyTexRefused))
         {
             foreach (var h in parts)
             {
@@ -140,7 +141,7 @@ internal sealed partial class IconCacheHide : IIconCacheHider
             }
         }
 
-        var outcome = IconCacheHidePolicy.DecideOutcome(parts.Count, texes.Count, texHidden, partsHidden, anyTexRefused);
+        var outcome = IconCacheHidePolicy.DecideOutcome(parts.Count, texes.Count, liveTex, texHidden, partsHidden, anyTexRefused);
         Report(t, outcome, result, refusedAddr, refusedReason);
     }
 
