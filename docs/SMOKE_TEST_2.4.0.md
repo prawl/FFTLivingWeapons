@@ -918,7 +918,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   two siblings one color, grey art under a tint, or an icon fuming colored smoke (the LW-236
   shape). (DEV OK, icon bytes are flavor independent) (covers LW-198, LW-205, LW-210, LW-212,
   LW-236; AWAITING-LIVE rows the owner flips) **[MAJOR]**
-- [ ] 7.4 **The families signed off from previews only (LW-204, LW-213, LW-209, LW-207, LW-211,
+- [x] 7.4 (PASSED 2026-10-18 on prod of a38eb35b, owner eye on the inventory list and card icons with screenshots, the owner's yes on each family: nine katanas in the bag no two one color with Chirijiraden amber and Kiyomori cyan, two cloths dark, eight staves with the Staff of the Magi gold headed over a dark shaft, four spears, three harps with the Faerie Harp near its gold art, six poles, eight rods with the orb a lighter tone than the shaft; not in the owner's bag and resting on B13's byte for byte icon gate: Masamune and the eleventh katana, the third cloth, four spears including the Holy Lance, the Terrastaff and two more poles) **The families signed off from previews only (LW-204, LW-213, LW-209, LW-207, LW-211,
   LW-206, LW-208).** Katanas, dancer cloths, staves, spears, harps, poles and rods were committed
   but never eyeballed in game. Same walk. PASS: eleven katanas no two one color (Masamune blue
   with a gold fuller, Chirijiraden amber, Kiyomori cyan with a venom edge); three dark cloths;
@@ -944,7 +944,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   card within the first seconds. PASS: it reads `Kills: -/- to +` first and the real counter lands
   over it; never a literal `Kills: 0/5` on a weapon with kills. FAIL: text clipped at the bottom, a
   false zero, a counter that never paints. (DEV OK) (covers LW-333, LW-311) **[MINOR]**
-- [ ] 7.7 **The wardrobe regression walk (families already passed in game).** Swords, knight
+- [x] 7.7 (PASSED 2026-10-18 on prod of a38eb35b, owner eye on the inventory lists with screenshots and the owner's yes on each family: the swords and the seven knight swords from the 7.1 and 7.6 shots with Ravager apart from Defender and Sunderer apart from Save the Queen and a gold Lightbringer absent from the bag, eight bows each their own color with the string read normal, six crossbows and six guns each nameable, sixteen shields two toned with the Genji Shield steel blue and no crimson, thirteen helms with Mendsteel the one green and Timeward the one bright metal, twelve hats with their emblem zones, haze neutral; nothing back on a one hue stamp, no colored cloud) **The wardrobe regression walk (families already passed in game).** Swords, knight
   swords, bows, crossbows, guns, shields, helmets, hats keep the look the owner approved in
   August. PASS: fifteen colored sword blades with a metal ridge and a gold Lightbringer; Ravager
   apart from Defender and Sunderer apart from Save the Queen; nine bows with the string a bright
