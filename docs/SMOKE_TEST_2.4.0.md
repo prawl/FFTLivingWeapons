@@ -567,7 +567,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   crash on a mod less load, a leg 1 count other than N, leg 2 reading `recorded counts` with a
   wrong N (a key collision, far worse than a seed), the count gone after the DLL returns. (DEV OK)
   (covers LW-348 the key design, LW-353 the per save counts) **[MAJOR]**
-- [ ] 4.6 **Shops sell the seven designs where items.json says (LW-354).** Each design has a town
+- [x] 4.6 (PASSED 2026-10-18 on prod of a38eb35b, owner live on a late chapter save with screenshots: Lesalia's Buy list carried Ravager at 4000, Sunderer at 12000 and Terrastaff at 1500, Dorter's carried Bloodlash at 4000, Warbrand at 1200, Climhazzard at 9000 and Sasori at 40000, Gariland carried none of the seven; buying one Terrastaff took the held count 0 to 1 and 1500 gil; no stray plus row; the log carried the shop table mirror refreshed line at 13:29:00 and zero shops refused lines) **Shops sell the seven designs where items.json says (LW-354).** Each design has a town
   list and a story milestone (`extended.shops` and `extended.shopAvailability` in data/items.json).
   On a save past the named milestone open the Dorter, Lesalia and Gariland Buy lists. PASS: Dorter
   lists Warbrand (264, after Chapter4_KillElmdor), Bloodlash (265, after Chapter3_Start),
