@@ -79,7 +79,10 @@ public class EngineTickTableTests
         };
 
         var rows = Engine.BuildPhases(null);
-        var battleGates = new[] { TickGates.InBattle, TickGates.KillCounting, TickGates.StatGrowth, TickGates.BandSignatures, TickGates.WeaponColors, TickGates.GunGrowth, TickGates.PoachDen };
+        var battleGates = new List<Func<TickPhaseState, bool>> { TickGates.InBattle, TickGates.KillCounting, TickGates.StatGrowth, TickGates.BandSignatures, TickGates.GunGrowth, TickGates.PoachDen };
+#if LWDEV
+        battleGates.Add(TickGates.WeaponColors);
+#endif
         var unGated = rows.Where(r => !battleGates.Any(g => ReferenceEquals(r.Gate, g)))
                           .Select(r => r.Name).ToHashSet();
 
@@ -180,13 +183,15 @@ public class EngineTickTableTests
     [Fact]
     public void The_table_part_gates_need_their_part_and_the_battle_except_provoke_which_needs_only_its_part()
     {
-        var cases = new (Func<TickPhaseState, bool> Gate, Part Part, bool NeedsBattle)[]
+        var cases = new List<(Func<TickPhaseState, bool> Gate, Part Part, bool NeedsBattle)>
         {
-            (TickGates.WeaponColors, Part.WeaponColors, true),
             (TickGates.GunGrowth, Part.GunGrowth, true),
             (TickGates.PoachDen, Part.PoachDen, true),
             (TickGates.Provoke, Part.Provoke, false),
         };
+#if LWDEV
+        cases.Insert(0, (TickGates.WeaponColors, Part.WeaponColors, true));
+#endif
         foreach (var (gate, part, needsBattle) in cases)
         {
             Assert.True(gate(State(nowIn: true, rosterOpen: true, partOn: p => p == part)));

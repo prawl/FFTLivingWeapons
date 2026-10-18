@@ -504,7 +504,7 @@ model exists; it is done. The order, worked top to bottom, one at a time:
    this is a regression and the parts model is the first suspect.
 3. LW-323 the stale toast fix, built, owner live pass only.
 4. LW-413 no developer hotkey can fire in a release build.
-5. LW-412 the weapon color smoke test (LW-339 is the fuller pass if 412 finds anything).
+5. LW-446 the weapon color cut (owner ruling 2026-10-18: battle sprite colors leave 2.4.0 and return in 2.5.0 as LW-447 after a design session; LW-412 exited WONTFIX).
 6. LW-325 the thirty signature tour, plus fixes for what it finds.
 7. Furniture: ModVersion 2.4.0 and the tag, LW-286, the changelog exits, and the Nexus page (owner, at publish time; LW-281 and LW-358 folded into it 2026-10-18).
 7a. LW-425 the false pause box on the tutorial battle, found in smoke sitting 1; a new player's first fight, so it goes first.
@@ -522,12 +522,14 @@ model exists; it is done. The order, worked top to bottom, one at a time:
 7j. LW-426 the twin weapon log line that read as a refusal of dual wielding while the player's own Dual Wield still swung both guns; found in smoke sitting 1. A player reads the log, so it joins the order under the freeze rule. Wording fix, no logic defect; built 2026-10-18, owner live read on box 9.6 outstanding.
 7k. LW-439 the world map menu byte that reads 246 on the Denuvo free build, found in the LW-427 Phase 0 tape. A player with a tiered gun sees the twin fail to come back on the Status page after leaving Equipment, so it joins the order under the freeze rule. Built and gated 2026-10-18, owner live read owed.
 7l. (SHIPPED 6b6d320f 2026-10-18, owner live run 07:35 to 08:36 passed all four pre registered legs) LW-442 the new glow ring fix waiting its turn while a menu is still loading its icons. Without the guard a player can see an icon blank for a moment, or in theory trip the menu's own loading, when a ring change lands right after a screen change, so it joins the order under the freeze rule. Built and gated 2026-10-18, owner race test owed.
+7m. LW-445 a few icons keep their old glow ring until restart after a tier change, found in the LW-412 sitting 2026-10-18 (a player sees it, so it joins the order under the freeze rule). Built and gated 2026-10-18, owner live read owed.
 8. One sitting each, cheap: galleries LW-198, LW-205, LW-210, LW-212, then LW-322 and LW-320,
    and LW-414 the seven baseline numbers.
 
 Pushed to 2.5.0 by the same ruling: LW-429 the Gariland band warning (owner, 2026-10-18, long standing and harmless), LW-415 the write scope buckets, the R1 cosmetics (LW-329,
-LW-335, the hue true ups), LW-340, LW-324, and every research row. LW-358 and LW-408 stay in
-Now because both wait only on the owner.
+LW-335, the hue true ups), LW-340, LW-324, and every research row. LW-358 folded into the
+furniture row (item 7) on 2026-10-18. LW-408 waits only on the owner; it was demoted to Backlog
+on 2026-10-18 to free the Now seat for LW-446 and goes back to Now when a seat frees.
 
 ---
 
@@ -551,7 +553,8 @@ Now because both wait only on the owner.
   this very cycle on 2026-08-24 (owner live pass; changelog LW-251, commits d10a312 and b38160a).
   What remains of it in the ledger is its residue, the ex flail garbage sprite (LW-312) and the
   palette map audit (LW-305), which stay backlog work on their own clocks, still outside this
-  cut's gate.
+  cut's gate. Owner re ruling 2026-10-18: the feature is compiled out of the 2.4.0 release build
+  (LW-446) and returns in 2.5.0 after a design session (LW-447).
 - **Three rows whose premises are stale and must be re measured rather than trusted (LW-232,
   LW-237, LW-242)**: all three describe recipes that LW-247 deleted from the recolour tool, so
   they no longer describe the shipped art.

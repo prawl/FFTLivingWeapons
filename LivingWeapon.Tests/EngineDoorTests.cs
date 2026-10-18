@@ -472,7 +472,10 @@ public class EngineDoorTests
             Assert.Equal(DoorState.Waiting, asleep.Tables.ProvokeTables.State);
             Assert.Equal(DoorState.Waiting, asleep.Tables.ItemStats.State);
             foreach (string label in new[] { "bulwark", "weapon colors", "poach den", "provoke", "gun growth" })
+            {
+                if (label == "weapon colors" && !PartsReport.Ships(Part.WeaponColors)) continue;
                 Assert.Contains($"{label} WAITING (the game cannot be read yet)", asleep.Board.LastLine);
+            }
 
             // A save is loaded: only the two boot filled tables still hold their parts back, each for its own reason.
             using var tempB = TempDirs.Create("lw_door_tables_b_");
@@ -486,7 +489,7 @@ public class EngineDoorTests
             var engine = Build(tempB, loaded);
             Ticks(engine, 3);
             Assert.Contains("bulwark ON", engine.Board.LastLine);
-            Assert.Contains("weapon colors ON", engine.Board.LastLine);
+            Assert.Equal(PartsReport.Ships(Part.WeaponColors), engine.Board.LastLine.Contains("weapon colors ON"));
             Assert.Contains("poach den ON", engine.Board.LastLine);
             Assert.Contains("weapon commands ON", engine.Board.LastLine);
             Assert.Contains("provoke WAITING (waiting for the game to load its ability data)", engine.Board.LastLine);
@@ -518,6 +521,15 @@ public class EngineDoorTests
 
             Ticks(engine, 30 + PartsBoard.SettleSteps + 80);
 
+            if (!PartsReport.Ships(Part.WeaponColors))
+            {
+                // The drill closes the palette door, and a release build has no part behind it.
+                Assert.Empty(notices);
+                Assert.DoesNotContain("weapon colors", engine.Board.LastLine);
+                Assert.DoesNotContain("OFF", engine.Board.LastLine);
+                Assert.Equal(GuardState.Armed, engine.Guard.State);
+                return;
+            }
             var box = Assert.Single(notices);
             int off = box.text.IndexOf("Paused this session:", StringComparison.Ordinal);
             Assert.True(off >= 0);

@@ -7,7 +7,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-393: the pure parts report. Thirteen door readings in, fourteen parts out with ON, OFF or WAITING and a
+/// LW-393: the pure parts report. Thirteen door readings in, the shipped parts out with ON, OFF or WAITING and a
 /// plain reason, plus the one box text. Order assertions use index positions, never Contains alone.
 /// </summary>
 public class PartsReportTests
@@ -34,12 +34,39 @@ public class PartsReportTests
     private static string Box(Dictionary<Door, DoorReading> r, string drill = "", string hedge = "", string footer = Foot)
         => PartsReport.ComposeBox(r, drill, hedge, footer);
 
-    private static readonly string[] Labels =
+    // Weapon colors ship only in dev builds (LW-446), so the label list follows the flavor.
+    private static readonly string[] Labels = BuildLabels();
+
+    private static string[] BuildLabels()
     {
-        "battle sensing", "kill counting", "stat growth", "card paint", "weapon powers in battle (Maim, Plague and the rest)",
-        "weapon commands", "banners", "extended inventory", "twin weapons",
-        "bulwark", "weapon colors", "gun growth", "poach den", "provoke",
-    };
+        var labels = new List<string>
+        {
+            "battle sensing", "kill counting", "stat growth", "card paint", "weapon powers in battle (Maim, Plague and the rest)",
+            "weapon commands", "banners", "extended inventory", "twin weapons",
+            "bulwark", "gun growth", "poach den", "provoke",
+        };
+        if (PartsReport.Ships(Part.WeaponColors)) labels.Insert(10, "weapon colors");
+        return labels.ToArray();
+    }
+
+    [Fact]
+    public void Weapon_colors_ship_only_in_dev_builds()
+    {
+#if LWDEV
+        Assert.True(PartsReport.Ships(Part.WeaponColors));
+        Assert.Equal(14, PartsReport.Shipped.Count);
+#else
+        Assert.False(PartsReport.Ships(Part.WeaponColors));
+        Assert.Equal(13, PartsReport.Shipped.Count);
+#endif
+        string line = PartsReport.ComposeLine(AllOpen());
+        Assert.Equal(PartsReport.Ships(Part.WeaponColors), line.Contains("weapon colors"));
+        var r = AllOpen();
+        r[Door.PaletteBanks] = DoorReading.Failed("the weapon palette is not where this mod expects it");
+        Assert.Equal(PartsReport.Ships(Part.WeaponColors), PartsReport.ComposeLine(r).Contains("OFF"));
+        Assert.Equal(PartsReport.Ships(Part.WeaponColors), Box(r).Contains("weapon colors"));
+        Assert.Equal(PartsReport.Shipped.Count, Labels.Length);
+    }
 
     [Fact]
     public void Every_part_appears_exactly_once_battle_sensing_first_in_table_order()
@@ -70,7 +97,7 @@ public class PartsReportTests
 
         Assert.DoesNotContain("OFF", line);
         Assert.DoesNotContain("WAITING", line);
-        Assert.Equal(14, line.Split("ON").Length - 1);
+        Assert.Equal(Labels.Length, line.Split("ON").Length - 1);
     }
 
     [Fact]
@@ -79,11 +106,12 @@ public class PartsReportTests
         var r = AllOpen();
         r[Door.Roster] = DoorReading.Failed("the party data is not where this mod expects it");
 
-        string[] off = { "kill counting", "stat growth", "card paint", "weapon powers in battle (Maim, Plague and the rest)",
-                         "weapon commands", "twin weapons", "bulwark", "weapon colors", "gun growth", "poach den", "provoke" };
+        string[] off = new[] { "kill counting", "stat growth", "card paint", "weapon powers in battle (Maim, Plague and the rest)",
+                         "weapon commands", "twin weapons", "bulwark", "weapon colors", "gun growth", "poach den", "provoke" }
+                       .Where(Labels.Contains).ToArray();
         foreach (var part in new[] { Part.KillCounting, Part.StatGrowth, Part.CardPaint, Part.BandSignatures,
                                      Part.WeaponCommands, Part.TwinPistols, Part.Bulwark, Part.WeaponColors,
-                                     Part.GunGrowth, Part.PoachDen, Part.Provoke })
+                                     Part.GunGrowth, Part.PoachDen, Part.Provoke }.Where(PartsReport.Ships))
         {
             var (state, reason) = PartsReport.Status(part, r);
             Assert.Equal(DoorState.Closed, state);
@@ -121,7 +149,7 @@ public class PartsReportTests
         Assert.Contains("weapon commands OFF (another mod rewrote the job command data)", line);
         Assert.Contains("provoke OFF (another mod rewrote the job command data)", line);
         Assert.Equal(2, line.Split("OFF").Length - 1);
-        Assert.Equal(12, line.Split("ON").Length - 1);
+        Assert.Equal(Labels.Length - 2, line.Split("ON").Length - 1);
     }
 
     [Fact]
@@ -278,7 +306,7 @@ public class PartsReportTests
             Assert.Equal(LaunchGuard.BandClosedReason, reason);
         }
         foreach (var part in new[] { Part.Sensing, Part.CardPaint, Part.WeaponCommands, Part.Banners, Part.ExtendedInventory,
-                                     Part.TwinPistols, Part.Bulwark, Part.WeaponColors, Part.GunGrowth, Part.PoachDen, Part.Provoke })
+                                     Part.TwinPistols, Part.Bulwark, Part.WeaponColors, Part.GunGrowth, Part.PoachDen, Part.Provoke }.Where(PartsReport.Ships))
             Assert.Equal(DoorState.Open, PartsReport.Status(part, r).State);
 
         string line = PartsReport.ComposeLine(r);
@@ -413,7 +441,7 @@ public class PartsReportTests
         var r = AllOpen();
         r[Door.TwinPistols] = DoorReading.Failed("the menu flags the twin weapon grant relies on do not read as expected");
 
-        var off = Enum.GetValues<Part>().Where(p => PartsReport.Status(p, r).State == DoorState.Closed).ToArray();
+        var off = PartsReport.Shipped.Where(p => PartsReport.Status(p, r).State == DoorState.Closed).ToArray();
 
         Assert.Equal(new[] { Part.TwinPistols }, off);
         Assert.Equal("the menu flags the twin weapon grant relies on do not read as expected",
@@ -422,7 +450,7 @@ public class PartsReportTests
         string line = PartsReport.ComposeLine(r);
         Assert.Contains("twin weapons OFF (the menu flags", line);
         Assert.Contains("kill counting ON", line);
-        Assert.Equal(13, line.Split("ON").Length - 1);
+        Assert.Equal(Labels.Length - 1, line.Split("ON").Length - 1);
     }
 
     [Fact]
@@ -454,9 +482,9 @@ public class PartsReportTests
     // ---- LW-399: the five table parts ----
 
     [Fact]
-    public void The_fourteen_labels_appear_in_the_table_order_by_index_with_twin_weapons_at_eight()
+    public void The_shipped_labels_appear_in_the_table_order_by_index_with_twin_weapons_at_eight()
     {
-        Assert.Equal(14, Labels.Length);
+        Assert.Equal(PartsReport.Shipped.Count, Labels.Length);
         Assert.Equal("twin weapons", Labels[8]);
         Assert.Equal(14, Enum.GetValues<Part>().Length);
         string line = PartsReport.ComposeLine(AllOpen());
@@ -466,7 +494,9 @@ public class PartsReportTests
 
     [Theory]
     [InlineData("Bulwark", "TerrainGrid", "bulwark", "the terrain data is not where this mod expects it")]
+#if LWDEV
     [InlineData("WeaponColors", "PaletteBanks", "weapon colors", "the weapon palette is not where this mod expects it")]
+#endif
     [InlineData("GunGrowth", "ItemStats", "gun growth", "the item data is not where this mod expects it")]
     [InlineData("PoachDen", "PoachStore", "poach den", "the Poacher's Den store is not where this mod expects it")]
     [InlineData("Provoke", "ProvokeTables", "provoke", "the ability data is not where this mod expects it")]
@@ -478,7 +508,7 @@ public class PartsReportTests
         r[door] = DoorReading.Failed(reason);
 
         Assert.Equal((DoorState.Closed, reason), PartsReport.Status(part, r));
-        foreach (var other in Enum.GetValues<Part>().Where(p => p != part))
+        foreach (var other in PartsReport.Shipped.Where(p => p != part))
             Assert.Equal(DoorState.Open, PartsReport.Status(other, r).State);
         string line = PartsReport.ComposeLine(r);
         Assert.Contains($"{label} OFF ({reason})", line);
@@ -507,15 +537,15 @@ public class PartsReportTests
     public void The_box_groups_a_lone_closed_table_part_under_switched_off_by_itself()
     {
         var r = AllOpen();
-        r[Door.PaletteBanks] = DoorReading.Failed("the weapon palette is not where this mod expects it");
+        r[Door.TerrainGrid] = DoorReading.Failed("the terrain data is not where this mod expects it");
 
         string box = Box(r);
 
         int off = box.IndexOf("Paused this session:\n", StringComparison.Ordinal);
         Assert.True(off >= 0);
         string offLine = box.Substring(off, box.IndexOf("\n\n", off, StringComparison.Ordinal) - off);
-        Assert.Equal("Paused this session:\n  weapon colors", offLine);
-        Assert.DoesNotContain("the weapon palette is not where", box);
+        Assert.Equal("Paused this session:\n  bulwark", offLine);
+        Assert.DoesNotContain("the terrain data is not where", box);
         Assert.DoesNotContain("Still being checked (as the game loads and your first battle starts):", box);
     }
 
@@ -524,7 +554,7 @@ public class PartsReportTests
     {
         Assert.Equal("This closure was forced by the LW_FORCE_TABLE_MISMATCH drill flag (dev builds only).", PartsReport.TableDrillSentence);
         var r = AllOpen();
-        r[Door.PaletteBanks] = DoorReading.Failed("x");
+        r[Door.TerrainGrid] = DoorReading.Failed("x");
         Assert.DoesNotContain("LW_FORCE_TABLE_MISMATCH", Box(r));
         Assert.Contains("LW_FORCE_TABLE_MISMATCH", Box(r, PartsReport.TableDrillSentence));
     }
@@ -545,16 +575,17 @@ public class PartsReportTests
     public void Some_paused_box_reads_in_the_owner_copy_from_top_to_bottom()
     {
         var r = AllOpen();
-        r[Door.PaletteBanks] = DoorReading.Failed("the weapon palette is not where this mod expects it");
+        r[Door.TerrainGrid] = DoorReading.Failed("the terrain data is not where this mod expects it");
         r[Door.Band] = DoorReading.Waiting(LaunchGuard.BattleWaitingReason);
 
         string box = Box(r, PartsReport.TableDrillSentence, LaunchGuard.UnknownBuildHedge);
 
+        string colors = PartsReport.Ships(Part.WeaponColors) ? "weapon colors, " : "";
         string expected =
             "Living Weapons: some features are paused\n\n"
             + PartsReport.SomePausedBody + "\n\n"
-            + "Still working:\n  battle sensing, card paint, weapon commands, banners, extended inventory, twin weapons, bulwark, gun growth, poach den, provoke\n\n"
-            + "Paused this session:\n  weapon colors\n\n"
+            + "Still working:\n  battle sensing, card paint, weapon commands, banners, extended inventory, twin weapons, " + colors + "gun growth, poach den, provoke\n\n"
+            + "Paused this session:\n  bulwark\n\n"
             + "Still being checked (as the game loads and your first battle starts):\n  kill counting, stat growth, " + L(Part.BandSignatures) + "\n\n"
             + PartsCopy.Hedge + LaunchGuard.UnknownBuildHedge + " Your game and save are fine.\n\n"
             + PartsCopy.WhatToDoBox + "\n\n"
@@ -567,7 +598,7 @@ public class PartsReportTests
     public void Some_paused_box_without_a_build_hedge_or_drill_has_neither_gap()
     {
         var r = AllOpen();
-        r[Door.PaletteBanks] = DoorReading.Failed("x");
+        r[Door.TerrainGrid] = DoorReading.Failed("x");
 
         string box = Box(r);
 

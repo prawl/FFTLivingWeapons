@@ -47,7 +47,7 @@ internal sealed class PartsBoard
             bool closedEdge = now.State == DoorState.Closed && (!_seen || _last[i] != DoorState.Closed);
             if (!_seen || _last[i] != now.State) changed = true;
             _last[i] = now.State;
-            if (closedEdge && now.FailedCheck && !WaveOpen)
+            if (closedEdge && now.FailedCheck && !WaveOpen && PartsReport.Reported(door))
             {
                 WaveOpen = true;
                 _waveOpenedAt = _tick;
@@ -63,7 +63,7 @@ internal sealed class PartsBoard
     {
         LastLine = PartsReport.ComposeLine(readings);
         bool allOn = true;
-        foreach (Part part in Enum.GetValues(typeof(Part))) allOn &= PartsReport.IsOn(part, readings);
+        foreach (Part part in PartsReport.Shipped) allOn &= PartsReport.IsOn(part, readings);
         if (!allOn) ModLogger.Event(LogVerb.Startup, LastLine);
         else if (!_allArmed) ModLogger.Event(LogVerb.Startup, AllArmedLine);
         _allArmed = allOn;
@@ -75,7 +75,7 @@ internal sealed class PartsBoard
         WaveOpen = false;
         BoxCount++;
         int off = 0;
-        foreach (Part part in Enum.GetValues(typeof(Part)))
+        foreach (Part part in PartsReport.Shipped)
             if (PartsReport.Status(part, readings).State == DoorState.Closed) off++;
         _recorder?.Invoke("guard", $"parts box shown ({off} parts off)");
         _notice?.Invoke("FFT Living Weapons",

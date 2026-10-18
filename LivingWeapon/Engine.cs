@@ -364,14 +364,14 @@ internal sealed class Engine
             // The Attack-menu desc dossier painter.
             new TickPhase("attack-card", TickGates.InBattle, 1, false, Array.Empty<string>(),
                 _ => e!._attackCard.Tick(), Part.CardPaint),
-            // The per-turn weapon-sprite palette repaint (WeaponPalette.cs).
-            new TickPhase("weapon-palette", TickGates.WeaponColors, 1, false, Array.Empty<string>(),
-                s => e!._weaponPalette.Tick(s.InLive), Part.WeaponColors),
             // The turn-scoped WP write for the "wp"/"wp+faith" gun lanes (WpTableHold.cs).
             new TickPhase("wp-table-hold", TickGates.GunGrowth, 1, false, Array.Empty<string>(),
                 s => e!._wpTableHold.Tick(s.InLive), Part.GunGrowth),
         };
 #if LWDEV
+        // The per-turn weapon-sprite palette repaint (WeaponPalette.cs), a dev build feature until the 2.5.0 redesign.
+        phases.Add(new TickPhase("weapon-palette", TickGates.WeaponColors, 1, false, Array.Empty<string>(),
+            s => e!._weaponPalette.Tick(s.InLive), Part.WeaponColors));
         // Dev-only passive/cold-call research instruments, in-battle only (see each Spike class's
         // own doc for its F-key / request-file lane); compiled out of Release entirely.
         phases.Add(new TickPhase("turn-owner-spike", TickGates.BandSignatures, 1, false, Array.Empty<string>(),

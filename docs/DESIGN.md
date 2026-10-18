@@ -247,11 +247,45 @@ Uninstalling loses the item cleanly (docs/COMPATIBILITY.md has the note).
       by item *type*? (reference-mod teardown + in-game test)
 - [ ] **Add vs replace**: are the 5 "extended" item slots (256–260) usable for net-new items, or are we
       strictly restatting the existing roster? (reference-mod teardown). Not blocking; a rebalance restats.
-- [ ] **In-hand graphic**: `SpriteID`/`Palette` select the wielded-weapon look; what to change for a new
-      battle appearance (vs just the menu icon). (reference-mod teardown, may be UNCONFIRMED)
+- [x] **In-hand graphic**: answered, see section 8. The palette is repainted per turn in memory; the
+      drawing itself cannot change (docs/research/WEAPON_VISUALS_SCOPING.md).
 - [ ] **Pilot category**: prototype one category (proposal: **weapons**) end-to-end: items.json schema →
       generator → analyzer (prove no strict dominance) → deploy → in-game check.
 - [ ] **Naming**: mod name + working folder name.
+
+## 8. Battle weapon colors (parked for 2.5.0, owner ruling 2026-10-18)
+
+**The goal, in one sentence: the weapon a unit swings in battle looks as close to its equip icon and
+card art as the sprite's fifteen color slots allow.** The question that started it was "why does the
+icon show me one weapon and the thing I swing look nothing like it." Everything else in this feature is
+in service of that sentence, and anything that pulls the sprite away from the icon (a kill tier glow,
+a brightness ramp, a palette shared by turn) is wrong by definition.
+
+What is proven and what is not (ledger rows in docs/LIVE_LEDGER.md):
+- Proven: the game samples a weapon's palette from one fixed memory block on every draw, so repainting
+  that block on the acting unit's turn gives per weapon color despite 127 weapons sharing 13 palettes
+  ([per-weapon-colour-by-turn-repaint], 2026-08-24).
+- Proven on 2026-10-18 for four of fifteen classes (Cutpurse, Swiftfang, Defender, Lightbringer): the
+  painted swing matches the authored swatch.
+- Not done: a design session. The 2026-08 build wired the kill tier glow into the sprite (brightening
+  toward white per tier) with no ruling; the palette map is a generated file plus two evidence backed
+  overrides, never verified across all 127 weapons; thrown weapons, the Move Find staff and the ex
+  flails draw from sources the palette path does not reach; the parry clash and the counter in steel
+  have no ruling; and no build gate compares a sprite's colors to its icon, so the match rests on one
+  bench session's eye.
+
+Rulings for 2.5.0 (LW-447 carries the work):
+1. The glow is decoupled from the sprite. The icon's art never changes with tier, only its ring, so the
+   sprite has exactly one target, the plain swatch.
+2. The palette map is verified against the game's own table before any color is trusted.
+3. Each unreached weapon kind gets its own path or a stated exclusion in this section.
+4. A build gate compares each sprite's body hue to its recolored icon and refuses a mismatch.
+5. Release 2.4.0 ships with the feature compiled out (LW-446); dev builds keep it for the session.
+
+Sources: sprite colors in `data/weapon_colors.json` (authored in the color bench against the recolored
+icons, 111 reviewed rows); icon tint per item in `data/items.json` (`iconTint`); palette corrections in
+`data/weapon_palette_overrides.json`. None of the three derives from another, which is the gap ruling 4
+closes.
 
 ### Immediate next step
 Build the **vertical slice**: `items.json` schema + generator + dominance analyzer for **one weapon

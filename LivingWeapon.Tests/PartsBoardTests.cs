@@ -234,19 +234,40 @@ public class PartsBoardTests
     }
 
     [Fact]
-    public void A_palette_door_closure_boxes_once_with_the_sentence_in_the_box()
+    public void A_door_no_shipped_part_depends_on_opens_no_wave_and_shows_no_box()
     {
         using var cap = LogCapture.Start();
         var rig = new Rig();
         rig.Tick(5);
         rig.R[Door.PaletteBanks] = DoorReading.Failed("the weapon palette is not where this mod expects it");
 
+        rig.Tick(PartsBoard.SettleSteps + 1, drill: PartsReport.TableDrillSentence);
+
+        if (PartsReport.Ships(Part.WeaponColors))
+        {
+            Assert.Single(rig.Notices);
+            return;
+        }
+        Assert.False(rig.Board.WaveOpen);
+        Assert.Empty(rig.Notices);
+        Assert.Equal(0, rig.Board.BoxCount);
+        Assert.DoesNotContain("OFF", rig.Board.LastLine);
+    }
+
+    [Fact]
+    public void A_terrain_door_closure_boxes_once_with_the_sentence_in_the_box()
+    {
+        using var cap = LogCapture.Start();
+        var rig = new Rig();
+        rig.Tick(5);
+        rig.R[Door.TerrainGrid] = DoorReading.Failed("the terrain data is not where this mod expects it");
+
         rig.Tick(PartsBoard.SettleSteps, drill: PartsReport.TableDrillSentence);
         Assert.Empty(rig.Notices);
         rig.Tick(1, drill: PartsReport.TableDrillSentence);
 
         var box = Assert.Single(rig.Notices);
-        Assert.Contains("weapon colors", box.text);
+        Assert.Contains("bulwark", box.text);
         Assert.EndsWith(PartsReport.TableDrillSentence + "\n\n" + Footer, box.text);
         Assert.Contains(rig.Records, r => r.payload == "parts box shown (1 parts off)");
         rig.Tick(500, drill: PartsReport.TableDrillSentence);

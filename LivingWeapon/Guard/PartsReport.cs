@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -71,11 +72,20 @@ internal static class PartsReport
         new(Part.ExtendedInventory, "extended inventory", Door.ExtendedArm),
         new(Part.TwinPistols, "twin weapons", Door.Roster, Door.TwinPistols),
         new(Part.Bulwark, "bulwark", Door.Roster, Door.TerrainGrid),
+#if LWDEV
         new(Part.WeaponColors, "weapon colors", Door.Roster, Door.PaletteBanks),
+#endif
         new(Part.GunGrowth, "gun growth", Door.Roster, Door.ItemStats),
         new(Part.PoachDen, "poach den", Door.Roster, Door.PoachStore),
         new(Part.Provoke, "provoke", Door.Roster, Door.KitLane, Door.ProvokeTables),
     };
+
+    /// <summary>The parts this build ships, in report order. A part absent here has no row, no line and no box entry.</summary>
+    internal static readonly IReadOnlyList<Part> Shipped = Array.ConvertAll(Rows, r => r.Part);
+
+    internal static bool Ships(Part part) => Array.FindIndex(Rows, r => r.Part == part) >= 0;
+
+    internal static bool Reported(Door door) => Array.FindIndex(Rows, r => Array.IndexOf(r.Doors, door) >= 0) >= 0;
 
     private static Row RowOf(Part part)
     {

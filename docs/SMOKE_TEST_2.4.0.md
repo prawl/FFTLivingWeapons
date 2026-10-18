@@ -81,9 +81,10 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
 - **The parts report line is the new truth.** Since LW-393 the mod is fourteen parts, each with
   its own check. The log prints `Parts report: <part> ON|OFF|WAITING (<reason>); ...` on every
   change, and once every part is ON it prints `Living Weapons: all parts armed.` instead. The
-  fourteen names, in report order: battle sensing, kill counting, stat growth, card paint, weapon
-  powers in battle (Maim, Plague and the rest), weapon commands, banners, extended inventory, twin
-  weapons, bulwark, weapon colors, gun growth, poach den, provoke. Glossary in docs/LOGGING.md.
+  thirteen names on prod, in report order: battle sensing, kill counting, stat growth, card paint,
+  weapon powers in battle (Maim, Plague and the rest), weapon commands, banners, extended
+  inventory, twin weapons, bulwark, gun growth, poach den, provoke (a dev build adds weapon colors
+  after bulwark, LW-446). Glossary in docs/LOGGING.md.
   Every check runs ONCE per session and is then final (LivingWeapon/Guard/FingerprintGuard.cs
   never re probes after arming), so a mod or patch that changes the game AFTER a check has passed
   is not seen until the next launch; the parts model is a startup check, not a watchdog. Seven of
@@ -956,36 +957,24 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
 
 ---
 
-## 8. Weapon colors in battle (LW-412 smoke; LW-251, LW-292, LW-308)
+## 8. The weapon color cut holds in release (LW-446)
 
-> The authored colors live in `data/weapon_colors.json` (111 weapons, each with its palette and
-> swatches), baked into meta.json by `tools/gen_living_weapon_meta.py`. The owner saw the Cutpurse
-> repaint on 2026-10-17 but doubted the shade; this sitting settles it class by class.
+> Battle sprite colors are not a 2.4.0 feature. The owner ruled them out on 2026-10-18 (LW-412
+> withdrawn, redesign LW-447 for 2.5.0, docs/DESIGN.md section 8). The painter stays in dev builds
+> under the dev flag, so the only thing to check on prod is that the cut holds. No sprite color
+> reads belong in this document.
 
-- [ ] 8.1 **Every weapon class swung once, one screenshot per class (LW-412).** Fifteen classes
-  carry a palette: knife, ninja blade, sword, knight sword, katana, rod, staff, gun, crossbow, bow,
-  instrument, book, polearm, pole, bag (no cloth has one). One colored weapon of each class takes a
-  turn; screenshot the swing and compare against that weapon's swatches in `data/weapon_colors.json`;
-  enemies with a colored weapon included once; the Lightbringer (id 31) is the sword class read.
-  PASS: `Painted weapon <id> into palette <pal>.` on every colored turn, the screenshot shade
-  matches the authored swatch to the owner's eye, no `Palette <pal> bank 0x... holds bytes matching
-  neither vanilla nor our last paint` WARN, no `Weapon colors were not repainted; the palette data
-  is not where this mod expects it.` FAIL: a plain swing on a colored weapon with weapon colors ON,
-  or a shade the owner reads as off. On a FAIL: one Backlog row per mismatch; LW-339 (the fuller
-  recolor pass) joins R5 by docs/RELEASE_SCOPE.md item 5's own clause; LW-305 (the palette map)
-  stays 2.5.0 unless the owner re rules. The one accepted residual is a staged counter attack.
-  (DEV OK) (covers LW-412, LW-251, LW-308, LW-99) **[MAJOR]**
-- [ ] 8.2 **Uncolored weapons restore vanilla, and no stale palette file lingers in the deploy
-  (LW-251, LW-292).** An uncolored weapon acting after a colored one gets its palette back; and
-  since the shipped mechanism paints the game's palette banks in memory, the game must be reading
-  its OWN copy of FFTPack file 71 (the mod ships no `battle_wep_spr.bin`; the only such file is the
-  research probe's drop, which BuildLinked wipes). PASS: `Restored weapon <id>'s palette <pal> to
-  vanilla.` on the plain turn; after the sitting `python tools\probes\lw289_palette_selector.py
-  --checklog` reports `served from the GAME copy: N` with N at least 1 and `served from OUR
-  override : 0`. FAIL: any read served from an override (a stale probe file in the deploy; box
-  1.1's parity report would also list it as an extra), no reads at all after a battle, or a
-  colored weapon's palette left on a plain weapon. (DEV OK) (covers LW-292 as the mechanism row:
-  the game asks for that file fresh every battle) **[MINOR]**
+- [ ] 8.1 (environment note, B20 2026-10-18: FFTColorCustomizer, paxtrick.fft.colorcustomizer, is enabled and loads first in every sitting of this pass) **A prod build never mentions weapon colors and swings everything in vanilla steel
+  (LW-446).** After a sitting on prod, run
+  `Select-String -Path "$env:RELOADEDIIMODS\prawl.fft.livingweapons\livingweapon.log" -Pattern 'Parts report:|weapon colors|Painted weapon|Restored weapon|Palette .* bank|Weapon colors'`.
+  PASS: every `Parts report:` line names exactly thirteen parts in this order, battle sensing,
+  kill counting, stat growth, card paint, weapon powers in battle (Maim, Plague and the rest),
+  weapon commands, banners, extended inventory, twin weapons, bulwark, gun growth, poach den,
+  provoke; the search returns no other line; one swing of the Cutpurse (id 1) in battle draws the
+  vanilla steel knife; the glow rings on the list and card icons are unchanged. FAIL: a fourteen
+  part line, the words weapon colors anywhere in the log or a pause box, any Painted, Restored or
+  Palette line, or a colored swing. (A dev build fails this box by design; `build_flavor.txt`
+  must read prod first.) **[MAJOR]**
 
 ---
 
@@ -1459,7 +1448,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   off" (or box 4.5 leg 2 disproved the code read, and they stay); the ship notes carry the
   paragraph. FAIL: the hedge survives, no upgrade paragraph, an uninstall promise box 4.5 showed
   false. (covers LW-351 the player facing half, LW-401 the docs half) **[MAJOR]**
-- [ ] B20 **The environment the pass ran under is written down before sitting 1.** Every live box is
+- [ ] B20 (READ 2026-10-18 from the dev box, a read of AppConfig.json and the registry, owner ticks: Reloaded root is the game folder's Reloaded subfolder, AutoInject False so the launch method is the Reloaded-II Launch button; EnabledMods in load order 1 paxtrick.fft.colorcustomizer, 2 fftivc.jobs.bluemage, 3 fftivc.mechanics.levelscaling, 4 fft.monsters.strongmoster, 5 fftivc.qol.customfastforward, 6 fftivc.rare.treasure.only, 7 prawl.fft.livingweapons; FFTHandsFree absent; none of the thirteen will not work together mods enabled; WotL Restoration not installed, so 10.1 adds it for its run only; Living Weapons loads last; QuickEdit reads 0x0; FFTColorCustomizer enabled, noted on 8.1) **The environment the pass ran under is written down before sitting 1.** Every live box is
   unrepeatable without the mod list and order, FFTHandsFree left enabled crashes the Denuvo free
   build at launch (which would fail box 1.2 for a reason that is not this mod), and one click into
   the console suspends the mod's threads. A script reads `<Reloaded root>\Apps\fft_enhanced.exe\AppConfig.json`
@@ -1505,7 +1494,7 @@ with a known miss.
    and F6 is dead on prod (2.5).
 5. 3.1 the knight sword HP top up reads full on turn one (the LW-416 regression closed).
 6. 4.1 and 4.3: the extended inventory survives a cold boot and every list and loop.
-7. 8.1 the color smoke: every class painted the authored shade, or a row per mismatch.
+7. 8.1 the color cut: release swings in vanilla steel and the parts report has thirteen parts.
 8. Section 9: thirty signatures seen once each, Bulwark at 263 among them; defects rowed.
 9. 5.1, 5.2, 5.3, 5.5, 5.8: credit to the true killer in manual and auto, no false battle end, no
    lost tally, no double pay on Retry, no stale toast.
@@ -1563,7 +1552,6 @@ with a known miss.
   an EMPTY tally.
 - 6.5: `No kill tally was found on disk; starting fresh.` and `fresh` on a brand new install; save
   side files that do not exist until their first event.
-- 8.1: a staged counter attack in vanilla colors.
 - 9.4: a plant refused with the back to the map edge, a DBG line only, no toast.
 - 9.6: ONE shot in a battle whose off hand was empty when the battle was built.
 - 9.7: a move then Wait banks no Mushin charge; two waits do not stack.
@@ -1573,8 +1561,8 @@ with a known miss.
   cast twice; 9.6 and 3.2 are the places to notice it.
 - **LW-165 Steam Deck cold boot card latency**: accepted 2.3.3, README note, untested here.
 - **LW-7 auto battle turn count collapse**: counting, not credit; 5.1 auto leg is the watch.
-- **LW-412 shade doubt**: 8.1 settles it; a Backlog row per mismatch, LW-339 by the R5 item 5
-  clause, LW-305 stays 2.5.0 unless re ruled.
+- **LW-412 shade doubt**: withdrawn 2026-10-18 with the feature; 8.1 now reads that release
+  swings in steel. LW-447 carries the redesign and LW-339 and LW-305 ride with it in 2.5.0.
 - **LW-358 and docs/RELEASE_SCOPE.md disagree**: the TODO demoted LW-358 to Backlog 2026-10-17
   and the scope doc line 506 still says it stays in Now; B18 carries the correction.
 
@@ -1585,7 +1573,7 @@ with a known miss.
 Pushed to 2.5.0 by the 2026-10-17 ruling (docs/RELEASE_SCOPE.md R5): LW-415 the write scope
 buckets; the R1 cosmetics (LW-329 the Grows line glow color, LW-335 the inner ring colors, the
 hue true ups); LW-340 the extensive glow growth pass; LW-324 the kills paint speed pass; LW-339
-the fuller recolor edge pass (unless 8.1 fails); every research row. The 2.5.0 wardrobe cut
+the fuller recolor edge pass (now under LW-447); every research row. The 2.5.0 wardrobe cut
 (LW-313, LW-288, LW-337, LW-338, LW-214, LW-241, LW-245, LW-277, LW-244, LW-238, LW-302, LW-318,
 LW-321) and the Reliquary Phase 1 live pass (docs/VERIFY_LIVE.md deferred rows 6 to 9, backlog
 LW-6) have no rows here. LW-407 the file summaries run alone after the parallel rows merge and
@@ -1614,8 +1602,8 @@ one Backlog line for a WARN like the tally's, no live leg).
   next-unit-computable and ct-paid-at-turn-start (9.1); per-turn-normalize-repaints-boosted-baseline
   (3.5); slot0-battle-phase-values (5.2); ct-hold-zero-turn-denial (no shipped surface, LW-115, an
   owner flip on the 2026-07-22 run or leave it); the two OVERTURN CANDIDATE rows
-  inventory-default-order-drops-unknown-ids and weapon-palette-assignment-walled (8.1 and 4.2 may
-  speak to them); pe-key-match-kitlane-mismatch-discriminator (2.9 leg 2 is its experiment);
+  inventory-default-order-drops-unknown-ids and weapon-palette-assignment-walled (4.2 may
+  speak to the first; the second waits for LW-447); pe-key-match-kitlane-mismatch-discriminator (2.9 leg 2 is its experiment);
   mapsave-load-card-sites-verify-dead (5.12 is its named isolation);
   turn-flag-holds-through-status-detour and attack-card-reverts-hover-follower (5.6's status
   screen detour); gear-loss-commits-post-battle (4.4 leg B); the SPLIT row
@@ -1732,7 +1720,7 @@ only ids: LW-42, LW-60, LW-80, LW-87, LW-88, LW-90, LW-91, LW-94, LW-95, LW-96, 
 | LW-247 | A 1.1, B13 | ramp engine, byte identical deploy |
 | LW-249 | A 3.2 | poles grow MA |
 | LW-250 | A 3.2, B11 | grows lanes, grid is the authority |
-| LW-251 | A 8.1, A 8.2, A 2.3 leg B | weapon colors by turn |
+| LW-251 | A 8.1 (off in release), A 2.3 leg B | weapon colors by turn, compiled out of 2.4.0 by LW-446 |
 | LW-252 | A 5.4 | lookalike units never swap kills |
 | LW-256 | B2 | four ledger citations resolve; no live surface |
 | LW-257 | A 5.7 | row and card agree |
@@ -1751,12 +1739,12 @@ only ids: LW-42, LW-60, LW-80, LW-87, LW-88, LW-90, LW-91, LW-94, LW-95, LW-96, 
 | LW-276 | B10 | no line count quotes in comments; no live surface |
 | LW-278 | B2 | WONTFIX, two icon docs deleted; no live surface |
 | LW-287 | A 7.2, B13 | halo removed |
-| LW-292 | A 8.2 | the game asks for the palette file fresh every battle; 8.2 reads that no override is served |
+| LW-292 | 2.5.0 smoke with LW-447 | the game asks for the palette file fresh every battle; no override is served |
 | LW-293 | B3 | sprite field comment corrected; spriteIdOverride count 0; no live surface |
 | LW-294 | none | a probe docstring corrected; no live surface |
 | LW-295 | A 7.2 | glow rims at three strengths, player only brightening |
 | LW-297 | A 1.1, A 6.4, B6, B14 | deploy parity and VerifyOnly |
-| LW-308 | A 8.1, B11 | palette stranger WARN never on a clean install |
+| LW-308 | A 8.1 (no palette line at all in release), B11 | palette stranger WARN never on a clean install |
 | LW-311 | A 7.6 | Kills dashes before the paint |
 | LW-316 | A 3.1, A 3.2 | the three growth premises |
 | LW-317 | A 3.2 | multi lane growth |
@@ -1801,6 +1789,6 @@ only ids: LW-42, LW-60, LW-80, LW-87, LW-88, LW-90, LW-91, LW-94, LW-95, LW-96, 
 | LW-410 | B16 | compatibility survey 143 mods; no live surface |
 
 TODO rows that ship before or during this pass: LW-416 (A 3.1, B16 the door pin), LW-413 (A 2.5, B5), LW-414 (B3,
-B7), LW-323 (A 5.8), LW-412 (A 8.1), LW-325 (A 9.1 to 9.10, B15 the list), LW-408 (A 10.1), LW-112
+B7), LW-323 (A 5.8), LW-446 (A 8.1), LW-325 (A 9.1 to 9.10, B15 the list), LW-408 (A 10.1), LW-112
 (A 2.9), LW-366 (A 9.3), LW-198, LW-205, LW-210, LW-212 (A 7.3), LW-322 (A 7.1), LW-320 (B18),
 LW-286 (B8), LW-281 (GO/NO-GO item 11, owner).

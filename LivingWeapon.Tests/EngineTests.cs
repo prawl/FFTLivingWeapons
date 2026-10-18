@@ -232,12 +232,12 @@ public class EngineTests
                 ("growth", TickGates.StatGrowth, 3, true, Array.Empty<string>(), Part.StatGrowth),
                 ("toast", TickGates.KillCounting, 1, false, new[] { "kill-poll" }, Part.KillCounting),
                 ("attack-card", TickGates.InBattle, 1, false, Array.Empty<string>(), Part.CardPaint),
-                ("weapon-palette", TickGates.WeaponColors, 1, false, Array.Empty<string>(), Part.WeaponColors),
                 ("wp-table-hold", TickGates.GunGrowth, 1, false, Array.Empty<string>(), Part.GunGrowth),
             };
 #if LWDEV
             expected.AddRange(new (string, Func<TickPhaseState, bool>, int, bool, string[], Part)[]
             {
+                ("weapon-palette", TickGates.WeaponColors, 1, false, Array.Empty<string>(), Part.WeaponColors),
                 ("turn-owner-spike", TickGates.BandSignatures, 1, false, Array.Empty<string>(), Part.BandSignatures),
                 ("status-spike", TickGates.BandSignatures, 1, false, Array.Empty<string>(), Part.BandSignatures),
                 ("body-double-spike", TickGates.BandSignatures, 1, false, Array.Empty<string>(), Part.BandSignatures),
