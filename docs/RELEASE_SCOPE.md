@@ -481,8 +481,9 @@ this paragraph is the pointer that says so.
 - [x] Deploy riders get their VERIFY_LIVE.md home (LW-286) before the next deploy (SHIPPED cb9a6e85 2026-10-17).
 - [ ] Download page banner re-rendered after the final art state (LW-281).
 - [ ] Release note: after updating, restart the game once so the new tier names show. A ring a
-      weapon earns while you play shows right away (LW-427, owner live pass 2026-10-18), and if
-      the icon helper ever reports itself off in the log, the next time you start the game.
+      weapon earns in a fight shows within about half a minute of the battle ending, on every
+      screen, with no restart (LW-427 and LW-442, owner live runs 2026-10-18); if the icon
+      helper ever reports itself off in the log, the next time you start the game.
       If an icon still looks wrong, restart again. (The game keeps every icon it drew for the whole
       session, the mod swaps icon files a few seconds after a save loads, and LW-428's late retry
       can leave one icon stale for a launch; owner ruled 2026-10-18 that the note covers it and
@@ -520,7 +521,7 @@ model exists; it is done. The order, worked top to bottom, one at a time:
 7i. LW-427 the new glow ring that waits for a restart. Owner re ruling 2026-10-18 pulls it into 2.4.0, overturning the 2026-10-17 call that put it in 2.5.0, because shipping the glow without it hides the best part of the feature. It goes ahead only if the Phase 0 measuring session clears the no go lines in its TODO row; if not, it returns to 2.5.0 and the R4 release note covers it. Outcome 2026-10-18: Phase 0 hit the no go line (the card art went blank on two screens that never reload), then the lookup trace explained the blank and the owner ruled it back into 2.4.0 with a heal on miss hook. Owner live pass 2026-10-18 06:23 to 06:30 PASSED, SHIPPED e8c5fbe6; the one edge is LW-441. Built and gated 2026-10-18, owner live run owed (LIVE_LEDGER [icon-cache-heal-on-miss], smoke boxes 7.2 and 7.2a); if that run fails it returns to 2.5.0 as that cut's first row.
 7j. LW-426 the twin weapon log line that read as a refusal of dual wielding while the player's own Dual Wield still swung both guns; found in smoke sitting 1. A player reads the log, so it joins the order under the freeze rule. Wording fix, no logic defect; built 2026-10-18, owner live read on box 9.6 outstanding.
 7k. LW-439 the world map menu byte that reads 246 on the Denuvo free build, found in the LW-427 Phase 0 tape. A player with a tiered gun sees the twin fail to come back on the Status page after leaving Equipment, so it joins the order under the freeze rule. Built and gated 2026-10-18, owner live read owed.
-7l. LW-442 the new glow ring fix waiting its turn while a menu is still loading its icons. Without the guard a player can see an icon blank for a moment, or in theory trip the menu's own loading, when a ring change lands right after a screen change, so it joins the order under the freeze rule. Built and gated 2026-10-18, owner race test owed.
+7l. (SHIPPED 6b6d320f 2026-10-18, owner live run 07:35 to 08:36 passed all four pre registered legs) LW-442 the new glow ring fix waiting its turn while a menu is still loading its icons. Without the guard a player can see an icon blank for a moment, or in theory trip the menu's own loading, when a ring change lands right after a screen change, so it joins the order under the freeze rule. Built and gated 2026-10-18, owner race test owed.
 8. One sitting each, cheap: galleries LW-198, LW-205, LW-210, LW-212, then LW-322 and LW-320,
    and LW-414 the seven baseline numbers.
 
