@@ -7,10 +7,12 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-438. Every one of the 121 living weapons at +3 at once, on a cold launch and on a warm one,
+/// Every one of the 121 living weapons at +3 at once, on a cold launch and on a warm one,
 /// measured against the suffix room (CardSites.MaxSuffixSites, SuffixCopiesPerId) and the sweep
 /// rotation (SuffixRotation.RotationSlice). The fixture lays the whole card table out once per
 /// copy, one region per copy, which is the live shape (PoolLocator keeps every baked copy).
+/// These tests model the cache admission arithmetic only. The live launch window (the sweep
+/// running before the pool is located, an Invalidate on every Continue load) is not modeled here.
 /// </summary>
 public class DisplayAllTieredSuffixTests
 {
@@ -157,8 +159,9 @@ public class DisplayAllTieredSuffixTests
 
     /// <summary>121 names times 9 copies is 1089, past the room. The copies found last are refused
     /// and stay bare, the count parks at the cap, and re equipping one of those weapons does not
-    /// repaint it because a target change never clears the cache. Today's measured bound, the
-    /// LW-438 row carries it; a cap resize flips this test.</summary>
+    /// repaint it because a target change never clears the cache. Which copies are the last found
+    /// depends on region scan order, so the test pins the count and one copy, not the set.
+    /// Today's measured bound; a cap resize flips this test.</summary>
     [Fact]
     public void Nine_copies_overflow_the_room_and_the_last_copies_stay_bare_even_after_re_equip()
     {
@@ -206,10 +209,10 @@ public class DisplayAllTieredSuffixTests
     // ─── no pool located, the sweep rotation alone ────────────────────────────────
 
     /// <summary>With no pool region located the whole heap sweep paints the target plus
-    /// RotationSlice (8) names per visit of the hot chunk, a visit every HotRescanMs (250ms). 121
-    /// names need the first pass plus 14 hot visits, about four seconds, then every name reads +3.</summary>
+    /// RotationSlice (8) names per visit of the hot chunk, a visit every HotRescanMs (250ms). The
+    /// first pass paints 9 names, and 14 hot visits later every name reads +3. Both counts are pinned.</summary>
     [Fact]
-    public void Without_a_pool_the_sweep_rotation_paints_all_121_names_within_fifteen_visits()
+    public void Without_a_pool_the_sweep_paints_nine_names_first_pass_and_all_121_after_fourteen_hot_visits()
     {
         const int copies = 1;
         var f = Build(copies);
@@ -220,12 +223,16 @@ public class DisplayAllTieredSuffixTests
         Assert.True(display._sweep.IsComplete);
         Assert.Equal(1 + SuffixRotation.RotationSlice, PaintedCopies(f, copies, "+3"));
 
-        int visits = (WeaponCount - 1 + SuffixRotation.RotationSlice - 1) / SuffixRotation.RotationSlice;   // 15
-        for (int v = 1; v < visits; v++)
+        const int hotVisits = 14;
+        for (int v = 0; v < hotVisits - 1; v++)
         {
             clock.Ms += DisplaySweep.HotRescanMs + 1;
             CardFixtures.TickWithPoolLocate(display, false);
         }
+        Assert.True(PaintedCopies(f, copies, "+3") < WeaponCount, "thirteen hot visits must still leave names bare");
+
+        clock.Ms += DisplaySweep.HotRescanMs + 1;
+        CardFixtures.TickWithPoolLocate(display, false);
 
         Assert.Equal(WeaponCount, PaintedCopies(f, copies, "+3"));
     }
