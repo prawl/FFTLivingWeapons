@@ -513,6 +513,7 @@ model exists; it is done. The order, worked top to bottom, one at a time:
 7f. LW-432 the knight sword glow ring that is too faint to see on the equip list; found in smoke box 7.2's follow up gallery walk. A player sees it, so it joins the order under the freeze rule. SHIPPED 2026-10-17.
 7g. LW-433 the seven extended weapons, ids 261 to 267, whose glow rims are copies from other icons and miss the new rims; found in the LW-432 verify. A player sees it, so it joins the order under the freeze rule and the owner wants it in 2.4.0. SHIPPED 2026-10-18.
 7h. LW-434 the glow ring that is too faint to see on the small list icon for every weapon; found in the glow lab after LW-432. A player sees it, so it joins the order under the freeze rule. SHIPPED 2026-10-17.
+7i. LW-427 the new glow ring that waits for a restart. Owner re ruling 2026-10-18 pulls it into 2.4.0, overturning the 2026-10-17 call that put it in 2.5.0, because shipping the glow without it hides the best part of the feature. It goes ahead only if the Phase 0 measuring session clears the no go lines in its TODO row; if not, it returns to 2.5.0 and the R4 release note covers it. Outcome 2026-10-18: Phase 0 hit the no go line (the card art went blank on two screens that never reload), so it returned to 2.5.0 as that cut's first row.
 8. One sitting each, cheap: galleries LW-198, LW-205, LW-210, LW-212, then LW-322 and LW-320,
    and LW-414 the seven baseline numbers.
 
@@ -553,6 +554,9 @@ Now because both wait only on the owner.
 
 The 2026-08-19 art-cut remainder moves here whole, joined by the owner's 2026-08-26
 restatement of the same work and the arcs deliberately kept out of the glow finale:
+- First, the moment the 2.4.0 tag is cut: LW-427, same session glow rings. Phase 0 is done
+  (LIVE_LEDGER [icon-cache-scoped-hide]); start with small list icons only and a survey of
+  every screen that shows an icon.
 - Step zero: the owner spells out the new icon path (LW-313) so every row below rides it.
 - The hats (LW-288), the legacy 72 as torso gear (LW-337: armour LW-218, clothing LW-219,
   robes LW-220) and accessories (LW-338: shoes LW-221, armguards LW-222, rings LW-223,

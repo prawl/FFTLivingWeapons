@@ -125,6 +125,18 @@ PROVEN 2026-09-01 (owner flip, ~10:10, after watching the reload twice: the red 
 
 **Date:** 2026-09-01
 
+### [icon-cache-scoped-hide] Hiding an icon's shared texture plus only the inventory's copies refreshes the inventory live, keeps an untouched small copy on its old art, and blanks the card on screens that never reload (UNCERTAIN, owner flip pending)
+
+UNCERTAIN 2026-10-18 (one owner live run, LW-427 Phase 0). Plain language: the inventory picked up Defender's new ring with no restart, the small Defender icon on the Equipment and Abilities page kept its old art and never went blank, and the big card art went blank on the Equipment and Abilities page and the battle status page. That blank is the LW-427 no go line, so same session rings stay out of 2.4.0.
+
+**Mechanism:** Leg 1, read only (tools/probes/lw427_icon_cache_watch.py, tapes %TEMP%/lw427_cache_watch_20261018_022334.jsonl and _023122.jsonl): 13 UITextureParts managers held equip icon entries, none dropped an entry through menus or two battles, the battle status page brought no manager of its own, and the inventory and weapon picker created 23 entries on open, each loaded in 100 to 200 ms (poll bound). A full discovery sweep from outside the game took 7.7 to 8.2 s. Leg 2, writes (tools/probes/lw427_scoped_hide.py): Defender (33) tier 0 to tier 1 mid session; card texture plus its only parts entry (manager ...4500) and small texture plus the small entry in ...4A00 hidden; the small entry shared by ...DBEB38 and ...4000 left alone.
+
+**Evidence:** Owner screenshots 2026-10-18 02:57 to 03:00 (Monosnap temp): inventory list ring faint but present, inventory card ring present, Equipment and Abilities card blank with the small list icon plain, battle status card blank with the small icon plain. Side read: MenuOpenFlag read 246 with a menu open (LW-439).
+
+**Open:** why the card blanked on screens whose only resident card copy was the inventory's, and whether any unvisited screen (shop, formation, party root) holds a small copy that never reloads.
+
+**Date:** 2026-10-18
+
 ### [swing-id-fallback-stub] A stub at the swing builder's id copy that substitutes the acting unit's right-hand id when the standing swing-id word is 0 makes an extended weapon draw its own blade on a targetless swing
 Plain language: when a unit swings, the game copies one standing "weapon id" word into the
 swing's animation record; for a moved design that word is 0 at swing time, so the art lookup
