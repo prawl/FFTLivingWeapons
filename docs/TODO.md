@@ -54,6 +54,8 @@ the technical detail lives in the indented lines under it.
 ## Backlog
 
 
+- [LW-451] 2026-10-18: The world map Inventory list loses the three books when it is sorted by Type, and shows them again sorted by Acquired. Plain version, the owner pressed Sort until the weapons were grouped by type and the Glarebound Tome, Knell Codex and Binding Codex were nowhere in the list, while the Equipment picker on an Arithmetician listed all three and the Acquired sort showed them between the Blaster and the Greenwood Pole. Seen 2026-10-18 at 14:04 on prod with a bag holding nearly every weapon kind (most rows read 0 of 99). A player with a full bag sees it, so it is a candidate for R5 under the freeze rule once the cause is known; the owner's first guess is that the item cap break (LW-346, LW-371, LW-372) leaves the Type sort's list too short for a bag this size. Smoke box 4.3 names exactly this shape, a list stopping short of an owned kind, and this is its first live sighting.
+  (Tech: the Type sort walks the game's per category order templates (LivingWeapon/Extended/OrderRebuildHook.Seat.cs, docs/EXTENDED_INVENTORY_GUIDE.md, memory order-template-mechanics, templates are save state), so the first thing to check is whether the Book category's template rows are intact in this save and whether the list builder hook (LW-372, the 149 and 150 stack buffer caps at 0x140288CC3 and 0x14028631A) is the one the Type sort uses; the Acquired sort draws the full list, which points at the template or the per type builder rather than the bag itself. Repro is the owner's save, Inventory, Sort to Type, look for the books.)
 - [LW-450] 2026-10-18: The twin pistol and twin crossbow feature needs a real design and repair pass; owner ruling 2026-10-18 after the smoke box 9.6 walk, "it works sorta" from repeated observations, so one blanket row carries it instead of a fix per symptom. Seen that sitting on prod with a tier 3 Outrider Pistol and no support picked: the twin stamped on the Status visit as designed, then putting the player's own second gun (Ironclad Repeater, id 72) in the off hand made the game unequip the main hand pistol too and refund the conjured twin into the bag as a phantom copy (the LW-254 watch line fired, nothing was corrected), and the LW-426 steps aside line never printed because the main hand was no longer a twin weapon. The design questions to settle before code: what the player should see when they replace the twin by hand, whether the lent Dual Wield should stay while gear is edited, whether the phantom refund gets corrected (LW-254) or the grant stops writing the off hand at all, and what the Status page shows after Equipment (LW-439). Folds the open live reads of LW-426 and LW-439 and the LW-254 watch mode into one pass. Not for 2.4.0 unless the owner says so; the feature ships as it is with its known edges.
   (Tech: GunSlinger.Apply.cs DesiredOffHand and DesiredSupport, GunSlinger.Reconcile.cs twin-refund, GunSlinger.MenuGate.cs, LaunchGuard.Twin.cs; LIVE_LEDGER [twin-grant-inventory-desync] and [twin-dualfire-construction-bound]; smoke box 9.6 stays open, its 2026-10-18 partial reads are the stamp line at 13:32:29 and the refund line at 13:33:34.)
 - [LW-449] 2026-10-18: The live tally poke tool can write into the wrong map when the weapon has never scored a kill. Plain version, the tool finds the mod's kill tally in the running game by its shape and writes one number; when the tally has no entry for that weapon (a weapon at zero kills is simply absent from the file), the only match it finds is one of the mod's other per weapon maps that hold every id, and it writes there, so the card still reads 0 and the mod sees nothing. Seen 2026-10-18 at 13:25 on prod with the Outrider Pistol (id 71, 1 of 1 copies, 12 corroborating neighbours, no re judge pass after). Dev tooling only, nothing a player sees, outside the 2.4.0 scope. Fix idea, refuse to write unless the matched entry sits in a dictionary whose key set equals the kills.json key set, and say "stage the weapon in kills.json first" instead.
@@ -321,53 +323,6 @@ belongs rather than at the bottom.
   shows; the win is a rule the runtime can drive (LW-336's sync would then refresh the rim
   the moment a tier is crossed). Cite the exact probe (tools/probes/live_icon_patch_probe.py)
   and restore the pac explicitly after (it persists across relaunches).
-- [LW-198] 2026-08-13: The eleven knives all had a white blade, so their colour lived in a handle a few pixels across. Demoted from Now on 2026-08-27 to
-  seat LW-346 (the extended-inventory port); its status is unchanged, AWAITING-LIVE, the
-  owner's gallery pass is still the only thing outstanding, and every line below is the
-  Now row's text verbatim so nothing is lost by the move.
-  - BUILT and gated 2026-08-16, owner gallery pass outstanding. Coverage was never this family's
-    problem, at a CARD median of 41.2 percent, the healthiest of any family in the programme.
-    The problem was that four of the eleven read as the same pale sliver in a list, because the
-    artist drew every knife with a white blade and only the small grip in colour, and the tints
-    left the blade white. All eleven now have a coloured BLADE with a bright fuller and a
-    distinct grip.
-  - Two specific colours were forced rather than chosen. The Zwill Straightblade kept its vanilla
-    name and was painted dream lavender over art that measures a warm 46 degrees at chroma 0.178,
-    141 degrees from its own picture; the new anchors gate reported it on sight, which is the
-    first time that gate has caught something before the art shipped rather than after. And the
-    Mortal Coil and the Bloodlash were the SAME necrotic green, 0.05 apart in value and nothing
-    else, which the palette tripwire could not see while the family was still on the old engine.
-  - A knife is a SWORD in miniature and takes the sword recipe unchanged: the card art has a dark
-    braided grip and a bright fuller, and the two sword keys land on exactly those. (Tech: shared
-    sprite id 1 / id 68 needed grip pct 30 rather than 24, where the icon claims 2.8 percent.
-    Shipped zone share: grip card 6.5 to 22.3 percent and icon 6.2 to 15.2, fuller card 12.2 to
-    25.4 and icon 14.5 to 21.0. Moving the family off bright-v2 displaced four selftest pins that
-    used a knife as their sample and killed one dead override, all caught by the pins themselves.)
-  - Done means: all eleven carry their identity colour across their solid art with a visibly
-    separate second material, no two read alike at list size, every reserved name is anchored
-    against BOTH surfaces with the reasoning recorded, and no already-approved art moves.
-  - Verify: all four gates green (recolor_icons selftest with the family inside every owner-rule
-    pin and mutations proving those pins bite, icon_preview.py compare --expect naming exactly
-    these ids, anchors, silhouettes); each knife's second material measured on the real art; the
-    bake matching a FULL preview manifest pixel for pixel; and the owner's gallery pass.
-  - This row also carries the LW-198 through LW-226 PROGRAM STATEMENT that the other section
-    rows cite, owner-directed 2026-08-13: after the shields pass (LW-190) set the quality bar,
-    the owner called the first-pass recolours hasty ("sloppy"), so every equipment section gets
-    the treatment that made the shields land: per item owner review rounds judged as pictures,
-    rule fixes over pixel fixes, variant picker pages when a call is contested, engines chosen
-    per family on evidence, and the identity proof (preview equals production, bake matched
-    pixel for pixel) at the end. The assembly line is docs/DEV_TEST_RECIPES.md ("Icon recolor
-    process") plus the engine modes in tools/recolor_icons.py. Order is now decided by
-    MEASUREMENT rather than by the ledger, lowest true CARD median first; eleven families have
-    been through it as of 2026-08-16, and what remains after the knives is ninja blades (63.2
-    percent), books (67.0) and bags (72.1).
-  - LW-247 update (2026-08-18): knives now render through the new ramp engine, which is what
-    actually reached the live install and already passed the owner's in-game look on 2026-08-16.
-    The old zone recipe (hilt/edge percentiles) this row's Tech bullet describes was deleted from
-    tools/recolor_icons.py once every weapon moved to ramp; it lives on only in git history. The
-    Zwill Straightblade's anchor call this row records still holds under the new engine (still
-    anchored, still gold, measured gap 0 degrees); nothing about this row's Done means or Verify
-    changes, only which engine produced the pixels the owner will eventually gallery-judge.
 - [LW-335] 2026-08-26: A handful of chosen weapons get their OWN inner ring color so
   they stand out from the rest of their lane. Owner intent stated at the Atlas sitting
   ("I fully intend on changing the inner color of a handful of weapons to help them
@@ -414,18 +369,6 @@ belongs rather than at the bottom.
   relaunches until a deploy changes the matching loose file, so probe patches must
   always be restored by hand and never trusted to a relaunch. Silver lining recorded
   in the ledger: splice work persists across restarts too in a deploy-free install.
-- [LW-212] 2026-08-13: The four bags' recolor seat, BUILT and gated 2026-08-16 and
-  AWAITING the owner's gallery pass ever since; demoted from Now 2026-08-25 only to
-  free the seat for LW-332 (the owner queued the Grows-line move). Nothing about the
-  work changed: the art is live in the current install, and the full Done means and
-  Verify text lives in this file's history (75f0c7f and earlier). Re-promote for the
-  gallery pass whenever the owner sits down for icons.
-- [LW-205] 2026-08-13: The nine ninja blades' recolor seat, BUILT and gated 2026-08-16
-  and AWAITING the owner's gallery pass ever since; demoted from Now 2026-08-26 only to
-  free the seat for LW-327 (the owner queued the Knight Sword battle-start HP top-up).
-  Nothing about the work changed: the art is live in the current install, and the full
-  Done means and Verify text lives in this file's history (commit 957195a and earlier).
-  Re-promote for the gallery pass whenever the owner sits down for icons.
 - [LW-337] 2026-08-26: Torso gear gets the recolor treatment so body armor reads as
   distinct items the way the helms already do; owner queued 2026-08-26 while defining
   the next release. This is the owner's restatement of the EXISTING legacy re-pass
@@ -2414,26 +2357,6 @@ belongs rather than at the bottom.
   replaces, commit ac43327 and the rows around it; PoachMap.TryGetJob membership at
   LivingPoach.cs:108 is the mod's entire monster gate, so an unmapped alias job is a silent
   refusal.)
-
-- [LW-210] 2026-08-13: Books re-pass: all four books BUILT and gated 2026-08-16, demoted from
-  Now 2026-08-17 to make room for LW-233, which is being actively worked; nothing about the
-  books changed and nothing is blocked on this repo, the owner gallery pass is the only step
-  left and it waits on the same future session as the other art rows. State preserved: the
-  healthiest family by coverage (CARD median 67.0 percent), one zone suffices (a book is a
-  coloured cover and a pale page block the brightness key finds on all four), and the Omnilex,
-  the game's most strongly coloured sprite at icon chroma 0.388 deep vermilion, keeps its
-  vermilion cover with the holy in gilt-edged pages (the Holy Lance's resolution, fifth use).
-  LW-247 update (2026-08-18): books now render through the new ramp engine, which is what
-  actually reached the live install and already passed the owner's in-game look on 2026-08-16.
-  The old zone recipe (one brightness zone, cover/page split) this row describes was deleted
-  from tools/recolor_icons.py once every weapon moved to ramp; it lives on only in git history.
-  The Omnilex's vermilion-cover-plus-gilt-pages call this row records still holds under the new
-  engine (measured gap 0 degrees); nothing about this row's own wait clause changes, only which
-  engine produced the pixels.
-  Promote it back when the owner gallery pass is on the table; the Done means and Verify are
-  the standard art-row set (identity colour with a visibly separate second material, no two
-  alike at list size, reserved-name anchoring recorded, four gates green with pins proven by
-  mutation, bake matching the FULL preview manifest, owner gallery pass).
 
 - [LW-304] 2026-08-21: The colours we were about to put on weapons in battle were wrong for most
   of them, and looking at eight at a time is what hid it. Put all 118 side by side with their own
