@@ -53,6 +53,10 @@ param (
     [switch]$SkipGenerate
 )
 
+# Same rule as BuildLinked.ps1, the first failing cmdlet stops the script so the catch
+# reports the real break instead of the step after it.
+$ErrorActionPreference = "Stop"
+
 ## => Configuration <= ##
 # The build folder's NAME becomes the wrapper folder INSIDE the zip. Vortex's
 # FFT IC extension treats a zip with files-at-root as malformed and falls back
