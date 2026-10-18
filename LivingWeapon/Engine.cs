@@ -70,6 +70,7 @@ internal sealed class Engine
     private readonly BodyDoubleSpike _bodyDoubleSpike;   // Duplicate a hovered unit into a real AI fighter (F5), dev-only
     private readonly ProvokeSpike _provokeSpike;   // Plant the provoke mark without the real granted command (F6 / provoke_request.txt), dev-only
     private readonly NumeralSpike _numeralSpike;   // cold-call the floating number-popup builder (F8 / numeral_request.txt), dev-only
+    private readonly IconLookupSpike _iconLookupSpike;   // LW-427 icon cache lookup tap (lw427_trace.txt), dev-only
 #endif
 
     /// <param name="modDir">Mod deployment directory (meta.json lives here).</param>
@@ -257,6 +258,7 @@ internal sealed class Engine
         _bodyDoubleSpike = new BodyDoubleSpike(live, save.SaveDir);   // duplicate-to-AI-fighter; SaveDir = rotation-proof forensics
         _provokeSpike = new ProvokeSpike(live, modDir);   // mark-planter; modDir carries the provoke_request.txt lane
         _numeralSpike = new NumeralSpike(live, modDir);   // number-popup cold-call instrument; modDir carries the numeral_request.txt lane
+        _iconLookupSpike = new IconLookupSpike(live, modDir);   // icon cache lookup tap; modDir carries the lw427_trace.txt marker
 #endif
         // Built last; the rows close over the subsystems through this engine.
         _phases = BuildPhases(this);
@@ -383,6 +385,8 @@ internal sealed class Engine
             s => e!._provokeSpike.Tick(s.InLive), Part.BandSignatures));
         phases.Add(new TickPhase("numeral-spike", TickGates.BandSignatures, 1, false, Array.Empty<string>(),
             s => e!._numeralSpike.Tick(s.InLive), Part.BandSignatures));
+        phases.Add(new TickPhase("icon-lookup-spike", TickGates.Always, 1, false, Array.Empty<string>(),
+            _ => e!._iconLookupSpike.Tick(), Part.CardPaint));
 #endif
         // Reads Changed from kill-poll; saves the tally and the Reliquary ledger when a kill landed.
         phases.Add(new TickPhase("save-on-change", TickGates.KillCounting, 1, false, new[] { "kill-poll" },
@@ -468,6 +472,9 @@ internal sealed class Engine
         // it cannot wait for LaunchGuard (the roster landmark needs a loaded save, and the menu registry is
         // built at boot). A null hooks is passed through so the refusal reason is logged.
         _extended.BootArm(hooks);
+#if LWDEV
+        _iconLookupSpike.Arm(hooks);
+#endif
         if (!_bannerToastsEnabled) return;
         // Arm at once. The hook's own prologue check refuses a moved target, so it needs no roster gate.
         if (hooks == null) _promptSwapHook.MarkNoHooks();

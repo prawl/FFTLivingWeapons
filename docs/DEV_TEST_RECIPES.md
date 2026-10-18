@@ -80,6 +80,19 @@ glow engine are not fingerprinted; the rebake pins (id 33 and the extended ids) 
 a box with FF16Tools. Under half a minute on a dev box. On the build server the rebake pins skip
 themselves (no FF16Tools) and the rest of the gate still runs.
 
+## Icon cache lookup trace (LW-427, dev build only)
+
+The dev build hooks the game's menu icon cache lookup and loader. Drop an empty file named
+`lw427_trace.txt` into the mod folder and every icon lookup the game makes lands in
+`livingweapon.log` as a Debug line, one per manager and icon for hits, every miss, and every
+load: `IconLookupSpike lookup mgr=0x... id=0x... ei_033_uitx -> MISS` or `-> hit entry=0x...`,
+`IconLookupSpike LOAD mgr=0x... flag=N ei_033_uitx -> entry=0x...`. Delete the file to stop. The
+sitting that uses it: launch, open the inventory once, run
+`python tools/probes/lw427_scoped_hide.py apply 33 --mgr <inventory manager>` to hide Defender
+the Phase 0 way, then walk inventory, Equipment and Abilities, and a battle status page with the
+marker on. The misses name the screen and manager whose card went blank. The hook arms only when
+both prologues match the bytes read on 2026-10-18 and logs one warn otherwise.
+
 ## Glow tier bounce (see every icon at one glow tier)
 
 No manual deploy step exists any more (LW-336 retired deploy_glow_tex.py, the LW-334
