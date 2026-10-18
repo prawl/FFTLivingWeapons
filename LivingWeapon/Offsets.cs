@@ -400,16 +400,16 @@ internal static class Offsets
     public const int ACorpseConvertMarker = 0x46;
     public const byte ACorpseChestBitMask = 0x01;  // mask. Bit 0 of ACorpseConvertMarker (id 15, the byte's last slot MSB-first) is Treasure/chest
 
-    // --- Gun Slinger / Crossfire twin-grant consent. A "menu panel is open" flag. Reads 1
-    // while a party/equip/shop/save menu is open, 0 on the free map, in travel, and through formation and
-    // battle-load, so a gate on it leaves the pre-battle window open (the twin must be in the roster when a
-    // battle constructs; see [twin-dualfire-construction-bound]). Found by menu_signal_probe.py (tape
-    // lw193_menusig_20260817_063908.log): clean flips on every menu open-close, one 500ms double-pulse on a
-    // town-exit fade (hence the 3-pass debounce). Rejected 0x140D506B4, which pulsed 50ms on every travel hop.
-    // Sibling 0x140D508EC tracks it and 0x140D50916 is its inverse (neither promoted). See
-    // [worldmap-menu-open-byte] (LIVE_LEDGER.md, Uncertain as of 2026-08-17, owner flip pending). An unreadable
-    // byte counts as open in GunSlinger.cs, so it fails toward not writing.
-    public static long MenuOpenFlag => ImageBase.At(0x140D508D0);   // u8, byte 4 of a pointer in the frame record list, 0 closed and any nonzero open
+    // --- Gun Slinger / Crossfire twin-grant consent. Not a flag. The byte sits at +0x20 of the game's per
+    // frame record buffer (base 0x140D508B0, two 0xE800 halves, cursor 0x143846598) and is byte 4 of the
+    // second record's ordering table link pointer, which lands there only when the screen's first record is
+    // the 0x1C byte packet. The link points into .data, so it read 1 on the fixed base and reads 246 under
+    // ASLR (0x7FF65FC60000), and 0 when no link sits in that slot. Open and closed rest on the two tapes
+    // (lw193_menusig_20260817_063908.log read 0 and 1, lw427_cache_watch_20261018_022334.jsonl read 0 and
+    // 246), with the town-exit fade double-pulse behind the 3-pass debounce. A gate on it leaves the
+    // pre-battle window open (see [twin-dualfire-construction-bound]). See [worldmap-menu-open-byte]
+    // (LIVE_LEDGER.md, UNCERTAIN 2026-10-18). An unreadable byte counts as open, so it fails toward not writing.
+    public static long MenuOpenFlag => ImageBase.At(0x140D508D0);   // u8, link pointer byte of the second frame record, 0 closed and any nonzero open
 
     // --- Gun Slinger / Crossfire twin-grant consent, owner-AC round. The party-browse stamp. Reads 1
     // on the party overview root and the Character Status page; 0 in E&A (all three tabs), the save menu, shop,

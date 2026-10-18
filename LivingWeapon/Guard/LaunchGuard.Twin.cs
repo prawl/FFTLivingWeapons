@@ -5,8 +5,8 @@ namespace LivingWeapon;
 /// <summary>
 /// The twin weapon guard. It checks that the two menu bytes the twin grant reads are readable, that the browse
 /// byte is 0 or 1, and the hand words of Ramza's roster row, once a save has loaded. It steps from the first tick
-/// and is terminal. The menu byte has no range, it is byte 4 of a pointer in the game's per frame record list
-/// (1 on the old fixed base, 246 under ASLR), so only an unreadable page can hold the door on it.
+/// and is terminal. The menu byte has no range, it is byte 4 of a record link pointer in the game's per frame
+/// record list (1 on the old fixed base, 246 under ASLR), so only an unreadable page can hold the door on it.
 /// </summary>
 internal sealed partial class LaunchGuard
 {

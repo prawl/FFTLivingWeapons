@@ -3,8 +3,9 @@ into the game image, as the LW-439 offline analysis says?
 
 Why. On the Denuvo-free build the byte read 246 with the party menu open where the August tapes
 read 1. Offline, the byte sits at +0x20 of the first of two 0xE800 byte per frame record buffers
-(base 0x140D508B0), inside a qword at +0x1C of the first record. Byte 4 of a pointer into the
-image is 0x01 on the old fixed base 0x140000000 and 0xF6 on the ASLR base 0x7FF65FC60000 the
+(base 0x140D508B0), byte 4 of the SECOND record's link pointer into the ordering tables in .data,
+which lands there when the screen's first record is the 0x1C byte packet. Byte 4 of a pointer into
+the image is 0x01 on the old fixed base 0x140000000 and 0xF6 on the ASLR base 0x7FF65FC60000 the
 2026-10-17 launches recorded. This probe reads the whole qword live so the owner can see the
 pointer, not just its one byte.
 
@@ -43,11 +44,16 @@ def rpm(handle, addr, n):
 
 
 def describe(q, byte, base, size):
+    """The qword is the second record's link pointer into the ordering tables in .data. Its byte 4
+    is the base's byte 4, or one more when the low 32 bits carry. A zero qword is no link in that
+    slot this frame, which is what the closed menu reads, not proof that no menu exists."""
+    if q == 0:
+        return "byte 0  qword 0  no link in that slot this frame"
     inside = base <= q < base + size
-    rva = q - base if inside else None
-    tag = f"image pointer, rva 0x{rva:X}" if inside else ("zero" if q == 0 else "not an image pointer")
+    tag = f"image pointer, rva 0x{q - base:X}" if inside else "not an image pointer"
     expect = (base >> 32) & 0xFF
-    match = "byte equals base byte 4" if byte == expect else f"byte differs from base byte 4 (0x{expect:02X})"
+    ok = byte in (expect, (expect + 1) & 0xFF)
+    match = "byte matches base byte 4" if ok else f"byte differs from base byte 4 (0x{expect:02X})"
     return f"byte {byte} (0x{byte:02X})  qword 0x{q:016X}  {tag}  {match}"
 
 

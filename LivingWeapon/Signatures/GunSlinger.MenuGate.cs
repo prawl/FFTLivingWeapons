@@ -37,9 +37,9 @@ internal sealed partial class GunSlinger
         return !writeAllowedViaBrowse;
     }
 
-    /// <summary>Reads Offsets.MenuOpenFlag with the 3-pass debounce. The byte is byte 4 of a pointer in
-    /// the game's per frame record list, 1 on the old fixed base and 246 under ASLR, so any nonzero
-    /// value is an open menu. An unreadable pass leaves the debounce state untouched.</summary>
+    /// <summary>Reads Offsets.MenuOpenFlag with the 3-pass debounce. The byte is byte 4 of a record link
+    /// pointer in the game's per frame record list, 1 on the old fixed base and 246 under ASLR, so any
+    /// nonzero value is an open menu. An unreadable pass leaves the debounce state untouched.</summary>
     private (bool readable, bool debouncedOpen) ReadMenuDebounced()
     {
         if (!_mem.Readable(Offsets.MenuOpenFlag, 1)) return (false, true);
