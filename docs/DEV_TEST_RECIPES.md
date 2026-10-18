@@ -80,35 +80,38 @@ glow engine are not fingerprinted; the rebake pins (id 33 and the extended ids) 
 a box with FF16Tools. Under half a minute on a dev box. On the build server the rebake pins skip
 themselves (no FF16Tools) and the rest of the gate still runs.
 
-## Icon cache lookup trace (LW-427, dev build only)
+## Icon heal trace (LW-427, dev build only)
 
-The dev build hooks the game's menu icon cache lookup and loader. Drop an empty file named
-`lw427_trace.txt` into the mod folder and every icon lookup the game makes lands in
-`livingweapon.log` as a Debug line, one per manager and icon for hits, every miss, and every
-load: `IconLookupSpike lookup mgr=0x... id=0x... ei_033_uitx -> MISS` or `-> hit entry=0x...`,
-`IconLookupSpike LOAD mgr=0x... flag=N ei_033_uitx -> entry=0x...`. Delete the file to stop. The
-sitting that uses it: launch, open the inventory once, run
-`python tools/probes/lw427_scoped_hide.py apply 33 --mgr <inventory manager>` to hide Defender
-the Phase 0 way, then walk inventory, Equipment and Abilities, and a battle status page with the
-marker on. The misses name the screen and manager whose card went blank. The hook arms only when
-both prologues match the bytes read on 2026-10-18 and logs one warn otherwise.
+The dev build logs every heal the icon cache hook performs as a Debug line in `livingweapon.log`,
+no marker needed: `IconCacheHeal heal cache=0x... thread=N ei_033_uitx loader=accepted entry=present`.
+Drop an empty file named `lw427_trace.txt` into the mod folder for more. Every miss and the first
+hit per cache and icon land as `IconCacheHeal lookup cache=0x... thread=N ei_033_uitx -> MISS` or
+`-> hit`, and a once a second cost line reads `IconCacheHeal cost N lookups/s, mean N ns detour,
+mean N ns original`. Delete the file to stop. The sitting that uses it is the live test in
+LIVE_LEDGER `[icon-cache-heal-on-miss]`. The dev build floors every tally to 3, so the tier change
+comes from `python tools/probes/lw381_tally_poke.py 33 0` and then `33 1` after the party menu and
+inventory have been opened once; then walk the inventory, Equipment and Abilities, and a battle
+status page, and check that Chaos Blade (37) draws unchanged with no `ei_037` heal line. The hook arms only when both game prologues match the bytes read on 2026-10-18 and
+logs one warn otherwise. Production builds compile none of the trace.
 
 ## Glow tier bounce (see every icon at one glow tier)
 
 No manual deploy step exists any more (LW-336 retired deploy_glow_tex.py, the LW-334
 interim path): `BuildLinked.ps1`/`Publish.ps1` deploy every equip icon as its plain base,
 and the RUNTIME keeps each weapon's deployed icon file matched to its own kill tier while
-the game plays (out of battle, a few seconds after a save loads). Because icon textures
-cache at first draw for the whole process, a file the runtime rewrites mid-session never
-shows THAT session, icons show their correct rims starting the SECOND launch after a
-deploy (the first launch re-tiers the files, the second draws them).
+the game plays (out of battle, a few seconds after a save loads). With the icon cache hook
+armed (the log says `The icon cache hook is confirmed working` after the first menus), a
+rewritten icon shows on the next screen open the same session. When the hook is not armed
+the game's icon cache holds the old art for the whole process, so the fallback is the two
+launch rhythm, icons show their correct rims starting the SECOND launch after a deploy
+(the first launch re-tiers the files, the second draws them).
 
 To tour the tiers: quit the game, then
 
     python tools\glow_bounce.py 7      # 0 = plain, 7 = tier 1, 12 = tier 2, 15 = tier 3
 
 `glow_bounce.py` only sets EVERY living weapon's kills.json tally to that value (cards
-read it too); the same two-launch rhythm applies, launch once to let the runtime
+read it too); with the hook armed it shows on the next screen open, otherwise the two launch rhythm applies, launch once to let the runtime
 re-tier the files (tier 0 included, restored from its plain-base snapshot), quit, then
 launch again to see it. It refuses while the game runs and never touches the
 kills.json.*.bak real-tally backups;

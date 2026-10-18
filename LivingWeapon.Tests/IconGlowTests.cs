@@ -1158,7 +1158,7 @@ public class IconGlowTests
 
         var kills = new Dictionary<int, int> { [id22] = 5, [id51] = 5 };   // both tier 1
         var hider = new RecordingIconCacheHider();
-        var icon = new IconGlow("m", kills, new[] { id22, id51 }, store, hider, a => a(), hideDrawnIcons: true);
+        var icon = new IconGlow("m", kills, new[] { id22, id51 }, store, hider, a => a(), hideDrawnIcons: true, healer: new NoopIconCacheHealer { Armed = true });
 
         icon.Tick();
 
@@ -1183,7 +1183,7 @@ public class IconGlowTests
 
         var kills = new Dictionary<int, int> { [id] = 5 };
         var hider = new RecordingIconCacheHider();
-        var icon = new IconGlow("m", kills, new[] { id }, store, hider, a => a(), hideDrawnIcons: true);
+        var icon = new IconGlow("m", kills, new[] { id }, store, hider, a => a(), hideDrawnIcons: true, healer: new NoopIconCacheHealer { Armed = true });
 
         icon.Tick();
 
@@ -1202,7 +1202,7 @@ public class IconGlowTests
         store.Variants[(id, "card", 1)] = t1;
 
         var kills = new Dictionary<int, int> { [id] = 5 };   // tier 1
-        var icon = new IconGlow("m", kills, new[] { id }, store, new ThrowingIconCacheHider(), a => a(), hideDrawnIcons: true);
+        var icon = new IconGlow("m", kills, new[] { id }, store, new ThrowingIconCacheHider(), a => a(), hideDrawnIcons: true, healer: new NoopIconCacheHealer { Armed = true });
 
         using var cap = LogCapture.Start();
         var ex = Record.Exception(() => icon.Tick());
@@ -1244,7 +1244,7 @@ public class IconGlowTests
 
         var kills = new Dictionary<int, int> { [id] = 5 };   // tier 1
         var captured = new List<Action>();
-        var icon = new IconGlow("m", kills, new[] { id }, store, hider, a => captured.Add(a), hideDrawnIcons: true);
+        var icon = new IconGlow("m", kills, new[] { id }, store, hider, a => captured.Add(a), hideDrawnIcons: true, healer: new NoopIconCacheHealer { Armed = true });
 
         icon.Tick();                     // schedules the normal apply
         Assert.Single(captured);
@@ -1264,7 +1264,8 @@ public class IconGlowTests
         Assert.Equal(2, hider.Calls.Count);   // no further hider calls
     }
 
-    // ---- LW-423: the cache hide is off in production. Fixture replays the 10:12:42 heap of
+    // ---- LW-423: the hide is on in production behind an armed healer, and these replays model the
+    // disarmed case where it stays off. Fixture replays the 10:12:42 heap of
     // sitting 1: icon 37 small had 3 live parts entries and 1 texture record, the card had parts
     // entries and no texture record. ----
 
@@ -1363,5 +1364,112 @@ public class IconGlowTests
         Assert.Equal(smallBase, store.Deployed[(Lw423Id, "small")]);
         Assert.Equal(0, heap.Writes);
         Assert.Equal(1, cap.File.Count(l => l.EndsWith(IconGlow.KeptArtLine(2))));
+    }
+
+    // ---- LW-427: the hide runs only while the heal hook is armed, and the names are tracked first. ----
+
+    private sealed class OrderRecordingHider : IIconCacheHider
+    {
+        private readonly NoopIconCacheHealer _healer;
+        public readonly List<int> TrackedAtHide = new();
+        public OrderRecordingHider(NoopIconCacheHealer healer) => _healer = healer;
+
+        public IconCacheHideResult Hide(IReadOnlyList<IconCacheTarget> targets)
+        {
+            TrackedAtHide.Add(_healer.Tracked.Count);
+            var result = new IconCacheHideResult();
+            foreach (var t in targets) result.Set(t.Id, t.Surface, new SurfaceOutcome(HideOutcome.Postponed, 0, 0, 0, 0));
+            return result;
+        }
+    }
+
+    [Fact]
+    public void ArmedHealer_HidesTheDrawnIcons_AndTracksBothPartsNamesFirst()
+    {
+        var heap = DrawnSmallIconHeap(out var hide);
+        var store = Lw423Store(out _, out _);
+        var kills = new Dictionary<int, int> { [Lw423Id] = 8 };
+        var healer = new NoopIconCacheHealer { Armed = true };
+        var icon = new IconGlow("m", kills, new[] { Lw423Id }, store, hide, a => a(), hideDrawnIcons: true, healer: healer);
+
+        icon.Tick();
+
+        Assert.True(heap.Writes > 0);
+        var needles = IconCacheHidePolicy.Needles(Lw423Id);
+        Assert.Contains(needles[0].Text, healer.Tracked);
+        Assert.Contains(needles[2].Text, healer.Tracked);
+        Assert.DoesNotContain(healer.Tracked, t => t.EndsWith(".tex"));
+    }
+
+    [Fact]
+    public void DisarmedHealer_KeepsTheArt_AndNeverCallsTheHider()
+    {
+        var heap = DrawnSmallIconHeap(out var hide);
+        var store = Lw423Store(out _, out _);
+        var kills = new Dictionary<int, int> { [Lw423Id] = 8 };
+        var healer = new NoopIconCacheHealer { Armed = false };
+        var icon = new IconGlow("m", kills, new[] { Lw423Id }, store, hide, a => a(), hideDrawnIcons: true, healer: healer);
+
+        using var cap = LogCapture.Start(LogLevel.Debug);
+        icon.Tick();
+
+        Assert.Equal(0, heap.Writes);
+        Assert.Empty(healer.Tracked);
+        Assert.Equal(1, cap.File.Count(l => l.EndsWith(IconGlow.KeptArtLine(2))));
+    }
+
+    [Fact]
+    public void NoHealer_NeverHides_EvenWithHideDrawnIconsOn()
+    {
+        var hider = new RecordingIconCacheHider();
+        var store = Lw423Store(out _, out _);
+        var kills = new Dictionary<int, int> { [Lw423Id] = 8 };
+        var icon = new IconGlow("m", kills, new[] { Lw423Id }, store, hider, a => a(), hideDrawnIcons: true);
+
+        icon.Tick();
+
+        Assert.Empty(hider.Calls);
+    }
+
+    [Fact]
+    public void TrackRunsBeforeHide_OnTheFirstPass_AndOnThePendingRetry()
+    {
+        var healer = new NoopIconCacheHealer { Armed = true };
+        var hider = new OrderRecordingHider(healer);
+        var store = Lw423Store(out _, out _);
+        var kills = new Dictionary<int, int> { [Lw423Id] = 8 };
+        var captured = new List<Action>();
+        var icon = new IconGlow("m", kills, new[] { Lw423Id }, store, hider, a => captured.Add(a), hideDrawnIcons: true, healer: healer);
+
+        icon.Tick();
+        captured[0](); captured.Clear();           // first pass hides, postponed
+        Assert.Equal(new[] { 2 }, hider.TrackedAtHide);
+
+        healer.Tracked.Clear();
+        icon.Tick();
+        captured[0](); captured.Clear();           // the pending retry
+        Assert.Equal(2, hider.TrackedAtHide.Count);
+        Assert.Equal(2, hider.TrackedAtHide[1]);   // tracked again before the second hide call
+    }
+
+    [Fact]
+    public void PendingRetry_ForgetsTheHide_WhenTheHealerDisarms()
+    {
+        var healer = new NoopIconCacheHealer { Armed = true };
+        var hider = new OrderRecordingHider(healer);
+        var store = Lw423Store(out _, out _);
+        var kills = new Dictionary<int, int> { [Lw423Id] = 8 };
+        var captured = new List<Action>();
+        var icon = new IconGlow("m", kills, new[] { Lw423Id }, store, hider, a => captured.Add(a), hideDrawnIcons: true, healer: healer);
+        icon.Tick();
+        captured[0](); captured.Clear();
+
+        healer.Armed = false;
+        icon.Tick();
+        captured[0](); captured.Clear();
+        icon.Tick();
+
+        Assert.Single(hider.TrackedAtHide);
+        Assert.Empty(captured);
     }
 }

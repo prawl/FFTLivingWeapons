@@ -6,9 +6,9 @@ namespace LivingWeapon;
 
 /// <summary>
 /// Schedules the icon cache hide (IconCacheHide.cs) and retries hides a battle postponed.
-/// Off by default, so a pac-mirrored icon (IconGlow.Pac.cs) shows its new art after a relaunch.
+/// Hides only while the heal hook is armed, so a hidden icon is redrawn the same session; otherwise the art waits for a relaunch.
 /// A hider exception never escapes <see cref="HideThisPassPatched"/> or <see cref="RunPendingHidesOnly"/>;
-/// the pac write already succeeded, so a failure leaves the icon restart-only.
+/// the pac write already succeeded, so a failure leaves the icon on its old art until a relaunch.
 /// </summary>
 internal sealed partial class IconGlow
 {
@@ -19,7 +19,7 @@ internal sealed partial class IconGlow
     private void HideThisPassPatched()
     {
         if (_pacPatchedThisPass.Count == 0) return;
-        if (!_hideDrawnIcons)
+        if (!CanHide)
         {
             ModLogger.Debug(LogVerb.Display, KeptArtLine(_pacPatchedThisPass.Count));
             return;
@@ -27,6 +27,7 @@ internal sealed partial class IconGlow
         var targets = _pacPatchedThisPass.Select(p => new IconCacheTarget(p.Id, p.Surface, p.Entry)).ToList();
         try
         {
+            _healer!.Track(PartsUris(targets));
             var hideResult = _hider.Hide(targets);
             UpdatePendingHides(targets, hideResult);
             _hidesThisApply = targets.Count(t => hideResult.Get(t.Id, t.Surface)?.Outcome == HideOutcome.Hidden);
@@ -36,6 +37,13 @@ internal sealed partial class IconGlow
             ModLogger.Debug(LogVerb.Display, "IconCacheHide threw while hiding this pass' pac-patched icons; they stay restart-only this session.");
         }
     }
+
+    private bool CanHide => _hideDrawnIcons && _healer?.Armed == true;
+
+    /// <summary>The cache name each target's parts records carry, which is what the heal hook matches.</summary>
+    private static IEnumerable<string> PartsUris(IEnumerable<IconCacheTarget> targets)
+        => targets.SelectMany(t => IconCacheHidePolicy.Needles(t.Id)
+            .Where(n => n.Kind == NeedleKind.PartsUri && n.Surface == t.Surface).Select(n => n.Text));
 
     /// <summary>Folds a hide call's per-surface outcomes into <see cref="_pendingHides"/>. Only
     /// <see cref="HideOutcome.Postponed"/> stays queued; other outcomes are final.</summary>
@@ -76,6 +84,13 @@ internal sealed partial class IconGlow
                 return;
             }
 
+            if (!CanHide)
+            {
+                lock (_lock) foreach (var p in pending) _pendingHides.Remove(p);
+                ModLogger.Debug(LogVerb.Display, KeptArtLine(targets.Count));
+                return;
+            }
+            _healer!.Track(PartsUris(targets));
             UpdatePendingHides(targets, _hider.Hide(targets));
         }
         catch (Exception)

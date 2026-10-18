@@ -12,7 +12,7 @@ namespace LivingWeapon;
 /// [live-icon-repaint], proven 2026-09-01. Ticked via TickGates.OutOfBattle cadence 30 (Engine.cs).
 /// glow_icons/manifest.json loads lazily through <see cref="IIconGlowStore"/>; a bad manifest or schemaVersion stands
 /// the subsystem down for the launch with one warn. Tick diffs tiers and starts the apply on <see cref="_runBackground"/>
-/// so slow disk never stalls the 33ms loop; a patched surface goes to <see cref="_hider"/> only when hideDrawnIcons is on.
+/// so slow disk never stalls the 33ms loop; a patched surface goes to <see cref="_hider"/> only when hideDrawnIcons is on and the healer is armed.
 /// </summary>
 internal sealed partial class IconGlow
 {
@@ -22,6 +22,7 @@ internal sealed partial class IconGlow
     private readonly IIconGlowStore _store;
     private readonly IIconCacheHider _hider;   // hides a re-tiered icon's cache records when _hideDrawnIcons is on
     private readonly bool _hideDrawnIcons;
+    private readonly IIconCacheHealer? _healer;
     private readonly Action<Action> _runBackground;
 
     private readonly object _lock = new();
@@ -42,9 +43,11 @@ internal sealed partial class IconGlow
     /// <param name="store">Wraps every file access; tests pass an in-memory fake.</param>
     /// <param name="hider">hides a pac-patched icon's cache records. Tests that do not exercise it pass a NoopIconCacheHider.</param>
     /// <param name="runBackground">Runs the judge-and-write work. Null schedules Task.Run; tests inject a synchronous runner.</param>
-    /// <param name="hideDrawnIcons">true lets a patched surface go to the hider; production leaves it off because only the inventory is proven to reload a hidden icon.</param>
+    /// <param name="hideDrawnIcons">true lets a patched surface go to the hider, and only while the healer is armed so a hidden icon is redrawn by the next lookup.</param>
+    /// <param name="healer">tracks hidden names and says whether the heal hook is live. Null never hides.</param>
     public IconGlow(string modDir, Dictionary<int, int> kills, IEnumerable<int> weaponIds,
-        IIconGlowStore store, IIconCacheHider hider, Action<Action>? runBackground = null, bool hideDrawnIcons = false)
+        IIconGlowStore store, IIconCacheHider hider, Action<Action>? runBackground = null, bool hideDrawnIcons = false,
+        IIconCacheHealer? healer = null)
     {
         _modDir = modDir;
         _kills = kills;
@@ -52,6 +55,7 @@ internal sealed partial class IconGlow
         _store = store;
         _hider = hider;
         _hideDrawnIcons = hideDrawnIcons;
+        _healer = healer;
         _runBackground = runBackground ?? (a => Task.Run(a));
     }
 

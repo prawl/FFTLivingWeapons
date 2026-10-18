@@ -52,7 +52,7 @@ This pays off harder the more the rest of your install ramps up. Under enemy-buf
 2. Download the latest `FFTLivingWeapons-*.zip` from [Releases](../../releases).
 3. In Reloaded-II, drag the zip onto the mod list (or extract it into your `Reloaded/Mods` folder).
 4. Enable **FFT Living Weapons** in the mod list. Both dependencies are normally fetched automatically if missing.
-5. **Restart the game.** The item rebalance (tables, text, icons) applies on launch, not live; the Living Weapon runtime (kill tracking, growth, signatures, the equip-card counter) runs in-process while you play.
+5. **Restart the game.** The item rebalance (tables, text, base icons) applies on launch, not live; the Living Weapon runtime (kill tracking, growth, signatures, the equip-card counter, the glow rings on weapon icons) runs in-process while you play.
 
 ## Compatibility: disable conflicting item mods
 
