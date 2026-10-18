@@ -689,7 +689,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   no eviction after a late kill, a pending kill lost to the crystal, a retry uncredit on a crystal.
   (DEV OK) (covers LW-257, LW-259, LW-261, LW-262; the pre registered LW-259 signature was never
   signed) **[MAJOR]**
-- [ ] 5.8 **A level up banner never shows a battle late (LW-323, two reads).** A tier crossed with
+- [x] 5.8 (PASSED 2026-10-18 on prod of 855a00eb, owner live: read one, the Chaos Blade poked to 9 claimed kill number 10 at 13:17:47, the owner fled at 13:17:59, the log carried the drop line naming Chaos Blade tier 2 and the battle exit tape the record dropped weapon=37 tier=2, the next real battle at 13:18:23 showed no banner and its tape holds zero toast records; read two, the Cutpurse and Argent Dirk tier ups delivered on the facing prompt in that same first battle at 13:17:48 and 13:17:55, on top of the 3.3 control from 2026-10-17; the four second battles either side are pre battle churn) **A level up banner never shows a battle late (LW-323, two reads).** A tier crossed with
   the battle ending fast shows NO ghost toast in the next battle; a tier crossed with a Wait prompt
   still to come delivers in battle as always (box 3.3 is that positive control on prod). PASS: read
   one: the next battle opens with no stale banner and the file carries `A toast went undelivered by

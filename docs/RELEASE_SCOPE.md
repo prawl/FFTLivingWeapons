@@ -468,8 +468,8 @@ this paragraph is the pointer that says so.
 - [ ] The 30-signature regression tour (LW-325) plus fixes for what it finds; Puppeteer
       (LW-326) is its first open defect.
 - [ ] The kills-paint speed pass (LW-324).
-- [ ] The late tier toast fixed (LW-323) BEFORE the glow-growth pass, so it cannot
-      pollute every growth observation.
+- [x] The late tier toast fixed (LW-323) BEFORE the glow-growth pass, so it cannot
+      pollute every growth observation. (SHIPPED 8ce8473b, owner live pass 2026-10-18.)
 
 ### R3. Owed owner eyeballs (BLOCKER, cheap, one sitting each)
 - [ ] Galleries: knives (LW-198), ninja blades (LW-205), books (LW-210), bags (LW-212).
@@ -502,7 +502,7 @@ model exists; it is done. The order, worked top to bottom, one at a time:
 1. LW-401 docs catch up and LW-407 file summaries, the last two guard arc rows (in flight).
 2. LW-416 the knight sword HP top up. LW-327 shipped it 2026-08-26 with three live rounds, so
    this is a regression and the parts model is the first suspect.
-3. LW-323 the stale toast fix, built, owner live pass only.
+3. LW-323 the stale toast fix, built, owner live pass only. SHIPPED 8ce8473b, owner live pass 2026-10-18 on prod (smoke box 5.8).
 4. LW-413 no developer hotkey can fire in a release build.
 5. LW-446 the weapon color cut (owner ruling 2026-10-18: battle sprite colors leave 2.4.0 and return in 2.5.0 as LW-447 after a design session; LW-412 exited WONTFIX). SHIPPED 855a00eb 2026-10-18, owner live pass on prod the same day (smoke box 8.1).
 6. LW-325 the thirty signature tour, plus fixes for what it finds.
