@@ -143,6 +143,7 @@ source ./fft.sh
 give_move          # grant Master Teleportation (ability 243) to the hovered unit
 give_move 242      # plain Teleport instead
 kill_all           # KO all enemies in the current battle
+weaken [--yes]     # every enemy to 1 HP, so the next player hit is a kill the mod credits (kill_all credits nothing)
 
 # Or call the probe directly
 python tools\probes\battle_cheats.py give_move [abilityId]

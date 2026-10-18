@@ -18,6 +18,9 @@ Verbs
         4. Reports SET (read-back matched) or MISS, then HOLDS every ~200ms until
            Ctrl+C.  On exit, restores the original bytes.
 
+  python tools\\probes\\battle_cheats.py weaken [--yes]
+      Set every live enemy-side unit's HP to 1 so the next player hit is a credited kill.
+      Same walk and HP field as kill_all, no dead bit; --yes skips the confirm prompt.
   python tools\\probes\\battle_cheats.py buff_enemies [name]
       Plant a stealable buff on EVERY live enemy so Arcanum's Larceny (+3) has a
       target on the next damaging hit.  No hover/targeting -- it sweeps the whole band.
@@ -610,6 +613,53 @@ def cmd_kill_all() -> None:
 
 
 # ---------------------------------------------------------------------------
+def cmd_weaken(auto_yes: bool = False) -> None:
+    """Set every live enemy-side unit's HP to 1 so the next player hit is a kill the mod credits.
+
+    Same band walk and the same HP field as kill_all (band+0x14 u16), but the unit stays
+    alive and no dead bit is written, so the kill that follows is the player's own swing and
+    goes through the normal credit path. Guests sit in enemy-side slots too; exclude them by
+    slot at the prompt. --yes skips the prompt (for a shell with no stdin).
+    """
+    _require_game()
+    targets = []
+    for s in range(BAND_SLOTS):
+        e = _band_entry_addr(s)
+        if not _is_valid_entry(e) or s >= PLAYER_SLOT_THRESHOLD:
+            continue
+        hp = ru16(e + A_HP)
+        mhp = ru16(e + A_MAXHP)
+        if mhp is None or mhp <= 0 or hp is None or hp <= 1:
+            continue
+        targets.append((s, e, hp, ru8(e + A_LEVEL), ru8(e + A_GX), ru8(e + A_GY)))
+    if not targets:
+        print("\nNo enemy above 1 HP found.  Are you in a live battle?")
+        return
+    print(f"\nAbout to set {len(targets)} enemy-side unit(s) to 1 HP:")
+    for s, e, hp, lvl, gx, gy in targets:
+        print(f"  slot s={s:02d} (n={s-24:+d})  lvl={lvl} hp={hp} pos=({gx},{gy})")
+    if not auto_yes:
+        ans = input("Weaken these units? [y / n / x <slots>] ").strip().lower()
+        if ans.startswith("x"):
+            try:
+                excl = {int(t) for t in ans[1:].split()}
+            except ValueError:
+                print("Could not parse slot numbers -- aborted, nothing written.")
+                return
+            targets = [t for t in targets if t[0] not in excl]
+        elif ans not in ("y", "yes"):
+            print("Aborted -- nothing written.")
+            return
+    done = 0
+    for s, e, hp, lvl, gx, gy in targets:
+        if wu16(e + A_HP, 1):
+            done += 1
+            print(f"  slot s={s:02d}: hp {hp} -> 1")
+        else:
+            print(f"  slot s={s:02d}: WRITE FAILED")
+    print(f"\nweaken: {done} of {len(targets)} enemies set to 1 HP.")
+
+
 # Verb: teams  (diagnostic -- who would kill_all touch, and why)
 # ---------------------------------------------------------------------------
 def cmd_revive() -> None:
@@ -956,6 +1006,9 @@ def main() -> None:
         cmd_buff_enemies(name)
         return
 
+    if args[0] == "weaken":
+        cmd_weaken("--yes" in sys.argv)
+        return
     if args[0] == "kill_all":
         cmd_kill_all()
         return

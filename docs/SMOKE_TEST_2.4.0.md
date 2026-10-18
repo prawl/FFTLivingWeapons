@@ -494,7 +494,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   loads; no `swing-id fallback: ... refused`. FAIL: the item vanishing after a cold boot, hands
   drawn, no damage, a refusal line from the byte patch set. (DEV OK) (covers LW-346, LW-347,
   LW-365) **[BLOCKER]**
-- [ ] 4.2 **The seven vanilla axes and flails are back, the seven designs moved (LW-351, LW-367).**
+- [x] 4.2 (PASSED 2026-10-18 on prod of a38eb35b, owner live: the Battle Axe and Iron Flail cards read plain with no Kills line and the game's own art, the seven design cards carry Kills lines (staged at 7 this launch, so the carried counts rest on box 6.2), the 15:11 load of a second slot printed the heal line naming only ids 268 to 275 and the next load was silent, both weapon menus listed what is owned with no hand sort; the Terrastaff bought in Lesalia and equipped logged one Terrastaff claims kill number 8 line with the count up by one on disk. CORRECTION to this box's text: in this game a pole takes a shield, the vanilla Greenwood Pole offers the off hand shield slot and so does the Terrastaff, whose flags are the Ironreed Pole's own, so "no shield slot offered" was a wrong expectation, not a defect) **The seven vanilla axes and flails are back, the seven designs moved (LW-351, LW-367).**
   Battle Axe, Giant's Axe, Slasher, Iron Flail, Flail of Flame, Morning Star and Scorpion Tail are
   vanilla again at their old ids; Terrastaff, Ravager, Sunderer, Warbrand, Bloodlash, Climhazzard
   and Sasori exist at 261 to 267 with their kills carried. Open a vanilla axe card and each design's
