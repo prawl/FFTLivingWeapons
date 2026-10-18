@@ -97,6 +97,13 @@ def verify_at(h, addr, want_id, pairs):
     return (e[3], good) if good >= MIN_NEIGHBOURS else None
 
 
+def process_key(h, pid):
+    """pid plus the process start time, so a pid reused after a restart never matches."""
+    c, e, k, u = (ctypes.c_ulonglong() for _ in range(4))
+    k32.GetProcessTimes(h, ctypes.byref(c), ctypes.byref(e), ctypes.byref(k), ctypes.byref(u))
+    return f"{pid}:{c.value}"
+
+
 def cached_hits(h, pid, want_id, pairs):
     """The entry addresses the last sweep found for this id and pid, re verified in place.
     A miss on any of them means a GC moved the array, so the caller sweeps again."""
@@ -104,7 +111,7 @@ def cached_hits(h, pid, want_id, pairs):
         doc = json.loads(CACHE.read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return []
-    if doc.get("pid") != pid:
+    if doc.get("process") != process_key(h, pid):
         return []
     out = []
     for addr in doc.get("ids", {}).get(str(want_id), []):
@@ -115,13 +122,14 @@ def cached_hits(h, pid, want_id, pairs):
     return out
 
 
-def remember_hits(pid, want_id, hits):
+def remember_hits(h, pid, want_id, hits):
     try:
         doc = json.loads(CACHE.read_text(encoding="utf-8")) if CACHE.exists() else {}
     except (OSError, ValueError):
         doc = {}
-    if doc.get("pid") != pid:
-        doc = {"pid": pid, "ids": {}}
+    key = process_key(h, pid)
+    if doc.get("process") != key:
+        doc = {"process": key, "ids": {}}
     doc.setdefault("ids", {})[str(want_id)] = [a for a, _, _ in hits]
     CACHE.write_text(json.dumps(doc), encoding="utf-8")
 
@@ -181,7 +189,7 @@ def main():
         print("mod is not armed. Re-run; if it keeps failing the layout assumption is wrong.")
         k32.CloseHandle(h); sys.exit(1)
 
-    remember_hits(pid, want_id, hits)
+    remember_hits(h, pid, want_id, hits)
     print(f"{'address':<16} {'current':>7} {'corroborating neighbours':>26}")
     for addr, val, good in hits:
         print(f"0x{addr:<14X} {val:>7} {good:>26}")
