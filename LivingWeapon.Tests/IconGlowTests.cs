@@ -229,6 +229,31 @@ public class IconGlowTests
         Assert.Equal(1, cap.File.Count(l => l.Contains("IconGlow standing down")));
     }
 
+    // The bake writes an inputsSha1 per entry for its own build gate. The real file reader must
+    // keep loading a manifest that carries fields the runtime never declared.
+    [Fact]
+    public void FileStore_ReadManifest_LoadsEntriesCarryingUndeclaredFields()
+    {
+        var dir = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "lw_glow_manifest_" + Guid.NewGuid().ToString("N"));
+        System.IO.Directory.CreateDirectory(System.IO.Path.Combine(dir, "glow_icons"));
+        System.IO.File.WriteAllText(System.IO.Path.Combine(dir, "glow_icons", "manifest.json"),
+            "{\"schemaVersion\":1,\"tierScales\":{\"1\":0.6},\"icons\":[{\"id\":33,\"surface\":\"card\","
+            + "\"baseRel\":\"data/x/ei_033_uitx.tex\",\"length\":51296,\"baseSha1\":\"aa\",\"inputsSha1\":\"bb\","
+            + "\"variants\":{\"1\":\"v1.tex\"},\"variantSha1s\":{\"1\":\"cc\"},\"someFutureField\":[1,2]}]}");
+        try
+        {
+            var manifest = new FileIconGlowStore(dir).ReadManifest();
+
+            Assert.NotNull(manifest);
+            Assert.Equal(1, manifest!.SchemaVersion);
+            var entry = Assert.Single(manifest.Icons);
+            Assert.Equal(33, entry.Id);
+            Assert.Equal("aa", entry.BaseSha1);
+            Assert.Equal("v1.tex", entry.Variants["1"]);
+        }
+        finally { System.IO.Directory.Delete(dir, true); }
+    }
+
     [Fact]
     public void UnsupportedSchemaVersion_StandsDown()
     {

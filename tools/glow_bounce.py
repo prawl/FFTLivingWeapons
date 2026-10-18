@@ -2,14 +2,12 @@
 """DEV HARNESS CHEAT -- writes the live install's kills.json. Owner test loop only.
 
 Set EVERY living weapon's kill tally to one value (docs/DEV_TEST_RECIPES.md, "Glow tier
-bounce"). This script ONLY writes kills.json -- LW-336 retired the manual glow-tex deploy
-step it used to shell out to. The RUNTIME re-tiers every deployed icon file itself, out
-of battle, a few seconds after a save loads (tier 0 included, restored from its
-plain-base snapshot). As of LW-381 that re-tier also mirrors the change into the running
-game's modded.pac, so ONE launch is enough: launch, wait a few seconds out of battle,
-then re-enter a character's equipment list (or move between party-menu sections) to see
-the new tier -- a cursor move inside an already-open list is not enough, the engine only
-re-reads an icon on a list redraw (ledger [live-icon-repaint], PROVEN 2026-09-01).
+bounce"). This script ONLY writes kills.json; the manual glow-tex deploy step it used to
+shell out to is gone. The RUNTIME re-tiers every deployed icon file itself, out of battle,
+a few seconds after a save loads (tier 0 included, restored from its plain-base snapshot).
+Icon textures cache at first draw for the whole process and the same session cache hide
+is switched off for 2.4.0, so it takes TWO launches to see a tier: the first re-tiers the
+files, the second draws them.
 
   python tools/glow_bounce.py 0     # tier 0: every icon plain
   python tools/glow_bounce.py 7     # tier 1: faint rims     (prod thresholds {5,10,15},

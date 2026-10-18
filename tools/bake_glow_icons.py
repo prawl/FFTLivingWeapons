@@ -55,13 +55,16 @@ variants/variantSha1s are keyed by tier as a STRING ("1"/"2"/"3"), filenames are
 glow_icons/ (flat, no subfolder). length is the surface's FIXED tex size (card 51296 = 0xC860,
 small 12384 = 0x3060) -- both the base and every variant must equal it, since the runtime
 splices variant bytes over the base at a fixed offset. variantSha1s exist for this file's own
-verify gate; the runtime may ignore them.
+verify gate; the runtime may ignore them. inputsSha1 is the fingerprint of what went INTO the
+bake (the plain icon bytes, the weapon's rim recipe, and for a ramp id its body inputs), so a
+recipe edit or a hand edited manifest goes red at verify until the id is rebaked.
 
 Subcommands:
   python tools/bake_glow_icons.py bake [--from N] [--to N] [--force]
       Bakes weapon ids in [--from, --to] (default the full set, 1..121 plus the extended rows). IDEMPOTENT/RESUMABLE:
-      an (id, surface) whose three tier files already exist is skipped (no re-decode, no
-      re-encode) unless --force. Safe to run in id-range slices across several invocations --
+      an (id, surface) whose three tier files already exist AND whose manifest inputsSha1
+      still matches the plain icon and rim recipe is skipped (no re-decode, no re-encode);
+      a stale fingerprint rebakes the id on its own, --force rebakes regardless. Safe to run in id-range slices across several invocations --
       each shells out to FF16Tools up to (2 decodes + 6 encodes) x range-size times, and a
       single call can take minutes; slice with --from/--to to stay under a shell timeout.
       Updates manifest.json after every invocation (upserts entries for the ids just touched,
@@ -69,8 +72,9 @@ Subcommands:
   python tools/bake_glow_icons.py verify
       THE GATE. Exit nonzero on any failure: every WEAPON_CATS id x 2 surfaces x 3 tiers
       present; every variant file EXACTLY the surface's fixed byte length; manifest matches
-      files (including sha1s); no non-weapon id anywhere in the manifest; schemaVersion 1;
-      plus the rim_scale=1.0 identity pin (see selftest).
+      files (including sha1s); every inputsSha1 equals the fingerprint of the plain icon
+      plus the rim recipe as the code reads them now; no non-weapon id anywhere in the
+      manifest; schemaVersion 1; plus the rim_scale=1.0 identity pin (see selftest).
   python tools/bake_glow_icons.py selftest
       Just the rim_scale=1.0 identity pin, runnable on its own: ri.ramp_render(id, tint,
       "card", glow=True) must be byte-identical to the same call with rim_scale=1.0 passed
@@ -213,6 +217,61 @@ def rim_params(lane):
             OUTER_TRIM, GLOW_TRIM)
 
 
+def rim_recipe(item_id, surface):
+    """The data values a rim bake reads besides the plain icon bytes, in the shape the
+    fingerprint hashes. A ramp id's body is rendered fresh, so its treatment row, tint, donor
+    id, pop membership and vendored body png are inputs too. Code constants are not covered;
+    the rebake pins stand for those."""
+    lane = _LANE_BY_ID[item_id]
+    deep, bright, outer_trim, glow_trim = rim_params(lane)
+    rim = ri.RAMP_RIMS.get(str(item_id))
+    route = body_route(item_id)
+    recipe = {
+        "lane": lane,
+        "route": route,
+        "deep": list(deep),
+        "bright": list(bright),
+        "outerTrim": outer_trim,
+        "glowTrim": glow_trim,
+        "innerA": rim["inner_a"] if rim else 170,
+        "outerA": rim["outer_a"] if rim else 80,
+        "thirdA": 0,
+        "tierScales": {str(k): v for k, v in TIER_SCALES.items()},
+    }
+    if route == "ramp":
+        stem = f"ei_{item_id:03d}_uitx" if surface == "card" else f"ei_s_{item_id:03d}_uitx"
+        vendored = ri._RAMP_BODIES_DIR / f"{stem}.png"
+        recipe["body"] = {
+            "treatment": ri.RAMP_TREATMENTS[str(item_id)],
+            "tint": list(ri.ICON_TINTS[item_id]),
+            "srcId": ri.SRC.get(item_id, item_id),
+            "pop": item_id in ri.RAMP_POP,
+            "vendoredPngSha1": sha1_bytes(vendored.read_bytes()) if vendored.exists() else None,
+        }
+    return recipe
+
+
+def inputs_sha1(item_id, surface, base_bytes):
+    recipe = json.dumps(rim_recipe(item_id, surface), sort_keys=True, separators=(",", ":"))
+    return sha1_bytes(base_bytes + recipe.encode("utf-8"))
+
+
+def _bake_is_current(by_key, item_id, sub, pfx, surface, out_paths):
+    """True when all three tier files exist, each still hashes to the manifest's variantSha1,
+    and the manifest's fingerprint for this (id, surface) still matches the plain icon and
+    rim recipe on disk. A swapped ring file therefore rebakes instead of being restamped."""
+    if not all(p.exists() for p in out_paths.values()):
+        return False
+    entry = by_key.get((item_id, surface))
+    base_path = base_tex_path(sub, pfx, item_id)
+    if entry is None or not base_path.exists():
+        return False
+    for tier, path in out_paths.items():
+        if entry.get("variantSha1s", {}).get(str(tier)) != sha1_bytes(path.read_bytes()):
+            return False
+    return entry.get("inputsSha1") == inputs_sha1(item_id, surface, base_path.read_bytes())
+
+
 def _glow_variant(body, tint, item_id, rim_scale):
     """Mirrors ramp_render's own post-body glow tail (recolor_icons.py: inside ramp_render,
     everything from `if not glow: return body` onward) so a (id, surface) body can be decoded
@@ -251,25 +310,25 @@ def encode_tex(img, out_path, tag):
 
 def bake_range(ids, force=False):
     """Bake every (id, surface, tier) in `ids`. Idempotent: an (id, surface) whose three tier
-    files already exist skips BOTH the decode and the three encodes unless force=True."""
+    files already exist with a matching manifest fingerprint skips BOTH the decode and the
+    three encodes unless force=True. A stale fingerprint rebakes all three tiers, so a recipe
+    change can never be papered over by rewriting the manifest alone."""
     baked_files = 0
     baked_bytes = 0
     skipped_files = 0
     decodes = 0
+    by_key = {(e["id"], e["surface"]): e for e in load_manifest().get("icons", [])}
     for item_id in ids:
         tint = tint_for(item_id)
         for sub, pfx, surface, size in SURFACES:
             out_paths = {t: OUT_DIR / variant_name(pfx, item_id, t) for t in TIER_SCALES}
-            if not force and all(p.exists() for p in out_paths.values()):
+            if not force and _bake_is_current(by_key, item_id, sub, pfx, surface, out_paths):
                 skipped_files += len(out_paths)
                 continue
             body = body_for(item_id, sub, pfx, surface)
             decodes += 1
             for tier, scale in TIER_SCALES.items():
                 out_path = out_paths[tier]
-                if out_path.exists() and not force:
-                    skipped_files += 1
-                    continue
                 img = _glow_variant(body, tint, item_id, scale)
                 encode_tex(img, out_path, f"{pfx}_{item_id:03d}_t{tier}")
                 data_len = out_path.stat().st_size
@@ -309,6 +368,7 @@ def manifest_entry(item_id, sub, pfx, surface, size):
         "baseRel": base_rel(sub, pfx, item_id),
         "length": size,
         "baseSha1": sha1_bytes(base_bytes),
+        "inputsSha1": inputs_sha1(item_id, surface, base_bytes),
         "variants": variants,
         "variantSha1s": variant_sha1s,
     }
@@ -507,6 +567,9 @@ def verify():
                              f"(actual base {len(base_bytes)}) != expected {size}")
         if entry.get("baseSha1") != sha1_bytes(base_bytes):
             failures.append(f"id {item_id} {surface}: baseSha1 does not match the deployed base tex")
+        if entry.get("inputsSha1") != inputs_sha1(item_id, surface, base_bytes):
+            failures.append(f"id {item_id} {surface}: inputsSha1 is not the fingerprint of the plain icon "
+                             f"plus this weapon's rim recipe (rebake the id with --force)")
         for tier in sorted(TIER_SCALES):
             tkey = str(tier)
             vname = entry.get("variants", {}).get(tkey)

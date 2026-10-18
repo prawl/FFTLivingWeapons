@@ -127,8 +127,11 @@ dotnet test LivingWeapon.Tests\LivingWeapon.Tests.csproj   # the runtime's xUnit
 .\Publish.ps1                   # PROD: the same steps, then package the release zip instead of deploying (never touches the game)
 ```
 
-Both scripts refuse to deploy or package on any red step. Beyond the item gate and the unit tests, two
-style gates run every time. `dotnet format` must have nothing to change, and the comment budget test
+Both scripts refuse to deploy or package on any red step. Beyond the item gate and the unit tests, the
+glow ring gate runs every time. `python tools/bake_glow_icons.py verify` checks the 726 committed ring
+files against `glow_icons/manifest.json`, and each manifest row carries a fingerprint of the plain icon
+plus that weapon's rim recipe, so a recipe edit or a hand edited manifest stays red until the weapon is
+rebaked. Two style gates run every time as well. `dotnet format` must have nothing to change, and the comment budget test
 keeps comments short, one comment line per three code lines for a new file, no block over eight lines,
 no colon or dash inside a comment sentence, and no comment that argues instead of informs.
 

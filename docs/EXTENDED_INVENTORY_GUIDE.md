@@ -263,7 +263,8 @@ Removing one from the MIDDLE slides every later id down one (the Moonblade's rem
 its six glow variants down one id and re-point its two `.utexpt` parts files (the picture path
 inside them names the id; `bake_extended_icon_parts.patch_parts` does it without touching the
 donor pac), then delete the old last id's files and let `bake_glow_icons.update_manifest` prune
-its manifest entry; DELETE the old last id's row from `working/pilot_item.sqlite` before the name
+its manifest entry (the build's glow ring gate, `bake_glow_icons.py verify`, refuses a stale
+entry or a missing file); DELETE the old last id's row from `working/pilot_item.sqlite` before the name
 bake, or the audit refuses the stray row; move every constant that names an id
 (`Bulwark.SundererId`, `analyze.py`'s `DOMINANCE_DEFERRED` and `THIN_NICHE_EXCEPTIONS` keys, the
 shipped-roster tests: `ExtendedInventoryDataTests`, `TallyMigrationTests`, `BulwarkTests`,

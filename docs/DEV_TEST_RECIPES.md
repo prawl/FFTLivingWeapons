@@ -66,6 +66,20 @@ when nothing defines it; with the mod off, skip it again. Clearing a stray one i
 Caveat: only ids whose IC layout matches FFTPatcher-canonical render in the menu (~80–85%); the rest write
 into RAM but don't show.
 
+## Glow ring gate (runs inside every build)
+
+`python tools/bake_glow_icons.py verify` runs inside `tools/pipeline.ps1`, so BuildLinked, Publish
+and the release workflow all stop on it. It refuses a missing or wrong sized ring file, a sha that
+no longer matches its file, and any manifest row whose `inputsSha1` is not the fingerprint of the
+plain icon plus that weapon's rim recipe (lane colors, trims, rims.json alphas, tier scales, body
+route, and for a ramp id its treatments.json row, tint, donor id, pop membership and vendored
+body png) as the baker reads them now. After a recipe edit, `python tools/bake_glow_icons.py bake`
+rebakes every id whose fingerprint went stale on its own, and a ring file that no longer hashes
+to its manifest row rebakes the same way instead of being restamped. Code constants inside the
+glow engine are not fingerprinted; the rebake pins (id 33 and the extended ids) stand for those on
+a box with FF16Tools. Under half a minute on a dev box. On the build server the rebake pins skip
+themselves (no FF16Tools) and the rest of the gate still runs.
+
 ## Glow tier bounce (see every icon at one glow tier)
 
 No manual deploy step exists any more (LW-336 retired deploy_glow_tex.py, the LW-334
@@ -474,7 +488,8 @@ everything else (tables, name row, glow rims, the runtime) follows from the buil
 2. **Icons.** `python tools/bake_extended_icon_parts.py`: byte-copies the donor's `.tex` pair, writes
    the two `.utexpt` parts files (the game's pac has none past 260; the card is blank without them),
    draws the three glow rims from the item's own icon in its lane color and upserts
-   `glow_icons/manifest.json`. The plain icon is copied only when absent. Extended rows stay OUTSIDE
+   `glow_icons/manifest.json` (fingerprint included, so the build's glow ring gate passes).
+   The plain icon is copied only when absent. Extended rows stay OUTSIDE
    the tint programme (`recolor_icons.py` skips them).
 3. **Tables.** `python tools/generate.py` (validates the row, writes `mod/extended_inventory/*.xml`;
    these are read by the DLL at boot, never by the modloader) then `python tools/analyze.py`

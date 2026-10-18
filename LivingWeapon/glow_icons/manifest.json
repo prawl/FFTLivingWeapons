@@ -12,6 +12,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_001_uitx.tex",
    "length": 51296,
    "baseSha1": "30bbadd651a9180a1126235a595da6fae8a669b8",
+   "inputsSha1": "7ecb52f2e2db0ac04f9aeb335fe31bf3c70ccc71",
    "variants": {
     "1": "ei_001_uitx_t1.tex",
     "2": "ei_001_uitx_t2.tex",
@@ -29,6 +30,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_001_uitx.tex",
    "length": 12384,
    "baseSha1": "15856506d2674df5d649364a87cc98fd1785e800",
+   "inputsSha1": "ba2e0f6191c3ecf842cf81ae1395c4e74682a896",
    "variants": {
     "1": "ei_s_001_uitx_t1.tex",
     "2": "ei_s_001_uitx_t2.tex",
@@ -46,6 +48,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_002_uitx.tex",
    "length": 51296,
    "baseSha1": "ee561c645f6a486d69cfed2892d90cdd7aa3105e",
+   "inputsSha1": "653fb0c859789a6b697cbb5285b4371a938bcf01",
    "variants": {
     "1": "ei_002_uitx_t1.tex",
     "2": "ei_002_uitx_t2.tex",
@@ -63,6 +66,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_002_uitx.tex",
    "length": 12384,
    "baseSha1": "61e993d2b5f4f7be4128e1a41058dda5bc78c06f",
+   "inputsSha1": "0a0584b1fe5483866e5afc7547e1da3a5514b60b",
    "variants": {
     "1": "ei_s_002_uitx_t1.tex",
     "2": "ei_s_002_uitx_t2.tex",
@@ -80,6 +84,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_003_uitx.tex",
    "length": 51296,
    "baseSha1": "c4ba804efdfc5b328b650291e8daa3be4f9acd3f",
+   "inputsSha1": "f60621f651671459990c5108d096fc8bc867fc18",
    "variants": {
     "1": "ei_003_uitx_t1.tex",
     "2": "ei_003_uitx_t2.tex",
@@ -97,6 +102,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_003_uitx.tex",
    "length": 12384,
    "baseSha1": "fae625e46e7c38a5a64d20318702dfde3ad25444",
+   "inputsSha1": "c1d1ced21a25c632b0affa425fc7444c3e5f00e6",
    "variants": {
     "1": "ei_s_003_uitx_t1.tex",
     "2": "ei_s_003_uitx_t2.tex",
@@ -114,6 +120,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_004_uitx.tex",
    "length": 51296,
    "baseSha1": "2d17296fb6471315288b45d8e07278bc3fdffac6",
+   "inputsSha1": "c72043beae64983d30cbee87fd5784ffc631de00",
    "variants": {
     "1": "ei_004_uitx_t1.tex",
     "2": "ei_004_uitx_t2.tex",
@@ -131,6 +138,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_004_uitx.tex",
    "length": 12384,
    "baseSha1": "09913cc20a4c375c97f09e4a2d2aeb00f5bc3491",
+   "inputsSha1": "5a994b02d87008986fa19a1dc051a8d1c947a087",
    "variants": {
     "1": "ei_s_004_uitx_t1.tex",
     "2": "ei_s_004_uitx_t2.tex",
@@ -148,6 +156,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_005_uitx.tex",
    "length": 51296,
    "baseSha1": "06c46131f291b5c74ea675f6b16a15fa12bfa023",
+   "inputsSha1": "6d8700689e544592c331199e6470ffe0f42ac3ad",
    "variants": {
     "1": "ei_005_uitx_t1.tex",
     "2": "ei_005_uitx_t2.tex",
@@ -165,6 +174,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_005_uitx.tex",
    "length": 12384,
    "baseSha1": "476e614be5e686089a69297162028fe3b77450ab",
+   "inputsSha1": "2ab99d1558bd68cec5744ac0ed0dcbf602652dce",
    "variants": {
     "1": "ei_s_005_uitx_t1.tex",
     "2": "ei_s_005_uitx_t2.tex",
@@ -182,6 +192,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_006_uitx.tex",
    "length": 51296,
    "baseSha1": "2faf72d62e8f640eaec974d3c354ae88d7ca69a5",
+   "inputsSha1": "9aaa697e2c8bcdfbdcb1a61ff3b42f154b4be4fd",
    "variants": {
     "1": "ei_006_uitx_t1.tex",
     "2": "ei_006_uitx_t2.tex",
@@ -199,6 +210,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_006_uitx.tex",
    "length": 12384,
    "baseSha1": "a4c95afd70d4084c381a16946c308976b04518e8",
+   "inputsSha1": "17469d418f72263f1d9d492fdf815838f5f5ab80",
    "variants": {
     "1": "ei_s_006_uitx_t1.tex",
     "2": "ei_s_006_uitx_t2.tex",
@@ -216,6 +228,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_007_uitx.tex",
    "length": 51296,
    "baseSha1": "82b47a80e952062f73ce324de53fff682ea28160",
+   "inputsSha1": "bd131274d8c56926769ccc1b99246ca38c056d85",
    "variants": {
     "1": "ei_007_uitx_t1.tex",
     "2": "ei_007_uitx_t2.tex",
@@ -233,6 +246,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_007_uitx.tex",
    "length": 12384,
    "baseSha1": "e17fa573c7d67fab3c95837f89450549c2742b7e",
+   "inputsSha1": "c1e8eff131fd5ed4ebf7f429412970aca6da7e49",
    "variants": {
     "1": "ei_s_007_uitx_t1.tex",
     "2": "ei_s_007_uitx_t2.tex",
@@ -250,6 +264,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_008_uitx.tex",
    "length": 51296,
    "baseSha1": "3577bf0b2d72fd6594a9c1a915cb4f9c9d44a44b",
+   "inputsSha1": "75eab97cd27c372e2c6d50bc60e128385441e372",
    "variants": {
     "1": "ei_008_uitx_t1.tex",
     "2": "ei_008_uitx_t2.tex",
@@ -267,6 +282,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_008_uitx.tex",
    "length": 12384,
    "baseSha1": "d9374c84dd7c18a44929d66d571ef8620c263789",
+   "inputsSha1": "8b18d31e3f5923c2e88269d57cdd3b810801ef5b",
    "variants": {
     "1": "ei_s_008_uitx_t1.tex",
     "2": "ei_s_008_uitx_t2.tex",
@@ -284,6 +300,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_009_uitx.tex",
    "length": 51296,
    "baseSha1": "5e16babb006e34228d7d70478f47f0e2885fbb66",
+   "inputsSha1": "bb821ffc98fc8fc5a889fc13138c8e0465235424",
    "variants": {
     "1": "ei_009_uitx_t1.tex",
     "2": "ei_009_uitx_t2.tex",
@@ -301,6 +318,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_009_uitx.tex",
    "length": 12384,
    "baseSha1": "e36aee70f222d9191ab66d25ca14440cd0c6af66",
+   "inputsSha1": "4294d9435fa1226e1ee5175384d3e1987cfe5e75",
    "variants": {
     "1": "ei_s_009_uitx_t1.tex",
     "2": "ei_s_009_uitx_t2.tex",
@@ -318,6 +336,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_010_uitx.tex",
    "length": 51296,
    "baseSha1": "77b47f5c211a7b1f2735083893e88410ca524987",
+   "inputsSha1": "60f943c76c847bc64ed3c0523f845571c6811b53",
    "variants": {
     "1": "ei_010_uitx_t1.tex",
     "2": "ei_010_uitx_t2.tex",
@@ -335,6 +354,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_010_uitx.tex",
    "length": 12384,
    "baseSha1": "57b8925121952c3f4bea12dcc6e864e50d6eec9e",
+   "inputsSha1": "387ccf5e67e85fa496b3444465a843b881b42f7e",
    "variants": {
     "1": "ei_s_010_uitx_t1.tex",
     "2": "ei_s_010_uitx_t2.tex",
@@ -352,6 +372,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_011_uitx.tex",
    "length": 51296,
    "baseSha1": "5aa414c41884e76adc7b3e0c9f5abdabeaa4a44f",
+   "inputsSha1": "a8cfb15842c7e649a18911736dce72f9d93e4f00",
    "variants": {
     "1": "ei_011_uitx_t1.tex",
     "2": "ei_011_uitx_t2.tex",
@@ -369,6 +390,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_011_uitx.tex",
    "length": 12384,
    "baseSha1": "4d4631faa46260c7504ff6b63b18de57521f173c",
+   "inputsSha1": "59dc5990d8c81c17ff73be5b5eb378be95d997c1",
    "variants": {
     "1": "ei_s_011_uitx_t1.tex",
     "2": "ei_s_011_uitx_t2.tex",
@@ -386,6 +408,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_012_uitx.tex",
    "length": 51296,
    "baseSha1": "5591de840baf117243a57a262f6cd36893c209cd",
+   "inputsSha1": "ce6b92e29fd30d96bd3105622e3ae26b833f727c",
    "variants": {
     "1": "ei_012_uitx_t1.tex",
     "2": "ei_012_uitx_t2.tex",
@@ -403,6 +426,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_012_uitx.tex",
    "length": 12384,
    "baseSha1": "816cef68ec9a39f5bb3485303b6e884e1cfc4c76",
+   "inputsSha1": "4ea83b1c11fde7ff85a90ff40eabb924e1a8d300",
    "variants": {
     "1": "ei_s_012_uitx_t1.tex",
     "2": "ei_s_012_uitx_t2.tex",
@@ -420,6 +444,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_013_uitx.tex",
    "length": 51296,
    "baseSha1": "003f23f8ca46a9977ec94b1fc1bd70b35641f7eb",
+   "inputsSha1": "346dc47cbdbd27af6119bad24fd84eee6d3dfc99",
    "variants": {
     "1": "ei_013_uitx_t1.tex",
     "2": "ei_013_uitx_t2.tex",
@@ -437,6 +462,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_013_uitx.tex",
    "length": 12384,
    "baseSha1": "26e177c6031534a5eef9d4082ea4bb374d731658",
+   "inputsSha1": "7e60f88e43a4728783d99f2096e2cc61f28e8934",
    "variants": {
     "1": "ei_s_013_uitx_t1.tex",
     "2": "ei_s_013_uitx_t2.tex",
@@ -454,6 +480,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_014_uitx.tex",
    "length": 51296,
    "baseSha1": "c8dfb1f6eb0004cfd30a9d78369616d03ff0563a",
+   "inputsSha1": "1f6b5d6d5aab49585758c49ee8d7409a6afb1198",
    "variants": {
     "1": "ei_014_uitx_t1.tex",
     "2": "ei_014_uitx_t2.tex",
@@ -471,6 +498,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_014_uitx.tex",
    "length": 12384,
    "baseSha1": "fcaf7d0c8cda22100fd84e9a48d859819802cdf3",
+   "inputsSha1": "b7a03f7c0453eaf4d94655c042674d3d1cda6cff",
    "variants": {
     "1": "ei_s_014_uitx_t1.tex",
     "2": "ei_s_014_uitx_t2.tex",
@@ -488,6 +516,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_015_uitx.tex",
    "length": 51296,
    "baseSha1": "be7c2b8f89b677197b7e1703005f889b5e0ab9d3",
+   "inputsSha1": "b11455def0c33b66d0f7489d34c82282596579b7",
    "variants": {
     "1": "ei_015_uitx_t1.tex",
     "2": "ei_015_uitx_t2.tex",
@@ -505,6 +534,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_015_uitx.tex",
    "length": 12384,
    "baseSha1": "5f6741560a43fc0a25dd508d4d82fc477f7af8de",
+   "inputsSha1": "33091b3c7ea1908afa4ce5f1ce2ada39c691a950",
    "variants": {
     "1": "ei_s_015_uitx_t1.tex",
     "2": "ei_s_015_uitx_t2.tex",
@@ -522,6 +552,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_016_uitx.tex",
    "length": 51296,
    "baseSha1": "901805cb4ae5cbc75737b9e9cf76f1aef67090cc",
+   "inputsSha1": "33e4ccb85c0f23c61a22ac88894ee5deba6fb26c",
    "variants": {
     "1": "ei_016_uitx_t1.tex",
     "2": "ei_016_uitx_t2.tex",
@@ -539,6 +570,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_016_uitx.tex",
    "length": 12384,
    "baseSha1": "a47b999b0c339428cb2730c7e90fef358542eaa7",
+   "inputsSha1": "cc44529f7262bfcb46e55e5689f5533deec8f307",
    "variants": {
     "1": "ei_s_016_uitx_t1.tex",
     "2": "ei_s_016_uitx_t2.tex",
@@ -556,6 +588,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_017_uitx.tex",
    "length": 51296,
    "baseSha1": "96238a43246c261ce895c2e42208b32d2ad67120",
+   "inputsSha1": "140b62ccddecfe75b1bc0b31931433338d2688c5",
    "variants": {
     "1": "ei_017_uitx_t1.tex",
     "2": "ei_017_uitx_t2.tex",
@@ -573,6 +606,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_017_uitx.tex",
    "length": 12384,
    "baseSha1": "b3efd55b653ca2e59f17e349f6c1f3c70b26f5d1",
+   "inputsSha1": "61b4fbd30628fea1eb90873993181f15e7c84e6c",
    "variants": {
     "1": "ei_s_017_uitx_t1.tex",
     "2": "ei_s_017_uitx_t2.tex",
@@ -590,6 +624,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_018_uitx.tex",
    "length": 51296,
    "baseSha1": "e8b3d85958362a1b1576101e9927d6bc8bb4f95e",
+   "inputsSha1": "14221313e5f8b1d48d5bdc8d7de9aa8665724b02",
    "variants": {
     "1": "ei_018_uitx_t1.tex",
     "2": "ei_018_uitx_t2.tex",
@@ -607,6 +642,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_018_uitx.tex",
    "length": 12384,
    "baseSha1": "be9b5e869e2edf4978bce3d6f0c60d59621e32d6",
+   "inputsSha1": "0552f92aede4aa5005e3401c5391f28eeadd248a",
    "variants": {
     "1": "ei_s_018_uitx_t1.tex",
     "2": "ei_s_018_uitx_t2.tex",
@@ -624,6 +660,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_019_uitx.tex",
    "length": 51296,
    "baseSha1": "0f06e3fa527fd4b38d8604d7e46f21b37ce2f8f5",
+   "inputsSha1": "d9876fb1ee69e22baf6efa408825eabe5622ea6e",
    "variants": {
     "1": "ei_019_uitx_t1.tex",
     "2": "ei_019_uitx_t2.tex",
@@ -641,6 +678,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_019_uitx.tex",
    "length": 12384,
    "baseSha1": "2bdb5c45827592f9b30b9df79423cfeaab5159f5",
+   "inputsSha1": "2b50cdac32f6dec79f2532764c7e5caeff5b1efe",
    "variants": {
     "1": "ei_s_019_uitx_t1.tex",
     "2": "ei_s_019_uitx_t2.tex",
@@ -658,6 +696,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_020_uitx.tex",
    "length": 51296,
    "baseSha1": "a1319fef87e1c6cd46514ffeb6f2336eaa0af531",
+   "inputsSha1": "1140d00106790eac8961aed28e492c65c1bc680d",
    "variants": {
     "1": "ei_020_uitx_t1.tex",
     "2": "ei_020_uitx_t2.tex",
@@ -675,6 +714,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_020_uitx.tex",
    "length": 12384,
    "baseSha1": "b39e0fff0bb4c9f229923ed79e57068c71c27dab",
+   "inputsSha1": "60ad5cdd10d75ceb8e0a90dce2e2d9a9a6e2fd30",
    "variants": {
     "1": "ei_s_020_uitx_t1.tex",
     "2": "ei_s_020_uitx_t2.tex",
@@ -692,6 +732,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_021_uitx.tex",
    "length": 51296,
    "baseSha1": "b468bfb067659abc332a312147760eeeaa98de7b",
+   "inputsSha1": "f3c80a7fa26b36a8fb7a9b7a7d248c822be64d08",
    "variants": {
     "1": "ei_021_uitx_t1.tex",
     "2": "ei_021_uitx_t2.tex",
@@ -709,6 +750,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_021_uitx.tex",
    "length": 12384,
    "baseSha1": "bccab506cf413bc00972a89c18133c44e4d1d9c6",
+   "inputsSha1": "212a4f2c1fba3f448d177a4af3a3a3457f03b16f",
    "variants": {
     "1": "ei_s_021_uitx_t1.tex",
     "2": "ei_s_021_uitx_t2.tex",
@@ -726,6 +768,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_022_uitx.tex",
    "length": 51296,
    "baseSha1": "7ed7f87f3d01a453cc6d60051ea534131e838f04",
+   "inputsSha1": "bc61249ca384b1ac5ddbd35cf6f9fa80f3a598be",
    "variants": {
     "1": "ei_022_uitx_t1.tex",
     "2": "ei_022_uitx_t2.tex",
@@ -743,6 +786,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_022_uitx.tex",
    "length": 12384,
    "baseSha1": "c3968e0d6644fd3d50670e412fc48bcbbc73bc96",
+   "inputsSha1": "2940350ba52611e7339b80a4cdefdabeed4cb8cf",
    "variants": {
     "1": "ei_s_022_uitx_t1.tex",
     "2": "ei_s_022_uitx_t2.tex",
@@ -760,6 +804,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_023_uitx.tex",
    "length": 51296,
    "baseSha1": "a3b475e166a97c9ae175836f477cda431b3f2767",
+   "inputsSha1": "f88b5deebe4a5638e8cfe123ef5b9832b3b09c45",
    "variants": {
     "1": "ei_023_uitx_t1.tex",
     "2": "ei_023_uitx_t2.tex",
@@ -777,6 +822,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_023_uitx.tex",
    "length": 12384,
    "baseSha1": "6d0350cd3bc98bfb2b0e011b2e2d2d84c1d4878b",
+   "inputsSha1": "06bb782ba45b5e9be6f7d205bd68d6d145e2aca2",
    "variants": {
     "1": "ei_s_023_uitx_t1.tex",
     "2": "ei_s_023_uitx_t2.tex",
@@ -794,6 +840,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_024_uitx.tex",
    "length": 51296,
    "baseSha1": "233a9b1bc768d72f0d2403cc602fb93bf277efd6",
+   "inputsSha1": "207c9b0453b9d917d914c4a7ec4876f7f1989142",
    "variants": {
     "1": "ei_024_uitx_t1.tex",
     "2": "ei_024_uitx_t2.tex",
@@ -811,6 +858,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_024_uitx.tex",
    "length": 12384,
    "baseSha1": "726f2ca69bcf0ffea662169be0fb924fca0a1766",
+   "inputsSha1": "c5ad39372aadb4269d91e24eed79f9a24e4102bd",
    "variants": {
     "1": "ei_s_024_uitx_t1.tex",
     "2": "ei_s_024_uitx_t2.tex",
@@ -828,6 +876,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_025_uitx.tex",
    "length": 51296,
    "baseSha1": "10c98ce68bb3fe5b00cf8e4f9f04c6eaad872ddc",
+   "inputsSha1": "3751d86a9d5cf335e0fb8fa471485ee8d9daad41",
    "variants": {
     "1": "ei_025_uitx_t1.tex",
     "2": "ei_025_uitx_t2.tex",
@@ -845,6 +894,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_025_uitx.tex",
    "length": 12384,
    "baseSha1": "2a939cf3165c422a5a7a8f028aa12da781c7c3cc",
+   "inputsSha1": "1d05e556dd74f48a147038493c4b06b6c4508743",
    "variants": {
     "1": "ei_s_025_uitx_t1.tex",
     "2": "ei_s_025_uitx_t2.tex",
@@ -862,6 +912,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_026_uitx.tex",
    "length": 51296,
    "baseSha1": "c12a60ee69e3de56b13f5fc750efd9a660e87024",
+   "inputsSha1": "b8bac248d857df0fc3506ef62213144eebc67857",
    "variants": {
     "1": "ei_026_uitx_t1.tex",
     "2": "ei_026_uitx_t2.tex",
@@ -879,6 +930,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_026_uitx.tex",
    "length": 12384,
    "baseSha1": "daede5af03ffdf0d998f0b8bdb3273f6bdea8bd4",
+   "inputsSha1": "dc5edc665a959a8520eaa542e93bdcc3702022aa",
    "variants": {
     "1": "ei_s_026_uitx_t1.tex",
     "2": "ei_s_026_uitx_t2.tex",
@@ -896,6 +948,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_027_uitx.tex",
    "length": 51296,
    "baseSha1": "9e03cf55704997028be8acdff385b8004f65df13",
+   "inputsSha1": "d88db2242dff72a372f450ba26ced4ce22fbaffd",
    "variants": {
     "1": "ei_027_uitx_t1.tex",
     "2": "ei_027_uitx_t2.tex",
@@ -913,6 +966,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_027_uitx.tex",
    "length": 12384,
    "baseSha1": "a24823775ac2bbaf7eb772e20831283bf738d94c",
+   "inputsSha1": "cc3edd30a83b060ecee68f6b329c5884e6368417",
    "variants": {
     "1": "ei_s_027_uitx_t1.tex",
     "2": "ei_s_027_uitx_t2.tex",
@@ -930,6 +984,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_028_uitx.tex",
    "length": 51296,
    "baseSha1": "8bf1b7257058fdf75dc4ae710def034fccdb238a",
+   "inputsSha1": "707334cf114a0b14d6a6cf6ec910799099044684",
    "variants": {
     "1": "ei_028_uitx_t1.tex",
     "2": "ei_028_uitx_t2.tex",
@@ -947,6 +1002,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_028_uitx.tex",
    "length": 12384,
    "baseSha1": "9a95bf3d69d73ba8a554689c6839951d5d3f8a1b",
+   "inputsSha1": "3fa370351f19af836c181e0ccb958e28c200c166",
    "variants": {
     "1": "ei_s_028_uitx_t1.tex",
     "2": "ei_s_028_uitx_t2.tex",
@@ -964,6 +1020,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_029_uitx.tex",
    "length": 51296,
    "baseSha1": "0a7834e60582fdd4cf47e7bd1eab3a4def8b02c2",
+   "inputsSha1": "a056f27371444ad5a930a2176af42b1c98b755ef",
    "variants": {
     "1": "ei_029_uitx_t1.tex",
     "2": "ei_029_uitx_t2.tex",
@@ -981,6 +1038,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_029_uitx.tex",
    "length": 12384,
    "baseSha1": "38bc664036a2912850c6e82bcc59534a57da888b",
+   "inputsSha1": "df86997ba11fa7d99fa0c027793f22a08909555a",
    "variants": {
     "1": "ei_s_029_uitx_t1.tex",
     "2": "ei_s_029_uitx_t2.tex",
@@ -998,6 +1056,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_030_uitx.tex",
    "length": 51296,
    "baseSha1": "1fa89549404d5bc99316ba4ec3cbe0a6552fccfb",
+   "inputsSha1": "537c0c97fce35549b3f3a2ab5cf4605326f21b73",
    "variants": {
     "1": "ei_030_uitx_t1.tex",
     "2": "ei_030_uitx_t2.tex",
@@ -1015,6 +1074,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_030_uitx.tex",
    "length": 12384,
    "baseSha1": "4fb44f5d656df30d2474bdb2cd1425ae688941cd",
+   "inputsSha1": "1d293be9dc23e52120d2446f760166b1eca2063c",
    "variants": {
     "1": "ei_s_030_uitx_t1.tex",
     "2": "ei_s_030_uitx_t2.tex",
@@ -1032,6 +1092,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_031_uitx.tex",
    "length": 51296,
    "baseSha1": "58e91e683fd413f45e9b9f221948ed8580dd1549",
+   "inputsSha1": "f8769a37e9b655fadd3bfa0815022c122b68c74f",
    "variants": {
     "1": "ei_031_uitx_t1.tex",
     "2": "ei_031_uitx_t2.tex",
@@ -1049,6 +1110,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_031_uitx.tex",
    "length": 12384,
    "baseSha1": "f0760d677b9ee440535d2387c18bbb276dddb734",
+   "inputsSha1": "26338deec7f62fa54f355402b2cdc17965e6173c",
    "variants": {
     "1": "ei_s_031_uitx_t1.tex",
     "2": "ei_s_031_uitx_t2.tex",
@@ -1066,6 +1128,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_032_uitx.tex",
    "length": 51296,
    "baseSha1": "6033104cc640a73b1a1def0ba48b06f0d5779773",
+   "inputsSha1": "49bb233eaae728b60c2ed909ad23de48efb0e081",
    "variants": {
     "1": "ei_032_uitx_t1.tex",
     "2": "ei_032_uitx_t2.tex",
@@ -1083,6 +1146,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_032_uitx.tex",
    "length": 12384,
    "baseSha1": "10b27e716759b8b33a172861c3bc7c1acb099653",
+   "inputsSha1": "69a309e10a6634705078e17c260853dba440aa83",
    "variants": {
     "1": "ei_s_032_uitx_t1.tex",
     "2": "ei_s_032_uitx_t2.tex",
@@ -1100,6 +1164,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_033_uitx.tex",
    "length": 51296,
    "baseSha1": "365bc1ec850257c82b97f900aa51c784dce6e929",
+   "inputsSha1": "497876b1ab2efce2c4167a4222df9d4dca2bfb67",
    "variants": {
     "1": "ei_033_uitx_t1.tex",
     "2": "ei_033_uitx_t2.tex",
@@ -1117,6 +1182,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_033_uitx.tex",
    "length": 12384,
    "baseSha1": "422a628fa46aa8e67a45ab692f725e07d878ab94",
+   "inputsSha1": "f6aef1e5e08bd23dd09f251eb61a9fb9ddf7e450",
    "variants": {
     "1": "ei_s_033_uitx_t1.tex",
     "2": "ei_s_033_uitx_t2.tex",
@@ -1134,6 +1200,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_034_uitx.tex",
    "length": 51296,
    "baseSha1": "d82bf246ed9d02006ef520e01038e3db714a64b9",
+   "inputsSha1": "b79626f8595515ffdd2cd666574829d2161902f4",
    "variants": {
     "1": "ei_034_uitx_t1.tex",
     "2": "ei_034_uitx_t2.tex",
@@ -1151,6 +1218,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_034_uitx.tex",
    "length": 12384,
    "baseSha1": "bde8fb0b1246c39870486a01039577124b68252b",
+   "inputsSha1": "2f8e46a437dc935fbe6fbe906a9655cad0d558cb",
    "variants": {
     "1": "ei_s_034_uitx_t1.tex",
     "2": "ei_s_034_uitx_t2.tex",
@@ -1168,6 +1236,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_035_uitx.tex",
    "length": 51296,
    "baseSha1": "dd554833d819029deb1d13732a6dfbbdd9e157cb",
+   "inputsSha1": "d249207668b7295aadf772487532505b4178dae9",
    "variants": {
     "1": "ei_035_uitx_t1.tex",
     "2": "ei_035_uitx_t2.tex",
@@ -1185,6 +1254,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_035_uitx.tex",
    "length": 12384,
    "baseSha1": "7fcda163ce5ed4dff7d199a934cf4ad6d4fbebd2",
+   "inputsSha1": "a54cb0567b09d87d119867fbe8b636669a3249e7",
    "variants": {
     "1": "ei_s_035_uitx_t1.tex",
     "2": "ei_s_035_uitx_t2.tex",
@@ -1202,6 +1272,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_036_uitx.tex",
    "length": 51296,
    "baseSha1": "33504378d086beb7e2d5113a8c8a74244a82a147",
+   "inputsSha1": "f93bca886e0a5657c12d922e6faace0879d47ed8",
    "variants": {
     "1": "ei_036_uitx_t1.tex",
     "2": "ei_036_uitx_t2.tex",
@@ -1219,6 +1290,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_036_uitx.tex",
    "length": 12384,
    "baseSha1": "542d0da280086664f046160a7ae5c9e3c2697ee2",
+   "inputsSha1": "1d7f9a02c2e98ae5185c444efa004fbe40c5f6a4",
    "variants": {
     "1": "ei_s_036_uitx_t1.tex",
     "2": "ei_s_036_uitx_t2.tex",
@@ -1236,6 +1308,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_037_uitx.tex",
    "length": 51296,
    "baseSha1": "be2a28c8ae247ca28908fb7401bd665c53079e2f",
+   "inputsSha1": "1e221164adbffcb6b2a48d95bf036b92fd9108a8",
    "variants": {
     "1": "ei_037_uitx_t1.tex",
     "2": "ei_037_uitx_t2.tex",
@@ -1253,6 +1326,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_037_uitx.tex",
    "length": 12384,
    "baseSha1": "ab496a5172fcce55f524c402de1efb3384295915",
+   "inputsSha1": "2263696febfa12c2dbdd674e21a4ebda62228910",
    "variants": {
     "1": "ei_s_037_uitx_t1.tex",
     "2": "ei_s_037_uitx_t2.tex",
@@ -1270,6 +1344,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_038_uitx.tex",
    "length": 51296,
    "baseSha1": "5c19ab3b3ec3c57d9d3b5e32f5cbfc31ab3e0622",
+   "inputsSha1": "4280eb9bf7e53ca379f28835f9618563ebe6f9b1",
    "variants": {
     "1": "ei_038_uitx_t1.tex",
     "2": "ei_038_uitx_t2.tex",
@@ -1287,6 +1362,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_038_uitx.tex",
    "length": 12384,
    "baseSha1": "0af9f48655210e0558afd85d885c0ac5dad8d3b5",
+   "inputsSha1": "39e65dc932b7a05750a915a648a21f8ba057fd3a",
    "variants": {
     "1": "ei_s_038_uitx_t1.tex",
     "2": "ei_s_038_uitx_t2.tex",
@@ -1304,6 +1380,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_039_uitx.tex",
    "length": 51296,
    "baseSha1": "38d5190fa227297e43fdaab16860d662a38c87f8",
+   "inputsSha1": "72a22a1b143e737bde66826b975c49868c0df9dd",
    "variants": {
     "1": "ei_039_uitx_t1.tex",
     "2": "ei_039_uitx_t2.tex",
@@ -1321,6 +1398,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_039_uitx.tex",
    "length": 12384,
    "baseSha1": "bb64874580d185d47fe5cb346ce52562f401a068",
+   "inputsSha1": "de94f3b8048010ca1beb2f1b42f5ee9dd912760c",
    "variants": {
     "1": "ei_s_039_uitx_t1.tex",
     "2": "ei_s_039_uitx_t2.tex",
@@ -1338,6 +1416,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_040_uitx.tex",
    "length": 51296,
    "baseSha1": "145afe03d8c46ade7e8b50da009038481fc0ba31",
+   "inputsSha1": "18455edd1ef3838e2807f3408e7825823c7bdad9",
    "variants": {
     "1": "ei_040_uitx_t1.tex",
     "2": "ei_040_uitx_t2.tex",
@@ -1355,6 +1434,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_040_uitx.tex",
    "length": 12384,
    "baseSha1": "962eee873f1e29cef55818968edd9a2fe89c580c",
+   "inputsSha1": "927a1f368ae6c8c9ade9a81a7709e0d1f83298b7",
    "variants": {
     "1": "ei_s_040_uitx_t1.tex",
     "2": "ei_s_040_uitx_t2.tex",
@@ -1372,6 +1452,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_041_uitx.tex",
    "length": 51296,
    "baseSha1": "0544402fbc24e6bcf3058f9b5ad6a0eb0ab0038d",
+   "inputsSha1": "05c3e7103359652aa4ffc983d6d5a0f82a4e66fa",
    "variants": {
     "1": "ei_041_uitx_t1.tex",
     "2": "ei_041_uitx_t2.tex",
@@ -1389,6 +1470,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_041_uitx.tex",
    "length": 12384,
    "baseSha1": "bbd658aa4861ad63835ce65240a85fd191338a1e",
+   "inputsSha1": "1357d7d74111bb13cad8231f3c60e44531cfdb49",
    "variants": {
     "1": "ei_s_041_uitx_t1.tex",
     "2": "ei_s_041_uitx_t2.tex",
@@ -1406,6 +1488,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_042_uitx.tex",
    "length": 51296,
    "baseSha1": "74b1be6e32fbcfc275b3b56a479847e1a539d515",
+   "inputsSha1": "25ef645e17e1545e8c86e8f717d750d6846b38ae",
    "variants": {
     "1": "ei_042_uitx_t1.tex",
     "2": "ei_042_uitx_t2.tex",
@@ -1423,6 +1506,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_042_uitx.tex",
    "length": 12384,
    "baseSha1": "ccdfdc45d9d786a875691ff5c039ff5b15c549aa",
+   "inputsSha1": "ee83ecef2d0113a5f57fc537217bd9a0af853c38",
    "variants": {
     "1": "ei_s_042_uitx_t1.tex",
     "2": "ei_s_042_uitx_t2.tex",
@@ -1440,6 +1524,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_043_uitx.tex",
    "length": 51296,
    "baseSha1": "a85f9d14fa4909e68285e12dcd82496e5d002ad3",
+   "inputsSha1": "d4bb613cd142a49dfd0c61988325a7681ad8d76e",
    "variants": {
     "1": "ei_043_uitx_t1.tex",
     "2": "ei_043_uitx_t2.tex",
@@ -1457,6 +1542,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_043_uitx.tex",
    "length": 12384,
    "baseSha1": "2d2bd0574dc6626e56fff5c1327d2130b35ff394",
+   "inputsSha1": "549791c86eb38fc42038368164149abd5c7b674d",
    "variants": {
     "1": "ei_s_043_uitx_t1.tex",
     "2": "ei_s_043_uitx_t2.tex",
@@ -1474,6 +1560,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_044_uitx.tex",
    "length": 51296,
    "baseSha1": "660b4aee509281447b95ec050cd65edfe068ce84",
+   "inputsSha1": "bb5aeb888170003d03bf77147b945ea4e3db5825",
    "variants": {
     "1": "ei_044_uitx_t1.tex",
     "2": "ei_044_uitx_t2.tex",
@@ -1491,6 +1578,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_044_uitx.tex",
    "length": 12384,
    "baseSha1": "9e82892a32fa23ea4e292495ef28c9e63131e233",
+   "inputsSha1": "851eb1c4f7f5c4709258699af872ed59ec054de2",
    "variants": {
     "1": "ei_s_044_uitx_t1.tex",
     "2": "ei_s_044_uitx_t2.tex",
@@ -1508,6 +1596,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_045_uitx.tex",
    "length": 51296,
    "baseSha1": "47f3cf49598cf95da381be496efe9afd28c26f85",
+   "inputsSha1": "38aa094dbbc65338bb682c9f7cbe411f4eb972e7",
    "variants": {
     "1": "ei_045_uitx_t1.tex",
     "2": "ei_045_uitx_t2.tex",
@@ -1525,6 +1614,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_045_uitx.tex",
    "length": 12384,
    "baseSha1": "6c7683e891b1e0c58ba64ff5b90ce7cfc0ae9d1f",
+   "inputsSha1": "fd4c6880bf4178ee7b0d5b5104a729f898511d11",
    "variants": {
     "1": "ei_s_045_uitx_t1.tex",
     "2": "ei_s_045_uitx_t2.tex",
@@ -1542,6 +1632,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_046_uitx.tex",
    "length": 51296,
    "baseSha1": "eb3bb93b72714d6ed2e5ed9ebfb50e0b6a59d0be",
+   "inputsSha1": "9bc6023fd210a1ff5eed73867c9e603edc3603c3",
    "variants": {
     "1": "ei_046_uitx_t1.tex",
     "2": "ei_046_uitx_t2.tex",
@@ -1559,6 +1650,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_046_uitx.tex",
    "length": 12384,
    "baseSha1": "f2fb66ed8817afb3d2251dfcf1a5fe0193815c34",
+   "inputsSha1": "1059e6b6a4ccf7917ffab9540e3bc750859e03ec",
    "variants": {
     "1": "ei_s_046_uitx_t1.tex",
     "2": "ei_s_046_uitx_t2.tex",
@@ -1576,6 +1668,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_047_uitx.tex",
    "length": 51296,
    "baseSha1": "382414673d0d246166af11a2d3a2b08854579dca",
+   "inputsSha1": "6dd6b74ab9df655545db8cfa8ee1434c872864bb",
    "variants": {
     "1": "ei_047_uitx_t1.tex",
     "2": "ei_047_uitx_t2.tex",
@@ -1593,6 +1686,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_047_uitx.tex",
    "length": 12384,
    "baseSha1": "6ebb9e426f2f9ca53c7c46847474eabd26c599e7",
+   "inputsSha1": "8907a7cecd2fff3a33d1258693f33cb9c6223c46",
    "variants": {
     "1": "ei_s_047_uitx_t1.tex",
     "2": "ei_s_047_uitx_t2.tex",
@@ -1610,6 +1704,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_051_uitx.tex",
    "length": 51296,
    "baseSha1": "30a62970198f7266d0b6bfc591fe7732c7fefb86",
+   "inputsSha1": "44b16887b644516b4463973085747d88790511e5",
    "variants": {
     "1": "ei_051_uitx_t1.tex",
     "2": "ei_051_uitx_t2.tex",
@@ -1627,6 +1722,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_051_uitx.tex",
    "length": 12384,
    "baseSha1": "085d5ce8d8aab2a21b492744539d28a3a22a7f7b",
+   "inputsSha1": "78be1752a87e027ccc9a85b1306ff425880a9103",
    "variants": {
     "1": "ei_s_051_uitx_t1.tex",
     "2": "ei_s_051_uitx_t2.tex",
@@ -1644,6 +1740,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_052_uitx.tex",
    "length": 51296,
    "baseSha1": "f966739f6d7ecda58da3ab641b9d57663455fabc",
+   "inputsSha1": "c6e29dd5e889b341f3de48a8b133a87fc6a9cbf7",
    "variants": {
     "1": "ei_052_uitx_t1.tex",
     "2": "ei_052_uitx_t2.tex",
@@ -1661,6 +1758,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_052_uitx.tex",
    "length": 12384,
    "baseSha1": "461172226d061d138c18ac5c1f2fc750167e4da4",
+   "inputsSha1": "778aafe7bd85351ceb9e77c09df4b815b5d04e73",
    "variants": {
     "1": "ei_s_052_uitx_t1.tex",
     "2": "ei_s_052_uitx_t2.tex",
@@ -1678,6 +1776,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_053_uitx.tex",
    "length": 51296,
    "baseSha1": "f8f03231f3616dce7f1003de1ef58e1d8d8011e6",
+   "inputsSha1": "c5b9e21c000554a82bbe2016d91363358a0d45b3",
    "variants": {
     "1": "ei_053_uitx_t1.tex",
     "2": "ei_053_uitx_t2.tex",
@@ -1695,6 +1794,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_053_uitx.tex",
    "length": 12384,
    "baseSha1": "005c030e9a05a53f4a70f708b6d5c9de82f5dc5d",
+   "inputsSha1": "3079e2acdd607d6af1d75763036c8b98c3def559",
    "variants": {
     "1": "ei_s_053_uitx_t1.tex",
     "2": "ei_s_053_uitx_t2.tex",
@@ -1712,6 +1812,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_054_uitx.tex",
    "length": 51296,
    "baseSha1": "c96d70eee0c81d848221aad45e5efc4cf8275f55",
+   "inputsSha1": "ef687a406241bb0e28c60c917dd5f98a78d4e5db",
    "variants": {
     "1": "ei_054_uitx_t1.tex",
     "2": "ei_054_uitx_t2.tex",
@@ -1729,6 +1830,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_054_uitx.tex",
    "length": 12384,
    "baseSha1": "248912cf316198f2854903888b9e361025574211",
+   "inputsSha1": "f0cf7a406f7d878790a6af2f2985f72ec3523e50",
    "variants": {
     "1": "ei_s_054_uitx_t1.tex",
     "2": "ei_s_054_uitx_t2.tex",
@@ -1746,6 +1848,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_055_uitx.tex",
    "length": 51296,
    "baseSha1": "d85fe8aeebb5d8cea5b06e77e51c04a30cb7160a",
+   "inputsSha1": "e8e08397dd5a5052b834fc936ec2c995db994650",
    "variants": {
     "1": "ei_055_uitx_t1.tex",
     "2": "ei_055_uitx_t2.tex",
@@ -1763,6 +1866,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_055_uitx.tex",
    "length": 12384,
    "baseSha1": "1259dd2a0a101a948ef991488680555874d98b02",
+   "inputsSha1": "af0ad11bd5cf64fe8d314e7f14f0f2cc054ea38f",
    "variants": {
     "1": "ei_s_055_uitx_t1.tex",
     "2": "ei_s_055_uitx_t2.tex",
@@ -1780,6 +1884,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_056_uitx.tex",
    "length": 51296,
    "baseSha1": "534d697dee8795e5a79f0e12debded38159cde4d",
+   "inputsSha1": "d4692a4665aa4e22da8c9c170732f3f8a9a4edca",
    "variants": {
     "1": "ei_056_uitx_t1.tex",
     "2": "ei_056_uitx_t2.tex",
@@ -1797,6 +1902,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_056_uitx.tex",
    "length": 12384,
    "baseSha1": "57a8d8aaba4b5caba2e1e69b818ca53b4fa74eb3",
+   "inputsSha1": "655464b8a88b28a1c54aa4deb0631a33f367cd15",
    "variants": {
     "1": "ei_s_056_uitx_t1.tex",
     "2": "ei_s_056_uitx_t2.tex",
@@ -1814,6 +1920,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_057_uitx.tex",
    "length": 51296,
    "baseSha1": "3be4837b58157f72cfa2b5edad4bc6bd2afdf3de",
+   "inputsSha1": "2ae12c97bd896382c7c5ecfe3685fdd59fba6df5",
    "variants": {
     "1": "ei_057_uitx_t1.tex",
     "2": "ei_057_uitx_t2.tex",
@@ -1831,6 +1938,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_057_uitx.tex",
    "length": 12384,
    "baseSha1": "55c222244d40487ae6c89bfd391164b50157670c",
+   "inputsSha1": "507ad0e14688f4a4e63e183f7de4d519ba24fb93",
    "variants": {
     "1": "ei_s_057_uitx_t1.tex",
     "2": "ei_s_057_uitx_t2.tex",
@@ -1848,6 +1956,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_058_uitx.tex",
    "length": 51296,
    "baseSha1": "8d76d07c2c91c24a2f032a82198003e986cc6907",
+   "inputsSha1": "756b40fe7068eb824f3b0cadb787e9ca5c5bf908",
    "variants": {
     "1": "ei_058_uitx_t1.tex",
     "2": "ei_058_uitx_t2.tex",
@@ -1865,6 +1974,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_058_uitx.tex",
    "length": 12384,
    "baseSha1": "e3d8278b94ada9155232e7ee25cf4fab9e60db23",
+   "inputsSha1": "77bd6788c67f540bf059a9f6e32c2f1566db4ed4",
    "variants": {
     "1": "ei_s_058_uitx_t1.tex",
     "2": "ei_s_058_uitx_t2.tex",
@@ -1882,6 +1992,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_059_uitx.tex",
    "length": 51296,
    "baseSha1": "1666ac1a4177cca39a258853e0b8ab319787b43a",
+   "inputsSha1": "5e02ad91412c39289cc17d54075eab4e2fc0ec10",
    "variants": {
     "1": "ei_059_uitx_t1.tex",
     "2": "ei_059_uitx_t2.tex",
@@ -1899,6 +2010,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_059_uitx.tex",
    "length": 12384,
    "baseSha1": "bc986ef4feb939857c1ba8248d279396e4abbbef",
+   "inputsSha1": "ffad15e074b8b6d1c7480d8dd6cbe9002318e932",
    "variants": {
     "1": "ei_s_059_uitx_t1.tex",
     "2": "ei_s_059_uitx_t2.tex",
@@ -1916,6 +2028,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_060_uitx.tex",
    "length": 51296,
    "baseSha1": "11ba3d98919d38739beef0134b6e0ba45499232b",
+   "inputsSha1": "c3477f1ae0a59b2ba7b6d1a2d36a15fadb84a050",
    "variants": {
     "1": "ei_060_uitx_t1.tex",
     "2": "ei_060_uitx_t2.tex",
@@ -1933,6 +2046,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_060_uitx.tex",
    "length": 12384,
    "baseSha1": "49205647f5e5f389d99380df975969f4eac5b4d2",
+   "inputsSha1": "9e1377fc12a726374ce079c6e3054f833ad5a5cb",
    "variants": {
     "1": "ei_s_060_uitx_t1.tex",
     "2": "ei_s_060_uitx_t2.tex",
@@ -1950,6 +2064,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_061_uitx.tex",
    "length": 51296,
    "baseSha1": "08ec267e920730e2c9408742ff95e665a463bf16",
+   "inputsSha1": "6d5ac672f9e36223bea0456491a0a4ca07538306",
    "variants": {
     "1": "ei_061_uitx_t1.tex",
     "2": "ei_061_uitx_t2.tex",
@@ -1967,6 +2082,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_061_uitx.tex",
    "length": 12384,
    "baseSha1": "9ff96fb2191abc780a0f83cc07f6f2d5240ae1ab",
+   "inputsSha1": "5f8fd572e4059dad7c99f30f3628501a7d82b1d2",
    "variants": {
     "1": "ei_s_061_uitx_t1.tex",
     "2": "ei_s_061_uitx_t2.tex",
@@ -1984,6 +2100,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_062_uitx.tex",
    "length": 51296,
    "baseSha1": "3e0d0719c0272493b2d94e4b94e4caf28b8da995",
+   "inputsSha1": "11901d331cd3e7aab91d7cb5df910ceb5abc70ac",
    "variants": {
     "1": "ei_062_uitx_t1.tex",
     "2": "ei_062_uitx_t2.tex",
@@ -2001,6 +2118,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_062_uitx.tex",
    "length": 12384,
    "baseSha1": "8d8510f338427f155559cd91c6819d347e35a1b4",
+   "inputsSha1": "4e77f412d5ba99143a66bcc7edf44ec03a88ca55",
    "variants": {
     "1": "ei_s_062_uitx_t1.tex",
     "2": "ei_s_062_uitx_t2.tex",
@@ -2018,6 +2136,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_063_uitx.tex",
    "length": 51296,
    "baseSha1": "4fabe6cb2b27afb5fc9d93e930aa1cab77f877d1",
+   "inputsSha1": "dced40a171a61aa6dfe923c5e51d1b37d2fac0a2",
    "variants": {
     "1": "ei_063_uitx_t1.tex",
     "2": "ei_063_uitx_t2.tex",
@@ -2035,6 +2154,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_063_uitx.tex",
    "length": 12384,
    "baseSha1": "462980c725cae814c4d0300ebd47c9a26a66c9eb",
+   "inputsSha1": "dba53717545c786637d86057e9bea1876f17995a",
    "variants": {
     "1": "ei_s_063_uitx_t1.tex",
     "2": "ei_s_063_uitx_t2.tex",
@@ -2052,6 +2172,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_064_uitx.tex",
    "length": 51296,
    "baseSha1": "723db8c232867c377b26e1da3923adf6c603b0e6",
+   "inputsSha1": "735f0211f96f8763626033de5cbd39d32d7d40a9",
    "variants": {
     "1": "ei_064_uitx_t1.tex",
     "2": "ei_064_uitx_t2.tex",
@@ -2069,6 +2190,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_064_uitx.tex",
    "length": 12384,
    "baseSha1": "62fc5866ff77bda420325bdfd2286fbf4681378c",
+   "inputsSha1": "bde48e6d99d579cd572e080e8829e80312bd6e60",
    "variants": {
     "1": "ei_s_064_uitx_t1.tex",
     "2": "ei_s_064_uitx_t2.tex",
@@ -2086,6 +2208,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_065_uitx.tex",
    "length": 51296,
    "baseSha1": "7d1dd3bbfe7b3f204f43ec681f98bb980fd7234e",
+   "inputsSha1": "79ff190c81939e0b88a38b8e1c2559028c9a4646",
    "variants": {
     "1": "ei_065_uitx_t1.tex",
     "2": "ei_065_uitx_t2.tex",
@@ -2103,6 +2226,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_065_uitx.tex",
    "length": 12384,
    "baseSha1": "e837e991aa5597eaa35450228b8b00edc7f69082",
+   "inputsSha1": "16e966d8b0461a9f70a60732df42c905df8759c6",
    "variants": {
     "1": "ei_s_065_uitx_t1.tex",
     "2": "ei_s_065_uitx_t2.tex",
@@ -2120,6 +2244,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_066_uitx.tex",
    "length": 51296,
    "baseSha1": "482949e118363935bceffbe9c4b7a02d1ed415bc",
+   "inputsSha1": "78296e4b5573af3acfe778753676735df0aa1227",
    "variants": {
     "1": "ei_066_uitx_t1.tex",
     "2": "ei_066_uitx_t2.tex",
@@ -2137,6 +2262,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_066_uitx.tex",
    "length": 12384,
    "baseSha1": "683a42248c002436cf80a05b29c78e060ce906fd",
+   "inputsSha1": "884162c155920c5f64dcc84bc865772ee80ae523",
    "variants": {
     "1": "ei_s_066_uitx_t1.tex",
     "2": "ei_s_066_uitx_t2.tex",
@@ -2154,6 +2280,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_071_uitx.tex",
    "length": 51296,
    "baseSha1": "07ec1b52d449e32d4cca08c8f1e4cc8ea1a182bd",
+   "inputsSha1": "9927878ffd6ceceefe6d22df25d2425ae30910e4",
    "variants": {
     "1": "ei_071_uitx_t1.tex",
     "2": "ei_071_uitx_t2.tex",
@@ -2171,6 +2298,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_071_uitx.tex",
    "length": 12384,
    "baseSha1": "cc3061a57514c08453a62403816215495421d126",
+   "inputsSha1": "9ef4e302420bc8dd5b3e01a6249dc131e0f1a50f",
    "variants": {
     "1": "ei_s_071_uitx_t1.tex",
     "2": "ei_s_071_uitx_t2.tex",
@@ -2188,6 +2316,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_072_uitx.tex",
    "length": 51296,
    "baseSha1": "32d09853be36d680c413472f2da70d77733adece",
+   "inputsSha1": "b0e1bc8019ee55cc1cd6cfd58eb82697f5ccb7f1",
    "variants": {
     "1": "ei_072_uitx_t1.tex",
     "2": "ei_072_uitx_t2.tex",
@@ -2205,6 +2334,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_072_uitx.tex",
    "length": 12384,
    "baseSha1": "4b2e5d0a88556a354b79026fbc33d0087d2d9caf",
+   "inputsSha1": "80a1487468278c4a160a4420075c74f749be0618",
    "variants": {
     "1": "ei_s_072_uitx_t1.tex",
     "2": "ei_s_072_uitx_t2.tex",
@@ -2222,6 +2352,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_073_uitx.tex",
    "length": 51296,
    "baseSha1": "8d42385fe8a1b2ef4691501a1df9d2cc9ec6381b",
+   "inputsSha1": "30610079843f60d2365279e5e47c51377fd69ed4",
    "variants": {
     "1": "ei_073_uitx_t1.tex",
     "2": "ei_073_uitx_t2.tex",
@@ -2239,6 +2370,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_073_uitx.tex",
    "length": 12384,
    "baseSha1": "f3b9ddfeabfd10eb8bdad76fb386ba2d030bb389",
+   "inputsSha1": "100536e336bfc13acb374ea2d79fcf6df971145a",
    "variants": {
     "1": "ei_s_073_uitx_t1.tex",
     "2": "ei_s_073_uitx_t2.tex",
@@ -2256,6 +2388,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_074_uitx.tex",
    "length": 51296,
    "baseSha1": "7b531b76766cbcfaa5650daefe6234b2dc9205b4",
+   "inputsSha1": "fe3091ef63ee91ad48516d493d2ff10f0be0a684",
    "variants": {
     "1": "ei_074_uitx_t1.tex",
     "2": "ei_074_uitx_t2.tex",
@@ -2273,6 +2406,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_074_uitx.tex",
    "length": 12384,
    "baseSha1": "5dde48702a67a4a27fb406df642df72bcad4d32c",
+   "inputsSha1": "e166de5795b823f1fa286915538e45142e7d58ac",
    "variants": {
     "1": "ei_s_074_uitx_t1.tex",
     "2": "ei_s_074_uitx_t2.tex",
@@ -2290,6 +2424,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_075_uitx.tex",
    "length": 51296,
    "baseSha1": "e10bb8f0298ebbf1c8030d30b811a4ffcae1148a",
+   "inputsSha1": "6d697fd746657a648acb466c06fc5e548efb10ed",
    "variants": {
     "1": "ei_075_uitx_t1.tex",
     "2": "ei_075_uitx_t2.tex",
@@ -2307,6 +2442,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_075_uitx.tex",
    "length": 12384,
    "baseSha1": "b3aa95ce52f2dc8c18a99a96f612c3472154656b",
+   "inputsSha1": "557ced41e5db8c3411169b84c6bf2fd9abdaaffc",
    "variants": {
     "1": "ei_s_075_uitx_t1.tex",
     "2": "ei_s_075_uitx_t2.tex",
@@ -2324,6 +2460,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_076_uitx.tex",
    "length": 51296,
    "baseSha1": "21c4242e72003eda5d25297c85c68b08816de6d8",
+   "inputsSha1": "fe7237a010ced1bbb699f5d8b48182579fff46c0",
    "variants": {
     "1": "ei_076_uitx_t1.tex",
     "2": "ei_076_uitx_t2.tex",
@@ -2341,6 +2478,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_076_uitx.tex",
    "length": 12384,
    "baseSha1": "93817565b0a30e5bd51f43ed39419cb2e50cead9",
+   "inputsSha1": "b0f5cb89469e3abc315ac7b770dd9312704a09ea",
    "variants": {
     "1": "ei_s_076_uitx_t1.tex",
     "2": "ei_s_076_uitx_t2.tex",
@@ -2358,6 +2496,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_077_uitx.tex",
    "length": 51296,
    "baseSha1": "c91a1bdc7416724a34ad1c62e98b5f0e59d3a8a9",
+   "inputsSha1": "2054fa0a5aaca0cd1c9cd80201aa6d7759d53b94",
    "variants": {
     "1": "ei_077_uitx_t1.tex",
     "2": "ei_077_uitx_t2.tex",
@@ -2375,6 +2514,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_077_uitx.tex",
    "length": 12384,
    "baseSha1": "d666f93ef00b02f4fea19a9cbbd0c78f3160242a",
+   "inputsSha1": "8ea000796bbf2d31474a9c2b576effffbe0f1ce3",
    "variants": {
     "1": "ei_s_077_uitx_t1.tex",
     "2": "ei_s_077_uitx_t2.tex",
@@ -2392,6 +2532,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_078_uitx.tex",
    "length": 51296,
    "baseSha1": "be1ba16b3a512d3d2c3b65f993077b2e066762b8",
+   "inputsSha1": "a40e3101861a2cf77fc3a13fc15713385778fbd2",
    "variants": {
     "1": "ei_078_uitx_t1.tex",
     "2": "ei_078_uitx_t2.tex",
@@ -2409,6 +2550,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_078_uitx.tex",
    "length": 12384,
    "baseSha1": "77ad83ed0eae6fa930e262969b973ea585717ecc",
+   "inputsSha1": "898cf378d096fcaff7d914c84eb4e81dee65ba60",
    "variants": {
     "1": "ei_s_078_uitx_t1.tex",
     "2": "ei_s_078_uitx_t2.tex",
@@ -2426,6 +2568,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_079_uitx.tex",
    "length": 51296,
    "baseSha1": "e89e10cac2afce97e1bea9bf6279bef547a6fc93",
+   "inputsSha1": "22c44c90d685fba6d2391c23f3e1bdfcb74e5f5e",
    "variants": {
     "1": "ei_079_uitx_t1.tex",
     "2": "ei_079_uitx_t2.tex",
@@ -2443,6 +2586,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_079_uitx.tex",
    "length": 12384,
    "baseSha1": "b5f80630d8daa567c45f71a2803cbcadc0079ae7",
+   "inputsSha1": "fd5eca423c3e00d0bb93fde7831fc107c64a4a15",
    "variants": {
     "1": "ei_s_079_uitx_t1.tex",
     "2": "ei_s_079_uitx_t2.tex",
@@ -2460,6 +2604,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_080_uitx.tex",
    "length": 51296,
    "baseSha1": "8b42e98d525c9710daf3385a003e47ff9b436f4d",
+   "inputsSha1": "46a9d67146ffde61da35314f530903777c82d658",
    "variants": {
     "1": "ei_080_uitx_t1.tex",
     "2": "ei_080_uitx_t2.tex",
@@ -2477,6 +2622,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_080_uitx.tex",
    "length": 12384,
    "baseSha1": "3f4cb10606dc7ac8546f0803e0347a23a83aba31",
+   "inputsSha1": "11d553815b95d9c4831d0e85c804024d6a84177e",
    "variants": {
     "1": "ei_s_080_uitx_t1.tex",
     "2": "ei_s_080_uitx_t2.tex",
@@ -2494,6 +2640,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_081_uitx.tex",
    "length": 51296,
    "baseSha1": "5baceb35274cab6db56ee91445d805f996d19bb4",
+   "inputsSha1": "5bd172963eb091be0ce898f48bf0d4666174e7bd",
    "variants": {
     "1": "ei_081_uitx_t1.tex",
     "2": "ei_081_uitx_t2.tex",
@@ -2511,6 +2658,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_081_uitx.tex",
    "length": 12384,
    "baseSha1": "0978be2496c088f7cadd35c7838b4bbaa5b3c0f7",
+   "inputsSha1": "3eea9000497d325d7d5783a7c6c15aeec93d57ed",
    "variants": {
     "1": "ei_s_081_uitx_t1.tex",
     "2": "ei_s_081_uitx_t2.tex",
@@ -2528,6 +2676,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_082_uitx.tex",
    "length": 51296,
    "baseSha1": "81243f2172f621ec4d073fa3f9b3d973ebe16e45",
+   "inputsSha1": "061c1cf076bfd50562a692b5061cf2cedc86e212",
    "variants": {
     "1": "ei_082_uitx_t1.tex",
     "2": "ei_082_uitx_t2.tex",
@@ -2545,6 +2694,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_082_uitx.tex",
    "length": 12384,
    "baseSha1": "e056c0bed59ce2a906e243f36f87ae8bbde6a80e",
+   "inputsSha1": "5dce3e5e2916c367fdedd50d9ddeae89091d2068",
    "variants": {
     "1": "ei_s_082_uitx_t1.tex",
     "2": "ei_s_082_uitx_t2.tex",
@@ -2562,6 +2712,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_083_uitx.tex",
    "length": 51296,
    "baseSha1": "034086cae8bbb8727f1dcdfc4d9dbb14bfc69fcf",
+   "inputsSha1": "2666de4afeffbd4479066a77186ee41b466ca6be",
    "variants": {
     "1": "ei_083_uitx_t1.tex",
     "2": "ei_083_uitx_t2.tex",
@@ -2579,6 +2730,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_083_uitx.tex",
    "length": 12384,
    "baseSha1": "1eaccc522d8ba41c31dae8f6bc2195b8f6d0bfa8",
+   "inputsSha1": "8c519b466bb7c3542439d089bc0bf386ec1f01b2",
    "variants": {
     "1": "ei_s_083_uitx_t1.tex",
     "2": "ei_s_083_uitx_t2.tex",
@@ -2596,6 +2748,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_084_uitx.tex",
    "length": 51296,
    "baseSha1": "a7455865a7c7b1e11ac5c2b5631d20b3984b36ae",
+   "inputsSha1": "8f4df4428600f8012f0cff3f2ec2182d3de722dc",
    "variants": {
     "1": "ei_084_uitx_t1.tex",
     "2": "ei_084_uitx_t2.tex",
@@ -2613,6 +2766,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_084_uitx.tex",
    "length": 12384,
    "baseSha1": "9c6001fb62f44526c56fadbfbc0d105a3e5dd2ae",
+   "inputsSha1": "077ffcf97256bc9399680ae236e0117ee512864f",
    "variants": {
     "1": "ei_s_084_uitx_t1.tex",
     "2": "ei_s_084_uitx_t2.tex",
@@ -2630,6 +2784,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_085_uitx.tex",
    "length": 51296,
    "baseSha1": "a325791c084cf5916a3a054ec7d7d100ae594808",
+   "inputsSha1": "403879f4c5ef620159537f07dafc63d4123c389c",
    "variants": {
     "1": "ei_085_uitx_t1.tex",
     "2": "ei_085_uitx_t2.tex",
@@ -2647,6 +2802,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_085_uitx.tex",
    "length": 12384,
    "baseSha1": "6114ca324d9135f8dfccf0c53d7153e0e35c3704",
+   "inputsSha1": "3eaaf18025d51238d87abbbeb3f259f0854c0970",
    "variants": {
     "1": "ei_s_085_uitx_t1.tex",
     "2": "ei_s_085_uitx_t2.tex",
@@ -2664,6 +2820,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_086_uitx.tex",
    "length": 51296,
    "baseSha1": "85a07903130ef46489c412c6c412a4fa134ae6fc",
+   "inputsSha1": "d270d21b06e69a9291ba809352d43906e1850084",
    "variants": {
     "1": "ei_086_uitx_t1.tex",
     "2": "ei_086_uitx_t2.tex",
@@ -2681,6 +2838,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_086_uitx.tex",
    "length": 12384,
    "baseSha1": "e13a460332648ef4d69ed7736896b4dc70daf98d",
+   "inputsSha1": "2af4ddd4cbd5964ae4e948f046d0618ad2ff29fb",
    "variants": {
     "1": "ei_s_086_uitx_t1.tex",
     "2": "ei_s_086_uitx_t2.tex",
@@ -2698,6 +2856,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_087_uitx.tex",
    "length": 51296,
    "baseSha1": "01e6e1e166e1b519f1a98128bd172a3c4d1d95db",
+   "inputsSha1": "6c11234bad5f58904d191fa2c7c45a5785966735",
    "variants": {
     "1": "ei_087_uitx_t1.tex",
     "2": "ei_087_uitx_t2.tex",
@@ -2715,6 +2874,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_087_uitx.tex",
    "length": 12384,
    "baseSha1": "07432b50e8aec7dd822ce5e4708e80deddaf37b5",
+   "inputsSha1": "750798ceb1f8252a8e44a00397325c207508ec3f",
    "variants": {
     "1": "ei_s_087_uitx_t1.tex",
     "2": "ei_s_087_uitx_t2.tex",
@@ -2732,6 +2892,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_088_uitx.tex",
    "length": 51296,
    "baseSha1": "67c7d53c656ccb24a88a5872681d838426e1f5ce",
+   "inputsSha1": "62de6f48cca098f57d1036d97bc9fbd6b1b8ca8e",
    "variants": {
     "1": "ei_088_uitx_t1.tex",
     "2": "ei_088_uitx_t2.tex",
@@ -2749,6 +2910,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_088_uitx.tex",
    "length": 12384,
    "baseSha1": "7db6988c8d507e77bc3dcc7c2297caaba42a85a0",
+   "inputsSha1": "131d59706b481815209eb9a80ecd472038df0e69",
    "variants": {
     "1": "ei_s_088_uitx_t1.tex",
     "2": "ei_s_088_uitx_t2.tex",
@@ -2766,6 +2928,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_089_uitx.tex",
    "length": 51296,
    "baseSha1": "e3e2bd8e479f8244a510805c52e07288e445bfa1",
+   "inputsSha1": "b854b577ec681ec125699f15db2627d6d762640d",
    "variants": {
     "1": "ei_089_uitx_t1.tex",
     "2": "ei_089_uitx_t2.tex",
@@ -2783,6 +2946,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_089_uitx.tex",
    "length": 12384,
    "baseSha1": "7bf4f7e8e3fea56e33b68107555d6c1ccbff7246",
+   "inputsSha1": "7372b72244ab094662066b5123e37e5409b1cad9",
    "variants": {
     "1": "ei_s_089_uitx_t1.tex",
     "2": "ei_s_089_uitx_t2.tex",
@@ -2800,6 +2964,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_090_uitx.tex",
    "length": 51296,
    "baseSha1": "635542454e625f1830c2f6dab93d4542038e1f02",
+   "inputsSha1": "99fe1dcf541216bcfa51cb604430ac7becbda5cf",
    "variants": {
     "1": "ei_090_uitx_t1.tex",
     "2": "ei_090_uitx_t2.tex",
@@ -2817,6 +2982,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_090_uitx.tex",
    "length": 12384,
    "baseSha1": "b575f2e94a6a8dde151d1ea74b975633f9f1bffc",
+   "inputsSha1": "b795e3e85a776bd41c8ef365fe61374312a813c9",
    "variants": {
     "1": "ei_s_090_uitx_t1.tex",
     "2": "ei_s_090_uitx_t2.tex",
@@ -2834,6 +3000,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_091_uitx.tex",
    "length": 51296,
    "baseSha1": "5742f9553d0510c4c3091e961b9e5253379160f3",
+   "inputsSha1": "de05c1a979aa3684f11f52786ee1fdc8fe9596e4",
    "variants": {
     "1": "ei_091_uitx_t1.tex",
     "2": "ei_091_uitx_t2.tex",
@@ -2851,6 +3018,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_091_uitx.tex",
    "length": 12384,
    "baseSha1": "02248ed6ce77e4ae3f5c72553fb5b84313934a59",
+   "inputsSha1": "f36efba39f72bf2df88cad6ec152b61acfa8472d",
    "variants": {
     "1": "ei_s_091_uitx_t1.tex",
     "2": "ei_s_091_uitx_t2.tex",
@@ -2868,6 +3036,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_092_uitx.tex",
    "length": 51296,
    "baseSha1": "825f8573209d890b1e4447a02d85fa0a7d6dbca9",
+   "inputsSha1": "8c3979e3b8c39a4ea466a4ad20261dec8f0c8a56",
    "variants": {
     "1": "ei_092_uitx_t1.tex",
     "2": "ei_092_uitx_t2.tex",
@@ -2885,6 +3054,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_092_uitx.tex",
    "length": 12384,
    "baseSha1": "847c1d94d6a44c9405dea85f98cb50fa2d551aa1",
+   "inputsSha1": "5266af72b88803a0c1ef54808089008250007a70",
    "variants": {
     "1": "ei_s_092_uitx_t1.tex",
     "2": "ei_s_092_uitx_t2.tex",
@@ -2902,6 +3072,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_093_uitx.tex",
    "length": 51296,
    "baseSha1": "b5c2fa9f8f7196f3839116abaa2bfaa3aca9830b",
+   "inputsSha1": "238088682b79d14c87fae703fd0da3b715598550",
    "variants": {
     "1": "ei_093_uitx_t1.tex",
     "2": "ei_093_uitx_t2.tex",
@@ -2919,6 +3090,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_093_uitx.tex",
    "length": 12384,
    "baseSha1": "cf05472258a1769e458725218ae150ef811eaedb",
+   "inputsSha1": "0468f2acf462d161ffe645f08c0bba1e099e7c84",
    "variants": {
     "1": "ei_s_093_uitx_t1.tex",
     "2": "ei_s_093_uitx_t2.tex",
@@ -2936,6 +3108,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_094_uitx.tex",
    "length": 51296,
    "baseSha1": "1ef906f4f1d774f1ef02233b31e1ecb8aed8317d",
+   "inputsSha1": "0702fa76ad832d4f7e25214fd8c9ed6d3d96c77c",
    "variants": {
     "1": "ei_094_uitx_t1.tex",
     "2": "ei_094_uitx_t2.tex",
@@ -2953,6 +3126,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_094_uitx.tex",
    "length": 12384,
    "baseSha1": "8a22a4d81c5bd9df0d70e644c908f42c115f7357",
+   "inputsSha1": "a3deabaed286fdce480ac7f48eaf9539543aedfe",
    "variants": {
     "1": "ei_s_094_uitx_t1.tex",
     "2": "ei_s_094_uitx_t2.tex",
@@ -2970,6 +3144,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_095_uitx.tex",
    "length": 51296,
    "baseSha1": "8db6b5c8e44214e948aa9667309fd0a844634ee0",
+   "inputsSha1": "a81be296bd69fcdf23e871d79d81a437ba8c7fff",
    "variants": {
     "1": "ei_095_uitx_t1.tex",
     "2": "ei_095_uitx_t2.tex",
@@ -2987,6 +3162,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_095_uitx.tex",
    "length": 12384,
    "baseSha1": "bfc310a43c337f88d2c6b4b1c95cbe7b22b75841",
+   "inputsSha1": "0a783bcafbd7aa168dce6860fb58e0c9027f95d4",
    "variants": {
     "1": "ei_s_095_uitx_t1.tex",
     "2": "ei_s_095_uitx_t2.tex",
@@ -3004,6 +3180,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_096_uitx.tex",
    "length": 51296,
    "baseSha1": "f69629b10c270839a23251bd8e06bfee0da53fc0",
+   "inputsSha1": "260d552ca0437b80694e601af4be7947a175b77d",
    "variants": {
     "1": "ei_096_uitx_t1.tex",
     "2": "ei_096_uitx_t2.tex",
@@ -3021,6 +3198,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_096_uitx.tex",
    "length": 12384,
    "baseSha1": "ef89819162c5dfb39eb44c7f64cf92b99e58361b",
+   "inputsSha1": "3f49f9e68709a120256e3793a657454bd18a9bce",
    "variants": {
     "1": "ei_s_096_uitx_t1.tex",
     "2": "ei_s_096_uitx_t2.tex",
@@ -3038,6 +3216,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_097_uitx.tex",
    "length": 51296,
    "baseSha1": "a069f01ddf55dd8e1b367beff934343247798fca",
+   "inputsSha1": "6b021fe991233bcdc62a3de5a2569af3def90d01",
    "variants": {
     "1": "ei_097_uitx_t1.tex",
     "2": "ei_097_uitx_t2.tex",
@@ -3055,6 +3234,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_097_uitx.tex",
    "length": 12384,
    "baseSha1": "cdc6dbdbc5192e2c7155cc77a8b18784bee27de6",
+   "inputsSha1": "8aa253b7844bbe87372049dcfd2dc9be3c9e77f5",
    "variants": {
     "1": "ei_s_097_uitx_t1.tex",
     "2": "ei_s_097_uitx_t2.tex",
@@ -3072,6 +3252,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_098_uitx.tex",
    "length": 51296,
    "baseSha1": "ae8ed53bccfe06c73883749ac27c2b3613ab3ab9",
+   "inputsSha1": "d5935b2380d5cdc64d29b79dd618567a2dc7a21a",
    "variants": {
     "1": "ei_098_uitx_t1.tex",
     "2": "ei_098_uitx_t2.tex",
@@ -3089,6 +3270,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_098_uitx.tex",
    "length": 12384,
    "baseSha1": "5efb5f6c52b3b92db5ed32004905b1b7214be5e7",
+   "inputsSha1": "5bc46416b6dcc02a2dcc3382147a2e2ae7df734b",
    "variants": {
     "1": "ei_s_098_uitx_t1.tex",
     "2": "ei_s_098_uitx_t2.tex",
@@ -3106,6 +3288,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_099_uitx.tex",
    "length": 51296,
    "baseSha1": "5e7d00fd053fc22f3288675797062ad4eabae92b",
+   "inputsSha1": "e5934f6553abfacfa33a867ba5bd1a1739e31e19",
    "variants": {
     "1": "ei_099_uitx_t1.tex",
     "2": "ei_099_uitx_t2.tex",
@@ -3123,6 +3306,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_099_uitx.tex",
    "length": 12384,
    "baseSha1": "466c13773af008759d10a53f6ffc1ac402c2ce4e",
+   "inputsSha1": "c709dd4901b02523589076f02e524fa2fab6b33e",
    "variants": {
     "1": "ei_s_099_uitx_t1.tex",
     "2": "ei_s_099_uitx_t2.tex",
@@ -3140,6 +3324,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_100_uitx.tex",
    "length": 51296,
    "baseSha1": "11058dbdd17da38e51b74bf59e2b9023decb6132",
+   "inputsSha1": "399414271849ddfad61721354903933713b4ff1c",
    "variants": {
     "1": "ei_100_uitx_t1.tex",
     "2": "ei_100_uitx_t2.tex",
@@ -3157,6 +3342,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_100_uitx.tex",
    "length": 12384,
    "baseSha1": "8db52fb0e564a1fabf2ff4d4d12da2c6f3cacbbd",
+   "inputsSha1": "c23e5f5cbed72766a0249e7e9f69fce06f20807c",
    "variants": {
     "1": "ei_s_100_uitx_t1.tex",
     "2": "ei_s_100_uitx_t2.tex",
@@ -3174,6 +3360,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_101_uitx.tex",
    "length": 51296,
    "baseSha1": "29e67fdf0e34f51f025bcaf70723ee9a80636679",
+   "inputsSha1": "4a020be58d1b19bcd59f52c84399bebf164c8fc6",
    "variants": {
     "1": "ei_101_uitx_t1.tex",
     "2": "ei_101_uitx_t2.tex",
@@ -3191,6 +3378,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_101_uitx.tex",
    "length": 12384,
    "baseSha1": "e2d31a89ad9e05afb9730d067473bde4a01877c8",
+   "inputsSha1": "51749fd7641e16ae69e0f4adccb198e7928b9af1",
    "variants": {
     "1": "ei_s_101_uitx_t1.tex",
     "2": "ei_s_101_uitx_t2.tex",
@@ -3208,6 +3396,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_102_uitx.tex",
    "length": 51296,
    "baseSha1": "d53140ff1b0076e3c2d726d1f351f33bbc108762",
+   "inputsSha1": "b15dbb94f69ba61f70ad249640597c9a59ab7368",
    "variants": {
     "1": "ei_102_uitx_t1.tex",
     "2": "ei_102_uitx_t2.tex",
@@ -3225,6 +3414,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_102_uitx.tex",
    "length": 12384,
    "baseSha1": "897062f1d83324b31e4f245fa7f2fe194080fb6f",
+   "inputsSha1": "56cb25a3f4c2b4261f212b945375b6f664d1cd8e",
    "variants": {
     "1": "ei_s_102_uitx_t1.tex",
     "2": "ei_s_102_uitx_t2.tex",
@@ -3242,6 +3432,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_103_uitx.tex",
    "length": 51296,
    "baseSha1": "8ce88b57a3d562270fc3586e36fc49b38f90db0b",
+   "inputsSha1": "cbe871173714282eae606011bba95050845efe00",
    "variants": {
     "1": "ei_103_uitx_t1.tex",
     "2": "ei_103_uitx_t2.tex",
@@ -3259,6 +3450,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_103_uitx.tex",
    "length": 12384,
    "baseSha1": "e84190e2c1f40cc4b2097ae42fbba82e42420d1d",
+   "inputsSha1": "f24a80a3db76e8f06a8982e48685bb8d7405daf1",
    "variants": {
     "1": "ei_s_103_uitx_t1.tex",
     "2": "ei_s_103_uitx_t2.tex",
@@ -3276,6 +3468,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_104_uitx.tex",
    "length": 51296,
    "baseSha1": "cb92becb36babad79ca83cf84ecfc36de19b7527",
+   "inputsSha1": "15ec6182162f5fdf4aa345c05e406647eef3c270",
    "variants": {
     "1": "ei_104_uitx_t1.tex",
     "2": "ei_104_uitx_t2.tex",
@@ -3293,6 +3486,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_104_uitx.tex",
    "length": 12384,
    "baseSha1": "9b115f65959301e91b6794938d599090c3be9e5e",
+   "inputsSha1": "47cdcf5e515e3c2247a51c99fed82612a20a05a3",
    "variants": {
     "1": "ei_s_104_uitx_t1.tex",
     "2": "ei_s_104_uitx_t2.tex",
@@ -3310,6 +3504,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_105_uitx.tex",
    "length": 51296,
    "baseSha1": "4c1544b810daacfe8c19356013e108713d767452",
+   "inputsSha1": "47a4ef2a5a08a51392444c32970bf69db9aaac0b",
    "variants": {
     "1": "ei_105_uitx_t1.tex",
     "2": "ei_105_uitx_t2.tex",
@@ -3327,6 +3522,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_105_uitx.tex",
    "length": 12384,
    "baseSha1": "474a444e5ae2a4bc216be049523b0752406b5435",
+   "inputsSha1": "850fc3797dc8826c7c4ed5b562287b623787ac2a",
    "variants": {
     "1": "ei_s_105_uitx_t1.tex",
     "2": "ei_s_105_uitx_t2.tex",
@@ -3344,6 +3540,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_106_uitx.tex",
    "length": 51296,
    "baseSha1": "114240768d633f6a4dc7dd4a9622a617c973c2fd",
+   "inputsSha1": "ea39d4ff1b1369ecf243d8f83b36c7a41ab8725c",
    "variants": {
     "1": "ei_106_uitx_t1.tex",
     "2": "ei_106_uitx_t2.tex",
@@ -3361,6 +3558,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_106_uitx.tex",
    "length": 12384,
    "baseSha1": "22d8623d30abce7f23632f8ae0224b06a223c282",
+   "inputsSha1": "8aa15af56d7b47775aaad2143947fb16423c9d2e",
    "variants": {
     "1": "ei_s_106_uitx_t1.tex",
     "2": "ei_s_106_uitx_t2.tex",
@@ -3378,6 +3576,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_107_uitx.tex",
    "length": 51296,
    "baseSha1": "4ff4c50365a7acf5593a7c57b84f20794d0dcf3e",
+   "inputsSha1": "487279f0ec1f6a75db99e05547dfd93e21f08713",
    "variants": {
     "1": "ei_107_uitx_t1.tex",
     "2": "ei_107_uitx_t2.tex",
@@ -3395,6 +3594,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_107_uitx.tex",
    "length": 12384,
    "baseSha1": "be00ead8fb21984788b646a7a8bc72cba78e7207",
+   "inputsSha1": "8ea3b1d6745a321555c35f80151d96578a085869",
    "variants": {
     "1": "ei_s_107_uitx_t1.tex",
     "2": "ei_s_107_uitx_t2.tex",
@@ -3412,6 +3612,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_108_uitx.tex",
    "length": 51296,
    "baseSha1": "b63722ed24a54faac674c1cc4176a57e5dfabd54",
+   "inputsSha1": "29d2fa0652cdb044199f6610f463a62f55f496f7",
    "variants": {
     "1": "ei_108_uitx_t1.tex",
     "2": "ei_108_uitx_t2.tex",
@@ -3429,6 +3630,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_108_uitx.tex",
    "length": 12384,
    "baseSha1": "8f44e8e40eb4a2e8330dbade5455e240f8ccd4a9",
+   "inputsSha1": "e705062fdbfc60bc09a601087af1226b418b4ec8",
    "variants": {
     "1": "ei_s_108_uitx_t1.tex",
     "2": "ei_s_108_uitx_t2.tex",
@@ -3446,6 +3648,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_109_uitx.tex",
    "length": 51296,
    "baseSha1": "c2c22e2261ef3a92c318ecbab378f435a40a7b93",
+   "inputsSha1": "af6f1843307426a87595accc674edccddc630840",
    "variants": {
     "1": "ei_109_uitx_t1.tex",
     "2": "ei_109_uitx_t2.tex",
@@ -3463,6 +3666,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_109_uitx.tex",
    "length": 12384,
    "baseSha1": "7f3dd19a4ad398df0810465c844f70384a8576f2",
+   "inputsSha1": "0fb71afe5284e417f2e00f91409b1fae54d20f0c",
    "variants": {
     "1": "ei_s_109_uitx_t1.tex",
     "2": "ei_s_109_uitx_t2.tex",
@@ -3480,6 +3684,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_110_uitx.tex",
    "length": 51296,
    "baseSha1": "236dc60a5932ed1a8698b62ec8cfc99a02de1f1c",
+   "inputsSha1": "f0e46673ca83203828bdbbd7b26ee1ff6fd949fe",
    "variants": {
     "1": "ei_110_uitx_t1.tex",
     "2": "ei_110_uitx_t2.tex",
@@ -3497,6 +3702,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_110_uitx.tex",
    "length": 12384,
    "baseSha1": "b7c557767096b96aa895d08b660e216cefa49b7c",
+   "inputsSha1": "e4091008a5b8f4cba875f849c4fa00a9e5814759",
    "variants": {
     "1": "ei_s_110_uitx_t1.tex",
     "2": "ei_s_110_uitx_t2.tex",
@@ -3514,6 +3720,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_111_uitx.tex",
    "length": 51296,
    "baseSha1": "4876ae8c9201cb60ee697c0ef32aebf84a52be6b",
+   "inputsSha1": "bf6eb557cc6cd977f36b22627b0838ab32eff2dc",
    "variants": {
     "1": "ei_111_uitx_t1.tex",
     "2": "ei_111_uitx_t2.tex",
@@ -3531,6 +3738,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_111_uitx.tex",
    "length": 12384,
    "baseSha1": "a993646e8ad41e2fac1d7562c42c16526e946a8b",
+   "inputsSha1": "09e0e85bbc42fb0357237076f33f581ed508d2df",
    "variants": {
     "1": "ei_s_111_uitx_t1.tex",
     "2": "ei_s_111_uitx_t2.tex",
@@ -3548,6 +3756,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_112_uitx.tex",
    "length": 51296,
    "baseSha1": "deacc516cf699694e780e8942ef1094d5eeb839f",
+   "inputsSha1": "1b305d3e193bbe68487b271b12eeff2acf515e9a",
    "variants": {
     "1": "ei_112_uitx_t1.tex",
     "2": "ei_112_uitx_t2.tex",
@@ -3565,6 +3774,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_112_uitx.tex",
    "length": 12384,
    "baseSha1": "fb4388e7464a6e6f7208b3b9d82adfa7f678b456",
+   "inputsSha1": "23935e21e61bafd45f3f93ed65ff7ff6a6c3c549",
    "variants": {
     "1": "ei_s_112_uitx_t1.tex",
     "2": "ei_s_112_uitx_t2.tex",
@@ -3582,6 +3792,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_113_uitx.tex",
    "length": 51296,
    "baseSha1": "acf21a83f0d958793802d44fefb1054d05245524",
+   "inputsSha1": "2c093029ee5cd0c90971c262261ad72adb0e1358",
    "variants": {
     "1": "ei_113_uitx_t1.tex",
     "2": "ei_113_uitx_t2.tex",
@@ -3599,6 +3810,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_113_uitx.tex",
    "length": 12384,
    "baseSha1": "359909b77f973ad805b1253bce53f9bf7f2b1f9e",
+   "inputsSha1": "c783a2edb70a30da0d4f2e65b6ba65c05d5239db",
    "variants": {
     "1": "ei_s_113_uitx_t1.tex",
     "2": "ei_s_113_uitx_t2.tex",
@@ -3616,6 +3828,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_114_uitx.tex",
    "length": 51296,
    "baseSha1": "603b89d77fb994620d71d8a567694276333407b8",
+   "inputsSha1": "156918fbe99ecd522334009f745cb26270df6dde",
    "variants": {
     "1": "ei_114_uitx_t1.tex",
     "2": "ei_114_uitx_t2.tex",
@@ -3633,6 +3846,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_114_uitx.tex",
    "length": 12384,
    "baseSha1": "1128fcb2b3a54a5722ad92bf273cc1f87ed4c878",
+   "inputsSha1": "5c2195c327b643927dbc1e844d4989aa5aeafd95",
    "variants": {
     "1": "ei_s_114_uitx_t1.tex",
     "2": "ei_s_114_uitx_t2.tex",
@@ -3650,6 +3864,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_115_uitx.tex",
    "length": 51296,
    "baseSha1": "4b564461876913969189799c398e67b89c186c0b",
+   "inputsSha1": "462d103c0ec11d584797f1f85d11e104ce1bc20e",
    "variants": {
     "1": "ei_115_uitx_t1.tex",
     "2": "ei_115_uitx_t2.tex",
@@ -3667,6 +3882,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_115_uitx.tex",
    "length": 12384,
    "baseSha1": "f4b0e5c6e321d6dce0824cb0cce71d5c6ac0e4ce",
+   "inputsSha1": "35e51ac1f4b878e77ca2cbb69c86e7db144f4a8a",
    "variants": {
     "1": "ei_s_115_uitx_t1.tex",
     "2": "ei_s_115_uitx_t2.tex",
@@ -3684,6 +3900,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_116_uitx.tex",
    "length": 51296,
    "baseSha1": "fa3736ccc56d6e18dfb67373b272d8efeb986a38",
+   "inputsSha1": "b29073dad0d9a60a350800afa3e079bae7f86c5c",
    "variants": {
     "1": "ei_116_uitx_t1.tex",
     "2": "ei_116_uitx_t2.tex",
@@ -3701,6 +3918,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_116_uitx.tex",
    "length": 12384,
    "baseSha1": "45bd2b9181f96778d7370c2d0921ccb3feb65a15",
+   "inputsSha1": "ef955946151f1737376e6ad9924c0a1a65854a95",
    "variants": {
     "1": "ei_s_116_uitx_t1.tex",
     "2": "ei_s_116_uitx_t2.tex",
@@ -3718,6 +3936,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_117_uitx.tex",
    "length": 51296,
    "baseSha1": "33fcf84ccacaefa2053430c27799e1ac548fa444",
+   "inputsSha1": "df16f44edec09eeca7d33adedf750176c06029b7",
    "variants": {
     "1": "ei_117_uitx_t1.tex",
     "2": "ei_117_uitx_t2.tex",
@@ -3735,6 +3954,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_117_uitx.tex",
    "length": 12384,
    "baseSha1": "5b16b79e06777af98cfbdd9a61c7df7d949d038e",
+   "inputsSha1": "3095d6978d09291ed6886661206292ed2e9ea000",
    "variants": {
     "1": "ei_s_117_uitx_t1.tex",
     "2": "ei_s_117_uitx_t2.tex",
@@ -3752,6 +3972,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_118_uitx.tex",
    "length": 51296,
    "baseSha1": "18c4026b808ef6662b322aa7556c2d9866c1290c",
+   "inputsSha1": "eb312b6af694f3312a575b2aa4ffefb8c023eee8",
    "variants": {
     "1": "ei_118_uitx_t1.tex",
     "2": "ei_118_uitx_t2.tex",
@@ -3769,6 +3990,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_118_uitx.tex",
    "length": 12384,
    "baseSha1": "4eddc39711c659d1dd0d003a578ebcfa4c82f77e",
+   "inputsSha1": "3c9c10eececef832973b446aa2ac700f1da01f40",
    "variants": {
     "1": "ei_s_118_uitx_t1.tex",
     "2": "ei_s_118_uitx_t2.tex",
@@ -3786,6 +4008,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_119_uitx.tex",
    "length": 51296,
    "baseSha1": "160303a126aa22e9b59aa938841245c8344285a9",
+   "inputsSha1": "c2d3cbc755d06afa277228bb135dd41a3462bb3c",
    "variants": {
     "1": "ei_119_uitx_t1.tex",
     "2": "ei_119_uitx_t2.tex",
@@ -3803,6 +4026,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_119_uitx.tex",
    "length": 12384,
    "baseSha1": "bcbfc65c3f28c3f0f77ab991bffafaabac5fe2f2",
+   "inputsSha1": "d0db5fc698c7e647bbf7b659ea39aff357b9316c",
    "variants": {
     "1": "ei_s_119_uitx_t1.tex",
     "2": "ei_s_119_uitx_t2.tex",
@@ -3820,6 +4044,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_120_uitx.tex",
    "length": 51296,
    "baseSha1": "393146349f1a1d3e9efd9a50cbedfbc131b43d17",
+   "inputsSha1": "157cb439a2c2dc8e1fd7c27db5bbddb7e15628dc",
    "variants": {
     "1": "ei_120_uitx_t1.tex",
     "2": "ei_120_uitx_t2.tex",
@@ -3837,6 +4062,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_120_uitx.tex",
    "length": 12384,
    "baseSha1": "972835052985aa2b8c0e881f08599a27a926549c",
+   "inputsSha1": "52d2a8d2269546f9c3092f08aefa8b415567778a",
    "variants": {
     "1": "ei_s_120_uitx_t1.tex",
     "2": "ei_s_120_uitx_t2.tex",
@@ -3854,6 +4080,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_121_uitx.tex",
    "length": 51296,
    "baseSha1": "103c2847a7c9600acdb74cada78718401f926e1a",
+   "inputsSha1": "3b7040d4f5e58e97d4302e2ad40eb39cad4ff809",
    "variants": {
     "1": "ei_121_uitx_t1.tex",
     "2": "ei_121_uitx_t2.tex",
@@ -3871,6 +4098,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_121_uitx.tex",
    "length": 12384,
    "baseSha1": "e0290b56a1e096a73d1400aba656116e3972b01e",
+   "inputsSha1": "7514f3070e7a7d2be97db8d1059b89a430e6e656",
    "variants": {
     "1": "ei_s_121_uitx_t1.tex",
     "2": "ei_s_121_uitx_t2.tex",
@@ -3888,6 +4116,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_261_uitx.tex",
    "length": 51296,
    "baseSha1": "b791040d7725e791e61c365cf663a93656572925",
+   "inputsSha1": "e5f0a7d20725cfdcdbb638393c6efa7b41adb2e4",
    "variants": {
     "1": "ei_261_uitx_t1.tex",
     "2": "ei_261_uitx_t2.tex",
@@ -3905,6 +4134,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_261_uitx.tex",
    "length": 12384,
    "baseSha1": "deafd2f58517f354e3fe0ec9efe84ddf98b9928b",
+   "inputsSha1": "376bcd30f425b4a66dcc4691cf1907212cf3b4ba",
    "variants": {
     "1": "ei_s_261_uitx_t1.tex",
     "2": "ei_s_261_uitx_t2.tex",
@@ -3922,6 +4152,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_262_uitx.tex",
    "length": 51296,
    "baseSha1": "6db9749309de30d2f7020d97f7b1ba86c8265333",
+   "inputsSha1": "0e6ef10c6cd4be93e281583e55c82256b80f8c27",
    "variants": {
     "1": "ei_262_uitx_t1.tex",
     "2": "ei_262_uitx_t2.tex",
@@ -3939,6 +4170,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_262_uitx.tex",
    "length": 12384,
    "baseSha1": "03596fdacbc10b0efbb9d5fa5cd6e341b2dfcced",
+   "inputsSha1": "32f71b999f164487174f34bcdfa88526ab3ed60a",
    "variants": {
     "1": "ei_s_262_uitx_t1.tex",
     "2": "ei_s_262_uitx_t2.tex",
@@ -3956,6 +4188,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_263_uitx.tex",
    "length": 51296,
    "baseSha1": "cc73a0aa7244fe8fef6ae3d62f679c32a7cd35de",
+   "inputsSha1": "28f1a8aef51cd3a705bcb8fbe58ad61c45b399c0",
    "variants": {
     "1": "ei_263_uitx_t1.tex",
     "2": "ei_263_uitx_t2.tex",
@@ -3973,6 +4206,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_263_uitx.tex",
    "length": 12384,
    "baseSha1": "71bb23f6aa622646e00d5501ab55ed8615d23606",
+   "inputsSha1": "e5f8dd5d964b7fbd4949fc5c27ffb4c4548865aa",
    "variants": {
     "1": "ei_s_263_uitx_t1.tex",
     "2": "ei_s_263_uitx_t2.tex",
@@ -3990,6 +4224,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_264_uitx.tex",
    "length": 51296,
    "baseSha1": "0d98915eec3e1c32959602ab7f125da35e7f7e82",
+   "inputsSha1": "9f1a875cd41b529a28a65734f3eafe5db5ce8603",
    "variants": {
     "1": "ei_264_uitx_t1.tex",
     "2": "ei_264_uitx_t2.tex",
@@ -4007,6 +4242,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_264_uitx.tex",
    "length": 12384,
    "baseSha1": "01127726b83cc7e7a971d968061c5ffa0468f384",
+   "inputsSha1": "67990e0b78c29aa2c413b2de55510b90a5a98142",
    "variants": {
     "1": "ei_s_264_uitx_t1.tex",
     "2": "ei_s_264_uitx_t2.tex",
@@ -4024,6 +4260,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_265_uitx.tex",
    "length": 51296,
    "baseSha1": "5c72cf7ede12e4cd722851780b3a6d9de12d9bed",
+   "inputsSha1": "79e16eddfff0412599a9b1b1491bb55022765e57",
    "variants": {
     "1": "ei_265_uitx_t1.tex",
     "2": "ei_265_uitx_t2.tex",
@@ -4041,6 +4278,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_265_uitx.tex",
    "length": 12384,
    "baseSha1": "9fad6361f6d8dd35f1e308be3003346df479ac14",
+   "inputsSha1": "ab5d3f09d6c728213340d87437e1dc030c952e7e",
    "variants": {
     "1": "ei_s_265_uitx_t1.tex",
     "2": "ei_s_265_uitx_t2.tex",
@@ -4058,6 +4296,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_266_uitx.tex",
    "length": 51296,
    "baseSha1": "66d13a9de927a41ceae5877fda94ed8d5adf38fa",
+   "inputsSha1": "6041e8d09f68da495f891e1c960cef2c11ba8702",
    "variants": {
     "1": "ei_266_uitx_t1.tex",
     "2": "ei_266_uitx_t2.tex",
@@ -4075,6 +4314,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_266_uitx.tex",
    "length": 12384,
    "baseSha1": "f6d8c7039851e99a3b3318abf32461a83ae70b74",
+   "inputsSha1": "f95a873323bf1abd39172af2f5e021bdb152ccb8",
    "variants": {
     "1": "ei_s_266_uitx_t1.tex",
     "2": "ei_s_266_uitx_t2.tex",
@@ -4092,6 +4332,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item/texture/ei_267_uitx.tex",
    "length": 51296,
    "baseSha1": "8790ad523e1351f06badd65ff151b257c06f8b58",
+   "inputsSha1": "6f789f62b6f281a033b58cd59cab3fbb85512cda",
    "variants": {
     "1": "ei_267_uitx_t1.tex",
     "2": "ei_267_uitx_t2.tex",
@@ -4109,6 +4350,7 @@
    "baseRel": "data/enhanced/ui/ffto/icon/equip_item_s/texture/ei_s_267_uitx.tex",
    "length": 12384,
    "baseSha1": "d2e1230fc3597b4a710be49134dafcf267b0699c",
+   "inputsSha1": "6035636b8d44e44064d46aca9c8aa76aa0913c9a",
    "variants": {
     "1": "ei_s_267_uitx_t1.tex",
     "2": "ei_s_267_uitx_t2.tex",

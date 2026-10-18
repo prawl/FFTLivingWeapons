@@ -514,6 +514,16 @@ function Invoke-TablePipeline {
         throw "REFUSING TO ${FailVerb}: recolor_icons.py --selftest failed (exit $LASTEXITCODE)."
     }
 
+    # The glow rims are committed artifacts too, and until now nothing at build time looked at
+    # them. verify goes red on a missing or wrong sized variant, a sha that drifted from the file,
+    # and a plain icon or rim recipe that changed since the bake (the manifest's inputsSha1).
+    # Under half a minute here; the rebake pins skip themselves on a box without FF16Tools.
+    Write-Host "  -> tools/bake_glow_icons.py verify (glow rims match their manifest and bake inputs)..."
+    & python "$PipelineRepoRoot\tools\bake_glow_icons.py" verify
+    if ($LASTEXITCODE -ne 0) {
+        throw "REFUSING TO ${FailVerb}: bake_glow_icons.py verify failed (exit $LASTEXITCODE)."
+    }
+
     # And the deploy-parity checker itself (LW-297). It is the instrument that decides
     # whether an install is stale, so an instrument regression would silently restore the
     # exact blind spot it was written to close. Pure filesystem work in %TEMP%; no python,
