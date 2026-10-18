@@ -83,14 +83,10 @@ the technical detail lives in the indented lines under it.
   - (Tech: base 0x140D508B0 is two 0xE800 byte bump allocated record buffers, cursor 0x143846598, five begin frame sites; the pin is +0x20, byte 4 of the SECOND record's ordering table link pointer, which lands there only when the screen's first record is the 0x1C byte 0xF8 packet built in 0x140342448; the 0x24 byte header can never put a nonzero byte there since all four builders zero its +0x1C qword; the ordering tables live in .data at 0x140D506B0, 0x140D507B0, 0x140D4FE70 and 0x140D50270, so the links are image pointers; 0x140000000 gives 0x01 and the 2026-10-17 base 0x7FF65FC60000 gives 0xF6; the browse byte 0x140D408E2 has seven direct byte writers; GunSlinger.MenuGate.cs normalizes to nonzero, LaunchGuard.Twin.cs faults only on the browse byte; probe tools/probes/lw439_menu_byte_probe.py; later probe target bit 0x10 of 0x1437FC2C0; ledger [worldmap-menu-open-byte] UNCERTAIN with the new evidence.)
   - Done means: with a world map menu open the twin stays put and the launch check still arms, with the menu closed the grant works as before, and backing out of Equipment to the Status page shows the twin again within a couple of seconds, all on the Denuvo free build.
   - Verify: suite green with the three new tests and two rewritten ones (new, 246 then closed waits the three settle passes, 246 plus a stable browse screen stamps, the door arms on 246; rewritten, any nonzero menu byte suppresses, the door still faults on a browse byte of 7); then the owner's live read during a smoke sitting with tools/probes/lw439_menu_byte_probe.py, expected a qword inside the game image with the party menu open and a 0 byte with it closed, plus the twin reappearing on the Status page after ESC from Equipment and Abilities.
-- **[LW-427] A weapon's new glow ring shows the same session it is earned, on every screen that draws the icon** (opened 2026-10-17) [BUILDING]
-  - Today a weapon that levels up in battle keeps its old icon until the game is restarted. The mod now hides the game's remembered copy of the icon when the new ring is written, and a small helper inside the game's icon lookup reloads the icon by itself the first time any screen asks for one that was hidden. That is what was missing in the 2026-10-18 measuring session, where the big card art went blank on the Equipment and Abilities page and the battle status page because those screens never ask the loader again. Now they ask the lookup every frame, the helper answers with a fresh load, and no icon is left blank beyond the game's own tenth of a second load. If the helper is not live (the hooks mod missing, or the game moved the code) the ring simply shows after a relaunch, as it did before this row.
-  - Supersedes the restart physics in LW-385 and LW-340, which stay in place until they are exited with this row.
-  - (Tech: new IconCacheHeal (Display/) hooks the icon cache lookup 0x1403FBB80 and calls the loader 0x1403FBE3C with flag 0 on a tracked miss, behind both prologue checks; a stack key filter keeps the maintenance callers (the remove by name path among them) out; a per (cache, name) attempt cap of 3, a thread static guard for the loader's own inner lookup, one lock; IconGlow hides only while the healer is armed (hook installed and fired once) and tracks the parts names before each hide; the LW-381 hide, off since LW-423, is on again behind that gate; LIVE_LEDGER [icon-cache-heal-on-miss] UNCERTAIN holds the mechanism and the pre registered live test; the dev spike IconLookupSpike is gone and its trace now lives inside the healer under LWDEV.)
-  - Done means: after a weapon crosses a kill tier in a dev build, its new ring shows on the first open of the party menu list, the inventory card, the Equipment and Abilities page (small icon and card) and a battle status page, with no restart and no blank icon on any of them; the log shows one heal line per screen cache and no refused heal, no attempt cap warning and no access violation; an icon that did not change tier draws unchanged everywhere; a save load and a relaunch show the same ring.
-  - Verify: suite green (the healer tests include the stack key negative, which goes red when the stack check is removed), analyze.py exit 0, both dotnet format checks, bake_glow_icons.py verify; then the owner's live run on a dev build, steps in LIVE_LEDGER [icon-cache-heal-on-miss] and smoke box 7.2a. In short, launch and open the party menu and the inventory until the log says the icon cache hook is confirmed working, run `python tools/probes/lw381_tally_poke.py 33 0` and then `33 1`, and see Defender's new art on the inventory, Equipment and Abilities and a battle status page with one heal log line per screen and no blank. Chaos Blade (37) must draw unchanged with no ei_037 heal line, and a save, load and relaunch must show the same art.
 ## Backlog
 
+- [LW-441] 2026-10-18: A weapon that changes glow tier twice in one session can keep a stale ring on one screen until the next tier change or a restart. Seen once in the LW-427 live sitting at 06:15:31: the small icon's texture record had been hidden in the launch batch and not yet re created, so the second hide found "no texture record" and left the row on its old art; the next change at 06:23:51 found records for both surfaces and healed clean. Fix idea for 2.5.0, let the hide count an already hidden texture record (name pointer +1, hash 0, size matching) as hidden and still hide the parts entries, so the heal reloads the row. Needs its own live read.
+  (Tech: IconCacheHide.ClassifyAndWrite, HideOutcome.TextureMissing when texHidden is 0; the pointer sweep looks for pointers to the path string start, a hidden record points at start+1; the heal only fires on a miss, so an intact stale parts entry never heals.)
 - [LW-438] 2026-10-17: On the first launch after a prod deploy, with every weapon at +3, no weapon name in the lists showed its +3, and unequipping and re equipping did not bring it back; on later launches every name read +3 again. Reproduce on a deploy with a few weapons at a tier, and decide whether a player updating the mod would see bare names for a launch. If a player would see it, it joins R5 under the freeze rule.
   (Tech: seen 2026-10-17 about 22:20 on prod of the tree later committed as ea841c1c; all 121 tallies were at 15 from a direct kills.json edit, so the name suffix room (capped, SuffixRotation) may simply have been full; the 23:45 owner screenshot shows Outrider Pistol+3 and the gun names correct.)
   Checked offline on 2026-10-18 and the full room idea does not hold up. The painter has room for eight copies of every one of the 121 names at once, and the last live count (2026-08-18) was about four copies per name, so 121 weapons at +3 fit with half the room to spare; a test now paints all 121 at +3 on a cold launch and on a warm start alike. The room only overflows at nine copies per name, and then the last found copies stay bare whatever the tier count, so it is the headroom that rules the room out, not the tier count. The tests model the room's arithmetic only, not the launch window (the memory sweep runs before the pool is found, and every Continue load makes the painter look again). The warm versus cold split is not keyed to a deploy either, because the region file lives in the Reloaded user folder the deploy script never touches. The one piece of state a deploy does reset is the icon glow's first apply, which is icons, not names. Only the owner's live reproduce can pin the first launch difference.
@@ -250,29 +246,7 @@ belongs rather than at the bottom.
     0x38 bytes with the produced item id at +0x2C, three live copies found 2026-09-01 at
     0x15c62xxxx and two 0x4c9bxxxxxx heap mirrors; the tag build is v2.3.3 = cb14be3b; the
     recategorized rows are ItemData.xml ids 48, 49, 50, 67, 68, 69, 70 at that tag.)
-- [LW-385] 2026-09-01: Icon-glow same-session refresh, the regression and edge-case pass to run
-  next session (owner directed, held for a dedicated test session). Plain language: the live glow
-  cure (LW-381) works, and here is the list to hammer before it is trusted everywhere.
-  - Refused-but-not-retried surface: when a weapon's menu records are resident but its texture
-    record is not, the hide refuses and never tries again on later ticks (Riposte, live
-    2026-09-01: refused, yet a manual inventory reopen still redrew it because the game recreated
-    the record). Decide whether IconCacheHide should keep the surface pending and retry until the
-    texture record appears, rather than leaning on the player reopening.
-  - The seven extended weapons (ids 261 to 267) have never re-tiered under the shipped build; their
-    icons are donor bakes and the sweep keys on ei_NNN_uitx / ei_s_NNN_uitx, so if the game names
-    an extended asset differently the sweep finds nothing and it stays restart-only. Cross one
-    (Terrastaff or Ravager) live to settle it.
-  - New game / tally reset drops every icon to tier 0 at once (242 pac patches plus one hide pass);
-    designed for, never watched. Observe it once.
-  - Weak-machine cost: each hide is two background reads of about four gigabytes of process memory
-    after a battle; no hitch on this box, unverified on a slower one.
-  - Harden tools/probes/lw381_tally_poke.py before it is ever run again: on 2026-09-01 its
-    "looks like the tally dictionary" shape check matched 210 records of an unrelated 16-byte
-    structure and wrote 2 to 5 in each (id 2 poke); all 210 were read back and restored to 2 the
-    same minute, no error, real Quicksilver tally never touched, but the gate needs neighbour
-    corroboration on EVERY candidate (not just the count) or an allow-list of the real tally page
-    before it writes.
-  - LW-427 supersedes this row. Same session refresh is built there and the restart physics it describes no longer hold.
+
 - [LW-384] 2026-09-01: The Eclipsebolt's death mark lands on the slow three turn countdown instead
   of the one turn its tier three signature promises, and once it does there is no second chance.
   Owner-observed 2026-09-01 07:10 in a live battle, and the log names the refusal outright:
@@ -497,14 +471,7 @@ belongs rather than at the bottom.
   parry exchanges per ledger row [per-weapon-colour-by-turn-repaint]), the palette map
   carries at least one proven-wrong entry (LW-305), and shields stay vanilla entirely
   (LW-302, its own hunt).
-- [LW-340] 2026-08-26: The glow rims get one extensive owner test proving they grow as
-  you play; owner queued 2026-08-26. Physics settled the same day: a drawn icon never
-  refreshes mid-session, so growth shows at the NEXT launch, and the script must test
-  tier-ups landing after restart, not live. LW-336 (the runtime keeps the icons current)
-  is the prerequisite, otherwise the manual deploy_glow_tex step fakes the result; the
-  late level-up toast (LW-323) and slow kill counters (LW-324) sit on the same player
-  experience and an extensive pass will trip both.
-  LW-427 supersedes the restart only physics in this row. With the heal hook armed a new ring shows the same session.
+
 - [LW-342] 2026-08-26: The test suite silently means "production flavor only": building
   the tests with the DEV knob turned on fails 89 of them at today's HEAD, and nothing
   anywhere runs that combination, so the dev flavored DLL ships gated by tests compiled

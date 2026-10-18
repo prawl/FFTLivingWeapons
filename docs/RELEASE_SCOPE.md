@@ -460,8 +460,8 @@ this paragraph is the pointer that says so.
       changelog row); owner live verdict "It's holding up correctly", tape clean.
 
 ### R2. Testing passes (BLOCKER)
-- [ ] The extensive glow-growth pass (LW-340), AFTER LW-336 lands; same session cadence
-      now that LW-427 heals hidden icons, with the relaunch leg kept.
+- [x] The extensive glow-growth pass (LW-340), folded into the LW-427 live sitting of 2026-10-18
+      (WONTFIX as its own row); the same session cadence and the relaunch leg both passed there.
 - [ ] The extensive in-battle recolor edge-case pass (LW-339); suspects pre-listed in
       the row: counters (LW-310), ex flails (LW-312), the parry palette clash, the
       wrong palette-map entry (LW-305).
@@ -480,9 +480,9 @@ this paragraph is the pointer that says so.
 ### R4. Ship furniture
 - [x] Deploy riders get their VERIFY_LIVE.md home (LW-286) before the next deploy (SHIPPED cb9a6e85 2026-10-17).
 - [ ] Download page banner re-rendered after the final art state (LW-281).
-- [ ] Release note: after updating, play for a bit, then restart the game once so glow rings and
-      tier names show. A ring a weapon earns while you play shows right away when the icon helper is
-      live (LW-427), and otherwise the next time you start the game.
+- [ ] Release note: after updating, restart the game once so the new tier names show. A ring a
+      weapon earns while you play shows right away (LW-427, owner live pass 2026-10-18), and if
+      the icon helper ever reports itself off in the log, the next time you start the game.
       If an icon still looks wrong, restart again. (The game keeps every icon it drew for the whole
       session, the mod swaps icon files a few seconds after a save loads, and LW-428's late retry
       can leave one icon stale for a launch; owner ruled 2026-10-18 that the note covers it and
@@ -517,7 +517,7 @@ model exists; it is done. The order, worked top to bottom, one at a time:
 7f. LW-432 the knight sword glow ring that is too faint to see on the equip list; found in smoke box 7.2's follow up gallery walk. A player sees it, so it joins the order under the freeze rule. SHIPPED 2026-10-17.
 7g. LW-433 the seven extended weapons, ids 261 to 267, whose glow rims are copies from other icons and miss the new rims; found in the LW-432 verify. A player sees it, so it joins the order under the freeze rule and the owner wants it in 2.4.0. SHIPPED 2026-10-18.
 7h. LW-434 the glow ring that is too faint to see on the small list icon for every weapon; found in the glow lab after LW-432. A player sees it, so it joins the order under the freeze rule. SHIPPED 2026-10-17.
-7i. LW-427 the new glow ring that waits for a restart. Owner re ruling 2026-10-18 pulls it into 2.4.0, overturning the 2026-10-17 call that put it in 2.5.0, because shipping the glow without it hides the best part of the feature. It goes ahead only if the Phase 0 measuring session clears the no go lines in its TODO row; if not, it returns to 2.5.0 and the R4 release note covers it. Outcome 2026-10-18: Phase 0 hit the no go line (the card art went blank on two screens that never reload), then the lookup trace explained the blank and the owner ruled it back into 2.4.0 with a heal on miss hook. Built and gated 2026-10-18, owner live run owed (LIVE_LEDGER [icon-cache-heal-on-miss], smoke boxes 7.2 and 7.2a); if that run fails it returns to 2.5.0 as that cut's first row.
+7i. LW-427 the new glow ring that waits for a restart. Owner re ruling 2026-10-18 pulls it into 2.4.0, overturning the 2026-10-17 call that put it in 2.5.0, because shipping the glow without it hides the best part of the feature. It goes ahead only if the Phase 0 measuring session clears the no go lines in its TODO row; if not, it returns to 2.5.0 and the R4 release note covers it. Outcome 2026-10-18: Phase 0 hit the no go line (the card art went blank on two screens that never reload), then the lookup trace explained the blank and the owner ruled it back into 2.4.0 with a heal on miss hook. Owner live pass 2026-10-18 06:23 to 06:30 PASSED, SHIPPED e8c5fbe6; the one edge is LW-441. Built and gated 2026-10-18, owner live run owed (LIVE_LEDGER [icon-cache-heal-on-miss], smoke boxes 7.2 and 7.2a); if that run fails it returns to 2.5.0 as that cut's first row.
 7j. LW-426 the twin weapon log line that read as a refusal of dual wielding while the player's own Dual Wield still swung both guns; found in smoke sitting 1. A player reads the log, so it joins the order under the freeze rule. Wording fix, no logic defect; built 2026-10-18, owner live read on box 9.6 outstanding.
 7k. LW-439 the world map menu byte that reads 246 on the Denuvo free build, found in the LW-427 Phase 0 tape. A player with a tiered gun sees the twin fail to come back on the Status page after leaving Equipment, so it joins the order under the freeze rule. Built and gated 2026-10-18, owner live read owed.
 8. One sitting each, cheap: galleries LW-198, LW-205, LW-210, LW-212, then LW-322 and LW-320,
@@ -560,8 +560,8 @@ Now because both wait only on the owner.
 
 The 2026-08-19 art-cut remainder moves here whole, joined by the owner's 2026-08-26
 restatement of the same work and the arcs deliberately kept out of the glow finale:
-- LW-427, same session glow rings, moved into 2.4.0 (R5 7i). It returns here as this cut's
-  first row only if its owner live run fails (LIVE_LEDGER [icon-cache-heal-on-miss]).
+- Same session glow rings shipped in 2.4.0 (R5 7i, owner live pass 2026-10-18). What is left
+  for this cut is LW-441, the second tier change in one session that can lag a tier.
 - Step zero: the owner spells out the new icon path (LW-313) so every row below rides it.
 - The hats (LW-288), the legacy 72 as torso gear (LW-337: armour LW-218, clothing LW-219,
   robes LW-220) and accessories (LW-338: shoes LW-221, armguards LW-222, rings LW-223,
