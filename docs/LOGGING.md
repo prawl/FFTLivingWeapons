@@ -142,8 +142,10 @@ print either side of the footer, same as the stamp line). File shape shown; the 
 `[verb]` brackets:
 
 ```
+[startup] Game image base 0x140000000 (preferred 0x140000000, delta 0x0); every pinned address is rebased onto it.
 [startup] Living Weapons version 2.2.2 (production build) is starting inside fft_enhanced.exe.
-[config]  Configuration loaded: TreasureAlwaysOn=False LogLevel=Info (from ...\Config.json)
+[config]  Configuration loaded: LogLevel=Info (from ...\Config.json)
+[save]    Save files live at ...\Reloaded\User\Mods\prawl.fft.livingweapons.
 [save]    The kill tally holds 63 lifetime kills across 12 weapons (kills.json, primary).
 [save]    The legends hold deeds for 4 weapons and 1 Mark (legends.json, primary).
 [startup] Living Weapons is tracking 118 weapon types.
