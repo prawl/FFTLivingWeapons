@@ -8,11 +8,13 @@ reader who has never seen the work answers three pre registered questions from t
 stripped code alone. A miss means the understanding is not in the code. Nothing in this file
 is a score. Patrick reads the misses.
 
-Entry shape, written by `quiz_gate.sh entry` and parsed by `quiz_gate.sh precommit`:
+Entry shape, written by `quiz_gate.sh entry` and read by the Stop and pre-commit hooks:
 
     ## Cold read <date time>, <ticket>, base <turn start SHA>
-    Run cap <n> (<changed production lines> changed production lines). Run <k> of <n>.
-    Files: <every production .cs file in the diff, plus any callee added to the packet>
+    Run cap <n> (<added production lines> changed production lines). Run <k> of <n>.
+    Files: <every production .cs file that gained lines, plus any callee added to the packet>
+    Hashes: <file>=<hash of its comment stripped code when the entry was written>; ...
+    Canary: cold | WARM | guess | none
     Q1 (failure path): ...
     Expected: ...
     Reader: ...
@@ -22,8 +24,11 @@ Entry shape, written by `quiz_gate.sh entry` and parsed by `quiz_gate.sh precomm
     Unprompted: <what the reader found that nobody asked about>
 
 The cap line comes before any result, so the limit exists before an answer is read against
-it. Entries are keyed on the turn start SHA; the pre-commit check accepts a commit only when
-the entries for its SHA (or HEAD) together name every changed production file. Rolls by
+it. An entry vouches for a file only while the file's comment stripped code still matches its
+recorded hash and its base is in the history of HEAD, so a comment touch up keeps it valid
+and any code change needs a new entry. Q4 of every packet is a canary whose answer lives only
+in notes the reader must not see; WARM means the reader saw them and its passes are warm. A
+calibration entry measures the gate, not a change, and sits outside the cap. Rolls by
 release: at each release tag this file moves to docs/archive/COLD_READ_LOG_<version>.md with
 an ARCHIVED stamp and a fresh one starts here. Method and question guidance live in the
 cold-read skill of the home setup repo, beside the hooks.
@@ -61,3 +66,41 @@ Expected: The old list can still carry ids sold or equipped away since, and addi
 Reader: Cannot answer from the packet. Saw the filter and the EquippedBadge name but would not infer the badge meaning or the old empty row bug.
 Result: bad question (the why lives only in comments, so a stripped packet cannot carry it; a name like StillOwned for the filter would carry half of it)
 Unprompted: The first list read is outside any try (safe only by the ICodePatcher contract). _refusalWarned is a plain bool, so warn once is racy under concurrent rebuilds. Seated counts planned ids, and the repair path returns before counting. Owned is called on any dropped id though only extended ids are seated. Two empty catches leave no trace when seating or re-append throws.
+
+## Cold read 2026-10-19 09:07, calibration LW-452 rewind fix, base 0e29f898
+Calibration run, outside the cap (0 changed production lines).
+Files: LivingWeapon/Engine.cs, LivingWeapon/Extended/ExtendedInventory.Hooks.cs, LivingWeapon/Extended/ExtendedInventory.Tick.cs, LivingWeapon/Extended/ExtendedInventory.cs, LivingWeapon/Extended/RewindRecomputeStep.cs, LivingWeapon/Extended/RewindRestoreHook.Policy.cs, LivingWeapon/Extended/RewindRestoreHook.cs, LivingWeapon/Extended/RewindTotals.Policy.cs, LivingWeapon/Extended/RewindTotals.cs, LivingWeapon/Extended/SaveEdgeHooks.Detours.cs, LivingWeapon/Extended/SaveEdgeHooks.cs, LivingWeapon/Offsets.cs, LivingWeapon/Extended/InventoryResetHook.cs
+Hashes: LivingWeapon/Engine.cs=d2ef6637dfb879e7; LivingWeapon/Extended/ExtendedInventory.Hooks.cs=5021c5af70cb577a; LivingWeapon/Extended/ExtendedInventory.Tick.cs=bfe8ce18c93b7748; LivingWeapon/Extended/ExtendedInventory.cs=b503c0bfe99880a3; LivingWeapon/Extended/InventoryResetHook.cs=ae5994a7bc0fc97a; LivingWeapon/Extended/RewindRecomputeStep.cs=d3cd43ca5ffb9ad6; LivingWeapon/Extended/RewindRestoreHook.Policy.cs=fc9da4f9a1340a3b; LivingWeapon/Extended/RewindRestoreHook.cs=039968602b1830b1; LivingWeapon/Extended/RewindTotals.Policy.cs=33179b750b931408; LivingWeapon/Extended/RewindTotals.cs=73a058db254f275e; LivingWeapon/Extended/SaveEdgeHooks.Detours.cs=442050885ee92240; LivingWeapon/Extended/SaveEdgeHooks.cs=f2133bff31ad94e8; LivingWeapon/Offsets.cs=a98e6ca36266eeca
+Canary: cold
+Q1 (failure path): If the pre battle snapshot's key has no sidecar record, or a checkpoint is put back that the mod never saw being saved, or no total was ever captured, what does each path write and log, and can the re derive step make a count worse?
+Expected: flee with no record, the charts are adopted, nothing is replayed, no load edge is published, one Warn names the key; checkpoint with no shadow, nothing is written and one Warn per session; recompute with no captured total returns false and writes nothing; a recompute or a put back whose roster or bag read failed writes nothing and counts Incomplete, and a capture with a failed read keeps the previous total; a captured total is bag plus hands at the latest snapshot, so a recompute can only move a count toward total minus hands, never below zero, and it writes only when the byte differs. The no record Warn says the counts will be re derived from the last total captured, because the rewind counter rises before the callback runs.
+Reader: all three paths right, with the same anchors as the warm run. It also found on its own that the rewind counter rises before the callback, so a missing record still schedules a recompute, and that a failed capture keeps the old total. On worse, it said a stale latest total could give a stale count, and noted the clamp at zero.
+Result: pass
+Q2 (ordering): On a Retry from Formation three different pieces of code write the seven extended bag counts within about thirty milliseconds, and the game rewinds the roster hands during that window. In what order do they run, which write is the one that ends up correct, and why does the re derive step run twice instead of once?
+Expected: the inventory reset hook runs first and puts the live bytes back unchanged; the checkpoint restore hook runs next and writes total minus the hands held at that instant; the game may revert the roster hands after either of those; the tick step sees the restore counters rise, schedules a recompute at tick plus 3 and tick plus 15, and each pass writes total minus hands now. The last pass after the roster has settled is the correct one; the second pass exists because the roster revert can land after the first.
+Reader: named the two detours and the tick step at tick plus 3 and tick plus 15, could not order the two detours because neither call site is in the packet, and said no code states why the recompute runs twice.
+Result: miss, same as the warm run. The call order and the late roster revert are game facts a stripped packet cannot carry, already fixed at the comment tier
+Q3 (free): A Warbrand is stolen or broken in battle and the battle then ends normally. What stops the re derive step from minting that Warbrand back into the bag, and when does the mod learn the weapon is gone?
+Expected: the recompute runs only when a rewind counter rose (checkpoint restores or rewinds handed on), neither of which happens at a normal battle end or at a load, so no recompute runs; the game's inventory reset is deliberately not a trigger because it also runs at loads and after won battles; the next serialize edge (and the next load edge) captures total again as bag plus hands with the weapon absent, so the total drops by one then.
+Reader: the gate is Step, which needs CheckpointRestores or RewindsHandedOn to rise, and a normal battle end raises neither. The loss is learned at the next Capture, with the save, load, rewind and checkpoint captures listed. Did not name the inventory reset as a deliberate non trigger.
+Result: pass
+Unprompted: RewindsHandedOn rises only when the header read succeeds, so an unreadable header schedules no recompute. RewindRecomputeStep.Step reads each counter twice, so a rise between the two reads is absorbed without a schedule. CheckpointTotalShadow evicts at 8 and a reused address overwrites silently (adjacent to LW-454). Empty catch blocks in Step, ProcessRewind, ProcessCheckpoint and SafeLog. The checkpoint tail bytes embed 0x7E90 as a literal with no link to Offsets.CheckpointBagOff. It did not re find LW-455 this time.
+
+## Cold read 2026-10-19 09:07, calibration LW-453 corpse scan on compare/corpses-readability, base a8072bc8
+Calibration run, outside the cap (30 changed production lines).
+Files: LivingWeapon/Chronicle/VictimClass.cs, LivingWeapon/Kills/KillTracker.Corpses.cs, LivingWeapon/Kills/KillTracker.Delayed.cs
+Hashes: LivingWeapon/Chronicle/VictimClass.cs=71839b8adcc015ab; LivingWeapon/Kills/KillTracker.Corpses.cs=1c33780c082d7a9e; LivingWeapon/Kills/KillTracker.Delayed.cs=21ea8f4ce8805326
+Canary: cold
+Q1 (failure path): A death has been waiting for a killer, and on this tick the number of turn ends since it fell has already reached the limit. Does the wait's tick count move this tick, and what happens to the death?
+Expected: The tick count does not move, because the turn limit is checked first and the count only advances when that limit has not tripped. The death expires uncredited and the log reports the tick count as it stood.
+Reader: no, the turn limit is checked first and the count only advances when it has not tripped, then ExpirePendingUncredited closes the death with no credit and logs it.
+Result: pass
+Q2 (ordering): A charged attack is armed when a death becomes creditable, but the restart latch is open on this tick. Is the charge still armed after this tick, and on the later tick that pays, what disarms it and what list is used?
+Expected: Still armed, because ResolveCredit only peeks. On the paying tick ConsumeDelayedCulprit calls the same peek, sets the armed tick count to zero, and returns that same delayed actor list, which is the one credited.
+Reader: still armed, because ResolveCredit only peeks. On the paying tick ConsumeDelayedCulprit sets the armed count to zero and the credited list is the delayed actor list.
+Result: pass
+Q3 (free): When the mod logs a kill left unpaid because the killer had no Living Weapon and no victim snapshot was captured, what noun follows "The fallen", and can the article form and the bare form of that phrase ever disagree?
+Expected: "enemy". They cannot disagree, because FellPhrase is built by putting an article in front of FellNoun.
+Reader: enemy, and the two forms cannot disagree because FellPhrase wraps FellNoun with an article.
+Result: pass
+Unprompted: IsHumanJob covers jobs 74 to 95 but the job name table covers 74 to 93, so job 95 classifies as human and is named foe. A pending death whose delayed charge runs out falls back to the lethal actor or the last player weapons. A non null delayed candidate skips the untracked early bury. ExpirePendingUncredited leaves the credited weapon, identity and name id fields set.
