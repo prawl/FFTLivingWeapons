@@ -77,16 +77,19 @@ internal static class VictimClass
     /// <summary>Console kill-report phrase for a captured victim snapshot ("a caster", "a human", "a monster", "an undead foe", or "an enemy"
     /// when nothing sane was captured or the archetype is Unknown). Used by the [kill] console lines (logging facelift); nameId and job
     /// numbers ride the [trace] companion.</summary>
-    public static string FellPhrase(bool has, byte job, bool undead)
+    public static string FellPhrase(bool has, byte job, bool undead) => WithArticle(FellNoun(has, job, undead));
+
+    /// <summary>The same noun with no article, for lines that put their own word in front.</summary>
+    public static string FellNoun(bool has, byte job, bool undead)
     {
-        if (!has) return "an enemy";
+        if (!has) return "enemy";
         return Classify(job, undead) switch
         {
-            Archetype.Caster => "a caster",
-            Archetype.Human => "a human",
-            Archetype.Monster => "a monster",
-            Archetype.Undead => "an undead foe",
-            _ => "an enemy",
+            Archetype.Caster => "caster",
+            Archetype.Human => "human",
+            Archetype.Monster => "monster",
+            Archetype.Undead => "undead foe",
+            _ => "enemy",
         };
     }
 

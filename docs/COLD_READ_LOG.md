@@ -146,3 +146,20 @@ Expected: OracleGate leaves it untouched. BlockRepeatCredit leaves it false, whi
 Reader: untouched, stays false, set false, left true after the repair at the top of HandleOrphanAliveEdge, set false. Noted OracleGate runs before the belt lookup.
 Result: pass
 Unprompted: The two untracked buries disagree on the belt, so a second death of the same tuple is blocked after one and not the other (open, a design question; behavior was out of scope). The credit branch does not clear _pending in this file (CreditKill clears it in KillTracker.cs, outside the packet). PendingTimedOut increments inside a predicate. RecordedIdentityChanged leaves max hp out while the belt key includes it. An unreadable turn queue biases toward stamping, by design.
+
+## Cold read 2026-10-19 07:46, LW-453, base a8072bc8
+Run cap 1 (62 changed production lines). Run 1 of 1.
+Files: LivingWeapon/Chronicle/VictimClass.cs, LivingWeapon/Kills/KillTracker.Corpses.cs, LivingWeapon/Kills/KillTracker.Delayed.cs
+Q1 (failure path): A death has been waiting for a killer, and on this tick the number of turn ends since it fell has already reached the limit. Does the wait's tick count move this tick, and what happens to the death?
+Expected: The tick count does not move, because the turn limit is checked first and the count only advances when that limit has not tripped. The death expires uncredited and the log reports the tick count as it stood.
+Reader: The count does not move since turnsUp is checked first, and the death expires uncredited with the could not be determined line.
+Result: pass
+Q2 (ordering): A charged attack is armed when a death becomes creditable, but the restart latch is open on this tick. Is the charge still armed after this tick, and on the later tick that pays, what disarms it and what list is used?
+Expected: Still armed, because ResolveCredit only peeks. On the paying tick ConsumeDelayedCulprit calls the same peek, sets the armed tick count to zero, and returns that same delayed actor list, which is the one credited.
+Reader: Still armed after the suppressed tick since ResolveCredit only peeks. On the paying tick ConsumeDelayedCulprit zeroes the armed count and the delayed actor list is the culprit credited. Noted the window can lapse first.
+Result: pass
+Q3 (free): When the mod logs a kill left unpaid because the killer had no Living Weapon and no victim snapshot was captured, what noun follows "The fallen", and can the article form and the bare form of that phrase ever disagree?
+Expected: "enemy". They cannot disagree, because FellPhrase is built by putting an article in front of FellNoun.
+Reader: "enemy", from FellNoun when no snapshot was captured. They cannot disagree because FellPhrase wraps FellNoun with WithArticle.
+Result: pass
+Unprompted: StartPending and LogUntrackedBury build the victim phrase on two paths. BlockRepeatCredit leaves _pending and _lethalActor set until the next revive. A death in a slot never seen alive for three ticks drops with no log.

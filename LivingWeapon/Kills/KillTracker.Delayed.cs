@@ -98,13 +98,14 @@ internal sealed partial class KillTracker
     /// so the ?? chain in ScanCorpses falls through to the normal path.</summary>
     private List<int>? ConsumeDelayedCulprit()
     {
-        if (_delayedArmedTicks > 0 && _delayedActor != null && _delayedActor.Count > 0)
-        {
-            _delayedArmedTicks = 0;
-            return _delayedActor;
-        }
-        return null;
+        var armed = PeekDelayedCulprit();
+        if (armed != null) _delayedArmedTicks = 0;
+        return armed;
     }
+
+    /// <summary>The armed delayed actor without using it up, so a tick that pays nobody leaves it armed.</summary>
+    private List<int>? PeekDelayedCulprit()
+        => _delayedArmedTicks > 0 && _delayedActor != null && _delayedActor.Count > 0 ? _delayedActor : null;
 
     /// <summary>Reset delayed-action state. Called from ResetBattle.</summary>
     private void ResetDelayed()

@@ -176,6 +176,28 @@ public class VictimClassTests
     public void WithArticle_picks_a_or_an_by_leading_vowel(string noun, string expected)
         => Assert.Equal(expected, VictimClass.WithArticle(noun));
 
+    // ---- FellNoun ----
+
+    [Theory]
+    [InlineData(false, (byte)80, false, "enemy")]
+    [InlineData(true, (byte)80, true, "undead foe")]
+    [InlineData(true, (byte)200, false, "enemy")]
+    public void FellNoun_is_FellPhrase_without_its_article(bool has, byte job, bool undead, string expected)
+        => Assert.Equal(expected, VictimClass.FellNoun(has, job, undead));
+
+    [Fact]
+    public void FellNoun_matches_FellPhrase_for_every_job_byte()
+    {
+        for (int job = 0; job <= 255; job++)
+            foreach (bool has in new[] { false, true })
+                foreach (bool undead in new[] { false, true })
+                {
+                    string phrase = VictimClass.FellPhrase(has, (byte)job, undead);
+                    string noun = VictimClass.FellNoun(has, (byte)job, undead);
+                    Assert.True(phrase == "a " + noun || phrase == "an " + noun, $"job {job} has {has} undead {undead}: '{phrase}' vs '{noun}'");
+                }
+    }
+
     // ---- MaxArchetypes headroom (moved here from Tuning per the plan's own test, but the
     // constant lives in Tuning.cs -- see TuningTests for the count check) ----
 }

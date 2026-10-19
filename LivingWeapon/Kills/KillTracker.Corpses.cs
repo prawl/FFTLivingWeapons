@@ -68,8 +68,9 @@ internal sealed partial class KillTracker
     // After its turn ends, and before the next armed unit is picked up, the killer is unknown and
     // the death waits.
     //
-    // A summon that lands a turn after it was cast is stamped from KillTracker.Delayed.cs ahead of
-    // everything else, so an armed ally acting in between cannot take the summon's kill.
+    // A summon that lands a turn after it was cast is stamped in StampDeadEdge ahead of everything
+    // else while KillTracker.Delayed.cs keeps its window armed, so an armed ally acting in between
+    // cannot take the summon's kill.
     private readonly UntrackedReason[] _lethalUntracked = new UntrackedReason[Offsets.BandSlots];
 
     // Hp from the last tick this slot read dead. Alive ticks leave it alone, because the 3 tick
@@ -454,8 +455,7 @@ internal sealed partial class KillTracker
     private void LogUntrackedBury(int s)
     {
         var vs = _victimAtEdge[s];
-        string fellPhrase = VictimClass.FellPhrase(vs.Has, vs.Job, vs.Undead);
-        string fallenNoun = fellPhrase.StartsWith("an ") ? fellPhrase.Substring(3) : fellPhrase.Substring(2);
+        string fallenNoun = VictimClass.FellNoun(vs.Has, vs.Job, vs.Undead);
         ModLogger.Event(LogVerb.Kill, $"The fallen {fallenNoun} at battle slot {s} was slain by a player carrying no Living Weapon; the kill is deliberately left uncredited (actor resolved via {ResolveSourcePhrase(_lethalUntracked[s])}).");
         _recorder?.Invoke("kill", $"no-credit slot={s} reason=untracked-weapon via={_lethalUntracked[s]}");
     }
@@ -467,11 +467,8 @@ internal sealed partial class KillTracker
         // killer verdict, because its committer struck the blow whoever is acting now.
         //
         // Peek at the charge rather than claim it, since this tick may still pay nobody while the
-        // restart latch holds the kill. It is claimed only on the tick that pays. This peek repeats
-        // the check inside ConsumeDelayedCulprit (KillTracker.Delayed.cs), so changing one means
-        // changing the other.
-        bool delayedPeek = _delayedArmedTicks > 0 && _delayedActor != null && _delayedActor.Count > 0;
-        List<int>? delayedCandidate = delayedPeek ? _delayedActor : null;
+        // restart latch holds the kill. It is claimed only on the tick that pays.
+        List<int>? delayedCandidate = PeekDelayedCulprit();
         if (delayedCandidate == null && _lethalUntracked[s] != UntrackedReason.None)
         {
             // The killer had no Living Weapon, so nobody is paid. A summoner, dancer or item user's
@@ -491,28 +488,25 @@ internal sealed partial class KillTracker
             List<int>? delayed = delayedCandidate != null ? ConsumeDelayedCulprit() : null;
             LogWhyNotLiveLatch(s, delayed, culprit);
             bool viaFallback = delayed == null && (_lethalActor[s] != null ? _lethalViaFallback[s] : _latchViaFallback);
-            bool c = CreditKill(s, slot.Gx, slot.Gy, culprit, viaFallback, delayedOrCharged: delayed != null, identity: slot.Id);
+            bool paid = CreditKill(s, slot.Gx, slot.Gy, culprit, viaFallback, delayedOrCharged: delayed != null, identity: slot.Id);
             _deadCredited[s] = true;
             // Mark the unit dead on the record only if the kill paid. A refused payment (nobody on
             // the field holds that weapon) leaves it marked alive, so a later armed kill of the same
             // unit can still pay. The other unpaid paths settled the death for good.
-            if (c) { _identityAlive[slot.Id] = false; changed = true; }
+            if (paid) { _identityAlive[slot.Id] = false; changed = true; }
         }
         else if (!_pending[s])
         {
             StartPending(s, in slot);
         }
-        else if (PendingTimedOut(s))
+        else
         {
-            ExpirePendingUncredited(s, in slot);
+            // The tick count stops once the turn limit trips, so the log can show fewer ticks than PendingTtl.
+            bool turnsUp = _actedFalls - _pendingFalls[s] >= ExpireFalls;
+            if (!turnsUp) _pendingAge[s]++;
+            if (turnsUp || _pendingAge[s] > PendingTtl) ExpirePendingUncredited(s, in slot);
         }
     }
-
-    /// <summary>Give up once too many turns have ended since the death, or too many ticks passed.
-    /// Every call adds a tick to the wait, so calling it twice in one tick doubles the wait. The tick
-    /// count stops when the turn limit trips first, so the log can show fewer ticks than PendingTtl.</summary>
-    private bool PendingTimedOut(int s) =>
-        _actedFalls - _pendingFalls[s] >= ExpireFalls || ++_pendingAge[s] > PendingTtl;
 
     /// <summary>Explain the pick when the paid unit is not simply the one acting now. Says nothing
     /// for an ordinary payment.</summary>
