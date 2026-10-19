@@ -225,6 +225,7 @@ public class EngineTests
                 ("extended-caps", TickGates.Always, 30, false, Array.Empty<string>(), Part.ExtendedInventory),
                 ("extended-bag", TickGates.Always, 30, false, Array.Empty<string>(), Part.ExtendedInventory),
                 ("extended-shops", TickGates.Always, 30, false, Array.Empty<string>(), Part.ExtendedInventory),
+                ("extended-rewind", TickGates.Always, 1, false, Array.Empty<string>(), Part.ExtendedInventory),
                 ("kill-poll", TickGates.KillCounting, 1, false, Array.Empty<string>(), Part.KillCounting),
                 ("turn-poll", TickGates.KillCounting, 1, false, Array.Empty<string>(), Part.KillCounting),
                 ("field-signatures", TickGates.InBattle, 1, false, new[] { "kill-poll", "turn-poll" }, Part.BandSignatures),

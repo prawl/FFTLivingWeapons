@@ -36,6 +36,9 @@ internal sealed partial class ExtendedInventory
     private ListBuilderHook? _listBuilderHook;
     private InventoryResetHook? _resetHook;
     private SaveEdgeHooks? _saveHooks;
+    private RewindRestoreHook? _rewindHook;
+    private RewindRecomputeStep? _rewindStep;
+    private long _rewindTick;
     /// <summary>the save/load edge core the hooks feed and the tick drains. Tests drive it directly.</summary>
     public SaveEdgeTracker Tracker { get; } = new();
 
@@ -106,7 +109,7 @@ internal sealed partial class ExtendedInventory
         _door.Set(DoorReading.Open());
         ModLogger.Event(LogVerb.Startup,
             $"Extended inventory armed: {Items.Count} new item(s) [{string.Join(", ", Items.Select(i => $"{i.Name} (id {i.Id})"))}], "
-            + $"{_patches.AppliedCount} cap patches, {_accessorHooks.Count} accessor redirects, swing-id fallback armed, 5 hooks (menu list builder hooked), shop table mirrored, "
+            + $"{_patches.AppliedCount} cap patches, {_accessorHooks.Count} accessor redirects, swing-id fallback armed, 6 hooks (menu list builder hooked), shop table mirrored, "
             + $"item count lists relocated to 0x{_relocation.PageAddr:X}; "
             + $"menu order charts relocated to 0x{_templates.PageAddr:X}"
             + (_pending.Count == 0 ? "." : $"; {_pending.Count} damage cap(s) wait for the first save to load."));

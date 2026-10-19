@@ -30,6 +30,7 @@ internal sealed partial class SaveEdgeHooks
             {
                 _tracker.OnSerialized(hdr, ReadCounts());
                 if (!_canarySave) { _canarySave = true; SafeLog("The save-edge hook is confirmed working; the game's first save this session was intercepted."); }
+                _onSerialized?.Invoke();
             }
         }
         catch (Exception) { /* a managed fault here must never reach the game */ }
@@ -57,16 +58,7 @@ internal sealed partial class SaveEdgeHooks
         {
             var hdr = ReadHeader();
             if (hdr == null) return;   // the pointer did not resolve; otherwise every call takes an edge, which is sound because both routines overwrite the bag from the struct
-            // Adopt the old chart blocks the routine below just restored from the save struct back
-            // onto the relocated page (TemplateSync.Adopt) before the bag/template replay, so the seat lands on a fresh page.
-            if (_templates != null) TemplateSync.Adopt(_mem, _templates);
-            // Repair first, publish the edge second. The routine below has just overwritten the bag and
-            // restored both order templates, so counts and seats belong here before a menu can draw. This order
-            // also keeps the tick from taking the edge before the resolution it re-uses exists (the tracker's lock is the fence).
-            // The replay has its own try so a fault cannot suppress the edge published after it.
-            try { _replayOnLoad?.Invoke(SaveEdgeTracker.KeyFromHeader(hdr)); }
-            catch (Exception) { /* a replay fault must not cost the edge below */ }
-            _tracker.OnApplied(hdr);
+            AfterApplyCore(hdr);
             if (second)
             {
                 if (_canaryLoadB) return;
@@ -83,8 +75,49 @@ internal sealed partial class SaveEdgeHooks
         catch (Exception) { /* never reaches the game */ }
     }
 
-    private static void SafeLog(string line)
+    /// <summary>The repair and the edge, shared by both load routines and the flee rewind.</summary>
+    private void AfterApplyCore(byte[] hdr)
     {
-        try { ModLogger.Event(LogVerb.Save, line); } catch (Exception) { }
+        // Adopt the old chart blocks the routine just restored from the save struct back onto the relocated page
+        // before the bag and template replay, so the seat lands on a fresh page.
+        if (_templates != null) TemplateSync.Adopt(_mem, _templates);
+        // Repair first, publish the edge second, so counts and seats are right before a menu can draw.
+        // The replay has its own try so a fault cannot suppress the edge published after it.
+        try { _replayOnLoad?.Invoke(SaveEdgeTracker.KeyFromHeader(hdr)); }
+        catch (Exception) { /* a replay fault must not cost the edge below */ }
+        _tracker.OnApplied(hdr);
+        _onApplied?.Invoke();
+    }
+
+    /// <summary>A flee or a Retry puts the pre battle snapshot back without entering either load routine. This takes the
+    /// same edge from the snapshot's header and says so every time, since it is rare and the owner reads it.</summary>
+    internal void AfterRewind(byte[] header)
+    {
+        try
+        {
+            string key = SaveEdgeTracker.KeyFromHeader(header);
+            // The old chart blocks hold the snapshot time charts, so adopting them is right on both branches.
+            if (_templates != null) TemplateSync.Adopt(_mem, _templates);
+            if (!_hasRecord(key))
+            {
+                // A replay on an unknown key would fall to the first copy seed and zero the counts.
+                SafeLog($"The battle was rewound to its pre battle save (key {key}) but this mod holds no bag counts for that save; the new weapons' counts will be re derived from the last total this mod captured.", warn: true);
+                Flight.Record("rewind-restore", $"key={key} record=missing");
+                return;
+            }
+            bool replayed = true;
+            try { _replayOnLoad?.Invoke(key); }
+            catch (Exception) { replayed = false; /* a replay fault must not cost the edge below */ }
+            _tracker.OnApplied(header);
+            SafeLog($"The battle was rewound to its pre battle save (key {key}); the new weapons' bag counts were put back with it.");
+            Flight.Record("rewind-restore", $"key={key} record=found");
+            if (replayed) _onRewound?.Invoke();
+        }
+        catch (Exception) { /* never reaches the game */ }
+    }
+
+    private static void SafeLog(string line, bool warn = false)
+    {
+        try { if (warn) ModLogger.Warn(LogVerb.Save, line); else ModLogger.Event(LogVerb.Save, line); } catch (Exception) { }
     }
 }

@@ -4,8 +4,8 @@ using Reloaded.Hooks.Definitions;
 namespace LivingWeapon;
 
 /// <summary>
-/// The detour half of the arm. The five Reloaded.Hooks detours (category getter, menu-order rebuild, list-builder,
-/// inventory reset, save edges) in install order, plus the reverse-order rollback. Split from ExtendedInventory.cs in
+/// The detour half of the arm. The six Reloaded.Hooks detours (category getter, menu-order rebuild, list-builder,
+/// inventory reset, save edges, battle rewinds) in install order, plus the reverse-order rollback. Split from ExtendedInventory.cs in
 /// 2026-08-30. `Install` lives in ExtendedInventory.Arm.cs, tick logic in .Tick.cs.
 /// RollBack restores the template relocation first, then the list relocation.
 /// </summary>
@@ -35,13 +35,27 @@ internal sealed partial class ExtendedInventory
         if (why != null) return why;
         // Save edges (record counts per save, replay per save); a refusal rolls the whole arm back.
         // Also given the template relocation so serialize can project the page into the old chart blocks and load can adopt them back (TemplateSync).
-        _saveHooks = new SaveEdgeHooks(_patcher, Tracker, Items.OrderBy(i => i.Id).Select(i => i.Id).ToList(), ReplayOnLoad, BagCountBase, _templates);
-        return _saveHooks.Install(hooks);
+        var ids = Items.OrderBy(i => i.Id).Select(i => i.Id).ToList();
+        var totals = new RewindTotals(_patcher, ids, BagCountBase, nameOf: id => Items.First(i => i.Id == id).Name);
+        _saveHooks = new SaveEdgeHooks(_patcher, Tracker, ids, ReplayOnLoad, BagCountBase, _templates,
+            key => _sidecar.TryGetSave(key, out _), () => totals.Capture("save"), () => totals.Capture("rewind"), () => totals.Capture("load"));
+        why = _saveHooks.Install(hooks);
+        if (why != null) return why;
+        // A fled battle and a Retry rewind the bag from a snapshot that stops at id 260, so the extended counts are put back here.
+        var rewind = _rewindHook = new RewindRestoreHook(_patcher, _saveHooks.AfterRewind, totals);
+        why = rewind.Install(hooks);
+        if (why != null) return why;
+        // The game re derives its own counts from the roster on the retry roads, so each restore edge queues a recompute. The inventory reset is no trigger, it also runs at loads and after real battles.
+        _rewindStep = new RewindRecomputeStep(totals, null,
+            ("checkpoint restore", () => rewind.CheckpointRestores), ("flee rewind", () => rewind.RewindsHandedOn));
+        return null;
     }
 
     /// <summary>Undo in reverse install order. Stub pages and the catalog buffer are leaked (a game thread may be inside them); every code byte is restored.</summary>
     private void RollBack()
     {
+        _rewindStep = null;
+        _rewindHook?.Release(); _rewindHook = null;
         _saveHooks?.Release(); _saveHooks = null;
         _resetHook?.Release(); _resetHook = null;
         _listBuilderHook?.Release(); _listBuilderHook = null;

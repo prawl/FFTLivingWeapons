@@ -340,6 +340,9 @@ internal sealed class Engine
             // Keep the shop-table mirror's vanilla half following the game's table (512-byte compare).
             new TickPhase("extended-shops", TickGates.Always, 30, false, Array.Empty<string>(),
                 _ => e!._extended.StepShopSync(), Part.ExtendedInventory),
+            // A rewind restores the roster and the vanilla bag from other moments than our write, so the new weapons' counts are re derived a few ticks later.
+            new TickPhase("extended-rewind", TickGates.Always, 1, false, Array.Empty<string>(),
+                _ => e!._extended.StepRewindRecompute(), Part.ExtendedInventory),
 
             // Every tick so a fast-forward death's brief hp==0 window is not missed.
             new TickPhase("kill-poll", TickGates.KillCounting, 1, false, Array.Empty<string>(),

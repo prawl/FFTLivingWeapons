@@ -578,6 +578,14 @@ internal static class Offsets
     /// <summary>The static image buffer the pointer above normally holds; diagnostic only, the hooks
     /// follow the pointer.</summary>
     public static long SaveStructStatic => ImageBase.At(0x142C81C80L);
+    /// <summary>The flee restore routine. It copies the pre battle snapshot back over the live roster and bag.</summary>
+    public static long FnSnapshotRestore => ImageBase.At(0x1402CF768L);
+    /// <summary>The mid battle checkpoint copy. Mode 0 saves live state into a struct, mode 1 puts it back.</summary>
+    public static long FnCheckpointCopy => ImageBase.At(0x140279BF4L);
+    /// <summary>The pre battle copy of the save struct image, 0x9CE4 bytes, so its key header sits at the usual offset.</summary>
+    public static long SnapshotStructCopy => ImageBase.At(0x142E80450L);
+    /// <summary>Where the bag counts sit inside the checkpoint struct.</summary>
+    public const int CheckpointBagOff = 0x7E90;
 
     // --- The two weapon menu order templates (2026-08-30, disassembled from the
     // 1.5.2 exe on disk; re-derive with tools/probes/lw351_order_template_probe.py --disk). They set

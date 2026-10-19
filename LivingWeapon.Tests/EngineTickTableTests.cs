@@ -76,6 +76,7 @@ public class EngineTickTableTests
             "extended-caps",    // Always gate: LW-346, two copy-protected code bytes widened once their pages read vanilla (a loaded save); never battle memory; no-op until the boot arm armed
             "extended-bag",     // Always gate: LW-348, reads the bag count bytes of the extended ids and writes the sidecar FILE on change; the bag changes in shops and in battle alike
             "extended-shops",   // Always gate: LW-354, a 512-byte compare of the game's shop table against our mirror page and a copy on change; never battle memory
+            "extended-rewind",  // Always gate: LW-452, polls two hook counters and rewrites the extended bag bytes after a rewind; reads roster hands, never battle memory; no-op until the hooks exist
         };
 
         var rows = Engine.BuildPhases(null);

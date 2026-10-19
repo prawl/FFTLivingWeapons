@@ -66,6 +66,10 @@ signature needs none.
   modloader (a 261+ row under `FFTIVC/tables` is silently dropped by the loader).
 - **Enemies cannot carry an extended id yet** (the encounter table stores item ids as one byte;
   giving enemies new items is a separate planned feature).
+- **Fleeing or retrying a battle keeps the new weapons' counts**: both rewinds put the game's own
+  pre battle copy back, which only knows the base game's items, so the mod hooks the flee restore
+  and the retry checkpoint copy and re derives the new weapons' bag counts from what the party
+  holds: the total owned (bag plus hands) minus the hands the roster has after the rewind.
 - **Uninstalling is clean loss, not a crash**: a save holding a new item loads fine without the
   mod; the hand is emptied and the item is gone, and it comes back when the mod returns, with its
   saved bag count if the player did not save while the mod was off (a save written without the

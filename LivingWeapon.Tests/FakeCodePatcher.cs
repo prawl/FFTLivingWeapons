@@ -17,6 +17,7 @@ internal sealed class FakeCodePatcher : ICodePatcher
     public readonly Dictionary<long, byte> Bytes = new();
     public readonly List<(long Addr, byte[] Data)> Writes = new();
     public readonly HashSet<long> RefuseWritesAt = new();
+    public readonly HashSet<long> RefuseReadsAt = new();
     public bool ZeroFillUnseeded;
 
     public void Seed(long addr, params byte[] data)
@@ -29,6 +30,7 @@ internal sealed class FakeCodePatcher : ICodePatcher
         bytes = new byte[count];
         for (int i = 0; i < count; i++)
         {
+            if (RefuseReadsAt.Contains(address + i)) { bytes = Array.Empty<byte>(); return false; }
             if (Bytes.TryGetValue(address + i, out var b)) bytes[i] = b;
             else if (ZeroFillUnseeded) bytes[i] = 0;
             else { bytes = Array.Empty<byte>(); return false; }

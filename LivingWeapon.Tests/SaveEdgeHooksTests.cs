@@ -157,4 +157,112 @@ public class SaveEdgeHooksTests
         Assert.True(tracker.TryTakePendingLoad(out var key));
         Assert.Equal(SaveEdgeTracker.KeyFromHeader(SaveEdgeTrackerTests.Header(2482)), key);
     }
+
+    /// <summary>LW-452: a flee or a Retry puts the pre battle snapshot back without entering either load
+    /// routine, so the rewind hook hands the snapshot header here and it takes the same load edge.</summary>
+    [Fact]
+    public void AfterRewind_publishes_a_load_edge_for_the_snapshot_key_and_logs_the_rewind_line()
+    {
+        var header = SaveEdgeTrackerTests.Header(3141);
+        string? replayed = null;
+        var tracker = new SaveEdgeTracker();
+        var hooks = new SaveEdgeHooks(new FakeCodePatcher(), tracker, new List<int>(), replayOnLoad: k => replayed = k);
+        using var cap = LogCapture.Start();
+
+        hooks.AfterRewind(header);
+
+        string key = SaveEdgeTracker.KeyFromHeader(header);
+        Assert.Equal(key, replayed);
+        Assert.True(tracker.TryTakePendingLoad(out var taken));
+        Assert.Equal(key, taken);
+        Assert.Single(cap.File, l => l.Contains("rewound to its pre battle save") && l.Contains("put back with it"));
+    }
+
+    [Fact]
+    public void AfterRewind_still_publishes_the_edge_when_the_replay_throws()
+    {
+        var header = SaveEdgeTrackerTests.Header(2718);
+        var tracker = new SaveEdgeTracker();
+        var hooks = new SaveEdgeHooks(new FakeCodePatcher(), tracker, new List<int>(),
+            replayOnLoad: _ => throw new InvalidOperationException("boom"));
+
+        hooks.AfterRewind(header);
+
+        Assert.True(tracker.TryTakePendingLoad(out var key));
+        Assert.Equal(SaveEdgeTracker.KeyFromHeader(header), key);
+    }
+
+    [Fact]
+    public void SerializeCore_calls_the_on_serialized_hook_after_the_header_is_read()
+    {
+        var f = new FakeCodePatcher();
+        f.Seed(Offsets.SaveStructPtr, BitConverter.GetBytes(StructAddr));
+        f.Seed(StructAddr + Offsets.SaveHeaderKeyOff, SaveEdgeTrackerTests.Header(2024));
+        var tracker = new SaveEdgeTracker();
+        int calls = 0;
+        bool pendingWhenCalled = false;
+        var hooks = new SaveEdgeHooks(f, tracker, new List<int>(), onSerialized: () => { calls++; pendingWhenCalled = tracker.TryTakePendingSave(out _, out _); });
+
+        hooks.SerializeCore(() => (nint)1);
+
+        Assert.Equal(1, calls);
+        Assert.True(pendingWhenCalled);
+
+        var unreadable = new SaveEdgeHooks(new FakeCodePatcher(), new SaveEdgeTracker(), new List<int>(), onSerialized: () => calls++);
+        unreadable.SerializeCore(() => (nint)1);
+        Assert.Equal(1, calls);   // no header, no call
+    }
+
+    [Fact]
+    public void AfterApply_calls_on_applied_after_the_replay()
+    {
+        var f = new FakeCodePatcher();
+        f.Seed(Offsets.SaveStructPtr, BitConverter.GetBytes(StructAddr));
+        f.Seed(StructAddr + Offsets.SaveHeaderKeyOff, SaveEdgeTrackerTests.Header(2025));
+        var order = new List<string>();
+        var hooks = new SaveEdgeHooks(f, new SaveEdgeTracker(), new List<int>(), replayOnLoad: _ => order.Add("replay"), onApplied: () => order.Add("applied"));
+        hooks.AfterApply(second: false);
+        Assert.Equal(new[] { "replay", "applied" }, order);
+
+        var throwing = new SaveEdgeHooks(f, new SaveEdgeTracker(), new List<int>(), replayOnLoad: _ => throw new InvalidOperationException("boom"), onApplied: () => order.Add("again"));
+        throwing.AfterApply(second: false);
+        Assert.Equal("again", order[^1]);   // a failed replay still captures, the edge is published regardless
+    }
+
+    [Fact]
+    public void AfterRewind_calls_on_rewound_only_after_a_successful_replay()
+    {
+        int rewound = 0;
+        var found = new SaveEdgeHooks(new FakeCodePatcher(), new SaveEdgeTracker(), new List<int>(), replayOnLoad: _ => { },
+            onRewound: () => rewound++);
+        found.AfterRewind(SaveEdgeTrackerTests.Header(77));
+        Assert.Equal(1, rewound);
+
+        var missing = new SaveEdgeHooks(new FakeCodePatcher(), new SaveEdgeTracker(), new List<int>(), replayOnLoad: _ => { },
+            hasRecord: _ => false, onRewound: () => rewound++);
+        missing.AfterRewind(SaveEdgeTrackerTests.Header(78));
+        Assert.Equal(1, rewound);   // the missing record branch never calls it
+
+        var throwing = new SaveEdgeHooks(new FakeCodePatcher(), new SaveEdgeTracker(), new List<int>(),
+            replayOnLoad: _ => throw new InvalidOperationException("boom"), onRewound: () => rewound++);
+        throwing.AfterRewind(SaveEdgeTrackerTests.Header(79));
+        Assert.Equal(1, rewound);   // a failed replay is no restore to capture
+    }
+
+    [Fact]
+    public void AfterRewind_with_no_record_for_the_key_replays_nothing_and_publishes_no_edge()
+    {
+        var header = SaveEdgeTrackerTests.Header(1618);
+        int replays = 0;
+        var tracker = new SaveEdgeTracker();
+        var hooks = new SaveEdgeHooks(new FakeCodePatcher(), tracker, new List<int>(), replayOnLoad: _ => replays++,
+            hasRecord: _ => false);
+        using var cap = LogCapture.Start();
+
+        hooks.AfterRewind(header);
+
+        Assert.Equal(0, replays);
+        Assert.False(tracker.TryTakePendingLoad(out _));
+        Assert.Single(cap.File, l => l.Contains("holds no bag counts for that save"));
+    }
 }

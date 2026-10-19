@@ -73,6 +73,13 @@ internal sealed partial class ExtendedInventory
             ModLogger.Debug(LogVerb.Engine, "Extended inventory: the shop table mirror was refreshed from the game's own table.");
     }
 
+    /// <summary>Every tick. Re derives the new weapons' bag counts from what the party holds after a rewind (RewindRecomputeStep).</summary>
+    public void StepRewindRecompute()
+    {
+        if (!Armed) return;
+        _rewindStep?.Step(++_rewindTick);
+    }
+
     /// <summary>load-edge repair, run inside the game's load detour (SaveEdgeHooks.AfterApply)
     /// on the game's thread. The load routine has just overwritten the bag and restored both menu order
     /// templates from the save, so this puts back the extended ids' bag bytes and their template slots.

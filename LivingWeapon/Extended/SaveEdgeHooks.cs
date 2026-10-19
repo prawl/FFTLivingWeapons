@@ -52,6 +52,8 @@ internal sealed partial class SaveEdgeHooks
     private readonly IReadOnlyList<int> _extendedIds;
     private readonly Action<string>? _replayOnLoad;   // the bag replay, by save key
     private readonly long _bagBase;   // ExtendedInventory.BagCountBase, set at construction
+    private readonly Func<string, bool> _hasRecord;
+    private readonly Action? _onSerialized, _onRewound, _onApplied;   // total owned captures, null for callers that keep none
     private readonly TemplateRelocation? _templates;   // null = no template sync (every pre-existing caller)
     private IHook<EdgeFn>? _serialize, _apply, _applyB;
     private EdgeFn? _k1, _k2, _k3;   // GC anchors. The native thunks must outlive us
@@ -64,7 +66,8 @@ internal sealed partial class SaveEdgeHooks
     /// <param name="templates">for <see cref="TemplateSync"/> project/adopt. Null makes
     /// both edges no-ops.</param>
     public SaveEdgeHooks(ICodePatcher mem, SaveEdgeTracker tracker, IReadOnlyList<int> extendedIds,
-        Action<string>? replayOnLoad = null, long bagBase = 0, TemplateRelocation? templates = null)
+        Action<string>? replayOnLoad = null, long bagBase = 0, TemplateRelocation? templates = null,
+        Func<string, bool>? hasRecord = null, Action? onSerialized = null, Action? onRewound = null, Action? onApplied = null)
     {
         _mem = mem;
         _tracker = tracker;
@@ -72,6 +75,10 @@ internal sealed partial class SaveEdgeHooks
         _replayOnLoad = replayOnLoad;
         _bagBase = bagBase == 0 ? Offsets.BagCountArray : bagBase;   // 0 = the vanilla block (a rebased pin cannot be a default value)
         _templates = templates;
+        _hasRecord = hasRecord ?? (_ => true);
+        _onSerialized = onSerialized;
+        _onRewound = onRewound;
+        _onApplied = onApplied;
     }
 
     /// <summary>Pure. Install only when the guarded read succeeded and the prologue matches.</summary>
