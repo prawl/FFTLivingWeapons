@@ -61,3 +61,37 @@ Expected: The old list can still carry ids sold or equipped away since, and addi
 Reader: Cannot answer from the packet. Saw the filter and the EquippedBadge name but would not infer the badge meaning or the old empty row bug.
 Result: bad question (the why lives only in comments, so a stripped packet cannot carry it; a name like StillOwned for the filter would carry half of it)
 Unprompted: The first list read is outside any try (safe only by the ICodePatcher contract). _refusalWarned is a plain bool, so warn once is racy under concurrent rebuilds. Seated counts planned ids, and the repair path returns before counting. Owned is called on any dropped id though only extended ids are seated. Two empty catches leave no trace when seating or re-append throws.
+
+## Cold read 2026-10-19 06:57, LW-000, base 207ee4ba
+Run cap 2 (355 changed production lines). Run 1 of 2.
+Files: LivingWeapon/Kills/KillTracker.Corpses.cs
+Q1 (failure path): A seat that was seen alive now reads dead, but its level has changed since it was first seen alive. What does ScanCorpses do for that seat this tick, and what state does it save?
+Expected: ScanDeadPath returns at the slot id guard. Only _prevHp is saved (done before the dead path). No streak, snapshot or credit is touched, and the reset waits for the alive side.
+Reader: Same. Quoted the guard and named _prevHp as the only saved state.
+Result: pass
+Q2 (ordering): A credited enemy's seat reads alive again with different brave. What runs before the credit records are cleared, and why that order?
+Expected: PresentRevive is asked first, then UncreditKills if it says UncreditNow, then the wipe. Clearing first would lose _creditedWeapons so a Retry kill stays paid.
+Reader: Order right. The why was inferred from the arguments, and it could not say what a Retry does to the kill.
+Result: pass
+Q3 (free): In ScanDeadPath, what do _identityAlive present with false, present with true, and missing each cause?
+Expected: False blocks the repeat credit and marks the seat settled. True proceeds to ResolveCredit. Missing is an orphan edge handled by HandleOrphanAliveEdge, which writes true first, then buries, credits or passes on.
+Reader: Same, with all three branches traced.
+Result: pass
+Unprompted: The silent identity mismatch return in ScanDeadPath, and a claim that ResetBattleCorpses skips the pending arrays. That claim is wrong, since KillTracker.cs:135 clears them.
+
+## Cold read 2026-10-19 07:02, LW-000, base 207ee4ba
+Run cap 2 (355 changed production lines). Run 2 of 2.
+Files: LivingWeapon/Kills/KillTracker.Corpses.cs
+Q1 (failure path): CreditKill returns false (killer holds no Living Weapon). What state do _deadCredited, _identityAlive and changed end in, and can a later matching enemy pay out?
+Expected: _deadCredited true, changed unchanged, _identityAlive left true, so a later armed kill of a matching enemy still counts.
+Reader: Same. Traced all four states from the call site and said the repeat credit block does not fire. Could not say why CreditKill refused, since its body is outside the packet.
+Result: pass
+Q2 (ordering): A seat reads dead on ticks 1, 2, 3. Which tick reads the turn and stamps the killer, which first pays out, why no repeat stamp?
+Expected: Tick 1 only, because the turn can change after the death. Payout first on tick 3 through OracleGate, identity check and ResolveCredit.
+Reader: Same on ticks. The why was inferred from the guard, and it said the packet does not state it.
+Result: pass
+Q3 (free): Why is _prevHp written only on dead looking ticks?
+Expected: A retry rewinds a dead unit, and the 0 to positive jump is the fingerprint. Writing on alive ticks would overwrite the 0 during the three tick alive wait. A status death keeps hp above 0.
+Reader: Got the mechanism (alive ticks never write it, so the comparison sees the last dead value). Missed the retry rewind reason; said the intent is not in the packet.
+Result: miss, fix comment (the why already sits in the comment above _prevHp, which a stripped packet cannot carry; no name or helper would hold a retry fact)
+Unprompted: ScanAlivePath clears credit state in two near identical blocks. ResolveCredit sets _deadCredited true even when CreditKill refuses, silently. A failed Band.IsValid leaves _seenAlive and _prevHp alone. The expiry log reads _pendingAge after a short circuited increment. ResetBattleCorpses does not clear the pending arrays here (they are cleared in KillTracker.cs).
