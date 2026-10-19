@@ -19,6 +19,7 @@ internal sealed partial class OrderRebuildHook
     private readonly Func<TemplateSeat.Region[]>? _regions;   // ExtendedInventory.TemplateRegions, set at construction
     private long _seated;
     private long _seatRefusals;
+    // The first refusal warns and later ones go to Debug, so a full template cannot flood the log.
     private bool _refusalWarned;
 
     /// <summary>Ids seated into a template ahead of the game's rebuild, cumulative.</summary>
@@ -54,8 +55,9 @@ internal sealed partial class OrderRebuildHook
         bool known = false;
         foreach (var r in regions)
             if (r.Addr == (long)table) { region = r; known = true; break; }
+        // The rebuild runs for every menu list and only the two weapon templates are ours to touch.
         if (!known) return;
-        // Round 8c, no early return on an empty owned list since Plan still repairs a doubled or marker-less template.
+        // Keep going with nothing owned, because a doubled id or a lost end marker still needs fixing.
         var owned = OwnedExtendedIds();
         if (!_mem.TryRead(region.Addr, region.CapacityWords * 2, out var bytes)) return;
         // Ids at or past the armed range are stale and get dropped by the repair.

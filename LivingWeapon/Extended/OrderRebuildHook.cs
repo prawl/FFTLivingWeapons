@@ -32,6 +32,7 @@ internal sealed partial class OrderRebuildHook
     /// read is guarded and <see cref="ParseList"/> stops at the terminator (null if none).</summary>
     public const int MaxWords = 260;
     public const ushort Terminator = 0xFFFF;
+    // The low ten bits of a word are the item id and the bits above are badges.
     public const int IdMask = 0x3FF;
     /// <summary>Bit 14 of a list word. The E badge, set while every copy is worn. Found
     /// 2026-08-30, all-equipped designs read bag 0 but are owned, so re-append honors the badge.</summary>
@@ -96,6 +97,7 @@ internal sealed partial class OrderRebuildHook
     /// A failed read on either side passes through.</summary>
     internal int Process(nint table, nint list, RebuildFn original)
     {
+        // Two tries at one job. Slip the new items into the game's order list so it keeps them itself, then tack on anything it still dropped.
         try { SeatOwnedInto(table); }   // Owned ids go into the template first
         catch (Exception) { /* the game's own rebuild still runs on whatever the template holds */ }
         var before = ReadListOrNull(list);

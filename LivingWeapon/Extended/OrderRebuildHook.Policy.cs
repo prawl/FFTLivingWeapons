@@ -32,6 +32,7 @@ internal sealed partial class OrderRebuildHook
         foreach (var w in input)
         {
             int id = w & IdMask;
+            // A table can list one id twice, so each id comes back at most once.
             if (present.Contains(id) || !seen.Add(id)) continue;
             dropped.Add(w);
         }
@@ -47,6 +48,7 @@ internal sealed partial class OrderRebuildHook
             tail[i * 2] = (byte)(dropped[i] & 0xFF);
             tail[i * 2 + 1] = (byte)(dropped[i] >> 8);
         }
+        // The game reads until the FFFF end marker, so the marker moves to sit after the new tail.
         tail[dropped.Length * 2] = (byte)(Terminator & 0xFF);
         tail[dropped.Length * 2 + 1] = (byte)(Terminator >> 8);
         return tail;
