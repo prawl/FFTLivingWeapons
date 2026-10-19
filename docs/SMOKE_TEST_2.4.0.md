@@ -859,7 +859,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   writes every weapon at 3 into the newborn kills.json at the opener's exit and hides the empty
   tally path, and the seed floor sits above the first blood milestone) (covers LW-368 new game
   leg, LW-395 the empty tally leg) **[MAJOR]**
-- [ ] 6.7 **A damaged tally file comes back from its backup, and a foreign paint cache is thrown
+- [x] 6.7 (PASSED 2026-10-19 on dev of d7f7f439, owner live with the staged tally aside: kills.json overwritten with `{ not json` and the sidecar stamp set to 1 with the game closed; the 04:39:40 launch logged exactly one WARN `restored from the backup` and the header read `1815 lifetime kills across 121 weapons (kills.json, backup)`; the DBG `Pool-region sidecar not usable` line fired and warm start seeded 0; the owner read Kills 18 on the Chaos Blade card after battle one; after battle one kills.json was valid at 1818 and the sidecar carried 1784564251 and 66707456 with one region; kills.json.bak was already valid too, not `{ not json`, because every kill saves and three per kill saves rotated the garbage out within the battle, so the one generation prediction below was pessimistic; after battle two both files valid, 1823 and 1822; the two other WARNs are the LW-429 band line, ruled out of scope; scan_logs exit 0 both times) **A damaged tally file comes back from its backup, and a foreign paint cache is thrown
   away (LW-405 as it stands).** A torn write on a crash is the realistic way a tally dies; the
   previous copy must take over with one warning, never a silent restart at zero. Sitting 2 (dev,
   the real file is aside), game closed: confirm `kills.json.bak` exists, overwrite `kills.json`
