@@ -791,7 +791,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   survived). Part B half: `grep -c migratedFrom LivingWeapon/meta.json` reads 7 and the
   TallyMigrationTests ride B1. (prod; a dev build floors every count to 3 and hides the move)
   (covers LW-351 upgrade half) **[BLOCKER]**
-- [ ] 6.3 **Extended bag counts follow their save and survive a cold boot (LW-353, LW-348).** Two
+- [x] 6.3 (PASSED 2026-10-19 on prod of 5052c6ef, owner live: save A loaded Warbrand x5, save B x0, A again x5, each from its own recorded counts; sold one, the 02:35:58 save line recorded x4 and extended_inventory.json in the Reloaded User folder was rewritten the same second with 4 under key pt93; cold boot at 02:37, the load edge line fired once and Continue placed x4 from that key; none of the three failure lines) **Extended bag counts follow their save and survive a cold boot (LW-353, LW-348).** Two
   saves with different Warbrand counts: load A, read, load B, read, load A again; then change a
   count, quit, cold boot, Continue, read; `ls "<save folder>\extended_inventory.json"`. PASS: counts
   follow their slots; the file is present and updated; `The load-edge hook is confirmed working;
