@@ -1369,7 +1369,7 @@ compatibility check 0x140288788; when that returns anything but 1 for a hand slo
 hand is emptied (count returned to the bag via 0x1402847F8) before the new item is written.
 0x140288788: can-equip 0x1402886D0, then `0x1402B8EE8(item, 0)` (weapon type?) and
 `0x1402B8EE8(otherHand & 0x3ff, 0)`, with the weapon-stat thunk 0x1402B8C74 supplying byte +1
-bits (0x08 two-handed, 0x01 dual-wield) for whichever is a weapon; for a shield in hand and a
+bits (0x08 two-handed, 0x01 dual-wield) [correction 2026-10-19: the labels are swapped, byte +1 is the AttackFlags byte and 0x08 is TwoSwords (dual wield) while 0x01 is ForcedTwoHands, proven by the exe rows in data/vanilla_weapon_rows.json, bows 0x15, axes 0x87, swords 0x8E] for whichever is a weapon; for a shield in hand and a
 NON-weapon in the other hand it returns 0 (conflict). 0x1402B8EE8 is a 5-byte jmp thunk
 (-> 0x14FEED4B0), so the existing thunk-path clone hook covers it: marker line
 `cathook 0x1402B8EE8 37` (the near stub remaps ecx only; rdx = dataType survives). Added for
