@@ -644,7 +644,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   second such kill answers the same way; the answer becomes a docs/MECHANICS.md line. FAIL: a kill
   on the wrong weapon, a unit wearing another unit's grant, two AI driven kills answered
   differently. (DEV OK) (covers LW-252) **[MAJOR]**
-- [ ] 5.5 **Retry does not pay twice (LW-233).** Kill one enemy, note the tally, die, Retry, re kill
+- [ ] 5.5 (FAILED 2026-10-19 on dev of d7f7f439, owner live: leg one at 04:41 was caught, Chaos Blade kill 16, retry, the `battle was retried` line, kill 16 again, tally up three for three corpses; leg two at 05:03 PAID TWICE, kill 26 at (5,7), retry at 05:03:53 with no retried line, the same monster at slot 8 re killed as 27, the battle ended at 30 where 29 was right; the flight tape reads `no-open reason=no-qualified-null slot=8` with matching identities, the actor pointer was empty on one poll only across a 390 ms hitch; the Raise control leg passed, slot 11 killed at 28, Phoenix Down, killed again at 30; LW-458 owns the fix, re run both retry legs after it lands; tapes in tools/probes/tapes/lw458_*) **Retry does not pay twice (LW-233).** Kill one enemy, note the tally, die, Retry, re kill
   the same enemy; run that leg twice, once from the battle start retry and once from the checkpoint
   retry when the game offers both; control leg: kill, Raise the corpse, kill again. Keep the
   Kiyomori and any Brave or Faith changing effect off the field for this box. PASS: each retry
