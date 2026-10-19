@@ -17,11 +17,14 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed class RewindRestoreHook
 {
+    // Nobody knows what the game passes these routines, so all four argument slots go straight back untouched.
     [Function(CallingConventions.Microsoft)]
     public delegate nint RewindFn(nint rcx, nint rdx, nint r8, nint r9);
 
+    // The first bytes of each routine work like a fingerprint. If a game patch moves the code they stop matching and the hook stays off instead of landing in the wrong place.
     public static readonly byte[] ExpectedRestorePrologue =
         { 0x48, 0x89, 0x5C, 0x24, 0x08, 0x57, 0x48, 0x83, 0xEC, 0x30, 0xBA, 0x01, 0x00, 0x00, 0x00, 0xE8 };
+    // This tail points rdi at the bag, 0x7E90 bytes into the checkpoint struct.
     internal static readonly byte[] CheckpointLeaRdiBagTail = { 0x48, 0x83, 0xEC, 0x20, 0x48, 0x8D, 0xB9, 0x90, 0x7E, 0x00, 0x00 };
     internal static readonly byte[] StockFourRegisterFrame = SaveEdgeHooks.ApplyBPrologue;
     // The compiler opens many routines with this frame, so only the lea tail that follows marks the checkpoint copy.
@@ -36,6 +39,7 @@ internal sealed class RewindRestoreHook
     private IHook<RewindFn>? _restoreHook, _checkpointHook;
     private RewindFn? _k1, _k2;   // GC anchors, the native thunks must outlive us
     private long _rewindsHandedOn, _unread, _saves, _savesIncomplete, _restores, _unrecorded;
+    // Each warning prints once per launch so one bad read cannot flood the log.
     private bool _warnedUnrecorded, _warnedUnread;
 
     public bool IsActive => _restoreHook?.IsHookEnabled == true && _checkpointHook?.IsHookEnabled == true;
@@ -62,7 +66,9 @@ internal sealed class RewindRestoreHook
     /// <summary>Null on success, else the refusal. Idempotent, and a refusal leaves nothing active.</summary>
     public string? Install(IReloadedHooks hooks)
     {
+        // Installing again after a release only switches the same hooks back on and never stacks a second detour.
         if (_restoreHook != null) { if (!IsActive) { _restoreHook.Enable(); _checkpointHook?.Enable(); } return null; }
+        // Both fingerprints are checked before either hook goes in, so a refusal never leaves one half installed.
         foreach (var (addr, expected, label) in new[]
         {
             (_restoreAddr, ExpectedRestorePrologue, "rewind-restore"),
@@ -105,8 +111,10 @@ internal sealed class RewindRestoreHook
     internal nint ProcessRewind(RewindFn original, nint rcx, nint rdx, nint r8, nint r9)
     {
         nint result = original(rcx, rdx, r8, r9);   // once, outside any try
+        // The game's own rewind always runs first and exactly once, so a bug below can never stop it.
         try
         {
+            // The header names the save this snapshot came from, and the load edge path looks up that save's own counts by it.
             bool ok = _mem.TryRead(Offsets.SnapshotStructCopy + Offsets.SaveHeaderKeyOff, Offsets.SaveHeaderKeyLen, out var header);
             if (ok) { Interlocked.Increment(ref _rewindsHandedOn); _onRewind(header); }
             else NoteUnread();
@@ -118,6 +126,7 @@ internal sealed class RewindRestoreHook
     /// <summary>Mode 0 records the extended totals under the struct, mode 1 re derives the bag from them once the original has run.</summary>
     internal nint ProcessCheckpoint(RewindFn original, nint rcx, nint rdx, nint r8, nint r9)
     {
+        // Mode 0 is the game saving its Retry point. Mode 1 is a Retry putting it back.
         var mode = RewindPolicy.ModeOf(unchecked((int)rdx));
         nint result = original(rcx, rdx, r8, r9);   // once, outside any try
         try
@@ -138,6 +147,7 @@ internal sealed class RewindRestoreHook
         SafeLog(() => ModLogger.Warn(LogVerb.Save, "The battle was rewound but the pre battle save's header could not be read, so the new weapons' bag counts were left as they are."));
     }
 
+    // The total owned is kept, never the bag alone. A Retry snaps every unit back to its old gear, so the right bag is whatever the hands do not hold.
     private void SaveCounts(long structAddr)
     {
         var captured = _totals.Capture("checkpoint") ? _totals.Latest : null;
@@ -151,6 +161,7 @@ internal sealed class RewindRestoreHook
         IReadOnlyDictionary<int, int> totals;
         bool found;
         lock (_gate) found = _totalsByStruct.TryGetForStruct(structAddr, out totals!);
+        // No record means the Retry point was saved before this launch, most likely inside the save file, so the bag is left alone.
         if (!found)
         {
             Interlocked.Increment(ref _unrecorded);

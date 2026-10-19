@@ -19,6 +19,7 @@ internal static class RewindPolicy
 /// The checkpoint struct carries no save header, so nothing keys it in the sidecar and the totals ride here keyed by the struct's address instead.</summary>
 internal sealed class CheckpointTotalShadow
 {
+    // A Retry only ever puts back a recent struct, so the oldest falls off once eight are held.
     public const int Capacity = 8;
 
     private readonly Dictionary<long, IReadOnlyDictionary<int, int>> _byKey = new();
