@@ -66,6 +66,9 @@ signature needs none.
   modloader (a 261+ row under `FFTIVC/tables` is silently dropped by the loader).
 - **Enemies cannot carry an extended id yet** (the encounter table stores item ids as one byte;
   giving enemies new items is a separate planned feature).
+- **A Ninja cannot Throw a new weapon yet**: the Throw list is built by a game routine the mod does
+  not hook, so it stops at the base game's ids and a Warbrand never appears beside Claymore even
+  with Throw Swords learned (owner, 2026-10-19). Ruled out of 2.4.0; the hook is LW-456.
 - **Fleeing or retrying a battle keeps the new weapons' counts**: both rewinds put the game's own
   pre battle copy back, which only knows the base game's items, so the mod hooks the flee restore
   and the retry checkpoint copy and re derives the new weapons' bag counts from what the party

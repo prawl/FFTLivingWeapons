@@ -528,7 +528,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   corruption after reload, a crash on the picker or on Sell, a doubled or missing Warbrand row
   after the buy back, count 0 after the reload, a vanilla card reset to 0. (DEV OK) (covers
   LW-371, LW-372, LW-382, LW-368) **[MAJOR]**
-- [ ] 4.4 **The indirect roads in and out of the bag (job change, Dismiss, Throw, an enemy's Steal
+- [ ] 4.4 (PARTIAL 2026-10-19 on prod of 5052c6ef, owner live: job change handed a Sunderer back, bag byte 3 to 2 to 3; Dismiss of a Mystic holding a Sunderer and a Terrastaff returned both, bytes 2 to 3 and 0 to 1; no tripwire WARN; the Throw road is a RECORDED LIMIT by owner ruling, the Throw list never offers a new weapon, LW-456 for 2.5.0; the save line and leg B still open) **The indirect roads in and out of the bag (job change, Dismiss, Throw, an enemy's Steal
   or Rend).** Taking a new weapon off a unit the roundabout way still puts it in the bag, and
   losing a weapon mid fight stops its credit and its grant. Dev build: a unit holding a Sunderer
   (263) changes job on the party screen to one that cannot hold it (the game hands it back);
