@@ -13,11 +13,6 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.4.0)
 
-- **[LW-464] The battle winning kill is paid even when the victory screen comes fast** (opened 2026-10-19) [AWAITING-LIVE]
-  - In an auto battle with fast forward held, the last enemy died and the victory screen came 109 ms later, before the corpse scan's three dead polls, so the kill was never paid and nothing was logged (smoke box 5.1, 21:43:56). At the battle exit the mod now settles any corpse it already saw dying on the field with fewer than three dead polls, through the same credit decision the field scan uses, before the summary is written. A forced new game exit skips it, and the settled kill's banner is dropped with the battle so it never shows up in a later fight.
-  - (Tech: KillTracker.Settle.cs SettleCorpsesAtBattleEnd and the shared Settleable predicate, ScanDeadPath's settling branch, BattleExitSettle.Run first in Engine.OnBattleExit with forced from newGame; three verify rounds, SHIP at code 9 and spec 8; tape tools/probes/tapes/lw464_last_kill_lost_live_20261019.jsonl.)
-  - Done means: the last kill of a fast forward auto battle is paid and counted in the Battle ended summary, with a settle-at-exit record on the tape, and no banner from it shows up in the next battle.
-  - Verify: suite green with the eleven settle tests; then the owner's live pass, one auto battle with fast forward held to the victory screen where the Kills count rises once per enemy killed, the last one included.
 - **[LW-426] The log no longer says the twin weapon trick refused dual wielding when the player is dual wielding on their own** (opened 2026-10-17) [AWAITING-LIVE]
   - While dual wielding pistols the owner saw the log say no dual wielding would happen, and then
     it happened anyway. Read end to end 2026-10-18, and the trick was never in the way. Its old line

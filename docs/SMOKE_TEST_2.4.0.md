@@ -583,7 +583,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
 
 ## 5. Kill attribution, battle edges, the attack card, toasts
 
-- [ ] 5.1 (PARTIAL 2026-10-19 21:34 on dev of 5e511102, owner live: a Ninja dual wielding Hushblade and Quicksilver killed once and both logged `claims kill number 16` for one corpse; the Ember Rod kill credited; the fast forward auto battle, the late recruit, the Throw or item kill after an unarmed turn and the Counter still owed) **Credit goes to the true killer, in every lane (LW-272, LW-96, LW-137, LW-154; LW-396
+- [x] 5.1 (PASSED 2026-10-19 on dev, owner live, slimmed pass: a Ninja dual wielding Hushblade and Quicksilver logged two `claims kill number` lines per corpse; a charged Fire went to the caster; the first fast forward auto battle FAILED at 21:43:56, the battle winning kill lost to a 109 ms victory screen (LW-464), and after the fix the 22:34 fast forward auto battle credited all three kills, the last via `settle-at-exit slot=14 dead-ticks=2`, summary 6 credits for 3 corpses on two knives, scan CLEAN; the late recruit, the Throw or item kill after an unarmed turn and the Counter legs NOT REACHED, shipped open by the slimmed pass ruling; result pass after bug LW-464) **Credit goes to the true killer, in every lane (LW-272, LW-96, LW-137, LW-154; LW-396
   and LW-164 watch).** Manual battle against HUMAN soldiers who carry the same weapon id as one of
   the party's living weapons (chapter one and two knights and archers do), plus one auto battle run
   with the fast forward button HELD for the whole fight: kills credit the killer's weapon even when
