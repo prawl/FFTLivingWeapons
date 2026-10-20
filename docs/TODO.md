@@ -13,12 +13,6 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.4.0)
 
-- **[LW-458] A Retry never pays a kill twice, even when the game stutters while it rewinds** (opened 2026-10-19) [AWAITING-LIVE]
-  - Smoke box 5.5 failed on the dev build of d7f7f439. The owner killed a monster with the Chaos Blade (kill 26), picked Retry, killed the same monster again, and the card read 27. The retry guard waits for the game's actor pointer to read empty on two polls in a row; this Retry's loading stutter left it empty on one poll only, so the guard refused and the kill paid again. The earlier Retry the same night was caught.
-  - The fix gives the guard a second, independent signal. The mod already hooks the moment the game puts a Retry checkpoint back (LW-452, live proven), and that hook fired at both Retries and never during the Raise control leg. A credited enemy that stands up from zero hp within about five seconds of that hook is a rewind, and its kill is taken back. The pointer check stays as a backup.
-  - (Tech: RewindRestoreHook counts every mode 1 checkpoint restore, KillTracker passes the count into RestartSentinel.Tick, PresentRevive opens the latch through RestartSentinelPolicy.ShouldOpenLatchFromRetryHook within RetryHookJoinTicks 150, no grace and no identity gate on that path; tapes tools/probes/tapes/lw458_*; restore to revive joined in 2.39 s and 2.41 s, about 73 polls.)
-  - Done means: a Retry that rewinds a paid enemy takes the kill back every time, with the line `The battle was retried; kills from the abandoned attempt are uncounted so nothing pays out twice.`, and a Phoenix Down on a paid enemy still pays a second kill.
-  - Verify: suite green with the new sentinel, policy and hook tests, the load bearing one replaying the missed tape's one poll null; then the owner's live pass on smoke box 5.5, one Retry leg (kill, Retry, re kill, the card holds) and the Raise leg (kill, Phoenix Down, kill, the card rises by two).
 - **[LW-426] The log no longer says the twin weapon trick refused dual wielding when the player is dual wielding on their own** (opened 2026-10-17) [AWAITING-LIVE]
   - While dual wielding pistols the owner saw the log say no dual wielding would happen, and then
     it happened anyway. Read end to end 2026-10-18, and the trick was never in the way. Its old line
