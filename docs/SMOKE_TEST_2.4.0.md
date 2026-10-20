@@ -1433,7 +1433,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   before the pass close commit, as a tick or as the rulings he rejects, so that grep shows a dated
   owner verdict. FAIL: a Now row left behind with no ruling, an agent made flip, or an LW-320 row
   with no verdict. (covers LW-320) **[MAJOR]**
-- [ ] B19 **README and the ship notes tell a 2.3.x player what the update does to their seven axes
+- [ ] B19 (PARTIAL 2026-10-19: README half passed, no development branch hedge left (removed in 43291481), the Updating from 2.3.x section names the seven, the axes in hand, the moved kills and the shops, and the three if you did not save while the mod was off sentences are in README.md, docs/COMPATIBILITY.md and docs/EXTENDED_INVENTORY_GUIDE.md; the owner's ship notes draft still owed) **README and the ship notes tell a 2.3.x player what the update does to their seven axes
   and flails, and what uninstalling really keeps.** A returning player must be told, before they
   load, that the Terrastaff, Ravager, Sunderer, Warbrand, Bloodlash, Climhazzard and Sasori are
   now separate purchases (which town, which chapter, box 4.6's list), that the ones in their hands
@@ -1448,7 +1448,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   off" (or box 4.5 leg 2 disproved the code read, and they stay); the ship notes carry the
   paragraph. FAIL: the hedge survives, no upgrade paragraph, an uninstall promise box 4.5 showed
   false. (covers LW-351 the player facing half, LW-401 the docs half) **[MAJOR]**
-- [ ] B20 (READ 2026-10-18 from the dev box, a read of AppConfig.json and the registry, owner ticks: Reloaded root is the game folder's Reloaded subfolder, AutoInject False so the launch method is the Reloaded-II Launch button; EnabledMods in load order 1 paxtrick.fft.colorcustomizer, 2 fftivc.jobs.bluemage, 3 fftivc.mechanics.levelscaling, 4 fft.monsters.strongmoster, 5 fftivc.qol.customfastforward, 6 fftivc.rare.treasure.only, 7 prawl.fft.livingweapons; FFTHandsFree absent; none of the thirteen will not work together mods enabled; WotL Restoration not installed, so 10.1 adds it for its run only; Living Weapons loads last; QuickEdit reads 0x0; FFTColorCustomizer enabled, noted on 8.1) **The environment the pass ran under is written down before sitting 1.** Every live box is
+- [x] B20 (PASSED, re read 2026-10-19 on release day: AppConfig.json AutoInject False, EnabledMods unchanged since 2026-10-18 in the same order, 1 paxtrick.fft.colorcustomizer, 2 fftivc.jobs.bluemage, 3 fftivc.mechanics.levelscaling, 4 fft.monsters.strongmoster, 5 fftivc.qol.customfastforward, 6 fftivc.rare.treasure.only, 7 prawl.fft.livingweapons; FFTHandsFree absent; no will not work together mod enabled; WotL Restoration not installed; QuickEdit 0x0; result pass) **The environment the pass ran under is written down before sitting 1.** Every live box is
   unrepeatable without the mod list and order, FFTHandsFree left enabled crashes the Denuvo free
   build at launch (which would fail box 1.2 for a reason that is not this mod), and one click into
   the console suspends the mod's threads. A script reads `<Reloaded root>\Apps\fft_enhanced.exe\AppConfig.json`
