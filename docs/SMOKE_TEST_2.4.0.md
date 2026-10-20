@@ -987,7 +987,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
 > already open. All boxes DEV OK unless noted. Boxes 9.1, 9.3 and 9.5 to 9.11 together ARE the
 > LW-325 tour; 9.2 and 9.4 are the Provoke and Bulwark edge legs.
 
-- [ ] 9.1 **Provoke, the whole cluster (LW-123, LW-127, LW-129, LW-130, LW-131, LW-133, LW-135,
+- [x] 9.1 (PASSED 2026-10-19 22:03 to 22:08 on dev of 5e511102, owner live, Ramza as Gallant Knight with a Defender: `The Defender wielder now has Provoke in job 3's action list`; the shout at goblin Eidothea logged `The Defender's provoke takes hold`, `provoke hide: 2 unit(s) now hidden`, the goblin attacked only Ramza, no Invisible icon, then `The provoke hold ends (EnemyTurnDone) ... 2 units were ever hidden`; a shout at an ally logged `A stray provoke mark landed on one of your own units; the runtime scrubbed it off.` and the next shout at the goblin took hold again; no watchdog release, no WARN; the archer or mage leg NOT REACHED, the map fielded goblins only, shipped open by the slimmed pass ruling; result pass) **Provoke, the whole cluster (LW-123, LW-127, LW-129, LW-130, LW-131, LW-133, LW-135,
   LW-138, LW-118; LW-136 optional).** A tier 3 Defender (id 33) wielder in Knight or Squire has
   Provoke; shouting at one enemy hides the party from it until its turn ends. Full pass in
   docs/PROVOKE_AC.md. PASS: `The Defender wielder now has Provoke in Knight's action list`; `The
