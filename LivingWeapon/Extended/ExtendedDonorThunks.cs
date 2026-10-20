@@ -24,7 +24,7 @@ internal static class ExtendedDonorThunks
 
     /// <summary>The accessor entries every per-category lookup goes through, with the donor table
     /// each answers from (the art donor draws the swing, the clone donor answers the rest).</summary>
-    public static (AccessorEntry Entry, bool UsesArtDonor)[] DonorThunks => new[]
+    public static (AccessorEntry Entry, bool UsesArtDonor)[] HookedDonorEntries => new[]
     {
         (new AccessorEntry(Offsets.ThunkValidity, "validity",
             new byte[] { 0x0F, 0xB7, 0xC1, 0x41, 0xB8, 0x01, 0x00, 0x00, 0x00 }, -1), false),                   // movzx eax,cx; mov r8d,1

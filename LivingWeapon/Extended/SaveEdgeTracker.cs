@@ -17,6 +17,7 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed class SaveEdgeTracker
 {
+    // The detours fill the pending slots on the game's thread while Engine's tick drains them on its own.
     private readonly object _gate = new();
     private (string Key, Dictionary<int, int> Counts)? _pendingSave;
     private string? _pendingLoad;

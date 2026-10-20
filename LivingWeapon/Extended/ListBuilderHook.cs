@@ -133,7 +133,7 @@ internal sealed partial class ListBuilderHook
         {
             int count = original(a, b, c, (nint)slotAddr, spare, mode);   // called once, no catch (see Process)
             try { return CopyBack(list, slotAddr, count); }
-            catch (Exception) { CopyBackRefused(list, "the copy-back threw"); return 0; }   // F1. Never the original's own count
+            catch (Exception) { CopyBackRefused(list, "the copy-back threw"); return 0; }   // The caller appends at the count it gets back, so the original's count would run it past its small stack buffer
         }
         finally { ReleaseSlot(slot); }   // Released the instant the copy-back is done, reentrant-safe
     }

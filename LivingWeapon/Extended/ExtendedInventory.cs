@@ -122,7 +122,7 @@ internal sealed partial class ExtendedInventory
     public long WeaponRowAddr(int id)
     {
         if (!Armed || _weaponStatHook == null || !_weaponStatHook.Installed) return -1;
-        int i = id - ExtendedCatalog.FirstExtendedId;
+        int i = ExtendedCatalog.SlotOf(id);
         if (i < 0 || i >= Items.Count) return -1;
         return _weaponStatHook.StubAddr + ThunkStub.RowStubHeader + (long)i * ThunkStub.RowSize;
     }

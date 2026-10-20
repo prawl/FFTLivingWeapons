@@ -32,14 +32,14 @@ internal sealed partial class ExtendedInventory
         if (why != null) return why;
 
         int lo = ExtendedCatalog.FirstExtendedId;
-        var rows = Items.OrderBy(i => i.Id).Select(i => i.WeaponRow).ToArray();
-        var cloneDonors = Items.OrderBy(i => i.Id).Select(i => i.CloneDonor).ToArray();
-        var artDonors = Items.OrderBy(i => i.Id).Select(i => i.ArtDonor).ToArray();
+        var rows = PerSlot(i => i.WeaponRow);
+        var cloneDonors = PerSlot(i => i.CloneDonor);
+        var artDonors = PerSlot(i => i.ArtDonor);
         var weaponStat = new AccessorEntryHook(ExtendedDonorThunks.WeaponStat);
         why = InstallAccessorHook(weaponStat, t => ThunkStub.EmitRowStub(lo, rows, t));
         if (why != null) return why;
         _weaponStatHook = weaponStat;
-        foreach (var (entry, usesArt) in ExtendedDonorThunks.DonorThunks)
+        foreach (var (entry, usesArt) in ExtendedDonorThunks.HookedDonorEntries)
         {
             var donors = usesArt ? artDonors : cloneDonors;
             why = InstallAccessorHook(new AccessorEntryHook(entry), t => ThunkStub.EmitDonorStub(lo, donors, t));
@@ -55,6 +55,8 @@ internal sealed partial class ExtendedInventory
 
         return _installHooks(hooks);
     }
+
+    private T[] PerSlot<T>(Func<ExtendedItemDef, T> pick) => Items.OrderBy(i => i.Id).Select(pick).ToArray();
 
     private string? InstallAccessorHook(AccessorEntryHook hook, Func<long, byte[]> emit)
     {

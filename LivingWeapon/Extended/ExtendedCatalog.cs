@@ -21,6 +21,9 @@ internal sealed class ExtendedCatalog
     public const int RecordSize = ExtendedRecords.CatalogRecordSize;
     public const int BufferSize = 8192;
 
+    // The stubs find an item's row and donors at id minus 261, so a gap in the ids would hand an item its neighbor's.
+    public static int SlotOf(int id) => id - FirstExtendedId;
+
     public bool Installed { get; private set; }
     public long BufferAddr { get; private set; }
     private byte[]? _savedDisp32;

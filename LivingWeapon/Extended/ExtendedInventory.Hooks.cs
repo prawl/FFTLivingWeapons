@@ -16,7 +16,7 @@ internal sealed partial class ExtendedInventory
     private string? DefaultInstallHooks(IReloadedHooks? hooks)
     {
         if (hooks == null) return NoHooksRefusal;
-        _getterHook = new CategoryGetterHook(_patcher, ExtendedCatalog.FirstExtendedId, Items.OrderBy(i => i.Id).Select(i => i.CloneDonor).ToArray());
+        _getterHook = new CategoryGetterHook(_patcher, ExtendedCatalog.FirstExtendedId, PerSlot(i => i.CloneDonor));
         string? why = _getterHook.Install(hooks);
         if (why != null) return why;
         // Seats the owned extended ids into the template before the game's rebuild, so it needs the id count.

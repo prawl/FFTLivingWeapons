@@ -286,11 +286,11 @@ public class ExtendedSitesTests
     [Fact]
     public void Donor_thunks_cover_the_nine_per_category_accessors_with_only_the_sprite_pair_on_the_art_donor()
     {
-        Assert.Equal(9, ExtendedDonorThunks.DonorThunks.Length);
-        Assert.Single(ExtendedDonorThunks.DonorThunks, t => t.UsesArtDonor);
-        Assert.Equal(Offsets.ThunkSpritePair, ExtendedDonorThunks.DonorThunks.Single(t => t.UsesArtDonor).Entry.Addr);
-        Assert.DoesNotContain(ExtendedDonorThunks.DonorThunks, t => t.Entry.Addr == Offsets.ThunkWeaponStat);   // the row stub, not a donor
-        Assert.Equal(9, ExtendedDonorThunks.DonorThunks.Select(t => t.Entry.Addr).Distinct().Count());
+        Assert.Equal(9, ExtendedDonorThunks.HookedDonorEntries.Length);
+        Assert.Single(ExtendedDonorThunks.HookedDonorEntries, t => t.UsesArtDonor);
+        Assert.Equal(Offsets.ThunkSpritePair, ExtendedDonorThunks.HookedDonorEntries.Single(t => t.UsesArtDonor).Entry.Addr);
+        Assert.DoesNotContain(ExtendedDonorThunks.HookedDonorEntries, t => t.Entry.Addr == Offsets.ThunkWeaponStat);   // the row stub, not a donor
+        Assert.Equal(9, ExtendedDonorThunks.HookedDonorEntries.Select(t => t.Entry.Addr).Distinct().Count());
     }
 
     /// <summary>LW-368 round 2 (T9, P11): the eight `lea reg,[base+6]` sites whose displacement is

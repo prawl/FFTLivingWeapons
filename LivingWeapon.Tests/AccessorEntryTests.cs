@@ -13,7 +13,7 @@ public class AccessorEntryTests
     private static List<AccessorEntry> Ten()
     {
         var all = new List<AccessorEntry> { ExtendedDonorThunks.WeaponStat };
-        all.AddRange(ExtendedDonorThunks.DonorThunks.Select(t => t.Entry));
+        all.AddRange(ExtendedDonorThunks.HookedDonorEntries.Select(t => t.Entry));
         return all;
     }
 
