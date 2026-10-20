@@ -64,7 +64,7 @@ Result: pass (the reader was sharper than the expected answer; ICodePatcher.TryR
 Q3 (free): The re-append only brings back a dropped word when the bag holds that id or when bit 0x4000 is set on the word. Why both conditions, and what went wrong without the filter?
 Expected: The old list can still carry ids sold or equipped away since, and adding those back drew an empty row. Bit 0x4000 is the E badge, set while every copy is worn, so the bag byte reads 0 yet the player still owns the item and it must stay in the list.
 Reader: Cannot answer from the packet. Saw the filter and the EquippedBadge name but would not infer the badge meaning or the old empty row bug.
-Result: bad question (the why lives only in comments, so a stripped packet cannot carry it; a name like StillOwned for the filter would carry half of it)
+Result: miss, fix name (relabeled under the four stage rules. The why lived only in comments, which makes it a miss, not a bad question; a name like StillOwned for the filter carries half of it, and the badge meaning is a game fact for a comment)
 Unprompted: The first list read is outside any try (safe only by the ICodePatcher contract). _refusalWarned is a plain bool, so warn once is racy under concurrent rebuilds. Seated counts planned ids, and the repair path returns before counting. Owned is called on any dropped id though only extended ids are seated. Two empty catches leave no trace when seating or re-append throws.
 
 ## Cold read 2026-10-19 09:07, calibration LW-452 rewind fix, base 0e29f898
