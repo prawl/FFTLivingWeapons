@@ -4,42 +4,41 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Lifts the extended inventory past eleven items. The game keeps owned counts as one
-/// byte per item in a block that ends where Ramza's roster row begins, plus a second per-item byte list
-/// beside it, so a new id past that edge reads and writes Ramza's save data. This copies both lists onto
-/// a page the mod owns and re-points the 55 code fields that name the old blocks (table in
-/// ListRelocation.Sites.cs). As in <see cref="ShopFlagsMirror"/>, every field must read vanilla before any
-/// write and a refusal restores the changed fields in reverse. It is a move, so there is no resync;
-/// <see cref="CheckOldBlocks"/> warns once if an old block changes later. Restore puts only the 55 fields
-/// back and the page is leaked, as <see cref="INearAllocator"/> never frees.
+/// Moves the game's item count lists somewhere roomier, so more than eleven new items fit.
+/// The game keeps one count byte per item in a block that ends where Ramza's roster row starts, with a
+/// second per item byte list beside it, so a new id past that edge would read and write Ramza's save data.
+/// This copies both lists onto a page of ours and points the 55 code fields that name the old blocks at it
+/// (the table is in ListRelocation.Sites.cs). As in <see cref="ShopFlagsMirror"/>, every field must still
+/// hold its vanilla value before anything is written, and a refusal puts the changed fields back in reverse.
+/// The lists move for good, so nothing syncs them later, and <see cref="CheckOldBlocks"/> warns once if an
+/// old block changes. Restore only puts the 55 fields back, since <see cref="INearAllocator"/> never frees.
 /// </summary>
 internal sealed partial class ListRelocation
 {
-    // Install runs on the boot thread before the game's hook threads exist, but
-    // ExtendedInventory.BagCountBase reads this from any thread once armed, so the flag is volatile
-    // and written last.
+    // Install runs at boot before any hook thread exists, but once armed
+    // ExtendedInventory.BagCountBase reads the result from any thread, so the flag is volatile
+    // and set last.
     private volatile bool _installed;
 
     /// <summary>True once every field points at the new page.</summary>
     public bool Installed => _installed;
 
-    /// <summary>The page the two lists live on once installed; 0 before that.</summary>
+    /// <summary>The page the two lists live on, or 0 before Install.</summary>
     public long PageAddr { get; private set; }
 
-    /// <summary>Where the bag counts resolve right now. The new page's count copy once
-    /// installed, else <see cref="Offsets.BagCountArray"/> (the vanilla block).</summary>
+    /// <summary>Where the bag counts are right now, our page once installed and the game's own
+    /// <see cref="Offsets.BagCountArray"/> before that.</summary>
     public long CountBase { get; private set; } = Offsets.BagCountArray;
 
-    /// <summary>Where the sibling flag list resolves right now. The new page's copy once
-    /// installed, else <see cref="Offsets.SiblingListArray"/> (the vanilla block).</summary>
+    /// <summary>Where the second per item list is right now, our page once installed and the game's own
+    /// <see cref="Offsets.SiblingListArray"/> before that.</summary>
     public long SiblingBase { get; private set; } = Offsets.SiblingListArray;
 
     private byte[]? _oldCountSnapshot, _oldSiblingSnapshot;
     private bool _warnedOnce;
 
-    /// <summary>Null on success, else the refusal (nothing changed). Idempotent once installed.
-    /// Order is check all 55 fields, allocate and zero the page, copy both lists, then
-    /// rewrite the first field, so an earlier refusal leaves the process untouched.</summary>
+    /// <summary>Null on success, else why not. Safe to call twice. Every field is checked and the page is filled
+    /// before the first field is rewritten, so a refusal before that point has touched nothing the game uses.</summary>
     public string? Install(ICodePatcher patcher, INearAllocator allocator)
     {
         if (Installed) return null;
@@ -78,12 +77,12 @@ internal sealed partial class ListRelocation
         PageAddr = page;
         CountBase = page;
         SiblingBase = page + SiblingPageOffset;
-        _installed = true;   // last, publishes the fields above
+        _installed = true;   // last, so a reader on another thread sees the addresses above first
         return null;
     }
 
-    /// <summary>Puts every field back to its vanilla value and leaves the page alone.
-    /// A call while not installed is a no-op success, as in <see cref="ShopFlagsMirror.Restore"/>.</summary>
+    /// <summary>Points every field back at the game's own lists. Calling it before Install does nothing
+    /// and succeeds, as in <see cref="ShopFlagsMirror.Restore"/>.</summary>
     public bool Restore(ICodePatcher patcher)
     {
         if (!Installed) return true;
@@ -99,11 +98,10 @@ internal sealed partial class ListRelocation
         return ok;
     }
 
-    /// <summary>hidden-writer tripwire. Compares each old block with its snapshot from the copy;
-    /// the first change returns a one-line warning naming the block, and every later call returns
-    /// null. Only <see cref="ListProperBytes"/> is compared, not all of <see cref="BlockBytes"/>
-    /// because +0x105..+0x10F holds a live game state dword at +0x108 (read live
-    /// 2026-08-31) that changes on its own.</summary>
+    /// <summary>Catches a writer the move missed. Each old block is compared with what it held when it was copied,
+    /// and the first change gets one warning naming the block, then never again.</summary>
+    /// <remarks>Only <see cref="ListProperBytes"/> is compared, because +0x105 to +0x10F of <see cref="BlockBytes"/>
+    /// holds a game dword at +0x108 that changes on its own, seen live.</remarks>
     public string? CheckOldBlocks(ICodePatcher patcher)
     {
         if (!Installed || _warnedOnce || _oldCountSnapshot == null || _oldSiblingSnapshot == null) return null;
@@ -118,7 +116,7 @@ internal sealed partial class ListRelocation
 
     private bool SnapshotOldBlocks(ICodePatcher patcher, out byte[] countBlock, out byte[] siblingBlock)
     {
-        siblingBlock = Array.Empty<byte>();   // out param must be set on every path
+        siblingBlock = Array.Empty<byte>();
         if (!patcher.TryRead(Offsets.BagCountArray, BlockBytes, out countBlock)) return false;
         if (!patcher.TryRead(Offsets.SiblingListArray, BlockBytes, out siblingBlock)) return false;
         _oldCountSnapshot = countBlock;
@@ -126,8 +124,7 @@ internal sealed partial class ListRelocation
         return true;
     }
 
-    /// <summary>True when <paramref name="fresh"/> matches the first <c>fresh.Length</c> bytes of
-    /// the longer <paramref name="snapshot"/>.</summary>
+    /// <summary>The snapshot is the whole block and the fresh read only its list part.</summary>
     private static bool SamePrefix(byte[] fresh, byte[] snapshot)
     {
         for (int i = 0; i < fresh.Length; i++) if (fresh[i] != snapshot[i]) return false;

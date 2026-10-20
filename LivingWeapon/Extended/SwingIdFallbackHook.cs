@@ -3,17 +3,17 @@ using System;
 namespace LivingWeapon;
 
 /// <summary>
-/// Stateful half of the swing-id fallback, which stops a moved item id from swinging bare hands.
-/// <see cref="ThunkStub.EmitSwingIdFallbackStub"/> emits the bytes, and this is AccessorEntryHook's twin for a
-/// mid-instruction jump. The swing-prep routine copies the swing-id word with a 7-byte movzx at
-/// <see cref="Offsets.FnSwingPrepIdCopy"/>; for a moved id the word is 0 at swing time and the art lookup draws bare hands
-/// (docs/LIVE_LEDGER.md [empty-tile-hand-read-bounds]). Install rewrites the site as an E9 jmp plus two 0x90 pads into a
-/// stub that substitutes the hand id when the word is 0 and the acting unit's right hand holds one of our ids. Steps return
-/// a refusal string; Restore leaks the stub page because a game thread may be inside it (the rig's rule).
+/// Stops a new weapon from swinging as bare hands.
+/// When the game prepares a swing it copies the weapon id word with a seven byte movzx at
+/// <see cref="Offsets.FnSwingPrepIdCopy"/>, and for a new id that word is 0 at swing time, so the art lookup draws
+/// empty hands [ledger empty-tile-hand-read-bounds]. Install replaces that site with a jump plus two pads into a
+/// stub (<see cref="ThunkStub.EmitSwingIdFallbackStub"/>) that puts the right hand's id in when the word is 0 and
+/// that hand holds one of ours. Each step comes back as a message on failure, and Restore keeps the stub page
+/// because a game thread may still be inside it, as AccessorEntryHook does.
 /// </summary>
 internal sealed class SwingIdFallbackHook
 {
-    /// <summary>0F B7 05 00 E7 52 00 = movzx eax, word [rip+0x52E700] (read on disk 2026-08-31).</summary>
+    /// <summary>movzx eax, word [rip+0x52E700], the seven bytes the site carries.</summary>
     public static readonly byte[] ExpectedSite = { 0x0F, 0xB7, 0x05, 0x00, 0xE7, 0x52, 0x00 };
 
     public long SiteAddr { get; }
@@ -23,10 +23,10 @@ internal sealed class SwingIdFallbackHook
 
     public SwingIdFallbackHook(long siteAddr = 0)
     {
-        SiteAddr = siteAddr == 0 ? Offsets.FnSwingPrepIdCopy : siteAddr;   // 0 = the live pin (a rebased pin cannot be a default value)
+        SiteAddr = siteAddr == 0 ? Offsets.FnSwingPrepIdCopy : siteAddr;   // a rebased address cannot be a default parameter
     }
 
-    /// <summary>Installs the redirect for extended ids [lo, lo + count, 1]. Idempotent; returns null or the refusal.</summary>
+    /// <summary>Null on success, else why not. Covers the new ids from lo to lo plus count minus one. Safe to call again.</summary>
     public string? Install(ICodePatcher patcher, INearAllocator allocator, int lo, int count)
     {
         if (Installed) return null;
@@ -61,7 +61,7 @@ internal sealed class SwingIdFallbackHook
         return null;
     }
 
-    /// <summary>Puts the seven original site bytes back. Idempotent; false only if the write was refused.</summary>
+    /// <summary>False only if the game refused the write back. Safe to call again.</summary>
     public bool Restore(ICodePatcher patcher)
     {
         if (!Installed) return true;
@@ -70,7 +70,7 @@ internal sealed class SwingIdFallbackHook
         return ok;
     }
 
-    /// <summary>True if a readable 7-byte buffer matches <see cref="ExpectedSite"/>.</summary>
+    /// <summary>The pure decision, so a test can feed it bytes.</summary>
     internal static bool ShouldArm(bool readOk, byte[]? site)
         => readOk && site != null && site.Length == ExpectedSite.Length && site.AsSpan().SequenceEqual(ExpectedSite);
 }

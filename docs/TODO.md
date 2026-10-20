@@ -2679,6 +2679,106 @@ Rows the cold read's stage 1 reader raised without being asked, one row per file
 - [LW-468] 2026-10-20: Detour dereferences _hook with a bang, and Activate can enable the hook before the assignment lands, so an early call would throw inside the game. (cold-read, Seeded trial)
 - [LW-469] 2026-10-20: Release swallows every failure, so a failed Disable leaves the hook live with no trace. (cold-read, Seeded trial)
 - [LW-470] 2026-10-20: Release never clears _hook, so IsActive cannot tell a released hook from one never installed. (cold-read, Seeded trial)
+- [LW-502] 2026-10-20: Cold read of Extended/ExtendedInventory.cs found 4 things worth a look. (cold-read, Extended sweep inventory-root)
+  - The armed log line hardcodes six hooks, the swing fallback and the list builder whatever a custom install step actually installed.
+  - The repair and refusal notes are volatile but their join updates are not atomic, so a tick side read and clear between the read and the write could lose or resurrect a note.
+  - The tripwire runs every tick and its warning could repeat each tick.
+  - Refuse serves both the not shipped and the failed paths while the door readings differ.
+- [LW-503] 2026-10-20: Cold read of Extended/ExtendedInventory.Hooks.cs found 2 things worth a look. (cold-read, Extended sweep inventory-root)
+  - RollBack calls Restore on parts whose Install may have failed or never run.
+  - The detour plan is overwritten when ReplayOnLoad runs twice before a tick, and a key mismatch discards it with no log.
+- [LW-500] 2026-10-20: Cold read of Extended/SaveEdgeHooks.cs found 3 things worth a look. (cold-read, Extended sweep save-edges)
+  - Install has a retry trap, since a throw after the first hook is assigned leaves it set, so a later Install returns success with the hooks disabled.
+  - The hook fields are assigned only after Activate returns, so a game call in between would hit a null hook outside any try.
+  - The tracker holds one pending slot each for save and load, and a new edge overwrites an unconsumed one.
+- [LW-501] 2026-10-20: Cold read of Extended/SaveEdgeHooks.Detours.cs found 2 things worth a look. (cold-read, Extended sweep save-edges)
+  - AfterApplyCore calls Adopt outside its own try, so a throw there skips the replay, the edge and the callback, and the canary never sets.
+  - AfterApply returns silently when the header read fails on a load.
+- [LW-499] 2026-10-20: Cold read of Extended/RewindRestoreHook.cs found 7 things worth a look. (cold-read, Extended sweep rewind-restore)
+  - A repeat Install only re enables the hooks and never checks the prologues again, and a null checkpoint hook leaves IsActive false.
+  - The install catch releases before it nulls the hooks, so a half created pair could leave the first one active.
+  - The catches in both detours swallow every error, so a callback failure is counted as handed on and never logged.
+  - The two once per launch warn flags are plain bools, not interlocked.
+  - PutBack publishes Latest and counts a capture before it knows the hands read succeeded, so a failed restore logs as a success with an empty description.
+  - PutBack and Recompute cast to a byte, so a value above 255 wraps unless BagFor clamps it.
+  - CheckpointTotalShadow is not thread safe on its own, and the TotalsByStruct accessor exposes it outside the lock.
+- [LW-497] 2026-10-20: Cold read of Extended/ListBuilderHook.Pool.cs found 1 thing worth a look. (cold-read, Extended sweep list-builder)
+  - TryWrite results are ignored in CopyBackRefused, PoolExhausted and the zero count branch of CopyBack, so a failed write leaves the game's bytes in the buffer while the log says an empty list was given.
+- [LW-498] 2026-10-20: Cold read of Extended/ListBuilderHook.cs found 6 things worth a look. (cold-read, Extended sweep list-builder)
+  - The two once per session warn flags are plain bools, so two first failures at once could warn twice.
+  - The static buffer passthrough runs the original with no pool, no cap and no truncation.
+  - CopyBack clamps to 511 words but nothing limits how much the original writes into a slot.
+  - An exception from the original propagates out of Process with the slot still released.
+  - Release only disables the hook and never frees the pool page or clears the keepalive.
+  - The pool is keyed by comparing the list address with the static buffer, not by detecting a stack address.
+- [LW-495] 2026-10-20: Cold read of Extended/OrderRebuildHook.Seat.cs found 1 thing worth a look. (cold-read, Extended sweep order-rebuild)
+  - The first refusal flag in Refused is a plain bool with no lock, so a detour on two threads could warn twice, while the repair log set is locked.
+- [LW-496] 2026-10-20: Cold read of Extended/OrderRebuildHook.cs found 6 things worth a look. (cold-read, Extended sweep order-rebuild)
+  - Both catches in Process are silent, so a failure in the seating or the re-append leaves no counter and no log.
+  - Reappend returns the game's count quietly when the second read fails or the write is refused, apart from the warn lines.
+  - A list with no 0xFFFF terminator within MaxWords makes ParseList return null and the re-append is skipped silently.
+  - The footprint check does not count the terminator word TailBytes appends, which may be one short against the before length.
+  - The template end marker is 0x00FF while the live list terminator is 0xFFFF, two different sentinels.
+  - Install returns null both for success and for the already hooked case.
+- [LW-493] 2026-10-20: Cold read of Extended/TemplateRelocation.cs found 6 things worth a look. (cold-read, Extended sweep template)
+  - RipFields go through ImageBase.At with hardcoded addresses while Slots and CapSites use Offsets values directly.
+  - Restore keeps going on a failed write with ok folded in, so the state can end half restored with Installed still true, and PageAddr and the page stay.
+  - Slots, CapSites, Charts and WeaponRegions allocate a fresh array on every access.
+  - Regions covers two of the three charts, and the all items chart is relocated but never seated.
+  - Plan masks the listed words and the checked id with 0x3FF but Contains and Encode use the unmasked id.
+  - The widened builder cap 0xFF equals the end marker 0x00FF numerically.
+- [LW-494] 2026-10-20: Cold read of Extended/TemplateRelocation.Sites.cs found 1 thing worth a look. (cold-read, Extended sweep template)
+  - Chart.Capacity, Chart.RegionBytes and Chart.PageOffset duplicate the constants, and the Slot and RipField labels are unused in the messages.
+- [LW-491] 2026-10-20: Cold read of Extended/ListRelocation.cs found 8 things worth a look. (cold-read, Extended sweep list-relocation)
+  - Every failed Install after the allocation leaves the page allocated and filled, and a retry allocates another.
+  - A failed rollback write leaves game code pointed at the new page while Installed is false, and Restore then returns true at once and cannot repair it.
+  - SnapshotOldBlocks and CheckOldBlocks pass Offsets.BagCountArray and Offsets.SiblingListArray straight to TryRead while the sites go through ImageBase.At.
+  - ImageBase.Base can be set again, and Live is recomputed on every call, so a base change between Install and Restore would make Restore write to other addresses.
+  - Once the field writes start the game uses the new page while CountBase still reports the old block and Installed is false, until the final stores.
+  - Install, Restore and CheckOldBlocks take no lock, and only the installed flag is volatile.
+  - A failed Restore leaves some sites restored with Installed still true, and PageAddr is never cleared.
+  - The hidden writer warning fires at most once per instance and is never reset, even across a reinstall.
+- [LW-492] 2026-10-20: Cold read of Extended/ListRelocation.Fields.cs found 1 thing worth a look. (cold-read, Extended sweep list-relocation)
+  - Vanilla is a raw four byte value, not an address, and for the trailing byte sites Trail and Off only enter Distance.
+- [LW-488] 2026-10-20: Cold read of Extended/ExtendedCatalog.cs found 7 things worth a look. (cold-read, Extended sweep catalog)
+  - ExtendedCatalog does not rebase Offsets.ExtCatalogDisp32, Offsets.ExtCatalogBase or the CopyPlan sources through ImageBase.At while ExtendedSites rebases every address.
+  - A failed Install leaves the buffer and partial writes behind, harmless while the disp32 is untouched.
+  - Restore rewrites the disp32 but keeps the buffer and BufferAddr, and a failed Restore write leaves Installed true.
+  - Install returns null when already installed, so new records passed then are silently ignored.
+  - SlotOf is id minus 261 but records are placed at id times the record size, and SlotOf is unused in these files.
+  - Install does not check for duplicate ids, so a later record overwrites an earlier one.
+  - ImageBase.Set must run before Build or Install and nothing here enforces it.
+- [LW-489] 2026-10-20: Cold read of Extended/ExtendedSites.cs found 2 things worth a look. (cold-read, Extended sweep catalog)
+  - Build does not check n against MaxExtendedCount, and the byte casts wrap silently for a large n.
+  - PostLoadSites is empty, so PostLoadPatches always returns an empty list.
+- [LW-490] 2026-10-20: Cold read of Extended/ExtendedRecords.cs found 1 thing worth a look. (cold-read, Extended sweep catalog)
+  - The Shops mask is parsed but never encoded by EncodeCatalogRecord, whose bytes 6 and 11 are always 0.
+- [LW-486] 2026-10-20: Cold read of Extended/ThunkStub.cs found 6 things worth a look. (cold-read, Extended sweep thunks)
+  - The swing stub never sets rsi, so its value comes from the caller.
+  - A non zero standing word leaves the stub with eax holding it unchecked, and only a zero word reaches the hands lookup.
+  - EmitDonorStub and EmitRowStub do not check lo and hi against IdMask, so a hi above 0x3FF can never be reached after the mask.
+  - Both stubs overwrite eax and the flags before the range check and jump to the original with eax changed on the out of range path.
+  - The donor stub's in range path jumps on to the original with ecx replaced while the row stub's ends in a ret with a pointer.
+  - The trampoline relocates only one E8 call, so a rip relative instruction in the stolen span would break.
+- [LW-487] 2026-10-20: Cold read of Extended/ExtendedDonorThunks.cs found 3 things worth a look. (cold-read, Extended sweep thunks)
+  - SubRspMovzxR9 is one mutable static byte array shared by five entries.
+  - AReraise, AInvisible and AFloat share byte 0x47 and APoison, ARegen, AProtect, AShell and AHaste share byte 0x48 in Offsets.
+  - WeaponStat is defined in ExtendedDonorThunks but is not in HookedDonorEntries.
+- [LW-484] 2026-10-20: Cold read of Extended/BytePatchSet.cs found 3 things worth a look. (cold-read, Extended sweep patches-shop)
+  - BytePatchSet.Apply returns null without doing anything when something is already applied, so a second call with a different list looks like success.
+  - BytePatchSet.Rollback ignores every write result and clears the list regardless, so a failed restore leaves a patched byte with no record.
+  - PendingPatch.Step stays Waiting on an unreadable site, so a permanently unreadable address polls forever.
+- [LW-485] 2026-10-20: Cold read of Extended/ShopFlagsMirror.cs found 3 things worth a look. (cold-read, Extended sweep patches-shop)
+  - ShopFlagsMirror.Install leaves the page allocated on every failure after the allocation, and the returns after the saved bytes are set leave stale saved values.
+  - The low byte rollback inside Install is unchecked, so a failed rollback would leave the builder half redirected while Installed is false.
+  - Sync writes the 512 vanilla bytes from offset 0 of the mirror, and whether that reaches the rows written at id times two depends on the first extended id.
+- [LW-482] 2026-10-20: Cold read of Extended/AccessorEntryHook.cs found 4 things worth a look. (cold-read, Extended sweep small-hooks)
+  - Neither Install frees the page after a failed write and neither Restore frees it after a restore, so pages leak unless the allocator reclaims them.
+  - AccessorEntryHook.Restore writes only the original bytes, and TrampolineAddr and StubAddr keep their old values after a restore.
+  - Neither hook checks that the allocator returned a page of the size asked for.
+  - AccessorEntryHook.Install copies the jump into entryBytes without checking the jump fits in the expected length, and that copy sits outside any try.
+- [LW-483] 2026-10-20: Cold read of Extended/SwingIdFallbackHook.cs found 1 thing worth a look. (cold-read, Extended sweep small-hooks)
+  - ShouldArm is called with a constant true in SwingIdFallbackHook.Install, so its readOk parameter is redundant there.
 
 ## Walled (blocked by engine / Denuvo / modloader)
 

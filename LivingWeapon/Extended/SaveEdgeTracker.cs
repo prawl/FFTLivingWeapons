@@ -13,7 +13,7 @@ namespace LivingWeapon;
 ///
 /// The key is <c>pt&lt;playTimeSeconds&gt;-&lt;first 12 hex of SHA-1 over the 0xB8 header bytes&gt;</c> with the
 /// three save-in-flight marker bytes (<see cref="Offsets.SaveHeaderVolatileOffs"/>) zeroed first. They read
-/// 0xFF at a save edge and 0x00 at rest, so an unmasked hash gave one save two keys (seen 2026-08-28).
+/// 0xFF at a save edge and 0x00 at rest, so an unmasked hash gave one save two keys, seen once.
 /// </summary>
 internal sealed class SaveEdgeTracker
 {

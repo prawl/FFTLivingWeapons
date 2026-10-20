@@ -3,20 +3,19 @@ using System.Collections.Generic;
 
 namespace LivingWeapon;
 
-/// <summary>The entry-trampoline half of <see cref="ThunkStub"/>. The instructions an accessor-entry jump overwrites still have to run,
-/// so this emits a copy of them plus a jump back past the stolen span, like SwingIdFallbackHook does for its site.</summary>
+/// <summary>The trampoline half of <see cref="ThunkStub"/>. The instructions our jump overwrites at an accessor entry still
+/// have to run, so this emits a copy of them plus a jump back past the stolen span, as SwingIdFallbackHook does for its site.</summary>
 internal static partial class ThunkStub
 {
-    /// <summary>Upper bound on an entry trampoline; the largest real shape is 34 bytes (4 stolen + 6 call + 2 skip + 8 address + 14 return jump).</summary>
+    /// <summary>Room for the largest real shape, 34 bytes (4 stolen + 6 call + 2 skip + 8 address + 14 return jump), with spare.</summary>
     public const int EntryTrampolineMaxSize = 0x40;
 
-    /// <summary>Builds the trampoline for the accessor entry at <paramref name="entryAddr"/> (live address). <paramref name="stolen"/> (at least five bytes)
-    /// is what the hook overwrites and <paramref name="callAt"/> the offset of an <c>E8 rel32</c> call in it, or -1. A rel32 only works at its own address, so the call becomes an absolute indirect call:
-    /// <code>
+    /// <summary>The trampoline for the accessor entry at <paramref name="entryAddr"/>: the stolen bytes run again, with a
+    /// call inside them turned into an absolute one, then a jump back past the stolen span.</summary>
+    /// <remarks><paramref name="callAt"/> is the offset of an <c>E8 rel32</c> call in the stolen bytes, or -1. A rel32 only works at its own address, so:<code>
     /// stolen[0..callAt) | FF 15 02 00 00 00 (call [rip+2]) | EB 08 (skip the address) | target:8
     /// | stolen[callAt+5..) | FF 25 00 00 00 00 (jmp [rip+0]) | entryAddr + stolen.Length:8
-    /// </code>
-    /// The callee returns to the <c>EB 08</c>, which hops over the address.</summary>
+    /// </code>The called routine comes back to the <c>EB 08</c>, which hops over the address.</remarks>
     public static byte[] EmitEntryTrampoline(long entryAddr, byte[] stolen, int callAt)
     {
         if (stolen == null || stolen.Length < 5)

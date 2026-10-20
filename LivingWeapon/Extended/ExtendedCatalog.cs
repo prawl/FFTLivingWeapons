@@ -4,13 +4,12 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Relocates the game's extended item catalog (ids 256..260, the "+" items) into a buffer this mod owns.
-/// It fills slots past 260 with our own 12-byte records. The accessor at
-/// 0x1402B8C44 reaches ids &gt;= 256 via <c>lea rax,[rax*4 + disp32]</c>; rewriting the disp32
-/// at <see cref="Offsets.ExtCatalogDisp32"/> points it at our buffer and leaves the accessor native
-/// (a managed detour clobbered r11 in the FFTHandsFree rig. Docs/research/ITEM_CAP_261_BREAK_JOURNEY.md,
-/// 2026-06-26 session 3; re-anchored for 1.5.2 on 2026-08-26). The buffer is 8 KB. Ids are masked
-/// with 0x1FF, so a stray id reads at most 511 * 12 = 0x17F4, a zero record.
+/// Gives the new items an entry in the game's item catalog, by moving the catalog's extra page somewhere bigger.
+/// The game keeps ids 256 to 260 (the "+" items) in a small block, and the accessor at 0x1402B8C44 reaches it with
+/// <c>lea rax,[rax*4 + disp32]</c>. Changing that disp32 at <see cref="Offsets.ExtCatalogDisp32"/> points the accessor
+/// at an 8 KB buffer of ours with our 12 byte records past 260, and the accessor itself stays the game's own code,
+/// since a managed detour there clobbered r11 and crashed the game [journal 2026-06-26]. Ids are masked with 0x1FF,
+/// so a stray id reads at most 511 * 12 = 0x17F4 into the buffer and finds a zero record.
 /// </summary>
 internal sealed class ExtendedCatalog
 {
@@ -28,8 +27,8 @@ internal sealed class ExtendedCatalog
     public long BufferAddr { get; private set; }
     private byte[]? _savedDisp32;
 
-    /// <summary>Null on success, else the refusal (nothing changed). The disp32 must still hold its vanilla
-    /// value (buffer base minus image base); otherwise the accessor is already redirected or the site moved.</summary>
+    /// <summary>Null on success, else why not. The disp32 must still point at the game's own block, or something
+    /// else already moved it or a patch moved the code.</summary>
     public string? Install(ICodePatcher patcher, INearAllocator allocator, IReadOnlyList<(int Id, byte[] Record)> records)
     {
         if (Installed) return null;
@@ -40,14 +39,14 @@ internal sealed class ExtendedCatalog
         }
         if (!patcher.TryRead(Offsets.ExtCatalogDisp32, 4, out var cur))
             return $"catalog: disp32 site 0x{Offsets.ExtCatalogDisp32:X} is unreadable";
-        // Both terms are live, so their difference equals the RVA in the file.
+        // Both addresses are where the game actually loaded, so their difference is the offset in the file.
         var vanilla = EncodeDisp32(Offsets.ExtCatalogBase, ImageBase.Base)!;
         if (!BytesEqual(cur, vanilla))
             return $"catalog: disp32 reads {Convert.ToHexString(cur)}, expected vanilla {Convert.ToHexString(vanilla)} (already redirected or moved)";
 
         long buf = allocator.Alloc(BufferSize, ImageBase.Base);
         if (buf == 0) return "catalog: no page within reach of the image base";
-        // The accessor indexes from the live image base, so the disp32 is measured from ImageBase.Base.
+        // The accessor adds the image base at run time, so the new disp32 is measured from it too.
         var disp = EncodeDisp32(buf, ImageBase.Base);
         if (disp == null) return $"catalog: buffer 0x{buf:X} is out of disp32 reach";
         if (!patcher.TryWrite(buf, new byte[BufferSize])) return $"catalog: zero-fill refused at 0x{buf:X}";
@@ -67,7 +66,7 @@ internal sealed class ExtendedCatalog
         return null;
     }
 
-    /// <summary>Points the accessor back at the vanilla block. The buffer is never freed (a game thread may be mid-read). Idempotent.</summary>
+    /// <summary>Points the accessor back at the game's block. The buffer stays allocated because a game thread may be reading it.</summary>
     public bool Restore(ICodePatcher patcher)
     {
         if (!Installed) return true;
@@ -76,8 +75,7 @@ internal sealed class ExtendedCatalog
         return ok;
     }
 
-    /// <summary>The signed 32-bit little-endian displacement the lea needs to reach <paramref name="buf"/>
-    /// from <paramref name="moduleBase"/>; null when out of range. Pinned by a unit test.</summary>
+    /// <summary>The disp32 that reaches <paramref name="buf"/> from <paramref name="moduleBase"/>, or null when too far.</summary>
     public static byte[]? EncodeDisp32(long buf, long moduleBase)
     {
         long disp = buf - moduleBase;
@@ -85,7 +83,7 @@ internal sealed class ExtendedCatalog
         return BitConverter.GetBytes((int)disp);
     }
 
-    /// <summary>(source address, destination offset) for the five vanilla "+" records that must keep resolving.</summary>
+    /// <summary>The game's five "+" items have to come along, or they would read as empty.</summary>
     public static IEnumerable<(long Src, long DstOff)> CopyPlan()
     {
         for (int id = DlcLo; id <= DlcHi; id++)

@@ -3,25 +3,22 @@ using System;
 namespace LivingWeapon;
 
 /// <summary>
-/// The three save-edge detour bodies of <see cref="SaveEdgeHooks"/>, split out of SaveEdgeHooks.cs.
-/// They also hold the AfterApply repair they share on the load path, split under the 200-line guideline. They run on the
-/// game's thread, call the original first (except the template projection in SerializeCore, which
-/// runs before it, see the base file's class doc) and never throw past their boundary.
+/// What happens at the moment of a save, a load or a rewind, on the game's own thread.
+/// Each body lets the game run first, except the chart copy before a save, and nothing they do may throw into the game.
 /// </summary>
 internal sealed partial class SaveEdgeHooks
 {
     private nint DetourSerialize(nint rcx, nint rdx, nint r8, nint r9)
         => SerializeCore(() => _serialize!.OriginalFunction(rcx, rdx, r8, r9));
 
-    /// <summary>Serialize-detour body with the native call injected so tests can drive it. The
-    /// projection runs first in its own try (on a fault the game serializes the old chart blocks as
-    /// before), then <paramref name="original"/> is called once outside any try, then the tracker work.</summary>
+    /// <summary>The save detour's body, with the game's routine passed in so tests can drive it. Our charts are
+    /// copied into the old blocks first, so the file saves them, and if that fails the game saves the old blocks as they were.</summary>
     internal nint SerializeCore(Func<nint> original)
     {
         try { if (_templates != null) TemplateSync.Project(_mem, _templates); }
-        catch (Exception) { /* a fault here must never reach the game; the old blocks stand as they are */ }
+        catch (Exception) { /* the old blocks are saved as they are */ }
 
-        nint ret = original();   // exactly once, never inside a try
+        nint ret = original();   // once, and outside any try so a game exception reaches the game
 
         try
         {
@@ -33,7 +30,7 @@ internal sealed partial class SaveEdgeHooks
                 _onSerialized?.Invoke();
             }
         }
-        catch (Exception) { /* a managed fault here must never reach the game */ }
+        catch (Exception) { /* a managed fault here must never reach the game, and a missed save record only costs that save's counts */ }
         return ret;
     }
 
@@ -51,13 +48,13 @@ internal sealed partial class SaveEdgeHooks
         return ret;
     }
 
-    /// <summary>One canary per path, since it is unknown which restore routine a real load runs.</summary>
+    /// <summary>Each load routine logs its first run, since nobody knows yet which one a real load uses.</summary>
     internal void AfterApply(bool second)
     {
         try
         {
             var hdr = ReadHeader();
-            if (hdr == null) return;   // the pointer did not resolve; otherwise every call takes an edge, which is sound because both routines overwrite the bag from the struct
+            if (hdr == null) return;   // both routines overwrite the bag from the struct, so every call that reads a header counts as a load
             AfterApplyCore(hdr);
             if (second)
             {
@@ -72,48 +69,48 @@ internal sealed partial class SaveEdgeHooks
                 SafeLog($"The load-edge hook is confirmed working; the game's first save load this session was intercepted (load-apply 0x{Offsets.FnSaveApply:X}).");
             }
         }
-        catch (Exception) { /* never reaches the game */ }
+        catch (Exception) { /* nothing may throw into the game */ }
     }
 
-    /// <summary>The repair and the edge, shared by both load routines and the flee rewind.</summary>
+    /// <summary>Shared by both load routines.</summary>
     private void AfterApplyCore(byte[] hdr)
     {
-        // Adopt the old chart blocks the routine just restored from the save struct back onto the relocated page
-        // before the bag and template replay, so the seat lands on a fresh page.
+        // The game just restored the old chart blocks from the save, so copy them onto our page first and
+        // the replay callback below works on the loaded charts.
         if (_templates != null) TemplateSync.Adopt(_mem, _templates);
-        // Repair first, publish the edge second, so counts and seats are right before a menu can draw.
-        // The replay has its own try so a fault cannot suppress the edge published after it.
+        // Put the counts back before telling the tick about the load, so a menu never draws them wrong,
+        // and give the replay its own try so a fault there still lets the load through.
         try { _replayOnLoad?.Invoke(SaveEdgeTracker.KeyFromHeader(hdr)); }
-        catch (Exception) { /* a replay fault must not cost the edge below */ }
+        catch (Exception) { /* a replay fault must not cost the edge below, the tick replays again when it sees the load */ }
         _tracker.OnApplied(hdr);
         _onApplied?.Invoke();
     }
 
-    /// <summary>A flee or a Retry puts the pre battle snapshot back without entering either load routine. This takes the
-    /// same edge from the snapshot's header and says so every time, since it is rare and the owner reads it.</summary>
+    /// <summary>A flee puts the pre battle snapshot back without going through either load routine, so this treats
+    /// it as a load of that snapshot. It logs every time because it is rare and worth reading.</summary>
     internal void AfterRewind(byte[] header)
     {
         try
         {
             string key = SaveEdgeTracker.KeyFromHeader(header);
-            // The old chart blocks hold the snapshot time charts, so adopting them is right on both branches.
+            // The old blocks now hold the charts from the snapshot, which is right whether or not a record exists.
             if (_templates != null) TemplateSync.Adopt(_mem, _templates);
             if (!_hasRecord(key))
             {
-                // A replay on an unknown key would fall to the first copy seed and zero the counts.
+                // Replaying a key we never saw would fall back to the starting counts and wipe the real ones.
                 SafeLog($"The battle was rewound to its pre battle save (key {key}) but this mod holds no bag counts for that save; the new weapons' counts will be re derived from the last total this mod captured.", warn: true);
                 Flight.Record("rewind-restore", $"key={key} record=missing");
                 return;
             }
             bool replayed = true;
             try { _replayOnLoad?.Invoke(key); }
-            catch (Exception) { replayed = false; /* a replay fault must not cost the edge below */ }
+            catch (Exception) { replayed = false; /* a replay fault must not cost the edge below, the load still goes through to the tick */ }
             _tracker.OnApplied(header);
             SafeLog($"The battle was rewound to its pre battle save (key {key}); the new weapons' bag counts were put back with it.");
             Flight.Record("rewind-restore", $"key={key} record=found");
             if (replayed) _onRewound?.Invoke();
         }
-        catch (Exception) { /* never reaches the game */ }
+        catch (Exception) { /* nothing may throw into the game */ }
     }
 
     private static void SafeLog(string line, bool warn = false)

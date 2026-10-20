@@ -1,29 +1,27 @@
 namespace LivingWeapon;
 
-/// <summary>One accessor function entry the extended inventory hooks. Its live address, a log
-/// label, the bytes it must carry before we overwrite it (the trampoline re-executes them), and
-/// the offset of the <c>E8 rel32</c> call inside them (-1 when there is none).</summary>
+/// <summary>One game routine the new items hook. Its live address, a name for the log, the bytes it must
+/// carry before we overwrite them (the trampoline runs them again), and the offset of the <c>E8 rel32</c>
+/// call inside them, or -1 when there is none.</summary>
 internal readonly record struct AccessorEntry(long Addr, string Label, byte[] Expected, int CallAt);
 
 /// <summary>
-/// Split out of ExtendedSites.cs when the byte-patch table passed ~200 lines.
-/// On the Denuvo build each of these ten addresses held a five-byte <c>E9 rel32</c> thunk
-/// into the protected tail. On the Denuvo-free build they are plain function entries, so the hook
-/// steals real instructions (see <see cref="AccessorEntryHook"/>). Expected bytes were read from the
-/// Denuvo-free exe on disk 2026-10-16 (Steam buildid 24304444). The two call entries both call the
-/// range-index entry (0x1402B8BCC), which is itself hooked.
+/// The ten routines the game asks about an item through, with the bytes each one starts with.
+/// On the Denuvo free build they are plain function entries, so the hook steals real instructions
+/// (see <see cref="AccessorEntryHook"/>) and the expected bytes are what the exe carries on disk. The two
+/// entries that start with a call both call the range index entry (0x1402B8BCC), which is hooked too.
 /// </summary>
 internal static class ExtendedDonorThunks
 {
     private static readonly byte[] SubRspMovzxR9 = { 0x48, 0x83, 0xEC, 0x28, 0x44, 0x0F, 0xB7, 0xC9 };   // sub rsp,28h; movzx r9d,cx
 
-    /// <summary>The weapon-stat accessor, which gets the row stub. A property because <c>Addr</c> is
-    /// rebased and a field would bake the image base at type-init.</summary>
+    /// <summary>The weapon stat routine, which gets the row stub. A property, because a field would bake
+    /// the image base in when the type loads and the address moves with it.</summary>
     public static AccessorEntry WeaponStat =>
         new(Offsets.ThunkWeaponStat, "weapon-stat", SubRspMovzxR9, -1);
 
-    /// <summary>The accessor entries every per-category lookup goes through, with the donor table
-    /// each answers from (the art donor draws the swing, the clone donor answers the rest).</summary>
+    /// <summary>The routines every per category lookup goes through, and which donor each answers from,
+    /// the art donor for the swing and the clone donor for the rest.</summary>
     public static (AccessorEntry Entry, bool UsesArtDonor)[] HookedDonorEntries => new[]
     {
         (new AccessorEntry(Offsets.ThunkValidity, "validity",

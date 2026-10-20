@@ -6,13 +6,12 @@ using Reloaded.Hooks.Definitions;
 namespace LivingWeapon;
 
 /// <summary>
-/// Extended inventory composition root and boot-arm lifecycle. BootArm runs in Mod.StartEx as one
-/// transaction that rolls back on the first refusal. No whole-image check gates it (the roster landmark is
-/// unreadable that early, and the build stamp is a report line), so each patch site verifies
-/// its old bytes before writing. Steps are in ExtendedInventory.Arm.cs. Cap patches, the
-/// list relocation (bag counts then live at <see cref="BagCountBase"/>), catalog fill, accessor
-/// hooks, category/order/list-builder/reset/save-edge hooks, then the bag seed. The tick half is
-/// ExtendedInventory.Tick.cs. With no extended rows shipped the whole arm is skipped with one Debug line.
+/// Switches the new items on at boot, all or nothing, and owns every piece that makes them work.
+/// BootArm runs from Mod.StartEx and undoes everything at the first refusal. The roster landmark cannot be read
+/// that early and the build stamp is only reported, so instead every patch checks its own old bytes before
+/// writing. The steps, in ExtendedInventory.Arm.cs, are the caps, the list move (the bag counts then live at
+/// <see cref="BagCountBase"/>), the catalog, the accessor hooks, the six detours, then the starting counts.
+/// The per tick work is in ExtendedInventory.Tick.cs. With no new items shipped nothing arms and one Debug line says so.
 /// </summary>
 internal sealed partial class ExtendedInventory
 {
@@ -29,8 +28,8 @@ internal sealed partial class ExtendedInventory
     private readonly ExtendedCatalog _catalog = new();
     private readonly ShopFlagsMirror _shops = new();
     private readonly List<AccessorEntryHook> _accessorHooks = new();
-    private AccessorEntryHook? _weaponStatHook;   // the row stub. Its page holds every extended id's 8-byte stats row
-    private SwingIdFallbackHook? _swingIdFallback;   // empty-tile swing art falls back to the hand id
+    private AccessorEntryHook? _weaponStatHook;   // its stub page holds every new weapon's 8 byte stat row
+    private SwingIdFallbackHook? _swingIdFallback;   // a swing at an empty tile finds the weapon in hand
     private CategoryGetterHook? _getterHook;
     private OrderRebuildHook? _orderHook;
     private ListBuilderHook? _listBuilderHook;
@@ -39,26 +38,26 @@ internal sealed partial class ExtendedInventory
     private RewindRestoreHook? _rewindHook;
     private RewindRecomputeStep? _rewindStep;
     private long _rewindTick;
-    /// <summary>the save/load edge core the hooks feed and the tick drains. Tests drive it directly.</summary>
+    /// <summary>The save and load hooks fill it and the tick empties it. Tests drive it directly.</summary>
     public SaveEdgeTracker Tracker { get; } = new();
 
     public IReadOnlyList<ExtendedItemDef> Items => _data.Items;
     public bool Armed { get; private set; }
     public long RetryRewinds => _rewindHook?.CheckpointRestoresSeen ?? 0;
     private readonly DoorCell _door = new(DoorReading.Waiting("the loader has not handed over its hooks yet"));
-    /// <summary>The extended inventory part's door, written by the boot arm thread and read by the engine tick.</summary>
+    /// <summary>Whether the new items are on, set by the boot thread and read by the tick.</summary>
     public DoorReading Door => _door.Value;
-    /// <summary>Why the last BootArm did not arm (null once armed, or when nothing is shipped).</summary>
+    /// <summary>Why the last BootArm did not arm, or null once armed or when nothing ships.</summary>
     public string? Refusal { get; private set; }
-    /// <summary>Where the bag counts live now, the relocated page if it armed, else
-    /// <see cref="Offsets.BagCountArray"/>. Resolve every bag byte through this so a refused relocation falls back.</summary>
+    /// <summary>Where the bag counts are right now, our page once the move armed and
+    /// <see cref="Offsets.BagCountArray"/> if it did not. Every bag read goes through here so a refused move still works.</summary>
     public long BagCountBase => _relocation.Installed ? _relocation.CountBase : Offsets.BagCountArray;
-    /// <summary>the weapon order-template regions in effect, relocated if that armed, else the
-    /// vanilla pair. Read through this, not <see cref="TemplateSeat.WeaponRegions"/>.</summary>
+    /// <summary>Where the two weapon order charts are right now, moved or not. Read them through here
+    /// and not through <see cref="TemplateSeat.WeaponRegions"/>, which only knows the old place.</summary>
     public TemplateSeat.Region[] TemplateRegions => _templates.Regions;
 
-    /// <param name="installHooks">Test seam for the Reloaded.Hooks install step; null uses
-    /// <see cref="DefaultInstallHooks"/>, which refuses a null hooks controller.</param>
+    /// <param name="installHooks">Lets tests stand in for the detour install. Null uses
+    /// <see cref="DefaultInstallHooks"/>, which refuses when the loader gave no hooks.</param>
     public ExtendedInventory(ICodePatcher patcher, INearAllocator allocator, ExtendedInventoryData.LoadResult data,
         ExtendedBagSidecar sidecar, Func<IReloadedHooks?, string?>? installHooks = null)
     {
@@ -71,7 +70,7 @@ internal sealed partial class ExtendedInventory
         _pending = ExtendedSites.PostLoadPatches(Math.Max(1, data.Items.Count)).Select(p => new PendingPatch(p)).ToList();
     }
 
-    /// <summary>Runs once from Engine.InjectHooks (Mod.StartEx) and is idempotent. Null hooks means the helper mod is absent, so nothing arms.</summary>
+    /// <summary>Called once from Engine.InjectHooks and safe to call twice. Null hooks means the helper mod is missing.</summary>
     public void BootArm(IReloadedHooks? hooks)
     {
         if (Armed) return;
@@ -99,7 +98,7 @@ internal sealed partial class ExtendedInventory
         if (why != null)
         {
             RollBack();
-            // The boot arm has no build hedge because it runs from the loader handshake and never reads the guard.
+            // This runs before the launch guard reads the build, so the message cannot blame a game update.
             Refuse(why, DoorReading.Failed("the game code the new items plug into is not where this mod expects it"),
                 PartsCopy.Disabled("The new items are paused for this session because the game code they plug into is not where this mod expects it; everything else keeps working.", "", "", why));
             return;
@@ -116,9 +115,8 @@ internal sealed partial class ExtendedInventory
             + (_pending.Count == 0 ? "." : $"; {_pending.Count} damage cap(s) wait for the first save to load."));
     }
 
-    /// <summary>Address of an extended id's 8-byte ITEM_WEAPON_DATA row in the weapon-stat stub page, or -1
-    /// when unarmed or not ours. WpTableHold writes its WP bump there (Offsets.ItemStatsRows has no row for
-    /// these ids). Same layout as the resident table, Power at +4.</summary>
+    /// <summary>Where a new weapon's stat row lives, so WpTableHold can raise its WP the way it does for the
+    /// game's own rows in Offsets.ItemStatsRows. Same layout, Power at +4. -1 when not armed or not one of ours.</summary>
     public long WeaponRowAddr(int id)
     {
         if (!Armed || _weaponStatHook == null || !_weaponStatHook.Installed) return -1;
@@ -130,7 +128,7 @@ internal sealed partial class ExtendedInventory
     private void Refuse(string why, DoorReading door, string line)
     {
         Refusal = why;
-        // The box shows the door's reason, so the raw install diagnostic stays in the log line.
+        // The parts box shows the door's plain reason, so the raw diagnostic goes only to the log.
         _door.Set(door);
         ModLogger.Warn(LogVerb.Startup, line);
     }

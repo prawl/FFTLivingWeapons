@@ -6,31 +6,30 @@ using System.Xml.Linq;
 
 namespace LivingWeapon;
 
-/// <summary>One extended-inventory item as the boot arm needs it. The two binary records the
-/// game reads plus the donor ids the accessor stubs answer with.</summary>
+/// <summary>One new item with the two records the game reads and the donors the stubs answer with.</summary>
 internal sealed class ExtendedItemDef
 {
     public int Id { get; init; }
     public string Name { get; init; } = "";
     public string Category { get; init; } = "";
-    /// <summary>12-byte ITEM_COMMON_DATA (ExtendedRecords.EncodeCatalogRecord).</summary>
+    /// <summary>From ExtendedRecords.EncodeCatalogRecord.</summary>
     public byte[] CatalogRecord { get; init; } = Array.Empty<byte>();
-    /// <summary>8-byte ITEM_WEAPON_DATA (ExtendedRecords.EncodeWeaponRow).</summary>
+    /// <summary>From ExtendedRecords.EncodeWeaponRow.</summary>
     public byte[] WeaponRow { get; init; } = Array.Empty<byte>();
-    /// <summary>Vanilla id every per-category accessor answers as.</summary>
+    /// <summary>The game's own item this one passes for in every lookup except the swing art.</summary>
     public int CloneDonor { get; init; }
-    /// <summary>Vanilla id whose sprite/palette pair draws the swing.</summary>
+    /// <summary>The game's own item whose sprite and palette draw this one's swing.</summary>
     public int ArtDonor { get; init; }
-    /// <summary>Bag copies granted the first time the item is seen with no sidecar entry.</summary>
+    /// <summary>How many a game starts with when our save file has no record for it.</summary>
     public int SeedCount { get; init; }
-    /// <summary>ITEM_SHOPS_DATA.ShopFlags. The towns whose shop stocks it; 0 = nowhere.</summary>
+    /// <summary>Which towns sell it, 0 for nowhere.</summary>
     public ushort ShopFlags { get; init; }
 }
 
 /// <summary>
-/// Reads <c>&lt;modDir&gt;/extended_inventory/{ItemData,ItemWeaponData,ItemExtendedData}.xml</c>
-/// (written by tools/generate.py from the `extended` rows of data/items.json) into <see cref="ExtendedItemDef"/>s.
-/// Any bad row makes <see cref="Load"/> return zero items plus the reasons, since a half-loaded catalog would hand the game a zero record. Ids must be contiguous from <see cref="ExtendedCatalog.FirstExtendedId"/> (the stubs index donors by id, 261). A missing folder means nothing shipped.
+/// Reads the new items from the mod folder, all of them or none.
+/// The files are <c>&lt;modDir&gt;/extended_inventory/{ItemData,ItemWeaponData,ItemExtendedData}.xml</c> from tools/generate.py, and no folder means no new items.
+/// One bad row loads nothing and lists why, since a half loaded catalog would hand the game an empty record for the missing item.
 /// </summary>
 internal static class ExtendedInventoryData
 {
@@ -66,7 +65,7 @@ internal static class ExtendedInventoryData
                 }
             if (ids.Count > 0 && ids[^1] > ExtendedCatalog.LastExtendedId)
                 errors.Add($"id {ids[^1]} is past the last extended slot {ExtendedCatalog.LastExtendedId}");
-            // Past this count, eight disp8 lea sites overflow instead of widening.
+            // Past this count, eight one byte lea offsets in the game's code turn negative instead of growing.
             if (ids.Count > ExtendedSites.MaxExtendedCount)
                 errors.Add($"{ids.Count} extended items is past ExtendedSites.MaxExtendedCount ({ExtendedSites.MaxExtendedCount}): the eight disp8 lea sites cannot widen any further");
             foreach (int id in ids)
@@ -110,12 +109,12 @@ internal static class ExtendedInventoryData
             CloneDonor = clone,
             ArtDonor = art,
             SeedCount = Int(e, "SeedCount"),
-            // <Shops> is optional; a table without it means sold nowhere.
+            // <Shops> may be left out, which means no town sells it.
             ShopFlags = ExtendedRecords.ParseShops(e.Element("Shops")?.Value),
         };
     }
 
-    /// <summary>Id -&gt; row element for one file; a missing file or a duplicate id is an error.</summary>
+    /// <summary>A missing file or a repeated id is an error.</summary>
     private static Dictionary<int, XElement> Rows(string path, string rowName, List<string> errors)
     {
         var map = new Dictionary<int, XElement>();

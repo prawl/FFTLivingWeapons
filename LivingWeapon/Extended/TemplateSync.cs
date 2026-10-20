@@ -3,20 +3,17 @@ using System;
 namespace LivingWeapon;
 
 /// <summary>
-/// The pure policy for the template relocation, plus the two save and load edge operations.
-/// The edge operations keep the save file's old chart blocks and the page's live charts in sync while
-/// <see cref="TemplateRelocation"/> is armed. The relocation moves the charts the game works on, but the save field keeps
-/// its old shape (F5), which is the first 140 (or 261) chart words in order, extended ids included, then the marker. On
-/// save, <see cref="Project"/> runs before the game's serializer copies the old block. It reads the page, truncates to what
-/// the old block holds, and writes that in. On load, <see cref="Adopt"/> runs after the game restores the old block. It
-/// copies the span back onto the page and re-applies the marker rule and the 0xFFFF wall so the game's housekeeper can walk
-/// it safely. Every write goes through the injected <see cref="ICodePatcher"/>.
+/// Carries the menu order charts between our page and the save file, which expects them where they used to be.
+/// While <see cref="TemplateRelocation"/> is armed the game works on our copies, but the save keeps the old shape, the
+/// first 140 (or 261) chart words in order, new ids included, then the marker. On a save, <see cref="Project"/> runs
+/// before the game copies the old block into the file, and writes as much of our chart as the old block holds into it.
+/// On a load, <see cref="Adopt"/> runs after the game restores the old block, copies it back onto our page, and puts the
+/// marker and the 0xFFFF wall back so the game's routines can walk it safely.
 /// </summary>
 internal static class TemplateSync
 {
-    /// <summary>Pure. The page's words up to (not including) the first <see cref="TemplateSeat.EndMarker"/>, in page order
-    /// with ids verbatim (a 0x4000 badge bit rides along unmasked), truncated to <paramref name="capacityWords"/>, 1 ids,
-    /// then the marker. No zero-fill; <see cref="OldBlockImage"/> pads.</summary>
+    /// <summary>The words before the first <see cref="TemplateSeat.EndMarker"/>, as they are (a 0x4000 badge stays on), cut to
+    /// <paramref name="capacityWords"/> minus one so the marker still fits after them. <see cref="OldBlockImage"/> does the zero padding.</summary>
     public static ushort[] Projection(ushort[] pageWords, int capacityWords)
     {
         int end = Array.IndexOf(pageWords, TemplateSeat.EndMarker);
@@ -28,8 +25,8 @@ internal static class TemplateSync
         return result;
     }
 
-    /// <summary>Pure <paramref name="projection"/> as little-endian words, zero-filled to <paramref name="spanBytes"/>,
-    /// the old block's size (T6b. The projection is already truncated, so it never exceeds the span).</summary>
+    /// <summary>The projection as bytes, zero padded to the old block's size. The projection was already cut to fit,
+    /// so it never runs past <paramref name="spanBytes"/>.</summary>
     public static byte[] OldBlockImage(ushort[] projection, int spanBytes)
     {
         var bytes = new byte[spanBytes];
@@ -37,11 +34,10 @@ internal static class TemplateSync
         return bytes;
     }
 
-    /// <summary>Pure. The marker rule plus the 0xFFFF wall, applied to <paramref name="span"/>
-    /// (an old chart block, read verbatim) to produce a <paramref name="regionBytes"/>-long page image. Cases:
-    /// (a) the span already holds a 0x00FF marker. Copied unchanged, wall after the span's words (the game's walkers stop at the marker);
-    /// (b) no marker but a zero word. The marker goes into that slot, wall after the span;
-    /// (c) every word a nonzero non-marker id (the overflow shape, finding 10): marker appended one word past the span, wall right after it.</summary>
+    /// <summary>Turns an old chart block from the save into a page chart the game can walk without running off the end.
+    /// With a 0x00FF marker already in it, it is copied as is and the 0xFFFF wall goes after it.</summary>
+    /// <remarks>With no marker but a zero word, the marker takes that zero's slot. With every word a real id, which happens
+    /// when the chart overflowed, the marker goes one word past the block and the wall after that.</remarks>
     public static byte[] RegionImage(byte[] span, int regionBytes)
     {
         int spanWords = span.Length / 2;
@@ -64,9 +60,8 @@ internal static class TemplateSync
         return region;
     }
 
-    /// <summary>The serialize edge, a no-op when not installed. Per chart. Read the page region, project it to the
-    /// old block's capacity, and write it in one write that stays inside the span.
-    /// Called inside <see cref="SaveEdgeHooks.SerializeCore"/>'s try, before the original runs.</summary>
+    /// <summary>Just before a save, writes each of our charts into the old block the save will copy, in one write that
+    /// stays inside it. Called inside <see cref="SaveEdgeHooks.SerializeCore"/>'s try, before the game's save runs.</summary>
     public static void Project(ICodePatcher patcher, TemplateRelocation relocation)
     {
         if (!relocation.Installed) return;
@@ -80,9 +75,8 @@ internal static class TemplateSync
         }
     }
 
-    /// <summary>The load edge, a no-op when not installed. Per chart. Read the old block the game just restored,
-    /// apply the marker rule and wall, and write it to the page in one write. Called from <see cref="SaveEdgeHooks.AfterApply"/>
-    /// after <see cref="SaveEdgeHooks.ReadHeader"/> succeeds and before the bag/template replay, so the seat lands on a fresh page.</summary>
+    /// <summary>Just after a load, copies each old block the game restored onto our page. Called from <see cref="SaveEdgeHooks.AfterApply"/>
+    /// once the header reads, and before the counts are replayed and the charts seated, so the seat lands on the freshly loaded chart.</summary>
     public static void Adopt(ICodePatcher patcher, TemplateRelocation relocation)
     {
         if (!relocation.Installed) return;
