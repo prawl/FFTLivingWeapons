@@ -1,0 +1,115 @@
+{
+ "version": "2.2.1",
+ "ref": "v2.2.1",
+ "sha": "50627761",
+ "date": "2026-06-26",
+ "since": "v2.2.0",
+ "snapshot": {
+  "prod_files": 96,
+  "prod_lines": 11523,
+  "code_lines": 6708,
+  "test_files": 88,
+  "test_lines": 18581,
+  "test_ratio": 1.61,
+  "comment_share": 0.297,
+  "empty_catches": 11,
+  "catches": 22,
+  "methods": 338,
+  "long_methods": 5,
+  "duplication": 0.0182
+ },
+ "cycle": {
+  "commits": 19,
+  "prod_commits": 5,
+  "fix_commits": 1,
+  "fix_share": 0.2
+ },
+ "hotspots": [
+  {
+   "file": "KillTracker.Corpses.cs",
+   "commits": 2,
+   "fixes": 0,
+   "branches": 37,
+   "code": 122
+  },
+  {
+   "file": "Wielder.cs",
+   "commits": 1,
+   "fixes": 0,
+   "branches": 58,
+   "code": 147
+  },
+  {
+   "file": "Puppeteer.cs",
+   "commits": 1,
+   "fixes": 0,
+   "branches": 36,
+   "code": 114
+  },
+  {
+   "file": "KillTracker.cs",
+   "commits": 2,
+   "fixes": 0,
+   "branches": 17,
+   "code": 124
+  },
+  {
+   "file": "Choir.cs",
+   "commits": 1,
+   "fixes": 0,
+   "branches": 30,
+   "code": 118
+  },
+  {
+   "file": "Engine.cs",
+   "commits": 1,
+   "fixes": 0,
+   "branches": 24,
+   "code": 161
+  },
+  {
+   "file": "TurnTracker.cs",
+   "commits": 1,
+   "fixes": 1,
+   "branches": 22,
+   "code": 62
+  },
+  {
+   "file": "Tuning.cs",
+   "commits": 3,
+   "fixes": 0,
+   "branches": 6,
+   "code": 77
+  },
+  {
+   "file": "KillTracker.Delayed.cs",
+   "commits": 1,
+   "fixes": 0,
+   "branches": 14,
+   "code": 56
+  },
+  {
+   "file": "Puppeteer.Policy.cs",
+   "commits": 1,
+   "fixes": 0,
+   "branches": 9,
+   "code": 57
+  }
+ ],
+ "domains": [
+  {
+   "domain": "(root)",
+   "files": 92,
+   "code": 6537,
+   "changes": 16,
+   "fixes": 1
+  },
+  {
+   "domain": "Configuration",
+   "files": 4,
+   "code": 171,
+   "changes": 0,
+   "fixes": 0
+  }
+ ]
+}

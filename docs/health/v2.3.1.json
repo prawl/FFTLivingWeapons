@@ -1,0 +1,87 @@
+{
+ "version": "2.3.1",
+ "ref": "v2.3.1",
+ "sha": "78a2f3c4",
+ "date": "2026-07-21",
+ "since": "v2.3.0",
+ "snapshot": {
+  "prod_files": 177,
+  "prod_lines": 24651,
+  "code_lines": 13548,
+  "test_files": 171,
+  "test_lines": 42995,
+  "test_ratio": 1.74,
+  "comment_share": 0.349,
+  "empty_catches": 21,
+  "catches": 71,
+  "methods": 670,
+  "long_methods": 14,
+  "duplication": 0.0097
+ },
+ "cycle": {
+  "commits": 7,
+  "prod_commits": 3,
+  "fix_commits": 1,
+  "fix_share": 0.333
+ },
+ "hotspots": [
+  {
+   "file": "AttackCard.Paint.cs",
+   "commits": 1,
+   "fixes": 1,
+   "branches": 47,
+   "code": 127
+  },
+  {
+   "file": "Engine.cs",
+   "commits": 1,
+   "fixes": 0,
+   "branches": 44,
+   "code": 265
+  },
+  {
+   "file": "Display.cs",
+   "commits": 1,
+   "fixes": 0,
+   "branches": 29,
+   "code": 164
+  },
+  {
+   "file": "AttackCard.cs",
+   "commits": 1,
+   "fixes": 1,
+   "branches": 16,
+   "code": 101
+  },
+  {
+   "file": "Tuning.cs",
+   "commits": 1,
+   "fixes": 1,
+   "branches": 7,
+   "code": 105
+  },
+  {
+   "file": "Offsets.cs",
+   "commits": 1,
+   "fixes": 0,
+   "branches": 2,
+   "code": 109
+  }
+ ],
+ "domains": [
+  {
+   "domain": "(root)",
+   "files": 173,
+   "code": 13377,
+   "changes": 6,
+   "fixes": 3
+  },
+  {
+   "domain": "Configuration",
+   "files": 4,
+   "code": 171,
+   "changes": 0,
+   "fixes": 0
+  }
+ ]
+}

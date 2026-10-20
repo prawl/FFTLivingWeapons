@@ -1,0 +1,115 @@
+{
+ "version": "2.3.4",
+ "ref": "v2.3.4",
+ "sha": "29a666b0",
+ "date": "2026-10-16",
+ "since": "v2.3.3",
+ "snapshot": {
+  "prod_files": 205,
+  "prod_lines": 29508,
+  "code_lines": 15580,
+  "test_files": 206,
+  "test_lines": 54128,
+  "test_ratio": 1.83,
+  "comment_share": 0.376,
+  "empty_catches": 21,
+  "catches": 87,
+  "methods": 762,
+  "long_methods": 13,
+  "duplication": 0.0087
+ },
+ "cycle": {
+  "commits": 2,
+  "prod_commits": 1,
+  "fix_commits": 0,
+  "fix_share": 0.0
+ },
+ "hotspots": [
+  {
+   "file": "Barrage.cs",
+   "commits": 1,
+   "fixes": 0,
+   "branches": 36,
+   "code": 160
+  },
+  {
+   "file": "Mod.cs",
+   "commits": 1,
+   "fixes": 0,
+   "branches": 14,
+   "code": 111
+  },
+  {
+   "file": "ArmAudit.cs",
+   "commits": 1,
+   "fixes": 0,
+   "branches": 13,
+   "code": 78
+  },
+  {
+   "file": "PromptSwapHook.cs",
+   "commits": 1,
+   "fixes": 0,
+   "branches": 8,
+   "code": 82
+  },
+  {
+   "file": "LaunchGuard.cs",
+   "commits": 1,
+   "fixes": 0,
+   "branches": 6,
+   "code": 86
+  },
+  {
+   "file": "ScholarRing.cs",
+   "commits": 1,
+   "fixes": 0,
+   "branches": 6,
+   "code": 23
+  },
+  {
+   "file": "LaunchGuard.Landmarks.cs",
+   "commits": 1,
+   "fixes": 0,
+   "branches": 6,
+   "code": 30
+  },
+  {
+   "file": "ImageBase.cs",
+   "commits": 1,
+   "fixes": 0,
+   "branches": 6,
+   "code": 43
+  },
+  {
+   "file": "Provoke.Policy.cs",
+   "commits": 1,
+   "fixes": 0,
+   "branches": 3,
+   "code": 23
+  },
+  {
+   "file": "Offsets.cs",
+   "commits": 1,
+   "fixes": 0,
+   "branches": 2,
+   "code": 137
+  }
+ ],
+ "domains": [
+  {
+   "domain": "(root)",
+   "files": 201,
+   "code": 15409,
+   "changes": 11,
+   "fixes": 0
+  },
+  {
+   "domain": "Configuration",
+   "files": 4,
+   "code": 171,
+   "changes": 0,
+   "fixes": 0
+  }
+ ]
+}

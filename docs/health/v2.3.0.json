@@ -1,0 +1,115 @@
+{
+ "version": "2.3.0",
+ "ref": "v2.3.0",
+ "sha": "ba9a17bb",
+ "date": "2026-07-16",
+ "since": "v2.2.2",
+ "snapshot": {
+  "prod_files": 177,
+  "prod_lines": 24559,
+  "code_lines": 13514,
+  "test_files": 169,
+  "test_lines": 42212,
+  "test_ratio": 1.72,
+  "comment_share": 0.349,
+  "empty_catches": 21,
+  "catches": 71,
+  "methods": 669,
+  "long_methods": 14,
+  "duplication": 0.0097
+ },
+ "cycle": {
+  "commits": 303,
+  "prod_commits": 93,
+  "fix_commits": 11,
+  "fix_share": 0.118
+ },
+ "hotspots": [
+  {
+   "file": "Engine.cs",
+   "commits": 45,
+   "fixes": 5,
+   "branches": 44,
+   "code": 263
+  },
+  {
+   "file": "KillTracker.Corpses.cs",
+   "commits": 11,
+   "fixes": 1,
+   "branches": 57,
+   "code": 244
+  },
+  {
+   "file": "ActorResolver.cs",
+   "commits": 5,
+   "fixes": 0,
+   "branches": 119,
+   "code": 240
+  },
+  {
+   "file": "KillTracker.cs",
+   "commits": 16,
+   "fixes": 1,
+   "branches": 36,
+   "code": 261
+  },
+  {
+   "file": "Wielder.cs",
+   "commits": 6,
+   "fixes": 0,
+   "branches": 62,
+   "code": 143
+  },
+  {
+   "file": "CardSites.cs",
+   "commits": 6,
+   "fixes": 1,
+   "branches": 48,
+   "code": 140
+  },
+  {
+   "file": "Wielder.Roster.cs",
+   "commits": 5,
+   "fixes": 0,
+   "branches": 49,
+   "code": 151
+  },
+  {
+   "file": "GrowthEngine.Signatures.cs",
+   "commits": 5,
+   "fixes": 0,
+   "branches": 49,
+   "code": 125
+  },
+  {
+   "file": "Display.cs",
+   "commits": 9,
+   "fixes": 1,
+   "branches": 27,
+   "code": 156
+  },
+  {
+   "file": "AttackCard.Paint.cs",
+   "commits": 5,
+   "fixes": 1,
+   "branches": 44,
+   "code": 116
+  }
+ ],
+ "domains": [
+  {
+   "domain": "(root)",
+   "files": 173,
+   "code": 13343,
+   "changes": 478,
+   "fixes": 30
+  },
+  {
+   "domain": "Configuration",
+   "files": 4,
+   "code": 171,
+   "changes": 6,
+   "fixes": 0
+  }
+ ]
+}
