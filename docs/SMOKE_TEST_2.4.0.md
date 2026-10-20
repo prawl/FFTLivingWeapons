@@ -736,7 +736,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   resumed battle, a kill uncredited, a box, or sensing still WAITING a minute after the world map.
   A leg A FAIL is a Backlog row beside LW-108 and LW-233 and the owner rules whether it joins R5.
   (DEV OK) **[MAJOR]**
-- [ ] 5.11 **Two of the same weapon share one story.** Buying a second copy of a shop weapon is
+- [x] 5.11 (PASSED knife half 2026-10-19 22:27 on dev of 5e511102, owner live: Ramza and a second unit each with a Cutpurse killed once, `Cutpurse claims kill number 19` then `20`, one count up by two, both cards read 20, both wielders captured the Speed lane at their own naturals 13 and 16; the Mending Staff half NOT REACHED and shipped open by the slimmed pass ruling; result pass) **Two of the same weapon share one story.** Buying a second copy of a shop weapon is
   the most ordinary thing a player does: both copies share one kill count and both wielders grow,
   while a trick weapon's power is one per party (two main hand wielders means the trick arms for
   neither, silently). Dev build: two units of different level each with a Cutpurse (id 1) or a
@@ -1005,7 +1005,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   the hold is up, `0 units were ever hidden`, or the watchdog release `The provoke hold timed out
   and released on its own`. (covers LW-123, LW-127, LW-129, LW-130, LW-131, LW-133, LW-135,
   LW-136, LW-138, LW-118) **[MAJOR]**
-- [ ] 9.2 **Provoke survives a quit and a reload mid hold (the LW-130 open question).** A player
+- [ ] 9.2 (FAILED 2026-10-19 22:09 to 22:11 on dev of 5e511102, owner live: hold armed on goblin Eidothea, quit to title and Continue, every unit visible with no icon and a kill credited after (Defender 16), but the WARN `The provoke hold timed out and released on its own` fired on the resumed battle; a fix was dropped by owner ruling for unmeasured rebuild timing; LW-465 for 2.4.1, README known issue line; ships failed; result bug LW-465) **Provoke survives a quit and a reload mid hold (the LW-130 open question).** A player
   who saves and quits while the shout is working never comes back to an invisible party or an ally
   wearing the mark. In the 9.1 battle: cast Provoke, let one more unit act so the game autosaves
   with the hold up, Quit to title, Continue that autosave. PASS: every party unit visible on the

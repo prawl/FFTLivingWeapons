@@ -111,6 +111,11 @@ The gameplay is language-neutral by construction: the item tables carry no text,
   uninstall; if an inventory list then looks short, sort it once and it repairs itself. Reinstall and
   they come back with their saved counts, as long as you did not save while the mod was off; a save
   written without the mod starts the new weapons over at zero.
+- **Quitting mid Provoke can leave your party hidden for up to a minute and a half.** If you quit to
+  the title (or pick Retry) while a Defender's Provoke is up, and then Continue, the hold can outlive
+  the rewind. Your units may stay invisible to enemies until the mod's safety timer lets go, about 90
+  seconds at most. Nothing is lost and it clears on its own; ending your Defender's turn or the
+  battle also clears it.
 - **Dual-wielding doubles the growth.** A kill while wielding two weapons credits both of them,
   not just one, so pairing two Living Weapons together is the fastest way to grow a pair at once.
   A shield equipped in either hand never earns credit; only a real weapon does.
