@@ -4,9 +4,9 @@ using System.Linq;
 namespace LivingWeapon;
 
 /// <summary>
-/// The tick half of the rewind fix. A restore counter rising schedules two recompute passes, because the game's own
-/// roster revert can land a few milliseconds after our write. On both Retry roads the game's inventory reset runs about
-/// 20 ms before the checkpoint restore and the roster revert lands a few ms after it, measured on the night of October 18. Counters are read as functions so the hooks may arrive late.
+/// After a fled or retried battle, works the new weapons' bag counts out again from what the party holds.
+/// The game's inventory reset runs about 20 ms before a checkpoint restore and its roster revert a few ms after
+/// our write, so each restore gets two passes. Counters are read through functions because their hooks may arrive late.
 /// </summary>
 internal sealed class RewindRecomputeStep
 {
@@ -44,6 +44,6 @@ internal sealed class RewindRecomputeStep
             if (wrote) ModLogger.Event(LogVerb.Save, $"After the battle was rewound the new weapons' counts were re derived from what the party holds ({change}).");
             if (refused || wrote || change.Length > 0) _record("rewind-recompute", change);
         }
-        catch (Exception) { /* a fault here must never reach the tick */ }
+        catch (Exception) { /* a throw here would stop every later step in the tick */ }
     }
 }

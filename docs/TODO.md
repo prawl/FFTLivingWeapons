@@ -2649,6 +2649,37 @@ belongs rather than at the bottom.
   reservations (the check_stock_rows tripwire) and the LW-344 partner whitelist stay
   consistent with them becoming tracked.
 
+### Cold read findings, untriaged
+
+Rows the cold read's stage 1 reader raised without being asked, one row per file, one indented line per finding, tagged with the trial that found them. Nobody has judged them yet; a row leaves here by being promoted, merged into a real row, or closed in the changelog.
+
+- [LW-481] 2026-10-20: Cold read of Extended/InventoryResetHook.cs found 6 things worth a look. (cold-read, Rerun trial 2 build 3)
+  - Process swallows a Restore exception with an empty catch and no log, and Restores does not reflect it.
+  - A failed read before the reset, or the second read inside Restore failing, is silent, with no log and no counter.
+  - _canary is a plain bool while the counters go through Interlocked, so the first time Event could fire more than once if the detour ran on several threads.
+  - kept counts the nonzero saved bytes, which may not be the ones the game zeroed.
+  - Release only disables the hook and never nulls it, so a later Install re enables it without checking the prologue.
+  - The bag is read as one byte per item, and Same and kept rest on that.
+- [LW-479] 2026-10-20: Cold read of Extended/RewindRecomputeStep.cs found 1 thing worth a look. (cold-read, Rerun trial 1 build 3)
+  - A source counter that drops, after a reset say, hides every later rise up to the old high water mark, because _last only moves on a rise.
+- [LW-480] 2026-10-20: Cold read of Extended/RewindTotals.cs found 2 things worth a look. (cold-read, Rerun trial 1 build 3)
+  - PutBack publishes Latest and counts a capture before it knows the hands read succeeded.
+  - wrote rests on a name not ending in "refused" instead of a flag.
+- [LW-478] 2026-10-20: Cold read of Extended/CategoryGetterHook.cs found 3 things worth a look. (cold-read, Seeded trial build 3)
+  - Release swallows a failed Disable in an empty catch, so IsActive is the only sign of the failure.
+  - Install returns null on a fresh install and on the already hooked path alike, so the caller cannot tell the two apart.
+  - A second Install after a failure overwrites _keepalive, so an earlier hook still live could lose its delegate to the collector.
+- [LW-471] 2026-10-20: Step and Recompute swallow exceptions with no log or counter. (cold-read, Rerun trial 1)
+- [LW-472] 2026-10-20: A null Latest makes Recompute return false with no trace while the due pass is spent. wrote rests on a name not ending in "refused". (cold-read, Rerun trial 1)
+- [LW-473] 2026-10-20: Step reads each counter twice per tick. (cold-read, Rerun trial 1)
+- [LW-474] 2026-10-20: LastReason is written outside the lock. (cold-read, Rerun trial 1)
+- [LW-475] 2026-10-20: ReadHands counts only RRHand and ROffHand and never RLHand or RShield. (cold-read, Rerun trial 1)
+- [LW-476] 2026-10-20: Capture stores unclamped totals while BagFor clamps to 0..255. (cold-read, Rerun trial 1)
+- [LW-477] 2026-10-20: Offsets.InventoryCountBase and Offsets.BagCountArray are two names for 0x1411A7C00. (cold-read, Rerun trial 1)
+- [LW-468] 2026-10-20: Detour dereferences _hook with a bang, and Activate can enable the hook before the assignment lands, so an early call would throw inside the game. (cold-read, Seeded trial)
+- [LW-469] 2026-10-20: Release swallows every failure, so a failed Disable leaves the hook live with no trace. (cold-read, Seeded trial)
+- [LW-470] 2026-10-20: Release never clears _hook, so IsActive cannot tell a released hook from one never installed. (cold-read, Seeded trial)
+
 ## Walled (blocked by engine / Denuvo / modloader)
 
 - Swords cannot get new swing visuals: the art is welded to the weapon id inside the

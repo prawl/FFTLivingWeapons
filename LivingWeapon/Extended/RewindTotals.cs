@@ -6,10 +6,10 @@ using System.Threading;
 namespace LivingWeapon;
 
 /// <summary>
-/// Total owned per extended id, which is the bag count plus the roster hands holding it. A rewind restores the
-/// roster and the vanilla bag from different moments, so the bag is always set to the total minus the hands now.
-/// The hands are the right and off hand of each of the fifty roster slots, so a stolen or broken weapon simply
-/// stops being counted at the next capture.
+/// How many of each new weapon the party owns, counting the bag and every hand that holds one.
+/// A rewind puts the roster and the game's bag back from two different moments, so after one the bag is set to
+/// the total minus what the hands hold now. Only the right and off hand of the fifty roster slots are counted,
+/// so a weapon stolen or broken in battle drops out of the total at the next capture.
 /// </summary>
 internal sealed class RewindTotals
 {
@@ -38,13 +38,13 @@ internal sealed class RewindTotals
         _mem = mem;
         _ids = extendedIds;
         _bagBase = bagBase == 0 ? Offsets.BagCountArray : bagBase;
-        _rosterBase = rosterBase == 0 ? Offsets.RosterBase : rosterBase;   // a rebased pin cannot be a default value
+        _rosterBase = rosterBase == 0 ? Offsets.RosterBase : rosterBase;   // a rebased address cannot be a default parameter
         _slots = slots;
         _stride = stride;
         _nameOf = nameOf ?? (id => id.ToString());
     }
 
-    /// <summary>Per id, the roster hands holding it. Null when any row was unreadable, because a short count would mint copies.</summary>
+    /// <summary>Null when any roster row cannot be read, because a short count would make the bag hand out weapons nobody owns.</summary>
     public IReadOnlyDictionary<int, int>? ReadHands()
     {
         var hands = _ids.ToDictionary(id => id, _ => 0);
@@ -60,7 +60,7 @@ internal sealed class RewindTotals
         return hands;
     }
 
-    /// <summary>One byte per id. Null when any byte was unreadable.</summary>
+    /// <summary>Null when any byte cannot be read, for the same reason.</summary>
     public IReadOnlyDictionary<int, int>? ReadBag()
     {
         var bag = new Dictionary<int, int>();
@@ -72,7 +72,7 @@ internal sealed class RewindTotals
         return bag;
     }
 
-    /// <summary>True when Latest was replaced, false when a read failed and the previous total stands.</summary>
+    /// <summary>False when a read failed, and then the last good total stands.</summary>
     public bool Capture(string source)
     {
         var bag = ReadBag();
@@ -84,7 +84,7 @@ internal sealed class RewindTotals
         return true;
     }
 
-    /// <summary>Adopts the totals as the latest, then writes every extended bag byte as the total minus the hands now. Writes nothing when the hands could not be read.</summary>
+    /// <summary>The totals a Retry checkpoint saved become the current ones even when the hands cannot be read, so the next recompute still has them.</summary>
     public IReadOnlyDictionary<int, int> PutBack(IReadOnlyDictionary<int, int> totals, string source)
     {
         lock (_gate) { _latest = totals; _latestSource = source; }
@@ -101,7 +101,7 @@ internal sealed class RewindTotals
         return wrote;
     }
 
-    /// <summary>Writes only the bytes that differ from the latest total minus the hands now. True when one was written.</summary>
+    /// <summary>Only bytes that are wrong get written, so a quiet recompute leaves no trace in memory or the log.</summary>
     public bool Recompute(string reason, out string change)
     {
         change = "";
@@ -132,6 +132,6 @@ internal sealed class RewindTotals
             if (wrote) Interlocked.Increment(ref _corrections);
             return wrote;
         }
-        catch (Exception) { return false; }   // a fault must never reach the tick
+        catch (Exception) { return false; }   // a throw here would stop every later step in the tick
     }
 }

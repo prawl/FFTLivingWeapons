@@ -350,3 +350,259 @@ Expected: No. The first tick only stores the count as a baseline (the stored val
 Reader: No. The stored count starts at minus one so the first tick only sets the baseline to 5. A later higher count stamps. Flagged that a hook armed late could read as a jump.
 Result: pass
 Unprompted: The restore counter rises even when no bag record was found, and that still counts as a Retry, as intended. ProcessCheckpoint and ProcessRewind swallow exceptions silently. A fourth question the reader invented about the Mods folder was ignored.
+
+## Cold read 2026-10-19 23:22, Extended sweep trial, base 7f157f7c
+Run cap 2 (225 changed production lines). Runs used 1 of 2.
+Files: LivingWeapon/Extended/RewindTotals.cs, LivingWeapon/Extended/RewindTotals.Policy.cs, LivingWeapon/Extended/RewindRecomputeStep.cs, LivingWeapon/Offsets.cs
+Hashes: LivingWeapon/Extended/RewindRecomputeStep.cs=2138d76926d77d5a; LivingWeapon/Extended/RewindTotals.Policy.cs=33179b750b931408; LivingWeapon/Extended/RewindTotals.cs=73a058db254f275e
+Stage 1 (cold read): run 1, 3 pass, canary cold
+Stage 2 (plain words): stripped code identical before and after in 3 file(s); comment lines 21 before stage 1, 21 after; rules clean
+Stage 3 (warnings): 0 warning(s) found; 0 fixed in code, 0 kept with a reason
+Stage 4 (accuracy): 0 comment(s) flagged over 1 read(s); 0 fixed and confirmed by a fresh read, 0 reader wrong, 0 open
+### Run 1
+Canary: cold
+Q1 (failure path): Recompute runs with a captured total, the roster hands read fine, but one bag byte is unreadable. What does it write, which counters move, what does change hold, what does it return, and what does RewindRecomputeStep.Step then log or record?
+Expected: ReadBag returns null, so nothing is written. Recomputes and Incomplete each go up by one and LastReason is set. change is "a roster or bag read failed" and it returns false. Step logs no Warn and no Event, because nothing was written or refused, but change is not empty so it records one flight entry "rewind-recompute" with that text.
+Reader: Nothing written, Recomputes and Incomplete up one, LastReason set, change "a roster or bag read failed", false; Step logs neither Warn nor Event and records one rewind-recompute flight entry with that text.
+Result: pass
+Q2 (ordering or threading): The checkpoint restore counter rises on tick 100 and the flee rewind counter rises on tick 110, with Step called every tick. On which ticks does Recompute run, and with what reason each time?
+Expected: Tick 100 schedules passes at 103 and 115. Recompute runs at 103 with reason "checkpoint restore". Tick 110 clears the pending 115 and schedules 113 and 125, and the reason becomes "flee rewind". Recompute runs at 113 and 125 with reason "flee rewind". The 115 pass never runs.
+Reader: Runs at 103 with the first source's name, then 113 and 125 with the second's; the second Schedule clears the 115 pass. It noted the names themselves are constructor arguments outside the packet.
+Result: pass
+Q3 (free): ReadHands returns null when a single roster row cannot be read, instead of counting the rows it could read. Why, and what does PutBack do in that case?
+Expected: A short hands count makes total minus hands too large, so the bag would be written with copies the party does not own, minting weapons. With null, PutBack still adopts the totals as Latest and bumps Captures, but writes nothing, bumps Incomplete and returns an empty map.
+Reader: Read the why from BagFor, a hands count that skipped rows is too low so a too high bag value gets written, and null lets callers refuse; PutBack sets Latest, bumps Captures, then bumps Incomplete, writes nothing and returns an empty map.
+Result: pass
+Unprompted: A throw partway through Recompute's write loop leaves some bytes written with no correction counted. LastReason is set before the read failure check and is not under the lock. Step reads each counter twice, so a rise between the two reads is folded in silently. wrote leans on a string ending in "refused". A null Latest consumes the due pass with no trace.
+
+## Cold read 2026-10-19 23:25, Extended sweep trial 2, base 7f157f7c
+Run cap 1 (136 changed production lines). Runs used 1 of 1.
+Files: LivingWeapon/Extended/InventoryResetHook.cs
+Hashes: LivingWeapon/Extended/InventoryResetHook.cs=c50a2a51fcd7254a
+Stage 1 (cold read): run 1, 2 pass, 1 miss, fix comment, canary cold
+Stage 2 (plain words): stripped code identical before and after in 1 file(s); comment lines 32 before stage 1, 28 after; rules clean
+Stage 3 (warnings): 1 warning(s) found; 0 fixed in code, 1 kept with a reason
+Stage 4 (accuracy): 0 comment(s) flagged over 1 read(s); 0 fixed and confirmed by a fresh read, 0 reader wrong, 0 open
+### Run 1
+Canary: cold
+Q1 (failure path): The detour runs, and the read of the new items' bag bytes before the reset fails. What does the detour do, what is written, which counters move, and what is logged?
+Expected: before is null, the game's reset still runs once, Restore returns at once, nothing is written, Runs goes up by one and Restores does not, and nothing is logged or recorded.
+Reader: before is null, the reset still runs and its result returns, Restore exits at once, nothing written, Runs moves and Restores does not, nothing logged.
+Result: pass
+Q2 (ordering or threading): In Process, in what order do the Runs count, the bag read, the game's reset and the restore happen, and what happens if the game's reset throws, or if the restore throws?
+Expected: Runs is counted first, then the bag is read, then the game's reset is called once outside any try, then the restore runs inside a try. A throw from the game's reset goes straight back to the game and no restore happens. A throw from the restore is swallowed and the game's result is still returned.
+Reader: Runs, then the read, then the reset unguarded, then Restore in a try, then the return; a reset throw skips Restore and leaves Process, a Restore throw is swallowed and the result returns.
+Result: pass
+Q3 (free): Why does Restore read the bytes again and compare them with the saved ones before writing, and what does the kept number in its log line count?
+Expected: The reset only sometimes wipes the bytes, so it writes and logs only when they changed, which keeps a reset that left them alone silent. kept counts the new items that had at least one copy before the reset. The first restore logs at Info and later ones at Debug, and every restore is recorded in the flight log.
+Reader: Got the compare and the silent no change path and kept as the nonzero saved bytes, but said the code gives no reason for the compare and did not name the Info then Debug logging.
+Result: miss, fix comment (the reset not always touching the bytes is a game fact no code can say)
+Unprompted: A restore writes the whole saved range back when any byte differs. The bag read sits outside any try, safe only because ICodePatcher never throws. The first restore flag is a plain bool. Release only disables the hook.
+### Stage detail
+W1: LivingWeapon/Extended/InventoryResetHook.cs:63 | /// <summary>Null on success, else why not. Safe to call twice.</summary>
+Resolution: kept, it promises a second Install is harmless rather than warning of a trap, and the early return already enforces it
+
+## Cold read 2026-10-20 00:51, Seeded trial, base 7f157f7c
+Run cap 1 (87 changed production lines). Runs used 1 of 1.
+Files: LivingWeapon/Extended/CategoryGetterHook.cs
+Hashes: LivingWeapon/Extended/CategoryGetterHook.cs=d3304f050967c6a0
+Guard: {"LivingWeapon/Extended/CategoryGetterHook.cs":{"budget":13,"kept":["// Must not be installed before the catalog, because the donors answer for ids only the catalog adds. /// <summary>Null on success, else the refusal. Idempotent.</summary>","/* swallowed: release must never throw */"],"raw":"445437017c1862a2"}}
+Stage 1 (cold read): run 1, 2 pass, 1 bad question, canary WARM
+Stage 2 (plain words): stripped code identical before and after in 1 file(s); comment lines 13 before stage 1, 13 after; rules clean
+Stage 3 (warnings): 2 warning(s) found (2 only in the original comments); 0 fixed in code, 2 kept with a reason; no code changed
+Stage 4 (accuracy): 1 comment(s) flagged over 2 read(s); 1 fixed and confirmed by a fresh read, 0 reader wrong, 0 open; control caught on 2 counted read(s), missed on 0 refused read(s); 5 unsourced reason(s)
+### Run 1
+Canary: WARM
+Q1 (failure path): In Install, the prologue matches but CreateHook throws. What does Install return, what state are _hook and _keepalive left in, and what does a second Install call do?
+Expected: It returns "category-getter: hook install failed (<message>)". _keepalive is already set to the Detour delegate but _hook stays null, because the throw happens before the assignment. A second Install sees _hook null, so it reads and checks the prologue again and tries CreateHook again.
+Reader: Returns the install failed message, _keepalive set, _hook null because the assignment never happens, a second Install skips the guard, rereads the prologue and tries CreateHook again.
+Result: pass
+Q2 (ordering or threading): A call reaches Detour. In what order do the two counters move and the original get called, for an id inside the donor range and for one outside it, and which value does the original receive in each case?
+Expected: _calls goes up first on every call. Resolve masks rcx with 0x3FF and looks the id up. Outside the range it returns -1, so the original gets the untouched rcx and _redirected does not move. Inside the range _redirected goes up, then the original gets the donor id alone, so any flag bits above the mask are dropped.
+Reader: _calls first, then Resolve; inside the range _redirected then the original with the donor value, outside it the original with the unchanged rcx and no _redirected. It said the mask value is outside the packet.
+Result: pass
+Q3 (free): Why is a managed Reloaded.Hooks detour safe for this getter, when the per item accessors needed AccessorEntryHook instead?
+Expected: The getter's callers keep no volatile registers live across the call, so a managed detour that clobbers r11 does no harm. The accessors' callers do keep r11 live, and a managed detour there crashed the game, so they got hand written stubs that touch only rax and rcx.
+Reader: Cannot answer from the packet, missing AccessorEntryHook and the per item accessor code.
+Result: bad question (needs AccessorEntryHook)
+Unprompted: Detour dereferences _hook with a bang, and Activate can enable the hook before the assignment lands, so an early call would throw inside the game. Release swallows every failure, so a failed Disable leaves the hook live with no trace. Release never clears _hook, so IsActive cannot tell a released hook from one never installed.
+### Stage detail
+Read 1 control planted in LivingWeapon/Extended/CategoryGetterHook.cs as _spareTally9e7d = 62, caught, 12s
+Read 1 F2: LivingWeapon/Extended/CategoryGetterHook.cs | `/// <summary>Always returns a donor id for the raw rcx; it never hands back -1.</summary>` | `Resolve` returns -1 when `i < 0` or `i >= donors.Length`. `Detour` relies on that with `if (donor < 0)`.
+Read 1 U1: LivingWeapon/Extended/CategoryGetterHook.cs | `// The catalog goes in first, so the donors find the ids it adds.` | unsourced reason
+Read 1 U2: LivingWeapon/Extended/CategoryGetterHook.cs | `/* a release that throws would take the rollback down with it */` | unsourced reason
+Read 2 control planted in LivingWeapon/Extended/CategoryGetterHook.cs as _spareTally7009 = 46, caught, 11s
+Read 2 U1: LivingWeapon/Extended/CategoryGetterHook.cs | A managed detour is safe here because the getter's callers keep no volatile registers live across the call (as with PromptSwapHook). | unsourced reason
+Read 2 U2: LivingWeapon/Extended/CategoryGetterHook.cs | The per item accessors' callers do, which is why they use AccessorEntryHook instead. | unsourced reason
+Read 2 U3: LivingWeapon/Extended/CategoryGetterHook.cs | // The catalog goes in first, so the donors find the ids it adds. | unsourced reason
+Read 2 U4: LivingWeapon/Extended/CategoryGetterHook.cs | /* a release that throws would take the rollback down with it */ | unsourced reason
+Read 2 U5: LivingWeapon/Extended/CategoryGetterHook.cs | // Runs on every item the menus touch, so it stays free of logging and allocation. | unsourced reason
+W1 (original, reworded or removed in stage 2): LivingWeapon/Extended/CategoryGetterHook.cs:55 | // Must not be installed before the catalog, because the donors answer for ids only the catalog adds. /// <summary>Null on success, else the refusal. Idempotent.</summary>
+Resolution: kept, the install order is set in ExtendedInventory.Arm.cs and this class cannot see or enforce it
+W2 (original, reworded or removed in stage 2): LivingWeapon/Extended/CategoryGetterHook.cs:75 | /* swallowed: release must never throw */
+Resolution: kept, the empty catch already enforces it and no type can say a rollback must not throw
+Unprompted rows: 3 new (LW-468, LW-469, LW-470), 0 repeated (none)
+
+## Cold read 2026-10-20 00:58, Rerun trial 1, base 7f157f7c
+Run cap 2 (225 changed production lines). Runs used 2 of 2.
+Files: LivingWeapon/Extended/RewindTotals.cs, LivingWeapon/Extended/RewindTotals.Policy.cs, LivingWeapon/Extended/RewindRecomputeStep.cs, LivingWeapon/Offsets.cs
+Hashes: LivingWeapon/Extended/RewindRecomputeStep.cs=2138d76926d77d5a; LivingWeapon/Extended/RewindTotals.Policy.cs=33179b750b931408; LivingWeapon/Extended/RewindTotals.cs=73a058db254f275e
+Guard: {"LivingWeapon/Extended/RewindRecomputeStep.cs":{"budget":5,"kept":["/* a fault here must never reach the tick */"],"raw":"b0da6dc45d984232"},"LivingWeapon/Extended/RewindTotals.Policy.cs":{"budget":5,"kept":[],"raw":"871c949e89117c9e"},"LivingWeapon/Extended/RewindTotals.cs":{"budget":11,"kept":["// a fault must never reach the tick"],"raw":"4798c32a5c72b00c"}}
+Stage 1 (cold read): run 1, 1 pass, 1 bad question, 1 miss, fix comment, canary cold
+Stage 2 (plain words): stripped code identical before and after in 3 file(s); comment lines 21 before stage 1, 19 after; rules clean
+Stage 3 (warnings): 2 warning(s) found (2 only in the original comments); 0 fixed in code, 2 kept with a reason; no code changed
+Stage 4 (accuracy): 0 comment(s) flagged over 1 read(s); 0 fixed and confirmed by a fresh read, 0 reader wrong, 0 open; control caught on 1 counted read(s), missed on 0 refused read(s); 3 unsourced reason(s)
+### Run 1
+Canary: cold
+Q1 (failure path): Recompute runs with a captured total, the roster hands read fine, but one bag byte is unreadable. What does it write, which counters move, what does change hold, what does it return, and what does RewindRecomputeStep.Step then log or record?
+Expected: ReadBag returns null, so nothing is written. Recomputes and Incomplete each go up by one and LastReason is set. change is "a roster or bag read failed" and it returns false. Step logs no Warn and no Event, because nothing was written or refused, but change is not empty so it records one flight entry "rewind-recompute" with that text.
+Reader: Nothing written, Recomputes and Incomplete rise, Refused and Corrections do not, change is "a roster or bag read failed", returns false; Step fires neither Warn nor Event and records one rewind-recompute entry with that text.
+Result: pass
+Q2 (ordering or threading): The checkpoint restore counter rises on tick 100 and the flee rewind counter rises on tick 110, with Step called every tick. On which ticks does Recompute run, and with what reason each time?
+Expected: Tick 100 schedules passes at 103 and 115. Recompute runs at 103 with reason "checkpoint restore". Tick 110 clears the pending 115 and schedules 113 and 125, and the reason becomes "flee rewind". Recompute runs at 113 and 125 with reason "flee rewind". The 115 pass never runs.
+Reader: Runs at 103, 113 and 125, the second Schedule drops the 115 pass; for the reason strings it said cannot answer from the packet, missing the construction site of RewindRecomputeStep.
+Result: bad question (needs DefaultInstallHooks)
+Q3 (free): ReadHands returns null when a single roster row cannot be read, instead of counting the rows it could read. Why, and what does PutBack do in that case?
+Expected: A short hands count makes total minus hands too large, so the bag would be written with copies the party does not own, minting weapons. With null, PutBack still adopts the totals as Latest and bumps Captures, but writes nothing, bumps Incomplete and returns an empty map.
+Reader: Read from BagFor that a partial hand count is too low and would push a too large bag value into the write, and said that is a consequence in the code rather than a stated reason; PutBack sets Latest, bumps Captures, then bumps Incomplete, writes nothing and returns an empty map.
+Result: miss, fix comment (the why is a consequence of BagFor the reader would not state as intent; the ReadHands summary now says it)
+Unprompted: Step and Recompute swallow exceptions with no log or counter. A null Latest makes Recompute return false with no trace while the due pass is spent. wrote rests on a name not ending in "refused". Step reads each counter twice per tick. LastReason is written outside the lock. ReadHands counts only RRHand and ROffHand and never RLHand or RShield. Capture stores unclamped totals while BagFor clamps to 0..255. Offsets.InventoryCountBase and Offsets.BagCountArray are two names for 0x1411A7C00.
+### Stage detail
+Read 1 control planted in LivingWeapon/Extended/RewindRecomputeStep.cs as _holdTicks3c37 = 42, caught, 17s
+Read 1 U1: LivingWeapon/Extended/RewindTotals.cs | "// a throw here would stop every later step in the tick" | unsourced reason
+Read 1 U2: LivingWeapon/Extended/RewindRecomputeStep.cs | "Counters are read through functions because their hooks may arrive late." | unsourced reason
+Read 1 U3: LivingWeapon/Extended/RewindRecomputeStep.cs | "/* a throw here would stop every later step in the tick */" | unsourced reason
+W1 (original, reworded or removed in stage 2): LivingWeapon/Extended/RewindTotals.cs:135 | // a fault must never reach the tick
+Resolution: kept, the empty catch is the whole guard and no type can say a tick step must not throw
+W2 (original, reworded or removed in stage 2): LivingWeapon/Extended/RewindRecomputeStep.cs:47 | /* a fault here must never reach the tick */
+Resolution: kept, the empty catch is the whole guard and no type can say a tick step must not throw
+Unprompted rows: 7 new (LW-471, LW-472, LW-473, LW-474, LW-475, LW-476, LW-477), 0 repeated (none)
+
+## Cold read 2026-10-20 11:45, Seeded trial build 3, base 7f157f7c
+Run cap 1 (87 changed production lines). Runs used 1 of 1.
+Files: LivingWeapon/Extended/CategoryGetterHook.cs
+Hashes: LivingWeapon/Extended/CategoryGetterHook.cs=17437a8ea40e9f3c
+Guard: {"LivingWeapon/Extended/CategoryGetterHook.cs":{"budget":13,"kept":["a release that throws would take the rollback down with it"],"raw":"76e2fe0eec9766b2"}}
+Supersedes: Cold read 2026-10-20 00:51, Seeded trial, base 7f157f7c | rerun on the third build from the original file
+Stage 1 (cold read): run 1, 2 pass, 1 bad question, canary cold
+Stage 2 (plain words): stripped code identical before and after in 1 file(s); comment lines 13 before stage 1, 13 after; rules clean
+Stage 3 (warnings): 2 warning(s) found (1 only in the original comments); 1 fixed in code, 1 kept with a reason; code changed in CategoryGetterHook.cs (3 lines)
+Stage 4 (accuracy): 1 comment(s) flagged over 2 read(s); 1 fixed and confirmed by a fresh read, 0 reader wrong, 0 open; control kind missing member and wrong return caught on 2 counted read(s), missed on 0 refused read(s); 3 unsourced reason(s); 0 kept warning(s) code could enforce
+### Run 1
+Canary: cold
+Q1 (failure path): In Install, the prologue matches but CreateHook throws. What does Install return, what state are _hook and _keepalive left in, and what does a second Install call do?
+Expected: It returns "category-getter: hook install failed (<message>)". _keepalive is already set to the Detour delegate but _hook stays null, because the throw happens before the assignment. A second Install sees _hook null, so it reads and checks the prologue again and tries CreateHook again.
+Reader: Returns the install failed message from the catch, _keepalive stays set to Detour, _hook stays null because the assignment comes after CreateHook, and a second Install skips the early return, rereads and rechecks the prologue and tries CreateHook again, overwriting _keepalive.
+Result: pass
+Q2 (ordering or threading): A call reaches Detour. In what order do the two counters move and the original get called, for an id inside the donor range and for one outside it, and which value does the original receive in each case?
+Expected: _calls goes up first on every call. Resolve masks rcx with 0x3FF and looks the id up. Outside the range it returns -1, so the original gets the untouched rcx and _redirected does not move. Inside the range _redirected goes up, then the original gets the donor id alone, so any flag bits above the mask are dropped.
+Reader: _calls first, then Resolve; outside the range the original gets the unchanged rcx and _redirected stays; inside it _redirected goes up and then the original gets the donor value. It said the mask value and the donor table are outside the packet.
+Result: pass
+Q3 (free): Why is a managed Reloaded.Hooks detour safe for this getter, when the per item accessors needed AccessorEntryHook instead?
+Expected: The getter's callers keep no volatile registers live across the call, so a managed detour that clobbers r11 does no harm. The accessors' callers do keep r11 live, and a managed detour there crashed the game, so they got hand written stubs that touch only rax and rcx.
+Reader: Cannot answer from the packet, missing AccessorEntryHook and the per item accessor code.
+Result: bad question (needs AccessorEntryHook)
+Unprompted:
+- Release swallows a failed Disable in an empty catch, so IsActive is the only sign of the failure.
+- Install returns null on a fresh install and on the already hooked path alike, so the caller cannot tell the two apart.
+- Detour dereferences _hook with a bang, and Activate enables the hook before the assignment lands, so a getter call in that window would throw inside the game.
+- A second Install after a failure overwrites _keepalive, so an earlier hook still live could lose its delegate to the collector.
+### Stage detail
+Stage 3 changed 3 code line(s) in LivingWeapon/Extended/CategoryGetterHook.cs
+Read 1 control (missing member) planted in LivingWeapon/Extended/CategoryGetterHook.cs at line 78 as // Calls RefreshSlotCache() first., caught, 11s
+Read 1 F1: LivingWeapon/Extended/CategoryGetterHook.cs | "Always returns a donor id for the raw rcx; it never hands back -1." | `Resolve` returns -1 when `i` is outside `0..donors.Length-1` (`i >= 0 && i < donors.Length ? donors[i] : -1`). `Detour` relies on that with `if (donor < 0)`.
+Read 1 U1: LivingWeapon/Extended/CategoryGetterHook.cs | "A managed detour is safe here because the getter's callers keep no volatile registers live across the call (as with PromptSwapHook)." | unsourced reason
+Read 1 U2: LivingWeapon/Extended/CategoryGetterHook.cs | "The per item accessors' callers do, which is why they use AccessorEntryHook instead." | unsourced reason
+Read 2 control (wrong return) planted in LivingWeapon/Extended/CategoryGetterHook.cs at line 67 as // Returns an empty array on this path., caught, 13s
+Read 2 U1: LivingWeapon/Extended/CategoryGetterHook.cs | "A managed detour is safe here because the getter's callers keep no volatile registers live across the call (as with PromptSwapHook)." | unsourced reason
+Read 2 U2: LivingWeapon/Extended/CategoryGetterHook.cs | "The per item accessors' callers do, which is why they use AccessorEntryHook instead." | unsourced reason
+Read 2 U3: LivingWeapon/Extended/CategoryGetterHook.cs | "// Runs on every item the menus touch, so it stays free of logging and allocation." | unsourced reason
+W1 (original, still there): LivingWeapon/Extended/CategoryGetterHook.cs:55 | // Must not be installed before the catalog, because the donors answer for ids only the catalog adds. /// <summary>Null on success, else the refusal. Idempotent.</summary>
+Resolution: fixed, Install now takes whether the catalog is installed and refuses while it is not, so the order the warning asked for is enforced in code
+W2 (original, reworded or removed in stage 2): LivingWeapon/Extended/CategoryGetterHook.cs:75 | /* swallowed: release must never throw */
+Resolution: kept, the empty catch already enforces it and no type can say a rollback must not throw
+Unprompted rows: 3 finding(s) new in 1 row(s) (LW-478), 1 repeated (LW-468)
+
+## Cold read 2026-10-20 11:45, Rerun trial 1 build 3, base 7f157f7c
+Run cap 2 (225 changed production lines). Runs used 2 of 2.
+Files: LivingWeapon/Extended/RewindTotals.cs, LivingWeapon/Extended/RewindTotals.Policy.cs, LivingWeapon/Extended/RewindRecomputeStep.cs, LivingWeapon/Offsets.cs
+Hashes: LivingWeapon/Extended/RewindRecomputeStep.cs=2138d76926d77d5a; LivingWeapon/Extended/RewindTotals.Policy.cs=33179b750b931408; LivingWeapon/Extended/RewindTotals.cs=73a058db254f275e
+Guard: {"LivingWeapon/Extended/RewindRecomputeStep.cs":{"budget":5,"kept":["a throw here would stop every later step in the tick"],"raw":"b0da6dc45d984232"},"LivingWeapon/Extended/RewindTotals.Policy.cs":{"budget":5,"kept":[],"raw":"871c949e89117c9e"},"LivingWeapon/Extended/RewindTotals.cs":{"budget":11,"kept":["a throw here would stop every later step in the tick"],"raw":"4798c32a5c72b00c"}}
+Supersedes: Cold read 2026-10-20 00:58, Rerun trial 1, base 7f157f7c | rerun on the third build from the original files
+Stage 1 (cold read): run 1, 1 pass, 1 bad question, 1 miss, fix comment, canary cold
+Stage 2 (plain words): stripped code identical before and after in 3 file(s); comment lines 21 before stage 1, 19 after; rules clean
+Stage 3 (warnings): 2 warning(s) found (2 only in the original comments); 0 fixed in code, 2 kept with a reason; no code changed
+Stage 4 (accuracy): 0 comment(s) flagged over 1 read(s); 0 fixed and confirmed by a fresh read, 0 reader wrong, 0 open; control kind missing member caught on 1 counted read(s), missed on 0 refused read(s); 3 unsourced reason(s); 0 kept warning(s) code could enforce
+### Run 1
+Canary: cold
+Q1 (failure path): Recompute runs with a captured total, the roster hands read fine, but one bag byte is unreadable. What does it write, which counters move, what does change hold, what does it return, and what does RewindRecomputeStep.Step then log or record?
+Expected: ReadBag returns null, so nothing is written. Recomputes and Incomplete each go up by one and LastReason is set. change is "a roster or bag read failed" and it returns false. Step logs no Warn and no Event, because nothing was written or refused, but change is not empty so it records one flight entry "rewind-recompute" with that text.
+Reader: Nothing written, Recomputes and Incomplete go up, Corrections and Refused do not, LastReason is set, change is "a roster or bag read failed", returns false; Step fires neither Warn nor Event and records one rewind-recompute entry with that text.
+Result: pass
+Q2 (ordering or threading): The checkpoint restore counter rises on tick 100 and the flee rewind counter rises on tick 110, with Step called every tick. On which ticks does Recompute run, and with what reason each time?
+Expected: Tick 100 schedules passes at 103 and 115. Recompute runs at 103 with reason "checkpoint restore". Tick 110 clears the pending 115 and schedules 113 and 125, and the reason becomes "flee rewind". Recompute runs at 113 and 125 with reason "flee rewind". The 115 pass never runs.
+Reader: Runs at 103 with the first source's name, then 113 and 125 with the second's, and the second Schedule drops the 115 pass. For the reason strings it said the names are constructor arguments outside the packet.
+Result: bad question (needs DefaultInstallHooks)
+Q3 (free): ReadHands returns null when a single roster row cannot be read, instead of counting the rows it could read. Why, and what does PutBack do in that case?
+Expected: A short hands count makes total minus hands too large, so the bag would be written with copies the party does not own, minting weapons. With null, PutBack still adopts the totals as Latest and bumps Captures, but writes nothing, bumps Incomplete and returns an empty map.
+Reader: Said the packet states no reason, then read from BagFor that an undercounted hands value makes the bag count too high; PutBack sets Latest and the source, bumps Captures, then bumps Incomplete, writes nothing and returns an empty map.
+Result: miss, fix comment (the why is a consequence of BagFor the reader would not state as intent; the ReadHands summary now says it)
+Unprompted:
+- A source counter that drops, after a reset say, hides every later rise up to the old high water mark, because _last only moves on a rise.
+- Step and Recompute swallow exceptions with no log or counter.
+- A null Latest makes Recompute return false with no counter and no record, while the due pass is spent.
+- PutBack publishes Latest and counts a capture before it knows the hands read succeeded.
+- ReadHands counts only RRHand and ROffHand and never RLHand or RShield.
+- wrote rests on a name not ending in "refused" instead of a flag.
+- LastReason is written outside the lock.
+- Offsets.InventoryCountBase and Offsets.BagCountArray are two names for 0x1411A7C00.
+### Stage detail
+Read 1 control (missing member) planted in LivingWeapon/Extended/RewindRecomputeStep.cs at line 28 as // Calls WarmTheCatalog() first., caught, 20s
+Read 1 U1: LivingWeapon/Extended/RewindTotals.cs | "a throw here would stop every later step in the tick" | unsourced reason
+Read 1 U2: LivingWeapon/Extended/RewindRecomputeStep.cs | "Counters are read through functions because their hooks may arrive late." | unsourced reason
+Read 1 U3: LivingWeapon/Extended/RewindRecomputeStep.cs | "a throw here would stop every later step in the tick" | unsourced reason
+W1 (original, reworded or removed in stage 2): LivingWeapon/Extended/RewindTotals.cs:135 | // a fault must never reach the tick
+Resolution: kept, the empty catch is the whole guard and no type can say a tick step must not throw
+W2 (original, reworded or removed in stage 2): LivingWeapon/Extended/RewindRecomputeStep.cs:47 | /* a fault here must never reach the tick */
+Resolution: kept, the empty catch is the whole guard and no type can say a tick step must not throw
+Unprompted rows: 3 finding(s) new in 2 row(s) (LW-479, LW-480), 5 repeated (LW-471, LW-472, LW-475, LW-474, LW-477)
+
+## Cold read 2026-10-20 11:45, Rerun trial 2 build 3, base 7f157f7c
+Run cap 1 (136 changed production lines). Runs used 1 of 1.
+Files: LivingWeapon/Extended/InventoryResetHook.cs
+Hashes: LivingWeapon/Extended/InventoryResetHook.cs=c50a2a51fcd7254a
+Guard: {"LivingWeapon/Extended/InventoryResetHook.cs":{"budget":32,"kept":["Runs inside the game, so nothing past the game's own call may throw.","a logger failure must never escape the detour"],"raw":"f7aff77f1e28b718"}}
+Supersedes: Cold read 2026-10-19 23:25, Extended sweep trial 2, base 7f157f7c | rerun on the third build from the original file
+Stage 1 (cold read): run 1, 2 pass, 1 miss, fix comment, canary cold
+Stage 2 (plain words): stripped code identical before and after in 1 file(s); comment lines 32 before stage 1, 28 after; rules clean
+Stage 3 (warnings): 2 warning(s) found (1 only in the original comments); 0 fixed in code, 2 kept with a reason; no code changed
+Stage 4 (accuracy): 0 comment(s) flagged over 1 read(s); 0 fixed and confirmed by a fresh read, 0 reader wrong, 0 open; control kind caller caught on 1 counted read(s), missed on 0 refused read(s); 1 unsourced reason(s); 0 kept warning(s) code could enforce
+### Run 1
+Canary: cold
+Q1 (failure path): The detour runs, and the read of the new items' bag bytes before the reset fails. What does the detour do, what is written, which counters move, and what is logged?
+Expected: before is null, the game's reset still runs once, Restore returns at once, nothing is written, Runs goes up by one and Restores does not, and nothing is logged or recorded.
+Reader: before is null, the reset still runs once and its result returns, Restore returns at once, nothing is written, Runs goes up and Restores does not, and nothing is logged, since the early return comes before every SafeLog.
+Result: pass
+Q2 (ordering or threading): In Process, in what order do the Runs count, the bag read, the game's reset and the restore happen, and what happens if the game's reset throws, or if the restore throws?
+Expected: Runs is counted first, then the bag is read, then the game's reset is called once outside any try, then the restore runs inside a try. A throw from the game's reset goes straight back to the game and no restore happens. A throw from the restore is swallowed and the game's result is still returned.
+Reader: Runs first, then the address and the bag read, then the reset with no try around it, then Restore inside a try; a reset throw leaves Process with no restore, a Restore throw is swallowed with no log and the result still returns.
+Result: pass
+Q3 (free): Why does Restore read the bytes again and compare them with the saved ones before writing, and what does the kept number in its log line count?
+Expected: The reset only sometimes wipes the bytes, so it writes and logs only when they changed, which keeps a reset that left them alone silent. kept counts the new items that had at least one copy before the reset. The first restore logs at Info and later ones at Debug, and every restore is recorded in the flight log.
+Reader: Got the compare and the silent no change path, and kept as the nonzero saved bytes, but said the packet gives no reason for the compare and did not name the Info then Debug logging.
+Result: miss, fix comment (the reset not always touching the bytes is a game fact no code can say)
+Unprompted:
+- Process swallows a Restore exception with an empty catch and no log, and Restores does not reflect it.
+- A failed read before the reset, or the second read inside Restore failing, is silent, with no log and no counter.
+- _canary is a plain bool while the counters go through Interlocked, so the first time Event could fire more than once if the detour ran on several threads.
+- kept counts the nonzero saved bytes, which may not be the ones the game zeroed.
+- Release only disables the hook and never nulls it, so a later Install re enables it without checking the prologue.
+- The bag is read as one byte per item, and Same and kept rest on that.
+### Stage detail
+Read 1 control (caller) planted in LivingWeapon/Extended/InventoryResetHook.cs at line 61 as // Called only from Release., caught, 14s
+Read 1 U1: LivingWeapon/Extended/InventoryResetHook.cs | `Nobody proved eax goes unread, so rax is passed back as the game left it.` | unsourced reason
+W1 (original, reworded or removed in stage 2): LivingWeapon/Extended/InventoryResetHook.cs:129 | // Hot-path detour, must not throw. Process guards everything but the original call.
+Resolution: kept, the game calls the detour and nothing in C# can say a method must not throw into native code; the try blocks in Process are the guard
+W2 (original, still there): LivingWeapon/Extended/InventoryResetHook.cs:134 | /* a logger failure must never escape the detour */
+Resolution: kept, the empty catch is the whole guard and no type can say a logger call must not throw
+Unprompted rows: 6 finding(s) new in 1 row(s) (LW-481), 0 repeated (none)
