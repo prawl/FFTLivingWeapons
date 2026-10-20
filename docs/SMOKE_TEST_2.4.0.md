@@ -154,7 +154,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   ... holds a PROD-flavored install` and exits 1 before touching a file. FAIL: any red stage, a
   differing file in the parity report, a missing preserved file afterwards, or a green dev deploy
   over prod. (covers LW-297, LW-247, LW-134 refusal half) **[BLOCKER]**
-- [ ] 1.2 (PARTIAL 2026-10-17, prod 1c7ba75f, owner launch: image base 0x7FF65FC60000 delta 0x7FF51FC60000 rebased; production build; Save files live at the Reloaded User\Mods folder; kills.json and legends.json primary; stamp 0x6A5E4A1B the build this mod was made for; Extended inventory armed 7 new items. Version reads 2.3.4 until the ModVersion bump, the one clause owed) **Launch header on the Denuvo free build.** The mod knows where the game landed and
+- [x] 1.2 (PASSED 2026-10-19 22:53 on the prod deploy of 3711835b, owner launch: `Game image base 0x7FF65FC60000 (preferred 0x140000000, delta 0x7FF51FC60000)`; `Living Weapons version 2.4.0 (production build)`; save files at the Reloaded User\Mods folder, outside the Mods folder; `(kills.json, primary)` with 1855 and `(legends.json, primary)`; stamp 0x6A5E4A1B the build this mod was made for; `Extended inventory armed: 7 new item(s)`; armed and all parts armed; the only WARN is the known LW-454 checkpoint line; result pass) **Launch header on the Denuvo free build.** The mod knows where the game landed and
   which build it is. Launch, read the top of `livingweapon.log`. PASS: line one `Game image base
   0x... (preferred 0x140000000, delta 0x...); every pinned address is rebased onto it.` with a
   nonzero delta; `Living Weapons version 2.4.0 (production build) is starting inside
@@ -801,7 +801,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   counts to disk`, `The extended-inventory sidecar could not be read`. FAIL: slot B showing slot
   A's count, a count back to seed after the boot, no load edge line. (DEV OK) (covers LW-353,
   LW-348) **[MAJOR]**
-- [ ] 6.4 (RUNNING 2026-10-17: two deploys so far, dev 09:56 and prod 10:10, each printed the restore line with the post restore check passed and parity 506 of 506; flight holds its tapes; the header tally never dropped across sitting 1; closes after the sitting 2 and last sitting deploys) **Save files are update safe and every deploy preserves them (LW-134, LW-297).** Across
+- [x] 6.4 (PASSED across the pass, closed 2026-10-19 22:53: every deploy of sitting 1, sitting 3 and release day (dev 13:58, dev 21:2x, dev 22:31, prod 22:5x) printed the restore line with the post restore check passed and parity 506 of 506; flight holds its 20 tapes; kills.json, legends.json and the extended sidecar live in the Reloaded User\Mods save folder; the launch header tally only ever rose, 1815 at 04:39 to 1855 at 22:53; no file that existed before a deploy was missing after it; result pass) **Save files are update safe and every deploy preserves them (LW-134, LW-297).** Across
   this pass's deploys: `kills.json`, `legends.json`, `gunslinger.json` sit under the SAVE folder
   (`<Reloaded root>\User\Mods\prawl.fft.livingweapons`), the restore line prints each time (post
   restore check passed), `flight\` and its 20 tapes exist under the deployed folder afterwards, the
