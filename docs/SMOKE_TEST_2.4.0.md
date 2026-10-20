@@ -655,7 +655,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   double count, which is why the Kiyomori stays benched here. FAIL: a tally one higher after either
   retry, two uncredited re kills in two runs, or the Raise re kill paying once. (DEV OK) (covers
   LW-233) **[MAJOR]**
-- [ ] 5.6 **The Attack row is always this unit's truth (LW-87, LW-88, LW-91, LW-98).** On a wielder's
+- [x] 5.6 (PASSED in part 2026-10-19 on dev, owner live: Ramza's Attack row read `Sunderer+3` with Mettle and Items below it, the log `attack row now carries the acting unit's dossier: weapon 263 via cursor`; earlier the same night the Cutpurse row read its weapon with the count 15 on its card, and a status page detour came back to the menu; the two wielder alternation, the Fists row on a bare hand and the enemy turn stock row NOT REACHED, Ramza fought alone, shipped open by the slimmed pass ruling; result pass) **The Attack row is always this unit's truth (LW-87, LW-88, LW-91, LW-98).** On a wielder's
   turn the Attack row reads the weapon name and the live count; it survives a T detour onto an ally
   and an enemy and a STATUS SCREEN detour (open an enemy's status page, read two pages, back out);
   an unarmed human reads `Fists`; an enemy turn reads stock Attack; the count climbs with each
