@@ -540,6 +540,18 @@ function Invoke-TablePipeline {
     Write-Host "  -> deploy-parity checker regression cases..."
     Invoke-DeployParitySelfTest
 
+    # The per-release code health report (tools/health.py). Publish.ps1 writes the record; this
+    # reminder runs on every build so a release that went out without one cannot be forgotten.
+    # It never fails the build: a missing report is debt to pay, not a reason to stop a deploy.
+    Write-Host "  -> tools/health.py --selftest (the health report's own regression cases)..."
+    & python "$PipelineRepoRoot\tools\health.py" --selftest
+    if ($LASTEXITCODE -ne 0) {
+        throw "REFUSING TO ${FailVerb}: health.py --selftest failed (exit $LASTEXITCODE)."
+    }
+    $healthStatusArgs = @('status')
+    if ($env:GITHUB_ACTIONS) { $healthStatusArgs += '--committed' }
+    & python "$PipelineRepoRoot\tools\health.py" @healthStatusArgs
+
     Write-Host "  -> Generated + gated + meta baked OK." -ForegroundColor Green
 }
 
