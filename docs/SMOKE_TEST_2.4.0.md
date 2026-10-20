@@ -439,7 +439,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   whose tier did not move since its last battle. The quoted log lines land with LW-416; re read
   them from LivingWeapon/Growth/GrowthEngine.Lanes.cs after the merge. (DEV OK) (covers LW-416,
   LW-327, LW-316 the Max HP half) **[BLOCKER]**
-- [ ] 3.2 **Multi lane growth in one battle (LW-317, LW-316, LW-250, LW-249).** Each weapon class
+- [ ] 3.2 (SHIP OPEN by owner ruling 2026-10-19 on release day: the slimmed pass runs BLOCKERs and the player harm MAJORs only; this box ships unrun or partial and carries to 2.4.1; result not reached) **Multi lane growth in one battle (LW-317, LW-316, LW-250, LW-249).** Each weapon class
   grows the stats its card says. Dev battle with a pole (Whale Whisker), a katana, a knight sword,
   a Stoneshooter and a Blaze Gun wielder; read each unit's stats on its turn and the roster after
   the battle. PASS: pole PA and MA up, katana PA, MA and Brave up (Brave capped 97), knight sword
@@ -462,7 +462,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   the tier up banner delivers via the facing prompt (the toast positive control, LW-323's second
   read). FAIL: a card at 6 kills with no tier suffix, or a tier at any other count. (prod only)
   (covers LW-161) **[MAJOR]**
-- [ ] 3.4 **Mounted speed and its log lines (LW-109, LW-110, Cavalier's Charge).** Riding a chocobo
+- [ ] 3.4 (SHIP OPEN by owner ruling 2026-10-19 on release day: the slimmed pass runs BLOCKERs and the player harm MAJORs only; this box ships unrun or partial and carries to 2.4.1; result not reached) **Mounted speed and its log lines (LW-109, LW-110, Cavalier's Charge).** Riding a chocobo
   with a tier 3 Holy Lance (id 104) reads Speed natural plus 3 on the card (the `statBonus` of 3
   on id 104's signature block in data/items.json); dismount reverts it; the file says why. PASS:
   `timed-stat: capture natural ...`, `timed-stat: boost wrote N (natural N + bonus 3)`, `timed-stat:
@@ -471,7 +471,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   Speed stuck at +3 after dismount, a card change with no timed-stat line, or the retry line
   `timed-stat: window closed but read ...; keeping the record to retry the revert` repeating.
   (DEV OK) (covers LW-109, LW-110) **[MINOR]**
-- [ ] 3.5 **Restart does not inflate a held stat (LW-90).** Retrying a battle must not bake a held
+- [ ] 3.5 (SHIP OPEN by owner ruling 2026-10-19 on release day: the slimmed pass runs BLOCKERs and the player harm MAJORs only; this box ships unrun or partial and carries to 2.4.1; result not reached) **Restart does not inflate a held stat (LW-90).** Retrying a battle must not bake a held
   boost into the unit's natural. Tier 3 Ame-no-Murakumo wielder, start the battle (they act first),
   open the card after their first turn, then Retry and read the card at the first turn again. PASS:
   Speed reads natural after the first turn and after the restart; the file shows `The
@@ -528,7 +528,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   corruption after reload, a crash on the picker or on Sell, a doubled or missing Warbrand row
   after the buy back, count 0 after the reload, a vanilla card reset to 0. (DEV OK) (covers
   LW-371, LW-372, LW-382, LW-368) **[MAJOR]**
-- [ ] 4.4 (PARTIAL 2026-10-19 on prod of 5052c6ef, owner live: job change handed a Sunderer back, bag byte 3 to 2 to 3; Dismiss of a Mystic holding a Sunderer and a Terrastaff returned both, bytes 2 to 3 and 0 to 1; no tripwire WARN; the Throw road is a RECORDED LIMIT by owner ruling, the Throw list never offers a new weapon, LW-456 for 2.5.0; the save line and leg B still open) **The indirect roads in and out of the bag (job change, Dismiss, Throw, an enemy's Steal
+- [ ] 4.4 (SHIP OPEN by owner ruling 2026-10-19 on release day: the slimmed pass runs BLOCKERs and the player harm MAJORs only; this box ships unrun or partial and carries to 2.4.1; result not reached) (PARTIAL 2026-10-19 on prod of 5052c6ef, owner live: job change handed a Sunderer back, bag byte 3 to 2 to 3; Dismiss of a Mystic holding a Sunderer and a Terrastaff returned both, bytes 2 to 3 and 0 to 1; no tripwire WARN; the Throw road is a RECORDED LIMIT by owner ruling, the Throw list never offers a new weapon, LW-456 for 2.5.0; the save line and leg B still open) **The indirect roads in and out of the bag (job change, Dismiss, Throw, an enemy's Steal
   or Rend).** Taking a new weapon off a unit the roundabout way still puts it in the bag, and
   losing a weapon mid fight stops its credit and its grant. Dev build: a unit holding a Sunderer
   (263) changes job on the party screen to one that cannot hold it (the game hands it back);
@@ -634,7 +634,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   tapes, two summaries, battle two's kills credited; closing scan CLEAN. FAIL: a lost tally across
   a restart, a double exit, silent dormancy after the re enter, one `Battle started.` spanning
   both chained fights, a banner from battle one inside battle two. (DEV OK) **[BLOCKER]**
-- [ ] 5.4 **Lookalike units never swap kills (LW-252).** Two fingerprint twins (same level, brave,
+- [ ] 5.4 (SHIP OPEN by owner ruling 2026-10-19 on release day: the slimmed pass runs BLOCKERs and the player harm MAJORs only; this box ships unrun or partial and carries to 2.4.1; result not reached) **Lookalike units never swap kills (LW-252).** Two fingerprint twins (same level, brave,
   faith) plus Ramza with a living weapon; each kills once. PASS: Ramza's kill credits; a twin's kill
   with no living weapon logs `slain by a player carrying no Living Weapon; the kill is deliberately
   left uncredited` or `The killer of the enemy at battle slot N could not be determined; the kill
@@ -666,7 +666,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   FAIL: a stale name on another unit's menu, stock Attack or another unit's weapon on the row after
   the status page, a frozen count, a weapon name on an enemy or unarmed row. (DEV OK) (covers
   LW-87, LW-88, LW-91, LW-98) **[MAJOR]**
-- [ ] 5.7 **Row and card agree, no hitches, the long battle tape (LW-257, LW-259, LW-261, LW-262).**
+- [ ] 5.7 (SHIP OPEN by owner ruling 2026-10-19 on release day: the slimmed pass runs BLOCKERs and the player harm MAJORs only; this box ships unrun or partial and carries to 2.4.1; result not reached) **Row and card agree, no hitches, the long battle tape (LW-257, LW-259, LW-261, LW-262).**
   A long battle (ten plus kills) with no freeze; the Attack row count and the equip card count agree
   within a second of each kill; the tape keeps reporting late in the fight. Kill one enemy with a
   charged spell so `waiting to identify the killer` prints, then leave that body and one credited
@@ -698,7 +698,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   its own battle. FAIL: a `has grown to` banner in a battle whose kill happened the battle before,
   or a dropped toast with no drop line. (DEV OK for read one) (covers LW-323, AWAITING-LIVE)
   **[MAJOR]**
-- [ ] 5.9 **Guests never count, as killer or as corpse (LW-234 watch).** A guest like Delita or
+- [ ] 5.9 (SHIP OPEN by owner ruling 2026-10-19 on release day: the slimmed pass runs BLOCKERs and the player harm MAJORs only; this box ships unrun or partial and carries to 2.4.1; result not reached) **Guests never count, as killer or as corpse (LW-234 watch).** A guest like Delita or
   Agrias killing an enemy never grows one of your weapons (Delita's Broad Sword shares an id with
   Ramza's), and a guest dying is never a kill. Any story battle with a guest (the formation screen
   shows the guest slot; the Gariland battle of box 6.6 has two): let a guest finish one enemy, and
@@ -928,7 +928,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   colored smoke on any of them. FAIL: Masamune gold, Chirijiraden blue, Muramasa violet, Holy Lance
   gold bodied, a red Duskstring, a rod whose orb and shaft read one color, a smoke fuming icon.
   (DEV OK) (covers LW-204, LW-213, LW-209, LW-207, LW-211, LW-206, LW-208, LW-236) **[MAJOR]**
-- [ ] 7.5 (PARTIAL 2026-10-18 on prod of a38eb35b, owner live with five screenshots: Siren's Lyre May cast Confuse on hit, Duskstring Harp May cast Blind on hit with no Absorbs HP badge, Faerie Harp May cast Sleep on hit, Glarebound Tome May cast Blind on hit, Binding Codex May cast Immobilize on hit; the two in battle proc reads are still owed) **Cast clause cards and the two retuned procs (LW-331, LW-355, LW-352).** Siren's Lyre,
+- [ ] 7.5 (SHIP OPEN by owner ruling 2026-10-19 on release day: the slimmed pass runs BLOCKERs and the player harm MAJORs only; this box ships unrun or partial and carries to 2.4.1; result not reached) (PARTIAL 2026-10-18 on prod of a38eb35b, owner live with five screenshots: Siren's Lyre May cast Confuse on hit, Duskstring Harp May cast Blind on hit with no Absorbs HP badge, Faerie Harp May cast Sleep on hit, Glarebound Tome May cast Blind on hit, Binding Codex May cast Immobilize on hit; the two in battle proc reads are still owed) **Cast clause cards and the two retuned procs (LW-331, LW-355, LW-352).** Siren's Lyre,
   Duskstring Harp, Faerie Harp, Glarebound Tome and Binding Codex each name their on hit status
   (Confuse, Blind, Sleep, Blind, Immobilize per docs/living_weapon_grid.csv); the Duskstring Harp
   shows NO Absorbs HP badge. One hit each with Siren's Lyre and Glarebound Tome in battle. PASS:
@@ -1037,7 +1037,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   a plant with the back to the void, a tile barred after the Retry or into the next fight, a Raise
   refused on the back tile, a raised tile or a softlock. (DEV OK) (covers LW-141, LW-145 the
   ground restore half) **[MAJOR]**
-- [ ] 9.5 **Living Poach (LW-167; LW-386 watch).** A Poach unit landing a basic Attack kill with a
+- [ ] 9.5 (SHIP OPEN by owner ruling 2026-10-19 on release day: the slimmed pass runs BLOCKERs and the player harm MAJORs only; this box ships unrun or partial and carries to 2.4.1; result not reached) **Living Poach (LW-167; LW-386 watch).** A Poach unit landing a basic Attack kill with a
   dormant formula living weapon (a Cutpurse works) on a poachable monster gets a carcass in the
   Den, a toast, no crystal; an ABILITY kill does not fire it. PASS: `The weapon's spirit claims the
   carcass: <name> added to the Poacher's Den.`, the corpse vanishes with no crystal, the Den lists
@@ -1045,7 +1045,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   entry, a crystal plus a Den entry, a wrong Den item (the LW-386 player report), or `Living Poach
   is paused for this session because the Poacher's Den store is not where this mod expects it`.
   (covers LW-167) **[MAJOR]**
-- [ ] 9.6 **The twins and their consent rules (LW-168, LW-171, LW-193, LW-194).** A tier 3 Outrider
+- [ ] 9.6 (SHIP OPEN by owner ruling 2026-10-19 on release day: the slimmed pass runs BLOCKERs and the player harm MAJORs only; this box ships unrun or partial and carries to 2.4.1; result not reached) **The twins and their consent rules (LW-168, LW-171, LW-193, LW-194).** A tier 3 Outrider
   Pistol (id 71) or Arbalest (id 79) wielder with NO support picked gets Dual Wield and a twin in
   an EMPTY off hand after a Status visit; anything the player equips there is respected; the twin
   never appears or moves while gear can be edited. The twin must be stamped BEFORE the battle is
@@ -1074,7 +1074,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   over player gear, a stamp line while the picker, the equip screen or the shop is open, a
   `twin-refund` record, a Sunderer lost on Best Fit. (covers LW-168, LW-171, LW-193, LW-194)
   **[MAJOR]**
-- [ ] 9.7 **The katana trio (Iai, Kobu, Mushin).** Three katanas, three different tricks, one
+- [ ] 9.7 (SHIP OPEN by owner ruling 2026-10-19 on release day: the slimmed pass runs BLOCKERs and the player harm MAJORs only; this box ships unrun or partial and carries to 2.4.1; result not reached) **The katana trio (Iai, Kobu, Mushin).** Three katanas, three different tricks, one
   battle each or all together. PASS: Ame-no-Murakumo (42) takes the literal first turn then
   releases (`released by the turn flags`); Kiyomori (43) raises the wielder's Brave to a braver
   foe's on a strike, capped 97; Kiku-ichimonji (45) banks a charge on a full Wait (`The
@@ -1082,7 +1082,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   spends it (`...charged strike lands; Mushin's boost is spent`), a move then wait banks nothing,
   two waits do not stack. FAIL: a false Iai release on a pre turn strike, Brave moving the wrong
   way, a stacked Mushin. **[MAJOR]**
-- [ ] 9.8 **Knives and swords.** Each blade's passive or trick fires once and the file says so.
+- [ ] 9.8 (SHIP OPEN by owner ruling 2026-10-19 on release day: the slimmed pass runs BLOCKERs and the player harm MAJORs only; this box ships unrun or partial and carries to 2.4.1; result not reached) **Knives and swords.** Each blade's passive or trick fires once and the file says so.
   PASS: Gloomfang (3) Concentration, Hushblade (4) Magick Def Boost, Sanguine Gauche (6) Defense
   Boost and Mortal Coil (8, below half HP) Attack Boost each log one grant line with
   `readback=SET`; a Zwill (10) kill grants an immediate extra turn (`The extra turn finished
@@ -1092,7 +1092,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   its turns; Materia Blade (32) PA tracks current HP percent with no flap flood. FAIL: a
   `readback=MISS` grant, a missing extra turn, a crystal, a ramp that does not step or reset, PA
   that ignores HP. (covers LW-158 live half, LW-94 the Afterimage turn lane) **[MAJOR]**
-- [ ] 9.9 **Rods and staves.** Each caster weapon's trick fires once and the file says so. PASS:
+- [ ] 9.9 (SHIP OPEN by owner ruling 2026-10-19 on release day: the slimmed pass runs BLOCKERs and the player harm MAJORs only; this box ships unrun or partial and carries to 2.4.1; result not reached) **Rods and staves.** Each caster weapon's trick fires once and the file says so. PASS:
   Umbral Rod (56) restores a tenth of HP and MP on a NEW tile (`MP already full` is the correct no
   op); Rod of Faith (58) grants teleport movement below 30 percent HP (`readback=SET`, move id
   243); Warlock's Staff (60) bearer casts instantly, two bearers both do; Mending Staff (61) mends
@@ -1104,7 +1104,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   (x,y) at 3 hearts`). FAIL: a silent Renewal while the wielder visibly acts (the LW-94 lane), a
   crystallized ally under Sanctuary, a charged cast under Choir. (covers LW-153 live half, LW-94
   the Renewal turn lane) **[MAJOR]**
-- [ ] 9.10 **Bows, crossbows and the lance.** Each ranged weapon's trick fires once and the file
+- [ ] 9.10 (SHIP OPEN by owner ruling 2026-10-19 on release day: the slimmed pass runs BLOCKERs and the player harm MAJORs only; this box ships unrun or partial and carries to 2.4.1; result not reached) **Bows, crossbows and the lance.** Each ranged weapon's trick fires once and the file
   says so. PASS: Eclipsebolt (78) snaps only its OWN Doom procs to 1 (`the bow's own Doom procs
   are hastened to one`; a Doom from another weapon logs exactly one `appeared outside the
   Eclipsebolt wielder's own action ... its countdown (3) is left alone` and ticks naturally);
@@ -1117,7 +1117,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   cured Plague, a Barrage with vanilla text. (covers LW-95, LW-97 the ability text sibling; LW-325
   with 9.1, 9.3, 9.5 to 9.9 and 9.11: every one of the 30 signature ids in data/items.json seen
   once) **[MAJOR]**
-- [ ] 9.11 **Puppeteer (Galewind 9; LW-326 known).** A +3 hit turns the struck enemy into the
+- [ ] 9.11 (SHIP OPEN by owner ruling 2026-10-19 on release day: the slimmed pass runs BLOCKERs and the player harm MAJORs only; this box ships unrun or partial and carries to 2.4.1; result not reached) **Puppeteer (Galewind 9; LW-326 known).** A +3 hit turns the struck enemy into the
   player's puppet for its own next turn. PASS: the file shows `puppeteer gate: ACTIVE: the next
   struck enemy becomes your puppet` (DBG) on the wielder's act, the hit dominates the struck enemy,
   the player controls it on ITS turn, it releases on its own turn (`Puppet control ended after the
@@ -1129,7 +1129,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
 
 ## 10. Compatibility (docs/COMPATIBILITY.md)
 
-- [ ] 10.1 **The WotL Restoration dual mod run (LW-408).** Both mods installed, WotL Restoration
+- [ ] 10.1 (SHIP OPEN by owner ruling 2026-10-19 on release day: the slimmed pass runs BLOCKERs and the player harm MAJORs only; this box ships unrun or partial and carries to 2.4.1; result not reached) **The WotL Restoration dual mod run (LW-408).** Both mods installed, WotL Restoration
   loading BEFORE Living Weapons. PASS: the parts report reads all ON, extended inventory included;
   WotL Restoration's own log prints `Item expansion NOT armed`; Luso and Balthier's events still
   fire; the Terrastaff card reads Terrastaff with its kill counter; Agrias's birthday hands out a
@@ -1142,7 +1142,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   Terrastaff reading as Moonblade in the RIGHT order, a kill counter lost on ids 261 to 267,
   extended inventory OFF, an event that no longer fires, a crash or an uncredited kill in the
   wrong order. (covers LW-408; docs half in B16 with LW-410, LW-169) **[MAJOR]**
-- [ ] 10.2 (OPEN 2026-10-17: every launch of sitting 1 read base 0x7FF65FC60000 and each armed and credited a kill; the base only moves across a Windows restart, so one launch after a reboot closes this box) **Two launches, two bases (LW-387, LW-388, LW-132).** ASLR moves the game each launch and
+- [ ] 10.2 (SHIP OPEN by owner ruling 2026-10-19 on release day: the slimmed pass runs BLOCKERs and the player harm MAJORs only; this box ships unrun or partial and carries to 2.4.1; result not reached) (OPEN 2026-10-17: every launch of sitting 1 read base 0x7FF65FC60000 and each armed and credited a kill; the base only moves across a Windows restart, so one launch after a reboot closes this box) **Two launches, two bases (LW-387, LW-388, LW-132).** ASLR moves the game each launch and
   the mod follows. Compare the `Game image base` line across two launches with a Windows restart between them (Windows picks a module's random base once per boot, so every launch inside one boot reads the same base). PASS: the
   base differs at least once and both launches armed and credited a kill. FAIL: a crash at boot, a
   thunk entry landmark refusal, extended inventory not armed on either launch. (DEV OK) (covers
@@ -1175,7 +1175,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   Still working group on the worst day leg, or Reloaded refusing to launch the mod at all (then
   README.md's "if the mod does not start, install it" is the only player guidance and must be re
   read against what the launcher said). (DEV OK) **[MAJOR]**
-- [ ] 10.4 **Another game language does not crash on the new items.** Ids 261 to 267 have text in
+- [ ] 10.4 (SHIP OPEN by owner ruling 2026-10-19 on release day: the slimmed pass runs BLOCKERs and the player harm MAJORs only; this box ships unrun or partial and carries to 2.4.1; result not reached) **Another game language does not crash on the new items.** Ids 261 to 267 have text in
   English only (the mod ships `item.en.nxd` and nothing for another language), and nobody has
   watched what a French or Japanese list does with a row its text table does not have. Steam, game
   Properties, Language, pick French (a text pack download may follow), launch, Continue a save
