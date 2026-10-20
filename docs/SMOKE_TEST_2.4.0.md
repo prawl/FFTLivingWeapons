@@ -1420,7 +1420,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   side file written through `modDir`, a preserved name missing from the list, or a loop over a
   fixed id range in any of the three sidecar sites. (covers LW-348 preservation half, LW-134)
   **[MAJOR]**
-- [ ] B18 **Ledger and scope hygiene at ship (LW-320 ruling included).**
+- [x] B18 (PASSED 2026-10-19 on f38b4a4e: docs/TODO.md Now holds only LW-465, the rewind probe the owner carried into 2.4.1; every row shipped this cycle exited to docs/CHANGELOG.md, tonight LW-458, LW-464, LW-426 and LW-439, with LW-465, LW-466 and LW-467 filed; the LW-320 power audit carries the owner verdict of 2026-10-19, accepted as it stands for 2.4.0; LW-358 sits in the Backlog and RELEASE_SCOPE.md folds it into the publish furniture; TodoContractTests green; no agent made AWAITING-LIVE flip, LW-426 was exited on the owner's word without a live read; result pass) **Ledger and scope hygiene at ship (LW-320 ruling included).**
   `grep -n "AWAITING-LIVE\|^## Now" docs/TODO.md`; `grep -n "LW-320\|LW-358" docs/TODO.md
   docs/RELEASE_SCOPE.md docs/CHANGELOG.md`; `git tag --list v2.4.0`. PASS: docs/RELEASE_SCOPE.md R5
   boxes ticked; docs/TODO.md Now holds only rows the owner chose to carry (LW-408 by ruling; LW-358
