@@ -350,3 +350,41 @@ Expected: No. The first tick only stores the count as a baseline (the stored val
 Reader: No. The stored count starts at minus one so the first tick only sets the baseline to 5. A later higher count stamps. Flagged that a hook armed late could read as a jump.
 Result: pass
 Unprompted: The restore counter rises even when no bag record was found, and that still counts as a Retry, as intended. ProcessCheckpoint and ProcessRewind swallow exceptions silently. A fourth question the reader invented about the Mods folder was ignored.
+
+## Cold read 2026-10-19 22:04, LW-464, base 62fc0de9
+Run cap 1 (66 changed production lines). Run 1 of 1.
+Files: LivingWeapon/Engine.cs, LivingWeapon/Kills/BattleExitSettle.cs, LivingWeapon/Kills/KillTracker.Corpses.cs, LivingWeapon/Kills/KillTracker.Settle.cs
+Hashes: LivingWeapon/Engine.cs=8612be72ba99efcb; LivingWeapon/Kills/BattleExitSettle.cs=0aacc47a12de9c2a; LivingWeapon/Kills/KillTracker.Corpses.cs=0b06a17c0369d631; LivingWeapon/Kills/KillTracker.Settle.cs=d8ce5f6616f3ec92
+Canary: cold
+Q1 (failure path): The battle exit is forced because a new game was detected in the same tick. Does the settle run, and what reaches the kill tally and the banner queue from it?
+Expected: No. The forced flag skips the settle entirely, so nothing is credited into the freshly cleared tally and the banner queue is not touched.
+Reader: No. forced short circuits the settle and the banner tick; only the usual reset and saves run.
+Result: pass
+Q2 (ordering): On an ordinary exit the settle pays a kill. In what order do the settle, the banner queue update, the battle summary, and the battle reset run, and why can no banner from that kill show up in a later battle?
+Expected: Settle, then the banner queue gets the change (Tick with tallyChanged true), then the summary, then the reset, whose first act drops every pending banner. The queue's baseline already includes the kill, so the next battle's first credit does not replay it.
+Reader: Settle, banner tick, summary, census, reset, saves; the reset's first act drops pending banners. Could not see the BannerToast bodies to prove the baseline.
+Result: pass
+Q3 (free): A dead enemy had already read dead on the field for three or more polls and was left waiting for a killer. Does the exit settle touch it?
+Expected: No. The settle only takes slots whose dead streak is at least 1 and below DeadNeeded (3), the deaths the field scan never judged. A slot judged on the field keeps whatever it got.
+Reader: No credit change. The guard returns for a streak of 3 or more, though the settle-at-exit tape line is still written first.
+Result: pass
+Unprompted: The settle-at-exit tape line is written for slots the guard then skips, which misleads a tape reader. BattleExitSettle.Run returns a value nobody reads. A forced exit drops near credits silently.
+
+## Cold read 2026-10-19 22:16, LW-465, base a7b80480
+Run cap 1 (97 changed production lines). Run 1 of 1.
+Files: LivingWeapon/Engine.cs, LivingWeapon/Kills/BattleExitSettle.cs, LivingWeapon/Kills/KillTracker.Corpses.cs, LivingWeapon/Kills/KillTracker.Settle.cs, LivingWeapon/Signatures/ProvokeHold.Policy.cs, LivingWeapon/Signatures/ProvokeHold.cs
+Hashes: LivingWeapon/Engine.cs=8506002466fdc5f4; LivingWeapon/Kills/BattleExitSettle.cs=0aacc47a12de9c2a; LivingWeapon/Kills/KillTracker.Corpses.cs=da9c8f9a15a916ca; LivingWeapon/Kills/KillTracker.Settle.cs=14bc8bd299dc222e; LivingWeapon/Signatures/ProvokeHold.Policy.cs=6dceb8d4beeed0b3; LivingWeapon/Signatures/ProvokeHold.cs=8f5670b62c7aea07
+Canary: WARM
+Q1 (failure path): The hold is disabled by its ship switch and the rewind count rises. What happens?
+Expected: Nothing. Tick returns at the enabled gate before the count is even read, so there is no reveal, no scrub and no log.
+Reader: Tick returns at the enabled gate first, so the count is never read; ResetBattle has the same guard.
+Result: pass
+Q2 (ordering): During a quit to title and Continue the field is not live for several seconds. Where in Tick is the rewind count checked relative to the live gate, and why does that order matter?
+Expected: Before the live gate, right after the enabled gate. The rewind happens while the field is not live, so a check after the gate would wait until play resumes and the hold could hide the party in the meantime.
+Reader: The check and the baseline update run before the live gate, so a rewind in the dark window is caught once and never twice.
+Result: pass
+Q3 (free): A rewind lands while the hold is idle. What is logged and what changes?
+Expected: Nothing reaches the console and no flight record is written. ResetBattle still runs, revealing any unit ever flagged and scrubbing stray marks, which is harmless when idle.
+Reader: OnRewind returns before the log and the flight record when not armed; ResetBattle still reveals the ever flagged and scrubs player marks.
+Result: pass
+Unprompted: several ProvokeHold helpers live in partials outside the packet; nothing new flagged.

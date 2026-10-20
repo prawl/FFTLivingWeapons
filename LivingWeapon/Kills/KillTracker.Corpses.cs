@@ -190,6 +190,19 @@ internal sealed partial class KillTracker
         internal (byte lvl, byte br, byte fa, ushort mhp) Id => (Lvl, Br, Fa, MaxHp);
     }
 
+    private SlotSnapshot ReadSlot(long addr) => new SlotSnapshot(
+        addr,
+        _mem.U16(addr + Offsets.AHp),
+        _mem.U8(addr + Offsets.AGx),
+        _mem.U8(addr + Offsets.AGy),
+        _mem.U16(addr + Offsets.AMaxHp),
+        _mem.U8(addr + Offsets.ALevel),
+        _mem.U8(addr + Offsets.ABrave),
+        _mem.U8(addr + Offsets.AFaith),
+        // Dead bit +0x45/0x20 (Doom research). U8 returns 0 on unreadable address -- safe.
+        (_mem.U8(addr + Offsets.ADeadStatus) & Offsets.ADeadBit) != 0,
+        _mem.U16(addr + Offsets.ANameId));   // The presented-identity nameId half
+
     /// <summary>Band corpse scan + identity capture. Returns true if the tally changed.</summary>
     private bool ScanCorpses(bool onField)
     {
@@ -201,18 +214,7 @@ internal sealed partial class KillTracker
             long addr = Band.Entry(s);
             if (!Band.IsValid(_mem, addr)) { _aliveStreak[s] = 0; _deadStreak[s] = 0; _fieldEvidenceStreak[s] = 0; continue; }
 
-            var slot = new SlotSnapshot(
-                addr,
-                _mem.U16(addr + Offsets.AHp),
-                _mem.U8(addr + Offsets.AGx),
-                _mem.U8(addr + Offsets.AGy),
-                _mem.U16(addr + Offsets.AMaxHp),
-                _mem.U8(addr + Offsets.ALevel),
-                _mem.U8(addr + Offsets.ABrave),
-                _mem.U8(addr + Offsets.AFaith),
-                // Dead bit +0x45/0x20 (Doom research). U8 returns 0 on unreadable address -- safe.
-                (_mem.U8(addr + Offsets.ADeadStatus) & Offsets.ADeadBit) != 0,
-                _mem.U16(addr + Offsets.ANameId));   // The presented-identity nameId half
+            var slot = ReadSlot(addr);
 
             if (onField) ScanFieldEvidence(s, in slot);
 
@@ -339,17 +341,23 @@ internal sealed partial class KillTracker
 
     /// <summary>Dispatcher for one dead slot. Guard clauses, then StampDeadEdge, OracleGate,
     /// HandleOrphanAliveEdge and ResolveCredit.</summary>
-    private void ScanDeadPath(int s, bool onField, in SlotSnapshot slot, ref bool changed)
+    private void ScanDeadPath(int s, bool onField, in SlotSnapshot slot, ref bool changed, bool settling = false)
     {
         // dead path (hp==0 or Dead bit set)
-        if (_deadCredited[s]) return;
-        if (!_seenAlive[s]) return;
-        if (_slotId[s].lvl != slot.Lvl || _slotId[s].br != slot.Br || _slotId[s].fa != slot.Fa) return;
-        if (!onField) return;
-
-        StampDeadEdge(s, in slot);
-
-        if (_deadStreak[s] < DeadNeeded) return;
+        if (settling)
+        {
+            // Only a death the field scan saw but never got to judge may settle.
+            if (!Settleable(s, in slot)) return;
+        }
+        else
+        {
+            if (_deadCredited[s]) return;
+            if (!_seenAlive[s]) return;
+            if (_slotId[s].lvl != slot.Lvl || _slotId[s].br != slot.Br || _slotId[s].fa != slot.Fa) return;
+            if (!onField) return;
+            StampDeadEdge(s, in slot);
+            if (_deadStreak[s] < DeadNeeded) return;
+        }
 
         if (!OracleGate(s, in slot)) return;
 

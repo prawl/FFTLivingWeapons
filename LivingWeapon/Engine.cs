@@ -592,7 +592,7 @@ internal sealed class Engine
         if (battleStatus && !_lastBattleStatus) _display.Invalidate();   // re-find the card's fresh buffers
         _lastBattleStatus = battleStatus;
 
-        if (edge == BattleEdge.Exited) OnBattleExit(slot0, slot9, battleMode, paused, eventId);
+        if (edge == BattleEdge.Exited) OnBattleExit(slot0, slot9, battleMode, paused, eventId, forced: newGame);
 
         // Everything past the two battle edges is a fan-out over _phases (see BuildPhases): one
         // reused blackboard filled each tick, stepped in table order.
@@ -638,8 +638,9 @@ internal sealed class Engine
     }
 
     /// <summary>The debounced (or new-game forced) battle-exit edge body.</summary>
-    private void OnBattleExit(uint slot0, uint slot9, int battleMode, bool paused, int eventId)
+    private void OnBattleExit(uint slot0, uint slot9, int battleMode, bool paused, int eventId, bool forced)
     {
+        BattleExitSettle.Run(_tracker, _toast, forced);   // a fast victory screen can cut the last corpse's dead streak short
         // Match-report summary, composed from the per-battle counters before ResetBattleState wipes them.
         // On a forced exit the tally was already archived and cleared this tick, so the summary may
         // be empty; accepted.

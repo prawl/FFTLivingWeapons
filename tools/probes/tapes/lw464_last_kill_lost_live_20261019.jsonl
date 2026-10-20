@@ -1,0 +1,112 @@
+{"hdr":true,"wall":"2026-10-19 21:43:56.617","t":711830281,"version":"2.3.4","build":"0x6A5E4A1B"}
+{"t":711775359,"e":"card","d":"miss:BridgeFail"}
+{"t":711775609,"e":"mode","d":"battleMode 3 -> 2"}
+{"t":711776234,"e":"mode","d":"battleMode 2 -> 1"}
+{"t":711776546,"e":"mode","d":"battleMode 1 -> 3"}
+{"t":711776562,"e":"ev","d":"event: move; battle slot 13 moved from (2,3) to (5,4)"}
+{"t":711776640,"e":"card","d":"miss:NoOwner"}
+{"t":711776671,"e":"mode","d":"battleMode 3 -> 2"}
+{"t":711776859,"e":"mode","d":"battleMode 2 -> 3"}
+{"t":711776984,"e":"mode","d":"battleMode 3 -> 2"}
+{"t":711777000,"e":"actor","d":"pointer transition 0x7FF6614B5CFC -> 0x7FF6614B42FC nameId=781 bridge=Enemy"}
+{"t":711777093,"e":"mode","d":"battleMode 2 -> 1"}
+{"t":711777234,"e":"mode","d":"battleMode 1 -> 3"}
+{"t":711777281,"e":"ev","d":"event: move; battle slot 11 moved from (5,11) to (7,10)"}
+{"t":711777375,"e":"mode","d":"battleMode 3 -> 2"}
+{"t":711777484,"e":"mode","d":"battleMode 2 -> 1"}
+{"t":711777625,"e":"mode","d":"battleMode 1 -> 3"}
+{"t":711779046,"e":"mode","d":"battleMode 3 -> 0"}
+{"t":711780625,"e":"card","d":"coverage regions=1 sites=244 kills=121 suffix=123 trigger=re-latch base=0x2701B2B8000:244"}
+{"t":711786031,"e":"mode","d":"battleMode 0 -> 3"}
+{"t":711787156,"e":"kill","d":"latch weapons=[37] mainHand=37 src=turn-flags"}
+{"t":711787156,"e":"turn","d":"acted rising edge -- global turn #1"}
+{"t":711787156,"e":"turn","d":"credit level=99 brave=97 faith=75 count=1 src=turn-flags"}
+{"t":711787687,"e":"mode","d":"battleMode 3 -> 1"}
+{"t":711788453,"e":"mode","d":"battleMode 1 -> 2"}
+{"t":711788906,"e":"mode","d":"battleMode 2 -> 3"}
+{"t":711789578,"e":"mode","d":"battleMode 3 -> 2"}
+{"t":711789593,"e":"actor","d":"pointer transition 0x7FF6614B42FC -> 0x7FF6614B5CFC nameId=1 bridge=Player"}
+{"t":711789781,"e":"mode","d":"battleMode 2 -> 3"}
+{"t":711789828,"e":"ev","d":"event: move; battle slot 24 moved from (10,5) to (9,4)"}
+{"t":711789921,"e":"mode","d":"battleMode 3 -> 4"}
+{"t":711790468,"e":"mode","d":"battleMode 4 -> 5"}
+{"t":711790500,"e":"actor","d":"pointer transition 0x7FF6614B5CFC -> 0x7FF6614B46FC nameId=359 bridge=Enemy"}
+{"t":711790578,"e":"card","d":"site-evicted id=37 addr=0x2701B780987 reason=anchor-mismatch"}
+{"t":711790578,"e":"card","d":"site-evicted id=37 addr=0x2701BB0A6D0 reason=anchor-mismatch"}
+{"t":711790609,"e":"mode","d":"battleMode 5 -> 2"}
+{"t":711790734,"e":"mode","d":"battleMode 2 -> 3"}
+{"t":711790750,"e":"actor","d":"pointer transition 0x7FF6614B46FC -> 0x7FF6614B5CFC nameId=1 bridge=Player"}
+{"t":711791078,"e":"mode","d":"battleMode 3 -> 1"}
+{"t":711791187,"e":"mode","d":"battleMode 1 -> 3"}
+{"t":711791203,"e":"ev","d":"event: move; battle slot 13 moved from (5,4) to (8,4)"}
+{"t":711791390,"e":"mode","d":"battleMode 3 -> 4"}
+{"t":711791812,"e":"mode","d":"battleMode 4 -> 5"}
+{"t":711791968,"e":"mode","d":"battleMode 5 -> 0"}
+{"t":711792109,"e":"actor","d":"pointer transition 0x7FF6614B5CFC -> 0x7FF6614B46FC nameId=359 bridge=Enemy"}
+{"t":711792671,"e":"actor","d":"pointer transition 0x7FF6614B46FC -> 0x7FF6614B5CFC nameId=1 bridge=Player"}
+{"t":711793125,"e":"mode","d":"battleMode 0 -> 2"}
+{"t":711793687,"e":"actor","d":"pointer transition 0x7FF6614B5CFC -> 0x7FF6614B46FC nameId=359 bridge=Enemy"}
+{"t":711793781,"e":"mode","d":"battleMode 2 -> 1"}
+{"t":711793968,"e":"actor","d":"pointer transition 0x7FF6614B46FC -> 0x7FF6614B5CFC nameId=1 bridge=Player"}
+{"t":711795140,"e":"mode","d":"battleMode 1 -> 2"}
+{"t":711795156,"e":"ev","d":"event: damage 130; battle slot 13 at (8,4) hit points 422 -> 292 of 422 (weapons: 37)"}
+{"t":711795156,"e":"ev","d":"event: damage 154; battle slot 24 at (9,4) hit points 811 -> 657 of 811 (weapons: 37)"}
+{"t":711795453,"e":"mode","d":"battleMode 2 -> 3"}
+{"t":711796250,"e":"mode","d":"battleMode 3 -> 2"}
+{"t":711796703,"e":"mode","d":"battleMode 2 -> 1"}
+{"t":711798093,"e":"mode","d":"battleMode 1 -> 3"}
+{"t":711798171,"e":"ev","d":"event: move; battle slot 11 moved from (7,10) to (8,8)"}
+{"t":711798812,"e":"mode","d":"battleMode 3 -> 2"}
+{"t":711800125,"e":"ev","d":"event: damage 404; battle slot 17 at (6,12) hit points 405 -> 1 of 405 (weapons: 37)"}
+{"t":711800343,"e":"mode","d":"battleMode 2 -> 1"}
+{"t":711800875,"e":"mode","d":"battleMode 1 -> 3"}
+{"t":711800890,"e":"ev","d":"event: damage 580; battle slot 8 at (2,3) hit points 581 -> 1 of 581 (weapons: 37)"}
+{"t":711800890,"e":"ev","d":"event: damage 579; battle slot 9 at (1,2) hit points 580 -> 1 of 580 (weapons: 37)"}
+{"t":711800890,"e":"ev","d":"event: damage 704; battle slot 10 at (2,1) hit points 705 -> 1 of 705 (weapons: 37)"}
+{"t":711800890,"e":"ev","d":"event: damage 686; battle slot 11 at (8,8) hit points 687 -> 1 of 687 (weapons: 37)"}
+{"t":711800890,"e":"ev","d":"event: damage 726; battle slot 12 at (6,12) hit points 727 -> 1 of 727 (weapons: 37)"}
+{"t":711800890,"e":"ev","d":"event: damage 291; battle slot 13 at (8,4) hit points 292 -> 1 of 422 (weapons: 37)"}
+{"t":711800890,"e":"ev","d":"event: damage 400; battle slot 14 at (1,2) hit points 401 -> 1 of 401 (weapons: 37)"}
+{"t":711800890,"e":"ev","d":"event: damage 408; battle slot 15 at (2,1) hit points 409 -> 1 of 409 (weapons: 37)"}
+{"t":711800890,"e":"ev","d":"event: damage 391; battle slot 16 at (5,11) hit points 392 -> 1 of 392 (weapons: 37)"}
+{"t":711801562,"e":"mode","d":"battleMode 3 -> 2"}
+{"t":711802468,"e":"mode","d":"battleMode 2 -> 1"}
+{"t":711805000,"e":"mode","d":"battleMode 1 -> 4"}
+{"t":711805468,"e":"actor","d":"pointer transition 0x7FF6614B5CFC -> 0x7FF6614B46FC nameId=359 bridge=Enemy"}
+{"t":711805484,"e":"ev","d":"event: move; battle slot 24 moved from (9,4) to (4,4)"}
+{"t":711805656,"e":"mode","d":"battleMode 4 -> 0"}
+{"t":711806421,"e":"actor","d":"pointer transition 0x7FF6614B46FC -> 0x7FF6614B5CFC nameId=1 bridge=Player"}
+{"t":711806625,"e":"mode","d":"battleMode 0 -> 2"}
+{"t":711807046,"e":"ev","d":"event: move; battle slot 13 moved from (8,4) to (5,4)"}
+{"t":711807140,"e":"mode","d":"battleMode 2 -> 4"}
+{"t":711807656,"e":"mode","d":"battleMode 4 -> 0"}
+{"t":711807843,"e":"actor","d":"pointer transition 0x7FF6614B5CFC -> 0x7FF6614B46FC nameId=359 bridge=Enemy"}
+{"t":711807984,"e":"actor","d":"pointer transition 0x7FF6614B46FC -> 0x7FF6614B5CFC nameId=1 bridge=Player"}
+{"t":711808546,"e":"mode","d":"battleMode 0 -> 2"}
+{"t":711809015,"e":"ev","d":"event: healing 75; battle slot 24 at (4,4) hit points 657 -> 732 of 811 (weapons: 37)"}
+{"t":711809109,"e":"mode","d":"battleMode 2 -> 1"}
+{"t":711810187,"e":"mode","d":"battleMode 1 -> 2"}
+{"t":711810234,"e":"ev","d":"event: damage 1; battle slot 13 at (5,4) hit points 1 -> 0 of 422 (weapons: 37)"}
+{"t":711810234,"e":"ev","d":"event: damage 154; battle slot 24 at (4,4) hit points 732 -> 578 of 811 (weapons: 37)"}
+{"t":711810468,"e":"mode","d":"battleMode 2 -> 3"}
+{"t":711810515,"e":"ev","d":"kill-diagnostic: corpse action record index=5 ability=0 kind=5 cross-reference?=255; credited (weapon ids 37)"}
+{"t":711810515,"e":"victim","d":"slot=13 alive=(nameId=359,job=74,undead=0,has=1) edge=(nameId=359,job=74,undead=0,has=1) credit=(nameId=359,job=74,undead=0,has=1)"}
+{"t":711810515,"e":"kill","d":"credit weapon=37 count=31 at=(5,4) slot=13"}
+{"t":711810656,"e":"card","d":"paint id=37 to=31 addr=0x2701B78FA4E"}
+{"t":711810687,"e":"mode","d":"battleMode 3 -> 1"}
+{"t":711810875,"e":"mode","d":"battleMode 1 -> 3"}
+{"t":711810906,"e":"ev","d":"event: move; battle slot 11 moved from (8,8) to (5,8)"}
+{"t":711811359,"e":"mode","d":"battleMode 3 -> 2"}
+{"t":711811578,"e":"mode","d":"battleMode 2 -> 1"}
+{"t":711811921,"e":"mode","d":"battleMode 1 -> 4"}
+{"t":711811953,"e":"ev","d":"event: move; battle slot 24 moved from (4,4) to (3,10)"}
+{"t":711812421,"e":"mode","d":"battleMode 4 -> 5"}
+{"t":711812453,"e":"actor","d":"pointer transition 0x7FF6614B5CFC -> 0x7FF6614B42FC nameId=781 bridge=Enemy"}
+{"t":711812578,"e":"mode","d":"battleMode 5 -> 0"}
+{"t":711812953,"e":"actor","d":"pointer transition 0x7FF6614B42FC -> 0x7FF6614B5CFC nameId=1 bridge=Player"}
+{"t":711813078,"e":"mode","d":"battleMode 0 -> 2"}
+{"t":711813109,"e":"ev","d":"event: damage 1; battle slot 11 at (5,8) hit points 1 -> 0 of 687 (weapons: 37)"}
+{"t":711813218,"e":"mode","d":"battleMode 2 -> 0"}
+{"t":711824703,"e":"card","d":"locate-complete regions=1 ticks=483 bytes=2706792448 ms=57844 trigger=invalidate"}
+{"t":711824734,"e":"card","d":"coverage regions=1 sites=242 kills=121 suffix=121 trigger=re-latch base=0x2701B0FC000:242"}
+{"t":711830281,"e":"census","d":"band s8:864/94 s9:832/94 s10:791/97 s11:781/97 s12:875/97 s13:359/74 s14:754/77 s15:390/74 s16:559/77 s17:331/74 s24:1/3 s28:1/3 | roster 0:1L99B97F75W37,255,255 1:298L99B85F86W4,255,2 2:908L91B56F68W255,255,255 3:271L99B89F76W53,255,255 4:575L1B56F61W19,255,255 5:915L93B51F72W0,255,0 6:15L92B62F64W255,255,255 7:13L88B77F65W19,255,255 8:50L91B70F65W1,255,255 9:990L36B43F52W255,255,255 10:772L99B51F43W255,255,255 11:22L35B60F62W255,255,255 12:30L36B71F63W255,255,255 13:1002L97B53F66W255,255,255 14:890L1B59F54W255,255,255 15:31L97B45F65W255,255,255 16:929L36B49F62W255,255,255 17:975L89B68F50W255,255,255 18:41L89B31F69W109,255,255 19:26L91B69F31W111,255,255 20:847L93B68F68W255,255,255 21:988L89B45F41W255,255,255 22:117L89B70F0W255,255,255 23:42L94B67F68W255,255,255 24:1019L1B43F50W255,255,255 25:775L99B68F68W255,255,255 26:863L1B42F66W255,255,255 27:1000L99B52F58W255,255,255 28:1018L99B45F54W255,255,255 29:819L1B42F68W255,255,255 30:947L89B43F54W255,255,255 31:816L91B55F43W255,255,255 32:844L99B52F43W255,255,255 33:774L89B55F51W255,255,255 34:930L91B53F66W255,255,255 35:904L99B57F43W255,255,255 36:1020L1B42F51W255,255,255 37:1001L99B70F41W255,255,255 38:973L99B50F56W255,255,255 39:914L36B49F62W255,255,255 40:937L89B44F45W255,255,255 41:839L99B68F54W255,255,255 42:989L99B62F62W255,255,255 43:800L97B55F50W255,255,255 44:818L99B56F51W255,255,255 45:954L91B63F49W255,255,255 46:857L99B47F64W255,255,255 47:846L91B63F64W255,255,255 48:862L1B59F52W255,255,255 49:786L36B65F41W255,255,255"}
