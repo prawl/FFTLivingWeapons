@@ -1350,7 +1350,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   own art`; silhouettes exit 0; the grep hits. FAIL: any mismatched count, a `FAIL:` line, a SKIP
   line on the dev box, SHIP_GLOW_RIM true. (covers LW-247, LW-236 the 454 of 454 gate, LW-227,
   LW-243, LW-240, LW-287 offline half) **[MAJOR]**
-- [ ] B14 (PARTIAL 2026-10-17: DeployGuardTests 8/8; the -VerifyOnly read and the flavor refusal run at release) **Deploy parity and the flavor guard's test, at release time (LW-297, LW-134).** With the
+- [x] B14 (PASSED 2026-10-19 22:5x on 3711835b, game closed after the prod deploy: BuildLinked -Prod exit 0 with the post restore check passed; BuildLinked -VerifyOnly exit 0, content parity 506 of 506 byte identical, installed flavor prod; DeployGuardTests in Release 8 of 8 green; result pass) **Deploy parity and the flavor guard's test, at release time (LW-297, LW-134).** With the
   game closed and the prod deploy from box 1.1 in place, in the release sitting with the owner's
   go ahead: `.\BuildLinked.ps1 -VerifyOnly` (deploys nothing, hashes the install against the repo)
   and `dotnet test LivingWeapon.Tests\LivingWeapon.Tests.csproj -c Release --filter "FullyQualifiedName~DeployGuardTests"`
