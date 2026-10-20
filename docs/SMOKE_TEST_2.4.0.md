@@ -1014,7 +1014,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   released on its own` on the reloaded battle. FAIL: a party unit invisible after the load, a mark
   on a party seat, the watchdog release firing on the reloaded battle. (DEV OK) (covers LW-130 the
   save edge half; docs/PROVOKE_AC.md's open question) **[MAJOR]**
-- [ ] 9.3 **Bulwark at its new id (LW-144, LW-141, LW-145, LW-366).** A tier 3 Sunderer (id 263)
+- [x] 9.3 (PASSED 2026-10-19 22:46 to 22:49 on dev of 29632f46, owner live, Ramza alone with a bought Sunderer: `Sunderer at tier three is wielded on the field`, a full Wait logged `The Sunderer wielder plants its blade at (10,5) facing W; the ground at its back (11,5) is barred.`, the toast `The Sunderer plants its blade; none may take the ground at its back.` delivered, and on his next turn `The Sunderer's Bulwark releases (the wielder's next turn opened)`; the red cursor on the back tile was not read, a lone unit cannot try the tile; result pass) **Bulwark at its new id (LW-144, LW-141, LW-145, LW-366).** A tier 3 Sunderer (id 263)
   wielder who full waits plants the blade and bars the one tile behind. The 263 build has NEVER
   been seen firing (docs/TODO.md LW-366), so this is a real leg. docs/BULWARK_AC.md holds V1 to V6.
   PASS: `The Sunderer wielder plants its blade at (x,y) facing N; the ground at its back (bx,by) is
@@ -1023,7 +1023,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   ground at its back settles back to normal.` on the next turn with the tile normal again. FAIL: the
   tile in FRONT barred, a tile still barred after release, a raised tile or softlock, or no plant
   at all at id 263. (covers LW-144, LW-141, LW-145, LW-366) **[MAJOR]**
-- [ ] 9.4 **Bulwark's edges (docs/BULWARK_AC.md V3 to V6 and P1).** The stance never bars the wrong
+- [ ] 9.4 (FAILED step 3, 2026-10-19 22:48 to 22:49 on dev of 29632f46, owner live: a plant at (10,5) barring (11,5), then Retry from start of battle; no release line followed the rewind and the tile stayed barred until the wielder's next turn opened 20 s later (`Bulwark releases (the wielder's next turn opened)` at 22:49:25), and a stale plant toast was delivered at 22:49:05 right after the Retry; same rewind gap as LW-465, filed LW-466, shipped as known by the slimmed pass ruling; steps 1, 2, 4 and 5 NOT REACHED; result bug LW-466) **Bulwark's edges (docs/BULWARK_AC.md V3 to V6 and P1).** The stance never bars the wrong
   tile and never leaves one barred: on the map's edge, across a Retry, over a corpse, or into the
   next fight. In the 9.3 battle, in order: (1) stand on the map's edge row with the back to the
   void and full wait; (2) turn around, back into the map, full wait; (3) with a plant up, lose and
