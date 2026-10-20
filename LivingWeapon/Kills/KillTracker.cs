@@ -82,6 +82,7 @@ internal sealed partial class KillTracker
     // Checkpoint-retry detector (docs/LIVE_LEDGER.md row [battle-retry-rewind-fingerprint]), ticked
     // per Poll; feeds revive detection in KillTracker.Corpses.cs and ResolveCredit. See RestartSentinel.cs.
     private readonly RestartSentinel _restart;
+    private Func<long>? _retryRewinds;
 
     public KillTracker(Dictionary<int, int> kills, IGameMemory mem, ISet<int> weapons, BattleLog? events = null,
                         Action<string, string>? recorder = null, IDeedSink? deeds = null,
@@ -106,6 +107,8 @@ internal sealed partial class KillTracker
         _klog = ModLogger.For(LogVerb.Kill, () => AnyTrackedWeaponThisBattle);
         _restart = new RestartSentinel(recorder);
     }
+
+    internal void WatchRetryRewinds(Func<long> source) => _retryRewinds = source;
 
     /// <summary>the retry-rewind detector, read-only for callers.</summary>
     internal RestartSentinel Restart => _restart;
@@ -197,7 +200,7 @@ internal sealed partial class KillTracker
         // Tick the retry detector before this tick's corpse scan so a null seen now can join a revive
         // detected later in the same Poll. Its return drains the deferred-verdict stash (0ms-join fix): apply
         // those uncredits before anything reads the tally.
-        var restartDrained = _restart.Tick(_register.RawNullThisTick, onField);
+        var restartDrained = _restart.Tick(_register.RawNullThisTick, onField, _retryRewinds?.Invoke() ?? 0);
         bool drainedChanged = restartDrained.Count > 0;
         foreach (var (drainSlot, drainWeapons, drainViaFallback) in restartDrained)
             UncreditKills(drainWeapons, drainViaFallback, drainSlot);

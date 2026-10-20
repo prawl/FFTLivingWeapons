@@ -332,3 +332,21 @@ Expected: Each id's flags are two bytes at mirror + id * 2. Sync writes only the
 Reader: It got 2048 ids and that Sync only covers ids 0 to 255, but could not confirm the extended rows sit past that because the first extended id lives in ExtendedCatalog, which was not in the packet.
 Result: bad question
 Unprompted: Restore tries both sites even if one fails, and on a partial failure leaves Installed true with the two halves possibly split. Sync returns false both for unchanged and for a failed write, so a caller cannot tell them apart. A second Apply on BytePatchSet silently reports success even with different patches. PendingPatch can land in Unwritable after the byte was actually written (read back mismatch) and has no undo. The plus one on the high byte lea target implies a split byte row layout the code never explains. It also worried ids past 2047 could write off the page, which cannot happen since the last extended id is 511.
+
+## Cold read 2026-10-19 13:42, LW-458, base 208d7468
+Run cap 1 (47 changed production lines). Run 1 of 1.
+Files: LivingWeapon/Engine.cs, LivingWeapon/Extended/ExtendedInventory.cs, LivingWeapon/Extended/RewindRestoreHook.cs, LivingWeapon/Kills/KillTracker.cs, LivingWeapon/Kills/RestartSentinel.Policy.cs, LivingWeapon/Kills/RestartSentinel.cs
+Hashes: LivingWeapon/Engine.cs=bcbeae7d0bbc118e; LivingWeapon/Extended/ExtendedInventory.cs=4ecfabd0e4fdf63b; LivingWeapon/Extended/RewindRestoreHook.cs=a94aba7223444b84; LivingWeapon/Kills/KillTracker.cs=dd1b267b60f1ccb2; LivingWeapon/Kills/RestartSentinel.Policy.cs=13c7824ed0d8841f; LivingWeapon/Kills/RestartSentinel.cs=b2fb39bf7a580231
+Q1 (failure path): The checkpoint restore hook fires, but the kill tracker was never told where to read the restore count (the source was never wired). What does the retry guard see each tick, and does anything throw or change compared with before this change?
+Expected: Poll passes 0 every tick, so the count never rises past its baseline, no hook stamp is ever made, and the guard behaves exactly as before, relying on the pointer null streak alone. Nothing throws.
+Reader: Poll passes 0 every tick, the first tick takes the baseline, no stamp is ever made, the null streak path is untouched, nothing throws. Could not compare with the old code, which the packet lacks.
+Result: pass
+Q2 (ordering): During a Retry the field reads not live for longer than the re arm threshold, and the checkpoint restore lands somewhere inside that dark stretch. Does the re arm wipe the hook stamp, and what does the battle age read when the revive is presented?
+Expected: The re arm clears the null stamp, the latch, the stash and the battle age, but not the hook stamp, so a revive within 150 ticks of the restore still opens the latch. Battle age restarts from the re arm, which is why the hook path ignores the grace.
+Reader: The re arm zeroes the latch, null streak, qualified null, battle age and stash but not the hook stamp, so a revive within 150 ticks still opens. Battle age counts from the last re arm and the hook path ignores it.
+Result: pass
+Q3 (free): The very first time the sentinel ticks in a session the restore count already reads 5 from earlier battles. Is that treated as a fresh Retry, and what makes a later Retry count?
+Expected: No. The first tick only stores the count as a baseline (the stored value starts at minus one). Only a later tick reading a count higher than the stored one stamps the hook, and ResetBattle clears the stamp but keeps the stored count.
+Reader: No. The stored count starts at minus one so the first tick only sets the baseline to 5. A later higher count stamps. Flagged that a hook armed late could read as a jump.
+Result: pass
+Unprompted: The restore counter rises even when no bag record was found, and that still counts as a Retry, as intended. ProcessCheckpoint and ProcessRewind swallow exceptions silently. A fourth question the reader invented about the Mods folder was ignored.

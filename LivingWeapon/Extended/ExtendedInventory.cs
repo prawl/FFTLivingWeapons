@@ -44,6 +44,7 @@ internal sealed partial class ExtendedInventory
 
     public IReadOnlyList<ExtendedItemDef> Items => _data.Items;
     public bool Armed { get; private set; }
+    public long RetryRewinds => _rewindHook?.CheckpointRestoresSeen ?? 0;
     private readonly DoorCell _door = new(DoorReading.Waiting("the loader has not handed over its hooks yet"));
     /// <summary>The extended inventory part's door, written by the boot arm thread and read by the engine tick.</summary>
     public DoorReading Door => _door.Value;

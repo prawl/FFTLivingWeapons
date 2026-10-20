@@ -29,6 +29,8 @@ internal sealed partial class RestartSentinel
     private int _latchOpenTicksRemaining;
     private int _battleAgeTicks;
     private int _outOfLiveStreakTicks;
+    private long _lastRetryRewinds = -1;
+    private int _lastRetryHookTick;
 
     // The stash fields (_stash, _drainedThisTick) live in RestartSentinel.Stash.cs beside ProcessStash.
 
@@ -51,6 +53,7 @@ internal sealed partial class RestartSentinel
         _latchOpenTicksRemaining = 0;
         _battleAgeTicks = 0;
         _outOfLiveStreakTicks = 0;
+        _lastRetryHookTick = 0;
         _stash.Clear();
         _drainedThisTick.Clear();
     }
@@ -59,10 +62,16 @@ internal sealed partial class RestartSentinel
     /// a revive found later in the same tick. rawActorNull is true only on a literal zero actor
     /// pointer, not a shape-fail or unreadable page. Returns the stash entries drained this tick;
     /// the caller applies UncreditKills to each.</summary>
-    internal IReadOnlyList<(int Slot, List<int> Weapons, bool ViaFallback)> Tick(bool rawActorNull, bool inLiveish)
+    internal IReadOnlyList<(int Slot, List<int> Weapons, bool ViaFallback)> Tick(bool rawActorNull, bool inLiveish, long retryRewinds = 0)
     {
         _tick++;
         _battleAgeTicks++;
+        if (_lastRetryRewinds >= 0 && retryRewinds > _lastRetryRewinds)
+        {
+            _lastRetryHookTick = _tick;
+            _recorder?.Invoke("restart", $"retry hook seen count={retryRewinds}");
+        }
+        _lastRetryRewinds = retryRewinds;
         _drainedThisTick.Clear();
         bool justQualified = false;
 
@@ -126,6 +135,14 @@ internal sealed partial class RestartSentinel
         if (LatchOpen)
         {
             _latchOpenTicksRemaining = RestartSentinelPolicy.LatchTicks;   // re-openable. Extend on a fresh qualifying revive
+            return RevivePresentResult.UncreditNow;
+        }
+
+        bool haveRetryHook = _lastRetryHookTick != 0;
+        int ticksSinceRetryHook = haveRetryHook ? _tick - _lastRetryHookTick : int.MaxValue;
+        if (RestartSentinelPolicy.ShouldOpenLatchFromRetryHook(wasCredited, healedFromZero, haveRetryHook, ticksSinceRetryHook))
+        {
+            LogOpenEdge($"retry hook seen {ticksSinceRetryHook} ticks before this revive, battle age {_battleAgeTicks} ticks, {identityNote}");
             return RevivePresentResult.UncreditNow;
         }
 

@@ -142,4 +142,17 @@ public class RestartSentinelPolicyTests
         Assert.True(RestartSentinelPolicy.ShouldStash(
             wasCredited: true, healedFromZero: true, nullStreakTicks: 1, battleAgeTicks: Grace, identityMatches: true));
     }
+
+    [Fact]
+    public void The_retry_hook_opens_only_when_every_input_holds_and_the_join_is_in_range()
+    {
+        const int J = RestartSentinelPolicy.RetryHookJoinTicks;
+        Assert.Equal(150, J);
+        Assert.True(RestartSentinelPolicy.ShouldOpenLatchFromRetryHook(true, true, true, 0));
+        Assert.True(RestartSentinelPolicy.ShouldOpenLatchFromRetryHook(true, true, true, J));
+        Assert.False(RestartSentinelPolicy.ShouldOpenLatchFromRetryHook(true, true, true, J + 1));
+        Assert.False(RestartSentinelPolicy.ShouldOpenLatchFromRetryHook(false, true, true, 0));
+        Assert.False(RestartSentinelPolicy.ShouldOpenLatchFromRetryHook(true, false, true, 0));
+        Assert.False(RestartSentinelPolicy.ShouldOpenLatchFromRetryHook(true, true, false, 0));
+    }
 }

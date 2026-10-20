@@ -240,6 +240,7 @@ internal sealed class Engine
         // WpTableHold, which resolves extended WP bytes through it.
         _extended = extended ?? new ExtendedInventory(new LiveCodePatcher(), new LiveNearAllocator(),
             ExtendedInventoryData.Load(modDir), ExtendedBagSidecar.Load(save.PathFor(ExtendedBagSidecar.FileName)));
+        _tracker.WatchRetryRewinds(() => _extended.RetryRewinds);
         // Turn-scoped WP write for the "wp"/"wp+faith" gun lanes; GrowthEngine.Lanes.cs gives them no
         // combat-struct lane, so this is their whole growth. an extended id's WP byte lives in the
         // extended inventory's stub page, so the hold resolves it there.

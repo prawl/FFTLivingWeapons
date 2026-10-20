@@ -241,4 +241,21 @@ public class RewindRestoreHookTests
         Assert.StartsWith("checkpoint-copy: 0x3000 does not carry the expected prologue", why);
         Assert.False(hook.IsActive);
     }
+
+    [Fact]
+    public void Checkpoint_restores_seen_counts_mode_1_with_or_without_a_record_and_nothing_else()
+    {
+        var f = Bagged(2, 0, 3, 1, 0, 0, 0);
+        var hook = Hook(f);
+        using var cap = LogCapture.Start();
+
+        hook.ProcessCheckpoint((_, _, _, _) => 0, 0x5000, 0, 0, 0);
+        hook.ProcessCheckpoint((_, _, _, _) => 0, 0x5000, 2, 0, 0);
+        hook.ProcessCheckpoint((_, _, _, _) => 0, 0x5000, -1, 0, 0);
+        Assert.Equal(0, hook.CheckpointRestoresSeen);
+
+        hook.ProcessCheckpoint((_, _, _, _) => 0, 0x5000, 1, 0, 0);
+        hook.ProcessCheckpoint((_, _, _, _) => 0, 0x9000, 1, 0, 0);
+        Assert.Equal(2, hook.CheckpointRestoresSeen);
+    }
 }

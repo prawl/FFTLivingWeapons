@@ -44,10 +44,10 @@ public class RestartSentinelTests
     /// <summary>Advance n ticks with the given raw-null/inLiveish inputs held constant. Returns
     /// the LAST tick's drained-stash list (only the final call's drain is usually interesting).</summary>
     private static IReadOnlyList<(int Slot, List<int> Weapons, bool ViaFallback)> Advance(
-        RestartSentinel s, int n, bool rawNull = false, bool inLiveish = true)
+        RestartSentinel s, int n, bool rawNull = false, bool inLiveish = true, long retryRewinds = 0)
     {
         IReadOnlyList<(int, List<int>, bool)> last = System.Array.Empty<(int, List<int>, bool)>();
-        for (int i = 0; i < n; i++) last = s.Tick(rawNull, inLiveish);
+        for (int i = 0; i < n; i++) last = s.Tick(rawNull, inLiveish, retryRewinds);
         return last;
     }
 
@@ -450,5 +450,114 @@ public class RestartSentinelTests
         Assert.Equal(RevivePresentResult.Refuse, verdict);
         var drained = s.Tick(rawActorNull: true, inLiveish: true);   // qualifies -- nothing was ever stashed
         Assert.Empty(drained);
+    }
+
+    private const int HookJoin = RestartSentinelPolicy.RetryHookJoinTicks;
+
+    private static RevivePresentResult OtherRevive(RestartSentinel s)
+        => s.PresentRevive(0, W(1), false, healedFromZero: true, OtherId, SameId, OtherNameId, SameNameId);
+
+    /// <summary>Baseline at count 0, then the restore lands (count 1) and k more live ticks pass.</summary>
+    private static RestartSentinel HookThenWait(int k)
+    {
+        var s = new RestartSentinel();
+        s.Tick(false, true, 0);
+        s.Tick(false, true, 1);
+        Advance(s, k, retryRewinds: 1);
+        return s;
+    }
+
+    /// <summary>The missed tape order. The field goes dark, the restore lands well after the re arm
+    /// has fired, the pointer reads empty on the last dark poll, the field returns, then the revive.</summary>
+    private static RestartSentinel MissedTapeSentinel(long restoreCount)
+    {
+        var s = new RestartSentinel();
+        s.Tick(false, true, 0);
+        Advance(s, 20);
+        Advance(s, 117, inLiveish: false);
+        s.Tick(false, false, restoreCount);
+        Advance(s, 59, inLiveish: false, retryRewinds: restoreCount);
+        s.Tick(true, false, restoreCount);
+        Advance(s, 12, retryRewinds: restoreCount);
+        return s;
+    }
+
+    private static RestartSentinel RestoreBeforeDarkSentinel()
+    {
+        var s = new RestartSentinel();
+        s.Tick(false, true, 0);
+        Advance(s, 20);
+        s.Tick(false, true, 1);
+        Advance(s, 60, inLiveish: false, retryRewinds: 1);
+        Advance(s, 10, retryRewinds: 1);
+        s.Tick(true, true, 1);
+        s.Tick(false, true, 1);
+        return s;
+    }
+
+    [Fact]
+    public void A_retry_hook_catches_the_one_poll_null_that_the_null_streak_misses()
+    {
+        var s = MissedTapeSentinel(1);
+
+        Assert.Equal(RevivePresentResult.UncreditNow, OtherRevive(s));
+        Assert.True(s.LatchOpen);
+    }
+
+    [Fact]
+    public void A_retry_hook_that_fires_before_the_dark_stretch_still_catches_the_revive()
+    {
+        var s = RestoreBeforeDarkSentinel();
+
+        Assert.Equal(RevivePresentResult.UncreditNow, OtherRevive(s));
+        Assert.True(s.LatchOpen);
+    }
+
+    [Fact]
+    public void Without_the_retry_hook_the_one_poll_null_is_refused()
+    {
+        var s = MissedTapeSentinel(0);
+
+        Assert.Equal(RevivePresentResult.Refuse, OtherRevive(s));
+        Assert.False(s.LatchOpen);
+    }
+
+    [Fact]
+    public void The_first_tick_with_a_nonzero_retry_count_only_takes_the_baseline()
+    {
+        var s = new RestartSentinel();
+        s.Tick(false, true, 5);
+        Advance(s, 10, retryRewinds: 5);
+
+        Assert.Equal(RevivePresentResult.Refuse, OtherRevive(s));
+    }
+
+    [Fact]
+    public void A_revive_one_tick_past_the_hook_join_is_refused_and_exactly_at_it_opens()
+    {
+        Assert.Equal(RevivePresentResult.UncreditNow, OtherRevive(HookThenWait(HookJoin)));
+        Assert.Equal(RevivePresentResult.Refuse, OtherRevive(HookThenWait(HookJoin + 1)));
+    }
+
+    [Fact]
+    public void ResetBattle_clears_the_hook_stamp_and_a_later_count_rise_stamps_again()
+    {
+        var s = HookThenWait(5);
+        s.ResetBattle();
+        Advance(s, 5, retryRewinds: 1);
+        Assert.Equal(RevivePresentResult.Refuse, OtherRevive(s));
+
+        s.Tick(false, true, 2);
+        Assert.Equal(RevivePresentResult.UncreditNow, OtherRevive(s));
+    }
+
+    [Fact]
+    public void A_revive_that_is_not_credited_or_not_healed_is_refused_right_after_the_hook()
+    {
+        var s = HookThenWait(3);
+
+        Assert.Equal(RevivePresentResult.Refuse, s.PresentRevive(0, new List<int>(), false, healedFromZero: true, OtherId, SameId, OtherNameId, SameNameId));
+        Assert.Equal(RevivePresentResult.Refuse, s.PresentRevive(0, W(1), false, healedFromZero: false, OtherId, SameId, OtherNameId, SameNameId));
+        Assert.False(s.LatchOpen);
     }
 }

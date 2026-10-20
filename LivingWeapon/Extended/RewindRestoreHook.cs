@@ -38,7 +38,7 @@ internal sealed class RewindRestoreHook
     private readonly object _gate = new();
     private IHook<RewindFn>? _restoreHook, _checkpointHook;
     private RewindFn? _k1, _k2;   // GC anchors, the native thunks must outlive us
-    private long _rewindsHandedOn, _unread, _saves, _savesIncomplete, _restores, _unrecorded;
+    private long _rewindsHandedOn, _unread, _saves, _savesIncomplete, _restores, _unrecorded, _restoresSeen;
     // Each warning prints once per launch so one bad read cannot flood the log.
     private bool _warnedUnrecorded, _warnedUnread;
 
@@ -48,6 +48,7 @@ internal sealed class RewindRestoreHook
     public long CheckpointSaves => Interlocked.Read(ref _saves);
     public long CheckpointSavesIncomplete => Interlocked.Read(ref _savesIncomplete);
     public long CheckpointRestores => Interlocked.Read(ref _restores);
+    public long CheckpointRestoresSeen => Interlocked.Read(ref _restoresSeen);
     public long CheckpointRestoresUnrecorded => Interlocked.Read(ref _unrecorded);
     internal CheckpointTotalShadow TotalsByStruct => _totalsByStruct;
 
@@ -132,7 +133,11 @@ internal sealed class RewindRestoreHook
         try
         {
             if (mode == RewindMode.Store) SaveCounts((long)rcx);
-            else if (mode == RewindMode.Restore) RestoreCounts((long)rcx);
+            else if (mode == RewindMode.Restore)
+            {
+                Interlocked.Increment(ref _restoresSeen);
+                RestoreCounts((long)rcx);
+            }
         }
         catch (Exception) { /* the game's own state stands */ }
         return result;

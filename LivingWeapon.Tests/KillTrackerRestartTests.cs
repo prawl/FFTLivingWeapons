@@ -793,4 +793,26 @@ public class KillTrackerRestartTests
         Assert.Equal(1, kills.GetValueOrDefault(weapon));   // fail closed -- a miss, never a false positive
         Assert.False(t.Restart.LatchOpen);
     }
+
+    [Fact]
+    public void A_credited_corpse_revived_right_after_the_retry_hook_fires_is_uncredited_with_no_null_at_all()
+    {
+        const int weapon = 19;
+        var kills = new Dictionary<int, int>();
+        var m = new FakeSparseMemory();
+        var t = MakeLatchedTracker(m, kills, new HashSet<int> { weapon }, weapon);
+        long restores = 0;
+        t.WatchRetryRewinds(() => restores);
+
+        AliveThenDead(m, 10, t);
+        Assert.Equal(1, kills.GetValueOrDefault(weapon));
+        t.Poll(true);
+
+        restores = 1;
+        SetUnit(m, 10, hp: 100, maxHp: 400, level: 10, brave: 50, faith: 50);
+        t.Poll(true);
+
+        Assert.Equal(0, kills.GetValueOrDefault(weapon));
+        Assert.True(t.Restart.LatchOpen);
+    }
 }
