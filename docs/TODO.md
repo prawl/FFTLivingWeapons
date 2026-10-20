@@ -13,38 +13,6 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.4.0)
 
-- **[LW-426] The log no longer says the twin weapon trick refused dual wielding when the player is dual wielding on their own** (opened 2026-10-17) [AWAITING-LIVE]
-  - While dual wielding pistols the owner saw the log say no dual wielding would happen, and then
-    it happened anyway. Read end to end 2026-10-18, and the trick was never in the way. Its old line
-    `The wielder's other hand is spoken for; the twin weapon stands down.` fired the moment the
-    player put their own second weapon where the conjured twin had been, and it was true about the
-    mod (it stepped aside) but read as a verdict about the game, which still swung both weapons on
-    the player's own Dual Wield. The same line also fired when a shield was the reason and when the
-    hand was simply empty after a weapon swap, which is not "spoken for" at all.
-  - The line now comes in three shapes, same voice as its neighbours, each with a detail tail: a
-    second weapon of the wielder's own ("The wielder already carries a second weapon of their own
-    in the off hand, so the twin weapon steps aside; the game's own Dual Wield still swings both",
-    said only when the support slot really reads Dual Wield, else "the game decides whether both
-    swing"), a shield ("A shield is equipped, so the twin weapon steps aside"), and an emptied
-    hand ("The twin weapon has left the off hand and nothing of the wielder's was there, so the
-    twin weapon steps aside", or, when an older store remembers a real earlier item, that the
-    item is not put back, named in the tail). When the mod had lent the Dual Wield, the line says
-    it goes back.
-  - No logic defect. A new test drives the stand down through every later lane (world map, mid
-    battle, the battle end twilight) and proves no twin write follows until the hand is empty
-    again, and that the write which then lands announces itself as a fresh grant. (Tech:
-    GunSlinger.StandDownLine in GunSlinger.Apply.cs, StandDownNoWrite clears HasOff so every
-    later pass takes Leave; the support lane restores a lent Key 477 in the same pass by
-    DesiredSupport's rules 2 and 3; the four LW-426 tests sit in GunSlingerConsentTests.cs;
-    scan_logs.py lists none of these lines and its stand down landmark is the guard's own
-    sentence.)
-  - Done means: a player reading livingweapon.log while dual wielding their own two guns sees a
-    line that says the trick stepped aside and their own Dual Wield still swings both, never one
-    that reads as a refusal; the shield and emptied hand shapes name their own reason; the old
-    sentence is gone from the code and the smoke box.
-  - Verify: suite green with the four LW-426 tests; and the owner's live read on smoke box 9.6,
-    equip two guns on a tier 3 Outrider Pistol wielder (the second gun in the off hand by hand),
-    read the new line in livingweapon.log, then swing in a battle and see both guns fire.
 - **[LW-439] The twin weapon trick reads the world map menu byte right again on the copy protection free game build** (opened 2026-10-18) [BUILDING]
   - The mod watches one byte to know when a world map menu is open, so the twin weapon is never stamped while the player can touch equipment. The August tapes read that byte as 0 or 1 and the code treated anything else as "cannot read", which quietly broke two things on today's build, where the byte reads 246 with a menu open. The twin stopped reappearing on the Status page after backing out of Equipment (the LW-193 acceptance behavior), and the launch check would have switched the twin lane off for the session if a menu was open in the first second after Continue. A player with a gun slinger at tier sees the first one, so it joins R5 under the freeze rule.
   - Offline finding 2026-10-18, confirmed by two reviewers re-deriving it from the exe, the byte was never a flag. It is byte 4 of a link pointer inside the game's per frame record list, which was 1 under the old fixed load address and is 246 under the random address the Denuvo free build gets, so the honest rule is 0 means closed and anything else means open, a rule that rests on the two tapes rather than on the code. Both readers now read it that way, and the 0 or 1 check stays only on the browse byte, which really is a flag with seven direct writers in the exe.
@@ -265,7 +233,7 @@ belongs rather than at the bottom.
   - (Tech: LivingWeapon/Signatures/EagleEye.cs, the Hasten sweep. Doom status at base+0x49 mask
     0x01, countdown at base+0x59, per LIVE_LEDGER doom-status-bytes. Same family as the known
     last actor attribution traps, memories actorptr-dwell-semantics and stale-latch-stamp-fix.)
-- [LW-320] 2026-08-25: Every weapon's power audited against how it is obtained. Demoted from Now on 2026-08-27 late to seat
+- [LW-320] 2026-08-25: Every weapon's power audited against how it is obtained. Owner verdict 2026-10-19 on release day: accepted as it stands for 2.4.0, the Warbrand and Ravager keep their shop power, revisit after the tag. Demoted from Now on 2026-08-27 late to seat
   LW-353 (per-save bag counts); status unchanged, AWAITING-LIVE, the owner's sign-off on the
   grid rulings is still the only thing outstanding; every line below is the Now row's text verbatim.
   - A weapon's price should include the effort of getting it. The grid's obtain column
