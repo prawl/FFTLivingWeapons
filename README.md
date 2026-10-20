@@ -116,6 +116,10 @@ The gameplay is language-neutral by construction: the item tables carry no text,
   the rewind. Your units may stay invisible to enemies until the mod's safety timer lets go, about 90
   seconds at most. Nothing is lost and it clears on its own; ending your Defender's turn or the
   battle also clears it.
+- **A Retry can leave the Sunderer's barred tile blocked for one turn.** If you pick Retry while
+  the Sunderer's Bulwark is planted, the tile behind the wielder stays blocked until that wielder's
+  next turn opens, and the plant message may show once more right after the rewind. Nothing is
+  lost; the tile frees itself within the turn, and ending the battle clears it too.
 - **Dual-wielding doubles the growth.** A kill while wielding two weapons credits both of them,
   not just one, so pairing two Living Weapons together is the fastest way to grow a pair at once.
   A shield equipped in either hand never earns credit; only a real weapon does.
