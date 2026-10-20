@@ -1433,7 +1433,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   before the pass close commit, as a tick or as the rulings he rejects, so that grep shows a dated
   owner verdict. FAIL: a Now row left behind with no ruling, an agent made flip, or an LW-320 row
   with no verdict. (covers LW-320) **[MAJOR]**
-- [ ] B19 (PARTIAL 2026-10-19: README half passed, no development branch hedge left (removed in 43291481), the Updating from 2.3.x section names the seven, the axes in hand, the moved kills and the shops, and the three if you did not save while the mod was off sentences are in README.md, docs/COMPATIBILITY.md and docs/EXTENDED_INVENTORY_GUIDE.md; the owner's ship notes draft still owed) **README and the ship notes tell a 2.3.x player what the update does to their seven axes
+- [x] B19 (PASSED 2026-10-19: README half passed, no development branch hedge left (removed in 43291481), the Updating from 2.3.x section names the seven, the axes in hand, the moved kills and the shops, and the three if you did not save while the mod was off sentences are in README.md, docs/COMPATIBILITY.md and docs/EXTENDED_INVENTORY_GUIDE.md; the ship notes clause is dropped by owner ruling, the Nexus notes are his own routine and need no box; result pass) **README and the ship notes tell a 2.3.x player what the update does to their seven axes
   and flails, and what uninstalling really keeps.** A returning player must be told, before they
   load, that the Terrastaff, Ravager, Sunderer, Warbrand, Bloodlash, Climhazzard and Sasori are
   now separate purchases (which town, which chapter, box 4.6's list), that the ones in their hands
