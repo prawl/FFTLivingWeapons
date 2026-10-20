@@ -1276,7 +1276,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   `production` reads 1 or more; the LW-413 contract test (every GetAsyncKeyState poll under `#if
   LWDEV`) green inside B1. FAIL: any dev string above 0, which means a hotkey poll shipped, or
   `production` at 0. (covers LW-413, LW-155) **[BLOCKER]**
-- [ ] B6 (PARTIAL 2026-10-17: every clause passed on 6016d943 except the version, which reads 2.3.4 until the ModVersion bump; re run at release) **Publish.ps1 packages a clean prod zip into a scratch folder.**
+- [x] B6 (PASSED 2026-10-19 on 54a9d159: Publish.ps1 -OutputPath %TEMP%\lw240 exit 0, every gate green, 4300 tests, [PASS] All required entries present; FFTLivingWeapons-2.4.0.zip with one top folder prawl.fft.livingweapons, 1246 entries, no parked artifact, no JobCommandData.xml, the three nxds, the DLL; packaged ModConfig.json reads 2.4.0 with fftivc.utility.modloader and reloaded.sharedlib.hooks; result pass) **Publish.ps1 packages a clean prod zip into a scratch folder.**
   `.\Publish.ps1 -OutputPath $env:TEMP\lw240` (the staging folder is `Publish\prawl.fft.livingweapons`
   under the repo; the Mods folder is never touched). PASS: exit 0; package verify PASS on every
   `$RequiredModFiles` row (meta.json, glow_icons/manifest.json, the 7 tables with
