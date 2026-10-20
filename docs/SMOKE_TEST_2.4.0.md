@@ -712,7 +712,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   turn, a card count one above the owner's own kills, a credit or banner on the guest's death, a
   guest seat rescued as an enemy on the tape (the LW-234 exposure live again; a FAIL promotes
   LW-234). (DEV OK) **[MAJOR]**
-- [ ] 5.10 **Leaving a battle the ugly way: quit to title mid fight, and a hard close (LW-108 and
+- [x] 5.10 (PASSED 2026-10-19 22:37 to 22:41 on dev of 29632f46, owner live: leg A, Chaos Blade kill 32, quit to title and Continue landed back in the battle at its start checkpoint with the enemy alive, no battle edge fired, the rewind went through the checkpoint restore and logged `The battle was retried; kills from the abandoned attempt are uncounted` at 22:38:33, the re kill paid 32 again, not 33; leg B, the game process killed at 22:40:17, relaunch armed at 22:41:01, `Battle started.` two seconds later, `Living Weapons: all parts armed.`, a kill credited; the only WARN was the known LW-454 checkpoint line; the box text expected a Battle ended line between quit and resume, the game rewinds in place instead and the double pay guard is what holds; result pass) **Leaving a battle the ugly way: quit to title mid fight, and a hard close (LW-108 and
   LW-233, the quit door).** A player who quits to the title in the middle of a fight, or closes
   the game and comes back tomorrow, gets a battle that counts and no ghost from the abandoned one.
   Leg A (quit): dev build, enter a battle, kill one enemy with a living weapon (note the credit
