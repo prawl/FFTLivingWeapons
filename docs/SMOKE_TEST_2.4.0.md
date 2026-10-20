@@ -620,7 +620,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   a second `Battle started.`), kills reset, the delayed kill credited to the unit that acted in
   between or `the kill goes uncredited`, the post pause kill uncredited. (DEV OK) (covers LW-42)
   **[BLOCKER]**
-- [ ] 5.3 **Tallies persist, battle edges stay clean, a world map re enter registers, a chained
+- [x] 5.3 (PASSED 2026-10-19 22:40 to 22:45 on dev of 29632f46, owner live: after the 22:40 hard close the relaunch header read the tally from kills.json primary; battles logged started, ended, started with no double exit (22:42:44 end with 4 credits, 22:43:28 start and end, 22:43:37 start); the flee at 22:43:42 logged `The battle was rewound to its pre battle save` then `Battle ended`; the next battle at 22:44:17 logged a fresh `Battle started.` and credited `Chaos Blade claims kill number 37`; scan CLEAN; the chained story pair NOT REACHED and the Attack row rename not read, shipped open by the slimmed pass ruling; result pass) **Tallies persist, battle edges stay clean, a world map re enter registers, a chained
   pair stays two fights.** Credits land in battle, the battle end saves, the launch header count
   carries over a session restart; two consecutive battles log started, ended, started with no
   double exit and no mid battle exit; leaving a battle to the world map and restarting it logs a
