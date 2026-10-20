@@ -583,7 +583,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
 
 ## 5. Kill attribution, battle edges, the attack card, toasts
 
-- [ ] 5.1 **Credit goes to the true killer, in every lane (LW-272, LW-96, LW-137, LW-154; LW-396
+- [ ] 5.1 (PARTIAL 2026-10-19 21:34 on dev of 5e511102, owner live: a Ninja dual wielding Hushblade and Quicksilver killed once and both logged `claims kill number 16` for one corpse; the Ember Rod kill credited; the fast forward auto battle, the late recruit, the Throw or item kill after an unarmed turn and the Counter still owed) **Credit goes to the true killer, in every lane (LW-272, LW-96, LW-137, LW-154; LW-396
   and LW-164 watch).** Manual battle against HUMAN soldiers who carry the same weapon id as one of
   the party's living weapons (chapter one and two knights and archers do), plus one auto battle run
   with the fast forward button HELD for the whole fight: kills credit the killer's weapon even when
@@ -608,7 +608,7 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   item or Throw kill, a kill the player saw at fast forward with no credit line, a WeaponUnique
   rescue on an enemy seat, or `the kill goes uncredited` after a living weapon kill on a player
   turn. (DEV OK) (covers LW-272, LW-96, LW-137, LW-154) **[BLOCKER]**
-- [ ] 5.2 **A long cast, a delayed kill and a long pause are not a battle end (LW-42).** Queue Holy
+- [x] 5.2 (PASSED 2026-10-19 21:33 to 21:41 on dev of 5e511102, owner live: one real Battle started at 21:33:46 and one summary at 21:41:39, the two 0 turn starts before it are the known pre battle churn; the pause menu held open 30 s and a 60 s Alt Tab on an enemy turn ended nothing; a charged Fire landed later and logged `Crediting the charged attack that just landed ... wielding Ember Rod, not the unit acting now.` with Ember Rod 17 and 18 after the pauses; scan CLEAN, zero warnings; result pass) **A long cast, a delayed kill and a long pause are not a battle end (LW-42).** Queue Holy
   or Flare, let it resolve, win normally; let one kill land from a DELAYED action (a rod wielder's
   Fire, a Dragoon's Jump or a Dancer's Wiznaibus that kills after another unit has acted); after
   one kill open the in battle options or system menu and leave it 30 seconds, resume, then Alt Tab
