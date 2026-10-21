@@ -166,7 +166,18 @@ The game's own code no longer sits at one fixed address (ASLR since the Denuvo-f
 
 > **Editing note:** formula and effect IDs in the XML are **decimal, not hex**. The "Special Effect" badge in an item's description is the separate `UiStatusEffectId` nxd field; status/element procs are described in the item's prose, not flagged by a badge.
 
+## How it's made
+
+Living Weapons is built with AI assistance, and I want that to be clear up front.
+
+The design is mine: every item, every growth lane, every signature ability and its tuning. So is the reverse engineering. Every game address, every hook site and the 261-item break were found by hand with a disassembler and live testing, and the evidence for each is recorded in [`docs/LIVE_LEDGER.md`](docs/LIVE_LEDGER.md).
+
+Much of the C# implementation is written by Claude Code under my direction. Nothing ships on its word alone. Every change has to pass the full test suite (over 4,000 tests), the item balance gate and the build checks above. Substantial changes also go through a readability review, where a fresh reader with no access to the project must answer questions about the code from the code alone ([`docs/COLD_READ_LOG.md`](docs/COLD_READ_LOG.md)). And every release is played live before it goes out.
+
+If you have questions about any of it, ask me in the FFT modding Discord. I'm Pax (prawl) there.
+
 ## Credits
 
 - **Nenkai**: [`fftivc.utility.modloader`](https://github.com/Nenkai/fftivc.utility.modloader), without which none of this loads.
+- **JadeKnightblazer**: my partner in breaking the game's 261-item limit, which made the seven new weapons possible.
 - **FFHacktics** and **Game8**: item/formula data and reference.
