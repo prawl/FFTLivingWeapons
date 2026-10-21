@@ -170,7 +170,7 @@ The game's own code no longer sits at one fixed address (ASLR since the Denuvo-f
 
 Living Weapons is built with AI assistance, and I want that to be clear up front.
 
-The design is mine: every item, every growth lane, every signature ability and its tuning. So is the reverse engineering. Every game address, every hook site and the 261-item break were found by hand with a disassembler and live testing, and the evidence for each is recorded in [`docs/LIVE_LEDGER.md`](docs/LIVE_LEDGER.md).
+The design is mine: every item, every growth lane, every signature ability and its tuning. The reverse engineering was done by hand too, with a disassembler and live testing. Every game address and every hook site came out of that work, as did breaking the 261-item limit, which I worked through with JadeKnightblazer. The evidence for each is recorded in [`docs/LIVE_LEDGER.md`](docs/LIVE_LEDGER.md).
 
 Much of the C# implementation is written by Claude Code under my direction. Nothing ships on its word alone. Every change has to pass the full test suite (over 4,000 tests), the item balance gate and the build checks above. Substantial changes also go through a readability review, where a fresh reader with no access to the project must answer questions about the code from the code alone ([`docs/COLD_READ_LOG.md`](docs/COLD_READ_LOG.md)). And every release is played live before it goes out.
 
