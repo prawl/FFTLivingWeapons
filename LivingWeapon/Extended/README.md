@@ -47,11 +47,11 @@ Everything installs once, at boot, as one transaction. Before any spot in the ga
 | The game just reset the bag. Where did the new items go? | InventoryResetHook.cs (after a battle), RewindRestoreHook*.cs, RewindTotals*.cs, RewindRecomputeStep.cs (after a flee or a Retry) |
 | What is it called and what does it look like? | item.en.nxd rows and the shipped .tex files, built by the pipeline, not here |
 
-The rest is plumbing. ExtendedInventory.cs and its three partials hold the state, the install order (ExtendedInventory.Arm.cs), the hooks and the undo (ExtendedInventory.Hooks.cs), and the per tick work in ExtendedInventory.Tick.cs. That work includes writing each save's counts to the sidecar, replaying a load the detour missed, refreshing the shop mirror, the rewind recount, the caps that need patching again after a load, and a tripwire that warns if a moved table changes. ExtendedInventoryData.cs loads the shipped item tables from the mod folder. SwingIdFallbackHook.cs makes a new item swing like a real weapon instead of a bare fist. TemplateSync.cs keeps the copied order templates in step with the originals.
+The rest is plumbing. ExtendedInventory.cs and its three partials hold the state, the install order (ExtendedInventory.Arm.cs), the hooks and the undo (ExtendedInventory.Hooks.cs), and the per tick work in ExtendedInventory.Tick.cs. That work includes writing each save's counts to the sidecar, putting the bag counts back after every load (and seating the menu charts when the load detour missed it), refreshing the shop mirror, the rewind recount, any cap patch that has to wait until after a load (none on today's game build), and a tripwire that warns if something still writes the original tables the game was moved off. ExtendedInventoryData.cs loads the shipped item tables from the mod folder. SwingIdFallbackHook.cs makes a new item swing like a real weapon instead of a bare fist. TemplateSync.cs keeps the copied order templates in step with the originals.
 
 ## Install order
 
-The steps lean on each other, so the order is fixed. Cap patches, list relocation, template relocation, catalog, shops, accessor hooks, swing fix, then the detours. It is all in ExtendedInventory.Arm.cs. The first step that refuses stops the run and RollBack in Hooks.cs undoes the earlier steps in reverse.
+The steps lean on each other, so the order is fixed. Cap patches, list relocation, template relocation, catalog, shops, accessor hooks, swing fix, then the detours. It is all in ExtendedInventory.Arm.cs. The first step that refuses stops the run and RollBack in ExtendedInventory.Hooks.cs undoes the earlier steps in reverse.
 
 ## Words that show up a lot
 

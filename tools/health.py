@@ -9,7 +9,7 @@ from those records every time, so never edit it by hand.
 What it measures:
   * Snapshot: production and test size, test-to-production ratio, comment share, silent (empty)
     catches, methods over 60 code lines, and duplicated 8-line blocks.
-  * Cycle: commits that touched production code, how many read like a repair ("fix-shaped": the
+  * Cycle: commits that touched production code, how many read like a repair (called fix-shaped, the
     subject starts with Stop, Fix, Restore, Correct, Guard, Re-anchor... or says bug, crash, wrong,
     no longer), hotspots (cycle commits times branch points), and fix rate per domain folder.
     Commits touching more than 8 production files count as sweeps and are left out of fix counts.
@@ -310,7 +310,7 @@ def points(x, digits=0):
     return ("%." + str(digits) + "f pts") % (100 * x)
 
 
-# label, record key, value format, change format, lower is better (None: neutral)
+# label, record key, value format, change format, lower is better (None means neutral)
 SNAPSHOT_ROWS = [
     ("Production code lines (not blank, not comment)", "code_lines", num, num, None),
     ("Test lines per production line", "test_ratio", lambda x: "%.2f" % x, lambda x: "%.2f" % x, False),
@@ -427,8 +427,8 @@ def mod_version():
 
 
 def status_problems(tags, have, uncommitted, first_tracked):
-    """What the reminder must say. tags: release tags; have: versions with a record;
-    uncommitted: versions whose record exists but is not committed; first_tracked: the oldest
+    """What the reminder must say. tags are the release tags, have the versions with a record,
+    uncommitted the versions whose record exists but is not committed, and first_tracked the oldest
     version with a record (older tags are history, not debt)."""
     problems = []
     if first_tracked is None:
