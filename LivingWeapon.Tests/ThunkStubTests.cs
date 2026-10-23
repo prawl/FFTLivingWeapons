@@ -253,7 +253,7 @@ public class ThunkStubTests
         var alloc = new FakeNearAllocator();
         Func<long, byte[]> emit = t => ThunkStub.EmitDonorStub(261, new[] { 37 }, t);
 
-        var validity = ExtendedDonorThunks.DonorThunks[0].Entry;
+        var validity = ExtendedDonorThunks.HookedDonorEntries[0].Entry;
         var unreadable = new AccessorEntryHook(validity);
         Assert.Contains("unreadable", unreadable.Install(fake, alloc, emit));
 
@@ -265,7 +265,7 @@ public class ThunkStubTests
         var wrong = new AccessorEntryHook(stat);
         Assert.Contains("does not carry the expected bytes", wrong.Install(fake, alloc, emit));
 
-        var probe = ExtendedDonorThunks.DonorThunks[1].Entry;
+        var probe = ExtendedDonorThunks.HookedDonorEntries[1].Entry;
         fake.Seed(probe.Addr, probe.Expected);
         var noPage = new AccessorEntryHook(probe);
         Assert.Contains("no executable page", noPage.Install(fake, new FakeNearAllocator { RefuseAfter = 0 }, emit));

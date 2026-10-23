@@ -23,7 +23,7 @@ public class ExtendedInventoryTests : IDisposable
     // entry seeds its real function-entry bytes (the Denuvo-free exe on disk 2026-10-16).
     private static (long Addr, byte[] Bytes)[] Thunks =>
         new[] { ExtendedDonorThunks.WeaponStat }
-            .Concat(ExtendedDonorThunks.DonorThunks.Select(t => t.Entry))
+            .Concat(ExtendedDonorThunks.HookedDonorEntries.Select(t => t.Entry))
             .Select(e => (e.Addr, e.Expected)).ToArray();
 
     /// <summary>A vanilla 1.5.2 image as far as the boot arm looks (bytes read on disk 2026-08-27).

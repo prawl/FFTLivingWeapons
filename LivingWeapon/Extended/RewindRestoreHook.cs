@@ -8,12 +8,12 @@ using Reloaded.Hooks.Definitions.X64;
 namespace LivingWeapon;
 
 /// <summary>
-/// Detours on the two routines that rewind a battle. The flee restore (<see cref="Offsets.FnSnapshotRestore"/>)
-/// copies the pre battle snapshot over the live roster and the vanilla bag, and the checkpoint copy
-/// (<see cref="Offsets.FnCheckpointCopy"/>, mode 1) does the same for a Retry. Both stop at bag id 260, so a new
-/// weapon equipped on the formation screen comes back out of the bag and never returns.
-/// The flee detour hands the snapshot header to the load edge path. The checkpoint detour keeps the extended totals
-/// owned (bag plus roster hands) at mode 0 and sets the bag to total minus hands after mode 1. Signatures are unknown, so four registers are forwarded.
+/// Keeps the new weapons' bag counts right when a battle is fled or retried.
+/// Fleeing runs <see cref="Offsets.FnSnapshotRestore"/>, which copies the pre battle snapshot over the roster and the bag,
+/// and a Retry runs <see cref="Offsets.FnCheckpointCopy"/> in mode 1, which does the same. Both stop at bag id 260, so a
+/// new weapon equipped on the formation screen would leave the bag and never come back.
+/// After a flee the snapshot's header goes to the load edge path. The Retry detour remembers how many of each new
+/// weapon the party owns (bag plus hands) when the checkpoint is saved, and after a Retry sets the bag to that total minus what the hands hold.
 /// </summary>
 internal sealed class RewindRestoreHook
 {
@@ -37,7 +37,7 @@ internal sealed class RewindRestoreHook
     private readonly CheckpointTotalShadow _totalsByStruct = new();
     private readonly object _gate = new();
     private IHook<RewindFn>? _restoreHook, _checkpointHook;
-    private RewindFn? _k1, _k2;   // GC anchors, the native thunks must outlive us
+    private RewindFn? _k1, _k2;   // keeps the delegates alive as long as the native thunks point at them
     private long _rewindsHandedOn, _unread, _saves, _savesIncomplete, _restores, _unrecorded, _restoresSeen;
     // Each warning prints once per launch so one bad read cannot flood the log.
     private bool _warnedUnrecorded, _warnedUnread;
@@ -58,13 +58,13 @@ internal sealed class RewindRestoreHook
         _mem = mem;
         _totals = totals;
         _onRewind = onRewind;
-        _restoreAddr = restoreAddr == 0 ? Offsets.FnSnapshotRestore : restoreAddr;   // a rebased pin cannot be a default value
+        _restoreAddr = restoreAddr == 0 ? Offsets.FnSnapshotRestore : restoreAddr;   // a rebased address cannot be a default parameter
         _checkpointAddr = checkpointAddr == 0 ? Offsets.FnCheckpointCopy : checkpointAddr;
     }
 
     internal static bool ShouldArm(bool readOk, byte[]? prologue, byte[] expected) => readOk && HookLandmark.Verify(prologue, expected);
 
-    /// <summary>Null on success, else the refusal. Idempotent, and a refusal leaves nothing active.</summary>
+    /// <summary>Null on success, else why not. Safe to call twice, and a refusal leaves nothing switched on.</summary>
     public string? Install(IReloadedHooks hooks)
     {
         // Installing again after a release only switches the same hooks back on and never stacks a second detour.
@@ -108,10 +108,9 @@ internal sealed class RewindRestoreHook
 
     private nint DetourCheckpoint(nint rcx, nint rdx, nint r8, nint r9) => ProcessCheckpoint(_checkpointHook!.OriginalFunction, rcx, rdx, r8, r9);
 
-    /// <summary>Runs the flee restore, then hands the snapshot's key header to the load edge path.</summary>
     internal nint ProcessRewind(RewindFn original, nint rcx, nint rdx, nint r8, nint r9)
     {
-        nint result = original(rcx, rdx, r8, r9);   // once, outside any try
+        nint result = original(rcx, rdx, r8, r9);
         // The game's own rewind always runs first and exactly once, so a bug below can never stop it.
         try
         {
@@ -120,16 +119,16 @@ internal sealed class RewindRestoreHook
             if (ok) { Interlocked.Increment(ref _rewindsHandedOn); _onRewind(header); }
             else NoteUnread();
         }
-        catch (Exception) { /* the game's own state stands */ }
+        catch (Exception) { /* a throw here leaves the game's own rewind as it is */ }
         return result;
     }
 
-    /// <summary>Mode 0 records the extended totals under the struct, mode 1 re derives the bag from them once the original has run.</summary>
+    /// <summary>Mode 0 remembers the totals owned under the checkpoint's address, and mode 1 works the bag out from them after the game has run.</summary>
     internal nint ProcessCheckpoint(RewindFn original, nint rcx, nint rdx, nint r8, nint r9)
     {
         // Mode 0 is the game saving its Retry point. Mode 1 is a Retry putting it back.
         var mode = RewindPolicy.ModeOf(unchecked((int)rdx));
-        nint result = original(rcx, rdx, r8, r9);   // once, outside any try
+        nint result = original(rcx, rdx, r8, r9);   // once, and outside any try so a game exception reaches the game
         try
         {
             if (mode == RewindMode.Store) SaveCounts((long)rcx);
@@ -139,7 +138,7 @@ internal sealed class RewindRestoreHook
                 RestoreCounts((long)rcx);
             }
         }
-        catch (Exception) { /* the game's own state stands */ }
+        catch (Exception) { /* a throw here leaves the game's own Retry as it is */ }
         return result;
     }
 

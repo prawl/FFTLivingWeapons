@@ -5,11 +5,9 @@ using Reloaded.Hooks.Definitions;
 namespace LivingWeapon;
 
 /// <summary>
-/// The arm half of the boot transaction. The ordered step list (<see cref="Install"/>, with its
-/// accessor-hook helper <see cref="InstallAccessorHook"/>) and the boot placement (<see cref="SeedBag"/>).
-/// Split from ExtendedInventory.cs, as ExtendedInventory.Hooks.cs was carved out before it.
-/// Install order is cap patches, list relocation, template relocation, catalog, shops,
-/// accessor hooks, hooks; <c>RollBack</c> in Hooks.cs undoes it in reverse.
+/// The boot steps in the order they must run, and the starting counts for a new game.
+/// Caps first, then the list move, the chart move, the catalog, the shops, the accessor hooks and the detours.
+/// <c>RollBack</c> in ExtendedInventory.Hooks.cs undoes them in reverse.
 /// </summary>
 internal sealed partial class ExtendedInventory
 {
@@ -18,12 +16,12 @@ internal sealed partial class ExtendedInventory
         int n = Items.Count;
         string? why = _patches.Apply(_patcher, ExtendedSites.BootPatches(n));
         if (why != null) return why;
-        // The list relocation goes right after the cap patches so later steps
-        // can resolve bag bytes through BagCountBase.
+        // Right after the caps, because every later step finds the bag counts
+        // through BagCountBase.
         why = _relocation.Install(_patcher, _allocator);
         if (why != null) return why;
-        // The template relocation follows the list relocation, before the catalog.
-        // TemplateRegions resolves through it from here on.
+        // Before the catalog, because TemplateRegions points at the moved charts
+        // from here on.
         why = _templates.Install(_patcher, _allocator);
         if (why != null) return why;
         why = _catalog.Install(_patcher, _allocator, Items.Select(i => (i.Id, i.CatalogRecord)).ToList());
@@ -32,22 +30,22 @@ internal sealed partial class ExtendedInventory
         if (why != null) return why;
 
         int lo = ExtendedCatalog.FirstExtendedId;
-        var rows = Items.OrderBy(i => i.Id).Select(i => i.WeaponRow).ToArray();
-        var cloneDonors = Items.OrderBy(i => i.Id).Select(i => i.CloneDonor).ToArray();
-        var artDonors = Items.OrderBy(i => i.Id).Select(i => i.ArtDonor).ToArray();
+        var rows = PerSlot(i => i.WeaponRow);
+        var cloneDonors = PerSlot(i => i.CloneDonor);
+        var artDonors = PerSlot(i => i.ArtDonor);
         var weaponStat = new AccessorEntryHook(ExtendedDonorThunks.WeaponStat);
         why = InstallAccessorHook(weaponStat, t => ThunkStub.EmitRowStub(lo, rows, t));
         if (why != null) return why;
         _weaponStatHook = weaponStat;
-        foreach (var (entry, usesArt) in ExtendedDonorThunks.DonorThunks)
+        foreach (var (entry, usesArt) in ExtendedDonorThunks.HookedDonorEntries)
         {
             var donors = usesArt ? artDonors : cloneDonors;
             why = InstallAccessorHook(new AccessorEntryHook(entry), t => ThunkStub.EmitDonorStub(lo, donors, t));
             if (why != null) return why;
         }
 
-        // The swing-id fallback needs the accessor hooks (they make an extended id drawable),
-        // so it goes right after them and before the detours.
+        // A new weapon can only be drawn once the accessor hooks are in, so this comes
+        // right after them and before the detours.
         var fallback = new SwingIdFallbackHook();
         why = fallback.Install(_patcher, _allocator, lo, Items.Count);
         if (why != null) return why;
@@ -56,6 +54,8 @@ internal sealed partial class ExtendedInventory
         return _installHooks(hooks);
     }
 
+    private T[] PerSlot<T>(Func<ExtendedItemDef, T> pick) => Items.OrderBy(i => i.Id).Select(pick).ToArray();
+
     private string? InstallAccessorHook(AccessorEntryHook hook, Func<long, byte[]> emit)
     {
         string? why = hook.Install(_patcher, _allocator, emit);
@@ -63,9 +63,8 @@ internal sealed partial class ExtendedInventory
         return why;
     }
 
-    /// <summary>Boot placement. The data seed for every extended id. No save is loaded at boot, so
-    /// this is a new game's bag; a loaded save replays its own counts through the load edge
-    /// (ExtendedInventory.Tick.cs).</summary>
+    /// <summary>No save is loaded yet at boot, so this fills the bag a new game starts with. A loaded save
+    /// brings its own counts back through the load edge (ExtendedInventory.Tick.cs).</summary>
     private void SeedBag()
     {
         foreach (var item in Items)

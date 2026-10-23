@@ -6,14 +6,14 @@ namespace LivingWeapon;
 
 internal static class TotalsPolicy
 {
-    /// <summary>The bag byte that makes bag plus hands equal the total. A byte cannot go below 0 or above 255.</summary>
+    /// <summary>The bag is one byte per item, so it stops at 0 and 255.</summary>
     public static int BagFor(int total, int hands) => Math.Clamp(total - hands, 0, 255);
 }
 
-/// <summary>Two recompute passes after a restore event, so the game's own roster revert is counted whether it lands before or after our write.</summary>
+/// <summary>Two passes after a restore, because the game puts the roster back on its own schedule, sometimes just after our write.</summary>
 internal sealed class RecomputeScheduler
 {
-    // The roster revert landed 7 ms after the write, so about 100 ms clears it and 500 ms is the margin.
+    // The game's roster revert was seen 7 ms after our write, so about 100 ms clears it and 500 ms is the safety margin.
     public const int FirstAfterTicks = 3;
     public const int SecondAfterTicks = 15;
 
@@ -21,7 +21,6 @@ internal sealed class RecomputeScheduler
 
     public int Pending => _due.Count;
 
-    /// <summary>A new schedule replaces any pass that has not run yet.</summary>
     public void Schedule(long tick)
     {
         _due.Clear();
@@ -29,7 +28,6 @@ internal sealed class RecomputeScheduler
         _due.Add(tick + SecondAfterTicks);
     }
 
-    /// <summary>True once when a due tick has been reached, then those passes are spent.</summary>
     public bool Due(long tick)
     {
         if (!_due.Any(d => d <= tick)) return false;

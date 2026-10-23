@@ -1,34 +1,32 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// The table of 55 game-code sites that name the two per-item byte lists, plus the types to rewrite them.
+/// Every spot in the game's code that finds the two per item byte lists, so they can all be pointed at our copy.
 /// The lists are <see cref="Offsets.BagCountArray"/> and <see cref="Offsets.SiblingListArray"/>, and
-/// <see cref="ListRelocation.Install"/> rewrites them. This file is the table and ListRelocation.cs has the lifecycle, same
-/// split as ExtendedSites.cs. Each field is a 4-byte distance. A rip `lea` measures from the next instruction, an
-/// `[idx + rXX + disp32]` field is an RVA from the image base. Round 2b's ten `mov [rip+disp], imm` sites have an immediate
-/// after the disp32 (<see cref="Site.Trail"/>) and hit a byte inside the list (<see cref="Site.Off"/>). The first 45 rows
-/// come from tools/probes/lw368_count_list_relocate_undo.json.done (owner check 2026-08-31 02:40-02:55, docs/LIVE_LEDGER.md
-/// row [item-count-lists-relocatable]), pinned by T2b. The last 10 are the new-game starting-inventory seed in the routine
-/// at 0x1402842E8 (read live 2026-08-31), which the round-2 sweep missed.
+/// <see cref="ListRelocation.Install"/> rewrites each field. Every field is a 4 byte distance. A rip `lea` measures
+/// from the next instruction and an `[idx + rXX + disp32]` field is an offset from the image base. The ten
+/// `mov [rip+disp], imm` sites have an immediate after the field (<see cref="Site.Trail"/>) and hit a byte inside the
+/// list (<see cref="Site.Off"/>). The first 45 rows come from tools/probes/lw368_count_list_relocate_undo.json.done,
+/// checked live by the owner [ledger item-count-lists-relocatable] and pinned by T2b.
+/// The last 10 are the New Game starting items in the routine at 0x1402842E8, read live.
 /// </summary>
 internal sealed partial class ListRelocation
 {
-    /// <summary>How a field's 4 bytes resolve to an address. <see cref="RipLea"/> measures from the byte
-    /// after the field, <see cref="ImageRelative"/> from <see cref="ImageBase.Base"/>.</summary>
+    /// <summary>What a field's distance is measured from, the byte after the field and any immediate trailing it for
+    /// <see cref="RipLea"/>, and <see cref="ImageBase.Base"/> for <see cref="ImageRelative"/>.</summary>
     internal enum SiteKind { RipLea, ImageRelative }
 
     /// <summary>Which of the two lists a field points at.</summary>
     internal enum ListId { Count, Sibling }
 
-    /// <summary>One field, with the vanilla int32 it must read before this mod touches it (the refusal
-    /// baseline, and what <see cref="Restore"/> writes back). <see cref="Trail"/> counts immediate bytes after the
-    /// disp32 and <see cref="Off"/> is the byte offset inside the list. Both are 0 except for the ten late-found sites.
-    /// Addr is pin space, rebased through <see cref="ImageBase.At"/> at every use (ListRelocation.Live).</summary>
+    /// <summary>One field and the vanilla int32 it must hold before we touch it, which is also what
+    /// <see cref="Restore"/> writes back.</summary>
+    /// <remarks><see cref="Trail"/> counts the immediate bytes after the field and <see cref="Off"/> is the byte inside the
+    /// list, both 0 except for the ten New Game sites. Addr is against the preferred base, moved through <see cref="ImageBase.At"/> each time.</remarks>
     internal readonly record struct Site(long Addr, SiteKind Kind, ListId List, int Vanilla, int Trail = 0, int Off = 0);
 
-    /// <summary>The 55 fields, 34 <see cref="SiteKind.RipLea"/> + 21 <see cref="SiteKind.ImageRelative"/>,
-    /// 47 <see cref="ListId.Count"/> + 8 <see cref="ListId.Sibling"/>. The first 45 follow the probe record's
-    /// order, the last 10 were found later (absent from the probe record, each with <see cref="Site.Off"/> &gt; 0).</summary>
+    /// <summary>34 <see cref="SiteKind.RipLea"/> and 21 <see cref="SiteKind.ImageRelative"/>, or 47 <see cref="ListId.Count"/> and
+    /// 8 <see cref="ListId.Sibling"/>. The first 45 follow the probe record, the last 10 are not in it and each has <see cref="Site.Off"/> &gt; 0.</summary>
     internal static readonly Site[] Sites =
     {
         new(0x140101001L, SiteKind.RipLea, ListId.Count, 17460219),   // lea rcx, [rip + 0x10a6bfb]
@@ -77,9 +75,9 @@ internal sealed partial class ListRelocation
         new(0x14032026DL, SiteKind.RipLea, ListId.Count, 15235471),   // lea rcx, [rip + 0xe8798f]
         new(0x140396190L, SiteKind.RipLea, ListId.Count, 14752364),   // lea rdx, [rip + 0xe11a6c]
 
-        // Round 2b, the new-game starting-inventory seed at the routine beginning 0x1402842E8
-        // (read live 2026-08-31). Not the per-item initialiser Offsets.FnInventoryReset at 0x140284500, which
-        // clears the list. This one stores fixed counts into slots deep inside the list.
+        // New Game's starting items, written by the routine at 0x1402842E8, read live. It stores
+        // fixed counts into slots deep inside the list, unlike Offsets.FnInventoryReset at 0x140284500,
+        // which clears it, so a search for the list's start never found these.
         new(0x1402842EAL, SiteKind.RipLea, ListId.Count, 0x00F239FE, Trail: 4, Off: 0xF0),   // mov dword ptr [rip+disp], 0x01010205 (ids 240-243)
         new(0x1402842F4L, SiteKind.RipLea, ListId.Count, 0x00F239F8, Trail: 4, Off: 0xF4),   // mov dword ptr [rip+disp], 0x02010101 (ids 244-247)
         new(0x1402842FEL, SiteKind.RipLea, ListId.Count, 0x00F239F2, Trail: 4, Off: 0xF8),   // mov dword ptr [rip+disp], 0x01010101 (ids 248-251)
@@ -92,18 +90,17 @@ internal sealed partial class ListRelocation
         new(0x140284334L, SiteKind.RipLea, ListId.Count, 0x00F23902, Trail: 1, Off: 0x3B),   // mov byte ptr [rip+disp], 1 (id 59)
     };
 
-    /// <summary>Bytes copied per list onto the new page. 0x105 list proper (<see cref="ListProperBytes"/>) plus an
-    /// 0xB-byte tail holding a live game state dword at +0x108 (not padding, corrected 2026-08-31).
-    /// The full 0x110 is copied so that dword rides along.</summary>
+    /// <summary>The 0x105 byte list (<see cref="ListProperBytes"/>) and an 0xB byte tail. The tail is not padding,
+    /// it holds a game dword at +0x108, seen live, so the whole 0x110 is copied to take it along.</summary>
     internal const int BlockBytes = 0x110;
 
-    /// <summary>Bytes the hidden-writer tripwire compares (ListRelocation.CheckOldBlocks). The list proper only,
-    /// since the +0x108 state dword churns normally and would false-fire.</summary>
+    /// <summary>What ListRelocation.CheckOldBlocks compares. The dword at +0x108 changes on its own and would
+    /// raise a false alarm, so only the list itself counts.</summary>
     internal const int ListProperBytes = 0x105;
 
-    /// <summary>Offset of the sibling copy inside the new page (count at +0x000, sibling at +0x400).</summary>
+    /// <summary>The counts sit at +0x000 of our page and the second list at +0x400.</summary>
     internal const int SiblingPageOffset = 0x400;
 
-    /// <summary>Page size requested from the allocator (0x800 used, the rest reserved for a possible third list).</summary>
+    /// <summary>Page size asked of the allocator. The two 0x110 byte copies at 0 and 0x400 use 0x510, and the rest leaves room for a third list.</summary>
     internal const int PageSize = 0x1000;
 }

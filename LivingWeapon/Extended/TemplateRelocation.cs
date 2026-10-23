@@ -4,31 +4,30 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Lifts the 140-kinds ceiling on the two weapon menu order templates and the picker's all-items chart.
-/// The game keeps them in fixed tables of 140 kinds plus an end marker (141/141/262 words) and its housekeeper never checks the limit. A 141st kind lands at the front and the last word spills into the next data (the helmet chart, on the picker side).
-/// This copies the three charts onto a mod-owned page and re-points ten places in game code (three data slots, five code fields, two cap sites, listed in TemplateRelocation.Sites.cs) at 512-word regions holding 510 ids plus the marker.
-/// Like <see cref="ListRelocation"/>, every field must read vanilla before any write, and a refusal midway restores the changed fields in reverse.
-/// Unlike it, the save fields keep today's content, so <see cref="TemplateSync"/> keeps Project (page to old block, on save) and Adopt (old block to page, on load) live while armed.
-/// Restore puts only the ten fields back and the page is leaked, as <see cref="INearAllocator"/> does. Memory goes through <see cref="ICodePatcher"/> and <see cref="INearAllocator"/>.
+/// Gives the menus room for more than 140 kinds of weapon by moving their order charts somewhere bigger.
+/// The two weapon order charts and the picker's all items chart hold 140 kinds and a marker (141, 141, 262 words), and nothing checks it, so a 141st kind spills into the next data, the helmet chart on the picker side.
+/// This copies them onto a page of ours, 512 words each, and points ten places in the game's code at it (listed in TemplateRelocation.Sites.cs).
+/// As in <see cref="ListRelocation"/>, every field must hold its vanilla value first, and a refusal halfway puts the changed fields back in reverse.
+/// The save still holds the charts in the old place, so <see cref="TemplateSync"/> copies them across on every save and load.
+/// Restore only puts the ten fields back, since <see cref="INearAllocator"/> never frees.
 /// </summary>
 internal sealed partial class TemplateRelocation
 {
-    // volatile, written last so a true read means PageAddr is already published
+    // Set last and volatile, so a thread that sees it true also sees PageAddr
     private volatile bool _installed;
 
     /// <summary>True once every field points at the new page.</summary>
     public bool Installed => _installed;
 
-    /// <summary>The page all three charts live on once installed; 0 before that.</summary>
+    /// <summary>The page all three charts live on, or 0 before Install.</summary>
     public long PageAddr { get; private set; }
 
-    /// <summary>Null on success, else the refusal (nothing changed). Idempotent. Order as in ListRelocation.Install. Check all ten
-    /// fields read vanilla, allocate and reach-check the page, copy the three charts onto it, then rewrite the
-    /// fields, so any earlier refusal leaves the process untouched.</summary>
+    /// <summary>Null on success, else why not. Safe to call twice. As in ListRelocation.Install, every field is checked and
+    /// the page filled before the first field is rewritten, so a refusal before that point has touched nothing the game uses.</summary>
     public string? Install(ICodePatcher patcher, INearAllocator allocator)
     {
         if (Installed) return null;
-        // Snapshot each live table once per call, the properties build a fresh array per read
+        // Each property builds a new array on every read, so read each one once
         var slots = Slots;
         var capSites = CapSites;
         var charts = Charts;
@@ -95,11 +94,11 @@ internal sealed partial class TemplateRelocation
         }
 
         PageAddr = page;
-        _installed = true;   // last, publishes PageAddr
+        _installed = true;   // last, so a reader on another thread sees PageAddr first
         return null;
     }
 
-    /// <summary>Puts every field back to vanilla and leaves the page alone. A call while not installed succeeds, like <see cref="ListRelocation.Restore"/>.</summary>
+    /// <summary>Points every field back at the game's own charts. Calling it before Install does nothing and succeeds.</summary>
     public bool Restore(ICodePatcher patcher)
     {
         if (!Installed) return true;
@@ -111,9 +110,8 @@ internal sealed partial class TemplateRelocation
         return ok;
     }
 
-    /// <summary>The two weapon-chart regions in effect, for <see cref="TemplateSeat"/> and <see cref="OrderRebuildHook"/>. The page regions (capacity
-    /// <see cref="PageRegionCapacityWords"/>) once installed, else <see cref="TemplateSeat.WeaponRegions"/>. The all-items chart is not a
-    /// <see cref="TemplateSeat.Region"/>, it only follows the game's housekeeper through <see cref="TemplateSync"/>.</summary>
+    /// <summary>Where <see cref="TemplateSeat"/> and <see cref="OrderRebuildHook"/> should find the two weapon charts right now, on
+    /// our page once installed and at <see cref="TemplateSeat.WeaponRegions"/> before. The all items chart is left out, nothing seats into it.</summary>
     public TemplateSeat.Region[] Regions => Installed
         ? new[]
         {
@@ -127,7 +125,7 @@ internal sealed partial class TemplateRelocation
         for (int i = written.Count - 1; i >= 0; i--) patcher.TryWrite(written[i].Addr, written[i].Old);
     }
 
-    /// <summary>Reach check, as in ListRelocation.CheckReach. Only the five rip fields need int32 reach (a slot holds a 64-bit pointer). Runs before any write.</summary>
+    /// <summary>Only the five rip fields can fall out of reach, since a slot holds a full 64 bit pointer. Runs before any write.</summary>
     private static string? CheckReach(long page)
     {
         foreach (var f in RipFields)
@@ -139,14 +137,14 @@ internal sealed partial class TemplateRelocation
         return null;
     }
 
-    /// <summary>The int32 a rip field must hold to reach the page's all-items copy, offset by <see cref="RipField.Off"/>.
-    /// Truncates without checking, so <see cref="Install"/> runs <see cref="CheckReach"/> first.</summary>
+    /// <summary>The int32 that points a rip field at our all items chart, <see cref="RipField.Off"/> bytes off.
+    /// The cast drops high bits silently, which is why <see cref="Install"/> runs <see cref="CheckReach"/> first.</summary>
     internal static int NewField(RipField f, long page) => (int)(page + AllItemsPageOffset + f.Off - (Live(f) + 4));
 
-    /// <summary><see cref="RipField.Addr"/> is PIN space; this is the field's address in the running image.</summary>
+    /// <summary>Where the field sits in the running game.</summary>
     private static long Live(RipField f) => ImageBase.At(f.Addr);
 
-    /// <summary>A <see cref="CapSite"/> verify-read is 1 byte (builder cap) or 4 (insert bound), so compare whole arrays.</summary>
+    /// <summary>A cap is 1 byte or 4, so the check compares whole arrays.</summary>
     private static bool BytesEqual(byte[] a, byte[] b)
     {
         if (a.Length != b.Length) return false;

@@ -4,17 +4,16 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Pure encoders for an extended item's catalog record and weapon stats row, as raw bytes.
-/// The records are the 12-byte ITEM_COMMON_DATA catalog record and the 8-byte ITEM_WEAPON_DATA stats row. Field order, sizes and
-/// enum values follow the modloader's ITEM_COMMON_DATA.cs and ITEM_WEAPON_DATA.cs (Nenkai, read 2026-08-27), so the extended XML
-/// uses the same names as vanilla rows. Checked against the Chaos Blade (id 37) in the 1.5.2 exe on disk, 2026-08-27. Catalog
-/// <c>04 16 62 82 25 04 00 05 0A 00 14 00</c>, stats <c>01 8E 01 FF 28 14 00 11</c> (byte +3 of a real stats row is 0xFF).
+/// Turns a new item's data into the bytes the game expects, a 12 byte catalog record and an 8 byte stat row.
+/// Field order, sizes and names follow the modloader's ITEM_COMMON_DATA.cs and ITEM_WEAPON_DATA.cs (Nenkai), so our
+/// XML uses the same words as the game's own rows. Checked against the Chaos Blade (id 37) in the 1.5.2 exe on disk
+/// [journal 2026-08-27], catalog <c>04 16 62 82 25 04 00 05 0A 00 14 00</c> and stats <c>01 8E 01 FF 28 14 00 11</c>.
 /// </summary>
 internal static class ExtendedRecords
 {
     public const int CatalogRecordSize = 12;
     public const int WeaponRowSize = 8;
-    /// <summary>What every vanilla ITEM_WEAPON_DATA row carries in its unused byte +3.</summary>
+    /// <summary>Every one of the game's own weapon rows has this in its unused byte +3, so ours do too.</summary>
     public const byte WeaponRowUnusedByte = 0xFF;
 
     public static readonly IReadOnlyDictionary<string, int> Categories = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
@@ -117,10 +116,8 @@ internal static class ExtendedRecords
         ["Dark"] = 1,
     };
 
-    /// <summary>ITEM_SHOPS_DATA.ShopFlags (u16, modloader ItemShopsData names): which towns stock
-    /// the item. Do not reorder. The first town takes the high bit because the Buy-list
-    /// builder reads the u16's two bytes swapped, and numbering from bit 15 cancels that, so a
-    /// plain-English `shops` string lands on the right towns (the axes and flails are authored through these names).</summary>
+    /// <summary>Which towns sell the item, named as in the modloader's ItemShopsData. The order matters, since the shop list
+    /// reads the two bytes of this u16 swapped, so counting the first town from bit 15 lands each name on its town.</summary>
     public static readonly IReadOnlyDictionary<string, ushort> Shops = new Dictionary<string, ushort>(StringComparer.OrdinalIgnoreCase)
     {
         ["Gollund"] = 1 << 15,
@@ -141,7 +138,7 @@ internal static class ExtendedRecords
         ["Yardrow"] = 1 << 0,
     };
 
-    /// <summary>Parses a ShopFlags list ("Dorter, Gariland"; "None" or empty = 0).</summary>
+    /// <summary>"Dorter, Gariland" style, where "None" or an empty string sells nowhere.</summary>
     public static ushort ParseShops(string? csv)
     {
         if (string.IsNullOrWhiteSpace(csv)) return 0;
@@ -155,9 +152,8 @@ internal static class ExtendedRecords
         return v;
     }
 
-    /// <summary>Parses a modloader flag list ("Throwable, TwoSwords, Striking"; "None" or empty
-    /// = 0) against <paramref name="table"/>. Throws FormatException naming the bad token, so the
-    /// loader's validation stays loud.</summary>
+    /// <summary>"Throwable, TwoSwords, Striking" style, where "None" or an empty string is 0. A bad name throws
+    /// and says which one, so a typo in the data stops the load instead of shipping a wrong weapon.</summary>
     public static byte ParseFlags(string? csv, IReadOnlyDictionary<string, byte> table, string fieldName)
     {
         if (string.IsNullOrWhiteSpace(csv)) return 0;
@@ -186,7 +182,7 @@ internal static class ExtendedRecords
         return (byte)v;
     }
 
-    /// <summary>ITEM_COMMON_DATA, 12 bytes, Pack=1.</summary>
+    /// <summary>12 bytes with no padding, bytes 6 and 11 unused.</summary>
     public static byte[] EncodeCatalogRecord(byte palette, byte spriteId, byte requiredLevel, byte typeFlags,
         byte secondTableId, byte category, byte equipBonusId, ushort price, byte shopAvailability)
     {
@@ -198,7 +194,7 @@ internal static class ExtendedRecords
         return r;
     }
 
-    /// <summary>ITEM_WEAPON_DATA, 8 bytes, Pack=1 (byte +3 = 0xFF like every vanilla row).</summary>
+    /// <summary>8 bytes with no padding.</summary>
     public static byte[] EncodeWeaponRow(byte range, byte attackFlags, byte formula, byte power, byte evasion,
         byte elements, byte optionsAbilityId)
         => new[] { range, attackFlags, formula, WeaponRowUnusedByte, power, evasion, elements, optionsAbilityId };

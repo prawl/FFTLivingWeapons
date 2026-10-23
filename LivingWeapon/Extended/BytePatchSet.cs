@@ -2,12 +2,12 @@ using System.Collections.Generic;
 
 namespace LivingWeapon;
 
-/// <summary>One single-byte code patch. Address, expected vanilla 1.5.2 byte, wanted byte, log label.</summary>
+/// <summary>One byte of game code to change, with the byte the game ships there and a name for the log.</summary>
 internal readonly record struct BytePatch(long Addr, byte Old, byte New, string Label);
 
 /// <summary>
-/// Applies single-byte code patches as one transaction. Every site must carry its expected old byte before
-/// any write (a mismatch refuses the set); a refused write rolls back earlier ones in reverse (CapBreakBootArm went site by site).
+/// Changes a set of single bytes in game code all together or not at all. Every site must still carry the byte the
+/// game ships before anything is written, so one changed site refuses the set, and a refused write puts the earlier ones back.
 /// </summary>
 internal sealed class BytePatchSet
 {
@@ -15,10 +15,10 @@ internal sealed class BytePatchSet
 
     public int AppliedCount => _applied.Count;
 
-    /// <summary>Null on success, else the refusal (nothing left applied).</summary>
+    /// <summary>Null on success, else why not, with nothing left applied.</summary>
     public string? Apply(ICodePatcher patcher, IReadOnlyList<BytePatch> patches)
     {
-        if (_applied.Count > 0) return null;   // idempotent. Already applied
+        if (_applied.Count > 0) return null;   // a second call changes nothing
         foreach (var p in patches)
         {
             if (!patcher.TryRead(p.Addr, 1, out var cur))
@@ -39,7 +39,7 @@ internal sealed class BytePatchSet
         return null;
     }
 
-    /// <summary>Restores every applied site's old byte, newest first. Idempotent.</summary>
+    /// <summary>Puts every applied site's old byte back, newest first. Safe to call again.</summary>
     public void Rollback(ICodePatcher patcher)
     {
         for (int i = _applied.Count - 1; i >= 0; i--)
@@ -49,9 +49,9 @@ internal sealed class BytePatchSet
 }
 
 /// <summary>
-/// A patch whose page is copy-protected at boot (the two damage-path caps, docs/research/ITEM_CAP_261_BREAK_JOURNEY.md
-/// blueprint piece 2). Stepped from the tick loop. Waits for the vanilla byte, writes once, verifies. Already-patched counts
-/// as done; a foreign byte makes it give up with one warning.
+/// A byte patch for a site the game keeps copy protected at boot, so it is applied later from the tick loop. It polls
+/// until the site shows the byte the game ships, writes once and reads it back. A site already holding the wanted byte
+/// counts as done, whoever put it there, and a byte that is neither means someone else changed the site, so it gives up.
 /// </summary>
 internal sealed class PendingPatch
 {
@@ -60,12 +60,12 @@ internal sealed class PendingPatch
     public BytePatch Patch { get; }
     public Phase State { get; private set; } = Phase.Waiting;
     public bool Settled => State != Phase.Waiting;
-    /// <summary>The unexpected byte, for the Foreign log line.</summary>
+    /// <summary>The byte seen last, so the log can say what sat there when it gave up.</summary>
     public byte Observed { get; private set; }
 
     public PendingPatch(BytePatch patch) => Patch = patch;
 
-    /// <summary>One poll. Returns true on the tick the state leaves Waiting.</summary>
+    /// <summary>One poll. True only on the tick the state leaves Waiting.</summary>
     public bool Step(ICodePatcher patcher)
     {
         if (Settled) return false;

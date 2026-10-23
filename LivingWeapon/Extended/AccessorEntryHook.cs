@@ -3,25 +3,21 @@ using System;
 namespace LivingWeapon;
 
 /// <summary>
-/// Install/restore for one hooked accessor entry (<see cref="ThunkStub"/>
-/// holds the byte emitters). The Denuvo build had a five-byte <c>E9</c> thunk at each of the ten
-/// accessors; the Denuvo-free exe (read on disk 2026-10-16, buildid 24304444) has the real
-/// bodies there, so the hook steals the first instructions instead of decoding a jump. Install
-/// checks the expected bytes, allocates a page within rel32 reach, writes the trampoline at
-/// page + 0 and the stub at page + <see cref="StubOffset"/>, then overwrites the entry with a jump
-/// to the stub, NOP-padded. Restore writes the original bytes back and leaks the page, since a
-/// game thread may be inside it (the rig's rule).
-/// Callers keep volatile registers live across these calls (June r11 crash, journal 2026-06-26),
-/// so a managed Reloaded.Hooks detour is unsafe. The stubs touch only rax and rcx. The twin is
-/// SwingIdFallbackHook. Failures return a refusal string so the boot arm can roll back the
-/// extended-inventory set with one log line (CapBreakBootArm in the rig).
+/// Points one of the game's item lookups at a stub of ours, so a new item gets a sensible answer.
+/// On the Denuvo free exe each of the ten lookups starts with real code, so the hook copies its first
+/// instructions into a trampoline and jumps over them. Install checks those bytes, gets a page within rel32
+/// reach, writes the trampoline at page + 0 and the stub (from <see cref="ThunkStub"/>) at page +
+/// <see cref="StubOffset"/>, then puts a jump to the stub over the entry, padded with NOPs. Restore puts the
+/// original bytes back and keeps the page, since a game thread may still be inside it.
+/// The game's callers keep volatile registers alive across these calls, and a managed Reloaded.Hooks detour
+/// clobbered r11 and crashed it [journal 2026-06-26], so the stubs are hand written and touch only rax and rcx,
+/// like SwingIdFallbackHook. A failure comes back as a message so the boot arm can undo everything with one log line.
 /// </summary>
 internal sealed class AccessorEntryHook
 {
-    /// <summary>One page per hook; the largest real stub (26 rows) is 0x38 + 208 bytes.</summary>
+    /// <summary>One page per hook, far more than the largest real stub (26 rows, 0x38 + 208 bytes).</summary>
     public const int PageSize = 4096;
-    /// <summary>Stub offset in the page; the trampoline (up to
-    /// <see cref="ThunkStub.EntryTrampolineMaxSize"/> bytes) sits below it.</summary>
+    /// <summary>The trampoline, up to <see cref="ThunkStub.EntryTrampolineMaxSize"/> bytes, fits below this.</summary>
     public const int StubOffset = 0x40;
 
     public AccessorEntry Entry { get; }
@@ -34,9 +30,8 @@ internal sealed class AccessorEntryHook
 
     public AccessorEntryHook(AccessorEntry entry) => Entry = entry;
 
-    /// <summary>Installs the hook. <paramref name="emitForTarget"/> takes the trampoline address
-    /// and returns the stub bytes; it is called once. A second call while installed is a no-op, since
-    /// it would save the patched jump as the original. Returns null on success, else the refusal.</summary>
+    /// <summary>Null on success, else why not. <paramref name="emitForTarget"/> gets the trampoline's address and builds the stub.
+    /// A second call does nothing, since the entry now holds our jump and a fresh install would refuse it and roll a working hook back.</summary>
     public string? Install(ICodePatcher patcher, INearAllocator allocator, Func<long, byte[]> emitForTarget)
     {
         if (Installed) return null;
@@ -78,7 +73,7 @@ internal sealed class AccessorEntryHook
         return null;
     }
 
-    /// <summary>Restores the original entry bytes; the page is not freed. False if the write was refused.</summary>
+    /// <summary>False if the game refused the write back. The page stays allocated on purpose.</summary>
     public bool Restore(ICodePatcher patcher)
     {
         if (!Installed) return true;

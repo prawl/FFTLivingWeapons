@@ -4,15 +4,13 @@ using System.Threading;
 namespace LivingWeapon;
 
 /// <summary>
-/// Pool slots for <see cref="ListBuilderHook"/>, with a try-acquire and release for each slot.
-/// The copy-back truncates a slot's list into the caller's buffer. Several slots exist for reentrancy
-/// on one thread, not concurrency. If all are busy the answer is an empty list, counted and
-/// Warned once per session.
+/// The scratch slots a stack caller's list is built in, and the copy that brings it back cut to size.
+/// There are several so the builder can call back into itself on one thread. With all of them busy
+/// the caller gets an empty list, which is counted and warned about once a session.
 ///
-/// F1 (plan v1.2). Every failure path returns 0 with a best-effort empty terminator, never the
-/// original's count. The original wrote into the pool slot, not the caller's buffer, so returning its
-/// count (e.g. 200 to fnA) would make the caller append at index 200 and write its terminator past
-/// the GS cookie.
+/// Every way this can fail gives back 0 and, if it can, an empty list. The game wrote its list into
+/// our slot, not the caller's buffer, so passing on its count (say 200 to fnA) would make the caller
+/// append at index 200 and write its terminator past the stack cookie.
 /// </summary>
 internal sealed partial class ListBuilderHook
 {
@@ -22,19 +20,18 @@ internal sealed partial class ListBuilderHook
     private long _copyBackRefusals;
     private bool _copyBackWarned;
 
-    /// <summary>Stack-caller calls cut down to <see cref="StackCallerCap"/>.</summary>
+    /// <summary>Stack caller lists that were longer than <see cref="StackCallerCap"/> and got cut.</summary>
     public long Truncations => Interlocked.Read(ref _truncations);
     /// <summary>Calls that found every pool slot busy and got an empty list.</summary>
     public long PoolExhaustedCount => Interlocked.Read(ref _poolExhausted);
-    /// <summary>Calls whose copy-back failed (slot read, caller write, or exception) and got an empty
-    /// list instead of the original's count (F1).</summary>
+    /// <summary>Calls whose copy back failed (a slot read, a caller write, or a throw) and got an empty
+    /// list instead of the game's count.</summary>
     public long CopyBackRefusals => Interlocked.Read(ref _copyBackRefusals);
 
-    /// <summary>Copies the slot's list into the caller's buffer, truncated. The read is clamped to the
-    /// slot capacity minus one word, so a corrupt count cannot read past our page (a truthful
-    /// count never needs it). Failures go to <see cref="CopyBackRefused"/> (F1). A zero count skips
-    /// the read, since <c>LiveCodePatcher.TryRead</c> refuses <c>count &lt;= 0</c> and
-    /// would log a false refusal.</summary>
+    /// <summary>Copies the slot's list into the caller's buffer, cut to fit. The read stops one word short of the slot's
+    /// end, so a garbage count cannot read past our page.</summary>
+    /// <remarks>A zero count skips the read, because <c>LiveCodePatcher.TryRead</c> refuses <c>count &lt;= 0</c> and would
+    /// log a refusal that never happened.</remarks>
     private int CopyBack(nint list, long slotAddr, int count)
     {
         if (count <= 0) { _mem.TryWrite((long)list, TruncatedTail(Array.Empty<ushort>(), 0)); return 0; }
@@ -48,28 +45,26 @@ internal sealed partial class ListBuilderHook
         return kept;
     }
 
-    /// <summary>F1. Writes a best-effort empty list through the guarded patcher, counted and Warned once
-    /// per session, Debug after. Also called from <see cref="Process"/>'s outer catch, which can fire
-    /// before CopyBack writes anything, so it guards itself like <see cref="PoolExhausted"/>.</summary>
+    /// <summary>Hands the caller an empty list if it can, warns once a session and logs at Debug after. <see cref="Process"/>'s
+    /// catch can call it before CopyBack has written anything, so it guards its own write like <see cref="PoolExhausted"/> does.</summary>
     private void CopyBackRefused(nint list, string why)
     {
         Interlocked.Increment(ref _copyBackRefusals);
         try { _mem.TryWrite((long)list, TruncatedTail(Array.Empty<ushort>(), 0)); }
-        catch (Exception) { /* best-effort: nothing more can safely be done here */ }
+        catch (Exception) { /* nothing more can safely be done from inside the game */ }
         string line = $"The item list at 0x{(long)list:X} could not be copied back safely ({why}); the caller was given an empty list instead of a possibly-untruncated one.";
         if (_copyBackWarned) { SafeLog(() => ModLogger.Debug(LogVerb.Engine, line)); return; }
         _copyBackWarned = true;
         SafeLog(() => ModLogger.Warn(LogVerb.Engine, line));
     }
 
-    /// <summary>With every slot busy there is no buffer to hand the original, so the only
-    /// answer is an empty list.</summary>
+    /// <summary>With every slot busy there is nowhere to build the list, so the caller gets an empty one.</summary>
     private void PoolExhausted(nint list)
     {
         Interlocked.Increment(ref _poolExhausted);
-        // Called outside any try, so the write must not throw even if ICodePatcher's never-throws promise breaks.
+        // Nothing above catches for this call, so the write guards itself in case ICodePatcher ever throws.
         try { _mem.TryWrite((long)list, TruncatedTail(Array.Empty<ushort>(), 0)); }
-        catch (Exception) { /* best-effort: nothing more can safely be done here */ }
+        catch (Exception) { /* nothing more can safely be done from inside the game */ }
         if (_exhaustionWarned) return;
         _exhaustionWarned = true;
         SafeLog(() => ModLogger.Warn(LogVerb.Engine,

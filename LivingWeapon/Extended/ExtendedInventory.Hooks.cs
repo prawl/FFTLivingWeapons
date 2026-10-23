@@ -4,10 +4,9 @@ using Reloaded.Hooks.Definitions;
 namespace LivingWeapon;
 
 /// <summary>
-/// The detour half of the arm. The six Reloaded.Hooks detours (category getter, menu-order rebuild, list-builder,
-/// inventory reset, save edges, battle rewinds) in install order, plus the reverse-order rollback. Split from ExtendedInventory.cs in
-/// 2026-08-30. `Install` lives in ExtendedInventory.Arm.cs, tick logic in .Tick.cs.
-/// RollBack restores the template relocation first, then the list relocation.
+/// The six detours the new items need, in the order they go in, and the undo for the whole arm.
+/// They are the category getter, the menu order rebuild, the list builder, the inventory reset, the save edges
+/// and the battle rewinds.
 /// </summary>
 internal sealed partial class ExtendedInventory
 {
@@ -16,42 +15,42 @@ internal sealed partial class ExtendedInventory
     private string? DefaultInstallHooks(IReloadedHooks? hooks)
     {
         if (hooks == null) return NoHooksRefusal;
-        _getterHook = new CategoryGetterHook(_patcher, ExtendedCatalog.FirstExtendedId, Items.OrderBy(i => i.Id).Select(i => i.CloneDonor).ToArray());
+        _getterHook = new CategoryGetterHook(_patcher, ExtendedCatalog.FirstExtendedId, PerSlot(i => i.CloneDonor));
         string? why = _getterHook.Install(hooks);
         if (why != null) return why;
-        // Seats the owned extended ids into the template before the game's rebuild, so it needs the id count.
-        // Ownership via BagCountBase (relocated page once armed). seats into TemplateRegions.
+        // It seats the owned new items into the chart before the game rebuilds a menu, so it needs to know how
+        // many there are, where the bag is and where the charts are.
         _orderHook = new OrderRebuildHook(_patcher, extendedCount: Items.Count, bagBase: BagCountBase, regions: () => TemplateRegions);
         why = _orderHook.Install(hooks);
         if (why != null) return why;
-        // The list builder's cap is already widened to 255 (TemplateRelocation.CapSites, installed earlier in Arm.cs);
-        // that is safe only because this hook keeps the two small-notepad stack callers at 149. A refusal rolls the whole arm back.
+        // The list builder's cap was already raised to 255 in Arm.cs, which is only safe once this hook keeps
+        // the two small stack callers at 149, so a refusal here rolls the whole arm back.
         _listBuilderHook = new ListBuilderHook(_patcher, _allocator);
         why = _listBuilderHook.Install(hooks);
         if (why != null) return why;
-        // The game's per-item reset zeroed the extended bag counts after one real battle (owner 2026-08-30 23:29); the detour preserves them.
+        // Without this the new items read x0 after every real battle, seen live.
         _resetHook = new InventoryResetHook(_patcher, Items.Count, bagBase: BagCountBase);
         why = _resetHook.Install(hooks);
         if (why != null) return why;
-        // Save edges (record counts per save, replay per save); a refusal rolls the whole arm back.
-        // Also given the template relocation so serialize can project the page into the old chart blocks and load can adopt them back (TemplateSync).
+        // Each save files the new items' counts under its own key and each load puts them back. They get the
+        // chart move too, so a save carries our charts into the file and a load brings them back (TemplateSync).
         var ids = Items.OrderBy(i => i.Id).Select(i => i.Id).ToList();
         var totals = new RewindTotals(_patcher, ids, BagCountBase, nameOf: id => Items.First(i => i.Id == id).Name);
         _saveHooks = new SaveEdgeHooks(_patcher, Tracker, ids, ReplayOnLoad, BagCountBase, _templates,
             key => _sidecar.TryGetSave(key, out _), () => totals.Capture("save"), () => totals.Capture("rewind"), () => totals.Capture("load"));
         why = _saveHooks.Install(hooks);
         if (why != null) return why;
-        // A fled battle and a Retry rewind the bag from a snapshot that stops at id 260, so the extended counts are put back here.
+        // Fleeing a battle or picking Retry rewinds the bag from a snapshot that stops at id 260, so ours are put back here.
         var rewind = _rewindHook = new RewindRestoreHook(_patcher, _saveHooks.AfterRewind, totals);
         why = rewind.Install(hooks);
         if (why != null) return why;
-        // The game re derives its own counts from the roster on the retry roads, so each restore edge queues a recompute. The inventory reset is no trigger, it also runs at loads and after real battles.
+        // After a retry the game works its own counts out again from the roster, so every restore queues the same for ours. The inventory reset is left out because it also runs at loads and after real battles.
         _rewindStep = new RewindRecomputeStep(totals, null,
             ("checkpoint restore", () => rewind.CheckpointRestores), ("flee rewind", () => rewind.RewindsHandedOn));
         return null;
     }
 
-    /// <summary>Undo in reverse install order. Stub pages and the catalog buffer are leaked (a game thread may be inside them); every code byte is restored.</summary>
+    /// <summary>Undoes the arm in reverse. Every code byte goes back, but the stub pages and catalog buffer stay allocated because a game thread may still be running in them.</summary>
     private void RollBack()
     {
         _rewindStep = null;
@@ -67,8 +66,8 @@ internal sealed partial class ExtendedInventory
         _weaponStatHook = null;
         _shops.Restore(_patcher);
         _catalog.Restore(_patcher);
-        _templates.Restore(_patcher);   // undo right before the catalog, its install successor
-        _relocation.Restore(_patcher);   // Undo right before the boot cap patches, its install neighbor
+        _templates.Restore(_patcher);
+        _relocation.Restore(_patcher);
         _patches.Rollback(_patcher);
     }
 }
