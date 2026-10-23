@@ -293,6 +293,7 @@ line, so the hand Sort is only the fallback.
 
 ## Where the deep answers live
 
+- `LivingWeapon/Extended/README.md`: the code map, which file does what and where to start reading.
 - `docs/DEV_TEST_RECIPES.md`, "Add an extended-inventory item": the terse checklist form.
 - `docs/research/ITEM_CAP_261_BREAK_JOURNEY.md`: the full engineering history of the wall break,
   every address and every dead end.
