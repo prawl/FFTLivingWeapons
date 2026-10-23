@@ -2638,15 +2638,14 @@ Rows the cold read's stage 1 reader raised without being asked, one row per file
   - Install returns null on a fresh install and on the already hooked path alike, so the caller cannot tell the two apart.
   - A second Install after a failure overwrites _keepalive, so an earlier hook still live could lose its delegate to the collector.
 - [LW-471] 2026-10-20: Step and Recompute swallow exceptions with no log or counter. (cold-read, Rerun trial 1)
-- [LW-472] 2026-10-20: A null Latest makes Recompute return false with no trace while the due pass is spent. wrote rests on a name not ending in "refused". (cold-read, Rerun trial 1)
+- [LW-472] 2026-10-20: A null Latest makes Recompute return false with no trace while the due pass is spent. (cold-read, Rerun trial 1)
 - [LW-473] 2026-10-20: Step reads each counter twice per tick. (cold-read, Rerun trial 1)
 - [LW-474] 2026-10-20: LastReason is written outside the lock. (cold-read, Rerun trial 1)
 - [LW-475] 2026-10-20: ReadHands counts only RRHand and ROffHand and never RLHand or RShield. (cold-read, Rerun trial 1)
 - [LW-476] 2026-10-20: Capture stores unclamped totals while BagFor clamps to 0..255. (cold-read, Rerun trial 1)
 - [LW-477] 2026-10-20: Offsets.InventoryCountBase and Offsets.BagCountArray are two names for 0x1411A7C00. (cold-read, Rerun trial 1)
-- [LW-468] 2026-10-20: Detour dereferences _hook with a bang, and Activate can enable the hook before the assignment lands, so an early call would throw inside the game. (cold-read, Seeded trial)
-- [LW-469] 2026-10-20: Release swallows every failure, so a failed Disable leaves the hook live with no trace. (cold-read, Seeded trial)
-- [LW-470] 2026-10-20: Release never clears _hook, so IsActive cannot tell a released hook from one never installed. (cold-read, Seeded trial)
+- [LW-468] 2026-10-20: In Extended/CategoryGetterHook.cs, Detour dereferences _hook with a bang, and Activate can enable the hook before the assignment lands, so an early call would throw inside the game. (cold-read, Seeded trial)
+- [LW-470] 2026-10-20: In Extended/CategoryGetterHook.cs, Release never clears _hook, so IsActive cannot tell a released hook from one never installed. (cold-read, Seeded trial)
 - [LW-502] 2026-10-20: Cold read of Extended/ExtendedInventory.cs found 4 things worth a look. (cold-read, Extended sweep inventory-root)
   - The armed log line hardcodes six hooks, the swing fallback and the list builder whatever a custom install step actually installed.
   - The repair and refusal notes are volatile but their join updates are not atomic, so a tick side read and clear between the read and the write could lose or resurrect a note.

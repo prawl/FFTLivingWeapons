@@ -10,7 +10,7 @@ internal static partial class ThunkStub
     /// <summary>Room for the largest real shape, 34 bytes (4 stolen + 6 call + 2 skip + 8 address + 14 return jump), with spare.</summary>
     public const int EntryTrampolineMaxSize = 0x40;
 
-    /// <summary>The trampoline for the accessor entry at <paramref name="entryAddr"/>: the stolen bytes run again, with a
+    /// <summary>The trampoline for the accessor entry at <paramref name="entryAddr"/>. The stolen bytes run again, with a
     /// call inside them turned into an absolute one, then a jump back past the stolen span.</summary>
     /// <remarks><paramref name="callAt"/> is the offset of an <c>E8 rel32</c> call in the stolen bytes, or -1. A rel32 only works at its own address, so:<code>
     /// stolen[0..callAt) | FF 15 02 00 00 00 (call [rip+2]) | EB 08 (skip the address) | target:8

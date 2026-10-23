@@ -8,6 +8,12 @@ with a date and no hash. New entries are written ELI5-first (a plain-language op
 can follow, technical detail after), per the Format rules in docs/TODO.md; rows written
 before 2026-07-21 keep their original prose.
 
+## 2.4.1 cycle
+
+- [LW-505] SHIPPED f6d0b6ff 2026-10-23: Every release now gets a short code health scorecard, so a release that made the code messier shows up at a glance. tools/health.py writes docs/health/vX.Y.Z.json at Publish and rebuilds docs/HEALTH.md, every build runs its selftest as a gate and warns when a release has no committed record, and records for v2.0.0 through v2.4.0 are backfilled, each naming the release commit.
+- [LW-504] SHIPPED 5c7d28e2 2026-10-23: The extra item slots code has an up to date map, so the next person to change it knows which file does what and where to start reading. LivingWeapon/Extended/README.md gains the rewind move, a diagram, a glossary and a reading order, and ExtendedReadmeContractTests fails the build when a file in the folder is left off it.
+- [LW-469] RETRACTED 2026-10-23: A duplicate of the first finding on LW-478, a failed Disable in CategoryGetterHook's Release leaving no trace.
+
 ## 2.4.0 cycle
 
 - [LW-439] SHIPPED d5ef9240 2026-10-19: The twin weapon trick reads the world map menu byte right on the Denuvo free game build. The byte is part of a pointer that reads 246 under the new random load address where it used to read 1, and the old code took anything but 0 or 1 as unreadable. Owner live pass 2026-10-19 on the prod build: the probe read 246 inside a game image pointer with the menu open, the launch check logged `The menu flags read as expected; the twin weapon grant is enabled.`, and after a few seconds on the world map with the menu closed the log read `A twin weapon is equipped in the wielder's off-hand` at 23:03:40. The Status page stamp after backing out of Equipment did not return, because the browse flag also moved on this build; that half is LW-467. (Tech: GunSlinger.MenuGate.cs nonzero means open, name pass 73a15d20, probe tools/probes/lw439_menu_byte_probe.py.)
