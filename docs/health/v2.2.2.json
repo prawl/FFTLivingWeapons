@@ -1,0 +1,108 @@
+{
+ "version": "2.2.2",
+ "ref": "v2.2.2",
+ "sha": "110bd72a",
+ "date": "2026-06-27",
+ "since": "v2.2.1",
+ "snapshot": {
+  "prod_files": 96,
+  "prod_lines": 11630,
+  "code_lines": 6734,
+  "test_files": 92,
+  "test_lines": 19707,
+  "test_ratio": 1.69,
+  "comment_share": 0.303,
+  "empty_catches": 11,
+  "catches": 22,
+  "methods": 337,
+  "long_methods": 5,
+  "duplication": 0.0213
+ },
+ "cycle": {
+  "commits": 8,
+  "prod_commits": 4,
+  "fix_commits": 1,
+  "fix_share": 0.25
+ },
+ "hotspots": [
+  {
+   "file": "ActorResolver.cs",
+   "commits": 2,
+   "fixes": 1,
+   "branches": 102,
+   "code": 183
+  },
+  {
+   "file": "KillTracker.Corpses.cs",
+   "commits": 2,
+   "fixes": 1,
+   "branches": 44,
+   "code": 148
+  },
+  {
+   "file": "Choir.cs",
+   "commits": 1,
+   "fixes": 0,
+   "branches": 23,
+   "code": 98
+  },
+  {
+   "file": "KillTracker.Delayed.cs",
+   "commits": 1,
+   "fixes": 1,
+   "branches": 23,
+   "code": 72
+  },
+  {
+   "file": "KillTracker.cs",
+   "commits": 1,
+   "fixes": 1,
+   "branches": 18,
+   "code": 127
+  },
+  {
+   "file": "Tuning.cs",
+   "commits": 2,
+   "fixes": 1,
+   "branches": 6,
+   "code": 77
+  },
+  {
+   "file": "WeaponMeta.cs",
+   "commits": 1,
+   "fixes": 0,
+   "branches": 4,
+   "code": 65
+  },
+  {
+   "file": "Offsets.cs",
+   "commits": 2,
+   "fixes": 1,
+   "branches": 1,
+   "code": 97
+  },
+  {
+   "file": "Choir.Policy.cs",
+   "commits": 1,
+   "fixes": 0,
+   "branches": 1,
+   "code": 7
+  }
+ ],
+ "domains": [
+  {
+   "domain": "(root)",
+   "files": 92,
+   "code": 6563,
+   "changes": 13,
+   "fixes": 6
+  },
+  {
+   "domain": "Configuration",
+   "files": 4,
+   "code": 171,
+   "changes": 0,
+   "fixes": 0
+  }
+ ]
+}

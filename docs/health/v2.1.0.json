@@ -1,0 +1,115 @@
+{
+ "version": "2.1.0",
+ "ref": "v2.1.0",
+ "sha": "932c2187",
+ "date": "2026-06-12",
+ "since": "v2.0.0",
+ "snapshot": {
+  "prod_files": 74,
+  "prod_lines": 8497,
+  "code_lines": 5112,
+  "test_files": 76,
+  "test_lines": 14180,
+  "test_ratio": 1.67,
+  "comment_share": 0.275,
+  "empty_catches": 11,
+  "catches": 22,
+  "methods": 266,
+  "long_methods": 2,
+  "duplication": 0.0043
+ },
+ "cycle": {
+  "commits": 87,
+  "prod_commits": 22,
+  "fix_commits": 1,
+  "fix_share": 0.045
+ },
+ "hotspots": [
+  {
+   "file": "TreasureMaster.cs",
+   "commits": 9,
+   "fixes": 1,
+   "branches": 50,
+   "code": 257
+  },
+  {
+   "file": "ActorResolver.cs",
+   "commits": 3,
+   "fixes": 0,
+   "branches": 61,
+   "code": 134
+  },
+  {
+   "file": "Engine.cs",
+   "commits": 6,
+   "fixes": 0,
+   "branches": 22,
+   "code": 144
+  },
+  {
+   "file": "Wielder.cs",
+   "commits": 2,
+   "fixes": 0,
+   "branches": 47,
+   "code": 108
+  },
+  {
+   "file": "TreasureDb.cs",
+   "commits": 4,
+   "fixes": 0,
+   "branches": 22,
+   "code": 141
+  },
+  {
+   "file": "GrowthEngine.Signatures.cs",
+   "commits": 2,
+   "fixes": 0,
+   "branches": 40,
+   "code": 96
+  },
+  {
+   "file": "GrowthEngine.Locate.cs",
+   "commits": 2,
+   "fixes": 0,
+   "branches": 35,
+   "code": 92
+  },
+  {
+   "file": "BattleState.cs",
+   "commits": 2,
+   "fixes": 0,
+   "branches": 33,
+   "code": 62
+  },
+  {
+   "file": "Tuning.cs",
+   "commits": 11,
+   "fixes": 1,
+   "branches": 6,
+   "code": 54
+  },
+  {
+   "file": "ArmAudit.cs",
+   "commits": 5,
+   "fixes": 1,
+   "branches": 13,
+   "code": 79
+  }
+ ],
+ "domains": [
+  {
+   "domain": "(root)",
+   "files": 70,
+   "code": 4941,
+   "changes": 107,
+   "fixes": 5
+  },
+  {
+   "domain": "Configuration",
+   "files": 4,
+   "code": 171,
+   "changes": 7,
+   "fixes": 0
+  }
+ ]
+}

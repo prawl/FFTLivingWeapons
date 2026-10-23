@@ -1,0 +1,108 @@
+{
+ "version": "2.0.0",
+ "ref": "v2.0.0",
+ "sha": "60e243c4",
+ "date": "2026-06-10",
+ "since": "v1.1.1",
+ "snapshot": {
+  "prod_files": 57,
+  "prod_lines": 6663,
+  "code_lines": 4213,
+  "test_files": 52,
+  "test_lines": 10071,
+  "test_ratio": 1.51,
+  "comment_share": 0.25,
+  "empty_catches": 7,
+  "catches": 13,
+  "methods": 226,
+  "long_methods": 3,
+  "duplication": 0.0252
+ },
+ "cycle": {
+  "commits": 102,
+  "prod_commits": 52,
+  "fix_commits": 8,
+  "fix_share": 0.154
+ },
+ "hotspots": [
+  {
+   "file": "Engine.cs",
+   "commits": 23,
+   "fixes": 3,
+   "branches": 28,
+   "code": 146
+  },
+  {
+   "file": "GrowthEngine.Signatures.cs",
+   "commits": 10,
+   "fixes": 0,
+   "branches": 41,
+   "code": 98
+  },
+  {
+   "file": "SpiritualFont.cs",
+   "commits": 13,
+   "fixes": 3,
+   "branches": 27,
+   "code": 107
+  },
+  {
+   "file": "GrowthEngine.cs",
+   "commits": 10,
+   "fixes": 0,
+   "branches": 33,
+   "code": 104
+  },
+  {
+   "file": "Rapture.cs",
+   "commits": 11,
+   "fixes": 4,
+   "branches": 27,
+   "code": 91
+  },
+  {
+   "file": "Wielder.cs",
+   "commits": 5,
+   "fixes": 1,
+   "branches": 50,
+   "code": 118
+  },
+  {
+   "file": "CharmLock.cs",
+   "commits": 4,
+   "fixes": 0,
+   "branches": 55,
+   "code": 151
+  },
+  {
+   "file": "Signatures.cs",
+   "commits": 9,
+   "fixes": 0,
+   "branches": 21,
+   "code": 69
+  },
+  {
+   "file": "KillTracker.cs",
+   "commits": 11,
+   "fixes": 1,
+   "branches": 17,
+   "code": 115
+  },
+  {
+   "file": "ActorResolver.cs",
+   "commits": 3,
+   "fixes": 0,
+   "branches": 59,
+   "code": 124
+  }
+ ],
+ "domains": [
+  {
+   "domain": "(root)",
+   "files": 57,
+   "code": 4213,
+   "changes": 257,
+   "fixes": 22
+  }
+ ]
+}

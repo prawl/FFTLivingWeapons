@@ -1,0 +1,115 @@
+{
+ "version": "2.2.0",
+ "ref": "v2.2.0",
+ "sha": "3f3b9c94",
+ "date": "2026-06-17",
+ "since": "v2.1.0",
+ "snapshot": {
+  "prod_files": 93,
+  "prod_lines": 11005,
+  "code_lines": 6439,
+  "test_files": 86,
+  "test_lines": 17394,
+  "test_ratio": 1.58,
+  "comment_share": 0.295,
+  "empty_catches": 11,
+  "catches": 22,
+  "methods": 323,
+  "long_methods": 5,
+  "duplication": 0.0173
+ },
+ "cycle": {
+  "commits": 47,
+  "prod_commits": 21,
+  "fix_commits": 4,
+  "fix_share": 0.19
+ },
+ "hotspots": [
+  {
+   "file": "Engine.cs",
+   "commits": 9,
+   "fixes": 0,
+   "branches": 23,
+   "code": 160
+  },
+  {
+   "file": "Larceny.cs",
+   "commits": 5,
+   "fixes": 0,
+   "branches": 30,
+   "code": 99
+  },
+  {
+   "file": "Wielder.cs",
+   "commits": 2,
+   "fixes": 0,
+   "branches": 58,
+   "code": 143
+  },
+  {
+   "file": "Barrage.cs",
+   "commits": 3,
+   "fixes": 1,
+   "branches": 29,
+   "code": 123
+  },
+  {
+   "file": "ActorResolver.cs",
+   "commits": 1,
+   "fixes": 0,
+   "branches": 80,
+   "code": 163
+  },
+  {
+   "file": "GrowthEngine.cs",
+   "commits": 2,
+   "fixes": 0,
+   "branches": 35,
+   "code": 113
+  },
+  {
+   "file": "ShadowBlade.cs",
+   "commits": 2,
+   "fixes": 0,
+   "branches": 34,
+   "code": 119
+  },
+  {
+   "file": "Tuning.cs",
+   "commits": 9,
+   "fixes": 0,
+   "branches": 6,
+   "code": 74
+  },
+  {
+   "file": "Larceny.Policy.cs",
+   "commits": 4,
+   "fixes": 0,
+   "branches": 12,
+   "code": 62
+  },
+  {
+   "file": "FeignDeath.cs",
+   "commits": 1,
+   "fixes": 0,
+   "branches": 46,
+   "code": 141
+  }
+ ],
+ "domains": [
+  {
+   "domain": "(root)",
+   "files": 89,
+   "code": 6268,
+   "changes": 82,
+   "fixes": 5
+  },
+  {
+   "domain": "Configuration",
+   "files": 4,
+   "code": 171,
+   "changes": 2,
+   "fixes": 0
+  }
+ ]
+}

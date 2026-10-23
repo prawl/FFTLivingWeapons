@@ -1,0 +1,115 @@
+{
+ "version": "2.3.2",
+ "ref": "v2.3.2",
+ "sha": "6aee5bf3",
+ "date": "2026-07-25",
+ "since": "v2.3.1",
+ "snapshot": {
+  "prod_files": 186,
+  "prod_lines": 26657,
+  "code_lines": 14533,
+  "test_files": 180,
+  "test_lines": 46428,
+  "test_ratio": 1.74,
+  "comment_share": 0.356,
+  "empty_catches": 21,
+  "catches": 77,
+  "methods": 714,
+  "long_methods": 17,
+  "duplication": 0.0126
+ },
+ "cycle": {
+  "commits": 118,
+  "prod_commits": 18,
+  "fix_commits": 8,
+  "fix_share": 0.444
+ },
+ "hotspots": [
+  {
+   "file": "ActorResolver.cs",
+   "commits": 2,
+   "fixes": 1,
+   "branches": 119,
+   "code": 240
+  },
+  {
+   "file": "Engine.cs",
+   "commits": 5,
+   "fixes": 1,
+   "branches": 44,
+   "code": 276
+  },
+  {
+   "file": "Iai.cs",
+   "commits": 3,
+   "fixes": 2,
+   "branches": 39,
+   "code": 141
+  },
+  {
+   "file": "FeignDeath.cs",
+   "commits": 2,
+   "fixes": 1,
+   "branches": 45,
+   "code": 145
+  },
+  {
+   "file": "ProvokeHold.Scan.cs",
+   "commits": 2,
+   "fixes": 1,
+   "branches": 45,
+   "code": 123
+  },
+  {
+   "file": "ProvokeHold.cs",
+   "commits": 3,
+   "fixes": 1,
+   "branches": 30,
+   "code": 154
+  },
+  {
+   "file": "GrowthEngine.cs",
+   "commits": 2,
+   "fixes": 1,
+   "branches": 40,
+   "code": 136
+  },
+  {
+   "file": "Barrage.cs",
+   "commits": 2,
+   "fixes": 1,
+   "branches": 36,
+   "code": 160
+  },
+  {
+   "file": "BattleState.cs",
+   "commits": 2,
+   "fixes": 1,
+   "branches": 33,
+   "code": 69
+  },
+  {
+   "file": "Barrage.Policy.cs",
+   "commits": 2,
+   "fixes": 1,
+   "branches": 29,
+   "code": 93
+  }
+ ],
+ "domains": [
+  {
+   "domain": "(root)",
+   "files": 182,
+   "code": 14362,
+   "changes": 71,
+   "fixes": 24
+  },
+  {
+   "domain": "Configuration",
+   "files": 4,
+   "code": 171,
+   "changes": 0,
+   "fixes": 0
+  }
+ ]
+}

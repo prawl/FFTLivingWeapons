@@ -1,0 +1,115 @@
+{
+ "version": "2.3.3",
+ "ref": "v2.3.3",
+ "sha": "b7104c07",
+ "date": "2026-08-12",
+ "since": "v2.3.2",
+ "snapshot": {
+  "prod_files": 204,
+  "prod_lines": 29423,
+  "code_lines": 15535,
+  "test_files": 204,
+  "test_lines": 53782,
+  "test_ratio": 1.83,
+  "comment_share": 0.376,
+  "empty_catches": 21,
+  "catches": 86,
+  "methods": 760,
+  "long_methods": 13,
+  "duplication": 0.0088
+ },
+ "cycle": {
+  "commits": 131,
+  "prod_commits": 46,
+  "fix_commits": 5,
+  "fix_share": 0.109
+ },
+ "hotspots": [
+  {
+   "file": "Engine.cs",
+   "commits": 16,
+   "fixes": 2,
+   "branches": 46,
+   "code": 292
+  },
+  {
+   "file": "ProvokeHold.Scan.cs",
+   "commits": 5,
+   "fixes": 1,
+   "branches": 53,
+   "code": 155
+  },
+  {
+   "file": "ProvokeHold.cs",
+   "commits": 6,
+   "fixes": 1,
+   "branches": 40,
+   "code": 185
+  },
+  {
+   "file": "ActorResolver.cs",
+   "commits": 2,
+   "fixes": 0,
+   "branches": 104,
+   "code": 242
+  },
+  {
+   "file": "Plague.cs",
+   "commits": 5,
+   "fixes": 0,
+   "branches": 36,
+   "code": 123
+  },
+  {
+   "file": "KillTracker.Corpses.cs",
+   "commits": 3,
+   "fixes": 0,
+   "branches": 59,
+   "code": 293
+  },
+  {
+   "file": "Band.cs",
+   "commits": 3,
+   "fixes": 0,
+   "branches": 49,
+   "code": 112
+  },
+  {
+   "file": "Maim.cs",
+   "commits": 5,
+   "fixes": 0,
+   "branches": 24,
+   "code": 108
+  },
+  {
+   "file": "GrowthEngine.cs",
+   "commits": 3,
+   "fixes": 0,
+   "branches": 39,
+   "code": 137
+  },
+  {
+   "file": "Wielder.Roster.cs",
+   "commits": 2,
+   "fixes": 0,
+   "branches": 49,
+   "code": 151
+  }
+ ],
+ "domains": [
+  {
+   "domain": "(root)",
+   "files": 200,
+   "code": 15364,
+   "changes": 219,
+   "fixes": 19
+  },
+  {
+   "domain": "Configuration",
+   "files": 4,
+   "code": 171,
+   "changes": 0,
+   "fixes": 0
+  }
+ ]
+}

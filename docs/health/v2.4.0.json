@@ -1,0 +1,199 @@
+{
+ "version": "2.4.0",
+ "ref": "v2.4.0",
+ "sha": "b34fe128",
+ "date": "2026-10-20",
+ "since": "v2.3.4",
+ "snapshot": {
+  "prod_files": 318,
+  "prod_lines": 36464,
+  "code_lines": 23536,
+  "test_files": 284,
+  "test_lines": 81676,
+  "test_ratio": 2.24,
+  "comment_share": 0.24,
+  "empty_catches": 44,
+  "catches": 134,
+  "methods": 1147,
+  "long_methods": 17,
+  "duplication": 0.0083
+ },
+ "cycle": {
+  "commits": 595,
+  "prod_commits": 102,
+  "fix_commits": 13,
+  "fix_share": 0.127
+ },
+ "hotspots": [
+  {
+   "file": "Engine.cs",
+   "commits": 44,
+   "fixes": 4,
+   "branches": 46,
+   "code": 437
+  },
+  {
+   "file": "Kills/KillTracker.Corpses.cs",
+   "commits": 8,
+   "fixes": 1,
+   "branches": 71,
+   "code": 351
+  },
+  {
+   "file": "Battle/ActorResolver.cs",
+   "commits": 8,
+   "fixes": 0,
+   "branches": 66,
+   "code": 183
+  },
+  {
+   "file": "Battle/Wielder.Roster.cs",
+   "commits": 8,
+   "fixes": 0,
+   "branches": 56,
+   "code": 164
+  },
+  {
+   "file": "Growth/GrowthEngine.Lanes.cs",
+   "commits": 8,
+   "fixes": 0,
+   "branches": 56,
+   "code": 169
+  },
+  {
+   "file": "Battle/Wielder.cs",
+   "commits": 7,
+   "fixes": 0,
+   "branches": 61,
+   "code": 146
+  },
+  {
+   "file": "Extended/ExtendedInventory.Tick.cs",
+   "commits": 18,
+   "fixes": 0,
+   "branches": 21,
+   "code": 101
+  },
+  {
+   "file": "Extended/ExtendedInventory.cs",
+   "commits": 21,
+   "fixes": 3,
+   "branches": 17,
+   "code": 105
+  },
+  {
+   "file": "Growth/GrowthEngine.Locate.cs",
+   "commits": 6,
+   "fixes": 0,
+   "branches": 56,
+   "code": 150
+  },
+  {
+   "file": "Display/Display.cs",
+   "commits": 11,
+   "fixes": 3,
+   "branches": 30,
+   "code": 163
+  }
+ ],
+ "domains": [
+  {
+   "domain": "Display",
+   "files": 71,
+   "code": 4620,
+   "changes": 376,
+   "fixes": 19
+  },
+  {
+   "domain": "Signatures",
+   "files": 71,
+   "code": 5069,
+   "changes": 319,
+   "fixes": 7
+  },
+  {
+   "domain": "Extended",
+   "files": 37,
+   "code": 2692,
+   "changes": 245,
+   "fixes": 11
+  },
+  {
+   "domain": "Guard",
+   "files": 28,
+   "code": 1901,
+   "changes": 130,
+   "fixes": 2
+  },
+  {
+   "domain": "(root)",
+   "files": 8,
+   "code": 1046,
+   "changes": 118,
+   "fixes": 7
+  },
+  {
+   "domain": "Battle",
+   "files": 24,
+   "code": 1534,
+   "changes": 117,
+   "fixes": 1
+  },
+  {
+   "domain": "Kills",
+   "files": 17,
+   "code": 1477,
+   "changes": 78,
+   "fixes": 8
+  },
+  {
+   "domain": "Growth",
+   "files": 12,
+   "code": 978,
+   "changes": 76,
+   "fixes": 0
+  },
+  {
+   "domain": "Persistence",
+   "files": 13,
+   "code": 669,
+   "changes": 69,
+   "fixes": 5
+  },
+  {
+   "domain": "Logging",
+   "files": 12,
+   "code": 560,
+   "changes": 43,
+   "fixes": 0
+  },
+  {
+   "domain": "Dev",
+   "files": 7,
+   "code": 1825,
+   "changes": 36,
+   "fixes": 0
+  },
+  {
+   "domain": "Memory",
+   "files": 7,
+   "code": 454,
+   "changes": 34,
+   "fixes": 0
+  },
+  {
+   "domain": "Chronicle",
+   "files": 7,
+   "code": 547,
+   "changes": 32,
+   "fixes": 1
+  },
+  {
+   "domain": "Configuration",
+   "files": 4,
+   "code": 164,
+   "changes": 6,
+   "fixes": 0
+  }
+ ]
+}
