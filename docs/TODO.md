@@ -114,6 +114,26 @@ Locked 2026-10-24: LW-465, LW-508, LW-506, LW-448, LW-459, LW-513, LW-444, LW-38
   So a living weapon under Dual Wield may swing once instead of twice, or a formula 4 gun or rod
   may fire its spell twice. Live check first: Ninja with Dual Wield and two Blaze Guns, then two
   Hushblades, count strikes and casts; then read the routine Tal names.
+  Batch test, planned 2026-10-24 offline from data/items.json so one battle settles it. The mod's
+  dual wieldable weapons sit on seven formulas the vanilla game never used (45, 46, 47, 48, 67, 69,
+  99), and those are the ones the Discord claim says lose their second strike; formula 4 is the
+  cast twice risk. One throwaway battle, a Ninja (innate Dual Wield) attacking a sturdy enemy, one
+  basic Attack per pair, counting strikes on screen:
+    1. Control first, two Cutpurse (formula 1). Must strike twice; if it does not, stop, the setup
+       is wrong.
+    2. Two Hushblade (45, always inflicts its status).
+    3. Swiftfang (99) in one hand, Cutpurse in the other, then swapped hands.
+    4. Climhazzard (69) the same way.
+    5. A Samurai with Dual Wield support: Bizen Osafune (47), then Muramasa (67).
+    6. Guns through the twin probe: `python tools\probes\dualgun_probe.py twin+dw <nameId> 75` on a
+       Blaze Gun holder (formula 4), counting strikes and cast animations.
+  Reading: every pair striking twice and no double cast means the claim does not hold in this
+  game, and the card closes with that reason. A custom formula striking once, or a formula 4 weapon
+  casting twice, is the bug, and the next step is finding the routine that decides the hit count.
+  Sunderer (46) and Sanguine Gauche (48) are the untested remainder if the first five show a
+  pattern. (Tech: vanilla IC weapons use formulas 1, 2, 3, 4, 6, 7 only, per memory
+  ic-weapon-formula-handlers; Bizen and Muramasa need a Samurai, so a Dual Wield support job is
+  the assumption to check first.)
   - Done means: the player's meaning is known (dual wield hit count with custom formulas, per the Discord thread) and either a bug is fixed or the card closes with the reason.
   - Verify: owner confirms with the player or the thread; if a fix lands, a live dual wield fight shows the right number of strikes.
 - **[LW-195] A weapon in the off hand with a shield in the main hand is not read as fists** (opened 2026-08-13) [QUEUED]
