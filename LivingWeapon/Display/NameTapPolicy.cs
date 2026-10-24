@@ -6,14 +6,14 @@ using System.Text;
 namespace LivingWeapon;
 
 /// <summary>
-/// Pure matching for the name tap, so what counts as a weapon name hit is a plain unit test.
+/// Decides whether a piece of on-screen text is one of our weapon names. It never touches game memory, so a unit test can check it.
 /// </summary>
 internal static class NameTapPolicy
 {
     private const int TailChars = 2;
     private const int ClipChars = 60;
 
-    /// <summary>Longest name first, so a name that contains a shorter one is tried before it.</summary>
+    /// <summary>Our weapon names, longest first, so a long name that contains a shorter one wins over it.</summary>
     internal static IReadOnlyList<(int Id, string Name)> Order(IReadOnlyDictionary<int, WeaponMeta> meta)
         => meta.Where(kv => !string.IsNullOrEmpty(kv.Value?.Name))
                .Select(kv => (Id: kv.Key, Name: kv.Value.Name))
@@ -21,7 +21,7 @@ internal static class NameTapPolicy
                .ThenBy(p => p.Id)
                .ToList();
 
-    /// <summary>First name in the given order found in text, with up to two chars after its first occurrence.</summary>
+    /// <summary>Finds the first of our weapon names in the text and the two characters after it, where the +1, +2 or +3 tag sits.</summary>
     internal static bool TryMatch(string text, IReadOnlyList<(int Id, string Name)> ordered, out int id, out string tail)
     {
         foreach (var (nameId, name) in ordered)
@@ -38,7 +38,7 @@ internal static class NameTapPolicy
         return false;
     }
 
-    /// <summary>First name in the given order whose UTF-16LE bytes sit anywhere in raw, byte aligned, with up to two wide chars after it.</summary>
+    /// <summary>The same search for text stored two bytes per letter (UTF-16LE), with where the name starts and the tag after it.</summary>
     internal static bool TryMatchUtf16(byte[] raw, IReadOnlyList<(int Id, string Name)> ordered, out int id, out int offset, out string tail)
     {
         foreach (var (nameId, name) in ordered)
@@ -61,7 +61,7 @@ internal static class NameTapPolicy
         return false;
     }
 
-    /// <summary>True when the text holds a bound string token, which a name match cannot see through.</summary>
+    /// <summary>True for a placeholder like &lt;string=lstr0&gt;, where the game fills a word in later, so a name there never shows in this text.</summary>
     internal static bool IsTokenHead(string text) => text.Contains("<string=", StringComparison.Ordinal);
 
     internal static string Clip(string text) => text.Length <= ClipChars ? text : text[..ClipChars];

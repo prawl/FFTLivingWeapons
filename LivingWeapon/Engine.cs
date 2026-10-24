@@ -151,13 +151,13 @@ internal sealed class Engine
         _anchorScout = new AnchorScout(live);
         _bannerToastsEnabled = bannerToasts ?? Tuning.BannerToasts;
         _toast = new BannerToast(meta, _kills, _bannerToastsEnabled);
-        // The deed recorder, fed by KillTracker's CreditKill.
+        // Remembers notable kills for the Marks feature, fed by every kill KillTracker's CreditKill pays.
         // Marks are release-hidden on every surface, so its toast is null
         // (ReliquaryTests.Disabled_toasts_stay_fully_inert); BannerToast.Enqueue has no enabled gate, so null must
         // be passed. LegendStore still records. Pass `_bannerToastsEnabled ? _toast : null` to show Marks
         // again, together with the equip-card `legends:` below.
         _reliquary = new Reliquary(_legends, null, meta, Flight.Record);
-        // Living Poach. The poach.json map plus the executor. Both gates
+        // Living Poach turns some kills into Poacher's Den carcasses. The poach.json map plus the executor. Both gates
         // read live memory (ReadKillerHasPoach; ReadWasBasicAttack per the LIVE_LEDGER row "The basic-Attack
         // discriminator"). DeedFanout lets KillTracker's single
         // IDeedSink feed both the deed recorder and LivingPoach.
@@ -213,7 +213,7 @@ internal sealed class Engine
         _bulwark = new Bulwark(meta, _kills, _toast, live,
             Latch(() => _tableDoors.TerrainGrid, "The Sunderer's blade wall was not planted; the terrain data it writes is not where this mod expects it, so that write is skipped this session."));
         var bulwark = _bulwark;
-        // Order matters. Reset runs in array order, the granted commands between Plague and Renewal. The in-battle
+        // Order matters, because each weapon power resets in this order, the granted commands between Plague and Renewal. The in-battle
         // tick order excludes Barrage, which ticks pre-gate so learn screens are covered.
         _signatures = new ISignature[] { extra, eagle, ricochet, maim, kobu, iai, mushin, larceny, puppeteer, plague, _barrage, _shadowBlade, _provoke, _provokeHold, renewal, rapture, font, feign, benediction, sanctuary, choir, bulwark };
         _fieldSignatures = new ISignature[] { extra, eagle, ricochet, maim, kobu, iai, mushin, larceny, puppeteer, plague, _provokeHold, renewal, rapture, font, feign, benediction, sanctuary, choir, bulwark };
@@ -268,8 +268,8 @@ internal sealed class Engine
         ModLogger.Event(LogVerb.Startup, $"Living Weapons is tracking {meta.Count} weapon types.");
     }
 
-    /// <summary>Carries a save's kills and deeds across a design that changed item id, once, on the first launch
-    /// after the move. The pairing is meta.json's <c>migratedFrom</c>; <see cref="TallyMigration"/> owns the rule.</summary>
+    /// <summary>Moves a save's kills and deeds onto a weapon whose item id changed between versions, once, on the first
+    /// launch after the move. The pairing is meta.json's <c>migratedFrom</c>; <see cref="TallyMigration"/> owns the rule.</summary>
     private void MigrateMovedDesigns(Dictionary<int, WeaponMeta> meta)
     {
         var plan = TallyMigration.Plan(meta);
@@ -310,8 +310,8 @@ internal sealed class Engine
             new TickPhase("kit-provoke", TickGates.Provoke, 1, false, new[] { "kit-barrage", "kit-shadowblade" },
                 _ => e!._provoke.Tick(), Part.Provoke),
 
-            // Pre-gate; re-asserts a snapshotted twin in battle but never snapshots/restores there, since a
-            // snapshot taken in battle makes the twin fire twice. Cadence 30 (~1s). secondsOffField reads the same _lastField as the "paint" phase (the twilight guard,
+            // Keeps the conjured twin gun in place during battle but never takes or restores a snapshot there,
+            // since a snapshot taken in battle makes the twin fire twice. Cadence 30 (~1s). secondsOffField reads the same _lastField as the "paint" phase (the twilight guard,
             // GunSlingerPolicy.IsTwilight).
             new TickPhase("gunslinger", TickGates.TwinPistols, 30, false, Array.Empty<string>(),
                 s => e!._gunSlinger.PrepRoster(inBattle: s.NowIn, secondsOffField: (s.Now - e._lastField).TotalSeconds),
@@ -468,7 +468,7 @@ internal sealed class Engine
     internal IReadOnlyList<TickPhase> Phases => _phases;
 
     /// <summary>Late-injected by Mod.Start/StartEx once the loader resolves reloaded.sharedlib.hooks.
-    /// Arms the extended inventory and the icon heal, then the facing-prompt swap when banner toasts are on.</summary>
+    /// Connects the extended inventory and the icon heal, then the toast's prompt swap when banners are on.</summary>
     public void InjectHooks(Reloaded.Hooks.Definitions.IReloadedHooks? hooks)
     {
         // The extended inventory arms now, before the game runs, behind per-site old-byte checks;
@@ -507,8 +507,8 @@ internal sealed class Engine
         _cts = null;
     }
 
-    /// <summary>Clears all per-battle state on both battle edges, so a restart that skips a clean Exit still starts
-    /// clean and Larceny's stolen buffs never carry into the next battle. Idempotent.</summary>
+    /// <summary>Wipes what the mod remembers about one battle, on both battle edges, so a Retry that skips a clean exit
+    /// still starts fresh and Larceny's stolen buffs never carry into the next fight. Idempotent.</summary>
     private void ResetBattleState()
     {
         // A toast never outlives its battle. Runs first so dropped-toast Flight records land on

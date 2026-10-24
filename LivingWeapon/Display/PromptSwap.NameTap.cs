@@ -39,7 +39,7 @@ internal sealed partial class PromptSwap
         _tapMarkerPath = string.IsNullOrEmpty(modDir) ? null : Path.Combine(modDir, NameTapMarkerFileName);
     }
 
-    /// <summary>Polls the marker file every 30th call from the engine tick.</summary>
+    /// <summary>Turns the trace on or off when the owner adds or deletes the marker file, checked every 30th engine tick.</summary>
     public void TickNameTap()
     {
         if (_tapMarkerPath == null || ++_tapPoll % NameTapPollEvery != 0) return;
@@ -70,7 +70,7 @@ internal sealed partial class PromptSwap
         Interlocked.Increment(ref _tapCalls);
         int firstLen = IconCacheHealPolicy.FirstReadLength(text);
         if (!_mem.TryReadBytes(text, firstLen, out var first)) { FlushNameTapCost(); return; }
-        // Wide text puts a zero after every plain letter, so a zero in first does not mark its end.
+        // Text stored two bytes per letter has a zero after every plain letter, so a zero here does not mean the text ended.
         byte[]? second = null;
         if (first.Length < IconCacheHealPolicy.MaxNameBytes)
             _mem.TryReadBytes(text + first.Length, IconCacheHealPolicy.MaxNameBytes - first.Length, out second);
@@ -105,7 +105,7 @@ internal sealed partial class PromptSwap
         string? head = null;
         lock (_tapLock)
         {
-            // A wide string decodes to its first letter alone and would crowd out real heads.
+            // Two byte text reads as its first letter alone here; skipping it keeps the 32 sample slots for real text.
             if (clipped.Length >= 2 && _tapHeads.Count < HeadCap && _tapHeads.Add(clipped))
                 head = $"name tap head {_tapHeads.Count} of {HeadCap}: \"{clipped}\"";
         }
