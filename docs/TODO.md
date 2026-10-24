@@ -33,8 +33,6 @@ the technical detail lives in the indented lines under it.
   (Tech: document Publish, commit docs/health, then tag, or have the tag run accept an uncommitted record; health.py status message; HealthReportWiringContractTests should pin the throw after `--selftest`.)
 - [LW-511] 2026-10-23: The number of places where the mod quietly swallows an error doubled this release, from 21 to 44, so failures can happen with no trace in the log. Audit them and give each one that matters a log line or a counter.
   (Tech: docs/HEALTH.md v2.4.0 silent catches; several cold read rows such as LW-471 and LW-481 name specific ones.)
-- [LW-512] 2026-10-23: The README does not tell players that Counter and other reaction kills do not count toward a weapon's tally, which is by design this release, so "my Counter kills do not count" will arrive as a bug report.
-  (Tech: add a known issue bullet beside the Provoke and Bulwark ones; design per LW-396 and smoke open risks.)
 - [LW-513] 2026-10-23: Players who installed Reloaded somewhere other than the game folder lose the glow rings on icons until a restart, because the mod looks for the game's art file a fixed three folders up. Find it a sturdier way.
   (Tech: IconGlow warns "IconGlow cannot locate modded.pac this launch"; smoke open risks, box 7.2.)
 - [LW-514] 2026-10-23: Nobody has tested buying a new extended weapon in a brand new game that was never reloaded, the one path where only the game's own menu rebuild seats it. A reload fixes it if it fails, but a test save that reaches the first shop would close the gap.
@@ -128,6 +126,7 @@ belongs rather than at the bottom.
   their only protection under any guard design. Options: clear the bit when the grant ends, or keep
   the hold and accept the risk in writing. Surfaced by the 2026-10-16 write-site audit.
 - [LW-396] 2026-10-16: A Warbrand kill on the enemy's own turn went uncredited in the owner's live pass; look at whether the enemy-turn rule is too strict for weapon damage that lands during the enemy phase.
+  Owner 2026-10-24: a Counter or other reaction kill should count toward the weapon's tally. Today the enemy turn rule throws it out together with enemy on enemy deaths. Teach the mod to tell the player unit's reaction apart (probe how the game flags a reaction first), then credit it.
   Live pass 2026-10-16 11:02 (LW-388 port): the first Warbrand kill was refused by the existing
   enemy-turn rule (KillTracker.Corpses, UntrackedReason.EnemyTurn) while the second was credited.
   Pre-existing behavior, not a regression; the rule exists to stop enemy-on-enemy deaths from
