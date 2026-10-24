@@ -136,6 +136,6 @@ internal sealed partial class ListBuilderHook
 
     private static void SafeLog(Action log)
     {
-        try { log(); } catch (Exception) { /* a logger failure must never escape the detour */ }
+        try { log(); } catch (Exception) { QuietFaults.Note("ListBuilderHook.SafeLog"); /* a logger failure must never escape the detour */ }
     }
 }

@@ -242,11 +242,12 @@ Locked 2026-10-24: LW-465, LW-508, LW-506, LW-448, LW-459, LW-513, LW-444, LW-38
   - Done means: README.md troubleshooting and docs/COMPATIBILITY.md say that dashes that never fill mean the DLL did not load, and where to look in Reloaded's log.
   - Verify: docs contract tests green; the sentence reads plainly to the owner.
   - Built: README.md Good to know and docs/COMPATIBILITY.md Quick answer now say that dashes which never fill mean the program did not load, where Reloaded's log lives, the exact line to look for, and to reinstall and then send the log. Docs contract tests green; waiting on the owner's read of the two paragraphs.
-- **[LW-511] Errors the mod swallows leave a trace when they matter** (opened 2026-10-23) [QUEUED]
+- **[LW-511] Errors the mod swallows leave a trace when they matter** (opened 2026-10-23) [AWAITING-LIVE]
   The number of places where the mod quietly swallows an error doubled this release, from 21 to 44, so failures can happen with no trace in the log. Audit them and give each one that matters a log line or a counter.
   (Tech: docs/HEALTH.md v2.4.0 silent catches; several cold read rows such as LW-471 and LW-481 name specific ones.)
   - Done means: each of the 44 empty catches is either given a log line or counter, or marked safe to stay silent with the reason in code.
   - Verify: a count check holds the number; the health record for the release shows the drop.
+  - Built: no error is swallowed in silence any more. The ones that can cost a player data now say so plainly; above all, a kill tally that cannot be read is copied aside as kills.json.unreadable before anything can overwrite it, and the log says how to get it back. Every other swallowed error is counted, and one line per battle exit lists any that happened. A test now fails the build if a silent catch ever comes back. Live check, a normal battle: kills count, cards paint, a save and reload keeps the tallies, and the log shows at most one Debug line starting Errors the mod chose to ignore. (Tech: new Logging/QuietFaults.cs, 48 empty catches to 0, SilentCatchContractTests holds it at 0, data risk Warns in KillTally.Load, GunSlinger.Store, Configurator, a Debug line in Configurable; the battle exit report runs before Flight.FlushBattleEnd with flight record type quiet-faults in docs/LOGGING.md; verifier SHIP at code 9, spec 8 after two fix rounds; cold read entry LW-511; the health record drops at the next release run of tools/health.py.)
 - **[LW-326] Puppeteer works on a quick confirm and shows something on a monster** (opened 2026-08-25) [QUEUED]
   Puppeteer works but is unreliable: quick attacks fail to dominate
   and the owner needed retries to record a clean demo. The log tape shows the arm's two
@@ -388,6 +389,11 @@ Locked 2026-10-24: LW-465, LW-508, LW-506, LW-448, LW-459, LW-513, LW-444, LW-38
 
 ## Backlog
 
+- [LW-536] 2026-10-24: When the main kill tally file cannot be read but the backup loads, the mod keeps playing from the backup and the next saves overwrite the main file, so any kills it held beyond the backup, at most about one battle's worth, are lost without a copy. Keep a .unreadable copy of the main file in that case too. (Tech: KillTally.Load, the unreadable list is only acted on when no copy loaded; SidecarJson.SaveAtomic copies primary to .bak then writes the primary; found by the LW-511 final verifier.)
+- [LW-534] 2026-10-24: Cold read of Engine.cs found 1 thing worth a look. (cold-read, LW-511)
+  - KillTally.Load treats a tally file that exists but fails to parse as absent, so two corrupt files end in the false starting fresh line, get no .unreadable copy, and are later overwritten.
+- [LW-535] 2026-10-24: Cold read of Configuration/Configurable.cs found 1 thing worth a look. (cold-read, LW-511)
+  - Configurable.LoadFromFile swallows every exception and returns default settings, so a malformed config edit silently applies defaults instead of keeping the old settings.
 - [LW-533] 2026-10-24: Cold read of Kills/EnemyOracle.cs found 1 thing worth a look. (cold-read, LW-234)
   - EnemyOracle.Capture only accepts enemies under 2000 max HP with brave and faith from 1 to 100, so a unit outside those bounds is never a tracked enemy and its death can never pay a kill.
 - [LW-530] 2026-10-24: A rare edge in the new Retry check. If a story unit that was Praised or Rend Braved before dying shows up in the same battle slot of the very next battle with the same level and max HP, and that battle starts fast enough to skip the mod's battle reset, the looser identity check could take back its old kill. Vanishingly rare; watch for it in a tape before acting. (Tech: the starved bracket gap of LW-108 plus RestartSentinelPolicy.SwapIdentityMatches; story units keep their nameId across loads per [boss-canonical-nameid-stable]; found by the LW-459 verifier.)

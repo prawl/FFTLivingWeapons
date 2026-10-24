@@ -5,11 +5,11 @@ using System.IO;
 namespace LivingWeapon;
 
 /// <summary>
+/// The logger never logs its own failures, since that could loop or deadlock. It only counts them in QuietFaults.
 /// Production <see cref="ILogger"/> with two sinks. The file sink (livingweapon.log, rotated per launch to
 /// livingweapon.prev.log) gets every message, Debug included. The console sink gets messages at or above
-/// <see cref="LogLevel"/> and skips a repeat of the same (level, verb, message) until <see cref="NoteBattleEdge"/>
-/// clears the seen-set (logging facelift C1). File lines carry the verb. Info console lines omit it so the match
-/// report reads as plain prose, while Warning, Error and raised-level Debug console lines keep it for triage.
+/// <see cref="LogLevel"/> and skips a repeat of the same (level, verb, message) until <see cref="NoteBattleEdge"/> clears the seen-set.
+/// File lines carry the verb. Info console lines omit it so the match report reads as plain prose, while Warning, Error and raised-level Debug console lines keep it for triage.
 /// Dedup keys on the (level, verb, message) identity, since two verbs can render the same Info text.
 /// </summary>
 internal sealed class FileConsoleLogger : ILogger
@@ -20,11 +20,8 @@ internal sealed class FileConsoleLogger : ILogger
     private readonly Action<string> _fileSink;
     private readonly HashSet<(LogLevel level, LogVerb? verb, string message)> _consoleSeenThisBattle = new();
 
-    /// <summary>Guards <see cref="Write"/> and <see cref="NoteBattleEdge"/>. The game's SetTextString thread
-    /// (PromptSwapHook.Detour) and the Engine loop thread both log, and a racing Add and Clear corrupted the
-    /// HashSet in FileConsoleLoggerThreadSafetyTests. Locking the whole body also keeps a line's file and
-    /// console halves together and stops concurrent File.AppendAllText calls from dropping a line on a
-    /// sharing violation.</summary>
+    /// <summary>Keeps the game's text thread and the Engine loop from garbling the log when both write at once. Guards <see cref="Write"/> and <see cref="NoteBattleEdge"/>.
+    /// A racing Add and Clear can corrupt the HashSet (FileConsoleLoggerThreadSafetyTests). Locking the whole body also keeps a line's file and console halves together and stops concurrent File.AppendAllText calls dropping a line on a sharing violation.</summary>
     private readonly object _gate = new();
 
     public LogLevel LogLevel { get; set; } = LogLevel.Info;
@@ -39,10 +36,10 @@ internal sealed class FileConsoleLogger : ILogger
         _fileSink = fileSink;
     }
 
-    private static void SafeConsoleWrite(string m) { try { Console.WriteLine(m); } catch { } }
+    private static void SafeConsoleWrite(string m) { try { Console.WriteLine(m); } catch { QuietFaults.Note("FileConsoleLogger.SafeConsoleWrite"); } }
 
     /// <summary>Rotates the prior session's log, then returns a sink that appends one timestamped line per call.
-    /// A failed rotation (locked file, read-only mod dir) leaves no file sink so console logging survives.</summary>
+    /// A failed rotation (locked file, read-only mod dir) is only counted; the file sink stays and swallows its own failed writes.</summary>
     private static Action<string> MakeFileSink(string modDir)
     {
         string file = Path.Combine(modDir, "livingweapon.log");
@@ -51,8 +48,8 @@ internal sealed class FileConsoleLogger : ILogger
             if (File.Exists(file))
                 File.Move(file, Path.Combine(modDir, "livingweapon.prev.log"), true);
         }
-        catch { }
-        return line => { try { File.AppendAllText(file, line + "\n"); } catch { } };
+        catch { QuietFaults.Note("FileConsoleLogger.MakeFileSink"); }
+        return line => { try { File.AppendAllText(file, line + "\n"); } catch { QuietFaults.Note("FileConsoleLogger.MakeFileSink"); } };
     }
 
     // --- Verb-aware entry points (ModLogger's typed facade) ---
@@ -95,13 +92,13 @@ internal sealed class FileConsoleLogger : ILogger
             string verbBracket = verb.HasValue ? $"[{verb.Value.Token()}] " : "";
 
             string fileLine = $"{Prefix} [{timestamp}] [{levelToken}] {verbBracket}{body}";
-            try { _fileSink(fileLine); } catch { }
+            try { _fileSink(fileLine); } catch { QuietFaults.Note("FileConsoleLogger.Write"); }
 
             if (level >= LogLevel && _consoleSeenThisBattle.Add((level, verb, body)))
             {
                 bool showVerbOnConsole = verb.HasValue && level != LogLevel.Info;
                 string consoleLine = $"{Prefix} [{timestamp}] [{levelToken}] {(showVerbOnConsole ? verbBracket : "")}{body}";
-                try { _consoleSink(consoleLine); } catch { }
+                try { _consoleSink(consoleLine); } catch { QuietFaults.Note("FileConsoleLogger.Write"); }
             }
         }
     }

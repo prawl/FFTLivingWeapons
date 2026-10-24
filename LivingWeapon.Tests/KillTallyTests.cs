@@ -84,6 +84,79 @@ public class KillTallyTests : IDisposable
     }
 
     [Fact]
+    public void Load_warns_naming_the_file_when_the_primary_cannot_be_read_and_still_uses_the_bak()
+    {
+        var dir = TempDir();
+        var p = PathIn(dir);
+        File.WriteAllText(p + ".bak", "{\"42\":7}");
+        File.WriteAllText(p, "{\"42\":9}");
+        var file = new List<string>();
+        ModLogger.Instance = new FileConsoleLogger(_ => { }, file.Add) { LogLevel = LogLevel.Debug };
+        KillTally t;
+        try
+        {
+            using (new FileStream(p, FileMode.Open, FileAccess.Read, FileShare.None))
+                t = KillTally.Load(p);
+        }
+        finally { ModLogger.UseNullLogger(); }
+        Assert.Equal(7, t.Kills[42]);
+        Assert.Contains(file.ToArray(), l => l.Contains("[WARN]") && l.Contains("kills.json") && l.Contains("IOException"));
+        Assert.DoesNotContain(file.ToArray(), l => l.Contains("starts with no kills counted") || l.Contains("starting fresh"));
+        Assert.DoesNotContain(file.ToArray(), l => l.Contains("next copy"));
+    }
+
+    private static List<string> CaptureWarnings(Func<KillTally> load, out KillTally tally)
+    {
+        var file = new List<string>();
+        ModLogger.Instance = new FileConsoleLogger(_ => { }, file.Add) { LogLevel = LogLevel.Debug };
+        try { tally = load(); }
+        finally { ModLogger.UseNullLogger(); }
+        return file;
+    }
+
+    [Fact]
+    public void Load_with_both_files_unreadable_keeps_a_copy_of_each_and_says_so_plainly()
+    {
+        var dir = TempDir();
+        var p = PathIn(dir);
+        File.WriteAllText(p, "{\"42\":9}");
+        File.WriteAllText(p + ".bak", "{\"42\":7}");
+        File.WriteAllText(p + ".unreadable", "older copy");
+        var log = CaptureWarnings(() => KillTally.Load(p, _ => throw new IOException("locked")), out var t);
+        Assert.Empty(t.Kills);
+        Assert.Equal("{\"42\":9}", File.ReadAllText(p + ".unreadable.2"));
+        Assert.Equal("{\"42\":7}", File.ReadAllText(p + ".bak.unreadable"));
+        Assert.Equal("older copy", File.ReadAllText(p + ".unreadable"));
+        Assert.Contains(log, l => l.Contains("[WARN]") && l.Contains("Your kill tally file could not be read, maybe another program has it locked, so this session starts with no kills counted. A copy of the old file was kept as ")
+            && l.Contains("kills.json.unreadable.2") && l.Contains("kills.json.bak.unreadable") && l.EndsWith("rename it back to kills.json to restore your kills."));
+        Assert.DoesNotContain(log, l => l.Contains("starting fresh"));
+    }
+
+    [Fact]
+    public void Load_with_both_files_locked_and_no_copy_possible_says_no_copy_could_be_made()
+    {
+        var dir = TempDir();
+        var p = PathIn(dir);
+        File.WriteAllText(p, "{\"42\":9}");
+        File.WriteAllText(p + ".bak", "{\"42\":7}");
+        using var a = new FileStream(p, FileMode.Open, FileAccess.Read, FileShare.None);
+        using var b = new FileStream(p + ".bak", FileMode.Open, FileAccess.Read, FileShare.None);
+        var log = CaptureWarnings(() => KillTally.Load(p), out var t);
+        Assert.Empty(t.Kills);
+        Assert.Contains(log, l => l.Contains("[WARN]") && l.Contains("Your kill tally file could not be read")
+            && l.Contains("No copy could be made, so close other programs and restart the game before your next battle, or the old tally will be overwritten."));
+        Assert.DoesNotContain(log, l => l.Contains("starting fresh"));
+    }
+
+    [Fact]
+    public void Load_with_no_files_at_all_says_starting_fresh()
+    {
+        var log = CaptureWarnings(() => KillTally.Load(PathIn(TempDir())), out _);
+        Assert.Contains(log, l => l.Contains("No kill tally was found on disk; starting fresh."));
+        Assert.DoesNotContain(log, l => l.Contains("could not be read"));
+    }
+
+    [Fact]
     public void Load_with_both_files_corrupt_yields_an_empty_tally_not_a_crash()
     {
         var dir = TempDir();

@@ -61,7 +61,7 @@ internal sealed partial class PromptSwap
         if (!_tapping || text == 0) return;
         long t0 = Stopwatch.GetTimestamp();
         try { TapBody(holder, text); }
-        catch (Exception) { }
+        catch (Exception) { QuietFaults.Note("PromptSwap.TapName"); }
         Interlocked.Add(ref _tapTicks, Stopwatch.GetTimestamp() - t0);
     }
 

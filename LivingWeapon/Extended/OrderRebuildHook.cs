@@ -97,7 +97,7 @@ internal sealed partial class OrderRebuildHook
     {
         // Two tries at one job. Slip the new items into the game's order chart so it keeps them itself, then add back anything it still dropped.
         try { SeatOwnedInto(table); }
-        catch (Exception) { /* the game's own rebuild still runs on whatever the chart holds */ }
+        catch (Exception) { QuietFaults.Note("OrderRebuildHook.Process"); /* the game's own rebuild still runs on whatever the chart holds */ }
         var before = ReadListOrNull(list);
         int count = original(table, list);   // once, and outside any try so a game exception reaches the game
         try { return Reappend(before, table, list, count); }
@@ -145,6 +145,6 @@ internal sealed partial class OrderRebuildHook
 
     private static void SafeLog(Action log)
     {
-        try { log(); } catch (Exception) { /* a logger failure must never escape the detour */ }
+        try { log(); } catch (Exception) { QuietFaults.Note("OrderRebuildHook.SafeLog"); /* a logger failure must never escape the detour */ }
     }
 }

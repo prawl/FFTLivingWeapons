@@ -128,7 +128,7 @@ internal sealed partial class SaveEdgeHooks
     {
         foreach (var h in new[] { _serialize, _apply, _applyB })
         {
-            try { if (h?.IsHookEnabled == true) h.Disable(); } catch (Exception) { /* a release that throws would take the rollback down with it */ }
+            try { if (h?.IsHookEnabled == true) h.Disable(); } catch (Exception) { QuietFaults.Note("SaveEdgeHooks.Release"); /* a release that throws would take the rollback down with it */ }
         }
     }
 

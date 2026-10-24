@@ -136,7 +136,7 @@ internal sealed partial class IconCacheHeal : IIconCacheHealer
         if (!_fired)
         {
             try { NoteFirstCall(); }
-            catch (Exception) { }
+            catch (Exception) { QuietFaults.Note("IconCacheHeal.DetourBody"); }
         }
         if (_healing) return entry;
         try { return Guarded(manager, key, entry); }

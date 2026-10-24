@@ -40,10 +40,8 @@ internal sealed class GunSlingerStore
         return snap;
     }
 
-    /// <summary>Atomic save. Write tmp, move it over the primary, then write the same json to .bak.
-    /// The .bak holds the current generation (SidecarJson.SaveAtomic's holds the previous one), so one save
-    /// leaves a valid fallback. Not folded onto the shared chain. That would change which generation
-    /// the fallback sees. A failed save logs and leaves the prior file intact.</summary>
+    /// <summary>Saves the gun-slinger gear snapshots so a crash cannot leave a half-written file. Writes tmp, moves it over the primary, then writes the same json to .bak, so the .bak holds the current generation
+    /// (SidecarJson.SaveAtomic's holds the previous one). Not folded onto the shared chain, since that would change which generation the fallback sees. A failed save logs and leaves the prior file intact.</summary>
     public void Save()
     {
         try
@@ -74,7 +72,7 @@ internal sealed class GunSlingerStore
                     if (int.TryParse(kv.Key, out int id)) map[id] = kv.Value.ToSnap();
                 return map;
             }
-            catch { }
+            catch (Exception ex) { ModLogger.Warn(LogVerb.Save, $"The gun-slinger gear snapshot file {Path.GetFileName(p)} could not be read, so the next copy will be tried and, if none can be read, the snapshots start empty ({ex.GetType().Name}, {ex.Message})."); }
         }
         return new Dictionary<int, GunSlingerSnap>();
     }

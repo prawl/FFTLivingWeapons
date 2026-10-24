@@ -25,7 +25,7 @@ internal static class PacLocator
             var dir = string.IsNullOrWhiteSpace(exePath) ? null : Path.GetDirectoryName(exePath);
             if (!string.IsNullOrEmpty(dir)) list.Add(new PacCandidate(ExeLabel, PacUnder(dir)));
         }
-        catch { }
+        catch { QuietFaults.Note("PacLocator.Candidates"); }
         try
         {
             var root = string.IsNullOrWhiteSpace(modDir) ? null : new DirectoryInfo(modDir).Parent?.Parent?.Parent;
@@ -36,7 +36,7 @@ internal static class PacLocator
                     list.Add(new PacCandidate(ModDirLabel, walk));
             }
         }
-        catch { }
+        catch { QuietFaults.Note("PacLocator.Candidates"); }
         return list;
     }
 
@@ -45,7 +45,7 @@ internal static class PacLocator
         foreach (var c in candidates)
         {
             try { if (exists(c.Path)) return c; }
-            catch { }
+            catch { QuietFaults.Note("PacLocator.FirstExisting"); }
         }
         return null;
     }

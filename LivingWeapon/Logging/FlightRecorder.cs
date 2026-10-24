@@ -117,7 +117,7 @@ internal sealed partial class FlightRecorder
             _fileWriter(path, Serialize(snapshot, wall, flushElapsed, version, build));
             PruneRetention();
         }
-        catch { /* swallow -- a flush failure must never throw or call ModLogger (B1: re-entrancy) */ }
+        catch { QuietFaults.Note("FlightRecorder.Flush"); /* swallow -- a flush failure must never throw or call ModLogger (B1: re-entrancy) */ }
     }
 
     /// <summary>Raises the pending-flush flag, no I/O. The "error" trigger flushes once per launch;
@@ -162,10 +162,10 @@ internal sealed partial class FlightRecorder
             var files = _lister(_flightDir) ?? Array.Empty<string>();
             foreach (var f in SelectForDeletion(files, RetentionCount))
             {
-                try { _deleter(f); } catch { }
+                try { _deleter(f); } catch { QuietFaults.Note("FlightRecorder.PruneRetention"); }
             }
         }
-        catch { }
+        catch { QuietFaults.Note("FlightRecorder.PruneRetention"); }
     }
 
     private static void DefaultWrite(string path, string content)
@@ -183,6 +183,6 @@ internal sealed partial class FlightRecorder
 
     private static void DefaultDelete(string path)
     {
-        try { File.Delete(path); } catch { }
+        try { File.Delete(path); } catch { QuietFaults.Note("FlightRecorder.DefaultDelete"); }
     }
 }

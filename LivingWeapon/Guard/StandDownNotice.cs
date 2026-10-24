@@ -6,7 +6,7 @@ namespace LivingWeapon;
 
 /// <summary>
 /// OS-level stand-down notice. A player who never opens livingweapon.log still learns the
-/// mod went inert. Zero project dependencies (as FingerprintGuard.cs), so a sibling mod can copy this file.
+/// mod went inert. Its only project dependency is QuietFaults, so a sibling mod can copy it with that one class.
 /// <see cref="Show"/> runs on the Engine tick thread from LaunchGuard's stand-down edge, and that thread
 /// also drains the flight recorder (FlightRecorder.DrainPending; LaunchGuard.StandDown). A modal
 /// MessageBoxW or an exception there would stall that evidence write, so Show uses its own background
@@ -33,7 +33,7 @@ internal static class StandDownNotice
             var thread = new Thread(() =>
             {
                 try { MessageBoxW(IntPtr.Zero, text, title, Flags); }
-                catch { /* swallow: the caller's loop thread must never stall on a dialog failure */ }
+                catch { QuietFaults.Note("StandDownNotice.Show"); /* swallow: the caller's loop thread must never stall on a dialog failure */ }
             })
             {
                 IsBackground = true,
@@ -41,7 +41,7 @@ internal static class StandDownNotice
             };
             thread.Start();
         }
-        catch { /* swallow: same rule, covering thread construction and start */ }
+        catch { QuietFaults.Note("StandDownNotice.Show"); /* swallow: same rule, covering thread construction and start */ }
     }
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]

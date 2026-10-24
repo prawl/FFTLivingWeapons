@@ -58,7 +58,7 @@ internal sealed partial class IconCacheHeal
         Interlocked.Add(ref _detourTicks, Stopwatch.GetTimestamp() - t0);
         Interlocked.Increment(ref _lookups);
         try { TraceLookup(manager, key, entry); FlushCost(); }
-        catch (Exception) { }
+        catch (Exception) { QuietFaults.Note("IconCacheHeal.Detour"); }
         return entry;
     }
 

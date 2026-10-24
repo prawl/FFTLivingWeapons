@@ -40,18 +40,19 @@ internal sealed class KillTally
         }
     }
 
-    /// <summary>Load the tally at <paramref name="path"/>, falling back to its .bak. A missing or
-    /// corrupt pair yields an empty tally, not a crash, and a backup or fresh result logs a Warning.
-    /// A file that is not a JSON object falls through to the .bak (KillsSchema.TryParse);
-    /// a well-formed object is sanitized entry by entry so one bad row does not fail the load.</summary>
-    public static KillTally Load(string path)
+    /// <summary>Loads a weapon's saved kill counts from <paramref name="path"/>, falling back to its .bak, and never crashes on a damaged file. A missing or corrupt pair yields an empty tally, and a backup or fresh result logs a Warning.
+    /// A file that is not a JSON object falls through to the .bak (KillsSchema.TryParse), and a well-formed object is sanitized entry by entry so one bad row does not fail the load.</summary>
+    public static KillTally Load(string path) => Load(path, File.ReadAllText);
+
+    internal static KillTally Load(string path, Func<string, string> readText)
     {
+        var unreadable = new List<string>();
         foreach (var p in new[] { path, path + ".bak" })
         {
             try
             {
                 if (!File.Exists(p)) continue;
-                if (!KillsSchema.TryParse(File.ReadAllText(p), out var m, out int dropped)) continue;
+                if (!KillsSchema.TryParse(readText(p), out var m, out int dropped)) continue;
                 if (dropped > 0)
                     ModLogger.Warn(LogVerb.Save, $"{dropped} malformed kill-tally entries were dropped.");
                 bool fromBackup = p.EndsWith(".bak");
@@ -59,10 +60,36 @@ internal sealed class KillTally
                     ModLogger.Warn(LogVerb.Save, "The kill tally's primary file was missing or corrupt; it was restored from the backup.");
                 return new KillTally(path, m, fromBackup ? "backup" : "primary");
             }
-            catch { }
+            catch (Exception ex)
+            {
+                unreadable.Add(p);
+                ModLogger.Warn(LogVerb.Save, $"The kill tally file {Path.GetFileName(p)} could not be read ({ex.GetType().Name}, {ex.Message}).");
+            }
         }
-        ModLogger.Warn(LogVerb.Save, "No kill tally was found on disk; starting fresh.");
+        if (unreadable.Count > 0) WarnUnreadable(unreadable);
+        else ModLogger.Warn(LogVerb.Save, "No kill tally was found on disk; starting fresh.");
         return new KillTally(path, new Dictionary<int, int>(), "fresh");
+    }
+
+    // If both files exist but cannot be read, the next saves would overwrite the player's real kills, so keep a copy of each first.
+    private static void WarnUnreadable(List<string> files)
+    {
+        var kept = new List<string>();
+        foreach (var f in files)
+        {
+            try
+            {
+                string dest = f + ".unreadable";
+                for (int n = 2; File.Exists(dest); n++) dest = f + ".unreadable." + n;
+                File.Copy(f, dest);
+                kept.Add(Path.GetFileName(dest));
+            }
+            catch { QuietFaults.Note("KillTally.KeepUnreadableCopy"); }
+        }
+        string tail = kept.Count > 0
+            ? $"A copy of the old file was kept as {string.Join(" and ", kept)}; with the game closed, rename it back to kills.json to restore your kills."
+            : "No copy could be made, so close other programs and restart the game before your next battle, or the old tally will be overwritten.";
+        ModLogger.Warn(LogVerb.Save, "Your kill tally file could not be read, maybe another program has it locked, so this session starts with no kills counted. " + tail);
     }
 
     /// <summary>Persist via the shared <see cref="SidecarJson.SaveAtomic"/> chain. A failed

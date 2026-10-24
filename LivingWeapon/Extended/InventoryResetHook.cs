@@ -92,7 +92,7 @@ internal sealed class InventoryResetHook
         byte[]? before = _count > 0 && _mem.TryRead(addr, _count, out var b) ? b : null;
         nint result = original(mode);   // once, and outside any try so a game exception reaches the game
         try { Restore(addr, before, mode); }
-        catch (Exception) { /* a throw here leaves the game's own reset as it is */ }
+        catch (Exception) { QuietFaults.Note("InventoryResetHook.Process"); /* a throw here leaves the game's own reset as it is */ }
         return result;
     }
 
@@ -128,6 +128,6 @@ internal sealed class InventoryResetHook
 
     private static void SafeLog(Action log)
     {
-        try { log(); } catch (Exception) { /* a logger failure must never escape the detour */ }
+        try { log(); } catch (Exception) { QuietFaults.Note("InventoryResetHook.SafeLog"); /* a logger failure must never escape the detour */ }
     }
 }

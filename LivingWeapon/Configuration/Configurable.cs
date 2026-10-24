@@ -35,9 +35,8 @@ public class Configurable<TParentType> : IUpdatableConfigurable
 
     Action IConfigurable.Save => Save;
 
-    /// <summary>Loads <paramref name="filePath"/>, or writes a default one if missing. Watches the
-    /// file and raises <see cref="ConfigurationUpdated"/> on external edits (the launcher's
-    /// property grid saves this way).</summary>
+    /// <summary>Loads the settings file, or writes a default one if it is missing, and keeps watching it so edits made while the game runs take effect.
+    /// Raises <see cref="ConfigurationUpdated"/> on external edits (the launcher's property grid saves this way).</summary>
     public static TParentType FromFile(string filePath, string configName)
     {
         var result = File.Exists(filePath) ? LoadFromFile(filePath) : new TParentType();
@@ -92,6 +91,6 @@ public class Configurable<TParentType> : IUpdatableConfigurable
             fresh.ConfigName = ConfigName;
             ConfigurationUpdated?.Invoke(fresh);
         }
-        catch { }
+        catch (Exception ex) { ModLogger.Debug(LogVerb.Config, $"The config file changed but the new settings could not be applied, so the settings from before stay in use ({ex.GetType().Name}, {ex.Message})."); }
     }
 }

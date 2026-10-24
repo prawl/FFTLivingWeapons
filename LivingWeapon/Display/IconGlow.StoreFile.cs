@@ -94,7 +94,7 @@ internal sealed class FileIconGlowStore : IIconGlowStore
     public IconGlowWriteError? LastPacError(int id, string surface) => _pac?.LastFailure($"{id}:{surface}");
 
     /// <summary>Finds the pac beside the running exe, else three folders above modDir. A miss is remembered
-    /// for the launch, so later batches come back Unavailable at once. A pac found but not opened is retried each batch.</summary>
+    /// for the launch, so later batches come back Unavailable at once. A pac found but failing to open counts as that same failure.</summary>
     private ModdedPac? ResolvePac()
     {
         if (_pac != null) return _pac;
@@ -153,7 +153,7 @@ internal sealed class FileIconGlowStore : IIconGlowStore
         }
         finally
         {
-            if (tmp != null) { try { File.Delete(tmp); } catch { } }
+            if (tmp != null) { try { File.Delete(tmp); } catch { QuietFaults.Note("IconGlow.AtomicWrite"); } }
         }
     }
 }

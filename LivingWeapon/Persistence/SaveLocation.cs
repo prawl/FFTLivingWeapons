@@ -28,11 +28,8 @@ internal sealed class SaveLocation
     /// <summary>The path a given save file lives at now (inside <see cref="SaveDir"/>).</summary>
     public string PathFor(string fileName) => Path.Combine(_saveDir, fileName);
 
-    /// <summary>
-    /// Migrates <paramref name="fileName"/> and its ".bak" sibling from the legacy deploy dir into
-    /// <see cref="SaveDir"/>. Idempotent and fail-soft. Always returns the <see cref="PathFor"/> path so a
-    /// caller can pass it straight to a store's Load.
-    /// </summary>
+    /// <summary>Brings a save from the old install folder into the update-safe save folder so a mod update does not lose it. Copies <paramref name="fileName"/> and its ".bak" from the legacy deploy dir into <see cref="SaveDir"/>; idempotent and fail-soft.
+    /// Always returns the <see cref="PathFor"/> path so a caller can pass it straight to a store's Load.</summary>
     public string Migrate(string fileName)
     {
         string dest = PathFor(fileName);
@@ -51,12 +48,8 @@ internal sealed class SaveLocation
         return dest;
     }
 
-    /// <summary>
-    /// Moves <paramref name="fileName"/> and its ".bak" sibling out of <see cref="SaveDir"/> into an
-    /// "archive" subdirectory as "&lt;stem&gt;.&lt;N&gt;&lt;ext&gt;", N one past the highest archived index. File.Move
-    /// without overwrite and no File.Delete, so a name collision throws and is swallowed. If an existing
-    /// archived name can't be parsed it bails out with no move. No-op when the source is missing. Never throws.
-    /// </summary>
+    /// <summary>Sets a save aside in an archive folder instead of deleting it. Moves <paramref name="fileName"/> and its ".bak" sibling out of <see cref="SaveDir"/> into "archive" as "&lt;stem&gt;.&lt;N&gt;&lt;ext&gt;", N one past the highest archived index, with File.Move (no overwrite, no File.Delete) so a name collision throws and is swallowed.
+    /// An archived name that cannot be parsed makes it bail out with no move, and a missing source is a no-op. Never throws.</summary>
     public void Archive(string fileName)
     {
         try
@@ -84,9 +77,8 @@ internal sealed class SaveLocation
         }
     }
 
-    /// <summary>One past the highest "&lt;stem&gt;.N&lt;ext&gt;" index in <paramref name="archiveDir"/> for
-    /// <paramref name="fileName"/>'s stem, or 1 when none exist. Throws on an unparseable index so
-    /// <see cref="Archive"/> bails out instead of risking a reused index.</summary>
+    /// <summary>Picks the number for the next archived copy of a save. One past the highest "&lt;stem&gt;.N&lt;ext&gt;" index in <paramref name="archiveDir"/> for <paramref name="fileName"/>'s stem, or 1 when none exist.
+    /// Throws on an unparseable index so <see cref="Archive"/> bails out instead of risking a reused index.</summary>
     private static int NextArchiveIndex(string archiveDir, string fileName)
     {
         string ext = Path.GetExtension(fileName);
@@ -106,11 +98,8 @@ internal sealed class SaveLocation
         return max + 1;
     }
 
-    /// <summary>
-    /// Copies src to dest when dest is absent and src exists. Goes through a ".migrating.tmp" file so an
-    /// interrupted copy can't leave a partial dest that would block migration forever. A stale tmp is
-    /// overwritten next time. Returns true if it copied.
-    /// </summary>
+    /// <summary>Copies a save without ever leaving a half-written file in place. Copies src to dest when dest is absent and src exists, through a ".migrating.tmp" file so an interrupted copy
+    /// cannot block migration forever; a stale tmp is overwritten next time. Returns true if it copied.</summary>
     private static bool AtomicCopyIfAbsent(string src, string dest)
     {
         if (File.Exists(dest) || !File.Exists(src)) return false;
@@ -120,11 +109,8 @@ internal sealed class SaveLocation
         return true;
     }
 
-    /// <summary>
-    /// Same walk as Mod.ResolveConfigPath, for a directory. modDir sits two levels under the Reloaded root
-    /// (Mods/&lt;ModId&gt;), so the save dir is &lt;root&gt;/User/Mods/&lt;ModId&gt;. It uses Mod.ModId because Reloaded
-    /// keys User/Mods on the manifest id. Any null step or exception falls back to modDir.
-    /// </summary>
+    /// <summary>Finds the update-safe folder the saves live in, with the same walk as Mod.ResolveConfigPath. modDir sits two levels under the Reloaded root (Mods/&lt;ModId&gt;), so the save dir is &lt;root&gt;/User/Mods/&lt;ModId&gt;,
+    /// using Mod.ModId because Reloaded keys User/Mods on the manifest id. Any null step or exception falls back to modDir.</summary>
     private static string ResolveSaveDir(string modDir)
     {
         try
@@ -137,7 +123,7 @@ internal sealed class SaveLocation
                 return dir;
             }
         }
-        catch { /* fall through to modDir */ }
+        catch { QuietFaults.Note("SaveLocation.ResolveSaveDir"); /* fall through to modDir */ }
         return modDir;
     }
 }

@@ -4,12 +4,12 @@ using System.Runtime.InteropServices;
 namespace LivingWeapon;
 
 /// <summary>
-/// Finds executable memory within +-2 GB of a target address, for the hook stubs and the moved catalog.
+/// Finds free memory near the game's code, so the mod's patch stubs can be reached by a short jump. Executable memory within +-2 GB of a target address, for the hook stubs and the moved catalog.
 /// A five-byte E9 jmp rel32 only reaches that far, and the relocated extended catalog needs a signed 32-bit displacement
-/// from the image base. Ported from the FFTHandsFree research rig (branch capbreak-equip, working on 1.5.2 2026-08-26/27).
+/// from the image base.
 /// The live adapter walks MEM_FREE regions with VirtualQueryEx (up from the target first, then below it) and commits the
 /// first 64 KB-aligned candidate with VirtualAlloc(PAGE_EXECUTE_READWRITE). It never frees, because a stub page may be
-/// mid-execution on a game thread (the rig's rule). Tests inject a fake.
+/// mid-execution on a game thread. Tests inject a fake.
 /// </summary>
 internal interface INearAllocator
 {
@@ -29,10 +29,8 @@ internal sealed class LiveNearAllocator : INearAllocator
     /// <summary>VirtualAlloc snaps a requested base down to 64 KB; candidates are rounded UP first.</summary>
     internal const int AllocGranule = 0x10000;
 
-    /// <summary>scans up from <paramref name="nearAddr"/> first, then falls back to the window below it.
-    /// A single bottom-up pass would take the lowest free page, which under ASLR lands 2 GB, 64 KB below the image,
-    /// out of int32 reach of its rip-relative fields (everything below a 0x7FF6... image is free). Above the image the
-    /// first free page sits right past its end. Callers still run their own reach check on the result.</summary>
+    /// <summary>Looks for free memory the mod's jumps can reach, scanning up from <paramref name="nearAddr"/> first, then the window below it.
+    /// A single bottom-up pass would take the lowest free page, which under ASLR lands 2 GB, 64 KB below the image, out of int32 reach of its rip-relative fields (everything below a 0x7FF6... image is free). Above the image the first free page sits right past its end. Callers still run their own reach check on the result.</summary>
     public long Alloc(int size, long nearAddr)
     {
         try
@@ -42,7 +40,7 @@ internal sealed class LiveNearAllocator : INearAllocator
             long lo = nearAddr - SearchRange;
             return Scan(size, lo < 0 ? 0 : lo, nearAddr);
         }
-        catch (Exception) { /* fall through: 0 = refused */ }
+        catch (Exception) { QuietFaults.Note("NearAllocator.Alloc"); /* fall through: 0 = refused */ }
         return 0;
     }
 

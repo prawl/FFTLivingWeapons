@@ -16,7 +16,7 @@ internal sealed partial class SaveEdgeHooks
     internal nint SerializeCore(Func<nint> original)
     {
         try { if (_templates != null) TemplateSync.Project(_mem, _templates); }
-        catch (Exception) { /* the old blocks are saved as they are */ }
+        catch (Exception) { QuietFaults.Note("SaveEdgeHooks.SerializeCore"); /* the old blocks are saved as they are */ }
 
         nint ret = original();   // once, and outside any try so a game exception reaches the game
 
@@ -30,7 +30,7 @@ internal sealed partial class SaveEdgeHooks
                 _onSerialized?.Invoke();
             }
         }
-        catch (Exception) { /* a managed fault here must never reach the game, and a missed save record only costs that save's counts */ }
+        catch (Exception) { QuietFaults.Note("SaveEdgeHooks.SerializeCore"); /* a managed fault here must never reach the game, and a missed save record only costs that save's counts */ }
         return ret;
     }
 
@@ -69,7 +69,7 @@ internal sealed partial class SaveEdgeHooks
                 SafeLog($"The load-edge hook is confirmed working; the game's first save load this session was intercepted (load-apply 0x{Offsets.FnSaveApply:X}).");
             }
         }
-        catch (Exception) { /* nothing may throw into the game */ }
+        catch (Exception) { QuietFaults.Note("SaveEdgeHooks.AfterApply"); /* nothing may throw into the game */ }
     }
 
     /// <summary>Shared by both load routines.</summary>
@@ -81,7 +81,7 @@ internal sealed partial class SaveEdgeHooks
         // Put the counts back before telling the tick about the load, so a menu never draws them wrong,
         // and give the replay its own try so a fault there still lets the load through.
         try { _replayOnLoad?.Invoke(SaveEdgeTracker.KeyFromHeader(hdr)); }
-        catch (Exception) { /* a replay fault must not cost the edge below, the tick replays again when it sees the load */ }
+        catch (Exception) { QuietFaults.Note("SaveEdgeHooks.AfterApplyCore"); /* a replay fault must not cost the edge below, the tick replays again when it sees the load */ }
         _tracker.OnApplied(hdr);
         _onApplied?.Invoke();
     }
@@ -110,11 +110,11 @@ internal sealed partial class SaveEdgeHooks
             Flight.Record("rewind-restore", $"key={key} record=found");
             if (replayed) _onRewound?.Invoke();
         }
-        catch (Exception) { /* nothing may throw into the game */ }
+        catch (Exception) { QuietFaults.Note("SaveEdgeHooks.AfterRewind"); /* nothing may throw into the game */ }
     }
 
     private static void SafeLog(string line, bool warn = false)
     {
-        try { if (warn) ModLogger.Warn(LogVerb.Save, line); else ModLogger.Event(LogVerb.Save, line); } catch (Exception) { }
+        try { if (warn) ModLogger.Warn(LogVerb.Save, line); else ModLogger.Event(LogVerb.Save, line); } catch (Exception) { QuietFaults.Note("SaveEdgeHooks.SafeLog"); }
     }
 }

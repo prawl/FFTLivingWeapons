@@ -130,7 +130,7 @@ internal sealed class RewindRestoreHook
             if (ok) { Interlocked.Increment(ref _rewindsHandedOn); _onRewind(header); }
             else NoteUnread();
         }
-        catch (Exception) { /* a throw here leaves the game's own rewind as it is */ }
+        catch (Exception) { QuietFaults.Note("RewindRestoreHook.ProcessRewind"); /* a throw here leaves the game's own rewind as it is */ }
         return result;
     }
 
@@ -149,7 +149,7 @@ internal sealed class RewindRestoreHook
                 RestoreCounts((long)rcx);
             }
         }
-        catch (Exception) { /* a throw here leaves the game's own Retry as it is */ }
+        catch (Exception) { QuietFaults.Note("RewindRestoreHook.ProcessCheckpoint"); /* a throw here leaves the game's own Retry as it is */ }
         return result;
     }
 
@@ -195,6 +195,6 @@ internal sealed class RewindRestoreHook
 
     private static void SafeLog(Action log)
     {
-        try { log(); } catch (Exception) { /* a logger failure must never escape the detour */ }
+        try { log(); } catch (Exception) { QuietFaults.Note("RewindRestoreHook.SafeLog"); /* a logger failure must never escape the detour */ }
     }
 }

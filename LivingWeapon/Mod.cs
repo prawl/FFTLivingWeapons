@@ -55,7 +55,7 @@ public class Mod : IMod
         {
             ModLogger.Error(LogVerb.Startup, PartsCopy.DisabledPlain(
                 "Banners (the pop-ups that announce a weapon leveling up) are paused for this session because the mod could not reach the game-hooks helper.", ex.Message));
-            try { _engine?.InjectHooks(null); } catch { }
+            try { _engine?.InjectHooks(null); } catch { QuietFaults.Note("Mod.InjectReloadedHooks"); }
         }
     }
 
@@ -87,9 +87,8 @@ public class Mod : IMod
             // Config load is fail-soft and falls back to the Tuning default. Reloaded writes user edits to
             // <Reloaded>/User/Mods/<ModId>/Config.json, so that file is preferred over modDir/Config.json (as in
             // FFTColorCustomizer.GetUserConfigPath).
-            // Treasure Master's removal (2026-08-14) took every player-facing setting, so nothing is read out of the
-            // config. It is still loaded so a corrupt file warns and the path is logged. Toasts, dev seeding (LWDEV) and
-            // console verbosity keep their compiled Tuning defaults.
+            // Players have no settings to change in this mod, so nothing is read out of the config. It is still loaded so the path is logged; a corrupt
+            // file quietly gives defaults, and only a path or disk error warns. Toasts, dev seeding (LWDEV) and console verbosity keep their compiled Tuning defaults.
             string configPath = Path.Combine(modDir, "Config.json");   // overwritten below on success
             try
             {
@@ -105,10 +104,10 @@ public class Mod : IMod
             // Console at Info; the log file takes every line regardless (docs/LOGGING.md). Set outside the try so a config
             // failure cannot leave the console on the lazily created default logger.
             ModLogger.LogLevel = LogLevel.Info;
-            // Build-stamp drill, dev builds only. Set the environment variable LW_FORCE_FINGERPRINT_MISMATCH to 1, or drop a
+            // Developer-only switches that make the mod's safety checks fail on purpose, so the failure paths can be watched. Build-stamp drill, dev builds only. Set the environment variable LW_FORCE_FINGERPRINT_MISMATCH to 1, or drop a
             // marker file of that name in the mod dir (env variables do not reach fft_enhanced here), before launching a
-            // DEV build to force the build stamp to read unknown (report line and armed-edge warning). The config knob was
-            // removed 2026-07-07 so players cannot trigger it.
+            // DEV build to force the build stamp to read unknown (report line and armed-edge warning). There is no config knob for it,
+            // so players cannot trigger it.
             // LW_FORCE_SENSING_MISMATCH (same two lanes) does the same for the sensing lane that gates the new-game detector.
             // LW_FORCE_GUARD_UNREADABLE blinds the startup guard, LW_FORCE_ROSTER_MISMATCH forces the roster landmark wrong, LW_FORCE_TWIN_MISMATCH the twin menu flags, LW_FORCE_BAND_MISMATCH the band door and LW_FORCE_TABLE_MISMATCH the weapon palette door.
 #if LWDEV
@@ -131,7 +130,7 @@ public class Mod : IMod
             ModLogger.Event(LogVerb.Config,
                 $"Configuration loaded: LogLevel={ModLogger.LogLevel} (from {configPath})");
 
-            // Born disarmed, before the Engine and its FastHold thread exist. Only LaunchGuard's Armed edge (Engine.Tick,
+            // Born disarmed, before the Engine and its tick loop exist. Only LaunchGuard's Armed edge (Engine.Tick,
             // onArmed callback) sets this back to true.
             Mem.WritesEnabled = false;
             // bannerToasts and devSeedKills are no longer config-driven; the Engine ctor uses its Tuning defaults.
@@ -143,18 +142,15 @@ public class Mod : IMod
         }
         catch (Exception ex)
         {
-            try { ModLogger.Error(LogVerb.Startup, "Startup failed; Living Weapons will not run: " + ex); } catch { }
+            try { ModLogger.Error(LogVerb.Startup, "Startup failed; Living Weapons will not run: " + ex); } catch { QuietFaults.Note("Mod.StartEngine"); }
         }
     }
 
     /// <summary>The mod namespace (folder name under Mods/ and User/Mods/). Internal because SaveLocation reuses it.</summary>
     internal const string ModId = "prawl.fft.livingweapons";
 
-    /// <summary>
-    /// The config path to read. Reloaded saves user edits to &lt;Reloaded&gt;/User/Mods/&lt;ModId&gt;/Config.json (modDir is
-    /// Mods/&lt;ModId&gt;, two levels under the root); use that when it exists, else the shipped default in modDir.
-    /// Any path error returns the modDir path.
-    /// </summary>
+    /// <summary>Finds where the player's saved settings live, preferring the user copy over the one shipped with the mod. Reloaded saves user edits to &lt;Reloaded&gt;/User/Mods/&lt;ModId&gt;/Config.json
+    /// (modDir is Mods/&lt;ModId&gt;, two levels under the root); that is used when it exists, else the default in modDir. Any path error returns the modDir path.</summary>
     private static string ResolveConfigPath(string modDir)
     {
         try
@@ -166,7 +162,7 @@ public class Mod : IMod
                 if (File.Exists(userConfig)) return userConfig;
             }
         }
-        catch { /* fall through to the modDir default */ }
+        catch { QuietFaults.Note("Mod.ResolveConfigPath"); /* fall through to the modDir default */ }
         return Path.Combine(modDir, "Config.json");
     }
 

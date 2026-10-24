@@ -496,14 +496,14 @@ internal sealed class Engine
                 // A persistent fault would repeat every 33ms; the console dedup (C1) collapses it to once per battle.
                 try { Tick(); }
                 catch (Exception ex) { ModLogger.Error(LogVerb.Engine, "One engine update was skipped; an internal error occurred: " + ex.Message); }
-                try { await Task.Delay(PollMs, token); } catch { }
+                try { await Task.Delay(PollMs, token); } catch { QuietFaults.Note("Engine.Start"); }
             }
         }, token);
     }
 
     public void Stop()
     {
-        try { _cts?.Cancel(); } catch { }
+        try { _cts?.Cancel(); } catch { QuietFaults.Note("Engine.Stop"); }
         _cts = null;
     }
 
@@ -654,6 +654,7 @@ internal sealed class Engine
         _tally.Save();               // flush on battle end
         _legends.SaveIfDirty();      // the deed ledger, saved with the tally
         // Flight flush is exit-only; ResetBattleState runs on both edges, so it cannot live there.
+        QuietFaults.ReportBattleExit();
         Flight.FlushBattleEnd();
         _display.Invalidate();       // re-find the menu's freshly-allocated render copies
         ModLogger.NoteBattleEdge();  // console-only per-battle dedup reset (C1); file sink unaffected

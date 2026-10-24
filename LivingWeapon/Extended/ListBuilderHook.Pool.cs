@@ -51,7 +51,7 @@ internal sealed partial class ListBuilderHook
     {
         Interlocked.Increment(ref _copyBackRefusals);
         try { _mem.TryWrite((long)list, TruncatedTail(Array.Empty<ushort>(), 0)); }
-        catch (Exception) { /* nothing more can safely be done from inside the game */ }
+        catch (Exception) { QuietFaults.Note("ListBuilderHook.CopyBackRefused"); /* nothing more can safely be done from inside the game */ }
         string line = $"The item list at 0x{(long)list:X} could not be copied back safely ({why}); the caller was given an empty list instead of a possibly-untruncated one.";
         if (_copyBackWarned) { SafeLog(() => ModLogger.Debug(LogVerb.Engine, line)); return; }
         _copyBackWarned = true;
@@ -64,7 +64,7 @@ internal sealed partial class ListBuilderHook
         Interlocked.Increment(ref _poolExhausted);
         // Nothing above catches for this call, so the write guards itself in case ICodePatcher ever throws.
         try { _mem.TryWrite((long)list, TruncatedTail(Array.Empty<ushort>(), 0)); }
-        catch (Exception) { /* nothing more can safely be done from inside the game */ }
+        catch (Exception) { QuietFaults.Note("ListBuilderHook.PoolExhausted"); /* nothing more can safely be done from inside the game */ }
         if (_exhaustionWarned) return;
         _exhaustionWarned = true;
         SafeLog(() => ModLogger.Warn(LogVerb.Engine,

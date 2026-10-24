@@ -71,7 +71,7 @@ internal sealed class CategoryGetterHook
     public void Release()
     {
         try { if (_hook?.IsHookEnabled == true) _hook.Disable(); }
-        catch (Exception) { /* swallowed: release must never throw */ }
+        catch (Exception) { QuietFaults.Note("CategoryGetterHook.Release"); /* swallowed: release must never throw */ }
     }
 
     // Hot path. No logging or allocation, never throws.

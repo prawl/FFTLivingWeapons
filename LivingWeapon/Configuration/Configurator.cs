@@ -93,6 +93,6 @@ public class Configurator : IConfiguratorV3
                 File.Move(src, dst);
             }
         }
-        catch { }
+        catch (Exception ex) { ModLogger.Warn(LogVerb.Config, $"The old {fileName} could not be moved to the new config folder, so it stays where it was ({ex.GetType().Name}, {ex.Message})."); }
     }
 }

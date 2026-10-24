@@ -44,6 +44,6 @@ internal sealed class RewindRecomputeStep
             if (wrote) ModLogger.Event(LogVerb.Save, $"After the battle was rewound the new weapons' counts were re derived from what the party holds ({change}).");
             if (refused || wrote || change.Length > 0) _record("rewind-recompute", change);
         }
-        catch (Exception) { /* a throw here would stop every later step in the tick */ }
+        catch (Exception) { QuietFaults.Note("RewindRecomputeStep.Step"); /* a throw here would stop every later step in the tick */ }
     }
 }
