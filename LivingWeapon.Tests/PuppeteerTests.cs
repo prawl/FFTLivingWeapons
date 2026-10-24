@@ -814,4 +814,95 @@ public class PuppeteerTests
         Assert.False(AgencyBitSet(mem, victim));
         Assert.Contains(rec, r => r.type == "pup" && r.payload.StartsWith("release reason=own-turn"));
     }
+
+    // ---- the arm hold: a quick confirm right after the arming signal flickers off still lands ----
+
+    [Theory]
+    [InlineData(true, int.MaxValue, true, true)]
+    [InlineData(false, 0, true, true)]
+    [InlineData(false, 89, true, true)]
+    [InlineData(false, 90, true, true)]
+    [InlineData(false, 91, true, false)]
+    [InlineData(false, int.MaxValue, true, false)]
+    [InlineData(true, 0, false, false)]
+    [InlineData(false, 0, false, false)]
+    public void ArmedNow_holds_the_arm_for_ArmHoldTicks_and_never_without_the_tier(
+        bool live, int ticksSince, bool tierOk, bool expected)
+        => Assert.Equal(expected, Puppeteer.ArmedNow(live, ticksSince, tierOk));
+
+    [Fact]
+    public void Tick_dominates_when_the_latch_drops_on_the_very_tick_the_enemy_is_hit()
+    {
+        var fp = (mhp: 600, lvl: 50, br: 70, fa: 50);
+        var (pup, mem, _, tracker, victim) = BuildPuppet(fp);
+
+        pup.Tick(onField: true);                    // baseline, wielder live
+        pup.Tick(onField: true);
+        pup.Tick(onField: true);
+
+        tracker._lastPlayerMainHand = 0;            // the latch flickers off at the strike edge
+        mem.U16s[victim + Offsets.AHp] = 80;
+        pup.Tick(onField: true);
+
+        Assert.True(AgencyBitSet(mem, victim));
+        Assert.NotNull(pup.PuppetFingerprint);
+    }
+
+    [Theory]
+    [InlineData(89, true)]    // the hit lands on the 90th quiet tick
+    [InlineData(90, false)]   // the hit lands on the 91st quiet tick
+    public void Tick_stops_honoring_the_arm_once_the_hold_has_expired(int quietTicks, bool dominated)
+    {
+        var fp = (mhp: 600, lvl: 50, br: 70, fa: 50);
+        var (pup, mem, _, tracker, victim) = BuildPuppet(fp);
+
+        pup.Tick(onField: true);
+        pup.Tick(onField: true);
+        tracker._lastPlayerMainHand = 0;
+        for (int i = 0; i < quietTicks; i++) pup.Tick(onField: true);
+        mem.U16s[victim + Offsets.AHp] = 80;
+        pup.Tick(onField: true);
+
+        Assert.Equal(dominated, AgencyBitSet(mem, victim));
+    }
+
+    [Fact]
+    public void Tick_a_dominate_spends_the_hold_so_one_arm_never_takes_two_puppets()
+    {
+        var fp = (mhp: 600, lvl: 50, br: 70, fa: 50);
+        var (pup, mem, _, tracker, victim) = BuildPuppet(fp);
+        long second = Band.Entry(23);
+        SeatVictim(mem, second, fp, hp: 100, job: 76, agency: 0x50);
+
+        pup.Tick(onField: true);
+        pup.Tick(onField: true);
+        tracker._lastPlayerMainHand = 0;
+        mem.U16s[victim + Offsets.AHp] = 80;
+        pup.Tick(onField: true);
+        Assert.True(AgencyBitSet(mem, victim));
+        Assert.Equal(int.MaxValue, pup.ArmTicks);
+
+        mem.U16s[second + Offsets.AHp] = 80;
+        pup.Tick(onField: true);
+        Assert.False(AgencyBitSet(mem, second));
+    }
+
+    [Fact]
+    public void ResetBattle_clears_the_arm_hold()
+    {
+        var fp = (mhp: 600, lvl: 50, br: 70, fa: 50);
+        var (pup, mem, _, tracker, victim) = BuildPuppet(fp);
+
+        pup.Tick(onField: true);
+        pup.Tick(onField: true);
+        tracker._lastPlayerMainHand = 0;
+        pup.Tick(onField: true);                    // a held tick, so the counter is small
+        pup.ResetBattle();
+        Assert.Equal(int.MaxValue, pup.ArmTicks);
+
+        pup.Tick(onField: true);                    // fresh baseline in the new battle
+        mem.U16s[victim + Offsets.AHp] = 80;
+        pup.Tick(onField: true);
+        Assert.False(AgencyBitSet(mem, victim));
+    }
 }
