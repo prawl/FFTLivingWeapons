@@ -29,8 +29,6 @@ the technical detail lives in the indented lines under it.
   (Tech: origin/docs/extended-code-map, origin/tooling/health-report, origin/cold-read-extended-sweep. The sweep's own commits are clean, but its work is merged, so it can go too.)
 - [LW-508] 2026-10-23: The cold read log says the item category hook was changed to refuse installing before the catalog, but that change never reached main. It sits uncommitted in a side worktree, so either land it properly or note in the log that it was dropped.
   (Tech: .claude/worktrees/extended-readability, LivingWeapon/Extended/CategoryGetterHook.cs, three code lines; log entry "Seeded trial build 3" records hash 17437a8ea40e9f3c, main's file differs.)
-- [LW-509] 2026-10-23: Thirty five findings from the cold read sweep sit untriaged, so real bugs may be hiding among style notes. Read each once and promote it, merge it into a real row, or close it.
-  (Tech: the "Cold read findings, untriaged" section below, LW-468 to LW-503.)
 - [LW-510] 2026-10-23: The release health record has three rough edges. The tag's own CI run warns that the record is missing because it is committed after the tag, the reminder names the current version as the next one, and the wiring test does not check that a failing selftest stops the build.
   (Tech: document Publish, commit docs/health, then tag, or have the tag run accept an uncommitted record; health.py status message; HealthReportWiringContractTests should pin the throw after `--selftest`.)
 - [LW-511] 2026-10-23: The number of places where the mod quietly swallows an error doubled this release, from 21 to 44, so failures can happen with no trace in the log. Audit them and give each one that matters a log line or a counter.
