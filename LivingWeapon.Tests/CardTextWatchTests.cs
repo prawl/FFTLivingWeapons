@@ -60,7 +60,7 @@ public class CardTextWatchTests
     }
 
     [Fact]
-    public void The_door_is_open_before_and_failed_with_the_reason_after()
+    public void The_door_is_open_before_and_closed_with_the_reason_after()
     {
         using var cap = LogCapture.Start();
         var watch = new CardTextWatch();
@@ -71,7 +71,7 @@ public class CardTextWatchTests
         watch.Observe(0, false, 130);
 
         Assert.Equal(DoorState.Closed, watch.Door.State);
-        Assert.True(watch.Door.FailedCheck);
+        Assert.False(watch.Door.FailedCheck);
         Assert.Equal("another mod's item text, or a game language other than English, left no place to draw the kill counter", watch.Door.Reason);
     }
 
@@ -121,6 +121,69 @@ public class CardTextWatchTests
         int paused = box.IndexOf("Paused this session:", System.StringComparison.Ordinal);
         Assert.True(paused > working);
         Assert.DoesNotContain(PartsReport.LabelOf(Part.CardCounter), box.Substring(working, paused - working));
+    }
+
+    private static DoorReading FiredDoor()
+    {
+        var watch = new CardTextWatch();
+        watch.Observe(0, false, 10);
+        watch.Observe(0, false, 130);
+        return watch.Door;
+    }
+
+    [Fact]
+    public void A_card_text_closure_alone_opens_no_box_and_the_report_line_shows_the_counter_paused()
+    {
+        using var cap = LogCapture.Start();
+        var notices = new List<(string title, string text)>();
+        var board = new PartsBoard((t, x) => notices.Add((t, x)), null);
+        var r = PartsReportTests.AllOpen();
+        r[Door.CardText] = FiredDoor();
+
+        for (int i = 0; i < PartsBoard.SettleSteps + 5; i++) board.Observe(r, "", "", () => "footer");
+
+        Assert.Equal(0, board.BoxCount);
+        Assert.Empty(notices);
+        Assert.False(board.WaveOpen);
+        Assert.Contains($"{PartsReport.LabelOf(Part.CardCounter)} OFF", board.LastLine);
+    }
+
+    [Fact]
+    public void A_card_text_closure_beside_a_real_failure_is_listed_under_paused_in_the_one_box()
+    {
+        using var cap = LogCapture.Start();
+        var notices = new List<(string title, string text)>();
+        var board = new PartsBoard((t, x) => notices.Add((t, x)), null);
+        var r = PartsReportTests.AllOpen();
+        r[Door.CardText] = FiredDoor();
+        r[Door.Band] = DoorReading.Failed("the band moved");
+
+        for (int i = 0; i < PartsBoard.SettleSteps + 5; i++) board.Observe(r, "", "", () => "footer");
+
+        Assert.Equal(1, board.BoxCount);
+        string box = Assert.Single(notices).text;
+        int paused = box.IndexOf("Paused this session:", System.StringComparison.Ordinal);
+        Assert.True(paused >= 0);
+        Assert.Contains(PartsReport.LabelOf(Part.CardCounter), box.Substring(paused));
+        Assert.Contains(CardTextWatch.Reason, board.LastLine);
+    }
+
+    [Fact]
+    public void A_band_failure_alone_does_not_list_the_kill_counter_row_under_paused()
+    {
+        using var cap = LogCapture.Start();
+        var notices = new List<(string title, string text)>();
+        var board = new PartsBoard((t, x) => notices.Add((t, x)), null);
+        var r = PartsReportTests.AllOpen();
+        r[Door.CardText] = DoorReading.Open();
+        r[Door.Band] = DoorReading.Failed("the band moved");
+
+        for (int i = 0; i < PartsBoard.SettleSteps + 5; i++) board.Observe(r, "", "", () => "footer");
+
+        string box = Assert.Single(notices).text;
+        int paused = box.IndexOf("Paused this session:", System.StringComparison.Ordinal);
+        Assert.True(paused >= 0);
+        Assert.DoesNotContain(PartsReport.LabelOf(Part.CardCounter), box.Substring(paused));
     }
 
     private static (Display display, TestClock clock, List<(string type, string payload)> recorded) EmptyHeapDisplay()

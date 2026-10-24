@@ -3,7 +3,7 @@ namespace LivingWeapon;
 /// <summary>
 /// The kill counter has no place on weapon cards when another mod or language replaced the item text.
 /// The counter anchors on the flavor line this mod bakes, so walks that never find it mean that text is gone.
-/// Reports once through the parts board door and disarms nothing.
+/// Reports once through the parts board door, in the log and the parts report with no pop up box, and disarms nothing.
 /// </summary>
 internal sealed partial class CardTextWatch
 {
@@ -29,7 +29,7 @@ internal sealed partial class CardTextWatch
         if (anyKillsSite) _paintedSite = true;
         if (_fired || !ShouldReport(EmptyWalks, _foundRegion, _paintedSite, secondsSinceArmed)) return false;
         _fired = true;
-        _door.Set(DoorReading.Failed(Reason));
+        _door.Set(DoorReading.Absent(Reason));
         ModLogger.Warn(LogVerb.Display, PlayerText + PartsCopy.Detail($"empty-walks={EmptyWalks} seconds={(int)secondsSinceArmed}"));
         return true;
     }
