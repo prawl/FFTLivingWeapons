@@ -10,6 +10,7 @@ before 2026-07-21 keep their original prose.
 
 ## 2.4.1 cycle
 
+- [LW-343] WONTFIX 2026-10-24: Updating the Nexus page is something the owner always does himself at release, so it needs no card. Owner, 2026-10-24: "Delete any/all tasks dealing with Nexus. We do not need tickets for this."
 - [LW-509] SHIPPED ed1f2f3e 2026-10-24: The 35 untriaged cold read rows are gone. Each of their 99 points was checked against the code and none could hurt a player, so 33 rows close as won't fix and two fold into LW-506.
 - [LW-503] WONTFIX 2026-10-24: A cold read side note checked against the code and dropped, since none of its 2 points can reach a player. For example, every part's undo is safe to call when its install never ran or failed partway, so RollBack cannot do harm.
 - [LW-502] WONTFIX 2026-10-24: A cold read side note checked against the code and dropped, since none of its 4 points can reach a player. For example, in a production build the line is accurate whenever it prints.
