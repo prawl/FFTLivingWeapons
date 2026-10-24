@@ -355,6 +355,7 @@ Locked 2026-10-24: LW-465, LW-508, LW-506, LW-448, LW-459, LW-513, LW-444, LW-38
   being thrown away.
   - Done means: a kill made by the player unit's Counter or other reaction credits the weapon, while enemy on enemy deaths still never do. Comes after LW-459 and LW-234, which share the code.
   - Verify: a probe tape of a reaction kill and tests built from it; owner gets a Counter kill and the tally moves.
+  - Probe ready 2026-10-24, and the two cards it waited on (LW-459, LW-234) are built: tools/probes/lw396_reaction_tape.py tapes, one line per change, whose turn it is and each unit's hp, side and action record (ability id, performing or receiving), so one Counter kill shows how the game marks the reaction at the moment of the kill. Read only; the owner steps are in the probe's header. The fix waits on that tape.
 - **[LW-344] The Cloud partnership with Jade is finished** (opened 2026-08-26) [QUEUED]
   Partner mods want their items to be living weapons too: the
   Cloud mod author (Xeoshades) asked for growth on their Buster Sword line, and today
