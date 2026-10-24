@@ -43,6 +43,7 @@ internal sealed class RewindRestoreHook
     private bool _warnedUnrecorded, _warnedUnread;
 
     public bool IsActive => _restoreHook?.IsHookEnabled == true && _checkpointHook?.IsHookEnabled == true;
+    internal int StoredHooks => (_restoreHook != null ? 1 : 0) + (_checkpointHook != null ? 1 : 0);
     public long RewindsHandedOn => Interlocked.Read(ref _rewindsHandedOn);
     public long RewindsUnread => Interlocked.Read(ref _unread);
     public long CheckpointSaves => Interlocked.Read(ref _saves);
@@ -67,8 +68,13 @@ internal sealed class RewindRestoreHook
     /// <summary>Null on success, else why not. Safe to call twice, and a refusal leaves nothing switched on.</summary>
     public string? Install(IReloadedHooks hooks)
     {
-        // Installing again after a release only switches the same hooks back on and never stacks a second detour.
-        if (_restoreHook != null) { if (!IsActive) { _restoreHook.Enable(); _checkpointHook?.Enable(); } return null; }
+        // Installing again switches the same hooks back on and never stacks a second detour, and after a partway failure it refuses.
+        if (_restoreHook != null)
+        {
+            if (_checkpointHook == null) return "rewind-restore: an earlier install failed partway, restart the game to retry";
+            if (!IsActive) { _restoreHook.Enable(); _checkpointHook.Enable(); }
+            return null;
+        }
         // Both fingerprints are checked before either hook goes in, so a refusal never leaves one half installed.
         foreach (var (addr, expected, label) in new[]
         {
@@ -80,17 +86,22 @@ internal sealed class RewindRestoreHook
             if (!ShouldArm(ok, entry, expected))
                 return $"{label}: 0x{addr:X} does not carry the expected prologue (reads {(ok ? Convert.ToHexString(entry) : "unreadable")})";
         }
+        bool restoreLive = false;
         try
         {
             _k1 = DetourRestore; _k2 = DetourCheckpoint;
-            _restoreHook = hooks.CreateHook<RewindFn>(_k1, _restoreAddr).Activate();
-            _checkpointHook = hooks.CreateHook<RewindFn>(_k2, _checkpointAddr).Activate();
+            _restoreHook = hooks.CreateHook<RewindFn>(_k1, _restoreAddr);
+            _checkpointHook = hooks.CreateHook<RewindFn>(_k2, _checkpointAddr);
+            _restoreHook.Activate();
+            restoreLive = true;
+            _checkpointHook.Activate();
             return null;
         }
         catch (Exception ex)
         {
             Release();
-            _restoreHook = null; _checkpointHook = null;
+            if (!restoreLive) _restoreHook = null;
+            _checkpointHook = null;
             return $"rewind-restore: hook install failed ({ex.Message})";
         }
     }

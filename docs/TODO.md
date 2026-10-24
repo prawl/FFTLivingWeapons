@@ -20,14 +20,11 @@ Locked 2026-10-24: LW-465, LW-508, LW-506, LW-448, LW-459, LW-513, LW-444, LW-38
   Carries LW-466: After a Retry with the Sunderer's Bulwark planted, the barred tile behind the wielder stays barred until the wielder's next turn opens, and the plant toast replays once on the rewound battle. Seen live on the dev build of 29632f46 (smoke box 9.4 step 3): plant at 22:48:37 barring (11,5), Retry at 22:49:04, a stale `The Sunderer plants its blade` toast delivered at 22:49:05, release only at 22:49:25 when the wielder's turn opened. It heals itself within one turn and only blocks one tile, so it ships as known for 2.4.0. Fix it with LW-465 in 2.4.1 on the same measured rewind moment: release the Bulwark and drop any queued signature toast when the checkpoint restore lands. (Tech: Bulwark.cs and Bulwark.Terrain.cs release on the wielder's turn edge or a battle edge only; the LW-458 restore count ExtendedInventory.RetryRewinds is the signal; BannerToast queue survived the rewind.)
   - Done means: a tape of a Retry and a quit and Continue with a hold up and a blade planted shows, per tick, the restore count rise, the live gate, battleMode, the band's invisible bits and the barred tile; the release then lands on a proven moment, nobody is left invisible, no tile stays barred, and no watchdog line fires.
   - Verify: the probe tape banked under tools/probes/tapes; suite green with tests built from that tape; the owner's live pass on boxes 9.2 and 9.4 step 3.
-- **[LW-508] The stray category hook fix gets landed or dropped** (opened 2026-10-23) [QUEUED]
-  The cold read log says the item category hook was changed to refuse installing before the catalog, but that change never reached main. It sits uncommitted in a side worktree, so either land it properly or note in the log that it was dropped.
-  (Tech: .claude/worktrees/extended-readability, LivingWeapon/Extended/CategoryGetterHook.cs, three code lines; log entry "Seeded trial build 3" records hash 17437a8ea40e9f3c, main's file differs.)
-  - Done means: the three line change that refuses installing the category hook before the catalog is either committed on main with a test, or dropped and the cold read log entry says so.
-  - Verify: suite green; git shows the change on main or a log note naming the drop.
-- **[LW-506] Hooks switch on only after they can call the game safely** (opened 2026-10-23) [QUEUED]
+- **[LW-506] Hooks switch on only after they can call the game safely** (opened 2026-10-23) [AWAITING-LIVE]
   About a dozen of the mod's hooks switch on a moment before they save the handle they need to call the game's own routine, so a game call landing in that sliver would crash the game. Nobody has seen it happen, and the gap is microseconds at startup, but the fix is cheap.
   (Tech: `_hook = hooks.CreateHook(...).Activate()` assigns after Activate returns while the detour reads `_hook!.OriginalFunction`. Create, assign, then Activate. Sites: CategoryGetterHook, InventoryResetHook, ListBuilderHook, OrderRebuildHook, RewindRestoreHook (two), SaveEdgeHooks (three), PromptSwapHook, IconCacheHeal. Covers LW-468 and the same note on LW-500.)
+  Built: every hook in that list now saves its handle for calling the game back before it switches on, and the two rewind hooks and the three save hooks are each created together first and switched on after. The owner checks two clean launches live, each showing every part ON, the prompt connection, the extended inventory armed line and the icon cache confirmed line, with no install failed lines.
+  (Tech: new HookCleanup.cs, FiringHooks.cs and HookCleanupTests.cs pin the create, assign, Activate order per hook shape; script at the session scratchpad lw506_live_test.md; a rewind-restore or save-edge install failed line disproves the batch create idea, fallback is one hook at a time.)
   - Done means: every hook in the list is created, saved and only then switched on, so no game call can ever find an empty handle.
   - Verify: a test per hook shape pins the order; two clean launches by the owner with every part reporting ON.
 - **[LW-448] Enemies can no longer cast the commands your weapons grant** (opened 2026-10-18) [QUEUED]
@@ -350,6 +347,8 @@ Locked 2026-10-24: LW-465, LW-508, LW-506, LW-448, LW-459, LW-513, LW-444, LW-38
 
 ## Backlog
 
+- [LW-524] 2026-10-24: Cold read of Display/PromptSwapHook.cs found 1 thing worth a look. (cold-read, LW-506)
+  - In PromptSwapHook.Arm a throw after a successful Activate logs that banners are paused and sets the door Failed, but the hook is still live and may still swap text.
 - [LW-517] 2026-10-23: A player on Nexus asked for the three Dancer cloths to grow Physical Power instead of Magic Power, since PA does more for a Dancer. Weigh the swap and, if it holds up, make it.
   (Tech: Tarsilk Veil 119, Bindsilk Veil 120, Gravesilk Veil 121 carry `"grows": "MA"` in data/items.json; change the field, regenerate, rebake meta, and check analyze.py plus the growth lane tests. A Nexus comment, 2026-10-23.)
   Leading option, owner 2026-10-23: a hybrid lane that alternates, PA at 5 kills, MA at 10, PA at 15, so the Dancer grows both without out growing every other weapon. For the cloth swing and the dances PA and MA count the same, since cloth damage is `(PA+MA)/2 x WP` (DESIGN.md); the choice only matters for the Dancer's secondary skill set.

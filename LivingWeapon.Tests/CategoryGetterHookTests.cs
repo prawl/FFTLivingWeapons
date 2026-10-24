@@ -30,4 +30,39 @@ public class CategoryGetterHookTests
         Assert.False(CategoryGetterHook.ShouldArm(false, CategoryGetterHook.ExpectedPrologue));
         Assert.Equal(Offsets.FnCategoryGetter, new CategoryGetterHook(new FakeCodePatcher(), 261, Donors).TargetAddr);
     }
+
+    [Fact]
+    public void Install_survives_a_detour_firing_during_activate()
+    {
+        var f = new FakeCodePatcher();
+        var hook = new CategoryGetterHook(f, 261, Donors);
+        f.Seed(hook.TargetAddr, CategoryGetterHook.ExpectedPrologue);
+        var fh = FiringHooks.Make(out var hooks);
+
+        Assert.Null(hook.Install(hooks));
+
+        Assert.True(fh.Created[0].Fired);
+        Assert.True(hook.IsActive);
+    }
+
+    [Fact]
+    public void Install_after_a_failed_activate_leaves_no_stale_hook_and_retries_with_a_new_one()
+    {
+        var f = new FakeCodePatcher();
+        var hook = new CategoryGetterHook(f, 261, Donors);
+        f.Seed(hook.TargetAddr, CategoryGetterHook.ExpectedPrologue);
+        var fh = FiringHooks.Make(out var hooks);
+        fh.ThrowOnActivation = 1;
+        fh.EnabledWhenThrowing = true;
+
+        Assert.NotNull(hook.Install(hooks));
+        Assert.False(hook.IsActive);
+        Assert.False(fh.Created[0].IsHookEnabled);
+
+        fh.ThrowOnActivation = 0;
+        Assert.Null(hook.Install(hooks));
+        Assert.Equal(2, fh.Created.Count);
+        Assert.True(fh.Created[1].Activated);
+        Assert.True(hook.IsActive);
+    }
 }

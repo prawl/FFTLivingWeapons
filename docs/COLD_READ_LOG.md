@@ -559,6 +559,7 @@ Resolution: fixed, Install now takes whether the catalog is installed and refuse
 W2 (original, reworded or removed in stage 2): LivingWeapon/Extended/CategoryGetterHook.cs:75 | /* swallowed: release must never throw */
 Resolution: kept, the empty catch already enforces it and no type can say a rollback must not throw
 Unprompted rows: 3 finding(s) new in 1 row(s) (LW-478), 1 repeated (LW-468)
+Dropped 2026-10-24 (LW-508): the stage 3 code change above (Install taking whether the catalog is installed) never reached main and survives in no tree or commit. The warning it answered was planted for this trial, and ExtendedInventory.Install already installs the catalog and returns on its refusal before any detour goes in, so the check could only ever pass. ExtendedInventoryTests.A_catalog_refusal_never_reaches_the_detour_install pins that order instead.
 
 ## Cold read 2026-10-20 11:45, Rerun trial 1 build 3, base 7f157f7c
 Run cap 2 (225 changed production lines). Runs used 2 of 2.
@@ -1155,3 +1156,48 @@ W1 (added in stage 2): LivingWeapon/Extended/ExtendedInventory.Hooks.cs:26 | // 
 Resolution: kept, that the widened cap needs this hook is a fact of the game's stack callers, and the arm's rollback on any refusal already enforces it
 F1: reader wrong, Engine.InjectHooks runs inside Mod.StartEx, so the class summary and the BootArm summary name the same boot moment and neither contradicts the other
 Unprompted rows: 6 finding(s) new in 2 row(s) (LW-502, LW-503), 0 repeated (none)
+
+## Cold read 2026-10-24 02:11, LW-506, base dd7eb3e2
+Run cap 1 (83 changed production lines). Runs used 1 of 1.
+Files: LivingWeapon/Display/HookCleanup.cs, LivingWeapon/Display/IconCacheHeal.cs, LivingWeapon/Display/PromptSwapHook.cs, LivingWeapon/Extended/CategoryGetterHook.cs, LivingWeapon/Extended/InventoryResetHook.cs, LivingWeapon/Extended/ListBuilderHook.cs, LivingWeapon/Extended/OrderRebuildHook.cs, LivingWeapon/Extended/RewindRestoreHook.cs, LivingWeapon/Extended/SaveEdgeHooks.cs
+Hashes: LivingWeapon/Display/HookCleanup.cs=2a37a5c7cb4bc209; LivingWeapon/Display/IconCacheHeal.cs=1b6fe2adcb957ad9; LivingWeapon/Display/PromptSwapHook.cs=7f0edf1b7302236c; LivingWeapon/Extended/CategoryGetterHook.cs=25182242dd82d4fb; LivingWeapon/Extended/InventoryResetHook.cs=605173c2fc848f11; LivingWeapon/Extended/ListBuilderHook.cs=774934685970e72a; LivingWeapon/Extended/OrderRebuildHook.cs=05ded298942451c1; LivingWeapon/Extended/RewindRestoreHook.cs=f4640e634032b385; LivingWeapon/Extended/SaveEdgeHooks.cs=faf5c51d3e1921a8
+Guard: {"LivingWeapon/Display/HookCleanup.cs":{"budget":1,"kept":[],"raw":"0e82e0b1f09082d4"},"LivingWeapon/Display/IconCacheHeal.cs":{"budget":13,"kept":["The game returns a bool in al only, so the delegate must not read the rest of rax."],"raw":"9d6f758f6459257e"},"LivingWeapon/Display/PromptSwapHook.cs":{"budget":42,"kept":[],"raw":"add69c0c8fbc8b96"},"LivingWeapon/Extended/CategoryGetterHook.cs":{"budget":12,"kept":["swallowed: release must never throw"],"raw":"ee540c34e9651641"},"LivingWeapon/Extended/InventoryResetHook.cs":{"budget":28,"kept":["a logger failure must never escape the detour"],"raw":"a2aa66d3cf5a3b03"},"LivingWeapon/Extended/ListBuilderHook.cs":{"budget":32,"kept":["<summary>Null on success, else why not. The widened caps are only safe with this hook in, so any refusal makes ExtendedInventory.Hooks.cs roll the whole arm back. Safe to call twice.</summary>","a logger failure must never escape the detour"],"raw":"dad0e877ca0fc849"},"LivingWeapon/Extended/OrderRebuildHook.cs":{"budget":36,"kept":["<summary>The E badge, set while every copy is worn. Such an item shows 0 in the bag and is still owned, so it has to come back too.</summary>","a logger failure must never escape the detour"],"raw":"de60f05a80c96827"},"LivingWeapon/Extended/RewindRestoreHook.cs":{"budget":22,"kept":["a logger failure must never escape the detour"],"raw":"533f63442b148b23"},"LivingWeapon/Extended/SaveEdgeHooks.cs":{"budget":36,"kept":[],"raw":"e7816dd8745efe73"}}
+Stage 1 (cold read): run 1, 2 pass, 1 open, canary cold
+Stage 2 (plain words): stripped code identical before and after in 9 file(s); comment lines 222 before stage 1, 209 after; rules clean
+Stage 3 (warnings): 8 warning(s) found (0 only in the original comments); 0 fixed in code, 8 kept with a reason; no code changed
+Stage 4 (accuracy): 0 comment(s) flagged over 1 read(s); 0 fixed and confirmed by a fresh read, 0 reader wrong, 0 open; control kind caller caught on 1 counted read(s), missed on 0 refused read(s); 1 unsourced reason(s); 0 kept warning(s) code could enforce
+### Run 1
+Canary: cold
+Q1 (failure path): In SaveEdgeHooks.Install, suppose all three hooks are created and the first Activate returns, then the second Activate (the apply hook) throws. Which of the three hook fields are still set afterwards, which hooks are switched off, and what does a later call to Install return?
+Expected: Release runs first and disables every hook that is enabled, so the serialize hook (the only one that went live) is switched off. live is 1, so _serialize stays stored while _apply and _applyB are set to null, and Install returns "save-edge hooks: install failed (...)". A later Install sees some fields set but not all three, so it returns "save-edge hooks: an earlier install failed partway, restart the game to retry" without creating any new hook.
+Reader: Only _serialize stays set; Release switches _serialize off; _apply and _applyB are nulled; a later Install returns the earlier install failed partway refusal and re-enables nothing.
+Result: pass
+Q2 (ordering): In RewindRestoreHook.Install, in what order are the two hooks created, stored in their fields and activated, and what would go wrong if a field were stored only after its Activate call?
+Expected: Both hooks are created and stored first (_restoreHook then _checkpointHook), then _restoreHook is activated, then _checkpointHook. The detours (DetourRestore and DetourCheckpoint) read _restoreHook!.OriginalFunction and _checkpointHook!.OriginalFunction, so a game call landing right after Activate would find the field still null and throw a null reference inside the detour on the game's thread instead of forwarding to the game's own function.
+Reader: Prologue checks, then both hooks created and stored (_restoreHook, _checkpointHook), then restore activated, restoreLive set, then checkpoint activated. Storing after Activate would let a detour dereference a null field via _restoreHook!.OriginalFunction, and Release could not disable a hook with no handle.
+Result: pass
+Q3 (free): In PromptSwapHook.Arm, suppose Activate returns and then the line that opens the door or the log line after it throws. Is _hook kept or cleared, what door state is left, and what does a second Arm call do as a result?
+Expected: live is already true, so the catch keeps _hook (DisableQuietly and the null are skipped); the door is set to Failed and a Warn is logged. The hook stays live and forwarding. A second Arm sees _hook not null and returns at once, so it never creates a second detour on top of the live one.
+Reader: _hook is kept since live is already true, the door ends Failed and a warning is logged; a second Arm returns at once on _hook != null, while the detour keeps intercepting prompts. It hedged that the Failed door assumes DoorCell.Set does not throw and said it could not answer whether anything reads Door before delivering toasts, so the door saying Failed over a live hook is not settled by the code.
+Result: open
+Unprompted: In PromptSwapHook.Arm a throw after a successful Activate logs that banners are paused and sets the door Failed, but the hook is still live and may still swap text.
+### Stage detail
+Read 1 control (caller) planted in LivingWeapon/Extended/InventoryResetHook.cs at line 126 as // Called only from ShouldArm., caught, 45s
+Read 1 U1: LivingWeapon/Display/PromptSwapHook.cs | `// Warn like every other closed door, since the mod keeps running and an error would burn the launch's one flight archive.` | unsourced reason
+W1 (original, still there): LivingWeapon/Display/IconCacheHeal.cs:28 | // The game returns a bool in al only, so the delegate must not read the rest of rax.
+Resolution: kept, the delegate already returns byte so only al is read, and no type can say the game leaves the rest of rax undefined
+W2 (original, still there): LivingWeapon/Extended/CategoryGetterHook.cs:75 | /* swallowed: release must never throw */
+Resolution: kept, the empty catch already enforces it and no type can say a rollback must not throw
+W3 (original, still there): LivingWeapon/Extended/InventoryResetHook.cs:131 | /* a logger failure must never escape the detour */
+Resolution: kept, the empty catch is the whole guard and no type can say a logger call must not throw
+W4 (original, still there): LivingWeapon/Extended/ListBuilderHook.cs:73 | /// <summary>Null on success, else why not. The widened caps are only safe with this hook in, so any /// refusal makes ExtendedInventory.Hooks.cs roll the whole arm back. Safe to call twice.</summary>
+Resolution: kept, that the widened caps need this hook is a fact of the game's stack callers, and the arm's rollback on any refusal already enforces it
+W5 (original, still there): LivingWeapon/Extended/ListBuilderHook.cs:139 | /* a logger failure must never escape the detour */
+Resolution: kept, the empty catch is the whole guard and no type can say a logger call must not throw
+W6 (original, still there): LivingWeapon/Extended/OrderRebuildHook.cs:37 | /// <summary>The E badge, set while every copy is worn. Such an item shows 0 in the bag and is /// still owned, so it has to come back too.</summary>
+Resolution: kept, what the badge means is a fact about the game's list words and the filter in Reappend already honors it
+W7 (original, still there): LivingWeapon/Extended/OrderRebuildHook.cs:148 | /* a logger failure must never escape the detour */
+Resolution: kept, the empty catch is the whole guard and no type can say a logger call must not throw
+W8 (original, still there): LivingWeapon/Extended/RewindRestoreHook.cs:198 | /* a logger failure must never escape the detour */
+Resolution: kept, the empty catch is the whole guard and no type can say a logger call must not throw
+Unprompted rows: 1 finding(s) new in 1 row(s) (LW-524), 0 repeated (none)

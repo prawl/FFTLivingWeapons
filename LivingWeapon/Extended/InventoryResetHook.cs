@@ -70,10 +70,11 @@ internal sealed class InventoryResetHook
         try
         {
             _keepalive = Detour;
-            _hook = hooks.CreateHook<ResetFn>(_keepalive, TargetAddr).Activate();
+            _hook = hooks.CreateHook<ResetFn>(_keepalive, TargetAddr);
+            _hook.Activate();
             return null;
         }
-        catch (Exception ex) { return $"inventory-reset: hook install failed ({ex.Message})"; }
+        catch (Exception ex) { Release(); _hook = null; return $"inventory-reset: hook install failed ({ex.Message})"; }
     }
 
     public void Release()

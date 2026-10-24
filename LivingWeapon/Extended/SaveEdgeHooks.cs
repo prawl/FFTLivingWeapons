@@ -57,6 +57,7 @@ internal sealed partial class SaveEdgeHooks
     private bool _canarySave, _canaryLoadA, _canaryLoadB;
 
     public bool IsActive => _serialize?.IsHookEnabled == true && _apply?.IsHookEnabled == true && _applyB?.IsHookEnabled == true;
+    internal int StoredHooks => (_serialize != null ? 1 : 0) + (_apply != null ? 1 : 0) + (_applyB != null ? 1 : 0);
 
     /// <param name="bagBase">Where the bag counts live, <see
     /// cref="ExtendedInventory.BagCountBase"/> in production and the game's own block when left at 0.</param>
@@ -79,10 +80,15 @@ internal sealed partial class SaveEdgeHooks
 
     internal static bool ShouldArm(bool readOk, byte[]? prologue, byte[] expected) => readOk && HookLandmark.Verify(prologue, expected);
 
-    /// <summary>Null on success, else why not. All three prologues are checked before any hook goes in.</summary>
+    /// <summary>Null on success, else why not. All three prologues are checked before any hook goes in, and a reinstall after a partway failure refuses.</summary>
     public string? Install(IReloadedHooks hooks)
     {
-        if (_serialize != null) return null;
+        if (_serialize != null || _apply != null || _applyB != null)
+        {
+            if (_serialize == null || _apply == null || _applyB == null) return "save-edge hooks: an earlier install failed partway, restart the game to retry";
+            if (!IsActive) { _serialize.Enable(); _apply.Enable(); _applyB.Enable(); }
+            return null;
+        }
         foreach (var (addr, expected, label) in new[]
         {
             (Offsets.FnSaveSerialize, SerializePrologue, "save-serialize"),
@@ -94,17 +100,26 @@ internal sealed partial class SaveEdgeHooks
             if (!ShouldArm(ok, entry, expected))
                 return $"{label}: 0x{addr:X} does not carry the expected prologue (reads {(ok ? Convert.ToHexString(entry) : "unreadable")})";
         }
+        int live = 0;
         try
         {
             _k1 = DetourSerialize; _k2 = DetourApply; _k3 = DetourApplyB;
-            _serialize = hooks.CreateHook<EdgeFn>(_k1, Offsets.FnSaveSerialize).Activate();
-            _apply = hooks.CreateHook<EdgeFn>(_k2, Offsets.FnSaveApply).Activate();
-            _applyB = hooks.CreateHook<EdgeFn>(_k3, Offsets.FnSaveApplyB).Activate();
+            _serialize = hooks.CreateHook<EdgeFn>(_k1, Offsets.FnSaveSerialize);
+            _apply = hooks.CreateHook<EdgeFn>(_k2, Offsets.FnSaveApply);
+            _applyB = hooks.CreateHook<EdgeFn>(_k3, Offsets.FnSaveApplyB);
+            _serialize.Activate();
+            live = 1;
+            _apply.Activate();
+            live = 2;
+            _applyB.Activate();
             return null;
         }
         catch (Exception ex)
         {
             Release();
+            if (live < 1) _serialize = null;
+            if (live < 2) _apply = null;
+            _applyB = null;
             return $"save-edge hooks: install failed ({ex.Message})";
         }
     }

@@ -575,4 +575,55 @@ public class IconCacheHealTests
         Assert.False(heal.Armed);
         Assert.Equal(1, cap.File.Count(l => l.Contains("same session glow rings are off")));
     }
+
+    private static (IconCacheHeal Heal, FakeHeap Heap) Prologued()
+    {
+        long lookup = ImageBase.At(0x1403FBB80), load = ImageBase.At(0x1403FBE3C);
+        var heap = new FakeHeap((lookup, Pad(IconCacheHeal.LookupPrologue)), (load, Pad(IconCacheHeal.LoadPrologue)));
+        var heal = new IconCacheHeal(heap, () => Stack);
+        heal.LoadBinder = _ => (m, u, f) => 1;
+        return (heal, heap);
+    }
+
+    [Fact]
+    public void Arm_StoresTheHookBeforeActivatingIt()
+    {
+        var (heal, _) = Prologued();
+        var fh = FiringHooks.Make(out var hooks);
+        fh.Fire = false;
+        bool storedInside = false;
+        fh.OnActivate = () => storedInside = heal.HookStored;
+
+        using var cap = LogCapture.Start();
+        heal.Arm(hooks);
+
+        Assert.True(storedInside);
+        Assert.True(heal.HookStored);
+        Assert.True(fh.Created[0].Activated);
+    }
+
+    [Fact]
+    public void Arm_AFailedActivate_DisablesAndForgetsTheHook_AndARetryMakesANewOne()
+    {
+        var (heal, _) = Prologued();
+        var fh = FiringHooks.Make(out var hooks);
+        fh.Fire = false;
+        fh.ThrowOnActivation = 1;
+        fh.EnabledWhenThrowing = true;
+
+        using var cap = LogCapture.Start();
+        heal.Arm(hooks);
+
+        Assert.False(heal.HookStored);
+        Assert.False(fh.Created[0].IsHookEnabled);
+        Assert.Equal(1, fh.Created[0].DisableCalls);
+        Assert.Contains(cap.File, l => l.Contains("IconCacheHeal could not hook the icon cache"));
+
+        fh.ThrowOnActivation = 0;
+        heal.Arm(hooks);
+
+        Assert.Equal(2, fh.Created.Count);
+        Assert.True(fh.Created[1].Activated);
+        Assert.True(heal.HookStored);
+    }
 }

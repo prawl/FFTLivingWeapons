@@ -648,4 +648,19 @@ public class ExtendedInventoryTests : IDisposable
         row.Run(new TickPhaseState());
         Assert.False(engine.DisplayForTest._poolLocator.RegionsStale);
     }
+
+    [Fact]
+    public void A_catalog_refusal_never_reaches_the_detour_install()
+    {
+        var f = VanillaImage();
+        f.Seed(Offsets.ExtCatalogDisp32, 0x00, 0x00, 0x00, 0x00);
+        int calls = 0;
+        var inv = Build(f, Moonblade(), hooks: _ => { calls++; return null; });
+
+        inv.BootArm(null);
+
+        Assert.False(inv.Armed);
+        Assert.Equal(0, calls);
+        Assert.Contains("catalog: disp32 reads 00000000", inv.Refusal);
+    }
 }

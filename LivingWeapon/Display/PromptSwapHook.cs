@@ -8,36 +8,25 @@ namespace LivingWeapon;
 /// <summary>
 /// Native half of the facing-prompt swap. Installs the SetTextString detour and swaps in the pinned buffer;
 /// PromptSwap makes every decision. Always forwards to the original, so a managed fault cannot swallow the
-/// game's prompt. Split from PromptSwap.cs 2026-07-14 alongside the 1.5.1 FnSetTextString correction.
+/// game's prompt.
 /// </summary>
 internal sealed class PromptSwapHook
 {
-    // The orchestrator's token-string setter (docs/research/CALLOUT_BANNER_JOURNEY.md, "v10, the COMMIT TAP"),
-    // args (holder, char* text, r8, r9). v11 (06:14) showed that swapping rdx to a pinned ANSI buffer here
-    // renders in the prompt slot until the player confirms facing. r8/r9 are forwarded verbatim, as ShowSpike OrchFn did.
+    // The game function that sets a prompt's text, hooked so a toast can replace the words before they draw.
+    // Args are (holder, char* text, r8, r9). Pointing rdx at a pinned ANSI buffer here renders in the prompt
+    // slot until the player confirms facing (docs/research/CALLOUT_BANNER_JOURNEY.md). r8 and r9 pass through.
     //
-    // 1.5.1 re-anchor (2026-07-14, docs/research/PORT_1.5.1_OFFSETS.md): the 1.5 address 0x14028F79C became a
-    // mid-function branch target (code shifted -0x4C) and the detour crashed the game on the first battle prompt.
-    // The corrected entry 0x14028F750 looked plausible (ret + CC padding at 0x14028F74D, clean prologue), but
-    // disassembly (tools/probes/disasm.py, 2026-07-14) showed a dispatch wrapper taking
-    // (holder in rcx, flag byte in dl), so rdx was caller garbage and no toast delivered on 1.5.1.
+    // The 1.5.1 entry 0x14028F750 is a dispatch wrapper taking (holder in rcx, flag byte in dl), so a
+    // hook there sees caller garbage in rdx. The wrapper resolves the text from a std::string at
+    // holder+0x20 (size +0x30, capacity +0x38, inline when capacity is below 0x10, else a heap pointer at
+    // [holder+0x20]), and both its branches end at this setter with the resolved char* in rdx.
     //
-    // The wrapper resolves the text from a std::string at holder+0x20 (size +0x30, capacity +0x38; inline when
-    // capacity is below 0x10, else a heap pointer at [holder+0x20]). Both its branches converge on the true
-    // setter at 0x1403F1098 with the resolved char* in rdx (the variant branch at 0x1403F1068 also ends in
-    // jmp 0x1403F1098). Those are 1.5.1 addresses; on 1.5.2 the setter is 0x1403F109C and the variant branch
-    // 0x1403F106C. Hooking the true setter restores the pre-1.5 swap (v10/v11). Arm checks ExpectedPrologue
-    // through HookLandmark first (BodyDoubleSpike.TargetReady cold-call check), so a future shift refuses with one warning.
-    //
-    // 1.5.2 re-anchor (2026-07-24): +4 from 0x1403F1098, the only address 1.5.2 moved. An offline exe diff
-    // (tools/probes/exe_reanchor_scan.py, docs/research/PORT_1.5.2_OFFSETS.md) finds the same 11-byte prologue at
-    // 0x1403F109C after the same `e9 01 00 00 00 cc` padding, once in 0x1403F0000..0x1403F3000 in both builds.
-    // The body is 505/512 bytes identical and the 7 differing bytes are RIP displacement adjustments.
-    // The old address now holds `00 00 00 cc` padding, so a blind hook there would corrupt it.
+    // On 1.5.2 the setter sits 4 bytes past its 1.5.1 address. An offline exe diff
+    // (docs/research/PORT_1.5.2_OFFSETS.md) finds the same 11-byte prologue there, once, after the same
+    // `e9 01 00 00 00 cc` padding. The 1.5.1 address holds padding on 1.5.2, so a blind hook there would corrupt it.
     private static long FnSetTextString => ImageBase.At(0x1403F109C);
 
-    // The 11-byte prologue read at FnSetTextString on 1.5.1, 2026-07-14. Push rbp; push rbx;
-    // push rdi; mov rbp,rsp; sub rsp,50h. Unchanged on 1.5.2. Checked by HookLandmark.Verify in Arm.
+    // Push rbp; push rbx; push rdi; mov rbp,rsp; sub rsp,50h, the same on 1.5.1 and 1.5.2.
     private static readonly byte[] ExpectedPrologue =
         { 0x40, 0x55, 0x53, 0x57, 0x48, 0x8B, 0xEC, 0x48, 0x83, 0xEC, 0x50 };
 
@@ -72,9 +61,8 @@ internal sealed class PromptSwapHook
         _payloadPin = GCHandle.Alloc(_payloadBuf, GCHandleType.Pinned);
     }
 
-    /// <summary>Install the detour. Idempotent; called from Engine.InjectHooks (toasts are always on).
-    /// This is the only tap on the address (the ShowSpike instrument is gone). Refuses with one
-    /// Warn if the target does not carry ExpectedPrologue (the 1.5.1 crash) or the read fails.</summary>
+    /// <summary>Installs the detour once, called from Engine.InjectHooks. Refuses with one warning when the
+    /// read fails or the target lacks ExpectedPrologue, since a hook on a moved function crashes the game.</summary>
     public void Arm(IReloadedHooks hooks)
     {
         if (_hook != null) return;
@@ -87,15 +75,23 @@ internal sealed class PromptSwapHook
                 "", "", $"target 0x{FnSetTextString:X} " + (readOk ? "prologue mismatch" : "unreadable")));
             return;
         }
+        bool live = false;
         try
         {
             _keepalive = Detour;
-            _hook = hooks.CreateHook<SetTextStringFn>(_keepalive, FnSetTextString).Activate();
+            _hook = hooks.CreateHook<SetTextStringFn>(_keepalive, FnSetTextString);
+            _hook.Activate();
+            live = true;
             _door.Set(DoorReading.Open());
             ModLogger.Event(LogVerb.Toast, "Connected to the game's prompt system; tier-up toasts can now be delivered.");
         }
         catch (Exception ex)
         {
+            if (!live)
+            {
+                HookCleanup.DisableQuietly(_hook, LogVerb.Toast, "prompt hook");
+                _hook = null;
+            }
             _door.Set(DoorReading.Failed("the game's prompt system could not be connected to"));
             // Warn like every other closed door, since the mod keeps running and an error would burn the launch's one flight archive.
             ModLogger.Warn(LogVerb.Toast, PartsCopy.Disabled(

@@ -100,13 +100,19 @@ internal sealed partial class IconCacheHeal : IIconCacheHealer
             _load = LoadBinder(FnLoad);
             _keepalive = Detour;
             var created = hooks.CreateHook<LookupFn>(_keepalive, FnLookup);
-            // Capture the local, a lookup can fire before the field below is stored.
+            // Forwards through the local, since the catch below can clear _hook while a game call is inside the detour.
             _original = (m, k) => created.OriginalFunction(m, k);
-            _hook = created.Activate();
+            _hook = created;
+            created.Activate();
             _installed = true;
         }
         catch (Exception ex)
         {
+            if (!_installed)
+            {
+                HookCleanup.DisableQuietly(_hook, LogVerb.Display, "IconCacheHeal");
+                _hook = null;
+            }
             ModLogger.Warn(LogVerb.Display, $"IconCacheHeal could not hook the icon cache ({ex.Message}).");
         }
     }

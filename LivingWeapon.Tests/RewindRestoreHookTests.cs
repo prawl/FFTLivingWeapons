@@ -258,4 +258,104 @@ public class RewindRestoreHookTests
         hook.ProcessCheckpoint((_, _, _, _) => 0, 0x9000, 1, 0, 0);
         Assert.Equal(2, hook.CheckpointRestoresSeen);
     }
+
+    private static FakeCodePatcher Prologued()
+    {
+        var f = new FakeCodePatcher { ZeroFillUnseeded = true };
+        f.Seed(Offsets.FnSnapshotRestore, RewindRestoreHook.ExpectedRestorePrologue);
+        f.Seed(Offsets.FnCheckpointCopy, RewindRestoreHook.ExpectedCheckpointPrologue);
+        return f;
+    }
+
+    [Fact]
+    public void Install_survives_detours_firing_during_activate()
+    {
+        var hook = Hook(Prologued());
+        var fh = FiringHooks.Make(out var hooks);
+
+        Assert.Null(hook.Install(hooks));
+
+        Assert.All(fh.Created, h => Assert.True(h.Fired));
+        Assert.Equal(2, fh.Created.Count);
+        Assert.True(hook.IsActive);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void Install_failing_at_an_activation_stores_only_the_hooks_that_went_live(int k)
+    {
+        var hook = Hook(Prologued());
+        var fh = FiringHooks.Make(out var hooks);
+        fh.ThrowOnActivation = k;
+        fh.EnabledWhenThrowing = true;
+
+        Assert.NotNull(hook.Install(hooks));
+        Assert.False(hook.IsActive);
+        Assert.Equal(k - 1, hook.StoredHooks);
+        Assert.Equal(2, fh.Created.Count);
+        for (int i = 0; i < 2; i++)
+        {
+            Assert.Equal(i < k - 1, fh.Created[i].Activated);
+            Assert.False(fh.Created[i].IsHookEnabled);
+            Assert.Equal(i <= k - 1 ? 1 : 0, fh.Created[i].DisableCalls);
+        }
+
+        fh.ThrowOnActivation = 0;
+        string? second = hook.Install(hooks);
+        if (k > 1)
+        {
+            Assert.Equal("rewind-restore: an earlier install failed partway, restart the game to retry", second);
+            Assert.Equal(2, fh.Created.Count);
+            Assert.False(hook.IsActive);
+        }
+        else
+        {
+            Assert.Null(second);
+            Assert.Equal(4, fh.Created.Count);
+            Assert.True(hook.IsActive);
+        }
+    }
+
+    [Fact]
+    public void Install_after_a_release_switches_the_same_hooks_back_on()
+    {
+        var hook = Hook(Prologued());
+        var fh = FiringHooks.Make(out var hooks);
+        fh.Fire = false;
+        Assert.Null(hook.Install(hooks));
+        hook.Release();
+        Assert.False(hook.IsActive);
+
+        Assert.Null(hook.Install(hooks));
+
+        Assert.True(hook.IsActive);
+        Assert.Equal(2, fh.Created.Count);
+        Assert.All(fh.Created, h => Assert.True(h.IsHookEnabled));
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void Install_failing_at_a_create_activates_nothing_and_a_retry_builds_both(int c)
+    {
+        var hook = Hook(Prologued());
+        var fh = FiringHooks.Make(out var hooks);
+        fh.Fire = false;
+        fh.ThrowOnCreate = c;
+
+        string? first = hook.Install(hooks);
+
+        Assert.Contains("rewind-restore: hook install failed (create refused)", first);
+        Assert.False(hook.IsActive);
+        Assert.Equal(0, hook.StoredHooks);
+        Assert.Equal(c - 1, fh.Created.Count);
+        Assert.All(fh.Created, h => Assert.False(h.Activated));
+
+        fh.ThrowOnCreate = 0;
+        Assert.Null(hook.Install(hooks));
+        Assert.True(hook.IsActive);
+        Assert.Equal(c - 1 + 2, fh.Created.Count);
+        Assert.All(fh.Created.Skip(c - 1), h => Assert.True(h.Activated));
+    }
 }

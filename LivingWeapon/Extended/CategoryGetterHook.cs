@@ -8,10 +8,9 @@ namespace LivingWeapon;
 /// <summary>
 /// Detour on the item category getter at <see cref="Offsets.FnCategoryGetter"/>. A new id
 /// only shows on the Weapons tab if the getter returns a weapon group code, so extended ids answer
-/// as their donor (rig marker "cathook 0x1402890C0 37", Moonblade listed 2026-08-26 20:55). A
-/// managed detour is safe as its callers keep no volatile registers live (as PromptSwapHook); the
-/// ExtendedDonorThunks accessors use AccessorEntryHook for the r11 reason. Prologue
-/// <c>sub rsp,28h; movzx r11d,cx; mov eax,3FFh</c> read from the 1.5.2 exe 2026-08-27.
+/// as their donor. A managed detour is safe as its callers keep no volatile registers live (as
+/// PromptSwapHook); the ExtendedDonorThunks accessors use AccessorEntryHook for the r11 reason.
+/// Prologue <c>sub rsp,28h; movzx r11d,cx; mov eax,3FFh</c> read from the 1.5.2 exe.
 /// </summary>
 internal sealed class CategoryGetterHook
 {
@@ -62,10 +61,11 @@ internal sealed class CategoryGetterHook
         try
         {
             _keepalive = Detour;
-            _hook = hooks.CreateHook<GetterFn>(_keepalive, TargetAddr).Activate();
+            _hook = hooks.CreateHook<GetterFn>(_keepalive, TargetAddr);
+            _hook.Activate();
             return null;
         }
-        catch (Exception ex) { return $"category-getter: hook install failed ({ex.Message})"; }
+        catch (Exception ex) { Release(); _hook = null; return $"category-getter: hook install failed ({ex.Message})"; }
     }
 
     public void Release()

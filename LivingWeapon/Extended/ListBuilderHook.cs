@@ -90,10 +90,11 @@ internal sealed partial class ListBuilderHook
         try
         {
             _keepalive = Detour;
-            _hook = hooks.CreateHook<BuildFn>(_keepalive, TargetAddr).Activate();
+            _hook = hooks.CreateHook<BuildFn>(_keepalive, TargetAddr);
+            _hook.Activate();
             return null;
         }
-        catch (Exception ex) { return $"list-builder: hook install failed ({ex.Message})"; }
+        catch (Exception ex) { Release(); _hook = null; return $"list-builder: hook install failed ({ex.Message})"; }
     }
 
     public void Release()

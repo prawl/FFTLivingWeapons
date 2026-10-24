@@ -78,10 +78,11 @@ internal sealed partial class OrderRebuildHook
         try
         {
             _keepalive = Detour;
-            _hook = hooks.CreateHook<RebuildFn>(_keepalive, TargetAddr).Activate();
+            _hook = hooks.CreateHook<RebuildFn>(_keepalive, TargetAddr);
+            _hook.Activate();
             return null;
         }
-        catch (Exception ex) { return $"order-rebuild: hook install failed ({ex.Message})"; }
+        catch (Exception ex) { Release(); _hook = null; return $"order-rebuild: hook install failed ({ex.Message})"; }
     }
 
     public void Release()
