@@ -61,6 +61,7 @@ internal sealed class Engine
     private readonly Dictionary<Door, DoorReading> _readings = new();   // the fourteen doors, refilled every tick
     private readonly AnchorScout _anchorScout;   // verifier scout, ticks only once StoodDown; writes nothing
     private readonly BannerToast _toast;
+    private readonly RewindRelease _rewindRelease;
     private readonly bool _bannerToastsEnabled;
     private readonly PromptSwap _promptSwap;
     private readonly PromptSwapHook _promptSwapHook;
@@ -242,6 +243,7 @@ internal sealed class Engine
         _extended = extended ?? new ExtendedInventory(new LiveCodePatcher(), new LiveNearAllocator(),
             ExtendedInventoryData.Load(modDir), ExtendedBagSidecar.Load(save.PathFor(ExtendedBagSidecar.FileName)));
         _tracker.WatchRetryRewinds(() => _extended.RetryRewinds);
+        _rewindRelease = RewindRelease.Wire(() => _extended.RetryRewinds, _provokeHold, _bulwark, _toast);
         // Turn-scoped WP write for the "wp"/"wp+faith" gun lanes; GrowthEngine.Lanes.cs gives them no
         // combat-struct lane, so this is their whole growth. an extended id's WP byte lives in the
         // extended inventory's stub page, so the hold resolves it there.
@@ -342,6 +344,8 @@ internal sealed class Engine
             // A rewind restores the roster and the vanilla bag from other moments than our write, so the new weapons' counts are re derived a few ticks later.
             new TickPhase("extended-rewind", TickGates.Always, 1, false, Array.Empty<string>(),
                 _ => e!._extended.StepRewindRecompute(), Part.ExtendedInventory),
+            new TickPhase("rewind-release", TickGates.Always, 1, false, Array.Empty<string>(),
+                _ => e!._rewindRelease.Tick(), Part.ExtendedInventory),
 
             // Every tick so a fast-forward death's brief hp==0 window is not missed.
             new TickPhase("kill-poll", TickGates.KillCounting, 1, false, Array.Empty<string>(),

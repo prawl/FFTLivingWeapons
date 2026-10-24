@@ -1692,3 +1692,47 @@ Read 3 U2: LivingWeapon/Display/AttackCard.Resolve.cs | "not Hands, which cannot
 F1: open, the dedup summary still lists three key fields while the key has four; the read cap is spent, so the comment is fixed right after this entry.
 F2: reader wrong, the planted control comment, not a line in the real files.
 Unprompted rows: 1 finding(s) new in 1 row(s) (LW-541), 0 repeated (none)
+## Cold read 2026-10-24 19:29, LW-465, base 69d736c1
+Run cap 1 (119 changed production lines). Runs used 1 of 1.
+Files: LivingWeapon/Chronicle/BannerToast.cs, LivingWeapon/Engine.cs, LivingWeapon/Signatures/Bulwark.Rewind.cs, LivingWeapon/Signatures/Bulwark.Terrain.cs, LivingWeapon/Signatures/ProvokeHold.Rewind.cs, LivingWeapon/Signatures/RewindRelease.cs
+Hashes: LivingWeapon/Chronicle/BannerToast.cs=97a5cf5441d2ab50; LivingWeapon/Engine.cs=49108d6d0bc2be69; LivingWeapon/Signatures/Bulwark.Rewind.cs=3e3ea7ca8ffaf36a; LivingWeapon/Signatures/Bulwark.Terrain.cs=f0cfab48c8a027f3; LivingWeapon/Signatures/ProvokeHold.Rewind.cs=39b335a66745c063; LivingWeapon/Signatures/RewindRelease.cs=cf31848c51e06b47
+Guard: {"LivingWeapon/Chronicle/BannerToast.cs":{"budget":33,"kept":[],"raw":"a3ea4967c9f24698"},"LivingWeapon/Engine.cs":{"budget":183,"kept":["<summary>The ordered table Tick steps through every tick. Static with a nullable engine so tests can read it without constructing an Engine; with null, Run closures must never be invoked.</summary>","Out-of-battle equip-icon loose-tex sync (IconGlow.cs). Cadence 30 because kills only change in battle and a slow disk read must not run every 33ms.","a new game's units share nameIds with the old save's; stale residue must not correct them Enter is instant; exit is debounced (battleMode flickers, slot9 sticks) unless forceExit fires (a detected new game). nowIn is sticky through mid-battle dips."],"raw":"40fd98cb9b248081"},"LivingWeapon/Signatures/Bulwark.Rewind.cs":{"budget":2,"kept":[],"raw":"b5f0c20b33139503"},"LivingWeapon/Signatures/Bulwark.Terrain.cs":{"budget":26,"kept":[],"raw":"b05e914aba8cc436"},"LivingWeapon/Signatures/ProvokeHold.Rewind.cs":{"budget":5,"kept":[],"raw":"fe8c1883e1577fcd"},"LivingWeapon/Signatures/RewindRelease.cs":{"budget":8,"kept":[],"raw":"53fe83d02efc4535"}}
+Stage 1 (cold read): run 1, 1 miss, fix comment, 2 pass, canary cold
+Stage 2 (plain words): stripped code identical before and after in 6 file(s); comment lines 257 before stage 1, 247 after; rules clean; 1 ledger cite(s) sent to stage 4
+Stage 3 (warnings): 3 warning(s) found (0 only in the original comments); 0 fixed in code, 3 kept with a reason; no code changed
+Stage 4 (accuracy): 2 comment(s) flagged over 2 read(s); 2 fixed and confirmed by a fresh read, 0 reader wrong, 0 open; control kind wrong order and missing member caught on 2 counted read(s), missed on 0 refused read(s); 2 unsourced reason(s); 1 kept warning(s) code could enforce
+### Run 1
+Canary: cold
+Q1 (failure path): During a rewind release, the Bulwark finds that a tile it walled no longer reads the vetoed byte it wrote. What does it do with that tile, what does it log, and what does the player see on the console?
+Expected: It skips that tile without writing, logs only a Debug trace line that the grid was rebuilt (no warning, because the reason is null on the rewind path), still clears the restore book, the deferred watch and the planted flag, and prints no "The Sunderer's Bulwark releases" line; the only console line is the rewind release sentence if something was held.
+Reader: Skips without writing, Debug trace line under Trace, no WarnWithTrace and no releases Event line, the rewind sentence from Sequence when something was held; it could not say which levels reach the console without ModLogger.
+Result: miss, fix comment
+Q2 (ordering): In the rewind release action, in what order do its steps run, and why must the two "is it holding" reads come before any release?
+Expected: Read provoke Holding and bulwark Holding first, then release Provoke, then the Bulwark, then drop queued toasts, then log the one line only when Line returns non null, then always write the Flight "rewind" record. The reads come first because each release clears the state Holding looks at, so reading afterward would always say nothing was held and the line would never print.
+Reader: The same seven steps in order, and the reads first because both releases clear the state Holding tests.
+Result: pass
+Q3 (free): The mod launches into a session where the checkpoint restore count already reads 3. Does the first tick release anything, and what makes that so?
+Expected: No. _lastSeen starts at -1 and ShouldRelease needs lastSeen at least 0 and the count to have risen, so the first tick only primes _lastSeen to 3; only a later rise to 4 fires the release.
+Reader: No; lastSeen -1 fails the lastSeen >= 0 test, the tick records 3 as the baseline, and only a later rise releases.
+Result: pass
+Unprompted: A release that throws keeps _lastSeen behind and retries every tick; Rebaseline logs the battle end toast drop line on a new game; a tile unreadable at release is dropped from the book and never retried.
+### Stage detail
+Read 1 control (wrong order) planted in LivingWeapon/Signatures/RewindRelease.cs at line 18 as // _release = release runs before _restoreCount = restoreCount., caught, 67s
+Read 1 F1: LivingWeapon/Chronicle/BannerToast.cs | "Runs on the loop thread from the new game edge, like Display.Invalidate, so it takes no lock." | `Rebaseline()` calls `DropPendingAtBattleEnd()` → `DropPending`, which does `lock (_lock)`, so it does take the lock when it touches `_queue`.
+Read 1 F2: LivingWeapon/Signatures/Bulwark.Terrain.cs | "Tile, layer and facing come from one byte, checked against the map size" | Only layer and facing come from one byte (`raw = U8(entry + Offsets.ALayerBit)`). The tile comes from two separate reads, `Offsets.AGx` and `Offsets.AGy`.
+Read 1 U1: LivingWeapon/Chronicle/BannerToast.cs | "The LWDEV DevProbe auto-toast and F2 DevTestKey cycle were removed because their fake payload kept firing in dev play." | unsourced reason
+Read 1 U2: LivingWeapon/Chronicle/BannerToast.cs | "Static Flight.Record call; this class is too small to need an injected recorder." | unsourced reason
+Read 1 U3: LivingWeapon/Engine.cs | "Order matters, because each weapon power resets in this order, the granted commands between Plague and Renewal." | unsourced reason
+Read 1 U4: LivingWeapon/Signatures/Bulwark.Terrain.cs | "Blocking too much is the safe side, since a stale seat can only cost a block, never allow a bad one." | unsourced reason
+Read 1 K1: LivingWeapon/Engine.cs | "Static with a nullable engine so tests can read it without constructing an Engine; with null, Run closures must never be invoked." | Replace the `e!` dereferences with a helper that throws a clear `InvalidOperationException` when `e` is null. Alternatively, make `Run` take the engine as a parameter (`Action<Engine, TickPhaseState>`), so the table needs no captured engine and no null case.
+Read 2 control (missing member) planted in LivingWeapon/Signatures/Bulwark.Terrain.cs at line 88 as // Calls SyncBagCounts() first., caught, 80s
+Read 2 U1: LivingWeapon/Chronicle/BannerToast.cs | "The LWDEV DevProbe auto-toast and F2 DevTestKey cycle were removed because their fake payload kept firing in dev play." | unsourced reason
+Read 2 U2: LivingWeapon/Chronicle/BannerToast.cs | "Static Flight.Record call; this class is too small to need an injected recorder." | unsourced reason
+Read 2 K1: LivingWeapon/Engine.cs | "<summary>The ordered table Tick steps through every tick. Static with a nullable engine so tests can read it without constructing an Engine; with null, Run closures must never be invoked.</summary>" | Give the `Run` delegate an engine parameter (`Action<Engine, TickPhaseState>`) instead of capturing `e!`. The table then has no captured engine and no nullable argument, and a test that wants to read it cannot trigger a null dereference.
+W1 (original, still there): LivingWeapon/Engine.cs:298 | /// <summary>The ordered table Tick steps through every tick. Static with a nullable engine so tests can read /// it without constructing an Engine; with null, Run closures must never be invoked.</summary>
+Resolution: kept, the table is static so tests can read it without an Engine, and C# cannot mark a lambda as not callable when its captured engine is null
+W2 (original, still there): LivingWeapon/Engine.cs:323 | // Out-of-battle equip-icon loose-tex sync (IconGlow.cs). Cadence 30 because kills // only change in battle and a slow disk read must not run every 33ms.
+Resolution: kept, the 33ms cost of a disk read is a runtime fact about the player's machine that the cadence number cannot carry by itself
+W3 (original, still there): LivingWeapon/Engine.cs:579 | // a new game's units share nameIds with the old save's; stale residue must not correct them // Enter is instant; exit is debounced (battleMode flickers, slot9 sticks) unless forceExit fires // (a detected new game). nowIn is sticky through mid-battle dips.
+Resolution: kept, the battle edge debounce answers game flicker (battleMode dips, slot9 sticking) that only a live tape shows, so no type or name can say it
+Unprompted rows: 1 finding(s) new in 1 row(s) (LW-547), 0 repeated (none)

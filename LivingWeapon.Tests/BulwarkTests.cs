@@ -472,6 +472,56 @@ public class BulwarkTests
     }
 
     [Fact]
+    public void Holding_is_true_while_planted_and_false_after_the_reset()
+    {
+        var (mem, kills, toast, bulwark, entry) = Build(wx: 5, wy: 5, mapW: 11, mapH: 12);
+        Assert.False(bulwark.Holding);
+        int idx = Idx(5, 6, 11);
+        StageTerrain(mem, idx, 0x20);
+        RunFullWaitCycle(bulwark, mem, entry);
+        Assert.True(bulwark.Holding);
+
+        bulwark.ResetBattle();
+
+        Assert.False(bulwark.Holding);
+    }
+
+    [Fact]
+    public void ReleaseForRewind_restores_the_byte_and_prints_no_event_or_warning()
+    {
+        var (mem, kills, toast, bulwark, entry) = Build(wx: 5, wy: 5, mapW: 11, mapH: 12);
+        int idx = Idx(5, 6, 11);
+        StageTerrain(mem, idx, 0x20);
+        RunFullWaitCycle(bulwark, mem, entry);
+        var lines = new List<string>();
+        ModLogger.Instance = new FileConsoleLogger(lines.Add, lines.Add) { LogLevel = LogLevel.Debug };
+        try { bulwark.ReleaseForRewind(); }
+        finally { ModLogger.UseNullLogger(); }
+
+        Assert.Equal((byte)0x20, mem.U8(GridAddr(idx)));
+        Assert.False(bulwark.Holding);
+        Assert.DoesNotContain(lines, l => l.Contains("releases") || l.Contains("battle ended"));
+    }
+
+    [Fact]
+    public void ReleaseForRewind_skips_a_rebuilt_tile_with_no_warning()
+    {
+        var (mem, kills, toast, bulwark, entry) = Build(wx: 5, wy: 5, mapW: 11, mapH: 12);
+        int idx = Idx(5, 6, 11);
+        StageTerrain(mem, idx, 0x20);
+        RunFullWaitCycle(bulwark, mem, entry);
+        mem.U8s[GridAddr(idx)] = 0x77;   // the game rebuilt the grid, so the byte no longer reads as ours
+        var lines = new List<string>();
+        ModLogger.Instance = new FileConsoleLogger(lines.Add, lines.Add) { LogLevel = LogLevel.Debug };
+        try { bulwark.ReleaseForRewind(); }
+        finally { ModLogger.UseNullLogger(); }
+
+        Assert.Equal((byte)0x77, mem.U8(GridAddr(idx)));   // left alone
+        Assert.False(bulwark.Holding);
+        Assert.DoesNotContain(lines, l => l.Contains("changed by something else") || l.Contains("releases"));
+    }
+
+    [Fact]
     public void ResetBattle_EmptyBook_PerformsZeroWrites()
     {
         var (mem, kills, toast, bulwark, entry) = Build(wx: 5, wy: 5, mapW: 11, mapH: 12);

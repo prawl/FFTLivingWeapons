@@ -28,9 +28,8 @@ internal sealed partial class Bulwark
         _ => "?",
     };
 
-    /// <summary>Reads the wielder's tile, layer and facing from one byte (Offsets.ALayerBit), checks the
-    /// map dims (AC A3), and bars the tile behind the wielder, or parks it if occupied or not yet writable.
-    /// Plants nothing, and toasts nothing, when the wielder's back is to the map edge.</summary>
+    /// <summary>Walls off the tile behind the wielder, or parks it while a unit stands there or it is not writable.
+    /// Layer and facing share one byte and the tile is checked against the map size; at the map edge it does nothing.</summary>
     private void Plant(long entry)
     {
         if (_latch is { } door && !door.Allows()) return;
@@ -113,15 +112,9 @@ internal sealed partial class Bulwark
         }
     }
 
-    /// <summary>Writes every saved original back, clears the book and the deferred watch, and logs once.
-    /// Silent when there was nothing to restore, because ResetBattle calls this on both battle edges
-    /// (Bulwark.cs, A1).
-    ///
-    /// A byte is restored only if it still reads as our vetoed form of the saved original.
-    /// If something else (a level script, another mod) rewrote it, restoring would clobber that write,
-    /// so the tile is skipped and logged. MaintainPlant keeps a healthy plant at the vetoed form, so
-    /// this only catches foreign writes.</summary>
-    private void Release(string reason)
+    /// <summary>Puts each saved tile byte back, clears the book and the deferred watch, and logs once unless the reason is null.
+    /// A byte some other writer changed is skipped, because restoring it would clobber that write.</summary>
+    private void Release(string? reason)
     {
         bool hadState = _restoreBook.Count > 0 || _deferred.Count > 0;
 
@@ -131,7 +124,10 @@ internal sealed partial class Bulwark
             if (!_mem.Readable(addr, 1) || !_mem.Writable(addr, 1)) continue;
             if (_mem.U8(addr) != BulwarkPolicy.VetoedF6(kv.Value))
             {
-                ModLogger.WarnWithTrace(LogVerb.Signature,
+                if (reason is null)
+                    ModLogger.Debug(LogVerb.Trace, $"Bulwark rewind release skipped tile index {kv.Key}, addr 0x{addr:X}: the grid was rebuilt.");
+                else
+                    ModLogger.WarnWithTrace(LogVerb.Signature,
                     "Bulwark finds the ground behind the Sunderer was changed by something else since it planted, so it leaves that tile alone instead of overwriting the change.",
                     $"tile index {kv.Key}, addr 0x{addr:X}: expected vetoed byte 0x{BulwarkPolicy.VetoedF6(kv.Value):X2}, observed 0x{_mem.U8(addr):X2}.");
                 continue;
@@ -142,13 +138,12 @@ internal sealed partial class Bulwark
         _deferred.Clear();
         _planted = false;
 
-        if (hadState)
+        if (hadState && reason is not null)
             ModLogger.Event(LogVerb.Signature, $"The Sunderer's Bulwark releases ({reason}); the ground at its back settles back to normal.");
     }
 
-    /// <summary>Every band seat that plausibly holds a unit or corpse, keyed by (gx,gy), using a loose
-    /// level/maxHp range test rather than Band.IsValid. Over-blocking is the safe direction (AC
-    /// criterion 5): a stale seat can only cost a block, never allow a bad one.</summary>
+    /// <summary>Every band seat that might hold a unit or corpse, by tile, from a loose level and max HP test.
+    /// Blocking too much is the safe side, since a stale seat can only cost a block, never allow a bad one.</summary>
     private HashSet<(int x, int y)> BuildOccupancy()
     {
         var occ = new HashSet<(int x, int y)>();

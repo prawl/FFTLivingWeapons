@@ -1244,6 +1244,52 @@ public class ProvokeHoldTests
         Assert.False(HasInflictedMark(m, 2));   // inflicted layer scrubbed too
     }
 
+    [Fact]
+    public void ReleaseForRewind_reveals_goes_idle_keeps_the_mark_and_the_next_tick_rearms()
+    {
+        var m = new FakeSparseMemory();
+        SeatBearer(m, 0, 0);
+        SeatAlly(m, 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
+        SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: true, nameId: 500);
+
+        var hold = Hold(Tier3Kills(), m);
+        Assert.False(hold.Holding);
+        hold.Tick(DateTime.UtcNow, true);
+        Assert.True(IsInvisible(m, 1));
+        Assert.True(hold.Holding);
+
+        hold.ReleaseForRewind();
+
+        Assert.False(IsInvisible(m, 1));
+        Assert.True(HasMark(m, 10));   // the restored game's mark is legitimate and stays
+        Assert.False(hold.Holding);
+
+        hold.Tick(DateTime.UtcNow, true);
+        Assert.True(IsInvisible(m, 1));   // the normal idle path re-armed on the surviving mark
+        Assert.True(hold.Holding);
+    }
+
+    [Fact]
+    public void A_hold_that_hid_units_and_ended_normally_reads_not_holding()
+    {
+        var m = new FakeSparseMemory();
+        SeatBearer(m, 0, 0);
+        SeatAlly(m, 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
+        SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: true, nameId: 500);
+
+        var hold = Hold(Tier3Kills(), m);
+        var t0 = DateTime.UtcNow;
+        hold.Tick(t0, true);
+        Assert.True(IsInvisible(m, 1));
+        Assert.True(hold.Holding);
+
+        m.U16s[Band.Entry(10) + Offsets.AHp] = 0;   // the marked enemy dies, the hold's own release path
+        hold.Tick(t0.AddMilliseconds(33), true);
+
+        Assert.False(IsInvisible(m, 1));
+        Assert.False(hold.Holding);
+    }
+
     // ---- Watchdog (criteria 14/17) ----
 
     [Fact]

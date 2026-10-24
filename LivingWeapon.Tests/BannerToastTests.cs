@@ -552,6 +552,32 @@ public class BannerToastTests
     }
 
     [Fact]
+    public void DropPendingOnRewind_clears_queue_without_logging()
+    {
+        var bt = new BannerToast(new Dictionary<int, WeaponMeta>(), new Dictionary<int, int>(), enabled: true);
+        bt.Enqueue(1, 1, "first");
+        bt.Enqueue(2, 2, "second");
+        using var cap = LogCapture.Start();
+
+        bt.DropPendingOnRewind();
+
+        Assert.False(bt.HasPending);
+        Assert.Empty(cap.File);
+    }
+
+    [Fact]
+    public void DropPendingOnRewind_on_empty_queue_is_silent()
+    {
+        var bt = new BannerToast(new Dictionary<int, WeaponMeta>(), new Dictionary<int, int>(), enabled: true);
+        using var cap = LogCapture.Start();
+
+        var ex = Record.Exception(() => bt.DropPendingOnRewind());
+
+        Assert.Null(ex);
+        Assert.Empty(cap.File);
+    }
+
+    [Fact]
     public void PlaythroughReset_drops_pending()
     {
         var meta = new Dictionary<int, WeaponMeta> { [1] = Meta("Alpha") };

@@ -289,12 +289,14 @@ nothing.
 
 **The jsonl vocabulary is FROZEN and separate from the console verbs.** The record type strings
 (`"ev"`, `"kill"`, `"turn"`, `"mode"`, `"toast"`, `"legend-store"`, `"census"`, `"victim"`,
-`"mark-earned"`, `"deed-miss"`, `"guard"`, `"card"`, `"inventory-reset"`, `"rewind-restore"`, `"checkpoint-restore"`, `"rewind-recompute"`, `"quiet-faults"`, ...) are set at the tap sites and were
+`"mark-earned"`, `"deed-miss"`, `"guard"`, `"card"`, `"inventory-reset"`, `"rewind-restore"`, `"rewind"`, `"checkpoint-restore"`, `"rewind-recompute"`, `"quiet-faults"`, ...) are set at the tap sites and were
 deliberately NOT renamed by the logging facelift: `tools/parse_flight.py --grep` filters and every
 existing archive depend on them. The console `[verb]` glossary above is a different namespace; do
 not "align" them.
 
 A `"quiet-faults"` record says which errors the mod chose to ignore since the last battle exit (the world map and startup included), so a tape reader can tell a quiet stretch from one that swallowed errors. Its payload is `Type.Member=count` pairs separated by spaces, and it is written only when something was ignored.
+
+A `"rewind"` record is written once per checkpoint restore and reads `release provoke=.. bulwark=..`, which says whether the Provoke hold and the Bulwark were freed. The toasts it drops are recorded under `"toast"` as `dropped ... (rewound)`.
 
 **What gets captured (on-change only, never a per-tick state dump):** battle enter/exit edges
 and battle-mode changes (Engine); the event timeline (BattleLog's `event: damage/healing/move`

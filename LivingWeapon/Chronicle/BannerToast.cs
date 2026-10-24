@@ -46,9 +46,8 @@ internal sealed partial class BannerToast
         }
     }
 
-    /// <summary>called on the PlaythroughReset new-game edge (same as Display.Invalidate). drops pending
-    /// toasts first, since they belong to the old playthrough. Then re-primes _tiers/_counts against the cleared kills without
-    /// enqueuing. _tiers/_counts are loop-thread-only, so no lock.</summary>
+    /// <summary>A new game drops the old playthrough's pending toasts and re primes the tiers without toasting.
+    /// Runs on the loop thread from the new game edge, like Display.Invalidate, so the tier maps need no lock.</summary>
     public void Rebaseline()
     {
         DropPendingAtBattleEnd();
@@ -144,18 +143,21 @@ internal sealed partial class BannerToast
         }
     }
 
-    /// <summary>drops every pending toast undelivered. Called early from Engine.ResetBattleState so the Flight records
-    /// land on this battle's tape, and from <see cref="Rebaseline"/>. Logs one Event line per toast (like <see cref="Enqueue"/>'s
-    /// drop-oldest) and one Flight "toast"/"dropped" record.</summary>
-    internal void DropPendingAtBattleEnd()
+    /// <summary>Drops every toast that missed its battle, with one log line and one Flight record each.
+    /// Runs early in Engine.ResetBattleState so the records land on this battle's tape; a rewind skips the log line.</summary>
+    internal void DropPendingAtBattleEnd() => DropPending(logEvent: true, "undelivered at battle end");
+
+    internal void DropPendingOnRewind() => DropPending(logEvent: false, "rewound");
+
+    private void DropPending(bool logEvent, string reason)
     {
         lock (_lock)
         {
             if (_queue.Count == 0) return;
             foreach (var (weaponId, tier, _) in _queue)
             {
-                ModLogger.Event(LogVerb.Toast, $"A toast went undelivered by its battle's end and was dropped ({LogNames.Weapon(weaponId)}, tier {tier}); the growth itself is saved either way.");
-                Flight.Record("toast", $"dropped weapon={weaponId} tier={tier} (undelivered at battle end)");
+                if (logEvent) ModLogger.Event(LogVerb.Toast, $"A toast went undelivered by its battle's end and was dropped ({LogNames.Weapon(weaponId)}, tier {tier}); the growth itself is saved either way.");
+                Flight.Record("toast", $"dropped weapon={weaponId} tier={tier} ({reason})");
             }
             _queue.Clear();
         }

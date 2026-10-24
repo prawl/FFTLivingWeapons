@@ -77,6 +77,7 @@ public class EngineTickTableTests
             "extended-bag",     // Always gate: LW-348, reads the bag count bytes of the extended ids and writes the sidecar FILE on change; the bag changes in shops and in battle alike
             "extended-shops",   // Always gate: LW-354, a 512-byte compare of the game's shop table against our mirror page and a copy on change; never battle memory
             "extended-rewind",  // Always gate: LW-452, polls two hook counters and rewrites the extended bag bytes after a rewind; reads roster hands, never battle memory; no-op until the hooks exist
+            "rewind-release",   // Always gate: reads one counter, and when it fires writes back only the Invisible bits and barred tile bytes the mod itself set
         };
 #if LWDEV
         nonBattle.Add("icon-heal-trace"); // Always gate: dev build only, polls a marker file for the icon cache trace, never battle memory
