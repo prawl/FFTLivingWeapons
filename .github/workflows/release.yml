@@ -103,10 +103,8 @@ jobs:
       id: publish
       run: ./Publish.ps1
 
-    # Independent assertion. Even if Publish.ps1's own Verify-Package missed
-    # something, this won't. Fails loud (workflow goes red) if the zip is
-    # missing, empty, or doesn't contain the core data tables. Prevents
-    # shipping a broken release (the v3.0.7 silent-drift incident).
+    # A last look at the zip Publish.ps1 produced. Its contents are checked inside Publish.ps1
+    # against the one shared required file list, so a second list here could only drift.
     - name: Verify Release Artifact
       run: |
         $zipName = '${{ steps.publish.outputs.zip }}'
@@ -114,24 +112,7 @@ jobs:
         if (-not (Test-Path $zipName)) { throw "Expected zip not found: $zipName" }
         $sizeKB = [math]::Round((Get-Item $zipName).Length / 1KB, 2)
         if ($sizeKB -lt 50) { throw "Zip suspiciously small ($sizeKB KB); data package (xml/nxd/tex) should be larger" }
-        Add-Type -Assembly System.IO.Compression.FileSystem
-        $z = [System.IO.Compression.ZipFile]::OpenRead((Resolve-Path $zipName))
-        $hasWeaponXml  = $z.Entries | Where-Object { $_.Name -eq 'ItemWeaponData.xml' } | Select-Object -First 1
-        $hasItemNxd    = $z.Entries | Where-Object { $_.Name -eq 'item.en.nxd' } | Select-Object -First 1
-        $hasDll        = $z.Entries | Where-Object { $_.Name -eq 'LivingWeapon.dll' } | Select-Object -First 1
-        $hasMetaJson   = $z.Entries | Where-Object { $_.Name -eq 'meta.json' } | Select-Object -First 1
-        $hasJobXml     = $z.Entries | Where-Object { $_.Name -eq 'JobData.xml' } | Select-Object -First 1
-        # treasure.json was asserted here until 2026-08-14. Treasure Master was removed from the
-        # mod in 2aee150 and stopped producing it, but this check was not removed with it, so
-        # every push after that commit failed on a file the mod is no longer supposed to ship.
-        # A required-file list has to be deleted in the same commit as the thing that made it.
-        $z.Dispose()
-        if (-not $hasWeaponXml)    { throw "ItemWeaponData.xml missing from $zipName" }
-        if (-not $hasItemNxd)      { throw "item.en.nxd missing from $zipName" }
-        if (-not $hasDll)          { throw "LivingWeapon.dll missing from $zipName (ModConfig declares it)" }
-        if (-not $hasMetaJson)     { throw "meta.json missing from $zipName (Living Weapon runtime requires it)" }
-        if (-not $hasJobXml)       { throw "JobData.xml missing from $zipName" }
-        Write-Host "OK: $zipName ($sizeKB KB) contains ItemWeaponData.xml + item.en.nxd + LivingWeapon.dll + meta.json + JobData.xml"
+        Write-Host "OK: $zipName ($sizeKB KB); contents verified by Publish.ps1 against tools/pipeline.ps1"
 
     - name: Upload Build Artifact
       uses: actions/upload-artifact@v7

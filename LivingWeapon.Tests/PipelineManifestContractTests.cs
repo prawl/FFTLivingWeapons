@@ -126,14 +126,13 @@ public class PipelineManifestContractTests
     }
 
     [Fact]
-    public void Release_workflow_names_JobData_and_excludes_JobCommandData()
+    public void Release_workflow_excludes_JobCommandData()
     {
         // LW-77: JobCommandData.xml was deleted (whole-row writeback collision, see
         // JobCommandXmlContractTests); release.yml must no longer reference the retired file.
         string repoRoot = RepoRoot();
         string releaseYml = File.ReadAllText(Path.Combine(repoRoot, ".github", "workflows", "release.yml"));
 
-        Assert.Contains("JobData.xml", releaseYml, StringComparison.Ordinal);
         Assert.DoesNotContain("JobCommandData.xml", releaseYml, StringComparison.Ordinal);
     }
 }
