@@ -3,8 +3,8 @@
 STATUS: CONTRACT (Reliquary design; the post-release north star)
 
 Captured 2026-07-04 from a design conversation. This is the "9/10 -> 10/10" bet: the deepest,
-wall-free instantiation of the mod's thesis. NOT in the current release scope (see
-`docs/RELEASE_SCOPE.md`); it needs probes first. This doc banks the vision + the proven levers so it
+wall-free instantiation of the mod's thesis. Not on any release list yet (the list is
+docs/TODO.md's Now section); it needs probes first. This doc banks the vision + the proven levers so it
 does not evaporate. Nothing here is committed to build.
 
 ## The one-line idea

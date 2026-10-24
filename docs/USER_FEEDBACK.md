@@ -43,7 +43,7 @@ player's; parenthetical scope/triage notes are added during capture and not yet 
     restart. They do NOT get the living-weapon RUNTIME: the kill tally, the `+`/`+2`/`+3` stat lift,
     the awakened +3 signatures, and the Kills card counter are all player-roster-only (KillTracker
     credits "the acting player's weapon(s)"; GrowthEngine holds only player combat structs). So
-    "enemies actually use the benefits" is a net-new feature, deferred (see docs/RELEASE_SCOPE.md),
+    "enemies actually use the benefits" is a net-new feature, deferred (see docs/archive/RELEASE_SCOPE.md),
     not a tuning fix._
 - On **Tactician** difficulty, New Game+ makes the chapel fight an auto-fail: Ramza is locked
   at level 12 while the rest of the field is level 50+ with 50+ living-weapon items. Effectively

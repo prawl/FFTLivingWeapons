@@ -15,7 +15,7 @@ works if the item desc is reached through an INDIRECTION we can hijack. Two cand
 
 If NEITHER lever reaches the on-screen desc string, the desc is a flat inline copy with nothing to
 repoint, and LW-37-as-specced is NOT possible (fallback: a faster TARGETED in-place paint, a
-different project). This probe is the one-session recon that decides it. See docs/RELEASE_SCOPE.md
+different project). This probe is the one-session recon that decides it. See docs/archive/RELEASE_SCOPE.md
 section 8, docs/TODO.md LW-37, and the LW-37 research writeup.
 
   python tools/probes/item_text_census.py find "<on-screen item text>" [enc=0]

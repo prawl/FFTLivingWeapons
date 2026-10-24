@@ -20,8 +20,6 @@ namespace LivingWeapon.Tests;
 /// E. Every top-level docs/CHANGELOG.md entry matches the id/disposition/date/summary grammar.
 /// F. Every LW-id captured out of TODO.md's entries and CHANGELOG.md's entries is unique across
 ///    both files (an id may appear in exactly one place, once).
-/// G. The release name captured from the Now header appears (as a substring) in
-///    docs/RELEASE_SCOPE.md, so the ledger and the ship-gate doc cannot silently drift apart.
 /// H. Neither file contains an em dash or a " -- " double-dash separator anywhere.
 /// I. No entry-shaped line (`- [LW-n] ...` / `- **[LW-n] ...`) hides in TODO.md's Walled or
 ///    Format sections, where the grammar and id-uniqueness scans (which read only Now,
@@ -397,22 +395,6 @@ public class TodoContractTests
         Assert.True(duplicates.Count == 0,
             "Duplicate LW-ids found:\n" + string.Join("\n",
                 duplicates.Select(g => $"LW-{g.Key}: " + string.Join(" | ", g.Select(x => x.Source)))));
-    }
-
-    // --- G. Release-name lockstep with docs/RELEASE_SCOPE.md ---
-
-    [Fact]
-    public void Now_release_name_appears_in_RELEASE_SCOPE_md()
-    {
-        string repoRoot = RepoRoot();
-        var now = NowSection(repoRoot);
-        string releaseName = NowHeaderRegex.Match(now.Header).Groups[1].Value;
-
-        string scopePath = Path.Combine(repoRoot, "docs", "RELEASE_SCOPE.md");
-        Assert.True(File.Exists(scopePath), "docs/RELEASE_SCOPE.md does not exist");
-        string scopeText = File.ReadAllText(scopePath);
-        Assert.True(scopeText.Contains(releaseName),
-            $"Now header release name '{releaseName}' does not appear in docs/RELEASE_SCOPE.md");
     }
 
     // --- H. Dash rules ---

@@ -5,8 +5,7 @@ STATUS: CONTRACT (machine-checked by TodoContractTests; format grammar at the bo
 The work ledger. "Now" holds what is actively being worked for the current release (hard cap 5,
 each entry carries Done means + Verify). "Backlog" captures everything else at the cheapest
 possible entry cost. Items EXIT this file only through docs/CHANGELOG.md, moved there in the
-commit that ships or kills them. The full release ship gate stays in docs/RELEASE_SCOPE.md; Now
-is the in-flight subset, not a mirror of that checklist.
+commit that ships or kills them. Now is the release list, and no other doc holds one.
 
 Entries are written ELI5-first: the opening sentence is plain language anyone can follow, and
 the technical detail lives in the indented lines under it.
@@ -326,6 +325,20 @@ Locked 2026-10-24: LW-465, LW-508, LW-506, LW-448, LW-459, LW-513, LW-444, LW-38
   - Done means: Jade's Cloud weapons arm, grow and keep their counts through save and load, limited to his mod, rebased onto main after 2.4.0 moved the weapon ids.
   - Verify: suite green after the rebase; owner live pass with Jade's mod installed, since the August test is out of date.
   - Rebased 2026-10-24: Jade's branch now sits on top of current main with every check green, and nothing is merged or pushed. His five blades keep ids 268 to 272, which nothing on main uses. What is left is the owner's live pass with his mod installed, then the merge. One risk worth a look first: if his partner file ever fails to load, the mod refuses the whole extended inventory, ours included, by an existing all or nothing rule (LW-531 on the branch). (Tech: branch worktree-cloud-partner at ac754fd3, safety ref lw344-pre-rebase at d1a7717c; analyze, 4460 tests, glow verify, format, partner validator 102/102 all green; the rebased commits replay without the cold read hook, and the fix commit carries cold read entry LW-344; the engine now starts from Start and StartEx on this branch, a runtime change only live tested in August.)
+
+- **[LW-545] One release list instead of two: retire the old scope doc** (opened 2026-10-24) [BUILDING]
+  There are two release lists, this file's Now section and an old scope doc beside it. Nothing in the build or the game reads it, Now already does its job, yet a 554 line test forces people to keep ticking boxes in it, which is paperwork and a place for rulings to contradict each other. Move it to the archive and drop the tests that only exist to police it.
+  (Tech: git mv to docs/archive/; delete LivingWeapon.Tests/ReleaseScopeContractTests.cs and TodoContractTests rule G; drop it from DocsContractTests' doc list and ProofClaimContractTests' file table; repoint every mention of the old path, the changelog and archived docs included, changing only the path text as commit fb357786 did, and rewrite TODO.md's header. Found by a claude.ai infrastructure review 2026-10-24.)
+  - Added: yes "do what you see fit and beneficial" (2026-10-24)
+  - Done means: the file lives under docs/archive, no test reads it, and no live doc points at the old path.
+  - Verify: full suite and format verify green; grep for RELEASE_SCOPE outside docs/archive and CHANGELOG finds only history.
+
+- **[LW-546] CI checks the release zip once, and shell scripts keep Unix line endings** (opened 2026-10-24) [BUILDING]
+  The release workflow re checks five zip files by hand that Publish already checks against the shared required files list, and a hand kept list like it once failed every push until someone noticed a retired file was still on it. Separately, fft.sh has no line ending rule, so a Windows checkout gives it Windows line endings that bash chokes on.
+  (Tech: release.yml "Verify Release Artifact" keeps the zip exists and size floor and drops the five per file asserts, since Publish.ps1 verifies the zip against $RequiredModFiles plus preview.png; .gitattributes gains `*.sh text eol=lf` and fft.sh's working copy is refreshed. Found by the same review.)
+  - Added: yes "do what you see fit and beneficial" (2026-10-24)
+  - Done means: CI no longer carries its own file list and fft.sh checks out with LF on Windows.
+  - Verify: the next push to main runs CI green; `git ls-files --eol fft.sh` reads w/lf.
 
 ## Backlog
 

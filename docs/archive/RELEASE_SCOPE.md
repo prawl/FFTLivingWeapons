@@ -1,7 +1,7 @@
 # Release Scope, next release (consolidation)
 
-STATUS: CONTRACT (locked scope for the 2.3.0 consolidation release, the 2.3.1 patch cut, the
-2.3.2 game-compatibility cut, the 2.3.3 feature cut, the 2.3.4 compat cut, and the 2.4.0 art cut)
+STATUS: ARCHIVED (locked scope for the 2.3.0 consolidation release, the 2.3.1 patch cut, the
+2.3.2 game-compatibility cut, the 2.3.3 feature cut, the 2.3.4 compat cut, and the 2.4.0 art cut; retired 2026-10-24, Now in docs/TODO.md is the release list)
 
 Locked 2026-07-04. Current shipped version 2.2.2; proposed next **2.3.0** (owner confirms the bump).
 2.3.0 shipped 2026-07-16 (tag v2.3.0). The **2.3.1** patch cut (section at the bottom) followed on

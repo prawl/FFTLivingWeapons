@@ -177,7 +177,6 @@ public class ProofClaimContractTests
         { "docs/DESIGN.md", 1 },
         { "docs/DEV_TEST_RECIPES.md", 2 },
         { "docs/MECHANICS.md", 20 },
-        { "docs/RELEASE_SCOPE.md", 7 },
         // 8 -> 7 (2026-07-25, LW-131 fixed): the deleted Backlog block's drop was never really
         // about an argument the count was tracking. The regex only matched an INCIDENTAL substring:
         // the phrase "Proven LIVE_LEDGER row this code cites" in that block matched "proven live"

@@ -3,7 +3,7 @@
 STATUS: CONTRACT (Provoke acceptance criteria)
 
 Approved 2026-07-22. Design source: `docs/living_weapon_grid.csv` row 34 (Defender, id 33).
-Post-release feature: it does not gate 2.3.1 (`docs/RELEASE_SCOPE.md`, locked "no new features").
+Post-release feature: it does not gate 2.3.1 (`docs/archive/RELEASE_SCOPE.md`, locked "no new features").
 Work ledger id: LW-123 (exited SHIPPED 2026-07-28 with LW-130 and LW-136; see below).
 
 **OWNER LIVE PASS: PASSED 2026-07-28.** The owner ran the pre-registered pass below and signed it

@@ -11,7 +11,7 @@ a blocker come first, and inside each section the blockers come first. The tags 
 only; a failing box of any weight is fixed before the tag (owner ruling 2026-10-17). Boxes are
 flipped by the owner only, in Part B too (the script run reports, the owner ticks).*
 
-Modeled on docs/archive/SMOKE_TEST_2.3.0.md. Scope ground truth is docs/RELEASE_SCOPE.md (the R5
+Modeled on docs/archive/SMOKE_TEST_2.3.0.md. Scope ground truth is docs/archive/RELEASE_SCOPE.md (the R5
 close out order). The denominator is every docs/CHANGELOG.md row dated 2026-07-16 or later plus the
 docs/TODO.md rows that ship before this pass runs; Appendix C accounts for every one of those ids.
 Rows that may run on a dev build carry **(DEV OK)**: dev thresholds are {1,2,3} and every weapon's
@@ -1422,9 +1422,9 @@ with no seeding (LivingWeapon/Tuning.cs). Any box flipped on dev evidence should
   **[MAJOR]**
 - [x] B18 (PASSED 2026-10-19 on f38b4a4e: docs/TODO.md Now holds only LW-465, the rewind probe the owner carried into 2.4.1; every row shipped this cycle exited to docs/CHANGELOG.md, tonight LW-458, LW-464, LW-426 and LW-439, with LW-465, LW-466 and LW-467 filed; the LW-320 power audit carries the owner verdict of 2026-10-19, accepted as it stands for 2.4.0; LW-358 sits in the Backlog and RELEASE_SCOPE.md folds it into the publish furniture; TodoContractTests green; no agent made AWAITING-LIVE flip, LW-426 was exited on the owner's word without a live read; result pass) **Ledger and scope hygiene at ship (LW-320 ruling included).**
   `grep -n "AWAITING-LIVE\|^## Now" docs/TODO.md`; `grep -n "LW-320\|LW-358" docs/TODO.md
-  docs/RELEASE_SCOPE.md docs/CHANGELOG.md`; `git tag --list v2.4.0`. PASS: docs/RELEASE_SCOPE.md R5
+  docs/archive/RELEASE_SCOPE.md docs/CHANGELOG.md`; `git tag --list v2.4.0`. PASS: docs/archive/RELEASE_SCOPE.md R5
   boxes ticked; docs/TODO.md Now holds only rows the owner chose to carry (LW-408 by ruling; LW-358
-  was demoted to Backlog 2026-10-17 and docs/RELEASE_SCOPE.md line 506 still says it stays, a
+  was demoted to Backlog 2026-10-17 and docs/archive/RELEASE_SCOPE.md line 506 still says it stays, a
   correction the orchestrator owes the ledger); every shipped row of this cycle exited to
   docs/CHANGELOG.md; TodoContractTests green after the exits; the AWAITING-LIVE flips (LW-323,
   LW-198, LW-205, LW-210, LW-212, LW-322, LW-112) made by the owner, never by an agent; the LW-320
@@ -1563,14 +1563,14 @@ with a known miss.
 - **LW-7 auto battle turn count collapse**: counting, not credit; 5.1 auto leg is the watch.
 - **LW-412 shade doubt**: withdrawn 2026-10-18 with the feature; 8.1 now reads that release
   swings in steel. LW-447 carries the redesign and LW-339 and LW-305 ride with it in 2.5.0.
-- **LW-358 and docs/RELEASE_SCOPE.md disagree**: the TODO demoted LW-358 to Backlog 2026-10-17
+- **LW-358 and docs/archive/RELEASE_SCOPE.md disagree**: the TODO demoted LW-358 to Backlog 2026-10-17
   and the scope doc line 506 still says it stays in Now; B18 carries the correction.
 
 ---
 
 ## Appendix A: deferred by decision (NOT part of this pass)
 
-Pushed to 2.5.0 by the 2026-10-17 ruling (docs/RELEASE_SCOPE.md R5): LW-415 the write scope
+Pushed to 2.5.0 by the 2026-10-17 ruling (docs/archive/RELEASE_SCOPE.md R5): LW-415 the write scope
 buckets; the R1 cosmetics (LW-329 the Grows line glow color, LW-335 the inner ring colors, the
 hue true ups); LW-340 the extensive glow growth pass; LW-324 the kills paint speed pass; LW-339
 the fuller recolor edge pass (now under LW-447); every research row. The 2.5.0 wardrobe cut

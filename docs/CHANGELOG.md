@@ -151,7 +151,7 @@ before 2026-07-21 keep their original prose.
   its seventeen findings were applied before the commit. (Tech: README Good to know bullet;
   docs/COMPATIBILITY.md the Parts report bullet; docs/LOGGING.md the startup verb row, launch
   header, a new parts report section and the standdown trigger paragraph; docs/PATCH_REANCHOR.md
-  the how you find out bullet, the ASLR symptom and step 6; docs/RELEASE_SCOPE.md section R5.)
+  the how you find out bullet, the ASLR symptom and step 6; docs/archive/RELEASE_SCOPE.md section R5.)
 
 - [LW-406] SHIPPED 5736283d 2026-10-17: Every message a player sees when part of the mod pauses
   itself now reads the same way: what is paused, why, that a game update or another mod may
@@ -2716,7 +2716,7 @@ before 2026-07-21 keep their original prose.
   proved to be an old bake of this very mod, not vanilla, so intent is derived from
   items.json, never snapshot-compared. In-game text eyeball folds into the
   SMOKE_TEST_2.3.0.md text rows. Suite 2524 green; analyze exit 0.
-- [LW-84] SHIPPED 008dd35 2026-07-14: the ReleaseScopeContractTests gate. docs/RELEASE_SCOPE.md
+- [LW-84] SHIPPED 008dd35 2026-07-14: the ReleaseScopeContractTests gate. docs/archive/RELEASE_SCOPE.md
   and docs/archive/SMOKE_TEST_2.3.0.md go under contract test (the TodoContractTests enforcer pattern):
   an IN box whose cited ids all shipped (none still open) must be ticked; a ticked box in
   either doc citing only still-open work goes red; every tick cites a commit hash or ISO date;

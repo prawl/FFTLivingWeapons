@@ -4,7 +4,7 @@ STATUS: ARCHIVED (the 2.3.0 pre-ship owner live pass, LW-60; pass closed at the 
 
 *Work top to bottom; blockers surface first. Check each box live. Owner-only flips: the boxes here,
 docs/VERIFY_LIVE.md rows, docs/LIVE_LEDGER.md PROVEN flips, and the docs/TODO.md AWAITING-LIVE exits.
-Modeled on docs/archive/2.0_RELEASE_CHECKLIST.md; scope ground truth is docs/RELEASE_SCOPE.md.*
+Modeled on docs/archive/2.0_RELEASE_CHECKLIST.md; scope ground truth is docs/archive/RELEASE_SCOPE.md.*
 
 Two rows in this pass are the release's named debts: the LW-51 cold-launch New Game eyeball (6.1)
 and the LW-71 struck-pre-turn Iai repro (2.2). Several others may already be satisfied by the
@@ -620,7 +620,7 @@ Debug/file tier only.
   exits in this same commit), VERIFY_LIVE row 1 flipped ef70db5. ONE box deliberately left
   open: the backlog LW-80 upstream-issue filing, an owner-account action whose draft sits in
   the handoff action pack; it gates nothing in the package itself)
-  **Ledger + scope hygiene at ship:** docs/RELEASE_SCOPE.md boxes all ticked (several are
+  **Ledger + scope hygiene at ship:** docs/archive/RELEASE_SCOPE.md boxes all ticked (several are
   done-but-unticked as of authoring; the section-2 prose was corrected to the shipped own-turn
   release when LW-46 landed); docs/TODO.md Now items exited to the changelog via owner flips
   (LW-69, LW-60); VERIFY_LIVE row 1 flipped (7.17). **[MAJOR]**
@@ -680,7 +680,7 @@ Debug/file tier only.
   legends.json persistence is checkable (folded into 7.21). If the owner pulls the Reliquary pass
   back in, recreate the rows from docs/VERIFY_LIVE.md's deferred section and re-scope.
 - **Treasure Master removal** (LW-10), **Murasame signature** (LW-47), **Stormbrand replacement**
-  (LW-14), and the rest of docs/RELEASE_SCOPE.md's DEFERRED list: post-release work, no rows here.
+  (LW-14), and the rest of docs/archive/RELEASE_SCOPE.md's DEFERRED list: post-release work, no rows here.
 - **Tier-2 per-save tally isolation** (LW-61): alternating playthroughs still share one tally by
   design this release; only the Tier-1 reset (6.1) ships.
 
