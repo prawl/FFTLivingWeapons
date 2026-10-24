@@ -1,0 +1,139 @@
+[16:10:28.361] start, tape C:\Users\ptyRa\AppData\Local\Temp\lw396_tape_20261024_161028.log
+[16:10:28.364] turn team=0
+[16:10:28.364] s8 hp=558 side=E n841 abil=0 kind=0 xref=0
+[16:10:28.364] s9 hp=623 side=E n913 abil=0 kind=0 xref=0
+[16:10:28.364] s10 hp=746 side=E n995 abil=0 kind=0 xref=0
+[16:10:28.364] s11 hp=646 side=E n884 abil=0 kind=0 xref=0
+[16:10:28.364] s12 hp=607 side=E n886 abil=281 kind=5 xref=255
+[16:10:28.364] s13 hp=564 side=E n781 abil=0 kind=0 xref=0
+[16:10:28.364] s14 hp=554 side=E n905 abil=0 kind=0 xref=0
+[16:10:28.364] s15 hp=553 side=E n1005 abil=0 kind=0 xref=0
+[16:10:28.364] s16 hp=582 side=E n983 abil=0 kind=0 xref=0
+[16:10:28.366] s17 hp=703 side=E n843 abil=0 kind=0 xref=0
+[16:10:28.366] s24 hp=543 side=P n1 abil=0 kind=0 xref=0
+[16:10:28.366] s28 hp=624 side=P n1 abil=0 kind=0 xref=0
+[16:10:38.487] s8 gone
+[16:10:38.487] s9 gone
+[16:10:38.487] s10 gone
+[16:10:38.487] s11 gone
+[16:10:38.487] s12 gone
+[16:10:38.487] s13 gone
+[16:10:38.487] s14 gone
+[16:10:38.487] s15 gone
+[16:10:38.487] s16 gone
+[16:10:38.487] s17 gone
+[16:10:38.487] s24 gone
+[16:10:38.487] s28 gone
+[16:10:38.790] s8 hp=567 side=E n1012 abil=0 kind=0 xref=0
+[16:10:38.790] s9 hp=622 side=E n944 abil=0 kind=0 xref=0
+[16:10:38.790] s10 hp=755 side=E n900 abil=0 kind=0 xref=0
+[16:10:38.790] s11 hp=597 side=E n912 abil=0 kind=0 xref=0
+[16:10:38.790] s12 hp=601 side=E n784 abil=0 kind=0 xref=0
+[16:10:38.790] s13 hp=599 side=E n926 abil=0 kind=0 xref=0
+[16:10:38.791] s14 hp=551 side=E n865 abil=0 kind=0 xref=0
+[16:10:38.791] s15 hp=598 side=E n864 abil=0 kind=0 xref=0
+[16:10:38.791] s16 hp=628 side=E n1004 abil=0 kind=0 xref=0
+[16:10:38.791] s17 hp=777 side=E n935 abil=0 kind=0 xref=0
+[16:10:40.174] s8 hp=558 side=E n841 abil=0 kind=0 xref=0
+[16:10:40.174] s9 hp=623 side=E n913 abil=0 kind=0 xref=0
+[16:10:40.174] s10 hp=746 side=E n995 abil=0 kind=0 xref=0
+[16:10:40.174] s11 hp=646 side=E n884 abil=0 kind=0 xref=0
+[16:10:40.174] s12 hp=607 side=E n886 abil=0 kind=0 xref=0
+[16:10:40.174] s13 hp=564 side=E n781 abil=0 kind=0 xref=0
+[16:10:40.174] s14 hp=554 side=E n905 abil=0 kind=0 xref=0
+[16:10:40.174] s15 hp=553 side=E n1005 abil=0 kind=0 xref=0
+[16:10:40.174] s16 hp=582 side=E n983 abil=0 kind=0 xref=0
+[16:10:40.174] s17 hp=703 side=E n843 abil=0 kind=0 xref=0
+[16:11:19.945] s24 hp=624 side=P n1 abil=0 kind=0 xref=0
+[16:11:19.945] s28 hp=624 side=P n1 abil=0 kind=0 xref=0
+[16:11:32.724] turn team=1
+[16:11:34.374] s12 hp=607 side=E n886 abil=281 kind=5 xref=255
+[16:11:34.576] s24 hp=563 side=P n1 abil=0 kind=0 xref=0
+[16:11:40.344] s24 hp=999 side=P n1 abil=0 kind=0 xref=0
+[16:11:40.344] s28 hp=995 side=P n1 abil=0 kind=0 xref=0
+[16:11:43.144] turn team=0
+[16:11:51.774] s24 hp=999 side=P n1 abil=0 kind=5 xref=0
+[16:11:53.327] turn team=1
+[16:11:54.708] s8 hp=558 side=E n841 abil=266 kind=5 xref=255
+[16:11:56.898] s9 hp=623 side=E n913 abil=280 kind=5 xref=255
+[16:11:59.699] s12 hp=607 side=E n886 abil=280 kind=5 xref=255
+[16:12:01.755] s16 hp=582 side=E n983 abil=302 kind=5 xref=16
+[16:12:02.765] turn team=0
+[16:12:06.573] s12 hp=511 side=E n886 abil=280 kind=5 xref=255
+[16:12:08.630] turn team=1
+[16:12:11.292] s10 hp=746 side=E n995 abil=270 kind=5 xref=255
+[16:12:18.166] s12 hp=511 side=E n886 abil=282 kind=5 xref=16
+[16:12:18.301] s12 hp=436 side=E n886 abil=282 kind=5 xref=16
+[16:12:20.963] s16 hp=582 side=E n983 abil=301 kind=5 xref=16
+[16:12:29.825] s8 gone
+[16:12:29.825] s9 gone
+[16:12:29.825] s10 gone
+[16:12:29.825] s11 gone
+[16:12:29.825] s12 gone
+[16:12:29.825] s13 gone
+[16:12:29.825] s14 gone
+[16:12:29.825] s15 gone
+[16:12:29.825] s16 gone
+[16:12:29.825] s17 gone
+[16:12:29.825] s24 gone
+[16:12:29.825] s28 gone
+[16:12:30.060] s8 hp=553 side=E n784 abil=0 kind=0 xref=0
+[16:12:30.060] s9 hp=575 side=E n1021 abil=0 kind=0 xref=0
+[16:12:30.060] s10 hp=740 side=E n884 abil=0 kind=0 xref=0
+[16:12:30.060] s11 hp=594 side=E n965 abil=0 kind=0 xref=0
+[16:12:30.061] s12 hp=577 side=E n916 abil=0 kind=0 xref=0
+[16:12:30.061] s13 hp=583 side=E n875 abil=0 kind=0 xref=0
+[16:12:30.061] s14 hp=588 side=E n882 abil=0 kind=0 xref=0
+[16:12:30.061] s15 hp=605 side=E n883 abil=0 kind=0 xref=0
+[16:12:30.061] s16 hp=566 side=E n834 abil=0 kind=0 xref=0
+[16:12:30.061] s17 hp=702 side=E n828 abil=0 kind=0 xref=0
+[16:12:31.442] s8 hp=558 side=E n841 abil=0 kind=0 xref=0
+[16:12:31.442] s9 hp=623 side=E n913 abil=0 kind=0 xref=0
+[16:12:31.442] s10 hp=746 side=E n995 abil=0 kind=0 xref=0
+[16:12:31.442] s11 hp=646 side=E n884 abil=0 kind=0 xref=0
+[16:12:31.442] s12 hp=607 side=E n886 abil=0 kind=0 xref=0
+[16:12:31.442] s13 hp=564 side=E n781 abil=0 kind=0 xref=0
+[16:12:31.442] s14 hp=554 side=E n905 abil=0 kind=0 xref=0
+[16:12:31.442] s15 hp=553 side=E n1005 abil=0 kind=0 xref=0
+[16:12:31.442] s16 hp=582 side=E n983 abil=0 kind=0 xref=0
+[16:12:31.442] s17 hp=703 side=E n843 abil=0 kind=0 xref=0
+[16:12:31.442] s24 hp=624 side=P n1 abil=0 kind=0 xref=0
+[16:12:31.442] s28 hp=624 side=P n1 abil=0 kind=0 xref=0
+[16:12:31.476] s24 hp=999 side=P n1 abil=0 kind=0 xref=0
+[16:12:31.476] s28 hp=995 side=P n1 abil=0 kind=0 xref=0
+[16:12:32.725] s12 hp=607 side=E n886 abil=280 kind=5 xref=255
+[16:12:36.499] turn team=0
+[16:12:46.844] s24 hp=999 side=P n1 abil=0 kind=5 xref=0
+[16:12:48.024] turn team=1
+[16:12:49.576] s8 hp=558 side=E n841 abil=266 kind=5 xref=255
+[16:12:51.832] s9 hp=623 side=E n913 abil=280 kind=5 xref=255
+[16:12:54.797] s24 hp=632 side=P n1 abil=0 kind=5 xref=0
+[16:12:54.830] s24 hp=999 side=P n1 abil=0 kind=5 xref=0
+[16:12:57.293] s16 hp=582 side=E n983 abil=301 kind=5 xref=16
+[16:12:58.338] turn team=0
+[16:13:01.609] s16 hp=486 side=E n983 abil=301 kind=5 xref=16
+[16:13:07.140] turn team=1
+[16:13:12.499] s12 hp=607 side=E n886 abil=281 kind=5 xref=255
+[16:13:16.749] s16 hp=414 side=E n983 abil=301 kind=5 xref=16
+[16:13:20.221] s12 hp=607 side=E n886 abil=280 kind=5 xref=255
+[16:13:21.636] turn team=0
+[16:13:30.701] s12 hp=511 side=E n886 abil=280 kind=5 xref=255
+[16:13:35.557] s24 hp=624 side=P n1 abil=0 kind=5 xref=0
+[16:13:35.557] s28 hp=624 side=P n1 abil=0 kind=0 xref=0
+[16:13:39.509] s8 hp=1 side=E n841 abil=266 kind=5 xref=255
+[16:13:39.509] s9 hp=1 side=E n913 abil=280 kind=5 xref=255
+[16:13:39.509] s10 hp=1 side=E n995 abil=0 kind=0 xref=0
+[16:13:39.509] s11 hp=1 side=E n884 abil=0 kind=0 xref=0
+[16:13:39.509] s12 hp=1 side=E n886 abil=280 kind=5 xref=255
+[16:13:39.543] s13 hp=1 side=E n781 abil=0 kind=0 xref=0
+[16:13:39.543] s14 hp=1 side=E n905 abil=0 kind=0 xref=0
+[16:13:39.543] s15 hp=1 side=E n1005 abil=0 kind=0 xref=0
+[16:13:39.543] s16 hp=1 side=E n983 abil=301 kind=5 xref=16
+[16:13:39.543] s17 hp=1 side=E n843 abil=0 kind=0 xref=0
+[16:13:41.166] s24 hp=999 side=P n1 abil=0 kind=5 xref=0
+[16:13:41.166] s28 hp=995 side=P n1 abil=0 kind=0 xref=0
+[16:13:43.090] turn team=1
+[16:13:44.709] s8 hp=1 side=E n841 abil=265 kind=5 xref=255
+[16:13:51.089] s12 hp=1 side=E n886 abil=282 kind=5 xref=16
+[16:13:51.730] s12 hp=0 side=E n886 abil=282 kind=5 xref=16
+[16:14:00.061] s16 hp=0 side=E n983 abil=301 kind=5 xref=16
