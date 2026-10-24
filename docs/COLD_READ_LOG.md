@@ -1201,3 +1201,102 @@ Resolution: kept, the empty catch is the whole guard and no type can say a logge
 W8 (original, still there): LivingWeapon/Extended/RewindRestoreHook.cs:198 | /* a logger failure must never escape the detour */
 Resolution: kept, the empty catch is the whole guard and no type can say a logger call must not throw
 Unprompted rows: 1 finding(s) new in 1 row(s) (LW-524), 0 repeated (none)
+
+## Cold read 2026-10-24 02:10, LW-513, base dd7eb3e2
+Run cap 1 (102 changed production lines). Runs used 1 of 1.
+Files: LivingWeapon/Display/IconGlow.Pac.cs, LivingWeapon/Display/IconGlow.StoreFile.cs, LivingWeapon/Display/PacLocator.cs
+Hashes: LivingWeapon/Display/IconGlow.Pac.cs=53eae622465e0a5d; LivingWeapon/Display/IconGlow.StoreFile.cs=154b8a5f30f3fbd2; LivingWeapon/Display/PacLocator.cs=e792848c876cbae8
+Guard: {"LivingWeapon/Display/IconGlow.Pac.cs":{"budget":40,"kept":[],"raw":"64123ece713d46ca"},"LivingWeapon/Display/IconGlow.StoreFile.cs":{"budget":14,"kept":[],"raw":"6c65c0b3fb14191b"},"LivingWeapon/Display/PacLocator.cs":{"budget":5,"kept":[],"raw":"beb2071abe87dc31"}}
+Stage 1 (cold read): run 1, 3 pass, canary cold
+Stage 2 (plain words): stripped code identical before and after in 3 file(s); comment lines 59 before stage 1, 52 after; rules clean; 1 ledger cite(s) sent to stage 4
+Stage 3 (warnings): 0 warning(s) found (0 only in the original comments); 0 fixed in code, 0 kept with a reason; no code changed
+Stage 4 (accuracy): 3 comment(s) flagged over 3 read(s); 2 fixed and confirmed by a fresh read, 0 reader wrong, 1 open; control kind missing member and wrong condition and wrong return caught on 3 counted read(s), missed on 0 refused read(s); 5 unsourced reason(s); 0 kept warning(s) code could enforce
+### Run 1
+Canary: cold
+Q1 (failure path): Suppose reading the running exe's path throws, and the folder three levels above the mod folder holds no modded.pac. What does FileIconGlowStore.ResolvePac do on that first call, and what do every later PatchPacBatch calls in the same launch return without looking at the disk again?
+Expected: The throw is caught and the exe path is treated as null, so the only candidate is the three folders up walk (or none at all if the parent chain runs out). FirstExisting finds nothing, so ResolvePac sets _pacResolutionFailed to true, writes a Debug line naming the candidates it tried (or "no candidate path"), and returns null. PatchPacBatch then maps every item to PacPatchResult.Unavailable. Every later call returns null straight away because the failure is latched for the launch, so later batches are all Unavailable with no new file check.
+Reader: On the first call, `exe = _exePath();` throws and the inner `catch { exe = null; }` swallows it. `PacLocator.Candidates(null, _modDir)` then skips the exe candidate and offers only the `ModDirLabel` path under the root three folders up. `FirstExisting` finds nothing, so the code sets `_pacResolutionFailed = true`, writes a Debug line "IconGlow found no modded.pac at ...", and returns null. `PatchPacBatch` then sets `results[(it.Entry.Id, it.Entry.Surface)] = PacPatchResult.Unavailable` for every item. Later calls hit `if (_pacResolutionFailed) return null;` in `ResolvePac` and return `Unavailable` for every item without touching the disk. The one exception is an empty `items` list, which returns an empty dictionary before `ResolvePac` is called.
+Result: pass
+Q2 (ordering): A modded.pac exists both beside the game exe and three folders above the mod folder, at two different paths. Which one does the store open, and why that one? And what happens to the candidate list when both lookups produce the very same path?
+Expected: The exe candidate is added to the list first and FirstExisting returns the first candidate whose file exists, so the pac beside the exe wins and the log line names "beside the game exe". When the walk path equals the exe path (compared ignoring case) the walk candidate is not added at all, so the list holds one entry.
+Reader: The store opens the one beside the game exe. `Candidates` adds the `ExeLabel` entry first, and `FirstExisting` loops in list order and returns the first path where `exists(c.Path)` is true. When both lookups produce the same path, the second is not added. The condition `list.Count == 0 || !string.Equals(list[0].Path, walk, StringComparison.OrdinalIgnoreCase)` is false, so the list holds only the `ExeLabel` entry. The comparison is case-insensitive and checks only `list[0]`.
+Result: pass
+Q3 (free): The mod folder is C:\R\Mods\Mine, with Reloaded installed outside the game, and the running exe sits directly in the folder D:\G. List the candidate paths PacLocator.Candidates returns, in order, with the label each carries.
+Expected: First "beside the game exe" at D:\G\data\enhanced\modded.pac. Second "three folders above the mod folder" at C:\data\enhanced\modded.pac, because the three parents of C:\R\Mods\Mine are C:\R\Mods, C:\R and C:\. Each path is the root joined with data\enhanced\modded.pac and made absolute.
+Reader: Walking up from `C:\R\Mods\Mine` gives `Mods`, then `R`, then `C:\`, so the root is `C:\`. `PacUnder` appends `data\enhanced\modded.pac`. The exe's directory is `D:\G`. The list is: 1. `ExeLabel` "beside the game exe": `D:\G\data\enhanced\modded.pac` 2. `ModDirLabel` "three folders above the mod folder": `C:\data\enhanced\modded.pac` The paths differ, so both are kept. Reloaded's install location does not enter the code.
+Result: pass
+Unprompted:
+- The missing-pac outcome is cached for the whole launch. A `modded.pac` that appears later is never found, because `_pacResolutionFailed` is never reset. A throw from `new ModdedPac(hit.Path)` is also swallowed and cached the same way, with no log. The user-facing warning then claims "could not be found or could not be opened".
+- `ResolvePac` and its two fields are not under any lock, although `WarnPacOnce` uses `lock (_lock)`. Whether callers are single-threaded is not visible in the packet.
+- `ReadManifest`, `ReadDeployedTex`, `ReadVariantTex` and `ReadBaseBackup` swallow every exception and return null, so a corrupt manifest looks the same as a missing one.
+- In `FlushPacBatch`, `_pendingPacPatches.Clear()` runs only if `PatchPacBatch` and the routing loop finish. An exception would leave stale items queued.
+- If the mod folder has fewer than three parents, `Parent?.Parent?.Parent` is null and the second candidate is silently omitted.
+- `LastWriteError` is reset on each `AtomicWrite` call, so it describes only the most recent write.
+- `PacPatchResult.NotFound` is logged only at Debug level when no retry is pending.
+- The behavior of `ModdedPac`, `ResolveAgainstRetry`, `TakeRetry`, `RoutePacFailed`, `DropRetryUnreadable` and `RequeuePacRetries` is not in the packet. I did not infer it from their names.
+### Stage detail
+Read 1 control (missing member) planted in LivingWeapon/Display/PacLocator.cs at line 70 as // Calls RefreshSlotCache() first., caught, 23s
+Read 1 F2: LivingWeapon/Display/IconGlow.Pac.cs | `// landed as Patched this pass, the cache-hide set` | In RoutePacResult, the AlreadyCurrent case with `retried != null` also adds to `_pacPatchedThisPass`, so the set is not limited to surfaces that landed as Patched.
+Read 1 U1: LivingWeapon/Display/IconGlow.Pac.cs | `sharing it would mute a later real loose-tex failure for the same id.` | unsourced reason
+Read 1 U2: LivingWeapon/Display/IconGlow.Pac.cs | `_applying serializes the task so no lock.` | unsourced reason
+Read 1 U3: LivingWeapon/Display/IconGlow.Pac.cs | `after every loose write, so the restart copy always lands before the live one.` | unsourced reason
+Read 1 U4: LivingWeapon/Display/IconGlow.Pac.cs | `Debug only, a warning here would train the owner to ignore the channel.` | unsourced reason
+Read 1 U5: LivingWeapon/Display/IconGlow.StoreFile.cs | `so its offset cache survives between passes.` | unsourced reason
+Read 2 control (wrong condition) planted in LivingWeapon/Display/IconGlow.StoreFile.cs at line 80 as // Taken only when not (pac == null)., caught, 23s
+Read 2 F2: LivingWeapon/Display/IconGlow.StoreFile.cs | "Every method returns null or false on failure and never throws." | `PatchPacBatch` reports failure as `PacPatchResult.Unavailable` or `Failed` in its result dictionary, not as null or false. Its `pac.PatchBatch(...)` call is also outside any try/catch, so the no-throw claim isn't enforced there.
+Read 2 U1: LivingWeapon/Display/IconGlow.Pac.cs | "sharing it would mute a later real loose-tex failure for the same id." | unsourced reason
+Read 2 U2: LivingWeapon/Display/IconGlow.Pac.cs | "_applying serializes the task so no lock." | unsourced reason
+Read 2 U3: LivingWeapon/Display/IconGlow.Pac.cs | "after every loose write, so the restart copy always lands before the live one." | unsourced reason
+Read 2 U4: LivingWeapon/Display/IconGlow.Pac.cs | "Debug only, a warning here would train the owner to ignore the channel." | unsourced reason
+Read 2 U5: LivingWeapon/Display/IconGlow.StoreFile.cs | "so its offset cache survives between passes." | unsourced reason
+Read 3 control (wrong return) planted in LivingWeapon/Display/IconGlow.StoreFile.cs at line 58 as // Returns an empty array on this path., caught, 24s
+Read 3 F2: LivingWeapon/Display/IconGlow.Pac.cs | `// the cache-hide set, every surface whose new art is in the pac this pass` | `RoutePacResult` adds to `_pacPatchedThisPass` only on `Patched` and on `AlreadyCurrent` with a retry (`retried != null`). A plain `AlreadyCurrent` with no retry has its new art in the pac but is not added.
+Read 3 U1: LivingWeapon/Display/IconGlow.Pac.cs | `// Separate from _warnedOnce, which also gates MarkUnmanaged and the loose-tex read warning; sharing it would mute a later real loose-tex failure for the same id.` | unsourced reason
+Read 3 U2: LivingWeapon/Display/IconGlow.Pac.cs | `// Reset and read within one ApplyDiff call; _applying serializes the task so no lock.` | unsourced reason
+Read 3 U3: LivingWeapon/Display/IconGlow.Pac.cs | `call, after every loose write, so the restart copy always lands before the live one.` | unsourced reason
+Read 3 U4: LivingWeapon/Display/IconGlow.Pac.cs | `// Debug only, a warning here would train the owner to ignore the channel.` | unsourced reason
+Read 3 U5: LivingWeapon/Display/IconGlow.StoreFile.cs | `/// <summary>Patches the pac through one <see cref="ModdedPac"/> per launch, so its offset cache survives between passes.` | unsourced reason
+F2: open, the field comment still overstates the set since a first pass AlreadyCurrent with no retry is left out of the hide set, and no read remained to confirm a reword
+Unprompted rows: 8 finding(s) new in 3 row(s) (LW-521, LW-522, LW-523), 0 repeated (none)
+
+## Cold read 2026-10-24 02:23, LW-513, base dd7eb3e2
+Run cap 1 (118 changed production lines). Runs used 1 of 1.
+Files: LivingWeapon/Display/IconGlow.Pac.cs, LivingWeapon/Display/IconGlow.StoreFile.cs, LivingWeapon/Display/PacLocator.cs
+Hashes: LivingWeapon/Display/IconGlow.Pac.cs=53eae622465e0a5d; LivingWeapon/Display/IconGlow.StoreFile.cs=154b8a5f30f3fbd2; LivingWeapon/Display/PacLocator.cs=e792848c876cbae8
+Guard: {"LivingWeapon/Display/IconGlow.Pac.cs":{"budget":35,"kept":[],"raw":"978263e7e58a9bf9"},"LivingWeapon/Display/IconGlow.StoreFile.cs":{"budget":12,"kept":[],"raw":"b09d32de5072eb06"},"LivingWeapon/Display/PacLocator.cs":{"budget":5,"kept":[],"raw":"bbaec5eea509302c"}}
+Supersedes: Cold read 2026-10-24 02:10, LW-513, base dd7eb3e2 | fix round 4 changed the code after the earlier read
+Stage 1 (cold read): run 1, 3 pass, canary cold
+Stage 2 (plain words): stripped code identical before and after in 3 file(s); comment lines 52 before stage 1, 52 after; rules clean; 1 ledger cite(s) sent to stage 4
+Stage 3 (warnings): 0 warning(s) found (0 only in the original comments); 0 fixed in code, 0 kept with a reason; no code changed
+Stage 4 (accuracy): 0 comment(s) flagged over 1 read(s); 0 fixed and confirmed by a fresh read, 0 reader wrong, 0 open; control kind wrong order caught on 1 counted read(s), missed on 0 refused read(s); 5 unsourced reason(s); 0 kept warning(s) code could enforce
+### Run 1
+Canary: cold
+Q1 (failure path): Two candidates exist on disk, the one beside the game exe and the walk one. The file check says yes for the exe candidate, but constructing ModdedPac on that path throws. What does this first ResolvePac call log and return, does it fall back to the walk candidate, and what do later ResolvePac calls in the same launch do?
+Expected: The success line "IconGlow found modded.pac beside the game exe." (with the path on the trace half) is written before the constructor runs, so it is already logged when the throw happens. The outer catch sets _pacResolutionFailed to true and returns null. It does not try the walk candidate, because FirstExisting already returned the exe candidate and the constructor is called only on that one hit. Every later ResolvePac call returns null at once on the latched flag, so later batches come back Unavailable without touching the disk.
+Reader: In `ResolvePac`, the `try` block first calls `_exePath()`, then `PacLocator.Candidates(exe, _modDir)`, then `FirstExisting(candidates, _fileExists)`. The file check returns the exe candidate as `hit`, so the code logs `ModLogger.EventWithTrace(LogVerb.Display, $"IconGlow found modded.pac {hit.Label}.", $"IconGlow modded.pac path {hit.Path}")`. The label is "beside the game exe". Then `_pac = new ModdedPac(hit.Path)` throws. The outer `catch { _pacResolutionFailed = true; return null; }` catches it, so the first call returns null. There is no fallback to the walk candidate. `FirstExisting` already returned the first hit and the loop is over, so the walk candidate is never tried. `_pac` stays null and `_pacResolutionFailed` is true. Every later call skips the `_pac != null` check and hits `if (_pacResolutionFailed) return null;`, so each returns null without retrying and without logging. The success log fired before the constructor threw, so the log says "found" even though the open failed. The catch logs nothing. I cannot say what the `ModdedPac` constructor does, since its source is not in the packet. I am only taking the premise that it throws.
+Result: pass
+Q2 (ordering): In PacLocator.LiveExePath, which source of the exe path is consulted first, when is the second one consulted, and what comes back if either one throws?
+Expected: Environment.ProcessPath is read first and returned when it is not null, empty or whitespace. Only when it is null or whitespace does it open Process.GetCurrentProcess() and read MainModule's FileName, returning null when that is null or whitespace. Any throw from either source is caught and the method returns null, which leaves Candidates with only the walk candidate.
+Reader: `LiveExePath` consults `Environment.ProcessPath` first. If it is not null, empty or whitespace, it is returned immediately. Only otherwise does the code call `Process.GetCurrentProcess()` and read `proc.MainModule?.FileName`. That fallback is returned unless it is null or whitespace, in which case the result is null. If anything throws, in either source, the method-wide `catch { return null; }` returns null. A throw in the first source skips the second, because there is no per-source try. The throw also ends the method, so `Environment.ProcessPath` being null does not rescue a failure in the fallback.
+Result: pass
+Q3 (free): The mod folder path has only two parent folders above it (say C:\Mine\Mod), and the exe path is null. What does PacLocator.Candidates return, and what text would the not found Debug line carry for that list?
+Expected: The exe candidate is skipped because the exe path is null. Parent.Parent.Parent of C:\Mine\Mod runs out to null (C:\Mine, then C:\, then null), so no walk candidate is added either and the list is empty. Describe on an empty list returns "no candidate path", so the Debug line reads "IconGlow found no modded.pac at no candidate path."
+Reader: With `exePath` null, `string.IsNullOrWhiteSpace(exePath) ? null : ...` gives `dir = null`, so no exe candidate is added. For the mod folder, `new DirectoryInfo(modDir).Parent?.Parent?.Parent` is evaluated. With `C:\Mine\Mod`, `.Parent` is `C:\Mine`, the next `.Parent` is `C:\`, and the third `.Parent` is null because the root has no parent. So `root` is null, nothing is added, and `Candidates` returns an empty list. `Describe` returns the text "no candidate path" for an empty list. The Debug line in `ResolvePac` is therefore `IconGlow found no modded.pac at no candidate path.` Before that line, `FirstExisting` on the empty list returns null, so the `is not { } hit` branch runs and sets `_pacResolutionFailed = true`.
+Result: pass
+Unprompted:
+- **Misleading success log:** as noted in A1, "found modded.pac" is logged before the `ModdedPac` constructor runs. A constructor failure is swallowed silently, so the log shows a find and no error. The failure leaves no trace beyond the absence of later patches.
+- **Permanent failure for the launch:** `_pacResolutionFailed` is never reset in the packet, so a transient failure, such as a locked file, disables pac mirroring for the whole session. `FlushPacBatch` then reports `Unavailable` for every item.
+- **Candidate dedup quirk:** the walk candidate is skipped only if it equals `list[0]`. That check is also gated on `list.Count == 0`, so it is correct, but it compares against the exe candidate by path only.
+- **Name vs. behavior:** `ModDirLabel` says "three folders above the mod folder", but a mod path with fewer than three parents silently yields no candidate and no log.
+- **Silent swallows:** `ReadManifest`, `ReadDeployedTex`, `ReadVariantTex` and `ReadBaseBackup` all `catch` and return null, so a read error and a missing file look the same. `FileIconGlowStore.AtomicWrite` does record `LastWriteError`.
+- **Thread-safety:** `WarnPacOnce` takes `_lock`, but the other `_pac*` counters and `_pendingPacPatches` are touched without it in the packet. `_pac` and `_pacResolutionFailed` in the store are unsynchronised too.
+- **Missing result defaults to `Failed`:** in both `FlushPacBatch` and `PatchPacBatch`, a missing result key is treated as `PacPatchResult.Failed`.
+- **Unseen dependencies:** `ResolveAgainstRetry`, `TakeRetry`, `DropRetryUnreadable`, `RequeuePacRetries`, `HideThisPassPatched`, `CountUnavailableRetry`, `RoutePacFailed`, `LastPacDetail` and `ModdedPac.PatchBatch` are not in the packet. `_hidesThisApply` is declared but not used in the files shown.
+### Stage detail
+Read 1 control (wrong order) planted in LivingWeapon/Display/IconGlow.Pac.cs at line 54 as // var results = _store.PatchPacBatch(items) runs before var items = _pendingPacPatches.Select(p => (p.E...., caught, 19s
+Read 1 U1: LivingWeapon/Display/IconGlow.Pac.cs | "Separate from _warnedOnce, which also gates MarkUnmanaged and the loose-tex read warning; sharing it would mute a later real loose-tex failure for the same id." | unsourced reason
+Read 1 U2: LivingWeapon/Display/IconGlow.Pac.cs | "Reset and read within one ApplyDiff call; _applying serializes the task so no lock." | unsourced reason
+Read 1 U3: LivingWeapon/Display/IconGlow.Pac.cs | "after every loose write, so the restart copy always lands before the live one." | unsourced reason
+Read 1 U4: LivingWeapon/Display/IconGlow.Pac.cs | "Debug only, a warning here would train the owner to ignore the channel." | unsourced reason
+Read 1 U5: LivingWeapon/Display/IconGlow.StoreFile.cs | "Patches the pac through one <see cref="ModdedPac"/> per launch, so its offset cache survives between passes." | unsourced reason
+Unprompted rows: 8 finding(s) new in 2 row(s) (LW-525, LW-526), 0 repeated (none)

@@ -4,18 +4,16 @@ using System.Linq;
 namespace LivingWeapon;
 
 /// <summary>
-/// The same-session modded.pac mirror, split from IconGlow.Apply.cs. That file writes the
-/// deployed loose tex the launch merge re-reads next boot; this one is a visibility bonus queued
-/// from ApplyId after WriteDeployedTex succeeded and flushed once per ApplyDiff pass.
+/// Lets a new glow ring show in this session instead of after a restart. IconGlow.Apply.cs writes
+/// the loose tex the game merges at the next launch; this file then copies the same bytes into the
+/// game's already merged modded.pac, queued from ApplyId and flushed once per ApplyDiff pass.
 ///
-/// Ledger row [live-icon-repaint] (2026-09-01, tools/probes/live_icon_patch_probe.py) showed a
-/// same-length in-place overwrite inside modded.pac lands live with no exclusive lock, and that a
-/// drawn icon refreshes on the next list redraw, not on a cursor move. That overturned the
-/// 2026-08-26 verdict that icons cache for the whole process, and retracted [icon-refresh-unreliable].
-/// Before this a mid-session tier change needed a relaunch.
+/// The game reads a same length overwrite inside modded.pac live, with no exclusive lock, and an
+/// icon already drawn picks it up on the next list redraw, not on a cursor move.
+/// [ledger live-icon-repaint]
 ///
-/// A batch re-tier (tools/glow_bounce.py) touches all 242 managed entries, so the mirrors queue
-/// during ApplyId and flush once at the end of ApplyDiff, one pass over the pac instead of 242.
+/// A batch re-tier touches all 242 managed entries, so the copies queue during ApplyId and flush
+/// once at the end of ApplyDiff, one pass over the pac instead of 242.
 /// See <see cref="IIconGlowStore.PatchPacBatch"/> and <see cref="ModdedPac.PatchBatch"/>.
 ///
 /// Fail soft. Nothing here touches ApplyId's allOk or calls MarkUnmanaged. The loose write already
@@ -34,12 +32,10 @@ internal sealed partial class IconGlow
     private int _pacAlreadyCurrentThisApply;
     private int _hidesThisApply;   // surfaces the hider reported Hidden this pass, for the summary line
     private readonly List<(int Id, IconGlowEntry Entry, byte[] OldBytes, byte[] NewBytes, byte[]? PriorTarget)> _pendingPacPatches = new();   // queued this pass, FlushPacBatch drains it
-    private readonly List<(int Id, string Surface, IconGlowEntry Entry)> _pacPatchedThisPass = new();   // landed as Patched this pass, the cache-hide set
+    private readonly List<(int Id, string Surface, IconGlowEntry Entry)> _pacPatchedThisPass = new();   // the cache-hide set, surfaces written this pass or found already written on a retry
 
-    /// <summary>Queues the bytes a successful WriteDeployedTex just wrote for the pac mirror. Nothing
-    /// is queued without prior deployed bytes, on a length mismatch against the manifest (never
-    /// patchable in place, see <see cref="ModdedPac.Patch"/>), or when the bytes already match. The
-    /// last case keeps a pristine id's first write silent.</summary>
+    /// <summary>Queues freshly written loose bytes for the pac copy. Skips missing old bytes, a length
+    /// the manifest disagrees with (no in place patch fits) and bytes that did not change.</summary>
     private void QueuePacMirror(int id, IconGlowEntry entry, byte[]? oldBytes, byte[] newBytes)
     {
         if (oldBytes == null || oldBytes.Length != entry.Length) { DropRetryUnreadable(id, entry.Surface); return; }
@@ -48,9 +44,8 @@ internal sealed partial class IconGlow
         if (plan.Queue) _pendingPacPatches.Add((id, entry, plan.OldBytes, newBytes, plan.PriorTarget));
     }
 
-    /// <summary>Drains everything <see cref="QueuePacMirror"/> queued this pass in one
-    /// <see cref="IIconGlowStore.PatchPacBatch"/> call, at the end of <see cref="ApplyDiff"/> after
-    /// every loose write. Loose tex first, pac second, never the other way round.</summary>
+    /// <summary>Sends this pass's queue to the pac in one <see cref="IIconGlowStore.PatchPacBatch"/>
+    /// call, after every loose write, so the restart copy always lands before the live one.</summary>
     private void FlushPacBatch()
     {
         RequeuePacRetries();
@@ -101,7 +96,7 @@ internal sealed partial class IconGlow
                 {
                     _pacUnavailableWarned = true;
                     ModLogger.Warn(LogVerb.Display,
-                        "IconGlow cannot locate modded.pac this launch (Reloaded-II may be installed outside the game folder); icon tier changes stay restart-only this session. The deployed loose tex is unaffected.");
+                        "IconGlow cannot locate modded.pac this launch (it could not be found or could not be opened); icon tier changes stay restart-only this session. The deployed loose tex is unaffected.");
                 }
                 break;
             case PacPatchResult.NotFound when retried != null:

@@ -6,10 +6,10 @@ using Newtonsoft.Json;
 
 namespace LivingWeapon;
 
-/// <summary>Production <see cref="IIconGlowStore"/> that keeps its files under modDir.
-/// That covers glow_icons/, its base_backup/ subfolder, and the deployed FFTIVC tree. Every method returns null or false on
-/// failure and never throws. Writes go through <see cref="AtomicWrite"/> so a crash cannot leave a torn file. Split from
-/// IconGlow.Store.cs, which keeps the interface and DTOs.</summary>
+/// <summary>Production <see cref="IIconGlowStore"/>. The loose files live under modDir, in glow_icons/, its base_backup/
+/// subfolder, and the deployed FFTIVC tree, and are written through <see cref="AtomicWrite"/> so a crash cannot leave a torn
+/// file. The pac is patched in place beside the exe through <see cref="ModdedPac"/>. Failure comes back as null, false or a
+/// per item result. Split from IconGlow.Store.cs, which keeps the interface and DTOs.</summary>
 internal sealed class FileIconGlowStore : IIconGlowStore
 {
     private readonly string _modDir;
@@ -17,8 +17,17 @@ internal sealed class FileIconGlowStore : IIconGlowStore
     // Resolved lazily; _pacResolutionFailed latches a failure so a missing install is not re-probed every tick.
     private ModdedPac? _pac;
     private bool _pacResolutionFailed;
+    private readonly Func<string?> _exePath;
+    private readonly Func<string, bool> _fileExists;
 
-    public FileIconGlowStore(string modDir) => _modDir = modDir;
+    public FileIconGlowStore(string modDir) : this(modDir, PacLocator.LiveExePath, File.Exists) { }
+
+    internal FileIconGlowStore(string modDir, Func<string?> exePath, Func<string, bool> fileExists)
+    {
+        _modDir = modDir;
+        _exePath = exePath;
+        _fileExists = fileExists;
+    }
 
     public IconGlowWriteError? LastWriteError { get; private set; }
 
@@ -59,9 +68,8 @@ internal sealed class FileIconGlowStore : IIconGlowStore
 
     public bool WriteBaseBackup(IconGlowEntry entry, byte[] bytes) => AtomicWrite(BackupPath(entry), bytes);
 
-    /// <summary>Delegates to <see cref="ModdedPac"/>, resolved once per launch so its
-    /// offset cache is reused. The cache key is (id, surface), matching <see cref="DeployedPath"/>
-    /// and <see cref="BackupPath"/>. Uncached items share one pass via <see cref="ModdedPac.PatchBatch"/>.</summary>
+    /// <summary>Patches the pac through one <see cref="ModdedPac"/> per launch, so its offset cache
+    /// survives between passes. Items are keyed by (id, surface), unlike the loose paths, which key on BaseRel.</summary>
     public IReadOnlyDictionary<(int Id, string Surface), PacPatchResult> PatchPacBatch(
         IReadOnlyList<(IconGlowEntry Entry, byte[] OldBytes, byte[] NewBytes, byte[]? PriorTarget)> items)
     {
@@ -85,10 +93,8 @@ internal sealed class FileIconGlowStore : IIconGlowStore
 
     public IconGlowWriteError? LastPacError(int id, string surface) => _pac?.LastFailure($"{id}:{surface}");
 
-    /// <summary>modDir is <c>&lt;game&gt;\Reloaded\Mods\&lt;modId&gt;</c>, so the game root is three
-    /// parents up. That is unproven, since a Reloaded-II install can live outside the game folder. A
-    /// null parent or a missing pac latches <see cref="_pacResolutionFailed"/> and later calls return
-    /// <see cref="PacPatchResult.Unavailable"/>. Wrapped because path APIs can throw.</summary>
+    /// <summary>Finds the pac beside the running exe, else three folders above modDir. A miss is remembered
+    /// for the launch, so later batches come back Unavailable at once. A pac found but not opened is retried each batch.</summary>
     private ModdedPac? ResolvePac()
     {
         if (_pac != null) return _pac;
@@ -96,14 +102,22 @@ internal sealed class FileIconGlowStore : IIconGlowStore
 
         try
         {
-            var modDirInfo = new DirectoryInfo(_modDir);
-            var gameRoot = modDirInfo.Parent?.Parent?.Parent;
-            if (gameRoot == null) { _pacResolutionFailed = true; return null; }
+            string? exe;
+            try { exe = _exePath(); }
+            catch { exe = null; }
 
-            var pacPath = Path.Combine(gameRoot.FullName, "data", "enhanced", "modded.pac");
-            if (!File.Exists(pacPath)) { _pacResolutionFailed = true; return null; }
+            var candidates = PacLocator.Candidates(exe, _modDir);
+            if (PacLocator.FirstExisting(candidates, _fileExists) is not { } hit)
+            {
+                _pacResolutionFailed = true;
+                ModLogger.Debug(LogVerb.Display, $"IconGlow found no modded.pac at {PacLocator.Describe(candidates)}.");
+                return null;
+            }
 
-            _pac = new ModdedPac(pacPath);
+            ModLogger.EventWithTrace(LogVerb.Display,
+                $"IconGlow found modded.pac {hit.Label}.",
+                $"IconGlow modded.pac path {hit.Path}");
+            _pac = new ModdedPac(hit.Path);
             return _pac;
         }
         catch { _pacResolutionFailed = true; return null; }

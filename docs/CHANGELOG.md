@@ -11,6 +11,8 @@ before 2026-07-21 keep their original prose.
 ## 2.4.1 cycle
 
 - [LW-508] WONTFIX 2026-10-24: The stray category hook change is dropped instead of landed. It only answered a warning planted for a cold read trial, the change itself no longer exists anywhere, and the mod already sets up the item catalog before it puts any hook in, so the extra check could never say no. A new test pins that order and the cold read log entry notes the drop. (Tech: ExtendedInventory.Install returns on a catalog refusal before _installHooks; test ExtendedInventoryTests.A_catalog_refusal_never_reaches_the_detour_install; log entry "Seeded trial build 3" hash 17437a8ea40e9f3c matches no tree or commit.)
+- [LW-525] RETRACTED 2026-10-24: A cold read note about the glow ring file store, dropped because its log claim was wrong against the code (the pac object only stores a path and cannot fail there) and its one true point repeats LW-521.
+- [LW-522] RETRACTED 2026-10-24: A cold read note about the glow ring copy into the game's art file, dropped because each point was already answered by a code comment or is false against the code, for example a failed pass cannot leave old work queued, since the next pass clears the queue first.
 - [LW-466] RETRACTED 2026-10-24: Folded into LW-465 on the locked 2.5.0 list, which now carries its text and fixes it together.
 - [LW-460] RETRACTED 2026-10-24: Folded into LW-459 on the locked 2.5.0 list, which now carries its text and fixes it together.
 - [LW-461] RETRACTED 2026-10-24: Folded into LW-459 on the locked 2.5.0 list, which now carries its text and fixes it together.
