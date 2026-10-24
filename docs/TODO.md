@@ -81,6 +81,14 @@ Locked 2026-10-24: LW-465, LW-508, LW-506, LW-448, LW-459, LW-513, LW-444, LW-38
     (tools/probes/lw386_den_produced_probe.py table, read-only). The tag's ItemData.xml,
     ItemWeaponData.xml, JobData.xml and item.en.nxd all differ from HEAD, so a 2.3.3-tag deploy
     is the honest repro bed if the owner's HEAD build does not reproduce.
+  - CHECKED 2026-10-24, offline: 2.4.0 already fixed the wrong weapon types. In the released 2.4.0
+    and on main, no carcass hands out a different kind of weapon than its card promises (2.3.3 had
+    five), and every carcass still makes its vanilla item. The 39 descriptions that name the
+    vanilla reward are still there; patching them means shipping a whole poach text table, which
+    docs/COMPATIBILITY.md says the mod never does, so that is the owner's call. Only the dragon
+    katana case is left for Done. (Tech: tools/probes/lw386_poach_audit.py [tag] reads the cached
+    working/nxd_poachitem decode and data/items.json; HEAD and v2.4.0 report 0 TYPE and 39 STALE,
+    v2.3.3 reports TYPE on keys 28, 49, 50, 52, 92 and 44 STALE.)
   - NEXT (owner-driven, two minutes): poke Den store keys 87 and 89 to 1 with the probe, open the
     Den, read what the Blue and Red Dragon lines show and produce, restore. Then ask the player
     for mod version, other mods, a Den screenshot and livingweapon.log. Related to [LW-358]
