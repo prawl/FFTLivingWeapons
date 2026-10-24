@@ -89,6 +89,21 @@ public class CardLineTests
     }
 
     [Fact]
+    public void Old_save_chocobo_94_last_victim_reads_a_beast()
+    {
+        // An old save holds job 94 and an Archetype of Human; the noun is derived from the job at display time.
+        var w = new WeaponLegend();
+        w.LastVictimJob = 94;
+        w.LastVictimCls = (int)VictimClass.Archetype.Human;
+
+        string? line = CardLine.Compose("Windrunner", totalKills: 3, w, budgetChars: 200);
+
+        Assert.NotNull(line);
+        Assert.Contains("a beast", line);
+        Assert.DoesNotContain("Dark Knight", line);
+    }
+
+    [Fact]
     public void Compose_breaks_mark_tie_by_archetype_order()
     {
         // Human (1) and Monster (2) both earned at the SAME count -- Human wins (lower enum value).

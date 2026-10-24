@@ -36,6 +36,17 @@ public class LegendStoreTests : IDisposable
         => new(true, nameId, job, undead);
 
     [Fact]
+    public void RecordDeed_files_a_chocobo_94_under_monster()
+    {
+        var store = LegendStore.Load(TempDir());
+        store.RecordDeed(9, Victim(861, 94));
+        var w = store.Get(9);
+        Assert.Equal(1, w.Counts[(int)VictimClass.Archetype.Monster]);
+        Assert.Equal(0, w.Counts[(int)VictimClass.Archetype.Human]);
+        Assert.Equal((int)VictimClass.Archetype.Monster, w.LastVictimCls);
+    }
+
+    [Fact]
     public void Load_missing_file_yields_an_empty_store()
     {
         var dir = TempDir();

@@ -31,12 +31,39 @@ public class PuppeteerTests
     [InlineData(37)]   // the LIVE boss that retired the floor (828 HP enemy read job 37, below old 74)
     [InlineData(73)]   // one below the old human band
     [InlineData(74)]   // Squire
+    [InlineData(94)]   // Chocobo
+    [InlineData(95)]   // Black Chocobo
     [InlineData(99)]   // Goblin (monster)
     [InlineData(145)]  // 0x91 Construct 8
     [InlineData(160)]  // 0xA0 named story boss
     [InlineData(255)]  // 0xFF -- top of the job byte
     public void IsDominatable_allows_everyone(int jobId)
         => Assert.True(Puppeteer.IsDominatable(jobId));
+
+    [Fact]
+    public void Generic_human_band_is_74_to_93()
+    {
+        Assert.False(Puppeteer.IsGenericHumanJob(73));
+        Assert.True(Puppeteer.IsGenericHumanJob(74));
+        Assert.True(Puppeteer.IsGenericHumanJob(93));
+        Assert.False(Puppeteer.IsGenericHumanJob(94));
+        Assert.False(Puppeteer.IsGenericHumanJob(95));
+    }
+
+    [Fact]
+    public void Monster_band_starts_at_the_chocobo_94()
+    {
+        Assert.False(Puppeteer.IsMonsterJob(93));
+        foreach (int job in new[] { 94, 95, 96, 144 }) Assert.True(Puppeteer.IsMonsterJob(job));
+        Assert.False(Puppeteer.IsMonsterJob(145));
+    }
+
+    [Fact]
+    public void Human_and_monster_bands_touch_with_no_gap()
+    {
+        Assert.Equal(93, Puppeteer.GenericJobHi);
+        Assert.Equal(Puppeteer.GenericJobHi + 1, Puppeteer.MonsterJobLo);
+    }
 
     // ---- IsActive: configured (PuppeteerTurns > 0) AND the kill tier earned ----
 

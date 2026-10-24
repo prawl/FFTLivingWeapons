@@ -82,13 +82,13 @@ Capture:
 
 Classify:
 - [ ] Pure classifier returns exactly ONE archetype per kill; precedence: undead bit > caster band
-      (79-82, 85, 90) > human band (74-95) > monster band (96-144) > unknown/special. One test per
-      precedence pair (e.g. undead_caster_classifies_undead).
+      (79-82, 85, 90) > human band (74-93, plus Dark Knight 160) > monster band (94-144) >
+      unknown/special. One test per precedence pair (e.g. undead_caster_classifies_undead).
 - [ ] Out-of-band ids (story bosses read e.g. 37; Ramza forms 0-3; Machinist 43) land in
       unknown/special, never a Mark, EXPECTED on story battles, documented as such (human/caster
       Marks undercount there by design).
-- [ ] Dark Knight: classifier accepts both 94 and 160 until the P1 verify resolves it (resolution is
-      a named P1 output, not open-ended).
+- [ ] Dark Knight: classifier accepts 160 only (LW-172). The game's Job sheet puts the Chocobo at 94
+      (a Black Chocobo read 95 live, LIVE_LEDGER [poachers-den-carcass-store]).
 - [ ] Dragon/species archetypes: NOT in Phase 1. Add-on gated on a monster job-table dump with its
       own done-condition (id set committed with the dump cited).
 

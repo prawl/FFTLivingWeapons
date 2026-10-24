@@ -99,7 +99,7 @@ internal static class Offsets
     public const int ACtTurn = 0x09;
     /// <summary>u8 band-relative job id (PSX "Current Job", combat base +0x03). Negative, so it reaches below
     /// BandEntry (0x1C); ACrystalHearts and AGateByte are negative too. Promoted from Puppeteer.Policy's JobOff
-    /// and now an alias. Confirmed 2026-06-18 (Ramza 83 Thief, party Dark Knight 94, Goblin 99,
+    /// and now an alias. Confirmed 2026-06-18 (Ramza 83 Thief, a party unit at 94, Goblin 99,
     /// Bonesnatch 110), but bosses read story ids like 37, so Puppeteer.IsDominatable does not filter on
     /// it.</summary>
     public const int AJob = -0x19;

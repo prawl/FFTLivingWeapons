@@ -15,19 +15,19 @@ internal sealed partial class Puppeteer
     /// <summary>Lowest generic-human job id (Squire) on the live IC job byte (roster +0x02 / combat +0x03).</summary>
     public const int GenericJobLo = 74;   // 0x4A
 
-    /// <summary>Highest generic-human job id (95 = Onion Knight; 94 = Dark Knight, confirmed live in the party).</summary>
-    public const int GenericJobHi = 95;   // 0x5F
+    /// <summary>Highest generic-human job id (93 = Mime). The Job sheet puts the Chocobo at 94 and the Black Chocobo at 95.</summary>
+    public const int GenericJobHi = 93;   // 0x5D
 
     /// <summary>True when the job id is a generic human class.</summary>
     public static bool IsGenericHumanJob(int jobId) => jobId >= GenericJobLo && jobId <= GenericJobHi;
 
-    /// <summary>First monster-class job id (just above the human band).</summary>
-    public const int MonsterJobLo = 96;    // 0x60
+    /// <summary>First monster-class job id (94 = Chocobo, just above the human band).</summary>
+    public const int MonsterJobLo = 94;    // 0x5E
 
     /// <summary>Top of the monster band, excludes 0x91 Construct 8 and the 0xA0+ named-character jobs.</summary>
     public const int MonsterJobHi = 144;   // 0x90
 
-    /// <summary>True when the job id is a monster class. The band (96-144) excludes 0x91 Construct 8
+    /// <summary>True when the job id is a monster class. The band (94-144) excludes 0x91 Construct 8
     /// and the 0xA0+ named-character jobs; the IC Lucavi job list was never mapped.</summary>
     public static bool IsMonsterJob(int jobId) => jobId >= MonsterJobLo && jobId <= MonsterJobHi;
 

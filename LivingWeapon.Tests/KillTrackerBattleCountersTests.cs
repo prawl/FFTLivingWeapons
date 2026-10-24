@@ -216,6 +216,18 @@ public class KillTrackerBattleCountersTests
     }
 
     [Fact]
+    public void The_credit_line_says_a_monster_for_a_chocobo_94()
+    {
+        var t = Make(out _);
+        using var cap = LogCapture.Start(console: false);
+        var file = cap.File;
+        t._victimAtEdge[0] = new VictimSnapshot(true, 861, 94, false);
+        t.CreditKill(0, 7, 6, new List<int> { 9 });
+        Assert.Contains(file, l => l.Contains("felling a monster at (7,6)"));
+        Assert.DoesNotContain(file, l => l.Contains("felling a human"));
+    }
+
+    [Fact]
     public void The_credit_line_says_an_enemy_when_no_snapshot_was_captured()
     {
         var t = Make(out _);

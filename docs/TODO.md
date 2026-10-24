@@ -122,7 +122,7 @@ Locked 2026-10-24: LW-465, LW-508, LW-506, LW-448, LW-459, LW-513, LW-444, LW-38
   sighting battle, if one flushed, shows what the credit lane resolved for that unit.)
   - Done means: first settle whether the fists text is the game's own; if it is ours, the mod reads the weapon from whichever hand holds it.
   - Verify: one battle with the arrangement and the mod off, then on; the Attack row names the weapon when the mod is on.
-- **[LW-172] Chocobos stop being counted as humans** (opened 2026-08-12) [QUEUED]
+- **[LW-172] Chocobos stop being counted as humans** (opened 2026-08-12) [AWAITING-LIVE]
   The mod's human versus monster job boundary is off by two, and every
   consumer of it needs an audit: monsters start at job 94 (Chocobo; Black Chocobo 95), not 96.
   OWNER SIGHTING 2026-08-17, the player-visible cost is now on record: during the LW-233 retry
@@ -146,6 +146,7 @@ Locked 2026-10-24: LW-465, LW-508, LW-506, LW-448, LW-459, LW-513, LW-444, LW-38
   the band job byte at the boundary; one deliberate re-read settles it.
   - Done means: the human versus monster line sits at job 94 everywhere the mod uses it, so a chocobo kill is announced as a monster.
   - Verify: tests on every consumer of the line; owner kills a chocobo and the toast says monster.
+  - Built: the mod now treats chocobos as monsters, so killing one says it felled a monster, the equip card calls it a beast, and the Marks count it as a monster kill instead of a human. Owner checks live by killing a chocobo and reading the toast. Puppeteer play does not change, since it never filters on the line, and a Dark Knight foe still counts as a person. Story battle copies of monsters (jobs 169 to 173, one of them a chocobo) still read as an unnamed enemy and earn no Mark, by owner ruling 2026-10-24 ("Leave it alone"). (Tech: GenericJobHi 95 to 93 and MonsterJobLo 96 to 94 in Puppeteer.Policy.cs; VictimClass human band 74 to 93 plus 160, monster 94 to 144, the 94 Dark Knight name dropped; a test pins both band tables to agree on all 256 job ids; old saves reclass at display time, stored Human counts stay as recorded; proof for 94 and 95 is the Job sheet plus the LW-167 live read cited in LIVE_LEDGER poachers-den-carcass-store.)
 - **[LW-234] A guest or an enemy can never earn your weapon a kill** (opened 2026-08-14) [QUEUED]
   The mod files the player's own guests as enemies, so a guest dying could
   hand the player's weapon a kill it did not earn, complete with a growth toast. Found in the

@@ -8,7 +8,7 @@ namespace LivingWeapon.Tests;
 /// Enum order is the AC's listing order (Caster=0, Human=1, Monster=2, Undead=3, Unknown=4) --
 /// it drives both the Mark event-key space (1000+index) and mark tie-breaks (a count tie
 /// resolves in this order). One test per precedence pair, plus the out-of-band/story-id cases
-/// that must land Unknown BY DESIGN, plus the Dark Knight both-ids rule.
+/// that must land Unknown BY DESIGN, plus Dark Knight at 160.
 /// </summary>
 public class VictimClassTests
 {
@@ -28,29 +28,58 @@ public class VictimClassTests
     [Fact]
     public void Caster_band_prefers_caster_over_human()
     {
-        // 79-82/85/90 sit INSIDE the 74-95 human band -- caster must win the overlap.
+        // 79-82/85/90 sit INSIDE the 74-93 human band -- caster must win the overlap.
         foreach (byte casterJob in new byte[] { 79, 80, 81, 82, 85, 90 })
             Assert.Equal(VictimClass.Archetype.Caster, VictimClass.Classify(casterJob, undead: false));
     }
 
     [Fact]
-    public void Human_band_covers_the_non_caster_74_to_95_range()
+    public void Human_band_covers_the_non_caster_74_to_93_range()
     {
-        foreach (byte job in new byte[] { 74, 75, 76, 77, 78, 83, 84, 86, 87, 88, 89, 91, 92, 93, 95 })
+        foreach (byte job in new byte[] { 74, 75, 76, 77, 78, 83, 84, 86, 87, 88, 89, 91, 92, 93 })
             Assert.Equal(VictimClass.Archetype.Human, VictimClass.Classify(job, undead: false));
     }
 
     [Fact]
-    public void Human_94_and_160_both_human()
+    public void Dark_Knight_160_is_human()
     {
-        // Dark Knight: the classifier accepts BOTH ids until the P1 verify resolves which one is real.
-        Assert.Equal(VictimClass.Archetype.Human, VictimClass.Classify(94, undead: false));
         Assert.Equal(VictimClass.Archetype.Human, VictimClass.Classify(160, undead: false));
     }
 
     [Fact]
-    public void Monster_band_96_144()
+    public void Chocobo_line_94_95_96_classifies_monster()
     {
+        foreach (byte job in new byte[] { 94, 95, 96 })
+            Assert.Equal(VictimClass.Archetype.Monster, VictimClass.Classify(job, undead: false));
+    }
+
+    [Theory]
+    [InlineData(94)]   // Chocobo
+    [InlineData(95)]   // Black Chocobo
+    public void FellPhrase_chocobo_jobs_read_a_monster(int job)
+        => Assert.Equal("a monster", VictimClass.FellPhrase(true, (byte)job, false));
+
+    [Fact]
+    public void FellPhrase_mime_93_still_reads_a_human()
+        => Assert.Equal("a human", VictimClass.FellPhrase(true, 93, false));
+
+    [Fact]
+    public void Puppeteer_bands_agree_with_the_victim_classifier()
+    {
+        for (int j = 0; j <= 255; j++)
+        {
+            if (j == 160) continue;
+            var cls = VictimClass.Classify((byte)j, undead: false);
+            Assert.True(Puppeteer.IsMonsterJob(j) == (cls == VictimClass.Archetype.Monster), $"monster band disagrees at job {j}");
+            Assert.True(Puppeteer.IsGenericHumanJob(j) == (cls is VictimClass.Archetype.Human or VictimClass.Archetype.Caster),
+                $"human band disagrees at job {j}");
+        }
+    }
+
+    [Fact]
+    public void Monster_band_94_144()
+    {
+        Assert.Equal(VictimClass.Archetype.Monster, VictimClass.Classify(94, undead: false));
         Assert.Equal(VictimClass.Archetype.Monster, VictimClass.Classify(96, undead: false));
         Assert.Equal(VictimClass.Archetype.Monster, VictimClass.Classify(144, undead: false));
         Assert.Equal(VictimClass.Archetype.Monster, VictimClass.Classify(120, undead: false));
@@ -140,10 +169,16 @@ public class VictimClassTests
         => Assert.Equal(expected, VictimClass.VictimNoun(job, undead: false));
 
     [Fact]
-    public void VictimNoun_dark_knight_both_ids()
+    public void VictimNoun_dark_knight_is_160()
     {
-        Assert.Equal("Dark Knight", VictimClass.VictimNoun(94, undead: false));
         Assert.Equal("Dark Knight", VictimClass.VictimNoun(160, undead: false));
+    }
+
+    [Fact]
+    public void VictimNoun_chocobo_jobs_are_beasts()
+    {
+        Assert.Equal("beast", VictimClass.VictimNoun(94, undead: false));
+        Assert.Equal("beast", VictimClass.VictimNoun(95, undead: false));
     }
 
     [Fact]

@@ -12,15 +12,15 @@ internal static class VictimClass
     /// see CardLine.Compose). Unknown is never a Mark archetype (see LegendStore.RecordDeed).</summary>
     internal enum Archetype { Caster = 0, Human = 1, Monster = 2, Undead = 3, Unknown = 4 }
 
-    // Caster band sits inside the human 74-95 range, so it is checked first (AC precedence. Undead > caster > human > monster > unknown).
+    // Caster band sits inside the human 74-93 range, so it is checked first (AC precedence. Undead > caster > human > monster > unknown).
     private static bool IsCasterJob(byte job) =>
         job is 79 or 80 or 81 or 82 or 85 or 90;
 
     private static bool IsHumanJob(byte job) =>
-        (job >= 74 && job <= 95) || job == 160;   // 160. Dark Knight's alternate id (both-ids rule)
+        (job >= 74 && job <= 93) || job == 160;   // 160 is the Dark Knight job
 
     private static bool IsMonsterJob(byte job) =>
-        job >= 96 && job <= 144;
+        job >= 94 && job <= 144;
 
     /// <summary>Precedence is undead bit &gt; caster band &gt; human band &gt; monster band &gt; unknown/special. Out-of-band ids (story
     /// bosses e.g. 37, Ramza forms 0-3, Machinist 43) land Unknown, so human/caster Marks undercount on story battles, an accepted
@@ -64,13 +64,13 @@ internal static class VictimClass
     };
 
     /// <summary>Display-only victim noun for the last-victim narration line (CardLine.cs). Undead overrides the job table ("risen one");
-    /// 94/160 both name "Dark Knight"; the named IC table covers 74-93; anything else falls to "beast"/"foe". <see cref="Classify"/> is
-    /// authoritative for Marks, so a "foe" here can still classify Human (e.g. job 95).</summary>
+    /// 160 names "Dark Knight"; the named IC table covers 74-93; anything else falls to "beast"/"foe". <see cref="Classify"/> is
+    /// authoritative for Marks.</summary>
     public static string VictimNoun(byte job, bool undead)
     {
         if (undead) return "risen one";
         if (job is >= 74 and <= 93) return JobNames[job - 74];
-        if (job == 94 || job == 160) return "Dark Knight";
+        if (job == 160) return "Dark Knight";
         return IsMonsterJob(job) ? "beast" : "foe";
     }
 
