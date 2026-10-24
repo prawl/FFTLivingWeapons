@@ -265,7 +265,7 @@ Locked 2026-10-24: LW-465, LW-508, LW-506, LW-448, LW-459, LW-513, LW-444, LW-38
   menu effect. Owner workaround documented in-session: wait a beat before confirming.)
   - Done means: a hit confirmed right after arming dominates, and a dominated monster shows a visible sign.
   - Verify: owner tries five quick confirms and one monster, all land and show.
-- **[LW-296] Players are told when another mod's text hides the kill counter** (opened 2026-08-21) [QUEUED]
+- **[LW-296] Players are told when another mod's text hides the kill counter** (opened 2026-08-21) [AWAITING-LIVE]
   When another mod replaces the game's item text, the kill counter quietly
   stops appearing on weapon cards and the player is never told why, so tell them. The counter
   is not broken and counting never stops; the number simply has nowhere to be drawn, and today
@@ -283,6 +283,7 @@ Locked 2026-10-24: LW-465, LW-508, LW-506, LW-448, LW-459, LW-513, LW-444, LW-38
   once-per-session calm box, mod stays armed, nothing else disabled.)
   - Done means: the mod notices when an item text mod leaves no place for the counter, stays on, and says once what is hidden and what still works.
   - Verify: a test on the detection; owner launches with a text mod enabled and sees the notice once.
+  - Built: when the mod finishes two full searches of memory without ever finding its kill counter text, and two minutes have passed since the save loaded, it says once that the counter is hidden because another mod replaced the item descriptions or the game is not in English, that kills, growth and every weapon power keep working, and that the counts come back once the descriptions are ours again. A new parts board entry, kill counter on weapon cards, shows it as paused; nothing is switched off. A normal English launch finds the text in about ten seconds, so it never fires there. OWNER CALL before release: today the board's standard pop up box also opens, worded for a game update (check for a newer version), and a non-English player would see it every launch. Options: no box for this check, only the log line and Parts report line (recommended, the README already explains the language case); its own box wording; or keep it. Owner checks the player text too. (Tech: CardTextWatch and CardTextWatch.Policy, ShouldReport needs 2 empty walks, no region or painted site ever, 120 s after Display's first tick; Door.CardText on new Part.CardCounter, which also depends on Door.Roster; the Warn is the player text plus PartsCopy.Detail only; verifier code 9, spec 5 on the box copy alone; residual false alarm risk only on very slow hardware where one search takes over 120 s; cold read entry LW-296.)
 - **[LW-360] Card kill counters fill quickly after launch and never stay blank** (opened 2026-08-30) [AWAITING-LIVE]
   The kill counters on the equip cards stop populating for most of the
   menu when the new warm start is running: the owner flipped cards live and the counts stayed
@@ -391,6 +392,8 @@ Locked 2026-10-24: LW-465, LW-508, LW-506, LW-448, LW-459, LW-513, LW-444, LW-38
 
 ## Backlog
 
+- [LW-537] 2026-10-24: Cold read of Display/CardTextWatch.cs found 1 thing worth a look. (cold-read, LW-296)
+  - The card text door closes through DoorReading.Failed, so the parts board pops its standard box about a game update and data in a different place than expected, which does not match a text mod or a non-English game.
 - [LW-536] 2026-10-24: When the main kill tally file cannot be read but the backup loads, the mod keeps playing from the backup and the next saves overwrite the main file, so any kills it held beyond the backup, at most about one battle's worth, are lost without a copy. Keep a .unreadable copy of the main file in that case too. (Tech: KillTally.Load, the unreadable list is only acted on when no copy loaded; SidecarJson.SaveAtomic copies primary to .bak then writes the primary; found by the LW-511 final verifier.)
 - [LW-534] 2026-10-24: Cold read of Engine.cs found 1 thing worth a look. (cold-read, LW-511)
   - KillTally.Load treats a tally file that exists but fails to parse as absent, so two corrupt files end in the false starting fresh line, get no .unreadable copy, and are later overwritten.

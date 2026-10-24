@@ -58,7 +58,7 @@ internal sealed class Engine
     private readonly Bulwark _bulwark;
     private readonly string _drillSentence;
     private readonly PartsBoard _board;   // the parts report line and its box per closure wave
-    private readonly Dictionary<Door, DoorReading> _readings = new();   // the thirteen doors, refilled every tick
+    private readonly Dictionary<Door, DoorReading> _readings = new();   // the fourteen doors, refilled every tick
     private readonly AnchorScout _anchorScout;   // verifier scout, ticks only once StoodDown; writes nothing
     private readonly BannerToast _toast;
     private readonly bool _bannerToastsEnabled;
@@ -455,6 +455,7 @@ internal sealed class Engine
         _readings[Door.ItemStats] = _tableDoors.ItemStats;
         _readings[Door.Band] = _launchGuard.BandDoor;
         _readings[Door.StaticArray] = _launchGuard.StaticArrayDoor;
+        _readings[Door.CardText] = _display.CardTextDoor;
         _board.Observe(_readings, _launchGuard.BuildHedge, _drillSentence, () => _launchGuard.Footer);
     }
 

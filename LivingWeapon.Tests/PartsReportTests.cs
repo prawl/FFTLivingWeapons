@@ -27,6 +27,7 @@ public class PartsReportTests
         [Door.ItemStats] = DoorReading.Open(),
         [Door.Band] = DoorReading.Open(),
         [Door.StaticArray] = DoorReading.Open(),
+        [Door.CardText] = DoorReading.Open(),
     };
 
     private const string Foot = "Living Weapons 9.9.9, game build 0x6A5E4A1B";
@@ -43,7 +44,7 @@ public class PartsReportTests
         {
             "battle sensing", "kill counting", "stat growth", "card paint", "weapon powers in battle (Maim, Plague and the rest)",
             "weapon commands", "banners", "extended inventory", "twin weapons",
-            "bulwark", "gun growth", "poach den", "provoke",
+            "bulwark", "gun growth", "poach den", "provoke", "kill counter on weapon cards",
         };
         if (PartsReport.Ships(Part.WeaponColors)) labels.Insert(10, "weapon colors");
         return labels.ToArray();
@@ -54,10 +55,10 @@ public class PartsReportTests
     {
 #if LWDEV
         Assert.True(PartsReport.Ships(Part.WeaponColors));
-        Assert.Equal(14, PartsReport.Shipped.Count);
+        Assert.Equal(15, PartsReport.Shipped.Count);
 #else
         Assert.False(PartsReport.Ships(Part.WeaponColors));
-        Assert.Equal(13, PartsReport.Shipped.Count);
+        Assert.Equal(14, PartsReport.Shipped.Count);
 #endif
         string line = PartsReport.ComposeLine(AllOpen());
         Assert.Equal(PartsReport.Ships(Part.WeaponColors), line.Contains("weapon colors"));
@@ -279,6 +280,7 @@ public class PartsReportTests
             [Door.ItemStats] = DoorReading.Failed("x"),
             [Door.Band] = DoorReading.Failed("x"),
             [Door.StaticArray] = DoorReading.Failed("x"),
+            [Door.CardText] = DoorReading.Failed("x"),
         };
 
         string box = Box(r);
@@ -486,7 +488,7 @@ public class PartsReportTests
     {
         Assert.Equal(PartsReport.Shipped.Count, Labels.Length);
         Assert.Equal("twin weapons", Labels[8]);
-        Assert.Equal(14, Enum.GetValues<Part>().Length);
+        Assert.Equal(15, Enum.GetValues<Part>().Length);
         string line = PartsReport.ComposeLine(AllOpen());
         Assert.DoesNotContain("twin pistols", line);
         Assert.DoesNotContain("static table signatures", line);
@@ -584,7 +586,7 @@ public class PartsReportTests
         string expected =
             "Living Weapons: some features are paused\n\n"
             + PartsReport.SomePausedBody + "\n\n"
-            + "Still working:\n  battle sensing, card paint, weapon commands, banners, extended inventory, twin weapons, " + colors + "gun growth, poach den, provoke\n\n"
+            + "Still working:\n  battle sensing, card paint, weapon commands, banners, extended inventory, twin weapons, " + colors + "gun growth, poach den, provoke, kill counter on weapon cards\n\n"
             + "Paused this session:\n  bulwark\n\n"
             + "Still being checked (as the game loads and your first battle starts):\n  kill counting, stat growth, " + L(Part.BandSignatures) + "\n\n"
             + PartsCopy.Hedge + LaunchGuard.UnknownBuildHedge + " Your game and save are fine.\n\n"

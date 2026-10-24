@@ -5,7 +5,7 @@ using System.Text;
 namespace LivingWeapon;
 
 /// <summary>
-/// The pure half of the parts report. Thirteen door readings in, one status per part out, composed into the
+/// The pure half of the parts report. Fourteen door readings in, one status per part out, composed into the
 /// single log line and the single box text. Dependency free like FingerprintGuard.
 /// </summary>
 internal static class PartsReport
@@ -78,6 +78,7 @@ internal static class PartsReport
         new(Part.GunGrowth, "gun growth", Door.Roster, Door.ItemStats),
         new(Part.PoachDen, "poach den", Door.Roster, Door.PoachStore),
         new(Part.Provoke, "provoke", Door.Roster, Door.KitLane, Door.ProvokeTables),
+        new(Part.CardCounter, "kill counter on weapon cards", Door.Roster, Door.CardText),
     };
 
     /// <summary>The parts this build ships, in report order. A part absent here has no row, no line and no box entry.</summary>

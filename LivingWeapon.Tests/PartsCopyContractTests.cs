@@ -189,7 +189,8 @@ public class PartsCopyContractTests
     [Fact]
     public void The_theory_covers_every_door_plus_the_stall_and_the_prompt_hook_catch()
     {
-        Assert.Equal(Enum.GetValues(typeof(Door)).Length + 2, Cases().Count());
+        // The card text door is exempt, its warning is player text with no update hedge, covered in CardTextWatchTests.
+        Assert.Equal(Enum.GetValues(typeof(Door)).Length - 1 + 2, Cases().Count());
     }
 
     [Fact]

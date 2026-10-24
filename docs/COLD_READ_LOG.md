@@ -1551,3 +1551,40 @@ Resolution: kept, the catch this comment sits in is the enforcement, it now also
 W17 (original, still there): LivingWeapon/Logging/FlightRecorder.cs:120 | /* swallow -- a flush failure must never throw or call ModLogger (B1: re-entrancy) */
 Resolution: kept, the catch this comment sits in is the enforcement, it now also counts the fault in QuietFaults; the comment states the rule so a later edit cannot add work outside it or let the fault reach the game.
 Unprompted rows: 2 finding(s) new in 2 row(s) (LW-534, LW-535), 0 repeated (none)
+
+## Cold read 2026-10-24 11:12, LW-296, base ff21f360
+Run cap 1 (85 changed production lines). Runs used 1 of 1.
+Files: LivingWeapon/Display/CardTextWatch.Policy.cs, LivingWeapon/Display/CardTextWatch.cs, LivingWeapon/Display/Display.PoolLocate.cs, LivingWeapon/Engine.cs, LivingWeapon/Guard/Part.cs, LivingWeapon/Guard/PartsBoard.cs, LivingWeapon/Guard/PartsReport.cs
+Hashes: LivingWeapon/Display/CardTextWatch.Policy.cs=89e9b111fdbf7dfc; LivingWeapon/Display/CardTextWatch.cs=ab712824651b6f6f; LivingWeapon/Display/Display.PoolLocate.cs=ec3edb813c233e50; LivingWeapon/Engine.cs=1e5e3224c439000e; LivingWeapon/Guard/Part.cs=202a16f586826e0c; LivingWeapon/Guard/PartsBoard.cs=a2dda9cfce11dfa5; LivingWeapon/Guard/PartsReport.cs=8cd40ee807084ba0
+Guard: {"LivingWeapon/Display/CardTextWatch.Policy.cs":{"budget":2,"kept":[],"raw":"3b71566bf395deeb"},"LivingWeapon/Display/CardTextWatch.cs":{"budget":6,"kept":[],"raw":"e7fd4c837daec891"},"LivingWeapon/Display/Display.PoolLocate.cs":{"budget":13,"kept":[],"raw":"b06a1370325c8222"},"LivingWeapon/Engine.cs":{"budget":183,"kept":["<summary>The ordered table Tick steps through every tick. Static with a nullable engine so tests can read it without constructing an Engine; with null, Run closures must never be invoked.</summary>","Out-of-battle equip-icon loose-tex sync (IconGlow.cs). Cadence 30 because kills only change in battle and a slow disk read must not run every 33ms.","a new game's units share nameIds with the old save's; stale residue must not correct them Enter is instant; exit is debounced (battleMode flickers, slot9 sticks) unless forceExit fires (a detected new game). nowIn is sticky through mid-battle dips."],"raw":"d536fe1267a2a786"},"LivingWeapon/Guard/Part.cs":{"budget":6,"kept":[],"raw":"4d87d446efd50b95"},"LivingWeapon/Guard/PartsBoard.cs":{"budget":7,"kept":[],"raw":"cef9c09b5208537c"},"LivingWeapon/Guard/PartsReport.cs":{"budget":11,"kept":[],"raw":"03fb5729a449cc2e"}}
+Stage 1 (cold read): run 1, 3 pass, canary cold
+Stage 2 (plain words): stripped code identical before and after in 7 file(s); comment lines 228 before stage 1, 227 after; rules clean; 1 ledger cite(s) sent to stage 4
+Stage 3 (warnings): 3 warning(s) found (0 only in the original comments); 0 fixed in code, 3 kept with a reason; no code changed
+Stage 4 (accuracy): 0 comment(s) flagged over 1 read(s); 0 fixed and confirmed by a fresh read, 0 reader wrong, 0 open; control kind wrong condition caught on 1 counted read(s), missed on 0 refused read(s); 3 unsourced reason(s); 0 kept warning(s) code could enforce
+### Run 1
+Canary: cold
+Q1 (failure path): A region walk finishes having found nothing for the third time, two and a half minutes after the mod armed, but one earlier walk did find a region. Does the counter notice fire, and why?
+Expected: No. Any walk that found a region latches the found flag for the session, and ShouldReport needs that flag false (as well as no painted site, at least two empty walks and 120 seconds), so the notice never fires once text was ever found.
+Reader: the found region latch makes !everFoundRegion false, so it never fires.
+Result: pass
+Q2 (ordering): How many times can the notice fire in one session, and what stops a second time?
+Expected: Once. Observe sets a fired flag the first time ShouldReport passes, closes the door and logs the Warn; every later call returns false at the fired check before ShouldReport is consulted again.
+Reader: at most once, the fired flag returns false on every later call.
+Result: pass
+Q3 (free): Closing the card text door puts which part of the mod on pause, and does it stop any painting or other work?
+Expected: It closes only the kill counter on weapon cards part, a part with no tick lanes of its own, so nothing is disarmed or stops running; it just shows as paused in the box and the Parts report.
+Reader: only the kill counter on weapon cards part, no phase gates on it, nothing stops.
+Result: pass
+Unprompted: The card text door closes through DoorReading.Failed, so the parts board pops its standard box about a game update and data in a different place than expected, which does not match a text mod or a non-English game.
+### Stage detail
+Read 1 control (wrong condition) planted in LivingWeapon/Guard/PartsBoard.cs at line 79 as // Taken only when not (PartsReport.Status(part, readings).State == DoorState.Closed)., caught, 49s
+Read 1 U1: LivingWeapon/Engine.cs | "Out-of-battle equip-icon loose-tex sync (IconGlow.cs). Cadence 30 because kills only change in battle and a slow disk read must not run every 33ms." | unsourced reason (the cost of the disk read is not shown by the code)
+Read 1 U2: LivingWeapon/Engine.cs | "Heap reads only, so Always rather than InBattle." | unsourced reason (nothing in the code shows the locate scan reads only the heap)
+Read 1 U3: LivingWeapon/Engine.cs | "Arm at once. The hook's own prologue check refuses a moved target, so it needs no roster gate." | unsourced reason (the prologue check lives in PromptSwapHook, which is not in this packet)
+W1 (original, still there): LivingWeapon/Engine.cs:296 | /// <summary>The ordered table Tick steps through every tick. Static with a nullable engine so tests can read /// it without constructing an Engine; with null, Run closures must never be invoked.</summary>
+Resolution: kept, the table is built with a null engine only for tests that read its shape; making the trap impossible would need a separate test-only table type.
+W2 (original, still there): LivingWeapon/Engine.cs:321 | // Out-of-battle equip-icon loose-tex sync (IconGlow.cs). Cadence 30 because kills // only change in battle and a slow disk read must not run every 33ms.
+Resolution: kept, the cadence value 30 is the enforcement; the comment is the only place that says why it cannot go down, the cost of the disk read.
+W3 (original, still there): LivingWeapon/Engine.cs:575 | // a new game's units share nameIds with the old save's; stale residue must not correct them // Enter is instant; exit is debounced (battleMode flickers, slot9 sticks) unless forceExit fires // (a detected new game). nowIn is sticky through mid-battle dips.
+Resolution: kept, a new game reusing nameIds from the old save is a fact of the game's data that no type can express; the reset below acts on it.
+Unprompted rows: 1 finding(s) new in 1 row(s) (LW-537), 0 repeated (none)
