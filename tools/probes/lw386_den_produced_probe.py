@@ -168,6 +168,12 @@ def main():
         print(__doc__)
         sys.exit(2)
     mode = sys.argv[1]
+    # The game now loads at a random base, so shift the preferred-base store address onto the live image.
+    global STORE_BASE
+    from lib.livebase import open_game, rebase
+    _, _, base = open_game()
+    STORE_BASE = rebase(STORE_BASE, base)
+    print(f"live base {base:#x}, Den store at {STORE_BASE:#x}")
     if mode == "store":
         cmd_store(open_handle())
     elif mode == "table":
