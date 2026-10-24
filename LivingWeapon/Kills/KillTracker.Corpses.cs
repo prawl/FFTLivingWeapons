@@ -49,6 +49,9 @@ internal sealed partial class KillTracker
     // per-slot state (band slot index = 0..BandSlots-1)
     private readonly bool[] _seenAlive = new bool[Offsets.BandSlots];
     private readonly bool[] _deadCredited = new bool[Offsets.BandSlots];
+    // A guest or ally dying never pays your weapon. The friend/foe bit is latched while the unit is
+    // alive, since its value after death is unproven.
+    private readonly bool[] _slotEnemySide = new bool[Offsets.BandSlots];
     private readonly int[] _aliveStreak = new int[Offsets.BandSlots];
     private readonly int[] _deadStreak = new int[Offsets.BandSlots];
     // Consecutive ticks of scheduler participation (CT slam nonzero or turn flag ==1, real
@@ -136,6 +139,7 @@ internal sealed partial class KillTracker
     {
         Array.Clear(_seenAlive, 0, _seenAlive.Length);
         Array.Clear(_deadCredited, 0, _deadCredited.Length);
+        Array.Clear(_slotEnemySide, 0, _slotEnemySide.Length);
         Array.Clear(_aliveStreak, 0, _aliveStreak.Length);
         Array.Clear(_deadStreak, 0, _deadStreak.Length);
         Array.Clear(_fieldEvidenceStreak, 0, _fieldEvidenceStreak.Length);
@@ -174,8 +178,9 @@ internal sealed partial class KillTracker
         // 0 on an unreadable page, so no Readable branch is needed, and 0 is the existing "no
         // resolved identity" value that RestartSentinel's gate fails closed on. See _creditedNameId.
         internal readonly ushort NameId;
+        internal readonly bool EnemySide;
 
-        internal SlotSnapshot(long addr, ushort hp, int gx, int gy, ushort maxHp, byte lvl, byte br, byte fa, bool deadBit, ushort nameId)
+        internal SlotSnapshot(long addr, ushort hp, int gx, int gy, ushort maxHp, byte lvl, byte br, byte fa, bool deadBit, ushort nameId, bool enemySide)
         {
             Addr = addr;
             Hp = hp;
@@ -187,6 +192,7 @@ internal sealed partial class KillTracker
             Fa = fa;
             DeadBit = deadBit;
             NameId = nameId;
+            EnemySide = enemySide;
             IsDead = hp == 0 || deadBit;
         }
 
@@ -204,7 +210,8 @@ internal sealed partial class KillTracker
         _mem.U8(addr + Offsets.AFaith),
         // Dead bit +0x45/0x20 (Doom research). U8 returns 0 on unreadable address -- safe.
         (_mem.U8(addr + Offsets.ADeadStatus) & Offsets.ADeadBit) != 0,
-        _mem.U16(addr + Offsets.ANameId));   // The presented-identity nameId half
+        _mem.U16(addr + Offsets.ANameId),   // The presented-identity nameId half
+        (_mem.U8(addr + Offsets.AFriendFoe) & Offsets.AFriendFoeEnemyBit) != 0);
 
     /// <summary>Band corpse scan + identity capture. Returns true if the tally changed.</summary>
     private bool ScanCorpses(bool onField)
@@ -281,7 +288,7 @@ internal sealed partial class KillTracker
                     changed = true;
                 }
             }
-            _seenAlive[s] = false; _aliveStreak[s] = 0; _slotMhp[s] = 0;
+            _seenAlive[s] = false; _aliveStreak[s] = 0; _slotMhp[s] = 0; _slotEnemySide[s] = false;
             _deadCredited[s] = false; _pending[s] = false;
             _lethalActor[s] = null; _lethalViaFallback[s] = false; _lethalUntracked[s] = UntrackedReason.None;
             _creditedWeapons[s] = null; _creditedViaFallback[s] = false;   // a stale set could misattribute a later revive
@@ -301,6 +308,7 @@ internal sealed partial class KillTracker
         }
         if (_seenAlive[s])
         {
+            _slotEnemySide[s] = slot.EnemySide;
             if (slot.MaxHp != _slotMhp[s])
             {
                 _recorder?.Invoke("kill", $"max-hp-moved slot={s} mhp={_slotMhp[s]}->{slot.MaxHp}");
@@ -397,7 +405,7 @@ internal sealed partial class KillTracker
     private void StampDeadEdge(int s, in SlotSnapshot slot)
     {
         _deadStreak[s]++;
-        // Only one branch fires per edge; they are mutually exclusive on _lastPlayerWeapons.Count.
+        // Only one branch fires per edge, because the if and else chain stops at the first that matches.
         if (_deadStreak[s] == 1)
         {
             _victimProbe.CaptureDeadEdge(s, slot.Addr);   // probe. Log-only, zero behavioral dependence
@@ -459,6 +467,15 @@ internal sealed partial class KillTracker
             _deadCredited[s] = true;
             ModLogger.Debug(LogVerb.Kill, $"the unit at battle slot {s} died but was not a tracked enemy; no credit given (normal for player and guest deaths)");
             _recorder?.Invoke("kill", $"no-credit slot={s} reason=not-tracked-enemy");
+            return false;
+        }
+        // A guest or ally dying never pays your weapon. An enemy whose side bit clears while alive
+        // (a Charm is the likely cause, unverified) is missed too, and a miss beats a mis-credit.
+        if (!_slotEnemySide[s])
+        {
+            _deadCredited[s] = true;
+            ModLogger.Debug(LogVerb.Kill, $"the unit at battle slot {s} died on the player's side (a guest or an ally); no credit given");
+            _recorder?.Invoke("kill", $"no-credit slot={s} reason=player-side");
             return false;
         }
         return true;

@@ -87,6 +87,7 @@ public class KillTrackerFixturesTests
         m.U8s[s + Offsets.ABrave] = (byte)brave;
         m.U8s[s + Offsets.AFaith] = (byte)faith;
         m.U16s[s + Offsets.AMaxHp] = (ushort)maxHp;
+        m.U8s[Band.Entry(slot) + Offsets.AFriendFoe] = Offsets.AFriendFoeEnemyBit;
     }
 
     [Fact]
@@ -121,6 +122,7 @@ public class KillTrackerFixturesTests
             m.U8s[s + Offsets.ABrave] = (byte)brave;
             m.U8s[s + Offsets.AFaith] = (byte)faith;
             m.U16s[s + Offsets.AMaxHp] = (ushort)maxHp;
+            m.U8s[Band.Entry(bandSlot) + Offsets.AFriendFoe] = Offsets.AFriendFoeEnemyBit;
         }
     }
 

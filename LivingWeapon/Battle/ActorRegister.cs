@@ -15,10 +15,11 @@ internal enum RosterBridge { Player, Enemy, Unknown }
 /// captured enemy-side at battle start. The fingerprint key yields Unique, WpnMismatch (a unique
 /// match whose hands disagree with the band weapon, terminal) or Ambiguous (terminal). Only a
 /// zero-match fall-through reaches the weapon key, which yields WeaponUnique, WeaponAmbiguous or
-/// NoMatch (nothing found, or the band weapon is unarmed).</summary>
+/// NoMatch (nothing found, or the band weapon is unarmed). EnemySide refused the entry because its
+/// friend/foe bit marks an enemy, before any other check past the canonical gate.</summary>
 internal enum RescueOutcome
 {
-    NotRun, NotCanonical, OracleEnemy, Unique, WpnMismatch, Ambiguous, WeaponUnique, WeaponAmbiguous, NoMatch
+    NotRun, NotCanonical, OracleEnemy, Unique, WpnMismatch, Ambiguous, WeaponUnique, WeaponAmbiguous, NoMatch, EnemySide
 }
 
 /// <summary>
@@ -26,7 +27,7 @@ internal enum RescueOutcome
 /// <see cref="Band.ActorEntry"/>) and feeds <see cref="ActorResolver"/>'s register-first preamble.
 /// The pointer names the true acting unit's frame on both teams and never a mirror copy. Which
 /// roster player owns that frame comes from the frame's nameId back-reference
-/// (<see cref="Offsets.ANameId"/>). Identity only, no weapon reads, ActorResolver owns those.
+/// (<see cref="Offsets.ANameId"/>). It names who acts; its weapon reads only help that naming, and ActorResolver owns the weapon lists.
 ///
 /// <see cref="Update"/> runs every tick, off-field ticks included, so <see cref="ArrivalTick"/> and
 /// KillTracker's corpse birth stamps share one currency and an off-field stretch cannot desync them.
@@ -86,11 +87,8 @@ internal sealed partial class ActorRegister
     /// to be strictly newer than the latch's own resolve tick.</summary>
     public int LastPlayerArrivalTick { get; private set; }
 
-    /// <summary>True only when the raw U64 at <see cref="Offsets.ActorPtr"/> is literally zero this
-    /// tick. <see cref="Band.ActorEntry"/> folds a zero pointer and a bad-shape pointer into the same
-    /// 0 return, which suits "who is acting" but not RestartSentinel's retry signal, where a garbage
-    /// pointer must read false and an unreadable page must not read as null. Hence its own guarded
-    /// read every tick, independent of the transition bookkeeping.</summary>
+    /// <summary>Tells whether the game's acting-unit pointer is truly zero this tick, RestartSentinel's retry signal.
+    /// Own guarded read, since <see cref="Band.ActorEntry"/> folds zero and bad-shape alike; garbage must read false, an unreadable page not null.</summary>
     public bool RawNullThisTick { get; private set; }
 
     public ActorRegister(IGameMemory mem, Action<string, string>? recorder = null,
@@ -101,9 +99,8 @@ internal sealed partial class ActorRegister
         _isOracleEnemy = isOracleEnemy;
     }
 
-    /// <summary>Ticks since the current owner arrived. The corpse anchor no longer uses it, since an
-    /// onField-only age desynced against this every-tick counter. Kept as a staleness metric with
-    /// its own test.</summary>
+    /// <summary>How many ticks the current unit has held the acting seat, only a staleness gauge.
+    /// The corpse anchor avoids it, since an onField-only age desynced against this every-tick counter.</summary>
     public int OwnershipAge => Tick - ArrivalTick;
 
     public void ResetBattle()
@@ -188,9 +185,8 @@ internal sealed partial class ActorRegister
         _prevEntry = entry;
     }
 
-    /// <summary>True only when the current owner's arrival strictly predates
-    /// <paramref name="periodStartTick"/>, so the action belongs to an owner who held the seat
-    /// before the period began.</summary>
+    /// <summary>Whether the current unit was already acting before a given moment, so the action is theirs.
+    /// True only when its arrival strictly predates <paramref name="periodStartTick"/>.</summary>
     public bool StableSince(int periodStartTick) => Trusted && ArrivalTick < periodStartTick;
 
     /// <summary>The current owner's (level,brave,faith) read live off the band so a mid-turn

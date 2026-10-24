@@ -560,6 +560,67 @@ public class ActorRegisterTests
         Assert.Equal(RescueOutcome.WeaponUnique, r.CurrentRescue);
     }
 
+    // --- friend/foe side gate and the multi-holder weapon key ---
+
+    [Fact]
+    public void Bridge_never_rescues_an_entry_whose_enemy_side_bit_is_set()
+    {
+        const int weapon = 22;
+        var m = new FakeSparseMemory();
+        MemSeats.SeatBand(m, 5, weapon: weapon, lvl: 9, br: 71, fa: 63, gx: 1, gy: 1);
+        MemSeats.SeatFrameNameId(m, 5, nameId: 2);
+        MemSeats.SeatBandJob(m, 5, job: 2);
+        m.U8s[Band.Entry(5) + Offsets.AFriendFoe] = Offsets.AFriendFoeEnemyBit;
+        MemSeats.SeatRoster(m, slot: 0, lvl: 1, br: 70, fa: 70, rh: weapon, nameId: 1);   // a unique level-matching holder exists
+        var r = new ActorRegister(m);
+        r.Update();
+        PointAt(m, 5);
+        r.Update();
+
+        Assert.Equal(RosterBridge.Enemy, r.CurrentBridge);
+        Assert.Equal(RescueOutcome.EnemySide, r.CurrentRescue);
+    }
+
+    [Fact]
+    public void Bridge_weapon_key_counts_holders_before_the_level_filter()
+    {
+        const int weapon = 19;
+        var m = new FakeSparseMemory();
+        MemSeats.SeatBand(m, 5, weapon: weapon, lvl: 9, br: 71, fa: 63, gx: 1, gy: 1);
+        MemSeats.SeatFrameNameId(m, 5, nameId: 2);
+        MemSeats.SeatBandJob(m, 5, job: 2);
+        MemSeats.SeatRoster(m, slot: 0, lvl: 1, br: 70, fa: 70, rh: weapon, nameId: 1);    // the one level match
+        MemSeats.SeatRoster(m, slot: 1, lvl: 50, br: 20, fa: 20, rh: weapon, nameId: 1);   // holders far outside the drift window
+        MemSeats.SeatRoster(m, slot: 2, lvl: 60, br: 21, fa: 21, rh: weapon, nameId: 1);
+        MemSeats.SeatRoster(m, slot: 3, lvl: 70, br: 22, fa: 22, rh: weapon, nameId: 1);
+        var r = new ActorRegister(m);
+        r.Update();
+        PointAt(m, 5);
+        r.Update();
+
+        Assert.Equal(RosterBridge.Enemy, r.CurrentBridge);
+        Assert.Equal(RescueOutcome.WeaponAmbiguous, r.CurrentRescue);
+    }
+
+    [Fact]
+    public void Bridge_weapon_key_still_rescues_a_sole_level_matching_holder()
+    {
+        const int weapon = 19;
+        var m = new FakeSparseMemory();
+        MemSeats.SeatBand(m, 5, weapon: weapon, lvl: 9, br: 71, fa: 63, gx: 1, gy: 1);
+        MemSeats.SeatFrameNameId(m, 5, nameId: 2);
+        MemSeats.SeatBandJob(m, 5, job: 2);
+        MemSeats.SeatRoster(m, slot: 0, lvl: 1, br: 70, fa: 70, rh: weapon, nameId: 1);
+        MemSeats.SeatRoster(m, slot: 1, lvl: 50, br: 20, fa: 20, rh: 999, nameId: 1);   // occupied, holds something else
+        var r = new ActorRegister(m);
+        r.Update();
+        PointAt(m, 5);
+        r.Update();
+
+        Assert.Equal(RosterBridge.Player, r.CurrentBridge);
+        Assert.Equal(RescueOutcome.WeaponUnique, r.CurrentRescue);
+    }
+
     [Fact]
     public void Bridge_rescue_accepts_unarmed_agreement_on_both_sides()
     {

@@ -52,7 +52,7 @@ internal static class KillTrackerFixtures
                              gx: gx, gy: gy, hp: hp, maxHp: maxHp);
 
     /// <summary>Write identity fields into the STATIC ARRAY slot so the capture oracle can
-    /// classify this as a known enemy. inb defaults to 1 but is NOT required by the capture --
+    /// classify this as a known enemy, and set the enemy side bit on the matching band seat. inb defaults to 1 but is NOT required by the capture --
     /// live, the flag pulses 0/1 per unit mid-battle (it is not a membership marker).</summary>
     public static void SetArrayEnemy(FakeSparseMemory m, int slot, int level, int brave, int faith, int maxHp,
                                      int inb = 1)
@@ -63,6 +63,7 @@ internal static class KillTrackerFixtures
         m.U8s[s + Offsets.ABrave] = (byte)brave;
         m.U8s[s + Offsets.AFaith] = (byte)faith;
         m.U16s[s + Offsets.AMaxHp] = (ushort)maxHp;
+        m.U8s[Band.Entry(slot) + Offsets.AFriendFoe] = Offsets.AFriendFoeEnemyBit;   // the credit gate reads side from the band seat
     }
 
     /// <summary>Convenience: write BOTH the band entry (liveness) and the static array slot

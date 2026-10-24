@@ -7,10 +7,8 @@ namespace LivingWeapon;
 /// </summary>
 internal sealed partial class ActorRegister
 {
-    /// <summary>One occupied slot matching nameId and (level,brave,faith) is Player. Several, or a
-    /// nameId of 0 (a capture failure, the 0==0 trap), is Unknown so callers fall through to the
-    /// TQ-fingerprint body. Zero gets one <see cref="RescueCanonical"/> attempt before Enemy,
-    /// because the Orbonne opener's scripted player units carry a nameId matching no roster row.</summary>
+    /// <summary>Decides whether a unit on the battlefield is one of your party, by matching it to the roster.
+    /// One match is Player; several, or nameId 0 (the 0==0 trap), is Unknown; none gets one <see cref="RescueCanonical"/> try.</summary>
     private RosterBridge Bridge(long entry, ushort nameId, out long rosterBase)
     {
         rosterBase = 0;
@@ -35,20 +33,27 @@ internal sealed partial class ActorRegister
         return RescueCanonical(entry, nameId, lvl, br, fa, out rosterBase);
     }
 
-    /// <summary>Runs only when <see cref="Bridge"/> found no nameId+stat match. It can turn that
-    /// zero-evidence Enemy into a Player, and refuses on any doubt. A refusal returns Enemy, not
-    /// Unknown, so nothing falls through to the TQ-fingerprint body. The gate is the opener's tell,
-    /// a nameId equal to the entry's own job byte, which a re-rolled generic hits about 1 in 256.
-    /// Then the oracle may refuse a tuple captured enemy-side at battle start (guests are not in
-    /// it). Then the fingerprint key, then the weapon key, each needing exactly one roster row.
-    /// Known residual, a canonical enemy or guest whose weapon uniquely matches a roster row
-    /// can mis-bridge; the rescue field on the tape shows it.</summary>
+    /// <summary>Last chance to recognize a scripted guest as one of your party, otherwise it counts as an enemy.
+    /// Runs only when <see cref="Bridge"/> found no nameId and stat match, and any doubt means Enemy.</summary>
     private RosterBridge RescueCanonical(long entry, ushort nameId, int lvl, int br, int fa, out long rosterBase)
     {
+        // The Orbonne opener's scripted party units carry a nameId matching no roster row, so only a unit
+        // whose nameId equals its own job byte is tried (a re-rolled generic hits that about 1 in 256).
+        // A refusal returns Enemy, not Unknown, so nothing falls through to the TQ-fingerprint body.
+        // Order is enemy bit, oracle veto, fingerprint key, weapon key, each needing exactly one roster row.
+        // Known residual, a guest whose weapon uniquely matches a roster row can mis-bridge; the rescue
+        // field on the tape shows it.
         rosterBase = 0;
         if (nameId != _mem.U8(entry + Offsets.AJob))
         {
             CurrentRescue = RescueOutcome.NotCanonical;
+            return RosterBridge.Enemy;
+        }
+
+        // An enemy is never one of your party, however well its stats or weapon line up with a roster row.
+        if ((_mem.U8(entry + Offsets.AFriendFoe) & Offsets.AFriendFoeEnemyBit) != 0)
+        {
+            CurrentRescue = RescueOutcome.EnemySide;
             return RosterBridge.Enemy;
         }
 
@@ -101,9 +106,8 @@ internal sealed partial class ActorRegister
     private static bool HandsHold(int rh, int lh, int oh, int weapon) =>
         (Held(rh) && rh == weapon) || (Held(lh) && lh == weapon) || (Held(oh) && oh == weapon);
 
-    /// <summary>Clause (c) of the fingerprint key. The matched row's sentinel-filtered hand set
-    /// (RRHand/RLHand/ROffHand) must contain <paramref name="bandWeapon"/>, or be empty when the
-    /// band weapon is a sentinel.</summary>
+    /// <summary>Checks the unit's weapon against what the matched party member really holds.
+    /// The row's hands (RRHand/RLHand/ROffHand) must contain <paramref name="bandWeapon"/>, or be empty for a sentinel.</summary>
     private bool WeaponsAgree(int bandWeapon, long rosterBase)
     {
         int rh = _mem.U16(rosterBase + Offsets.RRHand);
@@ -114,13 +118,14 @@ internal sealed partial class ActorRegister
         return HandsHold(rh, lh, oh, bandWeapon);
     }
 
-    /// <summary>Step 3 of <see cref="RescueCanonical"/>, reached when the fingerprint
-    /// key found zero matches. Looks for a unique drift-window match on the band weapon alone.</summary>
+    /// <summary>Last try at naming a scripted party unit, by the weapon in its hand. Reached when no roster row matched its stats.
+    /// Needs exactly one row holding the weapon (counted before the level filter) that also passes the level drift window.</summary>
     private RosterBridge RescueWeaponKey(int bandWeapon, int lvl, out long rosterBase)
     {
         rosterBase = 0;
         if (IsUnarmedWeapon(bandWeapon)) { CurrentRescue = RescueOutcome.NoMatch; return RosterBridge.Enemy; }
 
+        int holders = 0;
         int wpnMatches = 0;
         long wpnBase = 0;
         for (int s = 0; s < Offsets.RosterSlots; s++)
@@ -128,17 +133,18 @@ internal sealed partial class ActorRegister
             long b = Offsets.RosterBase + (long)s * Offsets.RosterStride;
             int rlvl = _mem.U8(b + Offsets.RLevel);
             if (rlvl < 1 || rlvl > 99) continue;                       // unoccupied slot
-            if (!Band.LevelMatchesRoster(rlvl, lvl)) continue;
             int rh = _mem.U16(b + Offsets.RRHand);
             int lh = _mem.U16(b + Offsets.RLHand);
             int oh = _mem.U16(b + Offsets.ROffHand);
             if (!HandsHold(rh, lh, oh, bandWeapon)) continue;
+            holders++;
+            if (!Band.LevelMatchesRoster(rlvl, lvl)) continue;
             wpnMatches++;
             wpnBase = b;
         }
 
+        if (holders > 1) { CurrentRescue = RescueOutcome.WeaponAmbiguous; return RosterBridge.Enemy; }
         if (wpnMatches == 1) { CurrentRescue = RescueOutcome.WeaponUnique; rosterBase = wpnBase; return RosterBridge.Player; }
-        if (wpnMatches > 1) { CurrentRescue = RescueOutcome.WeaponAmbiguous; return RosterBridge.Enemy; }
         CurrentRescue = RescueOutcome.NoMatch;
         return RosterBridge.Enemy;
     }

@@ -4,15 +4,15 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// Which (level, brave, faith, maxHp) identities belong to the enemy side. Only these can earn a
-/// kill credit, so player corpses, guests and uncaptured identities are excluded.
+/// The mod's list of enemies seen this battle, as (level, brave, faith, maxHp) identities. Only these can earn a
+/// kill credit. A guest can slip in, so KillTracker's alive-time side bit gates a guest's death.
 ///
-/// Capture reads static-array slots up to EnemySlotMax each onField tick and filters by sane field
-/// values. The inBattle flag is unusable. It pulses 0/1 per unit mid-battle (2026-06-09), which
-/// dropped half the enemies. Capture only adds during a battle; post-restart reinforcements are a
-/// logged, accepted gap.
+/// Each field tick it reads static-array slots up to EnemySlotMax and keeps those with sane values.
+/// The game's own in-battle flag cannot be trusted here, it flickers on and off for each unit during a fight,
+/// and trusting it dropped half the enemies. Capture only adds during a battle; post-restart reinforcements
+/// are a logged, accepted gap.
 ///
-/// The coverage check (2026-07-11) logs once per battle that all enemies are accounted for.
+/// Once per battle a coverage check logs that all enemies are accounted for.
 /// The array also holds conditional-spawn phantoms that look like real enemies, and only scheduler
 /// participation tells them apart, so only identities marked by <see cref="MarkFielded"/> or
 /// <see cref="MarkDead"/> (fed by KillTracker.Corpses.cs's band walk) are counted. Others are
@@ -34,9 +34,9 @@ internal sealed class EnemyOracle
 
     private int _coveragePollsLeft = CoverageInterval;
     private bool _coverageDone;
-    // Facelift. Coverage lines reach the console only once a Living Weapon is deployed; the file gets
-    // everything via ScopedLogger's demotion. the armed latch usually rises after the success
-    // line latches (97s late, 2026-07-11), so a demoted success line is kept and replayed (see TickField).
+    // Players see coverage messages only once a Living Weapon is deployed; the log file always gets them.
+    // The armed latch can rise long after the success line latches (ScopedLogger demotes it), so a
+    // demoted success line is kept and replayed (see TickField).
     private readonly ScopedLogger _slog;
     private readonly Func<bool> _armed;
     private string? _pendingConsoleLine;
@@ -56,9 +56,8 @@ internal sealed class EnemyOracle
     /// <summary>True if the identity was captured from an enemy-side array slot.</summary>
     public bool Contains((byte lvl, byte br, byte fa, ushort mhp) id) => _enemyIds.Contains(id);
 
-    /// <summary>Coverage evidence. Called once a band seat's scheduler participation (CT slam nonzero or
-    /// turn flag ==1) has held for 3 ticks. Harmless for ids never captured, since CheckCoverage
-    /// intersects this set with <see cref="_enemyIds"/>.</summary>
+    /// <summary>Notes that this enemy really took part in the fight, so it counts toward the coverage total.
+    /// Called once a band seat's CT slam is nonzero or turn flag is 1 for 3 ticks; harmless for uncaptured ids.</summary>
     public void MarkFielded((byte lvl, byte br, byte fa, ushort mhp) id) => _fielded.Add(id);
 
     /// <summary>Coverage evidence. Called at a slot's dead-edge stamp. Separate from
@@ -135,12 +134,8 @@ internal sealed class EnemyOracle
         return false;
     }
 
-    /// <summary>Coverage check. Only evidenced identities count. A MarkDead id counts as
-    /// found (the corpse may have left the band); a MarkFielded-only id must still be band-visible
-    /// or the unseen Warn fires, deduped. Evidence comes from the same band walk this reads, so the
-    /// first clean pass would latch a partial count. It latches (Info line, <see cref="_coverageDone"/>)
-    /// only when found == total, total &gt; 0 and the total matches the previous check. A changed or
-    /// zero total defers silently.</summary>
+    /// <summary>Checks that every real enemy was seen and says so once, holding off while the count still changes.
+    /// Latches <see cref="_coverageDone"/> only when found == total, total &gt; 0 and total matches the previous check, since a first pass could be partial.</summary>
     private void CheckCoverage()
     {
         int total = 0, found = 0, excluded = 0;
