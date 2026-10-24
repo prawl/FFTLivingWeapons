@@ -15,7 +15,7 @@ namespace LivingWeapon.Tests;
 /// B. Every top-level Now entry matches the bold-title/opened-date/status grammar, and carries
 ///    EXACTLY ONE `- Done means:` and EXACTLY ONE `- Verify:` continuation line among its
 ///    indented sub-bullets (a stranded second pair means a neighboring entry lost its header line).
-/// C. The Now section holds at most 5 top-level entries (the hard release-focus cap).
+/// C. Once the Now list is locked, every card added after the lock says how it got in.
 /// D. Every top-level Backlog entry matches the id/date/sentence grammar.
 /// E. Every top-level docs/CHANGELOG.md entry matches the id/disposition/date/summary grammar.
 /// F. Every LW-id captured out of TODO.md's entries and CHANGELOG.md's entries is unique across
@@ -272,15 +272,57 @@ public class TodoContractTests
             "Now entries with the wrong '- Done means:'/'- Verify:' sub-bullet count:\n" + string.Join("\n", violations));
     }
 
-    // --- C. Now cap ---
+    // --- C. Now lock ---
+
+    private static readonly Regex LockedLineRegex = new(@"^Locked \d{4}-\d{2}-\d{2}: (.+)$", RegexOptions.Compiled);
+
+    // A quoted yes keeps the owner's own words on the row, which an agent cannot paraphrase into being.
+    private static readonly Regex AddedRegex = new(
+        @"^- Added: (yes "".+"" \(\d{4}-\d{2}-\d{2}\)|found while testing LW-(\d+)|hotfix port of LW-\d+)$",
+        RegexOptions.Compiled);
+
+    /// <summary>Cards in a locked Now that were not on the list when it locked and carry no
+    /// `- Added:` line saying how they got in. An unlocked Now (no `Locked` line) has no limit,
+    /// since that is the list being picked.</summary>
+    internal static List<string> LockViolations(IReadOnlyList<string> nowBody)
+    {
+        var locked = nowBody.Select(l => LockedLineRegex.Match(l)).FirstOrDefault(m => m.Success);
+        if (locked is null) return new List<string>();
+        var listed = Regex.Matches(locked.Groups[1].Value, @"LW-(\d+)").Select(m => m.Groups[1].Value).ToHashSet();
+
+        var violations = new List<string>();
+        foreach (var entry in GroupTopLevelEntries(nowBody))
+        {
+            string? id = NowEntryId(entry[0]);
+            if (id is null || listed.Contains(id)) continue;
+            var added = entry.Skip(1).Select(l => AddedRegex.Match(l.Trim())).FirstOrDefault(m => m.Success);
+            bool ok = added is not null && (!added.Groups[2].Success || listed.Contains(added.Groups[2].Value));
+            if (!ok) violations.Add(entry[0]);
+        }
+        return violations;
+    }
+
+    [Theory]
+    [InlineData(new[] { "- **[LW-1] A** (opened 2026-10-24) [QUEUED]", "- **[LW-2] B** (opened 2026-10-24) [QUEUED]" }, 0)]
+    [InlineData(new[] { "Locked 2026-10-24: LW-1", "", "- **[LW-1] A** (opened 2026-10-24) [QUEUED]" }, 0)]
+    [InlineData(new[] { "Locked 2026-10-24: LW-1", "", "- **[LW-1] A** (opened 2026-10-24) [QUEUED]", "- **[LW-2] B** (opened 2026-10-24) [QUEUED]" }, 1)]
+    [InlineData(new[] { "Locked 2026-10-24: LW-1", "", "- **[LW-1] A** (opened 2026-10-24) [QUEUED]", "- **[LW-2] B** (opened 2026-10-24) [QUEUED]", "  - Added: yes \"take it\" (2026-10-25)" }, 0)]
+    [InlineData(new[] { "Locked 2026-10-24: LW-1", "", "- **[LW-1] A** (opened 2026-10-24) [QUEUED]", "- **[LW-2] B** (opened 2026-10-24) [QUEUED]", "  - Added: yes take it (2026-10-25)" }, 1)]
+    [InlineData(new[] { "Locked 2026-10-24: LW-1", "", "- **[LW-1] A** (opened 2026-10-24) [QUEUED]", "- **[LW-2] B** (opened 2026-10-24) [QUEUED]", "  - Added: found while testing LW-1" }, 0)]
+    [InlineData(new[] { "Locked 2026-10-24: LW-1", "", "- **[LW-1] A** (opened 2026-10-24) [QUEUED]", "- **[LW-2] B** (opened 2026-10-24) [QUEUED]", "  - Added: found while testing LW-9" }, 1)]
+    [InlineData(new[] { "Locked 2026-10-24: LW-1", "", "- **[LW-1] A** (opened 2026-10-24) [QUEUED]", "- **[LW-2] B** (opened 2026-10-24) [QUEUED]", "  - Added: hotfix port of LW-7" }, 0)]
+    [InlineData(new[] { "Locked 2026-10-24: LW-1, LW-2", "", "- **[LW-1] A** (opened 2026-10-24) [QUEUED]" }, 0)]
+    public void Lock_violations_cover_every_way_a_card_can_join_a_locked_list(string[] body, int expected)
+        => Assert.Equal(expected, LockViolations(body).Count);
 
     [Fact]
-    public void Now_section_holds_at_most_five_entries()
+    public void A_card_added_to_a_locked_Now_says_how_it_got_in()
     {
         var now = NowSection(RepoRoot());
-        var entries = GroupTopLevelEntries(now.Body);
-        Assert.True(entries.Count <= 5,
-            $"Now section holds {entries.Count} entries (cap is 5): [{string.Join(", ", entries.Select(e => e[0]))}]");
+        var violations = LockViolations(now.Body);
+        Assert.True(violations.Count == 0,
+            "Cards added to the locked Now list without an '- Added:' line (a quoted yes, found while testing a listed card, or a hotfix port):\n"
+            + string.Join("\n", violations));
     }
 
     // --- D. Backlog entry grammar ---

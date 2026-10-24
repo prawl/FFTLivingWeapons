@@ -2784,10 +2784,21 @@ Rows the cold read's stage 1 reader raised without being asked, one row per file
 
 - Sections, in this order and no others: Now (with the release name in the header), Backlog,
   Walled, Format.
-- Now: at most 5 entries. Entry first line: `- **[LW-<n>] <title>** (opened YYYY-MM-DD) [STATUS]`
-  where STATUS is QUEUED, BUILDING, AWAITING-LIVE, or BLOCKED(reason). Every entry carries a
-  `- Done means:` and a `- Verify:` sub-bullet. Promote from Backlog by filling those in; if Now
-  is at cap, demote something first.
+- Now is the release list, picked with the owner before work starts, with no size cap. Entry
+  first line: `- **[LW-<n>] <title>** (opened YYYY-MM-DD) [STATUS]` where STATUS is QUEUED,
+  BUILDING, AWAITING-LIVE, or BLOCKED(reason). Every entry carries a `- Done means:` and a
+  `- Verify:` sub-bullet. Promote from Backlog by filling those in.
+- Locking: when work starts, a line `Locked YYYY-MM-DD: LW-a, LW-b, ...` goes right under the Now
+  header. Any card added after that carries an `- Added:` sub-bullet in one of three forms:
+  `yes "<the owner's words>" (YYYY-MM-DD)`, `found while testing LW-<n>` (a listed card it broke
+  or that it blocks), or `hotfix port of LW-<n>`.
+  Any other bug found while testing goes to Backlog unless the owner says yes. Whenever the list
+  changes, the message that changed it ends with one status line, like "List: 3 of 6 done, 2 bugs
+  added, about 4h of testing left". The list ships when it is done; there is no time cap.
+- Release: check that no passed smoke box went stale under a later code change, run the protected
+  core (save integrity, uninstall, version and dependency checks) last on the build that ships,
+  and list every `- Added:` yes in the "ready to release?" message. Hotfixes branch from the last
+  release tag.
 - Backlog: entry first line `- [LW-<n>] YYYY-MM-DD: <one sentence>`; indented continuation lines
   are free. Capture new items here in the session they surface.
 - ELI5-first prose (owner rule, 2026-07-21): the first sentence of every entry, and the opening
