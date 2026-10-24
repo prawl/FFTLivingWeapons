@@ -15,42 +15,6 @@ the technical detail lives in the indented lines under it.
 
 Locked 2026-10-24: LW-465, LW-508, LW-506, LW-448, LW-459, LW-513, LW-444, LW-386, LW-409, LW-195, LW-172, LW-234, LW-450, LW-514, LW-457, LW-511, LW-326, LW-296, LW-360, LW-191, LW-435, LW-396, LW-344
 
-- **[LW-520] Battle timing ignores daylight saving changes** (opened 2026-10-24) [QUEUED]
-  The mod times battles with the wall clock, so on a daylight saving night one tick can look an hour long and a battle can be read as ended mid fight. Rare, since it needs a session running through the time change. It goes first so the spec tape gate's tapes carry clean times.
-  After the fall back, the time since the last field tick also reads negative for an hour, which skews card paint timing and the twin pistol's seconds off field.
-  (Tech: Engine.cs tick reads DateTime.Now; BattleState ignores backward jumps but not forward ones, so one long delta fills ExitDebounceSeconds 4.0 if it lands out of live; `s.Now - _lastField` goes negative after a fall back. Use a Stopwatch based tick clock, which LW-519's tapes also use.)
-
-  - Done means: battle timing runs on a clock that never jumps, so a time change can neither end a battle nor skew card timing.
-  - Verify: tests feed an hour jump forward and an hour back and the battle stays live with no negative gaps; suite green.
-  - Added: yes "Swap these build gate tasks into our 23 todo's and take the same count out." (2026-10-24)
-- **[LW-519] The dev build records what the mod reads from the game each tick** (opened 2026-10-24) [QUEUED]
-  First of four cards that turn every live bug into a permanent test replaying what the game actually did (the spec tape gate, agreed with a second reviewer on 2026-10-24). This card is the recorder. LW-521 replays, LW-522 proves the recording is complete, LW-523 makes the rule stick.
-  A dev build records what the mod reads from the game each tick, plus the clock, and a test feeds that recording back to the real mod code. A bug's test must fail on the unfixed code before the fix lands. Rules checked on every tape (a death pays at most once, a bag never holds more than is owned) plus an expected outcome written before the fix. Bug tapes are kept forever, and any hand made input is labeled synthetic and counted. Limits are that it checks the order of events and not thread races, a fix that changes what the mod writes makes later recorded values for those spots stale, and a game patch makes tapes stale.
-  The five banked tapes under tools/probes/tapes are edge logs with no per tick reads, so they serve as the written expected outcome and the inputs get recorded again live.
-  Order. Build the recorder. Record one owner session covering a Retry with a kill, a quit and Continue with Provoke up, and a Bulwark planted. Port the LW-233 replay test onto the shared replayer with real identity as the proof the recording is complete. Then write the LW-465 and LW-459 tests red first. The workflow rule (a live bug needs a tape test before its fix) comes last, after the tooling has worked on two real bugs.
-  The owner swapped the gate into the locked 2.5.0 list on 2026-10-24 as LW-520, LW-519, LW-521, LW-522 and LW-523, so LW-465 builds its tape tests on this recorder.
-  (Tech: record at the IGameMemory seam through a recording wrapper passed to KillTracker, Provoke and Bulwark in Engine's constructor, leaving Display and its bulk scans unrecorded; delta encode, in a dev build buffer separate from the 4096 record flight ring; add an explicit per tick Engine line with slot0, slot9, battleMode, both PauseFlag reads, eventId and the tick clock, since Engine reads those on the plain memory; hook detour arguments such as the RewindRestoreHook restore counts go on as events; replay by state, each read answered with that address's value as of the current tick, failing loud on an address never seen, and the mod's own writes override the recorded value and are asserted; the header adds build flavor (dev thresholds 1,2,3 and seeding) beside version and game build, the replayer refuses a flavor mismatch and marks a game build mismatch stale. KillTrackerRestartTapeReplayTests.cs is the existing proof of concept.)
-  - Done means: one dev build session writes a tape holding every read KillTracker, Provoke and Bulwark make, the main loop's per tick reads and clock, the hook events, and a header naming version, game build and dev or prod.
-  - Verify: the owner plays one session with a Retry after a kill, then a quit and Continue with Provoke up and a Bulwark planted; the tape is banked under tools/probes/tapes and LW-522 replays it.
-  - Added: yes "Swap these build gate tasks into our 23 todo's and take the same count out." (2026-10-24)
-- **[LW-521] Tests can replay a recorded tape against the real mod code** (opened 2026-10-24) [QUEUED]
-  The replay half of the spec tape gate. A test hands the mod a fake game that answers from the tape, so a bug seen once in play runs again on every build.
-  (Tech: replay by state, each read answered with that address's value as of the current tick; a read of an address the tape never saw fails loud; the mod's own writes override the recorded value and are asserted; rules run on every tape, a death pays at most once and a bag never holds more than is owned; a tape whose dev or prod flavor differs from the Tuning under test is refused and a game build mismatch is marked stale; any hand made input is labeled synthetic and counted.)
-  - Done means: the replayer and the always on rules exist, and each behavior above has a test.
-  - Verify: suite green with one test per behavior, built on small tapes labeled synthetic.
-  - Added: yes "Swap these build gate tasks into our 23 todo's and take the same count out." (2026-10-24)
-- **[LW-522] The old Retry test runs on a real recorded tape** (opened 2026-10-24) [QUEUED]
-  The August Retry double pay test still fills in the dead unit's identity by hand, because its tape never recorded it. Rebuilt on the new recorder and replayer, it proves the recording holds everything the kill tracker needs.
-  (Tech: KillTrackerRestartTapeReplayTests.cs onto LW-521's replayer with LW-519's Retry tape; the lw233 tapes stay as the written expected outcome.)
-  - Done means: the test runs from the new tape with no hand filled identity and no address the tape never saw.
-  - Verify: suite green; with the LW-233 fix reverted on a scratch branch the test goes red.
-  - Added: yes "Swap these build gate tasks into our 23 todo's and take the same count out." (2026-10-24)
-- **[LW-523] A bug found in play cannot ship its fix without a tape test** (opened 2026-10-24) [QUEUED]
-  The rule half of the spec tape gate. Tape tests already block a build when they fail, but nothing yet makes a live bug get one before its fix lands. Comes last, once the tooling has worked on two real bugs (LW-465 and LW-459).
-  (Tech: TodoContractTests requires a SHIPPED changelog row for a bug found live to name its tape file, then checks the file exists under tools/probes/tapes and some test loads it; the /build verify step checks the test was red before the fix; the Format section states the rule.)
-  - Done means: a shipped live bug row with no tape, or a tape no test loads, turns the build red.
-  - Verify: contract test cases for a row missing its tape and for an orphan tape go red; the owner reads the rule in the Format section.
-  - Added: yes "Swap these build gate tasks into our 23 todo's and take the same count out." (2026-10-24)
 - **[LW-465] A Provoke hold and a planted Bulwark let go the moment a battle rewinds** (opened 2026-10-19) [QUEUED]
   - Quitting to the title and choosing Continue mid battle, or picking Retry, rewinds the fight in place without the battle end signal the Provoke hold and the Bulwark listen for, so a hold can hide the party until its watchdog lets go (box 9.2) and a barred tile stays barred until the wielder's next turn (box 9.4, LW-466). The first fix was dropped on release night because nobody has measured when the game rebuilds the battlefield after the restore. Probe that moment first, then release both on it.
   Carries LW-466: After a Retry with the Sunderer's Bulwark planted, the barred tile behind the wielder stays barred until the wielder's next turn opens, and the plant toast replays once on the rewound battle. Seen live on the dev build of 29632f46 (smoke box 9.4 step 3): plant at 22:48:37 barring (11,5), Retry at 22:49:04, a stale `The Sunderer plants its blade` toast delivered at 22:49:05, release only at 22:49:25 when the wielder's turn opened. It heals itself within one turn and only blocks one tile, so it ships as known for 2.4.0. Fix it with LW-465 in 2.4.1 on the same measured rewind moment: release the Bulwark and drop any queued signature toast when the checkpoint restore lands. (Tech: Bulwark.cs and Bulwark.Terrain.cs release on the wielder's turn edge or a battle edge only; the LW-458 restore count ExtendedInventory.RetryRewinds is the signal; BannerToast queue survived the rewind.)
@@ -128,6 +92,21 @@ Locked 2026-10-24: LW-465, LW-508, LW-506, LW-448, LW-459, LW-513, LW-444, LW-38
     recategorized rows are ItemData.xml ids 48, 49, 50, 67, 68, 69, 70 at that tag.)
   - Done means: first a check of whether 2.4.0 already fixed it; then every carcass hands out its designed reward, and the dragon case is reproduced or ruled out.
   - Verify: data audit of every poach row passes; owner poaches a dragon and one other carcass, the Den lists the right items.
+- **[LW-409] Find out what the double cast thing is and fix it or close it** (opened 2026-10-17) [QUEUED]
+  A player mentioned "the double cast thing" as if it were a known bug, and nobody knows what they meant; find the comment, ask, and either file the bug or close this.
+  Owner recalled the comment 2026-10-17 ("figured there'd be updates coming just didn't know if
+  you'd spotted the double cast thing"). No feedback row, no ledger row, no changelog entry
+  mentions a double cast. Thread found 2026-10-17 (Discord, 2026-04-02, Tal, EpicBrownie, Nyzer):
+  other modders explain that the game's dual wield hit count routine, the one that sets two
+  attacks when a unit dual wields, is hardcoded by weapon formula id, so a custom formula does
+  not get the second strike and a cast formula fired through it casts twice. Why it touches us:
+  the rebalance moved many weapons onto formulas that routine may not list (45, 47, 48, 67, 69,
+  99, and the formula 4 magick guns and rods), and the twin weapon grant hands out Dual Wield.
+  So a living weapon under Dual Wield may swing once instead of twice, or a formula 4 gun or rod
+  may fire its spell twice. Live check first: Ninja with Dual Wield and two Blaze Guns, then two
+  Hushblades, count strikes and casts; then read the routine Tal names.
+  - Done means: the player's meaning is known (dual wield hit count with custom formulas, per the Discord thread) and either a bug is fixed or the card closes with the reason.
+  - Verify: owner confirms with the player or the thread; if a fix lands, a live dual wield fight shows the right number of strikes.
 - **[LW-195] A weapon in the off hand with a shield in the main hand is not read as fists** (opened 2026-08-13) [QUEUED]
   Equip a weapon in the OFF hand and a shield in the MAIN hand and the
   battle menu's Attack row reads as bare fists, as if the unit were unarmed. Owner hit it live
@@ -199,6 +178,26 @@ Locked 2026-10-24: LW-465, LW-508, LW-506, LW-448, LW-459, LW-513, LW-444, LW-38
   the collision population is normal play, not an exotic setup.
   - Done means: a guest's death and an enemy carrying the same weapon kind can never be credited to the player's weapon. Carries LW-164.
   - Verify: tests built from both tapes; owner battle with a guest on the field, no wrong credit in the log.
+- **[LW-450] The twin pistol and twin crossbow get a real design and repair pass** (opened 2026-10-18) [QUEUED]
+  The twin pistol and twin crossbow feature needs a real design and repair pass; owner ruling 2026-10-18 after the smoke box 9.6 walk, "it works sorta" from repeated observations, so one blanket row carries it instead of a fix per symptom. Seen that sitting on prod with a tier 3 Outrider Pistol and no support picked: the twin stamped on the Status visit as designed, then putting the player's own second gun (Ironclad Repeater, id 72) in the off hand made the game unequip the main hand pistol too and refund the conjured twin into the bag as a phantom copy (the LW-254 watch line fired, nothing was corrected), and the LW-426 steps aside line never printed because the main hand was no longer a twin weapon. The design questions to settle before code: what the player should see when they replace the twin by hand, whether the lent Dual Wield should stay while gear is edited, whether the phantom refund gets corrected (LW-254) or the grant stops writing the off hand at all, and what the Status page shows after Equipment (LW-439). Folds the open live reads of LW-426 and LW-439 and the LW-254 watch mode into one pass. Not for 2.4.0 unless the owner says so; the feature ships as it is with its known edges.
+  (Tech: GunSlinger.Apply.cs DesiredOffHand and DesiredSupport, GunSlinger.Reconcile.cs twin-refund, GunSlinger.MenuGate.cs, LaunchGuard.Twin.cs; LIVE_LEDGER [twin-grant-inventory-desync] and [twin-dualfire-construction-bound]; smoke box 9.6 stays open, its 2026-10-18 partial reads are the stamp line at 13:32:29 and the refund line at 13:33:34.)
+  Carries LW-467: The twin weapon does not appear on the Status page when you back out of Equipment and Abilities; it only appears after the menu is closed on the world map for a few seconds. The party browse flag the mod trusts to say "the Status page is up" reads 0 on the Status page on the Denuvo free build (live read 2026-10-19 23:03, menu byte 246 and browse 0 on three samples), so the only path left open is the closed menu. Re map the browse flag on this build, the way LW-439 re mapped the menu byte, then let the Status page stamp again. Belongs with LW-450. (Tech: Offsets.PartyBrowseFlag 0x140D408E2, GunSlinger.MenuGate.cs ReadBrowseStable; ledger row [party-browse-screen-byte] was proven on the old fixed base.)
+  Carries LW-359: A player reports the twin-weapon consent rule leaking two ways: with a shield in the off hand, backing out of the equip menu removed the shield and stamped the second weapon anyway (the shield only stuck when placed in the MAIN hand), and swapping the main hand from a twin weapon to daggers left the granted Dual Wield support behind for a while, letting daggers dual-wield free.
+  Reported by Darkrapid on Discord 2026-08-30 (docs/USER_FEEDBACK.md); the owner told the
+  player the intended rule and promised a look. The design (LW-193/LW-194, ad2240a): an
+  empty off hand invites the twin, anything player-equipped in the off-hand or shield slot
+  declines it, and the mod never writes the shield slot. The shield-eaten symptom is the
+  shape of the [twin-grant-inventory-desync] lane those rows closed, so first establish
+  WHICH lane stamps over the back-out transition (suspect: the browse-screen re-stamp that
+  fires within one pass of leaving Equip and Abilities, racing the game's own normalize
+  while the off hand reads transiently empty), and whether Dual Wield support Key 477 is
+  ever restored when a main-hand swap disqualifies the grant. GunSlinger.cs family
+  (Policy/Apply/Reconcile/Store/MenuGate); re-read GunSlingerPolicy's consent checks and
+  the LIVE_LEDGER twin rows before trusting any hypothesis. The first "cannot single-wield
+  without occupying the other hand" half of the report is the consent design working as
+  built, a UX perception to answer in the FAQ (LW-358's entry can cover both).
+  - Done means: one written rule for when the twin appears and leaves, and the code follows it, including the Status page stamp and the shield and dagger leaks. Carries LW-467 and LW-359.
+  - Verify: tests per rule; owner walks the old smoke box 9.6 steps plus both player reports, every step behaves as the rule says.
 - **[LW-514] Buying a new weapon in a brand new game works first time** (opened 2026-10-23) [QUEUED]
   Nobody has tested buying a new extended weapon in a brand new game that was never reloaded, the one path where only the game's own menu rebuild seats it. A reload fixes it if it fails, but a test save that reaches the first shop would close the gap.
   (Tech: OrderRebuildHook.Seat.cs; SMOKE_TEST_2.4.0 Appendix A, the Lesalia Terrastaff lane.)
@@ -213,6 +212,74 @@ Locked 2026-10-24: LW-465, LW-508, LW-506, LW-448, LW-459, LW-513, LW-444, LW-38
   (Tech: docs/HEALTH.md v2.4.0 silent catches; several cold read rows such as LW-471 and LW-481 name specific ones.)
   - Done means: each of the 44 empty catches is either given a log line or counter, or marked safe to stay silent with the reason in code.
   - Verify: a count check holds the number; the health record for the release shows the drop.
+- **[LW-326] Puppeteer works on a quick confirm and shows something on a monster** (opened 2026-08-25) [QUEUED]
+  Puppeteer works but is unreliable: quick attacks fail to dominate
+  and the owner needed retries to record a clean demo. The log tape shows the arm's two
+  signal design running on one leg: the actor-pointer half read pointerMatch=False on
+  every line of the whole session, and the main-hand latch it falls back on flickers off
+  right at the strike edge, so a hit confirmed within about half a second of arming
+  misses while a slow three-count before confirming lands every time. Also on the tape:
+  a dominated MONSTER (job 100) shows nothing visible, reading as a silent failure.
+  (Tech: livingweapon.log 14:38-14:42 2026-08-25; failures show latchMainHand=False
+  actedByte=1 at the hit tick, both successes had 4+ seconds between ACTIVE and the
+  strike. Diagnose why Band.ActorEntry pointerMatch never fires (ActorPtr semantics vs
+  the D1 OR gate, Puppeteer.Policy.cs) and harden the latch across the strike edge;
+  consider a target-kind note or refusal for monsters whose domination has no visible
+  menu effect. Owner workaround documented in-session: wait a beat before confirming.)
+  - Done means: a hit confirmed right after arming dominates, and a dominated monster shows a visible sign.
+  - Verify: owner tries five quick confirms and one monster, all land and show.
+- **[LW-296] Players are told when another mod's text hides the kill counter** (opened 2026-08-21) [QUEUED]
+  When another mod replaces the game's item text, the kill counter quietly
+  stops appearing on weapon cards and the player is never told why, so tell them. The counter
+  is not broken and counting never stops; the number simply has nowhere to be drawn, and today
+  that looks identical to the mod being dead. The fix is the calm notice we already use when a
+  job mod takes the weapon commands away: notice it, stay on, say exactly what is hidden and
+  exactly what still works.
+  This got more likely on 2026-08-21, when a full graphical mod editor shipped on the Nexus
+  (The Ivalice Chronicles Mod Studio, mod 111) that puts item and ability text editing behind a
+  checkbox. Text mods used to require running conversion tools by hand; now they do not, so the
+  collision goes from rare to ordinary. See docs/COMPATIBILITY.md.
+  (Tech: our painted counter anchors to the flavor line of an item's description, and an
+  item.en.nxd override is a full-table replace, so a winning text mod removes every anchor.
+  LivingWeapon/Display/ currently has no detection for a session-long zero-hit sweep and nothing
+  user-facing fires. Model the notice on LaunchGuard.KitLane.cs: a truthful WARN plus a
+  once-per-session calm box, mod stays armed, nothing else disabled.)
+  - Done means: the mod notices when an item text mod leaves no place for the counter, stays on, and says once what is hidden and what still works.
+  - Verify: a test on the detection; owner launches with a text mod enabled and sees the notice once.
+- **[LW-360] Card kill counters fill quickly after launch and never stay blank** (opened 2026-08-30) [QUEUED]
+  The kill counters on the equip cards stop populating for most of the
+  menu when the new warm start is running: the owner flipped cards live and the counts stayed
+  dashes indefinitely. Cause read live the same day: the warm start (the uncommitted LW-324
+  work) latches paint coverage 0.3s after arming on the one persisted region it could seed
+  (122 sites, one per weapon), and MaybePoolPaint's covered short-circuit returns before ever
+  consulting ShouldRunFullPoolScan, so the two regions the full locate publishes 20s later are
+  never scanned at all; their 244 scaffold copies (one full card set per encoding, probed live,
+  none painted in 45s of watching) stay dashes until something drains coverage. Before the warm
+  start, coverage could not latch until after an all-region scan, which is why this never
+  showed. Fix shape: the covered short-circuit must also break on a fresh region publish (read
+  PoolLocator.PublishGeneration there, or clear the coverage latch when a publish adds regions),
+  so a newly published region gets one scan even while covered. Blocks the paint half of the
+  LW-332 live pass; the defect lives in the uncommitted LW-323/324 pile, so it lands there, not
+  on a shipped build.
+  Carries LW-324: The kill counters take too long to appear on the equip cards after a
+  cold boot, and the owner dislikes the wait (his words, "expressing my displeasure"). The
+  counters live in heap string pools the mod has to re-find every launch, and the search is
+  deliberately budgeted so it never hitches a frame, which is why the numbers dribble in.
+  Candidate lever: persist the located pool sites across launches and re-verify instead of
+  re-hunting from scratch. (Tech: Display's budgeted DisplaySweep/PoolPaint census; the
+  pool addresses are heap allocations so a blind replay is unsafe, but a verify-then-adopt
+  warm-start against the LW-257 anchor checks could cut the cold-boot window. Owner filed
+  it as a someday row, not urgent.)
+  BUILT and adversarially verified 2026-08-26 (full pipeline: premise from four
+  launches of flight tapes, plan, adversarial plan review that REDESIGNED the lever
+  from per-site to per-region warm start, TDD implement whose mandated trap test
+  caught the plan's own suppression bug, fresh verify: code 9 of 10, zero code
+  changes required, suite 3343 green). Awaiting the owner's stopwatch read: cold
+  boot 1 writes pool_regions.json at locate completion, cold boot 2 logs "seeded
+  N of M" and the counters appear in one to two seconds. The N of M numbers close
+  the [kills-pool-region-recurrence] ledger row.
+  - Done means: after a cold boot the counters appear fast and every card fills, with the warm start no longer leaving regions unscanned. Carries LW-324.
+  - Verify: owner flips cards right after a cold boot and every counter fills within seconds.
 - **[LW-191] Equipping a living weapon mid battle never takes its command away** (opened 2026-08-13) [QUEUED]
   Equipping a living weapon in the middle of a battle can take its granted
   command AWAY instead of giving it, and the mod then says there is no eligible wielder while that
@@ -283,114 +350,6 @@ Locked 2026-10-24: LW-465, LW-508, LW-506, LW-448, LW-459, LW-513, LW-444, LW-38
 
 ## Backlog
 
-- [LW-450] 2026-10-18: The twin pistol and twin crossbow get a real design and repair pass.
-  Moved out of the locked 2.5.0 list on 2026-10-24 to make room for the spec tape gate, on the owner's word.
-  The twin pistol and twin crossbow feature needs a real design and repair pass; owner ruling 2026-10-18 after the smoke box 9.6 walk, "it works sorta" from repeated observations, so one blanket row carries it instead of a fix per symptom. Seen that sitting on prod with a tier 3 Outrider Pistol and no support picked: the twin stamped on the Status visit as designed, then putting the player's own second gun (Ironclad Repeater, id 72) in the off hand made the game unequip the main hand pistol too and refund the conjured twin into the bag as a phantom copy (the LW-254 watch line fired, nothing was corrected), and the LW-426 steps aside line never printed because the main hand was no longer a twin weapon. The design questions to settle before code: what the player should see when they replace the twin by hand, whether the lent Dual Wield should stay while gear is edited, whether the phantom refund gets corrected (LW-254) or the grant stops writing the off hand at all, and what the Status page shows after Equipment (LW-439). Folds the open live reads of LW-426 and LW-439 and the LW-254 watch mode into one pass. Not for 2.4.0 unless the owner says so; the feature ships as it is with its known edges.
-  (Tech: GunSlinger.Apply.cs DesiredOffHand and DesiredSupport, GunSlinger.Reconcile.cs twin-refund, GunSlinger.MenuGate.cs, LaunchGuard.Twin.cs; LIVE_LEDGER [twin-grant-inventory-desync] and [twin-dualfire-construction-bound]; smoke box 9.6 stays open, its 2026-10-18 partial reads are the stamp line at 13:32:29 and the refund line at 13:33:34.)
-  Carries LW-467: The twin weapon does not appear on the Status page when you back out of Equipment and Abilities; it only appears after the menu is closed on the world map for a few seconds. The party browse flag the mod trusts to say "the Status page is up" reads 0 on the Status page on the Denuvo free build (live read 2026-10-19 23:03, menu byte 246 and browse 0 on three samples), so the only path left open is the closed menu. Re map the browse flag on this build, the way LW-439 re mapped the menu byte, then let the Status page stamp again. Belongs with LW-450. (Tech: Offsets.PartyBrowseFlag 0x140D408E2, GunSlinger.MenuGate.cs ReadBrowseStable; ledger row [party-browse-screen-byte] was proven on the old fixed base.)
-  Carries LW-359: A player reports the twin-weapon consent rule leaking two ways: with a shield in the off hand, backing out of the equip menu removed the shield and stamped the second weapon anyway (the shield only stuck when placed in the MAIN hand), and swapping the main hand from a twin weapon to daggers left the granted Dual Wield support behind for a while, letting daggers dual-wield free.
-  Reported by Darkrapid on Discord 2026-08-30 (docs/USER_FEEDBACK.md); the owner told the
-  player the intended rule and promised a look. The design (LW-193/LW-194, ad2240a): an
-  empty off hand invites the twin, anything player-equipped in the off-hand or shield slot
-  declines it, and the mod never writes the shield slot. The shield-eaten symptom is the
-  shape of the [twin-grant-inventory-desync] lane those rows closed, so first establish
-  WHICH lane stamps over the back-out transition (suspect: the browse-screen re-stamp that
-  fires within one pass of leaving Equip and Abilities, racing the game's own normalize
-  while the off hand reads transiently empty), and whether Dual Wield support Key 477 is
-  ever restored when a main-hand swap disqualifies the grant. GunSlinger.cs family
-  (Policy/Apply/Reconcile/Store/MenuGate); re-read GunSlingerPolicy's consent checks and
-  the LIVE_LEDGER twin rows before trusting any hypothesis. The first "cannot single-wield
-  without occupying the other hand" half of the report is the consent design working as
-  built, a UX perception to answer in the FAQ (LW-358's entry can cover both).
-  - Done means: one written rule for when the twin appears and leaves, and the code follows it, including the Status page stamp and the shield and dagger leaks. Carries LW-467 and LW-359.
-  - Verify: tests per rule; owner walks the old smoke box 9.6 steps plus both player reports, every step behaves as the rule says.
-- [LW-326] 2026-08-25: Puppeteer works on a quick confirm and shows something on a monster.
-  Moved out of the locked 2.5.0 list on 2026-10-24 to make room for the spec tape gate, on the owner's word.
-  Puppeteer works but is unreliable: quick attacks fail to dominate
-  and the owner needed retries to record a clean demo. The log tape shows the arm's two
-  signal design running on one leg: the actor-pointer half read pointerMatch=False on
-  every line of the whole session, and the main-hand latch it falls back on flickers off
-  right at the strike edge, so a hit confirmed within about half a second of arming
-  misses while a slow three-count before confirming lands every time. Also on the tape:
-  a dominated MONSTER (job 100) shows nothing visible, reading as a silent failure.
-  (Tech: livingweapon.log 14:38-14:42 2026-08-25; failures show latchMainHand=False
-  actedByte=1 at the hit tick, both successes had 4+ seconds between ACTIVE and the
-  strike. Diagnose why Band.ActorEntry pointerMatch never fires (ActorPtr semantics vs
-  the D1 OR gate, Puppeteer.Policy.cs) and harden the latch across the strike edge;
-  consider a target-kind note or refusal for monsters whose domination has no visible
-  menu effect. Owner workaround documented in-session: wait a beat before confirming.)
-  - Done means: a hit confirmed right after arming dominates, and a dominated monster shows a visible sign.
-  - Verify: owner tries five quick confirms and one monster, all land and show.
-- [LW-296] 2026-08-21: Players are told when another mod's text hides the kill counter.
-  Moved out of the locked 2.5.0 list on 2026-10-24 to make room for the spec tape gate, on the owner's word.
-  When another mod replaces the game's item text, the kill counter quietly
-  stops appearing on weapon cards and the player is never told why, so tell them. The counter
-  is not broken and counting never stops; the number simply has nowhere to be drawn, and today
-  that looks identical to the mod being dead. The fix is the calm notice we already use when a
-  job mod takes the weapon commands away: notice it, stay on, say exactly what is hidden and
-  exactly what still works.
-  This got more likely on 2026-08-21, when a full graphical mod editor shipped on the Nexus
-  (The Ivalice Chronicles Mod Studio, mod 111) that puts item and ability text editing behind a
-  checkbox. Text mods used to require running conversion tools by hand; now they do not, so the
-  collision goes from rare to ordinary. See docs/COMPATIBILITY.md.
-  (Tech: our painted counter anchors to the flavor line of an item's description, and an
-  item.en.nxd override is a full-table replace, so a winning text mod removes every anchor.
-  LivingWeapon/Display/ currently has no detection for a session-long zero-hit sweep and nothing
-  user-facing fires. Model the notice on LaunchGuard.KitLane.cs: a truthful WARN plus a
-  once-per-session calm box, mod stays armed, nothing else disabled.)
-  - Done means: the mod notices when an item text mod leaves no place for the counter, stays on, and says once what is hidden and what still works.
-  - Verify: a test on the detection; owner launches with a text mod enabled and sees the notice once.
-- [LW-360] 2026-08-30: Card kill counters fill quickly after launch and never stay blank.
-  Moved out of the locked 2.5.0 list on 2026-10-24 to make room for the spec tape gate, on the owner's word.
-  The kill counters on the equip cards stop populating for most of the
-  menu when the new warm start is running: the owner flipped cards live and the counts stayed
-  dashes indefinitely. Cause read live the same day: the warm start (the uncommitted LW-324
-  work) latches paint coverage 0.3s after arming on the one persisted region it could seed
-  (122 sites, one per weapon), and MaybePoolPaint's covered short-circuit returns before ever
-  consulting ShouldRunFullPoolScan, so the two regions the full locate publishes 20s later are
-  never scanned at all; their 244 scaffold copies (one full card set per encoding, probed live,
-  none painted in 45s of watching) stay dashes until something drains coverage. Before the warm
-  start, coverage could not latch until after an all-region scan, which is why this never
-  showed. Fix shape: the covered short-circuit must also break on a fresh region publish (read
-  PoolLocator.PublishGeneration there, or clear the coverage latch when a publish adds regions),
-  so a newly published region gets one scan even while covered. Blocks the paint half of the
-  LW-332 live pass; the defect lives in the uncommitted LW-323/324 pile, so it lands there, not
-  on a shipped build.
-  Carries LW-324: The kill counters take too long to appear on the equip cards after a
-  cold boot, and the owner dislikes the wait (his words, "expressing my displeasure"). The
-  counters live in heap string pools the mod has to re-find every launch, and the search is
-  deliberately budgeted so it never hitches a frame, which is why the numbers dribble in.
-  Candidate lever: persist the located pool sites across launches and re-verify instead of
-  re-hunting from scratch. (Tech: Display's budgeted DisplaySweep/PoolPaint census; the
-  pool addresses are heap allocations so a blind replay is unsafe, but a verify-then-adopt
-  warm-start against the LW-257 anchor checks could cut the cold-boot window. Owner filed
-  it as a someday row, not urgent.)
-  BUILT and adversarially verified 2026-08-26 (full pipeline: premise from four
-  launches of flight tapes, plan, adversarial plan review that REDESIGNED the lever
-  from per-site to per-region warm start, TDD implement whose mandated trap test
-  caught the plan's own suppression bug, fresh verify: code 9 of 10, zero code
-  changes required, suite 3343 green). Awaiting the owner's stopwatch read: cold
-  boot 1 writes pool_regions.json at locate completion, cold boot 2 logs "seeded
-  N of M" and the counters appear in one to two seconds. The N of M numbers close
-  the [kills-pool-region-recurrence] ledger row.
-  - Done means: after a cold boot the counters appear fast and every card fills, with the warm start no longer leaving regions unscanned. Carries LW-324.
-  - Verify: owner flips cards right after a cold boot and every counter fills within seconds.
-- [LW-409] 2026-10-17: Find out what the double cast thing is and fix it or close it.
-  Moved out of the locked 2.5.0 list on 2026-10-24 to make room for the spec tape gate, on the owner's word.
-  A player mentioned "the double cast thing" as if it were a known bug, and nobody knows what they meant; find the comment, ask, and either file the bug or close this.
-  Owner recalled the comment 2026-10-17 ("figured there'd be updates coming just didn't know if
-  you'd spotted the double cast thing"). No feedback row, no ledger row, no changelog entry
-  mentions a double cast. Thread found 2026-10-17 (Discord, 2026-04-02, Tal, EpicBrownie, Nyzer):
-  other modders explain that the game's dual wield hit count routine, the one that sets two
-  attacks when a unit dual wields, is hardcoded by weapon formula id, so a custom formula does
-  not get the second strike and a cast formula fired through it casts twice. Why it touches us:
-  the rebalance moved many weapons onto formulas that routine may not list (45, 47, 48, 67, 69,
-  99, and the formula 4 magick guns and rods), and the twin weapon grant hands out Dual Wield.
-  So a living weapon under Dual Wield may swing once instead of twice, or a formula 4 gun or rod
-  may fire its spell twice. Live check first: Ninja with Dual Wield and two Blaze Guns, then two
-  Hushblades, count strikes and casts; then read the routine Tal names.
-  - Done means: the player's meaning is known (dual wield hit count with custom formulas, per the Discord thread) and either a bug is fixed or the card closes with the reason.
-  - Verify: owner confirms with the player or the thread; if a fix lands, a live dual wield fight shows the right number of strikes.
 - [LW-517] 2026-10-23: A player on Nexus asked for the three Dancer cloths to grow Physical Power instead of Magic Power, since PA does more for a Dancer. Weigh the swap and, if it holds up, make it.
   (Tech: Tarsilk Veil 119, Bindsilk Veil 120, Gravesilk Veil 121 carry `"grows": "MA"` in data/items.json; change the field, regenerate, rebake meta, and check analyze.py plus the growth lane tests. A Nexus comment, 2026-10-23.)
   Leading option, owner 2026-10-23: a hybrid lane that alternates, PA at 5 kills, MA at 10, PA at 15, so the Dancer grows both without out growing every other weapon. For the cloth swing and the dances PA and MA count the same, since cloth damage is `(PA+MA)/2 x WP` (DESIGN.md); the choice only matters for the Dancer's secondary skill set.
@@ -409,6 +368,16 @@ Locked 2026-10-24: LW-465, LW-508, LW-506, LW-448, LW-459, LW-513, LW-444, LW-38
   How to judge it, set before building. Watch bugs found after a release (TODO rows against a shipped version plus Nexus reports), the fix-shaped share (only cycles of 10 or more production commits), and whether the tally ever pointed at a live bug's cause. If three releases with real work see the locked numbers fall and none of those improve, check whether the numbers were gamed, and if not, drop the metric.
   ColorCustomizer and TreasureMaster get the lock as their first commit on next open, once it proves out here. The release scorecard alone does not suit TreasureMaster, whose cycles are too small for fix stats.
   (Tech: a `check` subcommand in tools/health.py plus a committed baseline JSON; a catch counts as traced when its body logs or calls the bump; the tally is an enum of sites with one Interlocked.Increment into a static array, and catches inside SafeLog or FlightRecorder bump but never log; the status reminder adds the baseline file to its uncommitted check; LW-510's tag timing applies. Evidence for the catch metric, Yuan et al. OSDI 2014; long methods have weak evidence.)
+- [LW-519] 2026-10-24: Turn every live bug into a permanent test that replays what the game actually did, so a bug seen once in play is checked on every build after. The owner rates this above the health lock. The design below was agreed with a second reviewer on 2026-10-24.
+  A dev build records what the mod reads from the game each tick, plus the clock, and a test feeds that recording back to the real mod code. A bug's test must fail on the unfixed code before the fix lands. Rules checked on every tape (a death pays at most once, a bag never holds more than is owned) plus an expected outcome written before the fix. Bug tapes are kept forever, and any hand made input is labeled synthetic and counted. Limits are that it checks the order of events and not thread races, a fix that changes what the mod writes makes later recorded values for those spots stale, and a game patch makes tapes stale.
+  The five banked tapes under tools/probes/tapes are edge logs with no per tick reads, so they serve as the written expected outcome and the inputs get recorded again live.
+  Order. Build the recorder. Record one owner session covering a Retry with a kill, a quit and Continue with Provoke up, and a Bulwark planted. Port the LW-233 replay test onto the shared replayer with real identity as the proof the recording is complete. Then write the LW-465 and LW-459 tests red first. The workflow rule (a live bug needs a tape test before its fix) comes last, after the tooling has worked on two real bugs.
+  Owner to rule whether the minimum recorder counts under LW-465's done means, which already asks for per tick tape tests. The replayer, the port and the workflow rule need his yes to join the locked 2.5.0 list.
+  (Tech: record at the IGameMemory seam through a recording wrapper passed to KillTracker, Provoke and Bulwark in Engine's constructor, leaving Display and its bulk scans unrecorded; delta encode, in a dev build buffer separate from the 4096 record flight ring; add an explicit per tick Engine line with slot0, slot9, battleMode, both PauseFlag reads, eventId and the tick clock, since Engine reads those on the plain memory; hook detour arguments such as the RewindRestoreHook restore counts go on as events; replay by state, each read answered with that address's value as of the current tick, failing loud on an address never seen, and the mod's own writes override the recorded value and are asserted; the header adds build flavor (dev thresholds 1,2,3 and seeding) beside version and game build, the replayer refuses a flavor mismatch and marks a game build mismatch stale. KillTrackerRestartTapeReplayTests.cs is the existing proof of concept.)
+- [LW-520] 2026-10-24: The mod times battles with the wall clock, so on a daylight saving night one tick can look an hour long and a battle can be read as ended mid fight. Rare, since it needs a session running through the time change, and the fix is small.
+  After the fall back, the time since the last field tick also reads negative for an hour, which skews card paint timing and the twin pistol's seconds off field.
+  (Tech: Engine.cs tick reads DateTime.Now; BattleState ignores backward jumps but not forward ones, so one long delta fills ExitDebounceSeconds 4.0 if it lands out of live; `s.Now - _lastField` goes negative after a fall back. Use a Stopwatch based tick clock, which LW-519's tapes also use.)
+
 - [LW-463] 2026-10-19: The readability quiz becomes one four stage pipeline, in a fixed order, after the 2.4.0 tag. First the cold read as today, with one label change (a why that lives only in a comment counts as a miss, and "bad question" means only that the answer needs code outside the packet). Then one plain words comment pass, comments only, with the stripped code proven identical and comment lines not allowed to rise. Then every warning comment ("must run before", "changing one means changing the other") goes back to the code and is fixed there or kept with a logged reason. Last, a second toolless reader gets the files with comments and reports any comment the code does not back up. One log entry per change with a result per stage. Values in the order they win, accuracy, then understanding, then readability. (Tech: owner review doc "Corpses readability review", 2026-10-19; the four versions on branch compare/corpses-readability, A 12ac7ea7 plain words only scored 6, B 2e0fd3ad cold read only 6.5, C a8072bc8 cold read then plain words 7, D 14708265 the warnings turned into code; the gate and its skill live in the home setup repo.)
 - [LW-462] 2026-10-19: The corpse scan keeps about fifteen side by side lists, one entry per battle seat, so forgetting a death means clearing every list by hand and missing one is easy. After the 2.4.0 release, give each seat one object holding what we watch (seen alive, streaks, recorded identity, last dead hp), the open death case (verdict, waiting, killer stamp, victim snapshot) and the paid kill, so forgetting a death is two assignments. One identity type with one same unit check replaces the three tuples. Then turn the dead edge priority chain into a small pure function that returns a verdict, tested with a table of cases, name the team values, and return what changed instead of threading a ref flag. One group per commit, paid kill first, replayed battles green before and after each step, seats made once per battle. (Tech: LivingWeapon/Kills/KillTracker.Corpses.cs; owner review doc steps 7.5 to 9; Seat, Watch, DeathCase, PaidKill, UnitIdentity.SameUnit are the review's names.)
 - [LW-456] 2026-10-19: A Ninja with Throw Swords learned cannot Throw a Warbrand, because the game's Throw list stops at the base game's items and never offers one of the seven new weapons (owner saw Claymore and Materia Blade listed and no Warbrand, 2026-10-19 02:17). Hook the Throw list builder the way the weapon menus were hooked so the new weapons can be thrown, and check the thrown item leaves the bag count. Owner ruling 2026-10-19: out of 2.4.0, recorded as a known limit in docs/EXTENDED_INVENTORY_GUIDE.md; a 2.5.0 arc. (Tech: the Throw list is one of the optional extra reads LW-346 never opened; the research journal lists it as unchecked since 2026-08-27.)
