@@ -315,6 +315,70 @@ public class AttackCardTests
     }
 
     [Fact]
+    public void Shield_main_hand_with_off_hand_weapon_names_the_off_hand_weapon_not_Fists()
+    {
+        var rig = Build();
+        long copy = 0x7000000000;
+        rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
+
+        // The live shape. Right hand empty, left hand a shield, off hand a weapon, band weapon empty.
+        MemSeats.SeatRoster(rig.Mem.Sparse, slot: 2, lvl: 50, br: 60, fa: 70, rh: 0xFF, lh: 143, oh: WindrunnerId, nameId: 42);
+        MemSeats.SeatBand(rig.Mem.Sparse, bandIdx: 5, weapon: 0xFF, lvl: 50, br: 60, fa: 70, gx: 5, gy: 5);
+        MemSeats.SeatFrameNameId(rig.Mem.Sparse, bandIdx: 5, nameId: 42);
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);
+        Settle(rig.Card);
+
+        Assert.Equal("Windrunner", RowOf(rig.Mem.RegionBytes(copy), 1));
+    }
+
+    [Fact]
+    public void Dual_wield_names_the_main_hand_weapon()
+    {
+        var rig = Build();
+        long copy = 0x7000000000;
+        rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
+
+        MemSeats.SeatRoster(rig.Mem.Sparse, slot: 2, lvl: 50, br: 60, fa: 70, rh: WindrunnerId, oh: StormcallerId, nameId: 42);
+        MemSeats.SeatBand(rig.Mem.Sparse, bandIdx: 5, weapon: WindrunnerId, lvl: 50, br: 60, fa: 70, gx: 5, gy: 5);
+        MemSeats.SeatFrameNameId(rig.Mem.Sparse, bandIdx: 5, nameId: 42);
+        MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);
+        Settle(rig.Card);
+
+        Assert.Equal("Windrunner", RowOf(rig.Mem.RegionBytes(copy), 1));
+    }
+
+    [Fact]
+    public void Off_hand_signature_weapon_card_matches_the_main_hand_card()
+    {
+        var kills = new Dictionary<int, int> { [PeacemakerId] = 12 };
+        string TailFor(bool offHand)
+        {
+            var rig = Build(kills: kills);
+            long copy = 0x7000000000;
+            rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
+            int rh = offHand ? 0xFF : PeacemakerId, lh = offHand ? 143 : 0xFFFF, oh = offHand ? PeacemakerId : 0xFFFF;
+            MemSeats.SeatRoster(rig.Mem.Sparse, slot: 2, lvl: 50, br: 60, fa: 70, rh: rh, lh: lh, oh: oh, nameId: 42);
+            MemSeats.SeatBand(rig.Mem.Sparse, bandIdx: 5, weapon: offHand ? 0xFF : PeacemakerId, lvl: 50, br: 60, fa: 70, gx: 5, gy: 5);
+            MemSeats.SeatFrameNameId(rig.Mem.Sparse, bandIdx: 5, nameId: 42);
+            MakeFlagOwner(rig.Mem.Sparse, bandIdx: 5);
+            Settle(rig.Card);
+            Assert.Equal("Peacemaker+2", RowOf(rig.Mem.RegionBytes(copy), 1));
+            return TailOf(rig.Mem.RegionBytes(copy), 1, "Peacemaker+2".Length);
+        }
+
+        // The clause is switched off in ComposeTail today, so the two cards read the same.
+        Assert.Equal(TailFor(offHand: false), TailFor(offHand: true));
+    }
+
+    [Fact]
+    public void Signature_label_is_offered_for_the_main_hand_and_withheld_for_the_off_hand()
+    {
+        var m = Meta()[PeacemakerId];
+        Assert.Equal("Gun Slinger", AttackCard.SignatureLabel(m, offHand: false));
+        Assert.Null(AttackCard.SignatureLabel(m, offHand: true));
+    }
+
+    [Fact]
     public void Unarmed_monster_owner_restores_vanilla_byte_exact()
     {
         // MONSTER (owner rule): never renamed, vanilla everything, even with an empty hand.

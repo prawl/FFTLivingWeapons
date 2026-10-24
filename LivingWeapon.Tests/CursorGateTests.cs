@@ -85,4 +85,36 @@ public class CursorGateTests
     {
         Assert.Equal(CursorRefusal.WeaponMismatch, CursorGate.Decide(Armed, OtherArmed, turnFlag: 1));
     }
+
+    // ---- Attack hand: which weapon the row names ----
+
+    [Theory]
+    [InlineData(37, 255, 37, false)]
+    [InlineData(255, 37, 37, true)]
+    [InlineData(0xFFFF, 0, 0xFFFF, false)]
+    [InlineData(37, 36, 37, false)]
+    [InlineData(255, 255, 255, false)]
+    public void AttackHand_picks_main_then_off_then_unchanged(int right, int off, int hand, bool fromOff)
+    {
+        Assert.Equal((hand, fromOff), CursorGate.AttackHand(right, off));
+    }
+
+    [Fact]
+    public void Off_hand_roster_weapon_with_sentinel_band_is_accepted()
+    {
+        Assert.Equal(CursorRefusal.None, CursorGate.Decide(Armed, 0xFF, turnFlag: 1, rosterHandFromOffHand: true));
+    }
+
+    [Fact]
+    public void Same_weapon_without_the_off_hand_flag_and_sentinel_band_stays_WeaponMismatch()
+    {
+        Assert.Equal(CursorRefusal.WeaponMismatch, CursorGate.Decide(Armed, 0xFF, turnFlag: 1));
+    }
+
+    [Fact]
+    public void Off_hand_flag_does_not_excuse_a_different_armed_band_weapon_or_a_fallen_turn_flag()
+    {
+        Assert.Equal(CursorRefusal.WeaponMismatch, CursorGate.Decide(Armed, OtherArmed, turnFlag: 1, rosterHandFromOffHand: true));
+        Assert.Equal(CursorRefusal.NotTurnOwner, CursorGate.Decide(Armed, 0xFF, turnFlag: 0, rosterHandFromOffHand: true));
+    }
 }

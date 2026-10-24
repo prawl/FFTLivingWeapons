@@ -1647,3 +1647,48 @@ F1: open, the Policy file summary still says latch and cooldown state live in Pu
 F2: open, the class summary says the cooldown counts from expiry while the stamp is set at dominate; the three read cap is spent, so the fix waits for the next change to these files.
 F3: reader wrong, the planted control comment, not a line in the real files.
 Unprompted rows: 1 finding(s) new in 1 row(s) (LW-538), 0 repeated (none)
+
+## Cold read 2026-10-24 15:36, LW-195, base 69d736c1
+Run cap 1 (37 changed production lines). Runs used 1 of 1.
+Files: LivingWeapon/Battle/ActorResolver.Cursor.cs, LivingWeapon/Display/AttackCard.Resolve.cs, LivingWeapon/Display/CursorGate.cs
+Hashes: LivingWeapon/Battle/ActorResolver.Cursor.cs=5771d40288cb031c; LivingWeapon/Display/AttackCard.Resolve.cs=dbc7471e3137175c; LivingWeapon/Display/CursorGate.cs=3e5b1dfbb127775b
+Guard: {"LivingWeapon/Battle/ActorResolver.Cursor.cs":{"budget":32,"kept":[],"raw":"1a8657b110457061"},"LivingWeapon/Display/AttackCard.Resolve.cs":{"budget":28,"kept":[],"raw":"81d9b4f1f88ece66"},"LivingWeapon/Display/CursorGate.cs":{"budget":27,"kept":[],"raw":"acf8602bb757d39a"}}
+Stage 1 (cold read): run 1, 3 miss, fix comment, canary cold
+Stage 2 (plain words): stripped code identical before and after in 3 file(s); comment lines 87 before stage 1, 77 after; rules clean; 1 ledger cite(s) sent to stage 4
+Stage 3 (warnings): 0 warning(s) found (0 only in the original comments); 0 fixed in code, 0 kept with a reason; no code changed
+Stage 4 (accuracy): 4 comment(s) flagged over 3 read(s); 2 fixed and confirmed by a fresh read, 0 reader wrong, 1 open; control kind missing member and wrong order and caller caught on 3 counted read(s), missed on 0 refused read(s); 2 unsourced reason(s); 0 kept warning(s) code could enforce
+### Run 1
+Canary: cold
+Q1 (failure path): A unit's right hand reads empty (255) and its off hand also reads empty. Which hand does the Attack row get, and what does a human unit's row then read?
+Expected: AttackHand returns the right hand unchanged with the off hand flag false, because both are sentinels, so the row composes from the sentinel and a human reads Fists exactly as before.
+Reader: AttackHand returns the right hand 255 with the flag false, but it could not say the human row reads Fists without ComposeRow.
+Result: miss, fix comment
+Q2 (ordering): With a shield first and a weapon in the off hand, the band weapon reads a sentinel. Which check decides whether the row is trusted, and in what order are its tests applied?
+Expected: CursorGate.Decide. The turn flag check comes first (not 1 refuses as not turn owner); then the off hand exception, when the roster hand came from the off hand and the band weapon is a sentinel it accepts; otherwise the old rule, both sentinel accept, one sentinel refuses as weapon mismatch, both armed must be equal.
+Reader: Decide, with the turn flag first, then both sentinel, then the off hand exception, then the mismatch rules; it could not confirm a shield leaves the right hand a sentinel without RawMainHand.
+Result: miss, fix comment
+Q3 (free): Why does an off hand weapon never get a signature label on the Attack card?
+Expected: Signatures and granted commands fire from the main hand only, so SignatureLabel returns null for an off hand weapon to keep the card from promising a power that will not fire.
+Reader: SignatureLabel returns null for an off hand weapon, but the packet gave no reason why.
+Result: miss, fix comment
+Unprompted: TryBridgeCursorToRoster keeps overwriting its out rosterBase on every match, so when two rows match it returns false with rosterBase still pointing at the last one, and an ambiguous roster logs the same BridgeFail as no match at all.
+### Stage detail
+Read 1 control (missing member) planted in LivingWeapon/Display/AttackCard.Resolve.cs at line 66 as // Calls WarmTheCatalog() first., caught, 31s
+Read 1 F2: LivingWeapon/Display/AttackCard.Resolve.cs | "Reports a cursor unit the card refused to show, once per kind via <see cref="_reportedRefusals"/>." | The dedup key is `(refusal, RosterHand, BandWeapon, RosterHandFromOffHand)`, so it reports once per distinct combination of kind, hand, weapon and off-hand flag, not once per kind.
+Read 1 F3: LivingWeapon/Display/AttackCard.Resolve.cs | "Works out what the Attack row should say for the unit whose turn it is, from the unit under the cursor only." | `_resolveCursor()` goes through `TryResolveCursorPlayer`, which finds the unit via `Band.FlagOwner` (the turn-flag owner). The ActorResolver.Cursor.cs doc says it deliberately avoids cursor-following state.
+Read 1 U1: LivingWeapon/Battle/ActorResolver.Cursor.cs | "The flag is re-read because it can fall between the FlagOwner walk and this read" | unsourced reason
+Read 1 U2: LivingWeapon/Display/AttackCard.Resolve.cs | "Decide from the attack hand and sprite byte, not Hands, which cannot tell unarmed from an untracked weapon." | unsourced reason
+Read 1 U3: LivingWeapon/Display/CursorGate.cs | "since a wrong dossier is worse than vanilla" | unsourced reason
+Read 2 control (wrong order) planted in LivingWeapon/Display/CursorGate.cs at line 49 as // bool bandSentinel = IsSentinel(bandWeapon) runs before bool rosterSentinel = IsSentinel(rosterHand)., caught, 28s
+Read 2 F1: LivingWeapon/Display/AttackCard.Resolve.cs | "Refusal dedup. Each (refusal kind, roster hand, band weapon) is reported once per battle" | The `_reportedRefusals` key is a four-part tuple `(CursorRefusal Kind, int RosterHand, int BandWeapon, bool OffHand)`, and `ReportRefusal` builds it with `answer.RosterHandFromOffHand` too. Off-hand and main-hand cases with the same ids are therefore reported separately.
+Read 2 U1: LivingWeapon/Battle/ActorResolver.Cursor.cs | "The flag is re-read because it can fall between the FlagOwner walk and this read" | unsourced reason
+Read 2 U2: LivingWeapon/Display/AttackCard.Resolve.cs | "so a stuck hover does not spam the log or flight ring" | unsourced reason
+Read 2 U3: LivingWeapon/Display/AttackCard.Resolve.cs | "Roster hand and band weapon can disagree (stale roster row, turn-flag race), so the gate must pass too." | unsourced reason
+Read 2 U4: LivingWeapon/Display/AttackCard.Resolve.cs | "Decide from the attack hand and sprite byte, not Hands, which cannot tell unarmed from an untracked weapon." | unsourced reason
+Read 3 control (caller) planted in LivingWeapon/Display/CursorGate.cs at line 45 as // Called only from IsSentinel., caught, 26s
+Read 3 F1: LivingWeapon/Display/AttackCard.Resolve.cs | "Each (refusal kind, roster hand, band weapon) is reported once per battle" | The `_reportedRefusals` key is a four-part tuple `(CursorRefusal Kind, int RosterHand, int BandWeapon, bool OffHand)`, so the off-hand flag also splits the dedup, and `ReportRefusal` builds the key with `answer.RosterHandFromOffHand`.
+Read 3 U1: LivingWeapon/Display/AttackCard.Resolve.cs | "so a stuck hover does not spam the log or flight ring" | unsourced reason
+Read 3 U2: LivingWeapon/Display/AttackCard.Resolve.cs | "not Hands, which cannot tell unarmed from an untracked weapon" | unsourced reason
+F1: open, the dedup summary still lists three key fields while the key has four; the read cap is spent, so the comment is fixed right after this entry.
+F2: reader wrong, the planted control comment, not a line in the real files.
+Unprompted rows: 1 finding(s) new in 1 row(s) (LW-541), 0 repeated (none)
