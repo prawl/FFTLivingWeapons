@@ -1,0 +1,6 @@
+# Pins line endings for the files agents and people edit, so a tool decides them, not a judgment call.
+# The index stays LF; working copies are CRLF on every machine, which is what dotnet format expects.
+*.cs      text eol=crlf
+*.csproj  text eol=crlf
+*.md      text eol=crlf
+*.ps1     text eol=crlf

@@ -13,6 +13,7 @@
 root = true
 
 [*.cs]
+end_of_line = crlf   # matches .gitattributes, so dotnet format and git agree
 # ---- ENFORCED (warning -> build error via TreatWarningsAsErrors) ----
 dotnet_diagnostic.IDE0044.severity = warning   # make field readonly where only ctor-assigned
 dotnet_diagnostic.IDE0051.severity = warning   # remove unused private member
