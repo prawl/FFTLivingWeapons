@@ -15,7 +15,8 @@ the moment the mod saw the checkpoint restore. Watched:
   mode     the battle mode byte (3 on the battlefield, 0 on the map)
   slot0/9  the two battle phase words the mod's live gate reads
   inv      which band seats have the Invisible bit (band +0x47 bit 0x10) set
-  veto     which path grid tiles have the veto bit (+6 bit 0x02) set beyond the map's own at start
+  veto+    path grid tiles whose veto bit (+6 bit 0x02) is set now but was clear at start
+  veto-    tiles barred at start that are clear now (a Bulwark already planted when the tape starts)
 
 The tape also goes to %TEMP%/lw465_tape_<time>.log. Owner protocol for the card's two runs:
   1. In a battle, put a Provoke hold up and plant the Sunderer, then start this probe.
@@ -100,10 +101,12 @@ def main():
             inv = invisible_seats()
             vs = veto_set()
             extra = sorted(vs - baseline_veto) if vs is not None else None
-            cur = (mode, s0, s9, tuple(inv), tuple(extra) if extra is not None else None)
+            cleared = sorted(baseline_veto - vs) if vs is not None else None
+            cur = (mode, s0, s9, tuple(inv), tuple(extra) if extra is not None else None,
+                   tuple(cleared) if cleared is not None else None)
             if cur != last:
                 emit(f"mode={mode} slot0={s0 if s0 is None else hex(s0)} slot9={s9 if s9 is None else hex(s9)} "
-                     f"inv={inv} veto={'unreadable' if extra is None else extra}")
+                     f"inv={inv} veto+={'unreadable' if extra is None else extra} veto-={'unreadable' if cleared is None else cleared}")
                 last = cur
             time.sleep(0.033)
     except KeyboardInterrupt:
