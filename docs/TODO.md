@@ -11,73 +11,376 @@ is the in-flight subset, not a mirror of that checklist.
 Entries are written ELI5-first: the opening sentence is plain language anyone can follow, and
 the technical detail lives in the indented lines under it.
 
-## Now (release: 2.4.0)
+## Now (release: 2.5.0)
+
+Locked 2026-10-24: LW-465, LW-508, LW-506, LW-448, LW-459, LW-513, LW-444, LW-386, LW-409, LW-195, LW-172, LW-234, LW-450, LW-514, LW-457, LW-511, LW-326, LW-296, LW-360, LW-191, LW-435, LW-396, LW-344
 
 - **[LW-465] A Provoke hold and a planted Bulwark let go the moment a battle rewinds** (opened 2026-10-19) [QUEUED]
   - Quitting to the title and choosing Continue mid battle, or picking Retry, rewinds the fight in place without the battle end signal the Provoke hold and the Bulwark listen for, so a hold can hide the party until its watchdog lets go (box 9.2) and a barred tile stays barred until the wielder's next turn (box 9.4, LW-466). The first fix was dropped on release night because nobody has measured when the game rebuilds the battlefield after the restore. Probe that moment first, then release both on it.
+  Carries LW-466: After a Retry with the Sunderer's Bulwark planted, the barred tile behind the wielder stays barred until the wielder's next turn opens, and the plant toast replays once on the rewound battle. Seen live on the dev build of 29632f46 (smoke box 9.4 step 3): plant at 22:48:37 barring (11,5), Retry at 22:49:04, a stale `The Sunderer plants its blade` toast delivered at 22:49:05, release only at 22:49:25 when the wielder's turn opened. It heals itself within one turn and only blocks one tile, so it ships as known for 2.4.0. Fix it with LW-465 in 2.4.1 on the same measured rewind moment: release the Bulwark and drop any queued signature toast when the checkpoint restore lands. (Tech: Bulwark.cs and Bulwark.Terrain.cs release on the wielder's turn edge or a battle edge only; the LW-458 restore count ExtendedInventory.RetryRewinds is the signal; BannerToast queue survived the rewind.)
   - Done means: a tape of a Retry and a quit and Continue with a hold up and a blade planted shows, per tick, the restore count rise, the live gate, battleMode, the band's invisible bits and the barred tile; the release then lands on a proven moment, nobody is left invisible, no tile stays barred, and no watchdog line fires.
   - Verify: the probe tape banked under tools/probes/tapes; suite green with tests built from that tape; the owner's live pass on boxes 9.2 and 9.4 step 3.
+- **[LW-508] The stray category hook fix gets landed or dropped** (opened 2026-10-23) [QUEUED]
+  The cold read log says the item category hook was changed to refuse installing before the catalog, but that change never reached main. It sits uncommitted in a side worktree, so either land it properly or note in the log that it was dropped.
+  (Tech: .claude/worktrees/extended-readability, LivingWeapon/Extended/CategoryGetterHook.cs, three code lines; log entry "Seeded trial build 3" records hash 17437a8ea40e9f3c, main's file differs.)
+  - Done means: the three line change that refuses installing the category hook before the catalog is either committed on main with a test, or dropped and the cold read log entry says so.
+  - Verify: suite green; git shows the change on main or a log note naming the drop.
+- **[LW-506] Hooks switch on only after they can call the game safely** (opened 2026-10-23) [QUEUED]
+  About a dozen of the mod's hooks switch on a moment before they save the handle they need to call the game's own routine, so a game call landing in that sliver would crash the game. Nobody has seen it happen, and the gap is microseconds at startup, but the fix is cheap.
+  (Tech: `_hook = hooks.CreateHook(...).Activate()` assigns after Activate returns while the detour reads `_hook!.OriginalFunction`. Create, assign, then Activate. Sites: CategoryGetterHook, InventoryResetHook, ListBuilderHook, OrderRebuildHook, RewindRestoreHook (two), SaveEdgeHooks (three), PromptSwapHook, IconCacheHeal. Covers LW-468 and the same note on LW-500.)
+  - Done means: every hook in the list is created, saved and only then switched on, so no game call can ever find an empty handle.
+  - Verify: a test per hook shape pins the order; two clean launches by the owner with every part reporting ON.
+- **[LW-448] Enemies can no longer cast the commands your weapons grant** (opened 2026-10-18) [QUEUED]
+  Enemy Knights and Squires can cast Shadow Blade, and enemy Thieves can cast Barrage, whenever a player in the party holds the matching weapon at its top tier, because the mod grants those commands by writing them into the job's shared command list and every unit of that job reads the same list. The owner saw an enemy Knight named Dyana cast Shadow Blade on 2026-06-16; the bug was deferred on 2026-06-27 with two fix options and then fell out of the ledger when the LW ids arrived, surviving only in docs/archive/STAFF_SWORD_TEST_PLAN.md and git history (commits 63d4c183 and 110bd72a). Re surfaced 2026-10-18 by an owner question; nothing was ever wired, the code still grants on records 5 and 7 and carries no turn team gate. A player sees it, so under the freeze rule it may join R5 when a Now seat frees; the owner picks the fix. Options as analysed 2026-06-27: (A) a turn team gate that pulls the command out of the record on enemy and ally turns and re injects on the player's turn, relying on the 33 ms loop beating the AI's ability enumeration, must be live verified; (B) Ramza only, restrict Shadow Blade to the Mettle records 25 to 28 that no enemy uses, zero leak by construction but a generic Knight loses the signature; (C) drop the command grant for a per unit write and hold signature. Barrage has the same shape on the Thief record 14. Scope is unchanged until a wielder reaches +3 (15 kills on prod), so new players never meet it in the first chapter.
+  (Tech: ShadowBladePolicy.AllowedRecords is still { 5, 7 } plus RamzaSwordJobs; no TurnQueue read exists in ShadowBlade.cs or Barrage.cs; LIVE_LEDGER [zero-value-command-ai-silent] proves only that a ZERO value command is not chosen by the AI, which is why Provoke does not leak in use while these two do; the UsableByAI byte at 0x140787F80 +7 mask 0x80 per ability is the mapped suppressor, never shipped, and clearing it for 165 and 358 would likely also stop a player unit on auto battle from using them, unverified.)
+  Recommended fix, 2026-10-18 offline analysis: hold the ability's UsableByAI bit CLEAR while the grant is active (option E), the same mask scoped read, modify, write hold every other grant already uses, restored on release. One bit per ability, no turn timing race, covers Barrage and Shadow Blade alike, and the enemy still sees the command in its list but never picks it. The cost is that a player unit under AI control (auto battle, Charm, Confuse, Berserk) cannot cast it either, which reads as acceptable or even welcome. The premise is unproven, the bit was mapped on 2026-07-23 and never tested as a suppressor, so step one is the owner's probe, `python tools\probes\ability_grant_probe.py aiflag 165 clear` held through one battle with a +3 Sanguine Sword Knight in the party and enemy Knights on the field, following the probe's own protocol in verb_aiflag. PASS means the player's Shadow Blade still casts and no enemy Knight casts it across the battle; FAIL means an enemy cast with the bit clear, and the fallback is option A, the turn team gate at TurnQueue +0x02, which needs its own live run for the race. Option B does not cover Barrage and option C is a rewrite.
+  - Done means: while a weapon grants Shadow Blade or Barrage, enemy units of that job cannot pick it, and the grant still works for the player.
+  - Verify: tests on the grant hold; owner live fight against an enemy Knight or Thief with the top tier weapon in the party, no enemy casts it.
+- **[LW-459] Kill credit rules agree with each other on a Retry and on a changed unit** (opened 2026-10-19) [QUEUED]
+  A retry can pay a kill twice when the dead enemy comes back with changed brave or faith. The branch that handles a unit whose stats changed while it stood back up compares the old credited identity against the new stats, which can never match there, so the retry check leans only on the battle age grace and an early retry slips through. Check this against the LW-458 retry failure first, since both end in a phantom kill after a Retry. (Tech: ScanAlivePath's identity swap branch, UncreditIfRestartRevive with _creditedIdentity stamped from the tuple that seeded _slotId; the old comment called it the Finding 6(ii) residual; RestartSentinelPolicy.GraceTicks.)
+  Carries LW-460: The two places that leave a kill unpaid because the killer had no Living Weapon disagree on what they leave behind. One marks the enemy dead on the record, the other leaves it marked alive, so a second death of the same enemy is blocked after one and allowed after the other. Make them agree or make the difference a named rule with a test. A player would only see it as a second kill on one unit paying or not paying depending on which path buried the first. (Tech: ResolveCredit's untracked bury writes _identityAlive false; HandleOrphanAliveEdge's writes true first and returns; flagged by every reader in the 2026-10-19 readability runs.)
+  Carries LW-461: The check that decides a different unit now sits in a seat compares level, brave and faith but leaves out max hp, while the alive record that decides whether a death can pay is keyed with max hp included. A max hp change alone can therefore send a real first death down the orphan path instead of the normal one. Decide whether max hp belongs in the seat check, and test the case. Separately, the seat clear leaves the fallback flag behind; harmless today because every reader checks the killer stamp first, but it should clear with the rest. (Tech: RecordedIdentityChanged vs _identityAlive's (lvl,br,fa,maxHp) key; ForgetDeathAndCredit skips _lethalViaFallback; found by the 2026-10-19 cold reads and the blind review.)
+  - Done means: a Retry never pays a kill twice, both unpaid kill paths leave the same record behind, and the seat check and the alive record use the same identity. Carries LW-460 and LW-461.
+  - Verify: a test per case from the three rows; owner live Retry with a kill, tally moves once.
+- **[LW-513] The glow rings work wherever Reloaded is installed** (opened 2026-10-23) [QUEUED]
+  Players who installed Reloaded somewhere other than the game folder lose the glow rings on icons until a restart, because the mod looks for the game's art file a fixed three folders up. Find it a sturdier way.
+  (Tech: IconGlow warns "IconGlow cannot locate modded.pac this launch"; smoke open risks, box 7.2.)
+  - Done means: the mod finds the game's art file from the running game's own folder, so a Reloaded install outside the game folder keeps live glow rings.
+  - Verify: tests on the path lookup; owner launch with the mod run from a Reloaded folder outside the game, no locate WARN and a ring refreshes after a tier change.
+- **[LW-444] The tier tag on weapon names shows up right away and reads right** (opened 2026-10-18) [QUEUED]
+  The plus one, plus two, plus three on a weapon's name in the list lags and sometimes reads wrong until the player unequips and reequips it. Plain version, the mod paints the suffix onto the name after the game has already drawn it, so it can miss or be stale; it should add the suffix as the game writes the name, the same lesson as the icons. (Tech: append the suffix inside the text setter hook the toasts already own, PromptSwapHook and FnSetTextString; the after the fact painter stays for the cards; 2.5.0.)
+  (Tech: IconCacheHide.ClassifyAndWrite, HideOutcome.TextureMissing when texHidden is 0; the pointer sweep looks for pointers to the path string start, a hidden record points at start+1; the heal only fires on a miss, so an intact stale parts entry never heals.)
+  Carries LW-438: On the first launch after a prod deploy, with every weapon at +3, no weapon name in the lists showed its +3, and unequipping and re equipping did not bring it back; on later launches every name read +3 again. Reproduce on a deploy with a few weapons at a tier, and decide whether a player updating the mod would see bare names for a launch. If a player would see it, it joins R5 under the freeze rule.
+  (Tech: seen 2026-10-17 about 22:20 on prod of the tree later committed as ea841c1c; all 121 tallies were at 15 from a direct kills.json edit, so the name suffix room (capped, SuffixRotation) may simply have been full; the 23:45 owner screenshot shows Outrider Pistol+3 and the gun names correct.)
+  Checked offline on 2026-10-18 and the full room idea does not hold up. The painter has room for eight copies of every one of the 121 names at once, and the last live count (2026-08-18) was about four copies per name, so 121 weapons at +3 fit with half the room to spare; a test now paints all 121 at +3 on a cold launch and on a warm start alike. The room only overflows at nine copies per name, and then the last found copies stay bare whatever the tier count, so it is the headroom that rules the room out, not the tier count. The tests model the room's arithmetic only, not the launch window (the memory sweep runs before the pool is found, and every Continue load makes the painter look again). The warm versus cold split is not keyed to a deploy either, because the region file lives in the Reloaded user folder the deploy script never touches. The one piece of state a deploy does reset is the icon glow's first apply, which is icons, not names. Only the owner's live reproduce can pin the first launch difference.
+  (Tech: tests in LivingWeapon.Tests/DisplayAllTieredSuffixTests.cs; CardSites.MaxSuffixSites 1024 and SuffixCopiesPerId 12 give 121 x 8 = 968 inside the room and 121 x 9 = 1089 over it; which copies overflow depends on region scan order, PoolLocator.WarmStart.cs compares region lists as sets for that reason; the sweep alone paints 9 names on its first pass and all 121 after 14 hot visits at RotationSlice 8 and HotRescanMs 250, about four seconds; the pool path registers every name tiered or not, so a re equip never frees the room; pool_regions.json sits under Reloaded/User/Mods/<id>. What decides it live is the suffix site count from the bare launch. The first Info line "The kill counters are live on the equip cards" reports only the first latch, which on a warm start is the sidecar seeded subset, so read the LAST "pool coverage re-established" Debug line in that launch's livingweapon.log (total slots minus paint spots is the suffix count), or the flight archive's coverage record, which carries it as suffix=N and survives the one launch log rotation; 1024 means the room was full, 0 means no name copy was found, anything between means the names were painted somewhere the lists do not read.)
+  - Done means: the +1, +2 or +3 is added as the game writes the name, so lists show the right tag at once, including on the first launch after an update. Carries LW-438.
+  - Verify: tests on the suffix; owner checks the lists right after a deploy with a few weapons at a tier, every tag correct without re equipping.
+- **[LW-386] The Poacher's Den hands out the rewards the mod meant** (opened 2026-09-01) [QUEUED]
+  The Poacher's Den is handing players items the mod never meant it to, and one
+  player saw four katanas where two dragons' carcasses belong. Plain language: a Discord player on
+  the public 2.3.3 build poached Blue and Red Dragons and the Den listed and produced Asura, Kotetsu,
+  Bizen Osafune and Murasame instead of the dragons' rewards, while the regular Dragon and the pig
+  line behaved. That exact symptom is NOT reproduced yet and its cause is unknown; what the same-day
+  audit DID prove wrong in 2.3.3 is listed below, and it is player-visible on its own.
+  - PROVEN wrong in the public build (data audit 2026-09-01, docs/USER_FEEDBACK.md 2026-09-01):
+    five carcasses hand out a weapon of a different TYPE than the carcass card promises, because
+    2.3.3 recategorized the seven axes and flails in place: Grenade rare gives Bloodlash (a knife;
+    the card says Flail of Flame), Wisenkin common and rare give Terrastaff (a pole) and Ravager (a
+    knight sword; the card says Battle Axe and Giant's Axe), Minotaur rare gives Sunderer (a knight
+    sword; the card says Slasher), Hydra rare gives Sasori (a katana; the card says Scorpion Tail).
+    HEAD already restored those seven ids (LW-351), so 2.4.0 cures this by shipping; the row exists
+    so the 2.3.3 player-facing fact is on record and the release notes can say so.
+  - PROVEN wrong in every build: 39 of the 96 carcass descriptions name the VANILLA reward ("Used
+    to produce a length of cashmere") while the Den hands out the mod's renamed item (Bindsilk
+    Veil). The mod never patches poachitem.en.nxd. Decide: patch the 39 descriptions the way
+    item.en.nxd is patched, or leave and FAQ it.
+  - ELIMINATED for the katana symptom: vanilla poach data is correct (keys 87 to 90 produce items
+    120, 57, 239, 105); the mod ships no poach or job text table; JobData.xml touches no monster
+    row; the nxd bake audit is green; the owner's running modded game holds the vanilla produced
+    ids in all three in-memory copies of the poach sheet
+    (tools/probes/lw386_den_produced_probe.py table, read-only). The tag's ItemData.xml,
+    ItemWeaponData.xml, JobData.xml and item.en.nxd all differ from HEAD, so a 2.3.3-tag deploy
+    is the honest repro bed if the owner's HEAD build does not reproduce.
+  - NEXT (owner-driven, two minutes): poke Den store keys 87 and 89 to 1 with the probe, open the
+    Den, read what the Blue and Red Dragon lines show and produce, restore. Then ask the player
+    for mod version, other mods, a Den screenshot and livingweapon.log. Related to [LW-358]
+    (the earlier no-poach report) only by subject; different symptom, different gate.
+  - (Tech: carcass store u8[96] at Offsets.PoachStoreBase 0x1411A7A1B; PoachItem sheet rows are
+    0x38 bytes with the produced item id at +0x2C, three live copies found 2026-09-01 at
+    0x15c62xxxx and two 0x4c9bxxxxxx heap mirrors; the tag build is v2.3.3 = cb14be3b; the
+    recategorized rows are ItemData.xml ids 48, 49, 50, 67, 68, 69, 70 at that tag.)
+  - Done means: first a check of whether 2.4.0 already fixed it; then every carcass hands out its designed reward, and the dragon case is reproduced or ruled out.
+  - Verify: data audit of every poach row passes; owner poaches a dragon and one other carcass, the Den lists the right items.
+- **[LW-409] Find out what the double cast thing is and fix it or close it** (opened 2026-10-17) [QUEUED]
+  A player mentioned "the double cast thing" as if it were a known bug, and nobody knows what they meant; find the comment, ask, and either file the bug or close this.
+  Owner recalled the comment 2026-10-17 ("figured there'd be updates coming just didn't know if
+  you'd spotted the double cast thing"). No feedback row, no ledger row, no changelog entry
+  mentions a double cast. Thread found 2026-10-17 (Discord, 2026-04-02, Tal, EpicBrownie, Nyzer):
+  other modders explain that the game's dual wield hit count routine, the one that sets two
+  attacks when a unit dual wields, is hardcoded by weapon formula id, so a custom formula does
+  not get the second strike and a cast formula fired through it casts twice. Why it touches us:
+  the rebalance moved many weapons onto formulas that routine may not list (45, 47, 48, 67, 69,
+  99, and the formula 4 magick guns and rods), and the twin weapon grant hands out Dual Wield.
+  So a living weapon under Dual Wield may swing once instead of twice, or a formula 4 gun or rod
+  may fire its spell twice. Live check first: Ninja with Dual Wield and two Blaze Guns, then two
+  Hushblades, count strikes and casts; then read the routine Tal names.
+  - Done means: the player's meaning is known (dual wield hit count with custom formulas, per the Discord thread) and either a bug is fixed or the card closes with the reason.
+  - Verify: owner confirms with the player or the thread; if a fix lands, a live dual wield fight shows the right number of strikes.
+- **[LW-195] A weapon in the off hand with a shield in the main hand is not read as fists** (opened 2026-08-13) [QUEUED]
+  Equip a weapon in the OFF hand and a shield in the MAIN hand and the
+  battle menu's Attack row reads as bare fists, as if the unit were unarmed. Owner hit it live
+  2026-08-13. First question when picked up, before any fix: is the fists text the GAME's own
+  behaviour for that hand arrangement or this mod's paint? One battle with the mod disabled (or
+  an untracked vanilla weapon in the same arrangement) settles it. If it is ours, the likely
+  lane is that everything in the runtime treats the roster MAIN hand slot as "the weapon":
+  the attack-row painter resolves the acting unit's weapon from that slot, so a shield there
+  reads as no weapon even though a real weapon sits in the off hand. If that read is right, the
+  same blind spot silently breaks more than text: kill credit and every signature also key on
+  the main hand, so an off-hand-weapon build would earn no kills, no growth, and no granted
+  commands, making this a coverage hole for an entire legal equipment arrangement, with the
+  fists text just its visible corner. (Tech: unverified beyond the sighting; the main-hand
+  reads to audit are the RRHand roster reads in Wielder/ActorResolver/Display and the
+  mainHandWeapon field the kobu/credit log lines already print. The flight tape from the
+  sighting battle, if one flushed, shows what the credit lane resolved for that unit.)
+  - Done means: first settle whether the fists text is the game's own; if it is ours, the mod reads the weapon from whichever hand holds it.
+  - Verify: one battle with the arrangement and the mod off, then on; the Attack row names the weapon when the mod is on.
+- **[LW-172] Chocobos stop being counted as humans** (opened 2026-08-12) [QUEUED]
+  The mod's human versus monster job boundary is off by two, and every
+  consumer of it needs an audit: monsters start at job 94 (Chocobo; Black Chocobo 95), not 96.
+  OWNER SIGHTING 2026-08-17, the player-visible cost is now on record: during the LW-233 retry
+  drill the mod announced "Stoneshooter claims kill number 25, felling a human" twice over a
+  chocobo, once at 18:08:16 and once at 18:09:07 after the bird was raised and killed again.
+  The victim probe read job 94 both times (nameId 861, battle slot 12), and job 94 sits inside
+  the generic human band because Puppeteer.Policy.cs:25 sets GenericJobHi to 95 while
+  Puppeteer.Policy.cs:31 sets MonsterJobLo to 96, so every chocobo in the game is announced as a
+  person. The toast is the harmless half; VictimClass feeds Reliquary victim classing, so fix the
+  boundary rather than the wording.
+  Falsified live during the LW-167 pass (a Black Chocobo victim's job byte read 95 at the
+  credit edge) and confirmed by the game's own Job sheet (Key 94 Chocobo, 95 Black Chocobo,
+  96 Red Chocobo; the sheet also carries each monster's poach keys). Known consumers of the
+  wrong floor: Puppeteer.Policy.cs (GenericJobHi 95, MonsterJobLo 96), VictimClass.cs
+  (IsHumanJob 74 to 95; job 94 labeled "Dark Knight", which per the sheet is the Chocobo, so
+  the July "Dark Knight 94 live" reading and any Reliquary victim classing built on it are
+  suspect), and any band walk leaning on the 96 floor. Living Poach itself no longer cares
+  (its gate is Job sheet map membership since the fix). Also unresolved and captured here so
+  it is not smoothed over: a 2026-06-08 live ROSTER read recorded job 96 as "Chocobo", which
+  either means that unit was actually a Red Chocobo or the roster +0x02 space differs from
+  the band job byte at the boundary; one deliberate re-read settles it.
+  - Done means: the human versus monster line sits at job 94 everywhere the mod uses it, so a chocobo kill is announced as a monster.
+  - Verify: tests on every consumer of the line; owner kills a chocobo and the toast says monster.
+- **[LW-234] A guest or an enemy can never earn your weapon a kill** (opened 2026-08-14) [QUEUED]
+  The mod files the player's own guests as enemies, so a guest dying could
+  hand the player's weapon a kill it did not earn, complete with a growth toast. Found in the
+  same user's tape. Two player-side units (nameId 4 and nameId 7, band seats 8 and 9) were
+  bridged Enemy fourteen times with rescue=OracleEnemy, meaning the enemy oracle had captured
+  them. That they are on the player's side is visible in the tape rather than assumed: seat 8
+  takes 18 damage at t=12782890 and never dies, while every unit that does die is one of the
+  job 169 to 172 monsters. Nothing was mis-credited this session because neither guest died, so
+  this is a live exposure and not an observed loss. What makes it sharp is that oracle
+  membership is the ONLY team gate on kill credit, and the class doc for EnemyOracle states that
+  guests are "structurally excluded", which this tape falsifies. (Tech:
+  Downloads/flight_20260812_023631_battle-exit.jsonl; the gate is _oracle.Contains(slot.Id) in
+  KillTracker.Corpses.cs. Either add a real side-membership read, which the Provoke arc proved
+  must come from the band's own bit and never from seat position, or stop claiming exclusion in
+  the doc and gate credit on something that actually holds. Rides naturally with LW-233 since
+  both are corpse-credit correctness.)
+  Carries LW-164: An enemy carrying the same weapon type as a player's living weapon can be
+  briefly mistaken for a player unit, which could someday hand an enemy's kill to the player's
+  weapon.
+  Seen once on the 2026-08-12 player tape (flight_20260812_023631): a band enemy wielding weapon
+  id 19 was bridged Player with rescue=WeaponUnique even though FOUR roster rows also carry id
+  19 and the enemy's level/brave/faith fingerprint matched no roster row; no kill landed on that
+  hit, so nothing mis-credited, but the WeaponUnique rescue demonstrably fired on a non-unique
+  id. Check ActorResolver's WeaponUnique lane: it should refuse when the weapon id is not unique
+  across the roster, and probably verify the fingerprint against the roster row it names. The
+  same tape shows vanilla chapter 1 human enemies routinely carrying tracked ids 19 and 20, so
+  the collision population is normal play, not an exotic setup.
+  - Done means: a guest's death and an enemy carrying the same weapon kind can never be credited to the player's weapon. Carries LW-164.
+  - Verify: tests built from both tapes; owner battle with a guest on the field, no wrong credit in the log.
+- **[LW-450] The twin pistol and twin crossbow get a real design and repair pass** (opened 2026-10-18) [QUEUED]
+  The twin pistol and twin crossbow feature needs a real design and repair pass; owner ruling 2026-10-18 after the smoke box 9.6 walk, "it works sorta" from repeated observations, so one blanket row carries it instead of a fix per symptom. Seen that sitting on prod with a tier 3 Outrider Pistol and no support picked: the twin stamped on the Status visit as designed, then putting the player's own second gun (Ironclad Repeater, id 72) in the off hand made the game unequip the main hand pistol too and refund the conjured twin into the bag as a phantom copy (the LW-254 watch line fired, nothing was corrected), and the LW-426 steps aside line never printed because the main hand was no longer a twin weapon. The design questions to settle before code: what the player should see when they replace the twin by hand, whether the lent Dual Wield should stay while gear is edited, whether the phantom refund gets corrected (LW-254) or the grant stops writing the off hand at all, and what the Status page shows after Equipment (LW-439). Folds the open live reads of LW-426 and LW-439 and the LW-254 watch mode into one pass. Not for 2.4.0 unless the owner says so; the feature ships as it is with its known edges.
+  (Tech: GunSlinger.Apply.cs DesiredOffHand and DesiredSupport, GunSlinger.Reconcile.cs twin-refund, GunSlinger.MenuGate.cs, LaunchGuard.Twin.cs; LIVE_LEDGER [twin-grant-inventory-desync] and [twin-dualfire-construction-bound]; smoke box 9.6 stays open, its 2026-10-18 partial reads are the stamp line at 13:32:29 and the refund line at 13:33:34.)
+  Carries LW-467: The twin weapon does not appear on the Status page when you back out of Equipment and Abilities; it only appears after the menu is closed on the world map for a few seconds. The party browse flag the mod trusts to say "the Status page is up" reads 0 on the Status page on the Denuvo free build (live read 2026-10-19 23:03, menu byte 246 and browse 0 on three samples), so the only path left open is the closed menu. Re map the browse flag on this build, the way LW-439 re mapped the menu byte, then let the Status page stamp again. Belongs with LW-450. (Tech: Offsets.PartyBrowseFlag 0x140D408E2, GunSlinger.MenuGate.cs ReadBrowseStable; ledger row [party-browse-screen-byte] was proven on the old fixed base.)
+  Carries LW-359: A player reports the twin-weapon consent rule leaking two ways: with a shield in the off hand, backing out of the equip menu removed the shield and stamped the second weapon anyway (the shield only stuck when placed in the MAIN hand), and swapping the main hand from a twin weapon to daggers left the granted Dual Wield support behind for a while, letting daggers dual-wield free.
+  Reported by Darkrapid on Discord 2026-08-30 (docs/USER_FEEDBACK.md); the owner told the
+  player the intended rule and promised a look. The design (LW-193/LW-194, ad2240a): an
+  empty off hand invites the twin, anything player-equipped in the off-hand or shield slot
+  declines it, and the mod never writes the shield slot. The shield-eaten symptom is the
+  shape of the [twin-grant-inventory-desync] lane those rows closed, so first establish
+  WHICH lane stamps over the back-out transition (suspect: the browse-screen re-stamp that
+  fires within one pass of leaving Equip and Abilities, racing the game's own normalize
+  while the off hand reads transiently empty), and whether Dual Wield support Key 477 is
+  ever restored when a main-hand swap disqualifies the grant. GunSlinger.cs family
+  (Policy/Apply/Reconcile/Store/MenuGate); re-read GunSlingerPolicy's consent checks and
+  the LIVE_LEDGER twin rows before trusting any hypothesis. The first "cannot single-wield
+  without occupying the other hand" half of the report is the consent design working as
+  built, a UX perception to answer in the FAQ (LW-358's entry can cover both).
+  - Done means: one written rule for when the twin appears and leaves, and the code follows it, including the Status page stamp and the shield and dagger leaks. Carries LW-467 and LW-359.
+  - Verify: tests per rule; owner walks the old smoke box 9.6 steps plus both player reports, every step behaves as the rule says.
+- **[LW-514] Buying a new weapon in a brand new game works first time** (opened 2026-10-23) [QUEUED]
+  Nobody has tested buying a new extended weapon in a brand new game that was never reloaded, the one path where only the game's own menu rebuild seats it. A reload fixes it if it fails, but a test save that reaches the first shop would close the gap.
+  (Tech: OrderRebuildHook.Seat.cs; SMOKE_TEST_2.4.0 Appendix A, the Lesalia Terrastaff lane.)
+  - Done means: a never reloaded new game that buys its first extended weapon sees it in the menus with the right count.
+  - Verify: owner plays a new game to the first shop that sells one, buys it, and it shows in Equipment and the bag without a reload.
+- **[LW-457] Players learn what endless dashes on the cards mean** (opened 2026-10-19) [QUEUED]
+  When the mod's DLL is missing but its item tables still load (a half broken install, or the DLL renamed for smoke box 4.5 leg 3), every living weapon card shows the raw placeholder `Kills: -/- to +` and nothing ever fills it, since the dashes are baked into the text tables and only the running DLL paints the numbers over them. Harmless and no crash, seen by the owner on 2026-10-19 at 03:10 with the DLL renamed to .off. Add one sentence to README.md's troubleshooting and docs/COMPATIBILITY.md so a player who sees dashes forever knows the DLL did not load and checks Reloaded's log for `DLL Not Found! LivingWeapon.dll`. Docs only, no code. (Tech: tools/lib/flavor.py KILLS_SCAFFOLD; Reloaded writes the line to %APPDATA%\Reloaded-Mod-Loader-II\Logs.)
+  - Done means: README.md troubleshooting and docs/COMPATIBILITY.md say that dashes that never fill mean the DLL did not load, and where to look in Reloaded's log.
+  - Verify: docs contract tests green; the sentence reads plainly to the owner.
+- **[LW-511] Errors the mod swallows leave a trace when they matter** (opened 2026-10-23) [QUEUED]
+  The number of places where the mod quietly swallows an error doubled this release, from 21 to 44, so failures can happen with no trace in the log. Audit them and give each one that matters a log line or a counter.
+  (Tech: docs/HEALTH.md v2.4.0 silent catches; several cold read rows such as LW-471 and LW-481 name specific ones.)
+  - Done means: each of the 44 empty catches is either given a log line or counter, or marked safe to stay silent with the reason in code.
+  - Verify: a count check holds the number; the health record for the release shows the drop.
+- **[LW-326] Puppeteer works on a quick confirm and shows something on a monster** (opened 2026-08-25) [QUEUED]
+  Puppeteer works but is unreliable: quick attacks fail to dominate
+  and the owner needed retries to record a clean demo. The log tape shows the arm's two
+  signal design running on one leg: the actor-pointer half read pointerMatch=False on
+  every line of the whole session, and the main-hand latch it falls back on flickers off
+  right at the strike edge, so a hit confirmed within about half a second of arming
+  misses while a slow three-count before confirming lands every time. Also on the tape:
+  a dominated MONSTER (job 100) shows nothing visible, reading as a silent failure.
+  (Tech: livingweapon.log 14:38-14:42 2026-08-25; failures show latchMainHand=False
+  actedByte=1 at the hit tick, both successes had 4+ seconds between ACTIVE and the
+  strike. Diagnose why Band.ActorEntry pointerMatch never fires (ActorPtr semantics vs
+  the D1 OR gate, Puppeteer.Policy.cs) and harden the latch across the strike edge;
+  consider a target-kind note or refusal for monsters whose domination has no visible
+  menu effect. Owner workaround documented in-session: wait a beat before confirming.)
+  - Done means: a hit confirmed right after arming dominates, and a dominated monster shows a visible sign.
+  - Verify: owner tries five quick confirms and one monster, all land and show.
+- **[LW-296] Players are told when another mod's text hides the kill counter** (opened 2026-08-21) [QUEUED]
+  When another mod replaces the game's item text, the kill counter quietly
+  stops appearing on weapon cards and the player is never told why, so tell them. The counter
+  is not broken and counting never stops; the number simply has nowhere to be drawn, and today
+  that looks identical to the mod being dead. The fix is the calm notice we already use when a
+  job mod takes the weapon commands away: notice it, stay on, say exactly what is hidden and
+  exactly what still works.
+  This got more likely on 2026-08-21, when a full graphical mod editor shipped on the Nexus
+  (The Ivalice Chronicles Mod Studio, mod 111) that puts item and ability text editing behind a
+  checkbox. Text mods used to require running conversion tools by hand; now they do not, so the
+  collision goes from rare to ordinary. See docs/COMPATIBILITY.md.
+  (Tech: our painted counter anchors to the flavor line of an item's description, and an
+  item.en.nxd override is a full-table replace, so a winning text mod removes every anchor.
+  LivingWeapon/Display/ currently has no detection for a session-long zero-hit sweep and nothing
+  user-facing fires. Model the notice on LaunchGuard.KitLane.cs: a truthful WARN plus a
+  once-per-session calm box, mod stays armed, nothing else disabled.)
+  - Done means: the mod notices when an item text mod leaves no place for the counter, stays on, and says once what is hidden and what still works.
+  - Verify: a test on the detection; owner launches with a text mod enabled and sees the notice once.
+- **[LW-360] Card kill counters fill quickly after launch and never stay blank** (opened 2026-08-30) [QUEUED]
+  The kill counters on the equip cards stop populating for most of the
+  menu when the new warm start is running: the owner flipped cards live and the counts stayed
+  dashes indefinitely. Cause read live the same day: the warm start (the uncommitted LW-324
+  work) latches paint coverage 0.3s after arming on the one persisted region it could seed
+  (122 sites, one per weapon), and MaybePoolPaint's covered short-circuit returns before ever
+  consulting ShouldRunFullPoolScan, so the two regions the full locate publishes 20s later are
+  never scanned at all; their 244 scaffold copies (one full card set per encoding, probed live,
+  none painted in 45s of watching) stay dashes until something drains coverage. Before the warm
+  start, coverage could not latch until after an all-region scan, which is why this never
+  showed. Fix shape: the covered short-circuit must also break on a fresh region publish (read
+  PoolLocator.PublishGeneration there, or clear the coverage latch when a publish adds regions),
+  so a newly published region gets one scan even while covered. Blocks the paint half of the
+  LW-332 live pass; the defect lives in the uncommitted LW-323/324 pile, so it lands there, not
+  on a shipped build.
+  Carries LW-324: The kill counters take too long to appear on the equip cards after a
+  cold boot, and the owner dislikes the wait (his words, "expressing my displeasure"). The
+  counters live in heap string pools the mod has to re-find every launch, and the search is
+  deliberately budgeted so it never hitches a frame, which is why the numbers dribble in.
+  Candidate lever: persist the located pool sites across launches and re-verify instead of
+  re-hunting from scratch. (Tech: Display's budgeted DisplaySweep/PoolPaint census; the
+  pool addresses are heap allocations so a blind replay is unsafe, but a verify-then-adopt
+  warm-start against the LW-257 anchor checks could cut the cold-boot window. Owner filed
+  it as a someday row, not urgent.)
+  BUILT and adversarially verified 2026-08-26 (full pipeline: premise from four
+  launches of flight tapes, plan, adversarial plan review that REDESIGNED the lever
+  from per-site to per-region warm start, TDD implement whose mandated trap test
+  caught the plan's own suppression bug, fresh verify: code 9 of 10, zero code
+  changes required, suite 3343 green). Awaiting the owner's stopwatch read: cold
+  boot 1 writes pool_regions.json at locate completion, cold boot 2 logs "seeded
+  N of M" and the counters appear in one to two seconds. The N of M numbers close
+  the [kills-pool-region-recurrence] ledger row.
+  - Done means: after a cold boot the counters appear fast and every card fills, with the warm start no longer leaving regions unscanned. Carries LW-324.
+  - Verify: owner flips cards right after a cold boot and every counter fills within seconds.
+- **[LW-191] Equipping a living weapon mid battle never takes its command away** (opened 2026-08-13) [QUEUED]
+  Equipping a living weapon in the middle of a battle can take its granted
+  command AWAY instead of giving it, and the mod then says there is no eligible wielder while that
+  wielder is standing on the field. Seen live 2026-08-13: Patrick stole the Sanguine Sword from
+  Gaffgarion and used Re-equip during the same battle. Shadow Blade had been granted to Ramza at
+  11:51:49 (party slot 0, job 2, record 26, the Squire story variant) and was released at 11:55:45
+  with the line "no eligible Sanguine Sword wielder remains", so the command disappeared from the
+  menu mid fight. One second after that release the battle side event lines still read weapon 23,
+  meaning the battle still held the sword while the roster scan no longer found it. (Tech:
+  ShadowBlade.cs walks RosterBase and requires the roster right hand to read id 23; Barrage and
+  Provoke are the same roster keyed shape, so all three granted commands share the exposure. This
+  is LW-103's roster versus band disagreement reaching a surface where it costs the player an
+  ability instead of being harmless. Cheapest first question, one probe: does a mid battle Re-equip
+  write the roster row at all, or only the band? If only the band, the grant lane wants a band
+  fallback keyed the way kill credit already bridges a battle actor to its roster slot. Second,
+  independent of the fix: the release message should not assert there is no eligible wielder when
+  the truth is that the mod lost sight of the weapon.)
+  - Done means: a Re equip or a steal mid battle keeps or gives the granted command, and the mod never says there is no wielder while one stands on the field.
+  - Verify: a test from the 2026-08-13 log; owner re equips the weapon mid battle and the command stays.
+- **[LW-435] Axes and flails grow like every other weapon** (opened 2026-10-17) [QUEUED]
+  The axes and flails restored into the game do not grow. They never count toward a growth lane, so they earn no kill tiers, no stat growth and no glow ring. Give each one a growth lane so they become living weapons like every other weapon. This is a new feature, so it waits until after the 2.4.0 release and stays out of the release scope.
+  (Tech: they are noGrowth by LW-351, so bake_glow_icons.py weapon_ids and the runtime skip them; scope covers picking each weapon's lane in data/items.json, growth tiers, the glow bake, and whether signatures apply.)
+  - Done means: each restored axe and flail has a growth lane, kill tiers, stat growth and a glow ring, and the balance gate passes.
+  - Verify: analyze.py and the glow gate green; owner gets a kill tier on one axe and one flail and sees the growth and ring.
+- **[LW-396] Counter and reaction kills count toward the weapon** (opened 2026-10-16) [QUEUED]
+  A Warbrand kill on the enemy's own turn went uncredited in the owner's live pass; look at whether the enemy-turn rule is too strict for weapon damage that lands during the enemy phase.
+  Owner 2026-10-24: a Counter or other reaction kill should count toward the weapon's tally. Today the enemy turn rule throws it out together with enemy on enemy deaths. Teach the mod to tell the player unit's reaction apart (probe how the game flags a reaction first), then credit it.
+  Live pass 2026-10-16 11:02 (LW-388 port): the first Warbrand kill was refused by the existing
+  enemy-turn rule (KillTracker.Corpses, UntrackedReason.EnemyTurn) while the second was credited.
+  Pre-existing behavior, not a regression; the rule exists to stop enemy-on-enemy deaths from
+  paying a player weapon. Worth a flight-tape read to see whether a counter or reaction kill is
+  being thrown away.
+  - Done means: a kill made by the player unit's Counter or other reaction credits the weapon, while enemy on enemy deaths still never do. Comes after LW-459 and LW-234, which share the code.
+  - Verify: a probe tape of a reaction kill and tests built from it; owner gets a Counter kill and the tally moves.
+- **[LW-344] The Cloud partnership with Jade is finished** (opened 2026-08-26) [QUEUED]
+  Partner mods want their items to be living weapons too: the
+  Cloud mod author (Xeoshades) asked for growth on their Buster Sword line, and today
+  growth already bleeds onto any item occupying our ids, wearing the WRONG name in
+  toasts and losing its counters (their descriptions replace our baked anchors). The
+  right shape is a partner manifest: our runtime merges a small declaration file a
+  partner mod ships (id, name, growth lane), giving their items first-class growth
+  with correct names; counters additionally need the partner to bake our Kills
+  scaffold and flavor anchor format into their descriptions, which is documentable.
+  Turns the mod into a platform. Surfaced via the 2026-08-26 Nexus PM and Discord
+  exchange (docs/USER_FEEDBACK.md same date).
+  Owner agreement 2026-08-30, the settled design: the runtime SCANS the Reloaded Mods folder
+  for a WHITELISTED partner mod's folder (keyed on its ModConfig.json ModId, first entry
+  fftivc.re.cloud.complete, the FF7 RE Trilogy Cloud Conversion by Jade Knightblazer,
+  https://www.nexusmods.com/finalfantasytacticstheivalicechronicles/mods/114) and, when
+  present, USES THAT MOD'S OWN FILES to author new weapons as extended-inventory items.
+  Facts from the 1.0.1 archive (read 2026-08-30, the owner's download): it ships eight
+  whole-table nxds (item.en, ability.en, job, jobcommand, poachitem, uijobabilityhelp,
+  overrideentrydata, and the overrideabilityactiondata table this repo parked as corrupting),
+  ten table XMLs, four sharing this mod's own filenames (ItemData, ItemWeaponData,
+  ItemEquipBonusData whose rows 74 to 78 collide with this mod's 74 to 79, and JobData), effect bins, g2d tex_161, and equip icons (both
+  sizes) for ids 032, 049, 067, 068, 069, 070 and 256. Ids 32/49/67-70 sit exactly on slots
+  this mod occupies today, 49/67-70 being the axe and flail slots LW-351 restores; id 256 is
+  the partner's OWN new item (Materia Blade Plus) on a vanilla extended row, proof they are
+  already squeezing the game's own 256-260 extended catalog range, the one this mod relocates
+  (this mod's new ids start at 261). Re-homing
+  their weapons onto extended ids resolves the ITEM-SLOT collisions; the whole-table nxds and
+  the EquipBonus row overlap collide regardless and need their own answer in the build. The
+  author is the same person as LW-344's original reporter: docs/USER_FEEDBACK.md records the
+  Xeoshades PM signed "Jade" (2026-08-14). Folder recognition in practice means reading the
+  ModConfig.json ModId, an implementation choice the build may revisit.
+  - Done means: Jade's Cloud weapons arm, grow and keep their counts through save and load, limited to his mod, rebased onto main after 2.4.0 moved the weapon ids.
+  - Verify: suite green after the rebase; owner live pass with Jade's mod installed, since the August test is out of date.
+
 ## Backlog
 
 - [LW-517] 2026-10-23: A player on Nexus asked for the three Dancer cloths to grow Physical Power instead of Magic Power, since PA does more for a Dancer. Weigh the swap and, if it holds up, make it.
   (Tech: Tarsilk Veil 119, Bindsilk Veil 120, Gravesilk Veil 121 carry `"grows": "MA"` in data/items.json; change the field, regenerate, rebake meta, and check analyze.py plus the growth lane tests. A Nexus comment, 2026-10-23.)
   Leading option, owner 2026-10-23: a hybrid lane that alternates, PA at 5 kills, MA at 10, PA at 15, so the Dancer grows both without out growing every other weapon. For the cloth swing and the dances PA and MA count the same, since cloth damage is `(PA+MA)/2 x WP` (DESIGN.md); the choice only matters for the Dancer's secondary skill set.
   (Tech: needs a new lane type, since `grows` holds one stat per item today; the runtime growth engine, meta.json baking and the lane tests all assume one stat.)
-- [LW-506] 2026-10-23: About a dozen of the mod's hooks switch on a moment before they save the handle they need to call the game's own routine, so a game call landing in that sliver would crash the game. Nobody has seen it happen, and the gap is microseconds at startup, but the fix is cheap.
-  (Tech: `_hook = hooks.CreateHook(...).Activate()` assigns after Activate returns while the detour reads `_hook!.OriginalFunction`. Create, assign, then Activate. Sites: CategoryGetterHook, InventoryResetHook, ListBuilderHook, OrderRebuildHook, RewindRestoreHook (two), SaveEdgeHooks (three), PromptSwapHook, IconCacheHeal. Covers LW-468 and the same note on LW-500.)
 - [LW-507] 2026-10-23: Three old branches on GitHub still carry commit trailers that credit an outside tool, which this repo forbids. Their work is already on main under clean commits, so the branches can simply be deleted once the owner says go.
   (Tech: origin/docs/extended-code-map, origin/tooling/health-report, origin/cold-read-extended-sweep. The sweep's own commits are clean, but its work is merged, so it can go too.)
-- [LW-508] 2026-10-23: The cold read log says the item category hook was changed to refuse installing before the catalog, but that change never reached main. It sits uncommitted in a side worktree, so either land it properly or note in the log that it was dropped.
-  (Tech: .claude/worktrees/extended-readability, LivingWeapon/Extended/CategoryGetterHook.cs, three code lines; log entry "Seeded trial build 3" records hash 17437a8ea40e9f3c, main's file differs.)
 - [LW-510] 2026-10-23: The release health record has three rough edges. The tag's own CI run warns that the record is missing because it is committed after the tag, the reminder names the current version as the next one, and the wiring test does not check that a failing selftest stops the build.
   (Tech: document Publish, commit docs/health, then tag, or have the tag run accept an uncommitted record; health.py status message; HealthReportWiringContractTests should pin the throw after `--selftest`.)
-- [LW-511] 2026-10-23: The number of places where the mod quietly swallows an error doubled this release, from 21 to 44, so failures can happen with no trace in the log. Audit them and give each one that matters a log line or a counter.
-  (Tech: docs/HEALTH.md v2.4.0 silent catches; several cold read rows such as LW-471 and LW-481 name specific ones.)
-- [LW-513] 2026-10-23: Players who installed Reloaded somewhere other than the game folder lose the glow rings on icons until a restart, because the mod looks for the game's art file a fixed three folders up. Find it a sturdier way.
-  (Tech: IconGlow warns "IconGlow cannot locate modded.pac this launch"; smoke open risks, box 7.2.)
-- [LW-514] 2026-10-23: Nobody has tested buying a new extended weapon in a brand new game that was never reloaded, the one path where only the game's own menu rebuild seats it. A reload fixes it if it fails, but a test save that reaches the first shop would close the gap.
-  (Tech: OrderRebuildHook.Seat.cs; SMOKE_TEST_2.4.0 Appendix A, the Lesalia Terrastaff lane.)
 - [LW-515] 2026-10-23: There is no repo tool that fills the bag with every item, so the long inventory list past 149 rows could not be retested this release. Build a small probe that writes a full bag on a test save.
   (Tech: HandsFree crashes the copy protection free build; smoke box 4.3 read NOT REACHED for its second half.)
 - [LW-516] 2026-10-23: Add a ruler that stops methods from growing too deep or too long, as ruled before the tag, since long methods rose from 13 to 17 this release.
   (Tech: MethodBudgetContractTests beside CommentBudget, nesting depth cap 4 first, body lines cap 80 as backstop, constructor parameters cap 6 with a group them note, frozen allowlist that only shrinks; owner ruling 2026-10-18.)
 
-- [LW-467] 2026-10-19: The twin weapon does not appear on the Status page when you back out of Equipment and Abilities; it only appears after the menu is closed on the world map for a few seconds. The party browse flag the mod trusts to say "the Status page is up" reads 0 on the Status page on the Denuvo free build (live read 2026-10-19 23:03, menu byte 246 and browse 0 on three samples), so the only path left open is the closed menu. Re map the browse flag on this build, the way LW-439 re mapped the menu byte, then let the Status page stamp again. Belongs with LW-450. (Tech: Offsets.PartyBrowseFlag 0x140D408E2, GunSlinger.MenuGate.cs ReadBrowseStable; ledger row [party-browse-screen-byte] was proven on the old fixed base.)
-- [LW-466] 2026-10-19: After a Retry with the Sunderer's Bulwark planted, the barred tile behind the wielder stays barred until the wielder's next turn opens, and the plant toast replays once on the rewound battle. Seen live on the dev build of 29632f46 (smoke box 9.4 step 3): plant at 22:48:37 barring (11,5), Retry at 22:49:04, a stale `The Sunderer plants its blade` toast delivered at 22:49:05, release only at 22:49:25 when the wielder's turn opened. It heals itself within one turn and only blocks one tile, so it ships as known for 2.4.0. Fix it with LW-465 in 2.4.1 on the same measured rewind moment: release the Bulwark and drop any queued signature toast when the checkpoint restore lands. (Tech: Bulwark.cs and Bulwark.Terrain.cs release on the wielder's turn edge or a battle edge only; the LW-458 restore count ExtendedInventory.RetryRewinds is the signal; BannerToast queue survived the rewind.)
 - [LW-463] 2026-10-19: The readability quiz becomes one four stage pipeline, in a fixed order, after the 2.4.0 tag. First the cold read as today, with one label change (a why that lives only in a comment counts as a miss, and "bad question" means only that the answer needs code outside the packet). Then one plain words comment pass, comments only, with the stripped code proven identical and comment lines not allowed to rise. Then every warning comment ("must run before", "changing one means changing the other") goes back to the code and is fixed there or kept with a logged reason. Last, a second toolless reader gets the files with comments and reports any comment the code does not back up. One log entry per change with a result per stage. Values in the order they win, accuracy, then understanding, then readability. (Tech: owner review doc "Corpses readability review", 2026-10-19; the four versions on branch compare/corpses-readability, A 12ac7ea7 plain words only scored 6, B 2e0fd3ad cold read only 6.5, C a8072bc8 cold read then plain words 7, D 14708265 the warnings turned into code; the gate and its skill live in the home setup repo.)
 - [LW-462] 2026-10-19: The corpse scan keeps about fifteen side by side lists, one entry per battle seat, so forgetting a death means clearing every list by hand and missing one is easy. After the 2.4.0 release, give each seat one object holding what we watch (seen alive, streaks, recorded identity, last dead hp), the open death case (verdict, waiting, killer stamp, victim snapshot) and the paid kill, so forgetting a death is two assignments. One identity type with one same unit check replaces the three tuples. Then turn the dead edge priority chain into a small pure function that returns a verdict, tested with a table of cases, name the team values, and return what changed instead of threading a ref flag. One group per commit, paid kill first, replayed battles green before and after each step, seats made once per battle. (Tech: LivingWeapon/Kills/KillTracker.Corpses.cs; owner review doc steps 7.5 to 9; Seat, Watch, DeathCase, PaidKill, UnitIdentity.SameUnit are the review's names.)
-- [LW-461] 2026-10-19: The check that decides a different unit now sits in a seat compares level, brave and faith but leaves out max hp, while the alive record that decides whether a death can pay is keyed with max hp included. A max hp change alone can therefore send a real first death down the orphan path instead of the normal one. Decide whether max hp belongs in the seat check, and test the case. Separately, the seat clear leaves the fallback flag behind; harmless today because every reader checks the killer stamp first, but it should clear with the rest. (Tech: RecordedIdentityChanged vs _identityAlive's (lvl,br,fa,maxHp) key; ForgetDeathAndCredit skips _lethalViaFallback; found by the 2026-10-19 cold reads and the blind review.)
-- [LW-460] 2026-10-19: The two places that leave a kill unpaid because the killer had no Living Weapon disagree on what they leave behind. One marks the enemy dead on the record, the other leaves it marked alive, so a second death of the same enemy is blocked after one and allowed after the other. Make them agree or make the difference a named rule with a test. A player would only see it as a second kill on one unit paying or not paying depending on which path buried the first. (Tech: ResolveCredit's untracked bury writes _identityAlive false; HandleOrphanAliveEdge's writes true first and returns; flagged by every reader in the 2026-10-19 readability runs.)
-- [LW-459] 2026-10-19: A retry can pay a kill twice when the dead enemy comes back with changed brave or faith. The branch that handles a unit whose stats changed while it stood back up compares the old credited identity against the new stats, which can never match there, so the retry check leans only on the battle age grace and an early retry slips through. Check this against the LW-458 retry failure first, since both end in a phantom kill after a Retry. (Tech: ScanAlivePath's identity swap branch, UncreditIfRestartRevive with _creditedIdentity stamped from the tuple that seeded _slotId; the old comment called it the Finding 6(ii) residual; RestartSentinelPolicy.GraceTicks.)
-- [LW-457] 2026-10-19: When the mod's DLL is missing but its item tables still load (a half broken install, or the DLL renamed for smoke box 4.5 leg 3), every living weapon card shows the raw placeholder `Kills: -/- to +` and nothing ever fills it, since the dashes are baked into the text tables and only the running DLL paints the numbers over them. Harmless and no crash, seen by the owner on 2026-10-19 at 03:10 with the DLL renamed to .off. Add one sentence to README.md's troubleshooting and docs/COMPATIBILITY.md so a player who sees dashes forever knows the DLL did not load and checks Reloaded's log for `DLL Not Found! LivingWeapon.dll`. Docs only, no code. (Tech: tools/lib/flavor.py KILLS_SCAFFOLD; Reloaded writes the line to %APPDATA%\Reloaded-Mod-Loader-II\Logs.)
 - [LW-456] 2026-10-19: A Ninja with Throw Swords learned cannot Throw a Warbrand, because the game's Throw list stops at the base game's items and never offers one of the seven new weapons (owner saw Claymore and Materia Blade listed and no Warbrand, 2026-10-19 02:17). Hook the Throw list builder the way the weapon menus were hooked so the new weapons can be thrown, and check the thrown item leaves the bag count. Owner ruling 2026-10-19: out of 2.4.0, recorded as a known limit in docs/EXTENDED_INVENTORY_GUIDE.md; a 2.5.0 arc. (Tech: the Throw list is one of the optional extra reads LW-346 never opened; the research journal lists it as unchecked since 2026-08-27.)
 - [LW-455] 2026-10-19: When a battle is retried and the mod cannot read what the party's hands hold at that instant, the log still says the new weapons' bag counts were put back, with empty parentheses, so a no op reads like a success. Say plainly that nothing was written because the hands could not be read, and count it. Found by the third cold read of LW-452; never seen live, the roster block is static memory.
 - [LW-454] 2026-10-19: On the first battle of a launch the game put a checkpoint back that this mod never saw being saved, so the once per launch Warn fired at 01:27:12 on 2026-10-19 while nothing was wrong (nothing was written, Warbrand held at 5). The checkpoint was stored before this launch, most likely in the save file. Decide whether that first restore should log at Debug instead, or whether the mod should capture a total at that moment. (Tech: RewindRestoreHook.RestoreCounts not found branch, CheckpointRestoresUnrecorded.)
-- [LW-450] 2026-10-18: The twin pistol and twin crossbow feature needs a real design and repair pass; owner ruling 2026-10-18 after the smoke box 9.6 walk, "it works sorta" from repeated observations, so one blanket row carries it instead of a fix per symptom. Seen that sitting on prod with a tier 3 Outrider Pistol and no support picked: the twin stamped on the Status visit as designed, then putting the player's own second gun (Ironclad Repeater, id 72) in the off hand made the game unequip the main hand pistol too and refund the conjured twin into the bag as a phantom copy (the LW-254 watch line fired, nothing was corrected), and the LW-426 steps aside line never printed because the main hand was no longer a twin weapon. The design questions to settle before code: what the player should see when they replace the twin by hand, whether the lent Dual Wield should stay while gear is edited, whether the phantom refund gets corrected (LW-254) or the grant stops writing the off hand at all, and what the Status page shows after Equipment (LW-439). Folds the open live reads of LW-426 and LW-439 and the LW-254 watch mode into one pass. Not for 2.4.0 unless the owner says so; the feature ships as it is with its known edges.
-  (Tech: GunSlinger.Apply.cs DesiredOffHand and DesiredSupport, GunSlinger.Reconcile.cs twin-refund, GunSlinger.MenuGate.cs, LaunchGuard.Twin.cs; LIVE_LEDGER [twin-grant-inventory-desync] and [twin-dualfire-construction-bound]; smoke box 9.6 stays open, its 2026-10-18 partial reads are the stamp line at 13:32:29 and the refund line at 13:33:34.)
 - [LW-449] 2026-10-18: The live tally poke tool can write into the wrong map when the weapon has never scored a kill. Plain version, the tool finds the mod's kill tally in the running game by its shape and writes one number; when the tally has no entry for that weapon (a weapon at zero kills is simply absent from the file), the only match it finds is one of the mod's other per weapon maps that hold every id, and it writes there, so the card still reads 0 and the mod sees nothing. Seen 2026-10-18 at 13:25 on prod with the Outrider Pistol (id 71, 1 of 1 copies, 12 corroborating neighbours, no re judge pass after). Dev tooling only, nothing a player sees, outside the 2.4.0 scope. Fix idea, refuse to write unless the matched entry sits in a dictionary whose key set equals the kills.json key set, and say "stage the weapon in kills.json first" instead.
   (Tech: tools/probes/lw381_tally_poke.py, the per process address cache made the second run a cache hit on the same wrong address; candidates it can hit are BannerToast._counts, Display._lastCounts and the AttackCard snapshot, each a Dictionary<int, int> over the meta ids; the restore poke to 0 was run the same minute.)
-- [LW-448] 2026-10-18: Enemy Knights and Squires can cast Shadow Blade, and enemy Thieves can cast Barrage, whenever a player in the party holds the matching weapon at its top tier, because the mod grants those commands by writing them into the job's shared command list and every unit of that job reads the same list. The owner saw an enemy Knight named Dyana cast Shadow Blade on 2026-06-16; the bug was deferred on 2026-06-27 with two fix options and then fell out of the ledger when the LW ids arrived, surviving only in docs/archive/STAFF_SWORD_TEST_PLAN.md and git history (commits 63d4c183 and 110bd72a). Re surfaced 2026-10-18 by an owner question; nothing was ever wired, the code still grants on records 5 and 7 and carries no turn team gate. A player sees it, so under the freeze rule it may join R5 when a Now seat frees; the owner picks the fix. Options as analysed 2026-06-27: (A) a turn team gate that pulls the command out of the record on enemy and ally turns and re injects on the player's turn, relying on the 33 ms loop beating the AI's ability enumeration, must be live verified; (B) Ramza only, restrict Shadow Blade to the Mettle records 25 to 28 that no enemy uses, zero leak by construction but a generic Knight loses the signature; (C) drop the command grant for a per unit write and hold signature. Barrage has the same shape on the Thief record 14. Scope is unchanged until a wielder reaches +3 (15 kills on prod), so new players never meet it in the first chapter.
-  (Tech: ShadowBladePolicy.AllowedRecords is still { 5, 7 } plus RamzaSwordJobs; no TurnQueue read exists in ShadowBlade.cs or Barrage.cs; LIVE_LEDGER [zero-value-command-ai-silent] proves only that a ZERO value command is not chosen by the AI, which is why Provoke does not leak in use while these two do; the UsableByAI byte at 0x140787F80 +7 mask 0x80 per ability is the mapped suppressor, never shipped, and clearing it for 165 and 358 would likely also stop a player unit on auto battle from using them, unverified.)
-  Recommended fix, 2026-10-18 offline analysis: hold the ability's UsableByAI bit CLEAR while the grant is active (option E), the same mask scoped read, modify, write hold every other grant already uses, restored on release. One bit per ability, no turn timing race, covers Barrage and Shadow Blade alike, and the enemy still sees the command in its list but never picks it. The cost is that a player unit under AI control (auto battle, Charm, Confuse, Berserk) cannot cast it either, which reads as acceptable or even welcome. The premise is unproven, the bit was mapped on 2026-07-23 and never tested as a suppressor, so step one is the owner's probe, `python tools\probes\ability_grant_probe.py aiflag 165 clear` held through one battle with a +3 Sanguine Sword Knight in the party and enemy Knights on the field, following the probe's own protocol in verb_aiflag. PASS means the player's Shadow Blade still casts and no enemy Knight casts it across the battle; FAIL means an enemy cast with the bit clear, and the fallback is option A, the turn team gate at TurnQueue +0x02, which needs its own live run for the race. Option B does not cover Barrage and option C is a rewrite.
 - [LW-447] 2026-10-18: Redesign the battle weapon colors for 2.5.0 so the weapon a unit swings looks as close to its equip icon and card art as the sprite's fifteen color slots allow, then bring the feature back. Carries LW-412 (exited 2026-10-18). Lessons from the 2026-10-18 sitting that the redesign must settle before code: the kill tier glow is decoupled from the sprite (the icon's art never changes with tier, only its ring does, so the sprite has one target); the palette map is verified against the game's own table for all 127 weapons, not trusted from the generated file plus two overrides (LW-305); thrown weapons, the Move Find staff and the ex flails (LW-312) draw from sources the palette path does not reach and need their own path or a stated exclusion; the parry clash and the counter in steel (LW-310) get a ruling; the edge pass (LW-339) runs before the feature ships; and a build gate compares each sprite's body hue to its icon so a mismatch cannot pass by eye again. The design doc sentence lives in docs/DESIGN.md section 8.
+  Owner 2026-10-24: when picked, it runs in two steps. First a design session that settles the open questions in DESIGN.md section 8 with the owner (no code, about an hour), then the build only after the owner signs off.
 - [LW-408] 2026-10-17: Find out whether Living Weapons runs alongside WotL Restoration and write the answer down. Demoted from Now 2026-10-18 to make the seat for LW-446 (the weapon color cut); it is an owner run with no code and goes back to Now the moment a seat frees. Its Done means and Verify as written:
   - Done means: a player reading docs/COMPATIBILITY.md knows what happens with both mods installed, which order to load them in, and what each mod's own log will say. Payload half done 2026-10-17: WotL Restoration 2.0.7 was downloaded and read file by file (its text tables diffed against vanilla and ours, its job table, and its decompiled code), and the verdict is written in the doc's "WotL Restoration" section: characters and events coexist, its 40 new items switch off because both mods break the 261 item cap at the same code sites and ours arms first, and Living Weapons must load last to keep its item names. (Tech: her nine accessor hooks are our ten entries; 52 of her 63 relocations and 30 of her 44 caps sit on our sites; item.en.nxd keys 261 to 267 are written by both; her JobData rows 162 to 168 are clear of ours; ability 358 Barrage is named by both.)
   - Verify: owner runs the game once with both mods enabled, WotL Restoration loading before Living Weapons. Expected: Living Weapons' parts report reads all ON (extended inventory included), WotL Restoration's log prints its "Item expansion NOT armed" line, Luso and Balthier's events still fire, the Terrastaff card reads Terrastaff with its kill counter, and Agrias's birthday hands out a Septième Sens. Owner flips this row to AWAITING-LIVE when ready and PROVEN or not after the run.
 - [LW-443] 2026-10-18: (carries LW-441, exited 2026-10-18) Hide an icon at the moment the game next draws it, so the new ring shows with no search of memory at all. Plain version, today the mod hunts through the game's memory for the old icon, which is slow and was the source of the memory growth. The game already tells the mod every time a screen asks for an icon, so when that ask returns an icon the mod wants replaced, the mod can hide it right there and answer "not found", and the reload fires on the same call. (Tech: when the draw thread's lookup returns an entry for a name waiting to be hidden, hide it inside the hook and return a miss so the heal fires on the same call; the entry is alive by construction, so there is no sweep for parts entries and no tick thread write, and per cache quiet falls out; the texture record keeps its first sweep. A 2.5.0 row that replaces the proven sweep path, the second reader's design, 2026-10-18.)
-- [LW-444] 2026-10-18: The plus one, plus two, plus three on a weapon's name in the list lags and sometimes reads wrong until the player unequips and reequips it. Plain version, the mod paints the suffix onto the name after the game has already drawn it, so it can miss or be stale; it should add the suffix as the game writes the name, the same lesson as the icons. (Tech: append the suffix inside the text setter hook the toasts already own, PromptSwapHook and FnSetTextString; the after the fact painter stays for the cards; 2.5.0.)
-  (Tech: IconCacheHide.ClassifyAndWrite, HideOutcome.TextureMissing when texHidden is 0; the pointer sweep looks for pointers to the path string start, a hidden record points at start+1; the heal only fires on a miss, so an intact stale parts entry never heals.)
-- [LW-438] 2026-10-17: On the first launch after a prod deploy, with every weapon at +3, no weapon name in the lists showed its +3, and unequipping and re equipping did not bring it back; on later launches every name read +3 again. Reproduce on a deploy with a few weapons at a tier, and decide whether a player updating the mod would see bare names for a launch. If a player would see it, it joins R5 under the freeze rule.
-  (Tech: seen 2026-10-17 about 22:20 on prod of the tree later committed as ea841c1c; all 121 tallies were at 15 from a direct kills.json edit, so the name suffix room (capped, SuffixRotation) may simply have been full; the 23:45 owner screenshot shows Outrider Pistol+3 and the gun names correct.)
-  Checked offline on 2026-10-18 and the full room idea does not hold up. The painter has room for eight copies of every one of the 121 names at once, and the last live count (2026-08-18) was about four copies per name, so 121 weapons at +3 fit with half the room to spare; a test now paints all 121 at +3 on a cold launch and on a warm start alike. The room only overflows at nine copies per name, and then the last found copies stay bare whatever the tier count, so it is the headroom that rules the room out, not the tier count. The tests model the room's arithmetic only, not the launch window (the memory sweep runs before the pool is found, and every Continue load makes the painter look again). The warm versus cold split is not keyed to a deploy either, because the region file lives in the Reloaded user folder the deploy script never touches. The one piece of state a deploy does reset is the icon glow's first apply, which is icons, not names. Only the owner's live reproduce can pin the first launch difference.
-  (Tech: tests in LivingWeapon.Tests/DisplayAllTieredSuffixTests.cs; CardSites.MaxSuffixSites 1024 and SuffixCopiesPerId 12 give 121 x 8 = 968 inside the room and 121 x 9 = 1089 over it; which copies overflow depends on region scan order, PoolLocator.WarmStart.cs compares region lists as sets for that reason; the sweep alone paints 9 names on its first pass and all 121 after 14 hot visits at RotationSlice 8 and HotRescanMs 250, about four seconds; the pool path registers every name tiered or not, so a re equip never frees the room; pool_regions.json sits under Reloaded/User/Mods/<id>. What decides it live is the suffix site count from the bare launch. The first Info line "The kill counters are live on the equip cards" reports only the first latch, which on a warm start is the sidecar seeded subset, so read the LAST "pool coverage re-established" Debug line in that launch's livingweapon.log (total slots minus paint spots is the suffix count), or the flight archive's coverage record, which carries it as suffix=N and survives the one launch log rotation; 1024 means the room was full, 0 means no name copy was found, anything between means the names were painted somewhere the lists do not read.)
 - [LW-436] 2026-10-17: On the small list icon a +1 green weapon (speed) is hard to tell from a +3 one, and the yellow guns' +1 is very faint. The owner judged both acceptable for 2.4.0. After the release, try spreading the tier steps so +1 and +3 look different on the light colors, and try strength 2.0 on the yellow lane. Owner judges by eye in game.
   (Tech: light hues saturate early against the cream panel #FFFAE8, so the dark green rim reads solid by +1; the lever is per tier width or a per lane strength override in tools/bake_glow_icons.py, not a darker color, which merges with the icon outline.)
   Second sighting 2026-10-18 15:13, owner on the Cleaver card at +1: the PA ring read orange to him. Measured from the shipped ring pixels (tex decoded through FF16Tools, ring = pixels outside the plain art): the PA ring is hue 0 at every tier and the HP ring hue 24, so the hue is right; the +1 ring ships at mean alpha 91 of 255, which over the cream panel lands PA at hue 7 and 39 percent saturation (a washed salmon) and HP at hue 27 and 41 percent, twenty degrees apart, while +3 (alpha 183) lands PA at hue 2 and 72 percent, plain red. So the +1 step is where the red and red orange lanes can be mistaken for each other, the same lever as above.
 - [LW-437] 2026-10-17: Rename the LivingWeapon/glow_icons folder to GlowIcons so it matches every other folder's ProperCase naming. Players never see it, and the mod looks the folder up by name, so it waits until after the 2.4.0 release and stays out of the release scope. After the rename the glow smoke check runs again.
   (Tech: about 55 references in 19 files, including IconGlow.Store, IconGlow.StoreFile and IconGlow.Manifest, LivingWeapon.csproj, tools/pipeline.ps1, bake_glow_icons.py, bake_extended_icon_parts.py, recolor_icons.py, two probes and the docs; BuildLinked's clean step removes the old deployed folder.)
-- [LW-435] 2026-10-17: The axes and flails restored into the game do not grow. They never count toward a growth lane, so they earn no kill tiers, no stat growth and no glow ring. Give each one a growth lane so they become living weapons like every other weapon. This is a new feature, so it waits until after the 2.4.0 release and stays out of the release scope.
-  (Tech: they are noGrowth by LW-351, so bake_glow_icons.py weapon_ids and the runtime skip them; scope covers picking each weapon's lane in data/items.json, growth tiers, the glow bake, and whether signatures apply.)
 - [LW-428] 2026-10-17: A weapon icon sometimes fails to save into the mod folder and the mod quietly retries, so a player never sees a blank icon, only a WARN in the log; until now the log could not say why. The failing step is the loose icon file swap in the mod folder (temp file, then replace), not a pac lock, and its exception used to be thrown away. Sightings on 2026-10-17: icon 19 at 10:44:56, icon 79 at 12:48:50, and a burst of 12 icons at 17:12:10 on the first launch after a deploy; every one retried fine (109 then 11 then 1 of 121). The log now names the exception type and the Win32 code, once per icon file per launch; 32 means another program holds the file and 5 means access denied. First live code 2026-10-17 at 18:32:33 on prod: icons 14 and 39 (card) failed with IOException, Win32 error 1175 (Windows could not move the old file aside during the swap, so some program held it open without delete sharing), and both landed on the next pass about a second later. That is neither 32 nor 5, so the holder still has to be named before a fix is picked, and any change to the swap itself goes through the full pipeline. (Tech: IconGlowWriteError via IIconGlowStore.LastWriteError, FileIconGlowStore.AtomicWrite, the (detail: ...) tail on the write and snapshot warns.)
 - [LW-429] 2026-10-17: During the sitting 2 recheck a Gariland battle logged the WARN `A fielded enemy is no longer visible in the battle band; its kills may go uncredited.` at 12:40:25; the battle went on to credit the next kill normally and no kill was lost that the owner saw. The launch's log rotated away before it was saved. Reproduce on a New Game Gariland with the log kept, and decide whether the warning is a real band coverage hole or a false alarm on the story's mid battle unit change. Owner ruling 2026-10-18, this warning has shown up for a long time with no kill ever lost to it, so it is out of the 2.4.0 scope and waits for 2.5.0.
 - [LW-417] 2026-10-17: The HP growth code file has grown past the size where a reader can hold it in their head (253 lines). Split the Max HP lane into its own file under the new file comment cap, keeping or rewriting the LW-327 edge prose at the old lines 112 to 138, never dropping it. Owed since LW-327, grew again with LW-416.
@@ -93,18 +396,6 @@ belongs rather than at the bottom.
   PoolLocator.WarmStart (51 to 54) plus the forced full restart are the net today. Fix: plumb
   LaunchGuard's latched observed pair into Save and Load (Display is built before tick 1 latches it,
   so a Func seam, not a value).
-- [LW-409] 2026-10-17: A player mentioned "the double cast thing" as if it were a known bug, and nobody knows what they meant; find the comment, ask, and either file the bug or close this.
-  Owner recalled the comment 2026-10-17 ("figured there'd be updates coming just didn't know if
-  you'd spotted the double cast thing"). No feedback row, no ledger row, no changelog entry
-  mentions a double cast. Thread found 2026-10-17 (Discord, 2026-04-02, Tal, EpicBrownie, Nyzer):
-  other modders explain that the game's dual wield hit count routine, the one that sets two
-  attacks when a unit dual wields, is hardcoded by weapon formula id, so a custom formula does
-  not get the second strike and a cast formula fired through it casts twice. Why it touches us:
-  the rebalance moved many weapons onto formulas that routine may not list (45, 47, 48, 67, 69,
-  99, and the formula 4 magick guns and rods), and the twin weapon grant hands out Dual Wield.
-  So a living weapon under Dual Wield may swing once instead of twice, or a formula 4 gun or rod
-  may fire its spell twice. Live check first: Ninja with Dual Wield and two Blaze Guns, then two
-  Hushblades, count strikes and casts; then read the routine Tal names.
 - [LW-415] 2026-10-17: Every write the mod makes into the game should say which of three buckets it belongs to, battle, process or save, so a part that dies mid action can never leave the save changed without someone knowing who puts it back.
   Owner design 2026-10-17: a required WriteScope argument on the Mem write funnel (Battle,
   Process, Save, no default, so a new write site that names no bucket does not compile); the
@@ -125,13 +416,6 @@ belongs rather than at the bottom.
   found these are the only save-persistent writes with no restore path; the Ramza row landmark is
   their only protection under any guard design. Options: clear the bit when the grant ends, or keep
   the hold and accept the risk in writing. Surfaced by the 2026-10-16 write-site audit.
-- [LW-396] 2026-10-16: A Warbrand kill on the enemy's own turn went uncredited in the owner's live pass; look at whether the enemy-turn rule is too strict for weapon damage that lands during the enemy phase.
-  Owner 2026-10-24: a Counter or other reaction kill should count toward the weapon's tally. Today the enemy turn rule throws it out together with enemy on enemy deaths. Teach the mod to tell the player unit's reaction apart (probe how the game flags a reaction first), then credit it.
-  Live pass 2026-10-16 11:02 (LW-388 port): the first Warbrand kill was refused by the existing
-  enemy-turn rule (KillTracker.Corpses, UntrackedReason.EnemyTurn) while the second was credited.
-  Pre-existing behavior, not a regression; the rule exists to stop enemy-on-enemy deaths from
-  paying a player weapon. Worth a flight-tape read to see whether a counter or reaction kill is
-  being thrown away.
 - [LW-389] 2026-10-15: The live memory probes in tools/probes still talk to the game at the old fixed address; teach the shared harness the real module base so probes work again on the unprotected game.
   battle_cheats.py and friends read pins from tools/lib/offsets.py (preferred base) and RPM the
   game externally; with ASLR on they must add the live base (EnumProcessModules or psutil on
@@ -189,39 +473,6 @@ belongs rather than at the bottom.
   her the two list caps her bounds table skips (0x140288CC3 and 0x14028631A, the 149 and 150
   stack-buffer limits) are the past-149-kinds crash Tal described. Related: LW-403 (her in-save
   count tail), docs/COMPATIBILITY.md WotL Restoration section.
-- [LW-386] 2026-09-01: The Poacher's Den is handing players items the mod never meant it to, and one
-  player saw four katanas where two dragons' carcasses belong. Plain language: a Discord player on
-  the public 2.3.3 build poached Blue and Red Dragons and the Den listed and produced Asura, Kotetsu,
-  Bizen Osafune and Murasame instead of the dragons' rewards, while the regular Dragon and the pig
-  line behaved. That exact symptom is NOT reproduced yet and its cause is unknown; what the same-day
-  audit DID prove wrong in 2.3.3 is listed below, and it is player-visible on its own.
-  - PROVEN wrong in the public build (data audit 2026-09-01, docs/USER_FEEDBACK.md 2026-09-01):
-    five carcasses hand out a weapon of a different TYPE than the carcass card promises, because
-    2.3.3 recategorized the seven axes and flails in place: Grenade rare gives Bloodlash (a knife;
-    the card says Flail of Flame), Wisenkin common and rare give Terrastaff (a pole) and Ravager (a
-    knight sword; the card says Battle Axe and Giant's Axe), Minotaur rare gives Sunderer (a knight
-    sword; the card says Slasher), Hydra rare gives Sasori (a katana; the card says Scorpion Tail).
-    HEAD already restored those seven ids (LW-351), so 2.4.0 cures this by shipping; the row exists
-    so the 2.3.3 player-facing fact is on record and the release notes can say so.
-  - PROVEN wrong in every build: 39 of the 96 carcass descriptions name the VANILLA reward ("Used
-    to produce a length of cashmere") while the Den hands out the mod's renamed item (Bindsilk
-    Veil). The mod never patches poachitem.en.nxd. Decide: patch the 39 descriptions the way
-    item.en.nxd is patched, or leave and FAQ it.
-  - ELIMINATED for the katana symptom: vanilla poach data is correct (keys 87 to 90 produce items
-    120, 57, 239, 105); the mod ships no poach or job text table; JobData.xml touches no monster
-    row; the nxd bake audit is green; the owner's running modded game holds the vanilla produced
-    ids in all three in-memory copies of the poach sheet
-    (tools/probes/lw386_den_produced_probe.py table, read-only). The tag's ItemData.xml,
-    ItemWeaponData.xml, JobData.xml and item.en.nxd all differ from HEAD, so a 2.3.3-tag deploy
-    is the honest repro bed if the owner's HEAD build does not reproduce.
-  - NEXT (owner-driven, two minutes): poke Den store keys 87 and 89 to 1 with the probe, open the
-    Den, read what the Blue and Red Dragon lines show and produce, restore. Then ask the player
-    for mod version, other mods, a Den screenshot and livingweapon.log. Related to [LW-358]
-    (the earlier no-poach report) only by subject; different symptom, different gate.
-  - (Tech: carcass store u8[96] at Offsets.PoachStoreBase 0x1411A7A1B; PoachItem sheet rows are
-    0x38 bytes with the produced item id at +0x2C, three live copies found 2026-09-01 at
-    0x15c62xxxx and two 0x4c9bxxxxxx heap mirrors; the tag build is v2.3.3 = cb14be3b; the
-    recategorized rows are ItemData.xml ids 48, 49, 50, 67, 68, 69, 70 at that tag.)
 
 - [LW-384] 2026-09-01: The Eclipsebolt's death mark lands on the slow three turn countdown instead
   of the one turn its tier three signature promises, and once it does there is no second chance.
@@ -503,65 +754,7 @@ belongs rather than at the bottom.
   (Tech: patch_names.seed_extended_rows + item_intent; lib/bake_intent.ALLOWED_EXTRA_ROWS derives
   from the data; KILLS_SCAFFOLD is 11 chars and the suffix slot 2; memory
   modloader-merge-semantics pins the per-cell nxd union.)
-- [LW-359] 2026-08-30: A player reports the twin-weapon consent rule leaking two ways: with a shield in the off hand, backing out of the equip menu removed the shield and stamped the second weapon anyway (the shield only stuck when placed in the MAIN hand), and swapping the main hand from a twin weapon to daggers left the granted Dual Wield support behind for a while, letting daggers dual-wield free.
-  Reported by Darkrapid on Discord 2026-08-30 (docs/USER_FEEDBACK.md); the owner told the
-  player the intended rule and promised a look. The design (LW-193/LW-194, ad2240a): an
-  empty off hand invites the twin, anything player-equipped in the off-hand or shield slot
-  declines it, and the mod never writes the shield slot. The shield-eaten symptom is the
-  shape of the [twin-grant-inventory-desync] lane those rows closed, so first establish
-  WHICH lane stamps over the back-out transition (suspect: the browse-screen re-stamp that
-  fires within one pass of leaving Equip and Abilities, racing the game's own normalize
-  while the off hand reads transiently empty), and whether Dual Wield support Key 477 is
-  ever restored when a main-hand swap disqualifies the grant. GunSlinger.cs family
-  (Policy/Apply/Reconcile/Store/MenuGate); re-read GunSlingerPolicy's consent checks and
-  the LIVE_LEDGER twin rows before trusting any hypothesis. The first "cannot single-wield
-  without occupying the other hand" half of the report is the consent design working as
-  built, a UX perception to answer in the FAQ (LW-358's entry can cover both).
 
-- [LW-360] 2026-08-30: The kill counters on the equip cards stop populating for most of the
-  menu when the new warm start is running: the owner flipped cards live and the counts stayed
-  dashes indefinitely. Cause read live the same day: the warm start (the uncommitted LW-324
-  work) latches paint coverage 0.3s after arming on the one persisted region it could seed
-  (122 sites, one per weapon), and MaybePoolPaint's covered short-circuit returns before ever
-  consulting ShouldRunFullPoolScan, so the two regions the full locate publishes 20s later are
-  never scanned at all; their 244 scaffold copies (one full card set per encoding, probed live,
-  none painted in 45s of watching) stay dashes until something drains coverage. Before the warm
-  start, coverage could not latch until after an all-region scan, which is why this never
-  showed. Fix shape: the covered short-circuit must also break on a fresh region publish (read
-  PoolLocator.PublishGeneration there, or clear the coverage latch when a publish adds regions),
-  so a newly published region gets one scan even while covered. Blocks the paint half of the
-  LW-332 live pass; the defect lives in the uncommitted LW-323/324 pile, so it lands there, not
-  on a shipped build.
-- [LW-344] 2026-08-26: Partner mods want their items to be living weapons too: the
-  Cloud mod author (Xeoshades) asked for growth on their Buster Sword line, and today
-  growth already bleeds onto any item occupying our ids, wearing the WRONG name in
-  toasts and losing its counters (their descriptions replace our baked anchors). The
-  right shape is a partner manifest: our runtime merges a small declaration file a
-  partner mod ships (id, name, growth lane), giving their items first-class growth
-  with correct names; counters additionally need the partner to bake our Kills
-  scaffold and flavor anchor format into their descriptions, which is documentable.
-  Turns the mod into a platform. Surfaced via the 2026-08-26 Nexus PM and Discord
-  exchange (docs/USER_FEEDBACK.md same date).
-  Owner agreement 2026-08-30, the settled design: the runtime SCANS the Reloaded Mods folder
-  for a WHITELISTED partner mod's folder (keyed on its ModConfig.json ModId, first entry
-  fftivc.re.cloud.complete, the FF7 RE Trilogy Cloud Conversion by Jade Knightblazer,
-  https://www.nexusmods.com/finalfantasytacticstheivalicechronicles/mods/114) and, when
-  present, USES THAT MOD'S OWN FILES to author new weapons as extended-inventory items.
-  Facts from the 1.0.1 archive (read 2026-08-30, the owner's download): it ships eight
-  whole-table nxds (item.en, ability.en, job, jobcommand, poachitem, uijobabilityhelp,
-  overrideentrydata, and the overrideabilityactiondata table this repo parked as corrupting),
-  ten table XMLs, four sharing this mod's own filenames (ItemData, ItemWeaponData,
-  ItemEquipBonusData whose rows 74 to 78 collide with this mod's 74 to 79, and JobData), effect bins, g2d tex_161, and equip icons (both
-  sizes) for ids 032, 049, 067, 068, 069, 070 and 256. Ids 32/49/67-70 sit exactly on slots
-  this mod occupies today, 49/67-70 being the axe and flail slots LW-351 restores; id 256 is
-  the partner's OWN new item (Materia Blade Plus) on a vanilla extended row, proof they are
-  already squeezing the game's own 256-260 extended catalog range, the one this mod relocates
-  (this mod's new ids start at 261). Re-homing
-  their weapons onto extended ids resolves the ITEM-SLOT collisions; the whole-table nxds and
-  the EquipBonus row overlap collide regardless and need their own answer in the build. The
-  author is the same person as LW-344's original reporter: docs/USER_FEEDBACK.md records the
-  Xeoshades PM signed "Jade" (2026-08-14). Folder recognition in practice means reading the
-  ModConfig.json ModId, an implementation choice the build may revisit.
 - [LW-345] 2026-08-26: Softening the card cache wipe on menu edges is its own arc, on
   purpose: today Display.Invalidate clears every found counter site on the status-card
   edge, forcing a re-find even when nothing moved, and the LW-324 plan review ruled
@@ -724,37 +917,7 @@ belongs rather than at the bottom.
   the 30 signature blocks in data/items.json; verdicts land here as sub-notes and any
   real defect gets its own row, LW-326 being the first.)
 
-- [LW-326] 2026-08-25: Puppeteer works but is unreliable: quick attacks fail to dominate
-  and the owner needed retries to record a clean demo. The log tape shows the arm's two
-  signal design running on one leg: the actor-pointer half read pointerMatch=False on
-  every line of the whole session, and the main-hand latch it falls back on flickers off
-  right at the strike edge, so a hit confirmed within about half a second of arming
-  misses while a slow three-count before confirming lands every time. Also on the tape:
-  a dominated MONSTER (job 100) shows nothing visible, reading as a silent failure.
-  (Tech: livingweapon.log 14:38-14:42 2026-08-25; failures show latchMainHand=False
-  actedByte=1 at the hit tick, both successes had 4+ seconds between ACTIVE and the
-  strike. Diagnose why Band.ActorEntry pointerMatch never fires (ActorPtr semantics vs
-  the D1 OR gate, Puppeteer.Policy.cs) and harden the latch across the strike edge;
-  consider a target-kind note or refusal for monsters whose domination has no visible
-  menu effect. Owner workaround documented in-session: wait a beat before confirming.)
 
-- [LW-324] 2026-08-25: The kill counters take too long to appear on the equip cards after a
-  cold boot, and the owner dislikes the wait (his words, "expressing my displeasure"). The
-  counters live in heap string pools the mod has to re-find every launch, and the search is
-  deliberately budgeted so it never hitches a frame, which is why the numbers dribble in.
-  Candidate lever: persist the located pool sites across launches and re-verify instead of
-  re-hunting from scratch. (Tech: Display's budgeted DisplaySweep/PoolPaint census; the
-  pool addresses are heap allocations so a blind replay is unsafe, but a verify-then-adopt
-  warm-start against the LW-257 anchor checks could cut the cold-boot window. Owner filed
-  it as a someday row, not urgent.)
-  BUILT and adversarially verified 2026-08-26 (full pipeline: premise from four
-  launches of flight tapes, plan, adversarial plan review that REDESIGNED the lever
-  from per-site to per-region warm start, TDD implement whose mandated trap test
-  caught the plan's own suppression bug, fresh verify: code 9 of 10, zero code
-  changes required, suite 3343 green). Awaiting the owner's stopwatch read: cold
-  boot 1 writes pool_regions.json at locate completion, cold boot 2 logs "seeded
-  N of M" and the counters appear in one to two seconds. The N of M numbers close
-  the [kills-pool-region-recurrence] ledger row.
 
   2026-08-27 18:15, owner report on the deployed prod build (Aug 26, without this row's
   warm start): the Chaos Blade crossed to +3 mid-battle (kill 15 at 18:12:39, toast the same
@@ -897,88 +1060,10 @@ belongs rather than at the bottom.
     per-unit title still needs the render-time swap, but the swap now has a known source
     string to match on. Not re-tested live; ledger row [auto-battle-mode-byte] unchanged.
 
-- [LW-172] 2026-08-12: The mod's human versus monster job boundary is off by two, and every
-  consumer of it needs an audit: monsters start at job 94 (Chocobo; Black Chocobo 95), not 96.
-  OWNER SIGHTING 2026-08-17, the player-visible cost is now on record: during the LW-233 retry
-  drill the mod announced "Stoneshooter claims kill number 25, felling a human" twice over a
-  chocobo, once at 18:08:16 and once at 18:09:07 after the bird was raised and killed again.
-  The victim probe read job 94 both times (nameId 861, battle slot 12), and job 94 sits inside
-  the generic human band because Puppeteer.Policy.cs:25 sets GenericJobHi to 95 while
-  Puppeteer.Policy.cs:31 sets MonsterJobLo to 96, so every chocobo in the game is announced as a
-  person. The toast is the harmless half; VictimClass feeds Reliquary victim classing, so fix the
-  boundary rather than the wording.
-  Falsified live during the LW-167 pass (a Black Chocobo victim's job byte read 95 at the
-  credit edge) and confirmed by the game's own Job sheet (Key 94 Chocobo, 95 Black Chocobo,
-  96 Red Chocobo; the sheet also carries each monster's poach keys). Known consumers of the
-  wrong floor: Puppeteer.Policy.cs (GenericJobHi 95, MonsterJobLo 96), VictimClass.cs
-  (IsHumanJob 74 to 95; job 94 labeled "Dark Knight", which per the sheet is the Chocobo, so
-  the July "Dark Knight 94 live" reading and any Reliquary victim classing built on it are
-  suspect), and any band walk leaning on the 96 floor. Living Poach itself no longer cares
-  (its gate is Job sheet map membership since the fix). Also unresolved and captured here so
-  it is not smoothed over: a 2026-06-08 live ROSTER read recorded job 96 as "Chocobo", which
-  either means that unit was actually a Red Chocobo or the roster +0x02 space differs from
-  the band job byte at the boundary; one deliberate re-read settles it.
 
-- [LW-234] 2026-08-14: The mod files the player's own guests as enemies, so a guest dying could
-  hand the player's weapon a kill it did not earn, complete with a growth toast. Found in the
-  same user's tape. Two player-side units (nameId 4 and nameId 7, band seats 8 and 9) were
-  bridged Enemy fourteen times with rescue=OracleEnemy, meaning the enemy oracle had captured
-  them. That they are on the player's side is visible in the tape rather than assumed: seat 8
-  takes 18 damage at t=12782890 and never dies, while every unit that does die is one of the
-  job 169 to 172 monsters. Nothing was mis-credited this session because neither guest died, so
-  this is a live exposure and not an observed loss. What makes it sharp is that oracle
-  membership is the ONLY team gate on kill credit, and the class doc for EnemyOracle states that
-  guests are "structurally excluded", which this tape falsifies. (Tech:
-  Downloads/flight_20260812_023631_battle-exit.jsonl; the gate is _oracle.Contains(slot.Id) in
-  KillTracker.Corpses.cs. Either add a real side-membership read, which the Provoke arc proved
-  must come from the band's own bit and never from seat position, or stop claiming exclusion in
-  the doc and gate credit on something that actually holds. Rides naturally with LW-233 since
-  both are corpse-credit correctness.)
 
-- [LW-195] 2026-08-13: Equip a weapon in the OFF hand and a shield in the MAIN hand and the
-  battle menu's Attack row reads as bare fists, as if the unit were unarmed. Owner hit it live
-  2026-08-13. First question when picked up, before any fix: is the fists text the GAME's own
-  behaviour for that hand arrangement or this mod's paint? One battle with the mod disabled (or
-  an untracked vanilla weapon in the same arrangement) settles it. If it is ours, the likely
-  lane is that everything in the runtime treats the roster MAIN hand slot as "the weapon":
-  the attack-row painter resolves the acting unit's weapon from that slot, so a shield there
-  reads as no weapon even though a real weapon sits in the off hand. If that read is right, the
-  same blind spot silently breaks more than text: kill credit and every signature also key on
-  the main hand, so an off-hand-weapon build would earn no kills, no growth, and no granted
-  commands, making this a coverage hole for an entire legal equipment arrangement, with the
-  fists text just its visible corner. (Tech: unverified beyond the sighting; the main-hand
-  reads to audit are the RRHand roster reads in Wielder/ActorResolver/Display and the
-  mainHandWeapon field the kobu/credit log lines already print. The flight tape from the
-  sighting battle, if one flushed, shows what the credit lane resolved for that unit.)
 
-- [LW-191] 2026-08-13: Equipping a living weapon in the middle of a battle can take its granted
-  command AWAY instead of giving it, and the mod then says there is no eligible wielder while that
-  wielder is standing on the field. Seen live 2026-08-13: Patrick stole the Sanguine Sword from
-  Gaffgarion and used Re-equip during the same battle. Shadow Blade had been granted to Ramza at
-  11:51:49 (party slot 0, job 2, record 26, the Squire story variant) and was released at 11:55:45
-  with the line "no eligible Sanguine Sword wielder remains", so the command disappeared from the
-  menu mid fight. One second after that release the battle side event lines still read weapon 23,
-  meaning the battle still held the sword while the roster scan no longer found it. (Tech:
-  ShadowBlade.cs walks RosterBase and requires the roster right hand to read id 23; Barrage and
-  Provoke are the same roster keyed shape, so all three granted commands share the exposure. This
-  is LW-103's roster versus band disagreement reaching a surface where it costs the player an
-  ability instead of being harmless. Cheapest first question, one probe: does a mid battle Re-equip
-  write the roster row at all, or only the band? If only the band, the grant lane wants a band
-  fallback keyed the way kill credit already bridges a battle actor to its roster slot. Second,
-  independent of the fix: the release message should not assert there is no eligible wielder when
-  the truth is that the mod lost sight of the weapon.)
 
-- [LW-164] 2026-08-12: An enemy carrying the same weapon type as a player's living weapon can be
-  briefly mistaken for a player unit, which could someday hand an enemy's kill to the player's
-  weapon.
-  Seen once on the 2026-08-12 player tape (flight_20260812_023631): a band enemy wielding weapon
-  id 19 was bridged Player with rescue=WeaponUnique even though FOUR roster rows also carry id
-  19 and the enemy's level/brave/faith fingerprint matched no roster row; no kill landed on that
-  hit, so nothing mis-credited, but the WeaponUnique rescue demonstrably fired on a non-unique
-  id. Check ActorResolver's WeaponUnique lane: it should refuse when the weapon id is not unique
-  across the roster, and probably verify the fingerprint against the roster row it names. The
-  same tape shows vanilla chapter 1 human enemies routinely carrying tracked ids 19 and 20, so
-  the collision population is normal play, not an exotic setup.
 
 - [LW-108] 2026-07-21: Restarting a battle quickly is completely invisible to the mod, so it
   keeps believing the old battle never ended; the worst case is a kill being counted twice.
@@ -1003,21 +1088,6 @@ belongs rather than at the bottom.
   byte-fall debounce. Must not regress reaction-kill credit (the pointer may name the
   REACTOR during a reaction, unverified per the ledger caveat).
 
-- [LW-296] 2026-08-21: When another mod replaces the game's item text, the kill counter quietly
-  stops appearing on weapon cards and the player is never told why, so tell them. The counter
-  is not broken and counting never stops; the number simply has nowhere to be drawn, and today
-  that looks identical to the mod being dead. The fix is the calm notice we already use when a
-  job mod takes the weapon commands away: notice it, stay on, say exactly what is hidden and
-  exactly what still works.
-  This got more likely on 2026-08-21, when a full graphical mod editor shipped on the Nexus
-  (The Ivalice Chronicles Mod Studio, mod 111) that puts item and ability text editing behind a
-  checkbox. Text mods used to require running conversion tools by hand; now they do not, so the
-  collision goes from rare to ordinary. See docs/COMPATIBILITY.md.
-  (Tech: our painted counter anchors to the flavor line of an item's description, and an
-  item.en.nxd override is a full-table replace, so a winning text mod removes every anchor.
-  LivingWeapon/Display/ currently has no detection for a session-long zero-hit sweep and nothing
-  user-facing fires. Model the notice on LaunchGuard.KitLane.cs: a truthful WARN plus a
-  once-per-session calm box, mod stays armed, nothing else disabled.)
 
 - [LW-101] 2026-07-21: Players whose game language is not English see no kill counts at all,
   and the only way to get them back is switching the game to English and restarting (player

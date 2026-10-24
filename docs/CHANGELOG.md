@@ -10,6 +10,14 @@ before 2026-07-21 keep their original prose.
 
 ## 2.4.1 cycle
 
+- [LW-466] RETRACTED 2026-10-24: Folded into LW-465 on the locked 2.5.0 list, which now carries its text and fixes it together.
+- [LW-460] RETRACTED 2026-10-24: Folded into LW-459 on the locked 2.5.0 list, which now carries its text and fixes it together.
+- [LW-461] RETRACTED 2026-10-24: Folded into LW-459 on the locked 2.5.0 list, which now carries its text and fixes it together.
+- [LW-438] RETRACTED 2026-10-24: Folded into LW-444 on the locked 2.5.0 list, which now carries its text and fixes it together.
+- [LW-164] RETRACTED 2026-10-24: Folded into LW-234 on the locked 2.5.0 list, which now carries its text and fixes it together.
+- [LW-467] RETRACTED 2026-10-24: Folded into LW-450 on the locked 2.5.0 list, which now carries its text and fixes it together.
+- [LW-359] RETRACTED 2026-10-24: Folded into LW-450 on the locked 2.5.0 list, which now carries its text and fixes it together.
+- [LW-324] RETRACTED 2026-10-24: Folded into LW-360 on the locked 2.5.0 list, which now carries its text and fixes it together.
 - [LW-512] RETRACTED 2026-10-24: A README note saying Counter kills do not count is dropped, because the owner wants them to count. That work lives on LW-396.
 - [LW-451] WONTFIX 2026-10-24: The three books missing from the bag when it is sorted by Type could not be made to happen again, so the card closes. Pick it back up if anyone sees it again, and run tools/probes/lw451_inventory_snapshot.py before touching Sort, then once per sort mode. The 2026-10-18 live read had all 115 kinds and the books present in all four modes.
 - [LW-343] WONTFIX 2026-10-24: Updating the Nexus page is something the owner always does himself at release, so it needs no card. Owner, 2026-10-24: "Delete any/all tasks dealing with Nexus. We do not need tickets for this."
