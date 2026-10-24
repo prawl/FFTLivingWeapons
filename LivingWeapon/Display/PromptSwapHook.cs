@@ -117,6 +117,7 @@ internal sealed class PromptSwapHook
         }
         try
         {
+            _swap.TapName(holder, text);
             if (_swap.TryPrepareSwap((long)text, out var payload))
             {
                 text = WritePinned(payload);

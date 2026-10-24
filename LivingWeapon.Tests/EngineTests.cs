@@ -244,6 +244,8 @@ public class EngineTests
                 ("body-double-spike", TickGates.BandSignatures, 1, false, Array.Empty<string>(), Part.BandSignatures),
                 ("provoke-spike", TickGates.BandSignatures, 1, false, Array.Empty<string>(), Part.BandSignatures),
                 ("numeral-spike", TickGates.BandSignatures, 1, false, Array.Empty<string>(), Part.BandSignatures),
+                ("icon-heal-trace", TickGates.Always, 1, false, Array.Empty<string>(), Part.CardPaint),
+                ("name-tap-trace", TickGates.Always, 1, false, Array.Empty<string>(), Part.CardPaint),
             });
 #endif
             expected.Add(("save-on-change", TickGates.KillCounting, 1, false, new[] { "kill-poll" }, Part.KillCounting));

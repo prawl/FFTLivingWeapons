@@ -78,6 +78,10 @@ public class EngineTickTableTests
             "extended-shops",   // Always gate: LW-354, a 512-byte compare of the game's shop table against our mirror page and a copy on change; never battle memory
             "extended-rewind",  // Always gate: LW-452, polls two hook counters and rewrites the extended bag bytes after a rewind; reads roster hands, never battle memory; no-op until the hooks exist
         };
+#if LWDEV
+        nonBattle.Add("icon-heal-trace"); // Always gate: dev build only, polls a marker file for the icon cache trace, never battle memory
+        nonBattle.Add("name-tap-trace");  // Always gate: dev build only, polls a marker file for the name tap, never battle memory
+#endif
 
         var rows = Engine.BuildPhases(null);
         var battleGates = new List<Func<TickPhaseState, bool>> { TickGates.InBattle, TickGates.KillCounting, TickGates.StatGrowth, TickGates.BandSignatures, TickGates.GunGrowth, TickGates.PoachDen };

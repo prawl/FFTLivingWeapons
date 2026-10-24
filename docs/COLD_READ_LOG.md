@@ -1300,3 +1300,55 @@ Read 1 U3: LivingWeapon/Display/IconGlow.Pac.cs | "after every loose write, so t
 Read 1 U4: LivingWeapon/Display/IconGlow.Pac.cs | "Debug only, a warning here would train the owner to ignore the channel." | unsourced reason
 Read 1 U5: LivingWeapon/Display/IconGlow.StoreFile.cs | "Patches the pac through one <see cref="ModdedPac"/> per launch, so its offset cache survives between passes." | unsourced reason
 Unprompted rows: 8 finding(s) new in 2 row(s) (LW-525, LW-526), 0 repeated (none)
+
+## Cold read 2026-10-24 04:32, LW-444, base 2a80df17
+Run cap 2 (234 changed production lines). Runs used 1 of 2.
+Files: LivingWeapon/Display/NameTapPolicy.cs, LivingWeapon/Display/PromptSwap.NameTap.cs, LivingWeapon/Display/PromptSwapHook.cs, LivingWeapon/Engine.cs
+Hashes: LivingWeapon/Display/NameTapPolicy.cs=d93f525229b6999b; LivingWeapon/Display/PromptSwap.NameTap.cs=6d3f65ea521ff3d7; LivingWeapon/Display/PromptSwapHook.cs=64da67a3445d4754; LivingWeapon/Engine.cs=865b104526ab8f07
+Guard: {"LivingWeapon/Display/NameTapPolicy.cs":{"budget":7,"kept":[],"raw":"2593be5fc288853d"},"LivingWeapon/Display/PromptSwap.NameTap.cs":{"budget":4,"kept":["<summary>Logs what the text setter carries; a fault here must never reach the detour.</summary>"],"raw":"8bd4e2575d9e25f8"},"LivingWeapon/Display/PromptSwapHook.cs":{"budget":30,"kept":[],"raw":"e2e85f516df0301a"},"LivingWeapon/Engine.cs":{"budget":188,"kept":["<summary>The ordered table Tick steps through every tick. Static with a nullable engine so tests can read it without constructing an Engine; with null, Run closures must never be invoked.</summary>","Out-of-battle equip-icon loose-tex sync (IconGlow.cs). Cadence 30 because kills only change in battle and a slow disk read must not run every 33ms.","a new game's units share nameIds with the old save's; stale residue must not correct them Enter is instant; exit is debounced (battleMode flickers, slot9 sticks) unless forceExit fires (a detected new game). nowIn is sticky through mid-battle dips."],"raw":"8bb1a91d9f372fc8"}}
+Stage 1 (cold read): run 1, 1 miss, fix helper, 2 pass, canary cold
+Stage 2 (plain words): stripped code identical before and after in 4 file(s); comment lines 229 before stage 1, 224 after; rules clean; 1 ledger cite(s) sent to stage 4
+Stage 3 (warnings): 4 warning(s) found (0 only in the original comments); 0 fixed in code, 4 kept with a reason; no code changed
+Stage 4 (accuracy): 2 comment(s) flagged over 2 read(s); 2 fixed and confirmed by a fresh read, 0 reader wrong, 0 open; control kind wrong order and off by one caught on 2 counted read(s), missed on 0 refused read(s); 3 unsourced reason(s); 1 kept warning(s) code could enforce
+### Run 1
+Canary: cold
+Q1 (failure path): In the dev build's name tap, what happens when the guarded read of the text the game passed to the setter fails, and what happens when only the second (follow-up) read fails?
+Expected: If the first read fails, TapBody counts the call, skips both the UTF-16 and the ASCII matching, still runs the cost flush, and returns; nothing throws, so the detour goes on to the toast check and the original setter as usual. If only the second read fails, second stays null: the UTF-16 lane matches on the first read alone and the ASCII lane decodes from the first read alone (NameFrom(first, null)).
+Reader: first read fails, both lanes skipped, call counted, cost flush runs, exceptions swallowed; for a failed second read it could not say what NameFrom does with second, since that body sits outside the packet.
+Result: miss, fix helper
+Q2 (ordering): Inside the setter detour, which runs first, the name tap or the toast swap, and which text pointer does the tap see?
+Expected: The tap (TapName) runs first, inside the detour's try, with the original text pointer the game passed; only afterwards may TryPrepareSwap replace the pointer with the pinned toast buffer. So the tap never sees a toast payload, and it sees every call, including the one a toast replaces.
+Reader: TapName runs before TryPrepareSwap with the original pointer; the reassignment to the pinned buffer comes after, so the tap never sees the payload.
+Result: pass
+Q3 (free): What happens once 64 hit lines have been logged in one tracing session, and what starts a fresh count?
+Expected: No new hit keys are stored or logged after 64 lines; the first match past the cap logs one "cap reached" line and later matches log nothing, but they keep counting in the hit counters that the once a second cost line reports. Turning tracing on again (the marker file reappearing after tracing was off) clears the seen sets, the logged count, the cap flag and the counters.
+Reader: no hit lines past HitCap 64, one cap line via _tapCapNoted, counters continue into the cost line; a fresh session when the marker goes absent to present, which clears sets, logged count, cap flag, counters and the window start.
+Result: pass
+Unprompted: Turning tracing off does not flush the cost window, so the last partial window of a session never reaches the log.
+### Stage detail
+Read 1 control (wrong order) planted in LivingWeapon/Display/PromptSwapHook.cs at line 59 as // _mem = mem runs before _swap = swap., caught, 75s
+Read 1 F2: LivingWeapon/Engine.cs | "Arms the facing-prompt swap here (always on, the launcher toggle is gone)." | `InjectHooks` returns early on `if (!_bannerToastsEnabled) return;`, so it only arms when `_bannerToastsEnabled` is true (`bannerToasts ?? Tuning.BannerToasts`).
+Read 1 F3: LivingWeapon/Engine.cs | "Reset runs extra..font with Barrage between Plague and Renewal." | The `_signatures` array continues past `font` through feign, benediction, sanctuary, choir and bulwark. Between Plague and Renewal sit `_barrage`, `_shadowBlade`, `_provoke` and `_provokeHold`, not Barrage alone.
+Read 1 U1: LivingWeapon/Display/PromptSwapHook.cs | "since a hook on a moved function crashes the game" | unsourced reason
+Read 1 U2: LivingWeapon/Display/PromptSwapHook.cs | "since the mod keeps running and an error would burn the launch's one flight archive" | unsourced reason
+Read 1 U3: LivingWeapon/Engine.cs | "so a baked value is recognized after a battle restart" | unsourced reason
+Read 1 U4: LivingWeapon/Engine.cs | "the dual-emit composes here at the composition root so BattleLog never references Flight" | unsourced reason
+Read 1 U5: LivingWeapon/Engine.cs | "Save files live in the update-safe Reloaded/User/Mods/<ModId> dir so a mod-folder replace cannot wipe them." | unsourced reason
+Read 1 U6: LivingWeapon/Engine.cs | "Cadence 30 because kills only change in battle and a slow disk read must not run every 33ms." | unsourced reason (the disk-read cost is not shown by any code here)
+Read 1 U7: LivingWeapon/Engine.cs | "Heap reads only, so Always rather than InBattle." | unsourced reason
+Read 1 K1: LivingWeapon/Display/PromptSwap.NameTap.cs | "Logs what the text setter carries; a fault here must never reach the detour." | A unit test could pin the boundary: call `TapName` with a fake `IGameMemory` whose `TryReadBytes` throws, and assert that `TapName` itself never throws. Any later edit that adds work outside the try would then fail that test.
+Read 1 K2: LivingWeapon/Engine.cs | "The ordered table Tick steps through every tick. Static with a nullable engine so tests can read it without constructing an Engine; with null, Run closures must never be invoked." | Change the `Run` delegate to take the `Engine` as a parameter, for example `Action<Engine, TickPhaseState>`, instead of capturing a nullable `e!`. Then `BuildPhases()` needs no engine, tests can read the table's shape, and a null dereference becomes impossible. No separate test-only table type is needed.
+Read 2 control (off by one) planted in LivingWeapon/Display/PromptSwap.NameTap.cs at line 16 as // Set to 33 here., caught, 75s
+Read 2 U1: LivingWeapon/Display/PromptSwapHook.cs | "Warn like every other closed door, since the mod keeps running and an error would burn the launch's one flight archive." | unsourced reason: nothing in this code shows that an error burns the launch's one flight archive.
+Read 2 U2: LivingWeapon/Engine.cs | "so a baked value is recognized after a battle restart" | unsourced reason: the code only passes one shared `NaturalLedger` to `GrowthEngine` and `Iai`, and shows nothing about recognizing baked values after a restart.
+Read 2 U3: LivingWeapon/Engine.cs | "Save files live in the update-safe Reloaded/User/Mods/<ModId> dir so a mod-folder replace cannot wipe them." | unsourced reason: the code only builds `SaveLocation(modDir)` and migrates files, and shows nothing about mod-folder replacement.
+Read 2 K1: LivingWeapon/Engine.cs | "Static with a nullable engine so tests can read it without constructing an Engine; with null, Run closures must never be invoked." | Code could enforce this by having each row reach the engine through a helper that throws a clear `InvalidOperationException` when `e` is null, instead of the bare `e!` dereference. Alternatively, the `Run` delegate could take the engine as a parameter, so a null-built table holds no captured null.
+W1 (original, still there): LivingWeapon/Display/PromptSwap.NameTap.cs:58 | /// <summary>Logs what the text setter carries; a fault here must never reach the detour.</summary>
+Resolution: kept, the catch around TapBody is the enforcement, but nothing stops a later edit from adding work outside that try, and only the comment marks where the boundary must sit.
+W2 (original, still there): LivingWeapon/Engine.cs:297 | /// <summary>the declarative fan-out table Tick steps through every tick, in order. Static /// with a nullable engine so EngineTickTableTests can read Name/Gate/After without /// constructing an Engine; with null, Run closures must never be invoked. Pinned by /// EngineTests.Phases_match_the_hand_wired_tick_order.</summary>
+Resolution: kept, the table is built with a null engine only for tests that read its shape, and a Run closure called then dereferences null; making that impossible in code would need a separate test-only table type, which costs more than the trap.
+W3 (original, still there): LivingWeapon/Engine.cs:324 | // Out-of-battle equip-icon loose-tex sync (IconGlow.cs). Cadence 30 because kills // only change in battle and a slow disk read must not run every 33ms.
+Resolution: kept, the cadence value 30 is the enforcement; the comment is the only place that says why the number cannot go down, which is the cost of the disk read.
+W4 (original, still there): LivingWeapon/Engine.cs:578 | // a new game's units share nameIds with the old save's; stale residue must not correct them // Enter is instant; exit is debounced (battleMode flickers, slot9 sticks) unless forceExit fires // (a detected new game). nowIn is sticky through mid-battle dips.
+Resolution: kept, it is a fact about the game's data (a new game reuses nameIds from the old save) that no type can express; the reset just below is the code that acts on it.
+Unprompted rows: 1 finding(s) new in 1 row(s) (LW-527), 0 repeated (none)

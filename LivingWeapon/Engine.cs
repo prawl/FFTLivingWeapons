@@ -20,7 +20,7 @@ internal sealed class Engine
     private readonly KillTally _tally;
     private readonly PlaythroughReset _playthroughReset;   // Archives + resets the tally on a new-game opening
     private readonly Dictionary<int, int> _kills;
-    private readonly LegendStore _legends;   // Reliquary Phase 1 deed ledger (docs/RELIQUARY_AC.md)
+    private readonly LegendStore _legends;   // The deed ledger behind the battle-end Marks
     private readonly Reliquary _reliquary;   // the battle-end summary reads BattleMarks
     private readonly LivingPoach _livingPoach;   // The Poach carcass-drop executor
     private readonly KillTracker _tracker;
@@ -107,7 +107,7 @@ internal sealed class Engine
         ModLogger.Event(LogVerb.Save,
             LaunchHeader.ComposeTally(_tally.Total, _tally.Kills.Count, _tally.LoadedFrom));
         save.Migrate("legends.json");
-        _legends = LegendStore.Load(save.SaveDir);   // Reliquary Phase 1 deed ledger, sibling of kills.json
+        _legends = LegendStore.Load(save.SaveDir);   // The deed ledger, saved beside kills.json
         // Launch header L4. The legends load summary.
         ModLogger.Event(LogVerb.Save,
             LaunchHeader.ComposeLegends(_legends.WeaponCount, _legends.TotalMarks, _legends.LoadedFrom));
@@ -151,16 +151,16 @@ internal sealed class Engine
         _anchorScout = new AnchorScout(live);
         _bannerToastsEnabled = bannerToasts ?? Tuning.BannerToasts;
         _toast = new BannerToast(meta, _kills, _bannerToastsEnabled);
-        // Reliquary Phase 1 (docs/RELIQUARY_AC.md): deed recorder fed by KillTracker's CreditKill.
+        // The deed recorder, fed by KillTracker's CreditKill.
         // Marks are release-hidden on every surface, so its toast is null
         // (ReliquaryTests.Disabled_toasts_stay_fully_inert); BannerToast.Enqueue has no enabled gate, so null must
-        // be passed. LegendStore still records. Pass `_bannerToastsEnabled ? _toast : null` to re-enable in
-        // Reliquary Phase 2, together with the equip-card `legends:` below.
+        // be passed. LegendStore still records. Pass `_bannerToastsEnabled ? _toast : null` to show Marks
+        // again, together with the equip-card `legends:` below.
         _reliquary = new Reliquary(_legends, null, meta, Flight.Record);
-        // Living Poach (armed 2026-08-12): poach.json map plus the executor. Both gates
+        // Living Poach. The poach.json map plus the executor. Both gates
         // read live memory (ReadKillerHasPoach; ReadWasBasicAttack per the LIVE_LEDGER row "The basic-Attack
-        // discriminator"). DeedFanout (docs plan v2 point 4) lets KillTracker's single
-        // IDeedSink feed both Reliquary and LivingPoach.
+        // discriminator"). DeedFanout lets KillTracker's single
+        // IDeedSink feed both the deed recorder and LivingPoach.
         var poachMap = new PoachMap(modDir);
         _livingPoach = new LivingPoach(meta, poachMap, live, _toast,
             killerHasPoach: id => LivingPoach.ReadKillerHasPoach(live, id),
@@ -168,6 +168,7 @@ internal sealed class Engine
             latch: Latch(() => _tableDoors.PoachStore, "A carcass was not added to the Poacher's Den; the store is not where this mod expects it, so your save is left alone."));
         var deeds = new DeedFanout(_reliquary, _livingPoach);
         _promptSwap = new PromptSwap(_toast, live);
+        _promptSwap.EnableNameTap(meta, modDir);
         _promptSwapHook = new PromptSwapHook(_promptSwap, live);
         _turns = new TurnTracker(live, Flight.Record);
         // verbose. True so the event timeline always reaches the file at Debug tier via [trace]; the
@@ -212,7 +213,7 @@ internal sealed class Engine
         _bulwark = new Bulwark(meta, _kills, _toast, live,
             Latch(() => _tableDoors.TerrainGrid, "The Sunderer's blade wall was not planted; the terrain data it writes is not where this mod expects it, so that write is skipped this session."));
         var bulwark = _bulwark;
-        // Order matters. Reset runs extra..font with Barrage between Plague and Renewal. The in-battle
+        // Order matters. Reset runs in array order, the granted commands between Plague and Renewal. The in-battle
         // tick order excludes Barrage, which ticks pre-gate so learn screens are covered.
         _signatures = new ISignature[] { extra, eagle, ricochet, maim, kobu, iai, mushin, larceny, puppeteer, plague, _barrage, _shadowBlade, _provoke, _provokeHold, renewal, rapture, font, feign, benediction, sanctuary, choir, bulwark };
         _fieldSignatures = new ISignature[] { extra, eagle, ricochet, maim, kobu, iai, mushin, larceny, puppeteer, plague, _provokeHold, renewal, rapture, font, feign, benediction, sanctuary, choir, bulwark };
@@ -223,10 +224,10 @@ internal sealed class Engine
         _gunSlinger = new GunSlinger(meta, _kills, save.SaveDir, () => PartOn(Part.TwinPistols), live, recorder: Flight.Record, bagCountBase: () => _extended!.BagCountBase);
         // Marks are release-hidden on the equip card too, so legends is null here (the
         // Attack card already skips the deed ledger via AttackCard.Resolve markLabel=null). Pass legends as _legends
-        // to re-enable in Reliquary Phase 2, which rebuilds StoryLines/EarnedAnchors (the three-way anchor, decision 2).
+        // to show Marks again once StoryLines/EarnedAnchors are rebuilt (the three-way anchor, decision 2).
         _display = new Display(meta, _kills, live, legends: null, poolPaint: Tuning.PoolPaintEnabled,
                                 recorder: Flight.Record, poolRegionSidecarPath: save.PathFor("pool_regions.json"));
-        // The acting unit's Attack-menu dossier. Cursor-only since 2026-07-06 (owner-observed
+        // The acting unit's Attack-menu dossier, keyed on the cursor only (owner-observed
         // wrong-weapon display; see AttackCard.cs). Flight.Record is its tripwire recorder tap.
         _attackCard = new AttackCard(live, _tracker.ResolveCursorPlayer,
                                       _tracker.SpriteOf, meta, _kills, Flight.Record);
@@ -267,9 +268,8 @@ internal sealed class Engine
         ModLogger.Event(LogVerb.Startup, $"Living Weapons is tracking {meta.Count} weapon types.");
     }
 
-    /// <summary>carry a save's kills and deeds across a design that changed item id, once, on
-    /// the first launch after the move. The pairing comes from meta.json (<c>migratedFrom</c>, baked from
-    /// data/items.json); <see cref="TallyMigration"/> owns the rule. Saves only what moved.</summary>
+    /// <summary>Carries a save's kills and deeds across a design that changed item id, once, on the first launch
+    /// after the move. The pairing is meta.json's <c>migratedFrom</c>; <see cref="TallyMigration"/> owns the rule.</summary>
     private void MigrateMovedDesigns(Dictionary<int, WeaponMeta> meta)
     {
         var plan = TallyMigration.Plan(meta);
@@ -293,10 +293,8 @@ internal sealed class Engine
         foreach (int k in keys) yield return $"{k} -> {plan[k]}";
     }
 
-    /// <summary>the declarative fan-out table Tick steps through every tick, in order. Static
-    /// with a nullable engine so EngineTickTableTests can read Name/Gate/After without
-    /// constructing an Engine; with null, Run closures must never be invoked. Pinned by
-    /// EngineTests.Phases_match_the_hand_wired_tick_order.</summary>
+    /// <summary>The ordered table Tick steps through every tick. Static with a nullable engine so tests can read
+    /// it without constructing an Engine; with null, Run closures must never be invoked.</summary>
     internal static TickPhase[] BuildPhases(Engine? e)
     {
         var phases = new List<TickPhase>
@@ -312,8 +310,8 @@ internal sealed class Engine
             new TickPhase("kit-provoke", TickGates.Provoke, 1, false, new[] { "kit-barrage", "kit-shadowblade" },
                 _ => e!._provoke.Tick(), Part.Provoke),
 
-            // Pre-gate; re-asserts a snapshotted twin in battle but never snapshots/restores there. Observed
-            // 2026-07-04 (twin fires twice in battle). Cadence 30 (~1s). secondsOffField reads the same _lastField as the "paint" phase (the twilight guard,
+            // Pre-gate; re-asserts a snapshotted twin in battle but never snapshots/restores there, since a
+            // snapshot taken in battle makes the twin fire twice. Cadence 30 (~1s). secondsOffField reads the same _lastField as the "paint" phase (the twilight guard,
             // GunSlingerPolicy.IsTwilight).
             new TickPhase("gunslinger", TickGates.TwinPistols, 30, false, Array.Empty<string>(),
                 s => e!._gunSlinger.PrepRoster(inBattle: s.NowIn, secondsOffField: (s.Now - e._lastField).TotalSeconds),
@@ -390,8 +388,10 @@ internal sealed class Engine
             s => e!._numeralSpike.Tick(s.InLive), Part.BandSignatures));
         phases.Add(new TickPhase("icon-heal-trace", TickGates.Always, 1, false, Array.Empty<string>(),
             _ => e!._iconHeal.Tick(), Part.CardPaint));
+        phases.Add(new TickPhase("name-tap-trace", TickGates.Always, 1, false, Array.Empty<string>(),
+            _ => e!._promptSwap.TickNameTap(), Part.CardPaint));
 #endif
-        // Reads Changed from kill-poll; saves the tally and the Reliquary ledger when a kill landed.
+        // Reads Changed from kill-poll; saves the tally and the deed ledger when a kill landed.
         phases.Add(new TickPhase("save-on-change", TickGates.KillCounting, 1, false, new[] { "kill-poll" },
             s => { if (s.Changed) { e!._tally.Save(); e._legends.SaveIfDirty(); } }, Part.KillCounting));
         // slot9 is still the battle sentinel; once off-field a beat (battleMode 0. World-map menu or post-battle), paint the card.
@@ -468,7 +468,7 @@ internal sealed class Engine
     internal IReadOnlyList<TickPhase> Phases => _phases;
 
     /// <summary>Late-injected by Mod.Start/StartEx once the loader resolves reloaded.sharedlib.hooks.
-    /// Arms the facing-prompt swap here (always on, the launcher toggle is gone).</summary>
+    /// Arms the extended inventory and the icon heal, then the facing-prompt swap when banner toasts are on.</summary>
     public void InjectHooks(Reloaded.Hooks.Definitions.IReloadedHooks? hooks)
     {
         // The extended inventory arms now, before the game runs, behind per-site old-byte checks;
@@ -507,9 +507,8 @@ internal sealed class Engine
         _cts = null;
     }
 
-    /// <summary>Clear all per-battle state. Kill tracker, turn clocks, growth holds, signature ledgers.
-    /// Fires on both battle edges so a restart that skips a clean Exit still starts clean (Larceny
-    /// stolen-buff carryover, 2026-06-15). Idempotent.</summary>
+    /// <summary>Clears all per-battle state on both battle edges, so a restart that skips a clean Exit still starts
+    /// clean and Larceny's stolen buffs never carry into the next battle. Idempotent.</summary>
     private void ResetBattleState()
     {
         // A toast never outlives its battle. Runs first so dropped-toast Flight records land on
@@ -615,12 +614,11 @@ internal sealed class Engine
         ModLogger.EventWithTrace(LogVerb.BattleStart, "Battle started.",
             $"battle-start sentinels (slot0={slot0:X} slot9={slot9:X} mode={battleMode})");
         // Archive the ring before the new battle's events pour in. Sessions ending in a process kill never
-        // fire the exit flush, so the enter edge rescues the previous battle's tail (observed 2026-07-04:
-        // three sessions, zero archives).
+        // fire the exit flush, so the enter edge rescues the previous battle's tail.
         Flight.FlushBattleStart();
         // Reset on enter too. A battle restart can re-enter without a clean Exit (pre-1.5 the slot0/slot9
         // sentinels stuck, the quit-stick trap; the 1.5 restart values are unverified). Without it Larceny's
-        // stale ledger re-applied stolen buffs in the new battle (2026-06-15).
+        // stale ledger re-applies stolen buffs in the new battle.
         ResetBattleState();
         // Drop the pool-paint coverage latch on entry too. Defense in depth. A save-load after the
         // previous exit's Invalidate can swap the buffers under the latch with no exit edge to drop it.
@@ -654,7 +652,7 @@ internal sealed class Engine
         _tracker.EmitExitCensus();
         ResetBattleState();
         _tally.Save();               // flush on battle end
-        _legends.SaveIfDirty();      // Reliquary ledger, saved with the tally
+        _legends.SaveIfDirty();      // the deed ledger, saved with the tally
         // Flight flush is exit-only; ResetBattleState runs on both edges, so it cannot live there.
         Flight.FlushBattleEnd();
         _display.Invalidate();       // re-find the menu's freshly-allocated render copies
