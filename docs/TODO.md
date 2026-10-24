@@ -86,7 +86,9 @@ Locked 2026-10-24: LW-465, LW-508, LW-506, LW-448, LW-459, LW-513, LW-444, LW-38
     five), and every carcass still makes its vanilla item. The 39 descriptions that name the
     vanilla reward are still there; patching them means shipping a whole poach text table, which
     docs/COMPATIBILITY.md says the mod never does, so that is the owner's call. Only the dragon
-    katana case is left for Done. (Tech: tools/probes/lw386_poach_audit.py [tag] reads the cached
+    katana case is left for Done. Owner ruling 2026-10-24 on the 39 descriptions, "Leave it
+    alone.", so no poach text table ships and no FAQ line is owed; the dragon probe joins the owner's
+    next batch test. (Tech: tools/probes/lw386_poach_audit.py [tag] reads the cached
     working/nxd_poachitem decode and data/items.json; HEAD and v2.4.0 report 0 TYPE and 39 STALE,
     v2.3.3 reports TYPE on keys 28, 49, 50, 52, 92 and 44 STALE.)
   - NEXT (owner-driven, two minutes): poke Den store keys 87 and 89 to 1 with the probe, open the
