@@ -19,6 +19,8 @@ the technical detail lives in the indented lines under it.
   - Verify: the probe tape banked under tools/probes/tapes; suite green with tests built from that tape; the owner's live pass on boxes 9.2 and 9.4 step 3.
 ## Backlog
 
+- [LW-517] 2026-10-23: A player on Nexus asked for the three Dancer cloths to grow Physical Power instead of Magic Power, since PA does more for a Dancer. Weigh the swap and, if it holds up, make it.
+  (Tech: Tarsilk Veil 119, Bindsilk Veil 120, Gravesilk Veil 121 carry `"grows": "MA"` in data/items.json; change the field, regenerate, rebake meta, and check analyze.py plus the growth lane tests. A Nexus comment, 2026-10-23.)
 - [LW-506] 2026-10-23: About a dozen of the mod's hooks switch on a moment before they save the handle they need to call the game's own routine, so a game call landing in that sliver would crash the game. Nobody has seen it happen, and the gap is microseconds at startup, but the fix is cheap.
   (Tech: `_hook = hooks.CreateHook(...).Activate()` assigns after Activate returns while the detour reads `_hook!.OriginalFunction`. Create, assign, then Activate. Sites: CategoryGetterHook, InventoryResetHook, ListBuilderHook, OrderRebuildHook, RewindRestoreHook (two), SaveEdgeHooks (three), PromptSwapHook, IconCacheHeal. Covers LW-468 and the same note on LW-500.)
 - [LW-507] 2026-10-23: Three old branches on GitHub still carry commit trailers that credit an outside tool, which this repo forbids. Their work is already on main under clean commits, so the branches can simply be deleted once the owner says go.
