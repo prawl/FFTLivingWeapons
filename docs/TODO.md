@@ -233,10 +233,11 @@ Locked 2026-10-24: LW-465, LW-508, LW-506, LW-448, LW-459, LW-513, LW-444, LW-38
   (Tech: OrderRebuildHook.Seat.cs; SMOKE_TEST_2.4.0 Appendix A, the Lesalia Terrastaff lane.)
   - Done means: a never reloaded new game that buys its first extended weapon sees it in the menus with the right count.
   - Verify: owner plays a new game to the first shop that sells one, buys it, and it shows in Equipment and the bag without a reload.
-- **[LW-457] Players learn what endless dashes on the cards mean** (opened 2026-10-19) [QUEUED]
+- **[LW-457] Players learn what endless dashes on the cards mean** (opened 2026-10-19) [AWAITING-LIVE]
   When the mod's DLL is missing but its item tables still load (a half broken install, or the DLL renamed for smoke box 4.5 leg 3), every living weapon card shows the raw placeholder `Kills: -/- to +` and nothing ever fills it, since the dashes are baked into the text tables and only the running DLL paints the numbers over them. Harmless and no crash, seen by the owner on 2026-10-19 at 03:10 with the DLL renamed to .off. Add one sentence to README.md's troubleshooting and docs/COMPATIBILITY.md so a player who sees dashes forever knows the DLL did not load and checks Reloaded's log for `DLL Not Found! LivingWeapon.dll`. Docs only, no code. (Tech: tools/lib/flavor.py KILLS_SCAFFOLD; Reloaded writes the line to %APPDATA%\Reloaded-Mod-Loader-II\Logs.)
   - Done means: README.md troubleshooting and docs/COMPATIBILITY.md say that dashes that never fill mean the DLL did not load, and where to look in Reloaded's log.
   - Verify: docs contract tests green; the sentence reads plainly to the owner.
+  - Built: README.md Good to know and docs/COMPATIBILITY.md Quick answer now say that dashes which never fill mean the program did not load, where Reloaded's log lives, the exact line to look for, and to reinstall and then send the log. Docs contract tests green; waiting on the owner's read of the two paragraphs.
 - **[LW-511] Errors the mod swallows leave a trace when they matter** (opened 2026-10-23) [QUEUED]
   The number of places where the mod quietly swallows an error doubled this release, from 21 to 44, so failures can happen with no trace in the log. Audit them and give each one that matters a log line or a counter.
   (Tech: docs/HEALTH.md v2.4.0 silent catches; several cold read rows such as LW-471 and LW-481 name specific ones.)

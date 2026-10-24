@@ -84,6 +84,12 @@ The gameplay is language-neutral by construction: the item tables carry no text,
   If you open the party menu sooner, the cards show "Kills: -/- to +" until the paint lands; back
   out and re-open the menu and your numbers are there. Nothing is ever lost; only the first paint
   lags.
+- **Dashes that never fill in mean the mod's program did not load.** If the cards keep showing
+  "Kills: -/- to +" no matter how long you wait or how often you reopen the menu, the item tables
+  loaded but `LivingWeapon.dll` did not, so nothing is counting. Nothing crashes and your save is
+  fine. Open Reloaded's log folder (`%APPDATA%\Reloaded-Mod-Loader-II\Logs`, newest file) and look
+  for `DLL Not Found! LivingWeapon.dll`; reinstall the mod from the release zip, and if the line is still there, send that log with your
+  report.
 - **The mod checks the game before it writes anything, one part at a time.** Each of its thirteen
   parts (kill counting, stat growth, the weapon powers in battle, weapon commands, banners, the
   extended inventory and the rest) checks the spot in the game's memory it depends on, at startup,

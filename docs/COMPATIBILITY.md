@@ -19,6 +19,10 @@ Weapons, open a GitHub issue on this repository.
   game language or an English text mod hides the kill counter on weapon cards.
 - Everything else works fine. About two thirds of the catalog had no catch at all.
 - Modding tools are fine. The game never loads a tool, only what people make with it.
+- Weapon cards that show "Kills: -/- to +" forever are not a clash with another mod. They mean the
+  mod's own program, `LivingWeapon.dll`, did not load while its item tables did, so nothing is
+  counting. Reloaded's log (`%APPDATA%\Reloaded-Mod-Loader-II\Logs`, newest file) then says
+  `DLL Not Found! LivingWeapon.dll`, and reinstalling from the release zip is the first thing to try.
 - Since version 2.4.0 the mod checks each of its parts on its own and prints one "Parts report:"
   line in the log. It lists each part as ON, OFF or WAITING with a reason. When another mod gets
   in the way you see it there as one part OFF with the reason next to it, for example
