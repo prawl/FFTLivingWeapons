@@ -225,13 +225,16 @@ function Create-Package {
         Write-ErrorMessage "Build output directory not found: $BuildOutputPath"
     }
 
-    # Load assembly properly
+    # ZipArchiveMode lives in System.IO.Compression, which the FileSystem assembly
+    # does not pull in for a bare type expression, so both loads are needed.
     try {
         Add-Type -Assembly System.IO.Compression.FileSystem -ErrorAction Stop
+        Add-Type -Assembly System.IO.Compression -ErrorAction Stop
     }
     catch {
         Write-Host "  -> Loading compression assembly using alternative method..."
         [Reflection.Assembly]::LoadWithPartialName("System.IO.Compression.FileSystem") | Out-Null
+        [Reflection.Assembly]::LoadWithPartialName("System.IO.Compression") | Out-Null
     }
 
     try {
@@ -242,16 +245,26 @@ function Create-Package {
         Write-Host "  -> Source: $absoluteBuildPath"
         Write-Host "  -> Target: $absolutePackagePath"
 
-        # includeBaseDirectory: $true wraps zip contents in a folder named after
-        # the build folder (prawl.fft.livingweapons). Vortex's FFT IC extension
-        # installer treats this as the proper structure and avoids creating a
-        # fake wrapper folder (which would double-nest the install).
-        [System.IO.Compression.ZipFile]::CreateFromDirectory(
-            $absoluteBuildPath,
-            $absolutePackagePath,
-            [System.IO.Compression.CompressionLevel]::Optimal,
-            $true
-        )
+        # Written entry by entry because Windows PowerShell 5.1's CreateFromDirectory
+        # stores backslashes in entry names, which Linux unzip keeps as literal file
+        # names, so the mod folder never appears. The wrapper folder named after the
+        # build folder (prawl.fft.livingweapons) is what Reloaded and the Vortex FFT IC
+        # extension expect; without it Vortex double nests the install.
+        $wrapperName = Split-Path $absoluteBuildPath -Leaf
+        $archive = [System.IO.Compression.ZipFile]::Open(
+            $absolutePackagePath, [System.IO.Compression.ZipArchiveMode]::Create)
+        try {
+            foreach ($item in Get-ChildItem -LiteralPath $absoluteBuildPath -Recurse -File) {
+                $relative  = $item.FullName.Substring($absoluteBuildPath.Length).TrimStart('\', '/')
+                $entryName = "$wrapperName/" + ($relative -replace '\\', '/')
+                [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile(
+                    $archive, $item.FullName, $entryName,
+                    [System.IO.Compression.CompressionLevel]::Optimal) | Out-Null
+            }
+        }
+        finally {
+            $archive.Dispose()
+        }
 
         if (Test-Path $absolutePackagePath) {
             $packageInfo = Get-Item $absolutePackagePath
@@ -295,9 +308,19 @@ function Verify-Package {
     try {
         $zip = [System.IO.Compression.ZipFile]::OpenRead($PackagePath)
 
+        # Checked on the raw names before the normalization below would hide it. A
+        # backslash in an entry name makes Linux unzip spill loose files with no mod folder.
+        $backslashEntries = @($zip.Entries | Where-Object { $_.FullName -match '\\' })
+        if ($backslashEntries.Count -gt 0) {
+            Write-Host ("  [FAIL] {0} entries use backslash separators; Linux unzips them as flat literal names." -f $backslashEntries.Count) -ForegroundColor Red
+            Write-Host ("         first offender: {0}" -f $backslashEntries[0].FullName) -ForegroundColor Red
+            $zip.Dispose()
+            return $false
+        }
+
         # Normalize all entry paths to forward-slash and strip the single wrapper
-        # folder added by includeBaseDirectory=true, so the required-file list
-        # below stays clean regardless of the wrapper's name.
+        # folder Create-Package writes, so the required-file list below stays clean
+        # regardless of the wrapper's name.
         $entryPaths = @($zip.Entries | ForEach-Object { $_.FullName -replace '\\', '/' })
         $firstSegments = @($entryPaths | ForEach-Object { ($_ -split '/')[0] } | Sort-Object -Unique)
         $wrapper = ""
