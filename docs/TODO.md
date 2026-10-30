@@ -342,6 +342,13 @@ Locked 2026-10-24: LW-465, LW-508, LW-506, LW-448, LW-459, LW-513, LW-444, LW-38
   - Done means: Publish.ps1 writes every zip entry with forward slashes under the prawl.fft.livingweapons folder, and its package check refuses any zip with a backslash entry.
   - Verify: a desktop Publish.ps1 run produces a zip whose every entry name starts with prawl.fft.livingweapons/ and holds no backslash; suite green.
 
+- **[LW-549] The cold read checks each release once instead of every change** (opened 2026-10-30) [BUILDING]
+  Finishing a turn or committing code no longer stops for a cold read; the release step does it once instead, refusing to build the zip until a cold read covers every code change since the last release and naming the files it still needs.
+  (Tech: the untracked .claude/gates.json gets "when": "release" in its cold_read settings, read by the shared hooks; Publish.ps1 runs ~/.claude/hooks/quiz_gate.py release before anything builds, QUIZ_GATE_OFF=1 skips it, and a machine without those hooks, such as the GitHub runner, skips it out loud; ColdReadReleaseWiringContractTests pins the step. From 2026-10-30 the cold read has no warnings stage, so its new log entries carry stages 1, 2 and 4.)
+  - Added: yes "Yes, wire Publish.ps1 too" (2026-10-30)
+  - Done means: a commit of production code goes through with no cold read entry, and Publish.ps1 refuses to package while a production change since the last release tag has no entry that covers it, naming each file.
+  - Verify: Publish.ps1 refuses with an uncovered change since the last tag and names the file; with a covering entry it gets past the check; with no hooks installed it skips the check and still builds; a commit of production code goes through with no entry.
+
 ## Backlog
 
 - [LW-547] 2026-10-24: Cold read of Chronicle/BannerToast.cs found 1 thing worth a look. (cold-read, LW-465)

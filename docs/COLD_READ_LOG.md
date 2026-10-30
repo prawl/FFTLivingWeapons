@@ -1,19 +1,24 @@
 # Cold read log
 
-STATUS: CONTRACT (the pre-commit half of the readability quiz gate reads this file)
+STATUS: CONTRACT (the release check of the readability quiz gate reads this file)
 
 Every reader run of the cold read appends one entry here, before the handoff, so the record
-outlives the handoff. Plain version, before a production change is called done a fresh
-reader who has never seen the work answers three pre registered questions from the comment
-stripped code alone. A miss means the understanding is not in the code. Nothing in this file
-is a score. Patrick reads the misses.
+outlives the handoff. Plain version, before a release ships a fresh reader who has never
+seen the work answers three pre registered questions about the production code changed
+since the last release, from the comment stripped code alone. A miss means the
+understanding is not in the code. Nothing in this file is a score. Patrick reads the misses.
 
-Entry shape, written by `quiz_gate.sh entry` and read by the Stop and pre-commit hooks:
+Entry shape, written by `quiz_gate.sh entry` and read by the release check Publish.ps1 runs:
 
-    ## Cold read <date time>, <ticket>, base <turn start SHA>
-    Run cap <n> (<added production lines> changed production lines). Run <k> of <n>.
+    ## Cold read <date time>, <ticket>, base <SHA the packet's diff starts from>
+    Run cap <n> (<added production lines> changed production lines). Runs used <k> of <n>.
     Files: <every production .cs file that gained lines, plus any callee added to the packet>
     Hashes: <file>=<hash of its comment stripped code when the entry was written>; ...
+    Guard: {"<file>":{"budget":<comment lines>,"raw":"<hash of the whole file>"}}
+    Stage 1 (cold read): <runs, passes, misses, canary>
+    Stage 2 (plain words): <the comment rewrite, stripped code proven identical>
+    Stage 4 (accuracy): <what the comment readers flagged and how each was closed>
+    ### Run 1
     Canary: cold | WARM | guess | none
     Q1 (failure path): ...
     Expected: ...
@@ -22,6 +27,8 @@ Entry shape, written by `quiz_gate.sh entry` and read by the Stop and pre-commit
     Q2 (ordering or threading): ...
     Q3 (free): ...
     Unprompted: <what the reader found that nobody asked about>
+    ### Stage detail
+    <each stage 4 read's control and findings>
 
 The cap line comes before any result, so the limit exists before an answer is read against
 it. An entry vouches for a file only while the file's comment stripped code still matches its
@@ -29,8 +36,9 @@ recorded hash and its base is in the history of HEAD, so a comment touch up keep
 and any code change needs a new entry. Q4 of every packet is a canary whose answer lives only
 in notes the reader must not see; WARM means the reader saw them and its passes are warm. A
 calibration entry measures the gate, not a change, and sits outside the cap. Rolls by
-release: at each release tag this file moves to docs/archive/COLD_READ_LOG_<version>.md with
-an ARCHIVED stamp and a fresh one starts here. Method and question guidance live in the
+release, and only after Publish.ps1 passes the release check, since that check reads the
+entries here. Then this file moves to docs/archive/COLD_READ_LOG_<version>.md with an
+ARCHIVED stamp and a fresh one starts here. Method and question guidance live in the
 cold-read skill of the home setup repo, beside the hooks.
 
 ## Cold read 2026-10-19 02:17, LW-452, base 40b24ac3

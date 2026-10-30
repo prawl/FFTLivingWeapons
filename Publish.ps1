@@ -423,6 +423,22 @@ try {
     # Step 1: Resolve version (from -Version, else ModConfig.json, never hardcoded)
     $finalVersion = Get-ModVersion -RequestedVersion $Version
 
+    # Step 1b: the cold read runs once a release, before anything builds. The shared hook names
+    # every production change since the last release tag that no cold read entry covers yet.
+    # A machine without the shared hooks, such as the GitHub runner, cannot run it.
+    $coldReadHook = Join-Path $HOME ".claude\hooks\quiz_gate.py"
+    if ($env:QUIZ_GATE_OFF -eq '1') {
+        Write-Host "  -> QUIZ_GATE_OFF=1 set; skipping the cold read check." -ForegroundColor Yellow
+    } elseif (-not (Test-Path $coldReadHook)) {
+        Write-Host "  -> No cold read hook on this machine; skipping the cold read check." -ForegroundColor Yellow
+    } else {
+        Write-Status "Checking the cold read covers every change since the last release..." "Cyan"
+        & python $coldReadHook release $PSScriptRoot
+        if ($LASTEXITCODE -ne 0) {
+            throw "REFUSING TO PACKAGE: the cold read release check did not pass (see above)."
+        }
+    }
+
     # Step 2: Regenerate tables + build-diversity gate + bake meta.json (the
     # shared pipeline; throws on a red step OR on missing python -- packaging an
     # ungated tree is never silent; -SkipGenerate is the only intentional skip).
