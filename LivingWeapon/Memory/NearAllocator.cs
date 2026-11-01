@@ -1,15 +1,16 @@
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 
 namespace LivingWeapon;
 
 /// <summary>
-/// Finds free memory near the game's code, so the mod's patch stubs can be reached by a short jump. Executable memory within +-2 GB of a target address, for the hook stubs and the moved catalog.
-/// A five-byte E9 jmp rel32 only reaches that far, and the relocated extended catalog needs a signed 32-bit displacement
-/// from the image base.
-/// The live adapter walks MEM_FREE regions with VirtualQueryEx (up from the target first, then below it) and commits the
-/// first 64 KB-aligned candidate with VirtualAlloc(PAGE_EXECUTE_READWRITE). It never frees, because a stub page may be
-/// mid-execution on a game thread. Tests inject a fake.
+/// Finds free memory close to the game's code. The mod's small jump stubs and its moved tables must reach it,
+/// and a five byte jump or a signed 32 bit displacement only reaches about 2 GB each way.
+/// The live adapter walks the address space with VirtualQueryEx, first upward from the target and then the
+/// window below it, and commits one 64 KB aligned page with VirtualAlloc. Above the target it takes the
+/// first free spot past the image; below it the free spot closest under the target. It never frees,
+/// because a stub page may be mid execution on a game thread. Tests inject a fake.
 /// </summary>
 internal interface INearAllocator
 {
@@ -29,28 +30,37 @@ internal sealed class LiveNearAllocator : INearAllocator
     /// <summary>VirtualAlloc snaps a requested base down to 64 KB; candidates are rounded UP first.</summary>
     internal const int AllocGranule = 0x10000;
 
-    /// <summary>Looks for free memory the mod's jumps can reach, scanning up from <paramref name="nearAddr"/> first, then the window below it.
-    /// A single bottom-up pass would take the lowest free page, which under ASLR lands 2 GB, 64 KB below the image, out of int32 reach of its rip-relative fields (everything below a 0x7FF6... image is free). Above the image the first free page sits right past its end. Callers still run their own reach check on the result.</summary>
+    /// <summary>Looks for free memory above the target first, then settles for the closest free page under it, because the lowest page
+    /// of the lower window sits 2 GB under the target and out of int32 reach of the fields above it. Callers still run their own reach check.</summary>
     public long Alloc(int size, long nearAddr)
     {
         try
         {
-            long up = Scan(size, nearAddr, nearAddr + SearchRange);
+            long up = Scan(size, nearAddr, nearAddr + SearchRange, out int regions, out long largestFree);
             if (up != 0) return up;
             long lo = nearAddr - SearchRange;
-            return Scan(size, lo < 0 ? 0 : lo, nearAddr);
+            if (lo < 0) lo = 0;
+            long down = ScanDown(size, lo, nearAddr);
+            ModLogger.Debug(LogVerb.Startup, $"near page: nothing free to commit in [0x{nearAddr:X}, 0x{nearAddr + SearchRange:X}) after {regions} regions walked, largest free run 0x{largestFree:X} bytes; "
+                + (down != 0 ? $"took the closest free page below the image at 0x{down:X}" : "nothing below the image either"));
+            return down;
         }
         catch (Exception) { QuietFaults.Note("NearAllocator.Alloc"); /* fall through: 0 = refused */ }
         return 0;
     }
 
-    /// <summary>Walks [from, to) region by region and commits the first granule-aligned candidate with room for <paramref name="size"/> bytes; 0 when none qualifies.</summary>
-    private long Scan(int size, long from, long to)
+    /// <summary>Walks [from, to) upward and commits the first granule aligned candidate with room for <paramref name="size"/> bytes, 0 when none qualifies.
+    /// Also counts the regions it passed and the largest free run it saw, which the log line reports when the walk comes back empty.</summary>
+    private long Scan(int size, long from, long to, out int regions, out long largestFree)
     {
+        regions = 0;
+        largestFree = 0;
         long scan = from;
         while (scan < to)
         {
             if (!_walker.Query(scan, out var region)) break;
+            regions++;
+            if (region.Free && region.Size > largestFree) largestFree = region.Size;
             if (region.Free && region.Size >= size
                 && PickInWindow(region.Base, region.Size, size, from, to, AllocGranule, out long candidate))
             {
@@ -64,8 +74,43 @@ internal sealed class LiveNearAllocator : INearAllocator
         return 0;
     }
 
-    /// <summary>The lowest granule-aligned address in a free region that also lies in [nearAddr, searchRange,
-    /// nearAddr + searchRange) with room for <paramref name="size"/> bytes. False if none. Exposed for tests.</summary>
+    /// <summary>Walks [from, to) upward like <see cref="Scan"/> but keeps the top candidate of every free region, then commits from the highest address down, so the page lands as close under the target as the layout allows.</summary>
+    private long ScanDown(int size, long from, long to)
+    {
+        var candidates = new List<long>();
+        long scan = from;
+        while (scan < to)
+        {
+            if (!_walker.Query(scan, out var region)) break;
+            if (region.Free && region.Size >= size
+                && PickTopInWindow(region.Base, region.Size, size, from, to, AllocGranule, out long candidate))
+                candidates.Add(candidate);
+            long next = region.Base + region.Size;
+            if (next <= scan) break;   // malformed region. Refuse rather than spin
+            scan = next;
+        }
+        for (int i = candidates.Count - 1; i >= 0; i--)
+        {
+            long got = _walker.Commit(candidates[i], size);
+            if (got != 0) return got;
+        }
+        return 0;
+    }
+
+    /// <summary>The highest granule aligned start in a free region that also lies in [rangeMin, rangeMax)
+    /// with room for <paramref name="size"/> bytes. False if none. Callers clamp rangeMin to 0.</summary>
+    internal static bool PickTopInWindow(long regionBase, long regionSize, int size,
+        long rangeMin, long rangeMax, int granule, out long candidate)
+    {
+        candidate = 0;
+        long bottom = (Math.Max(regionBase, rangeMin) + granule - 1) / granule * granule;
+        long top = (Math.Min(regionBase + regionSize, rangeMax) - size) / granule * granule;
+        if (top < bottom) return false;
+        candidate = top;
+        return true;
+    }
+
+    /// <summary>The lowest granule aligned address in a free region that also lies in the window searchRange either side of nearAddr, with room for <paramref name="size"/> bytes. False if none. Exposed for tests.</summary>
     internal static bool PickAllocBase(long regionBase, long regionSize, int size,
         long nearAddr, long searchRange, int granule, out long candidate)
         => PickInWindow(regionBase, regionSize, size, nearAddr - searchRange, nearAddr + searchRange, granule, out candidate);

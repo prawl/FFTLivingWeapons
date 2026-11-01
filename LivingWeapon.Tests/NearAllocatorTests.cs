@@ -24,6 +24,7 @@ public class NearAllocatorTests
     {
         private readonly List<(long Start, long End, bool Free)> _regions;
         public readonly List<long> Commits = new();
+        public readonly HashSet<long> Refuse = new();
         public FakeWalker(params (long Start, long End, bool Free)[] regions) => _regions = regions.ToList();
 
         public bool Query(long address, out MemRegion region)
@@ -41,6 +42,7 @@ public class NearAllocatorTests
 
         public long Commit(long address, int size)
         {
+            if (Refuse.Contains(address)) return 0;
             bool ok = _regions.Any(r => r.Free && address >= r.Start && address + size <= r.End);
             if (ok) Commits.Add(address);
             return ok ? address : 0;
@@ -51,6 +53,23 @@ public class NearAllocatorTests
     private const long AslrBase = 0x7FF6_1234_0000L;  // a plausible ASLR image base (LaunchGuard/ImageBase suites)
     private const long NoDrmSizeOfImage = 0x03F9E000L;   // LaunchGuard.ExpectedSizeOfImage, Denuvo-free 1.5.2
     private const long DenuvoSizeOfImage = 0x18D78000L;  // the Denuvo-wrapped 1.5.2 SizeOfImage (PORT_1.5.2_OFFSETS.md)
+
+    private const long PreferredBase = 0x140000000L;
+    private const long TopListFieldRva = 0x396190L;   // highest rip-relative list field, see the header
+
+    [Fact]
+    public void Preferred_base_with_nothing_free_above_picks_the_page_right_under_the_image()
+    {
+        var walker = new FakeWalker(
+            (0x10000L, PreferredBase, true),
+            (PreferredBase, PreferredBase + NoDrmSizeOfImage, false),
+            (PreferredBase + NoDrmSizeOfImage, UserTop, false));
+
+        long got = new LiveNearAllocator(walker).Alloc(0x1000, PreferredBase);
+
+        Assert.Equal(PreferredBase - 0x10000, got);
+        Assert.InRange(got - (PreferredBase + TopListFieldRva), int.MinValue, int.MaxValue);
+    }
 
     [Fact]
     public void Aslr_layout_picks_the_first_free_page_above_the_image_within_reach_of_its_fields()
@@ -89,7 +108,7 @@ public class NearAllocatorTests
     [Fact]
     public void Falls_back_below_the_image_when_nothing_above_is_free()
     {
-        // Busy for the whole window above; one free gap 256 MB below the image.
+        // Busy for the whole window above; one free gap 256 MB below the image. The top granule of it wins.
         long gap = AslrBase - 0x10000000L;
         var walker = new FakeWalker(
             (0x10000L, gap, false),
@@ -98,7 +117,50 @@ public class NearAllocatorTests
 
         long got = new LiveNearAllocator(walker).Alloc(0x1000, AslrBase);
 
-        Assert.Equal(gap, got);
+        Assert.Equal(gap + 0xF0000, got);
+    }
+
+    private static FakeWalker TwoGapsBelow() => new(
+        (0x10000L, PreferredBase - 0x40000000L, false),
+        (PreferredBase - 0x40000000L, PreferredBase - 0x40000000L + 0x100000L, true),
+        (PreferredBase - 0x40000000L + 0x100000L, PreferredBase - 0x10000000L, false),
+        (PreferredBase - 0x10000000L, PreferredBase - 0x10000000L + 0x100000L, true),
+        (PreferredBase - 0x10000000L + 0x100000L, UserTop, false));
+
+    [Fact]
+    public void Fallback_below_takes_the_highest_free_gap_not_the_lowest()
+    {
+        long got = new LiveNearAllocator(TwoGapsBelow()).Alloc(0x1000, PreferredBase);
+
+        Assert.Equal(PreferredBase - 0x10000000L + 0xF0000, got);
+    }
+
+    [Fact]
+    public void Fallback_below_moves_down_when_the_top_commit_is_refused()
+    {
+        var walker = TwoGapsBelow();
+        walker.Refuse.Add(PreferredBase - 0x10000000L + 0xF0000);
+
+        long got = new LiveNearAllocator(walker).Alloc(0x1000, PreferredBase);
+
+        Assert.Equal(PreferredBase - 0x40000000L + 0xF0000, got);
+        Assert.Equal(new[] { got }, walker.Commits);
+    }
+
+    [Theory]
+    [InlineData(0x150000000L, 0x20000L, 4096, 0xC0010000L, 0x140000000L, false, 0L)]
+    [InlineData(0x13FF00000L, 0x200000L, 4096, 0xC0010000L, 0x140000000L, true, 0x13FFF0000L)]
+    [InlineData(0x100000000L, 0x100000L, 4096, 0xC0010000L, 0x140000000L, true, 0x1000F0000L)]
+    [InlineData(0xC0000000L, 0x10000000L, 4096, 0xC0010000L, 0x140000000L, true, 0xCFFF0000L)]
+    [InlineData(0x100001000L, 0xF000L, 4096, 0xC0010000L, 0x140000000L, false, 0L)]
+    public void PickTopInWindow_takes_the_highest_aligned_start_inside_the_window(
+        long regionBase, long regionSize, int size, long rangeMin, long rangeMax, bool expectedOk, long expectedCandidate)
+    {
+        bool ok = LiveNearAllocator.PickTopInWindow(regionBase, regionSize, size, rangeMin, rangeMax,
+            LiveNearAllocator.AllocGranule, out long candidate);
+
+        Assert.Equal(expectedOk, ok);
+        Assert.Equal(expectedCandidate, candidate);
     }
 
     [Fact]
@@ -107,5 +169,41 @@ public class NearAllocatorTests
         var walker = new FakeWalker((0x10000L, UserTop, false));
         Assert.Equal(0, new LiveNearAllocator(walker).Alloc(0x1000, AslrBase));
         Assert.Empty(walker.Commits);
+    }
+
+    [Fact]
+    public void Fallback_logs_one_near_page_line_only_when_nothing_above_commits()
+    {
+        // leg one, free page found right under the image
+        using (var cap = LogCapture.Start(level: LogLevel.Debug))
+        {
+            new LiveNearAllocator(new FakeWalker(
+                (0x10000L, PreferredBase, true),
+                (PreferredBase, PreferredBase + NoDrmSizeOfImage, false),
+                (PreferredBase + NoDrmSizeOfImage, UserTop, false))).Alloc(0x1000, PreferredBase);
+
+            var line = Assert.Single(cap.File, l => l.Contains("near page:"));
+            Assert.Contains("took the closest free page below the image at 0x13FFF0000", line);
+        }
+
+        // leg two, nothing free anywhere
+        using (var cap = LogCapture.Start(level: LogLevel.Debug))
+        {
+            new LiveNearAllocator(new FakeWalker((0x10000L, UserTop, false))).Alloc(0x1000, AslrBase);
+
+            var line = Assert.Single(cap.File, l => l.Contains("near page:"));
+            Assert.Contains("nothing below the image either", line);
+        }
+
+        // leg three, the up scan succeeds so the fallback stays silent
+        using (var cap = LogCapture.Start(level: LogLevel.Debug))
+        {
+            new LiveNearAllocator(new FakeWalker(
+                (0x10000L, AslrBase, true),
+                (AslrBase, AslrBase + NoDrmSizeOfImage, false),
+                (AslrBase + NoDrmSizeOfImage, UserTop, true))).Alloc(0x1000, AslrBase);
+
+            Assert.DoesNotContain(cap.File, l => l.Contains("near page:"));
+        }
     }
 }

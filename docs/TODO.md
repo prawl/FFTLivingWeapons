@@ -342,8 +342,25 @@ Locked 2026-10-24: LW-465, LW-508, LW-506, LW-448, LW-459, LW-513, LW-444, LW-38
   - Done means: Publish.ps1 writes every zip entry with forward slashes under the prawl.fft.livingweapons folder, and its package check refuses any zip with a backslash entry.
   - Verify: a desktop Publish.ps1 run produces a zip whose every entry name starts with prawl.fft.livingweapons/ and holds no backslash; suite green.
 
+- **[LW-550] The new weapons switch on for players whose game sits at its default address** (opened 2026-11-01) [AWAITING-LIVE]
+  - A player got the "some features are paused" box with the extended inventory off. Their game loads at its default fixed address, and the mod's search for a scratch page near the game found nothing above it and then took the lowest free page below, 2 GB away and just out of reach, so the new weapons never switched on. Everything else kept running and the save was never touched. Reported in a Nexus bug report 2026-11-01 with the log line.
+  - Done means: when nothing above the game is free, the mod takes the free page closest below the game instead of the lowest one, logs one line each time it has to look below the game saying what the search above found, and the player's log then shows the extended inventory armed.
+  - Verify: NearAllocatorTests model the player's layout, the game at 0x140000000 with nothing to commit above it and everything free below, and the fix picks the page right under the game; suite green; the player's log on 2.4.1 shows "Extended inventory armed".
+  - Added: yes "Ok, then do a hotfix now.  I'll ship it in the morning." (2026-11-01)
+  - Shipped first as the 2.4.1 hotfix from branch hotfix/2.4.1 at 893e9f00 with its own cold read entry; main carries the same allocator change and tests, ported 2026-11-01, and main's release check will ask for its own cold read of this file at 2.5.0. Live verify is the player's log, since the owner's game relocates under ASLR and never reaches the fallback.
+  (Tech: log detail "list-relocation: page 0xC0010000 is out of int32 reach of field 0x140101001"; 0xC0010000 is exactly ImageBase.Base minus LiveNearAllocator.SearchRange, so the delta was 0 and the up scan over [base, base + 2 GB) committed nothing; LiveNearAllocator.Alloc's second Scan returned the first candidate bottom up; the fix collects the top candidate of every free region below and commits from the highest down; ledger rows [denuvo-free-build-relocates-under-aslr] and [item-count-lists-relocatable] cover the mechanism.)
+
 ## Backlog
 
+- [LW-551] 2026-11-01: Cold read of Memory/NearAllocator.cs found 8 things worth a look. (cold-read, LW-550)
+  - catch (Exception) in Alloc swallows every failure and returns 0, so a caller cannot tell no space from threw, and the log line is skipped on that path.
+  - A failing Query makes both walks break silently, same as walking off the end of the address space.
+  - PickInWindow (the upward walk) only checks start >= rangeMax, not start + size <= rangeMax, so an upward allocation can extend past nearAddr + SearchRange while PickTopInWindow keeps its block inside rangeMax.
+  - The debug message says below the image but nothing in the packet defines nearAddr as an image address.
+  - The log reports regions and largestFree only for the upward walk.
+  - PickAllocBase is not called anywhere in the packet and uses a symmetric window.
+  - LiveRegionWalker.Commit allocates PAGE_EXECUTE_READWRITE and sets SetLastError but never reads it.
+  - SearchRange is 0x7FFF0000 with no visible source for the value.
 - [LW-547] 2026-10-24: Cold read of Chronicle/BannerToast.cs found 1 thing worth a look. (cold-read, LW-465)
   - A release that throws keeps _lastSeen behind and retries every tick; Rebaseline logs the battle end toast drop line on a new game; a tile unreadable at release is dropped from the book and never retried.
 - [LW-544] 2026-10-24: A monster taken over by Puppeteer shows no sign that it worked, so the player cannot tell a success from a miss. Show something, for example a banner naming the new puppet on the same path the tier up banners use. Owner ruling 2026-10-24: nice to have, later. (Tech: split from LW-326 part B; Puppeteer dominate on a monster, job 94 and up, has no menu change to see.)
