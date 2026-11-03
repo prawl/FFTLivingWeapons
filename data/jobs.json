@@ -1,0 +1,156 @@
+{
+ "_meta": {
+  "doc": "Every departure from vanilla job equip and class evade, each with a reason. Key order in add is emission order, Shield last, and the loader never sorts keys."
+ },
+ "generic": {
+  "Knight": {
+   "add": {},
+   "strip": {}
+  },
+  "Archer": {
+   "add": {
+    "Gun": "widen pass cross equip"
+   },
+   "strip": {}
+  },
+  "Black Mage": {
+   "add": {
+    "Knife": "widen pass cross equip"
+   },
+   "strip": {}
+  },
+  "Time Mage": {
+   "add": {
+    "Rod": "widen pass cross equip",
+    "Shield": "blanket grant from the first widen pass, no recorded rationale, under the dodge review"
+   },
+   "strip": {}
+  },
+  "Mystic": {
+   "add": {
+    "Shield": "blanket grant from the first widen pass, no recorded rationale, under the dodge review"
+   },
+   "strip": {}
+  },
+  "Summoner": {
+   "add": {
+    "Shield": "blanket grant from the first widen pass, no recorded rationale, under the dodge review"
+   },
+   "strip": {}
+  },
+  "Squire": {
+   "add": {
+    "Crossbow": "widen pass cross equip"
+   },
+   "strip": {
+    "Knife": "daggers grew signature abilities, so generic access to them is narrowed"
+   }
+  },
+  "Chemist": {
+   "add": {},
+   "strip": {}
+  },
+  "Monk": {
+   "add": {
+    "Shield": "blanket grant from the first widen pass, no recorded rationale, under the dodge review"
+   },
+   "strip": {}
+  },
+  "White Mage": {
+   "add": {
+    "Rod": "widen pass cross equip",
+    "Shield": "blanket grant from the first widen pass, no recorded rationale, under the dodge review"
+   },
+   "strip": {}
+  },
+  "Thief": {
+   "add": {
+    "Crossbow": "widen pass cross equip",
+    "Bow": "widen pass cross equip",
+    "Shield": "blanket grant from the first widen pass, no recorded rationale, under the dodge review"
+   },
+   "strip": {}
+  },
+  "Orator": {
+   "add": {
+    "Sword": "widen pass cross equip",
+    "Book": "widen pass cross equip",
+    "Shield": "blanket grant from the first widen pass, no recorded rationale, under the dodge review"
+   },
+   "strip": {
+    "Knife": "daggers grew signature abilities, so generic access to them is narrowed"
+   }
+  },
+  "Geomancer": {
+   "add": {
+    "Pole": "widen pass cross equip"
+   },
+   "strip": {}
+  },
+  "Dragoon": {
+   "add": {
+    "Sword": "widen pass cross equip"
+   },
+   "strip": {}
+  },
+  "Samurai": {
+   "add": {
+    "Polearm": "widen pass cross equip",
+    "Shield": "blanket grant from the first widen pass, no recorded rationale, under the dodge review"
+   },
+   "strip": {}
+  },
+  "Ninja": {
+   "add": {
+    "Shield": "blanket grant from the first widen pass, no recorded rationale, under the dodge review"
+   },
+   "strip": {}
+  },
+  "Arithmetician": {
+   "add": {
+    "Shield": "blanket grant from the first widen pass, no recorded rationale, under the dodge review"
+   },
+   "strip": {}
+  },
+  "Bard": {
+   "add": {
+    "Shield": "blanket grant from the first widen pass, no recorded rationale, under the dodge review"
+   },
+   "strip": {}
+  },
+  "Dancer": {
+   "add": {
+    "Shield": "blanket grant from the first widen pass, no recorded rationale, under the dodge review"
+   },
+   "strip": {}
+  },
+  "Mime": {
+   "add": {
+    "Shield": "blanket grant from the first widen pass, no recorded rationale, under the dodge review"
+   },
+   "strip": {}
+  }
+ },
+ "story": {
+  "3": {
+   "strip": {
+    "Knife": "knives are out for the Gallant Knight because signatures make them a distinct identity"
+   }
+  }
+ },
+ "classEvadeFloor": {
+  "value": 8,
+  "reason": "vanilla squishies sit at 5, so every human job gets a little always on class evade",
+  "storyAllow": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   15,
+   145
+  ]
+ }
+}

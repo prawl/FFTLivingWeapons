@@ -479,7 +479,7 @@ function Invoke-TablePipeline {
     Write-Host "  -> tools/make_jobequip.py --verify (JobData.xml matches its generator)..."
     & python "$PipelineRepoRoot\tools\make_jobequip.py" --verify
     if ($LASTEXITCODE -ne 0) {
-        throw "REFUSING TO ${FailVerb}: JobData.xml does not match tools/make_jobequip.py (run python tools\make_jobequip.py)"
+        throw "REFUSING TO ${FailVerb}: JobData.xml does not match tools/make_jobequip.py and data/jobs.json (run python tools\make_jobequip.py)"
     }
 
     # Bake the runtime's per-weapon facts so the DLL build (and the unit tests,

@@ -1,26 +1,22 @@
 #!/usr/bin/env python
-"""Sparse JobData.xml override: widen generic-job loadouts + nudge class evade.
-  - cross-equips + a Shield on generic player jobs (ids 61-93)
-  - CharacterEvasion floored to CEV_FLOOR on the jobs CEV_ALLOW covers (raises only). Class evade
-    is always-on, all-directions, no ability slot, and applies to player + generic enemies alike.
-LW-77 (2026-07-14): a table-XML row applies as a WHOLE-ROW writeback at OnAllModsLoaded
-(FFTOJobDataManager.ApplyTablePatch, model.X ?? previous.X across every field, incl.
-JobCommandId since loader 1.7.1), so a CharacterEvasion-only row clobbers any other mod's
-post-snapshot runtime edit to that SAME row, and load order cannot fix it (proven live: Blue And
-Red Mages 2.0.2, deleting our row 57 resurrected Red Mage). So this table now lists only rows
-with a real payload: a live equip addition/strip, or a job CEV_ALLOW covers. Honest delta from
-the old blanket sweep: ZERO player-loadout change (every kept equip row is byte-identical; every
-dropped equip row differed from vanilla only by the then-empty Axe/Flail categories, which
-LW-351 stopped stripping -- see REMOVE below), and the C-EV floor on unknown/reserved ids plus
-the two enemy-only specials (Keeper of
-Darkness id151, Archaeodaemon id153) reverts to vanilla: tiny and player-favorable. Construct 8
-(job145, player-recruitable via Puppeteer) keeps its floor.
-Skips monsters and the Lucavi boss forms. Parse-checks before writing (the modloader silently
-drops a table whose XML comment contains a double hyphen). Load after other job mods.
+"""Sparse JobData.xml override: widen generic job loadouts and nudge class evade.
 
-Vanilla rows come from data/vanilla_tables.json (tools/snapshot_vanilla_tables.py), never the game
-folder. --verify rebuilds the text in memory and fails when the committed file differs, ignoring
-line endings. --out writes or checks another path."""
+The departures from vanilla live in data/jobs.json, each with a written reason: equip categories
+added or stripped on the generic jobs (ids 61 to 93), one story strip, and a class evade floor
+that only raises. Class evade is always on, hits from every direction, has no ability slot, and
+applies to player and generic enemy units alike. Vanilla rows come from data/vanilla_tables.json
+(tools/snapshot_vanilla_tables.py), never the game folder.
+
+A table XML row applies as a whole row writeback at load (ApplyTablePatch, model.X ?? previous.X
+across every field), so a CharacterEvasion only row clobbers any other mod's runtime edit to that
+same row and load order cannot fix it. This table therefore lists only rows with a real payload,
+an equip addition or strip or a floor raise. The floor covers the story ids in jobs.json plus the
+generic ids; unknown ids and the enemy only specials keep vanilla. Monsters and the Lucavi boss
+forms are skipped. The text is parse checked before writing, because the modloader silently drops
+a table whose XML comment contains a double hyphen. Load after other job mods.
+
+--verify rebuilds the text in memory and fails when the committed file differs, ignoring line
+endings. --out writes or checks another path. A missing reason in jobs.json exits 1."""
 import argparse
 import difflib
 import json
@@ -29,47 +25,23 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from lib import jobrules
 from lib.paths import VANILLA_TABLES, MOD_TABLES
 
 OUT = MOD_TABLES / "JobData.xml"
 
-# weapon cross-equips by job name, applied to GENERIC player jobs only (don't rewrite story-char loadouts)
-CROSS = {
-    "Archer": ["Gun"], "Black Mage": ["Knife"], "Time Mage": ["Rod"],
-    "White Mage": ["Rod"], "Thief": ["Crossbow", "Bow"], "Orator": ["Sword", "Book"],
-    "Geomancer": ["Pole"], "Dragoon": ["Sword"], "Samurai": ["Polearm"], "Squire": ["Crossbow"],
-}
-INNATE = {}                # per-job signature innate abilities (job name -> AbilityData ids); none yet
-CEV_FLOOR = 8              # floor every human job's class evade to this (raises only; vanilla squishies sit at 5)
-# Story ids that keep the CEV floor even off the generic range: the low Squire/Knight/Holy
-# Knight ids, Dragonkin id15, and Construct 8 id145 (player-recruitable, Puppeteer.Policy.cs:33 +
-# PuppeteerTests.cs:35). Generic ids 61-93 join via cev_targets below; every id NOT in either set
-# (unknown/reserved ids, the two enemy-only specials Keeper of Darkness id151 and Archaeodaemon
-# id153) reverts the floor to vanilla now, since a listed row is a whole-row writeback hazard.
-CEV_ALLOW = {1, 2, 3, 4, 5, 6, 7, 15, 145}
-LUCAVI = {62, 64, 65, 67, 69, 73}  # boss forms in the generic id range; enemy-only, skip equip edits
-# Categories stripped from EVERY equip list. EMPTY (2026-08-30): it held
-# {"Axe", "Flail"} for as long as this rebalance had repurposed every axe and flail into another
-# weapon type, so the two categories named nothing a unit could equip. The rebalance gives those items
-# their vanilla identities back (the Battle Axe first), which means Squire and Geomancer must
-# get Axe back and Squire and Ninja must get Flail back -- and the only way to do that is to
-# stop stripping them. The seam stays for the next category that genuinely empties out.
+LUCAVI = {62, 64, 65, 67, 69, 73}  # boss forms in the generic id range; enemy only, skip equip edits
+# Categories stripped from every equip list. Empty since the rebalance gave axes and flails their
+# vanilla identities back; the seam stays for the next category that genuinely empties out.
 REMOVE = set()
-# Daggers grew teeth (signatures), so narrow generic dagger access. Per-GENERIC-job category strip
-# (story chars keep their loadouts). Keep Knife on Thief/Chemist/Black Mage (+ Ninja, the dual-blade
-# class). Dancer also equips knives in vanilla -- left alone pending a call.
-STRIP = {"Squire": {"Knife"}, "Orator": {"Knife"}}
-# Story-job strips keyed by numeric id, bypassing the name-keyed STRIP path so the name "Squire"
-# (which matches story ids 1/2/4/7) never inadvertently loses categories here.
-# id 3 = Gallant Knight: knives are out (signatures make them a distinct identity).
-STORY_STRIP = {3: {"Knife"}}
-# Generic jobs EXCLUDED from the blanket Shield addition. Vanilla gives none of these a
-# shield: the Squire/Chemist exclusion matches Ramza's shieldless story squire, and Black
-# Mage came off after live play showed a shielded BLM too durable for its damage output
-# (2026-06-10). Knight's Equip Shield support is the designed path for all three.
-NO_SHIELD = {"Squire", "Chemist", "Black Mage"}
 
 _snap = json.loads(VANILLA_TABLES.read_text(encoding="utf-8"))
+RULES = jobrules.load()
+CROSS_ADD = {name: list(job["add"]) for name, job in RULES["generic"].items()}
+STRIP = {name: set(job["strip"]) for name, job in RULES["generic"].items()}
+STORY_STRIP = {int(jid): set(job["strip"]) for jid, job in RULES["story"].items()}
+CEV_FLOOR = RULES["classEvadeFloor"]["value"]
+CEV_ALLOW = set(RULES["classEvadeFloor"]["storyAllow"])
 jobs = {int(k): v for k, v in _snap["jobs"].items()}
 names = {jid: j["name"] for jid, j in jobs.items() if j["name"] != "?"}
 
@@ -94,8 +66,7 @@ def build():
         job = jobs[jid]
         nm = names.get(jid, "?")
         cur = job["equip"]
-        shield = [] if nm in NO_SHIELD else ["Shield"]
-        additions = [a for a in (list(CROSS.get(nm, [])) + shield) if a not in cur] if jid in generic else []
+        additions = [a for a in CROSS_ADD.get(nm, []) if a not in cur] if jid in generic else []
         strip_generic = STRIP.get(nm, set()) if jid in generic else set()
         strip_story = STORY_STRIP.get(jid, set())
         strip = set(REMOVE) | strip_generic | strip_story   # per-generic-job category strip + id-keyed story-job strips
@@ -104,28 +75,18 @@ def build():
         # never counted as one (a dropped category that no item ships is vanilla-equal); REMOVE is
         # empty, so today every emitted list is an addition or a real category strip.
         equip_changed = bool(additions) or bool(strip_generic) or bool(strip_story)
-        innate = []
-        have = job["innate"]
-        free = [i for i in (1, 2, 3, 4) if have[i - 1] == 0]
-        for aid in INNATE.get(nm, []):
-            if aid in have or not free:
-                continue
-            innate.append((free.pop(0), aid))
         cev_cur = job["cev"]
         cev_new = CEV_FLOOR if jid in cev_targets and cev_cur < CEV_FLOOR else None
-        if not equip_changed and not innate and cev_new is None:
+        if not equip_changed and cev_new is None:
             continue
         note = ((["equip: " + ", ".join(final_equip)] if equip_changed else [])
-                + ([f"C-EV {cev_cur} to {cev_new}"] if cev_new is not None else [])
-                + ([f"innate {','.join(str(a) for _, a in innate)}"] if innate else []))
+                + ([f"C-EV {cev_cur} to {cev_new}"] if cev_new is not None else []))
         out.append('    <Job>')
         out.append(f'      <Id>{jid}</Id> <!-- {nm.replace("--", "-")}: {"; ".join(note)} -->')
         if equip_changed:
             out.append(f'      <EquippableItems>{", ".join(final_equip)}</EquippableItems>')
         if cev_new is not None:
             out.append(f'      <CharacterEvasion>{cev_new}</CharacterEvasion>')
-        for slot, aid in innate:
-            out.append(f'      <InnateAbilityId{slot}>{aid}</InnateAbilityId{slot}>')
         out.append('    </Job>')
         log.append((jid, nm, "; ".join(note)))
     out += ['  </Entries>', '</JobTable>', '']
