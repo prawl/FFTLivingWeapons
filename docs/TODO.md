@@ -14,7 +14,7 @@ the technical detail lives in the indented lines under it.
 
 Locked 2026-10-24: LW-465, LW-508, LW-506, LW-448, LW-459, LW-513, LW-444, LW-386, LW-409, LW-195, LW-172, LW-234, LW-450, LW-514, LW-457, LW-511, LW-326, LW-296, LW-360, LW-191, LW-435, LW-396, LW-344 (the rest parked at the top of Backlog on 2026-11-02 for the quality pause; they come back here first)
 
-- **[LW-561] A dodge report shows how much harder enemies are to hit than in vanilla, per job and chapter, before any evade number moves** (opened 2026-11-03) [QUEUED]
+- **[LW-561] A dodge report shows how much harder enemies are to hit than in vanilla, per job and chapter, before any evade number moves** (opened 2026-11-03) [AWAITING-LIVE]
   Players say everyone dodges everything. Today the only way to check is counting by hand, and the
   hand count summed numbers that multiply and averaged across the whole line where chapter 1 got
   worse. Build the ruler first: a script that compares every generic job's chance to be hit, vanilla
@@ -50,6 +50,24 @@ Locked 2026-10-24: LW-465, LW-508, LW-506, LW-448, LW-459, LW-513, LW-444, LW-38
     plainly. The table is unchanged, byte for byte. (Tech: new data/jobs.json and
     tools/lib/jobrules.py, key order in add is emission order with Shield last;
     make_jobequip.py drops CROSS, STRIP, STORY_STRIP, NO_SHIELD, CEV_FLOOR, CEV_ALLOW, INNATE.)
+  - Built: stage 3 of 3. One command now prints how hard each generic job is to hit at enemy levels
+    5, 20 and 35, vanilla against the mod, from the front, side and back, with and without a Parry
+    guard, and the build refuses wrong shield numbers in the item list. The first reading is not
+    pasted yet, the owner checks the model against the game first. (Tech: new
+    tools/analyze_jobs.py with a 22 case selftest, attack flag map in tools/lib/jobrules.py, twelve
+    items.json shield baselines set to the snapshot, two pipeline.ps1 steps after the verify.)
+  - Live check (no deploy, the installed build, Alt-Tab to read): the report is a model of the
+    game's rules until one battle confirms them. Put a generic Thief (class evade 25) in Cutpurse
+    (weapon evade 10) and Galewall (shield 24), no accessory, reaction not Parry, and read the
+    Attack preview on it from an ally. Front expect 57 (56 to 58); near 51 means the game adds
+    evades instead of multiplying and the model is wrong; near 75 means the shield is not
+    counting. Side expect 76 (75 to 77); back expect 100. Add a Drifter's Cape: back 90, front
+    51. Remove it, set Parry: front 51, side 68; front still 57 means weapon evade never counts
+    in this port. Swap to Quicksilver with Parry: front 42 or 43. Then in a random battle look at
+    enemy gear: a mage, Monk or Samurai at level 15 to 21 should hold Sanctguard, at 29 to 35
+    Vanguard, at 5 or 6 Galewall, and an Archer at 27 to 35 a bow and no shield; any other
+    shield at those levels, or an Archer with a crossbow and shield, means the gear walk is
+    wrong for this port. A reading may sit one point under the expected number.
 - **[LW-465] A Provoke hold and a planted Bulwark let go the moment a battle rewinds** (opened 2026-10-19) [AWAITING-LIVE]
   - Quitting to the title and choosing Continue mid battle, or picking Retry, rewinds the fight in place without the battle end signal the Provoke hold and the Bulwark listen for, so a hold can hide the party until its watchdog lets go (box 9.2) and a barred tile stays barred until the wielder's next turn (box 9.4, LW-466). The first fix was dropped on release night because nobody has measured when the game rebuilds the battlefield after the restore. Probe that moment first, then release both on it.
   Carries LW-466: After a Retry with the Sunderer's Bulwark planted, the barred tile behind the wielder stays barred until the wielder's next turn opens, and the plant toast replays once on the rewound battle. Seen live on the dev build of 29632f46 (smoke box 9.4 step 3): plant at 22:48:37 barring (11,5), Retry at 22:49:04, a stale `The Sunderer plants its blade` toast delivered at 22:49:05, release only at 22:49:25 when the wielder's turn opened. It heals itself within one turn and only blocks one tile, so it ships as known for 2.4.0. Fix it with LW-465 in 2.4.1 on the same measured rewind moment: release the Bulwark and drop any queued signature toast when the checkpoint restore lands. (Tech: Bulwark.cs and Bulwark.Terrain.cs release on the wielder's turn edge or a battle edge only; the LW-458 restore count ExtendedInventory.RetryRewinds is the signal; BannerToast queue survived the rewind.)

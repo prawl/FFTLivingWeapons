@@ -4283,7 +4283,7 @@
       "flavorOverride": "A mariner's shield lacquered against the surge, turning aside the cold reach of the tide.",
       "baseline": {
         "physEv": 10,
-        "magEv": 5,
+        "magEv": 3,
         "rider": "None"
       },
       "proposed": {
@@ -4307,8 +4307,8 @@
       "identity": "T1 physical apex — highest early physEv + anti-Wind resist for early archers/cyclones.",
       "flavorOverride": "A broad guard angled to split a headwind, so neither gale nor arrow finds purchase.",
       "baseline": {
-        "physEv": 15,
-        "magEv": 0,
+        "physEv": 13,
+        "magEv": 3,
         "rider": "None"
       },
       "proposed": {
@@ -4332,8 +4332,8 @@
       "identity": "First buyable element tool — halves Lightning (guns, thunder mages). Balanced split.",
       "flavorOverride": "Banded in earthed iron that bleeds the lightning into the ground before it can bite.",
       "baseline": {
-        "physEv": 15,
-        "magEv": 5,
+        "physEv": 16,
+        "magEv": 0,
         "rider": "None"
       },
       "proposed": {
@@ -4357,7 +4357,7 @@
       "identity": "Agility shield — phys-leaning evade + Speed+1 tempo prize for skirmishers.",
       "flavorOverride": "Pared down to almost nothing, this guard quickens the feet rather than burdening them.",
       "baseline": {
-        "physEv": 20,
+        "physEv": 19,
         "magEv": 0,
         "rider": "None"
       },
@@ -4382,8 +4382,8 @@
       "identity": "Anti-mage generalist — top buyable magEv + innate Shell (stacks with mag-evade).",
       "flavorOverride": "Graven with runes that murmur a quiet ward, veiling its bearer against hostile spellcraft.",
       "baseline": {
-        "physEv": 15,
-        "magEv": 15,
+        "physEv": 22,
+        "magEv": 5,
         "rider": "None"
       },
       "proposed": {
@@ -4407,8 +4407,8 @@
       "identity": "Anti-Dark consecrated ward -- halves incoming Dark (undead/demon foes deal Dark damage from Ch2-3); the earlier, lesser sibling to Nightward's absorb.",
       "flavorOverride": "Consecrated bronze whose blessed sheen drinks the dark and lets it die at the wrist.",
       "baseline": {
-        "physEv": 20,
-        "magEv": 5,
+        "physEv": 25,
+        "magEv": 0,
         "rider": "None"
       },
       "proposed": {
@@ -4432,7 +4432,7 @@
       "identity": "Vanilla standout — absorbs Ice, halves Fire, weak to Lightning. Anti-Ice/Fire tank.",
       "flavorOverride": "Sheathed in unthawing frost, it swallows the killing cold and leaves its bearer warmer.",
       "baseline": {
-        "physEv": 30,
+        "physEv": 28,
         "magEv": 0,
         "rider": "absorb Ice"
       },
@@ -4457,7 +4457,7 @@
       "identity": "Vanilla standout — absorbs Fire, halves Ice, weak to Water. Ice/Flame element partner.",
       "flavorOverride": "Quenched in dragonfire and hungry still, it feeds on the flames flung against it.",
       "baseline": {
-        "physEv": 30,
+        "physEv": 31,
         "magEv": 0,
         "rider": "absorb Fire"
       },
@@ -4507,7 +4507,7 @@
       "identity": "Mobility defender — solid balanced evade + the only Move+1 shield. Tank that flanks.",
       "flavorOverride": "Pared light for the march, this guard lets its bearer outpace the line and flank unseen.",
       "baseline": {
-        "physEv": 35,
+        "physEv": 34,
         "magEv": 15,
         "rider": "None"
       },
@@ -4532,7 +4532,7 @@
       "identity": "Offensive bruiser — high physEv + the only PA+1 shield. Defense that adds damage.",
       "flavorOverride": "Forged thick at the boss for shoving forward, it lends weight to the arm as much as cover.",
       "baseline": {
-        "physEv": 40,
+        "physEv": 37,
         "magEv": 10,
         "rider": "None"
       },
@@ -4582,8 +4582,8 @@
       "identity": "Phys-evade apex — poach/steal-gated, with a Speed+1 prize for the rare-drop effort.",
       "desc": "An unusually shaped, pitch-black shield forged from iron using the techniques of a distant land.\nSpeed +1.",
       "baseline": {
-        "physEv": 45,
-        "magEv": 10,
+        "physEv": 43,
+        "magEv": 0,
         "rider": "None"
       },
       "proposed": {
@@ -4607,7 +4607,7 @@
       "identity": "The only OFFENSIVE shield — strengthens the wearer's Fire/Lightning/Ice. A damage shield.",
       "desc": "A shield named after a title used by emperors of eld.\nStrengthens Fire, Lightning, and Ice damage.",
       "baseline": {
-        "physEv": 45,
+        "physEv": 46,
         "magEv": 20,
         "rider": "boost tri-elem"
       },

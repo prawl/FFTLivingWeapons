@@ -482,6 +482,20 @@ function Invoke-TablePipeline {
         throw "REFUSING TO ${FailVerb}: JobData.xml does not match tools/make_jobequip.py and data/jobs.json (run python tools\make_jobequip.py)"
     }
 
+    # The dodge report prints its model and then holds the shield baselines, the job reasons and the
+    # snapshot hashes. Its selftest proves the maths and the verify mode still bite.
+    Write-Host "  -> tools/analyze_jobs.py (dodge report and its gating checks)..."
+    & python "$PipelineRepoRoot\tools\analyze_jobs.py"
+    if ($LASTEXITCODE -ne 0) {
+        throw "REFUSING TO ${FailVerb}: analyze_jobs.py gating check failed (see above)."
+    }
+
+    Write-Host "  -> tools/analyze_jobs.py --selftest..."
+    & python "$PipelineRepoRoot\tools\analyze_jobs.py" --selftest
+    if ($LASTEXITCODE -ne 0) {
+        throw "REFUSING TO ${FailVerb}: analyze_jobs.py --selftest failed (exit $LASTEXITCODE)."
+    }
+
     # Bake the runtime's per-weapon facts so the DLL build (and the unit tests,
     # which read LivingWeapon/meta.json) pick up a fresh copy.
     Write-Host "  -> tools/gen_living_weapon_meta.py (items.json -> meta.json)..."

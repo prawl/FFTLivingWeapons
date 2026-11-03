@@ -38,3 +38,19 @@ def load(path=JOBS):
     if bad:
         sys.exit("REFUSING: jobs.json departure without a reason: " + "; ".join(bad))
     return doc
+
+
+# The attack flag byte of a weapon row. Same map the DLL packs with in ExtendedRecords.cs.
+ATTACK_FLAGS = {"Striking": 128, "Lunging": 64, "Direct": 32, "Arc": 16,
+                "TwoSwords": 8, "TwoHands": 4, "Throwable": 2, "ForcedTwoHands": 1}
+
+
+def flag_byte(names):
+    """The attack flag byte for a comma separated name list such as Arc, TwoHands."""
+    return sum(0 if t.strip() == "None" else ATTACK_FLAGS[t.strip()]
+               for t in str(names).split(",") if t.strip())
+
+
+def flag_names(byte):
+    """Names set in an attack flag byte, highest bit first."""
+    return [n for n, bit in ATTACK_FLAGS.items() if byte & bit]
