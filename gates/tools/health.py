@@ -31,7 +31,9 @@ How it runs, so nobody has to remember it:
     (the main branch, or the commit a push started from) so an edit to the memory cannot lower it.
     A repo with no committed memory is refused until its first floor is committed.
   * `floor` snapshots the working tree between releases, so an improvement holds from the day it
-    lands. A floor only moves the good way.
+    lands. A floor only moves the good way. The first floor is the day the repo took the rules,
+    kept in floor.json as `since`; release records from before that day feed the trend and never
+    set a bar, so a repo with a long history starts from today's tree, not its best month.
   * The ratchet also holds every production file to its own row in docs/health/files.json, which
     `floor --write` writes: comment lines, longest comment block, code lines, silent catches and
     long methods. Comments and the block are frozen at the row. Code lines may grow up to 200,
@@ -784,6 +786,20 @@ def best_base(records, floor):
     return base, origin
 
 
+def adoption_date(floors):
+    """The day the repo took the rulebook, the first floor's date, carried forward in every later floor as since."""
+    dates = [f.get("since") or f["date"] for f in floors if f]
+    return min(dates) if dates else None
+
+
+def since_adoption(records, floors):
+    """The release records that set a bar. Records from before the first floor are history for the trend only."""
+    day = adoption_date(floors)
+    if day is None:
+        return []
+    return [r for r in records if r.get("date", "") >= day]
+
+
 def ratchet_faults(base, now, origin=None):
     """The rows where now is worse than base, as (key, sentence)."""
     out = []
@@ -872,6 +888,7 @@ def ratchet_memory(base_ref):
             records += load_records(base_ref)
         else:
             notes.append("No floor readable at %s; judging against HEAD only." % base_ref)
+    records = since_adoption(records, floors)
     if head_floor:
         allowed, bad = valid_allowances(head_floor, "HEAD")
         notes += bad
@@ -950,6 +967,7 @@ def floor_faults(now, per_file, members):
     base ref may still hold the lower value; the widened floor is the bar, so it cannot creep. The
     first rows are the line in the sand, so a file already over a line is taken as its debt."""
     records, head_floor, head_files = load_records("HEAD"), load_floor("HEAD"), load_files_record("HEAD")
+    records = since_adoption(records, [head_floor] if head_floor else [])
     carried_totals = valid_allowances(head_floor, "HEAD")[0]
     carried_files = {k: c for k, c in valid_allowances(head_files, "HEAD")[0].items() if k in per_file}
     shield(records, [head_floor] if head_floor else [], head_floor, carried_totals)
@@ -967,6 +985,7 @@ def cmd_floor(args):
     dirty = subprocess.run(["git", "status", "--porcelain"], cwd=REPO, capture_output=True, text=True).stdout.strip() != ""
     files = worktree_files()
     rec = {"sha": sha, "date": time.strftime("%Y-%m-%d"), "dirty": dirty, "snapshot": snapshot(files)}
+    rec["since"] = adoption_date([load_floor("HEAD")]) or rec["date"]
     per_file, members = file_rows({p: t for p, t in files.items() if p.startswith(PROD)})
     rows = floor_rows(rec)
     faults, allowed_totals, allowed_files = floor_faults(rec["snapshot"], per_file, members)
@@ -1077,6 +1096,11 @@ def selftest():
     base_floor = dict(floor, sha="b2b2b2b", where="origin/main", snapshot=dict(floor["snapshot"], long_methods=0))
     best3, origin3 = best_base([rec], [floor, base_floor])
     check("a floor on the base ref joins the base too and names where it came from", best3["long_methods"] == 0 and origin3["long_methods"] == "floor b2b2b2b on origin/main")
+    history = {"version": "2.1.0", "date": "2026-07-01", "snapshot": {"long_methods": 0, "empty_catches": 0}}
+    later = {"version": "2.6.0", "date": "2026-12-01", "snapshot": {"long_methods": 2, "empty_catches": 1}}
+    check("records older than the first floor are history, not bars", since_adoption([history, later], [floor]) == [later])
+    check("no floor means no record sets a bar yet", since_adoption([history, later], []) == [])
+    check("a later floor keeps the first floor's day", adoption_date([dict(floor, date="2026-11-20", since="2026-10-27")]) == "2026-10-27")
     check("a rise above the best value names where the best was set", any("in floor abc1234" in p for p in ratchet_problems(best2, dict(best2, empty_catches=2), origin2)))
     check("the floor banner names the commit and every ratchet row", floor_rows(floor)[0] == "CODE HEALTH FLOOR at abc1234" and len(floor_rows(floor)) == 1 + len(RATCHET_ROWS))
     tiny = json.loads(json.dumps(old))
