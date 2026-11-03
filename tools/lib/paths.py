@@ -9,6 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 ITEMS = ROOT / "data" / "items.json"   # the only hand-edited item source
+VANILLA_TABLES = ROOT / "data" / "vanilla_tables.json"   # committed copy of the vanilla job and item tables
 
 # Deployable mod tree: the sparse modloader tables + the full-table nxd overrides.
 MOD_TABLES = ROOT / "mod" / "FFTIVC" / "tables" / "enhanced"

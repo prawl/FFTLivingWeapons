@@ -16,16 +16,21 @@ the two enemy-only specials (Keeper of
 Darkness id151, Archaeodaemon id153) reverts to vanilla: tiny and player-favorable. Construct 8
 (job145, player-recruitable via Puppeteer) keeps its floor.
 Skips monsters and the Lucavi boss forms. Parse-checks before writing (the modloader silently
-drops a table whose XML comment contains a double hyphen). Load after other job mods."""
-import xml.etree.ElementTree as ET
-import re
+drops a table whose XML comment contains a double hyphen). Load after other job mods.
+
+Vanilla rows come from data/vanilla_tables.json (tools/snapshot_vanilla_tables.py), never the game
+folder. --verify rebuilds the text in memory and fails when the committed file differs, ignoring
+line endings. --out writes or checks another path."""
+import argparse
+import difflib
+import json
 import sys
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from lib.paths import TABLE_DATA, MOD_TABLES
+from lib.paths import VANILLA_TABLES, MOD_TABLES
 
-VANILLA = TABLE_DATA / "JobData.xml"
 OUT = MOD_TABLES / "JobData.xml"
 
 # weapon cross-equips by job name, applied to GENERIC player jobs only (don't rewrite story-char loadouts)
@@ -64,66 +69,90 @@ STORY_STRIP = {3: {"Knife"}}
 # (2026-06-10). Knight's Equip Shield support is the designed path for all three.
 NO_SHIELD = {"Squire", "Chemist", "Black Mage"}
 
-raw = VANILLA.read_text(encoding="utf-8")
-names = {int(m.group(1)): m.group(2).strip() for m in re.finditer(r"<Id>(\d+)</Id>\s*<!--\s*([^/]+?)\s*/", raw)}
-jobs = {int(j.findtext("Id")): j for j in ET.parse(VANILLA).getroot().find("Entries").findall("Job")}
+_snap = json.loads(VANILLA_TABLES.read_text(encoding="utf-8"))
+jobs = {int(k): v for k, v in _snap["jobs"].items()}
+names = {jid: j["name"] for jid, j in jobs.items() if j["name"] != "?"}
 
 
 def is_human(jid):
     j = jobs.get(jid)
-    return j is not None and jid not in LUCAVI and int((j.findtext("MonsterGraphic") or "0").strip() or 0) == 0
+    return j is not None and jid not in LUCAVI and j["monsterGraphic"] == 0
 
 
 generic = {jid for jid in range(61, 94) if is_human(jid)}   # equippability targets
 cev_targets = CEV_ALLOW | generic                           # Only these ids keep the CEV floor
 human = [jid for jid in sorted(jobs) if is_human(jid)]      # dodge-dial targets (every human job)
 
-out = ['<?xml version="1.0" encoding="utf-8"?>',
-       '<!-- FFTLivingWeapons: widened generic-job equip + shields, and a class-evade floor on live-payload jobs (LW-77 pruned the rest). Load after other job mods. -->',
-       '<JobTable>', '  <Version>1</Version>', '  <Entries>']
-log = []
-for jid in human:
-    job = jobs[jid]
-    nm = names.get(jid, "?")
-    cur = [c.strip() for c in (job.findtext("EquippableItems") or "").split(",") if c.strip()]
-    shield = [] if nm in NO_SHIELD else ["Shield"]
-    additions = [a for a in (list(CROSS.get(nm, [])) + shield) if a not in cur] if jid in generic else []
-    strip_generic = STRIP.get(nm, set()) if jid in generic else set()
-    strip_story = STORY_STRIP.get(jid, set())
-    strip = set(REMOVE) | strip_generic | strip_story   # per-generic-job category strip + id-keyed story-job strips
-    final_equip = [c for c in (cur + additions) if c not in strip]
-    # A row only earns its EquippableItems element for a REAL payload. A REMOVE-only diff
-    # never counted as one (a dropped category that no item ships is vanilla-equal); REMOVE is
-    # empty, so today every emitted list is an addition or a real category strip.
-    equip_changed = bool(additions) or bool(strip_generic) or bool(strip_story)
-    innate = []
-    have = [int((job.findtext(f"InnateAbilityId{i}") or "0").strip() or 0) for i in (1, 2, 3, 4)]
-    free = [i for i in (1, 2, 3, 4) if have[i - 1] == 0]
-    for aid in INNATE.get(nm, []):
-        if aid in have or not free:
+
+def build():
+    """The JobData.xml text and a per-job log of (id, name, note)."""
+    out = ['<?xml version="1.0" encoding="utf-8"?>',
+           '<!-- FFTLivingWeapons: widened generic-job equip + shields, and a class-evade floor on live-payload jobs (LW-77 pruned the rest). Load after other job mods. -->',
+           '<JobTable>', '  <Version>1</Version>', '  <Entries>']
+    log = []
+    for jid in human:
+        job = jobs[jid]
+        nm = names.get(jid, "?")
+        cur = job["equip"]
+        shield = [] if nm in NO_SHIELD else ["Shield"]
+        additions = [a for a in (list(CROSS.get(nm, [])) + shield) if a not in cur] if jid in generic else []
+        strip_generic = STRIP.get(nm, set()) if jid in generic else set()
+        strip_story = STORY_STRIP.get(jid, set())
+        strip = set(REMOVE) | strip_generic | strip_story   # per-generic-job category strip + id-keyed story-job strips
+        final_equip = [c for c in (cur + additions) if c not in strip]
+        # A row only earns its EquippableItems element for a REAL payload. A REMOVE-only diff
+        # never counted as one (a dropped category that no item ships is vanilla-equal); REMOVE is
+        # empty, so today every emitted list is an addition or a real category strip.
+        equip_changed = bool(additions) or bool(strip_generic) or bool(strip_story)
+        innate = []
+        have = job["innate"]
+        free = [i for i in (1, 2, 3, 4) if have[i - 1] == 0]
+        for aid in INNATE.get(nm, []):
+            if aid in have or not free:
+                continue
+            innate.append((free.pop(0), aid))
+        cev_cur = job["cev"]
+        cev_new = CEV_FLOOR if jid in cev_targets and cev_cur < CEV_FLOOR else None
+        if not equip_changed and not innate and cev_new is None:
             continue
-        innate.append((free.pop(0), aid))
-    cev_cur = int((job.findtext("CharacterEvasion") or "0").strip() or 0)
-    cev_new = CEV_FLOOR if jid in cev_targets and cev_cur < CEV_FLOOR else None
-    if not equip_changed and not innate and cev_new is None:
-        continue
-    note = ((["equip: " + ", ".join(final_equip)] if equip_changed else [])
-            + ([f"C-EV {cev_cur} to {cev_new}"] if cev_new is not None else [])
-            + ([f"innate {','.join(str(a) for _, a in innate)}"] if innate else []))
-    out.append('    <Job>')
-    out.append(f'      <Id>{jid}</Id> <!-- {nm.replace("--", "-")}: {"; ".join(note)} -->')
-    if equip_changed:
-        out.append(f'      <EquippableItems>{", ".join(final_equip)}</EquippableItems>')
-    if cev_new is not None:
-        out.append(f'      <CharacterEvasion>{cev_new}</CharacterEvasion>')
-    for slot, aid in innate:
-        out.append(f'      <InnateAbilityId{slot}>{aid}</InnateAbilityId{slot}>')
-    out.append('    </Job>')
-    log.append((jid, nm, "; ".join(note)))
-out += ['  </Entries>', '</JobTable>', '']
-text = "\n".join(out)
-ET.fromstring(text)  # parse-check before shipping (raises on the illegal-'--' bug)
-OUT.parent.mkdir(parents=True, exist_ok=True)
-OUT.write_text(text, encoding="utf-8")
-bumped = sum(1 for _, _, n in log if "C-EV" in n)
-print(f"Wrote JobData.xml: {len(log)} job edits ({bumped} lifted to the C-EV floor of {CEV_FLOOR}, {len(generic)} generic also get equip/shields)")
+        note = ((["equip: " + ", ".join(final_equip)] if equip_changed else [])
+                + ([f"C-EV {cev_cur} to {cev_new}"] if cev_new is not None else [])
+                + ([f"innate {','.join(str(a) for _, a in innate)}"] if innate else []))
+        out.append('    <Job>')
+        out.append(f'      <Id>{jid}</Id> <!-- {nm.replace("--", "-")}: {"; ".join(note)} -->')
+        if equip_changed:
+            out.append(f'      <EquippableItems>{", ".join(final_equip)}</EquippableItems>')
+        if cev_new is not None:
+            out.append(f'      <CharacterEvasion>{cev_new}</CharacterEvasion>')
+        for slot, aid in innate:
+            out.append(f'      <InnateAbilityId{slot}>{aid}</InnateAbilityId{slot}>')
+        out.append('    </Job>')
+        log.append((jid, nm, "; ".join(note)))
+    out += ['  </Entries>', '</JobTable>', '']
+    text = "\n".join(out)
+    ET.fromstring(text)  # parse-check before shipping (raises on the illegal-'--' bug)
+    return text, log
+
+
+def main(argv=None):
+    ap = argparse.ArgumentParser(description="Emit or verify the sparse JobData.xml override.")
+    ap.add_argument("--verify", action="store_true", help="compare a fresh build to the file, write nothing")
+    ap.add_argument("--out", type=Path, default=MOD_TABLES / "JobData.xml", help="file to write or verify")
+    args = ap.parse_args(argv)
+    text, log = build()
+    if args.verify:
+        have = args.out.read_text(encoding="utf-8")   # universal newlines, so CRLF and LF compare equal
+        if have == text:
+            return 0
+        sys.stdout.writelines(difflib.unified_diff(have.splitlines(keepends=True), text.splitlines(keepends=True),
+                                                   fromfile=str(args.out), tofile="make_jobequip.py"))
+        return 1
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    args.out.write_text(text, encoding="utf-8")
+    bumped = sum(1 for _, _, n in log if "C-EV" in n)
+    print(f"Wrote JobData.xml: {len(log)} job edits ({bumped} lifted to the C-EV floor of {CEV_FLOOR}, {len(generic)} generic also get equip/shields)")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

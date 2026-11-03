@@ -1,0 +1,5332 @@
+{
+ "_meta": {
+  "loaderVersion": "1.7.5",
+  "sha256": {
+   "ItemAccessoryData.xml": "f706004c1d155923478b27cea7fd9e9c49f09a60be18e5b4c5c8d8e7a3afad1e",
+   "ItemData.xml": "c724d1e5475eff2633d1ff3295f641f450dc341d90c443491860b5f5df1d49c5",
+   "ItemShieldData.xml": "e345891fa82dc4eecacd2956e93f423351832027ce8467cb125a6b0891022b56",
+   "JobData.xml": "63e49670e9f237824aa0fa0b4c333280bc8cbd041440fcf1638bdb5e35cf7f2b"
+  },
+  "source": "fftivc.utility.modloader TableData dump, the vanilla tables",
+  "tool": "python tools/snapshot_vanilla_tables.py"
+ },
+ "accessories": {
+  "0": {
+   "magEv": 0,
+   "physEv": 0
+  },
+  "1": {
+   "magEv": 0,
+   "physEv": 0
+  },
+  "10": {
+   "magEv": 0,
+   "physEv": 0
+  },
+  "11": {
+   "magEv": 0,
+   "physEv": 0
+  },
+  "12": {
+   "magEv": 0,
+   "physEv": 0
+  },
+  "13": {
+   "magEv": 0,
+   "physEv": 0
+  },
+  "14": {
+   "magEv": 0,
+   "physEv": 0
+  },
+  "15": {
+   "magEv": 0,
+   "physEv": 0
+  },
+  "16": {
+   "magEv": 0,
+   "physEv": 0
+  },
+  "17": {
+   "magEv": 0,
+   "physEv": 0
+  },
+  "18": {
+   "magEv": 0,
+   "physEv": 0
+  },
+  "19": {
+   "magEv": 0,
+   "physEv": 0
+  },
+  "2": {
+   "magEv": 0,
+   "physEv": 0
+  },
+  "20": {
+   "magEv": 0,
+   "physEv": 0
+  },
+  "21": {
+   "magEv": 10,
+   "physEv": 10
+  },
+  "22": {
+   "magEv": 15,
+   "physEv": 15
+  },
+  "23": {
+   "magEv": 18,
+   "physEv": 18
+  },
+  "24": {
+   "magEv": 25,
+   "physEv": 25
+  },
+  "25": {
+   "magEv": 28,
+   "physEv": 28
+  },
+  "26": {
+   "magEv": 30,
+   "physEv": 40
+  },
+  "27": {
+   "magEv": 0,
+   "physEv": 35
+  },
+  "28": {
+   "magEv": 0,
+   "physEv": 0
+  },
+  "29": {
+   "magEv": 0,
+   "physEv": 0
+  },
+  "3": {
+   "magEv": 0,
+   "physEv": 0
+  },
+  "30": {
+   "magEv": 0,
+   "physEv": 0
+  },
+  "31": {
+   "magEv": 0,
+   "physEv": 0
+  },
+  "4": {
+   "magEv": 0,
+   "physEv": 0
+  },
+  "5": {
+   "magEv": 0,
+   "physEv": 0
+  },
+  "6": {
+   "magEv": 0,
+   "physEv": 0
+  },
+  "7": {
+   "magEv": 0,
+   "physEv": 0
+  },
+  "8": {
+   "magEv": 0,
+   "physEv": 0
+  },
+  "9": {
+   "magEv": 0,
+   "physEv": 0
+  }
+ },
+ "items": {
+  "0": {
+   "additionalDataId": 0,
+   "category": "None",
+   "rare": false,
+   "requiredLevel": 0
+  },
+  "1": {
+   "additionalDataId": 1,
+   "category": "Knife",
+   "rare": false,
+   "requiredLevel": 1
+  },
+  "10": {
+   "additionalDataId": 10,
+   "category": "Knife",
+   "rare": true,
+   "requiredLevel": 95
+  },
+  "100": {
+   "additionalDataId": 100,
+   "category": "Polearm",
+   "rare": false,
+   "requiredLevel": 16
+  },
+  "101": {
+   "additionalDataId": 101,
+   "category": "Polearm",
+   "rare": false,
+   "requiredLevel": 21
+  },
+  "102": {
+   "additionalDataId": 102,
+   "category": "Polearm",
+   "rare": false,
+   "requiredLevel": 25
+  },
+  "103": {
+   "additionalDataId": 103,
+   "category": "Polearm",
+   "rare": false,
+   "requiredLevel": 29
+  },
+  "104": {
+   "additionalDataId": 104,
+   "category": "Polearm",
+   "rare": true,
+   "requiredLevel": 95
+  },
+  "105": {
+   "additionalDataId": 105,
+   "category": "Polearm",
+   "rare": true,
+   "requiredLevel": 96
+  },
+  "106": {
+   "additionalDataId": 106,
+   "category": "Polearm",
+   "rare": true,
+   "requiredLevel": 97
+  },
+  "107": {
+   "additionalDataId": 107,
+   "category": "Pole",
+   "rare": false,
+   "requiredLevel": 9
+  },
+  "108": {
+   "additionalDataId": 108,
+   "category": "Pole",
+   "rare": false,
+   "requiredLevel": 13
+  },
+  "109": {
+   "additionalDataId": 109,
+   "category": "Pole",
+   "rare": false,
+   "requiredLevel": 21
+  },
+  "11": {
+   "additionalDataId": 11,
+   "category": "NinjaBlade",
+   "rare": false,
+   "requiredLevel": 10
+  },
+  "110": {
+   "additionalDataId": 110,
+   "category": "Pole",
+   "rare": false,
+   "requiredLevel": 24
+  },
+  "111": {
+   "additionalDataId": 111,
+   "category": "Pole",
+   "rare": false,
+   "requiredLevel": 27
+  },
+  "112": {
+   "additionalDataId": 112,
+   "category": "Pole",
+   "rare": true,
+   "requiredLevel": 95
+  },
+  "113": {
+   "additionalDataId": 113,
+   "category": "Pole",
+   "rare": false,
+   "requiredLevel": 40
+  },
+  "114": {
+   "additionalDataId": 114,
+   "category": "Pole",
+   "rare": true,
+   "requiredLevel": 96
+  },
+  "115": {
+   "additionalDataId": 115,
+   "category": "Bag",
+   "rare": true,
+   "requiredLevel": 80
+  },
+  "116": {
+   "additionalDataId": 116,
+   "category": "Bag",
+   "rare": true,
+   "requiredLevel": 81
+  },
+  "117": {
+   "additionalDataId": 117,
+   "category": "Bag",
+   "rare": true,
+   "requiredLevel": 82
+  },
+  "118": {
+   "additionalDataId": 118,
+   "category": "Bag",
+   "rare": true,
+   "requiredLevel": 83
+  },
+  "119": {
+   "additionalDataId": 119,
+   "category": "Cloth",
+   "rare": false,
+   "requiredLevel": 24
+  },
+  "12": {
+   "additionalDataId": 12,
+   "category": "NinjaBlade",
+   "rare": false,
+   "requiredLevel": 13
+  },
+  "120": {
+   "additionalDataId": 120,
+   "category": "Cloth",
+   "rare": false,
+   "requiredLevel": 29
+  },
+  "121": {
+   "additionalDataId": 121,
+   "category": "Cloth",
+   "rare": true,
+   "requiredLevel": 95
+  },
+  "122": {
+   "additionalDataId": 122,
+   "category": "Throwing",
+   "rare": false,
+   "requiredLevel": 1
+  },
+  "123": {
+   "additionalDataId": 123,
+   "category": "Throwing",
+   "rare": false,
+   "requiredLevel": 18
+  },
+  "124": {
+   "additionalDataId": 124,
+   "category": "Throwing",
+   "rare": false,
+   "requiredLevel": 33
+  },
+  "125": {
+   "additionalDataId": 125,
+   "category": "Bomb",
+   "rare": false,
+   "requiredLevel": 1
+  },
+  "126": {
+   "additionalDataId": 126,
+   "category": "Bomb",
+   "rare": false,
+   "requiredLevel": 18
+  },
+  "127": {
+   "additionalDataId": 127,
+   "category": "Bomb",
+   "rare": false,
+   "requiredLevel": 29
+  },
+  "128": {
+   "additionalDataId": 0,
+   "category": "Shield",
+   "rare": false,
+   "requiredLevel": 1
+  },
+  "129": {
+   "additionalDataId": 1,
+   "category": "Shield",
+   "rare": false,
+   "requiredLevel": 3
+  },
+  "13": {
+   "additionalDataId": 13,
+   "category": "NinjaBlade",
+   "rare": false,
+   "requiredLevel": 15
+  },
+  "130": {
+   "additionalDataId": 2,
+   "category": "Shield",
+   "rare": false,
+   "requiredLevel": 6
+  },
+  "131": {
+   "additionalDataId": 3,
+   "category": "Shield",
+   "rare": false,
+   "requiredLevel": 9
+  },
+  "132": {
+   "additionalDataId": 4,
+   "category": "Shield",
+   "rare": false,
+   "requiredLevel": 12
+  },
+  "133": {
+   "additionalDataId": 5,
+   "category": "Shield",
+   "rare": false,
+   "requiredLevel": 15
+  },
+  "134": {
+   "additionalDataId": 6,
+   "category": "Shield",
+   "rare": false,
+   "requiredLevel": 22
+  },
+  "135": {
+   "additionalDataId": 7,
+   "category": "Shield",
+   "rare": false,
+   "requiredLevel": 22
+  },
+  "136": {
+   "additionalDataId": 8,
+   "category": "Shield",
+   "rare": false,
+   "requiredLevel": 22
+  },
+  "137": {
+   "additionalDataId": 9,
+   "category": "Shield",
+   "rare": false,
+   "requiredLevel": 25
+  },
+  "138": {
+   "additionalDataId": 10,
+   "category": "Shield",
+   "rare": false,
+   "requiredLevel": 29
+  },
+  "139": {
+   "additionalDataId": 11,
+   "category": "Shield",
+   "rare": false,
+   "requiredLevel": 36
+  },
+  "14": {
+   "additionalDataId": 14,
+   "category": "NinjaBlade",
+   "rare": false,
+   "requiredLevel": 22
+  },
+  "140": {
+   "additionalDataId": 12,
+   "category": "Shield",
+   "rare": true,
+   "requiredLevel": 36
+  },
+  "141": {
+   "additionalDataId": 13,
+   "category": "Shield",
+   "rare": true,
+   "requiredLevel": 39
+  },
+  "142": {
+   "additionalDataId": 14,
+   "category": "Shield",
+   "rare": true,
+   "requiredLevel": 40
+  },
+  "143": {
+   "additionalDataId": 15,
+   "category": "Shield",
+   "rare": true,
+   "requiredLevel": 50
+  },
+  "144": {
+   "additionalDataId": 0,
+   "category": "Helmet",
+   "rare": false,
+   "requiredLevel": 1
+  },
+  "145": {
+   "additionalDataId": 1,
+   "category": "Helmet",
+   "rare": false,
+   "requiredLevel": 4
+  },
+  "146": {
+   "additionalDataId": 2,
+   "category": "Helmet",
+   "rare": false,
+   "requiredLevel": 7
+  },
+  "147": {
+   "additionalDataId": 3,
+   "category": "Helmet",
+   "rare": false,
+   "requiredLevel": 9
+  },
+  "148": {
+   "additionalDataId": 4,
+   "category": "Helmet",
+   "rare": false,
+   "requiredLevel": 12
+  },
+  "149": {
+   "additionalDataId": 5,
+   "category": "Helmet",
+   "rare": false,
+   "requiredLevel": 15
+  },
+  "15": {
+   "additionalDataId": 15,
+   "category": "NinjaBlade",
+   "rare": false,
+   "requiredLevel": 27
+  },
+  "150": {
+   "additionalDataId": 6,
+   "category": "Helmet",
+   "rare": false,
+   "requiredLevel": 17
+  },
+  "151": {
+   "additionalDataId": 7,
+   "category": "Helmet",
+   "rare": false,
+   "requiredLevel": 22
+  },
+  "152": {
+   "additionalDataId": 8,
+   "category": "Helmet",
+   "rare": false,
+   "requiredLevel": 25
+  },
+  "153": {
+   "additionalDataId": 9,
+   "category": "Helmet",
+   "rare": false,
+   "requiredLevel": 29
+  },
+  "154": {
+   "additionalDataId": 10,
+   "category": "Helmet",
+   "rare": false,
+   "requiredLevel": 27
+  },
+  "155": {
+   "additionalDataId": 11,
+   "category": "Helmet",
+   "rare": true,
+   "requiredLevel": 36
+  },
+  "156": {
+   "additionalDataId": 12,
+   "category": "Helmet",
+   "rare": true,
+   "requiredLevel": 40
+  },
+  "157": {
+   "additionalDataId": 13,
+   "category": "Hat",
+   "rare": false,
+   "requiredLevel": 1
+  },
+  "158": {
+   "additionalDataId": 14,
+   "category": "Hat",
+   "rare": false,
+   "requiredLevel": 4
+  },
+  "159": {
+   "additionalDataId": 15,
+   "category": "Hat",
+   "rare": false,
+   "requiredLevel": 7
+  },
+  "16": {
+   "additionalDataId": 16,
+   "category": "NinjaBlade",
+   "rare": true,
+   "requiredLevel": 95
+  },
+  "160": {
+   "additionalDataId": 16,
+   "category": "Hat",
+   "rare": false,
+   "requiredLevel": 10
+  },
+  "161": {
+   "additionalDataId": 17,
+   "category": "Hat",
+   "rare": false,
+   "requiredLevel": 13
+  },
+  "162": {
+   "additionalDataId": 18,
+   "category": "Hat",
+   "rare": false,
+   "requiredLevel": 16
+  },
+  "163": {
+   "additionalDataId": 19,
+   "category": "Hat",
+   "rare": false,
+   "requiredLevel": 21
+  },
+  "164": {
+   "additionalDataId": 20,
+   "category": "Hat",
+   "rare": false,
+   "requiredLevel": 24
+  },
+  "165": {
+   "additionalDataId": 21,
+   "category": "Hat",
+   "rare": false,
+   "requiredLevel": 27
+  },
+  "166": {
+   "additionalDataId": 22,
+   "category": "Hat",
+   "rare": false,
+   "requiredLevel": 32
+  },
+  "167": {
+   "additionalDataId": 23,
+   "category": "Hat",
+   "rare": false,
+   "requiredLevel": 38
+  },
+  "168": {
+   "additionalDataId": 24,
+   "category": "Hat",
+   "rare": false,
+   "requiredLevel": 46
+  },
+  "169": {
+   "additionalDataId": 25,
+   "category": "HairAdornment",
+   "rare": true,
+   "requiredLevel": 50
+  },
+  "17": {
+   "additionalDataId": 17,
+   "category": "NinjaBlade",
+   "rare": true,
+   "requiredLevel": 96
+  },
+  "170": {
+   "additionalDataId": 26,
+   "category": "HairAdornment",
+   "rare": true,
+   "requiredLevel": 51
+  },
+  "171": {
+   "additionalDataId": 27,
+   "category": "HairAdornment",
+   "rare": true,
+   "requiredLevel": 52
+  },
+  "172": {
+   "additionalDataId": 28,
+   "category": "Armor",
+   "rare": false,
+   "requiredLevel": 1
+  },
+  "173": {
+   "additionalDataId": 29,
+   "category": "Armor",
+   "rare": false,
+   "requiredLevel": 4
+  },
+  "174": {
+   "additionalDataId": 30,
+   "category": "Armor",
+   "rare": false,
+   "requiredLevel": 6
+  },
+  "175": {
+   "additionalDataId": 31,
+   "category": "Armor",
+   "rare": false,
+   "requiredLevel": 8
+  },
+  "176": {
+   "additionalDataId": 32,
+   "category": "Armor",
+   "rare": false,
+   "requiredLevel": 11
+  },
+  "177": {
+   "additionalDataId": 33,
+   "category": "Armor",
+   "rare": false,
+   "requiredLevel": 14
+  },
+  "178": {
+   "additionalDataId": 34,
+   "category": "Armor",
+   "rare": false,
+   "requiredLevel": 17
+  },
+  "179": {
+   "additionalDataId": 35,
+   "category": "Armor",
+   "rare": false,
+   "requiredLevel": 22
+  },
+  "18": {
+   "additionalDataId": 18,
+   "category": "NinjaBlade",
+   "rare": true,
+   "requiredLevel": 96
+  },
+  "180": {
+   "additionalDataId": 36,
+   "category": "Armor",
+   "rare": false,
+   "requiredLevel": 26
+  },
+  "181": {
+   "additionalDataId": 37,
+   "category": "Armor",
+   "rare": false,
+   "requiredLevel": 30
+  },
+  "182": {
+   "additionalDataId": 38,
+   "category": "Armor",
+   "rare": false,
+   "requiredLevel": 37
+  },
+  "183": {
+   "additionalDataId": 39,
+   "category": "Armor",
+   "rare": true,
+   "requiredLevel": 37
+  },
+  "184": {
+   "additionalDataId": 40,
+   "category": "Armor",
+   "rare": true,
+   "requiredLevel": 39
+  },
+  "185": {
+   "additionalDataId": 41,
+   "category": "Armor",
+   "rare": true,
+   "requiredLevel": 45
+  },
+  "186": {
+   "additionalDataId": 42,
+   "category": "Clothing",
+   "rare": false,
+   "requiredLevel": 1
+  },
+  "187": {
+   "additionalDataId": 43,
+   "category": "Clothing",
+   "rare": false,
+   "requiredLevel": 3
+  },
+  "188": {
+   "additionalDataId": 44,
+   "category": "Clothing",
+   "rare": false,
+   "requiredLevel": 5
+  },
+  "189": {
+   "additionalDataId": 45,
+   "category": "Clothing",
+   "rare": false,
+   "requiredLevel": 7
+  },
+  "19": {
+   "additionalDataId": 19,
+   "category": "Sword",
+   "rare": false,
+   "requiredLevel": 1
+  },
+  "190": {
+   "additionalDataId": 46,
+   "category": "Clothing",
+   "rare": false,
+   "requiredLevel": 10
+  },
+  "191": {
+   "additionalDataId": 47,
+   "category": "Clothing",
+   "rare": false,
+   "requiredLevel": 12
+  },
+  "192": {
+   "additionalDataId": 48,
+   "category": "Clothing",
+   "rare": false,
+   "requiredLevel": 14
+  },
+  "193": {
+   "additionalDataId": 49,
+   "category": "Clothing",
+   "rare": false,
+   "requiredLevel": 17
+  },
+  "194": {
+   "additionalDataId": 50,
+   "category": "Clothing",
+   "rare": false,
+   "requiredLevel": 21
+  },
+  "195": {
+   "additionalDataId": 51,
+   "category": "Clothing",
+   "rare": false,
+   "requiredLevel": 25
+  },
+  "196": {
+   "additionalDataId": 52,
+   "category": "Clothing",
+   "rare": false,
+   "requiredLevel": 29
+  },
+  "197": {
+   "additionalDataId": 53,
+   "category": "Clothing",
+   "rare": true,
+   "requiredLevel": 35
+  },
+  "198": {
+   "additionalDataId": 54,
+   "category": "Clothing",
+   "rare": false,
+   "requiredLevel": 37
+  },
+  "199": {
+   "additionalDataId": 55,
+   "category": "Clothing",
+   "rare": true,
+   "requiredLevel": 50
+  },
+  "2": {
+   "additionalDataId": 2,
+   "category": "Knife",
+   "rare": false,
+   "requiredLevel": 3
+  },
+  "20": {
+   "additionalDataId": 20,
+   "category": "Sword",
+   "rare": false,
+   "requiredLevel": 4
+  },
+  "200": {
+   "additionalDataId": 56,
+   "category": "Robe",
+   "rare": false,
+   "requiredLevel": 3
+  },
+  "201": {
+   "additionalDataId": 57,
+   "category": "Robe",
+   "rare": false,
+   "requiredLevel": 5
+  },
+  "202": {
+   "additionalDataId": 58,
+   "category": "Robe",
+   "rare": false,
+   "requiredLevel": 11
+  },
+  "203": {
+   "additionalDataId": 59,
+   "category": "Robe",
+   "rare": true,
+   "requiredLevel": 16
+  },
+  "204": {
+   "additionalDataId": 60,
+   "category": "Robe",
+   "rare": false,
+   "requiredLevel": 26
+  },
+  "205": {
+   "additionalDataId": 61,
+   "category": "Robe",
+   "rare": false,
+   "requiredLevel": 31
+  },
+  "206": {
+   "additionalDataId": 62,
+   "category": "Robe",
+   "rare": false,
+   "requiredLevel": 38
+  },
+  "207": {
+   "additionalDataId": 63,
+   "category": "Robe",
+   "rare": true,
+   "requiredLevel": 45
+  },
+  "208": {
+   "additionalDataId": 0,
+   "category": "Shoes",
+   "rare": false,
+   "requiredLevel": 10
+  },
+  "209": {
+   "additionalDataId": 1,
+   "category": "Shoes",
+   "rare": false,
+   "requiredLevel": 20
+  },
+  "21": {
+   "additionalDataId": 21,
+   "category": "Sword",
+   "rare": false,
+   "requiredLevel": 7
+  },
+  "210": {
+   "additionalDataId": 2,
+   "category": "Shoes",
+   "rare": false,
+   "requiredLevel": 30
+  },
+  "211": {
+   "additionalDataId": 3,
+   "category": "Shoes",
+   "rare": true,
+   "requiredLevel": 5
+  },
+  "212": {
+   "additionalDataId": 4,
+   "category": "Shoes",
+   "rare": true,
+   "requiredLevel": 50
+  },
+  "213": {
+   "additionalDataId": 5,
+   "category": "Shoes",
+   "rare": true,
+   "requiredLevel": 30
+  },
+  "214": {
+   "additionalDataId": 6,
+   "category": "Shoes",
+   "rare": true,
+   "requiredLevel": 40
+  },
+  "215": {
+   "additionalDataId": 7,
+   "category": "Armguard",
+   "rare": false,
+   "requiredLevel": 20
+  },
+  "216": {
+   "additionalDataId": 8,
+   "category": "Armguard",
+   "rare": true,
+   "requiredLevel": 50
+  },
+  "217": {
+   "additionalDataId": 9,
+   "category": "Armguard",
+   "rare": false,
+   "requiredLevel": 35
+  },
+  "218": {
+   "additionalDataId": 10,
+   "category": "Armguard",
+   "rare": false,
+   "requiredLevel": 60
+  },
+  "219": {
+   "additionalDataId": 11,
+   "category": "Ring",
+   "rare": true,
+   "requiredLevel": 50
+  },
+  "22": {
+   "additionalDataId": 22,
+   "category": "Sword",
+   "rare": false,
+   "requiredLevel": 9
+  },
+  "220": {
+   "additionalDataId": 12,
+   "category": "Ring",
+   "rare": false,
+   "requiredLevel": 25
+  },
+  "221": {
+   "additionalDataId": 13,
+   "category": "Ring",
+   "rare": false,
+   "requiredLevel": 25
+  },
+  "222": {
+   "additionalDataId": 14,
+   "category": "Ring",
+   "rare": true,
+   "requiredLevel": 5
+  },
+  "223": {
+   "additionalDataId": 15,
+   "category": "Ring",
+   "rare": true,
+   "requiredLevel": 25
+  },
+  "224": {
+   "additionalDataId": 16,
+   "category": "Armlet",
+   "rare": false,
+   "requiredLevel": 26
+  },
+  "225": {
+   "additionalDataId": 17,
+   "category": "Armlet",
+   "rare": false,
+   "requiredLevel": 25
+  },
+  "226": {
+   "additionalDataId": 18,
+   "category": "Armlet",
+   "rare": false,
+   "requiredLevel": 25
+  },
+  "227": {
+   "additionalDataId": 19,
+   "category": "Armlet",
+   "rare": false,
+   "requiredLevel": 25
+  },
+  "228": {
+   "additionalDataId": 20,
+   "category": "Armlet",
+   "rare": false,
+   "requiredLevel": 25
+  },
+  "229": {
+   "additionalDataId": 21,
+   "category": "Cloak",
+   "rare": false,
+   "requiredLevel": 10
+  },
+  "23": {
+   "additionalDataId": 23,
+   "category": "Sword",
+   "rare": true,
+   "requiredLevel": 12
+  },
+  "230": {
+   "additionalDataId": 22,
+   "category": "Cloak",
+   "rare": false,
+   "requiredLevel": 20
+  },
+  "231": {
+   "additionalDataId": 23,
+   "category": "Cloak",
+   "rare": false,
+   "requiredLevel": 30
+  },
+  "232": {
+   "additionalDataId": 24,
+   "category": "Cloak",
+   "rare": false,
+   "requiredLevel": 40
+  },
+  "233": {
+   "additionalDataId": 25,
+   "category": "Cloak",
+   "rare": false,
+   "requiredLevel": 49
+  },
+  "234": {
+   "additionalDataId": 26,
+   "category": "Cloak",
+   "rare": false,
+   "requiredLevel": 50
+  },
+  "235": {
+   "additionalDataId": 27,
+   "category": "Cloak",
+   "rare": true,
+   "requiredLevel": 5
+  },
+  "236": {
+   "additionalDataId": 28,
+   "category": "Perfume",
+   "rare": true,
+   "requiredLevel": 5
+  },
+  "237": {
+   "additionalDataId": 29,
+   "category": "Perfume",
+   "rare": true,
+   "requiredLevel": 5
+  },
+  "238": {
+   "additionalDataId": 30,
+   "category": "Perfume",
+   "rare": true,
+   "requiredLevel": 5
+  },
+  "239": {
+   "additionalDataId": 31,
+   "category": "Perfume",
+   "rare": true,
+   "requiredLevel": 5
+  },
+  "24": {
+   "additionalDataId": 24,
+   "category": "Sword",
+   "rare": false,
+   "requiredLevel": 15
+  },
+  "240": {
+   "additionalDataId": 0,
+   "category": "Item",
+   "rare": true,
+   "requiredLevel": 1
+  },
+  "241": {
+   "additionalDataId": 1,
+   "category": "Item",
+   "rare": true,
+   "requiredLevel": 2
+  },
+  "242": {
+   "additionalDataId": 2,
+   "category": "Item",
+   "rare": true,
+   "requiredLevel": 3
+  },
+  "243": {
+   "additionalDataId": 3,
+   "category": "Item",
+   "rare": true,
+   "requiredLevel": 4
+  },
+  "244": {
+   "additionalDataId": 4,
+   "category": "Item",
+   "rare": true,
+   "requiredLevel": 5
+  },
+  "245": {
+   "additionalDataId": 13,
+   "category": "Item",
+   "rare": true,
+   "requiredLevel": 14
+  },
+  "246": {
+   "additionalDataId": 5,
+   "category": "Item",
+   "rare": true,
+   "requiredLevel": 6
+  },
+  "247": {
+   "additionalDataId": 6,
+   "category": "Item",
+   "rare": true,
+   "requiredLevel": 7
+  },
+  "248": {
+   "additionalDataId": 7,
+   "category": "Item",
+   "rare": true,
+   "requiredLevel": 8
+  },
+  "249": {
+   "additionalDataId": 8,
+   "category": "Item",
+   "rare": true,
+   "requiredLevel": 9
+  },
+  "25": {
+   "additionalDataId": 25,
+   "category": "Sword",
+   "rare": false,
+   "requiredLevel": 21
+  },
+  "250": {
+   "additionalDataId": 9,
+   "category": "Item",
+   "rare": true,
+   "requiredLevel": 10
+  },
+  "251": {
+   "additionalDataId": 10,
+   "category": "Item",
+   "rare": true,
+   "requiredLevel": 11
+  },
+  "252": {
+   "additionalDataId": 11,
+   "category": "Item",
+   "rare": true,
+   "requiredLevel": 12
+  },
+  "253": {
+   "additionalDataId": 12,
+   "category": "Item",
+   "rare": true,
+   "requiredLevel": 13
+  },
+  "254": {
+   "additionalDataId": 0,
+   "category": "None",
+   "rare": true,
+   "requiredLevel": 0
+  },
+  "255": {
+   "additionalDataId": 0,
+   "category": "None",
+   "rare": true,
+   "requiredLevel": 0
+  },
+  "26": {
+   "additionalDataId": 26,
+   "category": "Sword",
+   "rare": false,
+   "requiredLevel": 23
+  },
+  "27": {
+   "additionalDataId": 27,
+   "category": "Sword",
+   "rare": false,
+   "requiredLevel": 28
+  },
+  "28": {
+   "additionalDataId": 28,
+   "category": "Sword",
+   "rare": false,
+   "requiredLevel": 26
+  },
+  "29": {
+   "additionalDataId": 29,
+   "category": "Sword",
+   "rare": false,
+   "requiredLevel": 34
+  },
+  "3": {
+   "additionalDataId": 3,
+   "category": "Knife",
+   "rare": false,
+   "requiredLevel": 7
+  },
+  "30": {
+   "additionalDataId": 30,
+   "category": "Sword",
+   "rare": false,
+   "requiredLevel": 37
+  },
+  "31": {
+   "additionalDataId": 31,
+   "category": "Sword",
+   "rare": true,
+   "requiredLevel": 95
+  },
+  "32": {
+   "additionalDataId": 32,
+   "category": "Sword",
+   "rare": true,
+   "requiredLevel": 96
+  },
+  "33": {
+   "additionalDataId": 33,
+   "category": "KnightSword",
+   "rare": true,
+   "requiredLevel": 92
+  },
+  "34": {
+   "additionalDataId": 34,
+   "category": "KnightSword",
+   "rare": true,
+   "requiredLevel": 95
+  },
+  "35": {
+   "additionalDataId": 35,
+   "category": "KnightSword",
+   "rare": true,
+   "requiredLevel": 96
+  },
+  "36": {
+   "additionalDataId": 36,
+   "category": "KnightSword",
+   "rare": true,
+   "requiredLevel": 97
+  },
+  "37": {
+   "additionalDataId": 37,
+   "category": "KnightSword",
+   "rare": true,
+   "requiredLevel": 98
+  },
+  "38": {
+   "additionalDataId": 38,
+   "category": "Katana",
+   "rare": false,
+   "requiredLevel": 9
+  },
+  "39": {
+   "additionalDataId": 39,
+   "category": "Katana",
+   "rare": false,
+   "requiredLevel": 12
+  },
+  "4": {
+   "additionalDataId": 4,
+   "category": "Knife",
+   "rare": false,
+   "requiredLevel": 11
+  },
+  "40": {
+   "additionalDataId": 40,
+   "category": "Katana",
+   "rare": false,
+   "requiredLevel": 15
+  },
+  "41": {
+   "additionalDataId": 41,
+   "category": "Katana",
+   "rare": false,
+   "requiredLevel": 21
+  },
+  "42": {
+   "additionalDataId": 42,
+   "category": "Katana",
+   "rare": false,
+   "requiredLevel": 24
+  },
+  "43": {
+   "additionalDataId": 43,
+   "category": "Katana",
+   "rare": false,
+   "requiredLevel": 27
+  },
+  "44": {
+   "additionalDataId": 44,
+   "category": "Katana",
+   "rare": false,
+   "requiredLevel": 30
+  },
+  "45": {
+   "additionalDataId": 45,
+   "category": "Katana",
+   "rare": false,
+   "requiredLevel": 33
+  },
+  "46": {
+   "additionalDataId": 46,
+   "category": "Katana",
+   "rare": true,
+   "requiredLevel": 95
+  },
+  "47": {
+   "additionalDataId": 47,
+   "category": "Katana",
+   "rare": true,
+   "requiredLevel": 96
+  },
+  "48": {
+   "additionalDataId": 48,
+   "category": "Axe",
+   "rare": false,
+   "requiredLevel": 4
+  },
+  "49": {
+   "additionalDataId": 49,
+   "category": "Axe",
+   "rare": false,
+   "requiredLevel": 12
+  },
+  "5": {
+   "additionalDataId": 5,
+   "category": "Knife",
+   "rare": false,
+   "requiredLevel": 14
+  },
+  "50": {
+   "additionalDataId": 50,
+   "category": "Axe",
+   "rare": false,
+   "requiredLevel": 31
+  },
+  "51": {
+   "additionalDataId": 51,
+   "category": "Rod",
+   "rare": false,
+   "requiredLevel": 1
+  },
+  "52": {
+   "additionalDataId": 52,
+   "category": "Rod",
+   "rare": false,
+   "requiredLevel": 5
+  },
+  "53": {
+   "additionalDataId": 53,
+   "category": "Rod",
+   "rare": false,
+   "requiredLevel": 5
+  },
+  "54": {
+   "additionalDataId": 54,
+   "category": "Rod",
+   "rare": false,
+   "requiredLevel": 5
+  },
+  "55": {
+   "additionalDataId": 55,
+   "category": "Rod",
+   "rare": false,
+   "requiredLevel": 12
+  },
+  "56": {
+   "additionalDataId": 56,
+   "category": "Rod",
+   "rare": false,
+   "requiredLevel": 23
+  },
+  "57": {
+   "additionalDataId": 57,
+   "category": "Rod",
+   "rare": true,
+   "requiredLevel": 95
+  },
+  "58": {
+   "additionalDataId": 58,
+   "category": "Rod",
+   "rare": true,
+   "requiredLevel": 96
+  },
+  "59": {
+   "additionalDataId": 59,
+   "category": "Staff",
+   "rare": false,
+   "requiredLevel": 1
+  },
+  "6": {
+   "additionalDataId": 6,
+   "category": "Knife",
+   "rare": false,
+   "requiredLevel": 21
+  },
+  "60": {
+   "additionalDataId": 60,
+   "category": "Staff",
+   "rare": false,
+   "requiredLevel": 5
+  },
+  "61": {
+   "additionalDataId": 61,
+   "category": "Staff",
+   "rare": true,
+   "requiredLevel": 9
+  },
+  "62": {
+   "additionalDataId": 62,
+   "category": "Staff",
+   "rare": false,
+   "requiredLevel": 12
+  },
+  "63": {
+   "additionalDataId": 63,
+   "category": "Staff",
+   "rare": false,
+   "requiredLevel": 15
+  },
+  "64": {
+   "additionalDataId": 64,
+   "category": "Staff",
+   "rare": false,
+   "requiredLevel": 24
+  },
+  "65": {
+   "additionalDataId": 65,
+   "category": "Staff",
+   "rare": true,
+   "requiredLevel": 95
+  },
+  "66": {
+   "additionalDataId": 66,
+   "category": "Staff",
+   "rare": true,
+   "requiredLevel": 96
+  },
+  "67": {
+   "additionalDataId": 67,
+   "category": "Flail",
+   "rare": false,
+   "requiredLevel": 10
+  },
+  "68": {
+   "additionalDataId": 68,
+   "category": "Flail",
+   "rare": false,
+   "requiredLevel": 20
+  },
+  "69": {
+   "additionalDataId": 69,
+   "category": "Flail",
+   "rare": false,
+   "requiredLevel": 32
+  },
+  "7": {
+   "additionalDataId": 7,
+   "category": "Knife",
+   "rare": false,
+   "requiredLevel": 25
+  },
+  "70": {
+   "additionalDataId": 70,
+   "category": "Flail",
+   "rare": true,
+   "requiredLevel": 90
+  },
+  "71": {
+   "additionalDataId": 71,
+   "category": "Gun",
+   "rare": true,
+   "requiredLevel": 11
+  },
+  "72": {
+   "additionalDataId": 72,
+   "category": "Gun",
+   "rare": true,
+   "requiredLevel": 15
+  },
+  "73": {
+   "additionalDataId": 73,
+   "category": "Gun",
+   "rare": true,
+   "requiredLevel": 95
+  },
+  "74": {
+   "additionalDataId": 74,
+   "category": "Gun",
+   "rare": true,
+   "requiredLevel": 91
+  },
+  "75": {
+   "additionalDataId": 75,
+   "category": "Gun",
+   "rare": true,
+   "requiredLevel": 92
+  },
+  "76": {
+   "additionalDataId": 76,
+   "category": "Gun",
+   "rare": true,
+   "requiredLevel": 93
+  },
+  "77": {
+   "additionalDataId": 77,
+   "category": "Crossbow",
+   "rare": false,
+   "requiredLevel": 1
+  },
+  "78": {
+   "additionalDataId": 78,
+   "category": "Crossbow",
+   "rare": true,
+   "requiredLevel": 5
+  },
+  "79": {
+   "additionalDataId": 79,
+   "category": "Crossbow",
+   "rare": false,
+   "requiredLevel": 11
+  },
+  "8": {
+   "additionalDataId": 8,
+   "category": "Knife",
+   "rare": false,
+   "requiredLevel": 29
+  },
+  "80": {
+   "additionalDataId": 80,
+   "category": "Crossbow",
+   "rare": false,
+   "requiredLevel": 14
+  },
+  "81": {
+   "additionalDataId": 81,
+   "category": "Crossbow",
+   "rare": false,
+   "requiredLevel": 24
+  },
+  "82": {
+   "additionalDataId": 82,
+   "category": "Crossbow",
+   "rare": true,
+   "requiredLevel": 33
+  },
+  "83": {
+   "additionalDataId": 83,
+   "category": "Bow",
+   "rare": false,
+   "requiredLevel": 2
+  },
+  "84": {
+   "additionalDataId": 84,
+   "category": "Bow",
+   "rare": false,
+   "requiredLevel": 6
+  },
+  "85": {
+   "additionalDataId": 85,
+   "category": "Bow",
+   "rare": false,
+   "requiredLevel": 11
+  },
+  "86": {
+   "additionalDataId": 86,
+   "category": "Bow",
+   "rare": false,
+   "requiredLevel": 15
+  },
+  "87": {
+   "additionalDataId": 87,
+   "category": "Bow",
+   "rare": false,
+   "requiredLevel": 27
+  },
+  "88": {
+   "additionalDataId": 88,
+   "category": "Bow",
+   "rare": false,
+   "requiredLevel": 20
+  },
+  "89": {
+   "additionalDataId": 89,
+   "category": "Bow",
+   "rare": false,
+   "requiredLevel": 37
+  },
+  "9": {
+   "additionalDataId": 9,
+   "category": "Knife",
+   "rare": false,
+   "requiredLevel": 33
+  },
+  "90": {
+   "additionalDataId": 90,
+   "category": "Bow",
+   "rare": true,
+   "requiredLevel": 52
+  },
+  "91": {
+   "additionalDataId": 91,
+   "category": "Bow",
+   "rare": true,
+   "requiredLevel": 53
+  },
+  "92": {
+   "additionalDataId": 92,
+   "category": "Instrument",
+   "rare": false,
+   "requiredLevel": 13
+  },
+  "93": {
+   "additionalDataId": 93,
+   "category": "Instrument",
+   "rare": false,
+   "requiredLevel": 25
+  },
+  "94": {
+   "additionalDataId": 94,
+   "category": "Instrument",
+   "rare": true,
+   "requiredLevel": 36
+  },
+  "95": {
+   "additionalDataId": 95,
+   "category": "Book",
+   "rare": false,
+   "requiredLevel": 13
+  },
+  "96": {
+   "additionalDataId": 96,
+   "category": "Book",
+   "rare": false,
+   "requiredLevel": 23
+  },
+  "97": {
+   "additionalDataId": 97,
+   "category": "Book",
+   "rare": false,
+   "requiredLevel": 34
+  },
+  "98": {
+   "additionalDataId": 98,
+   "category": "Book",
+   "rare": true,
+   "requiredLevel": 95
+  },
+  "99": {
+   "additionalDataId": 99,
+   "category": "Polearm",
+   "rare": false,
+   "requiredLevel": 12
+  }
+ },
+ "jobs": {
+  "0": {
+   "cev": 0,
+   "equip": [
+    "None"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "?"
+  },
+  "1": {
+   "cev": 10,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Clothing",
+    "HairAdornment",
+    "Hat",
+    "Flail",
+    "Sword",
+    "Knife",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Squire"
+  },
+  "10": {
+   "cev": 10,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "?"
+  },
+  "100": {
+   "cev": 10,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    497,
+    506,
+    442,
+    0
+   ],
+   "monsterGraphic": 3,
+   "name": "Bomb"
+  },
+  "101": {
+   "cev": 11,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    497,
+    506,
+    442,
+    0
+   ],
+   "monsterGraphic": 3,
+   "name": "Grenade"
+  },
+  "102": {
+   "cev": 12,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    497,
+    506,
+    442,
+    0
+   ],
+   "monsterGraphic": 3,
+   "name": "Exploder"
+  },
+  "103": {
+   "cev": 23,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    497,
+    492,
+    442,
+    0
+   ],
+   "monsterGraphic": 4,
+   "name": "Red Panther"
+  },
+  "104": {
+   "cev": 26,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    497,
+    492,
+    442,
+    0
+   ],
+   "monsterGraphic": 4,
+   "name": "Coeurl"
+  },
+  "105": {
+   "cev": 24,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    497,
+    492,
+    442,
+    0
+   ],
+   "monsterGraphic": 4,
+   "name": "Vampire Cat"
+  },
+  "106": {
+   "cev": 8,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    505,
+    442,
+    0
+   ],
+   "monsterGraphic": 5,
+   "name": "Piscodaemon"
+  },
+  "107": {
+   "cev": 9,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    505,
+    442,
+    0
+   ],
+   "monsterGraphic": 5,
+   "name": "Squidraken"
+  },
+  "108": {
+   "cev": 10,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    505,
+    442,
+    0
+   ],
+   "monsterGraphic": 5,
+   "name": "Mindflayer"
+  },
+  "109": {
+   "cev": 11,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    442,
+    0
+   ],
+   "monsterGraphic": 6,
+   "name": "Skeleton"
+  },
+  "11": {
+   "cev": 10,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "?"
+  },
+  "110": {
+   "cev": 12,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    442,
+    0
+   ],
+   "monsterGraphic": 6,
+   "name": "Bonesnatch"
+  },
+  "111": {
+   "cev": 13,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    442,
+    0
+   ],
+   "monsterGraphic": 6,
+   "name": "Skeletal Fiend"
+  },
+  "112": {
+   "cev": 26,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    497,
+    506,
+    442,
+    498
+   ],
+   "monsterGraphic": 7,
+   "name": "Ghoul"
+  },
+  "113": {
+   "cev": 27,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    497,
+    506,
+    442,
+    498
+   ],
+   "monsterGraphic": 7,
+   "name": "Ghast"
+  },
+  "114": {
+   "cev": 28,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    497,
+    506,
+    442,
+    498
+   ],
+   "monsterGraphic": 7,
+   "name": "Revenant"
+  },
+  "115": {
+   "cev": 12,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    497,
+    507,
+    442,
+    0
+   ],
+   "monsterGraphic": 8,
+   "name": "Floating Eye"
+  },
+  "116": {
+   "cev": 13,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    497,
+    507,
+    442,
+    0
+   ],
+   "monsterGraphic": 8,
+   "name": "Ahriman"
+  },
+  "117": {
+   "cev": 11,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    497,
+    507,
+    442,
+    0
+   ],
+   "monsterGraphic": 8,
+   "name": "Plague Horror"
+  },
+  "118": {
+   "cev": 30,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    497,
+    507,
+    442,
+    0
+   ],
+   "monsterGraphic": 9,
+   "name": "Jura Aevis"
+  },
+  "119": {
+   "cev": 28,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    497,
+    507,
+    442,
+    0
+   ],
+   "monsterGraphic": 9,
+   "name": "Steelhawk"
+  },
+  "12": {
+   "cev": 20,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Clothing",
+    "HairAdornment",
+    "Hat",
+    "Staff",
+    "Unarmed"
+   ],
+   "innate": [
+    466,
+    468,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Princess"
+  },
+  "120": {
+   "cev": 33,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    497,
+    507,
+    442,
+    0
+   ],
+   "monsterGraphic": 9,
+   "name": "Cockatrice"
+  },
+  "121": {
+   "cev": 42,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    497,
+    0,
+    442,
+    0
+   ],
+   "monsterGraphic": 10,
+   "name": "Pig"
+  },
+  "122": {
+   "cev": 36,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    497,
+    0,
+    442,
+    0
+   ],
+   "monsterGraphic": 10,
+   "name": "Swine"
+  },
+  "123": {
+   "cev": 39,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    497,
+    0,
+    442,
+    0
+   ],
+   "monsterGraphic": 10,
+   "name": "Wild Boar"
+  },
+  "124": {
+   "cev": 0,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    497,
+    0,
+    442,
+    0
+   ],
+   "monsterGraphic": 11,
+   "name": "Dryad"
+  },
+  "125": {
+   "cev": 0,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    497,
+    0,
+    442,
+    0
+   ],
+   "monsterGraphic": 11,
+   "name": "Treant"
+  },
+  "126": {
+   "cev": 0,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    497,
+    0,
+    442,
+    0
+   ],
+   "monsterGraphic": 11,
+   "name": "Elder Treant"
+  },
+  "127": {
+   "cev": 11,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    497,
+    0,
+    442,
+    0
+   ],
+   "monsterGraphic": 12,
+   "name": "Wisenkin"
+  },
+  "128": {
+   "cev": 15,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    497,
+    0,
+    442,
+    0
+   ],
+   "monsterGraphic": 12,
+   "name": "Minotaur"
+  },
+  "129": {
+   "cev": 12,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    497,
+    0,
+    442,
+    0
+   ],
+   "monsterGraphic": 12,
+   "name": "Sekhret"
+  },
+  "13": {
+   "cev": 20,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Clothing",
+    "Armor",
+    "HairAdornment",
+    "Hat",
+    "Helmet",
+    "Shield",
+    "Katana",
+    "KnightSword",
+    "Sword",
+    "NinjaBlade",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Sword Saint"
+  },
+  "130": {
+   "cev": 0,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    502,
+    442,
+    0
+   ],
+   "monsterGraphic": 13,
+   "name": "Malboro"
+  },
+  "131": {
+   "cev": 0,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    502,
+    442,
+    0
+   ],
+   "monsterGraphic": 13,
+   "name": "Ochu"
+  },
+  "132": {
+   "cev": 0,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    502,
+    442,
+    0
+   ],
+   "monsterGraphic": 13,
+   "name": "Greater Malboro"
+  },
+  "133": {
+   "cev": 13,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    497,
+    0,
+    442,
+    0
+   ],
+   "monsterGraphic": 14,
+   "name": "Behemoth"
+  },
+  "134": {
+   "cev": 13,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    497,
+    0,
+    442,
+    0
+   ],
+   "monsterGraphic": 14,
+   "name": "Behemoth King"
+  },
+  "135": {
+   "cev": 18,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    497,
+    0,
+    442,
+    0
+   ],
+   "monsterGraphic": 14,
+   "name": "Dark Behemoth"
+  },
+  "136": {
+   "cev": 5,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    497,
+    0,
+    442,
+    0
+   ],
+   "monsterGraphic": 15,
+   "name": "Dragon"
+  },
+  "137": {
+   "cev": 9,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    497,
+    0,
+    442,
+    0
+   ],
+   "monsterGraphic": 15,
+   "name": "Blue Dragon"
+  },
+  "138": {
+   "cev": 8,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    497,
+    0,
+    442,
+    0
+   ],
+   "monsterGraphic": 15,
+   "name": "Red Dragon"
+  },
+  "139": {
+   "cev": 0,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    497,
+    507,
+    442,
+    0
+   ],
+   "monsterGraphic": 16,
+   "name": "Hydra"
+  },
+  "14": {
+   "cev": 10,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "HairAdornment",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "?"
+  },
+  "140": {
+   "cev": 0,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    497,
+    507,
+    442,
+    0
+   ],
+   "monsterGraphic": 16,
+   "name": "Greater Hydra"
+  },
+  "141": {
+   "cev": 0,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    497,
+    507,
+    442,
+    0
+   ],
+   "monsterGraphic": 16,
+   "name": "Tiamat"
+  },
+  "142": {
+   "cev": 0,
+   "equip": [
+    "None"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "?"
+  },
+  "143": {
+   "cev": 0,
+   "equip": [
+    "None"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "?"
+  },
+  "144": {
+   "cev": 33,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    497,
+    492,
+    471,
+    442
+   ],
+   "monsterGraphic": 0,
+   "name": "Byblos"
+  },
+  "145": {
+   "cev": 0,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    497,
+    500,
+    501,
+    442
+   ],
+   "monsterGraphic": 0,
+   "name": "Automaton"
+  },
+  "146": {
+   "cev": 0,
+   "equip": [
+    "None"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "?"
+  },
+  "147": {
+   "cev": 0,
+   "equip": [
+    "None"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "?"
+  },
+  "148": {
+   "cev": 0,
+   "equip": [
+    "None"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "?"
+  },
+  "149": {
+   "cev": 0,
+   "equip": [
+    "None"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "?"
+  },
+  "15": {
+   "cev": 7,
+   "equip": [
+    "Perfume",
+    "Armlet",
+    "Ring",
+    "HairAdornment",
+    "Bag",
+    "Unarmed"
+   ],
+   "innate": [
+    473,
+    477,
+    478,
+    470
+   ],
+   "monsterGraphic": 0,
+   "name": "Dragonkin"
+  },
+  "150": {
+   "cev": 10,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    497,
+    492,
+    482,
+    442
+   ],
+   "monsterGraphic": 0,
+   "name": "Reaver"
+  },
+  "151": {
+   "cev": 3,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    497,
+    0,
+    482,
+    442
+   ],
+   "monsterGraphic": 0,
+   "name": "Keeper of Darkness"
+  },
+  "152": {
+   "cev": 0,
+   "equip": [
+    "None"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 15,
+   "name": "?"
+  },
+  "153": {
+   "cev": 5,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    497,
+    0,
+    482,
+    442
+   ],
+   "monsterGraphic": 0,
+   "name": "Archaeodaemon"
+  },
+  "154": {
+   "cev": 10,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    497,
+    472,
+    482,
+    442
+   ],
+   "monsterGraphic": 0,
+   "name": "Ultima Demon"
+  },
+  "155": {
+   "cev": 0,
+   "equip": [
+    "None"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "?"
+  },
+  "156": {
+   "cev": 0,
+   "equip": [
+    "None"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "?"
+  },
+  "157": {
+   "cev": 0,
+   "equip": [
+    "None"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "?"
+  },
+  "158": {
+   "cev": 0,
+   "equip": [
+    "None"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "?"
+  },
+  "159": {
+   "cev": 0,
+   "equip": [
+    "None"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "?"
+  },
+  "16": {
+   "cev": 9,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Clothing",
+    "HairAdornment",
+    "Hat",
+    "Pole",
+    "Book",
+    "Staff",
+    "Rod",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Celebrant"
+  },
+  "160": {
+   "cev": 0,
+   "equip": [
+    "FellSword",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Clothing",
+    "Armor",
+    "Helmet",
+    "Shield",
+    "Flail",
+    "Axe",
+    "KnightSword",
+    "Sword",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "?"
+  },
+  "161": {
+   "cev": 5,
+   "equip": [
+    "LipRouge",
+    "FellSword",
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Clothing",
+    "Armor",
+    "HairAdornment",
+    "Hat",
+    "Helmet",
+    "Shield",
+    "Cloth",
+    "Bag",
+    "Pole",
+    "Polearm",
+    "Book",
+    "Instrument",
+    "Bow",
+    "Crossbow",
+    "Gun",
+    "Flail",
+    "Staff",
+    "Rod",
+    "Axe",
+    "Katana",
+    "KnightSword",
+    "Sword",
+    "NinjaBlade",
+    "Knife",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "?"
+  },
+  "162": {
+   "cev": 25,
+   "equip": [
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Clothing",
+    "Armor",
+    "Hat",
+    "Helmet",
+    "Shield",
+    "Polearm",
+    "Bow",
+    "Crossbow",
+    "Gun",
+    "KnightSword",
+    "Sword",
+    "Knife",
+    "Unarmed"
+   ],
+   "innate": [
+    475,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "?"
+  },
+  "163": {
+   "cev": 10,
+   "equip": [
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Clothing",
+    "Armor",
+    "Hat",
+    "Helmet",
+    "Shield",
+    "Flail",
+    "KnightSword",
+    "Sword",
+    "Knife",
+    "Unarmed"
+   ],
+   "innate": [
+    471,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "?"
+  },
+  "164": {
+   "cev": 30,
+   "equip": [
+    "LipRouge",
+    "FellSword",
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Clothing",
+    "Armor",
+    "HairAdornment",
+    "Hat",
+    "Helmet",
+    "Shield",
+    "Cloth",
+    "Bag",
+    "Pole",
+    "Polearm",
+    "Book",
+    "Instrument",
+    "Bow",
+    "Crossbow",
+    "Gun",
+    "Flail",
+    "Staff",
+    "Rod",
+    "Axe",
+    "Katana",
+    "KnightSword",
+    "Sword",
+    "NinjaBlade",
+    "Knife",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "?"
+  },
+  "165": {
+   "cev": 15,
+   "equip": [
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Armor",
+    "Helmet",
+    "Shield",
+    "Sword",
+    "Unarmed"
+   ],
+   "innate": [
+    466,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "?"
+  },
+  "166": {
+   "cev": 14,
+   "equip": [
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Armor",
+    "Helmet",
+    "Shield",
+    "KnightSword",
+    "Sword",
+    "Knife",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "?"
+  },
+  "167": {
+   "cev": 9,
+   "equip": [
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Clothing",
+    "Hat",
+    "Pole",
+    "Book",
+    "Staff",
+    "Rod",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "?"
+  },
+  "168": {
+   "cev": 5,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    442,
+    465,
+    467,
+    468
+   ],
+   "monsterGraphic": 15,
+   "name": "?"
+  },
+  "169": {
+   "cev": 23,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    497,
+    492,
+    0,
+    0
+   ],
+   "monsterGraphic": 4,
+   "name": "Red Panther"
+  },
+  "17": {
+   "cev": 15,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Armor",
+    "HairAdornment",
+    "Helmet",
+    "Shield",
+    "Sword",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Fell Knight"
+  },
+  "170": {
+   "cev": 18,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 2,
+   "name": "Goblin"
+  },
+  "171": {
+   "cev": 19,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 2,
+   "name": "Black Goblin"
+  },
+  "172": {
+   "cev": 10,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    497,
+    506,
+    0,
+    0
+   ],
+   "monsterGraphic": 3,
+   "name": "Bomb"
+  },
+  "173": {
+   "cev": 15,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    503,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 1,
+   "name": "Chocobo"
+  },
+  "18": {
+   "cev": 8,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Netherseer"
+  },
+  "19": {
+   "cev": 10,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "?"
+  },
+  "2": {
+   "cev": 10,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Clothing",
+    "Armor",
+    "HairAdornment",
+    "Hat",
+    "Helmet",
+    "Shield",
+    "Flail",
+    "Sword",
+    "Knife",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Squire"
+  },
+  "20": {
+   "cev": 24,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Clothing",
+    "HairAdornment",
+    "Hat",
+    "Staff",
+    "Unarmed"
+   ],
+   "innate": [
+    466,
+    468,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Cleric"
+  },
+  "21": {
+   "cev": 15,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Clothing",
+    "HairAdornment",
+    "Hat",
+    "Book",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Astrologer"
+  },
+  "22": {
+   "cev": 18,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Clothing",
+    "HairAdornment",
+    "Hat",
+    "Gun",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Machinist"
+  },
+  "23": {
+   "cev": 15,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Armor",
+    "HairAdornment",
+    "Helmet",
+    "Shield",
+    "Sword",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Fell Knight"
+  },
+  "24": {
+   "cev": 10,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "HairAdornment",
+    "Knife",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "?"
+  },
+  "25": {
+   "cev": 10,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Clothing",
+    "HairAdornment",
+    "Hat",
+    "Pole",
+    "Staff",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Skyseer"
+  },
+  "26": {
+   "cev": 8,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Clothing",
+    "HairAdornment",
+    "Hat",
+    "Pole",
+    "Staff",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Netherseer"
+  },
+  "27": {
+   "cev": 16,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Clothing",
+    "Armor",
+    "HairAdornment",
+    "Hat",
+    "Helmet",
+    "Shield",
+    "Katana",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Ark Knight"
+  },
+  "28": {
+   "cev": 0,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "?"
+  },
+  "29": {
+   "cev": 10,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "HairAdornment",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "?"
+  },
+  "3": {
+   "cev": 10,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Clothing",
+    "Armor",
+    "HairAdornment",
+    "Hat",
+    "Helmet",
+    "Shield",
+    "Flail",
+    "KnightSword",
+    "Sword",
+    "Knife",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Gallant Knight"
+  },
+  "30": {
+   "cev": 25,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Armor",
+    "HairAdornment",
+    "Helmet",
+    "Shield",
+    "KnightSword",
+    "Sword",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Holy Knight"
+  },
+  "31": {
+   "cev": 14,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Armor",
+    "HairAdornment",
+    "Helmet",
+    "Shield",
+    "KnightSword",
+    "Sword",
+    "Knife",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Templar"
+  },
+  "32": {
+   "cev": 10,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Armor",
+    "HairAdornment",
+    "Helmet",
+    "Shield",
+    "KnightSword",
+    "Sword",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "White Knight"
+  },
+  "33": {
+   "cev": 10,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "HairAdornment",
+    "Knife",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "?"
+  },
+  "34": {
+   "cev": 18,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Clothing",
+    "HairAdornment",
+    "Hat",
+    "Gun",
+    "Unarmed"
+   ],
+   "innate": [
+    475,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Machinist"
+  },
+  "35": {
+   "cev": 10,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "HairAdornment",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "?"
+  },
+  "36": {
+   "cev": 25,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Clothing",
+    "Armor",
+    "HairAdornment",
+    "Helmet",
+    "Shield",
+    "KnightSword",
+    "Sword",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Divine Knight"
+  },
+  "37": {
+   "cev": 21,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Clothing",
+    "Armor",
+    "HairAdornment",
+    "Helmet",
+    "Shield",
+    "KnightSword",
+    "Sword",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Divine Knight"
+  },
+  "38": {
+   "cev": 10,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Armor",
+    "HairAdornment",
+    "Helmet",
+    "Shield",
+    "Polearm",
+    "KnightSword",
+    "Sword",
+    "NinjaBlade",
+    "Unarmed"
+   ],
+   "innate": [
+    469,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Nightblade"
+  },
+  "39": {
+   "cev": 14,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Clothing",
+    "HairAdornment",
+    "Hat",
+    "Pole",
+    "Staff",
+    "Rod",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Sorcerer"
+  },
+  "4": {
+   "cev": 5,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Clothing",
+    "HairAdornment",
+    "Hat",
+    "Flail",
+    "Sword",
+    "Knife",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Squire"
+  },
+  "40": {
+   "cev": 15,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Armor",
+    "HairAdornment",
+    "Helmet",
+    "Shield",
+    "KnightSword",
+    "Sword",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "White Knight"
+  },
+  "41": {
+   "cev": 10,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Clothing",
+    "HairAdornment",
+    "Hat",
+    "Pole",
+    "Staff",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Skyseer"
+  },
+  "42": {
+   "cev": 12,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Clothing",
+    "Armor",
+    "HairAdornment",
+    "Helmet",
+    "Shield",
+    "Polearm",
+    "Crossbow",
+    "KnightSword",
+    "Sword",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Divine Knight"
+  },
+  "43": {
+   "cev": 18,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Armor",
+    "HairAdornment",
+    "Hat",
+    "Crossbow",
+    "Gun",
+    "Knife",
+    "Unarmed"
+   ],
+   "innate": [
+    466,
+    468,
+    473,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Machinist"
+  },
+  "44": {
+   "cev": 18,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Cleric"
+  },
+  "45": {
+   "cev": 30,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Clothing",
+    "HairAdornment",
+    "Hat",
+    "Katana",
+    "Unarmed"
+   ],
+   "innate": [
+    477,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Assassin"
+  },
+  "46": {
+   "cev": 28,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Clothing",
+    "HairAdornment",
+    "Hat",
+    "NinjaBlade",
+    "Unarmed"
+   ],
+   "innate": [
+    477,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Assassin"
+  },
+  "47": {
+   "cev": 12,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Clothing",
+    "Armor",
+    "HairAdornment",
+    "Helmet",
+    "Shield",
+    "Crossbow",
+    "KnightSword",
+    "Sword",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Divine Knight"
+  },
+  "48": {
+   "cev": 18,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Clothing",
+    "HairAdornment",
+    "Hat",
+    "Staff",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Cleric"
+  },
+  "49": {
+   "cev": 10,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "HairAdornment",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "?"
+  },
+  "5": {
+   "cev": 10,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Clothing",
+    "Armor",
+    "HairAdornment",
+    "Helmet",
+    "Shield",
+    "Flail",
+    "Sword",
+    "Knife",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Holy Knight"
+  },
+  "50": {
+   "cev": 20,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Clothing",
+    "HairAdornment",
+    "Hat",
+    "Sword",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Soldier"
+  },
+  "51": {
+   "cev": 22,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Armor",
+    "HairAdornment",
+    "Helmet",
+    "Shield",
+    "KnightSword",
+    "Sword",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Ark Knight"
+  },
+  "52": {
+   "cev": 25,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Armor",
+    "HairAdornment",
+    "Helmet",
+    "Shield",
+    "KnightSword",
+    "Sword",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Holy Knight"
+  },
+  "53": {
+   "cev": 0,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Clothing",
+    "Armor",
+    "HairAdornment",
+    "Hat",
+    "Helmet",
+    "Shield",
+    "Cloth",
+    "Bag",
+    "Pole",
+    "Polearm",
+    "Book",
+    "Instrument",
+    "Bow",
+    "Crossbow",
+    "Gun",
+    "Flail",
+    "Staff",
+    "Rod",
+    "Axe",
+    "Katana",
+    "KnightSword",
+    "Sword",
+    "NinjaBlade",
+    "Knife",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "?"
+  },
+  "54": {
+   "cev": 0,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Clothing",
+    "Armor",
+    "HairAdornment",
+    "Hat",
+    "Helmet",
+    "Shield",
+    "Cloth",
+    "Bag",
+    "Pole",
+    "Polearm",
+    "Book",
+    "Instrument",
+    "Bow",
+    "Crossbow",
+    "Gun",
+    "Flail",
+    "Staff",
+    "Rod",
+    "Axe",
+    "Katana",
+    "KnightSword",
+    "Sword",
+    "NinjaBlade",
+    "Knife",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "?"
+  },
+  "55": {
+   "cev": 0,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Clothing",
+    "Armor",
+    "HairAdornment",
+    "Hat",
+    "Helmet",
+    "Shield",
+    "Cloth",
+    "Bag",
+    "Pole",
+    "Polearm",
+    "Book",
+    "Instrument",
+    "Bow",
+    "Crossbow",
+    "Gun",
+    "Flail",
+    "Staff",
+    "Rod",
+    "Axe",
+    "Katana",
+    "KnightSword",
+    "Sword",
+    "NinjaBlade",
+    "Knife",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "?"
+  },
+  "56": {
+   "cev": 0,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Clothing",
+    "Armor",
+    "HairAdornment",
+    "Hat",
+    "Helmet",
+    "Shield",
+    "Cloth",
+    "Bag",
+    "Pole",
+    "Polearm",
+    "Book",
+    "Instrument",
+    "Bow",
+    "Crossbow",
+    "Gun",
+    "Flail",
+    "Staff",
+    "Rod",
+    "Axe",
+    "Katana",
+    "KnightSword",
+    "Sword",
+    "NinjaBlade",
+    "Knife",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "?"
+  },
+  "57": {
+   "cev": 0,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "HairAdornment"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "?"
+  },
+  "58": {
+   "cev": 10,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "HairAdornment",
+    "Knife",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "?"
+  },
+  "59": {
+   "cev": 10,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "?"
+  },
+  "6": {
+   "cev": 15,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Armor",
+    "HairAdornment",
+    "Helmet",
+    "Shield",
+    "Flail",
+    "KnightSword",
+    "Sword",
+    "Knife",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "?"
+  },
+  "60": {
+   "cev": 18,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    497,
+    472,
+    482,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Gigas"
+  },
+  "61": {
+   "cev": 10,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Armor",
+    "HairAdornment",
+    "Helmet",
+    "Shield",
+    "Flail",
+    "KnightSword",
+    "Sword",
+    "Unarmed"
+   ],
+   "innate": [
+    478,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Knight"
+  },
+  "62": {
+   "cev": 24,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    497,
+    507,
+    482,
+    478
+   ],
+   "monsterGraphic": 0,
+   "name": "Death Seraph"
+  },
+  "63": {
+   "cev": 10,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Clothing",
+    "HairAdornment",
+    "Hat",
+    "Shield",
+    "Bow",
+    "Crossbow",
+    "Unarmed"
+   ],
+   "innate": [
+    478,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Archer"
+  },
+  "64": {
+   "cev": 12,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    497,
+    0,
+    482,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Bringer of Order"
+  },
+  "65": {
+   "cev": 11,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    472,
+    482,
+    499
+   ],
+   "monsterGraphic": 0,
+   "name": "High Seraph"
+  },
+  "66": {
+   "cev": 5,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Clothing",
+    "HairAdornment",
+    "Hat",
+    "Rod",
+    "Unarmed"
+   ],
+   "innate": [
+    478,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Black Mage"
+  },
+  "67": {
+   "cev": 12,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    497,
+    472,
+    482,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "The Impure"
+  },
+  "68": {
+   "cev": 5,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Clothing",
+    "HairAdornment",
+    "Hat",
+    "Staff",
+    "Unarmed"
+   ],
+   "innate": [
+    478,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Time Mage"
+  },
+  "69": {
+   "cev": 19,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    497,
+    0,
+    482,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "The Wroth"
+  },
+  "7": {
+   "cev": 15,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Clothing",
+    "HairAdornment",
+    "Hat",
+    "Flail",
+    "Sword",
+    "Knife",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Squire"
+  },
+  "70": {
+   "cev": 5,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Clothing",
+    "HairAdornment",
+    "Hat",
+    "Pole",
+    "Book",
+    "Staff",
+    "Rod",
+    "Unarmed"
+   ],
+   "innate": [
+    478,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Mystic"
+  },
+  "71": {
+   "cev": 5,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Clothing",
+    "HairAdornment",
+    "Hat",
+    "Staff",
+    "Rod",
+    "Unarmed"
+   ],
+   "innate": [
+    478,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Summoner"
+  },
+  "72": {
+   "cev": 5,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    497,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 15,
+   "name": "Holy Dragon"
+  },
+  "73": {
+   "cev": 10,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    430,
+    482,
+    499
+   ],
+   "monsterGraphic": 0,
+   "name": "Arch Seraph"
+  },
+  "74": {
+   "cev": 5,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Clothing",
+    "HairAdornment",
+    "Hat",
+    "Flail",
+    "Axe",
+    "Sword",
+    "Knife",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Squire"
+  },
+  "75": {
+   "cev": 5,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Clothing",
+    "HairAdornment",
+    "Hat",
+    "Gun",
+    "Knife",
+    "Unarmed"
+   ],
+   "innate": [
+    474,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Chemist"
+  },
+  "76": {
+   "cev": 10,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Armor",
+    "HairAdornment",
+    "Helmet",
+    "Shield",
+    "KnightSword",
+    "Sword",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Knight"
+  },
+  "77": {
+   "cev": 10,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Clothing",
+    "HairAdornment",
+    "Hat",
+    "Shield",
+    "Bow",
+    "Crossbow",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Archer"
+  },
+  "78": {
+   "cev": 20,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Clothing",
+    "HairAdornment",
+    "Unarmed"
+   ],
+   "innate": [
+    472,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Monk"
+  },
+  "79": {
+   "cev": 5,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Clothing",
+    "HairAdornment",
+    "Hat",
+    "Staff",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "White Mage"
+  },
+  "8": {
+   "cev": 10,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Armor",
+    "HairAdornment",
+    "Helmet",
+    "Shield",
+    "KnightSword",
+    "Sword",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Ark Knight"
+  },
+  "80": {
+   "cev": 5,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Clothing",
+    "HairAdornment",
+    "Hat",
+    "Rod",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Black Mage"
+  },
+  "81": {
+   "cev": 5,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Clothing",
+    "HairAdornment",
+    "Hat",
+    "Staff",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Time Mage"
+  },
+  "82": {
+   "cev": 5,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Clothing",
+    "HairAdornment",
+    "Hat",
+    "Staff",
+    "Rod",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Summoner"
+  },
+  "83": {
+   "cev": 25,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Clothing",
+    "HairAdornment",
+    "Hat",
+    "Knife",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Thief"
+  },
+  "84": {
+   "cev": 5,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Clothing",
+    "HairAdornment",
+    "Hat",
+    "Gun",
+    "Knife",
+    "Unarmed"
+   ],
+   "innate": [
+    473,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Orator"
+  },
+  "85": {
+   "cev": 5,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Clothing",
+    "HairAdornment",
+    "Hat",
+    "Pole",
+    "Book",
+    "Staff",
+    "Rod",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Mystic"
+  },
+  "86": {
+   "cev": 10,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Clothing",
+    "HairAdornment",
+    "Hat",
+    "Shield",
+    "Axe",
+    "Sword",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Geomancer"
+  },
+  "87": {
+   "cev": 15,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Armor",
+    "HairAdornment",
+    "Helmet",
+    "Shield",
+    "Polearm",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Dragoon"
+  },
+  "88": {
+   "cev": 20,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Armor",
+    "HairAdornment",
+    "Helmet",
+    "Katana",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Samurai"
+  },
+  "89": {
+   "cev": 30,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Clothing",
+    "HairAdornment",
+    "Hat",
+    "Flail",
+    "NinjaBlade",
+    "Knife",
+    "Unarmed"
+   ],
+   "innate": [
+    477,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Ninja"
+  },
+  "9": {
+   "cev": 10,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Armor",
+    "HairAdornment",
+    "Helmet",
+    "Shield",
+    "KnightSword",
+    "Sword",
+    "Unarmed"
+   ],
+   "innate": [
+    466,
+    468,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Rune Knight"
+  },
+  "90": {
+   "cev": 5,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Robe",
+    "Clothing",
+    "HairAdornment",
+    "Hat",
+    "Pole",
+    "Book",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Arithmetician"
+  },
+  "91": {
+   "cev": 5,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Clothing",
+    "HairAdornment",
+    "Hat",
+    "Bag",
+    "Instrument",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Bard"
+  },
+  "92": {
+   "cev": 5,
+   "equip": [
+    "Perfume",
+    "Cloak",
+    "Armlet",
+    "Ring",
+    "Armguard",
+    "Shoes",
+    "Clothing",
+    "HairAdornment",
+    "Hat",
+    "Cloth",
+    "Bag",
+    "Knife",
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Dancer"
+  },
+  "93": {
+   "cev": 5,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    469,
+    472,
+    478,
+    0
+   ],
+   "monsterGraphic": 0,
+   "name": "Mime"
+  },
+  "94": {
+   "cev": 15,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    503,
+    0,
+    442,
+    0
+   ],
+   "monsterGraphic": 1,
+   "name": "Chocobo"
+  },
+  "95": {
+   "cev": 25,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    503,
+    507,
+    442,
+    0
+   ],
+   "monsterGraphic": 1,
+   "name": "Black Chocobo"
+  },
+  "96": {
+   "cev": 10,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    503,
+    492,
+    442,
+    0
+   ],
+   "monsterGraphic": 1,
+   "name": "Red Chocobo"
+  },
+  "97": {
+   "cev": 18,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    442,
+    0
+   ],
+   "monsterGraphic": 2,
+   "name": "Goblin"
+  },
+  "98": {
+   "cev": 19,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    442,
+    0
+   ],
+   "monsterGraphic": 2,
+   "name": "Black Goblin"
+  },
+  "99": {
+   "cev": 20,
+   "equip": [
+    "Unarmed"
+   ],
+   "innate": [
+    0,
+    0,
+    442,
+    0
+   ],
+   "monsterGraphic": 2,
+   "name": "Gobbledygook"
+  }
+ },
+ "shields": {
+  "0": {
+   "magEv": 3,
+   "physEv": 10
+  },
+  "1": {
+   "magEv": 3,
+   "physEv": 13
+  },
+  "10": {
+   "magEv": 10,
+   "physEv": 37
+  },
+  "11": {
+   "magEv": 15,
+   "physEv": 40
+  },
+  "12": {
+   "magEv": 0,
+   "physEv": 43
+  },
+  "13": {
+   "magEv": 20,
+   "physEv": 46
+  },
+  "14": {
+   "magEv": 25,
+   "physEv": 50
+  },
+  "15": {
+   "magEv": 50,
+   "physEv": 75
+  },
+  "2": {
+   "magEv": 0,
+   "physEv": 16
+  },
+  "3": {
+   "magEv": 0,
+   "physEv": 19
+  },
+  "4": {
+   "magEv": 5,
+   "physEv": 22
+  },
+  "5": {
+   "magEv": 0,
+   "physEv": 25
+  },
+  "6": {
+   "magEv": 0,
+   "physEv": 28
+  },
+  "7": {
+   "magEv": 0,
+   "physEv": 31
+  },
+  "8": {
+   "magEv": 50,
+   "physEv": 10
+  },
+  "9": {
+   "magEv": 15,
+   "physEv": 34
+  }
+ }
+}

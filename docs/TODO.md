@@ -38,6 +38,12 @@ Locked 2026-10-24: LW-465, LW-508, LW-506, LW-448, LW-459, LW-513, LW-444, LW-38
     wield off hand; the gate goes red when JobData.xml is hand edited; the owner reads the report
     and picks the LW-553 list and the LW-552 numbers from it.
   - Added: yes "Sounds good.  Make sure that TODO is in the right location and let's get started." (2026-11-03)
+  - Built: stage 1 of 3. The job table is now built from a saved copy of the game's own job and item
+    tables kept in the repo, so it no longer needs the Steam folder, and the build refuses a
+    JobData.xml that was edited by hand. The table itself is unchanged, byte for byte. (Tech: new
+    tools/snapshot_vanilla_tables.py writes data/vanilla_tables.json with the loader version 1.7.5
+    and a sha256 per source XML; make_jobequip.py reads it, gains main(argv), --verify, --out;
+    pipeline.ps1 runs the verify step after the analyze selftest.)
 - **[LW-465] A Provoke hold and a planted Bulwark let go the moment a battle rewinds** (opened 2026-10-19) [AWAITING-LIVE]
   - Quitting to the title and choosing Continue mid battle, or picking Retry, rewinds the fight in place without the battle end signal the Provoke hold and the Bulwark listen for, so a hold can hide the party until its watchdog lets go (box 9.2) and a barred tile stays barred until the wielder's next turn (box 9.4, LW-466). The first fix was dropped on release night because nobody has measured when the game rebuilds the battlefield after the restore. Probe that moment first, then release both on it.
   Carries LW-466: After a Retry with the Sunderer's Bulwark planted, the barred tile behind the wielder stays barred until the wielder's next turn opens, and the plant toast replays once on the rewound battle. Seen live on the dev build of 29632f46 (smoke box 9.4 step 3): plant at 22:48:37 barring (11,5), Retry at 22:49:04, a stale `The Sunderer plants its blade` toast delivered at 22:49:05, release only at 22:49:25 when the wielder's turn opened. It heals itself within one turn and only blocks one tile, so it ships as known for 2.4.0. Fix it with LW-465 in 2.4.1 on the same measured rewind moment: release the Bulwark and drop any queued signature toast when the checkpoint restore lands. (Tech: Bulwark.cs and Bulwark.Terrain.cs release on the wielder's turn edge or a battle edge only; the LW-458 restore count ExtendedInventory.RetryRewinds is the signal; BannerToast queue survived the rewind.)
