@@ -4,7 +4,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-90: the NaturalLedger's pure semantics. The load-bearing shapes come straight from the
+/// The NaturalLedger's pure semantics. The load-bearing shapes come straight from the
 /// adversarial plan review: Engine.ResetBattleState fires on BOTH battle edges, so a clean
 /// restart resets TWICE and the rolling two-slot history must survive any number of
 /// empty-current resets; a record-nothing battle (double restart during formation) must

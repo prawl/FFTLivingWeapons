@@ -7,7 +7,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-388 R1/A14: which end of its +-2 GB window <see cref="LiveNearAllocator"/> picks. The old
+/// R1/A14: which end of its +-2 GB window <see cref="LiveNearAllocator"/> picks. The old
 /// scan walked up from nearAddr - 2 GB and committed the first free region. At the preferred base
 /// the low 3 GB were busy, so the page landed a few hundred MB below the image; under ASLR the
 /// space below a 0x7FF6... image is empty, so the page landed 2 GB - 64 KB below it, out of int32

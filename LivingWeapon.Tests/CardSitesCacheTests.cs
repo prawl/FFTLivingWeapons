@@ -164,7 +164,7 @@ public class CardSitesCacheTests
     [Fact]
     public void Cap_at_MaxSuffixSites_live_anchors_refused()
     {
-        // LW-262 correction: this test used to fill cap=MaxSites (2048) suffix sites all sharing
+        // Correction: this test used to fill cap=MaxSites (2048) suffix sites all sharing
         // Id=1 to prove "the cap is a true upper bound even with nothing dead to prune" -- a
         // suffix site was chosen deliberately (the original comment: "only the weapon NAME is
         // checked, no kills-literal read needed") purely as the simpler fixture, not because the
@@ -232,12 +232,12 @@ public class CardSitesCacheTests
         Assert.Equal(0, sites.Count);
     }
 
-    // ─── LW-59 D2: cap sanity, sized off the live tape ────────────────────────
+    // ─── Cap sanity, sized off the live tape ────────────────────────
 
     /// <summary>Sizing derivation: ~701 live kills sites observed on the 2026-07-10 tape
-    /// (docs/CHANGELOG.md LW-37 row) across 121 tracked ids is about 5.8 pool copies per id;
+    /// (the changelog row) across 121 tracked ids is about 5.8 pool copies per id;
     /// 121 ids x 2 site kinds (kills + suffix) x 8-copy headroom (rounded up from the observed
-    /// ~5.8) is the bound MaxSites must clear so the LW-59 all-ids suffix pass is never refused
+    /// ~5.8) is the bound MaxSites must clear so the all-ids suffix pass is never refused
     /// at the cap.</summary>
     [Fact]
     public void MaxSites_covers_every_meta_id_at_both_site_kinds_with_headroom()

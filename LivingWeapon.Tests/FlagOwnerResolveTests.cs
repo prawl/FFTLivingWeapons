@@ -5,8 +5,8 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-63: the per-unit PSX turn-flags resolve lane (band +0x19C/D/E, PROVEN LIVE 2026-07-09;
-/// docs/TODO.md LW-63). Drives <see cref="Band.FlagOwner"/> directly (the pure band walk) and
+/// The per-unit PSX turn-flags resolve lane (band +0x19C/D/E, PROVEN LIVE 2026-07-09;
+/// the ledger). Drives <see cref="Band.FlagOwner"/> directly (the pure band walk) and
 /// the three <see cref="ActorResolver"/> flags preambles via a bare resolver (no KillTracker) --
 /// mirrors <c>ActorResolverUnarmedTests.cs</c>'s idiom. Companion suites: KillTrackerTests.cs's
 /// own "turn-flags attribution" section (the end-to-end KillTracker.Poll drive, plan tests

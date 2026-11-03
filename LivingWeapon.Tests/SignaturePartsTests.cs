@@ -6,7 +6,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-393: the signature to part map and the per module gate inside the field signatures row.
+/// The signature to part map and the per module gate inside the field signatures row.
 /// </summary>
 public class SignaturePartsTests
 {

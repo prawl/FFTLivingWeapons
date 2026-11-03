@@ -9,7 +9,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-371: <see cref="TemplateRelocation"/>'s ten-field install/restore transaction over the
+/// <see cref="TemplateRelocation"/>'s ten-field install/restore transaction over the
 /// fakes. T1 is load-bearing and deliberately never calls <see cref="TemplateRelocation.NewField"/>
 /// for its expected rip-field values -- it re-derives them from the raw formula so a bug shared
 /// between production and the test cannot hide (the ListRelocationTests T1 idiom). T6b lives in
@@ -100,7 +100,7 @@ public class TemplateRelocationTests
 
         // Rip fields: (int)(page + 0x800 + Off - (addr + 4)), computed inline. Named breaks this
         // must catch: dropping the "+ 4" (every field off by 4); swapping +0x400/+0x800 (this
-        // and the slot loop above would both go wrong together). v1.2 T1 pin (verifier
+        // and the slot loop above would both go wrong together). v1.2 T1 pin (review
         // SHOULD-FIX): field 0 (the shared rsi base) uses the LITERAL -0x1E6 here, never
         // `Off` read back from the table -- otherwise a table carrying Off=0 instead of -0x1E6
         // would compute the SAME (wrong) expected value production did and this loop would stay
@@ -114,7 +114,7 @@ public class TemplateRelocationTests
             Assert.Equal(BitConverter.GetBytes(expected), f.Read(rfField.Addr, 4));
         }
 
-        // LW-372 (D4): the builder cap widens straight to 0xFF (255) and the insert bound to the
+        // The builder cap widens straight to 0xFF (255) and the insert bound to the
         // 4-byte imm32 0x100 (256 = cap + 1); the two small-notepad callers no longer read this
         // cap at all (ListBuilderHook intercepts and truncates them to 149 first).
         Assert.Equal(0xFF, f.Bytes[Offsets.ListBuilderCapByte]);
@@ -165,7 +165,7 @@ public class TemplateRelocationTests
         Assert.Contains($"0x{cap.Addr:X}", why3);
         Assert.Empty(f3.Writes);
 
-        // LW-372: the 4-byte cap site's mismatch can hide in ANY of its four bytes, not just the
+        // The 4-byte cap site's mismatch can hide in ANY of its four bytes, not just the
         // low one.
         var cap2 = TemplateRelocation.CapSites[1];
         var f4 = SeedVanilla();
@@ -242,7 +242,7 @@ public class TemplateRelocationTests
         Assert.Equal(511, regions[1].CapacityWords);
     }
 
-    // Caps_fit_the_smallest_list_buffer retired (LW-372): the two small-notepad callers no longer
+    // Caps_fit_the_smallest_list_buffer retired: the two small-notepad callers no longer
     // read the builder's cap at all once ListBuilderHook intercepts them, so the stack-room proof
     // moved to the constant that actually gates it -- ListBuilderHook.StackCallerCap -- pinned in
     // ListBuilderHookTests.A_stack_buffer_call_runs_against_the_pool_and_copies_149_back (U1).
@@ -278,7 +278,7 @@ public class TemplateRelocationTests
         return n + 2;
     }
 
-    /// <summary>LW-371 (T9d's arm-level twin lives in ExtendedInventoryTests.cs); here, the pure
+    /// <summary>T9d's arm-level twin lives in ExtendedInventoryTests.cs; here, the pure
     /// component check.</summary>
     [Fact]
     public void Site_table_is_self_consistent()
@@ -294,7 +294,7 @@ public class TemplateRelocationTests
                 Assert.False(Overlaps(allAddrs[i].Addr, allAddrs[i].Len, allAddrs[j].Addr, allAddrs[j].Len),
                     $"0x{allAddrs[i].Addr:X} and 0x{allAddrs[j].Addr:X} overlap");
 
-        // Reviewer (a): field 0 resolves to PickerOrderTemplate (the shared rsi base), the other
+        // Review (a): field 0 resolves to PickerOrderTemplate (the shared rsi base), the other
         // four to PickerAllItemsTemplate.
         long[] oldTargets =
         {
@@ -308,7 +308,7 @@ public class TemplateRelocationTests
             Assert.Equal(expected, rf.Vanilla);
         }
 
-        // v1.2 (verifier SHOULD-FIX): the rsi base's Off is the distance from the all-items
+        // v1.2: the rsi base's Off is the distance from the all-items
         // chart's own page target back to the picker chart's -- PickerOrderTemplate minus
         // PickerAllItemsTemplate, i.e. -0x1E6 -- and every other field's Off is 0 (they target
         // the all-items chart directly). T1 hardcodes -0x1E6 as a literal for field 0 precisely
@@ -318,7 +318,7 @@ public class TemplateRelocationTests
         for (int i = 1; i < TemplateRelocation.RipFields.Length; i++)
             Assert.Equal(0, TemplateRelocation.RipFields[i].Off);
 
-        // LW-372 (D4, U7): the two cap sites' widths -- one byte for the builder cap (0xFF still
+        // D4 and U7: the two cap sites' widths -- one byte for the builder cap (0xFF still
         // fits), four for the insert bound (0x100 does not) -- and their vanilla/new byte arrays.
         Assert.Equal(new byte[] { 0x91 }, TemplateRelocation.CapSites[0].Vanilla);
         Assert.Equal(new byte[] { 0xFF }, TemplateRelocation.CapSites[0].New);
@@ -425,7 +425,7 @@ public class TemplateRelocationTests
         Assert.False(rel.Installed);
     }
 
-    /// <summary>T9f (v1.3, verifier 2 SHOULD-FIX): D3's "a page chart always has a marker inside
+    /// <summary>T9f (v1.3, review 2 SHOULD-FIX): D3's "a page chart always has a marker inside
     /// its region" is only true if the region has room for the marker past the OLD block's own
     /// worst-case span -- pinned here against the REAL shipped <see cref="TemplateRelocation.Charts"/>
     /// (142, 142, 263 words), not toy sizes, so a future chart added with a span that does not

@@ -5,7 +5,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-261: PoolLocator.Step -- the production entry point that drives the resumable PoolScan and
+/// PoolLocator.Step -- the production entry point that drives the resumable PoolScan and
 /// publishes into CachedRegions. Distinct from PoolScanTests (the walk's own budget/termination
 /// contract) and from PoolLocatorTests (the pre-existing cache-or-rescan behavior, still exercised
 /// through LocateAll). Fixture idioms (WriteCardForwardWithName, BuildPoolBuffer-shaped buffers)
@@ -133,7 +133,7 @@ public class PoolLocatorStepTests
         Assert.Contains(locator.CachedRegions, r => r.baseAddr == poolBase);
     }
 
-    /// <summary>FIX 6 (adversarial verify round; round 5 verify, F8: the "second call site" this
+    /// <summary>FIX 6 (F8: the "second call site" this
     /// doc originally described -- MaybePoolPaint's own fall-through, in addition to Engine's
     /// pool-locate phase -- was REMOVED by this arc's own later R1 retune, so this is now past
     /// tense as a PRODUCTION scenario; the guard itself is still correct and still tested directly
@@ -180,7 +180,7 @@ public class PoolLocatorStepTests
         Assert.Equal(0, locator._revalidateCount);
     }
 
-    /// <summary>ROUND 2 VERIFY, B1 (blocker): a scan already in flight when Invalidate() lands
+    /// <summary>VERIFY, B1 (blocker): a scan already in flight when Invalidate lands
     /// straddles the relocation -- its own Publish() must not clear RegionsStale, because the
     /// restart Invalidate() queued has not run yet. RED against the pre-fix code: Step's "not
     /// running" branch only sets _stale=true inside `if (!_restartPending)`, so the tick that
@@ -224,7 +224,7 @@ public class PoolLocatorStepTests
         Assert.False(locator.RegionsStale);
     }
 
-    /// <summary>ROUND 2 VERIFY, B2 (blocker): _pendingTrigger is a single field Invalidate()
+    /// <summary>VERIFY, B2 (blocker): _pendingTrigger is a single field Invalidate
     /// overwrites mid-flight, and the completion record reported whatever it held at PUBLISH
     /// time, not at the time the reporting scan actually STARTED. RED against the pre-fix code:
     /// a scan that began with an empty cache (trigger "first") gets invalidated while still
@@ -266,10 +266,10 @@ public class PoolLocatorStepTests
         Assert.Equal("invalidate", restart!.Value.Trigger);
     }
 
-    /// <summary>ROUND 2 VERIFY, B3: a mutation that moves `_restartPending = false` INSIDE the
+    /// <summary>VERIFY, B3: a mutation that moves `_restartPending = false` INSIDE the
     /// `if (!_restartPending)` block leaves the flag permanently true after one Invalidate, so
     /// every later tick bypasses the RevalidateMs cadence and restarts a full scan forever --
-    /// the same bug class as round 1's empty-cache finding. This pins the settle-back-down
+    /// the same bug class as the earlier empty-cache finding. This pins the settle-back-down
     /// behavior directly: one Invalidate, then several ticks well within RevalidateMs of the
     /// restart's own publish, must NOT trigger another scan each time.</summary>
     [Fact]

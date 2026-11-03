@@ -6,7 +6,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-90 seam tests for the growth-family capture sites: a battle RESTART rebuilds units with
+/// Seam tests for the growth-family capture sites: a battle RESTART rebuilds units with
 /// the mod's own held boost baked into the stat byte, and every first-sight capture must see
 /// through its own residue via the shared NaturalLedger. Each test drives the internal hold
 /// method directly (the LocateIn precedent) through the REAL reset sequence: the subsystem's

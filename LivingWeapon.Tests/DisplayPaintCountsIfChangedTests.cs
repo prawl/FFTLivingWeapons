@@ -7,13 +7,13 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-91 Stage 2: Display.PaintCountsIfChanged, the narrow in-battle repaint Engine calls on the
+/// Stage 2: Display.PaintCountsIfChanged, the narrow in-battle repaint Engine calls on the
 /// ticks ShouldPaintCard skips (Engine.cs's new else branch on the bare card-paint if). Mirrors
 /// the full Tick's count-change edge (CheckAndSnapshotCounts -> RecomposeChanged -> RequestRescan
 /// -> PaintAll, Display.cs:145-157's own ordering) without any pool/sweep locate work or sweep
 /// stepping, so a mid-battle kill repaints the equip card's Kills meter without waiting for the
 /// post-battle settle window (ShouldPaintCard gates the full Tick to out-of-battle/paused frames).
-/// LW-147: TempDir() directories are tracked and deleted in Dispose, not leaked.
+/// TempDir directories are tracked and deleted in Dispose, not leaked.
 /// </summary>
 public class DisplayPaintCountsIfChangedTests : IDisposable
 {
@@ -112,7 +112,7 @@ public class DisplayPaintCountsIfChangedTests : IDisposable
     }
 
     // ─── T13: the review-blocker ordering + consumed-edge pins ────────────────
-    // LW-147: tracked and deleted in Dispose (above), not leaked.
+    // tracked and deleted in Dispose (above), not leaked.
 
     private string TempDir()
     {

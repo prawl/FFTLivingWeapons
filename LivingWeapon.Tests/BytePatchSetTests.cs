@@ -4,7 +4,7 @@ using Xunit;
 
 namespace LivingWeapon.Tests;
 
-/// <summary>LW-346 S2: the transactional patch set and the post-load pending patch.</summary>
+/// <summary>The transactional patch set and the post-load pending patch.</summary>
 public class BytePatchSetTests
 {
     private static readonly BytePatch A = new(0x140285E2D, 0x05, 0x06, "order-scan-guard");

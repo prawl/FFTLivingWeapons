@@ -6,7 +6,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-324: pool_regions.json, PoolLocator's warm-start seed sidecar. Round-trip plus every
+/// Pool_regions.json, PoolLocator's warm-start seed sidecar. Round-trip plus every
 /// "come back empty, never throw" failure shape Load must tolerate: missing file, malformed
 /// JSON, an unrecognized schema version, and a PE build key that does not match the running
 /// build (LaunchGuard's own ExpectedTimeDateStamp/ExpectedSizeOfImage constants, referenced

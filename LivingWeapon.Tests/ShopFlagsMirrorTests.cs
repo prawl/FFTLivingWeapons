@@ -5,7 +5,7 @@ using Xunit;
 
 namespace LivingWeapon.Tests;
 
-/// <summary>LW-354: the shop-table mirror over the fakes (the builder's two sites carry their
+/// <summary>The shop-table mirror over the fakes (the builder's two sites carry their
 /// vanilla displacements, read on the 1.5.2 exe on disk and live, 2026-08-27).</summary>
 public class ShopFlagsMirrorTests
 {
@@ -105,7 +105,7 @@ public class ShopFlagsMirrorTests
     public void ParseShops_rejects_an_unknown_town()
         => Assert.Contains("Ivalice", Assert.Throws<FormatException>(() => ExtendedRecords.ParseShops("Dorter, Ivalice")).Message);
 
-    /// <summary>LW-351 stage 2 (D12): the mirror carries EVERY extended row, not just the first;
+    /// <summary>Stage 2 (D12): the mirror carries EVERY extended row, not just the first;
     /// each item's town bits land at its own id's slot, in the loader's byte order, and an id
     /// with no row stays empty. Town values come from ParseShops so the test speaks the same
     /// vocabulary the items.json rows do.</summary>

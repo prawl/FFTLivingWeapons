@@ -5,7 +5,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-424. The equip card went blank after a quick Continue because the only full walk ran before
+/// The equip card went blank after a quick Continue because the only full walk ran before
 /// a region the card later reads from was listed, and the covered short circuit then ignored any
 /// later publish. Edit A (the load drain invalidates the painter) is pinned by the Engine test;
 /// edit B (a fresh list is scanned even while covered) is pinned here. The pair is the replay, not

@@ -8,7 +8,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-77: mod/FFTIVC/tables/enhanced/JobData.xml is a WHOLE-ROW writeback at OnAllModsLoaded
+/// Mod/FFTIVC/tables/enhanced/JobData.xml is a WHOLE-ROW writeback at OnAllModsLoaded
 /// (FFTOJobDataManager.ApplyTablePatch, model.X ?? previous.X across every field, incl.
 /// JobCommandId since loader 1.7.1), so any row this table lists clobbers another job mod's
 /// post-snapshot runtime edits to that SAME row, proven live 2026-07-14 (Blue And Red Mages
@@ -42,7 +42,7 @@ public class JobDataXmlContractTests
 
     /// <summary>The 28-id keep set. Derivation: tools/make_jobequip.py CEV_ALLOW ({1,2,3,4,5,6,7,
     /// 15,145}) union every generic human non-Lucavi id (61-93), filtered to ids that actually
-    /// emit a payload against today's TABLE_DATA vanilla (reviewer-derived and re-confirmed for
+    /// emit a payload against today's TABLE_DATA vanilla (review-derived and re-confirmed for
     /// plan v2, 2026-07-14).</summary>
     private static readonly HashSet<int> ExpectedJobIds = new()
     {

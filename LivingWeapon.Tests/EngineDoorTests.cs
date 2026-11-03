@@ -8,7 +8,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-393: the engine over the parts registry. The doors step independently from the first tick, a closed
+/// The engine over the parts registry. The doors step independently from the first tick, a closed
 /// roster door no longer freezes the tick, a part behind a closed door is never ticked, and one report line
 /// plus one box per closure wave reach the player. Every test runs the real Engine over FakeSparseMemory.
 /// </summary>
@@ -251,7 +251,7 @@ public class EngineDoorTests
         finally { Mem.WritesEnabled = prev; }
     }
 
-    // ---- LW-398: the band and static array doors through the engine ----
+    // ---- The band and static array doors through the engine ----
 
     private static void OnField(FakeSparseMemory mem)
         => EngineTests.StageSentinelsBothStores(mem, 0x10, 0xFFFFFFFFu, 3, 0xFFFF, 0, 0);

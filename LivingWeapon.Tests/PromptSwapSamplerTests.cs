@@ -7,11 +7,11 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-89: PromptSwap's unique-prompt-head sampler. The 1.5.1 facing-prompt text silently stopped
+/// PromptSwap's unique-prompt-head sampler. The 1.5.1 facing-prompt text silently stopped
 /// matching FacingPromptPrefix and TryPrepareSwap's mismatch path is silent by design (see
 /// PromptSwap's class doc), so the sampler logs the first dozen unique decodable prompt heads a
 /// session ever sees at Debug tier, turning any session's log file into the live diagnostic.
-/// Captures via the shared LogCapture scope (LW-157) at Debug tier so the sampler's file-only
+/// Captures via the shared LogCapture scope at Debug tier so the sampler's file-only
 /// Debug lines are observable; the scope's Dispose restores the prior logger, so no other test
 /// observes the swap.
 /// </summary>
@@ -158,7 +158,7 @@ public class PromptSwapSamplerTests
         Assert.Empty(file.Where(l => l.Contains("prompt head sample")));
     }
 
-    // LW-89 step 1b: bounded STRUCT sampler (the rdx-is-an-object hypothesis).
+    // Bounded STRUCT sampler (the rdx-is-an-object hypothesis).
     //
     // Builds a 32-byte raw block with u64s planted at offsets 0x00 (q0), 0x10 (q10) and 0x18
     // (q18), mirroring the layout SampleStruct reads back out of textPtr.

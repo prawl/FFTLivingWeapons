@@ -7,7 +7,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-351: a weapon's DESIGN moved to a different item id (the Terrastaff off the Battle Axe's
+/// A weapon's DESIGN moved to a different item id (the Terrastaff off the Battle Axe's
 /// slot and onto its own extended-inventory id), and the player's earned kills and deeds have to
 /// move with it. These pin the whole rule, including the one case it must refuse.
 ///
@@ -90,7 +90,7 @@ public class TallyMigrationTests
         Assert.Equal("{\"48\":40}", File.ReadAllText(path + ".bak"));
     }
 
-    // ---- (e) THE NON-VACUOUS NEGATIVE. LW-361 redesigns the restored axes and flails, which
+    // ---- (e) THE NON-VACUOUS NEGATIVE. Redesigning the restored axes and flails
     // puts a living weapon back at id 48 while 262 still records that it came from there. The
     // old id then owns its own tally and the migration must keep its hands off it. A naive
     // "move everything any row names" loop passes every test above and fails this one. ----
@@ -99,7 +99,7 @@ public class TallyMigrationTests
     public void An_old_id_that_is_a_living_weapon_again_keeps_its_own_count()
     {
         var meta = MovedTerrastaff();
-        meta[48] = Meta("Battle Axe");   // LW-361: something living moved back into the slot
+        meta[48] = Meta("Battle Axe");   // Something living moved back into the slot
 
         var plan = TallyMigration.Plan(meta);
         Assert.Empty(plan);
@@ -188,7 +188,7 @@ public class TallyMigrationTests
         return w;
     }
 
-    // ---- (h) THE SHIPPED PAIRING. meta.json is baked from data/items.json; every design LW-351
+    // ---- (h) THE SHIPPED PAIRING. meta.json is baked from data/items.json; every design the rebalance
     // moved must name its old id there, and no restored (noGrowth) id may still be a living weapon
     // in the bake, or the move for that pair silently becomes a no-op (rule (e) above). Reads the
     // TRACKED bake, so a regenerate that drops a migratedFrom goes red here, not in a save. ----

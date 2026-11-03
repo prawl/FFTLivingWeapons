@@ -9,6 +9,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ct_probe import PROC, PV_W, find_pid, k32
 
+
 class MBI(ctypes.Structure):
     _fields_ = [("BaseAddress", ctypes.c_void_p), ("AllocationBase", ctypes.c_void_p),
                 ("AllocationProtect", wt.DWORD), ("PartitionId", wt.WORD),
@@ -21,6 +22,7 @@ READABLE = {0x02, 0x04, 0x08, 0x20, 0x40, 0x80}
 LO, HI = 0x140000000, 0x142000000
 STRIDES = [1, 2, 3, 4, 6, 8, 10, 12, 16, 20, 24, 25, 28, 32, 40, 48, 56, 64, 80, 96,
            112, 128, 0x90, 0xA0, 0xC0, 0x100, 0x140, 0x180, 0x200, 0x258]
+
 
 def rd_raw(h, addr, size):
     buf = ctypes.create_string_buffer(size)

@@ -5,7 +5,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-233 punch list item 5 (2026-08-17): pins the EXACT flight-record and console strings the
+/// Punch list item 5 (2026-08-17): pins the EXACT flight-record and console strings the
 /// owner's live retry drill reads to tell "fired correctly" from "silently missed" -- the
 /// latch-open record (including its grace-exemption phrasing), every no-open refusal's reason=
 /// value, the stash and stash-drop records (punch list item 3), and the shared IdentityTap

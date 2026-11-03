@@ -176,7 +176,7 @@ public class IaiTests
         return (iai, mem, wielder, fp);
     }
 
-    // ---- LW-90: restart residue (the ledger-corrected capture) ----
+    // ---- Restart residue (the ledger-corrected capture) ----
     //
     // A battle RESTART rebuilds the unit with the mod's own held boost baked into the Speed
     // byte (owner-observed 2026-07-14). The capture must see through its own residue: the
@@ -202,7 +202,7 @@ public class IaiTests
         mem.U8s[wielder + Offsets.ASpeed] = 11;
 
         // Battle 2: capture sees through the bake; the wall-clock cap release must restore the
-        // TRUE natural 8, not the baked 11 (pre-fix this restored 11: the LW-90 lock-in).
+        // TRUE natural 8, not the baked 11 (pre-fix this restored 11: the lock-in).
         iai.Tick(onField: true, t0);
         iai.Tick(onField: true, t0.AddSeconds(Tuning.IaiHoldCapSeconds + 1));
         Assert.Equal((byte)8, mem.U8s[wielder + Offsets.ASpeed]);
@@ -237,7 +237,7 @@ public class IaiTests
     [Fact]
     public void Post_release_normalize_to_the_holds_own_target_is_re_corrected_without_a_restart()
     {
-        // LIVE-OBSERVED 2026-07-21 11:04-11:08 (the owner's LW-90 repro session): in a FRESH
+        // LIVE-OBSERVED 2026-07-21 11:04-11:08 (the owner's repro session): in a FRESH
         // battle (no restart, clean capture), the release restored natural but the boost came
         // back, on the working theory that the engine's per-turn normalize re-paints a baseline
         // that captured our hold, which arms within ~100ms of battle open; nothing caught it,
@@ -1001,7 +1001,7 @@ public class IaiTests
         Assert.Empty(mem.Written);
     }
 
-    // ---- LW-71: turn-flags corroboration (Band.FlagOwner, LW-63) overrides the parked pointer ----
+    // ---- Turn-flags corroboration (Band.FlagOwner) overrides the parked pointer ----
     //
     // Bug: the engine actor pointer PARKS on struck units. An enemy striking the wielder before
     // its own opening turn makes the pointer transition to the wielder's frame, a false S1
@@ -1058,9 +1058,9 @@ public class IaiTests
     {
         // The real turn owner is an ENEMY (band 0, t==1, a distinct nameId). The engine's actor
         // pointer nonetheless PARKS on the wielder's own frame (a struck-victim arrival):
-        // exactly the false S1 signal LW-71 exists to override.
+        // exactly the false S1 signal the override exists for.
         //
-        // NON-VACUITY: this test MUST fail against the unmodified (pre-LW-71) Tick, which
+        // NON-VACUITY: this test MUST fail against the unmodified (earlier) Tick, which
         // releases on the pointer arrival alone with no turn-flags corroboration at all.
         var mem = new FakeSparseMemory();
         var meta = new Dictionary<int, WeaponMeta>
@@ -1118,7 +1118,7 @@ public class IaiTests
         // the restore must land on the FLAG OWNER's address, not the parked pointer's: pins the
         // Confirm-restore-to-flagEntry rule against a naive `acting + ASpeed` restore.
         //
-        // NON-VACUITY: this test MUST fail against the unmodified (pre-LW-71) Tick, which never
+        // NON-VACUITY: this test MUST fail against the unmodified (earlier) Tick, which never
         // releases without a firing legacy pointer signal.
         var mem = new FakeSparseMemory();
         var meta = new Dictionary<int, WeaponMeta>
@@ -1174,7 +1174,7 @@ public class IaiTests
     {
         // No band entry anywhere has ATurnFlag==1 (the tape-verified battle-opening zero-t
         // record). FlagOwner resolves nothing -> Indeterminate -> the legacy pointer signal must
-        // still govern, exactly as before LW-71: release must never starve on a genuinely
+        // still govern, exactly as: release must never starve on a genuinely
         // zero-t tick.
         var (iai, mem, wielderEntry, _) = Build(naturalSpeed: 5, fieldUnitSpeed: 10, nameId: 298);
         var now = DateTime.UtcNow;

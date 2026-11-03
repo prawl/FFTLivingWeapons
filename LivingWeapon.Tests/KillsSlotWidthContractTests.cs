@@ -7,7 +7,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-148: tools/lib/flavor.py's KILLS_SLOT_BODY_CHARS and LivingWeapon/Signatures/Signatures.cs's
+/// Tools/lib/flavor.py's KILLS_SLOT_BODY_CHARS and LivingWeapon/Signatures/Signatures.cs's
 /// KillsMeterSlotChars are one width pinned in two languages on purpose (Signatures.cs's own doc
 /// comment says so, and flavor.py's says it mirrors Signatures byte-for-byte): the Python bake
 /// pads every living weapon's "Kills: " scaffold line to this many characters, and the C# card
@@ -48,7 +48,7 @@ public class KillsSlotWidthContractTests
         Assert.Equal(Signatures.KillsMeterSlotChars, pythonValue);
     }
 
-    /// <summary>LW-311: the BAKED scaffold body must pass the C# site-admission validator, or the
+    /// <summary>The BAKED scaffold body must pass the C# site-admission validator, or the
     /// painter can never find an unpainted card and the counter silently dies for everyone. This
     /// is the drift the dash rebake makes possible (a Python-side scaffold tweak with no C#-side
     /// validator move), so the pin crosses languages the same way the width pin above does.</summary>

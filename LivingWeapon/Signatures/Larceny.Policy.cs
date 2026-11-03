@@ -18,7 +18,7 @@ internal static class LarcenyPolicy
     public static bool IsActive(WeaponSignature? sig, int tier)
         => Signatures.Earned(sig, tier) && sig!.LarcenyTurns > 0;
 
-    /// <summary>Never steal from an ally -- only enemies the wielder strikes.</summary>
+    /// <summary>Never steal from an ally, only from enemies the wielder strikes.</summary>
     public static bool ShouldLatch(bool isEnemy) => isEnemy;
 
     /// <summary>What to do with one struck foe once its top buff is picked. Skip. The wielder already wears
@@ -121,6 +121,6 @@ internal sealed class LarcenyState
     /// <summary>Drop a buff that has faded (after clearing its bit on the wielder).</summary>
     public void Release((int off, byte mask) buff) => _held.Remove(buff);
 
-    /// <summary>Forget all steals (battle exit -- the fresh per-battle struct clears the bits anyway).</summary>
+    /// <summary>Forget all steals (battle exit, where the fresh per-battle struct clears the bits anyway).</summary>
     public void Clear() => _held.Clear();
 }

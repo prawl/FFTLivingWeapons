@@ -5,10 +5,10 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-154 pre-refactor pins for ActorResolver's turn-queue TWIN FILTER: the discard-and-restart
+/// Pre-refactor pins for ActorResolver's turn-queue TWIN FILTER: the discard-and-restart
 /// bookkeeping that keeps a frozen (0,0) mirror seat from stealing (or spoiling) credit when the
 /// real-position copy of the acting unit is also on the band. Written GREEN against the
-/// triplicated pre-LW-154 bodies, so the extraction into one shared home must keep them green
+/// triplicated earlier bodies, so the extraction into one shared home must keep them green
 /// and a sabotage of the shared filter must turn exactly these red.
 ///
 /// Both orderings are pinned per public resolver, because they exercise DIFFERENT halves of the
@@ -103,7 +103,7 @@ public class ActorResolverTwinTests
         Assert.Equal((50, 70, 40), fp);
     }
 
-    // ---- RosterFpMatches pins (LW-154): each field of the shared roster fingerprint rule must
+    // ---- RosterFpMatches pins: each field of the shared roster fingerprint rule must
     // be load-bearing on its own. A sabotage probe during the extraction found FAITH had no pin
     // anywhere in the suite: dropping it from the rule left all 3036 tests green. These stage
     // two armed roster units identical in everything BUT faith, with the acting unit's band
@@ -126,7 +126,7 @@ public class ActorResolverTwinTests
     [Fact]
     public void Main_hand_restart_clears_ambiguity_accumulated_across_two_conflicting_twins()
     {
-        // Verifier-requested pin (LW-154): ResolveActingMainHand's restart must clear BOTH its
+        // requested pin: ResolveActingMainHand's restart must clear BOTH its
         // accumulation and its ambiguous flag. Two conflicting (0,0) twins accumulate
         // ambiguity, then the real seat restarts; drop the `ambiguous = false` half of the
         // reset and the stale flag would zero out the real seat's clean answer. (The weapons

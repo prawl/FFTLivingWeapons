@@ -5,7 +5,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-257 commit 1: the anchor-verify leniency policy (CardSites.Verify.cs) and the per-pass
+/// Commit 1: the anchor-verify leniency policy (CardSites.Verify.cs) and the per-pass
 /// CardVerdict ledger. THE bug this file pins: pre-fix, CardSites.cs:184 turned ANY anchor-verify
 /// failure -- a genuine buffer-reuse mismatch or a one-tick unreadable memory glitch alike --
 /// into an eviction on the very first occurrence, silently dropping the card's own painted copy
@@ -128,7 +128,7 @@ public class CardSitesVerifyTests
         sites.Add(site);
 
         // The region stays fully readable, but the flavor text underneath the anchor is now
-        // something else entirely -- a genuine buffer-reuse mismatch (LW-163's contract target),
+        // something else entirely -- a genuine buffer-reuse mismatch (the contract target),
         // never a transient condition, so the leniency policy must not apply here at all.
         heap.WriteBytes(0x1000 + anchorPos, ByteScan.Ascii("XXXXXXXXXXXX"));
 
@@ -187,7 +187,7 @@ public class CardSitesVerifyTests
         int writes = sites.PaintAll(id => 42, verdict);
 
         Assert.Equal(0, writes);   // skip-if-equal: the slot already says 42, no write issued
-        // LW-257 two-lane restructuring: AlreadyEqual is settled-lane only, never the bounded
+        // Two-lane restructuring: AlreadyEqual is settled-lane only, never the bounded
         // notable list (CardVerdict's class doc) -- a steady-state pass is nearly all
         // AlreadyEqual, so keeping it out of Entries is what keeps that cap meaningful.
         Assert.Empty(verdict.Entries);
@@ -197,7 +197,7 @@ public class CardSitesVerifyTests
             "the address predicate must actually gate the answer, not be ignored");
     }
 
-    /// <summary>LW-332: once the Grows line sits between "Kills: " and flavor, CardScanner's
+    /// <summary>Once the Grows line sits between "Kills: " and flavor, CardScanner's
     /// FlavorPos can resolve to the GROWS line's position instead of the flavor's (Grows sits
     /// closer to "Kills: "). Grows and Flavor are generally DIFFERENT byte lengths -- unlike the
     /// baked/current/previous set, which EarnedAnchors enforces equal-length to Flavor -- so

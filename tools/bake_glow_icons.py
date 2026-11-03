@@ -105,7 +105,7 @@ MANIFEST_PATH = OUT_DIR / "manifest.json"
 WORK = ri.WORK  # reuse recolor_icons' own working/icons scratch dir; never a repo-local scratch
 
 SCHEMA_VERSION = 1
-# Knobs (owner tunes at the live pass, per LW-295 plan F1): tier 0 (no glow) is not baked here,
+# Knobs (owner tunes at the live pass, plan F1): tier 0 (no glow) is not baked here,
 # the runtime keeps the base .tex spliced in for tier 0 (P6: the pac rebuilds from loose files
 # every launch, so base art is the guaranteed launch state).
 # Tier 3 softened 1.5 -> 1.3 (owner Atlas feedback 2026-08-26: '+3 the glow is too
@@ -138,14 +138,14 @@ def weapon_ids():
     owner rule this whole file exists to enforce): never a non-weapon id, and nothing outside
     1..121 except the extended rows."""
     rows = load_items()["items"]
-    # LW-351: a glow rim is a KILL-TIER rim, so an item that opts out of the Living Weapon
+    # A glow rim is a KILL-TIER rim, so an item that opts out of the Living Weapon
     # system (noGrowth -- the restored vanilla axes and flails) can never earn one. It also has
     # no items.json iconTint and no `grows` lane, which is what bake_range and _glow_variant
     # read, so including it here would KeyError the bake rather than produce anything. Excluded
     # at the source instead, so verify()'s expected set and the bake set stay the same rule.
     ids = sorted(it["id"] for it in rows
                  if it.get("category") in WEAPON_CATS and not it.get("noGrowth"))
-    # LW-346: an extended-inventory weapon (an `extended` block, ids 261+) is a real growing
+    # An extended-inventory weapon (an `extended` block, ids 261+) is a real growing
     # weapon with its own baked icon pair, so it gets rims like the vanilla-range 121; anything
     # else outside 1..121 is still the stray the owner rule forbids.
     extended = {it["id"] for it in rows if it.get("extended")}

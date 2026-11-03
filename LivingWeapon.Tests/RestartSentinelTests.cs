@@ -5,8 +5,8 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-233: the stateful half of RestartSentinel -- Tick()'s null-streak/battle-age/out-of-live
-/// bookkeeping, PresentRevive's latch open/re-open/close machinery, AND (the LW-233 verifier-
+/// The stateful half of RestartSentinel -- Tick's null-streak/battle-age/out-of-live
+/// bookkeeping, PresentRevive's latch open/re-open/close machinery, AND (the review-
 /// caught fix) the DEFERRED-VERDICT stash: a credited heal-from-zero revive presented while a
 /// null is mid-flight but not yet qualified (the 0ms-join shape, retry A's real tape) is held,
 /// not dropped, until the streak either qualifies (drains through the Tick() return value) or
@@ -22,14 +22,14 @@ public class RestartSentinelTests
     private const int LatchDuration = RestartSentinelPolicy.LatchTicks;
     private const int RearmTicks = RestartSentinelPolicy.OutOfLiveRearmTicks;
 
-    // LW-233 live-drill residual (2026-08-17): PresentRevive's identity-tuple params. SameId/SameId
+    // Live-drill residual (2026-08-17): PresentRevive's identity-tuple params. SameId/SameId
     // models "the revived unit IS the one this slot was credited to" (the ordinary case for every
     // test below that isn't specifically about the exemption); OtherId as the credited half models
     // "no genuine prior credit matches this presentation" (a fresh battle, or a different
-    // encounter's unit after LW-108's starved-bracket hole) -- used only where a test's whole point
+    // encounter's unit after the starved-bracket hole) -- used only where a test's whole point
     // is that grace alone must still hold.
     //
-    // FINDING 0 (2026-08-17 verifier correction): PresentRevive also takes a nameId pair now --
+    // FINDING 0 (2026-08-17 review correction): PresentRevive also takes a nameId pair now --
     // SameNameId/SameNameId pairs with SameId/SameId everywhere below (a genuine match needs BOTH
     // the tuple and the nameId to agree); OtherNameId pairs with OtherId the same way. Neither
     // constant is ever 0 -- 0 is the fail-closed "unavailable" sentinel, covered by its own
@@ -108,10 +108,10 @@ public class RestartSentinelTests
     [Fact]
     public void Grace_holds_even_with_a_qualified_null_and_a_joining_revive_of_a_different_identity()
     {
-        // LW-233 live-drill residual (2026-08-17): grace is now exempted by a MATCHING identity
+        // Live-drill residual (2026-08-17): grace is now exempted by a MATCHING identity
         // (see Opens_before_grace_when_the_revived_identity_matches_the_credited_one below), so
         // this test now specifically pins the mismatched-identity half -- grace alone still guards
-        // a genuinely different unit (a fresh battle, or LW-108's starved-bracket hole), which is
+        // a genuinely different unit (a fresh battle, or the starved-bracket hole), which is
         // the whole reason the exemption is identity-GATED rather than unconditional.
         var s = new RestartSentinel();
         // Land battleAgeTicks EXACTLY at Grace (not past it: > Grace is required to open) once the
@@ -137,7 +137,7 @@ public class RestartSentinelTests
         Assert.True(s.LatchOpen);
     }
 
-    // ---- FINDING 0 (2026-08-17 verifier correction): the nameId half is REQUIRED, not optional ----
+    // ---- FINDING 0 (2026-08-17 review correction): the nameId half is REQUIRED, not optional ----
 
     [Fact]
     public void A_matching_tuple_with_a_mismatched_nameId_never_opens_the_twin_collision_case()
@@ -187,7 +187,7 @@ public class RestartSentinelTests
 
         // Grace re-armed: an otherwise-qualifying join right after the stretch still refuses,
         // because the null history was cleared too (haveQualifiedNull is now false) AND the
-        // battle age reset below the grace floor. Mismatched identity (OtherId) so the LW-233
+        // battle age reset below the grace floor. Mismatched identity (OtherId) so the identity
         // exemption cannot paper over the grace check this specific assertion is pinning.
         Advance(s, Persist, rawNull: true);
         Assert.Equal(RevivePresentResult.Refuse, s.PresentRevive(0, W(1), false, healedFromZero: true, OtherId, SameId, OtherNameId, SameNameId));
@@ -277,7 +277,7 @@ public class RestartSentinelTests
         Assert.Contains("latch open", restartRecords[0].payload);
     }
 
-    // ---- DEFERRED VERDICT (LW-233 fix: the 0ms-join shape) ----
+    // ---- DEFERRED VERDICT (fix: the 0ms-join shape) ----
 
     [Fact]
     public void A_revive_presented_while_the_null_is_one_tick_in_is_stashed_not_refused()
@@ -310,7 +310,7 @@ public class RestartSentinelTests
         Assert.True(s.LatchOpen);
     }
 
-    // ---- Identity-gated stash drain (LW-233 live-drill residual, 2026-08-17) ----
+    // ---- Identity-gated stash drain (live-drill residual, 2026-08-17) ----
 
     [Fact]
     public void A_stashed_revive_before_grace_drains_via_a_matching_identity_even_though_grace_never_clears()

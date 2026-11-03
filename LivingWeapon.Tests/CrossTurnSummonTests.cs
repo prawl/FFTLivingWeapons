@@ -33,7 +33,7 @@ public class CrossTurnSummonTests
     // Enemy band slot 0 (enemy-side: <= EnemySlotMax=19).
     private const int EnemySlot = 0;
 
-    // Seeding helpers ride the shared KillTrackerFixtures (LW-160); every call site past the
+    // Seeding helpers ride the shared KillTrackerFixtures; every call site past the
     // (m, slot, hp, maxHp) positional prefix passes by name. SetChargingBit stays local: this
     // file is its only consumer (the charged-summon commit bit, 0x08, vs the shared Jump 0x04).
 

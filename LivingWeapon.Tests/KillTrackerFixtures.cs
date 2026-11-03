@@ -3,12 +3,12 @@ using LivingWeapon;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-160: the shared seeding-helper home for the nine suites that drive KillTracker.Poll
+/// The shared seeding-helper home for the nine suites that drive KillTracker.Poll
 /// (KillTrackerTests, KillTrackerStampTests, KillTrackerDeedTests, KillCreditCoverageTests,
 /// CounterAttributionTests, DelayedActorTests, CrossTurnSummonTests, SummonerAttributionTests,
 /// VictimProbeTests). Those files each hand-copied this family under a documented per-file
 /// mirroring convention; the owner retired that convention on 2026-08-08 and the copies folded
-/// here, the same move BandFixtures made for the signature-module seeders (LW-149/LW-157).
+/// here, the same move BandFixtures made for the signature-module seeders.
 ///
 /// Every body below is a verbatim copy of the pre-fold canonical (the KillTrackerTests lineage;
 /// the DelayedActorTests-lineage variants differed only by omitted parameters and hardcoded

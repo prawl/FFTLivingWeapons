@@ -15,6 +15,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ct_probe import PROC, PV_W, find_pid, k32, rd, wr
 
+
 class MBI(ctypes.Structure):
     _fields_ = [("BaseAddress", ctypes.c_void_p), ("AllocationBase", ctypes.c_void_p),
                 ("AllocationProtect", wt.DWORD), ("PartitionId", wt.WORD),
@@ -27,12 +28,14 @@ READABLE = {0x02, 0x04, 0x08, 0x20, 0x40, 0x80}
 SIG = bytes([0x08, 0x00, 0x0E, 0x00, 0x0E, 0x00, 0xD0, 0x00, 0x05, 0x00, 0x05, 0x00])
 SNAP = os.path.join(os.path.dirname(os.path.abspath(__file__)), "menu_snap.json")
 
+
 def rd_raw(h, addr, size):
     buf = ctypes.create_string_buffer(size)
     n = ctypes.c_size_t()
     if not k32.ReadProcessMemory(h, ctypes.c_void_p(addr), buf, size, ctypes.byref(n)):
         return None
     return buf.raw[: n.value]
+
 
 def scan(h):
     hits = []

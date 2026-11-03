@@ -5,7 +5,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-149 stage A cadence pins: how many times each hold calls NaturalLedger.RecordWrite per
+/// Stage A cadence pins: how many times each hold calls NaturalLedger.RecordWrite per
 /// evaluated tick, in the OWNED and FOREIGN cases, exactly as today's code behaves. Written and
 /// run GREEN against the pre-extraction GrowthEngine.Ultima.cs/Mushin.cs/Afterimage.cs/cs (Hold)
 /// FIRST (the adversarial plan review's own demand: the cadence numbers must be MEASURED, not

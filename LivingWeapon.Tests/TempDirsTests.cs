@@ -3,7 +3,7 @@ using Xunit;
 
 namespace LivingWeapon.Tests;
 
-/// <summary>LW-147: pins TempDirs' contract (see its own doc for why this fixture exists).</summary>
+/// <summary>Pins TempDirs' contract (see its own doc for why this fixture exists).</summary>
 public class TempDirsTests
 {
     [Fact]

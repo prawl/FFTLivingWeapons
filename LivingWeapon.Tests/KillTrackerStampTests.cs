@@ -10,7 +10,7 @@ namespace LivingWeapon.Tests;
 /// Death-edge culprit-stamp integration tests -- KillTracker.Poll driven end-to-end through the
 /// REAL KillerStamp/ActorRegister wiring (KillTracker.Stamp.cs, KillTracker.Corpses.cs's
 /// deadStreak==1 edge). Companion to KillerStampTests.cs (the pure Decide/TryHypothesis halves).
-/// Seeding rides the shared KillTrackerFixtures (LW-160): SetActive seats the turn-queue tuple,
+/// Seeding rides the shared KillTrackerFixtures: SetActive seats the turn-queue tuple,
 /// SetUnit/SetEnemy seat band entries (+ the static-array identity capture for enemies),
 /// SetRoster seats a roster slot's fingerprint+hands+nameId, PointAt/SetFrameNameId drive the
 /// engine actor pointer and its frame&lt;-&gt;roster nameId bridge.
@@ -499,11 +499,11 @@ public class KillTrackerStampTests
         Assert.False(kills.ContainsKey(staleWeapon));
     }
 
-    // --- LW-1: the empty-latch sibling (StampCulpritFromEmptyLatch, KillTracker.Stamp.cs) ---
+    // --- The empty-latch sibling (StampCulpritFromEmptyLatch, KillTracker.Stamp.cs) ---
     //
     // Companion to the tape-replay tests above, but for the OTHER half of the death-edge stamp:
     // the acted-period latch resolved EMPTY (a roster player with no tracked weapon: the Boco/
-    // Phoenix Down live case, docs/TODO.md LW-1). Before this fix the bury branch
+    // Phoenix Down live case, the ledger). Before this fix the bury branch
     // (KillTracker.Corpses.cs's `else if (_latchResolvedEmpty && _latched)`) stamped
     // UntrackedReason.ActedLatch unconditionally; the fix consults the SAME KillerStamp register
     // hypothesis the armed-latch sibling already uses, and overrides only on a fresh, disagreeing,
@@ -512,7 +512,7 @@ public class KillTrackerStampTests
     [Fact]
     public void EmptyLatch_register_overrides_with_fresh_armed_arrival()
     {
-        // LOAD-BEARING (LW-1). Boco (P1) is the acting player this acted-period; he holds no
+        // LOAD-BEARING. Boco (P1) is the acting player this acted-period; he holds no
         // tracked weapon, so the latch resolves EMPTY and freezes (_latchResolvedEmpty &&
         // _latched). acted then STAYS at 1 (the stuck-period pattern from the live tape), so the
         // empty latch never re-resolves. The engine actor pointer independently arrives on Ramza
@@ -680,7 +680,7 @@ public class KillTrackerStampTests
         Assert.Equal(UntrackedReason.ActedLatch, lethalUntracked[0]);
     }
 
-    // --- LW-63 stage 2: the flags-first hypothesis lane at the death-edge stamp (KillerStamp.cs's
+    // --- The flags-first hypothesis lane at the death-edge stamp (KillerStamp.cs's
     // TryHypothesis, D4). Companion to the tape-replay/safety-net tests above (which all pin the
     // REGISTER-snapshot lane byte-identically -- none of them seed any turn flags, so they double
     // as the "no flags owner" regression pin for plan test 13). ---

@@ -269,7 +269,7 @@ def selftest():
                 assert abs(colorsys.rgb_to_hsv(*_rgb(got[k]))[2]
                            - colorsys.rgb_to_hsv(*_rgb(van[k]))[2]) < 0.04, \
                     f"value moved at {p}:{s}; shading must be preserved"
-    # and the verifier must REJECT a bake that touches an effect palette
+    # and the verify step must REJECT a bake that touches an effect palette
     bad = bytearray(out)
     bad[0x0000 + (1 * 16 + 3) * 2] ^= 0xFF
     try:

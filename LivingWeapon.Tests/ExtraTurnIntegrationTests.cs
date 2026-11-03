@@ -123,7 +123,7 @@ public class ExtraTurnIntegrationTests
         Assert.Equal(0, m.Written[Band.Entry(15) + ExtraTurn.CtOff]);
     }
 
-    // ---- KillerDead release: the guarded CT/HP reads' SUCCESS arms (LW-157) ----
+    // ---- KillerDead release: the guarded CT/HP reads' SUCCESS arms ----
     // Every other test in this suite leaves the wielder's CT and HP unmarked, so ReadCt/ReadHp
     // only ever exercised their guarded-FAILURE arms (-1). This one marks both readable and
     // drives the release-on-death path end to end: CT reads FullCt on two consecutive ticks so

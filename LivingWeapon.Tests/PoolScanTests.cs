@@ -6,7 +6,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-261: PoolScan, the resumable byte-budgeted walk PoolLocator drives (PoolLocator.cs's own
+/// PoolScan, the resumable byte-budgeted walk PoolLocator drives (PoolLocator.cs's own
 /// class doc explains why this replaced the old synchronous full-process scan -- a live
 /// measurement clocked it at 7 to 10 seconds on the mod's single 33ms background loop). These two
 /// tests pin the walk's own budget/termination contract in isolation, before PoolLocatorStepTests
@@ -53,7 +53,7 @@ public class PoolScanTests
         long bound = PoolLocator.LocateBudgetInBattle + DisplaySweep.ChunkSize;
         Assert.True(spy.TotalBytesRead <= bound,
             $"Step read {spy.TotalBytesRead} bytes, more than budget+one chunk ({bound})");
-        // LW-265: a double-spending Step (two chunks instead of one) trips the byte bound above
+        // A double-spending Step (two chunks instead of one) trips the byte bound above
         // only via the ~12KB Lookback/TrailSlack read overhead paid twice -- a slack-margin
         // accident, not a designed catch. Only the chunk COUNT pins one slice versus two by
         // design, the same discriminator DisplayPoolLocateBudgetTests' battle-aware budget test
@@ -61,7 +61,7 @@ public class PoolScanTests
         Assert.Equal(1, spy.ChunkReads);
     }
 
-    /// <summary>C2(a) (round 3 verify): a region that GROWS IN PLACE while the cursor is still
+    /// <summary>C2(a): a region that GROWS IN PLACE while the cursor is still
     /// resuming it (not a newly committed region) must have its grown extent covered -- the exact
     /// live shape this arc's own measurement showed (one region: 16.8MB, then 29.6MB, then
     /// 29.7MB, all mid-battle). The marker sits ONLY in the grown tail (past the region's
@@ -107,7 +107,7 @@ public class PoolScanTests
         Assert.Contains(result.Regions, r => r.baseAddr == regionBase && r.size >= 12 * 1024 * 1024);
     }
 
-    /// <summary>C2(b) (round 3 verify): PoolScan.Begin must discard any staging left over from an
+    /// <summary>C2(b): PoolScan.Begin must discard any staging left over from an
     /// earlier, never-completed scan (the shape a restart -- PoolLocator's own Invalidate --
     /// produces: a scan aborted mid-flight in favor of a fresh one). Region A qualifies and gets
     /// internally staged during the FIRST (aborted) scan; the SAME PoolScan instance is then
@@ -204,10 +204,10 @@ public class PoolScanTests
         Assert.Equal(callsAfterBegin + 1, spy.RegionsCalls);
     }
 
-    /// <summary>PIN (LW-267): the read==0 branch inside Step's chunk loop
+    /// <summary>PIN: the read==0 branch inside Step's chunk loop
     /// (<c>if (read == 0) { chunkStart += ChunkReader.ChunkSize; continue; }</c>) skips the one
     /// failed chunk and keeps walking the SAME region, rather than abandoning it outright. NOTE ON
-    /// THE TICKET'S OWN PROSE: docs/TODO.md's LW-267 entry describes this guard as "the choice to
+    /// THE TICKET'S OWN PROSE: the ledger describes this guard as "the choice to
     /// stop reading a region when a read fails rather than skipping past it" -- that is the
     /// OPPOSITE of what the code does (it skips past, via `continue`, not `break`). This test pins
     /// the ACTUAL current behavior (skip-and-continue), not the ticket's prose; production

@@ -6,3 +6,5 @@
 *.ps1     text eol=crlf
 # Shell scripts run under bash, which chokes on a carriage return at each line end.
 *.sh      text eol=lf
+# A tape is gzip; a line-ending translation would corrupt it.
+*.gz      binary

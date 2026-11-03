@@ -9,7 +9,7 @@ using Xunit;
 
 namespace LivingWeapon.Tests;
 
-/// <summary>LW-348 / LW-353: the per-save bag-count sidecar (schema 2) and its schema-1 migration.</summary>
+/// <summary>The per-save bag-count sidecar (schema 2) and its schema-1 migration.</summary>
 public class ExtendedBagSidecarTests : IDisposable
 {
     private readonly string _dir = Path.Combine(Path.GetTempPath(), "lw_bag_" + Guid.NewGuid().ToString("N"));
@@ -76,7 +76,7 @@ public class ExtendedBagSidecarTests : IDisposable
         Assert.Equal(PathOf, back.LoadedFrom);
     }
 
-    /// <summary>LW-351: the bag replay moved onto the game's OWN thread (it now runs inside the
+    /// <summary>The bag replay moved onto the game's OWN thread (it now runs inside the
     /// load detour, before the game rebuilds its menu templates), so this sidecar is reached from
     /// two threads at once: the detour resolving a load, and Engine's tick recording a save. Its
     /// maps are plain Dictionary/List and its writer is SidecarJson's fixed .tmp path, and
@@ -140,7 +140,7 @@ public class ExtendedBagSidecarTests : IDisposable
         Assert.Equal(new Dictionary<int, int> { [261] = 4 }, c);   // only well-formed byte-range entries survive
     }
 
-    // --- LW-351 fix round 7 (R7-2): the cap is 1024 and a key a load touched is not the first to go ---
+    // --- A later fix: the cap is 1024 and a key a load touched is not the first to go ---
 
     [Fact]
     public void The_cap_holds_a_thousand_saves_so_battle_autosaves_cannot_push_real_saves_out()

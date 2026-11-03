@@ -7,7 +7,7 @@ namespace LivingWeapon.Tests;
 /// <summary>
 /// Per-unit turn counting behind the IGameMemory fake (no live game). On each rising edge of
 /// the global "acted" flag the tracker credits a completed turn to the ACTIVE unit -- resolved
-/// FLAGS-FIRST since LW-94 (Band.FlagOwner's exclusive ATurnFlag walk, seeded here via
+/// FLAGS-FIRST (Band.FlagOwner's exclusive ATurnFlag walk, seeded here via
 /// SeatFlagOwner), then the engine actor pointer (Offsets.ActorPtr -> band entry, seeded via
 /// SeedU64 with a FRAME base address), then the legacy turn-queue HP/MaxHP/level -> band-entry
 /// fingerprint match (the unseeded default in these tests). Credits settle into a unit's
@@ -300,12 +300,12 @@ public class TurnTrackerTests
         Assert.Equal(1, t.Turns(20, 70, 50));
     }
 
-    // ---- Flags-first attribution (LW-94, T1-T8) ----
+    // ---- Flags-first attribution (T1-T8) ----
 
     [Fact]
     public void Flags_owner_wins_over_the_actor_pointer()
     {
-        // T1 LOAD-BEARING: encodes the live tape (LW-94) -- the engine's own ActorPtr PARKS on
+        // T1 LOAD-BEARING: encodes the live tape -- the engine's own ActorPtr PARKS on
         // the action's TARGET at a caster's acted edge (a healer's own turns were credited to
         // its heal target four times over on tape), so pointer-first mis-credits the target.
         // Flags-first (Band.FlagOwner) names the true actor structurally and must win.
@@ -372,7 +372,7 @@ public class TurnTrackerTests
     [Fact]
     public void Drift_settle_keeps_crediting_the_pre_levelup_key()
     {
-        // T5: LW-94 part 2. A mid-battle level-up drifts the BAND fingerprint up (36 -> 37 on
+        // T5: part 2. A mid-battle level-up drifts the BAND fingerprint up (36 -> 37 on
         // tape) while consumers (Renewal.cs) query the pre-battle ROSTER fingerprint, which
         // stays at the old level for the whole battle -- the count must keep landing on the
         // pre-drift key rather than resetting under a fresh one.

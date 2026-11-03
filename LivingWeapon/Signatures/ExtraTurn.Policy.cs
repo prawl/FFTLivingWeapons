@@ -74,5 +74,5 @@ internal sealed partial class ExtraTurn
 /// (kill-turn running) -> Pinning (until the bonus move ends) -> Idle.</summary>
 internal enum GrantState { Idle, Arming, Owed, Pinning }
 
-/// <summary>Why a grant ended -- logged, and everything except Consumed restores the parked CT.</summary>
+/// <summary>Why a grant ended. It is logged, and everything except Consumed restores the parked CT.</summary>
 internal enum ReleaseReason { Consumed, NoSignal, AbsoluteCap, KillerDead, BattleReset, GateLost }

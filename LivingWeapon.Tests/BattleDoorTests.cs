@@ -6,7 +6,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-398: the band door and the static array door over FakeSparseMemory. The roster row comes from
+/// The band door and the static array door over FakeSparseMemory. The roster row comes from
 /// EngineTests.HealthyMemory (level 12, brave 70, faith 65, name id 1) and the two regions are whole
 /// TerrainBlocks, because each probe reads its region in one block. A "field step" is
 /// StepBattleDoors(true, true) and a "live step" is StepBattleDoors(true, false).

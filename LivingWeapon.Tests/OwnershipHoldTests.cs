@@ -4,13 +4,13 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-149 stage A: the OwnershipHold core shared by HoldUltima/HoldMushin/HoldAfterimage.
+/// Stage A: the OwnershipHold core shared by HoldUltima/HoldMushin/HoldAfterimage.
 /// TryCapture is the sane-gate + NaturalLedger.FilterCapture consult; OwnsCurrentValue is the
 /// three-token check (our last write, the untouched natural, or the recognized baked restart
 /// residue); Step composes both (plus the Writable gate) into the branch a lane acts on.
 ///
 /// NON-VACUITY TARGET: OwnsCurrentValue_BakedToken_OwnsWhenNothingElseMatches is the pin that
-/// breaks if the baked token is dropped from the three-token check (LW-90's restart-residue
+/// breaks if the baked token is dropped from the three-token check (the restart-residue
 /// re-apply path would then read FOREIGN forever after a corrected capture).
 /// </summary>
 public class OwnershipHoldTests
@@ -93,7 +93,7 @@ public class OwnershipHoldTests
     public void OwnsCurrentValue_BakedToken_OwnsWhenNothingElseMatches()
     {
         // NON-VACUITY TARGET: drop "(baked > 0 && cur == baked)" from the check and this flips
-        // from true to false -- the LW-90 post-restart re-apply path would go foreign forever.
+        // from true to false -- the post-restart re-apply path would go foreign forever.
         Assert.True(OwnershipHold.OwnsCurrentValue(cur: 30, lastTarget: 20, natural: 15, baked: 30));
     }
 

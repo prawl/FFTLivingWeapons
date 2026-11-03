@@ -23,7 +23,7 @@ public class GunSlingerTests
 {
     private static bool DoorOpen() => true;
 
-    // LW-193: shared defaults for the Stage-2 Policy call sites below -- a "consenting" out-of-
+    // Shared defaults for the Stage-2 Policy call sites below -- a "consenting" out-of-
     // battle world: no menu open, no shield in the way, and a twinIds set containing whichever
     // single weapon id that test's `twin` argument uses (76, the Blaster, throughout Stage-2).
     private const ushort EmptyShieldForTest = 0xFFFF;
@@ -81,7 +81,7 @@ public class GunSlingerTests
         Assert.Equal(GunSlingerOffAction.Leave, action);
     }
 
-    // LW-193 consent model (reversed from the pre-fix behavior this test used to pin): a real
+    // Consent model (reversed from the pre-fix behavior this test used to pin): a real
     // player item with no snap on record withholds consent outright -- it is never grabbed.
     [Fact]
     public void Policy_OffHand_realItem_noSnap_declines_Leave()
@@ -164,7 +164,7 @@ public class GunSlingerTests
 
     // ── Stage-2: GunSlinger.Policy -- support decisions ───────────────────────
     //
-    // LW-168 v2 (owner-observed live 2026-08-12): the roster picked-support field at +0x0A is a
+    // V2 (owner-observed live 2026-08-12): the roster picked-support field at +0x0A is a
     // u16 ABILITY KEY, not a u8 id. An empty support slot reads u16 0; Dual Wield is Key 477
     // (live support id 221 + 256).
 
@@ -232,7 +232,7 @@ public class GunSlingerTests
         Assert.Equal(GunSlingerSuppAction.Leave, action);
     }
 
-    // LOAD-BEARING KEYSTONE (LW-168): an EMPTY support slot reads u16 0 live (owner-diagnosed
+    // LOAD-BEARING KEYSTONE: an EMPTY support slot reads u16 0 live (owner-diagnosed
     // 2026-08-12). The old policy rejected 0 as garbage, so a unit with no support ability
     // never received Dual Wield. If Policy returns Leave here, this test must fail.
     [Fact]
@@ -306,7 +306,7 @@ public class GunSlingerTests
         Assert.Equal(77, snap2.OrigOff);
     }
 
-    // LW-168 v2: a legacy gunslinger.json (release 2.3.2 and earlier) recorded only the LOW BYTE
+    // V2: a legacy gunslinger.json (release 2.3.2 and earlier) recorded only the LOW BYTE
     // of the support Key. Loading one must migrate it to the real u16 Key at the deserialization
     // boundary, not plant the low byte verbatim.
     [Fact]
@@ -355,7 +355,7 @@ public class GunSlingerTests
         // Mark off-hand and support writable
         mem.MarkWritable(b + Offsets.ROffHand, 2);   // production gates the u16 twin write with n=2 (GunSlinger.cs WriteOffHand)
         mem.MarkWritable(b + Offsets.RSupport, 2);   // production gates the u16 support write with n=2 (GunSlinger.cs WriteSupport)
-        // LW-193: the menu gate is unreadable-means-suppress (fail toward not writing), so every
+        // The menu gate is unreadable-means-suppress (fail toward not writing), so every
         // test that wants the pre-existing "world map, menu closed" behavior must mark it
         // readable+closed explicitly -- a shared, idempotent one-liner here rather than a dozen
         // per-test copies. Tests that exercise the menu gate itself override this afterward.
@@ -387,7 +387,7 @@ public class GunSlingerTests
         Assert.Equal(DualWieldKey, mem.WrittenU16[b + Offsets.RSupport]);
     }
 
-    // LW-193 consent model (reversed from the pre-fix behavior this test used to pin, when a real
+    // Consent model (reversed from the pre-fix behavior this test used to pin, when a real
     // off-hand item got grabbed and snapshotted -- exactly the [twin-grant-inventory-desync]
     // pattern): a real item in the off-hand withholds consent. Nothing is written, nothing is
     // snapshotted, and Dual Wield is withheld right alongside it (the off-hand feeds the
@@ -452,7 +452,7 @@ public class GunSlingerTests
         Assert.Equal((ushort)463, mem.WrittenU16[b + Offsets.RSupport]);
     }
 
-    // LW-168: a BARE unit (support slot reads u16 0, the live empty) gets Dual Wield, the
+    // A BARE unit (support slot reads u16 0, the live empty) gets Dual Wield, the
     // snapshot records the true empty, and unequipping restores 0 rather than a phantom ability.
     [Fact]
     public void PrepRoster_bare_unit_gets_dualwield_and_restore_writes_true_empty()
@@ -540,7 +540,7 @@ public class GunSlingerTests
         Assert.False(snap.HasOff);   // NOTHING captured to the persistent store
     }
 
-    // LW-193 blocker-1 resolution (reversed from the pre-fix "never restores in battle" blanket
+    // Blocker-1 resolution (reversed from the pre-fix "never restores in battle" blanket
     // guard this test used to pin): with the shield slot empty and the off-hand still holding
     // OUR own twin, a Restore is now PERMITTED in battle -- the previous blanket suppression is
     // replaced by the consent table's rule 2b, which cares only about consent (shield/OrigOff),
@@ -595,7 +595,7 @@ public class GunSlingerTests
             "must not write support below tier 3");
     }
 
-    // ── LW-171 "Crossfire": multiple flagged gun-slinger weapons, each wielder's own twin ────
+    // ── "Crossfire": multiple flagged gun-slinger weapons, each wielder's own twin ────
     //
     // Outrider Pistol (id 71) "Gun Slinger" and Arbalest (id 79) "Crossfire" are both flagged
     // gunSlinger in meta.json. The runtime must resolve EVERY flagged id, not just one, and each
@@ -626,7 +626,7 @@ public class GunSlingerTests
         }
     };
 
-    // LOAD-BEARING (LW-171): two DIFFERENT flagged weapons, two DIFFERENT wielders. Under the
+    // LOAD-BEARING: two DIFFERENT flagged weapons, two DIFFERENT wielders. Under the
     // single-_twinId code only whichever id ResolveTwinId resolved first ever equips a twin --
     // the other wielder's off-hand/support are silently left alone. Confirm RED before
     // implementing (report which assertion failed).
@@ -697,7 +697,7 @@ public class GunSlingerTests
         Assert.Equal(100, gs.StoreForTest().Get(nameId: 1).OrigOff);   // untouched by the re-assert
     }
 
-    // LW-193 consent model (reversed from the pre-fix behavior this test used to pin -- its old
+    // Consent model (reversed from the pre-fix behavior this test used to pin -- its old
     // name called the real item "shield off-hand", but it was a plain real weapon id, id 111,
     // grabbed exactly the way [twin-grant-inventory-desync] describes): a real item in the
     // off-hand withholds consent outright. Nothing is written, nothing is snapshotted.
@@ -756,7 +756,7 @@ public class GunSlingerTests
         Assert.False(snap.HasOff);
     }
 
-    // ── LW-252: an unseeded roster row (nameId 0) must never touch the snapshot store ─────────
+    // ── An unseeded roster row (nameId 0) must never touch the snapshot store ─────────
     //
     // GunSlingerStore.Get CREATES on read and keys snapshots by nameId (GunSlinger.Store.cs's
     // own class doc). Two unseeded rows (nameId 0 -- a Mem fail-safe transient, or a genuinely
@@ -775,7 +775,7 @@ public class GunSlingerTests
     [Fact]
     public void PrepRoster_never_shares_a_key0_snapshot_between_two_unseeded_wielders()
     {
-        // [LW-252 G1, THE red] Two unseeded (nameId 0) roster rows, both wielding the SAME
+        // [G1, THE red] Two unseeded (nameId 0) roster rows, both wielding the SAME
         // GunSlinger-flagged weapon with their own DISTINCT real off-hand items. Pre-fix, both
         // rows key into the SAME shared key-0 snapshot: row A's SnapshotAndWrite captures A's
         // own original (100) into it; row B then sees snap.HasOff already true (the SAME shared
@@ -806,7 +806,7 @@ public class GunSlingerTests
         Assert.False(Snaps(gs.StoreForTest()).ContainsKey(0), "Get(0) must never be called");
     }
 
-    // [LW-252 G3, parity] Checked first per spec: PrepRoster_snapshots_and_overwrites_real_offhand
+    // [G3, parity] Checked first per spec: PrepRoster_snapshots_and_overwrites_real_offhand
     // and PrepRoster_restores_originals_when_Blaster_unequipped (Stage-3 section above) already
     // drive a properly-seeded row (nameId: 1) through the full snapshot+restore round trip end
     // to end, and both are in the MUST-NOT-TOUCH set below (green before and after, unmodified)
@@ -816,7 +816,7 @@ public class GunSlingerTests
     [Fact]
     public void Ctor_purges_a_pre_existing_key0_snapshot_warns_once_and_persists_the_purge()
     {
-        // [LW-252 G2] A key-0 snapshot already on disk (from before this fix shipped, or any
+        // [G2] A key-0 snapshot already on disk (from before this fix shipped, or any
         // other stale-nameId hazard) is unrecoverable-by-construction -- it cannot be safely
         // attributed to either unit that shared it. The ctor purges it, warns exactly ONCE
         // (naming the hazard), and forces a Save() immediately so the warning fires once EVER,

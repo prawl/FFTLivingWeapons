@@ -6,6 +6,8 @@ instead of deterministic PA*WP -- and is there a holdable byte that flips it?
 BACKGROUND (2026-07-01). The rebalance recategorizes Iron Flail (global id 67) -> Sword
 via items.json `categoryOverride`, which writes ItemData byte 0x05 = ITEM TYPE. item_type_probe
 already confirmed that write LANDS: id 67 reads Sword (0x03) at ItemData+0x05 live, so equip
+
+
 class / weapon-skill access / swing MOTION are all correct. BUT damage is still swingy
 (Rand(1..PA)*WP, the flail curve) even after swapping the XML <Formula> 1->2. So the damage
 routine does NOT read ItemData+0x05 -- it reads the weapon's type from somewhere else that our

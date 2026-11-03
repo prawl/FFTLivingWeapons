@@ -8,10 +8,10 @@ using Xunit;
 
 namespace LivingWeapon.Tests;
 
-/// <summary>LW-375 close-out (owner ruling 2026-08-31): the universal owned-at-once limit for the
+/// <summary>Close-out (owner ruling 2026-08-31): the universal owned-at-once limit for the
 /// extended catalog is the SHORTEST list in the item-display path, the equip picker's weapons-only
-/// stack list, which <see cref="ListBuilderHook.StackCallerCap"/> caps at 149 entries (LW-371's
-/// cookie arithmetic; LW-372's hook enforces it). 123 vanilla weapon kinds exist (121 items.json
+/// stack list, which <see cref="ListBuilderHook.StackCallerCap"/> caps at 149 entries (the
+/// cookie arithmetic; the hook enforces it). 123 vanilla weapon kinds exist (121 items.json
 /// weapon rows plus the two DLC blades 256/257), so at most 26 extended weapon kinds may ship
 /// before a completionist who owns everything starts losing rows off the bottom of the equip
 /// picker. The owner declined the third relocation that would have lifted it (a ~50-site
@@ -32,13 +32,13 @@ public class ExtendedWeaponCeilingTests
     /// <summary>THE GATE: the shipped extended folder may never define more weapon kinds than the
     /// picker has rows for. Red here means a completionist's equip picker would silently drop
     /// their last kinds; shrink the catalog or lift the picker ceiling first (the declined
-    /// LW-375 relocation is the known lift).</summary>
+    /// relocation is the known lift).</summary>
     [Fact]
     public void The_shipped_extended_catalog_stays_inside_the_picker_ceiling()
     {
         var r = ExtendedInventoryData.Load(Path.Combine(RepoRoot(), "mod"));
         Assert.True(r.Ok, string.Join("; ", r.Errors));
-        // Reviewer finding (2026-08-31): generate.py's weapons-only refusal also admits Throwing
+        // Review finding (2026-08-31): generate.py's weapons-only refusal also admits Throwing
         // and Bomb, which the picker set below does not count; a row outside the counted set must
         // go red here rather than ride past the ceiling uncounted.
         Assert.All(r.Items, i => Assert.True(WeaponCats.Contains(i.Category),
@@ -64,7 +64,7 @@ public class ExtendedWeaponCeilingTests
     /// the two DLC blades 256/257 (not items.json rows) -- the weapons-only twin of
     /// TemplateRelocationTests.CountVanillaHandKinds. Exactly TWO DLC blades exist: 258 to 260
     /// are a hat, a vest and a ring (docs/research/ITEM_CAP_261_BREAK_JOURNEY.md byte dump),
-    /// which the LW-362 backlog row also records since its 2026-08-31 correction.</summary>
+    /// which the backlog row also records since its 2026-08-31 correction.</summary>
     private static int CountVanillaWeaponKinds()
     {
         string path = Path.Combine(RepoRoot(), "data", "items.json");

@@ -7,10 +7,10 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-134: exercises tools/pipeline.ps1's Resolve-DeployedFlavor for real, via a real Windows
+/// Exercises tools/pipeline.ps1's Resolve-DeployedFlavor for real, via a real Windows
 /// PowerShell 5.1 child process (not a re-implementation of its logic in C#), so these tests are
 /// pinned against the exact script BuildLinked.ps1's deploy guard runs, not a paraphrase of it.
-/// Repo-root resolution mirrors PipelineManifestContractTests. LW-147: TempFixtureDir()
+/// Repo-root resolution mirrors PipelineManifestContractTests. TempFixtureDir
 /// directories are tracked and deleted in Dispose, not leaked.
 /// </summary>
 public class DeployGuardTests : IDisposable
@@ -148,11 +148,11 @@ public class DeployGuardTests : IDisposable
         Assert.Equal("prod|stamp", result);
     }
 
-    // THE LOAD-BEARING TEST for the whole ticket (LW-134). A production zip install carries no
+    // THE LOAD-BEARING TEST for the whole ticket. A production zip install carries no
     // marker file (BuildLinked.ps1 never touched it), the mod may never have launched (so no
     // run_flavor.txt stamp either), and a kill tally sitting in the save dir with no flavour
     // evidence at all is exactly what the guard exists to protect -- the 2026-07-25 incident shape.
-    // The OLD guard probed for kills.json next to the mod dir, a location LW-51 made unreachable,
+    // The OLD guard probed for kills.json next to the mod dir, a location the save move made unreachable,
     // and waved an install exactly like this one through.
     [Fact]
     public void The_2026_07_25_incident_shape_is_refused()

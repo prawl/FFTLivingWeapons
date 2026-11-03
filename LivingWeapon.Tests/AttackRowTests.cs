@@ -4,7 +4,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// AttackRow.cs is LW-31 stage 3's runtime half (docs/TODO.md): it owns EVERY read/write of the
+/// AttackRow.cs is stage 3's runtime half (docs/TODO.md): it owns EVERY read/write of the
 /// live 36-byte Attack-command record (AttackRow.Policy.cs's class doc has the full geometry).
 /// Stateless per call, shape-based (Classify decides, Paint/Restore only ever act on a shape they
 /// are willing to touch), no per-hit memory of its own, AttackCard.cs holds the cache/anchor

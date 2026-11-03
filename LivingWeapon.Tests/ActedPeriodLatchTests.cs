@@ -6,7 +6,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// ActedPeriodLatch unit suite (LW-150 S3): the acted-period latch state machine extracted out
+/// ActedPeriodLatch unit suite: the acted-period latch state machine extracted out
 /// of KillTracker.cs's Poll (the acted-block) and FirstKillFallback, driven directly against a
 /// REAL ActorResolver + ActorRegister over FakeSparseMemory (mirroring KillerStampTests.cs's and
 /// ActorRegisterTests.cs's idioms) -- no KillTracker instance needed, since THE MIRROR-OUTPUTS
@@ -214,7 +214,7 @@ public class ActedPeriodLatchTests
     [Fact]
     public void LastActorNameId_refreshes_for_a_second_wielder_sharing_the_same_weapon_set()
     {
-        // [LW-252 stage 3, S4: the F6 stale case] Mirrors LastActorFp_refreshes_... above for the
+        // [S4: the F6 stale case] Mirrors LastActorFp_refreshes_... above for the
         // new nameId field -- two Arcanum (30) holders again (SameSet true between them), this
         // time each with their own roster nameId and a matching band-seat frame nameId. The
         // refresh MUST sit outside the !SameSet guard exactly like LastActorFp's does: gated

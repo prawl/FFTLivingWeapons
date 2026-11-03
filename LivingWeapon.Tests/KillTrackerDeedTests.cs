@@ -11,7 +11,7 @@ namespace LivingWeapon.Tests;
 /// captures (deadStreak==1), via the shared VictimReader.Read. KillTracker.cs's CreditKill
 /// consumes it EXACTLY ONCE (both the credited and no-credit branches clear it) and reports it to
 /// an injected IDeedSink (null-safe -- every existing call site that omits `deeds` behaves
-/// byte-identically). Band/roster seeding rides the shared KillTrackerFixtures (LW-160).
+/// byte-identically). Band/roster seeding rides the shared KillTrackerFixtures.
 /// </summary>
 public class KillTrackerDeedTests
 {

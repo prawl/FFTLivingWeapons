@@ -158,7 +158,7 @@ public class SignaturesTests
     }
 
     // --- FreshKill: the primed kill-tally-diff trigger (live via ExtraTurn's freshKill edge;
-    //     this pin moved here from LifeSapTests when the dormant Life Sap lane was deleted, LW-159) ---
+    //     this pin moved here from LifeSapTests when the dormant Life Sap lane was deleted) ---
 
     [Theory]
     [InlineData(-1, 0, false)]   // unprimed: first sight never fires

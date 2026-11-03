@@ -55,6 +55,8 @@ NAMES = {1: "rangeIdx", 2: "pairArt", 3: "validity", 4: "artSib", 5: "weaponStat
 PRO = bytes.fromhex("89c825ff030000")
 STATE = os.path.join(os.environ.get("TEMP", "."), "lw365_clone_call_log_state.json")
 RING_BYTES = 0x1010
+
+
 def wpm(a, b):
     buf = (C.c_ubyte * len(b))(*b); g = C.c_size_t(0)
     return bool(k32.WriteProcessMemory(_handle(), C.c_void_p(a), buf, len(b), C.byref(g))) and g.value == len(b)

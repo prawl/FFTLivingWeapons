@@ -53,7 +53,7 @@ from lib.paths import RELOADED_MODS
 
 # --- Deployed-install resolution (mirror BuildLinked.ps1's mods-folder logic) ---
 # The RELOADEDIIMODS-vs-Steam-default rule itself now lives in ONE place, lib.paths.RELOADED_MODS
-# (LW-148): this used to be a third hardcoded copy of the Steam path that never looked at the env
+#: this used to be a third hardcoded copy of the Steam path that never looked at the env
 # var at all, drifting from BuildLinked.ps1 and lib.paths.
 MOD_ID = "prawl.fft.livingweapons"
 LOG_NAME = "livingweapon.log"
@@ -183,7 +183,7 @@ def scan_lines(lines, allow=(), require_battle=False):
         elif level == "WARN":
             warns_seen += 1
 
-    # Recognized-line tripwire (LW-148): a NON-EMPTY log where NO line matched a known level
+    # Recognized-line tripwire: a NON-EMPTY log where NO line matched a known level
     # marker means the scanner's own line-format assumptions have drifted (or the file is not a
     # mod log at all), so it cannot vouch for the log's health. Fail loud and distinctly rather
     # than silently falling through to the title-screen "inconclusive" warn below, which reads as
@@ -520,7 +520,7 @@ def selftest():
     qlines, _ = report_lines(bad, "x.log", None, (), quiet=True)
     check("quiet: only FAIL lines on failure", len(qlines) == 1 and qlines[0].startswith("[FAIL]"))
 
-    # 16. Recognized-line tripwire (LW-148): a NON-EMPTY log where zero lines classify via
+    # 16. Recognized-line tripwire: a NON-EMPTY log where zero lines classify via
     # line_level must never read CLEAN -- a format drift that blinds the classifier is exactly
     # the "dirty log scans CLEAN" failure mode this scanner exists to prevent.
     r = scan_lines(["this is not a mod log line at all", "neither is this one"])
@@ -536,13 +536,13 @@ def selftest():
     r = scan_lines(["garbage line"] + _hdr())
     check("mixed: one recognized line among garbage does not trip it", "unrecognized-log" not in _codes(r))
 
-    # 17. LW-397: an unknown build stamp is a WARN, never a failure. A log carrying the unknown stamp line,
+    # 17. An unknown build stamp is a WARN, never a failure. A log carrying the unknown stamp line,
     # the armed line and the unknown-build warning scans CLEAN (WARN lines only bump warns_seen).
     r = scan_lines(_hdr() + [_STAMP_UNKNOWN, _ARMED, _UNKNOWN_BUILD_WARN] + _BATTLE)
     check("unknown-build warn: clean", exit_code(r) == 0 and _codes(r) == [])
     check("unknown-build warn: armed, not stood down, warn counted", r.armed and not r.stood_down and r.warns_seen == 1)
 
-    # 18. LW-393: the roster stand-down wording still reads as a stand-down, a drill-forced one is only a WARN,
+    # 18. The roster stand-down wording still reads as a stand-down, a drill-forced one is only a WARN,
     # and the last parts report line rides along as context.
     r = scan_lines(_hdr() + [_STANDDOWN])
     check("roster standdown wording: still stand-down", _codes(r) == ["stand-down"] and exit_code(r) == 1 and r.stood_down)
@@ -560,7 +560,7 @@ def selftest():
     check("parts: nothing printed when the log has none", r.parts == "" and not any("last parts report" in l for l in plines))
     check("parts: an INFO parts line is never an error", scan_lines(_hdr() + [_PARTS_ON, _ARMED] + _BATTLE).errors_seen == 0)
 
-    # 18b. LW-406: the single all armed line replaces the parts list once every part is on. It is never an error,
+    # 18b. The single all armed line replaces the parts list once every part is on. It is never an error,
     # and it counts as the latest parts state, so a closure that follows it wins and one that precedes it loses.
     r = scan_lines(_hdr() + [_PARTS_DRILL, _ARMED, _ALL_ARMED] + _BATTLE)
     check("all armed: an INFO all armed line is never an error", r.errors_seen == 0 and _codes(r) == [])
@@ -571,7 +571,7 @@ def selftest():
     check("all armed: a later parts report replaces it", r.parts.startswith("Parts report: battle sensing ON; kill counting OFF"))
     check("all armed: the mark is not the armed mark", not is_armed(_ALL_ARMED) and parts_text(_ALL_ARMED) is not None)
 
-    # 19. LW-398: a band door WARN under the drill carries the drill tag but not the stand-down phrase, so it is
+    # 19. A band door WARN under the drill carries the drill tag but not the stand-down phrase, so it is
     # a plain WARN and never a stand-down or a drill stand-down finding.
     r = scan_lines(_hdr() + [_ARMED, _BAND_DRILL_WARN] + _BATTLE)
     check("band drill warn: no finding at all", _codes(r) == [] and exit_code(r) == 0)

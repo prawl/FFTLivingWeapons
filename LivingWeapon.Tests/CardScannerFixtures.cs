@@ -22,7 +22,7 @@ internal static class CardScannerFixtures
         return map;
     }
 
-    /// <summary>LW-332: BuildMeta/BuildMetaMap with an additional baked GrowsLine per weapon
+    /// <summary>BuildMeta/BuildMetaMap with an additional baked GrowsLine per weapon
     /// (the pre-existing helpers leave GrowsLine at its "" default, i.e. no Grows anchor).</summary>
     internal static WeaponMeta BuildMetaWithGrows(string name, string flavor, string growsLine)
     {

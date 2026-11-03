@@ -4,7 +4,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// CursorGate.Decide is LW-55's pure policy half: no memory access, just the two NARROWING-ONLY
+/// CursorGate.Decide is the pure policy half: no memory access, just the two NARROWING-ONLY
 /// gates (turn ownership, then weapon agreement) that decide whether the Attack card's cursor
 /// resolve may be trusted. See CursorGate.cs's own class doc for the full gate-order and
 /// sentinel-agreement rationale; this suite pins the decision matrix directly.

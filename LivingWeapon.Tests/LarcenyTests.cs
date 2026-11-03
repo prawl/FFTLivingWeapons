@@ -255,7 +255,7 @@ public class LarcenyTests
         Assert.Single(ledger.Held);
     }
 
-    // ── LW-158: the stateful Observe-driven steal pin. Everything above drives the pure
+    // ── The stateful Observe-driven steal pin. Everything above drives the pure
     //    LarcenyPolicy statics; nothing exercised Larceny.Tick's own detection path, which rides
     //    the shared HpDeltaState HP-drop core (HpDeltaState.cs, subclass RicochetState). That core
     //    had five pinned consumers and this unpinned sixth: a dead-Observe sabotage turned 41
@@ -316,8 +316,8 @@ public class LarcenyTests
         mem.MarkWritable(enemy + Offsets.AReraise, 1);
 
         // Static-array enemy fingerprint at slot 0 (Band.EnemyFingerprints, the enemy oracle).
-        // The fifth inline copy of this seeding, repointed at the shared fold (LW-160 rider;
-        // LW-157 folded the other four).
+        // The fifth inline copy of this seeding, repointed at the shared fold (rider;
+        // Folded the other four).
         BandFixtures.SeatEnemyFp(mem, (mhp: 400, lvl: 40, br: 75, fa: 55));
 
         var larceny = new Larceny(meta, kills, tracker, new TurnTracker(mem), mem);

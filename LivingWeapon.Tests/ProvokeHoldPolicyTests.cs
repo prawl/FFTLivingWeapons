@@ -3,7 +3,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// Pure-decision coverage for the Provoke hold (LW-123 arc 2a): release priority, the WINDOW-mode
+/// Pure-decision coverage for the Provoke hold: release priority, the WINDOW-mode
 /// hide/reveal choice, the turn-edge test, the watchdog accumulator, and the guarded status-bit
 /// writers exercised for real against a PinnedBuf via LiveMemory (the FeignDeath.Policy.cs /
 /// FeignDeathTests.cs precedent). Module-level (band-seat) coverage lives in ProvokeHoldTests.cs.
@@ -12,7 +12,7 @@ public class ProvokeHoldPolicyTests
 {
     private static readonly LiveMemory Live = new();
 
-    // ---- ActionFor (LW-127, D1 revised: the six-branch hide/reveal rule) ----
+    // ---- ActionFor (D1 revised: the six-branch hide/reveal rule) ----
     //
     // Branch order, first match wins. RE-ORDERED after the 2026-07-27 live pass failed both casts
     // (a player-side seat's own turn was revealing the party even while the marked enemy was still
@@ -27,7 +27,7 @@ public class ProvokeHoldPolicyTests
     // that an earlier branch wins even when a later one would also fire -- in particular, engaged now
     // beats every other signal (STATE beats every ranking read), and markedIsActor/markedIsNext beat
     // playerSideOwnsTurn, the exact reordering the live fixes required. The arrangement that broke the
-    // OLD (pre-LW-127) version of this function live is pinned at module level (ProvokeHoldTests, the
+    // OLD (earlier) version of this function live is pinned at module level (ProvokeHoldTests, the
     // WindowMode cursor tests), because that bug was in what got READ, which a pure function cannot
     // express.
 

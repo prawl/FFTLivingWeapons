@@ -8,7 +8,7 @@ namespace LivingWeapon;
 /// Bag-replay policy shared by the extended inventory's two load paths. The save file carries counts for ids
 /// 0..260 only, so right after a load every extended id reads zero until the mod restores them. The replay runs in the
 /// load detour (SaveEdgeHooks.AfterApply) on the game's thread; the Engine tick runs the same resolution as an idempotent
-/// fallback and owns the log line. Round 5 (2026-08-30) found that the load-apply restores both menu order templates
+/// fallback and owns the log line. A live re-test (2026-08-30) found that the load-apply restores both menu order templates
 /// from the save struct byte for byte, so they are save state, and the detour therefore also calls <see cref="TemplateSeat"/>
 /// with <see cref="OwnedIds"/>. Resolution order is the counts recorded for the save's key, else the schema-1
 /// counts once (pre-key migration), else the data's first-copy seed. <see cref="Resolve"/> spends that migration and

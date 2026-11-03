@@ -19,7 +19,7 @@ namespace LivingWeapon.Tests;
 ///   - Wielder B is a Knight (job 76) with a Sanguine Sword in hand -- Knight is directly on
 ///     ShadowBladePolicy's whitelist, landing in the SAME record 7.
 /// This is the "two Knights, one wielding a Defender-like Knight-sword grant, one a Sanguine Sword"
-/// scenario the fix exists for. Provoke now exists (LW-123 arc 1) and shares the exact same
+/// scenario the fix exists for. Provoke now exists and shares the exact same
 /// Knight-record whitelist (ProvokePolicy delegates to ShadowBladePolicy), so
 /// Barrage_shadow_blade_and_provoke_share_one_record_without_corrupting_each_other below extends
 /// the recipe to the REAL three-way case, ticked in Engine.cs's actual order (Barrage, Shadow

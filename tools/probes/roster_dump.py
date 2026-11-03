@@ -5,6 +5,7 @@ PROCESS_QUERY_INFORMATION = 0x0400
 k32 = ctypes.windll.kernel32
 psapi = ctypes.windll.psapi
 
+
 def find_pid(name):
     arr = (w.DWORD * 4096)(); needed = w.DWORD()
     psapi.EnumProcesses(ctypes.byref(arr), ctypes.sizeof(arr), ctypes.byref(needed))
@@ -20,6 +21,7 @@ def find_pid(name):
 h = find_pid("fft_enhanced.exe")
 if not h:
     print("game not running"); sys.exit(1)
+
 
 def rpm(addr, n):
     buf = ctypes.create_string_buffer(n); got = ctypes.c_size_t()

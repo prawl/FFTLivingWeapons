@@ -4,7 +4,7 @@ using Xunit;
 
 namespace LivingWeapon.Tests;
 
-/// <summary>LW-346 S4: the patch-site table, pinned against the research rig's marker v2 (one
+/// <summary>The patch-site table, pinned against the research rig's marker v2 (one
 /// extended id, every line owner-observed 2026-08-26/27) and generalised to N ids.</summary>
 public class ExtendedSitesTests
 {
@@ -12,7 +12,7 @@ public class ExtendedSitesTests
     public void One_extended_id_reproduces_the_rig_marker_byte_for_byte()
     {
         var boot = ExtendedSites.BootPatches(1).ToDictionary(p => p.Addr, p => p);
-        // 37 since LW-388: the two damage caps moved from the post-load set into the boot set.
+        // 37: the two damage caps moved from the post-load set into the boot set.
         Assert.Equal(37, boot.Count);
         // the rig's six built-ins
         Assert.Equal((0x01, 0x02), (boot[0x140284800].Old, boot[0x140284800].New));
@@ -33,13 +33,13 @@ public class ExtendedSitesTests
         Assert.Equal((0x05, 0x06), (boot[0x14028024F].Old, boot[0x14028024F].New));
         Assert.Equal((0x04, 0x05), (boot[0x1401ED95B].Old, boot[0x1401ED95B].New));
         Assert.Equal((0x04, 0x05), (boot[0x1401ED982].Old, boot[0x1401ED982].New));
-        Assert.Equal((0x00, 0x06), (boot[0x140288FDB].Old, boot[0x140288FDB].New));   // LW-354: shop loop 0x100 -> 0x106
-        // LW-351 fix round 6: the two reserved-item equality lists, relocated (not widened)
+        Assert.Equal((0x00, 0x06), (boot[0x140288FDB].Old, boot[0x140288FDB].New));   // Shop loop 0x100 -> 0x106
+        // The two reserved-item equality lists, relocated (not widened)
         Assert.Equal((0x01, 0x02), (boot[0x14028870C].Old, boot[0x14028870C].New));
         Assert.Equal((0x01, 0x02), (boot[0x140396F55].Old, boot[0x140396F55].New));
         Assert.All(boot.Values, p => Assert.False(string.IsNullOrWhiteSpace(p.Label)));
 
-        // LW-388 (R2): the two damage caps, re-found 2026-10-16 in the plain .text of the
+        // The two damage caps, re-found 2026-10-16 in the plain.text of the
         // Denuvo-free 1.5.2 exe (Steam buildid 24304444, read offline). 0x14027F002 is the disp8 of
         // `8d 4a 06` lea ecx,[rdx+6] after `ba ff 00 00 00` mov edx,0xff, followed within 0x30 bytes
         // by two calls to ThunkWeaponStat 0x1402B8C74 (the eighth hand-resolver copy the pattern
@@ -63,15 +63,15 @@ public class ExtendedSitesTests
         Assert.Equal(0x0C, boot[0x140288FDB].New);   // shop loop 0x100 -> 0x10C
         Assert.Equal(0x02, boot[0x14028870C].New);   // reserved-item list: relocated once, N-independent
         Assert.Equal(0x02, boot[0x140396F55].New);
-        Assert.Equal(0x0D, boot[0x14027F002].New);   // LW-388: damage-path hand resolver, lea disp 6 + 7
-        Assert.Equal(0x0D, boot[0x1402822A4].New);   // LW-388: damage-staging cap, lea disp 6 + 7 (plain, no xor)
+        Assert.Equal(0x0D, boot[0x14027F002].New);   // Damage-path hand resolver, lea disp 6 + 7
+        Assert.Equal(0x0D, boot[0x1402822A4].New);   // Damage-staging cap, lea disp 6 + 7 (plain, no xor)
         Assert.Empty(ExtendedSites.PostLoadPatches(7));
     }
 
     [Fact]
     public void Fix_round_2_pins_every_builder_family_id_bound_for_two_extended_ids()
     {
-        // LW-351 fix round 2. The builder family at 0x140280000-0x140290000 carries nine imm32
+        // The builder family at 0x140280000-0x140290000 carries nine imm32
         // 0x105 item-id bounds (re-disassembled from the 1.5.2 exe on disk 2026-08-30; each
         // address below is the imm32's LOW byte, whose offset inside the instruction varies by
         // encoding: mov r32,imm32 = +1, REX mov r64/r8d = +2, cmp eax,imm32 = +1,
@@ -123,7 +123,7 @@ public class ExtendedSitesTests
     [Fact]
     public void The_bag_accessor_cap_is_widened_once_on_its_high_byte_and_never_on_its_low_byte()
     {
-        // LW-351 fix round 3. Re-derived from the 1.5.2 exe on disk 2026-08-30:
+        // Re-derived from the 1.5.2 exe on disk 2026-08-30:
         //   1402847F8  b8 ff 03 00 00     mov eax, 0x3ff
         //   1402847FD  41 b8 03 01 00 00  mov r8d, 0x103        <- THE id cap's imm32
         //   140284803  66 23 c8           and cx, ax            (mask the id to 10 bits)
@@ -134,7 +134,7 @@ public class ExtendedSitesTests
         //              add ecx,edx; cmovns eax,ecx; mov byte[r8+r9],al; ret
         // i.e. the BAG accessor: read-and-adjust the per-id count in the array at 0x1411A7C00,
         // clamped at zero. The imm32 occupies 0x1402847FF..0x140284802, so its LOW byte is
-        // 0x1402847FF and the address the table has carried since LW-346 (0x140284800) is that
+        // 0x1402847FF and the address the table has carried (0x140284800) is that
         // same immediate's SECOND byte. The count-getter entry therefore already widens THIS
         // instruction, to 0x0203 (ids 1..516); a PlusN entry on 0x1402847FF would patch one
         // immediate twice. Live confirmation 2026-08-30 (read-only RPM, mod armed with N=2):
@@ -151,7 +151,7 @@ public class ExtendedSitesTests
     [Fact]
     public void Fix_round_3_sweep_hits_and_the_graceful_0x104_cap_are_never_patched()
     {
-        // LW-351 fix round 3. The 0x103/0x104 value sweep over the builder region also hit four
+        // The 0x103/0x104 value sweep over the builder region also hit four
         // `jcc rel32` displacements that merely happen to equal 0x103, disassembled from disk
         // 2026-08-30: jne at 0x14028094C, jne at 0x14028353C, je at 0x14028E5F9 and jne at
         // 0x140364875 (their rel32 bytes are listed below), plus one MID-INSTRUCTION hit at
@@ -187,7 +187,7 @@ public class ExtendedSitesTests
     [Fact]
     public void Fix_round_6_relocates_both_reserved_item_equality_lists_past_the_extended_range_once()
     {
-        // LW-351 fix round 6. The per-job can-equip check 0x1402886D0 and an inlined copy of it
+        // The per-job can-equip check 0x1402886D0 and an inlined copy of it
         // at 0x140396F1C both test the item id against a hardcoded RESERVED list, not a bound:
         //   140288709  81 ea 06 01 00 00  sub edx, 0x106   ; id == 262 ?
         //   14028870F  74 48              je special
@@ -217,11 +217,11 @@ public class ExtendedSitesTests
     [Fact]
     public void Fix_round_8_widens_all_three_owned_item_template_maintainer_walks()
     {
-        // LW-351 fix round 8 (2026-08-31). The maintainer 0x140285F80 (inventory order tables;
+        // Found 2026-08-31. The maintainer 0x140285F80 (inventory order tables;
         // its second half 0x140286070 serves the picker tables) walks a template to its end
         // before inserting a newly owned id at the front, and its walk stops at the 0x00FF
         // marker OR at the first word >= r14w, where r14d = `lea r14d,[r15+6]` with r15d = 0xFF:
-        // 0x105, read from disk at 0x140285FB2, 0x1402860AB and (round 8b, the third copy
+        // 0x105, read from disk at 0x140285FB2, 0x1402860AB and (the third copy
         // 0x14039684C over the same five inventory tables through its own pointer table
         // 0x140689C38) 0x14039687E, all `45 8d 77 06`. None of the three disp8 bytes was in the
         // table (the sibling walkers 0x140286187 and 0x140285EE7 were; these three sit in a
@@ -247,7 +247,7 @@ public class ExtendedSitesTests
     [Fact]
     public void Fix_round_6_zlib_constants_and_the_chains_other_bytes_are_never_patched()
     {
-        // LW-351 fix round 6. The live 0x106 scan surfaced five `cmp r32,0x106 ; jae` sites at
+        // The live 0x106 scan surfaced five `cmp r32,0x106; jae` sites at
         // 0x1404101E7, 0x1404101FC, 0x1404105F8, 0x14041060D and 0x14040FCC1 that a first
         // reading called an equip gate. They are zlib: function 0x140410190 is deflate_fast /
         // deflate_slow ([rbx+0x9C] = lookahead, [rbx+0x94] = strstart, [rbx+0x68] = head,
@@ -274,9 +274,9 @@ public class ExtendedSitesTests
                      0x140288713L, 0x140288718L, 0x14028871DL, 0x140288722L,
                      0x140396F52L, 0x140396F53L, 0x140396F54L, 0x140396F56L, 0x140396F57L,   // chain 2
                      0x140396F5CL, 0x140396F61L, 0x140396F66L, 0x140396F6BL,
-                     0x140285FB2L, 0x140285FB3L, 0x140285FB4L,   // round 8: the lea's opcode/modrm bytes, only the disp8 moves
+                     0x140285FB2L, 0x140285FB3L, 0x140285FB4L,   // The lea's opcode/modrm bytes, only the disp8 moves
                      0x1402860ABL, 0x1402860ACL, 0x1402860ADL,
-                     0x14039687EL, 0x14039687FL, 0x140396880L,   // round 8b: the third copy's lea, same rule
+                     0x14039687EL, 0x14039687FL, 0x140396880L,   // The third copy's lea, same rule
                  })
             Assert.DoesNotContain(a, addrs);
         Assert.Single(ExtendedSites.BootPatches(2), p => p.Addr == 0x140101071L);
@@ -293,12 +293,12 @@ public class ExtendedSitesTests
         Assert.Equal(9, ExtendedDonorThunks.HookedDonorEntries.Select(t => t.Entry.Addr).Distinct().Count());
     }
 
-    /// <summary>LW-368 round 2 (T9, P11): the eight `lea reg,[base+6]` sites whose displacement is
+    /// <summary>The eight `lea reg,[base+6]` sites whose displacement is
     /// a single SIGNED byte. At N = MaxExtendedCount (121) every one still reads 0x7F or below
     /// (the largest non-negative signed byte); at N = 122 -- the negative control -- at least one
     /// flips to 0x80 and beyond, the exact overflow ExtendedSites.MaxExtendedCount exists to
     /// forbid. The shop loop's imm32 low byte is not a disp8 and is pinned exactly at the boundary.
-    /// LW-388: both damage caps are boot disp8 sites now (the xor encoding is gone with the
+    /// Both damage caps are boot disp8 sites now (the xor encoding is gone with the
     /// protector).</summary>
     [Fact]
     public void BootPatches_121_keeps_every_disp8_site_non_negative_and_122_overflows_one()
@@ -307,7 +307,7 @@ public class ExtendedSitesTests
         {
             0x140284C0AL, 0x140286187L, 0x140285EE7L, 0x140226FDFL,
             0x140285FB5L, 0x1402860AEL, 0x140396881L,
-            0x14027F002L, 0x1402822A4L,   // LW-388: the two damage caps, boot sites since the protector left
+            0x14027F002L, 0x1402822A4L,   // The two damage caps, boot sites since the protector left
         };
 
         var boot121 = ExtendedSites.BootPatches(ExtendedSites.MaxExtendedCount).ToDictionary(p => p.Addr, p => p);
@@ -323,12 +323,12 @@ public class ExtendedSitesTests
         Assert.Equal((byte)(0x05 + 121), boot121[0x140288FDBL].New);
     }
 
-    /// <summary>LW-365 (2026-08-31): the last nine hand-read id bounds, all read from the 1.5.2
+    /// <summary>As of 2026-08-31, the last nine hand-read id bounds, all read from the 1.5.2
     /// exe on disk via tools/probes/lw365_hand_resolver_scan.py -- six hand-resolver copies and
     /// three equip-slot switch guards, all `lea reg,[base+6]` (disp8 = 0x06) like the sites
     /// already in the table. Two more suspect sites were investigated and are walled, never
     /// patched: 0x1402C8155 guards a STACK buffer (widening it would write past the frame array,
-    /// the LW-371 stack-cookie lesson) and 0x1402BD993 is a false positive (rsi = 1 there, so the
+    /// stack-cookie lesson) and 0x1402BD993 is a false positive (rsi = 1 there, so the
     /// lea computes the equip-slot word count for a fill, not a cap).</summary>
     [Fact]
     public void Lw365_pins_the_nine_hand_read_bounds_and_walls_the_stack_bounded_walker()

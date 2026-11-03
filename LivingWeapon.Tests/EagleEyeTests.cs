@@ -5,7 +5,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// Eclipsebolt's "Eagle Eye" signature -- the pure decisions behind hastening Doom. LW-95: the
+/// Eclipsebolt's "Eagle Eye" signature -- the pure decisions behind hastening Doom. The
 /// rule fires only on a Doom RISING EDGE (doomed &amp;&amp; !wasDoomed) that is ATTRIBUTED to the
 /// wielder's own action (mirrors Larceny's actingMain + actedByte==1 gate), and only ever writes
 /// DOWN toward the target countdown. A pre-existing Doom (no edge) or a foe Doomed by any other
@@ -16,7 +16,7 @@ public class EagleEyeTests
 {
     [Theory]
     [InlineData(true, false, 3, 1, true, true)]    // fresh Doom edge, attributed to the wielder -> hasten
-    [InlineData(true, false, 3, 1, false, false)]  // fresh Doom edge, NOT attributed -> leave (LW-95 shape)
+    [InlineData(true, false, 3, 1, false, false)]  // fresh Doom edge, NOT attributed -> leave
     [InlineData(true, true, 3, 1, true, false)]    // pre-existing Doom, no edge -> leave even though wielder acts
     [InlineData(true, false, 1, 1, true, false)]   // already at target -> leave (idempotent)
     [InlineData(true, false, 0, 1, true, false)]   // expiring/expired -> never re-arm (would block the death tick)
@@ -30,7 +30,7 @@ public class EagleEyeTests
     [Fact]
     public void ShouldHasten_ignores_a_doom_edge_not_attributed_to_the_wielder()
     {
-        // LW-95: Mortal Coil (id 8) procced Doom on an enemy while a +3 Eclipsebolt merely sat
+        // Mortal Coil (id 8) procced Doom on an enemy while a +3 Eclipsebolt merely sat
         // fielded (no action of its own); Eagle Eye hastened it anyway. It must not.
         Assert.False(EagleEye.ShouldHasten(doomed: true, wasDoomed: false, countdown: 3, target: 1, attributed: false));
     }
@@ -53,7 +53,7 @@ public class EagleEyeTests
         Assert.Equal(1, EagleEye.AuraTarget(Doom(1, 3), tier: 4));   // and stays past it
     }
 
-    // ---- LW-149 stage D: GHOST-ROW PIN (non-vacuity for the LENIENT occupied-slot rule) ----
+    // ---- Stage D: GHOST-ROW PIN (non-vacuity for the LENIENT occupied-slot rule) ----
     // ActiveTarget's roster sweep historically gated occupancy on nothing but
     // Readable(RNameId, 2) -- no level floor/ceiling at all (unlike Wielder.TryOccupiedSlot's
     // strict level 1..99 rule). This pins TODAY'S behavior: a roster slot whose nameId field is

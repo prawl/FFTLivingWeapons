@@ -7,7 +7,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-393: the pure parts report. Thirteen door readings in, the shipped parts out with ON, OFF or WAITING and a
+/// The pure parts report. Thirteen door readings in, the shipped parts out with ON, OFF or WAITING and a
 /// plain reason, plus the one box text. Order assertions use index positions, never Contains alone.
 /// </summary>
 public class PartsReportTests
@@ -35,7 +35,7 @@ public class PartsReportTests
     private static string Box(Dictionary<Door, DoorReading> r, string drill = "", string hedge = "", string footer = Foot)
         => PartsReport.ComposeBox(r, drill, hedge, footer);
 
-    // Weapon colors ship only in dev builds (LW-446), so the label list follows the flavor.
+    // Weapon colors ship only in dev builds, so the label list follows the flavor.
     private static readonly string[] Labels = BuildLabels();
 
     private static string[] BuildLabels()
@@ -290,7 +290,7 @@ public class PartsReportTests
         Assert.StartsWith(PartsReport.AllPausedHeadline + "\n\n" + PartsReport.AllPausedBody + "\n\n", box);
     }
 
-    // ---- LW-398: the band and static array doors ----
+    // ---- The band and static array doors ----
 
     private static string L(Part part) => PartsReport.LabelOf(part);
 
@@ -481,7 +481,7 @@ public class PartsReportTests
         Assert.DoesNotContain("LW_FORCE_ROSTER_MISMATCH", PartsReport.TwinDrillSentence);
     }
 
-    // ---- LW-399: the five table parts ----
+    // ---- The five table parts ----
 
     [Fact]
     public void The_shipped_labels_appear_in_the_table_order_by_index_with_twin_weapons_at_eight()

@@ -12,7 +12,7 @@ namespace LivingWeapon.Tests;
 /// debounce) archives the previous kill tally and resets the shared instance, non-destructively.
 /// LOAD-BEARING: a single qualifying tick must NEVER archive, only HoldTicks CONSECUTIVE
 /// qualifying ticks do; a hold that breaks before the threshold resets the counter and never
-/// fires. Mirrors KillTallyTests/SaveLocationTests' own-temp-dir idiom. LW-147: ModDir()'s
+/// fires. Mirrors KillTallyTests/SaveLocationTests' own-temp-dir idiom. ModDir's
 /// backing temp root is tracked and deleted in Dispose, not leaked.
 /// </summary>
 public class PlaythroughResetTests : IDisposable
@@ -193,7 +193,7 @@ public class PlaythroughResetTests : IDisposable
         Assert.Equal(5, tally.Kills[1]);
     }
 
-    // --- LW-56: Observe's return value is the "a new game just qualified" detection edge,
+    // --- Observe's return value is the "a new game just qualified" detection edge,
     // consumed by Engine to force BattleState's exit. Deliberately decoupled from the archive
     // action's own non-empty-tally gate below: a zero-credit battle followed by a new game still
     // needs the forced exit (state hygiene), even though there is nothing to archive. ---
@@ -256,14 +256,14 @@ public class PlaythroughResetTests : IDisposable
         Assert.False(File.Exists(save.PathFor("kills.json")));    // no save call either
     }
 
-    // --- LW-395: the sentinel-verification gate. The reset may only clear kills.json once the
+    // --- The sentinel-verification gate. The reset may only clear kills.json once the
     // sensing lane (LaunchGuard.Sensing.cs) has verified the battle sentinels this launch; a
     // sustained "new game" signal without that verification is REFUSED (data untouched). ---
 
     [Fact]
     public void Sensing_not_armed_refuses_the_reset_at_the_threshold()
     {
-        // LOAD-BEARING (LW-395). NON-VACUITY LEVER: in PlaythroughReset.Observe, change the
+        // LOAD-BEARING. NON-VACUITY LEVER: in PlaythroughReset.Observe, change the
         // threshold branch's `if (sensingArmed)` to `if (sensingArmed || true)` (a constant `true`
         // alone does not compile: TreatWarningsAsErrors turns the dead else path into CS0162) and
         // this test goes red (the HoldTicks-th call returns Fired and archives/clears). The reverse
@@ -292,7 +292,7 @@ public class PlaythroughResetTests : IDisposable
     public void Sensing_not_armed_with_an_empty_tally_still_returns_Refused_and_archives_nothing()
     {
         // The refusal is about the SIGNAL, not the data, so it reports (and Engine runs its
-        // hygiene) even with nothing to protect, exactly like the pre-LW-395 empty-tally edge.
+        // hygiene) even with nothing to protect, exactly like the earlier empty-tally edge.
         var save = new SaveLocation(ModDir());
         var tally = KillTally.Load(save.PathFor("kills.json"));   // nothing seeded/saved
         var reset = new PlaythroughReset(save, tally);
@@ -327,7 +327,7 @@ public class PlaythroughResetTests : IDisposable
     [Fact]
     public void Sensing_arming_after_the_threshold_fires_once_on_the_first_armed_held_tick()
     {
-        // The late-arm latch (LW-395 review A2): the lane can arm AFTER the hold already crossed
+        // The late-arm latch: the lane can arm AFTER the hold already crossed
         // the threshold and was refused. The still-held signal then fires exactly once.
         var (save, tally) = SeededTally();
         var reset = new PlaythroughReset(save, tally);

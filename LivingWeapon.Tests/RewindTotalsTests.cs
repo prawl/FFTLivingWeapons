@@ -5,7 +5,7 @@ using Xunit;
 
 namespace LivingWeapon.Tests;
 
-/// <summary>LW-452 round two: the game re derives its own bag counts from the roster on the retry roads, so the
+/// <summary>Round two: the game re derives its own bag counts from the roster on the retry roads, so the
 /// extended counts are kept as total owned (bag plus hands) and the bag is set to total minus hands after a rewind.</summary>
 public class RewindTotalsTests
 {

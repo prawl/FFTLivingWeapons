@@ -5,7 +5,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-317 stage 3: WpTableHold, the turn-scoped resident item-stats WP write for the "wp"/
+/// WpTableHold, the turn-scoped resident item-stats WP write for the "wp"/
 /// "wp+faith" gun lanes (see WpTableHold.cs's class doc). Module-level coverage against
 /// FakeSparseMemory band/roster seats, mirroring WeaponPaletteTests.cs's shape -- a SeatOwner
 /// builder that stages a FlagOwner-satisfying band entry, then per-test Tick sequences
@@ -72,7 +72,7 @@ public class WpTableHoldTests
         Assert.Equal((byte)16, mem.U8s[addr]);   // restored, with a read-back verify
     }
 
-    // ---- LW-346: extended-inventory ids have no row in the resident table ----
+    // ---- Extended-inventory ids have no row in the resident table ----
 
     [Fact]
     public void WpTableHold_NeverIndexesPastTheResidentTableForAnExtendedId()
@@ -198,7 +198,7 @@ public class WpTableHoldTests
         Assert.Equal((byte)16, mem.U8s[addr]);   // physically restored: no battle-load refresh for this table
     }
 
-    // ---- F1 (rev 3 ruling R3-6): a foreign write landing MID-HOLD must be dropped, not
+    // ---- F1 (rev 3 ruling): a foreign write landing MID-HOLD must be dropped, not
     // stomped back to baked -- the foreign writer has already overwritten our bump, so nothing
     // of ours is outstanding, and restoring baked would clobber the very value the foreign-write
     // guard exists to protect. Contrast with WpTableHold_ForeignByteStandsDown above, which is
@@ -267,7 +267,7 @@ public class WpTableHoldTests
         Assert.Equal((byte)16, mem.U8s[addr]);
     }
 
-    // ---- LW-399: the item door latch ----
+    // ---- The item door latch ----
 
     [Fact]
     public void A_closed_item_door_never_bumps_a_vanilla_row()

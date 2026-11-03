@@ -13,6 +13,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ct_probe import PROC, PV_W, find_pid, k32
 
+
 class MBI(ctypes.Structure):
     _fields_ = [("BaseAddress", ctypes.c_void_p), ("AllocationBase", ctypes.c_void_p),
                 ("AllocationProtect", wt.DWORD), ("PartitionId", wt.WORD),
@@ -24,6 +25,7 @@ PAGE_GUARD = 0x100
 READABLE = {0x02, 0x04, 0x08, 0x20, 0x40, 0x80}
 FP = bytes([0x63, 0x61, 0x4B])   # lvl 99, brave 97, faith 75
 WIN = 0x300
+
 
 def rd_raw(h, addr, size):
     buf = ctypes.create_string_buffer(size)

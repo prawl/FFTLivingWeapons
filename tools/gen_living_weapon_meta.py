@@ -34,7 +34,7 @@ OUT = ROOT / "LivingWeapon" / "meta.json"
 WEAPON_COLORS = ROOT / "data" / "weapon_colors.json"
 WEAPON_PALETTE_OVERRIDES = ROOT / "data" / "weapon_palette_overrides.json"
 
-# LW-156: the signature passthrough, table-driven. One row per uniform runtime key: (key, kind)
+# The signature passthrough, table-driven. One row per uniform runtime key: (key, kind)
 # where kind "int" emits int(sig[key]) and "flag" emits literal True. Gating is TRUTHINESS
 # (if sig.get(key)), exactly the semantics of the old hand-written branch per key: an explicit
 # 0 or false is OMITTED from meta.json, same as an absent key. EMISSION ORDER IS THE TABLE
@@ -74,7 +74,7 @@ _SIG_HANDLED_ELSEWHERE = {
 }
 
 
-# --- LW-251: WeaponPalette runtime -- data/weapon_colors.json + data/weapon_palette_overrides.json
+# --- WeaponPalette runtime -- data/weapon_colors.json + data/weapon_palette_overrides.json
 # fold into each emitted entry's "palette"/"colors" keys. q5/e5/_code_of mirror
 # tools/probes/lw305_bench_paint.py's own (independently re-derived here, same reason
 # Offsets.WeaponPaletteBankA/B duplicate the probe's BANKS constant rather than import it: the
@@ -335,12 +335,12 @@ def main():
         entry = {
             "name": name, "wp": int(wp), "cat": cat, "formula": int(formula),
             "flavor": flavor_anchor(it),
-            # LW-317: the baked growth lane GrowthEngine.Routes switches on, from items.json's
+            # The baked growth lane GrowthEngine.Routes switches on, from items.json's
             # top-level `grows` (docs/living_weapon_grid.csv's locked design) via lane_of above --
-            # every multi-lane token now keeps its own real shape (the LW-250 interim collapse
+            # every multi-lane token now keeps its own real shape (the interim collapse
             # is retired).
             "lane": lane_of(it.get("grows"), cat),
-            # LW-332: the exact tagged "Grows: ..." card line (lib.flavor.grows_line) this
+            # The exact tagged "Grows:..." card line (lib.flavor.grows_line) this
             # weapon's description bakes -- CardScanner treats it as a second Kills-counter
             # anchor once the line moves directly under the Kills scaffold. Every id reaching
             # this point is living (the loop already filtered on WEAPON_CATS + not noGrowth,
@@ -367,7 +367,7 @@ def main():
                 entry["signature"][key] = True if kind == "flag" else int(sig[key])
                 if key == "ricochetRadius":   # the one paired rider: pct defaults 50, radius-gated
                     entry["signature"]["ricochetPct"] = int(sig.get("ricochetPct", 50))
-            # LW-156 gate: a signature key neither the table nor the hand-written block above
+            # Gate: a signature key neither the table nor the hand-written block above
             # knows is a FUTURE MECHANIC BEING SILENTLY DROPPED on its way to the runtime (the
             # C#-side MetaSchemaTests only catch the opposite direction, an emitted key with no
             # property). Fail the bake loud instead: add a _SIG_PASSTHROUGH row, or allowlist a
@@ -377,12 +377,12 @@ def main():
                 sys.exit(f"FAIL: id{it['id']} ({name}) signature carries unhandled key(s) "
                          f"{sorted(unknown)}: not in _SIG_PASSTHROUGH, not allowlisted in "
                          f"_SIG_HANDLED_ELSEWHERE, so meta.json would silently drop them")
-        # LW-351: the id this design USED to live at, when a design moved to a different item id
+        # The id this design USED to live at, when a design moved to a different item id
         # (the Terrastaff off the vanilla Battle Axe's slot onto its own extended id). The runtime
         # (Persistence/TallyMigration.cs) reads this once per launch to carry a save's earned kills
         # and deeds across the move, so the pairing table is DATA and no C# file names a weapon.
         # Emitted at the END of the entry dict, before attach_weapon_palettes appends its own
-        # keys, per LW-156's byte-identity rule (new keys append, they never insert).
+        # keys, per the byte-identity rule (new keys append, they never insert).
         if it.get("migratedFrom"):
             entry["migratedFrom"] = int(it["migratedFrom"])
         meta[str(it["id"])] = entry
@@ -467,14 +467,14 @@ def selftest():
     errors = attach_weapon_palettes(fake_meta(), fake_colours(), {"overrides": {"999": {"trulyUses": 0}}})
     check("lane5 orphan override: fails", len(errors) > 0)
 
-    # Lane 6 (LW-308): two rows sharing one id are rejected loudly, never resolved by last-win.
+    # Lane 6: two rows sharing one id are rejected loudly, never resolved by last-win.
     dup = fake_colours()
     dup["weapons"].append(dict(dup["weapons"][0]))
     errors = attach_weapon_palettes(fake_meta(), dup, {"overrides": {}})
     check("lane6 duplicate id: fails naming the duplicate",
           any("more than once" in e for e in errors))
 
-    # Lane 7 (LW-308): a malformed rgb entry reports through the error list, never a raw crash.
+    # Lane 7: a malformed rgb entry reports through the error list, never a raw crash.
     for label, ent in (("missing rgb key", {"hex": "#000000"}),
                        ("rgb not a list", {"hex": "#000000", "rgb": 7}),
                        ("rgb wrong length", {"hex": "#000000", "rgb": [8, 16]}),
@@ -488,8 +488,8 @@ def selftest():
         except Exception:
             check(f"lane7 {label}: listed as an error (CRASHED instead)", False)
 
-    # LW-317: lane_of, the pure grows-token -> baked-lane mapping (no file I/O, no fixtures).
-    # The LW-250 interim single-lane collapse is retired -- every multi-lane token now bakes
+    # Lane_of, the pure grows-token -> baked-lane mapping (no file I/O, no fixtures).
+    # Interim single-lane collapse is retired -- every multi-lane token now bakes
     # to its OWN real lane.
     check("lane_of PA -> pa", lane_of("PA", "Sword") == "pa")
     check("lane_of MA -> ma", lane_of("MA", "Rod") == "ma")
@@ -512,7 +512,7 @@ def selftest():
     check("every grows token maps to its own real lane",
           lanes == {"pa", "ma", "speed", "hp", "pa+ma", "pa+ma+brave", "wp", "wp+faith"})
 
-    # LW-317: check_wp_sid_identity, the bake-time sid==id pin every "wp"/"wp+faith" weapon
+    # Check_wp_sid_identity, the bake-time sid==id pin every "wp"/"wp+faith" weapon
     # must clear before WpTableHold's write address can be trusted.
     clean_meta = {
         "71": {"name": "Outrider Pistol", "lane": "wp"},
@@ -528,7 +528,7 @@ def selftest():
     check("sid identity: a non-wp/wp+faith lane is never checked",
           check_wp_sid_identity({"9": {"name": "Galewind", "lane": "pa"}}, {}) == [])
 
-    # LW-332: check_grows_line_in_desc, the bake-time pin that every baked "growsLine" occurs
+    # Check_grows_line_in_desc, the bake-time pin that every baked "growsLine" occurs
     # EXACTLY once in its own weapon's assembled description (lib.flavor.assemble_desc) -- this
     # is what lets CardScanner treat growsLine as just another baked anchor pattern with NO C#
     # mirror of its text.

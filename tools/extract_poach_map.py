@@ -128,7 +128,7 @@ def main():
             }
         elif prior_common == pair and prior_rare == pair:
             # ALIAS row: a higher, non-contiguous job id carrying an earlier job's EXACT carcass
-            # pair (169-173 clone 103/97/98/100/94). LW-174: emit it as a first-class entry sharing
+            # pair (169-173 clone 103/97/98/100/94). Emit it as a first-class entry sharing
             # that pair instead of folding it away -- the vanilla encounter table fields these ids
             # in ordinary story battles (battle 384 Sweegy Woods, MainJob 169-172), and the runtime
             # gates entirely on map membership by job id, so no entry meant a silent no-poach.

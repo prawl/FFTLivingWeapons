@@ -5,7 +5,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-82's portable scan core (AnchorScan.cs): a plain delegate over an in-memory byte buffer, no
+/// The portable scan core (AnchorScan.cs): a plain delegate over an in-memory byte buffer, no
 /// game types involved. Every fixture places a 4-byte signature {0xAA,0xBB,0xCC,0xDD} at chosen
 /// offsets inside a flat buffer addressed from 0; SignatureOffset is nonzero in most fixtures so
 /// the hit-to-base arithmetic (base = hit start - SignatureOffset) is actually exercised, not

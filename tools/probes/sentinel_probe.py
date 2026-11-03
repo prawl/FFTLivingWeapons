@@ -34,6 +34,7 @@ import ctypes
 NAMES = ["Slot0", "Slot9", "BattleMode", "EventId", "PauseFlag", "SubmenuFlag"]
 PREFERRED = offsets.require(NAMES)
 
+
 def _open_waiting(timeout_s):
     """--watch may be started before the game: poll for it so the tape catches the title
     screen from the very first readable tick."""
@@ -62,8 +63,12 @@ def rpm(addr, n):
 
 def u32(a):
     b = rpm(a, 4); return struct.unpack('<I', b)[0] if b else None
+
+
 def u16(a):
     b = rpm(a, 2); return struct.unpack('<H', b)[0] if b else None
+
+
 def u8(a):
     b = rpm(a, 1); return b[0] if b else None
 

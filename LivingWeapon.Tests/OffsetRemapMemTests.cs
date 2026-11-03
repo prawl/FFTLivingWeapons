@@ -4,7 +4,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-147: OffsetRemapMem forwards every IGameMemory member it overrides to the inner fake at
+/// OffsetRemapMem forwards every IGameMemory member it overrides to the inner fake at
 /// the remapped address -- but W16 was missing from that override list, so a W16 call fell
 /// through to IGameMemory's interface-default W16 (a no-op, see GameMemory.cs) instead of
 /// reaching the inner fake. No production call site hits this today (WpScratchPainter writes via

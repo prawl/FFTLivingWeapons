@@ -36,16 +36,16 @@ CROSS = {
 }
 INNATE = {}                # per-job signature innate abilities (job name -> AbilityData ids); none yet
 CEV_FLOOR = 8              # floor every human job's class evade to this (raises only; vanilla squishies sit at 5)
-# LW-77: story ids that keep the CEV floor even off the generic range: the low Squire/Knight/Holy
+# Story ids that keep the CEV floor even off the generic range: the low Squire/Knight/Holy
 # Knight ids, Dragonkin id15, and Construct 8 id145 (player-recruitable, Puppeteer.Policy.cs:33 +
 # PuppeteerTests.cs:35). Generic ids 61-93 join via cev_targets below; every id NOT in either set
 # (unknown/reserved ids, the two enemy-only specials Keeper of Darkness id151 and Archaeodaemon
 # id153) reverts the floor to vanilla now, since a listed row is a whole-row writeback hazard.
 CEV_ALLOW = {1, 2, 3, 4, 5, 6, 7, 15, 145}
 LUCAVI = {62, 64, 65, 67, 69, 73}  # boss forms in the generic id range; enemy-only, skip equip edits
-# Categories stripped from EVERY equip list. EMPTY since LW-351 (2026-08-30): it held
+# Categories stripped from EVERY equip list. EMPTY (2026-08-30): it held
 # {"Axe", "Flail"} for as long as this rebalance had repurposed every axe and flail into another
-# weapon type, so the two categories named nothing a unit could equip. LW-351 gives those items
+# weapon type, so the two categories named nothing a unit could equip. The rebalance gives those items
 # their vanilla identities back (the Battle Axe first), which means Squire and Geomancer must
 # get Axe back and Squire and Ninja must get Flail back -- and the only way to do that is to
 # stop stripping them. The seam stays for the next category that genuinely empties out.
@@ -75,7 +75,7 @@ def is_human(jid):
 
 
 generic = {jid for jid in range(61, 94) if is_human(jid)}   # equippability targets
-cev_targets = CEV_ALLOW | generic                           # LW-77: only these ids keep the CEV floor
+cev_targets = CEV_ALLOW | generic                           # Only these ids keep the CEV floor
 human = [jid for jid in sorted(jobs) if is_human(jid)]      # dodge-dial targets (every human job)
 
 out = ['<?xml version="1.0" encoding="utf-8"?>',
@@ -92,9 +92,9 @@ for jid in human:
     strip_story = STORY_STRIP.get(jid, set())
     strip = set(REMOVE) | strip_generic | strip_story   # per-generic-job category strip + id-keyed story-job strips
     final_equip = [c for c in (cur + additions) if c not in strip]
-    # LW-77: a row only earns its EquippableItems element for a REAL payload. A REMOVE-only diff
+    # A row only earns its EquippableItems element for a REAL payload. A REMOVE-only diff
     # never counted as one (a dropped category that no item ships is vanilla-equal); REMOVE is
-    # empty since LW-351, so today every emitted list is an addition or a real category strip.
+    # empty, so today every emitted list is an addition or a real category strip.
     equip_changed = bool(additions) or bool(strip_generic) or bool(strip_story)
     innate = []
     have = [int((job.findtext(f"InnateAbilityId{i}") or "0").strip() or 0) for i in (1, 2, 3, 4)]

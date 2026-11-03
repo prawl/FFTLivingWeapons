@@ -114,9 +114,9 @@ PATCHES = {
         "Unknown14": 2,      # display category: 0 never renders; 1 = buff group, 2 = debuff group
         "Unknown20": 102,    # no sprite resolves for this Key in either category; kept as the best guess
     },
-    # LW-129, owner directive 2026-07-27 ("do not deviate from the design"): the Provoke hold keeps
+    # Owner directive 2026-07-27 ("do not deviate from the design"): the Provoke hold keeps
     # the party flagged Invisible through the player's own turns once the goaded enemy is next up
-    # (LW-127; revealing there lost the turn-open race twice, live). The AI-ignore behaviour is the
+    # (revealing there lost the turn-open race twice, live). The AI-ignore behaviour is the
     # band bit and never touches this table; the leak is Invisibility's overhead icon.
     #
     # ITERATION 2. Iteration 1 set Unknown20 = -1 (keep the category, blank only the icon index) and
@@ -161,7 +161,7 @@ def main() -> None:
     ensure_pristine()
     # Guard the one assumption a blank-row TEXT patch rests on: if the row we are claiming is NOT
     # blank in this game version, we would be overwriting text the game actually shows. Scoped to
-    # keys that actually write Name/Caption (LW-129's Key 20 touches only the icon cell of a status
+    # keys that actually write Name/Caption (the Key 20 touches only the icon cell of a status
     # the game legitimately names, which is exactly what this guard exists to forbid for TEXT).
     van = rows(PRISTINE, TABLE)
     for key, cols in PATCHES.items():

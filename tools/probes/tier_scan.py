@@ -13,6 +13,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ct_probe import PROC, PV_W, find_pid, k32
 
+
 class MBI(ctypes.Structure):
     _fields_ = [("BaseAddress", ctypes.c_void_p), ("AllocationBase", ctypes.c_void_p),
                 ("AllocationProtect", wt.DWORD), ("PartitionId", wt.WORD),
@@ -30,6 +31,7 @@ PATTERNS = {
     "aim_u32": struct.pack("<8I", *range(406, 414)),
     "jump_u32": struct.pack("<12I", *range(394, 406)),
 }
+
 
 def rd_raw(h, addr, size):
     buf = ctypes.create_string_buffer(size)

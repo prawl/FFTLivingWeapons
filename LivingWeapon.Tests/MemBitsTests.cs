@@ -51,7 +51,7 @@ public class MemBitsTests
         Assert.Equal(0x40, pin.Bytes[3]);
     }
 
-    // ---- LW-145 fix 1: the core logic over the IGameMemory seam, so a FAILED pre-read is a
+    // ---- Fix 1: the core logic over the IGameMemory seam, so a FAILED pre-read is a
     // provable, constructible fake state -- distinct from a real zero byte -- instead of a
     // hypothetical. FakeSparseMemory: Writable() is address-marked independent of TryReadBytes,
     // which only succeeds for an address covered by a TerrainBlocks entry, so "writable but the

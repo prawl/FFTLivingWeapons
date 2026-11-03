@@ -20,7 +20,7 @@ internal sealed partial class WeaponPalette
         var fp = ((int)mem.U8(entry + Offsets.ALevel), (int)mem.U8(entry + Offsets.ABrave),
             (int)mem.U8(entry + Offsets.AFaith));
         Wielder.ResolveAnyHandNameId(mem, weaponId, fp, out int matchCount);
-        if (matchCount == 0) return 0;   // no roster row wields it at this fingerprint -- an enemy
+        if (matchCount == 0) return 0;   // no roster row wields it at this fingerprint, so an enemy
         int tier = Tuning.TierOf(_kills, weaponId);
         return Math.Clamp(tier, 0, Tuning.GlowFactors.Length - 1);
     }

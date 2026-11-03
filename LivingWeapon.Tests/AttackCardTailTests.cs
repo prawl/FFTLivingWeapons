@@ -3,7 +3,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// AttackCardTail.ComposeTail is LW-31 stage 3's pure tail-compose policy (docs/TODO.md): once
+/// AttackCardTail.ComposeTail is stage 3's pure tail-compose policy (docs/TODO.md): once
 /// AttackRow.Policy.ComposeRow has already renamed the row itself (weapon name + trimmed tier
 /// suffix, or "Fists"), this composes only the DESCRIPTION TAIL that follows it in the split image.
 ///
@@ -26,7 +26,7 @@ namespace LivingWeapon.Tests;
 /// "+." ending). GenericTail/FistTail keep their periods: they are fixed full sentences, not
 /// composed clause chains.
 ///
-/// Both the optional Mark clause (LW-35 hides it from the production call site, but the pure
+/// Both the optional Mark clause (the production call site hides it, but the pure
 /// contract stays symmetric) and the signature clause stay purely additive and tried in the SAME
 /// FIXED PRIORITY as before (never sorted by length): head, then Mark, then signature. Trailing
 /// clauses are dropped WHOLE, from the tail inward, when they would overflow the budget; a clause
@@ -97,7 +97,7 @@ public class AttackCardTailTests
                 }
     }
 
-    // ---- Mark clause (LW-35 hides it from production, but the pure contract stays symmetric) ----
+    // ---- Mark clause (production hides it, but the pure contract stays symmetric) ----
 
     [Fact]
     public void Mark_clause_composes_on_top_of_the_zero_kill_meter()

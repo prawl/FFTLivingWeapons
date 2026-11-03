@@ -6,7 +6,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-186: the tick-phase TABLE itself as data -- Engine.BuildPhases(null) hands over the real
+/// The tick-phase TABLE itself as data -- Engine.BuildPhases(null) hands over the real
 /// production rows with no Engine constructed and no memory touched (each row's Run closure
 /// dereferences the engine lazily, so shape-only inspection is safe by contract as long as Run
 /// is never invoked here; see BuildPhases's doc). Distinct from TickPhaseTests (the cadence
@@ -45,7 +45,7 @@ public class EngineTickTableTests
 
         // Names are the join key of every check in this file, the allowlist included: two rows
         // sharing a name would fold into one set entry in the gate test below and resolve
-        // ambiguously here, so resolution is only sound while names are unique (LW-186 verify
+        // ambiguously here, so resolution is only sound while names are unique (verify
         // round's catch).
         Assert.Equal(rows.Length, rows.Select(r => r.Name).Distinct().Count());
 
@@ -69,14 +69,14 @@ public class EngineTickTableTests
             "kit-barrage",      // KitLane gate: learn screens/menus read the JobCommand table outside battle; roster open AND the kit-lane guard armed is its write gate
             "kit-shadowblade",  // KitLane gate: same lane as kit-barrage
             "kit-provoke",      // KitLane gate: same lane as kit-barrage
-            "gunslinger",       // TwinPistols gate (LW-393): writes roster equipment, not battle memory, and only while the roster door is open; snapshot/restore self-gates on s.NowIn
+            "gunslinger",       // TwinPistols gate: writes roster equipment, not battle memory, and only while the roster door is open; snapshot/restore self-gates on s.NowIn
             "display-out",      // OutOfBattle gate: paints the equip card into menu buffers, not battle memory
-            "icon-glow",        // OutOfBattle gate: LW-295 cycle B, plain file I/O against modded.pac, no memory touched at all
+            "icon-glow",        // OutOfBattle gate: cycle B, plain file I/O against modded.pac, no memory touched at all
             "pool-locate",      // Always gate: reads heap memory only (finding pool regions); the paint that consumes the result stays InBattle/OutOfBattle-gated separately
-            "extended-caps",    // Always gate: LW-346, two copy-protected code bytes widened once their pages read vanilla (a loaded save); never battle memory; no-op until the boot arm armed
-            "extended-bag",     // Always gate: LW-348, reads the bag count bytes of the extended ids and writes the sidecar FILE on change; the bag changes in shops and in battle alike
-            "extended-shops",   // Always gate: LW-354, a 512-byte compare of the game's shop table against our mirror page and a copy on change; never battle memory
-            "extended-rewind",  // Always gate: LW-452, polls two hook counters and rewrites the extended bag bytes after a rewind; reads roster hands, never battle memory; no-op until the hooks exist
+            "extended-caps",    // Always gate: two copy-protected code bytes widened once their pages read vanilla (a loaded save); never battle memory; no-op until the boot arm armed
+            "extended-bag",     // Always gate: reads the bag count bytes of the extended ids and writes the sidecar FILE on change; the bag changes in shops and in battle alike
+            "extended-shops",   // Always gate: a 512-byte compare of the game's shop table against our mirror page and a copy on change; never battle memory
+            "extended-rewind",  // Always gate: polls two hook counters and rewrites the extended bag bytes after a rewind; reads roster hands, never battle memory; no-op until the hooks exist
             "rewind-release",   // Always gate: reads one counter, and when it fires writes back only the Invisible bits and barred tile bytes the mod itself set
         };
 #if LWDEV
@@ -103,10 +103,10 @@ public class EngineTickTableTests
             $"stale allowlist entries (no matching row, or the row now gates on a battle gate): {string.Join(", ", stale)}");
     }
 
-    /// <summary>LW-261 test 9: the resumable pool-locate scan's own tick lane exists, gated
+    /// <summary>Test 9: the resumable pool-locate scan's own tick lane exists, gated
     /// Always (every tick, in and out of battle) rather than InBattle -- its progress must not
     /// depend on battle state any more than it depends on Display.Tick (see PoolLocator.cs's own
-    /// class doc). Mirrors LW-186's own BuildPhases shape-test idiom (Assert.Same by reference,
+    /// class doc). Mirrors the own BuildPhases shape-test idiom (Assert.Same by reference,
     /// not by re-deriving gate behavior).</summary>
     [Fact]
     public void Pool_locate_phase_exists_with_the_Always_gate_and_runs_every_tick()
@@ -119,7 +119,7 @@ public class EngineTickTableTests
         Assert.Equal(1, row.EveryNTicks);
     }
 
-    // ---- LW-393: the gates now carry the roster door and the per part predicate ----
+    // ---- The gates now carry the roster door and the per part predicate ----
 
     private static TickPhaseState State(bool nowIn, bool rosterOpen, bool kitArmed = false, Func<Part, bool>? partOn = null)
         => new() { NowIn = nowIn, RosterOpen = rosterOpen, KitLaneArmed = kitArmed, PartOn = partOn ?? (_ => false) };
@@ -165,7 +165,7 @@ public class EngineTickTableTests
         Assert.Same(TickGates.TwinPistols, rows.Single(r => r.Name == "gunslinger").Gate);
     }
 
-    // ---- LW-398: the three per part battle gates ----
+    // ---- The three per part battle gates ----
 
     [Theory]
     [InlineData("KillCounting")]

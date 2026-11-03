@@ -5,14 +5,14 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-332: the Grows line moves from the body bottom to directly under the Kills scaffold
+/// The Grows line moves from the body bottom to directly under the Kills scaffold
 /// ("Kills: " + slot + "\n" + Grows + "\n" + flavor...), so CardScanner must learn each
 /// weapon's baked Grows line as an ADDITIONAL anchor pattern -- otherwise the Kills-to-flavor
 /// gap widens enough (the Grows line is ~30-100 bytes, x2 for UTF-16) for a neighboring card's
 /// own tail to sit closer and steal the pairing in a packed heap sweep. Same-lane weapons bake
 /// byte-IDENTICAL Grows lines, so ownership can never rest on a shared Grows byte match alone.
-/// Round 1's fix was a second key (each entry's UNIQUE candidates, i.e. flavor/earned lines,
-/// excluding Grows) breaking a tie on nearest distance; round 2 (this file) found two executed
+/// Fix was a second key (each entry's UNIQUE candidates, i.e. flavor/earned lines,
+/// excluding Grows) breaking a tie on nearest distance; a second look (this file) found two executed
 /// counterexamples against that rule (S1, S2 below) and replaced it with an exact-layout probe
 /// (CardScanner.LayoutProbeOwner) that runs FIRST -- the two-key nearest-distance rule survives
 /// only as its fallback (CardScanner.FindNearestFlavor).
@@ -88,11 +88,11 @@ public class CardScannerGrowsAnchorTests
         Assert.Equal(growsPosB, hits[1].FlavorPos);
     }
 
-    /// <summary>S2 (LW-332 round 2): a FOREIGN card's flavor line is deliberately SHORTER than
+    /// <summary>S2: a FOREIGN card's flavor line is deliberately SHORTER than
     /// the fixed Kills->Grows gap (19 chars) and ends directly above B's "Kills: " line. Under
-    /// the round-1 two-key rule (nearest distance, no exact-layout probe) this wins dAll
+    /// the earlier pass two-key rule (nearest distance, no exact-layout probe) this wins dAll
     /// OUTRIGHT for B's hit -- different lanes, so the dUnique tiebreak never even engages; the
-    /// bug fires on raw distance alone. "Storm-wired." is the REAL pre-round-2 baked flavor for
+    /// bug fires on raw distance alone. "Storm-wired." is the REAL older baked flavor for
     /// Stormarc (data/items.json id 86, 12 chars) -- one of the two real flavors short enough to
     /// trigger this (the other, Wrathblade's "Ruin feeds it.", is 14); both were re-flavored to
     /// 20+ chars in this round specifically so no baked flavor can ever reproduce this bug again
@@ -127,11 +127,11 @@ public class CardScannerGrowsAnchorTests
         Assert.Equal(growsPosB, hits[1].FlavorPos);
     }
 
-    /// <summary>S1 (LW-332 round 2, TRUE scenario -- supersedes the round-1 test this replaced,
+    /// <summary>S1 (TRUE scenario -- supersedes the earlier pass test this replaced,
     /// which tested a weakened stand-in where weapon 1 was never physically present in the
     /// buffer at all): two SAME-LANE cards packed back to back, exactly what a packed heap sweep
     /// produces. A ends in its OWN flavor directly above B's "Kills: " line. A and B bake
-    /// byte-IDENTICAL Grows lines (same lane), so the round-1 two-key rule's dAll TIES on the
+    /// byte-IDENTICAL Grows lines (same lane), so the earlier pass two-key rule's dAll TIES on the
     /// shared Grows bytes at G (both entries' nearest match resolves to that one physical
     /// occurrence) and the dUnique tiebreak alone decides -- A's adjacent flavor (26 chars away)
     /// beats B's own flavor (19 + 41-char Grows + 1 = 61 chars away), so A wrongly owns B's hit.
@@ -147,7 +147,7 @@ public class CardScannerGrowsAnchorTests
                                                              // Kills->Grows gap and B's own 61-char
                                                              // (19 + 41-char Grows + 1) Kills->flavor
                                                              // gap -- the exact window that makes
-                                                             // round-1's dAll TIE on the shared
+                                                             // the dAll TIE on the shared
                                                              // (same-lane) Grows bytes.
         const string flavorB = "B holy relic";
         var meta = CardScannerFixtures.BuildMetaMapWithGrows(

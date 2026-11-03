@@ -87,7 +87,7 @@ public class KillerStampTests
     [Fact]
     public void Decide_no_hypothesis_with_empty_latch_is_latch()
     {
-        // The empty-latch degeneracy (LW-1's StampCulpritFromEmptyLatch, KillTracker.Stamp.cs):
+        // The empty-latch degeneracy (the StampCulpritFromEmptyLatch, KillTracker.Stamp.cs):
         // no hypothesis at all keeps today's bury regardless of the latch itself being empty.
         var latch = new List<int>();
         var result = KillerStamp.Policy.Decide(latch, hasHypothesis: false, hypothesisWeapons: new List<int>());
@@ -240,7 +240,7 @@ public class KillerStampTests
         Assert.Empty(weapons);
     }
 
-    // --- LW-63 stage 2: the flags-first hypothesis lane (D4). TryHypothesis gains an overload
+    // --- The flags-first hypothesis lane (D4). TryHypothesis gains an overload
     // that also surfaces the flags-lane diagnostic outs (viaFlags/bandSlot/moved) the death-edge
     // stamp tapes onto its flight payload; the pre-existing 4-out overload above stays untouched
     // (every test in this file above still compiles and passes unmodified). ---

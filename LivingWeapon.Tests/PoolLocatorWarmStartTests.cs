@@ -6,7 +6,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-324: the warm-start seed (PoolRegionSidecar -> PoolLocator._cached, before the ordinary
+/// The warm-start seed (PoolRegionSidecar -> PoolLocator._cached, before the ordinary
 /// cold scan begins) plus the sidecar's own write-on-completion. Fixture idioms mirror
 /// PoolLocatorTests.cs/PoolLocatorStepTests.cs (BuildMeta, BuildPoolBuffer, BuildDecoyBuffer,
 /// a large filler region to force several Step calls before a scan completes).

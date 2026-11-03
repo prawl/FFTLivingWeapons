@@ -1,17 +1,17 @@
-﻿namespace LivingWeapon;
+namespace LivingWeapon;
 
 /// <summary>Why a TryDespawn attempt was refused, which tells the retry lifecycle what to do.
 /// The retry lifecycle is in LivingPoach.Despawn.cs; see CorpseDespawn's class doc.</summary>
 internal enum DespawnRefusal
 {
-    /// <summary>No refusal -- TryDespawn returned true.</summary>
+    /// <summary>No refusal. TryDespawn returned true.</summary>
     None,
     /// <summary>The corpse is still confirmed dead and ours; the same retry may succeed once the
     /// blocking condition (current actor, open turn, an unresolved/unreadable node, an in-flight
     /// or unwritable flag byte) clears.</summary>
     Transient,
     /// <summary>The corpse is provably no longer the one that was poached (alive again, nameId
-    /// mismatch/slot reuse, or already converted to a chest) -- retrying can never help.</summary>
+    /// mismatch/slot reuse, or already converted to a chest), so retrying can never help.</summary>
     Permanent,
 }
 

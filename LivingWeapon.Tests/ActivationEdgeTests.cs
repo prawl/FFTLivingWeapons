@@ -4,7 +4,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-149 stage C: pins <see cref="ActivationEdge.Step"/>, the ref-bool helper extracted from the
+/// Stage C: pins <see cref="ActivationEdge.Step"/>, the ref-bool helper extracted from the
 /// 14+2-site <c>if (active != _wasActive) { _wasActive = active; ... }</c> idiom every signature
 /// module hand-rolled. This class owns ONLY the edge-detection cadence -- it never logs -- so these
 /// tests pin exactly that: true on a transition (and only a transition), false on steady state, and

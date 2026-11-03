@@ -28,7 +28,7 @@ SQLITE = ROOT / "working" / "pilot_item.sqlite"
 ENC_DIR = ROOT / "working" / "nxd_out"
 
 # Living Weapon display scaffolding (unconditional; the never-False SCAFFOLD_LIVING knob was
-# deleted in LW-155): bake a fixed 2-char name-suffix SLOT (companion paints +/+2/+3) and a
+# deleted): bake a fixed 2-char name-suffix SLOT (companion paints +/+2/+3) and a
 # fixed-width Kills line onto every weapon, so the in-card "it leveled up" overwrite works.
 MELEE1_CATS = {"Knife", "NinjaBlade", "Sword", "KnightSword", "Katana", "Axe", "Rod", "Staff", "Flail", "Bag"}
 # UiItemCategoryId = the equip-card weapon-TYPE label (item.en.nxd Item-en table). A repurposed weapon
@@ -48,7 +48,7 @@ GROUP_RANK = {1: 1, 3: 2, 4: 3, 12: 4, 11: 5, 8: 6, 7: 7, 10: 8, 14: 9, 16: 10,
 # DLC swords. Key -> (UiItemCategoryId, the game's own SortOrder). We do not own these rows and
 # never write them, so the numbers below are exactly what the shipped table keeps -- which means
 # the regeneration above has to treat them as TAKEN and number around them. It did not, and the
-# LW-351 live pass (2026-08-30) paid for it: Key 256 and the Warbrand both read 215, Key 257 and
+# live pass (2026-08-30) paid for it: Key 256 and the Warbrand both read 215, Key 257 and
 # the Moonblade both read 216. The game rebuilds its two weapon order tables slot-by-sort-key, so
 # each duplicate cost one of the pair its slot -- the Moonblade fell out of the inventory list,
 # the Terrastaff out of the equip picker, and a stale entry stayed visible in each hole.
@@ -77,7 +77,7 @@ def named_items():
     return [it for it in load_items()["items"] if it.get("name") and it["name"] != "TBD"]
 
 
-# LW-346: the extended inventory (ids 261+) has no vanilla Item-en row to UPDATE. Seed one by
+# The extended inventory (ids 261+) has no vanilla Item-en row to UPDATE. Seed one by
 # cloning a template weapon row under the new Key so the guarded rename loop below lands like any
 # other item; item_intent then overwrites Name/Description/UiItemCategoryId/SortOrder. 257 (a real
 # weapon row) supplies sane defaults for every column. Idempotent (guarded by row existence); the
@@ -146,7 +146,7 @@ def sort_order_collisions(sort_map, stock=None):
     return {so: sorted(keys) for so, keys in claims.items() if len(keys) > 1}
 
 
-# The seven axes and flails LW-351 restored to vanilla (ids 48-50, 67-70), as their generated cards
+# The seven axes and flails restored to vanilla (ids 48-50, 67-70), as their generated cards
 # read on 2026-08-30: name from vanillaName, description from lib/flavor.py's tier template plus the
 # mechanics line the row's own numbers earn (the Slasher's vanilla Slow proc, the Flail of Flame's
 # Fire cast). No Kills scaffold: noGrowth rows are not living weapons.
@@ -189,7 +189,7 @@ def selftest(named=None, sort_map=None):
     overlap = sorted(set(STOCK_WEAPON_ROWS) & {it["id"] for it in named})
     if overlap:
         print(f"  STOCK_WEAPON_ROWS lists ids data/items.json also owns: {overlap}")
-    # LW-351 (C14/T5, stage 2): the seven restored vanilla axes and flails ship GENERATED cards
+    # C14/T5, stage 2: the seven restored vanilla axes and flails ship GENERATED cards
     # (vanilla numbers, this mod's prose), pinned line for line so a flavor-table edit that
     # reworded one, or a row edit that re-armed growth on one, is a diff here and not a surprise
     # on the owner's card. Pure: item_intent needs no game files.
@@ -241,7 +241,7 @@ def item_intent(named, sort_map=None):
             intent[(it["id"], "UiItemCategoryId")] = UICAT[eff]
         if it["id"] in sort_map:
             intent[(it["id"], "SortOrder")] = sort_map[it["id"]]
-        # LW-352: the Special Effect badge follows the formula (lib.flavor.badge_for), written for
+        # The Special Effect badge follows the formula (lib.flavor.badge_for), written for
         # every weapon so a vanilla badge can never outlive the mechanic it advertised.
         badge = badge_for(it)
         if badge is not None:
@@ -360,7 +360,7 @@ def main():
         return
     selftest(named, sort_map)   # never bake a table two weapon rows would share a menu slot in
     con = sqlite3.connect(SQLITE)
-    seed_extended_rows(con, named)   # LW-346: rows for ids 261+ before the guarded UPDATEs need them
+    seed_extended_rows(con, named)   # Rows for ids 261+ before the guarded UPDATEs need them
     apply_patches(con, named, intent)
     check_stock_rows(con, {it["id"] for it in named})
     con.commit(); con.close()

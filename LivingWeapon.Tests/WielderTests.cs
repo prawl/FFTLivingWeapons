@@ -535,7 +535,7 @@ public class WielderTests
         Assert.True(Wielder.AnyDeployedMainHand(m, Weapon));
     }
 
-    // ---- HasLiveWielder: any-hand existence check for the LW-56 credit gate ----
+    // ---- HasLiveWielder: any-hand existence check credit gate ----
 
     [Fact]
     public void HasLiveWielder_false_when_nobody_holds_it()
@@ -681,7 +681,7 @@ public class WielderTests
         Assert.Equal(0, Wielder.ResolveDeployedMainHand(m, Weapon, out _));
     }
 
-    // ---- Locate/LocateAll: ambiguous-roster per-row disambiguation (LW-252) ----
+    // ---- Locate/LocateAll: ambiguous-roster per-row disambiguation ----
     // A live probe (2026-08-17) proved party roster nameIds are unique per occupied row and the
     // combat frame mirrors them at Offsets.ANameId (ledger [frame-1fc-nameid-mirror] PROVEN;
     // [party-nameid-unique-key] pending owner flip). Pre-fix, ResolveAnyHandNameId's 3-arg
@@ -694,7 +694,7 @@ public class WielderTests
     [Fact]
     public void Locate_refuses_ambiguous_roster_instead_of_adopting_a_foreign_collider()
     {
-        // [LW-252 T1, THE load-bearing test] Two fp-twin roster rows both hold Weapon (one main
+        // [THE load-bearing test] Two fp-twin roster rows both hold Weapon (one main
         // hand, one off hand), distinct nameIds, NEITHER deployed. The lone band seat matching
         // weapon+fp carries a FOREIGN frame nameId (belongs to neither row) -- an enemy fp-
         // collider. Pre-fix: ResolveAnyHandNameId(3-arg) returns -1 for this 2-match roster (the
@@ -712,7 +712,7 @@ public class WielderTests
     [Fact]
     public void Locate_resolves_the_deployed_row_among_an_ambiguous_twin_roster()
     {
-        // [LW-252 T2] Same two ambiguous rows; row 0 (nameId 100) is now deployed at a real-
+        // [T2] Same two ambiguous rows; row 0 (nameId 100) is now deployed at a real-
         // position seat whose frame nameId matches it, row 1 (nameId 200) has no band entry at
         // all. Exactly one collected row's tier-1 probe resolves nonzero, so Locate returns it.
         var m = new FakeSparseMemory();
@@ -726,7 +726,7 @@ public class WielderTests
     [Fact]
     public void Locate_refuses_when_both_ambiguous_rows_are_deployed_and_nameId_verified()
     {
-        // [LW-252 T3] Both ambiguous rows deployed this time, each at its own real-position seat
+        // [T3] Both ambiguous rows deployed this time, each at its own real-position seat
         // whose frame nameId matches that row -- two genuinely distinct wielders share weapon Q.
         // The per-row probe resolves TWO rows nonzero, so Locate refuses rather than pick one.
         var m = new FakeSparseMemory();
@@ -742,10 +742,10 @@ public class WielderTests
     [Fact]
     public void Locate_falls_back_to_todays_minus_one_path_when_an_ambiguous_row_has_no_nameId()
     {
-        // [LW-252 T4, the 0-trap generalized] Two ambiguous rows again, but row 0's nameId reads
+        // [The 0-trap generalized] Two ambiguous rows again, but row 0's nameId reads
         // 0 (unseeded) -- untrustworthy. Running the per-row probe with an unverified row would
         // reopen the 0==0 trap Locate_roster_nameId_zero_is_not_a_zero_equals_zero_trap guards
-        // against, so the ambiguous branch instead degrades to the pre-LW-252 -1 path outright:
+        // against, so the ambiguous branch instead degrades to the earlier -1 path outright:
         // today's plain fp scan with the veto inert. One band seat exists and matches weapon+fp
         // regardless of its own frame nameId (also unseeded here), so this pins the degradation
         // byte-identical rather than asserting any behavior change.
@@ -759,7 +759,7 @@ public class WielderTests
     [Fact]
     public void LocateAll_ambiguous_roster_returns_empty_when_both_rows_are_deployed()
     {
-        // [LW-252 T5a] Mirrors T3 for LocateAll: two distinct deployed wielders share weapon Q.
+        // [A] Mirrors T3 for LocateAll: two distinct deployed wielders share weapon Q.
         // Pre-fix, LocateAll's -1 path has no twin filter or tie guard at all (by design, so a
         // revolving mirror's copies all get covered) -- it would hand a write like
         // SpiritualFont's to BOTH seats even though they are two unrelated units, not copies of
@@ -779,7 +779,7 @@ public class WielderTests
     [Fact]
     public void LocateAll_ambiguous_roster_returns_only_the_one_deployed_rows_copies()
     {
-        // [LW-252 T5b] Same two ambiguous rows; only row 0 (nameId 100) is deployed. Exactly one
+        // [B] Same two ambiguous rows; only row 0 (nameId 100) is deployed. Exactly one
         // row's tier-1 scan collects entries, so LocateAll returns that row's entry alone.
         var m = new FakeSparseMemory();
         MemSeats.SeatRoster(m, 0, lvl: 99, br: 89, fa: 76, rh: Weapon, nameId: 100);
@@ -795,7 +795,7 @@ public class WielderTests
     [Fact]
     public void Locate_resolves_each_twins_own_weapon_when_fp_twins_hold_different_weapons()
     {
-        // [LW-252 T6, positive control] Two fp-twin roster rows hold DIFFERENT weapons --
+        // [Positive control] Two fp-twin roster rows hold DIFFERENT weapons --
         // ResolveAnyHandNameId's match rule keys on weaponId, so querying either weapon finds
         // exactly ONE matching row (matchCount == 1): the ambiguous branch never fires and each
         // weapon resolves its own deployed seat exactly as before this change.

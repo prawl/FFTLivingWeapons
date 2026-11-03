@@ -246,7 +246,6 @@ internal sealed class BodyDoubleSpike
     [UnmanagedFunctionPointer(CallingConvention.Winapi)]
     private delegate void ObjPopulateFn(long scratch, long obj, long row);
 
-
     [DllImport("user32.dll")] private static extern short GetAsyncKeyState(int vKey);
     [DllImport("user32.dll")] private static extern nint GetForegroundWindow();
     [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(nint hWnd, out uint pid);

@@ -5,7 +5,7 @@ using Xunit;
 
 namespace LivingWeapon.Tests;
 
-/// <summary>LW-388 R12: the ten accessor entry landmarks (ExtendedDonorThunks) are
+/// <summary>The ten accessor entry landmarks (ExtendedDonorThunks) are
 /// self-consistent and tied to <see cref="Offsets"/>, so a typo in a stolen call's rel32 or an
 /// expected-bytes row fails here instead of at the owner's boot.</summary>
 public class AccessorEntryTests

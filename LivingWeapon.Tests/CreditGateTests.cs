@@ -5,7 +5,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// CreditGate.Decide is LW-56's pure policy half: no memory access, just a plain partition of a
+/// CreditGate.Decide is the pure policy half: no memory access, just a plain partition of a
 /// culprit weapon list into survivors/refused by a predicate. See CreditGate.cs's own class doc
 /// for the narrowing-only contract (mirrors CursorGate.cs); this suite pins the truth table.
 /// </summary>

@@ -6,7 +6,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-257 commit 1: Display's flight-recorder injection (Display.Flight.cs), following the
+/// Commit 1: Display's flight-recorder injection (Display.Flight.cs), following the
 /// established recorder-injection pattern (ActorRegisterTests.Injected_recorder_receives_pointer_
 /// transitions, AttackCardTests, GunSlingerReconcileTests, KillCreditCoverageTests) -- inject a
 /// recorder as `(type, payload) => recorded.Add((type, payload))` and assert on the captured list.
@@ -69,7 +69,7 @@ public class DisplayFlightTests
                                          // not merely "no taps fire" -- pins the existing behavior
 
         // Regression safety: real paint activity with no recorder at all must still behave
-        // exactly as every pre-LW-257 test already proves, and must not allocate a ledger later.
+        // exactly as every earlier test already proves, and must not allocate a ledger later.
         CardFixtures.DrainGeneration(display, clock, 500);
         kills[10] = 8;
         display.PaintCountsIfChanged();
@@ -77,7 +77,7 @@ public class DisplayFlightTests
         Assert.Null(display._verdict);
     }
 
-    /// <summary>Item 1's regression pin (LW-257 review round 2): CardVerdict's notable lane must
+    /// <summary>Item 1's regression pin: CardVerdict's notable lane must
     /// exclude AlreadyEqual so a late Wrote cannot be starved by a 256-entry cap a steady-state
     /// pass fills with AlreadyEqual first. Built directly against CardSites (bypassing the scan)
     /// so the insertion order -- 256 already-correct sites, THEN one stale site -- is exact and
@@ -123,7 +123,7 @@ public class DisplayFlightTests
 
         Assert.Contains(recorded, r => r.type == "card" && r.payload.StartsWith($"paint id={id} to=8"));
     }
-    /// <summary>Item 2 (round-4 review): spec 1.4's core observability requirement -- "the strike
+    /// <summary>Item 2: spec 1.4's core observability requirement -- "the strike
     /// policy this arc introduces can be seen working on a tape" -- had NO test at all before this
     /// one. Pins both halves: strikes short of the cap (Tuning.CardEvictStrikes == 3) emit
     /// NOTHING, and the capping strike emits exactly one site-evicted record with the right
@@ -160,9 +160,9 @@ public class DisplayFlightTests
                                         && r.payload.Contains("reason=anchor-unreadable"));
     }
 
-    /// <summary>Item 1's priority-rule pin (round-4 review): an Evicted entry must survive a
+    /// <summary>Item 1's priority-rule pin: an Evicted entry must survive a
     /// notable lane already saturated with routine Wrote entries. This is the exact failure mode
-    /// round 3's F4 opened: a first-light discovery pass can register hundreds of Wrote entries
+    /// opened: a first-light discovery pass can register hundreds of Wrote entries
     /// in one Tick (Display.cs's OnChunk sharing this SAME _verdict), filling the 256-entry lane
     /// before PaintAll's own pass -- the one that finds every eviction -- ever gets a turn. 256
     /// filler sites (all Wrote, registered FIRST) plus one mismatched (evicted) site registered
@@ -208,7 +208,7 @@ public class DisplayFlightTests
                                         && r.payload.Contains($"id={id}") && r.payload.Contains("reason=anchor-mismatch"));
     }
 
-    /// <summary>LW-259: EmitVerdict's three tiers only order spending WITHIN one pass -- across
+    /// <summary>EmitVerdict's three tiers only order spending WITHIN one pass -- across
     /// many passes in the SAME window (no Invalidate between them), routine tier-2 paint lines
     /// can exhaust the entire shared <see cref="Display.FlightRecordBudget"/> (64) on their own,
     /// long before a rare tier-1 eviction ever shows up. One live kills site is repainted across
@@ -262,7 +262,7 @@ public class DisplayFlightTests
                                         && r.payload.Contains($"id={id}") && r.payload.Contains("reason=anchor-mismatch"));
     }
 
-    /// <summary>LW-259: <see cref="Display.EvictedRecordBudget"/> pin, mirroring every other
+    /// <summary><see cref="Display.EvictedRecordBudget"/> pin, mirroring every other
     /// reserve's own clamp test in this file (Coverage_record_budget_caps_then_resets_on_Invalidate
     /// below). More than the reserve's worth of GENUINE tier-1 evictions (mismatched anchors, not
     /// OnSitePruned's cap-relief bursts -- so the count filters on `reason=anchor-mismatch`,
@@ -301,7 +301,7 @@ public class DisplayFlightTests
         Assert.Equal(Display.EvictedRecordBudget, evictedRecords);
     }
 
-    /// <summary>LW-259: EvictedRecordBudget's own Invalidate() reset, mirroring
+    /// <summary>EvictedRecordBudget's own Invalidate reset, mirroring
     /// Coverage_record_budget_caps_then_resets_on_Invalidate's shape exactly -- drives
     /// <see cref="Display._evictedBudget"/> straight to the cap (the reserve's own test-accessor
     /// convention, this file) instead of manufacturing EvictedRecordBudget real evictions just to
@@ -339,7 +339,7 @@ public class DisplayFlightTests
                                         && r.payload.Contains("reason=anchor-mismatch"));
     }
 
-    /// <summary>LW-259 fix pin: a starvation bug the split itself introduced. EmitVerdict's tier-1
+    /// <summary>Fix pin: a starvation bug the split itself introduced. EmitVerdict's tier-1
     /// loop guard used to be `if (_evictedBudget >= EvictedRecordBudget) return;` -- fine
     /// pre-split when every tier shared one budget, but once tier 1 got its OWN <see
     /// cref="Display._evictedBudget"/> reserve that `return` aborts the WHOLE method the moment
@@ -373,7 +373,7 @@ public class DisplayFlightTests
         Assert.Contains(recorded, r => r.type == "card" && r.payload.StartsWith("paint id=10 to=8"));
     }
 
-    /// <summary>Item 2 (round-4 review): RecordCoverageIfTapped was entirely unpinned. A normal
+    /// <summary>Item 2: RecordCoverageIfTapped was entirely unpinned. A normal
     /// first-coverage pass must emit exactly one "coverage" record, trigger=first.</summary>
     [Fact]
     public void Coverage_record_is_emitted_when_pool_coverage_latches()
@@ -388,7 +388,7 @@ public class DisplayFlightTests
         Assert.Contains("trigger=first", firstPass[0].payload);
     }
 
-    /// <summary>Item 2 (round-4 review): CoverageRecordBudget and its Invalidate() reset were
+    /// <summary>Item 2: CoverageRecordBudget and its Invalidate reset were
     /// unpinned. Drives _coverageBudget straight to the cap (Display._coverageBudget, exposed for
     /// exactly this -- manufacturing CoverageRecordBudget real coverage-latch transitions just to
     /// reach the same state would be expensive for no extra fidelity) instead of asserting after
@@ -411,7 +411,7 @@ public class DisplayFlightTests
         Assert.Contains(recorded, r => r.type == "card" && r.payload.StartsWith("coverage"));
     }
 
-    /// <summary>LW-261 test 8: PoolLocator.Step's own completion tap (Display.PoolLocate.cs's
+    /// <summary>Test 8: PoolLocator.Step's own completion tap (Display.PoolLocate.cs's
     /// RecordLocateCompleteIfTapped), driven directly here since StepPoolLocate is normally called
     /// by Engine's own "pool-locate" tick lane, not by anything this unit-test level fixture wires
     /// up. The pool buffer is small enough to complete within the FIRST Step call, so exactly one
@@ -445,9 +445,9 @@ public class DisplayFlightTests
         Assert.Contains("trigger=first", hits[0].payload);
     }
 
-    /// <summary>LW-262 test 5: CardSites.Admission.cs's cap-relief prune now reaches Display's
+    /// <summary>Test 5: CardSites.Admission.cs's cap-relief prune now reaches Display's
     /// flight tape via the onPruneEvict ctor param (Display.cs) and Display.Flight.cs's
-    /// OnSitePruned -- the round-3 review's "UNTAPPED" gap this arc closes. Drives the real
+    /// OnSitePruned -- the earlier pass review's "UNTAPPED" gap this arc closes. Drives the real
     /// Display-owned CardSites (not a bare CardSites instance) so the wiring itself is proven, not
     /// just the underlying prune logic CardSitesSuffixPartitionTests already pins.</summary>
     [Fact]
@@ -474,9 +474,9 @@ public class DisplayFlightTests
                                         && r.payload.Contains("reason=pruned-dead"));
     }
 
-    /// <summary>LW-269: OnSitePruned (Display.Flight.cs) spends the SAME shared _flightBudget/
+    /// <summary>OnSitePruned (Display.Flight.cs) spends the SAME shared _flightBudget/
     /// FlightRecordBudget tiers EmitVerdict's paint and site-refused lanes already spend -- a
-    /// dedicated reserve was explicitly rejected (that method's own class doc). LW-259
+    /// dedicated reserve was explicitly rejected (that method's own class doc). A later
     /// CORRECTION: this used to say "EmitVerdict's site-evicted lane" here, back when that lane
     /// drew from this same _flightBudget too -- it no longer does (its own EvictedRecordBudget
     /// reserve, EmitVerdict's own doc), so today's shared-budget spenders are EmitVerdict's tier 2
@@ -491,7 +491,7 @@ public class DisplayFlightTests
         var meta = BuildMeta();   // id 10
         var kills = new Dictionary<int, int> { { 10, 5 } };
         var clock = new TestClock();
-        clock.Ms = 100_000;   // repo test hygiene (LW-261 lesson): nonzero clock origin; not
+        clock.Ms = 100_000;   // repo test hygiene (a lesson learned): nonzero clock origin; not
                               // load-bearing here -- this test's vacuity guard is the
                               // heap.Writes assert below, not the clock
 
@@ -533,7 +533,7 @@ public class DisplayFlightTests
         // ^ suppressed: the prune above already exhausted the shared budget for this window.
     }
 
-    /// <summary>LW-262 test 6: the coverage record's new `suffix=` field (Display.Flight.cs's
+    /// <summary>Test 6: the coverage record's new `suffix=` field (Display.Flight.cs's
     /// RecordCoverageIfTapped) must carry the REAL CardSites.SuffixCount, not just be present --
     /// asserted against an independently hardcoded expected count that DIFFERS from the kills
     /// count (see the F5(b) note in the body: asserting against the live accessor was
@@ -541,7 +541,7 @@ public class DisplayFlightTests
     [Fact]
     public void Coverage_record_carries_the_real_suffix_site_count()
     {
-        // Verifier F5(b) correction: the old version of this test asserted against
+        // F5(b) correction: the old version of this test asserted against
         // `display._sites.SuffixCount` itself (`$"suffix={display._sites.SuffixCount}"`), which
         // is tautological -- RecordCoverageIfTapped reads that SAME property, so the assertion
         // could never distinguish "the payload carries the real count" from "the payload carries
@@ -574,7 +574,7 @@ public class DisplayFlightTests
         Assert.Contains($"suffix={expectedSuffix}", firstPass[0].payload);
     }
 
-    /// <summary>LW-262 test 7: the end-to-end feedback-loop pin. A pool region holding far more
+    /// <summary>Test 7: the end-to-end feedback-loop pin. A pool region holding far more
     /// live suffix-pattern hits than MaxSuffixSites (found through the REAL ScanPoolRegion/OnChunk
     /// path, not seeded directly into CardSites like test 5 above) must still let kills coverage
     /// latch on the very FIRST locate/scan pass -- exactly one "coverage" record, trigger=first,
@@ -584,7 +584,7 @@ public class DisplayFlightTests
     [Fact]
     public void Suffix_flood_in_the_real_pool_scan_still_lets_coverage_latch()
     {
-        // Verifier F4 correction: a single-id flood only ever exercises the PER-ID cap (12), so
+        // F4 correction: a single-id flood only ever exercises the PER-ID cap (12), so
         // the latch assertion below used to pass even with BOTH caps disabled -- the per-id gate
         // alone already kept one id's suffix count small enough to never threaten coverage.
         // MANY ids instead, each contributing well under SuffixCopiesPerId copies, so the total

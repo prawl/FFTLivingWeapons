@@ -6,7 +6,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-393: the prompt hook's door reading. Arm(null) is safe in the refusal test because Arm returns
+/// The prompt hook's door reading. Arm(null) is safe in the refusal test because Arm returns
 /// before it touches the hooks controller when the prologue read fails.
 /// </summary>
 public class PromptSwapHookDoorTests

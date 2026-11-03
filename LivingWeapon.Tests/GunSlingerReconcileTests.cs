@@ -5,10 +5,10 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-193 owner-AC round: the browse-screen stamp gate (Offsets.PartyBrowseFlag) and the
+/// Owner-AC round: the browse-screen stamp gate (Offsets.PartyBrowseFlag) and the
 /// watch-only refund reconcile (GunSlinger.Reconcile.cs). See GunSlingerConsentTests.cs for the
 /// base consent model this round builds on (unchanged) and its evaporation-removal inversion
-/// tests. Organised by the review ruling's test list, one region per item.
+/// tests. Organised by the ruling's test list, one region per item.
 /// </summary>
 public class GunSlingerReconcileTests
 {
@@ -173,7 +173,7 @@ public class GunSlingerReconcileTests
         Assert.Equal((ushort)BlasterId, mem.WrittenU16[b + Offsets.ROffHand]);
     }
 
-    // LW-439: under ASLR the menu byte reads 246 with a menu open (byte 4 of the relocated image
+    // Under ASLR the menu byte reads 246 with a menu open (byte 4 of the relocated image
     // base), and the ESC-from-E&A re-stamp must still land through the stable browse screen.
     [Fact]
     public void BrowseGate_menu246_browseStable_stampsOnTheSecondConsecutivePass()
@@ -313,7 +313,7 @@ public class GunSlingerReconcileTests
         gs.PrepRoster();
 
         Assert.Contains(flight, e => e.type == "twin-refund" && e.payload.Contains("otherRows=[1]"));
-        // Same coverage gap the verifier flagged on the mainSwap sibling: a guarded W8 sack write
+        // Same coverage gap found on the mainSwap sibling: a guarded W8 sack write
         // lands in FakeSparseMemory's u8 Written map, not WrittenU16/WrittenBytes, so this must
         // be checked explicitly for the "zero memory writes" claim to actually hold.
         Assert.Empty(mem.Written);
@@ -544,7 +544,7 @@ public class GunSlingerReconcileTests
         Assert.False(gs.StoreForTest().Get(1).HasOff);
     }
 
-    /// <summary>LW-368 round 2 (T13): the sack read follows the injected bagCountBase Func, not
+    /// <summary>The sack read follows the injected bagCountBase Func, not
     /// the hardcoded Offsets.InventoryCountBase. Offsets.InventoryCountBase is deliberately never
     /// marked readable in this fake, so if the reconcile ever regressed to reading the constant
     /// directly, ReconcilePrepare's Readable guard would silently drop the id and this detection

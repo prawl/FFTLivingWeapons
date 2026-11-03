@@ -52,18 +52,22 @@ NAMES = {128: "Tideward", 129: "Galewall", 130: "Stormwall", 131: "Swiftguard",
          136: "Spellbane", 137: "Trailblazer", 138: "Vanguard", 139: "Nightward",
          140: "Genji Shield", 141: "Kaiser Shield", 142: "Venetian Shield", 143: "Aegis Prime"}
 
+
 def circ_mean(hues, weights):
     x = sum(w * math.cos(2 * math.pi * h) for h, w in zip(hues, weights))
     y = sum(w * math.sin(2 * math.pi * h) for h, w in zip(hues, weights))
     return (math.atan2(y, x) / (2 * math.pi)) % 1.0
 
+
 def hdist(a, b):
     d = abs(a - b) % 1.0
     return min(d, 1.0 - d)
 
+
 def load_vanilla(icon_id, surface):
     name = f"ei_{icon_id}_uitx.dds" if surface == "card" else f"ei_s_{icon_id}_uitx.dds"
     return Image.open(os.path.join(CACHE, name)).convert("RGBA")
+
 
 def load_shipped(icon_id, surface):
     sub = "equip_item" if surface == "card" else "equip_item_s"
@@ -76,6 +80,7 @@ def load_shipped(icon_id, surface):
         shutil.copy(tex, work)
         subprocess.run([FF16, "tex-conv", "-i", work], capture_output=True)
     return Image.open(dds).convert("RGBA")
+
 
 # --- per-sprite analysis --------------------------------------------------------------
 def analyze(im):
@@ -102,6 +107,7 @@ def analyze(im):
             spec.add(p)
     chrom = [p for p in solid if hsv[p][1] >= NEUTRAL_SAT and p not in ring]
     return {"hsv": hsv, "solid": solid, "ring": ring, "spec": spec, "chrom": chrom, "size": (w, h)}
+
 
 def hue_clusters(points, hsv, k_max=4):
     """Circular k-means on hue, sat-weighted; k picked by hue spread. Returns
@@ -146,6 +152,8 @@ def hue_clusters(points, hsv, k_max=4):
 
 # --- donor ramps (Mode B) -------------------------------------------------------------
 _donor_cache = {}
+
+
 def donor_ramp(target_hue, surface):
     """5-step (h,s,v) ramp from the vanilla sprite whose dominant chromatic material
     sits closest to target_hue. Scans the whole cache once per surface."""
@@ -193,6 +201,7 @@ def donor_ramp(target_hue, surface):
         disciplined.append(((target_hue + off) % 1.0, ss, vs))
     return disciplined
 
+
 # --- the three treatments -------------------------------------------------------------
 def feather_weights(target, size, protected):
     """1.0 inside target, 0 elsewhere/protected; 3x3 box-blurred once."""
@@ -211,6 +220,7 @@ def feather_weights(target, size, protected):
                 out[(x, y)] = acc / cnt
     return out
 
+
 def dilate(points, solid, r=2):
     """Grow a pixel set by r (chebyshev), clipped to solid pixels. A material is a
     REGION: its desaturated shadow pixels belong to it, not to the steel body."""
@@ -222,6 +232,7 @@ def dilate(points, solid, r=2):
                 if q in solid:
                     out.add(q)
     return out
+
 
 def paint(po, hsv, p, nh, ns, wt, vs=1.0):
     """Blend toward (nh, ns, source-v) in HSV space so a feather seam can never
@@ -246,6 +257,7 @@ TWIN_GROUPS = [
     {130, 134, 136, 138, 140, 142},  # the round shield
 ]
 _twin_ref = {}
+
 
 def twin_reference(gi):
     """The variant with the cleanest neutral face (Nightward's family benchmark)
@@ -282,6 +294,7 @@ def twin_reference(gi):
         steps.append((hs, ss, 0.0))
     _twin_ref[gi] = (frame, face, steps, ref_id, seed)
     return _twin_ref[gi]
+
 
 def twin_prototype(im, tint, gi, punch=False, item_id=None):
     """Nightward-style split imposed on every variant of the shared drawing:
@@ -362,6 +375,8 @@ def twin_prototype(im, tint, gi, punch=False, item_id=None):
     return out
 
 PUNCH = {130, 134, 136, 138, 140, 142}  # tints chosen near-vanilla for the OLD loud
+
+
                                          # engine; under a faithful engine they need help
 
 def prototype(im, tint, surface, item_id=None):
@@ -441,6 +456,7 @@ def prototype(im, tint, surface, item_id=None):
             paint(po, hsv, p, (t_hue + off) % 1.0, ns, wt, vs=vscale)
     return out
 
+
 def glow(im, tint):
     """Identity rim as an ADDED layer outside the body. The body contour uses a looser
     alpha threshold plus a majority smooth, so the rim follows the SHAPE the eye sees,
@@ -472,6 +488,7 @@ def glow(im, tint):
                 po[x, y] = rim_rgb + (80,)
     return out
 
+
 # --- metrics --------------------------------------------------------------------------
 def metrics(van, out):
     av, ao = analyze(van), analyze(out)
@@ -497,6 +514,7 @@ def metrics(van, out):
 # REVERT by setting POP = set().
 POP = {134, 136, 138}  # 131 removed: its identity is changing, pop would distort the read
 
+
 def pop_filter(im):
     """Post-pass: crank chroma on the rendered sprite. Ink and speculars stay quiet."""
     out = im.copy(); po = out.load()
@@ -514,6 +532,7 @@ def pop_filter(im):
             nr, ng, nb = (int(round(c * 255)) for c in colorsys.hsv_to_rgb(hh, ns, nv))
             po[x, y] = (nr, ng, nb, al)
     return out
+
 
 def build(surface):
     vans, ships, protos, glows, mets = [], [], [], [], []

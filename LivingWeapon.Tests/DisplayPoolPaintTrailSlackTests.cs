@@ -6,7 +6,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-37's pool scan reuses ChunkReader (Lookback/TrailSlack) exactly like the whole-heap
+/// The pool scan reuses ChunkReader (Lookback/TrailSlack) exactly like the whole-heap
 /// sweep, so a boundary card (one whose "Kills: " literal ends right at a chunk boundary,
 /// with its owner flavor landing almost entirely in TrailSlack) must still be discovered and
 /// painted through the pool path. Direct pool-path twin of DisplayTrailSlackTests.cs (same
@@ -67,7 +67,7 @@ public class DisplayPoolPaintTrailSlackTests
         var heap = new FakeHeap((regionBase, regionData, true), (statBase, statics, true));
         var display = CardFixtures.MakeDisplay(meta, kills, heap, statBase, clock, poolPaint: true);
 
-        // LW-261: the region here (two chunks + slack, > PoolLocator.LocateBudgetInBattle) now takes
+        // The region here (two chunks + slack, > PoolLocator.LocateBudgetInBattle) now takes
         // more than one Tick's worth of the resumable scan's own budget to locate. Drive the
         // locate to completion directly (StepPoolLocate, the same method Engine's own "pool-
         // locate" lane calls independently every tick) BEFORE the first Tick(), rather than

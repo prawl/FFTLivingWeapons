@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using LivingWeapon;
 using Xunit;
 
@@ -200,10 +200,10 @@ public class GrowthEngineTests
         Assert.True(result == t1.Addr || result == t2.Addr);
     }
 
-    // ---- LW-252 stage 6, decision-4 exception (b): 2+ REAL-position homogeneous twins with NO
+    // ---- Decision-4 exception (b): 2+ REAL-position homogeneous twins with NO
     // verified identity (nameId <= 0) must REFUSE, not guess -- a wrong-unit stat HOLD is a
     // wrong-unit WRITE the engine's per-turn normalize can bake into the save baseline (ledger
-    // [per-turn-normalize-repaints-boosted-baseline], UNCERTAIN; LW-90). The single-real-candidate
+    // [per-turn-normalize-repaints-boosted-baseline], UNCERTAIN). The single-real-candidate
     // shape (ScanStructEntries_prefers_real_position_over_origin_twin, above) and the both-at-
     // origin shape (ScanStructEntries_returns_one_when_all_twins_share_identity_at_origin, above)
     // already pin the UNCHANGED shapes (X2 parity is covered by the former; no duplicate added). ----
@@ -306,8 +306,8 @@ public class GrowthEngineTests
         Assert.False(GrowthEngine.MatchesEntry(mem, s, level: 30, brave: 65, faith: 58, MakeHands(10), nameId: 298));
     }
 
-    // ---- Routes: the LANE-DRIVEN decision table, now MULTI-lane (LW-317; supersedes LW-250's
-    //      single-lane Route, which supersedes LW-249's Cat/Formula chain -- exactly where the
+    // ---- Routes: the LANE-DRIVEN decision table, now MULTI-lane (supersedes the
+    // single-lane Route, which supersedes the Cat/Formula chain -- exactly where the
     //      pole mis-route and the four missing-HP weapons' dead growth both hid). WeaponMeta.Lane
     //      -- baked from docs/living_weapon_grid.csv's locked `grows` design via
     //      gen_living_weapon_meta.py's lane_of -- is still the ONLY routing input past the
@@ -336,8 +336,8 @@ public class GrowthEngineTests
     [Fact]
     public void Routes_MissingHpWeapon_NowGrowsSpeed()
     {
-        // THE LOAD-BEARING TEST (LW-250, ported): formula 67 is missing-HP -- Wrathblade's own
-        // damage formula -- and the pre-LW-250 Route hard-skipped every missing-HP formula
+        // THE LOAD-BEARING TEST (ported): formula 67 is missing-HP -- Wrathblade's own
+        // damage formula -- and the earlier Route hard-skipped every missing-HP formula
         // (Tuning.SkipFormula) with no way for the grid's locked "Speed" lane to override it.
         // Routes reads WeaponMeta.Lane instead, so a lane of "speed" must win regardless of the
         // formula id.
@@ -397,7 +397,7 @@ public class GrowthEngineTests
         Assert.Empty(GrowthEngine.Routes(0x4000, m, tier: 1));
     }
 
-    // ---- The following three pins are the LW-249 originals, updated to LANE inputs: the
+    // ---- The following three pins are the originals, updated to LANE inputs: the
     //      verdict for each real, unchanged-lane weapon shape (a plain Sword/KnightSword/
     //      Crossbow still PA, a Rod/Staff still MA, an f99 Speed-scaler still Speed) is
     //      preserved -- proving the routing MECHANISM changed, not the verdict itself for
@@ -439,8 +439,8 @@ public class GrowthEngineTests
     [Fact]
     public void Routes_LaneBeatsCategoryAndFormula()
     {
-        // THE SEAT'S ACTUAL THESIS (LW-250, ported): Cat/Formula are routing-dead. A Staff/
-        // formula-1 meta would have been the MA-caster default under the pre-LW-250 chain --
+        // THE SEAT'S ACTUAL THESIS (ported): Cat/Formula are routing-dead. A Staff/
+        // formula-1 meta would have been the MA-caster default under the earlier chain --
         // Lane "speed" wins outright. A Knife/formula-99 meta would have been the speed-formula
         // default -- Lane "pa" wins.
         long s = 0x4000;
@@ -453,8 +453,8 @@ public class GrowthEngineTests
         Assert.Equal(StatLane.Pa, r2.Lane);
     }
 
-    // ---- LW-317: the real multi-lane tokens ("pa+ma", "pa+ma+brave", "hp", "wp", "wp+faith")
-    //      the LW-250 interim collapse used to hide behind a single-lane token. ----
+    // ---- The real multi-lane tokens ("pa+ma", "pa+ma+brave", "hp", "wp", "wp+faith")
+    // Interim collapse used to hide behind a single-lane token. ----
 
     [Fact]
     public void Routes_PaMa_ReturnsBothLanesAtMultiFactor()
@@ -553,7 +553,7 @@ public class GrowthEngineTests
         Assert.False(r.U16);
     }
 
-    // ---- LW-317: Apply's per-address merge, when two hands route the same combat-struct byte ----
+    // ---- Apply's per-address merge, when two hands route the same combat-struct byte ----
 
     [Fact]
     public void MergeRoute_DualWieldSharingCPa_HigherFactorWins()
@@ -745,7 +745,7 @@ public class GrowthEngineTests
     [Fact]
     public void ReadHp_returns_miss_for_two_real_position_candidates_with_no_nameId()
     {
-        // [LW-252 stage 6, X4] Two real-position band entries share the SAME fp with no roster
+        // [X4] Two real-position band entries share the SAME fp with no roster
         // nameId at all (rosterNameId 0) -- master picks whichever comes LAST in band-slot scan
         // order and hands back ITS hp/maxHp (a wrong-unit read feeding a wrong-unit HP-gated
         // hold). Fixed: (0,0), the same "no info" miss value every consumer already treats a

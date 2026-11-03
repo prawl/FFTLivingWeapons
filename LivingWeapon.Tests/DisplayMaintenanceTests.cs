@@ -102,7 +102,7 @@ public class DisplayMaintenanceTests
     /// <summary>
     /// Dead sites (anchor removed from heap) are evicted by the maintenance PaintAll on the
     /// maintenance cadence, NOT only on count changes -- but not on the very first bad verify.
-    /// LW-257: a transient unreadable read must survive one miss (CardSites.Verify.cs's
+    /// A transient unreadable read must survive one miss (CardSites.Verify.cs's
     /// ApplyStrike leniency), so eviction now takes Tuning.CardEvictStrikes consecutive
     /// maintenance beats, not one. The site's continued presence after the first beat is itself
     /// part of this test's contract now, not just a step on the way to the old assertion.
@@ -121,7 +121,7 @@ public class DisplayMaintenanceTests
         // Simulate buffer freed: remove the heap region so anchor reads fail.
         heap.RemoveRegion(SourceBase);
 
-        // LW-257: each maintenance beat past MaintenanceMs is one Unreadable strike
+        // Each maintenance beat past MaintenanceMs is one Unreadable strike
         // (CardSites.Verify.cs's ApplyStrike). Eviction only fires on the beat that reaches
         // Tuning.CardEvictStrikes -- every beat before that must leave the site cached.
         for (int beat = 1; beat < Tuning.CardEvictStrikes; beat++)

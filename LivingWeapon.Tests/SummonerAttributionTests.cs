@@ -44,7 +44,7 @@ public class SummonerAttributionTests
     // Enemy band slot (<=EnemySlotMax=19): the AoE victim
     private const int EnemySlot = 0;
 
-    // Seeding helpers ride the shared KillTrackerFixtures (LW-160); every call site past the
+    // Seeding helpers ride the shared KillTrackerFixtures; every call site past the
     // (m, slot, hp, maxHp) positional prefix passes by name, so the canonical signatures bind
     // identically to the old local variants.
 

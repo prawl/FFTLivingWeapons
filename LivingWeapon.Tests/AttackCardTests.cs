@@ -7,7 +7,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// AttackCard is LW-31 stage 3's runtime painter: it censuses the heap for the shared "Attack"
+/// AttackCard is stage 3's runtime painter: it censuses the heap for the shared "Attack"
 /// table copies (AttackCardTableFixture mirrors the packed layout AttackCardSpike's census
 /// proved, now paired with the 36-byte record AttackCardMemory.AddAttackTable plants at
 /// LabelAddr - AttackRow.RecordGap), resolves the acting unit via the CURSOR ONLY (the register
@@ -29,9 +29,9 @@ public class AttackCardTests
     /// <summary>Seat a player: a roster slot (main-hand weaponId) plus its matching band entry
     /// and frame nameId, at a distinct (level,brave,faith) fingerprint per slot/bandIdx pair.
     /// <paramref name="sprite"/> defaults to 0 (an ordinary human, AttackRow.Policy.HumanSprite).
-    /// LW-87: <paramref name="turnFlag"/> defaults to 0 (NOT the genuine turn-owner value) since
+    /// <paramref name="turnFlag"/> defaults to 0 (NOT the genuine turn-owner value) since
     /// this file routinely seats more than one player per test -- defaulting every seat to 1 the
-    /// way LW-55 originally did would make the very FIRST multi-seat test instantly ambiguous
+    /// way the first version did would make the very FIRST multi-seat test instantly ambiguous
     /// under the flag-owner resolve (two real-position t=1 entries with different identities).
     /// <see cref="MakeFlagOwner"/> is the fixture's own "open this unit's turn" primitive now;
     /// pass <paramref name="turnFlag"/> explicitly only for a single-seat test that never calls
@@ -46,7 +46,7 @@ public class AttackCardTests
         m.U8s[Band.Entry(bandIdx) + Offsets.ATurnFlag] = (byte)turnFlag;
     }
 
-    /// <summary>LW-87: makes band slot <paramref name="bandIdx"/> the EXCLUSIVE PSX turn-flags
+    /// <summary>Makes band slot <paramref name="bandIdx"/> the EXCLUSIVE PSX turn-flags
     /// owner (<see cref="Band.FlagOwner"/>) among every band entry this fixture has seeded so far:
     /// sets ATurnFlag=1 at <paramref name="bandIdx"/> and 0 at every OTHER band slot that already
     /// carries a sane (<see cref="Band.IsValid"/>) entry. Mirrors TurnTrackerTests.SeatFlagOwner's
@@ -117,14 +117,14 @@ public class AttackCardTests
         public ActorResolver Resolver = null!;
         public AttackCard Card = null!;
         public Dictionary<int, int> Kills = null!;
-        // LW-55: every recorder call the tripwire makes (AttackCard.Resolve.cs's ReportRefusal),
+        // Every recorder call the tripwire makes (AttackCard.Resolve.cs's ReportRefusal),
         // in order, so tests can assert on flight-record content/count directly.
         public List<(string Type, string Payload)> Recorded = null!;
     }
 
     private static Rig Build(Dictionary<int, int>? kills = null) => Build(nowMs: null, kills);
 
-    /// <summary>LW-91: a clock-wired variant for tests that must drive AttackCard's strike-
+    /// <summary>A clock-wired variant for tests that must drive AttackCard's strike-
     /// retention grace window deterministically (AttackCard's ctor already accepts a nowMs func;
     /// every pre-existing test above never needed to control it).</summary>
     private static Rig Build(TestClock clock, Dictionary<int, int>? kills = null) => Build(nowMs: clock.Func, kills);
@@ -303,7 +303,7 @@ public class AttackCardTests
         // A second player, band-confirmed UNARMED (RRHand = the empty-hand sentinel) on an ordinary
         // human sprite (default 0): a real player turn with no weapon at all earns "Fists", not a
         // vanilla restore (goal rule: unarmed HUMAN -> "Fists"). Both sides sentinel-agree as
-        // unarmed (LW-55 gate A: None) and the turn flag is seated 1 (gate B: None).
+        // unarmed (gate A: None) and the turn flag is seated 1 (gate B: None).
         MemSeats.SeatRoster(rig.Mem.Sparse, slot: 4, lvl: 45, br: 40, fa: 50, rh: 0xFFFF, nameId: 44, sprite: 0x80);
         MemSeats.SeatBand(rig.Mem.Sparse, bandIdx: 7, weapon: 0xFFFF, lvl: 45, br: 40, fa: 50, gx: 7, gy: 7);
         MemSeats.SeatFrameNameId(rig.Mem.Sparse, bandIdx: 7, nameId: 44);
@@ -445,7 +445,7 @@ public class AttackCardTests
     [Fact]
     public void Warm_cache_survives_ResetBattle_and_repaints_on_the_first_tick_of_the_next_battle()
     {
-        // LW-38: the cache stays warm across ResetBattle, so the next battle's first repaint is an
+        // The cache stays warm across ResetBattle, so the next battle's first repaint is an
         // instant SyncHit re-validate off the existing cache entry, never a fresh multi-tick census.
         var rig = Build();
         long copy = 0x7000000000;
@@ -477,7 +477,7 @@ public class AttackCardTests
         // re-validate it, the underlying buffer itself went stale (a freed/reused allocation, the
         // same real-world shape SyncHit's label re-verify already guards against). A second,
         // genuinely live copy (copyB) exists by the time battle 2's first repaint runs.
-        // Renegotiated for LW-91's strike-retention window (plan doc, T4/T5): the clock is driven
+        // Renegotiated for the strike-retention window (plan doc, T4/T5): the clock is driven
         // past Tuning.AttackCardEvictAfterMs before the eviction is expected, since a stale copy
         // now strikes-and-retains for a grace window instead of evicting on the very first
         // failing pass.
@@ -499,7 +499,7 @@ public class AttackCardTests
         rig.Mem.WriteBytes(labelAddr, new byte[] { 1, 2, 3, 4, 5, 6 });   // corrupt the label bytes directly
         rig.Mem.AddAttackTable(copyB, 1, AttackCardText.VanillaDesc);     // battle 2's own live copy
         // No player turn open yet at battle 2's start, same "no cursor answer" convention as
-        // Enemy_team_cursor_composes_vanilla: LW-87 re-seed (the fixture's own note, plan doc
+        // Enemy_team_cursor_composes_vanilla: re-seed (the fixture's own note, plan doc
         // "battle-2 suppression now via clearing all flags, not team") -- ResetBattle never
         // touches game memory, so Windrunner's own ATurnFlag byte (set by MakeFlagOwner above)
         // is STILL 1 in memory unless cleared here; without this, Band.FlagOwner would keep
@@ -542,7 +542,7 @@ public class AttackCardTests
     [Fact]
     public void Battle_edge_that_aborts_an_in_flight_sweep_still_re_arms_next_battle()
     {
-        // LW-57, the load-bearing negative: reproduces the 2026-07-11 live log. A battle edge that
+        // The load-bearing negative: reproduces the 2026-07-11 live log. A battle edge that
         // lands mid sweep (after Arm, before Finish) must not leave the partial cache masquerading
         // as a complete census: without the !_sweepCompleted term, battle 2's copyB is never found.
         var rig = Build();
@@ -568,7 +568,7 @@ public class AttackCardTests
     [Fact]
     public void A_repaint_lands_mid_sweep_without_waiting_for_the_sweep_to_finish()
     {
-        // LW-57: a sweep must not starve the repaint driver, or the session's first battle shows
+        // A sweep must not starve the repaint driver, or the session's first battle shows
         // the vanilla Attack row for the whole census. Alternation lets a repaint land WHILE the
         // sweep is still in flight (HitCountForTests unchanged, sweep not yet Finished).
         var rig = Build();
@@ -640,7 +640,7 @@ public class AttackCardTests
         // Guards the `_needsCensus ||` term: an eviction sets _needsCensus, but nothing ticks it
         // into an Arm before ResetBattle fires. The pending re-census must survive the battle edge
         // (a completed prior sweep must not mask it via !_sweepCompleted alone). Renegotiated for
-        // LW-91: eviction only fires once the strike grace window elapses (drive the clock past
+        // eviction only fires once the strike grace window elapses (drive the clock past
         // Tuning.AttackCardEvictAfterMs); the census episode-start itself arms may well complete
         // before that window is up, and that's fine -- eviction's OWN unconditional _needsCensus
         // set is what this test pins, independent of any earlier census having already finished.
@@ -686,8 +686,8 @@ public class AttackCardTests
         Assert.Equal(AttackCardText.VanillaDesc, RowOf(rig.Mem.RegionBytes(copyB), 1));
     }
 
-    // LW-31: CURSOR-ONLY resolve (owner-observed wrong-weapon display 2026-07-06), RE-ANCHORED
-    // LW-87 onto Band.FlagOwner + the roster bridge (ActorResolver.Cursor.cs's own class doc). The
+    // CURSOR-ONLY resolve (owner-observed wrong-weapon display 2026-07-06), RE-ANCHORED
+    // onto Band.FlagOwner + the roster bridge (ActorResolver.Cursor.cs's own class doc). The
     // register fallback stage 2 kept is GONE from this surface: when the flag-owner resolve does
     // not answer, the plan is vanilla, full stop. The guard-failure tests below pin that
     // fail-closed rule (they are the flipped descendants of the old falls-back-to-the-register
@@ -809,7 +809,7 @@ public class AttackCardTests
         Assert.Equal(AttackCardText.VanillaDesc, RowOf(rig.Mem.RegionBytes(copy), 1));
     }
 
-    // LW-33: SyncHit's own footprint repair, inert for the split-image path (every image fits
+    // SyncHit's own footprint repair, inert for the split-image path (every image fits
     // AttackRow.FootprintBytes by construction) but kept as a regression guard: poisoning the
     // cached footprint must never block a correct repaint.
 
@@ -837,7 +837,7 @@ public class AttackCardTests
         Assert.Equal("Kills: 4/5 to +", TailOf(rig.Mem.RegionBytes(copy), 1, "Stormcaller".Length));
     }
 
-    // ---- LW-31 stage 3: the row-rename mechanism itself ----
+    // ---- The row-rename mechanism itself ----
 
     [Fact]
     public void LOAD_BEARING_the_split_image_and_offset_bytes_are_written_byte_exact_and_nothing_else_moves()
@@ -919,7 +919,7 @@ public class AttackCardTests
     [Fact]
     public void Label_gone_eviction_performs_zero_writes_after_the_grace_window()
     {
-        // Renegotiated for LW-91's strike-retention window (plan doc T5): a corrupted label used
+        // Renegotiated for the strike-retention window (plan doc T5): a corrupted label used
         // to evict instantly; it now accrues silent strikes and evicts only once the grace window
         // (Tuning.AttackCardEvictAfterMs) elapses, still with zero writes to the dead copy ever.
         var clock = new TestClock { Ms = 1 };   // nonzero: 0 doubles as FirstFailMs's own "healthy" sentinel
@@ -957,7 +957,7 @@ public class AttackCardTests
     [Fact]
     public void Foreign_desc_on_an_Ours_record_self_heals_and_is_retained()
     {
-        // Renegotiated for LW-91 (plan doc T6): a foreign-stomped FOOTPRINT under a still-Ours-
+        // Renegotiated (plan doc T6): a foreign-stomped FOOTPRINT under a still-Ours-
         // shaped record used to evict immediately. SyncHit's own :89 restore (Classify==Ours ->
         // Restore) is UNCHANGED and now runs on the very first failing pass regardless of
         // eviction policy, self-healing the record (and, via Restore's own write order, the
@@ -1088,14 +1088,14 @@ public class AttackCardTests
             TailOf(rig.Mem.RegionBytes(copy), 1, "Peacemaker+3".Length));
     }
 
-    // ==================== LW-55: CursorGate narrowing (turn-flag + weapon-agreement) ====================
+    // ==================== CursorGate narrowing (turn-flag + weapon-agreement) ====================
     // Two NARROWING-ONLY cross-checks the cursor resolve now passes through CursorGate.Decide
     // before ANY dossier composes: gate B (turn ownership, Offsets.ATurnFlag) then gate A (roster
     // right-hand weapon vs the SAME unit's own band-equipped weapon, Offsets.AWeapon). A refusal
     // composes vanilla, doctrine unchanged (a wrong dossier is worse than vanilla). See
     // CursorGate.cs's own class doc for the full gate-order/sentinel rationale.
 
-    /// <summary>Starts a console-only LogCapture at Info tier (LW-157): AttackCard's production
+    /// <summary>Starts a console-only LogCapture at Info tier: AttackCard's production
     /// paths never log at Info, so cap.Console captures ONLY Warn/Error lines, letting these
     /// tests assert Warn presence/absence precisely without Debug-tier noise (RepaintDriver/
     /// SyncHit log plenty of Debug lines every tick).</summary>
@@ -1136,7 +1136,7 @@ public class AttackCardTests
         Assert.Contains($"bandWeapon={StormcallerId}", rig.Recorded[0].Payload);
     }
 
-    /// <summary>LW-87 T8 (replaces LW55_gate_B_turn_flag_not_open, whose old scenario -- "the
+    /// <summary>T8 (replaces LW55_gate_B_turn_flag_not_open, whose old scenario -- "the
     /// band's own turn flag is never seated" -- no longer distinguishes gate B from
     /// <see cref="CursorMiss.NoOwner"/>: post-re-anchor, <see cref="Band.FlagOwner"/> already
     /// requires ATurnFlag==1 to find a candidate at all, so an unseeded flag now refuses one step
@@ -1215,7 +1215,7 @@ public class AttackCardTests
     {
         // Over-refusal pin: agreement (the overwhelming common case, every turn a player takes)
         // must never trip either gate. Reuses the plain compose shape already covered elsewhere in
-        // this file, plus the explicit tripwire-silence assertion LW-55 adds.
+        // this file, plus the explicit tripwire-silence assertion added later.
         var rig = Build();
         long copy = 0x7000000000;
         rig.Mem.AddAttackTable(copy, 1, AttackCardText.VanillaDesc);
@@ -1324,7 +1324,7 @@ public class AttackCardTests
     [Fact]
     public void A_real_eviction_after_the_grace_window_logs_exactly_one_line_naming_the_reason()
     {
-        // Renegotiated for LW-91 (plan doc: "T6 ... renegotiates :1169"): the ORIGINAL trigger
+        // Renegotiated (plan doc: "T6... renegotiates:1169"): the ORIGINAL trigger
         // here (a foreign-stomped footprint under a still-Ours record) now self-heals instead of
         // evicting (see Foreign_desc_on_an_Ours_record_self_heals_and_is_retained above), so this
         // pin rebuilds onto a genuinely dead buffer (SetRegionPresent(false), the T4 shape) so the
@@ -1387,7 +1387,7 @@ public class AttackCardTests
         Assert.Equal(1, rig.Card.HitCountForTests);
     }
 
-    // ==================== LW-91: strike retention on the AttackCard cache ====================
+    // ==================== Strike retention on the AttackCard cache ====================
     // A cached copy that fails its SyncHit verify is RETAINED under a per-Hit strike episode
     // (Hit.FirstFailMs, 0 = healthy) instead of instantly evicted, for up to
     // Tuning.AttackCardEvictAfterMs. See LivingWeapon\Display\AttackCard.Paint.cs's RepaintAll. All of
@@ -1461,7 +1461,7 @@ public class AttackCardTests
     [Fact]
     public void Strike_retention_recovers_to_Fists_for_an_unarmed_human()
     {
-        // T2 (LW-98): the same retained-then-recovered choreography as T1, but the desired plan
+        // T2: the same retained-then-recovered choreography as T1, but the desired plan
         // at recovery is the unarmed-human "Fists" composition, not another named weapon -- pins
         // that retention doesn't special-case which plan eventually lands once the buffer heals.
         var clock = new TestClock { Ms = 1 };
@@ -1498,7 +1498,7 @@ public class AttackCardTests
     [Fact]
     public void Strike_retention_recovers_to_byte_exact_vanilla_for_an_unarmed_monster()
     {
-        // T2 variant (LW-98): recovery for an unarmed MONSTER lands byte-exact vanilla, exercising
+        // T2 variant: recovery for an unarmed MONSTER lands byte-exact vanilla, exercising
         // AttackRow.Restore's "strand killer" path (the record is still Ours-shaped from A's
         // earlier paint) rather than a Paint call.
         var clock = new TestClock { Ms = 1 };
@@ -1534,7 +1534,7 @@ public class AttackCardTests
     [Fact]
     public void Kill_bump_with_no_turn_change_repaints_cached_copies_tails()
     {
-        // T3 (LW-88 pin): existing behavior, unaffected by strike retention -- a kill bump changes
+        // T3 (pin): existing behavior, unaffected by strike retention -- a kill bump changes
         // the composed image (the tail's "Kills: N/T" segment) even with no turn-owner change, so
         // it is caught by RepaintDriver's own compose-change edge, not the maintenance cadence.
         var kills = new Dictionary<int, int> { [WindrunnerId] = 3, [StormcallerId] = 4 };
@@ -1607,7 +1607,7 @@ public class AttackCardTests
         // T7: strike retention lives ONLY in RepaintAll (AttackCard.Census.cs's FindHits calls
         // SyncHit directly, as the ADOPTION check); a census candidate that fails must still be
         // rejected instantly, with zero strike bookkeeping and zero per-candidate logging, exactly
-        // as before LW-91.
+        // as before the strike retention change.
         using var cap = LogCapture.Start();
         var console = cap.Console;
         var file = cap.File;
@@ -1801,7 +1801,7 @@ public class AttackCardTests
         Assert.Equal(1, rig.Card.HitCountForTests);   // evicted
     }
 
-    // ==================== LW-87: flag-owner re-anchor (detour shape + resolve-miss stages) ====
+    // ==================== Flag-owner re-anchor (detour shape + resolve-miss stages) ====
     // The cursor resolve now rides Band.FlagOwner + the roster bridge (ActorResolver.Cursor.cs's
     // own class doc) instead of the condensed turn-queue struct. These tests pin the detour shape
     // itself (T1, load-bearing) plus every CursorMiss stage the resolve can now report.
@@ -1814,7 +1814,7 @@ public class AttackCardTests
         // (T), its own real position, its own roster row, flag OFF. The condensed turn-queue
         // struct is ALSO seeded with B's own (level,hp,maxHp) tuple -- the exact shape the OLD
         // hover-follower resolve used to snap onto -- to pin that this surface no longer reads it
-        // at all. On the pre-LW-87 resolve this composed vanilla (the struct named B, whose own
+        // at all. On the earlier resolve this composed vanilla (the struct named B, whose own
         // turn flag reads 0: gate B refuses NotTurnOwner). EXPECT here: the plan still carries A's
         // (Windrunner's) row for A's whole turn.
         var rig = Build();
@@ -1851,7 +1851,7 @@ public class AttackCardTests
     [Fact]
     public void No_flag_owner_anywhere_reports_the_miss_at_Debug_never_Warn()
     {
-        // LW-87: ReportMiss's CursorMiss.NoOwner is routine (the gap between any two units' turns,
+        // ReportMiss's CursorMiss.NoOwner is routine (the gap between any two units' turns,
         // or the battle-open edge before anyone is seeded yet) and must never escalate to a Warn --
         // only ReportRefusal's WeaponMismatch tier earns that (see the LW55_gate_A test above).
         // Reuses T2's exact scenario (No_flag_owner_anywhere_composes_vanilla_with_miss_NoOwner)

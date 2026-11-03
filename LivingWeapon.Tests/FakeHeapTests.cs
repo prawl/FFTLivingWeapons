@@ -172,7 +172,7 @@ public class FakeHeapTests
     public void Regions_excludes_non_writable_regions()
     {
         // Mirrors production Mem.Regions()'s own contract (Mem.cs): committed/PRIVATE/writable
-        // only. A read-only region must never appear here, or a caller (PoolLocator, LW-37)
+        // only. A read-only region must never appear here, or a caller (PoolLocator)
         // that trusts "found in Regions() -> writable" would be wrong.
         var heap = new FakeHeap((0x1000, new byte[2], writable: true), (0x2000, new byte[2], writable: false));
         var regions = heap.Regions().ToList();

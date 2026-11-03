@@ -51,7 +51,6 @@ internal static class PartsReport
 
     private const string BannersNote = "connected; nothing to announce while kill counting is off";
 
-
     private readonly struct Row
     {
         public readonly Part Part;

@@ -6,7 +6,7 @@ using Xunit;
 
 namespace LivingWeapon.Tests;
 
-/// <summary>LW-353: the save-edge core (key derivation and the two pending slots) and the
+/// <summary>The save-edge core (key derivation and the two pending slots) and the
 /// hooks' arm decision, all pure.</summary>
 public class SaveEdgeTrackerTests
 {
@@ -73,7 +73,7 @@ public class SaveEdgeTrackerTests
         return b;
     }
 
-    /// <summary>THE round-4 test. The owner's live test 2 (2026-08-28 00:59-01:10) proved the
+    /// <summary>THE live test. The owner's live test 2 (2026-08-28 00:59-01:10) proved the
     /// hooks fire, but no save ever recognized its own load: three header bytes are save-in-flight
     /// markers. At the instant DetourSerialize samples (right after the serializer returns) the
     /// window offsets 0x1A, 0x1C and 0x1D (header +0x11A, +0x11C, +0x11D) read 0xFF; at rest, the
@@ -207,7 +207,7 @@ public class SaveEdgeTrackerTests
         Assert.Equal(SaveEdgeTracker.KeyFromHeader(Header(2482)), SaveEdgeTracker.KeyFromHeader(hdr!));
     }
 
-    /// <summary>LW-368 round 2 (T11): the save-serialize edge's count snapshot reads through an
+    /// <summary>The save-serialize edge's count snapshot reads through an
     /// injected base, not the vanilla constant. ReadCounts is internal (not private) for exactly
     /// this seam, the same idiom AfterApply already uses to bypass the native trampoline.</summary>
     [Fact]

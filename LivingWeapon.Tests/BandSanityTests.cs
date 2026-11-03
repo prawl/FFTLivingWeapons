@@ -5,7 +5,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-149 stage B: Band.TryReadUnit, the shared six-line sanity read (compute the slot's
+/// Stage B: Band.TryReadUnit, the shared six-line sanity read (compute the slot's
 /// entry address, guard the maxHp read, reject mhp/lvl/br/fa outside their bounds) that
 /// Plague/Ricochet/Larceny/Maim/Kobu/Benediction/Puppeteer each duplicated verbatim in their
 /// per-tick band walk (Band.Sanity.cs). Two overloads: the no-hp core (used by Plague, which

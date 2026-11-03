@@ -42,9 +42,13 @@ k32.VirtualProtectEx.argtypes = [W.HANDLE, C.c_void_p, C.c_size_t, W.DWORD, C.PO
 SITE = 0x140282073; ORIG = bytes.fromhex("0fb70500e75200")
 st = json.load(open(os.path.join(os.environ.get("TEMP", "."), "lw365_clone_call_log_state.json")))
 PAGE, RING = st["page"], st["ring"]; STUB = PAGE + 0x1810
+
+
 def wpm(a, b):
     buf = (C.c_ubyte * len(b))(*b); g = C.c_size_t(0)
     return bool(k32.WriteProcessMemory(_handle(), C.c_void_p(a), buf, len(b), C.byref(g))) and g.value == len(b)
+
+
 def wcode(a, b):
     old = W.DWORD(0)
     assert k32.VirtualProtectEx(_handle(), C.c_void_p(a & ~0xFFF), 0x1000, 0x40, C.byref(old))

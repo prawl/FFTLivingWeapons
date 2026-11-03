@@ -6,7 +6,7 @@ using Xunit;
 
 namespace LivingWeapon.Tests;
 
-/// <summary>LW-346 S2: the extended catalog relocation over the fakes.</summary>
+/// <summary>The extended catalog relocation over the fakes.</summary>
 public class ExtendedCatalogTests
 {
     private static readonly byte[] VanillaDisp32 = { 0x10, 0xF9, 0x67, 0x00 };   // 0x0067F910, read on disk 2026-08-27

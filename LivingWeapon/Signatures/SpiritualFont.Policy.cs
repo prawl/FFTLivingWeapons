@@ -3,7 +3,7 @@ using System.Collections.Generic;
 namespace LivingWeapon;
 
 /// <summary>
-/// The pure decisions behind Umbral Rod's "Spiritual Font" signature -- no memory access.
+/// The pure decisions behind Umbral Rod's "Spiritual Font" signature, with no memory access.
 /// The stateful position-poll watcher and guarded writes live in SpiritualFont.cs.
 /// </summary>
 internal sealed partial class SpiritualFont

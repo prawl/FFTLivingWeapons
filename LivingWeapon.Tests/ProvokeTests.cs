@@ -456,7 +456,7 @@ public class ProvokeTests
         Assert.Equal(1, file.Count(l => l.Contains("out of range")));
     }
 
-    // --- LW-399: the door latch and the vanilla compare ---
+    // --- The door latch and the vanilla compare ---
 
     [Fact]
     public void Table_writer_refuses_while_its_door_is_closed_and_writes_once_it_opens()

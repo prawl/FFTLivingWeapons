@@ -23,7 +23,7 @@ public class KillTrackerTests
 {
     // Seeding helpers (SetActive/SetUnit/SetArrayEnemy/SetEnemy/SetRoster/PointAt/SetFrameNameId/
     // Settle/AliveThenDead/SetJumpBit) ride the shared KillTrackerFixtures via the using-static
-    // import (LW-160). SetDeadBit below stays local: this file is its only consumer.
+    // import. SetDeadBit below stays local: this file is its only consumer.
 
     // Band slot indices for player-side units (arbitrary; just need to be non-enemy for clarity).
     // Enemy band slots can be anywhere in 0..BandSlots-1; slot 0 is a convenient enemy slot.
@@ -32,7 +32,7 @@ public class KillTrackerTests
 
     // Ids that count as real weapons (meta keys). A hand holding anything NOT in here
     // (e.g. Shield) is never credited. Covers every weapon id used across these tests.
-    // 22 (LW-56 round 2): the live opener geometry's Claymore id, used by the weapon-key rescue test.
+    // 22: the live opener geometry's Claymore id, used by the weapon-key rescue test.
     private static readonly HashSet<int> Weapons = new() { 22, 52, 63, 73, 90 };
     private const int Shield = 200;   // a non-weapon left-hand item -> never credited
 
@@ -1252,12 +1252,12 @@ public class KillTrackerTests
         Assert.Equal(default, t.LastActorFingerprint);
     }
 
-    // --- LastActorNameId: LW-252 stage 3's Seed/Apply copy-back LAW ---
+    // --- LastActorNameId: stage 3's Seed/Apply copy-back LAW ---
 
     [Fact]
     public void LastActorNameId_round_trips_through_seed_and_apply_and_clears_on_reset()
     {
-        // [LW-252 stage 3, S1: THE Seed/Apply copy-back LAW] Every mirror-output field must be
+        // [S1: THE Seed/Apply copy-back LAW] Every mirror-output field must be
         // wired in BOTH SeedLatchOutputs (the carrier's INPUT) and ApplyLatchOutputs (the
         // carrier's OUTPUT) -- a missed wire in either fails silently (nothing else notices), so
         // this is the one test standing between a silent regression and a real one. Two
@@ -1441,7 +1441,7 @@ public class KillTrackerTests
     [Fact]
     public void Two_same_main_weapon_but_different_sets_still_bail()
     {
-        // Reviewer BLOCKER-1 pin (hardest case): band weapon=W; slot A hands={W}, slot B
+        // Review BLOCKER-1 pin (hardest case): band weapon=W; slot A hands={W}, slot B
         // hands={W,X}. Both contain W, so weaponAmbiguous fires (sets differ). Falls through
         // to the armed path, which is also armedAmbiguous. Conservative bail: no credit.
         const int W = 52, X = 90;
@@ -1576,7 +1576,7 @@ public class KillTrackerTests
     [Fact]
     public void LW56_scripted_opener_unit_latches_via_the_rescue_and_credits_the_kill()
     {
-        // LW-56 fault 2: the Orbonne-opener scripted signature (frame nameId == job byte) matches
+        // The Orbonne-opener scripted signature (frame nameId == job byte) matches
         // no roster RNameId at all, so the nameId+stat bridge alone would return Enemy and the
         // whole acted-period latch (and FirstKillFallback) would refuse. The fingerprint rescue
         // picks this up via a unique bare (level,brave,faith) match plus weapon agreement, and the
@@ -1605,7 +1605,7 @@ public class KillTrackerTests
     [Fact]
     public void LW56_scripted_unit_with_diverging_fingerprint_credits_via_the_weapon_key()
     {
-        // LW-56 fault 2, round 2 (the live opener geometry, 2026-07-10): the scripted trio's
+        // The scripted trio's
         // fingerprint (level, brave, faith) never matches ANY roster row (brave/faith diverge
         // from the roster's pre-battle stats), so the fingerprint key finds zero matches. The
         // weapon key bridges it instead: the scripted unit's band weapon uniquely matches the
@@ -2136,7 +2136,7 @@ public class KillTrackerTests
         Assert.Equal(1, kills.GetValueOrDefault(wa));
     }
 
-    // --- LW-68: the alive-edge belt's PRESENT-false vs ABSENT split (KillTracker.Corpses.cs) ---
+    // --- The alive-edge belt's PRESENT-false vs ABSENT split (KillTracker.Corpses.cs) ---
     // ABSENT means a seen-alive, oracle-confirmed enemy's alive-mark was stamped under a DIFFERENT
     // maxHp than its death tuple (drift) -- a real uncredited death, not a duplicate. PRESENT-false
     // means the identity already resolved this battle (credited or no-credit) or a simultaneous
@@ -2250,7 +2250,7 @@ public class KillTrackerTests
         Settle(t, 3);   // seenAlive[0], seenAlive[1]
 
         // P's band entry goes invalid: HasLiveWielder(ghostWeapon) now finds no live band match,
-        // even though the stale latch still names it (the LW-56 stale-attribution shape).
+        // even though the stale latch still names it (the stale-attribution shape).
         m.U8s[Band.Entry(Wilham) + Offsets.ALevel] = 0;
 
         // A dies: culprit=[ghostWeapon], refused at CreditKill (no live wielder) -> tallies nothing.
@@ -2373,10 +2373,10 @@ public class KillTrackerTests
     }
 
     // ============================================================================================
-    // Turn-flags attribution (LW-63, 2026-07-11): the per-unit PSX turn flags (band +0x19C/D/E)
+    // Turn-flags attribution: the per-unit PSX turn flags (band +0x19C/D/E)
     // name the acting unit structurally, closing the parked-pointer mis-credit the register-first
     // preamble above cannot: Ramza killed with the Chaos Blade (37) while Wilham's Warbrand (67)
-    // claimed it (live tapes flight_20260710_150318 / flight_20260710_044640, docs/TODO.md LW-63).
+    // claimed it (live tapes flight_20260710_150318 / flight_20260710_044640, the ledger).
     // Unit-level coverage of the resolve lane itself lives in FlagOwnerResolveTests.cs; the tests
     // below drive the full KillTracker.Poll -> ScanCorpses path.
     // ============================================================================================
@@ -2384,7 +2384,7 @@ public class KillTrackerTests
     [Fact]
     public void FlagOwner_credits_the_true_actor_over_a_parked_register()
     {
-        // THE LW-63 REPRO, load-bearing (plan test 1). Wilham and Ramza are both fielded and
+        // REPRO, load-bearing (plan test 1). Wilham and Ramza are both fielded and
         // armed; the engine actor pointer is parked (stable since before the period) on Wilham --
         // exactly the geometry that mis-credited a live kill (the Chaos Blade kill claimed by
         // Wilham's Warbrand). Ramza's per-unit turn flag (t=1) names HIM as the true actor, so

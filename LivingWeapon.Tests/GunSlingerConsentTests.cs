@@ -6,7 +6,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-193/LW-194: the twin-weapon grant's consent rewrite. An EMPTY off-hand invites the twin;
+/// The twin-weapon grant's consent rewrite. An EMPTY off-hand invites the twin;
 /// anything the player equipped there or in the shield slot (RShield +0x1A, READ ONLY -- this
 /// mod never writes it) declines it, in every lane including the in-battle re-assert. See
 /// docs/LIVE_LEDGER.md's [twin-grant-inventory-desync], [worldmap-menu-open-byte], and
@@ -692,7 +692,7 @@ public class GunSlingerConsentTests
         Assert.Equal((ushort)BlasterId, mem.WrittenU16[b + Offsets.ROffHand]);
     }
 
-    // ── LW-426: the stand down line must read for a player who still dual wields on their own,
+    // ── The stand down line must read for a player who still dual wields on their own,
     // and no twin write may follow a stand down until the hand is empty again. ──────────────────
 
     [Fact]
@@ -859,7 +859,7 @@ public class GunSlingerConsentTests
         Assert.False(gs.StoreForTest().Get(1).HasOff);
     }
 
-    // LW-439: the menu byte is byte 4 of a pointer inside the game's per frame record list, so it
+    // The menu byte is byte 4 of a pointer inside the game's per frame record list, so it
     // read 1 under the old fixed image base and 246 (0xF6) under the ASLR base 0x7FF65FC60000.
     // Any nonzero value means a menu is open; only 0 means closed.
     [Fact]

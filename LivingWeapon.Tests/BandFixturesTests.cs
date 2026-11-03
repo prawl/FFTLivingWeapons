@@ -4,7 +4,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-149 stage I load-bearing pin. BandFixtures.cs folds three copy-pasted Seed* fixture
+/// Stage I load-bearing pin. BandFixtures.cs folds three copy-pasted Seed* fixture
 /// families (SeedVictimFields, the SeedBandEntry core, SeedAllyFp/SeedAllyFpAt) out of
 /// KillTrackerDeedTests/KillTrackerTests/VictimProbeTests and
 /// BenedictionTests/ChoirTests/SanctuaryTests. A fixture dedup is invisible to every existing
@@ -28,7 +28,7 @@ namespace LivingWeapon.Tests;
 /// (Offsets.AGx added to ReadableAddrs, an address the old body never touched), then GREEN again
 /// once the mutation was reverted.
 ///
-/// LW-151 (strict default flip): the reference bodies below moved in lockstep with the fixture
+/// The strict default flip: the reference bodies below moved in lockstep with the fixture
 /// when FakeSparseMemory.StrictRangeChecks became the default. Each 2-byte field the shipped
 /// code reads with n=2 (AMaxHp/AHp via Band.Sanity.cs, ANameId via VictimReader.cs, the static
 /// array's AMaxHp via GrowthEngine.Signatures.cs) now marks BOTH its bytes, because that is
@@ -56,7 +56,7 @@ public class BandFixturesTests
     // ---- Family 1: SeedVictimFields (KillTrackerDeedTests / KillTrackerTests / VictimProbeTests) ----
 
     /// <summary>The pre-dedup SeedVictimFields body (all three copies were byte-identical),
-    /// carrying the LW-151 honest-range widen (see the class doc).</summary>
+    /// carrying the honest-range widen (see the class doc).</summary>
     private static void OldSeedVictimFields(FakeSparseMemory m, int slot, ushort nameId, byte job, bool undead)
     {
         long addr = Band.Entry(slot);
@@ -84,7 +84,7 @@ public class BandFixturesTests
     // ---- Family 2: SeedBandEntry's shared core (Benediction/Choir/Sanctuary) ----
 
     /// <summary>The 7-line body all three pre-dedup SeedBandEntry copies shared identically,
-    /// carrying the LW-151 honest-range widen (see the class doc)
+    /// carrying the honest-range widen (see the class doc)
     /// (statement order normalized to Choir/Sanctuary's, verified semantically
     /// equivalent to Benediction's own order since every statement targets a distinct address).
     /// Deliberately excludes every tail (writable HP, support bit, dead bit, crystal hearts) --
@@ -121,7 +121,7 @@ public class BandFixturesTests
     // ---- Family 3: SeedAllyFp (Benediction/Choir/Sanctuary) ----
 
     /// <summary>The pre-dedup SeedAllyFp body (all three copies were byte-identical; each was
-    /// SeedAllyFpAt with idx fixed at 1), carrying the LW-151 honest-range widen (see the
+    /// SeedAllyFpAt with idx fixed at 1), carrying the honest-range widen (see the
     /// class doc).</summary>
     private static void OldSeedAllyFp(FakeSparseMemory mem, int mhp, int lvl, int br, int fa)
     {
@@ -146,7 +146,7 @@ public class BandFixturesTests
         AssertExactMatch(oldMem, newMem);
     }
 
-    // ---- Family 4: SeatEnemyFp (Maim/PlagueLevelDrift/Puppeteer, LW-157 fold) ----
+    // ---- Family 4: SeatEnemyFp (Maim/PlagueLevelDrift/Puppeteer fold) ----
 
     /// <summary>The pre-fold SeatEnemyFp body (the MaimTests/PlagueLevelDriftTests/PuppeteerTests
     /// private copies were byte-identical -- verified diff -- and KobuTests inlined the same

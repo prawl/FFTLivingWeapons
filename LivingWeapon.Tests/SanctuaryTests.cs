@@ -56,7 +56,7 @@ public class SanctuaryTests
     // ---- Seeding helpers ----
 
     /// <summary>Seed a valid band entry at <paramref name="addr"/>. HP 0 + deadBit true = fallen.
-    /// THIN TAIL over BandFixtures.SeedBandEntryCore (LW-149 stage I): the shared core sets the 7
+    /// THIN TAIL over BandFixtures.SeedBandEntryCore (stage I): the shared core sets the 7
     /// fields every SeedBandEntry copy set identically; the dead-bit/crystal-hearts tail below is
     /// Sanctuary-specific and stays local rather than joining the shared fixture. Same
     /// name/signature/defaults as before the dedup -- no caller line in this file changed.</summary>

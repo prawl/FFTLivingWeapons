@@ -8,7 +8,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-381 second half: <see cref="IconCacheHide"/> driven entirely through <see cref="FakeHeap"/>
+/// Second half: <see cref="IconCacheHide"/> driven entirely through <see cref="FakeHeap"/>
 /// -- no real game process anywhere. <see cref="MemBuilder"/> lays out a byte-exact fake heap
 /// image (strings, parts entries, texture records) and hands back the absolute address of each
 /// piece so assertions can check exactly which bytes moved. Field offsets/sizes mirror
@@ -377,7 +377,7 @@ public class IconCacheHideTests
         Assert.Equal(0, heap.Writes);
     }
 
-    // ---- C8 (round 2, F9/A3-13): when pass 1 finds no string at all, pass 2 (the pointer sweep)
+    // ---- C8 (F9, A3-13): when pass 1 finds no string at all, pass 2 (the pointer sweep)
     // must be skipped entirely -- there is nothing for it to look up, so a second full Regions()
     // pass would just burn the cost for a launch that has not drawn this icon yet. ----
 
@@ -413,7 +413,7 @@ public class IconCacheHideTests
         var needles = IconCacheHidePolicy.Needles(id);
         string uri = needles[0].Text;   // card parts URI
 
-        // A3-2 (round 2): land the string's FIRST character just 5 bytes before the boundary, so
+        // A3-2: land the string's FIRST character just 5 bytes before the boundary, so
         // even the NEEDLE PREFIX (30 bytes, "UITextureParts://ui/ffto/icon/") straddles the edge
         // -- not merely the string's longer tail. The old span search stopped exactly at the
         // boundary and could never assemble a prefix match that starts this close to it; only the
@@ -491,11 +491,11 @@ public class IconCacheHideTests
         Assert.Equal(0, heap.Writes);
     }
 
-    // ---- C7 (round 2, F7): a texture record that CLASSIFIES but whose write is refused (the
+    // ---- C7 (F7): a texture record that CLASSIFIES but whose write is refused (the
     // region stops being Writable at write time) must leave the surface's parts entries
     // completely untouched -- the coupling gate (texHidden > 0) has to hold for a write refusal,
     // not just for a missing/decoy record (T2 already covers that case). Non-vacuity: relaxing
-    // the gate to `texHidden >= 0` -- the same break round 1's verify used -- makes the parts
+    // the gate to `texHidden >= 0` -- the same break the verify step used -- makes the parts
     // entry get hidden anyway and this test fails; that break-and-restore is recorded in the
     // session's silent-repair ledger rather than left in the tree. ----
 
@@ -536,7 +536,7 @@ public class IconCacheHideTests
         }
     }
 
-    // ---- C12 (round 3, A4-2/PD-2): a texture record hides fine but BOTH of its surface's parts
+    // ---- C12 (A4-2): a texture record hides fine but BOTH of its surface's parts
     // entries refuse (an address-selective WritableOverride hitting only the parts entries, the
     // texture record's own two write addresses stay writable) -- the outcome still counts as
     // Hidden (the coupling rule only needs texHidden > 0), but the summary line must NOT promise a
@@ -582,7 +582,7 @@ public class IconCacheHideTests
         Assert.DoesNotContain("the next menu open redraws it", line);
     }
 
-    // ---- C14 (round 3, A4-6/N1): the pass-1 extended span (A3-2) can read up to PrefixMax - 1
+    // ---- C14 (A4-6, N1): the pass-1 extended span (A3-2) can read up to PrefixMax - 1
     // bytes past a chunk's own searchable window (the span extension) plus CStringMax bytes (the
     // forward string read) into ChunkReader's own trail slack -- ChunkReader.cs zero-clears past a
     // short region-end read (ChunkReader.ZeroClearLength, which the policy constant

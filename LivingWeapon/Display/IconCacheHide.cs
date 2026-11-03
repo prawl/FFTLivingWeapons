@@ -17,7 +17,7 @@ internal sealed partial class IconCacheHide : IIconCacheHider
 {
     private readonly IGameMemory _mem;
     private readonly Func<bool> _inBattle;
-    private ChunkReader? _reader;   // Private, lazy -- never shared with Display's own sweep
+    private ChunkReader? _reader;   // Private and lazy, never shared with Display's own sweep
 
     // Warn once per launch. TextureMissing keys by id, a refused write by (id, surface).
     private readonly HashSet<int> _textureMissingWarnedOnce = new();
@@ -46,7 +46,7 @@ internal sealed partial class IconCacheHide : IIconCacheHider
             foreach (var t in targets) Report(t, new SurfaceOutcome(HideOutcome.Postponed, 0, 0, 0, 0), result);
             return result;
         }
-        if (stringMap.Count == 0)   // Nothing pass 2 could ever find -- skip its full sweep
+        if (stringMap.Count == 0)   // Nothing pass 2 could ever find, so skip its full sweep
         {
             foreach (var t in targets) Report(t, new SurfaceOutcome(HideOutcome.NothingResident, 0, 0, 0, 0), result);
             return result;

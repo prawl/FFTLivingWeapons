@@ -98,7 +98,7 @@ public class RenewalTests
     public void ActivatesOnMainHandOnly_is_documented_in_policy()
         => Assert.True(Renewal.ActivatesOnMainHandOnly);
 
-    // ---- LW-153 pulse pins: the STATEFUL heal loop, driven directly (internal for test reach).
+    // ---- Pulse pins: the STATEFUL heal loop, driven directly (internal for test reach).
     // Written GREEN against the pre-fold Renewal.Aura, so the shared HealPulse core must keep
     // them green -- the pins outrank the fold, not the other way around. ----
 

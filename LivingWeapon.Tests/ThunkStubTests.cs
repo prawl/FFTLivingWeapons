@@ -5,7 +5,7 @@ using Xunit;
 
 namespace LivingWeapon.Tests;
 
-/// <summary>LW-346 S2 (R12 2026-10-16: entry hooks): the accessor stubs and the entry trampolines, pinned byte for byte AND executed for real. The
+/// <summary>S2 (R12 2026-10-16: entry hooks): the accessor stubs and the entry trampolines, pinned byte for byte AND executed for real. The
 /// execution tests allocate an executable page in this test process, plant a three-byte
 /// "identity" routine (<c>mov eax,ecx; ret</c>) as the pretend original target, write the stub
 /// in front of it, and call the stub through a function pointer: the only way to know the hand
@@ -233,7 +233,7 @@ public class ThunkStubTests
         Assert.Throws<ArgumentException>(() => ThunkStub.EmitSwingIdFallbackStub(0x1407B077AL, 0x141853D00L, 261, 0x400, 0x14028207AL));   // hi > 0x3FF
     }
 
-    /// <summary>LW-365 fix round: the rip-relative disp32 baked into
+    /// <summary>Fix round: the rip-relative disp32 baked into
     /// <see cref="SwingIdFallbackHook.ExpectedSite"/> (<c>00 E7 52 00</c> = 0x52E700) must agree with
     /// <see cref="Offsets.SwingIdWord"/>'s offset from the instruction right after the movzx
     /// (SiteAddr + 7); a drift between the two constants would make the stub read the wrong word
@@ -291,7 +291,7 @@ public class ThunkStubTests
         Assert.False(hook.Installed);
     }
 
-    // LW-388 R12 load-bearing execution tests: a pretend accessor in real executable memory,
+    // Load-bearing execution tests: a pretend accessor in real executable memory,
     // hooked through the real LiveCodePatcher, then called natively.
     [Fact]
     public void Entry_hook_runs_the_stolen_call_and_returns_into_the_function()

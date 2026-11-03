@@ -4,7 +4,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-233: pure decision-table tests for RestartSentinelPolicy.ShouldOpenLatch -- the retry-rewind
+/// Pure decision-table tests for RestartSentinelPolicy.ShouldOpenLatch -- the retry-rewind
 /// detector's opening condition, no ticking/state involved (RestartSentinelTests.cs covers the
 /// stateful half: Tick()'s debounce/grace/re-arm bookkeeping and PresentRevive's latch machinery).
 /// </summary>
@@ -69,7 +69,7 @@ public class RestartSentinelPolicyTests
         Assert.True(RestartSentinelPolicy.NullQualifies(RestartSentinelPolicy.NullPersistTicks));
     }
 
-    // ---- Identity-gated grace exemption (LW-233 live-drill residual, 2026-08-17) ----
+    // ---- Identity-gated grace exemption (live-drill residual, 2026-08-17) ----
 
     [Fact]
     public void Opens_before_grace_when_the_revived_identity_matches_the_credited_one()
@@ -94,7 +94,7 @@ public class RestartSentinelPolicyTests
             ticksSinceQualifiedNull: 0, battleAgeTicks: Grace, identityMatches: true));
     }
 
-    // ---- ShouldStash (LW-233 deferred-verdict fix: the 0ms-join shape, verifier-caught) ----
+    // ---- ShouldStash (deferred-verdict fix: the 0ms-join shape, review-caught) ----
 
     [Fact]
     public void Stashes_a_credited_heal_from_zero_revive_while_a_null_is_mid_flight_past_grace()

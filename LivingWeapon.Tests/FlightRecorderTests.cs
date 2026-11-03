@@ -22,7 +22,7 @@ public class FlightRecorderTests : IDisposable
 {
     private readonly List<TempDirs> _tempDirs = new();
 
-    // LW-147: tracked and deleted in Dispose (below), not leaked.
+    // Tracked and deleted in Dispose (below), not leaked.
     private string TempDir()
     {
         var t = TempDirs.Create("lw_flight_");
@@ -306,7 +306,7 @@ public class FlightRecorderTests : IDisposable
             Assert.True(Directory.Exists(flightDir));
             var files = Directory.GetFiles(flightDir, "flight_*.jsonl");
             Assert.Single(files);
-            // NO-ACCUMULATION pin (stage-2 verifier follow-up): the pre-Init record must NOT have
+            // NO-ACCUMULATION pin (stage-2 review follow-up): the pre-Init record must NOT have
             // been buffered and replayed into the post-Init flush -- only "after-init" may appear.
             string body = File.ReadAllText(files[0]);
             Assert.Contains("after-init", body);
@@ -337,7 +337,7 @@ public class FlightRecorderTests : IDisposable
         finally { Flight.Reset(); }
     }
 
-    // ---- (11) LW-53: the dedicated "standdown" trigger drains like any other named trigger,
+    // ---- (11) The dedicated "standdown" trigger drains like any other named trigger,
     // filing the guard's stand-down record under a self-describing archive name (no new
     // FlightRecorder logic needed: RequestFlush/Flush are already generic on the trigger
     // string; this pins that genericity holds for the new trigger too). ----

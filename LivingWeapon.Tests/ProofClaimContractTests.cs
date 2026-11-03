@@ -8,10 +8,10 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-106: the proof-claim ratchet. This repo's rule is that "proven live" is a ledger fact,
+/// The proof-claim ratchet. This repo's rule is that "proven live" is a ledger fact,
 /// not a doc-comment vibe: docs/LIVE_LEDGER.md is the only authority on whether a runtime
 /// mechanism claim is proven, and only the owner moves a row into its Proven section. The rule
-/// was written down and broken anyway. LW-105 found NINE sentences across code, tests and the
+/// was written down and broken anyway. A sweep found NINE sentences across code, tests and the
 /// changelog asserting live proof for a row that sat under Uncertain, and only two of the nine
 /// were known in advance; a five-surface sweep found the rest. A rule a grep cannot enforce
 /// decays, so this is the machine behind it.
@@ -20,10 +20,10 @@ namespace LivingWeapon.Tests;
 /// Any change fails, so adding a claim forces the author to look at LIVE_LEDGER and then
 /// deliberately bump a number. The failure message prints the ready-to-paste replacement.
 ///
-/// WHY A COUNT AND NOT A ROW MAPPING: the original LW-106 sketch was an allow-list naming the
+/// WHY A COUNT AND NOT A ROW MAPPING: the original sketch was an allow-list naming the
 /// ledger row behind every claim. The seeding grep killed it: 197 claims across 65 files is a
 /// 197-row hand mapping that churns on every reword. The count ratchet is ~50x cheaper to seed,
-/// churns only when a claim is added or removed, and still catches every addition (LW-90's four
+/// churns only when a claim is added or removed, and still catches every addition (the four
 /// new claims landed in ONE commit, which this would have stopped).
 ///
 /// WHAT THE BASELINE DOES NOT MEAN: these numbers record that the claims EXISTED on 2026-07-21.
@@ -102,7 +102,7 @@ public class ProofClaimContractTests
         return counts;
     }
 
-    /// <summary>Frozen 2026-07-21 (LW-106). To change a number here you must first check
+    /// <summary>Frozen 2026-07-21. To change a number here you must first check
     /// docs/LIVE_LEDGER.md: a claim is only allowed to say "proven" if its row really sits in
     /// the Proven section, and only the owner puts it there.</summary>
     private static readonly Dictionary<string, int> Baseline = new(StringComparer.Ordinal)
@@ -165,31 +165,31 @@ public class ProofClaimContractTests
         // LIVE_LEDGER Contradicted-section terrain entry's settled sub-facts -- real owner-
         // verified content, same justification as the Bulwark.cs/Bulwark.Policy.cs bump above.
         { "docs/BULWARK_AC.md", 2 },
-        // 25 -> 26 (2026-07-27, LW-127 exit row): "Owner verified live the same day" -- the claim is
-        // the owner's own in-session sign-off on the LW-127 live passes (two clean casts plus the
+        // 25 -> 26 (2026-07-27, exit row): "Owner verified live the same day" -- the claim is
+        // the owner's own in-session sign-off on the live passes (two clean casts plus the
         // three-cast tape), given before the exit row was written. It asserts the FEATURE's owner
         // verdict, not a LIVE_LEDGER mechanism row; the supporting turn-order rows deliberately
         // stay under Uncertain until the owner flips them, and the row says so.
-        // 26 -> 27 (2026-08-17, LW-252 exit row): "Owner live-verified the same day" in the
+        // 26 -> 27 (2026-08-17, exit row): "Owner live-verified the same day" in the
         // SHIPPED 3b6786f entry. Backed by the ledger: [party-nameid-unique-key] sits in the
         // Proven section, owner-flipped d038fa7 with the twin-chocobo trial evidence in its fold.
         { "docs/CHANGELOG.md", 27 },
         { "docs/DESIGN.md", 1 },
         { "docs/DEV_TEST_RECIPES.md", 2 },
         { "docs/MECHANICS.md", 20 },
-        // 8 -> 7 (2026-07-25, LW-131 fixed): the deleted Backlog block's drop was never really
+        // 8 -> 7 (2026-07-25): the deleted Backlog block's drop was never really
         // about an argument the count was tracking. The regex only matched an INCIDENTAL substring:
         // the phrase "Proven LIVE_LEDGER row this code cites" in that block matched "proven live"
         // across the word boundary in "Proven LIVE_LEDGER". Deleting the block removed that
         // accidental hit, not a reworded claim.
-        // 7 -> 8 (2026-08-30, LW-358 promoted): the new Now row cites the basic-Attack
+        // 7 -> 8 (2026-08-30, a card promoted): the new Now row cites the basic-Attack
         // discriminator premise as "live-proven 2026-08-12"; that leans on LIVE_LEDGER's
         // [basic-attack-discriminator] row, which sits in the Proven section (owner-flipped
-        // 2026-08-12 on the LW-167 arming pass), so the claim is real and the count moves.
-        // 8 -> 9 (2026-08-31, the Moonblade removal): the LW-351 row's progress bullet records
+        // 2026-08-12 on the arming pass), so the claim is real and the count moves.
+        // 8 -> 9 (2026-08-31, the Moonblade removal): the row's progress bullet records
         // the owner's own in-session sign-off ("OWNER LIVE-VERIFIED 2026-08-31 ~01:45": he loaded
         // the deployed build and saw no Moonblade). It asserts the owner's verdict on that
-        // change, not a LIVE_LEDGER mechanism row, the same shape as the LW-127 entry above.
+        // change, not a LIVE_LEDGER mechanism row, the same shape entry above.
         { "docs/TODO.md", 7 },
         { "docs/VERIFY_LIVE.md", 3 },
     };

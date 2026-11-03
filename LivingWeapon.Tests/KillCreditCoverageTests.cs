@@ -6,12 +6,12 @@ using static LivingWeapon.Tests.KillTrackerFixtures;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-152: four tests closing verified-test-blind corners the LW-150 S3 (ActedPeriodLatch
+/// Four tests closing verified-test-blind corners the S3 (ActedPeriodLatch
 /// mirror-outputs)/S4 (KillTracker.Corpses.cs dispatcher) splits opened -- each pinned against a
-/// SPECIFIC named mutation the existing suite did not catch (docs/TODO.md LW-152). Seeding
+/// SPECIFIC named mutation the existing suite did not catch (the ledger). Seeding
 /// helpers ride the shared KillTrackerFixtures: the per-file mirroring convention this header
 /// used to document ("every file that drives KillTracker.Poll keeps its own thin wrapper") was
-/// retired by owner call on 2026-08-08, and LW-160 folded the copies.
+/// retired by owner call on 2026-08-08, and the copies were folded.
 /// </summary>
 public class KillCreditCoverageTests
 {
@@ -26,9 +26,9 @@ public class KillCreditCoverageTests
     [Fact]
     public void Orphan_fallthrough_with_no_culprit_stamped_goes_pending_not_dropped()
     {
-        // S4 (LW-150) fall-through pin: HandleOrphanAliveEdge's final `return true`
+        // S4 fall-through pin: HandleOrphanAliveEdge's final `return true`
         // (KillTracker.Corpses.cs) is a DELIBERATE fall-through into the shared ResolveCredit
-        // machinery for the one case none of the existing LW-65 orphan tests drive: the orphan
+        // machinery for the one case none of the existing orphan tests drive: the orphan
         // repairs the belt but finds NO culprit stamped at all -- (_lethalActor[s] ??
         // _lastPlayerWeapons).Count == 0 AND _lethalUntracked[s] == UntrackedReason.None. Every
         // existing orphan test either has a live latch backing the corpse (credits immediately) or
@@ -67,7 +67,7 @@ public class KillCreditCoverageTests
     }
 
     // ------------------------------------------------------------------------------------------
-    // Test 2: ApplyLatchOutputs' AnyTrackedWeaponThisBattle copy-back (S3, LW-150).
+    // Test 2: ApplyLatchOutputs' AnyTrackedWeaponThisBattle copy-back (S3).
     // ------------------------------------------------------------------------------------------
 
     [Fact]
@@ -97,7 +97,7 @@ public class KillCreditCoverageTests
     }
 
     // ------------------------------------------------------------------------------------------
-    // Test 3: ApplyLatchOutputs' _latchViaFallback copy-back (S3, LW-150), via FirstKillFallback.
+    // Test 3: ApplyLatchOutputs' _latchViaFallback copy-back (S3), via FirstKillFallback.
     // ------------------------------------------------------------------------------------------
 
     [Fact]
@@ -145,7 +145,7 @@ public class KillCreditCoverageTests
     }
 
     // ------------------------------------------------------------------------------------------
-    // Test 4: ApplyLatchOutputs' _actorTag copy-back (S3, LW-150), observed via BattleLog.
+    // Test 4: ApplyLatchOutputs' _actorTag copy-back (S3), observed via BattleLog.
     // ------------------------------------------------------------------------------------------
 
     [Fact]

@@ -4,7 +4,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-58 status-apply pure math. Every bit assertion cross-checks against an already-proven
+/// Status-apply pure math. Every bit assertion cross-checks against an already-proven
 /// Offsets constant (Dead/Poison/Haste observed live), so the decoded status-id layout is tied to
 /// the shipped, live-confirmed status offsets rather than asserted in a vacuum.
 /// </summary>

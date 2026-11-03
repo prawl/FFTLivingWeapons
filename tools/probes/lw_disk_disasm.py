@@ -18,6 +18,7 @@ from capstone import Cs, CS_ARCH_X86, CS_MODE_64
 EXE = STEAM_FFT / "fft_enhanced.exe"
 BASE = 0x140000000
 
+
 def sections(data):
     pe = struct.unpack_from("<I", data, 0x3C)[0]
     nsec = struct.unpack_from("<H", data, pe + 6)[0]
@@ -29,6 +30,7 @@ def sections(data):
         vsize, va, rsize, raw = struct.unpack_from("<IIII", data, off + 8)
         out.append((name, va, vsize, raw, rsize))
     return out
+
 
 def va_to_file(secs, va):
     rva = va - BASE

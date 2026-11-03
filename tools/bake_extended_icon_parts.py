@@ -24,7 +24,7 @@ data/enhanced/0008.pac into the OS temp dir. Outputs land in the mod tree beside
 files and are committed like the 468 icon textures.
 
 Usage: python tools/bake_extended_icon_parts.py            # every `extended` row in items.json
-       python tools/bake_extended_icon_parts.py 263 264    # only those ids (LW-351 stage 2: a
+       python tools/bake_extended_icon_parts.py 263 264    # only those ids (a
                                                             # moved design's iconSource names its
                                                             # OLD id, whose art turns vanilla after
                                                             # the restore, so re-baking every row

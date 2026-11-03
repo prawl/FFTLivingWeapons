@@ -5,7 +5,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-252 stage 5, Part A: WielderKeyedStore's resolution law, driven directly (no game fakes
+/// Part A: WielderKeyedStore's resolution law, driven directly (no game fakes
 /// needed -- the store has no memory dependency at all). Each test's name states the exact
 /// scenario from the store's own class doc; see it for the full law.
 /// </summary>

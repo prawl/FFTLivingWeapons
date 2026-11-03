@@ -22,7 +22,7 @@ internal static class MemSeats
         m.U16s[rb + Offsets.RLHand] = (ushort)lh;
         m.U16s[rb + Offsets.ROffHand] = (ushort)oh;
         m.U16s[rb + Offsets.RNameId] = (ushort)nameId;   // default 0 == old unseeded-read behavior
-        // LW-31 stage 3: SpriteSet byte (Offsets.RSprite == roster +0x00). Default 0 is well under
+        // SpriteSet byte (Offsets.RSprite == roster +0x00). Default 0 is well under
         // 0x80 (AttackRow.Policy.HumanSprite), matching every pre-existing call site's implicit
         // "ordinary human" assumption unaffected.
         m.U8s[rb + Offsets.RSprite] = (byte)sprite;
@@ -53,7 +53,7 @@ internal static class MemSeats
         m.U16s[e + Offsets.AMaxHp] = (ushort)maxHp;
         m.U8s[e + Offsets.ACtTurn] = (byte)ctTurn;
         m.U8s[e + Offsets.ASpeed] = (byte)speed;
-        // LW-127: ACtSlam (band +0x25) is the field TurnOrder.cs reads for the CT+Speed turn-order
+        // ACtSlam (band +0x25) is the field TurnOrder.cs reads for the CT+Speed turn-order
         // ranking. Nullable and additive-only: every existing caller leaves it unwritten, exactly as
         // before (an unseeded FakeSparseMemory read already returns 0, so leaving it null is not
         // merely "harmless", it is bit-for-bit the old behavior).
@@ -62,7 +62,7 @@ internal static class MemSeats
 
     /// <summary>Seed a band entry's job byte (Puppeteer.JobOff, band-entry-relative == combat
     /// +0x03). Separate one-liner (not folded into SeatBand's signature) so only the tests that
-    /// need it, the LW-56 canonical-signature fingerprint rescue, pay for it.</summary>
+    /// need it, the canonical-signature fingerprint rescue, pay for it.</summary>
     internal static void SeatBandJob(FakeSparseMemory m, int bandIdx, byte job)
     {
         long e = Band.Entry(bandIdx);

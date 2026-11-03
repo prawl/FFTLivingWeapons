@@ -5,7 +5,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-398: the pure shape reader behind the band and static array doors. Byte arrays in, parsed units out.
+/// The pure shape reader behind the band and static array doors. Byte arrays in, parsed units out.
 /// </summary>
 public class BattleRegionShapeTests
 {

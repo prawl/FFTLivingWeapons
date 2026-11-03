@@ -27,6 +27,8 @@ def rd(a, n):
 STRIDE = 0x548
 # 0x140D30038, 0x140D30AC8, 0x140D31010 are pool slots; walk down to find the base (unit ptr sanity)
 base = 0x140D30038 - 8*STRIDE
+
+
 def fields(a):
     b = rd(a, 0x220)
     if b is None: return None

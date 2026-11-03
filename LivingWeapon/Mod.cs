@@ -67,7 +67,7 @@ public class Mod : IMod
         {
             string modDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)
                             ?? Environment.CurrentDirectory;
-            ModLogger.Init(modDir);
+            ModLogger.Init(modDir, "[Living Weapons]", "livingweapon", QuietFaults.Note, () => Flight.RequestFlush("error"));
             Flight.Init(modDir);   // the black-box event ring, must exist before anything can Record
             // The Denuvo-free build is ASLR-relocated. Resolve the live image base before the Engine
             // and its 33ms thread exist; every pinned address rebases through it, so nothing above this line may touch Offsets.

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace LivingWeapon;
@@ -74,7 +74,7 @@ internal sealed partial class GrowthEngine
         _logged = false;
     }
 
-    /// <summary>One in-battle tick. Grow each player's wielded weapon(s) -- both hands.</summary>
+    /// <summary>One in-battle tick. Grow each player's wielded weapon(s), both hands.</summary>
     public void Apply()
     {
         for (int r = 0; r < Offsets.RosterSlots; r++)

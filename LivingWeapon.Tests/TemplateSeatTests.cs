@@ -6,7 +6,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-351 fix round 5. The owner's re-test 5 (2026-08-30) put three Terrastaffs in the bag before
+/// The owner's re-test (2026-08-30) put three Terrastaffs in the bag before
 /// the game's load path could look, and the item STILL did not appear in either equip menu. The
 /// closing disassembly says why: the two weapon order templates are not rebuilt from the item data
 /// at load time at all, they are restored byte-for-byte out of the save struct (and written back
@@ -57,10 +57,10 @@ public class TemplateSeatTests
         Assert.Equal((ushort)0x00FF, TemplateSeat.EndMarker);   // NOT the menu lists' 0xFFFF
     }
 
-    // Round 8b: the filler tables below use DISTINCT ids (Range) because a table that lists
+    // The filler tables below use DISTINCT ids (Range) because a table that lists
     // one id many times is now a damaged table the repair collapses, not a full one.
 
-    /// <summary>The LW-346 hand poke, made policy: the id goes where the marker was and the marker
+    /// <summary>Hand poke, made policy: the id goes where the marker was and the marker
     /// moves one word on.</summary>
     [Fact]
     public void An_absent_id_is_written_over_the_end_marker_which_moves_one_word_on()
@@ -144,8 +144,8 @@ public class TemplateSeatTests
     }
 
     /// <summary>The applier walks BOTH templates and writes through the guarded patcher only.</summary>
-    // LW-351 round 8b (2026-08-31): REPAIR. The game's un-widened maintainer walks (fixed in
-    // round 8) had already doubled entries and, on the owner's save, erased an end marker; the
+    // B (2026-08-31): REPAIR. The game's un-widened maintainer walks (since
+    // fixed) had already doubled entries and, on the owner's save, erased an end marker; the
     // widening stops new damage but heals nothing, because the game's rebuild re-emits every
     // doubled template entry and writes the list back. So Plan repairs first: doubled ids keep
     // their first occurrence, a zero word (id 0 is never an entry) goes, a missing marker lands at
@@ -235,11 +235,11 @@ public class TemplateSeatTests
         Assert.False(seat.Writes);
     }
 
-    // LW-367: a saved chart can carry the id of an extended weapon that no longer exists (a
+    // A saved chart can carry the id of an extended weapon that no longer exists (a
     // removed design, or a stunt leftover past the armed range). Left in place, such a word ends
     // the game's own maintainer walk early; the repair now drops it like any other damage.
 
-    /// <summary>Named break for the verifier: delete the drop in ScanTable's body loop and this
+    /// <summary>Named break for the review: delete the drop in ScanTable's body loop and this
     /// fails (268 survives the rewrite instead of being dropped).</summary>
     [Fact]
     public void A_saved_id_past_the_armed_range_is_dropped_as_a_repair()
@@ -257,10 +257,10 @@ public class TemplateSeatTests
         Assert.Contains("stale", seat.Repaired);
     }
 
-    /// <summary>LW-367 verifier finding F1: the stale check must judge the MASKED id (<c>w &amp;
-    /// 0x3FF</c>), not the raw word, because a word can carry a flag bit above the id (LW-346's
+    /// <summary>Review finding F1: the stale check must judge the MASKED id (<c>w &amp;
+    /// 0x3FF</c>), not the raw word, because a word can carry a flag bit above the id (the
     /// EquippedBadge, 0x4000) and still name the same stale id underneath. Named break for the
-    /// verifier: change <c>int id = w &amp; 0x3FF;</c> to <c>int id = w;</c> in ScanTable's body
+    /// review: change <c>int id = w &amp; 0x3FF;</c> to <c>int id = w;</c> in ScanTable's body
     /// loop and this fails on the note (it reports the raw word, not 268) -- swapping only the
     /// comparison's operand (<c>id &gt;=</c> to <c>w &gt;=</c>) does NOT break this test: a
     /// masked id can only be smaller than or equal to its raw word, so whenever the masked id
@@ -283,7 +283,7 @@ public class TemplateSeatTests
         Assert.Contains("stale", seat.Repaired);
     }
 
-    /// <summary>LW-367 verifier F1 follow-up: the drop judges the MASKED id, not the raw word --
+    /// <summary>F1 follow-up: the drop judges the MASKED id, not the raw word --
     /// judging the raw word would wrongly drop a flagged armed word (0x4105 = EquippedBadge 0x4000
     /// | id 261, an ARMED id) because the raw word (16645) is itself >= the stale bound (268) even
     /// though the id underneath it is nowhere near stale.</summary>
@@ -351,7 +351,7 @@ public class TemplateSeatTests
         Assert.NotNull(seat.Repaired);
         Assert.Contains("5", seat.Repaired);
         Assert.Contains("268", seat.Repaired);
-        // Final-verifier b1: the spec's v1.1 NOTE ORDER ruling (doubled/zeros segment first, the
+        // Final-review b1: the spec's v1.1 NOTE ORDER ruling (doubled/zeros segment first, the
         // stale segment appended after) needs a pin, or swapping the two append blocks passes.
         Assert.True(seat.Repaired!.IndexOf("doubled", StringComparison.Ordinal) < seat.Repaired.IndexOf("stale", StringComparison.Ordinal),
             "the doubled/zeros segment must compose before the stale segment");
@@ -389,7 +389,7 @@ public class TemplateSeatTests
         Assert.Equal(new ushort[] { 1, 2, TemplateSeat.EndMarker }, WordsAt(f, Offsets.PickerOrderTemplate, 3));
     }
 
-    /// <summary>Round 8c (verifier V8b-1): a damaged table must heal even on a save whose player
+    /// <summary>A damaged table must heal even on a save whose player
     /// owns no extended item at all; the crash shape (a marker-less inventory table yielding
     /// id-0 rows) does not care whether a design is owned.</summary>
     [Fact]
@@ -422,7 +422,7 @@ public class TemplateSeatTests
         Assert.Empty(noise);
     }
 
-    /// <summary>Round 8c (verifier V8b-4): the dedupe and the "already listed" check must agree
+    /// <summary>The dedupe and the "already listed" check must agree
     /// on what an id is. A second copy carrying a flag bit (0x505 is 261 with bit 10 set) is a
     /// double of 261 by the game's own 0x3FF mask; it is removed once and 261 is NOT appended
     /// again, or every later pass would remove and re-add it forever.</summary>
@@ -510,7 +510,7 @@ public class TemplateSeatTests
         Assert.Empty(f.Writes);
     }
 
-    /// <summary>LW-371 (T8, half a): a caller passing <paramref name="regions"/> is served THOSE
+    /// <summary>T8, half a: a caller passing <paramref name="regions"/> is served THOSE
     /// regions, not <see cref="TemplateSeat.WeaponRegions"/> -- proven by seating into a page
     /// address that is nowhere near either vanilla template. Omitting the parameter (every
     /// pre-existing test above) keeps behaving exactly as it always has.</summary>

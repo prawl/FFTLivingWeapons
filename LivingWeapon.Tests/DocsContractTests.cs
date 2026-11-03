@@ -46,7 +46,7 @@ public class DocsContractTests
     {
         "BULWARK_AC.md", "CHANGELOG.md", "COLD_READ_LOG.md", "COMPATIBILITY.md", "DESIGN.md", "DEV_TEST_RECIPES.md",
         "EXTENDED_INVENTORY_GUIDE.md", "HEALTH.md", "LIVE_LEDGER.md", "LOGGING.md",
-        "MECHANICS.md", "PATCH_REANCHOR.md", "PROVOKE_AC.md", "RELIQUARY_AC.md",
+        "MECHANICS.md", "PATCH_REANCHOR.md", "PROVOKE_AC.md", "RELEASE_SCOPE.md", "RELIQUARY_AC.md",
         "RELIQUARY_DESIGN.md", "SMOKE_TEST_2.4.0.md", "TODO.md", "USER_FEEDBACK.md",
         "VERIFY_LIVE.md",
     };
@@ -317,7 +317,7 @@ public class DocsContractTests
             $"no longer dangling (SHRINK the list): [{string.Join(", ", KnownPreexistingDanglingRefs.Except(observed))}].");
     }
 
-    // --- E. LIVE_LEDGER ghost-citation gate (LW-275) ---
+    // --- E. LIVE_LEDGER ghost-citation gate ---
 
     /// <summary>Matches a bracketed LIVE_LEDGER citation slug in production prose: lowercase
     /// kebab-case with AT LEAST 3 segments (2+ hyphens). Chosen from a survey of every bracketed
@@ -383,7 +383,7 @@ public class DocsContractTests
         Assert.Contains("some-real-row", slugs);
     }
 
-    /// <summary>THE gate (LW-275): every LIVE_LEDGER-citation-shaped bracket in production code
+    /// <summary>THE gate: every LIVE_LEDGER-citation-shaped bracket in production code
     /// (LivingWeapon/**/*.cs -- NOT the test project, which legitimately contains lexical example
     /// slugs like the Theory data above) must resolve to a real docs/LIVE_LEDGER.md <c>### [slug]</c>
     /// row. A comment that cites a row that was renamed, retired, or never existed goes red here

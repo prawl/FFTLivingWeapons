@@ -14,7 +14,7 @@ namespace LivingWeapon.Tests;
 ///   - the reset paths (identity swap, revive, battle reset) clear stale snapshots;
 ///   - the flight-recorder tap fires ONLY from LogAtCredit (i.e. only on an actual credit), and its
 ///     payload proves the alive/edge snapshots are frozen even if game memory churns before credit.
-/// Band/roster seeding rides the shared KillTrackerFixtures (LW-160).
+/// Band/roster seeding rides the shared KillTrackerFixtures.
 /// </summary>
 public class VictimProbeTests
 {

@@ -119,7 +119,7 @@ internal sealed partial class FeignDeath
                     };
                 }
                 if (hp == 0)
-                    // Still a corpse. Hold Reraise. Do not re-stamp the dead bit; doing so at the CT-100
+                    // Still a corpse. Hold Reraise. Do not re-stamp the dead bit; doing so at the CT 100
                     // turn fought the auto-Reraise and left a stuck turn (hearts, can't Wait).
                     return new FeignTick
                     {

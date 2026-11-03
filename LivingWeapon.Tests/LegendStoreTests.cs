@@ -12,7 +12,7 @@ namespace LivingWeapon.Tests;
 /// Persistence mirrors KillTally's prior-copy-to-.bak ordering exactly (KillTally.cs:64-76)
 /// PLUS a corrupt-load warning + flight record KillTally's own silent catch lacks. Each test
 /// works in its own temp directory so parallel runs never collide (mirrors KillTallyTests).
-/// LW-147: TempDir() directories are tracked and deleted in Dispose, not leaked.
+/// TempDir directories are tracked and deleted in Dispose, not leaked.
 /// </summary>
 public class LegendStoreTests : IDisposable
 {

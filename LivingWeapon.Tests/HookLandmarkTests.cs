@@ -4,7 +4,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// HookLandmark.cs: the portable prologue-verifier core (dependency-free BY CONTRACT, the
+/// HookLandmark.cs: the portable prologue-review core (dependency-free BY CONTRACT, the
 /// FingerprintGuard.cs copy-file pattern). Semantics under test: Verify is a PREFIX compare
 /// (actual must be at least as long as expected, and only the leading expected.Length bytes are
 /// compared; a longer actual is fine, whatever follows the prefix is ignored).

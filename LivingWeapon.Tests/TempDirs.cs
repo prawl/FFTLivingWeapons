@@ -4,7 +4,7 @@ using System.IO;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-147: the one shared temp-directory fixture for suites that need a real, isolated directory
+/// The one shared temp-directory fixture for suites that need a real, isolated directory
 /// on disk (persistence round-trips for KillTally/LegendStore/FlightRecorder/SaveLocation/..., PS
 /// pipeline probes, marker-file checks). Before this, most of those suites carried their own
 /// private `TempDir()`/`TempRoot()` helper that created a directory and NEVER deleted it -- an
@@ -18,7 +18,7 @@ namespace LivingWeapon.Tests;
 /// this repo's test assembly happens to run serialized
 /// ([assembly: CollectionBehavior(DisableTestParallelization = true)], see
 /// TestLoggingSetup.cs), but every converted suite keeps its own recognizable prefix (e.g.
-/// "lw_tally_", "lw_saveloc_") for the same reason the pre-LW-147 helpers did: a stray leftover
+/// "lw_tally_", "lw_saveloc_") for the same reason the earlier helpers did: a stray leftover
 /// directory (e.g. from a killed test run) is still identifiable by name.
 /// </summary>
 internal sealed class TempDirs : IDisposable

@@ -8,11 +8,10 @@ namespace LivingWeapon.Tests;
 /// stillness buff, plus PaHeld's growth-formula math. No memory access: the stateful trigger
 /// (the per-wielder TURN FLAG edge tracking in Mushin.cs) is exercised by MushinTests.cs.
 ///
-/// ROUND 5 (2026-07-09, owner decision: replace rounds 2-4's CT-clock/seq-gate apparatus with the
-/// literal design on the engine's own per-unit turn flags; see Mushin.cs's class doc for the full
-/// provenance): ShouldArm and ShouldConsume are back to the ORIGINAL round-1 truth-table shapes
-/// (full circle). StacksFromDeltas (the CT-cycle aggregation) and ConfirmsPerformance (the
-/// action-record pending-confirm truth table) are retired with rounds 2-4.
+/// Since 2026-07-09 the policy reads the engine's own per-unit turn flags (the owner's call; see
+/// Mushin.cs's class doc for the provenance), so ShouldArm and ShouldConsume are back to their
+/// original truth-table shapes. StacksFromDeltas (the CT-cycle aggregation) and
+/// ConfirmsPerformance (the action-record pending-confirm truth table) are retired.
 /// </summary>
 public class MushinPolicyTests
 {

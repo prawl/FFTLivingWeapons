@@ -38,7 +38,7 @@ internal sealed partial class PoolLocator
     // Snapshot of _pendingTrigger taken when the scan begins, so a mid-flight Invalidate cannot
     // change the trigger reported for the run in flight.
     private string _runningTrigger = "first";
-    private bool _hasScannedOnce;   // true once any scan has completed, found something or not -- distinguishes "first" from "empty-retry"
+    private bool _hasScannedOnce;   // true once any scan has completed, found something or not, which tells "first" from "empty retry"
 
     private long _lastRevalidateMs = long.MinValue / 2;   // sentinel so the first check is always due (same as DisplaySweep.cs)
     internal int _revalidateCount;   // test-only. How many times the Step-driven revalidate cadence actually fired
@@ -94,7 +94,7 @@ internal sealed partial class PoolLocator
                     _pendingTrigger = _hasScannedOnce ? "empty-retry" : "first";
                 }
             }
-            // Round 3 (C5): not redundant with Publish's `_stale = _restartPending`. A revalidate or
+            // Not redundant with Publish's `_stale = _restartPending`. A revalidate or
             // empty-retry follows a Publish that cleared _stale, so without this line staleness would
             // read false while the new scan is in flight.
             _stale = true;

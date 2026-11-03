@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-233 residual (2026-08-17, owner-witnessed live drill): the deployed RestartSentinel fix
+/// Residual (2026-08-17, owner-witnessed live drill): the deployed RestartSentinel fix
 /// (147119f) FAILED live -- the tally went 21 -> 22 on a re-kill after a retry, and ZERO
 /// "restart" flight records were written. Root cause, confirmed by reading the code (see
 /// RestartSentinel.Policy.cs's ShouldOpenLatch/ShouldStash doc for the fix): KillTracker.Poll
@@ -34,13 +34,13 @@ public class KillTrackerRestartTapeReplayTests
 
     // The two identity tuples fed to PresentRevive -- SameId/SameId models the real tape (the
     // revived unit IS the one credited); CreditedId/OtherPresentedId models a mismatch (a
-    // different encounter's unit landing in the same slot, the LW-108 shape the grace floor
+    // different encounter's unit landing in the same slot, the shape the grace floor
     // alone must still catch). The tape carries no lvl/br/fa for slot 15 (only nameId, job, and
     // maxHp -- see ParseTapeNameId below), so this tuple stays a synthetic stand-in; only the
     // nameId half is drawn from the tape (punch list item 2, 2026-08-17).
     private static readonly (byte lvl, byte br, byte fa, ushort mhp) SameId = (10, 50, 50, 400);
     private static readonly (byte lvl, byte br, byte fa, ushort mhp) OtherId = (99, 89, 76, 352);
-    // FINDING 0 (2026-08-17 verifier correction): PresentRevive now also requires a matching
+    // FINDING 0 (2026-08-17 review correction): PresentRevive now also requires a matching
     // nonzero nameId (TapeNameId/TapeNameId pairs with SameId/SameId the same way OtherNameId
     // pairs with OtherId below). TapeNameId is PARSED from the tape's own `victim` records
     // (`slot=15 alive=(nameId=378,job=85,...)`) rather than hand-fed, so this test's "matching
@@ -199,7 +199,7 @@ public class KillTrackerRestartTapeReplayTests
     /// is no longer a hand-picked stand-in, it is the identity a real retry actually produced.
     /// What remains UNPROVEN is only whether that holds in GENERAL for enemies
     /// (docs/LIVE_LEDGER.md row [retry-preserves-credited-identity], n=1) -- a DIFFERENT
-    /// encounter's unit landing in the same band slot after LW-108's starved-bracket hole is not
+    /// encounter's unit landing in the same band slot after the starved-bracket hole is not
     /// GUARANTEED to carry a different identity, merely EXPECTED to (see the companion test right
     /// below, which pins the code's behavior on a genuine mismatch, not a claim about what every
     /// real mismatch looks like).
@@ -222,7 +222,7 @@ public class KillTrackerRestartTapeReplayTests
         Assert.True(sentinel.LatchOpen);
     }
 
-    /// <summary>The LW-108 false-positive guard, still holding: the SAME tape replay, but the
+    /// <summary>False-positive guard, still holding: the SAME tape replay, but the
     /// presented identity does not match what was credited (a different encounter's unit landing
     /// in the same band slot after the starved-bracket hole). Identity mismatch must NOT open the
     /// latch even though every other condition (qualified null, join window, credited+healed) is

@@ -23,24 +23,24 @@ internal sealed class FakeHeap : IGameMemory
     private List<Region> _regions = new();
     public int Writes { get; private set; }
 
-    /// <summary>LW-381 test hook: counts calls to <see cref="Regions"/> itself (not the number of
+    /// <summary>Test hook: counts calls to <see cref="Regions"/> itself (not the number of
     /// regions returned) -- lets a test pin how many full-memory passes a sweep actually made,
     /// independent of how many regions or targets were involved.</summary>
     public int RegionsCalls { get; private set; }
 
-    /// <summary>LW-381 test hook: total calls to <see cref="TryReadBytes"/> + <see cref="ReadInto"/>
+    /// <summary>Test hook: total calls to <see cref="TryReadBytes"/> + <see cref="ReadInto"/>
     /// -- lets a test prove NO byte read happened at all (beyond the region list itself), e.g. an
     /// in-battle sweep that aborts before its first chunk.</summary>
     public int ReadCalls { get; private set; }
 
-    /// <summary>LW-381 test hook: when set and it returns non-null for (addr,len), stands in for
+    /// <summary>Test hook: when set and it returns non-null for (addr,len), stands in for
     /// <see cref="TryReadBytes"/>'s normal region lookup at that address -- a stateful closure can
     /// return different bytes on successive calls for the SAME address, simulating a targeted
     /// read whose classification result goes stale before a later re-read (a real TOCTOU window).
     /// Returning null falls through to the normal region-backed read.</summary>
     public Func<long, int, byte[]?>? ReadOverride;
 
-    /// <summary>LW-381 test hook: when set, overrides <see cref="Writable"/> entirely, bypassing
+    /// <summary>Test hook: when set, overrides <see cref="Writable"/> entirely, bypassing
     /// the per-region Writable flag -- simulates a region's protection changing between a sweep's
     /// snapshot and its later write attempt.</summary>
     public Func<long, int, bool>? WritableOverride;
@@ -135,7 +135,7 @@ internal sealed class FakeHeap : IGameMemory
     }
 
     /// <summary>Mirrors production Mem.Regions()'s own contract: committed/PRIVATE/writable
-    /// only. A read-only region is never yielded (LW-37's PoolLocator relies on this: a
+    /// only. A read-only region is never yielded (the PoolLocator relies on this: a
     /// located region is writable BY CONSTRUCTION because it can only ever come from here).</summary>
     public IEnumerable<(long baseAddr, long size)> Regions()
     {

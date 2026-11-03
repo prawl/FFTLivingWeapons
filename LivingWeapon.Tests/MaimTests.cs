@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using LivingWeapon;
 using Xunit;
 
@@ -184,7 +184,7 @@ public class MaimTests
         Assert.Equal(0x12345678u, value);
     }
 
-    // ---- LW-145 fix 3: a failed reaction read must never latch a fake 0 as "the saved reaction" ----
+    // ---- Fix 3: a failed reaction read must never latch a fake 0 as "the saved reaction" ----
 
     [Fact]
     public void TryReadReactionField_returns_false_and_leaves_value_zero_when_unreadable()
@@ -270,7 +270,7 @@ public class MaimTests
         mem.U16s[addr + Offsets.AHp] = (ushort)hp;
         mem.U8s[addr + Offsets.AGx] = 5;
         mem.U8s[addr + Offsets.AGy] = 5;
-        // LW-145 fix 3: reactionReadable=false stages a DETECTABLY-transient failed read (writable
+        // Fix 3: reactionReadable=false stages a DETECTABLY-transient failed read (writable
         // stays true so a genuine hold/restore would still apply if a latch were ever recorded).
         if (reactionReadable) mem.MarkReadable(addr + Maim.ReactionBandOff, 4);   // production reads n=4 (Maim.Policy.cs TryReadReactionField); reaction field @ +0x78
         mem.MarkWritable(addr + Maim.ReactionBandOff, 4);   // production writes n=4 (Maim.Policy.cs HoldZero/Restore)
@@ -306,7 +306,7 @@ public class MaimTests
     [Fact]
     public void Tick_stops_holding_when_a_stranger_occupies_the_held_address()
     {
-        // LW-153 pin for the shared same-unit write-safety verify (Band.SameUnitAtExact): once
+        // Pin for the shared same-unit write-safety verify (Band.SameUnitAtExact): once
         // the fingerprint at the held address stops matching, Drive must skip the hold-zero
         // write, so a stranger's real reaction is left exactly as the engine set it. Born RED
         // under an accept-any-readable sabotage of the shared predicate.
@@ -324,7 +324,7 @@ public class MaimTests
         Assert.Equal(0x00080000u, ReadReactionAt(mem, victim));   // the stranger's reaction untouched
     }
 
-    // ---- LW-145 fix 3: a failed reaction read at latch time must refuse to latch ----
+    // ---- Fix 3: a failed reaction read at latch time must refuse to latch ----
     // The old ReadReactionField returned 0 on a failed read; Maim.cs latched that 0 as the
     // victim's SAVED reaction, and ExpireAll/RestoreAll later wrote it back -- wiping a real
     // reaction for the whole battle. The fix: refuse the latch outright on a failed read. No

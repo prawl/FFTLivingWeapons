@@ -10,7 +10,7 @@ namespace LivingWeapon.Tests;
 /// 1.5.1 FnSetTextString incident (installing a detour on a stale address corrupted the function
 /// and crashed the game) is exactly the case this refuses instead of hooking blind.
 ///
-/// LW-89 step 2 (2026-07-14): FnSetTextString was retargeted from the 0x14028F750 dispatch
+/// Step 2 (2026-07-14): FnSetTextString was retargeted from the 0x14028F750 dispatch
 /// wrapper to the true text setter at 0x1403F1098, so Prologue below now mirrors the setter's
 /// own prologue, not the wrapper's. WrapperPrologue keeps the wrapper's old bytes around as a
 /// negative control: the wrapper is a real, readable prologue, just not this hook's target
@@ -19,7 +19,7 @@ namespace LivingWeapon.Tests;
 public class PromptSwapHookArmDecisionTests
 {
     // Mirrors PromptSwapHook.ExpectedPrologue (push rbp; push rbx; push rdi; mov rbp,rsp;
-    // sub rsp,50h), read live at the true setter 0x1403F1098 on 1.5.1, 2026-07-14 (LW-89). These
+    // sub rsp,50h), read live at the true setter 0x1403F1098 on 1.5.1, 2026-07-14. These
     // BYTES are unchanged on 1.5.2; only the setter's address moved (+4, to 0x1403F109C), so this
     // mirror needed no edit in the 1.5.2 re-anchor -- which is the point of pinning bytes, not a
     // location.
@@ -27,7 +27,7 @@ public class PromptSwapHookArmDecisionTests
 
     // The superseded 0x14028F750 dispatch-wrapper prologue (sub rsp,28h; mov rax,[rcx+10h];
     // mov r8b,dl): a real, readable prologue, just the wrong function now. Negative control:
-    // a landmark match against the OLD target must still refuse (LW-89 step 2).
+    // a landmark match against the OLD target must still refuse.
     private static readonly byte[] WrapperPrologue = { 0x48, 0x83, 0xEC, 0x28, 0x48, 0x8B, 0x41, 0x10, 0x44, 0x8A, 0xC2 };
 
     [Fact]

@@ -7,7 +7,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-381: the pure, testable core of the modded.pac patcher. No file system involved -- every
+/// The pure, testable core of the modded.pac patcher. No file system involved -- every
 /// case here drives <see cref="PacScan.FindSingle"/> against a <see cref="MemoryStream"/>, so the
 /// chunk-boundary behavior (the whole reason this class exists instead of one
 /// <c>File.ReadAllBytes(...).IndexOf(...)</c> call) is exercised directly and cheaply.
@@ -157,11 +157,11 @@ public class PacScanTests
         Assert.Equal(30, offset);
     }
 
-    // ---- R2-5 fix round: two latent bugs in the "pure testable core". Both are unreachable with
+    // ---- A later fix: two latent bugs in the "pure testable core". Both are unreachable with
     // production needles (12,384 / 51,296 bytes) but this class is billed as the pure core and
     // must be correct at its own boundaries. ----
 
-    // R2-5, bug 1: with needle.Length == 1 the per-needle overlap is 0 bytes, so a naive
+    // Bug 1: with needle.Length == 1 the per-needle overlap is 0 bytes, so a naive
     // implementation that only advances its absolute-start bookkeeping via the overlap carry
     // never advances it at all -- every hit in the second or later chunk gets reported short by
     // a whole number of chunks. Place a unique single byte value well into the SECOND chunk and
@@ -182,7 +182,7 @@ public class PacScanTests
         Assert.Equal(trueOffset, offset);
     }
 
-    // R2-5, bug 2: Stream.Read may legally return fewer bytes than requested before EOF. Treating
+    // Bug 2: Stream.Read may legally return fewer bytes than requested before EOF. Treating
     // any short read as EOF truncates the scan -- the benign failure mode is a false NotFound, the
     // malign one is that a SECOND occurrence past the truncation point is never seen, so a single
     // real hit is reported when the correct answer was Ambiguous. ShortReadStream deliberately
@@ -227,7 +227,7 @@ public class PacScanTests
         Assert.Equal(PacScan.Ambiguous, offset);
     }
 
-    // ---- R2-2, THE non-vacuous proof for the batch API: N needles must cost ONE sequential pass
+    // ---- THE non-vacuous proof for the batch API: N needles must cost ONE sequential pass
     // over the stream, not N passes. CountingStream tallies every byte handed back by Read; if
     // the batch degenerates to a per-needle loop (each re-scanning the whole stream), the total
     // would be roughly needles.Count times the stream length -- this asserts it stays close to

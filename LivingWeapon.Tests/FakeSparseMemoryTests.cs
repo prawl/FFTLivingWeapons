@@ -59,9 +59,9 @@ public class FakeSparseMemoryTests
         Assert.False(m.Writable(0x5001, 1));
     }
 
-    // ---- LW-147/LW-151: the length-aware Readable/Writable gate. Production Mem.Probe (Mem.cs)
-    // gates the WHOLE [addr, addr+len) range against one committed region; LW-147 built that
-    // honesty behind an opt-in StrictRangeChecks flag, and LW-151 made it the DEFAULT for the
+    // ---- The length-aware Readable/Writable gate. Production Mem.Probe (Mem.cs)
+    // gates the WHOLE [addr, addr+len) range against one committed region; a later change built that
+    // honesty behind an opt-in StrictRangeChecks flag, and the strict flip made it the DEFAULT for the
     // whole suite (every marking site now declares the real span the shipped code reads). These
     // pins hold the mechanism in both directions: strict semantics, the strict DEFAULT (the pin
     // that goes red if the one-line default flip is ever reverted), and the legacy opt-out. ----
@@ -112,7 +112,7 @@ public class FakeSparseMemoryTests
     [Fact]
     public void Strict_is_the_DEFAULT_a_half_marked_multibyte_range_refuses_without_opting_in()
     {
-        // THE load-bearing LW-151 pin: a fresh fake, StrictRangeChecks untouched, must already
+        // THE load-bearing strict flip pin: a fresh fake, StrictRangeChecks untouched, must already
         // enforce the honest whole-range gate production Mem.Probe enforces. Reverting the
         // one-line default flip on FakeSparseMemory turns exactly this test red.
         var m = new FakeSparseMemory();
@@ -125,7 +125,7 @@ public class FakeSparseMemoryTests
     [Fact]
     public void Legacy_opt_out_restores_base_address_only_semantics()
     {
-        // The other direction of the pin: the pre-LW-151 legacy mode is still reachable, but
+        // The other direction of the pin: the earlier legacy mode is still reachable, but
         // only by explicit opt-out. Nothing in this suite runs legacy except this pin; a new
         // test should never reach for it (see the class doc).
         var m = new FakeSparseMemory { StrictRangeChecks = false };
@@ -158,7 +158,7 @@ public class FakeSparseMemoryTests
         Assert.Single(m.WrittenBytes);
     }
 
-    // ---- LW-145 fix 0 (LW-147 slice): W16/WriteBytes join the read-back + WriteOrder contract ----
+    // ---- Fix 0: W16/WriteBytes join the read-back + WriteOrder contract ----
 
     [Fact]
     public void W16_mirrors_into_U8s_little_endian_and_lands_in_WriteOrder()

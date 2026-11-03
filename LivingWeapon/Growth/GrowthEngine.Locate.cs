@@ -59,7 +59,7 @@ internal sealed partial class GrowthEngine
                 if (!_logged) { _logged = true; ModLogger.Debug(LogVerb.Growth, $"located party slot {slot} in memory; stat growth will apply"); }
                 return tier1;
             }
-            if (matchCount1 > 0)   // Candidates existed, genuinely ambiguous -- refuse, no tier-2 fallthrough
+            if (matchCount1 > 0)   // Candidates existed, genuinely ambiguous, so refuse with no tier 2 fallthrough
             {
                 if (_ambiguousLogged.Add(slot))
                     ModLogger.Warn(LogVerb.Growth, $"Growth is skipped for party slot {slot}; it could not be matched to one unique unit ({matchCount1} candidates, ambiguous fingerprint).");

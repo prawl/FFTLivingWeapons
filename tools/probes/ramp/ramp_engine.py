@@ -72,18 +72,22 @@ NAMES = {128: "Tideward", 129: "Galewall", 130: "Stormwall", 131: "Swiftguard",
          152: "Wardsteel Helm", 153: "Warded Circlet", 154: "Crystalward Helm",
          155: "Genji Helm", 156: "Grand Helm"}
 
+
 def circ_mean(hues, weights):
     x = sum(w * math.cos(2 * math.pi * h) for h, w in zip(hues, weights))
     y = sum(w * math.sin(2 * math.pi * h) for h, w in zip(hues, weights))
     return (math.atan2(y, x) / (2 * math.pi)) % 1.0
 
+
 def hdist(a, b):
     d = abs(a - b) % 1.0
     return min(d, 1.0 - d)
 
+
 def load_vanilla(icon_id, surface):
     name = f"ei_{icon_id:03d}_uitx.dds" if surface == "card" else f"ei_s_{icon_id:03d}_uitx.dds"
     return Image.open(os.path.join(CACHE, name)).convert("RGBA")
+
 
 def load_shipped(icon_id, surface):
     sub = "equip_item" if surface == "card" else "equip_item_s"
@@ -96,6 +100,7 @@ def load_shipped(icon_id, surface):
         shutil.copy(tex, work)
         subprocess.run([FF16, "tex-conv", "-i", work], capture_output=True)
     return Image.open(dds).convert("RGBA")
+
 
 # --- per-sprite analysis --------------------------------------------------------------
 def analyze(im):
@@ -122,6 +127,7 @@ def analyze(im):
             spec.add(p)
     chrom = [p for p in solid if hsv[p][1] >= NEUTRAL_SAT and p not in ring]
     return {"hsv": hsv, "solid": solid, "ring": ring, "spec": spec, "chrom": chrom, "size": (w, h)}
+
 
 def hue_clusters(points, hsv, k_max=4):
     """Circular k-means on hue, sat-weighted; k picked by hue spread. Returns
@@ -166,6 +172,8 @@ def hue_clusters(points, hsv, k_max=4):
 
 # --- donor ramps (Mode B) -------------------------------------------------------------
 _donor_cache = {}
+
+
 def donor_ramp(target_hue, surface):
     """5-step (h,s,v) ramp from the vanilla sprite whose dominant chromatic material
     sits closest to target_hue. Scans the whole cache once per surface."""
@@ -213,6 +221,7 @@ def donor_ramp(target_hue, surface):
         disciplined.append(((target_hue + off) % 1.0, ss, vs))
     return disciplined
 
+
 # --- the three treatments -------------------------------------------------------------
 def feather_weights(target, size, protected):
     """1.0 inside target, 0 elsewhere/protected; 3x3 box-blurred once."""
@@ -233,6 +242,7 @@ def feather_weights(target, size, protected):
 
 PANEL = (255, 255, 255)  # the game's inventory AND shop rows, measured 2026-08-16
 
+
 def _lab(rgb):
     def f(c):
         c = c / 255
@@ -245,9 +255,11 @@ def _lab(rgb):
     fx, fy, fz = g2(X), g2(Y), g2(Z)
     return (116*fy - 16, 500*(fx - fy), 200*(fy - fz))
 
+
 def _dE(a, b):
     la, lb = _lab(a), _lab(b)
     return sum((x - y) ** 2 for x, y in zip(la, lb)) ** 0.5
+
 
 def rim_color(t_hue, t_sat, min_de=30.0, alpha=170):
     """The glow rim must PROVE its contrast against the real menu ground before it
@@ -263,6 +275,7 @@ def rim_color(t_hue, t_sat, min_de=30.0, alpha=170):
                 return rgb
     return tuple(int(round(c * 255)) for c in colorsys.hsv_to_rgb(t_hue, 1.0, 0.55))
 
+
 def dilate(points, solid, r=2):
     """Grow a pixel set by r (chebyshev), clipped to solid pixels. A material is a
     REGION: its desaturated shadow pixels belong to it, not to the steel body."""
@@ -274,6 +287,7 @@ def dilate(points, solid, r=2):
                 if q in solid:
                     out.add(q)
     return out
+
 
 def paint(po, hsv, p, nh, ns, wt, vs=1.0):
     """Blend toward (nh, ns, source-v) in HSV space so a feather seam can never
@@ -298,6 +312,7 @@ TWIN_GROUPS = [
     {130, 134, 136, 138, 140, 142},  # the round shield
 ]
 _twin_ref = {}
+
 
 def twin_reference(gi):
     """The variant with the cleanest neutral face (Nightward's family benchmark)
@@ -334,6 +349,7 @@ def twin_reference(gi):
         steps.append((hs, ss, 0.0))
     _twin_ref[gi] = (frame, face, steps, ref_id, seed)
     return _twin_ref[gi]
+
 
 def twin_prototype(im, tint, gi, punch=False, item_id=None):
     """Nightward-style split imposed on every variant of the shared drawing:
@@ -414,6 +430,8 @@ def twin_prototype(im, tint, gi, punch=False, item_id=None):
     return out
 
 PUNCH = {130, 134, 136, 138, 140, 142}  # tints chosen near-vanilla for the OLD loud
+
+
                                          # engine; under a faithful engine they need help
 
 def visor_white_trim(out, a, surface):
@@ -442,6 +460,7 @@ def visor_white_trim(out, a, surface):
         paint(po, hsv, p, hh, min(ss, 0.06), 1.0, vs=(0.70 + 0.30 * vv) / max(1e-9, vv))
     return out
 
+
 def coif_light_middle(out, a, surface):
     """Per-item recipe (Padded Coif, owner call): the shipped version's lighter middle
     comes back. The shipped texture's brighter pixels are the map; our output blends
@@ -460,6 +479,7 @@ def coif_light_middle(out, a, surface):
                      round(b0 + (b - b0) * 0.75), a0)
     return out
 
+
 def whiten_highlights(out, im):
     """WHITE_SPEC post-pass: the sheen band (bright, low-chroma in the SOURCE) drains
     to true white, the way Fallingstar's glints read."""
@@ -476,6 +496,7 @@ def whiten_highlights(out, im):
             paint(po, a["hsv"], p, hh, min(ss * 0.2, 0.10), 1.0, vs=1.0)
     return out
 
+
 def blacken_outline(out, im):
     a = analyze(im)
     po = out.load()
@@ -483,6 +504,7 @@ def blacken_outline(out, im):
         r, g, b, al = po[p]
         po[p] = (int(r * 0.35), int(g * 0.35), int(b * 0.35), al)
     return out
+
 
 def soften_sheen(out, im):
     """SOFT_SPEC post-pass: same lightest-fifth band as whiten_highlights, but the
@@ -502,6 +524,7 @@ def soften_sheen(out, im):
             po[p] = (round(r2 * 255), round(g2 * 255), round(b2 * 255), al)
     return out
 
+
 def prototype(im, tint, surface, item_id=None):
     base = _prototype_dispatch(im, tint, surface, item_id)
     if item_id in WHITE_SPEC:
@@ -511,6 +534,7 @@ def prototype(im, tint, surface, item_id=None):
     if item_id in OUTLINE_BLACK:
         base = blacken_outline(base, im)
     return base
+
 
 def _prototype_dispatch(im, tint, surface, item_id=None):
     if item_id in KEEP_SHIPPED and item_id not in SHIELDS + HELMS:
@@ -524,6 +548,7 @@ def _prototype_dispatch(im, tint, surface, item_id=None):
         base = _prototype_inner(im, tint, surface, item_id=150)
         return visor_white_trim(base, analyze(im), surface)
     return _prototype_inner(im, tint, surface, item_id)
+
 
 def _prototype_inner(im, tint, surface, item_id=None):
     """v2 placement rule: the BODY carries the identity (the game's own grammar is a
@@ -638,6 +663,7 @@ def _prototype_inner(im, tint, surface, item_id=None):
             paint(po, hsv, p, (t_hue + off) % 1.0, ns, wt, vs=vscale)
     return out
 
+
 def glow(im, tint, inner_a=170, outer_a=80, third_a=0, min_de=30.0, rim_sat=None,
          rim_rgb=None):
     """Identity rim as an ADDED layer outside the body. The body contour uses a looser
@@ -677,6 +703,7 @@ def glow(im, tint, inner_a=170, outer_a=80, third_a=0, min_de=30.0, rim_sat=None
             elif d == 3 and third_a:
                 po[x, y] = rim_rgb + (third_a,)
     return out
+
 
 # --- metrics --------------------------------------------------------------------------
 def metrics(van, out):
@@ -726,6 +753,8 @@ SOFT_SPEC = set()     # gentle sheen: lightest-fifth band keeps its colour but s
                       # half its saturation -- the soft-cloth answer to WHITE_SPEC
 DEEP_DAMP = set()     # extra 0.8 chroma damp everywhere (the deep-mute variant)
 FORCE_MODE_B = set()  # items whose neutral body must take the donor family regardless
+
+
                       # of the neutral-fraction gate (distinctness escalation level 3)
 
 def pop_filter(im, factor=1.6):
@@ -745,6 +774,7 @@ def pop_filter(im, factor=1.6):
             nr, ng, nb = (int(round(c * 255)) for c in colorsys.hsv_to_rgb(hh, ns, nv))
             po[x, y] = (nr, ng, nb, al)
     return out
+
 
 def build(surface, ids=None, prefix=""):
     ids = ids or SHIELDS

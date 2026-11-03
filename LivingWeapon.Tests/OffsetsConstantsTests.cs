@@ -18,7 +18,7 @@ public class OffsetsConstantsTests
         Assert.Equal(50, Offsets.RosterSlots);
     }
 
-    /// <summary>LW-42 tripwire: the 1.5 slot0 in-battle marker is exactly 0x10 (live battle edges
+    /// <summary>Tripwire: the 1.5 slot0 in-battle marker is exactly 0x10 (live battle edges
     /// 2026-07-21; pre-1.5 it was 0xFF and that value is retired). PairArmed and InLiveBattle's
     /// mode-1/5 excuse anchor on this value, so changing it silently revives or kills those
     /// paths; any bump needs fresh live edge evidence, not a guess.</summary>
@@ -28,7 +28,7 @@ public class OffsetsConstantsTests
         Assert.Equal(0x10u, Offsets.Slot0InBattleMarker);
     }
 
-    /// <summary>LW-149 stage H: JobOff was promoted from a private Puppeteer.Policy constant to
+    /// <summary>Stage H: JobOff was promoted from a private Puppeteer.Policy constant to
     /// Offsets.AJob (the band-relative reach-back to combat +0x03, live-confirmed 2026-06-18).
     /// Puppeteer.Policy.JobOff is now a one-line alias -- this pins both names to the same value
     /// so a future edit to either side cannot let them drift apart.</summary>

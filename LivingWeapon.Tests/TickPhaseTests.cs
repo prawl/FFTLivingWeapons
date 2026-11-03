@@ -5,7 +5,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-184: direct unit tests for the declarative tick-phase cadence primitive (TickPhase.cs) that
+/// Direct unit tests for the declarative tick-phase cadence primitive (TickPhase.cs) that
 /// replaced Engine's three hand-rolled counters (_tick/GrowthEveryNTicks, _ringThrottleTick,
 /// _gunSlingerThrottleTick). Rows are constructed here with recording lambdas -- no Engine needed --
 /// so the cadence math is pinned cheaply before EngineTests' end-to-end table pin.

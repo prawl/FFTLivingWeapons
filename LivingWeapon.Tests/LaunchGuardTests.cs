@@ -7,7 +7,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-50's LivingWeapon adapter over FingerprintGuard, split by LW-112 and unchained by LW-393 into
+/// The LivingWeapon adapter over FingerprintGuard, split and unchained into
 /// three independent state machines. The MAIN guard checks two data-only landmarks (PE build key,
 /// Ramza's roster row shape); a mismatch there stands the roster door down (writes stay disabled all
 /// session). The KIT-LANE guard owns the JobCommand rec8/rec9 ability-byte signature and the SENSING
@@ -16,11 +16,11 @@ namespace LivingWeapon.Tests;
 /// new game detector) while everything else keeps working. Post-arm semantics are unchanged for the
 /// kit lane: an all-zero rec8/rec9 window is a Mismatch (blanked), not a boot window, because that
 /// table is file baked static data. Only a genuine read failure still reads Unreadable. No guard
-/// raises a box on a closure any more; the parts board does (PartsBoardTests), except the LW-392
+/// raises a box on a closure any more; the parts board does (PartsBoardTests), except the
 /// stall box, which stays the main guard's own.
 ///
 /// FakeSparseMemory.TryReadBytes serves any read fully contained in a registered TerrainBlocks
-/// entry (LW-82 widened this from exact-address-only), so every PE and JobCommand read here is
+/// entry (widened from exact-address-only), so every PE and JobCommand read here is
 /// staged there; U8/U16 roster fields go through the U8s/U16s dictionaries (unseeded reads default
 /// to 0, i.e. an unpopulated roster slot).
 /// </summary>
@@ -82,7 +82,7 @@ public class LaunchGuardTests
 
     private static void StepTwinN(LaunchGuard g, int n) { for (int i = 0; i < n; i++) g.StepTwin(); }
 
-    // LW-387 (ported by LW-388): the Denuvo-free 1.5.2 build loads at a random (ASLR) base. These
+    // The Denuvo-free 1.5.2 build loads at a random (ASLR) base. These
     // stage the PE header, Ramza's roster row and the JobCommand bytes at addresses that FOLLOW the
     // live image base, so they must be called AFTER ImageBase.Set (or deliberately before it, in the
     // unresolved mirror).
@@ -121,7 +121,7 @@ public class LaunchGuardTests
     [Fact]
     public void Guard_stays_unreadable_when_the_image_is_relocated_but_the_base_is_not_resolved()
     {
-        // The exact player symptom before LW-387: the image sits at a random base, the mod still
+        // The exact player symptom: the image sits at a random base, the mod still
         // reads the preferred one, every landmark read fails, the guard retries silently forever.
         try
         {
@@ -137,7 +137,7 @@ public class LaunchGuardTests
             for (int i = 0; i < LaunchGuard.ImageStallSteps + 1; i++) guard.Step();
 
             Assert.Equal(GuardState.Verifying, guard.State);
-            // LW-392: the same symptom now speaks, once in the log (WARN) and once in a box.
+            // The same symptom now speaks, once in the log (WARN) and once in a box.
             Assert.Single(notices);
             Assert.Single(cap.File, l => l.Contains("[WARN]") && l.Contains("has not been able to read the game"));
         }
@@ -193,7 +193,7 @@ public class LaunchGuardTests
     [Fact]
     public void KitLane_read_failure_stays_verifying_silently()
     {
-        // LW-112: the old JobCommand-vs-empty-roster boot-window test is vacuous now (the JobCommand
+        // The old JobCommand-vs-empty-roster boot-window test is vacuous now (the JobCommand
         // landmark moved off the main guard entirely, so an empty roster row no longer touches it at
         // all). Its replacement, at the lane level: a failed read (the window absent from the fake,
         // mirroring a transient RPM failure) must leave the lane Verifying forever, silently -- no
@@ -230,7 +230,7 @@ public class LaunchGuardTests
     [Fact]
     public void ForceMismatch_arms_and_warns_unknown_build()
     {
-        // LW-397: the drill perturbs the expected stamp; the stamp is a report now, never a switch.
+        // The drill perturbs the expected stamp; the stamp is a report now, never a switch.
         WithWritesRestored(() =>
         {
             using var cap = LogCapture.Start();
@@ -286,7 +286,7 @@ public class LaunchGuardTests
     [Fact]
     public void StandDown_never_invokes_the_notice_itself()
     {
-        // LW-393: the box moved to the parts board, which shows one per closure wave.
+        // The box moved to the parts board, which shows one per closure wave.
         var mem = HealthyMemory(nameId: 5);   // mismatch
         var calls = new List<(string title, string text)>();
         var guard = new LaunchGuard(mem, forceMismatch: false, notice: (title, text) => calls.Add((title, text)));
@@ -328,7 +328,7 @@ public class LaunchGuardTests
         Assert.Empty(calls);
     }
 
-    // --- LW-53: the guard lifecycle records into the flight ring and requests its own dedicated
+    // --- The guard lifecycle records into the flight ring and requests its own dedicated
     // "standdown" flush, so a stand-down leaves a durable archive, not just the log line. ---
 
     [Fact]
@@ -425,7 +425,7 @@ public class LaunchGuardTests
         Assert.Equal(GuardState.StoodDown, guard.State);
     }
 
-    // --- LW-83: mismatch readings carry observed-vs-expected detail, and a drill-forced
+    // --- Mismatch readings carry observed-vs-expected detail, and a drill-forced
     // stand-down self-identifies by naming the LW_FORCE_FINGERPRINT_MISMATCH flag. ---
 
     [Fact]
@@ -515,7 +515,7 @@ public class LaunchGuardTests
     [Fact]
     public void KitLane_mismatch_detail_carries_observed_bytes()
     {
-        // LW-112: was JobCommand_mismatch_detail_carries_observed_bytes, asserting the OLD bug (a
+        // Was JobCommand_mismatch_detail_carries_observed_bytes, asserting the OLD bug (a
         // JobCommand conflict standing down the whole mod). Rewritten: the same conflict now stands
         // down only the lane, and the detail lands in the LANE's own stand-down record.
         bool prevWrites = Mem.WritesEnabled;
@@ -543,7 +543,7 @@ public class LaunchGuardTests
     [Fact]
     public void KitLane_both_recs_mismatch_composes_both_details()
     {
-        // LW-112: was JobCommand_both_recs_mismatch_composes_both_details. Both signature windows
+        // Was JobCommand_both_recs_mismatch_composes_both_details. Both signature windows
         // wrong at once (non-zero bytes: an all-zero window is its own distinct "blanked" case, see
         // KitLane_all_zero_window_is_a_blanked_row_not_a_boot_window), so the composed detail must
         // name BOTH recs, each with its own observed bytes -- now inside the LANE's stand-down.
@@ -573,7 +573,7 @@ public class LaunchGuardTests
         finally { Mem.WritesEnabled = prevWrites; }
     }
 
-    // --- LW-112: the JobCommand landmark split off the main guard into its own second
+    // --- The JobCommand landmark split off the main guard into its own second
     // FingerprintGuard instance (the kit-lane guard), so a custom job/ability mod rewriting that
     // table only ever disables the three weapon-granted commands (Barrage, Shadow Blade, Provoke),
     // never the whole mod. The lane only ever steps once the main guard has Armed (StepKitLane's
@@ -637,7 +637,7 @@ public class LaunchGuardTests
     [Fact]
     public void Unknown_stamp_and_lane_conflict_arm_the_mod_and_stand_down_only_the_lane()
     {
-        // LW-397: an unknown stamp no longer stands the mod down, so the lane now steps and speaks
+        // An unknown stamp no longer stands the mod down, so the lane now steps and speaks
         // on its own; its copy carries the hedge that the game update itself may be the cause.
         WithWritesRestored(() =>
         {
@@ -668,7 +668,7 @@ public class LaunchGuardTests
     [Fact]
     public void Unknown_stamp_never_stands_down()
     {
-        // THE LOAD-BEARING TEST (LW-397): both header fields wrong, healthy roster, far past the
+        // THE LOAD-BEARING TEST: both header fields wrong, healthy roster, far past the
         // 30-step mismatch debounce. The stamp must never switch the mod off.
         WithWritesRestored(() =>
         {
@@ -762,7 +762,7 @@ public class LaunchGuardTests
     [Fact]
     public void Roster_mismatch_still_stands_the_whole_mod_down()
     {
-        // Roster-row mismatch is a MAIN-guard landmark, unaffected by the LW-112 split: still a full
+        // Roster-row mismatch is a MAIN-guard landmark, unaffected split: still a full
         // stand-down, JobCommand health irrelevant.
         var mem = HealthyMemory(nameId: 5);
         var guard = new LaunchGuard(mem, forceMismatch: false);
@@ -928,7 +928,7 @@ public class LaunchGuardTests
         // as its evidence that writes were enabled this session. STANDDOWN_MARK already
         // has this dual-language pin (see the "standing down to protect your save" assertions
         // above, e.g. Lane_notice_never_contains_the_scanner_stand_down_phrase); this is
-        // ARMED_MARK's twin (LW-148), so a wording edit to LaunchGuard.ArmedEdge's log line breaks
+        // ARMED_MARK's twin, so a wording edit to LaunchGuard.ArmedEdge's log line breaks
         // a test here instead of silently blinding the scanner to a healthy session.
         bool prevWrites = Mem.WritesEnabled;
         try
@@ -952,7 +952,7 @@ public class LaunchGuardTests
         finally { Mem.WritesEnabled = prevWrites; }
     }
 
-    // ---- LW-395: the sensing lane (LaunchGuard.Sensing.cs) -------------------------------------
+    // ---- The sensing lane (LaunchGuard.Sensing.cs) -------------------------------------
     // The lane verifies the six battle sentinels once per launch, out of battle only. Staged through
     // TerrainBlocks because the probe reads them with TryReadBytes (a failed read is Unreadable).
 
@@ -1134,7 +1134,7 @@ public class LaunchGuardTests
     [Fact]
     public void Sensing_lane_arms_with_the_roster_row_empty()
     {
-        // LW-393: the lane no longer waits for the roster door. The stamp latch is the only wait.
+        // The lane no longer waits for the roster door. The stamp latch is the only wait.
         WithWritesRestored(() =>
         {
             var mem = HealthyMemory(level: 0);   // unpopulated roster: the main guard keeps retrying
@@ -1353,7 +1353,7 @@ public class LaunchGuardTests
         });
     }
 
-    // ---- LW-393: the roster drill and the door readings ----------------------------------------
+    // ---- The roster drill and the door readings ----------------------------------------
 
     private const string RosterDrillFlag = "LW_FORCE_ROSTER_MISMATCH";
 
@@ -1640,7 +1640,7 @@ public class LaunchGuardTests
         });
     }
 
-    // --- LW-392: the mod says so when it cannot find the game ---
+    // --- The mod says so when it cannot find the game ---
 
     private sealed class StallRig
     {
@@ -1670,7 +1670,7 @@ public class LaunchGuardTests
     // deduped at two layers (the watcher fires once per streak AND _stallWarned), by design.
     public void Image_unreadable_for_the_stall_window_warns_once_and_boxes_once()
     {
-        // LOAD-BEARING (LW-392). Two dedupe layers guard the box: the decorator fires once per
+        // LOAD-BEARING. Two dedupe layers guard the box: the decorator fires once per
         // streak (LandmarkStall `streak == stallSteps`) and the adapter latches (_stallWarned).
         // Levers that turn this red: (a) change `==` to `>=` in LandmarkStall.Watch AND delete the
         // `if (_stallWarned) return;` line in OnImageStalled -> 51 notices, Assert.Single fails;
@@ -1837,7 +1837,7 @@ public class LaunchGuardTests
         }
     }
 
-    // The twin weapon door (LW-400).
+    // The twin weapon door.
 
     private const string TwinDrillFlag = "LW_FORCE_TWIN_MISMATCH";
     private const string ScannerPhrase = "standing down to protect your save";
@@ -1885,7 +1885,7 @@ public class LaunchGuardTests
         Assert.Equal(GuardState.Armed, guard2.TwinState);
     }
 
-    // LW-439: the menu byte is byte 4 of a pointer in the game's per frame record list (1 under the
+    // The menu byte is byte 4 of a pointer in the game's per frame record list (1 under the
     // old fixed base, 246 under the ASLR base 0x7FF65FC60000), so the door accepts any value there
     // and only the browse byte, a real 0 or 1 flag, can fault.
     [Fact]

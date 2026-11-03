@@ -26,7 +26,7 @@ import subprocess
 import sys
 
 MOD_ID = "prawl.fft.livingweapons"
-PROD_THRESHOLDS = (5, 10, 15)  # Tuning.cs production KillThresholds (LW-161)
+PROD_THRESHOLDS = (5, 10, 15)  # Tuning.cs production KillThresholds
 
 
 def tier_for(kills):

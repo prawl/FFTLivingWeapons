@@ -193,6 +193,7 @@ for i in BAGS:
     print(f"  id{i}", end="\r", flush=True)
 print()
 
+
 # --- treatments.json: weapon rows ---------------------------------------------------------
 def note_for_weapon(i):
     a = assign.get(str(i), {})

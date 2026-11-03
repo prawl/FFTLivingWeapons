@@ -7,7 +7,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-393: the extended inventory's door reading. Waiting before the boot arm, Open once armed, a failed
+/// The extended inventory's door reading. Waiting before the boot arm, Open once armed, a failed
 /// check when an install step refuses, and an absence when nothing is shipped or the loader gave no hooks.
 /// </summary>
 public class ExtendedInventoryDoorTests : IDisposable

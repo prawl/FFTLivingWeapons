@@ -5,10 +5,10 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// AttackCardProbeText, the pure half of the LW-31 Attack-menu census instrument
+/// AttackCardProbeText, the pure half of the Attack-menu census instrument
 /// (docs/TODO.md Now section). The #if LWDEV shell (AttackCardSpike.cs) is not visible to the
 /// test build (LWDEV is not defined for dotnet test), so only the pure static helpers are
-/// exercised here, mirroring HeaderProbeTextTests' arrangement for the LW-27 header spike.
+/// exercised here, mirroring HeaderProbeTextTests' arrangement header spike.
 /// </summary>
 public class AttackCardProbeTextTests
 {
@@ -50,7 +50,7 @@ public class AttackCardProbeTextTests
             Assert.Equal(0, withNul[payload.Length + i]);
     }
 
-    // ---- EncodeWithTerminator / 2-arg FitsFootprint (LW-31 stage 2: promoted for AttackCard.cs's
+    // ---- EncodeWithTerminator / 2-arg FitsFootprint (promoted for AttackCard.cs's
     // production composer, whose written text varies unlike this file's fixed dev Payload) ----
 
     [Theory]

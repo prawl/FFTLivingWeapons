@@ -15,6 +15,7 @@ WORK = os.path.join(SCRATCH, "bake_work")
 os.makedirs(BACKUP, exist_ok=True)
 os.makedirs(WORK, exist_ok=True)
 
+
 def tex_dir(surface):
     sub = "equip_item" if surface == "card" else "equip_item_s"
     return os.path.join(INSTALL, "FFTIVC", "data", "enhanced", "ui", "ffto", "icon", sub, "texture")

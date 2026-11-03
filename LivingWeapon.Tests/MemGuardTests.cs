@@ -4,7 +4,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-50's Mem-funnel write gate: <see cref="Mem.WritesEnabled"/> defaults true (existing
+/// The Mem-funnel write gate: <see cref="Mem.WritesEnabled"/> defaults true (existing
 /// pinned-buffer suites are unaffected) and, when flipped false, every write method becomes a
 /// no-op while reads stay live. Every test restores the flag in a finally block: the assembly is
 /// serialized (TestLoggingSetup.cs's CollectionBehavior), but the flag is still a shared static.

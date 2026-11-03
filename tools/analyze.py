@@ -21,7 +21,7 @@ from lib import flavor as flavor_mod   # module ref (not `from ... import`): the
 from lib.categories import WEAPON_CATS
 from lib.flavor import (assemble_desc, card_signature_name, flavor_anchor,   # the exact rendered card text
                          rider_text, is_living, KILLS_SCAFFOLD, KILLS_SLOT_BODY_CHARS,
-                         badge_for, mechanics, PROC, CAST,   # LW-352: the claim gate's row-effect derivation
+                         badge_for, mechanics, PROC, CAST,   # The claim gate's row-effect derivation
                          ABSORB_HP_FORMULAS, ABSORB_MP_FORMULAS, HEAL_FORMULAS)
                                                    # + the house-voice prose each rider bakes onto its card
 from lib.items import load_items, display_name
@@ -137,8 +137,8 @@ def check_slots(items, normal_formulas):
 # line on EVERY run (never silent), and a pair that is no longer dominated is called out as a
 # stale entry so the dict cannot rot. The --baseline pass and every other gate ignore this.
 # History: the dict's only occupant was the Ironreed Pole vs Terrastaff pair, keyed
-# (108, 262) at birth (LW-351 stage 1, owner ruling 2026-08-30) and (108, 261) after the
-# Moonblade's removal slid the extended ids down one; resolved under LW-363 (2026-08-31) by
+# (108, 262) at birth (owner ruling 2026-08-30) and (108, 261) after the
+# Moonblade's removal slid the extended ids down one; resolved (2026-08-31) by
 # giving the pole a real guard niche (evade 20 to 22) instead of a deferral. The Terrastaff
 # side was untouchable (its numbers are a migration promise, and equal numbers still lose to
 # Earth plus the earlier tier); a wp bump fell to check_thin_niche's cross-tier margin.
@@ -167,13 +167,13 @@ def check_proposed_dominance(items, normal_formulas):
     return kept
 
 
-# --- LW-318 hardening: the two blind spots the 2026-08-26 thin-niche audit proved real ---
+# --- Hardening: the two blind spots the 2026-08-26 thin-niche audit proved real ---
 
 # Owner-ruled (or provisionally parked) survivals the THIN NICHE gate accepts. Key is
 # (survivor id, rival id); every entry cites its authority. Removing an entry makes the
 # gate demand the pair be re-balanced.
 THIN_NICHE_EXCEPTIONS = {
-    # LW-351 stage 2 (2026-08-30): the Warbrand moved from id 67 (the vanilla Iron Flail, restored) to
+    # Stage 2 (2026-08-30): the Warbrand moved from id 67 (the vanilla Iron Flail, restored) to
     # extended id 265, then 264 when the Moonblade's removal (2026-08-31) slid every extended id
     # down one; the ruling is about the design, so the keys follow it.
     (264, 30): "Warbrand's 1-WP crown over Arcanum: owner ruling 2026-08-25 (LW-320), crown kept, shelf moved to the last unlock",
@@ -185,7 +185,7 @@ THIN_NICHE_EXCEPTIONS = {
 # any reach edge is a real niche (a 2-tile pole is not almost a 1-tile staff).
 THIN_AXES = {"wp", "evade", "physEv", "magEv", "hp", "mp"}
 
-# The SPLIT LINE (owner-delegated ruling 2026-08-26, reasoning in the LW-318 row):
+# The SPLIT LINE (owner-delegated ruling 2026-08-26, reasoning row):
 # same-tier rivals sharing a shelf are held to a 2-point margin (a same-shelf sibling
 # alive by 2 points is a redundant twin-in-waiting), while a LATER item surviving an
 # earlier one is held only to 1 point, because the catalog's normal upgrade grammar is
@@ -279,6 +279,8 @@ def check_thin_niche(items, normal_formulas):
 FLAVOR_MAX = 90   # authored flavor lines must fit the equip card
 P3DESC_MAX = 90   # the signature EFFECT line (the card header carries the name + the +N tier)
 SIGNAME_MAX = 60  # the name in the "{name} (+{atTier})" card header. May carry a class-restriction
+
+
                   # note (e.g. "Shadow Blade (Squire, Gallant Knight, Knight only)"); the full header line
                   # (name + " (+3)") still fits within the ~90-char card width the flavor lines use.
 
@@ -301,7 +303,7 @@ def check_p3desc(items):
 
 
 DESC_MAX = 205  # TOTAL assembled card description budget (chars). RECALIBRATED LIVE 2026-07-07
-                # (owner eyewitness, LW-45): the prior 266 was far too loose. A third of the
+                # (owner eyewitness): the prior 266 was far too loose. A third of the
                 # catalog passed it yet still clipped off the bottom of the equip-card box on
                 # screen. 205 is the observed boundary: Frostarc (204 assembled) fits, Gloomfang
                 # (209) clips. Every over-cap item's flavor line (plus Umbral Rod's +3 prose) was
@@ -339,9 +341,6 @@ def check_card_height(items):
     return bad
 
 
-
-
-
 def check_desc_budget(items):
     """The FULL assembled card description (Kills scaffold + flavor + mechanics + range line +
     signature block, assemble_desc, the exact patch_names bake) must fit the equip card's box.
@@ -359,13 +358,13 @@ def check_desc_budget(items):
 
 
 #: The only damage-formula ids the game's Poach support ability is actually wired into
-#: (owner-proven live 2026-08-12, LW-166: the formula matrix). Every OTHER formula a weapon
+#: (owner-proven live 2026-08-12, the formula matrix). Every OTHER formula a weapon
 #: ships on must be in lib.flavor.DORMANT_FORMULAS -- classified poach-blind -- or the
 #: classification gate below refuses the build.
 VANILLA_FORMULAS = {1, 2, 3, 4, 6, 7}
 
 
-#: LW-167: the "No Poaching." clause LW-166 baked onto every dormant-formula weapon's card is
+#: The "No Poaching." clause baked onto every dormant-formula weapon's card is
 #: retired -- the runtime cure (Living Poach, LivingWeapon/Tuning.cs DormantPoachFormulas) makes
 #: the claim false, and the owner chose clean cards + a FAQ entry over a replacement line. Kept
 #: here as a literal (not in lib.flavor -- nothing bakes it anymore) so this gate can prove the
@@ -481,13 +480,13 @@ def check_flavor_length(items):
     return bad
 
 
-# ---- LW-352: CLAIMS (every effect a weapon's card or design prose claims is backed by its row,
+# ---- CLAIMS (every effect a weapon's card or design prose claims is backed by its row,
 # and every effect its row carries is spoken on the card) -------------------------------------
 # Owner ask 2026-08-27 after the Duskstring Harp's card said "Absorbs HP" (a vanilla badge the
 # bake never cleared) while its row cast Blind (which the bake never named). Three lanes:
 #   1. UNSPOKEN: the row carries an on-hit effect the generated mechanics line does not render
 #      (an ability id missing from PROC/CAST, or a formula the renderer has no sentence for).
-#   2. BADGE: the Special Effect badge is exactly badge_for(it) (formula-derived, LW-352); the
+#   2. BADGE: the Special Effect badge is exactly badge_for(it) (formula-derived); the
 #      bake writes that value, this pins that a formula change and the badge cannot drift.
 #   3. AUTHORED: the hand-written prose (flavorOverride, desc, the items.json onHit field, the
 #      identity line is NOT included: it is curator notes, never rendered) may only name an
@@ -909,12 +908,12 @@ def check_grid_sync(items):
     return violations
 
 
-#: LW-250: the growth-lane token vocabulary docs/living_weapon_grid.csv's 'grows' column
+#: The growth-lane token vocabulary docs/living_weapon_grid.csv's 'grows' column
 #: (and items.json's top-level `grows` key) is pinned to. tools/gen_living_weapon_meta.py's
 #: lane_of(token, cat) is the ONLY place that maps these into the runtime's baked "lane" --
 #: a token outside this set has nowhere to route and must fail here, at data-authoring time,
 #: not as a loud bake-time RAISE discovered much later. HP (LATE OWNER AMENDMENT
-#: 2026-08-25): all Knight Swords, interim-mapped to "pa" until LW-317's u16 MaxHP hold.
+#: 2026-08-25): all Knight Swords, interim-mapped to "pa" until the u16 MaxHP hold.
 GROWS_VOCAB = {"PA", "MA", "Speed", "HP", "PA+MA", "PA+MA+Brave", "WP", "WP+Faith"}
 
 
@@ -957,8 +956,8 @@ def check_grows_lockstep(items):
     return violations
 
 
-#: LW-322 round 3: the GROWS PHRASE gate's expectation, pinned LITERAL and independent of
-#: lib.flavor.grows_phrase (verify round 1 proved the gate self-referential: mutating
+#: The GROWS PHRASE gate's expectation, pinned LITERAL and independent of
+#: lib.flavor.grows_phrase (a review proved the gate self-referential: mutating
 #: grows_phrase's separator moved the card and the expectation together, so the gate stayed
 #: green through a real regression). Every currently-shipped grows value (GROWS_VOCAB above)
 #: must have an entry here; a value missing from this table is itself a violation below -- new
@@ -973,7 +972,7 @@ GROWS_PHRASE_EXPECTED = {"Speed": "Speed", "PA": "Physical Attack", "MA": "Magic
                          "PA+MA": "Physical & Magick Attack",
                          "PA+MA+Brave": "Physical Attack, Magick Attack & Bravery"}
 
-#: LW-329 color ruling (owner, 2026-08-25): the whole Grows line wears its lane's hue via an
+#: Color ruling (owner, 2026-08-25): the whole Grows line wears its lane's hue via an
 #: inline <color=NN> tag the card renderer consumes (proven: LIVE_LEDGER
 #: [inline-color-markup-in-ui-text], card surface half). Slots from the owner-read palette
 #: sitting (tools/probes/lw329_palette_map.json); katanas ride periwinkle 94 (owner default,
@@ -1165,11 +1164,11 @@ def _check_obtain(it, row):
     return probs
 
 
-# ---- LW-420: VANILLA ROWS (every weapon baseline is held to the game's own row bytes) ----
+# ---- VANILLA ROWS (every weapon baseline is held to the game's own row bytes) ----
 # data/vanilla_weapon_rows.json is the vanilla ItemWeaponData table read out of the exe file
 # image by tools/snapshot_vanilla_weapon_rows.py, 8 bytes a row (range, attack flags, formula,
 # pad, wp, evade, elements, on hit ability), rows 1 to 121. The --baseline pass judges fairness
-# against the baseline notes, and those notes drifted twice (LW-414 seven WP numbers, LW-419
+# against the baseline notes, and those notes drifted twice (seven WP numbers, then
 # four weapons' evade, element, formula and proc) with nothing on the build server to catch it.
 # The snapshot's exe stamp is held to LaunchGuard's expected build so a game patch forces a
 # fresh read in the re-anchor commit (docs/PATCH_REANCHOR.md step 5).

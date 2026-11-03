@@ -7,7 +7,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-399: the five table doors. Every door is structural, so the tests stage the game's own addressing
+/// The five table doors. Every door is structural, so the tests stage the game's own addressing
 /// instructions (and, for the two boot-filled tables, the fill) and flip single bytes.
 /// </summary>
 public class TableDoorsTests

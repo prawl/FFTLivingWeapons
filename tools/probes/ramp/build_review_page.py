@@ -4,6 +4,7 @@ import base64, json, os
 
 SCRATCH = os.path.dirname(os.path.abspath(__file__))
 
+
 def b64(name):
     return base64.b64encode(open(os.path.join(SCRATCH, name), "rb").read()).decode()
 

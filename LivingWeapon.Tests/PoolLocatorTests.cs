@@ -5,7 +5,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// PoolLocator: locate + cache the writable UE string pool region(s) (LW-37). Two load-bearing
+/// PoolLocator: locate + cache the writable UE string pool region(s). Two load-bearing
 /// properties: (1) only NAME-bearing baked regions qualify (a name-less flavor+Kills render copy
 /// is excluded, the live 2026-07-08 miss), and (2) EVERY qualifying region is returned, not just
 /// one, because the process holds several name-bearing baked copies and the card materializes from one
@@ -57,7 +57,7 @@ public class PoolLocatorTests
     [Fact]
     public void LocateAll_returns_every_name_bearing_baked_region()
     {
-        // The live LW-37 miss (2026-07-08): the process holds MULTIPLE name-bearing baked copies of
+        // The live miss of 2026-07-08: the process holds MULTIPLE name-bearing baked copies of
         // the descriptions; the card materializes from one of them with no static signature for
         // which. Picking only the "best" single region painted the wrong copy and left the card
         // baked. PoolPaint must paint ALL of them, so LocateAll must return them all.
@@ -175,7 +175,7 @@ public class PoolLocatorTests
         Assert.DoesNotContain(regions, r => r.baseAddr == staleBase);
     }
 
-    /// <summary>LW-261 REWRITE: under the new coalescing semantics, Invalidate() no longer clears
+    /// <summary>REWRITE: under the new coalescing semantics, Invalidate no longer clears
     /// the cache outright (a mid-flight resumable scan must never be aborted -- PoolLocator.cs's
     /// own class doc); it queues a restart instead. This still has to pin the same real-world
     /// guarantee the old title promised -- a rescan eventually happens -- just via the new
@@ -197,7 +197,7 @@ public class PoolLocatorTests
 
         locator.Invalidate();
         Assert.True(locator.RegionsStale, "Invalidate must mark the published set stale immediately");
-        Assert.NotEmpty(locator.CachedRegions);   // LW-261: no longer cleared outright -- still serves the last good list
+        Assert.NotEmpty(locator.CachedRegions);   // No longer cleared outright -- still serves the last good list
 
         locator.LocateAll();
 

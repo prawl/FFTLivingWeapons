@@ -8,7 +8,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-336: IconGlow's stateful half (IconGlow.cs + IconGlow.Apply.cs) driven entirely through
+/// IconGlow's stateful half (IconGlow.cs + IconGlow.Apply.cs) driven entirely through
 /// <see cref="FakeIconGlowStore"/> -- an in-memory stand-in for glow_icons/manifest.json, the
 /// deployed FFTIVC tree, and the base-backup snapshot store. No real asset ever needs to exist
 /// for this file to pass (the glow_icons bake is a separate, parallel arc). Every test passes a
@@ -64,7 +64,7 @@ public class IconGlowTests
     /// <see cref="DeployedWrites"/>/<see cref="BackupWrites"/> BEFORE the fail toggle is
     /// consulted, mirroring the production store's own never-throw contract.
     ///
-    /// LW-381 R2-2: <see cref="PatchPacBatchCalls"/> records every <c>PatchPacBatch</c>
+    /// <see cref="PatchPacBatchCalls"/> records every <c>PatchPacBatch</c>
     /// invocation (the whole item list passed that call) so a test can assert both how many times
     /// the store was actually invoked -- the batching fix's whole point -- and what each item
     /// carried. <see cref="PatchPacResult"/> is the single canned result every item in every call
@@ -82,21 +82,21 @@ public class IconGlowTests
         public IconGlowWriteError? LastWriteError { get; private set; }
         public readonly List<(int Id, string Surface, byte[] Bytes)> DeployedWrites = new();
         public readonly List<(int Id, string Surface, byte[] Bytes)> BackupWrites = new();
-        /// <summary>LW-381 R2-2: one entry per <c>PatchPacBatch</c> CALL (not per item), so a test
+        /// <summary>One entry per <c>PatchPacBatch</c> CALL (not per item), so a test
         /// can assert how many times the store was actually invoked -- the whole point of the
         /// batching fix is fewer, larger calls rather than one call per icon.</summary>
         public readonly List<IReadOnlyList<(IconGlowEntry Entry, byte[] OldBytes, byte[] NewBytes, byte[]? PriorTarget)>> PatchPacBatchCalls = new();
         public PacPatchResult PatchPacResult = PacPatchResult.Patched;
-        /// <summary>LW-381: a per-(id,surface) override on top of the single canned
+        /// <summary>A per-(id,surface) override on top of the single canned
         /// <see cref="PatchPacResult"/> -- lets a test make ONE surface land Patched while a
         /// sibling in the SAME batch call lands something else (T10's "hider only sees the
         /// actually-patched surfaces" case).</summary>
         public readonly Dictionary<(int Id, string Surface), PacPatchResult> PatchPacResultOverride = new();
         public readonly Dictionary<(int Id, string Surface), IconGlowWriteError> PacErrors = new();
-        /// <summary>LW-445: the result for every item of the Nth call (1 based), under the per-surface
+        /// <summary>The result for every item of the Nth call (1 based), under the per-surface
         /// override and over the canned result, so a test can fail call 1 and land call 2.</summary>
         public Func<int, PacPatchResult>? PatchPacResultByCall;
-        /// <summary>LW-445: PatchPacBatch throws on this call (1 based) and every later one when above zero.</summary>
+        /// <summary>PatchPacBatch throws on this call (1 based) and every later one when above zero.</summary>
         public int ThrowFromCall;
 
         public IconGlowWriteError? LastPacError(int id, string surface) => PacErrors.TryGetValue((id, surface), out var e) ? e : null;
@@ -140,7 +140,7 @@ public class IconGlowTests
         }
     }
 
-    /// <summary>LW-381: records every <see cref="Hide"/> call's full target list; returns a
+    /// <summary>Records every <see cref="Hide"/> call's full target list; returns a
     /// Hidden outcome for every target unless <see cref="OnHide"/> is set (T12's postpone-then-
     /// hide sequencing needs a call-count-driven result).</summary>
     private sealed class RecordingIconCacheHider : IIconCacheHider
@@ -158,7 +158,7 @@ public class IconGlowTests
         }
     }
 
-    /// <summary>LW-381 T11: a hider that always throws -- pins that a hide failure can never
+    /// <summary>A hider that always throws -- pins that a hide failure can never
     /// reach out of ApplyDiff and affect the loose-write result or the apply's own summary line.</summary>
     private sealed class ThrowingIconCacheHider : IIconCacheHider
     {
@@ -413,7 +413,7 @@ public class IconGlowTests
 
     // ---- LOAD-BEARING: when the deployed tex already holds the exact variant bytes for the
     // desired tier (a prior session, or a pre-tiered install), the judge seeds _applied from
-    // that fact and NO write happens -- pins the fix for the LW-334 interim script having
+    // that fact and NO write happens -- pins the fix interim script having
     // pre-tiered files that the old pac-splice path would otherwise have stood down as
     // unmanaged (never having a plain base to index against). ----
 
@@ -737,7 +737,7 @@ public class IconGlowTests
         finally { try { System.IO.Directory.Delete(dir, true); } catch { } }
     }
 
-    // ---- LW-336 adversarial-verify fix round: five findings, six new tests. See each fix's
+    // ---- Adversarial-verify fix round: five findings, six new tests. See each fix's
     // own remarks in IconGlow.cs / IconGlow.Apply.cs for the mechanism these pin. ----
 
     // ---- FIX 1 (the ship-blocker), LOAD-BEARING: a tiered tex left on disk from an earlier
@@ -916,9 +916,9 @@ public class IconGlowTests
             && l.Contains(idA.ToString()) && l.Contains(idB.ToString())));
     }
 
-    // ---- LW-381: modded.pac same-session mirror. Every case below drives IconGlow through the
+    // ---- Modded.pac same-session mirror. Every case below drives IconGlow through the
     // fake store's PatchPacBatch hook -- no real pac file, no real modded.pac, anywhere in this
-    // region. R2-2 fix round: the store is now flushed ONCE per ApplyDiff pass rather than once
+    // region. A later fix: the store is now flushed ONCE per ApplyDiff pass rather than once
     // per surface, so most assertions below key off PatchPacBatchCalls (call COUNT and each
     // call's item list) rather than a per-surface call tally. ----
 
@@ -944,7 +944,7 @@ public class IconGlowTests
         var icon = new IconGlow("m", kills, new[] { id }, store, new NoopIconCacheHider(), a => a());
         icon.Tick();
 
-        // ONE flush for the whole apply (R2-2), carrying both surfaces' items.
+        // ONE flush for the whole apply, carrying both surfaces' items.
         Assert.Single(store.PatchPacBatchCalls);
         var items = store.PatchPacBatchCalls[0];
         Assert.Equal(2, items.Count);
@@ -978,7 +978,7 @@ public class IconGlowTests
     }
 
     // ---- PatchPacBatch returning Failed/Ambiguous for an item does NOT fail the apply, does NOT
-    // mark the id unmanaged, and warns at most once per id per launch -- R2-8 fix: driving the
+    // mark the id unmanaged, and warns at most once per id per launch -- a later fix: driving the
     // SAME id through two genuinely DIFFERENT tier changes across two ticks (rather than a second
     // tick that never reaches the pac mirror at all, which could not have failed the old
     // assertion either way) so the "only one warning" claim is actually put at risk. ----
@@ -1021,7 +1021,7 @@ public class IconGlowTests
         Assert.Equal(1, cap.File.Count(l => l.Contains("[WARN]") && l.Contains($"icon {id}") && l.Contains("modded.pac")));
     }
 
-    // ---- R2-4: NotFound is expected steady state (this session's own re-tier can run after the
+    // ---- NotFound is expected steady state (this session's own re-tier can run after the
     // launch merge already read the pac), never a warning -- Debug only. ----
 
     [Fact]
@@ -1112,7 +1112,7 @@ public class IconGlowTests
         Assert.Equal("small", store.PatchPacBatchCalls[0][0].Entry.Surface);
     }
 
-    // ---- R2-3: the pac warn set is independent of _warnedOnce. A cosmetic pac failure for icon
+    // ---- The pac warn set is independent of _warnedOnce. A cosmetic pac failure for icon
     // X must not permanently mute a LATER, genuinely different, loose-tex write failure warning
     // for the same id -- that is the failure that actually breaks the feature, and censoring it
     // behind a cosmetic same-session-only failure would be a defect in the evidence chain. ----
@@ -1144,7 +1144,7 @@ public class IconGlowTests
         Assert.Equal(1, cap.File.Count(l => l.Contains($"icon {id}") && l.Contains("failed to write")));
     }
 
-    // ---- LW-445: a Failed pac mirror is re queued, retried on later ticks up to the cap, and a retry
+    // ---- A Failed pac mirror is re queued, retried on later ticks up to the cap, and a retry
     // that lands feeds the cache hide like any patched surface. ----
 
     private static (FakeIconGlowStore Store, IconGlowEntry Entry, byte[] Base, byte[] T1, byte[] T2) PacRetryRig(int id, int seed)
@@ -1443,8 +1443,7 @@ public class IconGlowTests
         Assert.Equal(1, cap.File.Count(l => l.Contains("[WARN]") && l.Contains($"icon {id}") && l.Contains("modded.pac")));
     }
 
-
-    // ---- LW-381 second half: IconGlow hands only the surfaces that actually landed in
+    // ---- Second half: IconGlow hands only the surfaces that actually landed in
     // modded.pac this pass to the cache hider (T10), a throwing hider never touches the apply's
     // own result (T11), and a Postponed surface is retried by the NEXT tick's dedicated
     // hide-only pass, stopping once it comes back Hidden (T12). ----
@@ -1577,7 +1576,7 @@ public class IconGlowTests
         Assert.Equal(2, hider.Calls.Count);   // no further hider calls
     }
 
-    // ---- LW-423: the hide is on in production behind an armed healer, and these replays model the
+    // ---- The hide is on in production behind an armed healer, and these replays model the
     // disarmed case where it stays off. Fixture replays the 10:12:42 heap of
     // sitting 1: icon 37 small had 3 live parts entries and 1 texture record, the card had parts
     // entries and no texture record. ----
@@ -1679,7 +1678,7 @@ public class IconGlowTests
         Assert.Equal(1, cap.File.Count(l => l.EndsWith(IconGlow.KeptArtLine(2))));
     }
 
-    // ---- LW-427: the hide runs only while the heal hook is armed, and the names are tracked first. ----
+    // ---- The hide runs only while the heal hook is armed, and the names are tracked first. ----
 
     private sealed class OrderRecordingHider : IIconCacheHider
     {

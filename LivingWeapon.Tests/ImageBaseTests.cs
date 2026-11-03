@@ -6,7 +6,7 @@ using Xunit.Abstractions;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-387: the Denuvo-free 1.5.2 build turned ASLR on, so every pinned address is a preferred-base
+/// The Denuvo-free 1.5.2 build turned ASLR on, so every pinned address is a preferred-base
 /// absolute rebased through <see cref="ImageBase"/>. These pin the rebase arithmetic, the input
 /// validation, and that the production pin sites actually follow the base. ImageBase is process-wide
 /// static state; every test that mutates it restores the preferred base in a finally block (the

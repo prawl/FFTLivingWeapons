@@ -9,7 +9,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-399: the pinned spans stay honest against the repo's own data, so a retune that closes a gap or gives a
+/// The pinned spans stay honest against the repo's own data, so a retune that closes a gap or gives a
 /// pinned id a writer lane goes red here instead of silently weakening a door.
 /// </summary>
 public class TableSignaturesContractTests

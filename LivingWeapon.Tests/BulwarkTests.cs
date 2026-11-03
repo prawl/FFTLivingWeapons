@@ -13,7 +13,7 @@ namespace LivingWeapon.Tests;
 /// </summary>
 public class BulwarkTests
 {
-    private const int SundererId = Bulwark.SundererId;   // 263 since the Moonblade's removal 2026-08-31 (264 at LW-351 stage 2; 50, the vanilla Slasher's slot, before that)
+    private const int SundererId = Bulwark.SundererId;   // 263 since the Moonblade's removal 2026-08-31 (264; 50, the vanilla Slasher's slot, before that)
 
     private static long GridAddr(int idx) => Offsets.PathTerrainGrid + (long)idx * Offsets.PathTerrainStride + Offsets.PathTerrainVetoField;
     private static int Idx(int x, int y, int w, int layerBit = 0) => x + y * w + layerBit * 0x100;
@@ -330,7 +330,7 @@ public class BulwarkTests
         Assert.Equal(writesBefore, mem.WriteOrder.Count);
     }
 
-    // ---- LW-145 fix 5: Release only restores a byte it can prove it still owns ----
+    // ---- Fix 5: Release only restores a byte it can prove it still owns ----
 
     [Fact]
     public void Release_ByteStillOurs_RestoresExactOriginal()
@@ -570,7 +570,7 @@ public class BulwarkTests
         Assert.Equal(BulwarkPolicy.VetoedF6(0x20), mem.U8(GridAddr(idx)));
     }
 
-    /// <summary>LW-351 stage 2: the Sunderer design moved off the vanilla Slasher's slot (id 50)
+    /// <summary>The Sunderer design moved off the vanilla Slasher's slot (id 50)
     /// onto extended id 264, then to 263 when the Moonblade's removal (2026-08-31) slid every
     /// extended id down one, and the signature keys on the item id, so the constant moves with
     /// it. Pinned by value so a stale constant fails here and not on the owner's card.</summary>
@@ -578,7 +578,7 @@ public class BulwarkTests
     public void The_sunderer_lives_at_its_extended_id_since_the_move()
         => Assert.Equal(263, Bulwark.SundererId);
 
-    // ================= LW-399: the terrain door latch =================
+    // ================= The terrain door latch =================
 
     [Fact]
     public void A_closed_terrain_door_plants_nothing()

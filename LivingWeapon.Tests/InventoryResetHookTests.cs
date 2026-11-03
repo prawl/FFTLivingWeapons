@@ -3,8 +3,8 @@ using Xunit;
 
 namespace LivingWeapon.Tests;
 
-/// <summary>LW-351 fix round 7 (R7-1): the detour on the game's per-item inventory reset
-/// (0x140284500). Since fix round 2 widened that routine's loop bound, every run of it zeroes
+/// <summary>A later fix: the detour on the game's per-item inventory reset
+/// (0x140284500). Since the fix widened that routine's loop bound, every run of it zeroes
 /// the extended ids' bag counts too, and the game refills only ids 0..260 from the save struct
 /// afterwards (owner-observed 2026-08-30 23:29: every extended count read 0 after one real
 /// battle). The hook keeps the extended bytes across the call. Process is the whole detour body
@@ -34,7 +34,7 @@ public class InventoryResetHookTests
     [Fact]
     public void The_originals_return_value_passes_through_untouched()
     {
-        // Round-7 verify (F6): no caller of 0x140284500 could be found on disk to prove eax is
+        // F6: no caller of 0x140284500 could be found on disk to prove eax is
         // never read, so the detour must hand rax back exactly as the game's routine left it.
         var f = Bagged(1);
         var hook = new InventoryResetHook(f, 1);
@@ -91,7 +91,7 @@ public class InventoryResetHookTests
         Assert.Equal(0x140284500L, Offsets.FnInventoryReset);
     }
 
-    /// <summary>LW-368 round 2 (T11): the hook reads and restores through an injected base, not
+    /// <summary>The hook reads and restores through an injected base, not
     /// the vanilla constant.</summary>
     [Fact]
     public void Process_reads_and_restores_through_an_injected_bag_base()

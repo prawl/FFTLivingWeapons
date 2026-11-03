@@ -5,7 +5,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-252 stage 2: ActorResolver's turn-queue roster walks (FingerprintPlayer,
+/// ActorResolver's turn-queue roster walks (FingerprintPlayer,
 /// MainHandFromRoster in ActorResolver.TurnQueue.cs) used to adopt a fingerprint-colliding
 /// roster row with the acting unit's OWN identity playing no part -- the "legacy unique armed"
 /// fallback (FingerprintPlayer's `armed != null &amp;&amp; !armedAmbiguous` return / MainHandFromRoster's
@@ -104,7 +104,7 @@ public class ActorResolverVetoTests
     {
         // [V4, the seatNameId-0 degradation] V1's seeding again, but the band seat's own frame
         // nameId is left unseeded (reads 0) -- the veto disarms entirely (seatNameId > 0 is
-        // false), so this is a DELIBERATE degradation to today's pre-LW-252 behavior, not a bug:
+        // false), so this is a DELIBERATE degradation to today's earlier behavior, not a bug:
         // both master and this fixed build return the same {Eclipsebolt} legacy-borrow answer.
         // The veto only closes the hole once the seat's own identity is actually readable.
         var r = new ActorResolver(Stage(seedFrameNameId: false), Weapons);

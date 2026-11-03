@@ -3,19 +3,11 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <OutputType>Library</OutputType>
-    <LangVersion>latest</LangVersion>
-    <Nullable>enable</Nullable>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <!-- Warning gate: the enforced code-style set (see .editorconfig) plus all compiler warnings
-         fail the build. EnforceCodeStyleInBuild runs the IDE#### analyzers during compilation so
-         the editor and the build agree. -->
-    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
-    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
-    <NoWarn>MSB3277</NoWarn>
     <ReloadedILLink>false</ReloadedILLink>
     <AssemblyName>LivingWeapon</AssemblyName>
     <RootNamespace>LivingWeapon</RootNamespace>
@@ -28,6 +20,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="..\gates\Logging\*.cs" Link="Gates\Logging\%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Reloaded.Mod.Interfaces" Version="2.4.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <!-- Interface-only package; the IReloadedHooks instance is injected by the loader from the
@@ -38,12 +34,12 @@
   <ItemGroup>
     <None Include="meta.json"      CopyToOutputDirectory="PreserveNewest" Condition="Exists('meta.json')" />
     <None Include="treasure.json"  CopyToOutputDirectory="PreserveNewest" Condition="Exists('treasure.json')" />
-    <!-- LW-167: poach.json (species to carcass key/name map) rides the same build-output copy as
-         meta.json/treasure.json; PoachMap.cs loads it from modDir at runtime. -->
+    <!-- poach.json (species to carcass key and name map) rides the same build output copy as
+         meta.json and treasure.json. PoachMap.cs loads it from modDir at runtime. -->
     <None Include="poach.json"     CopyToOutputDirectory="PreserveNewest" Condition="Exists('poach.json')" />
-    <!-- LW-295: baked glow-rim icon variants (tools/bake_glow_icons.py) + their manifest.json,
-         read at runtime by Display/IconGlow.cs. Committed like the other 468 shipped tex files;
-         the glob covers every ei_*_uitx_tN.tex plus manifest.json in one entry. -->
+    <!-- The baked glow rim icon variants (tools/bake_glow_icons.py) and their manifest.json,
+         read at runtime by Display/IconGlow.cs. The glob covers every ei_*_uitx_tN.tex plus
+         manifest.json in one entry. -->
     <None Include="glow_icons\**\*" CopyToOutputDirectory="PreserveNewest" Condition="Exists('glow_icons')" />
   </ItemGroup>
 

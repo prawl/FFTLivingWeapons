@@ -39,7 +39,7 @@ public class BattleStateTests
     [InlineData(0x10u, 0xFFFFFFFFu, true)]   // both armed (1.5 in-battle marker)
     [InlineData(0x10u, 0u, false)]           // slot9 not armed
     [InlineData(0u, 0xFFFFFFFFu, false)]     // slot0 not armed
-    [InlineData(0xFFu, 0xFFFFFFFFu, false)]  // the pre-1.5 marker is retired; it never appears on 1.5 (LW-42)
+    [InlineData(0xFFu, 0xFFFFFFFFu, false)]  // The pre-1.5 marker is retired; it never appears on 1.5
     [InlineData(0xFFFFFFFFu, 0xFFFFFFFFu, false)]  // battle-load intro reads (live edge log 2026-07-21 07:24:14)
     [InlineData(0x11u, 0xFFFFFFFFu, false)]  // post-victory world-map value (live edge log 2026-07-21 07:28:17)
     public void PairArmed_requires_both_sentinels(uint slot0, uint slot9, bool expected)
@@ -59,7 +59,7 @@ public class BattleStateTests
     [InlineData(0x10u, 0, true, 0xFFFF, true)]     // paused mid-battle dip: excused
     [InlineData(0x10u, 0, false, 401, true)]       // mid-battle dialogue (real event id): excused
     [InlineData(0x10u, 0, false, 0xFFFF, false)]   // STUCK-MARKER GUARD: marker, mode 0, no excuse -> not live
-    [InlineData(0xFFu, 1, false, 0xFFFF, false)]   // the pre-1.5 marker is retired on 1.5 (LW-42)
+    [InlineData(0xFFu, 1, false, 0xFFFF, false)]   // The pre-1.5 marker is retired on 1.5
     [InlineData(0xFFu, 5, false, 0xFFFF, false)]   // retired marker cannot excuse a cast either
     [InlineData(0x11u, 1, false, 0xFFFF, false)]   // post-victory value (live 2026-07-21) is not the marker
     [InlineData(0xFFFFFFFFu, 1, false, 0xFFFF, false)]  // battle-load intro value is not the marker
@@ -152,7 +152,7 @@ public class BattleStateTests
     {
         // 1.5: battleMode 3 is a live battlefield mode (InLiveBattle already trusts it), so it
         // enters on its own; the 1.0-era slot0==0xFF gate was dropped after the world-map re-enter
-        // miss (LW-40, live-proven 2026-07-07). A marker-absent and a marker-present frame both enter.
+        // miss (live-proven 2026-07-07). A marker-absent and a marker-present frame both enter.
         var noMarker = new BattleState();
         Assert.Equal(BattleEdge.Entered, noMarker.Step(0, 0, 3, false, 0, T0));   // mode 3, no marker, no pair
         Assert.True(noMarker.In);
@@ -185,7 +185,7 @@ public class BattleStateTests
         // correctly -- then the level-triggered pair signal re-entered instantly, producing a
         // 4-second enter/exit metronome on the world map (tally saves, tracker resets, growth
         // re-locates, forever). The pair signal must be EDGE-triggered: only a disarmed->armed
-        // transition enters. The 1.5 post-quit slot0 value is unverified (LW-42), so this pins
+        // transition enters. The 1.5 post-quit slot0 value is unverified, so this pins
         // the defensive contract with the 1.5 marker: even a stuck marker must not re-enter.
         var bs = new BattleState();
         Assert.Equal(BattleEdge.Entered, bs.Step(M15, WM9, 2, false, 0xFFFF, T0));   // real battle
@@ -260,7 +260,7 @@ public class BattleStateTests
 
     // --- Quit-path regression: pre-1.5, slot0 stuck at the then-marker 0xFF after QUITTING a
     //     battle (2026-06-10 probe; a victory cleared it to 0x66). The 1.5 post-quit value is
-    //     unverified (LW-42), so these pin the same defensive contract on the 1.5 marker. ---
+    // unverified, so these pin the same defensive contract on the 1.5 marker. ---
 
     [Fact]
     public void Quit_battle_with_stuck_slot0_sentinel_exits_after_debounce()
@@ -318,7 +318,7 @@ public class BattleStateTests
         }
     }
 
-    // --- LW-42: the 1.5 marker re-anchor regressions. Live evidence 2026-07-21, the four
+    // --- The 1.5 marker re-anchor regressions. Live evidence 2026-07-21, the four
     //     battle-edge trace lines of the owner's log (durable record: the LIVE_LEDGER "1.5
     //     slot0 battle phases" Uncertain row): slot0 sampled 0xFFFFFFFF at both battle-load
     //     churn edges, 0x10 at the real enter (mode 3), 0x11 at the victory exit. The churn
@@ -394,7 +394,7 @@ public class BattleStateTests
         }
     }
 
-    // Regression (LW-40, observed live 2026-07-07 with the owner holding the repro): re-entering a
+    // Regression (observed live 2026-07-07 with the owner holding the repro): re-entering a
     // battle from the world map presents battleMode=3 with the 1.5 slot0 marker reading 0x10, never
     // the 1.0-era 0xFF. The old EnterSignal gated mode 3 behind slot0==0xFF, so this enter edge was
     // silently dropped and the whole battle subsystem (Attack-row rename, growth, kill-tracking)
@@ -594,7 +594,7 @@ public class BattleStateTests
         uint slot9, int battleMode, bool expected)
         => Assert.Equal(expected, BattleState.BattleDisplayed(slot9, battleMode));
 
-    // --- LW-56: forced exit (the new-game-detection hook) ---
+    // --- Forced exit (the new-game-detection hook) ---
     // The one production caller is PlaythroughReset's own detection edge (Engine.Tick), gated
     // !inLive by PlaythroughResetPolicy.IsOpeningOutOfBattle. An in-session New Game never fires
     // an ordinary battle-exit edge (real events suspend the exit debounce), so forceExit is the

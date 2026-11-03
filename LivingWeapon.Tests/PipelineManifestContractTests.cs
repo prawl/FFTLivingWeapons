@@ -10,7 +10,7 @@ namespace LivingWeapon.Tests;
 /// <summary>
 /// tools/pipeline.ps1's $RequiredModFiles is the required-file manifest shared by
 /// Publish.ps1's Verify-Package, BuildLinked.ps1's deploy verification, and CI: a package that
-/// silently lost a shipped file would otherwise pass every verifier. This is the tripwire: every
+/// silently lost a shipped file would otherwise pass every review. This is the tripwire: every
 /// file that actually lives under mod/FFTIVC/tables/enhanced/*.xml and
 /// mod/FFTIVC/data/enhanced/nxd/*.nxd (parked bloodpact tables excluded, since those must never
 /// ship) must appear somewhere in the parsed manifest. The manifest legitimately also lists
@@ -32,7 +32,7 @@ public class PipelineManifestContractTests
         throw new FileNotFoundException("repo root (docs/TODO.md + LivingWeapon/) not found above the test bin dir");
     }
 
-    // LW-148: anchored to a close-paren that STARTS its own line (RegexOptions.Multiline's ^),
+    // Anchored to a close-paren that STARTS its own line (RegexOptions.Multiline's ^),
     // matching how tools/pipeline.ps1 actually formats the array's closing ")". The old regex's
     // non-greedy "\)" ended the match at the FIRST close-paren found ANYWHERE, including one typed
     // inside a comment -- every entry below such a comment silently vanished from the parsed
@@ -48,7 +48,7 @@ public class PipelineManifestContractTests
     /// <summary>Extracts the quoted string entries from tools/pipeline.ps1's
     /// "$RequiredModFiles = @( ... )" array literal. The block body holds only quoted strings and
     /// # comments, so a plain quote scan over the captured block is enough; no PowerShell parser
-    /// needed -- PROVIDED comment tails are stripped first (LW-148), else a quote character typed
+    /// needed -- PROVIDED comment tails are stripped first, else a quote character typed
     /// inside a comment would be scanned as if it opened/closed a real array entry.</summary>
     internal static List<string> ParseRequiredModFiles(string pipelineScriptText)
     {
@@ -60,7 +60,7 @@ public class PipelineManifestContractTests
     }
 
     /// <summary>Removes everything from a line's first #-outside-quotes onward, line by line
-    /// (LW-148). Handles both a whole comment line and a trailing "value", # comment tail; a '#'
+    ///. Handles both a whole comment line and a trailing "value", # comment tail; a '#'
     /// inside an open pair of quotes is left alone (none of this manifest's entries need one, but
     /// the scan should not assume that).</summary>
     private static string StripCommentTails(string psArrayBody)
@@ -128,7 +128,7 @@ public class PipelineManifestContractTests
     [Fact]
     public void Release_workflow_excludes_JobCommandData()
     {
-        // LW-77: JobCommandData.xml was deleted (whole-row writeback collision, see
+        // JobCommandData.xml was deleted (whole-row writeback collision, see
         // JobCommandXmlContractTests); release.yml must no longer reference the retired file.
         string repoRoot = RepoRoot();
         string releaseYml = File.ReadAllText(Path.Combine(repoRoot, ".github", "workflows", "release.yml"));

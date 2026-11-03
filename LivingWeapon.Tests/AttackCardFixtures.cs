@@ -25,7 +25,7 @@ internal sealed class AttackCardMemory : IGameMemory
 
     internal FakeSparseMemory Sparse => _sparse;
 
-    /// <summary>LW-91 test seam: marks a heap region temporarily absent (a freed/reused buffer,
+    /// <summary>Test seam: marks a heap region temporarily absent (a freed/reused buffer,
     /// or one that stops mapping mid-battle) without discarding its bytes. TryReadBytes/ReadInto/
     /// Writable/WriteBytes all fail against an absent region, the same way a genuinely unmapped
     /// address does; <see cref="RegionBytes"/> still reads the underlying bytes directly (a
@@ -43,7 +43,7 @@ internal sealed class AttackCardMemory : IGameMemory
         if (writable) _writable.Add(baseAddr);
     }
 
-    /// <summary>LW-31 stage 3: adds a genuine enc1 "Attack" table copy AND its adjacent 36-byte
+    /// <summary>Adds a genuine enc1 "Attack" table copy AND its adjacent 36-byte
     /// record (LabelAddr - AttackRow.RecordGap) in one call, mirroring how a real live copy always
     /// has both: the record is not an optional add-on, it is a structural part of the table. For
     /// enc==2, only the flat table is added (AttackRow's record mechanism is enc1-only; see
@@ -107,15 +107,15 @@ internal sealed class AttackCardMemory : IGameMemory
     public ushort U16(long addr) => _sparse.U16(addr);
     public bool Readable(long addr, int len) => _sparse.Readable(addr, len);
 
-    /// <summary>LW-31 stage-2, now a DECOY seeder: plants the condensed turn-queue struct's
-    /// fields (Offsets.TurnQueue: team/level/hp/maxHp). Since LW-87 the cursor resolve rides
+    /// <summary>Stage-2, now a DECOY seeder: plants the condensed turn-queue struct's
+    /// fields (Offsets.TurnQueue: team/level/hp/maxHp). Now the cursor resolve rides
     /// Band.FlagOwner + the roster bridge (ActorResolver.Cursor.cs) and never reads this struct;
     /// the one remaining caller seeds it precisely to pin that the surface IGNORES it (the
     /// T-status detour test). The old 1-byte ReadableAddrs mark at the struct base was dropped
-    /// (LW-157 residue sweep): no production path this fixture serves gates Readable on
+    /// (Residue sweep): no production path this fixture serves gates Readable on
     /// TurnQueue -- ActorResolver's tq fallback (TryReadTqActor) reads the U16s ungated, and the
-    /// LW-87 resolve never touches the struct. (FakeSparseMemory's Readable has been an honest
-    /// per-byte RANGE gate since the LW-151 strict flip, no longer an exact-address set.)</summary>
+    /// resolve never touches the struct. (FakeSparseMemory's Readable has been an honest
+    /// per-byte RANGE gate strict flip, no longer an exact-address set.)</summary>
     internal void SeatCursor(int team, int level, int hp, int maxHp)
     {
         _sparse.U16s[Offsets.TurnQueue + Offsets.TqTeam] = (ushort)team;

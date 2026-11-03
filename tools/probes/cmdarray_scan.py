@@ -13,6 +13,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ct_probe import PROC, PV_W, find_pid, k32
 
+
 class MBI(ctypes.Structure):
     _fields_ = [("BaseAddress", ctypes.c_void_p), ("AllocationBase", ctypes.c_void_p),
                 ("AllocationProtect", wt.DWORD), ("PartitionId", wt.WORD),
@@ -24,12 +25,14 @@ PAGE_GUARD = 0x100
 READABLE = {0x02, 0x04, 0x08, 0x20, 0x40, 0x80}
 WIN = 0x20
 
+
 def rd_raw(h, addr, size):
     buf = ctypes.create_string_buffer(size)
     n = ctypes.c_size_t()
     if not k32.ReadProcessMemory(h, ctypes.c_void_p(addr), buf, size, ctypes.byref(n)):
         return None
     return buf.raw[: n.value]
+
 
 def u16s(b):
     return {b[i] | (b[i + 1] << 8) for i in range(0, len(b) - 1, 2)} | \

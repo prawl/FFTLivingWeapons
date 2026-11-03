@@ -4,7 +4,7 @@ using Xunit;
 
 namespace LivingWeapon.Tests;
 
-/// <summary>LW-346 S2: the order-rebuild hook's pure list policy and its whole detour body
+/// <summary>The order-rebuild hook's pure list policy and its whole detour body
 /// (Process with a lambda standing in for the game's own rebuild). Ported from the rig's
 /// OrderRebuildHookTests (FFTHandsFree b1abd77).</summary>
 public class OrderRebuildHookTests
@@ -47,7 +47,7 @@ public class OrderRebuildHookTests
         Assert.Null(OrderRebuildHook.ParseList(Words(1, 2, 3)));
     }
 
-    // --- U8 (LW-372, D5): MaxWords widened 160 -> 260 so a full-size 255-entry list still parses ---
+    // --- U8: MaxWords widened 160 -> 260 so a full-size 255-entry list still parses ---
 
     [Fact]
     public void MaxWords_covers_a_255_entry_list_plus_its_terminator()
@@ -112,7 +112,7 @@ public class OrderRebuildHookTests
     public void Process_reappends_what_the_rebuild_dropped_and_corrects_the_count()
     {
         var f = WithList(1, 2, 0x4105, 3, 0xFFFF);
-        f.Seed(Bag + 0x105, 1);   // owned: the fix-round-7 filter re-appends only ids the bag holds
+        f.Seed(Bag + 0x105, 1);   // owned: the fixed filter re-appends only ids the bag holds
         var hook = new OrderRebuildHook(f);
         int count = hook.Process((nint)0x1407B2550, List, Rebuild(f, 1, 2, 3));
         Assert.Equal(4, count);
@@ -165,7 +165,7 @@ public class OrderRebuildHookTests
         Assert.Equal(Offsets.FnOrderRebuild, new OrderRebuildHook(new FakeCodePatcher()).TargetAddr);
     }
 
-    // --- LW-351 fix round 7 (R7-3): seat owned ids BEFORE the rebuild; never re-append an unowned id ---
+    // --- A later fix: seat owned ids BEFORE the rebuild; never re-append an unowned id ---
 
     private static ushort[] TemplateWords(FakeCodePatcher f, long addr)
     {
@@ -201,7 +201,7 @@ public class OrderRebuildHookTests
     [Fact]
     public void Process_repairs_a_doubled_template_before_the_rebuild_runs()
     {
-        // Round 8b: a template the un-widened maintainer already doubled (5 twice) is healed in
+        // A template the un-widened maintainer already doubled (5 twice) is healed in
         // place before the game's rebuild reads it, owned ids appended after the repair.
         var f = WithList(1, 0xFFFF);
         f.Seed((long)Picker, Words(5, 5, 9, TemplateSeat.EndMarker));
@@ -213,7 +213,7 @@ public class OrderRebuildHookTests
         Assert.Equal(1, hook.Repaired);
     }
 
-    /// <summary>LW-367: a saved chart can carry the id of an extended weapon past the armed
+    /// <summary>A saved chart can carry the id of an extended weapon past the armed
     /// range (a removed design, or a stunt leftover); the seat-before-rebuild step must drop it
     /// like any other damage, not just the doubled-id shape.</summary>
     [Fact]
@@ -234,7 +234,7 @@ public class OrderRebuildHookTests
     [Fact]
     public void Process_repairs_a_doubled_template_even_when_no_extended_id_is_owned()
     {
-        // Round 8c (verifier V8b-1): the repair is not gated on ownership; only the seat is.
+        // The repair is not gated on ownership; only the seat is.
         var f = WithList(1, 0xFFFF);
         f.Seed((long)Picker, Words(5, 5, 9, TemplateSeat.EndMarker));
         f.Seed(Bag + 261, 0);
@@ -276,7 +276,7 @@ public class OrderRebuildHookTests
     [Fact]
     public void Process_reappends_an_equipped_extended_id_even_when_the_bag_holds_none()
     {
-        // LW-351 round 7 verify (F15): a design whose every copy is worn (bag 0) carries the E
+        // Verify (F15): a design whose every copy is worn (bag 0) carries the E
         // badge (bit 14) on its list word; the game's rebuild can still drop it when the id is
         // not in the saved template yet, and the owned-only filter must not orphan it.
         var f = WithList(1, 0x4105, 0xFFFF);
@@ -319,7 +319,7 @@ public class OrderRebuildHookTests
         Assert.Equal(1, hook.SeatRefusals);
     }
 
-    /// <summary>LW-368 round 2 (T11): ownership reads through an injected base, not the vanilla
+    /// <summary>Ownership reads through an injected base, not the vanilla
     /// constant -- an id owned at the vanilla block but not at the injected base must NOT seat.</summary>
     [Fact]
     public void Owned_reads_through_an_injected_bag_base()
@@ -338,7 +338,7 @@ public class OrderRebuildHookTests
         Assert.Equal(1, hook.Seated);
     }
 
-    /// <summary>LW-371 (T8, half b): the seat step looks up its regions through the injected
+    /// <summary>T8, half b: the seat step looks up its regions through the injected
     /// <c>regions</c> getter, not <see cref="TemplateSeat.WeaponRegions"/> -- once a page address
     /// is injected, that page is "known" and seats, and the vanilla address is not (it is left
     /// untouched even when passed as the table), matching what the game itself does once the

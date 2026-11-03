@@ -190,7 +190,7 @@ public class BenedictionTests
     // test MUST move _lastPlayerMainHand off 64 (the load-bearing variable), not the fingerprint.
     // SeedAllyFp is still required (the ally-only filter reads the static-array fingerprints).
 
-    // THIN TAIL over BandFixtures.SeedBandEntryCore (LW-149 stage I): the shared core sets the
+    // THIN TAIL over BandFixtures.SeedBandEntryCore (stage I): the shared core sets the
     // 7 fields every SeedBandEntry copy set identically; the writable-HP pair below is
     // Benediction-specific (its Tick writes HP, so its tests need the address writable) and stays
     // local rather than joining the shared fixture. Same name/signature/defaults as before the
@@ -243,7 +243,7 @@ public class BenedictionTests
     }
 
     // Read back the u16 HP our boost wrote (BandHeal.WriteHp writes one little-endian W16 call,
-    // LW-145 fix 2: it used to be two separate W8 halves, landing in Written instead).
+    // fix 2: it used to be two separate W8 halves, landing in Written instead).
     private static bool TryReadWritten(FakeSparseMemory mem, long entryAddr, out int hp)
     {
         hp = 0;
@@ -356,7 +356,7 @@ public class BenedictionTests
         Assert.Equal(512, hp);
     }
 
-    // ---- LW-149 stage C: activation-edge log STRING PIN (the two-interpolated-string `ModLogger.Debug` shape) ----
+    // ---- Stage C: activation-edge log STRING PIN (the two-interpolated-string `ModLogger.Debug` shape) ----
     // Written BEFORE Benediction.Tick converts to ActivationEdge.Step, so it passes against the OLD
     // hand-rolled `if (active != _wasActive) { _wasActive = active; ModLogger.Debug(active ? $"..." : $"..."); }`
     // idiom first, then keeps passing unchanged once the guard is replaced. The interpolations

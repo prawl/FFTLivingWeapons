@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace LivingWeapon;
@@ -35,7 +35,7 @@ internal static class Tuning
     public static readonly int[] KillThresholds = ProdThresholds;
     /// <summary>The binary's own build flavor, for the launch header (see the LWDEV twin).</summary>
     public const string BuildFlavor = "production";
-    /// <summary>Production seeds nothing -- the wielder earns every tier.</summary>
+    /// <summary>Production seeds nothing. The wielder earns every tier.</summary>
     public const bool DevSeedAllKills = false;
     /// <summary>Pool paint replaces the whole-heap DisplaySweep for the equip-card Kills meter; see the LWDEV
     /// twin (checked 2026-07-08 in a DEV build).</summary>
@@ -350,7 +350,7 @@ internal static class Tuning
     /// engine's Pray/Steel hard cap (100) while out-braving nearly any foe.</summary>
     public const int KobuBraveCap = 97;
 
-    // -- Provoke hold. Docs/PROVOKE_AC.md. Arc 1 (Provoke.cs) plants the mark; these knobs
+    // Provoke hold. Docs/PROVOKE_AC.md. Arc 1 (Provoke.cs) plants the mark; these knobs
     //    tune the hold that reads it. --
 
     /// <summary>Ship switch for the whole Provoke feature. False makes the hold inert. It never arms,
@@ -395,7 +395,7 @@ internal static class Tuning
     /// miss) before the hold concludes it is gone (EnemyGone) and releases. One missed tick must not release.</summary>
     public const int ProvokeMarkedMissTicks = 3;
 
-    // -- Living Poach, armed 2026-08-12. Engine wires wasBasicAttack to
+    // Living Poach, armed 2026-08-12. Engine wires wasBasicAttack to
     //    LivingPoach.ReadWasBasicAttack, so every gate below is active in production. --
 
     /// <summary>Living Poach. Damage formulas through which the vanilla Poach support (Key 471, id 215)

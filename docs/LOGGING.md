@@ -49,7 +49,7 @@ that scaffolding's user interface and none of it ships in production.
 
 ## Tier model
 
-The runtime logs through the static `ModLogger` facade (`LivingWeapon/ModLogger.cs`), backed by
+The runtime logs through the static `ModLogger` facade (`gates/Logging/ModLogger.cs`), backed by
 an `ILogger` (`LivingWeapon/ILogger.cs`); production impl is `FileConsoleLogger`, test-only
 swallow is `NullLogger`. Since the facelift the facade surface is TYPED: every call site uses
 `ModLogger.Event(verb, msg)` / `Warn(verb, msg)` / `Error(verb, msg[, ex])` / `Debug(verb, msg)`,

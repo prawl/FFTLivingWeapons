@@ -5,7 +5,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// Display's pool-anchored in-place Kills paint (LW-37): once a writable pool region is
+/// Display's pool-anchored in-place Kills paint: once a writable pool region is
 /// located and fully covers every tracked weapon id, the per-paint whole-heap DisplaySweep
 /// is skipped. poolPaint is INJECTED (Display's ctor) so these tests reach the ON branch
 /// directly regardless of the compiled Tuning.PoolPaintEnabled default (true in both build
@@ -61,7 +61,7 @@ public class DisplayPoolPaintTests
     /// raw substring search cannot cross-hit one weapon's name against another's), unique
     /// flavors, packed name -> suffix slot -> Kills -> flavor (WriteCardForwardWithName, the
     /// realistic pool geometry) contiguous in one small (single-chunk) region. Mirror target
-    /// is id 10 (LW-59 regression fixtures).</summary>
+    /// is id 10 (regression fixtures).</summary>
     private static TenWeaponFixture BuildTenWeaponFixture(int killsEach = 60)
     {
         var meta = new Dictionary<int, WeaponMeta>();
@@ -131,9 +131,9 @@ public class DisplayPoolPaintTests
         Assert.Equal("+2", ReadAscii(f.Heap, f.PoolBase + f.SuffixA, 2));
     }
 
-    // ─── LW-165 stage 1: the once-per-launch coverage stopwatch line ──────────────
+    // ─── The once-per-launch coverage stopwatch line ──────────────
 
-    /// <summary>Born-red (LW-165): production has no line marking when the equip-card kill
+    /// <summary>Born-red: production has no line marking when the equip-card kill
     /// counters actually go live, so the owner's "slow to paint after cold boot" complaint
     /// cannot be measured. The first false-to-true edge of the pool coverage latch must emit
     /// exactly one Info-level line naming how many paint spots it maintains.</summary>
@@ -181,7 +181,7 @@ public class DisplayPoolPaintTests
         Assert.Single(infoHits);
     }
 
-    // ─── LW-257 round-3 review, F1: the coverage summary line is rate-limited ─────
+    // ─── F1: the coverage summary line is rate-limited ─────
 
     /// <summary>F1: a region IS located (regions.Count > 0, so the "no named-pool region"
     /// StuckEdge gate never engages), but coverage can never complete (one tracked id is simply
@@ -236,9 +236,9 @@ public class DisplayPoolPaintTests
         var summaryLines = cap.File.FindAll(l => l.Contains("LW37 paint:") && l.Contains("1 region(s)"));
         Assert.Single(summaryLines);
 
-        // Round-5 fix (F1): the "LW37 locate-timing:" line escaped this same arc's own
+        // F1: the "LW37 locate-timing:" line escaped this same arc's own
         // rate-limit discipline -- it was unconditional, so this same ten-tick fixture printed
-        // ten of them (a live verifier measured this exact fixture and got 10-to-1 against the
+        // ten of them (a live review measured this exact fixture and got 10-to-1 against the
         // gated summary line above). TestClock cannot simulate elapsed wall-time within one
         // synchronous call (both _nowMs() reads in MaybePoolPaint see the same fixed Ms value),
         // so locateMs is deterministically 0 here regardless of real vs. short-circuited work --
@@ -265,7 +265,7 @@ public class DisplayPoolPaintTests
             { 11, new WeaponMeta { Name = "BowY", Flavor = "Arrow never sleeps" } },   // never written
         };
         var kills = new Dictionary<int, int> { { 10, 0 }, { 11, 0 } };
-        // Realistic nonzero clock origin (verifier F1): TestClock starting at 0 made
+        // Realistic nonzero clock origin: TestClock starting at 0 made
         // ShouldRunFullPoolScan's cadence check `now - _lastPoolScanMs < MaintenanceMs` read
         // `now - (-1)` as coincidentally small (a few hundred ms) whenever the generation branch
         // forgot to stamp _lastPoolScanMs, masking exactly that bug. A real process clock
@@ -417,7 +417,7 @@ public class DisplayPoolPaintTests
         Assert.Equal(poolBufSnapshot, current);   // zero writes to the read-only region
     }
 
-    // ─── LW-59: stale +N suffix survives a tally reset (pool path) ────────────────
+    // ─── Stale +N suffix survives a tally reset (pool path) ────────────────
 
     [Fact]
     public void PoolPaint_downgrades_every_suffix_after_a_tally_reset()
@@ -431,8 +431,8 @@ public class DisplayPoolPaintTests
         // Sanity (passes today): the target weapon's suffix is painted at tier 3.
         Assert.Equal("+3", ReadAscii(f.Heap, f.RegionBase + f.SuffixPos[10], 2));
 
-        display.Invalidate();   // the battle-exit / forced-exit edge (LW-56)
-        f.Kills.Clear();        // the PlaythroughReset action (LW-51)
+        display.Invalidate();   // The battle-exit / forced-exit edge
+        f.Kills.Clear();        // The PlaythroughReset action
         CardFixtures.TickWithPoolLocate(display, false);
 
         foreach (int id in f.Meta.Keys)
@@ -512,9 +512,9 @@ public class DisplayPoolPaintTests
             $"suffix sites ({suffixSites}) must not exceed target + rotation slice on the sweep path");
     }
 
-    // ─── LW-163: a drained pool cache must re-locate on its own, no Invalidate involved ────
+    // ─── A drained pool cache must re-locate on its own, no Invalidate involved ────
 
-    /// <summary>LW-163 (load-bearing, born red): a save-load can free the pool region the cached
+    /// <summary>Load-bearing and born red: a save-load can free the pool region the cached
     /// sites point into WITHOUT any Invalidate() call reaching Display at all (the player's
     /// habitual check surface is the out-of-battle status page, which triggers none). Once
     /// coverage has latched, the pre-fix MaybePoolPaint short-circuits forever, so a drained
@@ -526,7 +526,7 @@ public class DisplayPoolPaintTests
     /// anywhere in the test. A correct fix re-locates the same Tick eviction actually happens on
     /// (the eviction and the pool-paint re-check both run inside Display.Tick, eviction first).
     ///
-    /// LW-257: eviction itself now takes Tuning.CardEvictStrikes consecutive maintenance beats,
+    /// Eviction itself now takes Tuning.CardEvictStrikes consecutive maintenance beats,
     /// not one (CardSites.Verify.cs's ApplyStrike leniency -- a single transient unreadable read
     /// must survive). So this recipe drives that many beats before the re-locate can be expected;
     /// MaybePoolPaint's count-compare short-circuit stays latched (Regions() untouched) for every
@@ -556,7 +556,7 @@ public class DisplayPoolPaintTests
         f.Heap.AddRegion(newBase, newBuf, writable: true);
 
         // Advance past MaintenanceMs Tuning.CardEvictStrikes times so the maintenance PaintAll
-        // actually evicts the now-dead sites (LW-257: one strike per beat, eviction only on the
+        // actually evicts the now-dead sites (one strike per beat, eviction only on the
         // beat that reaches the cap) before the pool-paint re-check can see Count drop.
         for (int beat = 0; beat < Tuning.CardEvictStrikes; beat++)
         {
@@ -569,12 +569,12 @@ public class DisplayPoolPaintTests
         Assert.False(display._sweep.IsComplete);   // the whole-heap sweep still never ran
     }
 
-    /// <summary>LW-163 regression pin, the non-vacuous negative for the fall-through above: the
+    /// <summary>Regression pin, the non-vacuous negative for the fall-through above: the
     /// fix must not turn into a permanent every-tick rescan. RegionsSpyMem is copied (not
     /// referenced) from PoolLocatorTests.cs's private helper of the same name, per this file's
     /// own no-cross-file-reference convention for test-only fakes.
     ///
-    /// LW-257: the drain-to-heal window now spans Tuning.CardEvictStrikes maintenance beats
+    /// The drain-to-heal window now spans Tuning.CardEvictStrikes maintenance beats
     /// (CardSites.Verify.cs's ApplyStrike leniency), not one, so the "steady state calls
     /// Regions() zero times" pin has to hold across every beat but the last too, not just the
     /// five pre-drain ticks part (a) already covers -- that is what the loop below's own

@@ -4,7 +4,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// The pure LW-51 Tier-1 opening-detector predicate. eventId == OpeningEventId (2) alone is not
+/// The pure Tier-1 opening-detector predicate. eventId == OpeningEventId (2) alone is not
 /// enough: it also aliases the acting unit's nameId during combat animations, so the predicate
 /// gates on battleMode == 0 AND !inLive too (a mid-battle dialogue frame reads battleMode == 0
 /// but inLive stays true via BattleState.InLiveBattle's excused-marker path).

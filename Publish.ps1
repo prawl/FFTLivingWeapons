@@ -175,7 +175,7 @@ function Copy-ModAssets {
         Write-ErrorMessage "Failed to copy FFTIVC folder (robocopy exit $LASTEXITCODE)!"
     }
 
-    # LW-346: the extended-inventory tables (ids 261+) sit beside FFTIVC, read by the DLL only;
+    # The extended-inventory tables (ids 261+) sit beside FFTIVC, read by the DLL only;
     # Verify-Package's $RequiredModFiles rows fail red if they are missing.
     $sourceExtended = Join-Path (Split-Path $SourceFFTIVC -Parent) "extended_inventory"
     if (-not (Test-Path $sourceExtended)) {
@@ -391,9 +391,9 @@ function Write-HealthReport {
     Write-Status "Writing the code health report..." "Cyan"
     $healthArgs = @('report', '--version', $ModVersion, '--write')
     if ($env:GITHUB_STEP_SUMMARY) { $healthArgs += @('--summary', $env:GITHUB_STEP_SUMMARY) }
-    & python "$PSScriptRoot\tools\health.py" @healthArgs
+    & python "$PSScriptRoot\gates\tools\health.py" @healthArgs
     if ($LASTEXITCODE -ne 0) {
-        $msg = "The code health report for $ModVersion could not be written (exit $LASTEXITCODE). Run: python tools/health.py report --version $ModVersion --write"
+        $msg = "The code health report for $ModVersion could not be written (exit $LASTEXITCODE). Run: python gates/tools/health.py report --version $ModVersion --write"
         Write-Host "[WARN] $msg" -ForegroundColor Yellow
         if ($env:GITHUB_ACTIONS) { Write-Host "::warning title=Code health::$msg" }
     }
@@ -449,12 +449,17 @@ try {
         Write-Host "  -> -SkipGenerate set; packaging committed tables as-is." -ForegroundColor Yellow
     }
 
-    # Step 3: Unit tests (TDD gate; runs AFTER meta-gen because the tests read
-    # LivingWeapon/meta.json)
-    Write-Status "Checking formatting (dotnet format, verify only)..." "Cyan"
-    Invoke-FormatGate -FailVerb PACKAGE
-    Write-Status "Running unit tests (LivingWeapon.Tests)..." "Cyan"
-    Invoke-UnitTestGate -FailVerb PACKAGE
+    # Step 3: The shared gates, inside their own temp folder (after meta-gen, which the tests read)
+    Write-Status "Running the shared gates..." "Cyan"
+    $gateTemp = Enter-GateTemp
+    try {
+        Invoke-ManifestGate -FailVerb PACKAGE
+        Invoke-FormatGate -FailVerb PACKAGE
+        Invoke-UnitTestGate -FailVerb PACKAGE
+        Invoke-HealthGate -FailVerb PACKAGE
+        Invoke-TempLeftoverGate -FailVerb PACKAGE -GateTemp $gateTemp
+    }
+    finally { Exit-GateTemp -State $gateTemp }
 
     # Step 4: Clean build directory
     Clean-BuildDirectories
@@ -506,7 +511,7 @@ try {
             Write-Host "=====================================" -ForegroundColor Magenta
             $exitCode = 0
 
-            # Step 9: The release's code health record (tools/health.py). Last, so its box is the
+            # Step 9: The release's code health record (gates/tools/health.py). Last, so its box is the
             # final thing on screen, and after verification, so only a shippable package gets one.
             # In GitHub Actions it runs for tag pushes only and fills the run's summary page. A
             # failure here warns and never fails the release; the build reminder chases it later.

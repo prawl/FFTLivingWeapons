@@ -22,9 +22,11 @@ UNITS = 0x141853CE0
 HEAD = 0x140D3A410
 NODE_SIZE = 0x548
 
+
 def u64(a):
     b = rpm(a, 8)
     return None if b is None else struct.unpack("<Q", b)[0]
+
 
 def main():
     slot = int(sys.argv[1]) if len(sys.argv) > 1 else 16

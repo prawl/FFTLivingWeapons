@@ -6,7 +6,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-371 (T9): <see cref="SaveEdgeHooks.SerializeCore"/>, the test seam
+/// <see cref="SaveEdgeHooks.SerializeCore"/>, the test seam
 /// <see cref="SaveEdgeHooks"/>'s native DetourSerialize is now a thin wrapper over (the
 /// InventoryResetHook.Process idiom: the original call outside every try). Drives the whole
 /// serialize-detour body directly with a fake original standing in for the native trampoline, the
@@ -41,7 +41,7 @@ public class SaveEdgeHooksTests
         nint ret = hooks.SerializeCore(() =>
         {
             // The fake original records the old block's bytes AT CALL TIME: they must already be
-            // the projection (LW-371's whole point -- the game's own struct copy, right after,
+            // the projection (the whole point -- the game's own struct copy, right after,
             // must see what Project just wrote, not the pre-arc contents).
             seenAtCallTime = f.Read(Offsets.InventoryOrderTemplate, 6);
             return (nint)0x1234;
@@ -84,7 +84,7 @@ public class SaveEdgeHooksTests
 
     private const long StructAddr = 0x1F0000000L;
 
-    /// <summary>T9e (v1.3, verifier 2 SHOULD-FIX): AfterApply must adopt the old blocks onto the
+    /// <summary>T9e (v1.3, review 2 SHOULD-FIX): AfterApply must adopt the old blocks onto the
     /// page (TemplateSync.Adopt) BEFORE the bag/template replay runs, so the seat that follows
     /// always lands on a fresh page (SaveEdgeHooks.Detours.cs's own ordering comment says so; this
     /// pins it against a fake replay callback instead of trusting the comment). A second case
@@ -139,7 +139,7 @@ public class SaveEdgeHooksTests
         Assert.Equal(stale2, f2.Read(rel2.PageAddr + 0x000, 2));   // untouched
     }
 
-    /// <summary>LW-351 stage 3 P4-F3: the replay callback and the tracker publication used to share
+    /// <summary>P4-F3: the replay callback and the tracker publication used to share
     /// one try, so a throwing replay skipped <see cref="SaveEdgeTracker.OnApplied"/> too -- the very
     /// edge Engine's tick fallback keys on. A throw here must cost only the replay, not the edge.</summary>
     [Fact]
@@ -158,7 +158,7 @@ public class SaveEdgeHooksTests
         Assert.Equal(SaveEdgeTracker.KeyFromHeader(SaveEdgeTrackerTests.Header(2482)), key);
     }
 
-    /// <summary>LW-452: a flee or a Retry puts the pre battle snapshot back without entering either load
+    /// <summary>A flee or a Retry puts the pre battle snapshot back without entering either load
     /// routine, so the rewind hook hands the snapshot header here and it takes the same load edge.</summary>
     [Fact]
     public void AfterRewind_publishes_a_load_edge_for_the_snapshot_key_and_logs_the_rewind_line()

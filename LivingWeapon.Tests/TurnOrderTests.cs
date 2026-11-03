@@ -4,7 +4,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// Pure band-walk coverage for TurnOrder (LW-127): the CT+Speed clock-model ranking the phase-0
+/// Pure band-walk coverage for TurnOrder: the CT+Speed clock-model ranking the phase-0
 /// probe validated 15/15 across two sessions and a restart (tools/probes/provoke_lookahead_probe.py's
 /// project(), not its leaders() -- the two diverge whenever two min-ETA candidates carry different
 /// Speeds; T8 below pins the counterexample), the candidate filter, and TryEta's standalone read.

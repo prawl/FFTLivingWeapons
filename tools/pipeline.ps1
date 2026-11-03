@@ -9,7 +9,12 @@
 #
 # Step order is load-bearing: gen_living_weapon_meta.py must run BEFORE the unit
 # tests (tests read LivingWeapon/meta.json), so call Invoke-TablePipeline first
-# and Invoke-UnitTestGate second.
+# and the shared gates second.
+#
+# The shared gates (manifest, format, unit tests, health, temp leftovers) load first from
+# gates/pipeline/gates.ps1. The repo's own gates follow below.
+
+. "$PSScriptRoot\..\gates\pipeline\gates.ps1"
 
 # Repo root, resolved from this file's own location so everything works no
 # matter what cwd the caller happens to be in when it dot-sources us.
@@ -24,7 +29,7 @@ $PipelineRepoRoot = Split-Path -Parent $PSScriptRoot
 # forward-slash relative to the mod root (zip-entry style); Test-Path and
 # Join-Path both take them as-is.
 #
-# LW-77 (2026-07-14): JobCommandData.xml is GONE, not merely trimmed. A table-XML
+# Since 2026-07-14 JobCommandData.xml is GONE, not merely trimmed. A table-XML
 # row applies as a WHOLE-ROW writeback at OnAllModsLoaded, so shipping this table
 # clobbered other job mods' post-snapshot runtime edits to the same 47 records;
 # its sole payload (zeroing the dead-JP Equip Axes RSM slot) now ships as one
@@ -35,20 +40,20 @@ $RequiredModFiles = @(
     "LivingWeapon.deps.json",
     "Newtonsoft.Json.dll",
     "meta.json",
-    # LW-167: Living Poach's species -> carcass key/name map (PoachMap.cs loads it from modDir).
+    # Living Poach's species -> carcass key/name map (PoachMap.cs loads it from modDir).
     "poach.json",
-    # LW-295: the glow-rim icon manifest (Display/IconGlow.cs reads it lazily on first armed
+    # The glow-rim icon manifest (Display/IconGlow.cs reads it lazily on first armed
     # tick) plus one spot-check tex, standing in for all 726 baked variants under glow_icons/
     # (tools/bake_glow_icons.py; the same one-row-stands-for-many treatment the sparse tables
     # below get -- this list checks presence, not every shipped file).
     "glow_icons/manifest.json",
     "glow_icons/ei_001_uitx_t1.tex",
-    # LW-346: the extended-inventory tables (ids 261+), read by LivingWeapon.dll at boot, not by
+    # The extended-inventory tables (ids 261+), read by LivingWeapon.dll at boot, not by
     # the modloader (tools/generate.py writes all three even when no extended row exists).
     "extended_inventory/ItemData.xml",
     "extended_inventory/ItemWeaponData.xml",
     "extended_inventory/ItemExtendedData.xml",
-    # LW-346: an extended id ships its own icon PARTS files (the game's pac has none past 260);
+    # An extended id ships its own icon PARTS files (the game's pac has none past 260);
     # one spot-check row stands for the pair per surface (tools/bake_extended_icon_parts.py).
     "FFTIVC/data/enhanced/ui/ffto/icon/equip_item/textureparts/ei_261_uitx.utexpt",
     "FFTIVC/data/enhanced/ui/ffto/icon/equip_item_s/textureparts/ei_s_261_uitx.utexpt",
@@ -61,7 +66,7 @@ $RequiredModFiles = @(
     "FFTIVC/tables/enhanced/JobData.xml",
     "FFTIVC/data/enhanced/nxd/item.en.nxd",
     "FFTIVC/data/enhanced/nxd/ability.en.nxd",
-    # LW-123: names the blank status Provoke marks its target with. Without this the mark
+    # Names the blank status Provoke marks its target with. Without this the mark
     # renders as an unlabelled icon. Built by tools/patch_status_names.py.
     "FFTIVC/data/enhanced/nxd/uistatuseffect.en.nxd"
 )
@@ -84,7 +89,7 @@ $PreservedSaveFiles = @(
     "gunslinger.json.bak"
 )
 
-# LW-28: the post-restore existence check's pure core. A deploy once LOST preserved files
+# The post-restore existence check's pure core. A deploy once LOST preserved files
 # despite the round-trip printing success (the 17:54 launch found no kill tally; intermittent,
 # cause still unfound), so BuildLinked now compares what the backup dir HOLDS against what the
 # destination HAS after the restore and fails the deploy red on any loss. Pure over its three
@@ -100,7 +105,7 @@ function Get-LostPreservedItems([string]$preserveDir, [string]$dest, [string[]]$
     return $lost
 }
 
-# LW-149 Stage F: the preserve round-trip loop itself (copy each $PreservedSaveFiles entry plus
+# Stage F: the preserve round-trip loop itself (copy each $PreservedSaveFiles entry plus
 # the flight/ archive directory, the same one-mechanism treatment Get-LostPreservedItems above
 # already checks). BuildLinked.ps1 used to carry this loop three times: the pre-clean backup
 # ($dest -> $preserveDir, unconditional overwrite, silent), the post-stage restore ($preserveDir
@@ -109,7 +114,7 @@ function Get-LostPreservedItems([string]$preserveDir, [string]$dest, [string[]]$
 # never clobbers a partial restore an earlier stage already completed) and narrates every file it
 # saves, because that narration is the only evidence a failed-deploy session leaves about what
 # survived. -OnlyIfMissing reproduces exactly that guard + narration (the host lines are
-# byte-identical to the catch path's old inline copies, BuildLinked.ps1 pre-LW-149 lines
+# byte-identical to the catch path's old inline copies, BuildLinked.ps1 earlier lines
 # 214-228); omit it for the unconditional backup/restore legs, which stay silent since their own
 # [3/5]-style step header already announces the copy.
 function Copy-PreservedItems([string]$from, [string]$to, [string[]]$files, [switch]$OnlyIfMissing) {
@@ -129,7 +134,7 @@ function Copy-PreservedItems([string]$from, [string]$to, [string[]]$files, [swit
     }
 }
 
-# LW-51 / LW-134 (LW-148 extraction): the update-safe save directory's location, shared by
+# The update-safe save directory's location, shared by
 # BuildLinked.ps1's deploy guard and (via the DeployGuardTests-style cross-language pin) a C# test
 # asserting it resolves to the exact same path as LivingWeapon/Persistence/SaveLocation.cs's own
 # ResolveSaveDir. modsDir is the Mods folder itself (one level ABOVE the deployed mod dir, e.g.
@@ -141,11 +146,11 @@ function Resolve-SaveDir([string]$modsDir, [string]$modId) {
     return Join-Path $reloadedRoot "User\Mods\$modId"
 }
 
-# LW-134 (2026-07-25 near-miss): teaches the deploy guard where the player's kill counts
+# The 2026-07-25 near-miss teaches the deploy guard where the player's kill counts
 # actually live now. A DEV build pre-seeds every weapon's tally (LWDEV), so deploying a dev build
 # over a real player's install would wipe their real progress -- the guard's whole job is to catch
 # that BEFORE it happens. The old guard's fallback checked for kills.json next to the mod folder,
-# but LW-51 moved save files into the update-safe Reloaded/User/Mods/<ModId> dir
+# but the save move put the files into the update-safe Reloaded/User/Mods/<ModId> dir
 # (SaveLocation.ResolveSaveDir, LivingWeapon/Persistence/SaveLocation.cs), so that check was looking at a spot
 # the file can never be in anymore -- it always came back "nothing to worry about" and would have
 # waved a real installed save through. On 2026-07-25 a plain dev BuildLinked run got all the way
@@ -193,7 +198,7 @@ function Resolve-DeployedFlavor([string]$markerPath, [string]$stampPath, [string
 # both verification steps fail red if one slips through, so the exclusion cannot drift.
 $ParkedArtifactFilter = "*.bloodpact_parked"
 
-# --- Deploy content parity (LW-297) ---------------------------------------------
+# --- Deploy content parity ---------------------------------------------
 # WHY THIS EXISTS. BuildLinked's [5/5] used to verify the deployed data tree by
 # COUNTING files ("$tex.Count -lt 1") and by Test-Path'ing a required-file manifest.
 # Both answer "does something exist here", neither answers "is it the CURRENT bake",
@@ -460,7 +465,7 @@ function Invoke-TablePipeline {
         throw "REFUSING TO ${FailVerb}: at least one item is strictly dominated (see above)."
     }
 
-    # LW-420: analyze.py's own regression cases for the vanilla rows gate (a baseline note drifting
+    # Analyze.py's own regression cases for the vanilla rows gate (a baseline note drifting
     # from the game's row bytes). Those failure lanes only fire when a note is wrong, so nothing
     # else exercises them; the selftest proves the gate still bites before it judges the data.
     Write-Host "  -> tools/analyze.py --selftest (the vanilla rows gate's regression cases)..."
@@ -477,7 +482,7 @@ function Invoke-TablePipeline {
         throw "REFUSING TO ${FailVerb}: meta-gen failed (exit $LASTEXITCODE)."
     }
 
-    # LW-251: gen_living_weapon_meta.py's own regression cases for the WeaponPalette bake's five
+    # Gen_living_weapon_meta.py's own regression cases for the WeaponPalette bake's five
     # validation lanes (data/weapon_colors.json + data/weapon_palette_overrides.json folding into
     # meta.json). Same argument as scan_logs/recolor_icons below: those failure lanes only run
     # when a broken data file lands, so nothing else would ever exercise them without this.
@@ -487,7 +492,7 @@ function Invoke-TablePipeline {
         throw "REFUSING TO ${FailVerb}: gen_living_weapon_meta.py --selftest failed (exit $LASTEXITCODE)."
     }
 
-    # LW-351: the item table's weapon menu-order keys must all be distinct. The game rebuilds its
+    # The item table's weapon menu-order keys must all be distinct. The game rebuilds its
     # weapon order tables slot-by-sort-key, so two rows sharing a SortOrder silently cost one of
     # them its slot in an in-game list -- which is how the 2026-08-30 live pass lost the Moonblade
     # from the inventory and the Terrastaff from the equip picker. The check is pure (items.json
@@ -499,7 +504,7 @@ function Invoke-TablePipeline {
         throw "REFUSING TO ${FailVerb}: duplicate weapon SortOrder in the item bake (see above)."
     }
 
-    # Run the log scanner's own built-in regression cases (LW-148 F2): scan_logs.py is a
+    # Run the log scanner's own built-in regression cases: scan_logs.py is a
     # verify-time tool, not a build gate, but its PARSING LOGIC (line_level, the recognized-line
     # tripwire, --allow, flight-trigger parsing, ...) is exactly the kind of pure code this
     # pipeline's other gates exist to protect, and it had no build-time gate of its own. Running
@@ -511,7 +516,7 @@ function Invoke-TablePipeline {
         throw "REFUSING TO ${FailVerb}: scan_logs.py --selftest failed (exit $LASTEXITCODE)."
     }
 
-    # Same argument for the icon recolor engine (LW-230). Its selftest carries every rule four
+    # Same argument for the icon recolor engine. Its selftest carries every rule four
     # owner review passes bought (the halo ramp, the smooth-field contrast, the two-tone and
     # three-zone mask keys, the per-item override tables) and until now NOTHING ran it: the .tex
     # files it bakes are committed artifacts, so an engine regression would sit in the tree
@@ -533,56 +538,14 @@ function Invoke-TablePipeline {
         throw "REFUSING TO ${FailVerb}: bake_glow_icons.py verify failed (exit $LASTEXITCODE)."
     }
 
-    # And the deploy-parity checker itself (LW-297). It is the instrument that decides
+    # And the deploy-parity checker itself. It is the instrument that decides
     # whether an install is stale, so an instrument regression would silently restore the
     # exact blind spot it was written to close. Pure filesystem work in %TEMP%; no python,
     # so it runs even on a box without Pillow or the game files.
     Write-Host "  -> deploy-parity checker regression cases..."
     Invoke-DeployParitySelfTest
 
-    # The per-release code health report (tools/health.py). Publish.ps1 writes the record, and this
-    # reminder runs on every build so a release that went out without one cannot be forgotten.
-    # The selftest is a real gate. The reminder only warns, since a missing record is debt to pay.
-    Write-Host "  -> tools/health.py --selftest (the health report's own regression cases)..."
-    & python "$PipelineRepoRoot\tools\health.py" --selftest
-    if ($LASTEXITCODE -ne 0) {
-        throw "REFUSING TO ${FailVerb}: health.py --selftest failed (exit $LASTEXITCODE)."
-    }
-    $healthStatusArgs = @('status')
-    if ($env:GITHUB_ACTIONS) { $healthStatusArgs += '--committed' }
-    & python "$PipelineRepoRoot\tools\health.py" @healthStatusArgs
-
     Write-Host "  -> Generated + gated + meta baked OK." -ForegroundColor Green
-}
-
-function Invoke-UnitTestGate {
-    # The TDD gate. ONE canonical flag set, so a test that passes locally passed
-    # under the same conditions everywhere.
-    param(
-        [Parameter(Mandatory = $true)][ValidateSet('DEPLOY', 'PACKAGE')]
-        [string]$FailVerb
-    )
-
-    & dotnet test "$PipelineRepoRoot\LivingWeapon.Tests\LivingWeapon.Tests.csproj" --nologo -v q
-    if ($LASTEXITCODE -ne 0) {
-        throw "REFUSING TO ${FailVerb}: unit tests failed (see above)."
-    }
-}
-
-function Invoke-FormatGate {
-    # Style gate: dotnet format in verify mode on both projects. Whitespace and the
-    # .editorconfig rules only; it rewrites nothing. Run "dotnet format" by hand to fix a red.
-    param(
-        [Parameter(Mandatory = $true)][ValidateSet('DEPLOY', 'PACKAGE')]
-        [string]$FailVerb
-    )
-
-    foreach ($proj in @("LivingWeapon\LivingWeapon.csproj", "LivingWeapon.Tests\LivingWeapon.Tests.csproj")) {
-        & dotnet format "$PipelineRepoRoot\$proj" --verify-no-changes -v q
-        if ($LASTEXITCODE -ne 0) {
-            throw "REFUSING TO ${FailVerb}: $proj is not formatted (run: dotnet format $proj)."
-        }
-    }
 }
 
 function Assert-ReleaseDllHasNoKeyRead {

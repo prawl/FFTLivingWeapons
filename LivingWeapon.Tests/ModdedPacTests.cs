@@ -6,7 +6,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-381: <see cref="ModdedPac"/> against real temp files under <see cref="Path.GetTempPath"/>
+/// <see cref="ModdedPac"/> against real temp files under <see cref="Path.GetTempPath"/>
 /// (never the real game's modded.pac -- the game is live while this suite runs). Every test
 /// cleans up its own file. Covers the cached-offset fast path, the full-search fallback, and
 /// every failure mode degrading to a result instead of a throw.
@@ -208,7 +208,7 @@ public class ModdedPacTests : IDisposable
         Assert.Equal(newBytes, new ArraySegment<byte>(afterSecond, afterSecond.Length - 4, 4).ToArray());
     }
 
-    // ---- R2-6: AlreadyCurrent must be a real, tested outcome -- the cached path is the only way
+    // ---- AlreadyCurrent must be a real, tested outcome -- the cached path is the only way
     // to reach it (a fresh full search always looks for oldBytes specifically, so it can only
     // land on AlreadyCurrent once a prior Patch has already written newBytes and a later call
     // asks for the very same old/new pair again). ----
@@ -235,7 +235,7 @@ public class ModdedPacTests : IDisposable
         Assert.Equal(afterFirst, ReadFile());
     }
 
-    // ---- R2-2/R2-9: PatchBatch resolves cache-known offsets WITHOUT a pass, and shares one pass
+    // ---- PatchBatch resolves cache-known offsets WITHOUT a pass, and shares one pass
     // for whatever remains unresolved. Proven the same way Patch_SecondCallOnSameKey_... proves
     // the single-key cache above: append a second copy of the cached key's CURRENT bytes so a
     // fresh full search for them would be Ambiguous, then show the batch call still succeeds --

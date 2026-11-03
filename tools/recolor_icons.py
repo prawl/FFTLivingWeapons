@@ -99,12 +99,12 @@ MOD = ROOT / "mod" / "FFTIVC" / "data" / "enhanced" / "ui" / "ffto" / "icon"
 
 # id -> (hue, saturation, value_mult). Chosen to match each knife's identity.
 ICON_TINTS = {}
-# LW-247 (2026-08-18): this table used to hand-carry the knife (1-10), sword (19-32),
+# Before 2026-08-18 this table used to hand-carry the knife (1-10), sword (19-32),
 # crossbow (77-82) and shield (128-143) tints -- 55 rows -- because those families had no
 # items.json iconTint of their own yet. All four now route through the ramp engine, whose
 # single tint source is items.json iconTint (data/icon_ramp/README.md), so the hardcoded
 # rows are DELETED rather than left to silently disagree with the migrated data (git
-# history is the archive, per LW-247 D5). The merge loop below still runs unconditionally:
+# history is the archive,). The merge loop below still runs unconditionally:
 # it is what makes items.json the tint source for every engine, ramp included.
 
 # Merge per-item tints from data/items.json (source for the new categories).
@@ -112,7 +112,7 @@ SRC = {}  # item id -> vanilla icon id to source from, for repurposed weapons th
 _CATEGORY = {}
 _NAME = {}
 for _it in load_items()["items"]:
-    # LW-346: an extended-inventory row (ids 261+) is outside the tint programme: it ships a
+    # An extended-inventory row (ids 261+) is outside the tint programme: it ships a
     # byte copy of its iconSource donor's already-recolored pair (tools/bake_extended_icon_parts.py),
     # the way it borrows the donor's swing art, so it never enters the racks, the halo sample or
     # the bright-v2 pins. Its glow rims are drawn by bake_glow_icons from that pair.
@@ -125,7 +125,7 @@ for _it in load_items()["items"]:
     _CATEGORY[_it["id"]] = _it.get("category")
     _NAME[_it["id"]] = _it.get("name")
 
-# LW-351: THE IDENTITY (NO-OP) LANE. An item restored to its vanilla self ships the game's own
+# THE IDENTITY (NO-OP) LANE. An item restored to its vanilla self ships the game's own
 # artwork untouched: its row names itself as its own iconSource and carries NO iconTint, so
 # there is no colour to apply and no other item's picture to borrow. Those ids keep their
 # data/icon_ramp/treatments.json row (that table is pinned at 150 and is GENERATED from
@@ -172,27 +172,27 @@ def recipe_comment_names():
             cur = None
     return out
 
-# --- LW-189 BRIGHT v2 engine (weapons only) -------------------------------------------------
+# --- BRIGHT v2 engine (weapons only) -------------------------------------------------
 # The reference implementation these constants and functions were frozen from is the approved
 # preview generator (session scratchpad bright_all.py); the owner signed the full 121-weapon
 # gallery off against EXACTLY this math, so changes here need a fresh gallery pass.
 
 NO_BLADE_CATS = {"Bag", "Book", "Instrument", "Cloth"}   # no blade: tint the LARGEST cluster
 CARD_OVERRIDES = {}
-    # EMPTY since LW-212 (2026-08-16), when the bags were the last family to leave bright-v2 and
+    # EMPTY (2026-08-16), when the bags were the last family to leave bright-v2 and
     # took id 117 (Hornet Pouch, whose k-means fragmented into camo blobs) with them. id 9
     # (Galewind) went with the knives and the dead-config pin caught it the same run; ids 33
-    # (Defender) and 37 (Chaos Blade) were here until LW-200 routed the knight swords to
+    # (Defender) and 37 (Chaos Blade) were here routed the knight swords to
     # the zone engine, which made both rows unreachable: route() consults ZONE_OVERRIDES
-    # ahead of the bright-v2 category default (RAMP_IDS goes first of all since LW-247,
+    # ahead of the bright-v2 category default (RAMP_IDS goes first of all,
     # but 33/37 are weapon ids and every weapon is a ramp id now regardless).
     # 37's row also still described a vmult_floor of 0.85 against a shipped value of 0.24, so it
     # was dead config that ALSO lied. Same defect the sword pass fixed by deleting SMALL_TWO_ZONE
     # id 24, found again by audit 2026-08-14; a selftest pin now refuses the whole class.
-SMALL_TWO_ZONE = set()  # EMPTY since LW-205 (2026-08-16). It held ids 13, 15, 16 and 18, the
+SMALL_TWO_ZONE = set()  # EMPTY (2026-08-16). It held ids 13, 15, 16 and 18, the
                         # four ninja blades whose small glyph took the card's two-zone split on
                         # owner round one, and all four left bright-v2 with their family. id 24
-                        # was a fifth until LW-199 moved the swords. The table stays as a named
+                        # was a fifth moved the swords. The table stays as a named
                         # empty set rather than being deleted, because route() still reads it and
                         # the next unreviewed family may need it; the pin below is what caught
                         # all five of these entries going dead.
@@ -309,7 +309,7 @@ def two_zone_bright(im, tint, category, override):
         r, g, b, a = px[x, y]
         halo = _halo_weight(a)
         if halo <= 0.0:
-            continue                      # pure haze: the artist's pixel stands (LW-230)
+            continue                      # pure haze: the artist's pixel stands
         _, s0, v0 = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
         opx[x, y] = (*_halo_int((r, g, b), shade_bright(h_t, s_t, vmult, s0, v0), halo), a)
     return out
@@ -333,7 +333,7 @@ def small_bright(im, tint):
                 continue                  # the mean_s pool boundary above; the two move together
             halo = _halo_weight(a)
             if halo <= 0.0:
-                continue                  # pure haze: the artist's pixel stands (LW-230)
+                continue                  # pure haze: the artist's pixel stands
             _, s0, v0 = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
             base_s = s0 * max(0.55, min(1.35, (s_t * 1.3 + 0.03) / 0.5))
             if mean_s < 0.10:                       # achromatic glyph: identity must land
@@ -349,7 +349,7 @@ def small_bright(im, tint):
     return out
 
 
-# --- LW-190 shield engine (whole-glyph BRIGHT) ----------------------------------------------
+# --- Shield engine (whole-glyph BRIGHT) ----------------------------------------------
 # Shields do NOT take the weapons card rule. Measured on all 16 sprites: a shield is one convex
 # plate, so k-means clusters on the LIGHTING gradient rather than on a material boundary, giving
 # half-painted shields (130, 142) and camouflage speckle (128, 134, 135, 139). Full coverage with
@@ -491,10 +491,10 @@ def trim_tone(h_t, s_t, v0, mode="silver"):
 
 
 # Per-shield trim overrides from the owner's review round (2026-08-13) that shield_two_tone
-# read while shields were still routed through the shield-bright engine. LW-247 (2026-08-18)
+# read while shields were still routed through the shield-bright engine. The 2026-08-18 pass
 # moved every shield to the ramp engine (route() consults RAMP_IDS before this table's category
 # can ever be reached), so shield-bright is now DORMANT for shields; its rows are deleted here
-# (git history is the archive, per LW-247 D5) and the function stays live only for the two
+# (git history is the archive,) and the function stays live only for the two
 # HELM_OVERRIDES ids (147, 155) whose "style": "shield" row calls it directly with its OWN
 # inline config, never this table.
 SHIELD_OVERRIDES = {}
@@ -525,7 +525,7 @@ def shield_two_tone(im, tint, override=None, surface="card"):
         r, g, b, a = px[c]
         halo = _halo_weight(a)
         if halo <= 0.0:
-            continue                         # pure haze: the artist's pixel stands (LW-230)
+            continue                         # pure haze: the artist's pixel stands
         van = (r, g, b)
         _, s0, v0 = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
         if invert:
@@ -551,7 +551,7 @@ def shield_two_tone(im, tint, override=None, surface="card"):
     return out
 
 
-# --- LW-215 helmet engine -------------------------------------------------------------------
+# --- Helmet engine -------------------------------------------------------------------
 # Eleven of the thirteen helmets carry an owner-picked two-tone recipe (four review rounds,
 # 2026-08-13; the two unpicked ids stay on the legacy tint until their letters land). Four
 # picks are plain shield-engine recipes and route to shield_two_tone above. The other seven
@@ -732,7 +732,7 @@ def helm_recolor(im, tint, opts, surface="card"):
         r, g, b, a = px[c]
         halo = _halo_weight(a)
         if halo <= 0.0:
-            continue                        # pure haze: the artist's pixel stands (LW-230)
+            continue                        # pure haze: the artist's pixel stands
         _, s0, v0raw = colorsys.rgb_to_hsv(r / 255, g / 255, b / 255)
         v0 = _helm_scurve(v0raw, median, contrast)      # per pixel ON PURPOSE, see the docstring
         body = _helm_sheen(helm_body(tint, s0, v0, o.get("gleam", 1.0)), sheen)
@@ -751,7 +751,7 @@ def helm_recolor(im, tint, opts, surface="card"):
 # style "shield" = the recipe is a plain shield-engine override and bakes via shield_two_tone;
 # style "helm" = it bakes via helm_recolor above. Body tints live in data/items.json iconTint
 # (single source), same split as the shields' SHIELD_OVERRIDES.
-# LW-247 (2026-08-18): every helmet routes through the ramp engine now (route() consults
+# Since 2026-08-18 every helmet routes through the ramp engine now (route() consults
 # RAMP_IDS before this table's "Helmet" category rule can ever be reached), so this table's
 # job changed from "the helmet family's own recipe book" to "the five OLD-ENGINE recipes ramp
 # still calls live" -- the four ids whose shipped art the owner chose to KEEP rather than
@@ -760,7 +760,7 @@ def helm_recolor(im, tint, opts, surface="card"):
 # middle). The other eight rows (145, 146, 149, 150, 151, 152, 153, 154) are DELETED: those
 # ids now render purely through the ramp engine and this recipe was never read for them again
 # once route() stopped calling helm-two-tone for a helmet at all (git history is the archive,
-# per LW-247 D5).
+#).
 HELM_OVERRIDES = {
     147: {"style": "shield", "trim_tint": (0.13, 0.86, 1.0), "split": "sat", "split_p": 44},
     155: {"style": "shield", "trim_tint": (0.11, 0.60, 1.02), "split": "sat", "split_p": 50},
@@ -774,7 +774,7 @@ HELM_OVERRIDES = {
 }
 
 
-# --- LW-216 THREE-ZONE engine (hats) --------------------------------------------------------
+# --- THREE-ZONE engine (hats) --------------------------------------------------------
 # A helmet is one plate plus its fittings, so two zones say everything there is to say about it.
 # A hat is not: it is cloth, plus a brim or an underside, plus a plume or a painted emblem, and
 # the owner asked for all three ("is it possible to put three colors into it?", 2026-08-13). So
@@ -1038,7 +1038,7 @@ BONE = (0.105, 0.14, 1.30)
 BRASS = (0.115, 0.90, 1.20)
 GOLD = (0.125, 0.92, 1.24)
 SILVER = (0.585, 0.10, 1.30)
-# The sword rack's own metals (LW-199), on top of the five above. Every one of these is BRIGHT
+# The sword rack's own metals, on top of the five above. Every one of these is BRIGHT
 # except BLACK_IRON, and that is a measured rule rather than a taste: the zone that carries a
 # sword's second colour is keyed on the art's dark share, so the body already renders those
 # pixels dark, and a dark tone laid over them is invisible by construction. Swept on ids 19, 22
@@ -1052,7 +1052,7 @@ SILVER = (0.585, 0.10, 1.30)
 # darkness zone lands 27 to 44 from the body-only render while every bright metal on the same
 # key lands 109 to 159, the Flamberge itself at 36. So the rule is confirmed and the exception
 # is not: nine items wear a second material the measurement calls faint. The owner passed all of
-# them by eye, which is the higher authority, so nothing is re-tinted here; docs/TODO.md LW-242
+# them by eye, which is the higher authority, so nothing is re-tinted here; the ledger
 # carries the question with the numbers. Five tones written for these passes are NOT
 # here, having been measured and then deleted rather than left to read as live vocabulary: a
 # COLD_IRON at v0.52 and a DARK_STEEL at v0.60 (both lost the darkness argument above), an
@@ -1143,13 +1143,13 @@ BOW_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Bow")
 GUN_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Gun")
 ROD_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Rod")
 POLE_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Pole")
-# LW-351: the Axe family exists again (the Battle Axe went back to its own slot when the
+# The Axe family exists again (the Battle Axe went back to its own slot when the
 # Terrastaff design moved out to id 262). It gets a rack of its own for the same reason every
 # other family has one -- RAMP_RACKS must PARTITION the 150 ramp ids, and a ramp id in no rack
 # is an id judged by nothing. Its members ship the game's own art (VANILLA_KEPT below), so the
 # rack compares zero pairs today; that is stated out loud in the selftest rather than hidden.
 AXE_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Axe")
-# LW-351 stage 2 (2026-08-30): the Flail family exists again too (Iron Flail, Flail of Flame,
+# Stage 2 (2026-08-30): the Flail family exists again too (Iron Flail, Flail of Flame,
 # Morning Star and Scorpion Tail took ids 67-70 back when the Warbrand, Bloodlash, Climhazzard
 # and Sasori designs moved to extended ids 265-268, 264-267 since the Moonblade's removal).
 # Same partition argument; same zero-pair
@@ -1166,14 +1166,14 @@ BAG_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Bag")
 HARP_RACK = frozenset(i for i, c in _CATEGORY.items() if c == "Instrument")
 
 ZONE_OVERRIDES = {
-    # LW-247 (2026-08-18): every weapon family this table used to carry (swords, knight
+    # Since 2026-08-18 every weapon family this table used to carry (swords, knight
     # swords, crossbows, bows, guns, rods, poles, harps, polearms, staves, cloths, katanas,
     # knives, ninja blades, books, bags -- ~121 rows) now routes through the ramp engine
     # (route() consults RAMP_IDS before this table can ever be reached for a weapon id), so
     # those rows are DELETED here rather than left dead (git history is the archive, per
-    # LW-247 D5). Only the twelve HATS remain: hats were never touched by the ramp arc (they
-    # are not in RAMP_IDS), so their own LW-216 recipes stay exactly as the owner approved.
-    # --- Hats (LW-216) ----------------------------------------------------------------------
+    # D5). Only the twelve HATS remain: hats were never touched by the ramp arc (they
+    # are not in RAMP_IDS), so their own three-zone recipes stay exactly as the owner approved.
+    # --- Hats ----------------------------------------------------------------------
     # Round four, 2026-08-14: the four the owner never lettered, decided on the rule above.
     157: {"zones": [_lining(22, (0.690, 0.92, 1.05)), _crest(WHITE)]},           # Roughspun Cap
     159: {"zones": [_lining(14, (0.455, 0.88, 1.10)), _crest(WHITE)]},           # Adept's Hood
@@ -1217,7 +1217,7 @@ ZONE_OVERRIDES = {
 }
 
 
-# --- LW-247 ramp engine (weapons 1-121, shields 128-143, helms 144-156) ---------------------
+# --- Ramp engine (weapons 1-121, shields 128-143, helms 144-156) ---------------------
 # Ported from tools/probes/ramp/ramp_engine.py (banked 2026-08-16), the engine that actually
 # produced the owner-approved live install look for these 150 ids. D1: engines live in ONE
 # file, route() the single routing rule; the probe bank stays for provenance. D2: engine
@@ -1228,7 +1228,7 @@ ZONE_OVERRIDES = {
 # before any other routing rule, and every id's tint is items.json iconTint (the migration D3
 # describes). The ramp selftest pins live further down, inside selftest().
 #
-# B1 fix: the probe read the mod tree in four places (docs/TODO.md LW-247 P8). Two are
+# B1 fix: the probe read the mod tree in four places (the ledger P8). Two are
 # structurally BYPASSED rather than fixed -- 150's visor trim is vendored on BOTH surfaces
 # (data/icon_ramp/bodies/), so ramp_render's vendored-PNG check intercepts it before the code
 # path that would have read a shipped texture is ever reached at all; and the KEEP_SHIPPED
@@ -1850,14 +1850,14 @@ def _ramp_prototype_inner(im, tint, surface, item_id=None):
     return out
 
 
-# THE ONE SWITCH for the identity glow rim (LW-287, owner call 2026-08-19). False since this
+# THE ONE SWITCH for the identity glow rim (owner call 2026-08-19). False since this
 # commit: the shipped bake paints the BODY only and leaves the vanilla artist's own haze exactly
 # as drawn. Everything below (ramp_glow, ramp_rim_color, data/icon_ramp/rims.json, and the glow
-# pins in selftest) is deliberately kept working and tested, because LW-287 PARKS the rim idea
+# pins in selftest) is deliberately kept working and tested, because the owner's call PARKS the rim idea
 # rather than killing it. Reviving it is: flip this to True, re-bake, and re-run the four gates.
 # The selftest pins are written to survive that flip (they assert the two signature defaults
 # TRACK this constant, and only ONE pin asserts today's value), so a revival goes green rather
-# than fighting the gate. See docs/TODO.md LW-295 (the parked revival story).
+# than fighting the gate. See the ledger (the parked revival story).
 #
 # Read at import time, since it is a default-argument value: a caller that wants a rim passes
 # glow=True explicitly rather than reassigning this name.
@@ -1901,7 +1901,7 @@ def ramp_glow(im, tint, inner_a=170, outer_a=80, third_a=0, min_de=30.0, rim_sat
                     if (dx, dy) != (0, 0))
             if ((x, y) in body and n >= 3) or ((x, y) not in body and n >= 5):
                 smoothed.add((x, y))
-    # EXTERIOR-ONLY + COMPOSE-UNDER (LW-319 quality pass, owner gun-zoom read 2026-08-26:
+    # EXTERIOR-ONLY + COMPOSE-UNDER (quality pass, owner gun-zoom read 2026-08-26:
     # stray rim pixels inside the art). Flood-fill from the canvas border across non-body
     # cells finds the true OUTSIDE, so enclosed holes (a trigger guard) never glow; and the
     # rim composes UNDER any existing art pixel (art-over-rim) instead of replacing it, so
@@ -2044,7 +2044,7 @@ def apply_weapon(im, item_id, tint, surface):
     return small_bright(im, tint)
 
 
-WHOLE_BRIGHT_CATS = {"Shield"}   # families reviewed under LW-190
+WHOLE_BRIGHT_CATS = {"Shield"}   # families reviewed with the shield engine
 
 
 def engine_for(item_id):
@@ -2128,7 +2128,7 @@ SEP_EPS = 1e-9
 SEP_HUE_GAP, SEP_SAT_GAP = 0.05, 0.20
 SHIELD_SEP_HUE_GAP, SHIELD_SEP_SAT_GAP = 0.05, 0.25
 
-# Every ramp id lives in exactly one rack. Hoisted out of selftest() (LW-287) so BOTH the
+# Every ramp id lives in exactly one rack. Hoisted out of selftest so BOTH the
 # selftest and tools/icon_preview.py can assert coverage against the same table instead of
 # each keeping a list that quietly falls out of date. Helms are here for the first time: they
 # were in NO rack before, so thirteen items were judged by nothing at all.
@@ -2142,7 +2142,7 @@ RAMP_RACKS = (
     ("shield", RAMP_SHIELDS), ("helm", RAMP_HELMS),
 )
 
-# THE VENDORED HOLE, named out loud rather than left to be discovered (LW-287). These ids ship
+# THE VENDORED HOLE, named out loud rather than left to be discovered. These ids ship
 # from a frozen PNG in data/icon_ramp/bodies/, so their ICON_TINTS row does not reach the art on
 # that surface: it DESCRIBES the art (the PNG was rendered from that very tint) but editing it
 # moves nothing until the PNG is re-vendored. They stay JUDGED, because a faithful description
@@ -2212,10 +2212,10 @@ ANCHOR_RULINGS = {
     36: "OPEN, docs/TODO.md LW-244: Ragnarok's icon is warm at chroma 0.138 and it renders lilac "
         "under a violet-flame fuller, 115 degrees away. The violet was chosen as the dark "
         "arriving as fire; it was never measured against the art. Awaiting the owner.",
-    # New reports surfaced by the LW-247 pre-commit-3 anchors run (2026-08-18), both new
+    # New reports surfaced pre-commit-3 anchors run (2026-08-18), both new
     # relative to the pre-ramp-arc engine: neither item moved category, both simply render 40+
     # degrees from their own icon art under the ramp engine for the first time it was measured.
-    # docs/TODO.md LW-277 collects both owner calls.
+    # the ledger collects both owner calls.
     142: "OPEN, docs/TODO.md LW-277: the Venetian Shield's icon reads hue 37 degrees (a warm "
          "gilt plate) and the ramp render is icy platinum at hue 198, a 161-degree move. "
          "Surfaced by the pre-commit-3 anchors run, not measured before the ramp arc. Awaiting "
@@ -2232,7 +2232,7 @@ ANCHOR_RULINGS = {
          "condition is named.",
 }
 
-# GRANDFATHERED COLLISIONS. Under the LW-287 rule every JUDGED ramp id is graded on its body
+# GRANDFATHERED COLLISIONS. Under the rule every JUDGED ramp id is graded on its body
 # tint alone (see ramp_separation_signal); nine pairs still land inside their family floor and
 # every one of them was approved by the owner in game on 2026-08-16, so they are reported here
 # rather than re-litigated -- the reports-not-blocks pattern ANCHOR_RULINGS established.
@@ -2324,7 +2324,7 @@ def process(item_id, tint, src_id=None):
         shutil.copy(src, work_tex)
         subprocess.run([str(FF16), "tex-conv", "-i", str(work_tex)], capture_output=True)
         van = Image.open(WORK / f"{src_name}.dds").convert("RGBA")
-        # LW-351 identity lane: a restored item's picture is the game's own, so no engine runs.
+        # Identity lane: a restored item's picture is the game's own, so no engine runs.
         # It still goes through the SAME encode as every other shipped icon (Pillow PNG ->
         # img-conv --no-chunk-compression) rather than being byte-copied out of the vanilla
         # decode, because the glow splice needs the fixed surface size (card 51296 / small
@@ -2415,7 +2415,7 @@ def selftest():
     check("bag tints the large body", bag.getpixel((5, 2)) != im.getpixel((5, 2)))
     check("bag leaves the bright clasp", bag.getpixel((5, 9))[:3] == im.getpixel((5, 9))[:3])
 
-    # --- LW-190 shield engine ---------------------------------------------------------------
+    # --- Shield engine ---------------------------------------------------------------
     # The shoulder exists to stop the flat clip that ate id133's relief, so the properties that
     # matter are "never reaches 1.0" and "never ties two distinct inputs".
     check("shoulder is identity below the knee", shoulder(0.5) == 0.5)
@@ -2510,7 +2510,7 @@ def selftest():
     s_r, s_g, s_b = trim_tone(0.10, 0.07, 0.85)
     check("gold trim is warm", g_r > g_b and (g_r - g_b) > 0.15)
     check("gold trim separates from the neutral default", abs(g_r - s_r) + abs(g_b - s_b) > 0.2)
-    # --- LW-215 helmet engine ---------------------------------------------------------------
+    # --- Helmet engine ---------------------------------------------------------------
     # Honest image identity: the old getbbox idiom compared ONLY alpha under Pillow 10+, so a
     # red and a blue image passed as identical. This pin keeps the comparison colour-aware.
     red = Image.new("RGBA", (4, 4), (255, 0, 0, 255))
@@ -2614,7 +2614,7 @@ def selftest():
 
     # routing: shields take the shield engine, weapons keep bright-v2, picked helmets the helm
     # engine, unpicked helmets (and everything unreviewed) legacy
-    # --- LW-216 three-zone hat engine -------------------------------------------------------
+    # --- Three-zone hat engine -------------------------------------------------------
     # The desat key exists because a brightness key CANNOT find painted-on paint. This fixture
     # is the Arcanist Cap's problem in miniature: a pale emblem sitting on a field that is
     # exactly as bright as the emblem and differs only in saturation. Both halves are the pin:
@@ -2636,7 +2636,7 @@ def selftest():
     _, bmask = _helm_raw_mask(dim, "cover", 12)
     check("a brightness key cannot find that emblem (so the desat key is load-bearing)",
           not bmask[(7, 7)])
-    # Halo ramp (LW-230): full tint only on genuinely opaque pixels, none on the artist's haze,
+    # Halo ramp: full tint only on genuinely opaque pixels, none on the artist's haze,
     # and a long ramp between so no hard ring appears at the cutoff.
     check("halo ramp is off below the floor", _halo_weight(HALO_LO) == 0.0 and _halo_weight(8) == 0.0)
     check("halo ramp is full above the ceiling", _halo_weight(HALO_HI) == 1.0 and _halo_weight(255) == 1.0)
@@ -2649,7 +2649,7 @@ def selftest():
     # The fixture carries all THREE alpha populations, and the middle one is the point: a pixel
     # inside the 48-223 ramp is where the blend actually runs. A fixture with only haze and
     # solid pixels leaves the blend itself untested, because haze short-circuits before it and
-    # solid multiplies by 1.0 through it, so the whole of LW-230 can be deleted under a green
+    # solid multiplies by 1.0 through it, so the whole can be deleted under a green
     # gate. (Measured when it was: 765 pixels off on the Roughspun card, 817 on the
     # Nightrunner, max delta 201 of 255. That is the look the owner rejected twice.)
     haze = Image.new("RGBA", (14, 14), (0, 0, 0, 0))
@@ -2677,7 +2677,7 @@ def selftest():
     check("the ramp ceiling clears the whole visible glow band", HALO_HI >= 224)
     check("alpha is never touched by the recolour",
           all(hz.getpixel(c)[3] == haze.getpixel(c)[3] for c in ((0, 7), (1, 7), (7, 7))))
-    # Smooth-field contrast (LW-231): the S-curve runs on the BLURRED brightness, so the art's
+    # Smooth-field contrast: the S-curve runs on the BLURRED brightness, so the art's
     # own compression grain stops being multiplied into coloured speckle. Measured as
     # neighbour-to-neighbour swing across a grainy field, against the per-pixel engine on the
     # SAME input, tint and contrast.
@@ -2727,7 +2727,7 @@ def selftest():
     # The fine line work a blur cannot tell from grain, which is why the smooth field stays out
     # of the helmet engine. The fixture is a one-pixel dark grid, the shape of engraved metal:
     # through the per-pixel curve the lines survive as lines, through the smooth field they lose
-    # most of their depth. Both numbers are the measurement that reverted LW-231 on helmets.
+    # most of their depth. Both numbers are the measurement that reverted the two-tone treatment on helmets.
     lines = Image.new("RGBA", (24, 24), (0, 0, 0, 0))
     for y in range(24):
         for x in range(24):
@@ -2738,15 +2738,15 @@ def selftest():
           swing(helm_recolor(lines, (0.6, 0.8, 1.0), line_knobs))
           > swing(zone_recolor(lines, (0.6, 0.8, 1.0), dict(matched, zones=[]))) * 1.25)
 
-    # --- LW-230 past the hat engine (owner scope call, 2026-08-14) ---------------------------
+    # --- Past the hat engine (owner scope call, 2026-08-14) ---------------------------
     # The halo ramp shipped inside zone_recolor alone, because re-baking art the owner had
     # already approved was his call and not ours. He made it, so it now runs in every engine
-    # that paints REVIEWED art. (LW-231, the smooth field, deliberately did NOT follow: see
+    # that paints REVIEWED art. (the smooth field, deliberately did NOT follow: see
     # helm_recolor's docstring and the line-work check above.)
     #
     # The checks above pin the ramp and the field as FUNCTIONS. These pin that the engines
     # actually call them, which is a different claim and the one that was missing: measured
-    # before the extension, all of LW-230 could be deleted from three of the four engines and
+    # before the extension, all could be deleted from three of the four engines and
     # every existing check stayed green.
     #
     # legacy is deliberately NOT in the fixed set (see the scope tripwire below).
@@ -2788,7 +2788,7 @@ def selftest():
     # weapon in the game is through the re-pass. The engine stays in the file and is exercised on
     # the fixture below instead of being deleted, because the categories that would still route
     # to it (Axe, Flail) simply have no items today and a future one would land there.
-    # LW-247 (2026-08-18): shield-bright and helm-two-tone are DORMANT in the router now (every
+    # Since 2026-08-18 shield-bright and helm-two-tone are DORMANT in the router now (every
     # shield and helm routes to "ramp" before either category rule is reached), so the covered
     # set drops to the three engines route() can still actually return for a real item, and
     # ramp gets its OWN sample id (19, a sword) rather than joining this loop: the loop's
@@ -2911,8 +2911,8 @@ def selftest():
         check(f"{name}: the alpha ramp has no hard ring in it",
               max(prof) > 0 and max(b - a for a, b in zip(prof, prof[1:])) < max(prof) * 0.25)
     # Scope tripwire. The legacy engine KEEPS its smoky halo: its 72 items are unreviewed under
-    # the new rules and their shipped look must not move until their own owner pass lands
-    # (LW-217 through LW-226). Whoever runs that pass deletes this check; until then it is what
+    # the new rules and their shipped look must not move until their own owner pass lands.
+    # Whoever runs that pass deletes this check; until then it is what
     # stops a tidy-minded refactor from silently re-skinning 72 approved icons.
     check("the legacy engine still paints the haze, until its own families are reviewed",
           route(hazed, 169, ICON_TINTS[169], "card").getpixel(hazed_haze)
@@ -2988,7 +2988,7 @@ def selftest():
     _ZONED_CATS = {"Hat", "Crossbow", "Sword", "KnightSword", "Bow", "Gun", "Rod",
                    "Pole", "Instrument", "Polearm", "Staff", "Cloth", "Katana", "Knife",
                    "NinjaBlade", "Book", "Bag"}
-    # ICON_TINTS's own name-rot pin RETIRED (LW-247, 2026-08-18): the table lost every ramp id
+    # ICON_TINTS's own name-rot pin RETIRED: the table lost every ramp id
     # (it is empty now, see its own header comment), so tint_comment_names() no longer has
     # anything to name-check. Its successor is the ramp engine's own pin 7 (table integrity,
     # near the end of this function): every data/icon_ramp/treatments.json row carries a
@@ -3025,7 +3025,7 @@ def selftest():
           f"{sorted(set(ZONE_OVERRIDES) - set(ICON_TINTS))})",
           all(i in ICON_TINTS for i in ZONE_OVERRIDES))
 
-    # routing (LW-247, 2026-08-18): the 150 ramp ids beat everything, including the category
+    # routing: the 150 ramp ids beat everything, including the category
     # rules that used to send a shield to shield-bright or a picked helmet to helm-two-tone;
     # unreviewed weapons keep bright-v2 (dormant); anything left in the zone table (hats only
     # now) takes three-zone; everything else legacy.
@@ -3067,7 +3067,7 @@ def selftest():
     # The previously-zoned weapon families no longer have a ZONE_OVERRIDES row (that table holds
     # only hats now); they have a data/icon_ramp/treatments.json row instead. This is the
     # positive replacement for the old "every reviewed family is picked, whole" pin, whose own
-    # premise (a ZONE_OVERRIDES row per reviewed weapon) LW-247 retired on purpose.
+    # premise (a ZONE_OVERRIDES row per reviewed weapon) the ramp engine retired on purpose.
     _migrated_weapon_ids = sorted(SWORD_RACK | KNIGHT_RACK | BOW_RACK | GUN_RACK | ROD_RACK
                                   | POLE_RACK | HARP_RACK | SPEAR_RACK | STAFF_RACK | CLOTH_RACK
                                   | KATANA_RACK | KNIFE_RACK | NINJA_RACK | BOOK_RACK | BAG_RACK
@@ -3076,11 +3076,11 @@ def selftest():
           all(str(i) in RAMP_TREATMENTS for i in _migrated_weapon_ids))
     check("every reviewed hat still has its own ZONE_OVERRIDES recipe (hats untouched by LW-247)",
           set(ZONE_OVERRIDES) == {i for i, c in _CATEGORY.items() if c == "Hat"})
-    # hair adornments share the slot but ship under their own row (LW-217), so they must NOT
+    # hair adornments share the slot but ship under their own row, so they must NOT
     # have quietly ridden along on this pass
     check("hair adornments stay legacy until their own pass",
           all(engine_for(i) == "legacy" for i, c in _CATEGORY.items() if c == "HairAdornment"))
-    # PALETTE SEPARATION (LW-287, 2026-08-19). Rebuilt from the LW-247 version, which graded a
+    # PALETTE SEPARATION. Rebuilt version, which graded a
     # layer that is no longer painted: it let a distinct RIM rescue a body-tint collision and
     # judged a reserved id "on its rim alone", and SHIP_GLOW_RIM is now False. That version also
     # carried the two coverage floors this block deletes, `judged_racks >= 15` and
@@ -3112,7 +3112,7 @@ def selftest():
             if ramp_exempt(_i):
                 _exempt.add(_i)
                 continue
-            # LW-351: an id on the identity lane ships the game's own art, so there is no tint
+            # An id on the identity lane ships the game's own art, so there is no tint
             # for a palette rule to judge and no defect in there not being one. It gets its OWN
             # bucket, so "no tint row" stays what it always was -- a mid-edit accident -- and a
             # restore can never hide in that hole.
@@ -3164,7 +3164,7 @@ def selftest():
           and sorted(_exempt) == [10, 16, 17, 18, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42,
                                   43, 44, 45, 46, 47, 57, 58, 65, 66, 73, 74, 75, 76, 90, 91,
                                   94, 98, 104, 105, 112, 114])
-    # Measured 2026-08-19; re-measured 2026-08-30 after LW-351 stage 2 moved six tinted
+    # Measured 2026-08-19; re-measured 2026-08-30 moved six tinted
     # designs (49, 50, 67, 68, 69, 70) out of the vanilla range: sword 91 -> 78, knight sword
     # 1 -> 0 (its five remaining ids are the exempt legendaries), knife 45 -> 36, ninja blade
     # 15 -> 10, and the new flail rack compares nothing.
@@ -3195,7 +3195,7 @@ def selftest():
     # naming this pair) is how a mutation hunt clears while the gate is deaf. Same family of
     # error as scoring a mutation caught because the suite went red, when what went red was an
     # unrelated flaky test.
-    # LW-351: the pole pair was (48, 107) until the Battle Axe took id 48 back and left the
+    # The pole pair was (48, 107) until the Battle Axe took id 48 back and left the
     # pole rack; 107/108 are the rack's next two judged ids. Stage 2 removed the knight-sword
     # pair (49, 50) the same way: the Ravager and Sunderer moved to extended ids, and the five
     # knight swords left are all exempt legendaries, so that rack has no judged pair to clone.
@@ -3299,7 +3299,7 @@ def selftest():
     # it. Replaces a guard whose subject was next(iter(RAMP_SEPARATION_RULINGS)) -- welded to
     # source order, so re-ordering the table silently re-pointed the mutation at another pair --
     # and two of whose three conjuncts were true by construction.
-    # (23, 67) was the subject until LW-351 stage 2 retired that ruling; (26, 28) is live.
+    # (23, 67) was the subject retired that ruling; (26, 28) is live.
     check("ramp pin12: ruled() is order-insensitive and actually discriminates",
           ruled(26, 28) and ruled(28, 26) and not ruled(26, 29) and not ruled(44, 70)
           and not ruled(23, 67))
@@ -3315,11 +3315,11 @@ def selftest():
     check(f"ramp pin13: no two exempt ids share a source sprite, so the exemption cannot hide "
           f"two byte-identical icons (shared: {_twinned})", not _twinned)
 
-    # ramp pin14 (LW-287, THE SWITCH). Written in two halves ON PURPOSE so that reviving the rim
+    # ramp pin14 (THE SWITCH). Written in two halves ON PURPOSE so that reviving the rim
     # is cheap. The first half asserts the two signature defaults TRACK SHIP_GLOW_RIM, and it
     # stays green whichever way the constant is set, so it can never be the thing that fights a
     # revival. Only the second half names today's value, and its message says exactly what to do
-    # when LW-287 comes off the shelf.
+    # when the rim idea comes off the shelf.
     import inspect as _inspect
     # Read the SOURCE TEXT, not the resolved default value. Comparing the value cannot do this
     # job: SHIP_GLOW_RIM is False and Python interns False, so a signature hardcoded to
@@ -3342,7 +3342,7 @@ def selftest():
           "the value",
           SHIP_GLOW_RIM is False)
 
-    # ramp pin15 (LW-287, THE EXEMPTION, and the anti-vacuity centrepiece). The exemption is only
+    # ramp pin15 (THE EXEMPTION, and the anti-vacuity centrepiece). The exemption is only
     # honest if the exempt ids really are the ones whose ICON_TINTS row reaches no pixel. That is
     # MEASURED here, not asserted: render every one of the 150 ramp ids twice through the real
     # prototype dispatch under two very different tints and collect the ids that come out
@@ -3411,7 +3411,7 @@ def selftest():
           not _pin15_err and not (_exempt & _unmeasured)
           and _blind == _claimed and len(_claimed) == 36)
 
-    # ramp pin16 (LW-287, THE VENDORED HOLE, named rather than hidden). Twelve ids ship from a
+    # ramp pin16 (THE VENDORED HOLE, named rather than hidden). Twelve ids ship from a
     # frozen PNG, so on that surface their tint DESCRIBES the art without reaching it: editing the
     # tint moves nothing until the PNG is re-vendored. They stay JUDGED, because a faithful
     # description is what a "do these two look alike" rule needs. What must never happen is this
@@ -3456,7 +3456,7 @@ def selftest():
     # old form could not give: it covers crossbows, shields and helms too, and it reads the same
     # RAMP_RACKS the live loop above iterates, so a rack cannot be judged under one definition
     # and size-checked under another.
-    # LW-351 stage 2: 49/50 (knight sword -> axe) and 67-70 (sword/knife/ninja blade/katana ->
+    # Stage 2: 49/50 (knight sword -> axe) and 67-70 (sword/knife/ninja blade/katana ->
     # flail) changed racks with their categories; the 150 ramp ids are unchanged.
     _RACK_SIZES = {"sword": 14, "knight sword": 5, "bow": 9, "gun": 6, "rod": 8, "pole": 8,
                    "harp": 3, "polearm": 8, "staff": 8, "cloth": 3, "katana": 10, "knife": 10,
@@ -3479,7 +3479,7 @@ def selftest():
                    if i in ICON_TINTS and src in ICON_TINTS
                    and _CATEGORY.get(i) == _CATEGORY.get(src))
     # This scan used to anchor on the pair the rule was written for (the Vagabond's sprite worn
-    # by the Warbrand) and refuse to come back empty. LW-351 (2026-08-30) moved EVERY
+    # by the Warbrand) and refuse to come back empty. The 2026-08-30 rebalance moved EVERY
     # picture-borrowing design out of the vanilla range (the Terrastaff, Ravager, Sunderer,
     # Warbrand, Bloodlash, Climhazzard and Sasori are extended rows now, whose icons are byte
     # copies baked outside this programme), so the true answer today is "no pairs", and the
@@ -3516,7 +3516,7 @@ def selftest():
     # the auditor turned all six crossbows one colour with the gate still green. A list of racks
     # is a list someone forgets to extend; the table cannot be forgotten, because being in it is
     # what puts an item under this engine in the first place.
-    # LW-247 (2026-08-18): every weapon rack this table used to name now renders through the
+    # Since 2026-08-18 every weapon rack this table used to name now renders through the
     # ramp engine (data/icon_ramp/treatments.json, not a "zones" recipe), so ZONE_OVERRIDES'
     # remaining membership -- and therefore this whole no-single-colour apparatus below -- is
     # HATS ONLY. `bladed` keeps its name (git-blame continuity) but its content shrank to match.
@@ -3524,7 +3524,7 @@ def selftest():
     zone_ids = sorted(ZONE_OVERRIDES)
     # Dead per-item config for the OLD engine. Both tables below are read only inside the
     # bright-v2 branch of route(), and engine_for consults ZONE_OVERRIDES ahead of the
-    # bright-v2 category default (RAMP_IDS goes first of all since LW-247), so any id in
+    # bright-v2 category default (RAMP_IDS goes first of all), so any id in
     # both is unreachable configuration that still reads as live. This has now bitten twice
     # (SMALL_TWO_ZONE id 24, then CARD_OVERRIDES ids 33 and 37), so it gets a pin rather than a
     # third discovery.
@@ -3641,7 +3641,7 @@ def selftest():
     check(f"the no-single-colour render check judged every item under the zone engine "
           f"(missed: {missed_silent})", not missed_silent)
 
-    # === LW-247 ramp engine pins. Pins 1-5, 7, 8 exercise ramp_render/ramp_prototype/
+    # === Ramp engine pins. Pins 1-5, 7, 8 exercise ramp_render/ramp_prototype/
     # ramp_glow directly and need no game files beyond the two guarded sites above (pin 3's
     # fresh-render comparison and its pin 3b wiring extension). Pin 6 (palette separation) is
     # the big rack-collision block further down, keyed on the migrated items.json tints. Pin 9
@@ -3717,11 +3717,11 @@ def selftest():
 
         _dummy130 = Image.new("RGBA", (1, 1), (0, 0, 0, 0))
         _tint130 = tuple(ICON_TINTS.get(130, (0.15, 0.92, 1.18)))
-        # glow=True EXPLICITLY (LW-287): the shipped default is SHIP_GLOW_RIM = False, so the
+        # glow=True EXPLICITLY: the shipped default is SHIP_GLOW_RIM = False, so the
         # bake paints no rim and the band assertion below would be checking a layer nobody
         # draws. This pin's job is unchanged and still worth running: it proves route() WIRES
         # rims.json and the vendored-body branch together whenever a rim is asked for, which is
-        # exactly the parked machinery LW-287 has to be able to switch back on. Its body half is
+        # exactly the parked machinery the rim switch has to be able to turn back on. Its body half is
         # rim-independent; only the band half needs the rim.
         _wired130 = route(_dummy130, 130, _tint130, "card", glow=True)
         _shipped130 = route(_dummy130, 130, _tint130, "card")
@@ -3879,7 +3879,7 @@ def selftest():
           "per B1/B7)",
           ("def " + _shipped_fn_name) not in Path(__file__).read_text(encoding="utf-8"))
 
-    # Pin 9 (routing order): see the "routing (LW-247, 2026-08-18)" block above, which injects
+    # Pin 9 (routing order): see the "routing" block above, which injects
     # a stray ZONE_OVERRIDES row for a ramp id and asserts RAMP_IDS still wins.
 
     if skipped:
@@ -3895,7 +3895,7 @@ def main():
     if "--selftest" in sys.argv:
         raise SystemExit(selftest())
     only = set(int(a) for a in sys.argv[1:] if a.isdigit())
-    # LW-351: the identity lane rides the same loop, with no tint to hand it. Without this an
+    # The identity lane rides the same loop, with no tint to hand it. Without this an
     # id whose iconTint was removed would simply stop being re-baked, and whatever art it last
     # shipped (in the restore's case, the DESIGN's recolored picture) would sit there forever.
     for i, tint in sorted(list(ICON_TINTS.items()) + [(v, None) for v in VANILLA_KEPT]):

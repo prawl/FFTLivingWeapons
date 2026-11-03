@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
@@ -59,7 +59,7 @@ internal sealed class Engine
     private readonly string _drillSentence;
     private readonly PartsBoard _board;   // the parts report line and its box per closure wave
     private readonly Dictionary<Door, DoorReading> _readings = new();   // the fourteen doors, refilled every tick
-    private readonly AnchorScout _anchorScout;   // verifier scout, ticks only once StoodDown; writes nothing
+    private readonly AnchorScout _anchorScout;   // the anchor scout, ticks only once StoodDown; writes nothing
     private readonly BannerToast _toast;
     private readonly RewindRelease _rewindRelease;
     private readonly bool _bannerToastsEnabled;

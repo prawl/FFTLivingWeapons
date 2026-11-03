@@ -5,15 +5,15 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-109/LW-110: HoldTimedStat's window-closed branch used to remove its tracking record
+/// HoldTimedStat's window-closed branch used to remove its tracking record
 /// UNCONDITIONALLY, even when the revert write was skipped because the byte read neither the
 /// boosted value nor the baked residue -- silently abandoning the hold for the rest of the
 /// battle with no way back (asymmetric with the ordinary Hold path, which keeps its record and
 /// retries). These pin the corrected three-way split (revert / already-natural / genuinely
-/// unexpected) and, for LW-110, that the previously-silent capture/boost/revert writes now log.
+/// unexpected) and, that the previously-silent capture/boost/revert writes now log.
 /// Uses CavalierChargeTests' bare-engine construction (no ledger wiring needed: rosterNameId
 /// defaults to 0, the NaturalLedger's fail-open bypass lane, so `baked` stays 0 throughout --
-/// the LW-100 baked-residue interplay is GrowthEngineRestartTests' job, not this file's).
+/// Baked-residue interplay is GrowthEngineRestartTests' job, not this file's).
 /// </summary>
 public class TimedStatWindowCloseTests
 {
@@ -32,7 +32,7 @@ public class TimedStatWindowCloseTests
                new TurnTracker(mem),
                mem);
 
-    // ---- KEYSTONE (LW-109): an unexpected reading at window-close survives, then a later
+    // ---- KEYSTONE: an unexpected reading at window-close survives, then a later
     // boosted reading is the retry that finally reverts it ----
 
     [Fact]
@@ -108,7 +108,7 @@ public class TimedStatWindowCloseTests
         Assert.Equal((byte)11, mem.U8s[s + Offsets.CSpeed]);
     }
 
-    // ---- LW-110: the previously-silent capture/boost/revert paths now log at Debug ----
+    // ---- The previously-silent capture/boost/revert paths now log at Debug ----
 
     [Fact]
     public void Capture_and_boost_log_at_Debug()

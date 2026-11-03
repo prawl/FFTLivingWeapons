@@ -205,7 +205,7 @@ def cmd_verify(out):
             b = Image.open(ref).convert("RGBA")
             # ri.images_equal, NOT ImageChops.difference(...).getbbox(): Pillow 10 made
             # getbbox() alpha-only by default, so the old idiom passed two images that
-            # differed only in colour (LW-227; regression pinned in the recolor selftest).
+            # differed only in colour (regression pinned in the recolor selftest).
             if not ri.images_equal(a, b):
                 bad.append(f"{prod.name} vs {ref.name}")
     print(f"{len(manifest) * 2} comparisons: {len(bad)} mismatched, {len(missing)} missing")
@@ -277,7 +277,7 @@ def _reanchor_ramp_tables(mod, rev):
     punch membership the way IT shipped, not the way today's tables say. Absent at `rev`
     (anything before LW-247) -> loud warning, module keeps reading today's tables."""
     if not hasattr(mod, "RAMP_TREATMENTS"):
-        return   # a pre-LW-247 revision has no ramp engine at all; nothing to re-anchor
+        return   # a earlier revision has no ramp engine at all; nothing to re-anchor
     for name, attr in (("treatments.json", "RAMP_TREATMENTS"), ("rims.json", "RAMP_RIMS")):
         r = subprocess.run(["git", "show", f"{rev}:data/icon_ramp/{name}"],
                            cwd=str(ROOT), capture_output=True)
@@ -478,7 +478,7 @@ def cmd_anchors(out):
     established). Rulings live in recolor_icons.ANCHOR_RULINGS with a reason each."""
     out.mkdir(parents=True, exist_ok=True)
     items = {it["id"]: it for it in load_items()["items"]}
-    # LW-247 (2026-08-18): shield-bright and helm-two-tone are DORMANT in the router now (every
+    # Since 2026-08-18 shield-bright and helm-two-tone are DORMANT in the router now (every
     # shield/helm id is a ramp id, so RAMP_IDS wins before either category rule is reached);
     # "ramp" replaces them here so reserved-name shields, helms and every weapon family the ramp
     # arc covers stay under this gate instead of silently dropping out of it.

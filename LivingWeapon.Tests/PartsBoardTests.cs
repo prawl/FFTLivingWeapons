@@ -6,7 +6,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-393: the stateful half of the parts report. It logs one line per door STATE edge and shows one
+/// The stateful half of the parts report. It logs one line per door STATE edge and shows one
 /// box per closure wave. Every test drives Observe with a hand built readings table, one call per tick.
 /// </summary>
 public class PartsBoardTests

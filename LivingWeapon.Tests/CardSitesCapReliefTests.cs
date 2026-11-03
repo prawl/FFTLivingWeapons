@@ -191,7 +191,7 @@ public class CardSitesCapReliefTests
         }
         Assert.Equal(cap, sites.Count);
 
-        // First Add at cap: prune runs, dead half evicted, site admitted. IsKills: true (LW-262
+        // First Add at cap: prune runs, dead half evicted, site admitted. IsKills: true (a later
         // correction: this probe must be a KILLS site -- Add now partitions by kind, so a suffix
         // probe would never touch the kills cap this test exercises at all).
         var newSite1 = new CardSites.Site(2, 1, 0x1000 + slotOff + cap + 1, 0x1000, IsKills: true);

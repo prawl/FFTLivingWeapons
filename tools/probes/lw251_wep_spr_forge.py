@@ -114,6 +114,7 @@ REPO_ICONS = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
     os.path.abspath(__file__)))), "mod", "FFTIVC", "data", "enhanced", "ui", "ffto",
     "icon", "equip_item", "texture")
 
+
 def _codes():
     """16 census colours: 8 hues 45 degrees apart, each at full and at 55% value. Generated
     rather than hand-listed for two reasons found the hard way. NO GREY AND NO WHITE: a flat

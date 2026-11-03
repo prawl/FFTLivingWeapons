@@ -1,7 +1,7 @@
 namespace LivingWeapon;
 
 /// <summary>
-/// Prologue-landmark verifier for code-hook targets. No project dependencies, so a sibling mod
+/// Prologue landmark check for code hook targets. No project dependencies, so a sibling mod
 /// can copy the file (same as FingerprintGuard.cs). Compares only the leading expected.Length
 /// bytes of <paramref name="actual"/>; null or shorter is a mismatch.
 /// A game patch can shift a function entry so the old address lands mid-function, and a detour

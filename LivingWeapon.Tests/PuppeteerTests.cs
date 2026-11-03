@@ -124,7 +124,7 @@ public class PuppeteerTests
         Assert.False(st.CanPuppet(currentWielderTurn: 1, cooldownTurns: 3));  // one-at-a-time -> blocked while active
     }
 
-    // ---- SAFETY CAP (LW-5): the puppet is bounded to at most capTurns GlobalTurns after dominate --
+    // ---- SAFETY CAP: the puppet is bounded to at most capTurns GlobalTurns after dominate --
     // the backstop should the live "own turn" queue signal never fire. Never a hold to battle exit. ----
 
     [Fact]
@@ -284,7 +284,7 @@ public class PuppeteerTests
         pup.Tick(onField: false);
     }
 
-    // ---- LOAD-BEARING test (LW-5, the 2026-07-07 fix) ----
+    // ---- LOAD-BEARING test (the 2026-07-07 fix) ----
     // Encodes BOTH failure modes the fix removes: (1) control must HOLD through a NON-puppet unit's
     // turn (the premature drop the old wielder-clock caused when the puppet was not the next actor),
     // and (2) control must RELEASE after the PUPPET's OWN turn (detected by the turn queue naming it).
@@ -379,7 +379,7 @@ public class PuppeteerTests
     [Fact]
     public void Tick_releases_and_never_rewrites_agency_when_a_stranger_occupies_the_held_seat()
     {
-        // LW-153 pin for the shared same-unit write-safety verify (Band.SameUnitAtExact): when
+        // Pin for the shared same-unit write-safety verify (Band.SameUnitAtExact): when
         // the unit at the held seat stops matching the stored fingerprint, the hold must
         // release (reason=seat-invalid) instead of re-asserting the agency bit onto the
         // stranger. Born RED under an accept-any-readable sabotage of the shared predicate.
@@ -796,7 +796,7 @@ public class PuppeteerTests
     }
 
     // ---- flight taps: the dominate + release brackets are the kept diagnostic. (The per-tick recon
-    // trace that cracked the release signal was retired once the fix landed -- LW-5, 2026-07-07.) ----
+    // trace that cracked the release signal was retired once the fix landed on 2026-07-07.) ----
 
     [Fact]
     public void Flight_taps_dominate_then_release_own_turn()

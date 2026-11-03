@@ -6,12 +6,12 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-82's LivingWeapon adapter over the portable AnchorScan core (AnchorScout.cs +
+/// The LivingWeapon adapter over the portable AnchorScan core (AnchorScout.cs +
 /// AnchorScout.Report.cs): the jobcommand-table and roster-base specs, the Tick budget, the
 /// verdict-change-gated log lines, the once-then-change-gated summary, and the rescan timer.
 ///
 /// FakeSparseMemory.TryReadBytes now serves any read fully CONTAINED in a registered TerrainBlocks
-/// entry (widened by this same LW-82 commit), so each test stages one wide byte[] region per
+/// entry (widened by this same commit), so each test stages one wide byte[] region per
 /// spec's scan window and pokes individual fields into it at the real Offsets/Barrage byte
 /// positions AnchorScout's own spec builders compute from: the same production addresses, just
 /// staged in a fake.

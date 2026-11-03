@@ -4,7 +4,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-167 stage 3: CorpseDespawn.cs, the guarded corpse-despawn primitive extracted from
+/// CorpseDespawn.cs, the guarded corpse-despawn primitive extracted from
 /// BodyDoubleSpike.cs's Ctrl+F5 dev instrument into a production helper for Living Poach. Every
 /// test seeds a FakeSparseMemory fixture by hand (not MemSeats: MemSeats writes values but never
 /// marks them Readable, and every CorpseDespawn read is guard-gated) so the fail-closed contract
@@ -349,7 +349,7 @@ public class CorpseDespawnTests
         Assert.Empty(mem.WrittenBytes);     // no WriteBytes ever fired
     }
 
-    // ── LW-172: DespawnRefusal classification (Permanent vs Transient) ─────────────────────────
+    // ── DespawnRefusal classification (Permanent vs Transient) ─────────────────────────
     // The out-reason overload exists so LivingPoach.Despawn.cs's retry lifecycle can tell a
     // corpse worth retrying from one that is provably gone. PERMANENT is exactly the three
     // StillOurCorpse failures (alive/nameId mismatch/chest bit); everything else -- node resolve,

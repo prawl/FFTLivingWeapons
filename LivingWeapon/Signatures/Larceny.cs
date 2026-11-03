@@ -115,7 +115,7 @@ internal sealed class Larceny : ISignature
             // dispels duplicates the wielder owns, and skips a copy already stolen (LarcenyPolicy.Decide).
             bool wielderHas = LarcenyPolicy.HasBit(_mem, actingAddr, key.Item1, key.Item2);
             var action = LarcenyPolicy.Decide(_holdings.IsHeld(actorNameId, actorFp, key), wielderHas);
-            if (action == LarcenyAction.Skip) continue;   // already wearing this buff -- leave the foe's copy
+            if (action == LarcenyAction.Skip) continue;   // already wearing this buff, so leave the foe's copy
 
             LarcenyPolicy.ClearBit(_mem, addr, key.Item1, key.Item2);   // strip the foe (Dispel + Steal)
             if (action == LarcenyAction.Steal)

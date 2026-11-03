@@ -6,7 +6,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-392: <see cref="LandmarkStall"/> is a decorator over a <see cref="GuardLandmark"/> that
+/// <see cref="LandmarkStall"/> is a decorator over a <see cref="GuardLandmark"/> that
 /// counts CONSECUTIVE Unreadable readings and fires a callback exactly once when the streak
 /// reaches the threshold. These tests drive it with a scripted inner probe, no game memory.
 /// </summary>
@@ -124,7 +124,7 @@ public class LandmarkStallTests
     [Fact]
     public void S6_an_unreadable_the_predicate_excludes_resets_the_streak_and_never_counts()
     {
-        // LW-393: the sensing lane's "battle live" and "boot grace" waits are Unreadable by design.
+        // The sensing lane's "battle live" and "boot grace" waits are Unreadable by design.
         int fired = 0;
         var script = new Queue<LandmarkReading>();
         for (int i = 0; i < 3; i++) script.Enqueue(new LandmarkReading(LandmarkVerdict.Unreadable, "real"));

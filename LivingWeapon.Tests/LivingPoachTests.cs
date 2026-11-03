@@ -8,10 +8,10 @@ using static LivingWeapon.Tests.KillTrackerFixtures;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-167 Living Poach (docs plan v2, stages 1-2). Mirrors GunSlingerTests' staged structure:
+/// Living Poach (docs plan v2, stages 1-2). Mirrors GunSlingerTests' staged structure:
 ///   Stage-1  LivingPoachPolicy pure decisions (Decide / StripIconMarkup)
 ///   Stage-1b PoachMap loader (the real committed poach.json + missing/corrupt-file disarm)
-///   Stage-1c LW-169 job-id remap pinned regression (owner-observed live 2026-08-12): the old
+/// Stage-1c job-id remap pinned regression (owner-observed live 2026-08-12): the old
 ///            species = victim job byte - 95 arithmetic is gone; poach.json now keys straight off
 ///            each monster job's own id (tools/extract_poach_map.py decodes it off the Job sheet).
 ///   Stage-2  LivingPoach executor via FakeSparseMemory (guarded W8 store write + toast + the
@@ -76,7 +76,7 @@ public class LivingPoachTests : IDisposable
         Assert.Equal(PoachVerdict.None, v);
     }
 
-    // LW-169: jobMapped is the whole monster-eligibility gate now -- no range check behind it.
+    // JobMapped is the whole monster-eligibility gate now -- no range check behind it.
     // A human job (or a monster job poach.json never resolved) reads jobMapped: false here.
     [Fact]
     public void Decide_unmapped_job_None()
@@ -150,7 +150,7 @@ public class LivingPoachTests : IDisposable
 
     // Every carcass key in the committed file must fall inside the store's u8[96] -- the write
     // computes PoachStoreBase + key - 1, so a key outside 1..96 would write below or past the
-    // array. Uniqueness is pinned PER DISTINCT CARCASS PAIR, not per job entry: since LW-174 the
+    // array. Uniqueness is pinned PER DISTINCT CARCASS PAIR, not per job entry: the
     // Job sheet's ALIAS rows (jobs 169-173, exact clones of 103/97/98/100/94) ship as first-class
     // map entries carrying their base job's pair, so two job ids sharing one IDENTICAL pair is the
     // design, and it is harmless -- LivingPoach.WriteCarcass keys the store write on the carcass
@@ -188,7 +188,7 @@ public class LivingPoachTests : IDisposable
         }
     }
 
-    // ── Stage-1c: LW-169 job-id remap pinned regression (owner-observed live 2026-08-12) ──────
+    // ── Stage-1c: job-id remap pinned regression (owner-observed live 2026-08-12) ──────
     // A Black Chocobo (job 95) carried the victim's job byte straight through and was refused
     // under the old "species = job - 95" arithmetic (job 95 landed one below JobInMonsterRange's
     // own 96..144 band). The game's Job sheet carries each monster job's PoachItem common/rare
@@ -240,7 +240,7 @@ public class LivingPoachTests : IDisposable
         Assert.Equal((byte)1, mem.U8(addr));
     }
 
-    // ── Stage-1d: LW-174 the Job sheet's ALIAS monster rows ───────────────────────────────────
+    // ── Stage-1d: the Job sheet's ALIAS monster rows ───────────────────────────────────
     // Jobs 169, 170, 171, 172, 173 are exact clones of jobs 103, 97, 98, 100, 94 (Red Panther,
     // Goblin, Black Goblin, Bomb, Chocobo) and carry those jobs' IDENTICAL carcass key pairs. They
     // are not NG+ curiosities the map can skip: the VANILLA encounter table fields these alias ids
@@ -319,7 +319,7 @@ public class LivingPoachTests : IDisposable
     {
         toast ??= new BannerToast(meta, new Dictionary<int, int>(), enabled: true);
         // wasBasicAttack takes weaponId (Func<int, bool>, matching killerHasPoach's shape) since
-        // LW-167 stage 4 armed it to a per-weapon discriminator (LivingPoach.ReadWasBasicAttack);
+        // armed it to a per-weapon discriminator (LivingPoach.ReadWasBasicAttack);
         // this helper still injects the boolean directly so every executor-only test below stays
         // isolated from live memory fixtures.
         return new LivingPoach(meta, map, mem, toast, _ => killerHasPoach, _ => wasBasicAttack, () => roll);
@@ -479,7 +479,7 @@ public class LivingPoachTests : IDisposable
         Assert.Empty(mem.Written);
     }
 
-    // ── Stage-3: corpse despawn integration (LW-167 stage 3, CorpseDespawn.cs) ────
+    // ── Stage-3: corpse despawn integration (CorpseDespawn.cs) ────
     // Hand-seeded (not MemSeats: MemSeats never marks Readable, and CorpseDespawn's every read
     // is guard-gated) -- mirrors CorpseDespawnTests.cs's fixture shape exactly.
 
@@ -542,7 +542,7 @@ public class LivingPoachTests : IDisposable
         Assert.Equal((byte)0x20, mem.Written[DespawnNodeAddr + Offsets.DespawnNodeModeOff]);
     }
 
-    // LW-172: turnOpen refuses TRANSIENTLY (the corpse is still confirmed dead and ours -- only the
+    // TurnOpen refuses TRANSIENTLY (the corpse is still confirmed dead and ours -- only the
     // open-turn guard stands in the way), so this is no longer a permanent one-shot miss: the
     // immediate-call assertions below are UNCHANGED (querying the queue takes no memory action of
     // its own, so nothing here weakens), plus a new assertion proves the corpse is now retried
@@ -682,7 +682,7 @@ public class LivingPoachTests : IDisposable
 
     // ── Stage-4: the real basic-Attack discriminator + the ARMED end-to-end wiring ─────
     //
-    // LivingPoach.ReadWasBasicAttack (LIVE_LEDGER "The basic-Attack discriminator (LW-167 stage
+    // LivingPoach.ReadWasBasicAttack (LIVE_LEDGER "The basic-Attack discriminator (stage
     // 4)" row, 2026-08-12): resolves the credited weapon's KILLER via the same lane
     // ReadKillerHasPoach uses, then reads that wielder's own AArec action record. kind==5
     // (performing) + abil==0 means a confirmed basic Attack; anything else fails closed to false.
@@ -856,7 +856,7 @@ public class LivingPoachTests : IDisposable
         Assert.Empty(mem.Written);
     }
 
-    // ── Stage-5: LW-172 the despawn retry lifecycle (LivingPoach.Despawn.cs) ───────────────────
+    // ── Stage-5: the despawn retry lifecycle (LivingPoach.Despawn.cs) ───────────────────
     // Owner design decision (live pass, 2026-08-12): a vanilla-poached corpse yields NEITHER
     // crystal nor chest, so a TRANSIENT despawn refusal must retry instead of standing as a
     // one-shot miss (a corpse left standing could crystallize on its own turn, handing out BOTH
@@ -1120,7 +1120,7 @@ public class LivingPoachTests : IDisposable
         Assert.Equal(expected, actual);
     }
 
-    // ── LW-399: the store door latch and the key bound ────────────────────────
+    // ── The store door latch and the key bound ────────────────────────
 
     [Fact]
     public void A_closed_store_door_refuses_the_carcass_write()

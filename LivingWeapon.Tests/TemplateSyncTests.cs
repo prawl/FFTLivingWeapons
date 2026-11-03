@@ -6,7 +6,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-371: the pure policy half of <see cref="TemplateSync"/> (Projection, OldBlockImage,
+/// The pure policy half of <see cref="TemplateSync"/> (Projection, OldBlockImage,
 /// RegionImage) and its two edge operations (Project, Adopt) over the fakes. T6b is the
 /// non-vacuous negative the plan calls out by name: it encodes finding 10's helmet-chart clobber
 /// (a page chart longer than the old block's own capacity must never spill a byte past that old

@@ -24,9 +24,11 @@ from battle_cheats import rpm, ru8, ru16, wu8, wu16, _require_game
 UNITS = 0x141853CE0
 HEAD = 0x140D3A410
 
+
 def u64(a):
     b = rpm(a, 8)
     return None if b is None else struct.unpack("<Q", b)[0]
+
 
 def node_of(slot):
     cur = u64(HEAD)
@@ -38,12 +40,14 @@ def node_of(slot):
         cur = u64(cur)
     return None
 
+
 def snap(slot, node):
     c = UNITS + slot * 0x200
     return dict(gx=ru8(c + 0x4F), gy=ru8(c + 0x50), b51=ru8(c + 0x51),
                 tx=ru8(node + 0x88), ty=ru8(node + 0x89), tl=ru8(node + 0x8A),
                 wx=ru16(node + 0x4C), wz=ru16(node + 0x4E), wy=ru16(node + 0x50),
                 h2e=ru16(node + 0x2E))
+
 
 def put(slot, node, src, own51):
     c = UNITS + slot * 0x200
@@ -52,6 +56,7 @@ def put(slot, node, src, own51):
     wu8(node + 0x88, src["tx"]); wu8(node + 0x89, src["ty"]); wu8(node + 0x8A, src["tl"])
     wu16(node + 0x4C, src["wx"]); wu16(node + 0x4E, src["wz"]); wu16(node + 0x50, src["wy"])
     wu16(node + 0x2E, src["h2e"])
+
 
 def cmd_table():
     print(f"{'slot':>4} {'tile':>9} {'combat X/Y addr':>26} {'node':>12} {'world (x,z,y)':>16}")
@@ -69,6 +74,7 @@ def cmd_table():
                   f"0x{c + 0x4F:X}/0x{c + 0x50:X} 0x{cur:>10X} "
                   f"({ru16(cur + 0x4C)},{wz},{ru16(cur + 0x50)})")
         cur = u64(cur)
+
 
 def cmd_swap(a_slot, b_slot):
     na, nb = node_of(a_slot), node_of(b_slot)
@@ -91,6 +97,7 @@ def cmd_swap(a_slot, b_slot):
     print(f"A slot {a_slot} -> tile({A2['gx']},{A2['gy']}) world({A2['wx']},{A2['wy']})")
     print(f"B slot {b_slot} -> tile({B2['gx']},{B2['gy']}) world({B2['wx']},{B2['wy']})")
     print("SWAP COMPLETE; eyeball the field.")
+
 
 def main():
     _require_game()

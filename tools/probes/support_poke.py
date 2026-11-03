@@ -13,6 +13,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from ct_probe import PROC, PV_W, find_pid, k32, wr
 
+
 class MBI(ctypes.Structure):
     _fields_ = [("BaseAddress", ctypes.c_void_p), ("AllocationBase", ctypes.c_void_p),
                 ("AllocationProtect", wt.DWORD), ("PartitionId", wt.WORD),
@@ -26,6 +27,7 @@ READABLE = {0x02, 0x04, 0x08, 0x20, 0x40, 0x80}
 PREFIX = bytes([0x08, 0x00, 0x0E, 0x00, 0xB9, 0x01, 0xE0, 0x01, 0xE8, 0x01])
 SUPPORT_OFF = 6   # 4th u16 = bytes [6:8] = the 480 (Reequip) slot
 LO, HI = 0x140000000, 0x142000000
+
 
 def rd_raw(h, addr, size):
     buf = ctypes.create_string_buffer(size)

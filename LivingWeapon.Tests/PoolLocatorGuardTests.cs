@@ -5,7 +5,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-267: three guards inside the resumable pool search (PoolLocator.Restart.cs, PoolScan.cs)
+/// Three guards inside the resumable pool search (PoolLocator.Restart.cs, PoolScan.cs)
 /// survived deliberate mutation with the whole suite green -- filed as unpinned findings, not
 /// bugs (docs/TODO.md's own framing: "None is believed wrong today; they are simply unpinned").
 /// This file pins the two PoolLocator.Restart.cs guards -- the unconditional `_stale = true;` in
@@ -28,7 +28,7 @@ public class PoolLocatorGuardTests
         return buf;
     }
 
-    /// <summary>PIN (LW-267): Step's unconditional `_stale = true;` (PoolLocator.Restart.cs, just
+    /// <summary>PIN: Step's unconditional `_stale = true;` (PoolLocator.Restart.cs, just
     /// above `_restartPending = false;`) -- its own comment explains it covers two of the three
     /// paths into a fresh scan (a revalidate that just found the cache stale, or an
     /// empty-retry/first attempt), both of which follow a PRIOR Publish that cleared _stale to
@@ -84,7 +84,7 @@ public class PoolLocatorGuardTests
         Assert.NotNull(completion);
     }
 
-    /// <summary>PIN (LW-267): ProgressLogEveryTicks (PoolLocator.Restart.cs) gates the "still
+    /// <summary>PIN: ProgressLogEveryTicks (PoolLocator.Restart.cs) gates the "still
     /// scanning" progress line to fire only once every 300 Steps of an in-flight scan. A 1-byte
     /// budget against many tiny (16-byte) regions makes each Step consume exactly one region --
     /// verified empirically for this fixture shape: the first successful read of a Step call

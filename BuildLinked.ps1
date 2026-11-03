@@ -57,7 +57,7 @@ try {
     # Test-Path it, even if the failure happens before stage [3/5] backs anything up.
     $preserveDir = Join-Path $env:TEMP "livingweapon_preserve"
 
-    # --- -VerifyOnly: audit the install, deploy nothing (LW-297) ---
+    # --- -VerifyOnly: audit the install, deploy nothing ---
     # ELI5: answers "is the mod folder actually running the art and tables sitting in this repo
     # right now?" without touching anything. Before this existed the only honest answer came from
     # hand-hashing the tree, so "the install is stale" travelled as a sentence in a handoff note
@@ -103,13 +103,13 @@ try {
         Write-Host "  Game closed; deploying into a quiet install." -ForegroundColor Green
     }
 
-    # --- Pre-deploy: scan the OUTGOING session's log (LW-54, docs/VERIFY_LIVE.md) ---
+    # --- Pre-deploy: scan the OUTGOING session's log (docs/VERIFY_LIVE.md) ---
     # This is the one moment in the dev loop where livingweapon.log is both COMPLETE (you killed
     # the game before deploying, and the file sink appends per line, so a kill loses nothing from
     # the FILE) and about to be DESTROYED (the [3/5] clean wipes it). CAPTURE the verdict here,
     # before the wipe; the finally block REPORTS it LAST so a dirty prior session cannot scroll
     # away under the deploy output and get missed (the failure lines are captured now because the
-    # log is gone by the time we report). Deliberately a REPORT, NOT A GATE (LW-54): a dirty log
+    # log is gone by the time we report). Deliberately a REPORT, NOT A GATE: a dirty log
     # never blocks the deploy (you are usually deploying the fix for the very error it caught), and
     # a native nonzero exit does not trip $ErrorActionPreference='Stop'.
     $scanExit = $null
@@ -127,8 +127,8 @@ try {
     # deploying one over a real save would quietly wipe that player's actual progress. This check
     # gathers every clue available before that happens, and refuses to guess wrong.
     #
-    # (Tech, LW-134, 2026-07-25 near-miss): build_flavor.txt ($marker) is BuildLinked's own
-    # last-DEPLOY marker, written next to the mod. LW-51 moved the actual save files -- kills.json
+    # (Tech, the 2026-07-25 near-miss): build_flavor.txt ($marker) is BuildLinked's own
+    # last-DEPLOY marker, written next to the mod. The save move put the actual save files -- kills.json
     # included -- out to the update-safe Reloaded/User/Mods/<ModId> dir, so the OLD fallback here
     # (Test-Path next to the mod) was checking a spot kills.json can no longer be in; it failed
     # open, and a plain dev BuildLinked run nearly stomped a real production save that same day,
@@ -139,7 +139,7 @@ try {
     # truth, a second and independent witness from build_flavor.txt's last-DEPLOY truth.
     # Resolve-DeployedFlavor (tools/pipeline.ps1) is the shared, unit-tested precedence over both
     # plus a raw kills.json probe; see its own comment for the exact rule order. -Prod never needs
-    # the guard. Resolve-SaveDir (tools/pipeline.ps1, LW-148) is the extracted, cross-language-pinned
+    # the guard. Resolve-SaveDir (tools/pipeline.ps1) is the extracted, cross-language-pinned
     # form of the derivation that used to live inline here only.
     $saveDir      = Resolve-SaveDir $modsDir $modId
     $stampPath    = Join-Path $saveDir "run_flavor.txt"
@@ -170,11 +170,17 @@ try {
     Write-Host "`n[1/5] Generating + gating tables, baking meta.json..." -ForegroundColor Yellow
     Invoke-TablePipeline -FailVerb DEPLOY
 
-    # --- [2/5] Unit tests (TDD gate; after meta-gen, which the tests read) ---
-    Write-Host "[2/5] Checking formatting (dotnet format, verify only)..." -ForegroundColor Yellow
-    Invoke-FormatGate -FailVerb DEPLOY
-    Write-Host "[2/5] Running unit tests (LivingWeapon.Tests)..." -ForegroundColor Yellow
-    Invoke-UnitTestGate -FailVerb DEPLOY
+    # --- [2/5] The shared gates, inside their own temp folder (after meta-gen, which the tests read) ---
+    Write-Host "[2/5] Running the shared gates..." -ForegroundColor Yellow
+    $gateTemp = Enter-GateTemp
+    try {
+        Invoke-ManifestGate -FailVerb DEPLOY
+        Invoke-FormatGate -FailVerb DEPLOY
+        Invoke-UnitTestGate -FailVerb DEPLOY
+        Invoke-HealthGate -FailVerb DEPLOY
+        Invoke-TempLeftoverGate -FailVerb DEPLOY -GateTemp $gateTemp
+    }
+    finally { Exit-GateTemp -State $gateTemp }
 
     # --- [3/5] Clean the live mod folder, preserving save files + flight/ archives ---
     # kills.json/legends.json/gunslinger.json are the player's progress; flight/ is the
@@ -198,7 +204,7 @@ try {
     Invoke-LivingWeaponPublish -OutDir $dest -Dev:(-not $Prod) -CleanFirst
 
     Copy-Item "$root\mod\FFTIVC" $dest -Recurse -Force
-    # LW-346: the extended-inventory tables live beside FFTIVC (the DLL reads them, the modloader
+    # The extended-inventory tables live beside FFTIVC (the DLL reads them, the modloader
     # must not see them); the manifest below fails red if the folder is missing.
     Copy-Item "$root\mod\extended_inventory" $dest -Recurse -Force
     # Prune parked repo artifacts from the staged tree ($ParkedArtifactFilter, tools/pipeline.ps1):
@@ -208,7 +214,7 @@ try {
     Copy-Item "$root\mod\ModConfig.json" $dest -Force   # our config wins over any published one
     if (Test-Path "$root\mod\preview.png") { Copy-Item "$root\mod\preview.png" $dest -Force }
     Copy-PreservedItems $preserveDir $dest $PreservedSaveFiles
-    # LW-28: fail RED if the round-trip lost anything, BEFORE deleting the backup dir, so the
+    # Fail RED if the round-trip lost anything, BEFORE deleting the backup dir, so the
     # surviving copies stay recoverable in %TEMP% (and the catch path below re-restores the
     # missing items from that same dir on its way to exit 1).
     $lostItems = @(Get-LostPreservedItems $preserveDir $dest $PreservedSaveFiles)
@@ -233,7 +239,7 @@ try {
     $tex  = @(Get-ChildItem "$dest\FFTIVC\data\enhanced\ui\ffto\icon" -Filter *.tex -Recurse -ErrorAction SilentlyContinue)
     if ($tex.Count -lt 1) { $errs += "no .tex icon files deployed" }
 
-    # CONTENT parity, not just presence (LW-297). Every check above this line answers
+    # CONTENT parity, not just presence. Every check above this line answers
     # "does a file exist here", which is how a green "Deployed 468 icons" line came to sit
     # over a three-day-stale install. Hash the deployed data tree against the repo tree it
     # was staged from: any missing or byte-differing file fails the deploy RED. Files
@@ -270,7 +276,7 @@ catch {
 finally {
     # Report the pre-deploy log scan LAST (captured before the [3/5] wipe), so a dirty prior
     # session is the final thing on screen instead of buried under the deploy output. Prints on
-    # both the success and the failure path. Non-blocking by design (LW-54): a report, not a gate.
+    # both the success and the failure path. Non-blocking by design: a report, not a gate.
     if ($null -ne $scanExit) {
         Write-Host "`n---- Previous session's log scan (LW-54) ----" -ForegroundColor Cyan
         switch ($scanExit) {
@@ -281,7 +287,7 @@ finally {
                     # scan_logs.py --quiet prints nothing on a clean scan and ONLY [FAIL] lines on a
                     # real finding, so a nonzero exit with an EMPTY capture means the scanner itself
                     # crashed (a Python exception, a bad flag) rather than found a runtime error --
-                    # its own message went to stderr, above this block, not into $scanFindings. LW-148:
+                    # its own message went to stderr, above this block, not into $scanFindings. Earlier
                     # this used to get mislabeled as "RUNTIME ERRORS in the session you just played",
                     # which sends you hunting through gameplay for a bug that was actually in the
                     # scanner's own process.

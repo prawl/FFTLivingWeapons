@@ -207,7 +207,7 @@ public class CardScannerFindKillsTests
     [Fact]
     public void FindKills_slot_validation_accepts_the_dash_scaffold()
     {
-        // LW-311: the baked placeholder is neutral dashes, not "0/5", so an unpainted card's
+        // The baked placeholder is neutral dashes, not "0/5", so an unpainted card's
         // slot must still pass admission or the counter never paints after a cold boot.
         var meta = CardScannerFixtures.BuildMetaMap((1, "Sword", "Sharp"));
         var pats = new CardPatterns(meta);

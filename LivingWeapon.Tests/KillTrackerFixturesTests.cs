@@ -4,7 +4,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-160 load-bearing pin. KillTrackerFixtures.cs folds the seeding-helper family the nine
+/// Load-bearing pin. KillTrackerFixtures.cs folds the seeding-helper family the nine
 /// KillTracker.Poll-driving suites (KillTrackerTests, KillTrackerStampTests, KillTrackerDeedTests,
 /// KillCreditCoverageTests, CounterAttributionTests, DelayedActorTests, CrossTurnSummonTests,
 /// SummonerAttributionTests, VictimProbeTests) each hand-copied under the now-retired per-file
@@ -22,7 +22,7 @@ namespace LivingWeapon.Tests;
 /// variant deltas (team hardcoded 0, CounterAttribution's reordered acted/team, the narrower
 /// SetRoster shapes) reduce to identical writes through equal defaults and all-named call sites;
 /// that reduction is re-derived by independent audit (two auditors hashed every pre-fold body and
-/// parsed every call site during LW-160's verify pass), not pinned here.
+/// parsed every call site during the verify pass), not pinned here.
 ///
 /// Settle and AliveThenDead are deliberately NOT pinned here: they write no memory of their own
 /// (Settle is n Poll(true) calls; AliveThenDead composes SetEnemy/SetUnit/Settle, all pinned or
@@ -158,7 +158,7 @@ public class KillTrackerFixturesTests
         var oldMem = new FakeSparseMemory();
         var newMem = new FakeSparseMemory();
 
-        // The EnemySlotMax boundary itself. LW-160's sabotage audit proved a one-character
+        // The EnemySlotMax boundary itself. the sabotage audit proved a one-character
         // drift of the branch bound (<= to <) was invisible to the interior/exterior pins AND
         // to the full suite (no consumer seeds an enemy above slot 15), so the boundary slot
         // gets its own pin: under a narrowed bound the fixture skips the identity capture here

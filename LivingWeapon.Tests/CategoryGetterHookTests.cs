@@ -3,7 +3,7 @@ using Xunit;
 
 namespace LivingWeapon.Tests;
 
-/// <summary>LW-346 S2: the category getter detour's pure decision and its arm landmark.</summary>
+/// <summary>The category getter detour's pure decision and its arm landmark.</summary>
 public class CategoryGetterHookTests
 {
     private static readonly int[] Donors = { 37, 67 };

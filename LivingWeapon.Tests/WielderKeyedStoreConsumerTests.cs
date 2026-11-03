@@ -6,7 +6,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-252 stage 5, Part D: consumer edge tests pinning the REASON WielderKeyedStore's law
+/// Part D: consumer edge tests pinning the REASON WielderKeyedStore's law
 /// exists -- each one reproduces the exact hazard the store's resolution law (see its class doc)
 /// is built to close. D4 (Iai_seeded_fp_twins...) is the stage's headline red: master shares one
 /// HoldState between two seeded fp-twins; this stage closes it. D5 pins the deliberate mixed-pair
@@ -211,7 +211,7 @@ public class WielderKeyedStoreConsumerTests
     [Fact]
     public void Iai_seeded_fp_twins_get_independent_hold_states()
     {
-        // [LW-252 D4, THE HEADLINE RED] Two roster rows share the SAME (level,brave,faith) but
+        // [THE HEADLINE RED] Two roster rows share the SAME (level,brave,faith) but
         // carry DISTINCT seeded nameIds. Master: both collide on the fp-keyed _holds dictionary
         // -- whichever wielder's tick runs first (roster order: A) captures NaturalSpeed into
         // the SHARED HoldState, so B's hold target is computed from A's natural (8), not its own
@@ -227,7 +227,7 @@ public class WielderKeyedStoreConsumerTests
     [Fact]
     public void Iai_nameId_zero_pair_shares_one_hold_state_matching_todays_behavior()
     {
-        // [LW-252 D5, parity] Two genuinely-unseeded (nameId 0) wielders sharing a fingerprint,
+        // [Parity] Two genuinely-unseeded (nameId 0) wielders sharing a fingerprint,
         // staggered so they are never SIMULTANEOUSLY band-resolvable (two real-position same-
         // weapon-same-fp entries at once is an unrelated, pre-existing Wielder.Locate ambiguity
         // refusal -- D4's build avoids it via nameId; this test avoids it by having A leave

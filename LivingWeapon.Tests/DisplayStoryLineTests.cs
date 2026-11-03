@@ -14,7 +14,7 @@ namespace LivingWeapon.Tests;
 /// sites verified via the OLD (now "previous") line must NOT be evicted when a kill rotates the
 /// composed line -- reverting CardSites.AnchorIsLive to baked-only fails this by eviction
 /// (frozen Kills counters), which is exactly the bug the three-way anchor exists to prevent.
-/// LW-147: TempDir() directories are tracked and deleted in Dispose, not leaked.
+/// TempDir directories are tracked and deleted in Dispose, not leaked.
 /// </summary>
 public class DisplayStoryLineTests : IDisposable
 {

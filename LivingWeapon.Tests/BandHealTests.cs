@@ -4,10 +4,10 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// BandHeal (LW-149 stage G): the shared band-entry HP-heal core promoted out of the former
+/// BandHeal (stage G): the shared band-entry HP-heal core promoted out of the former
 /// LifeSap.Policy.cs so Benediction/Renewal/SpiritualFont stop borrowing one signature's name
 /// for a cross-cutting mechanic. The dormant LifeSap module and its one-line forwards were
-/// deleted in LW-159 (the forward-agreement non-vacuity tests died with them); this suite is
+/// deleted (the forward-agreement non-vacuity tests died with them); this suite is
 /// now the sole pin of BandHeal's own contract -- heal sizing, the never-revive clamp, and the
 /// guarded little-endian HP write.
 /// </summary>
@@ -54,7 +54,7 @@ public class BandHealTests
     [Fact]
     public void WriteHp_crossing_the_255_256_boundary_lands_as_one_16bit_write_never_two_torn_halves()
     {
-        // The LW-145 fix 2 regression: one W16 call, never two separate W8 halves that could
+        // Fix 2 regression: one W16 call, never two separate W8 halves that could
         // expose a torn intermediate value to the game's own threads.
         var mem = new FakeSparseMemory();
         long entryAddr = 0x5000;

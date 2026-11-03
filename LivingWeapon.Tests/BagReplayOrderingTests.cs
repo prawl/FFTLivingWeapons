@@ -8,15 +8,15 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-351 fix rounds 4 and 5: what the mod has to put back the instant a save finishes loading.
+/// Fix rounds 4 and 5: what the mod has to put back the instant a save finishes loading.
 ///
-/// Round 4 (the owner's re-test 4, 2026-08-30) established the first half: the load routine copies
+/// Established the first half: the load routine copies
 /// the save file's bag over the game's count array and that file carries ids 0..260, so every
 /// extended id reads zero the moment the load returns and every menu that asks whether the player
 /// owns one answers no. The replay therefore also runs inside the load detour, on the game's own
 /// thread, right after the original returns, with the tick as an idempotent fallback.
 ///
-/// Round 5 corrected round 4's explanation of WHY that was not enough. Re-test 5 replayed three
+/// A later re-test corrected the explanation of WHY that was not enough. It replayed three
 /// Terrastaffs before the game could look and the item was still in neither equip menu; the
 /// closing disassembly showed the menu order templates are not rebuilt from the item data during a
 /// load at all: the same load routine RESTORES both byte-for-byte out of the save struct, and
@@ -68,14 +68,14 @@ public class BagReplayOrderingTests : IDisposable
         public SaveEdgeHooks Hooks = null!;
         public string SidecarPath = "";
 
-        // LW-368 round 2: reads through Inv.BagCountBase (the relocated page once armed),
+        // Reads through Inv.BagCountBase (the relocated page once armed),
         // not the vanilla constant -- the world always builds an armed inventory.
         public int Bag(int id) => Image.Bytes[Inv.BagCountBase + id];
         public Dictionary<int, int> BagState() => Inv.Items.ToDictionary(i => i.Id, i => Bag(i.Id));
 
         /// <summary>The game just applied a loaded save: the bag now holds the file's counts,
         /// which carry nothing for the extended ids. <paramref name="detour"/> false is the
-        /// pre-round-4 order (the edge is only published; the tick does all the work).</summary>
+        /// older order (the edge is only published; the tick does all the work).</summary>
         public void GameApplied(byte[] header, bool detour)
         {
             foreach (var it in Inv.Items) Image.Seed(Inv.BagCountBase + it.Id, 0);
@@ -87,10 +87,10 @@ public class BagReplayOrderingTests : IDisposable
 
         public void Tick() => Inv.StepBagSidecar(new FakeSparseMemory());
 
-        /// <summary>Round 5: give both weapon order templates a table of their own, holding
+        /// <summary>Give both weapon order templates a table of their own, holding
         /// <paramref name="words"/> and then the 0x00FF end marker. Without this the fake image
         /// has no template regions at all, the guarded read fails and the seat is a silent no-op
-        /// (which is what keeps the round-4 tests above counting bag writes only). LW-371: seeds
+        /// (which is what keeps the earlier pass tests above counting bag writes only). Seeds
         /// the EFFECTIVE regions (<see cref="ExtendedInventory.TemplateRegions"/>) -- once the
         /// world's inventory is armed those are the relocated page's regions, not the vanilla
         /// tables, because Install already copied the (empty) vanilla charts onto the page and
@@ -118,7 +118,7 @@ public class BagReplayOrderingTests : IDisposable
         }
 
         /// <summary>Writes that landed inside either order template (the bag writes are elsewhere).
-        /// LW-371: the EFFECTIVE regions (see <see cref="SeedTemplates"/>).</summary>
+        /// The EFFECTIVE regions (see <see cref="SeedTemplates"/>).</summary>
         public int SeatWrites() => Image.Writes.Count(x =>
             Inv.TemplateRegions.Any(r => x.Addr >= r.Addr && x.Addr < r.Addr + r.CapacityWords * 2));
     }
@@ -129,7 +129,7 @@ public class BagReplayOrderingTests : IDisposable
         if (sidecarFile != null) File.WriteAllText(path, sidecarFile);
         var f = ExtendedInventoryTests.VanillaImage();
         var sidecar = ExtendedBagSidecar.Load(path);
-        // LW-368 round 2: the list relocation is now the FIRST allocator grant inside Install
+        // The list relocation is now the FIRST allocator grant inside Install
         // (D3: patches -> relocation -> catalog -> shops -> clones), so the catalog buffer and
         // every thunk stub land one grant later than before this round; nothing here asserts a
         // specific FakeNearAllocator address, so the shift needs no other change.
@@ -138,7 +138,7 @@ public class BagReplayOrderingTests : IDisposable
         inv.BootArm(null);
         Assert.True(inv.Armed, inv.Refusal);
         var hooks = new SaveEdgeHooks(f, inv.Tracker, inv.Items.Select(i => i.Id).ToList(), inv.ReplayOnLoad, inv.BagCountBase);
-        // LW-371: BootArm itself now writes the (readable, valid) page regions TemplateRegions
+        // BootArm itself now writes the (readable, valid) page regions TemplateRegions
         // resolves to -- every test below reads Image.Writes to see what a LOAD edge did, not what
         // arming did, so the boot-time writes (the bag seed included, pre-existing) are cleared
         // here rather than in each test.
@@ -148,7 +148,7 @@ public class BagReplayOrderingTests : IDisposable
 
     private static int Lines(LogCapture cap, string needle) => cap.File.Count(l => l.Contains(needle));
 
-    /// <summary>THE round-4 ordering test (R4-3b). The counts must already be in the bag when
+    /// <summary>THE ordering test. The counts must already be in the bag when
     /// AfterApply returns: the routine it wraps has just overwritten the bag from the save file,
     /// and the menus qualify an item on its bag count, so the tick's window must not be the first
     /// time an extended id is owned again.</summary>
@@ -171,7 +171,7 @@ public class BagReplayOrderingTests : IDisposable
         Assert.Equal(1, Lines(cap, "A save was loaded"));
     }
 
-    /// <summary>(R4-3a) The detour runs the SAME policy the tick has always run: for every way a
+    /// <summary>The detour runs the SAME policy the tick has always run: for every way a
     /// key can resolve (a recorded save, an unknown save, the schema-1 one-shot migration) the bag
     /// ends up identical whether the replay came from the tick alone or from the detour plus the
     /// tick. The migration row is the one a naive second resolve gets wrong: it would spend the
@@ -205,7 +205,7 @@ public class BagReplayOrderingTests : IDisposable
         }
     }
 
-    /// <summary>(R4-3c) Detour then tick is one replay between them: the same state, ONE "a save
+    /// <summary>Detour then tick is one replay between them: the same state, ONE "a save
     /// was loaded" line (the tick's), and the schema-1 migration spent exactly once.</summary>
     [Fact]
     public void The_detour_and_the_tick_replay_once_between_them()
@@ -232,7 +232,7 @@ public class BagReplayOrderingTests : IDisposable
         Assert.Null(ExtendedBagSidecar.Load(w.SidecarPath).TakeLegacy());
     }
 
-    /// <summary>(R4-3d) An unknown save still gets the data seed, once: the detour places it, the
+    /// <summary>An unknown save still gets the data seed, once: the detour places it, the
     /// tick's fallback re-places the same byte, and the log names the seed one time.</summary>
     [Fact]
     public void An_unknown_save_still_gets_the_first_copy_seed_once()
@@ -243,7 +243,7 @@ public class BagReplayOrderingTests : IDisposable
         w.GameApplied(SaveEdgeTrackerTests.Header(4242), detour: true);
         Assert.Single(w.Image.Writes.Where(x => x.Addr == w.Inv.BagCountBase + Terra));
         // The N extended bag bytes (2: Moon's seed count 1, Terra's seed count 0) plus the
-        // round-5 seat's own writes: LW-371, this world never called SeedTemplates, but the page
+        // seat's own writes. This world never called SeedTemplates, but the page
         // NewWorld's boot arm already filled (an empty chart, marker-only) is readable either way,
         // so the seat's guarded read succeeds -- Moon (seed count 1) is owned and gets seated into
         // both order-template regions, one write each.
@@ -256,12 +256,12 @@ public class BagReplayOrderingTests : IDisposable
         var writes = w.Image.Writes.Where(x => x.Addr == w.Inv.BagCountBase + Terra).ToList();
         Assert.Equal(2, writes.Count);                        // the detour's, then the fallback's
         Assert.All(writes, x => Assert.Equal(0, x.Data[0]));   // the seed both times, never a stale count
-        Assert.Equal(2, w.SeatWrites());                       // round 8c: the tick does not seat again
+        Assert.Equal(2, w.SeatWrites());                       // The tick does not seat again
         Assert.Equal(1, w.Bag(Moon));
         Assert.Equal(1, Lines(cap, "first-copy seed"));
     }
 
-    /// <summary>(R5-2) THE round-5 ordering test. The two order templates are save state: the
+    /// <summary>THE order template test. The two order templates are save state: the
     /// routine this detour wraps has just restored both out of the save struct, and the owner's
     /// saves were all written before an extended id was ever in one. So the seat has to happen
     /// here, after that restore, and it has to be done by the time the detour returns, before the
@@ -289,7 +289,7 @@ public class BagReplayOrderingTests : IDisposable
             Assert.Equal(new ushort[] { 1, 2, 3, Terra, TemplateSeat.EndMarker }, w.TemplateWords(r.Addr, 5));
     }
 
-    /// <summary>Round 8c (verifier V8b-2): the detour heals BOTH templates but must not log on
+    /// <summary>The detour heals BOTH templates but must not log on
     /// the game's thread, so it hands its notes to the tick; a second note must not overwrite the
     /// first, or the log names only the picker when the inventory table was healed too.</summary>
     [Fact]
@@ -312,7 +312,7 @@ public class BagReplayOrderingTests : IDisposable
         Assert.Contains("equip-picker order template", healed[0]);
     }
 
-    /// <summary>Round 8c (verifier V8b-3): once the detour has replayed and seated on the game's
+    /// <summary>Once the detour has replayed and seated on the game's
     /// own thread, the tick must not touch the templates again from the engine thread (a whole-
     /// table rewrite racing the game's maintainer mid-shift would clobber it). The tick's own
     /// seat stays only for the load edge the detour did not serve.</summary>
@@ -345,7 +345,7 @@ public class BagReplayOrderingTests : IDisposable
             Assert.Equal(new ushort[] { 1, 7, Terra, TemplateSeat.EndMarker }, alone.TemplateWords(r.Addr, 4));
     }
 
-    /// <summary>Round 8d (verifier finding 5 on round 8c): the tick no longer re-runs the seat when
+    /// <summary>The tick no longer re-runs the seat when
     /// the detour served the load, so a refusal the detour met (a table with no end marker and no
     /// empty word, no room, a refused write) must travel to the tick the way the repair notes do,
     /// or the one warning that tells the owner his menus may be short is never written.</summary>
@@ -356,7 +356,7 @@ public class BagReplayOrderingTests : IDisposable
         var w = NewWorld("refused");
         w.SeedTemplates(1, 2, 3);
         // The picker table: filled with nonzero words and no 0x00FF anywhere -- the one shape the
-        // repair refuses to guess at. LW-371: at 511 words the low byte (i + 1) wraps every 256
+        // repair refuses to guess at. At 511 words the low byte (i + 1) wraps every 256
         // entries, so the words are NOT all distinct any more; that doesn't matter here, only the
         // refusal shape does (the fixed high byte 0x01 keeps every word off both 0x0000 and 0x00FF).
         var picker = w.Inv.TemplateRegions[1];
@@ -388,7 +388,7 @@ public class BagReplayOrderingTests : IDisposable
         Assert.Equal(0, Lines(quiet, "may not be listed"));
     }
 
-    /// <summary>THE negative (T-R3-5's vanilla semantics): a template lists items the player owns.
+    /// <summary>THE negative (vanilla semantics): a template lists items the player owns.
     /// An extended item with an empty bag count stays out of both templates, exactly as a vanilla
     /// item the player has none of does.</summary>
     [Fact]
@@ -408,7 +408,7 @@ public class BagReplayOrderingTests : IDisposable
     }
 
     /// <summary>The tick alone still seats: a load edge that reached the tracker without the
-    /// detour (the pre-round-4 order, and the path every older test drives) ends in the same
+    /// detour (the older order, and the path every older test drives) ends in the same
     /// tables, and the tick is the half that says so in the log.</summary>
     [Fact]
     public void The_tick_seats_the_templates_too_when_it_is_the_only_path_that_ran()
@@ -436,7 +436,7 @@ public class BagReplayOrderingTests : IDisposable
     public void An_unarmed_inventory_writes_nothing_on_a_load_edge()
     {
         var f = ExtendedInventoryTests.VanillaImage();
-        // LW-397: the PE key no longer gates the arm, so the inventory is kept unarmed by a moved
+        // The PE key no longer gates the arm, so the inventory is kept unarmed by a moved
         // first boot site (old byte 07 instead of the expected one). That refuses BEFORE any write,
         // which a late hooks refusal would not (it writes, then rolls back).
         f.Seed(ExtendedSites.BootPatches(1)[0].Addr, 0x07);
@@ -483,7 +483,7 @@ public class BagReplayOrderingTests : IDisposable
         Assert.Null(reloaded.TakeLegacy());
     }
 
-    /// <summary>LW-368 round 2 (T11): BagReplay.Apply writes through whatever base it is handed,
+    /// <summary>BagReplay.Apply writes through whatever base it is handed,
     /// never a hardcoded constant -- the base is a required parameter precisely so a caller can
     /// never forget it.</summary>
     [Fact]

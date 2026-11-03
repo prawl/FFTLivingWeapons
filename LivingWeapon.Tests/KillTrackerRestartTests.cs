@@ -7,7 +7,7 @@ using static LivingWeapon.Tests.KillTrackerFixtures;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-233: KillTracker.Corpses.cs's RestartSentinel wiring, driven end-to-end through
+/// KillTracker.Corpses.cs's RestartSentinel wiring, driven end-to-end through
 /// KillTracker.Poll against a FakeSparseMemory -- the tape-shape tests from the plan's TDD list
 /// (items 2-9). RestartSentinelTests.cs/RestartSentinelPolicyTests.cs cover the sentinel in
 /// isolation; ActorRegisterTests.cs covers RawNullThisTick. Reuses KillTrackerTests' fixture
@@ -58,7 +58,7 @@ public class KillTrackerRestartTests
     // ---- test 2: LOAD-BEARING retry-A tape shape (the REAL 0ms null-revive join) ----
 
     /// <summary>
-    /// LW-233 fix (verifier-caught): retry A's REAL tape is a 0ms join -- the raw null and the
+    /// Fix: retry A's REAL tape is a 0ms join -- the raw null and the
     /// credited corpses' alive-again read land on the SAME tick. THE MECHANISM DETAIL that makes
     /// this dangerous: a REVIVE (a slot that was previously seenAlive, then died) is recognized
     /// IMMEDIATELY, on the very first tick hp reads positive again -- _seenAlive/_aliveStreak are
@@ -118,7 +118,7 @@ public class KillTrackerRestartTests
         Assert.Equal(1, kills.GetValueOrDefault(weapon));   // credits once, at the right count
     }
 
-    /// <summary>The negative twin (verifier-requested): a 1-tick null FLICKER that coincides with
+    /// <summary>The negative twin: a 1-tick null FLICKER that coincides with
     /// a revive but breaks before ever qualifying must produce ZERO uncredits -- the deferred-
     /// verdict stash exists to WAIT for qualification, not to assume it. A real Raise never has an
     /// active null streak at all, so this also stands in for "the flicker never happened" byte-
@@ -500,10 +500,10 @@ public class KillTrackerRestartTests
         Assert.Equal(2, kills.GetValueOrDefault(weapon));   // C and D untouched, E reversed
     }
 
-    // ---- small verifier-flagged item: a suppressed credit must not burn a live delayed-culprit arm ----
+    // ---- small item: a suppressed credit must not burn a live delayed-culprit arm ----
 
     /// <summary>
-    /// LW-233 (verifier-flagged residual, now closed by a peek-before-consume reorder in
+    /// A residual (review-flagged, now closed by a peek-before-consume reorder in
     /// ResolveCredit, KillTracker.Corpses.cs): when the restart latch suppresses a fresh dead-edge
     /// to pending, a delayed/charged culprit (Jump/spellcast) that is currently armed must survive
     /// the tick untouched. ConsumeDelayedCulprit's "first credit wins" semantics would otherwise
@@ -662,7 +662,7 @@ public class KillTrackerRestartTests
         Assert.Single(bt._queue);   // toasts again -- the snapshot followed the tally back down
     }
 
-    // ---- FINDING 1 (2026-08-17 verifier correction): the CreditKill<->PresentRevive seam had
+    // ---- FINDING 1 (2026-08-17 review correction): the CreditKill<->PresentRevive seam had
     // ZERO coverage -- every existing end-to-end test above pre-rolls AdvanceTicks(t, 200), which
     // clears the sentinel's own battle-age grace on its own, so identity is never load-bearing in
     // any of them (grace alone already opens the latch). The four tests below deliberately DO NOT

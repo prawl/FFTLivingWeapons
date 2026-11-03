@@ -9,13 +9,13 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-53 end-to-end: the one seam no existing test exercises. Every LaunchGuardTests test above
+/// End-to-end: the one seam no existing test exercises. Every LaunchGuardTests test above
 /// captures the recorder/requestFlush delegates directly (fake, isolated); every FlightRecorderTests
 /// test drives the FlightRecorder instance directly. This file wires a REAL Flight facade
 /// (Flight.Init) and a REAL FileConsoleLogger (fake sinks, mirroring CounterAttributionTests'
 /// ModLogger.Instance swap-and-restore) through a REAL LaunchGuard construction, proving a
 /// fingerprint-guard stand-down actually leaves a durable flight_*_standdown.jsonl archive.
-/// LW-147: TempDir() directories are tracked and deleted in Dispose, not leaked.
+/// TempDir directories are tracked and deleted in Dispose, not leaked.
 /// </summary>
 public class StandDownFlightArchiveTests : IDisposable
 {

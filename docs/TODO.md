@@ -14,7 +14,7 @@ the technical detail lives in the indented lines under it.
 
 Locked 2026-10-24: LW-465, LW-508, LW-506, LW-448, LW-459, LW-513, LW-444, LW-386, LW-409, LW-195, LW-172, LW-234, LW-450, LW-514, LW-457, LW-511, LW-326, LW-296, LW-360, LW-191, LW-435, LW-396, LW-344 (every card parked at the top of Backlog on 2026-11-02 for the quality pause; they come back here first)
 
-- **[LW-555] Take the shared rulebook so this mod builds under the same rules as the others** (opened 2026-11-02) [QUEUED]
+- **[LW-555] Take the shared rulebook so this mod builds under the same rules as the others** (opened 2026-11-02) [BUILDING]
   - Done means: the mod carries gates/ as a subtree with its rules.json, compiles the shared logger
     and tests in, imports the shared build settings and style file, and every gate runs green
     locally and in CI with today's numbers recorded as the floor. No gameplay code changes. (Tech:

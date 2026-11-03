@@ -1,10 +1,10 @@
 using System;
 
-namespace LivingWeapon;
+namespace ModGates.Logging;
 
 /// <summary>
-/// Closed glossary of event verbs for log lines. docs/LOGGING.md carries a matching verb
-/// table, and LogContractTests keeps the two in lockstep. New subsystems reuse a verb.
+/// Every verb a log line may carry. The set is closed, and the table in docs/LOGGING.md lists
+/// the same verbs, so a new subsystem reuses one of these.
 /// </summary>
 internal enum LogVerb
 {
@@ -27,7 +27,7 @@ internal enum LogVerb
     Trace,
 }
 
-/// <summary>Enum member to the kebab-case bracket token used in log lines and docs/LOGGING.md.</summary>
+/// <summary>The bracket token each verb renders as.</summary>
 internal static class LogVerbToken
 {
     public static string Token(this LogVerb verb) => verb switch
@@ -49,6 +49,6 @@ internal static class LogVerbToken
         LogVerb.Turn => "turn",
         LogVerb.Engine => "engine",
         LogVerb.Trace => "trace",
-        _ => throw new ArgumentOutOfRangeException(nameof(verb), verb, "unmapped LogVerb: add it to both the enum's Token() switch and docs/LOGGING.md's verb table"),
+        _ => throw new ArgumentOutOfRangeException(nameof(verb), verb, "unmapped LogVerb"),
     };
 }

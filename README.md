@@ -155,9 +155,14 @@ Both scripts refuse to deploy or package on any red step. Beyond the item gate a
 glow ring gate runs every time. `python tools/bake_glow_icons.py verify` checks the 726 committed ring
 files against `glow_icons/manifest.json`, and each manifest row carries a fingerprint of the plain icon
 plus that weapon's rim recipe, so a recipe edit or a hand edited manifest stays red until the weapon is
-rebaked. Two style gates run every time as well. `dotnet format` must have nothing to change, and the comment budget test
-keeps comments short, one comment line per three code lines for a new file, no block over eight lines,
-no colon or dash inside a comment sentence, and no comment that argues instead of informs.
+rebaked. The code quality gates come from the shared rulebook vendored under `gates/`
+([prawl/FFTModGates](https://github.com/prawl/FFTModGates)) and run every time as well. The copy of
+the rulebook must match what was published, `dotnet format` must have nothing to change, the shared
+contract tests run inside the xUnit suite (the work ledger, the logging rules, the address tripwire,
+the comment budget, the style file), and the code health ratchet refuses a build that makes any
+measure in `docs/health` worse than the committed floor. Comments stay short, one comment line per
+three code lines for a new file, no block over eight lines, no colon or dash inside a comment
+sentence, and no comment that argues instead of informs.
 
 What the package carries.
 

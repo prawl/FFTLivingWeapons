@@ -241,7 +241,7 @@ public class CardPatternsTests
     [Fact]
     public void Grows_line_round_trips_both_encodings()
     {
-        // LW-332: Entry gains a Grows pattern (encoded from WeaponMeta.GrowsLine) alongside
+        // Entry gains a Grows pattern (encoded from WeaponMeta.GrowsLine) alongside
         // Name/Flavor, the same way Flavor itself is encoded.
         const string growsLine = "<color=30>Grows: Physical Attack.</color>";
         var meta = new Dictionary<int, WeaponMeta>

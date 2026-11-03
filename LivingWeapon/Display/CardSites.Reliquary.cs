@@ -23,7 +23,7 @@ internal sealed partial class CardSites
         byte[]? current = _anchors!.CurrentFor(s.Id, s.Enc);
         if (current == null || current.Length == 0) return;
         if (!_mem.TryReadBytes(s.AnchorAddr, current.Length, out var cur)) return;
-        if (ByteEq(cur, current)) return;   // skip-if-equal -- already showing the current line
+        if (ByteEq(cur, current)) return;   // skip if equal, already showing the current line
         if (!_mem.Writable(s.AnchorAddr, current.Length)) return;
         _mem.WriteBytes(s.AnchorAddr, current);
         ModLogger.Debug(LogVerb.Display, $"repainted the story line to the current composed text (weapon {s.Id}, encoding {s.Enc})");

@@ -5,7 +5,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-317 stage 2: the two new hold kinds Routes' multi-lane tokens dispatch to
+/// The two new hold kinds Routes' multi-lane tokens dispatch to
 /// (GrowthEngine.Lanes.cs) -- HoldFlatCapped (the "pa+ma+brave" katana Brave hold and the
 /// "wp+faith" magic-gun Faith hold) and HoldU16 (the "hp" Knight Sword MaxHp hold). Driven
 /// against FakeSparseMemory directly (the GrowthEngineTests.cs precedent for hold-machinery
@@ -158,9 +158,9 @@ public class GrowthEngineLanesTests
     [Fact]
     public void HoldU16_RestartResidue_FilteredByWriteRecord()
     {
-        // Decision 3 (LW-317 plan) accepted a restart-residue compounding consequence for HoldU16
+        // Decision 3 (the lane plan) accepted a restart-residue compounding consequence for HoldU16
         // sans NaturalLedger, on the theory that it was battle-scoped and self-correcting. That
-        // acceptance was OVERTURNED 2026-08-26 (LW-330): owner-witnessed live play showed the
+        // acceptance was OVERTURNED 2026-08-26: owner-witnessed live play showed the
         // pre-battle transition firing SEVERAL full enter/exit cycles before the real fight; each
         // exit cleared _appliedU16 while the WRITTEN max persisted in game memory across them, so
         // the next capture read the prior target as natural and compounded toward the ceiling
@@ -328,7 +328,7 @@ public class GrowthEngineLanesTests
     public void HoldU16_NameIdZero_FilterDisabled()
     {
         // No roster identity to key the write record on: the filter is disabled and the
-        // pre-LW-330 compounding behavior is preserved exactly (accepted -- nameId <= 0 means
+        // earlier compounding behavior is preserved exactly (accepted -- nameId <= 0 means
         // there is nothing to key the record on, matching decision 3's original acceptance for
         // the identity-less case).
         var mem = new FakeSparseMemory();
@@ -345,7 +345,7 @@ public class GrowthEngineLanesTests
         Assert.Equal((ushort)999, mem.U16s[addr]);   // 910 * 1.30 = 1183 -> the ceiling still bites; compounds
     }
 
-    // ================= HoldU16 current-HP top-up (LW-327) =================
+    // ================= HoldU16 current-HP top-up =================
     // At the FIRST CAPTURE only, HoldU16 also raises current HP by the same delta the max rose,
     // so a knight opens the battle reading the grown HP instead of hurt (679/883, not 679/883
     // held-but-679-shown). Never on the per-turn re-apply or retarget branches, never past the
@@ -500,7 +500,7 @@ public class GrowthEngineLanesTests
         Assert.False(mem.WrittenU16.ContainsKey(hpAddr));
     }
 
-    // ================= HoldU16 top-up as a PENDING INTENT (LW-330 stage 2) =================
+    // ================= HoldU16 top-up as a PENDING INTENT =================
     // Tonight's live failure (owner-witnessed 2026-08-26): the pre-battle transition's capture
     // top-up worked, the game then tore the transient struct back to natural, and the REAL
     // battle's genuine capture ran at an instant when the freshly-built struct's current-HP
@@ -618,7 +618,7 @@ public class GrowthEngineLanesTests
         Assert.Equal((ushort)906, mem.U16s[hpAddr]);
     }
 
-    // ================= LW-416: the game refills the unit more than once before anyone acts =================
+    // ================= The game refills the unit more than once before anyone acts =================
 
     private static (FakeSparseMemory mem, long maxAddr, long hpAddr) Seat(long baseAddr)
     {
@@ -707,7 +707,7 @@ public class GrowthEngineLanesTests
 
         Assert.Equal((ushort)883, mem.U16s[maxAddr]);
         Assert.Equal((ushort)679, mem.U16s[hpAddr]);
-        Assert.Equal(1, HpWrites(mem, hpAddr));   // the LW-327 rule at the window edge
+        Assert.Equal(1, HpWrites(mem, hpAddr));   // Rule at the window edge
     }
 
     [Fact]
@@ -731,7 +731,7 @@ public class GrowthEngineLanesTests
         Assert.Equal(1, HpWrites(mem, hpAddr));
     }
 
-    // Regression guard for the existing LW-327 retry path, it passes without the LW-416 change.
+    // Regression guard for the existing retry path, it passes without the change.
     [Fact]
     public void HoldU16_TopUp_RefillWhileStillPending_DeliversOnce()
     {

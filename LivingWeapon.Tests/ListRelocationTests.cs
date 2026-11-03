@@ -9,11 +9,11 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-368 round 2 / round 2b: <see cref="ListRelocation"/>'s 55-field install/restore transaction
+/// <see cref="ListRelocation"/>'s 55-field install/restore transaction
 /// and the hidden-writer tripwire, over the fakes. T1 is load-bearing and deliberately never
 /// calls <see cref="ListRelocation.NewField"/>/<see cref="ListRelocation.Encode"/> for its
 /// expected values -- it re-derives them from the raw D6 formulas so a bug shared between
-/// production and the test cannot hide. Round 2b added ten interior sites (the new-game
+/// production and the test cannot hide. A later pass added ten interior sites (the new-game
 /// starting-inventory seed the owner's live pass caught missing) and the tripwire's list-proper
 /// window (it must not watch the live state dword at old-block +0x108).
 /// </summary>
@@ -122,7 +122,7 @@ public class ListRelocationTests
             Assert.Equal(0, site.Off);
         }
 
-        // Round 2b (LW-368): the ten interior new-game-seed sites are the only rows the probe
+        // The ten interior new-game-seed sites are the only rows the probe
         // record does not carry -- they were found by the owner's live pass AFTER the probe ran,
         // never by the sweep the probe recorded. Each one targets a nonzero interior offset.
         var extra = ListRelocation.Sites.Where(s => !probeAddrs.Contains(s.Addr)).ToList();
@@ -270,7 +270,7 @@ public class ListRelocationTests
     [Fact]
     public void A_page_out_of_int32_reach_refuses_with_nothing_written()
     {
-        // D6/REACH (v2.4, verifier finding b1): the allocator's window is 2 GB around the image
+        // D6/REACH (v2.4, review finding b1): the allocator's window is 2 GB around the image
         // base, but the FIRST free region inside that window can sit anywhere -- including more
         // than 2 GB below every site and below ImageBase.Base. A page granted there would
         // silently truncate every field's (int) distance into garbage without this check.
@@ -303,7 +303,7 @@ public class ListRelocationTests
         Assert.Equal(1, fires);
     }
 
-    /// <summary>Round 2b: bytes +0x105..+0x10F of each 0x110-byte old block are NOT list data --
+    /// <summary>Bytes +0x105.+0x10F of each 0x110-byte old block are NOT list data --
     /// +0x108 is a live game state dword (read live 2026-08-31) the tripwire must never watch, or
     /// the dword's own ordinary churn would false-fire "something still writes the old block"
     /// forever. Covers both the count block and its sibling.</summary>

@@ -6,7 +6,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-34: the once-per-battle "All N enemies are accounted for" line must count enemies actually
+/// The once-per-battle "All N enemies are accounted for" line must count enemies actually
 /// FIELDED this battle, not every phantom identity the encounter's static array defines. These
 /// tests lock in the fix: EnemyOracle gains two additive evidence sets (MarkFielded, MarkDead);
 /// CheckCoverage counts only evidenced identities and latches only on two consecutive agreeing
@@ -60,7 +60,7 @@ public class EnemyOracleTests
 
     /// <summary>Swap ModLogger to an injected-sink FileConsoleLogger for the duration of
     /// <paramref name="body"/>, capturing both sinks, then restore the prior logger -- the shared
-    /// LogCapture scope (LW-157) carries the ritual; this wrapper keeps the call sites' lambda
+    /// LogCapture scope carries the ritual; this wrapper keeps the call sites' lambda
     /// shape.</summary>
     private static (List<string> console, List<string> file) CaptureLog(System.Action body)
     {
@@ -259,7 +259,7 @@ public class EnemyOracleTests
     }
 
     // ---------------------------------------------------------------------------------------
-    // (f) Raw-flag discipline: a turn-flag byte reading 3 is NOT evidence (== 1 exactly, LW-63).
+    // (f) Raw-flag discipline: a turn-flag byte reading 3 is NOT evidence (== 1 exactly).
     // ---------------------------------------------------------------------------------------
 
     [Fact]
@@ -462,7 +462,7 @@ public class EnemyOracleTests
     }
 
     // ---------------------------------------------------------------------------------------
-    // (m) LW-75: the armed latch usually rises AFTER the success line latches (live-measured
+    // (m) The armed latch usually rises AFTER the success line latches (live-measured
     // 97s late, 2026-07-11); a demoted line must be remembered and pushed to the console once
     // when the armed latch later rises in the same battle.
     // ---------------------------------------------------------------------------------------

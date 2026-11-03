@@ -5,7 +5,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-92: Plague's exact-match victim fingerprint (mhp, lvl, br, fa) dropped the hold when the
+/// Plague's exact-match victim fingerprint (mhp, lvl, br, fa) dropped the hold when the
 /// victim leveled up mid-battle (live capture 2026-07-14: Aitne latched at level 95, 449 maximum
 /// HP; leveled to 96, 453 maximum HP with brave/faith stable at 67/51, and the hold dropped even
 /// though the write machinery defeated three cures on tape at her CURRENT stats). Fix:
@@ -291,7 +291,7 @@ public class PlagueLevelDriftTests
     [Fact]
     public void OnField_latch_survives_a_second_drift_past_the_original_MaxLevelDrift_budget()
     {
-        // This is the test the verifier's sabotage targets: no-op PlagueState.RelatchFp's body
+        // This is the test the sabotage check targets: no-op PlagueState.RelatchFp's body
         // (leave it doing nothing) and this is the ONE test in the suite that goes red. Every
         // other drift test in this file only checks that a write lands, and Drive passes the
         // FRESHLY READ fingerprint (not the stored one) to DriveOne, so a write lands whether
@@ -329,7 +329,7 @@ public class PlagueLevelDriftTests
         Assert.Equal(Tuning.PoisonTimerInit, mem.U8s[victim + Offsets.APoisonTimer]);
     }
 
-    // ------------------------------------------------------------------ (7) LW-145 fix 6: the
+    // ------------------------------------------------------------------ (7) Fix 6: the
     // band walk's own mhp bound must match the six sibling modules (>= 2000 rejected), not the
     // forked "> 2000 accepted" Plague alone carried.
     //

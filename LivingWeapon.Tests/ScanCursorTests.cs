@@ -5,7 +5,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// ScanCursor, the pure region-ordering/cursor-resumption seam extracted from the LW-27/LW-31
+/// ScanCursor, the pure region-ordering/cursor-resumption seam extracted from the those changes
 /// dev spikes' incremental census walk (docs/TODO.md). A one-shot 512MB gulp per keypress
 /// burned its whole budget scanning LOW addresses before ever reaching the HIGH addresses where
 /// the real UI strings live, and the resulting multi-hundred-ms block on the shared Engine tick

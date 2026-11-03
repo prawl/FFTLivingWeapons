@@ -5,7 +5,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// The portable retry-until-decidable arming state machine (LW-50), tested with plain landmark
+/// The portable retry-until-decidable arming state machine, tested with plain landmark
 /// stubs (no game memory at all: FingerprintGuard.cs has zero project dependencies, so its own
 /// tests stay just as portable). Covers: all-match arms once, any-mismatch stands down after a
 /// consecutive-mismatch debounce, Unreadable retries forever, both terminal states stop probing
@@ -143,7 +143,7 @@ public class FingerprintGuardTests
     public void MismatchCounter_resets_on_a_mismatch_free_step()
     {
         // N = 3. a toggles Mismatch/Match; b stays Unreadable so the "reset" step is a MIXED
-        // Unreadable/Match step (an all-Match step would arm instead, per the review fix note).
+        // Unreadable/Match step (an all-Match step would arm instead, per the fix note).
         var a = new FixedLandmark("a", LandmarkVerdict.Mismatch);
         var b = new FixedLandmark("b", LandmarkVerdict.Unreadable);
         var guard = new FingerprintGuard(new[] { a.Landmark, b.Landmark },

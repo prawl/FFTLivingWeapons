@@ -247,7 +247,7 @@ public class ActorRegisterTests
         Assert.Equal(default, r.CurrentFp);
     }
 
-    // --- canonical-signature fingerprint rescue (LW-56 fault 2) ---
+    // --- canonical-signature fingerprint rescue ---
 
     [Fact]
     public void Bridge_rescues_a_canonical_scripted_unit_on_a_unique_fingerprint_match()
@@ -316,7 +316,7 @@ public class ActorRegisterTests
     [Fact]
     public void Bridge_rescue_refuses_when_no_fingerprint_row_matches()
     {
-        // Round 2: a zero-fp-match refusal now falls through to the weapon key, so this fixture
+        // A zero-fp-match refusal now falls through to the weapon key, so this fixture
         // must ALSO deny the weapon key (the roster row holds a DIFFERENT weapon than the band's
         // own) to stay a genuine universal negative, since otherwise the weapon key would rescue it.
         const int weapon = 64, otherWeapon = 12;
@@ -373,7 +373,7 @@ public class ActorRegisterTests
         Assert.Equal(RescueOutcome.WpnMismatch, r.CurrentRescue);
     }
 
-    // --- weapon-unique secondary key (LW-56 fault 2, round 2) ---
+    // --- weapon-unique secondary key ---
 
     [Fact]
     public void Bridge_rescues_a_canonical_unit_on_a_unique_weapon_match_when_the_fingerprint_diverges()
@@ -518,7 +518,7 @@ public class ActorRegisterTests
         Assert.Equal(RescueOutcome.NotCanonical, r.CurrentRescue);
     }
 
-    // --- oracle exclusion (LW-56 fault 2, A1) ---
+    // --- oracle exclusion ---
 
     [Fact]
     public void Bridge_oracle_exclusion_refuses_a_canonical_entry_the_oracle_claims_as_enemy()
@@ -721,7 +721,7 @@ public class ActorRegisterTests
         Assert.Equal(RescueOutcome.NotRun, r.CurrentRescue);
     }
 
-    // --- roster span (LW-96: proven-live 50 row bank, roster_span_probe.py 2026-07-21) ---
+    // --- roster span (proven-live 50 row bank, roster_span_probe.py 2026-07-21) ---
 
     [Fact]
     public void Bridge_resolves_player_when_the_matching_row_is_at_slot_49()
@@ -778,7 +778,7 @@ public class ActorRegisterTests
         Assert.Equal(2, r.OwnershipAge);
     }
 
-    // --- RawNullThisTick (LW-233: RestartSentinel's raw-signal input, distinct from CurrentEntry/
+    // --- RawNullThisTick (RestartSentinel's raw-signal input, distinct from CurrentEntry/
     // Band.ActorEntry, which fold raw-zero and shape-fail into the same 0 -- see the property's own
     // doc). A second guarded read, independent of the priming/transition bookkeeping above. ---
 

@@ -5,7 +5,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-77: mod/FFTIVC/tables/enhanced/JobCommandData.xml is DELETED. A JobCommandData row is the
+/// Mod/FFTIVC/tables/enhanced/JobCommandData.xml is DELETED. A JobCommandData row is the
 /// same whole-row-writeback hazard as JobData.xml (every AbilityId/RSM field via
 /// model.X ?? previous.X at OnAllModsLoaded, proven live 2026-07-14 on JobData.xml), and this
 /// table's own record list happened to include rec 8 (Archer, Aim) and rec 9 (Monk, Martial

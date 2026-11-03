@@ -6,7 +6,7 @@ using Xunit;
 
 namespace LivingWeapon.Tests;
 
-/// <summary>LW-452: the flee restore and the mid battle checkpoint copy rewind the vanilla bag but not
+/// <summary>The flee restore and the mid battle checkpoint copy rewind the vanilla bag but not
 /// the extended counts. ProcessCheckpoint and ProcessRewind are the detour bodies with the game's
 /// routine injected as a lambda.</summary>
 public class RewindRestoreHookTests

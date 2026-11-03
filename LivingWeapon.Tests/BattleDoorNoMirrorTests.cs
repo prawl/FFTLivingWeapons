@@ -7,7 +7,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-425: a battle that fields no unit mirroring a party row, while the unit list agrees with the band, waits
+/// A battle that fields no unit mirroring a party row, while the unit list agrees with the band, waits
 /// instead of closing the band door. The fixtures are modeled on the observed 6.1 opener shapes and the New Game
 /// roster row, because no tutorial bytes survive.
 /// </summary>

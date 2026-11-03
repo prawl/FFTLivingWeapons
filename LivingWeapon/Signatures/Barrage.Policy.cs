@@ -138,7 +138,7 @@ internal sealed partial class Barrage
         ushort bit = ExtendBit(slotIdx);
         bool isEmpty = curByte == 0 && (extAb & bit) == 0;
         bool isOurs = !ShadowBladePolicy.NeedsInject(curByte, extAb, slotIdx, abilityId);
-        if (!isEmpty && !isOurs) return false;   // someone else's ability is sitting here -- refuse
+        if (!isEmpty && !isOurs) return false;   // someone else's ability is sitting here, so refuse
 
         if (!mem.Writable(byteAddr, 1) || !mem.Writable(flagAddr, 2)) return false;
         mem.W8(byteAddr, SlotByte(abilityId));

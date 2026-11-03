@@ -6,9 +6,9 @@ namespace LivingWeapon;
 /// Kiku-ichimonji's Mushin signature. A full wait turn (no move, no act) arms one charge, and the
 /// wielder's next own action spends it.
 ///
-/// History (2026-07-09): rounds 1 to 4 tried other signals for the wait moment, then the enemy
-/// scheduler CT cycle (Offsets.ACtSlam), then a latch-then-confirm on KillTracker's PlayerActSeq.
-/// None read the wielder's own turn. Round 5 replaced them with the engine's per-unit turn flags.
+/// Earlier attempts read the enemy scheduler CT cycle (Offsets.ACtSlam) or latched on
+/// KillTracker's PlayerActSeq, and none read the wielder's own turn, so the engine's per-unit
+/// turn flags carry it now.
 ///
 /// Turn-flag mapping (tools/probes/mushin_wait_probe.py, scratchpad/psxflags_watch.log; PSX offsets
 /// from FFHacktics, frame offset = PSX + 0x32, band offset = frame offset, Offsets.BandEntry (0x1C)):

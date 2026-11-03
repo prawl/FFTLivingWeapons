@@ -4,7 +4,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-51 Tier-1: kills.json's pure schema validator. Structurally invalid input (not a JSON
+/// Tier-1: kills.json's pure schema validator. Structurally invalid input (not a JSON
 /// object) is a hard failure the caller treats like a corrupt file; a well-formed object with
 /// some bad entries is lenient: each malformed row is dropped and counted, never failing the
 /// whole parse.

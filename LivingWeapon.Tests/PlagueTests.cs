@@ -33,7 +33,7 @@ namespace LivingWeapon.Tests;
 ///   (21) Unequip -> all latches released (A4 unequip release).
 ///   (22) HP write lands as one 2-byte WriteBytes call (A4 torn-HP write).
 ///   (23) Same exclusive mhp bound used in band loop and EnemyFingerprints (A4 align bound).
-///   (24) RelatchFp (LW-92) updates the stored Fp but leaves LastCt untouched.
+/// (24) RelatchFp updates the stored Fp but leaves LastCt untouched.
 /// </summary>
 public class PlagueTests
 {
@@ -491,7 +491,7 @@ public class PlagueTests
     public void IsActingMainHand_false_when_mainHand_is_zero_meaning_no_actor_resolved()
         => Assert.False(Signatures.IsActingMainHand(mainHand: 0, weaponId: 80));
 
-    // ---- LW-149 stage C: activation-edge log STRING PIN (the single-interpolated-ternary `ModLogger.Debug` shape) ----
+    // ---- Stage C: activation-edge log STRING PIN (the single-interpolated-ternary `ModLogger.Debug` shape) ----
     // Written BEFORE Plague.Tick converts to ActivationEdge.Step, so it passes against the OLD
     // hand-rolled `if (active != _wasActive) { _wasActive = active; ModLogger.Debug($"... {(active ? ... : ...)}"); }`
     // idiom first, then keeps passing unchanged once the guard is replaced -- proof the extraction
@@ -539,7 +539,7 @@ public class PlagueTests
         Assert.Single(console, l => l.Contains(onLine));
     }
 
-    // ---- LW-149 stage D: GHOST-ROW PIN (non-vacuity for the LENIENT occupied-slot rule) ----
+    // ---- Stage D: GHOST-ROW PIN (non-vacuity for the LENIENT occupied-slot rule) ----
     // IsEquipped's roster sweep historically gated occupancy on nothing but
     // Readable(RNameId, 2) -- no level floor/ceiling at all (unlike Wielder.TryOccupiedSlot's
     // strict level 1..99 rule). This pins TODAY'S behavior: a roster slot whose nameId field is
@@ -564,7 +564,7 @@ public class PlagueTests
         Assert.True(plague.IsEquipped());
     }
 
-    // ---- Plague's hand set is RRHand + ROffHand, NOT RLHand (LW-149 review: preserve, don't "fix") ----
+    // ---- Plague's hand set is RRHand + ROffHand, NOT RLHand (review: preserve, don't "fix") ----
     [Fact]
     public void IsEquipped_ignores_a_left_hand_only_holder_by_design_not_a_fix_target()
     {

@@ -18,7 +18,7 @@ internal sealed partial class IconGlow
 {
     private readonly string _modDir;
     private readonly Dictionary<int, int> _kills;              // shared reference, Engine._kills
-    private readonly HashSet<int> _weaponIds;                  // the meta id set -- U9's rejection filter
+    private readonly HashSet<int> _weaponIds;                  // the meta id set, U9's rejection filter
     private readonly IIconGlowStore _store;
     private readonly IIconCacheHider _hider;   // hides a re-tiered icon's cache records when _hideDrawnIcons is on
     private readonly bool _hideDrawnIcons;

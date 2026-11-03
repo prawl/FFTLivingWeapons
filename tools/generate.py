@@ -177,7 +177,7 @@ def equipbonus_entry(eid, fields):
     return f"    <ItemEquipBonus>\n      <Id>{eid}</Id>\n{body}    </ItemEquipBonus>\n"
 
 
-# --- LW-346: the extended inventory (ids 261+) ---------------------------------------------------
+# --- The extended inventory (ids 261+) ---------------------------------------------------
 # An `extended` block on an items.json row marks an item the GAME has no slot for: LivingWeapon.dll
 # builds its catalog record and weapon-stat row in memory at boot and redirects the game's per-item
 # accessors to per-item DONORS (docs/research/ITEM_CAP_261_BREAK_JOURNEY.md, the 2026-08-27 03:20
@@ -187,7 +187,7 @@ def equipbonus_entry(eid, fields):
 # and read by the DLL, never by the modloader: a 261-row XML under FFTIVC/tables is silently dropped.
 EXTENDED_FIRST_ID = 261
 EXTENDED_LAST_ID = 511
-# LW-368 round 2 (P11): the real headroom is narrower than the 511 id-mask above. Seven of the
+# The real headroom is narrower than the 511 id-mask above. Seven of the
 # boot-patch sites (plus one post-load site) in LivingWeapon/Extended/ExtendedSites.cs are `lea reg,[base+6]` instructions
 # whose displacement is a single SIGNED byte, not an imm32; past 121 extended items that byte
 # overflows negative instead of widening, corrupting the bound it guards rather than raising it.
@@ -204,7 +204,7 @@ def hdr_ext(table):
             f'<{table}>\n  <Version>1</Version>\n  <Entries>\n')
 
 
-# LW-351 fix round 6: an extended row has no vanilla row to inherit its AttackFlags from, so the
+# An extended row has no vanilla row to inherit its AttackFlags from, so the
 # author types them, and the first moved design (the Terrastaff, an Axe design turned Pole) shipped
 # with the flags its OLD slot lent it. The game read that fine on the card and refused nothing, but
 # the flags decide how the weapon reaches its target (its DELIVERY class), so a Pole carrying the
@@ -226,14 +226,14 @@ CATEGORY_DELIVERY = {
 EXTENDED_DELIVERY_EXCEPTIONS = {}
 
 
-# LW-351 stage-1 close (owner ruling 2026-08-30): an extended weapon plays at its CLONE DONOR's
+# Stage-1 close (owner ruling 2026-08-30): an extended weapon plays at its CLONE DONOR's
 # reach, not at the reach typed on its own row. The Terrastaff shipped with `range: 1` (the plan's
 # C17 ruling, meant to keep the Ironreed Pole alive) and the owner watched it strike two tiles away
-# on the round-6 build; the weapon-stat stub does hand the game a row whose byte 0 reads 1, so the
+# on the earlier pass build; the weapon-stat stub does hand the game a row whose byte 0 reads 1, so the
 # targeting code takes its reach from somewhere else: either the donor's own row through the
 # sibling accessors (donor 108 Ironreed Pole = 2) or the Lunging delivery class itself (every
 # vanilla Lunging category is range 2, so the two cannot be told apart from that observation; the
-# mechanism is Backlog row LW-364). The operational rule is settled: the row must record the number
+# mechanism is a Backlog row). The operational rule is settled: the row must record the number
 # the game will play, i.e. the donor's shipped range (the donor's own items.json `proposed.range`,
 # which is what mod/FFTIVC/tables/enhanced/ItemWeaponData.xml emits for it). A row that says
 # otherwise lies to analyze.py's dominance math and to anyone reading the data.
@@ -249,7 +249,7 @@ def check_extended_range(it, all_items):
     donor = next(d for d in all_items if d["id"] == donor_id)
     # The donor's SHIPPED reach: weapon_entry() emits <Range>proposed.range</Range> with 1 as the
     # default for a row that authors none (most melee rows, e.g. the Riposte and the Cutpurse), so
-    # the same default is the truth here. LW-351 stage 2 corrected the first cut of this gate,
+    # the same default is the truth here. stage 2 corrected the first cut of this gate,
     # which refused a donor with no range key and would have forced range keys onto donor rows
     # that ship 1 either way.
     donor_range = donor["proposed"].get("range", 1)
@@ -311,7 +311,7 @@ def validate_extended(ext, all_items):
             raise SystemExit(f"extended inventory: id {i} ({it.get('name')}) needs proposed.attackFlags (no vanilla row to inherit them from)")
         check_extended_flag_grammar(it)
         check_extended_range(it, all_items)
-        # LW-354: the towns whose shop stocks it, in the modloader's own ItemShopsData names.
+        # The towns whose shop stocks it, in the modloader's own ItemShopsData names.
         for tok in [x.strip() for x in str(e.get("shops", "None")).split(",") if x.strip()]:
             if tok not in EXTENDED_SHOP_NAMES:
                 raise SystemExit(f"extended inventory: id {i} ({it.get('name')}) shops token {tok!r} is not a town "
@@ -374,7 +374,7 @@ def main():
     MOD_TABLES.mkdir(parents=True, exist_ok=True)
     wrote = []
 
-    # LW-346: extended-inventory rows (ids 261+) never reach the modloader tables (a row past the
+    # Extended-inventory rows (ids 261+) never reach the modloader tables (a row past the
     # 261 cap is dropped at best and kills the whole table at worst); they get their own files.
     extended = [it for it in all_items if it.get("extended")]
     validate_extended(extended, all_items)

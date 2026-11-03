@@ -239,9 +239,9 @@ internal sealed partial class GrowthEngine
         if (!_pendingTopUp.Contains(key)) return;
         int delta = target - natural;
         long hpAddr = addr - (Offsets.CMaxHp - Offsets.CHp);   // CHp sits 2 bytes before CMaxHp
-        if (!_mem.Writable(hpAddr, 2)) return;                 // stay pending -- retry next call
+        if (!_mem.Writable(hpAddr, 2)) return;                 // stay pending and retry next call
         int hp = _mem.U16(hpAddr);
-        if (hp < 1 || hp > natural) return;   // 0 == KO'd; above natural is anomalous -- stay pending, retry
+        if (hp < 1 || hp > natural) return;   // 0 means KO'd and above natural is anomalous, so stay pending and retry
         int newHp = Math.Min(hp + delta, target);
         if (newHp > hp)
         {

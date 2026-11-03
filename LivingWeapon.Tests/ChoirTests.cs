@@ -102,7 +102,7 @@ public class ChoirTests
 
     // ---- Seeding helpers ----
 
-    // THIN TAIL over BandFixtures.SeedBandEntryCore (LW-149 stage I): the shared core sets the
+    // THIN TAIL over BandFixtures.SeedBandEntryCore (stage I): the shared core sets the
     // 7 fields every SeedBandEntry copy set identically; the Non-charge support-bit tail below is
     // Choir-specific and stays local rather than joining the shared fixture. Same
     // name/signature/defaults as before the dedup -- no caller line in this file changed.
@@ -180,13 +180,13 @@ public class ChoirTests
         // AllyFingerprints via the seed below. Under holder-only, Choir must NOT set the ally's
         // bit -- kept as a real candidate so a regression to ally-aura would set it and be
         // caught by test (4). The fingerprint seed is DELIBERATELY kept even though holder-only
-        // Choir never reads the static array (LW-160 briefly deleted it as dead; the adversarial
+        // Choir never reads the static array (a fold briefly deleted it as dead; the adversarial
         // audit reversed that): the aura-era Choir this test guards against (pre-cfc1a4e) gated
         // every grant on Band.AllyFingerprints.Contains, as do all four current aura-style
         // modules (Benediction/Sanctuary/HealPulse/FeignDeath), so without this seed a
         // filtered-aura regression would pass test (4) vacuously -- the ally would be invisible
         // to the very loop the test exists to catch. Unlike Tick_sets_bit_on_bearer_self's
-        // deleted bearer-side registration (LW-157), which fed a POSITIVE assertion that passes
+        // deleted bearer-side registration, which fed a POSITIVE assertion that passes
         // without it, this seed arms a NEGATIVE one.
         long allyEntry = Band.Entry(28);
         SeedBandEntry(mem, allyEntry, hp: 150, maxHp: 150, lvl: 20, br: 50, fa: 55,
@@ -243,7 +243,7 @@ public class ChoirTests
         // No static-array bearer fingerprint is seeded here: holder-only Choir resolves its
         // bearer via Wielder.ResolveDeployedMainHandAll (a roster + band walk) and never reads
         // the static-array fingerprints -- the aura-era slot registration that used to sit here
-        // was dead weight (LW-157 residue sweep).
+        // was dead weight.
 
         choir.Tick(onField: true);
 
@@ -720,7 +720,7 @@ public class ChoirTests
         Assert.True(IsSet(mem, bearerB), "bearer B must be one of the two winners");
     }
 
-    // ---- LW-149 stage D: GHOST-ROW PIN (non-vacuity for Choir's STRICT protectedBF walk) ----
+    // ---- Stage D: GHOST-ROW PIN (non-vacuity for Choir's STRICT protectedBF walk) ----
     // Choir's protectedBF scan (Choir.cs:~108) rides Wielder.TryOccupiedSlot -- the STRICT rule
     // (level 1..99), the OPPOSITE direction from the EagleEye/Plague ghost-row pins,
     // which pin the weaker LENIENT rule (Wielder.TryOccupiedSlotLenient) those two ride instead.
@@ -752,7 +752,7 @@ public class ChoirTests
             "a level-0 ghost row's RSupport must not protect a real bearer with matching brave/faith -- the strict occupancy gate must reject it");
     }
 
-    // ---- LW-149 stage C: activation-edge log STRING PIN (the `ModLogger.Event` shape) ----
+    // ---- Stage C: activation-edge log STRING PIN (the `ModLogger.Event` shape) ----
     // Written BEFORE Choir.Tick converts to ActivationEdge.Step, so it passes against the OLD
     // hand-rolled `if (active != _wasActive) { _wasActive = active; ModLogger.Event(...); }`
     // idiom first, then keeps passing unchanged once the guard is replaced -- proof the

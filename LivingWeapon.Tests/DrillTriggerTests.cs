@@ -7,7 +7,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-83: the two-lane stand-down drill trigger (env variable OR marker file in the mod dir).
+/// The two-lane stand-down drill trigger (env variable OR marker file in the mod dir).
 /// Everything except the one real-filesystem convenience-overload test goes through the injected
 /// getEnv/fileExists seams, so no test ever reads or writes the real process environment.
 /// </summary>
@@ -66,7 +66,7 @@ public class DrillTriggerTests
         Assert.True(DrillTrigger.DrillRequested(temp.Dir));
     }
 
-    // --- LW-395: the second drill flag (the sensing lane's), same two lanes ---
+    // --- The second drill flag (the sensing lane's), same two lanes ---
 
     [Fact]
     public void Sensing_flag_env_set_to_1_requests_the_drill()
@@ -105,7 +105,7 @@ public class DrillTriggerTests
         Assert.True(DrillTrigger.DrillRequested(temp.Dir, DrillTrigger.SensingFlagName));
     }
 
-    // --- LW-392: the third drill flag (the blind-guard drill), same two lanes ---
+    // --- The third drill flag (the blind-guard drill), same two lanes ---
 
     [Fact]
     public void Unreadable_flag_env_set_to_1_requests_the_drill_and_satisfies_no_other_flag()
@@ -129,7 +129,7 @@ public class DrillTriggerTests
         Assert.False(DrillTrigger.DrillRequested(ModDir, DrillTrigger.SensingFlagName, Env(null), p => p == path));
     }
 
-    // --- LW-393: the fourth drill flag (the roster landmark's), same two lanes ---
+    // --- The fourth drill flag (the roster landmark's), same two lanes ---
 
     [Fact]
     public void Roster_flag_name_is_pinned()
@@ -169,7 +169,7 @@ public class DrillTriggerTests
         Assert.True(DrillTrigger.DrillRequested(temp.Dir, DrillTrigger.RosterFlagName));
     }
 
-    // --- LW-398: the fifth drill flag (the band door's), same two lanes ---
+    // --- The fifth drill flag (the band door's), same two lanes ---
 
     [Fact]
     public void Band_flag_name_is_pinned()
@@ -232,7 +232,7 @@ public class DrillTriggerTests
         Assert.False(DrillTrigger.DrillRequested(ModDir, DrillTrigger.TwinFlagName, Env(null), p => p == rosterFile));
     }
 
-    // --- LW-399: the table doors' flag, same two lanes ---
+    // --- The table doors' flag, same two lanes ---
 
     [Fact]
     public void Table_flag_env_and_marker_file_request_the_drill_and_satisfy_no_other_flag()

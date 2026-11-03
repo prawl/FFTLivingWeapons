@@ -5,7 +5,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// AttackRow.Policy.cs is LW-31 stage 3's pure half (docs/TODO.md): the Attack row's RENAME
+/// AttackRow.Policy.cs is stage 3's pure half (docs/TODO.md): the Attack row's RENAME
 /// mechanism, live-proven 2026-07-06 (owner eyewitness, screenshot on file). Everything here is
 /// pure record/byte/decision logic, no memory access, mirroring the Iai.Policy.cs /
 /// Iai.cs split's shape (this class doc names AttackRow.cs as the stateful runtime half that owns

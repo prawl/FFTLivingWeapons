@@ -5,7 +5,7 @@ using LivingWeapon;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// Dictionary-backed <see cref="ICodePatcher"/> for the extended-inventory suites (LW-346). Unseeded
+/// Dictionary-backed <see cref="ICodePatcher"/> for the extended-inventory suites. Unseeded
 /// bytes read as unreadable (TryRead false) unless <see cref="ZeroFillUnseeded"/> is set, which
 /// mirrors a zero-filled VirtualAlloc page; every write is applied AND appended to
 /// <see cref="Writes"/> in order so a test can assert exactly what landed where (the rollback
@@ -60,7 +60,7 @@ internal sealed class FakeCodePatcher : ICodePatcher
 /// cref="FakeAllocMode.FixedBase"/> (the default) ignores the request and starts at <see
 /// cref="Base"/> (0x150000000, inside +-2 GB of the PREFERRED image only); <see
 /// cref="FakeAllocMode.RelativeToNear"/> honours it like the live allocator does (nearAddr +
-/// 0x1000000 + k * 0x10000, so it stays in reach of a relocated image, LW-388 R4); <see
+/// 0x1000000 + k * 0x10000, so it stays in reach of a relocated image); <see
 /// cref="FakeAllocMode.FarBelowNear"/> is the adversarial layout R1 describes, the bottom of the
 /// 2 GB window below the request (nearAddr - SearchRange + 0x10000 + k * 0x10000), the pick the
 /// old bottom-up scan made under ASLR.</summary>

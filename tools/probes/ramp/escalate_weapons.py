@@ -17,10 +17,12 @@ SRC = {it["id"]: it.get("iconSource") for it in items if it.get("iconSource")}
 for i_str, a in assign.items():
     rp.TINTS[int(i_str)] = tuple(a["tint"])
 
+
 def dom_hue(i):
     a = rp.analyze(rp.load_vanilla(SRC.get(i, i), "small"))
     cl = rp.hue_clusters(a["chrom"], a["hsv"], k_max=2)
     return cl[0][1] if cl else None
+
 
 def de_mean(i):
     van = rp.load_vanilla(SRC.get(i, i), "small")
@@ -38,6 +40,7 @@ BANK = [0.106, 0.624, 0.045, 0.247, 0.147, 0.335, 0.584, 0.200, 0.850, 0.231,
 by_cat = {}
 for i_str, a in assign.items():
     by_cat.setdefault(a["cat"], []).append(int(i_str))
+
 
 def swap_hue(i):
     """Farthest colour from the vanilla dominant that no set-mate uses."""

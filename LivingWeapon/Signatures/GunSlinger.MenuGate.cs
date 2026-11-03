@@ -28,8 +28,8 @@ internal sealed partial class GunSlinger
     private bool ComputeMenuOpen()
     {
         (bool menuReadable, bool menuDebouncedOpen) = ReadMenuDebounced();
-        if (!menuReadable) return true;          // unreadable menu byte -- deny, regardless of browse
-        if (!menuDebouncedOpen) return false;     // menu (debounced) closed -- always allowed, browse irrelevant
+        if (!menuReadable) return true;          // unreadable menu byte, so deny regardless of browse
+        if (!menuDebouncedOpen) return false;     // menu (debounced) closed, so always allowed and browse is irrelevant
 
         // Menu is open (debounced): allowed only through a stable browse screen.
         (bool browseReadable, bool browseRawOne, bool browseStable) = ReadBrowseStable();

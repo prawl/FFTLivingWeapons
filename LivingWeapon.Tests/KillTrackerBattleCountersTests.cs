@@ -22,7 +22,7 @@ public class KillTrackerBattleCountersTests
         return new KillTracker(kills, new FakeSparseMemory(), Weapons);
     }
 
-    // --- LW-56: the credit-time live-wielder gate, wired with the PRODUCTION HasLiveWielder
+    // --- The credit-time live-wielder gate, wired with the PRODUCTION HasLiveWielder
     // delegate over a shared FakeSparseMemory (not a lambda constant), matching how Engine wires
     // it in production (Wielder.HasLiveWielder over the same live memory every other consumer
     // uses). ---
@@ -140,7 +140,7 @@ public class KillTrackerBattleCountersTests
     [Fact]
     public void Null_hasLiveWielder_delegate_credits_regardless_of_live_wielder_state()
     {
-        // Regression: a KillTracker constructed without the new parameter (every pre-LW-56 call
+        // Regression: a KillTracker constructed without the new parameter (every earlier call
         // site) credits exactly as before, gate off.
         var t = Make(out var kills);
         bool changed = t.CreditKill(0, 5, 5, new List<int> { 9 });

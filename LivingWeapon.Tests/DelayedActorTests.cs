@@ -30,7 +30,7 @@ public class DelayedActorTests
     // Enemy band slot 0 is safe (enemy-side: <= EnemySlotMax=19).
     private const int EnemySlot = 0;
 
-    // Seeding helpers ride the shared KillTrackerFixtures (LW-160); every call site past the
+    // Seeding helpers ride the shared KillTrackerFixtures; every call site past the
     // (m, slot, hp, maxHp) positional prefix passes by name, so the canonical signatures bind
     // identically to the old local variants.
 
@@ -313,7 +313,7 @@ public class DelayedActorTests
         Assert.False(kills.ContainsKey(V));             // removing the fp-match guard flips this to V=1
     }
 
-    // --- T9 (LW-63 plan test 15): the delayed-culprit arm is fixed TRANSITIVELY (D5) -- no code
+    // --- T9 (plan test 15): the delayed-culprit arm is fixed TRANSITIVELY (D5) -- no code
     // change in this file's own production sibling (KillTracker.Delayed.cs). The commit-time
     // snapshot is gated on `_lastActorFp == (this slot's fp)`; once the resolver preambles are
     // flags-first, both _lastPlayerWeapons and _lastActorFp already name the true committer, so
@@ -361,7 +361,7 @@ public class DelayedActorTests
         Assert.False(kills.ContainsKey(wa));
     }
 
-    // --- LW-252 stage 3: the committer snapshot uses nameId (not bare fingerprint) once both
+    // --- The committer snapshot uses nameId (not bare fingerprint) once both
     // sides have one, closing the fp-twin ambiguity a (level,brave,faith)-only compare cannot:
     // two fp-twin band slots are indistinguishable to TrackDelayed's snapshot check without it. ---
 
@@ -408,7 +408,7 @@ public class DelayedActorTests
         // [S3, the nameId-0 parity pin] Identical shape to S2, but nobody's nameId is seeded
         // (the latch's own _lastActorNameId stays 0, and neither band seat's frame nameId is
         // set either) -- the DELIBERATE fail-open degradation to today's bare fp compare, same
-        // convention as every other LW-252 veto/compare in this codebase. Both slots pass, same
+        // convention as every other veto/compare in this codebase. Both slots pass, same
         // as the pre-fix behavior, because there is no readable identity on either side to trust.
         var kills = new Dictionary<int, int>();
         var m = new FakeSparseMemory();

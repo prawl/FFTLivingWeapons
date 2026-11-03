@@ -5,31 +5,30 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// Kiku-ichimonji's "Mushin" signature, ROUND 5 (2026-07-09, owner decision: replace rounds 2-4's
-/// CT-clock/seq-gate apparatus with the literal design on the engine's own per-unit turn flags).
-/// See Mushin.cs's class doc for the full PSX-mapping provenance (tools/probes/mushin_wait_probe.py,
-/// scratchpad/psxflags_watch.log) and the retired rounds' one-line history.
+/// Kiku-ichimonji's "Mushin" signature, which since 2026-07-09 reads the engine's own per-unit
+/// turn flags instead of a CT clock (the owner's call). See Mushin.cs's class doc for the full
+/// PSX-mapping provenance (tools/probes/mushin_wait_probe.py, scratchpad/psxflags_watch.log).
 ///
 /// This suite drives the trigger DIRECTLY on the three band-relative turn-flag bytes (local test
-/// consts aliasing Offsets.ATurnFlag/AMoved/AActed since LW-55 stage 1 promoted them out of
+/// consts aliasing Offsets.ATurnFlag/AMoved/AActed promoted them out of
 /// Mushin.cs): TURN FLAG (band +0x19C, the falling edge that decides), MOVED (+0x19D), ACTED
 /// (+0x19E). No KillTracker, no TurnTracker, no CT clocks, no static-array oracle: Mushin's
-/// round-5 ctor no longer even takes a KillTracker.
+/// ctor no longer even takes a KillTracker.
 ///
 /// LOAD-BEARING: L-1 (a genuine full wait arms) and L-6 (nothing else matters: the module reads
-/// none of rounds 2-4's signals) are the two tests written FIRST and confirmed RED against the
-/// round-4 implementation before this file existed in its round-5 shape (see the round-5 build's
-/// own commit-staging notes); L-6's round-4 counterpart proved round 4 DID react to the exact
-/// "other units' CT churn" topology this suite now proves round 5 ignores entirely.
+/// none of the old CT clock signals) are the two tests written FIRST and confirmed RED against
+/// the old implementation before this file took its present shape. L-6's old counterpart proved
+/// the old module DID react to the exact "other units' CT churn" topology this suite now proves
+/// is ignored entirely.
 /// </summary>
 public class MushinTests
 {
     private const int KikuId = 45;
     private const int OtherWeaponId = 56;
 
-    // LW-55 stage 1 promoted these to Offsets.cs (ATurnFlag/AMoved/AActed; see that file for the
+    // Promoted these to Offsets.cs (ATurnFlag/AMoved/AActed; see that file for the
     // full PSX -> frame -> band provenance chain). Local aliases kept so this suite's own naming
-    // is unchanged from round 5.
+    // is unchanged from earlier pass.
     private const int TurnFlagOffset = Offsets.ATurnFlag;
     private const int MovedOffset = Offsets.AMoved;
     private const int ActedOffset = Offsets.AActed;
@@ -44,7 +43,7 @@ public class MushinTests
         mem.U8s[entry + ActedOffset] = (byte)acted;
     }
 
-    // LW-252 stage 5: Mushin's armed store is now a WielderKeyedStore<Box<int>> (shared with
+    // Mushin's armed store is now a WielderKeyedStore<Box<int>> (shared with
     // GrowthEngine); these two helpers replace the old dictionary's TryGetValue/indexer for the
     // suite's own test-seam reads/writes. Every seeding call in this file omits nameId (defaults
     // 0), so probing/creating at nameId 0 (the fp lane) is the exact byte-identical read/write
@@ -191,10 +190,10 @@ public class MushinTests
     [Fact]
     public void L6_NothingElseMatters_LegacySignalChurn_ZeroEffect()
     {
-        // Round 2-4's whole apparatus (other units' scheduler-CT cycling, the global Acted byte,
-        // the ActorPtr) is seeded with exactly the topology that armed the charge under round 4
-        // (see the round-5 build's RED-phase proof against round 4), while the wielder's OWN turn
-        // flag never transitions at all. Round 5 reads none of it: zero effect.
+        // The old CT clock apparatus (other units' scheduler-CT cycling, the global Acted byte,
+        // the ActorPtr) is seeded with exactly the topology that armed the charge under the old
+        // module, while the wielder's OWN turn flag never transitions at all. The module reads
+        // none of it: zero effect.
         var (mem, kills, armed, mushin, wielderEntry, fp) = Build();
         mem.ReadableAddrs.Add(wielderEntry + TurnFlagOffset);
         mem.U8s[wielderEntry + TurnFlagOffset] = 0;   // never transitions this whole test

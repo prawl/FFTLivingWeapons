@@ -11,7 +11,7 @@ namespace LivingWeapon.Tests;
 /// (KillTrackerDeedTests.cs owns that wiring). This file owns Reliquary's OWN behavior: the
 /// Mark toast enqueue (stage 3, decision 11's disabled-toast inertness) and the flight taps.
 /// Each test works in its own temp legends.json directory so parallel runs never collide.
-/// LW-147: TempDir() directories are tracked and deleted in Dispose, not leaked.
+/// TempDir directories are tracked and deleted in Dispose, not leaked.
 /// </summary>
 public class ReliquaryTests : IDisposable
 {

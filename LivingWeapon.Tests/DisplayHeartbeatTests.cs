@@ -5,7 +5,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-257 commit 2: Display.Heartbeat.cs's shared maintenance beat (MaintenanceDue/RunMaintenance)
+/// Commit 2: Display.Heartbeat.cs's shared maintenance beat (MaintenanceDue/RunMaintenance)
 /// and the pending-id / per-region drain mechanisms built on top of it. Fixture idioms mirror the
 /// established per-file convention: DisplayMaintenanceTests' stale-slot recipe for the beat itself,
 /// DisplayPoolPaintTests' RegionsSpyMem (copied, not referenced -- that file's own no-cross-file-
@@ -184,7 +184,7 @@ public class DisplayHeartbeatTests
         Assert.False(display._pendingIds.ContainsKey(10), "must be dropped after CardPendingMaxBeats beats");
     }
 
-    // ─── LW-261: RegionsStale keeps ProcessPending permissive across a queued restart ──
+    // ─── RegionsStale keeps ProcessPending permissive across a queued restart ──
 
     /// <summary>The regression this arc's own PoolLocator rewrite could have introduced: since
     /// Invalidate() no longer clears CachedRegions (PoolLocator.cs's own class doc -- it queues a
@@ -303,7 +303,7 @@ public class DisplayHeartbeatTests
         Assert.Equal(Signatures.KillsMeterSlot(7), ReadSlot2(heap, regionBBase + 500 + freshSlot, Signatures.KillsMeterSlotChars));
         Assert.Equal(regionsCallsAtCoverage, spy.RegionsCalls);   // no full relocate, no Regions() walk
 
-        // THE central cost guarantee this whole arc exists for (round 2 review: RegionsCalls alone
+        // THE central cost guarantee this whole arc exists for (RegionsCalls alone
         // cannot detect its removal -- a scan-every-latched-region mutation and a prepended full
         // LocateAll() both leave RegionsCalls untouched, the first because it never calls
         // Regions() at all and the second because AllCachedStillPool() short-circuits through
@@ -317,8 +317,8 @@ public class DisplayHeartbeatTests
             "an untouched region must not be re-read by a TARGETED re-offer");
     }
 
-    /// <summary>Retargeted, round 2 review: the old body (RegionsCalls flat across steady beats)
-    /// survived all 18 verifier mutations, including six aimed at it, because it pins something
+    /// <summary>Retargeted: the old body (RegionsCalls flat across steady beats)
+    /// survived all 18 review mutations, including six aimed at it, because it pins something
     /// MaybePoolPaint's own top-of-method aggregate-count short-circuit already guarantees
     /// structurally, and a pre-existing test (DisplayPoolPaintTests.
     /// PoolPaint_steady_state_short_circuits_and_relatches_after_heal) already covers that ground.
@@ -377,12 +377,12 @@ public class DisplayHeartbeatTests
             "a region that never drained must never be re-read by the drain check");
     }
 
-    // ─── LW-260: six mutation-survivor pins on the card heartbeat ──────────────
+    // ─── Six mutation-survivor pins on the card heartbeat ──────────────
 
-    /// <summary>LW-260 pin (E2): RunMaintenance's own drain/pending work (Display.Heartbeat.cs) is
+    /// <summary>Pin (E2): RunMaintenance's own drain/pending work (Display.Heartbeat.cs) is
     /// reached from exactly ONE gated call site per Tick -- MaintenanceDue(now) at Display.cs's
-    /// Tick ordering (shared with PaintCountsIfChanged's identical gate). A verifier mutation that
-    /// survived the LW-257 suite added a SECOND, unconditional call to that same work at the end
+    /// Tick ordering (shared with PaintCountsIfChanged's identical gate). A review mutation that
+    /// survived the suite added a SECOND, unconditional call to that same work at the end
     /// of Tick's body: at ~30 ticks/second that pays a full paint-spot pass (every cached site
     /// re-verified) on EVERY tick instead of once a second. Pinned via a TryReadBytes-counting spy
     /// -- CardSites' own read funnel for anchor/slot verify, distinct from the sweep's ReadInto --
@@ -420,7 +420,7 @@ public class DisplayHeartbeatTests
         Assert.True(spy.TryReadBytesCalls > beatMark, "a genuinely due beat must still do real work");
     }
 
-    /// <summary>LW-260 pin (M): the design forbids a separate in-battle maintenance clock --
+    /// <summary>Pin (M): the design forbids a separate in-battle maintenance clock --
     /// PaintCountsIfChanged (Engine's ShouldPaintCard-false, in-battle call site) and Tick
     /// (out-of-battle / paintable-card call site) must consult the SAME _lastMaintenanceMs
     /// (MaintenanceDue's own doc: "one shared clock ... two independently-updated timers would let
@@ -457,7 +457,7 @@ public class DisplayHeartbeatTests
         Assert.Equal(Signatures.KillsMeterSlot(0), ReadSlot(heap, card.killsSlotPos, Signatures.KillsMeterSlotChars));
     }
 
-    /// <summary>LW-260 pin (K): Display.cs's Invalidate() clears _pendingIds (its own doc: _sites is
+    /// <summary>Pin (K): Display.cs's Invalidate clears _pendingIds (its own doc: _sites is
     /// wiped on the same call, so every watched id's target site cache no longer exists -- without
     /// the clear each one burns all Tuning.CardPendingMaxBeats watching nothing and then logs a
     /// false "gave up" line). RED under a mutation removing that _pendingIds.Clear() call: the id
@@ -483,10 +483,10 @@ public class DisplayHeartbeatTests
         Assert.Empty(display._pendingIds);
     }
 
-    /// <summary>LW-260 pin (F): ReOfferDrainedRegions' targeted re-scan (Display.PoolDrain.cs) heals
+    /// <summary>Pin (F): ReOfferDrainedRegions' targeted re-scan (Display.PoolDrain.cs) heals
     /// a drained region via the EXISTING ScanPoolRegion -- it must never touch PoolLocator's own
     /// cache. Throwing that cache away on every heal would force the NEXT locate to re-walk the
-    /// whole process heap, reintroducing the stall this arc's own resumable rewrite (LW-261) exists
+    /// whole process heap, reintroducing the stall this arc's own resumable rewrite exists
     /// to avoid, one step removed. RED under a mutation invalidating/clearing PoolLocator's cache at
     /// the end of a SUCCESSFUL re-offer (CoversAllMeta() true, the re-latch branch): RegionsStale
     /// would flip true and the next real scan driver would treat a restart as queued.</summary>
@@ -555,7 +555,7 @@ public class DisplayHeartbeatTests
             "a successful targeted re-offer must not mark the located region cache stale");
     }
 
-    /// <summary>LW-260 pin (guard site 1 of 2, counts half): Display.cs's Tick() gates the shared
+    /// <summary>Pin (guard site 1 of 2, counts half): Display.cs's Tick gates the shared
     /// beat on `MaintenanceDue(...) && !countsChanged && !targetsChanged` (~line 251) so a tick
     /// that ALREADY painted through the count/target-change branch never pays RunMaintenance's own
     /// full paint pass a second time -- doubling every guarded read a beat costs across a real
@@ -601,7 +601,7 @@ public class DisplayHeartbeatTests
         Assert.Equal(onePassReads, actualReads);
     }
 
-    /// <summary>LW-260 pin (guard site 1 of 2, targets half): the same ~line 251 guard as the
+    /// <summary>Pin (guard site 1 of 2, targets half): the same ~line 251 guard as the
     /// sibling above, but isolating the `!targetsChanged` term instead -- a tick where the MIRROR
     /// statics change (BuildTargets, driven by Offsets.MirrorWeapon/MirrorOffHand, not the kills
     /// dictionary) while no kill count changes must still pay RunMaintenance's paint pass exactly
@@ -645,7 +645,7 @@ public class DisplayHeartbeatTests
         Assert.Equal(onePassReads, actualReads);
     }
 
-    /// <summary>LW-260 pin (guard site 2 of 2): Display.cs's PaintCountsIfChanged() gates the shared
+    /// <summary>Pin (guard site 2 of 2): Display.cs's PaintCountsIfChanged gates the shared
     /// beat on `MaintenanceDue(...) && !countsChanged` (~line 209) -- the same double-paint hazard
     /// as the Tick() guard above, on the in-battle call site. RED under a mutation dropping
     /// `!countsChanged` from that condition.</summary>
@@ -678,7 +678,7 @@ public class DisplayHeartbeatTests
         Assert.Equal(onePassReads, actualReads);
     }
 
-    /// <summary>LW-260 pin (end bound): Display.PoolDrain.cs's CountKillsSitesIn treats a region as
+    /// <summary>Pin (end bound): Display.PoolDrain.cs's CountKillsSitesIn treats a region as
     /// [rbase, rbase+rsize) -- a site sitting exactly AT rbase+rsize belongs to whatever comes next
     /// in memory, not this region. RED under a mutation changing the end comparison from `&lt;` to
     /// `&lt;=`: the on-the-bound site below would then count, flipping the result from 1 to 2.</summary>
@@ -701,7 +701,7 @@ public class DisplayHeartbeatTests
     /// <summary>IGameMemory wrapper that counts Regions() calls AND records every ReadInto range,
     /// forwarding everything else -- extends DisplayPoolPaintTests.cs's private RegionsSpyMem of
     /// the same name (this file's own no-cross-file-reference convention for test-only fakes) with
-    /// the read-range tracking round-2 review asked for: RegionsCalls alone cannot tell a targeted
+    /// the read-range tracking a review asked for: RegionsCalls alone cannot tell a targeted
     /// single-region ScanPoolRegion apart from a full LocateAll's AllCachedStillPool() re-verify,
     /// because ScanPoolRegion (like AllCachedStillPool's own ScanRegion) reads via ChunkReader's
     /// ReadInto, never via _mem.Regions() -- CardSites' own per-site verify/paint reads go through

@@ -3,11 +3,10 @@
   <PropertyGroup>
     <TargetFramework>net8.0-windows</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <NoWarn>$(NoWarn);CA1416;MSB3277</NoWarn>
+    <NoWarn>$(NoWarn);CA1416</NoWarn>
     <WarningLevel>0</WarningLevel>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
   </PropertyGroup>
@@ -21,6 +20,11 @@
 
   <ItemGroup>
     <Using Include="Xunit" />
+    <Using Include="ModGates.Logging" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\gates\Tests\**\*.cs" Link="Gates\Tests\%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 
   <ItemGroup>

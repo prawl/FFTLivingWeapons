@@ -45,7 +45,7 @@ internal sealed class StoryLines
             if (!_meta.TryGetValue(id, out var m) || string.IsNullOrEmpty(m.Flavor)) continue;
             var legend = _store.Get(id);
             string? line = CardLine.Compose(m.Name, KillsFor(id), legend, m.Flavor.Length);
-            if (line == null) continue;   // nothing composable (no deeds yet, or no form fits) -- leave anchors as-is
+            if (line == null) continue;   // nothing composable (no deeds yet, or no form fits), so leave the anchors as they are
             string? evicted = _anchors.SetCurrent(id, line);
             if (evicted != null) _store.RotatePainted(id, evicted);
         }

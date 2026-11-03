@@ -4,7 +4,7 @@ using Xunit;
 
 namespace LivingWeapon.Tests;
 
-/// <summary>LW-372: <see cref="ListBuilderHook"/>'s pure truncation policy and its whole detour
+/// <summary><see cref="ListBuilderHook"/>'s pure truncation policy and its whole detour
 /// body (Process with a lambda standing in for the game's shared list builder). D2: a call handed
 /// the game's own static buffer (<see cref="Offsets.MenuListBuffer"/>) is a pure passthrough;
 /// every other buffer is routed through a mod-owned pool and truncated to
@@ -251,7 +251,7 @@ public class ListBuilderHookTests
         Assert.Equal(0, hook.CopyBackRefusals);
     }
 
-    // --- LW-382 (arity fix): the callee reads a 6th argument (mode) four times and a 5th
+    // --- The arity fix: the callee reads a 6th argument (mode) four times and a 5th
     // (spare) never; a 4-argument delegate silently replaced both with whatever the calling
     // frame's own stack bytes held. T1 is the load-bearing, non-vacuous check: it fails the
     // moment a parameter is dropped again, on either the stack-buffer or the static-buffer path.

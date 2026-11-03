@@ -6,13 +6,13 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-251: the WeaponPalette runtime -- the per-turn weapon-sprite palette repaint (see
+/// The WeaponPalette runtime -- the per-turn weapon-sprite palette repaint (see
 /// LivingWeapon/Display/WeaponPalette.cs's class doc for the mechanism, and
 /// WeaponPalette.Policy.cs for the pure seven-row decision table this suite's first section
 /// exercises directly). Module-level coverage (this file's remainder) drives WeaponPalette.Tick
 /// against FakeSparseMemory band seats, mirroring BulwarkTests.cs's shape: a builder that seeds a
 /// FlagOwner-satisfying band entry, then per-test Tick sequences asserting on
-/// FakeSparseMemory.WrittenBytes/WriteOrder (never on a comment citation -- the LW-257
+/// FakeSparseMemory.WrittenBytes/WriteOrder (never on a comment citation -- the
 /// vacuous-test lesson).
 /// </summary>
 public class WeaponPaletteTests
@@ -70,7 +70,7 @@ public class WeaponPaletteTests
                 desiredPal: 4, desiredWeapon: 22, desiredGlow: 0,
                 ticksUnchanged: 0, reassertTicks: ReassertTicks));
 
-    // ---- LW-295 TDD item 1: the seventh row -- same (pal, weapon), glow changed -> Paint,
+    // ---- TDD item 1: the seventh row -- same (pal, weapon), glow changed -> Paint,
     //      regardless of ticksUnchanged (a tier bump/drop repaints right away, not on the
     //      reassert cadence). Both directions: a glow INCREASE (the only one that happens in
     //      play) and a glow DROP (the row itself is direction-agnostic). ----
@@ -95,7 +95,7 @@ public class WeaponPaletteTests
 
     // ================= 1b. WeaponPalettePolicy.Brighten/BrightenAll -- pure (TDD items 3-5) ======
 
-    // ---- LW-295 TDD item 3 (THE LOAD-BEARING TEST): the exact ladder from the committed
+    // ---- TDD item 3 (THE LOAD-BEARING TEST): the exact ladder from the committed
     //      look-test probe (tools/probes/lw305_bench_paint.py, commit 2dbab25) for its own sample
     //      code 0x14B8 (r=24, g=5, b=5) at all three shipped tier factors. The f=0.75 row is the
     //      one that pins the rounding mode: g and b both land on the 24.5 half-case, and only
@@ -111,9 +111,9 @@ public class WeaponPaletteTests
         Assert.Equal(0x631D, WeaponPalettePolicy.Brighten(code, 0.75));
     }
 
-    // ---- LW-295 TDD item 4: every channel clamps at 31 (never overflows into the next channel's
+    // ---- TDD item 4: every channel clamps at 31 (never overflows into the next channel's
     //      bits or into bit 15), and bit 15 is ALWAYS stripped from the result -- PaintBanks is
-    //      the only legitimate source of that bit (the LW-308 rule). ----
+    // the only legitimate source of that bit (the rule). ----
 
     [Fact]
     public void Brighten_Clamps31_AndStripsBit15()
@@ -123,7 +123,7 @@ public class WeaponPaletteTests
         Assert.Equal(0x7FFF, WeaponPalettePolicy.Brighten(0x0000, 1.0));    // black, full factor -> white
     }
 
-    // ---- LW-295 TDD item 5: the f == 0.0 (tier 0, no glow) fast path returns the INPUT array
+    // ---- TDD item 5: the f == 0.0 (tier 0, no glow) fast path returns the INPUT array
     //      reference itself, not a freshly built copy -- no allocation on the common
     //      untiered/plain-wielder path. ----
 
@@ -198,7 +198,7 @@ public class WeaponPaletteTests
         return entry;
     }
 
-    /// <summary>LW-295: seeds a roster row wielding <paramref name="weaponId"/> in its main hand,
+    /// <summary>Seeds a roster row wielding <paramref name="weaponId"/> in its main hand,
     /// at the EXACT (level,brave,faith) fingerprint <see cref="SeatOwner"/> stages on the band
     /// side (lvl 30, br 50, fa 50) -- so DesiredGlow's roster read finds this row as a match for
     /// whatever band owner SeatOwner seated. RNameId stays 0 (default): DesiredGlow's gate is
@@ -792,7 +792,7 @@ public class WeaponPaletteTests
         }
     }
 
-    // ================= 3. LW-308 hardening =================
+    // ================= 3. Hardening =================
 
     // ---- Bit 15 in a baked code is stripped before the carry: the bank is the ONLY bit-15 source ----
 
@@ -893,7 +893,7 @@ public class WeaponPaletteTests
         Assert.Equal(4, cap.File.Count(l => l.Contains("neither vanilla nor our last paint")));
     }
 
-    // ================= 4. LW-295 kill-tier glow (Tick-level) =================
+    // ================= 4. Kill-tier glow (Tick-level) =================
     // DesiredGlow's memory-reading half (WeaponPalette.Desire.cs) exercised only through Tick --
     // it is private, the same "public surface only" discipline section 2/3 already follow.
 
@@ -921,7 +921,7 @@ public class WeaponPaletteTests
         }
     }
 
-    // ---- LW-295 verify-round item: the tier-glow paint path carries bit 15 too -- item 6 above
+    // ---- Verify-round item: the tier-glow paint path carries bit 15 too -- item 6 above
     //      masks every written entry with & 0x7FFF and so never proves it. This pins the SAME
     //      staging as Paint_CarriesBit15FromCurrentBytes_NeverInventsIt (bit 15 set on entries 2,
     //      6, 15) through a glowing (tier 2, factor 0.50) wielder and asserts the UNMASKED
@@ -1110,7 +1110,7 @@ public class WeaponPaletteTests
         }
     }
 
-    // ================= LW-399: the palette door latch =================
+    // ================= The palette door latch =================
 
     [Fact]
     public void A_closed_palette_door_holds_the_first_paint()

@@ -10,7 +10,7 @@ namespace LivingWeapon.Tests;
 /// The launch header's data sources (logging facelift stage 3): ModInfo.ReadVersion (fail-soft
 /// ModConfig.json read), KillTally.LoadedFrom + its backup/fresh Warnings, and LegendStore's
 /// WeaponCount/TotalMarks/LoadedFrom getters. All filesystem cases run in isolated temp dirs.
-/// LW-147: TempDir() directories are tracked and deleted in Dispose, not leaked.
+/// TempDir directories are tracked and deleted in Dispose, not leaked.
 /// </summary>
 public class LaunchHeaderTests : IDisposable
 {
@@ -130,7 +130,7 @@ public class LaunchHeaderTests : IDisposable
         Assert.Equal(1, reloaded.WeaponCount);
     }
 
-    // --- LaunchHeader composers (LW-22: the header lines must pluralize their counts) ---
+    // --- LaunchHeader composers (the header lines must pluralize their counts) ---
 
     [Fact]
     public void Tally_line_singular_counts_read_singular()

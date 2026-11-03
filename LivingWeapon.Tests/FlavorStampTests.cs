@@ -7,11 +7,11 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-134: FlavorStamp writes run_flavor.txt into the save dir so BuildLinked's deploy guard
+/// FlavorStamp writes run_flavor.txt into the save dir so BuildLinked's deploy guard
 /// (Resolve-DeployedFlavor, tools/pipeline.ps1) has a last-RUN flavour truth even when
 /// build_flavor.txt (BuildLinked's own last-DEPLOY marker) is missing or stale -- e.g. a
 /// hand-extracted production zip, which never went through BuildLinked at all. Mirrors
-/// SaveLocationTests' unique-temp-ModDir idiom so parallel runs never collide. LW-147:
+/// SaveLocationTests' unique-temp-ModDir idiom so parallel runs never collide.
 /// TempRoot() directories are tracked and deleted in Dispose, not leaked.
 /// </summary>
 public class FlavorStampTests : IDisposable

@@ -618,21 +618,21 @@ internal static class Offsets
 
     // --- order-template relocation. Both templates are read only through a
     // pointer-table slot (11 plain-code sites read the three slots below), and the picker block
-    // hides a fifth sub-table, "every owned item, any category", at the shared picker base plus 0x1E6 (finding
-    // 4, reviewer RE re-check (a), reproduced in LW371_plan.md). Moving all three charts re-points ten fields
+    // hides a fifth sub-table, "every owned item, any category", at the shared picker base plus 0x1E6 (found
+    // in the second RE pass, reproduced in LW371_plan.md). Moving all three charts re-points ten fields
     // (three slots, five rip-relative int32s, two menu-list-cap bytes);
     // tools/probes/lw371_order_template_relocate.py --scan re-derives each.
-    /// <summary>Slot A naming <see cref="InventoryOrderTemplate"/> (reviewer (b): housekeeper
+    /// <summary>Slot A naming <see cref="InventoryOrderTemplate"/> (housekeeper
     /// 0x140285F80, list build 0x140288D55, rebuild callers 0x1403382B3 / 0x14036B1D9).</summary>
     public static long InventoryOrderTableSlot => ImageBase.At(0x14067F498L);
-    /// <summary>Slot B naming <see cref="InventoryOrderTemplate"/> (reviewer (b): the third
+    /// <summary>Slot B naming <see cref="InventoryOrderTemplate"/> (the third
     /// housekeeper copy, 0x14039684C).</summary>
     public static long InventoryOrderTableSlotB => ImageBase.At(0x140689C38L);
-    /// <summary>Slot naming <see cref="PickerOrderTemplate"/> (reviewer (b): picker housekeeper
+    /// <summary>Slot naming <see cref="PickerOrderTemplate"/> (picker housekeeper
     /// 0x14028609F, callers 0x14033694F / 0x140336CEF).</summary>
     public static long PickerOrderTableSlot => ImageBase.At(0x14067FA90L);
     /// <summary>The picker block's fifth sub-table, "every owned item, any category".
-    /// No slot names it; reviewer table (a) lists its rip-relative fields (a shared rsi base at
+    /// No slot names it; the RE table lists its rip-relative fields (a shared rsi base at
     /// [rsi+rcx*2+0x1E6]/[...+0x1E8], four direct disp32 fields). Its ceiling is 261 owned kinds;
     /// past that it overwrites 0x141874932.</summary>
     public static long PickerAllItemsTemplate => ImageBase.At(0x141874726L);
@@ -640,7 +640,7 @@ internal static class Offsets
     public const int PickerAllItemsTemplateWords = 262;
     /// <summary>The shared list builder's entry-cap byte. The imm32 low byte of <c>cmp esi,0x91</c> (six bytes,
     /// 81 FE 91 00 00 00) at 0x140288CC1, widened 0x91 (145 entries) -&gt; 0x95 (149). Both stack
-    /// list buffers hold <see cref="ListBuilderStackRoomBytes"/> bytes before the GS cookie (reviewer (d): fnA
+    /// list buffers hold <see cref="ListBuilderStackRoomBytes"/> bytes before the GS cookie (fnA
     /// rsp+0x70..rsp+0x1A0 via <c>lea rbp,[rsp-0xb0]</c> then <c>mov [rbp+0xa0],rax</c>; fnB true entry
     /// 0x140336B88, rsp+0x50..rsp+0x180 via <c>lea rbp,[rax-0xa8]</c> then <c>[rbp+0x80]</c>). The builder
     /// writes cap+1 words, but fnA (entry 0x1402875A4, the picker's weapons-only per-slot list) then appends
@@ -653,7 +653,7 @@ internal static class Offsets
     /// 81 FA 92 00 00 00) at 0x140286318, widened 0x92 (146) -&gt; 0x96 (150 = builder cap + 1, so the
     /// loop still reaches the terminator at index 149).</summary>
     public static long ListInsertBoundByte => ImageBase.At(0x14028631AL);
-    /// <summary>Bytes between the smaller stack list buffer and its GS cookie (reviewer (d), both
+    /// <summary>Bytes between the smaller stack list buffer and its GS cookie (both
     /// callers re-read 09:00. FnA frame 0x1B0, buffer rsp+0x70, cookie rsp+0x1A0; fnB entry
     /// 0x140336B88, frame 0x190, buffer rsp+0x50, cookie rsp+0x180). fnA's two hand items plus
     /// terminator make the limit cap+3 words. A cap fits when (cap+3)*2 &lt;= this.</summary>

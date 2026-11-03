@@ -6,7 +6,7 @@ using Xunit;
 
 namespace LivingWeapon.Tests;
 
-/// <summary>LW-346 S3: the extended-inventory XML loader, over fixtures written into a temp mod
+/// <summary>The extended-inventory XML loader, over fixtures written into a temp mod
 /// dir, plus one pin against the SHIPPED mod/extended_inventory folder so tools/generate.py's
 /// output and this loader can never disagree about the Moonblade.</summary>
 public class ExtendedInventoryDataTests : IDisposable
@@ -49,7 +49,7 @@ public class ExtendedInventoryDataTests : IDisposable
         Assert.Equal(37, m.CloneDonor);
         Assert.Equal(37, m.ArtDonor);
         Assert.Equal(1, m.SeedCount);
-        Assert.Equal(0x4002, m.ShopFlags);   // LW-354: Dorter | Gariland
+        Assert.Equal(0x4002, m.ShopFlags);   // Dorter | Gariland
     }
 
     [Fact]
@@ -134,7 +134,7 @@ public class ExtendedInventoryDataTests : IDisposable
     public void The_shipped_folder_loads_clean_and_defines_the_terrastaff()
     {
         // The first extended id was the Moonblade (Sword, donor 37, WP 15, Dorter) until its removal
-        // on 2026-08-31; the Terrastaff, moved off the Battle Axe's slot by LW-351, holds 261 now.
+        // on 2026-08-31; the Terrastaff, moved off the Battle Axe's slot, holds 261 now.
         string repoRoot = RepoRoot();
         var r = ExtendedInventoryData.Load(Path.Combine(repoRoot, "mod"));
         Assert.True(r.FolderPresent, "mod/extended_inventory is missing: run tools/generate.py");
@@ -155,7 +155,7 @@ public class ExtendedInventoryDataTests : IDisposable
         return dir?.FullName ?? throw new InvalidOperationException("repo root not found above the test bin dir");
     }
 
-    /// <summary>LW-351 stage 2: the shipped folder carries the seven extended weapons, contiguous
+    /// <summary>The shipped folder carries the seven extended weapons, contiguous
     /// from 261 since the Moonblade's removal (2026-08-31), each on the clone donor the plan locked,
     /// so a regenerate that drops, reorders or re-donors one goes red here before it reaches a
     /// build.</summary>
@@ -181,7 +181,7 @@ public class ExtendedInventoryDataTests : IDisposable
         }
     }
 
-    /// <summary>LW-368 round 2 (T12, D7): past ExtendedSites.MaxExtendedCount (121) the eight
+    /// <summary>Past ExtendedSites.MaxExtendedCount (121) the eight
     /// disp8 lea sites overflow instead of widening, so a table this size must refuse loudly
     /// here rather than shipping a build that corrupts a bound at runtime.</summary>
     [Fact]

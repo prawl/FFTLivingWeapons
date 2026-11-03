@@ -8,7 +8,7 @@ using Xunit;
 
 namespace LivingWeapon.Tests;
 
-/// <summary>LW-346 S4: the boot-arm transaction over the fakes: a vanilla 1.5.2 process image
+/// <summary>The boot-arm transaction over the fakes: a vanilla 1.5.2 process image
 /// (every patch site's old byte, the ten accessor function entries with their real bytes, the catalog disp32 and
 /// the five "+" records) either arms completely or is left byte-for-byte untouched.</summary>
 public class ExtendedInventoryTests : IDisposable
@@ -17,9 +17,9 @@ public class ExtendedInventoryTests : IDisposable
     public ExtendedInventoryTests() => Directory.CreateDirectory(_dir);
     public void Dispose() { try { Directory.Delete(_dir, true); } catch { } }
 
-    // A property (LW-388 R5): the addresses are rebased pins, so a static readonly array would
+    // A property: the addresses are rebased pins, so a static readonly array would
     // freeze whatever base was live when the class first loaded.
-    // LW-388 R12: built FROM the production table so the fixture cannot drift from it; each
+    // Built FROM the production table so the fixture cannot drift from it; each
     // entry seeds its real function-entry bytes (the Denuvo-free exe on disk 2026-10-16).
     private static (long Addr, byte[] Bytes)[] Thunks =>
         new[] { ExtendedDonorThunks.WeaponStat }
@@ -27,14 +27,14 @@ public class ExtendedInventoryTests : IDisposable
             .Select(e => (e.Addr, e.Expected)).ToArray();
 
     /// <summary>A vanilla 1.5.2 image as far as the boot arm looks (bytes read on disk 2026-08-27).
-    /// LW-368 round 2 / round 2b: also seeds all 55 list-relocation fields and the two 0x110-byte
+    /// Also seeds all 55 list-relocation fields and the two 0x110-byte
     /// old blocks (bag counts + sibling flags) at their vanilla values, so BootArm still arms end
-    /// to end. LW-371: also seeds the ten template-relocation fields and the three old chart spans
+    /// to end. Also seeds the ten template-relocation fields and the three old chart spans
     /// (each an empty chart: the 0x00FF marker at word 0, zeros after) -- without this,
     /// <c>_templates.Install</c> refuses on the unreadable/wrong old chart spans and every
     /// BootArm-based test fails <c>Assert.True(inv.Armed)</c>.</summary>
     ///
-    /// LW-388: staged at the LIVE addresses of whatever <see cref="ImageBase"/> is current, so a
+    /// Staged at the LIVE addresses of whatever <see cref="ImageBase"/> is current, so a
     /// test that calls <see cref="ImageBase.Set"/> first gets a relocated image. Offsets.* are
     /// LIVE already and seed as-is; the PIN-space tables (the boot sites, ListRelocation.Sites,
     /// TemplateRelocation.RipFields) seed at ImageBase.At(pin). The boot sites are read at the
@@ -46,7 +46,7 @@ public class ExtendedInventoryTests : IDisposable
         var f = new FakeCodePatcher();
         foreach (var p in PinBootPatches(1)) f.Seed(ImageBase.At(p.Addr), p.Old);
         foreach (var (addr, bytes) in Thunks) f.Seed(addr, bytes);
-        f.Seed(Offsets.FnSwingPrepIdCopy, SwingIdFallbackHook.ExpectedSite);   // LW-365
+        f.Seed(Offsets.FnSwingPrepIdCopy, SwingIdFallbackHook.ExpectedSite);
         f.Seed(Offsets.ExtCatalogDisp32, 0x10, 0xF9, 0x67, 0x00);
         ShopFlagsMirrorTests.SeedVanillaShopSites(f);
         for (int id = ExtendedCatalog.DlcLo; id <= ExtendedCatalog.DlcHi; id++)
@@ -103,7 +103,7 @@ public class ExtendedInventoryTests : IDisposable
         },
     };
 
-    /// <summary>LW-365 F1 (v1.2): two items (ids 261, 262) so lo != hi in the fallback stub's
+    /// <summary>F1 (v1.2): two items (ids 261, 262) so lo != hi in the fallback stub's
     /// baked range -- Moonblade() alone has lo == hi and cannot catch a swapped lo/count. Same
     /// records as Moonblade(), copied, with the second item's Id/Name changed.</summary>
     private static ExtendedInventoryData.LoadResult TwoBlades() => new()
@@ -151,17 +151,17 @@ public class ExtendedInventoryTests : IDisposable
             Assert.NotEqual(original, now);
             Assert.True(f.Read(stub, 2).SequenceEqual(new byte[] { 0x89, 0xC8 }));   // a stub sits at the target
         }
-        // LW-368 round 2: the seed lands on the RELOCATED page, never the vanilla block.
+        // The seed lands on the RELOCATED page, never the vanilla block.
         Assert.NotEqual(Offsets.BagCountArray, inv.BagCountBase);
         Assert.Equal(1, f.Bytes[inv.BagCountBase + 261]);   // the data seed (no sidecar entry)
         Assert.Equal(0, f.Bytes[Offsets.BagCountArray + 261]);   // ... not the vanilla block, which stays zero
-        Assert.Equal(0xE9, f.Bytes[Offsets.FnSwingPrepIdCopy]);   // LW-365: swing-id fallback armed
-        // LW-365 fix round: pin the production wiring's lo/hi bounds baked into the fallback stub
+        Assert.Equal(0xE9, f.Bytes[Offsets.FnSwingPrepIdCopy]);   // Swing-id fallback armed
+        // Fix round: pin the production wiring's lo/hi bounds baked into the fallback stub
         // (the last allocator request whose Near is the swing-id site is the fallback's own page).
         var fallbackPage = alloc.Requests.Last(r => r.Near == Offsets.FnSwingPrepIdCopy).Got;
         Assert.Equal(ExtendedCatalog.FirstExtendedId, BitConverter.ToInt32(f.Read(fallbackPage + 0x21, 4), 0));
         Assert.Equal(ExtendedCatalog.FirstExtendedId + inv.Items.Count - 1, BitConverter.ToInt32(f.Read(fallbackPage + 0x28, 4), 0));
-        Assert.NotEqual(0x90, f.Bytes[Offsets.ShopBuilderLowByteDisp32]);   // shop table mirrored (LW-354)
+        Assert.NotEqual(0x90, f.Bytes[Offsets.ShopBuilderLowByteDisp32]);   // shop table mirrored
         inv.StepShopSync();
         Assert.Equal(0xFE, f.Bytes[ImageBase.Base + BitConverter.ToInt32(f.Read(Offsets.ShopBuilderLowByteDisp32, 4), 0) + 37 * 2]);   // vanilla half synced
         inv.BootArm(null);   // idempotent
@@ -174,7 +174,7 @@ public class ExtendedInventoryTests : IDisposable
         Assert.Equal(-1, inv.WeaponRowAddr(37));
     }
 
-    /// <summary>LW-365 F1 (v1.2): the one-item Moonblade() fixture has lo == hi in the fallback
+    /// <summary>F1 (v1.2): the one-item Moonblade fixture has lo == hi in the fallback
     /// stub's baked range, so a swapped lo/count could not be caught. TwoBlades() (ids 261, 262)
     /// pins both ends distinctly: +0x21..+0x24 must decode to lo (261), +0x28..+0x2B to hi (262).</summary>
     [Fact]
@@ -242,7 +242,7 @@ public class ExtendedInventoryTests : IDisposable
         inv.BootArm(null);
         inv.Tracker.OnApplied(SaveEdgeTrackerTests.Header(10));
         inv.StepBagSidecar(new FakeSparseMemory());
-        Assert.Equal(2, f.Bytes[inv.BagCountBase + 261]);   // the pre-LW-353 count, once
+        Assert.Equal(2, f.Bytes[inv.BagCountBase + 261]);   // The earlier count, once
         inv.Tracker.OnApplied(SaveEdgeTrackerTests.Header(20));
         inv.StepBagSidecar(new FakeSparseMemory());
         Assert.Equal(1, f.Bytes[inv.BagCountBase + 261]);   // then the seed
@@ -284,7 +284,7 @@ public class ExtendedInventoryTests : IDisposable
         Assert.Equal(vanilla, f.Bytes.Where(kv => vanilla.ContainsKey(kv.Key)).ToDictionary(kv => kv.Key, kv => kv.Value));
     }
 
-    /// <summary>LW-397: the PE build key no longer gates the arm, so a game whose code moved is
+    /// <summary>The PE build key no longer gates the arm, so a game whose code moved is
     /// refused by the per-site old-byte check alone. End to end: corrupt the FIRST boot patch's old
     /// byte (read from the real table, so the test cannot drift from it), arm, and see the one-line
     /// refusal naming the site and not one byte left written. Sibling proofs: the unit-level
@@ -318,13 +318,13 @@ public class ExtendedInventoryTests : IDisposable
         Assert.False(inv.Armed);
         Assert.Contains("prologue", inv.Refusal);
         Assert.Equal(before, f.Bytes.Where(kv => before.ContainsKey(kv.Key)).ToDictionary(kv => kv.Key, kv => kv.Value));
-        // LW-368 round 2: the list relocation itself succeeds before the order-rebuild hook
+        // The list relocation itself succeeds before the order-rebuild hook
         // refuses, then RollBack restores it, so BagCountBase falls back to the vanilla block.
         Assert.Equal(Offsets.BagCountArray, inv.BagCountBase);
         Assert.Equal(0, f.Bytes[inv.BagCountBase + 261]);   // never seeded (still the vanilla zero-fill)
     }
 
-    /// <summary>LW-365: the swing-id fallback installs before the hooks step (Arm.cs order), so a
+    /// <summary>The swing-id fallback installs before the hooks step (Arm.cs order), so a
     /// hooks refusal must roll it back too, in RollBack's reverse order (right before the clones
     /// loop) -- the site goes back to its original 7-byte movzx, never left mid-jump.</summary>
     [Fact]
@@ -337,13 +337,13 @@ public class ExtendedInventoryTests : IDisposable
         Assert.Equal(SwingIdFallbackHook.ExpectedSite, f.Read(Offsets.FnSwingPrepIdCopy, SwingIdFallbackHook.ExpectedSite.Length));
     }
 
-    /// <summary>U6 (v1.1 strengthened, LW-372): the D8 transaction is asserted on BYTES, not just
+    /// <summary>U6 (v1.1 strengthened): the D8 transaction is asserted on BYTES, not just
     /// the Armed flag. Drives the REAL <see cref="ListBuilderHook.Install"/> (not a canned refusal
     /// string) against a genuinely corrupted prologue, so this also proves Install's own prologue
     /// check is what refuses. TemplateRelocation's cap sites are already widened (255/256) by the
     /// time the hooks step runs (Install order: cap patches -&gt; list relocation -&gt; template
     /// relocation -&gt; catalog -&gt; shops -&gt; clones -&gt; hooks), so RollBack must put them back to
-    /// TRUE vanilla, not the LW-371 149/150 waypoint.</summary>
+    /// TRUE vanilla, not the 149/150 waypoint.</summary>
     [Fact]
     public void A_list_builder_prologue_mismatch_refuses_and_the_cap_sites_read_vanilla_bytes()
     {
@@ -388,7 +388,7 @@ public class ExtendedInventoryTests : IDisposable
         Assert.Empty(g.Writes);
     }
 
-    /// <summary>LW-368 round 2 (T10): a field the list relocation owns is already moved. The
+    /// <summary>A field the list relocation owns is already moved. The
     /// relocation step runs right after the boot cap patches, so its refusal must roll THOSE
     /// back too, not just leave its own 55 fields untouched -- "nothing earlier remains applied".</summary>
     [Fact]
@@ -411,7 +411,7 @@ public class ExtendedInventoryTests : IDisposable
         Assert.Equal(0, f.Bytes[inv.BagCountBase + 261]);   // SeedBag never ran (still the vanilla zero-fill)
     }
 
-    /// <summary>LW-371 (T9d): a field the TEMPLATE relocation owns is already moved. Its Install
+    /// <summary>A field the TEMPLATE relocation owns is already moved. Its Install
     /// step runs right after the list relocation (D2), so its refusal must roll THAT back too
     /// (and the boot cap patches before it) -- the same "nothing earlier remains applied"
     /// contract T10 pins for the list relocation, one link further down the chain.</summary>
@@ -437,7 +437,7 @@ public class ExtendedInventoryTests : IDisposable
         Assert.Equal(TemplateSeat.WeaponRegions, inv.TemplateRegions);   // the vanilla pair, never the page
     }
 
-    /// <summary>LW-388 (R2): the two damage caps are plain boot sites on the Denuvo-free build
+    /// <summary>The two damage caps are plain boot sites on the Denuvo-free build
     /// (re-found 2026-10-16 in its .text: the eighth hand-resolver copy, disp8 at 0x14027F002 with
     /// two ThunkWeaponStat calls following, and the swing publisher's lea r14d,[rbp+6], disp8 at
     /// 0x1402822A4; formerly the protected-tail 0x14F2EA40F / 0x14F45D315). BootArm widens both
@@ -460,7 +460,7 @@ public class ExtendedInventoryTests : IDisposable
         Assert.True(inv.CapsSettled);
         Assert.Equal(writes, f.Writes.Count);
 
-        // LW-353: with no save edge pending, the tick writes nothing (a change in the bag is
+        // With no save edge pending, the tick writes nothing (a change in the bag is
         // never recorded on its own any more; only a save edge records, only a load edge replays).
         var mem = new FakeSparseMemory();
         f.Seed(inv.BagCountBase + 261, 2);
@@ -470,7 +470,7 @@ public class ExtendedInventoryTests : IDisposable
         Assert.Equal(2, f.Bytes[inv.BagCountBase + 261]);
     }
 
-    // ---- LW-388: the boot arm on an ASLR-relocated image ----
+    // ---- The boot arm on an ASLR-relocated image ----
 
     /// <summary>A plausible ASLR base (64 KB aligned, in the 0x7FF6... range the owner's 2026-10-16
     /// pass saw: 0x7FF65E0F0000); the same value the ImageBase and LaunchGuard suites use.</summary>
@@ -479,11 +479,11 @@ public class ExtendedInventoryTests : IDisposable
     /// the on-disk PE, docs/research/PORT_1.5.2_NODRM_OFFSETS.md).</summary>
     private const long SizeOfImage = 0x03F9E000L;
 
-    /// <summary>LOAD-BEARING (LW-388 A10/R4): with the image at a random base and every vanilla byte
+    /// <summary>LOAD-BEARING (A10/R4): with the image at a random base and every vanilla byte
     /// staged at its LIVE address, BootArm arms end to end; every write lands inside the relocated
     /// image or on a page the allocator granted (none at a preferred-base pin); the allocator was
     /// asked for pages near the LIVE image base and near each LIVE thunk; and the catalog's
-    /// image-relative disp32 is measured from the live base. Each of the plan's three verifier
+    /// image-relative disp32 is measured from the live base. Each of the plan's three review
     /// breaks fails this test: ListRelocation.Distance's image-relative branch reverted to the
     /// preferred base (out of int32 reach), TemplateRelocation reading RipField.Addr without
     /// ImageBase.At (unreadable pin), ExtendedSites.Build emitting the pin Addr (unreadable pin).</summary>
@@ -522,7 +522,7 @@ public class ExtendedInventoryTests : IDisposable
             long catalog = alloc.Requests.Single(r => r.Size == ExtendedCatalog.BufferSize).Got;
             Assert.Equal(catalog - ImageBase.Base, BitConverter.ToInt32(f.Read(Offsets.ExtCatalogDisp32, 4), 0));
 
-            // the widened caps (incl. the two LW-388 damage caps) sit at their LIVE addresses
+            // the widened caps (incl. the two damage caps) sit at their LIVE addresses
             foreach (var p in PinBootPatches(2)) Assert.Equal(p.New, f.Bytes[ImageBase.At(p.Addr)]);
             Assert.Equal(0x08, f.Bytes[ImageBase.At(0x14027F002L)]);
             Assert.Equal(0x08, f.Bytes[ImageBase.At(0x1402822A4L)]);
@@ -543,7 +543,7 @@ public class ExtendedInventoryTests : IDisposable
         finally { ImageBase.ResetForTests(); }
     }
 
-    /// <summary>The mirror (the symptom LW-388 fixes): the same relocated staging, but the mod
+    /// <summary>The mirror (the symptom the relocation fixes): the same relocated staging, but the mod
     /// never learned the live base, so it reads the preferred pins, finds nothing there, and
     /// refuses at the very first read (the count-getter cap) without writing a byte.</summary>
     [Fact]
@@ -595,7 +595,7 @@ public class ExtendedInventoryTests : IDisposable
         ModLogger.UseNullLogger();
         using var temp = TempDirs.Create("lw_engine_ext_");
         var f = VanillaImage();
-        f.Seed(ExtendedSites.BootPatches(1)[0].Addr, 0x07);   // LW-397: a moved first boot site refuses before any write
+        f.Seed(ExtendedSites.BootPatches(1)[0].Addr, 0x07);   // A moved first boot site refuses before any write
         var inv = Build(f, Moonblade());
         var engine = new Engine(EngineTests.NestedModDir(temp), mem: EngineTests.HealthyMemory(), notice: (_, __) => { }, extended: inv);
         engine.InjectHooks(null);

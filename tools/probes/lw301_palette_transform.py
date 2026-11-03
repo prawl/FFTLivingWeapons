@@ -728,7 +728,6 @@ def cmd_preview(pairs):
     print(f"vanilla | recoloured  ->  {out}")
 
 
-
 def recolour_for_item(it, van, ff16, tmp, box=None):
     """One weapon's finished battle palette, plus everything a reviewer needs to judge it.
 

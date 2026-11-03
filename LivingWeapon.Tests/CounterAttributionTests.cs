@@ -27,7 +27,7 @@ public class CounterAttributionTests
     // Enemy band slot (enemy-side: <= EnemySlotMax=19)
     private const int EnemySlot = 0;
 
-    // Seeding helpers ride the shared KillTrackerFixtures (LW-160). Every call site here passes
+    // Seeding helpers ride the shared KillTrackerFixtures. Every call site here passes
     // team/acted and level/brave/faith by name, so the canonical signatures bind identically to
     // the old local variants (which listed acted before team and omitted gx/gy).
 

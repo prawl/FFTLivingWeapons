@@ -71,7 +71,11 @@ TOP_N = 25
 
 
 def u16(b, o): return b[o] | (b[o + 1] << 8)
+
+
 def u32(b, o): return int.from_bytes(b[o:o + 4], "little")
+
+
 def u64(b, o): return int.from_bytes(b[o:o + 8], "little")
 
 

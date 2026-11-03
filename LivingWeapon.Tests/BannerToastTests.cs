@@ -433,7 +433,7 @@ public class BannerToastTests
     public void FirstBloodTierPayload_wording(int tier, string? sigLabel, string expected)
         => Assert.Equal(expected, BannerToast.FirstBloodTierPayload("Kiyomori", tier, sigLabel));
 
-    // ---- (29) LW-70: Rebaseline re-primes _tiers/_counts on the PlaythroughReset new-game edge,
+    // ---- (29) Rebaseline re-primes _tiers/_counts on the PlaythroughReset new-game edge,
     // so the first post-reset tally rise reads as a fresh crossing rather than a rollback ----
 
     [Fact]
@@ -507,7 +507,7 @@ public class BannerToastTests
         Assert.Equal(keys.Count, new HashSet<int>(keys).Count);
     }
 
-    // ---- LW-323: a toast never outlives its battle -- DropPendingAtBattleEnd empties the queue
+    // ---- A toast never outlives its battle -- DropPendingAtBattleEnd empties the queue
     // on the battle-exit edge (Engine.ResetBattleState) and ahead of Rebaseline's new-game
     // resnapshot, so a toast that missed every facing-prompt window in its own battle can never
     // deliver into a LATER one. ----

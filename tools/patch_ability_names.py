@@ -48,9 +48,9 @@ PATCHES = {
                        "Each strike inflicts half the usual damage.",
         "IconId": 32,
     },
-    # LW-77 / LW-351: Name/IconId untouched, Description only. The LW-77 text said the support
+    # Name/IconId untouched, Description only. The text said the support
     # had nothing left to equip, because every axe and flail in this rebalance had been reforged
-    # into another weapon type (make_jobequip.py's REMOVE set). LW-351 gives those items their
+    # into another weapon type (make_jobequip.py's REMOVE set). The rebalance gives those items their
     # vanilla identities back, so the support does something again and the note is retired.
     # This row still exists rather than reverting to vanilla text because the description also
     # replaces the mod JobCommandData.xml row that used to zero the learnable slot (deleted,
@@ -59,7 +59,7 @@ PATCHES = {
         "Description": "Equip axes and flails, regardless of job.",
     },
     # ---------------------------------------------------------------------------------------
-    # LW-123: the Defender's "Provoke" command. Key 189 is vanilla `Embrace`, a cut ability that
+    # The Defender's "Provoke" command. Key 189 is vanilla `Embrace`, a cut ability that
     # nothing in the game can reach -- no JobCommand record, no monster skillset, no innate slot,
     # no weapon proc -- which is what makes renaming it safe, since a rename is global to the id.
     # Chosen live 2026-07-22 over two other candidates because it alone cleared all three gates:

@@ -7,11 +7,11 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-150 S5: the first test that actually constructs an <see cref="Engine"/>. Two ctor seams
+/// The first test that actually constructs an <see cref="Engine"/>. Two ctor seams
 /// made this possible without either crashing `dotnet test` or corrupting a real save:
 ///   - `mem`: null (production) builds a real LiveMemory; a test injects a FakeSparseMemory that
 ///     is now shared by EVERY subsystem the ctor wires -- including LaunchGuard -- because
-///     LW-150 S5 collapsed the ctor's local `live` variable down to an alias of `_live`.
+/// collapsed the ctor's local `live` variable down to an alias of `_live`.
 ///   - `notice`: null (production) falls back to StandDownNotice.Show (the real OS message box);
 ///     a test passes a captured no-op so a healthy or mismatched guard never pops a Win32 dialog
 ///     mid test-run.
@@ -78,7 +78,7 @@ public class EngineTests
         mem.TerrainBlocks[Offsets.PartyBrowseFlag] = new byte[] { browse };
     }
 
-    /// <summary>LW-150 S5 hazard (c): SaveLocation.ResolveSaveDir walks up two directories from
+    /// <summary>Hazard (c): SaveLocation.ResolveSaveDir walks up two directories from
     /// modDir (Directory.GetParent(modDir).Parent) to find the Reloaded root, then creates
     /// &lt;root&gt;/User/Mods/&lt;ModId&gt; for real on disk. A modDir fewer than 3 levels below
     /// the TempDirs root would resolve that root OUTSIDE the sandbox TempDirs cleans up (e.g. the
@@ -110,7 +110,7 @@ public class EngineTests
             var engine = new Engine(modDir, mem: mem, notice: (t, x) => notices.Add((t, x)));
 
             // Tick 1: the guard is Verifying -> Step() arms it (HealthyMemory matches every landmark,
-            // mirroring LaunchGuardTests.RamzaRow_valid_is_match's single-Step arm), and since LW-393
+            // mirroring LaunchGuardTests.RamzaRow_valid_is_match's single-Step arm), and now
             // the tick carries on into the seven sentinel reads in the same call. healthy-but-unstaged
             // battle/pause/submenu/event addresses all read 0 -> InLiveBattle is false -> Tick()
             // takes the out-of-battle branch every time (never mutates a save, no battle to be in).
@@ -140,7 +140,7 @@ public class EngineTests
         finally { ModLogger.UseNullLogger(); }
     }
 
-    // --- LW-150 S5 item 3: the two load-bearing orderings at the ctor's _signatures/
+    // --- Item 3: the two load-bearing orderings at the ctor's _signatures/
     // _fieldSignatures assignment are comment-enforced today ("Both orders are load-bearing and
     // preserved verbatim from the hand-wired era..."). Pin the EXACT type sequences read straight
     // off Engine.cs so an accidental reorder breaks a test, not just a comment nobody re-reads. ---
@@ -186,7 +186,7 @@ public class EngineTests
 
             // The three that tick pre-gate instead (see the ctor's comment above _signatures): named
             // explicitly so a reader never has to diff the two arrays above by eye to find them.
-            // Was four until LW-10 removed Treasure Master (2026-08-14).
+            // Was four removed Treasure Master (2026-08-14).
             var preGate = new[] { typeof(Barrage), typeof(ShadowBlade), typeof(Provoke) };
             foreach (var t in preGate)
                 Assert.DoesNotContain(t, engine.FieldTickOrder);
@@ -194,10 +194,10 @@ public class EngineTests
         finally { ModLogger.UseNullLogger(); }
     }
 
-    // --- LW-184: Engine.Tick's fan-out is now a declarative TickPhase[] table (TickPhase.cs).
+    // --- Engine.Tick's fan-out is now a declarative TickPhase table (TickPhase.cs).
     // This pins the ENGINE's table against the hand-wired sequence it replaced, so a reorder or
     // a dropped/miswired row breaks a test, not just a comment. The table's pure data invariants
-    // (After ordering/resolution, the non-battle allowlist) live in EngineTickTableTests (LW-186),
+    // (After ordering/resolution, the non-battle allowlist) live in EngineTickTableTests,
     // which reads Engine.BuildPhases(null) with no Engine constructed; the ctor wires the same
     // rows, so those invariants hold for this instance table too. ---
 
@@ -210,7 +210,7 @@ public class EngineTests
             using var temp = TempDirs.Create("lw_engine_phases_");
             var engine = new Engine(NestedModDir(temp), mem: HealthyMemory(), notice: (_, __) => { });
 
-            // After rides the per-row pin since LW-186: the data-invariant tests read the static
+            // After rides the per-row pin: the data-invariant tests read the static
             // BuildPhases(null) table, so pinning After VALUES here on the instance is what keeps
             // the two views provably the same shape (the belt the deleted After walk left behind).
             var expected = new List<(string Name, Func<TickPhaseState, bool> Gate, int EveryNTicks, bool FiresOnFirstPass, string[] After, Part Part)>
@@ -267,7 +267,7 @@ public class EngineTests
         finally { ModLogger.UseNullLogger(); }
     }
 
-    // LW-184 follow-up: the table pins (above, and EngineTickTableTests' data checks) inspect
+    // Follow-up: the table pins (above, and EngineTickTableTests' data checks) inspect
     // the phase TABLE's shape but never call Tick() -- a row wired to the wrong lambda or
     // the wrong gate (e.g. a copy-paste that left kill-poll gated on OutOfBattle) would sail
     // through both untouched. This one drives the real Tick() through both regimes and checks
@@ -314,7 +314,7 @@ public class EngineTests
             // (kit-lane trio, gunslinger, display-out), none of which ever
             // reference it. A region-level presence check, not an exact count, so this survives an
             // unrelated reshuffle of exactly which in-battle row reads it first.
-            // (icon-glow also joined this OutOfBattle group in LW-295 cycle B -- pure file I/O
+            // (icon-glow also joined this OutOfBattle group cycle B -- pure file I/O
             // against modded.pac, no memory read of any kind.)
             Assert.True(memIn.ReadCount.ContainsKey(Offsets.ActorPtr),
                 "in-battle regime: Offsets.ActorPtr was never read -- the in-battle fan-out did not run");
@@ -336,7 +336,7 @@ public class EngineTests
     [Fact]
     public void ResolveNotice_falls_back_to_StandDownNotice_Show_and_passes_through_a_non_null_override()
     {
-        // A verifier proved dropping the `?? StandDownNotice.Show` fallback at the ctor's
+        // A review proved dropping the `?? StandDownNotice.Show` fallback at the ctor's
         // LaunchGuard wiring site leaves the whole suite green while production would silently
         // lose the stand-down message box: nothing else here constructs an Engine with `notice`
         // left null AND then observes which delegate LaunchGuard got. Pin the null-coalesce
@@ -350,7 +350,7 @@ public class EngineTests
     [Fact]
     public void Mem_defaults_to_null_so_a_bare_construction_still_compiles_and_arms_over_LiveMemory()
     {
-        // LW-150 S5's byte-identical-production guarantee: a caller that never passes `mem` (every
+        // The byte-identical-production guarantee: a caller that never passes `mem` (every
         // production call site, Mod.cs included) must still compile and behave exactly as before
         // the ctor param existed. This test cannot observe a real LiveMemory arming for real (there
         // is no game process attached under `dotnet test`), but it pins that the overload resolves
@@ -368,7 +368,7 @@ public class EngineTests
         finally { ModLogger.UseNullLogger(); }
     }
 
-    // --- LW-395: the sensing lane gates the new-game detector end to end through Engine.Tick ---
+    // --- The sensing lane gates the new-game detector end to end through Engine.Tick ---
 
     // Stages the six sentinels in BOTH stores: TerrainBlocks (what the sensing probe's
     // TryReadBytes reads) and the U16s/U8s dictionaries (what Engine.Tick's U32/U16/U8 reads
@@ -456,7 +456,7 @@ public class EngineTests
         finally { Mem.WritesEnabled = prevWrites; }
     }
 
-    // ---- LW-399: every table writer carries the latch of its own door ----
+    // ---- Every table writer carries the latch of its own door ----
 
     internal static Engine LatchEngine(TempDirs temp, long? flippedSite)
     {

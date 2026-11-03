@@ -3,8 +3,8 @@ using LivingWeapon;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-149 stage I: shared band/victim seeding fixtures for FakeSparseMemory-based signature and
-/// kill-tracker tests, replacing three copy-pasted families the LW-149 audit mapped. CORE + THIN
+/// Stage I: shared band/victim seeding fixtures for FakeSparseMemory-based signature and
+/// kill-tracker tests, replacing three copy-pasted families the audit mapped. CORE + THIN
 /// TAILS, not one union signature -- an adversarial plan review found that a single combined
 /// SeedBandEntry (every caller's optional extras folded into one parameter list) would drag
 /// module-specific offsets (Choir's Non-charge support bit, Sanctuary's crystal-hearts counter,
@@ -82,7 +82,7 @@ internal static class BandFixtures
 
     /// <summary>Plant static-array slot 0's ENEMY fingerprint so the enemy-side oracle
     /// (Band.EnemyFingerprints; Plague keeps its own same-shape scan over the same array)
-    /// recognizes a band unit with this (maxHp,lvl,br,fa) as an enemy. LW-157 fold: the three
+    /// recognizes a band unit with this (maxHp,lvl,br,fa) as an enemy. After the fold, the three
     /// private SeatEnemyFp copies in MaimTests, PlagueLevelDriftTests, and PuppeteerTests were
     /// byte-identical (verified diff; only the provenance comments differed), and KobuTests
     /// carried a fourth inline copy of the same body.</summary>

@@ -43,7 +43,7 @@ public class FingerprintGuardFactoryTests
         Assert.Equal(LandmarkVerdict.Match, landmark.Probe().Verdict);
     }
 
-    // LW-397: the shared header reader behind PeBuildKey and the LivingWeapon adapter's report line.
+    // The shared header reader behind PeBuildKey and the LivingWeapon adapter's report line.
     [Fact]
     public void TryReadPeBuildKey_returns_both_fields()
     {
@@ -158,7 +158,7 @@ public class FingerprintGuardFactoryTests
         Assert.Equal(LandmarkVerdict.Unreadable, landmark.Probe().Verdict);
     }
 
-    // ---- LW-83: mismatch readings carry observed-vs-expected detail ----
+    // ---- Mismatch readings carry observed-vs-expected detail ----
 
     [Fact]
     public void PeBuildKey_mismatch_reading_carries_expected_and_observed()

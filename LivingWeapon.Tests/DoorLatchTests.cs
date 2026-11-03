@@ -4,7 +4,7 @@ using Xunit;
 
 namespace LivingWeapon.Tests;
 
-/// <summary>LW-399: the writer latch every table writer asks before its first write.</summary>
+/// <summary>The writer latch every table writer asks before its first write.</summary>
 public class DoorLatchTests
 {
     private const string Refusal = "The thing was not written; its data is not where this mod expects it.";

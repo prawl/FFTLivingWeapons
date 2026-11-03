@@ -6,7 +6,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// Module-level coverage for the Provoke hold (LW-123 arc 2a) against FakeSparseMemory band seats:
+/// Module-level coverage for the Provoke hold against FakeSparseMemory band seats:
 /// the SLICE facade (the load-bearing behavior), the WINDOW fallback, the identical-enemy turn-count
 /// guard, the transient-miss debounce, every release path, and the criteria the plan calls out by
 /// number (3/3b/4/5/6/7/8/9/10/11/12/13/14/17). Pure-decision coverage lives in
@@ -43,10 +43,10 @@ public class ProvokeHoldTests
     private static void SeatAlly(FakeSparseMemory m, int bandIdx, int lvl, int br, int fa, int gx, int gy,
         int weapon = 5, int ct = 0, int speed = 0)
     {
-        // LW-127: ct/speed default 0, additive-only -- every pre-existing call site is unaffected
+        // Ct/speed default 0, additive-only -- every pre-existing call site is unaffected
         // (TurnOrder excludes player-side seats from its ranking entirely, so a player-side seat's
         // CT/Speed never drives a hide/reveal decision either way; these two params exist only for
-        // T12, which pins that exclusion against a pinned-CT-100 player seat).
+        // T12, which pins that exclusion against a pinned CT 100 player seat).
         MemSeats.SeatBand(m, bandIdx, weapon, lvl, br, fa, gx, gy, ctSlam: ct, speed: speed);
         SetSide(m, bandIdx, enemy: false);
         StageInvisible(m, bandIdx);
@@ -55,7 +55,7 @@ public class ProvokeHoldTests
     private static void SeatEnemy(FakeSparseMemory m, int bandIdx, int lvl, int br, int fa, int gx, int gy,
         bool marked = false, bool active = false, int nameId = 0, int ct = 0, int speed = 0)
     {
-        // LW-127: ct/speed default 0, additive-only -- every pre-existing call site keeps reading an
+        // Ct/speed default 0, additive-only -- every pre-existing call site keeps reading an
         // unwritten (0) ACtSlam/Speed pair, exactly as before TurnOrder.cs existed.
         MemSeats.SeatBand(m, bandIdx, weapon: 0, lvl, br, fa, gx, gy, ctSlam: ct, speed: speed);
         SetSide(m, bandIdx, enemy: true);
@@ -81,7 +81,7 @@ public class ProvokeHoldTests
     /// actor at a time (a single global pointer) -- last writer wins, which is fine since these tests
     /// seat at most one active enemy.
     ///
-    /// LW-131: no longer writes TqTeam. TickArmed's turn gate now asks Band.FlagOwner whether a
+    /// No longer writes TqTeam. TickArmed's turn gate now asks Band.FlagOwner whether a
     /// player-side seat owns the turn instead of reading the cursor/team field, and every fixture
     /// here defaults to nobody owning the turn flag, which is exactly the "no player-side seat"
     /// condition the fix treats as an enemy turn -- so no extra write is needed to express it.</summary>
@@ -96,7 +96,7 @@ public class ProvokeHoldTests
     private static void ClearActor(FakeSparseMemory m) => m.SeedU64(Offsets.ActorPtr, 0);
 
     /// <summary>Drive ONE complete turn for an already-armed marked enemy: the actor pointer rises
-    /// onto it, then falls away, two ticks apart. LW-138 is why this exists as a helper rather than
+    /// onto it, then falls away, two ticks apart. A found interaction is why this exists as a helper rather than
     /// a bare ClearActor: a park already underway when the hold armed belongs to the Provoke cast
     /// that targeted that enemy, so it never completes a turn, and a test that wants a real turn has
     /// to produce the RISE itself. Returns the timestamp of the last tick it drove.</summary>
@@ -113,7 +113,7 @@ public class ProvokeHoldTests
         return last;
     }
 
-    /// <summary>LW-131: seat the engine's per-unit turn flag (Offsets.ATurnFlag) on an already-seated
+    /// <summary>Seat the engine's per-unit turn flag (Offsets.ATurnFlag) on an already-seated
     /// band entry, expressing "it is this seat's turn" for TickArmed's PlayerSideOwnsTurn gate.
     /// Band.FlagOwner also requires Band.IsValid and a real (nonzero) AGx/AGy, which every Seat*
     /// helper in this file already provides, so no extra seating is needed here.</summary>
@@ -142,17 +142,17 @@ public class ProvokeHoldTests
         (m.U8(Band.Entry(bandIdx) + StatusApply.Composed + StatusApply.StatusByte(ProvokeHold.MarkId))
             & StatusApply.StatusMask(ProvokeHold.MarkId)) != 0;
 
-    /// <summary>The INFLICTED-layer twin of <see cref="HasMark"/> (LW-130: a correct clear must
+    /// <summary>The INFLICTED-layer twin of <see cref="HasMark"/> (a correct clear must
     /// scrub both layers, not just the composed one ClearMark's own doc calls out).</summary>
     private static bool HasInflictedMark(FakeSparseMemory m, int bandIdx) =>
         (m.U8(Band.Entry(bandIdx) + StatusApply.Inflicted + StatusApply.StatusByte(ProvokeHold.MarkId))
             & StatusApply.StatusMask(ProvokeHold.MarkId)) != 0;
 
-    // ---- THE SHIP SWITCH (LW-133): disabled means inert, not merely quiet ----
+    // ---- THE SHIP SWITCH: disabled means inert, not merely quiet ----
 
     /// <summary>The switch has to survive being turned back off, which is why these two tests pass
     /// enabled: false explicitly rather than leaning on the compiled default (2.3.2 shipped it off,
-    /// LW-133; it is on again for the LW-123 acceptance pass). What it buys: this hold gates on the
+    /// and it is on again after the acceptance pass). What it buys: this hold gates on the
     /// MARK BIT rather than on meta[33].Signature, so pulling the Defender's signature block alone
     /// would leave it live, and any enemy found carrying status id 0 would still hide the party for
     /// a player whose Defender reached tier 3 on kills alone. "Vanilla never sets status id 0" is
@@ -193,8 +193,8 @@ public class ProvokeHoldTests
         Assert.True(HasInflictedMark(m, 1));
     }
 
-    /// <summary>The compiled default is ON again, re-armed for the LW-123 acceptance pass after
-    /// 2.3.2 shipped it off (LW-133). Pinned in BOTH directions on purpose: flipping this switch
+    /// <summary>The compiled default is ON again, re-armed acceptance pass after
+    /// 2.3.2 shipped it off. Pinned in BOTH directions on purpose: flipping this switch
     /// either way has to be a deliberate edit that turns this test red, never something that rides
     /// along on an unrelated change.</summary>
     [Fact]
@@ -242,7 +242,7 @@ public class ProvokeHoldTests
         throw new FileNotFoundException("LivingWeapon/meta.json not found above the test bin dir");
     }
 
-    // ---- LW-127 (D1 revised): the turn-order lookahead rule, five branches, first match wins ----
+    // ---- D1 revised: the turn-order lookahead rule, five branches, first match wins ----
 
     [Fact]
     public void Marked_enemy_active_hides_everyone_but_the_bearer()
@@ -517,9 +517,9 @@ public class ProvokeHoldTests
         Assert.DoesNotContain(file, l => l.Contains("provoke hide") && l.Contains("leaderEta="));
     }
 
-    // ---- LW-127 round-4 live fix (cast 3): the ENGAGEMENT LATCH ----
+    // ---- The live fix (cast 3): the ENGAGEMENT LATCH ----
     //
-    // THE TAPE, owner pass 2026-07-27 (livingweapon.log, cast 3): the branch reorder (round 3) works
+    // THE TAPE, owner pass 2026-07-27 (livingweapon.log, cast 3): the branch reorder works
     // -- no player-turn reveal while marked is next, sane ETAs, why=next hides at the right time --
     // but at the MARKED ENEMY'S OWN TURN OPEN it reveals for one window and the AI commits against a
     // visible party:
@@ -562,7 +562,7 @@ public class ProvokeHoldTests
         Assert.True(IsInvisible(m, 1));   // must stay hidden: the engagement latch survives the payment misread
     }
 
-    /// <summary>Park does not latch (LW-138 interaction, cast 2's CORRECT behaviour that must be
+    /// <summary>Park does not latch (a found interaction, cast 2's CORRECT behaviour that must be
     /// preserved): arm at 08:45:46.756 hid why=actor (the Provoke cast's own park), then at
     /// 08:45:48.420 correctly revealed why=far-off once the marked enemy was found to be genuinely 7
     /// away, and a different enemy acted with the party visible. A naive "hide once markedIsActor"
@@ -575,7 +575,7 @@ public class ProvokeHoldTests
         SeatBearer(m, 0, 0);
         SeatAlly(m, 1, lvl: 25, br: 40, fa: 60, gx: 2, gy: 2);
         // active: true reproduces the arm-time park: the actor pointer is ALREADY on the marked enemy
-        // because the Provoke cast itself put it there (LW-138), not because it is genuinely acting.
+        // because the Provoke cast itself put it there, not because it is genuinely acting.
         SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: true,
             nameId: 500, ct: 0, speed: 1);      // eta 100: genuinely far off, no why=next condition
         SeatEnemy(m, 11, lvl: 22, br: 35, fa: 33, gx: 6, gy: 6, marked: false, active: false,
@@ -722,7 +722,7 @@ public class ProvokeHoldTests
         Assert.True(IsInvisible(m, 1));   // must stay hidden: the marked seat fails the candidate filter
     }
 
-    /// <summary>BLOCKER-1 follow-up (round-3 review): markedEta=0 is ambiguous in EXACTLY the field
+    /// <summary>BLOCKER-1 follow-up: markedEta=0 is ambiguous in EXACTLY the field
     /// the evidence line exists to clarify. A genuine ETA of 0 means "the marked enemy is due right
     /// now" -- the opposite of this scenario, where TryEta REFUSED the marked seat because it fails
     /// the candidate filter. The owner's live tape cannot tell those two apart if both print
@@ -757,7 +757,7 @@ public class ProvokeHoldTests
         Assert.Contains(file, l => l.Contains("markedEta=?"));
     }
 
-    // ---- WINDOW-mode load-bearing test (legacy TqTeam field; unread since LW-135, kept to pin that
+    // ---- WINDOW-mode load-bearing test (legacy TqTeam field; unread, kept to pin that
     // the fallback shape is unchanged) ----
 
     [Fact]
@@ -808,8 +808,8 @@ public class ProvokeHoldTests
     //
     // Live testing 2026-07-22 proved the engine's actor pointer PARKS ON STRUCK VICTIMS: during a
     // PLAYER turn it can name the marked enemy the instant it gets hit, without that ever being the
-    // enemy's own turn. LW-131 replaced the old "&& TqTeam==1" gate (suspected, not confirmed, of
-    // reading the AI's targeting cursor rather than the turn owner -- docs/TODO.md LW-131) with
+    // enemy's own turn. The hold replaced the old "&& TqTeam==1" gate (suspected, not confirmed, of
+    // reading the AI's targeting cursor rather than the turn owner -- the ledger) with
     // PlayerSideOwnsTurn (ProvokeHold.Scan.cs), which asks whether a player-side seat currently owns
     // the engine's per-unit turn flag. Dropping that gate makes THIS test fail the same way the old
     // one guarded against.
@@ -840,9 +840,9 @@ public class ProvokeHoldTests
         Assert.True(HasMark(m, 10));   // no EnemyTurnDone release: _markedTurns never incremented
     }
 
-    // ---- LW-131: the turn gate asks "does a player-side seat own the turn" (Band.FlagOwner via
+    // ---- The turn gate asks "does a player-side seat own the turn" (Band.FlagOwner via
     // PlayerSideOwnsTurn), not the cursor/team field. The working suspicion, not a settled fact
-    // (docs/TODO.md LW-131), is that the AI's targeting cursor sits on the PLAYER unit an enemy is
+    // (the ledger), is that the AI's targeting cursor sits on the PLAYER unit an enemy is
     // attacking mid-action, so TurnQueue +0x02 reads PLAYER even though the enemy genuinely owns the
     // turn -- under that reading the old gate would never count that turn, and the hold would run
     // all the way to its thirty second watchdog. Nobody has hovered a player unit during an enemy
@@ -850,8 +850,8 @@ public class ProvokeHoldTests
     // 2026-06-16) calls that field turn-stable, but its own experiment never covered that case, so
     // the evidence reads just as well the other way. The fix below does not depend on which reading
     // is right: PlayerSideOwnsTurn reads no cursor field at all, and this test pins the behaviour it
-    // guarantees either way. docs/LIVE_LEDGER.md's Uncertain LW-87 flag-owner row (2026-07-21, not
-    // owner-flipped) and docs/TODO.md's LW-131 flight-tape analysis are the evidence trail. ----
+    // guarantees either way. docs/LIVE_LEDGER.md's Uncertain flag-owner row (2026-07-21, not
+    // owner-flipped) and the ledger flight-tape analysis are the evidence trail. ----
 
     [Fact]
     public void Enemy_turn_counts_even_when_the_cursor_team_field_reads_player_LW131()
@@ -859,7 +859,7 @@ public class ProvokeHoldTests
         var m = new FakeSparseMemory();
         SeatBearer(m, 0, 0);
         SeatEnemy(m, 10, lvl: 20, br: 30, fa: 30, gx: 5, gy: 5, marked: true, active: true, nameId: 500);
-        // The suspected live symptom (docs/TODO.md LW-131, never directly observed): the AI's cursor
+        // The suspected live symptom (the ledger, never directly observed): the AI's cursor
         // sits on the player unit it targets, so the cursor team field reads PLAYER even though this
         // genuinely is the marked enemy's own turn. This fixture has the marked enemy carry its OWN
         // turn flag -- one shape an enemy turn can take, not the only one Band.FlagOwner has to
@@ -873,7 +873,7 @@ public class ProvokeHoldTests
         var t0 = DateTime.UtcNow;
         hold.Tick(t0, true);   // arms
 
-        RunMarkedEnemyTurn(hold, m, 10, t0);   // its turn opens and ends (LW-138: the rise is the point)
+        RunMarkedEnemyTurn(hold, m, 10, t0);   // its turn opens and ends (the rise is the point)
 
         Assert.False(HasMark(m, 10));   // the turn WAS counted: released at ProvokeTurns=1, mark scrubbed
     }
@@ -1025,7 +1025,7 @@ public class ProvokeHoldTests
         Assert.True(HasMark(m, 10));       // still armed (1 of 2 turns) -- no release either
     }
 
-    // ---- ActionFor wiring (LW-135: the turn flag, never the cursor/team field) ----
+    // ---- ActionFor wiring (the turn flag, never the cursor/team field) ----
 
     [Fact]
     public void WindowMode_reveals_the_moment_a_player_side_seat_takes_the_turn()
@@ -1229,9 +1229,9 @@ public class ProvokeHoldTests
         hold.Tick(DateTime.UtcNow, true);
         Assert.True(IsInvisible(m, 1));
 
-        // A stray player-side mark stranded right before the reset edge (LW-130 / AC 3c), seated
+        // A stray player-side mark stranded right before the reset edge (AC 3c), seated
         // AFTER the tick above so ScrubPlayerSideMarks' Tick call site never touches it -- only
-        // ResetBattle's own call site (the one the verifier deleted with the suite staying green)
+        // ResetBattle's own call site (the one deleted with the suite staying green)
         // can be what clears it here.
         SeatAlly(m, 2, lvl: 26, br: 41, fa: 61, gx: 3, gy: 3);
         SetMark(m, 2, true);
@@ -1332,7 +1332,7 @@ public class ProvokeHoldTests
         Assert.True(HasMark(m, 10));   // still armed: the huge elapsed gap never accrued while paused
     }
 
-    // ---- LW-138: the cast's OWN actor-pointer park must not count as the enemy's turn ----
+    // ---- The cast's OWN actor-pointer park must not count as the enemy's turn ----
     //
     // THE LIVE FAILURE, owner pass 2026-07-27 (second battle): the hold armed at 04:30:40.222, hid 2
     // units, and released as EnemyTurnDone at 04:30:43.467, 3.2 seconds later. The marked enemy was
@@ -1342,7 +1342,7 @@ public class ProvokeHoldTests
     //
     // Mechanism: the engine's actor pointer PARKS on the unit a player action targeted (memory
     // "actorptr-dwell-semantics": sample acted edges only). Provoke targets the enemy it marks, so
-    // during the cast's own resolution the pointer names the marked enemy. The LW-131 gate cannot
+    // during the cast's own resolution the pointer names the marked enemy. The gate cannot
     // veto that, because the per-unit turn flag it reads is a MENU-OPEN flag: while an action
     // resolves, every menu is closed and no player-side seat owns it, so the tick reads exactly like
     // an enemy turn. The park then ends, and the falling edge counted a turn that never happened.
@@ -1403,7 +1403,7 @@ public class ProvokeHoldTests
         => Assert.True(Tuning.ProvokeWatchdogSeconds >= 60.0,
             "a hold now legitimately spans from the cast until the marked enemy's own turn");
 
-    // ---- LW-135: WINDOW's hide/reveal must not ride the cursor/team field ----
+    // ---- WINDOW's hide/reveal must not ride the cursor/team field ----
     //
     // THE LIVE FAILURE, owner pass 2026-07-27: the hold armed on a goblin, saw its turn, and
     // released as EnemyTurnDone 1.6s later, all correct -- and hid NOBODY ("0 units were ever
@@ -1457,7 +1457,7 @@ public class ProvokeHoldTests
         Assert.False(IsInvisible(m, 1));   // criterion 5: nobody is hidden on your own turn
     }
 
-    // ---- LW-136: a mark that lands while the hold CANNOT arm must not strand the enemy ----
+    // ---- A mark that lands while the hold CANNOT arm must not strand the enemy ----
     //
     // The realistic way in is TWO DEPLOYED DEFENDERS. Provoke.cs grants the command off the FIRST
     // roster row holding id 33 in a main hand, while the hold resolves its bearer through
@@ -1648,7 +1648,7 @@ public class ProvokeHoldTests
         Assert.Contains(file, l => l.Contains("refused"));
     }
 
-    // ---- LW-130: scrub a mark a player accidentally cast on their own side (docs/PROVOKE_AC.md
+    // ---- Scrub a mark a player accidentally cast on their own side (docs/PROVOKE_AC.md
     // criterion 3c). ScrubPlayerSideMarks runs every live tick regardless of the hold's own
     // Idle/Armed state, because a player can provoke an ally while a hold on some other enemy is
     // already up (or with no enemy marked at all). ----

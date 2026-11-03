@@ -7,8 +7,8 @@ namespace LivingWeapon.Tests;
 /// <summary>
 /// Eight-Fluted Pole +3 "Cavalier's Charge": Speed +3 while mounted on a chocobo.
 /// Exercises HoldTimedStat's mount gate -- combat +0x1B4 bit 0x80 (proven live
-/// 2026-06-26), which replaced the forTurns gate (that dormant timed arm was deleted in LW-159).
-/// Break check for verifier: forcing the mount read to 0 must make the keystone fail.
+/// 2026-06-26), which replaced the forTurns gate (that dormant timed arm was deleted).
+/// Break check, forcing the mount read to 0 must make the keystone fail.
 /// </summary>
 public class CavalierChargeTests
 {

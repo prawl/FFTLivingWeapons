@@ -11,9 +11,9 @@ namespace LivingWeapon.Tests;
 /// <summary>
 /// Config loading, and the deliberate emptiness of the player-facing surface.
 ///
-/// LW-52 removed the BannerToasts, DevSeedKills and VerboseLog toggles from the launcher so
+/// Removed the BannerToasts, DevSeedKills and VerboseLog toggles from the launcher so
 /// players could not switch off designed behaviour, leaving TreasureAlwaysOn as the only
-/// setting; LW-10 then removed Treasure Master itself (2026-08-14) and that setting went with
+/// setting; Treasure Master itself was then removed (2026-08-14) and that setting went with
 /// it. So the surface is now EMPTY, and that is a decision worth pinning rather than a gap:
 /// every remaining behaviour keeps its compiled Tuning default on purpose.
 ///
@@ -25,7 +25,7 @@ namespace LivingWeapon.Tests;
 ///   (4) Config declares NO read/write properties. Adding one is a product decision about what
 ///       players may switch off, so it should fail here and be argued for, not slip in.
 ///
-/// LW-147: TempDir() directories are tracked and deleted in Dispose, not leaked.
+/// TempDir directories are tracked and deleted in Dispose, not leaked.
 /// </summary>
 public class ModConfigTests : IDisposable
 {
@@ -72,9 +72,9 @@ public class ModConfigTests : IDisposable
         Assert.NotNull(Configurable<Config>.FromFile(path, "Test"));
     }
 
-    // ---- The player-facing surface is empty ON PURPOSE (LW-52, then LW-10) ----
+    // ---- The player-facing surface is empty ON PURPOSE ----
     // This reflection guard fails the moment any settable property appears on Config, including
-    // the three LW-52 removed (BannerToasts, DevSeedKills, VerboseLog) coming back. It is not
+    // the three removed settings (BannerToasts, DevSeedKills, VerboseLog) coming back. It is not
     // saying "never add a setting"; it is saying a setting is a decision about what a player is
     // allowed to switch off, and that decision should be made in front of this test.
     [Fact]

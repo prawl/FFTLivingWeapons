@@ -208,7 +208,7 @@ internal sealed partial class KillTracker
         _mem.U8(addr + Offsets.ALevel),
         _mem.U8(addr + Offsets.ABrave),
         _mem.U8(addr + Offsets.AFaith),
-        // Dead bit +0x45/0x20 (Doom research). U8 returns 0 on unreadable address -- safe.
+        // Dead bit +0x45/0x20 (Doom research). U8 returns 0 on an unreadable address, which is safe.
         (_mem.U8(addr + Offsets.ADeadStatus) & Offsets.ADeadBit) != 0,
         _mem.U16(addr + Offsets.ANameId),   // The presented-identity nameId half
         (_mem.U8(addr + Offsets.AFriendFoe) & Offsets.AFriendFoeEnemyBit) != 0);

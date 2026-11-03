@@ -5,7 +5,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-295 cycle B (needle machinery retired LW-336): IconGlowPolicy's pure half -- no I/O, no
+/// Cycle B (needle machinery retired): IconGlowPolicy's pure half -- no I/O, no
 /// store, no manifest. DesiredTiers and Diff drive the tick-facing desired-vs-applied comparison
 /// that IconGlow.cs (the diff) and IconGlow.Apply.cs (the judge + apply) act on. Every test here
 /// compiles WITHOUT LWDEV (LivingWeapon.Tests.csproj only defines it when dotnet test is given

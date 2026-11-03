@@ -7,11 +7,11 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-51: SaveLocation resolves the update-safe save directory (Reloaded/User/Mods/ModId) and
+/// SaveLocation resolves the update-safe save directory (Reloaded/User/Mods/ModId) and
 /// runs a one-time, strictly non-destructive migration of a legacy file out of the deploy mod
 /// dir. Every test builds its own random-rooted temp tree (mirrors KillTallyTests/LegendStoreTests)
 /// so the resolved dir (which keys on the real Mod.ModId, not on any test-chosen folder name)
-/// never collides across parallel runs. LW-147: TempRoot() directories are tracked and deleted
+/// never collides across parallel runs. TempRoot directories are tracked and deleted
 /// in Dispose, not leaked.
 /// </summary>
 public class SaveLocationTests : IDisposable
@@ -231,7 +231,7 @@ public class SaveLocationTests : IDisposable
         Assert.Equal(100, snap.OrigOff);
     }
 
-    // --- LW-51 Tier-1: SaveLocation.Archive (strictly non-destructive) ---
+    // --- Tier-1: SaveLocation.Archive (strictly non-destructive) ---
 
     private static string ArchiveDirOf(SaveLocation save) => Path.Combine(save.SaveDir, "archive");
 

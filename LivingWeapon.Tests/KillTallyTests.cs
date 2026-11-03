@@ -9,7 +9,7 @@ namespace LivingWeapon.Tests;
 /// <summary>
 /// The kill tally's persistence contract: tmp -> .bak -> move saves, .bak fallback loads,
 /// and fail-safe empties. This is the player's progress file -- the paranoia is the point.
-/// Each test works in its own temp directory so parallel runs never collide. LW-147: every
+/// Each test works in its own temp directory so parallel runs never collide. Every
 /// TempDir() directory is tracked and deleted in Dispose (xUnit's per-test teardown for an
 /// IDisposable test class) via the shared TempDirs fixture, instead of leaking.
 /// </summary>
@@ -187,7 +187,7 @@ public class KillTallyTests : IDisposable
         Assert.Equal(99, t.Kills[5]);          // the tally sees it (same instance, by design)
     }
 
-    // --- LW-51 Tier-1: KillTally.Load wired through KillsSchema.TryParse ---
+    // --- Tier-1: KillTally.Load wired through KillsSchema.TryParse ---
 
     [Fact]
     public void Load_sanitizes_negative_and_garbage_entries_and_keeps_the_valid_ones()

@@ -15,12 +15,12 @@ namespace LivingWeapon.Tests;
 /// Extended for TreasureMaster tests:
 ///   ReadableAddrs  -- Readable() returns true only for members (default: false).
 ///   TerrainBlocks  -- TryReadBytes serves a block registered here (keyed by base addr).
-///   ReadCount      -- counts how many times each address has been read via U8 or U16 (LW-150 S5:
+///   ReadCount      -- counts how many times each address has been read via U8 or U16 (S5:
 ///                     U16 joined U8 so the default IGameMemory.U32 composition -- two U16 reads,
 ///                     see GameMemory.cs -- is observable too; U32 itself is not overridden here).
 ///
-/// LW-147 introduced StrictRangeChecks as an OPT-IN honest range gate and documented the
-/// default's divergence from production; LW-151 CLOSED that divergence by making strict the
+/// Introduced StrictRangeChecks as an OPT-IN honest range gate and documented the
+/// default's divergence from production; a later change CLOSED that divergence by making strict the
 /// DEFAULT: Readable(a, n)/Writable(a, n) require EVERY byte in [a, a+n) to be an
 /// individually-marked member of ReadableAddrs/WritableAddrs, mirroring production Mem.Probe
 /// (Mem.cs), which gates the whole range against one committed VirtualQuery region and so
@@ -31,7 +31,7 @@ namespace LivingWeapon.Tests;
 /// longer run in one call when staging a multi-byte production gate (AMaxHp and friends 2
 /// bytes, Maim's reaction word 4, KillTracker's corpse stamp 12, Barrage's RecSize 25,
 /// GrowthEngine.Locate's StructSpan). Setting StrictRangeChecks = false restores the
-/// pre-LW-151 legacy semantics (base-address membership only, n ignored); it survives ONLY as
+/// earlier legacy semantics (base-address membership only, n ignored); it survives ONLY as
 /// a pinned escape hatch (FakeSparseMemoryTests' legacy pin) so the mechanism stays honest in
 /// both directions -- no suite runs legacy today, and a new test should never reach for it.
 ///
@@ -41,7 +41,7 @@ namespace LivingWeapon.Tests;
 /// fold memory writes into the same ordered op log as native calls -- kept as a generic harness
 /// for any future suite that needs write-order assertions, even with its original consumer gone.
 ///
-/// LW-145 fix 0 (the LW-147 slice this batch rides in on): W16 and WriteBytes used to log a write
+/// Fix 0 (the slice this batch rides in on): W16 and WriteBytes used to log a write
 /// (WrittenU16 / WrittenBytes) WITHOUT applying it, so a read-back after either one silently
 /// returned the pre-write value -- the opposite of W8's own documented contract -- and neither
 /// call appended to WriteOrder, so a "this address was never written" assertion built on
@@ -74,10 +74,10 @@ internal sealed class FakeSparseMemory : IGameMemory
     /// existing tests that only read Written/U8s are unaffected.</summary>
     public readonly List<long> WriteOrder = new();
 
-    /// <summary>The honest length-aware Readable/Writable gate, the DEFAULT since LW-151: every
+    /// <summary>The honest length-aware Readable/Writable gate, the DEFAULT: every
     /// byte in [a, a+n) must be individually marked, exactly as production Mem.Probe gates the
     /// whole range (see the class doc). Setting false restores the legacy base-address-only
-    /// semantics (n ignored) that pre-LW-151 call sites were written against; it exists only as
+    /// semantics (n ignored) that earlier call sites were written against; it exists only as
     /// a pinned escape hatch (FakeSparseMemoryTests' legacy pin), never for new tests.</summary>
     public bool StrictRangeChecks = true;
 
@@ -100,18 +100,18 @@ internal sealed class FakeSparseMemory : IGameMemory
 
     public ushort U16(long a)
     {
-        // LW-150 S5: mirrors U8's ReadCount tracking above, so a caller reading through the
+        // Mirrors U8's ReadCount tracking above, so a caller reading through the
         // default IGameMemory.U32 composition (two U16 reads) is observable via ReadCount too.
         ReadCount[a] = ReadCount.TryGetValue(a, out int c) ? c + 1 : 1;
         return U16s.TryGetValue(a, out var v) ? v : (ushort)0;
     }
 
-    /// <summary>Default (StrictRangeChecks == true, since LW-151): true only when EVERY byte in
+    /// <summary>Default (StrictRangeChecks == true,): true only when EVERY byte in
     /// [a, a+n) has been individually marked in ReadableAddrs -- mirrors production Mem.Probe,
     /// which gates the whole range against one committed region (see Mem.cs: addr &gt;= base
     /// &amp;&amp; addr + len &lt;= base + regionSize), not just the base address. Two adjacent
     /// single-byte Add calls compose into coverage of a 2-byte read exactly as MarkReadable(a, 2)
-    /// would, because coverage is checked per byte. StrictRangeChecks == false: the pre-LW-151
+    /// would, because coverage is checked per byte. StrictRangeChecks == false: the earlier
     /// legacy behavior, base-address membership only, n ignored (pinned escape hatch only).</summary>
     public bool Readable(long a, int n)
     {
@@ -169,7 +169,7 @@ internal sealed class FakeSparseMemory : IGameMemory
         OnWrite?.Invoke(addr, data);
     }
 
-    // LW-82: serves any read FULLY CONTAINED in a registered block (base <= addr &&
+    // Serves any read FULLY CONTAINED in a registered block (base <= addr &&
     // addr + len <= base + block.Length), a strict superset of the original exact-base-only
     // semantics (base == addr is still served, as a 1-entry special case of "contained"). This
     // lets AnchorScoutTests stage one wide region and read arbitrary sub-windows out of it (a

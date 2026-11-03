@@ -5,7 +5,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// PoolLocatorPolicy: pure byte[] pool-region signature test (LW-37). No IGameMemory --
+/// PoolLocatorPolicy: pure byte[] pool-region signature test. No IGameMemory --
 /// everything here operates on a plain buffer, reusing CardScanner.FindKills verbatim (no new
 /// byte matching). A region "is pool" when it holds at least one FULLY attributed entry (a
 /// "Kills: " hit tied to its owner's flavor); DistinctWeaponCount is how many different weapon

@@ -84,7 +84,7 @@ public class BattleCensusTests
     [Fact]
     public void Census_roster_pool_entries_carry_the_slots_level()
     {
-        // LW-56: a stale roster is visible on tape by nameId AND level together (the incident's
+        // A stale roster is visible on tape by nameId AND level together (the incident's
         // stale roster would show slot0 level 99 where a fresh opener roster shows level 1).
         var m = new FakeSparseMemory();
         string? payload = null;
@@ -104,7 +104,7 @@ public class BattleCensusTests
     [Fact]
     public void Census_roster_pool_entries_carry_brave_and_faith()
     {
-        // LW-56 stage 2: brave+faith ride alongside nameId+level so a fingerprint rescue's
+        // Brave+faith ride alongside nameId+level so a fingerprint rescue's
         // fp=L{level}B{brave}F{faith} can be cross-checked against the roster row a tape names.
         var m = new FakeSparseMemory();
         string? payload = null;
@@ -124,10 +124,10 @@ public class BattleCensusTests
     [Fact]
     public void Census_truncation_headroom_keeps_the_last_roster_rows_hands_intact()
     {
-        // LW-56 round 2: raised MaxPayloadChars (1400 -> 1800) when the roster part grew a raw
+        // Raised MaxPayloadChars (1400 -> 1800) when the roster part grew a raw
         // W{rHand},{lHand},{offHand} tail, so a fully-occupied census (max band + all RosterSlots
         // roster rows, every row now carrying its hand ids) never truncates away the LAST roster
-        // row's hands. Seats rows symbolically, so the LW-96 window widening (20 -> 50) makes
+        // row's hands. Seats rows symbolically, so the window widening (20 -> 50) makes
         // this strictly harder, not stale.
         var m = new FakeSparseMemory();
         string? payload = null;
@@ -149,7 +149,7 @@ public class BattleCensusTests
     [Fact]
     public void Census_roster_pool_entries_carry_the_raw_hand_ids()
     {
-        // LW-56 round 2: the raw u16 hand reads ride alongside nameId/level/brave/faith, sentinels
+        // The raw u16 hand reads ride alongside nameId/level/brave/faith, sentinels
         // included exactly as memory held them, so the weapon-key rescue's wpn= field can be
         // cross-checked against the exact row it claims to have matched.
         var m = new FakeSparseMemory();
@@ -189,7 +189,7 @@ public class BattleCensusTests
     [Fact]
     public void EmitExit_re_emits_after_tick_already_fired()
     {
-        // LW-56 D11/A3: EmitExit bypasses the fired latch entirely, so a battle where Tick already
+        // D11/A3: EmitExit bypasses the fired latch entirely, so a battle where Tick already
         // fired (coverage completed) produces a SECOND census record on the exit edge.
         var m = new FakeSparseMemory();
         var recorded = new List<(string type, string payload)>();
@@ -207,7 +207,7 @@ public class BattleCensusTests
     [Fact]
     public void EmitExit_emits_even_when_tick_never_fired()
     {
-        // Oracle coverage never completing (the LW-34 over-count) leaves Tick permanently inert
+        // Oracle coverage never completing (the over-count) leaves Tick permanently inert
         // for a whole battle; EmitExit must still land a census on the exit edge regardless.
         var m = new FakeSparseMemory();
         var recorded = new List<(string type, string payload)>();

@@ -12,7 +12,7 @@ namespace LivingWeapon.Tests;
 /// Display's own addition to ~12 lines). SeedAtStartup recomposes CURRENT from store state
 /// (never persisted itself -- decision 12) and loads PREVIOUS from the store's "lastPainted".
 /// RecomposeChanged is the live compose-change edge: it rotates the anchor and persists the
-/// evicted line as the new "lastPainted" in the SAME step. LW-147: TempDir() directories are
+/// evicted line as the new "lastPainted" in the SAME step. TempDir directories are
 /// tracked and deleted in Dispose, not leaked.
 /// </summary>
 public class StoryLinesTests : IDisposable

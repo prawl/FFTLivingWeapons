@@ -7,7 +7,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-82: AnchorScan.cs's copy-file portability contract (the FingerprintGuard.cs / HookLandmark.cs
+/// AnchorScan.cs's copy-file portability contract (the FingerprintGuard.cs / HookLandmark.cs
 /// precedent) enforced by source scan, same walk-up-from-the-test-bin-dir idiom as
 /// LogContractTests.RepoRoot / TodoContractTests.RepoRoot. The file must reference NONE of this
 /// repo's project-specific types, so a sibling mod can adopt the mechanism by copying the one file

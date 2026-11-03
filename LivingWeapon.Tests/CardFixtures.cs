@@ -94,7 +94,7 @@ internal static class CardFixtures
     }
 
     /// <summary>Write a NEW-LAYOUT card block WITH a Grows line between the Kills slot and the
-    /// flavor (LW-332 post-move bake order): "Kills: " + slot + "\n" + growsLine + "\n" +
+    /// flavor (post-move bake order): "Kills: " + slot + "\n" + growsLine + "\n" +
     /// flavor. Returns (killsSlotPos, growsPos, flavorPos) buf-relative.</summary>
     internal static (int killsSlotPos, int growsPos, int flavorPos) WriteCardForwardWithGrows(
         byte[] buf, int pos, string growsLine, string flavor, int enc = 1, string? slot = null)
@@ -120,7 +120,7 @@ internal static class CardFixtures
     }
 
     /// <summary>Write a NEW-LAYOUT card block that ALSO carries the weapon's Name + 2-char
-    /// suffix slot ahead of the Kills line (the realistic pool geometry, LW-37: name -> ... ->
+    /// suffix slot ahead of the Kills line (the realistic pool geometry, name -> ... ->
     /// Kills -> flavor), so a single fixture can drive both kills AND suffix attribution
     /// through the same forward-flavor pool scan. Returns (suffixPos, killsSlotPos, flavorPos)
     /// buf-relative.</summary>
@@ -152,7 +152,7 @@ internal static class CardFixtures
     /// statics (MirrorWeapon, MirrorOffHand, WpScratch) live at staticsBase + 0/2/4.
     /// <paramref name="legends"/> (Reliquary Phase 1) is optional -- null (the default) omits
     /// card-story composing, matching every pre-Reliquary caller of this fixture. <paramref
-    /// name="recorder"/> (LW-257) is optional -- null (the default) matches every pre-existing
+    /// name="recorder"/> is optional -- null (the default) matches every pre-existing
     /// caller of this fixture byte-for-byte (added last so no existing call site changes).</summary>
     internal static Display MakeDisplay(Dictionary<int, WeaponMeta> meta,
                                         Dictionary<int, int> kills,
@@ -170,7 +170,7 @@ internal static class CardFixtures
         return new Display(meta, kills, wrapped, clock.Func, legends, poolPaint, recorder);
     }
 
-    /// <summary>R1 (LW-261 retune): production now drives the resumable pool locate ONLY from
+    /// <summary>R1 (the retune): production now drives the resumable pool locate ONLY from
     /// Engine's own "pool-locate" phase -- MaybePoolPaint no longer calls StepPoolLocate on its
     /// own fall-through. A bare Display exercised only through Tick() (every test in this suite,
     /// no Engine wired) therefore has to step the locate itself too, or a poolPaint:true fixture

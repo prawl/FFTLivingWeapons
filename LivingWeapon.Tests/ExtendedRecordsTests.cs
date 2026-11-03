@@ -4,7 +4,7 @@ using Xunit;
 
 namespace LivingWeapon.Tests;
 
-/// <summary>LW-346 S2: the record encoders against the Chaos Blade's real bytes (1.5.2 exe on
+/// <summary>The record encoders against the Chaos Blade's real bytes (1.5.2 exe on
 /// disk, 2026-08-27) and the modloader enum tables.</summary>
 public class ExtendedRecordsTests
 {

@@ -45,12 +45,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from lib.bake_intent import ALLOWED_EXTRA_ROWS, ALLOWED_ITEM_CELLS
 from lib.nxd import PAC, unpack   # re-exported: rebase_nxd_pristine imports them from here
-from lib.nxd_patch import rows as _rows   # LW-149 Stage E: unify onto the shared row reader
+from lib.nxd_patch import rows as _rows   # Stage E: unify onto the shared row reader
 from lib.paths import FF16, MOD_ABILITY_NXD, MOD_ITEM_NXD, MOD_STATUS_NXD, STEAM_FFT
 from patch_ability_names import PATCHES as ABILITY_PATCHES
 from patch_status_names import PATCHES as STATUS_PATCHES
 from patch_names import item_intent as _bake_item_intent, named_items
-
 
 
 def item_intent():
@@ -62,7 +61,7 @@ def item_intent():
     return _bake_item_intent(named_items())
 
 
-# (The orphan-sweep allowance is gone, LW-351: patch_names.py no longer rewrites the SortOrder of
+# (The orphan-sweep allowance is gone, since patch_names.py no longer rewrites the SortOrder of
 # weapon rows data/items.json does not name. It numbers OUR rows around theirs instead, so a stock
 # weapon row's key must now match vanilla exactly and any diff on one is a real finding. The rule
 # it replaced vouched for any value in the right hundreds, which is also why it could not have
@@ -118,7 +117,7 @@ def audit_table(table, vanilla_cols, vanilla, bake, intent, allowed_cells, allow
         print(f"  [{cls}] Key {key} {col}:")
         print(f"      vanilla {clip(v)}\n      bake    {clip(b)}")
 
-    # MISS check (LW-148): the loop above only ever looks at cells where bake != vanilla, so an
+    # MISS check: the loop above only ever looks at cells where bake != vanilla, so an
     # intended change that never actually landed (bake still reads vanilla, e.g. a rename whose
     # UPDATE silently matched zero rows) never enters it at all -- a silently no-opped rename was
     # therefore invisible to this audit. Walk the intent set itself and demand every entry whose

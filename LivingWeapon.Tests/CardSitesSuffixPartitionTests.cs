@@ -6,7 +6,7 @@ using Xunit;
 namespace LivingWeapon.Tests;
 
 /// <summary>
-/// LW-262: suffix and kills sites are partitioned so a suffix flood can never starve kills
+/// Suffix and kills sites are partitioned so a suffix flood can never starve kills
 /// coverage. Companion to CardSitesCapReliefTests.cs (the pre-existing shared-cap prune tests,
 /// which stay green unmodified -- kills-only Add still goes through the exact same MaxSites/
 /// PruneEveryRefusals/PruneDeadSites path).
@@ -119,9 +119,9 @@ public class CardSitesSuffixPartitionTests
         Assert.True(sites.Add(fresh), "capacity freed by eviction must be available to a new suffix add");
     }
 
-    // ─── LW-269: evicting one suffix copy frees exactly one per-id slot ──────
+    // ─── Evicting one suffix copy frees exactly one per-id slot ──────
 
-    /// <summary>LW-269: pins the per-id decrement half of EvictList (CardSites.Admission.cs)
+    /// <summary>Pins the per-id decrement half of EvictList (CardSites.Admission.cs)
     /// directly -- Evicting_a_suffix_site_returns_capacity_for_a_new_suffix_add above proves
     /// capacity comes back at all, but evicts the WHOLE fill in one PaintAll storm, so it can
     /// never tell "decremented by exactly one" apart from "reset to zero" or "decremented by
@@ -135,7 +135,7 @@ public class CardSitesSuffixPartitionTests
 
         // The live anchor for id 1 enc 1 ("Sword") at 0x1000; 0x1100 stays zeroed -- a
         // readable-but-WRONG anchor (Mismatch), which evicts on its very first PaintAll pass
-        // (CardSites.Verify.cs's VerifyAnchor/ApplyStrike, LW-163's unweakened contract).
+        // (CardSites.Verify.cs's VerifyAnchor/ApplyStrike, the unweakened contract).
         var buf = new byte[512];
         byte[] liveAnchor = ByteScan.Ascii("Sword");
         Array.Copy(liveAnchor, 0, buf, 0, liveAnchor.Length);
@@ -217,7 +217,7 @@ public class CardSitesSuffixPartitionTests
 
     // ─── F5(a): Clear() must reset the new suffix accounting too ─────────────
 
-    /// <summary>Verifier F5(a): Display.Invalidate() calls _sites.Clear() on EVERY battle edge
+    /// <summary>Display.Invalidate calls _sites.Clear on EVERY battle edge
     /// (Display.cs), so a regression here would permanently wedge suffix painting after the very
     /// first battle with no error anywhere -- a scary-if-regressed behavior that had zero direct
     /// cover (CardSites.cs's own Clear() test, Clear_empties_the_cache in CardSitesCacheTests.cs,
@@ -321,9 +321,9 @@ public class CardSitesSuffixPartitionTests
         Assert.Equal(cap, sites.Count); // nothing evicted by this refused attempt
     }
 
-    // ─── Test 5 (LW-269): the floor is a re-arm boundary, not just a below-floor guard ──
+    // ─── Test 5: the floor is a re-arm boundary, not just a below-floor guard ──
 
-    /// <summary>LW-269: the sibling test above pins PruneRearmFloor - 1 (does not re-arm); this
+    /// <summary>The sibling test above pins PruneRearmFloor - 1 (does not re-arm); this
     /// pins PruneRearmFloor ITSELF (does re-arm), the boundary the sibling never touches. Copies
     /// that test's T2 fixture shape verbatim (its own comment explains why: a kills-site anchor
     /// verify keys off ONE shared SlotAddr with a distinct AnchorAddr per site).</summary>

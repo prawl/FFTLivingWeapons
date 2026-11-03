@@ -8,7 +8,7 @@ namespace LivingWeapon.Tests;
 /// <summary>
 /// Retune round (R1+R3): production now drives the resumable pool locate from exactly ONE call
 /// site (Engine's own "pool-locate" phase). Display.PoolPaint.cs's MaybePoolPaint used to ALSO
-/// call StepPoolLocate on its own fall-through (LW-261 verify-round FIX 5, this file's own
+/// call StepPoolLocate on its own fall-through (verify-round FIX 5, this file's own
 /// original test); the owner's live tape showed that costing the scan's ~45ms region snapshot
 /// roughly twice a tick (PoolScan.cs's SnapshotRefreshMs doc has the arithmetic), so this file now
 /// pins the opposite contract: a bare Display.Tick() call drives ZERO locate progress on its own,
@@ -105,7 +105,7 @@ public class DisplayPoolLocateBudgetTests
         Assert.Equal(4, outOfBattleSpy.ChunkReads);
     }
 
-    /// <summary>LW-266: the locate-complete flight tap (Display.Flight.cs's
+    /// <summary>The locate-complete flight tap (Display.Flight.cs's
     /// RecordLocateCompleteIfTapped) is the record the owner reads a live pass's completion
     /// numbers off, and two PRIOR mutations to it (swapping which counter it checks, and which
     /// counter it spends) both left this suite green -- nothing exercised its own budget/reset
@@ -151,7 +151,7 @@ public class DisplayPoolLocateBudgetTests
 
         // Premise assert: all 13 completions genuinely happened (each Publish bumps
         // PublishGeneration), so the 8 below is the record budget clamping, not completions
-        // drying up (LW-266 verify round).
+        // drying up.
         Assert.Equal(Display.LocateRecordBudget + 5, display._poolLocator.PublishGeneration);
 
         var completes = recorded.Where(r => r.type == "card" && r.payload.StartsWith("locate-complete")).ToList();

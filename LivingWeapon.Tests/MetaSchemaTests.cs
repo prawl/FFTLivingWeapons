@@ -65,7 +65,7 @@ public class MetaSchemaTests : IDisposable
     }
 
     // --- MetaLoader's fail-safe contract (previously untested) ---
-    // LW-147: TempDir() directories are tracked and deleted in Dispose (above), not leaked.
+    // TempDir directories are tracked and deleted in Dispose (above), not leaked.
 
     private string TempDir()
     {
@@ -97,7 +97,7 @@ public class MetaSchemaTests : IDisposable
         Assert.Equal("Galewind", map[9].Name);
     }
 
-    // LW-251: the WeaponPalette runtime's own schema addition. A weapon with authored bench
+    // The WeaponPalette runtime's own schema addition. A weapon with authored bench
     // colours carries "palette"/"colors"; one with none omits both keys entirely (rather than
     // emitting a null/-1 literal), so WeaponMeta's property defaults are what an absent-key
     // weapon actually reads at runtime.
@@ -122,7 +122,7 @@ public class MetaSchemaTests : IDisposable
         Assert.Null(map[9].Colors);
     }
 
-    // LW-171 "Crossfire": pins the committed bake, mirroring LivingPoachTests' precedent for
+    // "Crossfire": pins the committed bake, mirroring LivingPoachTests' precedent for
     // pinning committed generated files (poach.json). Outrider Pistol (id 71) "Gun Slinger" was
     // the sole gunSlinger-flagged weapon; Arbalest (id 79) "Crossfire" is the second. Both must
     // carry the flag at tier 3 in the real, build-generated meta.json.
@@ -143,7 +143,7 @@ public class MetaSchemaTests : IDisposable
         Assert.Equal("Crossfire", arbalest.Signature.DisplayLabel);
     }
 
-    // LW-251: pins the committed bake's use of data/weapon_palette_overrides.json, mirroring the
+    // Pins the committed bake's use of data/weapon_palette_overrides.json, mirroring the
     // gunSlinger pin above. This is the only gate that catches the generator silently ignoring
     // the overrides file: Materia Blade (id 32) must carry the OVERRIDE palette (0), not the raw
     // export's mapped palette (8, data/weapon_colors.json's own "pal" field for id 32) -- and a
@@ -164,20 +164,20 @@ public class MetaSchemaTests : IDisposable
         Assert.Equal(15, galewind.Colors!.Length);
     }
 
-    // LW-250: pins the committed bake's growth-lane keys, the "routing matches bake" half of
+    // Pins the committed bake's growth-lane keys, the "routing matches bake" half of
     // the ledger's Verify bullet made mechanical. The four missing-HP weapons (Wrathblade,
     // Muramasa, Climhazzard, Tombspire) previously grew NOTHING under the formula-driven
     // Route (Tuning.SkipFormula) -- they must now carry the baked "speed" lane. Arcanum (the
     // rider-rule MA exception) and Holy Lance (the plain-Polearm PA regression guard) pin the
-    // opposite corners of the same table. LW-317 (2026-08-25): the multi-lane tokens now bake
+    // opposite corners of the same table. Since 2026-08-25 the multi-lane tokens bake
     // to their OWN real lane -- Defender (id 33, Knight Sword) pins the real "hp" token
-    // GrowthEngine.Routes' u16 MaxHp hold reads, replacing the LW-250 interim "pa" collapse.
+    // GrowthEngine.Routes' u16 MaxHp hold reads, replacing the interim "pa" collapse.
     [Fact]
     public void RepoMeta_LanesMatchTheLockedTable()
     {
         var map = MetaLoader.Load(Path.GetDirectoryName(RepoMetaPath())!);
 
-        foreach (int id in new[] { 27, 44, 266, 103 })   // 266 = Climhazzard, at its extended id (267 at LW-351 stage 2, one lower since the Moonblade's removal 2026-08-31; was 69)
+        foreach (int id in new[] { 27, 44, 266, 103 })   // 266 = Climhazzard, at its extended id (267, one lower since the Moonblade's removal 2026-08-31; was 69)
         {
             Assert.True(map.TryGetValue(id, out var m), $"id{id} missing from meta.json");
             Assert.Equal("speed", m.Lane);
