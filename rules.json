@@ -1,0 +1,15 @@
+{
+  "prod": "Logging/",
+  "tests": "Tests/",
+  "ticketPrefix": "MG",
+  "projects": ["Selftest/Mod/Mod.csproj", "Selftest/Tests/Tests.csproj"],
+  "testProjects": ["Selftest/Tests/Tests.csproj"],
+  "modConfig": "VERSION",
+  "tempPrefixes": ["modgates_"],
+  "tempKeep": [],
+  "loggingDoc": "Selftest/LOGGING.md",
+  "buildScripts": ["Check.ps1"],
+  "pipeline": "Check.ps1",
+  "publishScript": "",
+  "workflow": ".github/workflows/ci.yml"
+}

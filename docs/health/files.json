@@ -1,0 +1,19 @@
+{
+ "sha": "6b77335",
+ "date": "2026-11-02",
+ "columns": [
+  "comments",
+  "block",
+  "code",
+  "catches",
+  "long_methods"
+ ],
+ "files": {
+  "FileConsoleLogger.cs": [8, 5, 86, 0, 0],
+  "ILogger.cs": [4, 1, 20, 0, 0],
+  "LogSetup.cs": [1, 1, 11, 0, 0],
+  "ModLogger.cs": [9, 4, 52, 0, 0],
+  "NullLogger.cs": [1, 1, 13, 0, 0],
+  "ScopedLogger.cs": [5, 4, 27, 0, 0]
+ }
+}
