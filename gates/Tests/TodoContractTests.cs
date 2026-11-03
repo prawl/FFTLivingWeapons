@@ -9,7 +9,7 @@ namespace ModGates.Tests;
 /// <summary>
 /// The work ledger's rules, docs/TODO.md and docs/CHANGELOG.md. Four sections in a fixed order,
 /// every row in its grammar, every id used once, no em dashes, and a locked Now that names how
-/// each late card got in. The id prefix comes from rules.json.
+/// each late card got in. Now may stand empty between cards. The id prefix comes from rules.json.
 /// </summary>
 public class TodoContractTests
 {
@@ -89,7 +89,6 @@ public class TodoContractTests
     public void Every_Now_entry_matches_the_grammar_and_carries_exactly_one_Done_means_and_one_Verify()
     {
         var entries = Ledger.GroupTopLevelEntries(Ledger.NowSection().Body);
-        Assert.NotEmpty(entries);
 
         var badGrammar = new List<string>();
         var violations = new List<string>();

@@ -11,5 +11,7 @@ Treasure Master runs green on it. Tagged v0.1.0.
 
 ## 0.2
 
-The rules every mod was still missing after the hookup: the line ending file checked like the
-style file, the em dash scope list, and the session gate status naming the rulebook version.
+What the first week of hookups asked for. It ships when the one second scanner, the count based
+duplication ratchet, the baseline naming, the Python opt in, the pre-commit that writes the file
+rows, the em dash scope list, the gate status naming the rulebook version and the empty Now
+ruling are in, the repo passes its own check, and the tag is cut. Tagged v0.2.0.

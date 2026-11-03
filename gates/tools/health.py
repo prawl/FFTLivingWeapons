@@ -8,8 +8,8 @@ from those records every time, so never edit it by hand.
 
 What it measures:
   * Snapshot: production and test size, test-to-production ratio, comment share, silent (empty)
-    catches, methods over 60 code lines, production files over 200 code lines, and duplicated
-    8-line blocks.
+    catches, methods over 60 code lines, production files over 200 code lines, and the lines
+    sitting in repeated 8-line blocks, as a count and as a share of all code.
   * Cycle: commits that touched production code, how many read like a repair (called fix-shaped, the
     subject starts with Stop, Fix, Restore, Correct, Guard, Re-anchor... or says bug, crash, wrong,
     no longer), hotspots (cycle commits times branch points), and fix rate per domain folder.
@@ -24,11 +24,12 @@ How it runs, so nobody has to remember it:
     quiet while a version is in development and prints a warning box when a tagged release has no
     record, or when a record is written but not committed.
   * The same gate calls `ratchet` on every build: the working tree's snapshot against the best
-    committed record. Silent catches, long methods, long files and repeated code may not rise, and
-    the test ratio may not fall; a build that makes one of them worse is refused, the same as a red
-    test. A row the newest record does not hold yet is not judged until a release writes it. The
-    bar is read from the last commit, never from the working copy, and `--base` adds a second ref
-    (the main branch, or the commit a push started from) so an edit to the memory cannot lower it.
+    committed record. Silent catches, long methods, long files and the count of repeated lines may
+    not rise, and the test ratio may not fall; a build that makes one of them worse is refused, the
+    same as a red test. A row the newest record does not hold yet is not judged until a release
+    writes it. The bar is read from the last commit, never from the working copy, and `--base`
+    adds a second ref (the main branch, or the commit a push started from) so an edit to the
+    memory cannot lower it.
     A repo with no committed memory is refused until its first floor is committed.
   * `floor` snapshots the working tree between releases, so an improvement holds from the day it
     lands. A floor only moves the good way. The first floor is the day the repo took the rules,
@@ -46,9 +47,15 @@ How it runs, so nobody has to remember it:
     needs that row in docs/TODO.md. The records store which key was widened under which card, and
     the ratchet judges a widened key at HEAD alone, so the override survives the base ref.
 
-Where things are comes from rules.json at the repo root (prod, tests, modConfig, devDefine,
-healthDir, healthMd, ticketPrefix). The repo root is the first folder above this script that holds
-a .git entry, or the one named with --repo.
+  * A repo that lists Python folders in rules.json (pythonProd, tools/lib included) has every .py
+    under them measured like a production .cs file, with a silent catch being an except whose body
+    is only pass and a long method a def over 60 code lines. Such a row is keyed by its repo
+    relative path. The day a folder is first listed is its line in the sand, so a file already over
+    a line that day is debt and not a refusal.
+
+Where things are comes from rules.json at the repo root (prod, tests, pythonProd, modConfig,
+devDefine, healthDir, healthMd, ticketPrefix). The repo root is the first folder above this script
+that holds a .git entry, or the one named with --repo.
 
 Usage:
   python gates/tools/health.py report --version 2.4.0 --write     # write the record and rebuild HEALTH.md
@@ -88,6 +95,10 @@ LONG_METHOD = 60
 LONG_FILE = 200
 DUP_WINDOW = 8
 TICKET_PREFIX = "XX"
+PY_PROD = []
+PY_DEF = re.compile(r"^(\s*)(?:async\s+)?def\s+(\w+)")
+SILENT_EXCEPT = re.compile(r"^[ \t]*except\b[^\n]*:[ \t]*(?:#[^\n]*)?\n(?:[ \t]*#[^\n]*\n)*[ \t]*pass\b", re.M)
+CATCH_PY = re.compile(r"\bexcept\b")
 
 # The per-file rows. A column with a line is held to the higher of the line and the row, so a file
 # under the line may grow up to it. A column with no line is frozen at its row.
@@ -128,7 +139,7 @@ def find_repo(start):
 
 def configure(repo):
     """Point every folder name at the repo's rules.json. Keys left out keep the defaults above."""
-    global REPO, PROD, TESTS, HEALTH_MD, HEALTH_DIR, MOD_CONFIG, DEV_DEFINE, SCRIPT, TICKET_PREFIX
+    global REPO, PROD, TESTS, HEALTH_MD, HEALTH_DIR, MOD_CONFIG, DEV_DEFINE, SCRIPT, TICKET_PREFIX, PY_PROD
     REPO = os.path.abspath(repo)
     SCRIPT = os.path.relpath(os.path.abspath(__file__), REPO).replace(os.sep, "/")
     if SCRIPT.startswith(".."):
@@ -148,6 +159,7 @@ def configure(repo):
     MOD_CONFIG = rules.get("modConfig", MOD_CONFIG)
     DEV_DEFINE = rules.get("devDefine")
     TICKET_PREFIX = rules.get("ticketPrefix", TICKET_PREFIX)
+    PY_PROD = [f.rstrip("/") + "/" for f in rules.get("pythonProd", [])]
 
 
 def git(*args, check=True):
@@ -178,29 +190,47 @@ def pick_previous(version, tags, is_ancestor):
 
 
 def read_tree(ref):
-    """Every production and test .cs file at ref, as {path: text}."""
-    raw = subprocess.run(["git", "-C", REPO, "archive", ref, PROD.rstrip("/"), TESTS.rstrip("/")],
-                         capture_output=True)
+    """Every production and test .cs file at ref, and the .py files under the Python folders, as {path: text}."""
+    folders = [PROD.rstrip("/"), TESTS.rstrip("/")] + [f.rstrip("/") for f in PY_PROD]
+    raw = subprocess.run(["git", "-C", REPO, "archive", ref] + folders, capture_output=True)
     if raw.returncode != 0:
         raise RuntimeError("git archive %s failed: %s" % (ref, raw.stderr.decode("utf-8", "replace")))
     files = {}
     with tarfile.open(fileobj=io.BytesIO(raw.stdout), mode="r:") as tar:
         for member in tar.getmembers():
-            if member.isfile() and member.name.endswith(".cs"):
+            if member.isfile() and (member.name.endswith(".cs") or is_prod(member.name)):
                 files[member.name] = tar.extractfile(member).read().decode("utf-8-sig", "replace")
     return files
 
 
-def is_comment(line):
-    return line.strip().startswith(("//", "/*", "*"))
+def is_comment(line, python=False):
+    return line.strip().startswith("#" if python else ("//", "/*", "*"))
 
 
-def code_lines(text):
-    return [l for l in text.split("\n") if l.strip() and not is_comment(l)]
+def code_lines(text, python=False):
+    return [l for l in text.split("\n") if l.strip() and not is_comment(l, python)]
 
 
-def branch_points(text):
-    return len(BRANCH.findall("\n".join(code_lines(text))))
+def branch_points(text, python=False):
+    return len(BRANCH.findall("\n".join(code_lines(text, python))))
+
+
+def function_lengths(text):
+    """Code-line length of each Python function, by indentation; a nested def counts toward its parent too."""
+    lines = text.split("\n")
+    out = []
+    for i, line in enumerate(lines):
+        m = PY_DEF.match(line)
+        if not m:
+            continue
+        indent, j = len(m.group(1).expandtabs(4)), i + 1
+        while j < len(lines):
+            s = lines[j].strip()
+            if s and not s.startswith("#") and len(lines[j][:len(lines[j]) - len(lines[j].lstrip())].expandtabs(4)) <= indent:
+                break
+            j += 1
+        out.append((m.group(2), len(code_lines("\n".join(lines[i:j]), True))))
+    return out
 
 
 def method_lengths(text):
@@ -234,13 +264,13 @@ def method_lengths(text):
     return out
 
 
-def duplicated_share(texts):
-    """Share of code lines sitting inside an 8-line block that appears more than once."""
+def duplicated_lines(texts):
+    """(lines inside an 8-line block that appears more than once, code lines in all)."""
     windows = collections.defaultdict(list)
     norm = {}
     for path, text in texts.items():
-        rows = [re.sub(r"\s+", " ", l).strip() for l in code_lines(text)]
-        rows = [r for r in rows if len(r) > 3 and not r.startswith(("using ", "{", "}"))]
+        rows = [re.sub(r"\s+", " ", l).strip() for l in code_lines(text, path.endswith(".py"))]
+        rows = [r for r in rows if len(r) > 3 and not r.startswith(("using ", "import ", "from ", "{", "}"))]
         norm[path] = rows
         for k in range(len(rows) - DUP_WINDOW + 1):
             windows[tuple(rows[k:k + DUP_WINDOW])].append((path, k))
@@ -249,12 +279,37 @@ def duplicated_share(texts):
         if len(spots) > 1:
             for path, k in spots:
                 dup.update((path, k + t) for t in range(DUP_WINDOW))
-    total = sum(len(r) for r in norm.values())
-    return (len(dup) / total) if total else 0.0
+    return len(dup), sum(len(r) for r in norm.values())
+
+
+def duplicated_share(texts):
+    """The repeated lines as a share of all code lines, for the report. The ratchet judges the
+    count, since deleting unique code raises the share with no repeated line added."""
+    dup, total = duplicated_lines(texts)
+    return (dup / total) if total else 0.0
+
+
+def prod_root(path):
+    """The production folder a path sits under, with its language's suffix, else None."""
+    if path.startswith(PROD) and path.endswith(".cs"):
+        return PROD
+    return next((f for f in PY_PROD if path.startswith(f) and path.endswith(".py")), None)
+
+
+def is_prod(path):
+    return prod_root(path) is not None
+
+
+def row_name(path):
+    """A C# file by its path below the production folder, a Python file by its repo relative path."""
+    return path[len(PROD):] if prod_root(path) == PROD else path
 
 
 def domain_of(path):
-    parts = path[len(PROD):].split("/")
+    root = prod_root(path) or PROD
+    parts = path[len(root):].split("/")
+    if root != PROD:
+        return root.rstrip("/") + ("/" + parts[0] if len(parts) > 1 else "")
     return parts[0] if len(parts) > 1 else "(root)"
 
 
@@ -267,26 +322,28 @@ def dev_only(text):
 
 
 def snapshot(files):
-    prod = {p: t for p, t in files.items() if p.startswith(PROD)}
+    prod = {p: t for p, t in files.items() if is_prod(p)}
     tests = {p: t for p, t in files.items() if p.startswith(TESTS)}
+    py = lambda p: p.endswith(".py")
     prod_lines = sum(len(t.split("\n")) for t in prod.values())
     test_lines = sum(len(t.split("\n")) for t in tests.values())
-    comments = sum(sum(1 for l in t.split("\n") if is_comment(l)) for t in prod.values())
-    methods = [n for t in prod.values() for _, n in method_lengths(t)]
+    comments = sum(sum(1 for l in t.split("\n") if is_comment(l, py(p))) for p, t in prod.items())
+    methods = [n for p, t in prod.items() for _, n in (function_lengths(t) if py(p) else method_lengths(t))]
     return {
         "prod_files": len(prod),
         "prod_lines": prod_lines,
-        "code_lines": sum(len(code_lines(t)) for t in prod.values()),
+        "code_lines": sum(len(code_lines(t, py(p))) for p, t in prod.items()),
         "test_files": len(tests),
         "test_lines": test_lines,
         "test_ratio": round(test_lines / prod_lines, 2) if prod_lines else 0,
         "comment_share": round(comments / prod_lines, 3) if prod_lines else 0,
-        "empty_catches": sum(len(EMPTY_CATCH.findall(t)) for t in prod.values()),
-        "catches": sum(len(CATCH.findall(t)) for t in prod.values()),
+        "empty_catches": sum(len((SILENT_EXCEPT if py(p) else EMPTY_CATCH).findall(t)) for p, t in prod.items()),
+        "catches": sum(len((CATCH_PY if py(p) else CATCH).findall(t)) for p, t in prod.items()),
         "methods": len(methods),
         "long_methods": sum(1 for n in methods if n > LONG_METHOD),
-        "long_files": sum(1 for t in prod.values() if len(code_lines(t)) > LONG_FILE),
+        "long_files": sum(1 for p, t in prod.items() if len(code_lines(t, py(p))) > LONG_FILE),
         "duplication": round(duplicated_share(prod), 4),
+        "duplicated_lines": duplicated_lines(prod)[0],
     }
 
 
@@ -330,18 +387,18 @@ def build_record(version, ref):
     since = pick_previous(version, tags, lambda t: subprocess.run(
         ["git", "-C", REPO, "merge-base", "--is-ancestor", t, ref], capture_output=True).returncode == 0)
     files = read_tree(ref)
-    prod = {p: t for p, t in files.items() if p.startswith(PROD)}
+    prod = {p: t for p, t in files.items() if is_prod(p)}
     total, prod_commits, fix_commits, per = cycle(since, ref, set(prod))
     # Dev spikes compile out of release builds, so they never rank as hotspots. Ties break on the
     # path so a record rebuilt later comes out the same.
-    hot = sorted(((p, c, fx, branch_points(prod[p]), len(code_lines(prod[p])))
+    hot = sorted(((p, c, fx, branch_points(prod[p], p.endswith(".py")), len(code_lines(prod[p], p.endswith(".py"))))
                   for p, (c, fx) in per.items() if not dev_only(prod[p])),
                  key=lambda r: (-r[1] * max(r[3], 1), r[0]))
     domains = collections.defaultdict(lambda: [0, 0, 0, 0])
     for p, text in prod.items():
         d = domains[domain_of(p)]
         d[0] += 1
-        d[1] += len(code_lines(text))
+        d[1] += len(code_lines(text, p.endswith(".py")))
         c, fx = per.get(p, (0, 0))
         d[2] += c
         d[3] += fx
@@ -359,7 +416,7 @@ def build_record(version, ref):
             "fix_commits": fix_commits,
             "fix_share": round(fix_commits / prod_commits, 3) if prod_commits else 0,
         },
-        "hotspots": [{"file": p[len(PROD):], "commits": c, "fixes": fx, "branches": b, "code": n}
+        "hotspots": [{"file": row_name(p), "commits": c, "fixes": fx, "branches": b, "code": n}
                      for p, c, fx, b, n in hot[:10]],
         "domains": [{"domain": k, "files": v[0], "code": v[1], "changes": v[2], "fixes": v[3]}
                     for k, v in sorted(domains.items(), key=lambda kv: (-kv[1][2], kv[0]))],
@@ -426,6 +483,7 @@ SNAPSHOT_ROWS = [
     ("Methods over %d code lines" % LONG_METHOD, "long_methods", num, num, True),
     ("Production files over %d code lines" % LONG_FILE, "long_files", num, num, True),
     ("Code in repeated 8-line blocks", "duplication", lambda x: pct(x, 1), lambda x: points(x, 1), True),
+    ("Lines in repeated 8-line blocks", "duplicated_lines", num, num, True),
 ]
 
 # A patch release of a commit or two says nothing about fix rate, so "last cycle" means the most
@@ -582,24 +640,24 @@ def cmd_status(args):
     return 0
 
 
-# The ratchet rows: record key, label, lower is better.
+# The ratchet rows, each a record key, a label and whether lower is better.
 RATCHET_ROWS = [
     ("empty_catches", "silent (empty) catches", True),
     ("long_methods", "methods over %d code lines" % LONG_METHOD, True),
     ("long_files", "production files over %d code lines" % LONG_FILE, True),
-    ("duplication", "code in repeated 8-line blocks", True),
+    ("duplicated_lines", "lines in repeated 8-line blocks", True),
     ("test_ratio", "test lines per production line", False),
 ]
 
 
 def worktree_files():
-    """Every production and test .cs file in the working tree, keyed like read_tree, build output skipped."""
+    """Every production and test .cs file, and every .py under the Python folders, keyed like read_tree."""
     files = {}
-    for top in (PROD, TESTS):
+    for top, suffix in [(PROD, ".cs"), (TESTS, ".cs")] + [(f, ".py") for f in PY_PROD]:
         for folder, dirs, names in os.walk(os.path.join(REPO, top.rstrip("/"))):
-            dirs[:] = [d for d in dirs if d not in ("bin", "obj")]
+            dirs[:] = [d for d in dirs if d not in ("bin", "obj", "__pycache__")]
             for name in names:
-                if name.endswith(".cs"):
+                if name.endswith(suffix):
                     path = os.path.join(folder, name)
                     key = os.path.relpath(path, REPO).replace(os.sep, "/")
                     with open(path, encoding="utf-8-sig", errors="replace") as h:
@@ -607,13 +665,13 @@ def worktree_files():
     return files
 
 
-def measure_file(text):
+def measure_file(text, python=False):
     """One file's row. A blank line neither counts nor breaks a comment block, the same as the test."""
     comments = block = run = code = 0
     for line in text.split("\n"):
         if not line.strip():
             continue
-        if is_comment(line):
+        if is_comment(line, python):
             comments += 1
             run += 1
             block = max(block, run)
@@ -621,8 +679,8 @@ def measure_file(text):
             code += 1
             run = 0
     return {"comments": comments, "block": block, "code": code,
-            "catches": len(EMPTY_CATCH.findall(text)),
-            "long_methods": sum(1 for _, n in method_lengths(text) if n > LONG_METHOD)}
+            "catches": len((SILENT_EXCEPT if python else EMPTY_CATCH).findall(text)),
+            "long_methods": sum(1 for _, n in (function_lengths if python else method_lengths)(text) if n > LONG_METHOD)}
 
 
 def partial_type(text):
@@ -643,10 +701,10 @@ def file_rows(prod):
     A key is the path below the production folder, or "partial <Type>" for the parts of a type."""
     rows, members = {}, collections.OrderedDict()
     for path in sorted(prod):
-        rel = path[len(PROD):]
-        name = partial_type(prod[path])
+        rel, python = row_name(path), path.endswith(".py")
+        name = None if python else partial_type(prod[path])
         key = "partial " + name if name else rel
-        row = measure_file(prod[path])
+        row = measure_file(prod[path], python)
         members.setdefault(key, []).append(rel)
         if key in rows:
             for col in FILE_COLUMNS:
@@ -714,8 +772,13 @@ def describe(key, members):
     return "%s (%s)" % (key, ", ".join(files)) if files and (len(files) > 1 or files[0] != key) else key
 
 
-def file_faults(now, base, members=None):
-    """The files over their row, or new and over the rule, as (key, sentence)."""
+def fresh_folders(head_rows):
+    """The Python folders with no committed row yet. The day a folder is first listed is its line in the sand."""
+    return [f for f in PY_PROD if not any(k.startswith(f) for k in head_rows)]
+
+
+def file_faults(now, base, members=None, fresh=()):
+    """The files over their row, or new and over the rule, as (key, sentence). A file under a fresh folder is debt."""
     out = []
     for key in sorted(now):
         row, name = now[key], describe(key, members)
@@ -723,6 +786,8 @@ def file_faults(now, base, members=None):
             for col in FILE_COLUMNS:
                 if col in base[key] and row[col] > row_limit(col, base[key]):
                     out.append((key, "%s has %d %s, its row allows %d" % (name, row[col], FILE_LABELS[col], row_limit(col, base[key]))))
+            continue
+        if any(key.startswith(f) for f in fresh):
             continue
         tag = "%s is new, or renamed, which counts as new, and" % name
         if row["code"] and row["comments"] / row["code"] > NEW_COMMENT_SHARE:
@@ -735,8 +800,8 @@ def file_faults(now, base, members=None):
     return out
 
 
-def file_problems(now, base, members=None):
-    return [s for _, s in file_faults(now, base, members)]
+def file_problems(now, base, members=None, fresh=()):
+    return [s for _, s in file_faults(now, base, members, fresh)]
 
 
 def rows_to_commit(now, head, members=None):
@@ -854,16 +919,17 @@ def confession():
 
 
 def valid_allowances(rec, ref):
-    """The keys a record widened under a card that is a row of the ledger at ref, and a note per card that is not."""
+    """The keys a record widened under a card that is a row of the ledger at ref, the changelog included
+    so a shipped card still explains its widening, and a note per card that is not."""
     allowed, notes = {}, []
-    todo = None
+    ledger = None
     for key, card in (rec or {}).get("allowed", {}).items():
-        if todo is None:
-            todo = ledger_text(TODO_FILE, ref)
-        if has_card(todo, card):
+        if ledger is None:
+            ledger = ledger_text(TODO_FILE, ref) + ledger_text(CHANGELOG_FILE, ref)
+        if has_card(ledger, card):
             allowed[key] = card
         else:
-            notes.append("%s was widened under %s, which is not a row in %s at %s; the allowance is ignored." % (key, card, TODO_FILE, ref))
+            notes.append("%s was widened under %s, which is not a row of the ledger at %s; the allowance is ignored." % (key, card, ref))
     return allowed, notes
 
 
@@ -933,16 +999,17 @@ def ratchet_files(files, base_ref):
     allowed, notes = valid_allowances(head_rec, "HEAD")
     for note in notes:
         print("  -> " + note)
-    others = [load_rows(base_ref)] if base_ref else []
+    base_rec = load_files_record(base_ref) if base_ref else None
+    others = [rows_of(base_rec)] if base_rec else []
     for rows in others:
         for key in allowed:
             rows.pop(key, None)
     committed = [head] + others
-    now, members = file_rows({p: t for p, t in files.items() if p.startswith(PROD)})
-    if not any(committed):
+    now, members = file_rows({p: t for p, t in files.items() if is_prod(p)})
+    if head_rec is None and base_rec is None:
         print(banner(["CODE HEALTH RATCHET: no file rows committed yet", commit_hint()], warn=True))
         return 1
-    over = file_problems(now, best_rows(committed), members)
+    over = file_problems(now, best_rows(committed), members, fresh_folders(head))
     if over:
         print(banner(["CODE HEALTH RATCHET: a file is over its row"] + over + [WIDEN_HINT] + confession(), warn=True))
         return 1
@@ -975,7 +1042,7 @@ def floor_faults(now, per_file, members):
     faults = [("total", k, s) for k, s in ratchet_faults(best, now, origin)]
     head_rows = rows_of(head_files)
     if head_rows:
-        faults += [("file", k, s) for k, s in file_faults(per_file, head_rows, members)]
+        faults += [("file", k, s) for k, s in file_faults(per_file, head_rows, members, fresh_folders(head_rows))]
     return faults, dict(carried_totals), carried_files
 
 
@@ -986,7 +1053,7 @@ def cmd_floor(args):
     files = worktree_files()
     rec = {"sha": sha, "date": time.strftime("%Y-%m-%d"), "dirty": dirty, "snapshot": snapshot(files)}
     rec["since"] = adoption_date([load_floor("HEAD")]) or rec["date"]
-    per_file, members = file_rows({p: t for p, t in files.items() if p.startswith(PROD)})
+    per_file, members = file_rows({p: t for p, t in files.items() if is_prod(p)})
     rows = floor_rows(rec)
     faults, allowed_totals, allowed_files = floor_faults(rec["snapshot"], per_file, members)
     worse = [s for _, _, s in faults]
@@ -1060,6 +1127,12 @@ def selftest():
     check("comments do not make a file long", snapshot({PROD + "A.cs": "// a\n" * 300 + "int a;\n"})["long_files"] == 0)
     check("repeated block found", duplicated_share({"a.cs": block, "b.cs": block}) == 1.0)
     check("unique code not repeated", duplicated_share({"a.cs": block, "b.cs": block.replace("int", "long")}) == 0.0)
+    unique = "".join("var u%d = Make(%d);\n" % (i, i) for i in range(20))
+    with_unique = snapshot({PROD + "a.cs": block, PROD + "b.cs": block, PROD + "c.cs": unique})
+    without = snapshot({PROD + "a.cs": block, PROD + "b.cs": block})
+    check("the repeated line count is what the ratchet judges",
+          with_unique["duplicated_lines"] == 20 and without["duplicated_lines"] == 20 and without["duplication"] > with_unique["duplication"])
+    check("deleting unique code cannot make the duplication ratchet refuse", not ratchet_problems(with_unique, without))
     global DEV_DEFINE
     check("nothing is dev only when the repo names no dev define", not dev_only("#if MODDEV\nusing System;\n"))
     DEV_DEFINE = "MODDEV"
@@ -1108,11 +1181,11 @@ def selftest():
     check("a tiny patch cycle is skipped for comparison", comparable([rec, tiny, old], 0) is old)
     check("share changes read in points", change(0.24, 0.38, points, None) == "down 14 pts")
     check("a change below display precision reads same", change(0.0080, 0.0083, lambda x: points(x, 1), True) == "same")
-    base = {"empty_catches": 2, "long_methods": 1, "long_files": 0, "duplication": 0.01, "test_ratio": 1.5}
+    base = {"empty_catches": 2, "long_methods": 1, "long_files": 0, "duplicated_lines": 16, "test_ratio": 1.5}
     check("ratchet quiet when nothing is worse", not ratchet_problems(base, dict(base, empty_catches=1, test_ratio=1.6)))
     check("ratchet flags a new silent catch", any("silent" in p for p in ratchet_problems(base, dict(base, empty_catches=3))))
     check("ratchet flags a falling test ratio", any("test lines" in p for p in ratchet_problems(base, dict(base, test_ratio=1.4))))
-    check("ratchet flags more repeated code", any("repeated" in p for p in ratchet_problems(base, dict(base, duplication=0.02))))
+    check("ratchet flags more repeated code", any("repeated" in p for p in ratchet_problems(base, dict(base, duplicated_lines=24))))
     check("ratchet flags a new long file", any("files over" in p for p in ratchet_problems(base, dict(base, long_files=1))))
     older = {k: v for k, v in base.items() if k != "long_files"}
     check("ratchet skips a row the base record does not hold", not ratchet_problems(older, dict(base, long_files=5)))
@@ -1152,6 +1225,7 @@ def selftest():
     check("a bold Now card and a Backlog row are cards, a mention in prose is not",
           has_card(ledger, "ZZ-3") and has_card(ledger, "ZZ-11") and not has_card(ledger, "ZZ-1") and not has_card(ledger, "ZZ-5"))
     check("the next id follows the highest one in the ledger", next_id(ledger + "[QQ-40]", "ZZ") == "ZZ-12" and next_id("", "ZZ") == "ZZ-1")
+    check("a shipped card is still a card", has_card("- [ZZ-4] SHIPPED abc1234 2026-11-03: done.\n", "ZZ-4"))
     recs = [{"version": "1.0.0", "snapshot": {"empty_catches": 2, "long_methods": 1}}]
     hf = {"sha": "h", "snapshot": {"empty_catches": 3, "long_methods": 1}, "allowed": {"empty_catches": "ZZ-9"}}
     bf = {"sha": "b", "where": "origin/main", "snapshot": {"empty_catches": 2, "long_methods": 0}}
@@ -1159,6 +1233,26 @@ def selftest():
     b2, o2 = best_base(recs, [hf, bf])
     check("a widened total is judged at HEAD's floor alone and the rest stay ratcheted",
           b2["empty_catches"] == 3 and o2["empty_catches"] == "floor h" and b2["long_methods"] == 0)
+    global PY_PROD
+    PY_PROD = ["tools/"]
+    pyfile = ("import os\n\n\ndef short():\n    try:\n        os.remove('x')\n    except OSError:\n        pass\n\n\ndef long_one():\n"
+              + "".join("    v%d = %d\n" % (i, i) for i in range(70)) + "\n# a note\n")
+    pm = measure_file(pyfile, True)
+    check("a python row counts its comment lines, silent excepts and long functions", (pm["comments"], pm["catches"], pm["long_methods"]) == (1, 1, 1))
+    check("an except that logs is not silent", measure_file("try:\n    x()\nexcept OSError as exc:\n    log(exc)\n", True)["catches"] == 0)
+    check("an except holding a comment and pass is silent", measure_file("try:\n    x()\nexcept OSError:\n    # why\n    pass\n", True)["catches"] == 1)
+    check("python under a listed folder is production, elsewhere it is not",
+          is_prod("tools/lib/a.py") and not is_prod("scripts/a.py") and not is_prod("tools/a.cs") and is_prod(PROD + "A.cs"))
+    prows, _ = file_rows({"tools/lib/a.py": pyfile, PROD + "Util.cs": "class Util { }\n"})
+    check("a python row is keyed by its repo relative path beside the C# rows", "tools/lib/a.py" in prows and "Util.cs" in prows)
+    big_py = {"tools/big.py": {"comments": 0, "block": 0, "code": 500, "catches": 0, "long_methods": 0}}
+    check("a fresh python folder's files are debt, not new files", not file_faults(big_py, {"Util.cs": {"code": 1}}, None, fresh_folders({"Util.cs": {}})))
+    check("a listed folder with a committed row is no longer fresh", fresh_folders({"tools/x.py": {}}) == [] and file_faults(big_py, {}, None, []))
+    mixed = snapshot({PROD + "A.cs": "// c\nint a;\n", "tools/t.py": "# c\nx = 1\n"})
+    check("a snapshot reads each language by its own comment marker", mixed["code_lines"] == 2 and mixed["prod_files"] == 2 and mixed["comment_share"] == 0.333)
+    check("domain of a python file is its folder", domain_of("tools/lib/a.py") == "tools/lib" and domain_of("tools/a.py") == "tools")
+    check("a python hotspot keeps its repo relative name", row_name("tools/lib/a.py") == "tools/lib/a.py" and row_name(PROD + "A.cs") == "A.cs")
+    PY_PROD = []
     passed = sum(ok for _, ok in cases)
     for name, ok in cases:
         if not ok:

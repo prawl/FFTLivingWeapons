@@ -8,43 +8,14 @@ being worked for the current release (hard cap 5, each entry carries Done means 
 through docs/CHANGELOG.md, moved there in the commit that ships or kills them. The release ship
 gate lives in docs/RELEASE_SCOPE.md.
 
-## Now (release: 0.1)
-
-- **[MG-7] Track which mods are on the shared rules so the paydown can start when all five are** (opened 2026-11-02) [QUEUED]
-  - Done means: one place in this repo says which mod runs which rulebook version and since when,
-    so anyone can see when the last mod is in and the paydown of the recorded debt can begin.
-    Order after Treasure Master, on v0.1.0 since 2026-11-03: Living Weapons, Offensive Chemist,
-    Color Customizer, and the private mod once its open branch lands. (Tech: a table in README.md
-    with mod, version taken, date and hookup commit; each hookup updates its row in the same
-    session.)
-  - Verify: the table names Treasure Master at v0.1.0 with its hookup commit and gains a row with
-    each later hookup; Check.ps1 passes with the table in place.
-- **[MG-15] Keep the rulebook quiet when a mod's own tests load the gate script** (opened 2026-11-03) [BUILDING]
-  - Done means: loading gates.ps1 prints nothing, and the line naming the rulebook version moves
-    into the first gate, so a mod test that dot-sources its pipeline script and reads the output
-    gets its answer and not the banner. Living Weapons has nine such tests. (Tech: the Write-Host
-    moves from the file body into Invoke-ManifestGate; VERSION 0.1.1; tag v0.1.1.)
-  - Verify: Check.ps1 green and its log still names the version from the manifest gate; the nine
-    Living Weapons tests pass on the v0.1.1 subtree.
-- **[MG-16] Let a mod with old health records start its floor from today's tree** (opened 2026-11-03) [BUILDING]
-  - Done means: the first floor of a repo is its line in the sand even when release records from
-    earlier months hold better numbers, so day one debt is recorded and not refused. Living
-    Weapons' first floor was refused against its v2.1.0 record. (Tech: floor.json carries since,
-    the first floor's date; since_adoption drops records older than it from the ratchet and the
-    floor; the trend still reads every record.)
-  - Verify: health.py --selftest covers a record older than the floor being history and a newer
-    one still setting the bar; Living Weapons' floor --write succeeds on v0.1.1 and its ratchet
-    runs green.
+## Now (release: 0.2)
 
 ## Backlog
 
-- [MG-5] 2026-11-02: Let the style contract's em dash ban take a per-repo scope list, since data
-  files hold design notes with em dashes that are not game text.
-- [MG-6] 2026-11-02: Have the shared setup's /gates status print the rulebook version a repo is
-  on, so one screen shows both the session gates and the build gates.
-- [MG-14] 2026-11-02: Have the pre-commit hook write the file rows, so nobody runs floor --write
-  by hand and a shrink is never left for the ratchet to ask about. (Tech: the shared pre-commit in
-  the setup repo runs health.py floor --write when rules.json is present and stages files.json.)
+- [MG-24] 2026-11-03: Move the four mods onto rulebook v0.2.0 and fill their rows in the README's
+  Who is on it table, with Offensive Chemist opting its tools Python into the health gate on the
+  way, so every mod runs the same rules again. (Tech: git subtree pull at v0.2.0 in each mod;
+  Offensive Chemist adds pythonProd to its rules.json and Invoke-HealthGate to its pipeline.)
 
 ## Walled (blocked by engine / external)
 
@@ -54,7 +25,8 @@ gate lives in docs/RELEASE_SCOPE.md.
 
 - Sections, in this order and no others: Now (with the release name in the header), Backlog,
   Walled, Format.
-- Now: at most 5 entries. Entry first line: `- **[MG-<n>] <title>** (opened YYYY-MM-DD) [STATUS]`
+- Now: at most 5 entries, and it may stand empty between cards. Entry first line:
+  `- **[MG-<n>] <title>** (opened YYYY-MM-DD) [STATUS]`
   where STATUS is QUEUED, BUILDING, AWAITING-LIVE, or BLOCKED(reason). Every entry carries a
   `- Done means:` and a `- Verify:` sub-bullet. Promote from Backlog by filling those in; if Now
   is at cap, demote something first.

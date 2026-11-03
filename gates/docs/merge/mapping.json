@@ -46,7 +46,10 @@
     "shared": "Tests/CommentBudgetContractTests.cs",
     "note": "The frozen baseline moves out of the test into the per-file rows health.py writes to docs/health/files.json, with no growth allowance.",
     "renamed": {
-      "+A_partial_type_is_keyed_by_its_name": "the parts of a partial type share one row, so the key they share is pinned"
+      "+A_partial_type_is_keyed_by_its_name": "the parts of a partial type share one row, so the key they share is pinned",
+      "+Every_frozen_count_refusal_names_its_baseline_file_and_what_moves_it": "every refusal from a frozen count names its baseline file and the command that moves it, pinned through the message builders",
+      "+Measure_reads_a_python_file_by_its_own_comment_marker": "a repo may opt its Python folders into the comment budget, so the measure is pinned for the hash marker too",
+      "+First_docstring_sentence_opens_a_python_file": "a Python production file opens with a short docstring sentence the way a C# file opens with a summary"
     },
     "local": {},
     "wontfix": {}
@@ -60,7 +63,9 @@
   "SilentCatchContractTests": {
     "shared": "Tests/SilentCatchContractTests.cs",
     "note": "The empty catch count a file still carries on day one is the catches column of its row in docs/health/files.json, and the health ratchet makes it shrink.",
-    "renamed": {},
+    "renamed": {
+      "+A_silent_except_is_one_whose_body_is_only_pass": "a Python silent catch is an except whose body is only pass, the regex health.py counts with"
+    },
     "local": {},
     "wontfix": {}
   },
@@ -68,7 +73,9 @@
     "shared": "Tests/StyleContractTests.cs",
     "note": "The doc and comment width baselines move out of the test into docs/health/style.json.",
     "renamed": {
-      "+The_repo_copy_of_a_shared_style_file_matches_the_rulebook_byte_for_byte": "the style and line ending files cannot be shared through gates, so the repo's copies are checked against them"
+      "+The_repo_copy_of_a_shared_style_file_matches_the_rulebook_byte_for_byte": "the style and line ending files cannot be shared through gates, so the repo's copies are checked against them",
+      "+Em_dash_lines_are_named_and_a_plain_hyphen_passes": "the em dash ban names each line and never trips on a hyphen or a double dash",
+      "+No_em_dash_inside_the_folders_the_repo_lists_for_the_ban": "a repo lists in rules.json the folders and files its em dash ban covers, so data files with design notes stay out"
     },
     "local": {},
     "wontfix": {}

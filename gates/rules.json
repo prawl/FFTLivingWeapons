@@ -1,6 +1,8 @@
 {
   "prod": "Logging/",
   "tests": "Tests/",
+  "pythonProd": ["tools/"],
+  "emDashScope": ["docs/", "Logging/", "tools/", "pipeline/", "Selftest/", "README.md", "Check.ps1"],
   "ticketPrefix": "MG",
   "projects": ["Selftest/Mod/Mod.csproj", "Selftest/Tests/Tests.csproj"],
   "testProjects": ["Selftest/Tests/Tests.csproj"],

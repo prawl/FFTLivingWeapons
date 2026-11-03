@@ -25,8 +25,8 @@ public class CommentBudgetContractTests
 
     internal readonly record struct Measure(int CommentLines, int CodeLines, int MaxBlock, int Colons, int Dashes, List<string> Tells);
 
-    /// <summary>A comment line starts with //, /* or *. A trailing comment counts toward tells, colons and dashes only.</summary>
-    internal static Measure MeasureText(string text)
+    /// <summary>A comment line starts with //, /* or *, or with # in Python. A trailing comment counts toward tells, colons and dashes only.</summary>
+    internal static Measure MeasureText(string text, bool python = false)
     {
         int comment = 0, code = 0, run = 0, maxRun = 0, colons = 0, dashes = 0;
         var tells = new List<string>();
@@ -35,20 +35,20 @@ public class CommentBudgetContractTests
             string s = raw.Trim();
             if (s.Length == 0) continue;
             string? commentText = null;
-            if (FileRows.IsComment(s))
+            if (FileRows.IsComment(s, python))
             {
                 comment++; run++; maxRun = Math.Max(maxRun, run); commentText = s;
             }
             else
             {
                 code++; run = 0;
-                int k = raw.IndexOf(" //", StringComparison.Ordinal);
+                int k = raw.IndexOf(python ? " #" : " //", StringComparison.Ordinal);
                 if (k >= 0) commentText = raw[k..];
             }
             if (commentText is null) continue;
             string body = Regex.Replace(commentText, @"<[^>]+>|""[^""]*""|`[^`]*`", "#");
             body = Regex.Replace(body, @"\b0x[0-9A-Fa-f]+\b|\b\d+:\d+\b|\b[\w.]+\.(cs|py|md|ps1):\d+", "#");
-            string prose = Regex.Replace(body, @"^(?:///|//|/\*|\*)\s*-\s", "");
+            string prose = Regex.Replace(body, @"^(?:///|//|/\*|\*|#)\s*-\s", "");
             colons += Regex.Matches(body, @"\w: ").Count;
             dashes += Regex.Matches(prose, @"(?<=[A-Za-z0-9)]) - (?=[A-Za-z0-9(])|—| -- ").Count;
             foreach (Match m in TellRegex.Matches(body)) tells.Add(m.Value);
@@ -58,15 +58,15 @@ public class CommentBudgetContractTests
 
     /// <summary>One measure per production file, keyed by its path below the production folder.</summary>
     private static Dictionary<string, Measure> PerFile()
-        => FileRows.ProductionFiles().ToDictionary(f => f.Path, f => MeasureText(f.Text), StringComparer.Ordinal);
+        => FileRows.ProductionFiles().ToDictionary(f => f.Path, f => MeasureText(f.Text, f.Python), StringComparer.Ordinal);
 
     /// <summary>One measure per row key, the parts of a partial type summed and their longest block kept.</summary>
     private static Dictionary<string, (int CommentLines, int CodeLines, int MaxBlock)> PerRow()
     {
         var rows = new Dictionary<string, (int, int, int)>(StringComparer.Ordinal);
-        foreach (var (key, _, text) in FileRows.ProductionFiles())
+        foreach (var (key, _, text, python) in FileRows.ProductionFiles())
         {
-            var m = MeasureText(text);
+            var m = MeasureText(text, python);
             var had = rows.GetValueOrDefault(key);
             rows[key] = (had.Item1 + m.CommentLines, had.Item2 + m.CodeLines, Math.Max(had.Item3, m.MaxBlock));
         }
@@ -93,6 +93,16 @@ public class CommentBudgetContractTests
     public void Measure_counts_what_the_rules_read(string text, int lines, int code, int block, int colons, int dashes, int tells)
     {
         var m = MeasureText(text);
+        Assert.Equal((lines, code, block, colons, dashes, tells), (m.CommentLines, m.CodeLines, m.MaxBlock, m.Colons, m.Dashes, m.Tells.Count));
+    }
+
+    [Theory]
+    [InlineData("# plain words\nx = 1\n", 1, 1, 1, 0, 0, 0)]
+    [InlineData("# note: a colon\n# chosen deliberately\n\n# third\nx = 1  # tail - with a dash\n", 3, 1, 3, 1, 1, 1)]
+    [InlineData("#   - a bullet item\nx = \"a: b\"\n", 1, 1, 1, 0, 0, 0)]
+    public void Measure_reads_a_python_file_by_its_own_comment_marker(string text, int lines, int code, int block, int colons, int dashes, int tells)
+    {
+        var m = MeasureText(text, python: true);
         Assert.Equal((lines, code, block, colons, dashes, tells), (m.CommentLines, m.CodeLines, m.MaxBlock, m.Colons, m.Dashes, m.Tells.Count));
     }
 
@@ -139,8 +149,19 @@ public class CommentBudgetContractTests
         }
         Assert.True(problems.Count == 0,
             "Comment budget exceeded.\n\n" + string.Join("\n", problems) +
-            "\n\nCut the comment, or let the owner widen the row with floor --allow-worse and say why in the commit.\n" +
-            (moved.Count == 0 ? "" : "\nRows the health ratchet will ask for:\n" + string.Join("\n", moved) + "\n" + FileRows.WriteHint));
+            "\n\nCut the comment, or widen the row. " + FileRows.WidenHint + "\n" + FileRows.WriteHint + "\n" +
+            (moved.Count == 0 ? "" : "\nRows the health ratchet will ask for:\n" + string.Join("\n", moved) + "\n"));
+    }
+
+    [Fact]
+    public void Every_frozen_count_refusal_names_its_baseline_file_and_what_moves_it()
+    {
+        string baselines = Rules.Load().Baselines;
+        Assert.Contains(baselines + "/files.json", FileRows.WriteHint);
+        Assert.Contains("floor --write", FileRows.WriteHint);
+        Assert.Contains("--allow-worse --card", FileRows.WidenHint);
+        Assert.Contains(baselines + "/style.json", StyleContractTests.FreezeHint("docs"));
+        Assert.Contains("hand written", StyleContractTests.FreezeHint("comments"));
     }
 
     /// <summary>The first sentence of the first summary block, whitespace collapsed, or null when the file has none.</summary>
@@ -152,7 +173,25 @@ public class CommentBudgetContractTests
         return Regex.Split(text, @"(?<=[.!?])\s", RegexOptions.None)[0];
     }
 
+    /// <summary>The first sentence of a Python module's docstring, whitespace collapsed, or null when the file opens without one.</summary>
+    internal static string? FirstDocstringSentence(string fileText)
+    {
+        var m = Regex.Match(fileText, @"\A(?:#[^\n]*\n|\s*\n)*\s*[rRuUbB]{0,2}(""""""|''')(.*?)\1", RegexOptions.Singleline);
+        if (!m.Success) return null;
+        string text = Regex.Replace(m.Groups[2].Value, @"\s+", " ").Trim();
+        return text.Length == 0 ? null : Regex.Split(text, @"(?<=[.!?])\s", RegexOptions.None)[0];
+    }
+
     private static bool IsShortSentence(string sentence) => sentence.Length <= MaxFirstSentence && sentence.EndsWith('.');
+
+    [Theory]
+    [InlineData("\"\"\"Counts kills.\"\"\"\nx = 1\n", "Counts kills.")]
+    [InlineData("#!/usr/bin/env python\n\"\"\"\nCounts\n  the kills. More follows.\n\"\"\"\n", "Counts the kills.")]
+    [InlineData("'''Counts kills'''\n", "Counts kills")]
+    [InlineData("import os\n\"\"\"late\"\"\"\n", null)]
+    [InlineData("x = 1\n", null)]
+    public void First_docstring_sentence_opens_a_python_file(string fileText, string? expected)
+        => Assert.Equal(expected, FirstDocstringSentence(fileText));
 
     [Theory]
     [InlineData("/// <summary>Counts kills.</summary>", "Counts kills.", true)]
@@ -182,12 +221,12 @@ public class CommentBudgetContractTests
     {
         var exempt = Rules.Load().NoSummaryExempt;
         var bad = new List<string>();
-        foreach (var (_, path, text) in FileRows.ProductionFiles())
+        foreach (var (_, path, text, python) in FileRows.ProductionFiles())
         {
-            string? first = FirstSummarySentence(text);
+            string? first = python ? FirstDocstringSentence(text) : FirstSummarySentence(text);
             if (first is null)
             {
-                if (!exempt.ContainsKey(Path.GetFileName(path))) bad.Add($"{path} (no summary block)");
+                if (!exempt.ContainsKey(Path.GetFileName(path))) bad.Add($"{path} ({(python ? "no module docstring" : "no summary block")})");
             }
             else if (!IsShortSentence(first)) bad.Add($"{path} ({first.Length} chars) {first}");
         }

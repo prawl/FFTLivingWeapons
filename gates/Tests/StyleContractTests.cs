@@ -11,8 +11,9 @@ namespace ModGates.Tests;
 /// <summary>
 /// Layout held mechanically. Python under tools keeps two blank lines above each top level
 /// definition and never three in a row, C# never holds two in a row, no doc or production file
-/// grows its count of overlong lines past its frozen number, no crash dump sits in the tree, and
-/// the repo's style and line ending files match the rulebook's byte for byte.
+/// grows its count of overlong lines past its frozen number, no crash dump sits in the tree, no
+/// em dash sits inside the folders and files the repo lists for that ban, and the repo's style
+/// and line ending files match the rulebook's byte for byte.
 /// </summary>
 public class StyleContractTests
 {
@@ -90,6 +91,9 @@ public class StyleContractTests
 
     private static Regex LedgerHead(string prefix) => new(@"^- \*\*\[" + Regex.Escape(prefix) + @"-\d+\] .*\(opened \d{4}-\d{2}-\d{2}\)", RegexOptions.Compiled);
 
+    /// <summary>The style baseline is hand written, so the refusal names the file, the key and the row to add.</summary>
+    internal static string FreezeHint(string key) => $"Baseline: {Rules.Load().Baselines}/style.json, key \"{key}\", hand written; no command moves it. Wrap the line, or add today's count under that key.";
+
     [Theory]
     [InlineData("x = 1\n\n\ndef f():\n    pass\n", "")]
     [InlineData("x = 1\n\ndef f():\n    pass\n", "3: a top level definition with fewer than two blank lines above it")]
@@ -132,7 +136,9 @@ public class StyleContractTests
     [Fact]
     public void Python_under_tools_keeps_two_blank_lines_above_each_top_level_definition_and_never_three()
     {
-        var offenders = Walk(Path.Combine(RepoRoot.Locate(), "tools"), "*.py").SelectMany(f => PythonLayout(Lines(f)).Select(p => $"{Rel(f)}:{p}")).ToList();
+        var folders = new[] { "tools" }.Concat(Rules.Load().PythonProd.Select(f => f.TrimEnd('/'))).Distinct(StringComparer.OrdinalIgnoreCase);
+        var offenders = folders.SelectMany(d => Walk(Path.Combine(RepoRoot.Locate(), d), "*.py")).Distinct(StringComparer.OrdinalIgnoreCase)
+            .SelectMany(f => PythonLayout(Lines(f)).Select(p => $"{Rel(f)}:{p}")).ToList();
         Assert.True(offenders.Count == 0, string.Join("; ", offenders));
     }
 
@@ -154,7 +160,7 @@ public class StyleContractTests
         var baseline = LoadBaseline().Docs;
         var docs = Directory.EnumerateFiles(Path.Combine(root, "docs"), "*.md").Where(f => Path.GetFileName(f) != "HEALTH.md").Append(Path.Combine(root, "README.md")).Where(File.Exists);
         var grown = docs.Select(f => (Doc: Rel(f), Count: OverlongProse(Lines(f), head))).Where(d => d.Count > baseline.GetValueOrDefault(d.Doc)).ToList();
-        Assert.True(grown.Count == 0, $"wrap prose at {DocWidth} characters, or freeze today's count in style.json docs: " +
+        Assert.True(grown.Count == 0, $"Prose over {DocWidth} characters. {FreezeHint("docs")} Over the width: " +
             string.Join("; ", grown.Select(d => $"\"{d.Doc}\": {d.Count} (frozen at {baseline.GetValueOrDefault(d.Doc)})")));
     }
 
@@ -164,8 +170,35 @@ public class StyleContractTests
         var baseline = LoadBaseline().Comments;
         var grown = Walk(Rules.Load().ProdDir, "*.cs").Select(f => (File: Path.GetFileName(f), Count: OverlongComments(Lines(f))))
             .Where(c => c.Count > baseline.GetValueOrDefault(c.File)).ToList();
-        Assert.True(grown.Count == 0, $"wrap comments at {CommentWidth} characters, or freeze today's count in style.json comments: " +
+        Assert.True(grown.Count == 0, $"Comment lines over {CommentWidth} characters. {FreezeHint("comments")} Over the width: " +
             string.Join("; ", grown.Select(c => $"\"{c.File}\": {c.Count} (frozen at {baseline.GetValueOrDefault(c.File)})")));
+    }
+
+    /// <summary>A scope entry is a file, or a folder whose every text file is read; a file holding a NUL byte is binary and skipped.</summary>
+    private static IEnumerable<string> ScopeFiles(string entry)
+    {
+        string path = Path.Combine(RepoRoot.Locate(), entry.TrimEnd('/'));
+        if (File.Exists(path)) return new[] { path };
+        if (!Directory.Exists(path)) return Enumerable.Empty<string>();
+        return Walk(path, "*").Where(f => !File.ReadAllBytes(f).Contains((byte)0));
+    }
+
+    internal static List<int> EmDashLines(string[] lines)
+        => lines.Select((l, i) => (Line: l, At: i + 1)).Where(p => p.Line.Contains('—')).Select(p => p.At).ToList();
+
+    [Theory]
+    [InlineData("a hyphen - here\nand -- a double\n", "")]
+    [InlineData("an em dash — here\nplain\nand — again\n", "1,3")]
+    public void Em_dash_lines_are_named_and_a_plain_hyphen_passes(string text, string expected)
+        => Assert.Equal(expected, string.Join(",", EmDashLines(text.Split('\n'))));
+
+    [Fact]
+    public void No_em_dash_inside_the_folders_the_repo_lists_for_the_ban()
+    {
+        var hits = Rules.Load().EmDashScope.SelectMany(ScopeFiles).Distinct(StringComparer.OrdinalIgnoreCase)
+            .SelectMany(f => EmDashLines(Lines(f)).Select(n => $"{Rel(f)}:{n}")).ToList();
+        Assert.True(hits.Count == 0, "An em dash inside the repo's em dash scope. rules.json emDashScope names the folders and files the ban covers; "
+            + "write a comma or a period instead, or narrow the list to keep a data file out:\n" + string.Join("\n", hits));
     }
 
     [Fact]
