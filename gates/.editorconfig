@@ -1,0 +1,34 @@
+# Code-style policy for every mod on the shared gates. A repo keeps a byte-for-byte copy at its root.
+#
+# The codebase is a hand-tuned in-process game mod, not a greenfield app. Modern C# style nudges
+# (collection expressions, primary constructors, UTF-8 literals) are preference, not correctness.
+# Enforcing them would rewrite nearly every file for no behavioral gain and fight the house rule
+# of matching the surrounding style, so they are SILENCED in the editor and in the build.
+# A small set of genuinely valuable rules (unused members, dead assignments, missing readonly) is
+# raised to warning. Together with TreatWarningsAsErrors in gates/Directory.Build.targets the build FAILS
+# on them. Compiler warnings (CS####) are errors through that same switch.
+#
+# To enforce one of the silenced rules later, raise its severity here and fix the fallout in one pass.
+
+root = true
+
+[*.cs]
+end_of_line = crlf   # matches .gitattributes, so dotnet format and git agree
+# ENFORCED (warning becomes a build error through TreatWarningsAsErrors)
+dotnet_diagnostic.IDE0044.severity = warning   # make field readonly where only the ctor assigns it
+dotnet_diagnostic.IDE0051.severity = warning   # remove unused private member
+dotnet_diagnostic.IDE0052.severity = warning   # remove unread private member
+dotnet_diagnostic.IDE0059.severity = warning   # remove unnecessary value assignment
+
+# SILENCED (preference only, off in the editor and the build to keep the Problems panel clean)
+dotnet_diagnostic.IDE0028.severity = silent    # use collection initializer or expression
+dotnet_diagnostic.IDE0300.severity = silent    # use collection expression for array
+dotnet_diagnostic.IDE0301.severity = silent    # use collection expression for empty
+dotnet_diagnostic.IDE0305.severity = silent    # use collection expression for fluent
+dotnet_diagnostic.IDE0290.severity = silent    # use primary constructor
+dotnet_diagnostic.IDE0230.severity = silent    # use UTF-8 string literal
+dotnet_diagnostic.IDE0042.severity = silent    # deconstruct variable declaration
+dotnet_diagnostic.IDE0057.severity = silent    # use range operator or simplify substring
+dotnet_diagnostic.IDE0033.severity = silent    # use explicitly provided tuple name
+dotnet_diagnostic.IDE0018.severity = silent    # inline variable declaration
+dotnet_diagnostic.IDE0060.severity = silent    # remove unused parameter (often bound by a signature)

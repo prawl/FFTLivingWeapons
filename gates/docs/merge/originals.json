@@ -1,0 +1,1372 @@
+[
+ {
+  "family": "TodoContractTests",
+  "repo": "BB",
+  "fact": "IsNowEntryLine_grammar_cases",
+  "cases": [
+   "\"- **[X-1] Some title here** (opened 2026-07-21) [QUEUED]\", true",
+   "\"- **[X-2] Some title here** (opened 2026-07-21) [BUILDING]\", true",
+   "\"- **[X-3] Some title here** (opened 2026-07-21) [AWAITING-LIVE]\", true",
+   "\"- **[X-4] Some title here** (opened 2026-07-21) [BLOCKED(owner live session)]\", true",
+   "\"- **[X-5] Some title here** (opened 2026-07-21)\", false",
+   "\"- **[X-6] Some title here** (opened 2026-07-21) [WAITING]\", false",
+   "\"- **[X-7] Some title here** (opened 2026-07-21) [BLOCKED]\", false",
+   "\"- **[X-8] Some title here** (opened 2026-7-21) [QUEUED]\", false",
+   "\"- [X-9] Some title here (opened 2026-07-21) [QUEUED]\", false",
+   "\"- **[X-10] Title** rogue **[X-11] second marker** (opened 2026-07-21) [QUEUED]\", false",
+   "\"- **[X-12] Wrong repo prefix** (opened 2026-07-21) [QUEUED]\", false"
+  ]
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "BB",
+  "fact": "IsBacklogEntryLine_grammar_cases",
+  "cases": [
+   "\"- [X-10] 2026-07-21: One sentence description.\", true",
+   "\"- [X-11] 2026-07-21: \", false",
+   "\"- [X-12] 2026-7-21: One sentence description.\", false",
+   "\"- **[X-13] Some title** 2026-07-21: text\", false",
+   "\"- X-14 2026-07-21: text\", false",
+   "\"- [X-15] 2026-07-21: wrong repo prefix.\", false"
+  ]
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "BB",
+  "fact": "IsChangelogEntryLine_grammar_cases",
+  "cases": [
+   "\"- [X-15] SHIPPED 58d5c7b 2026-07-21: summary text.\", true",
+   "\"- [X-16] WONTFIX 2026-07-21: summary text.\", true",
+   "\"- [X-17] RETRACTED 2026-07-21: summary text.\", true",
+   "\"- [X-18] SHIPPED 2026-07-21: summary text.\", false",
+   "\"- [X-19] SHIPPED zzzzzzz 2026-07-21: summary text.\", false",
+   "\"- [X-20] DEFERRED 2026-07-21: summary text.\", false",
+   "\"- [X-21] SHIPPED 58d5c7b 2026-7-21: summary text.\", false",
+   "\"- X-22 SHIPPED abc1234 2026-07-21: summary text.\", false",
+   "\"- [X-23] SHIPPED 58d5c7b 2026-07-21: wrong repo prefix.\", false"
+  ]
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "BB",
+  "fact": "ChangelogEntryLines_catches_a_bracketless_entry_that_a_bracket_prefix_filter_would_miss",
+  "cases": []
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "BB",
+  "fact": "TODO_has_exactly_the_four_required_headers_in_order",
+  "cases": []
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "BB",
+  "fact": "Every_Now_entry_matches_the_grammar_and_carries_exactly_one_Done_means_and_one_Verify",
+  "cases": []
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "BB",
+  "fact": "Now_section_holds_at_most_five_entries",
+  "cases": []
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "BB",
+  "fact": "Every_Backlog_entry_matches_the_grammar",
+  "cases": []
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "BB",
+  "fact": "Every_CHANGELOG_entry_matches_the_grammar",
+  "cases": []
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "BB",
+  "fact": "Every_BB_id_is_unique_across_TODO_and_CHANGELOG",
+  "cases": []
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "BB",
+  "fact": "Now_release_name_appears_in_RELEASE_SCOPE_md",
+  "cases": []
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "BB",
+  "fact": "Neither_TODO_nor_CHANGELOG_contains_an_em_dash_or_a_double_dash_separator",
+  "cases": []
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "BB",
+  "fact": "EntryShapedRegex_cases",
+  "cases": [
+   "\"- [X-9] 2026-07-21: a stray backlog-shaped row\", true",
+   "\"- **[X-9] A stray Now-shaped row** (opened 2026-07-21) [QUEUED]\", true",
+   "\"  - [X-9] indented stray\", true",
+   "\"- Backlog: entry first line `- [X-<n>] YYYY-MM-DD: <one sentence>`; indented\", false",
+   "\"- After an in-battle Retry the glow does not come back (prose, no id).\", false"
+  ]
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "BB",
+  "fact": "No_entry_shaped_line_hides_in_Walled_or_Format",
+  "cases": []
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "LW",
+  "fact": "IsNowEntryLine_grammar_cases",
+  "cases": [
+   "\"- **[X-1] Some title here** (opened 2026-07-05) [QUEUED]\", true",
+   "\"- **[X-2] Some title here** (opened 2026-07-05) [BUILDING]\", true",
+   "\"- **[X-3] Some title here** (opened 2026-07-05) [AWAITING-LIVE]\", true",
+   "\"- **[X-4] Some title here** (opened 2026-07-05) [BLOCKED(owner live session)]\", true",
+   "\"- **[X-5] Some title here** (opened 2026-07-05)\", false",
+   "\"- **[X-6] Some title here** (opened 2026-07-05) [WAITING]\", false",
+   "\"- **[X-7] Some title here** (opened 2026-07-05) [BLOCKED]\", false",
+   "\"- **[X-8] Some title here** (opened 2026-7-05) [QUEUED]\", false",
+   "\"- [X-9] Some title here (opened 2026-07-05) [QUEUED]\", false",
+   "\"- **[X-10] Title** rogue **[X-11] second marker** (opened 2026-07-05) [QUEUED]\", false"
+  ]
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "LW",
+  "fact": "IsBacklogEntryLine_grammar_cases",
+  "cases": [
+   "\"- [X-10] 2026-07-04: One sentence description.\", true",
+   "\"- [X-11] 2026-07-04: \", false",
+   "\"- [X-12] 2026-7-04: One sentence description.\", false",
+   "\"- **[X-13] Some title** 2026-07-04: text\", false",
+   "\"- X-14 2026-07-04: text\", false"
+  ]
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "LW",
+  "fact": "IsChangelogEntryLine_grammar_cases",
+  "cases": [
+   "\"- [X-15] SHIPPED 58d5c7b 2026-07-05: summary text.\", true",
+   "\"- [X-16] WONTFIX 2026-07-05: summary text.\", true",
+   "\"- [X-17] RETRACTED 2026-07-05: summary text.\", true",
+   "\"- [X-18] SHIPPED 2026-07-05: summary text.\", false",
+   "\"- [X-19] SHIPPED zzzzzzz 2026-07-05: summary text.\", false",
+   "\"- [X-20] DEFERRED 2026-07-05: summary text.\", false",
+   "\"- [X-21] SHIPPED 58d5c7b 2026-7-05: summary text.\", false",
+   "\"- X-22 SHIPPED abc1234 2026-07-05: summary text.\", false"
+  ]
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "LW",
+  "fact": "ChangelogEntryLines_catches_a_bracketless_entry_that_a_bracket_prefix_filter_would_miss",
+  "cases": []
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "LW",
+  "fact": "TODO_has_exactly_the_four_required_headers_in_order",
+  "cases": []
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "LW",
+  "fact": "Every_Now_entry_matches_the_grammar_and_carries_exactly_one_Done_means_and_one_Verify",
+  "cases": []
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "LW",
+  "fact": "Lock_violations_cover_every_way_a_card_can_join_a_locked_list",
+  "cases": [
+   "new[] { \"- **[X-1] A** (opened 2026-10-24) [QUEUED]\", \"- **[X-2] B** (opened 2026-10-24) [QUEUED]\" }, 0",
+   "new[] { \"Locked 2026-10-24: X-1\", \"\", \"- **[X-1] A** (opened 2026-10-24) [QUEUED]\" }, 0",
+   "new[] { \"Locked 2026-10-24: X-1\", \"\", \"- **[X-1] A** (opened 2026-10-24) [QUEUED]\", \"- **[X-2] B** (opened 2026-10-24) [QUEUED]\" }, 1",
+   "new[] { \"Locked 2026-10-24: X-1\", \"\", \"- **[X-1] A** (opened 2026-10-24) [QUEUED]\", \"- **[X-2] B** (opened 2026-10-24) [QUEUED]\", \"  - Added: yes \\\"take it\\\" (2026-10-25)\" }, 0",
+   "new[] { \"Locked 2026-10-24: X-1\", \"\", \"- **[X-1] A** (opened 2026-10-24) [QUEUED]\", \"- **[X-2] B** (opened 2026-10-24) [QUEUED]\", \"  - Added: yes take it (2026-10-25)\" }, 1",
+   "new[] { \"Locked 2026-10-24: X-1\", \"\", \"- **[X-1] A** (opened 2026-10-24) [QUEUED]\", \"- **[X-2] B** (opened 2026-10-24) [QUEUED]\", \"  - Added: found while testing X-1\" }, 0",
+   "new[] { \"Locked 2026-10-24: X-1\", \"\", \"- **[X-1] A** (opened 2026-10-24) [QUEUED]\", \"- **[X-2] B** (opened 2026-10-24) [QUEUED]\", \"  - Added: found while testing X-9\" }, 1",
+   "new[] { \"Locked 2026-10-24: X-1\", \"\", \"- **[X-1] A** (opened 2026-10-24) [QUEUED]\", \"- **[X-2] B** (opened 2026-10-24) [QUEUED]\", \"  - Added: hotfix port of X-7\" }, 0",
+   "new[] { \"Locked 2026-10-24: X-1, X-2\", \"\", \"- **[X-1] A** (opened 2026-10-24) [QUEUED]\" }, 0"
+  ]
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "LW",
+  "fact": "A_card_added_to_a_locked_Now_says_how_it_got_in",
+  "cases": []
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "LW",
+  "fact": "Every_Backlog_entry_matches_the_grammar",
+  "cases": []
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "LW",
+  "fact": "Every_CHANGELOG_entry_matches_the_grammar",
+  "cases": []
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "LW",
+  "fact": "Every_LW_id_is_unique_across_TODO_and_CHANGELOG",
+  "cases": []
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "LW",
+  "fact": "Neither_TODO_nor_CHANGELOG_contains_an_em_dash_or_a_double_dash_separator",
+  "cases": []
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "LW",
+  "fact": "EntryShapedRegex_cases",
+  "cases": [
+   "\"- [X-9] 2026-07-21: a stray backlog-shaped row\", true",
+   "\"- **[X-9] A stray Now-shaped row** (opened 2026-07-21) [QUEUED]\", true",
+   "\"  - [X-9] indented stray\", true",
+   "\"- Backlog: entry first line `- [X-<n>] YYYY-MM-DD: <one sentence>`; indented\", false",
+   "\"- Swords cannot get new swing visuals: the art is welded to the weapon id.\", false"
+  ]
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "LW",
+  "fact": "No_entry_shaped_line_hides_in_Walled_or_Format",
+  "cases": []
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "TM",
+  "fact": "IsNowEntryLine_grammar_cases",
+  "cases": [
+   "\"- **[X-1] Some title here** (opened 2026-07-21) [QUEUED]\", true",
+   "\"- **[X-2] Some title here** (opened 2026-07-21) [BUILDING]\", true",
+   "\"- **[X-3] Some title here** (opened 2026-07-21) [AWAITING-LIVE]\", true",
+   "\"- **[X-4] Some title here** (opened 2026-07-21) [BLOCKED(owner live session)]\", true",
+   "\"- **[X-5] Some title here** (opened 2026-07-21)\", false",
+   "\"- **[X-6] Some title here** (opened 2026-07-21) [WAITING]\", false",
+   "\"- **[X-7] Some title here** (opened 2026-07-21) [BLOCKED]\", false",
+   "\"- **[X-8] Some title here** (opened 2026-7-21) [QUEUED]\", false",
+   "\"- [X-9] Some title here (opened 2026-07-21) [QUEUED]\", false",
+   "\"- **[X-10] Title** rogue **[X-11] second marker** (opened 2026-07-21) [QUEUED]\", false",
+   "\"- **[X-12] Wrong repo prefix** (opened 2026-07-21) [QUEUED]\", false"
+  ]
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "TM",
+  "fact": "IsBacklogEntryLine_grammar_cases",
+  "cases": [
+   "\"- [X-10] 2026-07-21: One sentence description.\", true",
+   "\"- [X-11] 2026-07-21: \", false",
+   "\"- [X-12] 2026-7-21: One sentence description.\", false",
+   "\"- **[X-13] Some title** 2026-07-21: text\", false",
+   "\"- X-14 2026-07-21: text\", false",
+   "\"- [X-15] 2026-07-21: wrong repo prefix.\", false"
+  ]
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "TM",
+  "fact": "IsChangelogEntryLine_grammar_cases",
+  "cases": [
+   "\"- [X-15] SHIPPED 58d5c7b 2026-07-21: summary text.\", true",
+   "\"- [X-16] WONTFIX 2026-07-21: summary text.\", true",
+   "\"- [X-17] RETRACTED 2026-07-21: summary text.\", true",
+   "\"- [X-18] SHIPPED 2026-07-21: summary text.\", false",
+   "\"- [X-19] SHIPPED zzzzzzz 2026-07-21: summary text.\", false",
+   "\"- [X-20] DEFERRED 2026-07-21: summary text.\", false",
+   "\"- [X-21] SHIPPED 58d5c7b 2026-7-21: summary text.\", false",
+   "\"- X-22 SHIPPED abc1234 2026-07-21: summary text.\", false",
+   "\"- [X-23] SHIPPED 58d5c7b 2026-07-21: wrong repo prefix.\", false"
+  ]
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "TM",
+  "fact": "ChangelogEntryLines_catches_a_bracketless_entry_that_a_bracket_prefix_filter_would_miss",
+  "cases": []
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "TM",
+  "fact": "TODO_has_exactly_the_four_required_headers_in_order",
+  "cases": []
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "TM",
+  "fact": "Every_Now_entry_matches_the_grammar_and_carries_exactly_one_Done_means_and_one_Verify",
+  "cases": []
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "TM",
+  "fact": "Now_section_holds_at_most_five_entries",
+  "cases": []
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "TM",
+  "fact": "Every_Backlog_entry_matches_the_grammar",
+  "cases": []
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "TM",
+  "fact": "Every_CHANGELOG_entry_matches_the_grammar",
+  "cases": []
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "TM",
+  "fact": "Every_TM_id_is_unique_across_TODO_and_CHANGELOG",
+  "cases": []
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "TM",
+  "fact": "Now_release_name_appears_in_RELEASE_SCOPE_md",
+  "cases": []
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "TM",
+  "fact": "Neither_TODO_nor_CHANGELOG_contains_an_em_dash_or_a_double_dash_separator",
+  "cases": []
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "TM",
+  "fact": "EntryShapedRegex_cases",
+  "cases": [
+   "\"- [X-9] 2026-07-21: a stray backlog-shaped row\", true",
+   "\"- **[X-9] A stray Now-shaped row** (opened 2026-07-21) [QUEUED]\", true",
+   "\"  - [X-9] indented stray\", true",
+   "\"- Backlog: entry first line `- [X-<n>] YYYY-MM-DD: <one sentence>`; indented\", false",
+   "\"- After an in-battle Retry the glow does not come back (prose, no id).\", false"
+  ]
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "TM",
+  "fact": "No_entry_shaped_line_hides_in_Walled_or_Format",
+  "cases": []
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "CC",
+  "fact": "IsNowEntryLine_grammar_cases",
+  "cases": [
+   "\"- **[X-1] Some title here** (opened 2026-07-21) [QUEUED]\", true",
+   "\"- **[X-2] Some title here** (opened 2026-07-21) [BUILDING]\", true",
+   "\"- **[X-3] Some title here** (opened 2026-07-21) [AWAITING-LIVE]\", true",
+   "\"- **[X-4] Some title here** (opened 2026-07-21) [BLOCKED(owner live session)]\", true",
+   "\"- **[X-5] Some title here** (opened 2026-07-21)\", false",
+   "\"- **[X-6] Some title here** (opened 2026-07-21) [WAITING]\", false",
+   "\"- **[X-7] Some title here** (opened 2026-07-21) [BLOCKED]\", false",
+   "\"- **[X-8] Some title here** (opened 2026-7-21) [QUEUED]\", false",
+   "\"- [X-9] Some title here (opened 2026-07-21) [QUEUED]\", false",
+   "\"- **[X-10] Title** rogue **[X-11] second marker** (opened 2026-07-21) [QUEUED]\", false",
+   "\"- **[X-12] Wrong repo prefix** (opened 2026-07-21) [QUEUED]\", false"
+  ]
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "CC",
+  "fact": "IsBacklogEntryLine_grammar_cases",
+  "cases": [
+   "\"- [X-10] 2026-07-21: One sentence description.\", true",
+   "\"- [X-11] 2026-07-21: \", false",
+   "\"- [X-12] 2026-7-21: One sentence description.\", false",
+   "\"- **[X-13] Some title** 2026-07-21: text\", false",
+   "\"- X-14 2026-07-21: text\", false",
+   "\"- [X-15] 2026-07-21: wrong repo prefix.\", false"
+  ]
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "CC",
+  "fact": "IsChangelogEntryLine_grammar_cases",
+  "cases": [
+   "\"- [X-15] SHIPPED 58d5c7b 2026-07-21: summary text.\", true",
+   "\"- [X-16] WONTFIX 2026-07-21: summary text.\", true",
+   "\"- [X-17] RETRACTED 2026-07-21: summary text.\", true",
+   "\"- [X-18] SHIPPED 2026-07-21: summary text.\", false",
+   "\"- [X-19] SHIPPED zzzzzzz 2026-07-21: summary text.\", false",
+   "\"- [X-20] DEFERRED 2026-07-21: summary text.\", false",
+   "\"- [X-21] SHIPPED 58d5c7b 2026-7-21: summary text.\", false",
+   "\"- X-22 SHIPPED abc1234 2026-07-21: summary text.\", false",
+   "\"- [X-23] SHIPPED 58d5c7b 2026-07-21: wrong repo prefix.\", false"
+  ]
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "CC",
+  "fact": "ChangelogEntryLines_catches_a_bracketless_entry_that_a_bracket_prefix_filter_would_miss",
+  "cases": []
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "CC",
+  "fact": "TODO_has_exactly_the_four_required_headers_in_order",
+  "cases": []
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "CC",
+  "fact": "Every_Now_entry_matches_the_grammar_and_carries_exactly_one_Done_means_and_one_Verify",
+  "cases": []
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "CC",
+  "fact": "Now_section_holds_at_most_five_entries",
+  "cases": []
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "CC",
+  "fact": "Every_Backlog_entry_matches_the_grammar",
+  "cases": []
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "CC",
+  "fact": "Every_CHANGELOG_entry_matches_the_grammar",
+  "cases": []
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "CC",
+  "fact": "Every_CC_id_is_unique_across_TODO_and_CHANGELOG",
+  "cases": []
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "CC",
+  "fact": "Now_release_name_appears_in_RELEASE_SCOPE_md",
+  "cases": []
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "CC",
+  "fact": "Neither_TODO_nor_CHANGELOG_contains_an_em_dash_or_a_double_dash_separator",
+  "cases": []
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "OC",
+  "fact": "IsNowEntryLine_grammar_cases",
+  "cases": [
+   "\"- **[X-1] Some title here** (opened 2026-07-21) [QUEUED]\", true",
+   "\"- **[X-2] Some title here** (opened 2026-07-21) [BUILDING]\", true",
+   "\"- **[X-3] Some title here** (opened 2026-07-21) [AWAITING-LIVE]\", true",
+   "\"- **[X-4] Some title here** (opened 2026-07-21) [BLOCKED(owner live session)]\", true",
+   "\"- **[X-5] Some title here** (opened 2026-07-21)\", false",
+   "\"- **[X-6] Some title here** (opened 2026-07-21) [WAITING]\", false",
+   "\"- **[X-7] Some title here** (opened 2026-07-21) [BLOCKED]\", false",
+   "\"- **[X-8] Some title here** (opened 2026-7-21) [QUEUED]\", false",
+   "\"- [X-9] Some title here (opened 2026-07-21) [QUEUED]\", false",
+   "\"- **[X-10] Title** rogue **[X-11] second marker** (opened 2026-07-21) [QUEUED]\", false",
+   "\"- **[X-12] Wrong repo prefix** (opened 2026-07-21) [QUEUED]\", false"
+  ]
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "OC",
+  "fact": "IsBacklogEntryLine_grammar_cases",
+  "cases": [
+   "\"- [X-10] 2026-07-21: One sentence description.\", true",
+   "\"- [X-11] 2026-07-21: \", false",
+   "\"- [X-12] 2026-7-21: One sentence description.\", false",
+   "\"- **[X-13] Some title** 2026-07-21: text\", false",
+   "\"- X-14 2026-07-21: text\", false",
+   "\"- [X-15] 2026-07-21: wrong repo prefix.\", false"
+  ]
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "OC",
+  "fact": "IsChangelogEntryLine_grammar_cases",
+  "cases": [
+   "\"- [X-15] SHIPPED 58d5c7b 2026-07-21: summary text.\", true",
+   "\"- [X-16] WONTFIX 2026-07-21: summary text.\", true",
+   "\"- [X-17] RETRACTED 2026-07-21: summary text.\", true",
+   "\"- [X-18] SHIPPED 2026-07-21: summary text.\", false",
+   "\"- [X-19] SHIPPED zzzzzzz 2026-07-21: summary text.\", false",
+   "\"- [X-20] DEFERRED 2026-07-21: summary text.\", false",
+   "\"- [X-21] SHIPPED 58d5c7b 2026-7-21: summary text.\", false",
+   "\"- X-22 SHIPPED abc1234 2026-07-21: summary text.\", false",
+   "\"- [X-23] SHIPPED 58d5c7b 2026-07-21: wrong repo prefix.\", false"
+  ]
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "OC",
+  "fact": "ChangelogEntryLines_catches_a_bracketless_entry_that_a_bracket_prefix_filter_would_miss",
+  "cases": []
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "OC",
+  "fact": "TODO_has_exactly_the_four_required_headers_in_order",
+  "cases": []
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "OC",
+  "fact": "Every_Now_entry_matches_the_grammar_and_carries_exactly_one_Done_means_and_one_Verify",
+  "cases": []
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "OC",
+  "fact": "Now_section_holds_at_most_five_entries",
+  "cases": []
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "OC",
+  "fact": "Every_Backlog_entry_matches_the_grammar",
+  "cases": []
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "OC",
+  "fact": "Every_CHANGELOG_entry_matches_the_grammar",
+  "cases": []
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "OC",
+  "fact": "Every_OC_id_is_unique_across_TODO_and_CHANGELOG",
+  "cases": []
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "OC",
+  "fact": "Now_release_name_appears_in_RELEASE_SCOPE_md",
+  "cases": []
+ },
+ {
+  "family": "TodoContractTests",
+  "repo": "OC",
+  "fact": "Neither_TODO_nor_CHANGELOG_contains_an_em_dash_or_a_double_dash_separator",
+  "cases": []
+ },
+ {
+  "family": "LogContractTests",
+  "repo": "BB",
+  "fact": "LogVerb_enum_matches_the_committed_LOGGING_md_verb_table_one_for_one",
+  "cases": []
+ },
+ {
+  "family": "LogContractTests",
+  "repo": "BB",
+  "fact": "Every_facade_member_takes_a_verb_first_and_no_call_site_passes_a_bare_message",
+  "cases": []
+ },
+ {
+  "family": "LogContractTests",
+  "repo": "BB",
+  "fact": "Console_writes_live_only_inside_the_file_console_logger",
+  "cases": []
+ },
+ {
+  "family": "LogContractTests",
+  "repo": "BB",
+  "fact": "FacadeCallStringLiterals_detects_a_double_dash_and_an_em_dash_and_passes_a_clean_call",
+  "cases": []
+ },
+ {
+  "family": "LogContractTests",
+  "repo": "BB",
+  "fact": "No_facade_call_in_the_repo_passes_a_string_literal_with_a_double_dash_or_em_dash",
+  "cases": []
+ },
+ {
+  "family": "LogContractTests",
+  "repo": "BB",
+  "fact": "No_trace_detail_in_the_repo_doubles_the_trace_bracket",
+  "cases": []
+ },
+ {
+  "family": "LogContractTests",
+  "repo": "BB",
+  "fact": "PassesSubjectFirstFence_lexical_cases",
+  "cases": [
+   "\"\\\"The gate refused an attack because the target is out of range.\\\"\", true",
+   "\"$\\\"{count} plans were rejected.\\\"\", true",
+   "\"\\\"gate: refused\\\"\", false",
+   "\"\\\"Refused: out of range\\\"\", false",
+   "\"\\\"waiting for a plan\\\"\", false"
+  ]
+ },
+ {
+  "family": "LogContractTests",
+  "repo": "BB",
+  "fact": "No_console_eligible_facade_call_in_the_repo_opens_with_a_bare_leader_word",
+  "cases": []
+ },
+ {
+  "family": "LogContractTests",
+  "repo": "LW",
+  "fact": "LogVerb_enum_matches_the_committed_LOGGING_md_verb_table_one_for_one",
+  "cases": []
+ },
+ {
+  "family": "LogContractTests",
+  "repo": "LW",
+  "fact": "No_verb_less_logger_member_is_declared_anywhere_in_the_runtime",
+  "cases": []
+ },
+ {
+  "family": "LogContractTests",
+  "repo": "LW",
+  "fact": "No_file_calls_a_deleted_raw_logger_entry_point",
+  "cases": []
+ },
+ {
+  "family": "LogContractTests",
+  "repo": "LW",
+  "fact": "FacadeCallStringLiterals_detects_a_double_dash_separator",
+  "cases": []
+ },
+ {
+  "family": "LogContractTests",
+  "repo": "LW",
+  "fact": "FacadeCallStringLiterals_detects_an_em_dash",
+  "cases": []
+ },
+ {
+  "family": "LogContractTests",
+  "repo": "LW",
+  "fact": "FacadeCallStringLiterals_ignores_calls_on_the_transitional_Log_shim",
+  "cases": []
+ },
+ {
+  "family": "LogContractTests",
+  "repo": "LW",
+  "fact": "FacadeCallStringLiterals_passes_a_clean_call",
+  "cases": []
+ },
+ {
+  "family": "LogContractTests",
+  "repo": "LW",
+  "fact": "FacadeCallStringLiterals_captures_a_verbatim_path_literal_ending_in_a_backslash",
+  "cases": []
+ },
+ {
+  "family": "LogContractTests",
+  "repo": "LW",
+  "fact": "ConsoleEligibleMessageLiterals_is_not_desynced_by_a_verbatim_path_argument_ending_in_a_backslash",
+  "cases": []
+ },
+ {
+  "family": "LogContractTests",
+  "repo": "LW",
+  "fact": "No_facade_call_in_the_repo_passes_a_string_literal_with_a_double_dash_or_em_dash",
+  "cases": []
+ },
+ {
+  "family": "LogContractTests",
+  "repo": "LW",
+  "fact": "PassesSubjectFirstFence_lexical_cases",
+  "cases": [
+   "\"\\\"Galewind is armed for this battle: charms hold unbreakable\\\"\", true",
+   "\"\\\"{Name} claims kill number {n}\\\"\", true",
+   "\"$\\\"{Name} claims kill number {n}\\\"\", true",
+   "\"\\\"Armed: Galewind at tier three is wielded\\\"\", false",
+   "\"\\\"Locked: holding Charm on the enemy\\\"\", false",
+   "\"\\\"granted the Yoichi Bow wielder Barrage\\\"\", false"
+  ]
+ },
+ {
+  "family": "LogContractTests",
+  "repo": "LW",
+  "fact": "No_console_eligible_facade_call_in_the_repo_opens_with_a_bare_leader_word",
+  "cases": []
+ },
+ {
+  "family": "LogContractTests",
+  "repo": "TM",
+  "fact": "LogVerb_enum_matches_the_committed_LOGGING_md_verb_table_one_for_one",
+  "cases": []
+ },
+ {
+  "family": "LogContractTests",
+  "repo": "TM",
+  "fact": "The_retired_Log_shim_has_no_call_sites_and_never_comes_back",
+  "cases": []
+ },
+ {
+  "family": "LogContractTests",
+  "repo": "TM",
+  "fact": "Console_writes_live_only_inside_the_file_console_logger",
+  "cases": []
+ },
+ {
+  "family": "LogContractTests",
+  "repo": "TM",
+  "fact": "FacadeCallStringLiterals_detects_a_double_dash_separator",
+  "cases": []
+ },
+ {
+  "family": "LogContractTests",
+  "repo": "TM",
+  "fact": "FacadeCallStringLiterals_detects_an_em_dash",
+  "cases": []
+ },
+ {
+  "family": "LogContractTests",
+  "repo": "TM",
+  "fact": "FacadeCallStringLiterals_passes_a_clean_call",
+  "cases": []
+ },
+ {
+  "family": "LogContractTests",
+  "repo": "TM",
+  "fact": "No_facade_call_in_the_repo_passes_a_string_literal_with_a_double_dash_or_em_dash",
+  "cases": []
+ },
+ {
+  "family": "LogContractTests",
+  "repo": "TM",
+  "fact": "PassesSubjectFirstFence_lexical_cases",
+  "cases": [
+   "\"\\\"Map 74 is armed: 4 treasure tiles held lit.\\\"\", true",
+   "\"$\\\"{count} tiles are claimed.\\\"\", true",
+   "\"\\\"treasure: map 74 armed\\\"\", false",
+   "\"\\\"Armed: map 74\\\"\", false",
+   "\"\\\"waiting to arm\\\"\", false"
+  ]
+ },
+ {
+  "family": "LogContractTests",
+  "repo": "TM",
+  "fact": "No_console_eligible_facade_call_in_the_repo_opens_with_a_bare_leader_word",
+  "cases": []
+ },
+ {
+  "family": "LogContractTests",
+  "repo": "CC",
+  "fact": "LogVerb_enum_matches_the_committed_LOGGING_md_verb_table_one_for_one",
+  "cases": []
+ },
+ {
+  "family": "LogContractTests",
+  "repo": "CC",
+  "fact": "Console_writes_live_only_inside_the_facade_or_the_shrinking_allowlist",
+  "cases": []
+ },
+ {
+  "family": "LogContractTests",
+  "repo": "CC",
+  "fact": "The_shrinking_allowlist_does_not_rot",
+  "cases": []
+ },
+ {
+  "family": "LogContractTests",
+  "repo": "CC",
+  "fact": "FacadeCallStringLiterals_detects_a_double_dash_separator",
+  "cases": []
+ },
+ {
+  "family": "LogContractTests",
+  "repo": "CC",
+  "fact": "FacadeCallStringLiterals_detects_an_em_dash",
+  "cases": []
+ },
+ {
+  "family": "LogContractTests",
+  "repo": "CC",
+  "fact": "FacadeCallStringLiterals_passes_a_clean_call",
+  "cases": []
+ },
+ {
+  "family": "LogContractTests",
+  "repo": "CC",
+  "fact": "No_ModLogger_call_in_the_repo_passes_a_string_literal_with_a_double_dash_or_em_dash",
+  "cases": []
+ },
+ {
+  "family": "LogContractTests",
+  "repo": "CC",
+  "fact": "PassesSubjectFirstFence_lexical_cases",
+  "cases": [
+   "\"\\\"The theme corvid is now applied to Knight: 2 files swapped.\\\"\", true",
+   "\"$\\\"{count} selections were saved.\\\"\", true",
+   "\"\\\"theme: corvid applied\\\"\", false",
+   "\"\\\"Applied: corvid\\\"\", false",
+   "\"\\\"applied corvid to knight\\\"\", false"
+  ]
+ },
+ {
+  "family": "LogContractTests",
+  "repo": "CC",
+  "fact": "No_typed_console_eligible_call_in_the_repo_opens_with_a_bare_leader_word",
+  "cases": []
+ },
+ {
+  "family": "LogContractTests",
+  "repo": "OC",
+  "fact": "No_bare_print_in_tools_python_outside_say_py",
+  "cases": []
+ },
+ {
+  "family": "LogContractTests",
+  "repo": "OC",
+  "fact": "Verb_set_in_say_py_matches_the_LOGGING_md_glossary_one_for_one",
+  "cases": []
+ },
+ {
+  "family": "LogContractTests",
+  "repo": "OC",
+  "fact": "The_verb_set_is_the_agreed_closed_eight",
+  "cases": []
+ },
+ {
+  "family": "LogContractTests",
+  "repo": "OC",
+  "fact": "No_em_dash_in_tools_python_or_LOGGING_md",
+  "cases": []
+ },
+ {
+  "family": "LogContractTests",
+  "repo": "OC",
+  "fact": "No_double_dash_separator_in_LOGGING_md_or_on_say_call_lines",
+  "cases": []
+ },
+ {
+  "family": "ImageLiteralContractTests",
+  "repo": "BB",
+  "fact": "Literal_detection_examples",
+  "cases": [
+   "\"public static long X => ImageBase.At(0x141853CE0);\", 0",
+   "\"private const long Base = 0x141853CE0;\", 1",
+   "\"var a = ImageBase.At( 0x14186AF68 );\", 0",
+   "\"// 0x141853CE0 in a comment is fine\", 0",
+   "\"long dead = 0x15F2EA40FL;\", 1",
+   "\"int rva = 0x31F130;\", 0"
+  ]
+ },
+ {
+  "family": "ImageLiteralContractTests",
+  "repo": "BB",
+  "fact": "OffendingLiterals_requires_the_literal_to_be_the_direct_At_argument",
+  "cases": [
+   "\"ImageBase.At(0x140782A30)\", 0",
+   "\"ImageBase.At( 0x1411A7D10L )\", 0",
+   "\"ImageBase.At(x) + 0x141855CE0\", 1",
+   "\"0x150BF66DC\", 1",
+   "\"0x1_4078_2A30\", 1",
+   "\"0x140782A30UL\", 1",
+   "\"0x140782A30u\", 1",
+   "\"// 0x140782A30\", 0",
+   "\"new(0x140284800L, 0x01, \\\"x\\\"),\", 1",
+   "\"ImageBase.AtRva(0x141853CE0)\", 1"
+  ]
+ },
+ {
+  "family": "ImageLiteralContractTests",
+  "repo": "BB",
+  "fact": "NormalisePin_folds_case_suffix_and_separators",
+  "cases": [
+   "\"0x141853CE0\", \"0x141853CE0\"",
+   "\"0x141853ce0L\", \"0x141853CE0\"",
+   "\"0x1_4185_3CE0UL\", \"0x141853CE0\"",
+   "\"0x14186AF68u\", \"0x14186AF68\""
+  ]
+ },
+ {
+  "family": "ImageLiteralContractTests",
+  "repo": "BB",
+  "fact": "WrappedLiterals_reports_only_the_direct_At_argument",
+  "cases": []
+ },
+ {
+  "family": "ImageLiteralContractTests",
+  "repo": "BB",
+  "fact": "Production_code_holds_no_bare_image_literal_outside_ImageBase",
+  "cases": []
+ },
+ {
+  "family": "ImageLiteralContractTests",
+  "repo": "BB",
+  "fact": "Allow_list_holds_only_files_that_still_need_the_exemption",
+  "cases": []
+ },
+ {
+  "family": "ImageLiteralContractTests",
+  "repo": "BB",
+  "fact": "Every_wrapped_literal_is_one_of_the_frozen_pins",
+  "cases": []
+ },
+ {
+  "family": "ImageLiteralContractTests",
+  "repo": "BB",
+  "fact": "Frozen_pin_set_holds_only_pins_production_still_uses",
+  "cases": []
+ },
+ {
+  "family": "ImageLiteralContractTests",
+  "repo": "BB",
+  "fact": "Frozen_pin_keys_are_normalised",
+  "cases": []
+ },
+ {
+  "family": "ImageLiteralContractTests",
+  "repo": "BB",
+  "fact": "The_address_member_set_is_read_from_Offsets",
+  "cases": []
+ },
+ {
+  "family": "ImageLiteralContractTests",
+  "repo": "BB",
+  "fact": "BakesImageAddress_flags_only_fields_reading_a_base_dependent_address",
+  "cases": [
+   "\"private static readonly long X = Offsets.BattleUnitsBase + 4;\", true",
+   "\"public const long Y = ImageBase.At(0x1);\", true",
+   "\"public static long Z => Offsets.BattleUnitsBase;\", false",
+   "\"private const int W = Offsets.UnitStride;\", false",
+   "\"public const long Preferred = 0x140000000L;\", false",
+   "\"static readonly long[] B = { Offsets.ActorPtr };\", true",
+   "\"static readonly int[] O = { Offsets.UnitHp };\", false",
+   "\"static long X => Offsets.BattleMode;\", false",
+   "\"readonly static long Y = Offsets.ActorPtr;\", true",
+   "\"private static long Z = Offsets.ActorPtr;\", true",
+   "\"static readonly (long Addr, byte[] Bytes)[] T = { (Offsets.BattleMode, new byte[] { 1 }) };\", true",
+   "\"static readonly nint P = (nint)Offsets.BattleUnitsBase;\", true",
+   "\"internal static long U = ImageBase.AtRva(0x30C8A6);\", true",
+   "\"internal static long V = ImageBase.Base + 0x10;\", true",
+   "\"static bool Same(long a) => a == Offsets.ActorPtr;\", false",
+   "\"private static readonly string Tag = \\\"BattleUnitsBaseline\\\";\", false"
+  ]
+ },
+ {
+  "family": "ImageLiteralContractTests",
+  "repo": "BB",
+  "fact": "No_production_field_bakes_an_image_address",
+  "cases": []
+ },
+ {
+  "family": "ImageLiteralContractTests",
+  "repo": "LW",
+  "fact": "OffendingLiterals_requires_the_literal_to_be_the_direct_At_argument",
+  "cases": [
+   "\"ImageBase.At(0x140782A30)\", 0",
+   "\"ImageBase.At( 0x1411A7D10L )\", 0",
+   "\"ImageBase.At(x) + 0x141855CE0\", 1",
+   "\"0x150BF66DC\", 1",
+   "\"0x1_4078_2A30\", 1",
+   "\"0x140782A30UL\", 1",
+   "\"0x140782A30u\", 1",
+   "\"// 0x140782A30\", 0",
+   "\"new(0x140284800L, 0x01, Widen.HighByte, \\\"x\\\"),\", 1"
+  ]
+ },
+ {
+  "family": "ImageLiteralContractTests",
+  "repo": "LW",
+  "fact": "Pin_tables_accept_a_literal_only_as_a_record_constructors_first_argument",
+  "cases": [
+   "\"        new(0x140284800L, 0x01, Widen.HighByte, \\\"cap\\\"),\", 0",
+   "\"    { new(0x14028617CL, 0x015EE3C0, -0x1E6, \\\"lea rsi\\\"),\", 0",
+   "\"        new(0x14028617CL, 0, 0, \\\"site 0x140286179\\\"),\", 1",
+   "\"        long a = 0x140284800L;\", 1",
+   "\"        Use(new(1, 0x140284800L));\", 1",
+   "\"        renew(0x140284800L);\", 1"
+  ]
+ },
+ {
+  "family": "ImageLiteralContractTests",
+  "repo": "LW",
+  "fact": "No_bare_image_address_literal_outside_the_allow_list",
+  "cases": []
+ },
+ {
+  "family": "ImageLiteralContractTests",
+  "repo": "LW",
+  "fact": "Allow_list_holds_only_files_that_still_need_the_exemption",
+  "cases": []
+ },
+ {
+  "family": "ImageLiteralContractTests",
+  "repo": "LW",
+  "fact": "Pin_table_list_holds_only_files_that_still_carry_pin_records",
+  "cases": []
+ },
+ {
+  "family": "ImageLiteralContractTests",
+  "repo": "LW",
+  "fact": "The_address_member_set_is_read_from_Offsets",
+  "cases": []
+ },
+ {
+  "family": "ImageLiteralContractTests",
+  "repo": "LW",
+  "fact": "BakesImageAddress_flags_only_fields_reading_a_base_dependent_address",
+  "cases": [
+   "\"private static readonly long X = Offsets.RosterBase + 4;\", true",
+   "\"public const long Y = ImageBase.At(0x1);\", true",
+   "\"public static long Z => Offsets.RosterBase;\", false",
+   "\"private const int W = Offsets.RLevel;\", false",
+   "\"public const long Preferred = 0x140000000L;\", false",
+   "\"static readonly long[] B = { Offsets.WeaponPaletteBankA };\", true",
+   "\"static readonly int[] O = { Offsets.AReraise };\", false",
+   "\"static long X => Offsets.RosterBase;\", false",
+   "\"readonly static long Y = Offsets.Slot0;\", true",
+   "\"private static long Z = Offsets.Slot0;\", true",
+   "\"static readonly (long Addr, byte[] Bytes)[] T = { (Offsets.ThunkWeaponStat, new byte[] { 1 }) };\", true",
+   "\"static readonly nint P = (nint)Offsets.PickerOrderTemplate;\", true",
+   "\"internal static ulong U = (ulong)Barrage.AbilityBase;\", true",
+   "\"static readonly Region[] R = { new(Offsets.InventoryOrderTemplate, 4) };\", true",
+   "\"static (long Addr, byte[] Bytes)[] Thunks => new[] { (Offsets.ThunkWeaponStat, new byte[] { 1 }) };\", false",
+   "\"static bool Same(long a) => a == Offsets.Slot0;\", false"
+  ]
+ },
+ {
+  "family": "ImageLiteralContractTests",
+  "repo": "LW",
+  "fact": "No_production_field_bakes_an_image_address",
+  "cases": []
+ },
+ {
+  "family": "ImageLiteralContractTests",
+  "repo": "TM",
+  "fact": "OffendingLiterals_requires_the_literal_to_be_the_direct_At_argument",
+  "cases": [
+   "\"ImageBase.At(0x140782A30)\", 0",
+   "\"ImageBase.At( 0x1411A7D10L )\", 0",
+   "\"ImageBase.At(x) + 0x141855CE0\", 1",
+   "\"0x150BF66DC\", 1",
+   "\"0x1_4078_2A30\", 1",
+   "\"// 0x140782A30\", 0"
+  ]
+ },
+ {
+  "family": "ImageLiteralContractTests",
+  "repo": "TM",
+  "fact": "No_bare_image_address_literal_outside_the_allow_list",
+  "cases": []
+ },
+ {
+  "family": "ImageLiteralContractTests",
+  "repo": "TM",
+  "fact": "Allow_list_holds_only_files_that_still_need_the_exemption",
+  "cases": []
+ },
+ {
+  "family": "ImageLiteralContractTests",
+  "repo": "TM",
+  "fact": "BakesImageAddress_flags_only_long_fields_reading_a_base_dependent_pin",
+  "cases": [
+   "\"private static readonly long X = Offsets.Slot0 + 4;\", true",
+   "\"public const long Y = ImageBase.At(0x1);\", true",
+   "\"public static long Z => Offsets.Slot0;\", false",
+   "\"private const int W = Offsets.UnitArraySlots;\", false",
+   "\"public const long Preferred = 0x140000000L;\", false"
+  ]
+ },
+ {
+  "family": "ImageLiteralContractTests",
+  "repo": "TM",
+  "fact": "No_production_field_bakes_an_image_address",
+  "cases": []
+ },
+ {
+  "family": "CommentBudgetContractTests",
+  "repo": "BB",
+  "fact": "Scan_covers_the_runtime_and_keys_are_unique",
+  "cases": []
+ },
+ {
+  "family": "CommentBudgetContractTests",
+  "repo": "BB",
+  "fact": "Measure_counts_what_the_rules_read",
+  "cases": [
+   "\"// plain words\\nint x = 1;\\n\", 1, 1, 1, 0, 0, 0",
+   "\"/// <summary>a: b</summary>\\n/// second\\n/// third\\nvoid F() {}\\n\", 3, 1, 3, 1, 0, 0",
+   "\"int x = 1; // trailing - with a dash\\n\", 0, 1, 0, 0, 1, 0",
+   "\"// a spaced double dash -- counts too\\n\", 1, 0, 1, 0, 1, 0",
+   "\"// chosen deliberately, by design\\n\", 1, 0, 1, 0, 0, 2",
+   "\"// at 0x14028CC0: see Offsets.cs:12 and 13:45\\n\", 1, 0, 1, 0, 0, 0",
+   "\"///   - a bullet item\\n/// says \\\"a: b\\\" in a string and `x: y` in code\\n\", 2, 0, 2, 0, 0, 0"
+  ]
+ },
+ {
+  "family": "CommentBudgetContractTests",
+  "repo": "BB",
+  "fact": "No_comment_carries_a_tell_phrase_a_colon_or_a_dash",
+  "cases": []
+ },
+ {
+  "family": "CommentBudgetContractTests",
+  "repo": "BB",
+  "fact": "Comment_budget_holds_against_the_frozen_baseline",
+  "cases": []
+ },
+ {
+  "family": "CommentBudgetContractTests",
+  "repo": "BB",
+  "fact": "First_summary_sentence_follows_the_definition",
+  "cases": [
+   "\"/// <summary>Counts kills.</summary>\", \"Counts kills.\", true",
+   "\"/// <summary>Counts kills. More detail follows.</summary>\", \"Counts kills.\", true",
+   "\"/// <summary>Counts kills</summary>\", \"Counts kills\", false",
+   "\"/// <summary>Opens the door, e.g. the front one. Then more.</summary>\", \"Opens the door, e.g.\", true",
+   "\"/// <summary>Reads <see cref=\\\"X\\\"/> now.</summary>\", \"Reads <see cref=\\\"X\\\"/> now.\", true",
+   "\"/// <summary>\\n/// Counts\\n///   the kills.\\n/// </summary>\", \"Counts the kills.\", true",
+   "\"class C { }\", null, false"
+  ]
+ },
+ {
+  "family": "CommentBudgetContractTests",
+  "repo": "BB",
+  "fact": "First_summary_sentence_of_exactly_110_characters_passes_and_111_fails",
+  "cases": []
+ },
+ {
+  "family": "CommentBudgetContractTests",
+  "repo": "BB",
+  "fact": "Every_production_file_opens_with_a_short_first_sentence",
+  "cases": []
+ },
+ {
+  "family": "CommentBudgetContractTests",
+  "repo": "BB",
+  "fact": "AssemblyInfo_opens_with_a_one_line_comment",
+  "cases": []
+ },
+ {
+  "family": "CommentBudgetContractTests",
+  "repo": "BB",
+  "fact": "Every_summary_exemption_names_a_real_production_file",
+  "cases": []
+ },
+ {
+  "family": "CommentBudgetContractTests",
+  "repo": "LW",
+  "fact": "Scan_covers_the_runtime_and_keys_are_unique",
+  "cases": []
+ },
+ {
+  "family": "CommentBudgetContractTests",
+  "repo": "LW",
+  "fact": "Measure_counts_what_the_rules_read",
+  "cases": [
+   "\"// plain words\\nint x = 1;\\n\", 1, 1, 1, 0, 0, 0",
+   "\"/// <summary>a: b</summary>\\n/// second\\n/// third\\nvoid F() {}\\n\", 3, 1, 3, 1, 0, 0",
+   "\"int x = 1; // trailing - with a dash\\n\", 0, 1, 0, 0, 1, 0",
+   "\"// chosen deliberately, by design\\n\", 1, 0, 1, 0, 0, 2",
+   "\"// at 0x14028CC0: see Offsets.cs:12 and 13:45\\n\", 1, 0, 1, 0, 0, 0",
+   "\"///   - a bullet item\\n/// says \\\"a: b\\\" in a string and `x: y` in code\\n\", 2, 0, 2, 0, 0, 0"
+  ]
+ },
+ {
+  "family": "CommentBudgetContractTests",
+  "repo": "LW",
+  "fact": "No_comment_carries_a_tell_phrase_a_colon_or_a_dash",
+  "cases": []
+ },
+ {
+  "family": "CommentBudgetContractTests",
+  "repo": "LW",
+  "fact": "Comment_budget_holds_against_the_frozen_baseline",
+  "cases": []
+ },
+ {
+  "family": "CommentBudgetContractTests",
+  "repo": "LW",
+  "fact": "First_summary_sentence_follows_the_definition",
+  "cases": [
+   "\"/// <summary>Counts kills.</summary>\", \"Counts kills.\", true",
+   "\"/// <summary>Counts kills. More detail follows.</summary>\", \"Counts kills.\", true",
+   "\"/// <summary>Counts kills</summary>\", \"Counts kills\", false",
+   "\"/// <summary>Opens the door, e.g. the front one. Then more.</summary>\", \"Opens the door, e.g.\", true",
+   "\"/// <summary>Reads <see cref=\\\"X\\\"/> now.</summary>\", \"Reads <see cref=\\\"X\\\"/> now.\", true",
+   "\"/// <summary>\\n/// Counts\\n///   the kills.\\n/// </summary>\", \"Counts the kills.\", true",
+   "\"class C { }\", null, false"
+  ]
+ },
+ {
+  "family": "CommentBudgetContractTests",
+  "repo": "LW",
+  "fact": "First_summary_sentence_of_exactly_110_characters_passes_and_111_fails",
+  "cases": []
+ },
+ {
+  "family": "CommentBudgetContractTests",
+  "repo": "LW",
+  "fact": "Every_production_file_opens_with_a_short_first_sentence",
+  "cases": []
+ },
+ {
+  "family": "CommentBudgetContractTests",
+  "repo": "LW",
+  "fact": "AssemblyInfo_opens_with_a_one_line_comment",
+  "cases": []
+ },
+ {
+  "family": "CommentBudgetContractTests",
+  "repo": "LW",
+  "fact": "Every_summary_exemption_names_a_real_production_file",
+  "cases": []
+ },
+ {
+  "family": "CommentContractTests",
+  "repo": "BB",
+  "fact": "Offence_names_the_banned_token_in_the_comment_portion_or_nothing",
+  "cases": [
+   "\"a.cs\", \"// a precondition only guards the phases it can still protect (R9-1)\", \"R9-1\"",
+   "\"a.cs\", \"/// X-13: while holding, log the first re-ask\", \"X-13\"",
+   "\"a.cs\", \"int x = 1; // per R9-1\", \"R9-1\"",
+   "\"a.cs\", \"var s = \\\"R9-1 in a string\\\"; // fine\", null",
+   "\"a.cs\", \"/* round 3 */\", \"round 3\"",
+   "\"a.cs\", \"char q = '\\\"'; // the reviewer asked\", \"reviewer\"",
+   "\"a.py\", \"x = \\\"X-4\\\"  # round 12\", \"round 12\"",
+   "\"a.ps1\", \"# per round 12\", \"round 12\"",
+   "\"a.cs\", \"// the engine executes an attack from four tiles away if asked, seen live 2026-10-26\", null",
+   "\"a.cs\", \"// one record per owned turn\", null"
+  ]
+ },
+ {
+  "family": "CommentContractTests",
+  "repo": "BB",
+  "fact": "Block_comments_carry_across_lines_in_both_languages",
+  "cases": []
+ },
+ {
+  "family": "CommentContractTests",
+  "repo": "BB",
+  "fact": "No_comment_file_name_or_type_name_carries_a_ticket_or_review_reference",
+  "cases": []
+ },
+ {
+  "family": "SilentCatchContractTests",
+  "repo": "LW",
+  "fact": "No_production_file_has_an_empty_catch",
+  "cases": []
+ },
+ {
+  "family": "StyleContractTests",
+  "repo": "BB",
+  "fact": "The_python_layout_check_names_each_slip",
+  "cases": [
+   "\"x = 1\\n\\n\\ndef f():\\n    pass\\n\", \"\"",
+   "\"x = 1\\n\\ndef f():\\n    pass\\n\", \"3: a top level definition with fewer than two blank lines above it\"",
+   "\"import os\\ndef f():\\n    pass\\n\", \"2: a top level definition with fewer than two blank lines above it\"",
+   "\"x = 1\\n\\n\\n# ---- banner ----\\n\\ndef f():\\n    pass\\n\", \"\"",
+   "\"x = 1\\n\\n\\n@wrap\\ndef f():\\n    pass\\n\", \"\"",
+   "\"x = 1\\n\\n@wrap\\ndef f():\\n    pass\\n\", \"3: a top level definition with fewer than two blank lines above it\"",
+   "\"\\\"\\\"\\\"Module.\\\"\\\"\\\"\\n\\n\\n\\nclass A:\\n    def m(self):\\n        pass\\n\", \"4: three blank lines in a row\"",
+   "\"class A:\\n    def m(self):\\n        pass\\n\\n    def n(self):\\n        pass\\n\", \"\"",
+   "\"def f():\\n    pass\\n\", \"\""
+  ]
+ },
+ {
+  "family": "StyleContractTests",
+  "repo": "BB",
+  "fact": "The_csharp_blank_line_check_names_each_run",
+  "cases": [
+   "\"a\\n\\nb\\n\", \"\"",
+   "\"a\\n\\n\\nb\\n\", \"3: two blank lines in a row\"",
+   "\"a\\n   \\n\\t\\nb\\n\", \"3: two blank lines in a row\""
+  ]
+ },
+ {
+  "family": "StyleContractTests",
+  "repo": "BB",
+  "fact": "The_width_counts_skip_tables_fenced_code_and_ledger_heads_but_not_prose_or_headings",
+  "cases": []
+ },
+ {
+  "family": "StyleContractTests",
+  "repo": "BB",
+  "fact": "Python_under_tools_keeps_two_blank_lines_above_each_top_level_definition_and_never_three",
+  "cases": []
+ },
+ {
+  "family": "StyleContractTests",
+  "repo": "BB",
+  "fact": "CSharp_never_holds_two_blank_lines_in_a_row",
+  "cases": []
+ },
+ {
+  "family": "StyleContractTests",
+  "repo": "BB",
+  "fact": "No_doc_grows_its_count_of_prose_lines_over_the_doc_width",
+  "cases": []
+ },
+ {
+  "family": "StyleContractTests",
+  "repo": "BB",
+  "fact": "No_production_file_grows_its_count_of_comment_lines_over_the_comment_width",
+  "cases": []
+ },
+ {
+  "family": "StyleContractTests",
+  "repo": "BB",
+  "fact": "No_crash_dump_sits_in_the_working_tree",
+  "cases": []
+ },
+ {
+  "family": "HealthReportWiringContractTests",
+  "repo": "BB",
+  "fact": "Every_build_runs_the_health_selftest_the_ratchet_and_the_reminder",
+  "cases": []
+ },
+ {
+  "family": "HealthReportWiringContractTests",
+  "repo": "BB",
+  "fact": "Both_scripts_call_the_health_gate_after_the_unit_tests",
+  "cases": []
+ },
+ {
+  "family": "HealthReportWiringContractTests",
+  "repo": "BB",
+  "fact": "Publish_writes_the_health_record_after_a_verified_package",
+  "cases": []
+ },
+ {
+  "family": "HealthReportWiringContractTests",
+  "repo": "BB",
+  "fact": "The_release_workflow_keeps_full_history_for_the_report",
+  "cases": []
+ },
+ {
+  "family": "HealthReportWiringContractTests",
+  "repo": "BB",
+  "fact": "The_release_workflow_runs_the_gated_publish_and_checks_the_zip",
+  "cases": []
+ },
+ {
+  "family": "HealthReportWiringContractTests",
+  "repo": "LW",
+  "fact": "Publish_writes_the_health_record_after_a_verified_package",
+  "cases": []
+ },
+ {
+  "family": "HealthReportWiringContractTests",
+  "repo": "LW",
+  "fact": "Every_build_runs_the_health_selftest_and_reminder",
+  "cases": []
+ },
+ {
+  "family": "HealthReportWiringContractTests",
+  "repo": "LW",
+  "fact": "The_release_workflow_keeps_full_history_for_the_report",
+  "cases": []
+ }
+]

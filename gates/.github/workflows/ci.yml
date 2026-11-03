@@ -1,0 +1,33 @@
+# Runs the shared gates on this repo itself, on every push and pull request, under both the
+# PowerShell the mods build with locally (5.1) and the one CI ships (7).
+name: check
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: windows-latest
+    env:
+      GATES_BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+      - name: Check under Windows PowerShell 5.1
+        shell: powershell
+        run: ./Check.ps1
+      - name: Check under PowerShell 7
+        shell: pwsh
+        run: ./Check.ps1

@@ -1,0 +1,23 @@
+<Project>
+
+  <!-- The build settings every mod compiles under. A mod imports this from its own root
+       Directory.Build.targets. It is a targets file, not props, because IsTestProject is only
+       known after the csproj is read. -->
+
+  <!-- Every mod on the same C# version and nullable rules, so a file moved between mods compiles
+       the same. MSB3277 is the assembly version conflict warning the Reloaded packages always
+       raise, and it is noise. -->
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <NoWarn>$(NoWarn);MSB3277</NoWarn>
+  </PropertyGroup>
+
+  <!-- Warnings fail the build in production code. A repo paying its warnings down sets
+       ModGatesWarningsAsErrors to false in its root file until the count reaches zero. -->
+  <PropertyGroup Condition="'$(IsTestProject)' != 'true' and '$(ModGatesWarningsAsErrors)' != 'false'">
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+</Project>

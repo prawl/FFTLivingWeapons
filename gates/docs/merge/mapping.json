@@ -1,0 +1,88 @@
+{
+  "TodoContractTests": {
+    "shared": "Tests/TodoContractTests.cs",
+    "renamed": {
+      "Now_section_holds_at_most_five_entries": "Now_holds_at_most_five_cards_unless_the_list_is_locked",
+      "Every_BB_id_is_unique_across_TODO_and_CHANGELOG": "Every_id_is_unique_across_TODO_and_CHANGELOG",
+      "Every_LW_id_is_unique_across_TODO_and_CHANGELOG": "Every_id_is_unique_across_TODO_and_CHANGELOG",
+      "Every_TM_id_is_unique_across_TODO_and_CHANGELOG": "Every_id_is_unique_across_TODO_and_CHANGELOG",
+      "Every_CC_id_is_unique_across_TODO_and_CHANGELOG": "Every_id_is_unique_across_TODO_and_CHANGELOG",
+      "Every_OC_id_is_unique_across_TODO_and_CHANGELOG": "Every_id_is_unique_across_TODO_and_CHANGELOG"
+    },
+    "local": {},
+    "wontfix": {}
+  },
+  "LogContractTests": {
+    "shared": "Tests/LogContractTests.cs",
+    "note": "Color Customizer takes this family once its logger moves to the shared one; Offensive Chemist's build voice rules stay with its Python tools.",
+    "renamed": {
+      "FacadeCallStringLiterals_detects_a_double_dash_and_an_em_dash_and_passes_a_clean_call": "FacadeCallStringLiterals_detects_a_double_dash_separator",
+      "Console_writes_live_only_inside_the_file_console_logger": "Console_writes_live_only_inside_the_facade_or_the_shrinking_allowlist",
+      "No_file_calls_a_deleted_raw_logger_entry_point": "No_file_calls_a_retired_logger_entry_point",
+      "The_retired_Log_shim_has_no_call_sites_and_never_comes_back": "No_file_calls_a_retired_logger_entry_point",
+      "No_ModLogger_call_in_the_repo_passes_a_string_literal_with_a_double_dash_or_em_dash": "No_facade_call_in_the_repo_passes_a_string_literal_with_a_double_dash_or_em_dash",
+      "No_typed_console_eligible_call_in_the_repo_opens_with_a_bare_leader_word": "No_console_eligible_facade_call_in_the_repo_opens_with_a_bare_leader_word"
+    },
+    "local": {
+      "No_bare_print_in_tools_python_outside_say_py": "Offensive Chemist's Python build voice, say.py",
+      "Verb_set_in_say_py_matches_the_LOGGING_md_glossary_one_for_one": "Offensive Chemist's Python build voice, say.py",
+      "The_verb_set_is_the_agreed_closed_eight": "Offensive Chemist's Python build voice, say.py",
+      "No_em_dash_in_tools_python_or_LOGGING_md": "Offensive Chemist's Python build voice, say.py",
+      "No_double_dash_separator_in_LOGGING_md_or_on_say_call_lines": "Offensive Chemist's Python build voice, say.py"
+    },
+    "wontfix": {}
+  },
+  "ImageLiteralContractTests": {
+    "shared": "Tests/ImageLiteralContractTests.cs",
+    "note": "The allow list, the pin tables, the frozen pins and the extra base dependent names come from rules.json; a repo with no Offsets file has none.",
+    "renamed": {
+      "Production_code_holds_no_bare_image_literal_outside_ImageBase": "No_bare_image_address_literal_outside_the_allow_list",
+      "BakesImageAddress_flags_only_long_fields_reading_a_base_dependent_pin": "BakesImageAddress_flags_only_fields_reading_a_base_dependent_address"
+    },
+    "local": {},
+    "wontfix": {}
+  },
+  "CommentBudgetContractTests": {
+    "shared": "Tests/CommentBudgetContractTests.cs",
+    "note": "The frozen baseline moves out of the test into the per-file rows health.py writes to docs/health/files.json, with no growth allowance.",
+    "renamed": {
+      "+A_partial_type_is_keyed_by_its_name": "the parts of a partial type share one row, so the key they share is pinned"
+    },
+    "local": {},
+    "wontfix": {}
+  },
+  "CommentContractTests": {
+    "shared": "Tests/CommentContractTests.cs",
+    "renamed": {},
+    "local": {},
+    "wontfix": {}
+  },
+  "SilentCatchContractTests": {
+    "shared": "Tests/SilentCatchContractTests.cs",
+    "note": "The empty catch count a file still carries on day one is the catches column of its row in docs/health/files.json, and the health ratchet makes it shrink.",
+    "renamed": {},
+    "local": {},
+    "wontfix": {}
+  },
+  "StyleContractTests": {
+    "shared": "Tests/StyleContractTests.cs",
+    "note": "The doc and comment width baselines move out of the test into docs/health/style.json.",
+    "renamed": {
+      "+The_repo_copy_of_a_shared_style_file_matches_the_rulebook_byte_for_byte": "the style and line ending files cannot be shared through gates, so the repo's copies are checked against them"
+    },
+    "local": {},
+    "wontfix": {}
+  },
+  "HealthReportWiringContractTests": {
+    "shared": "Tests/HealthReportWiringContractTests.cs",
+    "renamed": {
+      "Every_build_runs_the_health_selftest_the_ratchet_and_the_reminder": "Every_build_runs_the_shared_gates_in_order",
+      "Every_build_runs_the_health_selftest_and_reminder": "Every_build_runs_the_shared_gates_in_order",
+      "Both_scripts_call_the_health_gate_after_the_unit_tests": "Every_build_runs_the_shared_gates_in_order"
+    },
+    "local": {
+      "The_release_workflow_runs_the_gated_publish_and_checks_the_zip": "the zip size and output names are the mod's own"
+    },
+    "wontfix": {}
+  }
+}

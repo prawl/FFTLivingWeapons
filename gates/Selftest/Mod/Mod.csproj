@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- Stands in for a mod. The shared logger compiles into this library as linked source, the
+       same line a mod's csproj carries, and the test project next door sees it only through
+       InternalsVisibleTo. -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>Selftest.Mod</AssemblyName>
+    <RootNamespace>ModGates</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\Logging\*.cs" Link="Gates\Logging\%(Filename)%(Extension)" />
+  </ItemGroup>
+
+</Project>
