@@ -1,194 +1,137 @@
 # FFT Living Weapons
 
-**Your weapon is a character. It grows as it kills, and the gear around it is rebalanced so it never becomes vendor trash.**
+Your weapon grows as it kills, and the gear around it is rebalanced so nothing turns into vendor
+trash.
 
-> **Which version is this?** This README describes version **2.4.0**. If your installed copy is 2.3.x, read "Updating from 2.3.x" under Install first: seven weapons change hands.
+A Reloaded-II mod for Final Fantasy Tactics: The Ivalice Chronicles. This is mod version 2.4.0.
 
-A Reloaded-II mod for Final Fantasy Tactics: The Ivalice Chronicles, with two layers that build and ship together over Nenkai's `fftivc.utility.modloader`:
+## What it does
 
-- **Living Weapons (DLL).** Every weapon counts its own kills and lifts the wielder's stats as the tally climbs; the iconic weapons awaken unique signature abilities. The running count is painted right onto the equip card.
-- **The item rebalance (data).** 227 of the 234 equippable items reworked into sidegrades instead of a tier ladder (the seven vanilla axes and flails are back at their own numbers, see Features), with a programmatic gate that proves no item is ever strictly dominated.
+In vanilla, the sword you carried through chapter 1 is junk by chapter 2. This mod makes it worth
+keeping.
 
-See [`docs/DESIGN.md`](docs/DESIGN.md) for the full design rationale.
+Every weapon counts its own kills, and the count shows on its card in the menu and on the Attack
+command in battle. At 5, 10 and 15 kills the name picks up a +, +2 and +3 and the weapon gets
+stronger. Which stat grows depends on the weapon's lane, and the card says which lane it's on.
+Most weapons grow PA, MA, HP or Speed. Poles and katanas grow PA and MA together and katanas add
+Brave on top. Guns grow weapon power, and the magic guns add Faith.
 
-## Thesis
+At +3 some weapons wake up a signature ability. Bloodthirst gives you another turn on a kill,
+Puppeteer lets you run an enemy you hit for its next turn. Feign Death cheats death once a
+battle. Provoke drags a foe onto you and off the rest of your party. There are about thirty of
+these, and the card tells you which one you're working toward.
 
-A weapon you pour fifteen kills into should matter, and it can't, if the next shop tier turns it into vendor trash. So the two layers are one idea: **the living weapon is what grows; the rebalance is the soil that keeps it worth growing.**
+That only works if old gear stays worth using, so 227 of the game's 234 equippable items are
+reworked into sidegrades. Nothing is a straight upgrade over the item before it. Weapon Power
+only creeps up from item to item, and what actually changes is evade, elements, procs, range and
+when you can buy them. A script checks every item against every other and refuses to build if
+one is worse on every count, so every item is worth picking somewhere. Enemies draw from the
+same tables, so they get the new gear too.
 
-Vanilla loot is a strict tier ladder. Each shop tier beats the last, so old gear is dead weight the moment you can afford the next thing. This mod flattens the power curve and moves the interesting differences out of Weapon Power and into everything else. Every item has to answer one question: "when would I pick this?" The answer is always a niche, a tradeoff, or an availability window, never "it's just bigger." That is what lets a weapon you've invested kills into stay a real choice all game.
+There are also seven brand new weapons past the game's 261 item limit (Terrastaff, Ravager,
+Sunderer, Warbrand, Bloodlash, Climhazzard, Sasori), sold in shops as the story unlocks them.
+The seven vanilla axes and flails are back as themselves and don't grow.
 
-This pays off harder the more the rest of your install ramps up. Under enemy-buffing mods or free-ability mods, strict-tier vanilla gear collapses into "just equip the newest thing". Sidegrades, and a weapon that has grown with you, stay relevant because the reason to run them was never raw power. Enemies equip from these same tables too, so it applies to both sides.
-
-## Features
-
-- **Living weapons that grow as they kill.** Each weapon tracks its own kills, lifts the wielder's PA, MA or Speed at 5, 10 and 15 kills, and shows the count on the equip card. Iconic weapons wake up signature abilities, Charm, Barrage, extra turns, doom, life steal, healing auras and more, so the weapon you commit to becomes yours. Every weapon grows except the seven vanilla axes and flails, which are back at their own numbers and do not grow; the seven designs that used to sit in their slots (Terrastaff, Ravager, Sunderer, Warbrand, Bloodlash, Climhazzard, Sasori) are their own items now, ids 261 to 267, and grow like the rest.
-- **An extended inventory: brand-new weapons past the game's 261-item limit.** The game only knows
-  261 items; the mod adds more (seven today, ids 261 to 267), listed in every menu, sold in the
-  towns its data names, equipped and swung in battle, growing and glowing like the rest, and remembered
-  per save. Everything about a new item is one row in `data/items.json`
-  ([`docs/EXTENDED_INVENTORY_GUIDE.md`](docs/EXTENDED_INVENTORY_GUIDE.md) is the authoring guide).
-- **227 of the 234 equippable items reworked** across every category (the seven vanilla axes and flails excepted):
-  - **Weapons: 121 vanilla-range**, plus the 7 extended ids on top
-  - **Shields: 16**
-  - **Head: 28** (Helmet 13, Hat 12, Hair Adornment 3)
-  - **Body: 36** (Clothing 14, Armor 14, Robe 8)
-  - **Accessories: 33** (Shoes 7, Cloak 7, Ring 6, Armlet 5, Perfume 4, Armguard 4)
-- **Rewritten descriptions for the full roster, and recolored menu icons** for all of it; the seven restored axes and flails keep the game's own art. 64 items keep their vanilla names (57 in 2.3.4), the samurai katanas and the iconic legendaries among them; the rest are renamed. Every equippable item ships an `ei_<id>` / `ei_s_<id>` icon pair: 241 pairs (482 `.tex` files), the seven new weapons included.
-- **A programmatic no-strict-domination gate.** `tools/analyze.py` fails the build if *any* item is strictly dominated by another. It also models **equip-slot access**, so an item isn't called "dominated" by something its slot can't actually use.
-- **Range as a real lever.** Reach is a first-class tradeoff via the **Lunging** flag, not just a number, so short-range and extended-range weapons stay distinct choices instead of one obsoleting the other.
-- **Vanilla spell and status casts preserved.** On-equip and on-use spell/status effects keep their original behavior. The rebalance touches stats and identity, not the game's existing magic.
+If you want the reasoning behind all this, it's in [`docs/DESIGN.md`](docs/DESIGN.md).
 
 ## Requirements
 
-- **The current Steam build of the game.** The September 2026 game update removed Denuvo, and the unprotected game now loads at a random address every launch. **Mod 2.3.4 is the first version that works on it.** Versions 2.3.3 and older still load on the current game but never switch on: kill counts stop moving, with no error and no harm to your save. If your kill counts froze after the September update, update the mod.
-- **[Reloaded-II](https://reloaded-project.github.io/Reloaded-II/)**
-- **Nenkai's `fftivc.utility.modloader`**: fetched automatically as a dependency, or grab it from [Nenkai/fftivc.utility.modloader](https://github.com/Nenkai/fftivc.utility.modloader).
-- **`reloaded.sharedlib.hooks`** (Reloaded.SharedLib.Hooks): a Reloaded-II library mod. Reloaded-II normally fetches it from its own library feed when you enable Living Weapons; if the mod does not start, install it from Reloaded's download list.
-- **SteamOS / Linux:** works through Proton; the author has run it there. Set up Reloaded-II the usual Proton way first, then install the mod as below.
+- The current Steam build. The September 2026 update removed Denuvo, and mod 2.3.4 is the first
+  version that works on it. Older versions load but never switch on, so if your kill counts
+  froze, update.
+- [Reloaded-II](https://reloaded-project.github.io/Reloaded-II/).
+- Nenkai's `fftivc.utility.modloader` and `reloaded.sharedlib.hooks`. Reloaded fetches both when
+  you enable the mod. If the mod doesn't start, install them from Reloaded's download list.
+- Works on SteamOS through Proton. Set up Reloaded the usual Proton way first.
 
 ## Install
 
-1. Install Reloaded-II and the FFT:IVC modloader (above).
-2. Download the latest `FFTLivingWeapons-*.zip` from [Releases](../../releases).
-3. In Reloaded-II, drag the zip onto the mod list (or extract it into your `Reloaded/Mods` folder).
-4. Enable **FFT Living Weapons** in the mod list. Both dependencies are normally fetched automatically if missing.
-5. **Restart the game.** The item rebalance (tables, text, base icons) applies on launch, not live; the Living Weapon runtime (kill tracking, growth, signatures, the equip-card counter, the glow rings on weapon icons) runs in-process while you play.
+1. Download the latest `FFTLivingWeapons-*.zip` from [Releases](../../releases).
+2. Drag the zip onto Reloaded's mod list, or extract it into `Reloaded/Mods`.
+3. Enable FFT Living Weapons.
+4. Restart the game. The item changes apply on launch, the kill tracking runs while you play.
 
-### Updating from 2.3.x
+Coming from 2.3.x? Your axes and flails go back to vanilla, no Kills line. The seven custom
+weapons that used to replace them are their own items now, sold in shops. The kills you racked up
+on them carry over on the first launch, and the log says so.
 
-Seven weapons change hands in 2.4.0, so read this before you load an old save.
+## Compatibility
 
-- **The axes and flails in your bag and in your units' hands are the game's own again.** In 2.3.4 the Battle Axe, Giant's Axe, Slasher, Iron Flail, Flail of Flame, Morning Star and Scorpion Tail slots held seven designs of ours (Terrastaff, Ravager, Sunderer, Warbrand, Bloodlash, Climhazzard, Sasori). Those slots are the vanilla axes and flails now, with the game's own art and no Kills line, and they do not grow.
-- **The seven designs are separate weapons now**, ids 261 to 267, bought in shops. Terrastaff, Ravager and Sunderer are sold in Eagrose, Lesalia, Lionel, Riovanes, Limberry and Zeltennia, unlocking one each, in the same order, after Miluda falls, at the start of Chapter 4, and after Bethla Garrison. Warbrand, Bloodlash, Climhazzard and Sasori are sold in Dorter, Eagrose, Warjilis, Lionel, Sal Ghidos, Riovanes, Limberry and Zeltennia, unlocking one each, in the same order, after Elmdor falls, at the start of Chapter 3, after Rafa is rescued, and at the start of Chapter 4. A new game starts with none of them.
-- **Your kills move with the design.** On the first 2.4.0 launch, the kills you grew on a 2.3.4 Terrastaff (filed under the Battle Axe's number) move to the new Terrastaff once and show on its card; the log says so in one line. The same goes for the other six. The vanilla axe shows no Kills line.
+Run this as your only item mod. Disable any other item rebalance or equipment mod, Regabond's
+Rebalance and the War of the Lions Equipment Replacer included. Load order won't help, two item
+mods just clash. Job mods and text mods are fine. Worst case a job mod knocks out the three
+commands that weapons grant. [`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md) has verdicts for
+the 143 mods checked so far, and `python tools/scan_conflicts.py` lists installed mods that edit
+the same item ids.
 
-## Compatibility: disable conflicting item mods
-
-**This is the authoritative item mod.** It rewrites the full item tables, and enemies equip from those same tables, so it must own them outright. **Disable any other item-rebalance / equipment mod**, including Regabond's Rebalance and the War of the Lions Equipment Replacer; no load order fixes an item-table clash.
-
-Non-item mods coexist with it in general: a job mod costs at most the three weapon-granted commands, a text mod at most some display text, and everything else runs alongside untouched (Generic Jobs is verified clean). [`docs/COMPATIBILITY.md`](docs/COMPATIBILITY.md) holds the compatibility notes, with verdicts for the mods checked so far (143 mods surveyed as of October 2026). Run `python tools/scan_conflicts.py` to list any installed mods that edit the same item IDs.
-
-## Language support
-
-The gameplay is language-neutral by construction: the item tables carry no text, and kill-growth and the signature abilities run at the memory level, so the item rebalance (stats, elements, procs, shop availability), the growth and the signatures do not depend on the game's language. Play in other languages is not separately tested; one Chinese-language player confirmed the English-switch workaround for the kill counter below. The readouts are English-only:
-
-- **Item text.** The rewritten names, descriptions, and flavor ship only for English. On any other game language, items keep their vanilla names and descriptions (so the prose may not reflect an item's reworked stats), while the rebalanced numbers still apply.
-- **The equip-card Kills counter.** The painted "Kills: N" tally and the "+N" name suffix anchor to the English item text, so they display only when the game language is English. Kills are still counted and stats still grow in every language; only the readout is absent.
-- **In-battle toasts.** The tier-up and milestone banners deliver by swapping an English battle prompt, so they too appear only in English. The growth they announce still happens in every language.
-- **Granted command names and the Provoked mark.** The Barrage and Provoke command names, the Equip Axes wording and the "Provoked" status label ship in the English text files only. In other languages the commands work but show their vanilla names, and the Provoked mark appears as an unlabeled icon.
+The new text is English only. In any other language you get the vanilla names and descriptions
+for items and for the granted commands, and the Kills counter and battle toasts don't show. Kills
+still count and stats still grow.
 
 ## Good to know
 
-- **Kill counts appear shortly after loading a save.** The mod switches on the moment a save
-  finishes loading; the card counter paints some seconds later.
-  If you open the party menu sooner, the cards show "Kills: -/- to +" until the paint lands; back
-  out and re-open the menu and your numbers are there. Nothing is ever lost; only the first paint
-  lags.
-- **Dashes that never fill in mean the mod's program did not load.** If the cards keep showing
-  "Kills: -/- to +" no matter how long you wait or how often you reopen the menu, the item tables
-  loaded but `LivingWeapon.dll` did not, so nothing is counting. Nothing crashes and your save is
-  fine. Open Reloaded's log folder (`%APPDATA%\Reloaded-Mod-Loader-II\Logs`, newest file) and look
-  for `DLL Not Found! LivingWeapon.dll`; reinstall the mod from the release zip, and if the line is still there, send that log with your
-  report.
-- **The mod checks the game before it writes anything, one part at a time.** Each of its thirteen
-  parts (kill counting, stat growth, the weapon powers in battle, weapon commands, banners, the
-  extended inventory and the rest) checks the spot in the game's memory it depends on, at startup,
-  when a save loads, or when your first battle starts. A part whose check passes runs. A part whose
-  check fails pauses for the session, along with any other part that leans on the same spot, and
-  everything else keeps running. The log prints one "Parts report:" line naming every part as ON,
-  OFF or WAITING with the reason, and the first time every part has passed it prints
-  "Living Weapons: all parts armed." instead. When a check fails you also get a
-  box, "Living Weapons: some features are paused", listing what still works, what is paused, and
-  what to do (check the mod page for a newer version, try without a mod you installed recently, or
-  email me with the log). If nothing is still working the box says the mod has paused itself.
-  Every such message says the game update or another mod may be the cause, and every box ends
-  with the mod version and the game build, so a screenshot of it is a usable bug report. A game
-  build the mod has
-  never seen is only reported; the mod runs normally if its checks pass. If it cannot read the game
-  at all it says so after about a minute and keeps trying. Your save is never touched in any of
-  these cases. A custom job mod that rewrites the job command data pauses only the three weapon
-  granted commands, Barrage, Shadow Blade and Provoke.
-- **For bug reports, send the log.** It is `livingweapon.log` in the mod's folder under `Reloaded/Mods`;
-  each launch rotates the previous one to `livingweapon.prev.log`, so grab it right after the session
-  where things went wrong. [`docs/LOGGING.md`](docs/LOGGING.md) explains what is in it.
-- **Removing the mod loses the extended-inventory weapons cleanly.** The game cannot know an item past
-  its own 261 without the mod running: a save that holds one still loads fine, the unit's hand is
-  simply emptied and the item is gone from the bag. Unequip or sell them first if you plan to
-  uninstall; if an inventory list then looks short, sort it once and it repairs itself. Reinstall and
-  they come back with their saved counts, as long as you did not save while the mod was off; a save
-  written without the mod starts the new weapons over at zero.
-- **Quitting mid Provoke can leave your party hidden for up to a minute and a half.** If you quit to
-  the title (or pick Retry) while a Defender's Provoke is up, and then Continue, the hold can outlive
-  the rewind. Your units may stay invisible to enemies until the mod's safety timer lets go, about 90
-  seconds at most. Nothing is lost and it clears on its own; ending your Defender's turn or the
-  battle also clears it.
-- **A Retry can leave the Sunderer's barred tile blocked for one turn.** If you pick Retry while
-  the Sunderer's Bulwark is planted, the tile behind the wielder stays blocked until that wielder's
-  next turn opens, and the plant message may show once more right after the rewind. Nothing is
-  lost; the tile frees itself within the turn, and ending the battle clears it too.
-- **Dual-wielding doubles the growth.** A kill while wielding two weapons credits both of them,
-  not just one, so pairing two Living Weapons together is the fastest way to grow a pair at once.
-  A shield equipped in either hand never earns credit; only a real weapon does.
+- Kills are counted per weapon type, not per unit. Two units on the same weapon share one count
+  and hit +3 about twice as fast. Enemies show the same +2 or +3 label but get none of the
+  growth.
+- Nothing is written to your save. Kill counts live in `kills.json` in the mod folder.
+- The Kills counter paints a few seconds after a save loads. If the card says "Kills: -/- to +",
+  back out of the menu and open it again.
+- If the dashes never fill in, the DLL didn't load. Nothing is counting and your save is fine.
+  Look for `DLL Not Found! LivingWeapon.dll` in Reloaded's newest log and reinstall from the zip.
+- The mod checks the game before it writes anything, one part at a time. If a check fails, that
+  part pauses itself and pops up a box with the mod version and game build on it. Screenshot the
+  box for a bug report, and send `livingweapon.log` from the mod folder with it
+  ([`docs/LOGGING.md`](docs/LOGGING.md) explains what's in it).
+- Uninstalling drops the seven new weapons from your save, since the game can't know them
+  without the mod. Unequip or sell them first. Reinstall and they come back with their kills,
+  unless you saved while the mod was off.
+- Quitting to the title or picking Retry during a Provoke hold can leave your party hidden from
+  enemies for up to about 90 seconds. It clears on its own. Retry with the Sunderer's Bulwark
+  planted keeps one tile blocked until that unit's next turn.
+- Dual wielding counts the kill for both weapons. Shields don't count.
 
-## How it works / build from source
+## Build from source
 
-The design lives in one source of truth and is compiled into the modloader package:
+`data/items.json` is the only hand edited item source. `tools/generate.py` turns it into the
+modloader tables, `tools/analyze.py` fails the build if any item is dominated, and
+`tools/gen_living_weapon_meta.py` builds the per weapon data the DLL reads.
 
 ```
-data/items.json             # the only hand-edited source: every item's stats, name, and identity
-  └─ tools/generate.py       # → FFTIVC/tables/enhanced/*.xml + extended_inventory/*.xml + out/names.json
-  │                          #   (item.en.nxd is baked separately by tools/patch_names.py from out/names.json)
-  └─ tools/analyze.py        # build-diversity GATE: exit 1 if ANY item is strictly dominated
-  └─ tools/gen_living_weapon_meta.py  # → LivingWeapon/meta.json, the runtime's per-weapon facts
-  └─ tools/scan_conflicts.py # lists installed mods that touch the same item IDs
+python tools/generate.py
+python tools/analyze.py
+dotnet test LivingWeapon.Tests\LivingWeapon.Tests.csproj
+.\BuildLinked.ps1      # dev deploy into your Reloaded Mods folder, refuses on any red step
+.\Publish.ps1          # the same gates, then the release zip
 ```
 
-```bash
-python tools/generate.py        # emit the modloader tables from items.json
-python tools/analyze.py         # prove no item is strictly dominated (gates deploy/release)
-dotnet test LivingWeapon.Tests\LivingWeapon.Tests.csproj   # the runtime's xUnit suite
-.\BuildLinked.ps1               # DEV: generate + gate + meta + self-tests + format check + xUnit + build the DLL + deploy into your Reloaded Mods folder (refuses on any red step)
-.\Publish.ps1                   # PROD: the same steps, then package the release zip instead of deploying (never touches the game)
-```
+The code gates come from a shared rulebook vendored under `gates/`
+([prawl/FFTModGates](https://github.com/prawl/FFTModGates)). New items past the 261 limit are one
+row each in `items.json`. [`docs/EXTENDED_INVENTORY_GUIDE.md`](docs/EXTENDED_INVENTORY_GUIDE.md)
+shows how. Game addresses are rebased at startup since the Denuvo free build loads at a random
+address. [`docs/PATCH_REANCHOR.md`](docs/PATCH_REANCHOR.md) is the runbook for the next game patch.
 
-Both scripts refuse to deploy or package on any red step. Beyond the item gate and the unit tests, the
-glow ring gate runs every time. `python tools/bake_glow_icons.py verify` checks the 726 committed ring
-files against `glow_icons/manifest.json`, and each manifest row carries a fingerprint of the plain icon
-plus that weapon's rim recipe, so a recipe edit or a hand edited manifest stays red until the weapon is
-rebaked. The code quality gates come from the shared rulebook vendored under `gates/`
-([prawl/FFTModGates](https://github.com/prawl/FFTModGates)) and run every time as well. The copy of
-the rulebook must match what was published, `dotnet format` must have nothing to change, the shared
-contract tests run inside the xUnit suite (the work ledger, the logging rules, the address tripwire,
-the comment budget, the style file), and the code health ratchet refuses a build that makes any
-measure in `docs/health` worse than the committed floor. Comments stay short, one comment line per
-three code lines for a new file, no block over eight lines, no colon or dash inside a comment
-sentence, and no comment that argues instead of informs.
-
-What the package carries.
-
-- The Reloaded manifest, `ModConfig.json`.
-- The runtime and its data. `LivingWeapon.dll`, `LivingWeapon.deps.json`, `Newtonsoft.Json.dll`, `meta.json` with every growing weapon's facts, and `poach.json` for Living Poach.
-- Seven sparse modloader XMLs. `ItemData`, `ItemWeaponData`, `ItemArmorData`, `ItemShieldData`, `ItemAccessoryData`, `ItemEquipBonusData`, plus `JobData` for the widened generic job equip lists and the class evade floor.
-- Three nxd text files. The full table `item.en.nxd` for names and descriptions, the cell merged `ability.en.nxd` for the Barrage, Provoke and Equip Axes text, and `uistatuseffect.en.nxd` for the Provoked mark's name.
-- The menu icon `.tex` pairs, 241 of them.
-- The extended inventory's three tables under `extended_inventory/` (read by the DLL at boot, not by the modloader), 14 `.utexpt` icon parts files for the new ids, and 726 glow rim icon variants with their `manifest.json` under `glow_icons/`.
-
-The game's own code no longer sits at one fixed address (ASLR since the Denuvo-free build), so every game address the DLL knows is written as its documented number and rebased against the live image at startup; [`docs/PATCH_REANCHOR.md`](docs/PATCH_REANCHOR.md) is the runbook for the next game patch.
-
-> **Editing note:** formula and effect IDs in the XML are **decimal, not hex**. The "Special Effect" badge in an item's description is the separate `UiStatusEffectId` nxd field; status/element procs are described in the item's prose, not flagged by a badge.
+Heads up if you edit the XML by hand, formula and effect ids in there are decimal, not hex.
 
 ## How it's made
 
-Living Weapons is built with AI assistance, and I want that to be clear up front.
+Living Weapons is built with AI assistance and I want that clear up front.
 
-The design is mine: every item, every growth lane, every signature ability and its tuning. The reverse engineering was done by hand too, with a disassembler and live testing. Every game address and every hook site came out of that work, as did breaking the 261-item limit, which I worked through with JadeKnightblazer. The evidence for each is recorded in [`docs/LIVE_LEDGER.md`](docs/LIVE_LEDGER.md).
+The design is mine. I set every item's stats and picked which stat each weapon grows, and the
+signature abilities are mine too. Same for the reverse engineering, done by hand with a
+disassembler and live testing. JadeKnightblazer and I broke the 261 item limit together. The
+evidence for each address is in [`docs/LIVE_LEDGER.md`](docs/LIVE_LEDGER.md).
 
-Much of the C# implementation is written by Claude Code under my direction. Nothing ships on its word alone. Every change has to pass the full test suite (over 4,000 tests), the item balance gate and the build checks above. Substantial changes also go through a readability review, where a fresh reader with no access to the project must answer questions about the code from the code alone ([`docs/COLD_READ_LOG.md`](docs/COLD_READ_LOG.md)). And every release is played live before it goes out.
+Claude Code wrote much of the C#, with me driving. I don't take its word for anything. Every
+change has to pass 4,500+ tests plus the balance gate and build checks above. Bigger changes also
+get a cold read, where a reader with no access to the project has to explain the code from just
+the code ([`docs/COLD_READ_LOG.md`](docs/COLD_READ_LOG.md)). And I play every release before it
+goes out.
 
-If you have questions about any of it, ask me in the FFT modding Discord. I'm Pax (prawl) there.
+Questions? Find me in the FFT modding Discord, I'm Pax (prawl) there.
 
 ## Credits
 
-- **Nenkai**: [`fftivc.utility.modloader`](https://github.com/Nenkai/fftivc.utility.modloader), without which none of this loads.
-- **JadeKnightblazer**: my partner in breaking the game's 261-item limit, which made the seven new weapons possible.
-- **FFHacktics** and **Game8**: item/formula data and reference.
+- Nenkai for [`fftivc.utility.modloader`](https://github.com/Nenkai/fftivc.utility.modloader).
+  Nothing here loads without it.
+- JadeKnightblazer, my partner in breaking the 261 item limit.
+- FFHacktics and Game8 for item and formula data.

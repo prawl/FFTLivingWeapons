@@ -15,10 +15,28 @@ the technical detail lives in the indented lines under it.
 Locked 2026-10-24: LW-465, LW-508, LW-506, LW-448, LW-459, LW-513, LW-444, LW-386, LW-409, LW-195, LW-172, LW-234, LW-450, LW-514, LW-457, LW-511, LW-326, LW-296, LW-360, LW-191, LW-435, LW-396, LW-344 (the rest parked at the top of Backlog on 2026-11-02 for the quality pause; they come back here first)
 
 - **[LW-561] A dodge report shows how much harder enemies are to hit than in vanilla, per job and chapter, before any evade number moves** (opened 2026-11-03) [QUEUED]
-  Players say everyone dodges everything. Today the only way to check is counting by hand, and the hand count summed numbers that multiply and averaged across the whole line where chapter 1 got worse. Build the ruler first: a script that compares every generic job's chance to be hit, vanilla against the mod, at three level bands, using the game's own rules (each evade source rolls in turn, enemies wear the highest level shield their level allows). LW-553 and LW-552 pick their numbers from this reading. The owner's framing, 2026-11-03: "I think our new big update should be a balancing patch."
-  (Tech: new tools/analyze_jobs.py or a section in analyze.py; hit chance is the product of survivals over accessory, right hand, left hand and class evade per the wiki page Attack Evaded Calculations, with a facing weight since back attacks skip class, shield and weapon evade; enemy gear per the wiki routine Calculate Random Equipment, highest item level at or under unit level, rare items excluded, a dual wield job fills the off hand with a weapon; vanilla JobData and ItemData rows go into a committed snapshot stamped like data/vanilla_weapon_rows.json so CI never reads the Steam folder; make_jobequip.py reads the snapshot; a verify mode fails when the committed JobData.xml differs from a fresh regen; every departure from vanilla in the job data carries a one line reason; the dodge threshold lands only after the first reading.)
-  - Done means: one command prints, per generic job and level band, the front hit chance in vanilla and under the mod, and the pipeline refuses a JobData.xml that does not match its source or a job row that departs from vanilla with no reason.
-  - Verify: the script's selftest cases cover the multiply rule, the level band pick and the dual wield off hand; the gate goes red when JobData.xml is hand edited; the owner reads the report and picks the LW-553 list and the LW-552 numbers from it.
+  Players say everyone dodges everything. Today the only way to check is counting by hand, and the
+  hand count summed numbers that multiply and averaged across the whole line where chapter 1 got
+  worse. Build the ruler first: a script that compares every generic job's chance to be hit, vanilla
+  against the mod, at three level bands, using the game's own rules (each evade source rolls in
+  turn, enemies wear the highest level shield their level allows). LW-553 and LW-552 pick their
+  numbers from this reading. The owner's framing, 2026-11-03: "I think our new big update should be
+  a balancing patch."
+  (Tech: new tools/analyze_jobs.py or a section in analyze.py; hit chance is the product of
+  survivals over accessory, right hand, left hand and class evade per the wiki page Attack Evaded
+  Calculations, with a facing weight since back attacks skip class, shield and weapon evade; enemy
+  gear per the wiki routine Calculate Random Equipment, highest item level at or under unit level,
+  rare items excluded, a dual wield job fills the off hand with a weapon; vanilla JobData and
+  ItemData rows go into a committed snapshot stamped like data/vanilla_weapon_rows.json so CI never
+  reads the Steam folder; make_jobequip.py reads the snapshot; a verify mode fails when the
+  committed JobData.xml differs from a fresh regen; every departure from vanilla in the job data
+  carries a one line reason; the dodge threshold lands only after the first reading.)
+  - Done means: one command prints, per generic job and level band, the front hit chance in vanilla
+    and under the mod, and the pipeline refuses a JobData.xml that does not match its source or a
+    job row that departs from vanilla with no reason.
+  - Verify: the script's selftest cases cover the multiply rule, the level band pick and the dual
+    wield off hand; the gate goes red when JobData.xml is hand edited; the owner reads the report
+    and picks the LW-553 list and the LW-552 numbers from it.
   - Added: yes "Sounds good.  Make sure that TODO is in the right location and let's get started." (2026-11-03)
 - **[LW-465] A Provoke hold and a planted Bulwark let go the moment a battle rewinds** (opened 2026-10-19) [AWAITING-LIVE]
   - Quitting to the title and choosing Continue mid battle, or picking Retry, rewinds the fight in place without the battle end signal the Provoke hold and the Bulwark listen for, so a hold can hide the party until its watchdog lets go (box 9.2) and a barred tile stays barred until the wielder's next turn (box 9.4, LW-466). The first fix was dropped on release night because nobody has measured when the game rebuilds the battlefield after the restore. Probe that moment first, then release both on it.
@@ -477,8 +495,12 @@ Locked 2026-10-24: LW-465, LW-508, LW-506, LW-448, LW-459, LW-513, LW-444, LW-38
 - [LW-520] 2026-10-24: The mod times battles with the wall clock, so on a daylight saving night one tick can look an hour long and a battle can be read as ended mid fight. Rare, since it needs a session running through the time change, and the fix is small.
   After the fall back, the time since the last field tick also reads negative for an hour, which skews card paint timing and the twin pistol's seconds off field.
   (Tech: Engine.cs tick reads DateTime.Now; BattleState ignores backward jumps but not forward ones, so one long delta fills ExitDebounceSeconds 4.0 if it lands out of live; `s.Now - _lastField` goes negative after a fall back. Use a Stopwatch based tick clock, which LW-519's tapes also use.)
-  Waits on LW-561 (2026-11-03): the dodge report picks which jobs lose the shield. The review found the seven may be the wrong seven, since Thief and Samurai keep theirs at 25 and 20 class evade while the stripped jobs sit at 5 to 8.
-  Waits on LW-561 (2026-11-03): the numbers come from the report's level bands, not whole line totals. Galewall went 15 to 24 physical evade at tier 1 while the line total looked flat, so chapter 1 got worse unseen.
+  Waits on LW-561 (2026-11-03): the dodge report picks which jobs lose the shield. The review found
+  the seven may be the wrong seven, since Thief and Samurai keep theirs at 25 and 20 class evade
+  while the stripped jobs sit at 5 to 8.
+  Waits on LW-561 (2026-11-03): the numbers come from the report's level bands, not whole line
+  totals. Galewall went 15 to 24 physical evade at tier 1 while the line total looked flat, so
+  chapter 1 got worse unseen.
 
 - [LW-463] 2026-10-19: The readability quiz becomes one four stage pipeline, in a fixed order, after the 2.4.0 tag. First the cold read as today, with one label change (a why that lives only in a comment counts as a miss, and "bad question" means only that the answer needs code outside the packet). Then one plain words comment pass, comments only, with the stripped code proven identical and comment lines not allowed to rise. Then every warning comment ("must run before", "changing one means changing the other") goes back to the code and is fixed there or kept with a logged reason. Last, a second toolless reader gets the files with comments and reports any comment the code does not back up. One log entry per change with a result per stage. Values in the order they win, accuracy, then understanding, then readability. (Tech: owner review doc "Corpses readability review", 2026-10-19; the four versions on branch compare/corpses-readability, A 12ac7ea7 plain words only scored 6, B 2e0fd3ad cold read only 6.5, C a8072bc8 cold read then plain words 7, D 14708265 the warnings turned into code; the gate and its skill live in the home setup repo.)
 - [LW-462] 2026-10-19: The corpse scan keeps about fifteen side by side lists, one entry per battle seat, so forgetting a death means clearing every list by hand and missing one is easy. After the 2.4.0 release, give each seat one object holding what we watch (seen alive, streaks, recorded identity, last dead hp), the open death case (verdict, waiting, killer stamp, victim snapshot) and the paid kill, so forgetting a death is two assignments. One identity type with one same unit check replaces the three tuples. Then turn the dead edge priority chain into a small pure function that returns a verdict, tested with a table of cases, name the team values, and return what changed instead of threading a ref flag. One group per commit, paid kill first, replayed battles green before and after each step, seats made once per battle. (Tech: LivingWeapon/Kills/KillTracker.Corpses.cs; owner review doc steps 7.5 to 9; Seat, Watch, DeathCase, PaidKill, UnitIdentity.SameUnit are the review's names.)
