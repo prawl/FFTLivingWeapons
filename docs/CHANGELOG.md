@@ -8,6 +8,11 @@ with a date and no hash.
 
 ## 0.1 cycle
 
+- [MG-11] SHIPPED 3da7098 2026-11-03: The rulebook now has a version a mod takes by name, v0.1.0,
+  so two mods on one tag run the same rules and a change here reaches a mod only when it pulls
+  the next tag. Treasure Master took it first and runs green on it locally and in CI, and
+  gates/VERSION prints 0.1.0 in its build log. (Tech: tag v0.1.0 on 3da7098, pushed; the README's
+  subtree lines name the tag; Treasure Master hookup commit b8287c9, CI run 41582500395.)
 - [MG-13] SHIPPED 3a96d67 2026-11-02: A refused gate now ends with the Backlog row to paste, under
   the next free ledger id, naming the rule it wanted to bend and why, so the paper trail of rules
   that got in the way piles up in one place. The owner widens a rule with floor --write

@@ -29,7 +29,7 @@ Everything below is one commit. No gameplay code moves.
    extra and the mod decides when it moves:
 
    ```
-   git subtree add --prefix gates https://github.com/prawl/FFTModGates.git v0.1.0 --squash
+   git subtree add --prefix gates https://github.com/prawl/FFTModGates.git v0.1.1 --squash
    ```
 
 2. Add `rules.json` at the repo root. Three readers parse it, the gate script, health.py and the
@@ -136,7 +136,8 @@ Everything below is one commit. No gameplay code moves.
 7. Record today's numbers and commit them with the hookup, with
    `python gates/tools/health.py floor --write`. It writes `docs/health/floor.json`, the totals,
    and `docs/health/files.json`, one row per production file. From then on a build with no
-   committed floor is refused, not warned about.
+   committed floor is refused, not warned about. Release records the repo wrote before that day
+   stay in its trend and never set a bar; the first floor is the line in the sand.
 
 ## The per-file rule
 
