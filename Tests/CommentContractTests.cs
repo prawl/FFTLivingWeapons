@@ -35,6 +35,13 @@ public class CommentContractTests
             foreach (var f in Directory.EnumerateFiles(tools, "*.*", SearchOption.TopDirectoryOnly))
                 if (f.EndsWith(".py") || f.EndsWith(".ps1")) yield return f;
         foreach (var f in Directory.EnumerateFiles(root, "*.ps1", SearchOption.TopDirectoryOnly)) yield return f;
+        foreach (var folder in rules.PythonProd)
+        {
+            string dir = Path.Combine(root, folder.TrimEnd('/'));
+            if (!Directory.Exists(dir)) continue;
+            foreach (var f in Directory.EnumerateFiles(dir, "*.py", SearchOption.AllDirectories))
+                if (!f.Contains(Path.Combine("__pycache__", ""))) yield return f;
+        }
     }
 
     /// <summary>The comment part of one line. A block comment carries its state to the next line.</summary>
@@ -114,7 +121,7 @@ public class CommentContractTests
     {
         var violations = new List<string>();
         int scanned = 0;
-        foreach (var path in ScannedFiles())
+        foreach (var path in ScannedFiles().Distinct(StringComparer.OrdinalIgnoreCase))
         {
             string name = Path.GetFileName(path);
             if (Exempt.Contains(name)) continue;

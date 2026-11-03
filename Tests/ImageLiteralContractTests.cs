@@ -157,16 +157,16 @@ public class ImageLiteralContractTests
     [Fact]
     public void Allow_list_holds_only_files_that_still_need_the_exemption()
     {
-        var files = ProductionFiles().ToDictionary(f => Path.GetFileName(f), f => f, StringComparer.OrdinalIgnoreCase);
-        var stale = Rules.Load().ImageAllowlist.Keys.Where(name => !files.TryGetValue(name, out string? path) || BareLiteralLines(path).Count == 0).ToList();
+        var files = ProductionFiles().ToLookup(f => Path.GetFileName(f), StringComparer.OrdinalIgnoreCase);
+        var stale = Rules.Load().ImageAllowlist.Keys.Where(name => !files[name].Any(path => BareLiteralLines(path).Count > 0)).ToList();
         Assert.True(stale.Count == 0, "Allow-listed file(s) no longer carry a bare image literal (remove the exemption): " + string.Join(", ", stale));
     }
 
     [Fact]
     public void Pin_table_list_holds_only_files_that_still_carry_pin_records()
     {
-        var files = ProductionFiles().ToDictionary(f => Path.GetFileName(f), f => f, StringComparer.OrdinalIgnoreCase);
-        var stale = Rules.Load().PinTables.Keys.Where(name => !files.TryGetValue(name, out string? path) || PinRecordLines(path).Count == 0).ToList();
+        var files = ProductionFiles().ToLookup(f => Path.GetFileName(f), StringComparer.OrdinalIgnoreCase);
+        var stale = Rules.Load().PinTables.Keys.Where(name => !files[name].Any(path => PinRecordLines(path).Count > 0)).ToList();
         Assert.True(stale.Count == 0, "Pin-table file(s) no longer carry a pin record (remove the entry): " + string.Join(", ", stale));
     }
 

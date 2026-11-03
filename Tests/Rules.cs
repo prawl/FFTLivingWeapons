@@ -35,6 +35,8 @@ internal sealed class Rules
     public string? PublishScript { get; init; } = "Publish.ps1";
     public string Workflow { get; init; } = ".github/workflows/release.yml";
     public string[] PrunedDirs { get; init; } = Array.Empty<string>();
+    public string[] PythonProd { get; init; } = Array.Empty<string>();
+    public string[] EmDashScope { get; init; } = Array.Empty<string>();
 
     private static Rules? _loaded;
 

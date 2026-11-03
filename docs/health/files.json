@@ -1,6 +1,6 @@
 {
- "sha": "6b77335",
- "date": "2026-11-02",
+ "sha": "ef3027b",
+ "date": "2026-11-03",
  "columns": [
   "comments",
   "block",
@@ -14,6 +14,10 @@
   "LogSetup.cs": [1, 1, 11, 0, 0],
   "ModLogger.cs": [9, 4, 52, 0, 0],
   "NullLogger.cs": [1, 1, 13, 0, 0],
-  "ScopedLogger.cs": [5, 4, 27, 0, 0]
+  "ScopedLogger.cs": [5, 4, 27, 0, 0],
+  "tools/health.py": [16, 2, 1113, 0, 1],
+  "tools/manifest.py": [1, 1, 83, 0, 0],
+  "tools/style_rules.py": [1, 1, 136, 0, 0],
+  "tools/style_scan.py": [1, 1, 153, 0, 0]
  }
 }
