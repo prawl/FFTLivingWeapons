@@ -10,6 +10,15 @@ before 2026-07-21 keep their original prose.
 
 ## 2.4.1 cycle
 
+- [LW-555] SHIPPED 22a290ff 2026-11-03: Living Weapons now runs the same quality checks as the
+  other mods, and today's numbers are the floor nothing may fall below. Comments lost every
+  ticket id and review mention, and the local logger, contract tests and health tool gave way
+  to the rulebook's. No gameplay code changed. BuildLinked.ps1 and CI run 41588501248 are green
+  on the hookup commit, the health numbers equal what the old tool printed, and the build log
+  names rulebook v0.1.1. (Tech: gates/ subtree at v0.1.1, rules.json with 84 frozen pins,
+  docs/health floor.json with 221 file rows and 32 over a line as day one debt, style.json,
+  docs/RELEASE_SCOPE.md for the shared ledger test; two rulebook fixes came out of it, MG-15 and
+  MG-16.)
 - [LW-560] WONTFIX 2026-11-02: The audit of the tests that only police markdown and source text is dropped, because a sweep through about 290 tests is work no player ever sees. The rule that replaces it: a test that polices docs or source text goes the next time it fails for a non-reason, deleted by whole class rather than test by test, and a text gate stays only if it protects patch day readability or something a player would hit. Owner ruling 2026-11-02, "Remove the ones you don't think I should do." (Tech: candidates are the classes whose names say Todo, Docs, Readme or Markdown; the release zip and save safety checks stay, and so do the comment contract tests that LW-557 builds on.)
 - [LW-549] SHIPPED 1e88c231 2026-10-30: Committing code no longer stops for a cold read; the release step does it once instead. Publish.ps1 refuses to build the zip until a cold read covers every code change since the last release tag, names the files still missing, and offers a read of just those files. If the check itself cannot run, for example a broken hook or no git, it refuses rather than waving the release through. On a machine without the shared hooks, such as the GitHub runner, it skips the check out loud and still builds. From 2026-10-30 the cold read has no warnings stage, so new log entries carry stages 1, 2 and 4. Owner yes "Yes, wire Publish.ps1 too" (2026-10-30). (Tech: .claude/gates.json cold_read "when": "release"; Publish.ps1 Step 1b runs ~/.claude/hooks/quiz_gate.py release; ColdReadReleaseWiringContractTests reads the script with its comments taken out and pins the step, nine planted breaks red; the COLD_READ_LOG header describes the per release entry and says the roll waits for a passed Publish.)
 - [LW-545] SHIPPED fe9da716 2026-10-24: There is one release list now. The old scope doc, which nothing in the build or the game read but a 554 line test kept people ticking, moved to docs/archive, the tests that only policed it are gone, and every mention points at the archived path. TODO.md's Now section is the release list. (Tech: ReleaseScopeContractTests and TodoContractTests rule G deleted, 36 cases; paths repointed in changelog and archive text only, as fb357786 did; found by a claude.ai infrastructure review; owner yes "do what you see fit and beneficial".)
