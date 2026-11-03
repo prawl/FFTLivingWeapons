@@ -386,6 +386,37 @@ Locked 2026-10-24: LW-465, LW-508, LW-506, LW-448, LW-459, LW-513, LW-444, LW-38
   (Tech: tools/make_jobequip.py CEV_FLOOR = 8 over cev_targets; data/items.json proposed physEv and magEv on shields ids 128 to 143 and proposed evade on knives ids 1 to 8 and ninja blades ids 11 to 17; python tools/generate.py then tools/analyze.py, which gates shields on physEv and magEv, so lowering one axis can need a rider or tier check. None of the six other mods writes a row this mod writes, and none touches job command records 8 and 9, so the kit lane guard stays armed next to them; Global JP Boost patches 43 other job command records through the loader to strip JP Boost.)
 - [LW-554] 2026-11-03: Hats lost too much HP, so the jobs that wear them die fast once something lands; bring the tier 3 to 5 hats back to within about 10 percent of vanilla HP. The same 2026-11-01 Nexus comment said "the characters get weaker thanks to the diminished HP / MP values on armor." Hats carry 29 percent less HP than vanilla across the line (628 to 446 total), worst at the top: Thief's Cap 100 to 58, Gold Hairpin 80 to 48, Lambent Hat 88 to 54, Black Cowl 72 to 50, Celebrant's Miter 64 to 42, Headband 56 to 46, Wizard's Hat 40 to 28, Green Beret 48 to 40. Helmets are flat (950 to 956), and MP is up overall, so MP needs no change. Robes lost HP too (385 to 348, 10 percent), worst at the top: Black Robe 60 to 44, Luminous Robe 75 to 64, Lordly Robe 100 to 88; that loss is what sends a caster into clothes, where MP is near zero (the 2026-11-02 check of the same comment), so bring those three robes back to within about 10 percent of vanilla as well. Owner 2026-11-03: top of the backlog, not in the 2.5.0 list.
   (Tech: data/items.json proposed.hp on ids 161 to 168, baseline.hp is the vanilla number; targets at 90 percent are about 36, 43, 50, 58, 65, 72, 79, 90. Rerun python tools/analyze.py afterwards, since more HP can let one hat strictly beat another, and keep helmets above hats at the same tier. Robes are ids 205 to 207, targets at 90 percent about 54, 68, 90, and Lordly Robe's MP 80 to 64 is the one robe MP cut. Body armor's top end also lost HP (Maximillian 200 to 160, Rubber Suit 150 to 110, Genji Armor 150 to 125); a watch item, not part of this card.)
+- [LW-556] 2026-11-02: Cut the code comments down to the why, starting with Offsets.cs, so a
+  stranger on patch day finds the one fact each line needs. Today an address line in Offsets.cs
+  can carry its old address, probe dates and ledger row names. Keep one short line per offset that
+  says what it is, and move the history to docs/research. (Tech: Offsets.cs:24, the Slot0 line, is
+  the model of what to cut, since "u32 battle phase word" is the only part anyone needed; the
+  2026-11-02 code review counted 323 dates in comments across 97 files. Lower the
+  CommentBudgetContractTests baseline for each file as it shrinks.)
+- [LW-557] 2026-11-02: Keep the comments from growing back after the purge. Port Battle Brain's
+  ban on ticket and review round references in code comments, and drop the comment budget's 10
+  percent growth allowance so a file's comment count can only go down. (Tech: Battle Brain's
+  CommentContractTests, TicketRegex and ReviewRegex, with the LW prefix; CommentBudgetContractTests
+  GrowthAllowance 0.10 and GrowthFloor 3 become a plain no growth check. Land it the same day as
+  LW-556 so the purge cannot be undone. Both rules are candidates for the shared gates later.)
+- [LW-558] 2026-11-02: Write the comment rule down where every session reads it. Add a CLAUDE.md
+  that says a comment says why, never what or when, with one good example and one bad one, and
+  that the audit trail goes in commit messages and docs/research, never in code. (Tech: the test
+  is to delete the comment and ask whether a stranger on patch day would now get something wrong;
+  if not, it goes. Good: Engine.cs:16, "At fast-forward a death's hp==0 window is brief and a
+  100ms loop missed kills." Bad: Offsets.cs:24, the Slot0 line's history.)
+- [LW-559] 2026-11-02: Take the experiment code out of the release build, so players run the mod
+  and not the probes used to build it. VictimProbe runs inside the release KillTracker, and
+  TurnOwnerSpike is built and ticked every loop in the release Engine. (Tech: LivingWeapon/Dev
+  holds about 2,400 lines; KillTracker.cs:103 builds VictimProbe and Engine.cs:260 builds
+  TurnOwnerSpike, which leans on TurnOwnerProbe; put them behind LWDEV like the other spikes or
+  out of the release csproj, and keep Kills/VictimReader.cs, which the deed capture also uses.)
+- [LW-560] 2026-11-02: Audit the tests that check markdown and source text, and drop the ones
+  that guard paperwork rather than the mod. Every gate is code to maintain, and some only police
+  how a doc is written. Put new test effort into tapes instead, since they test what the mod does
+  in a battle. (Tech: the 2026-11-02 code review counted about 290 such tests here; keep the ones
+  that stop something a player would hit, like the release zip and save safety checks, and name
+  each test dropped and why in the commit.)
 - [LW-551] 2026-11-01: Cold read of Memory/NearAllocator.cs found 8 things worth a look. (cold-read, LW-550)
   - catch (Exception) in Alloc swallows every failure and returns 0, so a caller cannot tell no space from threw, and the log line is skipped on that path.
   - A failing Query makes both walks break silently, same as walking off the end of the address space.
