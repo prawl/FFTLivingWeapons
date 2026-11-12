@@ -1300,7 +1300,7 @@ def check_vanilla_weapon_rows(items, snapshot, guard_text):
 # within a tenth of the game's own HP.
 VANILLA_HP_KEPT = (161, 163, 164, 165, 166, 167, 168, 205, 206, 207)
 # Nine tenths of its vanilla HP would lift this hat past the weakest helmet of its tier.
-VANILLA_HP_WAITING = {162: "waits on the owner, 43 HP would pass the tier 3 helmet floor of 40"}
+VANILLA_HP_RULED = {162: "stays at 40 by owner ruling 2026-11-12, helmets beat hats at the same tier"}
 
 
 def vanilla_hp_floor(vanilla_hp):
@@ -1308,27 +1308,43 @@ def vanilla_hp_floor(vanilla_hp):
     return (9 * vanilla_hp + 5) // 10
 
 
-def check_vanilla_hp_floor(items, kept=VANILLA_HP_KEPT, waiting=None, say=print):
-    """Each listed hat or robe carries at least nine tenths of its vanilla HP. A waiting id is
-    skipped with its reason printed, and one that already meets the floor is a finding, so the
-    entry cannot outlive its question."""
-    waiting = VANILLA_HP_WAITING if waiting is None else waiting
+def check_vanilla_hp_floor(items, kept=VANILLA_HP_KEPT, ruled=None, say=print):
+    """Each listed hat or robe carries at least nine tenths of its vanilla HP. An owner ruled id
+    is skipped with its reason printed, and one that already meets the floor is a finding, so
+    the entry cannot outlive its ruling."""
+    ruled = VANILLA_HP_RULED if ruled is None else ruled
     by_id = {it["id"]: it for it in items}
     bad = []
-    for iid in sorted(set(kept) | set(waiting)):
+    for iid in sorted(set(kept) | set(ruled)):
         it = by_id.get(iid)
         if it is None:
             bad.append(({"id": iid, "name": "?"}, ["hp: listed for the vanilla HP floor but not in items.json"]))
             continue
         vanilla, hp = it["baseline"]["hp"], it["proposed"].get("hp", 0)
         floor = vanilla_hp_floor(vanilla)
-        if iid in waiting:
+        if iid in ruled:
             if hp >= floor:
-                bad.append((it, [f"hp: {hp} already meets the floor of {floor}, so drop its waiting entry"]))
+                bad.append((it, [f"hp: {hp} already meets the floor of {floor}, so drop its ruled entry"]))
             else:
-                say(f"  WAITING id{iid} {display_name(it)}: hp {hp} of vanilla {vanilla}, {waiting[iid]}")
+                say(f"  RULED id{iid} {display_name(it)}: hp {hp} of vanilla {vanilla}, {ruled[iid]}")
         elif hp < floor:
             bad.append((it, [f"hp: {hp} is under {floor}, nine tenths of the vanilla {vanilla}"]))
+    return bad
+
+
+def check_helmets_over_hats(items):
+    """No hat carries more HP than a helmet of its own tier. A tie stands."""
+    def hp(it):
+        return it["proposed"].get("hp", 0)
+
+    helmets = [it for it in items if it.get("category") == "Helmet" and "proposed" in it]
+    bad = []
+    for hat in (it for it in items if it.get("category") == "Hat" and "proposed" in it):
+        beaten = [h for h in helmets if h.get("tier") == hat.get("tier") and hp(hat) > hp(h)]
+        if beaten:
+            low = min(beaten, key=hp)
+            bad.append((hat, [f"hp: {hp(hat)} is over the tier {hat.get('tier')} helmet "
+                              f"{display_name(low)} at {hp(low)}"]))
     return bad
 
 
@@ -1445,8 +1461,8 @@ def _selftest_vanilla_hp_floor(check):
 
     said = []
 
-    def probs(items, kept=(1,), waiting=None):
-        return [p for _, ps in check_vanilla_hp_floor(items, kept, waiting or {}, said.append) for p in ps]
+    def probs(items, kept=(1,), ruled=None):
+        return [p for _, ps in check_vanilla_hp_floor(items, kept, ruled or {}, said.append) for p in ps]
 
     check("hp floor: a hat under nine tenths of vanilla is named",
           any("is under 36" in p for p in probs([hat(1, 40, 35)])))
@@ -1458,11 +1474,26 @@ def _selftest_vanilla_hp_floor(check):
     check("hp floor: an unlisted hat is not judged", probs([hat(1, 40, 36), hat(2, 40, 1)]) == [])
     check("hp floor: a listed id missing from the file is a finding",
           any("not in items.json" in p for p in probs([], kept=(1,))))
-    check("hp floor: a waiting hat under the floor is skipped and its reason is said",
-          probs([hat(1, 48, 40)], kept=(), waiting={1: "the reason"}) == []
-          and len(said) == 1 and "WAITING id1" in said[0] and "the reason" in said[0])
-    check("hp floor: a waiting hat that already meets the floor is a finding",
-          any("drop its waiting entry" in p for p in probs([hat(1, 48, 43)], kept=(), waiting={1: "why"})))
+    check("hp floor: a ruled hat under the floor is skipped and its reason is said",
+          probs([hat(1, 48, 40)], kept=(), ruled={1: "the reason"}) == []
+          and len(said) == 1 and "RULED id1" in said[0] and "the reason" in said[0])
+    check("hp floor: a ruled hat that already meets the floor is a finding",
+          any("drop its ruled entry" in p for p in probs([hat(1, 48, 43)], kept=(), ruled={1: "why"})))
+
+    def head(iid, category, tier, hp):
+        return {"id": iid, "name": "Test %s %d" % (category, iid), "category": category, "tier": tier,
+                "proposed": {"hp": hp}}
+
+    def over(items):
+        return [p for _, ps in check_helmets_over_hats(items) for p in ps]
+
+    check("helmets over hats: a hat above a helmet of its tier is named with that helmet",
+          any("is over the tier 3 helmet Test Helmet 2 at 40" in p
+              for p in over([head(1, "Hat", 3, 43), head(2, "Helmet", 3, 40), head(3, "Helmet", 3, 70)])))
+    check("helmets over hats: a tie stands", over([head(1, "Hat", 3, 40), head(2, "Helmet", 3, 40)]) == [])
+    check("helmets over hats: a helmet of another tier is not compared",
+          over([head(1, "Hat", 4, 72), head(2, "Helmet", 3, 40)]) == [])
+    check("helmets over hats: a tier with no helmet passes", over([head(1, "Hat", 5, 90)]) == [])
 
 
 def selftest():
@@ -1688,6 +1719,10 @@ def main():
         dict(header="VANILLA HP FLOOR (the listed hats and robes keep nine tenths of their vanilla HP)",
              check_fn=lambda: check_vanilla_hp_floor(items),
              pass_msg="PASS: every listed hat and robe carries at least nine tenths of its vanilla HP.",
+             format_failure=_fmt_drift_probs, sets_rc=True),
+        dict(header="HELMETS OVER HATS (no hat carries more HP than a helmet of its tier)",
+             check_fn=lambda: check_helmets_over_hats(items),
+             pass_msg="PASS: no hat carries more HP than a helmet of its tier.",
              format_failure=_fmt_drift_probs, sets_rc=True),
     ]
 

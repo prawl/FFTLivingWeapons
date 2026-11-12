@@ -66,7 +66,7 @@ the technical detail lives in the indented lines under it.
     Vanguard, at 5 or 6 Galewall, and an Archer at 27 to 35 a bow and no shield; any other
     shield at those levels, or an Archer with a crossbow and shield, means the gear walk is
     wrong for this port. A reading may sit one point under the expected number.
-- **[LW-553] Seven jobs lose a shield they have no reason to hold** (opened 2026-11-03) [QUEUED]
+- **[LW-553] Seven jobs lose a shield they have no reason to hold** (opened 2026-11-03) [BLOCKED(waits on the harness checking the dodge model in the game)]
   Too many jobs carry a shield, so battles turn into long strings of misses; take shields away
   from seven jobs that have no reason to hold one. A Nexus comment on 2026-11-01 said "everyone is
   wielding a damned shield. Way too much missing / evading." The mod hands a shield to 17 of the
@@ -88,7 +88,9 @@ the technical detail lives in the indented lines under it.
   - Verify: the job table check and the balance gate pass, the dodge report is run again and
     pasted, and a self test (LW-562) reads the changed job rows back from the running game and
     finds no shield on those jobs' enemies in a random battle.
-- **[LW-552] Enemies dodge less, back toward vanilla** (opened 2026-11-02) [QUEUED]
+  - On hold by the owner 2026-11-12: "Both rest on the dodge model, and no battle has confirmed it
+    yet. Decide them after the harness checks the model in the game."
+- **[LW-552] Enemies dodge less, back toward vanilla** (opened 2026-11-02) [BLOCKED(waits on the harness checking the dodge model in the game)]
   Enemies dodge too much under this mod, because every evasion number it raises also lands on the
   enemy's generic units; audit the enemy side of evasion and bring it down. The same 2026-11-01
   Nexus comment said "Way too much missing / evading" and that enemies feel deadlier. Checked
@@ -116,7 +118,9 @@ the technical detail lives in the indented lines under it.
   - Verify: the dodge report is run again and pasted beside the first reading, the balance gate
     passes, and a self test (LW-562) orders a few hundred front attacks on a pinned unit and the
     share that land matches the report.
-- **[LW-554] Hats and robes get most of their vanilla HP back** (opened 2026-11-03) [BUILDING]
+  - On hold by the owner 2026-11-12: "Both rest on the dodge model, and no battle has confirmed it
+    yet. Decide them after the harness checks the model in the game."
+- **[LW-554] Hats and robes get most of their vanilla HP back** (opened 2026-11-03) [AWAITING-LIVE]
   Hats lost too much HP, so the jobs that wear them die fast once something lands; bring the tier
   3 to 5 hats back to within about 10 percent of vanilla HP. The same 2026-11-01 Nexus comment
   said "the characters get weaker thanks to the diminished HP / MP values on armor." Hats carry 29
@@ -141,14 +145,18 @@ the technical detail lives in the indented lines under it.
     on ids 161 and 163 to 168 is 36, 50, 58, 65, 72, 79, 90 and on ids 205 to 207 is 54, 68, 90;
     ItemArmorData.xml regenerated; new VANILLA HP FLOOR stanza in tools/analyze.py with nine
     selftest cases; every hat and robe baseline matches the decoded game table.)
-  - Open question for the owner. Zephyr Beret (Green Beret, id 162) stays at 40 HP for now. Its
-    nine tenths target is 43, which would put a tier 3 hat above the weakest tier 3 helmet (Storm
-    Barbut, 40) and break "helmets still beat hats at the same tier". The choices are 43 anyway,
-    stay at 40, or raise Storm Barbut. The gate prints the hat as WAITING until he rules.
-  - Side effect for the owner to look at. Channeler's Robe (Black Robe) at 54 HP now has more HP
-    and more MP than its twin, Wardlight Robe (White Robe, 50 HP), which now stands on its halved
-    elements alone. Vanilla also had Black above White on HP. The design notes on both robes, on
-    Martial Band and on Arcanist Cap were reworded where the new numbers made them untrue.
+  - Owner ruling 2026-11-12: "Zephyr Beret stays at 40. Helmets beat hats at the same tier." Its
+    nine tenths target of 43 would have passed the weakest tier 3 helmet (Storm Barbut, 40). The
+    balance gate now keeps that hat as a ruled exception to the floor and refuses any hat with
+    more HP than a helmet of its tier. A tie stands, as 40 against 40 does today.
+  - Owner ruling 2026-11-12 on the robe twins: keep Channeler's Robe (Black Robe) at 54 "only if
+    Wardlight Robe still clearly wins at something else". It does. Wardlight halves Fire,
+    Lightning and Ice damage and Channeler's has no resist, so 54 stays, above Wardlight on HP
+    and MP as vanilla had it on HP. The design notes on both robes, on Martial Band and on
+    Arcanist Cap were reworded where the new numbers made them untrue. (Tech: equip bonus row
+    19 HalveElements against row 18 StrongElements in the decoded game table; new HELMETS OVER
+    HATS stanza in tools/analyze.py.)
+  - Left for the game: deploy, restart, and read the new HP on the ten items.
 - **[LW-562] The mod plays the game by itself to prove each change** (opened 2026-11-11) [QUEUED]
   Every change should be played in the real game by a script before a player gets it, with nobody
   watching. Today that takes the owner's eyes, and 2.4.0 shipped with 20 of its smoke boxes never
