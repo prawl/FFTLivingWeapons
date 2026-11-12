@@ -47,7 +47,11 @@ public class ModConfigTests : IDisposable
     public void FromFile_MissingPath_ReturnsDefaultAndDoesNotThrow()
     {
         var path = Path.Combine(TempDir(), "Config.json");
-        var ex = Record.Exception(() => Assert.NotNull(Configurable<Config>.FromFile(path, "Test")));
+        var ex = Record.Exception(() =>
+        {
+            using var config = Configurable<Config>.FromFile(path, "Test");
+            Assert.NotNull(config);
+        });
         Assert.Null(ex);
     }
 
@@ -57,7 +61,11 @@ public class ModConfigTests : IDisposable
         var path = Path.Combine(TempDir(), "Config.json");
         File.WriteAllText(path, "{ this is not valid json !!!");
 
-        var ex = Record.Exception(() => Assert.NotNull(Configurable<Config>.FromFile(path, "Test")));
+        var ex = Record.Exception(() =>
+        {
+            using var config = Configurable<Config>.FromFile(path, "Test");
+            Assert.NotNull(config);
+        });
         Assert.Null(ex);
     }
 
@@ -66,10 +74,25 @@ public class ModConfigTests : IDisposable
     {
         var path = Path.Combine(TempDir(), "Config.json");
 
-        Configurable<Config>.FromFile(path, "Test").Save();
+        using (var saved = Configurable<Config>.FromFile(path, "Test"))
+        {
+            saved.Save();
+        }
 
         Assert.True(File.Exists(path));
-        Assert.NotNull(Configurable<Config>.FromFile(path, "Test"));
+        using var loaded = Configurable<Config>.FromFile(path, "Test");
+        Assert.NotNull(loaded);
+    }
+
+    [Fact]
+    public void Dispose_releases_the_file_watcher()
+    {
+        var config = Configurable<Config>.FromFile(Path.Combine(TempDir(), "Config.json"), "Test");
+        Assert.True(config.Watching);
+
+        config.Dispose();
+
+        Assert.False(config.Watching);
     }
 
     // ---- The player-facing surface is empty ON PURPOSE ----

@@ -1,6 +1,6 @@
 {
- "sha": "53cce3f6",
- "date": "2026-11-03",
+ "sha": "360125a4",
+ "date": "2026-11-11",
  "columns": [
   "comments",
   "block",
@@ -30,7 +30,7 @@
   "Chronicle/StoryLines.cs": [11, 6, 42, 0, 0],
   "Chronicle/VictimClass.cs": [26, 5, 83, 0, 0],
   "Configuration/Config.cs": [5, 5, 4, 0, 0],
-  "Configuration/Configurable.cs": [6, 3, 78, 0, 0],
+  "Configuration/Configurable.cs": [6, 3, 94, 0, 0],
   "Configuration/Configurator.cs": [8, 3, 69, 0, 0],
   "Configuration/ConfiguratorMixinBase.cs": [2, 1, 13, 0, 0],
   "Dev/BodyDoubleSpike.cs": [250, 80, 1074, 0, 4],

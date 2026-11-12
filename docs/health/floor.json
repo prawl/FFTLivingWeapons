@@ -1,21 +1,22 @@
 {
- "sha": "53cce3f6",
- "date": "2026-11-03",
+ "sha": "360125a4",
+ "date": "2026-11-11",
  "dirty": true,
  "snapshot": {
   "prod_files": 323,
-  "prod_lines": 36726,
-  "code_lines": 24007,
+  "prod_lines": 36744,
+  "code_lines": 24023,
   "test_files": 289,
-  "test_lines": 81275,
+  "test_lines": 81298,
   "test_ratio": 2.21,
   "comment_share": 0.232,
   "empty_catches": 0,
   "catches": 137,
-  "methods": 1161,
+  "methods": 1162,
   "long_methods": 17,
   "long_files": 6,
-  "duplication": 0.0072
+  "duplication": 0.0072,
+  "duplicated_lines": 128
  },
  "since": "2026-11-03"
 }

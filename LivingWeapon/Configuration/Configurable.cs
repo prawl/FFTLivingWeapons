@@ -10,7 +10,7 @@ namespace LivingWeapon.Configuration;
 /// <summary>Base for mod config types, following the Reloaded-II mod template. FromFile loads or
 /// creates an instance, Save writes it back, and IUpdatableConfigurable ties it to the launcher
 /// property grid via Configurator.</summary>
-public class Configurable<TParentType> : IUpdatableConfigurable
+public class Configurable<TParentType> : IUpdatableConfigurable, IDisposable
     where TParentType : Configurable<TParentType>, new()
 {
     public static JsonSerializerOptions SerializerOptions { get; } = new()
@@ -32,6 +32,9 @@ public class Configurable<TParentType> : IUpdatableConfigurable
 
     // Held in a field so the GC keeps it alive. System.Text.Json skips private fields.
     private FileSystemWatcher? _watcher;
+    private readonly object _reloadLock = new();
+
+    internal bool Watching => _watcher is not null;
 
     Action IConfigurable.Save => Save;
 
@@ -70,6 +73,16 @@ public class Configurable<TParentType> : IUpdatableConfigurable
         File.WriteAllText(FilePath, json);
     }
 
+    public void Dispose()
+    {
+        lock (_reloadLock)
+        {
+            _watcher?.Dispose();
+            _watcher = null;
+        }
+        GC.SuppressFinalize(this);
+    }
+
     private void EnableWatcher()
     {
         if (string.IsNullOrEmpty(FilePath)) return;
@@ -86,7 +99,12 @@ public class Configurable<TParentType> : IUpdatableConfigurable
     {
         try
         {
-            var fresh = LoadFromFile(FilePath!);
+            TParentType fresh;
+            lock (_reloadLock)
+            {
+                if (_watcher is null) return;
+                fresh = LoadFromFile(FilePath!);
+            }
             fresh.FilePath = FilePath;
             fresh.ConfigName = ConfigName;
             ConfigurationUpdated?.Invoke(fresh);
