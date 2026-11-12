@@ -12,8 +12,6 @@ the technical detail lives in the indented lines under it.
 
 ## Now (release: 2.5.0)
 
-Locked 2026-10-24: LW-465, LW-508, LW-506, LW-448, LW-459, LW-513, LW-444, LW-386, LW-409, LW-195, LW-172, LW-234, LW-450, LW-514, LW-457, LW-511, LW-326, LW-296, LW-360, LW-191, LW-435, LW-396, LW-344 (the rest parked at the top of Backlog on 2026-11-02 for the quality pause; they come back here first)
-
 - **[LW-561] A dodge report shows how much harder enemies are to hit than in vanilla, per job and chapter, before any evade number moves** (opened 2026-11-03) [AWAITING-LIVE]
   Players say everyone dodges everything. Today the only way to check is counting by hand, and the
   hand count summed numbers that multiply and averaged across the whole line where chapter 1 got
@@ -68,7 +66,100 @@ Locked 2026-10-24: LW-465, LW-508, LW-506, LW-448, LW-459, LW-513, LW-444, LW-38
     Vanguard, at 5 or 6 Galewall, and an Archer at 27 to 35 a bow and no shield; any other
     shield at those levels, or an Archer with a crossbow and shield, means the gear walk is
     wrong for this port. A reading may sit one point under the expected number.
-- **[LW-465] A Provoke hold and a planted Bulwark let go the moment a battle rewinds** (opened 2026-10-19) [AWAITING-LIVE]
+- **[LW-553] Seven jobs lose a shield they have no reason to hold** (opened 2026-11-03) [QUEUED]
+  Too many jobs carry a shield, so battles turn into long strings of misses; take shields away
+  from seven jobs that have no reason to hold one. A Nexus comment on 2026-11-01 said "everyone is
+  wielding a damned shield. Way too much missing / evading." The mod hands a shield to 17 of the
+  20 generic jobs, while vanilla gives one to only 4 (Knight, Archer, Geomancer, Dragoon,
+  confirmed 2026-11-02 against the vanilla JobData table). Add Monk, Mime, White Mage, Time Mage,
+  Summoner, Mystic and Arithmetician to the no shield list, the same reason Black Mage came off on
+  2026-06-10 ("too durable for its damage output"). That leaves 10 shield jobs (the vanilla 4 plus
+  Thief, Orator, Samurai, Ninja, Bard, Dancer) and gives Knight's Equip Shield support its point
+  back. A Monk fights bare handed, so today the shield costs it nothing. Owner 2026-11-03: top of
+  the backlog, not in the 2.5.0 list.
+  (Tech: tools/make_jobequip.py NO_SHIELD = {"Squire", "Chemist", "Black Mage"} becomes ten names; the set is name keyed, so it covers both generic id ranges, e.g. Time Mage 68 and 81, Summoner 71 and 82, Mystic 70 and 85. Regenerate mod/FFTIVC/tables/enhanced/JobData.xml. The same rows also raise class evade from 5 to 8, which stacks with the shield; live play said so on 2026-11-02, and that floor plus the shield and dagger evade numbers are LW-552's to settle, not this card's.)
+  Waits on LW-561 (2026-11-03): the dodge report picks which jobs lose the shield. The review found
+  the seven may be the wrong seven, since Thief and Samurai keep theirs at 25 and 20 class evade
+  while the stripped jobs sit at 5 to 8.
+  - Promoted 2026-11-11 by the owner for the balance release.
+  - Done means: the jobs picked from the dodge report can no longer equip a shield, enemies of
+    those jobs stop showing up with one, and the report shows them about as easy to hit from the
+    front as the owner picked.
+  - Verify: the job table check and the balance gate pass, the dodge report is run again and
+    pasted, and a self test (LW-562) reads the changed job rows back from the running game and
+    finds no shield on those jobs' enemies in a random battle.
+- **[LW-552] Enemies dodge less, back toward vanilla** (opened 2026-11-02) [QUEUED]
+  Enemies dodge too much under this mod, because every evasion number it raises also lands on the
+  enemy's generic units; audit the enemy side of evasion and bring it down. The same 2026-11-01
+  Nexus comment said "Way too much missing / evading" and that enemies feel deadlier. Checked
+  2026-11-02 against the vanilla tables: the mod raises evasion four ways at once. Shields on 17
+  generic jobs instead of 4 (LW-550 takes seven back). Shield magic evade up 52 percent across the
+  line (196 to 298 total). Weapon evade up 12 percent (1438 to 1609, 54 rows changed), daggers and
+  ninja blades most (Mythril Knife 5 to 25, Ninja Longblade 5 to 20, Main Gauche 40 to 50). Class
+  evade floored from 5 to 8 on eleven generic jobs. Random enemy gear is drawn from what the job
+  can equip and class evade sits on the job row, so enemy mages, monks, thieves and ninjas spawn
+  holding shields the player has to buy. Weapon power is down (1278 to 1197, peak 40 to 28), so
+  enemies do not hit harder; they are harder to hit and live longer, which is what the player read
+  as deadlier. The commenter's other mods (WotL Restoration, Midbright's Deep, Global JP Boost, XP
+  Multiplier, Heretic Ramza, Dark Knight and Onion Knight, Treasure Master) touch none of shields,
+  evade, armor HP or MP, or enemy strength, so this is ours alone. Decide which of the four to
+  keep for players and how much of it enemies should get, then regenerate. Owner 2026-11-02: top
+  of the backlog with LW-550 and LW-551.
+  (Tech: tools/make_jobequip.py CEV_FLOOR = 8 over cev_targets; data/items.json proposed physEv and magEv on shields ids 128 to 143 and proposed evade on knives ids 1 to 8 and ninja blades ids 11 to 17; python tools/generate.py then tools/analyze.py, which gates shields on physEv and magEv, so lowering one axis can need a rider or tier check. None of the six other mods writes a row this mod writes, and none touches job command records 8 and 9, so the kit lane guard stays armed next to them; Global JP Boost patches 43 other job command records through the loader to strip JP Boost.)
+  Waits on LW-561 (2026-11-03): the numbers come from the report's level bands, not whole line
+  totals. Galewall went 15 to 24 physical evade at tier 1 while the line total looked flat, so
+  chapter 1 got worse unseen.
+  - Promoted 2026-11-11 by the owner for the balance release.
+  - Done means: the evade numbers the mod raised are set from the dodge report's level bands, so
+    an enemy is about as easy to hit at each band as the owner picked, and no item ends up
+    strictly beaten by another.
+  - Verify: the dodge report is run again and pasted beside the first reading, the balance gate
+    passes, and a self test (LW-562) orders a few hundred front attacks on a pinned unit and the
+    share that land matches the report.
+- **[LW-554] Hats and robes get most of their vanilla HP back** (opened 2026-11-03) [QUEUED]
+  Hats lost too much HP, so the jobs that wear them die fast once something lands; bring the tier
+  3 to 5 hats back to within about 10 percent of vanilla HP. The same 2026-11-01 Nexus comment
+  said "the characters get weaker thanks to the diminished HP / MP values on armor." Hats carry 29
+  percent less HP than vanilla across the line (628 to 446 total), worst at the top: Thief's Cap
+  100 to 58, Gold Hairpin 80 to 48, Lambent Hat 88 to 54, Black Cowl 72 to 50, Celebrant's Miter
+  64 to 42, Headband 56 to 46, Wizard's Hat 40 to 28, Green Beret 48 to 40. Helmets are flat (950
+  to 956), and MP is up overall, so MP needs no change. Robes lost HP too (385 to 348, 10
+  percent), worst at the top: Black Robe 60 to 44, Luminous Robe 75 to 64, Lordly Robe 100 to 88;
+  that loss is what sends a caster into clothes, where MP is near zero (the 2026-11-02 check of
+  the same comment), so bring those three robes back to within about 10 percent of vanilla as
+  well. Owner 2026-11-03: top of the backlog, not in the 2.5.0 list.
+  (Tech: data/items.json proposed.hp on ids 161 to 168, baseline.hp is the vanilla number; targets at 90 percent are about 36, 43, 50, 58, 65, 72, 79, 90. Rerun python tools/analyze.py afterwards, since more HP can let one hat strictly beat another, and keep helmets above hats at the same tier. Robes are ids 205 to 207, targets at 90 percent about 54, 68, 90, and Lordly Robe's MP 80 to 64 is the one robe MP cut. Body armor's top end also lost HP (Maximillian 200 to 160, Rubber Suit 150 to 110, Genji Armor 150 to 125); a watch item, not part of this card.)
+  - Promoted 2026-11-11 by the owner for the balance release.
+  - Done means: the hats and robes this card names carry HP within about 10 percent of their
+    vanilla numbers, helmets still beat hats at the same tier, and no item ends up strictly beaten
+    by another.
+  - Verify: the balance gate passes after the change, and a self test (LW-562) reads every changed
+    item row back from the running game and finds the new HP.
+- **[LW-562] The mod plays the game by itself to prove each change** (opened 2026-11-11) [QUEUED]
+  Every change should be played in the real game by a script before a player gets it, with nobody
+  watching. Today that takes the owner's eyes, and 2.4.0 shipped with 20 of its smoke boxes never
+  run. Build the test harness planned in docs/research/SELF_TEST_PLAN.md. It checks the game is
+  free, starts it, sets up a fight with memory writes, lets Battle Brain's mod play each unit from
+  a recipe file, judges the result against lines written down before the run, and puts everything
+  back the way it found it.
+  (Tech: Battle Brain's mod and tools are used where they sit, with no test hook in this mod and
+  no key presses, by owner ruling 2026-11-11; a lease file, a closed game and no Battle Brain
+  runner together mean free; the mod list, both mods' settings, the tally files and the save
+  folder are copied on take and restored on release; SELF PROVEN is the new mark and PROVEN stays
+  the owner's; every script passes the full gates. First test targets after the first proof are
+  LW-465, LW-506, LW-513 and LW-172.)
+  - Done means: one command plays a pinned fight on the production build with nobody at the PC and
+    leaves a proof pack, the same fight with the feature switched off fails, Publish refuses a
+    build with no green pack, and the game, its saves and Battle Brain's setup are exactly as they
+    were found.
+  - Verify: the busy check's selftest passes against a fake PC, one stock battle runs clean with
+    both mods loaded, the first proof fight credits one kill and its bait run credits none, and a
+    Battle Brain run started right after an LW run finds nothing changed.
+  - Added: yes "A new card for the self-test harness from SELF_TEST_PLAN.md, written ELI5-first with Done means and Verify" (2026-11-11)
+
+## Backlog
+
+- [LW-465] 2026-10-19: A Provoke hold and a planted Bulwark let go the moment a battle rewinds. Parked 2026-11-11 by the owner for the balance release; it was AWAITING-LIVE in Now and stays AWAITING-LIVE. It was on the locked release list. First test target of the self test harness (LW-562).
   - Quitting to the title and choosing Continue mid battle, or picking Retry, rewinds the fight in place without the battle end signal the Provoke hold and the Bulwark listen for, so a hold can hide the party until its watchdog lets go (box 9.2) and a barred tile stays barred until the wielder's next turn (box 9.4, LW-466). The first fix was dropped on release night because nobody has measured when the game rebuilds the battlefield after the restore. Probe that moment first, then release both on it.
   Carries LW-466: After a Retry with the Sunderer's Bulwark planted, the barred tile behind the wielder stays barred until the wielder's next turn opens, and the plant toast replays once on the rewound battle. Seen live on the dev build of 29632f46 (smoke box 9.4 step 3): plant at 22:48:37 barring (11,5), Retry at 22:49:04, a stale `The Sunderer plants its blade` toast delivered at 22:49:05, release only at 22:49:25 when the wielder's turn opened. It heals itself within one turn and only blocks one tile, so it ships as known for 2.4.0. Fix it with LW-465 in 2.4.1 on the same measured rewind moment: release the Bulwark and drop any queued signature toast when the checkpoint restore lands. (Tech: Bulwark.cs and Bulwark.Terrain.cs release on the wielder's turn edge or a battle edge only; the LW-458 restore count ExtendedInventory.RetryRewinds is the signal; BannerToast queue survived the rewind.)
   - Done means: a tape of a Retry and a quit and Continue with a hold up and a blade planted shows, per tick, the restore count rise, the live gate, battleMode, the band's invisible bits and the barred tile; the release then lands on a proven moment, nobody is left invisible, no tile stays barred, and no watchdog line fires.
@@ -78,7 +169,7 @@ Locked 2026-10-24: LW-465, LW-508, LW-506, LW-448, LW-459, LW-513, LW-444, LW-38
   - Probe ready 2026-10-24: tools/probes/lw465_rewind_tape.py tapes, one line per change, the battle mode, the two battle phase words, which units are invisible and which tiles are barred, stamped to the millisecond so it lines up with the mod's own restore lines in livingweapon.log. Owner runs it once around a Retry and once around a quit and Continue, each with a Provoke hold up and the Sunderer planted; the steps are in the probe's header. Read only.
   - Owner ruling 2026-10-24 on the toast: "If the moment has passed for a toast to appear just drop it." Built: a rewind now drops queued toasts with no log line (the black box still records each), the console line names only what was really held, and a hold that already ended on its own no longer counts as held. Parked again for the owner after the second fix round, as the build rule requires. The verifier passed the logic (gates green, the new tests fail when the fix is undone) and left only small text items: the class summary still says it fires "when a rewound battle comes back" though it fires about two seconds earlier, one new test comment uses the "Always gate:" colon its neighbors use, and the logging doc does not yet list the new "rewind" black box record. It also found the Retry run on the tape had no Sunderer planted, so the Retry plus Bulwark route is untested live; the live pass must include it. Recommendation: one last text only round, the cold read, then commit and live test. (Tech: worktree .claude/worktrees/lw465-rewind-release, uncommitted; BannerToast.DropPendingOnRewind, RewindRelease.Line, ProvokeHold.Holding on _flaggedNow; suite 4491 green; verifier code 7, spec 5 on the tape premise, now corrected in the spec.)
   - Committed 2026-10-24 in ccbc590f after a final verifier SHIP (code 9, spec 8) and the cold read: a rewind now lets go of the Provoke hold and the Bulwark, drops toasts whose moment passed without a log line, and prints one line naming only what was held. Live test, one step at a time: cast Provoke and Retry while the party is hidden, expect "The battle was rewound, so the Provoke hold lets go" once and no watchdog line; wait ten seconds, the party stays visible; plant the Sunderer and Retry, expect the Bulwark sentence and a walkable tile behind it (this Retry route was never taped); do both, then quit to title and Continue, expect the "both" sentence once; let a hold end on its own, then Retry, expect no rewind line at all. (Tech: the full ten step script with failure meanings is in the verifier report; if "provoke takes hold" reappears after a Retry with no new cast, the game's mark survived the checkpoint and the owner rules on it.)
-- **[LW-506] Hooks switch on only after they can call the game safely** (opened 2026-10-23) [AWAITING-LIVE]
+- [LW-506] 2026-10-23: Hooks switch on only after they can call the game safely. Parked 2026-11-11 by the owner for the balance release; it was AWAITING-LIVE in Now and stays AWAITING-LIVE. It was on the locked release list. First test target of the self test harness (LW-562).
   About a dozen of the mod's hooks switch on a moment before they save the handle they need to call the game's own routine, so a game call landing in that sliver would crash the game. Nobody has seen it happen, and the gap is microseconds at startup, but the fix is cheap.
   (Tech: `_hook = hooks.CreateHook(...).Activate()` assigns after Activate returns while the detour reads `_hook!.OriginalFunction`. Create, assign, then Activate. Sites: CategoryGetterHook, InventoryResetHook, ListBuilderHook, OrderRebuildHook, RewindRestoreHook (two), SaveEdgeHooks (three), PromptSwapHook, IconCacheHeal. Covers LW-468 and the same note on LW-500.)
   Built: every hook in that list now saves its handle for calling the game back before it switches on, and the two rewind hooks and the three save hooks are each created together first and switched on after. The owner checks two clean launches live, each showing every part ON, the prompt connection, the extended inventory armed line and the icon cache confirmed line, with no install failed lines.
@@ -86,14 +177,14 @@ Locked 2026-10-24: LW-465, LW-508, LW-506, LW-448, LW-459, LW-513, LW-444, LW-38
   - Done means: every hook in the list is created, saved and only then switched on, so no game call can ever find an empty handle.
   - Verify: a test per hook shape pins the order; two clean launches by the owner with every part reporting ON.
   - Live 2026-10-24 (dev build, owner): launch 1 clean, every hook connected (prompt, extended inventory, icon cache), none of the four failure lines, all parts armed after the first battle; launch 2 still to do. Launch 2 at 14:53 was clean the same way, so both clean launches are in.
-- **[LW-513] The glow rings work wherever Reloaded is installed** (opened 2026-10-23) [AWAITING-LIVE]
+- [LW-513] 2026-10-23: The glow rings work wherever Reloaded is installed. Parked 2026-11-11 by the owner for the balance release; it was AWAITING-LIVE in Now and stays AWAITING-LIVE. It was on the locked release list. First test target of the self test harness (LW-562).
   Players who installed Reloaded somewhere other than the game folder lose the glow rings on icons until a restart, because the mod looks for the game's art file a fixed three folders up. Find it a sturdier way.
   (Tech: IconGlow warns "IconGlow cannot locate modded.pac this launch"; smoke open risks, box 7.2.)
   - Done means: the mod finds the game's art file from the running game's own folder, so a Reloaded install outside the game folder keeps live glow rings.
   - Verify: tests on the path lookup; owner launch with the mod run from a Reloaded folder outside the game, no locate WARN and a ring refreshes after a tier change.
   - Live 2026-10-24 (dev build, owner): Pass A passed, the log found modded.pac beside the game exe with no locate warning, and after a tier poke the Claymore's ring was visibly weaker than its +3 neighbours (owner screenshot). Pass B (outside install) not run.
   - Built: the mod now looks for the game's art file next to the running game first and falls back to the old three folders up walk, so a Reloaded install outside the game folder can keep live glow rings. Owner checks live with a normal launch, a tier poke and a ring refresh, plus an optional outside install run. (Tech: new PacLocator policy with an injectable exists check, Info line names which candidate found modded.pac, a trace line gives the path; 4347 green, format clean; cold read entry LW-513 covers PacLocator.cs, IconGlow.StoreFile.cs and IconGlow.Pac.cs.)
-- **[LW-172] Chocobos stop being counted as humans** (opened 2026-08-12) [AWAITING-LIVE]
+- [LW-172] 2026-08-12: Chocobos stop being counted as humans. Parked 2026-11-11 by the owner for the balance release; it was AWAITING-LIVE in Now and stays AWAITING-LIVE. It was on the locked release list. First test target of the self test harness (LW-562).
   The mod's human versus monster job boundary is off by two, and every
   consumer of it needs an audit: monsters start at job 94 (Chocobo; Black Chocobo 95), not 96.
   OWNER SIGHTING 2026-08-17, the player-visible cost is now on record: during the LW-233 retry
@@ -119,9 +210,6 @@ Locked 2026-10-24: LW-465, LW-508, LW-506, LW-448, LW-459, LW-513, LW-444, LW-38
   - Verify: tests on every consumer of the line; owner kills a chocobo and the toast says monster.
   - Live 2026-10-24 (dev build, owner): a Black Chocobo kill (job 95) read felling a monster, and a later chocobo kill earned the Ragnarok the Beastbane Mark.
   - Built: the mod now treats chocobos as monsters, so killing one says it felled a monster, the equip card calls it a beast, and the Marks count it as a monster kill instead of a human. Owner checks live by killing a chocobo and reading the toast. Puppeteer play does not change, since it never filters on the line, and a Dark Knight foe still counts as a person. Story battle copies of monsters (jobs 169 to 173, one of them a chocobo) still read as an unnamed enemy and earn no Mark, by owner ruling 2026-10-24 ("Leave it alone"). (Tech: GenericJobHi 95 to 93 and MonsterJobLo 96 to 94 in Puppeteer.Policy.cs; VictimClass human band 74 to 93 plus 160, monster 94 to 144, the 94 Dark Knight name dropped; a test pins both band tables to agree on all 256 job ids; old saves reclass at display time, stored Human counts stay as recorded; proof for 94 and 95 is the Job sheet plus the LW-167 live read cited in LIVE_LEDGER poachers-den-carcass-store.)
-
-## Backlog
-
 - [LW-448] 2026-10-18: Enemies can no longer cast the commands your weapons grant. Parked 2026-11-02 by the owner's quality pause; it was QUEUED in Now. It was on the locked release list.
   Enemy Knights and Squires can cast Shadow Blade, and enemy Thieves can cast Barrage, whenever a player in the party holds the matching weapon at its top tier, because the mod grants those commands by writing them into the job's shared command list and every unit of that job reads the same list. The owner saw an enemy Knight named Dyana cast Shadow Blade on 2026-06-16; the bug was deferred on 2026-06-27 with two fix options and then fell out of the ledger when the LW ids arrived, surviving only in docs/archive/STAFF_SWORD_TEST_PLAN.md and git history (commits 63d4c183 and 110bd72a). Re surfaced 2026-10-18 by an owner question; nothing was ever wired, the code still grants on records 5 and 7 and carries no turn team gate. A player sees it, so under the freeze rule it may join R5 when a Now seat frees; the owner picks the fix. Options as analysed 2026-06-27: (A) a turn team gate that pulls the command out of the record on enemy and ally turns and re injects on the player's turn, relying on the 33 ms loop beating the AI's ability enumeration, must be live verified; (B) Ramza only, restrict Shadow Blade to the Mettle records 25 to 28 that no enemy uses, zero leak by construction but a generic Knight loses the signature; (C) drop the command grant for a per unit write and hold signature. Barrage has the same shape on the Thief record 14. Scope is unchanged until a wielder reaches +3 (15 kills on prod), so new players never meet it in the first chapter.
   (Tech: ShadowBladePolicy.AllowedRecords is still { 5, 7 } plus RamzaSwordJobs; no TurnQueue read exists in ShadowBlade.cs or Barrage.cs; LIVE_LEDGER [zero-value-command-ai-silent] proves only that a ZERO value command is not chosen by the AI, which is why Provoke does not leak in use while these two do; the UsableByAI byte at 0x140787F80 +7 mask 0x80 per ability is the mapped suppressor, never shipped, and clearing it for 165 and 358 would likely also stop a player unit on auto battle from using them, unverified.)
@@ -421,12 +509,6 @@ Locked 2026-10-24: LW-465, LW-508, LW-506, LW-448, LW-459, LW-513, LW-444, LW-38
   - Shipped first as the 2.4.1 hotfix from branch hotfix/2.4.1 at 893e9f00 with its own cold read entry; main carries the same allocator change and tests, ported 2026-11-01, and main's release check will ask for its own cold read of this file at 2.5.0. Live verify is the player's log, since the owner's game relocates under ASLR and never reaches the fallback.
   (Tech: log detail "list-relocation: page 0xC0010000 is out of int32 reach of field 0x140101001"; 0xC0010000 is exactly ImageBase.Base minus LiveNearAllocator.SearchRange, so the delta was 0 and the up scan over [base, base + 2 GB) committed nothing; LiveNearAllocator.Alloc's second Scan returned the first candidate bottom up; the fix collects the top candidate of every free region below and commits from the highest down; ledger rows [denuvo-free-build-relocates-under-aslr] and [item-count-lists-relocatable] cover the mechanism.)
 
-- [LW-553] 2026-11-03: Too many jobs carry a shield, so battles turn into long strings of misses; take shields away from seven jobs that have no reason to hold one. A Nexus comment on 2026-11-01 said "everyone is wielding a damned shield. Way too much missing / evading." The mod hands a shield to 17 of the 20 generic jobs, while vanilla gives one to only 4 (Knight, Archer, Geomancer, Dragoon, confirmed 2026-11-02 against the vanilla JobData table). Add Monk, Mime, White Mage, Time Mage, Summoner, Mystic and Arithmetician to the no shield list, the same reason Black Mage came off on 2026-06-10 ("too durable for its damage output"). That leaves 10 shield jobs (the vanilla 4 plus Thief, Orator, Samurai, Ninja, Bard, Dancer) and gives Knight's Equip Shield support its point back. A Monk fights bare handed, so today the shield costs it nothing. Owner 2026-11-03: top of the backlog, not in the 2.5.0 list.
-  (Tech: tools/make_jobequip.py NO_SHIELD = {"Squire", "Chemist", "Black Mage"} becomes ten names; the set is name keyed, so it covers both generic id ranges, e.g. Time Mage 68 and 81, Summoner 71 and 82, Mystic 70 and 85. Regenerate mod/FFTIVC/tables/enhanced/JobData.xml. The same rows also raise class evade from 5 to 8, which stacks with the shield; live play said so on 2026-11-02, and that floor plus the shield and dagger evade numbers are LW-552's to settle, not this card's.)
-- [LW-552] 2026-11-02: Enemies dodge too much under this mod, because every evasion number it raises also lands on the enemy's generic units; audit the enemy side of evasion and bring it down. The same 2026-11-01 Nexus comment said "Way too much missing / evading" and that enemies feel deadlier. Checked 2026-11-02 against the vanilla tables: the mod raises evasion four ways at once. Shields on 17 generic jobs instead of 4 (LW-550 takes seven back). Shield magic evade up 52 percent across the line (196 to 298 total). Weapon evade up 12 percent (1438 to 1609, 54 rows changed), daggers and ninja blades most (Mythril Knife 5 to 25, Ninja Longblade 5 to 20, Main Gauche 40 to 50). Class evade floored from 5 to 8 on eleven generic jobs. Random enemy gear is drawn from what the job can equip and class evade sits on the job row, so enemy mages, monks, thieves and ninjas spawn holding shields the player has to buy. Weapon power is down (1278 to 1197, peak 40 to 28), so enemies do not hit harder; they are harder to hit and live longer, which is what the player read as deadlier. The commenter's other mods (WotL Restoration, Midbright's Deep, Global JP Boost, XP Multiplier, Heretic Ramza, Dark Knight and Onion Knight, Treasure Master) touch none of shields, evade, armor HP or MP, or enemy strength, so this is ours alone. Decide which of the four to keep for players and how much of it enemies should get, then regenerate. Owner 2026-11-02: top of the backlog with LW-550 and LW-551.
-  (Tech: tools/make_jobequip.py CEV_FLOOR = 8 over cev_targets; data/items.json proposed physEv and magEv on shields ids 128 to 143 and proposed evade on knives ids 1 to 8 and ninja blades ids 11 to 17; python tools/generate.py then tools/analyze.py, which gates shields on physEv and magEv, so lowering one axis can need a rider or tier check. None of the six other mods writes a row this mod writes, and none touches job command records 8 and 9, so the kit lane guard stays armed next to them; Global JP Boost patches 43 other job command records through the loader to strip JP Boost.)
-- [LW-554] 2026-11-03: Hats lost too much HP, so the jobs that wear them die fast once something lands; bring the tier 3 to 5 hats back to within about 10 percent of vanilla HP. The same 2026-11-01 Nexus comment said "the characters get weaker thanks to the diminished HP / MP values on armor." Hats carry 29 percent less HP than vanilla across the line (628 to 446 total), worst at the top: Thief's Cap 100 to 58, Gold Hairpin 80 to 48, Lambent Hat 88 to 54, Black Cowl 72 to 50, Celebrant's Miter 64 to 42, Headband 56 to 46, Wizard's Hat 40 to 28, Green Beret 48 to 40. Helmets are flat (950 to 956), and MP is up overall, so MP needs no change. Robes lost HP too (385 to 348, 10 percent), worst at the top: Black Robe 60 to 44, Luminous Robe 75 to 64, Lordly Robe 100 to 88; that loss is what sends a caster into clothes, where MP is near zero (the 2026-11-02 check of the same comment), so bring those three robes back to within about 10 percent of vanilla as well. Owner 2026-11-03: top of the backlog, not in the 2.5.0 list.
-  (Tech: data/items.json proposed.hp on ids 161 to 168, baseline.hp is the vanilla number; targets at 90 percent are about 36, 43, 50, 58, 65, 72, 79, 90. Rerun python tools/analyze.py afterwards, since more HP can let one hat strictly beat another, and keep helmets above hats at the same tier. Robes are ids 205 to 207, targets at 90 percent about 54, 68, 90, and Lordly Robe's MP 80 to 64 is the one robe MP cut. Body armor's top end also lost HP (Maximillian 200 to 160, Rubber Suit 150 to 110, Genji Armor 150 to 125); a watch item, not part of this card.)
 - [LW-556] 2026-11-02: Cut the code comments in Offsets.cs down to the why, so a stranger on patch
   day finds the one fact each line needs. Today an address line there can carry its old address,
   probe dates and ledger row names. Keep one short line per offset that says what it is, and move
@@ -525,12 +607,6 @@ Locked 2026-10-24: LW-465, LW-508, LW-506, LW-448, LW-459, LW-513, LW-444, LW-38
 - [LW-520] 2026-10-24: The mod times battles with the wall clock, so on a daylight saving night one tick can look an hour long and a battle can be read as ended mid fight. Rare, since it needs a session running through the time change, and the fix is small.
   After the fall back, the time since the last field tick also reads negative for an hour, which skews card paint timing and the twin pistol's seconds off field.
   (Tech: Engine.cs tick reads DateTime.Now; BattleState ignores backward jumps but not forward ones, so one long delta fills ExitDebounceSeconds 4.0 if it lands out of live; `s.Now - _lastField` goes negative after a fall back. Use a Stopwatch based tick clock, which LW-519's tapes also use.)
-  Waits on LW-561 (2026-11-03): the dodge report picks which jobs lose the shield. The review found
-  the seven may be the wrong seven, since Thief and Samurai keep theirs at 25 and 20 class evade
-  while the stripped jobs sit at 5 to 8.
-  Waits on LW-561 (2026-11-03): the numbers come from the report's level bands, not whole line
-  totals. Galewall went 15 to 24 physical evade at tier 1 while the line total looked flat, so
-  chapter 1 got worse unseen.
 
 - [LW-463] 2026-10-19: The readability quiz becomes one four stage pipeline, in a fixed order, after the 2.4.0 tag. First the cold read as today, with one label change (a why that lives only in a comment counts as a miss, and "bad question" means only that the answer needs code outside the packet). Then one plain words comment pass, comments only, with the stripped code proven identical and comment lines not allowed to rise. Then every warning comment ("must run before", "changing one means changing the other") goes back to the code and is fixed there or kept with a logged reason. Last, a second toolless reader gets the files with comments and reports any comment the code does not back up. One log entry per change with a result per stage. Values in the order they win, accuracy, then understanding, then readability. (Tech: owner review doc "Corpses readability review", 2026-10-19; the four versions on branch compare/corpses-readability, A 12ac7ea7 plain words only scored 6, B 2e0fd3ad cold read only 6.5, C a8072bc8 cold read then plain words 7, D 14708265 the warnings turned into code; the gate and its skill live in the home setup repo.)
 - [LW-462] 2026-10-19: The corpse scan keeps about fifteen side by side lists, one entry per battle seat, so forgetting a death means clearing every list by hand and missing one is easy. After the 2.4.0 release, give each seat one object holding what we watch (seen alive, streaks, recorded identity, last dead hp), the open death case (verdict, waiting, killer stamp, victim snapshot) and the paid kill, so forgetting a death is two assignments. One identity type with one same unit check replaces the three tuples. Then turn the dead edge priority chain into a small pure function that returns a verdict, tested with a table of cases, name the team values, and return what changed instead of threading a ref flag. One group per commit, paid kill first, replayed battles green before and after each step, seats made once per battle. (Tech: LivingWeapon/Kills/KillTracker.Corpses.cs; owner review doc steps 7.5 to 9; Seat, Watch, DeathCase, PaidKill, UnitIdentity.SameUnit are the review's names.)
