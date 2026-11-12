@@ -5083,7 +5083,7 @@
       "vanillaName": "Headgear",
       "name": "Martial Band",
       "tier": 3,
-      "identity": "Niche: PA+1 with the highest HP of the early hats — the cheap melee hat for a Monk/Archer wanting hat mobility plus a little punch; Headband is the budget-to-cap fork.",
+      "identity": "Niche: PA+1 with sturdy HP for an early hat — the cheap melee hat for a Monk/Archer wanting hat mobility plus a little punch; Headband is the budget-to-cap fork.",
       "flavorOverride": "A band bound tight across a brawler's brow, lending the arm more weight behind every blow.",
       "baseline": {
         "hp": 32,
@@ -5111,7 +5111,7 @@
       "vanillaName": "Wizard's Hat",
       "name": "Arcanist Cap",
       "tier": 3,
-      "identity": "ICONIC: MA+1 plus a real MP pool, lowest HP of its tier — the classic caster fork, glassy but more and stronger spells; the MA/MP answer to Martial Band's PA.",
+      "identity": "ICONIC: MA+1 plus a real MP pool — the classic caster fork, more and stronger spells; the MA/MP answer to Martial Band's PA.",
       "flavorOverride": "A peaked cap stitched with old sigils, sharpening the mind to draw deeper on the arcane.",
       "baseline": {
         "hp": 40,
@@ -5120,7 +5120,7 @@
         "magEv": 0
       },
       "proposed": {
-        "hp": 28,
+        "hp": 36,
         "mp": 18,
         "physEv": 0,
         "magEv": 0,
@@ -5176,7 +5176,7 @@
         "magEv": 0
       },
       "proposed": {
-        "hp": 46,
+        "hp": 50,
         "mp": 0,
         "physEv": 0,
         "magEv": 0,
@@ -5204,7 +5204,7 @@
         "magEv": 0
       },
       "proposed": {
-        "hp": 42,
+        "hp": 58,
         "mp": 28,
         "physEv": 0,
         "magEv": 0,
@@ -5232,7 +5232,7 @@
         "magEv": 0
       },
       "proposed": {
-        "hp": 50,
+        "hp": 65,
         "mp": 0,
         "physEv": 8,
         "magEv": 0,
@@ -5260,7 +5260,7 @@
         "magEv": 0
       },
       "proposed": {
-        "hp": 48,
+        "hp": 72,
         "mp": 40,
         "physEv": 0,
         "magEv": 0,
@@ -5288,7 +5288,7 @@
         "magEv": 0
       },
       "proposed": {
-        "hp": 54,
+        "hp": 79,
         "mp": 20,
         "physEv": 0,
         "magEv": 10,
@@ -5316,7 +5316,7 @@
         "magEv": 0
       },
       "proposed": {
-        "hp": 58,
+        "hp": 90,
         "mp": 0,
         "physEv": 15,
         "magEv": 0,
@@ -6314,7 +6314,7 @@
       "vanillaName": "White Robe",
       "name": "Wardlight Robe",
       "tier": 4,
-      "identity": "ICONIC. The element-DEFENSE robe — halves all three primary attack elements (EB19). The durable caster who walks into enemy Fire/Bolt/Ice crossfire. More HP than its Black twin (defense = more body) at a touch less MP.",
+      "identity": "ICONIC. The element-DEFENSE robe — halves all three primary attack elements (EB19). The durable caster who walks into enemy Fire/Bolt/Ice crossfire. A little less HP and MP than its Black twin, so the halved elements are its whole defense.",
       "flavorOverride": "Pale ward-robe that tempers flame, frost, and storm for the caster who walks a crossfire.",
       "baseline": {
         "hp": 50,
@@ -6342,7 +6342,7 @@
       "vanillaName": "Black Robe",
       "name": "Channeler's Robe",
       "tier": 4,
-      "identity": "ICONIC. The element-OFFENSE twin of White Robe (same tier, same 3 elements, opposite intent) — boosts the WEARER's own Fire/Lightning/Ice spells (EB18). Glass cannon: more MP than White (more spells to throw) but less HP and no resist. Pick to nuke harder, not survive.",
+      "identity": "ICONIC. The element-OFFENSE twin of White Robe (same tier, same 3 elements, opposite intent) — boosts the WEARER's own Fire/Lightning/Ice spells (EB18). More MP than White (more spells to throw) and a little more HP, but no resist. Pick to nuke harder, not survive.",
       "flavorOverride": "Dark robe that hones fire, frost, and storm to a finer point at a whispered word.",
       "baseline": {
         "hp": 60,
@@ -6351,7 +6351,7 @@
         "magEv": 0
       },
       "proposed": {
-        "hp": 44,
+        "hp": 54,
         "mp": 42,
         "physEv": 0,
         "magEv": 0,
@@ -6379,7 +6379,7 @@
         "magEv": 0
       },
       "proposed": {
-        "hp": 64,
+        "hp": 68,
         "mp": 52,
         "physEv": 0,
         "magEv": 0,
@@ -6407,7 +6407,7 @@
         "magEv": 0
       },
       "proposed": {
-        "hp": 88,
+        "hp": 90,
         "mp": 64,
         "physEv": 0,
         "magEv": 0,

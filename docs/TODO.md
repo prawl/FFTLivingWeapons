@@ -116,7 +116,7 @@ the technical detail lives in the indented lines under it.
   - Verify: the dodge report is run again and pasted beside the first reading, the balance gate
     passes, and a self test (LW-562) orders a few hundred front attacks on a pinned unit and the
     share that land matches the report.
-- **[LW-554] Hats and robes get most of their vanilla HP back** (opened 2026-11-03) [QUEUED]
+- **[LW-554] Hats and robes get most of their vanilla HP back** (opened 2026-11-03) [BUILDING]
   Hats lost too much HP, so the jobs that wear them die fast once something lands; bring the tier
   3 to 5 hats back to within about 10 percent of vanilla HP. The same 2026-11-01 Nexus comment
   said "the characters get weaker thanks to the diminished HP / MP values on armor." Hats carry 29
@@ -135,6 +135,20 @@ the technical detail lives in the indented lines under it.
     by another.
   - Verify: the balance gate passes after the change, and a self test (LW-562) reads every changed
     item row back from the running game and finds the new HP.
+  - Built: ten of the eleven. Seven hats and the three robes now carry nine tenths of their
+    vanilla HP, and the balance gate holds that line from now on. Every helmet still has at least
+    as much HP as every hat of its tier. Nothing is checked in the game yet. (Tech: proposed.hp
+    on ids 161 and 163 to 168 is 36, 50, 58, 65, 72, 79, 90 and on ids 205 to 207 is 54, 68, 90;
+    ItemArmorData.xml regenerated; new VANILLA HP FLOOR stanza in tools/analyze.py with nine
+    selftest cases; every hat and robe baseline matches the decoded game table.)
+  - Open question for the owner. Zephyr Beret (Green Beret, id 162) stays at 40 HP for now. Its
+    nine tenths target is 43, which would put a tier 3 hat above the weakest tier 3 helmet (Storm
+    Barbut, 40) and break "helmets still beat hats at the same tier". The choices are 43 anyway,
+    stay at 40, or raise Storm Barbut. The gate prints the hat as WAITING until he rules.
+  - Side effect for the owner to look at. Channeler's Robe (Black Robe) at 54 HP now has more HP
+    and more MP than its twin, Wardlight Robe (White Robe, 50 HP), which now stands on its halved
+    elements alone. Vanilla also had Black above White on HP. The design notes on both robes, on
+    Martial Band and on Arcanist Cap were reworded where the new numbers made them untrue.
 - **[LW-562] The mod plays the game by itself to prove each change** (opened 2026-11-11) [QUEUED]
   Every change should be played in the real game by a script before a player gets it, with nobody
   watching. Today that takes the owner's eyes, and 2.4.0 shipped with 20 of its smoke boxes never
@@ -509,6 +523,13 @@ the technical detail lives in the indented lines under it.
   - Shipped first as the 2.4.1 hotfix from branch hotfix/2.4.1 at 893e9f00 with its own cold read entry; main carries the same allocator change and tests, ported 2026-11-01, and main's release check will ask for its own cold read of this file at 2.5.0. Live verify is the player's log, since the owner's game relocates under ASLR and never reaches the fallback.
   (Tech: log detail "list-relocation: page 0xC0010000 is out of int32 reach of field 0x140101001"; 0xC0010000 is exactly ImageBase.Base minus LiveNearAllocator.SearchRange, so the delta was 0 and the up scan over [base, base + 2 GB) committed nothing; LiveNearAllocator.Alloc's second Scan returned the first candidate bottom up; the fix collects the top candidate of every free region below and commits from the highest down; ledger rows [denuvo-free-build-relocates-under-aslr] and [item-count-lists-relocatable] cover the mechanism.)
 
+- [LW-563] 2026-11-11: The item list says the vanilla Rubber Suit gives no MP, but the game's own
+  table says 30, so the mod cut its MP from 30 to 14 while its notes read as a gain. Fix the note
+  and let the owner rule on the number. Found while checking the LW-554 baselines.
+  (Tech: data/items.json id 199 baseline.mp is 0, the decoded row in working/ref/armor.json is
+  hp 150 mp 30; the other 63 head and body baselines match. data/vanilla_tables.json holds no
+  ItemArmorData rows, so tools/analyze.py cannot gate head and body baselines the way it gates
+  weapons and shields.)
 - [LW-556] 2026-11-02: Cut the code comments in Offsets.cs down to the why, so a stranger on patch
   day finds the one fact each line needs. Today an address line there can carry its old address,
   probe dates and ledger row names. Keep one short line per offset that says what it is, and move

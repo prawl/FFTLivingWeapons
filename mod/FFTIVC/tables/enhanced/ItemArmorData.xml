@@ -90,7 +90,7 @@
     </ItemArmor>
     <ItemArmor>
       <Id>17</Id> <!-- Arcanist Cap (was Wizard's Hat) -->
-      <HPBonus>28</HPBonus>
+      <HPBonus>36</HPBonus>
       <MPBonus>18</MPBonus>
     </ItemArmor>
     <ItemArmor>
@@ -100,32 +100,32 @@
     </ItemArmor>
     <ItemArmor>
       <Id>19</Id> <!-- Twisted Headband (was Headband) -->
-      <HPBonus>46</HPBonus>
-      <MPBonus>0</MPBonus>
-    </ItemArmor>
-    <ItemArmor>
-      <Id>20</Id> <!-- Hierophant Miter (was Celebrant's Miter) -->
-      <HPBonus>42</HPBonus>
-      <MPBonus>28</MPBonus>
-    </ItemArmor>
-    <ItemArmor>
-      <Id>21</Id> <!-- Assassin's Cowl (was Black Cowl) -->
       <HPBonus>50</HPBonus>
       <MPBonus>0</MPBonus>
     </ItemArmor>
     <ItemArmor>
+      <Id>20</Id> <!-- Hierophant Miter (was Celebrant's Miter) -->
+      <HPBonus>58</HPBonus>
+      <MPBonus>28</MPBonus>
+    </ItemArmor>
+    <ItemArmor>
+      <Id>21</Id> <!-- Assassin's Cowl (was Black Cowl) -->
+      <HPBonus>65</HPBonus>
+      <MPBonus>0</MPBonus>
+    </ItemArmor>
+    <ItemArmor>
       <Id>22</Id> <!-- Mana Coronet (was Gold Hairpin) -->
-      <HPBonus>48</HPBonus>
+      <HPBonus>72</HPBonus>
       <MPBonus>40</MPBonus>
     </ItemArmor>
     <ItemArmor>
       <Id>23</Id> <!-- Lumen Crown (was Lambent Hat) -->
-      <HPBonus>54</HPBonus>
+      <HPBonus>79</HPBonus>
       <MPBonus>20</MPBonus>
     </ItemArmor>
     <ItemArmor>
       <Id>24</Id> <!-- Nightrunner Cap (was Thief's Cap) -->
-      <HPBonus>58</HPBonus>
+      <HPBonus>90</HPBonus>
       <MPBonus>0</MPBonus>
     </ItemArmor>
     <ItemArmor>
@@ -310,17 +310,17 @@
     </ItemArmor>
     <ItemArmor>
       <Id>61</Id> <!-- Channeler's Robe (was Black Robe) -->
-      <HPBonus>44</HPBonus>
+      <HPBonus>54</HPBonus>
       <MPBonus>42</MPBonus>
     </ItemArmor>
     <ItemArmor>
       <Id>62</Id> <!-- Empyrean Robe (was Luminous Robe) -->
-      <HPBonus>64</HPBonus>
+      <HPBonus>68</HPBonus>
       <MPBonus>52</MPBonus>
     </ItemArmor>
     <ItemArmor>
       <Id>63</Id> <!-- Lordly Robe -->
-      <HPBonus>88</HPBonus>
+      <HPBonus>90</HPBonus>
       <MPBonus>64</MPBonus>
     </ItemArmor>
   </Entries>

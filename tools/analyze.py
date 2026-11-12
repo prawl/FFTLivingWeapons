@@ -1296,6 +1296,42 @@ def check_vanilla_weapon_rows(items, snapshot, guard_text):
     return bad
 
 
+# Players said the cut hats and robes left their wearers too frail, so these come back to
+# within a tenth of the game's own HP.
+VANILLA_HP_KEPT = (161, 163, 164, 165, 166, 167, 168, 205, 206, 207)
+# Nine tenths of its vanilla HP would lift this hat past the weakest helmet of its tier.
+VANILLA_HP_WAITING = {162: "waits on the owner, 43 HP would pass the tier 3 helmet floor of 40"}
+
+
+def vanilla_hp_floor(vanilla_hp):
+    """Nine tenths of the vanilla HP, a half point rounding up."""
+    return (9 * vanilla_hp + 5) // 10
+
+
+def check_vanilla_hp_floor(items, kept=VANILLA_HP_KEPT, waiting=None, say=print):
+    """Each listed hat or robe carries at least nine tenths of its vanilla HP. A waiting id is
+    skipped with its reason printed, and one that already meets the floor is a finding, so the
+    entry cannot outlive its question."""
+    waiting = VANILLA_HP_WAITING if waiting is None else waiting
+    by_id = {it["id"]: it for it in items}
+    bad = []
+    for iid in sorted(set(kept) | set(waiting)):
+        it = by_id.get(iid)
+        if it is None:
+            bad.append(({"id": iid, "name": "?"}, ["hp: listed for the vanilla HP floor but not in items.json"]))
+            continue
+        vanilla, hp = it["baseline"]["hp"], it["proposed"].get("hp", 0)
+        floor = vanilla_hp_floor(vanilla)
+        if iid in waiting:
+            if hp >= floor:
+                bad.append((it, [f"hp: {hp} already meets the floor of {floor}, so drop its waiting entry"]))
+            else:
+                say(f"  WAITING id{iid} {display_name(it)}: hp {hp} of vanilla {vanilla}, {waiting[iid]}")
+        elif hp < floor:
+            bad.append((it, [f"hp: {hp} is under {floor}, nine tenths of the vanilla {vanilla}"]))
+    return bad
+
+
 def fmt(it, key, nf):
     s = it[key]
     axes = " ".join(f"{ax}{s[ax]}" for ax in NUMERIC_AXES if ax in s)
@@ -1402,6 +1438,33 @@ def _fmt_drift_probs(v):
             print(f"  DRIFT id{a['id']} {a.get('name')}: {prob}")
 
 
+def _selftest_vanilla_hp_floor(check):
+    """Cases for the vanilla HP floor, on rows made here so the real list never decides them."""
+    def hat(iid, vanilla, hp):
+        return {"id": iid, "name": "Test Hat", "category": "Hat", "baseline": {"hp": vanilla}, "proposed": {"hp": hp}}
+
+    said = []
+
+    def probs(items, kept=(1,), waiting=None):
+        return [p for _, ps in check_vanilla_hp_floor(items, kept, waiting or {}, said.append) for p in ps]
+
+    check("hp floor: a hat under nine tenths of vanilla is named",
+          any("is under 36" in p for p in probs([hat(1, 40, 35)])))
+    check("hp floor: a hat at nine tenths passes", probs([hat(1, 40, 36)]) == [])
+    check("hp floor: a hat above vanilla passes", probs([hat(1, 32, 34)]) == [])
+    check("hp floor: a half point rounds up, so 67 fails for vanilla 75",
+          any("is under 68" in p for p in probs([hat(1, 75, 67)])))
+    check("hp floor: under a half point rounds down, so 50 passes for vanilla 56", probs([hat(1, 56, 50)]) == [])
+    check("hp floor: an unlisted hat is not judged", probs([hat(1, 40, 36), hat(2, 40, 1)]) == [])
+    check("hp floor: a listed id missing from the file is a finding",
+          any("not in items.json" in p for p in probs([], kept=(1,))))
+    check("hp floor: a waiting hat under the floor is skipped and its reason is said",
+          probs([hat(1, 48, 40)], kept=(), waiting={1: "the reason"}) == []
+          and len(said) == 1 and "WAITING id1" in said[0] and "the reason" in said[0])
+    check("hp floor: a waiting hat that already meets the floor is a finding",
+          any("drop its waiting entry" in p for p in probs([hat(1, 48, 43)], kept=(), waiting={1: "why"})))
+
+
 def selftest():
     """Built-in regression cases for the VANILLA ROWS gate (LW-420), small in-memory fixtures
     only, no game file. Mirrors gen_living_weapon_meta.py --selftest's check()/report shape.
@@ -1481,6 +1544,8 @@ def selftest():
     check("a guard file without the constant is a finding",
           any("ExpectedTimeDateStamp" in p for p in probs([item()], snap(), guard_text="// nothing here")))
     check("a stamp match plus clean rows is clean", probs([item()], snap()) == [])
+
+    _selftest_vanilla_hp_floor(check)
 
     passed = sum(1 for _, ok in cases if ok)
     for name, ok in cases:
@@ -1619,6 +1684,10 @@ def main():
                     "snapshot stamp matches LaunchGuard)",
              check_fn=lambda: check_vanilla_weapon_rows(items, load_vanilla_weapon_rows(), _launch_guard_text()),
              pass_msg="PASS: every weapon baseline matches the vanilla row snapshot.",
+             format_failure=_fmt_drift_probs, sets_rc=True),
+        dict(header="VANILLA HP FLOOR (the listed hats and robes keep nine tenths of their vanilla HP)",
+             check_fn=lambda: check_vanilla_hp_floor(items),
+             pass_msg="PASS: every listed hat and robe carries at least nine tenths of its vanilla HP.",
              format_failure=_fmt_drift_probs, sets_rc=True),
     ]
 
