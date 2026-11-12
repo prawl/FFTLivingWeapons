@@ -445,7 +445,7 @@ function Invoke-TablePipeline {
     # ungated-package path this used to allow. The intentional skip is
     # Publish.ps1's -SkipGenerate, and only after a gated run this session.
     param(
-        [Parameter(Mandatory = $true)][ValidateSet('DEPLOY', 'PACKAGE')]
+        [Parameter(Mandatory = $true)][ValidateSet('DEPLOY', 'PACKAGE', 'CHECK')]
         [string]$FailVerb
     )
 

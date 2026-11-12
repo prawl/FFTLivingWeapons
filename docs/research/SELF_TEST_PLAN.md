@@ -1,6 +1,6 @@
 # Self test plan: Living Weapons proves its own changes in the game
 
-STATUS: JOURNAL (plan, written 2026-11-11 from a read only pass; owner ruled its four decisions the same day; nothing built)
+STATUS: JOURNAL (plan, written 2026-11-11 from a read only pass; owner ruled its four decisions the same day; what is built since is on card LW-562 in docs/TODO.md)
 
 ## The goal
 

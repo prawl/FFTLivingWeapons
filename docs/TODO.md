@@ -157,7 +157,7 @@ the technical detail lives in the indented lines under it.
     19 HalveElements against row 18 StrongElements in the decoded game table; new HELMETS OVER
     HATS stanza in tools/analyze.py.)
   - Left for the game: deploy, restart, and read the new HP on the ten items.
-- **[LW-562] The mod plays the game by itself to prove each change** (opened 2026-11-11) [QUEUED]
+- **[LW-562] The mod plays the game by itself to prove each change** (opened 2026-11-11) [BUILDING]
   Every change should be played in the real game by a script before a player gets it, with nobody
   watching. Today that takes the owner's eyes, and 2.4.0 shipped with 20 of its smoke boxes never
   run. Build the test harness planned in docs/research/SELF_TEST_PLAN.md. It checks the game is
@@ -178,6 +178,11 @@ the technical detail lives in the indented lines under it.
     both mods loaded, the first proof fight credits one kill and its bait run credits none, and a
     Battle Brain run started right after an LW run finds nothing changed.
   - Added: yes "A new card for the self-test harness from SELF_TEST_PLAN.md, written ELI5-first with Done means and Verify" (2026-11-11)
+  - Built: step 1 of the plan's build order. `.\Check.ps1` runs every gate BuildLinked and Publish
+    run, with one exit code, and deploys nothing, so a commit can be gated while another program
+    has the game. (Tech: Invoke-TablePipeline in tools/pipeline.ps1 takes the CHECK verb; the 18
+    tests in CheckScriptContractTests pin the gate order against BuildLinked and Publish, the exit
+    code for each red gate and the no deploy rule.)
 
 ## Backlog
 

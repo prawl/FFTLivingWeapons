@@ -100,6 +100,7 @@ modloader tables, `tools/analyze.py` fails the build if any item is dominated, a
 python tools/generate.py
 python tools/analyze.py
 dotnet test LivingWeapon.Tests\LivingWeapon.Tests.csproj
+.\Check.ps1            # every gate with one exit code, deploys nothing
 .\BuildLinked.ps1      # dev deploy into your Reloaded Mods folder, refuses on any red step
 .\Publish.ps1          # the same gates, then the release zip
 ```
